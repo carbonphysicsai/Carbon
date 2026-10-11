@@ -64,10 +64,17 @@ authority, and not a security audit (AGENTS.md §13).
      journaled `slot_unfilled`. It is never filled late, and validators keep
      scoring on their current batches meanwhile.
    - **Retiring.** A tick retires every batch whose window has ended: the
-     package moves to `producer/retired/<challenge>/`, and the journal
-     records `release: HUMAN_INPUT`. Releasing a retired batch to the
-     training pool is the owner's decision and never automatic
-     (OWNER-BATTERY-3B-AND-EXPOSURE-01).
+     package moves to `producer/retired/<challenge>/`.
+     - **A batch drawn from a bank** (rule `v2-bank` and later) releases
+       itself: the journal records `release: AUTO_PUBLISH_RETIRED`, and the
+       same tick reveals each ended window and publishes its retired cases,
+       signed, into `outbox/<challenge>/training/<challenge>/`
+       (OWNER-AUTO-PUBLISH-RETIRED-01). The push below carries them to the
+       host's training pool. They stay in the outbox, so `--delete` never
+       removes them.
+     - **Any other batch** records `release: HUMAN_INPUT`: releasing it is
+       the owner's decision and never automatic
+       (OWNER-BATTERY-3B-AND-EXPOSURE-01).
    - **Status:** `producer status --config …` prints counts only.
 
 ## 2. The push (producer to distribution, outbound only)

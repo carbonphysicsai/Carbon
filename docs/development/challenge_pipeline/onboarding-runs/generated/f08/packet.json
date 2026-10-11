@@ -1,0 +1,479 @@
+{
+  "challenge": "f08",
+  "fields": {
+    "P": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize P",
+      "owner": "science/product owner",
+      "recommendation": "Geometry is a design action. Reference-input geometry law: independent uniform\ngrammar parameters conditioned on valid shape. Exogenous `P_dev` is uniform\nover three modal damping ratios; frequency is an adversarial peak search, not\na random customer state. Later decision comparisons weight damping1/3 and\nreport worst condition separately. Q feasibility uses three fixed geometries\n(rib heights8/12/16 mm, rib thickness4 mm, length220,width80,thickness6,\nrelief40 mm) at damping\n0.005 and0.02. No population estimate from six diagnostic cases.\n\n### Prospective population of buyer design questions \u2014 `HUMAN_INPUT`\n\nThe three damping values and 80\u2013600-Hz search belong to one support bank.\nA future `P_job` can vary supported peak-motion, stiffness or mass limits and\nthe required excitation/damping service panel if the solved bank covers it.\nAn automation buyer recognizes the question from its stage acceptance sheet,\npayload schedule and vibration specification. Reapplying different limits to\nstored peak, stiffness and mass outputs needs no new solve, but the\nreference-best support must demonstrably change. New payloads, clamp\nboundaries, contact or damping laws are optional axes requiring new qualified\nreference work. Modes, frequency samples and optimizer starts are not fresh\nbuyer questions.\n\n**Size recommendation, not a selected law:** catalogue eight distinct\ncondition/requirement questions for a development scoping pilot on a\ncomplete-band bank. `HUMAN_INPUT`: eligible limits and panels, `P_job`,\nprotected `Q_job`, weights, answer diversity, shared-frame clustering,\nexposure and hidden `n` from power and measured reference cost.",
+      "sources": [
+        {
+          "excerpt": "Geometry is a design action. Reference-input geometry law: independent uniform\ngrammar parameters conditioned on valid shape. Exogenous `P_dev` is uniform\nover three modal damping ratios; frequency is an adversarial peak search, not\na random customer state. Later decision comparisons weight damping1/3 and\nreport worst condition separately. Q feasibility uses three fixed geometries\n(rib heights8/12/16 mm, rib thickness4 mm, length220,width80,thickness6,\nrelief40 mm) at damping\n0.005 and0.02. No population estimate from six diagnostic cases.\n\n### Prospective population of buyer design questions \u2014 `HUMAN_INPUT`\n\nThe three damping values and 80\u2013600-Hz search belong to one support bank.\nA future `P_job` can vary supported peak-motion, stiffness or mass limits and\nthe required excitation/damping service panel if the solved bank covers it.\nAn automation buyer recognizes the question from its stage acceptance sheet,\npayload schedule and vibration specification. Reapplying different limits to\nstored peak, stiffness and mass outputs needs no new solve, but the\nreference-best support must demonstrably change. New payloads, clamp\nboundaries, contact or damping laws are optional axes requiring new qualified\nreference work. Modes, frequency samples and optimizer starts are not fresh\nbuyer questions.\n\n**Size recommendation, not a selected law:** catalogue eight distinct\ncondition/requirement questions for a development scoping pilot on a\ncomplete-band bank. `HUMAN_INPUT`: eligible limits and panels, `P_job`,\nprotected `Q_job`, weights, answer diversity, shared-frame clustering,\nexposure and hidden `n` from power and measured reference cost.",
+          "path": "docs/development/challenge_pipeline/round1/f08-resonance-structure.md",
+          "sha256": "5387772c58e963c8cfa50bcb09529a0299fd7e12a4266953b2ecae76aecb7404"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "Q": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize Q",
+      "owner": "science/product owner",
+      "recommendation": "Geometry is a design action. Reference-input geometry law: independent uniform\ngrammar parameters conditioned on valid shape. Exogenous `P_dev` is uniform\nover three modal damping ratios; frequency is an adversarial peak search, not\na random customer state. Later decision comparisons weight damping1/3 and\nreport worst condition separately. Q feasibility uses three fixed geometries\n(rib heights8/12/16 mm, rib thickness4 mm, length220,width80,thickness6,\nrelief40 mm) at damping\n0.005 and0.02. No population estimate from six diagnostic cases.\n\n### Prospective population of buyer design questions \u2014 `HUMAN_INPUT`\n\nThe three damping values and 80\u2013600-Hz search belong to one support bank.\nA future `P_job` can vary supported peak-motion, stiffness or mass limits and\nthe required excitation/damping service panel if the solved bank covers it.\nAn automation buyer recognizes the question from its stage acceptance sheet,\npayload schedule and vibration specification. Reapplying different limits to\nstored peak, stiffness and mass outputs needs no new solve, but the\nreference-best support must demonstrably change. New payloads, clamp\nboundaries, contact or damping laws are optional axes requiring new qualified\nreference work. Modes, frequency samples and optimizer starts are not fresh\nbuyer questions.\n\n**Size recommendation, not a selected law:** catalogue eight distinct\ncondition/requirement questions for a development scoping pilot on a\ncomplete-band bank. `HUMAN_INPUT`: eligible limits and panels, `P_job`,\nprotected `Q_job`, weights, answer diversity, shared-frame clustering,\nexposure and hidden `n` from power and measured reference cost.",
+      "sources": [
+        {
+          "excerpt": "Geometry is a design action. Reference-input geometry law: independent uniform\ngrammar parameters conditioned on valid shape. Exogenous `P_dev` is uniform\nover three modal damping ratios; frequency is an adversarial peak search, not\na random customer state. Later decision comparisons weight damping1/3 and\nreport worst condition separately. Q feasibility uses three fixed geometries\n(rib heights8/12/16 mm, rib thickness4 mm, length220,width80,thickness6,\nrelief40 mm) at damping\n0.005 and0.02. No population estimate from six diagnostic cases.\n\n### Prospective population of buyer design questions \u2014 `HUMAN_INPUT`\n\nThe three damping values and 80\u2013600-Hz search belong to one support bank.\nA future `P_job` can vary supported peak-motion, stiffness or mass limits and\nthe required excitation/damping service panel if the solved bank covers it.\nAn automation buyer recognizes the question from its stage acceptance sheet,\npayload schedule and vibration specification. Reapplying different limits to\nstored peak, stiffness and mass outputs needs no new solve, but the\nreference-best support must demonstrably change. New payloads, clamp\nboundaries, contact or damping laws are optional axes requiring new qualified\nreference work. Modes, frequency samples and optimizer starts are not fresh\nbuyer questions.\n\n**Size recommendation, not a selected law:** catalogue eight distinct\ncondition/requirement questions for a development scoping pilot on a\ncomplete-band bank. `HUMAN_INPUT`: eligible limits and panels, `P_job`,\nprotected `Q_job`, weights, answer diversity, shared-frame clustering,\nexposure and hidden `n` from power and measured reference cost.",
+          "path": "docs/development/challenge_pipeline/round1/f08-resonance-structure.md",
+          "sha256": "5387772c58e963c8cfa50bcb09529a0299fd7e12a4266953b2ecae76aecb7404"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "baseline": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize baseline",
+      "owner": "science/product owner",
+      "recommendation": "Public CAD/mesh/response docs, own-seed generation/reference and incomplete\npractice; Euler\u2013Bernoulli beam, 6/12-mode reduction and reused-factorization\nbaselines. Charge their factorization/setup/search costs. Reuse authoring,\ncustody and reconstruction; create the structural domain adapter, not a new judge.",
+      "sources": [
+        {
+          "excerpt": "Public CAD/mesh/response docs, own-seed generation/reference and incomplete\npractice; Euler\u2013Bernoulli beam, 6/12-mode reduction and reused-factorization\nbaselines. Charge their factorization/setup/search costs. Reuse authoring,\ncustody and reconstruction; create the structural domain adapter, not a new judge.",
+          "path": "docs/development/challenge_pipeline/round1/f08-resonance-structure.md",
+          "sha256": "5387772c58e963c8cfa50bcb09529a0299fd7e12a4266953b2ecae76aecb7404"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "buyer": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize buyer",
+      "owner": "science/product owner",
+      "recommendation": "Precision-equipment structural engineer (internal mock customer)",
+      "sources": [],
+      "status": "HUMAN_INPUT"
+    },
+    "case_identity": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize case_identity",
+      "owner": "science/product owner",
+      "recommendation": "Bind complete CAD, material, clamp/load pad, damping, extraction coordinates\nand units; refuse intersecting ribs/relief, invalid mesh or insufficient\nligaments. Reject rather than silently repair geometry. Canonical case/solver/\ndeck/extractor identities remain separate. Public cases never reveal hidden IDs.",
+      "sources": [
+        {
+          "excerpt": "Bind complete CAD, material, clamp/load pad, damping, extraction coordinates\nand units; refuse intersecting ribs/relief, invalid mesh or insufficient\nligaments. Reject rather than silently repair geometry. Canonical case/solver/\ndeck/extractor identities remain separate. Public cases never reveal hidden IDs.",
+          "path": "docs/development/challenge_pipeline/round1/f08-resonance-structure.md",
+          "sha256": "5387772c58e963c8cfa50bcb09529a0299fd7e12a4266953b2ecae76aecb7404"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "conditions": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize conditions",
+      "owner": "science/product owner",
+      "recommendation": "Cantilever rectangular plate: length180\u2013260, width60\u2013100, thickness4\u20138 mm. Two\nlongitudinal upper ribs, height8\u201316/thickness3\u20135 mm, at y=\u00b1width/4. Centered\nthrough-plate cable relief centered at x=L/2,y=0: length20\u201360 mm in x and width20 mm; rounded 3-mm\ncorners, no rib intersection, ligament\u22656 mm. Synthetic isotropic Al-like law:\nE70 GPa, nu0.33, rho2700 kg/m\u00b3. Root x=0 fully clamped. Unit z-directed force\nuniform on the last 5 mm\u00d7central10 mm tip pad, retaining resultant1 N.\nConstant modal damping ratio0.005,0.01 or0.02 (not an inferred real joint law).",
+      "sources": [
+        {
+          "excerpt": "Cantilever rectangular plate: length180\u2013260, width60\u2013100, thickness4\u20138 mm. Two\nlongitudinal upper ribs, height8\u201316/thickness3\u20135 mm, at y=\u00b1width/4. Centered\nthrough-plate cable relief centered at x=L/2,y=0: length20\u201360 mm in x and width20 mm; rounded 3-mm\ncorners, no rib intersection, ligament\u22656 mm. Synthetic isotropic Al-like law:\nE70 GPa, nu0.33, rho2700 kg/m\u00b3. Root x=0 fully clamped. Unit z-directed force\nuniform on the last 5 mm\u00d7central10 mm tip pad, retaining resultant1 N.\nConstant modal damping ratio0.005,0.01 or0.02 (not an inferred real joint law).",
+          "path": "docs/development/challenge_pipeline/round1/f08-resonance-structure.md",
+          "sha256": "5387772c58e963c8cfa50bcb09529a0299fd7e12a4266953b2ecae76aecb7404"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "confirmation": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize confirmation",
+      "owner": "science/product owner",
+      "recommendation": null,
+      "sources": [],
+      "status": "HUMAN_INPUT"
+    },
+    "controls": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize controls",
+      "owner": "science/product owner",
+      "recommendation": "First demonstrate peak resolution. Later preregister designs, search budgets\nand decision measures before solves; hold out whole geometries, not frequencies\non the same curve. Fresh confirmation and physical modal tests are independent\nlater evidence. If modal reduction already solves this job cheaply, park it\ninstead of selecting a grid to manufacture a learned advantage.",
+      "sources": [
+        {
+          "excerpt": "First demonstrate peak resolution. Later preregister designs, search budgets\nand decision measures before solves; hold out whole geometries, not frequencies\non the same curve. Fresh confirmation and physical modal tests are independent\nlater evidence. If modal reduction already solves this job cheaply, park it\ninstead of selecting a grid to manufacture a learned advantage.",
+          "path": "docs/development/challenge_pipeline/round1/f08-resonance-structure.md",
+          "sha256": "5387772c58e963c8cfa50bcb09529a0299fd7e12a4266953b2ecae76aecb7404"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "cost": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize cost",
+      "owner": "science/product owner",
+      "recommendation": "CalculiX static, eigen and harmonic reference with independent mesh/mode/grid\nchecks; its [official capability list](https://www.dhondt.de/ov_calcu.htm) and\n[manual](https://www.dhondt.de/ccx_2.20.pdf) support the candidate route.\nPin build, license, CAD/mesher, element order, mass representation, modal\ndamping and complex-output conventions before any reference dispatch.\n\nAnalytical oscillator and unrelieved beam controls; three mesh levels and\n12/24/48 retained modes where supported. Apply full convergence rungs only to\nthe nominal geometry at both damping extremes; the four other cases are coarse\ndiagnostics and cannot establish reference adequacy. Require eigenfrequency change\u22641%,\npeak amplitude change\u22645%, peak location change\u2264min(2 Hz,1% of peak frequency),\nphase change\u22645\u00b0 near nonzero peaks. Adaptively bracket each resonance; refine\nfrequency spacing to\u2264one tenth of its half-power bandwidth before a peak claim.\nCheck modal truncation independently of mesh. All static/eigen/harmonic process\nlaunches count separately within36 attempts/12 node-hours/$30: six coarse cases\nneed18; oscillator/beam controls use4; two finer nominal meshes share static/\neigen solves between damping settings and use8; four additional modal-retention\nand two frequency-refinement harmonic launches use6. Missing rungs mean\nunresolved reference, not a claimed adequate grid or silently higher damping.\n\n### Reference credibility target\n\n**Buyer tool:** Ansys Mechanical modal/harmonic analysis is the assumed stage\ndesigner's workflow, not a verified adoption claim. **Carbon reference:**\nproposed CalculiX static/eigen/harmonic solves, **not the same tool**; exact\ntask build/decks remain packaging work. Tier 1 requires the buyer's actual\nmodel, materials, supports, damping, mesh and extraction settings.\n\n**Target tier:** Tier 2 for linear structural-design shortlisting. Tier 3\nmeasured modal frequencies and force/response curves are required before\nassembled-support precision reliance; full-machine settling, joints and\nnonlinear dynamics remain excluded. **Credibility evidence: NOT_DEMONSTRATED**.\n\n**Benchmark cases:** published NAFEMS **P18.FV4** (cantilever with off-centre\npoint masses), **P18.FV73** (cantilevered thin square plate) and **R0016.5H**\n(deep simply supported beam, harmonic forced response), identified in\n[NAFEMS's code-verification catalogue](https://www.nafems.org/publications/code-verification/nastran-code-verification/).\nRun the same benchmark definitions in CalculiX and Mechanical and compare\npublished reference quantities; the catalogue is not a Carbon/tool pass.\nAdd matched ribbed/relieved-plate static and harmonic witnesses at both damping\nextremes, with identical force normalization/probes and adaptive resonance\nresolution. Eigenfrequency agreement alone cannot establish FRF peak accuracy.\n\n**Acceptance tolerance: HUMAN_INPUT.** Recommend eigen/peak frequency difference\n\u22641%, static-compliance difference \u22642%, mass difference \u22640.5%, and\npeak-location difference \u2264min(2 Hz, 1% of peak frequency), peak\ndisplacement-per-force difference \u22645%, and wrapped phase difference \u22645\u00b0 at\nresolved nonzero peaks. An absolute response floor for phase/relative error\naway from peaks remains HUMAN_INPUT. Resolve the same resonance and output\nconvention; do not increase damping or smooth away a missed peak to pass.\nThese bound simulator decision error, not unknown physical joint damping.\n\n**Claim boundary:** [common credibility contract](reference-credibility.md).\nAfter accepted evidence, \u201cmatches the reference simulator\u201d for this linear\nsupport/forcing scope, not \u201cmatches reality\u201d or full-machine positioning.",
+      "sources": [
+        {
+          "excerpt": "CalculiX static, eigen and harmonic reference with independent mesh/mode/grid\nchecks; its [official capability list](https://www.dhondt.de/ov_calcu.htm) and\n[manual](https://www.dhondt.de/ccx_2.20.pdf) support the candidate route.\nPin build, license, CAD/mesher, element order, mass representation, modal\ndamping and complex-output conventions before any reference dispatch.\n\nAnalytical oscillator and unrelieved beam controls; three mesh levels and\n12/24/48 retained modes where supported. Apply full convergence rungs only to\nthe nominal geometry at both damping extremes; the four other cases are coarse\ndiagnostics and cannot establish reference adequacy. Require eigenfrequency change\u22641%,\npeak amplitude change\u22645%, peak location change\u2264min(2 Hz,1% of peak frequency),\nphase change\u22645\u00b0 near nonzero peaks. Adaptively bracket each resonance; refine\nfrequency spacing to\u2264one tenth of its half-power bandwidth before a peak claim.\nCheck modal truncation independently of mesh. All static/eigen/harmonic process\nlaunches count separately within36 attempts/12 node-hours/$30: six coarse cases\nneed18; oscillator/beam controls use4; two finer nominal meshes share static/\neigen solves between damping settings and use8; four additional modal-retention\nand two frequency-refinement harmonic launches use6. Missing rungs mean\nunresolved reference, not a claimed adequate grid or silently higher damping.\n\n### Reference credibility target\n\n**Buyer tool:** Ansys Mechanical modal/harmonic analysis is the assumed stage\ndesigner's workflow, not a verified adoption claim. **Carbon reference:**\nproposed CalculiX static/eigen/harmonic solves, **not the same tool**; exact\ntask build/decks remain packaging work. Tier 1 requires the buyer's actual\nmodel, materials, supports, damping, mesh and extraction settings.\n\n**Target tier:** Tier 2 for linear structural-design shortlisting. Tier 3\nmeasured modal frequencies and force/response curves are required before\nassembled-support precision reliance; full-machine settling, joints and\nnonlinear dynamics remain excluded. **Credibility evidence: NOT_DEMONSTRATED**.\n\n**Benchmark cases:** published NAFEMS **P18.FV4** (cantilever with off-centre\npoint masses), **P18.FV73** (cantilevered thin square plate) and **R0016.5H**\n(deep simply supported beam, harmonic forced response), identified in\n[NAFEMS's code-verification catalogue](https://www.nafems.org/publications/code-verification/nastran-code-verification/).\nRun the same benchmark definitions in CalculiX and Mechanical and compare\npublished reference quantities; the catalogue is not a Carbon/tool pass.\nAdd matched ribbed/relieved-plate static and harmonic witnesses at both damping\nextremes, with identical force normalization/probes and adaptive resonance\nresolution. Eigenfrequency agreement alone cannot establish FRF peak accuracy.\n\n**Acceptance tolerance: HUMAN_INPUT.** Recommend eigen/peak frequency difference\n\u22641%, static-compliance difference \u22642%, mass difference \u22640.5%, and\npeak-location difference \u2264min(2 Hz, 1% of peak frequency), peak\ndisplacement-per-force difference \u22645%, and wrapped phase difference \u22645\u00b0 at\nresolved nonzero peaks. An absolute response floor for phase/relative error\naway from peaks remains HUMAN_INPUT. Resolve the same resonance and output\nconvention; do not increase damping or smooth away a missed peak to pass.\nThese bound simulator decision error, not unknown physical joint damping.\n\n**Claim boundary:** [common credibility contract](reference-credibility.md).\nAfter accepted evidence, \u201cmatches the reference simulator\u201d for this linear\nsupport/forcing scope, not \u201cmatches reality\u201d or full-machine positioning.",
+          "path": "docs/development/challenge_pipeline/round1/f08-resonance-structure.md",
+          "sha256": "5387772c58e963c8cfa50bcb09529a0299fd7e12a4266953b2ecae76aecb7404"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "decision": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize decision",
+      "owner": "science/product owner",
+      "recommendation": "Choose a linear resonance-resistant structure with admissible response across the service envelope",
+      "sources": [],
+      "status": "HUMAN_INPUT"
+    },
+    "disclosure": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize disclosure",
+      "owner": "science/product owner",
+      "recommendation": "Bind complete CAD, material, clamp/load pad, damping, extraction coordinates\nand units; refuse intersecting ribs/relief, invalid mesh or insufficient\nligaments. Reject rather than silently repair geometry. Canonical case/solver/\ndeck/extractor identities remain separate. Public cases never reveal hidden IDs.",
+      "sources": [
+        {
+          "excerpt": "Bind complete CAD, material, clamp/load pad, damping, extraction coordinates\nand units; refuse intersecting ribs/relief, invalid mesh or insufficient\nligaments. Reject rather than silently repair geometry. Canonical case/solver/\ndeck/extractor identities remain separate. Public cases never reveal hidden IDs.",
+          "path": "docs/development/challenge_pipeline/round1/f08-resonance-structure.md",
+          "sha256": "5387772c58e963c8cfa50bcb09529a0299fd7e12a4266953b2ecae76aecb7404"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "exclusions": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize exclusions",
+      "owner": "science/product owner",
+      "recommendation": null,
+      "sources": [],
+      "status": "HUMAN_INPUT"
+    },
+    "geometry": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize geometry",
+      "owner": "science/product owner",
+      "recommendation": "Cantilever rectangular plate: length180\u2013260, width60\u2013100, thickness4\u20138 mm. Two\nlongitudinal upper ribs, height8\u201316/thickness3\u20135 mm, at y=\u00b1width/4. Centered\nthrough-plate cable relief centered at x=L/2,y=0: length20\u201360 mm in x and width20 mm; rounded 3-mm\ncorners, no rib intersection, ligament\u22656 mm. Synthetic isotropic Al-like law:\nE70 GPa, nu0.33, rho2700 kg/m\u00b3. Root x=0 fully clamped. Unit z-directed force\nuniform on the last 5 mm\u00d7central10 mm tip pad, retaining resultant1 N.\nConstant modal damping ratio0.005,0.01 or0.02 (not an inferred real joint law).",
+      "sources": [
+        {
+          "excerpt": "Cantilever rectangular plate: length180\u2013260, width60\u2013100, thickness4\u20138 mm. Two\nlongitudinal upper ribs, height8\u201316/thickness3\u20135 mm, at y=\u00b1width/4. Centered\nthrough-plate cable relief centered at x=L/2,y=0: length20\u201360 mm in x and width20 mm; rounded 3-mm\ncorners, no rib intersection, ligament\u22656 mm. Synthetic isotropic Al-like law:\nE70 GPa, nu0.33, rho2700 kg/m\u00b3. Root x=0 fully clamped. Unit z-directed force\nuniform on the last 5 mm\u00d7central10 mm tip pad, retaining resultant1 N.\nConstant modal damping ratio0.005,0.01 or0.02 (not an inferred real joint law).",
+          "path": "docs/development/challenge_pipeline/round1/f08-resonance-structure.md",
+          "sha256": "5387772c58e963c8cfa50bcb09529a0299fd7e12a4266953b2ecae76aecb7404"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "hard_limits": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize hard_limits",
+      "owner": "science/product owner",
+      "recommendation": "Complex z displacement / N at tip-pad centroid and on a2\u00d72-mm solid top-surface\nprobe centered at x=L/2,y=W/2\u22128 mm,z=plate top (outside relief/ribs);\nmass, static compliance, modal frequencies, full adaptive frequency grid and\nband maximum/location. Declare harmonic exp(+i omega t) convention; convert\nsolver phase consistently. Retain the curve and peaks, not a scalar-only grade.\nEvery damping condition must meet constraints; good nonresonant values cannot\noffset a missed peak. Reference failure is missing evidence, not candidate failure.",
+      "sources": [
+        {
+          "excerpt": "Complex z displacement / N at tip-pad centroid and on a2\u00d72-mm solid top-surface\nprobe centered at x=L/2,y=W/2\u22128 mm,z=plate top (outside relief/ribs);\nmass, static compliance, modal frequencies, full adaptive frequency grid and\nband maximum/location. Declare harmonic exp(+i omega t) convention; convert\nsolver phase consistently. Retain the curve and peaks, not a scalar-only grade.\nEvery damping condition must meet constraints; good nonresonant values cannot\noffset a missed peak. Reference failure is missing evidence, not candidate failure.",
+          "path": "docs/development/challenge_pipeline/round1/f08-resonance-structure.md",
+          "sha256": "5387772c58e963c8cfa50bcb09529a0299fd7e12a4266953b2ecae76aecb7404"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "independent_unit": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize independent_unit",
+      "owner": "science/product owner",
+      "recommendation": null,
+      "sources": [],
+      "status": "HUMAN_INPUT"
+    },
+    "materials": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize materials",
+      "owner": "science/product owner",
+      "recommendation": "Cantilever rectangular plate: length180\u2013260, width60\u2013100, thickness4\u20138 mm. Two\nlongitudinal upper ribs, height8\u201316/thickness3\u20135 mm, at y=\u00b1width/4. Centered\nthrough-plate cable relief centered at x=L/2,y=0: length20\u201360 mm in x and width20 mm; rounded 3-mm\ncorners, no rib intersection, ligament\u22656 mm. Synthetic isotropic Al-like law:\nE70 GPa, nu0.33, rho2700 kg/m\u00b3. Root x=0 fully clamped. Unit z-directed force\nuniform on the last 5 mm\u00d7central10 mm tip pad, retaining resultant1 N.\nConstant modal damping ratio0.005,0.01 or0.02 (not an inferred real joint law).",
+      "sources": [
+        {
+          "excerpt": "Cantilever rectangular plate: length180\u2013260, width60\u2013100, thickness4\u20138 mm. Two\nlongitudinal upper ribs, height8\u201316/thickness3\u20135 mm, at y=\u00b1width/4. Centered\nthrough-plate cable relief centered at x=L/2,y=0: length20\u201360 mm in x and width20 mm; rounded 3-mm\ncorners, no rib intersection, ligament\u22656 mm. Synthetic isotropic Al-like law:\nE70 GPa, nu0.33, rho2700 kg/m\u00b3. Root x=0 fully clamped. Unit z-directed force\nuniform on the last 5 mm\u00d7central10 mm tip pad, retaining resultant1 N.\nConstant modal damping ratio0.005,0.01 or0.02 (not an inferred real joint law).",
+          "path": "docs/development/challenge_pipeline/round1/f08-resonance-structure.md",
+          "sha256": "5387772c58e963c8cfa50bcb09529a0299fd7e12a4266953b2ecae76aecb7404"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "next_gate": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize next_gate",
+      "owner": "science/product owner",
+      "recommendation": "Current prospective T2: [buyer value/cost scorecard](../value-cost/f08.md)\nand [owner framework](../value-cost/README.md). Require at least five feasible\nand five distinct near-limit infeasible actions per mandatory stratum. Report\nthe overall fraction; it is not a gate. Other value checks still require\nevidence. Refinement/acceptance remains HUMAN_INPUT; no new runtime authority.\nThe original fraction-based observations below retain their historical meaning.\n\n**Before any new hidden bank:** the owner-selected [four-check value prerequisite](../question-laws/value-check-v1.md)\nrequires per-stratum discrimination and meaningful buyer-unit spread, one\ncomplete feasible action, and changing best/equivalent answers. Numeric\nthresholds remain HUMAN_INPUT recommendations; receipt **NOT_DEMONSTRATED**.\nFor this buyer, report resolved worst-band compliance and stiffness/mass margins across the mandatory\ndamping panel, not an eigenfrequency-only or coarse-grid pass.\nNo favorable redraw, exposure reset, solver grant or qualification follows.\n\n\nSelected requirements, offline beam/mass screen only. New modal/harmonic\nreference, numerical adequacy, kit and reconstruction are NOT_DEMONSTRATED.\nNext: exact CAD/support/damping deck and analytic controls under stage permission.\nNo machine performance, physical damping, qualification or launch claim.",
+      "sources": [
+        {
+          "excerpt": "Current prospective T2: [buyer value/cost scorecard](../value-cost/f08.md)\nand [owner framework](../value-cost/README.md). Require at least five feasible\nand five distinct near-limit infeasible actions per mandatory stratum. Report\nthe overall fraction; it is not a gate. Other value checks still require\nevidence. Refinement/acceptance remains HUMAN_INPUT; no new runtime authority.\nThe original fraction-based observations below retain their historical meaning.\n\n**Before any new hidden bank:** the owner-selected [four-check value prerequisite](../question-laws/value-check-v1.md)\nrequires per-stratum discrimination and meaningful buyer-unit spread, one\ncomplete feasible action, and changing best/equivalent answers. Numeric\nthresholds remain HUMAN_INPUT recommendations; receipt **NOT_DEMONSTRATED**.\nFor this buyer, report resolved worst-band compliance and stiffness/mass margins across the mandatory\ndamping panel, not an eigenfrequency-only or coarse-grid pass.\nNo favorable redraw, exposure reset, solver grant or qualification follows.\n\n\nSelected requirements, offline beam/mass screen only. New modal/harmonic\nreference, numerical adequacy, kit and reconstruction are NOT_DEMONSTRATED.\nNext: exact CAD/support/damping deck and analytic controls under stage permission.\nNo machine performance, physical damping, qualification or launch claim.",
+          "path": "docs/development/challenge_pipeline/round1/f08-resonance-structure.md",
+          "sha256": "5387772c58e963c8cfa50bcb09529a0299fd7e12a4266953b2ecae76aecb7404"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "objective": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize objective",
+      "owner": "science/product owner",
+      "recommendation": "Complex z displacement / N at tip-pad centroid and on a2\u00d72-mm solid top-surface\nprobe centered at x=L/2,y=W/2\u22128 mm,z=plate top (outside relief/ribs);\nmass, static compliance, modal frequencies, full adaptive frequency grid and\nband maximum/location. Declare harmonic exp(+i omega t) convention; convert\nsolver phase consistently. Retain the curve and peaks, not a scalar-only grade.\nEvery damping condition must meet constraints; good nonresonant values cannot\noffset a missed peak. Reference failure is missing evidence, not candidate failure.",
+      "sources": [
+        {
+          "excerpt": "Complex z displacement / N at tip-pad centroid and on a2\u00d72-mm solid top-surface\nprobe centered at x=L/2,y=W/2\u22128 mm,z=plate top (outside relief/ribs);\nmass, static compliance, modal frequencies, full adaptive frequency grid and\nband maximum/location. Declare harmonic exp(+i omega t) convention; convert\nsolver phase consistently. Retain the curve and peaks, not a scalar-only grade.\nEvery damping condition must meet constraints; good nonresonant values cannot\noffset a missed peak. Reference failure is missing evidence, not candidate failure.",
+          "path": "docs/development/challenge_pipeline/round1/f08-resonance-structure.md",
+          "sha256": "5387772c58e963c8cfa50bcb09529a0299fd7e12a4266953b2ecae76aecb7404"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "omissions": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize omissions",
+      "owner": "science/product owner",
+      "recommendation": null,
+      "sources": [],
+      "status": "HUMAN_INPUT"
+    },
+    "outputs": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize outputs",
+      "owner": "science/product owner",
+      "recommendation": "Complex z displacement / N at tip-pad centroid and on a2\u00d72-mm solid top-surface\nprobe centered at x=L/2,y=W/2\u22128 mm,z=plate top (outside relief/ribs);\nmass, static compliance, modal frequencies, full adaptive frequency grid and\nband maximum/location. Declare harmonic exp(+i omega t) convention; convert\nsolver phase consistently. Retain the curve and peaks, not a scalar-only grade.\nEvery damping condition must meet constraints; good nonresonant values cannot\noffset a missed peak. Reference failure is missing evidence, not candidate failure.",
+      "sources": [
+        {
+          "excerpt": "Complex z displacement / N at tip-pad centroid and on a2\u00d72-mm solid top-surface\nprobe centered at x=L/2,y=W/2\u22128 mm,z=plate top (outside relief/ribs);\nmass, static compliance, modal frequencies, full adaptive frequency grid and\nband maximum/location. Declare harmonic exp(+i omega t) convention; convert\nsolver phase consistently. Retain the curve and peaks, not a scalar-only grade.\nEvery damping condition must meet constraints; good nonresonant values cannot\noffset a missed peak. Reference failure is missing evidence, not candidate failure.",
+          "path": "docs/development/challenge_pipeline/round1/f08-resonance-structure.md",
+          "sha256": "5387772c58e963c8cfa50bcb09529a0299fd7e12a4266953b2ecae76aecb7404"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "owners": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize owners",
+      "owner": "science/product owner",
+      "recommendation": "Current prospective T2: [buyer value/cost scorecard](../value-cost/f08.md)\nand [owner framework](../value-cost/README.md). Require at least five feasible\nand five distinct near-limit infeasible actions per mandatory stratum. Report\nthe overall fraction; it is not a gate. Other value checks still require\nevidence. Refinement/acceptance remains HUMAN_INPUT; no new runtime authority.\nThe original fraction-based observations below retain their historical meaning.\n\n**Before any new hidden bank:** the owner-selected [four-check value prerequisite](../question-laws/value-check-v1.md)\nrequires per-stratum discrimination and meaningful buyer-unit spread, one\ncomplete feasible action, and changing best/equivalent answers. Numeric\nthresholds remain HUMAN_INPUT recommendations; receipt **NOT_DEMONSTRATED**.\nFor this buyer, report resolved worst-band compliance and stiffness/mass margins across the mandatory\ndamping panel, not an eigenfrequency-only or coarse-grid pass.\nNo favorable redraw, exposure reset, solver grant or qualification follows.\n\n\nSelected requirements, offline beam/mass screen only. New modal/harmonic\nreference, numerical adequacy, kit and reconstruction are NOT_DEMONSTRATED.\nNext: exact CAD/support/damping deck and analytic controls under stage permission.\nNo machine performance, physical damping, qualification or launch claim.",
+      "sources": [
+        {
+          "excerpt": "Current prospective T2: [buyer value/cost scorecard](../value-cost/f08.md)\nand [owner framework](../value-cost/README.md). Require at least five feasible\nand five distinct near-limit infeasible actions per mandatory stratum. Report\nthe overall fraction; it is not a gate. Other value checks still require\nevidence. Refinement/acceptance remains HUMAN_INPUT; no new runtime authority.\nThe original fraction-based observations below retain their historical meaning.\n\n**Before any new hidden bank:** the owner-selected [four-check value prerequisite](../question-laws/value-check-v1.md)\nrequires per-stratum discrimination and meaningful buyer-unit spread, one\ncomplete feasible action, and changing best/equivalent answers. Numeric\nthresholds remain HUMAN_INPUT recommendations; receipt **NOT_DEMONSTRATED**.\nFor this buyer, report resolved worst-band compliance and stiffness/mass margins across the mandatory\ndamping panel, not an eigenfrequency-only or coarse-grid pass.\nNo favorable redraw, exposure reset, solver grant or qualification follows.\n\n\nSelected requirements, offline beam/mass screen only. New modal/harmonic\nreference, numerical adequacy, kit and reconstruction are NOT_DEMONSTRATED.\nNext: exact CAD/support/damping deck and analytic controls under stage permission.\nNo machine performance, physical damping, qualification or launch claim.",
+          "path": "docs/development/challenge_pipeline/round1/f08-resonance-structure.md",
+          "sha256": "5387772c58e963c8cfa50bcb09529a0299fd7e12a4266953b2ecae76aecb7404"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "panel": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize panel",
+      "owner": "science/product owner",
+      "recommendation": "First demonstrate peak resolution. Later preregister designs, search budgets\nand decision measures before solves; hold out whole geometries, not frequencies\non the same curve. Fresh confirmation and physical modal tests are independent\nlater evidence. If modal reduction already solves this job cheaply, park it\ninstead of selecting a grid to manufacture a learned advantage.",
+      "sources": [
+        {
+          "excerpt": "First demonstrate peak resolution. Later preregister designs, search budgets\nand decision measures before solves; hold out whole geometries, not frequencies\non the same curve. Fresh confirmation and physical modal tests are independent\nlater evidence. If modal reduction already solves this job cheaply, park it\ninstead of selecting a grid to manufacture a learned advantage.",
+          "path": "docs/development/challenge_pipeline/round1/f08-resonance-structure.md",
+          "sha256": "5387772c58e963c8cfa50bcb09529a0299fd7e12a4266953b2ecae76aecb7404"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "permissions": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize permissions",
+      "owner": "construction/security owner",
+      "recommendation": "Prepared Level-0 target: deterministic geometry-to-response ROM/interpolation\nwith declarative recipes; no runtime ID/recipe permission change. Exact TRAIN\nprovenance, retained-mode and resource vocabulary waits for its ticket and\ntraining-budget study. No evaluator code or protected data in reconstruction.",
+      "sources": [
+        {
+          "excerpt": "Prepared Level-0 target: deterministic geometry-to-response ROM/interpolation\nwith declarative recipes; no runtime ID/recipe permission change. Exact TRAIN\nprovenance, retained-mode and resource vocabulary waits for its ticket and\ntraining-budget study. No evaluator code or protected data in reconstruction.",
+          "path": "docs/development/challenge_pipeline/round1/f08-resonance-structure.md",
+          "sha256": "5387772c58e963c8cfa50bcb09529a0299fd7e12a4266953b2ecae76aecb7404"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "physics": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize physics",
+      "owner": "science/product owner",
+      "recommendation": "Linear elasticity, modes and damped frequency response",
+      "sources": [],
+      "status": "HUMAN_INPUT"
+    },
+    "pins": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize pins",
+      "owner": "science/product owner",
+      "recommendation": "CalculiX static, eigen and harmonic reference with independent mesh/mode/grid\nchecks; its [official capability list](https://www.dhondt.de/ov_calcu.htm) and\n[manual](https://www.dhondt.de/ccx_2.20.pdf) support the candidate route.\nPin build, license, CAD/mesher, element order, mass representation, modal\ndamping and complex-output conventions before any reference dispatch.\n\nAnalytical oscillator and unrelieved beam controls; three mesh levels and\n12/24/48 retained modes where supported. Apply full convergence rungs only to\nthe nominal geometry at both damping extremes; the four other cases are coarse\ndiagnostics and cannot establish reference adequacy. Require eigenfrequency change\u22641%,\npeak amplitude change\u22645%, peak location change\u2264min(2 Hz,1% of peak frequency),\nphase change\u22645\u00b0 near nonzero peaks. Adaptively bracket each resonance; refine\nfrequency spacing to\u2264one tenth of its half-power bandwidth before a peak claim.\nCheck modal truncation independently of mesh. All static/eigen/harmonic process\nlaunches count separately within36 attempts/12 node-hours/$30: six coarse cases\nneed18; oscillator/beam controls use4; two finer nominal meshes share static/\neigen solves between damping settings and use8; four additional modal-retention\nand two frequency-refinement harmonic launches use6. Missing rungs mean\nunresolved reference, not a claimed adequate grid or silently higher damping.\n\n### Reference credibility target\n\n**Buyer tool:** Ansys Mechanical modal/harmonic analysis is the assumed stage\ndesigner's workflow, not a verified adoption claim. **Carbon reference:**\nproposed CalculiX static/eigen/harmonic solves, **not the same tool**; exact\ntask build/decks remain packaging work. Tier 1 requires the buyer's actual\nmodel, materials, supports, damping, mesh and extraction settings.\n\n**Target tier:** Tier 2 for linear structural-design shortlisting. Tier 3\nmeasured modal frequencies and force/response curves are required before\nassembled-support precision reliance; full-machine settling, joints and\nnonlinear dynamics remain excluded. **Credibility evidence: NOT_DEMONSTRATED**.\n\n**Benchmark cases:** published NAFEMS **P18.FV4** (cantilever with off-centre\npoint masses), **P18.FV73** (cantilevered thin square plate) and **R0016.5H**\n(deep simply supported beam, harmonic forced response), identified in\n[NAFEMS's code-verification catalogue](https://www.nafems.org/publications/code-verification/nastran-code-verification/).\nRun the same benchmark definitions in CalculiX and Mechanical and compare\npublished reference quantities; the catalogue is not a Carbon/tool pass.\nAdd matched ribbed/relieved-plate static and harmonic witnesses at both damping\nextremes, with identical force normalization/probes and adaptive resonance\nresolution. Eigenfrequency agreement alone cannot establish FRF peak accuracy.\n\n**Acceptance tolerance: HUMAN_INPUT.** Recommend eigen/peak frequency difference\n\u22641%, static-compliance difference \u22642%, mass difference \u22640.5%, and\npeak-location difference \u2264min(2 Hz, 1% of peak frequency), peak\ndisplacement-per-force difference \u22645%, and wrapped phase difference \u22645\u00b0 at\nresolved nonzero peaks. An absolute response floor for phase/relative error\naway from peaks remains HUMAN_INPUT. Resolve the same resonance and output\nconvention; do not increase damping or smooth away a missed peak to pass.\nThese bound simulator decision error, not unknown physical joint damping.\n\n**Claim boundary:** [common credibility contract](reference-credibility.md).\nAfter accepted evidence, \u201cmatches the reference simulator\u201d for this linear\nsupport/forcing scope, not \u201cmatches reality\u201d or full-machine positioning.",
+      "sources": [
+        {
+          "excerpt": "CalculiX static, eigen and harmonic reference with independent mesh/mode/grid\nchecks; its [official capability list](https://www.dhondt.de/ov_calcu.htm) and\n[manual](https://www.dhondt.de/ccx_2.20.pdf) support the candidate route.\nPin build, license, CAD/mesher, element order, mass representation, modal\ndamping and complex-output conventions before any reference dispatch.\n\nAnalytical oscillator and unrelieved beam controls; three mesh levels and\n12/24/48 retained modes where supported. Apply full convergence rungs only to\nthe nominal geometry at both damping extremes; the four other cases are coarse\ndiagnostics and cannot establish reference adequacy. Require eigenfrequency change\u22641%,\npeak amplitude change\u22645%, peak location change\u2264min(2 Hz,1% of peak frequency),\nphase change\u22645\u00b0 near nonzero peaks. Adaptively bracket each resonance; refine\nfrequency spacing to\u2264one tenth of its half-power bandwidth before a peak claim.\nCheck modal truncation independently of mesh. All static/eigen/harmonic process\nlaunches count separately within36 attempts/12 node-hours/$30: six coarse cases\nneed18; oscillator/beam controls use4; two finer nominal meshes share static/\neigen solves between damping settings and use8; four additional modal-retention\nand two frequency-refinement harmonic launches use6. Missing rungs mean\nunresolved reference, not a claimed adequate grid or silently higher damping.\n\n### Reference credibility target\n\n**Buyer tool:** Ansys Mechanical modal/harmonic analysis is the assumed stage\ndesigner's workflow, not a verified adoption claim. **Carbon reference:**\nproposed CalculiX static/eigen/harmonic solves, **not the same tool**; exact\ntask build/decks remain packaging work. Tier 1 requires the buyer's actual\nmodel, materials, supports, damping, mesh and extraction settings.\n\n**Target tier:** Tier 2 for linear structural-design shortlisting. Tier 3\nmeasured modal frequencies and force/response curves are required before\nassembled-support precision reliance; full-machine settling, joints and\nnonlinear dynamics remain excluded. **Credibility evidence: NOT_DEMONSTRATED**.\n\n**Benchmark cases:** published NAFEMS **P18.FV4** (cantilever with off-centre\npoint masses), **P18.FV73** (cantilevered thin square plate) and **R0016.5H**\n(deep simply supported beam, harmonic forced response), identified in\n[NAFEMS's code-verification catalogue](https://www.nafems.org/publications/code-verification/nastran-code-verification/).\nRun the same benchmark definitions in CalculiX and Mechanical and compare\npublished reference quantities; the catalogue is not a Carbon/tool pass.\nAdd matched ribbed/relieved-plate static and harmonic witnesses at both damping\nextremes, with identical force normalization/probes and adaptive resonance\nresolution. Eigenfrequency agreement alone cannot establish FRF peak accuracy.\n\n**Acceptance tolerance: HUMAN_INPUT.** Recommend eigen/peak frequency difference\n\u22641%, static-compliance difference \u22642%, mass difference \u22640.5%, and\npeak-location difference \u2264min(2 Hz, 1% of peak frequency), peak\ndisplacement-per-force difference \u22645%, and wrapped phase difference \u22645\u00b0 at\nresolved nonzero peaks. An absolute response floor for phase/relative error\naway from peaks remains HUMAN_INPUT. Resolve the same resonance and output\nconvention; do not increase damping or smooth away a missed peak to pass.\nThese bound simulator decision error, not unknown physical joint damping.\n\n**Claim boundary:** [common credibility contract](reference-credibility.md).\nAfter accepted evidence, \u201cmatches the reference simulator\u201d for this linear\nsupport/forcing scope, not \u201cmatches reality\u201d or full-machine positioning.",
+          "path": "docs/development/challenge_pipeline/round1/f08-resonance-structure.md",
+          "sha256": "5387772c58e963c8cfa50bcb09529a0299fd7e12a4266953b2ecae76aecb7404"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "public_kit": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize public_kit",
+      "owner": "science/product owner",
+      "recommendation": "Public CAD/mesh/response docs, own-seed generation/reference and incomplete\npractice; Euler\u2013Bernoulli beam, 6/12-mode reduction and reused-factorization\nbaselines. Charge their factorization/setup/search costs. Reuse authoring,\ncustody and reconstruction; create the structural domain adapter, not a new judge.",
+      "sources": [
+        {
+          "excerpt": "Public CAD/mesh/response docs, own-seed generation/reference and incomplete\npractice; Euler\u2013Bernoulli beam, 6/12-mode reduction and reused-factorization\nbaselines. Charge their factorization/setup/search costs. Reuse authoring,\ncustody and reconstruction; create the structural domain adapter, not a new judge.",
+          "path": "docs/development/challenge_pipeline/round1/f08-resonance-structure.md",
+          "sha256": "5387772c58e963c8cfa50bcb09529a0299fd7e12a4266953b2ecae76aecb7404"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "readiness": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize readiness",
+      "owner": "science/product owner",
+      "recommendation": "Current prospective T2: [buyer value/cost scorecard](../value-cost/f08.md)\nand [owner framework](../value-cost/README.md). Require at least five feasible\nand five distinct near-limit infeasible actions per mandatory stratum. Report\nthe overall fraction; it is not a gate. Other value checks still require\nevidence. Refinement/acceptance remains HUMAN_INPUT; no new runtime authority.\nThe original fraction-based observations below retain their historical meaning.\n\n**Before any new hidden bank:** the owner-selected [four-check value prerequisite](../question-laws/value-check-v1.md)\nrequires per-stratum discrimination and meaningful buyer-unit spread, one\ncomplete feasible action, and changing best/equivalent answers. Numeric\nthresholds remain HUMAN_INPUT recommendations; receipt **NOT_DEMONSTRATED**.\nFor this buyer, report resolved worst-band compliance and stiffness/mass margins across the mandatory\ndamping panel, not an eigenfrequency-only or coarse-grid pass.\nNo favorable redraw, exposure reset, solver grant or qualification follows.\n\n\nSelected requirements, offline beam/mass screen only. New modal/harmonic\nreference, numerical adequacy, kit and reconstruction are NOT_DEMONSTRATED.\nNext: exact CAD/support/damping deck and analytic controls under stage permission.\nNo machine performance, physical damping, qualification or launch claim.",
+      "sources": [
+        {
+          "excerpt": "Current prospective T2: [buyer value/cost scorecard](../value-cost/f08.md)\nand [owner framework](../value-cost/README.md). Require at least five feasible\nand five distinct near-limit infeasible actions per mandatory stratum. Report\nthe overall fraction; it is not a gate. Other value checks still require\nevidence. Refinement/acceptance remains HUMAN_INPUT; no new runtime authority.\nThe original fraction-based observations below retain their historical meaning.\n\n**Before any new hidden bank:** the owner-selected [four-check value prerequisite](../question-laws/value-check-v1.md)\nrequires per-stratum discrimination and meaningful buyer-unit spread, one\ncomplete feasible action, and changing best/equivalent answers. Numeric\nthresholds remain HUMAN_INPUT recommendations; receipt **NOT_DEMONSTRATED**.\nFor this buyer, report resolved worst-band compliance and stiffness/mass margins across the mandatory\ndamping panel, not an eigenfrequency-only or coarse-grid pass.\nNo favorable redraw, exposure reset, solver grant or qualification follows.\n\n\nSelected requirements, offline beam/mass screen only. New modal/harmonic\nreference, numerical adequacy, kit and reconstruction are NOT_DEMONSTRATED.\nNext: exact CAD/support/damping deck and analytic controls under stage permission.\nNo machine performance, physical damping, qualification or launch claim.",
+          "path": "docs/development/challenge_pipeline/round1/f08-resonance-structure.md",
+          "sha256": "5387772c58e963c8cfa50bcb09529a0299fd7e12a4266953b2ecae76aecb7404"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "refinement": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize refinement",
+      "owner": "science/product owner",
+      "recommendation": "CalculiX static, eigen and harmonic reference with independent mesh/mode/grid\nchecks; its [official capability list](https://www.dhondt.de/ov_calcu.htm) and\n[manual](https://www.dhondt.de/ccx_2.20.pdf) support the candidate route.\nPin build, license, CAD/mesher, element order, mass representation, modal\ndamping and complex-output conventions before any reference dispatch.\n\nAnalytical oscillator and unrelieved beam controls; three mesh levels and\n12/24/48 retained modes where supported. Apply full convergence rungs only to\nthe nominal geometry at both damping extremes; the four other cases are coarse\ndiagnostics and cannot establish reference adequacy. Require eigenfrequency change\u22641%,\npeak amplitude change\u22645%, peak location change\u2264min(2 Hz,1% of peak frequency),\nphase change\u22645\u00b0 near nonzero peaks. Adaptively bracket each resonance; refine\nfrequency spacing to\u2264one tenth of its half-power bandwidth before a peak claim.\nCheck modal truncation independently of mesh. All static/eigen/harmonic process\nlaunches count separately within36 attempts/12 node-hours/$30: six coarse cases\nneed18; oscillator/beam controls use4; two finer nominal meshes share static/\neigen solves between damping settings and use8; four additional modal-retention\nand two frequency-refinement harmonic launches use6. Missing rungs mean\nunresolved reference, not a claimed adequate grid or silently higher damping.\n\n### Reference credibility target\n\n**Buyer tool:** Ansys Mechanical modal/harmonic analysis is the assumed stage\ndesigner's workflow, not a verified adoption claim. **Carbon reference:**\nproposed CalculiX static/eigen/harmonic solves, **not the same tool**; exact\ntask build/decks remain packaging work. Tier 1 requires the buyer's actual\nmodel, materials, supports, damping, mesh and extraction settings.\n\n**Target tier:** Tier 2 for linear structural-design shortlisting. Tier 3\nmeasured modal frequencies and force/response curves are required before\nassembled-support precision reliance; full-machine settling, joints and\nnonlinear dynamics remain excluded. **Credibility evidence: NOT_DEMONSTRATED**.\n\n**Benchmark cases:** published NAFEMS **P18.FV4** (cantilever with off-centre\npoint masses), **P18.FV73** (cantilevered thin square plate) and **R0016.5H**\n(deep simply supported beam, harmonic forced response), identified in\n[NAFEMS's code-verification catalogue](https://www.nafems.org/publications/code-verification/nastran-code-verification/).\nRun the same benchmark definitions in CalculiX and Mechanical and compare\npublished reference quantities; the catalogue is not a Carbon/tool pass.\nAdd matched ribbed/relieved-plate static and harmonic witnesses at both damping\nextremes, with identical force normalization/probes and adaptive resonance\nresolution. Eigenfrequency agreement alone cannot establish FRF peak accuracy.\n\n**Acceptance tolerance: HUMAN_INPUT.** Recommend eigen/peak frequency difference\n\u22641%, static-compliance difference \u22642%, mass difference \u22640.5%, and\npeak-location difference \u2264min(2 Hz, 1% of peak frequency), peak\ndisplacement-per-force difference \u22645%, and wrapped phase difference \u22645\u00b0 at\nresolved nonzero peaks. An absolute response floor for phase/relative error\naway from peaks remains HUMAN_INPUT. Resolve the same resonance and output\nconvention; do not increase damping or smooth away a missed peak to pass.\nThese bound simulator decision error, not unknown physical joint damping.\n\n**Claim boundary:** [common credibility contract](reference-credibility.md).\nAfter accepted evidence, \u201cmatches the reference simulator\u201d for this linear\nsupport/forcing scope, not \u201cmatches reality\u201d or full-machine positioning.",
+      "sources": [
+        {
+          "excerpt": "CalculiX static, eigen and harmonic reference with independent mesh/mode/grid\nchecks; its [official capability list](https://www.dhondt.de/ov_calcu.htm) and\n[manual](https://www.dhondt.de/ccx_2.20.pdf) support the candidate route.\nPin build, license, CAD/mesher, element order, mass representation, modal\ndamping and complex-output conventions before any reference dispatch.\n\nAnalytical oscillator and unrelieved beam controls; three mesh levels and\n12/24/48 retained modes where supported. Apply full convergence rungs only to\nthe nominal geometry at both damping extremes; the four other cases are coarse\ndiagnostics and cannot establish reference adequacy. Require eigenfrequency change\u22641%,\npeak amplitude change\u22645%, peak location change\u2264min(2 Hz,1% of peak frequency),\nphase change\u22645\u00b0 near nonzero peaks. Adaptively bracket each resonance; refine\nfrequency spacing to\u2264one tenth of its half-power bandwidth before a peak claim.\nCheck modal truncation independently of mesh. All static/eigen/harmonic process\nlaunches count separately within36 attempts/12 node-hours/$30: six coarse cases\nneed18; oscillator/beam controls use4; two finer nominal meshes share static/\neigen solves between damping settings and use8; four additional modal-retention\nand two frequency-refinement harmonic launches use6. Missing rungs mean\nunresolved reference, not a claimed adequate grid or silently higher damping.\n\n### Reference credibility target\n\n**Buyer tool:** Ansys Mechanical modal/harmonic analysis is the assumed stage\ndesigner's workflow, not a verified adoption claim. **Carbon reference:**\nproposed CalculiX static/eigen/harmonic solves, **not the same tool**; exact\ntask build/decks remain packaging work. Tier 1 requires the buyer's actual\nmodel, materials, supports, damping, mesh and extraction settings.\n\n**Target tier:** Tier 2 for linear structural-design shortlisting. Tier 3\nmeasured modal frequencies and force/response curves are required before\nassembled-support precision reliance; full-machine settling, joints and\nnonlinear dynamics remain excluded. **Credibility evidence: NOT_DEMONSTRATED**.\n\n**Benchmark cases:** published NAFEMS **P18.FV4** (cantilever with off-centre\npoint masses), **P18.FV73** (cantilevered thin square plate) and **R0016.5H**\n(deep simply supported beam, harmonic forced response), identified in\n[NAFEMS's code-verification catalogue](https://www.nafems.org/publications/code-verification/nastran-code-verification/).\nRun the same benchmark definitions in CalculiX and Mechanical and compare\npublished reference quantities; the catalogue is not a Carbon/tool pass.\nAdd matched ribbed/relieved-plate static and harmonic witnesses at both damping\nextremes, with identical force normalization/probes and adaptive resonance\nresolution. Eigenfrequency agreement alone cannot establish FRF peak accuracy.\n\n**Acceptance tolerance: HUMAN_INPUT.** Recommend eigen/peak frequency difference\n\u22641%, static-compliance difference \u22642%, mass difference \u22640.5%, and\npeak-location difference \u2264min(2 Hz, 1% of peak frequency), peak\ndisplacement-per-force difference \u22645%, and wrapped phase difference \u22645\u00b0 at\nresolved nonzero peaks. An absolute response floor for phase/relative error\naway from peaks remains HUMAN_INPUT. Resolve the same resonance and output\nconvention; do not increase damping or smooth away a missed peak to pass.\nThese bound simulator decision error, not unknown physical joint damping.\n\n**Claim boundary:** [common credibility contract](reference-credibility.md).\nAfter accepted evidence, \u201cmatches the reference simulator\u201d for this linear\nsupport/forcing scope, not \u201cmatches reality\u201d or full-machine positioning.",
+          "path": "docs/development/challenge_pipeline/round1/f08-resonance-structure.md",
+          "sha256": "5387772c58e963c8cfa50bcb09529a0299fd7e12a4266953b2ecae76aecb7404"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "rights": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize rights",
+      "owner": "science/product owner",
+      "recommendation": null,
+      "sources": [],
+      "status": "HUMAN_INPUT"
+    },
+    "solver": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize solver",
+      "owner": "science/product owner",
+      "recommendation": "CalculiX static, eigen and harmonic reference with independent mesh/mode/grid\nchecks; its [official capability list](https://www.dhondt.de/ov_calcu.htm) and\n[manual](https://www.dhondt.de/ccx_2.20.pdf) support the candidate route.\nPin build, license, CAD/mesher, element order, mass representation, modal\ndamping and complex-output conventions before any reference dispatch.\n\nAnalytical oscillator and unrelieved beam controls; three mesh levels and\n12/24/48 retained modes where supported. Apply full convergence rungs only to\nthe nominal geometry at both damping extremes; the four other cases are coarse\ndiagnostics and cannot establish reference adequacy. Require eigenfrequency change\u22641%,\npeak amplitude change\u22645%, peak location change\u2264min(2 Hz,1% of peak frequency),\nphase change\u22645\u00b0 near nonzero peaks. Adaptively bracket each resonance; refine\nfrequency spacing to\u2264one tenth of its half-power bandwidth before a peak claim.\nCheck modal truncation independently of mesh. All static/eigen/harmonic process\nlaunches count separately within36 attempts/12 node-hours/$30: six coarse cases\nneed18; oscillator/beam controls use4; two finer nominal meshes share static/\neigen solves between damping settings and use8; four additional modal-retention\nand two frequency-refinement harmonic launches use6. Missing rungs mean\nunresolved reference, not a claimed adequate grid or silently higher damping.\n\n### Reference credibility target\n\n**Buyer tool:** Ansys Mechanical modal/harmonic analysis is the assumed stage\ndesigner's workflow, not a verified adoption claim. **Carbon reference:**\nproposed CalculiX static/eigen/harmonic solves, **not the same tool**; exact\ntask build/decks remain packaging work. Tier 1 requires the buyer's actual\nmodel, materials, supports, damping, mesh and extraction settings.\n\n**Target tier:** Tier 2 for linear structural-design shortlisting. Tier 3\nmeasured modal frequencies and force/response curves are required before\nassembled-support precision reliance; full-machine settling, joints and\nnonlinear dynamics remain excluded. **Credibility evidence: NOT_DEMONSTRATED**.\n\n**Benchmark cases:** published NAFEMS **P18.FV4** (cantilever with off-centre\npoint masses), **P18.FV73** (cantilevered thin square plate) and **R0016.5H**\n(deep simply supported beam, harmonic forced response), identified in\n[NAFEMS's code-verification catalogue](https://www.nafems.org/publications/code-verification/nastran-code-verification/).\nRun the same benchmark definitions in CalculiX and Mechanical and compare\npublished reference quantities; the catalogue is not a Carbon/tool pass.\nAdd matched ribbed/relieved-plate static and harmonic witnesses at both damping\nextremes, with identical force normalization/probes and adaptive resonance\nresolution. Eigenfrequency agreement alone cannot establish FRF peak accuracy.\n\n**Acceptance tolerance: HUMAN_INPUT.** Recommend eigen/peak frequency difference\n\u22641%, static-compliance difference \u22642%, mass difference \u22640.5%, and\npeak-location difference \u2264min(2 Hz, 1% of peak frequency), peak\ndisplacement-per-force difference \u22645%, and wrapped phase difference \u22645\u00b0 at\nresolved nonzero peaks. An absolute response floor for phase/relative error\naway from peaks remains HUMAN_INPUT. Resolve the same resonance and output\nconvention; do not increase damping or smooth away a missed peak to pass.\nThese bound simulator decision error, not unknown physical joint damping.\n\n**Claim boundary:** [common credibility contract](reference-credibility.md).\nAfter accepted evidence, \u201cmatches the reference simulator\u201d for this linear\nsupport/forcing scope, not \u201cmatches reality\u201d or full-machine positioning.",
+      "sources": [
+        {
+          "excerpt": "CalculiX static, eigen and harmonic reference with independent mesh/mode/grid\nchecks; its [official capability list](https://www.dhondt.de/ov_calcu.htm) and\n[manual](https://www.dhondt.de/ccx_2.20.pdf) support the candidate route.\nPin build, license, CAD/mesher, element order, mass representation, modal\ndamping and complex-output conventions before any reference dispatch.\n\nAnalytical oscillator and unrelieved beam controls; three mesh levels and\n12/24/48 retained modes where supported. Apply full convergence rungs only to\nthe nominal geometry at both damping extremes; the four other cases are coarse\ndiagnostics and cannot establish reference adequacy. Require eigenfrequency change\u22641%,\npeak amplitude change\u22645%, peak location change\u2264min(2 Hz,1% of peak frequency),\nphase change\u22645\u00b0 near nonzero peaks. Adaptively bracket each resonance; refine\nfrequency spacing to\u2264one tenth of its half-power bandwidth before a peak claim.\nCheck modal truncation independently of mesh. All static/eigen/harmonic process\nlaunches count separately within36 attempts/12 node-hours/$30: six coarse cases\nneed18; oscillator/beam controls use4; two finer nominal meshes share static/\neigen solves between damping settings and use8; four additional modal-retention\nand two frequency-refinement harmonic launches use6. Missing rungs mean\nunresolved reference, not a claimed adequate grid or silently higher damping.\n\n### Reference credibility target\n\n**Buyer tool:** Ansys Mechanical modal/harmonic analysis is the assumed stage\ndesigner's workflow, not a verified adoption claim. **Carbon reference:**\nproposed CalculiX static/eigen/harmonic solves, **not the same tool**; exact\ntask build/decks remain packaging work. Tier 1 requires the buyer's actual\nmodel, materials, supports, damping, mesh and extraction settings.\n\n**Target tier:** Tier 2 for linear structural-design shortlisting. Tier 3\nmeasured modal frequencies and force/response curves are required before\nassembled-support precision reliance; full-machine settling, joints and\nnonlinear dynamics remain excluded. **Credibility evidence: NOT_DEMONSTRATED**.\n\n**Benchmark cases:** published NAFEMS **P18.FV4** (cantilever with off-centre\npoint masses), **P18.FV73** (cantilevered thin square plate) and **R0016.5H**\n(deep simply supported beam, harmonic forced response), identified in\n[NAFEMS's code-verification catalogue](https://www.nafems.org/publications/code-verification/nastran-code-verification/).\nRun the same benchmark definitions in CalculiX and Mechanical and compare\npublished reference quantities; the catalogue is not a Carbon/tool pass.\nAdd matched ribbed/relieved-plate static and harmonic witnesses at both damping\nextremes, with identical force normalization/probes and adaptive resonance\nresolution. Eigenfrequency agreement alone cannot establish FRF peak accuracy.\n\n**Acceptance tolerance: HUMAN_INPUT.** Recommend eigen/peak frequency difference\n\u22641%, static-compliance difference \u22642%, mass difference \u22640.5%, and\npeak-location difference \u2264min(2 Hz, 1% of peak frequency), peak\ndisplacement-per-force difference \u22645%, and wrapped phase difference \u22645\u00b0 at\nresolved nonzero peaks. An absolute response floor for phase/relative error\naway from peaks remains HUMAN_INPUT. Resolve the same resonance and output\nconvention; do not increase damping or smooth away a missed peak to pass.\nThese bound simulator decision error, not unknown physical joint damping.\n\n**Claim boundary:** [common credibility contract](reference-credibility.md).\nAfter accepted evidence, \u201cmatches the reference simulator\u201d for this linear\nsupport/forcing scope, not \u201cmatches reality\u201d or full-machine positioning.",
+          "path": "docs/development/challenge_pipeline/round1/f08-resonance-structure.md",
+          "sha256": "5387772c58e963c8cfa50bcb09529a0299fd7e12a4266953b2ecae76aecb7404"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "strata": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize strata",
+      "owner": "science/product owner",
+      "recommendation": "Geometry is a design action. Reference-input geometry law: independent uniform\ngrammar parameters conditioned on valid shape. Exogenous `P_dev` is uniform\nover three modal damping ratios; frequency is an adversarial peak search, not\na random customer state. Later decision comparisons weight damping1/3 and\nreport worst condition separately. Q feasibility uses three fixed geometries\n(rib heights8/12/16 mm, rib thickness4 mm, length220,width80,thickness6,\nrelief40 mm) at damping\n0.005 and0.02. No population estimate from six diagnostic cases.\n\n### Prospective population of buyer design questions \u2014 `HUMAN_INPUT`\n\nThe three damping values and 80\u2013600-Hz search belong to one support bank.\nA future `P_job` can vary supported peak-motion, stiffness or mass limits and\nthe required excitation/damping service panel if the solved bank covers it.\nAn automation buyer recognizes the question from its stage acceptance sheet,\npayload schedule and vibration specification. Reapplying different limits to\nstored peak, stiffness and mass outputs needs no new solve, but the\nreference-best support must demonstrably change. New payloads, clamp\nboundaries, contact or damping laws are optional axes requiring new qualified\nreference work. Modes, frequency samples and optimizer starts are not fresh\nbuyer questions.\n\n**Size recommendation, not a selected law:** catalogue eight distinct\ncondition/requirement questions for a development scoping pilot on a\ncomplete-band bank. `HUMAN_INPUT`: eligible limits and panels, `P_job`,\nprotected `Q_job`, weights, answer diversity, shared-frame clustering,\nexposure and hidden `n` from power and measured reference cost.",
+      "sources": [
+        {
+          "excerpt": "Geometry is a design action. Reference-input geometry law: independent uniform\ngrammar parameters conditioned on valid shape. Exogenous `P_dev` is uniform\nover three modal damping ratios; frequency is an adversarial peak search, not\na random customer state. Later decision comparisons weight damping1/3 and\nreport worst condition separately. Q feasibility uses three fixed geometries\n(rib heights8/12/16 mm, rib thickness4 mm, length220,width80,thickness6,\nrelief40 mm) at damping\n0.005 and0.02. No population estimate from six diagnostic cases.\n\n### Prospective population of buyer design questions \u2014 `HUMAN_INPUT`\n\nThe three damping values and 80\u2013600-Hz search belong to one support bank.\nA future `P_job` can vary supported peak-motion, stiffness or mass limits and\nthe required excitation/damping service panel if the solved bank covers it.\nAn automation buyer recognizes the question from its stage acceptance sheet,\npayload schedule and vibration specification. Reapplying different limits to\nstored peak, stiffness and mass outputs needs no new solve, but the\nreference-best support must demonstrably change. New payloads, clamp\nboundaries, contact or damping laws are optional axes requiring new qualified\nreference work. Modes, frequency samples and optimizer starts are not fresh\nbuyer questions.\n\n**Size recommendation, not a selected law:** catalogue eight distinct\ncondition/requirement questions for a development scoping pilot on a\ncomplete-band bank. `HUMAN_INPUT`: eligible limits and panels, `P_job`,\nprotected `Q_job`, weights, answer diversity, shared-frame clustering,\nexposure and hidden `n` from power and measured reference cost.",
+          "path": "docs/development/challenge_pipeline/round1/f08-resonance-structure.md",
+          "sha256": "5387772c58e963c8cfa50bcb09529a0299fd7e12a4266953b2ecae76aecb7404"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "training": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize training",
+      "owner": "science/product owner",
+      "recommendation": null,
+      "sources": [],
+      "status": "HUMAN_INPUT"
+    },
+    "uncertainty": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize uncertainty",
+      "owner": "science/product owner",
+      "recommendation": "CalculiX static, eigen and harmonic reference with independent mesh/mode/grid\nchecks; its [official capability list](https://www.dhondt.de/ov_calcu.htm) and\n[manual](https://www.dhondt.de/ccx_2.20.pdf) support the candidate route.\nPin build, license, CAD/mesher, element order, mass representation, modal\ndamping and complex-output conventions before any reference dispatch.\n\nAnalytical oscillator and unrelieved beam controls; three mesh levels and\n12/24/48 retained modes where supported. Apply full convergence rungs only to\nthe nominal geometry at both damping extremes; the four other cases are coarse\ndiagnostics and cannot establish reference adequacy. Require eigenfrequency change\u22641%,\npeak amplitude change\u22645%, peak location change\u2264min(2 Hz,1% of peak frequency),\nphase change\u22645\u00b0 near nonzero peaks. Adaptively bracket each resonance; refine\nfrequency spacing to\u2264one tenth of its half-power bandwidth before a peak claim.\nCheck modal truncation independently of mesh. All static/eigen/harmonic process\nlaunches count separately within36 attempts/12 node-hours/$30: six coarse cases\nneed18; oscillator/beam controls use4; two finer nominal meshes share static/\neigen solves between damping settings and use8; four additional modal-retention\nand two frequency-refinement harmonic launches use6. Missing rungs mean\nunresolved reference, not a claimed adequate grid or silently higher damping.\n\n### Reference credibility target\n\n**Buyer tool:** Ansys Mechanical modal/harmonic analysis is the assumed stage\ndesigner's workflow, not a verified adoption claim. **Carbon reference:**\nproposed CalculiX static/eigen/harmonic solves, **not the same tool**; exact\ntask build/decks remain packaging work. Tier 1 requires the buyer's actual\nmodel, materials, supports, damping, mesh and extraction settings.\n\n**Target tier:** Tier 2 for linear structural-design shortlisting. Tier 3\nmeasured modal frequencies and force/response curves are required before\nassembled-support precision reliance; full-machine settling, joints and\nnonlinear dynamics remain excluded. **Credibility evidence: NOT_DEMONSTRATED**.\n\n**Benchmark cases:** published NAFEMS **P18.FV4** (cantilever with off-centre\npoint masses), **P18.FV73** (cantilevered thin square plate) and **R0016.5H**\n(deep simply supported beam, harmonic forced response), identified in\n[NAFEMS's code-verification catalogue](https://www.nafems.org/publications/code-verification/nastran-code-verification/).\nRun the same benchmark definitions in CalculiX and Mechanical and compare\npublished reference quantities; the catalogue is not a Carbon/tool pass.\nAdd matched ribbed/relieved-plate static and harmonic witnesses at both damping\nextremes, with identical force normalization/probes and adaptive resonance\nresolution. Eigenfrequency agreement alone cannot establish FRF peak accuracy.\n\n**Acceptance tolerance: HUMAN_INPUT.** Recommend eigen/peak frequency difference\n\u22641%, static-compliance difference \u22642%, mass difference \u22640.5%, and\npeak-location difference \u2264min(2 Hz, 1% of peak frequency), peak\ndisplacement-per-force difference \u22645%, and wrapped phase difference \u22645\u00b0 at\nresolved nonzero peaks. An absolute response floor for phase/relative error\naway from peaks remains HUMAN_INPUT. Resolve the same resonance and output\nconvention; do not increase damping or smooth away a missed peak to pass.\nThese bound simulator decision error, not unknown physical joint damping.\n\n**Claim boundary:** [common credibility contract](reference-credibility.md).\nAfter accepted evidence, \u201cmatches the reference simulator\u201d for this linear\nsupport/forcing scope, not \u201cmatches reality\u201d or full-machine positioning.",
+      "sources": [
+        {
+          "excerpt": "CalculiX static, eigen and harmonic reference with independent mesh/mode/grid\nchecks; its [official capability list](https://www.dhondt.de/ov_calcu.htm) and\n[manual](https://www.dhondt.de/ccx_2.20.pdf) support the candidate route.\nPin build, license, CAD/mesher, element order, mass representation, modal\ndamping and complex-output conventions before any reference dispatch.\n\nAnalytical oscillator and unrelieved beam controls; three mesh levels and\n12/24/48 retained modes where supported. Apply full convergence rungs only to\nthe nominal geometry at both damping extremes; the four other cases are coarse\ndiagnostics and cannot establish reference adequacy. Require eigenfrequency change\u22641%,\npeak amplitude change\u22645%, peak location change\u2264min(2 Hz,1% of peak frequency),\nphase change\u22645\u00b0 near nonzero peaks. Adaptively bracket each resonance; refine\nfrequency spacing to\u2264one tenth of its half-power bandwidth before a peak claim.\nCheck modal truncation independently of mesh. All static/eigen/harmonic process\nlaunches count separately within36 attempts/12 node-hours/$30: six coarse cases\nneed18; oscillator/beam controls use4; two finer nominal meshes share static/\neigen solves between damping settings and use8; four additional modal-retention\nand two frequency-refinement harmonic launches use6. Missing rungs mean\nunresolved reference, not a claimed adequate grid or silently higher damping.\n\n### Reference credibility target\n\n**Buyer tool:** Ansys Mechanical modal/harmonic analysis is the assumed stage\ndesigner's workflow, not a verified adoption claim. **Carbon reference:**\nproposed CalculiX static/eigen/harmonic solves, **not the same tool**; exact\ntask build/decks remain packaging work. Tier 1 requires the buyer's actual\nmodel, materials, supports, damping, mesh and extraction settings.\n\n**Target tier:** Tier 2 for linear structural-design shortlisting. Tier 3\nmeasured modal frequencies and force/response curves are required before\nassembled-support precision reliance; full-machine settling, joints and\nnonlinear dynamics remain excluded. **Credibility evidence: NOT_DEMONSTRATED**.\n\n**Benchmark cases:** published NAFEMS **P18.FV4** (cantilever with off-centre\npoint masses), **P18.FV73** (cantilevered thin square plate) and **R0016.5H**\n(deep simply supported beam, harmonic forced response), identified in\n[NAFEMS's code-verification catalogue](https://www.nafems.org/publications/code-verification/nastran-code-verification/).\nRun the same benchmark definitions in CalculiX and Mechanical and compare\npublished reference quantities; the catalogue is not a Carbon/tool pass.\nAdd matched ribbed/relieved-plate static and harmonic witnesses at both damping\nextremes, with identical force normalization/probes and adaptive resonance\nresolution. Eigenfrequency agreement alone cannot establish FRF peak accuracy.\n\n**Acceptance tolerance: HUMAN_INPUT.** Recommend eigen/peak frequency difference\n\u22641%, static-compliance difference \u22642%, mass difference \u22640.5%, and\npeak-location difference \u2264min(2 Hz, 1% of peak frequency), peak\ndisplacement-per-force difference \u22645%, and wrapped phase difference \u22645\u00b0 at\nresolved nonzero peaks. An absolute response floor for phase/relative error\naway from peaks remains HUMAN_INPUT. Resolve the same resonance and output\nconvention; do not increase damping or smooth away a missed peak to pass.\nThese bound simulator decision error, not unknown physical joint damping.\n\n**Claim boundary:** [common credibility contract](reference-credibility.md).\nAfter accepted evidence, \u201cmatches the reference simulator\u201d for this linear\nsupport/forcing scope, not \u201cmatches reality\u201d or full-machine positioning.",
+          "path": "docs/development/challenge_pipeline/round1/f08-resonance-structure.md",
+          "sha256": "5387772c58e963c8cfa50bcb09529a0299fd7e12a4266953b2ecae76aecb7404"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "validity": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize validity",
+      "owner": "science/product owner",
+      "recommendation": null,
+      "sources": [],
+      "status": "HUMAN_INPUT"
+    },
+    "value": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize value",
+      "owner": "science/product owner",
+      "recommendation": "Hypothetical precision-stage engineer: select a light ribbed support minimizing\nworst-band tip motion per unit load. Buyer constraints: mass\u22640.45 kg, static\ntip compliance\u22640.03 mm/N, and dynamic peak\u22640.15 mm/N throughout 80\u2013600 Hz for\nall declared damping conditions. A missed peak causes positioning error.\nNo full-machine settling time, throughput, fatigue, strength or joint certification.",
+      "sources": [
+        {
+          "excerpt": "Hypothetical precision-stage engineer: select a light ribbed support minimizing\nworst-band tip motion per unit load. Buyer constraints: mass\u22640.45 kg, static\ntip compliance\u22640.03 mm/N, and dynamic peak\u22640.15 mm/N throughout 80\u2013600 Hz for\nall declared damping conditions. A missed peak causes positioning error.\nNo full-machine settling time, throughput, fatigue, strength or joint certification.",
+          "path": "docs/development/challenge_pipeline/round1/f08-resonance-structure.md",
+          "sha256": "5387772c58e963c8cfa50bcb09529a0299fd7e12a4266953b2ecae76aecb7404"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "vocabulary": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize vocabulary",
+      "owner": "science/product owner",
+      "recommendation": "Prepared Level-0 target: deterministic geometry-to-response ROM/interpolation\nwith declarative recipes; no runtime ID/recipe permission change. Exact TRAIN\nprovenance, retained-mode and resource vocabulary waits for its ticket and\ntraining-budget study. No evaluator code or protected data in reconstruction.",
+      "sources": [
+        {
+          "excerpt": "Prepared Level-0 target: deterministic geometry-to-response ROM/interpolation\nwith declarative recipes; no runtime ID/recipe permission change. Exact TRAIN\nprovenance, retained-mode and resource vocabulary waits for its ticket and\ntraining-budget study. No evaluator code or protected data in reconstruction.",
+          "path": "docs/development/challenge_pipeline/round1/f08-resonance-structure.md",
+          "sha256": "5387772c58e963c8cfa50bcb09529a0299fd7e12a4266953b2ecae76aecb7404"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "w": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize w",
+      "owner": "science/product owner",
+      "recommendation": "Geometry is a design action. Reference-input geometry law: independent uniform\ngrammar parameters conditioned on valid shape. Exogenous `P_dev` is uniform\nover three modal damping ratios; frequency is an adversarial peak search, not\na random customer state. Later decision comparisons weight damping1/3 and\nreport worst condition separately. Q feasibility uses three fixed geometries\n(rib heights8/12/16 mm, rib thickness4 mm, length220,width80,thickness6,\nrelief40 mm) at damping\n0.005 and0.02. No population estimate from six diagnostic cases.\n\n### Prospective population of buyer design questions \u2014 `HUMAN_INPUT`\n\nThe three damping values and 80\u2013600-Hz search belong to one support bank.\nA future `P_job` can vary supported peak-motion, stiffness or mass limits and\nthe required excitation/damping service panel if the solved bank covers it.\nAn automation buyer recognizes the question from its stage acceptance sheet,\npayload schedule and vibration specification. Reapplying different limits to\nstored peak, stiffness and mass outputs needs no new solve, but the\nreference-best support must demonstrably change. New payloads, clamp\nboundaries, contact or damping laws are optional axes requiring new qualified\nreference work. Modes, frequency samples and optimizer starts are not fresh\nbuyer questions.\n\n**Size recommendation, not a selected law:** catalogue eight distinct\ncondition/requirement questions for a development scoping pilot on a\ncomplete-band bank. `HUMAN_INPUT`: eligible limits and panels, `P_job`,\nprotected `Q_job`, weights, answer diversity, shared-frame clustering,\nexposure and hidden `n` from power and measured reference cost.",
+      "sources": [
+        {
+          "excerpt": "Geometry is a design action. Reference-input geometry law: independent uniform\ngrammar parameters conditioned on valid shape. Exogenous `P_dev` is uniform\nover three modal damping ratios; frequency is an adversarial peak search, not\na random customer state. Later decision comparisons weight damping1/3 and\nreport worst condition separately. Q feasibility uses three fixed geometries\n(rib heights8/12/16 mm, rib thickness4 mm, length220,width80,thickness6,\nrelief40 mm) at damping\n0.005 and0.02. No population estimate from six diagnostic cases.\n\n### Prospective population of buyer design questions \u2014 `HUMAN_INPUT`\n\nThe three damping values and 80\u2013600-Hz search belong to one support bank.\nA future `P_job` can vary supported peak-motion, stiffness or mass limits and\nthe required excitation/damping service panel if the solved bank covers it.\nAn automation buyer recognizes the question from its stage acceptance sheet,\npayload schedule and vibration specification. Reapplying different limits to\nstored peak, stiffness and mass outputs needs no new solve, but the\nreference-best support must demonstrably change. New payloads, clamp\nboundaries, contact or damping laws are optional axes requiring new qualified\nreference work. Modes, frequency samples and optimizer starts are not fresh\nbuyer questions.\n\n**Size recommendation, not a selected law:** catalogue eight distinct\ncondition/requirement questions for a development scoping pilot on a\ncomplete-band bank. `HUMAN_INPUT`: eligible limits and panels, `P_job`,\nprotected `Q_job`, weights, answer diversity, shared-frame clustering,\nexposure and hidden `n` from power and measured reference cost.",
+          "path": "docs/development/challenge_pipeline/round1/f08-resonance-structure.md",
+          "sha256": "5387772c58e963c8cfa50bcb09529a0299fd7e12a4266953b2ecae76aecb7404"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    },
+    "wrong_decision": {
+      "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+      "needed_decision": "Confirm applicability and authorize wrong_decision",
+      "owner": "science/product owner",
+      "recommendation": "Hypothetical precision-stage engineer: select a light ribbed support minimizing\nworst-band tip motion per unit load. Buyer constraints: mass\u22640.45 kg, static\ntip compliance\u22640.03 mm/N, and dynamic peak\u22640.15 mm/N throughout 80\u2013600 Hz for\nall declared damping conditions. A missed peak causes positioning error.\nNo full-machine settling time, throughput, fatigue, strength or joint certification.",
+      "sources": [
+        {
+          "excerpt": "Hypothetical precision-stage engineer: select a light ribbed support minimizing\nworst-band tip motion per unit load. Buyer constraints: mass\u22640.45 kg, static\ntip compliance\u22640.03 mm/N, and dynamic peak\u22640.15 mm/N throughout 80\u2013600 Hz for\nall declared damping conditions. A missed peak causes positioning error.\nNo full-machine settling time, throughput, fatigue, strength or joint certification.",
+          "path": "docs/development/challenge_pipeline/round1/f08-resonance-structure.md",
+          "sha256": "5387772c58e963c8cfa50bcb09529a0299fd7e12a4266953b2ecae76aecb7404"
+        }
+      ],
+      "status": "SOURCE_EXTRACT"
+    }
+  },
+  "maturity": "DRAFT_ONLY",
+  "schema": "carbon.onboarding.packet-draft.v1"
+}

@@ -1,0 +1,39 @@
+{
+  "schema":"carbon.onboarding.replacement-intake.v1",
+  "challenge":"bolted-joint",
+  "disposition":"HOLD_OPEN_SET_NOT_CONFIRMED",
+  "run_authorized":false,
+  "research_basis":{"pr":1001,"commit":"2861b3bee63d8c7f143821fcbde6f2a941741775","status":"OPEN_RESEARCH_NOT_ACCEPTANCE","assessment":"https://github.com/carbonphysicsai/Carbon/blob/2861b3bee63d8c7f143821fcbde6f2a941741775/Business/research/open-data-check/ASSESSMENT.md","sources":"https://github.com/carbonphysicsai/Carbon/blob/2861b3bee63d8c7f143821fcbde6f2a941741775/Business/research/open-data-check/SOURCES.md"},
+  "inputs":[
+    {"field":"open geometry/assembly ingredient","state":"RIGHTS_IDENTIFIED_INGREDIENT","evidence":"S05 TRC design family DOI 10.18419/DARUS-3147 v1.0, CC-BY-4.0 CAD/drawings and revision-D assembly instructions; research checksum-inspected PDF","gap":"Different vibration benchmark, not eccentric bracket. Torque/steel names do not establish force preload, service friction or strength curves","owner":"Research supplies provenance; owner/counsel accepts rights"},
+    {"field":"tightening datasets","state":"NOT_CLEARED_FOR_INTENDED_USE","evidence":"S06 KIT CC-BY-NC-ND-4.0; S07 BERT non-commercial terms","gap":"No intended commercial-company/public-kit permission established. Tightening friction is not the faying-interface service law","owner":"Owner/counsel; no permission request in this ticket"},
+    {"field":"example solver deck","state":"VERIFICATION_INGREDIENT_RIGHTS_UNCONFIRMED","evidence":"S08 example bolt.inp is elastic and lacks a FRICTION keyword; contributed collection root asset license not established","gap":"Cannot inherit all deck/material rights from solver GPL; not contact/strength calibration","owner":"Research and Data Collection"},
+    {"field":"bracket geometry and action grammar","state":"HUMAN_INPUT","gap":"Matched bracket, bolt pattern, interfaces, tolerances, preload/support action bounds with public rights","owner":"Mock owner chooses internal case; later customer supplies original assembly"},
+    {"field":"constitutive, friction and assembly calibration","state":"HUMAN_INPUT","gap":"Same-family bolt/member curves and strength applicability, faying law by surface/pressure/condition, force preload/order/scatter. Separate thread/head friction","owner":"Science/reference owner and research or rights-permitted customer"},
+    {"field":"service law and requirements","state":"CUSTOMER_OR_MOCK_OWNER_INPUT","gap":"Unchanged eccentric load history, opening/slip/strength limits and objective, correlated job distribution. Stress singularity regularization needs accepted measurement","owner":"Mock owner/customer and Test Lead"},
+    {"field":"reference implementation","state":"NOT_DEMONSTRATED","gap":"Pinned pretension/contact/history and observers; force balance, contact convergence, direct/witness agreement. f08 linear modal package alone cannot cover this","owner":"Data Collection packages; Test Lead/science accepts adequacy"}
+  ],
+  "question_law_review":{
+    "status":"SPECIFIED_HUMAN_INPUT",
+    "P":"Matched bracket revision jobs under fixed assembly/service envelope, correlated loads, preload and material/contact conditions",
+    "Q":"Separately labelled incipient slip, opening and strength-frontier enrichment",
+    "w":"Buyer/job prevalence and consequence weights independently selected; not Q sampling rates",
+    "action_set":"Registered preload, bolt-pattern and support geometry within approved assembly bounds; no sampled coordinates yet",
+    "one_question":"One fixed buyer job and full assembly-to-service conditions; rank only completely admissible configurations by approved buyer objective",
+    "k":{"low_base_high":[4,8,12],"basis":"Discovery section 11 ASSUMPTION sensitivity, not adopted power or law"},
+    "NONE_FEASIBLE":"Retain valid forward no-solution jobs without redraw; certify every eligible menu action's mandatory failure or remain UNRESOLVED",
+    "T2a":{"working_refinement_bands":2,"minimum_feasible":5,"minimum_infeasible":5,"accepted_widths":null,"measured":false},
+    "E":null,"B":null,"distinct_winners":null,"threshold_variation_renews_E":false
+  },
+  "panel_review":{
+    "status":"PROPOSED_NOT_DISPATCHABLE",
+    "source":"Discovery dossier section 12; counts are ASSUMPTION, not registered tuples",
+    "candidate_designs":10,"mandatory_strata":4,"primary_cases":40,"refined_cases":8,"refined_cost_multiplier":2,"control_equivalents":4,"independent_witness_equivalents":4,"failed_attempt_allowance":4,"equivalent_cases":68,
+    "hypothesis_cost_eur_low_base_high":[19.85,25.39,43.13],
+    "CPU_cost":"UNMEASURED; historical proposal includes setup/tax/reserve, not an execution grant",
+    "exact_design_condition_rung_tuples":null,"accepted_pins":null,"completed_and_scheduled_reuse_inventory":null,
+    "return":"Per-stratum opening/slip/strength margins, TWO-band contested counts, complete feasible witness, changing picks, strongest contact-aware compliance/FE-map baseline, CPU/wall/RAM/failures, force-balance and rights/reference receipts"
+  },
+  "next_action":{"owner":"Research with packet owner","action":"Close matched bracket preload/friction/material provenance first, prioritizing bolt among contact candidates per #1001. TRC-only rehearsal requires a separately approved scope, not silent bracket substitution"},
+  "path_to_product":"Conditional customer-data design candidate, not customer-ready executable package or adopted launch Challenge"
+}
