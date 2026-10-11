@@ -1,0 +1,30 @@
+{
+ "manifest_sha256": "bab5ae9702dc0a8ec3c8f26b9ddd9337c19152dc4d1f8692c3bc8d33c14f7e39",
+ "tuples": 300,
+ "new_standard_jobs": 284,
+ "reused": {
+  "standard": 16,
+  "rung2": 12,
+  "rung3": 6
+ },
+ "by_band": {
+  "15": {
+   "tuples": 111,
+   "standard_reused": 2,
+   "rung2_reused": 1,
+   "rung3_reused": 0
+  },
+  "25": {
+   "tuples": 104,
+   "standard_reused": 8,
+   "rung2_reused": 8,
+   "rung3_reused": 4
+  },
+  "35": {
+   "tuples": 85,
+   "standard_reused": 6,
+   "rung2_reused": 3,
+   "rung3_reused": 2
+  }
+ }
+}
