@@ -257,10 +257,12 @@ class BudgetLedger:
         if type(actual_cost) is not dict or set(actual_cost) != {"wall_s", "core_s"}:
             raise BudgetRegistrationError("actual complete-panel cost required")
         for unit in ("wall_s", "core_s"):
-            actual = _positive_number(actual_cost[unit], f"actual {unit}")
-            if actual > planning_bound[unit]:
-                raise BudgetRegistrationError("planning bound below actual cost")
+            _positive_number(actual_cost[unit], f"actual {unit}")
         self.wall_s += actual_cost["wall_s"]
         self.core_s += actual_cost["core_s"]
         self.solver_evaluations += 1
+        if any(
+            actual_cost[unit] > planning_bound[unit] for unit in ("wall_s", "core_s")
+        ):
+            raise BudgetRegistrationError("planning bound below actual cost")
         return True

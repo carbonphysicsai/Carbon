@@ -105,4 +105,5 @@ def test_overhead_and_planning_bound_stop_before_unaffordable_attempt():
         ledger.charge_solver_attempt(
             {"wall_s": 1.0, "core_s": 1.0}, {"wall_s": 2.0, "core_s": 1.0}
         )
-    assert ledger.solver_evaluations == 0
+    # A realized bound violation is still one spent attempt, never free.
+    assert (ledger.solver_evaluations, ledger.wall_s, ledger.core_s) == (1, 2.0, 1.0)
