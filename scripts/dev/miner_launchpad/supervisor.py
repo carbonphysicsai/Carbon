@@ -97,6 +97,13 @@ HANDED_OVER = "paused_for_handover"
 #: one of a miner's operations. A commit runs here because the miner's signer
 #: waits on its own terminal for the miner to confirm (LAUNCHPAD-ACCEPT-02).
 OPERATIONS = ("run", "practice", "freeze_candidate", "submit", "commit")
+#: LAUNCHPAD-PRACTICE-RETRY-01: how many times one interrupted practice is
+#: sent again on its own, when the miner turned that on in their runner
+#: profile (`runner.PRACTICE_AUTO_RETRY`). A fixed engineering cap, counted
+#: from the queue (`practice_retries`), so a practice that keeps being
+#: interrupted never loops: after the cap it waits for its miner's one-step
+#: retry (resume with retry_interrupted).
+PRACTICE_RETRY_CAP = 2
 
 #: Ledger control states in which some process was working when it last
 #: wrote. Seen by a supervisor holding the campaign's free ownership lock,
@@ -183,8 +190,19 @@ NEXT_ACTIONS = {
     "operation_interrupted": (
         "The operation stopped before it finished, most likely because the "
         "process running it exited. Observe the campaign, then try again; "
-        "reconcile first if it asks for reconciliation."
+        "reconcile first if it asks for reconciliation. An interrupted "
+        "practice is sent again exactly as it was in one call: resume with "
+        "retry_interrupted=true (carbon_resume), or Retry practice in the "
+        "Control Center."
     ),
+    # The one-step retry of an interrupted practice (LAUNCHPAD-PRACTICE-RETRY-01).
+    "no_interrupted_practice": (
+        "This campaign has no interrupted practice to send again: its last "
+        "refusal is not a practice's operation_interrupted, or that practice's "
+        "request was not recorded. Observe the campaign, then practise "
+        "(carbon_practice) with the recipe you want."
+    ),
+    "retry_interrupted_boolean_required": "Send retry_interrupted as true or false.",
     "campaign_interrupted": (
         "The campaign stopped before it finished. Resume it; reconcile first "
         "if it asks for reconciliation."
@@ -1453,9 +1471,15 @@ def read_refusal(stored):
     return entry if entry["code"] == value["code"] else None
 
 
-def recovery_actions(state, in_flight=None, *, resumable=True):
+def recovery_actions(state, in_flight=None, *, resumable=True, retry_practice=False):
     """What gets a campaign moving again from `state`, as operations a door
     can call: `[{"action", "operation"}]`, empty when nothing is needed.
+
+    `retry_practice`: the campaign's last practice was interrupted and its
+    request is recorded (`RunnerAdapter.interrupted_practice`), so the first
+    action is to send it again exactly as it was - resume with
+    retry_interrupted=true (LAUNCHPAD-PRACTICE-RETRY-01). False leaves the
+    actions exactly as before.
 
     `resumable` is False for a campaign nothing resumes - one launched under
     the retired grant, or on a retired Challenge - whose resume is always
@@ -1468,6 +1492,11 @@ def recovery_actions(state, in_flight=None, *, resumable=True):
     gone without settling it (its process died, and no supervisor has
     recovered it yet) is settled PAUSED; while a holder lives, Reconcile
     answers `campaign_busy` and changes nothing."""
+    if retry_practice and resumable:
+        return [
+            {"action": "retry_interrupted", "operation": "resume"},
+            *recovery_actions(state, in_flight, resumable=resumable),
+        ]
     resume = [{"action": "resume", "operation": "resume"}] if resumable else []
     reconcile = {"action": "reconcile", "operation": "halt"}
     stop = {"action": "stop", "operation": "halt"}
@@ -1498,20 +1527,39 @@ def ensure_schema(db):
     for column in ("launch_request", "last_refusal"):
         if column not in columns:
             db.execute(f"ALTER TABLE launchpad_campaigns ADD COLUMN {column} BLOB")
+    # The interrupted practice a dispatch sends again (its first item's
+    # `seq`), so the retries of one practice are counted and capped
+    # (LAUNCHPAD-PRACTICE-RETRY-01). NULL for every other item.
+    if "retry_of" not in {
+        r[1] for r in db.execute("PRAGMA table_info(launchpad_dispatch)")
+    }:
+        db.execute("ALTER TABLE launchpad_dispatch ADD COLUMN retry_of INTEGER")
 
 
 def enqueue(
-    db, *, principal, campaign, operation, params, config_digest, state, supervisor=None
+    db,
+    *,
+    principal,
+    campaign,
+    operation,
+    params,
+    config_digest,
+    state,
+    supervisor=None,
+    retry_of=None,
 ):
     """Record one admitted dispatch; returns its sequence number. A QUEUED
     item waits for a supervisor; a RUNNING one was started at once by
-    `supervisor`, the process that records it."""
+    `supervisor`, the process that records it. `retry_of` names the
+    interrupted practice this one sends again (its first item's `seq`)."""
     if operation not in OPERATIONS or state not in (QUEUED, RUNNING):
         raise ValueError("closed dispatch required")
     if (state == RUNNING) != (supervisor is not None):
         raise ValueError("a running dispatch names its supervisor")
+    if retry_of is not None and (operation != "practice" or type(retry_of) is not int):
+        raise ValueError("only a practice is sent again")
     return db.execute(
-        "INSERT INTO launchpad_dispatch (principal,campaign,operation,params,config_digest,state,supervisor,created,claimed) VALUES(?,?,?,?,?,?,?,?,?)",
+        "INSERT INTO launchpad_dispatch (principal,campaign,operation,params,config_digest,state,supervisor,created,claimed,retry_of) VALUES(?,?,?,?,?,?,?,?,?,?)",
         (
             principal,
             campaign,
@@ -1522,6 +1570,7 @@ def enqueue(
             supervisor,
             time.time(),
             time.time() if state == RUNNING else None,
+            retry_of,
         ),
     ).lastrowid
 
@@ -1566,6 +1615,24 @@ def interrupted_runs(db, *, principal, campaign):
     return db.execute(
         "SELECT COUNT(*) FROM launchpad_dispatch WHERE principal=? AND campaign=? AND operation='run' AND outcome='interrupted'",
         (principal, campaign),
+    ).fetchone()[0]
+
+
+def latest(db, *, principal, campaign):
+    """The newest item ever admitted for `campaign`, done or not, or None."""
+    row = db.execute(
+        "SELECT * FROM launchpad_dispatch WHERE principal=? AND campaign=? ORDER BY seq DESC LIMIT 1",
+        (principal, campaign),
+    ).fetchone()
+    return dict(row) if row is not None else None
+
+
+def practice_retries(db, *, principal, original):
+    """How many times the practice first admitted as item `original` was
+    sent again, on its own or by its miner (LAUNCHPAD-PRACTICE-RETRY-01)."""
+    return db.execute(
+        "SELECT COUNT(*) FROM launchpad_dispatch WHERE principal=? AND retry_of=?",
+        (principal, original),
     ).fetchone()[0]
 
 

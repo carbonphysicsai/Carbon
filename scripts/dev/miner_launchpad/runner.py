@@ -123,7 +123,13 @@ OPTIONAL_PROFILE_FIELDS = {
     # LINKONLY-D9). Required exactly when the runtime declares `remote_gpu`;
     # never frozen into a campaign, because its address can change.
     "remote_machine",
+    # The miner's choice to have an interrupted practice sent again on its
+    # own (LAUNCHPAD-PRACTICE-RETRY-01): a boolean, off when absent. Setup's
+    # Review writes it only when the miner turned it on.
+    "practice_auto_retry",
 }
+#: The runner profile's field for the miner's auto-retry choice.
+PRACTICE_AUTO_RETRY = "practice_auto_retry"
 #: The Challenge each legacy per-Challenge field was written for.
 LEGACY_INTAKE, LEGACY_VALIDATOR = "battery_intake", "battery_validator"
 
@@ -699,6 +705,8 @@ def validated_profile(cfg):
         ):
             raise ValueError("operator paths must be absolute")
     _remote_machine(cfg, runtime)
+    if PRACTICE_AUTO_RETRY in cfg and type(cfg[PRACTICE_AUTO_RETRY]) is not bool:
+        raise ValueError("practice_auto_retry is true or false")
     if LEGACY_INTAKE in cfg and not _intake_url(cfg[LEGACY_INTAKE]):
         raise ValueError("battery_intake is an https URL or a loopback URL")
     if "intakes" in cfg:
@@ -764,6 +772,17 @@ def validated_profile(cfg):
         except ModelSelectionRefused:
             raise ValueError("model_selection does not validate") from None
     return cfg
+
+
+def practice_auto_retry(cfg):
+    """Whether the miner turned on sending an interrupted practice again on
+    its own (LAUNCHPAD-PRACTICE-RETRY-01). Off for a profile without the
+    field, as every profile was before."""
+    return type(cfg) is dict and cfg.get(PRACTICE_AUTO_RETRY) is True
+
+
+#: What a recorded practice request holds, from `practice_admitted`.
+PRACTICE_PARAMS = frozenset({"strategy", "hypothesis", "expected_effect", "identity"})
 
 
 def _remote_machine(cfg, runtime):
@@ -1804,6 +1823,8 @@ class RunnerAdapter:
                     # refusal in it was kept by an earlier attempt; the one
                     # recovery just recorded is this interruption's own.
                     self._redispatch_stranded(row, orphan)
+                    if orphan == "practice":
+                        self._auto_retry_practice(row["id"])
 
     def _recover_one(self, row, kind, orphan, waiting=False):
         """Settle one campaign if a dead process left it in flight. True when
@@ -1904,6 +1925,115 @@ class RunnerAdapter:
             control = CampaignControl(ledger)
             if control.status()["state"] in supervision.IN_FLIGHT:
                 self._settle_if_idle(ledger, control, root)
+
+    def interrupted_practice(self, identity):
+        """The practice this campaign may send again, or None: its last
+        refusal is `operation_interrupted` for a practice - never a practice
+        refused for a typed reason, and never a freeze, submit or commit - and
+        its newest dispatch is that practice, done, with its request
+        recorded. Returns `(item, original)`: the item and the `seq` of the
+        practice first admitted (LAUNCHPAD-PRACTICE-RETRY-01)."""
+        with self.db() as db:
+            stored = db.execute(
+                "SELECT last_refusal FROM launchpad_campaigns WHERE id=? AND principal=?",
+                (identity, self.principal),
+            ).fetchone()
+            item = supervision.latest(db, principal=self.principal, campaign=identity)
+        refused = supervision.read_refusal(stored[0]) if stored is not None else None
+        if (
+            refused is None
+            or (refused["code"], refused["operation"], refused["kind"])
+            != ("operation_interrupted", "practice", "interrupted")
+            or item is None
+            or item["operation"] != "practice"
+            or item["state"] != supervision.DONE
+            or item["outcome"] == "refused"
+        ):
+            return None
+        try:
+            params = json.loads(item["params"])
+        except (TypeError, ValueError):
+            return None
+        if (
+            type(params) is not dict
+            or set(params) != PRACTICE_PARAMS
+            or type(params["strategy"]) is not dict
+            or type(params["hypothesis"]) is not str
+            or type(params["expected_effect"]) is not str
+        ):
+            return None
+        original = item.get("retry_of")
+        return item, original if type(original) is int else item["seq"]
+
+    @staticmethod
+    def _retried_params(item):
+        """The interrupted practice's own request - its recipe, hypothesis
+        and expected effect, unchanged - under a fresh trial identity: the
+        one it was sent under is bound in the campaign's ledger to the
+        attempt that was lost, so reusing it would replay that attempt rather
+        than run the practice again."""
+        import uuid
+
+        params = json.loads(item["params"])
+        return {
+            "strategy": params["strategy"],
+            "hypothesis": params["hypothesis"],
+            "expected_effect": params["expected_effect"],
+            "identity": "miner-practice-" + uuid.uuid4().hex[:16],
+        }
+
+    def _auto_retry_practice(self, identity):
+        """A supervisor that has just recovered a practice a dead process
+        left unfinished queues it again, once per recovery, when its miner
+        turned that on (`practice_auto_retry`) and the campaign settled READY
+        with nothing queued for it - at most `PRACTICE_RETRY_CAP` times per
+        practice. Never a typed refusal, a freeze, submit or commit
+        (`interrupted_practice`). Otherwise the campaign keeps its
+        `operation_interrupted`, whose step is the miner's one-call retry."""
+        try:
+            cfg = self.configured()
+        except Exception:  # noqa: BLE001 - an unusable profile retries nothing
+            return
+        if not practice_auto_retry(cfg):
+            return
+        found = self.interrupted_practice(identity)
+        if found is None:
+            return
+        item, original = found
+        _row, kind, root = self._bound(identity)
+        if kind != "product" or not (root / "campaign-manifest.json").exists():
+            return
+        if (root / "campaign.sqlite3").exists():
+            status = CampaignControl(CampaignLedger(root)).status()
+            if (status["state"], status["desired"]) != ("READY", "RUN"):
+                return
+        with self.db() as db:
+            if supervision.active(db, principal=self.principal, campaign=identity):
+                return
+            if (
+                supervision.practice_retries(
+                    db, principal=self.principal, original=original
+                )
+                >= supervision.PRACTICE_RETRY_CAP
+            ):
+                return
+            supervision.enqueue(
+                db,
+                principal=self.principal,
+                campaign=identity,
+                operation="practice",
+                params=self._retried_params(item),
+                config_digest=digest(canonical(cfg)),
+                state=supervision.QUEUED,
+                retry_of=original,
+            )
+            # Sent again: the interruption is history, as for a launch
+            # carried out again (`_redispatch_stranded`).
+            db.execute(
+                "UPDATE launchpad_campaigns SET last_refusal=NULL WHERE id=?",
+                (identity,),
+            )
+        self._state(identity, "PRACTICING")
 
     def _redispatch_stranded(self, row, orphan=None):
         """Queue again a launch admitted and never prepared (D5): QUEUED, its
@@ -2424,7 +2554,7 @@ class RunnerAdapter:
                 self._settle_if_idle(ledger, control, root)
         self._refused(identity, "paused_when_supervisor_closed", "run", kind="paused")
 
-    def _record(self, identity, operation, params, cfg, state):
+    def _record(self, identity, operation, params, cfg, state, retry_of=None):
         with self.db() as db:
             return {
                 "seq": supervision.enqueue(
@@ -2436,6 +2566,7 @@ class RunnerAdapter:
                     config_digest=digest(canonical(cfg)),
                     state=state,
                     supervisor=self.token if state == supervision.RUNNING else None,
+                    retry_of=retry_of,
                 ),
                 "campaign": identity,
                 "operation": operation,
@@ -3709,16 +3840,33 @@ class RunnerAdapter:
         return self._control(admitted.campaign["id"], request["action"])
 
     def resume_admitted(self, admitted, request):
+        retry = request.get("retry_interrupted", False)
+        if type(retry) is not bool:
+            raise Rejected("retry_interrupted_boolean_required")
+        if retry:
+            return self._retry_practice(admitted)
         return self._control(admitted.campaign["id"], "resume")
 
-    def practice_admitted(self, admitted, request):
-        """One practice trial of a registered recipe, run in the background:
-        real training takes minutes, and observe shows the result."""
-        import uuid
+    def _retry_practice(self, admitted):
+        """Resume with retry_interrupted (LAUNCHPAD-PRACTICE-RETRY-01): send
+        the campaign's interrupted practice again exactly as it was, in one
+        call. The same gates a practice passes, again, so a profile or
+        recipe that would refuse it now refuses it now. Refused
+        `no_interrupted_practice` unless the last refusal is a practice's
+        `operation_interrupted` with its request recorded; never a freeze,
+        submit or commit."""
+        found = self.interrupted_practice(admitted.campaign["id"])
+        if found is None:
+            raise Rejected("no_interrupted_practice", 409)
+        item, original = found
+        params = self._retried_params(item)
+        self._practice_gates(admitted, params["strategy"])
+        return self._background(
+            admitted, "practice", params, "PRACTICING", {}, retry_of=original
+        )
 
-        from scripts.dev.miner_launchpad.operations import strategy_value
-
-        strategy = strategy_value(request)
+    def _practice_gates(self, admitted, strategy):
+        """What a practice is refused for before it starts."""
         # Its preparation would refuse it on the thread (LA-F19).
         self._require_current_revision(admitted)
         # At a construction level, the level's compile first; check-design
@@ -3728,6 +3876,16 @@ class RunnerAdapter:
             admitted.campaign, getattr(admitted, "profile", None)
         )
         self._design_refusal(levels.checked_strategy(found, strategy))
+
+    def practice_admitted(self, admitted, request):
+        """One practice trial of a registered recipe, run in the background:
+        real training takes minutes, and observe shows the result."""
+        import uuid
+
+        from scripts.dev.miner_launchpad.operations import strategy_value
+
+        strategy = strategy_value(request)
+        self._practice_gates(admitted, strategy)
         hypothesis = request["hypothesis"]
         expected = request.get("expected_effect", hypothesis)
         for text in (hypothesis, expected):
@@ -4111,7 +4269,16 @@ class RunnerAdapter:
             return False
         return item["state"] == supervision.QUEUED or self._supervisor_running()
 
-    def _background(self, admitted, operation, params, state, request, probe_lock=True):
+    def _background(
+        self,
+        admitted,
+        operation,
+        params,
+        state,
+        request,
+        probe_lock=True,
+        retry_of=None,
+    ):
         """Run a long miner operation on its own thread; observe reports it.
 
         A keyed request is claimed in the same critical section that starts
@@ -4122,7 +4289,8 @@ class RunnerAdapter:
 
         `state` None leaves the campaign's state as it is; `probe_lock` False
         is for an operation that never takes the campaign's ownership lock (a
-        commit touches no campaign record but its own request).
+        commit touches no campaign record but its own request). `retry_of`
+        names the interrupted practice this one sends again.
         """
         identity = admitted.campaign["id"]
         key = request.get("idempotency_key")
@@ -4174,7 +4342,12 @@ class RunnerAdapter:
                 # Queued for the supervisor, under the profile this request
                 # was admitted with; it starts nothing admitted under another.
                 self._record(
-                    identity, operation, params, admitted.profile, supervision.QUEUED
+                    identity,
+                    operation,
+                    params,
+                    admitted.profile,
+                    supervision.QUEUED,
+                    retry_of,
                 )
                 if state is not None:
                     self._state(identity, state)
@@ -4182,7 +4355,12 @@ class RunnerAdapter:
                     self.delegated.add(identity)
             else:
                 item = self._record(
-                    identity, operation, params, admitted.profile, supervision.RUNNING
+                    identity,
+                    operation,
+                    params,
+                    admitted.profile,
+                    supervision.RUNNING,
+                    retry_of,
                 )
                 function, args = self._dispatch_target(operation, admitted, params)
                 thread = threading.Thread(
@@ -4740,6 +4918,12 @@ class RunnerAdapter:
 
         if action == "resume":
             return perform(self, "resume", {"campaign": identity})
+        if action == "retry_interrupted":
+            # The page's one-step retry of an interrupted practice: resume's
+            # own (LAUNCHPAD-PRACTICE-RETRY-01).
+            return perform(
+                self, "resume", {"campaign": identity, "retry_interrupted": True}
+            )
         return perform(self, "halt", {"campaign": identity, "action": action})
 
     def _control(self, identity, action):
@@ -4936,10 +5120,19 @@ class RunnerAdapter:
         value["in_flight"] = self._in_flight(identity)
         # Only what can succeed: nothing resumes a retired-grant campaign or
         # one on a retired Challenge (`_control`), so neither is offered it.
+        resumable = kind == "product" and not retired_challenge(root)
         value["recovery"] = supervision.recovery_actions(
             value["state"],
             value["in_flight"],
-            resumable=kind == "product" and not retired_challenge(root),
+            resumable=resumable,
+            # An interrupted practice not sent again on its own (the setting
+            # off, or its retries used): its one-step retry, first, once the
+            # campaign can take a practice (READY: a paused one resumes, and
+            # one awaiting reconciliation reconciles, first).
+            retry_practice=resumable
+            and value["state"] == "READY"
+            and value["in_flight"] is None
+            and self.interrupted_practice(identity) is not None,
         )
         # The strategy commitment, from the campaign's request and the
         # poster's record; no chain read (LAUNCHPAD-ACCEPT-02). Null when none

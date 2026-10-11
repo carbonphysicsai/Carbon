@@ -1979,6 +1979,15 @@ class EnvironmentSetup:
             # Each image setup fills in, where it was found, or the one
             # command that builds it (LINKONLY-D10: no typed paths).
             "images": installed.found(self.root.parent, REPO),
+            # The miner's choices Review writes into the profile: whether an
+            # interrupted practice is sent again on its own, off unless the
+            # miner turned it on (LAUNCHPAD-PRACTICE-RETRY-01).
+            "preferences": {
+                "practice_auto_retry": (record.get("preferences") or {}).get(
+                    "practice_auto_retry"
+                )
+                is True,
+            },
             "steps": {
                 "inference": _public(
                     record.get("inference"),
@@ -2663,6 +2672,7 @@ class EnvironmentSetup:
         from carbon.challenge_registry.campaigns import campaign_for_id
         from scripts.dev.miner_launchpad.runner import (
             LEGACY_INTAKE,
+            PRACTICE_AUTO_RETRY,
             _intake_url,
             _legacy_challenge,
         )
@@ -2670,10 +2680,23 @@ class EnvironmentSetup:
         _closed(
             value,
             {"confirm"},
-            {"intakes", LEGACY_INTAKE, "receiver_hotkey", "receivers"},
+            {
+                "intakes",
+                LEGACY_INTAKE,
+                "receiver_hotkey",
+                "receivers",
+                PRACTICE_AUTO_RETRY,
+            },
         )
         if value["confirm"] is not True:
             raise SetupRefused("confirm", "review_needs_confirmation")
+        if (
+            PRACTICE_AUTO_RETRY in value
+            and type(value[PRACTICE_AUTO_RETRY]) is not bool
+        ):
+            raise SetupRefused(
+                PRACTICE_AUTO_RETRY, "practice_auto_retry_boolean_required"
+            )
         intakes = value.get("intakes", {})
         if type(intakes) is not dict:
             raise SetupRefused("intakes", "intakes_map_challenge_ids_to_urls")
@@ -2742,6 +2765,15 @@ class EnvironmentSetup:
             if receivers:
                 cfg = {**cfg, "receivers": receivers}
             record = self._record()
+            # The miner's auto-retry choice (LAUNCHPAD-PRACTICE-RETRY-01):
+            # this Review's when it names one, else the one kept from before,
+            # so an update's Review keeps it. Written into the profile only
+            # when on: off, the profile is exactly as before the setting.
+            preferences = dict(record.get("preferences") or {})
+            if PRACTICE_AUTO_RETRY in value:
+                preferences[PRACTICE_AUTO_RETRY] = value[PRACTICE_AUTO_RETRY]
+            if preferences.get(PRACTICE_AUTO_RETRY) is True:
+                cfg = {**cfg, PRACTICE_AUTO_RETRY: True}
             agent = record["agent"]
             if agent.get("check", {}).get("hermes_profile") == "written at review":
                 # Hermes chosen before the model: its profile now, on the
@@ -2777,6 +2809,8 @@ class EnvironmentSetup:
                 },
                 "warnings": warnings,
             }
+            if preferences:
+                record["preferences"] = preferences
             # A profile an update set aside is replaced by this one.
             record.pop("profile_set_aside", None)
             self._save(record)

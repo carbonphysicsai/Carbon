@@ -1515,6 +1515,14 @@
       summary.append(el("dt", label), el("dd", state.checked ? checkedText(name, steps) : j.skipped[name] ? "Skipped: your agent uses its own model" : "Not checked yet"));
     }
     researchNote(review, "Writes your runner profile beside this controller and loads it. Nothing is launched and nothing is spent.", "hint");
+    // The miner's choice, off unless turned on (LAUNCHPAD-PRACTICE-RETRY-01):
+    // a practice the Control Center's restart cut off is sent again on its
+    // own, on the miner's compute. Written by Review, like the intakes.
+    const retryRow = el("label", undefined, "check");
+    const retryAgain = el("input"); retryAgain.type = "checkbox"; retryAgain.id = "setup-practice-auto-retry";
+    retryAgain.checked = setupState.preferences?.practice_auto_retry === true;
+    retryRow.append(retryAgain, " Send an interrupted practice again on its own, exactly as it was (at most 2 times; never a freeze, submit or commit; off unless you turn it on)");
+    review.append(retryRow);
     const evaluationBox = el("div"); review.append(evaluationBox);
     // A validator's intake, when a Challenge's validator runs elsewhere
     // (C-MLP-03 slice 6, per Challenge since C-MLP-04). Its public facts are
@@ -1544,7 +1552,7 @@
     if (!steps.review?.ready) researchNote(review, "Finish steps 3 to 5 first.", "hint");
     review.addEventListener("submit", async event => {
       event.preventDefault();
-      const request = {confirm: true};
+      const request = {confirm: true, practice_auto_retry: retryAgain.checked};
       if (intake.value.trim() && intakeChallenge.value) {
         request.intakes = {[intakeChallenge.value]: intake.value.trim()};
         if (receiver.value.trim()) request.receiver_hotkey = receiver.value.trim();
