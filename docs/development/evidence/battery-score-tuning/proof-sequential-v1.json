@@ -42,7 +42,8 @@
   ],
   "screen_scope": "pooled, and each construction level with at least `minimum_level_members` members; per-level tau is reported descriptively, and a level that fails a screen gets its own powered proof",
   "minimum_level_members": 10,
-  "registry": "registry-v5 is authoritative for SCORE-PROOF-01: 130 expanded rules (registry-v4's 129 plus the rule in force); confirmation tests one frozen pick against the rule in force (G-FEAS/A-Q>@0.05), so one contrast",
+  "registry": "registry-v6 is authoritative for SCORE-PROOF-01: 149 expanded rules (registry-v5's 130 plus #1059's 19: G-PLATE/A-Q and G-PLATE/A-Q> at 7 cutoffs each, G-FEAS-T/A-Q at 0.025 and G-FEAS-T/A-Q> at 4); confirmation tests one frozen pick against the rule in force (G-FEAS/A-Q>@0.05), so one contrast",
   "questions": "drawn and sealed on the operator host (`score_proof_questions draw`): EV4's decision contract with new operating conditions from a host-generated seed, disjoint from EV4's 24 public conditions and from the quiz's Q3 scenarios; only the contract digest is public",
-  "question_count": "resolved questions only: the common resolved mask (every member's decision verifiable), never the offered count; about 56% of offered questions resolve (#1055), so 150 resolved needs about 267 offered"
+  "question_count": "resolved questions only: the common resolved mask (every member's decision verifiable), never the offered count; about 56% of offered questions resolve (#1055), so 150 resolved needs about 267 offered",
+  "later_additions": "a candidate registered in a merged registry before the confirmation unlock (the first `--phase confirmation` run on the sealed work directory) joins the selection fold and is scored on the retained references without re-solving; after the unlock, nothing is added"
 }

@@ -24,9 +24,10 @@ directory and `Q` its quiz.
 
 ## 0. Before
 
-- Release **r7** (commit `7b8e89c34`) is installed on the AX42, and the
-  host's cloud-init names the same tag. The shard manifests pin the code
-  commit, so both sides must run r7.
+- **The release containing registry v6** (SCORE-PROOF-01 amendment 5),
+  cut after #1070 merges, is installed on the AX42, and the host's
+  cloud-init names the same tag. r7 cannot read registry v6, and the
+  shard manifests pin the code commit, so both sides run that release.
 - **Run 1 of [SCORE_PROOF_OWNER_SHEET.md](SCORE_PROOF_OWNER_SHEET.md) is
   done**, and you have picked a rule from `selection.md`. Call it `<PICK>`.
 
