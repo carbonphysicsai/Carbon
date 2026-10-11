@@ -1,6 +1,6 @@
 {
   "schema": "carbon.battery.score-tuning-registry.v1",
-  "registered": "2026-10-11, registry v6: registry v5 unchanged plus #1059's selection-fold candidates (G-PLATE/A-Q with both comparisons, tighter G-FEAS/A-Q with both), before any sealed question is drawn",
+  "registered": "2026-10-11, registry v6: registry v5 unchanged plus #1059's selection-fold candidates (G-PLATE/A-Q with both comparisons, tighter G-FEAS/A-Q with both, and accuracy alone), before any sealed question is drawn",
   "seeds": "EV5 adversarial FAIL (8 top-half infeasible rebuild-identity constructions; Mode X violators best_deciding and best_proposed), SR-B1 (#618), run-5 diagnosis (thermal false acceptance at the limit); FEASIBILITY-GATE-DESIGN-01 (#1059) public safety curves",
   "candidates": [
     {
@@ -461,6 +461,13 @@
       "base": "A-Q",
       "comparison": "exceeds",
       "basis": "#1059 recommendation 2, tighter G-FEAS over A-Q with the rule in force's comparison (fail only above), below its 0.05"
+    },
+    {
+      "id": "A",
+      "weights": {
+        "a": 1.0
+      },
+      "basis": "accuracy alone, ungated: the strongest public value-ranking signal (#1073: EV5 tau 0.475 for accuracy against decision value, where VERIFY-R reaches 0.151)"
     }
   ],
   "supersedes": "registry-v5.json (all its candidates kept unchanged)",

@@ -50,12 +50,13 @@ def test_v6_keeps_every_v5_candidate_and_adds_1059s_selection_candidates():
     v5, _ = score_tuning.load_registry(REGISTRIES / "registry-v5.json")
     v6, _ = score_tuning.load_registry(REGISTRIES / "registry-v6.json")
     assert {k: v for k, v in v6.items() if k in v5} == v5
-    assert len(v5) == 130 and len(v6) == 149
+    assert len(v5) == 130 and len(v6) == 150
     grid = ("0.005", "0.01", "0.02", "0.025", "0.05", "0.1", "1.01")
     expected = {
         *(f"G-PLATE/A-Q@{c}" for c in grid),
         *(f"G-PLATE/A-Q>@{c}" for c in grid),
         "G-FEAS-T/A-Q@0.025",
+        "A",
         *(f"G-FEAS-T/A-Q>@{c}" for c in ("0.005", "0.01", "0.02", "0.025")),
     }
     assert set(v6) - set(v5) == expected
@@ -64,6 +65,7 @@ def test_v6_keeps_every_v5_candidate_and_adds_1059s_selection_candidates():
     rate = {"gates": {"plating_fa": 0.01}}
     assert score_tuning.gate_verdict(at, rate) == admissibility.FAIL
     assert score_tuning.gate_verdict(above, rate) == admissibility.PASS
+    assert v6["A"].weights == {"a": 1.0} and v6["A"].gate is None
     tight = v6["G-FEAS-T/A-Q>@0.02"]
     assert tight.gate == {
         "measure": "feasibility",
