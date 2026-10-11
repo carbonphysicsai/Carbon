@@ -232,3 +232,23 @@ def test_the_pytorch_pod_phase_repeats_on_the_gpu(battery, tmp_path, monkeypatch
         assert rebuild_identity.from_runtime(runtime)["device_class"].startswith("gpu:")
     assert runs[0]["fit"].get("params_sha256")
     assert runs[0] == runs[1]
+
+
+def test_the_pod_runner_reads_the_gpu_environment_through_the_execution_side():
+    """Graphite never imports the accelerator profile
+    (test_protected_material_isolation); the pod program module supplies it."""
+    import ast
+
+    tree = ast.parse(
+        (REPOSITORY / "carbon/agent_campaign/graphite/pods.py").read_text()
+    )
+    imported = {
+        node.module
+        for node in ast.walk(tree)
+        if isinstance(node, ast.ImportFrom) and node.module
+    }
+    assert "carbon.reconstruction.accelerators" not in imported
+    env = bg.torch_pod_environment("NVIDIA A40")
+    assert env["CARBON_ACCELERATOR_DEVICE_KIND"] == "NVIDIA A40"
+    with pytest.raises(ValueError):
+        bg.torch_pod_environment("")

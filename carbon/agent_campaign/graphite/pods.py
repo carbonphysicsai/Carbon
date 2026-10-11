@@ -596,13 +596,11 @@ class RunPodPods:
             # (`torch_gpu.require_ready`), as the validator's overlay binds
             # them (`accelerators.worker_environment`). The kind is the GPU
             # type the pod is rented as: RunPod's type id is the exact name
-            # the device reports (`a40_acceptance.TARGET_DEVICES`).
-            from carbon.reconstruction.accelerators import (
-                GPU_DETERMINISM_ENVIRONMENT,
-            )
+            # the device reports (`a40_acceptance.TARGET_DEVICES`). Read
+            # through the execution side, never the accelerator profile here.
+            from carbon.development_session.battery_gpu import torch_pod_environment
 
-            env.update(GPU_DETERMINISM_ENVIRONMENT)
-            env["CARBON_ACCELERATOR_DEVICE_KIND"] = self.economics["gpu"]
+            env.update(torch_pod_environment(self.economics["gpu"]))
         return tuple(sorted(env.items()))
 
     def _record(self, job, private):

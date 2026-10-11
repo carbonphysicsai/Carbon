@@ -115,6 +115,22 @@ _gpu = _device.type == "cuda"
 PROGRAMS[digest(TORCH_GPU_PROGRAM.encode())] = (PROGRAM_V3, TORCH_GPU_PROGRAM)
 
 
+def torch_pod_environment(device_kind):
+    """The GPU environment a PyTorch pod binds (TORCH-POD-01): the pinned CUDA
+    library controls and the device kind the run is bound to, as
+    `torch_gpu.require_ready` requires. The accelerator profile stays on the
+    execution side of the boundary (`test_protected_material_isolation`):
+    Graphite's pod runner asks for this, never imports the profile itself."""
+    from carbon.reconstruction.accelerators import GPU_DETERMINISM_ENVIRONMENT
+
+    if type(device_kind) is not str or not device_kind:
+        raise ValueError("a PyTorch pod is bound to a named device kind")
+    return {
+        **GPU_DETERMINISM_ENVIRONMENT,
+        "CARBON_ACCELERATOR_DEVICE_KIND": device_kind,
+    }
+
+
 def pod_program(family, backend="jax"):
     """(program, extra staged files) a Level-0 pod build runs for `family` on
     `backend`: for JAX, v2 and the staged `knn_state.py` for a KNN, v1 and
