@@ -36,3 +36,17 @@ within the ticket's delegated scope; no bound, gate, score or value is set.
    `intake_client.REFUSALS` and its next step now says to point the intake at
    the ladder. `level4_store_not_owner_only` is classed UNAVAILABLE (the
    validator's).
+
+## Level 4 transport check through the campaign seam
+
+The Launchpad door (`scripts/dev/miner_launchpad/levels.py`) is
+challenge-neutral (C-MLP-04, `tests/cpu/test_control_center_challenge_neutral.py`):
+it must not import a Challenge's own modules, lazily or not. So the check
+"does the target intake take Level 4 envelope parts" is a `ChallengeCampaign`
+field, `level4_parts: (facts) -> bool`, beside `intake_check`. The battery
+campaign sets it to `carbon.battery.level4_parts.carries_parts`; every other
+campaign leaves it None. `require_served` resolves the campaign by the
+manifest's Challenge id (`campaign_for_id`, as the intake mapping is keyed)
+and refuses Level 4 with `level4_envelope_transport_unavailable` when the
+field is None, the Challenge does not resolve, or the facts list no part
+tools (fail closed). Behaviour and refusal codes are unchanged.

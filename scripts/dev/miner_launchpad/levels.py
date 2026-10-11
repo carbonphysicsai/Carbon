@@ -175,11 +175,24 @@ def require_served(cfg, manifest, read=None):
         raise Rejected("intake_unreachable", 503) from None
     if facts is None or not cl.lists(facts, found):
         raise _rejected(cl.LevelRefused(cl.NOT_SERVED))
-    if found["level"] == cl.LEVEL4:
-        from carbon.battery.level4_parts import carries_parts
+    if found["level"] == cl.LEVEL4 and not _takes_level4_parts(
+        manifest["challenge"], facts
+    ):
+        raise _rejected(cl.LevelRefused(cl.LEVEL4_TRANSPORT_UNAVAILABLE))
 
-        if not carries_parts(facts):
-            raise _rejected(cl.LevelRefused(cl.LEVEL4_TRANSPORT_UNAVAILABLE))
+
+def _takes_level4_parts(challenge, facts):
+    """Whether the target intake takes Level 4 envelope parts, read through
+    the Challenge's campaign (`ChallengeCampaign.level4_parts`) so this door
+    names no Challenge. A Challenge without that transport, or one that does
+    not resolve, takes none (fail closed)."""
+    from carbon.challenge_registry.campaigns import campaign_for_id
+
+    try:
+        carries = campaign_for_id(challenge["id"]).level4_parts
+    except Exception:  # noqa: BLE001 - unresolved is never carried (fail closed)
+        return False
+    return carries is not None and bool(carries(facts))
 
 
 def campaign_slot(found, base_slot):
