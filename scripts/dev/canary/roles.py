@@ -63,6 +63,27 @@ ROLES = {
 }
 
 
+#: `{role: {round: recipes}}`: later rounds of a role's list, each a fresh,
+#: distinct set of recipes, so a new deployment's handover test (the AX42
+#: cutover to v2-bank-e1-r360, the Test Lead 2026-10-11) commits digests no
+#: earlier round or scenario used. Round 1 is `ROLES[...]["recipes"]`. Every
+#: recipe stays on the role's hypothesis and off the canary's grid.
+ROUNDS = {
+    "strong": {2: [(8, 0.98), (6, 0.98), (10, 0.98)]},
+    "degraded": {2: [(64, 0.15), (64, 0.35), (64, 0.4)]},
+}
+
+
+def recipes_of(role, round_=1):
+    """The role's recipes for `round_`, or [] when it has none."""
+    hotkey = hotkey_of(role)
+    if hotkey is None:
+        return []
+    if round_ == 1:
+        return ROLES[hotkey]["recipes"]
+    return ROUNDS.get(role, {}).get(round_, [])
+
+
 _STRONG = "5CDGqLEPqDGSKJmkGyN2tDFTysyCqATRjLEBwvpy3FZiDqLM"
 _SYBIL = "5Gv6kDWFsx8AEarVSnNXHVu1XZ7fHTmMidH5N5dnpvMuPyM5"
 #: `{scenario: {"hotkey", "of", "recipes"}}`: a sybil of `of`'s miner.
@@ -87,18 +108,18 @@ def hotkey_of(role):
     return found[0] if len(found) == 1 else None
 
 
-def generate(role=None, *, scenario=None):
+def generate(role=None, *, scenario=None, round_=1):
     """The role's (or the scenario's) variant list, in the canary runner's
-    schema (knn only)."""
+    schema (knn only). `round_` picks a role's later list (`ROUNDS`)."""
     if scenario is not None:
         if scenario not in SCENARIOS:
             raise variants.VariantRefused("scenario_unknown")
         recipes, grid = SCENARIOS[scenario]["recipes"], {"scenario": scenario}
     else:
-        hotkey = hotkey_of(role)
-        if hotkey is None or not ROLES[hotkey]["recipes"]:
+        recipes = recipes_of(role, round_)
+        if not recipes:
             raise variants.VariantRefused("role_has_no_recipes")
-        recipes, grid = ROLES[hotkey]["recipes"], {"role": role}
+        grid = {"role": role} if round_ == 1 else {"role": role, "round": round_}
     challenge = variants._challenge()
     return {
         "schema": variants.SCHEMA,
@@ -124,10 +145,11 @@ def main(argv=None):
     which = gen.add_mutually_exclusive_group(required=True)
     which.add_argument("--role", choices=("strong", "degraded"))
     which.add_argument("--scenario", choices=sorted(SCENARIOS))
+    gen.add_argument("--round", type=int, default=1, dest="round_")
     gen.add_argument("--out", required=True, type=Path)
     args = parser.parse_args(argv)
     try:
-        document = generate(args.role, scenario=args.scenario)
+        document = generate(args.role, scenario=args.scenario, round_=args.round_)
         args.out.write_bytes(variants.render(document))
     except variants.VariantRefused as refused:
         print(refused.code, file=sys.stderr)
