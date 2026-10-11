@@ -1,0 +1,17 @@
+{
+  "schema": "carbon.research.feasibility-gate-proposals.v1",
+  "status": "PROPOSED_FOR_SELECTION_FOLD_ONLY",
+  "existing_registry_changed": false,
+  "production_cutoff": null,
+  "production_cutoff_authority": "HUMAN_INPUT",
+  "grid_authority": "ASSUMPTION exploratory grid; numeric points are not adopted thresholds",
+  "measurement_gaps": ["member-wise actual Q3 regret", "scoring-set joint G-FEAS counts", "verified-safe real recipes"],
+  "registry_v5_compatible_proposed_rows": [
+    {"id":"RESEARCH-G-PLATE/A-Q","kind":"gate_sweep","measure":"plating_fa","grid":[0.0,0.005,0.01,0.02,0.025,0.05,0.1,1.01],"base":"A-Q","comparison":"at_or_above","basis":"Prospective selection candidate: measured localized/control discrimination; incomplete safety coverage"},
+    {"id":"RESEARCH-G-PLATE/A-Q>","kind":"gate_sweep","measure":"plating_fa","grid":[0.0,0.005,0.01,0.02,0.025,0.05,0.1,1.01],"base":"A-Q","comparison":"exceeds","basis":"Prospective paired comparator sensitivity; safe zero-error controls must not be rejected by a comparator mistake"},
+    {"id":"RESEARCH-TIGHT-G-FEAS/A-Q","kind":"gate_sweep","measure":"feasibility","grid":[0.0,0.005,0.01,0.02,0.025,0.05,0.1,1.01],"base":"A-Q","comparison":"at_or_above","basis":"Prospective lower-cutoff joint safety study; actual scoring-set curve missing in this public aggregate audit"},
+    {"id":"RESEARCH-TIGHT-G-FEAS/A-Q>","kind":"gate_sweep","measure":"feasibility","grid":[0.0,0.005,0.01,0.02,0.025,0.05,0.1,1.01],"base":"A-Q","comparison":"exceeds","basis":"Keep owner-rule strict-comparison semantics explicit while investigating tighter cutoffs"}
+  ],
+  "prospective_contract_extensions_not_v5_rows": ["worst-constraint and worst-stratum joint gates", "noncompensable OR combinations", "calibrated margin-aware action selection", "risk-controlled feasibility with abstention"],
+  "claims": {"qualified_gate":false,"physical_safety":false,"actual_AQ_measured":false,"solver_run":false,"protected_data_access":false,"spend":false}
+}
