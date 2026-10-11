@@ -34,9 +34,3 @@ centers="$(units 'carbon-control-center*')"
 if [[ -n "${centers}" ]]; then
   echo "control centers:"; echo "${centers}"
 fi
-
-runners="$(systemctl --user list-timers 'incentive-runner@*' --all --no-pager --no-legend 2>/dev/null \
-  | awk '{for (i = 1; i <= NF; i++) if ($i ~ /^incentive-runner@/) {print "  " $i "  next " $1 " " $2 " " $3; break}}')"
-if [[ -n "${runners}" ]]; then
-  echo "incentive runners:"; echo "${runners}"
-fi
