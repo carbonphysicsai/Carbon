@@ -1,0 +1,37 @@
+{
+  "schema": "carbon.research.per-challenge-bank-cost-rule.v1",
+  "ticket": "BANK-ROTATION-STATS-01",
+  "status": "RECOMMENDATION_ONLY_NOT_RUNTIME_POLICY",
+  "required_inputs_per_bank_stratum": {
+    "draws_distinct_per_window": "SOURCED_RULE_RECEIPT_OR_HUMAN_INPUT",
+    "windows_per_day": "HUMAN_INPUT prospective cadence",
+    "offered_reference_CPU_h_low_base_high": "MEASURED_PUBLIC_TIMING_RECEIPT_OR_ASSUMPTION",
+    "valid_live_yield_low_base_high": "MEASURED_MATCHED_QUESTION_CONTRACT_OR_ASSUMPTION",
+    "exposures_E": "HUMAN_INPUT except already selected development rule",
+    "capacity_B": "HUMAN_INPUT",
+    "active_duration_windows": "SOURCED_RULE",
+    "eligible_repeat_spacing_windows": "HUMAN_INPUT must preserve active disjointness",
+    "refill_budget_CPU_h_day": "HUMAN_INPUT",
+    "minimum_unique_case_rate_day": "HUMAN_INPUT",
+    "maximum_release_lag_windows": "HUMAN_INPUT",
+    "refill_lead_time_days_low_base_high": "MEASURED_OR_ASSUMPTION",
+    "new_canary_and_overhead_CPU_h": "MEASURED_OR_ASSUMPTION"
+  },
+  "formulas": {
+    "startup_CPU_h": "sum_s B_s*c_offer_s/y_s",
+    "steady_refill_CPU_h_day": "sum_s d_s*n_s*c_offer_s/(E_s*y_s) + fresh_canary + overhead",
+    "unique_case_rate_day_frozen_deterministic": "d_s*n_s/E_s",
+    "cost_lower_E_bound": "ceil(d_s*n_s*c_offer_s/(y_s*R_s))",
+    "information_upper_E_bound": "floor(d_s*n_s/J_s)",
+    "release_upper_E_bound": "1+floor((L_s-A_s)/g_s)",
+    "cohort_release_lag": "(E_s-1)*g_s+A_s+reveal_publish_feed_delay",
+    "appearance_ESS_random_effects": "N^2/(rho*sum_i m_i^2+(1-rho)*N)",
+    "balanced_design_effect": "1+(E-1)*rho"
+  },
+  "hard_conditions": ["E positive integer", "g >= active duration for reuse", "no shared case across concurrent active windows", "reference failure never scientific candidate failure", "publication only after retirement and every holder ended/revealed", "no published case redrawn", "P/Q/w and registered quotas separate", "no sealed identifiers in public diagnostics", "new rule version before policy changes"],
+  "current_battery_testnet_authority": "OWNER-BANK-EXPOSURE-E1-TESTNET-01: E1, B4000, rotation360; no mainnet grant",
+  "requested_class_options": [{"class":"battery", "B_over_n":20, "E":5}, {"class":"motor_like", "B_over_n":10, "E":10}, {"class":"CFD", "B_over_n":5, "E":20}],
+  "within_class_recommendation": "registered bank/stratum cost and information needs may differ; no adaptive miner-specific E selection",
+  "failure_action": "if cost/information/release bounds have no common integer E, revise owner budget/cadence/reserve or hold; do not relax science",
+  "unmeasured": ["actual bank covariance", "per-Challenge live admission yield", "CFD cost distribution", "query-mediated leakage", "real scheduled-draw release percentiles"]
+}

@@ -1,31 +1,16 @@
-# Level 4 refused-capability log
+# Refused-capability log (Graphite)
 
-**Purpose.** This log is the evidence for which Level 5 ops Carbon builds
-first (OWNER-LEVEL5-INTERNAL-LANE-01;
-`docs/development/graphite/LEVEL4_GRAPH_CONSTRUCTION_PROPOSAL.md` §12.1).
+DEVELOPMENT, LOG ONLY. Each row is one refused proposal or one filed capability wish, keyed by Challenge and level. It widens nothing: no capability reaches any run. Names and out-of-range values only; no seed, key or hidden material. A wish is the Constructor's words, stored as data.
 
-**What goes in.** Every capability Graphite asks for during Level 4 stages
-A to C that Level 4 refuses. One row per request:
-- a missing op;
-- a cap reached;
-- a slot or interface that is not admitted;
-- a library that cannot be lowered.
+Rows are appended by `carbon/agent_campaign/graphite/capability_log.py` when `CARBON_CAPABILITY_LOG` names this file; earlier rows are backfilled from the cited sources.
 
-**How rows are added.**
-- Append only. Never edit or remove a row.
-- A later decision about a row becomes a new row that points back to it.
-
-**Columns.**
-- **Date.** When the request was made.
-- **Stage.** A, B or C.
-- **Challenge.**
-- **Requested.** The capability, in the requester's words.
-- **Refused by.** The gate and its typed code, such as G4
-  `op_not_allowed:<op>` or `cap_exceeded:<cap>`.
-- **Evidence.** A pointer to the run, record or finding.
-- **Class.** One of `math`, `solver`, `kernel` or `library` (§12.1), or
-  `unclassified`.
-- **Gain claimed.** What the requester expects it to buy, unverified.
-
-| Date | Stage | Challenge | Requested | Refused by | Evidence | Class | Gain claimed |
-|---|---|---|---|---|---|---|---|
+| When (UTC) | Challenge | Level | Run | Proposal | Kind | Status | Code | Field | Requested | Optimisation | Needs | Expected gain | Evidence | Source |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 2026-10-10 | battery-fastcharge-ageing-development-v1 | 0 | D2 | p-c41a9a1ebb82 | refusal | REFUSED_UNREBUILDABLE | parameter.domain_mismatch | steps | 30000 |  |  |  |  | stage A extract (backfill) |
+| 2026-10-10 | battery-fastcharge-ageing-development-v1 | 0 | D2 | p-8d5d61fc1308 | refusal | REFUSED_UNREBUILDABLE | parameter.dependency_unsatisfied | ensemble_members | 3 (steps 14000, not divisible) |  |  |  |  | stage A extract (backfill) |
+| 2026-10-10 | battery-fastcharge-ageing-development-v1 | 0 | D3 | p-69268f1b74ec | refusal | REFUSED_UNREBUILDABLE | parameter.domain_mismatch | weight_decay_mask | weights |  |  |  |  | stage A extract (backfill) |
+| 2026-10-10 | battery-fastcharge-ageing-development-v1 | 0 | D3 | p-5a3b8fe3c06f | refusal | REFUSED_UNREBUILDABLE | parameter.domain_mismatch | normalization | layer |  |  |  |  | stage A extract (backfill) |
+| 2026-10-10 | battery-fastcharge-ageing-development-v1 | 0 | D3 | p-22e81b9d0595 | refusal | REFUSED_UNREBUILDABLE | parameter.domain_mismatch | ensemble_members | 5 |  |  |  |  | stage A extract (backfill) |
+| 2026-10-10 | battery-fastcharge-ageing-development-v1 | 0 | E1 | p-1585ecbf838a | refusal | REFUSED_UNREBUILDABLE | parameter.domain_mismatch | ensemble_members | 5 |  |  |  |  | stage A extract (backfill) |
+| 2026-10-10 | battery-fastcharge-ageing-development-v1 | 0 | E1 | p-37985e699fe3 | refusal | REFUSED_UNREBUILDABLE | parameter.domain_mismatch | steps | 24000 |  |  |  |  | stage A extract (backfill) |
+| 2026-10-10 | battery-fastcharge-ageing-development-v1 | 0 | D3 | p-74b8c69ead59 | refusal | REFUSED_BACKEND_NOT_SERVED | backend_not_served:pytorch | backend | pytorch (backbone fno) |  |  |  |  | stage A extract (backfill) |

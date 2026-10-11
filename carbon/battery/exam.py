@@ -177,6 +177,43 @@ DEVELOPMENT_RULE_V2_BANK_E1_R360 = {
 }
 
 
+#: Rule `v2-bank-sched` (OWNER-BANK-SCHEDULED-ROTATION-01): testnet. The
+#: owner-approved bank model (OWNER-BANK-ARCHITECTURE-01: B = 20n, E = 5)
+#: with a scheduled rotation in place of uniform draws: each case's 5
+#: exposures fall in the windows `active_batches` slots apart, so a window
+#: publishes about E x 3 rotations after it opens (15 x 360 blocks, ~18 h)
+#: and the bank is refilled by about n/E cases a window. The Q3 design bank
+#: is scheduled the same way, k = 8 questions a screening window, each
+#: question serving E_q = 10 windows. Both banks are refilled by the
+#: operator's timers, never inside a tick. Mainnet's rotation is 1,080
+#: blocks, a separate deployment decision. Replaces `v2-bank-e1-r360` for
+#: testnet; that rule stays registered for its history.
+DEVELOPMENT_RULE_V2_BANK_SCHED = {
+    **DEVELOPMENT_RULE_V2_BANK,
+    "authority": (
+        DEVELOPMENT_RULE_V2_BANK["authority"]
+        + "; scheduled rotation, testnet r360: OWNER-BANK-SCHEDULED-ROTATION-01"
+    ),
+    "rotation": {**DEVELOPMENT_RULE_V2_BANK["rotation"], "every_blocks": 360},
+    "bank": {
+        **DEVELOPMENT_RULE_V2_BANK["bank"],
+        "pool": {
+            **DEVELOPMENT_RULE_V2_BANK["bank"]["pool"],
+            "retire_at": 5,
+            "draw": "scheduled",
+            "top_up": False,
+        },
+    },
+    "design": {
+        "bank": "design:battery-q3",
+        "k": 8,
+        "retire_at": 10,
+        "draw": "scheduled",
+        "top_up": False,
+    },
+}
+
+
 def _rate_study_rule(window_blocks):
     """SUBMISSION-RATE-STUDY-01's development rule variants (VALIDATOR-30):
     `v2-bank` with the per-hotkey window at `window_blocks` (360, 180, 90 for
@@ -210,6 +247,7 @@ RULES = {
     "v2-bank": DEVELOPMENT_RULE_V2_BANK,
     "v2-bank-e2": DEVELOPMENT_RULE_V2_BANK_E2,
     "v2-bank-e1-r360": DEVELOPMENT_RULE_V2_BANK_E1_R360,
+    "v2-bank-sched": DEVELOPMENT_RULE_V2_BANK_SCHED,
     # SUBMISSION-RATE-STUDY-01's rates m = 1, 2, 4 (VALIDATOR-30).
     "v2-bank-rate-1": _rate_study_rule(360),
     "v2-bank-rate-2": _rate_study_rule(180),

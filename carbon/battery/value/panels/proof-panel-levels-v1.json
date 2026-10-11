@@ -1,0 +1,3898 @@
+{
+ "members": [
+  {
+   "counts_for_level": true,
+   "label": "l1-D-913bf188-p-1585ecbf838a",
+   "level": 1,
+   "seeds": [
+    1327839545
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "D",
+    "proposal": "p-1585ecbf838a",
+    "recipe_digest": "sha256:701ffa1b78728e6acd958cd7fba2934f24a99166e3a89ee1e149d134d0de1e79",
+    "run": "graphite-913bf1889a6db2d1",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "mlp",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "activation": "gelu",
+     "batch_size": 400,
+     "beta1": 0.9,
+     "beta2": 0.999,
+     "depth": 4,
+     "ensemble_members": 2,
+     "learning_rate": 0.002,
+     "learning_rate_curve": "cosine",
+     "optimizer_family": "adam",
+     "polish_steps": 0,
+     "steps": 8192,
+     "warmup_steps": 200,
+     "weight_decay": 0.0001,
+     "weight_decay_mask": "matrices",
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:34153f41641e3f45077e2752b1cae6d2e1c0ae4327d2cb780526e084a241c854",
+    "version": "battery-l1-loss-expressions-v1"
+   }
+  },
+  {
+   "counts_for_level": true,
+   "label": "l1-D-913bf188-p-4fd7fb870d2b",
+   "level": 1,
+   "seeds": [
+    2687932037
+   ],
+   "source": {
+    "bundled": true,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "D",
+    "proposal": "p-4fd7fb870d2b",
+    "recipe_digest": "sha256:db54f55c234e2789c1989215f4ac642bab61e9212834d6b7bfc8567731fd9708",
+    "run": "graphite-913bf1889a6db2d1",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "mlp",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "activation": "gelu",
+     "batch_size": 400,
+     "beta1": 0.9,
+     "beta2": 0.999,
+     "depth": 4,
+     "ensemble_members": 2,
+     "learning_rate": 0.002,
+     "learning_rate_curve": "cosine",
+     "optimizer_family": "adam",
+     "polish_steps": 0,
+     "relative_loss": true,
+     "steps": 8192,
+     "warmup_steps": 200,
+     "weight_decay": 0.0001,
+     "weight_decay_mask": "matrices",
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:34153f41641e3f45077e2752b1cae6d2e1c0ae4327d2cb780526e084a241c854",
+    "version": "battery-l1-loss-expressions-v1"
+   }
+  },
+  {
+   "counts_for_level": true,
+   "label": "l1-D-913bf188-p-50299fa270c6",
+   "level": 1,
+   "seeds": [
+    1880388380
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "D",
+    "proposal": "p-50299fa270c6",
+    "recipe_digest": "sha256:46da07e95c65e7b3c2a518732139c90d181f3188901b058bbdab346498f7f4a3",
+    "run": "graphite-913bf1889a6db2d1",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "mlp",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "activation": "gelu",
+     "arrhenius_features": true,
+     "batch_size": 400,
+     "beta1": 0.9,
+     "beta2": 0.999,
+     "capacity_fade_head": true,
+     "depth": 4,
+     "learning_rate": 0.0018,
+     "learning_rate_curve": "cosine",
+     "optimizer_family": "adam",
+     "steps": 12000,
+     "warmup_steps": 300,
+     "weight_decay": 0.0,
+     "width": 384
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:34153f41641e3f45077e2752b1cae6d2e1c0ae4327d2cb780526e084a241c854",
+    "version": "battery-l1-loss-expressions-v1"
+   }
+  },
+  {
+   "counts_for_level": true,
+   "label": "l1-D-913bf188-p-5a3b8fe3c06f",
+   "level": 1,
+   "seeds": [
+    525414255
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "D",
+    "proposal": "p-5a3b8fe3c06f",
+    "recipe_digest": "sha256:3f52c7c5cec9b62628ad0d4591fc14db236e257fc9151f9aca9de332c21ee51a",
+    "run": "graphite-913bf1889a6db2d1",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "mlp",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "activation": "gelu",
+     "batch_size": 400,
+     "beta1": 0.9,
+     "beta2": 0.999,
+     "depth": 4,
+     "ema_decay": 0.999,
+     "ensemble_members": 2,
+     "inference_weights": "ema",
+     "learning_rate": 0.002,
+     "learning_rate_curve": "cosine",
+     "optimizer_family": "adam",
+     "polish_steps": 0,
+     "relative_loss": true,
+     "steps": 8192,
+     "warmup_steps": 200,
+     "weight_decay": 0.0001,
+     "weight_decay_mask": "matrices",
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:34153f41641e3f45077e2752b1cae6d2e1c0ae4327d2cb780526e084a241c854",
+    "version": "battery-l1-loss-expressions-v1"
+   }
+  },
+  {
+   "counts_for_level": true,
+   "label": "l1-D-913bf188-p-69268f1b74ec",
+   "level": 1,
+   "seeds": [
+    2959432269
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "D",
+    "proposal": "p-69268f1b74ec",
+    "recipe_digest": "sha256:d0b95a4d7948f52d23e75727b41b6025abc71931de4e21c07e718136ac0013eb",
+    "run": "graphite-913bf1889a6db2d1",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "mlp",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "activation": "gelu",
+     "batch_size": 400,
+     "beta1": 0.9,
+     "beta2": 0.999,
+     "depth": 4,
+     "ensemble_members": 2,
+     "h1_weight": 0.3,
+     "important_region_weight": 3.0,
+     "learning_rate": 0.002,
+     "learning_rate_curve": "cosine",
+     "optimizer_family": "adam",
+     "polish_steps": 0,
+     "steps": 8192,
+     "warmup_steps": 200,
+     "weight_decay": 0.0001,
+     "weight_decay_mask": "matrices",
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:34153f41641e3f45077e2752b1cae6d2e1c0ae4327d2cb780526e084a241c854",
+    "version": "battery-l1-loss-expressions-v1"
+   }
+  },
+  {
+   "counts_for_level": true,
+   "label": "l1-D-913bf188-p-891e0fd1ebdb",
+   "level": 1,
+   "seeds": [
+    3188610978
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "D",
+    "proposal": "p-891e0fd1ebdb",
+    "recipe_digest": "sha256:4f655ed3283a9ddbc2164acc0da7ec354a1114524889d389e1021b26ac67c7a1",
+    "run": "graphite-913bf1889a6db2d1",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "deeponet",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "activation": "gelu",
+     "arrhenius_features": true,
+     "basis_functions": 32,
+     "batch_size": 400,
+     "beta1": 0.9,
+     "beta2": 0.999,
+     "deeponet_depth": 3,
+     "ensemble_members": 2,
+     "learning_rate": 0.002,
+     "learning_rate_curve": "cosine",
+     "optimizer_family": "adam",
+     "polish_steps": 0,
+     "steps": 8192,
+     "warmup_steps": 200,
+     "weight_decay": 0.0001,
+     "weight_decay_mask": "matrices",
+     "width": 192
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:34153f41641e3f45077e2752b1cae6d2e1c0ae4327d2cb780526e084a241c854",
+    "version": "battery-l1-loss-expressions-v1"
+   }
+  },
+  {
+   "counts_for_level": true,
+   "label": "l1-D-913bf188-p-8e47250e297c",
+   "level": 1,
+   "seeds": [
+    2120047928
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "D",
+    "proposal": "p-8e47250e297c",
+    "recipe_digest": "sha256:9a6bf055a5798c2db9e90013d9d5ff8099a54b79788f6747f535592115b2f561",
+    "run": "graphite-913bf1889a6db2d1",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "mlp",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "activation": "gelu",
+     "batch_size": 400,
+     "beta1": 0.9,
+     "beta2": 0.999,
+     "depth": 4,
+     "ensemble_members": 4,
+     "learning_rate": 0.002,
+     "learning_rate_curve": "cosine",
+     "optimizer_family": "adam",
+     "polish_steps": 0,
+     "steps": 8192,
+     "warmup_steps": 200,
+     "weight_decay": 0.0001,
+     "weight_decay_mask": "matrices",
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:34153f41641e3f45077e2752b1cae6d2e1c0ae4327d2cb780526e084a241c854",
+    "version": "battery-l1-loss-expressions-v1"
+   }
+  },
+  {
+   "counts_for_level": true,
+   "label": "l1-D-913bf188-p-c1c8903402bd",
+   "level": 1,
+   "seeds": [
+    2770094579
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "D",
+    "proposal": "p-c1c8903402bd",
+    "recipe_digest": "sha256:d37e8eca9cd60adf10eceda6bf5e97a3351255c10bfce4f38427c950fd8b5e58",
+    "run": "graphite-913bf1889a6db2d1",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "mlp",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "activation": "gelu",
+     "batch_size": 400,
+     "beta1": 0.9,
+     "beta2": 0.999,
+     "depth": 4,
+     "learning_rate": 0.002,
+     "learning_rate_curve": "cosine",
+     "optimizer_family": "adam",
+     "steps": 8000,
+     "warmup_steps": 200,
+     "weight_decay": 0.0,
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:34153f41641e3f45077e2752b1cae6d2e1c0ae4327d2cb780526e084a241c854",
+    "version": "battery-l1-loss-expressions-v1"
+   }
+  },
+  {
+   "counts_for_level": true,
+   "label": "l1-D-913bf188-p-c41a9a1ebb82",
+   "level": 1,
+   "seeds": [
+    3433577451
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "D",
+    "proposal": "p-c41a9a1ebb82",
+    "recipe_digest": "sha256:068b19b80449d03311651f9d5f96f5b77f69d172fb30f87d4c55289eedb55f74",
+    "run": "graphite-913bf1889a6db2d1",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "mlp",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "activation": "gelu",
+     "batch_size": 400,
+     "beta1": 0.9,
+     "beta2": 0.999,
+     "depth": 4,
+     "ema_decay": 0.999,
+     "ensemble_members": 2,
+     "inference_weights": "ema",
+     "learning_rate": 0.002,
+     "learning_rate_curve": "cosine",
+     "optimizer_family": "adam",
+     "polish_steps": 0,
+     "steps": 12000,
+     "warmup_steps": 300,
+     "weight_decay": 0.0001,
+     "weight_decay_mask": "matrices",
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:34153f41641e3f45077e2752b1cae6d2e1c0ae4327d2cb780526e084a241c854",
+    "version": "battery-l1-loss-expressions-v1"
+   }
+  },
+  {
+   "counts_for_level": true,
+   "label": "l2-E-18fc7b1c-p-1585ecbf838a",
+   "level": 2,
+   "seeds": [
+    1726640659
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "E",
+    "proposal": "p-1585ecbf838a",
+    "recipe_digest": "sha256:a31025247a4eeb02f723aef7c28c439a6621902ce3fc3392448e9a11b2b17adf",
+    "run": "graphite-18fc7b1c1eeea8aa",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "deeponet",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "arrhenius_features": true,
+     "basis_functions": 48,
+     "batch_size": 400,
+     "bounded_voltage_head": true,
+     "capacity_fade_head": true,
+     "deeponet_depth": 3,
+     "ema_decay": 0.999,
+     "ensemble_members": 4,
+     "inference_weights": "ema",
+     "learning_rate": 0.002,
+     "learning_rate_curve": "cosine",
+     "ocv_initial_voltage": true,
+     "steps": 12000,
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:7e4c42a18ae5c12535366c75e5e750e19e25c74243fbf61a0bb911a9d2b0c3cc",
+    "version": "battery-l2-v2"
+   }
+  },
+  {
+   "counts_for_level": true,
+   "label": "l2-E-18fc7b1c-p-37985e699fe3",
+   "level": 2,
+   "seeds": [
+    441638926
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "E",
+    "proposal": "p-37985e699fe3",
+    "recipe_digest": "sha256:9376698fa74f09e8ddbd76e335dfb73dc45589ef69f5159cbb7adae630106ac1",
+    "run": "graphite-18fc7b1c1eeea8aa",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "deeponet",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "arrhenius_features": true,
+     "basis_functions": 64,
+     "batch_size": 400,
+     "bounded_voltage_head": true,
+     "capacity_fade_head": true,
+     "deeponet_depth": 4,
+     "learning_rate": 0.0015,
+     "learning_rate_curve": "cosine",
+     "ocv_initial_voltage": true,
+     "steps": 12000,
+     "tail_averaging": 0.4,
+     "width": 384
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:7e4c42a18ae5c12535366c75e5e750e19e25c74243fbf61a0bb911a9d2b0c3cc",
+    "version": "battery-l2-v2"
+   }
+  },
+  {
+   "counts_for_level": true,
+   "label": "l2-E-18fc7b1c-p-4e02e0f7c41a",
+   "level": 2,
+   "seeds": [
+    883120650
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "E",
+    "proposal": "p-4e02e0f7c41a",
+    "recipe_digest": "sha256:81dcb59a30374b113468660c87a6e7cbeba6838255ef8601c16d6047a97b7173",
+    "run": "graphite-18fc7b1c1eeea8aa",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "deeponet",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "arrhenius_features": true,
+     "basis_functions": 64,
+     "batch_size": 400,
+     "bounded_voltage_head": true,
+     "capacity_fade_head": true,
+     "deeponet_depth": 4,
+     "learning_rate": 0.0015,
+     "learning_rate_curve": "cosine",
+     "ocv_initial_voltage": true,
+     "polish_steps": 500,
+     "steps": 15000,
+     "weight_decay": 0.001,
+     "weight_decay_mask": "matrices",
+     "width": 384
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:7e4c42a18ae5c12535366c75e5e750e19e25c74243fbf61a0bb911a9d2b0c3cc",
+    "version": "battery-l2-v2"
+   }
+  },
+  {
+   "counts_for_level": true,
+   "label": "l2-E-18fc7b1c-p-50299fa270c6",
+   "level": 2,
+   "seeds": [
+    1214107901
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "E",
+    "proposal": "p-50299fa270c6",
+    "recipe_digest": "sha256:cc2c5a55a15e974bc8e3589374c2aac6b0694c65b44acddea847e042d3e86744",
+    "run": "graphite-18fc7b1c1eeea8aa",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "deeponet",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "arrhenius_features": true,
+     "basis_functions": 48,
+     "batch_size": 400,
+     "bounded_voltage_head": true,
+     "capacity_fade_head": true,
+     "deeponet_depth": 3,
+     "ema_decay": 0.999,
+     "important_region_weight": 3.0,
+     "inference_weights": "ema",
+     "learning_rate": 0.002,
+     "learning_rate_curve": "cosine",
+     "ocv_initial_voltage": true,
+     "steps": 10000,
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:7e4c42a18ae5c12535366c75e5e750e19e25c74243fbf61a0bb911a9d2b0c3cc",
+    "version": "battery-l2-v2"
+   }
+  },
+  {
+   "counts_for_level": true,
+   "label": "l2-E-18fc7b1c-p-591188a3c3d5",
+   "level": 2,
+   "seeds": [
+    3802272981
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "E",
+    "proposal": "p-591188a3c3d5",
+    "recipe_digest": "sha256:74150f634220f8b47a27e76d0f7b9ed60504a0b13b9a98a08c97f42ba16efc83",
+    "run": "graphite-18fc7b1c1eeea8aa",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "deeponet",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "arrhenius_features": true,
+     "basis_functions": 64,
+     "batch_size": 400,
+     "bounded_voltage_head": true,
+     "capacity_fade_head": true,
+     "deeponet_depth": 4,
+     "learning_rate": 0.0015,
+     "learning_rate_curve": "cosine",
+     "ocv_initial_voltage": true,
+     "steps": 12000,
+     "width": 384
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:7e4c42a18ae5c12535366c75e5e750e19e25c74243fbf61a0bb911a9d2b0c3cc",
+    "version": "battery-l2-v2"
+   }
+  },
+  {
+   "counts_for_level": true,
+   "label": "l2-E-18fc7b1c-p-839de482ac6b",
+   "level": 2,
+   "seeds": [
+    2360653682
+   ],
+   "source": {
+    "bundled": true,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "E",
+    "proposal": "p-839de482ac6b",
+    "recipe_digest": "sha256:01c6ff476247ecb2d5ff55f0984a1e31e4d9d6d7cea930767dbf514cde8ac338",
+    "run": "graphite-18fc7b1c1eeea8aa",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "deeponet",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "arrhenius_features": true,
+     "basis_functions": 64,
+     "batch_size": 400,
+     "bounded_voltage_head": true,
+     "capacity_fade_head": true,
+     "deeponet_depth": 4,
+     "learning_rate": 0.0015,
+     "learning_rate_curve": "cosine",
+     "ocv_initial_voltage": true,
+     "steps": 12000,
+     "tail_averaging": 0.35,
+     "width": 384
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:7e4c42a18ae5c12535366c75e5e750e19e25c74243fbf61a0bb911a9d2b0c3cc",
+    "version": "battery-l2-v2"
+   }
+  },
+  {
+   "counts_for_level": true,
+   "label": "l2-E-18fc7b1c-p-87b76ad0a2fd",
+   "level": 2,
+   "seeds": [
+    2268936706
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "E",
+    "proposal": "p-87b76ad0a2fd",
+    "recipe_digest": "sha256:954668f1042f60710a3ca5c0d80ee1e973f4db429b674aa1d38f69932ed4cf5f",
+    "run": "graphite-18fc7b1c1eeea8aa",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "deeponet",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "arrhenius_features": true,
+     "basis_functions": 64,
+     "batch_size": 400,
+     "bounded_voltage_head": true,
+     "capacity_fade_head": true,
+     "deeponet_depth": 4,
+     "ema_decay": 0.999,
+     "inference_weights": "ema",
+     "learning_rate": 0.0015,
+     "learning_rate_curve": "cosine",
+     "ocv_initial_voltage": true,
+     "steps": 10000,
+     "width": 384
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:7e4c42a18ae5c12535366c75e5e750e19e25c74243fbf61a0bb911a9d2b0c3cc",
+    "version": "battery-l2-v2"
+   }
+  },
+  {
+   "counts_for_level": true,
+   "label": "l2-E-18fc7b1c-p-8e47250e297c",
+   "level": 2,
+   "seeds": [
+    2087598839
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "E",
+    "proposal": "p-8e47250e297c",
+    "recipe_digest": "sha256:a40743eedc5592e2249c590fce0df5d17090d60332171a1fc262925a7e3cb531",
+    "run": "graphite-18fc7b1c1eeea8aa",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "deeponet",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "arrhenius_features": true,
+     "basis_functions": 64,
+     "batch_size": 400,
+     "bounded_voltage_head": true,
+     "capacity_fade_head": true,
+     "deeponet_depth": 4,
+     "learning_rate": 0.0015,
+     "learning_rate_curve": "cosine",
+     "ocv_initial_voltage": true,
+     "steps": 12000,
+     "tail_averaging": 0.2,
+     "width": 384
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:7e4c42a18ae5c12535366c75e5e750e19e25c74243fbf61a0bb911a9d2b0c3cc",
+    "version": "battery-l2-v2"
+   }
+  },
+  {
+   "counts_for_level": true,
+   "label": "l2-E-18fc7b1c-p-c1c8903402bd",
+   "level": 2,
+   "seeds": [
+    1785605394
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "E",
+    "proposal": "p-c1c8903402bd",
+    "recipe_digest": "sha256:223f6bb6a632f37586d5af9f6bb6d9bec07ff9508001db6624b88a80be255342",
+    "run": "graphite-18fc7b1c1eeea8aa",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "deeponet",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "arrhenius_features": true,
+     "basis_functions": 32,
+     "batch_size": 400,
+     "bounded_voltage_head": true,
+     "capacity_fade_head": true,
+     "deeponet_depth": 3,
+     "learning_rate": 0.002,
+     "learning_rate_curve": "cosine",
+     "ocv_initial_voltage": true,
+     "steps": 8000,
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:7e4c42a18ae5c12535366c75e5e750e19e25c74243fbf61a0bb911a9d2b0c3cc",
+    "version": "battery-l2-v2"
+   }
+  },
+  {
+   "counts_for_level": true,
+   "label": "l2-E-18fc7b1c-p-c41a9a1ebb82",
+   "level": 2,
+   "seeds": [
+    93889165
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "E",
+    "proposal": "p-c41a9a1ebb82",
+    "recipe_digest": "sha256:d67312b4753d9b2f4bd9a47b970d8f9e9a3155ec05212665f58fa91028d7fba5",
+    "run": "graphite-18fc7b1c1eeea8aa",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "deeponet",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "arrhenius_features": true,
+     "basis_functions": 64,
+     "batch_size": 400,
+     "bounded_voltage_head": true,
+     "capacity_fade_head": true,
+     "deeponet_depth": 4,
+     "learning_rate": 0.0015,
+     "learning_rate_curve": "cosine",
+     "ocv_initial_voltage": true,
+     "steps": 12000,
+     "tail_averaging": 0.5,
+     "width": 384
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:7e4c42a18ae5c12535366c75e5e750e19e25c74243fbf61a0bb911a9d2b0c3cc",
+    "version": "battery-l2-v2"
+   }
+  },
+  {
+   "counts_for_level": true,
+   "label": "l2-E-913bf188-p-1585ecbf838a",
+   "level": 2,
+   "seeds": [
+    2265885668
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "E",
+    "proposal": "p-1585ecbf838a",
+    "recipe_digest": "sha256:dd44df6279aacb7f07b0402a3bce4e7c6a23a750ac4bfd38d8465dc70bd8c5a9",
+    "run": "graphite-913bf1889a6db2d1",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "mlp",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "activation": "gelu",
+     "batch_size": 400,
+     "depth": 4,
+     "ema_decay": 0.999,
+     "inference_weights": "ema",
+     "learning_rate": 0.002,
+     "learning_rate_curve": "cosine",
+     "optimizer_family": "adam",
+     "steps": 6000,
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:7e4c42a18ae5c12535366c75e5e750e19e25c74243fbf61a0bb911a9d2b0c3cc",
+    "version": "battery-l2-v2"
+   }
+  },
+  {
+   "counts_for_level": true,
+   "label": "l2-E-913bf188-p-50299fa270c6",
+   "level": 2,
+   "seeds": [
+    3801363662
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "E",
+    "proposal": "p-50299fa270c6",
+    "recipe_digest": "sha256:e861af510b17991ccf1724fb81ca04dbf23eeb10f9623e708c6e35b6edf9f8c6",
+    "run": "graphite-913bf1889a6db2d1",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "mlp",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "activation": "gelu",
+     "batch_size": 400,
+     "depth": 4,
+     "learning_rate": 0.002,
+     "learning_rate_curve": "cosine",
+     "min_learning_rate_ratio": 0.1,
+     "optimizer_family": "adam",
+     "steps": 8000,
+     "weight_decay": 0.001,
+     "weight_decay_mask": "matrices",
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:7e4c42a18ae5c12535366c75e5e750e19e25c74243fbf61a0bb911a9d2b0c3cc",
+    "version": "battery-l2-v2"
+   }
+  },
+  {
+   "counts_for_level": true,
+   "label": "l2-E-913bf188-p-591188a3c3d5",
+   "level": 2,
+   "seeds": [
+    2474845523
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "E",
+    "proposal": "p-591188a3c3d5",
+    "recipe_digest": "sha256:efd14693337494058ae32cc51d77faf6671fdac93c888058e3201e5c24a95153",
+    "run": "graphite-913bf1889a6db2d1",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "mlp",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "activation": "gelu",
+     "arrhenius_features": true,
+     "batch_size": 400,
+     "depth": 5,
+     "learning_rate": 0.0025,
+     "learning_rate_curve": "cosine",
+     "normalization": "layer_norm",
+     "optimizer_family": "adam",
+     "steps": 12000,
+     "width": 384
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:7e4c42a18ae5c12535366c75e5e750e19e25c74243fbf61a0bb911a9d2b0c3cc",
+    "version": "battery-l2-v2"
+   }
+  },
+  {
+   "counts_for_level": true,
+   "label": "l2-E-913bf188-p-87b76ad0a2fd",
+   "level": 2,
+   "seeds": [
+    2367343968
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "E",
+    "proposal": "p-87b76ad0a2fd",
+    "recipe_digest": "sha256:24350ced8cb185589e611b1c8bbb7e2fc91657d7abd1825a7989c5a097f31e9a",
+    "run": "graphite-913bf1889a6db2d1",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "mlp",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "activation": "gelu",
+     "batch_size": 400,
+     "capacity_fade_head": true,
+     "depth": 4,
+     "hard_example_weight": 1.0,
+     "important_region_weight": 2.0,
+     "learning_rate": 0.002,
+     "learning_rate_curve": "cosine",
+     "optimizer_family": "adam",
+     "steps": 6000,
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:7e4c42a18ae5c12535366c75e5e750e19e25c74243fbf61a0bb911a9d2b0c3cc",
+    "version": "battery-l2-v2"
+   }
+  },
+  {
+   "counts_for_level": true,
+   "label": "l2-E-913bf188-p-8e47250e297c",
+   "level": 2,
+   "seeds": [
+    2722385061
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "E",
+    "proposal": "p-8e47250e297c",
+    "recipe_digest": "sha256:5db98b9512fd49649a73116a8142422c594c3a58490a3147c180160b1bf22418",
+    "run": "graphite-913bf1889a6db2d1",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "mlp",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "activation": "gelu",
+     "batch_size": 400,
+     "depth": 4,
+     "learning_rate": 0.002,
+     "learning_rate_curve": "cosine",
+     "optimizer_family": "adam",
+     "steps": 9000,
+     "warmup_steps": 200,
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:7e4c42a18ae5c12535366c75e5e750e19e25c74243fbf61a0bb911a9d2b0c3cc",
+    "version": "battery-l2-v2"
+   }
+  },
+  {
+   "counts_for_level": true,
+   "label": "l2-E-913bf188-p-c1c8903402bd",
+   "level": 2,
+   "seeds": [
+    2328247333
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "E",
+    "proposal": "p-c1c8903402bd",
+    "recipe_digest": "sha256:a574b72f0d48559d48f535648ca07074c54e1c5e5903e56f89dea66f0a037af1",
+    "run": "graphite-913bf1889a6db2d1",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "deeponet",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "activation": "gelu",
+     "basis_functions": 32,
+     "batch_size": 400,
+     "deeponet_depth": 3,
+     "learning_rate": 0.002,
+     "learning_rate_curve": "cosine",
+     "optimizer_family": "adam",
+     "steps": 6000,
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:7e4c42a18ae5c12535366c75e5e750e19e25c74243fbf61a0bb911a9d2b0c3cc",
+    "version": "battery-l2-v2"
+   }
+  },
+  {
+   "counts_for_level": true,
+   "label": "l2-E-913bf188-p-c41a9a1ebb82",
+   "level": 2,
+   "seeds": [
+    826749458
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "E",
+    "proposal": "p-c41a9a1ebb82",
+    "recipe_digest": "sha256:09d544ce6536f09eaa1efe1f7f112cd75794cabd8734df1820604350b3a912eb",
+    "run": "graphite-913bf1889a6db2d1",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "mlp",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "activation": "gelu",
+     "batch_size": 400,
+     "depth": 4,
+     "h1_weight": 0.05,
+     "learning_rate": 0.002,
+     "learning_rate_curve": "cosine",
+     "optimizer_family": "adam",
+     "steps": 6000,
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:7e4c42a18ae5c12535366c75e5e750e19e25c74243fbf61a0bb911a9d2b0c3cc",
+    "version": "battery-l2-v2"
+   }
+  },
+  {
+   "counts_for_level": true,
+   "label": "l2-E-913bf188-p-fa5c88711f35",
+   "level": 2,
+   "seeds": [
+    441520862
+   ],
+   "source": {
+    "bundled": true,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "E",
+    "proposal": "p-fa5c88711f35",
+    "recipe_digest": "sha256:a534592762bc4973ea667c0fa001d2bab08941cce1f2fd097e7077314fd16c48",
+    "run": "graphite-913bf1889a6db2d1",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "mlp",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "activation": "gelu",
+     "batch_size": 400,
+     "depth": 4,
+     "learning_rate": 0.002,
+     "learning_rate_curve": "cosine",
+     "optimizer_family": "adam",
+     "steps": 6000,
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:7e4c42a18ae5c12535366c75e5e750e19e25c74243fbf61a0bb911a9d2b0c3cc",
+    "version": "battery-l2-v2"
+   }
+  },
+  {
+   "counts_for_level": true,
+   "label": "l2-E-d90a8ccf-p-1585ecbf838a",
+   "level": 2,
+   "seeds": [
+    1833414753
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "E",
+    "proposal": "p-1585ecbf838a",
+    "recipe_digest": "sha256:155a3c4715fe7adc7da0fc603d06fe4492c7ccf4c6adb9df0d1ca4290503133f",
+    "run": "graphite-d90a8ccfd603cf6a",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "mlp",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "activation": "gelu",
+     "arrhenius_features": true,
+     "batch_size": 400,
+     "depth": 4,
+     "important_region_weight": 2.0,
+     "learning_rate": 0.003,
+     "min_learning_rate_ratio": 0.05,
+     "steps": 12000,
+     "warmup_steps": 200,
+     "weight_decay": 0.001,
+     "weight_decay_mask": "matrices",
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:7e4c42a18ae5c12535366c75e5e750e19e25c74243fbf61a0bb911a9d2b0c3cc",
+    "version": "battery-l2-v2"
+   }
+  },
+  {
+   "counts_for_level": true,
+   "label": "l2-E-d90a8ccf-p-37985e699fe3",
+   "level": 2,
+   "seeds": [
+    3050624822
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "E",
+    "proposal": "p-37985e699fe3",
+    "recipe_digest": "sha256:8d9ee097343b099fd770e41046cce84893eccb6cd1a51e575dad4ceae13b947e",
+    "run": "graphite-d90a8ccfd603cf6a",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "deeponet",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "activation": "gelu",
+     "arrhenius_features": true,
+     "basis_functions": 64,
+     "batch_size": 400,
+     "deeponet_depth": 4,
+     "ensemble_members": 2,
+     "hard_example_weight": 1.0,
+     "important_region_weight": 2.0,
+     "learning_rate": 0.003,
+     "min_learning_rate_ratio": 0.05,
+     "polish_steps": 600,
+     "steps": 16000,
+     "warmup_steps": 300,
+     "weight_decay": 0.001,
+     "weight_decay_mask": "matrices",
+     "width": 320
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:7e4c42a18ae5c12535366c75e5e750e19e25c74243fbf61a0bb911a9d2b0c3cc",
+    "version": "battery-l2-v2"
+   }
+  },
+  {
+   "counts_for_level": true,
+   "label": "l2-E-d90a8ccf-p-4e02e0f7c41a",
+   "level": 2,
+   "seeds": [
+    1261740013
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "E",
+    "proposal": "p-4e02e0f7c41a",
+    "recipe_digest": "sha256:5c607a2cc3191787f9663228751f674f18b9054e9aca8d371cad1f069a97d7bd",
+    "run": "graphite-d90a8ccfd603cf6a",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "mlp",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "activation": "gelu",
+     "arrhenius_features": true,
+     "batch_size": 400,
+     "depth": 4,
+     "important_region_weight": 2.0,
+     "learning_rate": 0.003,
+     "min_learning_rate_ratio": 0.05,
+     "steps": 18000,
+     "trajectory_components": 24,
+     "warmup_steps": 300,
+     "weight_decay": 0.001,
+     "weight_decay_mask": "matrices",
+     "width": 512
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:7e4c42a18ae5c12535366c75e5e750e19e25c74243fbf61a0bb911a9d2b0c3cc",
+    "version": "battery-l2-v2"
+   }
+  },
+  {
+   "counts_for_level": true,
+   "label": "l2-E-d90a8ccf-p-50299fa270c6",
+   "level": 2,
+   "seeds": [
+    1531089806
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "E",
+    "proposal": "p-50299fa270c6",
+    "recipe_digest": "sha256:aae48633182853dd12f95e7e479efdb72538adca24de23ee0e02eca1b4989704",
+    "run": "graphite-d90a8ccfd603cf6a",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "mlp",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "activation": "gelu",
+     "batch_size": 400,
+     "depth": 4,
+     "learning_rate": 0.003,
+     "min_learning_rate_ratio": 0.05,
+     "steps": 12000,
+     "warmup_steps": 200,
+     "weight_decay": 0.001,
+     "weight_decay_mask": "matrices",
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:7e4c42a18ae5c12535366c75e5e750e19e25c74243fbf61a0bb911a9d2b0c3cc",
+    "version": "battery-l2-v2"
+   }
+  },
+  {
+   "counts_for_level": true,
+   "label": "l2-E-d90a8ccf-p-5a050d3509d9",
+   "level": 2,
+   "seeds": [
+    2758744506
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "E",
+    "proposal": "p-5a050d3509d9",
+    "recipe_digest": "sha256:1cfa3720cfe05a121b29ee39dfb660074aadef88bba51bb4b8b006284af35fce",
+    "run": "graphite-d90a8ccfd603cf6a",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "deeponet",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "activation": "gelu",
+     "arrhenius_features": true,
+     "basis_functions": 64,
+     "batch_size": 400,
+     "deeponet_depth": 4,
+     "ensemble_members": 4,
+     "h1_weight": 0.3,
+     "important_region_weight": 2.0,
+     "learning_rate": 0.0015,
+     "min_learning_rate_ratio": 0.05,
+     "polish_steps": 400,
+     "steps": 16000,
+     "tail_averaging": 0.2,
+     "warmup_steps": 400,
+     "weight_decay": 0.0005,
+     "weight_decay_mask": "matrices",
+     "width": 320
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:7e4c42a18ae5c12535366c75e5e750e19e25c74243fbf61a0bb911a9d2b0c3cc",
+    "version": "battery-l2-v2"
+   }
+  },
+  {
+   "counts_for_level": true,
+   "label": "l2-E-d90a8ccf-p-69268f1b74ec",
+   "level": 2,
+   "seeds": [
+    3452335716
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "E",
+    "proposal": "p-69268f1b74ec",
+    "recipe_digest": "sha256:cac133431991b22a5dc0bce09eba1e162661dc56035f51d3decfb7e20da5d1b9",
+    "run": "graphite-d90a8ccfd603cf6a",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "deeponet",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "activation": "gelu",
+     "arrhenius_features": true,
+     "basis_functions": 64,
+     "batch_size": 400,
+     "deeponet_depth": 4,
+     "ensemble_members": 4,
+     "important_region_weight": 2.0,
+     "learning_rate": 0.0015,
+     "min_learning_rate_ratio": 0.05,
+     "polish_steps": 400,
+     "steps": 16000,
+     "tail_averaging": 0.2,
+     "warmup_steps": 400,
+     "weight_decay": 0.0005,
+     "weight_decay_mask": "matrices",
+     "width": 320
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:7e4c42a18ae5c12535366c75e5e750e19e25c74243fbf61a0bb911a9d2b0c3cc",
+    "version": "battery-l2-v2"
+   }
+  },
+  {
+   "counts_for_level": true,
+   "label": "l2-E-d90a8ccf-p-87b76ad0a2fd",
+   "level": 2,
+   "seeds": [
+    1533140235
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "E",
+    "proposal": "p-87b76ad0a2fd",
+    "recipe_digest": "sha256:5b0eee414dd60dba2bbdaf1cd95803d3bc17a6954eb6056d5140f0ba8df38b92",
+    "run": "graphite-d90a8ccfd603cf6a",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "deeponet",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "activation": "gelu",
+     "arrhenius_features": true,
+     "basis_functions": 48,
+     "batch_size": 400,
+     "deeponet_depth": 3,
+     "important_region_weight": 2.0,
+     "learning_rate": 0.003,
+     "min_learning_rate_ratio": 0.05,
+     "steps": 12000,
+     "warmup_steps": 200,
+     "weight_decay": 0.001,
+     "weight_decay_mask": "matrices",
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:7e4c42a18ae5c12535366c75e5e750e19e25c74243fbf61a0bb911a9d2b0c3cc",
+    "version": "battery-l2-v2"
+   }
+  },
+  {
+   "counts_for_level": true,
+   "label": "l2-E-d90a8ccf-p-891e0fd1ebdb",
+   "level": 2,
+   "seeds": [
+    3706087842
+   ],
+   "source": {
+    "bundled": true,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "E",
+    "proposal": "p-891e0fd1ebdb",
+    "recipe_digest": "sha256:ffda646c5d80ecf69338942d25541703632fc3b1ba88a869edf3824496c73313",
+    "run": "graphite-d90a8ccfd603cf6a",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "deeponet",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "activation": "gelu",
+     "arrhenius_features": true,
+     "basis_functions": 64,
+     "batch_size": 400,
+     "deeponet_depth": 4,
+     "ensemble_members": 4,
+     "h1_weight": 0.15,
+     "important_region_weight": 2.0,
+     "learning_rate": 0.0015,
+     "min_learning_rate_ratio": 0.05,
+     "polish_steps": 800,
+     "steps": 20000,
+     "tail_averaging": 0.2,
+     "warmup_steps": 400,
+     "weight_decay": 0.0005,
+     "weight_decay_mask": "matrices",
+     "width": 320
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:7e4c42a18ae5c12535366c75e5e750e19e25c74243fbf61a0bb911a9d2b0c3cc",
+    "version": "battery-l2-v2"
+   }
+  },
+  {
+   "counts_for_level": true,
+   "label": "l2-E-d90a8ccf-p-8e47250e297c",
+   "level": 2,
+   "seeds": [
+    1391275389
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "E",
+    "proposal": "p-8e47250e297c",
+    "recipe_digest": "sha256:8f49c24fa0363836a0676705436497869ed75ac5dd55bd911328dff67b326d3b",
+    "run": "graphite-d90a8ccfd603cf6a",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "deeponet",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "activation": "gelu",
+     "arrhenius_features": true,
+     "basis_functions": 64,
+     "batch_size": 400,
+     "deeponet_depth": 4,
+     "ensemble_members": 2,
+     "important_region_weight": 2.0,
+     "learning_rate": 0.003,
+     "min_learning_rate_ratio": 0.05,
+     "steps": 16000,
+     "warmup_steps": 300,
+     "weight_decay": 0.001,
+     "weight_decay_mask": "matrices",
+     "width": 320
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:7e4c42a18ae5c12535366c75e5e750e19e25c74243fbf61a0bb911a9d2b0c3cc",
+    "version": "battery-l2-v2"
+   }
+  },
+  {
+   "counts_for_level": true,
+   "label": "l2-E-d90a8ccf-p-c41a9a1ebb82",
+   "level": 2,
+   "seeds": [
+    274570235
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "E",
+    "proposal": "p-c41a9a1ebb82",
+    "recipe_digest": "sha256:891f36e6ad4a1913e0f15d38ab45f4af3b9da20529f075b9f6f60a2fbec582cc",
+    "run": "graphite-d90a8ccfd603cf6a",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "deeponet",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "activation": "gelu",
+     "arrhenius_features": true,
+     "basis_functions": 64,
+     "batch_size": 400,
+     "deeponet_depth": 4,
+     "ensemble_members": 2,
+     "important_region_weight": 2.0,
+     "learning_rate": 0.003,
+     "min_learning_rate_ratio": 0.05,
+     "polish_steps": 600,
+     "steps": 16000,
+     "warmup_steps": 300,
+     "weight_decay": 0.001,
+     "weight_decay_mask": "matrices",
+     "width": 320
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:7e4c42a18ae5c12535366c75e5e750e19e25c74243fbf61a0bb911a9d2b0c3cc",
+    "version": "battery-l2-v2"
+   }
+  },
+  {
+   "counts_for_level": true,
+   "label": "l3-F-18fc7b1c-p-1d4aaff5d292",
+   "level": 3,
+   "seeds": [
+    4067995994
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "F",
+    "proposal": "p-1d4aaff5d292",
+    "recipe_digest": "sha256:802d861cd39c7116da67ba0f121a33fe54f9da913a85ce39f09a8e66aada4107",
+    "run": "graphite-18fc7b1c1eeea8aa",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "deeponet",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "basis_functions": 32,
+     "deeponet_depth": 3,
+     "ensemble_members": 2,
+     "steps": 20000,
+     "tail_averaging": 0.3,
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:8ed5a886386d6b4529b88881724ed2b1a977fe42d7993e5290b01be800b742b9",
+    "version": "battery-l3-numerics-v1"
+   }
+  },
+  {
+   "counts_for_level": true,
+   "label": "l3-F-18fc7b1c-p-37985e699fe3",
+   "level": 3,
+   "seeds": [
+    1286811227
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "F",
+    "proposal": "p-37985e699fe3",
+    "recipe_digest": "sha256:f6efc71b2992513cc9017ef7a888dd6bf0f3975689b246b0224984418c6bf355",
+    "run": "graphite-18fc7b1c1eeea8aa",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "deeponet",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "basis_functions": 32,
+     "deeponet_depth": 3,
+     "learning_rate": 0.006,
+     "steps": 20000,
+     "warmup_steps": 500,
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:8ed5a886386d6b4529b88881724ed2b1a977fe42d7993e5290b01be800b742b9",
+    "version": "battery-l3-numerics-v1"
+   }
+  },
+  {
+   "counts_for_level": true,
+   "label": "l3-F-18fc7b1c-p-4e02e0f7c41a",
+   "level": 3,
+   "seeds": [
+    3592590750
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "F",
+    "proposal": "p-4e02e0f7c41a",
+    "recipe_digest": "sha256:510b721d8659e779e7467aa7c4b0e381f4600d55a8deb9a952481812a08d2c85",
+    "run": "graphite-18fc7b1c1eeea8aa",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "mlp",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "arrhenius_features": true,
+     "depth": 6,
+     "steps": 20000,
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:8ed5a886386d6b4529b88881724ed2b1a977fe42d7993e5290b01be800b742b9",
+    "version": "battery-l3-numerics-v1"
+   }
+  },
+  {
+   "counts_for_level": true,
+   "label": "l3-F-18fc7b1c-p-50299fa270c6",
+   "level": 3,
+   "seeds": [
+    2326338881
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "F",
+    "proposal": "p-50299fa270c6",
+    "recipe_digest": "sha256:0e35dee3db88dcc0c7ef87a29264882503a18209469b7467752794a1f36bdb70",
+    "run": "graphite-18fc7b1c1eeea8aa",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "mlp",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "depth": 4,
+     "steps": 20000,
+     "width": 512
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:8ed5a886386d6b4529b88881724ed2b1a977fe42d7993e5290b01be800b742b9",
+    "version": "battery-l3-numerics-v1"
+   }
+  },
+  {
+   "counts_for_level": true,
+   "label": "l3-F-18fc7b1c-p-5a050d3509d9",
+   "level": 3,
+   "seeds": [
+    1588028370
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "F",
+    "proposal": "p-5a050d3509d9",
+    "recipe_digest": "sha256:e18f0730598e6c1b9f2028aaaf96c044ee8496ed55af2139cbfbe47c90117acb",
+    "run": "graphite-18fc7b1c1eeea8aa",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "deeponet",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "basis_functions": 32,
+     "deeponet_depth": 3,
+     "ensemble_members": 4,
+     "steps": 20000,
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:8ed5a886386d6b4529b88881724ed2b1a977fe42d7993e5290b01be800b742b9",
+    "version": "battery-l3-numerics-v1"
+   }
+  },
+  {
+   "counts_for_level": true,
+   "label": "l3-F-18fc7b1c-p-69268f1b74ec",
+   "level": 3,
+   "seeds": [
+    280224976
+   ],
+   "source": {
+    "bundled": true,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "F",
+    "proposal": "p-69268f1b74ec",
+    "recipe_digest": "sha256:c1d542de5bc1b94778d4d9e7cc51cd2c788c618a3cecad42272bbdb3a0c9fe1a",
+    "run": "graphite-18fc7b1c1eeea8aa",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "deeponet",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "basis_functions": 32,
+     "deeponet_depth": 3,
+     "ensemble_members": 2,
+     "steps": 20000,
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:8ed5a886386d6b4529b88881724ed2b1a977fe42d7993e5290b01be800b742b9",
+    "version": "battery-l3-numerics-v1"
+   }
+  },
+  {
+   "counts_for_level": true,
+   "label": "l3-F-18fc7b1c-p-839de482ac6b",
+   "level": 3,
+   "seeds": [
+    222746556
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "F",
+    "proposal": "p-839de482ac6b",
+    "recipe_digest": "sha256:05c3206fcd6ae02100d8045ce1025d853876300038fbb197db5b17390b023e04",
+    "run": "graphite-18fc7b1c1eeea8aa",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "deeponet",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "arrhenius_features": true,
+     "basis_functions": 32,
+     "deeponet_depth": 3,
+     "steps": 20000,
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:8ed5a886386d6b4529b88881724ed2b1a977fe42d7993e5290b01be800b742b9",
+    "version": "battery-l3-numerics-v1"
+   }
+  },
+  {
+   "counts_for_level": true,
+   "label": "l3-F-18fc7b1c-p-87b76ad0a2fd",
+   "level": 3,
+   "seeds": [
+    1810272266
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "F",
+    "proposal": "p-87b76ad0a2fd",
+    "recipe_digest": "sha256:e7fa09bb88d6c231fa60a8722c2a59963873f3a282080a9854fd1d2cf244879c",
+    "run": "graphite-18fc7b1c1eeea8aa",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "deeponet",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "basis_functions": 32,
+     "deeponet_depth": 3,
+     "steps": 20000,
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:8ed5a886386d6b4529b88881724ed2b1a977fe42d7993e5290b01be800b742b9",
+    "version": "battery-l3-numerics-v1"
+   }
+  },
+  {
+   "counts_for_level": true,
+   "label": "l3-F-18fc7b1c-p-8e47250e297c",
+   "level": 3,
+   "seeds": [
+    875812403
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "F",
+    "proposal": "p-8e47250e297c",
+    "recipe_digest": "sha256:2fbd4770356698f3ccba0d4d6827b13731035565a0ae3c7f66cbaf545306c272",
+    "run": "graphite-18fc7b1c1eeea8aa",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "deeponet",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "basis_functions": 64,
+     "deeponet_depth": 4,
+     "steps": 20000,
+     "width": 512
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:8ed5a886386d6b4529b88881724ed2b1a977fe42d7993e5290b01be800b742b9",
+    "version": "battery-l3-numerics-v1"
+   }
+  },
+  {
+   "counts_for_level": true,
+   "label": "l3-F-18fc7b1c-p-c41a9a1ebb82",
+   "level": 3,
+   "seeds": [
+    2764736787
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "F",
+    "proposal": "p-c41a9a1ebb82",
+    "recipe_digest": "sha256:e58e686f5619e594c9ac5d1560b157b6e30605e6e6c705d574d853229ef236de",
+    "run": "graphite-18fc7b1c1eeea8aa",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "mlp",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "depth": 3,
+     "steps": 20000,
+     "trajectory_components": 16,
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:8ed5a886386d6b4529b88881724ed2b1a977fe42d7993e5290b01be800b742b9",
+    "version": "battery-l3-numerics-v1"
+   }
+  },
+  {
+   "counts_for_level": true,
+   "label": "l3-F-913bf188-p-1585ecbf838a",
+   "level": 3,
+   "seeds": [
+    1145289009
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "F",
+    "proposal": "p-1585ecbf838a",
+    "recipe_digest": "sha256:73d201fac6ab16d44059a279a5081c2caff71710ef5ed07f77b7e96ee22688ee",
+    "run": "graphite-913bf1889a6db2d1",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "mlp",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "activation": "gelu",
+     "arrhenius_features": true,
+     "batch_size": 400,
+     "bounded_voltage_head": true,
+     "capacity_fade_head": true,
+     "depth": 4,
+     "ema_decay": 0.999,
+     "ensemble_members": 4,
+     "important_region_weight": 1.5,
+     "inference_weights": "ema",
+     "learning_rate": 0.01,
+     "learning_rate_curve": "cosine",
+     "min_learning_rate_ratio": 0.0,
+     "ocv_initial_voltage": true,
+     "optimizer_family": "muon",
+     "steps": 20000,
+     "width": 512
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:8ed5a886386d6b4529b88881724ed2b1a977fe42d7993e5290b01be800b742b9",
+    "version": "battery-l3-numerics-v1"
+   }
+  },
+  {
+   "counts_for_level": true,
+   "label": "l3-F-913bf188-p-4e02e0f7c41a",
+   "level": 3,
+   "seeds": [
+    3800268537
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "F",
+    "proposal": "p-4e02e0f7c41a",
+    "recipe_digest": "sha256:13d6234ca39617095546abe948cd2091c7f07759623759b49e603bbfeb1c418a",
+    "run": "graphite-913bf1889a6db2d1",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "mlp",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "activation": "gelu",
+     "arrhenius_features": true,
+     "batch_size": 400,
+     "bounded_voltage_head": true,
+     "capacity_fade_head": true,
+     "depth": 4,
+     "ema_decay": 0.999,
+     "ensemble_members": 4,
+     "h1_weight": 0.1,
+     "h2_weight": 0.1,
+     "important_region_weight": 2.0,
+     "inference_weights": "ema",
+     "learning_rate": 0.002,
+     "learning_rate_curve": "cosine",
+     "min_learning_rate_ratio": 0.0,
+     "ocv_initial_voltage": true,
+     "optimizer_family": "adam",
+     "steps": 20000,
+     "width": 512
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:8ed5a886386d6b4529b88881724ed2b1a977fe42d7993e5290b01be800b742b9",
+    "version": "battery-l3-numerics-v1"
+   }
+  },
+  {
+   "counts_for_level": true,
+   "label": "l3-F-913bf188-p-50299fa270c6",
+   "level": 3,
+   "seeds": [
+    4218777628
+   ],
+   "source": {
+    "bundled": true,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "F",
+    "proposal": "p-50299fa270c6",
+    "recipe_digest": "sha256:5a9d597f2e18359547e73e573a5606b7cf6f087ae9506940bc06f26e83f131f5",
+    "run": "graphite-913bf1889a6db2d1",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "mlp",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "activation": "gelu",
+     "batch_size": 400,
+     "bounded_voltage_head": true,
+     "capacity_fade_head": true,
+     "depth": 4,
+     "ema_decay": 0.999,
+     "ensemble_members": 4,
+     "inference_weights": "ema",
+     "learning_rate": 0.002,
+     "learning_rate_curve": "cosine",
+     "min_learning_rate_ratio": 0.0,
+     "ocv_initial_voltage": true,
+     "optimizer_family": "adam",
+     "steps": 20000,
+     "width": 512
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:8ed5a886386d6b4529b88881724ed2b1a977fe42d7993e5290b01be800b742b9",
+    "version": "battery-l3-numerics-v1"
+   }
+  },
+  {
+   "counts_for_level": true,
+   "label": "l3-F-913bf188-p-591188a3c3d5",
+   "level": 3,
+   "seeds": [
+    913532088
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "F",
+    "proposal": "p-591188a3c3d5",
+    "recipe_digest": "sha256:ebbe00872ed977a04e345b489fb009f41a8e0998d95dcf3bdb7d921a440f95dc",
+    "run": "graphite-913bf1889a6db2d1",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "mlp",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "activation": "gelu",
+     "batch_size": 400,
+     "bounded_voltage_head": true,
+     "capacity_fade_head": true,
+     "depth": 3,
+     "ema_decay": 0.999,
+     "ensemble_members": 2,
+     "inference_weights": "ema",
+     "learning_rate": 0.002,
+     "learning_rate_curve": "cosine",
+     "min_learning_rate_ratio": 0.0,
+     "ocv_initial_voltage": true,
+     "optimizer_family": "adam",
+     "steps": 12000,
+     "width": 512
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:8ed5a886386d6b4529b88881724ed2b1a977fe42d7993e5290b01be800b742b9",
+    "version": "battery-l3-numerics-v1"
+   }
+  },
+  {
+   "counts_for_level": true,
+   "label": "l3-F-913bf188-p-839de482ac6b",
+   "level": 3,
+   "seeds": [
+    2502811173
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "F",
+    "proposal": "p-839de482ac6b",
+    "recipe_digest": "sha256:5ba0e082c25cb49956b4cb554c6a646bfea593b2fe013091d1344f5d820b163c",
+    "run": "graphite-913bf1889a6db2d1",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "mlp",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "activation": "gelu",
+     "batch_size": 400,
+     "bounded_voltage_head": true,
+     "capacity_fade_head": true,
+     "depth": 5,
+     "ema_decay": 0.999,
+     "ensemble_members": 4,
+     "inference_weights": "ema",
+     "learning_rate": 0.002,
+     "learning_rate_curve": "cosine",
+     "min_learning_rate_ratio": 0.0,
+     "ocv_initial_voltage": true,
+     "optimizer_family": "adam",
+     "steps": 20000,
+     "width": 512
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:8ed5a886386d6b4529b88881724ed2b1a977fe42d7993e5290b01be800b742b9",
+    "version": "battery-l3-numerics-v1"
+   }
+  },
+  {
+   "counts_for_level": true,
+   "label": "l3-F-913bf188-p-87b76ad0a2fd",
+   "level": 3,
+   "seeds": [
+    2340385395
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "F",
+    "proposal": "p-87b76ad0a2fd",
+    "recipe_digest": "sha256:e7a1424a5f59656888b2e558c27cc4ac61364381daee359b56c0784179420f8f",
+    "run": "graphite-913bf1889a6db2d1",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "mlp",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "activation": "silu",
+     "arrhenius_features": true,
+     "batch_size": 400,
+     "bounded_voltage_head": true,
+     "capacity_fade_head": true,
+     "depth": 4,
+     "ema_decay": 0.999,
+     "ensemble_members": 4,
+     "important_region_weight": 1.5,
+     "inference_weights": "ema",
+     "learning_rate": 0.002,
+     "learning_rate_curve": "cosine",
+     "min_learning_rate_ratio": 0.0,
+     "ocv_initial_voltage": true,
+     "optimizer_family": "adam",
+     "steps": 20000,
+     "weight_decay": 0.001,
+     "weight_decay_mask": "matrices",
+     "width": 512
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:8ed5a886386d6b4529b88881724ed2b1a977fe42d7993e5290b01be800b742b9",
+    "version": "battery-l3-numerics-v1"
+   }
+  },
+  {
+   "counts_for_level": true,
+   "label": "l3-F-913bf188-p-8e47250e297c",
+   "level": 3,
+   "seeds": [
+    2470875515
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "F",
+    "proposal": "p-8e47250e297c",
+    "recipe_digest": "sha256:36a808ff28d2c8075a0e0577954a71469cac67333a34b7dd30b628ec2764cc6c",
+    "run": "graphite-913bf1889a6db2d1",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "deeponet",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "activation": "gelu",
+     "arrhenius_features": true,
+     "basis_functions": 32,
+     "batch_size": 400,
+     "bounded_voltage_head": true,
+     "capacity_fade_head": true,
+     "deeponet_depth": 3,
+     "ema_decay": 0.999,
+     "ensemble_members": 4,
+     "inference_weights": "ema",
+     "learning_rate": 0.002,
+     "learning_rate_curve": "cosine",
+     "min_learning_rate_ratio": 0.0,
+     "ocv_initial_voltage": true,
+     "optimizer_family": "adam",
+     "steps": 20000,
+     "width": 512
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:8ed5a886386d6b4529b88881724ed2b1a977fe42d7993e5290b01be800b742b9",
+    "version": "battery-l3-numerics-v1"
+   }
+  },
+  {
+   "counts_for_level": true,
+   "label": "l3-F-913bf188-p-c1c8903402bd",
+   "level": 3,
+   "seeds": [
+    2311071485
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "F",
+    "proposal": "p-c1c8903402bd",
+    "recipe_digest": "sha256:1c54e40d830b7b534cf92835087a05cdb3f8b4c9a3dd05680e5eeffda3c8ab79",
+    "run": "graphite-913bf1889a6db2d1",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "mlp",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "activation": "gelu",
+     "batch_size": 400,
+     "bounded_voltage_head": true,
+     "capacity_fade_head": true,
+     "depth": 3,
+     "ema_decay": 0.999,
+     "inference_weights": "ema",
+     "learning_rate": 0.002,
+     "learning_rate_curve": "cosine",
+     "ocv_initial_voltage": true,
+     "optimizer_family": "adam",
+     "steps": 6000,
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:8ed5a886386d6b4529b88881724ed2b1a977fe42d7993e5290b01be800b742b9",
+    "version": "battery-l3-numerics-v1"
+   }
+  },
+  {
+   "counts_for_level": true,
+   "label": "l3-F-913bf188-p-c41a9a1ebb82",
+   "level": 3,
+   "seeds": [
+    2627753323
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "F",
+    "proposal": "p-c41a9a1ebb82",
+    "recipe_digest": "sha256:2c9b7567cc09390f820ad7c9669e350f06d690b06501c65862a0c313e38811f6",
+    "run": "graphite-913bf1889a6db2d1",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "mlp",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "activation": "gelu",
+     "arrhenius_features": true,
+     "batch_size": 400,
+     "bounded_voltage_head": true,
+     "capacity_fade_head": true,
+     "depth": 4,
+     "ema_decay": 0.999,
+     "ensemble_members": 4,
+     "inference_weights": "ema",
+     "learning_rate": 0.002,
+     "learning_rate_curve": "cosine",
+     "min_learning_rate_ratio": 0.0,
+     "ocv_initial_voltage": true,
+     "optimizer_family": "adam",
+     "steps": 20000,
+     "warmup_steps": 500,
+     "width": 512
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:8ed5a886386d6b4529b88881724ed2b1a977fe42d7993e5290b01be800b742b9",
+    "version": "battery-l3-numerics-v1"
+   }
+  },
+  {
+   "counts_for_level": true,
+   "label": "l3-F-913bf188-p-fa5c88711f35",
+   "level": 3,
+   "seeds": [
+    2227956907
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "F",
+    "proposal": "p-fa5c88711f35",
+    "recipe_digest": "sha256:86e88d2660ca87fccd5e6dfa454cc7d95a9402a54079675992f1ac4580850ec2",
+    "run": "graphite-913bf1889a6db2d1",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "mlp",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "depth": 3,
+     "steps": 2000,
+     "width": 64
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:8ed5a886386d6b4529b88881724ed2b1a977fe42d7993e5290b01be800b742b9",
+    "version": "battery-l3-numerics-v1"
+   }
+  },
+  {
+   "counts_for_level": true,
+   "label": "l3-F-d90a8ccf-p-1585ecbf838a",
+   "level": 3,
+   "seeds": [
+    2274892020
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "F",
+    "proposal": "p-1585ecbf838a",
+    "recipe_digest": "sha256:26e361e0669ff90580962ecba26c86e9f55469d30d83d5c42e8cf17cc31bd4f6",
+    "run": "graphite-d90a8ccfd603cf6a",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "mlp",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "arrhenius_features": true,
+     "depth": 5,
+     "normalization": "layer_norm",
+     "steps": 12000,
+     "warmup_steps": 200,
+     "width": 384
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:8ed5a886386d6b4529b88881724ed2b1a977fe42d7993e5290b01be800b742b9",
+    "version": "battery-l3-numerics-v1"
+   }
+  },
+  {
+   "counts_for_level": true,
+   "label": "l3-F-d90a8ccf-p-1d4aaff5d292",
+   "level": 3,
+   "seeds": [
+    3859856051
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "F",
+    "proposal": "p-1d4aaff5d292",
+    "recipe_digest": "sha256:8070b3f1308f310b4e87658fc2a4218871e251096e6628da65801b744bddfc45",
+    "run": "graphite-d90a8ccfd603cf6a",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "mlp",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "arrhenius_features": true,
+     "depth": 4,
+     "ensemble_members": 2,
+     "h1_weight": 0.5,
+     "normalization": "layer_norm",
+     "spectral_weight": 0.5,
+     "steps": 20000,
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:8ed5a886386d6b4529b88881724ed2b1a977fe42d7993e5290b01be800b742b9",
+    "version": "battery-l3-numerics-v1"
+   }
+  },
+  {
+   "counts_for_level": true,
+   "label": "l3-F-d90a8ccf-p-4e02e0f7c41a",
+   "level": 3,
+   "seeds": [
+    4287565907
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "F",
+    "proposal": "p-4e02e0f7c41a",
+    "recipe_digest": "sha256:7a49129a25223bf34f8e957a0542058cc0d28f922103209f3a0a0d099cace7fa",
+    "run": "graphite-d90a8ccfd603cf6a",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "mlp",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "arrhenius_features": true,
+     "depth": 4,
+     "min_learning_rate_ratio": 0.02,
+     "normalization": "layer_norm",
+     "steps": 14000,
+     "tail_averaging": 0.1,
+     "weight_decay": 0.0005,
+     "weight_decay_mask": "matrices",
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:8ed5a886386d6b4529b88881724ed2b1a977fe42d7993e5290b01be800b742b9",
+    "version": "battery-l3-numerics-v1"
+   }
+  },
+  {
+   "counts_for_level": true,
+   "label": "l3-F-d90a8ccf-p-4fd7fb870d2b",
+   "level": 3,
+   "seeds": [
+    1768902504
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "F",
+    "proposal": "p-4fd7fb870d2b",
+    "recipe_digest": "sha256:d782b50b28529fa0c9d4491a4f79027114f1b62bbd4b024091660adf5603afc3",
+    "run": "graphite-d90a8ccfd603cf6a",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "mlp",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "arrhenius_features": true,
+     "depth": 4,
+     "ensemble_members": 4,
+     "h1_weight": 1.0,
+     "normalization": "layer_norm",
+     "spectral_weight": 1.0,
+     "steps": 20000,
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:8ed5a886386d6b4529b88881724ed2b1a977fe42d7993e5290b01be800b742b9",
+    "version": "battery-l3-numerics-v1"
+   }
+  },
+  {
+   "counts_for_level": true,
+   "label": "l3-F-d90a8ccf-p-591188a3c3d5",
+   "level": 3,
+   "seeds": [
+    4083755005
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "F",
+    "proposal": "p-591188a3c3d5",
+    "recipe_digest": "sha256:35ead35b4ddb33d2a9f696365bdd211e2a0ab14b992a07215536d24d84c13399",
+    "run": "graphite-d90a8ccfd603cf6a",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "mlp",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "arrhenius_features": true,
+     "depth": 4,
+     "normalization": "layer_norm",
+     "steps": 12000,
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:8ed5a886386d6b4529b88881724ed2b1a977fe42d7993e5290b01be800b742b9",
+    "version": "battery-l3-numerics-v1"
+   }
+  },
+  {
+   "counts_for_level": true,
+   "label": "l3-F-d90a8ccf-p-5a050d3509d9",
+   "level": 3,
+   "seeds": [
+    2016591972
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "F",
+    "proposal": "p-5a050d3509d9",
+    "recipe_digest": "sha256:1687d2255e88432f8d70da76f497dcd88b015a8820eb4ca328902d8f6897d768",
+    "run": "graphite-d90a8ccfd603cf6a",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "mlp",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "arrhenius_features": true,
+     "depth": 4,
+     "ensemble_members": 4,
+     "h1_weight": 0.5,
+     "normalization": "layer_norm",
+     "spectral_weight": 0.5,
+     "steps": 20000,
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:8ed5a886386d6b4529b88881724ed2b1a977fe42d7993e5290b01be800b742b9",
+    "version": "battery-l3-numerics-v1"
+   }
+  },
+  {
+   "counts_for_level": true,
+   "label": "l3-F-d90a8ccf-p-69268f1b74ec",
+   "level": 3,
+   "seeds": [
+    1314800481
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "F",
+    "proposal": "p-69268f1b74ec",
+    "recipe_digest": "sha256:acf281c11dc4865157c7db1fcbdea3677eb79c0a6435d0901652415c35748a0b",
+    "run": "graphite-d90a8ccfd603cf6a",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "deeponet",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "arrhenius_features": true,
+     "basis_functions": 32,
+     "deeponet_depth": 3,
+     "ensemble_members": 4,
+     "normalization": "layer_norm",
+     "steps": 20000,
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:8ed5a886386d6b4529b88881724ed2b1a977fe42d7993e5290b01be800b742b9",
+    "version": "battery-l3-numerics-v1"
+   }
+  },
+  {
+   "counts_for_level": true,
+   "label": "l3-F-d90a8ccf-p-839de482ac6b",
+   "level": 3,
+   "seeds": [
+    2080028190
+   ],
+   "source": {
+    "bundled": true,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "F",
+    "proposal": "p-839de482ac6b",
+    "recipe_digest": "sha256:c2a623506831f2292589bcc32ecf7d93375522e856b8eedf54184a93529ec736",
+    "run": "graphite-d90a8ccfd603cf6a",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "mlp",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "arrhenius_features": true,
+     "depth": 4,
+     "ensemble_members": 4,
+     "normalization": "layer_norm",
+     "steps": 20000,
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:8ed5a886386d6b4529b88881724ed2b1a977fe42d7993e5290b01be800b742b9",
+    "version": "battery-l3-numerics-v1"
+   }
+  },
+  {
+   "counts_for_level": true,
+   "label": "l3-F-d90a8ccf-p-87b76ad0a2fd",
+   "level": 3,
+   "seeds": [
+    2429043565
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "F",
+    "proposal": "p-87b76ad0a2fd",
+    "recipe_digest": "sha256:7aadc1f5a15aa5b8fc20559af5fff7e20a9a8a1f98a53c9112c3e317fc1dc04a",
+    "run": "graphite-d90a8ccfd603cf6a",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "mlp",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "arrhenius_features": true,
+     "depth": 4,
+     "ensemble_members": 4,
+     "normalization": "layer_norm",
+     "steps": 12000,
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:8ed5a886386d6b4529b88881724ed2b1a977fe42d7993e5290b01be800b742b9",
+    "version": "battery-l3-numerics-v1"
+   }
+  },
+  {
+   "counts_for_level": true,
+   "label": "l3-F-d90a8ccf-p-891e0fd1ebdb",
+   "level": 3,
+   "seeds": [
+    551568337
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "F",
+    "proposal": "p-891e0fd1ebdb",
+    "recipe_digest": "sha256:1687d2255e88432f8d70da76f497dcd88b015a8820eb4ca328902d8f6897d768",
+    "run": "graphite-d90a8ccfd603cf6a",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "mlp",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "arrhenius_features": true,
+     "depth": 4,
+     "ensemble_members": 4,
+     "h1_weight": 0.5,
+     "normalization": "layer_norm",
+     "spectral_weight": 0.5,
+     "steps": 20000,
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:8ed5a886386d6b4529b88881724ed2b1a977fe42d7993e5290b01be800b742b9",
+    "version": "battery-l3-numerics-v1"
+   }
+  },
+  {
+   "counts_for_level": true,
+   "label": "l3-F-d90a8ccf-p-c41a9a1ebb82",
+   "level": 3,
+   "seeds": [
+    2904586598
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "F",
+    "proposal": "p-c41a9a1ebb82",
+    "recipe_digest": "sha256:c1c2325f957432abff74f0fb1689588172059794fc8039b58be224ebd72d28bd",
+    "run": "graphite-d90a8ccfd603cf6a",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "mlp",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "arrhenius_features": true,
+     "depth": 4,
+     "ensemble_members": 4,
+     "normalization": "layer_norm",
+     "steps": 20000,
+     "trajectory_components": 12,
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:8ed5a886386d6b4529b88881724ed2b1a977fe42d7993e5290b01be800b742b9",
+    "version": "battery-l3-numerics-v1"
+   }
+  },
+  {
+   "counts_for_level": false,
+   "label": "l4v3-plain-G-18fc7b1c-p-1585ecbf838a",
+   "level": 4,
+   "seeds": [
+    4011301188
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "G",
+    "proposal": "p-1585ecbf838a",
+    "recipe_digest": "sha256:ace484de7efbe81560dc08b05d667a71ef9ad10be5a05ec241df046c64549c1e",
+    "run": "graphite-18fc7b1c1eeea8aa",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "deeponet",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "arrhenius_features": true,
+     "basis_functions": 16,
+     "batch_size": 400,
+     "deeponet_depth": 3,
+     "learning_rate": 0.002,
+     "learning_rate_curve": "cosine",
+     "min_learning_rate_ratio": 0.05,
+     "steps": 20000,
+     "tail_averaging": 0.2,
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:ad15d6a8ef135a961f15dcb4a682e58ccdbdc7c99926de0f1ef6d5da4325cfa2",
+    "version": "battery-l4-graph-v3"
+   }
+  },
+  {
+   "counts_for_level": false,
+   "label": "l4v3-plain-G-18fc7b1c-p-4fd7fb870d2b",
+   "level": 4,
+   "seeds": [
+    4118798907
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "G",
+    "proposal": "p-4fd7fb870d2b",
+    "recipe_digest": "sha256:f8cded87bb3f01182643099a5429b27e84f33999f2a7877e618c930a011742aa",
+    "run": "graphite-18fc7b1c1eeea8aa",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "deeponet",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "arrhenius_features": true,
+     "basis_functions": 16,
+     "batch_size": 400,
+     "deeponet_depth": 3,
+     "important_region_weight": 3.0,
+     "learning_rate": 0.002,
+     "learning_rate_curve": "cosine",
+     "min_learning_rate_ratio": 0.05,
+     "steps": 20000,
+     "tail_averaging": 0.2,
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:ad15d6a8ef135a961f15dcb4a682e58ccdbdc7c99926de0f1ef6d5da4325cfa2",
+    "version": "battery-l4-graph-v3"
+   }
+  },
+  {
+   "counts_for_level": false,
+   "label": "l4v3-plain-G-18fc7b1c-p-50299fa270c6",
+   "level": 4,
+   "seeds": [
+    2969569423
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "G",
+    "proposal": "p-50299fa270c6",
+    "recipe_digest": "sha256:fbdcfc2742cf9e3474cabae8da683978efc044cbba3c4548395568614c7edc3a",
+    "run": "graphite-18fc7b1c1eeea8aa",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "deeponet",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "arrhenius_features": true,
+     "basis_functions": 32,
+     "batch_size": 400,
+     "deeponet_depth": 3,
+     "learning_rate": 0.002,
+     "learning_rate_curve": "cosine",
+     "steps": 10000,
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:ad15d6a8ef135a961f15dcb4a682e58ccdbdc7c99926de0f1ef6d5da4325cfa2",
+    "version": "battery-l4-graph-v3"
+   }
+  },
+  {
+   "counts_for_level": false,
+   "label": "l4v3-plain-G-18fc7b1c-p-5730cc1c70c2",
+   "level": 4,
+   "seeds": [
+    3205818801
+   ],
+   "source": {
+    "bundled": true,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "G",
+    "proposal": "p-5730cc1c70c2",
+    "recipe_digest": "sha256:e50c3817d945a2b6cdcf8f54f53f0b004c8b21b02c36e7490627929455598f06",
+    "run": "graphite-18fc7b1c1eeea8aa",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "deeponet",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "arrhenius_features": true,
+     "basis_functions": 16,
+     "batch_size": 400,
+     "deeponet_depth": 3,
+     "ensemble_members": 2,
+     "learning_rate": 0.002,
+     "learning_rate_curve": "cosine",
+     "min_learning_rate_ratio": 0.05,
+     "steps": 20000,
+     "tail_averaging": 0.2,
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:ad15d6a8ef135a961f15dcb4a682e58ccdbdc7c99926de0f1ef6d5da4325cfa2",
+    "version": "battery-l4-graph-v3"
+   }
+  },
+  {
+   "counts_for_level": false,
+   "label": "l4v3-plain-G-18fc7b1c-p-5a3b8fe3c06f",
+   "level": 4,
+   "seeds": [
+    629415651
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "G",
+    "proposal": "p-5a3b8fe3c06f",
+    "recipe_digest": "sha256:dd4fe65171c63d6fac4af99577526b92bc5d654b65eecd5049cca9b8b2d112dd",
+    "run": "graphite-18fc7b1c1eeea8aa",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "deeponet",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "arrhenius_features": true,
+     "basis_functions": 24,
+     "batch_size": 400,
+     "deeponet_depth": 4,
+     "learning_rate": 0.002,
+     "learning_rate_curve": "cosine",
+     "min_learning_rate_ratio": 0.05,
+     "steps": 20000,
+     "tail_averaging": 0.2,
+     "width": 192
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:ad15d6a8ef135a961f15dcb4a682e58ccdbdc7c99926de0f1ef6d5da4325cfa2",
+    "version": "battery-l4-graph-v3"
+   }
+  },
+  {
+   "counts_for_level": false,
+   "label": "l4v3-plain-G-18fc7b1c-p-69268f1b74ec",
+   "level": 4,
+   "seeds": [
+    61557003
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "G",
+    "proposal": "p-69268f1b74ec",
+    "recipe_digest": "sha256:b30b608b80de6de7fe2aae98eb25bcbb6c65ecc8f210d6d3474652ccb2d2ead7",
+    "run": "graphite-18fc7b1c1eeea8aa",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "deeponet",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "arrhenius_features": true,
+     "basis_functions": 16,
+     "batch_size": 400,
+     "deeponet_depth": 3,
+     "learning_rate": 0.003,
+     "learning_rate_curve": "cosine",
+     "min_learning_rate_ratio": 0.05,
+     "polish_steps": 1000,
+     "steps": 20000,
+     "tail_averaging": 0.2,
+     "warmup_steps": 500,
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:ad15d6a8ef135a961f15dcb4a682e58ccdbdc7c99926de0f1ef6d5da4325cfa2",
+    "version": "battery-l4-graph-v3"
+   }
+  },
+  {
+   "counts_for_level": false,
+   "label": "l4v3-plain-G-18fc7b1c-p-891e0fd1ebdb",
+   "level": 4,
+   "seeds": [
+    3045106858
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "G",
+    "proposal": "p-891e0fd1ebdb",
+    "recipe_digest": "sha256:515ae3928bc1dde88c0774c5222d4fb378fa1d17bb81e129c3f0a1919951881d",
+    "run": "graphite-18fc7b1c1eeea8aa",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "deeponet",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "arrhenius_features": true,
+     "basis_functions": 24,
+     "batch_size": 400,
+     "deeponet_depth": 3,
+     "learning_rate": 0.0015,
+     "learning_rate_curve": "cosine",
+     "min_learning_rate_ratio": 0.05,
+     "relative_loss": true,
+     "steps": 20000,
+     "tail_averaging": 0.2,
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:ad15d6a8ef135a961f15dcb4a682e58ccdbdc7c99926de0f1ef6d5da4325cfa2",
+    "version": "battery-l4-graph-v3"
+   }
+  },
+  {
+   "counts_for_level": false,
+   "label": "l4v3-plain-G-18fc7b1c-p-8e47250e297c",
+   "level": 4,
+   "seeds": [
+    1963541631
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "G",
+    "proposal": "p-8e47250e297c",
+    "recipe_digest": "sha256:9bb920689f19de21ae77aedbe9c6482c346ee004edbe64194f3b63077e1cbbd4",
+    "run": "graphite-18fc7b1c1eeea8aa",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "deeponet",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "arrhenius_features": true,
+     "basis_functions": 24,
+     "batch_size": 400,
+     "deeponet_depth": 3,
+     "h1_weight": 0.1,
+     "important_region_weight": 2.0,
+     "learning_rate": 0.002,
+     "learning_rate_curve": "cosine",
+     "min_learning_rate_ratio": 0.05,
+     "steps": 20000,
+     "tail_averaging": 0.2,
+     "width": 384
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:ad15d6a8ef135a961f15dcb4a682e58ccdbdc7c99926de0f1ef6d5da4325cfa2",
+    "version": "battery-l4-graph-v3"
+   }
+  },
+  {
+   "counts_for_level": false,
+   "label": "l4v3-plain-G-18fc7b1c-p-93033ceac6a8",
+   "level": 4,
+   "seeds": [
+    3883605978
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "G",
+    "proposal": "p-93033ceac6a8",
+    "recipe_digest": "sha256:e50c3817d945a2b6cdcf8f54f53f0b004c8b21b02c36e7490627929455598f06",
+    "run": "graphite-18fc7b1c1eeea8aa",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "deeponet",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "arrhenius_features": true,
+     "basis_functions": 16,
+     "batch_size": 400,
+     "deeponet_depth": 3,
+     "ensemble_members": 2,
+     "learning_rate": 0.002,
+     "learning_rate_curve": "cosine",
+     "min_learning_rate_ratio": 0.05,
+     "steps": 20000,
+     "tail_averaging": 0.2,
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:ad15d6a8ef135a961f15dcb4a682e58ccdbdc7c99926de0f1ef6d5da4325cfa2",
+    "version": "battery-l4-graph-v3"
+   }
+  },
+  {
+   "counts_for_level": false,
+   "label": "l4v3-plain-G-18fc7b1c-p-c1c8903402bd",
+   "level": 4,
+   "seeds": [
+    2790258092
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "G",
+    "proposal": "p-c1c8903402bd",
+    "recipe_digest": "sha256:16ab5539ad5646ca6341fecfd607a9b76fd7744f5abb2dc9f4790a712dad595a",
+    "run": "graphite-18fc7b1c1eeea8aa",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "mlp",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "arrhenius_features": true,
+     "batch_size": 400,
+     "depth": 4,
+     "learning_rate": 0.002,
+     "learning_rate_curve": "cosine",
+     "steps": 10000,
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:ad15d6a8ef135a961f15dcb4a682e58ccdbdc7c99926de0f1ef6d5da4325cfa2",
+    "version": "battery-l4-graph-v3"
+   }
+  },
+  {
+   "counts_for_level": false,
+   "label": "l4v3-plain-G-18fc7b1c-p-c41a9a1ebb82",
+   "level": 4,
+   "seeds": [
+    1411128852
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "G",
+    "proposal": "p-c41a9a1ebb82",
+    "recipe_digest": "sha256:6c027413b56793e16fc398bda478a7c629f988c693585706b1f310879d699013",
+    "run": "graphite-18fc7b1c1eeea8aa",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "deeponet",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "arrhenius_features": true,
+     "basis_functions": 16,
+     "batch_size": 400,
+     "deeponet_depth": 3,
+     "ensemble_members": 4,
+     "learning_rate": 0.002,
+     "learning_rate_curve": "cosine",
+     "min_learning_rate_ratio": 0.05,
+     "steps": 10016,
+     "tail_averaging": 0.2,
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:ad15d6a8ef135a961f15dcb4a682e58ccdbdc7c99926de0f1ef6d5da4325cfa2",
+    "version": "battery-l4-graph-v3"
+   }
+  },
+  {
+   "counts_for_level": false,
+   "label": "l4v3-plain-G-913bf188-p-1585ecbf838a",
+   "level": 4,
+   "seeds": [
+    1180697630
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "G",
+    "proposal": "p-1585ecbf838a",
+    "recipe_digest": "sha256:f2eebc1254b6b6eb9454e0bb6daf4b55cdc2a93a1c7804a5216d544cd9384a38",
+    "run": "graphite-913bf1889a6db2d1",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "deeponet",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "arrhenius_features": true,
+     "basis_functions": 48,
+     "batch_size": 400,
+     "deeponet_depth": 3,
+     "learning_rate": 0.002,
+     "learning_rate_curve": "cosine",
+     "steps": 8000,
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:ad15d6a8ef135a961f15dcb4a682e58ccdbdc7c99926de0f1ef6d5da4325cfa2",
+    "version": "battery-l4-graph-v3"
+   }
+  },
+  {
+   "counts_for_level": false,
+   "label": "l4v3-plain-G-913bf188-p-1e706c6e2e3b",
+   "level": 4,
+   "seeds": [
+    3355955315
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "G",
+    "proposal": "p-1e706c6e2e3b",
+    "recipe_digest": "sha256:c07c5f798ebf30961dcc6e93724e4a6692b30b00abd91f217c1ba8d08726396d",
+    "run": "graphite-913bf1889a6db2d1",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "deeponet",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "arrhenius_features": true,
+     "basis_functions": 32,
+     "batch_size": 400,
+     "deeponet_depth": 3,
+     "learning_rate": 0.002,
+     "learning_rate_curve": "cosine",
+     "steps": 12000,
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:ad15d6a8ef135a961f15dcb4a682e58ccdbdc7c99926de0f1ef6d5da4325cfa2",
+    "version": "battery-l4-graph-v3"
+   }
+  },
+  {
+   "counts_for_level": false,
+   "label": "l4v3-plain-G-913bf188-p-4e02e0f7c41a",
+   "level": 4,
+   "seeds": [
+    4020818261
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "G",
+    "proposal": "p-4e02e0f7c41a",
+    "recipe_digest": "sha256:c8cc845a8599e87e6353eb20bd1ecf3b397d06584ddb37619d25f9e22ce711e9",
+    "run": "graphite-913bf1889a6db2d1",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "mlp",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "arrhenius_features": true,
+     "batch_size": 400,
+     "depth": 3,
+     "learning_rate": 0.002,
+     "learning_rate_curve": "cosine",
+     "steps": 16000,
+     "tail_averaging": 0.3,
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:ad15d6a8ef135a961f15dcb4a682e58ccdbdc7c99926de0f1ef6d5da4325cfa2",
+    "version": "battery-l4-graph-v3"
+   }
+  },
+  {
+   "counts_for_level": false,
+   "label": "l4v3-plain-G-913bf188-p-591188a3c3d5",
+   "level": 4,
+   "seeds": [
+    421873014
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "G",
+    "proposal": "p-591188a3c3d5",
+    "recipe_digest": "sha256:5482fd3915babd097d8b8c4dea3ddecf19d745d381ae7fa22406ebb82e732c90",
+    "run": "graphite-913bf1889a6db2d1",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "mlp",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "arrhenius_features": true,
+     "batch_size": 400,
+     "depth": 3,
+     "learning_rate": 0.002,
+     "learning_rate_curve": "cosine",
+     "steps": 8000,
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:ad15d6a8ef135a961f15dcb4a682e58ccdbdc7c99926de0f1ef6d5da4325cfa2",
+    "version": "battery-l4-graph-v3"
+   }
+  },
+  {
+   "counts_for_level": false,
+   "label": "l4v3-plain-G-913bf188-p-839de482ac6b",
+   "level": 4,
+   "seeds": [
+    1185974384
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "G",
+    "proposal": "p-839de482ac6b",
+    "recipe_digest": "sha256:a10496bebcdf0d99ca62b6bb8af99110b4d4589e4f97d4e91ea78596b04d8f49",
+    "run": "graphite-913bf1889a6db2d1",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "mlp",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "arrhenius_features": true,
+     "batch_size": 400,
+     "depth": 3,
+     "ensemble_members": 4,
+     "learning_rate": 0.002,
+     "learning_rate_curve": "cosine",
+     "steps": 20000,
+     "width": 512
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:ad15d6a8ef135a961f15dcb4a682e58ccdbdc7c99926de0f1ef6d5da4325cfa2",
+    "version": "battery-l4-graph-v3"
+   }
+  },
+  {
+   "counts_for_level": false,
+   "label": "l4v3-plain-G-913bf188-p-87b76ad0a2fd",
+   "level": 4,
+   "seeds": [
+    59783727
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "G",
+    "proposal": "p-87b76ad0a2fd",
+    "recipe_digest": "sha256:598b1f654307c93b982b8843919958709aa4e994edb08eeaf6d2d95a344d51a6",
+    "run": "graphite-913bf1889a6db2d1",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "mlp",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "arrhenius_features": true,
+     "batch_size": 400,
+     "depth": 3,
+     "ensemble_members": 4,
+     "learning_rate": 0.002,
+     "learning_rate_curve": "cosine",
+     "steps": 20000,
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:ad15d6a8ef135a961f15dcb4a682e58ccdbdc7c99926de0f1ef6d5da4325cfa2",
+    "version": "battery-l4-graph-v3"
+   }
+  },
+  {
+   "counts_for_level": false,
+   "label": "l4v3-plain-G-913bf188-p-8e47250e297c",
+   "level": 4,
+   "seeds": [
+    456380618
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "G",
+    "proposal": "p-8e47250e297c",
+    "recipe_digest": "sha256:dcc939ab312426027fb4ce746c218149f5407f82818424a2f4cae3069c6d74d7",
+    "run": "graphite-913bf1889a6db2d1",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "mlp",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "arrhenius_features": true,
+     "batch_size": 400,
+     "depth": 4,
+     "ensemble_members": 4,
+     "learning_rate": 0.002,
+     "learning_rate_curve": "cosine",
+     "steps": 20000,
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:ad15d6a8ef135a961f15dcb4a682e58ccdbdc7c99926de0f1ef6d5da4325cfa2",
+    "version": "battery-l4-graph-v3"
+   }
+  },
+  {
+   "counts_for_level": false,
+   "label": "l4v3-plain-G-913bf188-p-ca8aef8f4257",
+   "level": 4,
+   "seeds": [
+    1142102412
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "G",
+    "proposal": "p-ca8aef8f4257",
+    "recipe_digest": "sha256:841630491af5dcff6ee383be89807b9c4efe6a70ca064570372d82792f2c7178",
+    "run": "graphite-913bf1889a6db2d1",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "mlp",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "arrhenius_features": true,
+     "batch_size": 400,
+     "depth": 3,
+     "ensemble_members": 3,
+     "learning_rate": 0.002,
+     "learning_rate_curve": "cosine",
+     "steps": 18000,
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:ad15d6a8ef135a961f15dcb4a682e58ccdbdc7c99926de0f1ef6d5da4325cfa2",
+    "version": "battery-l4-graph-v3"
+   }
+  },
+  {
+   "counts_for_level": false,
+   "label": "l4v3-plain-G-913bf188-p-ca9e19d8e6d0",
+   "level": 4,
+   "seeds": [
+    2802876829
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "G",
+    "proposal": "p-ca9e19d8e6d0",
+    "recipe_digest": "sha256:8b7a9088d45f9c07636b05170ec760f1bf71830701ad4f5e59976b0b989777fb",
+    "run": "graphite-913bf1889a6db2d1",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "mlp",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "arrhenius_features": true,
+     "batch_size": 400,
+     "depth": 3,
+     "ensemble_members": 2,
+     "learning_rate": 0.002,
+     "learning_rate_curve": "cosine",
+     "steps": 16000,
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:ad15d6a8ef135a961f15dcb4a682e58ccdbdc7c99926de0f1ef6d5da4325cfa2",
+    "version": "battery-l4-graph-v3"
+   }
+  },
+  {
+   "counts_for_level": false,
+   "label": "l4v3-plain-G-913bf188-p-cdebce2b321b",
+   "level": 4,
+   "seeds": [
+    2001840887
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "G",
+    "proposal": "p-cdebce2b321b",
+    "recipe_digest": "sha256:b6e4b1e7841d16727e885a273e023d2bcdc0b6ba821d8d4c22aadad50d2a9f51",
+    "run": "graphite-913bf1889a6db2d1",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "mlp",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "arrhenius_features": true,
+     "batch_size": 400,
+     "depth": 3,
+     "ensemble_members": 4,
+     "learning_rate": 0.001,
+     "learning_rate_curve": "cosine",
+     "steps": 20000,
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:ad15d6a8ef135a961f15dcb4a682e58ccdbdc7c99926de0f1ef6d5da4325cfa2",
+    "version": "battery-l4-graph-v3"
+   }
+  },
+  {
+   "counts_for_level": false,
+   "label": "l4v3-plain-G-913bf188-p-e11e2f73879f",
+   "level": 4,
+   "seeds": [
+    2331991164
+   ],
+   "source": {
+    "bundled": true,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "G",
+    "proposal": "p-e11e2f73879f",
+    "recipe_digest": "sha256:105f17962256b1aae6d4e668fa64b4656f84332ce1ffa0371c7501f7bf66aef6",
+    "run": "graphite-913bf1889a6db2d1",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "mlp",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "arrhenius_features": true,
+     "batch_size": 400,
+     "depth": 3,
+     "ensemble_members": 4,
+     "learning_rate": 0.002,
+     "learning_rate_curve": "cosine",
+     "steps": 20000,
+     "weight_decay": 0.01,
+     "weight_decay_mask": "matrices",
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:ad15d6a8ef135a961f15dcb4a682e58ccdbdc7c99926de0f1ef6d5da4325cfa2",
+    "version": "battery-l4-graph-v3"
+   }
+  },
+  {
+   "counts_for_level": false,
+   "label": "l4v3-plain-G-d90a8ccf-p-1585ecbf838a",
+   "level": 4,
+   "seeds": [
+    3432527953
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "G",
+    "proposal": "p-1585ecbf838a",
+    "recipe_digest": "sha256:bdc0d6bd4498af6a7fce2280e1740aa7d8271173b1cbe8f0a12668bcd6ec0380",
+    "run": "graphite-d90a8ccfd603cf6a",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "mlp",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "activation": "gelu",
+     "arrhenius_features": true,
+     "batch_size": 400,
+     "bounded_voltage_head": true,
+     "capacity_fade_head": true,
+     "depth": 3,
+     "learning_rate": 0.002,
+     "learning_rate_curve": "cosine",
+     "ocv_initial_voltage": true,
+     "steps": 12000,
+     "weight_decay": 0.01,
+     "weight_decay_mask": "matrices",
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:ad15d6a8ef135a961f15dcb4a682e58ccdbdc7c99926de0f1ef6d5da4325cfa2",
+    "version": "battery-l4-graph-v3"
+   }
+  },
+  {
+   "counts_for_level": false,
+   "label": "l4v3-plain-G-d90a8ccf-p-37985e699fe3",
+   "level": 4,
+   "seeds": [
+    3133732938
+   ],
+   "source": {
+    "bundled": true,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "G",
+    "proposal": "p-37985e699fe3",
+    "recipe_digest": "sha256:86dd4bcf20d78828462e409c0b53cc477588a5f52dbdf26f74598a80f59132ed",
+    "run": "graphite-d90a8ccfd603cf6a",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "mlp",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "activation": "gelu",
+     "arrhenius_features": false,
+     "batch_size": 400,
+     "bounded_voltage_head": true,
+     "capacity_fade_head": true,
+     "depth": 3,
+     "ema_decay": 0.99,
+     "ensemble_members": 2,
+     "inference_weights": "ema",
+     "learning_rate": 0.002,
+     "learning_rate_curve": "cosine",
+     "ocv_initial_voltage": true,
+     "steps": 12000,
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:ad15d6a8ef135a961f15dcb4a682e58ccdbdc7c99926de0f1ef6d5da4325cfa2",
+    "version": "battery-l4-graph-v3"
+   }
+  },
+  {
+   "counts_for_level": false,
+   "label": "l4v3-plain-G-d90a8ccf-p-4e02e0f7c41a",
+   "level": 4,
+   "seeds": [
+    3655467621
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "G",
+    "proposal": "p-4e02e0f7c41a",
+    "recipe_digest": "sha256:3f22a3aeed1de2b7b2d489d9a5a48738b740f357bc503efc88753395d032d9ca",
+    "run": "graphite-d90a8ccfd603cf6a",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "mlp",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "activation": "gelu",
+     "arrhenius_features": true,
+     "batch_size": 400,
+     "bounded_voltage_head": true,
+     "capacity_fade_head": true,
+     "depth": 3,
+     "learning_rate": 0.002,
+     "learning_rate_curve": "cosine",
+     "ocv_initial_voltage": true,
+     "steps": 20000,
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:ad15d6a8ef135a961f15dcb4a682e58ccdbdc7c99926de0f1ef6d5da4325cfa2",
+    "version": "battery-l4-graph-v3"
+   }
+  },
+  {
+   "counts_for_level": false,
+   "label": "l4v3-plain-G-d90a8ccf-p-50299fa270c6",
+   "level": 4,
+   "seeds": [
+    2003936668
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "G",
+    "proposal": "p-50299fa270c6",
+    "recipe_digest": "sha256:fea84613676e47a48965a67e68cb9a8861f6130da3a342153faf1e7ad1feba5c",
+    "run": "graphite-d90a8ccfd603cf6a",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "mlp",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "activation": "gelu",
+     "arrhenius_features": false,
+     "batch_size": 400,
+     "bounded_voltage_head": true,
+     "capacity_fade_head": true,
+     "depth": 3,
+     "learning_rate": 0.002,
+     "learning_rate_curve": "cosine",
+     "ocv_initial_voltage": true,
+     "steps": 6000,
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:ad15d6a8ef135a961f15dcb4a682e58ccdbdc7c99926de0f1ef6d5da4325cfa2",
+    "version": "battery-l4-graph-v3"
+   }
+  },
+  {
+   "counts_for_level": false,
+   "label": "l4v3-plain-G-d90a8ccf-p-87b76ad0a2fd",
+   "level": 4,
+   "seeds": [
+    1639509926
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "G",
+    "proposal": "p-87b76ad0a2fd",
+    "recipe_digest": "sha256:4bf645a8a9f72368f79ef066a4f108dcf58c2ff803214ba4417b819e3d3f29ea",
+    "run": "graphite-d90a8ccfd603cf6a",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "deeponet",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "activation": "gelu",
+     "arrhenius_features": true,
+     "basis_functions": 16,
+     "batch_size": 400,
+     "bounded_voltage_head": true,
+     "capacity_fade_head": true,
+     "deeponet_depth": 2,
+     "learning_rate": 0.002,
+     "learning_rate_curve": "cosine",
+     "ocv_initial_voltage": true,
+     "steps": 6000,
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:ad15d6a8ef135a961f15dcb4a682e58ccdbdc7c99926de0f1ef6d5da4325cfa2",
+    "version": "battery-l4-graph-v3"
+   }
+  },
+  {
+   "counts_for_level": false,
+   "label": "l4v3-plain-G-d90a8ccf-p-8e47250e297c",
+   "level": 4,
+   "seeds": [
+    3819097143
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "G",
+    "proposal": "p-8e47250e297c",
+    "recipe_digest": "sha256:d50304fea54b22daa60f166c9f704d69f273013678c4f3a0c79fc19a4579b30f",
+    "run": "graphite-d90a8ccfd603cf6a",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "mlp",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "activation": "gelu",
+     "arrhenius_features": false,
+     "batch_size": 400,
+     "bounded_voltage_head": true,
+     "capacity_fade_head": true,
+     "depth": 3,
+     "learning_rate": 0.002,
+     "learning_rate_curve": "cosine",
+     "ocv_initial_voltage": true,
+     "relative_loss": true,
+     "steps": 6000,
+     "tail_averaging": 0.3,
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:ad15d6a8ef135a961f15dcb4a682e58ccdbdc7c99926de0f1ef6d5da4325cfa2",
+    "version": "battery-l4-graph-v3"
+   }
+  },
+  {
+   "counts_for_level": false,
+   "label": "l4v3-plain-G-d90a8ccf-p-c41a9a1ebb82",
+   "level": 4,
+   "seeds": [
+    361801945
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "G",
+    "proposal": "p-c41a9a1ebb82",
+    "recipe_digest": "sha256:52c9f9510ca8c3f8aa5eebb12129c3f4d292b61e429d19064de8b365c1a2b25c",
+    "run": "graphite-d90a8ccfd603cf6a",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "mlp",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "activation": "gelu",
+     "arrhenius_features": false,
+     "batch_size": 400,
+     "bounded_voltage_head": true,
+     "capacity_fade_head": true,
+     "depth": 3,
+     "ema_decay": 0.99,
+     "ensemble_members": 4,
+     "inference_weights": "ema",
+     "learning_rate": 0.002,
+     "learning_rate_curve": "cosine",
+     "ocv_initial_voltage": true,
+     "steps": 6000,
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:ad15d6a8ef135a961f15dcb4a682e58ccdbdc7c99926de0f1ef6d5da4325cfa2",
+    "version": "battery-l4-graph-v3"
+   }
+  },
+  {
+   "counts_for_level": false,
+   "label": "l4v3-plain-G-d90a8ccf-p-ca8aef8f4257",
+   "level": 4,
+   "seeds": [
+    1128335130
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "G",
+    "proposal": "p-ca8aef8f4257",
+    "recipe_digest": "sha256:87650bef8d9d7bd2785da732523db63e40c0bd505b1a71cfdb79590334fcf941",
+    "run": "graphite-d90a8ccfd603cf6a",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "mlp",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "activation": "gelu",
+     "arrhenius_features": false,
+     "batch_size": 400,
+     "bounded_voltage_head": true,
+     "capacity_fade_head": true,
+     "depth": 3,
+     "learning_rate": 0.002,
+     "learning_rate_curve": "cosine",
+     "ocv_initial_voltage": true,
+     "steps": 6000,
+     "tail_averaging": 0.3,
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:ad15d6a8ef135a961f15dcb4a682e58ccdbdc7c99926de0f1ef6d5da4325cfa2",
+    "version": "battery-l4-graph-v3"
+   }
+  },
+  {
+   "counts_for_level": false,
+   "label": "l4v3-plain-G-d90a8ccf-p-cdebce2b321b",
+   "level": 4,
+   "seeds": [
+    1496004878
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "G",
+    "proposal": "p-cdebce2b321b",
+    "recipe_digest": "sha256:9af8fddc233550410f4cdd495ef55cb1de7389b5928237c3fe8361077f9ff01a",
+    "run": "graphite-d90a8ccfd603cf6a",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "mlp",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "activation": "gelu",
+     "arrhenius_features": false,
+     "batch_size": 400,
+     "bounded_voltage_head": true,
+     "capacity_fade_head": true,
+     "depth": 3,
+     "ema_decay": 0.99,
+     "inference_weights": "ema",
+     "learning_rate": 0.002,
+     "learning_rate_curve": "cosine",
+     "ocv_initial_voltage": true,
+     "steps": 6000,
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:ad15d6a8ef135a961f15dcb4a682e58ccdbdc7c99926de0f1ef6d5da4325cfa2",
+    "version": "battery-l4-graph-v3"
+   }
+  },
+  {
+   "counts_for_level": false,
+   "label": "l4v3-plain-G-d90a8ccf-p-e11e2f73879f",
+   "level": 4,
+   "seeds": [
+    463051403
+   ],
+   "source": {
+    "bundled": false,
+    "kind": "graphite-constructor-scored-proposal",
+    "lane": "G",
+    "proposal": "p-e11e2f73879f",
+    "recipe_digest": "sha256:669f5ee2f70f4096ce8626026b97fee047dc5f95569b1ace831db08d0d5b1e19",
+    "run": "graphite-d90a8ccfd603cf6a",
+    "seed": "the proposal's recorded rebuild seed (expected.json)"
+   },
+   "strategy": {
+    "backbone": "mlp",
+    "challenge_id": "battery-fastcharge-ageing-development-v1",
+    "parameters": {
+     "activation": "gelu",
+     "arrhenius_features": false,
+     "batch_size": 400,
+     "bounded_voltage_head": true,
+     "capacity_fade_head": true,
+     "depth": 3,
+     "ema_decay": 0.99,
+     "ensemble_members": 2,
+     "inference_weights": "ema",
+     "learning_rate": 0.002,
+     "learning_rate_curve": "cosine",
+     "ocv_initial_voltage": true,
+     "steps": 6000,
+     "width": 256
+    },
+    "schema_version": "1.0"
+   },
+   "variant": {
+    "digest": "sha256:ad15d6a8ef135a961f15dcb4a682e58ccdbdc7c99926de0f1ef6d5da4325cfa2",
+    "version": "battery-l4-graph-v3"
+   }
+  }
+ ],
+ "note": "Every SCORED proposal of the Graphite Constructor's Level 1-4 runs (carbon-fresh 0d1370d01, kimi-k3, DEVELOPMENT; nothing submitted to a validator or chain), each with its own development variant, strategy and recorded rebuild seed. Lane G's runs bound battery-l4-graph-v3 (the registry's current Level 4 variant), not the dev ladder's graph-v2, and their strategies hold no composition graph: Level 4's graph freedom was never exercised, so they are registered under their actual variant and do not count as Level 4 members (counts_for_level false). Their decision values need the level-aware decision experiment (the follow-up ticket); until then no value is computed for them.",
+ "registered": "2026-10-11, before any of these members' predictions or decision values is computed",
+ "schema": "carbon.battery.score-proof-panel.v1",
+ "ticket": "SCORE-PROOF-01"
+}

@@ -1032,6 +1032,72 @@ def test_the_battery_dry_run_produces_coverage_and_b2_with_no_spend(
     assert not (root / "attacker").exists()
 
 
+#: Every research tool shape a level's adapter is asked about: the Level 0
+#: tool table, and `start_research_task` over its kinds and actions.
+_PROBE_TOOLS = [
+    *(
+        {"name": PREFIX + name, "parameters": {}}
+        for name in (
+            "dry_validate",
+            "compile_strategy",
+            "inspect_resources",
+            "forecast_resources",
+            "get_research_result",
+            "get_challenge_info",
+            "get_interaction_manifest",
+            "cancel_research_task",
+        )
+    ),
+    {
+        "name": PREFIX + "start_research_task",
+        "parameters": {
+            "properties": {
+                "kind": {"enum": ["practice", "workspace"]},
+                "action": {
+                    "enum": ["run_python", "check_design", "roadmap", "read_file"]
+                },
+            }
+        },
+    },
+]
+
+
+@needs_engine
+@pytest.mark.parametrize("level", [0, 1, 2, 3, 4])
+def test_every_level_names_only_its_own_families_and_reaches_one(level):
+    # A level above 0 must not inherit Level 0's tool families
+    # (`adapter_named_an_unknown_family: practice_disclosure` at L2-L4).
+    adapter, _ = phase4.adapter_for(phase4.attack_modules(), CID, level)
+    reachable = phase4.reachable_families(adapter, _PROBE_TOOLS)
+    names = {f.name for f in adapter.families()}
+    assert reachable and set(reachable) <= names
+
+
+@needs_engine
+@pytest.mark.parametrize("level", [0, 1, 2, 3, 4])
+def test_every_level_s_dry_run_finishes_with_no_spend(level, tmp_path, monkeypatch):
+    used = _no_network(monkeypatch)
+    out = io.StringIO()
+    with redirect_stdout(out):
+        code = phase4.main(
+            [
+                "run",
+                "--root",
+                str(tmp_path / "root"),
+                "--challenge",
+                CID,
+                "--level",
+                str(level),
+                "--dry-run",
+            ]
+        )
+    assert code == 0 and used == []
+    body = out.getvalue()
+    printed = json.loads(body[body.index('{\n "coverage"') :])
+    assert printed["coverage"]["construction_level"] == level
+    assert Decimal(printed["session"]["settled_usd"]) == 0
+
+
 # -- L1: the grant check never trusts the working tree ------------------------------------------
 def _git(cwd, *args):
     import os

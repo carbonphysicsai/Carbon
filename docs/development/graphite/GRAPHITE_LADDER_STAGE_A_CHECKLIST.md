@@ -84,21 +84,18 @@ or construction a Graphite Constructor or Attacker requested that its level refu
 input to which Level 5 ops Carbon builds first. It is data about requests, not a score and not
 a scientific result.
 
-- **File:** `docs/development/graphite/ladder-stages/stage-A/refused_capabilities.jsonl`, one
-  JSON object per distinct (level, role, refusal_code, requested name, run id), committed
-  through PR Head with the stage records.
-- **Fields:** `stage`, `level`, `role` (Constructor or Attacker), `refusal_code`, `requested`
-  (the capability or op name only), `count`, `first_seen` and `last_seen` (UTC ISO 8601), and
-  `run_id`. No hidden, protected or secret material, no request payloads, no credentials, no
-  account details.
-- **Source:** there is no dedicated refusal ledger for phase 3 or phase 4 runs (the
-  `rejections/` directory belongs to the planner and to method-card and miner-library
-  imports). Typed refusals appear as `reason_code` in the runs' tool results and in the
-  `p3 status` and `p4 log` output under the run root. After each run the executor extracts the
-  refusal codes and requested names into `refusals-run-N.txt` in the host's shared stage-A
-  folder (read-only, no instrumentation of live runs). The Testing Manager builds the jsonl
-  from those per-run extracts after the runs. The extraction format is stated here from a real
-  extract once one exists (**TBD: no run has started**); the jsonl is created only then. A
-  refusal that is not in an extract is listed as unlogged, not inferred.
+- **One log, canonical:** `docs/development/graphite/level4/REFUSED_CAPABILITY_LOG.md`, a
+  Markdown table keyed by Challenge and level. It replaces the earlier
+  `refused_capabilities.jsonl` design: there is no second file.
+- **Rows:** one per refused proposal (`REFUSED_*`, with its reason code, the field and the
+  out-of-range value) and one per capability wish a Constructor files (a `WISH:` line in a
+  proposal's hypothesis: optimisation, needs, expected gain, evidence). Names and values
+  only: no hidden, protected or secret material, no account details.
+- **Source:** a live run appends rows itself when `CARBON_CAPABILITY_LOG` names the file
+  (`carbon/agent_campaign/graphite/capability_log.py`; log only, opt-in, no run record
+  changes). Stage A's 8 earlier refusals are backfilled from the executor's extract. The
+  executor's per-run `refusals-run-N.txt` extracts remain the source for anything the
+  runner does not log (for example Attacker refusals); a refusal in neither is listed as
+  unlogged, not inferred.
 - **Summary at the end of each stage:** the top refusals by code and by level (counts), as a
   short table in the stage's closing report. It names no Level 5 design and decides nothing.

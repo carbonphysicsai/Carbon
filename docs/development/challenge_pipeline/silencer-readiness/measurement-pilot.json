@@ -1,0 +1,20 @@
+{
+  "schema":"carbon.measurement-pilot-proposal.v1", "family":"f13",
+  "status":"PROPOSED_NOT_REGISTERED", "run_authorized":false,
+  "platform":"free CPU first; separately granted CCX63 only if needed",
+  "cap_eur":10, "rate_eur_host_h":1.37, "rate_basis":"ASSUMPTION, quote/tax/capacity required",
+  "processes_at_once":1, "allocated_cores":1, "retries":0,
+  "jobs":[
+    {"role":"analytic control", "geometry":"straight matched 50mm duct", "frequency_systems":201},
+    {"role":"coaxial full curve", "action":[55,55,40,40,10,0], "rung":1, "frequency_systems":201},
+    {"role":"offset full curve", "action":[62.5,62.5,75,75,30,12.5], "rung":1, "frequency_systems":201},
+    {"role":"offset paired mesh/frequency refinement", "action":[62.5,62.5,75,75,30,12.5], "rung":2, "frequency_systems":401}
+  ],
+  "solver_process_launches":4, "frequency_systems":1004,
+  "hypothesis_host_h_low_base_high":[1.5,4,10],
+  "hypothesis_eur_low_base_high":[2.055,5.48,13.70],
+  "cost_basis":"ASSUMPTION; corrected complete curves/p95 not measured; includes mesh/setup hypothesis",
+  "launch_rule":"only if enforced upper bound plus quote/tax/overheads fits remaining all-in cap; high scenario does not fit; partial pilot is allowed, never silently drop cases or retry",
+  "return":["CPU, allocated core-hours, wall and peak RSS", "all mesh/system/process counts", "failures and charged attempts", "raw power/complex/TL curves at pinned planes", "refinement/midpoint findings", "image/deck/extractor/geometry identities"],
+  "does_not_establish":["T2(a) five-on-each-side", "p95 from four cases", "full-band reference adequacy", "Tier 2", "bank grant", "paid execution authority"]
+}
