@@ -340,3 +340,16 @@ def test_adapter_has_no_private_or_counted_reference_loader():
     assert "customer_decision" not in source
     assert "decision_study" not in source
     assert "reference_campaign" not in source
+
+
+def test_a_neural_recipe_is_not_served_and_never_recorded(adapter, ledger):
+    """MOTOR-NEURAL-01: until the validator's neural rebuild is reviewed."""
+    from carbon.challenge_validator.motor import NEURAL_NOT_SERVED
+
+    prepare(adapter)
+    validator = Validator(Adapters([adapter]), ledger)
+    for family in ("mlp", "deeponet"):
+        neural = {**SCAFFOLD, "backbone": family, "parameters": {}}
+        result = validator.evaluate(submission(neural))
+        assert (result["kind"], result["code"]) == ("UNAVAILABLE", NEURAL_NOT_SERVED)
+    assert validator.evaluate(submission())["outcome"]["state"] == "SCORED"

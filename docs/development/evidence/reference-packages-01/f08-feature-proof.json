@@ -1,0 +1,400 @@
+{
+ "band_hz": [
+  80.0,
+  600.0
+ ],
+ "bias": 3.0,
+ "convention": "harmonic exp(+i omega t): u(t) = Re[U exp(i omega t)]; ccx prints Re U then Im U",
+ "family": "f08-ccx-modal-support",
+ "image_id": "sha256:d9ef68d016226a945c7eefcb6b2261c60a11249ee0f93458ae6c3aca956fd6f8",
+ "oscillators": {
+  "damping": {
+   "zeta_0.005": {
+    "frequencies": 134,
+    "max_phase_err_deg": 1.2827223068589954e-05,
+    "max_rel_err_vs_analytic": 4.846888698698812e-07,
+    "unretained_max_abs": 6.559198554249593e-18
+   },
+   "zeta_0.01": {
+    "frequencies": 134,
+    "max_phase_err_deg": 1.649684706619149e-05,
+    "max_rel_err_vs_analytic": 4.879269503466389e-07,
+    "unretained_max_abs": 3.2800950118070188e-18
+   },
+   "zeta_0.02": {
+    "frequencies": 134,
+    "max_phase_err_deg": 1.5724768384667397e-05,
+    "max_rel_err_vs_analytic": 4.879386253947497e-07,
+    "unretained_max_abs": 1.6410362536162938e-18
+   }
+  },
+  "modes": [
+   {
+    "hz_rel_err": 0.0,
+    "mode": 1,
+    "off_node_max": 8.881784e-15,
+    "oscillator": 0,
+    "phi_sqrt_m_minus_1": 1.074641942100385e-07
+   },
+   {
+    "hz_rel_err": 0.0,
+    "mode": 2,
+    "off_node_max": 1.065814e-14,
+    "oscillator": 1,
+    "phi_sqrt_m_minus_1": 4.410443854574453e-08
+   },
+   {
+    "hz_rel_err": 1.4500872158369393e-16,
+    "mode": 3,
+    "off_node_max": 1.655052e-14,
+    "oscillator": 2,
+    "phi_sqrt_m_minus_1": 3.9709074250993126e-08
+   },
+   {
+    "hz_rel_err": 2.0715531654813423e-16,
+    "mode": 4,
+    "off_node_max": 6.755637e-15,
+    "oscillator": 3,
+    "phi_sqrt_m_minus_1": 9.147571666812127e-08
+   },
+   {
+    "hz_rel_err": 2.959361664973346e-16,
+    "mode": 5,
+    "off_node_max": 3.108624e-14,
+    "oscillator": 4,
+    "phi_sqrt_m_minus_1": 1.0062399802279742e-08
+   },
+   {
+    "hz_rel_err": 2.1138297606952472e-16,
+    "mode": 6,
+    "off_node_max": 3.552714e-14,
+    "oscillator": 5,
+    "phi_sqrt_m_minus_1": 5.0649688776438495e-08
+   }
+  ],
+  "run": {
+   "deck_sha256": "bee39ef2ad28140928f8c8b9e5d3f1f07901f1c3e843a620bd18780e7de7b7a7",
+   "processes": 1,
+   "wall_s": 12.12
+  }
+ },
+ "plate": {
+  "basis_reuse": {
+   "truncate_48_to_12_vs_ccx_12_max_err_over_peak": 4.94844025677272e-06,
+   "truncate_48_to_24_vs_ccx_24_max_err_over_peak": 4.9484852994321616e-06
+  },
+  "mass_t_analytic": 0.00028512000000000003,
+  "rungs": {
+   "modes_12": {
+    "damping": {
+     "zeta_0.005": {
+      "ccx_vs_projection_max_err_over_peak": 4.94844025677272e-06,
+      "frequencies": 58,
+      "mid_peak": {
+       "hz": 104.4150779803,
+       "mm_per_n": 1.0763681604321707,
+       "phase_deg": -90.03128260738629
+      },
+      "modal_factor_max_rel_err": 1.3433137033308091e-05,
+      "phase_max_err_deg_above_1pct_of_peak": 0.0002827201597589725,
+      "tip_peak": {
+       "hz": 104.4150779803,
+       "mm_per_n": 3.186490138134327,
+       "phase_deg": -89.98312933697503
+      }
+     },
+     "zeta_0.01": {
+      "ccx_vs_projection_max_err_over_peak": 2.5002791685539145e-06,
+      "frequencies": 58,
+      "mid_peak": {
+       "hz": 104.4150779803,
+       "mm_per_n": 0.5381831208595251,
+       "phase_deg": -90.06256480331791
+      },
+      "modal_factor_max_rel_err": 7.5986986163369885e-06,
+      "phase_max_err_deg_above_1pct_of_peak": 0.00014136078739854688,
+      "tip_peak": {
+       "hz": 104.4150779803,
+       "mm_per_n": 1.593247276264462,
+       "phase_deg": -89.96625895298143
+      }
+     },
+     "zeta_0.02": {
+      "ccx_vs_projection_max_err_over_peak": 1.3450439781631696e-06,
+      "frequencies": 58,
+      "mid_peak": {
+       "hz": 104.4150779803,
+       "mm_per_n": 0.2690890416826078,
+       "phase_deg": -90.12512665785482
+      },
+      "modal_factor_max_rel_err": 7.598605228661497e-06,
+      "phase_max_err_deg_above_1pct_of_peak": 7.067823243739617e-05,
+      "tip_peak": {
+       "hz": 104.4150779803,
+       "mm_per_n": 0.7966280524951485,
+       "phase_deg": -89.9325201525817
+      }
+     }
+    },
+    "hz": [
+     104.4151,
+     572.9148,
+     649.5862,
+     1245.228,
+     1809.887,
+     1814.912,
+     3301.463,
+     3536.762,
+     5135.826,
+     5168.547,
+     5479.97,
+     5811.14
+    ],
+    "mesh": {
+     "elements": 1408,
+     "nodes": 8229
+    },
+    "modal_static_tip_over_static": 0.9990070190814437,
+    "run": {
+     "deck_sha256": "753ef9916da94bcae53d8aae252f60adf489dbe1b752d02c675e3252e7a48369",
+     "processes": 1,
+     "wall_s": 39.93
+    },
+    "static_mid_mm_per_n": 0.01019198,
+    "static_tip_mm_per_n": 0.03281505,
+    "total_effective_mass_z": 0.00028368
+   },
+   "modes_24": {
+    "damping": {
+     "zeta_0.005": {
+      "ccx_vs_projection_max_err_over_peak": 4.9484852994321616e-06,
+      "frequencies": 58,
+      "mid_peak": {
+       "hz": 104.4150779803,
+       "mm_per_n": 1.0763681610350113,
+       "phase_deg": -90.03134132611028
+      },
+      "modal_factor_max_rel_err": 1.3417236207903035e-05,
+      "phase_max_err_deg_above_1pct_of_peak": 0.00028271940271187883,
+      "tip_peak": {
+       "hz": 104.4150779803,
+       "mm_per_n": 3.186490143820917,
+       "phase_deg": -89.98278558102844
+      }
+     },
+     "zeta_0.01": {
+      "ccx_vs_projection_max_err_over_peak": 2.5008010099512074e-06,
+      "frequencies": 58,
+      "mid_peak": {
+       "hz": 104.4150779803,
+       "mm_per_n": 0.5381831220653078,
+       "phase_deg": -90.06268225156866
+      },
+      "modal_factor_max_rel_err": 7.60260716412638e-06,
+      "phase_max_err_deg_above_1pct_of_peak": 0.0001413627371013124,
+      "tip_peak": {
+       "hz": 104.4150779803,
+       "mm_per_n": 1.5932472876374875,
+       "phase_deg": -89.96557144572994
+      }
+     },
+     "zeta_0.02": {
+      "ccx_vs_projection_max_err_over_peak": 1.3497687377276752e-06,
+      "frequencies": 58,
+      "mid_peak": {
+       "hz": 104.4150779803,
+       "mm_per_n": 0.2690890440938962,
+       "phase_deg": -90.1253615348409
+      },
+      "modal_factor_max_rel_err": 7.602521087357882e-06,
+      "phase_max_err_deg_above_1pct_of_peak": 7.093640133489521e-05,
+      "tip_peak": {
+       "hz": 104.4150779803,
+       "mm_per_n": 0.7966280752405647,
+       "phase_deg": -89.93114513925036
+      }
+     }
+    },
+    "hz": [
+     104.4151,
+     572.9148,
+     649.5862,
+     1245.228,
+     1809.887,
+     1814.912,
+     3301.463,
+     3536.762,
+     5135.826,
+     5168.547,
+     5479.97,
+     5811.14,
+     5815.198,
+     6132.682,
+     7477.708,
+     7654.59,
+     8658.407,
+     9759.911,
+     10241.03,
+     11888.47,
+     11906.3,
+     12286.85,
+     13261.16,
+     13708.79
+    ],
+    "mesh": {
+     "elements": 1408,
+     "nodes": 8229
+    },
+    "modal_static_tip_over_static": 0.9995895200439905,
+    "run": {
+     "deck_sha256": "b4222705b55ab032816b9794696fc92c2610d017c9a8726e084d587b23830ac4",
+     "processes": 1,
+     "wall_s": 54.54
+    },
+    "static_mid_mm_per_n": 0.01019198,
+    "static_tip_mm_per_n": 0.03281505,
+    "total_effective_mass_z": 0.00028368
+   },
+   "modes_48": {
+    "damping": {
+     "zeta_0.005": {
+      "ccx_vs_projection_max_err_over_peak": 4.948498448371887e-06,
+      "frequencies": 58,
+      "mid_peak": {
+       "hz": 104.4150779803,
+       "mm_per_n": 1.0763681603860382,
+       "phase_deg": -90.03127810939682
+      },
+      "modal_factor_max_rel_err": 1.3419544838739583e-05,
+      "phase_max_err_deg_above_1pct_of_peak": 0.0002827195324447684,
+      "tip_peak": {
+       "hz": 104.4150779803,
+       "mm_per_n": 3.186490146195739,
+       "phase_deg": -89.98264403763564
+      }
+     },
+     "zeta_0.01": {
+      "ccx_vs_projection_max_err_over_peak": 2.5008933783381275e-06,
+      "frequencies": 58,
+      "mid_peak": {
+       "hz": 104.4150779803,
+       "mm_per_n": 0.5381831207673702,
+       "phase_deg": -90.0625558179731
+      },
+      "modal_factor_max_rel_err": 7.605118316766573e-06,
+      "phase_max_err_deg_above_1pct_of_peak": 0.00014136297035316638,
+      "tip_peak": {
+       "hz": 104.4150779803,
+       "mm_per_n": 1.5932472923870928,
+       "phase_deg": -89.965288359377
+      }
+     },
+     "zeta_0.02": {
+      "ccx_vs_projection_max_err_over_peak": 1.3506377320047198e-06,
+      "frequencies": 58,
+      "mid_peak": {
+       "hz": 104.4150779803,
+       "mm_per_n": 0.269089041498084,
+       "phase_deg": -90.12510866573668
+      },
+      "modal_factor_max_rel_err": 7.605025553429187e-06,
+      "phase_max_err_deg_above_1pct_of_peak": 7.067413781240304e-05,
+      "tip_peak": {
+       "hz": 104.4150779803,
+       "mm_per_n": 0.7966280847394643,
+       "phase_deg": -89.93057897000563
+      }
+     }
+    },
+    "hz": [
+     104.4151,
+     572.9148,
+     649.5862,
+     1245.228,
+     1809.887,
+     1814.912,
+     3301.463,
+     3536.762,
+     5135.826,
+     5168.547,
+     5479.97,
+     5811.14,
+     5815.198,
+     6132.682,
+     7477.708,
+     7654.59,
+     8658.407,
+     9759.911,
+     10241.03,
+     11888.47,
+     11906.3,
+     12286.85,
+     13261.16,
+     13708.79,
+     14317.08,
+     15152.39,
+     15649.3,
+     15667.59,
+     17143.5,
+     17196.91,
+     17694.11,
+     17813.84,
+     18437.69,
+     19747.33,
+     20082.4,
+     21238.35,
+     22073.05,
+     22390.57,
+     22974.32,
+     24174.66,
+     24780.9,
+     25217.31,
+     25606.85,
+     25810.97,
+     26183.6,
+     26244.08,
+     26627.57,
+     27071.23
+    ],
+    "mesh": {
+     "elements": 1408,
+     "nodes": 8229
+    },
+    "modal_static_tip_over_static": 0.9998294000482039,
+    "run": {
+     "deck_sha256": "2cc515a4f0e9c6130321015b8e20cc828f8e0a82c22d5d1dfd9344e892e59001",
+     "processes": 1,
+     "wall_s": 108.64
+    },
+    "static_mid_mm_per_n": 0.01019198,
+    "static_tip_mm_per_n": 0.03281505,
+    "total_effective_mass_z": 0.00028368
+   }
+  }
+ },
+ "points_between_eigenfrequencies": 20,
+ "proofs": {
+  "batched_damping_frequency_outputs": true,
+  "complex_phase": true,
+  "exact_modal_damping": true,
+  "mass_normalised_projection": true,
+  "mode_ladder": true,
+  "notes": "one ccx process per rung: eigen step, three constant-zeta steady-state steps over the eigenfrequency-bracketed 80-600 Hz grid, and the static step; peak samples sit on eigenfrequencies with phase -90 deg (exp(+i omega t) lag)",
+  "tolerances": {
+   "mass_normalisation_rel": 1e-06,
+   "modal_factor_rel": 0.0001,
+   "oscillator_analytic_rel": 1e-05,
+   "phase_deg": 0.01,
+   "projection_over_peak": 0.0001
+  }
+ },
+ "schema": "carbon.reference-package.feature-proof.v1",
+ "scope": "package convention proof only: not the ribbed f08 geometry, not reference adequacy; f08 acceptance tolerances remain HUMAN_INPUT",
+ "script": "scripts/dev/reference_packages/calculix/f08_proof.py",
+ "ticket": "REFERENCE-PACKAGES-01",
+ "zetas": [
+  0.005,
+  0.01,
+  0.02
+ ]
+}

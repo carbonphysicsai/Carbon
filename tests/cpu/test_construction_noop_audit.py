@@ -249,10 +249,43 @@ def _cold_plate():
     return KernelRidgeAdapter(module)
 
 
-def _motor():
-    from carbon.motor import compile as module
+class MotorAdapter(KernelRidgeAdapter):
+    """Motor: the kernel ridge as above, and the neural families
+    (MOTOR-NEURAL-01) through the same `compile.rebuild`, with Carbon's seed 0
+    and the smallest registered menu values. Rebuilding is Carbon's own path
+    (the training budget, the evidence arm); the validator's refusal to serve
+    them is a separate decision, so the audit covers them here. The digest is
+    the trained parameters."""
 
-    return KernelRidgeAdapter(module)
+    SMALL: ClassVar[dict] = {
+        "kernel_ridge": {},
+        "mlp": {"width": "width_64", "depth": "depth_2", "steps": "steps_500"},
+        "deeponet": {
+            "width": "width_64",
+            "depth": "depth_2",
+            "steps": "steps_500",
+            "basis_functions": "basis_8",
+        },
+    }
+
+    def __init__(self):
+        from carbon.motor import compile as module
+
+        super().__init__(module)
+
+    bases = BatteryAdapter.bases
+    fittable = staticmethod(BatteryAdapter.fittable)
+
+    def fit(self, construction):
+        if construction.family not in self.module.NEURAL_FAMILIES:
+            return super().fit(construction)
+        pytest.importorskip("jax")
+        model = self.module.rebuild(construction, self.material, seed=0)
+        return model.stats["params_sha256"]
+
+
+def _motor():
+    return MotorAdapter()
 
 
 #: Each registered, selectable contract's audit adapter, by Challenge token.
