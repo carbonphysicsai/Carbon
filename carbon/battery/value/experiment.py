@@ -115,6 +115,40 @@ class Experiment:
         """The panel the frozen contract names (EV1's by default)."""
         return pn.members(self.contract().get("panel", "ev1"))
 
+    def _base_strategy(self, member, strategy):
+        """The Level 0 strategy `member`'s recipe is compiled from: the strategy
+        itself at Level 0, the strategy less its level's widened fields above it."""
+        from . import level_compile
+
+        level, arm = pn.levels(self.contract().get("panel", "ev1")).get(
+            member, (0, None)
+        )
+        try:
+            return level_compile.base_for(strategy, level, arm)
+        except level_compile.LevelCompileRefused as refused:
+            raise ExperimentError(level_compile.LEVEL_REFUSED, member) from refused
+
+    def _recipe_digests(self, member, strategy):
+        """The recipe digests a member's bundle may carry, one per registered
+        implementation version. A Level 0 member compiles as it always did; a
+        member the panel places at a level above 0 is compiled at its OWN level
+        (`level_compile`), so its decision values are computed exactly as Level 0's."""
+        from .. import implementation_versions
+        from . import level_compile
+
+        level, arm = pn.levels(self.contract().get("panel", "ev1")).get(
+            member, (0, None)
+        )
+        try:
+            return level_compile.recipe_digests(
+                strategy,
+                versions=implementation_versions.VERSIONS,
+                level=level,
+                arm=arm,
+            )
+        except level_compile.LevelCompileRefused as refused:
+            raise ExperimentError(level_compile.LEVEL_REFUSED, member) from refused
+
     # --- 1. freeze -----------------------------------------------------------------
 
     def freeze(self, contract_path=None):
@@ -276,9 +310,14 @@ class Experiment:
             backend = DirectBackend(self.repository)
         inputs = panel_inputs(self.contract(), self.repository)
         done = []
+        levels = pn.levels(self.contract().get("panel", "ev1"))
         for member, _family, strategy, seed in self._members():
             if only is not None and member not in only:
                 continue
+            if levels.get(member, (0, None))[0]:
+                # A level member is trained by its level's pod phase, not here: its
+                # predictions arrive as retained bundles (`import_predictions`).
+                raise ExperimentError("level_member_not_reconstructed_here", member)
             path = self._prediction_path(member)
             if path.exists():
                 continue
@@ -292,19 +331,12 @@ class Experiment:
         phase) into this root, write-once. Only members of the frozen panel
         are accepted, each with its own recipe digest and seed; a bundle
         already here is never replaced."""
-        from .. import implementation_versions
-        from ..compile import compile_recipe
-
         # As `evaluate`: a bundle verifies under the implementation version it
         # was made under (TORCH-GPU-01), so retained predictions from an
         # earlier registered version import, and are never reinterpreted.
         expected = {}
         for member, _label, strategy, seed in self._members():
-            digests = {
-                compile_recipe(strategy, implementation=version)[1].recipe_digest
-                for version in implementation_versions.VERSIONS
-            }
-            expected[member] = (digests, seed)
+            expected[member] = (self._recipe_digests(member, strategy), seed)
         copied, kept = [], []
         for path in sorted(Path(source).glob("*.json.gz")):
             member = path.name[: -len(".json.gz")]
@@ -356,19 +388,15 @@ class Experiment:
                 "prerequisites_missing",
                 f"{len(unsolved)} decision references, {len(members)} members",
             )
-        from .. import implementation_versions
         from .. import rebuild_identity as ri
-        from ..compile import compile_recipe
 
         bundles = {}
         for member, _family, strategy, seed in self._members():
             bundle = self._member_predictions(member)
             # A bundle verifies under the implementation version it was made
-            # under, never reinterpreted under another (TORCH-GPU-01).
-            known = {
-                compile_recipe(strategy, implementation=version)[1].recipe_digest
-                for version in implementation_versions.VERSIONS
-            }
+            # under, never reinterpreted under another (TORCH-GPU-01); a level
+            # member under its own level's compile (`_recipe_digests`).
+            known = self._recipe_digests(member, strategy)
             if bundle["recipe_digest"] not in known or bundle["seed"] != seed:
                 # Retained predictions from another recipe or seed are never
                 # silently reinterpreted under this contract.
