@@ -69,6 +69,27 @@ So the pod runs the truth image by its pinned digest with nothing installed
 beyond the r7 code. The image pin and the pod's termination are the
 controls.
 
+**The condition on the no-isolation solve (the owner, same day, directly in
+the Carbon Validator session):**
+> Accept the CUSTODY-03 amendment: the pod solve holds sealed questions with
+> network access (pinned image only), on condition that the sheet logs
+> established connections (ss -tnp) at solve start, midpoint and end, and
+> any connection other than our SSH session invalidates the run and treats
+> the questions as exposed.
+
+Therefore:
+- **What is logged:** at solve start, midpoint and end, the pod's
+  established TCP connections (`ss -tnp`, or, where the image lacks `ss`,
+  the same rows read from `/proc/net/tcp` and `/proc/net/tcp6` with
+  nothing installed).
+- **What is allowed:** only the AX42's SSH session to the pod's `sshd`.
+  The RunPod web terminal is closed before the solve starts.
+- **Anything else invalidates the run**, loopback included:
+  - its questions are treated as exposed;
+  - none of them is used to score;
+  - they are recorded as exposed in the proof's record.
+- **The three logs go into the run record.**
+
 **SSH transport on the pod (the owner's own wording, same day, directly in
 the Carbon Validator session).** The truth image has no `sshd` or `rsync`,
 so a pod from it cannot receive the shard over the host-key-pinned SSH the
