@@ -1,0 +1,29 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-11-graphite-l1-l4-round",
+  "recorded_at": "2026-10-11T00:00:00Z",
+  "challenge": "battery-fastcharge-ageing-development-v1",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "campaign_session",
+    "ref": "Graphite stage A and L1-L4 rounds, 2026-10-10",
+    "description": "The stage A Constructor grant and the L1-L4 round launched under it, and two executor slips found in them."
+  },
+  "expected": "A grant's approved run count holds across every controller root, and a finished session's outputs and logs stay as written.",
+  "observed": "Two executor slips. The run count of a grant is enforced per controller root, so the stage A Constructor grant (5 runs) was spent at L0 (D x3, E x2, in separate roots) and an L1 run (the 6th) then ran under it in a new root. Re-invoking the launch script for a finished session re-ran phase3 run --session 1, which printed the finished report again (no spend, no new run row) but overwrote the round-1 streaming output files and the chain logs.",
+  "keep": [
+    "The launcher guard that refuses a session whose output exists, exits 3 and logs the refusal.",
+    "Outputs and logs append-only per level, lane and session."
+  ],
+  "change": [
+    "The executor keeps a per-grant run ledger across roots and checks it before every launch; the preflight reads it.",
+    "A grant-level run counter that the controller consults, so no second root can exceed the approved total (Test Engineer).",
+    "Consider the same finished-session guard in phase3 run: a finished session is not re-run, or does not rewrite its report (Test Engineer)."
+  ],
+  "protocol_elements": [
+    "grants",
+    "readiness"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
