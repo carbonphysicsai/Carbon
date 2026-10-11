@@ -246,7 +246,9 @@ def test_missing_main_reports_unknown_without_spend_permission():
 
 def test_all_eleven_rank_ties_and_attach_source_digests():
     reports = er.portfolio(ROOT, now=NOW)
-    assert len(reports) == 11
+    assert len(reports) == len(
+        json.loads((ROOT / er.BINDINGS).read_text())["challenges"]
+    )
     assert {r["challenge"] for r in reports} >= {
         "solenoid-pole",
         "bolted-joint",
@@ -258,6 +260,11 @@ def test_all_eleven_rank_ties_and_attach_source_digests():
         assert report["rank"] == 1 + sum(
             r["yes_count"] > report["yes_count"] for r in reports
         )
-        assert report["examined_sources"]
+        if report["challenge"] != "package-warpage":
+            assert report["examined_sources"]
+        elif not report["examined_sources"]:
+            # The new preparation is not on immutable main until this PR merges.
+            assert report["yes_count"] == 0
+            assert all(row["state"] == "PLANNED" for row in report["items"])
         assert not report["spend_authorized"]
         assert all(row["owner"] and row["basis"] for row in report["items"])

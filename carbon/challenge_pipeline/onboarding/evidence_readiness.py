@@ -321,6 +321,51 @@ def check_train(tree, data, cases):
 def code_route(tree, family, optimizer=False):
     if tree.commit is None:
         return "UNKNOWN", "Main unavailable; no implementation inspected", []
+    if family == "package-warpage":
+        if not optimizer:
+            return (
+                "PLANNED",
+                "Elastic strip screen exists; strongest full-history FE comparator still required",
+                [
+                    "carbon/challenge_pipeline/warpage_rehearsal.py",
+                    "docs/development/challenge_pipeline/warpage-rehearsal/README.md",
+                ],
+            )
+        required = (
+            (
+                "carbon/design_search/warpage_budget.py",
+                {"validate"},
+                {"package-warpage", "WARPAGE-REHEARSAL-PROPOSED-V1"},
+            ),
+            (
+                "carbon/design_search/equal_budget.py",
+                {"compare", "_validate"},
+                {"package-warpage", "validate_registration"},
+            ),
+        )
+        for path, functions, literals in required:
+            raw = tree.read(path)
+            if raw is None:
+                return (
+                    "PLANNED",
+                    "Prospective route not inspectable on main",
+                    [p for p, _, _ in required],
+                )
+            parsed = ast.parse(raw)
+            declared = {n.name for n in parsed.body if isinstance(n, ast.FunctionDef)}
+            names = {n.id for n in ast.walk(parsed) if isinstance(n, ast.Name)}
+            values = {
+                n.value
+                for n in ast.walk(parsed)
+                if isinstance(n, ast.Constant) and type(n.value) is str
+            }
+            if not functions <= declared or not literals <= (values | names):
+                return "NO", "Incomplete prospective warpage route", [path]
+        return (
+            "YES",
+            "Representative comparison route implemented; full-history inputs and adequacy remain separate",
+            [p for p, _, _ in required],
+        )
     if optimizer:
         path = "carbon/development_comparison/evidence_pipeline.py"
         functions = {"run", "_baseline"}

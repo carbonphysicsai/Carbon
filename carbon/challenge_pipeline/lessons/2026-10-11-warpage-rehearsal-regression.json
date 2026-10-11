@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-11-warpage-rehearsal-regression",
+  "recorded_at": "2026-10-11T14:30:00Z",
+  "challenge": "package-warpage",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "AI-PACKAGE-WARPAGE-REHEARSAL-BUILD-01", "description": "Native warpage/budget/readiness/panel regression: 62 passed; Black/Ruff, pipeline validate, render --check and diff checks passed. An exploratory root CLI onboarding help was refused: that subcommand belongs to its separate module, not the root CLI. No solver runs. Canonical CI remains acceptance."},
+  "expected": "Keep full-history physics closed while testing deterministic preparations and genuine analytic controls.",
+  "observed": "Bimetal and manufactured-source identities pass; physical TRAIN overlap is rejected across label/rung changes; history peaks are retained; missing calibration and full-history image never allow dispatch. High pilot cost exceeds EUR10 and stays explicit.",
+  "keep": ["Retain asymmetric full-package job, source/assumption distinction and complete history."],
+  "change": ["Require coherent full-history material and image receipts before Data Collection integrates the drafts."],
+  "protocol_elements": ["reference policy", "measurement authority", "cost"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
