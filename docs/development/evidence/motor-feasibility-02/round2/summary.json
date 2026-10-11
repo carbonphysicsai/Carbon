@@ -1,9 +1,63 @@
 {
  "schema": "carbon.motor.round2-summary.v1",
  "date": "2026-10-11",
- "setup_check_d16": {"j15_gamma_sweep_nm": {"-20": 8.856, "-10": 9.547, "-5": 9.805, "0": 9.997, "5": 10.113, "10": 10.142, "20": 9.902, "30": 9.259}, "gamma0_current_sweep_nm": {"5": 3.631, "8": 5.716, "10": 7.037, "12.5": 8.589, "15": 9.997, "20": 12.291}, "finding": "no setup error: smooth torque-angle curve peaking 1.4 % above gamma 0 at about +8 deg (saturation shift of the torque-maximising angle); torque per J falls 0.726 -> 0.615 from J 5 to 20 (progressive saturation)"},
- "full_question": {"actions_evaluated": 83, "feasible": 0, "nearest": "r00 at 4 deg skew: worst 1.23 bands (holding pk-pk 0.325 > 0.30; peak 11.88 < 12)", "tension": "designs that reach 12 N m peak (f00 12.66, r01/f07 12.11, r04 12.22) carry holding ripple 0.338-0.354 N m; the low-ripple frontier design f02 (0.22) peaks at 11.5", "limits": "unchanged: holding mean >= 6, pk-pk <= 0.30 and <= 5 %; peak mean >= 12, pk-pk <= 0.60 and <= 5 %; cogging <= 0.05"},
- "holding_T2a": {"feasible": ["d06", "d09", "d12", "d16", "d21"], "near_infeasible_within_2_bands": ["d01", "d02", "d10", "d17", "b00", "b01", "b02", "b03", "b04"], "pass": true, "note": "b00-b04 are rung-2-confirmed INFEASIBLE midpoints; b03 sits at the limit (pk-pk 0.300)"},
+ "setup_check_d16": {
+  "j15_gamma_sweep_nm": {
+   "-20": 8.856,
+   "-10": 9.547,
+   "-5": 9.805,
+   "0": 9.997,
+   "5": 10.113,
+   "10": 10.142,
+   "20": 9.902,
+   "30": 9.259
+  },
+  "gamma0_current_sweep_nm": {
+   "5": 3.631,
+   "8": 5.716,
+   "10": 7.037,
+   "12.5": 8.589,
+   "15": 9.997,
+   "20": 12.291
+  },
+  "finding": "no setup error: smooth torque-angle curve peaking 1.4 % above gamma 0 at about +8 deg (saturation shift of the torque-maximising angle); torque per J falls 0.726 -> 0.615 from J 5 to 20 (progressive saturation)"
+ },
+ "full_question": {
+  "actions_evaluated": 83,
+  "feasible": 0,
+  "nearest": "r00 at 4 deg skew: worst 1.23 bands (holding pk-pk 0.325 > 0.30; peak 11.88 < 12)",
+  "tension": "designs that reach 12 N m peak (f00 12.66, r01/f07 12.11, r04 12.22) carry holding ripple 0.338-0.354 N m; the low-ripple frontier design f02 (0.22) peaks at 11.5",
+  "limits": "unchanged: holding mean >= 6, pk-pk <= 0.30 and <= 5 %; peak mean >= 12, pk-pk <= 0.60 and <= 5 %; cogging <= 0.05"
+ },
+ "holding_T2a": {
+  "feasible": [
+   "d06",
+   "d09",
+   "d12",
+   "d16",
+   "d21"
+  ],
+  "near_infeasible_within_2_bands": [
+   "d01",
+   "d02",
+   "d10",
+   "d17",
+   "b00",
+   "b01",
+   "b02",
+   "b03",
+   "b04"
+  ],
+  "pass": true,
+  "note": "b00-b04 are rung-2-confirmed INFEASIBLE midpoints; b03 sits at the limit (pk-pk 0.300)"
+ },
  "bundle": "deduplicated per geometry: holding at skew 0/2/4 = 6 solves (J 0 + J 10 at gamma 0, +-5, +-10); peak adds 5 (J 15 at the same gammas); full question 11",
- "export": "curve sidecar with physical geometry and full signed curves: scripts/dev/motor/feasibility02/sidecar.py -> ~carbon/shared/design-panels/motor-curve-sidecar.json"
+ "export": "curve sidecar with physical geometry and full signed curves: scripts/dev/motor/feasibility02/sidecar.py -> ~carbon/shared/design-panels/motor-curve-sidecar.json",
+ "limit_definitions": {
+  "source": "registry.json limits (registered before S1) = round1/motor-precision-joint-v2.md: holding mean >= 6.0 N m AND pk-pk <= 0.30 N m absolute AND pk-pk <= 5 % of |mean|; peak mean >= 12 N m AND pk-pk <= 0.60 N m AND <= 5 % of |mean|; zero-current cogging pk-pk <= 0.05 N m absolute",
+  "units": "every pk-pk figure in this summary and in full-question.json is in N m (absolute), never a fraction; the 5 % rule is evaluated as pk-pk - 0.05 |mean| in N m",
+  "scoring": "overshoot in bands = max over: (6.0 - mean)/0.10; (pk - 0.30)/0.02; (pk - 0.05|mean|)/0.02; (12 - peak mean)/0.10; (peak pk - 0.60)/0.04; (peak pk - 0.05|peak mean|)/0.04; (cogging - 0.05)/0.02; feasible when <= 0",
+  "r00_4deg": "holding mean 8.47 N m, pk-pk 0.325 N m (3.8 % of mean: the 5 % rule holds, the 0.30 N m absolute rule fails by 0.025 N m = 1.23 bands); peak mean 11.88 N m (0.12 N m short)",
+  "divergence": "none: the panel, the value check and the 0/83 count use the packet's definition, so no recompute is needed"
+ }
 }
