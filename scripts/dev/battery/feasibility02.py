@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import sys
 import time
@@ -330,6 +331,10 @@ def run(plan_path, overlay, out, workers, cpus, cpu_shares=None):
     if cpu_shares:  # low priority behind other operator work; never preempts it
         at = command.index("--rm") + 1
         command[at:at] = ["--cpu-shares", str(cpu_shares)]
+    parent = os.environ.get("CARBON_STAGE_CGROUP_PARENT")
+    if parent:  # campaign stage metering only; the solve is unchanged
+        at = command.index("--rm") + 1
+        command[at:at] = ["--cgroup-parent", parent]
     return subprocess.run(command, check=False).returncode
 
 

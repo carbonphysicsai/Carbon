@@ -46,6 +46,9 @@ from carbon.design_search import (
     tasks,
 )
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+from scripts.dev.evidence_runs import settlement
+
 CHALLENGE = "battery-fastcharge-ageing-development-v1"
 BANDS = (5.0, 15.0, 25.0, 35.0, 40.0)
 COOLING = (1.0, 2.0, 4.0)
@@ -55,6 +58,10 @@ REFINEMENT_RULE = "carbon.reference.multi-rung-settlement.v1"
 #: question's limit; settled when the two finest rungs lie on one side and
 #: differ by less than the band
 RUNG3_DIR = "bfeas-t6r3"
+SETTLEMENT_RULE = {
+    "id": REFINEMENT_RULE,
+    "method": "two-rungs-same-side-change-below-band.v1",
+}
 SUPPORT = "battery-feasibility-02-public-panel"
 EXPOSURE_LIMIT = 5  # v2-bank E (OWNER-BANK-ARCHITECTURE-01), development value
 BATCH = 8
@@ -76,10 +83,10 @@ GRAMMAR = {
 }
 
 
-def solved_with_switch(runs):
+def solved_with_switch(runs, dirs=t4.DIRS, rung3_dirs=(RUNG3_DIR,)):
     """{(c1, c2, sv, h, T): (standard, refined or None)} at SOC0 0.10."""
     rows = []
-    for name in t4.DIRS:
+    for name in dirs:
         path = Path(runs) / name / "records.jsonl"
         if path.exists():
             rows += [json.loads(x) for x in path.read_text().splitlines() if x.strip()]
@@ -97,8 +104,9 @@ def solved_with_switch(runs):
             r
         )
     rung3 = {}
-    path = Path(runs) / RUNG3_DIR / "records.jsonl"
-    if path.exists():
+    for path in (Path(runs) / name / "records.jsonl" for name in rung3_dirs):
+        if not path.exists():
+            continue
         for x in path.read_text().splitlines():
             r = json.loads(x) if x.strip() else None
             if r and r["status"] == "OK":
@@ -167,8 +175,12 @@ def subtask(case, t, cands, actions, margin_t, margin_p):
     )  # fmt: skip
 
 
-def build(runs, n_questions=24, seed=846):
-    have = solved_with_switch(runs)
+def build(
+    runs, n_questions=24, seed=846, dirs=t4.DIRS, rung3_dirs=(RUNG3_DIR,), settle=False
+):
+    """`settle=True` (the campaign export) adds the export-level rule and each
+    question's per-candidate verdicts (two finest rungs, ruling (a))."""
+    have = solved_with_switch(runs, dirs, rung3_dirs)
     banks = {t: band_bank(have, t) for t in BANDS}
     rng = np.random.default_rng(seed)
     draws = [(np.array(MIX_ALPHA) / sum(MIX_ALPHA), 0.0, 0.0)]
@@ -196,8 +208,13 @@ def build(runs, n_questions=24, seed=846):
             query_budget=sum(len(banks[t][0]) for t in BANDS),
             value_equivalence={"quantity": "minutes", "unit": "min", "tolerance": 0.5, "rule": indexed.EQUIVALENCE_RULE},
         )  # fmt: skip
-        questions.append({"case": case, "support_case": SUPPORT, "task": registered, "reference": reference,
-                          "close_call": False, "refinement_demand": False})  # fmt: skip
+        entry = {"case": case, "support_case": SUPPORT, "task": registered, "reference": reference,
+                 "close_call": False, "refinement_demand": False}  # fmt: skip
+        if settle:
+            entry["settled"], entry["refinement_demand"] = _settled(
+                registered, reference
+            )
+        questions.append(entry)
     cases = [q["case"] for q in questions]
     law = diversity.register_law({
         "schema": diversity.LAW_SCHEMA_V2, "population_status": "UNREGISTERED", "kind": "grid",
@@ -212,7 +229,36 @@ def build(runs, n_questions=24, seed=846):
             case_strata=[{"case": c, "stratum": "all"} for c in cases],
             quotas_by_k=[{"questions_per_batch": k, "quotas": {"all": k}} for k in range(1, BATCH + 1)]),
         "questions": questions, "laws": [law],
+        **({"refinement_rule": SETTLEMENT_RULE} if settle else {}),
     })  # fmt: skip
+
+
+def _settled(registered, reference):
+    """Per-index verdicts and whether an in-band candidate stays unsettled."""
+    out, open_ = [], False
+    for index, panel in zip(registered["indices"], reference):
+        task = index["task"]
+        verdicts = settlement.verdicts(
+            task, panel["panel"], ("refined", "rung3"), "finest_two"
+        )
+        cond = task["conditions"][0]["id"]
+        truth = tasks.assess(
+            task,
+            {(r["candidate"], cond): r["values"] for r in panel["panel"]},
+            reference=True,
+        )
+        open_ |= sum(v["feasible"] is None for v in truth.values()) > len(verdicts)
+        out.append({"index_value": index["index_value"], "verdicts": verdicts})
+    return out, open_
+
+
+def build_campaign(runs):
+    """The campaign's battery reference export: tiers 1-4 plus the #965
+    middle-band stage A, rung 2 and rung 3 directories, with settlement."""
+    import middle_bands_refine as mbr
+
+    return build(runs, dirs=(*t4.DIRS, mbr.STAGE_A_DIR, mbr.RUNG2_DIR),
+                 rung3_dirs=(RUNG3_DIR, mbr.RUNG3_DIR), settle=True)  # fmt: skip
 
 
 def main(runs, out, n=24):
@@ -231,5 +277,25 @@ def main(runs, out, n=24):
                                               for i, t in enumerate(BANDS)}}, indent=1))  # fmt: skip
 
 
+def main_campaign(runs, out):
+    """`--campaign RUNS OUT`: the settled campaign export (EVIDENCE-PRODUCER-STAGES-01)."""
+    export = build_campaign(runs)
+    producer_panels.adapt_export(export)  # current main must accept it
+    Path(out).write_text(
+        json.dumps(export, sort_keys=True, separators=(",", ":")) + "\n"
+    )
+    print(
+        json.dumps(
+            {
+                "export_digest": export["export_digest"],
+                "questions": len(export["questions"]),
+            }
+        )
+    )
+
+
 if __name__ == "__main__":
-    main(*sys.argv[1:4])
+    if sys.argv[1:2] == ["--campaign"]:
+        main_campaign(*sys.argv[2:4])
+    else:
+        main(*sys.argv[1:4])

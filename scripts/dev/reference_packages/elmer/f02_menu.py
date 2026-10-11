@@ -122,6 +122,9 @@ def run(root, parallel, image, host_profile=None):
                "--read-only", "--cpu-shares", "256", "--tmpfs", "/tmp", "--cpus", "1", "--memory", "4g", "--pids-limit", "16",
                "--user", f"{os.getuid()}:{os.getgid()}", "-v", f"{d.resolve()}:/case", "-w", "/case", image,
                "bash", "-c", script]  # fmt: skip
+        parent = os.environ.get("CARBON_STAGE_CGROUP_PARENT")
+        if parent:  # campaign stage metering only; the solve is unchanged
+            cmd[3:3] = ["--cgroup-parent", parent]
         started, t0 = time.time(), time.monotonic()
         proc = subprocess.run(
             cmd, capture_output=True, text=True, check=False, timeout=7200
