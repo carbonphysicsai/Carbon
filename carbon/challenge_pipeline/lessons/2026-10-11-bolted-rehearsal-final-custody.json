@@ -1,0 +1,9 @@
+{
+ "schema":"carbon.challenge-pipeline.lesson.v1", "lesson_id":"2026-10-11-bolted-rehearsal-final-custody",
+ "recorded_at":"2026-10-11T13:07:00Z", "challenge":"bolted-joint", "stage":"test_iterate",
+ "execution":{"kind":"test_run","ref":"BOLTED-JOINT-REHEARSAL-BUILD-01","description":"Final native representative input/output custody and derived documentation check"},
+ "expected":"The new family cannot relabel customer data as representative, and historical four-family replay remains unchanged.",
+ "observed":"104 tests passed, Ruff and Black passed, pipeline validation and derived render check passed. Representative non-customer scope is required on bolted replay inputs and returned on both OK and UNRESOLVED reports. No canonical pass, reference adequacy or customer delivery is inferred.",
+ "keep":["Bounded pure preparation and exact identity reuse", "Missing safety outputs abstain and missing costs remain null"],
+ "change":[],"protocol_elements":["measurement_authority","reference_adequacy"], "proposed_revision":null,"status":"RECORDED"
+}
