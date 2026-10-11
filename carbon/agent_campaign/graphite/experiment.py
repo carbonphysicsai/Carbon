@@ -271,8 +271,11 @@ def admit(strategy, seed, root=REPOSITORY, scoring=None, variant=None, workspace
     if variant is not None:
         from carbon.reconstruction import development_variants
 
+        # Only a Level 4 proposal with staged documents passes them; every
+        # other level calls admission exactly as before.
+        extra = {} if workspace is None else {"workspace": workspace}
         return development_variants.admit(
-            resolved, strategy, seed, root, variant, workspace=workspace
+            resolved, strategy, seed, root, variant, **extra
         )
     contract = recorded_contract(resolved)
     return challenge_scoring.admit(resolved, strategy, seed, root, contract=contract)
