@@ -13,6 +13,16 @@ baseline: `43f664319e1c2f977908186d7a017f2eb0771251`. Current delivery policy
 OWNER-DX-03 supersedes historical review ceremony; the Development Hub is
 retired. This user-assigned research job does not select a WAVE implementation.
 
+Source reconciliation: main advanced to
+`0e5eb8403fdc043e9d4e6c1f39a8897710c08f30` with OWNER-BATTERY-V3-FINALS-01.
+The crosswalk now distinguishes v3's registered A-Q nomination from its paired
+accuracy final, both retaining the inherited margin. That owner decision
+controls current development; future rule options do not adopt replacements.
+PR Head merged the initial six-file research PR #1105 before this clarification
+was published. The bounded follow-up modifies only WORKING_CONTRACT, README,
+CARBON_CROSSWALK, RECOMMENDATION and SOURCES in this directory; SURVEY is retained.
+It adds no separate research job, runtime behavior or owner policy.
+
 KEEP the Challenge-owned exam and promotion contracts. Propose options without
 changing packets, optimizer, runtime, score packs, thresholds or economics.
 Scientific promotion, incumbent deployment, weight entitlement and observed
