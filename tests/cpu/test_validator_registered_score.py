@@ -29,6 +29,7 @@ from carbon.battery.worker import WorkerFailure
 
 REGISTRY = "docs/development/evidence/battery-score-tuning/registry-v5.json"
 CANDIDATE = "G-FEAS/A-Q>@0.05"
+DECISION = "OWNER-BATTERY-SCORE-CANDIDATE-01"
 
 
 @pytest.fixture(scope="module")
@@ -41,6 +42,7 @@ def term():
         "registry": REGISTRY,
         "registry_sha256": identity["sha256"],
         "candidate": CANDIDATE,
+        "decision": DECISION,
     }
 
 
@@ -73,6 +75,18 @@ def test_the_deployment_supplies_the_term_and_the_digest_binds_it(term):
             {"rule": "v2-bank-sched", "score": {"candidate": "x"}},
             "evaluation_config_score_not_in_rule",
         ),
+        (
+            {
+                "rule": "v3-bank-sched",
+                "score": {
+                    "registry": REGISTRY,
+                    "registry_sha256": "0" * 64,
+                    "candidate": CANDIDATE,
+                    "decision": "the owner said so",
+                },
+            },
+            "evaluation_config_score",
+        ),
     ],
 )
 def test_a_missing_or_stray_term_is_refused(config, code):
@@ -93,11 +107,99 @@ def test_the_candidate_loads_from_its_committed_registry(term, monkeypatch):
         ({"registry_sha256": "0" * 64}, "registered_score_registry_changed"),
         ({"candidate": "no-such-candidate"}, "registered_score_candidate_unknown"),
         ({"registry": "docs/elsewhere.json"}, "registered_score_term_malformed"),
+        (
+            {"decision": "OWNER-NO-SUCH-RECORD-99"},
+            "registered_score_decision_unrecorded",
+        ),
+        ({"decision": "not-an-owner-record"}, "registered_score_term_malformed"),
     ],
 )
 def test_a_changed_registry_or_unknown_candidate_is_refused(term, change, code):
     with pytest.raises(rs.RegisteredScoreRefused, match=code):
         rs.RegisteredScore({**term, **change}, ".")
+
+
+# -- the owner's #1101 security conditions -------------------------------------------------------
+def test_the_owner_record_must_name_the_candidate_and_the_registry_digest(
+    term, tmp_path
+):
+    """(1) A candidate is owner-only: its record must name both."""
+    assert rs.check_decision(term, ".").name.endswith(DECISION + ".md")
+    decisions = tmp_path / ".agent" / "decisions"
+    decisions.mkdir(parents=True)
+    record = decisions / "2026-10-11-OWNER-X-01.md"
+    other = {**term, "decision": "OWNER-X-01"}
+    record.write_text(f"## 2026-10-11 — OWNER-X-01: candidate {CANDIDATE}\n")
+    with pytest.raises(rs.RegisteredScoreRefused, match="decision_mismatch"):
+        rs.check_decision(other, tmp_path)  # names no digest
+    record.write_text(
+        f"## 2026-10-11 — OWNER-X-01: {CANDIDATE}\n{term['registry_sha256']}\n"
+    )
+    assert rs.check_decision(other, tmp_path) == record
+    # A record that only mentions the id in its body is not the record.
+    record.write_text(f"## 2026-10-11 — OWNER-Y-01\nOWNER-X-01 {CANDIDATE}\n")
+    with pytest.raises(rs.RegisteredScoreRefused, match="decision_unrecorded"):
+        rs.check_decision(other, tmp_path)
+
+
+def test_every_window_commitment_names_the_term(term):
+    """(2) The producer commits the active term with each window."""
+    from carbon.challenge_validator.battery import BatteryBatchSource
+
+    source = object.__new__(BatteryBatchSource)
+    v3 = deployment.rule_for({"rule": "v3-bank-sched", "score": term})
+    source.adapter = SimpleNamespace(target=SimpleNamespace(rule=v3))
+    assert source.score_term() == term
+    source.adapter.target.rule = exam.RULES["v2-bank-sched"]
+    assert source.score_term() is None
+
+
+def _importer(rule):
+    return SimpleNamespace(
+        identities=lambda: {"contract_digest": "c", "rule_digest": rule_digest(rule)},
+        target=SimpleNamespace(rule=rule),
+    )
+
+
+def test_a_window_naming_another_term_is_refused(term):
+    """(2) A validator imports only windows naming its own term."""
+    from carbon.challenge_validator.answer_key import AnswerKeyRefused
+    from carbon.challenge_validator.battery import BatteryAdapter
+
+    mine = deployment.rule_for({"rule": "v3-bank-sched", "score": term})
+    other = {**term, "candidate": "A-Q"}
+    for named in (other, None):
+        commitment = {"contract_digest": "c", "rule_digest": rule_digest(mine)}
+        if named is not None:
+            commitment["score"] = named
+        with pytest.raises(AnswerKeyRefused, match="answer_key_score_mismatch"):
+            BatteryAdapter.import_answer_key(_importer(mine), commitment, {})
+    v2 = exam.RULES["v2-bank-sched"]
+    with pytest.raises(AnswerKeyRefused, match="answer_key_score_mismatch"):
+        BatteryAdapter.import_answer_key(
+            _importer(v2),
+            {"contract_digest": "c", "rule_digest": rule_digest(v2), "score": term},
+            {},
+        )
+
+
+def test_a_candidate_change_is_prospective_a_new_deployment_state(term, tmp_path):
+    """(3) A changed term is a changed rule: the bound state refuses it, so
+    a new candidate starts a new deployment state and nothing is rescored."""
+    from carbon.battery.pool_store import PoolStore, StateError
+
+    rule = deployment.rule_for({"rule": "v3-bank-sched", "score": term})
+    changed = deployment.rule_for(
+        {"rule": "v3-bank-sched", "score": {**term, "candidate": "A-Q"}}
+    )
+    store = PoolStore(tmp_path / "state.sqlite3", rule=rule)
+    store.bind({"rule": rule, "rule_digest": rule_digest(rule)})
+    with pytest.raises(StateError, match="identities_changed"):
+        store.bind({"rule": changed, "rule_digest": rule_digest(changed)})
+    with pytest.raises(StateError, match="identities_not_carryable"):
+        store.rebind(
+            {"rule": changed, "rule_digest": rule_digest(changed)}, decision="x"
+        )
 
 
 def test_the_score_is_score_tunings_own(term, monkeypatch):
