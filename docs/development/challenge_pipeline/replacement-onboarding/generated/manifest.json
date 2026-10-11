@@ -1,0 +1,125 @@
+{
+  "basis": {
+    "dirty": true,
+    "sha": "95b27cd71dd7706c282dedb25c8f7c5377fb5420"
+  },
+  "challenges": {
+    "bolted-joint": {
+      "basis": {
+        "path": "docs/development/challenge_pipeline/replacement-onboarding/generated/bolted-joint/basis.json",
+        "sha256": "ba32259a6595cca78d0f189da6d22e7206150cf9835fd1c465fca29c025858b2"
+      },
+      "brief": {
+        "path": "docs/development/challenge_pipeline/replacement-onboarding/generated/bolted-joint/brief.json",
+        "sha256": "f7bbc06ad2a4b2ec243dbaa1e5b72199a39c495be9cc532e738fa2c709fdf5d5"
+      },
+      "intake": {
+        "path": "docs/development/challenge_pipeline/replacement-onboarding/generated/bolted-joint/intake.json",
+        "sha256": "4de5dce685e482176cdc1d6a7dba43e67fbaedb42335c48b8e08f3d0eb1d402b"
+      },
+      "law": {
+        "path": "docs/development/challenge_pipeline/replacement-onboarding/generated/bolted-joint/law.json",
+        "sha256": "be20f13f2010e910ba707a36ce615489b20abd5355bb826d4cefdf82d1efdd3f"
+      },
+      "limits": {
+        "path": "docs/development/challenge_pipeline/replacement-onboarding/generated/bolted-joint/limits.json",
+        "sha256": "102c7aad25d62fe0358452da7e35fc8651c62a3ec12b6c053715037def2f881e"
+      },
+      "packet": {
+        "path": "docs/development/challenge_pipeline/replacement-onboarding/generated/bolted-joint/packet.json",
+        "sha256": "391dbdbac175c61284ebdf197b0b58e6722de2be7b9bb15bb18c2827b70f12c5"
+      },
+      "packet_markdown": {
+        "path": "docs/development/challenge_pipeline/replacement-onboarding/generated/bolted-joint/packet.md",
+        "sha256": "9503d895907d8f5e55699d41ff7d363ed3b92700b7876c9e6c3a5ce49c0cea9e"
+      },
+      "panel": {
+        "path": "docs/development/challenge_pipeline/replacement-onboarding/generated/bolted-joint/panel.json",
+        "sha256": "dfdfea5d05f1c96f627059cc59cacb96cb23bccaa09800d86eb2e189f75ae8f3"
+      },
+      "status": {
+        "path": "docs/development/challenge_pipeline/replacement-onboarding/generated/bolted-joint/status.json",
+        "sha256": "b5561a8e8bd7dabab041f5673bb24f0a055dcaf6941e9d91c364d5c4dd40227b"
+      }
+    },
+    "seal-gland": {
+      "basis": {
+        "path": "docs/development/challenge_pipeline/replacement-onboarding/generated/seal-gland/basis.json",
+        "sha256": "cb130c4a6334094995a1eab07f8a060a95a296126eebadc09bb8181190be6a35"
+      },
+      "brief": {
+        "path": "docs/development/challenge_pipeline/replacement-onboarding/generated/seal-gland/brief.json",
+        "sha256": "4959d373ae9751ff47f5c377c66853ae2a1950b8f7d6e488905ab6a3b69bcc00"
+      },
+      "intake": {
+        "path": "docs/development/challenge_pipeline/replacement-onboarding/generated/seal-gland/intake.json",
+        "sha256": "faa7fdf6a6c4b4627880f005e0d169b08b5276b7661848b3ff77997de90afb9e"
+      },
+      "law": {
+        "path": "docs/development/challenge_pipeline/replacement-onboarding/generated/seal-gland/law.json",
+        "sha256": "74d40c84dfd533f1aaa87d324bc9f12c00125a87fe9500dafb3ddc3b000cd86a"
+      },
+      "limits": {
+        "path": "docs/development/challenge_pipeline/replacement-onboarding/generated/seal-gland/limits.json",
+        "sha256": "102c7aad25d62fe0358452da7e35fc8651c62a3ec12b6c053715037def2f881e"
+      },
+      "packet": {
+        "path": "docs/development/challenge_pipeline/replacement-onboarding/generated/seal-gland/packet.json",
+        "sha256": "173589d218e52a918922ea20379a4f6239b9e1248a43d231a2325b6ab63488b0"
+      },
+      "packet_markdown": {
+        "path": "docs/development/challenge_pipeline/replacement-onboarding/generated/seal-gland/packet.md",
+        "sha256": "450146875a6168ab31db68f51aab48872505da7bc374be4d237c0eac28e0ad23"
+      },
+      "panel": {
+        "path": "docs/development/challenge_pipeline/replacement-onboarding/generated/seal-gland/panel.json",
+        "sha256": "284d95a8b1bda2159a6d0c78ee8fdbb6c507a0a8279a5f0335fd5ee74e9d63dd"
+      },
+      "status": {
+        "path": "docs/development/challenge_pipeline/replacement-onboarding/generated/seal-gland/status.json",
+        "sha256": "098dab3a636b63be4922b55aae0ee4bcba81ac29fb8d8247044006113aad6f9c"
+      }
+    },
+    "solenoid-pole": {
+      "basis": {
+        "path": "docs/development/challenge_pipeline/replacement-onboarding/generated/solenoid-pole/basis.json",
+        "sha256": "d4280af1f561ceab01f520e58a74efc0845e8bdd4ff79bb8613cfd702a449401"
+      },
+      "brief": {
+        "path": "docs/development/challenge_pipeline/replacement-onboarding/generated/solenoid-pole/brief.json",
+        "sha256": "5780baccae50d4ea43355df0247b294cf6ee7a2db25cd55a69702cd8f2f6598e"
+      },
+      "intake": {
+        "path": "docs/development/challenge_pipeline/replacement-onboarding/generated/solenoid-pole/intake.json",
+        "sha256": "24e1f6004afe87e25804db46c0086d2d7a84f85a3279cd6f94168f8daf4dd77c"
+      },
+      "law": {
+        "path": "docs/development/challenge_pipeline/replacement-onboarding/generated/solenoid-pole/law.json",
+        "sha256": "48b6c4893c3b1efd4c2c78f420679f34faec272b1b9d33349076a5b28b1bfa65"
+      },
+      "limits": {
+        "path": "docs/development/challenge_pipeline/replacement-onboarding/generated/solenoid-pole/limits.json",
+        "sha256": "102c7aad25d62fe0358452da7e35fc8651c62a3ec12b6c053715037def2f881e"
+      },
+      "packet": {
+        "path": "docs/development/challenge_pipeline/replacement-onboarding/generated/solenoid-pole/packet.json",
+        "sha256": "cadcdaaffdd6f3c2f0a93fa4f3debceba4434b676b1f3427c4e131f4cd503958"
+      },
+      "packet_markdown": {
+        "path": "docs/development/challenge_pipeline/replacement-onboarding/generated/solenoid-pole/packet.md",
+        "sha256": "bfbcea413c6dba05fa8c9b37fbf06e5d786ce87547cec1edcf1adb62fd8eada8"
+      },
+      "panel": {
+        "path": "docs/development/challenge_pipeline/replacement-onboarding/generated/solenoid-pole/panel.json",
+        "sha256": "15b76426e0671e969616181fb4e46af86953ee99610ff0847464009cd6e448ca"
+      },
+      "status": {
+        "path": "docs/development/challenge_pipeline/replacement-onboarding/generated/solenoid-pole/status.json",
+        "sha256": "b67a182a786b7f9231342e35df685a026fe6526082b169c038a3fe2f6d11f3b6"
+      }
+    }
+  },
+  "drafts_not_adoption": true,
+  "input_sha256": "b9f11219e5ed568edaeca4c45d3346fe2bcd8973a6221637b7dee28e1d4ed7c4",
+  "schema": "carbon.onboarding.application-run.v1"
+}

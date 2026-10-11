@@ -1,0 +1,18 @@
+[
+  {
+    "path": "docs/development/challenge_pipeline/round1/f06-grating-coupler.md",
+    "sha256": "572b8e7264467e0993d5fdb8ee8a259af3de84ffe19ec4e49b585bc83507141f"
+  },
+  {
+    "path": "docs/development/challenge_pipeline/value-cost/f06.md",
+    "sha256": "6f03019bfce7367dc26de1f1cefed9428304bad68503769f0f710e4e82f41535"
+  },
+  {
+    "path": "docs/development/challenge_pipeline/cheap-baselines/f06.md",
+    "sha256": "3538b7d25c2f955df9c3471cdaf916a6769db24e18dc8dd46a5d7545847a0a79"
+  },
+  {
+    "path": "docs/development/challenge_pipeline/solver-package-specs/f06-resolution-cost/analysis.json",
+    "sha256": "bb3e5ad5b86548455a21ad5b92ca23f9b2a25a1aeec73482967f9a468b5776cd"
+  }
+]

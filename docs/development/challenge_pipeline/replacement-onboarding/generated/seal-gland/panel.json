@@ -1,0 +1,67 @@
+{
+  "boundary_designs": {
+    "intervals_and_frontier_results": "NOT_DEMONSTRATED",
+    "recommendation": "Register physical-coordinate brackets near each hard limit in every stratum; at least 5 settled feasible AND 5 settled infeasible within TWO accepted refinement bands; no guaranteed yield, no widening",
+    "status": "HUMAN_INPUT"
+  },
+  "buyer_decision": {
+    "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+    "needed_decision": "Confirm applicability and authorize decision",
+    "owner": "science/product owner",
+    "recommendation": "Choose gland, squeeze and back-up support within a stated compound, pressure and temperature envelope",
+    "sources": [],
+    "status": "HUMAN_INPUT"
+  },
+  "case_count": null,
+  "cases": [],
+  "challenge": "seal-gland",
+  "cost": {
+    "billed_node_hours": null,
+    "cpu_hours_if_reuse_accepted": null,
+    "cpu_hours_without_reuse": null,
+    "eur": null,
+    "omitted": [
+      "failures",
+      "setup",
+      "witnesses",
+      "new frontier actions",
+      "storage",
+      "tax",
+      "retained verification"
+    ],
+    "status": "UNKNOWN"
+  },
+  "designs": null,
+  "held_closed": "No solver, bank draw, hidden data, registration adoption or spend; DC accepts geometry/pins/reuse before execution",
+  "maturity": "DRAFT_ONLY",
+  "registration_status": "PROPOSED_NOT_DISPATCHABLE",
+  "reuse_check": {
+    "completed_matches": 0,
+    "scheduled_matches": 0,
+    "status": "UNKNOWN_NO_INDEX"
+  },
+  "schema": "carbon.onboarding.panel-draft.v1",
+  "strata": null,
+  "strata_basis": {
+    "held_closed": "No runtime registration, bank draw, execution, qualification or spend",
+    "needed_decision": "Confirm applicability and authorize strata",
+    "owner": "science/product owner",
+    "recommendation": "**P \u2014 customer request population.** Joint distribution of customer seal-sizing requests: gland envelopes, pressure/temperature histories, approved material/lot variation, and mating tolerances. Conditional joint behaviour matters; independent uniform squeeze and pressure boxes are not a customer law.\n\n**Q \u2014 diagnostic/acquisition proposal.** Enrich near contact-loss, overstrain and support/extrusion boundaries while retaining the same material and pressure-service domain. Oversample disagreement with the supplier-handbook/contact-surface baseline. Tag every diagnostic design; do not interpret its density as P.\n\n**w \u2014 evidence/score use.** Sampling/evidence weighting and any correction from Q to P are **HUMAN_INPUT \u2014 scientific owner**. Prospective per-stratum admissibility and reporting precede any ranking. Equal diagnostic counts are a collection convenience, not deployment weights. No soft objective can compensate for a mandatory failure.\n\nFreeze a versioned population contract with joint variables, support, dependencies, strata/mixture probabilities, rights, exclusions, time validity and applicability. Keep request-job law distinct from the finite design menu conditional on that job. Request population and design-generation process are not interchangeable. No public draw is a hidden/protected exam draw; this researcher defines or accesses neither.",
+    "sources": [
+      {
+        "excerpt": "**P \u2014 customer request population.** Joint distribution of customer seal-sizing requests: gland envelopes, pressure/temperature histories, approved material/lot variation, and mating tolerances. Conditional joint behaviour matters; independent uniform squeeze and pressure boxes are not a customer law.\n\n**Q \u2014 diagnostic/acquisition proposal.** Enrich near contact-loss, overstrain and support/extrusion boundaries while retaining the same material and pressure-service domain. Oversample disagreement with the supplier-handbook/contact-surface baseline. Tag every diagnostic design; do not interpret its density as P.\n\n**w \u2014 evidence/score use.** Sampling/evidence weighting and any correction from Q to P are **HUMAN_INPUT \u2014 scientific owner**. Prospective per-stratum admissibility and reporting precede any ranking. Equal diagnostic counts are a collection convenience, not deployment weights. No soft objective can compensate for a mandatory failure.\n\nFreeze a versioned population contract with joint variables, support, dependencies, strata/mixture probabilities, rights, exclusions, time validity and applicability. Keep request-job law distinct from the finite design menu conditional on that job. Request population and design-generation process are not interchangeable. No public draw is a hidden/protected exam draw; this researcher defines or accesses neither.",
+        "path": "docs/development/challenge_pipeline/discovery/dossiers/seal-gland.md",
+        "sha256": "342fd3ffc076e0f23089685bdc599775e12fe142f7cc6f7518f13d0a8636fec9"
+      }
+    ],
+    "status": "SOURCE_EXTRACT"
+  },
+  "value_measures": [
+    "complete feasible answer",
+    "both-side contested boundaries",
+    "buyer-unit margin spread",
+    "best/equivalent answer changes",
+    "cheap-baseline decision regret",
+    "CPU/wall/memory/failures"
+  ]
+}
