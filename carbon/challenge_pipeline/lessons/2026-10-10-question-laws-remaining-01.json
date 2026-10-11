@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-10-question-laws-remaining-01",
+  "recorded_at": "2026-10-10T22:39:37Z",
+  "challenge": "protocol",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "QUESTION-LAWS-REMAINING-01", "description": "Ran unchanged offline #976 generator on explicit f17/f13 briefs; retained and parity-tested drafts; static law/source/arithmetic regressions. No physics execution."},
+  "expected": "Two complete question-law proposals preserve full jobs, P/Q/w and working two-sided two-band frontier rule without an absent panel implying law or cost approval.",
+  "observed": "Baseline 27 native generator/law tests passed. Final 32 native diagnostic tests passed, with exact generated-output parity and source hashes. Black/Ruff/diff checks passed; canonical acceptance remains GitHub CI.",
+  "keep": ["Forward NONE_FEASIBLE without redraw; uncertainty/reference failure distinct", "Explicit physical-work accounting separate from process starts and question count", "Null registered values and measured diversity without real panels"],
+  "change": ["Do not inherit looser historical exploratory grid thresholds as primary hard limits", "Verified velocity reuse may save flow jobs, not scalar propagation or uncertainty checks"],
+  "protocol_elements": ["question_law", "frontier_resolution", "exposure_accounting", "reference_cost"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

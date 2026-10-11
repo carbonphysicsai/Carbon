@@ -83,6 +83,21 @@ def test_the_four_record_types_are_present():
     }
 
 
+def test_timeline_and_main_missing_record_semantics_coexist(monkeypatch):
+    module = _generator()
+    read = module._read
+    monkeypatch.setattr(
+        module,
+        "_read",
+        lambda path: "" if path.endswith("cycle_metrics.jsonl") else read(path),
+    )
+    process = module.build_process(
+        {**module.load_registry(BATTERY), "challenge": BATTERY}
+    )
+    assert process["dated_stage_records"]["value"] == "UNMEASURED"
+    assert process["artifact_calendar_timeline"]["source"].endswith("timeline.py")
+
+
 @pytest.mark.parametrize("which", ["generated", "committed"])
 def test_every_measured_field_cites_an_existing_artefact(which):
     ledger = (

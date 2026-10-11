@@ -11,8 +11,10 @@ types: INPUTS, PROCESS, OUTPUTS and NETWORK. A field is one of
      "owner": ..., "question": ...}                       a real owner decision.
 
 Nothing is estimated. The only per-Challenge input is the pointer registry
-(`ledger_sources.json`), which also holds the shared measurement tools. The output is
-deterministic: sorted keys, no clock, no host state.
+(`ledger_sources.json`), which also holds the shared measurement tools;
+every number comes from cited artefacts or pinned Git
+metadata. Output is deterministic at unchanged artefacts and refs: sorted keys,
+no clock, no execution-host state. Git milestone times are not effort or exits.
 
     python scripts/dev/onboarding/build_ledger.py --challenge <id> [--out PATH]
 """
@@ -162,6 +164,8 @@ def _lessons(entry):
 
 
 def build_process(entry):
+    from carbon.challenge_pipeline.onboarding import status
+
     challenge = entry["challenge"]
     metrics_path = f"{ONBOARDING}/cycle_metrics.jsonl"
     rows = [json.loads(x) for x in _read(metrics_path).splitlines() if x.strip()]
@@ -182,6 +186,10 @@ def build_process(entry):
     ]
     history_path, history = _history(entry)
     process = {
+        "artifact_calendar_timeline": measured(
+            status.generate(REPOSITORY, challenge)["artifact_timeline"],
+            "carbon/challenge_pipeline/onboarding/timeline.py",
+        ),
         "dated_stage_records": (
             measured(
                 sorted(dated, key=lambda r: (r["date"], r["stage"], r["event"])),
