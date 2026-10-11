@@ -469,7 +469,11 @@ def train_plan(challenge, generated, panel, *, count):
         raise PreparationError("insufficient distinct disjoint public proposals")
     return {
         "family": challenge,
-        "scope": "PUBLIC_DEVELOPMENT",
+        "scope": (
+            "SYNTHETIC_FIXTURE"
+            if any(r["scope"] == "SYNTHETIC_FIXTURE" for r in retained[:count])
+            else "PUBLIC_DEVELOPMENT"
+        ),
         "status": "PLAN_NOT_TRAINED",
         "cases": retained[:count],
         "panel_physical_keys": sorted(excluded),

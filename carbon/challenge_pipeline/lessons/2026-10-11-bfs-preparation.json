@@ -8,7 +8,7 @@
   "expected": "Public anchor data can establish whether cached answers survive novel variants without accessing hidden data.",
   "observed": "The NASA anchor provides reattachment only, not full variant loss and admissibility truth. Anchor is excluded; variant decision novelty stays unresolved. Uniform discrete monotone actions require stars-and-bars, not sorted iid ordinates. Native test collection initially used a nonexistent regression filename; corrected from repository inventory.",
   "keep": ["Mass-flow-weighted total pressure instead of shifted Cp", "Complete geometry held-out folds and screen-cost export", "Closed measurement-derived thresholds"],
-  "change": ["Retain public matched variant outcomes and the complete catalogue before testing novelty", "Register exact grammar, inlet and mesh mapping before physical tuple generation"],
+  "change": ["Retain public matched variant outcomes and the complete catalogue before testing novelty", "Register exact grammar, inlet and mesh mapping before physical tuple generation", "Keep synthetic TRAIN proposal custody synthetic at both row and plan level"],
   "protocol_elements": ["CODE-VERIFICATION-MMS-01", "BENCHMARK-READINESS-BUILD-01"],
   "proposed_revision": null,
   "status": "RECORDED"

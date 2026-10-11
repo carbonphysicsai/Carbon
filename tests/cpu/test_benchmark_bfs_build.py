@@ -266,6 +266,7 @@ def test_train_disjointness_ignores_rung_and_domain_reports_gaps():
     ]
     plan = b.train_plan(b.FAMILY, generated, panel, count=1)
     assert plan["cases"] == [generated[1]]
+    assert plan["scope"] == "SYNTHETIC_FIXTURE"
     domain = {
         "action": {"length_over_H": [0.5, 4]},
         "condition": {"Re_H": [28800, 43200]},
