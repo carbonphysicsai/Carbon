@@ -91,6 +91,8 @@ with the fields in [Record](#record).
      images (and the GPU worker) locally, records them for setup, and checks
      setup against them.
    - It prints how to start the Control Center again, then starts it.
+     With `--service`, it also turns on linger so the service starts again
+     after a reboot ([After a reboot](#after-a-reboot)).
    - **A second install on the same checkout (LA-F15, LA-F16).** Give it
      its own state directory and port, for example
      `CARBON_STATE_DIR=$HOME/.carbon/minerA ~/carbon/scripts/install_miner.sh --port 8789`.
@@ -274,6 +276,42 @@ unchecked and says to run `install_miner.sh --update`: only the installer
 records a new install, so checking Compute again would not clear it.
 
 Record its output with the run.
+
+## After a reboot
+
+With `--service`, the Control Center comes back by itself after the machine
+restarts (MINER-SURVIVE-REBOOT-01):
+
+- **The Control Center's unit.** The installer enables its own user unit
+  (`carbon-control-center`, or `carbon-control-center-<directory>-<hash>`),
+  so your systemd user manager starts it.
+- **Linger.** That manager starts at boot only when your user lingers;
+  otherwise it waits for a login. The installer turns linger on with
+  `loginctl enable-linger <user>`. Where that needs root, it prints
+  `sudo loginctl enable-linger <user>`: run it once. Until then, the Control
+  Center starts again only when you log in. The installer prints the final
+  state.
+- **Your signer is yours.** Nothing about it changes: after a reboot, start
+  `carbon-miner-signer` in your own terminal again, as in step 2. Carbon never
+  starts it and never holds your key.
+- **Check it.** `systemctl --user status carbon-control-center` (or your
+  install's own unit name) should say `enabled` and `active (running)`, and
+  `loginctl show-user $USER -p Linger` should say `Linger=yes`. Setup says
+  so too: `carbon_setup_status` and Review warn `reboot_recovery_off`, with
+  the command that fixes it, when the unit is not enabled or linger is off.
+
+**Windows (WSL).** Windows does not start WSL at boot, so nothing in your
+distro runs until something opens it. Run this once in PowerShell, with your
+distro and Linux user in place of the placeholders. It registers a task that
+starts the distro, hidden, each time you log on to Windows and keeps it
+running, so its systemd units, the Control Center included, start:
+
+```powershell
+$a = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument '-NoProfile -WindowStyle Hidden -Command "Start-Process wsl.exe -WindowStyle Hidden -ArgumentList ''-d <your distro> -u <your user> --exec sleep infinity''"'; Register-ScheduledTask -TaskName 'Carbon miner WSL at logon' -Trigger (New-ScheduledTaskTrigger -AtLogOn -User $env:USERNAME) -Action $a -Settings (New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit ([TimeSpan]::Zero))
+```
+
+`wsl -l -v` lists your distros. To remove the task:
+`Unregister-ScheduledTask -TaskName 'Carbon miner WSL at logon' -Confirm:$false`.
 
 ## Record
 

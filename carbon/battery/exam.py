@@ -147,6 +147,36 @@ DEVELOPMENT_RULE_V2_BANK_E2 = {
 }
 
 
+#: Rule `v2-bank-e1-r360` (OWNER-BANK-EXPOSURE-E1-TESTNET-01): testnet only.
+#: `v2-bank` with the pool bank's exposure E = 1 (each case serves one window,
+#: then publishes once that window ends and is revealed) and a 360-block
+#: rotation (one tempo), so a window's scores publish about 3 x 360 blocks
+#: after it opens. The bank is refilled by the operator's timer, never inside
+#: a tick (`top_up: False`): a short bank leaves the slot unfilled
+#: (`bank_short`) and is never drawn twice. A new rule version; mainnet's E
+#: and rotation are separate owner decisions.
+DEVELOPMENT_RULE_V2_BANK_E1_R360 = {
+    **DEVELOPMENT_RULE_V2_BANK,
+    "authority": (
+        DEVELOPMENT_RULE_V2_BANK["authority"]
+        + "; pool E = 1, rotation 360 blocks, testnet: "
+        "OWNER-BANK-EXPOSURE-E1-TESTNET-01"
+    ),
+    "rotation": {**DEVELOPMENT_RULE_V2_BANK["rotation"], "every_blocks": 360},
+    "bank": {
+        **DEVELOPMENT_RULE_V2_BANK["bank"],
+        "pool": {
+            **DEVELOPMENT_RULE_V2_BANK["bank"]["pool"],
+            "retire_at": 1,
+            "top_up": False,
+            # B covers at least 24 h of draws (OWNER-BANK-EXPOSURE-E1-TESTNET-01):
+            # 2 windows x 98 cases x 20 rotations a day is 3,920 cases.
+            "size": 4000,
+        },
+    },
+}
+
+
 def _rate_study_rule(window_blocks):
     """SUBMISSION-RATE-STUDY-01's development rule variants (VALIDATOR-30):
     `v2-bank` with the per-hotkey window at `window_blocks` (360, 180, 90 for
@@ -179,6 +209,7 @@ RULES = {
     "v2": DEVELOPMENT_RULE_V2,
     "v2-bank": DEVELOPMENT_RULE_V2_BANK,
     "v2-bank-e2": DEVELOPMENT_RULE_V2_BANK_E2,
+    "v2-bank-e1-r360": DEVELOPMENT_RULE_V2_BANK_E1_R360,
     # SUBMISSION-RATE-STUDY-01's rates m = 1, 2, 4 (VALIDATOR-30).
     "v2-bank-rate-1": _rate_study_rule(360),
     "v2-bank-rate-2": _rate_study_rule(180),

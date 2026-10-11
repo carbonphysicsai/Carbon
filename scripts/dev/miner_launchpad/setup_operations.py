@@ -511,6 +511,10 @@ def status(
         "preferences": state.get("preferences"),
         "next": None,
     }
+    # Whether this install's Control Center comes back after a reboot
+    # (MINER-SURVIVE-REBOOT-01): setup's own read-only warning, as Review's.
+    reboot = getattr(setup, "reboot_warnings", None)
+    result["warnings"] = reboot() if reboot is not None else []
     if nxt is None:
         launched = campaigns is not None and campaigns > 0
         result["next"] = {
