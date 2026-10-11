@@ -29,7 +29,7 @@ checked against. UNVERIFIED marks a mapping the records do not settle.
 | 1 | Design packet | Ten packet sections filled; the rest `OPEN` with an owner | Codex drafts; Test Lead reviews | VERIFIED (owner mapping inferred) |
 | 2 | Solver package | Pinned reference package, measured cost, conservation checks | Data Collection | VERIFIED (specs are SPECIFIED, not built) |
 | 3 | Feasibility and value panel | V1-V5, T1-T5, C1+ evidenced; keep, reframe or replace | Codex, Data Collection, Test Lead; thresholds the owner's | VERIFIED |
-| 4 | Question law | Law sheet accepted or declined by the owner; design-value prerequisite met | Codex proposes; owner accepts | VERIFIED |
+| 4 | Question law | Law sheet accepted or declined by the owner; design-value prerequisite met; the research kit covers the panel's actions, conditions and observables | Codex proposes; owner accepts | VERIFIED |
 | 5 | Bank | Sealed bank prepared on the hidden host from a pinned image | Carbon Validator (producer, bank adapters, VALIDATOR-28 family sources); Data Collection supplies each family's reference package and panel; the owner approves startup spend | VERIFIED (Test Lead ruling, 2026-10-10) |
 | 6 | Readiness gate | `launch_ready` at the exact main SHA | Graphite Testing Manager; Test Lead waives | VERIFIED |
 | 7 | Graphite stage A (L0, L1) | Checklist runs, lessons entries, L0 confirmations, stage report | Executor, Launchpad, Test Engineer, Test Lead | VERIFIED |
@@ -113,9 +113,11 @@ session is in section 5.
 | B8 | Silent failures | A stalled run or all-refused pods went unseen (preflight decision) | UNKNOWN | Fixed in code (#967), not yet exercised live |
 | B9 | Lane install lagging the grant code | The lane install code lagged the grant code and a lane refused a current grant (`grant_exact_fields_required`; Test Lead note, 2026-10-10) | UNKNOWN | Owner assigned (Launchpad owns lane installs); revision-equality check proposed, not built |
 | B10 | One shared checkout for every lane | carbon-fresh has one shared checkout; two sessions updating it collided and every lane's profile went stale (`carbon_updated_rerun_installer`; Test Lead note) | UNKNOWN | Owner assigned (Launchpad is the single owner of lane installs); not yet exercised live |
+| B11 | Training kit does not cover the panel's action space | Battery's kit lacks `switch_v` and `cooling` and stops `c1` at 0.5 while the v3 panel needs all three; f02 has no kit or TRAIN; found at evidence time (Test Lead note, 2026-10-10) | UNKNOWN | Criterion decided (exit criterion of the question-law and panel stage); check not built |
+| B12 | Pinned solver image missing from the operator store | f02's Elmer image was not in the operator store (Test Lead note) | UNKNOWN | OPEN: no pre-bank check |
 
 Full rows (stage, sources, occurrences, fix reference, automation) are in
-`blocker_taxonomy.json`. Each is also a register row, B1 to B10, in section 7d of the
+`blocker_taxonomy.json`. Each is also a register row, B1 to B12, in section 7d of the
 lessons register.
 
 **Honesty notes.** "Four failures" in the preflight decision is a count of launch
@@ -131,23 +133,25 @@ ordinal and should be revisited when section 5 is answered.
 | Rank | Blocker | Change | Kind |
 |---|---|---|---|
 | 1 | B6 reboot fragility | One lane-up command per lane: list what is down, print the single owner action, re-run the preflight when the owner says it is done. It never starts a signer or signs. | generator |
-| 2 | B9 lane install lag | Preflight check that the lane's installed revision equals the grant's code revision, naming the lane owner to reinstall. Proposed, not built. | check |
-| 3 | B10 shared checkout | Launchpad is the single owner of lane installs (decided); the wave template names that owner and the lane-up command runs the installer. | template |
-| 4 | B5 token and pod split | Compute the split from the start model's full-window reservation and pods x rate ceiling; the preflight refuses a grant whose split fails either. | generator + check |
-| 5 | B4 pod ceiling | Run the probe before proposing a grant and state the observed offer against the proposed rate ceiling. The proposal stays the owner's to approve. | check |
-| 6 | B7 permission blocks | A template list of edit classes known to need approve-edits mode, asked once with the wave's other owner needs. | template |
-| 7 | B1 wrong lane | Generate the lane file from a lane registry instead of by hand per wave. | generator |
-| 8 | B3 controller roots | Allocate one fresh root per planned concurrent run and print the `--root` list. | generator |
-| 9 | B2 keys | The template names key slots, not paths; the preflight reports missing ones together. | template |
-| 10 | B8 silent failures | A collector over the shared heartbeat directory that raises one line when a run reads STALLED. | check |
+| 2 | B11 kit versus panel | A kit-versus-panel coverage check: list every action, condition and observable of the panel that the kit does not cover, and block the question-law and panel stage exit until none is left. | generator |
+| 3 | B9 lane install lag | Preflight check that the lane's installed revision equals the grant's code revision, naming the lane owner to reinstall. Proposed, not built. | check |
+| 4 | B10 shared checkout | Launchpad is the single owner of lane installs (decided); the wave template names that owner and the lane-up command runs the installer. | template |
+| 5 | B12 solver image | A pre-bank check that every solver image pinned by the Challenge's packages is present in the operator store, listing the missing ones together. | check |
+| 6 | B5 token and pod split | Compute the split from the start model's full-window reservation and pods x rate ceiling; the preflight refuses a grant whose split fails either. | generator + check |
+| 7 | B4 pod ceiling | Run the probe before proposing a grant and state the observed offer against the proposed rate ceiling. The proposal stays the owner's to approve. | check |
+| 8 | B7 permission blocks | A template list of edit classes known to need approve-edits mode, asked once with the wave's other owner needs. | template |
+| 9 | B1 wrong lane | Generate the lane file from a lane registry instead of by hand per wave. | generator |
+| 10 | B3 controller roots | Allocate one fresh root per planned concurrent run and print the `--root` list. | generator |
+| 11 | B2 keys | The template names key slots, not paths; the preflight reports missing ones together. | template |
+| 12 | B8 silent failures | A collector over the shared heartbeat directory that raises one line when a run reads STALLED. | check |
 | A9 | Cycle-time recorder | Read git history, readiness history, lessons and heartbeats into `cycle_metrics.jsonl`. | generator |
 
-Ranks 1, 3, 4, 5, 7, 8 and 9 are the parts of the **Graphite wave template** (section 6), which
+Ranks 1, 4, 6, 7, 9, 10 and 11 are the parts of the **Graphite wave template** (section 6), which
 is why it waits for stage A results.
 
 ## 5. One batched question (to the executor, Launchpad copied)
 
-For each of B1 to B10: the time lost in stage A (hours, or UNKNOWN), the number of
+For each of B1 to B12: the time lost in stage A (hours, or UNKNOWN), the number of
 occurrences, and whether the fix has been exercised live. For B7: the edit classes the
 classifier blocked. Answers replace `UNKNOWN` in `blocker_taxonomy.json` with a citation;
 until then they stay `UNKNOWN`.

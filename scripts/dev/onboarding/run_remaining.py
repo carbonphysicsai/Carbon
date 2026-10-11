@@ -115,14 +115,20 @@ def generate(root=ROOT):
 def write(root, results):
     if set(results) != CHALLENGES:
         raise packet.DraftError("eight explicit application results required")
+    return write_batch(root, results, source=SOURCES, output=OUTPUT)
+
+
+def write_batch(root, results, *, source, output):
+    """Shared serialization only; the ticket wrapper owns its closed brief set."""
     root = root.resolve()
-    destination = (root / OUTPUT).resolve()
-    if not destination.is_relative_to(root):
+    destination = (root / output).resolve()
+    allowed = (root / "docs/development/challenge_pipeline").resolve()
+    if not destination.is_relative_to(allowed) or destination == allowed:
         raise packet.DraftError("application output outside repository")
     destination.mkdir(parents=True, exist_ok=True)
     manifest = {
         "schema": "carbon.onboarding.application-run.v1",
-        "input_sha256": packet.digest((root / SOURCES).read_bytes()),
+        "input_sha256": packet.digest(packet.source_path(root, source).read_bytes()),
         "basis": status.git_basis(root),
         "drafts_not_adoption": True,
         "challenges": {},
@@ -142,6 +148,7 @@ def write(root, results):
                 "status",
                 "basis",
                 "limits",
+                "intake",
             }:
                 raise packet.DraftError("known application output required")
             target = folder / (kind + ".json")

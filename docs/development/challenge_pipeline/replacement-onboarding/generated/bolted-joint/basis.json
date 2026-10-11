@@ -1,0 +1,18 @@
+[
+  {
+    "path": "docs/development/challenge_pipeline/discovery/dossiers/bolted-joint.md",
+    "sha256": "bebad0c570089a193c816d74d1bd6e40a62cb180fee119d35f4ae36e45335793"
+  },
+  {
+    "path": "docs/development/challenge_pipeline/replacement-onboarding/bolted-joint-intake.json",
+    "sha256": "72ca2b0367e93c1844171c89cf50d4078be7f74c29053a94af3e67e2a6645719"
+  },
+  {
+    "path": "docs/development/challenge_pipeline/value-cost/replacements/bolted-joint.md",
+    "sha256": "021650cc1e46d25cf5d44aab2d41d3c631dbc8091e51888adba7bcb01dfabd8d"
+  },
+  {
+    "path": "docs/development/challenge_pipeline/replacement-onboarding/artifacts.json",
+    "sha256": "b37d535d4f6ed3b2172f480f9af4bd171f0147b96668f45b511c136525707d9c"
+  }
+]
