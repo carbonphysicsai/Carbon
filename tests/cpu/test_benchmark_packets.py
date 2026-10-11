@@ -223,6 +223,18 @@ def test_relative_document_links_resolve_without_importing_any_external_asset():
 
 def test_historical_tool_run_receipts_are_not_rewritten():
     historical = "docs/development/challenge_pipeline/open-benchmark-onboarding"
+    immutable = [f"{historical}/tool-run.json"]
+    for token in TOKENS:
+        immutable.extend(
+            f"{historical}/{token}-{suffix}"
+            for suffix in (
+                "brief.json",
+                "packet.md",
+                "law.json",
+                "panel.json",
+                "status.md",
+            )
+        )
     changed = subprocess.check_output(
         [
             "git",
@@ -230,7 +242,7 @@ def test_historical_tool_run_receipts_are_not_rewritten():
             "dffe703841b43d6319e026d7a8879549bdb4a43c",
             "--name-only",
             "--",
-            historical,
+            *immutable,
         ],
         cwd=ROOT,
         text=True,

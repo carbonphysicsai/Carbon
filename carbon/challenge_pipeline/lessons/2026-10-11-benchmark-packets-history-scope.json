@@ -1,0 +1,19 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-11-benchmark-packets-history-scope",
+  "recorded_at": "2026-10-11T01:47:44Z",
+  "challenge": "protocol",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "BENCHMARK-PACKETS-01/history-scope-review",
+    "description": "Reviewed historical-preservation assertion and reran 34 focused packet/generator/data tests plus formatting and lint."
+  },
+  "expected": "Protect the actual immutable generated pack without freezing unrelated future README/navigation additions.",
+  "observed": "Review found the assertion compared the whole historical folder. Scoped it to the receipt and ten exact generated input/output files. All 34 native tests passed, Black/Ruff passed. The correction changes no scientific values or historical files; canonical acceptance must bind the new final head.",
+  "keep": ["Immutable generated inputs, outputs and provenance receipt"],
+  "change": ["Do not freeze mutable navigation alongside immutable experiment history"],
+  "protocol_elements": ["historical evidence", "test scope", "packet provenance"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
