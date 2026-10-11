@@ -922,6 +922,7 @@ def _run(
             session=1,
             head=state["head"],
             signals=False,
+            shared_runs=False,
         )
         state["entry"], state["coverage"] = entry, coverage
         if entry["provider_state"] != "succeeded":

@@ -1166,10 +1166,12 @@ def attacker_profile(adapter, variant=None):
     return document, digest(canonical(document))
 
 
-def controller_for(store, provider, grant, clock=None):
+def controller_for(store, provider, grant, clock=None, shared_runs=False):
     from ..controller import CampaignController
 
     kwargs = {} if clock is None else {"clock": clock}
+    if shared_runs:
+        kwargs["shared_runs"] = True
     return CampaignController(
         root=Path(store) / "controller",
         provider=provider,
@@ -2068,7 +2070,17 @@ def live_provider(store, *, grant, model, adapter, miner_attach, scoring=None):
 
 
 def run_live(
-    store, grant, provider, adapter, atk, *, session, head, signals=True, variant=None
+    store,
+    grant,
+    provider,
+    adapter,
+    atk,
+    *,
+    session,
+    head,
+    signals=True,
+    variant=None,
+    shared_runs=True,
 ):
     """One live session from its controller to Carbon's side: the
     controller, the attack-knowledge store, the session's pin (reused on a
@@ -2076,7 +2088,9 @@ def run_live(
     SIGTERM cancel handlers (`signals`), and `run_session`. `variant` is a
     development level's registered variant (`adapter_for`), or None at Level
     0. Returns (log entry, coverage report)."""
-    control = controller_for(store, provider, grant)
+    # A live run counts the grant's runs across every root on the host; the pre-live
+    # gate (which spends nothing) passes shared_runs=False so it never consumes them.
+    control = controller_for(store, provider, grant, shared_runs=shared_runs)
     try:
         kstore = open_store(store, atk)
         resume = provider.find(session_key(session)) is not None
