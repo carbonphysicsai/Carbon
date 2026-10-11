@@ -64,7 +64,15 @@ CONSTRAINT_QUANTITIES = {
 #: Decision-case id prefixes and model panels a contract may name. EV1's
 #: contract omits both and gets "ev1" (its case ids and panel are unchanged).
 CASE_PREFIXES = ("ev1", "ev2", "ev4", "ev5")
-PANELS = ("ev1", "ev2", "ev4", "ev5", "graphite-run5")
+PANELS = (
+    "ev1",
+    "ev2",
+    "ev4",
+    "ev5",
+    "graphite-run5",
+    "ev4-dev-tuning",
+    "ev4-dev-proof",
+)
 
 
 class ContractError(ValueError):
