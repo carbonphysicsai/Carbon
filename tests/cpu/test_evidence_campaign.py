@@ -347,6 +347,18 @@ def test_cap_and_train_role_refuse_before_dispatch(tmp_path):
 
 def test_public_execution_requires_approval_and_registered_adapter(tmp_path):
     plan, _ = _fixture(tmp_path)
+    fixture_escape = copy.deepcopy(plan)
+    fixture_escape["stages"][0]["module"] = "scripts.dev.evidence_runs.f02"
+    fixture_escape = campaign.seal(
+        {k: v for k, v in fixture_escape.items() if k != "plan_digest"},
+        "plan_digest",
+    )
+    with pytest.raises(campaign.CampaignRefused, match="TRUSTED_MODULE_REQUIRED"):
+        campaign.run(
+            fixture_escape, tmp_path, tmp_path / "fixture-escape", dry_run=True
+        )
+    assert not (tmp_path / "fixture-escape").exists()
+
     plan["scope"] = "PUBLIC_DEVELOPMENT"
     plan = campaign.seal(
         {k: v for k, v in plan.items() if k != "plan_digest"}, "plan_digest"
