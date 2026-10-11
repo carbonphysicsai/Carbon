@@ -463,7 +463,7 @@ def _next_direct(remaining, observed, actions, axes, config, direction, starts, 
         )[0]
         branch = actions[incumbent]["branch"]
         local = [item for item in remaining if actions[item]["branch"] == branch]
-        if local and state["stagnation"] < config["stagnation"]:
+        if local and not state["global_only"] and not state["force_global_next"]:
             return min(
                 local,
                 key=lambda item: (
@@ -601,7 +601,13 @@ def _run(base_job, action_job, policy, cap, arm, direction, challenge):
     observed = {}
     trace = []
     remaining = set(rows)
-    state = {"stagnation": 0, "restarts": 0, "best": None}
+    state = {
+        "stagnation": 0,
+        "restarts": 0,
+        "best": None,
+        "global_only": False,
+        "force_global_next": False,
+    }
 
     def record(kind, design_id=None, provenance=None):
         entry = {
@@ -658,6 +664,7 @@ def _run(base_job, action_job, policy, cap, arm, direction, challenge):
             rows[design_id]["reference"]
         )
     starts = action_job["starts"]
+    stop_status = None
     while remaining:
         # Charge all optimiser/fitting work before inspecting another reference.
         if arm == "industry_surrogate":
@@ -667,6 +674,7 @@ def _run(base_job, action_job, policy, cap, arm, direction, challenge):
             }
             if not ledger.charge_overhead(fit):
                 record("STOP_FIT_OVER_BUDGET")
+                stop_status = "BUDGET_STOP"
                 break
             record("SURROGATE_FIT", provenance="branch_objective_and_all_hard_margins")
         proposal = (
@@ -679,6 +687,7 @@ def _run(base_job, action_job, policy, cap, arm, direction, challenge):
         )
         if not ledger.charge_overhead(proposal):
             record("STOP_PROPOSAL_OVER_BUDGET")
+            stop_status = "BUDGET_STOP"
             break
         if arm == "adaptive_solver":
             design_id = _next_direct(
@@ -691,6 +700,7 @@ def _run(base_job, action_job, policy, cap, arm, direction, challenge):
                 starts,
                 state,
             )
+            state["force_global_next"] = False
         elif arm == "industry_surrogate":
             design_id = _next_surrogate(
                 remaining,
@@ -719,6 +729,7 @@ def _run(base_job, action_job, policy, cap, arm, direction, challenge):
             or ledger.core_s + row["planning_bound"]["core_s"] > cap.core_s + 1e-12
         ):
             record("STOP_SOLVE_OVER_BUDGET", design_id)
+            stop_status = "BUDGET_STOP"
             break
         for attempt in attempts:
             if not ledger.charge_solver_attempt(
@@ -754,10 +765,16 @@ def _run(base_job, action_job, policy, cap, arm, direction, challenge):
             if state["stagnation"] >= config["stagnation"]:
                 state["restarts"] += 1
                 state["stagnation"] = 0
+                state["force_global_next"] = True
                 if state["restarts"] >= config["restarts"]:
-                    record("STOP_REGISTERED_RESTART_LIMIT")
-                    break
-    return Replay(_result(observed, ledger, direction, "RAN"), tuple(trace))
+                    state["global_only"] = True
+                    record("GLOBAL_EXPLORATION_AFTER_RESTART_LIMIT")
+    status = stop_status or (
+        "EXHAUSTIVE"
+        if arm == "adaptive_solver" and config["method"] == "finite_enumeration"
+        else "BANK_EXHAUSTED"
+    )
+    return Replay(_result(observed, ledger, direction, status), tuple(trace))
 
 
 def _result(observed, ledger, direction, status):
@@ -845,7 +862,10 @@ def _aggregate(rows, direction):
             "wall_s_mean": _mean([item["spent_wall_s"] for item in results]),
             "core_s_mean": _mean([item["spent_core_s"] for item in results]),
             "budget_stop_fraction": _mean(
-                [item["status"] != "RAN" for item in results]
+                [
+                    item["status"] in ("BUDGET_STOP", "OVER_BUDGET_BEFORE_SEARCH")
+                    for item in results
+                ]
             ),
         }
     comparisons = {}

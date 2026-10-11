@@ -276,6 +276,42 @@ def test_deterministic_adaptation_and_prefix_only_proposals():
     )
 
 
+def test_direct_restart_challenger_uses_remaining_budget():
+    panel, registration = _panel()
+    changed = copy.deepcopy(panel)
+    for job in changed["base_panel"]["jobs"]:
+        for candidate in job["candidates"]:
+            candidate["reference"]["value"] = 5.0
+    changed["base_panel"] = equal_budget.seal(
+        {
+            key: value
+            for key, value in changed["base_panel"].items()
+            if key != "panel_digest"
+        }
+    )
+    changed["policy"]["direct"]["stagnation"] = 1
+    changed["policy"]["direct"]["restarts"] = 1
+    changed["policy"] = adaptive.seal(
+        {
+            key: value
+            for key, value in changed["policy"].items()
+            if key != "policy_digest"
+        },
+        "policy_digest",
+    )
+    changed = _reseal(changed)
+    trace = adaptive.replay(changed, registration, "double")["producer_only_traces"][0][
+        "events"
+    ]
+    assert any(
+        entry["event"] == "GLOBAL_EXPLORATION_AFTER_RESTART_LIMIT" for entry in trace
+    )
+    proposals = [entry for entry in trace if entry["event"] == "PROPOSAL"]
+    assert (
+        len(proposals) == 5
+    )  # no artificial stop while complete panels remain affordable
+
+
 def test_every_attempt_is_charged_and_full_panel_preflights():
     panel, registration = _panel()
     raw = adaptive.replay(panel, registration, "half")
@@ -325,6 +361,10 @@ def test_finite_f02_direct_enumeration_and_registration_tampering():
         raw["results"][0]["arms"]["adaptive_solver"]["solver_attempts"]
         <= budgets.validate(registration).cap("f02", "half").solver_evaluations
     )
+    assert raw["results"][0]["arms"]["adaptive_solver"]["status"] == "BUDGET_STOP"
+    complete = adaptive.replay(panel, registration, "double")
+    assert complete["results"][0]["arms"]["adaptive_solver"]["status"] == "EXHAUSTIVE"
+    assert complete["results"][0]["arms"]["adaptive_solver"]["verified_count"] == 9
     bad = copy.deepcopy(panel)
     bad["policy"]["direct"]["method"] = "pattern_multistart"
     with pytest.raises(adaptive.AdaptiveArmError, match="policy digest"):
