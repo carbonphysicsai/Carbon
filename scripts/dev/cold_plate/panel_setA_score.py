@@ -196,9 +196,11 @@ def score(jobs_dir, witness_dir, controls, out):
         "value_checks": value_checks(per_q),
         "t4_unresolved_rate": unresolved / n_q,
         "witnesses": {f"{d}|{c}": p for (d, c), p in witnesses.items()},
-        "controls": json.loads(Path(controls).read_text())
-        if controls and Path(controls).exists()
-        else None,
+        "controls": (
+            json.loads(Path(controls).read_text())
+            if controls and Path(controls).exists()
+            else None
+        ),
         "jobs_scored": len(jobs),
         "cell_wall_s": {jid: rec.get("cell_wall_s_total") for jid, rec in jobs.items()},
     }
