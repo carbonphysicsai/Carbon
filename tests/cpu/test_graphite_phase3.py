@@ -347,10 +347,12 @@ def test_a_pytorch_recipe_runs_on_a_pytorch_pod(tmp_path):
         **BASELINE,
         "parameters": {**BASELINE["parameters"], "backend": "pytorch"},
     }
-    account = ScriptedPods(steps=steps(1.0))
+    # One scripted pod for the baseline, one for the PyTorch proposal.
+    account = ScriptedPods(steps=steps(1.0, 0.4))
     _result, graphite, _ = session(tmp_path, [propose(strategy), text("done")], account)
     [record] = proposals(graphite, kind="proposal")
-    assert record["status"] != "REFUSED_BACKEND_NOT_SERVED"
+    # Built by the PyTorch pod program, matched by Carbon's own rebuild, scored.
+    assert record["status"] == "SCORED", record.get("differences")
     jobs = [job for _intent, job in account.launched]
     [job] = [j for j in jobs if j.strategy == strategy]
     # Every other pod (the session's baseline) stays a JAX job.
