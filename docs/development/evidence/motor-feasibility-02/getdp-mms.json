@@ -1,0 +1,106 @@
+{
+ "schema": "carbon.reference-package.mms.v1",
+ "status": "PROVISIONAL (self-derived; replace with packets Codex's spec)",
+ "image": "sha256:599521e79786ee0326a0754ba0545f51ee9665adff73c3515c8d4b8ba24c1c05",
+ "solver": "GetDP Form1P/BF_PerpendicularEdge, P1 triangles, Newton (JacNL) for nonlinear nu",
+ "solution": "A = sin(pi x) sin(pi y) on the unit square",
+ "expected_order": 2.0,
+ "tolerance": 0.3,
+ "cases": {
+  "linear_nu_1": {
+   "source_check_rel": 1.645231817324282e-06,
+   "errors": [
+    {
+     "n": 8,
+     "max": 0.012752414590739836,
+     "rms": 0.005755895356516187,
+     "points": 81
+    },
+    {
+     "n": 16,
+     "max": 0.0032065758992513294,
+     "rms": 0.0015341789084742609,
+     "points": 289
+    },
+    {
+     "n": 32,
+     "max": 0.0008028035053196936,
+     "rms": 0.00039584309996207117,
+     "points": 1089
+    },
+    {
+     "n": 64,
+     "max": 0.0002007734255928817,
+     "rms": 0.00010052602186517108,
+     "points": 4225
+    }
+   ],
+   "orders": [
+    {
+     "pair": "8->16",
+     "max": 1.991664977217259,
+     "rms": 1.9075736310710387
+    },
+    {
+     "pair": "16->32",
+     "max": 1.9979147348555046,
+     "rms": 1.9544661239754417
+    },
+    {
+     "pair": "32->64",
+     "max": 1.9994785894761977,
+     "rms": 1.9773597021657567
+    }
+   ],
+   "pass": true
+  },
+  "nonlinear_nu_1_plus_0.5b2": {
+   "source_check_rel": 9.090513517086444e-06,
+   "errors": [
+    {
+     "n": 8,
+     "max": 0.00521634024774309,
+     "rms": 0.0024237891192521576,
+     "points": 81
+    },
+    {
+     "n": 16,
+     "max": 0.0013135667041833665,
+     "rms": 0.0006245721164441631,
+     "points": 289
+    },
+    {
+     "n": 32,
+     "max": 0.00033150130725656535,
+     "rms": 0.00015998759707307357,
+     "points": 1089
+    },
+    {
+     "n": 64,
+     "max": 8.30994783657113e-05,
+     "rms": 4.05633715228609e-05,
+     "points": 4225
+    }
+   ],
+   "orders": [
+    {
+     "pair": "8->16",
+     "max": 1.989548511950848,
+     "rms": 1.956324115332949
+    },
+    {
+     "pair": "16->32",
+     "max": 1.9864029991288996,
+     "rms": 1.9649080972327082
+    },
+    {
+     "pair": "32->64",
+     "max": 1.9961032335225557,
+     "rms": 1.979710589990609
+    }
+   ],
+   "pass": true
+  }
+ },
+ "pass": true
+}

@@ -232,3 +232,7 @@ The pages are measurements. They are not traction, customer, qualification or LI
 a recorded experiment supplies evidence only for the conditions it tested). A standing
 disclaimer line opens every page, and `tests/cpu/test_onboarding_pack.py` fails on those words
 anywhere else.
+
+## 10. The ladder every Challenge climbs
+
+Owner direction, as relayed on 2026-10-10 ([OWNER-CHALLENGE-ONBOARDING-LADDER-01](../../../../.agent/decisions/2026-10-10-OWNER-CHALLENGE-ONBOARDING-LADDER-01.md)): battery runs the full ladder, Levels 0 to 4, once, which proves the Challenge-neutral machinery. Every later Challenge takes this path: readiness check; one Level 0 plumbing check; internal Graphite Level 4 (Constructor baseline plus Attacker, which starts the refused-capability log); internal Level 5 (every positive gain audited and shipped into the shared base image); a score proof per Challenge with Level 4 members; then Level 4 opens to miners on the upgraded base image. Levels 1 to 3 only bisect a Level 4 failure. Base-image upgrades are versioned and never change mid-competition. Level 5 is not built; the security sign-off for Attacker code on disposable hosts and the per-run Level 5 grants stay HUMAN_INPUT.
