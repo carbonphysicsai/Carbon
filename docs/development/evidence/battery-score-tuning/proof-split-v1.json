@@ -1,0 +1,22 @@
+{
+  "schema": "carbon.battery.score-proof-split.v1",
+  "ticket": "SCORE-PROOF-01",
+  "registered": "2026-10-11, before any selection or confirmation run",
+  "note": "Selection is kept apart from proof (Test Lead, 2026-10-11). Every registered rule and cutoff is compared on the selection fold, where the owner picks. The proof criteria are reported for the chosen rule on the confirmation fold only, with candidates locked. A rule that wins on selection but fails confirmation is UNPROVEN.",
+  "salt": "SCORE-PROOF-01/split-v1",
+  "cases": "a scoring case is in the selection fold when int(sha256(salt + ':case:' + case_id)[:8], 16) is even, else the confirmation fold",
+  "members": "within a level holding at least `minimum_recipes` recipes (controls excluded), a member is in the selection fold when int(sha256(salt + ':recipe:' + recipe)[:8], 16) is even, else the confirmation fold; a recipe's seeds stay together. A level with fewer recipes keeps all its members in both folds; only its cases are split",
+  "minimum_recipes": 20,
+  "anchors": "controls, known-bad, benign, adversarial and unsafe members are in both folds",
+  "confirmation_criteria": [
+    "status COMPLETE (no eligible member without a raw score)",
+    "tau 95% interval lower bound above 0",
+    "no known-bad member in the top half",
+    "no adversarial member in the top half",
+    "gate recall PASS, or no gate with every unsafe member in the bottom half",
+    "no adversarial divergence",
+    "every scenario-fold and case-fold tau above 0"
+  ],
+  "criteria_scope": "pooled, and each level with at least 10 members",
+  "minimum_level_members": 10
+}

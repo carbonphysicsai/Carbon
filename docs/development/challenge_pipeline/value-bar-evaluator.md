@@ -132,3 +132,16 @@ owner page with its `SOURCED` or `ASSUMPTION` basis but cannot turn a gate into
 PASS or FAIL. All files here are public development contracts and toy fixtures;
 no Challenge has an adopted budget or a measured VALUE-BAR-V1 PASS from this
 registration alone.
+
+## EQUAL-BUDGET-V1 prospective budget input
+
+The [four-Challenge budget registration](equal-budget-registration.md) supplies
+a labelled `ASSUMPTION` for the buyer's complete-panel evaluations, wall time
+and CPU time at half/base/double tiers. Add
+`--budget-registration docs/development/challenge_pipeline/equal-budget-registration-v1.json`
+alongside the unbudgeted VALUE-BAR-V1 rule. The evaluator derives a distinct
+`VALUE-BAR-V1:<Challenge>:EQUAL-BUDGET-V1` identity and demands a matching
+three-tier #998 report. Only the base tier gates item 5; half and double are
+printed as sensitivity results. Execution costs and solver outcomes must still
+be measured. Missing or unresolved evidence remains insufficient, and the
+registration alone never yields a Challenge PASS.
