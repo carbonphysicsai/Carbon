@@ -140,7 +140,7 @@ class NeuralModel:
         else:
             leaves, final = self._fit_jax(records, seed)
         blob = b"".join(np.ascontiguousarray(a).tobytes() for a in leaves)
-        return {
+        self.stats = {
             "train_s": time.perf_counter() - t0,
             "final_loss": final,
             "params_sha256": hashlib.sha256(blob).hexdigest(),
@@ -148,6 +148,7 @@ class NeuralModel:
             "backend": self.backend,
             "trainer": TRAINER,
         }
+        return self.stats
 
     def _jax_network(self, jax, dtype, n_in, n_out):
         from carbon.battery.training import apply_stack, dense_stack
