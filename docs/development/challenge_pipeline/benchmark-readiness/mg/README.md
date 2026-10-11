@@ -8,11 +8,13 @@ spend. Source pins and syntax tests are not installed or qualified references.
 ## Buyer and reuse
 
 The buyer chooses a silicon/air pattern and finite thickness for one fixed
-x/y-period hardware brief, maximizing worst required **co-polarized desired
+x/y-period hardware brief, maximizing worst required **total desired
 order efficiency** while every condition meets reflection and unwanted-power
-limits. Cross-polarization is reported and counted as unwanted transmitted
-power, not hidden in an apparently efficient beam. This observable convention
-is explicit and must be frozen with the buyer contract. No claim of dispersion,
+limits. Desired-order efficiency includes both polarizations; its co-only
+component and cross-polarization are separately reported. There is no invented
+polarization penalty or new hard limit. A polarization-preserving buyer
+variant needs an explicit prospective contract, not silently a new grade.
+No claim of dispersion,
 fabrication performance or measured commercial advantage.
 
 KEEP `carbon.design_search.tasks`, #994's neutral pointwise/decision reports
@@ -81,6 +83,8 @@ real analytic tests in the exact image.
 `observe` requires **every** propagating R/T order exactly once and both
 polarization powers. It reports desired efficiency, total R/T, unwanted T,
 cross-polarization, energy residual and order-sum versus plane-flux differences.
+Internal power fractions and explicit percentage-point outputs are both
+reported; the registered task must use one declared unit consistently.
 Negative values are flagged, never clipped/renormalized. Missing or grazing
 channels are reference holds, not candidate failures or zero powers.
 Refinement and adopted numerical bands are required before acceptance.
@@ -102,6 +106,10 @@ order, co/cross channel, plane flux and energy residual. These verify layering,
 normalization and order extraction; they are **not exact efficiency truth for
 nontrivial silicon patterns**. The y-mirror cross-polarization symmetry check
 is another limited analytic constraint, not a complete reference.
+`verify_analytic_output` compares retained numerical channels and energy
+against exact values and explicit supplied acceptance bands; missing channels
+cannot become a pass. Its return states what remains unchecked (image,
+convergence, independent plane-flux closure and acceptance authority).
 
 Meep's smooth/interface-treated slab recommendation is second-order with a
 1.8–2.2 order band, **HUMAN_INPUT**, excluding roundoff and temporal/PML error

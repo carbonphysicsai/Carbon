@@ -284,6 +284,7 @@ def verification_decks(case, controls):
     )
     return {
         "case": case,
+        "hardware": hardware,
         "analytic_truth": truth,
         "required_checks": [
             "R/T00 co",
@@ -296,4 +297,50 @@ def verification_decks(case, controls):
         "S4": s4_deck(action, hardware, controls),
         "pass_band": "HUMAN_INPUT",
         "dispatchable": False,
+    }
+
+
+def verify_analytic_output(case, rows, controls, *, acceptance):
+    """Run the numeric test on retained deck outputs, never run the solver.
+
+    Supplied bands require an explicit external acceptance identity. This
+    comparison does not verify that identity's scientific authority or image.
+    Missing order channels/flux evidence is unresolved, not a zero-error pass.
+    """
+    spec = verification_decks(case, controls)
+    if (
+        not isinstance(acceptance.get("record_sha256"), str)
+        or len(acceptance["record_sha256"]) != 64
+    ):
+        raise b.PreparationError("registered numerical acceptance identity required")
+    power_band = b.number(acceptance["absolute_power_fraction"], positive=True)
+    energy_band = b.number(acceptance["energy_residual_fraction"], positive=True)
+    hardware = spec["hardware"]
+    measured = b.observe(
+        rows,
+        periods_nm=hardware["periods_nm"],
+        wavelength_nm=1050,
+        n_in=hardware["n_in"],
+        n_out=hardware["n_out"],
+    )
+    errors = []
+    for row in rows:
+        expected = spec["analytic_truth"][row["side"]] if row["order"] == [0, 0] else 0
+        errors.extend([abs(row["co_power"] - expected), abs(row["cross_power"])])
+    maximum = max(errors)
+    passed = maximum <= power_band and abs(measured["energy_residual"]) <= energy_band
+    return {
+        "case": case,
+        "channel_count": len(errors),
+        "maximum_absolute_power_error": maximum,
+        "energy_residual": measured["energy_residual"],
+        "acceptance_record": acceptance["record_sha256"],
+        "status": "WITHIN_SUPPLIED_BANDS" if passed else "OUTSIDE_SUPPLIED_BANDS",
+        "qualified": False,
+        "unchecked": [
+            "image identity/code execution",
+            "convergence",
+            "order-sum vs plane-flux",
+            "acceptance authority",
+        ],
     }

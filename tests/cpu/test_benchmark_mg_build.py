@@ -226,10 +226,12 @@ def test_all_orders_cross_pol_residual_without_clipping_or_renormalizing():
         if r["side"] == "R" and r["order"] == [0, 0]:
             r["co_power"] = 0.1
     result = observe(data)
-    assert result["desired_efficiency"] == 0.8
+    assert result["desired_efficiency"] == pytest.approx(0.82)
+    assert result["desired_co_efficiency"] == 0.8
+    assert result["desired_efficiency_pp"] == pytest.approx(82)
     assert result["cross_polarization"] == 0.02
     assert result["energy_residual"] == pytest.approx(0.08)
-    assert result["unwanted_power"] == pytest.approx(0.02)
+    assert result["unwanted_power"] == pytest.approx(0)
     with pytest.raises(b.PreparationError):
         observe(data[:-1])
     with pytest.raises(b.PreparationError):
@@ -318,6 +320,31 @@ def test_runnable_analytic_decks_do_not_broaden_physical_action_route(case):
         ast.parse(r[route]["python"])
         assert not r[route]["dispatchable"]
     assert r["pass_band"] == "HUMAN_INPUT"
+
+
+def test_analytic_numeric_checker_compares_retained_outputs_not_a_producer_pass_flag():
+    case = "planar-lossless-slab"
+    expected = decks.verification_decks(case, controls())["analytic_truth"]
+    data = rows()
+    for row in data:
+        if row["order"] == [0, 0]:
+            row["co_power"] = expected[row["side"]]
+    acceptance = {
+        "record_sha256": "a" * 64,
+        "absolute_power_fraction": 0.001,
+        "energy_residual_fraction": 0.001,
+    }
+    result = decks.verify_analytic_output(case, data, controls(), acceptance=acceptance)
+    assert result["status"] == "WITHIN_SUPPLIED_BANDS" and not result["qualified"]
+    data[0]["cross_power"] = 0.02
+    assert (
+        decks.verify_analytic_output(case, data, controls(), acceptance=acceptance)[
+            "status"
+        ]
+        == "OUTSIDE_SUPPLIED_BANDS"
+    )
+    with pytest.raises(b.PreparationError):
+        decks.verify_analytic_output(case, data[:-1], controls(), acceptance=acceptance)
 
 
 def test_train_disjointness_ignores_rung_and_domain_is_not_claimed_from_geometry_only():

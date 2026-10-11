@@ -384,7 +384,8 @@ def observe(
         sums[r["side"]] += co + xp
         cross += xp
         if r["side"] == "T" and tuple(r["order"]) == tuple(desired):
-            wanted = co  # co-polarized buyer beam, cross-polarization unwanted
+            wanted = co + xp  # total desired-order power; no invented polarization gate
+            wanted_co = co
     if wanted is None:
         raise PreparationError("desired transmitted order is not propagating")
     differences = None
@@ -392,9 +393,13 @@ def observe(
         differences = {s: sums[s] - number(flux_totals[s]) for s in sums}
     return {
         "desired_efficiency": wanted,
+        "desired_co_efficiency": wanted_co,
+        "desired_efficiency_pp": 100 * wanted,
         "reflection": sums["R"],
         "transmission": sums["T"],
         "unwanted_power": sums["T"] - wanted,
+        "reflection_pp": 100 * sums["R"],
+        "unwanted_power_pp": 100 * (sums["T"] - wanted),
         "cross_polarization": cross,
         "energy_residual": 1 - sums["R"] - sums["T"],
         "invalid_negative_power": invalid,
