@@ -15,7 +15,10 @@ Balance comes from measured seconds per file (`ci_shard_weights.json`). A file
 without a measurement weighs its test count times the measured mean seconds per
 test. At the end each shard prints its basis (files, tests, the partition
 digest every shard must share) and the seconds each of its files took, so the
-weights can be refreshed from any run.
+weights can be refreshed from any run, and a line says how many files had no
+measurement (weighed by the fallback), so a weights file that lags the suite shows
+in every shard's log. `scripts/dev/ci_shard_weights.py` regenerates the weights from
+CI logs and simulates the balance they give.
 """
 
 from __future__ import annotations
@@ -144,9 +147,8 @@ def pytest_collection_modifyitems(
         raise pytest.UsageError(str(error)) from None
     counts = Counter(_file_of(item) for item in items)
     weights = Path(os.environ.get(WEIGHTS_ENVIRONMENT) or WEIGHTS_PATH)
-    shards = partition(
-        file_weights(counts, load_measured(weights)), count, load_lanes(weights)
-    )
+    measured = load_measured(weights)
+    shards = partition(file_weights(counts, measured), count, load_lanes(weights))
     mine = set(shards[index])
     kept = [item for item in items if _file_of(item) in mine]
     if not kept:
@@ -164,6 +166,7 @@ def pytest_collection_modifyitems(
         all_files=len(counts),
         tests=len(kept),
         all_tests=sum(counts.values()),
+        unmeasured=sum(1 for path in counts if path not in measured),
         digest=partition_digest(shards),
         seconds=defaultdict(float),
     )
@@ -184,6 +187,10 @@ def pytest_terminal_summary(terminalreporter) -> None:
         f"{_state['files']} of {_state['all_files']} files, "
         f"{_state['tests']} of {_state['all_tests']} tests, "
         f"partition {_state['digest']}"
+    )
+    write(
+        f"CARBON_SHARD_UNMEASURED {_state['unmeasured']} of {_state['all_files']} "
+        "files had no measured seconds (weighed by the fallback)"
     )
     seconds = _state["seconds"]
     timings = {path: round(seconds[path], 2) for path in sorted(seconds)}

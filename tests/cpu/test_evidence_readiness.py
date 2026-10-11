@@ -244,20 +244,93 @@ def test_missing_main_reports_unknown_without_spend_permission():
     assert not result["spend_authorized"] and not result["qualified"]
 
 
-def test_all_eleven_rank_ties_and_attach_source_digests():
+def test_all_thirteen_rank_ties_and_attach_source_digests():
     reports = er.portfolio(ROOT, now=NOW)
-    assert len(reports) == 11
+    assert len(reports) == 13
     assert {r["challenge"] for r in reports} >= {
         "solenoid-pole",
         "bolted-joint",
         "seal-gland",
         "f13",
+        "backward-facing-step",
+        "metagrating-3d",
     }
     for report in reports:
         assert len(report["items"]) == 7
         assert report["rank"] == 1 + sum(
             r["yes_count"] > report["yes_count"] for r in reports
         )
-        assert report["examined_sources"]
+        if report["challenge"] not in er.BENCHMARK_ROUTES:
+            assert report["examined_sources"]
+        elif not report["examined_sources"]:
+            assert report["yes_count"] == 0
+            assert all(r["state"] == "PLANNED" for r in report["items"])
         assert not report["spend_authorized"]
         assert all(row["owner"] and row["basis"] for row in report["items"])
+
+
+@pytest.mark.parametrize("family", er.BENCHMARK_ROUTES)
+def test_bound_benchmarks_are_planned_not_unknown_on_available_main(family):
+    result = er.generate(ROOT, family, now=NOW)
+    assert len(result["items"]) == 7
+    assert all(r["state"] in {"YES", "NO", "PLANNED"} for r in result["items"])
+    assert all(r["pointers"] and r["basis"] for r in result["items"])
+    assert not result["spend_authorized"] and not result["qualified"]
+
+
+class RouteTree:
+    commit = "synthetic"
+
+    def __init__(self, files, *, available=True):
+        self.files, self.available = files, available
+
+    def read(self, path):
+        return self.files.get(path)
+
+    def contains(self, path):
+        return path in self.files if self.available else None
+
+
+def test_bfs_budget_identity_matches_the_producer_proposal():
+    assert er.BENCHMARK_ROUTES["backward-facing-step"]["budget"][1] == (
+        "BFS-DEVELOPMENT-PROPOSED-V1"
+    )
+
+
+@pytest.mark.parametrize("family", er.BENCHMARK_ROUTES)
+def test_benchmark_route_inspects_implementation_not_pending_pr(family):
+    path, functions = er.BENCHMARK_ROUTES[family]["baseline"]
+    tree = RouteTree({})
+    assert er.code_route(tree, family)[0] == "PLANNED"
+    assert er.code_route(RouteTree({}, available=False), family)[0] == "UNKNOWN"
+    tree.files[path] = (
+        f'FAMILY = "{family}"\n' + "\n".join(f"def {f}(): pass" for f in functions)
+    ).encode()
+    assert er.code_route(tree, family)[0] == "YES"
+    tree.files[path] = f'FAMILY = "{family}"'.encode()
+    assert er.code_route(tree, family)[0] == "NO"
+
+
+@pytest.mark.parametrize("family", er.BENCHMARK_ROUTES)
+def test_budget_file_alone_does_not_establish_dispatch(family):
+    path, registration = er.BENCHMARK_ROUTES[family]["budget"]
+    tree = RouteTree(
+        {
+            path: f'FAMILY = "{family}"\nID = "{registration}"\ndef validate(raw): pass'.encode()
+        }
+    )
+    assert er.code_route(tree, family, optimizer=True)[0] == "PLANNED"
+    compare = "carbon/design_search/equal_budget.py"
+    tree.files[compare] = (
+        f'CHALLENGES = {{"{family}"}}\ndef compare(): pass\ndef _validate(): pass'.encode()
+    )
+    assert er.code_route(tree, family, optimizer=True)[0] == "NO"
+    module = path.split("/")[-1][:-3]
+    tree.files[
+        compare
+    ] += f"\nfrom .{module} import validate as validate_registration".encode()
+    assert er.code_route(tree, family, optimizer=True)[0] == "NO"
+    tree.files[compare] = (
+        f'CHALLENGES = {{"{family}"}}\ndef _validate(): pass\ndef compare():\n if challenge == "{family}":\n  from .{module} import validate as validate_registration\n'.encode()
+    )
+    assert er.code_route(tree, family, optimizer=True)[0] == "YES"
