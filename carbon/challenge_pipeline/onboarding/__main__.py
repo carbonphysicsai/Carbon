@@ -43,10 +43,31 @@ def main(argv=None):
     status_parser.add_argument(
         "--main-ref", default="origin/main", help="locally available main ref; no fetch"
     )
+    readiness_parser = sub.add_parser("readiness")
+    readiness_parser.add_argument(
+        "--challenge", help="omit for ranked eleven-family report"
+    )
+    readiness_parser.add_argument("--main-ref", default="origin/main")
+    readiness_parser.add_argument("--format", choices=("text", "json"), default="text")
     args = parser.parse_args(argv)
     try:
-        if args.command == "status":
-            from carbon.challenge_pipeline.onboarding import status
+        if args.command in ("status", "readiness"):
+            from carbon.challenge_pipeline.onboarding import evidence_readiness, status
+
+            if args.command == "readiness":
+                result = (
+                    evidence_readiness.generate(
+                        args.root, args.challenge, main_ref=args.main_ref
+                    )
+                    if args.challenge
+                    else evidence_readiness.portfolio(args.root, main_ref=args.main_ref)
+                )
+                if args.format == "text":
+                    reports = result if isinstance(result, list) else [result]
+                    print("\n\n".join(evidence_readiness.render(r) for r in reports))
+                else:
+                    print(json.dumps(result, indent=2, allow_nan=False))
+                return 0
 
             result = status.generate(
                 args.root,
@@ -54,8 +75,13 @@ def main(argv=None):
                 bindings_path=args.bindings or status.BINDINGS,
                 main_ref=args.main_ref,
             )
+            # Preserve the historical renderer used by retained tool-run receipts.
+            result["evidence_readiness"] = evidence_readiness.generate(
+                args.root, args.challenge, main_ref=args.main_ref
+            )
             if args.format == "text":
                 print(status.render(result))
+                print(evidence_readiness.render(result["evidence_readiness"]))
                 return 0
         else:
             draft = packet.generate(packet.read_json(args.brief), args.root)

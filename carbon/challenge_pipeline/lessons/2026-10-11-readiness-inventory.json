@@ -1,0 +1,27 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-11-readiness-inventory",
+  "recorded_at": "2026-10-11T00:29:00Z",
+  "challenge": "protocol",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "EVIDENCE-READINESS-CHECK-01",
+    "description": "Bounded read-only metadata/tool diagnostics on Windows; no physics execution."
+  },
+  "expected": "Report prerequisites and failures without inferring acceptance from missing evidence.",
+  "observed": "Read-only eleven-family observation at fb47eb572: battery/motor/f02 2 of 7 YES; cooling/f08/f13 1; others 0. No Challenge cleared all seven; no spend or qualification granted.",
+  "keep": [
+    "Immutable main-source identity and explicit public pointers",
+    "Missing evidence fails closed; protected case bodies stay inaccessible"
+  ],
+  "change": [
+    "Implemented comparison routes are not data, adequacy, or availability receipts."
+  ],
+  "protocol_elements": [
+    "reference_verification",
+    "evidence_readiness"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
