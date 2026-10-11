@@ -1,6 +1,6 @@
 # VALIDATOR-26: battery rule v3, A-Q with the G-FEAS@0.05 gate, on the validator
 
-**Status:** plan. The decision record OWNER-BATTERY-SCORE-RULE-01 is in this
+**Status:** slice 1 implemented (DEVELOPMENT, 2026-10-11): rule  with a deployment-supplied registered score; finals and the important guard per OWNER-BATTERY-V3-FINALS-01. The decision record OWNER-BATTERY-SCORE-RULE-01 is in this
 PR. Security-sensitive (it changes what the validator scores and nominates).
 It needs a dedicated review.
 
