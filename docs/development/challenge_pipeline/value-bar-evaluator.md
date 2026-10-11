@@ -75,3 +75,60 @@ cheap method is the strongest available, or that timings are comparable.
 Producer custody and owner review must establish those claims. A numeric
 development PASS is evidence for the owner, not automatic Challenge
 qualification or a LIVE scoring decision.
+
+## VALUE-BAR-V1 registered development rule
+
+[`value-bar-v1.json`](value-bar-v1.json) registers the Test Lead's 2026-10-10
+delegated value limits. It uses the existing rule envelope and a distinct
+`rule_id`; earlier synthetic or historical rule IDs keep their original
+meaning. This prospective value test does not change the owner launch record's
+instruction to execute onboarding efficiently and record stage times. The
+value-bar speed gate applies only when claiming the registered development
+value bar.
+
+Use `--rule docs/development/challenge_pipeline/value-bar-v1.json` to evaluate
+available evidence. The base rule deliberately leaves `item_5.budget` null:
+no common wall/core budget was supplied. It therefore returns
+`INSUFFICIENT_EVIDENCE` for item 5 and cannot give an overall PASS. A
+Challenge-specific prospective budget registration must use a distinct
+`VALUE-BAR-V1:<Challenge>:<registration>` rule ID and add matching `challenge`,
+positive `budget.wall_s` / `budget.core_s`, and a SHA-256
+`budget_registration_digest` to item 5. The evaluator rejects a budget for a
+different Challenge or a changed VALUE-BAR-V1 limit. A digest proves identity,
+not that the budget was selected before results; the producer and owner audit
+that registration. Never choose the best-looking point after seeing a curve.
+
+The four gates and the reported-only item are:
+
+1. An external decision receipt with status and at least two distinct
+   `source_digests`; the owner verifies the sources are genuinely independent.
+2. Carbon-minus-cheap-baseline buyer-unit regret, at matched admissibility,
+   on exactly two independently registered held-out folds. The upper paired
+   fold-bootstrap 95% bound must be **strictly below zero**. A wholly positive
+   interval fails; a zero-touching or crossing interval is insufficient.
+3. Median measured full-decision-query wall-time speed-up is at least 100×.
+   A 20× allowance applies only when a separately measured reference solve is
+   at least 3,600 CPU-seconds. The speed receipt adds
+   `reference_solve_core_s` and `reference_solve_source_digest`; both are null
+   if unmeasured. Whole-query wall time cannot stand in for one-solve CPU cost.
+4. Value and volume are **reported, not gated**. Supply `value_range` and
+   `volume_range`, each with `low`, `high`, `unit`, `basis` (`SOURCED` or
+   `ASSUMPTION`) and `source_digests`. A sourced range needs a source digest;
+   an assumption stays labelled in the owner page. Missing ranges do not
+   change the overall gate result.
+5. At the pre-registered wall/core budget, #998's solver-verified report must
+   contain a complete paired model-screen-then-verify minus solver-alone
+   **value** interval. Its 95% cluster-bootstrap interval must exclude zero
+   strictly in Carbon's favour (negative for minimization, positive for
+   maximization). A zero-touching interval is insufficient; an interval
+   wholly against Carbon fails. The report requires measured cost, matching
+   objective units, at least two independent bank clusters, and a verified
+   feasible pick in both arms on every priced job. Win probability, regret
+   against the cheap baseline, or separate arm intervals cannot substitute
+   for the paired buyer-value interval.
+
+For VALUE-BAR-V1, PASS requires gates 1, 2, 3 and 5. Item 4 appears on the
+owner page with its `SOURCED` or `ASSUMPTION` basis but cannot turn a gate into
+PASS or FAIL. All files here are public development contracts and toy fixtures;
+no Challenge has an adopted budget or a measured VALUE-BAR-V1 PASS from this
+registration alone.
