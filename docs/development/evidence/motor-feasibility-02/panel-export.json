@@ -1,0 +1,15 @@
+{
+ "schema": "carbon.motor.panel-export-note.v1",
+ "export_schema": "carbon.design-search.solved-panel-export.v1",
+ "family": "motor",
+ "path": "~carbon/shared/design-panels/motor-export.json (operator host, not committed)",
+ "export_digest": "sha256:720e93a2d6bf4540119fa46c3d47478811a7f412dc80f6627ef228a6c5758569",
+ "file_sha256": "b6fe2086d95744efc64d2058f148622e1904a8be3d4df167fdd0cc15a5cbed0d",
+ "builder": "scripts/dev/motor/feasibility02/panel_export.py, run against main 9d7327e6e",
+ "bank": "44 candidates: 24 public 10p12s designs at every solved skew span (0 deg; 2/4 deg where S2 ran); one condition, the frozen J 10 gamma 0 command; S3 rung-2 values as refined.<quantity>",
+ "objective": "lowest holding ripple fraction (packet ranking; the holding command is common)",
+ "questions": "20: nominal (6.0 N m, 0.30 N m, cogging 0.05) and requirement variants floor {6.0..7.0 step 0.25} x pk-pk {0.25, 0.30} x cogging {0.03, 0.05}; HUMAN_INPUT values, registered UNREGISTERED",
+ "states_under_main": {"UNRESOLVED": 20},
+ "states_simulated_rule_a_plus_b": {"FEASIBLE_EXISTS": 16, "NONE_FEASIBLE": 4, "UNRESOLVED": 0},
+ "winners_simulated": {"d21-skew4": 12, "d09-skew4": 4, "none": 4}
+}

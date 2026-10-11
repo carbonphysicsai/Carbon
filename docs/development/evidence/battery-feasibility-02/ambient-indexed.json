@@ -1,0 +1,318 @@
+{
+ "lanes": {
+  "protocol_only": {
+   "bands": {
+    "T15": {
+     "actions": 18,
+     "best": {
+      "action": "c1=1.75,c2=0.7,sv=4:h1",
+      "charging_t_max_c": 41.01074855476111,
+      "minutes": 46.69237401643988,
+      "plating_min_v": 0.0023330774291778185
+     },
+     "feasible": [
+      "c1=0.5,c2=0.4,sv=4:h1",
+      "c1=0.75,c2=0.4,sv=4:h1",
+      "c1=1,c2=0.4,sv=4:h1",
+      "c1=1,c2=0.7,sv=4:h1",
+      "c1=1.25,c2=0.4,sv=4:h1",
+      "c1=1.25,c2=0.7,sv=4:h1",
+      "c1=1.5,c2=0.4,sv=4:h1",
+      "c1=1.5,c2=0.7,sv=4:h1",
+      "c1=1.75,c2=0.4,sv=4:h1",
+      "c1=1.75,c2=0.7,sv=4:h1"
+     ],
+     "pick_resolved": false,
+     "rivals_within_0.5_min": [
+      "c1=1.5,c2=0.7,sv=4:h1",
+      "c1=1.75,c2=1,sv=4:h1"
+     ],
+     "unresolved": [
+      "c1=0.75,c2=0.7,sv=4:h1",
+      "c1=1.75,c2=1,sv=4:h1"
+     ],
+     "unresolved_count": 2
+    },
+    "T25": {
+     "actions": 49,
+     "best": {
+      "action": "c1=1.5,c2=1.25,sv=4:h1",
+      "charging_t_max_c": 44.70186889514059,
+      "minutes": 32.858964733121354,
+      "plating_min_v": 0.005081509898044895
+     },
+     "feasible": [
+      "c1=1.25,c2=0.4,sv=4:h1",
+      "c1=1.25,c2=0.7,sv=4:h1",
+      "c1=1.25,c2=1,sv=4:h1",
+      "c1=1.5,c2=1.25,sv=4:h1"
+     ],
+     "pick_resolved": false,
+     "rivals_within_0.5_min": [
+      "c1=1.5,c2=1.25,sv=4.05:h1",
+      "c1=1.5,c2=1.25,sv=4.1:h1"
+     ],
+     "unresolved": [
+      "c1=1.5,c2=0.4,sv=4:h1",
+      "c1=1.5,c2=0.7,sv=4:h1",
+      "c1=1.5,c2=1,sv=4.05:h1",
+      "c1=1.5,c2=1,sv=4.1:h1",
+      "c1=1.5,c2=1,sv=4:h1",
+      "c1=1.5,c2=1.25,sv=4.05:h1",
+      "c1=1.5,c2=1.25,sv=4.1:h1"
+     ],
+     "unresolved_count": 7
+    },
+    "T35": {
+     "actions": 49,
+     "best": null,
+     "feasible": [],
+     "pick_resolved": null,
+     "rivals_within_0.5_min": [],
+     "unresolved": [],
+     "unresolved_count": 0
+    },
+    "T40": {
+     "actions": 12,
+     "best": null,
+     "feasible": [],
+     "pick_resolved": null,
+     "rivals_within_0.5_min": [],
+     "unresolved": [],
+     "unresolved_count": 0
+    },
+    "T5": {
+     "actions": 18,
+     "best": {
+      "action": "c1=1,c2=0.4,sv=4:h1",
+      "charging_t_max_c": 21.17295689462395,
+      "minutes": 77.21478217937776,
+      "plating_min_v": 0.0019063739291235629
+     },
+     "feasible": [
+      "c1=0.5,c2=0.4,sv=4:h1",
+      "c1=0.75,c2=0.4,sv=4:h1",
+      "c1=1,c2=0.4,sv=4:h1"
+     ],
+     "pick_resolved": false,
+     "rivals_within_0.5_min": [
+      "c1=1.25,c2=0.4,sv=4:h1"
+     ],
+     "unresolved": [
+      "c1=1.25,c2=0.4,sv=4:h1"
+     ],
+     "unresolved_count": 1
+    }
+   },
+   "complete_feasible_map": false,
+   "map": {
+    "T15": "c1=1.75,c2=0.7,sv=4:h1",
+    "T25": "c1=1.5,c2=1.25,sv=4:h1",
+    "T35": null,
+    "T40": null,
+    "T5": "c1=1,c2=0.4,sv=4:h1"
+   },
+   "objective_worst_25_35_minutes": null
+  },
+  "with_cooling": {
+   "bands": {
+    "T15": {
+     "actions": 42,
+     "best": {
+      "action": "c1=1.75,c2=0.7,sv=4:h1",
+      "charging_t_max_c": 41.01074855476111,
+      "minutes": 46.69237401643988,
+      "plating_min_v": 0.0023330774291778185
+     },
+     "feasible": [
+      "c1=0.5,c2=0.4,sv=4:h1",
+      "c1=0.75,c2=0.4,sv=4:h1",
+      "c1=1,c2=0.4,sv=4:h1",
+      "c1=1,c2=0.7,sv=4:h1",
+      "c1=1.25,c2=0.4,sv=4:h1",
+      "c1=1.25,c2=0.4,sv=4:h2",
+      "c1=1.25,c2=0.7,sv=4:h1",
+      "c1=1.5,c2=0.4,sv=4:h1",
+      "c1=1.5,c2=0.7,sv=4:h1",
+      "c1=1.75,c2=0.4,sv=4:h1",
+      "c1=1.75,c2=0.7,sv=4:h1"
+     ],
+     "pick_resolved": false,
+     "rivals_within_0.5_min": [
+      "c1=1.5,c2=0.7,sv=4:h1",
+      "c1=1.75,c2=1,sv=4:h1"
+     ],
+     "unresolved": [
+      "c1=0.75,c2=0.7,sv=4:h1",
+      "c1=1.5,c2=0.4,sv=4:h2",
+      "c1=1.75,c2=1,sv=4:h1"
+     ],
+     "unresolved_count": 3
+    },
+    "T25": {
+     "actions": 147,
+     "best": {
+      "action": "c1=1.5,c2=1.25,sv=4:h1",
+      "charging_t_max_c": 44.70186889514059,
+      "minutes": 32.858964733121354,
+      "plating_min_v": 0.005081509898044895
+     },
+     "feasible": [
+      "c1=1.25,c2=0.4,sv=4:h1",
+      "c1=1.25,c2=0.4,sv=4:h2",
+      "c1=1.25,c2=0.4,sv=4:h4",
+      "c1=1.25,c2=0.7,sv=4:h1",
+      "c1=1.25,c2=0.7,sv=4:h2",
+      "c1=1.25,c2=0.7,sv=4:h4",
+      "c1=1.25,c2=1,sv=4:h1",
+      "c1=1.5,c2=0.4,sv=4:h2",
+      "c1=1.5,c2=0.4,sv=4:h4",
+      "c1=1.5,c2=0.7,sv=4:h2",
+      "c1=1.5,c2=0.7,sv=4:h4",
+      "c1=1.5,c2=1.25,sv=4:h1",
+      "c1=1.75,c2=0.4,sv=4:h2",
+      "c1=1.75,c2=0.7,sv=4:h2",
+      "c1=2,c2=0.4,sv=4:h2",
+      "c1=2,c2=0.7,sv=4:h2"
+     ],
+     "pick_resolved": false,
+     "rivals_within_0.5_min": [
+      "c1=1.5,c2=1.25,sv=4.05:h1",
+      "c1=1.5,c2=1.25,sv=4.1:h1"
+     ],
+     "unresolved": [
+      "c1=1.25,c2=1,sv=4:h2",
+      "c1=1.5,c2=0.4,sv=4:h1",
+      "c1=1.5,c2=0.7,sv=4:h1",
+      "c1=1.5,c2=1,sv=4.05:h1",
+      "c1=1.5,c2=1,sv=4.05:h2",
+      "c1=1.5,c2=1,sv=4.1:h1",
+      "c1=1.5,c2=1,sv=4.1:h2",
+      "c1=1.5,c2=1,sv=4:h1",
+      "c1=1.5,c2=1,sv=4:h2",
+      "c1=1.5,c2=1.25,sv=4.05:h1",
+      "c1=1.5,c2=1.25,sv=4.1:h1",
+      "c1=1.75,c2=0.4,sv=4:h4",
+      "c1=1.75,c2=0.7,sv=4:h4",
+      "c1=1.75,c2=1,sv=4.05:h2",
+      "c1=1.75,c2=1,sv=4:h2",
+      "c1=2,c2=1,sv=4:h2"
+     ],
+     "unresolved_count": 16
+    },
+    "T35": {
+     "actions": 147,
+     "best": {
+      "action": "c1=1.75,c2=1,sv=4.05:h4",
+      "charging_t_max_c": 42.754490646174304,
+      "minutes": 33.58904957944822,
+      "plating_min_v": 0.008025679942176048
+     },
+     "feasible": [
+      "c1=1.25,c2=0.4,sv=4:h2",
+      "c1=1.25,c2=0.4,sv=4:h4",
+      "c1=1.25,c2=0.7,sv=4:h2",
+      "c1=1.25,c2=0.7,sv=4:h4",
+      "c1=1.25,c2=1,sv=4:h2",
+      "c1=1.25,c2=1,sv=4:h4",
+      "c1=1.5,c2=0.4,sv=4:h4",
+      "c1=1.5,c2=0.7,sv=4:h4",
+      "c1=1.5,c2=1,sv=4.05:h4",
+      "c1=1.5,c2=1,sv=4.1:h4",
+      "c1=1.5,c2=1,sv=4:h4",
+      "c1=1.75,c2=0.4,sv=4:h4",
+      "c1=1.75,c2=0.7,sv=4:h4",
+      "c1=1.75,c2=1,sv=4.05:h4",
+      "c1=1.75,c2=1,sv=4:h4"
+     ],
+     "pick_resolved": false,
+     "rivals_within_0.5_min": [
+      "c1=1.5,c2=1,sv=4.1:h4",
+      "c1=1.5,c2=1,sv=4.15:h4",
+      "c1=1.5,c2=1.25,sv=4:h4",
+      "c1=1.5,c2=1.25,sv=4.05:h4",
+      "c1=1.5,c2=1.25,sv=4.1:h4",
+      "c1=1.5,c2=1.25,sv=4.15:h4",
+      "c1=1.75,c2=1,sv=4.1:h4",
+      "c1=1.75,c2=1.25,sv=4:h4",
+      "c1=1.75,c2=1.25,sv=4.05:h4",
+      "c1=1.75,c2=1.25,sv=4.1:h4",
+      "c1=2,c2=1,sv=4.05:h4",
+      "c1=2,c2=1.25,sv=4:h4",
+      "c1=2,c2=1.25,sv=4.05:h4"
+     ],
+     "unresolved": [
+      "c1=1.5,c2=1,sv=4.15:h4",
+      "c1=1.5,c2=1.25,sv=4.05:h4",
+      "c1=1.5,c2=1.25,sv=4.15:h4",
+      "c1=1.5,c2=1.25,sv=4.1:h4",
+      "c1=1.5,c2=1.25,sv=4:h4",
+      "c1=1.75,c2=1,sv=4.1:h4",
+      "c1=1.75,c2=1.25,sv=4.05:h4",
+      "c1=1.75,c2=1.25,sv=4.1:h4",
+      "c1=1.75,c2=1.25,sv=4:h4",
+      "c1=2,c2=0.4,sv=4:h4",
+      "c1=2,c2=0.7,sv=4:h4",
+      "c1=2,c2=1,sv=4.05:h4",
+      "c1=2,c2=1,sv=4:h4",
+      "c1=2,c2=1.25,sv=4.05:h4",
+      "c1=2,c2=1.25,sv=4:h4"
+     ],
+     "unresolved_count": 15
+    },
+    "T40": {
+     "actions": 36,
+     "best": {
+      "action": "c1=1.25,c2=1,sv=4:h4",
+      "charging_t_max_c": 44.12153917157326,
+      "minutes": 38.57128059493959,
+      "plating_min_v": 0.015678194503856577
+     },
+     "feasible": [
+      "c1=1.25,c2=0.4,sv=4:h4",
+      "c1=1.25,c2=0.7,sv=4:h4",
+      "c1=1.25,c2=1,sv=4:h4"
+     ],
+     "pick_resolved": true,
+     "rivals_within_0.5_min": [],
+     "unresolved": [],
+     "unresolved_count": 0
+    },
+    "T5": {
+     "actions": 42,
+     "best": {
+      "action": "c1=1,c2=0.4,sv=4:h1",
+      "charging_t_max_c": 21.17295689462395,
+      "minutes": 77.21478217937776,
+      "plating_min_v": 0.0019063739291235629
+     },
+     "feasible": [
+      "c1=0.5,c2=0.4,sv=4:h1",
+      "c1=0.75,c2=0.4,sv=4:h1",
+      "c1=1,c2=0.4,sv=4:h1"
+     ],
+     "pick_resolved": false,
+     "rivals_within_0.5_min": [
+      "c1=1.25,c2=0.4,sv=4:h1"
+     ],
+     "unresolved": [
+      "c1=1.25,c2=0.4,sv=4:h1"
+     ],
+     "unresolved_count": 1
+    }
+   },
+   "complete_feasible_map": true,
+   "map": {
+    "T15": "c1=1.75,c2=0.7,sv=4:h1",
+    "T25": "c1=1.5,c2=1.25,sv=4:h1",
+    "T35": "c1=1.75,c2=1,sv=4.05:h4",
+    "T40": "c1=1.25,c2=1,sv=4:h4",
+    "T5": "c1=1,c2=0.4,sv=4:h1"
+   },
+   "objective_worst_25_35_minutes": 33.58904957944822
+  }
+ },
+ "packet_rules": "battery v2 hard limits (#804 @ fed63497)",
+ "schema": "carbon.battery.feasibility02-ambient-indexed.v1",
+ "status": "DIAGNOSTIC: a proposed ambient-indexed buyer revision, not adopted"
+}

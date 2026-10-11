@@ -1,0 +1,21 @@
+{
+ "schema": "carbon.battery.feasibility02-tier3-registry.v1",
+ "registered": "2026-10-08, before any tier-3 solve and before the ambient-indexed re-score is computed",
+ "authority": "Test Lead relay, 2026-10-08: fact-finding for the owner on local free CPU, no paid compute. The ambient-indexed decision is a PROPOSED buyer revision, not adopted by the owner: every result under it is a DIAGNOSTIC",
+ "tier3_solves": {
+  "actions": "c1 {0.5, 0.75, 1.0} C x c2 {0.4, 0.7, 1.0} C with c2 <= c1 (6 protocols), switch 4.0 V, cooling x1 only",
+  "ambients": [5, 15],
+  "initial_soc": 0.10,
+  "count": 12,
+  "observers": "as battery-feasibility-02 (all 30 cycles, per-phase extrema, every-charge plating minimum, SOC clock, cooling removal)",
+  "refinement": "every tier-3 case whose plating minimum is within 2 mV of 0 V or whose charging maximum is within 0.5 C of 45 C is re-solved with the registered refined settings (mesh 40, rtol 1e-6), as in tiers 1-2"
+ },
+ "ambient_indexed_decision": {
+  "rule": "one protocol (and cooling action) per ambient band 5, 15, 25, 35, 40 C; each band's protocol must meet the packet-v2 hard limits at its own ambient only (charging-leg T <= 45 C, plating >= 0 V, 4.2 V, Q30/Q1 >= 0.99; bands 0.5 C and 2 mV; refined solves settle a band as in v2-rescore)",
+  "per_band": "feasible set, best (minimum) 10-80 % session time, UNRESOLVED count; a band's pick is UNRESOLVED if a feasible or unresolved rival is within 0.5 min",
+  "objective": "worst of the 25 and 35 C bands' best session times (the warm worst case)",
+  "complete_map": "a complete feasible charge map exists when every band has at least one FEASIBLE action",
+  "lanes": "protocol-only (cooling x1 in every band) and with the cooling history actions (x2, x4) allowed in 25-40 C bands; tier 3 adds only x1 cold actions",
+  "inputs": "tiers 1-2 (435 solves incl. refined) plus the 12 tier-3 solves and their refinements"
+ }
+}

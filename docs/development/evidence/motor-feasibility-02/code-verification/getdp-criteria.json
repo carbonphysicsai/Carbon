@@ -1,0 +1,17 @@
+{
+  "kind": "getdp-a",
+  "family": "motor",
+  "h": [
+    0.125,
+    0.0625,
+    0.03125
+  ],
+  "t": 0,
+  "order_band": [
+    1.7,
+    2.3
+  ],
+  "status": "HUMAN_INPUT",
+  "spec_digest": "sha256:b9c625e79c4bcffed25d179167f75686d516a7882e8f46a2e82982b8b964ba5f",
+  "adapter_digest": "sha256:29a89615a22dea2a22108bae3db77dd55ab3c39e460c001a9268b279d68c934c"
+}

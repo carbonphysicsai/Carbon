@@ -1,0 +1,6629 @@
+{
+ "cases": [
+  {
+   "case_id": "c1=1.25,c2=0.4:h1:T5",
+   "minutes": 77.13179942114029,
+   "outcome": "REFERENCE_UNRESOLVED",
+   "plating_min_v": -0.0007637764643723295,
+   "q30_over_q1": 0.9984117822629782,
+   "stratum": "T5",
+   "t_max_c": 25.79529551398292,
+   "t_max_charging_c": 25.79529551398292,
+   "t_max_non_charging_c": 22.88613196110458,
+   "v_max_v": 4.200000000000246,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=1.25,c2=0.4:h1:T15",
+   "minutes": 69.93169941681656,
+   "outcome": "RESOLVED_FEASIBLE",
+   "plating_min_v": 0.01567227489931289,
+   "q30_over_q1": 0.9987267331584051,
+   "stratum": "T15",
+   "t_max_c": 33.26544472302692,
+   "t_max_charging_c": 33.26544472302692,
+   "t_max_non_charging_c": 30.187415384203177,
+   "v_max_v": 4.200000000000257,
+   "why": []
+  },
+  {
+   "case_id": "c1=1.25,c2=0.4:h1:T25",
+   "minutes": 63.848252576292694,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.030499475842714844,
+   "q30_over_q1": 0.9987701603184054,
+   "stratum": "T25",
+   "t_max_c": 40.83283196374049,
+   "t_max_charging_c": 40.83283196374049,
+   "t_max_non_charging_c": 37.85870684156731,
+   "v_max_v": 4.200000000000525,
+   "why": [
+    "charge_time"
+   ]
+  },
+  {
+   "case_id": "c1=1.25,c2=0.4:h1:T35",
+   "minutes": 58.847289324686585,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.0440921466463477,
+   "q30_over_q1": 0.9986211951083356,
+   "stratum": "T35",
+   "t_max_c": 48.58879221046374,
+   "t_max_charging_c": 48.58879221046374,
+   "t_max_non_charging_c": 45.84874457606952,
+   "v_max_v": 4.20000000000068,
+   "why": [
+    "charge_time",
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "c1=1.25,c2=0.4:h1:T40",
+   "minutes": 56.71443829942666,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.049617981794789906,
+   "q30_over_q1": 0.9985018587706392,
+   "stratum": "T40",
+   "t_max_c": 52.56056578821921,
+   "t_max_charging_c": 52.56056578821921,
+   "t_max_non_charging_c": 49.9551573561327,
+   "v_max_v": 4.200000000000996,
+   "why": [
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "c1=1.25,c2=0.4:h2:T5",
+   "minutes": 82.06098133919315,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.014370225129863391,
+   "q30_over_q1": 0.9982176069275953,
+   "stratum": "T5",
+   "t_max_c": 17.943957159332285,
+   "t_max_charging_c": 17.943957159332285,
+   "t_max_non_charging_c": 15.937558326937449,
+   "v_max_v": 4.200000000000514,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=1.25,c2=0.4:h2:T15",
+   "minutes": 74.13525925917686,
+   "outcome": "RESOLVED_FEASIBLE",
+   "plating_min_v": 0.00544993647412095,
+   "q30_over_q1": 0.9986077809304114,
+   "stratum": "T15",
+   "t_max_c": 26.140491426868948,
+   "t_max_charging_c": 26.140491426868948,
+   "t_max_non_charging_c": 24.09039771014028,
+   "v_max_v": 4.200000000000134,
+   "why": []
+  },
+  {
+   "case_id": "c1=1.25,c2=0.4:h2:T25",
+   "minutes": 67.44913386841964,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.021668300854006988,
+   "q30_over_q1": 0.9987894028590616,
+   "stratum": "T25",
+   "t_max_c": 34.46314799323511,
+   "t_max_charging_c": 34.46314799323511,
+   "t_max_non_charging_c": 32.577435729922854,
+   "v_max_v": 4.200000000000497,
+   "why": [
+    "charge_time"
+   ]
+  },
+  {
+   "case_id": "c1=1.25,c2=0.4:h2:T35",
+   "minutes": 61.53147777679896,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.03779410007979147,
+   "q30_over_q1": 0.9986981922966863,
+   "stratum": "T35",
+   "t_max_c": 42.97012923254226,
+   "t_max_charging_c": 42.97012923254226,
+   "t_max_non_charging_c": 41.31492010324939,
+   "v_max_v": 4.200000000000866,
+   "why": [
+    "charge_time"
+   ]
+  },
+  {
+   "case_id": "c1=1.25,c2=0.4:h2:T40",
+   "minutes": 59.011379754326455,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.044796725067702076,
+   "q30_over_q1": 0.9985778079256281,
+   "stratum": "T40",
+   "t_max_c": 47.294581558133586,
+   "t_max_charging_c": 47.294581558133586,
+   "t_max_non_charging_c": 45.761212051831194,
+   "v_max_v": 4.20000000000093,
+   "why": [
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "c1=1.25,c2=0.4:h4:T5",
+   "minutes": 86.11086722471886,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.02654585597643114,
+   "q30_over_q1": 0.9980836624482627,
+   "stratum": "T5",
+   "t_max_c": 12.555282507552022,
+   "t_max_charging_c": 12.555282507552022,
+   "t_max_non_charging_c": 11.296178740075334,
+   "v_max_v": 4.200000000000374,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=1.25,c2=0.4:h4:T15",
+   "minutes": 77.74387177589229,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.004409896633188884,
+   "q30_over_q1": 0.9985585240605873,
+   "stratum": "T15",
+   "t_max_c": 21.41961428925856,
+   "t_max_charging_c": 21.41961428925856,
+   "t_max_non_charging_c": 20.131340160316086,
+   "v_max_v": 4.200000000000214,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=1.25,c2=0.4:h4:T25",
+   "minutes": 70.37352149051375,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.014319167330108535,
+   "q30_over_q1": 0.9988092170872701,
+   "stratum": "T25",
+   "t_max_c": 30.40641613961833,
+   "t_max_charging_c": 30.40641613961833,
+   "t_max_non_charging_c": 29.229291559585818,
+   "v_max_v": 4.200000000000452,
+   "why": [
+    "charge_time"
+   ]
+  },
+  {
+   "case_id": "c1=1.25,c2=0.4:h4:T35",
+   "minutes": 63.800856250002816,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.03125977934759774,
+   "q30_over_q1": 0.9987318610754305,
+   "stratum": "T35",
+   "t_max_c": 39.52038418982983,
+   "t_max_charging_c": 39.52038418982983,
+   "t_max_non_charging_c": 38.501086505142496,
+   "v_max_v": 4.200000000000532,
+   "why": [
+    "charge_time"
+   ]
+  },
+  {
+   "case_id": "c1=1.25,c2=0.4:h4:T40",
+   "minutes": 60.85588505699988,
+   "outcome": "RESOLVED_FEASIBLE",
+   "plating_min_v": 0.03951012114799108,
+   "q30_over_q1": 0.9986122372915586,
+   "stratum": "T40",
+   "t_max_c": 44.1224828206644,
+   "t_max_charging_c": 44.1224828206644,
+   "t_max_non_charging_c": 43.18562442870598,
+   "v_max_v": 4.200000000000561,
+   "why": []
+  },
+  {
+   "case_id": "c1=1.25,c2=0.7:h1:T5",
+   "minutes": 53.418588116306225,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.009686600008276702,
+   "q30_over_q1": 0.9984980292918745,
+   "stratum": "T5",
+   "t_max_c": 25.793286284659303,
+   "t_max_charging_c": 25.793286284659303,
+   "t_max_non_charging_c": 22.861142700181745,
+   "v_max_v": 4.200000000000628,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=1.25,c2=0.7:h1:T15",
+   "minutes": 48.57476135835692,
+   "outcome": "RESOLVED_FEASIBLE",
+   "plating_min_v": 0.002121887556003993,
+   "q30_over_q1": 0.9988017707415616,
+   "stratum": "T15",
+   "t_max_c": 33.2638731989054,
+   "t_max_charging_c": 33.2638731989054,
+   "t_max_non_charging_c": 30.16597500150874,
+   "v_max_v": 4.20000000000082,
+   "why": []
+  },
+  {
+   "case_id": "c1=1.25,c2=0.7:h1:T25",
+   "minutes": 46.04473204501667,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.01569971026824399,
+   "q30_over_q1": 0.9988337341429,
+   "stratum": "T25",
+   "t_max_c": 40.831369167456614,
+   "t_max_charging_c": 40.831369167456614,
+   "t_max_non_charging_c": 37.840615722733844,
+   "v_max_v": 4.200000000000328,
+   "why": [
+    "charge_time"
+   ]
+  },
+  {
+   "case_id": "c1=1.25,c2=0.7:h1:T35",
+   "minutes": 44.1956363889602,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.026945116137321846,
+   "q30_over_q1": 0.9987177469294488,
+   "stratum": "T35",
+   "t_max_c": 48.58740712251125,
+   "t_max_charging_c": 48.58740712251125,
+   "t_max_non_charging_c": 45.83543309095131,
+   "v_max_v": 4.200000000000649,
+   "why": [
+    "charge_time",
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "c1=1.25,c2=0.7:h1:T40",
+   "minutes": 43.407019203148664,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.032872612592517836,
+   "q30_over_q1": 0.9985561722367894,
+   "stratum": "T40",
+   "t_max_c": 52.55945053134036,
+   "t_max_charging_c": 52.55945053134036,
+   "t_max_non_charging_c": 49.944631523907674,
+   "v_max_v": 4.200000000000536,
+   "why": [
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "c1=1.25,c2=0.7:h2:T5",
+   "minutes": 58.04445137809898,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.019395689023733877,
+   "q30_over_q1": 0.998178691295589,
+   "stratum": "T5",
+   "t_max_c": 17.944134096280322,
+   "t_max_charging_c": 17.944134096280322,
+   "t_max_non_charging_c": 15.92105138582599,
+   "v_max_v": 4.200000000001173,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=1.25,c2=0.7:h2:T15",
+   "minutes": 50.978455087568165,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.00423563842684683,
+   "q30_over_q1": 0.9986174623255136,
+   "stratum": "T15",
+   "t_max_c": 26.139939014044387,
+   "t_max_charging_c": 26.139939014044387,
+   "t_max_non_charging_c": 24.07731822180591,
+   "v_max_v": 4.2000000000007764,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=1.25,c2=0.7:h2:T25",
+   "minutes": 47.37631862308154,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.009978266446295824,
+   "q30_over_q1": 0.9988208182575948,
+   "stratum": "T25",
+   "t_max_c": 34.46212365594556,
+   "t_max_charging_c": 34.46212365594556,
+   "t_max_non_charging_c": 32.56742089762366,
+   "v_max_v": 4.200000000000345,
+   "why": [
+    "charge_time"
+   ]
+  },
+  {
+   "case_id": "c1=1.25,c2=0.7:h2:T35",
+   "minutes": 45.188109430077475,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.022307239369154578,
+   "q30_over_q1": 0.998861992983583,
+   "stratum": "T35",
+   "t_max_c": 42.96886047151912,
+   "t_max_charging_c": 42.96886047151912,
+   "t_max_non_charging_c": 41.307994218996214,
+   "v_max_v": 4.2000000000002276,
+   "why": [
+    "charge_time"
+   ]
+  },
+  {
+   "case_id": "c1=1.25,c2=0.7:h2:T40",
+   "minutes": 44.256308480591734,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.028762526688813534,
+   "q30_over_q1": 0.9985960276124997,
+   "stratum": "T40",
+   "t_max_c": 47.29324925433269,
+   "t_max_charging_c": 47.29324925433269,
+   "t_max_non_charging_c": 45.75565030887827,
+   "v_max_v": 4.20000000000056,
+   "why": [
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "c1=1.25,c2=0.7:h4:T5",
+   "minutes": 61.385305044849844,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.02654585597643114,
+   "q30_over_q1": 0.9978698750317656,
+   "stratum": "T5",
+   "t_max_c": 12.55635825940061,
+   "t_max_charging_c": 12.55635825940061,
+   "t_max_non_charging_c": 11.287288705943809,
+   "v_max_v": 4.200000000001561,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=1.25,c2=0.7:h4:T15",
+   "minutes": 52.97111714829881,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.006907108350321322,
+   "q30_over_q1": 0.998479985130836,
+   "stratum": "T15",
+   "t_max_c": 21.419589145320913,
+   "t_max_charging_c": 21.419589145320913,
+   "t_max_non_charging_c": 20.1251869008222,
+   "v_max_v": 4.200000000001298,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=1.25,c2=0.7:h4:T25",
+   "minutes": 48.512032937796135,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.006710888065272072,
+   "q30_over_q1": 0.9987848663663027,
+   "stratum": "T25",
+   "t_max_c": 30.40591831323667,
+   "t_max_charging_c": 30.40591831323667,
+   "t_max_non_charging_c": 29.22526597685203,
+   "v_max_v": 4.200000000000495,
+   "why": [
+    "charge_time"
+   ]
+  },
+  {
+   "case_id": "c1=1.25,c2=0.7:h4:T35",
+   "minutes": 46.02720735294035,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.020301496434655435,
+   "q30_over_q1": 0.9988613242038058,
+   "stratum": "T35",
+   "t_max_c": 39.51968832831642,
+   "t_max_charging_c": 39.51968832831642,
+   "t_max_non_charging_c": 38.49876251154791,
+   "v_max_v": 4.2000000000002995,
+   "why": [
+    "charge_time"
+   ]
+  },
+  {
+   "case_id": "c1=1.25,c2=0.7:h4:T40",
+   "minutes": 44.9383104412449,
+   "outcome": "RESOLVED_FEASIBLE",
+   "plating_min_v": 0.026841970280521096,
+   "q30_over_q1": 0.9986643914187056,
+   "stratum": "T40",
+   "t_max_c": 44.121743850886446,
+   "t_max_charging_c": 44.121743850886446,
+   "t_max_non_charging_c": 43.18388102934739,
+   "v_max_v": 4.200000000000326,
+   "why": []
+  },
+  {
+   "case_id": "c1=1.25,c2=1:h1:T5",
+   "minutes": 44.375696105285364,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.017789872600314997,
+   "q30_over_q1": 0.9987075242475917,
+   "stratum": "T5",
+   "t_max_c": 25.792113901238963,
+   "t_max_charging_c": 25.792113901238963,
+   "t_max_non_charging_c": 22.84639939010998,
+   "v_max_v": 4.20000000000126,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=1.25,c2=1:h1:T15",
+   "minutes": 40.79582971766527,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.0029952286852383365,
+   "q30_over_q1": 0.9988599337842908,
+   "stratum": "T15",
+   "t_max_c": 33.263073346346914,
+   "t_max_charging_c": 33.263073346346914,
+   "t_max_non_charging_c": 30.154060493680333,
+   "v_max_v": 4.200000000001316,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=1.25,c2=1:h1:T25",
+   "minutes": 39.06064166053055,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.007505675235045704,
+   "q30_over_q1": 0.9988928607580828,
+   "stratum": "T25",
+   "t_max_c": 40.83077162560113,
+   "t_max_charging_c": 40.83077162560113,
+   "t_max_non_charging_c": 37.83093507648465,
+   "v_max_v": 4.2000000000006725,
+   "why": [
+    "charge_time"
+   ]
+  },
+  {
+   "case_id": "c1=1.25,c2=1:h1:T35",
+   "minutes": 38.334975214669136,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.02007697698235766,
+   "q30_over_q1": 0.9987414630112714,
+   "stratum": "T35",
+   "t_max_c": 48.5869258774506,
+   "t_max_charging_c": 48.5869258774506,
+   "t_max_non_charging_c": 45.82871004050992,
+   "v_max_v": 4.200000000000319,
+   "why": [
+    "charge_time",
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "c1=1.25,c2=1:h1:T40",
+   "minutes": 38.08405156463704,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.02469398886194883,
+   "q30_over_q1": 0.9986629969910021,
+   "stratum": "T40",
+   "t_max_c": 52.559033406416404,
+   "t_max_charging_c": 52.559033406416404,
+   "t_max_non_charging_c": 49.9390831956016,
+   "v_max_v": 4.200000000000321,
+   "why": [
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "c1=1.25,c2=1:h2:T5",
+   "minutes": 50.148694834464976,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.0349385965382359,
+   "q30_over_q1": 0.9980889399034173,
+   "stratum": "T5",
+   "t_max_c": 17.944103156122765,
+   "t_max_charging_c": 17.944103156122765,
+   "t_max_non_charging_c": 15.911757371107228,
+   "v_max_v": 4.2000000000012765,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=1.25,c2=1:h2:T15",
+   "minutes": 43.26642795281557,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.015095977405723607,
+   "q30_over_q1": 0.9986584039514411,
+   "stratum": "T15",
+   "t_max_c": 26.139766244677503,
+   "t_max_charging_c": 26.139766244677503,
+   "t_max_non_charging_c": 24.0707417240543,
+   "v_max_v": 4.200000000001058,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=1.25,c2=1:h2:T25",
+   "minutes": 40.09492492112053,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.0003004876340825778,
+   "q30_over_q1": 0.998917156358763,
+   "stratum": "T25",
+   "t_max_c": 34.46183344428522,
+   "t_max_charging_c": 34.46183344428522,
+   "t_max_non_charging_c": 32.56249477195058,
+   "v_max_v": 4.200000000000976,
+   "why": [
+    "charge_time"
+   ]
+  },
+  {
+   "case_id": "c1=1.25,c2=1:h2:T35",
+   "minutes": 38.66290992658078,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.01274236753917587,
+   "q30_over_q1": 0.998772888566622,
+   "stratum": "T35",
+   "t_max_c": 42.968487807786346,
+   "t_max_charging_c": 42.968487807786346,
+   "t_max_non_charging_c": 41.30430453140133,
+   "v_max_v": 4.2000000000011095,
+   "why": [
+    "charge_time"
+   ]
+  },
+  {
+   "case_id": "c1=1.25,c2=1:h2:T40",
+   "minutes": 38.35427997109786,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.019376111745357524,
+   "q30_over_q1": 0.9986952348053325,
+   "stratum": "T40",
+   "t_max_c": 47.29283438915286,
+   "t_max_charging_c": 47.29283438915286,
+   "t_max_non_charging_c": 45.75260286363766,
+   "v_max_v": 4.200000000000652,
+   "why": [
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "c1=1.25,c2=1:h4:T5",
+   "minutes": 54.43227016210751,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.046798263756497635,
+   "q30_over_q1": 0.9974956906727105,
+   "stratum": "T5",
+   "t_max_c": 12.556946717610117,
+   "t_max_charging_c": 12.556946717610117,
+   "t_max_non_charging_c": 11.282310940372554,
+   "v_max_v": 4.200000000001721,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=1.25,c2=1:h4:T15",
+   "minutes": 45.45878768752164,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.02361770944396966,
+   "q30_over_q1": 0.99843903673853,
+   "stratum": "T15",
+   "t_max_c": 21.41969982318301,
+   "t_max_charging_c": 21.41969982318301,
+   "t_max_non_charging_c": 20.12211628530548,
+   "v_max_v": 4.200000000001076,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=1.25,c2=1:h4:T25",
+   "minutes": 41.062523198734446,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.004945005012230498,
+   "q30_over_q1": 0.9988088754642402,
+   "stratum": "T25",
+   "t_max_c": 30.405832837684386,
+   "t_max_charging_c": 30.405832837684386,
+   "t_max_non_charging_c": 29.22337498348918,
+   "v_max_v": 4.200000000000892,
+   "why": [
+    "charge_time",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=1.25,c2=1:h4:T35",
+   "minutes": 39.03874873562038,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.007885855989698369,
+   "q30_over_q1": 0.9987496910084478,
+   "stratum": "T35",
+   "t_max_c": 39.51951015545012,
+   "t_max_charging_c": 39.51951015545012,
+   "t_max_non_charging_c": 38.49755256216616,
+   "v_max_v": 4.200000000000726,
+   "why": [
+    "charge_time"
+   ]
+  },
+  {
+   "case_id": "c1=1.25,c2=1:h4:T40",
+   "minutes": 38.57128059493959,
+   "outcome": "RESOLVED_FEASIBLE",
+   "plating_min_v": 0.015678194503856577,
+   "q30_over_q1": 0.9987232718272953,
+   "stratum": "T40",
+   "t_max_c": 44.12153917157326,
+   "t_max_charging_c": 44.12153917157326,
+   "t_max_non_charging_c": 43.182998254388906,
+   "v_max_v": 4.2000000000005695,
+   "why": []
+  },
+  {
+   "case_id": "c1=1.5,c2=0.4:h1:T5",
+   "minutes": 78.74057247757773,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.013351409685511672,
+   "q30_over_q1": 0.9984423666598182,
+   "stratum": "T5",
+   "t_max_c": 29.924815406403297,
+   "t_max_charging_c": 29.924815406403297,
+   "t_max_non_charging_c": 22.88431859096903,
+   "v_max_v": 4.200000000000218,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=1.5,c2=0.4:h1:T15",
+   "minutes": 70.48276299552626,
+   "outcome": "RESOLVED_FEASIBLE",
+   "plating_min_v": 0.010090195056019796,
+   "q30_over_q1": 0.998718370345241,
+   "stratum": "T15",
+   "t_max_c": 37.319183189218165,
+   "t_max_charging_c": 37.319183189218165,
+   "t_max_non_charging_c": 30.185896089589903,
+   "v_max_v": 4.200000000000251,
+   "why": []
+  },
+  {
+   "case_id": "c1=1.5,c2=0.4:h1:T25",
+   "minutes": 63.66992784040564,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.025943437411459578,
+   "q30_over_q1": 0.9987722762548392,
+   "stratum": "T25",
+   "t_max_c": 44.704815438661456,
+   "t_max_charging_c": 44.704815438661456,
+   "t_max_non_charging_c": 37.85808833932373,
+   "v_max_v": 4.2000000000003705,
+   "why": [
+    "charge_time"
+   ]
+  },
+  {
+   "case_id": "c1=1.5,c2=0.4:h1:T35",
+   "minutes": 57.9749813176414,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.04054154444818503,
+   "q30_over_q1": 0.998620113795827,
+   "stratum": "T35",
+   "t_max_c": 52.20914094194768,
+   "t_max_charging_c": 52.20914094194768,
+   "t_max_non_charging_c": 45.848916727622736,
+   "v_max_v": 4.200000000000525,
+   "why": [
+    "charge_time",
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "c1=1.5,c2=0.4:h1:T40",
+   "minutes": 55.556792030103026,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.046876764606580835,
+   "q30_over_q1": 0.9984981925003853,
+   "stratum": "T40",
+   "t_max_c": 56.03684522006574,
+   "t_max_charging_c": 56.03684522006574,
+   "t_max_non_charging_c": 49.955709829167006,
+   "v_max_v": 4.200000000000706,
+   "why": [
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "c1=1.5,c2=0.4:h2:T5",
+   "minutes": 83.89939487408405,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.023158861452893222,
+   "q30_over_q1": 0.9982148831563155,
+   "stratum": "T5",
+   "t_max_c": 21.111300222417526,
+   "t_max_charging_c": 21.111300222417526,
+   "t_max_non_charging_c": 15.936847306731067,
+   "v_max_v": 4.200000000000388,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=1.5,c2=0.4:h2:T15",
+   "minutes": 75.14830696638363,
+   "outcome": "REFERENCE_UNRESOLVED",
+   "plating_min_v": -0.0006986421920113966,
+   "q30_over_q1": 0.9986108475549199,
+   "stratum": "T15",
+   "t_max_c": 29.26087791711086,
+   "t_max_charging_c": 29.26087791711086,
+   "t_max_non_charging_c": 24.089860699418068,
+   "v_max_v": 4.200000000000163,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=1.5,c2=0.4:h2:T25",
+   "minutes": 67.94741863113093,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.015288342187869347,
+   "q30_over_q1": 0.9988002270672373,
+   "stratum": "T25",
+   "t_max_c": 37.32098788563502,
+   "t_max_charging_c": 37.32098788563502,
+   "t_max_non_charging_c": 32.57698649548473,
+   "v_max_v": 4.200000000000375,
+   "why": [
+    "charge_time"
+   ]
+  },
+  {
+   "case_id": "c1=1.5,c2=0.4:h2:T35",
+   "minutes": 61.50059154313032,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.03097955226129767,
+   "q30_over_q1": 0.9986991259621586,
+   "stratum": "T35",
+   "t_max_c": 45.52431001887783,
+   "t_max_charging_c": 45.52431001887783,
+   "t_max_non_charging_c": 41.31477601778761,
+   "v_max_v": 4.200000000000707,
+   "why": [
+    "charge_time",
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "c1=1.5,c2=0.4:h2:T40",
+   "minutes": 58.617184770999025,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.03850342158609203,
+   "q30_over_q1": 0.9985776331901309,
+   "stratum": "T40",
+   "t_max_c": 49.70286967687451,
+   "t_max_charging_c": 49.70286967687451,
+   "t_max_non_charging_c": 45.76119285010918,
+   "v_max_v": 4.200000000000857,
+   "why": [
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "c1=1.5,c2=0.4:h4:T5",
+   "minutes": 88.36438766153918,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.0375013983202144,
+   "q30_over_q1": 0.9981047714149031,
+   "stratum": "T5",
+   "t_max_c": 14.780550617802135,
+   "t_max_charging_c": 14.780550617802135,
+   "t_max_non_charging_c": 11.29616157025606,
+   "v_max_v": 4.200000000000385,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=1.5,c2=0.4:h4:T15",
+   "minutes": 79.50771637487868,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.013313114352954824,
+   "q30_over_q1": 0.9985574290767069,
+   "stratum": "T15",
+   "t_max_c": 23.457435448933097,
+   "t_max_charging_c": 23.457435448933097,
+   "t_max_non_charging_c": 20.131321623870235,
+   "v_max_v": 4.2000000000002,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=1.5,c2=0.4:h4:T25",
+   "minutes": 71.71783314875975,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.006635147129029861,
+   "q30_over_q1": 0.9988089918840862,
+   "stratum": "T25",
+   "t_max_c": 32.191641010774276,
+   "t_max_charging_c": 32.191641010774276,
+   "t_max_non_charging_c": 29.22921999270301,
+   "v_max_v": 4.200000000000496,
+   "why": [
+    "charge_time"
+   ]
+  },
+  {
+   "case_id": "c1=1.5,c2=0.4:h4:T35",
+   "minutes": 64.61301552988512,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.023071576097147925,
+   "q30_over_q1": 0.9987293041025775,
+   "stratum": "T35",
+   "t_max_c": 41.077398161859094,
+   "t_max_charging_c": 41.077398161859094,
+   "t_max_non_charging_c": 38.501048111496175,
+   "v_max_v": 4.20000000000061,
+   "why": [
+    "charge_time"
+   ]
+  },
+  {
+   "case_id": "c1=1.5,c2=0.4:h4:T40",
+   "minutes": 61.29987367654624,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.03154979360230353,
+   "q30_over_q1": 0.9986098662027554,
+   "stratum": "T40",
+   "t_max_c": 45.57482438715135,
+   "t_max_charging_c": 45.57482438715135,
+   "t_max_non_charging_c": 43.18561295272889,
+   "v_max_v": 4.200000000000797,
+   "why": [
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "c1=1.5,c2=0.7:h1:T5",
+   "minutes": 52.69850775754268,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.013351409685511672,
+   "q30_over_q1": 0.9985448788631677,
+   "stratum": "T5",
+   "t_max_c": 29.922365358149705,
+   "t_max_charging_c": 29.922365358149705,
+   "t_max_non_charging_c": 22.85843831722724,
+   "v_max_v": 4.200000000001048,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=1.5,c2=0.7:h1:T15",
+   "minutes": 47.09670438599733,
+   "outcome": "RESOLVED_FEASIBLE",
+   "plating_min_v": 0.002289745462448212,
+   "q30_over_q1": 0.9988341049746416,
+   "stratum": "T15",
+   "t_max_c": 37.31747153420156,
+   "t_max_charging_c": 37.31747153420156,
+   "t_max_non_charging_c": 30.16393685576395,
+   "v_max_v": 4.200000000000809,
+   "why": []
+  },
+  {
+   "case_id": "c1=1.5,c2=0.7:h1:T25",
+   "minutes": 43.99269728432641,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.015754455208156527,
+   "q30_over_q1": 0.9988531868406849,
+   "stratum": "T25",
+   "t_max_c": 44.703003950502364,
+   "t_max_charging_c": 44.703003950502364,
+   "t_max_non_charging_c": 37.83948275986205,
+   "v_max_v": 4.200000000000313,
+   "why": [
+    "charge_time"
+   ]
+  },
+  {
+   "case_id": "c1=1.5,c2=0.7:h1:T35",
+   "minutes": 41.625966261877466,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.02696048652106148,
+   "q30_over_q1": 0.9987299309126397,
+   "stratum": "T35",
+   "t_max_c": 52.207824044992606,
+   "t_max_charging_c": 52.207824044992606,
+   "t_max_non_charging_c": 45.83516373351068,
+   "v_max_v": 4.200000000000702,
+   "why": [
+    "charge_time",
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "c1=1.5,c2=0.7:h1:T40",
+   "minutes": 40.62100448004528,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.0330165685415724,
+   "q30_over_q1": 0.9985604385276599,
+   "stratum": "T40",
+   "t_max_c": 56.03548718390488,
+   "t_max_charging_c": 56.03548718390488,
+   "t_max_non_charging_c": 49.94467571059221,
+   "v_max_v": 4.200000000000468,
+   "why": [
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "c1=1.5,c2=0.7:h2:T5",
+   "minutes": 57.63012098215305,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.023158861452893222,
+   "q30_over_q1": 0.9981654711992793,
+   "stratum": "T5",
+   "t_max_c": 21.111093126395986,
+   "t_max_charging_c": 21.111093126395986,
+   "t_max_non_charging_c": 15.919375056300225,
+   "v_max_v": 4.200000000001154,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=1.5,c2=0.7:h2:T15",
+   "minutes": 49.88906802080639,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.003867128369949455,
+   "q30_over_q1": 0.9986093535694953,
+   "stratum": "T15",
+   "t_max_c": 29.260100207062806,
+   "t_max_charging_c": 29.260100207062806,
+   "t_max_non_charging_c": 24.07604632488409,
+   "v_max_v": 4.200000000000522,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=1.5,c2=0.7:h2:T25",
+   "minutes": 45.7706342457748,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.009822190377896988,
+   "q30_over_q1": 0.9988145794337001,
+   "stratum": "T25",
+   "t_max_c": 37.319570381359426,
+   "t_max_charging_c": 37.319570381359426,
+   "t_max_non_charging_c": 32.56644003765945,
+   "v_max_v": 4.200000000000584,
+   "why": [
+    "charge_time"
+   ]
+  },
+  {
+   "case_id": "c1=1.5,c2=0.7:h2:T35",
+   "minutes": 43.09115492701469,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.0221699604906463,
+   "q30_over_q1": 0.9988407203393492,
+   "stratum": "T35",
+   "t_max_c": 45.52272324805591,
+   "t_max_charging_c": 45.52272324805591,
+   "t_max_non_charging_c": 41.307491463321526,
+   "v_max_v": 4.200000000000276,
+   "why": [
+    "charge_time",
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "c1=1.5,c2=0.7:h2:T40",
+   "minutes": 41.89285600872707,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.028580859384009234,
+   "q30_over_q1": 0.9986184921929919,
+   "stratum": "T40",
+   "t_max_c": 49.701287656334785,
+   "t_max_charging_c": 49.701287656334785,
+   "t_max_non_charging_c": 45.75527818082992,
+   "v_max_v": 4.200000000000421,
+   "why": [
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "c1=1.5,c2=0.7:h4:T5",
+   "minutes": 61.317343880348055,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.0375013983202144,
+   "q30_over_q1": 0.997811233185329,
+   "stratum": "T5",
+   "t_max_c": 14.781322613514362,
+   "t_max_charging_c": 14.781322613514362,
+   "t_max_non_charging_c": 11.286626675492528,
+   "v_max_v": 4.2000000000014115,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=1.5,c2=0.7:h4:T15",
+   "minutes": 52.357138610716525,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.013313114352954824,
+   "q30_over_q1": 0.9984893062993874,
+   "stratum": "T15",
+   "t_max_c": 23.45720365458118,
+   "t_max_charging_c": 23.45720365458118,
+   "t_max_non_charging_c": 20.124733150947804,
+   "v_max_v": 4.200000000000655,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=1.5,c2=0.7:h4:T25",
+   "minutes": 47.39433709514997,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.006495921350475973,
+   "q30_over_q1": 0.998804413061704,
+   "stratum": "T25",
+   "t_max_c": 32.19073513244166,
+   "t_max_charging_c": 32.19073513244166,
+   "t_max_non_charging_c": 29.224916328620566,
+   "v_max_v": 4.200000000000443,
+   "why": [
+    "charge_time"
+   ]
+  },
+  {
+   "case_id": "c1=1.5,c2=0.7:h4:T35",
+   "minutes": 44.38462983060234,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.020138113276704003,
+   "q30_over_q1": 0.9988102896273452,
+   "stratum": "T35",
+   "t_max_c": 41.07621678978967,
+   "t_max_charging_c": 41.07621678978967,
+   "t_max_non_charging_c": 38.49855902263073,
+   "v_max_v": 4.200000000000219,
+   "why": [
+    "charge_time"
+   ]
+  },
+  {
+   "case_id": "c1=1.5,c2=0.7:h4:T40",
+   "minutes": 43.00773970973351,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.026618152710506934,
+   "q30_over_q1": 0.9987215032973573,
+   "stratum": "T40",
+   "t_max_c": 45.573576775276535,
+   "t_max_charging_c": 45.573576775276535,
+   "t_max_non_charging_c": 43.183741525875746,
+   "v_max_v": 4.200000000000591,
+   "why": [
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "c1=1.5,c2=1:h1:T5",
+   "minutes": 42.59150672340627,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.017852000565956688,
+   "q30_over_q1": 0.9987770135467002,
+   "stratum": "T5",
+   "t_max_c": 29.921096349284028,
+   "t_max_charging_c": 29.921096349284028,
+   "t_max_non_charging_c": 22.843149886458264,
+   "v_max_v": 4.20000000000196,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=1.5,c2=1:h1:T15",
+   "minutes": 38.42432658183986,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.0023650009406419713,
+   "q30_over_q1": 0.9988896637976097,
+   "stratum": "T15",
+   "t_max_c": 37.31664748112911,
+   "t_max_charging_c": 37.31664748112911,
+   "t_max_non_charging_c": 30.151876240849276,
+   "v_max_v": 4.200000000000982,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=1.5,c2=1:h1:T25",
+   "minutes": 36.228528434328986,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.008529284371989871,
+   "q30_over_q1": 0.9989148428284967,
+   "stratum": "T25",
+   "t_max_c": 44.702221310835284,
+   "t_max_charging_c": 44.702221310835284,
+   "t_max_non_charging_c": 37.82956118779481,
+   "v_max_v": 4.200000000000561,
+   "why": [
+    "charge_time"
+   ]
+  },
+  {
+   "case_id": "c1=1.5,c2=1:h1:T35",
+   "minutes": 35.086360239572485,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.02043535504067294,
+   "q30_over_q1": 0.9987590589373249,
+   "stratum": "T35",
+   "t_max_c": 52.20729367001235,
+   "t_max_charging_c": 52.20729367001235,
+   "t_max_non_charging_c": 45.828041675725956,
+   "v_max_v": 4.200000000000411,
+   "why": [
+    "charge_time",
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "c1=1.5,c2=1:h1:T40",
+   "minutes": 34.64668946001912,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.02510513426963045,
+   "q30_over_q1": 0.9986558180768155,
+   "stratum": "T40",
+   "t_max_c": 56.03496925012041,
+   "t_max_charging_c": 56.03496925012041,
+   "t_max_non_charging_c": 49.938769197566444,
+   "v_max_v": 4.200000000000303,
+   "why": [
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "c1=1.5,c2=1:h2:T5",
+   "minutes": 48.79463613717637,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.03521658257896803,
+   "q30_over_q1": 0.9980225539834474,
+   "stratum": "T5",
+   "t_max_c": 21.111115173442556,
+   "t_max_charging_c": 21.111115173442556,
+   "t_max_non_charging_c": 15.909398746413785,
+   "v_max_v": 4.200000000001735,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=1.5,c2=1:h2:T15",
+   "minutes": 41.29994412766598,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.015077267279364075,
+   "q30_over_q1": 0.9986204794733952,
+   "stratum": "T15",
+   "t_max_c": 29.259846659315713,
+   "t_max_charging_c": 29.259846659315713,
+   "t_max_non_charging_c": 24.069024742436795,
+   "v_max_v": 4.200000000001802,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=1.5,c2=1:h2:T25",
+   "minutes": 37.62984900978225,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.000300402361381706,
+   "q30_over_q1": 0.998868924260013,
+   "stratum": "T25",
+   "t_max_c": 37.31918635333102,
+   "t_max_charging_c": 37.31918635333102,
+   "t_max_non_charging_c": 32.56131885203018,
+   "v_max_v": 4.200000000001272,
+   "why": [
+    "charge_time"
+   ]
+  },
+  {
+   "case_id": "c1=1.5,c2=1:h2:T35",
+   "minutes": 35.738673851935104,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.012719777036982226,
+   "q30_over_q1": 0.9987530399674657,
+   "stratum": "T35",
+   "t_max_c": 45.522257778855646,
+   "t_max_charging_c": 45.522257778855646,
+   "t_max_non_charging_c": 41.303492294995124,
+   "v_max_v": 4.200000000000582,
+   "why": [
+    "charge_time",
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "c1=1.5,c2=1:h2:T40",
+   "minutes": 35.20312450381872,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.019413298427441578,
+   "q30_over_q1": 0.9987003283990138,
+   "stratum": "T40",
+   "t_max_c": 49.7008041999851,
+   "t_max_charging_c": 49.7008041999851,
+   "t_max_non_charging_c": 45.75201486093022,
+   "v_max_v": 4.20000000000042,
+   "why": [
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "c1=1.5,c2=1:h4:T5",
+   "minutes": 53.4459339640612,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.04723668029517165,
+   "q30_over_q1": 0.9974017191031165,
+   "stratum": "T5",
+   "t_max_c": 14.781924742265403,
+   "t_max_charging_c": 14.781924742265403,
+   "t_max_non_charging_c": 11.281127175788242,
+   "v_max_v": 4.200000000000912,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=1.5,c2=1:h4:T15",
+   "minutes": 43.891913928899235,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.023838647716002144,
+   "q30_over_q1": 0.9984759883039614,
+   "stratum": "T15",
+   "t_max_c": 23.457315921826762,
+   "t_max_charging_c": 23.457315921826762,
+   "t_max_non_charging_c": 20.121331749078763,
+   "v_max_v": 4.200000000001035,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=1.5,c2=1:h4:T25",
+   "minutes": 38.94750755232095,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.005103729096547005,
+   "q30_over_q1": 0.9987409183013014,
+   "stratum": "T25",
+   "t_max_c": 32.19056626004584,
+   "t_max_charging_c": 32.19056626004584,
+   "t_max_non_charging_c": 29.222838601825742,
+   "v_max_v": 4.20000000000144,
+   "why": [
+    "charge_time",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=1.5,c2=1:h4:T35",
+   "minutes": 36.416333244587165,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.008117846935081864,
+   "q30_over_q1": 0.9987621703346186,
+   "stratum": "T35",
+   "t_max_c": 41.075894022840714,
+   "t_max_charging_c": 41.075894022840714,
+   "t_max_non_charging_c": 38.49723099524789,
+   "v_max_v": 4.200000000000928,
+   "why": [
+    "charge_time"
+   ]
+  },
+  {
+   "case_id": "c1=1.5,c2=1:h4:T40",
+   "minutes": 35.690886123008234,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.015484838882741693,
+   "q30_over_q1": 0.9987570967893533,
+   "stratum": "T40",
+   "t_max_c": 45.573220450355734,
+   "t_max_charging_c": 45.573220450355734,
+   "t_max_non_charging_c": 43.182769911838705,
+   "v_max_v": 4.2000000000004984,
+   "why": [
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "c1=1.75,c2=0.4:h1:T5",
+   "minutes": 81.51230460484302,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.03807508563964495,
+   "q30_over_q1": 0.9984515888380052,
+   "stratum": "T5",
+   "t_max_c": 33.585990033499684,
+   "t_max_charging_c": 33.585990033499684,
+   "t_max_non_charging_c": 22.88290172075068,
+   "v_max_v": 4.2000000000002,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=1.75,c2=0.4:h1:T15",
+   "minutes": 71.93944150372265,
+   "outcome": "RESOLVED_FEASIBLE",
+   "plating_min_v": 0.004532632417436698,
+   "q30_over_q1": 0.9987014167605005,
+   "stratum": "T15",
+   "t_max_c": 41.012718802030975,
+   "t_max_charging_c": 41.012718802030975,
+   "t_max_non_charging_c": 30.18484727828445,
+   "v_max_v": 4.200000000000232,
+   "why": []
+  },
+  {
+   "case_id": "c1=1.75,c2=0.4:h1:T25",
+   "minutes": 64.56832972736724,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.02061187817190347,
+   "q30_over_q1": 0.9987595897450225,
+   "stratum": "T25",
+   "t_max_c": 48.30053714181878,
+   "t_max_charging_c": 48.30053714181878,
+   "t_max_non_charging_c": 37.85751082411082,
+   "v_max_v": 4.200000000000443,
+   "why": [
+    "charge_time",
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "c1=1.75,c2=0.4:h1:T35",
+   "minutes": 58.29502554480057,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.03579062115321477,
+   "q30_over_q1": 0.9986151901484377,
+   "stratum": "T35",
+   "t_max_c": 55.63884341649492,
+   "t_max_charging_c": 55.63884341649492,
+   "t_max_non_charging_c": 45.849160476531495,
+   "v_max_v": 4.20000000000093,
+   "why": [
+    "charge_time",
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "c1=1.75,c2=0.4:h1:T40",
+   "minutes": 55.632784180054664,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.042211299202777205,
+   "q30_over_q1": 0.998489674677347,
+   "stratum": "T40",
+   "t_max_c": 59.36867912369382,
+   "t_max_charging_c": 59.36867912369382,
+   "t_max_non_charging_c": 49.95610242115407,
+   "v_max_v": 4.200000000000484,
+   "why": [
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "c1=1.75,c2=0.4:h2:T5",
+   "minutes": 86.83587853586356,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.04228102334332382,
+   "q30_over_q1": 0.9982231241807912,
+   "stratum": "T5",
+   "t_max_c": 23.914606268540126,
+   "t_max_charging_c": 23.914606268540126,
+   "t_max_non_charging_c": 15.936410276808488,
+   "v_max_v": 4.200000000000534,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=1.75,c2=0.4:h2:T15",
+   "minutes": 76.89459427478552,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.007184617938899367,
+   "q30_over_q1": 0.9985989335140594,
+   "stratum": "T15",
+   "t_max_c": 32.24014688426223,
+   "t_max_charging_c": 32.24014688426223,
+   "t_max_non_charging_c": 24.089535051680627,
+   "v_max_v": 4.200000000000294,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=1.75,c2=0.4:h2:T25",
+   "minutes": 69.08513912495532,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.010160694904654925,
+   "q30_over_q1": 0.9988020786995719,
+   "stratum": "T25",
+   "t_max_c": 40.18885069597428,
+   "t_max_charging_c": 40.18885069597428,
+   "t_max_non_charging_c": 32.5767476505402,
+   "v_max_v": 4.200000000000372,
+   "why": [
+    "charge_time"
+   ]
+  },
+  {
+   "case_id": "c1=1.75,c2=0.4:h2:T35",
+   "minutes": 62.28226086514907,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.025796963087897046,
+   "q30_over_q1": 0.9986963216256939,
+   "stratum": "T35",
+   "t_max_c": 48.18207987698872,
+   "t_max_charging_c": 48.18207987698872,
+   "t_max_non_charging_c": 41.314651048681924,
+   "v_max_v": 4.200000000000989,
+   "why": [
+    "charge_time",
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "c1=1.75,c2=0.4:h2:T40",
+   "minutes": 59.14011205645613,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.03375993888688635,
+   "q30_over_q1": 0.9985708122463314,
+   "stratum": "T40",
+   "t_max_c": 52.242408623618644,
+   "t_max_charging_c": 52.242408623618644,
+   "t_max_non_charging_c": 45.76117900496615,
+   "v_max_v": 4.200000000000852,
+   "why": [
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "c1=1.75,c2=0.4:h4:T5",
+   "minutes": 91.59098227865269,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.05144888771712704,
+   "q30_over_q1": 0.9981071209228634,
+   "stratum": "T5",
+   "t_max_c": 16.772861225789768,
+   "t_max_charging_c": 16.772861225789768,
+   "t_max_non_charging_c": 11.296318543873042,
+   "v_max_v": 4.200000000000598,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=1.75,c2=0.4:h4:T15",
+   "minutes": 81.60421530278018,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.020942207036841357,
+   "q30_over_q1": 0.9985545417951157,
+   "stratum": "T15",
+   "t_max_c": 25.610236641486438,
+   "t_max_charging_c": 25.610236641486438,
+   "t_max_non_charging_c": 20.131418288724603,
+   "v_max_v": 4.200000000000152,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=1.75,c2=0.4:h4:T25",
+   "minutes": 73.47194459339964,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.0004194002205259008,
+   "q30_over_q1": 0.9987990624958196,
+   "stratum": "T25",
+   "t_max_c": 34.0999077291205,
+   "t_max_charging_c": 34.0999077291205,
+   "t_max_non_charging_c": 29.22925723759812,
+   "v_max_v": 4.200000000000527,
+   "why": [
+    "charge_time"
+   ]
+  },
+  {
+   "case_id": "c1=1.75,c2=0.4:h4:T35",
+   "minutes": 66.07854161991438,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.01673211249142531,
+   "q30_over_q1": 0.9987265424779025,
+   "stratum": "T35",
+   "t_max_c": 42.75696420163854,
+   "t_max_charging_c": 42.75696420163854,
+   "t_max_non_charging_c": 38.50103527264065,
+   "v_max_v": 4.200000000000586,
+   "why": [
+    "charge_time"
+   ]
+  },
+  {
+   "case_id": "c1=1.75,c2=0.4:h4:T40",
+   "minutes": 62.63567478600963,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.024637905194397992,
+   "q30_over_q1": 0.9986045182284428,
+   "stratum": "T40",
+   "t_max_c": 47.148240304740625,
+   "t_max_charging_c": 47.148240304740625,
+   "t_max_non_charging_c": 43.185618839454605,
+   "v_max_v": 4.20000000000095,
+   "why": [
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "c1=1.75,c2=0.7:h1:T5",
+   "minutes": 53.14042449130661,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.03807508563964495,
+   "q30_over_q1": 0.9985845608088028,
+   "stratum": "T5",
+   "t_max_c": 33.58174811564669,
+   "t_max_charging_c": 33.58174811564669,
+   "t_max_non_charging_c": 22.856193547833357,
+   "v_max_v": 4.200000000001277,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=1.75,c2=0.7:h1:T15",
+   "minutes": 46.69237401643988,
+   "outcome": "RESOLVED_FEASIBLE",
+   "plating_min_v": 0.0023330774291778185,
+   "q30_over_q1": 0.9988464634793395,
+   "stratum": "T15",
+   "t_max_c": 41.01074855476111,
+   "t_max_charging_c": 41.01074855476111,
+   "t_max_non_charging_c": 30.16237965790998,
+   "v_max_v": 4.2000000000008715,
+   "why": []
+  },
+  {
+   "case_id": "c1=1.75,c2=0.7:h1:T25",
+   "minutes": 43.14147987883221,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.015770628696192796,
+   "q30_over_q1": 0.9988646746642822,
+   "stratum": "T25",
+   "t_max_c": 48.29872742055653,
+   "t_max_charging_c": 48.29872742055653,
+   "t_max_non_charging_c": 37.83864253956642,
+   "v_max_v": 4.200000000000276,
+   "why": [
+    "charge_time",
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "c1=1.75,c2=0.7:h1:T35",
+   "minutes": 40.35334468657925,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.026915196597235225,
+   "q30_over_q1": 0.9987321068399845,
+   "stratum": "T35",
+   "t_max_c": 55.637458093548105,
+   "t_max_charging_c": 55.637458093548105,
+   "t_max_non_charging_c": 45.83502430023407,
+   "v_max_v": 4.200000000000421,
+   "why": [
+    "charge_time",
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "c1=1.75,c2=0.7:h1:T40",
+   "minutes": 39.170126302248626,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.03311627415859788,
+   "q30_over_q1": 0.9985638227079032,
+   "stratum": "T40",
+   "t_max_c": 59.36727228389492,
+   "t_max_charging_c": 59.36727228389492,
+   "t_max_non_charging_c": 49.9448175785202,
+   "v_max_v": 4.200000000000554,
+   "why": [
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "c1=1.75,c2=0.7:h2:T5",
+   "minutes": 58.263195249942456,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.04228102334332382,
+   "q30_over_q1": 0.9981447849517925,
+   "stratum": "T5",
+   "t_max_c": 23.9136420569817,
+   "t_max_charging_c": 23.9136420569817,
+   "t_max_non_charging_c": 15.918053018481203,
+   "v_max_v": 4.200000000001385,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=1.75,c2=0.7:h2:T15",
+   "minutes": 49.74624784663397,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.007184617938899367,
+   "q30_over_q1": 0.99860581448452,
+   "stratum": "T15",
+   "t_max_c": 32.239211017486014,
+   "t_max_charging_c": 32.239211017486014,
+   "t_max_non_charging_c": 24.07510488585882,
+   "v_max_v": 4.200000000000807,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=1.75,c2=0.7:h2:T25",
+   "minutes": 45.14922934242668,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.009782973227449811,
+   "q30_over_q1": 0.9988179912188265,
+   "stratum": "T25",
+   "t_max_c": 40.18719548236504,
+   "t_max_charging_c": 40.18719548236504,
+   "t_max_non_charging_c": 32.56575106921014,
+   "v_max_v": 4.200000000000383,
+   "why": [
+    "charge_time"
+   ]
+  },
+  {
+   "case_id": "c1=1.75,c2=0.7:h2:T35",
+   "minutes": 42.1254492733982,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.02203831738883459,
+   "q30_over_q1": 0.9988042113155874,
+   "stratum": "T35",
+   "t_max_c": 48.17998027823677,
+   "t_max_charging_c": 48.17998027823677,
+   "t_max_non_charging_c": 41.307101093827555,
+   "v_max_v": 4.20000000000024,
+   "why": [
+    "charge_time",
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "c1=1.75,c2=0.7:h2:T40",
+   "minutes": 40.72893869176025,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.02848958563268673,
+   "q30_over_q1": 0.9986437922334789,
+   "stratum": "T40",
+   "t_max_c": 52.24019046967436,
+   "t_max_charging_c": 52.24019046967436,
+   "t_max_non_charging_c": 45.75502692668135,
+   "v_max_v": 4.200000000000614,
+   "why": [
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "c1=1.75,c2=0.7:h4:T5",
+   "minutes": 62.19263263643531,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.05144888771712704,
+   "q30_over_q1": 0.9977968141351561,
+   "stratum": "T5",
+   "t_max_c": 16.772968260330913,
+   "t_max_charging_c": 16.772968260330913,
+   "t_max_non_charging_c": 11.286330669425297,
+   "v_max_v": 4.20000000000078,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=1.75,c2=0.7:h4:T15",
+   "minutes": 52.4935442579171,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.020942207036841357,
+   "q30_over_q1": 0.9985016895046002,
+   "stratum": "T15",
+   "t_max_c": 25.60966703294787,
+   "t_max_charging_c": 25.60966703294787,
+   "t_max_non_charging_c": 20.124464040517353,
+   "v_max_v": 4.200000000000966,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=1.75,c2=0.7:h4:T25",
+   "minutes": 47.15733099043167,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.0004194002205259008,
+   "q30_over_q1": 0.9988249272573334,
+   "stratum": "T25",
+   "t_max_c": 34.098387984772444,
+   "t_max_charging_c": 34.098387984772444,
+   "t_max_non_charging_c": 29.22473103578693,
+   "v_max_v": 4.200000000000787,
+   "why": [
+    "charge_time"
+   ]
+  },
+  {
+   "case_id": "c1=1.75,c2=0.7:h4:T35",
+   "minutes": 43.81268516440719,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.01673211249142531,
+   "q30_over_q1": 0.9987883710129178,
+   "stratum": "T35",
+   "t_max_c": 42.755089568276276,
+   "t_max_charging_c": 42.755089568276276,
+   "t_max_non_charging_c": 38.49843376480737,
+   "v_max_v": 4.200000000000367,
+   "why": [
+    "charge_time"
+   ]
+  },
+  {
+   "case_id": "c1=1.75,c2=0.7:h4:T40",
+   "minutes": 42.28252212711604,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.024637905194397992,
+   "q30_over_q1": 0.9987635303897079,
+   "stratum": "T40",
+   "t_max_c": 47.14627075581603,
+   "t_max_charging_c": 47.14627075581603,
+   "t_max_non_charging_c": 43.18364830444881,
+   "v_max_v": 4.200000000000632,
+   "why": [
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "c1=1.75,c2=1:h1:T5",
+   "minutes": 42.02044462457541,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.03807508563964495,
+   "q30_over_q1": 0.9988037935087749,
+   "stratum": "T5",
+   "t_max_c": 33.5796512753634,
+   "t_max_charging_c": 33.5796512753634,
+   "t_max_non_charging_c": 22.84049309947119,
+   "v_max_v": 4.200000000002007,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=1.75,c2=1:h1:T15",
+   "minutes": 37.22615529802799,
+   "outcome": "REFERENCE_UNRESOLVED",
+   "plating_min_v": -0.0019440426694680916,
+   "q30_over_q1": 0.9989231048294612,
+   "stratum": "T15",
+   "t_max_c": 41.00978741360751,
+   "t_max_charging_c": 41.00978741360751,
+   "t_max_non_charging_c": 30.15019404688877,
+   "v_max_v": 4.200000000001035,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=1.75,c2=1:h1:T25",
+   "minutes": 34.66166831523056,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.008968071005652575,
+   "q30_over_q1": 0.9989169620960298,
+   "stratum": "T25",
+   "t_max_c": 48.29786842206062,
+   "t_max_charging_c": 48.29786842206062,
+   "t_max_non_charging_c": 37.82860028502836,
+   "v_max_v": 4.200000000000983,
+   "why": [
+    "charge_time",
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "c1=1.75,c2=1:h1:T35",
+   "minutes": 33.176672343290164,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.020785483537235,
+   "q30_over_q1": 0.998768828966688,
+   "stratum": "T35",
+   "t_max_c": 55.636884211535346,
+   "t_max_charging_c": 55.636884211535346,
+   "t_max_non_charging_c": 45.82769478435756,
+   "v_max_v": 4.200000000000323,
+   "why": [
+    "charge_time",
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "c1=1.75,c2=1:h1:T40",
+   "minutes": 32.58506315112475,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.02525729504563711,
+   "q30_over_q1": 0.9986469524963646,
+   "stratum": "T40",
+   "t_max_c": 59.36669048161485,
+   "t_max_charging_c": 59.36669048161485,
+   "t_max_non_charging_c": 49.93872507437368,
+   "v_max_v": 4.200000000000424,
+   "why": [
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "c1=1.75,c2=1:h2:T5",
+   "minutes": 48.48746668442222,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.04228102334332382,
+   "q30_over_q1": 0.9979168314930219,
+   "stratum": "T5",
+   "t_max_c": 23.913117803342402,
+   "t_max_charging_c": 23.913117803342402,
+   "t_max_non_charging_c": 15.907538897588609,
+   "v_max_v": 4.20000000000129,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=1.75,c2=1:h2:T15",
+   "minutes": 40.38264835198668,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.01516559705352801,
+   "q30_over_q1": 0.9986244877184917,
+   "stratum": "T15",
+   "t_max_c": 32.23892952880328,
+   "t_max_charging_c": 32.23892952880328,
+   "t_max_non_charging_c": 24.0677076911482,
+   "v_max_v": 4.200000000001749,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=1.75,c2=1:h2:T25",
+   "minutes": 36.29548115491089,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.0004839164836090103,
+   "q30_over_q1": 0.9988253630021179,
+   "stratum": "T25",
+   "t_max_c": 40.186717669805205,
+   "t_max_charging_c": 40.186717669805205,
+   "t_max_non_charging_c": 32.560424031956074,
+   "v_max_v": 4.200000000001099,
+   "why": [
+    "charge_time"
+   ]
+  },
+  {
+   "case_id": "c1=1.75,c2=1:h2:T35",
+   "minutes": 34.07426922167749,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.0127736219666784,
+   "q30_over_q1": 0.998754262061114,
+   "stratum": "T35",
+   "t_max_c": 48.1793520289923,
+   "t_max_charging_c": 48.1793520289923,
+   "t_max_non_charging_c": 41.30291027683472,
+   "v_max_v": 4.200000000000665,
+   "why": [
+    "charge_time",
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "c1=1.75,c2=1:h2:T40",
+   "minutes": 33.36446934587908,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.019260625888175547,
+   "q30_over_q1": 0.9987154311898291,
+   "stratum": "T40",
+   "t_max_c": 52.23951252615086,
+   "t_max_charging_c": 52.23951252615086,
+   "t_max_non_charging_c": 45.75160437096753,
+   "v_max_v": 4.200000000000313,
+   "why": [
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "c1=1.75,c2=1:h4:T5",
+   "minutes": 53.373566049927184,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.05144888771712704,
+   "q30_over_q1": 0.997354729019079,
+   "stratum": "T5",
+   "t_max_c": 16.77305691000271,
+   "t_max_charging_c": 16.77305691000271,
+   "t_max_non_charging_c": 11.280464150253522,
+   "v_max_v": 4.200000000001435,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=1.75,c2=1:h4:T15",
+   "minutes": 43.23930124536576,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.024100997310380155,
+   "q30_over_q1": 0.9985285666303568,
+   "stratum": "T15",
+   "t_max_c": 25.609753401950684,
+   "t_max_charging_c": 25.609753401950684,
+   "t_max_non_charging_c": 20.12083222106105,
+   "v_max_v": 4.200000000001136,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=1.75,c2=1:h4:T25",
+   "minutes": 37.90530927543854,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.005221740673084495,
+   "q30_over_q1": 0.9987550977771907,
+   "stratum": "T25",
+   "t_max_c": 34.098062140789295,
+   "t_max_charging_c": 34.098062140789295,
+   "t_max_non_charging_c": 29.22248041716773,
+   "v_max_v": 4.200000000001301,
+   "why": [
+    "charge_time",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=1.75,c2=1:h4:T35",
+   "minutes": 35.030011559954936,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.008030150195142208,
+   "q30_over_q1": 0.9987607093569658,
+   "stratum": "T35",
+   "t_max_c": 42.75455925818403,
+   "t_max_charging_c": 42.75455925818403,
+   "t_max_non_charging_c": 38.49701391556249,
+   "v_max_v": 4.200000000001412,
+   "why": [
+    "charge_time"
+   ]
+  },
+  {
+   "case_id": "c1=1.75,c2=1:h4:T40",
+   "minutes": 34.141261063557195,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.015570238383150328,
+   "q30_over_q1": 0.9987606208115046,
+   "stratum": "T40",
+   "t_max_c": 47.145691452747826,
+   "t_max_charging_c": 47.145691452747826,
+   "t_max_non_charging_c": 43.18260521342273,
+   "v_max_v": 4.2000000000004505,
+   "why": [
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "c1=2,c2=0.4:h1:T5",
+   "minutes": 86.54450642626412,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.06170836654561085,
+   "q30_over_q1": 0.9984022010312747,
+   "stratum": "T5",
+   "t_max_c": 36.81227109744816,
+   "t_max_charging_c": 36.81227109744816,
+   "t_max_non_charging_c": 22.88191773969629,
+   "v_max_v": 4.200000000000221,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=2,c2=0.4:h1:T15",
+   "minutes": 74.04628614264955,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.009665299383122185,
+   "q30_over_q1": 0.998677652231581,
+   "stratum": "T15",
+   "t_max_c": 44.375276794310025,
+   "t_max_charging_c": 44.375276794310025,
+   "t_max_non_charging_c": 30.18415735492721,
+   "v_max_v": 4.200000000000198,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=2,c2=0.4:h1:T25",
+   "minutes": 65.86745346955892,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.016483007421622363,
+   "q30_over_q1": 0.9987455434134199,
+   "stratum": "T25",
+   "t_max_c": 51.629682444683,
+   "t_max_charging_c": 51.629682444683,
+   "t_max_non_charging_c": 37.857100018384585,
+   "v_max_v": 4.2000000000004984,
+   "why": [
+    "charge_time",
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "c1=2,c2=0.4:h1:T35",
+   "minutes": 59.17189961920514,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.03195521337430732,
+   "q30_over_q1": 0.9986042654974316,
+   "stratum": "T35",
+   "t_max_c": 58.86259241298052,
+   "t_max_charging_c": 58.86259241298052,
+   "t_max_non_charging_c": 45.84918792801352,
+   "v_max_v": 4.2000000000006406,
+   "why": [
+    "charge_time",
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "c1=2,c2=0.4:h1:T40",
+   "minutes": 56.25857464297498,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.03887025521645495,
+   "q30_over_q1": 0.9984790369506438,
+   "stratum": "T40",
+   "t_max_c": 62.51574803622884,
+   "t_max_charging_c": 62.51574803622884,
+   "t_max_non_charging_c": 49.956286429705415,
+   "v_max_v": 4.200000000000628,
+   "why": [
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "c1=2,c2=0.4:h2:T5",
+   "minutes": 92.08224754936057,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.06506371566391264,
+   "q30_over_q1": 0.998169367320878,
+   "stratum": "T5",
+   "t_max_c": 26.198418310848865,
+   "t_max_charging_c": 26.198418310848865,
+   "t_max_non_charging_c": 15.936193270436775,
+   "v_max_v": 4.200000000000352,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=2,c2=0.4:h2:T15",
+   "minutes": 79.06026396434831,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.015050283764097297,
+   "q30_over_q1": 0.9985808530762528,
+   "stratum": "T15",
+   "t_max_c": 35.01580330576121,
+   "t_max_charging_c": 35.01580330576121,
+   "t_max_non_charging_c": 24.089362094040666,
+   "v_max_v": 4.200000000000152,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=2,c2=0.4:h2:T25",
+   "minutes": 70.62451642880676,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.0060677592069339654,
+   "q30_over_q1": 0.9987949792092072,
+   "stratum": "T25",
+   "t_max_c": 42.96202263870299,
+   "t_max_charging_c": 42.96202263870299,
+   "t_max_non_charging_c": 32.57663594387566,
+   "v_max_v": 4.200000000000298,
+   "why": [
+    "charge_time"
+   ]
+  },
+  {
+   "case_id": "c1=2,c2=0.4:h2:T35",
+   "minutes": 63.479199233201165,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.02141243071647862,
+   "q30_over_q1": 0.9986903154370201,
+   "stratum": "T35",
+   "t_max_c": 50.818563031225096,
+   "t_max_charging_c": 50.818563031225096,
+   "t_max_non_charging_c": 41.31455437330561,
+   "v_max_v": 4.200000000000533,
+   "why": [
+    "charge_time",
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "c1=2,c2=0.4:h2:T40",
+   "minutes": 60.236765822571435,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.02903361295593655,
+   "q30_over_q1": 0.9985651392225313,
+   "stratum": "T40",
+   "t_max_c": 54.785934335637194,
+   "t_max_charging_c": 54.785934335637194,
+   "t_max_non_charging_c": 45.761128921258376,
+   "v_max_v": 4.200000000000909,
+   "why": [
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "c1=2,c2=0.4:h4:T5",
+   "minutes": 96.46958666293378,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.07098883789520265,
+   "q30_over_q1": 0.9979668804804985,
+   "stratum": "T5",
+   "t_max_c": 18.323949026994796,
+   "t_max_charging_c": 18.323949026994796,
+   "t_max_non_charging_c": 11.296879361308129,
+   "v_max_v": 4.2000000000005855,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=2,c2=0.4:h4:T15",
+   "minutes": 84.0424711838139,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.028646100968868694,
+   "q30_over_q1": 0.9985448149075056,
+   "stratum": "T15",
+   "t_max_c": 27.69739219458006,
+   "t_max_charging_c": 27.69739219458006,
+   "t_max_non_charging_c": 20.131536656774642,
+   "v_max_v": 4.200000000000176,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=2,c2=0.4:h4:T25",
+   "minutes": 75.48952171558409,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.00577616139814686,
+   "q30_over_q1": 0.9987856333819665,
+   "stratum": "T25",
+   "t_max_c": 36.1084080870898,
+   "t_max_charging_c": 36.1084080870898,
+   "t_max_non_charging_c": 29.22932129276097,
+   "v_max_v": 4.200000000000523,
+   "why": [
+    "charge_time",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=2,c2=0.4:h4:T35",
+   "minutes": 67.81902580236019,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.01129739119772798,
+   "q30_over_q1": 0.9987211048626906,
+   "stratum": "T35",
+   "t_max_c": 44.53666077053026,
+   "t_max_charging_c": 44.53666077053026,
+   "t_max_non_charging_c": 38.50106514742146,
+   "v_max_v": 4.200000000000543,
+   "why": [
+    "charge_time"
+   ]
+  },
+  {
+   "case_id": "c1=2,c2=0.4:h4:T40",
+   "minutes": 64.19492144159742,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.019626449662947895,
+   "q30_over_q1": 0.998597894200856,
+   "stratum": "T40",
+   "t_max_c": 48.8231815630819,
+   "t_max_charging_c": 48.8231815630819,
+   "t_max_non_charging_c": 43.18563739991072,
+   "v_max_v": 4.200000000000922,
+   "why": [
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "c1=2,c2=0.7:h1:T5",
+   "minutes": 55.05840108956711,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.06170836654561085,
+   "q30_over_q1": 0.9986057706120318,
+   "stratum": "T5",
+   "t_max_c": 36.80653456660559,
+   "t_max_charging_c": 36.80653456660559,
+   "t_max_non_charging_c": 22.854357202067376,
+   "v_max_v": 4.200000000001266,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=2,c2=0.7:h1:T15",
+   "minutes": 46.984251190011626,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.009665299383122185,
+   "q30_over_q1": 0.9988584076271119,
+   "stratum": "T15",
+   "t_max_c": 44.37215549909331,
+   "t_max_charging_c": 44.37215549909331,
+   "t_max_non_charging_c": 30.161154715354883,
+   "v_max_v": 4.200000000000667,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=2,c2=0.7:h1:T25",
+   "minutes": 42.90274625372383,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.015591071867776916,
+   "q30_over_q1": 0.9988633287655683,
+   "stratum": "T25",
+   "t_max_c": 51.62775372361813,
+   "t_max_charging_c": 51.62775372361813,
+   "t_max_non_charging_c": 37.83794462438044,
+   "v_max_v": 4.200000000000253,
+   "why": [
+    "charge_time",
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "c1=2,c2=0.7:h1:T35",
+   "minutes": 39.79409625177296,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.026867995630603773,
+   "q30_over_q1": 0.9987211765745756,
+   "stratum": "T35",
+   "t_max_c": 58.861451897515565,
+   "t_max_charging_c": 58.861451897515565,
+   "t_max_non_charging_c": 45.83505186389124,
+   "v_max_v": 4.200000000000395,
+   "why": [
+    "charge_time",
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "c1=2,c2=0.7:h1:T40",
+   "minutes": 38.44148108423828,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.033188364460055186,
+   "q30_over_q1": 0.9985636316862581,
+   "stratum": "T40",
+   "t_max_c": 62.514967918763375,
+   "t_max_charging_c": 62.514967918763375,
+   "t_max_non_charging_c": 49.945023887542845,
+   "v_max_v": 4.2000000000004825,
+   "why": [
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "c1=2,c2=0.7:h2:T5",
+   "minutes": 60.326672846133334,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.06506371566391264,
+   "q30_over_q1": 0.9981361235877377,
+   "stratum": "T5",
+   "t_max_c": 26.196849813586482,
+   "t_max_charging_c": 26.196849813586482,
+   "t_max_non_charging_c": 15.91713184389954,
+   "v_max_v": 4.200000000001239,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=2,c2=0.7:h2:T15",
+   "minutes": 50.15809399022966,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.015050283764097297,
+   "q30_over_q1": 0.9985980976960926,
+   "stratum": "T15",
+   "t_max_c": 35.01517139467478,
+   "t_max_charging_c": 35.01517139467478,
+   "t_max_non_charging_c": 24.07435131448193,
+   "v_max_v": 4.200000000000584,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=2,c2=0.7:h2:T25",
+   "minutes": 45.111894522945676,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.0060677592069339654,
+   "q30_over_q1": 0.9988279166418026,
+   "stratum": "T25",
+   "t_max_c": 42.96020423231403,
+   "t_max_charging_c": 42.96020423231403,
+   "t_max_non_charging_c": 32.565243111370705,
+   "v_max_v": 4.200000000000372,
+   "why": [
+    "charge_time"
+   ]
+  },
+  {
+   "case_id": "c1=2,c2=0.7:h2:T35",
+   "minutes": 41.79391392970228,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.02141243071647862,
+   "q30_over_q1": 0.9987783409453054,
+   "stratum": "T35",
+   "t_max_c": 50.81643636649409,
+   "t_max_charging_c": 50.81643636649409,
+   "t_max_non_charging_c": 41.30678860000262,
+   "v_max_v": 4.200000000000253,
+   "why": [
+    "charge_time",
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "c1=2,c2=0.7:h2:T40",
+   "minutes": 40.288498417619536,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.02838685543410773,
+   "q30_over_q1": 0.9986725424932914,
+   "stratum": "T40",
+   "t_max_c": 54.78363368176082,
+   "t_max_charging_c": 54.78363368176082,
+   "t_max_non_charging_c": 45.75482785507728,
+   "v_max_v": 4.200000000000614,
+   "why": [
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "c1=2,c2=0.7:h4:T5",
+   "minutes": 64.15306398816192,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.07098883789520265,
+   "q30_over_q1": 0.9978384202837891,
+   "stratum": "T5",
+   "t_max_c": 18.324130328003037,
+   "t_max_charging_c": 18.324130328003037,
+   "t_max_non_charging_c": 11.286534701987591,
+   "v_max_v": 4.200000000001214,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=2,c2=0.7:h4:T15",
+   "minutes": 53.12345709034475,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.028646100968868694,
+   "q30_over_q1": 0.9985047053894078,
+   "stratum": "T15",
+   "t_max_c": 27.69701806252516,
+   "t_max_charging_c": 27.69701806252516,
+   "t_max_non_charging_c": 20.124302443997465,
+   "v_max_v": 4.2000000000006725,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=2,c2=0.7:h4:T25",
+   "minutes": 47.429758271399216,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.00577616139814686,
+   "q30_over_q1": 0.9988369595619687,
+   "stratum": "T25",
+   "t_max_c": 36.10602357104028,
+   "t_max_charging_c": 36.10602357104028,
+   "t_max_non_charging_c": 29.224614872125983,
+   "v_max_v": 4.200000000000419,
+   "why": [
+    "charge_time",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=2,c2=0.7:h4:T35",
+   "minutes": 43.808833408238456,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.01129739119772798,
+   "q30_over_q1": 0.9987763875448256,
+   "stratum": "T35",
+   "t_max_c": 44.533809359675104,
+   "t_max_charging_c": 44.533809359675104,
+   "t_max_non_charging_c": 38.49834059379128,
+   "v_max_v": 4.200000000000424,
+   "why": [
+    "charge_time"
+   ]
+  },
+  {
+   "case_id": "c1=2,c2=0.7:h4:T40",
+   "minutes": 42.126213526458066,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.019626449662947895,
+   "q30_over_q1": 0.9987869808864093,
+   "stratum": "T40",
+   "t_max_c": 48.820216800732,
+   "t_max_charging_c": 48.820216800732,
+   "t_max_non_charging_c": 43.1835885671681,
+   "v_max_v": 4.2000000000003705,
+   "why": [
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "c1=2,c2=1:h1:T5",
+   "minutes": 42.65658376150178,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.06170836654561085,
+   "q30_over_q1": 0.9988107275906966,
+   "stratum": "T5",
+   "t_max_c": 36.8030636095537,
+   "t_max_charging_c": 36.8030636095537,
+   "t_max_non_charging_c": 22.83822038514046,
+   "v_max_v": 4.200000000000951,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=2,c2=1:h1:T15",
+   "minutes": 36.763503505066986,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.009665299383122185,
+   "q30_over_q1": 0.9989575876554406,
+   "stratum": "T15",
+   "t_max_c": 44.37058140372875,
+   "t_max_charging_c": 44.37058140372875,
+   "t_max_non_charging_c": 30.148801728968465,
+   "v_max_v": 4.20000000000127,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=2,c2=1:h1:T25",
+   "minutes": 33.80012685533485,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.009162242102623987,
+   "q30_over_q1": 0.9989159109322533,
+   "stratum": "T25",
+   "t_max_c": 51.626698845839826,
+   "t_max_charging_c": 51.626698845839826,
+   "t_max_non_charging_c": 37.82788843026469,
+   "v_max_v": 4.200000000001213,
+   "why": [
+    "charge_time",
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "c1=2,c2=1:h1:T35",
+   "minutes": 32.04297490480056,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.020958240233411064,
+   "q30_over_q1": 0.9987716697426964,
+   "stratum": "T35",
+   "t_max_c": 58.860835693309696,
+   "t_max_charging_c": 58.860835693309696,
+   "t_max_non_charging_c": 45.82749468582159,
+   "v_max_v": 4.200000000000362,
+   "why": [
+    "charge_time",
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "c1=2,c2=1:h1:T40",
+   "minutes": 31.314643660743275,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.02548651047307012,
+   "q30_over_q1": 0.9986395502335731,
+   "stratum": "T40",
+   "t_max_c": 62.5145018549743,
+   "t_max_charging_c": 62.5145018549743,
+   "t_max_non_charging_c": 49.938815632174794,
+   "v_max_v": 4.200000000000557,
+   "why": [
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "c1=2,c2=1:h2:T5",
+   "minutes": 49.279021693597116,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.06506371566391264,
+   "q30_over_q1": 0.9977908384486699,
+   "stratum": "T5",
+   "t_max_c": 26.19591273345776,
+   "t_max_charging_c": 26.19591273345776,
+   "t_max_non_charging_c": 15.906189629093205,
+   "v_max_v": 4.2000000000020705,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=2,c2=1:h2:T15",
+   "minutes": 40.08478332120917,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.015533727190216616,
+   "q30_over_q1": 0.9986378096077766,
+   "stratum": "T15",
+   "t_max_c": 35.014992908774104,
+   "t_max_charging_c": 35.014992908774104,
+   "t_max_non_charging_c": 24.066662419413433,
+   "v_max_v": 4.200000000001455,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=2,c2=1:h2:T25",
+   "minutes": 35.62335316711936,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.0004889501700921729,
+   "q30_over_q1": 0.9988157516046143,
+   "stratum": "T25",
+   "t_max_c": 42.95964046789334,
+   "t_max_charging_c": 42.95964046789334,
+   "t_max_non_charging_c": 32.55970733103095,
+   "v_max_v": 4.200000000000891,
+   "why": [
+    "charge_time"
+   ]
+  },
+  {
+   "case_id": "c1=2,c2=1:h2:T35",
+   "minutes": 33.13111497081347,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.012676268180861042,
+   "q30_over_q1": 0.9987644410799061,
+   "stratum": "T35",
+   "t_max_c": 50.81576258324611,
+   "t_max_charging_c": 50.81576258324611,
+   "t_max_non_charging_c": 41.30244731871113,
+   "v_max_v": 4.200000000000797,
+   "why": [
+    "charge_time",
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "c1=2,c2=1:h2:T40",
+   "minutes": 32.30919145564177,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.019043490777619226,
+   "q30_over_q1": 0.9987283599147412,
+   "stratum": "T40",
+   "t_max_c": 54.782855904529015,
+   "t_max_charging_c": 54.782855904529015,
+   "t_max_non_charging_c": 45.75127165885954,
+   "v_max_v": 4.20000000000046,
+   "why": [
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "c1=2,c2=1:h4:T5",
+   "minutes": 54.14115317837342,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.07098883789520265,
+   "q30_over_q1": 0.9972541216696341,
+   "stratum": "T5",
+   "t_max_c": 18.32430198212387,
+   "t_max_charging_c": 18.32430198212387,
+   "t_max_non_charging_c": 11.280333470548442,
+   "v_max_v": 4.200000000001026,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=2,c2=1:h4:T15",
+   "minutes": 43.13918956518626,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.028646100968868694,
+   "q30_over_q1": 0.9985619152519388,
+   "stratum": "T15",
+   "t_max_c": 27.697112665263205,
+   "t_max_charging_c": 27.697112665263205,
+   "t_max_non_charging_c": 20.12048020492921,
+   "v_max_v": 4.200000000001466,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=2,c2=1:h4:T25",
+   "minutes": 37.474212394478045,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.00577616139814686,
+   "q30_over_q1": 0.9987806978928633,
+   "stratum": "T25",
+   "t_max_c": 36.10546862855051,
+   "t_max_charging_c": 36.10546862855051,
+   "t_max_non_charging_c": 29.222235817839305,
+   "v_max_v": 4.200000000000913,
+   "why": [
+    "charge_time",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "c1=2,c2=1:h4:T35",
+   "minutes": 34.329674587555665,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.008001188190947526,
+   "q30_over_q1": 0.9987451775254346,
+   "stratum": "T35",
+   "t_max_c": 44.53298187061256,
+   "t_max_charging_c": 44.53298187061256,
+   "t_max_non_charging_c": 38.49685354092077,
+   "v_max_v": 4.200000000001378,
+   "why": [
+    "charge_time"
+   ]
+  },
+  {
+   "case_id": "c1=2,c2=1:h4:T40",
+   "minutes": 33.29873036039964,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.015518594942893307,
+   "q30_over_q1": 0.9987381177904986,
+   "stratum": "T40",
+   "t_max_c": 48.819319782292496,
+   "t_max_charging_c": 48.819319782292496,
+   "t_max_non_charging_c": 43.182492390318146,
+   "v_max_v": 4.200000000000497,
+   "why": [
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1,sv=4:h1:T25",
+   "minutes": 36.228528434328986,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.008529284371989871,
+   "q30_over_q1": 0.9989148428284967,
+   "stratum": "T25",
+   "t_max_c": 44.702221310835284,
+   "t_max_charging_c": 44.702221310835284,
+   "t_max_non_charging_c": 37.82956118779481,
+   "v_max_v": 4.200000000000561,
+   "why": [
+    "charge_time"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1,sv=4:h1:T35",
+   "minutes": 35.086360239572485,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.02043535504067294,
+   "q30_over_q1": 0.9987590589373249,
+   "stratum": "T35",
+   "t_max_c": 52.20729367001235,
+   "t_max_charging_c": 52.20729367001235,
+   "t_max_non_charging_c": 45.828041675725956,
+   "v_max_v": 4.200000000000411,
+   "why": [
+    "charge_time",
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1,sv=4:h2:T25",
+   "minutes": 37.62984900978225,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.000300402361381706,
+   "q30_over_q1": 0.998868924260013,
+   "stratum": "T25",
+   "t_max_c": 37.31918635333102,
+   "t_max_charging_c": 37.31918635333102,
+   "t_max_non_charging_c": 32.56131885203018,
+   "v_max_v": 4.200000000001272,
+   "why": [
+    "charge_time"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1,sv=4:h2:T35",
+   "minutes": 35.738673851935104,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.012719777036982226,
+   "q30_over_q1": 0.9987530399674657,
+   "stratum": "T35",
+   "t_max_c": 45.522257778855646,
+   "t_max_charging_c": 45.522257778855646,
+   "t_max_non_charging_c": 41.303492294995124,
+   "v_max_v": 4.200000000000582,
+   "why": [
+    "charge_time",
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1,sv=4:h4:T25",
+   "minutes": 38.94750755232095,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.005103729096547005,
+   "q30_over_q1": 0.9987409183013014,
+   "stratum": "T25",
+   "t_max_c": 32.19056626004584,
+   "t_max_charging_c": 32.19056626004584,
+   "t_max_non_charging_c": 29.222838601825742,
+   "v_max_v": 4.20000000000144,
+   "why": [
+    "charge_time",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1,sv=4:h4:T35",
+   "minutes": 36.416333244587165,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.008117846935081864,
+   "q30_over_q1": 0.9987621703346186,
+   "stratum": "T35",
+   "t_max_c": 41.075894022840714,
+   "t_max_charging_c": 41.075894022840714,
+   "t_max_non_charging_c": 38.49723099524789,
+   "v_max_v": 4.200000000000928,
+   "why": [
+    "charge_time"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1,sv=4.05:h1:T25",
+   "minutes": 34.8649355005019,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.009586030103557151,
+   "q30_over_q1": 0.9989204716111697,
+   "stratum": "T25",
+   "t_max_c": 45.07532306804052,
+   "t_max_charging_c": 45.07532306804052,
+   "t_max_non_charging_c": 37.82839984471502,
+   "v_max_v": 4.200000000000671,
+   "why": [
+    "charge_time"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1,sv=4.05:h1:T35",
+   "minutes": 33.80346568587864,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.02105469121685792,
+   "q30_over_q1": 0.99876509132734,
+   "stratum": "T35",
+   "t_max_c": 52.52155295898535,
+   "t_max_charging_c": 52.52155295898535,
+   "t_max_non_charging_c": 45.82690011840123,
+   "v_max_v": 4.2000000000003155,
+   "why": [
+    "charge_time",
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1,sv=4.05:h2:T25",
+   "minutes": 36.42949542272616,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.0007591145869893842,
+   "q30_over_q1": 0.9988316168347141,
+   "stratum": "T25",
+   "t_max_c": 37.39091803264557,
+   "t_max_charging_c": 37.39091803264557,
+   "t_max_non_charging_c": 32.56066670347883,
+   "v_max_v": 4.200000000001095,
+   "why": [
+    "charge_time"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1,sv=4.05:h2:T35",
+   "minutes": 34.49918909368138,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.012916900362146514,
+   "q30_over_q1": 0.9987530411223158,
+   "stratum": "T35",
+   "t_max_c": 45.60724460935643,
+   "t_max_charging_c": 45.60724460935643,
+   "t_max_non_charging_c": 41.30294930125797,
+   "v_max_v": 4.200000000000738,
+   "why": [
+    "charge_time",
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1,sv=4.05:h4:T25",
+   "minutes": 37.89041543762843,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.005109287994515008,
+   "q30_over_q1": 0.9987546424464699,
+   "stratum": "T25",
+   "t_max_c": 32.19054441747414,
+   "t_max_charging_c": 32.19054441747414,
+   "t_max_non_charging_c": 29.222539915603875,
+   "v_max_v": 4.200000000001266,
+   "why": [
+    "charge_time",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1,sv=4.05:h4:T35",
+   "minutes": 35.231718751475604,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.008006158985863345,
+   "q30_over_q1": 0.9987651297909483,
+   "stratum": "T35",
+   "t_max_c": 41.07585643811734,
+   "t_max_charging_c": 41.07585643811734,
+   "t_max_non_charging_c": 38.497059885033934,
+   "v_max_v": 4.200000000000761,
+   "why": [
+    "charge_time"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1,sv=4.1:h1:T25",
+   "minutes": 33.562600728280685,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.0106840578601214,
+   "q30_over_q1": 0.998928267166171,
+   "stratum": "T25",
+   "t_max_c": 45.41090482815474,
+   "t_max_charging_c": 45.41090482815474,
+   "t_max_non_charging_c": 37.826521541516115,
+   "v_max_v": 4.200000000000715,
+   "why": [
+    "charge_time"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1,sv=4.1:h1:T35",
+   "minutes": 32.64845753348786,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.02165552067730271,
+   "q30_over_q1": 0.998758394418888,
+   "stratum": "T35",
+   "t_max_c": 52.79079597139298,
+   "t_max_charging_c": 52.79079597139298,
+   "t_max_non_charging_c": 45.82526671330049,
+   "v_max_v": 4.200000000000568,
+   "why": [
+    "charge_time",
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1,sv=4.1:h2:T25",
+   "minutes": 35.12956387100325,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.0003927913659202381,
+   "q30_over_q1": 0.9988165918676639,
+   "stratum": "T25",
+   "t_max_c": 37.50285852816552,
+   "t_max_charging_c": 37.50285852816552,
+   "t_max_non_charging_c": 32.55962866723718,
+   "v_max_v": 4.200000000001384,
+   "why": [
+    "charge_time"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1,sv=4.1:h2:T35",
+   "minutes": 33.313594068825815,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.01338647572183125,
+   "q30_over_q1": 0.9987619254557345,
+   "stratum": "T35",
+   "t_max_c": 45.71533071363746,
+   "t_max_charging_c": 45.71533071363746,
+   "t_max_non_charging_c": 41.30216235553098,
+   "v_max_v": 4.200000000000567,
+   "why": [
+    "charge_time",
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1,sv=4.1:h4:T25",
+   "minutes": 36.70485916339919,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.01161319018225376,
+   "q30_over_q1": 0.9988082377171971,
+   "stratum": "T25",
+   "t_max_c": 32.190523645318024,
+   "t_max_charging_c": 32.190523645318024,
+   "t_max_non_charging_c": 29.2221633367256,
+   "v_max_v": 4.2000000000009,
+   "why": [
+    "charge_time",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1,sv=4.1:h4:T35",
+   "minutes": 34.046036079320636,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.007175177694540914,
+   "q30_over_q1": 0.9987440814692667,
+   "stratum": "T35",
+   "t_max_c": 41.07581864739643,
+   "t_max_charging_c": 41.07581864739643,
+   "t_max_non_charging_c": 38.49681385711864,
+   "v_max_v": 4.200000000000832,
+   "why": [
+    "charge_time"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1,sv=4.15:h1:T25",
+   "minutes": 32.45024038833845,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.008300314127997744,
+   "q30_over_q1": 0.9989464939855078,
+   "stratum": "T25",
+   "t_max_c": 45.678323048129585,
+   "t_max_charging_c": 45.678323048129585,
+   "t_max_non_charging_c": 37.82436857895442,
+   "v_max_v": 4.200000000000898,
+   "why": [
+    "charge_time",
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1,sv=4.15:h1:T35",
+   "minutes": 31.663654603155255,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.020573297763911112,
+   "q30_over_q1": 0.9987394770069262,
+   "stratum": "T35",
+   "t_max_c": 52.99735553159087,
+   "t_max_charging_c": 52.99735553159087,
+   "t_max_non_charging_c": 45.823589619885695,
+   "v_max_v": 4.200000000000435,
+   "why": [
+    "charge_time",
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1,sv=4.15:h2:T25",
+   "minutes": 33.94595598536591,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.006466094485937017,
+   "q30_over_q1": 0.998846512634049,
+   "stratum": "T25",
+   "t_max_c": 37.61722723792343,
+   "t_max_charging_c": 37.61722723792343,
+   "t_max_non_charging_c": 32.55838203490703,
+   "v_max_v": 4.200000000001387,
+   "why": [
+    "charge_time",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1,sv=4.15:h2:T35",
+   "minutes": 32.305686480568575,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.009961671150594441,
+   "q30_over_q1": 0.9987502236784026,
+   "stratum": "T35",
+   "t_max_c": 45.811458295296916,
+   "t_max_charging_c": 45.811458295296916,
+   "t_max_non_charging_c": 41.301280307201466,
+   "v_max_v": 4.200000000001024,
+   "why": [
+    "charge_time",
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1,sv=4.15:h4:T25",
+   "minutes": 35.56935526476905,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.018646921816411362,
+   "q30_over_q1": 0.9988654687119161,
+   "stratum": "T25",
+   "t_max_c": 32.190517648833406,
+   "t_max_charging_c": 32.190517648833406,
+   "t_max_non_charging_c": 29.221727479758613,
+   "v_max_v": 4.200000000001495,
+   "why": [
+    "charge_time",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1,sv=4.15:h4:T35",
+   "minutes": 32.99622378801557,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.0008513481241795668,
+   "q30_over_q1": 0.9987544999995162,
+   "stratum": "T35",
+   "t_max_c": 41.075786020121484,
+   "t_max_charging_c": 41.075786020121484,
+   "t_max_non_charging_c": 38.49654553932265,
+   "v_max_v": 4.200000000000822,
+   "why": [
+    "charge_time"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1.25,sv=4:h1:T25",
+   "minutes": 32.858964733121354,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.005081509898044895,
+   "q30_over_q1": 0.9989384073192127,
+   "stratum": "T25",
+   "t_max_c": 44.70186889514059,
+   "t_max_charging_c": 44.70186889514059,
+   "t_max_non_charging_c": 37.82440196518286,
+   "v_max_v": 4.200000000002027,
+   "why": [
+    "charge_time"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1.25,sv=4:h1:T35",
+   "minutes": 32.04667214913219,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.0160155426321047,
+   "q30_over_q1": 0.9987577973659049,
+   "stratum": "T35",
+   "t_max_c": 52.20704579161861,
+   "t_max_charging_c": 52.20704579161861,
+   "t_max_non_charging_c": 45.82412656895019,
+   "v_max_v": 4.200000000000818,
+   "why": [
+    "charge_time",
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1.25,sv=4:h2:T25",
+   "minutes": 34.20290656833108,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.005793360002811058,
+   "q30_over_q1": 0.9988480296880481,
+   "stratum": "T25",
+   "t_max_c": 37.319016471719465,
+   "t_max_charging_c": 37.319016471719465,
+   "t_max_non_charging_c": 32.558312904872594,
+   "v_max_v": 4.200000000001487,
+   "why": [
+    "charge_time",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1.25,sv=4:h2:T35",
+   "minutes": 32.5823365651791,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.006712203037711119,
+   "q30_over_q1": 0.9987503429659875,
+   "stratum": "T35",
+   "t_max_c": 45.522086525111035,
+   "t_max_charging_c": 45.522086525111035,
+   "t_max_non_charging_c": 41.30129923072337,
+   "v_max_v": 4.200000000001112,
+   "why": [
+    "charge_time",
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1.25,sv=4:h4:T25",
+   "minutes": 35.64455027587326,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.01514532288559163,
+   "q30_over_q1": 0.9988599305025639,
+   "stratum": "T25",
+   "t_max_c": 32.190517863011166,
+   "t_max_charging_c": 32.190517863011166,
+   "t_max_non_charging_c": 29.221706855250147,
+   "v_max_v": 4.200000000001491,
+   "why": [
+    "charge_time",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1.25,sv=4:h4:T35",
+   "minutes": 33.201973831145516,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.0015316391972833875,
+   "q30_over_q1": 0.9987645810276651,
+   "stratum": "T35",
+   "t_max_c": 41.07578806480069,
+   "t_max_charging_c": 41.07578806480069,
+   "t_max_non_charging_c": 38.49654589986358,
+   "v_max_v": 4.200000000001331,
+   "why": [
+    "charge_time"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1.25,sv=4.05:h1:T25",
+   "minutes": 32.28934328465187,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.005851121154260026,
+   "q30_over_q1": 0.9989475432460961,
+   "stratum": "T25",
+   "t_max_c": 45.07508284167477,
+   "t_max_charging_c": 45.07508284167477,
+   "t_max_non_charging_c": 37.823796732826565,
+   "v_max_v": 4.200000000002019,
+   "why": [
+    "charge_time"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1.25,sv=4.05:h1:T35",
+   "minutes": 31.5283486657726,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.016402307997290453,
+   "q30_over_q1": 0.9987593875786495,
+   "stratum": "T35",
+   "t_max_c": 52.52136396455853,
+   "t_max_charging_c": 52.52136396455853,
+   "t_max_non_charging_c": 45.82360028108843,
+   "v_max_v": 4.200000000000789,
+   "why": [
+    "charge_time",
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1.25,sv=4.05:h2:T25",
+   "minutes": 33.70259430832322,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.005446022500335844,
+   "q30_over_q1": 0.9988644389983071,
+   "stratum": "T25",
+   "t_max_c": 37.390813081988824,
+   "t_max_charging_c": 37.390813081988824,
+   "t_max_non_charging_c": 32.55798940318073,
+   "v_max_v": 4.200000000001172,
+   "why": [
+    "charge_time",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1.25,sv=4.05:h2:T35",
+   "minutes": 32.07373498543362,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.006979048198584241,
+   "q30_over_q1": 0.9987468144737655,
+   "stratum": "T35",
+   "t_max_c": 45.607151421539754,
+   "t_max_charging_c": 45.607151421539754,
+   "t_max_non_charging_c": 41.30104225208402,
+   "v_max_v": 4.200000000001609,
+   "why": [
+    "charge_time",
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1.25,sv=4.05:h4:T25",
+   "minutes": 35.22041505883421,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.01518957596152288,
+   "q30_over_q1": 0.9988739461030401,
+   "stratum": "T25",
+   "t_max_c": 32.19051331300051,
+   "t_max_charging_c": 32.19051331300051,
+   "t_max_non_charging_c": 29.22158487872042,
+   "v_max_v": 4.200000000001218,
+   "why": [
+    "charge_time",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1.25,sv=4.05:h4:T35",
+   "minutes": 32.72486117904206,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.0015958891580071187,
+   "q30_over_q1": 0.99878506520468,
+   "stratum": "T35",
+   "t_max_c": 41.07577396939001,
+   "t_max_charging_c": 41.07577396939001,
+   "t_max_non_charging_c": 38.496468549838255,
+   "v_max_v": 4.200000000001092,
+   "why": [
+    "charge_time"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1.25,sv=4.1:h1:T25",
+   "minutes": 31.738875914785766,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.006582872672422779,
+   "q30_over_q1": 0.9989594204652975,
+   "stratum": "T25",
+   "t_max_c": 45.41077216852045,
+   "t_max_charging_c": 45.41077216852045,
+   "t_max_non_charging_c": 37.8228585760458,
+   "v_max_v": 4.200000000001001,
+   "why": [
+    "charge_time"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1.25,sv=4.1:h1:T35",
+   "minutes": 31.061997399998564,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.017043497880279805,
+   "q30_over_q1": 0.9987582539088281,
+   "stratum": "T35",
+   "t_max_c": 52.79068679578825,
+   "t_max_charging_c": 52.79068679578825,
+   "t_max_non_charging_c": 45.822905663287884,
+   "v_max_v": 4.200000000000738,
+   "why": [
+    "charge_time",
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1.25,sv=4.1:h2:T25",
+   "minutes": 33.154045219994984,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.004625871677252016,
+   "q30_over_q1": 0.998885495974475,
+   "stratum": "T25",
+   "t_max_c": 37.50279750355594,
+   "t_max_charging_c": 37.50279750355594,
+   "t_max_non_charging_c": 32.55748777319121,
+   "v_max_v": 4.200000000001417,
+   "why": [
+    "charge_time",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1.25,sv=4.1:h2:T35",
+   "minutes": 31.58254883133378,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.0077930543935483265,
+   "q30_over_q1": 0.9987462719892636,
+   "stratum": "T35",
+   "t_max_c": 45.71527581053027,
+   "t_max_charging_c": 45.71527581053027,
+   "t_max_non_charging_c": 41.300657872884244,
+   "v_max_v": 4.200000000000925,
+   "why": [
+    "charge_time",
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1.25,sv=4.1:h4:T25",
+   "minutes": 34.743414959711295,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.014990857706968725,
+   "q30_over_q1": 0.9988853016807737,
+   "stratum": "T25",
+   "t_max_c": 32.19051012552586,
+   "t_max_charging_c": 32.19051012552586,
+   "t_max_non_charging_c": 29.221412549260492,
+   "v_max_v": 4.200000000001098,
+   "why": [
+    "charge_time",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1.25,sv=4.1:h4:T35",
+   "minutes": 32.24481358537819,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.0018961153236201878,
+   "q30_over_q1": 0.9988126961381207,
+   "stratum": "T35",
+   "t_max_c": 41.07576021881374,
+   "t_max_charging_c": 41.07576021881374,
+   "t_max_non_charging_c": 38.496361329617855,
+   "v_max_v": 4.200000000001463,
+   "why": [
+    "charge_time"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1.25,sv=4.15:h1:T25",
+   "minutes": 31.263821743442556,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.0077299782010363345,
+   "q30_over_q1": 0.9989710116254932,
+   "stratum": "T25",
+   "t_max_c": 45.678223910518284,
+   "t_max_charging_c": 45.678223910518284,
+   "t_max_non_charging_c": 37.821756452802845,
+   "v_max_v": 4.20000000000145,
+   "why": [
+    "charge_time",
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1.25,sv=4.15:h1:T35",
+   "minutes": 30.665845606505936,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.017810461083663603,
+   "q30_over_q1": 0.9987582928051862,
+   "stratum": "T35",
+   "t_max_c": 52.99727663117801,
+   "t_max_charging_c": 52.99727663117801,
+   "t_max_non_charging_c": 45.822150339746656,
+   "v_max_v": 4.200000000000825,
+   "why": [
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1.25,sv=4.15:h2:T25",
+   "minutes": 32.64932123203236,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.006466094485937017,
+   "q30_over_q1": 0.9989069394919172,
+   "stratum": "T25",
+   "t_max_c": 37.6171929385751,
+   "t_max_charging_c": 37.6171929385751,
+   "t_max_non_charging_c": 32.55691515301595,
+   "v_max_v": 4.2000000000016104,
+   "why": [
+    "charge_time",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1.25,sv=4.15:h2:T35",
+   "minutes": 31.160740826162616,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.008428344237958376,
+   "q30_over_q1": 0.9987545712061706,
+   "stratum": "T35",
+   "t_max_c": 45.81141664825219,
+   "t_max_charging_c": 45.81141664825219,
+   "t_max_non_charging_c": 41.30024179130737,
+   "v_max_v": 4.200000000001383,
+   "why": [
+    "charge_time",
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1.25,sv=4.15:h4:T25",
+   "minutes": 34.282653100337285,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.018646921816411362,
+   "q30_over_q1": 0.9988899065530513,
+   "stratum": "T25",
+   "t_max_c": 32.1905090095363,
+   "t_max_charging_c": 32.1905090095363,
+   "t_max_non_charging_c": 29.22122084450723,
+   "v_max_v": 4.200000000001163,
+   "why": [
+    "charge_time",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1.25,sv=4.15:h4:T35",
+   "minutes": 31.81681783250648,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.0008513481241795668,
+   "q30_over_q1": 0.9988364138030819,
+   "stratum": "T35",
+   "t_max_c": 41.07575024138072,
+   "t_max_charging_c": 41.07575024138072,
+   "t_max_non_charging_c": 38.49624326636712,
+   "v_max_v": 4.200000000001372,
+   "why": [
+    "charge_time"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1.5,sv=4:h1:T25",
+   "minutes": 30.71787681044881,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.002013666554394467,
+   "q30_over_q1": 0.9989729747623182,
+   "stratum": "T25",
+   "t_max_c": 45.90836825880132,
+   "t_max_charging_c": 45.90836825880132,
+   "t_max_non_charging_c": 37.82018237003342,
+   "v_max_v": 4.2000000000016815,
+   "why": [
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1.5,sv=4:h1:T35",
+   "minutes": 30.157296959297437,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.011529748957566376,
+   "q30_over_q1": 0.9987605254037286,
+   "stratum": "T35",
+   "t_max_c": 53.149384611994265,
+   "t_max_charging_c": 53.149384611994265,
+   "t_max_non_charging_c": 45.821306186919685,
+   "v_max_v": 4.200000000001215,
+   "why": [
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1.5,sv=4:h2:T25",
+   "minutes": 32.06584206175099,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.012346835105285277,
+   "q30_over_q1": 0.9989258256117028,
+   "stratum": "T25",
+   "t_max_c": 37.72029714249834,
+   "t_max_charging_c": 37.72029714249834,
+   "t_max_non_charging_c": 32.55610133591409,
+   "v_max_v": 4.200000000001872,
+   "why": [
+    "charge_time",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1.5,sv=4:h2:T35",
+   "minutes": 30.656307780727627,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.002964738118386417,
+   "q30_over_q1": 0.9987932465905791,
+   "stratum": "T35",
+   "t_max_c": 45.89166950717879,
+   "t_max_charging_c": 45.89166950717879,
+   "t_max_non_charging_c": 41.29968737375498,
+   "v_max_v": 4.20000000000206,
+   "why": [
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1.5,sv=4:h4:T25",
+   "minutes": 33.74366052759129,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.024717760916314706,
+   "q30_over_q1": 0.9988848698960859,
+   "stratum": "T25",
+   "t_max_c": 32.19051550510369,
+   "t_max_charging_c": 32.19051550510369,
+   "t_max_non_charging_c": 29.220947128635316,
+   "v_max_v": 4.200000000001506,
+   "why": [
+    "charge_time",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1.5,sv=4:h4:T35",
+   "minutes": 31.31132561693336,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.0053432306982510985,
+   "q30_over_q1": 0.9988468420728001,
+   "stratum": "T35",
+   "t_max_c": 41.0757423404296,
+   "t_max_charging_c": 41.0757423404296,
+   "t_max_non_charging_c": 38.49608418669601,
+   "v_max_v": 4.200000000001685,
+   "why": [
+    "charge_time",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1.5,sv=4.05:h1:T25",
+   "minutes": 30.717876211027182,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.0020136111533238287,
+   "q30_over_q1": 0.9989729637012063,
+   "stratum": "T25",
+   "t_max_c": 45.908368046808334,
+   "t_max_charging_c": 45.908368046808334,
+   "t_max_non_charging_c": 37.82018772917223,
+   "v_max_v": 4.200000000001332,
+   "why": [
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1.5,sv=4.05:h1:T35",
+   "minutes": 30.157297019710622,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.011529842608389807,
+   "q30_over_q1": 0.9987606161650375,
+   "stratum": "T35",
+   "t_max_c": 53.14938565300616,
+   "t_max_charging_c": 53.14938565300616,
+   "t_max_non_charging_c": 45.82130572463842,
+   "v_max_v": 4.200000000001721,
+   "why": [
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1.5,sv=4.05:h2:T25",
+   "minutes": 32.06584090323955,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.01234653448517721,
+   "q30_over_q1": 0.9989258781760723,
+   "stratum": "T25",
+   "t_max_c": 37.72029647694325,
+   "t_max_charging_c": 37.72029647694325,
+   "t_max_non_charging_c": 32.556101631584454,
+   "v_max_v": 4.200000000001583,
+   "why": [
+    "charge_time",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1.5,sv=4.05:h2:T35",
+   "minutes": 30.656307751588635,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.002964741325814817,
+   "q30_over_q1": 0.9987933363353428,
+   "stratum": "T35",
+   "t_max_c": 45.891669506082906,
+   "t_max_charging_c": 45.891669506082906,
+   "t_max_non_charging_c": 41.29968722119486,
+   "v_max_v": 4.2000000000017215,
+   "why": [
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1.5,sv=4.05:h4:T25",
+   "minutes": 33.74365737321382,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.024717842423043167,
+   "q30_over_q1": 0.9988847795923174,
+   "stratum": "T25",
+   "t_max_c": 32.19051539848806,
+   "t_max_charging_c": 32.19051539848806,
+   "t_max_non_charging_c": 29.22094620601473,
+   "v_max_v": 4.200000000001479,
+   "why": [
+    "charge_time",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1.5,sv=4.05:h4:T35",
+   "minutes": 31.311325508596727,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.005343184902002179,
+   "q30_over_q1": 0.9988466852713792,
+   "stratum": "T35",
+   "t_max_c": 41.07574173961268,
+   "t_max_charging_c": 41.07574173961268,
+   "t_max_non_charging_c": 38.49608375439766,
+   "v_max_v": 4.2000000000014985,
+   "why": [
+    "charge_time",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1.5,sv=4.1:h1:T25",
+   "minutes": 30.717876418079857,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.0020136313973025074,
+   "q30_over_q1": 0.9989728453074801,
+   "stratum": "T25",
+   "t_max_c": 45.90836938641547,
+   "t_max_charging_c": 45.90836938641547,
+   "t_max_non_charging_c": 37.820187864778916,
+   "v_max_v": 4.200000000001344,
+   "why": [
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1.5,sv=4.1:h1:T35",
+   "minutes": 30.157297199037043,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.01152983535546813,
+   "q30_over_q1": 0.9987606262233084,
+   "stratum": "T35",
+   "t_max_c": 53.14938626231293,
+   "t_max_charging_c": 53.14938626231293,
+   "t_max_non_charging_c": 45.82130535126066,
+   "v_max_v": 4.200000000001047,
+   "why": [
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1.5,sv=4.1:h2:T25",
+   "minutes": 32.06584119731493,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.01234658278652201,
+   "q30_over_q1": 0.9989259746181406,
+   "stratum": "T25",
+   "t_max_c": 37.72029637828166,
+   "t_max_charging_c": 37.72029637828166,
+   "t_max_non_charging_c": 32.55611262606351,
+   "v_max_v": 4.200000000001192,
+   "why": [
+    "charge_time",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1.5,sv=4.1:h2:T35",
+   "minutes": 30.656307752687766,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.0029647287865494725,
+   "q30_over_q1": 0.998793263532239,
+   "stratum": "T35",
+   "t_max_c": 45.891670544982276,
+   "t_max_charging_c": 45.891670544982276,
+   "t_max_non_charging_c": 41.29968705547918,
+   "v_max_v": 4.200000000001282,
+   "why": [
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1.5,sv=4.1:h4:T25",
+   "minutes": 33.743661151193784,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.02471779384640449,
+   "q30_over_q1": 0.9988848314757887,
+   "stratum": "T25",
+   "t_max_c": 32.19051442017184,
+   "t_max_charging_c": 32.19051442017184,
+   "t_max_non_charging_c": 29.220947668935878,
+   "v_max_v": 4.200000000001891,
+   "why": [
+    "charge_time",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1.5,sv=4.1:h4:T35",
+   "minutes": 31.31132694350584,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.005343252133315971,
+   "q30_over_q1": 0.9988467838190179,
+   "stratum": "T35",
+   "t_max_c": 41.0757423970191,
+   "t_max_charging_c": 41.0757423970191,
+   "t_max_non_charging_c": 38.49608440416972,
+   "v_max_v": 4.200000000002152,
+   "why": [
+    "charge_time",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1.5,sv=4.15:h1:T25",
+   "minutes": 30.717876172249944,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.0020136577028426203,
+   "q30_over_q1": 0.9989732091583545,
+   "stratum": "T25",
+   "t_max_c": 45.908368317372776,
+   "t_max_charging_c": 45.908368317372776,
+   "t_max_non_charging_c": 37.82017908878919,
+   "v_max_v": 4.2000000000012285,
+   "why": [
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1.5,sv=4.15:h1:T35",
+   "minutes": 30.15729714642352,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.011529813806576115,
+   "q30_over_q1": 0.9987605154556758,
+   "stratum": "T35",
+   "t_max_c": 53.1493852607876,
+   "t_max_charging_c": 53.1493852607876,
+   "t_max_non_charging_c": 45.821305750028614,
+   "v_max_v": 4.200000000001365,
+   "why": [
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1.5,sv=4.15:h2:T25",
+   "minutes": 32.06584132076123,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.01234654914517332,
+   "q30_over_q1": 0.9989260380261804,
+   "stratum": "T25",
+   "t_max_c": 37.7202965314392,
+   "t_max_charging_c": 37.7202965314392,
+   "t_max_non_charging_c": 32.55610195184346,
+   "v_max_v": 4.20000000000135,
+   "why": [
+    "charge_time",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1.5,sv=4.15:h2:T35",
+   "minutes": 30.656307753431026,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.0029647497818308505,
+   "q30_over_q1": 0.9987931788141872,
+   "stratum": "T35",
+   "t_max_c": 45.89166880971402,
+   "t_max_charging_c": 45.89166880971402,
+   "t_max_non_charging_c": 41.2996880033175,
+   "v_max_v": 4.200000000001282,
+   "why": [
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1.5,sv=4.15:h4:T25",
+   "minutes": 33.743659116031964,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.02471771241338261,
+   "q30_over_q1": 0.9988848556998106,
+   "stratum": "T25",
+   "t_max_c": 32.19051287876857,
+   "t_max_charging_c": 32.19051287876857,
+   "t_max_non_charging_c": 29.22094648393272,
+   "v_max_v": 4.2000000000020234,
+   "why": [
+    "charge_time",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.5,c2=1.5,sv=4.15:h4:T35",
+   "minutes": 31.311324861963325,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.005343169578323509,
+   "q30_over_q1": 0.9988467291420023,
+   "stratum": "T35",
+   "t_max_c": 41.075740391984084,
+   "t_max_charging_c": 41.075740391984084,
+   "t_max_non_charging_c": 38.49608424009352,
+   "v_max_v": 4.200000000001886,
+   "why": [
+    "charge_time",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1,sv=4:h1:T25",
+   "minutes": 34.66166831523056,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.008968071005652575,
+   "q30_over_q1": 0.9989169620960298,
+   "stratum": "T25",
+   "t_max_c": 48.29786842206062,
+   "t_max_charging_c": 48.29786842206062,
+   "t_max_non_charging_c": 37.82860028502836,
+   "v_max_v": 4.200000000000983,
+   "why": [
+    "charge_time",
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1,sv=4:h1:T35",
+   "minutes": 33.176672343290164,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.020785483537235,
+   "q30_over_q1": 0.998768828966688,
+   "stratum": "T35",
+   "t_max_c": 55.636884211535346,
+   "t_max_charging_c": 55.636884211535346,
+   "t_max_non_charging_c": 45.82769478435756,
+   "v_max_v": 4.200000000000323,
+   "why": [
+    "charge_time",
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1,sv=4:h2:T25",
+   "minutes": 36.29548115491089,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.0004839164836090103,
+   "q30_over_q1": 0.9988253630021179,
+   "stratum": "T25",
+   "t_max_c": 40.186717669805205,
+   "t_max_charging_c": 40.186717669805205,
+   "t_max_non_charging_c": 32.560424031956074,
+   "v_max_v": 4.200000000001099,
+   "why": [
+    "charge_time"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1,sv=4:h2:T35",
+   "minutes": 34.07426922167749,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.0127736219666784,
+   "q30_over_q1": 0.998754262061114,
+   "stratum": "T35",
+   "t_max_c": 48.1793520289923,
+   "t_max_charging_c": 48.1793520289923,
+   "t_max_non_charging_c": 41.30291027683472,
+   "v_max_v": 4.200000000000665,
+   "why": [
+    "charge_time",
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1,sv=4:h4:T25",
+   "minutes": 37.90530927543854,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.005221740673084495,
+   "q30_over_q1": 0.9987550977771907,
+   "stratum": "T25",
+   "t_max_c": 34.098062140789295,
+   "t_max_charging_c": 34.098062140789295,
+   "t_max_non_charging_c": 29.22248041716773,
+   "v_max_v": 4.200000000001301,
+   "why": [
+    "charge_time",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1,sv=4:h4:T35",
+   "minutes": 35.030011559954936,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.008030150195142208,
+   "q30_over_q1": 0.9987607093569658,
+   "stratum": "T35",
+   "t_max_c": 42.75455925818403,
+   "t_max_charging_c": 42.75455925818403,
+   "t_max_non_charging_c": 38.49701391556249,
+   "v_max_v": 4.200000000001412,
+   "why": [
+    "charge_time"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1,sv=4.05:h1:T25",
+   "minutes": 32.87118499467137,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.010062028055245417,
+   "q30_over_q1": 0.9989194868713677,
+   "stratum": "T25",
+   "t_max_c": 48.88159638819957,
+   "t_max_charging_c": 48.88159638819957,
+   "t_max_non_charging_c": 37.82735015052373,
+   "v_max_v": 4.200000000000977,
+   "why": [
+    "charge_time",
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1,sv=4.05:h1:T35",
+   "minutes": 31.459979970503976,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.02145853250484822,
+   "q30_over_q1": 0.9987747871965235,
+   "stratum": "T35",
+   "t_max_c": 56.12976548913832,
+   "t_max_charging_c": 56.12976548913832,
+   "t_max_non_charging_c": 45.826441735765,
+   "v_max_v": 4.200000000000573,
+   "why": [
+    "charge_time",
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1,sv=4.05:h2:T25",
+   "minutes": 34.81322204859684,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.00095717273368246,
+   "q30_over_q1": 0.9988205095560324,
+   "stratum": "T25",
+   "t_max_c": 40.343371588193236,
+   "t_max_charging_c": 40.343371588193236,
+   "t_max_non_charging_c": 32.55953647746867,
+   "v_max_v": 4.200000000000867,
+   "why": [
+    "charge_time"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1,sv=4.05:h2:T35",
+   "minutes": 32.50287426576382,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.012944636639064526,
+   "q30_over_q1": 0.9987695085588485,
+   "stratum": "T35",
+   "t_max_c": 48.31371400770388,
+   "t_max_charging_c": 48.31371400770388,
+   "t_max_non_charging_c": 41.30229389688145,
+   "v_max_v": 4.200000000000981,
+   "why": [
+    "charge_time",
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1,sv=4.05:h4:T25",
+   "minutes": 36.67247779793632,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.0102830134736952,
+   "q30_over_q1": 0.9988128723076556,
+   "stratum": "T25",
+   "t_max_c": 34.098027502201546,
+   "t_max_charging_c": 34.098027502201546,
+   "t_max_non_charging_c": 29.222099221451344,
+   "v_max_v": 4.20000000000127,
+   "why": [
+    "charge_time",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1,sv=4.05:h4:T35",
+   "minutes": 33.58904957944822,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.008025679942176048,
+   "q30_over_q1": 0.998746839017201,
+   "stratum": "T35",
+   "t_max_c": 42.754490646174304,
+   "t_max_charging_c": 42.754490646174304,
+   "t_max_non_charging_c": 38.496802736204586,
+   "v_max_v": 4.200000000000779,
+   "why": [
+    "charge_time"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1,sv=4.1:h1:T25",
+   "minutes": 31.073481414213873,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.009842923653630903,
+   "q30_over_q1": 0.998951924491681,
+   "stratum": "T25",
+   "t_max_c": 49.41822089586492,
+   "t_max_charging_c": 49.41822089586492,
+   "t_max_non_charging_c": 37.8249239755981,
+   "v_max_v": 4.2000000000008395,
+   "why": [
+    "charge_time",
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1,sv=4.1:h1:T35",
+   "minutes": 29.868113384617605,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.02208836383876186,
+   "q30_over_q1": 0.9987676249412156,
+   "stratum": "T35",
+   "t_max_c": 56.551702498450084,
+   "t_max_charging_c": 56.551702498450084,
+   "t_max_non_charging_c": 45.8243099514649,
+   "v_max_v": 4.200000000000515,
+   "why": [
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1,sv=4.1:h2:T25",
+   "minutes": 33.11419719011672,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.00579524562983676,
+   "q30_over_q1": 0.9988643617888167,
+   "stratum": "T25",
+   "t_max_c": 40.52167775817708,
+   "t_max_charging_c": 40.52167775817708,
+   "t_max_non_charging_c": 32.558236780748814,
+   "v_max_v": 4.200000000000937,
+   "why": [
+    "charge_time",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1,sv=4.1:h2:T35",
+   "minutes": 30.893680158416092,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.011571687608495859,
+   "q30_over_q1": 0.9987622003161438,
+   "stratum": "T35",
+   "t_max_c": 48.4696167646091,
+   "t_max_charging_c": 48.4696167646091,
+   "t_max_non_charging_c": 41.301301871913324,
+   "v_max_v": 4.200000000000764,
+   "why": [
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1,sv=4.1:h4:T25",
+   "minutes": 35.20628264441736,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.019137893085523425,
+   "q30_over_q1": 0.9988797277502879,
+   "stratum": "T25",
+   "t_max_c": 34.09799540697543,
+   "t_max_charging_c": 34.09799540697543,
+   "t_max_non_charging_c": 29.22164143918775,
+   "v_max_v": 4.200000000001433,
+   "why": [
+    "charge_time",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1,sv=4.1:h4:T35",
+   "minutes": 32.03990802689201,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 1.887792314827618e-05,
+   "q30_over_q1": 0.9987773173171061,
+   "stratum": "T35",
+   "t_max_c": 42.75442053115381,
+   "t_max_charging_c": 42.75442053115381,
+   "t_max_non_charging_c": 38.49649816610065,
+   "v_max_v": 4.200000000001076,
+   "why": [
+    "charge_time"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1,sv=4.15:h1:T25",
+   "minutes": 29.560715844052094,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.00515973549999117,
+   "q30_over_q1": 0.9990232676728292,
+   "stratum": "T25",
+   "t_max_c": 49.8292172460375,
+   "t_max_charging_c": 49.8292172460375,
+   "t_max_non_charging_c": 37.82203410698389,
+   "v_max_v": 4.200000000000987,
+   "why": [
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1,sv=4.15:h1:T35",
+   "minutes": 28.523074383769043,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.018118078503389347,
+   "q30_over_q1": 0.9987532958424595,
+   "stratum": "T35",
+   "t_max_c": 56.87506202610308,
+   "t_max_charging_c": 56.87506202610308,
+   "t_max_non_charging_c": 45.822065889959106,
+   "v_max_v": 4.200000000000442,
+   "why": [
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1,sv=4.15:h2:T25",
+   "minutes": 31.492350928816293,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.011773925254876685,
+   "q30_over_q1": 0.9989174732731373,
+   "stratum": "T25",
+   "t_max_c": 40.691776225656724,
+   "t_max_charging_c": 40.691776225656724,
+   "t_max_non_charging_c": 32.556691556434885,
+   "v_max_v": 4.20000000000123,
+   "why": [
+    "charge_time",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1,sv=4.15:h2:T35",
+   "minutes": 29.520306461350007,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.005242649070508218,
+   "q30_over_q1": 0.99875621243756,
+   "stratum": "T35",
+   "t_max_c": 48.60858447654414,
+   "t_max_charging_c": 48.60858447654414,
+   "t_max_non_charging_c": 41.30011822526336,
+   "v_max_v": 4.200000000000706,
+   "why": [
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1,sv=4.15:h4:T25",
+   "minutes": 33.69529318848192,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.026920592811814654,
+   "q30_over_q1": 0.9988981964579535,
+   "stratum": "T25",
+   "t_max_c": 34.097981060626296,
+   "t_max_charging_c": 34.097981060626296,
+   "t_max_non_charging_c": 29.221091485543923,
+   "v_max_v": 4.200000000001008,
+   "why": [
+    "charge_time",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1,sv=4.15:h4:T35",
+   "minutes": 30.60012371622937,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.006393325037361163,
+   "q30_over_q1": 0.9988421588101883,
+   "stratum": "T35",
+   "t_max_c": 42.75436426265537,
+   "t_max_charging_c": 42.75436426265537,
+   "t_max_non_charging_c": 38.496158780304654,
+   "v_max_v": 4.2000000000005855,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1.25,sv=4:h1:T25",
+   "minutes": 30.92480793312839,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.006050871687993063,
+   "q30_over_q1": 0.9989820203365495,
+   "stratum": "T25",
+   "t_max_c": 48.29745892651192,
+   "t_max_charging_c": 48.29745892651192,
+   "t_max_non_charging_c": 37.82329676313816,
+   "v_max_v": 4.200000000001708,
+   "why": [
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1.25,sv=4:h1:T35",
+   "minutes": 29.831378998474165,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.016744531668458643,
+   "q30_over_q1": 0.9987767951336234,
+   "stratum": "T35",
+   "t_max_c": 55.636577140916586,
+   "t_max_charging_c": 55.636577140916586,
+   "t_max_non_charging_c": 45.82366853151757,
+   "v_max_v": 4.2000000000006885,
+   "why": [
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1.25,sv=4:h2:T25",
+   "minutes": 32.511489081706564,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.005615781025869854,
+   "q30_over_q1": 0.9988946113262848,
+   "stratum": "T25",
+   "t_max_c": 40.186524618673104,
+   "t_max_charging_c": 40.186524618673104,
+   "t_max_non_charging_c": 32.557300965606544,
+   "v_max_v": 4.200000000001076,
+   "why": [
+    "charge_time",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1.25,sv=4:h2:T35",
+   "minutes": 30.577212676069728,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.007063409576351437,
+   "q30_over_q1": 0.9987531793086332,
+   "stratum": "T35",
+   "t_max_c": 48.1791221602719,
+   "t_max_charging_c": 48.1791221602719,
+   "t_max_non_charging_c": 41.300633467923376,
+   "v_max_v": 4.200000000000996,
+   "why": [
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1.25,sv=4:h4:T25",
+   "minutes": 34.22882362417973,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.015420550143102896,
+   "q30_over_q1": 0.9988894741845654,
+   "stratum": "T25",
+   "t_max_c": 34.09798001763215,
+   "t_max_charging_c": 34.09798001763215,
+   "t_max_non_charging_c": 29.22130126445728,
+   "v_max_v": 4.200000000002026,
+   "why": [
+    "charge_time",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1.25,sv=4:h4:T35",
+   "minutes": 31.429199992977594,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.0017095400616869126,
+   "q30_over_q1": 0.9988324972375885,
+   "stratum": "T35",
+   "t_max_c": 42.75438076036403,
+   "t_max_charging_c": 42.75438076036403,
+   "t_max_non_charging_c": 38.49629000854236,
+   "v_max_v": 4.200000000001433,
+   "why": [
+    "charge_time"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1.25,sv=4.05:h1:T25",
+   "minutes": 29.93019246837955,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.006919688325131332,
+   "q30_over_q1": 0.9990047020364987,
+   "stratum": "T25",
+   "t_max_c": 48.8813154970037,
+   "t_max_charging_c": 48.8813154970037,
+   "t_max_non_charging_c": 37.82237951829768,
+   "v_max_v": 4.20000000000137,
+   "why": [
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1.25,sv=4.05:h1:T35",
+   "minutes": 28.91205428897494,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.017426739324680144,
+   "q30_over_q1": 0.9987804916589414,
+   "stratum": "T35",
+   "t_max_c": 56.12957155179129,
+   "t_max_charging_c": 56.12957155179129,
+   "t_max_non_charging_c": 45.822916264234266,
+   "v_max_v": 4.200000000000459,
+   "why": [
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1.25,sv=4.05:h2:T25",
+   "minutes": 31.689282007925197,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.005095981310180794,
+   "q30_over_q1": 0.9989142648473357,
+   "stratum": "T25",
+   "t_max_c": 40.34323035115176,
+   "t_max_charging_c": 40.34323035115176,
+   "t_max_non_charging_c": 32.55677741178579,
+   "v_max_v": 4.200000000001252,
+   "why": [
+    "charge_time",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1.25,sv=4.05:h2:T35",
+   "minutes": 29.719457402608985,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.0074596401882914155,
+   "q30_over_q1": 0.9987690617396295,
+   "stratum": "T35",
+   "t_max_c": 48.31358074734027,
+   "t_max_charging_c": 48.31358074734027,
+   "t_max_non_charging_c": 41.30022465768718,
+   "v_max_v": 4.200000000001095,
+   "why": [
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1.25,sv=4.05:h4:T25",
+   "minutes": 33.56825147014643,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.015455815894741418,
+   "q30_over_q1": 0.9988916606094953,
+   "stratum": "T25",
+   "t_max_c": 34.097966650351395,
+   "t_max_charging_c": 34.097966650351395,
+   "t_max_non_charging_c": 29.221086155133776,
+   "v_max_v": 4.20000000000171,
+   "why": [
+    "charge_time",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1.25,sv=4.05:h4:T35",
+   "minutes": 30.65439446381909,
+   "outcome": "REFERENCE_UNRESOLVED",
+   "plating_min_v": 0.0019497699419146499,
+   "q30_over_q1": 0.9988478331800494,
+   "stratum": "T35",
+   "t_max_c": 42.75435350776195,
+   "t_max_charging_c": 42.75435350776195,
+   "t_max_non_charging_c": 38.49616996438721,
+   "v_max_v": 4.200000000001282,
+   "why": [
+    "charge_time",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1.25,sv=4.1:h1:T25",
+   "minutes": 28.920663997749514,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.008431429147876363,
+   "q30_over_q1": 0.9990234826202711,
+   "stratum": "T25",
+   "t_max_c": 49.41800468536212,
+   "t_max_charging_c": 49.41800468536212,
+   "t_max_non_charging_c": 37.82072338781137,
+   "v_max_v": 4.200000000001086,
+   "why": [
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1.25,sv=4.1:h1:T35",
+   "minutes": 28.062993805128894,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.01845102551956255,
+   "q30_over_q1": 0.9987770297831864,
+   "stratum": "T35",
+   "t_max_c": 56.55154894512606,
+   "t_max_charging_c": 56.55154894512606,
+   "t_max_non_charging_c": 45.82170903457808,
+   "v_max_v": 4.200000000000908,
+   "why": [
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1.25,sv=4.1:h2:T25",
+   "minutes": 30.735519409615744,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.00579524562983676,
+   "q30_over_q1": 0.998930981139668,
+   "stratum": "T25",
+   "t_max_c": 40.521599270257354,
+   "t_max_charging_c": 40.521599270257354,
+   "t_max_non_charging_c": 32.55599605633029,
+   "v_max_v": 4.200000000001872,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1.25,sv=4.1:h2:T35",
+   "minutes": 28.831203444362004,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.008324476250615078,
+   "q30_over_q1": 0.9987986924979831,
+   "stratum": "T35",
+   "t_max_c": 48.46952512309002,
+   "t_max_charging_c": 48.46952512309002,
+   "t_max_non_charging_c": 41.29962221481679,
+   "v_max_v": 4.200000000001248,
+   "why": [
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1.25,sv=4.1:h4:T25",
+   "minutes": 32.78007503459949,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.019137893085523425,
+   "q30_over_q1": 0.9988692224954551,
+   "stratum": "T25",
+   "t_max_c": 34.09795956025948,
+   "t_max_charging_c": 34.09795956025948,
+   "t_max_non_charging_c": 29.220817747173612,
+   "v_max_v": 4.200000000002023,
+   "why": [
+    "charge_time",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1.25,sv=4.1:h4:T35",
+   "minutes": 29.81780571547299,
+   "outcome": "REFERENCE_UNRESOLVED",
+   "plating_min_v": 1.887792314827618e-05,
+   "q30_over_q1": 0.9988395301648146,
+   "stratum": "T35",
+   "t_max_c": 42.754324691476995,
+   "t_max_charging_c": 42.754324691476995,
+   "t_max_non_charging_c": 38.4959912461714,
+   "v_max_v": 4.200000000001284,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1.25,sv=4.15:h1:T25",
+   "minutes": 28.059578893872924,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.00515973549999117,
+   "q30_over_q1": 0.9990182142901812,
+   "stratum": "T25",
+   "t_max_c": 49.82907348109251,
+   "t_max_charging_c": 49.82907348109251,
+   "t_max_non_charging_c": 37.818799172747845,
+   "v_max_v": 4.200000000000999,
+   "why": [
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1.25,sv=4.15:h1:T35",
+   "minutes": 27.345639671343623,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.018118078503389347,
+   "q30_over_q1": 0.9987680942726851,
+   "stratum": "T35",
+   "t_max_c": 56.87495260770095,
+   "t_max_charging_c": 56.87495260770095,
+   "t_max_non_charging_c": 45.82045091780378,
+   "v_max_v": 4.20000000000117,
+   "why": [
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1.25,sv=4.15:h2:T25",
+   "minutes": 29.812168460106207,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.011773925254876685,
+   "q30_over_q1": 0.9989368439962308,
+   "stratum": "T25",
+   "t_max_c": 40.6917222692623,
+   "t_max_charging_c": 40.6917222692623,
+   "t_max_non_charging_c": 32.55504270438297,
+   "v_max_v": 4.200000000001264,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1.25,sv=4.15:h2:T35",
+   "minutes": 28.062935908012655,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.005242649070508218,
+   "q30_over_q1": 0.9988226590325351,
+   "stratum": "T35",
+   "t_max_c": 48.608518556922206,
+   "t_max_charging_c": 48.608518556922206,
+   "t_max_non_charging_c": 41.29891602388847,
+   "v_max_v": 4.200000000001321,
+   "why": [
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1.25,sv=4.15:h4:T25",
+   "minutes": 31.961345604870335,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.026920592811814654,
+   "q30_over_q1": 0.9987988565697168,
+   "stratum": "T25",
+   "t_max_c": 34.09795520579905,
+   "t_max_charging_c": 34.09795520579905,
+   "t_max_non_charging_c": 29.220496610515056,
+   "v_max_v": 4.200000000001223,
+   "why": [
+    "charge_time",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1.25,sv=4.15:h4:T35",
+   "minutes": 29.035315151779248,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.006393325037361163,
+   "q30_over_q1": 0.9987965391686245,
+   "stratum": "T35",
+   "t_max_c": 42.75429843273048,
+   "t_max_charging_c": 42.75429843273048,
+   "t_max_non_charging_c": 38.495773581827905,
+   "v_max_v": 4.2000000000016495,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1.5,sv=4:h1:T25",
+   "minutes": 28.51479378848704,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.0035966669835066733,
+   "q30_over_q1": 0.9989996896081091,
+   "stratum": "T25",
+   "t_max_c": 48.29714000984234,
+   "t_max_charging_c": 48.29714000984234,
+   "t_max_non_charging_c": 37.81893489008365,
+   "v_max_v": 4.2000000000017055,
+   "why": [
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1.5,sv=4:h1:T35",
+   "minutes": 27.70673285350701,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.013273514733128811,
+   "q30_over_q1": 0.9987759537825944,
+   "stratum": "T35",
+   "t_max_c": 55.63638622351448,
+   "t_max_charging_c": 55.63638622351448,
+   "t_max_non_charging_c": 45.82084951904767,
+   "v_max_v": 4.20000000000219,
+   "why": [
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1.5,sv=4:h2:T25",
+   "minutes": 30.113950310580993,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.01180294159201399,
+   "q30_over_q1": 0.9989346669329481,
+   "stratum": "T25",
+   "t_max_c": 40.1864317887098,
+   "t_max_charging_c": 40.1864317887098,
+   "t_max_non_charging_c": 32.55507450206716,
+   "v_max_v": 4.200000000001374,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1.5,sv=4:h2:T35",
+   "minutes": 28.404781072241825,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.0036254632173620314,
+   "q30_over_q1": 0.9988276587823609,
+   "stratum": "T35",
+   "t_max_c": 48.179004035346,
+   "t_max_charging_c": 48.179004035346,
+   "t_max_non_charging_c": 41.29898601742855,
+   "v_max_v": 4.200000000001155,
+   "why": [
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1.5,sv=4:h4:T25",
+   "minutes": 32.073907350899496,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.024806434212155327,
+   "q30_over_q1": 0.9988089093628206,
+   "stratum": "T25",
+   "t_max_c": 34.09795518278651,
+   "t_max_charging_c": 34.09795518278651,
+   "t_max_non_charging_c": 29.220500589301935,
+   "v_max_v": 4.200000000001955,
+   "why": [
+    "charge_time",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1.5,sv=4:h4:T35",
+   "minutes": 29.277727571606924,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.005487463314354311,
+   "q30_over_q1": 0.9988014215455349,
+   "stratum": "T35",
+   "t_max_c": 42.75430193303828,
+   "t_max_charging_c": 42.75430193303828,
+   "t_max_non_charging_c": 38.49579076122143,
+   "v_max_v": 4.20000000000244,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1.5,sv=4.05:h1:T25",
+   "minutes": 28.083351725856733,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.004134949011747565,
+   "q30_over_q1": 0.998998483862293,
+   "stratum": "T25",
+   "t_max_c": 48.88110107030241,
+   "t_max_charging_c": 48.88110107030241,
+   "t_max_non_charging_c": 37.81847140491345,
+   "v_max_v": 4.200000000001327,
+   "why": [
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1.5,sv=4.05:h1:T35",
+   "minutes": 27.310373957166508,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.013914053947407372,
+   "q30_over_q1": 0.9987768130340415,
+   "stratum": "T35",
+   "t_max_c": 56.12944192920571,
+   "t_max_charging_c": 56.12944192920571,
+   "t_max_non_charging_c": 45.820497845026125,
+   "v_max_v": 4.200000000001544,
+   "why": [
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1.5,sv=4.05:h2:T25",
+   "minutes": 29.75429062700008,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.011500227512435367,
+   "q30_over_q1": 0.9989347065059481,
+   "stratum": "T25",
+   "t_max_c": 40.34317182513843,
+   "t_max_charging_c": 40.34317182513843,
+   "t_max_non_charging_c": 32.55482820999521,
+   "v_max_v": 4.2000000000019915,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1.5,sv=4.05:h2:T35",
+   "minutes": 28.03532117146765,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.004085160105829618,
+   "q30_over_q1": 0.9988285587249618,
+   "stratum": "T35",
+   "t_max_c": 48.31351533177855,
+   "t_max_charging_c": 48.31351533177855,
+   "t_max_non_charging_c": 41.29879325447638,
+   "v_max_v": 4.200000000001423,
+   "why": [
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1.5,sv=4.05:h4:T25",
+   "minutes": 31.795118954065654,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.024738233218902304,
+   "q30_over_q1": 0.9987787640944212,
+   "stratum": "T25",
+   "t_max_c": 34.09795245267054,
+   "t_max_charging_c": 34.09795245267054,
+   "t_max_non_charging_c": 29.220396150274212,
+   "v_max_v": 4.20000000000133,
+   "why": [
+    "charge_time",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1.5,sv=4.05:h4:T35",
+   "minutes": 28.95128761082952,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.005383756810557687,
+   "q30_over_q1": 0.998780422346241,
+   "stratum": "T35",
+   "t_max_c": 42.754288169869824,
+   "t_max_charging_c": 42.754288169869824,
+   "t_max_non_charging_c": 38.49572795264811,
+   "v_max_v": 4.200000000001648,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1.5,sv=4.1:h1:T25",
+   "minutes": 27.64144504392963,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.00512927691489989,
+   "q30_over_q1": 0.9989925852221987,
+   "stratum": "T25",
+   "t_max_c": 49.41783928835986,
+   "t_max_charging_c": 49.41783928835986,
+   "t_max_non_charging_c": 37.81769589262683,
+   "v_max_v": 4.200000000001481,
+   "why": [
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1.5,sv=4.1:h1:T35",
+   "minutes": 26.94104457096616,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.01450082863165914,
+   "q30_over_q1": 0.9987746159417646,
+   "stratum": "T35",
+   "t_max_c": 56.55145917109155,
+   "t_max_charging_c": 56.55145917109155,
+   "t_max_non_charging_c": 45.819963768043124,
+   "v_max_v": 4.200000000001027,
+   "why": [
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1.5,sv=4.1:h2:T25",
+   "minutes": 29.33224395886517,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.010775047249482427,
+   "q30_over_q1": 0.998933236149687,
+   "stratum": "T25",
+   "t_max_c": 40.5215596253513,
+   "t_max_charging_c": 40.5215596253513,
+   "t_max_non_charging_c": 32.554457457838794,
+   "v_max_v": 4.200000000002074,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1.5,sv=4.1:h2:T35",
+   "minutes": 27.64937220196834,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.004778125597667124,
+   "q30_over_q1": 0.998825770960516,
+   "stratum": "T35",
+   "t_max_c": 48.46948679264369,
+   "t_max_charging_c": 48.46948679264369,
+   "t_max_non_charging_c": 41.298496534453534,
+   "v_max_v": 4.200000000001191,
+   "why": [
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1.5,sv=4.1:h4:T25",
+   "minutes": 31.46041944700126,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.02452294786419169,
+   "q30_over_q1": 0.9987412996329492,
+   "stratum": "T25",
+   "t_max_c": 34.097947515582575,
+   "t_max_charging_c": 34.097947515582575,
+   "t_max_non_charging_c": 29.22026760443913,
+   "v_max_v": 4.200000000002159,
+   "why": [
+    "charge_time",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1.5,sv=4.1:h4:T35",
+   "minutes": 28.596821334254887,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.005074199787608772,
+   "q30_over_q1": 0.9987531925102594,
+   "stratum": "T35",
+   "t_max_c": 42.75427683488931,
+   "t_max_charging_c": 42.75427683488931,
+   "t_max_non_charging_c": 38.495636454447265,
+   "v_max_v": 4.200000000001221,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1.5,sv=4.15:h1:T25",
+   "minutes": 27.261784347307458,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.00515973549999117,
+   "q30_over_q1": 0.9989840572587076,
+   "stratum": "T25",
+   "t_max_c": 49.828999638358994,
+   "t_max_charging_c": 49.828999638358994,
+   "t_max_non_charging_c": 37.81681234093463,
+   "v_max_v": 4.20000000000112,
+   "why": [
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1.5,sv=4.15:h1:T35",
+   "minutes": 26.62902752844053,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.01525961536689531,
+   "q30_over_q1": 0.9987722622850298,
+   "stratum": "T35",
+   "t_max_c": 56.87491381104451,
+   "t_max_charging_c": 56.87491381104451,
+   "t_max_non_charging_c": 45.81940633191613,
+   "v_max_v": 4.2000000000006725,
+   "why": [
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1.5,sv=4.15:h2:T25",
+   "minutes": 28.92016700982092,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.011773925254876685,
+   "q30_over_q1": 0.998923154459713,
+   "stratum": "T25",
+   "t_max_c": 40.69169979006472,
+   "t_max_charging_c": 40.69169979006472,
+   "t_max_non_charging_c": 32.553994980371556,
+   "v_max_v": 4.200000000002056,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1.5,sv=4.15:h2:T35",
+   "minutes": 27.313071014810763,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.005242649070508218,
+   "q30_over_q1": 0.9988191467493941,
+   "stratum": "T35",
+   "t_max_c": 48.60849166801188,
+   "t_max_charging_c": 48.60849166801188,
+   "t_max_non_charging_c": 41.29815000008671,
+   "v_max_v": 4.20000000000171,
+   "why": [
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1.5,sv=4.15:h4:T25",
+   "minutes": 31.108937223202748,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.026920592811814654,
+   "q30_over_q1": 0.9987034382031549,
+   "stratum": "T25",
+   "t_max_c": 34.097942680652295,
+   "t_max_charging_c": 34.097942680652295,
+   "t_max_non_charging_c": 29.220102007255093,
+   "v_max_v": 4.200000000001786,
+   "why": [
+    "charge_time",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=1.75,c2=1.5,sv=4.15:h4:T35",
+   "minutes": 28.26242754760443,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.006393325037361163,
+   "q30_over_q1": 0.9987244001178562,
+   "stratum": "T35",
+   "t_max_c": 42.75426497020186,
+   "t_max_charging_c": 42.75426497020186,
+   "t_max_non_charging_c": 38.49552661197998,
+   "v_max_v": 4.200000000001795,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1,sv=4:h1:T25",
+   "minutes": 33.80012685533485,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.009162242102623987,
+   "q30_over_q1": 0.9989159109322533,
+   "stratum": "T25",
+   "t_max_c": 51.626698845839826,
+   "t_max_charging_c": 51.626698845839826,
+   "t_max_non_charging_c": 37.82788843026469,
+   "v_max_v": 4.200000000001213,
+   "why": [
+    "charge_time",
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1,sv=4:h1:T35",
+   "minutes": 32.04297490480056,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.020958240233411064,
+   "q30_over_q1": 0.9987716697426964,
+   "stratum": "T35",
+   "t_max_c": 58.860835693309696,
+   "t_max_charging_c": 58.860835693309696,
+   "t_max_non_charging_c": 45.82749468582159,
+   "v_max_v": 4.200000000000362,
+   "why": [
+    "charge_time",
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1,sv=4:h2:T25",
+   "minutes": 35.62335316711936,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.0004889501700921729,
+   "q30_over_q1": 0.9988157516046143,
+   "stratum": "T25",
+   "t_max_c": 42.95964046789334,
+   "t_max_charging_c": 42.95964046789334,
+   "t_max_non_charging_c": 32.55970733103095,
+   "v_max_v": 4.200000000000891,
+   "why": [
+    "charge_time"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1,sv=4:h2:T35",
+   "minutes": 33.13111497081347,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.012676268180861042,
+   "q30_over_q1": 0.9987644410799061,
+   "stratum": "T35",
+   "t_max_c": 50.81576258324611,
+   "t_max_charging_c": 50.81576258324611,
+   "t_max_non_charging_c": 41.30244731871113,
+   "v_max_v": 4.200000000000797,
+   "why": [
+    "charge_time",
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1,sv=4:h4:T25",
+   "minutes": 37.474212394478045,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.00577616139814686,
+   "q30_over_q1": 0.9987806978928633,
+   "stratum": "T25",
+   "t_max_c": 36.10546862855051,
+   "t_max_charging_c": 36.10546862855051,
+   "t_max_non_charging_c": 29.222235817839305,
+   "v_max_v": 4.200000000000913,
+   "why": [
+    "charge_time",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1,sv=4:h4:T35",
+   "minutes": 34.329674587555665,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.008001188190947526,
+   "q30_over_q1": 0.9987451775254346,
+   "stratum": "T35",
+   "t_max_c": 44.53298187061256,
+   "t_max_charging_c": 44.53298187061256,
+   "t_max_non_charging_c": 38.49685354092077,
+   "v_max_v": 4.200000000001378,
+   "why": [
+    "charge_time"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1,sv=4.05:h1:T25",
+   "minutes": 31.72751618860046,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.010264096749507711,
+   "q30_over_q1": 0.9989321605420682,
+   "stratum": "T25",
+   "t_max_c": 52.455755387935426,
+   "t_max_charging_c": 52.455755387935426,
+   "t_max_non_charging_c": 37.82655901087537,
+   "v_max_v": 4.200000000000982,
+   "why": [
+    "charge_time",
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1,sv=4.05:h1:T35",
+   "minutes": 29.977607380487534,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.021763685910644037,
+   "q30_over_q1": 0.9987803812302737,
+   "stratum": "T35",
+   "t_max_c": 59.555620297323514,
+   "t_max_charging_c": 59.555620297323514,
+   "t_max_non_charging_c": 45.82629090324696,
+   "v_max_v": 4.200000000000248,
+   "why": [
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1,sv=4.05:h2:T25",
+   "minutes": 33.927016622196525,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.0024242730378096857,
+   "q30_over_q1": 0.9988443122610664,
+   "stratum": "T25",
+   "t_max_c": 43.24852719601671,
+   "t_max_charging_c": 43.24852719601671,
+   "t_max_non_charging_c": 32.55862300172504,
+   "v_max_v": 4.20000000000087,
+   "why": [
+    "charge_time",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1,sv=4.05:h2:T35",
+   "minutes": 31.340411018241817,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.012862811838699254,
+   "q30_over_q1": 0.9987701078108714,
+   "stratum": "T35",
+   "t_max_c": 51.03119168549415,
+   "t_max_charging_c": 51.03119168549415,
+   "t_max_non_charging_c": 41.30178535701202,
+   "v_max_v": 4.200000000000539,
+   "why": [
+    "charge_time",
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1,sv=4.05:h4:T25",
+   "minutes": 36.06600683615559,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.0150427151936969,
+   "q30_over_q1": 0.9988547843557058,
+   "stratum": "T25",
+   "t_max_c": 36.10541918308519,
+   "t_max_charging_c": 36.10541918308519,
+   "t_max_non_charging_c": 29.22177795137702,
+   "v_max_v": 4.200000000001583,
+   "why": [
+    "charge_time",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1,sv=4.05:h4:T35",
+   "minutes": 32.753101413393196,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.002395142917347074,
+   "q30_over_q1": 0.99875779882416,
+   "stratum": "T35",
+   "t_max_c": 44.5328772452948,
+   "t_max_charging_c": 44.5328772452948,
+   "t_max_non_charging_c": 38.49660760882517,
+   "v_max_v": 4.200000000001263,
+   "why": [
+    "charge_time"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1,sv=4.1:h1:T25",
+   "minutes": 29.497694816091315,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.006436050313854395,
+   "q30_over_q1": 0.9990173950672099,
+   "stratum": "T25",
+   "t_max_c": 53.21706878597956,
+   "t_max_charging_c": 53.21706878597956,
+   "t_max_non_charging_c": 37.82386334110146,
+   "v_max_v": 4.200000000001085,
+   "why": [
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1,sv=4.1:h1:T35",
+   "minutes": 28.004317021615954,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.021040066937594956,
+   "q30_over_q1": 0.9987843688668482,
+   "stratum": "T35",
+   "t_max_c": 60.16204616683888,
+   "t_max_charging_c": 60.16204616683888,
+   "t_max_non_charging_c": 45.82388138624026,
+   "v_max_v": 4.200000000000314,
+   "why": [
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1,sv=4.1:h2:T25",
+   "minutes": 31.94929131223198,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.010206548659127547,
+   "q30_over_q1": 0.9989048811110968,
+   "stratum": "T25",
+   "t_max_c": 43.531570121982725,
+   "t_max_charging_c": 43.531570121982725,
+   "t_max_non_charging_c": 32.55719714135205,
+   "v_max_v": 4.200000000001436,
+   "why": [
+    "charge_time",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1,sv=4.1:h2:T35",
+   "minutes": 29.38934118049243,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.007286198405943115,
+   "q30_over_q1": 0.9987580039124359,
+   "stratum": "T35",
+   "t_max_c": 51.262027931671525,
+   "t_max_charging_c": 51.262027931671525,
+   "t_max_non_charging_c": 41.3006588050942,
+   "v_max_v": 4.200000000000868,
+   "why": [
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1,sv=4.1:h4:T25",
+   "minutes": 34.47157154678275,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.024946288033773658,
+   "q30_over_q1": 0.9988950937571243,
+   "stratum": "T25",
+   "t_max_c": 36.105369386535926,
+   "t_max_charging_c": 36.105369386535926,
+   "t_max_non_charging_c": 29.22127776566981,
+   "v_max_v": 4.200000000000902,
+   "why": [
+    "charge_time",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1,sv=4.1:h4:T35",
+   "minutes": 30.967109450113785,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.006282436781696672,
+   "q30_over_q1": 0.9988347434028012,
+   "stratum": "T35",
+   "t_max_c": 44.53277196504098,
+   "t_max_charging_c": 44.53277196504098,
+   "t_max_non_charging_c": 38.49628116453357,
+   "v_max_v": 4.200000000000988,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1,sv=4.15:h1:T25",
+   "minutes": 27.615492879629397,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.0020660470501071356,
+   "q30_over_q1": 0.999093507560363,
+   "stratum": "T25",
+   "t_max_c": 53.810743222232986,
+   "t_max_charging_c": 53.810743222232986,
+   "t_max_non_charging_c": 37.82028471298486,
+   "v_max_v": 4.200000000000765,
+   "why": [
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1,sv=4.15:h1:T35",
+   "minutes": 26.341744128442897,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.016100637620784192,
+   "q30_over_q1": 0.9987637936759719,
+   "stratum": "T35",
+   "t_max_c": 60.63215446590738,
+   "t_max_charging_c": 60.63215446590738,
+   "t_max_non_charging_c": 45.82116325014459,
+   "v_max_v": 4.200000000000359,
+   "why": [
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1,sv=4.15:h2:T25",
+   "minutes": 29.96542949694448,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.016510638403726793,
+   "q30_over_q1": 0.9989317958993118,
+   "stratum": "T25",
+   "t_max_c": 43.78587686876517,
+   "t_max_charging_c": 43.78587686876517,
+   "t_max_non_charging_c": 32.555438068517276,
+   "v_max_v": 4.200000000000793,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1,sv=4.15:h2:T35",
+   "minutes": 27.69196805125929,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.0011332811802567356,
+   "q30_over_q1": 0.9987955177311784,
+   "stratum": "T35",
+   "t_max_c": 51.46116243457976,
+   "t_max_charging_c": 51.46116243457976,
+   "t_max_non_charging_c": 41.29928136676443,
+   "v_max_v": 4.20000000000086,
+   "why": [
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1,sv=4.15:h4:T25",
+   "minutes": 32.70622440009689,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.03347220052275931,
+   "q30_over_q1": 0.998832254733461,
+   "stratum": "T25",
+   "t_max_c": 36.11436664339345,
+   "t_max_charging_c": 36.11436664339345,
+   "t_max_non_charging_c": 29.220639035204385,
+   "v_max_v": 4.20000000000132,
+   "why": [
+    "charge_time",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1,sv=4.15:h4:T35",
+   "minutes": 29.212044776276613,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.013172075417010945,
+   "q30_over_q1": 0.9988210791414144,
+   "stratum": "T35",
+   "t_max_c": 44.546553675252596,
+   "t_max_charging_c": 44.546553675252596,
+   "t_max_non_charging_c": 38.49587511950966,
+   "v_max_v": 4.200000000001348,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1.25,sv=4:h1:T25",
+   "minutes": 29.749028149181868,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.006553902430926906,
+   "q30_over_q1": 0.9990197792776875,
+   "stratum": "T25",
+   "t_max_c": 51.62614476757807,
+   "t_max_charging_c": 51.62614476757807,
+   "t_max_non_charging_c": 37.82246273674991,
+   "v_max_v": 4.20000000000102,
+   "why": [
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1.25,sv=4:h1:T35",
+   "minutes": 28.4263940157269,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.017285426062567805,
+   "q30_over_q1": 0.9987912040796122,
+   "stratum": "T35",
+   "t_max_c": 58.8604804262763,
+   "t_max_charging_c": 58.8604804262763,
+   "t_max_non_charging_c": 45.8234116280363,
+   "v_max_v": 4.200000000000492,
+   "why": [
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1.25,sv=4:h2:T25",
+   "minutes": 31.52799318069357,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.0056075078097016385,
+   "q30_over_q1": 0.9989182262894946,
+   "stratum": "T25",
+   "t_max_c": 42.95942185210913,
+   "t_max_charging_c": 42.95942185210913,
+   "t_max_non_charging_c": 32.55653952143115,
+   "v_max_v": 4.200000000001271,
+   "why": [
+    "charge_time",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1.25,sv=4:h2:T35",
+   "minutes": 29.341002172263718,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.007209202015825228,
+   "q30_over_q1": 0.9987778586938847,
+   "stratum": "T35",
+   "t_max_c": 50.815503240696785,
+   "t_max_charging_c": 50.815503240696785,
+   "t_max_non_charging_c": 41.30011117108256,
+   "v_max_v": 4.200000000001099,
+   "why": [
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1.25,sv=4:h4:T25",
+   "minutes": 33.469888932605194,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.015772985986017417,
+   "q30_over_q1": 0.9988920306188345,
+   "stratum": "T25",
+   "t_max_c": 36.10532560155451,
+   "t_max_charging_c": 36.10532560155451,
+   "t_max_non_charging_c": 29.221014963074595,
+   "v_max_v": 4.2000000000016815,
+   "why": [
+    "charge_time",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1.25,sv=4:h4:T35",
+   "minutes": 30.39825425053575,
+   "outcome": "REFERENCE_UNRESOLVED",
+   "plating_min_v": 0.0018589164041094312,
+   "q30_over_q1": 0.9988521542459481,
+   "stratum": "T35",
+   "t_max_c": 44.53270727254534,
+   "t_max_charging_c": 44.53270727254534,
+   "t_max_non_charging_c": 38.496109873110186,
+   "v_max_v": 4.200000000001111,
+   "why": [
+    "charge_time",
+    "thermal_charging",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1.25,sv=4.05:h1:T25",
+   "minutes": 28.457387054719977,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.00786921864427197,
+   "q30_over_q1": 0.9990505331726095,
+   "stratum": "T25",
+   "t_max_c": 52.455409486125006,
+   "t_max_charging_c": 52.455409486125006,
+   "t_max_non_charging_c": 37.821313259786336,
+   "v_max_v": 4.200000000000873,
+   "why": [
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1.25,sv=4.05:h1:T35",
+   "minutes": 27.186564428292932,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.018177180088430403,
+   "q30_over_q1": 0.9987924658729351,
+   "stratum": "T35",
+   "t_max_c": 59.555366495814496,
+   "t_max_charging_c": 59.555366495814496,
+   "t_max_non_charging_c": 45.82260278583044,
+   "v_max_v": 4.200000000001092,
+   "why": [
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1.25,sv=4.05:h2:T25",
+   "minutes": 30.47121117141661,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.004989562278224663,
+   "q30_over_q1": 0.998927819025733,
+   "stratum": "T25",
+   "t_max_c": 43.248375639982555,
+   "t_max_charging_c": 43.248375639982555,
+   "t_max_non_charging_c": 32.55585850269739,
+   "v_max_v": 4.200000000001218,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1.25,sv=4.05:h2:T35",
+   "minutes": 28.242021745358052,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.007747831103192643,
+   "q30_over_q1": 0.9988046395878509,
+   "stratum": "T35",
+   "t_max_c": 51.03095899158666,
+   "t_max_charging_c": 51.03095899158666,
+   "t_max_non_charging_c": 41.29964923038432,
+   "v_max_v": 4.200000000001124,
+   "why": [
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1.25,sv=4.05:h4:T25",
+   "minutes": 32.62080377876969,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.015607647989761974,
+   "q30_over_q1": 0.9988582439599719,
+   "stratum": "T25",
+   "t_max_c": 36.10530673958647,
+   "t_max_charging_c": 36.10530673958647,
+   "t_max_non_charging_c": 29.220716212043783,
+   "v_max_v": 4.200000000001432,
+   "why": [
+    "charge_time",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1.25,sv=4.05:h4:T35",
+   "minutes": 29.443619307138604,
+   "outcome": "REFERENCE_UNRESOLVED",
+   "plating_min_v": 0.0019450373435642952,
+   "q30_over_q1": 0.9988317015564229,
+   "stratum": "T35",
+   "t_max_c": 44.532660304256865,
+   "t_max_charging_c": 44.532660304256865,
+   "t_max_non_charging_c": 38.49594545979255,
+   "v_max_v": 4.200000000001027,
+   "why": [
+    "thermal_charging",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1.25,sv=4.1:h1:T25",
+   "minutes": 27.054863556830433,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.006436050313854395,
+   "q30_over_q1": 0.9990432830472143,
+   "stratum": "T25",
+   "t_max_c": 53.21682009658565,
+   "t_max_charging_c": 53.21682009658565,
+   "t_max_non_charging_c": 37.819234934316285,
+   "v_max_v": 4.200000000001152,
+   "why": [
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1.25,sv=4.1:h1:T35",
+   "minutes": 26.002590212970926,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.019732261347090534,
+   "q30_over_q1": 0.9987903976721738,
+   "stratum": "T35",
+   "t_max_c": 60.16190594549431,
+   "t_max_charging_c": 60.16190594549431,
+   "t_max_non_charging_c": 45.82109817627344,
+   "v_max_v": 4.200000000000516,
+   "why": [
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1.25,sv=4.1:h2:T25",
+   "minutes": 29.223898980095303,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.010206548659127547,
+   "q30_over_q1": 0.9989328149349623,
+   "stratum": "T25",
+   "t_max_c": 43.53144968584843,
+   "t_max_charging_c": 43.53144968584843,
+   "t_max_non_charging_c": 32.554900579520904,
+   "v_max_v": 4.200000000001218,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1.25,sv=4.1:h2:T35",
+   "minutes": 27.032102146195008,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.007286198405943115,
+   "q30_over_q1": 0.9988218390531712,
+   "stratum": "T35",
+   "t_max_c": 51.26190560541784,
+   "t_max_charging_c": 51.26190560541784,
+   "t_max_non_charging_c": 41.298881210534375,
+   "v_max_v": 4.200000000001275,
+   "why": [
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1.25,sv=4.1:h4:T25",
+   "minutes": 31.65557270431823,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.024946288033773658,
+   "q30_over_q1": 0.9987655159410148,
+   "stratum": "T25",
+   "t_max_c": 36.10528230144996,
+   "t_max_charging_c": 36.10528230144996,
+   "t_max_non_charging_c": 29.22038203349058,
+   "v_max_v": 4.200000000001721,
+   "why": [
+    "charge_time",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1.25,sv=4.1:h4:T35",
+   "minutes": 28.360479111772502,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.006282436781696672,
+   "q30_over_q1": 0.9987695947704877,
+   "stratum": "T35",
+   "t_max_c": 44.532602223604954,
+   "t_max_charging_c": 44.532602223604954,
+   "t_max_non_charging_c": 38.49570824397301,
+   "v_max_v": 4.200000000000902,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1.25,sv=4.15:h1:T25",
+   "minutes": 25.856890584995597,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.0020660470501071356,
+   "q30_over_q1": 0.9990128498791905,
+   "stratum": "T25",
+   "t_max_c": 53.81057616929553,
+   "t_max_charging_c": 53.81057616929553,
+   "t_max_non_charging_c": 37.81677225056336,
+   "v_max_v": 4.200000000001944,
+   "why": [
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1.25,sv=4.15:h1:T35",
+   "minutes": 25.005046477066,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.016100637620784192,
+   "q30_over_q1": 0.9987789835453785,
+   "stratum": "T35",
+   "t_max_c": 60.632079531293925,
+   "t_max_charging_c": 60.632079531293925,
+   "t_max_non_charging_c": 45.819413844394774,
+   "v_max_v": 4.20000000000054,
+   "why": [
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1.25,sv=4.15:h2:T25",
+   "minutes": 27.95299045280532,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.016510638403726793,
+   "q30_over_q1": 0.9989111122150603,
+   "stratum": "T25",
+   "t_max_c": 43.78578508514266,
+   "t_max_charging_c": 43.78578508514266,
+   "t_max_non_charging_c": 32.55370260366209,
+   "v_max_v": 4.200000000001889,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1.25,sv=4.15:h2:T35",
+   "minutes": 25.96529724033994,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.0011332811802567356,
+   "q30_over_q1": 0.9988102156330807,
+   "stratum": "T35",
+   "t_max_c": 51.461069118420994,
+   "t_max_charging_c": 51.461069118420994,
+   "t_max_non_charging_c": 41.29792613877328,
+   "v_max_v": 4.200000000001067,
+   "why": [
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1.25,sv=4.15:h4:T25",
+   "minutes": 30.58394785364796,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.03347220052275931,
+   "q30_over_q1": 0.9986701481318208,
+   "stratum": "T25",
+   "t_max_c": 36.11432695644123,
+   "t_max_charging_c": 36.11432695644123,
+   "t_max_non_charging_c": 29.21993066580967,
+   "v_max_v": 4.200000000002057,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1.25,sv=4.15:h4:T35",
+   "minutes": 27.288780248170983,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.013172075417010945,
+   "q30_over_q1": 0.9987001277062135,
+   "stratum": "T35",
+   "t_max_c": 44.54647711902476,
+   "t_max_charging_c": 44.54647711902476,
+   "t_max_non_charging_c": 38.49541126225165,
+   "v_max_v": 4.2000000000016176,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1.5,sv=4:h1:T25",
+   "minutes": 27.11371116817839,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.0044714741496091805,
+   "q30_over_q1": 0.9990046956383095,
+   "stratum": "T25",
+   "t_max_c": 51.62573458061257,
+   "t_max_charging_c": 51.62573458061257,
+   "t_max_non_charging_c": 37.81805875291445,
+   "v_max_v": 4.200000000001283,
+   "why": [
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1.5,sv=4:h1:T35",
+   "minutes": 26.098566094036325,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.014231620438137875,
+   "q30_over_q1": 0.9987931271689183,
+   "stratum": "T35",
+   "t_max_c": 58.86021964037542,
+   "t_max_charging_c": 58.86021964037542,
+   "t_max_non_charging_c": 45.82058993485049,
+   "v_max_v": 4.200000000001376,
+   "why": [
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1.5,sv=4:h2:T25",
+   "minutes": 28.904736257998547,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.011637744309443561,
+   "q30_over_q1": 0.998929341905936,
+   "stratum": "T25",
+   "t_max_c": 42.959315000478625,
+   "t_max_charging_c": 42.959315000478625,
+   "t_max_non_charging_c": 32.554302671486596,
+   "v_max_v": 4.200000000001872,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1.5,sv=4:h2:T35",
+   "minutes": 26.95787519560456,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.004048723332317072,
+   "q30_over_q1": 0.9988216006692889,
+   "stratum": "T35",
+   "t_max_c": 50.81537261138567,
+   "t_max_charging_c": 50.81537261138567,
+   "t_max_non_charging_c": 41.29844993617348,
+   "v_max_v": 4.200000000001129,
+   "why": [
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1.5,sv=4:h4:T25",
+   "minutes": 31.095134538487493,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.02521467669561734,
+   "q30_over_q1": 0.9987193343809058,
+   "stratum": "T25",
+   "t_max_c": 36.10526430386466,
+   "t_max_charging_c": 36.10526430386466,
+   "t_max_non_charging_c": 29.220162626867193,
+   "v_max_v": 4.2000000000013635,
+   "why": [
+    "charge_time",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1.5,sv=4:h4:T35",
+   "minutes": 28.02574098010848,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.00567860583774925,
+   "q30_over_q1": 0.9987332525860932,
+   "stratum": "T35",
+   "t_max_c": 44.53256493205288,
+   "t_max_charging_c": 44.53256493205288,
+   "t_max_non_charging_c": 38.49556106333222,
+   "v_max_v": 4.200000000001287,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1.5,sv=4.05:h1:T25",
+   "minutes": 26.368903575293032,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.005283707307901968,
+   "q30_over_q1": 0.9989992516797438,
+   "stratum": "T25",
+   "t_max_c": 52.45511412064042,
+   "t_max_charging_c": 52.45511412064042,
+   "t_max_non_charging_c": 37.81733367677276,
+   "v_max_v": 4.200000000001365,
+   "why": [
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1.5,sv=4.05:h1:T35",
+   "minutes": 25.387024458307597,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.01477015169612543,
+   "q30_over_q1": 0.9987945092298788,
+   "stratum": "T35",
+   "t_max_c": 59.55521355733373,
+   "t_max_charging_c": 59.55521355733373,
+   "t_max_non_charging_c": 45.82011768174618,
+   "v_max_v": 4.2000000000010775,
+   "why": [
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1.5,sv=4.05:h2:T25",
+   "minutes": 28.288554160056425,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.0111897048249852,
+   "q30_over_q1": 0.9989150865577439,
+   "stratum": "T25",
+   "t_max_c": 43.24828953645249,
+   "t_max_charging_c": 43.24828953645249,
+   "t_max_non_charging_c": 32.55387407095128,
+   "v_max_v": 4.2000000000027295,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1.5,sv=4.05:h2:T35",
+   "minutes": 26.327815644181477,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.00452836843304566,
+   "q30_over_q1": 0.9988133346832652,
+   "stratum": "T35",
+   "t_max_c": 51.03085083753854,
+   "t_max_charging_c": 51.03085083753854,
+   "t_max_non_charging_c": 41.298133776591385,
+   "v_max_v": 4.200000000002209,
+   "why": [
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1.5,sv=4.05:h4:T25",
+   "minutes": 30.618115869336314,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.025138569807906117,
+   "q30_over_q1": 0.9986785862649961,
+   "stratum": "T25",
+   "t_max_c": 36.10524984360694,
+   "t_max_charging_c": 36.10524984360694,
+   "t_max_non_charging_c": 29.219966642582676,
+   "v_max_v": 4.200000000002085,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1.5,sv=4.05:h4:T35",
+   "minutes": 27.489679091003755,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.0056385062856045744,
+   "q30_over_q1": 0.9987041205703426,
+   "stratum": "T35",
+   "t_max_c": 44.53253292664414,
+   "t_max_charging_c": 44.53253292664414,
+   "t_max_non_charging_c": 38.49544817000901,
+   "v_max_v": 4.200000000001564,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1.5,sv=4.1:h1:T25",
+   "minutes": 25.552605219168473,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.006436050313854395,
+   "q30_over_q1": 0.9989932217201399,
+   "stratum": "T25",
+   "t_max_c": 53.216667337685465,
+   "t_max_charging_c": 53.216667337685465,
+   "t_max_non_charging_c": 37.81610683710824,
+   "v_max_v": 4.20000000000152,
+   "why": [
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1.5,sv=4.1:h1:T35",
+   "minutes": 24.70633060811607,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.015992862749830486,
+   "q30_over_q1": 0.9987877505283774,
+   "stratum": "T35",
+   "t_max_c": 60.1618217309811,
+   "t_max_charging_c": 60.1618217309811,
+   "t_max_non_charging_c": 45.81926166564705,
+   "v_max_v": 4.200000000001351,
+   "why": [
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1.5,sv=4.1:h2:T25",
+   "minutes": 27.553211525734113,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.010206548659127547,
+   "q30_over_q1": 0.9988928235777086,
+   "stratum": "T25",
+   "t_max_c": 43.5313889243028,
+   "t_max_charging_c": 43.5313889243028,
+   "t_max_non_charging_c": 32.553291515572425,
+   "v_max_v": 4.2000000000012285,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1.5,sv=4.1:h2:T35",
+   "minutes": 25.62788519134626,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.005437313351581451,
+   "q30_over_q1": 0.9987957793273093,
+   "stratum": "T35",
+   "t_max_c": 51.26184722560174,
+   "t_max_charging_c": 51.26184722560174,
+   "t_max_non_charging_c": 41.29763195647041,
+   "v_max_v": 4.200000000001767,
+   "why": [
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1.5,sv=4.1:h4:T25",
+   "minutes": 30.071971772223417,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.0250360300011297,
+   "q30_over_q1": 0.9986508227716903,
+   "stratum": "T25",
+   "t_max_c": 36.10523088753206,
+   "t_max_charging_c": 36.10523088753206,
+   "t_max_non_charging_c": 29.219739106185045,
+   "v_max_v": 4.200000000001147,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1.5,sv=4.1:h4:T35",
+   "minutes": 26.877742771655,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.006282436781696672,
+   "q30_over_q1": 0.9986902554221871,
+   "stratum": "T35",
+   "t_max_c": 44.532498219577406,
+   "t_max_charging_c": 44.532498219577406,
+   "t_max_non_charging_c": 38.49530270240365,
+   "v_max_v": 4.200000000001198,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1.5,sv=4.15:h1:T25",
+   "minutes": 24.848875247381535,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.0020660470501071356,
+   "q30_over_q1": 0.998992505694699,
+   "stratum": "T25",
+   "t_max_c": 53.81049838132793,
+   "t_max_charging_c": 53.81049838132793,
+   "t_max_non_charging_c": 37.8147064822586,
+   "v_max_v": 4.200000000001246,
+   "why": [
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1.5,sv=4.15:h1:T35",
+   "minutes": 24.13466433128321,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.016100637620784192,
+   "q30_over_q1": 0.9987801621703711,
+   "stratum": "T35",
+   "t_max_c": 60.63203108084292,
+   "t_max_charging_c": 60.63203108084292,
+   "t_max_non_charging_c": 45.81832743575808,
+   "v_max_v": 4.200000000001024,
+   "why": [
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1.5,sv=4.15:h2:T25",
+   "minutes": 26.797222224164123,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.016510638403726793,
+   "q30_over_q1": 0.9988695171537061,
+   "stratum": "T25",
+   "t_max_c": 43.78573733051758,
+   "t_max_charging_c": 43.78573733051758,
+   "t_max_non_charging_c": 32.55250223306871,
+   "v_max_v": 4.200000000001733,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1.5,sv=4.15:h2:T35",
+   "minutes": 25.00499416270098,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.0011332811802567356,
+   "q30_over_q1": 0.9987691816332727,
+   "stratum": "T35",
+   "t_max_c": 51.46101615936141,
+   "t_max_charging_c": 51.46101615936141,
+   "t_max_non_charging_c": 41.296975739582706,
+   "v_max_v": 4.200000000001772,
+   "why": [
+    "thermal_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1.5,sv=4.15:h4:T25",
+   "minutes": 29.457555753807323,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.03347220052275931,
+   "q30_over_q1": 0.9986512961937644,
+   "stratum": "T25",
+   "t_max_c": 36.11430787814379,
+   "t_max_charging_c": 36.11430787814379,
+   "t_max_non_charging_c": 29.219437282382557,
+   "v_max_v": 4.200000000002566,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=1.5,sv=4.15:h4:T35",
+   "minutes": 26.266410586042635,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.013172075417010945,
+   "q30_over_q1": 0.9987184960000042,
+   "stratum": "T35",
+   "t_max_c": 44.5464377005963,
+   "t_max_charging_c": 44.5464377005963,
+   "t_max_non_charging_c": 38.49513261196171,
+   "v_max_v": 4.200000000001278,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=2,sv=4:h1:T25",
+   "minutes": 23.940361961672888,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.002338423609354065,
+   "q30_over_q1": 0.9990351244650745,
+   "stratum": "T25",
+   "t_max_c": 54.327563565392666,
+   "t_max_charging_c": 54.327563565392666,
+   "t_max_non_charging_c": 37.81279688252829,
+   "v_max_v": 4.200000000002367,
+   "why": [
+    "thermal_charging",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=2,sv=4:h1:T35",
+   "minutes": 23.365524864840577,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.00982149905949005,
+   "q30_over_q1": 0.9988110731769575,
+   "stratum": "T35",
+   "t_max_c": 61.04629140093317,
+   "t_max_charging_c": 61.04629140093317,
+   "t_max_non_charging_c": 45.81713698040028,
+   "v_max_v": 4.200000000001509,
+   "why": [
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=2,sv=4:h2:T25",
+   "minutes": 25.74587922121238,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.02222281032243809,
+   "q30_over_q1": 0.998844395209811,
+   "stratum": "T25",
+   "t_max_c": 44.00184712988829,
+   "t_max_charging_c": 44.00184712988829,
+   "t_max_non_charging_c": 32.55103063547034,
+   "v_max_v": 4.200000000001538,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=2,sv=4:h2:T35",
+   "minutes": 24.159001221921887,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.00467669964374804,
+   "q30_over_q1": 0.9987473803203418,
+   "stratum": "T35",
+   "t_max_c": 51.63361292026673,
+   "t_max_charging_c": 51.63361292026673,
+   "t_max_non_charging_c": 41.29595171848683,
+   "v_max_v": 4.2000000000020385,
+   "why": [
+    "thermal_charging",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=2,sv=4:h4:T25",
+   "minutes": 28.500881277864597,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.04060278735655072,
+   "q30_over_q1": 0.9987754568010692,
+   "stratum": "T25",
+   "t_max_c": 36.1767127873573,
+   "t_max_charging_c": 36.1767127873573,
+   "t_max_non_charging_c": 29.218914451720536,
+   "v_max_v": 4.200000000003059,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=2,sv=4:h4:T35",
+   "minutes": 25.411976275575295,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.019186547792002562,
+   "q30_over_q1": 0.9988209080249779,
+   "stratum": "T35",
+   "t_max_c": 44.62610014768842,
+   "t_max_charging_c": 44.62610014768842,
+   "t_max_non_charging_c": 38.49485987697972,
+   "v_max_v": 4.20000000000158,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=2,sv=4.05:h1:T25",
+   "minutes": 23.94036275448027,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.0023384308297011006,
+   "q30_over_q1": 0.9990353297628892,
+   "stratum": "T25",
+   "t_max_c": 54.32756420771864,
+   "t_max_charging_c": 54.32756420771864,
+   "t_max_non_charging_c": 37.812812595274124,
+   "v_max_v": 4.200000000001443,
+   "why": [
+    "thermal_charging",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=2,sv=4.05:h1:T35",
+   "minutes": 23.365524581233878,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.009821607604252608,
+   "q30_over_q1": 0.9988111811317505,
+   "stratum": "T35",
+   "t_max_c": 61.04629322491809,
+   "t_max_charging_c": 61.04629322491809,
+   "t_max_non_charging_c": 45.81714395636226,
+   "v_max_v": 4.200000000002605,
+   "why": [
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=2,sv=4.05:h2:T25",
+   "minutes": 25.745878665117964,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.022222939969349608,
+   "q30_over_q1": 0.9988444037692384,
+   "stratum": "T25",
+   "t_max_c": 44.00184238752456,
+   "t_max_charging_c": 44.00184238752456,
+   "t_max_non_charging_c": 32.55103165158823,
+   "v_max_v": 4.200000000002012,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=2,sv=4.05:h2:T35",
+   "minutes": 24.159001055833006,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.004676654943600507,
+   "q30_over_q1": 0.998747290410469,
+   "stratum": "T35",
+   "t_max_c": 51.63361063805604,
+   "t_max_charging_c": 51.63361063805604,
+   "t_max_non_charging_c": 41.29595091302366,
+   "v_max_v": 4.200000000002237,
+   "why": [
+    "thermal_charging",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=2,sv=4.05:h4:T25",
+   "minutes": 28.50087461075766,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.04060281293039122,
+   "q30_over_q1": 0.9987755763119234,
+   "stratum": "T25",
+   "t_max_c": 36.17671382551765,
+   "t_max_charging_c": 36.17671382551765,
+   "t_max_non_charging_c": 29.218916104556513,
+   "v_max_v": 4.200000000002108,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=2,sv=4.05:h4:T35",
+   "minutes": 25.411974240350403,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.01918652210072418,
+   "q30_over_q1": 0.9988208472574573,
+   "stratum": "T35",
+   "t_max_c": 44.62610111452216,
+   "t_max_charging_c": 44.62610111452216,
+   "t_max_non_charging_c": 38.49485988385646,
+   "v_max_v": 4.200000000002394,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=2,sv=4.1:h1:T25",
+   "minutes": 23.940362535984395,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.0023384282673503164,
+   "q30_over_q1": 0.9990352967377596,
+   "stratum": "T25",
+   "t_max_c": 54.32756773034532,
+   "t_max_charging_c": 54.32756773034532,
+   "t_max_non_charging_c": 37.81280154598119,
+   "v_max_v": 4.200000000001911,
+   "why": [
+    "thermal_charging",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=2,sv=4.1:h1:T35",
+   "minutes": 23.365524938284423,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.009821530447307755,
+   "q30_over_q1": 0.9988111618157811,
+   "stratum": "T35",
+   "t_max_c": 61.04630616716713,
+   "t_max_charging_c": 61.04630616716713,
+   "t_max_non_charging_c": 45.81713697877001,
+   "v_max_v": 4.200000000001763,
+   "why": [
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=2,sv=4.1:h2:T25",
+   "minutes": 25.745880262408928,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.022222909750438717,
+   "q30_over_q1": 0.9988442847860156,
+   "stratum": "T25",
+   "t_max_c": 44.00184620932538,
+   "t_max_charging_c": 44.00184620932538,
+   "t_max_non_charging_c": 32.55103859743315,
+   "v_max_v": 4.200000000001399,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=2,sv=4.1:h2:T35",
+   "minutes": 24.159001083486643,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.004676632326674365,
+   "q30_over_q1": 0.9987474621815723,
+   "stratum": "T35",
+   "t_max_c": 51.633609242119746,
+   "t_max_charging_c": 51.633609242119746,
+   "t_max_non_charging_c": 41.29595102256815,
+   "v_max_v": 4.200000000001932,
+   "why": [
+    "thermal_charging",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=2,sv=4.1:h4:T25",
+   "minutes": 28.50088104239332,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.04060275928268408,
+   "q30_over_q1": 0.9987753147449674,
+   "stratum": "T25",
+   "t_max_c": 36.176714313602815,
+   "t_max_charging_c": 36.176714313602815,
+   "t_max_non_charging_c": 29.218916339472344,
+   "v_max_v": 4.200000000002961,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=2,sv=4.1:h4:T35",
+   "minutes": 25.411981509645557,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.01918647312817768,
+   "q30_over_q1": 0.9988208017448158,
+   "stratum": "T35",
+   "t_max_c": 44.62610003262711,
+   "t_max_charging_c": 44.62610003262711,
+   "t_max_non_charging_c": 38.49486459012786,
+   "v_max_v": 4.200000000002197,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=2,sv=4.15:h1:T25",
+   "minutes": 23.940367431483164,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.0023383974843755036,
+   "q30_over_q1": 0.999035358494481,
+   "stratum": "T25",
+   "t_max_c": 54.327564379448745,
+   "t_max_charging_c": 54.327564379448745,
+   "t_max_non_charging_c": 37.81281773105883,
+   "v_max_v": 4.200000000001394,
+   "why": [
+    "thermal_charging",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=2,sv=4.15:h1:T35",
+   "minutes": 23.365524881562195,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": 0.009821523048124621,
+   "q30_over_q1": 0.9988117922736711,
+   "stratum": "T35",
+   "t_max_c": 61.046300039719256,
+   "t_max_charging_c": 61.046300039719256,
+   "t_max_non_charging_c": 45.81713783088583,
+   "v_max_v": 4.200000000001659,
+   "why": [
+    "thermal_charging",
+    "thermal_non_charging"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=2,sv=4.15:h2:T25",
+   "minutes": 25.745879311183266,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.022222966006283547,
+   "q30_over_q1": 0.9988443560062309,
+   "stratum": "T25",
+   "t_max_c": 44.00185059446915,
+   "t_max_charging_c": 44.00185059446915,
+   "t_max_non_charging_c": 32.55103623648165,
+   "v_max_v": 4.200000000002056,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=2,sv=4.15:h2:T35",
+   "minutes": 24.159000892571587,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.004676530211706387,
+   "q30_over_q1": 0.9987475567992479,
+   "stratum": "T35",
+   "t_max_c": 51.63360836270863,
+   "t_max_charging_c": 51.63360836270863,
+   "t_max_non_charging_c": 41.29596404798366,
+   "v_max_v": 4.200000000002607,
+   "why": [
+    "thermal_charging",
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=2,sv=4.15:h4:T25",
+   "minutes": 28.500873107211742,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.040602806004655545,
+   "q30_over_q1": 0.9987753109835147,
+   "stratum": "T25",
+   "t_max_c": 36.176713330899304,
+   "t_max_charging_c": 36.176713330899304,
+   "t_max_non_charging_c": 29.218914553337072,
+   "v_max_v": 4.200000000001751,
+   "why": [
+    "plating"
+   ]
+  },
+  {
+   "case_id": "t2:c1=2,c2=2,sv=4.15:h4:T35",
+   "minutes": 25.411973699081962,
+   "outcome": "RESOLVED_INFEASIBLE",
+   "plating_min_v": -0.01918658934063875,
+   "q30_over_q1": 0.9988206853668153,
+   "stratum": "T35",
+   "t_max_c": 44.62609939030091,
+   "t_max_charging_c": 44.62609939030091,
+   "t_max_non_charging_c": 38.49485958219492,
+   "v_max_v": 4.200000000001539,
+   "why": [
+    "plating"
+   ]
+  }
+ ],
+ "controls": [
+  {
+   "case_id": "control-c1=1.25,c2=0.4:T29:S0.06",
+   "minutes_to_80": 63.270449521654676,
+   "soc10_time_s": 235.1999999999986,
+   "t_max_c": 43.90945932473488
+  },
+  {
+   "case_id": "control-c1=1.69,c2=0.4:T22.58:S0.07",
+   "minutes_to_80": 66.19933300076096,
+   "soc10_time_s": 183.90532544378735,
+   "t_max_c": 45.691474779200746
+  },
+  {
+   "case_id": "control-c1=1.67,c2=0.43:T23.5:S0.05",
+   "minutes_to_80": 62.36036032530327,
+   "soc10_time_s": 227.7844311377242,
+   "t_max_c": 46.07977400206505
+  },
+  {
+   "case_id": "control-c1=1.55,c2=0.63:T25.39:S0.06",
+   "minutes_to_80": 47.76161421814154,
+   "soc10_time_s": 212.90322580645247,
+   "t_max_c": 45.7333491734841
+  }
+ ],
+ "counts": {
+  "T15": {
+   "REFERENCE_UNRESOLVED": 2,
+   "RESOLVED_FEASIBLE": 7,
+   "RESOLVED_INFEASIBLE": 27
+  },
+  "T25": {
+   "RESOLVED_INFEASIBLE": 156
+  },
+  "T35": {
+   "REFERENCE_UNRESOLVED": 4,
+   "RESOLVED_INFEASIBLE": 152
+  },
+  "T40": {
+   "RESOLVED_FEASIBLE": 3,
+   "RESOLVED_INFEASIBLE": 33
+  },
+  "T5": {
+   "REFERENCE_UNRESOLVED": 1,
+   "RESOLVED_INFEASIBLE": 35
+  }
+ },
+ "reasons": {
+  "T15": {
+   "plating": 29
+  },
+  "T25": {
+   "charge_time": 103,
+   "plating": 84,
+   "thermal_charging": 40
+  },
+  "T35": {
+   "charge_time": 78,
+   "plating": 30,
+   "thermal_charging": 103,
+   "thermal_non_charging": 52
+  },
+  "T40": {
+   "thermal_charging": 33,
+   "thermal_non_charging": 24
+  },
+  "T5": {
+   "plating": 36
+  }
+ },
+ "refined": [
+  {
+   "case_id": "refined:c1=2,c2=1:h1:T25",
+   "minutes": 33.8164639170035,
+   "plating_min_v": 0.008291160189915957,
+   "q30_over_q1": 0.9989183518531514,
+   "t_max_c": 51.644955461958716,
+   "t_max_charging_c": 51.644955461958716,
+   "t_max_non_charging_c": 37.841857042358924,
+   "v_max_v": 4.200000000001035
+  },
+  {
+   "case_id": "refined:c1=2,c2=1:h2:T25",
+   "minutes": 35.6329443187154,
+   "plating_min_v": -0.00048440508410223996,
+   "q30_over_q1": 0.9988113494436526,
+   "t_max_c": 42.97456551118171,
+   "t_max_charging_c": 42.97456551118171,
+   "t_max_non_charging_c": 32.56797421795085,
+   "v_max_v": 4.200000000001371
+  },
+  {
+   "case_id": "refined:c1=2,c2=1:h1:T35",
+   "minutes": 32.063076561931325,
+   "plating_min_v": 0.02027082341394964,
+   "q30_over_q1": 0.9987624769250629,
+   "t_max_c": 58.884034704857186,
+   "t_max_charging_c": 58.884034704857186,
+   "t_max_non_charging_c": 45.84020523884652,
+   "v_max_v": 4.200000000000579
+  },
+  {
+   "case_id": "refined:c1=2,c2=1:h4:T35",
+   "minutes": 34.33124174126684,
+   "plating_min_v": 0.00719448053819324,
+   "q30_over_q1": 0.9987872709892455,
+   "t_max_c": 44.54298733101996,
+   "t_max_charging_c": 44.54298733101996,
+   "t_max_non_charging_c": 38.50091819236036,
+   "v_max_v": 4.2000000000009035
+  },
+  {
+   "case_id": "refined:t2:c1=2,c2=1.25,sv=4.05:h4:T35",
+   "minutes": 29.453563048697838,
+   "plating_min_v": 0.000881686553337747,
+   "q30_over_q1": 0.9988121552074608,
+   "t_max_c": 44.54266404546763,
+   "t_max_charging_c": 44.54266404546763,
+   "t_max_non_charging_c": 38.5000159325478,
+   "v_max_v": 4.200000000001204
+  },
+  {
+   "case_id": "refined:t2:c1=1.75,c2=1.25,sv=4.1:h4:T35",
+   "minutes": 29.82436317251527,
+   "plating_min_v": -0.0011075184397997782,
+   "q30_over_q1": 0.998823276122975,
+   "t_max_c": 42.76296249230427,
+   "t_max_charging_c": 42.76296249230427,
+   "t_max_non_charging_c": 38.5000574873456,
+   "v_max_v": 4.200000000001197
+  },
+  {
+   "case_id": "refined:t2:c1=1.5,c2=1.25,sv=4:h1:T25",
+   "minutes": 32.86692518337125,
+   "plating_min_v": 0.0042945377868368224,
+   "q30_over_q1": 0.9989334365256717,
+   "t_max_c": 44.71978793375558,
+   "t_max_charging_c": 44.71978793375558,
+   "t_max_non_charging_c": 37.838336543027594,
+   "v_max_v": 4.200000000001392
+  }
+ ]
+}

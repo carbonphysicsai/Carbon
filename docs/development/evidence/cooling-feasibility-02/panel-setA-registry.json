@@ -1,0 +1,28 @@
+{
+ "schema": "carbon.cooling.spreader-panel-setA-registry.v1",
+ "registered": "2026-10-08, before any panel solve",
+ "authority": "owner 2026-10-08 verbatim 'approve set A plan', relayed by the Test Lead: set A, amendment 1 (typical 1,250 W), merged hotspot question, the 53-job panel on local or free CPU only, then the value checks (a)-(d). Cell-only, no full plate, no spend. Panel definition: cooling-spreader-panel-v2.json (#822 @ 561bee38) with set A's buyer parameters",
+ "stack": {"lid": "isotropic effective k 3,000 W/mK (vapour-chamber class), 3.0 mm, 30 mm footprint", "tim2": "R2'' 6e-6 m2K/W (contact law, zero thickness)", "tim1": "R1'' 5.14e-6, die-side diagnostic only", "limit": "85 C at the lid-side TIM2 interface"},
+ "contexts": {
+  "cold_uniform": {"inlet_c": 30.0, "power_w": 1500, "ratio": 1},
+  "typical_uniform": {"inlet_c": 37.5, "power_w": 1250, "ratio": 1},
+  "warm_uniform": {"inlet_c": 37.5, "power_w": 1500, "ratio": 1},
+  "warm_central_band": {"inlet_c": 37.5, "power_w": 1500, "ratio": 3, "centre_mm": 15, "width_mm": 2.5},
+  "warm_outlet_band": {"inlet_c": 37.5, "power_w": 1500, "ratio": 3, "centre_mm": 24, "width_mm": 2.5},
+  "flow": "2 L/min/kW",
+  "hotspot_question": "warm_central_band and warm_outlet_band are scored as ONE question on the worse (higher interface peak) of the two maps"
+ },
+ "geometries": "channel width 0.2 / 0.3 / 0.5 mm x depth 3 / 6 mm; fin 0.3 mm; base 0.5 mm; cover 0.5 mm (6 designs)",
+ "jobs": {
+  "base": "6 designs x 5 contexts = 30",
+  "controls": ["ZERO_LOAD (cell + lid at inlet temperature, no source: drift and energy <= 1e-6 W per cell)", "UNIFORM_1D_STACK (uniform map: lid jump qt/k and TIM2 jump qR2'' against closed form, <= 0.05 K)", "FOURIER_CONDUCTION (lid series against the pinned Elmer lid solve)", "CONTACT_SIGN_ORIENTATION (interface = face + R2'' q, flux into the cell positive)", "CONSERVATIVE_MAP_TRANSFER (the cell's applied heat from the series map vs the lid's bottom flux integral, <= 0.1 %)"],
+  "refinement": "the 6 difficult cases (3 widths x depth 6 x the two hotspot maps) at two extra rungs: cell axial cells 2x and 4x (0.15 / 0.075 mm, other directions at the reference resolution) with the lid series at 2x and 4x modes = 12",
+  "witnesses": "6 repeating-cell 3D coupled witnesses: the cell's solid with the TIM2 contact and the 3 mm lid stacked on its heated face in one conjugate solve, for the 3 widths at depth 6 under the outlet band and the 3 depth-3 designs under the central band; reported as the composed-vs-coupled peak difference",
+  "total": 53
+ },
+ "coupling": "candidate-specific fixed point: lid series (exact 2D, Fourier-cosine, bottom q_b = (T_lid_bottom - T_face_spanmean(x)) / R2'') <-> cell CFD with the tabulated q_b(x) as a cosine series (60 modes) in the heated-patch expression; start from the h-model pre-solve; under-relaxation 0.5 on q_b; converged when the TIM2-interface peak changes <= 0.1 K and the L1 flux change <= 0.1 %; 20 iterations max, exhaustion is REFERENCE_UNRESOLVED",
+ "observer": "max over the heated face of T_face(x, y) + R2'' q_b(x) (composed TIM2 interface), its location, both TIM jumps, die-side diagnostic peak, cell pressure drop and dp x flow, PG25/Re applicability",
+ "verdict": "interval = observed refinement/coupling changes around the composed peak; entirely <= 85 C PASS, entirely > 85 C FAIL, intersecting UNRESOLVED (refined re-solve near the limit as before: resolution 3 for any case within 1 K)",
+ "value_checks_after": "per stratum and for the merged hotspot question: (a) 0.20 <= PASS/resolved <= 0.80, (b) margin spread >= 5 K, (c) >= 1 design PASS in all four questions, (d) best design (lowest dp x flow among PASS, ties by margin) differs across >= 2 questions; plus the complete-feasible-design count",
+ "compute": "local operator-host CPU only, OpenFOAM pinned image opencfd/openfoam-default@sha256:33fb575a...; every cell invocation's wall, CPU and attempt recorded; no automatic retry"
+}
