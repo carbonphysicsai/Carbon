@@ -403,13 +403,47 @@ PROOF_L0 = tuple(
 )
 PANELS["ev4-dev-proof"] = PANELS["ev4-dev-tuning"] + PROOF_L0
 
+#: ev4-dev-proof-levels (LEVEL-AWARE-PROOF-01): ev4-dev-proof plus the registered
+#: Level 1 to 3 proof members (`panels/proof-panel-levels-v1.json`, present once
+#: registered), each compiled at its OWN construction level when its bundle is
+#: verified (`level_compile`). A member's level is data in the panel file.
+PROOF_LEVELS = Path(__file__).with_name("panels") / "proof-panel-levels-v1.json"
+#: `{label: (level, arm)}` for every panel row that names a level above 0.
+LEVELS = {}
+
+
+def register_levels(
+    path,
+    name="ev4-dev-proof-levels",
+    levels=(1, 2, 3),
+    base="ev4-dev-proof",
+    attack=True,
+):
+    """Register the level members of the panel file at `path` as panel `name`
+    (the proof panel plus them). Only members that count for their level and
+    name a level in `levels` join; none are registered when the file is absent."""
+    path = Path(path)
+    if not path.is_file():
+        return ()
+    rows = []
+    for member in json.loads(path.read_text(encoding="utf-8"))["members"]:
+        if member["level"] in levels and member.get("counts_for_level", True):
+            rows.append((member["label"], member["strategy"], tuple(member["seeds"])))
+            LEVELS[member["label"]] = (member["level"], member.get("arm"))
+    PANELS[name] = (PANELS[base] if base else ()) + tuple(rows)
+    if attack and name not in ATTACK_PANELS:
+        ATTACK_PANELS.append(name)
+    return tuple(label for label, *_ in rows)
+
+
 #: The Track A harness families whose attempts are declarative recipes
 #: (strategy documents). The other families attack Python objects,
 #: predictions or staged bytes, so they leave nothing to rebuild.
 ATTACK_FAMILIES = ("recipe_surface", "rebuild_identity")
 ATTACK_ORIGIN = "track_a_harness"
 #: Panels that carry the harness's attack constructions.
-ATTACK_PANELS = ("ev5", "ev4-dev-tuning", "ev4-dev-proof")
+ATTACK_PANELS = ["ev5", "ev4-dev-tuning", "ev4-dev-proof"]
+register_levels(PROOF_LEVELS)
 
 
 def family(strategy):
@@ -483,6 +517,18 @@ def members(panel="ev1"):
         for family, strategy, seeds in rows
         for seed in seeds
     ]
+
+
+def levels(panel="ev1"):
+    """Each member's `(level, arm)`: (0, None) unless the panel row names a level
+    above 0 (`register_levels`)."""
+    # Read from the rows, not `members`: the harness's attack constructions that
+    # `members` appends are all Level 0 and building them is slow.
+    return {
+        f"{label}-s{seed}": LEVELS.get(label, (0, None))
+        for label, _strategy, seeds in PANELS[panel]
+        for seed in seeds
+    }
 
 
 def kinds(panel="ev1"):
