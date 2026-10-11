@@ -363,6 +363,18 @@ def _summarize(results, direction):
             )
         )
     metrics["p_model_beats_solver"] = _mean(wins)
+    paired = [
+        row["model_then_solver"]["value"] - row["solver_alone"]["value"]
+        for row in results
+        if row["model_then_solver"]["value"] is not None
+        and row["solver_alone"]["value"] is not None
+    ]
+    metrics["paired_verified_value_count"] = len(paired)
+    # The mean is unavailable if an arm has no verified feasible pick on any
+    # job. Reporting a conditional subset would silently change the buyer job.
+    metrics["paired_verified_value_delta"] = (
+        _mean(paired) if len(paired) == len(results) else None
+    )
     return metrics
 
 
@@ -439,6 +451,15 @@ def compare(panel, *, bootstrap_replicates, confidence, seed):
                 _quantile(wins, tail),
                 _quantile(wins, 1 - tail),
             ]
+            paired_deltas = [draw["paired_verified_value_delta"] for draw in draws]
+            intervals["paired_verified_value_delta"] = (
+                None
+                if observed["paired_verified_value_delta"] is None
+                else [
+                    _quantile(paired_deltas, tail),
+                    _quantile(paired_deltas, 1 - tail),
+                ]
+            )
         curves.append(
             {"budget": budget, "estimates": observed, "bootstrap_ci": intervals}
         )

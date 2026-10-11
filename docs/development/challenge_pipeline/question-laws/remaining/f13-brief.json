@@ -1,0 +1,8 @@
+{
+  "schema": "carbon.onboarding.brief.v1",
+  "challenge": "f13",
+  "buyer": "Mock compressor-skid acoustic engineer",
+  "decision": "Choose a complete supported two-chamber silencer curve within package limits, maximizing interval-weighted band p10 TL, with independently verified narrow notches",
+  "physics": "Finite 3D rigid-wall passive no-flow acoustics, fixed medium and matched 50-mm ports; no pressure-drop or regulation claim",
+  "solver": "Proposed pinned Elmer Helmholtz full-band reference; conservation and curve adequacy must be accepted first"
+}

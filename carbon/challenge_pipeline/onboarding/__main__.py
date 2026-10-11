@@ -34,10 +34,53 @@ def main(argv=None):
     panel_parser.add_argument(
         "--reuse", type=Path, help="non-hidden completed AND scheduled identity index"
     )
+    status_parser = sub.add_parser("status")
+    status_parser.add_argument("--challenge", required=True)
+    status_parser.add_argument(
+        "--bindings", help="public artifact path bindings for additional challenges"
+    )
+    status_parser.add_argument("--format", choices=("text", "json"), default="text")
+    status_parser.add_argument(
+        "--main-ref", default="origin/main", help="locally available main ref; no fetch"
+    )
+    pack_parser = sub.add_parser(
+        "pack",
+        help="provenance and freshness of a committed evidence pack (read only)",
+    )
+    pack_parser.add_argument(
+        "--run", required=True, help="the pack's run record, relative to the repository"
+    )
+    pack_parser.add_argument("--format", choices=("text", "json"), default="text")
     args = parser.parse_args(argv)
+    if args.command == "pack":
+        from carbon.challenge_pipeline.onboarding import provenance
+
+        report = provenance.check(args.root, args.run)
+        print(
+            json.dumps(report, indent=1, sort_keys=True)
+            if args.format == "json"
+            else provenance.render(report)
+        )
+        # Freshness is a reported status; only a provenance problem fails.
+        return 1 if report["provenance_problems"] else 0
     try:
-        draft = packet.generate(packet.read_json(args.brief), args.root)
-        if args.command == "panel":
+        if args.command == "status":
+            from carbon.challenge_pipeline.onboarding import status
+
+            result = status.generate(
+                args.root,
+                args.challenge,
+                bindings_path=args.bindings or status.BINDINGS,
+                main_ref=args.main_ref,
+            )
+            if args.format == "text":
+                print(status.render(result))
+                return 0
+        else:
+            draft = packet.generate(packet.read_json(args.brief), args.root)
+        if args.command == "status":
+            pass
+        elif args.command == "panel":
             from carbon.challenge_pipeline.onboarding import panel
 
             result = panel.generate(

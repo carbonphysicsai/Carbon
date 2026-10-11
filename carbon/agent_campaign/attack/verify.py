@@ -708,10 +708,15 @@ def verify(
     if authority == analysis.MINER_LOCAL:
         breach = analysis.isolation_breach(attempt, canaries=canaries, carrier=carrier)
         if breach is None:
-            # It stayed inside its own sandbox and staged files.
+            # It stayed inside its own sandbox and staged files, or it named
+            # a target outside and the path refused it (ATTACKER-D-01).
             return verdict(
                 NOT_APPLICABLE,
-                reason="miner_local_within_sandbox",
+                reason=(
+                    "miner_local_out_of_sandbox_refused"
+                    if analysis.refused_out_of_sandbox(attempt)
+                    else "miner_local_within_sandbox"
+                ),
                 refused_by=attempt.refused_by,
             )
         evidence["isolation"] = breach["detail_digest"]

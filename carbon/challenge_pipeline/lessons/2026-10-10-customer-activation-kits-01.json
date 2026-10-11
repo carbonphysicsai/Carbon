@@ -1,0 +1,19 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-10-customer-activation-kits-01",
+  "recorded_at": "2026-10-10T22:28:11Z",
+  "challenge": "protocol",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CUSTOMER-ACTIVATION-KITS-01",
+    "description": "Native document coverage/source checks and existing warpage/dossier regressions; no solver or customer data execution."
+  },
+  "expected": "Four full-job kits preserve exact input gaps, source provenance and conditional cost/time without creating customer activation authority.",
+  "observed": "23 native diagnostic tests passed; Black and Ruff passed. Baseline 18 passed with a Windows pytest-cache warning; subsequent run disabled that cache. Canonical acceptance remains GitHub CI, not native output.",
+  "keep": ["Shared 17-category intake plus specialist files/readiness tests", "Full buyer problems and explicit material/history holds", "Separate reference-bank component from total price"],
+  "change": ["Do not infer stage effort or activation SLA from artifact timestamps", "Treat absent full-job source adapters as a dossier gap, not automated delivery"],
+  "protocol_elements": ["customer_intake", "reference_adequacy", "claim_discipline"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
