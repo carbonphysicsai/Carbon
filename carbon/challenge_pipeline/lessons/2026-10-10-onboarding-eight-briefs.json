@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-10-onboarding-eight-briefs",
+  "recorded_at": "2026-10-10T18:19:26Z",
+  "challenge": "protocol",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "REMAINING-CHALLENGES-RUN-01", "description": "Eight public brief applications of packet/law/panel/status, with retained hashes and focused host regression tests. No solvers, providers, hidden data or spend."},
+  "expected": "Reuse the four tools without converting file presence, source extraction or low solver-cost anecdotes into stage acceptance.",
+  "observed": "All eight draft sets retained ten sections and unverified stage exits; missing solved exports, numeric panel seeds and reuse receipts remain explicit. f02 alone used the supported existing-law crosswalk, retaining k=8 as HUMAN_INPUT. 68 focused native tests passed; canonical acceptance remains CI-owned. The reviewed order gives each brief one next action/owner and includes strong cheap-baseline risk. No Challenge is declared TESTED.",
+  "keep": ["Hash public source excerpts and every retained output, including Markdown", "Separate P/Q/w and keep TWO-band 5+5 frontier criteria", "Rank evidence workfronts, not observed file counts or an invented accepted stage"],
+  "change": ["Duplicate entries must fail instead of silently replacing one brief's result", "A section excerpt is context, not a numeric law/panel field mapping", "Do not duplicate active acquisition work or request a fresh panel before checking retained and scheduled evidence"],
+  "protocol_elements": ["claim_control", "scientific_contracts", "evidence_identity"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

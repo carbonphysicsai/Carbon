@@ -323,6 +323,18 @@
      "id": "B10",
      "name": "One shared checkout for every lane",
      "time_lost": "UNKNOWN"
+    },
+    {
+     "fix_status": "CRITERION_DECIDED_CHECK_NOT_BUILT",
+     "id": "B11",
+     "name": "Training kit does not cover the panel's action space",
+     "time_lost": "UNKNOWN"
+    },
+    {
+     "fix_status": "OPEN",
+     "id": "B12",
+     "name": "Pinned solver image missing from the operator store",
+     "time_lost": "UNKNOWN"
     }
    ]
   },

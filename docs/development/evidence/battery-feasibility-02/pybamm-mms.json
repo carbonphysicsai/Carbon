@@ -1,0 +1,59 @@
+{
+ "schema": "carbon.reference-package.mms.v1",
+ "status": "PROVISIONAL (self-derived; replace with packets Codex's spec)",
+ "solver": "PyBaMM 26.8.0.0 FiniteVolume, spherical particle, CasadiSolver",
+ "solution": "c = 1 + exp(-t) cos(pi r), D = 1, zero flux, t_end 0.5",
+ "errors": [
+  {
+   "cells": 10,
+   "max": 0.044300958723181294,
+   "rms": 0.03660576353451395
+  },
+  {
+   "cells": 20,
+   "max": 0.011097684637290994,
+   "rms": 0.009135788155917951
+  },
+  {
+   "cells": 40,
+   "max": 0.0027766943811846634,
+   "rms": 0.002283012313454478
+  },
+  {
+   "cells": 80,
+   "max": 0.0006943708238424939,
+   "rms": 0.0005706960420132262
+  },
+  {
+   "cells": 160,
+   "max": 0.00017360849321712557,
+   "rms": 0.00014267048580226846
+  }
+ ],
+ "orders": [
+  {
+   "pair": "10->20",
+   "max": 1.9970792090366642,
+   "rms": 2.0024697145871926
+  },
+  {
+   "pair": "20->40",
+   "max": 1.9988184118790477,
+   "rms": 2.0005905565582207
+  },
+  {
+   "pair": "40->80",
+   "max": 1.999590159819591,
+   "rms": 2.0001441782353018
+  },
+  {
+   "pair": "80->160",
+   "max": 1.9998688011635073,
+   "rms": 2.000035641610575
+  }
+ ],
+ "expected_order": 2.0,
+ "tolerance": 0.3,
+ "pass": true,
+ "scope": "code verification of the particle diffusion discretisation only; not the DFN couplings or electrochemistry"
+}

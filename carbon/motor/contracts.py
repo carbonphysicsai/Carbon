@@ -48,12 +48,17 @@ from .challenge import (
 
 PROFILE = "carbon.electric-motor-magnetics-development.profile.v1"
 IMPLEMENTATION_ID = "carbon_motor_kernel_ridge"
-IMPLEMENTATION_VERSION = "1.0"
+#: 2.0 (MOTOR-NEURAL-01) adds the neural families and the shared trainers
+#: they train with; the kernel ridge's own sources are unchanged.
+IMPLEMENTATION_VERSION = "2.0"
 IMPLEMENTATION_SOURCES = {
     "challenge.py": "challenge.py",
     "domain.py": "domain.py",
     "recipes.py": "recipes.py",
     "learned_baseline.py": "../learned_baseline.py",
+    "neural.py": "neural.py",
+    "battery_training.py": "../battery/training.py",
+    "battery_torch_training.py": "../battery/torch_training.py",
 }
 
 
@@ -98,7 +103,8 @@ def profile_document():
             "implementation": IMPLEMENTATION_ID,
             "families": [name for name, _ in rebuildable_families(MOTOR_CHALLENGE)],
             "environment": worker_environment.ENVIRONMENT_ID,
-            "randomness": "none; deterministic closed-form fit",
+            "randomness": "kernel ridge: none (closed form); neural families: "
+            "Carbon's reconstruction seed",
             "candidate_code": "none; registered declarative strategies only",
         },
         "contract_digest": contract(MOTOR_CHALLENGE).digest,

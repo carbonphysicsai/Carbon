@@ -152,7 +152,9 @@ def test_only_released_submissions_appear_rounded_and_signed(
     assert feed["leaderboard"]["standing"][0]["rank"] == 1
     assert feed["labels"] == ["DEVELOPMENT", "TESTNET"]
     assert feed["values"]["live"] is None
-    assert feed["release"]["expected_lag_blocks"] == 5 * 1080
+    # At E = 5 no fixed lag exists (a window waits for its slowest case's
+    # fifth draw), so none is stated; only E = 1 states one.
+    assert feed["release"]["expected_lag_blocks"] is None
     assert sf.verify_feed(feed)
     assert sf.verify_feed(feed, pinned_key=key.public_key)
     assert not sf.verify_feed(feed, pinned_key="00" * 32)
