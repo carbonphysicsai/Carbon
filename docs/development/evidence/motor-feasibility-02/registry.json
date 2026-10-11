@@ -1,0 +1,170 @@
+{
+ "schema": "carbon.motor.feasibility02-registry.v1",
+ "registered": "2026-10-07, before any study solve (two tooling smoke solves only: runner equivalence on train-0000 and a 3-point current-angle check)",
+ "authority": "CHALLENGE-CUSTOMER-FEASIBILITY-02, #758 at head 1ac5acfa69dd8f2af5d6b5d4f6a2ec52c5b9d975; motor customer packet #752 (round1/motor-precision-joint.md). Test Lead relay of the owner's handoff. DEVELOPMENT; free host CPU only; no paid dispatch.",
+ "maturity": "SPECIFIED (this file) -> IMPLEMENTED (scripts/dev/motor/feasibility02) -> EXECUTED (records) -> DEMONSTRATED only for what the refinement and cross-checks establish; no 3D, thermal, manufacturing or customer claim",
+ "limits": {
+  "holding": "mean >= 6.0 N m, pk-pk <= 0.30 N m and <= 5 % of |mean| at the precision command",
+  "peak": "mean >= 12 N m, pk-pk <= 0.60 N m and <= 5 % of |mean| at the peak command (reported; not part of the Test Lead's feasibility question)",
+  "unpowered": "zero-current cogging pk-pk <= 0.05 N m"
+ },
+ "design_space": {
+  "topologies": {
+   "8p24s": "registered single-layer control (existing 246 public points and 30 zero-current solves are its evidence)",
+   "10p12s": "double-layer tooth winding from the star of slots; fundamental winding factor 0.933 checked; current offset alpha0 = +15 electrical (registered deck: -120 for 8p24s), verified by a current-angle check"
+  },
+  "grammar": {
+   "magnet_mm": [
+    1.5,
+    4.0
+   ],
+   "coverage": [
+    0.65,
+    0.95
+   ],
+   "airgap_mm": [
+    0.3,
+    1.0
+   ],
+   "tooth_frac": [
+    0.2,
+    0.4
+   ],
+   "opening_frac": [
+    0.03,
+    0.12
+   ],
+   "slot_bottom_mm": [
+    34.0,
+    42.0
+   ]
+  },
+  "fixed": "registered frame: 92 mm stator OD, 25.6 mm rotor radius, 35 mm stack, Br 1.2 T, generic Brauer iron, tip 0.6 mm, wedge 0.34 mm",
+  "validity": "slot >= 1 mm per layer where the coil starts, opening clearance 0.2 mm, slot depth >= 1 mm, yoke >= 1 mm (geometric only)",
+  "skew": "three equal slices, offsets -s/2, 0, +s/2 mechanical, s in {0, 2, 4} degrees; slice k = 2D solve at rotor angle theta + d_k with current angle gamma - 5 d_k (same phase currents); each slice is full-stack-equivalent and the stack curve is their mean (1/3 each, once); ripple from the combined curve",
+  "not_run": "second-tier magnet-edge chamfer and tooth-tip notch (no frozen CAD grammar yet); 3D end and skew-edge effects"
+ },
+ "commands": {
+  "panel": "unpowered J 0; holding J {8, 10} x gamma {0, 15}; acceleration J {12, 15} x gamma {0, 15} (J in A/mm^2 over each coil region, the registered deck's convention)",
+  "selection_frozen": "precision command J 10, gamma 0; peak command J 15, gamma 0; all other commands are diagnostics"
+ },
+ "sampling": {
+  "window": "one loaded period, 360/(6p): 12 degrees for 10p12s, plus its end point for the periodicity check",
+  "standard": {
+   "n_gap": 1440,
+   "h_max": 1.0,
+   "step_deg": 0.25
+  },
+  "refined": [
+   {
+    "n_gap": 2880,
+    "h_max": 0.5,
+    "step_deg": 0.125
+   },
+   {
+    "n_gap": 5760,
+    "h_max": 0.5,
+    "step_deg": 0.0625
+   }
+  ]
+ },
+ "stages": {
+  "S1": "24 public 10p12s designs (topology.draw('MOTOR-FEAS02-10p12s', 24)) x {J0, J8g0, J8g15, J10g0, J10g15}, unskewed: 120 solves. Zero-current skew is exact from the J0 curve (pure shifts).",
+  "S2": "designs with best-span skewed cogging <= 0.10 N m and an unskewed holding mean >= 5.4 N m: skew variants gamma - 5 d for d in {-2, -1, +1, +2} for every holding command (16 solves per design)",
+  "S3": "designs whose skewed holding curve at some span is within margin (mean >= 5.9, pk-pk <= 0.32, fraction <= 0.055, cogging <= 0.07): refinement rungs on the precision command and J0 at the passing span, plus peak commands with skew at standard",
+  "resolution": "packet section 5: successive rungs change mean by <= 0.10 N m and pk-pk by <= 0.02 N m; zero-current Maxwell stress vs virtual work (co-energy) within those bounds; a value whose rung change straddles a limit is UNRESOLVED"
+ },
+ "outcomes_per_stratum": [
+  "RESOLVED_FEASIBLE (2D)",
+  "RESOLVED_INFEASIBLE",
+  "REFERENCE_UNRESOLVED",
+  "FAILED_INFRA"
+ ],
+ "near_misses": "kept and reported: every design within 2x of any limit",
+ "periodicity": "torque one window on repeats within 1e-3 of max |torque| or 1e-3 N m absolute (near-zero curves)",
+ "end_effects": "2D only: any feasible result is a 2D magnetic shortlist; end leakage, skew-edge and axial effects are UNRESOLVED until 3D witnesses",
+ "amendment_1": {
+  "registered": "2026-10-08, after S1 and before any S2 solve",
+  "s2_scope": "skew variants only for the frozen precision command (J 10, gamma 0) and the strongest diagnostic (J 10, gamma 15): gamma - 5 d for d in {-2, -1, +1, +2}, 8 solves per design (was 16); J 8 commands stay unskewed diagnostics",
+  "reason": "the registered command selection makes J 10 gamma 0 the only decisive holding command; halving S2 keeps it within the free-CPU window",
+  "infra": "S1 lost 100 solves to a Docker image prune by another session (FAILED_INFRA, logged in attempts-failed-infra.jsonl); the pinned image was re-pulled by digest with owner approval and those cases re-ran unchanged"
+ },
+ "s3_plan": {
+  "registered": "2026-10-08, after S2 and before any S3 solve",
+  "standard_result_basis": "frozen precision command J 10 gamma 0; within-margin designs at standard resolution: d09, d16, d21 (4 deg), d12 (2 and 4 deg); band designs d01, d06, d17 (4 deg)",
+  "rung2": "n_gap 2880, h_max 0.5 (0.125 deg steps, 97 positions over 12 deg) for J 0 and the J 10 slice variants of those designs",
+  "peak": "J 15 at gamma 0, +-5, +-10 at standard for d09, d16, d21, d12 (the frozen peak command J 15 gamma 0, both spans)",
+  "convergence": "packet section 5: rung change <= 0.10 N m mean and <= 0.02 N m pk-pk; a third rung (5760) only where rung 2 leaves a limit straddled"
+ },
+ "amendment_2": {
+  "registered": "2026-10-08, after S3 and before any boundary solve",
+  "authority": "Test Lead 2026-10-08: T2(a) failed by one near-limit INFEASIBLE design; add frontier resolution (never a looser band); free local CPU after the battery refinement, ahead of f02",
+  "pairs": "each S3-FEASIBLE design (d06, d09, d12, d16, d21) with its nearest near-limit INFEASIBLE design (d01, d02, d10, d17) in the normalised grammar space: d06-d17, d09-d17, d12-d17, d16-d01, d21-d02",
+  "round1": "midpoint t = 0.5 from the feasible end (b00-b04); a geometrically invalid point moves to the nearest valid t in 0.05 steps",
+  "round2": "one step toward the frontier: t = 0.75 if the midpoint is FEASIBLE at standard, 0.25 if INFEASIBLE, none if within one band (rung 2 decides first) (b05-b09)",
+  "solves": "per point J 0 and J 10 at gamma -10/0/+10 (4-deg three-slice skew), standard resolution; points within one band of a limit get S3's rung 2 (n_gap 2880, h_max 0.5)",
+  "verdict": "S3's rule: limits and bands unchanged (mean 6.0/0.10, pk-pk 0.30/0.02, ripple 5 %, cogging 0.05/0.02); a rung change across a limit is UNRESOLVED",
+  "code": "scripts/dev/motor/feasibility02/boundary.py",
+  "t2d": "re-evaluated without new solves on the existing panel under requirement variants that change limits only (motor-feasibility-02/panel-export.json); the packet's law values are HUMAN_INPUT"
+ },
+ "amendment_3": {
+  "registered": "2026-10-09, before any peak-completion or frontier solve",
+  "authority": "Test Lead 2026-10-09 relaying the owner (#922 motor round 2): complete the missing peak solves, a registered peak frontier search in the continuous six-coordinate space (skew 0/2/4), never relax a limit; free local CPU, unattended",
+  "full_question": "holding J 10 gamma 0 (mean >= 6, pk-pk <= 0.30 and <= 5 %), peak J 15 gamma 0 (mean >= 12, pk-pk <= 0.60 and <= 5 %), cogging J 0 <= 0.05; skew slices gamma - 5 d",
+  "complete_plan_sha256": "d7cbc92dbfe6e8d1af67c0036f0005ca15719184bd92906ca3425eb43926d702",
+  "frontier_plan_sha256": "6d235de387eca03b903d8d8f9e56ecae3cfbc2f34bf5e77fd6588e97b10fe9ac",
+  "rules": "scripts/dev/motor/feasibility02/peak.py docstring (complete, frontier, skew >= 11.5 N m at J 15 gamma 0, rung 2 within one band)",
+  "frontier_fit": "OLS of S1 J 10 gamma 0 mean on normalised coordinates: R2 0.99, predicted valid maximum 8.73 N m; region >= 8.0 N m holds 676 of 200,000 valid-checked points",
+  "bundle": "deduplicated per geometry: holding at all three spans = J 0 + J 10 at gamma 0, +-5, +-10 = 6 solves; peak adds J 15 at the same five gammas = 5; full question 11",
+  "setup_check": "d16 (strongest holding design): J 15 at gamma -20/+20/+30 (with S3's -10/-5/0/+5/+10 this is a gamma sweep) and gamma 0 at J 5/12.5/20 (with J 0/8/10/15 a current sweep). A setup error would show as a torque maximum away from gamma 0 or a non-physical J dependence; registered 2026-10-09 before these solves",
+  "region_925": {
+   "registered": "2026-10-09, before any solve in it",
+   "authority": "Test Lead relaying packets Codex #925 (issue #643): register this region first; skew 2/4 deg plus unskewed diagnostic; limits unchanged",
+   "box": {
+    "tooth_frac": [
+     0.35,
+     0.4
+    ],
+    "airgap_mm": [
+     0.3,
+     0.4
+    ],
+    "slot_bottom_mm": [
+     41,
+     42
+    ],
+    "magnet_mm": [
+     3,
+     4
+    ],
+    "coverage": [
+     0.85,
+     0.95
+    ],
+    "opening_frac": [
+     0.03,
+     0.06
+    ]
+   },
+   "points": "6 valid designs: the box centre (or nearest valid) and 5 maximin points from 20,000 seeded (925) valid samples",
+   "bundle": "11 solves each: J 0; J 10 and J 15 at gamma -10/-5/0/+5/+10 (skew 0, 2, 4)",
+   "plan_sha256": "b90261c463441ca0155aac5e3628c869735a34cb52e7286dcadf2057e806e806",
+   "order": "region_925, then the OLS frontier, then completion, then skew follow-ups",
+   "observers": "flux_observers on (RMS |B| over stator iron, rotor iron, airgap per position); records carry current_a and the machine.pro sha256",
+   "resume_fix": "run.py retries FAILED_INFRA records; only terminal attempts count as done (#925 item 3)"
+  }
+ },
+ "train_stage1": {
+  "registered": "2026-10-10, before any TRAIN solve",
+  "authority": "OWNER-MOTOR-TRAIN-GRANT-01 (#1028), staged by the Test Lead",
+  "role": "PUBLIC_TRAIN for the DEVELOPMENT 10p/12s kit",
+  "geometries": 128,
+  "cases": 1408,
+  "rule": "scripts/dev/motor/feasibility02/train.py: seeded LHS (seed 1010), valid, normalised distance >= 0.10 from the 43 sidecar designs; bundle J0 + J10/J15 at gamma -10/-5/0/+5/+10, flux observers",
+  "plan_sha256": "4a067614ee921d20069504937e3913cebb30226cafe35c489d3a9356a2f4f2cd",
+  "stage2": "to 256 only on a separate decision from the stage-1 learning curve (ripple and cogging)",
+  "revised": "2026-10-10, before any TRAIN solve (Test Lead): the first 12 geometries are axis anchors (each axis at its grammar min and max, the rest valid random draws) so TRAIN's per-axis support covers every panel row; 116 LHS follow",
+  "plan_sha256_superseded": "89baa02126f543c72dc3cb873e12c93542ef03b3b37269ffb6dfe8779e18197c",
+  "domain_check": "#1035 kit (claude/motor-10p12s-kit @ 6d5e2dcd7) support rule, TRAIN support from this plan's inputs: 44 of 44 panel rows (motor-export questions[0], J10-g0) inside"
+ }
+}

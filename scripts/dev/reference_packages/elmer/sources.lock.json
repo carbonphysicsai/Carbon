@@ -1,0 +1,17 @@
+{
+ "schema": "carbon.reference-package.sources-lock.v1",
+ "package": "elmer-26.2.1 (serves f02-elmer-transient-stack and f13-elmer-helmholtz-sweep)",
+ "ticket": "REFERENCE-PACKAGES-01",
+ "base_image": "debian@sha256:a29215f6a35e51e22adffa17f89e9d2ef06214e64a2bad10d765c46aea49f11f",
+ "base_image_tag_at_pull": "debian:trixie-slim (2026-10-08)",
+ "debian_snapshot": "http://snapshot.debian.org/archive/debian/20261001T000000Z trixie main (Debian 13.7)",
+ "sources": [
+  {"name": "elmerfem-release-26.2.1.tar.gz", "url": "https://github.com/ElmerCSC/elmerfem/releases/download/release-26.2.1/elmerfem-release-26.2.1.tar.gz", "sha256": "729809851d07b0ee8d7aff636bc21745d65b35c94d90027f39958fb759ec1d31", "size": 71068926, "checksum_source": "GitHub release asset digest"}
+ ],
+ "build_packages": ["build-essential", "gfortran", "cmake", "libopenblas-dev", "liblapack-dev"],
+ "runtime_packages": ["libgfortran5", "libopenblas0", "liblapack3", "libgomp1", "libstdc++6"],
+ "cmake_options": ["-DCMAKE_BUILD_TYPE=Release", "-DWITH_MPI=FALSE", "-DWITH_OpenMP=FALSE", "-DWITH_ELMERGUI=FALSE", "-DWITH_ElmerIce=FALSE", "-DWITH_LUA=FALSE", "-DCMAKE_INSTALL_PREFIX=/opt/elmer"],
+ "blas": "Debian OpenBLAS (serial runtime: OPENBLAS_NUM_THREADS=1 at solve)",
+ "mpi": "none (serial build; one process per case)",
+ "licence": "Elmer: GPL-2.0-or-later (ElmerSolver library LGPL-2.1); OpenBLAS BSD-3-Clause; Debian packages per their copyright files"
+}

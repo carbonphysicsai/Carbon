@@ -1,0 +1,35 @@
+{
+ "equilibrium": {
+  "exit": 0,
+  "wall_s": null,
+  "max_drift_c": 1.000444171950221e-10,
+  "pass": true
+ },
+ "slab_step": {
+  "exit": 0,
+  "wall_s": null,
+  "max_error_c": 0.03816113702587387,
+  "at_s": 0.5,
+  "peak_rise_c": 49.515669515669515,
+  "tolerance_c": 0.49515669515669514,
+  "pass": true
+ },
+ "slab_pulse": {
+  "exit": 0,
+  "wall_s": null,
+  "max_error_c": 0.006938388686494434,
+  "at_s": 0.5,
+  "peak_rise_c": 42.87325022571484,
+  "tolerance_c": 0.42873250225714843,
+  "pass": true
+ },
+ "energy": {
+  "exit": 0,
+  "wall_s": null,
+  "heat_in_j": 13200.0,
+  "stored_j": 338.4404238091659,
+  "robin_out_j": 12866.943838359653,
+  "residual_rel": -0.0004078986491530293,
+  "pass": true
+ }
+}
