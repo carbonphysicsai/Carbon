@@ -5,6 +5,15 @@ ASSUMPTION sensitivity where useful. No sealed panel, solver or payout action
 was run. The purpose is a small, real improvement winning with defensible
 evidence, rather than guaranteed displacement after a tenure timer.
 
+**Current owner decision is controlling.** The newly merged
+[OWNER-BATTERY-V3-FINALS-01](https://github.com/carbonphysicsai/Carbon/blob/0e5eb8403fdc043e9d4e6c1f39a8897710c08f30/.agent/decisions/2026-10-11-OWNER-BATTERY-V3-FINALS-01.md)
+uses registered A-Q plus the feasibility gate at nomination, keeps the
+important-region guard, and uses paired accuracy plus the gate at finals.
+Q3 has no final-batch measure today. The proposals below are prospective owner
+options, not an instruction to bypass that contract. Margin separation and
+stored-artifact comparison can be assessed under its accuracy estimand;
+decision-value finals require a separately approved measurement/producer change.
+
 ## Recommended first rule
 
 **Nomination.** Keep mandatory admissibility, current identities and typed
@@ -81,7 +90,7 @@ is the integration surface.
 
 | Option | Close-gain entry | Statistical and operational cost | Recommendation |
 |---|---|---|---|
-| Keep the current percentage at both stages | Gains below the margin cannot win in the ideal limit | Cheap and stable; deterministic exclusion | Does not meet the owner's stated goal |
+| Keep the current percentage at both stages | Small registered-score gains fail v3 nomination; independently, small accuracy gains fail finals | Cheap and stable; deterministic exclusion in two distinct quantities | Does not meet the owner's close-gain goal |
 | Looser screen only, stored final | More final nominees; small gains still fail current final | Tests relevant artifacts but leaves point-margin barrier | Necessary design discussion, insufficient alone |
 | Lower/zero margin, uncorrected repeated duels | Small gains can pass | Null copies get repeated lottery tickets | Reject as a rule set |
 | Paired fixed-horizon with small useful-gain floor and attempt correction | Small gain can win if resolved | Needs enough independent blocks and final budget | Recommended first candidate |

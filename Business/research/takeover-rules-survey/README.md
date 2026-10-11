@@ -9,13 +9,15 @@ A small improvement should win when the evidence resolves it; a near-tie should
 remain inconclusive. Do not use a large fixed percentage as the anti-copy test.
 All numerical choices remain HUMAN_INPUT.
 
-Carbon's present battery rule has **two** improvement barriers. The screen
-requires a relative reduction greater than 0.056993107446249414; the final
-requires both a paired interval excluding zero and a point improvement beyond
-the same margin. Its displayed 5.70% is rounded. Loosening only the screen does
-not make a smaller improvement promotable. The final also rebuilds both recipes
-under a matched new training seed, testing a different artifact from the one
-already deployed. [Pinned implementation and implications](CARBON_CROSSWALK.md).
+Carbon's battery rules have **two** improvement barriers. The newly merged
+v3 development rule requires a relative increase in registered A-Q beyond
+0.056993107446249414 at nomination; its final keeps the paired **accuracy**
+comparison, requiring an interval excluding zero and a point improvement beyond
+the same margin, plus the registered feasibility gate. Q3 counts at nomination,
+not at finals. Its displayed 5.70% is rounded. Loosening only the screen does
+not make a smaller accuracy gain promotable. The final also rebuilds both
+recipes under a matched new training seed, testing different artifacts from the
+deployed ones. [Pinned owner decision and implementation](CARBON_CROSSWALK.md).
 
 The useful external lessons are:
 
@@ -35,7 +37,7 @@ The useful external lessons are:
 - **SN30 Endure:** current primary documentation describes outcome-scored risk
   forecasts, not a model king-of-the-hill takeover. No epsilon rule is invented.
 
-The proposed final separates a **minimum useful gain** from **uncertainty** and
+The proposed future final separates a **minimum useful gain** from **uncertainty** and
 from **copy detection**. A declared gain of zero is an option if the owner wants
 any reliably positive gain; a positive floor needs a decision-value rationale.
 Freeze artifacts and rules before drawing the fresh panel. Correct for multiple
