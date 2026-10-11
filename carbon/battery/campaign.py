@@ -1004,6 +1004,7 @@ INTAKE_UNAVAILABLE = frozenset(
         "receipt_block_missing",
         "commitment_reader_unavailable",
         "backend_not_served",
+        "level4_store_not_owner_only",
         "TRANSPORT_CAPACITY",
         "TRANSPORT_STORE",
         "AUTH_UNAVAILABLE",
@@ -1089,6 +1090,7 @@ def submit_through_intake(
     post=None,
     receiver=None,
     construction_level=None,
+    level4_envelope=None,
 ):
     """The epoch's frozen candidate through a validator intake, to a verdict.
 
@@ -1111,6 +1113,10 @@ def submit_through_intake(
     `IntakeRefusal` with the intake's or the transport's code.
     `construction_level` is the frozen record's level binding
     (LAUNCHPAD-LEVELS-01), or None: a variant digest is sent only with it.
+    `level4_envelope`, a Level 4 candidate's frozen staging envelope bytes,
+    is sent in signed parts (`remote_submission.send_level4_envelope`, only
+    the parts the intake lacks) before the candidate is submitted or resent
+    for a submission the intake no longer holds (LAUNCHPAD-LEVELS-01 S4).
     """
     from carbon.reconstruction.capability_registry import (
         DEVELOPMENT_VARIANT_NOT_SERVED,
@@ -1150,6 +1156,20 @@ def submit_through_intake(
     if recorded is not None and recorded.get("url") != url:
         raise rs.IntakeRefusal("intake_changed_since_submission")
 
+    def envelope_held():
+        if level4_envelope is None:
+            return
+        from .level4_parts import FIELD
+
+        rs.send_level4_envelope(
+            url,
+            signer,
+            submission=strategy["parameters"][FIELD],
+            envelope=level4_envelope,
+            receiver=receiver,
+            **io,
+        )
+
     def wait():
         return rs.submit_and_wait(
             url,
@@ -1161,17 +1181,21 @@ def submit_through_intake(
             **passed,
         )
 
+    if recorded is None:
+        envelope_held()
     try:
         status, answer, submission_id = wait()
     except rs.IntakeRefusal as refused:
         if refused.code != "not_found" or recorded is None:
             raise
         sid = recorded["submission_id"]
+        envelope_held()
         _resend(url, signer, sid, None, strategy, contract_digest, io, receiver)
         return wait()
     failure = answer.get("failure") or {}
     if answer.get("state") != "REFUSED" or failure.get("code") not in RECEIVED_AGAIN:
         return status, answer, submission_id
+    envelope_held()
     _resend(
         url, signer, submission_id, failure, strategy, contract_digest, io, receiver
     )
@@ -1300,6 +1324,37 @@ def _level_record_bound(prepared, record):
         raise OperationRefused("level_not_registered")
 
 
+def _level4_envelope(folder, record):
+    """A Level 4 candidate's frozen envelope bytes, unchanged, once
+    `construction_level.read_envelope` checks them and the strategy's Level 4
+    field names the envelope's submission; `OperationRefused` otherwise."""
+    from carbon.development_session import construction_level as cl
+    from carbon.development_session.research_campaign import OperationRefused
+
+    from .level4_parts import FIELD
+
+    try:
+        envelope = cl.read_envelope(folder, record)
+    except cl.LevelRefused as refused:
+        raise OperationRefused(refused.code) from None
+    parameters = record["strategy"].get("parameters") or {}
+    if parameters.get(FIELD) != envelope["submission"]:
+        raise OperationRefused("level4_submission_not_in_strategy")
+    return (Path(folder) / cl.LEVEL4_ENVELOPE).read_bytes()
+
+
+def _carries_level4(url, read=None):
+    """Whether the intake's public facts, read now, list the Level 4 part
+    tools. Unread is never carried."""
+    from . import intake_client
+    from .level4_parts import carries_parts
+
+    try:
+        return carries_parts((read or intake_client.read_intake)(url))
+    except Exception:  # noqa: BLE001 - unread is never carried (fail closed)
+        return False
+
+
 async def _evaluate_through_intake(prepared, epoch, record, url):
     """One frozen candidate through the validator's intake; see
     `submit_through_intake`. The epoch is consumed only by a verdict: SCORED,
@@ -1328,16 +1383,18 @@ async def _evaluate_through_intake(prepared, epoch, record, url):
     frozen_level = record.get("construction_level")
     if type(frozen_level) is dict and frozen_level.get("level") == 4:
         # A Level 4 candidate travels with its staging envelope beside the
-        # signed strategy (LEVEL4_STAGING_CONTRACT §4). It is read and checked
-        # here, unchanged; no intake carries it yet (the validator's upload,
-        # VALIDATOR-25 slice 4), so nothing is signed or sent.
-        from carbon.development_session import construction_level as cl
+        # signed strategy (LEVEL4_STAGING_CONTRACT §4), read and checked here
+        # and sent as frozen, in signed parts ahead of the submission
+        # (LAUNCHPAD-LEVELS-01 S4). Only to an intake whose public facts list
+        # the part tools: any other, or one not read, is refused before
+        # anything is signed or committed (fail closed).
+        level4_envelope = _level4_envelope(root / ("epoch-" + str(epoch)), record)
+        if not _carries_level4(url):
+            from carbon.development_session import construction_level as cl
 
-        try:
-            cl.read_envelope(root / ("epoch-" + str(epoch)), record)
-        except cl.LevelRefused as refused:
-            raise OperationRefused(refused.code) from None
-        raise OperationRefused(cl.LEVEL4_TRANSPORT_UNAVAILABLE)
+            raise OperationRefused(cl.LEVEL4_TRANSPORT_UNAVAILABLE)
+    else:
+        level4_envelope = None
     gate = getattr(prepared.args, "commitment_gate", None)
     asks = getattr(prepared, "agent", "none") != "none"
     if gate is not None and commitment_due(prepared.args, root, epoch):
@@ -1356,6 +1413,7 @@ async def _evaluate_through_intake(prepared, epoch, record, url):
                 or prepared.manifest["contract_digest"],
                 receiver=_receiver(prepared),
                 construction_level=record.get("construction_level"),
+                level4_envelope=level4_envelope,
             )
         except IntakeRefusal as refused:
             raise OperationRefused(intake_code(refused.code)) from None

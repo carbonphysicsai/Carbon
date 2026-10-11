@@ -107,6 +107,35 @@ def status_message(facts, submission_id, *, request=None):
     return _body(facts, STATUS_TOOL, {"submission_id": submission_id}, request)
 
 
+def level4_part_message(facts, submission, part, parts, data, *, request=None):
+    """The exact bytes of one `battery_level4_part`: part `part` of `parts`
+    of the Level 4 envelope named `submission`, its bytes `data` (one slice
+    of `level4_parts.split`) sent base64, ready for the miner to sign."""
+    import base64
+
+    from .level4_parts import PART_TOOL
+
+    return _body(
+        facts,
+        PART_TOOL,
+        {
+            "submission": submission,
+            "part": part,
+            "parts": parts,
+            "data": base64.b64encode(data).decode("ascii"),
+        },
+        request,
+    )
+
+
+def level4_status_message(facts, submission, *, request=None):
+    """The exact bytes of one `battery_level4_status`: which parts of the
+    envelope named `submission` the intake holds."""
+    from .level4_parts import STATUS_TOOL as LEVEL4_STATUS_TOOL
+
+    return _body(facts, LEVEL4_STATUS_TOOL, {"submission": submission}, request)
+
+
 def submission_id(hotkey, strategy, contract_digest):
     """The submission id the intake answers for this hotkey, recipe and
     contract, worked out before anything is sent (LP-PROD-G).
@@ -208,6 +237,11 @@ REFUSALS = {
         "Not every part of this Level 4 envelope has arrived yet. Nothing was "
         "evaluated or counted; send the missing parts, then submit again."
     ),
+    "level4_envelope_transport_unavailable": (
+        "This validator intake does not take Level 4 envelope parts. Nothing "
+        "was signed or sent; send the candidate to the development ladder "
+        "that serves Level 4."
+    ),
     "level4_store_not_owner_only": (
         "The validator's Level 4 store is misconfigured. Nothing was stored; this "
         "is the validator's, not yours. Try again later."
@@ -221,7 +255,7 @@ REFUSALS = {
         "digest and the whole strategy). Commit that form on chain, then resend."
     ),
     "ladder_level_4_not_open": (
-        "Level 4 is not open on the development ladder yet. Nothing was " "evaluated."
+        "Level 4 is not open on the development ladder yet. Nothing was evaluated."
     ),
     "status_fields": "A status request needs exactly submission_id.",
     # The validator's neutral checks (`challenge_validator.Validator.screen`),

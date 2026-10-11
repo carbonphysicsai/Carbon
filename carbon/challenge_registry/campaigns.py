@@ -106,6 +106,10 @@ class ChallengeCampaign:
     #: `carbon.development_session.construction_level`). False: a launch at
     #: any level above 0 is refused, never silently run at Level 0.
     construction_levels: bool = False
+    #: (intake facts) -> whether that intake takes a Level 4 submission's
+    #: envelope in signed parts (LAUNCHPAD-LEVELS-01 S4). None: the Challenge
+    #: has no Level 4 envelope transport, so Level 4 is refused (fail closed).
+    level4_parts: Callable | None = None
 
     def remote_runner(self, runtime, machine, gpu_image):
         """The campaign's practice runner on the miner's own remote setup, or
@@ -176,6 +180,7 @@ def _battery_intake_outcome(code):
 
 def _battery():
     from carbon.battery import campaign as battery
+    from carbon.battery import level4_parts as battery_level4
     from carbon.battery import research_view as battery_view
     from carbon.development_session import battery_gpu
     from carbon.reconstruction.capability_registry import BATTERY_BACKENDS
@@ -203,6 +208,7 @@ def _battery():
         commitment=battery.frozen_commitment,
         commitment_due=battery.commitment_due,
         construction_levels=True,
+        level4_parts=battery_level4.carries_parts,
     )
 
 
