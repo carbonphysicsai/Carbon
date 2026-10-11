@@ -7,8 +7,8 @@ import json
 import shutil
 from pathlib import Path
 
+from carbon.development_comparison import campaign_entrypoints, evidence_pipeline
 from carbon.development_comparison import evidence_campaign as campaign
-from carbon.development_comparison import evidence_pipeline
 
 
 def main(argv=None):
@@ -68,7 +68,38 @@ def main(argv=None):
         shutil.copyfile(
             inputs["adaptive_panel"]["path"], args.output / "adaptive_panel.json"
         )
-        for name in ("manifest", "adaptive_panel"):
+        export_path = args.output / manifest["files"]["export"]["path"]
+        export = json.loads(export_path.read_text(encoding="utf-8"))
+        producer_receipts = {
+            phase: [
+                context["prior_receipts"][key]
+                for key in sorted(context["prior_receipts"])
+                if key.startswith(f"{family}/{phase}/")
+            ]
+            for phase in ("reference", "train")
+        }
+        bridge = campaign_entrypoints.seal_bridge(
+            {
+                "schema": campaign_entrypoints.BRIDGE_SCHEMA,
+                "family": family,
+                "scope": "SYNTHETIC_FIXTURE",
+                "entrypoint_registration_digest": context[
+                    "entrypoint_registration_digest"
+                ],
+                "producer_receipts": producer_receipts,
+                "manifest_sha256": campaign._sha(
+                    (args.output / "manifest.json").read_bytes()
+                ),
+                "adaptive_panel_sha256": campaign._sha(
+                    (args.output / "adaptive_panel.json").read_bytes()
+                ),
+                "export_digest": export["export_digest"],
+            }
+        )
+        (args.output / "comparison_bridge.json").write_text(
+            json.dumps(bridge, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        )
+        for name in ("manifest", "adaptive_panel", "comparison_bridge"):
             target = args.output / (name + ".json")
             outputs[name] = {
                 "path": target.name,

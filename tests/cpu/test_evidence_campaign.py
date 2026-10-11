@@ -11,6 +11,7 @@ from test_design_search_adaptive_arms import _panel as adaptive_fixture
 from test_evidence_pipeline import bundle
 
 from carbon.design_search import adaptive_arms, budget_registration, equal_budget
+from carbon.development_comparison import campaign_entrypoints
 from carbon.development_comparison import evidence_campaign as campaign
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -113,7 +114,7 @@ def _fixture(tmp_path):
     rule_file = tmp_path / "value-rule.json"
     _write(reg_file, registration)
     _write(rule_file, rule)
-    readiness, stages = {}, []
+    readiness, cost_pilots, stages = {}, {}, []
     module = ROOT / "carbon/development_comparison/campaign_fixture.py"
     module_sha = campaign._sha(module.read_bytes())
     for family in campaign.FAMILIES:
@@ -161,6 +162,22 @@ def _fixture(tmp_path):
         }
         readiness_file = tmp_path / (family + "-readiness.json")
         readiness[family] = _write(readiness_file, receipt)
+        pilot = campaign.seal(
+            {
+                "schema": campaign.PILOT,
+                "scope": "SYNTHETIC_FIXTURE",
+                "family": family,
+                "host_id": "synthetic-32-vcpu",
+                "cap_eur": 10.0,
+                "observed_eur": 0.5,
+                "stage_samples": [
+                    {"phase": "reference", "attempts": 1, "wall_s": 1.0, "core_s": 1.0},
+                    {"phase": "train", "attempts": 1, "wall_s": 1.0, "core_s": 1.0},
+                ],
+            },
+            "pilot_digest",
+        )
+        cost_pilots[family] = _write(tmp_path / (family + "-pilot.json"), pilot)
         for phase in ("reference", "train", "assemble"):
             shards = 2 if phase == "reference" else 1
             for shard in range(shards):
@@ -221,6 +238,7 @@ def _fixture(tmp_path):
             "scope": "SYNTHETIC_FIXTURE",
             "campaign_id": "synthetic-three-challenge",
             "readiness": readiness,
+            "cost_pilots": cost_pilots,
             "budget_registration": {
                 "path": reg_file.name,
                 "sha256": campaign._sha(reg_file.read_bytes()),
@@ -229,6 +247,7 @@ def _fixture(tmp_path):
                 "path": rule_file.name,
                 "sha256": campaign._sha(rule_file.read_bytes()),
             },
+            "entrypoint_registration_digest": campaign_entrypoints.digest(),
             "stages": stages,
             "host": {
                 "host_id": "synthetic-32-vcpu",
@@ -255,6 +274,22 @@ def _fixture(tmp_path):
     return plan, plan_path
 
 
+def _public_plan(plan, tmp_path):
+    plan["scope"] = "PUBLIC_DEVELOPMENT"
+    for family in campaign.FAMILIES:
+        descriptor = plan["cost_pilots"][family]
+        path = tmp_path / descriptor["path"]
+        pilot = json.loads(path.read_text(encoding="utf-8"))
+        pilot["scope"] = "PUBLIC_DEVELOPMENT"
+        pilot = campaign.seal(
+            {k: v for k, v in pilot.items() if k != "pilot_digest"}, "pilot_digest"
+        )
+        descriptor["sha256"] = _write(path, pilot)["sha256"]
+    return campaign.seal(
+        {k: v for k, v in plan.items() if k != "plan_digest"}, "plan_digest"
+    )
+
+
 def test_three_challenge_dry_run_and_resume(tmp_path):
     plan, path = _fixture(tmp_path)
     workspace = tmp_path / "work"
@@ -268,6 +303,12 @@ def test_three_challenge_dry_run_and_resume(tmp_path):
     )
     assert all(row["adaptive_status"] == "OK" for row in result["challenges"].values())
     assert result["sheet"]["planned_cpu_hours"] > 0
+    assert (
+        json.loads((workspace / "owner-server-sheet.json").read_text())["by_challenge"][
+            "motor"
+        ]["pilot"]["observed_eur"]
+        == 0.5
+    )
     assert result["challenges"]["battery-v3"]["score_plugin"] == "RECORDED_NOT_ADOPTED"
     assert result["challenges"]["f02"]["score_plugin"] == "NOT_REGISTERED"
     assert (workspace / "battery-v3/evidence-pack/score-plugin.json").is_file()
@@ -299,6 +340,34 @@ def test_three_challenge_dry_run_and_resume(tmp_path):
     manifest.write_text("tampered\n", encoding="utf-8")
     with pytest.raises(campaign.CampaignRefused, match="BYTE_PIN_MISMATCH"):
         campaign.run(plan, tmp_path, workspace, dry_run=True)
+
+
+def test_pilot_receipt_must_be_capped_and_digest_bound(tmp_path):
+    plan, _ = _fixture(tmp_path)
+    descriptor = plan["cost_pilots"]["motor"]
+    path = tmp_path / descriptor["path"]
+    original = json.loads(path.read_text(encoding="utf-8"))
+    over_cap = campaign.seal(
+        {
+            **{k: v for k, v in original.items() if k != "pilot_digest"},
+            "observed_eur": 10.01,
+        },
+        "pilot_digest",
+    )
+    descriptor["sha256"] = _write(path, over_cap)["sha256"]
+    plan = campaign.seal(
+        {k: v for k, v in plan.items() if k != "plan_digest"}, "plan_digest"
+    )
+    with pytest.raises(campaign.CampaignRefused, match="TEN_EURO_PILOT_CAP_EXCEEDED"):
+        campaign.validate(plan, tmp_path)
+    descriptor["sha256"] = _write(path, original)["sha256"]
+    tampered = {**original, "observed_eur": 1.0}
+    descriptor["sha256"] = _write(path, tampered)["sha256"]
+    plan = campaign.seal(
+        {k: v for k, v in plan.items() if k != "plan_digest"}, "plan_digest"
+    )
+    with pytest.raises(campaign.CampaignRefused, match="PILOT_IDENTITY_MISMATCH"):
+        campaign.validate(plan, tmp_path)
 
 
 def test_readiness_and_cap_fail_before_dispatch(tmp_path):
@@ -367,17 +436,16 @@ def test_public_execution_requires_approval_and_registered_adapter(tmp_path):
         )
     assert not (tmp_path / "fixture-escape").exists()
 
-    plan["scope"] = "PUBLIC_DEVELOPMENT"
-    plan = campaign.seal(
-        {k: v for k, v in plan.items() if k != "plan_digest"}, "plan_digest"
-    )
-    with pytest.raises(campaign.CampaignRefused, match="TRUSTED_MODULE_REQUIRED"):
+    plan = _public_plan(plan, tmp_path)
+    with pytest.raises(
+        campaign.CampaignRefused, match="PRODUCER_REGISTRATION_INCOMPLETE"
+    ):
         campaign.run(plan, tmp_path, tmp_path / "work", dry_run=False)
 
 
 def test_sheet_can_be_planned_with_unregistered_public_stages(tmp_path):
     plan, _ = _fixture(tmp_path)
-    plan["scope"] = "PUBLIC_DEVELOPMENT"
+    plan = _public_plan(plan, tmp_path)
     for task in plan["stages"]:
         task["module"] = "HUMAN_INPUT_DATA_COLLECTION_REGISTRATION"
         for input_file in task["inputs"].values():
@@ -389,14 +457,16 @@ def test_sheet_can_be_planned_with_unregistered_public_stages(tmp_path):
         plan, tmp_path, require_ready=False, require_modules=False
     )
     assert campaign.server_sheet(plan, tasks)["total"]["eur_estimate"] > 0
-    with pytest.raises(campaign.CampaignRefused, match="TRUSTED_MODULE_REQUIRED"):
+    with pytest.raises(
+        campaign.CampaignRefused, match="PRODUCER_REGISTRATION_INCOMPLETE"
+    ):
         campaign.run(plan, tmp_path, tmp_path / "blocked", dry_run=False)
     assert not (tmp_path / "blocked").exists()
 
 
 def test_one_command_sheet_lists_registration_gaps(tmp_path, capsys):
     plan, path = _fixture(tmp_path)
-    plan["scope"] = "PUBLIC_DEVELOPMENT"
+    plan = _public_plan(plan, tmp_path)
     for task in plan["stages"]:
         task["module"] = "HUMAN_INPUT_DATA_COLLECTION_REGISTRATION"
         for input_file in task["inputs"].values():
@@ -423,7 +493,9 @@ def test_one_command_sheet_lists_registration_gaps(tmp_path, capsys):
     assert sheet["planning_only"] is True
     assert sheet["dispatch_authorized"] is False
     assert sheet["registration_gap_owner"] == "Data Collection"
-    assert len(sheet["registration_gaps"]["motor"]) == 4
+    assert any(
+        "reference entrypoint" in gap for gap in sheet["registration_gaps"]["motor"]
+    )
     assert sheet["total"]["eur_estimate"] > 0
 
 
@@ -512,3 +584,61 @@ def test_paid_host_requires_explicit_fx_and_free_host_still_needs_wall_cap(tmp_p
     )
     with pytest.raises(campaign.CampaignRefused, match="POSITIVE_NUMBER_REQUIRED"):
         campaign.validate(invalid, tmp_path)
+
+
+def test_merged_entrypoint_bindings_and_comparison_receipt_are_strict():
+    inspected = campaign_entrypoints.inspect()
+    assert (
+        inspected["battery-v3"]["reference"]
+        == "REGISTERED_FILES_ONLY_IMAGE_NOT_CHECKED"
+    )
+    assert inspected["motor"]["train"] == "REGISTERED_FILES_ONLY_IMAGE_NOT_CHECKED"
+    assert inspected["motor"]["reference"] == "NOT_REGISTERED"
+    assert inspected["f02"]["train"] == "REGISTERED_FILES_ONLY_IMAGE_NOT_CHECKED"
+    assert all(
+        rows["comparison"] == "ASSEMBLER_NOT_REGISTERED" for rows in inspected.values()
+    )
+
+    pins = {"reference": ["sha256:" + "a" * 64], "train": ["sha256:" + "b" * 64]}
+    body = {
+        "schema": campaign_entrypoints.BRIDGE_SCHEMA,
+        "family": "battery-v3",
+        "scope": "SYNTHETIC_FIXTURE",
+        "entrypoint_registration_digest": campaign_entrypoints.digest(),
+        "producer_receipts": pins,
+        "manifest_sha256": "sha256:" + "c" * 64,
+        "adaptive_panel_sha256": "sha256:" + "d" * 64,
+        "export_digest": "sha256:" + "e" * 64,
+    }
+    bridge = campaign_entrypoints.seal_bridge(body)
+    campaign_entrypoints.verify_bridge(
+        bridge,
+        family="battery-v3",
+        scope="SYNTHETIC_FIXTURE",
+        manifest_sha256=body["manifest_sha256"],
+        adaptive_panel_sha256=body["adaptive_panel_sha256"],
+        export_digest=body["export_digest"],
+        producer_receipts=pins,
+    )
+    with pytest.raises(ValueError, match="identity mismatch"):
+        campaign_entrypoints.verify_bridge(
+            bridge,
+            family="battery-v3",
+            scope="SYNTHETIC_FIXTURE",
+            manifest_sha256=body["manifest_sha256"],
+            adaptive_panel_sha256=body["adaptive_panel_sha256"],
+            export_digest="sha256:" + "f" * 64,
+            producer_receipts=pins,
+        )
+    tampered = copy.deepcopy(bridge)
+    tampered["producer_receipts"]["train"] = ["sha256:" + "f" * 64]
+    with pytest.raises(ValueError, match="digest mismatch"):
+        campaign_entrypoints.verify_bridge(
+            tampered,
+            family="battery-v3",
+            scope="SYNTHETIC_FIXTURE",
+            manifest_sha256=body["manifest_sha256"],
+            adaptive_panel_sha256=body["adaptive_panel_sha256"],
+            export_digest=body["export_digest"],
+            producer_receipts=tampered["producer_receipts"],
+        )

@@ -1,7 +1,7 @@
 # EVIDENCE-CAMPAIGN-RUNNER-01 — bounded development evidence campaign
 
-**Owner assignment:** 2026-10-11. **Base:** #1056 exact head pending its
-normal merge; reconcile this branch to merged main before the one PR to main.
+**Owner assignment:** 2026-10-11. **Base:** reconciled to merged main after
+#1039, #1077 and #1078; repeat exact-head reconciliation before handoff.
 **Primary historical map ref:** `WAVE-C/EVIDENCE-CAMPAIGN-RUNNER-01`.
 The Development Hub is retired under `OWNER-WORKFLOW-SPEED-01`.
 **Maturity ceiling:** development orchestration, fixture tested. No real
@@ -41,6 +41,27 @@ and a future dedicated server are host-plan alternatives, not hardcoded
 throughput or live-price facts. Planned stage costs remain ASSUMPTION until
 each Challenge's capped ≤€10 pilot measures them; the owner approves any
 real campaign from the resulting exact server sheet.
+
+The plan pins one closed, digest-bound development cost-pilot receipt per
+Challenge. Each receipt names the host, measured stage samples, an at-most-€10
+cap and observed spend within that cap. The sheet shows those measurements
+beside its stage-estimate extrapolations, which remain labelled ASSUMPTION.
+The pilot receipt is evidence of cost measurement, not spend approval or a
+claim that another host has equal throughput.
+
+The #1077/#1078 merger provides read-only, byte-pinned producer inventory for
+battery panel A and TRAIN, motor TRAIN stage 1, and f02 menu and TRAIN. The
+campaign plan binds this registration digest. Its assembly receipt also binds
+the exact reference/TRAIN stage receipt hashes to the comparison manifest,
+adaptive panel and export digest. This is an identity bridge, not a producer
+conversion or proof of physical validity. As of this update Data Collection
+has not registered a motor reference-panel solve or any family's assembler
+that creates the #975/#1056 comparison outputs from its own raw records.
+The producer scripts also expose `check`/`solve`/`export-train`, not the
+campaign stage ABI. Public execution therefore refuses with
+`PRODUCER_REGISTRATION_INCOMPLETE`; `--sheet-only` lists the gaps with Data
+Collection as owner. A future real campaign needs the registered stage adapters,
+comparison assembler and measured pilots. No solver adapter is invented here.
 
 ## Acceptance
 

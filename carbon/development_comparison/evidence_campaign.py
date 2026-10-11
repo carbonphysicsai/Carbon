@@ -24,12 +24,17 @@ from datetime import datetime
 from pathlib import Path
 
 from carbon.design_search import adaptive_arms, budget_registration, equal_budget
-from carbon.development_comparison import evidence_pipeline, value_bar
+from carbon.development_comparison import (
+    campaign_entrypoints,
+    evidence_pipeline,
+    value_bar,
+)
 
 SCHEMA = "carbon.development-evidence-campaign.v1"
 READINESS = "carbon.onboarding.evidence-readiness.v1"  # #1039, 98a236bf6
 APPROVAL = SCHEMA + ".approval"
 STAGE_RESULT = SCHEMA + ".stage-result"
+PILOT = SCHEMA + ".cost-pilot.v1"
 STATE = SCHEMA + ".state"
 FAMILIES = ("battery-v3", "motor", "f02")
 READINESS_LABELS = (
@@ -127,6 +132,53 @@ def _host(plan):
 
 def _hourly_eur(host):
     return host["usd_per_hour"] * host["usd_to_eur"]
+
+
+def _pilot(path, pin, family, scope):
+    """Accept a capped, digest-bound development pilot measurement only."""
+    row = _read(path, pin)
+    _closed(
+        row,
+        {
+            "schema",
+            "scope",
+            "family",
+            "host_id",
+            "cap_eur",
+            "observed_eur",
+            "stage_samples",
+            "pilot_digest",
+        },
+        "pilot",
+    )
+    if (
+        row["schema"] != PILOT
+        or row["scope"] != scope
+        or row["family"] != family
+        or not isinstance(row["host_id"], str)
+        or not row["host_id"]
+        or row["pilot_digest"]
+        != _digest({k: v for k, v in row.items() if k != "pilot_digest"})
+    ):
+        raise CampaignRefused("pilot", "PILOT_IDENTITY_MISMATCH")
+    cap = _number(row["cap_eur"], "pilot cap", positive=True)
+    observed = _number(row["observed_eur"], "pilot observed")
+    if cap > 10 or observed > cap:
+        raise CampaignRefused("pilot", "TEN_EURO_PILOT_CAP_EXCEEDED")
+    samples = row["stage_samples"]
+    if type(samples) is not list or not samples:
+        raise CampaignRefused("pilot", "STAGE_SAMPLES_REQUIRED")
+    for sample in samples:
+        _closed(sample, {"phase", "attempts", "wall_s", "core_s"}, "pilot sample")
+        if (
+            sample["phase"] not in PHASES
+            or type(sample["attempts"]) is not int
+            or sample["attempts"] < 1
+        ):
+            raise CampaignRefused("pilot", "STAGE_SAMPLE_INVALID")
+        _number(sample["wall_s"], "pilot sample", positive=True)
+        _number(sample["core_s"], "pilot sample", positive=True)
+    return row
 
 
 def _safe_relative(value, stage):
@@ -312,6 +364,8 @@ def validate(plan, plan_dir, *, require_ready=True, require_modules=True):
             "readiness",
             "budget_registration",
             "value_rule",
+            "entrypoint_registration_digest",
+            "cost_pilots",
             "stages",
             "host",
             "hard_cap_eur",
@@ -329,10 +383,21 @@ def validate(plan, plan_dir, *, require_ready=True, require_modules=True):
         raise CampaignRefused("plan", "DEVELOPMENT_SCOPE_REQUIRED")
     if not isinstance(plan["campaign_id"], str) or not plan["campaign_id"]:
         raise CampaignRefused("plan", "CAMPAIGN_ID_REQUIRED")
+    if plan["entrypoint_registration_digest"] != campaign_entrypoints.digest():
+        raise CampaignRefused("entrypoint", "REGISTRATION_DIGEST_MISMATCH")
     if plan["plan_digest"] != _digest(
         {k: v for k, v in plan.items() if k != "plan_digest"}
     ):
         raise CampaignRefused("plan", "PLAN_DIGEST_MISMATCH")
+    _closed(plan["cost_pilots"], FAMILIES, "cost pilots")
+    for family in FAMILIES:
+        descriptor = plan["cost_pilots"][family]
+        _pilot(
+            _descriptor(plan_dir, descriptor, "cost pilot"),
+            descriptor["sha256"],
+            family,
+            plan["scope"],
+        )
     _closed(plan["readiness"], FAMILIES, "readiness")
     for family in FAMILIES:
         descriptor = plan["readiness"][family]
@@ -380,6 +445,14 @@ def validate(plan, plan_dir, *, require_ready=True, require_modules=True):
                 "analysis reserve", "ONE_CORE_ANALYSIS_RESERVE_REQUIRED"
             )
     tasks, seen = [], set()
+    if plan["scope"] == "PUBLIC_DEVELOPMENT" and require_modules:
+        inspection = campaign_entrypoints.inspect(ROOT)
+        if any(
+            state != "REGISTERED_FILES_ONLY_IMAGE_NOT_CHECKED"
+            for states in inspection.values()
+            for state in states.values()
+        ):
+            raise CampaignRefused("entrypoint", "PRODUCER_REGISTRATION_INCOMPLETE")
     if type(plan["stages"]) is not list or not plan["stages"]:
         raise CampaignRefused("stage", "STAGES_REQUIRED")
     for task in plan["stages"]:
@@ -504,7 +577,7 @@ def _phase_wall(tasks, host):
     return now
 
 
-def server_sheet(plan, tasks):
+def server_sheet(plan, tasks, plan_dir=None):
     host = _host(plan)
     groups = {
         family: [t for t in tasks if t["family"] == family] for family in FAMILIES
@@ -538,12 +611,23 @@ def server_sheet(plan, tasks):
             "isolated_wall_hours": wall_s / 3600,
             "allocated_eur_estimate": total_eur * core_s / total_core_s,
             "allocation_basis": "proportional planned CPU hours; shared node wall is priced only once",
+            "pilot": (
+                _pilot(
+                    _descriptor(plan_dir, plan["cost_pilots"][family], "cost pilot"),
+                    plan["cost_pilots"][family]["sha256"],
+                    family,
+                    plan["scope"],
+                )
+                if plan_dir is not None
+                else {"receipt_sha256": plan["cost_pilots"][family]["sha256"]}
+            ),
         }
     return {
         "schema": SCHEMA + ".server-sheet",
         "scope": plan["scope"],
-        "basis": "ASSUMPTION unless stage cost estimates are separately measured",
+        "basis": "stage estimates remain ASSUMPTION extrapolations; capped pilot samples are shown per Challenge",
         "plan_digest": plan["plan_digest"],
+        "entrypoint_registration_digest": plan["entrypoint_registration_digest"],
         "host": host,
         "by_challenge": rows,
         "total": {
@@ -698,13 +782,16 @@ def _terminate(process):
         process.wait()
 
 
-def _execute_task(task, plan, plan_dir, workspace, prior, deadline, attempt, stop):
+def _execute_task(
+    task, plan, plan_dir, workspace, prior, prior_receipts, deadline, attempt, stop
+):
     key = _key(task)
     output = workspace / key / f"attempt-{attempt}"
     output.mkdir(parents=True, exist_ok=False)
     context = {
         "schema": SCHEMA + ".stage-context",
         "plan_digest": plan["plan_digest"],
+        "entrypoint_registration_digest": plan["entrypoint_registration_digest"],
         "scope": plan["scope"],
         "family": task["family"],
         "phase": task["phase"],
@@ -733,6 +820,11 @@ def _execute_task(task, plan, plan_dir, workspace, prior, deadline, attempt, sto
                 in ("PUBLIC_TRAIN", "PUBLIC_INPUT", "SYNTHETIC_FIXTURE")
             }
             for key, artifacts in prior.items()
+            if key.startswith(task["family"] + "/")
+        },
+        "prior_receipts": {
+            key: pin
+            for key, pin in prior_receipts.items()
             if key.startswith(task["family"] + "/")
         },
     }
@@ -833,7 +925,9 @@ def _analysis_with_deadline(operation, seconds):
         signal.signal(signal.SIGALRM, old_handler)
 
 
-def _finalize(family, assembly, score, plan, workspace, registration, rule):
+def _finalize(
+    family, assembly, score, plan, workspace, registration, rule, producer_receipts
+):
     target = workspace / family / "evidence-pack"
     if target.exists():
         receipt = _read(target / "receipt.json")
@@ -859,11 +953,12 @@ def _finalize(family, assembly, score, plan, workspace, registration, rule):
         }
     output = workspace / assembly["attempt_dir"]
     artifacts = assembly["artifacts"]
-    if set(artifacts) != {"manifest", "adaptive_panel"}:
+    if set(artifacts) != {"manifest", "adaptive_panel", "comparison_bridge"}:
         raise CampaignRefused("analysis", "ASSEMBLY_ARTIFACTS_REQUIRED")
     if (
         artifacts["manifest"]["role"] != "ANALYSIS"
         or artifacts["adaptive_panel"]["role"] != "ANALYSIS"
+        or artifacts["comparison_bridge"]["role"] != "ANALYSIS"
     ):
         raise CampaignRefused("analysis", "ANALYSIS_ARTIFACT_ROLE_REQUIRED")
     manifest_path = _descriptor(
@@ -889,6 +984,26 @@ def _finalize(family, assembly, score, plan, workspace, registration, rule):
         raise CampaignRefused("analysis", "ADAPTIVE_REPLAY_IDENTITY_MISMATCH")
     if panel["base_panel"]["source_digest"] != documents["export"]["export_digest"]:
         raise CampaignRefused("analysis", "EXPORT_IDENTITY_MISMATCH")
+    bridge_path = _descriptor(
+        output,
+        {k: artifacts["comparison_bridge"][k] for k in ("path", "sha256")},
+        "comparison bridge",
+    )
+    bridge = _read(bridge_path, artifacts["comparison_bridge"]["sha256"])
+    try:
+        campaign_entrypoints.verify_bridge(
+            bridge,
+            family=family,
+            scope=plan["scope"],
+            manifest_sha256=artifacts["manifest"]["sha256"],
+            adaptive_panel_sha256=artifacts["adaptive_panel"]["sha256"],
+            export_digest=documents["export"]["export_digest"],
+            producer_receipts=producer_receipts,
+        )
+    except ValueError as exc:
+        raise CampaignRefused(
+            "comparison bridge", "SOURCE_OR_PANEL_IDENTITY_MISMATCH"
+        ) from exc
     adaptive = adaptive_arms.compare(panel, registration, **plan["analysis"])
     if adaptive["status"] != "OK":
         raise CampaignRefused("analysis", "ADAPTIVE_REFERENCE_UNRESOLVED")
@@ -918,6 +1033,7 @@ def _finalize(family, assembly, score, plan, workspace, registration, rule):
         report["fixture_only"] = True
     outputs.update(
         {
+            "comparison-bridge.json": bridge,
             "equal-budget.json": replay,
             "value-evidence.json": evidence,
             "value-report.json": report,
@@ -954,6 +1070,7 @@ def _finalize(family, assembly, score, plan, workspace, registration, rule):
                 "input_byte_pins": {
                     "manifest": artifacts["manifest"]["sha256"],
                     "adaptive_panel": artifacts["adaptive_panel"]["sha256"],
+                    "comparison_bridge": artifacts["comparison_bridge"]["sha256"],
                 },
                 "output_byte_pins": {
                     p.name: _sha(p.read_bytes())
@@ -992,7 +1109,7 @@ def run(plan, plan_dir, workspace, *, dry_run, approval=None):
             raise CampaignRefused("host", "LINUX_HOST_REQUIRED")
         _fresh_readiness(plan, plan_dir)
         _approval(*approval, plan)
-    sheet = server_sheet(plan, tasks)
+    sheet = server_sheet(plan, tasks, plan_dir)
     if sheet["total"]["headroom_eur"] < 0:
         raise CampaignRefused("sheet", "PLANNED_CAMPAIGN_EXCEEDS_HARD_CAP")
     workspace.mkdir(parents=True, exist_ok=True)
@@ -1055,6 +1172,10 @@ def run(plan, plan_dir, workspace, *, dry_run, approval=None):
                                 plan_dir,
                                 workspace,
                                 copy.deepcopy(prior),
+                                {
+                                    key: row["receipt_sha256"]
+                                    for key, row in state["completed"].items()
+                                },
                                 deadline,
                                 attempt,
                                 stop,
@@ -1136,6 +1257,14 @@ def run(plan, plan_dir, workspace, *, dry_run, approval=None):
                         workspace,
                         registration,
                         rule,
+                        {
+                            phase: [
+                                state["completed"][key]["receipt_sha256"]
+                                for key in sorted(state["completed"])
+                                if key.startswith(f"{family}/{phase}/")
+                            ]
+                            for phase in ("reference", "train")
+                        },
                     ),
                     min(reserve["wall_s"], deadline - time.monotonic()),
                 )
@@ -1215,12 +1344,13 @@ def main(argv=None):
         )
         del registration, rule
         if args.sheet_only:
-            result = server_sheet(plan, tasks)
+            result = server_sheet(plan, tasks, args.plan.parent)
             result["planning_only"] = True
             result["dispatch_authorized"] = False
             result["readiness"] = {}
             result["registration_gaps"] = {}
             result["registration_gap_owner"] = "Data Collection"
+            result["entrypoint_status"] = campaign_entrypoints.inspect(ROOT)
             for family in FAMILIES:
                 descriptor = plan["readiness"][family]
                 observation = _readiness(
@@ -1238,6 +1368,11 @@ def main(argv=None):
                     ],
                 }
                 gaps = []
+                gaps.extend(
+                    f"Data Collection {phase} entrypoint: {state}"
+                    for phase, state in result["entrypoint_status"][family].items()
+                    if state != "REGISTERED_FILES_ONLY_IMAGE_NOT_CHECKED"
+                )
                 for task in tasks:
                     if task["family"] != family:
                         continue
