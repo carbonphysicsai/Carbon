@@ -1,10 +1,62 @@
 {
-  "schema": "carbon.pilot-cap-plan.v1",
+  "schema": "carbon.pilot-cap-plan.v2",
   "status": "SPECIFIED_PROPOSALS_NOT_REGISTERED",
   "dispatch_allowed": false,
   "solver_runs_permitted": false,
-  "host": {
-    "proposal": "One fresh Hetzner CCX43 EU CPU lease per family; no sharing or transferred caps",
+  "primary_host": "runpod-cpu-64",
+  "hosts": {
+    "runpod-cpu-64": {
+      "proposal": "PRIMARY: one RunPod Secure Cloud CPU pod per family, public development only",
+      "provider_offer": "32 vCPU / 64 GB at USD0.96/h; owner console quote 2026-10-11",
+      "quote_source": ".agent/decisions/2026-10-11-OWNER-SCORE-PROOF-RUNPOD-GRANT-03.md (offer only, NOT its sealed-run grant)",
+      "capacity_status": "ACCOUNT_PATH_PROVEN; exact size and capacity must be confirmed",
+      "observed_usd_h": 0.96,
+      "inclusive_eur_per_usd_ceiling": 1.25,
+      "conversion_policy": "Ceiling includes VAT/sales tax, FX spread and payment fees on compute; not an exchange-rate observation. Refuse if current inclusive quote exceeds it.",
+      "inclusive_hourly_ceiling_cents": 120,
+      "all_other_charges_ceiling_cents": 20,
+      "quote_required": true,
+      "billing_quantum_s": 60,
+      "billing_source": "https://docs.runpod.io/accounts-billing/billing",
+      "billing_policy": "Round allocation-to-termination UP to whole minutes, conservatively enclosing current per-second docs and owner per-minute basis",
+      "host_vcpus": 32,
+      "host_ram_mb": 64000,
+      "probe_lifetime_s": 2400,
+      "total_lifetime_s_including_probe": 28800,
+      "probe_upper_cents": 100,
+      "total_upper_cents": 980,
+      "setup_allowance_s": 300,
+      "single_probe_case_wall_cap_s": 1500,
+      "tail_allowance_s": 600,
+      "export_and_confirmed_termination_allowance_s": 420,
+      "safety_allowance_s": 180
+    },
+    "runpod-cpu-256": {
+      "proposal": "RUNPOD HIGH-MEMORY ALTERNATIVE: select before probe if the exact manifest requires it; never switch using a 64 GB receipt",
+      "provider_offer": "32 vCPU / 256 GB at USD1.76/h; owner console quote 2026-10-11",
+      "quote_source": ".agent/decisions/2026-10-11-OWNER-SCORE-PROOF-RUNPOD-GRANT-03.md (offer only)",
+      "capacity_status": "ACCOUNT_PATH_PROVEN; exact size and capacity must be confirmed",
+      "observed_usd_h": 1.76,
+      "inclusive_eur_per_usd_ceiling": 1.25,
+      "inclusive_hourly_ceiling_cents": 220,
+      "all_other_charges_ceiling_cents": 20,
+      "quote_required": true,
+      "billing_quantum_s": 60,
+      "billing_source": "https://docs.runpod.io/accounts-billing/billing",
+      "host_vcpus": 32,
+      "host_ram_mb": 256000,
+      "probe_lifetime_s": 1260,
+      "total_lifetime_s_including_probe": 15600,
+      "probe_upper_cents": 97,
+      "total_upper_cents": 974,
+      "setup_allowance_s": 300,
+      "single_probe_case_wall_cap_s": 360,
+      "tail_allowance_s": 600,
+      "export_and_confirmed_termination_allowance_s": 420,
+      "safety_allowance_s": 180
+    },
+    "hetzner-ccx43": {
+    "proposal": "ALTERNATIVE ONLY if account limits and capacity permit; one fresh CCX43 EU lease per family",
     "provider_offer": "CCX43 16 dedicated vCPU / 64 GB / 360 GB NVMe",
     "capacity_status": "NOT_CONFIRMED; public page reported unavailable on 2026-10-11",
     "observed_ex_vat_eur_h": 0.4423,
@@ -20,12 +72,26 @@
     "total_lifetime_s_including_probe": 64800,
     "probe_upper_cents": 93,
     "total_upper_cents": 994,
+    "host_vcpus": 16,
+    "host_ram_mb": 64000,
     "setup_allowance_s": 1200,
     "single_probe_case_wall_cap_s": 1500,
-    "export_and_verified_deletion_allowance_s": 600,
+    "export_and_confirmed_termination_allowance_s": 600,
     "safety_allowance_s": 300,
-    "storage_policy": "No snapshots/backups/extra volumes; <=2 GB compressed retained artifacts exported to existing approved store within quoted fees, otherwise refuse",
-    "enforcement": "Operator-independent accepted lifecycle deadline through provider deletion, CPU/RSS/process caps, ledger and expiry test; NOT_IMPLEMENTED_BY_THIS_TICKET"
+    "tail_allowance_s": 900
+    }
+  },
+  "deployment": {
+    "base": "Stock ubuntu:24.04, exact digest recorded; no floating-tag execution",
+    "transport": "SSH with verified host key; pinned solver and runtime trees exported from their source environment and pushed over SSH, hash and binary/library versions verified on source and pod",
+    "proven_path_source": ".agent/decisions/2026-10-11-OWNER-STARTUP-HOST-CUSTODY-03.md (transport pattern only; these pilots use NO sealed material)",
+    "container_inside_pod": false,
+    "solver_identity": "Transferred trees must include all dependencies and ABI; pin base image, tree manifest, package versions, deck/observer and environment. A source image digest alone is not proof of native equivalence.",
+    "scope": "PUBLIC_DEVELOPMENT_OR_REPRESENTATIVE_ONLY; no EVAL/STRESS/quiz/tuning/bank/validator/AX42 materials",
+    "all_other_charges": "One total EUR0.20 RunPod or EUR0.40 CCX43 reserve for container disk, storage, transfer, retention, setup and termination fees; variable compute tax/FX/payment covered by inclusive rate ceiling, not double counted",
+    "storage_policy": "No network volumes, snapshots/backups or retained pod; <=2 GB compressed artifacts exported to existing approved store within fees, otherwise refuse",
+    "end_state": "RunPod TERMINATED and absence confirmed, not STOPPED; CCX43 deleted and absence confirmed. Export retained records first.",
+    "enforcement": "Accepted independent allocation-to-termination lifecycle deadline, process/CPU/RSS caps, tested expiry and ledger; NOT_IMPLEMENTED_BY_THIS_TICKET"
   },
   "families": [
     {
@@ -115,11 +181,11 @@
   ],
   "release_holds": [
     "Exact operator grant, no borrowed startup-host authority or transfer between families",
-    "Current same-host quote <=53 inclusive cents/hour and <=40 cents ALL other lifetime costs, available capacity",
+    "Current selected-host quote <= its inclusive EUR ceiling, ALL other costs <= its reserve, tax/FX/payment quote receipt, account capacity confirmed",
     "Registered main manifest with complete physical tuple and image/mesh/deck/observer/material identities, public rights and retained/scheduled reuse audit",
     "Adequacy/code verification/kit/TRAIN/comparator/budget prerequisites or exact permitted pilot-produced exceptions",
-    "Accepted independent lifecycle enforcement through provider deletion, tested deadline, CPU/RSS caps and retained failure ledger",
-    "Complete same-host same-core measured probe, exact lease start, actual setup and retention/deletion accounting",
+    "Accepted independent lifecycle enforcement through confirmed RunPod TERMINATION or CCX43 deletion, tested deadline, CPU/RSS caps and retained failure ledger",
+    "Complete same-host/profile/core/base-and-solver-tree measured probe, allocation time, actual setup/export/termination accounting; larger pod bills all 32 vCPU even if only 1 or 4 run",
     "Stop on timeout/OOM/partial output, typed incomplete reference evidence, no redraw, truncation, favorable replacement or retries"
   ]
 }

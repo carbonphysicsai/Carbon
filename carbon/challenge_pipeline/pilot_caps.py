@@ -6,12 +6,17 @@ import argparse
 import json
 from pathlib import Path
 
-SCHEMA = "carbon.pilot-cap-plan.v1"
-RATE_CENTS = 53
-EXTRAS_CENTS = 40
-PROBE_SECONDS = 3600
-LEASE_SECONDS = 18 * 3600
-TAIL_SECONDS = 900  # retained export/deletion 600 + safety 300
+SCHEMA = "carbon.pilot-cap-plan.v2"
+RATE_CENTS = 120  # USD0.96/h * <=EUR1.25/USD including tax/FX/payment fees
+EXTRAS_CENTS = 20
+PROBE_SECONDS = 2400
+LEASE_SECONDS = 8 * 3600
+TAIL_SECONDS = 600  # export + confirmed termination 420, safety 180
+HOST_BOUNDS = {
+    "runpod-cpu-64": (120, 20, 60, 2400, 28800, 1500, 600, 32, 64000),
+    "runpod-cpu-256": (220, 20, 60, 1260, 15600, 360, 600, 32, 256000),
+    "hetzner-ccx43": (53, 40, 3600, 3600, 64800, 1500, 900, 16, 64000),
+}
 
 
 def integer(value, name, minimum=0):
@@ -20,12 +25,36 @@ def integer(value, name, minimum=0):
     return value
 
 
-def billed_cost(seconds, *, rate_cents=RATE_CENTS, extras_cents=EXTRAS_CENTS):
-    """Cents rounded OUTWARD; lifetime includes setup, idle and deletion."""
+def billed_cost(
+    seconds, *, rate_cents=RATE_CENTS, extras_cents=EXTRAS_CENTS, quantum_s=60
+):
+    """Cents rounded OUTWARD; allocation through confirmed termination/deletion.
+
+    Minute rounding is conservative even when the provider meters seconds.
+    The rate is a tax/FX/payment-inclusive EUR ceiling, not a USD spot quote.
+    """
     integer(seconds, "lifetime", 1)
     integer(rate_cents, "inclusive hourly quote", 1)
     integer(extras_cents, "all other charges")
-    return ((seconds + 3599) // 3600) * rate_cents + extras_cents
+    integer(quantum_s, "billing quantum", 1)
+    billed_seconds = ((seconds + quantum_s - 1) // quantum_s) * quantum_s
+    return (billed_seconds * rate_cents + 3599) // 3600 + extras_cents
+
+
+def host(plan, profile=None):
+    profile = profile or plan["primary_host"]
+    if profile not in HOST_BOUNDS or profile not in plan["hosts"]:
+        raise ValueError("registered host profile required")
+    return plan["hosts"][profile]
+
+
+def host_cost(seconds, h):
+    return billed_cost(
+        seconds,
+        rate_cents=h["inclusive_hourly_ceiling_cents"],
+        extras_cents=h["all_other_charges_ceiling_cents"],
+        quantum_s=h["billing_quantum_s"],
+    )
 
 
 def validate(plan):
@@ -35,10 +64,40 @@ def validate(plan):
         or plan.get("solver_runs_permitted") is not False
     ):
         raise ValueError("plan-only schema required")
-    if plan["host"]["inclusive_hourly_ceiling_cents"] != RATE_CENTS:
-        raise ValueError("new quote ceiling needs prospective plan revision")
-    if plan["host"]["all_other_charges_ceiling_cents"] != EXTRAS_CENTS:
-        raise ValueError("all charges must be bounded")
+    if plan["primary_host"] != "runpod-cpu-64" or set(plan["hosts"]) != set(
+        HOST_BOUNDS
+    ):
+        raise ValueError("RunPod primary and exact alternatives required")
+    keys = (
+        "inclusive_hourly_ceiling_cents",
+        "all_other_charges_ceiling_cents",
+        "billing_quantum_s",
+        "probe_lifetime_s",
+        "total_lifetime_s_including_probe",
+        "single_probe_case_wall_cap_s",
+        "tail_allowance_s",
+        "host_vcpus",
+        "host_ram_mb",
+    )
+    for profile, bounds in HOST_BOUNDS.items():
+        h = host(plan, profile)
+        if any(type(h[k]) is not int or h[k] != b for k, b in zip(keys, bounds)):
+            raise ValueError("new host bound needs prospective plan revision")
+        if (
+            h["setup_allowance_s"]
+            + h["single_probe_case_wall_cap_s"]
+            + h["tail_allowance_s"]
+            != h["probe_lifetime_s"]
+        ):
+            raise ValueError("complete probe lifecycle accounting required")
+        if (
+            host_cost(h["probe_lifetime_s"], h) != h["probe_upper_cents"]
+            or host_cost(h["total_lifetime_s_including_probe"], h)
+            != h["total_upper_cents"]
+        ):
+            raise ValueError("reported bound differs from arithmetic")
+        if h["probe_upper_cents"] > 100 or h["total_upper_cents"] > 1000:
+            raise ValueError("lifecycle cap proof fails")
     names = {p["family"] for p in plan["families"]}
     if len(names) != 6 or names != {
         "backward-facing-step",
@@ -62,8 +121,6 @@ def validate(plan):
             raise ValueError("no unapproved retries")
         for job in p["follow_on"]:
             integer(job["probe_runtime_multiplier"], "hypothesis multiplier", 1)
-    if billed_cost(PROBE_SECONDS) > 100 or billed_cost(LEASE_SECONDS) > 1000:
-        raise ValueError("lifecycle cap proof fails")
     return plan
 
 
@@ -84,7 +141,9 @@ def size_from_probe(plan, family, receipt):
         "peak_rss_mb",
         "allocated_vcpus",
         "host_identity",
+        "host_profile",
         "image_digest",
+        "solver_tree_digest",
         "tuple_digest",
         "manifest_digest",
         "ledger_digest",
@@ -96,7 +155,14 @@ def size_from_probe(plan, family, receipt):
         raise ValueError("family/scope mismatch")
     if receipt["outcome"] != "COMPLETED" or receipt["complete_task"] is not True:
         raise ValueError("partial/failed probe cannot size a complete task")
-    for key in ("image_digest", "tuple_digest", "manifest_digest", "ledger_digest"):
+    h = host(plan, receipt["host_profile"])
+    for key in (
+        "image_digest",
+        "solver_tree_digest",
+        "tuple_digest",
+        "manifest_digest",
+        "ledger_digest",
+    ):
         value = receipt[key]
         if (
             type(value) is not str
@@ -111,14 +177,14 @@ def size_from_probe(plan, family, receipt):
     runtime = integer(receipt["probe_wall_s"], "probe wall", 1)
     rss = integer(receipt["peak_rss_mb"], "peak RSS", 1)
     if (
-        runtime > 1500
+        runtime > h["single_probe_case_wall_cap_s"]
         or elapsed < runtime
-        or elapsed > PROBE_SECONDS - TAIL_SECONDS
+        or elapsed > h["probe_lifetime_s"] - h["tail_allowance_s"]
         or rss > p["rss_limit_mb"]
         or receipt["allocated_vcpus"] != p["allocated_vcpus"]
     ):
         raise ValueError("probe resource/lifecycle bound exceeded")
-    remaining = LEASE_SECONDS - elapsed - TAIL_SECONDS
+    remaining = h["total_lifetime_s_including_probe"] - elapsed - h["tail_allowance_s"]
     selected = []
     for job in p["follow_on"]:
         # 2x measured runtime is conservative PLANNING, not an observed quantile.
@@ -127,7 +193,7 @@ def size_from_probe(plan, family, receipt):
             break
         selected.append({**job, "wall_cap_s": wall_cap})
         remaining -= wall_cap
-    last_end = elapsed + sum(j["wall_cap_s"] for j in selected) + TAIL_SECONDS
+    last_end = elapsed + sum(j["wall_cap_s"] for j in selected) + h["tail_allowance_s"]
     return {
         "family": family,
         "scope": p["scope"],
@@ -139,15 +205,18 @@ def size_from_probe(plan, family, receipt):
             k: receipt[k]
             for k in (
                 "host_identity",
+                "host_profile",
                 "allocated_vcpus",
                 "image_digest",
+                "solver_tree_digest",
                 "manifest_digest",
             )
         },
         "selected_ordered_jobs": selected,
         "omitted_jobs": p["follow_on"][len(selected) :],
-        "all_in_upper_cents": billed_cost(last_end),
-        "lease_deadline_s_from_creation": LEASE_SECONDS,
+        "all_in_upper_cents": host_cost(last_end, h),
+        "lease_deadline_s_from_allocation": h["total_lifetime_s_including_probe"],
+        "termination_required": True,
         "p95_cost_status": "NOT_ESTIMATED_FROM_ONE_CASE",
         "release_holds": plan["release_holds"],
     }
@@ -168,8 +237,14 @@ def main():
         output = {
             "families": len(plan["families"]),
             "dispatch_allowed": False,
-            "probe_upper_cents": billed_cost(PROBE_SECONDS),
-            "total_upper_cents": billed_cost(LEASE_SECONDS),
+            "primary_host": plan["primary_host"],
+            "host_bounds": {
+                profile: {
+                    "probe_upper_cents": h["probe_upper_cents"],
+                    "total_upper_cents": h["total_upper_cents"],
+                }
+                for profile, h in plan["hosts"].items()
+            },
         }
     print(json.dumps(output, indent=2, sort_keys=True))
 

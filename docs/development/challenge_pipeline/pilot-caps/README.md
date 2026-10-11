@@ -1,86 +1,90 @@
-# Six-family all-in pilot plans
+# Six-family all-in pilot plans — RunPod primary
 
-PILOT-PLANS-WITHIN-CAP-01, SPECIFIED only. Replaces the earlier fractional-hour
-**planning arithmetic**, not historical invoices or grants. No solver ran.
+PILOT-PLANS-WITHIN-CAP-01, SPECIFIED only. Owner retarget 2026-10-11 after
+Hetzner refused the new account a CCX63. No solver ran or money was spent.
 [plans.json](plans.json) covers BFS, MG, f13, bolted joint, warpage and f17.
-Each family keeps its own EUR10 cap **including** its initial EUR1 probe.
+Each has a non-transferable EUR10 lifecycle cap **including** its EUR1 probe.
 
-## The bound, and what is still missing
+## Hosts and the conditional bound
 
-Propose a **CCX43 EU** lease (16 dedicated vCPU, 64 GB, 360 GB NVMe), serial
-process, allocated cores/RSS as listed. The [provider hardware page](https://www.hetzner.com/cloud/general-purpose/)
-reported unavailable when checked on 2026-10-11; this is NOT a capacity promise.
-[Published EU pricing](https://docs.hetzner.com/general/infrastructure-and-availability/price-adjustment/)
-is EUR0.4423/hour excluding VAT/IPv4. With an illustrative 19% VAT it is
-EUR0.526337/hour; require a real inclusive quote **no greater than EUR0.53**.
-All other fees combined must be <=EUR0.40. Otherwise HOLD, not a silent bigger cap.
+Primary: **RunPod Secure Cloud CPU, 32 vCPU / 64 GB, USD0.96/hour**. A 32 vCPU /
+256 GB USD1.76/hour profile is selectable **before** a probe if memory requires
+it. Offers are the owner's console quotes recorded in
+`OWNER-SCORE-PROOF-RUNPOD-GRANT-03`; that sealed-run grant is NOT borrowed.
+CCX43 remains an alternative only if account limits, quote and capacity permit.
+RunPod exact availability is confirmed before allocation, not promised here.
 
-The [billing policy](https://docs.hetzner.com/general/billing-and-account-management/billing-at-hetzner/billing-system-hetzner/)
-rounds partial hours up and bills powered-off resources until deleted. A new
-CCX63 at EUR1.3678/hour ex VAT therefore **cannot** meet the EUR1 probe.
-Do not multiply solver CPU-hours by a prorated host price.
+[RunPod's billing docs](https://docs.runpod.io/accounts-billing/billing) currently
+say per-second metering; use conservative **whole-minute upward rounding**,
+also enclosing the owner's per-minute basis. Billing includes the whole pod,
+not just the 1 or 4 solver cores. Apply an explicit **<=EUR1.25 per USD inclusive
+conversion ceiling**, including compute tax, currency spread and payment fees.
+This is a conditional safety ceiling, NOT a current exchange-rate estimate.
+Require a current inclusive quote receipt. All non-compute lifetime charges
+combined (disk, retention, setup/export/termination fees) must be <=EUR0.20 on
+RunPod, <=EUR0.40 on CCX43. Never double-count or omit a tax/fee.
 
-Exact proposed maximum: ceil(lifetime_seconds/3600) × EUR0.53 + EUR0.40.
-One-hour probe lifetime <=EUR0.93; entire 18-hour lease <=EUR9.94, probe included.
-Every minute starts at provider allocation, including setup, image transfer,
-idle between phases, export and provider deletion. No snapshots, extra volumes
-or unlimited retention. Export <=2 GB compressed to an existing approved store
-within the quote; otherwise decline. Failed attempts consume time and money.
+| Selected host | Inclusive EUR/hour ceiling | Probe allocation-to-end | Probe ceiling | Entire lifecycle including probe | Total ceiling |
+|---|---:|---:|---:|---:|---:|
+| RunPod 32 / 64 GB, primary | 1.20 | 40 min | 1.00 | 8 h | 9.80 |
+| RunPod 32 / 256 GB | 2.20 | 21 min | 0.97 | 4 h 20 min | 9.74 |
+| CCX43, availability-dependent | 0.53 | 1 h | 0.93 | 18 h | 9.94 |
 
-**This is a conditional mathematical cap, not an implemented provider guarantee.**
-No spend until an independent accepted lifecycle/deletion bound exists, with
-tested expiry and quote. Killing the solver or shutting down the VM does not
-establish it. This ticket implements no launcher, deletion agent or security
-acceptance. Operator cannot call a local timer an enforced all-in cap. The
-owner's separate RunPod score-proof grant and AX42 data are out of scope.
+Cost in cents = ceil(ceil(seconds/quantum) × quantum × rate_cents/3600) +
+extras_cents. Minute quantum for RunPod; hourly for CCX43. Round outwards,
+not a prorated CPU-hours estimate. A larger quote/conversion/fees requires a
+prospective revision, not silently consuming more money.
 
 ## Exact sequence
 
-1. Data Collection freezes the listed ordered candidate tuples on main with
-   complete pins, mesh, observer, condition/material/history and reuse receipts.
-   Proposals with null manifests are **not** registered runs. Warpage's missing
-   full-history physics stays closed; an elastic control cannot stand in for it.
-2. Obtain quote, capacity, exact grant, retained ledger and enforcement receipts.
-   Same host/model/cores/image for probe and follow-on; no laptop extrapolation.
-3. Initial phase: setup <=1200 s, one complete listed probe <=1500 s,
-   export/deletion reserve 600 s, safety 300 s: <=3600 s and EUR0.93.
-   Expected probe wall times are hypotheses, not cost measurements. MG includes
-   normalization and both solvers; f13 includes the entire 201-frequency curve;
-   warpage includes its complete 3D history. If any does not finish, stop and
-   delete, retain incomplete evidence. Do not call it low C1 or retry for free.
-4. A completed probe receipt supplies measured wall/CPU/RSS and immutable tuple,
-   image, host, manifest and ledger identities. Run the sizing command below
-   immediately, accounting for elapsed lease time (idle never stops the clock).
-5. Select an **ordered prefix** of listed follow-on jobs fitting the remaining
-   lifetime. Per-job maximum = 2 × measured probe wall × declared complexity
-   multiplier. These multipliers are hypotheses, NOT p95 or mesh-cost facts.
-   Larger actual cost leads to a timeout and incomplete pilot, not a bigger bill.
-   Refuse each job if its whole cap plus 900 s tail exceeds the lease deadline.
-   No omitted favorable redraw, unapproved retries or family budget transfer.
-6. Stop compute before the export/deletion tail, confirm provider deletion no
-   later than 64800 s from allocation. Retain all attempts and invoice basis.
-   If the independent bound is unavailable, **do not start**.
+1. Data Collection freezes the ordered complete physical tuples on main with
+   mesh/deck/observer/material/environment pins and retained/scheduled reuse.
+   Null proposal manifests are not registered. Warpage full process-history
+   physics remains missing; an elastic strip is not full-task C1.
+2. Choose ONE host profile and obtain its exact grant, quote, capacity,
+   lifecycle enforcement and ledger. Use stock `ubuntu:24.04` by exact digest,
+   pinned solver/runtime trees pushed over host-key-verified SSH, following the
+   transport pattern in `OWNER-STARTUP-HOST-CUSTODY-03`. These are **public
+   development/representative** tasks: no sealed-material custody exception is
+   needed or conferred. No hidden bank, quiz, tuning, validator or AX42 material.
+3. Do not assume Docker-in-pod. Export each solver tree plus its dependencies
+   from the pinned source; compare tree hashes, executable and library versions,
+   ABI and environment on both sides. The proven battery transport path is not
+   proof that every solver tree is complete. Native equivalence is a release
+   hold. Log SSH transport package versions too. No mutable tag execution.
+4. For primary 64 GB: setup/transfer <=300 s, ONE complete probe <=1500 s,
+   export/confirmed termination420 s + safety180 s: <=2400 s. For 256 GB,
+   same setup/tail but probe <=360 s: <=1260 s. For CCX43 retain setup1200 /
+   probe1500 / tail900: <=3600 s. Setup allowances are hard ceilings, **not
+   measured transfer times**. Preflight may find a full task cannot fit; HOLD
+   or retain an incomplete timed-out probe, never truncate it to claim C1.
+   MG includes normalization + both solvers; f13 the full frequency curve;
+   warpage full3D history. High-memory21-minute economics may be unsuitable:
+   a 64GB timing cannot certify a 256GB probe. No free retries.
+5. From a completed same-host/profile/core/base/tree probe receipt, size an
+   ordered prefix of follow-ons. Each job's cap = 2 × measured probe wall ×
+   declared complexity multiplier. These are hypotheses, NOT observed p95.
+   Require each full cap plus export/termination tail to fit the remaining
+   allocation-to-end deadline. Setup, idle, transfer and failures all count.
+6. Export <=2GB compressed records to the existing approved store. **Terminate
+   RunPod (not stop)** and confirm absence by its deadline. Delete CCX43.
+   No network volumes, snapshots, backups or retained pods. RunPod says stopped
+   volumes keep billing and termination deletes local data, so export first.
+   [RunPod management](https://docs.runpod.io/pods/manage-pods).
+
+**Arithmetic is not an enforced provider guarantee.** Accepted independent
+allocation-to-confirmed-termination enforcement, tested expiry and actual
+invoice accounting remain release holds. No launcher/provider access is in
+this ticket. Killing a process, stopping a pod or a local timer is insufficient.
+No cap transfer, favorable redraws, host switches using old receipts or retries.
 
 ```text
 python -m carbon.challenge_pipeline.pilot_caps docs/development/challenge_pipeline/pilot-caps/plans.json
 python -m carbon.challenge_pipeline.pilot_caps docs/development/challenge_pipeline/pilot-caps/plans.json --family f13 --probe PUBLIC_PROBE_RECEIPT.json
 ```
 
-Pure planning; output always `dispatch_allowed: false`. The closed receipt
-shape is in the code/tests. It is not proof of authority/store availability.
-No reference input is generated or changed by this budget tool.
-
-## Data Collection return
-
-Actual allocation-to-deletion wall, user+system CPU across children, allocated
-core-seconds (host billing remains for all 16), peak RSS, mesh/DOFs/grid, every
-frequency/normalization call and refinement; pins and complete observer outputs;
-errors/conservation/order, failures/timeouts and partial curves; invoice with
-tax/fees/retention. Report control cost separately from complete buyer-task C1.
-One probe cannot estimate p95, T2(a), statistical power or reference adequacy.
-If memory cannot fit RSS limit (especially MG) HOLD for a different capped plan;
-never coarsen a truth rung or truncate physics just to complete the pilot.
-
-Main family proposals retain their original historical scope. This common
-prospective plan is the cap authority for these six **proposed pilots**, not
-an execution grant or a bank-startup estimate.
+Always `dispatch_allowed: false`. Record actual allocation-to-termination wall,
+user+system CPU across children, allocated core-seconds (all32 billed), peak
+RSS, mesh/DOFs/grid, every frequency/normalization, observer outputs, failures,
+pins, ledger and inclusive invoice basis. Separate controls from full buyer
+task C1. One probe establishes no p95, value-check, power or reference adequacy.
