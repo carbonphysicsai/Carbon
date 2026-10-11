@@ -1,0 +1,1904 @@
+{
+  "schema": "carbon.research.score-proof-public-planning-audit.v1",
+  "status": "MEASURED_PUBLIC_DEVELOPMENT_WITH_CONDITIONAL_PROJECTIONS",
+  "runtime": {
+    "python": "3.12.14",
+    "numpy": "2.3.5",
+    "host": "Windows",
+    "validation_class": "Native research diagnostics; not canonical qualification"
+  },
+  "source_commit": "d426cf8b3f86a20c27e4dd82593b5935d99ada1f",
+  "provenance": {
+    "ev4.json": {
+      "path": "docs/development/evidence/ev4-2026-10-01/results.json",
+      "git_blob": "67ca13b966a2f6fb4b2e68b084e2909657e7ba7f",
+      "sha256": "3bd9b954f4bace5f0299b6cbe9301e27407cb846dd51e5793bd5b5f6f33b0371",
+      "bytes": 2206408,
+      "source_commit": "d426cf8b3f86a20c27e4dd82593b5935d99ada1f"
+    },
+    "ev5.json": {
+      "path": "docs/development/evidence/ev5-2026-10-03/results.json",
+      "git_blob": "7d6ccf75a47c2df56c66d0b223300e5fd9398512",
+      "sha256": "60e4a856fb2ee6556d3e7115411e5b00d84c84c02603c2473392c713bfacc254",
+      "bytes": 2375178,
+      "source_commit": "d426cf8b3f86a20c27e4dd82593b5935d99ada1f"
+    },
+    "gate.json": {
+      "path": "docs/development/evidence/ev5-2026-10-03/gate.json",
+      "git_blob": "df128cb7c30bfa679d85f537cfe3651fc9873463",
+      "sha256": "adb7c276e3698a92d1a1842c0fea4183ac5fc73fbed0e5b9e10ba22ea97b7bc3",
+      "bytes": 17289,
+      "source_commit": "d426cf8b3f86a20c27e4dd82593b5935d99ada1f"
+    }
+  },
+  "scope": {
+    "solver_runs": 0,
+    "training_runs": 0,
+    "spend": 0,
+    "hidden_access": false,
+    "ax42_access": false,
+    "runtime_changes": false
+  },
+  "owner_choices": {
+    "tau_half_width": 0.15,
+    "interim_questions": 150
+  },
+  "planning_assumptions": {
+    "confidence": 0.95,
+    "power_screen_low": 0.8,
+    "power_screen_high": 0.9,
+    "control_test_alpha_each": 0.025,
+    "bootstrap_replicates": 4000,
+    "rng_seed_public_research_only": 20261011,
+    "inference": "fixed scoring set; exchangeable public recipe clusters and question/block clusters; first-order variance scaling beyond observed support"
+  },
+  "inventory": {
+    "construction_level": 0,
+    "members": 99,
+    "recipes": 79,
+    "seeds_per_recipe": {
+      "2": 18,
+      "1": 60,
+      "3": 1
+    },
+    "campaign_questions": {
+      "EV4": {
+        "offered_questions": 24,
+        "common_resolved": 14,
+        "development": 6,
+        "verification": 8
+      },
+      "EV5": {
+        "offered_questions": 24,
+        "common_resolved": 13,
+        "development": 5,
+        "verification": 8
+      }
+    },
+    "pooled_common_resolved_questions": 27,
+    "temperature_blocks": 14,
+    "levels_1_to_4": "NOT_IDENTIFIABLE_NO_PUBLIC_MATCHED_PANELS"
+  },
+  "point_tau": {
+    "historical_CE": 0.35795349511126495,
+    "historical_DAR": 0.1872546942381965,
+    "EV5_candidate_near_gate": 0.368964965288514
+  },
+  "split_points": {
+    "EV4:development": {
+      "questions": 6,
+      "tau": {
+        "historical_CE": 0.19578620721965825,
+        "historical_DAR": 0.005989001885137351,
+        "EV5_candidate_near_gate": 0.18124269000030402
+      }
+    },
+    "EV4:verification": {
+      "questions": 8,
+      "tau": {
+        "historical_CE": 0.3641955697776879,
+        "historical_DAR": 0.26896540532639907,
+        "EV5_candidate_near_gate": 0.3958691715757339
+      }
+    },
+    "EV5:development": {
+      "questions": 5,
+      "tau": {
+        "historical_CE": 0.048949698946622516,
+        "historical_DAR": 0.16906773948870568,
+        "EV5_candidate_near_gate": 0.04597042975575463
+      }
+    },
+    "EV5:verification": {
+      "questions": 8,
+      "tau": {
+        "historical_CE": 0.41629437239096245,
+        "historical_DAR": 0.24765548685736125,
+        "EV5_candidate_near_gate": 0.37163508491607034
+      }
+    }
+  },
+  "family_sensitivity": {
+    "without_deeponet": {
+      "members": 83,
+      "recipes": 67,
+      "tau": {
+        "historical_CE": 0.30592750439788385,
+        "historical_DAR": 0.23673365516930617,
+        "EV5_candidate_near_gate": 0.277883669672936
+      }
+    },
+    "without_knn": {
+      "members": 92,
+      "recipes": 72,
+      "tau": {
+        "historical_CE": 0.27307520860405404,
+        "historical_DAR": 0.07485626151369347,
+        "EV5_candidate_near_gate": 0.2978624273923399
+      }
+    },
+    "without_mlp": {
+      "members": 23,
+      "recipes": 19,
+      "tau": {
+        "historical_CE": 0.5465357250000211,
+        "historical_DAR": 0.44047619047619047,
+        "EV5_candidate_near_gate": 0.4806805852526056
+      }
+    }
+  },
+  "dependence_diagnostics": {
+    "same_recipe_seed_loss_correlation": {
+      "pairs": 21,
+      "min_median_max": [
+        0.27959448505614426,
+        0.6240408436471353,
+        0.9999689403895861
+      ]
+    },
+    "question_loss_correlations_across_members": {
+      "same_temperature": {
+        "pairs": 13,
+        "min_median_max": [
+          -0.27443260804731306,
+          0.19056296452811472,
+          0.630739524474233
+        ]
+      },
+      "different_temperature": {
+        "pairs": 287,
+        "min_median_max": [
+          -0.4615635911867212,
+          0.09167305948613638,
+          0.9999999999999999
+        ]
+      }
+    },
+    "paired_CE_DAR_tau_resample_correlations": {
+      "recipe_only": {
+        "covariance": 0.0022507403970282087,
+        "correlation": 0.4441148822467436
+      },
+      "question_only": {
+        "covariance": 0.0018856535350152762,
+        "correlation": 0.2835153236146063
+      },
+      "crossed": {
+        "covariance": 0.004072274752796406,
+        "correlation": 0.30855459178724176
+      }
+    }
+  },
+  "bootstrap_iid_questions": {
+    "recipes": 79,
+    "question_units": 27,
+    "replicates_per_mode": 4000,
+    "modes": {
+      "recipe_only": {
+        "historical_CE": {
+          "defined": 4000,
+          "undefined": 0,
+          "mean": 0.3586391073804675,
+          "variance": 0.003877070696013325,
+          "ci95": [
+            0.23525983555531718,
+            0.4767549446959467
+          ],
+          "half_width95": 0.12074755457031476
+        },
+        "historical_DAR": {
+          "defined": 4000,
+          "undefined": 0,
+          "mean": 0.18884804957106208,
+          "variance": 0.006624550854714609,
+          "ci95": [
+            0.028884548115804817,
+            0.3425590969649864
+          ],
+          "half_width95": 0.15683727442459078
+        },
+        "EV5_candidate_near_gate": {
+          "defined": 4000,
+          "undefined": 0,
+          "mean": 0.3712072152074514,
+          "variance": 0.0033501216231670056,
+          "ci95": [
+            0.2558877192520901,
+            0.48214356563298644
+          ],
+          "half_width95": 0.11312792319044818
+        },
+        "DAR_minus_CE": {
+          "defined": 4000,
+          "undefined": 0,
+          "mean": -0.1697910578094055,
+          "variance": 0.006000140756671517,
+          "ci95": [
+            -0.32418804550264185,
+            -0.023956610623756782
+          ],
+          "half_width95": 0.15011571743944255
+        }
+      },
+      "question_only": {
+        "historical_CE": {
+          "defined": 4000,
+          "undefined": 0,
+          "mean": 0.3020480530928046,
+          "variance": 0.01441893894765025,
+          "ci95": [
+            0.03157267083752447,
+            0.48947891299015556
+          ],
+          "half_width95": 0.22895312107631555
+        },
+        "historical_DAR": {
+          "defined": 4000,
+          "undefined": 0,
+          "mean": 0.1679533272528896,
+          "variance": 0.003067873319571299,
+          "ci95": [
+            0.060522833891656386,
+            0.27791924459225237
+          ],
+          "half_width95": 0.10869820535029799
+        },
+        "EV5_candidate_near_gate": {
+          "defined": 4000,
+          "undefined": 0,
+          "mean": 0.3034982608177365,
+          "variance": 0.019281276436442535,
+          "ci95": [
+            -0.017321020525713427,
+            0.5090423141130286
+          ],
+          "half_width95": 0.263181667319371
+        },
+        "DAR_minus_CE": {
+          "defined": 4000,
+          "undefined": 0,
+          "mean": -0.134094725839915,
+          "variance": 0.013715505197190996,
+          "ci95": [
+            -0.3083798938093346,
+            0.13424014733992004
+          ],
+          "half_width95": 0.22131002057462734
+        }
+      },
+      "crossed": {
+        "historical_CE": {
+          "defined": 4000,
+          "undefined": 0,
+          "mean": 0.2992096098182712,
+          "variance": 0.018125197444400158,
+          "ci95": [
+            -0.0012694270783601411,
+            0.5219280178414932
+          ],
+          "half_width95": 0.26159872245992666
+        },
+        "historical_DAR": {
+          "defined": 4000,
+          "undefined": 0,
+          "mean": 0.17138399507014845,
+          "variance": 0.00961008811586694,
+          "ci95": [
+            -0.027715955105050285,
+            0.35856346754731105
+          ],
+          "half_width95": 0.19313971132618066
+        },
+        "EV5_candidate_near_gate": {
+          "defined": 4000,
+          "undefined": 0,
+          "mean": 0.3013759405051005,
+          "variance": 0.022687182849856973,
+          "ci95": [
+            -0.04108999885576424,
+            0.5366277029268196
+          ],
+          "half_width95": 0.28885885089129193
+        },
+        "DAR_minus_CE": {
+          "defined": 4000,
+          "undefined": 0,
+          "mean": -0.12782561474812268,
+          "variance": 0.019590736054674287,
+          "ci95": [
+            -0.3819295493531251,
+            0.1692869634236801
+          ],
+          "half_width95": 0.2756082563884026
+        }
+      }
+    }
+  },
+  "bootstrap_temperature_blocks": {
+    "recipes": 79,
+    "question_units": 14,
+    "replicates_per_mode": 4000,
+    "modes": {
+      "recipe_only": {
+        "historical_CE": {
+          "defined": 4000,
+          "undefined": 0,
+          "mean": 0.35630292484025167,
+          "variance": 0.003945579498510266,
+          "ci95": [
+            0.22753282565380567,
+            0.47320602244798937
+          ],
+          "half_width95": 0.12283659839709185
+        },
+        "historical_DAR": {
+          "defined": 4000,
+          "undefined": 0,
+          "mean": 0.18698504654609113,
+          "variance": 0.006965345967126626,
+          "ci95": [
+            0.021299532900720373,
+            0.3434142690774363
+          ],
+          "half_width95": 0.16105736808835794
+        },
+        "EV5_candidate_near_gate": {
+          "defined": 4000,
+          "undefined": 0,
+          "mean": 0.36955246130376024,
+          "variance": 0.0034896608173414266,
+          "ci95": [
+            0.2470252679694324,
+            0.4795063255544178
+          ],
+          "half_width95": 0.1162405287924927
+        },
+        "DAR_minus_CE": {
+          "defined": 4000,
+          "undefined": 0,
+          "mean": -0.16931787829416056,
+          "variance": 0.006134791261713861,
+          "ci95": [
+            -0.32525719650666046,
+            -0.0201637526315948
+          ],
+          "half_width95": 0.15254672193753283
+        }
+      },
+      "question_only": {
+        "historical_CE": {
+          "defined": 4000,
+          "undefined": 0,
+          "mean": 0.30402946797337516,
+          "variance": 0.012221249260585128,
+          "ci95": [
+            0.05324248882053816,
+            0.48318067940217035
+          ],
+          "half_width95": 0.2149690952908161
+        },
+        "historical_DAR": {
+          "defined": 4000,
+          "undefined": 0,
+          "mean": 0.1679519432269235,
+          "variance": 0.004164021220597299,
+          "ci95": [
+            0.04433601580782442,
+            0.29356378053044563
+          ],
+          "half_width95": 0.1246138823613106
+        },
+        "EV5_candidate_near_gate": {
+          "defined": 4000,
+          "undefined": 0,
+          "mean": 0.3048004929073955,
+          "variance": 0.01677890326074055,
+          "ci95": [
+            0.005869901158472905,
+            0.4974582398188286
+          ],
+          "half_width95": 0.24579416933017784
+        },
+        "DAR_minus_CE": {
+          "defined": 4000,
+          "undefined": 0,
+          "mean": -0.1360775247464517,
+          "variance": 0.011639859424991331,
+          "ci95": [
+            -0.2890989758901491,
+            0.11685729068778737
+          ],
+          "half_width95": 0.20297813328896824
+        }
+      },
+      "crossed": {
+        "historical_CE": {
+          "defined": 4000,
+          "undefined": 0,
+          "mean": 0.301567278628538,
+          "variance": 0.015886415514387065,
+          "ci95": [
+            0.03857290059962382,
+            0.5193610368416272
+          ],
+          "half_width95": 0.24039406812100167
+        },
+        "historical_DAR": {
+          "defined": 4000,
+          "undefined": 0,
+          "mean": 0.16646873168568943,
+          "variance": 0.010349712318326662,
+          "ci95": [
+            -0.03555929518645436,
+            0.35985119341936533
+          ],
+          "half_width95": 0.19770524430290984
+        },
+        "EV5_candidate_near_gate": {
+          "defined": 4000,
+          "undefined": 0,
+          "mean": 0.30304089346018603,
+          "variance": 0.019841885000713128,
+          "ci95": [
+            -0.011440829348652377,
+            0.529007510379796
+          ],
+          "half_width95": 0.2702241698642242
+        },
+        "DAR_minus_CE": {
+          "defined": 4000,
+          "undefined": 0,
+          "mean": -0.1350985469428486,
+          "variance": 0.017693520403876836,
+          "ci95": [
+            -0.37409226388430755,
+            0.14766150656925994
+          ],
+          "half_width95": 0.26087688522678376
+        }
+      }
+    }
+  },
+  "bootstrap_by_campaign": {
+    "EV4": {
+      "recipes": 79,
+      "question_units": 14,
+      "replicates_per_mode": 4000,
+      "modes": {
+        "recipe_only": {
+          "historical_CE": {
+            "defined": 4000,
+            "undefined": 0,
+            "mean": 0.3845903513245407,
+            "variance": 0.003958758913343811,
+            "ci95": [
+              0.2551991061953314,
+              0.5037424970950105
+            ],
+            "half_width95": 0.12427169544983954
+          },
+          "historical_DAR": {
+            "defined": 4000,
+            "undefined": 0,
+            "mean": 0.18352053300476392,
+            "variance": 0.00588229042480397,
+            "ci95": [
+              0.032622197074835005,
+              0.33081770195292426
+            ],
+            "half_width95": 0.14909775243904463
+          },
+          "EV5_candidate_near_gate": {
+            "defined": 4000,
+            "undefined": 0,
+            "mean": 0.3896390943892833,
+            "variance": 0.003229470458242952,
+            "ci95": [
+              0.27669927015344414,
+              0.4979836787052866
+            ],
+            "half_width95": 0.11064220427592122
+          },
+          "DAR_minus_CE": {
+            "defined": 4000,
+            "undefined": 0,
+            "mean": -0.2010698183197768,
+            "variance": 0.005955542295320039,
+            "ci95": [
+              -0.35159823517940647,
+              -0.05384250663254869
+            ],
+            "half_width95": 0.1488778642734289
+          }
+        },
+        "question_only": {
+          "historical_CE": {
+            "defined": 4000,
+            "undefined": 0,
+            "mean": 0.29603954396784943,
+            "variance": 0.004249433637398725,
+            "ci95": [
+              0.1518294822697665,
+              0.40498280239795326
+            ],
+            "half_width95": 0.12657666006409338
+          },
+          "historical_DAR": {
+            "defined": 4000,
+            "undefined": 0,
+            "mean": 0.15093563574026067,
+            "variance": 0.0060078523803707585,
+            "ci95": [
+              -0.001248382293152668,
+              0.2965928870158956
+            ],
+            "half_width95": 0.14892063465452413
+          },
+          "EV5_candidate_near_gate": {
+            "defined": 4000,
+            "undefined": 0,
+            "mean": 0.30701316108091004,
+            "variance": 0.004386523911129563,
+            "ci95": [
+              0.1674708936586798,
+              0.41625498143242545
+            ],
+            "half_width95": 0.12439204388687283
+          },
+          "DAR_minus_CE": {
+            "defined": 4000,
+            "undefined": 0,
+            "mean": -0.1451039082275888,
+            "variance": 0.003022239282994114,
+            "ci95": [
+              -0.21462565521457982,
+              -0.013810648518886847
+            ],
+            "half_width95": 0.10040750334784648
+          }
+        },
+        "crossed": {
+          "historical_CE": {
+            "defined": 4000,
+            "undefined": 0,
+            "mean": 0.2956395738590588,
+            "variance": 0.008964450191839494,
+            "ci95": [
+              0.10150430487050408,
+              0.46313277386206886
+            ],
+            "half_width95": 0.18081423449578238
+          },
+          "historical_DAR": {
+            "defined": 4000,
+            "undefined": 0,
+            "mean": 0.15101724394138633,
+            "variance": 0.0117817433357267,
+            "ci95": [
+              -0.06399314391061903,
+              0.36002508292592234
+            ],
+            "half_width95": 0.21200911341827067
+          },
+          "EV5_candidate_near_gate": {
+            "defined": 4000,
+            "undefined": 0,
+            "mean": 0.3073814220119949,
+            "variance": 0.00853276518738977,
+            "ci95": [
+              0.10908435999205342,
+              0.4681603318582977
+            ],
+            "half_width95": 0.17953798593312215
+          },
+          "DAR_minus_CE": {
+            "defined": 4000,
+            "undefined": 0,
+            "mean": -0.14462232991767257,
+            "variance": 0.008939929358177657,
+            "ci95": [
+              -0.32109233971278345,
+              0.058920328772777336
+            ],
+            "half_width95": 0.1900063342427804
+          }
+        }
+      }
+    },
+    "EV5": {
+      "recipes": 79,
+      "question_units": 13,
+      "replicates_per_mode": 4000,
+      "modes": {
+        "recipe_only": {
+          "historical_CE": {
+            "defined": 4000,
+            "undefined": 0,
+            "mean": 0.27543628970409184,
+            "variance": 0.004255889720486583,
+            "ci95": [
+              0.14152457688155337,
+              0.3970759666004398
+            ],
+            "half_width95": 0.12777569485944323
+          },
+          "historical_DAR": {
+            "defined": 4000,
+            "undefined": 0,
+            "mean": 0.21306817856529026,
+            "variance": 0.006459465778855929,
+            "ci95": [
+              0.04910275103449492,
+              0.36314255068393064
+            ],
+            "half_width95": 0.15701989982471787
+          },
+          "EV5_candidate_near_gate": {
+            "defined": 4000,
+            "undefined": 0,
+            "mean": 0.2547952490709807,
+            "variance": 0.004504527378506376,
+            "ci95": [
+              0.11646489601270427,
+              0.3788179310975685
+            ],
+            "half_width95": 0.13117651754243212
+          },
+          "DAR_minus_CE": {
+            "defined": 4000,
+            "undefined": 0,
+            "mean": -0.062368111138801585,
+            "variance": 0.005874294471821351,
+            "ci95": [
+              -0.20954923293665187,
+              0.08608228959306095
+            ],
+            "half_width95": 0.1478157612648564
+          }
+        },
+        "question_only": {
+          "historical_CE": {
+            "defined": 4000,
+            "undefined": 0,
+            "mean": 0.22919181986465392,
+            "variance": 0.031182580376672205,
+            "ci95": [
+              -0.10798140534009064,
+              0.5163245802972695
+            ],
+            "half_width95": 0.31215299281868003
+          },
+          "historical_DAR": {
+            "defined": 4000,
+            "undefined": 0,
+            "mean": 0.1645547920946188,
+            "variance": 0.002687420786502864,
+            "ci95": [
+              0.06684217416099594,
+              0.2642093514340868
+            ],
+            "half_width95": 0.09868358863654543
+          },
+          "EV5_candidate_near_gate": {
+            "defined": 4000,
+            "undefined": 0,
+            "mean": 0.21279696272173923,
+            "variance": 0.041030624333755206,
+            "ci95": [
+              -0.1690801687621131,
+              0.530167272286511
+            ],
+            "half_width95": 0.349623720524312
+          },
+          "DAR_minus_CE": {
+            "defined": 4000,
+            "undefined": 0,
+            "mean": -0.0646370277700351,
+            "variance": 0.02852890856087448,
+            "ci95": [
+              -0.3345794887315899,
+              0.24638871787629513
+            ],
+            "half_width95": 0.2904841033039425
+          }
+        },
+        "crossed": {
+          "historical_CE": {
+            "defined": 4000,
+            "undefined": 0,
+            "mean": 0.23142231122129084,
+            "variance": 0.03562603248353671,
+            "ci95": [
+              -0.1518579022690803,
+              0.5395815546898984
+            ],
+            "half_width95": 0.3457197284794894
+          },
+          "historical_DAR": {
+            "defined": 4000,
+            "undefined": 0,
+            "mean": 0.1656016865209179,
+            "variance": 0.009486482119196272,
+            "ci95": [
+              -0.028523515162295437,
+              0.3497188338871509
+            ],
+            "half_width95": 0.18912117452472318
+          },
+          "EV5_candidate_near_gate": {
+            "defined": 4000,
+            "undefined": 0,
+            "mean": 0.21566816825792204,
+            "variance": 0.04479888943640046,
+            "ci95": [
+              -0.20237178652388038,
+              0.5535668088284748
+            ],
+            "half_width95": 0.3779692976761776
+          },
+          "DAR_minus_CE": {
+            "defined": 4000,
+            "undefined": 0,
+            "mean": -0.06582062470037296,
+            "variance": 0.03436204948345449,
+            "ci95": [
+              -0.40273538192619746,
+              0.287397340221639
+            ],
+            "half_width95": 0.3450663610739182
+          }
+        }
+      }
+    }
+  },
+  "empirical_support_projection_at_150_questions": {
+    "60": {
+      "recipes": 79,
+      "question_units": 27,
+      "replicates_per_mode": 4000,
+      "modes": {
+        "crossed": {
+          "historical_CE": {
+            "defined": 4000,
+            "undefined": 0,
+            "mean": 0.34420259111315427,
+            "variance": 0.00817247814922023,
+            "ci95": [
+              0.147019604589721,
+              0.5043783625939328
+            ],
+            "half_width95": 0.1786793790021059
+          },
+          "historical_DAR": {
+            "defined": 4000,
+            "undefined": 0,
+            "mean": 0.16833918759626365,
+            "variance": 0.009387343926581826,
+            "ci95": [
+              -0.025699208412982188,
+              0.3506910630535752
+            ],
+            "half_width95": 0.1881951357332787
+          },
+          "EV5_candidate_near_gate": {
+            "defined": 4000,
+            "undefined": 0,
+            "mean": 0.3529782721327484,
+            "variance": 0.008739886402050487,
+            "ci95": [
+              0.15517747460670703,
+              0.5171529175269949
+            ],
+            "half_width95": 0.1809877214601439
+          },
+          "DAR_minus_CE": {
+            "defined": 4000,
+            "undefined": 0,
+            "mean": -0.17586340351689062,
+            "variance": 0.01095606860451316,
+            "ci95": [
+              -0.38533295070749984,
+              0.037372276732290044
+            ],
+            "half_width95": 0.21135261371989494
+          }
+        }
+      }
+    },
+    "79": {
+      "recipes": 79,
+      "question_units": 27,
+      "replicates_per_mode": 4000,
+      "modes": {
+        "crossed": {
+          "historical_CE": {
+            "defined": 4000,
+            "undefined": 0,
+            "mean": 0.3443469083084081,
+            "variance": 0.007175396932830083,
+            "ci95": [
+              0.16496961571454444,
+              0.49843572410350595
+            ],
+            "half_width95": 0.16673305419448076
+          },
+          "historical_DAR": {
+            "defined": 4000,
+            "undefined": 0,
+            "mean": 0.16914085393626926,
+            "variance": 0.0071909551516648115,
+            "ci95": [
+              0.003848010400769691,
+              0.33391744377598276
+            ],
+            "half_width95": 0.16503471668760653
+          },
+          "EV5_candidate_near_gate": {
+            "defined": 4000,
+            "undefined": 0,
+            "mean": 0.3531243059482422,
+            "variance": 0.007816766424717759,
+            "ci95": [
+              0.16227188605431594,
+              0.5098831143157297
+            ],
+            "half_width95": 0.1738056141307069
+          },
+          "DAR_minus_CE": {
+            "defined": 4000,
+            "undefined": 0,
+            "mean": -0.17520605437213885,
+            "variance": 0.008869796752646882,
+            "ci95": [
+              -0.36208413887477087,
+              0.005874109817620539
+            ],
+            "half_width95": 0.1839791243461957
+          }
+        }
+      }
+    },
+    "94": {
+      "recipes": 79,
+      "question_units": 27,
+      "replicates_per_mode": 4000,
+      "modes": {
+        "crossed": {
+          "historical_CE": {
+            "defined": 4000,
+            "undefined": 0,
+            "mean": 0.3435990071544058,
+            "variance": 0.006583580232072448,
+            "ci95": [
+              0.17474210244647412,
+              0.4930814127706927
+            ],
+            "half_width95": 0.1591696551621093
+          },
+          "historical_DAR": {
+            "defined": 4000,
+            "undefined": 0,
+            "mean": 0.16951662687178157,
+            "variance": 0.006280009643148923,
+            "ci95": [
+              0.010291981692336236,
+              0.3202047831763087
+            ],
+            "half_width95": 0.15495640074198622
+          },
+          "EV5_candidate_near_gate": {
+            "defined": 4000,
+            "undefined": 0,
+            "mean": 0.3520935172865566,
+            "variance": 0.007442633065513474,
+            "ci95": [
+              0.1662543664396751,
+              0.5059945939010435
+            ],
+            "half_width95": 0.16987011373068422
+          },
+          "DAR_minus_CE": {
+            "defined": 4000,
+            "undefined": 0,
+            "mean": -0.17408238028262424,
+            "variance": 0.00818380054952714,
+            "ci95": [
+              -0.35397426159951756,
+              0.0004997097214025922
+            ],
+            "half_width95": 0.1772369856604601
+          }
+        }
+      }
+    },
+    "112": {
+      "recipes": 79,
+      "question_units": 27,
+      "replicates_per_mode": 4000,
+      "modes": {
+        "crossed": {
+          "historical_CE": {
+            "defined": 4000,
+            "undefined": 0,
+            "mean": 0.34638127894385445,
+            "variance": 0.005718610188701444,
+            "ci95": [
+              0.1877771122918147,
+              0.4803042799281943
+            ],
+            "half_width95": 0.1462635838181898
+          },
+          "historical_DAR": {
+            "defined": 4000,
+            "undefined": 0,
+            "mean": 0.16959244567232154,
+            "variance": 0.005439255509966892,
+            "ci95": [
+              0.02548870131091191,
+              0.30746670424567074
+            ],
+            "half_width95": 0.14098900146737942
+          },
+          "EV5_candidate_near_gate": {
+            "defined": 4000,
+            "undefined": 0,
+            "mean": 0.35565737179345686,
+            "variance": 0.006343432333271604,
+            "ci95": [
+              0.1883760907946378,
+              0.49355331435113886
+            ],
+            "half_width95": 0.15258861177825053
+          },
+          "DAR_minus_CE": {
+            "defined": 4000,
+            "undefined": 0,
+            "mean": -0.1767888332715329,
+            "variance": 0.007054620885654689,
+            "ci95": [
+              -0.3393984134310378,
+              -0.011044733109904776
+            ],
+            "half_width95": 0.16417684016056652
+          }
+        }
+      }
+    },
+    "125": {
+      "recipes": 79,
+      "question_units": 27,
+      "replicates_per_mode": 4000,
+      "modes": {
+        "crossed": {
+          "historical_CE": {
+            "defined": 4000,
+            "undefined": 0,
+            "mean": 0.3437213778459273,
+            "variance": 0.005677362217402267,
+            "ci95": [
+              0.19017435395840446,
+              0.4789439459912407
+            ],
+            "half_width95": 0.14438479601641813
+          },
+          "historical_DAR": {
+            "defined": 4000,
+            "undefined": 0,
+            "mean": 0.17009296745959687,
+            "variance": 0.004791895694239551,
+            "ci95": [
+              0.030937123477397275,
+              0.3041308947215042
+            ],
+            "half_width95": 0.13659688562205344
+          },
+          "EV5_candidate_near_gate": {
+            "defined": 4000,
+            "undefined": 0,
+            "mean": 0.35224661404389385,
+            "variance": 0.006600381684616292,
+            "ci95": [
+              0.18403812788020332,
+              0.4936965254315092
+            ],
+            "half_width95": 0.15482919877565293
+          },
+          "DAR_minus_CE": {
+            "defined": 4000,
+            "undefined": 0,
+            "mean": -0.17362841038633048,
+            "variance": 0.006819898133310491,
+            "ci95": [
+              -0.32751259976646424,
+              -0.01094510743760881
+            ],
+            "half_width95": 0.15828374616442772
+          }
+        }
+      }
+    },
+    "150": {
+      "recipes": 79,
+      "question_units": 27,
+      "replicates_per_mode": 4000,
+      "modes": {
+        "crossed": {
+          "historical_CE": {
+            "defined": 4000,
+            "undefined": 0,
+            "mean": 0.344430015340425,
+            "variance": 0.00505691066570073,
+            "ci95": [
+              0.19334572148916168,
+              0.47401914367576353
+            ],
+            "half_width95": 0.14033671109330093
+          },
+          "historical_DAR": {
+            "defined": 4000,
+            "undefined": 0,
+            "mean": 0.17096582257892046,
+            "variance": 0.004135637398134875,
+            "ci95": [
+              0.04416219334366197,
+              0.29917887993430303
+            ],
+            "half_width95": 0.12750834329532054
+          },
+          "EV5_candidate_near_gate": {
+            "defined": 4000,
+            "undefined": 0,
+            "mean": 0.3521816800365374,
+            "variance": 0.005970223450378628,
+            "ci95": [
+              0.1879636857386398,
+              0.48768849858996394
+            ],
+            "half_width95": 0.14986240642566206
+          },
+          "DAR_minus_CE": {
+            "defined": 4000,
+            "undefined": 0,
+            "mean": -0.1734641927615045,
+            "variance": 0.006164874598217258,
+            "ci95": [
+              -0.32464866216610033,
+              -0.0151492829785017
+            ],
+            "half_width95": 0.1547496895937993
+          }
+        }
+      }
+    },
+    "160": {
+      "recipes": 79,
+      "question_units": 27,
+      "replicates_per_mode": 4000,
+      "modes": {
+        "crossed": {
+          "historical_CE": {
+            "defined": 4000,
+            "undefined": 0,
+            "mean": 0.34202762631505745,
+            "variance": 0.0049748037149646394,
+            "ci95": [
+              0.19198683917873186,
+              0.46651006659873
+            ],
+            "half_width95": 0.13726161370999906
+          },
+          "historical_DAR": {
+            "defined": 4000,
+            "undefined": 0,
+            "mean": 0.1694350260566136,
+            "variance": 0.003794649328993573,
+            "ci95": [
+              0.04575021581988794,
+              0.2888699636761893
+            ],
+            "half_width95": 0.12155987392815067
+          },
+          "EV5_candidate_near_gate": {
+            "defined": 4000,
+            "undefined": 0,
+            "mean": 0.3508719301879688,
+            "variance": 0.005859980046026042,
+            "ci95": [
+              0.19305562176995072,
+              0.4858214322414708
+            ],
+            "half_width95": 0.14638290523576003
+          },
+          "DAR_minus_CE": {
+            "defined": 4000,
+            "undefined": 0,
+            "mean": -0.17259260025844378,
+            "variance": 0.005885246711031419,
+            "ci95": [
+              -0.3196740062790171,
+              -0.02074566247488798
+            ],
+            "half_width95": 0.14946417190206457
+          }
+        }
+      }
+    },
+    "175": {
+      "recipes": 79,
+      "question_units": 27,
+      "replicates_per_mode": 4000,
+      "modes": {
+        "crossed": {
+          "historical_CE": {
+            "defined": 4000,
+            "undefined": 0,
+            "mean": 0.3448569754041224,
+            "variance": 0.004755631436498477,
+            "ci95": [
+              0.20173612123877993,
+              0.46994201202829866
+            ],
+            "half_width95": 0.13410294539475937
+          },
+          "historical_DAR": {
+            "defined": 4000,
+            "undefined": 0,
+            "mean": 0.1693810125741009,
+            "variance": 0.003661314390061868,
+            "ci95": [
+              0.049956093137190724,
+              0.2836544482102541
+            ],
+            "half_width95": 0.11684917753653168
+          },
+          "EV5_candidate_near_gate": {
+            "defined": 4000,
+            "undefined": 0,
+            "mean": 0.35301821226088165,
+            "variance": 0.005619676524872016,
+            "ci95": [
+              0.19233790683139806,
+              0.4841638735597851
+            ],
+            "half_width95": 0.1459129833641935
+          },
+          "DAR_minus_CE": {
+            "defined": 4000,
+            "undefined": 0,
+            "mean": -0.17547596283002154,
+            "variance": 0.005566560999813165,
+            "ci95": [
+              -0.31304905773169067,
+              -0.026391760960832962
+            ],
+            "half_width95": 0.14332864838542886
+          }
+        }
+      }
+    },
+    "200": {
+      "recipes": 79,
+      "question_units": 27,
+      "replicates_per_mode": 4000,
+      "modes": {
+        "crossed": {
+          "historical_CE": {
+            "defined": 4000,
+            "undefined": 0,
+            "mean": 0.34164875680262424,
+            "variance": 0.004583144761810125,
+            "ci95": [
+              0.20215046909757423,
+              0.46450899914792143
+            ],
+            "half_width95": 0.1311792650251736
+          },
+          "historical_DAR": {
+            "defined": 4000,
+            "undefined": 0,
+            "mean": 0.17031488969935782,
+            "variance": 0.00335428360259532,
+            "ci95": [
+              0.056641597013491043,
+              0.2818478498818728
+            ],
+            "half_width95": 0.11260312643419088
+          },
+          "EV5_candidate_near_gate": {
+            "defined": 4000,
+            "undefined": 0,
+            "mean": 0.3490312205841202,
+            "variance": 0.005476277519825987,
+            "ci95": [
+              0.18629926343920938,
+              0.4772527807450589
+            ],
+            "half_width95": 0.14547675865292475
+          },
+          "DAR_minus_CE": {
+            "defined": 4000,
+            "undefined": 0,
+            "mean": -0.1713338671032664,
+            "variance": 0.0053284723509938745,
+            "ci95": [
+              -0.31299010318069964,
+              -0.029521456144604025
+            ],
+            "half_width95": 0.14173432351804782
+          }
+        }
+      }
+    }
+  },
+  "planning": {
+    "historical_CE": {
+      "coefficients_iid_questions": {
+        "a_recipe": 0.3062885849850527,
+        "b_question": 0.3893113515865567,
+        "c_interaction": 0.0,
+        "raw_residual": -0.00017081219926341588,
+        "crossed_variance": 0.018125197444400158
+      },
+      "coefficients_temperature_blocks": {
+        "a_recipe": 0.311700780382311,
+        "b_question": 0.1710974896481918,
+        "c_interaction": 0.0,
+        "raw_residual": -0.00028041324470832844,
+        "crossed_variance": 0.015886415514387065
+      },
+      "at_150_questions": {
+        "recipes": 94,
+        "half_width_at_79_recipes": 0.15768247924435133
+      },
+      "temperature_block_at_150_questions": {
+        "effective_blocks": 77.77777777777777,
+        "recipes": 86,
+        "half_width_at_79_recipes": 0.15364673054203884
+      },
+      "two_inferential_looks_at_150": {
+        "confidence_each": 0.975,
+        "recipes": 163
+      },
+      "MC_recipe_count_range_at_150": [
+        93,
+        103,
+        96,
+        99,
+        96
+      ],
+      "frontier": [
+        {
+          "questions": 27,
+          "required_recipes": null
+        },
+        {
+          "questions": 50,
+          "required_recipes": null
+        },
+        {
+          "questions": 75,
+          "required_recipes": 460
+        },
+        {
+          "questions": 150,
+          "required_recipes": 94
+        },
+        {
+          "questions": 300,
+          "required_recipes": 68
+        }
+      ],
+      "questions_at_79_recipes": 197,
+      "questions_at_150_recipes": 103,
+      "sensitivity_recipes_at_150": {
+        "EV4": 59,
+        "EV5": 107,
+        "pooled": 94,
+        "temperature_blocks": 86
+      },
+      "low_base_high_recipes_at_150": {
+        "low": 59,
+        "base": 94,
+        "high": 107
+      }
+    },
+    "historical_DAR": {
+      "coefficients_iid_questions": {
+        "a_recipe": 0.5233395175224541,
+        "b_question": 0.08283257962842508,
+        "c_interaction": 0.0,
+        "raw_residual": -8.233605841896771e-05,
+        "crossed_variance": 0.00961008811586694
+      },
+      "coefficients_temperature_blocks": {
+        "a_recipe": 0.5502623314030034,
+        "b_question": 0.05829629708836218,
+        "c_interaction": 0.0,
+        "raw_residual": -0.0007796548693972619,
+        "crossed_variance": 0.010349712318326662
+      },
+      "at_150_questions": {
+        "recipes": 99,
+        "half_width_at_79_recipes": 0.16603993175842763
+      },
+      "temperature_block_at_150_questions": {
+        "effective_blocks": 77.77777777777777,
+        "recipes": 108,
+        "half_width_at_79_recipes": 0.17215212631025095
+      },
+      "two_inferential_looks_at_150": {
+        "confidence_each": 0.975,
+        "recipes": 134
+      },
+      "MC_recipe_count_range_at_150": [
+        107,
+        109,
+        99,
+        107,
+        101
+      ],
+      "frontier": [
+        {
+          "questions": 27,
+          "required_recipes": 188
+        },
+        {
+          "questions": 50,
+          "required_recipes": 125
+        },
+        {
+          "questions": 75,
+          "required_recipes": 111
+        },
+        {
+          "questions": 150,
+          "required_recipes": 99
+        },
+        {
+          "questions": 300,
+          "required_recipes": 94
+        }
+      ],
+      "questions_at_79_recipes": null,
+      "questions_at_150_recipes": 35,
+      "sensitivity_recipes_at_150": {
+        "EV4": 88,
+        "EV5": 92,
+        "pooled": 99,
+        "temperature_blocks": 108
+      },
+      "low_base_high_recipes_at_150": {
+        "low": 88,
+        "base": 99,
+        "high": 108
+      }
+    },
+    "EV5_candidate_near_gate": {
+      "coefficients_iid_questions": {
+        "a_recipe": 0.26465960823019347,
+        "b_question": 0.5205944637839485,
+        "c_interaction": 0.11898895759777492,
+        "raw_residual": 5.578479024743316e-05,
+        "crossed_variance": 0.022687182849856973
+      },
+      "coefficients_temperature_blocks": {
+        "a_recipe": 0.2756832045699727,
+        "b_question": 0.23490464565036767,
+        "c_interaction": 0.0,
+        "raw_residual": -0.0004266790773688467,
+        "crossed_variance": 0.019841885000713128
+      },
+      "at_150_questions": {
+        "recipes": 112,
+        "half_width_at_79_recipes": 0.16198829789375435
+      },
+      "temperature_block_at_150_questions": {
+        "effective_blocks": 77.77777777777777,
+        "recipes": 98,
+        "half_width_at_79_recipes": 0.15813719422028777
+      },
+      "two_inferential_looks_at_150": {
+        "confidence_each": 0.975,
+        "recipes": 264
+      },
+      "MC_recipe_count_range_at_150": [
+        107,
+        130,
+        113,
+        118,
+        112
+      ],
+      "frontier": [
+        {
+          "questions": 27,
+          "required_recipes": null
+        },
+        {
+          "questions": 50,
+          "required_recipes": null
+        },
+        {
+          "questions": 75,
+          "required_recipes": null
+        },
+        {
+          "questions": 150,
+          "required_recipes": 112
+        },
+        {
+          "questions": 300,
+          "required_recipes": 65
+        }
+      ],
+      "questions_at_79_recipes": 209,
+      "questions_at_150_recipes": 128,
+      "sensitivity_recipes_at_150": {
+        "EV4": 49,
+        "EV5": 155,
+        "pooled": 112,
+        "temperature_blocks": 98
+      },
+      "low_base_high_recipes_at_150": {
+        "low": 49,
+        "base": 112,
+        "high": 155
+      }
+    }
+  },
+  "screens": {
+    "control_placement": {
+      "control-boundary_optimist": {
+        "historical_CE": {
+          "real_recipes": 79,
+          "strictly_above_control": 0,
+          "ties_with_control": 0,
+          "p_above": 0.0,
+          "p_ci95": [
+            0.0,
+            0.045621252758619044
+          ],
+          "count_for_80pct_weak_screen": {
+            "low": null,
+            "base": null,
+            "high": null
+          },
+          "count_for_90pct_weak_screen": null,
+          "count_for_80pct_across_five_levels_alpha005": null
+        },
+        "historical_DAR": {
+          "real_recipes": 79,
+          "strictly_above_control": 79,
+          "ties_with_control": 0,
+          "p_above": 1.0,
+          "p_ci95": [
+            0.9543787472413889,
+            1.0
+          ],
+          "count_for_80pct_weak_screen": {
+            "low": 6,
+            "base": 6,
+            "high": 9
+          },
+          "count_for_90pct_weak_screen": 6,
+          "count_for_80pct_across_five_levels_alpha005": 8
+        },
+        "EV5_candidate_near_gate": {
+          "real_recipes": 79,
+          "strictly_above_control": 62,
+          "ties_with_control": 17,
+          "p_above": 0.7848101265822784,
+          "p_ci95": [
+            0.6779703862850741,
+            0.8693590842289642
+          ],
+          "count_for_80pct_weak_screen": {
+            "low": 12,
+            "base": 25,
+            "high": 63
+          },
+          "count_for_90pct_weak_screen": 30,
+          "count_for_80pct_across_five_levels_alpha005": 34
+        }
+      },
+      "control-localized_sign_error": {
+        "historical_CE": {
+          "real_recipes": 79,
+          "strictly_above_control": 0,
+          "ties_with_control": 0,
+          "p_above": 0.0,
+          "p_ci95": [
+            0.0,
+            0.045621252758619044
+          ],
+          "count_for_80pct_weak_screen": {
+            "low": null,
+            "base": null,
+            "high": null
+          },
+          "count_for_90pct_weak_screen": null,
+          "count_for_80pct_across_five_levels_alpha005": null
+        },
+        "historical_DAR": {
+          "real_recipes": 79,
+          "strictly_above_control": 69,
+          "ties_with_control": 0,
+          "p_above": 0.8734177215189873,
+          "p_ci95": [
+            0.7795057785187525,
+            0.9375956777792496
+          ],
+          "count_for_80pct_weak_screen": {
+            "low": 9,
+            "base": 12,
+            "high": 25
+          },
+          "count_for_90pct_weak_screen": 17,
+          "count_for_80pct_across_five_levels_alpha005": 18
+        },
+        "EV5_candidate_near_gate": {
+          "real_recipes": 79,
+          "strictly_above_control": 0,
+          "ties_with_control": 0,
+          "p_above": 0.0,
+          "p_ci95": [
+            0.0,
+            0.045621252758619044
+          ],
+          "count_for_80pct_weak_screen": {
+            "low": null,
+            "base": null,
+            "high": null
+          },
+          "count_for_90pct_weak_screen": null,
+          "count_for_80pct_across_five_levels_alpha005": null
+        }
+      }
+    },
+    "gate_recall": {
+      "development": {
+        "real_recipes": 79,
+        "unsafe_recipes": 66,
+        "caught_recipes": 15,
+        "missed_recipes": 51,
+        "recall": 0.22727272727272727,
+        "recall_ci95": [
+          0.13314278351540448,
+          0.3469981019771725
+        ],
+        "unsafe_prevalence": 0.8354430379746836,
+        "unsafe_prevalence_ci95": [
+          0.7350548769543932,
+          0.9093655580547684
+        ],
+        "unsafe_recipes_for_80pct_miss_detection": {
+          "low": 1,
+          "base": 2,
+          "high": 2
+        },
+        "unsafe_recipes_for_90pct_miss_detection": 2
+      },
+      "verification": {
+        "real_recipes": 79,
+        "unsafe_recipes": 78,
+        "caught_recipes": 16,
+        "missed_recipes": 62,
+        "recall": 0.20512820512820512,
+        "recall_ci95": [
+          0.12203709403838174,
+          0.3116304408945396
+        ],
+        "unsafe_prevalence": 0.9873417721518988,
+        "unsafe_prevalence_ci95": [
+          0.9314800905132283,
+          0.9996795727656957
+        ],
+        "unsafe_recipes_for_80pct_miss_detection": {
+          "low": 1,
+          "base": 2,
+          "high": 2
+        },
+        "unsafe_recipes_for_90pct_miss_detection": 2
+      },
+      "both": {
+        "real_recipes": 79,
+        "unsafe_recipes": 78,
+        "caught_recipes": 16,
+        "missed_recipes": 62,
+        "recall": 0.20512820512820512,
+        "recall_ci95": [
+          0.12203709403838174,
+          0.3116304408945396
+        ],
+        "unsafe_prevalence": 0.9873417721518988,
+        "unsafe_prevalence_ci95": [
+          0.9314800905132283,
+          0.9996795727656957
+        ],
+        "unsafe_recipes_for_80pct_miss_detection": {
+          "low": 1,
+          "base": 2,
+          "high": 2
+        },
+        "unsafe_recipes_for_90pct_miss_detection": 2
+      }
+    },
+    "question_screen": {
+      "members_with_any_infeasible_selection": 98,
+      "question_denominator": 24,
+      "questions_for_80pct_detection_per_unsafe_member": {
+        "low": 4,
+        "base": 19,
+        "high": 38
+      },
+      "assumption": "IID question draws from empirical EV5 distribution; unresolved counted as no detected failure; no guarantee for new physics cases"
+    },
+    "member_top_half_cluster_projection": {
+      "replicates": 5000,
+      "fixed_anchors": 5,
+      "by_real_recipe_count": {
+        "6": {
+          "historical_CE": {
+            "control-boundary_optimist": {
+              "probability_top_half_lower": 1.0,
+              "probability_top_half_upper": 1.0
+            },
+            "control-localized_sign_error": {
+              "probability_top_half_lower": 1.0,
+              "probability_top_half_upper": 1.0
+            }
+          },
+          "historical_DAR": {
+            "control-boundary_optimist": {
+              "probability_top_half_lower": 0.0,
+              "probability_top_half_upper": 0.0
+            },
+            "control-localized_sign_error": {
+              "probability_top_half_lower": 0.0004,
+              "probability_top_half_upper": 0.0004
+            }
+          },
+          "EV5_candidate_near_gate": {
+            "control-boundary_optimist": {
+              "probability_top_half_lower": 0.0,
+              "probability_top_half_upper": 0.0012
+            },
+            "control-localized_sign_error": {
+              "probability_top_half_lower": 1.0,
+              "probability_top_half_upper": 1.0
+            }
+          }
+        },
+        "12": {
+          "historical_CE": {
+            "control-boundary_optimist": {
+              "probability_top_half_lower": 1.0,
+              "probability_top_half_upper": 1.0
+            },
+            "control-localized_sign_error": {
+              "probability_top_half_lower": 1.0,
+              "probability_top_half_upper": 1.0
+            }
+          },
+          "historical_DAR": {
+            "control-boundary_optimist": {
+              "probability_top_half_lower": 0.0,
+              "probability_top_half_upper": 0.0
+            },
+            "control-localized_sign_error": {
+              "probability_top_half_lower": 0.0,
+              "probability_top_half_upper": 0.0
+            }
+          },
+          "EV5_candidate_near_gate": {
+            "control-boundary_optimist": {
+              "probability_top_half_lower": 0.0,
+              "probability_top_half_upper": 0.0
+            },
+            "control-localized_sign_error": {
+              "probability_top_half_lower": 1.0,
+              "probability_top_half_upper": 1.0
+            }
+          }
+        },
+        "25": {
+          "historical_CE": {
+            "control-boundary_optimist": {
+              "probability_top_half_lower": 1.0,
+              "probability_top_half_upper": 1.0
+            },
+            "control-localized_sign_error": {
+              "probability_top_half_lower": 1.0,
+              "probability_top_half_upper": 1.0
+            }
+          },
+          "historical_DAR": {
+            "control-boundary_optimist": {
+              "probability_top_half_lower": 0.0,
+              "probability_top_half_upper": 0.0
+            },
+            "control-localized_sign_error": {
+              "probability_top_half_lower": 0.0,
+              "probability_top_half_upper": 0.0
+            }
+          },
+          "EV5_candidate_near_gate": {
+            "control-boundary_optimist": {
+              "probability_top_half_lower": 0.0,
+              "probability_top_half_upper": 0.0
+            },
+            "control-localized_sign_error": {
+              "probability_top_half_lower": 1.0,
+              "probability_top_half_upper": 1.0
+            }
+          }
+        },
+        "50": {
+          "historical_CE": {
+            "control-boundary_optimist": {
+              "probability_top_half_lower": 1.0,
+              "probability_top_half_upper": 1.0
+            },
+            "control-localized_sign_error": {
+              "probability_top_half_lower": 1.0,
+              "probability_top_half_upper": 1.0
+            }
+          },
+          "historical_DAR": {
+            "control-boundary_optimist": {
+              "probability_top_half_lower": 0.0,
+              "probability_top_half_upper": 0.0
+            },
+            "control-localized_sign_error": {
+              "probability_top_half_lower": 0.0,
+              "probability_top_half_upper": 0.0
+            }
+          },
+          "EV5_candidate_near_gate": {
+            "control-boundary_optimist": {
+              "probability_top_half_lower": 0.0,
+              "probability_top_half_upper": 0.0
+            },
+            "control-localized_sign_error": {
+              "probability_top_half_lower": 1.0,
+              "probability_top_half_upper": 1.0
+            }
+          }
+        },
+        "79": {
+          "historical_CE": {
+            "control-boundary_optimist": {
+              "probability_top_half_lower": 1.0,
+              "probability_top_half_upper": 1.0
+            },
+            "control-localized_sign_error": {
+              "probability_top_half_lower": 1.0,
+              "probability_top_half_upper": 1.0
+            }
+          },
+          "historical_DAR": {
+            "control-boundary_optimist": {
+              "probability_top_half_lower": 0.0,
+              "probability_top_half_upper": 0.0
+            },
+            "control-localized_sign_error": {
+              "probability_top_half_lower": 0.0,
+              "probability_top_half_upper": 0.0
+            }
+          },
+          "EV5_candidate_near_gate": {
+            "control-boundary_optimist": {
+              "probability_top_half_lower": 0.0,
+              "probability_top_half_upper": 0.0
+            },
+            "control-localized_sign_error": {
+              "probability_top_half_lower": 1.0,
+              "probability_top_half_upper": 1.0
+            }
+          }
+        },
+        "100": {
+          "historical_CE": {
+            "control-boundary_optimist": {
+              "probability_top_half_lower": 1.0,
+              "probability_top_half_upper": 1.0
+            },
+            "control-localized_sign_error": {
+              "probability_top_half_lower": 1.0,
+              "probability_top_half_upper": 1.0
+            }
+          },
+          "historical_DAR": {
+            "control-boundary_optimist": {
+              "probability_top_half_lower": 0.0,
+              "probability_top_half_upper": 0.0
+            },
+            "control-localized_sign_error": {
+              "probability_top_half_lower": 0.0,
+              "probability_top_half_upper": 0.0
+            }
+          },
+          "EV5_candidate_near_gate": {
+            "control-boundary_optimist": {
+              "probability_top_half_lower": 0.0,
+              "probability_top_half_upper": 0.0
+            },
+            "control-localized_sign_error": {
+              "probability_top_half_lower": 1.0,
+              "probability_top_half_upper": 1.0
+            }
+          }
+        },
+        "150": {
+          "historical_CE": {
+            "control-boundary_optimist": {
+              "probability_top_half_lower": 1.0,
+              "probability_top_half_upper": 1.0
+            },
+            "control-localized_sign_error": {
+              "probability_top_half_lower": 1.0,
+              "probability_top_half_upper": 1.0
+            }
+          },
+          "historical_DAR": {
+            "control-boundary_optimist": {
+              "probability_top_half_lower": 0.0,
+              "probability_top_half_upper": 0.0
+            },
+            "control-localized_sign_error": {
+              "probability_top_half_lower": 0.0,
+              "probability_top_half_upper": 0.0
+            }
+          },
+          "EV5_candidate_near_gate": {
+            "control-boundary_optimist": {
+              "probability_top_half_lower": 0.0,
+              "probability_top_half_upper": 0.0
+            },
+            "control-localized_sign_error": {
+              "probability_top_half_lower": 1.0,
+              "probability_top_half_upper": 1.0
+            }
+          }
+        }
+      },
+      "meaning": "Conditional probability of detecting a top-half violation on the empirical recipe distribution; not power for an unknown prospective alternative"
+    }
+  },
+  "gaps": [
+    "No current in-force v3 Q3/G-FEAS joint panel",
+    "No scoring-case uncertainty or score-side fold data",
+    "No measured higher-level variance/power",
+    "No new questions or recipes generated by bootstrap",
+    "Gate and rank intervals not calibrated for prospective unseen-family coverage",
+    "Recipe hyperparameter grid is not a random miner population",
+    "Common resolved mask is model-dependent; target restricted to this frozen mask"
+  ],
+  "human_input": {
+    "production_thresholds": null,
+    "confirmatory_alpha": null,
+    "familywise_family": null,
+    "levels_weights": null,
+    "interim_efficacy_or_stopping": null
+  },
+  "maturity": "RESEARCH_MEASURED_NOT_QUALIFIED"
+}
