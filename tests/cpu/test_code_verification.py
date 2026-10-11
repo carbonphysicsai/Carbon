@@ -2,6 +2,7 @@
 
 import ast
 import copy
+import json
 import math
 from pathlib import Path
 
@@ -23,6 +24,17 @@ from scripts.dev.code_verification import (
 ROOT = Path(__file__).resolve().parents[2]
 IMAGE = "sha256:" + "a" * 64
 PIN = "sha256:" + "b" * 64
+
+
+def test_elmer_heat_uses_owner_accepted_nonsymmetry_end_time():
+    # OWNER-CODE-VERIFICATION-ACCEPT-01, #1085 @ dae56ede6.
+    # The old 0.5 endpoint cancels the temporal leading-error sine factor.
+    spec = json.loads((ROOT / criteria_source.SPEC).read_text())
+    heat = next(row for row in spec["tests"] if row["kind"] == "elmer-heat")
+    assert heat["t"] == 0.375
+    assert abs(math.sin(2 * math.pi * heat["t"])) > 0.5
+    assert heat["h"] == [0.125, 0.0625, 0.03125]
+    assert heat["order_band"] == [1.7, 2.3]
 
 
 def fixture():

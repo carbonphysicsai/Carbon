@@ -3,7 +3,7 @@
   "scope": "PUBLIC_DEVELOPMENT",
   "status": "HUMAN_INPUT",
   "tests": [
-    {"kind": "elmer-heat", "family": "f02", "worker": "scripts/dev/reference_packages/elmer/mms_heat.py", "h": [0.125, 0.0625, 0.03125], "t": 0.5, "order_band": [1.7, 2.3], "format": "carbon.reference-package.mms.v1", "native_state": "REUSE_PENDING_MAIN_1030"},
+    {"kind": "elmer-heat", "family": "f02", "worker": "scripts/dev/reference_packages/elmer/mms_heat.py", "h": [0.125, 0.0625, 0.03125], "t": 0.375, "order_band": [1.7, 2.3], "format": "carbon.reference-package.mms.v1", "native_state": "REUSE_PENDING_MAIN_1030"},
     {"kind": "getdp-a", "family": "motor", "worker": "scripts/dev/code_verification/getdp_mms.py", "h": [0.125, 0.0625, 0.03125], "t": 0, "order_band": [1.7, 2.3], "format": "carbon.code-verification.fields.v1", "native_state": "UNMEASURED"},
     {"kind": "pybamm-particle", "family": "battery-v3", "worker": "scripts/dev/code_verification/pybamm_submodels.py", "h": [0.05, 0.025, 0.0125], "t": 0.2, "order_band": [1.7, 2.3], "format": "carbon.code-verification.fields.v1", "native_state": "UNMEASURED"},
     {"kind": "elmer-helmholtz", "family": "f13", "worker": "scripts/dev/code_verification/elmer_helmholtz.py", "h": [0.125, 0.0625, 0.03125], "t": 0, "order_band": [1.7, 2.3], "format": "carbon.code-verification.fields.v1", "native_state": "UNMEASURED_LINEAR_HEX_ONLY"},
