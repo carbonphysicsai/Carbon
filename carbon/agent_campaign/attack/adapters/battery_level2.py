@@ -271,5 +271,6 @@ SPEC = d.LevelSpec(
     rebuild_label=_rebuild_label,
     families=_families,
     seams=SEAMS,
+    surface="l2_pool_sources_and_weights",
 )
 ADAPTER = d.BatteryDeclarativeAdapter(SPEC)
