@@ -143,7 +143,7 @@ SETUP_OPERATIONS = {
             REGISTERED,
             "Write your runner profile and load it. Nothing is launched or spent.",
             {"confirm"},
-            {"intakes", "receiver_hotkey", "receivers"},
+            {"intakes", "receiver_hotkey", "receivers", "practice_auto_retry"},
         ),
     )
 }
@@ -207,6 +207,17 @@ FIELDS = {
             "intakes, when you name several (instead of receiver_hotkey)."
         ),
     ),
+    "practice_auto_retry": (
+        "boolean",
+        (
+            "true: a practice interrupted because the process running it "
+            "exited (a Control Center restart, say) is sent again on its own, "
+            "exactly as it was, once the supervisor is back - at most 2 "
+            "times per practice, on your compute. Never a freeze, submit or "
+            "commit, and never a practice refused for a typed reason. "
+            "Omitted: your last choice (off until you turn it on)."
+        ),
+    ),
 }
 
 #: The next step for a refusal that names none of its own.
@@ -214,6 +225,7 @@ NEXT_STEPS = {
     "registration_not_confirmed": "confirm your registration: carbon_setup_begin",
     "step_not_checked": "take the step named in field first; carbon_setup_status",
     "unknown_field": "send only the fields in the step's arguments schema",
+    "practice_auto_retry_boolean_required": "send practice_auto_retry as true or false",
     "field_required": "send every required field in the step's arguments schema",
     "agent_not_offered": "choose carbon-graphite, own-agent or hermes",
     "autonomous_agent_replaced": (
@@ -493,6 +505,10 @@ def status(
         # published endpoint, the miner's own intake, or none yet, with what
         # to do (LP-PROD-E). Setup's own `steps.evaluation`, as it is.
         "evaluation": steps.get("evaluation"),
+        # The miner's choices Review writes: whether an interrupted practice
+        # is sent again on its own (LAUNCHPAD-PRACTICE-RETRY-01). Changed at
+        # Review (carbon_setup_review with practice_auto_retry).
+        "preferences": state.get("preferences"),
         "next": None,
     }
     if nxt is None:
