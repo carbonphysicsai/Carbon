@@ -536,6 +536,11 @@ class BatteryAdapter(ChallengeAdapter):
         from .answer_key import AnswerKeyRefused
 
         identities = self.identities()
+        if commitment.get("score") != self.target.rule.get("score"):
+            # The window's named score candidate is this validator's own (the
+            # owner's #1101 security conditions); checked before the rule
+            # digest, which also binds it, so the refusal names the cause.
+            raise AnswerKeyRefused("answer_key_score_mismatch")
         if (
             commitment["contract_digest"] != identities["contract_digest"]
             or commitment["rule_digest"] != identities["rule_digest"]
@@ -636,6 +641,12 @@ class BatteryBatchSource(BatchSource):
             overlay=overlay,
             repository=repository,
         )
+
+    def score_term(self):
+        """The rule's registered-score term, committed with every window
+        (VALIDATOR-26b), or None for a rule without one."""
+        term = self.adapter.target.rule.get("score")
+        return None if term is None else dict(term)
 
     def identities(self):
         identities = self.adapter.identities()

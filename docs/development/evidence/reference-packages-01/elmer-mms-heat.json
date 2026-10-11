@@ -1,0 +1,77 @@
+{
+ "schema": "carbon.reference-package.mms.v1",
+ "image": "sha256:6fab746f31257236da9e91b5be681bfbd2d25bd69f5dcd9a2e350394e8bcb675",
+ "solver": "Elmer HeatSolver, hex808, BDF2",
+ "solution": "T = 1 + sin(pi x) sin(pi y) sin(pi z) cos(2 pi t), unit cube, k = rho cp = 1, t_end 0.5",
+ "space_errors": [
+  {
+   "n": 8,
+   "max": 0.01221737,
+   "rms": 0.0036199610986704465
+  },
+  {
+   "n": 16,
+   "max": 0.0030714627,
+   "rms": 0.0009915323624030091
+  },
+  {
+   "n": 32,
+   "max": 0.00077051306,
+   "rms": 0.00026012917903117807
+  }
+ ],
+ "space_orders": [
+  {
+   "pair": "8->16",
+   "max": 1.9919359851842453,
+   "rms": 1.868242427565647
+  },
+  {
+   "pair": "16->32",
+   "max": 1.9950345478727003,
+   "rms": 1.9304316236706123
+  }
+ ],
+ "time_errors_vs_dt1_256": [
+  {
+   "dt": "1/8",
+   "max": 0.0297004628,
+   "rms": 0.009587928649937084
+  },
+  {
+   "dt": "1/16",
+   "max": 0.005138501700000001,
+   "rms": 0.0016588153152239118
+  },
+  {
+   "dt": "1/32",
+   "max": 0.0009151542999999997,
+   "rms": 0.00029543097721546177
+  }
+ ],
+ "time_orders": [
+  {
+   "pair": "1/8->1/16",
+   "max": 2.531065751205666,
+   "rms": 2.531065900703442
+  },
+  {
+   "pair": "1/16->1/32",
+   "max": 2.4892608400554446,
+   "rms": 2.4892602603236944
+  }
+ ],
+ "expected_order": 2.0,
+ "tolerance": 0.3,
+ "pass": false,
+ "wall_s": {
+  "space n8": 26.9,
+  "space n16": 205.3,
+  "space n32": 1592.0,
+  "time ref": 95.8,
+  "time dt1/8": 4.6,
+  "time dt1/16": 7.3,
+  "time dt1/32": 14.6
+ },
+ "scope": "code verification only (discretisation order); not f02 physics, not reference adequacy"
+}

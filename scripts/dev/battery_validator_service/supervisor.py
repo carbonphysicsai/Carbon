@@ -106,6 +106,10 @@ def _daemon_module(deployment_path):
         config = json.loads(Path(deployment_path).read_bytes())
     except (OSError, ValueError):
         return "carbon.battery.operate"
+    if type(config) is dict and "score" in config:
+        # A registered score (VALIDATOR-26): the entry point that installs it
+        # (and the ladder's compiler, for a ladder deployment).
+        return "carbon.battery.value.scored_operate"
     if type(config) is dict and "ladder" in config:
         return "carbon.development_ladder.operate"
     return "carbon.battery.operate"

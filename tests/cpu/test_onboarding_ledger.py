@@ -215,3 +215,18 @@ def test_the_named_prs_are_cited_and_a_measurement_never_asks_a_question():
     for key, tool in measurements.items():
         assert tool["owner"].strip() and tool["tool"].strip(), key
         assert "question" not in tool, key
+
+
+@pytest.mark.parametrize("challenge", CHALLENGES)
+def test_each_solver_has_three_credibility_layers_named_in_a_real_artefact(challenge):
+    layers = _generator().build(challenge)["outputs"]["credibility_layers"]
+    assert layers["solvers"], challenge
+    for name, solver in layers["solvers"].items():
+        source = solver["named_in"]["source"]
+        assert name.lower() in (REPOSITORY / source).read_text(encoding="utf-8").lower()
+        for key in ("code_verification", "solution_verification", "validation"):
+            assert solver[key]["value"] == "UNMEASURED", (name, key)
+            assert solver[key]["kind"] == "measurement"
+        assert solver["code_verification"]["flag"] == (
+            "required for the reference stage exit"
+        )

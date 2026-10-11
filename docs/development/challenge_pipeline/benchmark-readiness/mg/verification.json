@@ -1,0 +1,22 @@
+{
+  "schema": "carbon.benchmark-code-verification-spec.v1",
+  "family": "metagrating-3d",
+  "scope": "PUBLIC_DEVELOPMENT",
+  "process": "CODE-VERIFICATION-MMS-01",
+  "image_digest": null,
+  "dependency_lock": null,
+  "solvers": {"Meep": "b08d226ba311a04e59c984e97f3e88dd82bc56d1", "S4": "7fd00a231610bff51f5c7de5f723e3956eab7453"},
+  "analytic_cases": [
+    {"id": "zero-contrast-periodic-grating", "physical_definition": "arbitrary registered binary x/y pattern with both materials index 1: exact homogeneous full-vector Maxwell medium", "expected": "R=0, T00-co=1, every other order and cross channel=0", "scope_limit": "verifies periodic/mode/normalization path, not material interfaces or patterned scattering"},
+    {"id": "planar-lossless-slab", "physical_definition": "uniform layer, normal incidence, both incident polarizations; fixed source indices and explicit thickness", "analytic_function": "benchmark_mg.slab_truth", "expected": "coherent Fresnel R/T, cross=0, all nonzero-order powers=0, R+T=1", "scope_limit": "not a nontrivial patterned-grating efficiency oracle"},
+    {"id": "y-mirror-grating-symmetry", "physical_definition": "registered y-reflection-symmetric binary grating under Ex normal incidence, compare separately defined outgoing basis", "expected": "for ky=0, cross-polarized channel vanishes by symmetry; all propagating power still accounted", "scope_limit": "symmetry and energy constraints do not determine desired efficiency"}
+  ],
+  "Meep": {"resolution_per_um_recommendation": [20, 40, 80, 160], "smooth_slab_expected_order": 2, "order_band": null, "order_band_recommendation": [1.8, 2.2], "acceptance_status": "HUMAN_INPUT", "conditions": "subpixel material interface treatment must be recorded; exclude roundoff/temporal/PML-dominated rungs; sharp corners do not guarantee second order", "additional_axes": ["time completion", "PML thickness", "source/monitor separation"]},
+  "S4": {"num_basis_recommendation": [25, 49, 81, 121], "uniform_slab_expected_order": "NOT_APPLICABLE_EXACT_LAYER_ALGEBRA_NO_SPATIAL_GRID", "patterned_grating_expected_order": null, "reason": "harmonic truncation has no universal algebraic order; measure convergence against analytic zero channels and matched Meep witness", "absolute_error_band": null, "acceptance_status": "HUMAN_INPUT", "additional_axes": ["Fourier factorization options", "field-grid order extraction", "all propagating orders present in basis"]},
+  "solution_convergence": "last two rungs change decision observables by less than 0.5 measured MUI; same verdict and value-equivalent pick",
+  "cross_tool_acceptance": "same verdict/pick or regret within measured 0.5 MUI tie; retain pointwise and decision measures separately",
+  "conservation_band": null,
+  "minimum_useful_improvement": null,
+  "status": "SPECIFIED_NOT_SOLVER_RUN",
+  "sources": ["https://meep.readthedocs.io/en/latest/Subpixel_Smoothing/", "https://meep.readthedocs.io/en/latest/Python_Tutorials/Mode_Decomposition/", "https://web.stanford.edu/group/fan/S4/python_api.html"]
+}

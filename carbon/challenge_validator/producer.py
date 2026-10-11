@@ -604,6 +604,7 @@ class Producer:
             if hasattr(source, "design_commitment")
             else None
         )
+        score = source.score_term() if hasattr(source, "score_term") else None
         return {
             **quiz,
             "schema": COMMITMENT_SCHEMA,
@@ -630,6 +631,10 @@ class Producer:
             # A screening window under a design rule (slice 3b) names its
             # design tranches and selection.
             **({"design": design} if design is not None else {}),
+            # A window under a registered score names the active candidate,
+            # its registry digest and the owner's record (the owner's #1101
+            # security conditions); a rule without one adds nothing.
+            **({"score": score} if score is not None else {}),
         }
 
     def withdraw(self, challenge_id, fingerprint, reason, *, block):
@@ -841,7 +846,10 @@ class Producer:
                 # A bank the operator's timer refills (`top_up: False`) that
                 # is short leaves the slot unfilled: a case is never drawn
                 # twice, and the tick still retires and releases.
-                if str(refused) != "producer_bank_short":
+                if str(refused) not in (
+                    "producer_bank_short",
+                    "producer_design_bank_short",
+                ):
                     raise
                 drawn, short = None, True
         if fingerprint is None and drawn is not None:

@@ -341,3 +341,50 @@ def test_every_custody_transfer_is_journaled(work, tmp_path, repo):
         assert refused.value.code == code
     with pytest.raises(ProducerRefused):
         ss.note(work, "stopped", host_key=HOST)
+
+
+# --- recorded extensions of the standing custody record ----------------------------
+
+
+def _hosts_file(tmp_path, line, key):
+    path = tmp_path / "hosts.txt"
+    path.write_text(line + "\n" + key + "\n")
+    return path
+
+
+@pytest.mark.parametrize(
+    "line",
+    [
+        "OWNER-STARTUP-HOST-CUSTODY-01 startup s1",
+        "OWNER-STARTUP-HOST-CUSTODY-03 startup s1",
+        "OWNER-STARTUP-HOST-CUSTODY-01 extended by OWNER-STARTUP-HOST-CUSTODY-03 (#1087)",
+    ],
+)
+def test_a_hosts_file_may_name_the_standing_record_or_an_extension(
+    tmp_path, monkeypatch, line
+):
+    key = "SHA256:" + "A" * 43
+    path = _hosts_file(tmp_path, line, key)
+    monkeypatch.setattr(ss.os, "lstat", _root_owned(ss.os.lstat))
+    digest = ss._startup_hosts_file(str(path), [key], REPOSITORY)
+    assert digest.startswith("sha256:")
+
+
+def test_an_unrecorded_extension_is_refused(tmp_path, monkeypatch):
+    key = "SHA256:" + "A" * 43
+    path = _hosts_file(tmp_path, "OWNER-STARTUP-HOST-CUSTODY-09 startup s1", key)
+    monkeypatch.setattr(ss.os, "lstat", _root_owned(ss.os.lstat))
+    with pytest.raises(ProducerRefused, match="startup_custody_unrecorded"):
+        ss._startup_hosts_file(str(path), [key], REPOSITORY)
+
+
+def _root_owned(lstat):
+    """The hosts file as root writes it (owner 0, not group or other
+    writable), without running the test as root."""
+    import os
+
+    def fake(path):
+        found = lstat(path)
+        return os.stat_result((found.st_mode & ~0o022, *found[1:4], 0, *found[5:]))
+
+    return fake

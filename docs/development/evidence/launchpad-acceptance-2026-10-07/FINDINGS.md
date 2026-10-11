@@ -136,7 +136,8 @@ the cause, and the slice or PR that fixes it. The plan is
     syntax. It was never run.
 - **Proposed fix:** prepare the form that ran, and replace the UNVERIFIED
   note with the btcli version it ran on.
-- **Status:** open, minor.
+- **Status:** fixed (2026-10-11): setup prepares the form that ran, and
+  names btcli 9.23.2 in place of the UNVERIFIED note.
 
 ## LA-F7: never prune Docker on a shared host
 

@@ -42,6 +42,9 @@ from carbon.agent_campaign.attack.adapters import battery as b
 
 CHALLENGE_ID = b.CHALLENGE_ID
 LEVEL = 4
+#: The family a construction door probes (`b.construction_door`): the
+#: level's artifact-and-dependency family, as Level 1's expression surface.
+SURFACE = "l4_constant_smuggling"
 PROFILE = "level-4"
 ADAPTER_VERSION = "carbon.attack.adapter.battery-l4.v1"
 CONTROLS_VERSION = "carbon.attack.controls.battery-l4.v1"
@@ -422,6 +425,12 @@ class BatteryLevel4Adapter(b.BatteryLevel0Adapter):
     version = ADAPTER_VERSION
     controls_version = CONTROLS_VERSION
     deterministic_baseline = None
+
+    def family_for(self, tool, arguments=None):
+        """Which Level-4 family a research tool call probes, or None."""
+        if b.construction_door(tool, arguments):
+            return SURFACE
+        return None
 
     @property
     def contract_digest(self):
