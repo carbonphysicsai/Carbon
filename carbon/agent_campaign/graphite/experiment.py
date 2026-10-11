@@ -249,7 +249,7 @@ def recorded_contract(scoring=None):
     return challenge_scoring.resolve(scoring).recorded_contract()
 
 
-def admit(strategy, seed, root=REPOSITORY, scoring=None, variant=None):
+def admit(strategy, seed, root=REPOSITORY, scoring=None, variant=None, workspace=None):
     """Compile `strategy` exactly as Carbon would rebuild it; return what
     Carbon would build (`ChallengeScoring.built_record`). Raises `Unrebuildable`
     (never scored) or `NotServed` (Carbon rebuilds it, these pods do not).
@@ -271,7 +271,9 @@ def admit(strategy, seed, root=REPOSITORY, scoring=None, variant=None):
     if variant is not None:
         from carbon.reconstruction import development_variants
 
-        return development_variants.admit(resolved, strategy, seed, root, variant)
+        return development_variants.admit(
+            resolved, strategy, seed, root, variant, workspace=workspace
+        )
     contract = recorded_contract(resolved)
     return challenge_scoring.admit(resolved, strategy, seed, root, contract=contract)
 
@@ -1104,6 +1106,38 @@ class Experiment:
             "authority_granted": False,
         }
 
+    def _level4_documents(self, folder, strategy):
+        """At Level 4, a strategy naming a submission digest gets its kept
+        envelope's documents (`staging.workspace`), and the envelope is written
+        beside the proposal for its pod. None when the strategy names none or
+        the session is not at Level 4. A digest that was never staged, or an
+        envelope over the pod transport, is `Unrebuildable`, typed."""
+        from carbon.battery import level4 as battery_level4
+        from carbon.level4 import staging
+
+        from .pod_phase import LEVEL4_TRANSPORT_CHARS, level4_transport
+
+        if self.level4_variant_bounds() is None or not isinstance(strategy, dict):
+            return None
+        parameters = strategy.get("parameters")
+        submission = (
+            parameters.get(battery_level4.FIELD)
+            if isinstance(parameters, dict)
+            else None
+        )
+        if submission is None:
+            return None
+        kept = self.level4_staged(submission)
+        if kept is None:
+            raise Unrebuildable("level4_submission_not_staged")
+        if len(level4_transport(kept)) > LEVEL4_TRANSPORT_CHARS:
+            raise Unrebuildable("level4_envelope_over_transport")
+        _digest, raw_manifest, files = staging.from_envelope(json.loads(kept))
+        target = folder / "level4-envelope.json"
+        if not target.is_file():
+            write_once(target, kept)
+        return staging.workspace(raw_manifest, files)
+
     def level4_staged(self, submission):
         """The kept envelope's bytes for `submission`, or None."""
         if type(submission) is not str or not submission.startswith("sha256:"):
@@ -1426,6 +1460,9 @@ class Experiment:
                 if self.development_variant is None
                 else {"variant": self.development_variant}
             )
+            documents = self._level4_documents(folder, strategy)
+            if documents is not None:
+                level["workspace"] = documents
             expected = admit(strategy, seed, self.repository, self.scoring, **level)
         except Unrebuildable as refused:
             finding = self._finding(
@@ -1745,8 +1782,16 @@ class Experiment:
                 if self.development_variant is None
                 else self.development_variant.digest
             ),
+            level4_envelope=self._level4_transport(pid),
         )
         return self._pod(pid, job)
+
+    def _level4_transport(self, pid):
+        """The proposal's kept Level 4 envelope as its job carries it, or None."""
+        from .pod_phase import level4_transport
+
+        kept = self._dir(pid) / "level4-envelope.json"
+        return level4_transport(kept.read_bytes()) if kept.is_file() else None
 
     def _type_unfinished(
         self, pid, intent_id, attempt, files, failure, timing, earlier=()

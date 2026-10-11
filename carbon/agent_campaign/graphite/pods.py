@@ -190,6 +190,9 @@ class PodJob:
     #: The registered development-only variant the strategy compiles under
     #: (its digest), or None at Level 0, whose configuration is unchanged.
     development_variant: str | None = None
+    #: A Level 4 job's submission envelope (`pod_phase.level4_transport`),
+    #: or None, whose configuration is then unchanged.
+    level4_envelope: str | None = None
 
     def config(self, stop_admitting_epoch):
         config = {
@@ -202,6 +205,8 @@ class PodJob:
         }
         if self.development_variant is not None:
             config["development_variant"] = self.development_variant
+        if self.level4_envelope is not None:
+            config["level4_envelope"] = self.level4_envelope
         return config
 
 
@@ -1030,8 +1035,19 @@ def synthetic_outputs(quality, *, root=REPOSITORY, built=None, scoring=None):
         else:
             # A development level's pod builds through its variant, as
             # `pod_phase.run` does on a real pod.
+            from .pod_phase import level4_workspace
+
             record = development_built_record(
-                job.strategy, job.contract_digest, variant, job.seed, root
+                job.strategy,
+                job.contract_digest,
+                variant,
+                job.seed,
+                root,
+                workspace=(
+                    None
+                    if getattr(job, "level4_envelope", None) is None
+                    else level4_workspace(job.level4_envelope)
+                ),
             )[0]
             _SYNTHETIC_BUILDS[key] = record
         predictions = selected.synthetic_predictions(quality, root)

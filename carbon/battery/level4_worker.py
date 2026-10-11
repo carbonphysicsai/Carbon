@@ -123,8 +123,14 @@ def program(base):
     by the Level 4 build, at the same indent, so it lands inside the
     program's `try:`: a missing document or module is its `except
     ImportError` (Carbon's environment), and a refused or failed graph is
-    the candidate's. Its state line writes the graph model's state."""
-    return _replace(_replace(base, _BUILD, _LEVEL4_BUILD), _STATE, _LEVEL4_STATE)
+    the candidate's. Its state line writes the graph model's state. A base
+    with no state line (Graphite's practice program, which writes no state)
+    has its build line replaced alone (GRAPHITE-L4-STAGING-01); a base with
+    one is patched exactly as before."""
+    built = _replace(base, _BUILD, _LEVEL4_BUILD)
+    if _STATE not in base:
+        return built
+    return _replace(built, _STATE, _LEVEL4_STATE)
 
 
 def _module_files():
