@@ -1,0 +1,27 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-11-onboarding-metrics-history",
+  "recorded_at": "2026-10-11T17:06:44Z",
+  "challenge": "protocol",
+  "stage": "protocol",
+  "execution": {
+    "kind": "coverage_run",
+    "ref": "ONBOARDING-METRICS-01 / docs/development/challenge_pipeline/onboarding-metrics/report.json",
+    "description": "Bounded read-only public Git/PR history capture for eleven cohorts and ten preparation milestones, with native metrics and onboarding diagnostics."
+  },
+  "expected": "Cover 110 milestones with immutable source/PR bases, honest effort unknowns and three recurring-delay candidates, without solver/cloud execution or private case reads.",
+  "observed": "All 110 public source observations resolved after stale readiness-input paths were replaced by per-family public registry entry history and the f13 budget source corrected. One shared verification-spec commit had appeared as three replications: event deduplication removed that false bottleneck. Corrected recurring median arrival gaps: packet 25.69h (3 events), question law 24.29h (5), panel 19.60h (4). Historical accepted-stage elapsed and person-hours are unrecorded. Metrics fixtures passed; combined onboarding diagnostics initially reported 50/52, then 51/52 because sparse checkout omitted public cited docs, not because authority/tests should be weakened; restore exact public references before the final rerun. Native output is diagnostic, not canonical acceptance.",
+  "keep": [
+    "Separate source revision, first publication, accepted stage exit and active effort.",
+    "Use explicit public source pins and exact merge identities; report open PRs as censored.",
+    "Deduplicate shared delivery events and activity proxies without inventing FTE or labour savings."
+  ],
+  "change": [
+    "Validate source inventory before ranking: a missing planned input is not missing implementation history.",
+    "Use selected public readiness-entry history, not a shared registry's creation date for every family.",
+    "Capture future active-duration records with provenance and one allocation for shared work; keep historical effort UNKNOWN."
+  ],
+  "protocol_elements": ["challenge_onboarding", "lessons_learned", "evidence_readiness", "historical_evidence"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
