@@ -1,0 +1,232 @@
+{
+  "schema": "carbon.research.score-proof-planning.v1",
+  "status": "RESEARCH_PROPOSAL_NOT_RUN",
+  "date": "2026-10-10",
+  "source_commit": "fb47eb5725338a7733f6074650e58271c355006b",
+  "scope": {
+    "solver_runs": 0,
+    "training_runs": 0,
+    "spend": 0,
+    "hidden_access": false,
+    "ax42_access": false,
+    "runtime_policy_changed": false
+  },
+  "owner_requested": {
+    "tau_half_width": {
+      "low": 0.1,
+      "base": 0.1,
+      "high": 0.1
+    },
+    "detect_delta_tau_from_zero": {
+      "low": 0.05,
+      "base": 0.05,
+      "high": 0.05
+    }
+  },
+  "planning_only": {
+    "confidence": {
+      "low": 0.95,
+      "base": 0.95,
+      "high": 0.95,
+      "status": "ASSUMPTION"
+    },
+    "two_sided_alpha": {
+      "low": 0.05,
+      "base": 0.05,
+      "high": 0.05,
+      "status": "ASSUMPTION"
+    },
+    "power": {
+      "low": 0.8,
+      "base": 0.8,
+      "high": 0.8,
+      "status": "ASSUMPTION"
+    },
+    "bootstrap_replicates": {
+      "low": 5000,
+      "base": 10000,
+      "high": 20000,
+      "status": "ASSUMPTION"
+    },
+    "inner_folds": {
+      "low": 3,
+      "base": 5,
+      "high": 10,
+      "status": "ASSUMPTION"
+    },
+    "deployment_k": {
+      "low": 1,
+      "base": 3,
+      "high": 5,
+      "status": "ASSUMPTION"
+    }
+  },
+  "registry": {
+    "file": "docs/development/evidence/battery-score-tuning/registry-v4.json",
+    "blob_sha": "f08811e9e4e97a38b22f6915d31e906f602093b6",
+    "fixed": 17,
+    "sweeps": 14,
+    "cutoffs_per_sweep": 8,
+    "expanded": 129,
+    "contrasts_vs_CE": 128,
+    "status": "SOURCE_FACT_LOW_EQUALS_BASE_EQUALS_HIGH"
+  },
+  "calculations": {
+    "assumptions": {
+      "z": 1.959963984540054,
+      "zp": 0.8416212335729143,
+      "h": 0.1,
+      "delta": 0.05
+    },
+    "null_n": 175,
+    "simple": [
+      {
+        "v": 0.2,
+        "n": 77
+      },
+      {
+        "v": 0.4444444444444444,
+        "n": 171
+      },
+      {
+        "v": 1,
+        "n": 385
+      }
+    ],
+    "paired": [
+      {
+        "rho": 0.95,
+        "vDelta": 0.04444444444444448,
+        "n": 140
+      },
+      {
+        "rho": 0.8,
+        "vDelta": 0.17777777777777773,
+        "n": 559
+      },
+      {
+        "rho": 0.5,
+        "vDelta": 0.4444444444444444,
+        "n": 1396
+      }
+    ],
+    "crossedCI": [
+      {
+        "vc": 0.01,
+        "M": 342,
+        "C": 8
+      },
+      {
+        "vc": 0.1,
+        "M": 342,
+        "C": 77
+      },
+      {
+        "vc": 1,
+        "M": 342,
+        "C": 769
+      }
+    ],
+    "crossedPower": [
+      {
+        "vc": 0.01,
+        "M": 280,
+        "C": 63
+      },
+      {
+        "vc": 0.1,
+        "M": 1117,
+        "C": 628
+      },
+      {
+        "vc": 0.5,
+        "M": 2791,
+        "C": 3140
+      }
+    ],
+    "zeroMisses": [
+      {
+        "p": 0.1,
+        "n": 29
+      },
+      {
+        "p": 0.05,
+        "n": 59
+      },
+      {
+        "p": 0.01,
+        "n": 299
+      }
+    ],
+    "multiplicity": {
+      "contrasts": 128,
+      "zBonf": 3.5463378834619315,
+      "factor": 2.453112528722672,
+      "n": [
+        343,
+        1370,
+        3423
+      ]
+    }
+  },
+  "formulae": {
+    "null_tau_variance": "2*(2*M+5)/(9*M*(M-1)); independence, untied only",
+    "single_tau_M": "ceil(z^2*v/h^2)",
+    "paired_M": "ceil((z+z_power)^2*(v_A+v_B-2*cov_AB)/delta^2)",
+    "crossed": "v_recipe/M+v_question/C+v_interaction/(M*C)+reconstruction_contribution",
+    "crossed_allocation": "Half variance allowance for recipes, half for questions; zero interaction/reconstruction ASSUMPTION",
+    "zero_miss_upper": "1-alpha^(1/n); one-sided, IID Bernoulli only"
+  },
+  "per_level_assumptions": {
+    "quality_bands": 5,
+    "question_strata": 3,
+    "status": "ASSUMPTION_ILLUSTRATIVE_NOT_PACKET_AUTHORITY",
+    "rounding": "ceil(total/levels); per-level precision requires full calculation separately"
+  },
+  "acceptance": {
+    "decision_value": null,
+    "tau_minimum": null,
+    "delta_minimum": null,
+    "regret_maximum": null,
+    "gate_recall_minimum": null,
+    "false_feasible_maximum": null,
+    "alpha": null,
+    "power": null,
+    "confirmatory_family": null,
+    "adversarial_budget": null,
+    "equivalence_margin": null,
+    "status": "HUMAN_INPUT"
+  },
+  "evidence_gaps": [
+    "Public planning audit NOT_RUN",
+    "q-score outcome independence unverified",
+    "Cluster/tie/gate interval coverage NOT_TESTED",
+    "Requested precision not demonstrated",
+    "Battery v3 measurements cannot be inferred from EV4"
+  ],
+  "maturity": "SPECIFIED_RESEARCH_ONLY",
+  "integration": {
+    "pr": 1044,
+    "head": "83b03b7c8f883ee73403ee33f2fbf04f9bc84e93",
+    "state_at_inspection": "OPEN_UNMERGED",
+    "registry": "registry-v5",
+    "expanded": 130,
+    "contrasts_if_all_vs_in_force": 129,
+    "in_force_id_source_observation": "G-FEAS/A-Q>@0.05",
+    "construction_levels": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "per_level_base_joint_comparison": {
+      "independent_recipes": 1117,
+      "questions": 628,
+      "status": "ASSUMPTION_NOT_REQUIRED_SAMPLE_GUARANTEE",
+      "question_reuse_across_levels": true,
+      "multiplicity_not_included": true
+    },
+    "controls": "Separate falsification anchors; excluded from independent recipe power counts"
+  }
+}
