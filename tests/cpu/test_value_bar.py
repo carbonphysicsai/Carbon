@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from carbon.design_search import budget_registration as br
 from carbon.development_comparison import value_bar as vb
 
 
@@ -444,3 +445,105 @@ def test_v1_rejects_changed_registered_limits():
     rule["item_3"]["min_median_wall_speedup"] = 99.0
     with pytest.raises(vb.ValueBarError, match="speed limits"):
         evaluate(evidence, rule)
+
+
+def tiered_fixture():
+    evidence, _ = v1_fixture(register_budget=False)
+    root = Path(__file__).resolve().parents[2]
+    registration = json.loads(
+        (
+            root
+            / "docs/development/challenge_pipeline/equal-budget-registration-v1.json"
+        ).read_text(encoding="utf-8")
+    )
+    base_rule = json.loads(
+        (root / "docs/development/challenge_pipeline/value-bar-v1.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    rule = br.materialize_value_rule(base_rule, registration, "f02")
+    for item in ("item_1", "item_4"):
+        evidence[item]["rule_id"] = rule["rule_id"]
+    equal = evidence["equal_budget"]
+    equal.update(
+        budget_registration_digest=registration["registration_digest"],
+        budget_registration_id=br.REGISTRATION_ID,
+        budget_basis="ASSUMPTION",
+    )
+    template = equal["curves"][0]
+    equal["curves"] = []
+    for tier in br.TIERS:
+        point = copy.deepcopy(template)
+        point.update(
+            tier=tier,
+            budget=rule["item_5"]["budget_tiers"][tier],
+            solver_evaluation_limit=rule["item_5"]["solver_evaluation_caps"][tier],
+        )
+        equal["curves"].append(point)
+    return reseal(evidence), rule
+
+
+def test_registered_three_tier_value_bar_gates_on_base_and_reports_sensitivity():
+    evidence, rule = tiered_fixture()
+    half = evidence["equal_budget"]["curves"][0]
+    half["bootstrap_ci"]["paired_verified_value_delta"] = [1.0, 2.0]
+    half["estimates"]["paired_verified_value_delta"] = 1.5
+    double = evidence["equal_budget"]["curves"][2]
+    double["bootstrap_ci"]["paired_verified_value_delta"] = [-1.0, 1.0]
+    double["estimates"]["paired_verified_value_delta"] = 0.0
+    report = evaluate(reseal(evidence), rule)
+    assert report["status"] == vb.PASS
+    item = report["items"]["5"]
+    assert item["status"] == vb.PASS
+    assert {tier: row["status"] for tier, row in item["sensitivity"].items()} == {
+        "half": vb.FAIL,
+        "base": vb.PASS,
+        "double": vb.INSUFFICIENT,
+    }
+    assert "ASSUMPTION" in vb.evidence_page(report)
+    assert "Solver panels" in vb.evidence_page(report)
+
+
+def test_registered_three_tier_report_rejects_changed_cap_and_missing_curve():
+    evidence, rule = tiered_fixture()
+    evidence["equal_budget"]["curves"][1]["solver_evaluation_limit"] += 1
+    with pytest.raises(vb.ValueBarError, match="tier or evaluation cap"):
+        evaluate(reseal(evidence), rule)
+    evidence, rule = tiered_fixture()
+    evidence["equal_budget"]["curves"].pop()
+    assert evaluate(reseal(evidence), rule)["items"]["5"]["status"] == vb.INSUFFICIENT
+    evidence, rule = tiered_fixture()
+    evidence["equal_budget"]["status"] = "UNRESOLVED_PANEL"
+    evidence["equal_budget"]["curves"] = []
+    assert evaluate(reseal(evidence), rule)["items"]["5"]["status"] == vb.INSUFFICIENT
+
+
+def test_value_bar_cli_consumes_prospective_budget_registration(tmp_path):
+    evidence, rule = tiered_fixture()
+    root = Path(__file__).resolve().parents[2]
+    inp = tmp_path / "evidence.json"
+    output = tmp_path / "report.json"
+    page = tmp_path / "page.md"
+    inp.write_text(json.dumps(evidence), encoding="utf-8")
+    vb.main(
+        [
+            "--evidence",
+            str(inp),
+            "--rule",
+            str(root / "docs/development/challenge_pipeline/value-bar-v1.json"),
+            "--budget-registration",
+            str(
+                root
+                / "docs/development/challenge_pipeline/equal-budget-registration-v1.json"
+            ),
+            "--bootstrap-replicates",
+            "100",
+            "--seed",
+            "7",
+            "--output-json",
+            str(output),
+            "--output-page",
+            str(page),
+        ]
+    )
+    assert json.loads(output.read_text(encoding="utf-8"))["rule_id"] == rule["rule_id"]
