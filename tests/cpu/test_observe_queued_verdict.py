@@ -2,12 +2,13 @@
 
 Held here:
 - the signer's read-only kind, `status_read`, signs one `battery_status` read
-  of one submission id, built by Carbon's own `intake_client`, and nothing
+  of one submission id on testnet 567 only (refused, never prompted,
+  elsewhere), built by Carbon's own `intake_client`, and nothing
   else: never a submission, a Level 4 part, a body its payload does not
   cover, another target, or a commitment, with or without the testnet
   auto-confirm allow-list;
 - the read goes through that kind, and only that kind;
-- observe polls at most once per epoch per interval, only with a recorded
+- observe polls at most once per chain epoch (tempo), only with a recorded
   submission and no verdict, and stores a verdict exactly as a replayed
   submit stores it, so observe shows it;
 - observe never asks the signer for a commitment or a plain `sign`, on any
@@ -38,6 +39,8 @@ from test_launchpad_truthful_refusals import (
 )
 from test_miner_signer_autoconfirm import _auto
 from test_miner_signer_commit import (
+    FINNEY,
+    GENESIS,
     POLICY,
     _keypair,
     _refusal,
@@ -75,7 +78,7 @@ FACTS = {
     "genesis": _CONTEXT.genesis_hash,
     "netuid": _CONTEXT.netuid,
     "challenge": {"id": CHALLENGE.challenge_id, "version": CHALLENGE.version},
-    "snapshot": {"id": "snap-1"},
+    "snapshot": {"id": "snap-1", "finalized_block": 7_200},
     "receiver": RECEIVER,
     "path": "/carbon/v1/mcp",
 }
@@ -255,19 +258,99 @@ def test_the_signer_shape_matches_carbons_request_builder():
     assert external_signer.STATUS_READ_OP == sr.OP
 
 
+def _on_chain(genesis, netuid=567, submission=SUBMISSION):
+    """A canonical status read naming another chain: Carbon's builder serves
+    only testnet 567, so it is built here, in the same canonical form."""
+    from carbon.transport.models import canonical as transport_canonical
+
+    document = json.loads(_status_body(submission))
+    return transport_canonical({**document, "genesis": genesis, "netuid": netuid})
+
+
+@pytest.mark.parametrize(
+    ("genesis", "netuid"),
+    [
+        pytest.param(FINNEY, 567, id="mainnet genesis"),
+        pytest.param("0x" + "1" * 64, 567, id="another genesis"),
+        pytest.param(GENESIS, 1, id="testnet, another netuid"),
+    ],
+)
+def test_the_read_only_kind_is_auto_signed_only_on_testnet_567(
+    tmp_path, genesis, netuid
+):
+    """Off testnet 567 a status read fails closed: refused at once, never
+    put to the terminal, nothing recorded. `sign` is unchanged."""
+    log = io.StringIO()
+    server = SignerServer(
+        _keypair(),
+        Path(tmp_path) / "s.sock",
+        log=log,
+        clock=lambda: NOW,
+        commit_policy=POLICY,
+        confirm=lambda text, expected: pytest.fail("the terminal was asked"),
+    )
+    body = _on_chain(genesis, netuid)
+    refused = server.answer(_status_read(body))
+    assert _refusal(refused) == "STATUS_READ_NOT_TESTNET"
+    assert "signature" not in refused and server.ledger.entries() == []
+    # The same payload through the unchanged `sign` op is signed as before.
+    plain = _status_read(body)
+    plain = {k: v for k, v in plain.items() if k != "body"}
+    assert server.answer({**plain, "op": "sign"})["ok"] is True
+
+
+def test_testnet_567_is_the_auto_confirm_genesis_and_carbons_chain():
+    from carbon_miner_signer import autoconfirm as ac
+
+    assert ac.TESTNET_GENESIS == GENESIS == _CONTEXT.genesis_hash
+    assert ac.TESTNET_NETUID == _CONTEXT.netuid == 567
+    body = json.loads(_status_body())
+    assert (body["genesis"], body["netuid"]) == (GENESIS, 567)
+
+
+def test_a_read_refused_off_testnet_sends_nothing_and_stores_nothing(
+    tmp_path, ops, monkeypatch
+):
+    """Observe's read when the signer will not auto-sign it: the read fails
+    closed at once, nothing is posted or stored, and only the read-only kind
+    was asked for."""
+    mainnet = _on_chain(FINNEY)  # built before Carbon's builder is replaced
+    monkeypatch.setattr(
+        rs.intake_client, "status_message", lambda facts, submission: mainnet
+    )
+    _battery_epoch(tmp_path)
+    _recorded(tmp_path)
+    intake = Intake()
+    with in_thread_signer(_keypair()) as signer:
+        with pytest.raises(external_signer.SignerFailure) as failed:
+            rs.read_status_once(
+                URL, signer, root=tmp_path, epoch=1, read=intake.read, post=intake.post
+            )
+        assert failed.value.refusal == "STATUS_READ_NOT_TESTNET"
+        assert _verdict(tmp_path, intake, now=1.0, connect=lambda: signer) is None
+    assert intake.sent == []
+    assert not (tmp_path / "epoch-1" / "permitted-final-feedback.json").exists()
+    assert set(ops) == {"identity", "status_read"}
+
+
 # Carbon's side: the read uses that kind, and only it --------------------------
 
 
 class Intake:
     """The validator's intake, as a fixture: it records what it was sent."""
 
-    def __init__(self, *answers):
+    def __init__(self, *answers, block=7_200):
         self.answers = list(answers) or [(200, SCORED)]
         self.sent, self.bodies = [], []
+        #: The intake's finalized block; None reports none.
+        self.block = block
 
     def read(self, url):
         assert url == URL
-        return FACTS
+        snapshot = {"id": "snap-1"}
+        if self.block is not None:
+            snapshot["finalized_block"] = self.block
+        return {**FACTS, "snapshot": snapshot}
 
     def post(self, url, body, headers):
         self.sent.append((json.loads(body)["tool"], headers))
@@ -378,7 +461,7 @@ def _battery_epoch(root, epoch=1, record=None, manifest=None):
     return folder
 
 
-def _verdict(root, intake, *, now, connect=None, args=None, interval=60.0):
+def _verdict(root, intake, *, now, connect=None, args=None, floor=rs.READ_FLOOR_S):
     return battery.queued_verdict(
         args or Args(),
         root,
@@ -387,7 +470,7 @@ def _verdict(root, intake, *, now, connect=None, args=None, interval=60.0):
         now=now,
         read=intake.read,
         post=intake.post,
-        interval=interval,
+        floor=floor,
     )
 
 
@@ -405,18 +488,38 @@ def test_a_verdict_is_read_once_and_built_as_a_submit_builds_it(tmp_path, ops):
     assert mark.stat().st_mode & 0o777 == 0o600
 
 
-def test_at_most_one_poll_per_epoch_per_interval(tmp_path, ops):
+def test_at_most_one_poll_per_chain_epoch(tmp_path, ops):
+    """No read sooner than one tempo of nominal blocks after the last, and
+    never two in the tempo of the intake's finalized block."""
     _battery_epoch(tmp_path)
     _recorded(tmp_path)
-    intake = Intake((200, QUEUED))
+    floor = rs.READ_FLOOR_S
+    assert floor == 360 * 12 and rs.TEMPO_BLOCKS == 360
+    intake = Intake((200, QUEUED), block=7_200)
     with in_thread_signer(_keypair()) as signer:
-        for now in (100.0, 100.0, 130.0, 159.9):
-            assert _verdict(tmp_path, intake, now=now, connect=lambda: signer) is None
+
+        def poll(now):
+            return _verdict(tmp_path, intake, now=now, connect=lambda: signer)
+
+        for now in (100.0, 100.0, 100.0 + floor / 2, 100.0 + floor - 0.1):
+            assert poll(now) is None
         assert len(intake.sent) == 1
-        assert _verdict(tmp_path, intake, now=160.0, connect=lambda: signer) is None
-    assert len(intake.sent) == 2
-    # One connection (its identity), then one read-only request per poll.
-    assert ops == ["identity", "status_read", "status_read"]
+        # The floor has passed, but the chain is still in tempo 20.
+        intake.block = 7_200 + 359
+        assert poll(100.0 + floor) is None
+        assert len(intake.sent) == 1
+        # The next tempo, after the next floor: one more read.
+        intake.block = 7_560
+        assert poll(100.0 + 2 * floor) is None
+        assert len(intake.sent) == 2
+        mark = json.loads(rs._read_mark_path(tmp_path, 1).read_bytes())
+        assert mark["tempo"] == 21 and mark["polled_unix"] == 100.0 + 2 * floor
+        # Facts without a finalized block leave the time floor alone.
+        intake.block = None
+        assert poll(100.0 + 2 * floor + 1) is None
+        assert poll(100.0 + 3 * floor) is None
+    assert len(intake.sent) == 3
+    assert set(ops) == {"identity", "status_read"}
 
 
 def test_no_poll_without_a_recorded_submission_or_once_a_verdict_exists(tmp_path):
@@ -530,8 +633,8 @@ def test_a_queued_verdict_arrives_through_observe(reading, ops):
     view = observe(host, identity)
     assert view["journey"]["submitted_epochs"] == []
     assert view["last_refusal"]["code"] == "evaluation_queued"
-    state["now"] += rs.READ_INTERVAL_S
-    state["intake"] = Intake((200, SCORED))
+    state["now"] += rs.READ_FLOOR_S
+    state["intake"] = Intake((200, SCORED), block=7_560)
     view = observe(host, identity)
     feedback = root / "epoch-1" / "permitted-final-feedback.json"
     # Stored exactly as a replayed submit stores it.
@@ -545,20 +648,26 @@ def test_a_queued_verdict_arrives_through_observe(reading, ops):
     # only the read-only kind.
     assert ops == ["status_read", "status_read"]
     # Once the verdict exists, observe asks nothing more.
-    state["now"] += 10 * rs.READ_INTERVAL_S
+    state["now"] += 10 * rs.READ_FLOOR_S
+    state["intake"].block = 9_000
     before = len(state["intake"].sent)
     observe(host, identity)
     assert len(state["intake"].sent) == before
 
 
-def test_observe_polls_at_most_once_per_epoch_per_interval(reading, ops):
+def test_observe_polls_at_most_once_per_chain_epoch(reading, ops):
     host, state = reading
     identity = frozen_campaign(host)
     _recorded(root_of(host, identity))
     for _ in range(5):
         observe(host, identity)
     assert len(state["intake"].sent) == 1
-    state["now"] += rs.READ_INTERVAL_S
+    # One tempo of time, but the same chain epoch: still one read.
+    state["now"] += rs.READ_FLOOR_S
+    observe(host, identity)
+    assert len(state["intake"].sent) == 1
+    state["now"] += rs.READ_FLOOR_S
+    state["intake"].block = 7_560
     observe(host, identity)
     assert len(state["intake"].sent) == 2
 

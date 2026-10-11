@@ -39,6 +39,7 @@ SIGNER_REFUSALS = frozenset(
         "STALE_NONCE",
         "RECEIVER_NOT_ALLOWED",
         "NOT_A_STATUS_READ",
+        "STATUS_READ_NOT_TESTNET",
     }
 )
 #: The signer's one read-only request kind (LA-F18): a `battery_status` read,

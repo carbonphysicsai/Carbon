@@ -31,22 +31,30 @@ added rather than `sign` reused.
    reads the commitment policy, the commitment ledger, the terminal or the
    auto-confirm allow-list. An older signer answers it `MALFORMED_REQUEST`,
    and observe then reads nothing.
-2. **Signed unasked on every network.** A status read changes nothing at
-   the validator and spends nothing, and `sign` already signs the same read
-   unasked on any network, so the narrower kind asks nothing either. It is
-   not an auto-confirm: `--auto-confirm-commitments` still covers exactly
-   the commitments it covered, and a commit sent through `status_read` is
-   refused.
+2. **Signed unasked on testnet 567 only (coordinator correction,
+   2026-10-11).** The body must name testnet 567's genesis, by auto-confirm's
+   own check (`autoconfirm.TESTNET_GENESIS`), and netuid 567. On any other
+   chain the read is refused `STATUS_READ_NOT_TESTNET`: it fails closed and
+   is never prompted, so nothing waits on a terminal. Observe then stores
+   nothing, and the next step says to submit again there. The `sign` op is
+   unchanged. `status_read` does not use or widen the allow-list:
+   `--auto-confirm-commitments` covers exactly the commitments it covered,
+   and a commit sent through `status_read` is refused.
 3. **Carbon's side.** `ExternalSigner.status_reader(body)` gives a
    `StatusReadSigner` bound to that body, whose only request is
    `status_read`; `BittensorMessageSigner.sign_status_read` and
    `remote_submission.read_status_once` use it. Submit's own polls are
    unchanged.
-4. **Bounded.** Observe reads only the open epoch with a recorded submission
-   (`intake-submission-epoch-N.json`) and no verdict; at most once per epoch
-   per `READ_INTERVAL_S` = 60 s (an engineering bound, twice `POLL_S`), the
-   time recorded in `intake-status-read-epoch-N.json` before the read is
-   sent; one read at a time per process; only where submit itself would be
+4. **Bounded: at most one read per chain epoch (coordinator correction,
+   2026-10-11).** Observe reads only the open epoch with a recorded
+   submission (`intake-submission-epoch-N.json`) and no verdict. The
+   Launchpad reads no chain on observe, so before the intake is contacted the
+   floor is one tempo of nominal blocks, `READ_FLOOR_S` = 360 × 12 s, its
+   time recorded in `intake-status-read-epoch-N.json` first. Once the
+   intake's facts are read, a read in the tempo of its finalized block
+   (`block // 360`, the battery rule's window and the signer's
+   `tempo_blocks`) that already had one is not sent. One read at a time per
+   process; only where submit itself would be
    admitted, so in a campaign where the miner selects, with nothing running
    or queued for it. A Level 4 candidate, never sent, is not read. The
    signer is reached only once a read is due.
@@ -58,8 +66,8 @@ added rather than `sign` reused.
    verdict changes nothing but the read's recorded time.
 6. **The next step.** `NEXT_ACTIONS["evaluation_queued"]`,
    `intake_client.REFUSALS["evaluation_queued"]` and
-   `FRESH_MINER_JOURNEY.md` step 10 no longer tell the miner to submit
-   again.
+   `FRESH_MINER_JOURNEY.md` step 10 say that on testnet 567 observe asks
+   and the miner need not submit again, and elsewhere to submit again.
 
 **Tests.** `tests/cpu/test_observe_queued_verdict.py`;
 `tests/cpu/test_launchpad_supervisor.py`'s LA-F18 next-step test, whose

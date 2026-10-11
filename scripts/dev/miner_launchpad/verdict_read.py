@@ -7,15 +7,19 @@ selects:
 
 - only for the open epoch with a recorded submission
   (`intake-submission-epoch-N.json`) and no verdict, and at most once per
-  epoch per `remote_submission.READ_INTERVAL_S`, recorded before the read is
-  sent, so observe in a loop never hammers the intake; one read at a time in
-  this process;
+  chain epoch (tempo, 360 blocks): no sooner than
+  `remote_submission.READ_FLOOR_S` after the last read, recorded before the
+  intake is contacted, and never twice in the tempo of the intake's
+  finalized block, so observe in a loop never hammers the intake; one read
+  at a time in this process;
 - only when submit itself would be admitted (`_admissible`,
   `_require_current_revision`, `_require_frozen`) and nothing is running or
   queued for the campaign;
 - signed through the signer's read-only kind (`status_read`), which signs a
-  `battery_status` read and nothing else. Nothing is submitted, resent or
-  committed; the signer is reached only once a read is due.
+  `battery_status` read and nothing else, unasked only on testnet 567: on any
+  other chain the signer refuses it and observe shows no verdict. Nothing
+  is submitted, resent or committed; the signer is reached only once a read
+  is due.
 
 A verdict found so is stored exactly as a replayed submit stores it: the
 Challenge's `record_verdict` (its `evaluate`'s own store) and

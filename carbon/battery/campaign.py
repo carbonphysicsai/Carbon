@@ -1418,15 +1418,17 @@ def intake_feedback(epoch, url, status, answer, submission_id):
 
 
 def queued_verdict(
-    args, root, epoch, connect, *, now=None, read=None, post=None, interval=None
+    args, root, epoch, connect, *, now=None, read=None, post=None, floor=None
 ):
     """Observe's read of a queued submission's verdict (LA-F18).
 
     For the open epoch of a campaign whose candidate went through this
     Challenge's validator intake and is recorded there
     (`intake-submission-epoch-N.json`) with no verdict yet, ask the intake
-    once for its status, at most once per `remote_submission.READ_INTERVAL_S`
-    (`claim_status_read`). Returns the permitted feedback, built as a
+    once for its status, at most once per chain epoch: no sooner than
+    `remote_submission.READ_FLOOR_S` after the last read
+    (`claim_status_read`), and never twice in the tempo of the intake's
+    finalized block (`read_status_once(once_per_tempo=True)`). Returns the permitted feedback, built as a
     submit's is (`intake_feedback`), when the answer is a verdict, for the
     caller to store as a submit would (`record_verdict`); otherwise None.
 
@@ -1468,7 +1470,7 @@ def queued_verdict(
         root,
         epoch,
         now=time.time() if now is None else now,
-        interval=rs.READ_INTERVAL_S if interval is None else interval,
+        floor=rs.READ_FLOOR_S if floor is None else floor,
     ):
         return None
     try:
@@ -1480,6 +1482,7 @@ def queued_verdict(
             read=read or intake_client.read_intake,
             post=post or intake_client.post,
             receiver=_receiver(prepared),
+            once_per_tempo=True,
         )
         if found is None:
             return None

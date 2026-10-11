@@ -729,14 +729,15 @@ def test_an_agents_unevaluated_candidate_is_reported_with_its_code(
 
 
 def test_a_queued_submission_says_observe_asks_for_its_verdict():
-    """LA-F18 (fixed 2026-10-11): observe asks the intake for the recorded
-    submission's verdict, read-only and at most once a minute
-    (`verdict_read`), so the next step no longer says to submit again."""
+    """LA-F18 (fixed 2026-10-11): on testnet 567 observe asks the intake for
+    the recorded submission's verdict, read-only and at most once per chain
+    epoch (`verdict_read`), so the next step says so; elsewhere the signer
+    refuses that read and only a submit asks."""
     text = supervision.NEXT_ACTIONS["evaluation_queued"]
-    assert "need not submit again" in text
+    assert "On testnet 567 you need not submit again" in text
     assert "observe asks the validator for its result" in text
-    assert "at most once a minute" in text
-    assert "submit again later (carbon_submit)" not in text
+    assert "at most once per chain epoch" in text
+    assert "Elsewhere, submit again later (carbon_submit)" in text
     assert "never a second one" in text
 
 

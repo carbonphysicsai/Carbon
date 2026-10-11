@@ -27,9 +27,11 @@ decide whether to sign; that op never signs anything but these bytes.
 ``status_read`` (LA-F18, module ``status_read``) is the one read-only kind: the same
 payload, signed only when the body sent beside it hashes to the payload's
 body hash and is exactly one ``battery_status`` request for one submission
-id. It is signed without asking, as ``sign`` signs a status poll; it never
-touches the commitment policy, ledger or auto-confirm allow-list, and it can
-never sign a submission, a commitment or any other extrinsic.
+id. It is signed without asking only when the body names testnet 567
+(auto-confirm's genesis check); on any other chain it is refused, never
+prompted. It never touches the commitment policy, ledger or auto-confirm
+allow-list, and it can never sign a submission, a commitment or any other
+extrinsic.
 
 ``commit`` (OWNER-COMMITMENT-POSTER-01) is the one chain extrinsic: a strategy
 commitment, rebuilt and checked by ``commitment.check_request``, and signed
@@ -98,6 +100,8 @@ class Refusal(str, Enum):
     #: A `status_read` whose body is not exactly one `battery_status` read
     #: covered by its payload (LA-F18).
     NOT_A_STATUS_READ = "NOT_A_STATUS_READ"
+    #: A status read for another chain than testnet 567: never auto-signed.
+    STATUS_READ_NOT_TESTNET = "STATUS_READ_NOT_TESTNET"
 
 
 def default_socket(hotkey: str) -> Path:
@@ -329,7 +333,8 @@ class SignerServer:
         return {"ok": True, "signature": "0x" + signature.hex()}
 
     def status_read(self, request) -> dict:
-        """One `battery_status` read, signed unasked (LA-F18, `status_read`).
+        """One `battery_status` read, signed unasked on testnet 567 only
+        (LA-F18, `status_read`); refused, never prompted, elsewhere.
 
         Never the commit path: the commitment policy, ledger, terminal and
         auto-confirm allow-list are not read, and only the MCP request target
@@ -358,6 +363,8 @@ class SignerServer:
         submission_id = sr.status_read_id(payload, body)
         if submission_id is None:
             return self._refuse(Refusal.NOT_A_STATUS_READ)
+        if not sr.on_testnet(body):
+            return self._refuse(Refusal.STATUS_READ_NOT_TESTNET)
         with self._signing:
             signature = bytes(self._keypair.sign(payload))
         receiver = payload.decode("ascii").split("\n")[7]
