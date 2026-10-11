@@ -1,0 +1,14 @@
+{
+ "schema": "carbon.f02-train.registry.v1",
+ "registered": "2026-10-10, before any TRAIN solve",
+ "authority": "Test Lead 2026-10-10: f02 has no kit or TRAIN set; produce a separate registered public TRAIN split of time-history cases, disjoint from the 384-case test menu, sized within OWNER-CCX63-EVIDENCE-GRANT-01 (EUR 10)",
+ "role": "public TRAIN for model construction; never a test, hidden or exam set",
+ "size": 960,
+ "per_context": 40,
+ "contexts": "the 24 round-one contexts (cooling pair x initial 40/55 C x split 0.5/0.8 x waveform rectangular/ramp/two-pulse), as the test menu",
+ "draw": "numpy default_rng(20261010) per context in the menu's context order: peak W uniform on [80, 140] rounded to 1 W; on-time uniform on [5, 20] s rounded to 0.1 s; a draw equal to a menu point (peak in {80,100,120,140} and on-time in {5,10,15,20}) is rejected and redrawn; duplicates within a context redrawn",
+ "disjointness": "by construction: no (context, peak, on-time) tuple of the test menu appears in TRAIN; recorded as a count (expected 0) in the TRAIN manifest",
+ "deck": "f02_deck at mesh 1, dt 1, same stack, base 20 W, burst start 20 s, 120 s horizon; the full 0.5 s time history of the die-top maximum and patch centres (observe) is the training label",
+ "image": "the f02 Elmer package; the original image (sha256:8bcd864d...) is gone from the operator store, so the rebuilt image from the same locked sources is re-pinned and both test menu and TRAIN use it",
+ "cost_estimate": "about 40 CPU-h on the CCX63 (2-3 CPU-min per case, #787 triage measurement)"
+}
