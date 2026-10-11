@@ -47,6 +47,28 @@ the differences in the shared operator block `RUNPOD_CUSTODY_BLOCK.md`:
 - shred, then **terminate** (never stop);
 - the exit check.
 
+**The solve runs without network isolation (accepted the same day,
+directly in the Carbon Validator session).** A pod cannot run Docker, so
+the shard is solved natively inside the pod, which is launched from the
+truth image by its pinned digest. On a Hetzner host or the AX42, the solver
+runs in a container with `--network none`; on the pod it holds the sealed
+questions while the pod has network access, which SSH needs. Asked:
+> On the RunPod pod, Docker isn't available, so the score proof's shard
+> would be solved natively inside the pod (launched from the truth image by
+> digest) instead of in a container with `--network none`. The solver would
+> hold the sealed questions while the pod has network access (it needs SSH).
+> Accept that deviation for today's score proof?
+
+the owner chose **"Accept, pinned image only"**, whose description read:
+> Solve natively in the pod launched from the truth image by its pinned
+> digest, nothing else installed beyond the r7 code. Recorded as an
+> amendment to CUSTODY-03: no network isolation during the solve; the image
+> pin and termination are the controls.
+
+So the pod runs the truth image by its pinned digest with nothing installed
+beyond the r7 code. The image pin and the pod's termination are the
+controls.
+
 **Not permitted here:**
 - anything the earlier records don't permit;
 - any bank, validator or mainnet material on a RunPod pod;
