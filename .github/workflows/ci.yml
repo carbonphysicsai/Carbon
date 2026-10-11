@@ -231,7 +231,17 @@ jobs:
     # serially and unsharded: on 2026-10-04 its main test lane alone took 79
     # min for 11,036 tests and the whole run about 100 min, so 90 cancelled a
     # passing run before its interop and smoke lanes.
-    timeout-minutes: 150
+    #
+    # The suite has grown since. On 2026-10-11 the six canonical shards took
+    # 172 min of wall time between them (17.2/22.8/27.6/29.9/35.3/39.0,
+    # each including its own setup), about 148 min of test work, which the
+    # shard-weight measurement in #1100 independently simulated at 24.7 min
+    # per balanced shard. Serially that alone exceeds 150, and #1035 was
+    # cancelled at exactly 150 inside the acceptance step, which is an
+    # infrastructure bound, not a test result. 240 leaves the image build and
+    # the interop and smoke lanes room without approaching the 360-minute
+    # hosted-runner ceiling.
+    timeout-minutes: 240
     env:
       CARBON_DEV_IMAGE: carbon-dev:${{ needs.preflight.outputs.candidate_sha }}
       CARBON_UV_GROUPS: "chain archive science-jax science-torch mcp"
