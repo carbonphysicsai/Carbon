@@ -1,0 +1,82 @@
+{
+ "s4b-b00": {
+  "overshoot_bands": 0.030271411225193945,
+  "rung2": {
+   "cogging_nm": 0.0008388587113370346,
+   "mean_nm": 6.172420049260714,
+   "pk_pk_nm": 0.30060378921781794,
+   "ripple_fraction": 0.048701123192972255
+  },
+  "standard": {
+   "cogging_nm": 0.0014924915053805788,
+   "mean_nm": 6.171447578142218,
+   "pk_pk_nm": 0.30060542822450387,
+   "ripple_fraction": 0.04870906289298737
+  },
+  "verdict": "INFEASIBLE"
+ },
+ "s4b-b01": {
+  "overshoot_bands": 0.7243397102986743,
+  "rung2": {
+   "cogging_nm": 0.005338875895225831,
+   "mean_nm": 6.4461702062549975,
+   "pk_pk_nm": 0.3140328789822098,
+   "ripple_fraction": 0.04871619410196307
+  },
+  "standard": {
+   "cogging_nm": 0.005900905488061946,
+   "mean_nm": 6.443778723550376,
+   "pk_pk_nm": 0.3144867942059735,
+   "ripple_fraction": 0.04880471656430474
+  },
+  "verdict": "INFEASIBLE"
+ },
+ "s4b-b02": {
+  "overshoot_bands": 0.1663651008960626,
+  "rung2": {
+   "cogging_nm": 0.004914226633395557,
+   "mean_nm": 6.247501061563242,
+   "pk_pk_nm": 0.3037085123025314,
+   "ripple_fraction": 0.048612798831047785
+  },
+  "standard": {
+   "cogging_nm": 0.005075414544644965,
+   "mean_nm": 6.246837023160854,
+   "pk_pk_nm": 0.30332730201792124,
+   "ripple_fraction": 0.048556941840054574
+  },
+  "verdict": "INFEASIBLE"
+ },
+ "s4b-b03": {
+  "overshoot_bands": 0.001508862324364757,
+  "rung2": {
+   "cogging_nm": 0.00018347095094785326,
+   "mean_nm": 6.829894414180874,
+   "pk_pk_nm": 0.30049517046151397,
+   "ripple_fraction": 0.04399704479143886
+  },
+  "standard": {
+   "cogging_nm": 7.193898116222264e-05,
+   "mean_nm": 6.828386313749706,
+   "pk_pk_nm": 0.3000301772464873,
+   "ripple_fraction": 0.04393866478267985
+  },
+  "verdict": "INFEASIBLE"
+ },
+ "s4b-b04": {
+  "overshoot_bands": 0.8856792764495497,
+  "rung2": {
+   "cogging_nm": 0.002322888661992792,
+   "mean_nm": 7.0190097338346975,
+   "pk_pk_nm": 0.3172680352969879,
+   "ripple_fraction": 0.045201253072440856
+  },
+  "standard": {
+   "cogging_nm": 0.002464548748577901,
+   "mean_nm": 7.018907529822283,
+   "pk_pk_nm": 0.317713585528991,
+   "ripple_fraction": 0.045265389831547674
+  },
+  "verdict": "INFEASIBLE"
+ }
+}
