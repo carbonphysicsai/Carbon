@@ -429,10 +429,17 @@ def build(target, *, key, hotkey, network, device_class="cpu", with_showcase=Fal
             "predicate": "every case a window drew is retired and published",
             "retire_at": bank.get("retire_at"),
             "rotation_every_blocks": rotation,
+            # A case retires after E draws from a bank sampled uniformly, so
+            # only at E = 1 is the lag fixed: the window's own live span,
+            # `active_batches` rotations (OWNER-BANK-EXPOSURE-E1-TESTNET-01).
+            # At E > 1 a window waits for its slowest case's E-th draw, which
+            # no single figure states, so none is shown.
             "expected_lag_blocks": (
-                None
-                if bank.get("retire_at") is None or rotation is None
-                else bank["retire_at"] * rotation
+                rule["active_batches"] * rotation
+                if bank.get("retire_at") == 1
+                and rotation is not None
+                and type(rule.get("active_batches")) is int
+                else None
             ),
         },
         "released_windows": sorted(released),
