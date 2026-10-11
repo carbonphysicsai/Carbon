@@ -34,6 +34,30 @@ OWNERS = (
     "Packets Codex / Data Collection materials",
     "Optimizer Codex",
 )
+BENCHMARK_ROUTES = {
+    "backward-facing-step": {
+        "pending": "https://github.com/carbonphysicsai/Carbon/pull/1061",
+        "baseline": (
+            "carbon/development_comparison/bfs_baselines.py",
+            {"measure", "validate_materials", "duty_task", "duty_values"},
+        ),
+        "budget": (
+            "carbon/design_search/bfs_budget.py",
+            "BFS-DEVELOPMENT-PROPOSED-V1",
+        ),
+    },
+    "metagrating-3d": {
+        "pending": "https://github.com/carbonphysicsai/Carbon/pull/1065",
+        "baseline": (
+            "carbon/development_comparison/metagrating_baselines.py",
+            {"measure", "validate"},
+        ),
+        "budget": (
+            "carbon/design_search/metagrating_budget.py",
+            "EQUAL-BUDGET-MG-DEVELOPMENT-V1",
+        ),
+    },
+}
 
 
 def sha(raw):
@@ -97,6 +121,16 @@ class MainTree:
             return None
         self.examined[path] = sha(raw)
         return raw
+
+    def contains(self, path):
+        """Distinguish an absent main path from an unavailable Git read."""
+        public_path(path)
+        raw = (
+            self._git("ls-tree", "--name-only", self.commit, "--", path)
+            if self.commit
+            else None
+        )
+        return None if raw is None else raw.decode().strip() == path
 
     def json(self, path):
         raw = self.read(path)
@@ -318,9 +352,102 @@ def check_train(tree, data, cases):
     )
 
 
+def benchmark_route(tree, family, optimizer):
+    route = BENCHMARK_ROUTES[family]
+    if optimizer:
+        path, registration = route["budget"]
+        requirements = [
+            (path, {"validate"}, {family, registration}),
+            (
+                "carbon/design_search/equal_budget.py",
+                {"compare", "_validate"},
+                {family},
+            ),
+        ]
+    else:
+        path, functions = route["baseline"]
+        requirements = [(path, functions, {family})]
+    pointers = [p for p, _, _ in requirements] + [route["pending"]]
+    for path, functions, literals in requirements:
+        raw = tree.read(path)
+        if raw is None:
+            present = tree.contains(path)
+            return (
+                "PLANNED" if present is False else "UNKNOWN",
+                (
+                    "Pending family route is absent on inspected main"
+                    if present is False
+                    else "Cannot inspect promised route on main"
+                ),
+                pointers,
+            )
+        try:
+            parsed = ast.parse(raw)
+        except (SyntaxError, ValueError):
+            return "NO", "Route source is not valid Python", pointers
+        declared = {n.name for n in parsed.body if isinstance(n, ast.FunctionDef)}
+        values = {
+            n.value
+            for n in ast.walk(parsed)
+            if isinstance(n, ast.Constant) and type(n.value) is str
+        }
+        if not functions <= declared or not literals <= values:
+            return (
+                "NO",
+                "Required family/functions/registration not present in implementation",
+                pointers,
+            )
+        if optimizer and path.endswith("equal_budget.py"):
+            expected = route["budget"][0].split("/")[-1][:-3]
+            compare = next(
+                n
+                for n in parsed.body
+                if isinstance(n, ast.FunctionDef) and n.name == "compare"
+            )
+            branches = [
+                n
+                for n in ast.walk(compare)
+                if isinstance(n, ast.If)
+                and isinstance(n.test, ast.Compare)
+                and len(n.test.ops) == 1
+                and isinstance(n.test.ops[0], ast.Eq)
+                and any(
+                    isinstance(v, ast.Constant) and v.value == family
+                    for v in (n.test.left, *n.test.comparators)
+                )
+            ]
+            imports = [
+                n
+                for branch in branches
+                for statement in branch.body
+                for n in ast.walk(statement)
+                if isinstance(n, ast.ImportFrom)
+            ]
+            if not any(
+                n.module in (expected, "carbon.design_search." + expected)
+                and any(
+                    a.name == "validate" and a.asname == "validate_registration"
+                    for a in n.names
+                )
+                for n in imports
+            ):
+                return (
+                    "NO",
+                    "Family registration validator is not wired into compare",
+                    pointers,
+                )
+    return (
+        "YES",
+        "Family offline implementation inspected; no claim of measured value, package adequacy or dispatch permission",
+        pointers,
+    )
+
+
 def code_route(tree, family, optimizer=False):
     if tree.commit is None:
         return "UNKNOWN", "Main unavailable; no implementation inspected", []
+    if family in BENCHMARK_ROUTES:
+        return benchmark_route(tree, family, optimizer)
     if family == "f17":
         requirements = (
             [
@@ -506,6 +633,9 @@ def generate(root, challenge, *, main_ref="origin/main", now=None):
     for i, check in enumerate(checks):
         state = "PLANNED" if proposal is not None or binding["pending"] else "UNKNOWN"
         reason = "Proposal/pending work exists; required structured main evidence not yet inspectable"
+        plan = binding.get("plans", {}).get(str(i + 1))
+        if plan is not None and state == "PLANNED":
+            reason = plan["basis"] + "; measured/registered prerequisite not earned"
         if tree.commit is None:
             state, reason = (
                 "UNKNOWN",
@@ -528,6 +658,7 @@ def generate(root, challenge, *, main_ref="origin/main", now=None):
                 "basis": reason,
                 "owner": OWNERS[i],
                 "pointers": [binding["inputs"], binding["proposal"]]
+                + ([public_path(p) for p in plan["pointers"]] if plan else [])
                 + ([binding["pending"]] if binding["pending"] else []),
             }
         )

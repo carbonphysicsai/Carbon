@@ -2,6 +2,34 @@
   "schema": "carbon.onboarding.evidence-bindings.v1",
   "challenges": [
     {
+      "challenge": "backward-facing-step",
+      "aliases": ["bfs"],
+      "inputs": "docs/development/challenge_pipeline/evidence-readiness/inputs/backward-facing-step.json",
+      "proposal": "docs/development/challenge_pipeline/benchmark-packets/backward-facing-step.md",
+      "pending": "https://github.com/carbonphysicsai/Carbon/pull/1061",
+      "plans": {
+        "1": {"basis": "Physical panel generation awaits registered mesh/inlet mapping and completed/scheduled reuse receipts", "pointers": ["carbon/challenge_pipeline/benchmark_bfs.py", "docs/development/challenge_pipeline/benchmark-readiness/bfs/measurement-pilot.json"]},
+        "2": {"basis": "SU2 source pin is a deck proposal, not a present operator-store image", "pointers": ["docs/development/challenge_pipeline/benchmark-readiness/bfs/README.md"]},
+        "3": {"basis": "Laminar MMS proposal does not verify SST; conservation/refinement need matched image/family results", "pointers": ["docs/development/challenge_pipeline/benchmark-readiness/bfs/verification.json"]},
+        "4": {"basis": "Domain hook awaits a real kit with geometry/service/observer coverage", "pointers": ["carbon/challenge_pipeline/benchmark_bfs.py"]},
+        "5": {"basis": "TRAIN generator excludes physical panel tuples; registration and public solved inventory still needed", "pointers": ["carbon/challenge_pipeline/benchmark_bfs.py"]}
+      }
+    },
+    {
+      "challenge": "metagrating-3d",
+      "aliases": ["mg"],
+      "inputs": "docs/development/challenge_pipeline/evidence-readiness/inputs/metagrating-3d.json",
+      "proposal": "docs/development/challenge_pipeline/benchmark-packets/metagrating-3d.md",
+      "pending": "https://github.com/carbonphysicsai/Carbon/pull/1065",
+      "plans": {
+        "1": {"basis": "Full-vector pattern panel requires frozen manufacturing coordinates, package pins and reuse receipts", "pointers": ["carbon/challenge_pipeline/benchmark_mg.py", "docs/development/challenge_pipeline/benchmark-readiness/mg/measurement-pilot.json"]},
+        "2": {"basis": "Meep/S4 source pins are not current operator-store image observations", "pointers": ["carbon/challenge_pipeline/metagrating_decks.py"]},
+        "3": {"basis": "Analytic slab/grating decks await retained image-bound runs, conservation and convergence acceptance", "pointers": ["docs/development/challenge_pipeline/benchmark-readiness/mg/verification.json"]},
+        "4": {"basis": "Domain hook requires full mask, hardware, wavelength and all-order observer kit coverage", "pointers": ["carbon/challenge_pipeline/benchmark_mg.py"]},
+        "5": {"basis": "TRAIN proposal excludes physical copies under registered translation/mirror equivalence; no registered solved TRAIN yet", "pointers": ["carbon/challenge_pipeline/benchmark_mg.py"]}
+      }
+    },
+    {
       "challenge": "battery-v3",
       "aliases": [
         "battery"

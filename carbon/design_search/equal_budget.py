@@ -19,7 +19,15 @@ from . import budget_registration, track_b
 
 SCHEMA = "carbon.design-search.equal-budget-panel.v1"
 REPORT_SCHEMA = "carbon.design-search.equal-budget-report.v1"
-CHALLENGES = {"battery-v3", "motor", "f02", "f13", "metagrating-3d", "f17"}
+CHALLENGES = {
+    "battery-v3",
+    "motor",
+    "f02",
+    "f13",
+    "backward-facing-step",
+    "metagrating-3d",
+    "f17",
+}
 ARMS = ("solver_alone", "model_then_solver", "baseline_then_solver")
 
 
@@ -384,9 +392,11 @@ def compare(panel, *, bootstrap_replicates, confidence, seed, registration=None)
     """Return paired, cluster-bootstrap curves; no inference or solver calls."""
     _validate(panel)
     validate_registration = budget_registration.validate
-    if panel["challenge"] == "f17":
+    if panel["challenge"] == "backward-facing-step":
+        from .bfs_budget import validate as validate_registration
+    elif panel["challenge"] == "f17":
         from .micromixer_budget import validate as validate_registration
-    if panel["challenge"] == "metagrating-3d":
+    elif panel["challenge"] == "metagrating-3d":
         from .metagrating_budget import validate as validate_registration
 
     registered = None if registration is None else validate_registration(registration)
