@@ -24,6 +24,7 @@ CHALLENGES = {
     "motor",
     "f02",
     "f13",
+    "backward-facing-step",
     "bolted-joint",
     "metagrating-3d",
 }
@@ -399,7 +400,9 @@ def compare(panel, *, bootstrap_replicates, confidence, seed, registration=None)
     """Return paired, cluster-bootstrap curves; no inference or solver calls."""
     _validate(panel)
     validate_registration = budget_registration.validate
-    if panel["challenge"] == "metagrating-3d":
+    if panel["challenge"] == "backward-facing-step":
+        from .bfs_budget import validate as validate_registration
+    elif panel["challenge"] == "metagrating-3d":
         from .metagrating_budget import validate as validate_registration
     elif panel["challenge"] == "bolted-joint":
         from .bolted_budget import validate as validate_registration

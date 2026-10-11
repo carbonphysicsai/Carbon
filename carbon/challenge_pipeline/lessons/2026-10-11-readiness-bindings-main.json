@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-11-readiness-bindings-main",
+  "recorded_at": "2026-10-11T14:05:00Z",
+  "challenge": "protocol",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "CHALLENGE-READINESS-BINDINGS-01", "description": "After #1039 merged, 38 native readiness/CLI/status tests passed; the corrected BFS proposal ID then passed 23 readiness tests plus Black/Ruff and diff checks. Canonical acceptance remains GitHub CI."},
+  "expected": "Publish the held bindings against merged main without copying pending family implementations.",
+  "observed": "MG implementation is now on main; BFS remains a pending route. Required budget identity must match the producer's actual proposal, not a guessed label.",
+  "keep": ["Inspect immutable main, never treat pending source as earned evidence."],
+  "change": ["Use BFS-DEVELOPMENT-PROPOSED-V1 in route checks."],
+  "protocol_elements": ["reference policy", "evidence plan"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
