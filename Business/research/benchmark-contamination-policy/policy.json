@@ -2,6 +2,7 @@
   "schema": "carbon.research.benchmark-contamination-policy.v1",
   "ticket": "BENCHMARK-CONTAMINATION-POLICY-01",
   "status": "PROPOSED_NOT_IMPLEMENTED_NOT_RUN",
+  "adopted_by_record": ".agent/decisions/2026-10-10-OWNER-BENCHMARK-CONTAMINATION-01.md",
   "authority_commit": "5fbac3099eaae368b23d266cce31ed7409685722",
   "anchor_scoring": "PROPOSED_EXCLUDED_FROM_EVAL_AND_STRESS",
   "catalogue_coverage": "KNOWN_AUDITED_SOURCES_ONLY_UNKNOWN_PUBLICATIONS_REMAIN_A_GAP",
