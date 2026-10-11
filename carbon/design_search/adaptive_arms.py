@@ -526,7 +526,7 @@ def _next_surrogate(
             and row["reference"]["status"] != "UNRESOLVED"
             and all(
                 value is not None
-                for value in _flatten(actions[prior]["margins"], challenge).values()
+                for value in _flatten(row["margins"], challenge).values()
             )
         ]
         if not neighbours:
@@ -554,8 +554,8 @@ def _next_surrogate(
         )
         margins = {
             name: sum(
-                w * _flatten(actions[prior]["margins"], challenge)[name]
-                for w, _, prior, _ in weighted
+                w * _flatten(row["margins"], challenge)[name]
+                for w, _, _, row in weighted
             )
             / total
             for name in config["margin_scales"]
@@ -598,6 +598,16 @@ def _run(base_job, action_job, policy, cap, arm, direction, challenge):
     ledger = budgets.BudgetLedger(cap)
     rows = {row["design_id"]: row for row in base_job["candidates"]}
     actions = {row["design_id"]: row for row in action_job["actions"]}
+    # This is the complete policy-visible action surface. Cost and unqueried
+    # reference observables remain exclusively in the producer-side referee.
+    search_actions = {
+        design_id: {
+            "design_id": design_id,
+            "branch": action["branch"],
+            "coordinates": action["coordinates"],
+        }
+        for design_id, action in actions.items()
+    }
     observed = {}
     trace = []
     remaining = set(rows)
@@ -616,7 +626,7 @@ def _run(base_job, action_job, policy, cap, arm, direction, challenge):
             "policy_digest": policy["policy_digest"],
             "observed_prefix_digest": _digest(observed),
             "candidate_digest": (
-                None if design_id is None else _digest(actions[design_id])
+                None if design_id is None else _digest(search_actions[design_id])
             ),
             "panel_digest": action_job["condition_panel_digest"],
             "provenance": provenance,
@@ -658,7 +668,10 @@ def _run(base_job, action_job, policy, cap, arm, direction, challenge):
                 _result(observed, ledger, direction, "BUDGET_STOP"), tuple(trace)
             )
         record("CACHE_LOOKUP", design_id, "common_exact_cache")
-        observed[design_id] = rows[design_id]
+        observed[design_id] = {
+            "reference": cached["reference"],
+            "margins": cached["margins"],
+        }
         remaining.remove(design_id)
         record("SETTLED_CACHE_HIT", design_id, "common_exact_cache")["observation"] = (
             rows[design_id]["reference"]
@@ -693,7 +706,7 @@ def _run(base_job, action_job, policy, cap, arm, direction, challenge):
             design_id = _next_direct(
                 remaining,
                 observed,
-                actions,
+                search_actions,
                 action_job["axes"],
                 config,
                 direction,
@@ -705,7 +718,7 @@ def _run(base_job, action_job, policy, cap, arm, direction, challenge):
             design_id = _next_surrogate(
                 remaining,
                 observed,
-                actions,
+                search_actions,
                 action_job["axes"],
                 config,
                 direction,
@@ -739,7 +752,10 @@ def _run(base_job, action_job, policy, cap, arm, direction, challenge):
             part = record("SOLVER_ATTEMPT", design_id, attempt["kind"])
             part["cost"] = attempt["cost"]
             part["planning_bound"] = attempt["planning_bound"]
-        observed[design_id] = row
+        observed[design_id] = {
+            "reference": row["reference"],
+            "margins": actions[design_id]["margins"],
+        }
         remaining.remove(design_id)
         entry = record("SETTLED_SOLVER_ATTEMPT", design_id, "full_condition_panel")
         entry["observation"] = row["reference"]
@@ -747,7 +763,7 @@ def _run(base_job, action_job, policy, cap, arm, direction, challenge):
         entry["attempts"] = len(attempts)
         source = actions[design_id]["warm_start_from"]
         entry["warm_start_from_digest"] = (
-            None if source is None else _digest(actions[source])
+            None if source is None else _digest(search_actions[source])
         )
         if arm == "adaptive_solver":
             value = (

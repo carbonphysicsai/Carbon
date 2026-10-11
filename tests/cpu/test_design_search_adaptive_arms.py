@@ -227,6 +227,7 @@ def test_deterministic_adaptation_and_prefix_only_proposals():
     changed = copy.deepcopy(panel)
     # Future truth changes must not affect a proposal made before observing it.
     changed["base_panel"]["jobs"][0]["candidates"][1]["reference"]["value"] = 99.0
+    changed["jobs"][0]["actions"][1]["margins"]["limit_a"] = 0.25
     changed["base_panel"] = equal_budget.seal(
         {
             key: value
@@ -249,6 +250,12 @@ def test_deterministic_adaptation_and_prefix_only_proposals():
         == next(entry for entry in revised if entry["event"] == "PROPOSAL")[
             "observed_prefix_digest"
         ]
+    )
+    revised_proposals = [entry for entry in revised if entry["event"] == "PROPOSAL"]
+    assert proposals[1]["candidate_digest"] == revised_proposals[1]["candidate_digest"]
+    assert (
+        proposals[1]["observed_prefix_digest"]
+        == revised_proposals[1]["observed_prefix_digest"]
     )
     # Changing the first *observed* verdict changes the later direct path.
     changed = copy.deepcopy(panel)
