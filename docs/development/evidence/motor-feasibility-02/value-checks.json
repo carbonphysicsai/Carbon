@@ -1,0 +1,12 @@
+{
+ "schema": "carbon.motor.feasibility02-value-checks.v1",
+ "question": "10p12s holding at the frozen precision command (J 10, gamma 0), skew 0/2/4 deg, three-slice stack, limits mean >= 6.0 N m, pk-pk <= 0.30 N m and <= 5 % of |mean|, zero-current cogging pk-pk <= 0.05 N m; 24 public designs",
+ "T1_feasibility": {"pass": true, "resolved_feasible_2d": ["d06", "d09", "d12", "d16", "d21"], "note": "2D only; 3D end and skew-edge effects not run"},
+ "T2a_contested": {"pass": false, "feasible": 5, "infeasible": 19, "infeasible_within_2_bands": 4, "near": ["d01", "d02", "d10", "d17"], "next_nearest": "d23 at 4.8 bands", "pass_fraction_reported": 0.208, "bands": "mean 0.10 N m, pk-pk and cogging 0.02 N m (packet section 5 rung tolerances); overshoot in bands = max over limits"},
+ "T2b_spread": "margins span -1.8 to +27 bands; more than one buyer unit",
+ "T2d": "one question (one command, one stratum): the best answer cannot change across strata; not evaluable on this panel",
+ "T4_unresolved_rate": 0.0,
+ "T5_reference": {"rung2_convergence": "mean change <= 0.0054 N m, pk-pk <= 0.0024 N m, cogging <= 0.021 N m change bounds met for all S3 designs (bounds 0.10 / 0.02)", "virtual_work_vs_maxwell_max_abs_nm": 0.0051, "open_finding": "3D end/skew-edge effects not modelled"},
+ "peak_command": "J 15 gamma 0 skewed: 7.9-9.9 N m mean, below the 12 N m peak figure for every S3 design (reported, not part of the question)",
+ "C1_cost": {"basis": "allocated CPU-s = wall x 2 CPUs on the shared operator host (loaded; an upper bound)", "standard_solve_p50_cpu_s": 4164, "standard_solve_p95_cpu_s": 6648, "rung2_solve_p50_cpu_s": 28997, "rung2_solve_p95_cpu_s": 56500, "solves_per_design_question": "J0 + J10 g0 and its 4 skew variants = 5 standard; refinement for near-limit designs adds 4 rung-2 solves"}
+}
