@@ -264,7 +264,7 @@ def gate_lines(report):
 
 def pick_refusal(selection_path, rule):
     """None, or why the confirmation refuses `rule`: the selection report
-    must exist and mark it pickable (SCORE-PROOF-01 amendment 7)."""
+    must exist and mark it pickable (SCORE-PROOF-PICKABLE-01)."""
     if selection_path is None:
         return "confirmation needs --selection (the selection run's selection.json)"
     try:

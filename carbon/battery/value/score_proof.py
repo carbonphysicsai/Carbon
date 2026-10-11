@@ -675,8 +675,8 @@ def screens(report, rule, minimum_level_members=10):
     return out
 
 
-#: The screens that make a rule unpickable at selection (SCORE-PROOF-01
-#: amendment 7): a rule that places a known-bad control or an adversarial
+#: The screens that make a rule unpickable at selection
+#: (SCORE-PROOF-PICKABLE-01): a rule that places a known-bad control or an adversarial
 #: construction in the top half of any screened pool cannot go to the sealed
 #: confirmation, whatever its tau. Placement needs no precise tau, so it holds
 #: on the selection fold's few questions.
