@@ -1087,6 +1087,12 @@ def session_brief(
             " The level's domain is in level_domain: use only the families, names and "
             "values it lists, and keep to its combination rules."
         )
+        if domain.get("level") and domain.get("level_additions"):
+            observation["instructions"] += (
+                " level_domain.level_additions lists what this level adds over "
+                "Level 0 and the strategy field each goes in; a recipe may use them "
+                "or not."
+            )
     return SessionBrief(
         role=RoleName.CONSTRUCTOR,
         initial_observation=observation,
