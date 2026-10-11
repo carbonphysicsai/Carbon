@@ -11,6 +11,7 @@ from carbon.design_search import (
     bolted_budget,
     metagrating_budget,
     micromixer_budget,
+    structures_budget,
 )
 from carbon.design_search import budget_registration as br
 from carbon.design_search import equal_budget as eb
@@ -100,6 +101,7 @@ def test_challenge_routes_preserve_registered_validators_and_flags():
         "bolted-joint": bolted_budget.validate,
         "metagrating-3d": metagrating_budget.validate,
         "f17": micromixer_budget.validate,
+        "f08": structures_budget.validate,
     }
     assert eb.CHALLENGES == set(expected) == set(eb.CHALLENGE_ROUTES)
     assert {
