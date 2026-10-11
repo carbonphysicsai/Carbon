@@ -1,0 +1,19 @@
+{
+  "schema": "carbon.cooling-cell.verification-spec.v1",
+  "scope": "PUBLIC_DEVELOPMENT",
+  "status": "SPECIFIED_NOT_RUN",
+  "source_route": "carbon/cold_plate/openfoam.py",
+  "image": "opencfd/openfoam-default@sha256:33fb575aa9980d2bc42fd58c75ae698c489293ba30c991380fe3f899c622f319",
+  "acceptance": "HUMAN_INPUT: separate image/family-bound numeric code-verification, conservation and convergence criteria",
+  "code_checks": [
+    {"name": "planar-Poiseuille", "fields": "u(y)=G*y*(H-y)/(2*mu); p(x)=p0-G*x; v=w=0", "boundary": "no slip y=0,H; exact inlet velocity/outlet pressure; invariant third direction", "expected": "mean u=G*H^2/(12*mu); pressure drop=G*L", "scope": "constant-property verification rung, not variable-PG25 adequacy"},
+    {"name": "manufactured-energy", "fields": "T=T0+a*x+b*sin(pi*y/H)", "source_w_m3": "rho*cp*u*a+k*b*(pi/H)^2*sin(pi*y/H)", "boundary": "exact temperature trace on all boundaries, exact Poiseuille velocity", "generator": "carbon.challenge_pipeline.cooling_readiness.manufactured_channel", "gap": "Data Collection implements and independently verifies fvOptions source injection in the pinned image; the formula is not a runnable solver harness"},
+    {"name": "two-layer-conduction", "fields": "q=(Th-Tc)/(L1/k1+L2/k2); piecewise T slopes -q/k_i", "boundary": "Th and Tc at exterior faces; continuity of T and normal heat flux at internal interface", "expected": "interface temperature and heat flux match exact series resistance", "scope": "CHT coupling/code rung; no vapour-chamber or TIM material validation"}
+  ],
+  "refinement": {"smooth_verification_levels": [1, 2, 4, 8], "expected_order": 2, "proposed_order_band": [1.8, 2.2], "basis": "HUMAN_INPUT recommendation for smooth fields/second-order discretization, not a measured result", "require": "L1/L2/Linf errors, observed orders over consecutive mesh pairs and absolute-error floor; exact-zero errors are reported as exact, not a fabricated convergence order"},
+  "conservation": {"reuse": "carbon/cold_plate/analysis.py REFERENCE_CHECKS (provisional DEVELOPMENT, not inherited qualification)", "retain": ["mass inlet/outlet", "solver enthalpy and conductive/kinetic fluxes", "source-map integrated heat", "sampled patch quadrature residual", "iteration change", "PG25 extrema", "laminar Reynolds check"]},
+  "family_witnesses": "Frozen uniform and nonuniform buyer service maps, geometry/flow extremes and near-85-C contenders; new observer convergence, pressure convergence and paired code/image/source pins",
+  "solver_presence": "NOT_OBSERVED",
+  "earned_reference_adequacy": false,
+  "dispatchable": false
+}
