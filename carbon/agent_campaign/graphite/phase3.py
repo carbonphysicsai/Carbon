@@ -1182,10 +1182,12 @@ def recorded_level(opened, scoring, score_variant=None):
     return None if found is None else found.level
 
 
-def controller_for(root, provider, grant, clock=None):
+def controller_for(root, provider, grant, clock=None, shared_runs=False):
     from ..controller import CampaignController
 
     kwargs = {} if clock is None else {"clock": clock}
+    if shared_runs:
+        kwargs["shared_runs"] = True
     return CampaignController(
         root=Path(root) / "controller",
         provider=provider,
@@ -1843,7 +1845,7 @@ def command_run(args):
             check_resume(provider, args.session)
         except ResumeRefused as refused:
             raise RunnerRefused(refused.code) from None
-        control = controller_for(root, provider, grant)
+        control = controller_for(root, provider, grant, shared_runs=True)
         try:
             budget = provider.budget
             brief = session_brief(
