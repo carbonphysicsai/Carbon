@@ -108,6 +108,27 @@ Therefore:
   key.
 - **Not an Ubuntu image** (no signed Ubuntu repository): stop.
 
+**The pod's image (the owner's own wording, same day, directly in the Carbon
+Validator session).** The truth image cannot run as the pod: it runs as a
+non-root user with a bash entrypoint, so `openssh-server` could not be
+installed. In place of "launched from the truth image by its pinned digest",
+the owner accepted:
+> Accept for the RunPod score-proof run: pod image is stock ubuntu:24.04 at
+> the truth worker's own base digest, with /opt/carbon-worker and
+> /opt/uv-python exported from the AX42's pinned truth image and pushed over
+> the pinned SSH, verified by file-tree hash and python/numpy/scipy versions
+> on both sides.
+
+Therefore:
+- **The pod:** stock `ubuntu:24.04` at the truth worker's base digest. Only
+  `openssh-server` is installed, as above.
+- **The solve environment:** the truth image's own `/opt/carbon-worker` and
+  `/opt/uv-python`, exported on the AX42 from its pinned copy and pushed
+  over the pinned SSH with the r7 code. The pod pulls nothing from any
+  registry or from GitHub.
+- **Verified before any sealed shard is pushed:** the file-tree hash and
+  the python, numpy and scipy versions must equal the AX42's.
+
 **Not permitted here:**
 - anything the earlier records don't permit;
 - any bank, validator or mainnet material on a RunPod pod;
