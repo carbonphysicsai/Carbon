@@ -83,7 +83,7 @@ def _panel(*, cached=False, f02=False, battery=False):
                     "branch": "toy-branch",
                     "coordinates": {"setting": index},
                     "margins": margins,
-                    "unresolved_cause": None,
+                    "reference_cause": None,
                     "warm_start_from": "d4" if cached and index != 4 else None,
                     "attempts": attempts,
                 }
@@ -361,6 +361,27 @@ def test_common_cache_warm_provenance_and_full_cost():
         adaptive.validate(_reseal(invalid), registration)
 
 
+def test_exact_cache_can_cover_entire_bank_without_unneeded_optimizer_startup():
+    panel, registration = _panel(cached=True)
+    changed = copy.deepcopy(panel)
+    for job, base_job in zip(changed["jobs"], changed["base_panel"]["jobs"]):
+        job["common_cache"] = [
+            {
+                "design_id": action["design_id"],
+                "reference": copy.deepcopy(base_job["candidates"][index]["reference"]),
+                "margins": copy.deepcopy(action["margins"]),
+            }
+            for index, action in enumerate(job["actions"])
+        ]
+    raw = adaptive.replay(_reseal(changed), registration, "half")
+    for result in raw["results"][0]["arms"].values():
+        assert result["solver_attempts"] == 0
+        assert result["verified_count"] == 5
+        assert result["spent_wall_s"] == pytest.approx(0.15)
+    trace = raw["producer_only_traces"][0]["events"]
+    assert not any(entry["event"] == "ARM_STARTUP" for entry in trace)
+
+
 def test_finite_f02_direct_enumeration_and_registration_tampering():
     panel, registration = _panel(f02=True)
     raw = adaptive.replay(panel, registration, "half")
@@ -431,6 +452,41 @@ def test_typed_action_and_complete_cost_ledger_are_fail_closed():
         adaptive.validate(_reseal(wrong), registration)
 
 
+def test_invalid_geometry_is_charged_and_typed_separately():
+    panel, registration = _panel()
+    changed = copy.deepcopy(panel)
+    changed["base_panel"]["jobs"][0]["candidates"][1]["reference"] = {
+        "status": "INFEASIBLE",
+        "value": None,
+    }
+    action = changed["jobs"][0]["actions"][1]
+    action["margins"] = {"limit_a": None, "limit_b": None}
+    action["reference_cause"] = "INVALID_GEOMETRY"
+    changed["base_panel"] = equal_budget.seal(
+        {
+            key: value
+            for key, value in changed["base_panel"].items()
+            if key != "panel_digest"
+        }
+    )
+    changed = _reseal(changed)
+    trace = adaptive.replay(changed, registration, "base")["producer_only_traces"][0][
+        "events"
+    ]
+    invalid = [
+        entry
+        for entry in trace
+        if entry["event"] == "SETTLED_SOLVER_ATTEMPT"
+        and entry["reference_cause"] == "INVALID_GEOMETRY"
+    ]
+    assert len(invalid) == 1
+    assert invalid[0]["cumulative"]["solver_evaluations"] >= 3
+    wrong = copy.deepcopy(changed)
+    wrong["jobs"][0]["actions"][1]["reference_cause"] = None
+    with pytest.raises(adaptive.AdaptiveArmError, match="margins and settled"):
+        adaptive.validate(_reseal(wrong), registration)
+
+
 def test_aggregate_is_disclosure_limited_and_bootstraps_by_bank():
     panel, registration = _panel()
     report = adaptive.compare(
@@ -454,7 +510,7 @@ def test_aggregate_is_disclosure_limited_and_bootstraps_by_bank():
         "value": None,
     }
     altered["jobs"][0]["actions"][0]["margins"]["limit_a"] = None
-    altered["jobs"][0]["actions"][0]["unresolved_cause"] = "FAILED_INFRA"
+    altered["jobs"][0]["actions"][0]["reference_cause"] = "FAILED_INFRA"
     altered["base_panel"] = equal_budget.seal(
         {
             key: value

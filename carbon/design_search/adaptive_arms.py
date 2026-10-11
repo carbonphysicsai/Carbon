@@ -271,7 +271,7 @@ def validate(panel, registration):
                     "branch",
                     "coordinates",
                     "margins",
-                    "unresolved_cause",
+                    "reference_cause",
                     "warm_start_from",
                     "attempts",
                 ),
@@ -303,13 +303,19 @@ def validate(panel, registration):
                 if coordinate not in axis["values"]:
                     raise AdaptiveArmError("off-lattice action")
             verdict = _margins(action["margins"], names, challenge)
-            if verdict != base_rows[design_id]["reference"]["status"]:
+            reference_status = base_rows[design_id]["reference"]["status"]
+            cause = action["reference_cause"]
+            if cause == "INVALID_GEOMETRY":
+                if reference_status != "INFEASIBLE" or verdict != "UNRESOLVED":
+                    raise AdaptiveArmError(
+                        "invalid geometry needs an infeasible reference and unavailable margins"
+                    )
+            elif verdict != reference_status:
                 raise AdaptiveArmError("margins and settled reference disagree")
-            cause = action["unresolved_cause"]
-            if verdict == "UNRESOLVED":
+            if reference_status == "UNRESOLVED":
                 if cause not in ("FAILED_INFRA", "REFERENCE_UNRESOLVED"):
                     raise AdaptiveArmError("typed unresolved cause required")
-            elif cause is not None:
+            elif cause not in (None, "INVALID_GEOMETRY"):
                 raise AdaptiveArmError("settled action cannot carry unresolved cause")
             attempts = action["attempts"]
             if type(attempts) is not list or not attempts:
@@ -646,18 +652,6 @@ def _run(base_job, action_job, policy, cap, arm, direction, challenge):
             tuple(trace),
         )
     record("CACHE_ACQUISITION", provenance="common_public_development")
-    startup = (
-        base_job["screen_cost"]["model"]
-        if arm == "carbon_model"
-        else config["startup_cost"]
-    )
-    if not ledger.charge_overhead(startup):
-        record("STOP_STARTUP_OVER_BUDGET")
-        return Replay(
-            _result(observed, ledger, direction, "OVER_BUDGET_BEFORE_SEARCH"),
-            tuple(trace),
-        )
-    record("ARM_STARTUP", provenance="registered_cold_start")
     for cached in action_job["common_cache"]:
         design_id = cached["design_id"]
         if design_id not in remaining:
@@ -676,6 +670,18 @@ def _run(base_job, action_job, policy, cap, arm, direction, challenge):
         record("SETTLED_CACHE_HIT", design_id, "common_exact_cache")["observation"] = (
             rows[design_id]["reference"]
         )
+    if remaining:
+        startup = (
+            base_job["screen_cost"]["model"]
+            if arm == "carbon_model"
+            else config["startup_cost"]
+        )
+        if not ledger.charge_overhead(startup):
+            record("STOP_STARTUP_OVER_BUDGET")
+            return Replay(
+                _result(observed, ledger, direction, "BUDGET_STOP"), tuple(trace)
+            )
+        record("ARM_STARTUP", provenance="registered_cold_start")
     starts = action_job["starts"]
     stop_status = None
     while remaining:
@@ -759,7 +765,7 @@ def _run(base_job, action_job, policy, cap, arm, direction, challenge):
         remaining.remove(design_id)
         entry = record("SETTLED_SOLVER_ATTEMPT", design_id, "full_condition_panel")
         entry["observation"] = row["reference"]
-        entry["unresolved_cause"] = actions[design_id]["unresolved_cause"]
+        entry["reference_cause"] = actions[design_id]["reference_cause"]
         entry["attempts"] = len(attempts)
         source = actions[design_id]["warm_start_from"]
         entry["warm_start_from_digest"] = (
