@@ -1,0 +1,10 @@
+{
+  "family": "metagrating-3d",
+  "rows": [
+    {"id": "NanoComp-metagrating-device-1", "status": "PUBLIC_ANCHOR_EXCLUDED", "variant_decision_test": "UNRESOLVED_NO_VARIANT_TRUTH", "scored": false},
+    {"id": "NanoComp-metagrating-device-2", "status": "PUBLIC_ANCHOR_EXCLUDED", "variant_decision_test": "UNRESOLVED_NO_VARIANT_TRUTH", "scored": false},
+    {"id": "NanoComp-metagrating-device-3", "status": "PUBLIC_ANCHOR_EXCLUDED", "variant_decision_test": "UNRESOLVED_NO_VARIANT_TRUTH", "scored": false}
+  ],
+  "status": "DESCRIPTIVE",
+  "hidden_bank_authorized": false
+}

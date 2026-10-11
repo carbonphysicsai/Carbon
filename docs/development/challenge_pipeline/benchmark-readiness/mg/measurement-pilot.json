@@ -1,0 +1,29 @@
+{
+  "schema": "carbon.benchmark-measurement-pilot.v1",
+  "family": "metagrating-3d",
+  "scope": "PUBLIC_DEVELOPMENT",
+  "status": "PROPOSAL_NOT_REGISTERED_NOT_DISPATCHABLE",
+  "dispatch_authorized": false,
+  "cap_eur": 10,
+  "price_eur_per_host_hour": 1.37,
+  "price_basis": "OWNER_ASSUMPTION_NOT_CURRENT_QUOTE",
+  "platform_proposal": "single CCX63-class CPU host, at most 16 allocated vCPU, no GPU, serial processes",
+  "maximum_host_hours_at_assumed_price": 7.2992700729927,
+  "maximum_allocated_cpu_hours": 116.7883211678832,
+  "expected_host_hours_low_base_high": [0.8, 4.2, 10],
+  "expected_process_cpu_hours_low_base_high": [1, 20, 140],
+  "cost_eur_low_base_high": [1.096, 5.754, 13.7],
+  "hypothesis_not_measurement": true,
+  "planned_cases": [
+    {"id": "slab-Meep", "route": "Meep", "rungs_recommendation": [20, 40, 80], "counts": "three device + three homogeneous normalization launches"},
+    {"id": "slab-S4", "route": "S4", "rungs_recommendation": [25, 49, 81], "counts": "three device + three homogeneous normalization calls"},
+    {"id": "source-anchor-one", "route": "Meep+S4", "physical_action": null, "counts": "one non-scoring public source mask on both routes; Meep normalization included"},
+    {"id": "novel-public-nominal", "route": "Meep+S4", "physical_action": null, "counts": "one preregistered novel mask, both routes, complete order outputs"},
+    {"id": "novel-public-frontier", "route": "Meep+S4", "physical_action": null, "counts": "one preregistered frontier mask, both routes; no new solver-derived threshold assumed"}
+  ],
+  "maximum_solver_calls_planned": 24,
+  "stop_rule": "operator enforces earlier of EUR10 all-in or time/RAM cap; high hypothesis does not fit. Retain partial/infrastructure failures; no automatic retries or transferred family budgets. Quote/overheads can reduce available time.",
+  "measure": ["actual process CPU", "allocated vCPU-hours", "wall time", "peak RSS", "Meep normalization and device separately", "S4 basis and field-grid count", "order-vs-plane-flux residual", "energy residual", "verdict/pick/regret changes", "time/spatial/harmonic refinement", "image/spec/deck/observer hashes", "all attempts and failures"],
+  "holds": ["exact operator grant", "enforced spend/resource ledger", "complete pinned image and store observation", "source/rights/canonical catalogue", "exact cases and reuse against retained/scheduled solves", "registered numerical acceptance and MUI", "all readiness prerequisites except explicitly permitted pilot outputs"],
+  "future_owner": "Data Collection runs only after exact grant; no execution in this ticket"
+}

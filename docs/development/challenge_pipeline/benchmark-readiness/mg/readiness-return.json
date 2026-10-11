@@ -1,0 +1,14 @@
+{
+  "schema": "carbon.benchmark-readiness-return.v1",
+  "family": "metagrating-3d",
+  "tool_pr": 1039,
+  "tool_head": "98a236bf6d891d4383b85ec0f511949a31a5fbf7",
+  "main": "cfb60d3d5fdc7c83ecb5ff779470dc5a0856335c",
+  "observed_at": "2026-10-11T02:42:52Z",
+  "yes_count": 0,
+  "states": ["UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN", "UNKNOWN"],
+  "basis": "No configured public evidence adapter for this family on inspected main; absence of visibility is not evidence of seven failures or readiness",
+  "spend_authorized": false,
+  "qualified": false,
+  "next": "Register additive binding after readiness tool and family build merge; preserve image, measurement, kit/TRAIN and panel holds"
+}
