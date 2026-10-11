@@ -1,0 +1,11 @@
+{
+  "scope": "PUBLIC_DEVELOPMENT",
+  "source": "NanoComp/photonics-opt-testbed@a06518872de6ec82bb4511190e544211539f55f1",
+  "rows": [
+    {"id": "NanoComp-metagrating-device-1", "custody": "PUBLIC_REFERENCE_ANCHOR"},
+    {"id": "NanoComp-metagrating-device-2", "custody": "PUBLIC_REFERENCE_ANCHOR"},
+    {"id": "NanoComp-metagrating-device-3", "custody": "PUBLIC_REFERENCE_ANCHOR"}
+  ],
+  "full_current_catalogue": "NOT_FROZEN_NEW_DEVICES_REQUIRE_RIGHTS_AUDIT",
+  "variant_truth": null
+}
