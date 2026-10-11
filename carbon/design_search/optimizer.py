@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import time
+
 from carbon.design_search import tasks as dt
+from carbon.design_search.query_cost import QueryCostRecorder
 
 
 def _neighbors(grammar, action):
@@ -44,7 +47,7 @@ def _better(task, left, right):
     return key(left) < key(right)
 
 
-def run_optimizer(task, predictor, *, model_id):
+def run_optimizer(task, predictor, *, model_id, cost_recorder=None):
     """Run the registered exhaustive or multi-start path with a hard budget.
 
     The callback receives copies of a canonical action and one condition.
@@ -53,6 +56,8 @@ def run_optimizer(task, predictor, *, model_id):
     """
     if task.get("schema") != dt.RUNNABLE_SCHEMA:
         raise dt.TaskError("run_optimizer requires a registered runnable task")
+    if cost_recorder is not None and not isinstance(cost_recorder, QueryCostRecorder):
+        raise dt.TaskError("producer query cost recorder required")
     dt._verify_task_digest(task)
     grammar = task["identity"]["action_grammar"]
     optimizer = task["identity"]["optimizer"]
@@ -75,6 +80,7 @@ def run_optimizer(task, predictor, *, model_id):
 
     def proposal(action):
         nonlocal attempted, invalid, model_failures, stopped_for_budget
+        validation_started = time.perf_counter() if cost_recorder is not None else 0.0
         raw_key = dt.digest(action)
         if raw_key in seen:
             return index.get(raw_key)
@@ -90,6 +96,10 @@ def run_optimizer(task, predictor, *, model_id):
                 return None
             attempted += 1
             invalid += 1
+            if cost_recorder is not None:
+                cost_recorder.record(
+                    "INVALID", wall_seconds=time.perf_counter() - validation_started
+                )
             return None
         canonical_key = dt.digest(canonical)
         if canonical_key != raw_key and canonical_key in seen:
@@ -103,6 +113,7 @@ def run_optimizer(task, predictor, *, model_id):
         rows = {}
         for condition in conditions:
             attempted += 1
+            query_started = time.perf_counter() if cost_recorder is not None else 0.0
             try:
                 value = predictor(dict(canonical), dict(condition))
                 if not isinstance(value, dict) or not needed <= set(value):
@@ -117,7 +128,15 @@ def run_optimizer(task, predictor, *, model_id):
                 rows[condition["id"]] = {q: value[q] for q in needed}
             except Exception:  # noqa: BLE001 - untrusted model failures are counted
                 model_failures += 1
+                if cost_recorder is not None:
+                    cost_recorder.record(
+                        "MODEL_FAILED", wall_seconds=time.perf_counter() - query_started
+                    )
                 break
+            if cost_recorder is not None:
+                cost_recorder.record(
+                    "MODEL_OK", wall_seconds=time.perf_counter() - query_started
+                )
         else:
             panels.add(candidate)
             for condition_id, value in rows.items():
@@ -170,6 +189,8 @@ def run_optimizer(task, predictor, *, model_id):
         "exhaustive_coverage": complete,
         "stopped_for_budget": stopped_for_budget,
     }
+    if cost_recorder is not None:
+        cost_recorder.reconcile(accounting)
     body = {
         "schema": dt.COMMIT_SCHEMA,
         "task_digest": task["task_digest"],
@@ -186,7 +207,15 @@ def run_optimizer(task, predictor, *, model_id):
     }
 
 
-def audit_optimizer(primary_task, audit_task, predictor, *, model_id):
+def audit_optimizer(
+    primary_task,
+    audit_task,
+    predictor,
+    *,
+    model_id,
+    primary_cost_recorder=None,
+    audit_cost_recorder=None,
+):
     """Equal-budget path diagnostic; audit never substitutes its pick."""
     if (
         primary_task.get("schema") != dt.RUNNABLE_SCHEMA
@@ -203,8 +232,12 @@ def audit_optimizer(primary_task, audit_task, predictor, *, model_id):
 
     if comparable(primary_task) != comparable(audit_task):
         raise dt.TaskError("audit tasks must share the decision and query budget")
-    primary = run_optimizer(primary_task, predictor, model_id=model_id)
-    audit = run_optimizer(audit_task, predictor, model_id=model_id)
+    primary = run_optimizer(
+        primary_task, predictor, model_id=model_id, cost_recorder=primary_cost_recorder
+    )
+    audit = run_optimizer(
+        audit_task, predictor, model_id=model_id, cost_recorder=audit_cost_recorder
+    )
     return {
         "primary": primary,
         "audit": audit,

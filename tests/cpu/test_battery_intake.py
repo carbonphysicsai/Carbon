@@ -129,7 +129,8 @@ def test_the_public_facts_carry_no_private_state(deployed):
     assert body["receiver"] == VALIDATOR.ss58_address
     assert body["netuid"] == carbon_testnet_context().netuid
     assert body["tools"] == ["battery_submit", "battery_status"]
-    assert body["commitment"].startswith("not_checked")
+    # Built directly, without `_serve`: it makes no claim about the mode.
+    assert body["commitment"].startswith("unstated")
     assert body["qualification"] is False and body["reward"] is False
     text = json.dumps(body)
     for private in ("pscreen", "pfinal", "seed", "root", "case"):
@@ -764,3 +765,28 @@ def test_the_attempt_ledger_must_be_owner_only(tmp_path):
     assert ib.attempt_ledger_path({"inbox": "/x/inbox.sqlite3"}) == Path(
         "/x/inbox.sqlite3.attempts.sqlite3"
     )
+
+
+def test_the_commitment_fact_states_the_deployments_real_mode():
+    """3a, 2026-10-08: the door said "not_checked" while its deployment did
+    require and read chain commitments at admission. The fact now follows the
+    deployment."""
+    from types import SimpleNamespace
+
+    from carbon.battery.intake import commitment_fact
+
+    required = commitment_fact(
+        SimpleNamespace(require_commitment=True, commitments=object())
+    )
+    assert required.startswith("required:")
+    assert all(
+        c in required
+        for c in ("commitment_required", "commitment_stale", "commitment_contested")
+    )
+    no_reader = commitment_fact(
+        SimpleNamespace(require_commitment=True, commitments=None)
+    )
+    assert "commitment_reader_unavailable" in no_reader
+    assert commitment_fact(
+        SimpleNamespace(require_commitment=False, commitments=None)
+    ).startswith("not_checked:")

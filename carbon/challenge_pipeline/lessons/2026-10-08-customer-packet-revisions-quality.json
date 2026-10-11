@@ -1,0 +1,19 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-08-customer-packet-revisions-quality",
+  "recorded_at": "2026-10-08T10:58:18+00:00",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-CUSTOMER-PACKETS-02 initial quality and pipeline checks",
+    "description": "Native Ruff check, Black check and carbon.challenge_pipeline validate; public static tooling only."
+  },
+  "expected": "New test formatting and unchanged pipeline boundaries pass diagnostic checks.",
+  "observed": "Ruff passed. Initial Black check required reformatting the new test; formatter subsequently applied. Pipeline validation passed: DEFINING,7 records,442 lessons,0 awaiting decisions,3 controllers with3 pending identities. No gate or scientific identity was completed by this validation.",
+  "keep": ["Report individual command outcomes; a later successful pipeline command cannot erase the earlier formatting failure."],
+  "change": ["Format the static test before the final quality rerun; retain native-only acceptance limitations."],
+  "protocol_elements": ["honest validation basis", "unresolved identity preservation", "static document quality"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

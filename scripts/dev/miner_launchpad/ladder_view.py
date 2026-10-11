@@ -66,14 +66,14 @@ CAMPAIGN_LEVEL = 0
 AUDIENCE_BASIS = (
     "MINER_FACING is the level the ladder record names as chosen, the one "
     "miners get after the owners lock it. DEVELOPMENT is every level above "
-    "the target deployment's own level, and only when a deployment is named; "
-    "no deployment declares its level yet, so this view names none. Every "
-    "other level is NOT_OFFERED."
+    "the target deployment's own level, and only when a deployment is named: "
+    "the lowest level its intake's served_contracts lists. Every other level "
+    "is NOT_OFFERED."
 )
 READ_ONLY = (
-    "Display only. No level here can be chosen or submitted from this view, "
-    "and no level's bounds, gates or scoring change: the validator decides "
-    "what it serves."
+    "Display only. A level is chosen at launch (construction_level), not "
+    "here, and no level's bounds, gates or scoring change: the validator "
+    "decides what it serves."
 )
 
 
@@ -220,26 +220,22 @@ def _variants(challenge):
 def _compute_budget(challenge):
     """The contract envelope's compute budget, or NOT_SET; never invented."""
     from carbon.reconstruction.capability_registry import CONTRACTS
-    from carbon.reconstruction.challenge_contracts import COMPUTE_BUDGET
+    from carbon.reconstruction.challenge_contracts import (
+        BUDGET_SET,
+        declared_compute_budget,
+    )
 
     if challenge not in CONTRACTS:
         # No construction contract, so no envelope declares a budget.
         return {"status": "NOT_SET"}
     try:
-        envelope = dict(CONTRACTS[challenge].document()["envelope"])
+        # The one parse admission uses (LAUNCHPAD-COMPUTE-BUDGET-STATUS-01).
+        status, budget = declared_compute_budget(CONTRACTS[challenge])
     except Exception:  # noqa: BLE001
         raise SourcesUnavailable("contract_unreadable") from None
-    budget = envelope.get(COMPUTE_BUDGET)
-    if budget is None:
-        return {"status": "NOT_SET"}
-    if not (
-        type(budget) is dict
-        and set(budget) == {"unit", "value"}
-        and type(budget["unit"]) is str
-        and type(budget["value"]) in (int, float)
-    ):
-        return {"status": "MALFORMED"}
-    return {"status": "SET", "unit": budget["unit"], "value": budget["value"]}
+    if status != BUDGET_SET:
+        return {"status": status}
+    return {"status": BUDGET_SET, "unit": budget["unit"], "value": budget["value"]}
 
 
 def read_sources(challenge):
@@ -419,7 +415,8 @@ def construction_slot(challenge_id):
         "basis": (
             "Your campaign compiles against this Challenge's registered "
             "contract, construction Level 0. The ladder's record gives the "
-            "level's state; choosing another level at freeze is not offered yet."
+            "level's state; a campaign launched at another level "
+            "(construction_level) shows that level here instead."
         ),
         "text": row["text"],
         "state": row["state"],
@@ -428,8 +425,10 @@ def construction_slot(challenge_id):
     }
 
 
-def for_request(request):
-    """`ladder`: one registered Challenge's construction levels."""
+def for_request(request, deployment_level=None):
+    """`ladder`: one registered Challenge's construction levels. Every level
+    above `deployment_level`, the target intake's own (its lowest
+    `served_contracts` level, LAUNCHPAD-LEVELS-01 S2), is DEVELOPMENT."""
     from carbon.challenge_registry.campaigns import challenge_ref
     from scripts.dev.miner_launchpad.controller import Rejected
 
@@ -441,4 +440,7 @@ def for_request(request):
     ref = challenge_ref(challenge_id)
     if ref["version"] is None or version not in (None, ref["version"]):
         raise Rejected("challenge_unknown", 404)
-    return {**ladder_view(challenge_id), "version": ref["version"]}
+    return {
+        **ladder_view(challenge_id, deployment_level=deployment_level),
+        "version": ref["version"],
+    }

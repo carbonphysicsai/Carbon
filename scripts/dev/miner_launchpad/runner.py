@@ -47,6 +47,7 @@ from carbon.development_session.private_records import private_json
 from carbon.development_session.profile import canonical, digest
 from carbon.development_session.research_control import CampaignControl, DispatchStopped
 from carbon.development_session.research_ledger import CampaignLedger
+from scripts.dev.miner_launchpad import budget_view, levels
 from scripts.dev.miner_launchpad import supervisor as supervision
 from scripts.dev.miner_launchpad.controller import Rejected, owner_lock
 
@@ -361,6 +362,30 @@ def product_agent(root):
     return json.loads(manifest.read_bytes()).get("agent", "autonomous")
 
 
+#: The launch doors' names for "no Carbon agent": the miner selects, or their
+#: own agent over MCP does, on its own model.
+_NO_CARBON_AGENT = frozenset({"none", "own-agent"})
+
+
+def _selects_without_carbon_model(root, row=None):
+    """Whether Carbon calls no model in this campaign (LA-F11): its frozen
+    manifest's agent, or before one exists its admitted launch's, is `none`.
+    Anything unreadable is not taken for `none`, so a key check still runs."""
+    try:
+        agent = product_agent(root)
+    except (OSError, ValueError):
+        # A manifest mid-write reads as nothing here; the key check decides.
+        return False
+    if agent is None and row is not None:
+        stored = row.get("launch_request")
+        try:
+            recorded = json.loads(stored) if type(stored) in (str, bytes) else None
+        except ValueError:
+            recorded = None
+        agent = recorded.get("agent") if type(recorded) is dict else None
+    return agent in _NO_CARBON_AGENT
+
+
 def waits_for_its_miner(root):
     """Whether the campaign at `root`, once nothing holds it, settles READY:
     `research_campaign.waits_for_its_miner` - no agent, or a retained
@@ -533,6 +558,30 @@ def binding_changes(cfg, row, manifest):
     if frozen_task != guidance.configured(cfg):
         changed.append("research_guidance")
     return changed
+
+
+#: A campaign frozen under a revision the runner profile no longer accepts
+#: (LA-F19).
+FROZEN_ON_OLD_REVISION = "campaign_frozen_on_old_revision"
+
+
+def frozen_revision_refusal(cfg, manifest):
+    """`campaign_frozen_on_old_revision` when the campaign's frozen manifest
+    names an implementation revision other than the one the runner profile
+    accepts now; otherwise None (LA-F19).
+
+    Practice, freeze and submit prepare the campaign on this checkout, and
+    every Challenge's preparation compares the frozen runtime with the one
+    this checkout composes: a campaign frozen before Carbon was updated and
+    the installer re-run can never pass it. Observed live (2026-10-10): the
+    submit was answered SUBMITTING and the campaign went INTERRUPTED with an
+    untyped ValueError. A manifest naming no revision is left to preparation,
+    which refuses it by its own check."""
+    implementation = manifest.get("implementation")
+    frozen = implementation.get("revision") if type(implementation) is dict else None
+    if type(frozen) is str and frozen != cfg.get("accepted_revision"):
+        return FROZEN_ON_OLD_REVISION
+    return None
 
 
 def evaluation_refusal(cfg, manifest):
@@ -742,7 +791,7 @@ MODEL_SELECTION_FIELDS = frozenset(
 )
 
 
-def setup_selection(cfg, *, settings=None, output_default=None):
+def setup_selection(cfg, *, settings=None, output_default=None, input_default=None):
     """The profile's setup choice as a validated selection, with its key file.
 
     Raises `ModelSelectionRefused` when it does not validate.
@@ -755,6 +804,7 @@ def setup_selection(cfg, *, settings=None, output_default=None):
         credential={"kind": "file", "reference": path or "unset"},
         settings=settings,
         output_default=output_default,
+        input_default=input_default,
         **chosen,
     )
 
@@ -882,8 +932,14 @@ class LaunchChoice:
     #: captured at admission), or None for any other agent: then the args
     #: carry no `graphite`, exactly as before Graphite existed.
     graphite: dict | None = None
+    #: The construction-level binding a launch at a level named
+    #: (LAUNCHPAD-LEVELS-01 S2, `levels.launch_binding`), or None at Level 0:
+    #: then the args carry none and the manifest is what it was.
+    construction_level: dict | None = None
 
     def apply(self, args):
+        if self.construction_level is not None:
+            args.construction_level = dict(self.construction_level)
         if self.selection is not None:
             from carbon.development_session.model_provider import selection_spec
 
@@ -1120,10 +1176,73 @@ def hunt_estimate(cfg):
     }
 
 
+def graphite_default_selection(cfg):
+    """The selection a Graphite launch naming no model and no model settings
+    runs with (setup's choice, or the pinned default), exactly as its
+    campaign's builder chooses it: the model's own maximum output
+    (OWNER-LAUNCHPAD-PROD-02) and its published context less that output
+    (OWNER-GRAPHITE-MINER-INPUT-WINDOW-01). None when it does not validate."""
+    from carbon.development_session.model_provider import (
+        DEFAULT_SELECTION,
+        INPUT_DEFAULT_V2,
+        OUTPUT_DEFAULT_V2,
+        ModelSelectionRefused,
+        select,
+    )
+
+    try:
+        if "model_selection" in cfg:
+            return setup_selection(
+                cfg, output_default=OUTPUT_DEFAULT_V2, input_default=INPUT_DEFAULT_V2
+            )
+        return select(
+            provider_id=DEFAULT_SELECTION.provider_id,
+            model_id=DEFAULT_SELECTION.model_id,
+            credential={"kind": "file", "reference": "unset"},
+            output_default=OUTPUT_DEFAULT_V2,
+            input_default=INPUT_DEFAULT_V2,
+        )
+    except (ModelSelectionRefused, KeyError, TypeError, ValueError):
+        return None
+
+
+def graphite_input_window(cfg):
+    """The input window a Graphite launch gets, said before it spends (LA-F8,
+    OWNER-GRAPHITE-MINER-INPUT-WINDOW-01): for a launch naming no model and
+    no window, the window its campaign will freeze, what each call reserves
+    at it and the least provider_nanodollars ceiling a FULL launch at the
+    default research share needs (`driver.launch_window`), and whether the
+    advisory applies. The advisory applies when that window, or the
+    max_input_tokens a miner sets, is at most `advised_at_or_below`."""
+    from carbon.agent_campaign.graphite.miner import driver
+    from carbon.development_session.model_provider import INPUT_DEFAULT_V2
+    from scripts.dev.miner_launchpad.supervisor import next_action
+
+    selection = graphite_default_selection(cfg)
+    window = None if selection is None else driver.launch_window(selection)
+    return {
+        "launch_field": "model_settings.max_input_tokens",
+        "default_rule": INPUT_DEFAULT_V2,
+        "default": None if window is None else window["max_input_tokens"],
+        "launch_default": (
+            None
+            if window is None
+            else {
+                "model": selection.provider_id + ":" + selection.model_id,
+                **window,
+            }
+        ),
+        "advised_at_or_below": driver.INPUT_WINDOW_ADVISED_AT_OR_BELOW,
+        "advisory": "graphite_input_window_too_small",
+        "next_step": next_action("graphite_input_window_too_small"),
+    }
+
+
 def graphite_options(cfg):
     """What a Graphite launch may choose, for the launch form and an agent:
     the modes, the research share, a hunt's shape and planning cost, the
-    optional limits, and the Challenges Graphite runs on."""
+    optional limits, the input window and its advisory (LA-F8) and the
+    Challenges Graphite runs on."""
     from carbon.challenge_registry.campaigns import implemented_campaigns
 
     return {
@@ -1170,6 +1289,10 @@ def graphite_options(cfg):
             "maximum": LIMIT_MAX,
             "omitted": "only your campaign ceilings - money, attempts, trials, time - bind",
         },
+        # LA-F8: said before a launch spends, not after. Advisory only;
+        # nothing is refused (capabilities' input_window lists each model's
+        # published context and Graphite default).
+        "input_window": graphite_input_window(cfg),
         "offered_for": [
             {"id": entry.challenge_id, "version": entry.version}
             for entry, _campaign in implemented_campaigns()
@@ -2590,6 +2713,7 @@ class RunnerAdapter:
         chooses (the model's own maximum, OWNER-LAUNCHPAD-PROD-02)."""
         from carbon.development_session.model_provider import (
             ADAPTERS,
+            INPUT_DEFAULT_V2,
             OUTPUT_DEFAULT_V2,
             ModelSelectionRefused,
             check_budget,
@@ -2597,6 +2721,10 @@ class RunnerAdapter:
         )
         from carbon.development_session.product_campaign import miner_budget
 
+        # A Graphite launch's unset input window is its model's published
+        # context less its output cap (OWNER-GRAPHITE-MINER-INPUT-WINDOW-01),
+        # as the campaign's own builder will choose it.
+        input_default = INPUT_DEFAULT_V2 if request.get("agent") == GRAPHITE else None
         mode = request.get("feedback_mode")
         if mode is not None:
             if type(mode) is not str or mode not in feedback_modes():
@@ -2643,7 +2771,10 @@ class RunnerAdapter:
                 # campaign's own builder will choose it.
                 selection = (
                     setup_selection(
-                        cfg, settings=settings, output_default=OUTPUT_DEFAULT_V2
+                        cfg,
+                        settings=settings,
+                        output_default=OUTPUT_DEFAULT_V2,
+                        input_default=input_default,
                     )
                     if same_as_setup
                     else select(
@@ -2652,6 +2783,7 @@ class RunnerAdapter:
                         credential={"kind": "file", "reference": path},
                         settings=settings,
                         output_default=OUTPUT_DEFAULT_V2,
+                        input_default=input_default,
                     )
                 )
                 budget = miner_budget(request.get("budget"))
@@ -2763,6 +2895,9 @@ class RunnerAdapter:
         graphite = self._graphite_choice(request, challenge)
         if graphite is not None:
             choice = replace(choice or LaunchChoice(), graphite=graphite)
+        level = levels.launch_binding(request, challenge, request["agent"], cfg)
+        if level is not None:
+            choice = replace(choice or LaunchChoice(), construction_level=level)
         run_id, request_digest, config_pin = self._launch_identity(cfg, request)
         root = Path(cfg["campaigns_root"]) / run_id
         product = ProductLaunch(
@@ -2895,6 +3030,9 @@ class RunnerAdapter:
             choice = replace(choice or LaunchChoice(), graphite=graphite)
         elif captured is not None:
             raise Rejected("launch_record_differs", 409)
+        level = levels.launch_binding(request, challenge, request.get("agent"), cfg)
+        if level is not None:
+            choice = replace(choice or LaunchChoice(), construction_level=level)
         miner = _registered(self, cfg)
         _signer_reachable(self, cfg)
         product = ProductLaunch(
@@ -3104,6 +3242,37 @@ class RunnerAdapter:
     def ladder_admitted(self, admitted, request):
         # A Challenge's construction levels, from data (LAUNCHPAD-LEVELS-01).
         from scripts.dev.miner_launchpad.ladder_view import for_request
+
+        return for_request(request, deployment_level=self._target_level(request))
+
+    def _target_level(self, request):
+        """The profile's target intake's own level for the Challenge: the
+        lowest its `served_contracts` lists, so every level above it is
+        labelled DEVELOPMENT (LAUNCHPAD-LEVELS-01 S2); None when no intake is
+        configured or its facts list none or cannot be read."""
+        from carbon.development_session.construction_level import deployment_level
+
+        challenge = request.get("challenge")
+        if type(challenge) is not str:
+            return None
+        try:
+            cfg = self.configured()
+            from carbon.challenge_registry.campaigns import challenge_ref
+
+            ref = challenge_ref(challenge)
+            facts = levels.read_facts(
+                cfg,
+                {"id": challenge, "version": ref["version"]},
+                self.read_intake_facts,
+            )
+        except Exception:  # noqa: BLE001 - unread names no deployment level
+            return None
+        return deployment_level(facts) if facts is not None else None
+
+    def budget_status_admitted(self, admitted, request):
+        # A recipe against its Challenge's compute budget, by admission's own
+        # rule (LAUNCHPAD-COMPUTE-BUDGET-STATUS-01).
+        from scripts.dev.miner_launchpad.budget_view import for_request
 
         return for_request(request)
 
@@ -3550,7 +3719,15 @@ class RunnerAdapter:
         from scripts.dev.miner_launchpad.operations import strategy_value
 
         strategy = strategy_value(request)
-        self._design_refusal(strategy)
+        # Its preparation would refuse it on the thread (LA-F19).
+        self._require_current_revision(admitted)
+        # At a construction level, the level's compile first; check-design
+        # then judges the recipe's Level 0 base (LAUNCHPAD-LEVELS-01 S2).
+        # A Level 0 campaign never reads the profile here.
+        found = levels.campaign_binding(
+            admitted.campaign, getattr(admitted, "profile", None)
+        )
+        self._design_refusal(levels.checked_strategy(found, strategy))
         hypothesis = request["hypothesis"]
         expected = request.get("expected_effect", hypothesis)
         for text in (hypothesis, expected):
@@ -3580,14 +3757,46 @@ class RunnerAdapter:
         reason = request["reason"]
         if type(reason) is not str or not 1 <= len(reason) <= 4096:
             raise Rejected("bounded_reason_required")
-        self._design_refusal(strategy)
+        # Its preparation would refuse it on the thread (LA-F19).
+        self._require_current_revision(admitted)
+        # A Level 0 campaign never reads the profile here.
+        found = levels.campaign_binding(
+            admitted.campaign, getattr(admitted, "profile", None)
+        )
+        self._design_refusal(levels.checked_strategy(found, strategy))
         refusal = freeze_refusal(Path(admitted.campaign["root"]), strategy)
         if refusal is not None:
             raise Rejected(refusal, 409)
+        # A level's freeze refusals, Level 4's lowered submission among them,
+        # now rather than on the thread (LAUNCHPAD-LEVELS-01 S2, S3). The
+        # level refuses before the budget does: an inadmissible strategy is
+        # not a spending question.
+        directory = request.get("level4_directory")
+        levels.checked_freeze(found, strategy, directory)
+        # Refused now, with the numbers, where the submission compile would
+        # refuse it on the thread (LAUNCHPAD-COMPUTE-BUDGET-STATUS-01).
+        budget = budget_view.require_within(strategy)
         params = {"strategy": strategy, "reason": reason, "used_feedback": used}
-        return self._background(
-            admitted, "freeze_candidate", params, "FREEZING", request
+        if directory is not None:
+            params["level4_directory"] = directory
+        return self._with_budget(
+            self._background(admitted, "freeze_candidate", params, "FREEZING", request),
+            budget,
         )
+
+    @staticmethod
+    def _with_budget(value, budget):
+        """An answer with the recipe's compute budget status beside it."""
+        return {**value, "budget_status": budget} if type(value) is dict else value
+
+    @staticmethod
+    def _frozen_budget(admitted):
+        """The frozen candidate's compute budget status, or its refusal raised
+        before anything is signed or sent."""
+        from scripts.dev.miner_launchpad.commitment import frozen_candidate
+
+        _, record, _ = frozen_candidate(Path(admitted.campaign["root"]))
+        return budget_view.require_within(record.get("strategy"))
 
     def submit_admitted(self, admitted, request):
         # Checked before the thread starts, so a submit that cannot be
@@ -3596,10 +3805,33 @@ class RunnerAdapter:
         # the caller rather than answered SUBMITTING and refused where no one
         # sees it (LP-PROD-C D11; observed live: the page said "Submitted").
         self._admissible(admitted)
+        self._require_current_revision(admitted)
         self._require_frozen(admitted)
+        budget = self._frozen_budget(admitted)
         self._require_evaluation(admitted)
+        self._require_level_served(admitted)
         self._require_commitment(admitted)
-        return self._background(admitted, "submit", {}, "SUBMITTING", request)
+        return self._with_budget(
+            self._background(admitted, "submit", {}, "SUBMITTING", request), budget
+        )
+
+    #: How a level campaign's target intake facts are read before a commit
+    #: or submit: None reads them through the campaign's own intake check;
+    #: a test names a fixture reader.
+    read_intake_facts = None
+
+    def _require_level_served(self, admitted):
+        """A level campaign's pre-sign refusals (LAUNCHPAD-LEVELS-01 S2):
+        `level_not_registered`, `level_not_served_by_target`, and for Level 4
+        `level4_envelope_transport_unavailable`. A Level 0 campaign passes."""
+        path = Path(admitted.campaign["root"]) / "campaign-manifest.json"
+        if not path.exists():
+            raise Rejected("campaign_not_prepared", 409)
+        manifest = json.loads(path.read_bytes())
+        if levels.binding(manifest) is None:
+            # Level 0: nothing here reads the profile or the target.
+            return
+        levels.require_served(admitted.profile, manifest, read=self.read_intake_facts)
 
     def _require_commitment(self, admitted):
         """`commitment_required` now, before anything is signed or sent, when
@@ -3729,9 +3961,14 @@ class RunnerAdapter:
         if type(recommit) is not bool:
             raise Rejected("recommit_boolean_required")
         self._admissible(admitted)
+        # A level candidate is committed only for a target that serves it.
+        self._require_level_served(admitted)
         identity = admitted.campaign["id"]
         root = Path(admitted.campaign["root"])
         epoch, digest = self._candidate_digest(root)
+        # Before anything is signed: a candidate its budget refuses is not
+        # committed (LAUNCHPAD-COMPUTE-BUDGET-STATUS-01).
+        budget = self._frozen_budget(admitted)
         try:
             poster = self._poster(admitted.profile)
         except Exception:  # noqa: BLE001 - its closed code, never its text
@@ -3753,18 +3990,21 @@ class RunnerAdapter:
         if not plan["needed"] and not recommit:
             # L3: already the hotkey's commitment; nothing is asked or sent.
             cp.write_request(root, **fields, outcome=cp.PostCode.ALREADY_ON_CHAIN.value)
-            return self.get(identity)
+            return self._with_budget(self.get(identity), budget)
         path = root / cp.REQUEST_FILE
         previous = path.read_bytes() if path.exists() else None
         cp.write_request(root, **fields)
         try:
-            return self._background(
-                admitted,
-                "commit",
-                {"digest": digest, "recommit": recommit},
-                None,
-                request,
-                probe_lock=False,
+            return self._with_budget(
+                self._background(
+                    admitted,
+                    "commit",
+                    {"digest": digest, "recommit": recommit},
+                    None,
+                    request,
+                    probe_lock=False,
+                ),
+                budget,
             )
         except BaseException:
             # Not admitted: the campaign's earlier request stands.
@@ -3987,6 +4227,21 @@ class RunnerAdapter:
                 time.sleep(0.05)
 
     @staticmethod
+    def _require_current_revision(admitted):
+        """`campaign_frozen_on_old_revision` now, before anything starts, for
+        a campaign frozen under a revision the runner profile no longer
+        accepts (`frozen_revision_refusal`, LA-F19): its preparation would
+        refuse it on the thread. Reads stay open; a campaign not yet prepared
+        has no frozen revision to compare."""
+        cfg = getattr(admitted, "profile", None)
+        path = Path(admitted.campaign["root"]) / "campaign-manifest.json"
+        if type(cfg) is not dict or not path.exists():
+            return
+        refusal = frozen_revision_refusal(cfg, json.loads(path.read_bytes()))
+        if refusal is not None:
+            raise Rejected(refusal, 409)
+
+    @staticmethod
     def _require_frozen(admitted):
         """The rules `research_campaign.submit_frozen` enforces, read from the
         campaign's files: the miner selects in it, a final exam is left, and
@@ -4161,7 +4416,15 @@ class RunnerAdapter:
         only: before the campaign's manifest exists, the provider its
         admitted launch recorded (`launch_provider`) is the one checked, as
         the run that then carries the launch out uses it (LA-F5). Without a
-        record, or one naming no provider, the pinned default's rule stands."""
+        record, or one naming no provider, the pinned default's rule stands.
+
+        A campaign whose agent is `none` needs no key: the miner, or the
+        miner's own agent on its own model, selects, and Carbon calls no model
+        for it (the battery campaign opens no key then either). Its practice,
+        freeze and submit were refused for another provider's key before
+        LA-F11."""
+        if _selects_without_carbon_model(root, row):
+            return None
         provider = frozen_provider(root)
         if provider is None and row is not None:
             provider = launch_provider(cfg, row)
@@ -4657,6 +4920,14 @@ class RunnerAdapter:
         row, kind, root = self._bound(identity)
         row = dict(row)
         value = project(row, root)
+        # Each practice result's recipe against its Challenge's compute
+        # budget, by admission's own rule; practice is never refused by it
+        # (LAUNCHPAD-COMPUTE-BUDGET-STATUS-01).
+        for experiment in value.get("experiments") or ():
+            if type(experiment) is dict:
+                experiment["budget_status"] = budget_view.status(
+                    experiment.get("recipe")
+                )
         # A retired-grant row has no such column: never refused here.
         value["last_refusal"] = supervision.read_refusal(row.get("last_refusal"))
         outcome = _intake_outcome(value["last_refusal"], root)

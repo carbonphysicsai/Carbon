@@ -39,15 +39,19 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import statistics
 from decimal import ROUND_HALF_DOWN, Decimal, InvalidOperation
 
 SCHEMA = "carbon.design-task.v1"
 RUNNABLE_SCHEMA = "carbon.design-task.v2"
+INDEXED_SCHEMA = "carbon.design-task.indexed.v1"
 GRAMMAR_SCHEMA = "carbon.action-grammar.v1"
 COMMIT_SCHEMA = "carbon.design-task.commitment.v1"
+INDEXED_COMMIT_SCHEMA = "carbon.design-task.indexed-commitment.v1"
 SENSES = ("min", "max")
-AGGREGATES = ("worst", "mean")
+AGGREGATES = ("worst", "mean", "quantile")
+QUANTILE_RULE = "inverse_cdf_left.v1"
 OPS = ("<=", ">=")
 TIE_RULES = ("secondary_then_bank_order",)
 REFERENCE_STATES = ("FEASIBLE_EXISTS", "NONE_FEASIBLE", "UNRESOLVED")
@@ -82,9 +86,24 @@ def digest(value):
 
 def _quantity(spec, where):
     if spec.get("sense") not in SENSES or spec.get("aggregate") not in AGGREGATES:
-        raise TaskError(f"{where}: sense must be min|max, aggregate worst|mean")
+        raise TaskError(
+            f"{where}: sense must be min|max, aggregate worst|mean|quantile"
+        )
     if not spec.get("quantity") or "unit" not in spec:
         raise TaskError(f"{where}: quantity and unit are required")
+    if spec["aggregate"] == "quantile":
+        probability = spec.get("probability")
+        if (
+            type(probability) not in (int, float)
+            or not math.isfinite(probability)
+            or not 0 <= probability <= 1
+            or spec.get("rule") != QUANTILE_RULE
+        ):
+            raise TaskError(
+                f"{where}: quantile needs probability in [0,1] and registered rule"
+            )
+    elif "probability" in spec or "rule" in spec:
+        raise TaskError(f"{where}: quantile fields require quantile aggregation")
     return dict(spec)
 
 
@@ -335,6 +354,9 @@ def _validate_runnable(identity, candidates, actions):
 def _aggregate(spec, values):
     if spec["aggregate"] == "mean":
         return statistics.fmean(values)
+    if spec["aggregate"] == "quantile":
+        index = max(0, math.ceil(spec["probability"] * len(values)) - 1)
+        return sorted(values)[index]
     return max(values) if spec["sense"] == "min" else min(values)
 
 
@@ -425,18 +447,60 @@ def commit(task_, predicted, *, model_id):
     return {**body, "commitment_digest": digest(body)}
 
 
-def run_optimizer(task_, predictor, *, model_id):
+def run_optimizer(task_, predictor, *, model_id, cost_recorder=None):
     """Execute a registered optimizer on model predictions only."""
     from carbon.design_search.optimizer import run_optimizer as execute
 
-    return execute(task_, predictor, model_id=model_id)
+    return execute(task_, predictor, model_id=model_id, cost_recorder=cost_recorder)
 
 
-def audit_optimizer(primary_task, audit_task, predictor, *, model_id):
+def indexed_task(task_id, *, index_axis, indices, query_budget, value_equivalence):
+    """Compose runnable per-index tasks into one registered buyer decision."""
+    from carbon.design_search.indexed import indexed_task as register
+
+    return register(
+        task_id,
+        index_axis=index_axis,
+        indices=indices,
+        query_budget=query_budget,
+        value_equivalence=value_equivalence,
+    )
+
+
+def run_indexed_optimizer(registered, predictor, *, model_id):
+    """Run each registered index quota before any reference comparison."""
+    from carbon.design_search.indexed import run_indexed_optimizer as execute
+
+    return execute(registered, predictor, model_id=model_id)
+
+
+def judge_indexed(registered, commitment, references):
+    """Judge mandatory per-index limits before the buyer-weighted objective."""
+    from carbon.design_search.indexed import judge_indexed as judge_map
+
+    return judge_map(registered, commitment, references)
+
+
+def audit_optimizer(
+    primary_task,
+    audit_task,
+    predictor,
+    *,
+    model_id,
+    primary_cost_recorder=None,
+    audit_cost_recorder=None,
+):
     """Run a second registered path without changing the primary pick."""
     from carbon.design_search.optimizer import audit_optimizer as execute
 
-    return execute(primary_task, audit_task, predictor, model_id=model_id)
+    return execute(
+        primary_task,
+        audit_task,
+        predictor,
+        model_id=model_id,
+        primary_cost_recorder=primary_cost_recorder,
+        audit_cost_recorder=audit_cost_recorder,
+    )
 
 
 def reference_state(task_, truth):

@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-10-onboarding-packet-tests",
+  "recorded_at": "2026-10-10T17:32:48Z",
+  "challenge": "protocol",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "ONBOARDING-AUTOMATION-01", "description": "Native UTF-8 generator and pipeline tests: 37 passed; pinned Black and Ruff passed; diff whitespace check passed. Native output is diagnostic; CI supplies canonical acceptance. Regenerated and text-diffed motor/battery packets in 0.001387/0.000865 s, excluding interpreter/human work."},
+  "expected": "Brief drafts preserve ten sections without copying unrelated science, and verified source bytes do not become approval.",
+  "observed": "Both short briefs leave 38 HUMAN_INPUT fields, correctly exposing the work still needed. No evidence-backed equivalence or historical person-hour baseline exists.",
+  "keep": ["Require exact excerpt and hash for retained claims; report gaps and the basis of every comparison."],
+  "change": ["Do not count missing research and review work as automation time saved."],
+  "protocol_elements": ["design packet", "readiness", "lessons"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

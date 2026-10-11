@@ -224,8 +224,14 @@ def test_the_battery_ladder_renders_from_its_data():
     assert [a["arm"] for a in one["arms"]] == ["signed"]
     widened = {c["id"]: c for c in one["capabilities"] if c["widened"]}
     assert "objective.loss_expressions" in widened
-    assert two["variant"]["name"] == "battery-l2-spectral-v1"
-    muon = {c["id"]: c for c in two["capabilities"]}["optimizer.muon_spectral"]
+    # Level 2's current variant is v2 (BATTERY-L2-POOL-SELECTION-01): SpecMuon
+    # unchanged plus pool selection.
+    assert two["variant"]["name"] == "battery-l2-v2"
+    by_id = {c["id"]: c for c in two["capabilities"]}
+    pool = by_id["training_data.pool_selection"]
+    assert pool["widened"][0]["surface"] is None
+    assert pool["widened"][0]["bounds"]["refused_parts"] == ["practice"]
+    muon = by_id["optimizer.muon_spectral"]
     assert muon["proposal"] is None
     assert muon["widened"][0]["surface"]["kind"] == "bool"
     assert muon["widened"][0]["bounds"]["interpretation"] == "specmuon-carbon-v1"
@@ -238,7 +244,7 @@ def test_the_battery_ladder_renders_from_its_data():
         "ssbroyden",
     ]
     assert three["left_out"]  # the accepted proposal adds nothing itself
-    assert four["variant"]["name"] == "battery-l4-graph-v1"
+    assert four["variant"]["name"] == "battery-l4-graph-v3"
     assert four["variant"]["scope"] == ladder_view.VARIANT_SCOPE
     assert four["variant"]["status"] == "REGISTERED_DEVELOPMENT_POLICY"
     graphs = [c for c in four["capabilities"] if c["widened"]]
@@ -296,7 +302,7 @@ def test_a_tampered_variant_is_named_with_its_refusal_and_widens_nothing(
 
     copy = tmp_path / "policies"
     shutil.copytree(cr.DEVELOPMENT_VARIANT_DIR, copy)
-    path = copy / "battery-l2-spectral-v1.json"
+    path = copy / "battery-l2-v2.json"
     document = json.loads(path.read_text(encoding="utf-8"))
     document["widened"][0]["bounds"]["constants"]["top_modes"] = 9
     path.write_text(json.dumps(document), encoding="utf-8")
@@ -306,7 +312,9 @@ def test_a_tampered_variant_is_named_with_its_refusal_and_widens_nothing(
     assert two["variant_refusal"] == ladder_view.ALTERED
     assert two["variant"]["refusal"] == ladder_view.ALTERED
     assert all(not c["widened"] for c in two["capabilities"])
-    assert "optimizer.muon_spectral" not in {c["id"] for c in two["capabilities"]}
+    ids = {c["id"] for c in two["capabilities"]}
+    assert "optimizer.muon_spectral" not in ids
+    assert "training_data.pool_selection" not in ids
 
 
 # ---- The operation, on both doors.
@@ -381,7 +389,7 @@ def test_both_doors_give_the_same_ladder(browser):
     mcp = asyncio.run(tool.fn(challenge=BATTERY)).payload
     assert code == 200, content
     assert json.loads(content) == mcp == perform(host, "ladder", {"challenge": BATTERY})
-    assert mcp["levels"][2]["variant"]["name"] == "battery-l2-spectral-v1"
+    assert mcp["levels"][2]["variant"]["name"] == "battery-l2-v2"
 
 
 # ---- The Contract view's slot.

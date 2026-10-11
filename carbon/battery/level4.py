@@ -19,6 +19,31 @@ import json
 import sys
 from pathlib import Path
 
+
+# `level4_model` imports numpy and battery's recipes. The variant mechanism
+# imports this module and stays pure data at import, so it is imported only
+# when called.
+def _classic_fit(*args, **kwargs):
+    from .level4_model import classic_fit
+
+    return classic_fit(*args, **kwargs)
+
+
+def _dims(model):
+    from .level4_model import dims
+
+    return dims(model)
+
+
+def __getattr__(name):
+    """`classic_fit` is `level4_model.classic_fit` (one stageable copy)."""
+    if name == "classic_fit":
+        from .level4_model import classic_fit
+
+        return classic_fit
+    raise AttributeError(name)
+
+
 REPOSITORY = Path(__file__).resolve().parents[2]
 EXPANSION = "carbon/reconstruction/expansions/battery-fastcharge-ageing-development-v1/0001.json"
 FAMILIES_JAX = ("mlp", "deeponet")
@@ -115,19 +140,6 @@ def _model(strategy_, train):
             fade=model.fade,
         )
     return recipe, model
-
-
-def _dims(model):
-    """Input width from battery's own `features`, and the output width."""
-    import numpy as np
-
-    from carbon.battery.recipes import BOUNDS, features
-
-    lay = model.layout
-    n_in = features(np.asarray(BOUNDS[:, :1].T, float), model.rich).shape[1]
-    if model.pca:
-        return n_in, 2 * model.pca + 1 + lay.k
-    return n_in, lay.nv + lay.nt + 1 + lay.k
 
 
 def interface(strategy_):
@@ -231,6 +243,67 @@ def knn_native(strategy_, m):
     return model, model.u, model.y, u, np.einsum("nk,nkd->nd", w, model.y[idx])
 
 
+KNN_INPUTS = ["inputs/train_unit", "inputs/train_targets", "inputs/query_unit"]
+
+
+def knn_interface(strategy_=None):
+    """The kNN graph's development interface: TRAIN inputs in unit scale,
+    TRAIN targets (normalized) and query inputs in unit scale in, normalized
+    outputs out, all float64 with one leading batch (the query is TRAIN, as
+    in Phase 0). Development only, like `interface`."""
+    from ..level4.validate import Interface
+
+    del strategy_
+    m = material()
+    d, c = m.train.x.shape[1], _knn_columns(m)
+    return Interface(
+        inputs=(
+            ("inputs/train_unit", "float64", (d,)),
+            ("inputs/train_targets", "float64", (c,)),
+            ("inputs/query_unit", "float64", (d,)),
+        ),
+        outputs=(("float64", (c,)),),
+    )
+
+
+def lower_knn(strategy_, allowlist, *, max_bytes):
+    """Miner side: battery's kNN predictor lowered to a forward graph at the
+    TRAIN batch (float64). It has no parameters, so its init spec is empty.
+    Carbon never trains it: a forward-only graph (its `gather` and `sort`
+    are the review ops a GPU leg must exercise)."""
+    import jax
+    import jax.numpy as jnp
+
+    from ..level4 import graph, initializers, submission, tooling
+
+    m = material()
+    n = batch(m)
+    k = strategy_["parameters"]["neighbours"]
+    with jax.enable_x64(True):
+        u = jax.ShapeDtypeStruct((n, m.train.x.shape[1]), jnp.float64)
+        y = jax.ShapeDtypeStruct((n, _knn_columns(m)), jnp.float64)
+        _, forward, _ = tooling.through_bprime(
+            knn_jax(k),
+            (u, y, u),
+            role="forward",
+            allowlist=allowlist,
+            input_names=KNN_INPUTS,
+            max_bytes=max_bytes,
+        )
+    spec = {
+        "schema": initializers.SCHEMA,
+        "graph": graph.digest(forward),
+        "parameters": [],
+    }
+    return submission.build(
+        challenge=challenge_id(),
+        interface=knn_interface().digest(),
+        allowlist=allowlist,
+        forward=forward,
+        init_spec=spec,
+    )
+
+
 # --- PyTorch -----------------------------------------------------------------
 
 
@@ -249,77 +322,6 @@ def torch_network(strategy_, train, seed=7):
 
 
 # --- Equivalence hooks: the rebuilt graph inside battery's own training ------
-
-
-def classic_fit(model, d, y, seed, net, make_params):
-    """`recipes.MLP._fit_classic`'s loop with `net` and `make_params(key)`
-    supplied: the Level 0 MLP's written-out full-batch Adam(W) with cosine
-    decay, statement for statement (history recording off). Run with the
-    native `net` it must reproduce `MLP.fit`'s digest exactly; that pins this
-    copy to the declarative path before the rebuilt `net` is compared."""
-    import hashlib
-
-    import jax
-    import jax.numpy as jnp
-    import numpy as np
-
-    from carbon.battery.recipes import features
-
-    z = model._encode(y).astype(np.float32)
-    f = features(d.x, model.rich).astype(np.float32)
-    sw = np.where(d.important, model.important_weight, 1.0).astype(np.float32)
-    gw = model._group_weights(z.shape[1]).astype(np.float32)
-    params = make_params(jax.random.PRNGKey(seed), f.shape[1], z.shape[1])
-
-    def loss(p, xx, yy):
-        r = (net(p, xx) - yy) ** 2
-        return jnp.sum(sw[:, None] * r * gw[None, :]) / jnp.sum(sw)
-
-    initial = float(jax.jit(loss)(params, f, z))
-
-    steps, lr0, wd = model.steps, model.lr, model.wd
-    b1, b2, eps = 0.9, 0.999, 1e-8
-
-    @jax.jit
-    def train(p, xx, yy):
-        m = jax.tree_util.tree_map(jnp.zeros_like, p)
-        v = jax.tree_util.tree_map(jnp.zeros_like, p)
-
-        def step(c, i):
-            p, m, v = c
-            g = jax.grad(loss)(p, xx, yy)
-            lr = lr0 * 0.5 * (1 + jnp.cos(jnp.pi * i / steps))
-            m = jax.tree_util.tree_map(lambda a, b: b1 * a + (1 - b1) * b, m, g)
-            v = jax.tree_util.tree_map(lambda a, b: b2 * a + (1 - b2) * b * b, v, g)
-            t = i + 1.0
-            p = jax.tree_util.tree_map(
-                lambda w, a, b: (
-                    w
-                    - lr
-                    * ((a / (1 - b1**t)) / (jnp.sqrt(b / (1 - b2**t)) + eps) + wd * w)
-                ),
-                p,
-                m,
-                v,
-            )
-            return (p, m, v), None
-
-        (p, m, v), _ = jax.lax.scan(
-            step, (p, m, v), jnp.arange(steps, dtype=jnp.float32)
-        )
-        return p, loss(p, xx, yy)
-
-    p, final = train(params, f, z)
-    leaves = [np.asarray(a) for a in jax.tree_util.tree_leaves(p)]
-    blob = b"".join(a.tobytes() for a in leaves)
-    out = np.asarray(jax.jit(net)(p, jnp.asarray(f)))
-    return {
-        "params_sha256": hashlib.sha256(blob).hexdigest(),
-        "initial_loss": initial,
-        "final_loss": float(final),
-        "outputs_sha256": hashlib.sha256(out.tobytes()).hexdigest(),
-        "params": leaves,
-    }
 
 
 def classic_params(model):
@@ -388,7 +390,7 @@ def equivalence_classic(allowlist, strategy_, *, steps=None, seed=7, max_bytes):
     if not model.classic:
         raise ValueError("this recipe does not train through the classic path")
     y = model.layout.targets(m.train)
-    native = classic_fit(model, m.train, y, seed, classic_net(), classic_params(model))
+    native = _classic_fit(model, m.train, y, seed, classic_net(), classic_params(model))
     f = features(m.train.x, model.rich).astype(np.float32)
     n_in, n_out = f.shape[1], y.shape[1]
     make = classic_params(model)
@@ -418,7 +420,7 @@ def equivalence_classic(allowlist, strategy_, *, steps=None, seed=7, max_bytes):
         leaves = init_b(key)
         return [(leaves[2 * i], leaves[2 * i + 1]) for i in range(len(leaves) // 2)]
 
-    rebuilt = classic_fit(model, m.train, y, seed, rebuilt_net, rebuilt_make)
+    rebuilt = _classic_fit(model, m.train, y, seed, rebuilt_net, rebuilt_make)
     return {
         "path": "classic (recipes.MLP._fit_classic)",
         "steps": model.steps,
@@ -1099,7 +1101,7 @@ def train_graph(strategy_, prepared, *, seed):
     if _is_classic(model, m):
         _targets(model, m)  # `fit`'s target scaling, which `classic_fit` reads
         y = model.layout.targets(m.train)
-        result = classic_fit(
+        result = _classic_fit(
             model, m.train, y, seed, forward, lambda key, _a, _b: prepared.init(key)
         )
         return {"path": "classic", **result}
@@ -1217,12 +1219,20 @@ def graph_equivalence(
 # --- The development-only Level 4 variant (LEVEL4-DEV-VARIANT-01) -------------
 
 LEVEL = 4
-VERSION = "battery-l4-graph-v1"
+#: v2 carries the owner's caps and G5's accepted status (OWNER-L4-VALUES-01);
+#: v3 declares `loss_override: graph` (LEVEL4-LOSS-OVERRIDE-01). v1 and v2
+#: stay registered as history.
+VERSION = "battery-l4-graph-v3"
+#: The G6 loss slot this development variant admits (`carbon.level4.loss`):
+#: a submitted per-case loss graph may replace battery's loss. Development
+#: only; battery's frozen and live rules declare no override.
+LOSS_OVERRIDE = "graph"
 CAPABILITY = "hybrid.composition_graphs"
 FIELD = "composition_graphs"
 AUTHORITY = (
     "OWNER-LEVEL4-GRAPH-ONLY-01 (D1); OWNER-GRAPHITE-TEST-WAVE-03 section 1; "
-    "OWNER-GRAPHITE-DEV-LEVELS-01 F1; LEVEL4-DEV-VARIANT-01"
+    "OWNER-GRAPHITE-DEV-LEVELS-01 F1; LEVEL4-DEV-VARIANT-01; "
+    "OWNER-L4-G5-COMPILE-ISOLATION-01; OWNER-L4-VALUES-01; LEVEL4-LOSS-OVERRIDE-01"
 )
 REVIEW = {
     "reviewer": "Test Lead",
@@ -1230,7 +1240,9 @@ REVIEW = {
         "Test Lead ruling 2026-10-08 (Level 4 PR 8): the Level 4 surface is the "
         "allowlist, the constant caps, the compute budget and gates G0-G7, at "
         "maximum freedom; the drafted surface is "
-        "docs/development/graphite/level4/LEVEL4_CAPABILITY_DRAFT.md"
+        "docs/development/graphite/level4/LEVEL4_CAPABILITY_DRAFT.md. "
+        "Test Lead decision 2026-10-09 (LEVEL4-LOSS-OVERRIDE-01): this "
+        "development variant declares loss_override: graph"
     ),
 }
 _SUMMARY = (
@@ -1242,7 +1254,10 @@ _GATES = [
     "G0 intake (carbon.level4.intake)",
     "G3 isolated parse (carbon.level4._parse_worker)",
     "G4 validation (carbon.level4.validate)",
-    "G5 compile in isolation (carbon.level4.compile): fail-closed until D3",
+    (
+        "G5 compile in isolation (carbon.level4.compile): accepted for development "
+        "and testnet (OWNER-L4-G5-COMPILE-ISOLATION-01)"
+    ),
     "G6 Carbon trains (carbon.level4.train)",
     "G7 Carbon grades (carbon.level4.grade)",
 ]
@@ -1258,9 +1273,19 @@ def _bounds(allowlist):
         "submission_schema": submission.SCHEMA,
         "gates": list(_GATES),
         "caps": {name: value for name, value in allowlist_module.CAPS.items()},
-        "compute_budget": "TRAINING-BUDGET-01 compute budget; HUMAN_INPUT until battery's sheet sets it",
+        "compute_budget": (
+            "one budget with Level 0, no separate Level 4 share (OWNER-L4-VALUES-01 "
+            "section 5); binds only once the TRAINING-BUDGET-01 cost calculator "
+            "costs development recipes"
+        ),
         "interface": "the Level 0 network boundary in development (battery.level4.interface)",
         "training": "Carbon's key, battery's own loop and optimizer menu, TRAIN v1 only",
+        "loss_override": LOSS_OVERRIDE,
+        "loss_slot": (
+            "a per-case loss graph (carbon.level4.loss, PHASE1_PLAN section 4.5) "
+            "may replace battery's loss; Carbon maps it over the batch and takes "
+            "the mean; G7's exam is unchanged"
+        ),
     }
 
 
@@ -1337,3 +1362,15 @@ def _reconstructions():
 
 
 RECONSTRUCTIONS = _reconstructions()
+
+
+def _record_bounds():
+    from ..reconstruction.capability_registry import BATTERY_CHALLENGE
+
+    return {(BATTERY_CHALLENGE, CAPABILITY): ("loss_override",)}
+
+
+#: The variant's bounds a Level 4 record carries
+#: (`development_variants.RECORD_BOUNDS`): v3's `loss_override`, so the
+#: rebuild admits a loss graph only under the variant that declares it.
+RECORD_BOUNDS = _record_bounds()

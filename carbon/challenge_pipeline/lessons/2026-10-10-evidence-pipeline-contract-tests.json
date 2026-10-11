@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-10-evidence-pipeline-contract-tests",
+  "recorded_at": "2026-10-10T21:49:58Z",
+  "challenge": "protocol",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "EVIDENCE-PIPELINE-ONE-COMMAND-01", "description": "Initial contract-shaped fixture and comparison/replay/page diagnostics; then indexed f02 coverage."},
+  "expected": "One command reuses existing contracts and refuses broken provenance without inventing science or cost.",
+  "observed": "Initial 114 focused native regressions passed. After indexed f02 was added, 21 pipeline tests passed. Earlier fixture-shape/import mistakes were repaired, not accepted as evidence. These are native fixture diagnostics, not canonical or physical qualification.",
+  "keep": ["Judge raw predictions against pinned truth", "Require all battery bands and all f02 contexts"],
+  "change": ["Wrap f02 per-context comparator views without flattening the buyer question", "Check explicit abstentions independently of prediction coverage"],
+  "protocol_elements": ["evidence_identity", "buyer_decision", "claim_control"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

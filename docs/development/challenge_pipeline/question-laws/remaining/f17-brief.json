@@ -1,0 +1,8 @@
+{
+  "schema": "carbon.onboarding.brief.v1",
+  "challenge": "f17",
+  "buyer": "Mock lab-cartridge engineer",
+  "decision": "Choose supported groove geometry with best worst-condition outlet uniformity across the complete nine-condition panel while preserving pressure and residence hard limits",
+  "physics": "Finite 3D laminar channel flow and passive scalar transport; numerical diffusion cannot count as mixing",
+  "solver": "Proposed pinned OpenFOAM flow plus scalar reference; velocity reuse needs verified physical and observer applicability"
+}

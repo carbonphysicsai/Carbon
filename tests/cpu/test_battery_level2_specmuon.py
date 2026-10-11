@@ -65,7 +65,7 @@ def test_the_variant_is_registered_recorded_and_built_from_the_code():
         }
     )
     assert dv.newest_record(found, None, None) is not None
-    (widened,) = found.widened
+    (widened,) = [w for w in found.widened if w.capability_id == level2.SPECTRAL]
     assert widened.surface.kind == "bool" and widened.surface.default is False
     bounds = level2.variant_document()["widened"][0]["bounds"]
     assert bounds["interpretation"] == "specmuon-carbon-v1"

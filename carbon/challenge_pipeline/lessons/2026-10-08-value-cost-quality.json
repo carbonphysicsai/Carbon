@@ -1,0 +1,28 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-08-value-cost-quality",
+  "recorded_at": "2026-10-08T21:01:09Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-VALUE-COST-01 quality",
+    "description": "Native Black formatting and Ruff for the new scorecard tests."
+  },
+  "expected": "Bounded diagnostic validation of the eight scorecards without solver or paid execution.",
+  "observed": "Black reformatted one test file; Ruff passed. Native tools only, not pinned CI.",
+  "keep": [
+    "Test arithmetic and evidence-state boundaries without changing runtime code."
+  ],
+  "change": [
+    "Label code consistency separately from scientific acceptance."
+  ],
+  "protocol_elements": [
+    "buyer value",
+    "cost units",
+    "historical evidence",
+    "owner boundaries"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

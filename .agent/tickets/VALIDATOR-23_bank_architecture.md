@@ -105,7 +105,8 @@ most about 3 % false-feasible).
    tranches, Merkle, window draws, exposure and retirement, top-up,
    coverage. Tests on a synthetic source.
 2. **The battery pool bank and the v2 commitment and import.**
-3. **Battery quiz banks** (Q2, stratified Q3) and per-stratum reporting.
+3. **Design-question banks** (amended 2026-10-08, the Test Lead's slice 3
+   decisions D1–D3; see "Slice 3" below).
 4. **Motor** (motor-like class), once its design space is revised.
 5. **The canary,** with the first CFD-class Challenge.
 
@@ -172,3 +173,113 @@ most about 3 % false-feasible).
 
 IMPLEMENTED and TESTED. Not SECURITY_QUALIFIED or SCIENTIFICALLY_QUALIFIED.
 No LIVE authority.
+
+## Slice 3: design-question banks (amended 2026-10-08)
+
+**The Test Lead's decisions** (within the quiz-design remit):
+- **D1: Q2 is out of the design banks.** Q2's near-limit cases are accuracy
+  and safety cases: they go through the case bank and pool path, as
+  near-limit strata. Design banks hold design questions only: Q3 now, and
+  indexed charge maps later.
+- **D2: k = 8, B = 160, E = 5,** registered as development working values
+  (`design_bank.DESIGN_BANKS`).
+  - k is a registered parameter, not a constant. The sealed v8 quiz's power
+    report shows that 8 questions can't separate a bad control within one
+    batch.
+  - So per-miner evidence accumulates across batches. That is a first-class
+    field of slice 3c's outcome records.
+- **D3: the Test Lead registers battery Q3's score rule:** OWNER-BATTERY-SCORE-
+  RULE-01's q leg, through #827's bridge.
+
+**Design.**
+- A design bank is a `BankLedger` bank `design:<id>`. One case is one
+  question:
+  - `inputs` are `{task, task_digest, draw}`, a frozen plain or indexed
+    task;
+  - `reference` is the bridge's `{status: OK, panel | per_index}`, or a
+    terminal non-live status.
+- A Challenge supplies one `QuestionLaw`: `draw`, staged `next_stage`, and
+  `references`. The bank core is unchanged apart from the bank name.
+- **E counts every question draw:** +1 per window that serves the question,
+  including a window later voided.
+
+**Slices:**
+- **3a (this PR):**
+  - `design_bank`: `QuestionLaw`, `DesignBankSource`, `DesignBank` (staged
+    and resumable fill) and the CLI;
+  - the battery Q3 law (`battery_q3_bank`): v8's neutral task; lattice, then
+    refine, then settle; live only when reference-feasible with every
+    candidate's truth defined.
+- **3b:** producer windows draw design questions. This brings:
+  - a commitment `design` field;
+  - questions with proofs in the package;
+  - validator import verification;
+  - per-stratum reporting.
+- **3c:** bridge scoring under the registered rule (report-only), with
+  cross-batch per-miner evidence.
+- **3d:** the indexed law for battery v3, after the owner approves its
+  question law.
+
+### Slice 3b, as built
+
+- **Rule `v2-bank-design`** (`exam.DEVELOPMENT_RULE_V2_BANK_DESIGN`): `v2-bank`,
+  unchanged, plus `design: {bank: "design:battery-q3", k: 8, retire_at: 5}`.
+  - `v2-bank` and its deployments, including the running bank startup, are
+    untouched. The disclosure stays v2's: SEALED.
+  - The producer refuses a rule whose k and E differ from the bank's
+    registration (`producer_design_rule_mismatch`).
+- **The producer** (`BankedBatterySource`, config key `design`: the design
+  bank's directory):
+  - Each **screening** window draws `k` questions with the window's slot key,
+    disjoint from the other live screening windows. A finalist window draws
+    none.
+  - A short bank is topped up first, with up to three tranches, since not
+    every drawn question is live. Then it refuses `producer_design_bank_short`.
+- **The commitment** gains `design: {bank, k, tranches, selection_digest}`.
+  **The package** gains `design.questions`: per question, its inputs, its
+  reference, its tranche and its Merkle proof.
+- **The validator** (`BatteryAdapter._checked_design`), under a design rule:
+  - a screening window carries exactly `k` questions, and nothing else
+    carries any;
+  - bank and k equal the rule's, and the selection digest equals the ids';
+  - each task digest re-derives, and each reference is `OK`;
+  - each question proves into a committed sealed tranche.
+
+  The questions are then stored privately (`PoolStore.set_design`).
+  `design_counts` reports the active pool's windows and questions (public
+  counts). Q3 has one stratum (`all`), so the per-stratum split arrives with
+  strata.
+- **Startup cost.** One Q3 question is about 125 truth solves (the lattice
+  plus refine). B = 160 live therefore needs roughly 25–30k solves, about
+  700–800 CPU-h at 91 CPU-s each. That is CCX63 startup territory, and it
+  goes to the Test Lead's sizing.
+
+### Slice 3c, as built (report-only)
+
+- **The rule** (`design_scoring.battery_q3_rule`, version `battery-q3-v8-q.v1`)
+  is the q leg of OWNER-BATTERY-SCORE-RULE-01: battery v8 Q3 decision regret
+  through #827's bridge. Its costs are read from EV4's contract. Registered by
+  the Test Lead, 2026-10-08 (D3), with the record `RULE_RECORD`.
+  - **Its q equals `score_tuning`'s exactly** (q3_judge, then q3_measures,
+    then member_legs) for a perfect and a flawed model. The bank's
+    references are settled truth, so v8's refined truth is included, and
+    UNRESOLVED is priced pessimistically.
+- **The daemon** (`design_report`, after `quiz_report`; injected
+  `design_measures`):
+  - the retained model predicts each question's lattice jobs, rebuilt from
+    the stored proven `draw`, under the namespace `design/`;
+  - each window is scored through the bridge and stored in
+    `design_reports`.
+  - **Failures:** a candidate's missing prediction is `INELIGIBLE`; a
+    reference failure is `VOID`; infrastructure is `FAILED_INFRA`, retried.
+
+  It gates nothing.
+- **Cross-window evidence** (`evidence`, `design_scoring evidence --hotkey`):
+  per miner, the loss minus the good reference's loss (the exhaustive
+  optimizer on the settled reference), summed per question. The one-sided
+  exact sign test runs over the question clusters
+  (`one-sided-exact-sign-test-by-shared-bank.v1`). A diagnostic only.
+- **Score use:** a window's own q, from VALIDATOR-26's rule v3. The pooled
+  evidence awaits the owner.
+- **The first tranche is partial:** `design_bank fill --live 24` (3 windows of
+  k = 8), with the target B = 160 unchanged (the Test Lead, 2026-10-08).

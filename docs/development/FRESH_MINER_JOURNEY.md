@@ -91,6 +91,49 @@ with the fields in [Record](#record).
      images (and the GPU worker) locally, records them for setup, and checks
      setup against them.
    - It prints how to start the Control Center again, then starts it.
+   - **A second install on the same checkout (LA-F15, LA-F16).** Give it
+     its own state directory and port, for example
+     `CARBON_STATE_DIR=$HOME/.carbon/minerA ~/carbon/scripts/install_miner.sh --port 8789`.
+     - With `--service`, each state directory has its own user service. The
+       default state directory's is `carbon-control-center`; any other is
+       `carbon-control-center-<directory>-<hash>`. The installer prints the
+       exact restart, stop, status and log commands for its own service.
+     - An install never writes, starts or stops another state directory's
+       service, and an install without `--service` writes no unit at all.
+       If `carbon-control-center` runs another state directory (an
+       installer before LA-F15 could rewrite it), the installer says so
+       and leaves it alone. Run the default install again with `--service`
+       to give it back.
+     - At the same revision the second install builds no image. It uses
+       the worker, analysis image and GPU worker already built from that
+       exact source tree, as long as Docker still holds them, so both
+       installs' records and compute checks stay valid.
+     - Moving the checkout to another revision changes it for every
+       install that shares it. Run each of the other installs again
+       (`--no-start`, with its own `CARBON_STATE_DIR`) so setup checks it
+       against the new images.
+   - **Or install Carbon's released images (LA-F10,
+     OWNER-WORKER-IMAGES-V2-01):** add `--release worker-images-vN`, for
+     example `~/carbon/scripts/install_miner.sh --release worker-images-v2`.
+     - The installer moves the checkout to that release tag. The tag must be
+       on main.
+     - It downloads the release's records from its GitHub release, then pulls
+       each image they name from `ghcr.io/carbonphysicsai` by digest: the
+       worker, the analysis image, and the GPU worker with `--gpu`. It checks
+       each image against its record and builds nothing.
+     - Setup accepts these images because the checkout is at the revision
+       they were built from.
+     - A tag that is not a release on main, a release without its records,
+       or a failed pull stops the install before anything is recorded. The
+       message names the command that builds the images locally instead
+       (`--ref <tag>`, without `--release`).
+     - Releases from before `--release` existed (`worker-images-v1`) cannot
+       be pulled this way. Build them with `--ref`.
+     - `--update --release <tag>` moves to that release only if it is at this
+       install's revision or newer. To go back to an older release, run
+       `--release <tag>` without `--update`.
+     - Registry access is your own machine's. The public images need no
+       login, and Carbon reads no credential.
    Record its output.
 2. **Start your signer.** In your own terminal, run
    `~/carbon/.venv/bin/carbon-miner-signer --wallet <your wallet> --hotkey <your hotkey>`
@@ -113,8 +156,9 @@ with the fields in [Record](#record).
      ([MINER_REMOTE_SETUP.md](MINER_REMOTE_SETUP.md)).
      - Choose the transport: `ssh-docker` for a machine with Docker and the
        NVIDIA Container Toolkit; `ssh-container` for a container you started
-       from the pinned GPU worker, pushed with
-       `scripts/dev/push_worker_image.sh`.
+       from the pinned GPU worker. After a `--release` install, setup names
+       the released `repository@sha256:...` reference. Otherwise, push the
+       worker with `scripts/dev/push_worker_image.sh`.
      - Give the SSH destination and port, the GPU worker manifest and the
        Challenge.
      - The check uses only your SSH and starts nothing.
@@ -149,6 +193,22 @@ with the fields in [Record](#record).
    Record two practices. For a remote setup, check afterwards that no
    `carbon-job-*` container or `/tmp/carbon-job-*` directory is left on it,
    then stop it yourself.
+
+   Each practice result also says whether its recipe is inside the
+   Challenge's submission compute budget, next to its training seconds
+   (LAUNCHPAD-COMPUTE-BUDGET-STATUS-01). The line is admission's own rule:
+   - "Within budget: X of Y <unit>" or "Over budget: X of Y <unit>", once the
+     Challenge declares a budget;
+   - "Budget not set for this Challenge" until then. This is every Challenge
+     today. No number is shown, and the per-setting caps are the limit;
+   - "Budget unit not calibrated yet" while the budget's unit needs factors
+     the Challenge's study has not fitted.
+
+   Each Challenge's budget comes from its own training budget study and the
+   owner's decision on it. Practice is never refused by it. Freeze, commit
+   and submit are: an over-budget recipe is refused `over_compute_budget`,
+   with its cost and the ceiling, before anything is signed or sent.
+   `carbon_budget_status` checks any recipe first.
 10. **Freeze, commit and submit.** Record the submission and its verdict.
     When the validator runs elsewhere, also record the intake URL and the
     submission id. An intake whose validator requires an on-chain commitment
@@ -163,7 +223,10 @@ with the fields in [Record](#record).
     Observe and the campaign view show the same readback on both doors:
     - the submission id;
     - for a submit that was not a verdict, its refusal with `intake_outcome`
-      (`QUEUED`, `UNAVAILABLE` or `REFUSED`);
+      (`QUEUED`, `UNAVAILABLE` or `REFUSED`). Observe does not ask the
+      validator again. For a `QUEUED` submit, submit again later: that asks
+      the intake for the recorded submission's result, and it is never a
+      second submission (LA-F18);
     - a verdict's public fields: its state, exam rule, recipe and contract
       digests, and how it was rebuilt.
     Under a sealed rule (v2) a scored outcome is `sealed`: no screening,
@@ -171,13 +234,19 @@ with the fields in [Record](#record).
 
 ## Updating
 
-Stop the Control Center first: Ctrl-C in its terminal, or
-`systemctl --user stop carbon-control-center`. A running Control Center stops
-the update before anything changes. Then run:
+Stop the Control Center first: Ctrl-C in its terminal, or stop its own
+service: `systemctl --user stop carbon-control-center` for the default state
+directory, or the `carbon-control-center-<directory>-<hash>` name the
+installer printed for another one. A running Control Center stops the update
+before anything changes. Then run:
 
 ```sh
 ~/carbon/scripts/install_miner.sh --update
 ```
+
+For another state directory, run it with that install's own
+`CARBON_STATE_DIR`. An update restarts only that install's own service, on
+the port its unit already has unless you give `--port`.
 
 An install made before 2026-10-03 has an installer without `--update`, which
 refuses it. Run `~/carbon/scripts/install_miner.sh --no-start` once: that

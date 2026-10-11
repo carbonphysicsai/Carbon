@@ -63,6 +63,13 @@ def test_mcp_and_http_return_the_same_campaign_view(tmp_path):
             assert code == 200
             assert json.loads(content) == via_mcp.payload
             assert via_mcp.official_eligible is False
+            gates = via_mcp.payload["practice_gate_breakdown"]
+            assert gates["status"] == "AVAILABLE"
+            assert gates["gate_failures"]["voltage_ceiling"] == {
+                "trials": 1,
+                "cases": 6,
+            }
+            assert "fixture-run-03" not in str(gates)
         selected = via_mcp.payload["per_case"]["selected"]
         assert selected["case_id"] == host.view.case_ids()[5]
         # A note posted through one door is in the view the other reads.
@@ -133,6 +140,9 @@ def test_the_fixture_cannot_start_work_or_reach_a_ledger():
 
 def test_the_fixture_draws_the_whole_surface():
     doc = _fixture().view_document()
+    gates = doc["practice_gate_breakdown"]
+    assert gates["gate_failures"]["voltage_ceiling"] == {"trials": 1, "cases": 6}
+    assert gates["exported_trials"] == doc["experiments"]["total"]
     assert {c["id"] for c in doc["charts"]} == {
         "components",
         "trend_score",

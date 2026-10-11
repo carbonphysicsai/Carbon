@@ -1,0 +1,27 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-09-f13-diagnosis-baseline",
+  "recorded_at": "2026-10-09T17:40:00Z",
+  "challenge": "f13",
+  "stage": "design",
+  "execution": {
+    "kind": "test_run",
+    "ref": "F13-POWER-BALANCE-DIAGNOSIS-01",
+    "description": "Static analysis/baseline and toy arithmetic diagnostics."
+  },
+  "expected": "Diagnose reference accounting without executing or qualifying a solver.",
+  "observed": "Corrected existing native quiz/pipeline baseline: 45 passed in5.57s. Native diagnostic only.",
+  "keep": [
+    "Existing adequacy and lifecycle tests remain unchanged."
+  ],
+  "change": [
+    "Request signed retained-integral evidence before new solves; never normalize away conservation error."
+  ],
+  "protocol_elements": [
+    "reference failure separation",
+    "port power",
+    "conservation"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

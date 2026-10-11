@@ -1,0 +1,497 @@
+{
+  "schema": "carbon.magnetics-first-panels.proposal.v1",
+  "status": "SPECIFIED_NOT_APPROVED",
+  "dispatch_ready": false,
+  "source": {
+    "discovery_pr": 928,
+    "discovery_head": "536a2716bd24a41751a1d382fca40038ff1384ae",
+    "main": "432d22b786a7341de788bc8b1206526849f3a31f",
+    "motor_image_candidate": "ghcr.io/carbonphysicsai/carbon-motor-reference@sha256:599521e79786ee0326a0754ba0545f51ee9665adff73c3515c8d4b8ba24c1c05"
+  },
+  "maturity": {
+    "customer_confirmed": false,
+    "reference_adequacy": "NOT_DEMONSTRATED",
+    "tier_2": "TARGET_NOT_EARNED",
+    "C1": "UNMEASURED",
+    "C2": "ESTIMATE_ONLY"
+  },
+  "approval": {
+    "panel_grant": "HUMAN_INPUT",
+    "dimensional_anchor": "HUMAN_INPUT",
+    "materials_and_rights": "HUMAN_INPUT",
+    "customer_limits_and_objective": "HUMAN_INPUT",
+    "deck_mesh_extractor_pins": "HUMAN_INPUT",
+    "refinement_bands": "HUMAN_INPUT",
+    "witness_access": "HUMAN_INPUT",
+    "P": "HUMAN_INPUT",
+    "w": "HUMAN_INPUT"
+  },
+  "budget": {
+    "basis": "ASSUMPTION_NOT_GRANT",
+    "cap_eur_per_family": 20,
+    "aggregate_if_both_selected_eur": 40,
+    "rate_eur_node_hour": 1.37,
+    "tax_multiplier": 1.19,
+    "elapsed_cpu_ratio": 1,
+    "setup_idle_mesh_fit_hours": 2,
+    "other_cash_reserve_eur": 5,
+    "incremental_witness_licence_eur": 0,
+    "human_labour": "NOT_PRICED",
+    "node_wall_cap_hours": 9.15,
+    "worker_processes": 1,
+    "allocated_vcpus": 2,
+    "solver_threads": 1,
+    "ram_limit_gib": 16,
+    "gpu": false,
+    "automatic_retries": false,
+    "complete_case_timeout_minutes": 45,
+    "enforcement": "NOT_IMPLEMENTED"
+  },
+  "strata": [
+    "nominal",
+    "upper_material_current",
+    "assembly_tolerance"
+  ],
+  "law": {
+    "P": "CUSTOMER_JOB_LAW_HUMAN_INPUT",
+    "Q": "FIXED_PUBLIC_DIAGNOSTIC_SCHEDULE",
+    "w": "HUMAN_INPUT",
+    "none_feasible": "ONLY_CERTIFIED_FULL_MENU_HARD_FAILURES_NO_REDRAW",
+    "unresolved": "RETAIN_NO_CANDIDATE_FAILURE"
+  },
+  "families": {
+    "solenoid_pole": {
+      "grammar": "AXISYMMETRIC_NON_PM_POT_YOKE_V1_PROPOSAL",
+      "fields": [
+        "tip_radius_over_Ra",
+        "nose_length_over_S",
+        "shoulder_radius_over_Ra",
+        "yoke_web_over_Ra"
+      ],
+      "bounds": [
+        [
+          0.6,
+          1
+        ],
+        [
+          0,
+          0.5
+        ],
+        [
+          1,
+          1.4
+        ],
+        [
+          0.35,
+          0.75
+        ]
+      ],
+      "designs": [
+        {
+          "id": "S01",
+          "parameters": [
+            1,
+            0,
+            1,
+            0.55
+          ]
+        },
+        {
+          "id": "S02",
+          "parameters": [
+            0.6,
+            0,
+            1.2,
+            0.55
+          ]
+        },
+        {
+          "id": "S03",
+          "parameters": [
+            0.8,
+            0.25,
+            1.2,
+            0.55
+          ]
+        },
+        {
+          "id": "S04",
+          "parameters": [
+            0.6,
+            0.5,
+            1.4,
+            0.55
+          ]
+        },
+        {
+          "id": "S05",
+          "parameters": [
+            1,
+            0.5,
+            1.4,
+            0.55
+          ]
+        },
+        {
+          "id": "S06",
+          "parameters": [
+            0.8,
+            0.5,
+            1.2,
+            0.35
+          ]
+        },
+        {
+          "id": "S07",
+          "parameters": [
+            0.8,
+            0.5,
+            1.2,
+            0.75
+          ]
+        },
+        {
+          "id": "S08",
+          "parameters": [
+            0.6,
+            0.25,
+            1.2,
+            0.35
+          ]
+        },
+        {
+          "id": "S09",
+          "parameters": [
+            1,
+            0.25,
+            1.4,
+            0.75
+          ]
+        },
+        {
+          "id": "S10",
+          "parameters": [
+            0.7,
+            0.375,
+            1.3,
+            0.65
+          ]
+        }
+      ],
+      "registered_status": "NORMALIZED_PROPOSAL_ONLY_ANCHOR_UNBOUND",
+      "stroke_fractions": [
+        0,
+        0.125,
+        0.25,
+        0.375,
+        0.5,
+        0.625,
+        0.75,
+        0.875,
+        1
+      ],
+      "current_fractions": [
+        0.25,
+        0.6,
+        1
+      ],
+      "fields_per_complete_case": 27,
+      "refined_designs": [
+        "S01",
+        "S04"
+      ],
+      "refined_cases": 6,
+      "refined_cost_multiplier": 2,
+      "virtual_work": {
+        "stroke_fractions": [
+          0.25,
+          0.5,
+          0.75
+        ],
+        "current_fraction": 1,
+        "probe_multipliers": [
+          -1,
+          -0.5,
+          0.5,
+          1
+        ],
+        "epsilon": "HUMAN_INPUT",
+        "extra_fields_per_refined_case": 12
+      },
+      "primary_cases": 30,
+      "control_case_allocations": 4,
+      "witness_case_allocations": 4,
+      "failed_case_allocations": 4,
+      "witness_pairs": [
+        {
+          "design": "S01",
+          "stratum": "nominal"
+        },
+        {
+          "design": "S04",
+          "stratum": "assembly_tolerance"
+        }
+      ],
+      "max_field_system_allocations": 1368,
+      "coarse_complete_case_equivalents": 59.333333333333336,
+      "C1_cpu_hours_hypothesis": [
+        0.01,
+        0.04,
+        0.12
+      ],
+      "ram_gib_hypothesis": [
+        0.5,
+        2,
+        6
+      ],
+      "cost_eur_hypothesis": [
+        9.227911333333333,
+        12.129845333333332,
+        19.868336
+      ],
+      "outputs": [
+        "signed_axial_force_N",
+        "closing_force_N",
+        "flux_linkage_Wb_turn",
+        "secant_inductance_H",
+        "peak_B_T",
+        "magnetic_energy_J",
+        "coenergy_J",
+        "DC_I2R_W",
+        "force_method_discrepancy",
+        "refinement_coverage"
+      ],
+      "required_new_features": [
+        "axisymmetric_A_phi_basis_and_jacobian",
+        "closed_air_Maxwell_stress_force",
+        "nonlinear_BH_energy_coenergy",
+        "current_turn_area_normalization",
+        "parameterized_gap_geometry"
+      ],
+      "not_checked": [
+        "thermal_duty",
+        "friction",
+        "switching_dynamics",
+        "hysteresis",
+        "transverse_eccentricity"
+      ],
+      "complete_at_high_hypothesis_within_cash_cap": true
+    },
+    "planar_transformer": {
+      "grammar": "SYMMETRIC_FOUR_LAYER_EE_CORE_2D_SLICE_V1_PROPOSAL",
+      "fields": [
+        "layer_order",
+        "equivalent_gap_over_H",
+        "center_gap_fraction",
+        "adjacent_layer_pitch_over_H",
+        "stack_offset_over_H"
+      ],
+      "bounds": [
+        [
+          "PPSS",
+          "PSSP",
+          "PSPS"
+        ],
+        [
+          0.005,
+          0.02
+        ],
+        [
+          0,
+          1
+        ],
+        [
+          0.12,
+          0.2
+        ],
+        [
+          -0.1,
+          0.1
+        ]
+      ],
+      "designs": [
+        {
+          "id": "T01",
+          "parameters": [
+            "PPSS",
+            0.01,
+            0.5,
+            0.16,
+            0
+          ]
+        },
+        {
+          "id": "T02",
+          "parameters": [
+            "PSSP",
+            0.01,
+            0.5,
+            0.16,
+            0
+          ]
+        },
+        {
+          "id": "T03",
+          "parameters": [
+            "PSPS",
+            0.01,
+            0.5,
+            0.16,
+            0
+          ]
+        },
+        {
+          "id": "T04",
+          "parameters": [
+            "PPSS",
+            0.02,
+            1,
+            0.2,
+            0.1
+          ]
+        },
+        {
+          "id": "T05",
+          "parameters": [
+            "PSPS",
+            0.005,
+            0,
+            0.12,
+            -0.1
+          ]
+        },
+        {
+          "id": "T06",
+          "parameters": [
+            "PSSP",
+            0.02,
+            0,
+            0.12,
+            0.1
+          ]
+        },
+        {
+          "id": "T07",
+          "parameters": [
+            "PPSS",
+            0.005,
+            1,
+            0.2,
+            -0.1
+          ]
+        },
+        {
+          "id": "T08",
+          "parameters": [
+            "PSPS",
+            0.01,
+            0.5,
+            0.2,
+            0
+          ]
+        },
+        {
+          "id": "T09",
+          "parameters": [
+            "PSPS",
+            0.01,
+            0.5,
+            0.12,
+            0
+          ]
+        },
+        {
+          "id": "T10",
+          "parameters": [
+            "PSSP",
+            0.015,
+            0.75,
+            0.18,
+            0.05
+          ]
+        }
+      ],
+      "registered_status": "NORMALIZED_PROPOSAL_ONLY_ANCHOR_UNBOUND",
+      "excitation_states": [
+        "I0",
+        "I0_plus_deltaIp",
+        "I0_minus_deltaIp",
+        "I0_plus_deltaIs",
+        "I0_minus_deltaIs"
+      ],
+      "fields_per_complete_case": 5,
+      "refined_designs": [
+        "T01",
+        "T04"
+      ],
+      "refined_cases": 6,
+      "refined_cost_multiplier": 2,
+      "primary_cases": 30,
+      "control_case_allocations": 4,
+      "witness_case_allocations": 4,
+      "failed_case_allocations": 4,
+      "witness_pairs": [
+        {
+          "design": "T01",
+          "stratum": "nominal"
+        },
+        {
+          "design": "T04",
+          "stratum": "assembly_tolerance"
+        }
+      ],
+      "measured_prefix_designs": [
+        "T01",
+        "T02",
+        "T03"
+      ],
+      "prefix_stratum": "nominal",
+      "prefix_is_subset_not_extra": true,
+      "max_field_system_allocations": 240,
+      "coarse_complete_case_equivalents": 54,
+      "C1_cpu_hours_hypothesis": [
+        0.03,
+        0.08,
+        0.2
+      ],
+      "ram_gib_hypothesis": [
+        1,
+        4,
+        12
+      ],
+      "cost_eur_hypothesis": [
+        10.901686,
+        15.303496,
+        25.86784
+      ],
+      "outputs": [
+        "signed_Ldiff_2x2_H",
+        "flux_linkages_Wb_turn",
+        "Schur_primary_leakage_H",
+        "peak_B_T_each_state",
+        "magnetic_energy_J",
+        "coenergy_J",
+        "matrix_conditioning",
+        "refinement_coverage"
+      ],
+      "required_new_features": [
+        "nonmotor_winding_CAD_and_signed_sources",
+        "flux_linkage_and_bias_perturbation_extractor",
+        "nonlinear_ferrite_BH_energy_coenergy",
+        "domain_gap_mesh_proof"
+      ],
+      "not_checked": [
+        "3D_end_turns",
+        "AC_skin_proximity_loss",
+        "core_dynamic_loss",
+        "capacitance",
+        "thermal_hotspot",
+        "dielectric_strength"
+      ],
+      "later_3D_witness_jobs": 4,
+      "later_3D_cost": "UNMEASURED_OUTSIDE_20_EUR_SLICE_PANEL",
+      "complete_at_high_hypothesis_within_cash_cap": false,
+      "actual_device_feasibility": "UNRESOLVED_SLICE_ONLY"
+    }
+  }
+}

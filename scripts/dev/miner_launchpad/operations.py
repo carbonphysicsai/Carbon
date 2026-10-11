@@ -236,6 +236,41 @@ FIELDS = {
             "time) bind."
         ),
     ),
+    # Construction levels (LAUNCHPAD-LEVELS-01 S2, S3): chosen at launch,
+    # frozen in the manifest, bound into the frozen recipe.
+    "construction_level": (
+        "integer",
+        (
+            "Launch only, optional: the construction level, 0 to 5, from the "
+            "Challenge's ladder (carbon_ladder). Omitted or 0: Level 0, the "
+            "Challenge's registered contract, as before. N >= 1 binds the "
+            "level's current registered development variant (its name and "
+            "digest, frozen in the campaign manifest) and is refused "
+            "level_not_registered when there is none. It is DEVELOPMENT: "
+            "submit and commit are refused level_not_served_by_target unless "
+            "the target intake's served_contracts lists the variant. Needs "
+            "agent none."
+        ),
+    ),
+    "arm": (
+        "string",
+        (
+            "With construction_level: a named arm of that level, where the "
+            "ladder lists one (carbon_ladder's arms). Omitted: the level's own "
+            "variant."
+        ),
+    ),
+    "level4_directory": (
+        "string",
+        (
+            "freeze_candidate at construction level 4 only: the path on this "
+            "machine of the directory `python -m carbon.level4.tooling lower` "
+            "wrote. Its submission digest must be the strategy's Level 4 "
+            "field; it is verified against the level's allowlist, the "
+            "Challenge, the recipe's interface and batch before freeze, and "
+            "kept beside the frozen candidate as its staging envelope."
+        ),
+    ),
     # The miner's Graphite library and plans (S4): reads, and writes gated by
     # replay. None starts work; each reads or changes only the miner's own
     # library, on this machine.
@@ -368,6 +403,7 @@ REFUSAL_FIELDS = {
     "model_provider_credential_not_configured": "model_provider",
     "campaign_busy": "campaign",
     "freeze_a_candidate_first": "campaign",
+    "campaign_frozen_on_old_revision": "campaign",
     "retired_grant_campaign": "campaign",
     "research_run_unavailable": "campaign",
     "campaign_journal_not_ready": "campaign",
@@ -378,6 +414,7 @@ REFUSAL_FIELDS = {
     "design_excluded": "strategy",
     "design_not_yet_rebuildable": "strategy",
     "design_needs_owner_decision": "strategy",
+    "strategy_names_another_challenge": "strategy",
     "bounded_hypothesis_required": "hypothesis",
     "bounded_reason_required": "reason",
     "used_feedback_boolean_required": "used_feedback",
@@ -413,17 +450,37 @@ REFUSAL_FIELDS = {
     "card_banned": "card_id",
     "import_invalid": "text",
     "plan_document_required": "plan_document",
+    # Construction levels (LAUNCHPAD-LEVELS-01 S2, S3).
+    "level_not_registered": "construction_level",
+    "level_not_served_by_target": "construction_level",
+    "level_compile_not_served_by_target": "construction_level",
+    "construction_level_invalid": "construction_level",
+    "construction_level_arm_invalid": "arm",
+    "construction_level_needs_own_selection": "agent",
+    "construction_level_not_offered_for_challenge": "construction_level",
+    "level_strategy_refused": "strategy",
+    "level4_directory_required": "level4_directory",
+    "level4_directory_needs_level4": "level4_directory",
+    "level4_size_bound_not_set": "construction_level",
+    "level4_submission_refused": "level4_directory",
+    "level4_submission_not_in_strategy": "strategy",
+    "level4_interface_mismatch": "level4_directory",
+    "level4_batch_mismatch": "level4_directory",
+    "level4_allowlist_mismatch": "construction_level",
+    "level4_envelope_transport_unavailable": "construction_level",
 }
 
 
-def refusal(code, next_step=None):
+def refusal(code, next_step=None, budget=None):
     """A refused call's closed body: the code, the field to correct when one
     is to blame, and the next step - the JSON both doors can send.
 
     The step is the refusal's own `next_step` when it carries one (a `Rejected`
     from `runner.stepped`: a model call's settlement refusal, a profile that
     no longer describes this install), as the browser's door sends it
-    (`controller.error_body`); otherwise the catalog's step for the code."""
+    (`controller.error_body`); otherwise the catalog's step for the code. A
+    compute budget refusal also carries its numbers, `budget`: `{unit, used,
+    allowed}` (`budget_view.refusal`)."""
     from scripts.dev.miner_launchpad.supervisor import next_action
 
     body = {
@@ -433,6 +490,8 @@ def refusal(code, next_step=None):
     field = REFUSAL_FIELDS.get(code)
     if field is not None:
         body["field"] = field
+    if budget is not None:
+        body["budget"] = budget
     return body
 
 
@@ -509,6 +568,8 @@ OPERATIONS = {
                     "plan",
                     "hunt",
                     "limits",
+                    "construction_level",
+                    "arm",
                 }
             ),
             ("request", "profile", "replay", "registration"),
@@ -599,6 +660,25 @@ OPERATIONS = {
             ("request", "profile"),
             admits_work=False,
         ),
+        # Whether a recipe is inside its Challenge's compute budget
+        # (LAUNCHPAD-COMPUTE-BUDGET-STATUS-01): admission's own status, so the
+        # display and the submission compile cannot disagree. Reads only.
+        Operation(
+            "budget_status",
+            "Whether a recipe is inside one Challenge's submission compute "
+            "budget, by the same rule admission refuses by: status NOT_SET "
+            "(the Challenge declares no budget yet; no numbers), SET (used, "
+            "allowed and within, in the budget's unit, from the training "
+            "budget cost calculator on this machine), MALFORMED, UNMEASURABLE, "
+            "NO_ADAPTER or UNIT_NOT_CALIBRATED. Each Challenge's budget comes "
+            "from its training budget study; the validator's calculation on "
+            "its pinned image decides. The strategy must name this "
+            "challenge. Reads only.",
+            frozenset({"challenge", "strategy"}),
+            frozenset(),
+            ("request", "profile"),
+            admits_work=False,
+        ),
         Operation(
             "run_output",
             "A finished workspace run's own output (run_python or run_julia): "
@@ -649,7 +729,7 @@ OPERATIONS = {
             "Freeze a recipe you have practiced as this epoch's candidate. "
             "Refused for a recipe with no practice result.",
             frozenset({"campaign", "strategy", "reason"}),
-            frozenset({"used_feedback", "idempotency_key"}),
+            frozenset({"used_feedback", "idempotency_key", "level4_directory"}),
             ("request", "profile", "replay", "registration", "campaign"),
         ),
         Operation(
@@ -837,6 +917,24 @@ def without_null_graphite_fields(request):
     }
 
 
+def without_level_zero(request):
+    """`request` without a null `arm`, and without `construction_level` when
+    it is null or 0 with no arm: Level 0 is the launch it always was, with
+    the same identity (LAUNCHPAD-LEVELS-01 S2). Never the caller's dict."""
+    drop = set()
+    if "arm" in request and request["arm"] is None:
+        drop.add("arm")
+    level = request.get("construction_level", "absent")
+    if (level is None or (type(level) is int and level == 0)) and (
+        request.get("arm") is None
+    ):
+        drop.add("construction_level")
+    drop &= set(request)
+    if not drop:
+        return request
+    return {key: value for key, value in request.items() if key not in drop}
+
+
 def _closed(op, request):
     if type(request) is not dict:
         raise Rejected("closed_request_required")
@@ -898,7 +996,7 @@ def perform(host, name, request):
                 # Setup's name for the same choice; never the caller's dict.
                 request = {**request, "agent": AGENT_ALIASES[agent]}
             if op.name == "launch":
-                request = without_null_graphite_fields(request)
+                request = without_level_zero(without_null_graphite_fields(request))
         elif gate == "profile":
             try:
                 # New work needs an enabled, runnable profile. Reading and

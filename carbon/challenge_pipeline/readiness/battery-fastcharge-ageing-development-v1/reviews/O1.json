@@ -1,0 +1,20 @@
+{
+ "schema": "carbon.challenge-pipeline.readiness-review.v1",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "level": [
+  0,
+  1
+ ],
+ "item": "O1",
+ "decision": "PASS",
+ "reviewer": "Test Lead",
+ "date": "2026-10-09",
+ "evidence": [
+  {
+   "kind": "file",
+   "ref": "carbon/challenge_pipeline/readiness/battery-fastcharge-ageing-development-v1/ownership.json",
+   "sha256": "sha256:9be0b92b49bf06f7d3f082ab0902187542a1efcbec36cd54ffb9be9256d1250e"
+  }
+ ],
+ "notes": "ACCEPTED on cited evidence (Test Lead stage A sign-off, 2026-10-09); wiring gaps are tracked as notes. The map names an engineering owner and an acceptance owner per component."
+}

@@ -957,3 +957,112 @@ The first live run measures the real figures and replaces these numbers.
   reserved.
 - `max_concurrency` and `max_runtime_s` are 1, because the grant schema
   requires positive values. They bound nothing, since no run is permitted.
+
+## GRAPHITE-GRANT-RATE-STUDY-TOKENS (SUBMISSION-RATE-STUDY-01, arm G-sealed)
+
+**Authority.** OWNER-RATE-STUDY-TOKENS-01
+(`.agent/decisions/2026-10-08-OWNER-RATE-STUDY-TOKENS-01.md`): the owner's
+"approve rate-study tokens $30", relayed by the Test Lead.
+
+Tokens only: 6 runs one at a time, 4.91 USD worst case per run, 0.25 cleanup, 30.00
+ceiling, 39,600 s per run. `max_submissions` (144) is a ceiling; the arm cap is set
+at the freeze. The grant binds spend only after the freeze manifest is on main and
+the runner binds it to the study's route (see the decision record).
+
+## GRAPHITE-GRANT-STAGE-A-{CONSTRUCTOR,ATTACKER} (the ladder wave's stage A, battery, kimi-k3)
+
+**Authority.** OWNER-GRAPHITE-STAGE-A-01
+(`.agent/decisions/2026-10-09-OWNER-GRAPHITE-STAGE-A-01.md`):
+- **The figure.** The owner replied "Approve 2" to the Test Lead's exact line
+  "approve Graphite stage A, $128.44".
+- **The relation to R4.** The owner confirmed it directly in the Test
+  Engineer's session: a new USD 128.44 for all nine stage A runs, with R4's
+  unused runs still spendable on top.
+- **The plan.** `GRAPHITE_LADDER_WAVE_PLAN.md` section 4 (#889).
+
+| Grant | Runs | Worst case per run | Cleanup | Ceiling | Concurrency |
+|---|---|---|---|---|---|
+| STAGE-A-CONSTRUCTOR (phase 3) | 5: Level 0 x 2, Level 1 x 3 | 14.91 (R4's: 10.00 model + 4.91) | 0.12 | 74.67 | 2 |
+| STAGE-A-ATTACKER (phase 4) | 4: Level 0 x 2, Level 1 x 2 | 13.41 (10.00 model + PHASE4's 3.41) | 0.13 | 53.77 | 2 |
+| Stage A | 9 | | 0.25 | **128.44** | |
+
+**Bindings** (`grant_binding.PHASE3_GRANTS`, `phase4.PHASE4_STAGE_GRANTS`):
+- **Both grants:** battery, main's committed blob only, start model kimi-k3.
+- **The Constructor grant** admits Level 0 and above, unlike R4. Its token
+  share is 11.93, R4's.
+- **The Attacker grant** starts the Attacker on kimi-k3. Its model money is
+  PHASE4's plus 10.00, which holds at least four full kimi-k3 reservations.
+  Phase 3 refuses it. Phase 4 accepts it with `--grant` for battery only;
+  battery's default phase-4 grant is still PHASE4.
+
+R4 (45.00, 3 runs, Level 1 and above) is unchanged and stays spendable.
+
+## GRAPHITE-GRANT-STAGE-B-{CONSTRUCTOR,ATTACKER} (the ladder wave's stage B, battery L2-L3, kimi-k3)
+
+**Authority.** OWNER-GRAPHITE-STAGE-B-01
+(`.agent/decisions/2026-10-10-OWNER-GRAPHITE-STAGE-B-01.md`):
+- **The approval.** The owner replied "approve" to the Test Lead's exact line
+  "approve Graphite stage B, $143.35, up to 4 at once".
+- **Direct confirmation.** The owner confirmed it directly in the Test
+  Engineer's session.
+- **The plan.** `GRAPHITE_LADDER_STAGE_B_PLAN.md` section 7 (#938).
+
+| Grant | Runs | Worst case per run | Cleanup | Ceiling | Concurrency |
+|---|---|---|---|---|---|
+| STAGE-B-CONSTRUCTOR (phase 3) | 6: Level 2 x 3, Level 3 x 3 | 14.91 | 0.12 | 89.58 | 4 |
+| STAGE-B-ATTACKER (phase 4) | 4: Level 2 x 2, Level 3 x 2 | 13.41 | 0.13 | 53.77 | 4 |
+| Stage B | 10 | | 0.25 | **143.35** | |
+
+**Bindings:** stage A's, at Levels 2 and 3 only.
+- **The Constructor grant** sets `min_level` 2 and `max_level` 3.
+- **The Attacker grant** sets `Phase4Grant.levels` to (2, 3).
+- **A run at any other level** is refused `grant_level_outside_the_grants_levels`.
+
+## GRAPHITE-GRANT-STAGE-C-{CONSTRUCTOR,ATTACKER} (the ladder wave's stage C, battery L4, kimi-k3)
+
+**Authority.** OWNER-GRAPHITE-STAGE-C-01
+(`.agent/decisions/2026-10-10-OWNER-GRAPHITE-STAGE-C-01.md`):
+- **The approval.** The owner replied "Approve stage C" to the Test Lead's
+  exact line "approve stage C, $71.80".
+- **Direct confirmation.** The owner confirmed it directly in the Test
+  Engineer's session.
+- **The plan.** `GRAPHITE_LADDER_WAVE_PLAN.md` section 4 (#889), stage C.
+
+| Grant | Runs | Worst case per run | Cleanup | Ceiling | Concurrency |
+|---|---|---|---|---|---|
+| STAGE-C-CONSTRUCTOR (phase 3) | 3 at Level 4 | 14.91 | 0.12 | 44.85 | 4 |
+| STAGE-C-ATTACKER (phase 4) | 2 at Level 4 | 13.41 | 0.13 | 26.95 | 4 |
+| Stage C | 5 | | 0.25 | **71.80** | |
+
+**Bindings:** stage B's, at Level 4 only.
+- **The Constructor grant** sets `min_level` = `max_level` = 4.
+- **The Attacker grant** sets `levels` to (4,).
+- **Whether a Level 4 live run happens** stays the owner's and the security
+  owner's (plan section 1). This grant authorizes spend only.
+
+## The optional pod rate ceiling (GRANT-POD-CEILING-01)
+
+- **The field.** A grant may carry `pod_rate_ceiling_usd_per_hr`, the most a
+  pod under it may cost an hour. Absent, the ceiling is pod_control's
+  `MAX_RATE`, as before.
+- **Existing grants.** Every existing grant omits it, so its document, digest
+  and behaviour are unchanged.
+- **What it changes.** A grant that names it prices its pods at that ceiling
+  (`pods.prices`, `phase3_budget`), and the preflight checks the live offer
+  against it.
+- **The token share.** A raised ceiling under a fixed token share can leave
+  the session's pods too little; the run is then refused
+  `grant_token_share_leaves_too_little_for_pods`, and the grant's token
+  share or per-run worst case needs re-setting too.
+
+**Stages A, B and C (2026-10-10).**
+- **The approval.** The owner approved a standing 0.65/h ceiling for all
+  stages: "approve a standing pod ceiling for all stages", answering the
+  Test Lead's USD 0.65/h proposal. The owner confirmed it directly in the
+  Test Engineer's session, with the Constructor token share lowered to
+  USD 10.99 (the largest share that fits: at 0.65/h the session's pods need
+  exactly USD 3.92 of the 14.91 run).
+- **The change.** The six stage grant files carry
+  `pod_rate_ceiling_usd_per_hr` 0.65, and the stage Constructors' token
+  share is 10.99 (`grant_binding.STAGE_TOKEN_SHARE`).
+- **Unchanged:** stage caps, run counts and per-run caps.

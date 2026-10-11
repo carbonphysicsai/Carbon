@@ -5,6 +5,8 @@ In order:
 1. the allowlist (`allowlist.check`): every op admitted in the document's
    role, parameters within their kinds, named functions registered, typed
    keys only where RNG is admitted;
+   then the declared shapes (`check_declared_shapes`): every node's declared
+   dtype and shape against abstract evaluation of the rebuilt graph;
 2. the expected role, when the caller names one;
 3. the Challenge's interface (forward graphs, when the adapter supplies one):
    inputs other than `params/*` are exactly the interface's named inputs,
@@ -172,6 +174,36 @@ def check_init(doc, allowlist):
             raise graph.GraphRefused("init_output_not_keyed", f"output {k}")
 
 
+_WIDE = frozenset({"float64", "int64", "uint64", "complex128"})
+
+
+def check_declared_shapes(doc, allowlist):
+    """Every node's declared dtype and shape, checked by evaluating the
+    rebuilt graph abstractly (`jax.eval_shape`: shapes only, no data, no
+    compile). A document whose declarations lie is refused here, at G4,
+    with `declared_aval_mismatch`, before anything is compiled or trained.
+    (Found by the Level 4 attack adapter: a lie caught only on execution
+    would surface inside G6 training, untyped.)"""
+    import jax
+
+    from . import interpret
+
+    entry = doc["graphs"][doc["entry"]]
+    if any(i["dtype"] in graph.KEY_DTYPES for i in entry["inputs"]):
+        return  # typed-key inputs exist only in init graphs, checked by data flow
+    rebuilt = interpret.rebuild(doc, allowlist)
+    wide = any(
+        o["dtype"] in _WIDE
+        for g in doc["graphs"].values()
+        for o in g["inputs"] + [out for n in g["nodes"] for out in n["out"]]
+    )
+    structs = [
+        jax.ShapeDtypeStruct(tuple(i["shape"]), i["dtype"]) for i in entry["inputs"]
+    ]
+    with jax.enable_x64(wide):
+        jax.eval_shape(lambda *args: rebuilt(*args), *structs)
+
+
 def validate(doc, allowlist, *, role=None, interface=None, batch=None, caps=None):
     """G4's verdict for a parsed document, or `GraphRefused`.
 
@@ -179,6 +211,19 @@ def validate(doc, allowlist, *, role=None, interface=None, batch=None, caps=None
     (the recipe's training batch; Phase 1 finding: per-case graphs batched by
     `vmap` do not train bit-identically for every family)."""
     flags = allowlist.check(doc)
+    # The owner's caps first, from the document alone (`graph.measure` is
+    # static), so an over-cap graph is refused before even the shape-only
+    # trace below runs it.
+    measurements = graph.measure(doc)
+    # A cap the caller does not name is the owner's (`allowlist.CAPS`); one a
+    # caller sets to HUMAN_INPUT blocks, it never passes.
+    verdicts = allowlist_module.check_caps(
+        measurements, {**allowlist_module.CAPS, **(caps or {})}
+    )
+    exceeded = sorted(name for name, v in verdicts.items() if v == "refuse")
+    if exceeded:
+        raise graph.GraphRefused("cap_exceeded", ",".join(exceeded))
+    check_declared_shapes(doc, allowlist)
     if role is not None and doc["role"] != role:
         raise graph.GraphRefused("role_mismatch")
     if doc["role"] == "init":
@@ -191,14 +236,6 @@ def validate(doc, allowlist, *, role=None, interface=None, batch=None, caps=None
         if batch is not None and declared != batch:
             raise graph.GraphRefused("interface_batch")
     batch = declared
-    measurements = graph.measure(doc)
-    # A cap the caller does not name stays HUMAN_INPUT: it blocks, never passes.
-    verdicts = allowlist_module.check_caps(
-        measurements, {**allowlist_module.CAPS, **(caps or {})}
-    )
-    exceeded = sorted(name for name, v in verdicts.items() if v == "refuse")
-    if exceeded:
-        raise graph.GraphRefused("cap_exceeded", ",".join(exceeded))
     status = (
         "admitted"
         if all(v == "pass" for v in verdicts.values())
@@ -227,11 +264,16 @@ def parameters(doc):
     ]
 
 
-def validate_submission(parsed, allowlist, *, interface, batch=None, caps=None):
+def validate_submission(
+    parsed, allowlist, *, interface, batch=None, caps=None, loss_override=None
+):
     """G4 over a verified submission (`submission.verify`): every document,
-    then the init graph's outputs against the forward graph's parameters.
-    The submission's status is the strictest of its documents'."""
+    then the init graph's outputs against the forward graph's parameters, and
+    a loss graph against the loss slot (`loss`), admitted only under the
+    Challenge's `loss_override: graph`. The submission's status is the
+    strictest of its documents'."""
     from . import initializers
+    from . import loss as loss_slot
 
     verdicts = {
         "forward": validate(
@@ -244,7 +286,13 @@ def validate_submission(parsed, allowlist, *, interface, batch=None, caps=None):
         )
     }
     if "loss" in parsed:
+        loss_slot.gate(parsed, loss_override)
         verdicts["loss"] = validate(parsed["loss"], allowlist, role="loss", caps=caps)
+        loss_slot.check(
+            parsed["loss"],
+            interface,
+            loss_slot.aux_outputs(parsed["forward"], interface),
+        )
     wanted = [(d, s) for _, d, s in parameters(parsed["forward"])]
     if "init" in parsed:
         verdicts["init"] = validate(parsed["init"], allowlist, role="init", caps=caps)

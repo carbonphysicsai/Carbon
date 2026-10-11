@@ -1,0 +1,8 @@
+{
+  "schema": "carbon.onboarding.brief.v1",
+  "challenge": "battery-v3",
+  "buyer": "Mock EV fleet charging-map calibration engineer",
+  "decision": "Choose one safe charge protocol and cooling level per covered ambient band to minimize fleet-weighted charging minutes",
+  "physics": "DFN electrothermal and 30-cycle ageing model; no real-pack qualification",
+  "solver": "Proposed pinned PyBaMM DFN/OKane2022 reference and phase-correct charge-integral observer"
+}

@@ -1,0 +1,17 @@
+# The operator's tunnel to the rehearsal validator's private doors, kept
+# running across reboots (SURVIVE-REBOOT-01). It replaces the tmux `tunnel`
+# loop: systemd restarts ssh instead of a `while true`. Key and known-hosts
+# are named by path only; the unit never reads either.
+
+[Unit]
+Description=Carbon validator tunnel (127.0.0.1:18467-18469)
+After=network-online.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/carbon-validator-tunnel
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=default.target

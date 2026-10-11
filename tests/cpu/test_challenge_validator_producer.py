@@ -267,3 +267,82 @@ def test_the_producer_dir_stays_outside_the_repository():
     with pytest.raises(pr.ProducerRefused) as refused:
         pr.Producer(REPOSITORY / "tmp" / "producer", [])
     assert refused.value.code == "producer_dir_inside_repository"
+
+
+def test_a_directory_others_can_read_is_refused_by_path(tmp_path, capsys, monkeypatch):
+    """3a at r2: `carbon-push` had made the outbox 0755 under the default
+    umask. The refusal is right; it now names the directory to fix."""
+    from carbon.challenge_validator.batch_source import ProducerRefused
+
+    outbox = tmp_path / "producer" / "outbox"
+    outbox.mkdir(parents=True)
+    outbox.chmod(0o755)
+    with pytest.raises(ProducerRefused) as refused:
+        pr._owner_only_dir(outbox)
+    assert refused.value.code == "producer_dir_not_owner_only"
+    assert refused.value.record() == {
+        "refused": "producer_dir_not_owner_only",
+        "path": str(outbox),
+    }
+    assert ProducerRefused("producer_slot_started").record() == {
+        "refused": "producer_slot_started"
+    }
+
+    def refuse(*args, **kwargs):
+        raise ProducerRefused("producer_dir_not_owner_only", path=outbox)
+
+    monkeypatch.setattr(pr.Producer, "from_config", staticmethod(refuse))
+    assert pr.main(["status", "--config", str(tmp_path / "producer.json")]) == 2
+    printed = json.loads(capsys.readouterr().out)
+    assert printed == {"refused": "producer_dir_not_owner_only", "path": str(outbox)}
+
+
+def test_two_ticks_never_run_at_once(producer, monkeypatch, capsys):
+    """3a at r3: enabling the timer started a second tick while a manual one
+    ran. The second is a typed no-op (exit 0, so the timer's unit never
+    error-loops); any other state-changing command is refused by name."""
+    import threading
+
+    started, release = threading.Event(), threading.Event()
+    runs = []
+
+    def slow_tick(block, **kwargs):
+        runs.append(block)
+        started.set()
+        assert release.wait(30)
+        return {"block": block}
+
+    monkeypatch.setattr(pr.Producer, "from_config", staticmethod(lambda path: producer))
+    monkeypatch.setattr(
+        pr, "load_config", lambda path: {"producer_dir": producer.directory}
+    )
+    monkeypatch.setattr(producer, "tick", slow_tick)
+    first = []
+    thread = threading.Thread(
+        target=lambda: first.append(pr.main(["tick", "--config", "c", "--block", "7"]))
+    )
+    thread.start()
+    try:
+        assert started.wait(30)
+        assert pr.main(["tick", "--config", "c", "--block", "8"]) == 0
+        assert json.loads(capsys.readouterr().out.splitlines()[-1]) == {
+            "refused": "producer_tick_already_running",
+            "state": "NOT_RUN",
+        }
+        command = ["seal", "--config", "c", "--challenge", "x", "--fingerprint", "y"]
+        assert pr.main(command) == 2
+        assert json.loads(capsys.readouterr().out) == {
+            "refused": "producer_already_running"
+        }
+        # `status` reads only, so it never waits for the lock.
+        monkeypatch.setattr(producer, "status", lambda: {"ok": True})
+        assert pr.main(["status", "--config", "c"]) == 0
+    finally:
+        release.set()
+        thread.join(30)
+    assert first == [0] and runs == [7]
+    # Released when the first tick ends: the next one runs.
+    release.set()
+    assert pr.main(["tick", "--config", "c", "--block", "9"]) == 0
+    assert runs == [7, 9]
+    assert os.lstat(producer.directory / pr.LOCK_FILE).st_mode & 0o077 == 0

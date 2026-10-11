@@ -101,6 +101,11 @@ class ChallengeCampaign:
     #: this machine checks its own setting; a submission the intake already
     #: holds is not gated again.
     commitment_due: Callable | None = None
+    #: Whether this campaign compiles, freezes and commits at a construction
+    #: level its launch names (LAUNCHPAD-LEVELS-01 S2,
+    #: `carbon.development_session.construction_level`). False: a launch at
+    #: any level above 0 is refused, never silently run at Level 0.
+    construction_levels: bool = False
 
     def remote_runner(self, runtime, machine, gpu_image):
         """The campaign's practice runner on the miner's own remote setup, or
@@ -197,6 +202,7 @@ def _battery():
         backends=tuple(BATTERY_BACKENDS),
         commitment=battery.frozen_commitment,
         commitment_due=battery.commitment_due,
+        construction_levels=True,
     )
 
 

@@ -1,0 +1,27 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-08-torch-gpu-cached-grid-device",
+ "recorded_at": "2026-10-08T18:00:00Z",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "stage": "test_iterate",
+ "execution": {
+  "kind": "build",
+  "ref": "claude/torch-device-fix (battery implementation 3.0, BATTERY-IMPL-3)",
+  "description": "Diagnosed and fixed the worker-images-v2 PyTorch GPU rebuild of fno_defaults, which failed both repeats after about 640 s with a one-device error while the MLP rebuilt bit-identically 4 of 4."
+ },
+ "expected": "Moving a family's module to the device (Module.to) before each call places everything it computes with on that device, so a recipe trained on CUDA predicts on the CPU like any other.",
+ "observed": "neuraloperator's grid embedding caches its positional grid as a plain attribute on the first call and reuses it whatever device a later call asks for. Module.to moves parameters and buffers only. Training on CUDA cached a CUDA grid; prediction then ran on the CPU and concatenated CPU features with it. CPU-only tests could never see this, because every call ran on one device.",
+ "keep": [
+  "Every PyTorch family's library modules are placed on the call's device by one shared path (torch_training.follow_device), including tensors a library caches as plain attributes.",
+  "A device-parity test calls every family on the CPU and then on a second device (CUDA, else meta) and asserts every held tensor and output follows; it reproduces this failure without a GPU."
+ ],
+ "change": [
+  "Test any new PyTorch family, or any new library version, with the cross-device parity test before it reaches a GPU image.",
+  "Run the cross-device round trip (CUDA training, CPU prediction) on the GPU lane for every family before a GPU image is released."
+ ],
+ "protocol_elements": [
+  "climb.equivalence"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}

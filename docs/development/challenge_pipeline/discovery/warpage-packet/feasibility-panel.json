@@ -1,0 +1,454 @@
+{
+  "schema": "RESEARCH_ONLY_PROSPECTIVE_PANEL_V1",
+  "ticket": "CHALLENGE-WARPAGE-PACKET-01",
+  "source_pr": 928,
+  "source_head": "f6e5eea975fc19bf84aa65dc6e3093624c000860",
+  "source_card": "D016",
+  "status": "HOLD_CUSTOMER_LIMITS_REFERENCE_AND_SPEND",
+  "solver_runs": 0,
+  "spend_eur": 0,
+  "dispatch_authorised": false,
+  "challenge_adoption_authorised": false,
+  "protected_data_access": false,
+  "existing_challenge_edits": false,
+  "numeric_policy": "Each sourced scalar is contextual, low=base=high; every estimate is ASSUMPTION_NOT_MEASURED low/base/high. IDs and factual execution counts are provenance, not scientific estimates.",
+  "physical_scope": "Full three-dimensional underfill/solder-stack package over complete manufacture/reflow/service thermal history; no downgrade to a planar or elastic-only surrogate truth.",
+  "earned_credibility": "NOT_DEMONSTRATED",
+  "target_credibility": "TIER_2_INDEPENDENT_PUBLISHED_AND_MATCHED_TASK_WITNESSES",
+  "case_cost": {
+    "status": "ASSUMPTION_NOT_MEASURED",
+    "cpu_h_low_base_high": [
+      0.03,
+      0.12,
+      0.45
+    ],
+    "node_h_low_base_high": [
+      0.03,
+      0.12,
+      0.45
+    ],
+    "elapsed_to_cpu_ratio_low_base_high": [
+      1,
+      1,
+      1
+    ],
+    "peak_ram_gib_low_base_high": [
+      2,
+      6,
+      16
+    ],
+    "p50_wall_h": null,
+    "p95_wall_h": null,
+    "definition": "One complete original-job 3D design/history/stratum, all graded outputs; no per-core division or per-snapshot billing."
+  },
+  "cost_parameters": {
+    "rate_eur_node_h_low_base_high": [
+      1.37,
+      1.37,
+      1.37
+    ],
+    "rate_status": "OWNER_REQUEST_ROUNDED_FROM_SOURCED_CCX63_EU_1.3678_EX_VAT_AND_IPV4",
+    "rate_source": "https://docs.hetzner.com/general/infrastructure-and-availability/price-adjustment/",
+    "tax_stress_multiplier_low_base_high": [
+      1.19,
+      1.19,
+      1.19
+    ],
+    "setup_idle_fit_node_h_low_base_high": [
+      4,
+      4,
+      4
+    ],
+    "other_reserve_eur_low_base_high": [
+      10,
+      10,
+      10
+    ],
+    "incremental_witness_licence_eur_low_base_high": [
+      0,
+      0,
+      0
+    ],
+    "witness_licence_status": "ASSUMPTION_EXISTING_ENTITLEMENT_NOT_CONFIRMED",
+    "refinement_multiplier_low_base_high": [
+      2,
+      2,
+      2
+    ],
+    "formula": "C2=rate*(equivalent_cases*complete_case_node_h+setup_idle_fit_node_h)*tax_stress_multiplier+other_reserve_eur; witness licence and extra authoring/experiment costs must be added when known.",
+    "exclusions": "Human authoring/calibration labour, experiments, new buyer-tool licensing and unpriced storage/network costs are not established. Reserve is not an all-in quote."
+  },
+  "first_panel": {
+    "status": "ASSUMPTION_PROSPECTIVE_NOT_EXECUTED",
+    "actions_low_base_high": [
+      10,
+      10,
+      10
+    ],
+    "complete_history_strata_low_base_high": [
+      3,
+      3,
+      3
+    ],
+    "primary_cases_low_base_high": [
+      30,
+      30,
+      30
+    ],
+    "refined_cases_low_base_high": [
+      6,
+      6,
+      6
+    ],
+    "refinement_equivalent_cases_low_base_high": [
+      12,
+      12,
+      12
+    ],
+    "analytic_control_equivalents_low_base_high": [
+      4,
+      4,
+      4
+    ],
+    "paired_tool_witness_equivalents_low_base_high": [
+      4,
+      4,
+      4
+    ],
+    "charged_failed_equivalents_low_base_high": [
+      4,
+      4,
+      4
+    ],
+    "equivalent_cases_low_base_high": [
+      54,
+      54,
+      54
+    ],
+    "startup_eur_low_base_high": [
+      19.162286,
+      27.085544000000002,
+      56.13749
+    ],
+    "strata_definition": "HUMAN_INPUT distinct owner-approved complete-history classes, not temperature snapshots.",
+    "minimum_contested_counts_user_requirement": {
+      "resolved_feasible_near_per_family_stratum_low_base_high": [
+        5,
+        5,
+        5
+      ],
+      "resolved_infeasible_near_per_family_stratum_low_base_high": [
+        5,
+        5,
+        5
+      ],
+      "working_refinement_bands_both_sides": 2,
+      "near_band": "HUMAN_INPUT approved unit-bearing band and reference uncertainty",
+      "near_rule": "abs(signed slack) <= 2 * approved one-band width; both resolved classes",
+      "status": "TEST_LEAD_WORKING_VALUE_NOT_ADOPTED",
+      "shortage_policy": "More frontier resolution; never widen bands or weaken limits"
+    },
+    "observed_feasible_counts": null,
+    "observed_near_infeasible_counts": null,
+    "witness_coverage": "Early triage allocation only; no claim of adequate Tier 2 coverage or power.",
+    "report": [
+      "every hard-limit margin and applicability",
+      "reference uncertainty and balance/refinement evidence",
+      "complete-case wall/CPU and peak RAM",
+      "typed failures and charged attempts",
+      "baseline decision agreement and fallback cost",
+      "feasible/near-infeasible counts in each stratum"
+    ]
+  },
+  "original_bank": {
+    "status": "ASSUMPTION_INHERITED_NOT_REESTIMATED",
+    "designs_low_base_high": [
+      24,
+      24,
+      24
+    ],
+    "strata_low_base_high": [
+      3,
+      3,
+      3
+    ],
+    "primary_cases_low_base_high": [
+      72,
+      72,
+      72
+    ],
+    "refined_cases_low_base_high": [
+      24,
+      24,
+      24
+    ],
+    "refinement_equivalent_cases_low_base_high": [
+      48,
+      48,
+      48
+    ],
+    "charged_failed_equivalents_low_base_high": [
+      15,
+      15,
+      15
+    ],
+    "witness_pairs_low_base_high": [
+      8,
+      8,
+      8
+    ],
+    "witness_tools_per_pair_low_base_high": [
+      2,
+      2,
+      2
+    ],
+    "witness_equivalents_low_base_high": [
+      16,
+      16,
+      16
+    ],
+    "equivalent_cases_low_base_high": [
+      151,
+      151,
+      151
+    ],
+    "startup_eur_low_base_high": [
+      23.906459000000005,
+      46.062236000000006,
+      127.30008500000001
+    ],
+    "weekly_c3_eur_low_base_high": [
+      0.5976614750000001,
+      4.606223600000001,
+      50.92003400000001
+    ],
+    "weekly_windows_R_low_base_high": [
+      0.5,
+      1,
+      2
+    ],
+    "refresh_exposure_E_low_base_high": [
+      20,
+      10,
+      5
+    ],
+    "weekly_c3_formula": "C3_weekly=R/E*C2; all refresh-frequency/exposure values are assumptions.",
+    "budget_cap_eur_low_base_high": [
+      100,
+      100,
+      100
+    ],
+    "cap_source": "USER_WORKING_BANK_FILTER",
+    "base_under_cap": true,
+    "high_under_cap": false,
+    "affordability_proven": false
+  },
+  "original_value": {
+    "status": "ASSUMPTION_CONDITIONAL_COHORT_NOT_MARKET",
+    "V1_V5_low_base_high": [
+      [
+        3,
+        4,
+        5
+      ],
+      [
+        1,
+        2,
+        3
+      ],
+      [
+        0,
+        1,
+        2
+      ],
+      [
+        1,
+        2,
+        3
+      ],
+      [
+        1,
+        2,
+        3
+      ]
+    ],
+    "engineer_hours_saved_per_decision_low_base_high": [
+      2,
+      6,
+      16
+    ],
+    "engineer_rate_eur_h_low_base_high": [
+      60,
+      90,
+      120
+    ],
+    "V2_eur_decision_low_base_high": [
+      120,
+      540,
+      1920
+    ],
+    "teams_low_base_high": [
+      5,
+      20,
+      50
+    ],
+    "decisions_per_team_year_low_base_high": [
+      4,
+      12,
+      24
+    ],
+    "V3_decisions_year_low_base_high": [
+      20,
+      240,
+      1200
+    ],
+    "annual_gross_eur_low_base_high": [
+      2400,
+      129600,
+      2304000
+    ],
+    "weeks_year_low_base_high": [
+      52,
+      52,
+      52
+    ],
+    "value_to_cost_index_formula": "Low=(V2_low*V3_low)/(C2_high+52*C3_weekly_high); base=(V2_base*V3_base)/(C2_base+52*C3_weekly_base); high=(V2_high*V3_high)/(C2_low+52*C3_weekly_low)",
+    "value_to_cost_index_low_base_high": [
+      0.8648206567911251,
+      453.8039752662378,
+      41902.44696777479
+    ],
+    "excitation_axes": "frontier technology / investor appeal / miner appeal; equal-mean rubric inherited from #928; hypothetical appeal only",
+    "excitement_axes_low_base_high": [
+      [
+        4,
+        5,
+        5
+      ],
+      [
+        4,
+        5,
+        5
+      ],
+      [
+        2,
+        3,
+        4
+      ]
+    ],
+    "excitement_low_base_high": [
+      3.333333333333333,
+      4.333333333333333,
+      5
+    ],
+    "demonstrated_benefit_floor_eur": 0,
+    "ranking_authority": "Owner; excitement never compensates for failed/held hard filters."
+  },
+  "question_law": {
+    "status": "PROPOSED_NOT_REGISTERED",
+    "k_questions_per_window_low_base_high": [
+      4,
+      8,
+      12
+    ],
+    "diagnostic_pool_actions_M_low_base_high": [10, 10, 10],
+    "actions_per_question": "HUMAN_INPUT approved menu; independent of k",
+    "P": "HUMAN_INPUT buyer-supported context/history and requirement law",
+    "Q": "HUMAN_INPUT registered diagnostic frontier enrichment, separate from P",
+    "w": "HUMAN_INPUT buyer mix, separate from Q",
+    "E": null,
+    "B": null,
+    "n": null,
+    "requirement_draws_renew_physical_exposure": false,
+    "expected_distinct_winners": null,
+    "answer_diversity_status": "NOT_DEMONSTRATED",
+    "objective": "HUMAN_INPUT buyer-approved objective; proposed minimum worst-case warpage among feasible actions",
+    "none_feasible": "Only when adequate independent reference evidence proves every action violates at least one mandatory applicable limit",
+    "missing_reference": "Separate HOLD/REFERENCE_INADEQUATE, never NONE_FEASIBLE",
+    "ties": "HUMAN_INPUT precommitted objective/uncertainty tie policy",
+    "action_law": "HUMAN_INPUT approved supplier/manufacturing action set"
+  },
+  "f08_package_reuse": {
+    "source_head": "0f12834226f65cdb317e7407e1e83e68c135801b",
+    "ccx_archive_sha256": "9c88385c10fb04f5dc6c4e98027a51bebdd8aee3920e05190d6c1dd08357d6e7",
+    "inspected_only": true,
+    "KEEP": ["Dockerfile", "build.sh", "sources.lock.json"],
+    "WRAP": ["full-3D meshing/regions", "retained output and resource-ledger patterns"],
+    "not_package_truth": "f08 metal cantilever modal/static deck and projection observer",
+    "missing_feature_proofs": ["multilayer/orthotropic thermal expansion", "calibrated cure and relaxation", "solder phase/joint formation", "retained residual state and restart", "warpage and local integration-point observers"],
+    "warpage_image_digest": null,
+    "full_history_reference_status": "NOT_DEMONSTRATED"
+  },
+  "provisional_registration": {
+    "status": "PROPOSED_SLOTS_NOT_REGISTERED",
+    "runtime_ids": [],
+    "manifest_sha256": null,
+    "all_material_limits_and_geometry_values": "HUMAN_INPUT",
+    "common": {"architecture": "ARCH-A", "geometry": "G-NOM", "material_process_set": "MAT-A", "approved_identity_hashes": null},
+    "design_slots": [
+      {"slot": "W01", "change": "Nominal UF-A / solder-stack S-A"},
+      {"slot": "W02", "change": "Approved lower gap/standoff with compatible joints"},
+      {"slot": "W03", "change": "Approved upper gap/standoff with compatible joints"},
+      {"slot": "W04", "change": "Approved lower underfill fillet extent"},
+      {"slot": "W05", "change": "Approved upper underfill fillet extent"},
+      {"slot": "W06", "change": "Approved UF-B with complete correlated law"},
+      {"slot": "W07", "change": "Approved UF-C with complete correlated law"},
+      {"slot": "W08", "change": "Approved solder-stack S-B and phase/history law"},
+      {"slot": "W09", "change": "Approved solder-stack S-C and phase/history law"},
+      {"slot": "W10", "change": "Precommitted combined underfill/stack frontier proposal"}
+    ],
+    "strata": [
+      {"slot": "S1", "complete_history": "Nominal process and spatial operation/cool-down", "file_sha256": null},
+      {"slot": "S2", "complete_history": "Same process, supported asymmetric operation/cool-down", "file_sha256": null},
+      {"slot": "S3", "complete_history": "Approved dwell/residual/process variant and operation/cool-down", "file_sha256": null}
+    ],
+    "control_slots": ["free expansion", "analytic bonded bilayer", "full-3D asymmetric/twist consistency", "complete-history restart/state consistency"],
+    "witness_pair_slots": ["separate non-hidden matched-task draw", "separate non-hidden draw or provenance-verified retired published case"],
+    "witness_custody": "Outside producer; never hidden EVAL/STRESS/quiz/tuning",
+    "refinement_selection": "HUMAN_INPUT precommitted near-boundary and tie rule; retain all selected failures",
+    "required_case_pins": ["CAD/mesh/regions", "catalog and complete material-law hashes", "state/activation/phase history", "thermal file/hash and boundaries", "observer and limit/band versions", "solver/container and resources"],
+    "missing_slot": "SLOT_UNRESOLVED, no invented substitute",
+    "freeze_owner": "Buyer/science approve applicability; DC freezes exact manifest; owner grants execution",
+    "counts_do_not_prove_contestability": true,
+    "failure_reserve_authorizes_retries": false
+  },
+  "current_eight_comparison": {
+    "value_snapshot_head": "35ff76a87a7382c26c437e179c0ab2d301679c1f",
+    "crosscheck_main": "3a6dfdd8dffdfdaf241596033d5bf55b66abfcff",
+    "currency": "USD",
+    "value_status": "ASSUMPTION_CONDITIONAL_ANNUAL_GROSS_NOT_LEVERAGE_OR_TRACTION",
+    "index_formula": "annual gross / (C2 + 52 * C3_weekly), same currency and full scope",
+    "index_status": "NOT_COMPUTABLE_COMPLETE_C2_C3_AND_MATCHED_CURRENCY",
+    "missing_basis": ["complete comparable full-bank C2", "complete comparable weekly C3", "registered common currency basis"],
+    "rows": [
+      {"id": "battery", "annual_gross_usd_low_base_high": [1500, 315000, 19800000], "C2": null, "C3_weekly": null, "index_low_base_high": null},
+      {"id": "motor", "annual_gross_usd_low_base_high": [4000, 162000, 3840000], "C2": null, "C3_weekly": null, "index_low_base_high": null},
+      {"id": "cooling-cell", "annual_gross_usd_low_base_high": [1000, 40500, 768000], "C2": null, "C3_weekly": null, "index_low_base_high": null},
+      {"id": "f02", "annual_gross_usd_low_base_high": [4000, 144000, 1920000], "C2": null, "C3_weekly": null, "index_low_base_high": null},
+      {"id": "f06", "annual_gross_usd_low_base_high": [2000, 72000, 720000], "C2": null, "C3_weekly": null, "index_low_base_high": null},
+      {"id": "f08", "annual_gross_usd_low_base_high": [2000, 54000, 576000], "C2": null, "C3_weekly": null, "index_low_base_high": null},
+      {"id": "f13", "annual_gross_usd_low_base_high": [1000, 36000, 384000], "C2": null, "C3_weekly": null, "index_low_base_high": null},
+      {"id": "f17", "annual_gross_usd_low_base_high": [2000, 72000, 1024000], "C2": null, "C3_weekly": null, "index_low_base_high": null}
+    ],
+    "historical_rescore": false,
+    "computed_currency_conversion": false
+  },
+  "unresolved_inputs": [
+    "rights-cleared exact customer package and action grammar",
+    "source-confirmed applicable external and internal warpage limit",
+    "source-confirmed regional stress/strain/fracture/fatigue limit and uncertainty",
+    "supplier process maximum and service junction temperature limit",
+    "full time/space process history and residual state",
+    "calibrated temperature/time-dependent material laws and transition treatment",
+    "P,Q,w and independent complete-history strata",
+    "exact solver/container/material/geometry/output pins",
+    "qualified transforms, numerical tolerances and uncertainty",
+    "independent matched-task witness access, agreement tolerances and licences",
+    "construction/security/public kit rights",
+    "owner compute and spend approval"
+  ],
+  "next_action": "Documentary freeze by named owners; no dispatch while any required acceptance/reference/spend input is unresolved.",
+  "publication_base": "f227a55a88cfe736171bb64f602a81eb1777c9ba",
+  "publication_base_tree": "8377bbfe47c9a4a90e3efb614f20e0fede8538fb",
+  "scope_alignment": {"ticket": "CHALLENGE-WARPAGE-SCOPE-ALIGNMENT-01", "base_main": "3a6dfdd8dffdfdaf241596033d5bf55b66abfcff", "merged_packet": "75cd4b14e826b110023cbaca1ca57d5b5b239e90", "historical_publication_fields_preserved": true}
+}

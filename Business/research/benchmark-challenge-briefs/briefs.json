@@ -1,0 +1,247 @@
+{
+  "schema": "carbon.research.benchmark-challenge-briefs.v1",
+  "ticket": "BENCHMARK-CHALLENGE-BRIEFS-01",
+  "status": "PROPOSED_NOT_RUN",
+  "authority_snapshot": "5fbac3099eaae368b23d266cce31ed7409685722",
+  "policy_dependency": {
+    "pr": 1022,
+    "head": "35571897441bba349ed1b0d3b9a4ddf2856bc544",
+    "status": "PROPOSED_NOT_IMPLEMENTED"
+  },
+  "hourly_rate_eur": {
+    "low": 1.37,
+    "base": 1.37,
+    "high": 1.37,
+    "status": "ASSUMPTION_OWNER_PLANNING_BASIS"
+  },
+  "startup_cap_eur": {
+    "low": 500,
+    "base": 500,
+    "high": 500,
+    "status": "OWNER_STATED_PLANNING_CAP_NOT_SPEND_AUTHORITY"
+  },
+  "briefs": [
+    {
+      "id": "backward-facing-step",
+      "dimension": "2D_RANS",
+      "buyer_role": "internal-flow design/CAE engineer",
+      "source_commit": "20a39f549dbff988a6accc421ac84dafc4487695",
+      "solver": {
+        "name": "SU2",
+        "source_commit": "bc15466602a687d6fb796d5df7a12ce3fde0949a",
+        "container_digest": null,
+        "settings": null
+      },
+      "ranges": {
+        "ramp_length_over_H": {
+          "low": 0.5,
+          "base": 2,
+          "high": 4,
+          "status": "ASSUMPTION"
+        },
+        "edge_radius_over_H": {
+          "low": 0,
+          "base": 0.1,
+          "high": 0.25,
+          "status": "ASSUMPTION"
+        },
+        "expansion_multiplier": {
+          "low": 0.95,
+          "base": 1,
+          "high": 1.05,
+          "status": "ASSUMPTION"
+        },
+        "Re_H_multiplier": {
+          "low": 0.8,
+          "base": 1,
+          "high": 1.2,
+          "status": "ASSUMPTION"
+        },
+        "inlet_thickness_multiplier": {
+          "low": 0.9,
+          "base": 1,
+          "high": 1.1,
+          "status": "ASSUMPTION"
+        }
+      },
+      "cost": {
+        "complete_cases": {
+          "low": 32,
+          "base": 64,
+          "high": 128,
+          "status": "ASSUMPTION"
+        },
+        "host_hours_per_complete_case": {
+          "low": 0.05,
+          "base": 0.3,
+          "high": 1,
+          "status": "ASSUMPTION"
+        },
+        "anchor_host_hours": {
+          "low": 0.25,
+          "base": 2,
+          "high": 10,
+          "status": "ASSUMPTION"
+        },
+        "comparator_host_hours": {
+          "low": 0.5,
+          "base": 3,
+          "high": 15,
+          "status": "ASSUMPTION"
+        },
+        "total_host_hours": {
+          "low": 2.35,
+          "base": 24.2,
+          "high": 153,
+          "status": "ASSUMPTION"
+        },
+        "startup_eur": {
+          "low": 3.22,
+          "base": 33.15,
+          "high": 209.61,
+          "status": "ASSUMPTION"
+        },
+        "complete_case_includes": "normalization_or_BC_work_required_refinements_and_reductions",
+        "exclusions": [
+          "labor",
+          "model_construction",
+          "later_full_equal_budget_campaign"
+        ],
+        "actual_runtime": null,
+        "actual_memory": null,
+        "question_action_scenario_allocation": null
+      },
+      "readiness": {
+        "registered_panel": "MISSING",
+        "pinned_solver": "PARTIAL_SOURCE_ONLY",
+        "reference_adequacy": "PARTIAL_PUBLISHED_SOURCES_CARBON_NOT_RUN",
+        "kit": "MISSING",
+        "TRAIN": "MISSING",
+        "comparator": "PARTIAL_DESIGN",
+        "equal_budget_route": "PARTIAL_SPECIFICATION"
+      },
+      "P": null,
+      "Q": null,
+      "w": null,
+      "hard_limits": null,
+      "novelty_thresholds": null,
+      "question_law": null,
+      "actual_gain": null
+    },
+    {
+      "id": "metagrating-3d",
+      "dimension": "FULL_3D_PERIODIC_MAXWELL",
+      "buyer_role": "diffractive-optics R&D/design engineer",
+      "source_commit": "a06518872de6ec82bb4511190e544211539f55f1",
+      "solver": {
+        "name": "Meep",
+        "source_commit": "b08d226ba311a04e59c984e97f3e88dd82bc56d1",
+        "container_digest": null,
+        "settings": null
+      },
+      "comparator": {
+        "name": "S4_RCWA",
+        "source_commit": "7fd00a231610bff51f5c7de5f723e3956eab7453",
+        "container_digest": null
+      },
+      "ranges": {
+        "deflection_deg": {
+          "low": 40,
+          "base": 50,
+          "high": 60,
+          "status": "ASSUMPTION"
+        },
+        "thickness_nm": {
+          "low": 250,
+          "base": 325,
+          "high": 400,
+          "status": "ASSUMPTION"
+        },
+        "wavelength_nm": {
+          "low": 1050,
+          "base": 1050,
+          "high": 1050,
+          "status": "SOURCE_POINT_NO_REPORTED_INTERVAL"
+        },
+        "Py_over_wavelength": {
+          "low": 0.5,
+          "base": 0.5,
+          "high": 0.5,
+          "status": "SOURCE_POINT"
+        },
+        "mask_parameterization": null
+      },
+      "cost": {
+        "complete_cases": {
+          "low": 32,
+          "base": 64,
+          "high": 128,
+          "status": "ASSUMPTION"
+        },
+        "host_hours_per_complete_case": {
+          "low": 0.02,
+          "base": 0.25,
+          "high": 2,
+          "status": "ASSUMPTION"
+        },
+        "anchor_host_hours": {
+          "low": 0.5,
+          "base": 5,
+          "high": 25,
+          "status": "ASSUMPTION"
+        },
+        "comparator_host_hours": {
+          "low": 0.5,
+          "base": 5,
+          "high": 25,
+          "status": "ASSUMPTION"
+        },
+        "total_host_hours": {
+          "low": 1.64,
+          "base": 26,
+          "high": 306,
+          "status": "ASSUMPTION"
+        },
+        "startup_eur": {
+          "low": 2.25,
+          "base": 35.62,
+          "high": 419.22,
+          "status": "ASSUMPTION"
+        },
+        "complete_case_includes": "normalization_or_BC_work_required_refinements_and_reductions",
+        "exclusions": [
+          "labor",
+          "model_construction",
+          "later_full_equal_budget_campaign"
+        ],
+        "actual_runtime": null,
+        "actual_memory": null,
+        "question_action_scenario_allocation": null
+      },
+      "readiness": {
+        "registered_panel": "MISSING",
+        "pinned_solver": "PARTIAL_SOURCE_ONLY",
+        "reference_adequacy": "PARTIAL_PUBLISHED_SOURCES_CARBON_NOT_RUN",
+        "kit": "MISSING",
+        "TRAIN": "MISSING",
+        "comparator": "PARTIAL_DESIGN",
+        "equal_budget_route": "PARTIAL_SPECIFICATION"
+      },
+      "P": null,
+      "Q": null,
+      "w": null,
+      "hard_limits": null,
+      "novelty_thresholds": null,
+      "question_law": null,
+      "actual_gain": null
+    }
+  ],
+  "authorization": {
+    "research_only": true,
+    "solvers_run": false,
+    "spend": false,
+    "protected_material_access": false
+  },
+  "next_owner": "Packets",
+  "adoption": "OWNER_DECISION"
+}

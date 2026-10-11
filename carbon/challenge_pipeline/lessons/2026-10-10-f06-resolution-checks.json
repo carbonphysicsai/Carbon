@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-10-f06-resolution-checks",
+  "recorded_at": "2026-10-10T03:20:45Z",
+  "challenge": "grating-coupler",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "F06-RESOLUTION-AND-COST-01", "description": "Native UTF-8 pytest: f06 resolution arithmetic plus solver-package, foundation quiz and pipeline suites; 57 passed. Ruff 0.16.3 passed. Pipeline validation: 7 records, 544 lessons valid before this execution lesson. git diff --check passed. Local canonical wrapper has the already-recorded worktree-path limitation; CI supplies canonical acceptance."},
+  "expected": "Cost counts preserve full witnesses, distinguish CPU from billing, and refuse an adequate-grid or measured-cost claim.",
+  "observed": "Arithmetic confirms 40 nm/S=16 buys one complete 10 nm witness under the fast assumptions; 30 nm fails even before witnesses. This is sensitivity analysis, not solver evidence.",
+  "keep": ["Test the budget boundary and missing-evidence states, not just rounded table entries."],
+  "change": ["Published convergence is a reason to register a test, not to adopt its grid."],
+  "protocol_elements": ["reference policy", "readiness"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

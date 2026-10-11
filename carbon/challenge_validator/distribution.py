@@ -294,6 +294,10 @@ def fetchers(log_path, fingerprint, *, from_block=None, to_block=None):
     return sorted(found)
 
 
+#: The `service` of this host's structured log lines (on stderr).
+SERVICE = "answer-key-distribution"
+
+
 def load_config(path, *, repository=REPOSITORY):
     from carbon.battery.intake import require_exposure
 
@@ -324,16 +328,20 @@ def load_config(path, *, repository=REPOSITORY):
 
 def make_server(service, config, *, repository=REPOSITORY):
     """The host's server, not yet serving. Loopback unless the owner's exposure
-    record and TLS are configured (`intake.require_exposure`)."""
-    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+    record and TLS are configured (`intake.require_exposure`).
 
-    from carbon.battery.intake import require_exposure, tls_context
+    It listens through the intake's hardened listener: each TLS handshake in
+    its connection's own thread, every read under a socket timeout, bounded
+    connections per peer and in total, and a queue of `LISTEN_BACKLOG`. Its
+    first listener ran every handshake inside `accept`, so one silent client
+    froze it for everyone (3a, 2026-10-08)."""
+    from carbon.battery.intake import LoggedHandler, hardened_listener, require_exposure
 
     require_exposure(config, repository=repository)
 
-    class Handler(BaseHTTPRequestHandler):
-        def log_message(self, *args):  # the fetch log is the only record
-            return
+    class Handler(LoggedHandler):
+        server_version = "carbon-answer-key"
+        sys_version = ""
 
         def _answer(self, status, value):
             body = json.dumps(value, sort_keys=True).encode()
@@ -363,11 +371,7 @@ def make_server(service, config, *, repository=REPOSITORY):
                 return self._answer(400, {"refused": "answer_key_headers"})
             return self._answer(*service.handle(headers, body))
 
-    server = ThreadingHTTPServer((config["host"], config["port"]), Handler)
-    context = tls_context(config)
-    if context is not None:
-        server.socket = context.wrap_socket(server.socket, server_side=True)
-    return server
+    return hardened_listener(config, Handler, service=SERVICE)
 
 
 def build(config):
@@ -426,4 +430,10 @@ def main(argv=None):
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    # The package module's own main: under `python -m` this file is
+    # `__main__`, a second copy whose classes the package's are not.
+    import sys
+
+    from carbon.challenge_validator.distribution import main as _main
+
+    sys.exit(_main())

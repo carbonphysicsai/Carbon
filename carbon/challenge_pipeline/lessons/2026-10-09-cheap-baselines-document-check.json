@@ -1,0 +1,19 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-09-cheap-baselines-document-check",
+  "recorded_at": "2026-10-09T02:09:36Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-CHEAP-BASELINES-01 document check",
+    "description": "Read-only eight-card heading/status and repository Markdown-link validation."
+  },
+  "expected": "Ten documents cover eight families and resolve their local source/contract links.",
+  "observed": "Passed: eight cards, ten documents, 47 local links. Structural check only; no source-quality, baseline-performance or scientific acceptance is claimed.",
+  "keep": ["Use direct links to the current packet and independent reference contracts."],
+  "change": ["Vendor model availability supports a workflow claim, not unobserved compact-model adequacy or speed."],
+  "protocol_elements": ["buyer value", "baseline evidence", "claim discipline"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

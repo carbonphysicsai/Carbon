@@ -2396,26 +2396,13 @@ SEAMS = (
     # Level 1 is no longer a seam here: it runs in its own adapter,
     # `adapters.battery_level1`, registered at (battery, 1) against the
     # registered variant battery-l1-loss-expressions-v1 (GRAPHITE-L1-BUILD-01).
-    SeamSpec(
-        "level_2_schedules_and_sampling",
-        "adaptive_feedback_and_state_attacks",
-        2,
-        "no Level 2 proposal or expansion record exists for battery",
-    ),
-    SeamSpec(
-        "level_3_numerical_routines",
-        "construction_evaluation_isolation",
-        3,
-        _PARTICIPANT_CODE,
-        "security owner: isolation for executing participant code",
-    ),
-    SeamSpec(
-        "level_4_constrained_inference_export",
-        "construction_evaluation_isolation",
-        4,
-        "hidden preprocessing/compilation and device/host memory " + _PARTICIPANT_CODE,
-        "security owner: isolation for executing participant code",
-    ),
+    # Levels 2 and 3 run in their own adapters, `adapters.battery_level2` and
+    # `adapters.battery_level3`, registered against their development
+    # variants (battery-l2-spectral-v1, battery-l3-numerics-v1).
+    # Level 4 is no longer a seam here: it runs in its own adapter,
+    # `adapters.battery_level4`, registered at (battery, 4) against the
+    # graph-only development variant (battery-l4-graph-v3 since LEVEL4-LOSS-OVERRIDE-01;
+    # LEVEL4-DEV-VARIANT-01).
     SeamSpec(
         "level_5_custom_inference",
         "score_exploitation_and_tail_failures",

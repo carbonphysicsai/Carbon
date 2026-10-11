@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-10-warpage-physics-baseline",
+  "recorded_at": "2026-10-10T03:25:00Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {"kind": "test_run", "ref": "WARPAGE-PROCESS-PHYSICS-01", "description": "Native UTF-8 solver-package and pipeline baseline tests: 35 passed in 4.12s. No solver/build."},
+  "expected": "Preserve complete history and missing material-law states while researching calibration.",
+  "observed": "Baseline checks pass. Open cure, relaxation and solid solder sources belong to different material identities; mixing them would create an unsupported package.",
+  "keep": ["Separate source credibility from earned reference tiers."],
+  "change": ["Request one coherent matched law/history/witness set, not arbitrary missing constants."],
+  "protocol_elements": ["reference policy", "readiness"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

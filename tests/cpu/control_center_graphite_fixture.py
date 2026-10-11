@@ -211,6 +211,13 @@ def _implemented():
     ]
 
 
+def _next_step(code):
+    """The refusal catalog's next step for `code` (`supervisor.next_action`)."""
+    from scripts.dev.miner_launchpad.supervisor import next_action
+
+    return next_action(code)
+
+
 def hunt_estimate():
     """S4's `runner.hunt_estimate` for a profile that chose no model in
     setup: the pinned default selection's price."""
@@ -279,7 +286,39 @@ def graphite_options():
             "maximum": 100000,
             "omitted": "only your campaign ceilings - money, attempts, trials, time - bind",
         },
+        # LAUNCHPAD-FINDINGS-F8-F9 (LA-F8): the input window and its advisory.
+        "input_window": input_window(),
         "offered_for": _implemented(),
+    }
+
+
+def input_window():
+    """S4's `runner.graphite_input_window` for a profile that chose no model
+    in setup: the pinned default selection under a new Graphite plan's
+    defaults (OWNER-GRAPHITE-MINER-INPUT-WINDOW-01). Carbon records no
+    published context for it, so its window is the historical 65,536."""
+    from carbon.agent_campaign.graphite.miner import driver
+    from carbon.development_session import model_provider as mp
+
+    selection = mp.select(
+        provider_id=mp.DEFAULT_SELECTION.provider_id,
+        model_id=mp.DEFAULT_SELECTION.model_id,
+        credential={"kind": "file", "reference": "unset"},
+        output_default=mp.OUTPUT_DEFAULT_V2,
+        input_default=mp.INPUT_DEFAULT_V2,
+    )
+    window = driver.launch_window(selection)
+    return {
+        "launch_field": "model_settings.max_input_tokens",
+        "default_rule": mp.INPUT_DEFAULT_V2,
+        "default": 65536,
+        "launch_default": {
+            "model": selection.provider_id + ":" + selection.model_id,
+            **window,
+        },
+        "advised_at_or_below": 65536,
+        "advisory": "graphite_input_window_too_small",
+        "next_step": _next_step("graphite_input_window_too_small"),
     }
 
 

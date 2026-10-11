@@ -1,0 +1,7 @@
+{
+  "exposure_unit": "per_question_draws",
+  "max_windows": 5,
+  "registration_digest": "sha256:5ce55477674de1c4aaffa18334f0fb81dcfc7e010568d058d1fc21d0a76fc532",
+  "schema": "carbon.design-search.power-accumulation.v1",
+  "window_model": "sequential_registered_stratum_quotas.v1"
+}

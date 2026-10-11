@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-10-onboarding-law-tests",
+  "recorded_at": "2026-10-10T17:32:48Z",
+  "challenge": "protocol",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "ONBOARDING-AUTOMATION-02", "description": "First fixture check failed for missing required task identity; repaired fixture, not production validator. Final native UTF-8 suite: 44 passed, Black/Ruff passed. Motor proposal drafting 0.0009866 s; no panel measurement. Canonical CI pending. Corrected 01 lesson recording timestamp using the current UTC clock without pushing its handed-off branch."},
+  "expected": "Reuse complete plain/indexed producer contracts and preserve every scientific proposal as a proposal.",
+  "observed": "#919/#922/#927 crosswalks preserve separate P/Q/w and k recommendations; five-band toy map remains one question. No P inferred from unregistered Q, missing panels stay unknown, no individual identities emitted.",
+  "keep": ["Use the existing producer adapter instead of relaxing the export contract to suit a fixture."],
+  "change": ["Register fixture identity/grammar just as strictly as real task inputs."],
+  "protocol_elements": ["question law", "population", "reference policy"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

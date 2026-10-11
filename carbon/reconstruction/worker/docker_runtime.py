@@ -501,9 +501,9 @@ def create_arguments(
         "--pids-limit",
         str(PIDS_LIMIT),
         "--memory",
-        str(MEMORY_BYTES),
+        str(worker_profile.effective_memory_bytes),
         "--memory-swap",
-        str(MEMORY_BYTES),
+        str(worker_profile.effective_memory_bytes),
         "--cpus",
         str(CPU_COUNT),
         "--cpuset-cpus",
@@ -674,8 +674,8 @@ def inspect_effective_controls(
             },
         }
         or host.get("PidsLimit") != PIDS_LIMIT
-        or host.get("Memory") != MEMORY_BYTES
-        or host.get("MemorySwap") != MEMORY_BYTES
+        or host.get("Memory") != worker_profile.effective_memory_bytes
+        or host.get("MemorySwap") != worker_profile.effective_memory_bytes
         or host.get("NanoCpus") != CPU_COUNT * 1_000_000_000
         or host.get("CpusetCpus") != cpuset
         or host.get("ShmSize") != _SHM_BYTES
@@ -799,7 +799,7 @@ def inspect_effective_controls(
         len(cpu_quota) != 2
         or int(cpu_quota[0]) != len(eligible) * int(cpu_quota[1])
         or observed_cpuset != eligible
-        or cgroup["memory.max"] != str(MEMORY_BYTES)
+        or cgroup["memory.max"] != str(worker_profile.effective_memory_bytes)
         or cgroup["memory.swap.max"] != "0"
         or cgroup["pids.max"] != str(PIDS_LIMIT)
     ):

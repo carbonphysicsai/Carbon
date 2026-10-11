@@ -40,6 +40,18 @@ Carbon** other than SSH itself.
    - It writes `.carbon-artifacts/accelerator-worker-image.json`. Setup finds
      it there and fills it in.
 2. **For `ssh-container`, put the worker where your provider can pull it.**
+   - **After a `--release` install, Carbon's released worker is already
+     there (LA-F10, OWNER-WORKER-IMAGES-V2-01).**
+     - `install_miner.sh --release worker-images-vN` keeps the release's GPU
+       worker record. The release workflow publishes the image to
+       `ghcr.io/carbonphysicsai`.
+     - When the GPU worker setup found is that release's (`--gpu`, or
+       `.venv/bin/python scripts/dev/worker_image_release.py pull --record
+       .carbon-artifacts/releases/<tag>/accelerator-worker-image.release.json`
+       on a controller without a GPU), the container card's first command is
+       its `repository@sha256:...` reference. Start your container from it.
+     - Setup still checks the container's build identity against that worker.
+     - The push below is the fallback, for a provider that cannot pull it.
    - Log in to a registry you control with `docker login`, yourself.
    - Run `scripts/dev/push_worker_image.sh --manifest .carbon-artifacts/accelerator-worker-image.json <registry>/<you>/carbon-gpu-worker`.
    - It pushes the pinned worker and prints `Start your container from: <repository>@sha256:...`.
@@ -117,8 +129,9 @@ provider's current documentation before relying on any of it.
 - **Transport:** `ssh-container`. A pod is a container started from your image,
   and you cannot run your own Docker daemon in it
   (docs.runpod.io/pods/overview).
-- **Image:** the `repository@sha256` reference from `push_worker_image.sh`,
-  with an SSH server in your own layer. RunPod's full SSH needs TCP port 22
+- **Image:** the `repository@sha256` reference setup names after a
+  `--release` install, or the one from `push_worker_image.sh`, with an SSH
+  server in your own layer. RunPod's full SSH needs TCP port 22
   exposed, an SSH daemon in the pod, and `PUBLIC_KEY` set for custom templates
   (docs.runpod.io/pods/configuration/use-ssh). Private registry credentials are
   added under Credentials (docs.runpod.io/get-started/credentials).

@@ -1,0 +1,242 @@
+{
+  "status": "RESEARCH_RECOMMENDATION_NO_OUTREACH",
+  "number_policy": "rank ordinal; all quantitative buyer unknowns HUMAN_INPUT low/base/high",
+  "sources": [
+    {
+      "id": "B1",
+      "url": "https://www.comsol.com/video/keynote-electrochemical-modeling-for-optimized-operating-strategies-and-development-of-automotive-cells",
+      "locator": "Porsche electrochemical plating/charge model and experimental comparison",
+      "reviewed": "2026-10-10"
+    },
+    {
+      "id": "B2",
+      "url": "https://newsroom.porsche.com/en/2025/company/porsche-cellforce-group-focusing-battery-activities-40344.html",
+      "locator": "retained cell/system R&D; discontinued planned production expansion",
+      "reviewed": "2026-10-10"
+    },
+    {
+      "id": "B3",
+      "url": "https://www.avl.com/en/engineering/e-mobility-engineering/battery-development/simulation-battery-development",
+      "locator": "battery thermal rapid-charge and virtual-validation workflow",
+      "reviewed": "2026-10-10"
+    },
+    {
+      "id": "B4",
+      "url": "https://www.avl.com/en-in/simulation-solutions/e-mobility-simulation/battery-simulation",
+      "locator": "variant/operating-strategy simulation",
+      "reviewed": "2026-10-10"
+    },
+    {
+      "id": "B5",
+      "url": "https://au.mathworks.com/company/user_stories/lg-energy-solution-automates-sox-verification.html",
+      "locator": "LG Energy Solution SOX MIL verification/reporting, not exact charge decision",
+      "reviewed": "2026-10-10"
+    },
+    {
+      "id": "B6",
+      "url": "https://verkor.com/verkor-engineering-services/",
+      "locator": "cell/module predictive simulation and physical validation services",
+      "reviewed": "2026-10-10"
+    },
+    {
+      "id": "B7",
+      "url": "https://verkor.com/en/our-cells-and-modules/",
+      "locator": "cell fast-charge/durability objectives",
+      "reviewed": "2026-10-10"
+    },
+    {
+      "id": "B8",
+      "url": "https://www.nxp.com/company/about-nxp/smarter-world-videos/CLOUD-CONNECTED-HVBMS",
+      "locator": "NXP/Electra public BMS digital-twin demo; SOC/SOH task",
+      "reviewed": "2026-10-10"
+    },
+    {
+      "id": "B9",
+      "url": "https://www.electravehicles.com/about-us/",
+      "locator": "battery software/digital twin licensing scope",
+      "reviewed": "2026-10-10"
+    },
+    {
+      "id": "B10",
+      "url": "https://www.nxp.com/design/design-center/training/TIP-ADAP-BAT-DIG-TWIN",
+      "locator": "public digital-twin training scope",
+      "reviewed": "2026-10-10"
+    },
+    {
+      "id": "B11",
+      "url": "https://in.mathworks.com/company/user_stories/case-studies/mahindra-electric-uses-system-level-simulation-to-optimize-battery-thermal-management-system-for-an-electric-vehicle.html",
+      "locator": "historical Mahindra validated system thermal/control workflow",
+      "reviewed": "2026-10-10"
+    }
+  ],
+  "candidates": [
+    {
+      "company": "Porsche / Cellforce R&D",
+      "rank": 1,
+      "qualitative_fit": "high",
+      "buyer_roles": "electrochemical cell-modeling lead; fast-charge calibration/validation lead",
+      "role_basis": "INFERENCE from documented workflow; not verified staffing or authority",
+      "evidence_refs": [
+        "B1",
+        "B2"
+      ],
+      "gaps": "customer cell calibration, physical validation, charge-to-SOC, independence and approved limits",
+      "proposed_route": "technical-event introduction or corporate engineering routing",
+      "annual_decision_volume": {
+        "low": "HUMAN_INPUT",
+        "base": "HUMAN_INPUT",
+        "high": "HUMAN_INPUT"
+      },
+      "budget_and_willingness_to_pay": {
+        "low": "HUMAN_INPUT",
+        "base": "HUMAN_INPUT",
+        "high": "HUMAN_INPUT"
+      },
+      "interest_or_traction": "NOT_EVIDENCED"
+    },
+    {
+      "company": "AVL",
+      "rank": 2,
+      "qualitative_fit": "high",
+      "buyer_roles": "battery simulation/virtual-validation lead; BMS operating-strategy lead",
+      "role_basis": "INFERENCE from documented workflow; not verified staffing or authority",
+      "evidence_refs": [
+        "B3",
+        "B4"
+      ],
+      "gaps": "incumbent comparison, reference and physical evidence, scope/rights and fallback",
+      "proposed_route": "public battery simulation Get in touch",
+      "annual_decision_volume": {
+        "low": "HUMAN_INPUT",
+        "base": "HUMAN_INPUT",
+        "high": "HUMAN_INPUT"
+      },
+      "budget_and_willingness_to_pay": {
+        "low": "HUMAN_INPUT",
+        "base": "HUMAN_INPUT",
+        "high": "HUMAN_INPUT"
+      },
+      "interest_or_traction": "NOT_EVIDENCED"
+    },
+    {
+      "company": "LG Energy Solution",
+      "rank": 3,
+      "qualitative_fit": "medium-high",
+      "buyer_roles": "BMS algorithm verification lead; cell-model validation lead",
+      "role_basis": "INFERENCE from documented workflow; not verified staffing or authority",
+      "evidence_refs": [
+        "B5"
+      ],
+      "gaps": "charge-specific use, physical plating evidence and MIL integration",
+      "proposed_route": "public customer-event company introduction; direct R&D route HUMAN_INPUT",
+      "annual_decision_volume": {
+        "low": "HUMAN_INPUT",
+        "base": "HUMAN_INPUT",
+        "high": "HUMAN_INPUT"
+      },
+      "budget_and_willingness_to_pay": {
+        "low": "HUMAN_INPUT",
+        "base": "HUMAN_INPUT",
+        "high": "HUMAN_INPUT"
+      },
+      "interest_or_traction": "NOT_EVIDENCED"
+    },
+    {
+      "company": "Verkor",
+      "rank": 4,
+      "qualitative_fit": "medium-high",
+      "buyer_roles": "cell modeling lead; test/validation lead",
+      "role_basis": "INFERENCE from documented workflow; not verified staffing or authority",
+      "evidence_refs": [
+        "B6",
+        "B7"
+      ],
+      "gaps": "cell-specific parameters, physical testing and approved protocol decision",
+      "proposed_route": "engineering-services Contact",
+      "annual_decision_volume": {
+        "low": "HUMAN_INPUT",
+        "base": "HUMAN_INPUT",
+        "high": "HUMAN_INPUT"
+      },
+      "budget_and_willingness_to_pay": {
+        "low": "HUMAN_INPUT",
+        "base": "HUMAN_INPUT",
+        "high": "HUMAN_INPUT"
+      },
+      "interest_or_traction": "NOT_EVIDENCED"
+    },
+    {
+      "company": "Electra Vehicles",
+      "rank": 5,
+      "qualitative_fit": "medium",
+      "buyer_roles": "digital-twin validation lead; BMS software product owner",
+      "role_basis": "INFERENCE from documented workflow; not verified staffing or authority",
+      "evidence_refs": [
+        "B8",
+        "B9"
+      ],
+      "gaps": "charging task fit, runtime parity, cell evidence and conflicts/rights",
+      "proposed_route": "public company contact form",
+      "annual_decision_volume": {
+        "low": "HUMAN_INPUT",
+        "base": "HUMAN_INPUT",
+        "high": "HUMAN_INPUT"
+      },
+      "budget_and_willingness_to_pay": {
+        "low": "HUMAN_INPUT",
+        "base": "HUMAN_INPUT",
+        "high": "HUMAN_INPUT"
+      },
+      "interest_or_traction": "NOT_EVIDENCED"
+    },
+    {
+      "company": "NXP Semiconductors",
+      "rank": 6,
+      "qualitative_fit": "medium channel fit",
+      "buyer_roles": "HVBMS reference-design lead; automotive ecosystem validation owner",
+      "role_basis": "INFERENCE from documented workflow; not verified staffing or authority",
+      "evidence_refs": [
+        "B8",
+        "B10"
+      ],
+      "gaps": "identify cell/customer requirements owner and relevant deployment evidence",
+      "proposed_route": "public automotive support/contact routing",
+      "annual_decision_volume": {
+        "low": "HUMAN_INPUT",
+        "base": "HUMAN_INPUT",
+        "high": "HUMAN_INPUT"
+      },
+      "budget_and_willingness_to_pay": {
+        "low": "HUMAN_INPUT",
+        "base": "HUMAN_INPUT",
+        "high": "HUMAN_INPUT"
+      },
+      "interest_or_traction": "NOT_EVIDENCED"
+    },
+    {
+      "company": "Mahindra electric-vehicle thermal function",
+      "rank": 7,
+      "qualitative_fit": "lower for current pilot",
+      "buyer_roles": "BTMS controls lead; thermal-validation lead",
+      "role_basis": "INFERENCE from documented workflow; not verified staffing or authority",
+      "evidence_refs": [
+        "B11"
+      ],
+      "gaps": "system cooling/pack/controller evidence beyond cell pilot; verify current team",
+      "proposed_route": "public case-study host company introduction",
+      "annual_decision_volume": {
+        "low": "HUMAN_INPUT",
+        "base": "HUMAN_INPUT",
+        "high": "HUMAN_INPUT"
+      },
+      "budget_and_willingness_to_pay": {
+        "low": "HUMAN_INPUT",
+        "base": "HUMAN_INPUT",
+        "high": "HUMAN_INPUT"
+      },
+      "interest_or_traction": "NOT_EVIDENCED"
+    }
+  ],
+  "individuals": [],
+  "messages_sent": 0
+}

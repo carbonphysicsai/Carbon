@@ -149,6 +149,22 @@ instead of selecting a grid to manufacture a learned advantage.
 
 ## 10. Readiness and claim record
 
+Current prospective T2: [buyer value/cost scorecard](../value-cost/f08.md)
+and [owner framework](../value-cost/README.md). Require at least five feasible
+and five distinct near-limit infeasible actions per mandatory stratum. Report
+the overall fraction; it is not a gate. Other value checks still require
+evidence. Refinement/acceptance remains HUMAN_INPUT; no new runtime authority.
+The original fraction-based observations below retain their historical meaning.
+
+**Before any new hidden bank:** the owner-selected [four-check value prerequisite](../question-laws/value-check-v1.md)
+requires per-stratum discrimination and meaningful buyer-unit spread, one
+complete feasible action, and changing best/equivalent answers. Numeric
+thresholds remain HUMAN_INPUT recommendations; receipt **NOT_DEMONSTRATED**.
+For this buyer, report resolved worst-band compliance and stiffness/mass margins across the mandatory
+damping panel, not an eigenfrequency-only or coarse-grid pass.
+No favorable redraw, exposure reset, solver grant or qualification follows.
+
+
 Selected requirements, offline beam/mass screen only. New modal/harmonic
 reference, numerical adequacy, kit and reconstruction are NOT_DEMONSTRATED.
 Next: exact CAD/support/damping deck and analytic controls under stage permission.

@@ -39,6 +39,15 @@ operator's; none is reachable from a miner surface:
   `require_commitment: false` and no `commitment_reader`, and the winner-weight
   publisher refuses it: a development deployment never sets weights and never
   serves miners.
+- `ladder` (optional; VALIDATOR-25, OWNER-LADDER-THROUGH-LAUNCHPAD-01): the
+  testnet development-ladder deployment, `{levels, hotkeys, variants}`. It
+  needs `development_only: true`, so it never sets weights, and unlike any
+  other development deployment it is reached through the Launchpad: it
+  requires the chain commitment, on Carbon's testnet only. It admits only
+  the listed hotkeys (public SS58), and only the listed development variants
+  of its listed levels (1 to 4; Level 4 on testnet only). It shares the main
+  deployment's live windows (`batch_source: "answer_key"` under the main
+  deployment's rule), so it holds no bank and no exposure of its own;
 - `service_account` (optional; VALIDATOR-19 slice 0): the OS account that
   alone may touch this deployment. Every load refuses under any other account
   (`evaluation_wrong_account`), so `operate`, the confirmation seal, the
@@ -56,6 +65,7 @@ import contextlib
 import fcntl
 import json
 import os
+import re
 import stat
 import threading
 from pathlib import Path
@@ -74,12 +84,29 @@ OPTIONAL = {
     "commitment_reader",
     "development_only",
     "service_account",
+    "device",
+    "ladder",
+    "ladder_deployment",
 }
 READER_FIELDS = {"network", "endpoint", "provider", "genesis_hash", "netuid"}
 BACKENDS = ("carrier", "direct")
 
 _VALIDATORS = {}
 _LOCK = threading.RLock()
+#: The development-ladder deployment's setup (VALIDATOR-25), set once per
+#: process by its own entry point (`carbon.development_ladder.operate`), which
+#: supplies the development compiler from outside this module: this module
+#: and the daemon never import the variant module. Applied only to a ladder
+#: deployment; without it a ladder serves no variant (fail closed).
+_LADDER_SETUP = None
+
+
+def set_ladder_setup(setup):
+    """Install the development-ladder entry point's setup for this process."""
+    global _LADDER_SETUP
+    if not callable(setup):
+        raise TypeError("a callable setup is required")
+    _LADDER_SETUP = setup
 
 
 class EvaluationUnavailable(RuntimeError):
@@ -122,6 +149,12 @@ def load_config(path):
         raise EvaluationUnavailable("evaluation_config_image")
     if config.get("torch_image_manifest") and config["backend"] != "carrier":
         raise EvaluationUnavailable("evaluation_config_image")
+    # VALIDATOR-27: a GPU deployment is a carrier on the accelerator image,
+    # and serves PyTorch on the PyTorch GPU worker when it names one.
+    if config.get("device", "cpu") not in ("cpu", "gpu"):
+        raise EvaluationUnavailable("evaluation_config_device")
+    if config.get("device") == "gpu" and config["backend"] != "carrier":
+        raise EvaluationUnavailable("evaluation_config_device")
     from .exam import RULES
 
     if config.get("rule", "v1") not in RULES:
@@ -147,13 +180,127 @@ def load_config(path):
             raise EvaluationUnavailable("evaluation_wrong_account")
     if type(config.get("development_only", False)) is not bool:
         raise EvaluationUnavailable("evaluation_config_fields")
-    if config.get("development_only") and (
-        config.get("require_commitment", True) is not False
-        or "commitment_reader" in config
+    if (
+        config.get("development_only")
+        and "ladder" not in config
+        and (
+            config.get("require_commitment", True) is not False
+            or "commitment_reader" in config
+        )
     ):
         # A development deployment serves no miner and sets no weights.
         raise EvaluationUnavailable("evaluation_config_development_only")
+    if "ladder" in config:
+        ladder_for(config)  # refuses a malformed ladder now
+    if "ladder_deployment" in config:
+        reserved_hotkeys(config)  # refuses a missing or malformed ladder now
     return config
+
+
+def reserved_hotkeys(config):
+    """The hotkeys a main deployment refuses (VALIDATOR-25): every hotkey the
+    development-ladder deployment named by `ladder_deployment` accepts, read
+    from that deployment's own configuration (one source of truth), so a
+    hotkey belongs to exactly one deployment."""
+    path = config.get("ladder_deployment")
+    if path is None:
+        return frozenset()
+    if type(path) is not str or "ladder" in config:
+        raise EvaluationUnavailable("evaluation_config_ladder_deployment")
+    try:
+        ladder = ladder_for(load_config(path))
+    except EvaluationUnavailable:
+        raise EvaluationUnavailable("evaluation_config_ladder_deployment") from None
+    if ladder is None:
+        raise EvaluationUnavailable("evaluation_config_ladder_deployment")
+    return ladder["hotkeys"]
+
+
+LADDER_FIELDS = {"levels", "hotkeys", "variants"}
+#: The highest level the ladder opens: Level 4 on testnet only
+#: (OWNER-LEVEL4-TESTNET-RUNS-01; the ladder is testnet-only).
+LADDER_TOP = 4
+_SS58 = re.compile(r"[1-9A-HJ-NP-Za-km-z]{47,48}\Z")
+
+
+def ladder_for(config):
+    """The development-ladder deployment's admission (VALIDATOR-25), or None:
+    `{"levels", "hotkeys", "variants": {digest: {"version", "level"}}}`, each
+    variant's level read from the registry. Refuses by
+    `evaluation_config_ladder*` unless every part is exact."""
+    spec = config.get("ladder")
+    if spec is None:
+        return None
+    from carbon.chain.models import CARBON_NETUID, CARBON_NETWORK
+    from carbon.reconstruction.capability_registry import (
+        contract,
+        development_variant_document,
+        development_variant_registry,
+    )
+
+    reader = config.get("commitment_reader")
+    if (
+        type(spec) is not dict
+        or set(spec) != LADDER_FIELDS
+        or config.get("development_only") is not True
+        or config.get("batch_source") != "answer_key"
+        or config.get("require_commitment", True) is not True
+        or type(reader) is not dict
+    ):
+        raise EvaluationUnavailable("evaluation_config_ladder")
+    if (reader.get("network"), reader.get("netuid")) != (CARBON_NETWORK, CARBON_NETUID):
+        # Never mainnet until the owner locks a level.
+        raise EvaluationUnavailable("evaluation_config_ladder_testnet_only")
+    levels, hotkeys, variants = spec["levels"], spec["hotkeys"], spec["variants"]
+    if (
+        type(levels) is not list
+        or not levels
+        or len(set(levels)) != len(levels)
+        or not all(type(level) is int and level >= 1 for level in levels)
+    ):
+        raise EvaluationUnavailable("evaluation_config_ladder")
+    if max(levels) > LADDER_TOP:
+        raise EvaluationUnavailable("evaluation_config_ladder_level_4_not_open")
+    if (
+        type(hotkeys) is not list
+        or not hotkeys
+        or len(set(hotkeys)) != len(hotkeys)
+        or not all(type(h) is str and _SS58.fullmatch(h) for h in hotkeys)
+        or type(variants) is not list
+        or not variants
+        or len(set(variants)) != len(variants)
+    ):
+        raise EvaluationUnavailable("evaluation_config_ladder")
+    from .challenge import CHALLENGE
+
+    versions = development_variant_registry()["versions"]
+    accepted = {}
+    for name in variants:
+        document = development_variant_document(name) if name in versions else None
+        base = (document or {}).get("base_contract")
+        if (
+            document is None
+            or document.get("level") not in levels
+            or document.get("challenge") != CHALLENGE.challenge_id
+            or type(base) is not dict
+            or base.get("digest") != contract(CHALLENGE.challenge_id).digest
+        ):
+            raise EvaluationUnavailable("evaluation_config_ladder_variant")
+        accepted[versions[name]] = {"version": name, "level": document["level"]}
+    return {
+        "levels": frozenset(levels),
+        "hotkeys": frozenset(hotkeys),
+        "variants": accepted,
+    }
+
+
+def _network(config):
+    """The deployment's chain network: its commitment reader's, else Carbon's
+    own (testnet, `chain.models.CARBON_NETWORK`)."""
+    from carbon.chain.models import CARBON_NETWORK
+
+    reader = config.get("commitment_reader")
+    return reader["network"] if type(reader) is dict else CARBON_NETWORK
 
 
 def _commitment_reader(config):
@@ -240,7 +387,18 @@ def build(config, *, repository, readonly=False):
             if config.get("torch_image_manifest")
             else None
         )
-        if torch_image is not None:
+        if torch_image is not None and config.get("device") == "gpu":
+            from carbon.reconstruction.torch_profile import gpu_requirements_digest
+
+            # The PyTorch GPU worker (VALIDATOR-27 slice 2) is built on the same
+            # C-03 worker as the JAX accelerator image, from this checkout's
+            # exact-hashed cu130 lock, nothing else.
+            if (
+                torch_image.base_image_digest != image.base_image_digest
+                or torch_image.lock_digest != gpu_requirements_digest(repository)
+            ):
+                raise EvaluationUnavailable("evaluation_config_image")
+        elif torch_image is not None:
             from carbon.reconstruction.torch_profile import requirements_digest
 
             # The PyTorch image is the one built on this JAX image from this
@@ -256,13 +414,27 @@ def build(config, *, repository, readonly=False):
                 and not doctor(image_id=pinned.image_id, image_identity=pinned).eligible
             ):
                 raise EvaluationUnavailable("evaluation_host_unavailable")
-        backend = CarrierBackend(
-            WorkLedger(store, work),
-            image,
-            torch_image=torch_image,
-            root=repository,
-            seconds=int(config.get("seconds", 600)),
-        )
+        from carbon.reconstruction.hardware_acceptance import DeviceClassNotAccepted
+
+        try:
+            backend = CarrierBackend(
+                WorkLedger(store, work),
+                image,
+                torch_image=torch_image,
+                root=repository,
+                seconds=int(config.get("seconds", 600)),
+                device=config.get("device"),
+                network=_network(config),
+            )
+        except DeviceClassNotAccepted:
+            # No hardware acceptance names this host's device class: a GPU
+            # validator never scores on it.
+            raise EvaluationUnavailable(
+                "evaluation_device_class_not_accepted"
+            ) from None
+        except ValueError:
+            # No device record on this host, or a malformed device request.
+            raise EvaluationUnavailable("evaluation_device_unavailable") from None
     else:
         backend = DirectBackend(repository)
     key = config.get("service_key")
@@ -278,11 +450,15 @@ def build(config, *, repository, readonly=False):
             service_key=None if key is None else ServiceKey.load(key),
             development_only=config.get("development_only", False),
             import_only=config.get("batch_source") == "answer_key",
+            ladder=ladder_for(config),
+            reserved_hotkeys=reserved_hotkeys(config),
         )
     except StateError as mismatch:
         raise EvaluationUnavailable("evaluation_" + mismatch.code) from None
     validator.lock_path = str(config["state"]) + ".lock"
     validator.readonly = readonly
+    if validator.ladder is not None and _LADDER_SETUP is not None:
+        _LADDER_SETUP(validator, config)
     if readonly:
         return validator
     try:

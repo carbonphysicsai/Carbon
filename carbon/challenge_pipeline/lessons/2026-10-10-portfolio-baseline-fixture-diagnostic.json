@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-10-portfolio-baseline-fixture-diagnostic",
+  "recorded_at": "2026-10-10T18:35:00Z",
+  "challenge": "f13",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "CHEAP-BASELINE-COMPARATORS-01", "description": "First synthetic run: 15 passed, one test's expected transverse cutoff was incorrectly below the actual toy pipe cutoff."},
+  "expected": "Above-cutoff, offset and flowing scope abstain.",
+  "observed": "The implementation correctly retained the below-cutoff toy query. Corrected the fixture to query 40 kHz, without changing the physical scope rule. Combined comparator/producer diagnostic then passed 58 tests; Ruff found one nested-if style issue, repaired separately.",
+  "keep": ["Compute cutoff from the actual largest segment/port, not a memorized frequency."],
+  "change": ["Check a failing test's physical premise before changing its implementation."],
+  "protocol_elements": ["design packet", "lessons"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

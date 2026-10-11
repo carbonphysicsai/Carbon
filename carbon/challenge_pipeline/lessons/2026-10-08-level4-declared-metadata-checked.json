@@ -1,0 +1,27 @@
+{
+ "schema": "carbon.challenge-pipeline.lesson.v1",
+ "lesson_id": "2026-10-08-level4-declared-metadata-checked",
+ "recorded_at": "2026-10-08T12:00:00Z",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "stage": "test_iterate",
+ "execution": {
+  "kind": "coverage_run",
+  "ref": "claude/level4-attack-adapter (Level 4 PR 8 part 2, PR #800)",
+  "description": "Ran the battery_level4 attack adapter (the proposal's §8 suite) against Carbon's real Level 4 gates: G3 strict parse, G4 validate with fixture caps, and rebuild."
+ },
+ "expected": "Every malformed graph document would be refused before execution, with a typed construction refusal.",
+ "observed": "A document whose declared node shape lied (a tanh output declared [4, 3]) passed G4. It failed only when executed, which would have been inside G6 training, untyped and after compute was spent. Every other attack was held.",
+ "keep": [
+  "Check declared metadata against derived metadata before execution. G4 now evaluates the rebuilt graph abstractly (jax.eval_shape: shapes only, no compile, no data) and refuses with declared_aval_mismatch.",
+  "Keep the declared_shape_lie specimen in the §8 suite with an unchecked-gate control that fires, so that a regression is caught."
+ ],
+ "change": [
+  "Treat every Level 4 field that is declared rather than derived as an attack surface: derive it, then compare, before any compute."
+ ],
+ "protocol_elements": [
+  "development_variant.level4",
+  "attack.track_a"
+ ],
+ "proposed_revision": null,
+ "status": "RECORDED"
+}

@@ -5,7 +5,13 @@
 - OWNER-LEVEL4-GRAPH-ONLY-01;
 - OWNER-GRAPHITE-TEST-WAVE-03 §1, as amended by the first.
 
-**Status:** SPECIFIED. It follows LAUNCHPAD-ACCEPT-04 (#778).
+**Status:** S1 IMPLEMENTED (on main). S2 and S3 IMPLEMENTED and TESTED with
+fixture intakes and registry fixtures (2026-10-09; decisions in
+`.agent/decisions/2026-10-09-LAUNCHPAD-LEVELS-01-S2-S3.md`). Real-run
+acceptance (plan §3.8, cells L1–L4) is pending VALIDATOR-25 slice 2's
+`served_contracts` and the ladder deployment for `carbon-rehearsal-minerC`;
+Level 4's send also waits for the validator's envelope transport. It follows
+LAUNCHPAD-ACCEPT-04 (#778).
 
 ## What exists (origin/main df26107c2)
 
@@ -81,7 +87,10 @@
   every target that does not list the digest.
 - Door parity, so Graphite and any MCP agent can drive it.
 
-**S3: the Level 4 slot, designed, not built.**
+**S3: the Level 4 slot.** *Built (2026-10-09) against the Level 4 staging
+contract, which superseded the design-note plan below: freeze verifies the
+lowered directory and keeps its staging envelope; submit fails closed until
+an intake carries it.*
 - A design note for a graph-artifact submission, in the format of
   `scripts/dev/level4_spike/graph.py` (`carbon.development.level4-graph.v0`)
   and its allowlist, from #746.

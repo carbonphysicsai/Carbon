@@ -1,0 +1,19 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-09-cheap-baselines-regression",
+  "recorded_at": "2026-10-09T02:12:53Z",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-CHEAP-BASELINES-01 candidate regression",
+    "description": "Native ten-file packet, law, credibility, value-cost, volume/leverage and pipeline regression suite."
+  },
+  "expected": "Preserve existing contracts while adding independent cheap-comparator specifications.",
+  "observed": "195 passed in 289.41s. Native Windows diagnostics; no canonical acceptance, baseline fitting, solver run, spend or earned reference credibility.",
+  "keep": ["Existing question-law, packet and pipeline tests remain unchanged."],
+  "change": ["Report total buyer workflow cost and unresolved boundaries, not prediction latency alone."],
+  "protocol_elements": ["buyer value", "reference credibility", "cost accounting"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

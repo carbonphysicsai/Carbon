@@ -123,10 +123,73 @@ the ladder record names it chosen, `DEVELOPMENT` only above a named
 deployment's own level, otherwise `NOT_OFFERED`); its capabilities from
 Graphite's accepted proposal, with the surface and bounds a registered
 development variant widens; that variant's name, digest and arm, or the
-registry's refusal (Levels 4 and 5 are refused until isolation is accepted);
+registry's refusal (Level 5 is refused until isolation is accepted);
 what the level leaves out; and the contract's `compute_budget`, or
-`NOT_SET`. Everything is read from repository data. Nothing in it can be
-chosen or submitted yet: launching at a level is the ticket's S2.
+`NOT_SET`. Everything is read from repository data. Where your profile names
+an intake for the Challenge, every level above the lowest one its
+`served_contracts` lists is `DEVELOPMENT`.
+
+### Choosing a construction level (LAUNCHPAD-LEVELS-01 S2, S3)
+
+A level is chosen at launch and frozen with the campaign. Every level above
+0 is DEVELOPMENT: it is sent only to a validator that says it serves it (the
+testnet development-ladder deployment), never to the main one.
+
+1. Read `carbon_ladder` for the Challenge: each level's variant (name,
+   digest, arms) and the surfaces and bounds it widens.
+2. `carbon_launch` with `agent: none`, `construction_level: N` and, where the
+   ladder lists one, `arm`. The manifest freezes the level's current variant
+   by name and digest. Omitted or 0 is Level 0, exactly as before. Refusals:
+   `level_not_registered` (no current variant for N or the arm),
+   `construction_level_needs_own_selection` (Graphite does not drive levels
+   yet).
+3. `carbon_practice` and `carbon_freeze_candidate` compile at the level
+   (`compile_development`): a widened value out of bounds is
+   `level_strategy_refused`. Practice trains the recipe's Level 0 base; its
+   result carries `construction_level.widened_trained: false`. Only the
+   validator's rebuild runs the level.
+4. Freeze records the variant's digest as the candidate's `contract_digest`,
+   so `carbon_commit` commits `{challenge, variant digest, strategy hash}`.
+5. `carbon_commit` and `carbon_submit` are refused before anything is signed
+   with `level_not_served_by_target` unless your target intake's public facts
+   list the variant in `served_contracts` (`{level, variant, digest}`), and
+   with `level_not_registered` if the frozen variant is no longer current.
+
+**Level 4 (graph only).** Lower your model on your own machine:
+`python -m carbon.level4.tooling lower SPEC OUT --challenge ID --interface
+DIGEST --batch N`, put the printed submission digest in the strategy's Level
+4 field (battery: `parameters.composition_graphs`), practise, then
+`carbon_freeze_candidate` with `level4_directory: OUT`. Freeze verifies the
+submission against the variant's pinned allowlist, the Challenge, the
+recipe's interface and batch, with the variant's pinned document size bound
+(`level4_size_bound_not_set` while it has none), and keeps its staging
+envelope beside the candidate, bytes unchanged. Submit is refused
+`level4_envelope_transport_unavailable` until a validator intake carries the
+envelope.
+
+Whether a recipe is inside a Challenge's submission compute budget is a read
+too: `carbon_budget_status` (browser: `POST /api/v1/operations/budget_status`)
+takes `challenge` and a `strategy` that names it
+(LAUNCHPAD-COMPUTE-BUDGET-STATUS-01). It answers
+`{schema, status, unit, used, allowed, within}` by the rule admission refuses
+by (`challenge_contracts.budget_status`):
+- `NOT_SET`: the Challenge declares no budget. This is every Challenge today.
+  No number is given and nothing is computed.
+- `SET`: `used` is the recipe's cost from the training budget calculator on
+  this machine, `allowed` is the ceiling, both in `unit`, and `within` is
+  `used <= allowed`.
+- `MALFORMED`, `UNMEASURABLE`, `NO_ADAPTER` (no cost adapter for the
+  Challenge) or `UNIT_NOT_CALIBRATED` (the unit's factors are still
+  `HUMAN_INPUT`). Each one under a declared budget is refused at submission.
+
+The same status is on each practice result in `carbon_observe` and
+`carbon_campaign_view` (`budget_status`); practice is never refused by it.
+`carbon_freeze_candidate`, `carbon_commit` and `carbon_submit` show it in
+their answer. They refuse a recipe the budget would refuse before anything is
+signed or sent: `over_compute_budget` or `cost_unmeasurable`, with
+`budget: {unit, used, allowed}` and a next step naming the numbers. Each
+Challenge's budget comes from its own training budget study and the owner's
+decision on it. The validator's calculation on its pinned image decides.
 
 ## Starting without a campaign
 

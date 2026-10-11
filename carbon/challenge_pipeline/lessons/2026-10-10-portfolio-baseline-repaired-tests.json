@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-10-portfolio-baseline-repaired-tests",
+  "recorded_at": "2026-10-10T18:49:00Z",
+  "challenge": "protocol",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "CHEAP-BASELINE-COMPARATORS-01", "description": "Repaired synthetic comparator plus existing #917/producer tests: 58 passed; pinned Black and Ruff passed."},
+  "expected": "Methods reproduce synthetic arithmetic without using held-out witnesses for prediction.",
+  "observed": "Identity, custody, scoped abstention, interval weighting, immutable output and no-extrapolation checks passed. These do not establish physical adequacy, a strongest-full-task f13 arm or V4 advantage.",
+  "keep": ["Report unsupported coverage and full missing-cost inventory beside accuracy."],
+  "change": ["Treat modal acquisitions and ROM baseline traces as explicit counted calibration, never free target truth."],
+  "protocol_elements": ["design packet", "lessons"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

@@ -135,6 +135,10 @@ verdict.
   names the distribution URL, `receiver`, the validator's own `hotkey` and
   signer socket, the pinned `producer_public_key`, the deployment and the
   Challenge.
+- **The validator's signer** is `carbon-miner-signer`, started for this
+  fetch only: `--request answer-key --receiver <receiver>`. A signer
+  started as a miner's (the default, MCP only) refuses the fetch as
+  `signer_refused:NOT_A_CARBON_REQUEST`.
 - **Run on a timer:**
 
   ```bash

@@ -547,6 +547,40 @@ def test_a_resume_before_the_manifest_checks_the_launchs_own_provider(
         bridge._frozen_credential(cfg, root, row)
 
 
+def test_a_campaign_whose_agent_is_none_needs_no_model_key(tmp_path):
+    """LA-F11: setup wrote an Engy key, which also names `api_key_file`, as the
+    installer's profile does. An own-agent campaign (agent `none`) calls no
+    Carbon model, yet every practice in it was refused
+    `model_provider_credential_not_configured` by the pinned default's rule
+    (the fresh-machine run, cell C3). Its key check now passes with no key, and
+    a campaign whose Carbon agent does call a model keeps the refusal."""
+    from scripts.dev.miner_launchpad.runner import RunnerAdapter, foreign_default_key
+
+    engy = key_file(tmp_path, "engy.key", ENGY_KEY)
+    cfg = profile(tmp_path, credentials={"engy-chat": str(engy)})
+    cfg["paths"]["api_key_file"] = str(engy)
+    assert foreign_default_key(cfg)
+
+    def frozen(name, agent):
+        root = tmp_path / name
+        root.mkdir()
+        (root / "campaign-manifest.json").write_text(json.dumps({"agent": agent}))
+        return root
+
+    assert RunnerAdapter._frozen_credential(cfg, frozen("own", "none")) is None
+    with pytest.raises(Rejected, match="model_provider_credential_not_configured"):
+        RunnerAdapter._frozen_credential(cfg, frozen("auto", "autonomous"))
+    # Before its manifest freezes, the admitted launch's agent decides.
+    unfrozen = tmp_path / "unfrozen"
+    unfrozen.mkdir()
+    for name in ("none", "own-agent"):
+        row = {"launch_request": json.dumps({"agent": name}).encode()}
+        assert RunnerAdapter._frozen_credential(cfg, unfrozen, row) is None
+    unreadable = {"launch_request": b"{not json"}
+    with pytest.raises(Rejected, match="model_provider_credential_not_configured"):
+        RunnerAdapter._frozen_credential(cfg, unfrozen, unreadable)
+
+
 def test_the_recorded_launch_provider_is_read_as_the_launch_reads_it():
     """LA-F5: the provider is the one the launch named; else, for a model
     agent naming no model, the miner's setup choice; else None (the pinned

@@ -17,7 +17,8 @@ documents' bytes, each named by its digest (`submission`). In order:
 4. **In-process verify.** Only then does Carbon parse the bytes itself
    (`submission.verify`) to hand them on to G4.
 
-Nothing here chooses a bound. Development tests pass fixture values.
+The bounds are the owner's (OWNER-L4-VALUES-01, development and testnet);
+nothing here chooses one. Development tests pass fixture values.
 """
 
 from __future__ import annotations
@@ -32,14 +33,15 @@ from pathlib import Path
 from . import graph, submission
 from .allowlist import HUMAN_INPUT
 
-#: Intake bounds. None is chosen here: each is a Challenge's or the
-#: validator's (D6; the transport bound is the validator intake's).
+#: Intake bounds, approved as proposed in
+#: `docs/development/graphite/level4/LEVEL4_VALUES_PROPOSAL.md` §1-§2
+#: (OWNER-L4-VALUES-01). The transport bound is the validator intake's.
 BOUNDS = {
-    "manifest_bytes": HUMAN_INPUT,
-    "document_bytes": HUMAN_INPUT,
-    "submission_bytes": HUMAN_INPUT,
-    "parse_seconds": HUMAN_INPUT,
-    "parse_memory_bytes": HUMAN_INPUT,
+    "manifest_bytes": 16 * 1024,
+    "document_bytes": 1024**2,
+    "submission_bytes": 4 * 1024**2,
+    "parse_seconds": 10,
+    "parse_memory_bytes": 512 * 1024**2,
 }
 FAILED_INFRA = "FAILED_INFRA"
 
@@ -135,10 +137,15 @@ def intake(
     bounds=None,
     isolate=True,
     worker=None,
+    loss_override=None,
 ):
     """G0 and G3 for one submission: `(manifest, {slot: document})`.
 
+    A loss document is refused unless the Challenge declares
+    `loss_override: graph` (`loss.gate`); never ignored.
     `worker` replaces the isolated parser's command (tests only)."""
+    from . import loss as loss_slot
+
     bounds = _bounds(bounds)
     if type(raw_manifest) is not bytes or type(files) is not dict:
         raise graph.GraphRefused("intake_malformed")
@@ -155,7 +162,7 @@ def intake(
             bounds=bounds,
             worker=worker,
         )
-    return submission.verify(
+    manifest, parsed = submission.verify(
         raw_manifest,
         files,
         allowlist=allowlist,
@@ -163,3 +170,5 @@ def intake(
         interface=interface,
         max_bytes=bounds["document_bytes"],
     )
+    loss_slot.gate(parsed, loss_override)
+    return manifest, parsed

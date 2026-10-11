@@ -392,7 +392,19 @@ LEVEL0_PINS_V2 = {
     "scaffold_built_record": "sha256:b74ec4df6ec7892a061ecef1caa71f237b2f146f93f7f8303ff7adb15cc735cc",
     "program": "sha256:264413438e3456605279d89aa3f066386bbf0dfaa497198a0957bdf912a9746a",
 }
-LEVEL0_PINS_BY_VERSION = {"1.0": LEVEL0_PINS, "2.0": LEVEL0_PINS_V2}
+#: Under battery implementation 3.0 (BATTERY-IMPL-3, every PyTorch family
+#: follows the device it is called on). 2.0's stay its own, from its snapshot.
+LEVEL0_PINS_V3 = {
+    "implementation": "sha256:6c7124470007a4baa2f8a495ce79063366e56f40d9273da0ab65f8c6d9f1bcdf",
+    "scaffold_recipe": "sha256:86e88d2660ca87fccd5e6dfa454cc7d95a9402a54079675992f1ac4580850ec2",
+    "scaffold_built_record": "sha256:4603c9b70a1530f71afe0ed791533c191ebb800f6df16ed85b2fc2389a19f3c1",
+    "program": "sha256:264413438e3456605279d89aa3f066386bbf0dfaa497198a0957bdf912a9746a",
+}
+LEVEL0_PINS_BY_VERSION = {
+    "1.0": LEVEL0_PINS,
+    "2.0": LEVEL0_PINS_V2,
+    "3.0": LEVEL0_PINS_V3,
+}
 
 
 def _canonical_digest(value):

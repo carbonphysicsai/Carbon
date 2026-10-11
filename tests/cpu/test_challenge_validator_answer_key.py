@@ -23,6 +23,7 @@ from carbon.battery import exam, seeds, worker
 from carbon.battery.daemon import BatteryValidator, rule_digest
 from carbon.battery.pool_store import PoolStore, StateError
 from carbon.chain.auth import AuthCode, AuthenticatedHotkey, AuthFailure
+from carbon.chain.external_signer import SignerFailure
 from carbon.chain.models import ChainContext, ChainFailure, FailureCode
 from carbon.chain.permits import PermitUnavailable, ValidatorPermitReader
 from carbon.challenge_validator import answer_key as ak
@@ -297,6 +298,213 @@ def test_an_import_only_validator_imports_the_shared_batch(tmp_path, host, publi
     with pytest.raises(StateError) as refused:
         adapter.target.prepare_batch("pscreen-own", kind="screening", count=SIZE)
     assert refused.value.code == "batch_import_only"
+
+
+def test_sync_runs_through_the_real_signer_and_verifier(tmp_path, published):
+    """3a at r2: `answer_key sync` signs with the validator's own signer,
+    started for the answer-key fetch to the distribution host's receiver, and
+    the host checks it with the real `btauth/1` verifier. No signing or
+    verifying is scripted here."""
+    from _signer_harness import in_thread_signer
+    from bittensor.keyfiles import Keypair
+
+    from carbon.chain.auth import BittensorHotkeyVerifier
+
+    validator = Keypair.create_from_uri("//carbon-answer-key-validator")
+    receiver = Keypair.create_from_uri("//carbon-answer-key-host").ss58_address
+    inbox = tmp_path / "inbox"
+    inbox.mkdir(mode=0o700)
+    (inbox / published["path"].name).write_text(json.dumps(published["value"]))
+    (inbox / published["path"].name).chmod(0o600)
+    service = dist.DistributionService(
+        dist.Inbox(inbox, published["key"].public_key),
+        receiver=receiver,
+        verifier=BittensorHotkeyVerifier(),
+        permits=Permits({validator.ss58_address: True}),
+        nonces=dist.NonceStore(tmp_path / "nonces.sqlite3"),
+        log=dist.FetchLog(tmp_path / "fetch.jsonl"),
+    )
+
+    def post(url, body, headers):
+        return service.handle(headers, body)
+
+    adapter = battery_validator(tmp_path / "validator", import_only=True)
+    challenge = published["source"].challenge_id
+    key = published["key"].public_key
+    with in_thread_signer(
+        validator, receivers=[receiver], requests=["answer-key"]
+    ) as signer:
+        asker = ak.Fetcher("http://127.0.0.1:1", signer, receiver, post=post)
+        synced = ak.sync(adapter, asker, key, challenge)
+        assert [p["state"] for p in synced["packages"]] == ["IMPORTED"]
+        assert signer.issued >= 2  # the listing, then the package
+    # A signer started as a miner's (the default) refuses the fetch by name.
+    with in_thread_signer(validator) as miners_default:
+        asker = ak.Fetcher("http://127.0.0.1:1", miners_default, receiver, post=post)
+        with pytest.raises(SignerFailure) as refused:
+            ak.sync(adapter, asker, key, challenge)
+        assert refused.value.refusal == "NOT_A_CARBON_REQUEST"
+
+
+def test_silent_clients_never_freeze_the_host(tmp_path, published, capsys, monkeypatch):
+    """3a, 2026-10-08: the host's first listener ran every TLS handshake
+    inside `accept`, so one client that connected and sent nothing froze it
+    (`LISTEN 6 5`). Now silent connections wait in their own threads, a real
+    signed fetch over TLS is answered while they are all still held open, a
+    connection over the per-peer cap is refused, and each refused or
+    timed-out connection is one log line.
+
+    No wall-clock bound: on a loaded host a fetch may take longer than any
+    fixed figure. What is proved is the order: the fetch completes while
+    every silent connection is still open, so it never waited on them."""
+    import socket
+    import threading
+
+    from _signer_harness import in_thread_signer
+    from bittensor.keyfiles import Keypair
+    from test_battery_validator_service import self_signed
+
+    from carbon.battery import intake as ib
+    from carbon.chain.auth import BittensorHotkeyVerifier
+
+    # Silent clients are held far longer than any fetch takes.
+    monkeypatch.setattr(ib.LoggedHandler, "timeout", 120.0)
+    validator = Keypair.create_from_uri("//carbon-answer-key-validator")
+    receiver = Keypair.create_from_uri("//carbon-answer-key-host").ss58_address
+    inbox = tmp_path / "inbox"
+    inbox.mkdir(mode=0o700)
+    (inbox / published["path"].name).write_text(json.dumps(published["value"]))
+    (inbox / published["path"].name).chmod(0o600)
+    service = dist.DistributionService(
+        dist.Inbox(inbox, published["key"].public_key),
+        receiver=receiver,
+        verifier=BittensorHotkeyVerifier(),
+        permits=Permits({validator.ss58_address: True}),
+        nonces=dist.NonceStore(tmp_path / "nonces.sqlite3"),
+        log=dist.FetchLog(tmp_path / "fetch.jsonl"),
+    )
+    tls = tmp_path / "tls"
+    tls.mkdir(mode=0o700)
+    cert, key = self_signed(tls)
+    config = {
+        "host": "127.0.0.1",
+        "port": 0,
+        "tls_cert": str(cert),
+        "tls_key": str(key),
+    }
+    server = dist.make_server(service, config)
+    assert server.request_queue_size == ib.LISTEN_BACKLOG
+    port = server.server_address[1]
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    silent = []
+    try:
+        # Three clients connect and never start a handshake (one under the
+        # per-peer cap, so this peer's own fetch still has a slot).
+        silent = [socket.create_connection(("127.0.0.1", port)) for _ in range(3)]
+        with in_thread_signer(
+            validator, receivers=[receiver], requests=["answer-key"]
+        ) as signer:
+            asker = ak.Fetcher(
+                f"https://127.0.0.1:{port}", signer, receiver, ca=str(cert)
+            )
+            listing = asker.ask(published["source"].challenge_id)
+            assert listing["packages"]
+            # Every silent connection is still open: the fetch never waited.
+            for connection in silent:
+                connection.setblocking(False)
+                with pytest.raises(BlockingIOError):
+                    connection.recv(1)
+                connection.setblocking(True)
+            # A fifth connection from this peer, with four open, is refused.
+            asker_slot = socket.create_connection(("127.0.0.1", port))
+            extra = socket.create_connection(("127.0.0.1", port))
+            extra.settimeout(5.0)
+            assert extra.recv(1) == b""
+            extra.close()
+            asker_slot.close()
+        # A connection opened under a short timeout is closed by the host
+        # once it passes, and logged.
+        silent.pop().close()
+        monkeypatch.setattr(ib.LoggedHandler, "timeout", 1.0)
+        late = socket.create_connection(("127.0.0.1", port))
+        silent.append(late)
+        late.settimeout(60.0)
+        assert late.recv(1) == b""
+    finally:
+        for connection in silent:
+            connection.close()
+        server.shutdown()
+        server.server_close()
+    lines = [
+        json.loads(line)
+        for line in capsys.readouterr().err.splitlines()
+        if line.startswith("{")
+    ]
+    events = [x["event"] for x in lines if x["service"] == dist.SERVICE]
+    assert events.count("connection_refused") >= 1
+    assert events.count("connection_timed_out") >= 1
+    assert "127.0.0.1" not in json.dumps(lines)
+
+
+def test_a_window_opens_on_the_chain_clock_without_a_submission(
+    tmp_path, host, published
+):
+    """3a at r3: a pool whose only submission was received before its
+    window's start stayed ROTATION_PENDING after the window opened. The sync
+    now advances the clock with the finalized head (slot 1 is blocks
+    [1080, 4320))."""
+    adapter = battery_validator(tmp_path / "validator", import_only=True)
+    adapter.target.store.open_pool()  # `operate open`: a windowed pool opens empty
+    challenge = published["source"].challenge_id
+    asker = fetcher(host["service"], VALIDATOR)
+    key = published["key"].public_key
+    early = ak.sync(adapter, asker, key, challenge, head=500)
+    assert [p["state"] for p in early["packages"]] == ["IMPORTED"]
+    assert early["clock"] == {"block": 500, "pool": "ROTATION_PENDING", "version": 0}
+    opened = ak.sync(adapter, asker, key, challenge, head=1080)
+    assert opened["clock"] == {"block": 1080, "pool": "OPEN", "version": 1}
+    fingerprint = published["value"]["manifest"]["commitment"]["fingerprint"]
+    assert adapter.target.store.pool()["active"] == [fingerprint]
+    # The head never moves backwards, and an older read rotates nothing.
+    again = ak.sync(adapter, asker, key, challenge, head=900)
+    assert again["clock"]["pool"] == "OPEN" and again["clock"]["version"] == 1
+    # Past the window's end, the pool keeps scoring its batches (never stalls).
+    late = ak.sync(adapter, asker, key, challenge, head=4320)
+    assert late["clock"]["pool"] == "OPEN"
+    with pytest.raises(ak.AnswerKeyRefused) as refused:
+        adapter.observe_head(-1)
+    assert refused.value.code == "answer_key_chain_head_malformed"
+
+
+def test_the_clock_reads_the_deployments_own_chain(tmp_path, monkeypatch):
+    from carbon.chain import permits
+
+    deployment = tmp_path / "deployment.json"
+    deployment.write_text(json.dumps({"schema": "x"}))
+    assert ak.finalized_head(deployment) is None  # no chain reader: no clock
+    chain = {
+        "network": "testnet",
+        "endpoint": "wss://test.finney.opentensor.ai:443",
+        "provider": "bittensor-official-test",
+        "genesis_hash": "0x" + "8" * 64,
+        "netuid": 567,
+    }
+    deployment.write_text(json.dumps({"commitment_reader": chain}))
+    seen = []
+
+    def head(context, **kwargs):
+        seen.append(context.netuid)
+        return 1234
+
+    monkeypatch.setattr(permits, "finalized_block", head)
+    assert ak.finalized_head(deployment) == 1234 and seen == [567]
+
+    def down(context, **kwargs):
+        raise permits.PermitUnavailable("head_read_failed")
+
+    monkeypatch.setattr(permits, "finalized_block", down)
+    assert ak.finalized_head(deployment) is None
 
 
 def resigned(published, *, commitment=None, payload=None):

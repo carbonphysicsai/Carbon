@@ -5,8 +5,8 @@ Claims tested:
 1. A clean forward graph that matches the Challenge's interface is
    `blocked_human_input` while any cap is unset, and `admitted` only when
    every cap is set (fixture values, non-production) and met.
-2. A cap below a measurement refuses with `cap_exceeded`; an unnamed cap
-   stays HUMAN_INPUT and blocks.
+2. A cap below a measurement refuses with `cap_exceeded`, before the
+   shape-only trace runs the graph; a cap set to HUMAN_INPUT blocks.
 3. The interface check refuses unexpected, missing, mistyped or misshapen
    inputs and outputs, and inconsistent batch sizes.
 4. The expected role is enforced.
@@ -59,19 +59,36 @@ INTERFACE = validate.Interface(
 
 def test_caps_gate_admission(allowlist):
     doc = _forward(allowlist)
-    blocked = validate.validate(doc, allowlist, role="forward", interface=INTERFACE)
+    unset = {name: allowlist_module.HUMAN_INPUT for name in allowlist_module.CAPS}
+    blocked = validate.validate(
+        doc, allowlist, role="forward", interface=INTERFACE, caps=unset
+    )
     assert blocked["status"] == "blocked_human_input" and blocked["batch"] == 5
     assert set(blocked["caps"].values()) == {"blocked_human_input"}
+    # Unnamed caps are the owner's (OWNER-L4-VALUES-01).
+    owners = validate.validate(doc, allowlist, role="forward", interface=INTERFACE)
+    assert owners["status"] == "admitted"
     admitted = validate.validate(doc, allowlist, interface=INTERFACE, caps=FIXTURE_CAPS)
     assert admitted["status"] == "admitted"
-    partial = dict(FIXTURE_CAPS)
-    del partial["call_depth"]
+    partial = {**FIXTURE_CAPS, "call_depth": allowlist_module.HUMAN_INPUT}
     assert (
         validate.validate(doc, allowlist, caps=partial)["status"]
         == "blocked_human_input"
     )
     with pytest.raises(graph.GraphRefused) as refused:
         validate.validate(doc, allowlist, caps={**FIXTURE_CAPS, "nodes_executed": 1})
+    assert refused.value.code == "cap_exceeded"
+
+
+def test_caps_refuse_before_the_shape_trace_runs(allowlist, monkeypatch):
+    def traced(*_):
+        raise AssertionError("the shape-only trace ran before the caps")
+
+    monkeypatch.setattr(validate, "check_declared_shapes", traced)
+    with pytest.raises(graph.GraphRefused) as refused:
+        validate.validate(
+            _forward(allowlist), allowlist, caps={**FIXTURE_CAPS, "nodes_executed": 1}
+        )
     assert refused.value.code == "cap_exceeded"
 
 

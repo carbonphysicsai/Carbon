@@ -22,7 +22,11 @@ decide whether to sign; that op never signs anything but these bytes.
 ``commit`` (OWNER-COMMITMENT-POSTER-01) is the one chain extrinsic: a strategy
 commitment, rebuilt and checked by ``commitment.check_request``, and signed
 only after the miner types the digest's last 8 characters on this process's
-own terminal. Nothing on the socket can confirm it.
+own terminal. Nothing on the socket can confirm it. The one exception is
+opt-in at start and testnet 567 only (``autoconfirm``,
+OWNER-SIGNER-TESTNET-AUTOCONFIRM-01): ``--auto-confirm-commitments`` names an
+owner-written allow-list, and a listed hotkey's commitments are signed
+without the prompt.
 """
 
 from __future__ import annotations
@@ -41,11 +45,18 @@ import time
 from enum import Enum
 from pathlib import Path
 
+from . import autoconfirm as ac
 from . import commitment as cm
 
 PROTOCOL = "carbon.miner-signer.v1"
 #: The one request target Carbon's miner session signs for.
 PATH = "/carbon/v1/mcp"
+#: Every request target this signer can be started for, by kind. A miner's
+#: session needs only "mcp", the default. A validator's answer-key fetch
+#: (VALIDATOR-19) is "answer-key": opt-in at start, and only for a named
+#: receiver, so the default signer never signs it.
+REQUEST_PATHS = {"mcp": PATH, "answer-key": "/carbon/v1/answer-key"}
+DEFAULT_REQUESTS = ("mcp",)
 MAX_REQUEST_BYTES = 4096
 #: Connections served at once. Each is answered on its own thread, so one
 #: slow or stalled client never holds up Carbon's other requests.
@@ -91,8 +102,10 @@ def refusal_for(
     scheme: str,
     receivers: frozenset[str] | None,
     now_ns: int,
+    paths: frozenset[str] = frozenset({PATH}),
 ) -> Refusal | None:
-    """None when ``payload`` is a Carbon request this signer may sign."""
+    """None when ``payload`` is a Carbon request this signer may sign:
+    ``paths`` are the request targets it was started for."""
     try:
         lines = payload.decode("ascii").split("\n")
     except UnicodeDecodeError:
@@ -104,7 +117,7 @@ def refusal_for(
         protocol != "btauth/1"
         or signed_scheme != scheme
         or method != "POST"
-        or path != PATH
+        or path not in paths
         or not _HEX64.fullmatch(body_hash)
         or not _NONCE.fullmatch(nonce)
     ):
@@ -143,11 +156,13 @@ class SignerServer:
         socket_path: Path,
         *,
         receivers=None,
+        requests=DEFAULT_REQUESTS,
         log=None,
         clock=time.time_ns,
         commit_policy=None,
         confirm=None,
         wall_clock=None,
+        auto_confirm=None,
     ):
         if keypair.crypto_type not in SCHEMES:
             raise ValueError("unsupported key type")
@@ -156,6 +171,14 @@ class SignerServer:
         self.scheme = SCHEMES[keypair.crypto_type]
         self.socket_path = Path(socket_path)
         self.receivers = None if receivers is None else frozenset(receivers)
+        requests = tuple(requests)
+        if not requests or any(kind not in REQUEST_PATHS for kind in requests):
+            raise ValueError("--request takes " + " or ".join(sorted(REQUEST_PATHS)))
+        if "answer-key" in requests and not self.receivers:
+            raise ValueError(
+                "answer-key requests are signed only for a named --receiver"
+            )
+        self.paths = frozenset(REQUEST_PATHS[kind] for kind in requests)
         self._log = log if log is not None else sys.stderr
         self._clock = clock
         self._listener = None
@@ -169,6 +192,14 @@ class SignerServer:
         #: One commit at a time: a second one while the miner is being asked
         #: is refused, never queued.
         self._committing = threading.Lock()
+        #: OWNER-SIGNER-TESTNET-AUTOCONFIRM-01: None (the default) asks on the
+        #: terminal; an ``AutoConfirm`` signs allow-listed testnet 567
+        #: commitments unasked, and never asks.
+        if auto_confirm is not None:
+            problem = auto_confirm.startup_problem(commit_policy, self.hotkey)
+            if problem is not None:
+                raise ValueError(problem)
+        self.auto_confirm = auto_confirm
         self.ledger = cm.CommitLedger(
             self.socket_path.parent / (self.hotkey + ".commitments.jsonl")
         )
@@ -266,6 +297,7 @@ class SignerServer:
             scheme=self.scheme,
             receivers=self.receivers,
             now_ns=self._clock(),
+            paths=self.paths,
         )
         if refusal is not None:
             return self._refuse(refusal)
@@ -273,7 +305,8 @@ class SignerServer:
             signature = bytes(self._keypair.sign(payload))
         lines = payload.decode("ascii").split("\n")
         self._note(
-            f"signed a Carbon request for receiver {lines[7]}, body sha256 {lines[4][:16]}"
+            f"signed a Carbon request ({lines[3]}) for receiver {lines[7]}, "
+            f"body sha256 {lines[4][:16]}"
         )
         return {"ok": True, "signature": "0x" + signature.hex()}
 
@@ -286,9 +319,22 @@ class SignerServer:
             policy = self.commit_policy
             tempo = self.ledger.check(policy, checked["era_current"])
             now = self._now()
-            text = cm.prompt_text(policy, self.hotkey, checked, self.ledger.today(now))
-            if not self._confirm(text, checked["digest"][-8:]):
-                raise cm.Refused(cm.CommitRefusal.NOT_CONFIRMED)
+            marks, shown = {}, None
+            if self.auto_confirm is None:
+                text = cm.prompt_text(
+                    policy, self.hotkey, checked, self.ledger.today(now)
+                )
+                if not self._confirm(text, checked["digest"][-8:]):
+                    raise cm.Refused(cm.CommitRefusal.NOT_CONFIRMED)
+            else:
+                # Never the prompt: an unattended signer has no terminal.
+                self.auto_confirm.check(
+                    policy, self.hotkey, request["unsigned"]["genesis_hash"]
+                )
+                shown = ac.shown_text(
+                    policy, self.hotkey, checked, self.ledger.today(now)
+                )
+                marks = {"confirmation": ac.MARK, "network": policy.network}
             self.ledger.append(
                 {
                     "digest": checked["digest"],
@@ -300,8 +346,11 @@ class SignerServer:
                     "tempo_index": tempo,
                     "fee_rao": checked["fee_rao"],
                     "signed_at": now.astimezone(datetime.UTC).isoformat(),
+                    **marks,
                 }
             )
+            if shown is not None:
+                self._note(shown)
             with self._signing:
                 signature = bytes(self._keypair.sign(checked["payload"]))
         except cm.Refused as refused:
@@ -413,11 +462,33 @@ def main(argv=None):
         help="only sign requests addressed to this validator hotkey (repeatable)",
     )
     parser.add_argument(
+        "--request",
+        action="append",
+        choices=sorted(REQUEST_PATHS),
+        help=(
+            "which Carbon requests to sign (repeatable): mcp, a miner's session "
+            "(the default); answer-key, a validator's answer-key fetch, which "
+            "needs --receiver"
+        ),
+    )
+    parser.add_argument(
         "--socket", type=Path, help="socket path (derived from the hotkey if omitted)"
+    )
+    parser.add_argument(
+        "--auto-confirm-commitments",
+        type=Path,
+        metavar="ALLOWLIST_FILE",
+        help=(
+            "testnet 567 only: sign strategy commitments without asking, for a "
+            "hotkey in this owner-written allow-list (read once, at start)"
+        ),
     )
     args = parser.parse_args(argv)
     if (args.key_file is None) == (args.wallet is None or args.hotkey is None):
         parser.error("give either --wallet and --hotkey, or --key-file")
+    requests = tuple(args.request or DEFAULT_REQUESTS)
+    if "answer-key" in requests and not args.receiver:
+        parser.error("--request answer-key needs --receiver")
     # D8: refuse a key file others can read, before it is opened.
     problem = cm.key_file_problem(
         key_path(
@@ -431,6 +502,21 @@ def main(argv=None):
         raise SystemExit(problem)
     # The network, netuid and every commit bound are fixed here, at start.
     policy, unpinned = cm.load_policy()
+    auto = None
+    if args.auto_confirm_commitments is not None:
+        # OWNER-SIGNER-TESTNET-AUTOCONFIRM-01: refused at start unless the
+        # allow-list is sound and the record is testnet 567's.
+        try:
+            auto = ac.load_allowlist(args.auto_confirm_commitments)
+        except ac.AllowListProblem as problem:
+            raise SystemExit(str(problem)) from None
+        # Before the key is unlocked: the network, and --expect if given
+        # (without it, a listed hotkey stands in and only the network is
+        # checked here; the loaded key is checked below).
+        probe = args.expect if args.expect is not None else min(auto.hotkeys)
+        problem = auto.startup_problem(policy, probe)
+        if problem is not None:
+            raise SystemExit(problem)
     keypair = load_hotkey(
         wallet=args.wallet,
         hotkey=args.hotkey,
@@ -439,17 +525,24 @@ def main(argv=None):
     )
     if args.expect is not None and keypair.ss58_address != args.expect:
         raise SystemExit("this key file holds a different hotkey than --expect")
+    if auto is not None:
+        problem = auto.startup_problem(policy, keypair.ss58_address)
+        if problem is not None:
+            raise SystemExit(problem)
     server = SignerServer(
         keypair,
         args.socket or default_socket(keypair.ss58_address),
         receivers=args.receiver,
+        requests=requests,
         commit_policy=policy,
+        auto_confirm=auto,
     )
     del keypair
     server.bind()
     print(
         f"Carbon miner signer for hotkey {server.hotkey}\n"
         f"listening on {server.socket_path}\n"
+        f"signing: {', '.join(sorted(server.paths))}\n"
         "Carbon's requests are signed here and each one is shown below. "
         "Ctrl-C stops signing.",
         flush=True,
@@ -460,10 +553,17 @@ def main(argv=None):
             + ", ".join(unpinned),
             flush=True,
         )
-    else:
+    elif auto is None:
         print(
             f"On-chain commitments: {policy.network} netuid {policy.netuid}; each "
             "one asks you here first.",
+            flush=True,
+        )
+    else:
+        print(
+            f"On-chain commitments: {policy.network} netuid {policy.netuid}; "
+            f"{ac.MARK}: each one is signed without asking and shown here. "
+            f"Allow-list {auto.path}, read once: restart to change it.",
             flush=True,
         )
     try:

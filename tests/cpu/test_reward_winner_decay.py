@@ -107,20 +107,54 @@ def test_an_altered_policy_is_refused(tmp_path):
     assert str(refused.value) == "WEIGHT_POLICY_ALTERED"
 
 
-def test_a_mainnet_policy_is_malformed_even_when_pinned(tmp_path):
+def registered_copy(tmp_path, **changes):
+    """The registered policy copied and changed, then pinned in the copy's
+    registry: only the loader's own rules can refuse it."""
     import hashlib
 
     copy = tmp_path / "weight_policies"
     shutil.copytree(wd.POLICY_DIR, copy)
     path = copy / "testnet-winner-v1.json"
     document = json.loads(path.read_text())
-    document["network"], document["netuid"] = "finney", 1
+    document.update(changes)
     path.write_text(json.dumps(document))
     registry = json.loads((copy / "registry.json").read_text())
     registry["versions"]["testnet-winner-v1"] = (
         "sha256:" + hashlib.sha256(wd._canonical(document)).hexdigest()
     )
     (copy / "registry.json").write_text(json.dumps(registry))
+    return copy
+
+
+def test_a_mainnet_policy_under_the_mainnet_authority_loads(tmp_path):
+    """OWNER-WEIGHTS-AUTHORITY-01, its hold lifted: the same rule on finney."""
+    copy = registered_copy(
+        tmp_path, network="finney", netuid=99, authority=wd.MAINNET_AUTHORITY
+    )
+    policy = wd.load_policy(directory=copy)
+    assert (policy.network, policy.netuid, policy.authority) == (
+        "finney",
+        99,
+        wd.MAINNET_AUTHORITY,
+    )
+    assert (policy.cadence_blocks, policy.burn_uid) == (POLICY.cadence_blocks, 0)
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [
+        # The testnet record never authorizes mainnet, or another testnet netuid.
+        {"network": "finney", "netuid": 1},
+        {"netuid": 1},
+        # A network outside the registered table has no policy.
+        {"network": "mainnet-x", "netuid": 1, "authority": wd.MAINNET_AUTHORITY},
+        {"network": "finney", "netuid": 0, "authority": wd.MAINNET_AUTHORITY},
+    ],
+)
+def test_a_policy_outside_its_authority_is_malformed_even_when_pinned(
+    tmp_path, changes
+):
+    copy = registered_copy(tmp_path, **changes)
     with pytest.raises(RewardFailure) as refused:
         wd.load_policy(directory=copy)
     assert str(refused.value) == "WEIGHT_POLICY_MALFORMED"

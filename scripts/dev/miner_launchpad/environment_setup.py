@@ -543,23 +543,42 @@ def signer_command() -> str:
     return name + " --wallet <your wallet> --hotkey <your hotkey>"
 
 
-def guide_commands(guide_id, transport, gpu_manifest=None) -> list[dict]:
+def guide_commands(guide_id, transport, gpu_manifest=None, released=None) -> list[dict]:
     """The commands a miner runs for one remote setup, each to copy.
 
     `<destination>` is the SSH destination the miner types in setup; the page
-    fills it in. A container rental pulls the worker image from a registry the
-    miner controls, so its first command is the push helper, with the GPU
-    worker setup found when there is one (otherwise the helper builds it).
+    fills it in. A container rental pulls the worker image from a registry.
+    When the installer pulled Carbon's released GPU worker and setup found it
+    (`released`, from `installed.released_gpu`), the first entry is that
+    release's `repository@sha256:...` reference to start the container from,
+    and the push helper follows as the fallback (OWNER-WORKER-IMAGES-V2-01).
+    Otherwise the first command is the push helper, to a registry the miner
+    controls, with the GPU worker setup found when there is one (otherwise the
+    helper builds it). Setup checks the container's build identity either way.
     """
     commands = []
     if transport == "ssh-container":
         push = shlex.quote(str(REPO / "scripts/dev/push_worker_image.sh"))
         if gpu_manifest:
             push += " --manifest " + shlex.quote(str(gpu_manifest))
+        label = (
+            "Push your worker image to a registry you control "
+            "(after your own docker login)"
+        )
+        if released:
+            commands.append(
+                {
+                    "label": "Start your container from Carbon's released GPU "
+                    f"worker ({released['release_tag']}), by digest",
+                    "command": released["reference"],
+                }
+            )
+            label = (
+                "Or, if your provider cannot pull it: " + label[0].lower() + label[1:]
+            )
         commands.append(
             {
-                "label": "Push your worker image to a registry you control "
-                "(after your own docker login)",
+                "label": label,
                 "command": push + " <registry>/<you>/carbon-gpu-worker",
             }
         )
@@ -607,18 +626,43 @@ def mcp_connect(state_dir=None) -> dict:
         args += ["--state-dir", str(state_dir)]
     repo = str(REPO)
     command = " ".join(shlex.quote(part) for part in [python, *args])
+    # LA-F14: a snippet that names the checkout by PYTHONPATH, with no cwd,
+    # starts in whatever directory the agent runs in, and `python -m` puts
+    # that directory first on the import path: inside another Carbon
+    # checkout, that checkout's packages load instead. `-P` (Python 3.11+)
+    # leaves it off. Snippets with `cwd` set to this checkout are already right.
+    env_args = ["-P", *args]
+    env_command = " ".join(shlex.quote(part) for part in [python, *env_args])
     quoted = lambda value: json.dumps(value)
     claude = {
         "mcpServers": {
-            "carbon": {"command": python, "args": args, "env": {"PYTHONPATH": repo}}
+            "carbon": {
+                "command": python,
+                "args": env_args,
+                "env": {"PYTHONPATH": repo},
+            }
         }
     }
     toml = (
+        # One whole table: a key appended after `codex mcp add` would land
+        # in the [mcp_servers.carbon.env] table it writes.
+        "# The whole table: use it in place of any [mcp_servers.carbon]\n"
+        "# tables `codex mcp add` wrote.\n"
         "[mcp_servers.carbon]\n"
         f"command = {quoted(python)}\n"
         f"args = {json.dumps(args)}\n"
         f"cwd = {quoted(repo)}\n"
         "tool_timeout_sec = 1800\n"
+        # LA-F13: `codex exec` runs with no one to approve a prompt, so a
+        # Carbon tool it calls fails "requires approval". Codex's documented
+        # per-server setting (learn.chatgpt.com/docs/extend/mcp): `prompt`
+        # asks each time; `approve` is the value its example uses for a tool
+        # that runs without asking.
+        "# Codex asks before each Carbon tool. For unattended runs\n"
+        '# (codex exec), set "approve" (run on Codex 0.161.0). Starting your\n'
+        "# signer, signing your registration and confirming a commitment stay\n"
+        "# yours either way.\n"
+        'default_tools_approval_mode = "prompt"\n'
     )
     yaml = (
         "mcp_servers:\n"
@@ -645,15 +689,22 @@ def mcp_connect(state_dir=None) -> dict:
                 "snippets": [
                     {
                         "label": "Add it",
-                        "text": "claude mcp add --transport stdio --env "
+                        # The server name before --env: Claude Code's --env
+                        # takes several values and would swallow the name
+                        # (LA-F12, Claude Code 2.1.294). --scope user makes
+                        # it available in every directory; Claude Code's
+                        # default scope is the current directory only.
+                        "text": "claude mcp add --transport stdio --scope user "
+                        + "carbon --env "
                         + shlex.quote("PYTHONPATH=" + repo)
-                        + " carbon -- "
-                        + command,
+                        + " -- "
+                        + env_command,
                     },
                     {"label": "Or in .mcp.json", "text": json.dumps(claude, indent=2)},
                 ],
+                # Run on Claude Code 2.1.294 (LA-F12, cell A3, 2026-10-08).
+                "verified": "Claude Code 2.1.294, 2026-10-08",
                 "unverified": [
-                    not_run,
                     (
                         "UNVERIFIED: how Claude Code bounds a long tool call; "
                         "Send your worker can take minutes."
@@ -670,11 +721,14 @@ def mcp_connect(state_dir=None) -> dict:
                         "text": "codex mcp add carbon --env "
                         + shlex.quote("PYTHONPATH=" + repo)
                         + " -- "
-                        + command,
+                        + env_command,
                     },
                     {"label": "Or in ~/.codex/config.toml", "text": toml},
                 ],
-                "unverified": [not_run],
+                # Run on Codex 0.161.0, interactive and unattended with
+                # default_tools_approval_mode = "approve" (LA-F13, cell A4).
+                "verified": "Codex 0.161.0, 2026-10-08",
+                "unverified": [],
             },
             {
                 "id": "hermes",
@@ -698,7 +752,7 @@ def mcp_connect(state_dir=None) -> dict:
     }
 
 
-def remote_guides(gpu_manifest=None) -> dict:
+def remote_guides(gpu_manifest=None, released=None) -> dict:
     """The "Where's your GPU?" cards beyond this machine, from the guide.
 
     Each card carries its transport, its section of the wiring guide as text
@@ -719,18 +773,19 @@ def remote_guides(gpu_manifest=None) -> dict:
                 "transport": transport,
                 "anchor": guide.slug(heading),
                 "steps": guide.section(parsed, heading) or [],
-                "commands": guide_commands(guide_id, transport, gpu_manifest),
+                "commands": guide_commands(guide_id, transport, gpu_manifest, released),
             }
             for guide_id, name, transport, heading in REMOTE_GUIDES
         ],
     }
 
 
-def choices(gpu_manifest=None) -> dict:
+def choices(gpu_manifest=None, released=None) -> dict:
     """What each step offers: only what launches today, each with its cost.
 
     `gpu_manifest`, when setup has found the GPU worker, goes into the remote
-    cards' push command."""
+    cards' push command; `released`, when that worker is Carbon's released
+    one, names its reference first (`guide_commands`)."""
     from carbon.development_session.model_provider import ADAPTERS
 
     inference = []
@@ -835,7 +890,7 @@ def choices(gpu_manifest=None) -> dict:
                 "note": SPEED_ONLY_NOTE,
                 "guide": REMOTE_GUIDE,
                 # The "Where's your GPU?" cards, from the guide (LINKONLY-D10).
-                "guides": remote_guides(gpu_manifest),
+                "guides": remote_guides(gpu_manifest, released),
             },
         ],
         "agent": [
@@ -1447,7 +1502,8 @@ def remote_transports() -> list[dict]:
             "display_name": "A container from the pinned worker, over SSH",
             "summary": (
                 "A container you started from the pinned GPU worker image "
-                "(push it with scripts/dev/push_worker_image.sh), with SSH "
+                "(Carbon's released reference after install_miner.sh "
+                "--release, or push it with scripts/dev/push_worker_image.sh), with SSH "
                 "into it and no Docker inside. Each practice trial runs one "
                 "job process there after checking the worker's build "
                 "identity, then stops it."
@@ -2348,7 +2404,10 @@ class EnvironmentSetup:
         from scripts.dev.miner_launchpad import installed
 
         found = installed.found(self.root.parent, REPO)["gpu_image_manifest"]
-        value = choices(gpu_manifest=found["path"])
+        value = choices(
+            gpu_manifest=found["path"],
+            released=installed.released_gpu(self.root.parent, found["path"]),
+        )
         # How the miner starts their signer: the first step, before setup can
         # ask it anything (the Agent step's check confirms it).
         value["signer"] = {"command": signer_command(), "checked_by": "agent"}

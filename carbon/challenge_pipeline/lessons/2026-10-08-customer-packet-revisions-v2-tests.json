@@ -1,0 +1,19 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-08-customer-packet-revisions-v2-tests",
+  "recorded_at": "2026-10-08T10:56:51+00:00",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {
+    "kind": "test_run",
+    "ref": "CHALLENGE-CUSTOMER-PACKETS-02 prospective v2 static tests",
+    "description": "Native Windows py -3.11 -X utf8 pytest of v2 revisions plus first-three packets, question laws, credibility and feasibility panels."
+  },
+  "expected": "New versions implement owner choices without altering v1 content, dropping hard charge safety or inventing feasible revised banks.",
+  "observed": "81 passed in 0.46 s, including14 new static/synthetic checks. Six historical artifacts retain normalized UTF-8/LF content hashes. No solver, protected data or spend; native diagnostics only.",
+  "keep": ["Pin historical content across host line endings; separate observed best values from corrected observations and hypothetical toy decisions."],
+  "change": ["Dropping one requirement axis shrinks Battery's audit grid from16 to4; continuous variants still require measured answer diversity and unchanged exposure accounting."],
+  "protocol_elements": ["prospective packet/law inheritance", "phase-scoped admissibility before ranking", "answer diversity and reference coverage"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

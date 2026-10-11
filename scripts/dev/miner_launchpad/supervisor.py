@@ -232,6 +232,15 @@ NEXT_ACTIONS = {
         "installer so your profile accepts this checkout and its images, then "
         "launch. Campaigns frozen under the earlier revision stay readable."
     ),
+    "campaign_frozen_on_old_revision": (
+        "This campaign was frozen under an earlier Carbon revision than the "
+        "one your runner profile accepts now, so it cannot practise, freeze "
+        "or submit on this checkout. Launch a new campaign, practise and "
+        "freeze the same recipe in it, then submit. Your hotkey's on-chain "
+        "commitment for that recipe still applies: it binds the Challenge, "
+        "its contract and the strategy, not the campaign, so there is "
+        "nothing to recommit. This campaign stays readable."
+    ),
     "campaign_readback_unavailable": (
         "This campaign's records could not be read back consistently. Nothing "
         "was changed. Export its record if you need it, and launch a new "
@@ -328,9 +337,13 @@ NEXT_ACTIONS = {
         "Both final exams of this campaign are used. Launch a new campaign to continue."
     ),
     # The validator's answer to a DEVELOPMENT submission (carbon.battery).
+    # LA-F18: observe and the campaign view read only this machine's record
+    # of the campaign; only a submit asks the validator for the verdict.
     "evaluation_queued": (
-        "The validator queued your submission. Observe later; the frozen "
-        "candidate is kept, and submitting again replays the same admission."
+        "The validator queued your submission and has no verdict yet. Observe "
+        "does not ask the validator: submit again later (carbon_submit) to "
+        "ask for its result. The frozen candidate is kept, and it is the same "
+        "submission, never a second one."
     ),
     # LAUNCHPAD-PAGE-USABILITY-01: says what still works and what to do,
     # since a miner usually cannot add an intake until one is published.
@@ -390,6 +403,20 @@ NEXT_ACTIONS = {
         "recognise, so nothing was evaluated; the frozen candidate is kept. "
         "Check that the intake address serves this Carbon version, then "
         "submit again."
+    ),
+    # VALIDATOR-29: the intake's score-feed read. Neither is a verdict on
+    # the recipe, and neither changes a submission.
+    "feed_not_served": (
+        "This validator intake does not publish a score feed, so no released "
+        "scores were read. Nothing was submitted or changed; the frozen "
+        "candidate is kept. Read released scores from an intake that serves "
+        "the feed, or check again later."
+    ),
+    "feed_unavailable": (
+        "The validator's score feed could not be read or did not verify, so "
+        "no released scores were shown. Nothing was submitted or changed; the "
+        "frozen candidate is kept. Scores are released only after the windows "
+        "they came from close; check again later."
     ),
     "signer_unavailable": (
         "Your signer did not sign the submission: it is not running, or it "
@@ -628,6 +655,12 @@ NEXT_ACTIONS = {
         "signed nothing. Check the signer's state directory, restart it, then "
         "commit again (carbon_commit)."
     ),
+    "AUTO_CONFIRM_NOT_ALLOWED": (
+        "Your signer auto-confirms only allow-listed testnet 567 hotkeys, and "
+        "this commitment is not one; nothing was signed or sent. Restart the "
+        "signer without --auto-confirm-commitments and confirm in its "
+        "terminal, then commit again (carbon_commit)."
+    ),
     "backend_not_served": (
         "This validator has no worker image for your recipe's backend. That "
         "is not a verdict on the recipe, and nothing was recorded. Submit to "
@@ -647,6 +680,70 @@ NEXT_ACTIONS = {
         "never served to miners, and nothing was sent for evaluation. Compile "
         "it against the Challenge's published contract and submit again; the "
         "frozen candidate is kept."
+    ),
+    # The testnet development-ladder deployment (VALIDATOR-25). None is a
+    # verdict on the recipe.
+    "ladder_hotkey_not_listed": (
+        "This validator is Carbon's development ladder, which serves only its "
+        "listed rehearsal hotkeys, and nothing was evaluated. Point this "
+        "Challenge's intake at the main validator under Set up your "
+        "environment, then submit again; the frozen candidate is kept."
+    ),
+    "ladder_variant_not_accepted": (
+        "The development ladder does not serve this level's variant, and "
+        "nothing was evaluated. Choose a variant the ladder lists for its "
+        "level, then submit again; the frozen candidate is kept."
+    ),
+    "ladder_level_not_accepted": (
+        "The development ladder serves another level than the one this "
+        "candidate uses, and nothing was evaluated. Submit it to the ladder "
+        "deployment for its level; the frozen candidate is kept."
+    ),
+    "level4_not_served": (
+        "This validator does not take Level 4 envelopes, and nothing was stored. "
+        "Point this Challenge's intake at the development ladder that serves Level "
+        "4, then submit again; the frozen candidate is kept."
+    ),
+    "level4_part_malformed": (
+        "A Level 4 envelope part was malformed, and nothing was stored. Submit "
+        "again: Carbon rebuilds the parts from the frozen envelope; the frozen "
+        "candidate is kept."
+    ),
+    "level4_part_conflict": (
+        "The validator holds other bytes for a part of this envelope, and nothing "
+        "was replaced. Submit the candidate Carbon froze again; the frozen "
+        "candidate is kept."
+    ),
+    "level4_parts_mismatch": (
+        "An envelope part named another part count than its earlier parts, and "
+        "nothing was stored. Submit the candidate Carbon froze again; the frozen "
+        "candidate is kept."
+    ),
+    "level4_envelope_incomplete": (
+        "Not every part of the Level 4 envelope had arrived, so nothing was "
+        "evaluated or counted. Submit again: Carbon sends the missing parts first; "
+        "the frozen candidate is kept."
+    ),
+    "level4_store_not_owner_only": (
+        "The validator's Level 4 store is misconfigured, which is the validator's "
+        "to fix, and nothing was stored. Try again later; the frozen candidate is "
+        "kept."
+    ),
+    "hotkey_reserved_for_ladder": (
+        "This hotkey is Carbon's development-ladder hotkey, which the main "
+        "validator never scores, and nothing was evaluated. Point this "
+        "Challenge's intake at the ladder under Set up your environment, then "
+        "submit again; the frozen candidate is kept."
+    ),
+    "ladder_commitment_not_variant": (
+        "The development ladder expects the variant's commitment, which binds "
+        "the variant digest and the whole strategy, and nothing was evaluated. "
+        "Carbon commits that form for you; commit again, then submit again; "
+        "the frozen candidate is kept."
+    ),
+    "ladder_level_4_not_open": (
+        "Level 4 is not open on the development ladder yet, and nothing was "
+        "evaluated. The frozen candidate is kept."
     ),
     "contract_digest_malformed": (
         "The validator could not read the contract digest Carbon sent. Check "
@@ -961,6 +1058,28 @@ NEXT_ACTIONS = {
         "submitted. Run check_design on it to see which, and choose another "
         "for now."
     ),
+    # The Challenge's compute budget (LAUNCHPAD-COMPUTE-BUDGET-STATUS-01). A
+    # door's refusal carries its own step with the numbers; these are the
+    # catalog's for the same codes.
+    "over_compute_budget": (
+        "This recipe's calculated cost is over the Challenge's compute "
+        "budget. Make it cheaper (fewer steps, members or parameters), "
+        "practise it, and freeze that recipe instead; carbon_budget_status "
+        "shows the cost and the ceiling."
+    ),
+    "cost_unmeasurable": (
+        "This recipe's cost cannot be calculated in the Challenge's budget "
+        "unit, and a cost that cannot be checked is refused. Choose a recipe "
+        "carbon_budget_status shows as Within budget."
+    ),
+    "compute_budget_malformed": (
+        "This Challenge's compute budget declaration is malformed, a "
+        "repository defect: nothing can be frozen or submitted under it until "
+        "Carbon fixes it. Your practice results are kept."
+    ),
+    "strategy_names_another_challenge": (
+        "Send a strategy whose challenge_id is the challenge you name."
+    ),
     "bounded_hypothesis_required": (
         "Send hypothesis (and expected_effect, if given) as 1 to 2048 "
         "characters of text."
@@ -1077,11 +1196,38 @@ NEXT_ACTIONS = {
     ),
     "research_share_too_small": (
         "Your research share cannot pay for one model call: each call reserves "
-        "its most possible cost (the model's whole output unless you cap "
-        "max_output_tokens in model_settings) before it is sent, so this "
-        "research would send nothing. Raise your provider_nanodollars or "
-        "provider_attempts ceiling, raise research_share, cap the model's "
-        "output, or launch BUILD."
+        "its most possible cost (the model's whole output and its whole input "
+        "window unless you cap max_output_tokens or max_input_tokens in "
+        "model_settings) before it is sent, so this research would send "
+        "nothing. Raise your provider_nanodollars or provider_attempts "
+        "ceiling, raise research_share, cap the model's output or input "
+        "window, or launch BUILD."
+    ),
+    # LA-F8 (LAUNCHPAD-FINDINGS-F8-F9): the input window, before a launch
+    # (the options' `input_window` advisory) and after a stop at it.
+    "graphite_input_window_too_small": (
+        "Graphite reads whole discovery documents, several in one turn, and "
+        "Carbon admits a request only while it stays under max_input_tokens "
+        "minus 4,096, counting one token for every byte added since the "
+        "provider's last count. A Graphite launch that sets no "
+        "max_input_tokens gets its model's published context less its output "
+        "cap; where Carbon records no context, the historical 65,536, at "
+        "which Graphite's first reading turns pass that bound. This applies "
+        "when your window - that default, or the max_input_tokens you set - "
+        "is 65,536 or less. Set model_settings.max_input_tokens higher, up to "
+        "your model's published context less max_output_tokens (input_window "
+        "lists both), or choose a model with a published context, before you "
+        "launch. Each call is reserved at that window, so a larger one holds "
+        "more of your provider_nanodollars ceiling per call, and a FULL "
+        "launch's research share must hold one whole call."
+    ),
+    "context_ceiling": (
+        "The agent stopped because its next request could pass your model's "
+        "input window as Carbon bounds it; no history was silently dropped. "
+        "Launch a new campaign with model_settings.max_input_tokens set "
+        "higher, up to your model's published context less max_output_tokens "
+        "(input_window lists both). Each call is reserved at that window, so "
+        "check your provider_nanodollars ceiling too."
     ),
     "too_many_pins": (
         "You pinned more cards than one plan can consider (64), and the "
@@ -1144,6 +1290,95 @@ NEXT_ACTIONS = {
     "import_invalid": (
         "Send title as 1 to 300 characters and text as 1 to 20000 characters "
         "of plain text. PDF import is not offered yet: paste the text."
+    ),
+    # Construction levels (LAUNCHPAD-LEVELS-01 S2, S3). Each is refused
+    # before anything is signed or sent.
+    "level_not_registered": (
+        "No current registered development variant serves that level (or "
+        "arm) of this Challenge, or the one your campaign froze is no longer "
+        "current. Read carbon_ladder for the levels and arms that have one; "
+        "nothing was signed or sent."
+    ),
+    "level_not_served_by_target": (
+        "Your target validator's intake does not list this level's variant "
+        "in its served_contracts, so nothing was signed or sent. A level "
+        "above 0 is DEVELOPMENT: submit it only to the development-ladder "
+        "deployment that lists it. The frozen candidate is kept."
+    ),
+    "level_compile_not_served_by_target": (
+        "Your target validator's intake does not list this level's variant "
+        "digest in its served_contracts, so the level's compile was not run "
+        "and nothing was practised or frozen. Point this Challenge's intake "
+        "at the development-ladder deployment that serves the level (Set up "
+        "your environment), then try again."
+    ),
+    "construction_level_invalid": (
+        "Send construction_level as a whole number from 0 to 5, or omit it "
+        "for Level 0. arm needs a construction_level."
+    ),
+    "construction_level_arm_invalid": (
+        "Send arm as one of the arm names carbon_ladder lists for the level, "
+        "or omit it for the level's own variant."
+    ),
+    "construction_level_needs_own_selection": (
+        "A campaign at a construction level is driven by you or your own MCP "
+        "agent: launch it with agent none."
+    ),
+    "construction_level_not_offered_for_challenge": (
+        "This Challenge's campaign does not compile at construction levels "
+        "yet. Launch at Level 0 (omit construction_level)."
+    ),
+    "level_compile_unavailable": (
+        "The level's compile could not run on this machine, and nothing was "
+        "practised, frozen or sent. Check the Launchpad's Python environment "
+        "(setup's checks) and try again."
+    ),
+    "level_strategy_refused": (
+        "The recipe does not compile at the campaign's level: a widened value "
+        "is outside the level's bounds, or the rest is refused by the base "
+        "contract. Read carbon_ladder for the level's surfaces and bounds, "
+        "fix the recipe and try again."
+    ),
+    "level4_directory_required": (
+        "A Level 4 freeze needs level4_directory: the directory "
+        "python -m carbon.level4.tooling lower wrote on this machine."
+    ),
+    "level4_directory_needs_level4": (
+        "level4_directory is only for a campaign launched at construction "
+        "level 4; omit it."
+    ),
+    "level4_size_bound_not_set": (
+        "The Level 4 variant sets no document size bound yet (HUMAN_INPUT), "
+        "so no Level 4 submission can be verified or frozen. The owners set "
+        "it; nothing was frozen."
+    ),
+    "level4_submission_refused": (
+        "The lowered Level 4 submission was refused when verified: a "
+        "document, its name, the manifest or the allowlist pin. Lower it "
+        "again with python -m carbon.level4.tooling lower and freeze again."
+    ),
+    "level4_submission_not_in_strategy": (
+        "The strategy's Level 4 field must be the submission digest the "
+        "lowering printed. Put it there and freeze again."
+    ),
+    "level4_interface_mismatch": (
+        "The lowered submission was made for another interface than this "
+        "recipe's. Lower it again with --interface set to the recipe's "
+        "interface digest and freeze again."
+    ),
+    "level4_batch_mismatch": (
+        "The lowered forward graph declares another batch than the recipe "
+        "trains at. Lower it again with --batch set to the recipe's batch "
+        "and freeze again."
+    ),
+    "level4_allowlist_mismatch": (
+        "This checkout's Level 4 allowlist is not the one the level's variant "
+        "pins. Update the Launchpad to the release that pins it."
+    ),
+    "level4_envelope_transport_unavailable": (
+        "No validator intake carries a Level 4 submission's documents yet, so "
+        "nothing was signed or sent. The frozen candidate and its envelope "
+        "are kept for when the development ladder opens Level 4."
     ),
 }
 FALLBACK_ACTION = (

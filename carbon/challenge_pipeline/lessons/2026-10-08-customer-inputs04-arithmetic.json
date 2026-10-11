@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-08-customer-inputs04-arithmetic",
+  "recorded_at": "2026-10-08T14:47:41+00:00",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {"kind": "test_run", "ref": "CHALLENGE-CUSTOMER-INPUTS-04 paper arithmetic", "description": "Deterministic dimensional arithmetic using current PG25 polynomials; no solver or provider call."},
+  "expected": "Separate coolant/plate and interface/die contributions before any panel.",
+  "observed": "Nominal uniform TIM2 interface 83 C; die proxy 97.9605 C; raw hotspot TIM1 jump 25.7 K. Full-area coolant rise 7.48245 K is included in the 28-K plate anchor. Subsequent rg glob failed on Windows; arithmetic output was captured, not a successful complete shell diagnostic or physical solve.",
+  "keep": ["Temperature planes and resistance provenance must accompany thermal claims."],
+  "change": ["Do not add coolant to a measured inlet-to-plate rise or TIM1 to a downstream interface; hold the panel until its plane/budget is reviewed."],
+  "protocol_elements": ["measurement definition", "reference composition", "verification before volume"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

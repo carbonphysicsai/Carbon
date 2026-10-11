@@ -160,6 +160,22 @@ separate. No final hidden-data tuning or yield/reliability inference.
 
 ## 10. Readiness and claim record
 
+Current prospective T2: [buyer value/cost scorecard](../value-cost/f06.md)
+and [owner framework](../value-cost/README.md). Require at least five feasible
+and five distinct near-limit infeasible actions per mandatory stratum. Report
+the overall fraction; it is not a gate. Other value checks still require
+evidence. Refinement/acceptance remains HUMAN_INPUT; no new runtime authority.
+The original fraction-based observations below retain their historical meaning.
+
+**Before any new hidden bank:** the owner-selected [four-check value prerequisite](../question-laws/value-check-v1.md)
+requires per-stratum discrimination and meaningful buyer-unit spread, one
+complete feasible action, and changing best/equivalent answers. Numeric
+thresholds remain HUMAN_INPUT recommendations; receipt **NOT_DEMONSTRATED**.
+For this buyer, report coupling/reflection margin intervals on the complete tolerance/wavelength panel,
+not a 2D screen or old supermode timing.
+No favorable redraw, exposure reset, solver grant or qualification follows.
+
+
 Requirements and a minimum-feature screen only. Reference adequacy NOT_DEMONSTRATED;
 the 256-GiB ceiling is not measured memory demand or available-profile proof.
 Next: exact source/port/overlap and build/memory feasibility under stage permission.

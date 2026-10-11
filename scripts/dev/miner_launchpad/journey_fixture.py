@@ -223,7 +223,12 @@ def _journey_host(root, patch):
                 "replica_policy": "three",
                 "provider": {"model": "fixture-model"},
             }
-            manifest_path.write_bytes(canonical(manifest))
+            # Whole or not at all, as the real campaign writes it
+            # (`data.write_once`): a supervisor thread reading the agent
+            # (`runner.product_agent`) never sees it created but empty.
+            from carbon.development_session.data import write_once
+
+            write_once(manifest_path, canonical(manifest))
             ledger.freeze(manifest)
         manifest = json.loads(manifest_path.read_bytes())
         return research_campaign.PreparedCampaign(

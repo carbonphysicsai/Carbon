@@ -1,0 +1,61 @@
+{
+  "schema": "carbon.onboarding.panel-draft.v1",
+  "challenge": "metagrating-3d",
+  "maturity": "DRAFT_ONLY",
+  "registration_status": "PROPOSED_NOT_DISPATCHABLE",
+  "buyer_decision": {
+    "status": "HUMAN_INPUT",
+    "recommendation": "Choose a full 3D periodic binary silicon/air pattern and thickness maximizing verified desired-order efficiency under buyer fabrication, reflection and unwanted-order constraints across every mandatory scenario, or return settled NONE_FEASIBLE.",
+    "sources": [],
+    "owner": "science/product owner",
+    "needed_decision": "Confirm applicability and authorize decision",
+    "held_closed": "No runtime registration, bank draw, execution, qualification or spend"
+  },
+  "strata_basis": {
+    "status": "HUMAN_INPUT",
+    "recommendation": "HUMAN_INPUT: accepted full-3D mask/thickness/deflection families with source-fixed wavelength/material/polarization unless prospectively revised; period-consistent scenarios, interior and two-band frontier diagnostics.",
+    "sources": [],
+    "owner": "science/product owner",
+    "needed_decision": "Confirm applicability and authorize strata",
+    "held_closed": "No runtime registration, bank draw, execution, qualification or spend"
+  },
+  "designs": null,
+  "strata": null,
+  "cases": [],
+  "case_count": null,
+  "boundary_designs": {
+    "status": "HUMAN_INPUT",
+    "recommendation": "Register physical-coordinate brackets near each hard limit in every stratum; at least 5 settled feasible AND 5 settled infeasible within TWO accepted refinement bands; no guaranteed yield, no widening",
+    "intervals_and_frontier_results": "NOT_DEMONSTRATED"
+  },
+  "value_measures": [
+    "complete feasible answer",
+    "both-side contested boundaries",
+    "buyer-unit margin spread",
+    "best/equivalent answer changes",
+    "cheap-baseline decision regret",
+    "CPU/wall/memory/failures"
+  ],
+  "reuse_check": {
+    "status": "UNKNOWN_NO_INDEX",
+    "completed_matches": 0,
+    "scheduled_matches": 0
+  },
+  "cost": {
+    "status": "UNKNOWN",
+    "cpu_hours_if_reuse_accepted": null,
+    "cpu_hours_without_reuse": null,
+    "billed_node_hours": null,
+    "eur": null,
+    "omitted": [
+      "failures",
+      "setup",
+      "witnesses",
+      "new frontier actions",
+      "storage",
+      "tax",
+      "retained verification"
+    ]
+  },
+  "held_closed": "No solver, bank draw, hidden data, registration adoption or spend; DC accepts geometry/pins/reuse before execution"
+}

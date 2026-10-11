@@ -1,9 +1,20 @@
-"""Testnet 567 winner-weight publication, once per epoch (VALIDATOR-14;
-OWNER-TESTNET-WEIGHTS-01).
+"""Winner-weight publication, once per epoch (VALIDATOR-14;
+OWNER-TESTNET-WEIGHTS-01; OWNER-WEIGHTS-AUTHORITY-01).
 
 SECURITY-SENSITIVE (AGENTS.md §13): this publishes weights. It is not
 SECURITY_QUALIFIED, and it needs the dedicated review that every chain path
-gets. Testnet subnet 567 only; mainnet has no path here.
+gets.
+
+**Networks.** It runs on any network a registered weight policy names
+(`winner_decay.NETWORK_AUTHORITIES`): testnet 567, and mainnet `finney` once
+its policy (netuid, launch Challenges) is registered and its operator
+configured. The rule is the same on both; nothing here is an authority
+block (OWNER-WEIGHTS-AUTHORITY-01, its hold lifted by
+OWNER-WEIGHTS-HOLD-LIFT-01). What differs by network:
+- the intent's stage and maturity labels (`STAGES`);
+- a winner whose coldkey is the subnet owner's is paid on testnet, so that
+  Carbon's own miners exercise winning, and refused on mainnet. A winner
+  whose hotkey is an owner hotkey is refused on both: that weight burns.
 
 What it publishes, each epoch:
 - **The targets.** `winner_decay.epoch_targets` over the registered policy:
@@ -29,7 +40,7 @@ The checks are inherited unchanged from the shared publisher
 
 This module adds:
 - the authorization's block window;
-- netuid 567 and burn UID 0;
+- the authorized network and netuid, and burn UID 0;
 - the policy digest;
 - **at most one publication per epoch** (360 blocks).
 
@@ -55,13 +66,25 @@ from carbon.transport.models import digest
 
 from .core import Q12
 from .ledger import encode
-from .winner_decay import WinnerPolicy, epoch_targets, winner_fraction
+from .winner_decay import (
+    WinnerPolicy,
+    epoch_targets,
+    network_authorized,
+    winner_fraction,
+)
 from .winner_eligibility import WinnerLedger, payable
 
 INTENT_SCHEMA = "carbon.rewards.testnet-winner-intent.v1"
 AUTHORITY = "OWNER-TESTNET-WEIGHTS-01"
 NETUID = 567
 BURN_UID = 0
+#: Each network's intent identity prefix, stage and maturity label. The
+#: maturity names where the authority comes from; it claims no
+#: qualification.
+STAGES = {
+    "testnet": ("testnet-winner", "PUBLIC_TESTNET_DEVELOPMENT", "DEVELOPMENT_ONLY"),
+    "finney": ("mainnet-winner", "PUBLIC_MAINNET", "MAINNET_OWNER_AUTHORIZED"),
+}
 
 
 class WinnerPublicationRefused(PublicationFailure):
@@ -100,8 +123,9 @@ class StandingAuthorization:
             or type(self.policy_digest) is not str
             or not self.policy_digest.startswith("sha256:")
             or type(self.context) is not ChainContext
-            or self.context.network != "testnet"
-            or self.context.netuid != NETUID
+            or not network_authorized(
+                self.context.network, self.context.netuid, self.authority
+            )
             or type(self.publisher_hotkey) is not str
             or not self.publisher_hotkey
             or type(self.expected_runtime_spec) is not int
@@ -109,7 +133,6 @@ class StandingAuthorization:
             or type(self.valid_from_block) is not int
             or type(self.valid_through_block) is not int
             or not 0 <= self.valid_from_block <= self.valid_through_block
-            or self.authority != AUTHORITY
         ):
             _refuse("INVALID_STANDING_AUTHORIZATION")
 
@@ -149,6 +172,13 @@ class TestnetWinnerIntentIssuer:
             or policy.digest != authorization.policy_digest
         ):
             _refuse("POLICY_NOT_AUTHORIZED")
+        context = authorization.context
+        if (policy.network, policy.netuid, policy.authority) != (
+            context.network,
+            context.netuid,
+            authorization.authority,
+        ):
+            _refuse("POLICY_NOT_FOR_THIS_NETWORK")
         if receipts.context != authorization.context:
             _refuse("PUBLICATION_CONTEXT_REQUIRED")
         if type(ledger) is not WinnerLedger:
@@ -157,8 +187,14 @@ class TestnetWinnerIntentIssuer:
             _refuse("SOURCE_OUTSIDE_POLICY")
         self.receipts, self.authorization = receipts, authorization
         self.policy, self.ledger, self.sources = policy, ledger, dict(sources)
-        self.profile = DevelopmentTestnetProfile(
-            authorization.context, authorization.expected_runtime_spec
+        self.prefix, self.stage, self.maturity = STAGES[context.network]
+        #: The bounded development profile is testnet's only.
+        self.profile = (
+            DevelopmentTestnetProfile(
+                authorization.context, authorization.expected_runtime_spec
+            )
+            if context.network == "testnet"
+            else None
         )
         with receipts.transaction() as db:
             db.execute(
@@ -168,6 +204,9 @@ class TestnetWinnerIntentIssuer:
 
     def epoch(self, snapshot):
         return snapshot.finalized_block // self.policy.cadence_blocks
+
+    def _identity(self, snapshot):
+        return f"{self.prefix}-{self.policy.version}-e{self.epoch(snapshot)}"
 
     def _records(self, snapshot, *, observe):
         coldkeys = {p.hotkey: p.coldkey for p in snapshot.participants}
@@ -184,11 +223,15 @@ class TestnetWinnerIntentIssuer:
         return found
 
     def _targets(self, snapshot, records):
+        from carbon.challenge_validator.canary import is_canary
+
         registered = {p.hotkey: p for p in snapshot.participants}
         winners = {}
         for challenge, record in records.items():
             winner = payable(record, set(registered))
-            if winner is not None:
+            # A registered canary is never weighted (CANARY-01): its share
+            # burns, as a Challenge with no payable winner does.
+            if winner is not None and not is_canary(winner.hotkey):
                 winners[challenge] = winner
         paid = epoch_targets(self.policy, winners, snapshot.timestamp_ms)
         rows = []
@@ -236,10 +279,10 @@ class TestnetWinnerIntentIssuer:
         return encode(
             {
                 "schema": INTENT_SCHEMA,
-                "identity": f"testnet-winner-{self.policy.version}-e{self.epoch(snapshot)}",
-                "stage": "PUBLIC_TESTNET_DEVELOPMENT",
-                "maturity": "DEVELOPMENT_ONLY",
-                "authority": AUTHORITY,
+                "identity": self._identity(snapshot),
+                "stage": self.stage,
+                "maturity": self.maturity,
+                "authority": self.authorization.authority,
                 "authority_record_digest": self.authorization.authority_record_digest,
                 "context": asdict(self.authorization.context),
                 "runtime_spec": self.authorization.expected_runtime_spec,
@@ -259,7 +302,7 @@ class TestnetWinnerIntentIssuer:
     def issue(self, snapshot):
         """Observe promotions and issue this epoch's intent (idempotent per
         epoch: a second issue returns the stored reference)."""
-        identity = f"testnet-winner-{self.policy.version}-e{self.epoch(snapshot)}"
+        identity = self._identity(snapshot)
         with self.receipts.transaction() as db:
             row = db.execute(
                 "SELECT digest FROM testnet_winner_intent_v1 WHERE identity=?",
@@ -303,7 +346,7 @@ class TestnetWinnerIntentIssuer:
             _refuse("TARGETS_CHANGED_REISSUE_NEXT_EPOCH")
         projection = {
             "schema": "carbon.rewards.testnet-winner-projection.v1",
-            "maturity": "DEVELOPMENT_ONLY",
+            "maturity": body["maturity"],
             "route": "DIRECT_WINNER_PLUS_BURN",
             "context": body["context"],
             "targets": body["targets"],
@@ -326,9 +369,13 @@ class TestnetWinnerPublisher(VerifiedWeightPublisher):
             backend,
             issuer_type=TestnetWinnerIntentIssuer,
             intent_type=TestnetWinnerWeightRef,
-            network="testnet",
+            network=authorization.context.network,
             spec_version=authorization.expected_runtime_spec,
         )
+        #: Testnet pays a winner whose coldkey is the subnet owner's (the
+        #: owner: "remove that owner coldkey rule for testing"); mainnet keeps
+        #: the refusal (OWNER-WEIGHTS-AUTHORITY-01).
+        self.ALLOW_OWNER_COLDKEY_WINNER = authorization.context.network == "testnet"
         with issuer.receipts.transaction() as db:
             db.execute(
                 "CREATE TABLE IF NOT EXISTS testnet_winner_epoch_v1 "
@@ -343,14 +390,15 @@ class TestnetWinnerPublisher(VerifiedWeightPublisher):
             <= auth.valid_through_block
         ):
             _refuse("STANDING_AUTHORIZATION_OUTSIDE_WINDOW")
-        if snapshot.context.network != "testnet" or snapshot.context.netuid != NETUID:
-            _refuse("TESTNET_567_ONLY")
+        if snapshot.context != auth.context:
+            _refuse("NETWORK_NOT_AUTHORIZED")
         if plan.burn_uid != BURN_UID:
             _refuse("BURN_UID_NOT_0")
         intent = resolved["intent"]
         if (
-            intent["maturity"] != "DEVELOPMENT_ONLY"
-            or intent["authority"] != AUTHORITY
+            intent["maturity"] != self.issuer.maturity
+            or intent["stage"] != self.issuer.stage
+            or intent["authority"] != auth.authority
             or intent["policy_digest"] != auth.policy_digest
             or intent["authority_record_digest"] != auth.authority_record_digest
         ):
@@ -372,10 +420,67 @@ class TestnetWinnerPublisher(VerifiedWeightPublisher):
 # -- operator entry point ------------------------------------------------------------------
 
 
+def preview(issuer, snapshot):
+    """This epoch's targets exactly as `issue` would compute them, without
+    recording a promotion in the ledger or storing an intent; it opens no
+    wallet and signs nothing. For the operator's look before the first
+    publication, and for each epoch's journal line."""
+    from .winner_eligibility import decide
+
+    coldkeys = {p.hotkey: p.coldkey for p in snapshot.participants}
+    records = {}
+    for challenge in issuer.policy.challenges:
+        mine = issuer.ledger.records(challenge)
+        if challenge not in issuer.sources:
+            records[challenge] = mine[-1] if mine else None
+            continue
+        promotion = issuer.sources[challenge]()
+        if promotion is None:
+            records[challenge] = None
+            continue
+        known = [r for r in mine if r["promotion"]["model_id"] == promotion["model_id"]]
+        records[challenge] = (
+            known[0]
+            if known
+            else decide(
+                issuer.policy,
+                challenge,
+                promotion,
+                mine[-1] if mine else None,
+                coldkeys,
+                snapshot.timestamp_ms,
+            )
+        )
+    return {
+        "schema": "carbon.rewards.testnet-winner-preview.v1",
+        "identity": issuer._identity(snapshot),
+        "epoch": issuer.epoch(snapshot),
+        "finalized_block": snapshot.finalized_block,
+        "policy": issuer.policy.version,
+        "records": {
+            challenge: (
+                None
+                if record is None
+                else {
+                    "hotkey": record["promotion"]["hotkey"],
+                    "kind": record["promotion"]["kind"],
+                    "eligible": record["eligible"],
+                    "reason": record["reason"],
+                    "clock_ms": record["clock_ms"],
+                }
+            )
+            for challenge, record in sorted(records.items())
+        },
+        "targets": issuer._targets(snapshot, records),
+        "signed": False,
+    }
+
+
 def load_standing(path, context):
     """The operator's standing authorization file: owner-only JSON naming the
     owner record (whose bytes it digests), the policy digest, the publisher
-    hotkey, the runtime spec and the block window."""
+    hotkey, the runtime spec and the block window; and, off testnet 567, the
+    `authority` record id (OWNER-WEIGHTS-AUTHORITY-01)."""
     import os
     import stat
     from pathlib import Path
@@ -394,6 +499,7 @@ def load_standing(path, context):
         expected_runtime_spec=raw["expected_runtime_spec"],
         valid_from_block=raw["valid_from_block"],
         valid_through_block=raw["valid_through_block"],
+        authority=raw.get("authority", AUTHORITY),
     )
 
 
@@ -405,21 +511,23 @@ def check_weight_source(target):
     return target
 
 
-async def _run(args):
+def _issuer(args, config, journal):
+    """The issuer `run` and `preview` share: the same policy, standing
+    authorization, ledger and weight sources."""
     from pathlib import Path
 
     from carbon.battery import deployment
-    from carbon.chain.sdk_weights import BittensorPublicationBackend
-    from carbon.development_testnet.operator import _wallet, load_config
     from carbon.transport.store import ReceiptJournal
 
     from .winner_decay import load_policy
     from .winner_eligibility import battery_promotion
 
-    config = load_config(Path(args.config).absolute())
-    if config.context is None or config.netuid != NETUID:
-        _refuse("TESTNET_567_ONLY")
-    policy = load_policy()
+    policy = load_policy(args.policy_version)
+    if config.context is None or (config.context.network, config.netuid) != (
+        policy.network,
+        policy.netuid,
+    ):
+        _refuse("POLICY_NOT_FOR_THIS_NETWORK")
     auth = load_standing(args.standing, config.context)
     sources = {}
     if args.battery_deployment:
@@ -436,15 +544,44 @@ async def _run(args):
         sources[target.identities()["challenge"]["id"]] = lambda: battery_promotion(
             target
         )
-    issuer = TestnetWinnerIntentIssuer(
-        ReceiptJournal(Path(args.journal), config.context),
+    return TestnetWinnerIntentIssuer(
+        ReceiptJournal(Path(journal), config.context),
         auth,
         policy,
         WinnerLedger(Path(args.ledger)),
         sources,
     )
+
+
+async def _preview(args):
+    """`preview`: the issuer over a throwaway journal, at a fresh finalized
+    snapshot read without any wallet."""
+    import tempfile
+    from pathlib import Path
+
+    from carbon.chain.sdk import BittensorReader
+    from carbon.development_testnet.operator import load_config
+
+    config = load_config(Path(args.config).absolute())
+    with tempfile.TemporaryDirectory() as scratch:
+        issuer = _issuer(args, config, Path(scratch) / "preview.sqlite3")
+        snapshot = await BittensorReader().capture(config.context)
+        return preview(issuer, snapshot)
+
+
+async def _run(args):
+    from pathlib import Path
+
+    from carbon.chain.sdk_weights import BittensorPublicationBackend
+    from carbon.development_testnet.operator import _wallet, load_config
+
+    config = load_config(Path(args.config).absolute())
+    issuer = _issuer(args, config, args.journal)
     backend = BittensorPublicationBackend(
-        config.context, config.publisher_hotkey, _wallet(config), network="testnet"
+        config.context,
+        config.publisher_hotkey,
+        _wallet(config),
+        network=config.context.network,
     )
     try:
         publisher = TestnetWinnerPublisher(issuer, backend)
@@ -462,14 +599,18 @@ def main(argv=None):
     parser = argparse.ArgumentParser(
         prog="python -m carbon.rewards.testnet_winner_publication"
     )
-    parser.add_argument("command", choices=("run",))
+    parser.add_argument("command", choices=("run", "preview"))
     for name in ("config", "standing", "journal", "ledger"):
         parser.add_argument("--" + name, required=True)
     parser.add_argument("--battery-deployment")
+    parser.add_argument(
+        "--policy-version",
+        help="a registered policy version (the current one if omitted)",
+    )
     parser.add_argument("--repository", default=".")
     args = parser.parse_args(argv)
     try:
-        result = asyncio.run(_run(args))
+        result = asyncio.run((_preview if args.command == "preview" else _run)(args))
     except WinnerPublicationRefused as refused:
         print(json.dumps({"status": "REFUSED", "reason": str(refused)}))
         return 2
@@ -482,6 +623,10 @@ def main(argv=None):
 
 
 if __name__ == "__main__":
+    # The package module's own main: under `python -m` this file is
+    # `__main__`, a second copy whose classes the package's are not.
     import sys
 
-    sys.exit(main())
+    from carbon.rewards.testnet_winner_publication import main as _main
+
+    sys.exit(_main())

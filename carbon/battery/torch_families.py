@@ -63,8 +63,6 @@ def fno_network(model, generator, n_in, n_out, dtype):
         raise ValueError("the FNO output layout does not match the targets")
 
     def apply(params, f):
-        # The module's buffers follow the inputs' device (a no-op on the CPU).
-        module.to(f.device)
         x = f[:, :, None].expand(-1, -1, layout.g)
         weights = {
             name: torch.view_as_complex(p) if c else p
@@ -84,7 +82,7 @@ def fno_network(model, generator, n_in, n_out, dtype):
         (torch.view_as_real(p) if p.is_complex() else p).detach().clone()
         for p in module.parameters()
     ] + _flatten(head)
-    return Network(params, apply)
+    return Network(params, apply, modules=(module,))
 
 
 TORCH_FAMILIES = {"fno": fno_network}

@@ -1,0 +1,27 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "recorded_at": "2026-10-10T19:12:00Z",
+  "challenge": "protocol",
+  "stage": "test_iterate",
+  "expected": "Public source adapters retain recorded scope and gaps without qualification or unauthorized disclosure.",
+  "keep": [
+    "Reuse immutable public-source identities and keep historical evidence separate from present requirements."
+  ],
+  "change": [
+    "Complete the accepted buyer/evidence sections independently; extraction success is not acceptance."
+  ],
+  "protocol_elements": [
+    "lessons",
+    "customer deliverable",
+    "readiness"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED",
+  "lesson_id": "2026-10-10-deliverable-adapters-motor-sample",
+  "execution": {
+    "kind": "build",
+    "ref": "DELIVERABLE-ADAPTERS-01",
+    "description": "Ran the source-only generator for motor against evidence/framework 65ef88660fe02018c26f54d14655fe7b66354aa8; four documentation outputs written. No solver/model rebuild."
+  },
+  "observed": "All registered sources and anchors were available. The motor sample remains DEVELOPMENT_SAMPLE/UNESTABLISHED, manual sections GAP and qualification null."
+}

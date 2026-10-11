@@ -1,0 +1,115 @@
+{
+  "schema": "carbon.research.representative-cases.v1",
+  "ticket": "REPRESENTATIVE-CASES-01",
+  "status": "SPECIFIED_RESEARCH_NOT_RUN",
+  "authority_commit": "e1ee386e774b87ca1aeb8d705ebc537a94111f26",
+  "formal_reference_tier": "NOT_ESTABLISHED",
+  "physical_validation": false,
+  "owner_allowance": "Explicitly representative published ingredients; no qualification or threshold authority",
+  "cases": [
+    {
+      "id": "bolt",
+      "priority": 1,
+      "disposition": "PREPARE_REPRESENTATIVE_PANEL_CONDITIONALLY",
+      "geometry": "Published TRC geometry as control; original 3D bracket action grammar remains HUMAN_INPUT",
+      "law": "Representative elastic steel, published generic E=209 GPa and nu=0.30; not a grade-strength law",
+      "friction": {
+        "low": 0.1,
+        "base": 0.2,
+        "high": 0.3,
+        "unit": "dimensionless",
+        "status": "Source endpoints; ASSUMPTION midpoint, dry machined steel/steel guideline only",
+        "source": "B1"
+      },
+      "alpha_A": {
+        "low": 1.6,
+        "base": 1.8,
+        "high": 2,
+        "status": "Source endpoints; ASSUMPTION midpoint, estimated-friction torque control",
+        "source": "B1"
+      },
+      "shortcut": [
+        1,
+        2,
+        3
+      ],
+      "gain": [
+        0,
+        2,
+        3
+      ],
+      "startup_eur": [
+        26.107364,
+        42.084304,
+        93.210512
+      ],
+      "score_status": "ASSUMPTION ordinal low/base/high; actual equal-budget gain null",
+      "actual_gain": null,
+      "startup_status": "Historical ASSUMPTION for original job, not a measured representative-case estimate",
+      "hard_limits": "HUMAN_INPUT",
+      "launch_accepted": false
+    },
+    {
+      "id": "solenoid",
+      "priority": 2,
+      "disposition": "REPRESENTATIVE_FIXED_CONDITION_RESERVE",
+      "geometry": "Open GetDP planar electromagnet control; original axisymmetric pot-yoke geometry remains HUMAN_INPUT",
+      "law": "Pinned SteelGeneric B-H table at an unspecified fixed source condition; no B-H(T)",
+      "shortcut": [
+        1,
+        2,
+        3
+      ],
+      "gain": [
+        0,
+        1,
+        2
+      ],
+      "startup_eur": [
+        18.982953,
+        26.368212,
+        46.062236
+      ],
+      "score_status": "ASSUMPTION ordinal low/base/high; actual equal-budget gain null",
+      "actual_gain": null,
+      "startup_status": "Historical ASSUMPTION for original job, not a measured representative-case estimate",
+      "hard_limits": "HUMAN_INPUT",
+      "launch_accepted": false
+    },
+    {
+      "id": "seal",
+      "priority": 3,
+      "disposition": "PARAMETER_MODEL_REHEARSAL_RESERVE",
+      "geometry": "Published O-ring compression control; original gland/support geometry remains HUMAN_INPUT",
+      "law": "Published traditional silicone Ogden-2 tuple; units/convention/compressibility bridge unresolved",
+      "published_tuple": {
+        "alpha1": 0.6793,
+        "mu1": 1.1441,
+        "alpha2": 0.1117,
+        "mu2": 1.144,
+        "status": "Source point values, low=base=high; dimensional unit confirmation HUMAN_INPUT",
+        "source": "E1"
+      },
+      "shortcut": [
+        0,
+        1,
+        2
+      ],
+      "gain": [
+        0,
+        1,
+        2
+      ],
+      "startup_eur": [
+        20.21383,
+        28.829965,
+        53.447495
+      ],
+      "score_status": "ASSUMPTION ordinal low/base/high; actual equal-budget gain null",
+      "actual_gain": null,
+      "startup_status": "Historical ASSUMPTION for original job, not a measured representative-case estimate",
+      "hard_limits": "HUMAN_INPUT",
+      "launch_accepted": false
+    }
+  ]
+}

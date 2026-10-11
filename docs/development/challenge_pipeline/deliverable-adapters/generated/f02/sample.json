@@ -1,0 +1,239 @@
+{
+  "schema_version": "PROPOSAL_V1",
+  "mode": "DEVELOPMENT_SAMPLE",
+  "challenge": "f02",
+  "intended_tier": "EVIDENCE_AUDIT",
+  "eligible_tier": "UNESTABLISHED",
+  "qualification_record": null,
+  "source_snapshot": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+  "sections": {
+    "D01": {
+      "coverage": "GAP",
+      "automation": "manual",
+      "statement": "HUMAN_INPUT: this section requires accepted evidence or human judgment; it is not automatically filled.",
+      "evidence_refs": [
+        "F1"
+      ],
+      "gaps": [
+        "HUMAN_INPUT: section completion and responsible authority"
+      ]
+    },
+    "D02": {
+      "coverage": "GAP",
+      "automation": "manual",
+      "statement": "HUMAN_INPUT: this section requires accepted evidence or human judgment; it is not automatically filled.",
+      "evidence_refs": [
+        "F1"
+      ],
+      "gaps": [
+        "HUMAN_INPUT: section completion and responsible authority"
+      ]
+    },
+    "D03": {
+      "coverage": "GAP",
+      "automation": "manual",
+      "statement": "HUMAN_INPUT: this section requires accepted evidence or human judgment; it is not automatically filled.",
+      "evidence_refs": [
+        "F1"
+      ],
+      "gaps": [
+        "HUMAN_INPUT: section completion and responsible authority"
+      ]
+    },
+    "D04": {
+      "coverage": "GAP",
+      "automation": "manual",
+      "statement": "HUMAN_INPUT: this section requires accepted evidence or human judgment; it is not automatically filled.",
+      "evidence_refs": [
+        "F1"
+      ],
+      "gaps": [
+        "HUMAN_INPUT: section completion and responsible authority"
+      ]
+    },
+    "D05": {
+      "coverage": "GAP",
+      "automation": "automatable later",
+      "statement": "HUMAN_INPUT: this section requires accepted evidence or human judgment; it is not automatically filled.",
+      "evidence_refs": [
+        "F1"
+      ],
+      "gaps": [
+        "HUMAN_INPUT: section completion and responsible authority"
+      ]
+    },
+    "D06": {
+      "coverage": "GAP",
+      "automation": "manual",
+      "statement": "HUMAN_INPUT: this section requires accepted evidence or human judgment; it is not automatically filled.",
+      "evidence_refs": [
+        "F1"
+      ],
+      "gaps": [
+        "HUMAN_INPUT: section completion and responsible authority"
+      ]
+    },
+    "D07": {
+      "coverage": "GAP",
+      "automation": "automatable later",
+      "statement": "HUMAN_INPUT: this section requires accepted evidence or human judgment; it is not automatically filled.",
+      "evidence_refs": [
+        "F1"
+      ],
+      "gaps": [
+        "HUMAN_INPUT: section completion and responsible authority"
+      ]
+    },
+    "D08": {
+      "coverage": "PARTIAL",
+      "automation": "automatable now",
+      "statement": "Public committed-source identities and recorded metadata are indexed below. No artifact qualification, physical validity or audit completeness is inferred.",
+      "evidence_refs": [
+        "C1",
+        "C2",
+        "C3",
+        "F1",
+        "F2",
+        "F3",
+        "R2",
+        "R3"
+      ],
+      "gaps": [
+        "HUMAN_INPUT: product identity/parity, rights, independent review and qualification authority"
+      ]
+    },
+    "D09": {
+      "coverage": "GAP",
+      "automation": "manual",
+      "statement": "HUMAN_INPUT: this section requires accepted evidence or human judgment; it is not automatically filled.",
+      "evidence_refs": [
+        "F1"
+      ],
+      "gaps": [
+        "HUMAN_INPUT: section completion and responsible authority"
+      ]
+    },
+    "D10": {
+      "coverage": "GAP",
+      "automation": "automatable later",
+      "statement": "HUMAN_INPUT: this section requires accepted evidence or human judgment; it is not automatically filled.",
+      "evidence_refs": [
+        "F1"
+      ],
+      "gaps": [
+        "HUMAN_INPUT: section completion and responsible authority"
+      ]
+    },
+    "D11": {
+      "coverage": "PARTIAL",
+      "automation": "automatable now",
+      "statement": "Public committed-source identities and recorded metadata are indexed below. No artifact qualification, physical validity or audit completeness is inferred.",
+      "evidence_refs": [
+        "C1",
+        "C2",
+        "C3",
+        "F1",
+        "F2",
+        "F3",
+        "R2",
+        "R3"
+      ],
+      "gaps": [
+        "HUMAN_INPUT: product identity/parity, rights, independent review and qualification authority"
+      ]
+    }
+  },
+  "sources": [
+    {
+      "id": "C1",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/docs/development/challenge_pipeline/COMMON_DESIGN_PACKET_V1.md",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED"
+    },
+    {
+      "id": "C2",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/docs/development/challenge_pipeline/round1/f02-burst-thermal.md",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED"
+    },
+    {
+      "id": "C3",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/docs/development/challenge_pipeline/cheap-baselines/f02.md",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED"
+    },
+    {
+      "id": "F1",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/Business/research/deliverable-framework/TEMPLATE.md",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED"
+    },
+    {
+      "id": "F2",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/Business/research/deliverable-framework/deliverable.schema.json",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED"
+    },
+    {
+      "id": "F3",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/Business/research/deliverable-framework/STANDARDS.md",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED"
+    },
+    {
+      "id": "R2",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/docs/development/challenge_pipeline/question-laws/f02-round2.json",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED"
+    },
+    {
+      "id": "R3",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/65ef88660fe02018c26f54d14655fe7b66354aa8/docs/development/challenge_pipeline/value-cost/f02.md",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED"
+    }
+  ],
+  "adverse_review": "FINDINGS_RETAINED",
+  "adverse_findings": [
+    {
+      "id": "F02_FEASIBILITY",
+      "basis": "decision-value",
+      "outcome": "NOT_ASSESSED",
+      "statement": "Proposed f02 law's feasibility evidence state, not a solved-panel verdict: NOT_DEMONSTRATED",
+      "evidence_refs": [
+        "R2"
+      ],
+      "status": "HISTORICAL_RETAINED"
+    },
+    {
+      "id": "F02_ACTION_STATUS",
+      "basis": "verification",
+      "outcome": "NOT_ASSESSED",
+      "statement": "Proposed expanded f02 action-registration status: HUMAN_INPUT",
+      "evidence_refs": [
+        "R2"
+      ],
+      "status": "HISTORICAL_RETAINED"
+    },
+    {
+      "id": "F02_COST_STATUS",
+      "basis": "verification",
+      "outcome": "NOT_ASSESSED",
+      "statement": "Proposed f02 bank startup-cost measurement state: UNMEASURED",
+      "evidence_refs": [
+        "R2"
+      ],
+      "status": "HISTORICAL_RETAINED"
+    }
+  ],
+  "tier_criteria": [
+    {
+      "criterion": "Customer-specific audit prerequisites and acceptance",
+      "status": "GAP",
+      "authority": "HUMAN_INPUT",
+      "evidence_refs": [
+        "F1"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-09-battery-law-round2-regression",
+  "recorded_at": "2026-10-09T15:01:42Z",
+  "challenge": "battery",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "CHALLENGE-BATTERY-V3-QUESTION-LAW-01 four-file affected regression", "description": "Native static law, historical question-law, customer revision and pipeline regression after formatting."},
+  "expected": "Preserve current authority, history and all lesson/protocol boundaries.",
+  "observed": "70 passed in 7.52s; Black clean. Canonical acceptance remains applicable PR CI, not this Windows diagnostic result.",
+  "keep": ["Owner-approved action restrictions and missing-law HOLDs remain distinct."],
+  "change": ["Empirical near-limit and winner-settlement returns are still needed before adoption."],
+  "protocol_elements": ["regression", "authority", "reference identity"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

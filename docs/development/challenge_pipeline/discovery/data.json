@@ -1,0 +1,4550 @@
+{
+  "schema": "carbon.challenge-discovery.research.v1",
+  "ticket": "CHALLENGE-DISCOVERY-01",
+  "date": "2026-10-09",
+  "source_main": "cfb40e0fa74b2304bdd61594916f55b1390b24e1",
+  "source_main_tree": "f29884a6287bf3de8a84df2e9c75e24f4fd2875f",
+  "reference_pr_heads": {
+    "919": "891a77bc29aacfb53a60451d19279e88459827df",
+    "921": "af1a26bb4428e17147c813904456b38ba8b9636a",
+    "922": "cfc306b9b9160a87d3f9d62dcf69ece995b1cbad"
+  },
+  "maturity": "RESEARCH_SPECIFIED_NOT_QUALIFIED",
+  "adoption": "HUMAN_INPUT",
+  "admitted_count": 0,
+  "solver_runs": 0,
+  "spend_eur": 0,
+  "dispatch_ready": false,
+  "protected_material": false,
+  "historical_rescore": false,
+  "cost_assumptions": {
+    "status": "ASSUMPTION_NOT_MEASURED",
+    "rate_eur_node_h": 1.37,
+    "rate_source": "USER_TASK_AND_HETZ",
+    "tax_stress_multiplier": 1.19,
+    "setup_idle_fit_node_h": 4,
+    "other_reserve_eur": 10,
+    "elapsed_to_cpu_ratio": 1,
+    "refinement_multiplier": 2,
+    "witness_pairs": 8,
+    "witness_tools_per_pair": 2,
+    "incremental_buyer_tool_licence_eur": 0,
+    "rate_hypothesis_eur_h": [
+      60,
+      90,
+      120
+    ],
+    "weekly_windows_R": [
+      0.5,
+      1,
+      2
+    ],
+    "refresh_exposure_E": [
+      20,
+      10,
+      5
+    ],
+    "weeks_year": 52,
+    "bank_cap_eur": 100,
+    "all_in_bill_verified": false
+  },
+  "sources": [
+    {
+      "id": "CALC",
+      "owner": "CalculiX authors",
+      "url": "https://www.dhondt.de/",
+      "support": "Open structural FE code and documentation; exact contact/material deck and extractor still unverified.",
+      "kind": "official documentation",
+      "access_date": "2026-10-09",
+      "numeric_limits_authority": false
+    },
+    {
+      "id": "GETDP",
+      "owner": "GetDP authors",
+      "url": "https://getdp.info/",
+      "support": "Open finite-element solver with Linux source distribution; exact magnetic formulation is not a qualified reference.",
+      "kind": "official documentation",
+      "access_date": "2026-10-09",
+      "numeric_limits_authority": false
+    },
+    {
+      "id": "ELMER",
+      "owner": "CSC / Elmer",
+      "url": "https://github.com/ElmerCSC/elmerfem",
+      "support": "Official multiphysics source, Linux build instructions and licence policy.",
+      "kind": "official source",
+      "access_date": "2026-10-09",
+      "numeric_limits_authority": false
+    },
+    {
+      "id": "FOAM",
+      "owner": "OpenFOAM Foundation",
+      "url": "https://openfoam.org/",
+      "support": "Open CFD distribution; fork, release, mesh and closure must be pinned separately.",
+      "kind": "official documentation",
+      "access_date": "2026-10-09",
+      "numeric_limits_authority": false
+    },
+    {
+      "id": "MEEP",
+      "owner": "Meep authors",
+      "url": "https://meep.readthedocs.io/en/latest/",
+      "support": "Open electromagnetic FDTD; discretisation, dispersion and extraction remain case-specific.",
+      "kind": "official documentation",
+      "access_date": "2026-10-09",
+      "numeric_limits_authority": false
+    },
+    {
+      "id": "OEM",
+      "owner": "openEMS authors",
+      "url": "https://docs.openems.de/en/latest/",
+      "support": "Open FDTD with Octave/Python interface; not a commercial solver dependency.",
+      "kind": "official documentation",
+      "access_date": "2026-10-09",
+      "numeric_limits_authority": false
+    },
+    {
+      "id": "SU2",
+      "owner": "SU2 authors",
+      "url": "https://su2code.github.io/docs_v7/home/",
+      "support": "Open CFD and adjoint infrastructure; turbulence and exact output adequacy unverified.",
+      "kind": "official documentation",
+      "access_date": "2026-10-09",
+      "numeric_limits_authority": false
+    },
+    {
+      "id": "PYB",
+      "owner": "PyBaMM team",
+      "url": "https://github.com/pybamm-team/PyBaMM",
+      "support": "Open battery modelling framework; parameter rights and physical validity are separate.",
+      "kind": "official source",
+      "access_date": "2026-10-09",
+      "numeric_limits_authority": false
+    },
+    {
+      "id": "CAN",
+      "owner": "Cantera authors",
+      "url": "https://cantera.org/",
+      "support": "Open kinetics/transport library; mechanisms need their own rights and adequacy checks.",
+      "kind": "official documentation",
+      "access_date": "2026-10-09",
+      "numeric_limits_authority": false
+    },
+    {
+      "id": "MOOSE",
+      "owner": "Idaho National Laboratory",
+      "url": "https://mooseframework.inl.gov/",
+      "support": "Open multiphysics framework; physics modules and application implementation still need pins.",
+      "kind": "official documentation",
+      "access_date": "2026-10-09",
+      "numeric_limits_authority": false
+    },
+    {
+      "id": "BOUT",
+      "owner": "BOUT++ authors",
+      "url": "https://boutproject.github.io/",
+      "support": "Open plasma-fluid framework; does not supply an independently qualified fusion reference.",
+      "kind": "official documentation",
+      "access_date": "2026-10-09",
+      "numeric_limits_authority": false
+    },
+    {
+      "id": "SMILEI",
+      "owner": "Smilei authors",
+      "url": "https://smileipic.github.io/Smilei/",
+      "support": "Open particle-in-cell framework; expensive kinetic scale makes affordability uncertain.",
+      "kind": "official documentation",
+      "access_date": "2026-10-09",
+      "numeric_limits_authority": false
+    },
+    {
+      "id": "TORAX",
+      "owner": "Google DeepMind / TORAX authors",
+      "url": "https://github.com/google-deepmind/torax",
+      "support": "Open tokamak transport simulator; simplified transport is also a strong cheap baseline.",
+      "kind": "official source",
+      "access_date": "2026-10-09",
+      "numeric_limits_authority": false
+    },
+    {
+      "id": "APEP",
+      "owner": "pyAPEP authors",
+      "url": "https://github.com/sebygaa/pyAPEP",
+      "support": "Open adsorption process modelling source; exact cycle, convergence and licence review unresolved.",
+      "kind": "official source",
+      "access_date": "2026-10-09",
+      "numeric_limits_authority": false
+    },
+    {
+      "id": "ADAM",
+      "owner": "adamantine authors",
+      "url": "https://github.com/adamantine-sim/adamantine",
+      "support": "Open additive-manufacturing thermal simulation; does not certify porosity or fatigue.",
+      "kind": "official source",
+      "access_date": "2026-10-09",
+      "numeric_limits_authority": false
+    },
+    {
+      "id": "SV",
+      "owner": "SimVascular authors",
+      "url": "https://github.com/SimVascular/svSolver",
+      "support": "Open cardiovascular flow solver; clinical decision validity and patient rights absent.",
+      "kind": "official source",
+      "access_date": "2026-10-09",
+      "numeric_limits_authority": false
+    },
+    {
+      "id": "HETZ",
+      "owner": "Hetzner",
+      "url": "https://docs.hetzner.com/general/infrastructure-and-availability/price-adjustment/",
+      "support": "Published CCX63 hourly price context; task fixes EUR1.37/node-hour. VAT/IPv4 and other charges are additional.",
+      "kind": "official price documentation",
+      "access_date": "2026-10-09",
+      "numeric_limits_authority": false
+    },
+    {
+      "id": "BOLT1",
+      "owner": "Ansys",
+      "url": "https://learninghub.ansys.com/learn/course/external/view/elearning/36/ansys-mechanical-bolt-pretension",
+      "support": "Simulation informs bolt size, quantity and preload. No customer population or limits established.",
+      "kind": "vendor engineering workflow",
+      "access_date": "2026-10-09",
+      "numeric_limits_authority": false
+    },
+    {
+      "id": "BOLT2",
+      "owner": "Richard T. Barrett / NASA",
+      "url": "https://ntrs.nasa.gov/api/citations/19900009424/downloads/19900009424.pdf",
+      "support": "Fastener selection, preload and joint design engineering; not evidence of a current paying Carbon buyer.",
+      "kind": "primary engineering manual",
+      "access_date": "2026-10-09",
+      "numeric_limits_authority": false
+    },
+    {
+      "id": "BOLT3",
+      "owner": "Independent bolted-connection researchers",
+      "url": "https://www.sciencedirect.com/science/article/pii/S1350630719304686",
+      "support": "Unitary FE analysis of preloaded bolted connections; search abstract accessible, full page blocked. Do not use inaccessible full text for thresholds.",
+      "kind": "primary research; abstract only",
+      "access_date": "2026-10-09",
+      "numeric_limits_authority": false
+    },
+    {
+      "id": "SEAL1",
+      "owner": "Parker Pradifa",
+      "url": "https://www.parker.com/content/dam/Parker-com/Literature/Praedifa/Brochures/OilGas_SGE07-EN.pdf",
+      "support": "FEA supports seal geometry and support design; severe service examples are not proposed Challenge pressure limits.",
+      "kind": "manufacturer engineering workflow",
+      "access_date": "2026-10-09",
+      "numeric_limits_authority": false
+    },
+    {
+      "id": "SEAL2",
+      "owner": "Trelleborg Sealing Solutions",
+      "url": "https://www.trelleborg.com/seals/-/media/tss-media-repository/tss_website/services-and-tools/technical-library/technical-articles/pdfs/simulations-fluid-power-components.pdf?rev=b279b12297314941bfbccfe8e1e7e8be",
+      "support": "Independent seal supplier uses numerical simulation in fluid-power component development.",
+      "kind": "manufacturer engineering workflow",
+      "access_date": "2026-10-09",
+      "numeric_limits_authority": false
+    },
+    {
+      "id": "SNAP1",
+      "owner": "BASF",
+      "url": "https://ultrasimweb.basf.com/snapfit/blog/introduction/",
+      "support": "Analytical and FE snap-fit design service with quick feedback; serious incumbent for plain snap-fit questions.",
+      "kind": "manufacturer tool",
+      "access_date": "2026-10-09",
+      "numeric_limits_authority": false
+    },
+    {
+      "id": "SNAP2",
+      "owner": "Stefanoaea, Rusu and Pascu",
+      "url": "https://etasr.com/index.php/ETASR/article/view/6715",
+      "support": "Independent snap-fit FE investigation; material/assembly assumptions cannot be transferred as limits.",
+      "kind": "primary research",
+      "access_date": "2026-10-09",
+      "numeric_limits_authority": false
+    },
+    {
+      "id": "SOL1",
+      "owner": "Magnet-Schultz",
+      "url": "https://www.magnet-schultz.com/en/products",
+      "support": "Manufacturer uses calculation and simulation for customer-specific electromagnetic products.",
+      "kind": "manufacturer engineering workflow",
+      "access_date": "2026-10-09",
+      "numeric_limits_authority": false
+    },
+    {
+      "id": "SOL2",
+      "owner": "Vogel / Ulm and Heilbronn authors",
+      "url": "https://www.comsol.com/paper/theory-of-proportional-solenoids-and-magnetic-force-calculation-using-comsol-multiphysics-11391",
+      "support": "Independent authors examine proportional-solenoid force calculation and pole geometry. Hosting platform is not a second manufacturer.",
+      "kind": "primary research hosted by vendor",
+      "access_date": "2026-10-09",
+      "numeric_limits_authority": false
+    },
+    {
+      "id": "SOL3",
+      "owner": "Magnet-Schultz",
+      "url": "https://www.magnet-schultz.com/fileadmin/Daten/Vertrieb/PR1/TechnErl/GXX_e.pdf",
+      "support": "Force ratings depend on operating conditions. A customer's rated envelope must be supplied; no values copied here.",
+      "kind": "manufacturer technical explanation",
+      "access_date": "2026-10-09",
+      "numeric_limits_authority": false
+    },
+    {
+      "id": "DUCT1",
+      "owner": "ASHRAE",
+      "url": "https://www.ashrae.org/technical-resources/bookstore/duct-fitting-database",
+      "support": "Geometry/flow loss coefficient database is an incumbent baseline; a subscription is not open reference data.",
+      "kind": "professional engineering tool",
+      "access_date": "2026-10-09",
+      "numeric_limits_authority": false
+    },
+    {
+      "id": "DUCT2",
+      "owner": "Moujaes and Aekula",
+      "url": "https://doi.org/10.1061/%28ASCE%290733-9402%282009%29135%3A4%28119%29",
+      "support": "CFD prediction of duct elbow pressure drop; DOI metadata only in this read. Exact application evidence remains incomplete.",
+      "kind": "primary research; retrieval limited",
+      "access_date": "2026-10-09",
+      "numeric_limits_authority": false
+    },
+    {
+      "id": "AIR1",
+      "owner": "SimScale",
+      "url": "https://www.simscale.com/simulations/heat-sink-simulation/",
+      "support": "Heat-sink geometry and flow simulation design workflow.",
+      "kind": "vendor engineering workflow",
+      "access_date": "2026-10-09",
+      "numeric_limits_authority": false
+    },
+    {
+      "id": "AIR2",
+      "owner": "Loukrezis and De Gersem",
+      "url": "https://arxiv.org/abs/2205.08746",
+      "support": "Independent power-module heat-sink optimisation using polynomial-chaos surrogates; incumbent response surface matters.",
+      "kind": "primary research",
+      "access_date": "2026-10-09",
+      "numeric_limits_authority": false
+    },
+    {
+      "id": "PLAN1",
+      "owner": "Rahul Bhat / COMSOL",
+      "url": "https://www.comsol.com/blogs/computing-transformer-equivalent-circuit-parameters",
+      "support": "Finite-element extraction of transformer equivalent-circuit inductance; circuit parameters alone do not establish temperature or insulation safety.",
+      "kind": "vendor engineering workflow",
+      "access_date": "2026-10-09",
+      "numeric_limits_authority": false
+    },
+    {
+      "id": "PLAN2",
+      "owner": "Planar-transformer research authors",
+      "url": "https://ieeexplore.ieee.org/document/9457061/",
+      "support": "Planar Transformer With Asymmetric Integrated Leakage Inductance Using Horizontal Air Gap: geometry-driven leakage design; abstract metadata found, full page robot-blocked.",
+      "kind": "primary research; abstract only",
+      "access_date": "2026-10-09",
+      "numeric_limits_authority": false
+    },
+    {
+      "id": "PLAN3",
+      "owner": "Planar-transformer modelling researchers",
+      "url": "https://ieeexplore.ieee.org/abstract/document/8471110",
+      "support": "Improved Analysis and Modeling of Leakage Inductance for Planar Transformers: analytical models are a strong baseline, not automatically inadequate.",
+      "kind": "primary research; abstract metadata",
+      "access_date": "2026-10-09",
+      "numeric_limits_authority": false
+    },
+    {
+      "id": "PLAN4",
+      "owner": "Planar-transformer FEM researchers",
+      "url": "https://www.mdpi.com/2673-4591/150/1/86",
+      "support": "Planar-transformer geometry/FEM study; a research example does not establish a manufacturing buyer contract.",
+      "kind": "primary research",
+      "access_date": "2026-10-09",
+      "numeric_limits_authority": false
+    },
+    {
+      "id": "GRIP1",
+      "owner": "Monolithic-gripper research authors",
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC6843576/",
+      "support": "Simulation-informed compliant-gripper geometry research; small-displacement/large-displacement scope differs from soft fingers.",
+      "kind": "primary research; indexed text, direct page challenged",
+      "access_date": "2026-10-09",
+      "numeric_limits_authority": false
+    },
+    {
+      "id": "GRIP2",
+      "owner": "Xie, Wang, Iida and Howard",
+      "url": "https://arxiv.org/abs/2311.12477",
+      "support": "Fin-QD uses contact FEM in SOFA to search soft-finger arrangements for geometrically distinct objects.",
+      "kind": "primary research",
+      "access_date": "2026-10-09",
+      "numeric_limits_authority": false
+    },
+    {
+      "id": "GRIP3",
+      "owner": "Reduced gripper modelling authors",
+      "url": "https://arxiv.org/abs/2303.12987",
+      "support": "Reduced co-rotational modelling is an incumbent; contact/material/domain match must be established before comparison.",
+      "kind": "primary research",
+      "access_date": "2026-10-09",
+      "numeric_limits_authority": false
+    },
+    {
+      "id": "PACK1",
+      "owner": "COMSOL",
+      "url": "https://www.comsol.com/video/modeling-semiconductor-packaging-in-comsol-multiphysics",
+      "support": "Package warpage and solder-array engineering simulation workflow.",
+      "kind": "vendor engineering workflow",
+      "access_date": "2026-10-09",
+      "numeric_limits_authority": false
+    },
+    {
+      "id": "PACK2",
+      "owner": "Ansys",
+      "url": "https://www.ansys.com/blog/simulation-solutions-structural-integrity-chip-packages",
+      "support": "Independent vendor discusses structural package simulation; no sourced customer warpage limit supplied.",
+      "kind": "vendor engineering workflow",
+      "access_date": "2026-10-09",
+      "numeric_limits_authority": false
+    },
+    {
+      "id": "RF1",
+      "owner": "Sonnet Software",
+      "url": "https://www.sonnetsoftware.com/resources/",
+      "support": "Port tuning and EM/circuit design resources are strong cheap design incumbents.",
+      "kind": "vendor engineering workflow",
+      "access_date": "2026-10-09",
+      "numeric_limits_authority": false
+    },
+    {
+      "id": "RF2",
+      "owner": "Coupled-resonator filter research authors",
+      "url": "https://arxiv.org/abs/2106.13737",
+      "support": "Time-domain modelling of coupled-resonator microstrip filters; weak coupling extraction can be difficult.",
+      "kind": "primary research",
+      "access_date": "2026-10-09",
+      "numeric_limits_authority": false
+    },
+    {
+      "id": "PHOT1",
+      "owner": "Ansys Lumerical",
+      "url": "https://optics.ansys.com/hc/en-us/articles/360042800213-Ring-resonator-getting-started-Final-parameter-extraction",
+      "support": "MODE initial design and final FDTD parameter extraction; compact modelling is a serious incumbent.",
+      "kind": "vendor engineering workflow",
+      "access_date": "2026-10-09",
+      "numeric_limits_authority": false
+    },
+    {
+      "id": "PHOT2",
+      "owner": "Microring Fano-resonance research authors",
+      "url": "https://arxiv.org/abs/1907.02186",
+      "support": "Microring/waveguide geometry study; novel Fano device is not evidence for every plain-ring tuning task.",
+      "kind": "primary research",
+      "access_date": "2026-10-09",
+      "numeric_limits_authority": false
+    },
+    {
+      "id": "PEM1",
+      "owner": "COMSOL",
+      "url": "https://doc.comsol.com/6.4/doc/com.comsol.help.models.fce.nonisothermal_pem_fuel_cell/nonisothermal_pem_fuel_cell.html",
+      "support": "Coupled PEM fuel-cell model; header-only pressure/flow is a narrower task.",
+      "kind": "vendor model documentation",
+      "access_date": "2026-10-09",
+      "numeric_limits_authority": false
+    },
+    {
+      "id": "PEM2",
+      "owner": "Fuel-cell header optimisation researchers",
+      "url": "https://www.sciencedirect.com/science/article/pii/S0360319925060264",
+      "support": "CFD plus learned response surface for header optimisation; abstract establishes both use case and incumbent, not adopted limits.",
+      "kind": "primary research; abstract",
+      "access_date": "2026-10-09",
+      "numeric_limits_authority": false
+    },
+    {
+      "id": "CO21",
+      "owner": "VPSA optimisation researchers",
+      "url": "https://www.sciencedirect.com/science/article/abs/pii/S1750583616301359",
+      "support": "Dynamic carbon-capture cycle optimisation; exact sorbent isotherms and plant constraints remain owner inputs.",
+      "kind": "primary research; abstract",
+      "access_date": "2026-10-09",
+      "numeric_limits_authority": false
+    },
+    {
+      "id": "CO22",
+      "owner": "VSA validation researchers",
+      "url": "https://www.sciencedirect.com/science/article/abs/pii/S1383586619308378",
+      "support": "Independent experimental/cycle optimisation study; study feed mixture is not a Carbon population law.",
+      "kind": "primary research; abstract",
+      "access_date": "2026-10-09",
+      "numeric_limits_authority": false
+    },
+    {
+      "id": "WIND1",
+      "owner": "NREL",
+      "url": "https://www.nrel.gov/docs/fy22osti/81856.pdf",
+      "support": "Wind-airfoil response-surface/neural design workflow using XFOIL; cheap aerodynamic models already matter.",
+      "kind": "primary research",
+      "access_date": "2026-10-09",
+      "numeric_limits_authority": false
+    },
+    {
+      "id": "WIND2",
+      "owner": "Wind-airfoil aeroacoustic researchers",
+      "url": "https://arxiv.org/abs/2210.00101",
+      "support": "Airfoil optimisation with fast aerodynamic/acoustic models; ordinary early design may be cheap already.",
+      "kind": "primary research",
+      "access_date": "2026-10-09",
+      "numeric_limits_authority": false
+    },
+    {
+      "id": "AM1",
+      "owner": "LPBF scan-strategy researchers",
+      "url": "https://link.springer.com/article/10.1007/s00170-020-05603-4",
+      "support": "Scan strategies affect thermal/distortion predictions; full thermal-mechanical decision is costlier than a single heat solve.",
+      "kind": "primary research; abstract",
+      "access_date": "2026-10-09",
+      "numeric_limits_authority": false
+    },
+    {
+      "id": "AM2",
+      "owner": "Alloy-718 LPBF researchers",
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC11678364/",
+      "support": "Independent thermal-mechanical scan modelling; porosity/fatigue qualification is outside this packet.",
+      "kind": "primary research",
+      "access_date": "2026-10-09",
+      "numeric_limits_authority": false
+    },
+    {
+      "id": "F06BASE",
+      "owner": "Ansys Lumerical",
+      "url": "https://optics.ansys.com/hc/en-us/articles/360042305334-Grating-coupler",
+      "support": "Existing grating design workflow uses lower-dimensional simulation; buyer's actual decision latency is the comparator.",
+      "kind": "vendor engineering workflow",
+      "access_date": "2026-10-09",
+      "numeric_limits_authority": false
+    },
+    {
+      "id": "SOFA",
+      "owner": "SOFA consortium",
+      "url": "https://www.sofa-framework.org/",
+      "support": "Open LGPL mechanical simulation framework with robotics/contact research use; exact scene, plugin licences and strain/contact extractors still need pins.",
+      "kind": "official documentation",
+      "access_date": "2026-10-09",
+      "numeric_limits_authority": false
+    }
+  ],
+  "longlist": [
+    {
+      "id": "D001",
+      "domain": "Energy storage",
+      "name": "Battery charge profile",
+      "buyer_role": "Cell/BMS engineer",
+      "decision": "Select current stages for a charge session",
+      "solver_source": "PYB",
+      "complete_outputs": "voltage, temperature and degradation proxies over a full session",
+      "c1_cpu_h_low_base_high": [
+        0.005,
+        0.03,
+        0.15
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "SPMe plus calibrated ageing/thermal lookup",
+      "incremental_case": "Only if full DFN changes an admissible decision; repeats current battery job",
+      "desk_screen": "HOLD; customer data and degradation validity unresolved",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D002",
+      "domain": "Energy storage",
+      "name": "Battery cooling plate",
+      "buyer_role": "Battery thermal engineer",
+      "decision": "Choose channels for a prescribed duty cycle",
+      "solver_source": "FOAM",
+      "complete_outputs": "peak cell temperature and pressure drop over duty conditions",
+      "c1_cpu_h_low_base_high": [
+        0.08,
+        0.4,
+        2
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "thermal RC network plus channel correlations",
+      "incremental_case": "Local hot spots and flow maldistribution may evade a calibrated network",
+      "desk_screen": "HOLD; coolant/pack boundary conditions and C2",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D003",
+      "domain": "Energy storage",
+      "name": "Redox-flow electrode",
+      "buyer_role": "Flow-battery engineer",
+      "decision": "Choose porosity and thickness",
+      "solver_source": "ELMER",
+      "complete_outputs": "pressure drop and current-density field",
+      "c1_cpu_h_low_base_high": [
+        0.1,
+        0.6,
+        3
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "porous-electrode model plus response surface",
+      "incremental_case": "Coupled transport could change ranking at hard pump/current constraints",
+      "desk_screen": "HOLD; reaction and material calibration",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D004",
+      "domain": "Energy storage",
+      "name": "Solid-state stack pressure",
+      "buyer_role": "Cell mechanical engineer",
+      "decision": "Choose clamp/support geometry",
+      "solver_source": "CALC",
+      "complete_outputs": "contact pressure and stress across stack conditions",
+      "c1_cpu_h_low_base_high": [
+        0.03,
+        0.15,
+        0.7
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "spring stack and elastic compliance map",
+      "incremental_case": "Nonuniform contact and nonlinear interfaces may change choices",
+      "desk_screen": "HOLD; material and interface truth",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D005",
+      "domain": "Energy storage",
+      "name": "Supercapacitor pulse sizing",
+      "buyer_role": "Power buffer engineer",
+      "decision": "Select electrode dimensions for pulse duty",
+      "solver_source": "ELMER",
+      "complete_outputs": "voltage sag and temperature over pulse history",
+      "c1_cpu_h_low_base_high": [
+        0.01,
+        0.08,
+        0.4
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "equivalent circuit plus thermal network",
+      "incremental_case": "Only if spatial coupling changes the same sizing decision",
+      "desk_screen": "REJECT plain equivalent-circuit sizing at desk screen",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D006",
+      "domain": "Power electronics",
+      "name": "Planar transformer",
+      "buyer_role": "Magnetics engineer",
+      "decision": "Choose winding stack and gaps for leakage/flux constraints",
+      "solver_source": "GETDP",
+      "complete_outputs": "complete magnetostatic excitation set: inductance matrix and peak flux",
+      "c1_cpu_h_low_base_high": [
+        0.03,
+        0.08,
+        0.2
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "analytical leakage model plus cached FE response surface",
+      "incremental_case": "Fringing, nonlinear material and winding-layout interactions may change admissibility",
+      "desk_screen": "TOP5 conditional; magnetic screen only",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D007",
+      "domain": "Power electronics",
+      "name": "Busbar electromagnetic layout",
+      "buyer_role": "Power-module engineer",
+      "decision": "Select spacing and return geometry",
+      "solver_source": "ELMER",
+      "complete_outputs": "inductance matrix and AC resistance over frequency panel",
+      "c1_cpu_h_low_base_high": [
+        0.03,
+        0.2,
+        1
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "PEEC/partial inductance plus circuit optimisation",
+      "incremental_case": "Edge/current-crowding effects might defeat the cheapest adequate model",
+      "desk_screen": "HOLD; multi-frequency full-case cost",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D008",
+      "domain": "Power electronics",
+      "name": "Inverter cold plate",
+      "buyer_role": "Power electronics thermal engineer",
+      "decision": "Choose pin/channel layout",
+      "solver_source": "FOAM",
+      "complete_outputs": "device temperatures and pressure loss across heat/flow panel",
+      "c1_cpu_h_low_base_high": [
+        0.08,
+        0.5,
+        2.5
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "thermal network plus calibrated response map",
+      "incremental_case": "Nonuniform heating and bypass may matter; cooling incumbent is strong",
+      "desk_screen": "HOLD V4 first",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D009",
+      "domain": "Power electronics",
+      "name": "IGBT die attach",
+      "buyer_role": "Power-module reliability engineer",
+      "decision": "Select attach thickness and footprint",
+      "solver_source": "CALC",
+      "complete_outputs": "thermal-cycle strain and warpage history",
+      "c1_cpu_h_low_base_high": [
+        0.08,
+        0.4,
+        2
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "shear-lag/thermal-resistance model plus reduced FE",
+      "incremental_case": "Local mismatch and plasticity may alter screening",
+      "desk_screen": "HOLD; life claims excluded",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D010",
+      "domain": "Power electronics",
+      "name": "EMI shield apertures",
+      "buyer_role": "EMC engineer",
+      "decision": "Select aperture/baffle geometry",
+      "solver_source": "OEM",
+      "complete_outputs": "shielding response over prescribed frequency/ports",
+      "c1_cpu_h_low_base_high": [
+        0.1,
+        0.8,
+        4
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "cavity/mode circuit plus cached S parameters",
+      "incremental_case": "Complex resonances may affect feasible geometry",
+      "desk_screen": "HOLD; full frequency and source contract",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D011",
+      "domain": "EV and aerospace",
+      "name": "Traction motor geometry",
+      "buyer_role": "Motor electromagnetics engineer",
+      "decision": "Choose rotor/stator geometry",
+      "solver_source": "GETDP",
+      "complete_outputs": "torque/saturation/loss panel over duty points",
+      "c1_cpu_h_low_base_high": [
+        0.1,
+        1,
+        5
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "magnetic equivalent circuit plus reduced FE map",
+      "incremental_case": "Only after any design meets torque/envelope limits",
+      "desk_screen": "HOLD; repeats current motor feasibility risk",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D012",
+      "domain": "EV and aerospace",
+      "name": "Solenoid pole",
+      "buyer_role": "Actuator magnetics engineer",
+      "decision": "Choose pole/air-gap geometry",
+      "solver_source": "GETDP",
+      "complete_outputs": "complete force-stroke/current panel and stated-temperature copper loss",
+      "c1_cpu_h_low_base_high": [
+        0.01,
+        0.04,
+        0.12
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "nonlinear reluctance circuit plus cached force map",
+      "incremental_case": "Saturation/fringing near force envelope may change choices",
+      "desk_screen": "TOP5 conditional; from #921",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D013",
+      "domain": "EV and aerospace",
+      "name": "Aircraft bracket",
+      "buyer_role": "Structures engineer",
+      "decision": "Choose fillet/rib pattern",
+      "solver_source": "CALC",
+      "complete_outputs": "stress and deflection over prescribed load cases",
+      "c1_cpu_h_low_base_high": [
+        0.02,
+        0.12,
+        0.7
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "beam theory plus topology response library",
+      "incremental_case": "Local stress concentration may matter at equal certification scope",
+      "desk_screen": "HOLD; flight qualification excluded",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D014",
+      "domain": "EV and aerospace",
+      "name": "Propeller blade",
+      "buyer_role": "Propulsion aerodynamicist",
+      "decision": "Choose pitch/twist for duty points",
+      "solver_source": "SU2",
+      "complete_outputs": "thrust/torque panel at operating conditions",
+      "c1_cpu_h_low_base_high": [
+        0.2,
+        1.5,
+        8
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "blade-element momentum plus polar library",
+      "incremental_case": "Tip/wake effects may change feasibility, but cost threatens bank",
+      "desk_screen": "HOLD C2 and reference adequacy",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D015",
+      "domain": "EV and aerospace",
+      "name": "Aircraft cabin vent",
+      "buyer_role": "Cabin environmental engineer",
+      "decision": "Choose diffuser geometry",
+      "solver_source": "FOAM",
+      "complete_outputs": "flow distribution and pressure drop",
+      "c1_cpu_h_low_base_high": [
+        0.1,
+        0.8,
+        4
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "ASHRAE coefficients plus coarse flow model",
+      "incremental_case": "Only nonstandard interacting geometry may justify CFD acceleration",
+      "desk_screen": "HOLD; not cabin safety certification",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D016",
+      "domain": "Semiconductors and chip cooling",
+      "name": "Package warpage",
+      "buyer_role": "Package mechanical engineer",
+      "decision": "Choose underfill/solder-stack geometry",
+      "solver_source": "CALC",
+      "complete_outputs": "warpage and strain through full thermal history",
+      "c1_cpu_h_low_base_high": [
+        0.03,
+        0.12,
+        0.45
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "laminate theory plus reduced thermoelastic FE",
+      "incremental_case": "Large package interactions may change limits",
+      "desk_screen": "SHORTLIST; customer solder/warpage limits absent",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D017",
+      "domain": "Semiconductors and chip cooling",
+      "name": "Microchannel heat sink",
+      "buyer_role": "Chip thermal engineer",
+      "decision": "Choose channel manifolds",
+      "solver_source": "FOAM",
+      "complete_outputs": "chip temperature and pumping loss across load panel",
+      "c1_cpu_h_low_base_high": [
+        0.1,
+        0.6,
+        3
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "thermal resistance and pressure correlations",
+      "incremental_case": "Maldistribution could defeat a cached library; must demonstrate",
+      "desk_screen": "HOLD V4 and C2",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D018",
+      "domain": "Semiconductors and chip cooling",
+      "name": "Air heat sink",
+      "buyer_role": "Electronics thermal engineer",
+      "decision": "Choose fin/base geometry",
+      "solver_source": "FOAM",
+      "complete_outputs": "temperature and pressure drop over flow/load panel",
+      "c1_cpu_h_low_base_high": [
+        0.06,
+        0.18,
+        0.38
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "thermal network plus polynomial response surface",
+      "incremental_case": "Bypass and nonuniform heating are possible residuals",
+      "desk_screen": "SHORTLIST; #921 incumbent",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D019",
+      "domain": "Semiconductors and chip cooling",
+      "name": "Wirebond loop",
+      "buyer_role": "Package interconnect engineer",
+      "decision": "Choose loop profile and spacing",
+      "solver_source": "ELMER",
+      "complete_outputs": "inductance, stress and temperature panel",
+      "c1_cpu_h_low_base_high": [
+        0.03,
+        0.18,
+        0.9
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "lumped parasitics plus beam model",
+      "incremental_case": "Only coupled geometry alters same design decision",
+      "desk_screen": "HOLD; exact multiphysics reference",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D020",
+      "domain": "Semiconductors and chip cooling",
+      "name": "Lithography heater array",
+      "buyer_role": "Process equipment engineer",
+      "decision": "Choose heater placement for wafer uniformity",
+      "solver_source": "ELMER",
+      "complete_outputs": "temperature map through prescribed cycle",
+      "c1_cpu_h_low_base_high": [
+        0.02,
+        0.15,
+        0.8
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "linear response matrix plus optimal control",
+      "incremental_case": "Nonlinear radiation/contact may help only beyond linear control map",
+      "desk_screen": "REJECT plain linear array control at desk screen",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D021",
+      "domain": "Photonics",
+      "name": "Photonic ring",
+      "buyer_role": "PIC designer",
+      "decision": "Choose ring radius/coupling gap",
+      "solver_source": "MEEP",
+      "complete_outputs": "transmission resonance/linewidth over spectral sweep",
+      "c1_cpu_h_low_base_high": [
+        0.03,
+        0.1,
+        0.4
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "MODE/compact ring model plus calibrated library",
+      "incremental_case": "Only unexplained geometry effects could justify full FDTD per action",
+      "desk_screen": "SHORTLIST; plain-ring V4 rejection",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D022",
+      "domain": "Photonics",
+      "name": "Grating coupler",
+      "buyer_role": "PIC designer",
+      "decision": "Choose duty cycle/etch geometry",
+      "solver_source": "MEEP",
+      "complete_outputs": "coupling efficiency and back reflection across spectrum",
+      "c1_cpu_h_low_base_high": [
+        0.05,
+        0.4,
+        2
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "2D FDTD/EME plus cached geometry map",
+      "incremental_case": "Full 3D must change buyer decision, not merely run slower",
+      "desk_screen": "HOLD; current f06 latency failure",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D023",
+      "domain": "Photonics",
+      "name": "Photonic crystal cavity",
+      "buyer_role": "Quantum photonics engineer",
+      "decision": "Choose hole shifts/radii",
+      "solver_source": "MEEP",
+      "complete_outputs": "resonance, Q and mode volume",
+      "c1_cpu_h_low_base_high": [
+        0.15,
+        1,
+        6
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "perturbation theory plus local surrogate",
+      "incremental_case": "Radiation-sensitive geometry could create residual value",
+      "desk_screen": "HOLD; tail cost and Q reference",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D024",
+      "domain": "Photonics",
+      "name": "Fiber taper coupler",
+      "buyer_role": "Optical packaging engineer",
+      "decision": "Choose taper and gap",
+      "solver_source": "MEEP",
+      "complete_outputs": "coupling loss and reflection",
+      "c1_cpu_h_low_base_high": [
+        0.05,
+        0.4,
+        2
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "coupled-mode model/EME library",
+      "incremental_case": "Adiabaticity failures may need richer fields",
+      "desk_screen": "HOLD; current buyer latency unknown",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D025",
+      "domain": "Photonics",
+      "name": "LED extraction texture",
+      "buyer_role": "Optical device engineer",
+      "decision": "Choose surface pattern",
+      "solver_source": "MEEP",
+      "complete_outputs": "angular extraction over source/wavelength panel",
+      "c1_cpu_h_low_base_high": [
+        0.2,
+        1.5,
+        8
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "ray optics plus effective-medium response map",
+      "incremental_case": "Wave effects may alter extraction if supported by measured sources",
+      "desk_screen": "HOLD; source ensemble costs",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D026",
+      "domain": "RF and antennas",
+      "name": "RF coupled filter",
+      "buyer_role": "RF filter engineer",
+      "decision": "Choose resonator lengths and couplings",
+      "solver_source": "OEM",
+      "complete_outputs": "S-parameter band response over all ports",
+      "c1_cpu_h_low_base_high": [
+        0.04,
+        0.12,
+        0.45
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "coupling matrix plus Sonnet port tuning",
+      "incremental_case": "Unmodelled geometry coupling needed to beat fast circuit optimisation",
+      "desk_screen": "SHORTLIST; V4 rejection for plain tuning",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D027",
+      "domain": "RF and antennas",
+      "name": "Antenna near metal",
+      "buyer_role": "Antenna engineer",
+      "decision": "Choose feed/ground pattern",
+      "solver_source": "OEM",
+      "complete_outputs": "S parameters, radiation pattern and efficiency",
+      "c1_cpu_h_low_base_high": [
+        0.06,
+        0.4,
+        2
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "characteristic modes plus cached environment library",
+      "incremental_case": "Environment-sensitive pattern constraints may create residual value",
+      "desk_screen": "HOLD; buyer environment and full output cost",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D028",
+      "domain": "RF and antennas",
+      "name": "RF connector transition",
+      "buyer_role": "Signal-integrity engineer",
+      "decision": "Choose via/launch geometry",
+      "solver_source": "OEM",
+      "complete_outputs": "multiport S parameters over frequency",
+      "c1_cpu_h_low_base_high": [
+        0.04,
+        0.25,
+        1.5
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "transmission line model plus cached launches",
+      "incremental_case": "Higher-order modes may change accepted layout",
+      "desk_screen": "HOLD; library adequacy first",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D029",
+      "domain": "RF and antennas",
+      "name": "Microwave absorber",
+      "buyer_role": "EM materials engineer",
+      "decision": "Choose multilayer thickness",
+      "solver_source": "OEM",
+      "complete_outputs": "reflection/absorption across frequency/incidence",
+      "c1_cpu_h_low_base_high": [
+        0.01,
+        0.08,
+        0.5
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "transfer matrix plus optimisation",
+      "incremental_case": "Transfer matrix already solves planar stack cheaply",
+      "desk_screen": "REJECT plain planar layers",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D030",
+      "domain": "RF and antennas",
+      "name": "Radar radome",
+      "buyer_role": "Antenna integration engineer",
+      "decision": "Choose sandwich thickness/curvature",
+      "solver_source": "OEM",
+      "complete_outputs": "transmission and boresight response",
+      "c1_cpu_h_low_base_high": [
+        0.3,
+        2,
+        12
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "ray/physical optics plus measured laminate library",
+      "incremental_case": "Curvature and coupling may matter but affordable bank doubtful",
+      "desk_screen": "HOLD C2",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D031",
+      "domain": "Fusion and plasma",
+      "name": "Tokamak heating schedule",
+      "buyer_role": "Plasma scenario researcher",
+      "decision": "Choose heating/current-drive schedule",
+      "solver_source": "TORAX",
+      "complete_outputs": "transport profile trajectories",
+      "c1_cpu_h_low_base_high": [
+        0.02,
+        0.1,
+        0.8
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "reduced transport model plus optimal control",
+      "incremental_case": "Open fast transport is itself baseline; physical qualification lacking",
+      "desk_screen": "HOLD; operational authority excluded",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D032",
+      "domain": "Fusion and plasma",
+      "name": "Divertor baffle",
+      "buyer_role": "Plasma-facing component engineer",
+      "decision": "Choose baffle geometry",
+      "solver_source": "BOUT",
+      "complete_outputs": "heat/particle flux through plasma conditions",
+      "c1_cpu_h_low_base_high": [
+        2,
+        20,
+        200
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "reduced transport plus experimental response map",
+      "incremental_case": "Nonlinear transport may matter but bank unaffordable",
+      "desk_screen": "REJECT C2 hypothesis",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D033",
+      "domain": "Fusion and plasma",
+      "name": "Plasma thruster channel",
+      "buyer_role": "Electric propulsion researcher",
+      "decision": "Choose channel dimensions",
+      "solver_source": "SMILEI",
+      "complete_outputs": "thrust/current proxies over kinetic ensemble",
+      "c1_cpu_h_low_base_high": [
+        1,
+        10,
+        100
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "fluid discharge model plus empirical map",
+      "incremental_case": "Kinetics could change decision at prohibitive startup cost",
+      "desk_screen": "REJECT C2 hypothesis",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D034",
+      "domain": "Fusion and plasma",
+      "name": "Fusion blanket cooling",
+      "buyer_role": "Fusion thermal engineer",
+      "decision": "Choose channel spacing",
+      "solver_source": "FOAM",
+      "complete_outputs": "temperature and pressure loss panel",
+      "c1_cpu_h_low_base_high": [
+        0.1,
+        1,
+        6
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "network/heat transfer correlations",
+      "incremental_case": "Local flow effects possibly valuable; magnetic fluid coupling unresolved",
+      "desk_screen": "HOLD reference and C2",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D035",
+      "domain": "Fusion and plasma",
+      "name": "RF plasma matching",
+      "buyer_role": "Plasma process engineer",
+      "decision": "Choose matching network",
+      "solver_source": "ELMER",
+      "complete_outputs": "impedance and field distribution",
+      "c1_cpu_h_low_base_high": [
+        0.05,
+        0.3,
+        2
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "lumped impedance plus tuner",
+      "incremental_case": "Ordinary matching is solved cheaply; plasma chemistry separate",
+      "desk_screen": "REJECT plain circuit matching",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D036",
+      "domain": "Hydrogen",
+      "name": "Hydrogen valve seal",
+      "buyer_role": "Hydrogen component engineer",
+      "decision": "Choose gland/support geometry",
+      "solver_source": "CALC",
+      "complete_outputs": "contact pressure/extrusion proxy over pressure panel",
+      "c1_cpu_h_low_base_high": [
+        0.03,
+        0.15,
+        0.8
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "seal handbook plus contact-aware response map",
+      "incremental_case": "Contact nonlinearity may matter; permeation is separate physical evidence",
+      "desk_screen": "HOLD; no hydrogen safety claim",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D037",
+      "domain": "Hydrogen",
+      "name": "Hydrogen mixer",
+      "buyer_role": "Combustor development engineer",
+      "decision": "Choose injection geometry",
+      "solver_source": "FOAM",
+      "complete_outputs": "mixing/pressure metrics over flow conditions",
+      "c1_cpu_h_low_base_high": [
+        0.2,
+        1.5,
+        10
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "jet correlations plus coarse CFD response map",
+      "incremental_case": "Interaction effects possible; flame limits not supported",
+      "desk_screen": "HOLD; chemistry/safety limits absent",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D038",
+      "domain": "Hydrogen",
+      "name": "Reformer microchannel",
+      "buyer_role": "Hydrogen process engineer",
+      "decision": "Choose channel/catalyst loading",
+      "solver_source": "CAN",
+      "complete_outputs": "conversion and thermal profile",
+      "c1_cpu_h_low_base_high": [
+        0.03,
+        0.2,
+        1.5
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "plug-flow reactor plus response surface",
+      "incremental_case": "Transport gradients may matter if reference resolves them",
+      "desk_screen": "HOLD; catalyst truth",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D039",
+      "domain": "Hydrogen",
+      "name": "Hydrogen storage bed",
+      "buyer_role": "Storage thermal engineer",
+      "decision": "Choose heat exchanger layout",
+      "solver_source": "ELMER",
+      "complete_outputs": "temperature and uptake history",
+      "c1_cpu_h_low_base_high": [
+        0.05,
+        0.4,
+        2
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "lumped sorption/thermal network",
+      "incremental_case": "Local hot spots may alter fill admissibility",
+      "desk_screen": "HOLD; kinetic and material validation",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D040",
+      "domain": "Hydrogen",
+      "name": "Hydrogen pipeline fitting",
+      "buyer_role": "Gas transport engineer",
+      "decision": "Choose fitting geometry",
+      "solver_source": "FOAM",
+      "complete_outputs": "pressure drop and flow map",
+      "c1_cpu_h_low_base_high": [
+        0.08,
+        0.6,
+        3
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "compressible network plus fitting coefficients",
+      "incremental_case": "Only unusual geometry beyond standard coefficients offers value",
+      "desk_screen": "HOLD V4",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D041",
+      "domain": "Electrolysers and fuel cells",
+      "name": "PEM reactant header",
+      "buyer_role": "Fuel-cell stack engineer",
+      "decision": "Choose header cross-section and branches",
+      "solver_source": "FOAM",
+      "complete_outputs": "distribution and pressure loss across flow panel",
+      "c1_cpu_h_low_base_high": [
+        0.05,
+        0.15,
+        0.4
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "network model plus CFD-trained response surface",
+      "incremental_case": "Interacting ports may matter; existing learned optimisation is strong",
+      "desk_screen": "SHORTLIST; G1 exact scope gap",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D042",
+      "domain": "Electrolysers and fuel cells",
+      "name": "Electrolyser flow plate",
+      "buyer_role": "Electrolyser engineer",
+      "decision": "Choose flow-channel pattern",
+      "solver_source": "FOAM",
+      "complete_outputs": "flow distribution and pressure drop",
+      "c1_cpu_h_low_base_high": [
+        0.1,
+        0.6,
+        3
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "hydraulic network plus response surface",
+      "incremental_case": "Two-phase transport could create residual but raises reference cost",
+      "desk_screen": "HOLD; bubble model unresolved",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D043",
+      "domain": "Electrolysers and fuel cells",
+      "name": "SOFC interconnect",
+      "buyer_role": "SOFC stack engineer",
+      "decision": "Choose rib/channel dimensions",
+      "solver_source": "ELMER",
+      "complete_outputs": "temperature, flow and current-density map",
+      "c1_cpu_h_low_base_high": [
+        0.15,
+        1,
+        6
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "network/porous-electrode model",
+      "incremental_case": "Coupled hot spots may affect constraints",
+      "desk_screen": "HOLD; exact coupling and cost",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D044",
+      "domain": "Electrolysers and fuel cells",
+      "name": "Fuel-cell compression plate",
+      "buyer_role": "Stack mechanical engineer",
+      "decision": "Choose ribs and clamp loads",
+      "solver_source": "CALC",
+      "complete_outputs": "contact pressure and deformation",
+      "c1_cpu_h_low_base_high": [
+        0.03,
+        0.18,
+        1
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "plate/spring model plus cached contact map",
+      "incremental_case": "Nonuniform gasket/GDL compression may change accepted geometry",
+      "desk_screen": "HOLD; constitutive rights",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D045",
+      "domain": "Electrolysers and fuel cells",
+      "name": "Electrolyser separator",
+      "buyer_role": "Membrane engineer",
+      "decision": "Choose separator thickness",
+      "solver_source": "CAN",
+      "complete_outputs": "transport/resistance proxy at conditions",
+      "c1_cpu_h_low_base_high": [
+        0.01,
+        0.08,
+        0.5
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "algebraic resistance/transport model",
+      "incremental_case": "No demonstrated incremental decision over cheap chemistry model",
+      "desk_screen": "REJECT plain thickness sizing",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D046",
+      "domain": "Carbon capture",
+      "name": "CO2 adsorption cycle",
+      "buyer_role": "Capture process engineer",
+      "decision": "Choose cycle step pressures/times",
+      "solver_source": "APEP",
+      "complete_outputs": "cyclic purity, recovery and energy panel",
+      "c1_cpu_h_low_base_high": [
+        0.05,
+        0.2,
+        0.8
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "shortcut cycle plus interpolated dynamic response surface",
+      "incremental_case": "Frontier tradeoffs possible but cycle convergence and isotherms unresolved",
+      "desk_screen": "SHORTLIST; affordability high scenario fails",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D047",
+      "domain": "Carbon capture",
+      "name": "Amine absorber packing",
+      "buyer_role": "Capture process engineer",
+      "decision": "Choose packing height and circulation",
+      "solver_source": "CAN",
+      "complete_outputs": "mass transfer and thermal profile",
+      "c1_cpu_h_low_base_high": [
+        0.05,
+        0.3,
+        2
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "rate-based 1D process model",
+      "incremental_case": "A cheap process model may already grade the decision",
+      "desk_screen": "HOLD; Cantera alone not complete absorber solver",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D048",
+      "domain": "Carbon capture",
+      "name": "Capture heat exchanger",
+      "buyer_role": "Process thermal engineer",
+      "decision": "Choose fin/tube spacing",
+      "solver_source": "FOAM",
+      "complete_outputs": "heat duty and pressure loss",
+      "c1_cpu_h_low_base_high": [
+        0.1,
+        0.8,
+        5
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "effectiveness-NTU plus correlations",
+      "incremental_case": "Fouling and maldistribution may help only if sourced",
+      "desk_screen": "HOLD; boundary/dirty-state data",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D049",
+      "domain": "Carbon capture",
+      "name": "Direct-air-capture contactor",
+      "buyer_role": "DAC equipment engineer",
+      "decision": "Choose passage geometry",
+      "solver_source": "FOAM",
+      "complete_outputs": "pressure drop and transfer field",
+      "c1_cpu_h_low_base_high": [
+        0.15,
+        1,
+        6
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "porous network plus mass-transfer correlations",
+      "incremental_case": "Flow nonuniformity may matter but sorbent truth separate",
+      "desk_screen": "HOLD C2 and reference",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D050",
+      "domain": "Carbon capture",
+      "name": "CO2 compressor diffuser",
+      "buyer_role": "Process turbomachinery engineer",
+      "decision": "Choose vane geometry",
+      "solver_source": "SU2",
+      "complete_outputs": "pressure recovery and loss map",
+      "c1_cpu_h_low_base_high": [
+        0.2,
+        1.5,
+        8
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "meanline design plus map library",
+      "incremental_case": "Off-design separation may change admissibility",
+      "desk_screen": "HOLD real-fluid model/cost",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D051",
+      "domain": "Wind and turbomachinery",
+      "name": "Wind airfoil",
+      "buyer_role": "Blade aerodynamicist",
+      "decision": "Choose airfoil shape for operating panel",
+      "solver_source": "SU2",
+      "complete_outputs": "lift/drag and moment polars",
+      "c1_cpu_h_low_base_high": [
+        0.03,
+        0.12,
+        0.5
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "XFOIL plus polar response surface",
+      "incremental_case": "Need demonstrated post-stall/roughness effect; plain early design cheap",
+      "desk_screen": "SHORTLIST; V4 rejection for plain polars",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D052",
+      "domain": "Wind and turbomachinery",
+      "name": "Wind blade root",
+      "buyer_role": "Blade structures engineer",
+      "decision": "Choose laminate/root geometry",
+      "solver_source": "CALC",
+      "complete_outputs": "strain and deflection under load panel",
+      "c1_cpu_h_low_base_high": [
+        0.1,
+        0.7,
+        4
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "beam laminate model plus reduced FE",
+      "incremental_case": "Local root load transfer could alter screening",
+      "desk_screen": "HOLD; fatigue/certification excluded",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D053",
+      "domain": "Wind and turbomachinery",
+      "name": "Turbine blade cooling",
+      "buyer_role": "Turbine thermal engineer",
+      "decision": "Choose cooling holes",
+      "solver_source": "FOAM",
+      "complete_outputs": "temperature and coolant pressure/flow",
+      "c1_cpu_h_low_base_high": [
+        0.25,
+        2,
+        12
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "film-cooling correlations plus response map",
+      "incremental_case": "Jet interaction possible but reference/startup expensive",
+      "desk_screen": "HOLD C2",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D054",
+      "domain": "Wind and turbomachinery",
+      "name": "Centrifugal impeller",
+      "buyer_role": "Pump/compressor engineer",
+      "decision": "Choose blade angle and clearance",
+      "solver_source": "SU2",
+      "complete_outputs": "head/efficiency map",
+      "c1_cpu_h_low_base_high": [
+        0.2,
+        1.5,
+        10
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "meanline model plus established performance maps",
+      "incremental_case": "Off-design separations may help; must benchmark incumbent",
+      "desk_screen": "HOLD reference cost",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D055",
+      "domain": "Wind and turbomachinery",
+      "name": "Pump volute",
+      "buyer_role": "Pump hydraulic engineer",
+      "decision": "Choose volute throat and section",
+      "solver_source": "FOAM",
+      "complete_outputs": "head/loss and radial force panel",
+      "c1_cpu_h_low_base_high": [
+        0.1,
+        0.8,
+        5
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "1D hydraulic model plus lookup",
+      "incremental_case": "Interaction could change force constraints",
+      "desk_screen": "HOLD; cavitation separate",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D056",
+      "domain": "Additive manufacturing",
+      "name": "LPBF scan strategy",
+      "buyer_role": "AM process engineer",
+      "decision": "Choose scan sequencing",
+      "solver_source": "ADAM",
+      "complete_outputs": "full thermal history plus deformation using coupled structural model",
+      "c1_cpu_h_low_base_high": [
+        0.3,
+        2,
+        10
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "inherent-strain/heat-kernel model plus response map",
+      "incremental_case": "Local distortion may matter; thermal-only output incomplete",
+      "desk_screen": "SHORTLIST; G2 and high C2 fail",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D057",
+      "domain": "Additive manufacturing",
+      "name": "Printed lattice",
+      "buyer_role": "AM structures engineer",
+      "decision": "Choose strut/fillet geometry",
+      "solver_source": "CALC",
+      "complete_outputs": "stress/stiffness under load panel",
+      "c1_cpu_h_low_base_high": [
+        0.05,
+        0.4,
+        3
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "homogenised lattice model plus unit-cell database",
+      "incremental_case": "Local buckling may alter sizing but imperfection data needed",
+      "desk_screen": "HOLD",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D058",
+      "domain": "Additive manufacturing",
+      "name": "DED toolpath",
+      "buyer_role": "AM process engineer",
+      "decision": "Choose deposition sequence",
+      "solver_source": "ADAM",
+      "complete_outputs": "thermal history and structural distortion",
+      "c1_cpu_h_low_base_high": [
+        0.5,
+        3,
+        20
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "inherent-strain plus heat-kernel approximation",
+      "incremental_case": "Path dependence possible; expensive full build bank",
+      "desk_screen": "HOLD C2 and coupled solver",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D059",
+      "domain": "Additive manufacturing",
+      "name": "Powder recoater gap",
+      "buyer_role": "Powder process researcher",
+      "decision": "Choose blade gap/speed",
+      "solver_source": "MOOSE",
+      "complete_outputs": "granular spread uniformity proxy",
+      "c1_cpu_h_low_base_high": [
+        0.5,
+        5,
+        30
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "empirical layer map",
+      "incremental_case": "Framework alone lacks exact validated granular reference",
+      "desk_screen": "REJECT solver readiness",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D060",
+      "domain": "Additive manufacturing",
+      "name": "AM support spacing",
+      "buyer_role": "Build preparation engineer",
+      "decision": "Choose supports to limit distortion",
+      "solver_source": "CALC",
+      "complete_outputs": "thermal-mechanical displacement/stress history",
+      "c1_cpu_h_low_base_high": [
+        0.15,
+        1,
+        8
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "inherent-strain build software plus cached supports",
+      "incremental_case": "No benefit if cheap incumbent already selects same supports",
+      "desk_screen": "HOLD V4/C2",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D061",
+      "domain": "Medical devices",
+      "name": "Stent strut pattern",
+      "buyer_role": "Device mechanical engineer",
+      "decision": "Choose strut geometry",
+      "solver_source": "CALC",
+      "complete_outputs": "expansion/contact and recoil history",
+      "c1_cpu_h_low_base_high": [
+        0.1,
+        0.8,
+        6
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "beam lattice plus calibrated expansion map",
+      "incremental_case": "Contact/plasticity may change screening; clinical suitability excluded",
+      "desk_screen": "HOLD material/clinical rights",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D062",
+      "domain": "Medical devices",
+      "name": "Microfluidic mixer",
+      "buyer_role": "Diagnostic-device engineer",
+      "decision": "Choose channel pattern",
+      "solver_source": "FOAM",
+      "complete_outputs": "mixing index and pressure drop",
+      "c1_cpu_h_low_base_high": [
+        0.05,
+        0.3,
+        2
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "Stokes/advection map plus design library",
+      "incremental_case": "Coupled mixing might matter but many libraries cheap",
+      "desk_screen": "HOLD V4",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D063",
+      "domain": "Medical devices",
+      "name": "Prosthetic socket",
+      "buyer_role": "Prosthetic-device engineer",
+      "decision": "Choose local wall/support geometry",
+      "solver_source": "CALC",
+      "complete_outputs": "pressure and strain under prescribed load",
+      "c1_cpu_h_low_base_high": [
+        0.08,
+        0.5,
+        3
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "compliance/contact response map",
+      "incremental_case": "Local pressure differences possible; patient data absent",
+      "desk_screen": "HOLD; no clinical use",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D064",
+      "domain": "Medical devices",
+      "name": "Blood pump blade",
+      "buyer_role": "Circulatory-device engineer",
+      "decision": "Choose impeller geometry",
+      "solver_source": "SV",
+      "complete_outputs": "pressure/flow/shear exposure panel",
+      "c1_cpu_h_low_base_high": [
+        0.3,
+        2,
+        12
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "pump map plus simplified shear model",
+      "incremental_case": "Flow topology could matter; haemolysis truth not supplied",
+      "desk_screen": "HOLD safety/reference/C2",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D065",
+      "domain": "Medical devices",
+      "name": "Ultrasound transducer",
+      "buyer_role": "Medical acoustics engineer",
+      "decision": "Choose piezo/stack geometry",
+      "solver_source": "ELMER",
+      "complete_outputs": "acoustic/electrical response over frequency",
+      "c1_cpu_h_low_base_high": [
+        0.1,
+        0.7,
+        4
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "equivalent piezo circuit plus transfer matrix",
+      "incremental_case": "Lateral modes may change design; exact acoustics deck unknown",
+      "desk_screen": "HOLD; no therapeutic safety claim",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D066",
+      "domain": "Data-centre cooling",
+      "name": "Rack rear-door coil",
+      "buyer_role": "Data-centre thermal engineer",
+      "decision": "Choose coil/fin geometry",
+      "solver_source": "FOAM",
+      "complete_outputs": "heat removal and pressure loss",
+      "c1_cpu_h_low_base_high": [
+        0.1,
+        0.8,
+        5
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "coil correlations plus catalogue",
+      "incremental_case": "Standard catalogue already selects designs; uncommon bypass only",
+      "desk_screen": "HOLD V4",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D067",
+      "domain": "Data-centre cooling",
+      "name": "Liquid manifold",
+      "buyer_role": "Server cooling engineer",
+      "decision": "Choose branch dimensions",
+      "solver_source": "FOAM",
+      "complete_outputs": "flow distribution and pressure drop",
+      "c1_cpu_h_low_base_high": [
+        0.05,
+        0.3,
+        2
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "hydraulic network plus calibrated fitting library",
+      "incremental_case": "Strong coupling/geometry may defeat network; first test",
+      "desk_screen": "HOLD",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D068",
+      "domain": "Data-centre cooling",
+      "name": "Immersion tank flow",
+      "buyer_role": "Cooling equipment engineer",
+      "decision": "Choose inlet/baffle placement",
+      "solver_source": "FOAM",
+      "complete_outputs": "temperature/flow panel at heat loads",
+      "c1_cpu_h_low_base_high": [
+        0.2,
+        1.5,
+        8
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "well-mixed network plus coarse response map",
+      "incremental_case": "Recirculation hot spots may matter but costly bank",
+      "desk_screen": "HOLD",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D069",
+      "domain": "Data-centre cooling",
+      "name": "Two-phase cold plate",
+      "buyer_role": "Cooling R&D engineer",
+      "decision": "Choose microchannel pattern",
+      "solver_source": "FOAM",
+      "complete_outputs": "wall temperature and pressure/void fraction",
+      "c1_cpu_h_low_base_high": [
+        0.5,
+        4,
+        25
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "boiling correlations plus experiment-derived map",
+      "incremental_case": "Reference model uncertainty may dominate benefit",
+      "desk_screen": "REJECT reference readiness/C2",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D070",
+      "domain": "Data-centre cooling",
+      "name": "Fan plenum baffle",
+      "buyer_role": "Thermal/mechanical engineer",
+      "decision": "Choose baffle and openings",
+      "solver_source": "FOAM",
+      "complete_outputs": "pressure/flow balance across operating panel",
+      "c1_cpu_h_low_base_high": [
+        0.05,
+        0.25,
+        1.5
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "fan curves plus network/cached CFD",
+      "incremental_case": "Only interactions beyond network justify model",
+      "desk_screen": "HOLD V4",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D071",
+      "domain": "Robotics actuators",
+      "name": "Compliant gripper",
+      "buyer_role": "Robot end-effector engineer",
+      "decision": "Choose finger/frame geometry for known objects",
+      "solver_source": "SOFA",
+      "complete_outputs": "contact forces, strain and displacement over approach/grasp panel",
+      "c1_cpu_h_low_base_high": [
+        0.03,
+        0.08,
+        0.2
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "pseudo-rigid/co-rotational model plus contact-aware response map",
+      "incremental_case": "Object/contact topology may change admissible fingers",
+      "desk_screen": "TOP5 conditional; exact SOFA scene and output extractors unresolved",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D072",
+      "domain": "Robotics actuators",
+      "name": "Flexure stage",
+      "buyer_role": "Precision-motion engineer",
+      "decision": "Choose hinge/beam dimensions",
+      "solver_source": "CALC",
+      "complete_outputs": "displacement and stress over travel panel",
+      "c1_cpu_h_low_base_high": [
+        0.01,
+        0.06,
+        0.3
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "pseudo-rigid-body model plus elastic map",
+      "incremental_case": "Large-motion parasitic coupling may matter if not already reduced",
+      "desk_screen": "HOLD V4",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D073",
+      "domain": "Robotics actuators",
+      "name": "Robot gearbox housing",
+      "buyer_role": "Robot mechanical engineer",
+      "decision": "Choose ribs and bearing supports",
+      "solver_source": "CALC",
+      "complete_outputs": "stiffness/stress under torque loads",
+      "c1_cpu_h_low_base_high": [
+        0.03,
+        0.2,
+        1
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "beam/shell FE plus cached housing families",
+      "incremental_case": "Local bearing-support effects possible",
+      "desk_screen": "HOLD",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D074",
+      "domain": "Robotics actuators",
+      "name": "Pneumatic soft actuator",
+      "buyer_role": "Robot actuator engineer",
+      "decision": "Choose chamber layout",
+      "solver_source": "CALC",
+      "complete_outputs": "pressure-driven deformation and strain",
+      "c1_cpu_h_low_base_high": [
+        0.05,
+        0.3,
+        2
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "lumped pressure-volume plus co-rotational model",
+      "incremental_case": "Hyperelastic large motion may alter useful action",
+      "desk_screen": "HOLD constitutive/pressure limits",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D075",
+      "domain": "Robotics actuators",
+      "name": "Robot motor cooling jacket",
+      "buyer_role": "Actuator thermal engineer",
+      "decision": "Choose cooling passages",
+      "solver_source": "FOAM",
+      "complete_outputs": "temperature/pressure loss panel",
+      "c1_cpu_h_low_base_high": [
+        0.08,
+        0.5,
+        3
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "thermal RC plus channel correlations",
+      "incremental_case": "Only hotspots/maldistribution beyond baseline create benefit",
+      "desk_screen": "HOLD V4",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D076",
+      "domain": "Structures, seals and other industrial",
+      "name": "Bolted joint",
+      "buyer_role": "Joint-design engineer",
+      "decision": "Choose preload/bolt pattern/support geometry",
+      "solver_source": "CALC",
+      "complete_outputs": "preload plus service-history slip/separation/stress",
+      "c1_cpu_h_low_base_high": [
+        0.03,
+        0.08,
+        0.24
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "VDI-style compliance plus contact-aware response surface",
+      "incremental_case": "Contact transitions can change admissibility",
+      "desk_screen": "TOP5 conditional; #921",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D077",
+      "domain": "Structures, seals and other industrial",
+      "name": "Seal gland",
+      "buyer_role": "Seal application engineer",
+      "decision": "Choose gland/squeeze/support geometry",
+      "solver_source": "CALC",
+      "complete_outputs": "assembly/service contact pressure and extrusion proxy",
+      "c1_cpu_h_low_base_high": [
+        0.015,
+        0.05,
+        0.15
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "supplier handbook plus contact-aware response surface",
+      "incremental_case": "Hyperelastic contact near limits may defeat lookup",
+      "desk_screen": "TOP5 conditional; #921",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D078",
+      "domain": "Structures, seals and other industrial",
+      "name": "Snap fit",
+      "buyer_role": "Product mechanical engineer",
+      "decision": "Choose latch/fillet dimensions",
+      "solver_source": "CALC",
+      "complete_outputs": "insertion/release force and strain history",
+      "c1_cpu_h_low_base_high": [
+        0.02,
+        0.06,
+        0.2
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "BASF analytical/FE web design plus cached families",
+      "incremental_case": "Plain beam latch has no demonstrated incremental case",
+      "desk_screen": "SHORTLIST; V4 rejection for plain scope",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D079",
+      "domain": "Structures, seals and other industrial",
+      "name": "Duct fitting",
+      "buyer_role": "HVAC engineer",
+      "decision": "Choose nonstandard fitting geometry",
+      "solver_source": "FOAM",
+      "complete_outputs": "loss/flow panel over operating conditions",
+      "c1_cpu_h_low_base_high": [
+        0.05,
+        0.15,
+        0.33
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "ASHRAE fitting library plus calibrated response surface",
+      "incremental_case": "Nonstandard interacting geometry must defeat incumbent",
+      "desk_screen": "SHORTLIST; #921",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    },
+    {
+      "id": "D080",
+      "domain": "Structures, seals and other industrial",
+      "name": "Acoustic silencer",
+      "buyer_role": "Industrial acoustics engineer",
+      "decision": "Choose baffle/chamber dimensions",
+      "solver_source": "ELMER",
+      "complete_outputs": "transmission loss and pressure drop panel",
+      "c1_cpu_h_low_base_high": [
+        0.1,
+        0.6,
+        4
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "baseline": "transfer matrix plus catalogue/cached impedance",
+      "incremental_case": "Mode coupling possible; joint flow/acoustic reference unresolved",
+      "desk_screen": "HOLD",
+      "customer_packet": "HUMAN_INPUT",
+      "admitted": false
+    }
+  ],
+  "shortlist": [
+    {
+      "id": "D012",
+      "slug": "solenoid-pole",
+      "name": "Solenoid pole",
+      "lineage": "PR921_REUSED_HYPOTHESIS",
+      "sources": [
+        "SOL1",
+        "SOL2",
+        "SOL3"
+      ],
+      "buyer_role": "Actuator magnetics engineer",
+      "decision": "Choose pole/air-gap geometry",
+      "solver": "GETDP",
+      "outputs": "complete force-stroke/current panel and stated-temperature copper loss",
+      "baseline": "nonlinear reluctance circuit plus cached force map",
+      "incremental_case": "Nonlinear reluctance and force maps must be challenged at saturation/fringing transitions.",
+      "V_scores_low_base_high": [
+        [
+          3,
+          4,
+          5
+        ],
+        [
+          1,
+          2,
+          3
+        ],
+        [
+          0,
+          1,
+          2
+        ],
+        [
+          2,
+          3,
+          4
+        ],
+        [
+          1,
+          2,
+          3
+        ]
+      ],
+      "excitement_axes_low_base_high": [
+        [
+          2,
+          3,
+          4
+        ],
+        [
+          2,
+          3,
+          4
+        ],
+        [
+          3,
+          4,
+          5
+        ]
+      ],
+      "excitement_low_base_high": [
+        2.3333333333333335,
+        3.3333333333333335,
+        4.333333333333334
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "value_status": "ASSUMPTION_CONDITIONAL_COHORT_NOT_MARKET",
+      "engineer_h": [
+        3,
+        8,
+        20
+      ],
+      "engineer_rate_eur_h": [
+        60,
+        90,
+        120
+      ],
+      "V2_eur": [
+        180,
+        720,
+        2400
+      ],
+      "teams": [
+        5,
+        20,
+        50
+      ],
+      "decisions_per_team_year": [
+        6,
+        24,
+        60
+      ],
+      "V3_decisions_year": [
+        30,
+        480,
+        3000
+      ],
+      "annual_gross_eur": [
+        5400,
+        345600,
+        7200000
+      ],
+      "c1_cpu_h": [
+        0.01,
+        0.04,
+        0.12
+      ],
+      "peak_ram_gib": [
+        0.5,
+        2,
+        6
+      ],
+      "p50_cpu_h": null,
+      "p95_cpu_h": null,
+      "designs": 24,
+      "strata": 3,
+      "primary_cases": 72,
+      "refined_cases": 24,
+      "charged_failed": 15,
+      "witness_pairs": 8,
+      "equivalent_cases": 151,
+      "C2_eur": [
+        18.982953000000002,
+        26.368212,
+        46.062236000000006
+      ],
+      "C3_weekly_eur": [
+        0.47457382500000006,
+        2.6368212,
+        18.424894400000003
+      ],
+      "VCI_low_base_high": [
+        5.377646495891962,
+        2113.9823771088827,
+        164907.6823088955
+      ],
+      "computed_base_rank": 1,
+      "conditional_queue_rank": 1,
+      "gates": {
+        "G1": "HOLD_EXACT_BUYER_DECISION",
+        "G2": "HOLD_EXACT_DECK_AND_PIN",
+        "G3": "HOLD_LIMITS_AND_WITNESSES",
+        "G4": "HOLD_COUNTS_EACH_STRATUM",
+        "G5": "HOLD_MATCHED_BASELINE",
+        "G6": "PASS_ESTIMATE_NOT_C2_ACCEPTANCE",
+        "G7": "HOLD_SOURCED_LIMITS_NO_RELAXATION"
+      },
+      "screen": "HOLD",
+      "admitted": false,
+      "dispatch_ready": false,
+      "earned_credibility": "NOT_DEMONSTRATED",
+      "target_credibility": "TIER_2_INDEPENDENT_BUYER_TOOL",
+      "reason": "Nonlinear reluctance and force maps must be challenged at saturation/fringing transitions.",
+      "first_panel": {
+        "status": "ASSUMPTION_NOT_MEASURED_NOT_DISPATCH_AUTHORITY",
+        "actions": 10,
+        "strata": 3,
+        "primary_cases": 30,
+        "refined_cases": 6,
+        "control_cases": 4,
+        "witness_cases": 4,
+        "charged_failures": 4,
+        "equivalent_cases": 54,
+        "eur_low_base_high": [
+          17.401562,
+          20.042648,
+          27.085544000000002
+        ],
+        "question_batch_k_hypothesis": [
+          4,
+          8,
+          12
+        ]
+      }
+    },
+    {
+      "id": "D077",
+      "slug": "seal-gland",
+      "name": "Seal gland",
+      "lineage": "PR921_REUSED_HYPOTHESIS",
+      "sources": [
+        "SEAL1",
+        "SEAL2"
+      ],
+      "buyer_role": "Seal application engineer",
+      "decision": "Choose gland/squeeze/support geometry",
+      "solver": "CALC",
+      "outputs": "assembly/service contact pressure and extrusion proxy",
+      "baseline": "supplier handbook plus contact-aware response surface",
+      "incremental_case": "Supplier gland tables and a contact-aware surface are strong; only a verified residual creates value.",
+      "V_scores_low_base_high": [
+        [
+          3,
+          4,
+          5
+        ],
+        [
+          1,
+          2,
+          3
+        ],
+        [
+          0,
+          1,
+          2
+        ],
+        [
+          2,
+          3,
+          4
+        ],
+        [
+          1,
+          2,
+          3
+        ]
+      ],
+      "excitement_axes_low_base_high": [
+        [
+          1,
+          2,
+          3
+        ],
+        [
+          1,
+          2,
+          3
+        ],
+        [
+          3,
+          4,
+          5
+        ]
+      ],
+      "excitement_low_base_high": [
+        1.6666666666666665,
+        2.6666666666666665,
+        3.6666666666666665
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "value_status": "ASSUMPTION_CONDITIONAL_COHORT_NOT_MARKET",
+      "engineer_h": [
+        2,
+        5,
+        12
+      ],
+      "engineer_rate_eur_h": [
+        60,
+        90,
+        120
+      ],
+      "V2_eur": [
+        120,
+        450,
+        1440
+      ],
+      "teams": [
+        5,
+        20,
+        50
+      ],
+      "decisions_per_team_year": [
+        10,
+        40,
+        100
+      ],
+      "V3_decisions_year": [
+        50,
+        800,
+        5000
+      ],
+      "annual_gross_eur": [
+        6000,
+        360000,
+        7200000
+      ],
+      "c1_cpu_h": [
+        0.015,
+        0.05,
+        0.15
+      ],
+      "peak_ram_gib": [
+        0.5,
+        2,
+        6
+      ],
+      "p50_cpu_h": null,
+      "p95_cpu_h": null,
+      "designs": 24,
+      "strata": 3,
+      "primary_cases": 72,
+      "refined_cases": 24,
+      "charged_failed": 15,
+      "witness_pairs": 8,
+      "equivalent_cases": 151,
+      "C2_eur": [
+        20.213829500000003,
+        28.829965,
+        53.447494999999996
+      ],
+      "C3_weekly_eur": [
+        0.5053457375000001,
+        2.8829965000000004,
+        21.378998
+      ],
+      "VCI_low_base_high": [
+        5.149527733678916,
+        2014.0335282763006,
+        154865.9932354082
+      ],
+      "computed_base_rank": 2,
+      "conditional_queue_rank": 2,
+      "gates": {
+        "G1": "HOLD_EXACT_BUYER_DECISION",
+        "G2": "HOLD_EXACT_DECK_AND_PIN",
+        "G3": "HOLD_LIMITS_AND_WITNESSES",
+        "G4": "HOLD_COUNTS_EACH_STRATUM",
+        "G5": "HOLD_MATCHED_BASELINE",
+        "G6": "PASS_ESTIMATE_NOT_C2_ACCEPTANCE",
+        "G7": "HOLD_SOURCED_LIMITS_NO_RELAXATION"
+      },
+      "screen": "HOLD",
+      "admitted": false,
+      "dispatch_ready": false,
+      "earned_credibility": "NOT_DEMONSTRATED",
+      "target_credibility": "TIER_2_INDEPENDENT_BUYER_TOOL",
+      "reason": "Supplier gland tables and a contact-aware surface are strong; only a verified residual creates value.",
+      "first_panel": {
+        "status": "ASSUMPTION_NOT_MEASURED_NOT_DISPATCH_AUTHORITY",
+        "actions": 10,
+        "strata": 3,
+        "primary_cases": 30,
+        "refined_cases": 6,
+        "control_cases": 4,
+        "witness_cases": 4,
+        "charged_failures": 4,
+        "equivalent_cases": 54,
+        "eur_low_base_high": [
+          17.841743,
+          20.923009999999998,
+          29.72663
+        ],
+        "question_batch_k_hypothesis": [
+          4,
+          8,
+          12
+        ]
+      }
+    },
+    {
+      "id": "D078",
+      "slug": "snap-fit",
+      "name": "Snap fit",
+      "lineage": "PR921_REUSED_HYPOTHESIS",
+      "sources": [
+        "SNAP1",
+        "SNAP2"
+      ],
+      "buyer_role": "Product mechanical engineer",
+      "decision": "Choose latch/fillet dimensions",
+      "solver": "CALC",
+      "outputs": "insertion/release force and strain history",
+      "baseline": "BASF analytical/FE web design plus cached families",
+      "incremental_case": "Plain latch scope has no plausible demonstrated residual beyond the existing BASF analytical/FE service; richer scope needs a new screen.",
+      "V_scores_low_base_high": [
+        [
+          3,
+          4,
+          5
+        ],
+        [
+          1,
+          2,
+          3
+        ],
+        [
+          0,
+          1,
+          2
+        ],
+        [
+          0,
+          0,
+          1
+        ],
+        [
+          1,
+          2,
+          3
+        ]
+      ],
+      "excitement_axes_low_base_high": [
+        [
+          0,
+          1,
+          2
+        ],
+        [
+          1,
+          2,
+          3
+        ],
+        [
+          3,
+          4,
+          5
+        ]
+      ],
+      "excitement_low_base_high": [
+        1.3333333333333335,
+        2.3333333333333335,
+        3.3333333333333335
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "value_status": "ASSUMPTION_CONDITIONAL_COHORT_NOT_MARKET",
+      "engineer_h": [
+        1,
+        4,
+        10
+      ],
+      "engineer_rate_eur_h": [
+        60,
+        90,
+        120
+      ],
+      "V2_eur": [
+        60,
+        360,
+        1200
+      ],
+      "teams": [
+        5,
+        20,
+        50
+      ],
+      "decisions_per_team_year": [
+        12,
+        60,
+        150
+      ],
+      "V3_decisions_year": [
+        60,
+        1200,
+        7500
+      ],
+      "annual_gross_eur": [
+        3600,
+        432000,
+        9000000
+      ],
+      "c1_cpu_h": [
+        0.02,
+        0.06,
+        0.2
+      ],
+      "peak_ram_gib": [
+        1,
+        4,
+        12
+      ],
+      "p50_cpu_h": null,
+      "p95_cpu_h": null,
+      "designs": 24,
+      "strata": 4,
+      "primary_cases": 96,
+      "refined_cases": 32,
+      "charged_failed": 20,
+      "witness_pairs": 8,
+      "equivalent_cases": 196,
+      "C2_eur": [
+        22.911976,
+        35.693528,
+        80.42896000000002
+      ],
+      "C3_weekly_eur": [
+        0.5727994,
+        3.5693528000000003,
+        32.17158400000001
+      ],
+      "VCI_low_base_high": [
+        2.053210866818358,
+        1952.1023350462501,
+        170785.9452306021
+      ],
+      "computed_base_rank": 3,
+      "conditional_queue_rank": null,
+      "gates": {
+        "G1": "HOLD_EXACT_BUYER_DECISION",
+        "G2": "HOLD_EXACT_DECK_AND_PIN",
+        "G3": "HOLD_LIMITS_AND_WITNESSES",
+        "G4": "HOLD_COUNTS_EACH_STRATUM",
+        "G5": "FAIL_DESK_CASE",
+        "G6": "PASS_ESTIMATE_NOT_C2_ACCEPTANCE",
+        "G7": "HOLD_SOURCED_LIMITS_NO_RELAXATION"
+      },
+      "screen": "REJECT_G5",
+      "admitted": false,
+      "dispatch_ready": false,
+      "earned_credibility": "NOT_DEMONSTRATED",
+      "target_credibility": "TIER_2_INDEPENDENT_BUYER_TOOL",
+      "reason": "Plain latch scope has no plausible demonstrated residual beyond the existing BASF analytical/FE service; richer scope needs a new screen."
+    },
+    {
+      "id": "D006",
+      "slug": "planar-transformer",
+      "name": "Planar transformer",
+      "lineage": "NEW_DISCOVERY_HYPOTHESIS",
+      "sources": [
+        "PLAN1",
+        "PLAN2",
+        "PLAN3",
+        "PLAN4"
+      ],
+      "buyer_role": "Magnetics engineer",
+      "decision": "Choose winding stack and gaps for leakage/flux constraints",
+      "solver": "GETDP",
+      "outputs": "complete magnetostatic excitation set: inductance matrix and peak flux",
+      "baseline": "analytical leakage model plus cached FE response surface",
+      "incremental_case": "Inductance/fringing screen only; analytical planar leakage formula and cached FE must be retained.",
+      "V_scores_low_base_high": [
+        [
+          2,
+          3,
+          4
+        ],
+        [
+          1,
+          2,
+          3
+        ],
+        [
+          0,
+          1,
+          2
+        ],
+        [
+          2,
+          3,
+          4
+        ],
+        [
+          1,
+          2,
+          3
+        ]
+      ],
+      "excitement_axes_low_base_high": [
+        [
+          4,
+          5,
+          5
+        ],
+        [
+          4,
+          5,
+          5
+        ],
+        [
+          3,
+          4,
+          5
+        ]
+      ],
+      "excitement_low_base_high": [
+        3.666666666666667,
+        4.666666666666667,
+        5
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "value_status": "ASSUMPTION_CONDITIONAL_COHORT_NOT_MARKET",
+      "engineer_h": [
+        3,
+        8,
+        20
+      ],
+      "engineer_rate_eur_h": [
+        60,
+        90,
+        120
+      ],
+      "V2_eur": [
+        180,
+        720,
+        2400
+      ],
+      "teams": [
+        5,
+        20,
+        50
+      ],
+      "decisions_per_team_year": [
+        6,
+        24,
+        60
+      ],
+      "V3_decisions_year": [
+        30,
+        480,
+        3000
+      ],
+      "annual_gross_eur": [
+        5400,
+        345600,
+        7200000
+      ],
+      "c1_cpu_h": [
+        0.03,
+        0.08,
+        0.2
+      ],
+      "peak_ram_gib": [
+        1,
+        4,
+        12
+      ],
+      "p50_cpu_h": null,
+      "p95_cpu_h": null,
+      "designs": 24,
+      "strata": 3,
+      "primary_cases": 72,
+      "refined_cases": 24,
+      "charged_failed": 15,
+      "witness_pairs": 8,
+      "equivalent_cases": 151,
+      "C2_eur": [
+        23.906459000000005,
+        36.21522399999999,
+        65.75626
+      ],
+      "C3_weekly_eur": [
+        0.5976614750000001,
+        3.6215223999999995,
+        26.302504
+      ],
+      "VCI_low_base_high": [
+        3.7670393969843876,
+        1539.185163782805,
+        130945.14677429623
+      ],
+      "computed_base_rank": 4,
+      "conditional_queue_rank": 3,
+      "gates": {
+        "G1": "HOLD_EXACT_BUYER_DECISION",
+        "G2": "HOLD_EXACT_DECK_AND_PIN",
+        "G3": "HOLD_LIMITS_AND_WITNESSES",
+        "G4": "HOLD_COUNTS_EACH_STRATUM",
+        "G5": "HOLD_MATCHED_BASELINE",
+        "G6": "PASS_ESTIMATE_NOT_C2_ACCEPTANCE",
+        "G7": "HOLD_SOURCED_LIMITS_NO_RELAXATION"
+      },
+      "screen": "HOLD",
+      "admitted": false,
+      "dispatch_ready": false,
+      "earned_credibility": "NOT_DEMONSTRATED",
+      "target_credibility": "TIER_2_INDEPENDENT_BUYER_TOOL",
+      "reason": "Inductance/fringing screen only; analytical planar leakage formula and cached FE must be retained.",
+      "first_panel": {
+        "status": "ASSUMPTION_NOT_MEASURED_NOT_DISPATCH_AUTHORITY",
+        "actions": 10,
+        "strata": 3,
+        "primary_cases": 30,
+        "refined_cases": 6,
+        "control_cases": 4,
+        "witness_cases": 4,
+        "charged_failures": 4,
+        "equivalent_cases": 54,
+        "eur_low_base_high": [
+          19.162286,
+          23.564096,
+          34.12844
+        ],
+        "question_batch_k_hypothesis": [
+          4,
+          8,
+          12
+        ]
+      }
+    },
+    {
+      "id": "D076",
+      "slug": "bolted-joint",
+      "name": "Bolted joint",
+      "lineage": "PR921_REUSED_HYPOTHESIS",
+      "sources": [
+        "BOLT1",
+        "BOLT2",
+        "BOLT3"
+      ],
+      "buyer_role": "Joint-design engineer",
+      "decision": "Choose preload/bolt pattern/support geometry",
+      "solver": "CALC",
+      "outputs": "preload plus service-history slip/separation/stress",
+      "baseline": "VDI-style compliance plus contact-aware response surface",
+      "incremental_case": "Compliance plus contact-aware cached FE may be enough; public independent simulation evidence partly abstract-only.",
+      "V_scores_low_base_high": [
+        [
+          2,
+          3,
+          4
+        ],
+        [
+          1,
+          2,
+          3
+        ],
+        [
+          0,
+          1,
+          2
+        ],
+        [
+          2,
+          3,
+          4
+        ],
+        [
+          1,
+          2,
+          3
+        ]
+      ],
+      "excitement_axes_low_base_high": [
+        [
+          1,
+          2,
+          3
+        ],
+        [
+          1,
+          2,
+          3
+        ],
+        [
+          3,
+          4,
+          5
+        ]
+      ],
+      "excitement_low_base_high": [
+        1.6666666666666665,
+        2.6666666666666665,
+        3.6666666666666665
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "value_status": "ASSUMPTION_CONDITIONAL_COHORT_NOT_MARKET",
+      "engineer_h": [
+        3,
+        8,
+        20
+      ],
+      "engineer_rate_eur_h": [
+        60,
+        90,
+        120
+      ],
+      "V2_eur": [
+        180,
+        720,
+        2400
+      ],
+      "teams": [
+        5,
+        20,
+        50
+      ],
+      "decisions_per_team_year": [
+        6,
+        24,
+        60
+      ],
+      "V3_decisions_year": [
+        30,
+        480,
+        3000
+      ],
+      "annual_gross_eur": [
+        5400,
+        345600,
+        7200000
+      ],
+      "c1_cpu_h": [
+        0.03,
+        0.08,
+        0.24
+      ],
+      "peak_ram_gib": [
+        1,
+        4,
+        12
+      ],
+      "p50_cpu_h": null,
+      "p95_cpu_h": null,
+      "designs": 24,
+      "strata": 4,
+      "primary_cases": 96,
+      "refined_cases": 32,
+      "charged_failed": 20,
+      "witness_pairs": 8,
+      "equivalent_cases": 196,
+      "C2_eur": [
+        26.107364,
+        42.084303999999996,
+        93.21051200000001
+      ],
+      "C3_weekly_eur": [
+        0.6526841000000001,
+        4.2084304,
+        37.284204800000005
+      ],
+      "VCI_low_base_high": [
+        2.6574944896595842,
+        1324.5302924309017,
+        119906.19897928782
+      ],
+      "computed_base_rank": 5,
+      "conditional_queue_rank": 4,
+      "gates": {
+        "G1": "HOLD_EXACT_BUYER_DECISION",
+        "G2": "HOLD_EXACT_DECK_AND_PIN",
+        "G3": "HOLD_LIMITS_AND_WITNESSES",
+        "G4": "HOLD_COUNTS_EACH_STRATUM",
+        "G5": "HOLD_MATCHED_BASELINE",
+        "G6": "PASS_ESTIMATE_NOT_C2_ACCEPTANCE",
+        "G7": "HOLD_SOURCED_LIMITS_NO_RELAXATION"
+      },
+      "screen": "HOLD",
+      "admitted": false,
+      "dispatch_ready": false,
+      "earned_credibility": "NOT_DEMONSTRATED",
+      "target_credibility": "TIER_2_INDEPENDENT_BUYER_TOOL",
+      "reason": "Compliance plus contact-aware cached FE may be enough; public independent simulation evidence partly abstract-only.",
+      "first_panel": {
+        "status": "ASSUMPTION_NOT_MEASURED_NOT_DISPATCH_AUTHORITY",
+        "actions": 10,
+        "strata": 4,
+        "primary_cases": 40,
+        "refined_cases": 8,
+        "control_cases": 4,
+        "witness_cases": 4,
+        "charged_failures": 4,
+        "equivalent_cases": 68,
+        "eur_low_base_high": [
+          19.847012,
+          25.390032,
+          43.127696
+        ],
+        "question_batch_k_hypothesis": [
+          4,
+          8,
+          12
+        ]
+      }
+    },
+    {
+      "id": "D071",
+      "slug": "compliant-gripper",
+      "name": "Compliant gripper",
+      "lineage": "NEW_DISCOVERY_HYPOTHESIS",
+      "sources": [
+        "GRIP1",
+        "GRIP2",
+        "GRIP3"
+      ],
+      "buyer_role": "Robot end-effector engineer",
+      "decision": "Choose finger/frame geometry for known objects",
+      "solver": "SOFA",
+      "outputs": "contact forces, strain and displacement over approach/grasp panel",
+      "baseline": "pseudo-rigid/co-rotational model plus contact-aware response map",
+      "incremental_case": "Contact topology could matter; two research workflows do not prove a current procurement/customer contract.",
+      "V_scores_low_base_high": [
+        [
+          1,
+          2,
+          3
+        ],
+        [
+          1,
+          2,
+          3
+        ],
+        [
+          0,
+          1,
+          2
+        ],
+        [
+          2,
+          3,
+          4
+        ],
+        [
+          1,
+          2,
+          3
+        ]
+      ],
+      "excitement_axes_low_base_high": [
+        [
+          3,
+          4,
+          5
+        ],
+        [
+          3,
+          4,
+          5
+        ],
+        [
+          4,
+          5,
+          5
+        ]
+      ],
+      "excitement_low_base_high": [
+        3.333333333333333,
+        4.333333333333333,
+        5
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "value_status": "ASSUMPTION_CONDITIONAL_COHORT_NOT_MARKET",
+      "engineer_h": [
+        2,
+        6,
+        16
+      ],
+      "engineer_rate_eur_h": [
+        60,
+        90,
+        120
+      ],
+      "V2_eur": [
+        120,
+        540,
+        1920
+      ],
+      "teams": [
+        5,
+        20,
+        50
+      ],
+      "decisions_per_team_year": [
+        4,
+        12,
+        24
+      ],
+      "V3_decisions_year": [
+        20,
+        240,
+        1200
+      ],
+      "annual_gross_eur": [
+        2400,
+        129600,
+        2304000
+      ],
+      "c1_cpu_h": [
+        0.03,
+        0.08,
+        0.2
+      ],
+      "peak_ram_gib": [
+        1,
+        4,
+        12
+      ],
+      "p50_cpu_h": null,
+      "p95_cpu_h": null,
+      "designs": 24,
+      "strata": 3,
+      "primary_cases": 72,
+      "refined_cases": 24,
+      "charged_failed": 15,
+      "witness_pairs": 8,
+      "equivalent_cases": 151,
+      "C2_eur": [
+        23.906459000000005,
+        36.21522399999999,
+        65.75626
+      ],
+      "C3_weekly_eur": [
+        0.5976614750000001,
+        3.6215223999999995,
+        26.302504
+      ],
+      "VCI_low_base_high": [
+        1.6742397319930613,
+        577.1944364185518,
+        41902.44696777479
+      ],
+      "computed_base_rank": 6,
+      "conditional_queue_rank": 5,
+      "gates": {
+        "G1": "HOLD_EXACT_BUYER_DECISION",
+        "G2": "HOLD_EXACT_DECK_AND_PIN",
+        "G3": "HOLD_LIMITS_AND_WITNESSES",
+        "G4": "HOLD_COUNTS_EACH_STRATUM",
+        "G5": "HOLD_MATCHED_BASELINE",
+        "G6": "PASS_ESTIMATE_NOT_C2_ACCEPTANCE",
+        "G7": "HOLD_SOURCED_LIMITS_NO_RELAXATION"
+      },
+      "screen": "HOLD",
+      "admitted": false,
+      "dispatch_ready": false,
+      "earned_credibility": "NOT_DEMONSTRATED",
+      "target_credibility": "TIER_2_INDEPENDENT_BUYER_TOOL",
+      "reason": "Contact topology could matter; two research workflows do not prove a current procurement/customer contract.",
+      "first_panel": {
+        "status": "ASSUMPTION_NOT_MEASURED_NOT_DISPATCH_AUTHORITY",
+        "actions": 10,
+        "strata": 3,
+        "primary_cases": 30,
+        "refined_cases": 6,
+        "control_cases": 4,
+        "witness_cases": 4,
+        "charged_failures": 4,
+        "equivalent_cases": 54,
+        "eur_low_base_high": [
+          19.162286,
+          23.564096,
+          34.12844
+        ],
+        "question_batch_k_hypothesis": [
+          4,
+          8,
+          12
+        ]
+      }
+    },
+    {
+      "id": "D018",
+      "slug": "air-heat-sink",
+      "name": "Air heat sink",
+      "lineage": "PR921_REUSED_HYPOTHESIS",
+      "sources": [
+        "AIR1",
+        "AIR2"
+      ],
+      "buyer_role": "Electronics thermal engineer",
+      "decision": "Choose fin/base geometry",
+      "solver": "FOAM",
+      "outputs": "temperature and pressure drop over flow/load panel",
+      "baseline": "thermal network plus polynomial response surface",
+      "incremental_case": "Known polynomial surrogate and thermal network; buyer cold-start advantage unresolved.",
+      "V_scores_low_base_high": [
+        [
+          3,
+          4,
+          5
+        ],
+        [
+          1,
+          2,
+          3
+        ],
+        [
+          0,
+          1,
+          2
+        ],
+        [
+          1,
+          2,
+          3
+        ],
+        [
+          1,
+          2,
+          3
+        ]
+      ],
+      "excitement_axes_low_base_high": [
+        [
+          1,
+          2,
+          3
+        ],
+        [
+          2,
+          3,
+          4
+        ],
+        [
+          3,
+          4,
+          5
+        ]
+      ],
+      "excitement_low_base_high": [
+        2,
+        3,
+        4
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "value_status": "ASSUMPTION_CONDITIONAL_COHORT_NOT_MARKET",
+      "engineer_h": [
+        1,
+        4,
+        10
+      ],
+      "engineer_rate_eur_h": [
+        60,
+        90,
+        120
+      ],
+      "V2_eur": [
+        60,
+        360,
+        1200
+      ],
+      "teams": [
+        5,
+        20,
+        50
+      ],
+      "decisions_per_team_year": [
+        6,
+        24,
+        60
+      ],
+      "V3_decisions_year": [
+        30,
+        480,
+        3000
+      ],
+      "annual_gross_eur": [
+        1800,
+        172800,
+        3600000
+      ],
+      "c1_cpu_h": [
+        0.06,
+        0.18,
+        0.38
+      ],
+      "peak_ram_gib": [
+        2,
+        6,
+        16
+      ],
+      "p50_cpu_h": null,
+      "p95_cpu_h": null,
+      "designs": 20,
+      "strata": 3,
+      "primary_cases": 60,
+      "refined_cases": 20,
+      "charged_failed": 12,
+      "witness_pairs": 8,
+      "equivalent_cases": 128,
+      "C2_eur": [
+        29.041904,
+        54.083312,
+        95.81899200000001
+      ],
+      "C3_weekly_eur": [
+        0.7260476,
+        5.4083312,
+        38.3275968
+      ],
+      "VCI_low_base_high": [
+        0.8617165095981133,
+        515.3339673786155,
+        53895.13687891633
+      ],
+      "computed_base_rank": 7,
+      "conditional_queue_rank": null,
+      "gates": {
+        "G1": "HOLD_EXACT_BUYER_DECISION",
+        "G2": "HOLD_EXACT_DECK_AND_PIN",
+        "G3": "HOLD_LIMITS_AND_WITNESSES",
+        "G4": "HOLD_COUNTS_EACH_STRATUM",
+        "G5": "HOLD_MATCHED_BASELINE",
+        "G6": "PASS_ESTIMATE_NOT_C2_ACCEPTANCE",
+        "G7": "HOLD_SOURCED_LIMITS_NO_RELAXATION"
+      },
+      "screen": "HOLD",
+      "admitted": false,
+      "dispatch_ready": false,
+      "earned_credibility": "NOT_DEMONSTRATED",
+      "target_credibility": "TIER_2_INDEPENDENT_BUYER_TOOL",
+      "reason": "Known polynomial surrogate and thermal network; buyer cold-start advantage unresolved."
+    },
+    {
+      "id": "D021",
+      "slug": "photonic-ring",
+      "name": "Photonic ring",
+      "lineage": "NEW_DISCOVERY_HYPOTHESIS",
+      "sources": [
+        "PHOT1",
+        "PHOT2"
+      ],
+      "buyer_role": "PIC designer",
+      "decision": "Choose ring radius/coupling gap",
+      "solver": "MEEP",
+      "outputs": "transmission resonance/linewidth over spectral sweep",
+      "baseline": "MODE/compact ring model plus calibrated library",
+      "incremental_case": "Plain ring tuning is served by compact/MODE models; Fano novelty is a different task; high scenario breaches cap.",
+      "V_scores_low_base_high": [
+        [
+          1,
+          2,
+          3
+        ],
+        [
+          1,
+          2,
+          3
+        ],
+        [
+          0,
+          1,
+          2
+        ],
+        [
+          0,
+          0,
+          1
+        ],
+        [
+          1,
+          2,
+          3
+        ]
+      ],
+      "excitement_axes_low_base_high": [
+        [
+          4,
+          5,
+          5
+        ],
+        [
+          4,
+          5,
+          5
+        ],
+        [
+          3,
+          4,
+          5
+        ]
+      ],
+      "excitement_low_base_high": [
+        3.666666666666667,
+        4.666666666666667,
+        5
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "value_status": "ASSUMPTION_CONDITIONAL_COHORT_NOT_MARKET",
+      "engineer_h": [
+        1,
+        3,
+        8
+      ],
+      "engineer_rate_eur_h": [
+        60,
+        90,
+        120
+      ],
+      "V2_eur": [
+        60,
+        270,
+        960
+      ],
+      "teams": [
+        5,
+        20,
+        50
+      ],
+      "decisions_per_team_year": [
+        6,
+        24,
+        60
+      ],
+      "V3_decisions_year": [
+        30,
+        480,
+        3000
+      ],
+      "annual_gross_eur": [
+        1800,
+        129600,
+        2880000
+      ],
+      "c1_cpu_h": [
+        0.03,
+        0.1,
+        0.4
+      ],
+      "peak_ram_gib": [
+        1,
+        4,
+        12
+      ],
+      "p50_cpu_h": null,
+      "p95_cpu_h": null,
+      "designs": 24,
+      "strata": 3,
+      "primary_cases": 72,
+      "refined_cases": 24,
+      "charged_failed": 15,
+      "witness_pairs": 8,
+      "equivalent_cases": 151,
+      "C2_eur": [
+        23.906459000000005,
+        41.13873000000001,
+        114.99132
+      ],
+      "C3_weekly_eur": [
+        0.5976614750000001,
+        4.113873000000001,
+        45.996528000000005
+      ],
+      "VCI_low_base_high": [
+        0.7180438257378864,
+        508.11548646376804,
+        52378.05870971849
+      ],
+      "computed_base_rank": 8,
+      "conditional_queue_rank": null,
+      "gates": {
+        "G1": "HOLD_EXACT_BUYER_DECISION",
+        "G2": "HOLD_EXACT_DECK_AND_PIN",
+        "G3": "HOLD_LIMITS_AND_WITNESSES",
+        "G4": "HOLD_COUNTS_EACH_STRATUM",
+        "G5": "FAIL_DESK_CASE",
+        "G6": "FAIL_SCENARIO_NOT_MEASURED",
+        "G7": "HOLD_SOURCED_LIMITS_NO_RELAXATION"
+      },
+      "screen": "REJECT_G5_G6_SCENARIO",
+      "admitted": false,
+      "dispatch_ready": false,
+      "earned_credibility": "NOT_DEMONSTRATED",
+      "target_credibility": "TIER_2_INDEPENDENT_BUYER_TOOL",
+      "reason": "Plain ring tuning is served by compact/MODE models; Fano novelty is a different task; high scenario breaches cap."
+    },
+    {
+      "id": "D016",
+      "slug": "package-warpage",
+      "name": "Package warpage",
+      "lineage": "NEW_DISCOVERY_HYPOTHESIS",
+      "sources": [
+        "PACK1",
+        "PACK2"
+      ],
+      "buyer_role": "Package mechanical engineer",
+      "decision": "Choose underfill/solder-stack geometry",
+      "solver": "CALC",
+      "outputs": "warpage and strain through full thermal history",
+      "baseline": "laminate theory plus reduced thermoelastic FE",
+      "incremental_case": "High full-history cost scenario exceeds the bank cap; costly calibrated creep/plasticity cannot be silently removed.",
+      "V_scores_low_base_high": [
+        [
+          3,
+          4,
+          5
+        ],
+        [
+          1,
+          2,
+          3
+        ],
+        [
+          0,
+          1,
+          2
+        ],
+        [
+          1,
+          2,
+          3
+        ],
+        [
+          1,
+          2,
+          3
+        ]
+      ],
+      "excitement_axes_low_base_high": [
+        [
+          4,
+          5,
+          5
+        ],
+        [
+          4,
+          5,
+          5
+        ],
+        [
+          2,
+          3,
+          4
+        ]
+      ],
+      "excitement_low_base_high": [
+        3.333333333333333,
+        4.333333333333333,
+        5
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "value_status": "ASSUMPTION_CONDITIONAL_COHORT_NOT_MARKET",
+      "engineer_h": [
+        2,
+        6,
+        16
+      ],
+      "engineer_rate_eur_h": [
+        60,
+        90,
+        120
+      ],
+      "V2_eur": [
+        120,
+        540,
+        1920
+      ],
+      "teams": [
+        5,
+        20,
+        50
+      ],
+      "decisions_per_team_year": [
+        4,
+        12,
+        24
+      ],
+      "V3_decisions_year": [
+        20,
+        240,
+        1200
+      ],
+      "annual_gross_eur": [
+        2400,
+        129600,
+        2304000
+      ],
+      "c1_cpu_h": [
+        0.03,
+        0.12,
+        0.45
+      ],
+      "peak_ram_gib": [
+        2,
+        6,
+        16
+      ],
+      "p50_cpu_h": null,
+      "p95_cpu_h": null,
+      "designs": 24,
+      "strata": 3,
+      "primary_cases": 72,
+      "refined_cases": 24,
+      "charged_failed": 15,
+      "witness_pairs": 8,
+      "equivalent_cases": 151,
+      "C2_eur": [
+        23.906459000000005,
+        46.062236000000006,
+        127.30008500000001
+      ],
+      "C3_weekly_eur": [
+        0.5976614750000001,
+        4.606223600000001,
+        50.92003400000001
+      ],
+      "VCI_low_base_high": [
+        0.8648206567911251,
+        453.8039752662378,
+        41902.44696777479
+      ],
+      "computed_base_rank": 9,
+      "conditional_queue_rank": null,
+      "gates": {
+        "G1": "HOLD_EXACT_BUYER_DECISION",
+        "G2": "HOLD_EXACT_DECK_AND_PIN",
+        "G3": "HOLD_LIMITS_AND_WITNESSES",
+        "G4": "HOLD_COUNTS_EACH_STRATUM",
+        "G5": "HOLD_MATCHED_BASELINE",
+        "G6": "FAIL_SCENARIO_NOT_MEASURED",
+        "G7": "HOLD_SOURCED_LIMITS_NO_RELAXATION"
+      },
+      "screen": "REJECT_G6_SCENARIO",
+      "admitted": false,
+      "dispatch_ready": false,
+      "earned_credibility": "NOT_DEMONSTRATED",
+      "target_credibility": "TIER_2_INDEPENDENT_BUYER_TOOL",
+      "reason": "High full-history cost scenario exceeds the bank cap; costly calibrated creep/plasticity cannot be silently removed."
+    },
+    {
+      "id": "D026",
+      "slug": "rf-filter",
+      "name": "RF coupled filter",
+      "lineage": "NEW_DISCOVERY_HYPOTHESIS",
+      "sources": [
+        "RF1",
+        "RF2"
+      ],
+      "buyer_role": "RF filter engineer",
+      "decision": "Choose resonator lengths and couplings",
+      "solver": "OEM",
+      "outputs": "S-parameter band response over all ports",
+      "baseline": "coupling matrix plus Sonnet port tuning",
+      "incremental_case": "Ordinary coupling/length tuning has a serious fast port/circuit incumbent and high scenario breaches cap.",
+      "V_scores_low_base_high": [
+        [
+          3,
+          4,
+          5
+        ],
+        [
+          1,
+          2,
+          3
+        ],
+        [
+          0,
+          1,
+          2
+        ],
+        [
+          0,
+          0,
+          1
+        ],
+        [
+          1,
+          2,
+          3
+        ]
+      ],
+      "excitement_axes_low_base_high": [
+        [
+          3,
+          4,
+          5
+        ],
+        [
+          3,
+          4,
+          5
+        ],
+        [
+          3,
+          4,
+          5
+        ]
+      ],
+      "excitement_low_base_high": [
+        3,
+        4,
+        5
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "value_status": "ASSUMPTION_CONDITIONAL_COHORT_NOT_MARKET",
+      "engineer_h": [
+        1,
+        3,
+        8
+      ],
+      "engineer_rate_eur_h": [
+        60,
+        90,
+        120
+      ],
+      "V2_eur": [
+        60,
+        270,
+        960
+      ],
+      "teams": [
+        5,
+        20,
+        50
+      ],
+      "decisions_per_team_year": [
+        6,
+        24,
+        60
+      ],
+      "V3_decisions_year": [
+        30,
+        480,
+        3000
+      ],
+      "annual_gross_eur": [
+        1800,
+        129600,
+        2880000
+      ],
+      "c1_cpu_h": [
+        0.04,
+        0.12,
+        0.45
+      ],
+      "peak_ram_gib": [
+        1,
+        4,
+        12
+      ],
+      "p50_cpu_h": null,
+      "p95_cpu_h": null,
+      "designs": 24,
+      "strata": 3,
+      "primary_cases": 72,
+      "refined_cases": 24,
+      "charged_failed": 15,
+      "witness_pairs": 8,
+      "equivalent_cases": 151,
+      "C2_eur": [
+        26.368212,
+        46.062236000000006,
+        127.30008500000001
+      ],
+      "C3_weekly_eur": [
+        0.6592053,
+        4.606223600000001,
+        50.92003400000001
+      ],
+      "VCI_low_base_high": [
+        0.6486154925933438,
+        453.8039752662378,
+        47488.00992056186
+      ],
+      "computed_base_rank": 10,
+      "conditional_queue_rank": null,
+      "gates": {
+        "G1": "HOLD_EXACT_BUYER_DECISION",
+        "G2": "HOLD_EXACT_DECK_AND_PIN",
+        "G3": "HOLD_LIMITS_AND_WITNESSES",
+        "G4": "HOLD_COUNTS_EACH_STRATUM",
+        "G5": "FAIL_DESK_CASE",
+        "G6": "FAIL_SCENARIO_NOT_MEASURED",
+        "G7": "HOLD_SOURCED_LIMITS_NO_RELAXATION"
+      },
+      "screen": "REJECT_G5_G6_SCENARIO",
+      "admitted": false,
+      "dispatch_ready": false,
+      "earned_credibility": "NOT_DEMONSTRATED",
+      "target_credibility": "TIER_2_INDEPENDENT_BUYER_TOOL",
+      "reason": "Ordinary coupling/length tuning has a serious fast port/circuit incumbent and high scenario breaches cap."
+    },
+    {
+      "id": "D041",
+      "slug": "pem-header",
+      "name": "PEM reactant header",
+      "lineage": "NEW_DISCOVERY_HYPOTHESIS",
+      "sources": [
+        "PEM1",
+        "PEM2"
+      ],
+      "buyer_role": "Fuel-cell stack engineer",
+      "decision": "Choose header cross-section and branches",
+      "solver": "FOAM",
+      "outputs": "distribution and pressure loss across flow panel",
+      "baseline": "network model plus CFD-trained response surface",
+      "incremental_case": "High scenario exceeds cap and ANN response-surface incumbent already optimises headers; full-cell sources do not prove header-only exact contract.",
+      "V_scores_low_base_high": [
+        [
+          1,
+          2,
+          3
+        ],
+        [
+          1,
+          2,
+          3
+        ],
+        [
+          0,
+          1,
+          2
+        ],
+        [
+          1,
+          2,
+          3
+        ],
+        [
+          1,
+          2,
+          3
+        ]
+      ],
+      "excitement_axes_low_base_high": [
+        [
+          3,
+          4,
+          5
+        ],
+        [
+          3,
+          4,
+          5
+        ],
+        [
+          2,
+          3,
+          4
+        ]
+      ],
+      "excitement_low_base_high": [
+        2.6666666666666665,
+        3.6666666666666665,
+        4.666666666666666
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "value_status": "ASSUMPTION_CONDITIONAL_COHORT_NOT_MARKET",
+      "engineer_h": [
+        2,
+        5,
+        12
+      ],
+      "engineer_rate_eur_h": [
+        60,
+        90,
+        120
+      ],
+      "V2_eur": [
+        120,
+        450,
+        1440
+      ],
+      "teams": [
+        5,
+        20,
+        50
+      ],
+      "decisions_per_team_year": [
+        4,
+        12,
+        24
+      ],
+      "V3_decisions_year": [
+        20,
+        240,
+        1200
+      ],
+      "annual_gross_eur": [
+        2400,
+        108000,
+        1728000
+      ],
+      "c1_cpu_h": [
+        0.05,
+        0.15,
+        0.4
+      ],
+      "peak_ram_gib": [
+        2,
+        6,
+        16
+      ],
+      "p50_cpu_h": null,
+      "p95_cpu_h": null,
+      "designs": 24,
+      "strata": 3,
+      "primary_cases": 72,
+      "refined_cases": 24,
+      "charged_failed": 15,
+      "witness_pairs": 8,
+      "equivalent_cases": 151,
+      "C2_eur": [
+        28.829965,
+        53.447494999999996,
+        114.99132
+      ],
+      "C3_weekly_eur": [
+        0.7207491250000001,
+        5.3447495,
+        45.996528000000005
+      ],
+      "VCI_low_base_high": [
+        0.9573917676505153,
+        325.91527140251713,
+        26059.842522392482
+      ],
+      "computed_base_rank": 11,
+      "conditional_queue_rank": null,
+      "gates": {
+        "G1": "HOLD_EXACT_BUYER_DECISION",
+        "G2": "HOLD_EXACT_DECK_AND_PIN",
+        "G3": "HOLD_LIMITS_AND_WITNESSES",
+        "G4": "HOLD_COUNTS_EACH_STRATUM",
+        "G5": "HOLD_MATCHED_BASELINE",
+        "G6": "FAIL_SCENARIO_NOT_MEASURED",
+        "G7": "HOLD_SOURCED_LIMITS_NO_RELAXATION"
+      },
+      "screen": "REJECT_G6_SCENARIO",
+      "admitted": false,
+      "dispatch_ready": false,
+      "earned_credibility": "NOT_DEMONSTRATED",
+      "target_credibility": "TIER_2_INDEPENDENT_BUYER_TOOL",
+      "reason": "High scenario exceeds cap and ANN response-surface incumbent already optimises headers; full-cell sources do not prove header-only exact contract."
+    },
+    {
+      "id": "D051",
+      "slug": "wind-airfoil",
+      "name": "Wind airfoil",
+      "lineage": "NEW_DISCOVERY_HYPOTHESIS",
+      "sources": [
+        "WIND1",
+        "WIND2"
+      ],
+      "buyer_role": "Blade aerodynamicist",
+      "decision": "Choose airfoil shape for operating panel",
+      "solver": "SU2",
+      "outputs": "lift/drag and moment polars",
+      "baseline": "XFOIL plus polar response surface",
+      "incremental_case": "Plain early polar optimisation already uses cheap XFOIL/surrogates; high CFD bank exceeds cap.",
+      "V_scores_low_base_high": [
+        [
+          2,
+          3,
+          4
+        ],
+        [
+          1,
+          2,
+          3
+        ],
+        [
+          0,
+          1,
+          2
+        ],
+        [
+          0,
+          0,
+          1
+        ],
+        [
+          1,
+          2,
+          3
+        ]
+      ],
+      "excitement_axes_low_base_high": [
+        [
+          2,
+          3,
+          4
+        ],
+        [
+          2,
+          3,
+          4
+        ],
+        [
+          3,
+          4,
+          5
+        ]
+      ],
+      "excitement_low_base_high": [
+        2.3333333333333335,
+        3.3333333333333335,
+        4.333333333333334
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "value_status": "ASSUMPTION_CONDITIONAL_COHORT_NOT_MARKET",
+      "engineer_h": [
+        1,
+        3,
+        8
+      ],
+      "engineer_rate_eur_h": [
+        60,
+        90,
+        120
+      ],
+      "V2_eur": [
+        60,
+        270,
+        960
+      ],
+      "teams": [
+        5,
+        20,
+        50
+      ],
+      "decisions_per_team_year": [
+        4,
+        12,
+        24
+      ],
+      "V3_decisions_year": [
+        20,
+        240,
+        1200
+      ],
+      "annual_gross_eur": [
+        1200,
+        64800,
+        1152000
+      ],
+      "c1_cpu_h": [
+        0.03,
+        0.12,
+        0.5
+      ],
+      "peak_ram_gib": [
+        1,
+        4,
+        12
+      ],
+      "p50_cpu_h": null,
+      "p95_cpu_h": null,
+      "designs": 24,
+      "strata": 3,
+      "primary_cases": 72,
+      "refined_cases": 24,
+      "charged_failed": 15,
+      "witness_pairs": 8,
+      "equivalent_cases": 151,
+      "C2_eur": [
+        23.906459000000005,
+        46.062236000000006,
+        139.60885
+      ],
+      "C3_weekly_eur": [
+        0.5976614750000001,
+        4.606223600000001,
+        55.84354
+      ],
+      "VCI_low_base_high": [
+        0.3942864049065158,
+        226.9019876331189,
+        20951.223483887396
+      ],
+      "computed_base_rank": 12,
+      "conditional_queue_rank": null,
+      "gates": {
+        "G1": "HOLD_EXACT_BUYER_DECISION",
+        "G2": "HOLD_EXACT_DECK_AND_PIN",
+        "G3": "HOLD_LIMITS_AND_WITNESSES",
+        "G4": "HOLD_COUNTS_EACH_STRATUM",
+        "G5": "FAIL_DESK_CASE",
+        "G6": "FAIL_SCENARIO_NOT_MEASURED",
+        "G7": "HOLD_SOURCED_LIMITS_NO_RELAXATION"
+      },
+      "screen": "REJECT_G5_G6_SCENARIO",
+      "admitted": false,
+      "dispatch_ready": false,
+      "earned_credibility": "NOT_DEMONSTRATED",
+      "target_credibility": "TIER_2_INDEPENDENT_BUYER_TOOL",
+      "reason": "Plain early polar optimisation already uses cheap XFOIL/surrogates; high CFD bank exceeds cap."
+    },
+    {
+      "id": "D079",
+      "slug": "duct-fitting",
+      "name": "Duct fitting",
+      "lineage": "PR921_REUSED_HYPOTHESIS",
+      "sources": [
+        "DUCT1",
+        "DUCT2"
+      ],
+      "buyer_role": "HVAC engineer",
+      "decision": "Choose nonstandard fitting geometry",
+      "solver": "FOAM",
+      "outputs": "loss/flow panel over operating conditions",
+      "baseline": "ASHRAE fitting library plus calibrated response surface",
+      "incremental_case": "Fitting database often answers the question already; nonstandard interactions must be demonstrated.",
+      "V_scores_low_base_high": [
+        [
+          1,
+          2,
+          3
+        ],
+        [
+          1,
+          2,
+          3
+        ],
+        [
+          0,
+          1,
+          2
+        ],
+        [
+          1,
+          2,
+          3
+        ],
+        [
+          1,
+          2,
+          3
+        ]
+      ],
+      "excitement_axes_low_base_high": [
+        [
+          0,
+          1,
+          2
+        ],
+        [
+          1,
+          2,
+          3
+        ],
+        [
+          2,
+          3,
+          4
+        ]
+      ],
+      "excitement_low_base_high": [
+        1,
+        2,
+        3
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "value_status": "ASSUMPTION_CONDITIONAL_COHORT_NOT_MARKET",
+      "engineer_h": [
+        1,
+        3,
+        8
+      ],
+      "engineer_rate_eur_h": [
+        60,
+        90,
+        120
+      ],
+      "V2_eur": [
+        60,
+        270,
+        960
+      ],
+      "teams": [
+        5,
+        20,
+        50
+      ],
+      "decisions_per_team_year": [
+        4,
+        12,
+        30
+      ],
+      "V3_decisions_year": [
+        20,
+        240,
+        1500
+      ],
+      "annual_gross_eur": [
+        1200,
+        64800,
+        1440000
+      ],
+      "c1_cpu_h": [
+        0.05,
+        0.15,
+        0.33
+      ],
+      "peak_ram_gib": [
+        1,
+        4,
+        12
+      ],
+      "p50_cpu_h": null,
+      "p95_cpu_h": null,
+      "designs": 24,
+      "strata": 3,
+      "primary_cases": 72,
+      "refined_cases": 24,
+      "charged_failed": 15,
+      "witness_pairs": 8,
+      "equivalent_cases": 151,
+      "C2_eur": [
+        28.829965,
+        53.447494999999996,
+        97.75904900000002
+      ],
+      "C3_weekly_eur": [
+        0.7207491250000001,
+        5.3447495,
+        39.10361960000001
+      ],
+      "VCI_low_base_high": [
+        0.5630769951499119,
+        195.54916284151028,
+        21716.535435327067
+      ],
+      "computed_base_rank": 13,
+      "conditional_queue_rank": null,
+      "gates": {
+        "G1": "HOLD_EXACT_BUYER_DECISION",
+        "G2": "HOLD_EXACT_DECK_AND_PIN",
+        "G3": "HOLD_LIMITS_AND_WITNESSES",
+        "G4": "HOLD_COUNTS_EACH_STRATUM",
+        "G5": "HOLD_MATCHED_BASELINE",
+        "G6": "PASS_ESTIMATE_NOT_C2_ACCEPTANCE",
+        "G7": "HOLD_SOURCED_LIMITS_NO_RELAXATION"
+      },
+      "screen": "HOLD",
+      "admitted": false,
+      "dispatch_ready": false,
+      "earned_credibility": "NOT_DEMONSTRATED",
+      "target_credibility": "TIER_2_INDEPENDENT_BUYER_TOOL",
+      "reason": "Fitting database often answers the question already; nonstandard interactions must be demonstrated."
+    },
+    {
+      "id": "D046",
+      "slug": "co2-adsorption-cycle",
+      "name": "CO2 adsorption cycle",
+      "lineage": "NEW_DISCOVERY_HYPOTHESIS",
+      "sources": [
+        "CO21",
+        "CO22"
+      ],
+      "buyer_role": "Capture process engineer",
+      "decision": "Choose cycle step pressures/times",
+      "solver": "APEP",
+      "outputs": "cyclic purity, recovery and energy panel",
+      "baseline": "shortcut cycle plus interpolated dynamic response surface",
+      "incremental_case": "High cycle-convergence scenario exceeds cap; solver kinetics/energy/extraction closure unresolved.",
+      "V_scores_low_base_high": [
+        [
+          2,
+          3,
+          4
+        ],
+        [
+          1,
+          2,
+          3
+        ],
+        [
+          0,
+          1,
+          2
+        ],
+        [
+          1,
+          2,
+          3
+        ],
+        [
+          1,
+          2,
+          3
+        ]
+      ],
+      "excitement_axes_low_base_high": [
+        [
+          4,
+          5,
+          5
+        ],
+        [
+          4,
+          5,
+          5
+        ],
+        [
+          2,
+          3,
+          4
+        ]
+      ],
+      "excitement_low_base_high": [
+        3.333333333333333,
+        4.333333333333333,
+        5
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "value_status": "ASSUMPTION_CONDITIONAL_COHORT_NOT_MARKET",
+      "engineer_h": [
+        2,
+        5,
+        12
+      ],
+      "engineer_rate_eur_h": [
+        60,
+        90,
+        120
+      ],
+      "V2_eur": [
+        120,
+        450,
+        1440
+      ],
+      "teams": [
+        5,
+        20,
+        50
+      ],
+      "decisions_per_team_year": [
+        2,
+        6,
+        12
+      ],
+      "V3_decisions_year": [
+        10,
+        120,
+        600
+      ],
+      "annual_gross_eur": [
+        1200,
+        54000,
+        864000
+      ],
+      "c1_cpu_h": [
+        0.05,
+        0.2,
+        0.8
+      ],
+      "peak_ram_gib": [
+        1,
+        4,
+        12
+      ],
+      "p50_cpu_h": null,
+      "p95_cpu_h": null,
+      "designs": 24,
+      "strata": 3,
+      "primary_cases": 72,
+      "refined_cases": 24,
+      "charged_failed": 15,
+      "witness_pairs": 8,
+      "equivalent_cases": 151,
+      "C2_eur": [
+        28.829965,
+        65.75626,
+        213.46144
+      ],
+      "C3_weekly_eur": [
+        0.7207491250000001,
+        6.575626,
+        85.38457600000001
+      ],
+      "VCI_low_base_high": [
+        0.25787267039720624,
+        132.4539658939672,
+        13029.921261196241
+      ],
+      "computed_base_rank": 14,
+      "conditional_queue_rank": null,
+      "gates": {
+        "G1": "HOLD_EXACT_BUYER_DECISION",
+        "G2": "HOLD_EXACT_DECK_AND_PIN",
+        "G3": "HOLD_LIMITS_AND_WITNESSES",
+        "G4": "HOLD_COUNTS_EACH_STRATUM",
+        "G5": "HOLD_MATCHED_BASELINE",
+        "G6": "FAIL_SCENARIO_NOT_MEASURED",
+        "G7": "HOLD_SOURCED_LIMITS_NO_RELAXATION"
+      },
+      "screen": "REJECT_G6_SCENARIO",
+      "admitted": false,
+      "dispatch_ready": false,
+      "earned_credibility": "NOT_DEMONSTRATED",
+      "target_credibility": "TIER_2_INDEPENDENT_BUYER_TOOL",
+      "reason": "High cycle-convergence scenario exceeds cap; solver kinetics/energy/extraction closure unresolved."
+    },
+    {
+      "id": "D056",
+      "slug": "lpbf-scan",
+      "name": "LPBF scan strategy",
+      "lineage": "NEW_DISCOVERY_HYPOTHESIS",
+      "sources": [
+        "AM1",
+        "AM2"
+      ],
+      "buyer_role": "AM process engineer",
+      "decision": "Choose scan sequencing",
+      "solver": "ADAM",
+      "outputs": "full thermal history plus deformation using coupled structural model",
+      "baseline": "inherent-strain/heat-kernel model plus response map",
+      "incremental_case": "Thermal adamantine alone does not produce graded distortion; full coupled bank is unaffordable in base/high scenarios.",
+      "V_scores_low_base_high": [
+        [
+          2,
+          3,
+          4
+        ],
+        [
+          1,
+          2,
+          3
+        ],
+        [
+          0,
+          1,
+          2
+        ],
+        [
+          1,
+          2,
+          3
+        ],
+        [
+          0,
+          1,
+          2
+        ]
+      ],
+      "excitement_axes_low_base_high": [
+        [
+          4,
+          5,
+          5
+        ],
+        [
+          4,
+          5,
+          5
+        ],
+        [
+          2,
+          3,
+          4
+        ]
+      ],
+      "excitement_low_base_high": [
+        3.333333333333333,
+        4.333333333333333,
+        5
+      ],
+      "cost_status": "ASSUMPTION_NOT_MEASURED",
+      "value_status": "ASSUMPTION_CONDITIONAL_COHORT_NOT_MARKET",
+      "engineer_h": [
+        2,
+        8,
+        20
+      ],
+      "engineer_rate_eur_h": [
+        60,
+        90,
+        120
+      ],
+      "V2_eur": [
+        120,
+        720,
+        2400
+      ],
+      "teams": [
+        5,
+        20,
+        50
+      ],
+      "decisions_per_team_year": [
+        2,
+        6,
+        12
+      ],
+      "V3_decisions_year": [
+        10,
+        120,
+        600
+      ],
+      "annual_gross_eur": [
+        1200,
+        86400,
+        1440000
+      ],
+      "c1_cpu_h": [
+        0.3,
+        2,
+        10
+      ],
+      "peak_ram_gib": [
+        4,
+        16,
+        48
+      ],
+      "p50_cpu_h": null,
+      "p95_cpu_h": null,
+      "designs": 24,
+      "strata": 3,
+      "primary_cases": 72,
+      "refined_cases": 24,
+      "charged_failed": 15,
+      "witness_pairs": 8,
+      "equivalent_cases": 151,
+      "C2_eur": [
+        90.37379,
+        508.8718,
+        2478.2742000000003
+      ],
+      "C3_weekly_eur": [
+        2.25934475,
+        50.88718,
+        991.3096800000002
+      ],
+      "VCI_low_base_high": [
+        0.022211372559030402,
+        27.385058222852482,
+        6927.749256966419
+      ],
+      "computed_base_rank": 15,
+      "conditional_queue_rank": null,
+      "gates": {
+        "G1": "HOLD_EXACT_BUYER_DECISION",
+        "G2": "FAIL_EXACT_GRADED_OUTPUTS",
+        "G3": "HOLD_LIMITS_AND_WITNESSES",
+        "G4": "HOLD_COUNTS_EACH_STRATUM",
+        "G5": "HOLD_MATCHED_BASELINE",
+        "G6": "FAIL_SCENARIO_NOT_MEASURED",
+        "G7": "HOLD_SOURCED_LIMITS_NO_RELAXATION"
+      },
+      "screen": "REJECT_G2_G6_SCENARIO",
+      "admitted": false,
+      "dispatch_ready": false,
+      "earned_credibility": "NOT_DEMONSTRATED",
+      "target_credibility": "TIER_2_INDEPENDENT_BUYER_TOOL",
+      "reason": "Thermal adamantine alone does not produce graded distortion; full coupled bank is unaffordable in base/high scenarios."
+    }
+  ],
+  "publication_base": "a6e78b423de414bc974cbce7f19210c4ef86968c",
+  "publication_base_tree": "cc5dba0308c92a3ba826e89c4149c43b9d07cbb1"
+}

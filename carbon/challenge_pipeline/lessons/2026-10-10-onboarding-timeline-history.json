@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-10-onboarding-timeline-history",
+  "recorded_at": "2026-10-10T18:03:45Z",
+  "challenge": "protocol",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "ONBOARDING-TIMELINE-01", "description": "Public Git milestone reconstruction and focused status/ledger tests, no solvers or spend."},
+  "expected": "Creation and integration dates improve the baseline without inventing completion or effort.",
+  "observed": "45 focused tests passed after correcting two toy-repository fixture assumptions. Battery reference predates customer packets; readiness metadata has rename/reintroduction ambiguity. Ledger keyword check caught duplicated stage-owner prose, removed from the timeline projection while status retains the canonical owner. No brief-to-tested duration is earned.",
+  "keep": ["Pinned HEAD/main metadata and public explicit paths", "Version-separated history and unknown accepted exits", "Same timeline API for status and ledger"],
+  "change": ["Cache only complete immutable histories; return copies so consumers cannot corrupt later views", "Refuse glob paths, not merely traversal", "Never equate pre-existing reference infrastructure with current-packet qualification"],
+  "protocol_elements": ["claim_control", "scientific_contracts", "evidence_identity"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

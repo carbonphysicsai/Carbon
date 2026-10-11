@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-10-portfolio-baseline-canonical-host",
+  "recorded_at": "2026-10-10T18:44:00Z",
+  "challenge": "protocol",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "CHEAP-BASELINE-COMPARATORS-01", "description": "Attempted canonical.sh --focused tests/cpu/test_portfolio_baselines.py in WSL against the isolated linked worktree."},
+  "expected": "Run the canonical wrapper on the current candidate without changing shared infrastructure.",
+  "observed": "Wrapper refused: wrapper must belong to the Carbon repository root. No tests ran in the canonical environment; exact-head CI remains acceptance. No Docker engine pruning, mounts or shared images were changed.",
+  "keep": ["Label native tests diagnostic and report the actual canonical refusal."],
+  "change": ["Do not equate a wrapper attempt with canonical execution."],
+  "protocol_elements": ["lessons"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

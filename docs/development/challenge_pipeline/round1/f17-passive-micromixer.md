@@ -146,6 +146,22 @@ contracts, not this reference-feasibility allowance.
 
 ## 10. Readiness and claim record
 
+Current prospective T2: [buyer value/cost scorecard](../value-cost/f17.md)
+and [owner framework](../value-cost/README.md). Require at least five feasible
+and five distinct near-limit infeasible actions per mandatory stratum. Report
+the overall fraction; it is not a gate. Other value checks still require
+evidence. Refinement/acceptance remains HUMAN_INPUT; no new runtime authority.
+The original fraction-based observations below retain their historical meaning.
+
+**Before any new hidden bank:** the owner-selected [four-check value prerequisite](../question-laws/value-check-v1.md)
+requires per-stratum discrimination and meaningful buyer-unit spread, one
+complete feasible action, and changing best/equivalent answers. Numeric
+thresholds remain HUMAN_INPUT recommendations; receipt **NOT_DEMONSTRATED**.
+For this buyer, report flux-weighted M, pressure and residence margins on the complete flow/diffusivity
+panel; artificial scalar smoothing cannot supply value.
+No favorable redraw, exposure reset, solver grant or qualification follows.
+
+
 Selected requirements and smooth-channel dimensional screens only. Groove flow/
 transport and reference adequacy NOT_DEMONSTRATED. Next: exact CAD/inlets/
 extractor and analytical/numerical-diffusion controls under stage permission.

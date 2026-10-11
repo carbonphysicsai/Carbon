@@ -132,10 +132,7 @@ def require_approval(approval, *, repository=REPOSITORY):
 def source_for(challenge_id, spec, *, repository=REPOSITORY):
     """The registered `BatchSource` for one configured, owner-approved
     Challenge."""
-    from carbon.reconstruction.capability_registry import (
-        BATTERY_CHALLENGE,
-        MOTOR_CHALLENGE,
-    )
+    from carbon.reconstruction.capability_registry import BATTERY_CHALLENGE
 
     require_approval(spec.get("approval"), repository=repository)
 
@@ -148,6 +145,7 @@ def source_for(challenge_id, spec, *, repository=REPOSITORY):
             spec["bank"],
             overlay=spec.get("overlay"),
             repository=repository,
+            design_dir=spec.get("design"),
         )
     if challenge_id == BATTERY_CHALLENGE:
         # Battery's source with its quiz (slice Q, part 2): it draws a quiz
@@ -157,14 +155,16 @@ def source_for(challenge_id, spec, *, repository=REPOSITORY):
         return BatteryQuizSource.from_deployment(
             spec["deployment"], overlay=spec.get("overlay"), repository=repository
         )
-    if challenge_id == MOTOR_CHALLENGE:
-        # Motor's hidden pool (VALIDATOR-21): its solver image is pinned by
-        # its hidden rule, so it takes no overlay.
+    from .family_source import family_source_class
+
+    family = family_source_class(challenge_id)
+    if family is not None:
+        # A registered reference family (VALIDATOR-28; motor's hidden pool,
+        # VALIDATOR-21, first): its solver image is pinned by its
+        # registration, so it takes no overlay.
         if "overlay" in spec:
             raise ProducerRefused("producer_config_malformed")
-        from .motor_source import MotorBatchSource
-
-        return MotorBatchSource(spec["deployment"], repository=repository)
+        return family(spec["deployment"], repository=repository)
     raise ProducerRefused("producer_no_source")
 
 
@@ -184,7 +184,7 @@ def _owner_only_dir(path):
     path.mkdir(mode=0o700, parents=True, exist_ok=True)
     info = os.lstat(path)
     if not stat.S_ISDIR(info.st_mode) or info.st_mode & 0o077:
-        raise ProducerRefused("producer_dir_not_owner_only")
+        raise ProducerRefused("producer_dir_not_owner_only", path=path)
     return path
 
 
@@ -251,7 +251,7 @@ def load_config(path, *, account=None):
         or any(
             type(spec) is not dict
             or not {"deployment", "approval"} <= set(spec)
-            or set(spec) - {"deployment", "overlay", "approval", "bank"}
+            or set(spec) - {"deployment", "overlay", "approval", "bank", "design"}
             for spec in config["sources"].values()
         )
     ):
@@ -301,6 +301,36 @@ class ProducerJournal:
             ):
                 return entry
         return None
+
+
+# --- one command at a time -------------------------------------------------------------
+
+#: The lock file every state-changing command holds for its whole run.
+LOCK_FILE = "producer.lock"
+#: The commands that change the producer's state (all but `status`).
+MUTATING = ("draw", "solve", "seal", "publish", "withdraw", "tick")
+
+
+def exclusive(directory):
+    """Take the producer directory's exclusive lock, or refuse
+    `producer_already_running`. Returns the open descriptor; closing it (or
+    the process ending) releases the lock.
+
+    Two commands never change one producer at once: at 3a, enabling the tick
+    timer started a tick at once while a manual tick was still running."""
+    import fcntl
+
+    fd = os.open(
+        _owner_only_dir(directory) / LOCK_FILE,
+        os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW,
+        0o600,
+    )
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        os.close(fd)
+        raise ProducerRefused("producer_already_running") from None
+    return fd
 
 
 # --- the producer ---------------------------------------------------------------------
@@ -567,6 +597,11 @@ class Producer:
                 **quiz_digests(value),
                 "quiz_panel_version": value["document"]["panel_version"],
             }
+        design = (
+            source.design_commitment(fingerprint)
+            if hasattr(source, "design_commitment")
+            else None
+        )
         return {
             **quiz,
             "schema": COMMITMENT_SCHEMA,
@@ -590,6 +625,9 @@ class Producer:
                 if hasattr(source, "bank_commitment")
                 else {}
             ),
+            # A screening window under a design rule (slice 3b) names its
+            # design tranches and selection.
+            **({"design": design} if design is not None else {}),
         }
 
     def withdraw(self, challenge_id, fingerprint, reason, *, block):
@@ -838,6 +876,7 @@ class Producer:
                 report[challenge_id] = {"cadence": None}
                 continue
             retired = self._retire(challenge_id, block)
+            republished = self._republish(challenge_id)
             current = block // cadence["every_blocks"]
             filled, unfilled = [], []
             finalists = {"filled": [], "unfilled": []}
@@ -861,7 +900,29 @@ class Producer:
                 "unfilled": unfilled,
                 "finalist": finalists,
             }
+            if republished:
+                report[challenge_id]["republished"] = republished
         return report
+
+    def _republish(self, challenge_id):
+        """Publish every scheduled batch that is neither published, retired
+        nor withdrawn. A tick schedules a batch and then publishes it; if the
+        publish failed (3a: the outbox was 0755), the slot was already taken,
+        so no later tick filled it and validators never received the batch.
+        Returns `[{"slot", "kind"}]` for each one published now."""
+        done = []
+        for kind in ("screening", "finalist"):
+            for slot, fingerprint in sorted(
+                self._scheduled(challenge_id, kind).items()
+            ):
+                if (
+                    self.journal.find("published", challenge_id, fingerprint) is None
+                    and self.journal.find("retired", challenge_id, fingerprint) is None
+                    and not self._withdrawn(challenge_id, fingerprint)
+                ):
+                    self.publish(challenge_id, fingerprint)
+                    done.append({"slot": slot, "kind": kind})
+        return done
 
     def status(self):
         """Counts per Challenge; public values only."""
@@ -913,7 +974,26 @@ def main(argv=None):
             # 7,200 s).
             command.add_argument("--timeout-s", type=float)
     args = parser.parse_args(argv)
+    lock = None
     try:
+        if args.command in MUTATING:
+            # Taken from the configuration, before anything is built: the
+            # lock guards the directory, whatever object a command uses.
+            try:
+                lock = exclusive(load_config(args.config)["producer_dir"])
+            except ProducerRefused as refused:
+                if refused.code != "producer_already_running":
+                    raise
+                if args.command != "tick":
+                    raise
+                # Not a failure: the running tick does this rotation's work,
+                # so the timer's unit succeeds and never error-loops.
+                print(
+                    json.dumps(
+                        {"refused": "producer_tick_already_running", "state": "NOT_RUN"}
+                    )
+                )
+                return 0
         producer = Producer.from_config(args.config)
         if args.command == "draw":
             result = producer.draw(
@@ -943,11 +1023,20 @@ def main(argv=None):
         else:
             result = producer.status()
     except ProducerRefused as refused:
-        print(json.dumps({"refused": refused.code}))
+        print(json.dumps(refused.record()))
         return 2
+    finally:
+        if lock is not None:
+            os.close(lock)
     print(json.dumps(result, sort_keys=True))
     return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    # The package module's own main: under `python -m` this file is
+    # `__main__`, a second copy whose classes the package's are not.
+    import sys
+
+    from carbon.challenge_validator.producer import main as _main
+
+    sys.exit(_main())

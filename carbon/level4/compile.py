@@ -1,7 +1,12 @@
 """Gate G5: compile a validated graph in isolation (development only).
 
 XLA compiles what Carbon will run on a validated submission: the rebuilt
-forward graph, a gradient step through it and the init graph. It does so in
+forward graph, a gradient step through it and the init graph. The step's
+loss is the submission's admitted loss graph (`carbon.level4.loss`, Carbon's
+mean of the per-case graph), else a sum of squared outputs. Its XLA
+`cost_analysis` FLOPs are `train_step_flops`, for one gradient step at the
+declared batch (the optimizer's update is not included); `train_step_loss`
+names which loss it measured. It does so in
 the C-03 Carbon lane (`research_carrier._run`, Carbon provenance), never on
 the host that grades. The program is Carbon's own (`PROGRAM`); the
 submission's documents enter only as staged data, parsed again inside with
@@ -16,9 +21,12 @@ Outcomes:
 * any other lane failure (no image, no Docker, a staging or cleanup fault):
   `CompileInfraFailure`, `FAILED_INFRA`, never charged to the submission.
 
-The deadline is `HUMAN_INPUT` and must be set by the caller; unset, G5 is
-blocked (`CompileBlocked`). The lane's profile for this use awaits the
-security owner (D3): `PROFILE_STATUS`. Nothing here is a security claim.
+The deadline is the owner's (OWNER-L4-VALUES-01, 120 s); a caller that
+passes `HUMAN_INPUT` is blocked (`CompileBlocked`). The lane's profile for
+this use is accepted for development and testnet only
+(OWNER-L4-G5-COMPILE-ISOLATION-01, D3): the caller names its scope, and any
+other scope, mainnet included, is blocked until a mainnet security review.
+Nothing here is a security claim.
 """
 
 from __future__ import annotations
@@ -29,9 +37,15 @@ from pathlib import Path
 
 from .allowlist import HUMAN_INPUT
 
-DEADLINE_SECONDS = HUMAN_INPUT
+#: Approved as proposed (`LEVEL4_VALUES_PROPOSAL.md` §4, OWNER-L4-VALUES-01).
+#: The C-03 lane admits Carbon's own runs only between 40 and 600 s.
+DEADLINE_SECONDS = 120
 PROVENANCE = "LEVEL4_G5_COMPILE_DEVELOPMENT"
-PROFILE_STATUS = "PENDING_SECURITY_OWNER_ACCEPTANCE_D3"
+PROFILE_STATUS = "ACCEPTED_DEVELOPMENT_AND_TESTNET_ONLY"
+PROFILE_DECISION = "OWNER-L4-G5-COMPILE-ISOLATION-01"
+#: The scopes the accepted profile covers. Mainnet is not one of them.
+SCOPES = ("development", "testnet")
+MAINNET_BLOCKED = "mainnet_requires_security_review"
 FAILED_INFRA = "FAILED_INFRA"
 #: The Carbon modules the lane program needs, staged by name (flat).
 MODULES = (
@@ -41,6 +55,7 @@ MODULES = (
     "carbon.level4.allowlist",
     "carbon.level4.named",
     "carbon.level4.interpret",
+    "carbon.level4.loss",
 )
 
 PROGRAM = """
@@ -69,9 +84,20 @@ params = [a for is_param, a in avals if is_param]
 inputs = [a for is_param, a in avals if not is_param]
 def run(p, *xs):
     return forward(*p, *xs)
-def step(p, *xs):
-    return jax.grad(lambda q: sum(jnp.sum(jnp.real(o).astype(jnp.float32) ** 2) for o in forward(*q, *xs)))(p)
 result = {}
+if 'loss' in docs:
+    from carbon.level4 import loss as loss_slot
+    per_case = loss_slot.per_case_mean(interpret.rebuild(docs['loss'], allowlist))
+    targets = list(jax.eval_shape(run, params, *inputs))
+    def step(p, ts, *xs):
+        return jax.grad(lambda q: per_case(list(forward(*q, *xs)), list(ts), list(xs)))(p)
+    step_args = (params, targets, *inputs)
+    result['train_step_loss'] = 'graph'
+else:
+    def step(p, *xs):
+        return jax.grad(lambda q: sum(jnp.sum(jnp.real(o).astype(jnp.float32) ** 2) for o in forward(*q, *xs)))(p)
+    step_args = (params, *inputs)
+    result['train_step_loss'] = 'sum_of_squares'
 started = time.perf_counter()
 compiled = jax.jit(run).lower(params, *inputs).compile()
 result['forward_seconds'] = time.perf_counter() - started
@@ -81,8 +107,11 @@ cost = cost[0] if isinstance(cost, list) and cost else cost
 result['forward_temp_bytes'] = int(memory.temp_size_in_bytes)
 result['forward_flops'] = float(cost.get('flops', 0.0))
 started = time.perf_counter()
-jax.jit(step).lower(params, *inputs).compile()
+compiled_step = jax.jit(step).lower(*step_args).compile()
 result['train_step_seconds'] = time.perf_counter() - started
+cost = compiled_step.cost_analysis() or {}
+cost = cost[0] if isinstance(cost, list) and cost else cost
+result['train_step_flops'] = float(cost.get('flops', 0.0))
 if 'init' in docs:
     init = interpret.rebuild(docs['init'], allowlist)
     started = time.perf_counter()
@@ -93,7 +122,8 @@ if 'init' in docs:
 
 
 class CompileBlocked(RuntimeError):
-    """The deadline is unset (HUMAN_INPUT): G5 cannot run."""
+    """G5 cannot run: the deadline is unset (HUMAN_INPUT), or the scope is
+    not one the accepted profile covers."""
 
 
 class CompileInfraFailure(RuntimeError):
@@ -111,7 +141,7 @@ def staged_files(parsed, allowlist, *, max_bytes):
         name + ".py": (repository / (name.replace(".", "/") + ".py")).read_bytes()
         for name in MODULES
     }
-    slots = sorted(s for s in parsed if s in ("forward", "init"))
+    slots = sorted(s for s in parsed if s in ("forward", "init", "loss"))
     for slot in slots:
         files[slot + ".json"] = graph.dumps(parsed[slot])
     files["allowlist.json"] = allowlist.raw
@@ -130,13 +160,17 @@ def compile_in_isolation(
     image,
     deadline_seconds=DEADLINE_SECONDS,
     max_bytes,
+    scope,
     runner=None,
 ):
-    """G5 for a verified and validated submission: the lane's measurements."""
+    """G5 for a verified and validated submission: the lane's measurements.
+    `scope` is the deployment the compile serves; only `SCOPES` run."""
     from carbon.reconstruction.worker.model import WorkerCode, WorkerFailure
 
     from . import graph
 
+    if scope not in SCOPES:
+        raise CompileBlocked(MAINNET_BLOCKED)
     if deadline_seconds == HUMAN_INPUT or deadline_seconds is None:
         raise CompileBlocked("the G5 deadline is unset")
     if runner is None:
@@ -171,4 +205,10 @@ def compile_in_isolation(
         result = json.loads(snapshot.read_bytes())
     except (OSError, ValueError):
         raise CompileInfraFailure("lane produced no compile record") from None
-    return {**result, "profile": PROFILE_STATUS, "identity": identity}
+    return {
+        **result,
+        "profile": PROFILE_STATUS,
+        "profile_decision": PROFILE_DECISION,
+        "scope": scope,
+        "identity": identity,
+    }

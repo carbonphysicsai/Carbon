@@ -28,6 +28,7 @@ submission twice, rotate twice or repeat a completed solve.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import sqlite3
@@ -85,6 +86,9 @@ CREATE TABLE IF NOT EXISTS pool(
 CREATE TABLE IF NOT EXISTS pool_clock(
   id INTEGER PRIMARY KEY CHECK(id = 1),
   block INTEGER);
+CREATE TABLE IF NOT EXISTS chain_head(
+  id INTEGER PRIMARY KEY CHECK(id = 1),
+  block INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS batch_salts(
   fingerprint TEXT PRIMARY KEY,
   salt TEXT NOT NULL);
@@ -93,6 +97,13 @@ CREATE TABLE IF NOT EXISTS withdrawn_batches(
     reason TEXT NOT NULL,
     block INTEGER NOT NULL
 );
+CREATE TABLE IF NOT EXISTS design_reports(
+  submission_id TEXT PRIMARY KEY,
+  body TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS batch_design(
+  fingerprint TEXT PRIMARY KEY,
+  bank TEXT NOT NULL,
+  questions TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS batch_windows(
   fingerprint TEXT PRIMARY KEY,
   slot INTEGER NOT NULL,
@@ -105,6 +116,13 @@ CREATE TABLE IF NOT EXISTS batch_quizzes(
   quiz_digest TEXT NOT NULL,
   references_digest TEXT NOT NULL,
   panel_version INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS published_cases(
+  case_id TEXT PRIMARY KEY,
+  file TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS feed_versions(
+  version INTEGER PRIMARY KEY,
+  digest TEXT NOT NULL,
+  body TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS quiz_reports(
   submission_id TEXT PRIMARY KEY,
   body TEXT NOT NULL);
@@ -619,6 +637,44 @@ class PoolStore:
                 return
             db.execute("INSERT INTO batch_salts VALUES(?,?)", (fingerprint, salt))
 
+    def set_design(self, fingerprint, bank, questions):
+        """Store a screening batch's verified design questions (slice 3b):
+        private, once; the same questions again are a no-op."""
+        body = canonical(questions)
+        with self.transaction() as db:
+            row = db.execute(
+                "SELECT bank, questions FROM batch_design WHERE fingerprint=?",
+                (fingerprint,),
+            ).fetchone()
+            if row is not None:
+                if (row[0], row[1]) != (bank, body):
+                    raise StateError("design_questions_changed")
+                return
+            db.execute(
+                "INSERT INTO batch_design VALUES(?,?,?)", (fingerprint, bank, body)
+            )
+
+    def design(self, fingerprint):
+        """`{"bank", "questions"}` for a batch, or None. Private."""
+        with self.db() as db:
+            row = db.execute(
+                "SELECT bank, questions FROM batch_design WHERE fingerprint=?",
+                (fingerprint,),
+            ).fetchone()
+        return (
+            None if row is None else {"bank": row[0], "questions": json.loads(row[1])}
+        )
+
+    def design_counts(self):
+        """Public counts: design questions held by the active pool's batches."""
+        pool = self.pool()
+        active = [] if pool is None else pool["active"]
+        held = [self.design(f) for f in active]
+        return {
+            "windows": sum(1 for d in held if d is not None),
+            "questions": sum(len(d["questions"]) for d in held if d is not None),
+        }
+
     def set_quiz(self, fingerprint, quiz):
         """Record an imported batch's quiz (VALIDATOR-19 slice Q), verified
         against its commitment by the importer; idempotent. Private: its
@@ -691,6 +747,121 @@ class PoolStore:
                 {"submission_id": submission_id, "state": body.get("state")},
             )
         return json.loads(_json(body))
+
+    def record_design_report(self, submission_id, body):
+        """Store a scored submission's operator-only design-question report
+        (VALIDATOR-23 slice 3c). A measured report is kept; only a
+        FAILED_INFRA one may be replaced."""
+        with self.transaction() as db:
+            row = db.execute(
+                "SELECT body FROM design_reports WHERE submission_id=?",
+                (submission_id,),
+            ).fetchone()
+            if row is not None and json.loads(row[0]).get("state") != "FAILED_INFRA":
+                return json.loads(row[0])
+            db.execute(
+                "INSERT OR REPLACE INTO design_reports VALUES(?,?)",
+                (submission_id, _json(body)),
+            )
+            self._event(
+                db,
+                "design_reported",
+                {"submission_id": submission_id, "state": body.get("state")},
+            )
+        return json.loads(_json(body))
+
+    def design_report(self, submission_id):
+        with self.db() as db:
+            row = db.execute(
+                "SELECT body FROM design_reports WHERE submission_id=?",
+                (submission_id,),
+            ).fetchone()
+        return None if row is None else json.loads(row[0])
+
+    def design_reports(self):
+        """Every stored design-question report, oldest submission first.
+        Operator-only."""
+        with self.db() as db:
+            rows = db.execute(
+                "SELECT body FROM design_reports ORDER BY submission_id"
+            ).fetchall()
+        return [json.loads(row[0]) for row in rows]
+
+    # --- the score feed's records (VALIDATOR-29) -------------------------------------
+
+    def record_published(self, file, case_ids):
+        """Record cases this validator verified in a published training file
+        (the public pool). Idempotent; returns how many were new."""
+        added = 0
+        with self.transaction() as db:
+            for case_id in case_ids:
+                added += db.execute(
+                    "INSERT OR IGNORE INTO published_cases VALUES(?,?)", (case_id, file)
+                ).rowcount
+        return added
+
+    def published_case_ids(self):
+        with self.db() as db:
+            return {r[0] for r in db.execute("SELECT case_id FROM published_cases")}
+
+    def batch_fingerprints(self):
+        with self.db() as db:
+            return [r[0] for r in db.execute("SELECT fingerprint FROM batches")]
+
+    def scored_submissions(self):
+        """`[{submission_id, hotkey, binding, state, score}]` for every scored
+        submission, oldest first. Operator-only."""
+        with self.db() as db:
+            rows = db.execute(
+                "SELECT s.submission_id, b.hotkey, b.binding, b.state, s.pool_version, "
+                "s.record FROM scores s JOIN submissions b USING(submission_id) "
+                "ORDER BY b.created, s.submission_id"
+            ).fetchall()
+        return [
+            {
+                "submission_id": r[0],
+                "hotkey": r[1],
+                "binding": json.loads(r[2]),
+                "state": r[3],
+                "pool_version": r[4],
+                "record": json.loads(r[5]),
+            }
+            for r in rows
+        ]
+
+    def finals_rows(self):
+        with self.db() as db:
+            rows = db.execute(
+                "SELECT final_id, challenger, incumbent, state FROM finals"
+            ).fetchall()
+        return [
+            {"final_id": r[0], "challenger": r[1], "incumbent": r[2], "state": r[3]}
+            for r in rows
+        ]
+
+    def record_feed(self, body):
+        """Store a feed document as a new version when it differs from the
+        latest; returns the version that holds it."""
+        digest = "sha256:" + hashlib.sha256(_json(body).encode()).hexdigest()
+        with self.transaction() as db:
+            row = db.execute(
+                "SELECT version, digest FROM feed_versions ORDER BY version DESC LIMIT 1"
+            ).fetchone()
+            if row is not None and row[1] == digest:
+                return row[0]
+            version = 1 if row is None else row[0] + 1
+            db.execute(
+                "INSERT INTO feed_versions VALUES(?,?,?)",
+                (version, digest, _json(body)),
+            )
+            return version
+
+    def latest_feed(self):
+        with self.db() as db:
+            row = db.execute(
+                "SELECT body FROM feed_versions ORDER BY version DESC LIMIT 1"
+            ).fetchone()
+        return None if row is None else json.loads(row[0])
 
     def quiz_report(self, submission_id):
         with self.db() as db:
@@ -862,7 +1033,7 @@ class PoolStore:
         a submission was received against. Never stalls: when no window covers
         it, the current batches keep scoring and the overdue rotation is
         recorded."""
-        latest = self._latest_block(db)
+        latest = self._clock_block(db)
         if latest is None:
             return None
         active = self._windows_at(db, latest)
@@ -986,6 +1157,36 @@ class PoolStore:
             {"version": version, "retired": retired, "activated": nxt[0]},
         )
         return retired
+
+    def _clock_block(self, db):
+        """A windowed pool's clock: the newest finalized block it has seen,
+        from an admission's receipt or the observed chain head
+        (`observe_head`)."""
+        latest = self._latest_block(db)
+        row = db.execute("SELECT block FROM chain_head WHERE id=1").fetchone()
+        head = None if row is None else row[0]
+        if latest is None or (head is not None and head > latest):
+            return head
+        return latest
+
+    def observe_head(self, block):
+        """Record the chain's finalized head, as this validator read it, and
+        rotate if due. An import-only pool's producer windows then open and
+        close on the chain's clock, not only when a submission arrives (3a,
+        2026-10-08: a pool stayed ROTATION_PENDING past its window's start
+        because its only submission was received before it). The head never
+        moves backwards."""
+        if type(block) is not int or block < 0:
+            raise StateError("chain_head_malformed")
+        with self.transaction() as db:
+            db.execute(
+                "INSERT INTO chain_head VALUES(1, ?) ON CONFLICT(id) DO UPDATE "
+                "SET block=MAX(block, excluded.block)",
+                (block,),
+            )
+            if db.execute("SELECT 1 FROM pool WHERE id=1").fetchone() is None:
+                return None
+            return self._try_rotate(db)
 
     def _latest_block(self, db):
         """The newest finalized block any admission was received against."""

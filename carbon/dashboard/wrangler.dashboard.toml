@@ -1,0 +1,28 @@
+# carbon-dashboard: the public Carbon Dashboard Worker (DASHBOARD-01 D4).
+#
+# Deploy only as docs/development/DASHBOARD_CLOUDFLARE_SETUP.md says, and
+# only from a site built with `python -m carbon.dashboard build --feed ...`
+# against the real validator feed: the Worker refuses to serve a FIXTURE
+# build. No account id, token, feed URL or key is kept here.
+# - Wrangler reads the account and the token from the environment.
+# - FEED_URLS and FEED_KEYS are Worker secrets (`wrangler secret put`).
+name = "carbon-dashboard"
+main = "worker/index.mjs"
+compatibility_date = "2026-09-16"
+workers_dev = false
+preview_urls = false
+
+[assets]
+# Always overridden at deploy by `--assets <built site directory>`.
+directory = "./site-not-built"
+binding = "ASSETS"
+run_worker_first = true
+
+# Proposed public route (owner to confirm). With custom_domain = true the
+# first deploy creates the DNS record in the carbonphysics.ai zone.
+[[routes]]
+pattern = "dashboard.carbonphysics.ai"
+custom_domain = true
+
+[vars]
+CACHE_SECONDS = "60"
