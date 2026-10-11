@@ -175,14 +175,16 @@ Elmer: after #1030 merges, use its existing launcher `python3
 scripts/dev/reference_packages/elmer/mms_heat.py IMAGE NEW_WORK RESULT.json`.
 That launcher invokes headless CPU Elmer inside the pinned image. It currently
 reports a recommended band; science adoption is still required. No copied old
-PASS after rebuild. GetDP and PyBaMM workers below run **inside their images**:
+PASS after rebuild. The workers below run **inside their images**. Set the
+working directory to the mounted repository root, so the reused Elmer package
+module resolves without relying on a developer-host Python path:
 
 ```sh
 python3 scripts/dev/code_verification/getdp_mms.py --work /work/new-mms \
   --output /work/motor-fields.json --image-digest sha256:ACTUAL --spec-digest sha256:ACTUAL
 python3 scripts/dev/code_verification/pybamm_submodels.py \
   --output /work/battery-fields.json --image-digest sha256:ACTUAL --spec-digest sha256:ACTUAL
-python3 scripts/dev/code_verification/elmer_helmholtz.py --work /work/new-acoustic \
+python3 -m scripts.dev.code_verification.elmer_helmholtz --work /work/new-acoustic \
   --output /work/acoustic-fields.json --image-digest sha256:ACTUAL --spec-digest sha256:ACTUAL
 python3 scripts/dev/code_verification/openfoam_periodic.py --work /work/new-scalar \
   --output /work/scalar-fields.json --image-digest sha256:ACTUAL --spec-digest sha256:ACTUAL
