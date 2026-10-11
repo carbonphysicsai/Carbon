@@ -1,0 +1,10 @@
+{
+ "schema":"carbon.challenge-pipeline.lesson.v1", "lesson_id":"2026-10-11-mms-heat-time-alignment",
+ "recorded_at":"2026-10-11T12:43:47Z", "challenge":"f02", "stage":"test_iterate",
+ "execution":{"kind":"test_run", "ref":"CODE-VERIFICATION-MMS-01", "description":"No-solver endpoint regression after the owner's conditional Elmer MMS acceptance"},
+ "expected":"The registered specification uses the nonsymmetry t_end=0.375 accepted in OWNER-CODE-VERIFICATION-ACCEPT-01 (#1085).",
+ "observed":"25 baseline and 26 post-change native MMS tests passed; Black, Ruff and diff checks passed. No solver ran and no historical measurement was rewritten.",
+ "keep":["Accepted order band and spatial ladder unchanged", "Historical 0.5 evidence remains historical"],
+ "change":["Regress the time endpoint so future specification changes cannot restore leading-error cancellation"],
+ "protocol_elements":["measurement_authority", "reference_adequacy"], "proposed_revision":null, "status":"RECORDED"
+}
