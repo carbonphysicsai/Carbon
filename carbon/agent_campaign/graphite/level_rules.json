@@ -1,0 +1,20 @@
+{
+ "schema": "carbon.graphite.level-rules.v1",
+ "rule": "Combination rules the compile step enforces beyond each parameter's own range, stated for the Constructor brief. Each is checked against the real compile step by tests/cpu/test_graphite_level_domain.py, so a rule here cannot drift from it. DEVELOPMENT data; it changes no compile behaviour.",
+ "challenges": {
+  "battery-fastcharge-ageing-development-v1": [
+   {
+    "id": "members_divide_steps",
+    "text": "steps must be divisible by ensemble_members (members share the step budget exactly, so a remainder is refused)."
+   },
+   {
+    "id": "member_steps_minimum",
+    "text": "steps divided by ensemble_members must be at least 16, and at least 16 more than polish_steps."
+   },
+   {
+    "id": "weight_decay_mask_needs_decay",
+    "text": "weight_decay_mask may be supplied only with weight_decay above 0."
+   }
+  ]
+ }
+}

@@ -68,6 +68,7 @@ from . import (
     baseline_retry,
     grant_binding,
     hidden_score,
+    level_domain,
     pod_logs,
     pod_outcome,
 )
@@ -1270,6 +1271,25 @@ class Experiment:
             "parent": parent,
         }
         seed = self._seed(pid)
+        # A backend or family the level declares but this Challenge's pods do not
+        # serve is refused here, before the compile step, with the served set
+        # (the scoring record is read now, not copied). Everything else is the
+        # compile step's, unchanged.
+        early = level_domain.precheck(
+            strategy, level_domain.for_scoring(self.scoring, self.development_variant, self.repository)
+        )
+        if early is not None:
+            return self._close(
+                pid,
+                {
+                    **base,
+                    "status": "REFUSED_BACKEND_NOT_SERVED",
+                    "reason_code": early["reason_code"],
+                    "issues": early["issues"],
+                    "served_backends": early["served_backends"],
+                    "scored": False,
+                },
+            )
         try:
             # Level 0 calls admission exactly as before; only a development
             # level names its variant.

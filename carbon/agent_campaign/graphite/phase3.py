@@ -180,6 +180,7 @@ from ..provider import (
 from . import delivery as deliver_
 from . import experiment as ex
 from . import grant_binding, model_providers, next_level
+from . import level_domain
 from . import literature as lit
 from . import score_variant as sv
 from . import tools as toolbox
@@ -1070,6 +1071,16 @@ def session_brief(
     }
     if score_variant is not None:
         observation["score_variant"] = score_variant
+    # The level's declared domain, intersected with the backends this Challenge's
+    # pods serve (read from its scoring record now). A Challenge with no level
+    # document adds nothing, so its brief is exactly as before.
+    domain = level_domain.for_scoring(scoring, variant, repository)
+    if domain is not None:
+        observation["level_domain"] = domain
+        observation["instructions"] += (
+            " The level's domain is in level_domain: use only the families, names and "
+            "values it lists, and keep to its combination rules."
+        )
     return SessionBrief(
         role=RoleName.CONSTRUCTOR,
         initial_observation=observation,
