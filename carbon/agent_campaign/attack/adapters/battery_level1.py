@@ -1179,16 +1179,7 @@ class BatteryLevel1Adapter(b.BatteryLevel0Adapter):
 
     def family_for(self, tool, arguments=None):
         """Which Level-1 family a research tool call probes, or None."""
-        from carbon.development_session.research_tools import PREFIX
-
-        name = str(tool).removeprefix(PREFIX)
-        arguments = arguments if isinstance(arguments, Mapping) else {}
-        if name == "start_research_task" and (
-            arguments.get("kind") == "practice"
-            or arguments.get("action") == "check_design"
-        ):
-            return "l1_expression_surface"
-        if name in ("dry_validate", "compile_strategy"):
+        if b.construction_door(tool, arguments):
             return "l1_expression_surface"
         return None
 

@@ -182,6 +182,49 @@ def test_a_role_list_is_a_valid_runner_variant_list(tmp_path):
         roles.generate("challenger")  # slice 3 calibrates its recipes
 
 
+def test_round_two_recipes_are_fresh_distinct_and_off_the_canary_grid():
+    from scripts.dev.canary import roles, variants
+
+    earlier = {r for e in roles.ROLES.values() for r in e["recipes"]} | {
+        r for s in roles.SCENARIOS.values() for r in s["recipes"]
+    }
+    seen = set()
+    for role in ("strong", "degraded"):
+        fresh = roles.recipes_of(role, 2)
+        assert len(fresh) == 3 and len(set(fresh)) == 3
+        for neighbours, fraction in fresh:
+            assert (neighbours, fraction) not in earlier  # a new digest
+            assert (neighbours, fraction) not in seen
+            assert fraction not in set(variants.TRAIN_FRACTIONS)
+            assert 1 <= neighbours <= 64 and 0.1 <= fraction <= 1.0
+            seen.add((neighbours, fraction))
+    assert roles.recipes_of("challenger", 2) == []
+    assert (
+        roles.recipes_of("strong", 1)
+        == roles.ROLES[roles.hotkey_of("strong")]["recipes"]
+    )
+
+
+def test_a_round_two_list_is_valid_and_round_one_is_unchanged(tmp_path):
+    import pytest
+
+    from scripts.dev.canary import roles, variants
+
+    for role in ("strong", "degraded"):
+        path = tmp_path / f"{role}-2.json"
+        argv = ["generate", "--role", role, "--round", "2", "--out", str(path)]
+        assert roles.main(argv) == 0
+        loaded, _ = variants.load(path)
+        assert loaded["grid"]["round"] == 2
+        assert [v["strategy"] for v in loaded["variants"]] == [
+            variants.strategy(n, f) for n, f in roles.recipes_of(role, 2)
+        ]
+        first = roles.generate(role)
+        assert "round" not in first["grid"]  # round 1's list keeps its digest
+    with pytest.raises(variants.VariantRefused):
+        roles.generate("strong", round_=3)
+
+
 # --- slice 3a: the sybil scenario --------------------------------------------------
 
 

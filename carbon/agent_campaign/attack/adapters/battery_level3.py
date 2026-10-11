@@ -229,5 +229,6 @@ SPEC = d.LevelSpec(
     rebuild_label=_rebuild_label,
     families=_families,
     seams=SEAMS,
+    surface="l3_cross_level_fields",
 )
 ADAPTER = d.BatteryDeclarativeAdapter(SPEC)

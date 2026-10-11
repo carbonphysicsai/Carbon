@@ -8,7 +8,7 @@ Manufactured solution on the unit cube, k = rho = cp = 1:
     T = 1 + S(x) cos(2 pi t),  S = sin(pi x) sin(pi y) sin(pi z)
 so T = 1 on every face, T(t=0) = 1 + S, and the source (per unit mass) is
     f = S (3 pi^2 cos(2 pi t) - 2 pi sin(2 pi t)).
-Errors at t = 0.5 against the exact field at the nodes.
+Errors at t = T_END (0.375) against the exact field at the nodes.
 
 - space: N = 8, 16, 32 elements per side, dt = 1/512 (time error far below);
   observed order from max and RMS nodal errors, expected 2.
@@ -34,7 +34,10 @@ sys.path.insert(0, str(HERE))
 
 import f02_deck as deck
 
-T_END = 0.5
+#: Registered end time (OWNER-CODE-VERIFICATION-ACCEPT-01, 2026-10-11): t = 0.5 makes the
+#: sin(2 pi t) factors of the BDF2 leading error vanish (observed time order 2.49 there);
+#: 0.375 is not a symmetry point of the manufactured solution.
+T_END = 0.375
 EXPECTED, TOL = 2.0, 0.3
 
 
@@ -258,7 +261,7 @@ def main(image, out, evidence):
         for k in ("max", "rms")
     )
     doc = {"schema": "carbon.reference-package.mms.v1", "image": image, "solver": "Elmer HeatSolver, hex808, BDF2",
-           "solution": "T = 1 + sin(pi x) sin(pi y) sin(pi z) cos(2 pi t), unit cube, k = rho cp = 1, t_end 0.5",
+           "solution": f"T = 1 + sin(pi x) sin(pi y) sin(pi z) cos(2 pi t), unit cube, k = rho cp = 1, t_end {T_END}",
            "space_errors": [{"n": n, "max": m, "rms": r} for n, m, r in space], "space_orders": space_orders,
            "time_errors_vs_dt1_256": [{"dt": f"1/{i}", "max": m, "rms": r} for i, m, r in time_rows],
            "time_orders": time_orders, "expected_order": EXPECTED, "tolerance": TOL, "pass": passed,

@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-11-mg-measurement-contract",
+  "recorded_at": "2026-10-11T02:59:33Z",
+  "challenge": "metagrating-3d",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "BENCHMARK-READINESS-BUILD-MG-01", "description": "Native desired-order measurement and retained analytic-output checks; no solver or spend"},
+  "expected": "Cross-polarization reporting must not silently redefine the buyer's desired-order efficiency or invent a new safety limit.",
+  "observed": "The declared desired-order efficiency includes both polarizations. The observer now reports that total separately from its co-only component, with explicit percentage-point values; cross-polarization remains diagnostic. Retained analytic channels are numerically compared against exact slab values and supplied bands, with missing channels refused. A 64-character acceptance label is insufficient: its positive SHA256 format is checked. Native fixtures do not establish an image or reference pass.",
+  "keep": ["All propagating orders and both polarizations", "Independent plane-flux closure distinct from analytic channel agreement"],
+  "change": ["Preserve the declared metric instead of substituting co-only efficiency", "Bind supplied acceptance bands to a well-formed record identity without claiming its scientific authority", "Disjoint TRAIN must exclude periodic translations and registered mirror equivalents, hold resampled copies until physical mapping, and never relabel a synthetic fixture as public evidence"],
+  "protocol_elements": ["CODE-VERIFICATION-MMS-01", "BENCHMARK-READINESS-BUILD-01"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

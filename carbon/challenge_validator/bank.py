@@ -189,6 +189,12 @@ class BankLedger:
         database = sqlite3.connect(self.path, isolation_level=None)
         try:
             database.executescript(self.DDL)
+            # The scheduled draw's per-case schedule (OWNER-BANK-SCHEDULED-
+            # ROTATION-01): added in place, so an existing bank keeps its cases.
+            columns = {row[1] for row in database.execute("PRAGMA table_info(cases)")}
+            for column in ("due_slot", "budget"):
+                if column not in columns:
+                    database.execute(f"ALTER TABLE cases ADD COLUMN {column} INTEGER")
             database.execute(
                 "INSERT OR IGNORE INTO meta VALUES('schema', ?)", (STORE_SCHEMA,)
             )
@@ -439,14 +445,24 @@ class BankLedger:
         ).digest()
         return random.Random(int.from_bytes(seed[:16], "big"))
 
-    def draw_window(self, bank, slot, quotas, *, active_slots=(), retire_at):
+    def draw_window(
+        self, bank, slot, quotas, *, active_slots=(), retire_at, stride=None
+    ):
         """Draw slot `slot`'s cases from `bank`: `quotas` maps stratum to a
         count (one entry, `{"all": n}`, for an unsteered bank). Without
         replacement, disjoint from the windows of `active_slots`. Stored once,
         exposures counted, cases at `retire_at` exposures retired into the
-        release queue. Returns the drawn case ids, sorted."""
+        release queue. Returns the drawn case ids, sorted.
+
+        With `stride` (OWNER-BANK-SCHEDULED-ROTATION-01), the draw is
+        scheduled rather than uniform: a case's E exposures fall in the
+        windows `stride` slots apart (one lane), so a window's cases retire
+        together about E strides later instead of whenever a uniform draw
+        reaches them (`_scheduled`)."""
         if type(retire_at) is not int or retire_at < 1:
             raise BankRefused("bank_retirement_malformed")
+        if stride is not None and (type(stride) is not int or stride < 1):
+            raise BankRefused("bank_schedule_malformed")
         if bank in NOT_WINDOW_DRAWABLE:
             raise BankRefused("bank_not_window_drawable")
         with self._db() as db:
@@ -464,14 +480,20 @@ class BankLedger:
                 ).fetchone()
                 if row is not None:
                     held |= set(json.loads(row["cases"]))
-            live = self._live(db, bank, held)
             rng = self._rng(bank, slot)
-            drawn = []
-            for stratum, count in sorted(quotas.items()):
-                pool = [c for c, s in live if stratum == "all" or s == stratum]
-                if len(pool) < count:
-                    raise BankRefused("bank_short:" + bank)
-                drawn += rng.sample(pool, count)
+            budgets, lapsed = {}, []
+            if stride is None:
+                live = self._live(db, bank, held)
+                drawn = []
+                for stratum, count in sorted(quotas.items()):
+                    pool = [c for c, s in live if stratum == "all" or s == stratum]
+                    if len(pool) < count:
+                        raise BankRefused("bank_short:" + bank)
+                    drawn += rng.sample(pool, count)
+            else:
+                drawn, budgets, lapsed = self._scheduled(
+                    db, bank, slot, quotas, held, retire_at, stride, rng
+                )
             drawn = sorted(drawn)
             db.execute(
                 "INSERT INTO windows(bank, slot, cases, selection_digest) VALUES (?, ?, ?, ?)",
@@ -486,9 +508,10 @@ class BankLedger:
                 exposures = db.execute(
                     "SELECT exposures FROM cases WHERE case_id = ?", (case_id,)
                 ).fetchone()[0]
-                if exposures >= retire_at:
+                if exposures >= budgets.get(case_id, retire_at):
                     db.execute(
-                        "UPDATE cases SET retired_slot = ? WHERE case_id = ?",
+                        "UPDATE cases SET retired_slot = ?, due_slot = NULL "
+                        "WHERE case_id = ?",
                         (slot, case_id),
                     )
                     db.execute(
@@ -496,6 +519,24 @@ class BankLedger:
                         (case_id, bank, slot),
                     )
                     retired += 1
+                elif stride is not None:
+                    db.execute(
+                        "UPDATE cases SET due_slot = ? WHERE case_id = ?",
+                        (slot + stride, case_id),
+                    )
+            for case_id in lapsed:
+                # Due in a window that was never drawn: retired now, never
+                # drawn late. It publishes once the windows that drew it end.
+                db.execute(
+                    "UPDATE cases SET retired_slot = ?, due_slot = NULL "
+                    "WHERE case_id = ?",
+                    (slot, case_id),
+                )
+                db.execute(
+                    "INSERT OR IGNORE INTO release(case_id, bank, slot) VALUES (?, ?, ?)",
+                    (case_id, bank, slot),
+                )
+                retired += 1
         self._append(
             "window_drawn",
             bank=bank,
@@ -505,6 +546,60 @@ class BankLedger:
             retired=retired,
         )
         return drawn
+
+    def _scheduled(self, db, bank, slot, quotas, held, retire_at, stride, rng):
+        """`(drawn, budgets, lapsed)` for a scheduled window. The lane is the
+        windows `stride` slots apart that hold `slot`. The window takes every
+        case due at `slot` in its lane, plus fresh cases (never drawn) up to
+        n. A lane's first window splits its fresh cases into E groups with
+        exposure budgets E, E-1, ... 1, so one group retires each window and
+        the lane stays balanced; after that each fresh case gets the full E.
+        A case due in an earlier window of the lane that was never drawn is
+        lapsed: retired, never drawn late."""
+        if set(quotas) != {"all"}:
+            raise BankRefused("bank_schedule_stratified")
+        n = quotas["all"]
+        rows = db.execute(
+            "SELECT case_id, due_slot, budget FROM cases WHERE bank = ? AND "
+            "retired_slot IS NULL AND due_slot IS NOT NULL",
+            (bank,),
+        ).fetchall()
+        lane = [r for r in rows if (r["due_slot"] - slot) % stride == 0]
+        due = [r["case_id"] for r in lane if r["due_slot"] == slot]
+        lapsed = sorted(r["case_id"] for r in lane if r["due_slot"] < slot)
+        pending = [r for r in lane if r["due_slot"] > slot]
+        if set(due) & held:
+            raise BankRefused("bank_schedule_conflict")
+        if len(due) > n:
+            raise BankRefused("bank_schedule_overflow")
+        fresh_pool = [
+            r["case_id"]
+            for r in db.execute(
+                "SELECT c.case_id FROM cases c JOIN tranches t ON t.role = c.tranche "
+                "WHERE c.bank = ? AND t.state = 'SEALED' AND c.status = ? AND "
+                "c.retired_slot IS NULL AND c.due_slot IS NULL AND c.exposures = 0 "
+                "ORDER BY c.case_id",
+                (bank, LIVE_STATUS),
+            ).fetchall()
+            if r["case_id"] not in held
+        ]
+        need = n - len(due)
+        if len(fresh_pool) < need:
+            raise BankRefused("bank_short:" + bank)
+        fresh = sorted(rng.sample(fresh_pool, need))
+        budgets = {r["case_id"]: r["budget"] for r in lane if r["due_slot"] == slot}
+        if not due and not pending:
+            for group in range(retire_at):
+                for case_id in fresh[group::retire_at]:
+                    budgets[case_id] = retire_at - group
+        else:
+            budgets.update({case_id: retire_at for case_id in fresh})
+        for case_id in fresh:
+            db.execute(
+                "UPDATE cases SET budget = ? WHERE case_id = ?",
+                (budgets[case_id], case_id),
+            )
+        return due + fresh, budgets, lapsed
 
     def window_cases(self, bank, slot):
         """A drawn window's cases with their references and Merkle proofs,

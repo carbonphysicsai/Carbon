@@ -66,6 +66,7 @@ from carbon.development_session.profile import canonical, digest
 
 from . import (
     baseline_retry,
+    capability_log,
     grant_binding,
     hidden_score,
     level_domain,
@@ -359,6 +360,10 @@ def pod_charge_report(ledger):
         "booked_at_reservation": sum(
             p["basis"] in ("reservation", "unresolved") for p in pods
         ),
+        "duplicate_pods": sum(p["duplicates"] for p in pods),
+        "duplicate_charged_usd": str(
+            sum((Decimal(p["duplicate_charged_usd"] or 0) for p in pods), Decimal(0))
+        ),
         "bases": CHARGE_BASES,
         "note": CHARGE_NOTE,
     }
@@ -425,12 +430,17 @@ class PodLedger:
                 pod["terminated"] = True
             elif event == "pod_settled":
                 pod["settled_usd"] = row["charge_usd"]
+            elif event == "pod_duplicates_counted":
+                pod["duplicates"] = row["count"]
+                pod["duplicate_usd"] = row["charged_usd"]
         return state
 
     def committed(self):
         """(settled, pending) USD across the run's pods."""
         settled = pending = Decimal(0)
         for pod in self.pods().values():
+            # A duplicate's real charge is spend even though it is not the pod.
+            settled += Decimal(pod.get("duplicate_usd") or 0)
             if pod["settled_usd"] is not None:
                 settled += Decimal(pod["settled_usd"])
             elif pod["reserved_usd"] is not None:
@@ -477,6 +487,8 @@ class PodLedger:
                     ),
                     "estimated_usd": _estimate(pod, seen),
                     "settled_basis": seen.get("settled_basis"),
+                    "duplicates": pod.get("duplicates", 0),
+                    "duplicate_charged_usd": pod.get("duplicate_usd"),
                 }
             )
         return out
@@ -819,6 +831,7 @@ class Experiment:
             # labelled with it (VALIDATOR-09); without one, nothing changes.
             record = {**record, "label": self.score_variant["label"]}
         write_once(self._dir(pid) / "result.json", canonical(record))
+        self._log_refusal(pid, record)
         self.emit(
             "proposal-" + pid,
             {
@@ -829,6 +842,52 @@ class Experiment:
             },
         )
         return record
+
+    # -- the refused-capability log (opt-in, log only) --------------------------------------
+    def _capability_context(self):
+        level = (
+            0 if self.development_variant is None else self.development_variant.level
+        )
+        return {
+            "challenge": self.scoring.challenge_id,
+            "level": level,
+            "run": self.run_id,
+            "when": capability_log.now(),
+        }
+
+    def _log_wish(self, pid, intent):
+        """A capability wish in the proposal's hypothesis, if the log is on."""
+        if capability_log.log_path() is None:
+            return
+        try:
+            entry = capability_log.wish_entry(
+                proposal=pid,
+                hypothesis=(intent.get("why") or {}).get("hypothesis"),
+                **self._capability_context(),
+            )
+            capability_log.append([entry] if entry else [])
+        except (OSError, KeyError, TypeError, ValueError):
+            return  # logging never affects a run
+
+    def _log_refusal(self, pid, record):
+        """A refused proposal's rows, if the log is on."""
+        if capability_log.log_path() is None or not record["status"].startswith(
+            "REFUSED"
+        ):
+            return
+        try:
+            intent = json.loads((self._dir(pid) / "intent.json").read_bytes())
+            capability_log.append(
+                capability_log.refusal_entries(
+                    proposal=pid,
+                    record=record,
+                    strategy=intent.get("strategy") or {},
+                    why=intent.get("why") or {},
+                    **self._capability_context(),
+                )
+            )
+        except (OSError, KeyError, TypeError, ValueError):
+            return  # logging never affects a run
 
     # -- spend -----------------------------------------------------------------------------
     def pod_committed(self):
@@ -958,6 +1017,7 @@ class Experiment:
                     pod_id=handle.pod_id,
                 )
                 self._settle(pid, handle)
+                self._count_duplicates(pid, handle.intent_id)
                 return True
         self.ledger.append(
             "pod_terminate_unverified",
@@ -966,6 +1026,29 @@ class Experiment:
             pod_id=handle.pod_id,
         )
         return False
+
+    def _count_duplicates(self, pid, intent_id):
+        """A second pod under this intent's tag (an ambiguous create that landed
+        twice) is counted in the cost record: how many, and their provider
+        charge when known. A backend that reports none counts none."""
+        found = getattr(self.pods, "duplicates", None)
+        if found is None:
+            return
+        try:
+            pods = found(intent_id)
+        except (podlib.PodFailure, OSError, ValueError):
+            return
+        if not pods:
+            return
+        known = [Decimal(p["charge_usd"]) for p in pods if p["charge_usd"] is not None]
+        self.ledger.append(
+            "pod_duplicates_counted",
+            intent_id=intent_id,
+            proposal=pid,
+            count=len(pods),
+            charged_usd=str(sum(known, Decimal(0))),
+            unknown_charges=len(pods) - len(known),
+        )
 
     def _settle(self, pid, handle):
         charge = self.pods.charge(handle)
@@ -1424,6 +1507,7 @@ class Experiment:
                 ),
             )
         intent = json.loads(intent_path.read_bytes())
+        self._log_wish(pid, intent)
         base = {
             "schema": PROPOSAL_SCHEMA,
             "proposal_id": pid,

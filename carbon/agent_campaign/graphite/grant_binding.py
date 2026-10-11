@@ -39,7 +39,8 @@ committed blob:
     open below it is refused `start_model_below_the_grants_start_rung`
     (`start_model_refusal`). The escalation rule is unchanged; there is no
     rung above the top (`ladder_top`);
-  - `token_share_usd` 11.93: the run's token share is that amount, and its
+  - `token_share_usd` 10.99 (11.93 until OWNER-GRAPHITE-PHASE3-R4-CEILING-01
+    set the 0.65/h ceiling): the run's token share is that amount, and its
     pods get the rest of the run cost (`experiment.phase3_budget`), so a
     full-window kimi-k3 call (USD 2.0646912 reserved) is admitted.
   A new session records them as its `run_conditions` (`run_conditions`).
@@ -180,7 +181,8 @@ STAGE_A_AUTHORITY = "OWNER-GRAPHITE-STAGE-A-01"
 #: The stage Constructors' token share at the standing 0.65/h pod rate
 #: ceiling (GRANT-POD-CEILING-01, owner-confirmed): 10.99 of the 14.91 run
 #: (five full kimi-k3 reservations), leaving the session's pods enough at
-#: 0.65/h. R4 keeps 11.93 at the 0.49 default.
+#: 0.65/h. R4 takes the same share at the same ceiling
+#: (OWNER-GRAPHITE-PHASE3-R4-CEILING-01, owner-confirmed).
 STAGE_TOKEN_SHARE = Decimal("10.99")
 #: Stage B (GRAPHITE_LADDER_STAGE_B_PLAN.md section 7), approved by the owner.
 STAGE_B_AUTHORITY = "OWNER-GRAPHITE-STAGE-B-01"
@@ -251,7 +253,7 @@ PHASE3_GRANTS = types.MappingProxyType(
                 main_blob=True,
                 min_level=1,
                 start_model="kimi-k3",
-                token_share_usd=Decimal("11.93"),
+                token_share_usd=STAGE_TOKEN_SHARE,
             ),
             Phase3Grant(
                 grant_id="GRAPHITE-GRANT-STAGE-A-CONSTRUCTOR",
