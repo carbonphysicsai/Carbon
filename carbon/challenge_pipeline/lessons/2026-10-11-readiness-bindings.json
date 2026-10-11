@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-11-readiness-bindings",
+  "recorded_at": "2026-10-11T11:53:24Z",
+  "challenge": "benchmark-readiness",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "CHALLENGE-READINESS-BINDINGS-01", "description": "Native source-bound readiness diagnostics, 22 passed after a basis-reporting correction"},
+  "expected": "Known preparation should report per-item plans while implementation YES depends only on inspected main code.",
+  "observed": "A family whose preparation PR has not merged can legitimately have zero inspected main sources. The initial old eleven-family assertion failed for the two new planned-only families; the repair retains it for the original eleven and explicitly tests zero YES with all PLANNED when no benchmark source was inspected. Missing Git reads still remain UNKNOWN.",
+  "keep": ["Pointers and owners for all seven items", "Static family validator plus comparison hook checks", "Immutable main evidence only"],
+  "change": ["Distinguish absent paths from unavailable reads", "Do not list a proposed file as inspected evidence", "Keep follow-up PR unopened until its handed-off readiness dependency merges"],
+  "protocol_elements": ["EVIDENCE-READINESS-CHECK-01", "CHALLENGE-READINESS-BINDINGS-01"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
