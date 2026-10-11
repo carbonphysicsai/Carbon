@@ -1,0 +1,5029 @@
+{
+ "biased_filter_diagnostics_never_adopted": {
+  "drop_fully_all_infeasible": {
+   "all_reference_actions_resolved": 14,
+   "common_resolved": 18,
+   "excluded_questions": [
+    "D-T14-S0.12",
+    "D-T14-S0.48",
+    "D-T24-S0.48",
+    "D-T34-S0.33",
+    "D-T5-S0.33",
+    "D-T5-S0.48",
+    "V-T19-S0.06",
+    "V-T19-S0.22",
+    "V-T19-S0.40",
+    "V-T38-S0.40",
+    "D-T16-S0.10",
+    "D-T16-S0.30",
+    "D-T26-S0.46",
+    "D-T35-S0.10",
+    "D-T35-S0.30",
+    "D-T35-S0.46",
+    "D-T6-S0.46",
+    "V-T10-S0.07",
+    "V-T20-S0.24",
+    "V-T20-S0.38",
+    "V-T30-S0.24"
+   ],
+   "fully_all_infeasible": 0,
+   "member_records": 3861,
+   "missing_member_records": 0,
+   "no_known_feasible_but_uncertain": 3,
+   "numeric_member_records": 3024,
+   "offered": 39,
+   "outcome_kinds": {
+    "ABSTENTION_UNRESOLVED": 68,
+    "MISSED_OPPORTUNITY": 31,
+    "SELECTED_FEASIBLE": 2742,
+    "SELECTED_INFEASIBLE": 251,
+    "SELECTED_UNRESOLVED": 769
+   },
+   "rate": 0.46153846153846156
+  },
+  "fully_resolved_references_only": {
+   "all_reference_actions_resolved": 23,
+   "common_resolved": 23,
+   "excluded_questions": [],
+   "fully_all_infeasible": 9,
+   "member_records": 2277,
+   "missing_member_records": 0,
+   "no_known_feasible_but_uncertain": 0,
+   "numeric_member_records": 2277,
+   "offered": 23,
+   "outcome_kinds": {
+    "CORRECT_ABSTENTION": 680,
+    "MISSED_OPPORTUNITY": 15,
+    "SELECTED_FEASIBLE": 1206,
+    "SELECTED_INFEASIBLE": 376
+   },
+   "rate": 1.0
+  },
+  "known_contested_only": {
+   "all_reference_actions_resolved": 14,
+   "common_resolved": 18,
+   "excluded_questions": [
+    "D-T14-S0.12",
+    "D-T14-S0.48",
+    "D-T24-S0.48",
+    "D-T34-S0.33",
+    "V-T19-S0.06",
+    "V-T19-S0.22",
+    "V-T19-S0.40",
+    "V-T38-S0.40",
+    "D-T16-S0.10",
+    "D-T16-S0.30",
+    "D-T26-S0.46",
+    "D-T35-S0.10",
+    "D-T35-S0.30",
+    "D-T35-S0.46",
+    "D-T6-S0.46",
+    "V-T20-S0.24",
+    "V-T20-S0.38",
+    "V-T30-S0.24"
+   ],
+   "fully_all_infeasible": 0,
+   "member_records": 3564,
+   "missing_member_records": 0,
+   "no_known_feasible_but_uncertain": 0,
+   "numeric_member_records": 2961,
+   "offered": 36,
+   "outcome_kinds": {
+    "MISSED_OPPORTUNITY": 31,
+    "SELECTED_FEASIBLE": 2742,
+    "SELECTED_INFEASIBLE": 188,
+    "SELECTED_UNRESOLVED": 603
+   },
+   "rate": 0.5
+  }
+ },
+ "campaigns": {
+  "ev4": {
+   "all_eligible_panel": {
+    "all_reference_actions_resolved": 12,
+    "common_resolved": 14,
+    "excluded_questions": [
+     "D-T14-S0.12",
+     "D-T14-S0.48",
+     "D-T24-S0.48",
+     "D-T34-S0.33",
+     "D-T5-S0.33",
+     "D-T5-S0.48",
+     "V-T19-S0.06",
+     "V-T19-S0.22",
+     "V-T19-S0.40",
+     "V-T38-S0.40"
+    ],
+    "fully_all_infeasible": 4,
+    "member_records": 2496,
+    "missing_member_records": 0,
+    "no_known_feasible_but_uncertain": 2,
+    "numeric_member_records": 2105,
+    "offered": 24,
+    "outcome_kinds": {
+     "ABSTENTION_UNRESOLVED": 53,
+     "CORRECT_ABSTENTION": 355,
+     "MISSED_OPPORTUNITY": 19,
+     "MODEL_OUTPUT_MISSING": 5,
+     "SELECTED_FEASIBLE": 1506,
+     "SELECTED_INFEASIBLE": 220,
+     "SELECTED_UNRESOLVED": 338
+    },
+    "rate": 0.5833333333333334
+   },
+   "coverage_rules_diagnostics_not_adoption": {
+    "0.8": {
+     "excluded_incomplete_rows_retained_as_unknown": 6,
+     "questions": 20
+    },
+    "0.9": {
+     "excluded_incomplete_rows_retained_as_unknown": 3,
+     "questions": 17
+    },
+    "0.95": {
+     "excluded_incomplete_rows_retained_as_unknown": 0,
+     "questions": 14
+    },
+    "1.0": {
+     "excluded_incomplete_rows_retained_as_unknown": 0,
+     "questions": 14
+    }
+   },
+   "member_numeric_coverage": {
+    "max": 0.9166666666666666,
+    "mean": 0.8421717171717171,
+    "min": 0.7083333333333334
+   },
+   "members": 99,
+   "preassigned_cohort_diagnostics": {
+    "2": [
+     {
+      "all_reference_actions_resolved": 12,
+      "common_resolved": 14,
+      "excluded_questions": [
+       "D-T14-S0.12",
+       "D-T14-S0.48",
+       "D-T24-S0.48",
+       "D-T34-S0.33",
+       "D-T5-S0.33",
+       "D-T5-S0.48",
+       "V-T19-S0.06",
+       "V-T19-S0.22",
+       "V-T19-S0.40",
+       "V-T38-S0.40"
+      ],
+      "fully_all_infeasible": 4,
+      "member_records": 912,
+      "members": 38,
+      "missing_member_records": 0,
+      "no_known_feasible_but_uncertain": 2,
+      "numeric_member_records": 769,
+      "offered": 24,
+      "outcome_kinds": {
+       "ABSTENTION_UNRESOLVED": 21,
+       "CORRECT_ABSTENTION": 127,
+       "MISSED_OPPORTUNITY": 6,
+       "SELECTED_FEASIBLE": 556,
+       "SELECTED_INFEASIBLE": 80,
+       "SELECTED_UNRESOLVED": 122
+      },
+      "rate": 0.5833333333333334,
+      "recipes": 31
+     },
+     {
+      "all_reference_actions_resolved": 12,
+      "common_resolved": 14,
+      "excluded_questions": [
+       "D-T14-S0.12",
+       "D-T14-S0.48",
+       "D-T24-S0.48",
+       "D-T34-S0.33",
+       "D-T5-S0.33",
+       "D-T5-S0.48",
+       "V-T19-S0.06",
+       "V-T19-S0.22",
+       "V-T19-S0.40",
+       "V-T38-S0.40"
+      ],
+      "fully_all_infeasible": 4,
+      "member_records": 1464,
+      "members": 61,
+      "missing_member_records": 0,
+      "no_known_feasible_but_uncertain": 2,
+      "numeric_member_records": 1232,
+      "offered": 24,
+      "outcome_kinds": {
+       "ABSTENTION_UNRESOLVED": 29,
+       "CORRECT_ABSTENTION": 214,
+       "MISSED_OPPORTUNITY": 9,
+       "SELECTED_FEASIBLE": 892,
+       "SELECTED_INFEASIBLE": 117,
+       "SELECTED_UNRESOLVED": 203
+      },
+      "rate": 0.5833333333333334,
+      "recipes": 48
+     }
+    ],
+    "4": [
+     {
+      "all_reference_actions_resolved": 12,
+      "common_resolved": 16,
+      "excluded_questions": [
+       "D-T14-S0.48",
+       "D-T24-S0.48",
+       "D-T34-S0.33",
+       "D-T5-S0.33",
+       "D-T5-S0.48",
+       "V-T19-S0.22",
+       "V-T19-S0.40",
+       "V-T38-S0.40"
+      ],
+      "fully_all_infeasible": 4,
+      "member_records": 432,
+      "members": 18,
+      "missing_member_records": 0,
+      "no_known_feasible_but_uncertain": 2,
+      "numeric_member_records": 364,
+      "offered": 24,
+      "outcome_kinds": {
+       "ABSTENTION_UNRESOLVED": 9,
+       "CORRECT_ABSTENTION": 61,
+       "MISSED_OPPORTUNITY": 3,
+       "SELECTED_FEASIBLE": 265,
+       "SELECTED_INFEASIBLE": 35,
+       "SELECTED_UNRESOLVED": 59
+      },
+      "rate": 0.6666666666666666,
+      "recipes": 13
+     },
+     {
+      "all_reference_actions_resolved": 12,
+      "common_resolved": 14,
+      "excluded_questions": [
+       "D-T14-S0.12",
+       "D-T14-S0.48",
+       "D-T24-S0.48",
+       "D-T34-S0.33",
+       "D-T5-S0.33",
+       "D-T5-S0.48",
+       "V-T19-S0.06",
+       "V-T19-S0.22",
+       "V-T19-S0.40",
+       "V-T38-S0.40"
+      ],
+      "fully_all_infeasible": 4,
+      "member_records": 744,
+      "members": 31,
+      "missing_member_records": 0,
+      "no_known_feasible_but_uncertain": 2,
+      "numeric_member_records": 631,
+      "offered": 24,
+      "outcome_kinds": {
+       "ABSTENTION_UNRESOLVED": 11,
+       "CORRECT_ABSTENTION": 106,
+       "MISSED_OPPORTUNITY": 5,
+       "SELECTED_FEASIBLE": 451,
+       "SELECTED_INFEASIBLE": 69,
+       "SELECTED_UNRESOLVED": 102
+      },
+      "rate": 0.5833333333333334,
+      "recipes": 25
+     },
+     {
+      "all_reference_actions_resolved": 12,
+      "common_resolved": 15,
+      "excluded_questions": [
+       "D-T14-S0.12",
+       "D-T14-S0.48",
+       "D-T24-S0.48",
+       "D-T5-S0.33",
+       "D-T5-S0.48",
+       "V-T19-S0.06",
+       "V-T19-S0.22",
+       "V-T19-S0.40",
+       "V-T38-S0.40"
+      ],
+      "fully_all_infeasible": 4,
+      "member_records": 480,
+      "members": 20,
+      "missing_member_records": 0,
+      "no_known_feasible_but_uncertain": 2,
+      "numeric_member_records": 405,
+      "offered": 24,
+      "outcome_kinds": {
+       "ABSTENTION_UNRESOLVED": 12,
+       "CORRECT_ABSTENTION": 66,
+       "MISSED_OPPORTUNITY": 3,
+       "SELECTED_FEASIBLE": 291,
+       "SELECTED_INFEASIBLE": 45,
+       "SELECTED_UNRESOLVED": 63
+      },
+      "rate": 0.625,
+      "recipes": 18
+     },
+     {
+      "all_reference_actions_resolved": 12,
+      "common_resolved": 14,
+      "excluded_questions": [
+       "D-T14-S0.12",
+       "D-T14-S0.48",
+       "D-T24-S0.48",
+       "D-T34-S0.33",
+       "D-T5-S0.33",
+       "D-T5-S0.48",
+       "V-T19-S0.06",
+       "V-T19-S0.22",
+       "V-T19-S0.40",
+       "V-T38-S0.40"
+      ],
+      "fully_all_infeasible": 4,
+      "member_records": 720,
+      "members": 30,
+      "missing_member_records": 0,
+      "no_known_feasible_but_uncertain": 2,
+      "numeric_member_records": 601,
+      "offered": 24,
+      "outcome_kinds": {
+       "ABSTENTION_UNRESOLVED": 18,
+       "CORRECT_ABSTENTION": 108,
+       "MISSED_OPPORTUNITY": 4,
+       "SELECTED_FEASIBLE": 441,
+       "SELECTED_INFEASIBLE": 48,
+       "SELECTED_UNRESOLVED": 101
+      },
+      "rate": 0.5833333333333334,
+      "recipes": 23
+     }
+    ],
+    "8": [
+     {
+      "all_reference_actions_resolved": 12,
+      "common_resolved": 17,
+      "excluded_questions": [
+       "D-T14-S0.48",
+       "D-T24-S0.48",
+       "D-T34-S0.33",
+       "D-T5-S0.33",
+       "D-T5-S0.48",
+       "V-T19-S0.22",
+       "V-T38-S0.40"
+      ],
+      "fully_all_infeasible": 4,
+      "member_records": 216,
+      "members": 9,
+      "missing_member_records": 0,
+      "no_known_feasible_but_uncertain": 2,
+      "numeric_member_records": 182,
+      "offered": 24,
+      "outcome_kinds": {
+       "ABSTENTION_UNRESOLVED": 4,
+       "CORRECT_ABSTENTION": 29,
+       "MISSED_OPPORTUNITY": 1,
+       "SELECTED_FEASIBLE": 134,
+       "SELECTED_INFEASIBLE": 18,
+       "SELECTED_UNRESOLVED": 30
+      },
+      "rate": 0.7083333333333334,
+      "recipes": 6
+     },
+     {
+      "all_reference_actions_resolved": 12,
+      "common_resolved": 15,
+      "excluded_questions": [
+       "D-T14-S0.12",
+       "D-T14-S0.48",
+       "D-T24-S0.48",
+       "D-T34-S0.33",
+       "D-T5-S0.33",
+       "D-T5-S0.48",
+       "V-T19-S0.22",
+       "V-T19-S0.40",
+       "V-T38-S0.40"
+      ],
+      "fully_all_infeasible": 4,
+      "member_records": 312,
+      "members": 13,
+      "missing_member_records": 0,
+      "no_known_feasible_but_uncertain": 2,
+      "numeric_member_records": 259,
+      "offered": 24,
+      "outcome_kinds": {
+       "ABSTENTION_UNRESOLVED": 5,
+       "CORRECT_ABSTENTION": 43,
+       "MISSED_OPPORTUNITY": 4,
+       "SELECTED_FEASIBLE": 182,
+       "SELECTED_INFEASIBLE": 30,
+       "SELECTED_UNRESOLVED": 48
+      },
+      "rate": 0.625,
+      "recipes": 10
+     },
+     {
+      "all_reference_actions_resolved": 12,
+      "common_resolved": 16,
+      "excluded_questions": [
+       "D-T14-S0.12",
+       "D-T14-S0.48",
+       "D-T24-S0.48",
+       "D-T5-S0.33",
+       "D-T5-S0.48",
+       "V-T19-S0.06",
+       "V-T19-S0.22",
+       "V-T19-S0.40"
+      ],
+      "fully_all_infeasible": 4,
+      "member_records": 144,
+      "members": 6,
+      "missing_member_records": 0,
+      "no_known_feasible_but_uncertain": 2,
+      "numeric_member_records": 121,
+      "offered": 24,
+      "outcome_kinds": {
+       "ABSTENTION_UNRESOLVED": 4,
+       "CORRECT_ABSTENTION": 21,
+       "SELECTED_FEASIBLE": 91,
+       "SELECTED_INFEASIBLE": 9,
+       "SELECTED_UNRESOLVED": 19
+      },
+      "rate": 0.6666666666666666,
+      "recipes": 6
+     },
+     {
+      "all_reference_actions_resolved": 12,
+      "common_resolved": 15,
+      "excluded_questions": [
+       "D-T14-S0.12",
+       "D-T14-S0.48",
+       "D-T24-S0.48",
+       "D-T5-S0.33",
+       "D-T5-S0.48",
+       "V-T19-S0.06",
+       "V-T19-S0.22",
+       "V-T19-S0.40",
+       "V-T38-S0.40"
+      ],
+      "fully_all_infeasible": 4,
+      "member_records": 432,
+      "members": 18,
+      "missing_member_records": 0,
+      "no_known_feasible_but_uncertain": 2,
+      "numeric_member_records": 363,
+      "offered": 24,
+      "outcome_kinds": {
+       "ABSTENTION_UNRESOLVED": 9,
+       "CORRECT_ABSTENTION": 63,
+       "SELECTED_FEASIBLE": 271,
+       "SELECTED_INFEASIBLE": 29,
+       "SELECTED_UNRESOLVED": 60
+      },
+      "rate": 0.625,
+      "recipes": 11
+     },
+     {
+      "all_reference_actions_resolved": 12,
+      "common_resolved": 16,
+      "excluded_questions": [
+       "D-T14-S0.48",
+       "D-T24-S0.48",
+       "D-T34-S0.33",
+       "D-T5-S0.33",
+       "D-T5-S0.48",
+       "V-T19-S0.22",
+       "V-T19-S0.40",
+       "V-T38-S0.40"
+      ],
+      "fully_all_infeasible": 4,
+      "member_records": 216,
+      "members": 9,
+      "missing_member_records": 0,
+      "no_known_feasible_but_uncertain": 2,
+      "numeric_member_records": 182,
+      "offered": 24,
+      "outcome_kinds": {
+       "ABSTENTION_UNRESOLVED": 5,
+       "CORRECT_ABSTENTION": 32,
+       "MISSED_OPPORTUNITY": 2,
+       "SELECTED_FEASIBLE": 131,
+       "SELECTED_INFEASIBLE": 17,
+       "SELECTED_UNRESOLVED": 29
+      },
+      "rate": 0.6666666666666666,
+      "recipes": 7
+     },
+     {
+      "all_reference_actions_resolved": 12,
+      "common_resolved": 15,
+      "excluded_questions": [
+       "D-T14-S0.12",
+       "D-T14-S0.48",
+       "D-T24-S0.48",
+       "D-T34-S0.33",
+       "D-T5-S0.33",
+       "D-T5-S0.48",
+       "V-T19-S0.06",
+       "V-T19-S0.22",
+       "V-T38-S0.40"
+      ],
+      "fully_all_infeasible": 4,
+      "member_records": 432,
+      "members": 18,
+      "missing_member_records": 0,
+      "no_known_feasible_but_uncertain": 2,
+      "numeric_member_records": 372,
+      "offered": 24,
+      "outcome_kinds": {
+       "ABSTENTION_UNRESOLVED": 6,
+       "CORRECT_ABSTENTION": 63,
+       "MISSED_OPPORTUNITY": 1,
+       "SELECTED_FEASIBLE": 269,
+       "SELECTED_INFEASIBLE": 39,
+       "SELECTED_UNRESOLVED": 54
+      },
+      "rate": 0.625,
+      "recipes": 15
+     },
+     {
+      "all_reference_actions_resolved": 12,
+      "common_resolved": 16,
+      "excluded_questions": [
+       "D-T14-S0.12",
+       "D-T24-S0.48",
+       "D-T5-S0.33",
+       "D-T5-S0.48",
+       "V-T19-S0.06",
+       "V-T19-S0.22",
+       "V-T19-S0.40",
+       "V-T38-S0.40"
+      ],
+      "fully_all_infeasible": 4,
+      "member_records": 336,
+      "members": 14,
+      "missing_member_records": 0,
+      "no_known_feasible_but_uncertain": 2,
+      "numeric_member_records": 284,
+      "offered": 24,
+      "outcome_kinds": {
+       "ABSTENTION_UNRESOLVED": 8,
+       "CORRECT_ABSTENTION": 45,
+       "MISSED_OPPORTUNITY": 3,
+       "SELECTED_FEASIBLE": 200,
+       "SELECTED_INFEASIBLE": 36,
+       "SELECTED_UNRESOLVED": 44
+      },
+      "rate": 0.6666666666666666,
+      "recipes": 12
+     },
+     {
+      "all_reference_actions_resolved": 12,
+      "common_resolved": 15,
+      "excluded_questions": [
+       "D-T14-S0.48",
+       "D-T24-S0.48",
+       "D-T34-S0.33",
+       "D-T5-S0.33",
+       "D-T5-S0.48",
+       "V-T19-S0.06",
+       "V-T19-S0.22",
+       "V-T19-S0.40",
+       "V-T38-S0.40"
+      ],
+      "fully_all_infeasible": 4,
+      "member_records": 288,
+      "members": 12,
+      "missing_member_records": 0,
+      "no_known_feasible_but_uncertain": 2,
+      "numeric_member_records": 238,
+      "offered": 24,
+      "outcome_kinds": {
+       "ABSTENTION_UNRESOLVED": 9,
+       "CORRECT_ABSTENTION": 45,
+       "MISSED_OPPORTUNITY": 4,
+       "SELECTED_FEASIBLE": 170,
+       "SELECTED_INFEASIBLE": 19,
+       "SELECTED_UNRESOLVED": 41
+      },
+      "rate": 0.625,
+      "recipes": 12
+     }
+    ]
+   },
+   "questions": [
+    {
+     "all_reference_actions_resolved": false,
+     "common_resolved": false,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 99,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "MISSED_OPPORTUNITY": 3,
+      "SELECTED_FEASIBLE": 83,
+      "SELECTED_INFEASIBLE": 3,
+      "SELECTED_UNRESOLVED": 10
+     },
+     "question": "D-T14-S0.12",
+     "reference_status_counts": {
+      "FEASIBLE": 4,
+      "INFEASIBLE": 29,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 2
+     },
+     "resolved_member_records": 89,
+     "selected_ambiguous_actions": {
+      "c1=1.25,c2=0.8": 7,
+      "c1=1.5,c2=0.8": 3
+     },
+     "split": "development",
+     "temperature_block": "D-T14"
+    },
+    {
+     "all_reference_actions_resolved": true,
+     "common_resolved": true,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 99,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "SELECTED_FEASIBLE": 99
+     },
+     "question": "D-T14-S0.33",
+     "reference_status_counts": {
+      "FEASIBLE": 3,
+      "INFEASIBLE": 32,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 0
+     },
+     "resolved_member_records": 99,
+     "selected_ambiguous_actions": {},
+     "split": "development",
+     "temperature_block": "D-T14"
+    },
+    {
+     "all_reference_actions_resolved": false,
+     "common_resolved": false,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 99,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "MISSED_OPPORTUNITY": 2,
+      "SELECTED_FEASIBLE": 84,
+      "SELECTED_INFEASIBLE": 1,
+      "SELECTED_UNRESOLVED": 12
+     },
+     "question": "D-T14-S0.48",
+     "reference_status_counts": {
+      "FEASIBLE": 4,
+      "INFEASIBLE": 29,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 2
+     },
+     "resolved_member_records": 87,
+     "selected_ambiguous_actions": {
+      "c1=1,c2=0.6": 12
+     },
+     "split": "development",
+     "temperature_block": "D-T14"
+    },
+    {
+     "all_reference_actions_resolved": true,
+     "common_resolved": true,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 99,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "SELECTED_FEASIBLE": 46,
+      "SELECTED_INFEASIBLE": 53
+     },
+     "question": "D-T24-S0.12",
+     "reference_status_counts": {
+      "FEASIBLE": 14,
+      "INFEASIBLE": 21,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 0
+     },
+     "resolved_member_records": 99,
+     "selected_ambiguous_actions": {},
+     "split": "development",
+     "temperature_block": "D-T24"
+    },
+    {
+     "all_reference_actions_resolved": false,
+     "common_resolved": true,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 99,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "SELECTED_FEASIBLE": 95,
+      "SELECTED_INFEASIBLE": 4
+     },
+     "question": "D-T24-S0.33",
+     "reference_status_counts": {
+      "FEASIBLE": 10,
+      "INFEASIBLE": 24,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 1
+     },
+     "resolved_member_records": 99,
+     "selected_ambiguous_actions": {},
+     "split": "development",
+     "temperature_block": "D-T24"
+    },
+    {
+     "all_reference_actions_resolved": false,
+     "common_resolved": false,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 99,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "SELECTED_FEASIBLE": 5,
+      "SELECTED_UNRESOLVED": 94
+     },
+     "question": "D-T24-S0.48",
+     "reference_status_counts": {
+      "FEASIBLE": 9,
+      "INFEASIBLE": 20,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 6
+     },
+     "resolved_member_records": 5,
+     "selected_ambiguous_actions": {
+      "c1=0.75,c2=1": 3,
+      "c1=1,c2=1": 34,
+      "c1=1.25,c2=1": 55,
+      "c1=1.5,c2=1": 2
+     },
+     "split": "development",
+     "temperature_block": "D-T24"
+    },
+    {
+     "all_reference_actions_resolved": true,
+     "common_resolved": true,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 99,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "MISSED_OPPORTUNITY": 2,
+      "SELECTED_FEASIBLE": 95,
+      "SELECTED_INFEASIBLE": 2
+     },
+     "question": "D-T34-S0.12",
+     "reference_status_counts": {
+      "FEASIBLE": 4,
+      "INFEASIBLE": 31,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 0
+     },
+     "resolved_member_records": 99,
+     "selected_ambiguous_actions": {},
+     "split": "development",
+     "temperature_block": "D-T34"
+    },
+    {
+     "all_reference_actions_resolved": false,
+     "common_resolved": false,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 99,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "SELECTED_FEASIBLE": 93,
+      "SELECTED_UNRESOLVED": 6
+     },
+     "question": "D-T34-S0.33",
+     "reference_status_counts": {
+      "FEASIBLE": 17,
+      "INFEASIBLE": 15,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 3
+     },
+     "resolved_member_records": 93,
+     "selected_ambiguous_actions": {
+      "c1=2,c2=1": 6
+     },
+     "split": "development",
+     "temperature_block": "D-T34"
+    },
+    {
+     "all_reference_actions_resolved": true,
+     "common_resolved": true,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 99,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "SELECTED_FEASIBLE": 99
+     },
+     "question": "D-T34-S0.48",
+     "reference_status_counts": {
+      "FEASIBLE": 22,
+      "INFEASIBLE": 13,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 0
+     },
+     "resolved_member_records": 99,
+     "selected_ambiguous_actions": {},
+     "split": "development",
+     "temperature_block": "D-T34"
+    },
+    {
+     "all_reference_actions_resolved": true,
+     "common_resolved": true,
+     "contested_known_feasible_and_infeasible": false,
+     "fully_all_infeasible": true,
+     "members": 99,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "CORRECT_ABSTENTION": 96,
+      "SELECTED_INFEASIBLE": 3
+     },
+     "question": "D-T5-S0.12",
+     "reference_status_counts": {
+      "FEASIBLE": 0,
+      "INFEASIBLE": 35,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 0
+     },
+     "resolved_member_records": 99,
+     "selected_ambiguous_actions": {},
+     "split": "development",
+     "temperature_block": "D-T5"
+    },
+    {
+     "all_reference_actions_resolved": false,
+     "common_resolved": false,
+     "contested_known_feasible_and_infeasible": false,
+     "fully_all_infeasible": false,
+     "members": 99,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": true,
+     "outcome_kinds": {
+      "ABSTENTION_UNRESOLVED": 40,
+      "SELECTED_INFEASIBLE": 52,
+      "SELECTED_UNRESOLVED": 7
+     },
+     "question": "D-T5-S0.33",
+     "reference_status_counts": {
+      "FEASIBLE": 0,
+      "INFEASIBLE": 34,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 1
+     },
+     "resolved_member_records": 52,
+     "selected_ambiguous_actions": {
+      "c1=0.75,c2=0.4": 7
+     },
+     "split": "development",
+     "temperature_block": "D-T5"
+    },
+    {
+     "all_reference_actions_resolved": false,
+     "common_resolved": false,
+     "contested_known_feasible_and_infeasible": false,
+     "fully_all_infeasible": false,
+     "members": 99,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": true,
+     "outcome_kinds": {
+      "ABSTENTION_UNRESOLVED": 10,
+      "SELECTED_INFEASIBLE": 10,
+      "SELECTED_UNRESOLVED": 79
+     },
+     "question": "D-T5-S0.48",
+     "reference_status_counts": {
+      "FEASIBLE": 0,
+      "INFEASIBLE": 29,
+      "REFERENCE_UNAVAILABLE": 5,
+      "UNRESOLVED": 1
+     },
+     "resolved_member_records": 10,
+     "selected_ambiguous_actions": {
+      "c1=0.5,c2=0.4": 79
+     },
+     "split": "development",
+     "temperature_block": "D-T5"
+    },
+    {
+     "all_reference_actions_resolved": false,
+     "common_resolved": false,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 99,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "SELECTED_FEASIBLE": 93,
+      "SELECTED_UNRESOLVED": 6
+     },
+     "question": "V-T19-S0.06",
+     "reference_status_counts": {
+      "FEASIBLE": 13,
+      "INFEASIBLE": 19,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 3
+     },
+     "resolved_member_records": 93,
+     "selected_ambiguous_actions": {
+      "c1=1.5,c2=1": 6
+     },
+     "split": "verification",
+     "temperature_block": "V-T19"
+    },
+    {
+     "all_reference_actions_resolved": false,
+     "common_resolved": false,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 99,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "SELECTED_FEASIBLE": 12,
+      "SELECTED_UNRESOLVED": 87
+     },
+     "question": "V-T19-S0.22",
+     "reference_status_counts": {
+      "FEASIBLE": 6,
+      "INFEASIBLE": 23,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 6
+     },
+     "resolved_member_records": 12,
+     "selected_ambiguous_actions": {
+      "c1=1,c2=1": 4,
+      "c1=1.25,c2=1": 69,
+      "c1=1.5,c2=0.8": 10,
+      "c1=1.5,c2=1": 4
+     },
+     "split": "verification",
+     "temperature_block": "V-T19"
+    },
+    {
+     "all_reference_actions_resolved": false,
+     "common_resolved": false,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 99,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "SELECTED_FEASIBLE": 92,
+      "SELECTED_INFEASIBLE": 1,
+      "SELECTED_UNRESOLVED": 6
+     },
+     "question": "V-T19-S0.40",
+     "reference_status_counts": {
+      "FEASIBLE": 4,
+      "INFEASIBLE": 29,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 2
+     },
+     "resolved_member_records": 93,
+     "selected_ambiguous_actions": {
+      "c1=0.75,c2=0.8": 6
+     },
+     "split": "verification",
+     "temperature_block": "V-T19"
+    },
+    {
+     "all_reference_actions_resolved": true,
+     "common_resolved": true,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 99,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "SELECTED_FEASIBLE": 92,
+      "SELECTED_INFEASIBLE": 7
+     },
+     "question": "V-T29-S0.06",
+     "reference_status_counts": {
+      "FEASIBLE": 6,
+      "INFEASIBLE": 29,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 0
+     },
+     "resolved_member_records": 99,
+     "selected_ambiguous_actions": {},
+     "split": "verification",
+     "temperature_block": "V-T29"
+    },
+    {
+     "all_reference_actions_resolved": false,
+     "common_resolved": true,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 99,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "SELECTED_FEASIBLE": 99
+     },
+     "question": "V-T29-S0.22",
+     "reference_status_counts": {
+      "FEASIBLE": 18,
+      "INFEASIBLE": 16,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 1
+     },
+     "resolved_member_records": 99,
+     "selected_ambiguous_actions": {},
+     "split": "verification",
+     "temperature_block": "V-T29"
+    },
+    {
+     "all_reference_actions_resolved": true,
+     "common_resolved": true,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 99,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "SELECTED_FEASIBLE": 96,
+      "SELECTED_INFEASIBLE": 3
+     },
+     "question": "V-T29-S0.40",
+     "reference_status_counts": {
+      "FEASIBLE": 15,
+      "INFEASIBLE": 20,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 0
+     },
+     "resolved_member_records": 99,
+     "selected_ambiguous_actions": {},
+     "split": "verification",
+     "temperature_block": "V-T29"
+    },
+    {
+     "all_reference_actions_resolved": true,
+     "common_resolved": true,
+     "contested_known_feasible_and_infeasible": false,
+     "fully_all_infeasible": true,
+     "members": 99,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "CORRECT_ABSTENTION": 99
+     },
+     "question": "V-T38-S0.06",
+     "reference_status_counts": {
+      "FEASIBLE": 0,
+      "INFEASIBLE": 35,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 0
+     },
+     "resolved_member_records": 99,
+     "selected_ambiguous_actions": {},
+     "split": "verification",
+     "temperature_block": "V-T38"
+    },
+    {
+     "all_reference_actions_resolved": true,
+     "common_resolved": true,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 99,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "MISSED_OPPORTUNITY": 3,
+      "SELECTED_FEASIBLE": 92,
+      "SELECTED_INFEASIBLE": 4
+     },
+     "question": "V-T38-S0.22",
+     "reference_status_counts": {
+      "FEASIBLE": 1,
+      "INFEASIBLE": 34,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 0
+     },
+     "resolved_member_records": 99,
+     "selected_ambiguous_actions": {},
+     "split": "verification",
+     "temperature_block": "V-T38"
+    },
+    {
+     "all_reference_actions_resolved": false,
+     "common_resolved": false,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 99,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "SELECTED_FEASIBLE": 81,
+      "SELECTED_UNRESOLVED": 18
+     },
+     "question": "V-T38-S0.40",
+     "reference_status_counts": {
+      "FEASIBLE": 13,
+      "INFEASIBLE": 20,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 2
+     },
+     "resolved_member_records": 81,
+     "selected_ambiguous_actions": {
+      "c1=1.25,c2=0.8": 18
+     },
+     "split": "verification",
+     "temperature_block": "V-T38"
+    },
+    {
+     "all_reference_actions_resolved": true,
+     "common_resolved": true,
+     "contested_known_feasible_and_infeasible": false,
+     "fully_all_infeasible": true,
+     "members": 99,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "CORRECT_ABSTENTION": 51,
+      "SELECTED_INFEASIBLE": 48
+     },
+     "question": "V-T9-S0.06",
+     "reference_status_counts": {
+      "FEASIBLE": 0,
+      "INFEASIBLE": 35,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 0
+     },
+     "resolved_member_records": 99,
+     "selected_ambiguous_actions": {},
+     "split": "verification",
+     "temperature_block": "V-T9"
+    },
+    {
+     "all_reference_actions_resolved": true,
+     "common_resolved": true,
+     "contested_known_feasible_and_infeasible": false,
+     "fully_all_infeasible": true,
+     "members": 99,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "CORRECT_ABSTENTION": 95,
+      "SELECTED_INFEASIBLE": 4
+     },
+     "question": "V-T9-S0.22",
+     "reference_status_counts": {
+      "FEASIBLE": 0,
+      "INFEASIBLE": 35,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 0
+     },
+     "resolved_member_records": 99,
+     "selected_ambiguous_actions": {},
+     "split": "verification",
+     "temperature_block": "V-T9"
+    },
+    {
+     "all_reference_actions_resolved": true,
+     "common_resolved": true,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 99,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "MISSED_OPPORTUNITY": 5,
+      "SELECTED_FEASIBLE": 92,
+      "SELECTED_INFEASIBLE": 2
+     },
+     "question": "V-T9-S0.40",
+     "reference_status_counts": {
+      "FEASIBLE": 2,
+      "INFEASIBLE": 33,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 0
+     },
+     "resolved_member_records": 99,
+     "selected_ambiguous_actions": {},
+     "split": "verification",
+     "temperature_block": "V-T9"
+    }
+   ],
+   "recipes": 79,
+   "splits": {
+    "development": {
+     "all_reference_actions_resolved": 5,
+     "common_resolved": 6,
+     "excluded_questions": [
+      "D-T14-S0.12",
+      "D-T14-S0.48",
+      "D-T24-S0.48",
+      "D-T34-S0.33",
+      "D-T5-S0.33",
+      "D-T5-S0.48"
+     ],
+     "fully_all_infeasible": 1,
+     "member_records": 1188,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": 2,
+     "numeric_member_records": 930,
+     "offered": 12,
+     "outcome_kinds": {
+      "ABSTENTION_UNRESOLVED": 50,
+      "CORRECT_ABSTENTION": 96,
+      "MISSED_OPPORTUNITY": 7,
+      "SELECTED_FEASIBLE": 699,
+      "SELECTED_INFEASIBLE": 128,
+      "SELECTED_UNRESOLVED": 208
+     },
+     "rate": 0.5
+    },
+    "verification": {
+     "all_reference_actions_resolved": 7,
+     "common_resolved": 8,
+     "excluded_questions": [
+      "V-T19-S0.06",
+      "V-T19-S0.22",
+      "V-T19-S0.40",
+      "V-T38-S0.40"
+     ],
+     "fully_all_infeasible": 3,
+     "member_records": 1188,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": 0,
+     "numeric_member_records": 1071,
+     "offered": 12,
+     "outcome_kinds": {
+      "CORRECT_ABSTENTION": 245,
+      "MISSED_OPPORTUNITY": 8,
+      "SELECTED_FEASIBLE": 749,
+      "SELECTED_INFEASIBLE": 69,
+      "SELECTED_UNRESOLVED": 117
+     },
+     "rate": 0.6666666666666666
+    }
+   },
+   "summary": {
+    "all_reference_actions_resolved": 12,
+    "common_resolved": 14,
+    "excluded_questions": [
+     "D-T14-S0.12",
+     "D-T14-S0.48",
+     "D-T24-S0.48",
+     "D-T34-S0.33",
+     "D-T5-S0.33",
+     "D-T5-S0.48",
+     "V-T19-S0.06",
+     "V-T19-S0.22",
+     "V-T19-S0.40",
+     "V-T38-S0.40"
+    ],
+    "fully_all_infeasible": 4,
+    "member_records": 2376,
+    "missing_member_records": 0,
+    "no_known_feasible_but_uncertain": 2,
+    "numeric_member_records": 2001,
+    "offered": 24,
+    "outcome_kinds": {
+     "ABSTENTION_UNRESOLVED": 50,
+     "CORRECT_ABSTENTION": 341,
+     "MISSED_OPPORTUNITY": 15,
+     "SELECTED_FEASIBLE": 1448,
+     "SELECTED_INFEASIBLE": 197,
+     "SELECTED_UNRESOLVED": 325
+    },
+    "rate": 0.5833333333333334
+   }
+  },
+  "ev5": {
+   "all_eligible_panel": {
+    "all_reference_actions_resolved": 11,
+    "common_resolved": 13,
+    "excluded_questions": [
+     "D-T16-S0.10",
+     "D-T16-S0.30",
+     "D-T26-S0.46",
+     "D-T35-S0.10",
+     "D-T35-S0.30",
+     "D-T35-S0.46",
+     "D-T6-S0.46",
+     "V-T10-S0.07",
+     "V-T20-S0.24",
+     "V-T20-S0.38",
+     "V-T30-S0.24"
+    ],
+    "fully_all_infeasible": 5,
+    "member_records": 2712,
+    "missing_member_records": 0,
+    "no_known_feasible_but_uncertain": 1,
+    "numeric_member_records": 2190,
+    "offered": 24,
+    "outcome_kinds": {
+     "ABSTENTION_UNRESOLVED": 26,
+     "CORRECT_ABSTENTION": 385,
+     "MISSED_OPPORTUNITY": 22,
+     "SELECTED_FEASIBLE": 1475,
+     "SELECTED_INFEASIBLE": 308,
+     "SELECTED_UNRESOLVED": 496
+    },
+    "rate": 0.5416666666666666
+   },
+   "coverage_rules_diagnostics_not_adoption": {
+    "0.8": {
+     "excluded_incomplete_rows_retained_as_unknown": 4,
+     "questions": 17
+    },
+    "0.9": {
+     "excluded_incomplete_rows_retained_as_unknown": 1,
+     "questions": 14
+    },
+    "0.95": {
+     "excluded_incomplete_rows_retained_as_unknown": 1,
+     "questions": 14
+    },
+    "1.0": {
+     "excluded_incomplete_rows_retained_as_unknown": 0,
+     "questions": 13
+    }
+   },
+   "member_numeric_coverage": {
+    "max": 0.9166666666666666,
+    "mean": 0.8055555555555556,
+    "min": 0.6666666666666666
+   },
+   "members": 99,
+   "preassigned_cohort_diagnostics": {
+    "2": [
+     {
+      "all_reference_actions_resolved": 11,
+      "common_resolved": 13,
+      "excluded_questions": [
+       "D-T16-S0.10",
+       "D-T16-S0.30",
+       "D-T26-S0.46",
+       "D-T35-S0.10",
+       "D-T35-S0.30",
+       "D-T35-S0.46",
+       "D-T6-S0.46",
+       "V-T10-S0.07",
+       "V-T20-S0.24",
+       "V-T20-S0.38",
+       "V-T30-S0.24"
+      ],
+      "fully_all_infeasible": 5,
+      "member_records": 912,
+      "members": 38,
+      "missing_member_records": 0,
+      "no_known_feasible_but_uncertain": 1,
+      "numeric_member_records": 735,
+      "offered": 24,
+      "outcome_kinds": {
+       "ABSTENTION_UNRESOLVED": 9,
+       "CORRECT_ABSTENTION": 130,
+       "MISSED_OPPORTUNITY": 7,
+       "SELECTED_FEASIBLE": 493,
+       "SELECTED_INFEASIBLE": 105,
+       "SELECTED_UNRESOLVED": 168
+      },
+      "rate": 0.5416666666666666,
+      "recipes": 31
+     },
+     {
+      "all_reference_actions_resolved": 11,
+      "common_resolved": 14,
+      "excluded_questions": [
+       "D-T16-S0.10",
+       "D-T16-S0.30",
+       "D-T26-S0.46",
+       "D-T35-S0.10",
+       "D-T35-S0.30",
+       "D-T35-S0.46",
+       "D-T6-S0.46",
+       "V-T10-S0.07",
+       "V-T20-S0.24",
+       "V-T30-S0.24"
+      ],
+      "fully_all_infeasible": 5,
+      "member_records": 1464,
+      "members": 61,
+      "missing_member_records": 0,
+      "no_known_feasible_but_uncertain": 1,
+      "numeric_member_records": 1179,
+      "offered": 24,
+      "outcome_kinds": {
+       "ABSTENTION_UNRESOLVED": 9,
+       "CORRECT_ABSTENTION": 209,
+       "MISSED_OPPORTUNITY": 9,
+       "SELECTED_FEASIBLE": 801,
+       "SELECTED_INFEASIBLE": 160,
+       "SELECTED_UNRESOLVED": 276
+      },
+      "rate": 0.5833333333333334,
+      "recipes": 48
+     }
+    ],
+    "4": [
+     {
+      "all_reference_actions_resolved": 11,
+      "common_resolved": 14,
+      "excluded_questions": [
+       "D-T16-S0.10",
+       "D-T16-S0.30",
+       "D-T26-S0.46",
+       "D-T35-S0.10",
+       "D-T35-S0.30",
+       "D-T35-S0.46",
+       "D-T6-S0.46",
+       "V-T10-S0.07",
+       "V-T20-S0.24",
+       "V-T30-S0.24"
+      ],
+      "fully_all_infeasible": 5,
+      "member_records": 432,
+      "members": 18,
+      "missing_member_records": 0,
+      "no_known_feasible_but_uncertain": 1,
+      "numeric_member_records": 344,
+      "offered": 24,
+      "outcome_kinds": {
+       "ABSTENTION_UNRESOLVED": 4,
+       "CORRECT_ABSTENTION": 66,
+       "MISSED_OPPORTUNITY": 3,
+       "SELECTED_FEASIBLE": 231,
+       "SELECTED_INFEASIBLE": 44,
+       "SELECTED_UNRESOLVED": 84
+      },
+      "rate": 0.5833333333333334,
+      "recipes": 13
+     },
+     {
+      "all_reference_actions_resolved": 11,
+      "common_resolved": 14,
+      "excluded_questions": [
+       "D-T16-S0.10",
+       "D-T16-S0.30",
+       "D-T26-S0.46",
+       "D-T35-S0.10",
+       "D-T35-S0.30",
+       "D-T35-S0.46",
+       "D-T6-S0.46",
+       "V-T10-S0.07",
+       "V-T20-S0.24",
+       "V-T30-S0.24"
+      ],
+      "fully_all_infeasible": 5,
+      "member_records": 744,
+      "members": 31,
+      "missing_member_records": 0,
+      "no_known_feasible_but_uncertain": 1,
+      "numeric_member_records": 600,
+      "offered": 24,
+      "outcome_kinds": {
+       "ABSTENTION_UNRESOLVED": 2,
+       "CORRECT_ABSTENTION": 106,
+       "MISSED_OPPORTUNITY": 3,
+       "SELECTED_FEASIBLE": 408,
+       "SELECTED_INFEASIBLE": 83,
+       "SELECTED_UNRESOLVED": 142
+      },
+      "rate": 0.5833333333333334,
+      "recipes": 25
+     },
+     {
+      "all_reference_actions_resolved": 11,
+      "common_resolved": 13,
+      "excluded_questions": [
+       "D-T16-S0.10",
+       "D-T16-S0.30",
+       "D-T26-S0.46",
+       "D-T35-S0.10",
+       "D-T35-S0.30",
+       "D-T35-S0.46",
+       "D-T6-S0.46",
+       "V-T10-S0.07",
+       "V-T20-S0.24",
+       "V-T20-S0.38",
+       "V-T30-S0.24"
+      ],
+      "fully_all_infeasible": 5,
+      "member_records": 480,
+      "members": 20,
+      "missing_member_records": 0,
+      "no_known_feasible_but_uncertain": 1,
+      "numeric_member_records": 391,
+      "offered": 24,
+      "outcome_kinds": {
+       "ABSTENTION_UNRESOLVED": 5,
+       "CORRECT_ABSTENTION": 64,
+       "MISSED_OPPORTUNITY": 4,
+       "SELECTED_FEASIBLE": 262,
+       "SELECTED_INFEASIBLE": 61,
+       "SELECTED_UNRESOLVED": 84
+      },
+      "rate": 0.5416666666666666,
+      "recipes": 18
+     },
+     {
+      "all_reference_actions_resolved": 11,
+      "common_resolved": 14,
+      "excluded_questions": [
+       "D-T16-S0.10",
+       "D-T16-S0.30",
+       "D-T26-S0.46",
+       "D-T35-S0.10",
+       "D-T35-S0.30",
+       "D-T35-S0.46",
+       "D-T6-S0.46",
+       "V-T10-S0.07",
+       "V-T20-S0.24",
+       "V-T30-S0.24"
+      ],
+      "fully_all_infeasible": 5,
+      "member_records": 720,
+      "members": 30,
+      "missing_member_records": 0,
+      "no_known_feasible_but_uncertain": 1,
+      "numeric_member_records": 579,
+      "offered": 24,
+      "outcome_kinds": {
+       "ABSTENTION_UNRESOLVED": 7,
+       "CORRECT_ABSTENTION": 103,
+       "MISSED_OPPORTUNITY": 6,
+       "SELECTED_FEASIBLE": 393,
+       "SELECTED_INFEASIBLE": 77,
+       "SELECTED_UNRESOLVED": 134
+      },
+      "rate": 0.5833333333333334,
+      "recipes": 23
+     }
+    ],
+    "8": [
+     {
+      "all_reference_actions_resolved": 11,
+      "common_resolved": 15,
+      "excluded_questions": [
+       "D-T16-S0.10",
+       "D-T26-S0.46",
+       "D-T35-S0.10",
+       "D-T35-S0.30",
+       "D-T35-S0.46",
+       "D-T6-S0.46",
+       "V-T10-S0.07",
+       "V-T20-S0.24",
+       "V-T30-S0.24"
+      ],
+      "fully_all_infeasible": 5,
+      "member_records": 216,
+      "members": 9,
+      "missing_member_records": 0,
+      "no_known_feasible_but_uncertain": 1,
+      "numeric_member_records": 173,
+      "offered": 24,
+      "outcome_kinds": {
+       "ABSTENTION_UNRESOLVED": 1,
+       "CORRECT_ABSTENTION": 34,
+       "MISSED_OPPORTUNITY": 1,
+       "SELECTED_FEASIBLE": 114,
+       "SELECTED_INFEASIBLE": 24,
+       "SELECTED_UNRESOLVED": 42
+      },
+      "rate": 0.625,
+      "recipes": 6
+     },
+     {
+      "all_reference_actions_resolved": 11,
+      "common_resolved": 14,
+      "excluded_questions": [
+       "D-T16-S0.10",
+       "D-T16-S0.30",
+       "D-T26-S0.46",
+       "D-T35-S0.10",
+       "D-T35-S0.30",
+       "D-T35-S0.46",
+       "D-T6-S0.46",
+       "V-T10-S0.07",
+       "V-T20-S0.24",
+       "V-T30-S0.24"
+      ],
+      "fully_all_infeasible": 5,
+      "member_records": 312,
+      "members": 13,
+      "missing_member_records": 0,
+      "no_known_feasible_but_uncertain": 1,
+      "numeric_member_records": 256,
+      "offered": 24,
+      "outcome_kinds": {
+       "ABSTENTION_UNRESOLVED": 1,
+       "CORRECT_ABSTENTION": 48,
+       "MISSED_OPPORTUNITY": 2,
+       "SELECTED_FEASIBLE": 169,
+       "SELECTED_INFEASIBLE": 37,
+       "SELECTED_UNRESOLVED": 55
+      },
+      "rate": 0.5833333333333334,
+      "recipes": 10
+     },
+     {
+      "all_reference_actions_resolved": 11,
+      "common_resolved": 15,
+      "excluded_questions": [
+       "D-T16-S0.10",
+       "D-T16-S0.30",
+       "D-T26-S0.46",
+       "D-T35-S0.10",
+       "D-T35-S0.30",
+       "D-T35-S0.46",
+       "V-T10-S0.07",
+       "V-T20-S0.24",
+       "V-T30-S0.24"
+      ],
+      "fully_all_infeasible": 5,
+      "member_records": 144,
+      "members": 6,
+      "missing_member_records": 0,
+      "no_known_feasible_but_uncertain": 1,
+      "numeric_member_records": 118,
+      "offered": 24,
+      "outcome_kinds": {
+       "ABSTENTION_UNRESOLVED": 2,
+       "CORRECT_ABSTENTION": 16,
+       "MISSED_OPPORTUNITY": 1,
+       "SELECTED_FEASIBLE": 80,
+       "SELECTED_INFEASIBLE": 21,
+       "SELECTED_UNRESOLVED": 24
+      },
+      "rate": 0.625,
+      "recipes": 6
+     },
+     {
+      "all_reference_actions_resolved": 11,
+      "common_resolved": 14,
+      "excluded_questions": [
+       "D-T16-S0.10",
+       "D-T16-S0.30",
+       "D-T26-S0.46",
+       "D-T35-S0.10",
+       "D-T35-S0.30",
+       "D-T35-S0.46",
+       "D-T6-S0.46",
+       "V-T10-S0.07",
+       "V-T20-S0.24",
+       "V-T30-S0.24"
+      ],
+      "fully_all_infeasible": 5,
+      "member_records": 432,
+      "members": 18,
+      "missing_member_records": 0,
+      "no_known_feasible_but_uncertain": 1,
+      "numeric_member_records": 348,
+      "offered": 24,
+      "outcome_kinds": {
+       "ABSTENTION_UNRESOLVED": 2,
+       "CORRECT_ABSTENTION": 62,
+       "MISSED_OPPORTUNITY": 2,
+       "SELECTED_FEASIBLE": 242,
+       "SELECTED_INFEASIBLE": 42,
+       "SELECTED_UNRESOLVED": 82
+      },
+      "rate": 0.5833333333333334,
+      "recipes": 11
+     },
+     {
+      "all_reference_actions_resolved": 11,
+      "common_resolved": 14,
+      "excluded_questions": [
+       "D-T16-S0.10",
+       "D-T16-S0.30",
+       "D-T26-S0.46",
+       "D-T35-S0.10",
+       "D-T35-S0.30",
+       "D-T35-S0.46",
+       "D-T6-S0.46",
+       "V-T10-S0.07",
+       "V-T20-S0.24",
+       "V-T30-S0.24"
+      ],
+      "fully_all_infeasible": 5,
+      "member_records": 216,
+      "members": 9,
+      "missing_member_records": 0,
+      "no_known_feasible_but_uncertain": 1,
+      "numeric_member_records": 171,
+      "offered": 24,
+      "outcome_kinds": {
+       "ABSTENTION_UNRESOLVED": 3,
+       "CORRECT_ABSTENTION": 32,
+       "MISSED_OPPORTUNITY": 2,
+       "SELECTED_FEASIBLE": 117,
+       "SELECTED_INFEASIBLE": 20,
+       "SELECTED_UNRESOLVED": 42
+      },
+      "rate": 0.5833333333333334,
+      "recipes": 7
+     },
+     {
+      "all_reference_actions_resolved": 11,
+      "common_resolved": 15,
+      "excluded_questions": [
+       "D-T16-S0.10",
+       "D-T16-S0.30",
+       "D-T26-S0.46",
+       "D-T35-S0.10",
+       "D-T35-S0.46",
+       "D-T6-S0.46",
+       "V-T10-S0.07",
+       "V-T20-S0.24",
+       "V-T30-S0.24"
+      ],
+      "fully_all_infeasible": 5,
+      "member_records": 432,
+      "members": 18,
+      "missing_member_records": 0,
+      "no_known_feasible_but_uncertain": 1,
+      "numeric_member_records": 344,
+      "offered": 24,
+      "outcome_kinds": {
+       "ABSTENTION_UNRESOLVED": 1,
+       "CORRECT_ABSTENTION": 58,
+       "MISSED_OPPORTUNITY": 1,
+       "SELECTED_FEASIBLE": 239,
+       "SELECTED_INFEASIBLE": 46,
+       "SELECTED_UNRESOLVED": 87
+      },
+      "rate": 0.625,
+      "recipes": 15
+     },
+     {
+      "all_reference_actions_resolved": 11,
+      "common_resolved": 13,
+      "excluded_questions": [
+       "D-T16-S0.10",
+       "D-T16-S0.30",
+       "D-T26-S0.46",
+       "D-T35-S0.10",
+       "D-T35-S0.30",
+       "D-T35-S0.46",
+       "D-T6-S0.46",
+       "V-T10-S0.07",
+       "V-T20-S0.24",
+       "V-T20-S0.38",
+       "V-T30-S0.24"
+      ],
+      "fully_all_infeasible": 5,
+      "member_records": 336,
+      "members": 14,
+      "missing_member_records": 0,
+      "no_known_feasible_but_uncertain": 1,
+      "numeric_member_records": 273,
+      "offered": 24,
+      "outcome_kinds": {
+       "ABSTENTION_UNRESOLVED": 3,
+       "CORRECT_ABSTENTION": 48,
+       "MISSED_OPPORTUNITY": 3,
+       "SELECTED_FEASIBLE": 182,
+       "SELECTED_INFEASIBLE": 40,
+       "SELECTED_UNRESOLVED": 60
+      },
+      "rate": 0.5416666666666666,
+      "recipes": 12
+     },
+     {
+      "all_reference_actions_resolved": 11,
+      "common_resolved": 15,
+      "excluded_questions": [
+       "D-T16-S0.10",
+       "D-T16-S0.30",
+       "D-T26-S0.46",
+       "D-T35-S0.10",
+       "D-T35-S0.30",
+       "D-T35-S0.46",
+       "V-T10-S0.07",
+       "V-T20-S0.24",
+       "V-T30-S0.24"
+      ],
+      "fully_all_infeasible": 5,
+      "member_records": 288,
+      "members": 12,
+      "missing_member_records": 0,
+      "no_known_feasible_but_uncertain": 1,
+      "numeric_member_records": 231,
+      "offered": 24,
+      "outcome_kinds": {
+       "ABSTENTION_UNRESOLVED": 5,
+       "CORRECT_ABSTENTION": 41,
+       "MISSED_OPPORTUNITY": 4,
+       "SELECTED_FEASIBLE": 151,
+       "SELECTED_INFEASIBLE": 35,
+       "SELECTED_UNRESOLVED": 52
+      },
+      "rate": 0.625,
+      "recipes": 12
+     }
+    ]
+   },
+   "questions": [
+    {
+     "all_reference_actions_resolved": false,
+     "common_resolved": false,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 99,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "SELECTED_INFEASIBLE": 1,
+      "SELECTED_UNRESOLVED": 98
+     },
+     "question": "D-T16-S0.10",
+     "reference_status_counts": {
+      "FEASIBLE": 4,
+      "INFEASIBLE": 24,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 7
+     },
+     "resolved_member_records": 1,
+     "selected_ambiguous_actions": {
+      "c1=1,c2=0.8": 2,
+      "c1=1.25,c2=0.8": 4,
+      "c1=1.5,c2=0.8": 22,
+      "c1=1.5,c2=1": 8,
+      "c1=1.75,c2=0.8": 57,
+      "c1=1.75,c2=1": 5
+     },
+     "split": "development",
+     "temperature_block": "D-T16"
+    },
+    {
+     "all_reference_actions_resolved": false,
+     "common_resolved": false,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 99,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "SELECTED_FEASIBLE": 84,
+      "SELECTED_UNRESOLVED": 15
+     },
+     "question": "D-T16-S0.30",
+     "reference_status_counts": {
+      "FEASIBLE": 3,
+      "INFEASIBLE": 31,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 1
+     },
+     "resolved_member_records": 84,
+     "selected_ambiguous_actions": {
+      "c1=1,c2=0.8": 15
+     },
+     "split": "development",
+     "temperature_block": "D-T16"
+    },
+    {
+     "all_reference_actions_resolved": true,
+     "common_resolved": true,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 99,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "SELECTED_FEASIBLE": 95,
+      "SELECTED_INFEASIBLE": 4
+     },
+     "question": "D-T16-S0.46",
+     "reference_status_counts": {
+      "FEASIBLE": 6,
+      "INFEASIBLE": 29,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 0
+     },
+     "resolved_member_records": 99,
+     "selected_ambiguous_actions": {},
+     "split": "development",
+     "temperature_block": "D-T16"
+    },
+    {
+     "all_reference_actions_resolved": true,
+     "common_resolved": true,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 99,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "SELECTED_FEASIBLE": 73,
+      "SELECTED_INFEASIBLE": 26
+     },
+     "question": "D-T26-S0.10",
+     "reference_status_counts": {
+      "FEASIBLE": 11,
+      "INFEASIBLE": 24,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 0
+     },
+     "resolved_member_records": 99,
+     "selected_ambiguous_actions": {},
+     "split": "development",
+     "temperature_block": "D-T26"
+    },
+    {
+     "all_reference_actions_resolved": false,
+     "common_resolved": true,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 99,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "SELECTED_FEASIBLE": 98,
+      "SELECTED_INFEASIBLE": 1
+     },
+     "question": "D-T26-S0.30",
+     "reference_status_counts": {
+      "FEASIBLE": 13,
+      "INFEASIBLE": 21,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 1
+     },
+     "resolved_member_records": 99,
+     "selected_ambiguous_actions": {},
+     "split": "development",
+     "temperature_block": "D-T26"
+    },
+    {
+     "all_reference_actions_resolved": false,
+     "common_resolved": false,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 99,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "SELECTED_FEASIBLE": 57,
+      "SELECTED_UNRESOLVED": 42
+     },
+     "question": "D-T26-S0.46",
+     "reference_status_counts": {
+      "FEASIBLE": 11,
+      "INFEASIBLE": 19,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 5
+     },
+     "resolved_member_records": 57,
+     "selected_ambiguous_actions": {
+      "c1=1.5,c2=1": 42
+     },
+     "split": "development",
+     "temperature_block": "D-T26"
+    },
+    {
+     "all_reference_actions_resolved": false,
+     "common_resolved": false,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 99,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "MISSED_OPPORTUNITY": 2,
+      "SELECTED_FEASIBLE": 50,
+      "SELECTED_INFEASIBLE": 1,
+      "SELECTED_UNRESOLVED": 46
+     },
+     "question": "D-T35-S0.10",
+     "reference_status_counts": {
+      "FEASIBLE": 2,
+      "INFEASIBLE": 32,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 1
+     },
+     "resolved_member_records": 53,
+     "selected_ambiguous_actions": {
+      "c1=1,c2=1": 46
+     },
+     "split": "development",
+     "temperature_block": "D-T35"
+    },
+    {
+     "all_reference_actions_resolved": false,
+     "common_resolved": false,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 99,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "SELECTED_FEASIBLE": 83,
+      "SELECTED_INFEASIBLE": 6,
+      "SELECTED_UNRESOLVED": 10
+     },
+     "question": "D-T35-S0.30",
+     "reference_status_counts": {
+      "FEASIBLE": 10,
+      "INFEASIBLE": 24,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 1
+     },
+     "resolved_member_records": 89,
+     "selected_ambiguous_actions": {
+      "c1=1.25,c2=1": 10
+     },
+     "split": "development",
+     "temperature_block": "D-T35"
+    },
+    {
+     "all_reference_actions_resolved": false,
+     "common_resolved": false,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 99,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "SELECTED_FEASIBLE": 75,
+      "SELECTED_UNRESOLVED": 24
+     },
+     "question": "D-T35-S0.46",
+     "reference_status_counts": {
+      "FEASIBLE": 18,
+      "INFEASIBLE": 14,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 3
+     },
+     "resolved_member_records": 75,
+     "selected_ambiguous_actions": {
+      "c1=2,c2=0.8": 1,
+      "c1=2,c2=1": 23
+     },
+     "split": "development",
+     "temperature_block": "D-T35"
+    },
+    {
+     "all_reference_actions_resolved": true,
+     "common_resolved": true,
+     "contested_known_feasible_and_infeasible": false,
+     "fully_all_infeasible": true,
+     "members": 99,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "CORRECT_ABSTENTION": 94,
+      "SELECTED_INFEASIBLE": 5
+     },
+     "question": "D-T6-S0.10",
+     "reference_status_counts": {
+      "FEASIBLE": 0,
+      "INFEASIBLE": 35,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 0
+     },
+     "resolved_member_records": 99,
+     "selected_ambiguous_actions": {},
+     "split": "development",
+     "temperature_block": "D-T6"
+    },
+    {
+     "all_reference_actions_resolved": true,
+     "common_resolved": true,
+     "contested_known_feasible_and_infeasible": false,
+     "fully_all_infeasible": true,
+     "members": 99,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "CORRECT_ABSTENTION": 39,
+      "SELECTED_INFEASIBLE": 60
+     },
+     "question": "D-T6-S0.30",
+     "reference_status_counts": {
+      "FEASIBLE": 0,
+      "INFEASIBLE": 35,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 0
+     },
+     "resolved_member_records": 99,
+     "selected_ambiguous_actions": {},
+     "split": "development",
+     "temperature_block": "D-T6"
+    },
+    {
+     "all_reference_actions_resolved": false,
+     "common_resolved": false,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 99,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "MISSED_OPPORTUNITY": 9,
+      "SELECTED_FEASIBLE": 74,
+      "SELECTED_UNRESOLVED": 16
+     },
+     "question": "D-T6-S0.46",
+     "reference_status_counts": {
+      "FEASIBLE": 1,
+      "INFEASIBLE": 33,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 1
+     },
+     "resolved_member_records": 83,
+     "selected_ambiguous_actions": {
+      "c1=0.75,c2=0.4": 16
+     },
+     "split": "development",
+     "temperature_block": "D-T6"
+    },
+    {
+     "all_reference_actions_resolved": false,
+     "common_resolved": false,
+     "contested_known_feasible_and_infeasible": false,
+     "fully_all_infeasible": false,
+     "members": 99,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": true,
+     "outcome_kinds": {
+      "ABSTENTION_UNRESOLVED": 18,
+      "SELECTED_INFEASIBLE": 1,
+      "SELECTED_UNRESOLVED": 80
+     },
+     "question": "V-T10-S0.07",
+     "reference_status_counts": {
+      "FEASIBLE": 0,
+      "INFEASIBLE": 31,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 4
+     },
+     "resolved_member_records": 1,
+     "selected_ambiguous_actions": {
+      "c1=1,c2=0.6": 8,
+      "c1=1.25,c2=0.6": 30,
+      "c1=1.5,c2=0.6": 42
+     },
+     "split": "verification",
+     "temperature_block": "V-T10"
+    },
+    {
+     "all_reference_actions_resolved": true,
+     "common_resolved": true,
+     "contested_known_feasible_and_infeasible": false,
+     "fully_all_infeasible": true,
+     "members": 99,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "CORRECT_ABSTENTION": 95,
+      "SELECTED_INFEASIBLE": 4
+     },
+     "question": "V-T10-S0.24",
+     "reference_status_counts": {
+      "FEASIBLE": 0,
+      "INFEASIBLE": 35,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 0
+     },
+     "resolved_member_records": 99,
+     "selected_ambiguous_actions": {},
+     "split": "verification",
+     "temperature_block": "V-T10"
+    },
+    {
+     "all_reference_actions_resolved": true,
+     "common_resolved": true,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 99,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "MISSED_OPPORTUNITY": 5,
+      "SELECTED_FEASIBLE": 82,
+      "SELECTED_INFEASIBLE": 12
+     },
+     "question": "V-T10-S0.38",
+     "reference_status_counts": {
+      "FEASIBLE": 2,
+      "INFEASIBLE": 33,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 0
+     },
+     "resolved_member_records": 99,
+     "selected_ambiguous_actions": {},
+     "split": "verification",
+     "temperature_block": "V-T10"
+    },
+    {
+     "all_reference_actions_resolved": false,
+     "common_resolved": true,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 99,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "SELECTED_FEASIBLE": 99
+     },
+     "question": "V-T20-S0.07",
+     "reference_status_counts": {
+      "FEASIBLE": 14,
+      "INFEASIBLE": 19,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 2
+     },
+     "resolved_member_records": 99,
+     "selected_ambiguous_actions": {},
+     "split": "verification",
+     "temperature_block": "V-T20"
+    },
+    {
+     "all_reference_actions_resolved": false,
+     "common_resolved": false,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 99,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "SELECTED_FEASIBLE": 8,
+      "SELECTED_UNRESOLVED": 91
+     },
+     "question": "V-T20-S0.24",
+     "reference_status_counts": {
+      "FEASIBLE": 6,
+      "INFEASIBLE": 23,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 6
+     },
+     "resolved_member_records": 8,
+     "selected_ambiguous_actions": {
+      "c1=1,c2=1": 3,
+      "c1=1.25,c2=1": 87,
+      "c1=1.5,c2=1": 1
+     },
+     "split": "verification",
+     "temperature_block": "V-T20"
+    },
+    {
+     "all_reference_actions_resolved": false,
+     "common_resolved": false,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 99,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "SELECTED_FEASIBLE": 93,
+      "SELECTED_INFEASIBLE": 5,
+      "SELECTED_UNRESOLVED": 1
+     },
+     "question": "V-T20-S0.38",
+     "reference_status_counts": {
+      "FEASIBLE": 5,
+      "INFEASIBLE": 27,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 3
+     },
+     "resolved_member_records": 98,
+     "selected_ambiguous_actions": {
+      "c1=1.25,c2=0.8": 1
+     },
+     "split": "verification",
+     "temperature_block": "V-T20"
+    },
+    {
+     "all_reference_actions_resolved": true,
+     "common_resolved": true,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 99,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "SELECTED_FEASIBLE": 96,
+      "SELECTED_INFEASIBLE": 3
+     },
+     "question": "V-T30-S0.07",
+     "reference_status_counts": {
+      "FEASIBLE": 6,
+      "INFEASIBLE": 29,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 0
+     },
+     "resolved_member_records": 99,
+     "selected_ambiguous_actions": {},
+     "split": "verification",
+     "temperature_block": "V-T30"
+    },
+    {
+     "all_reference_actions_resolved": false,
+     "common_resolved": false,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 99,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "SELECTED_FEASIBLE": 78,
+      "SELECTED_UNRESOLVED": 21
+     },
+     "question": "V-T30-S0.24",
+     "reference_status_counts": {
+      "FEASIBLE": 16,
+      "INFEASIBLE": 16,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 3
+     },
+     "resolved_member_records": 78,
+     "selected_ambiguous_actions": {
+      "c1=2,c2=1": 21
+     },
+     "split": "verification",
+     "temperature_block": "V-T30"
+    },
+    {
+     "all_reference_actions_resolved": true,
+     "common_resolved": true,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 99,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "SELECTED_FEASIBLE": 89,
+      "SELECTED_INFEASIBLE": 10
+     },
+     "question": "V-T30-S0.38",
+     "reference_status_counts": {
+      "FEASIBLE": 15,
+      "INFEASIBLE": 20,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 0
+     },
+     "resolved_member_records": 99,
+     "selected_ambiguous_actions": {},
+     "split": "verification",
+     "temperature_block": "V-T30"
+    },
+    {
+     "all_reference_actions_resolved": true,
+     "common_resolved": true,
+     "contested_known_feasible_and_infeasible": false,
+     "fully_all_infeasible": true,
+     "members": 99,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "CORRECT_ABSTENTION": 99
+     },
+     "question": "V-T39-S0.07",
+     "reference_status_counts": {
+      "FEASIBLE": 0,
+      "INFEASIBLE": 35,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 0
+     },
+     "resolved_member_records": 99,
+     "selected_ambiguous_actions": {},
+     "split": "verification",
+     "temperature_block": "V-T39"
+    },
+    {
+     "all_reference_actions_resolved": true,
+     "common_resolved": true,
+     "contested_known_feasible_and_infeasible": false,
+     "fully_all_infeasible": true,
+     "members": 99,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "CORRECT_ABSTENTION": 12,
+      "SELECTED_INFEASIBLE": 87
+     },
+     "question": "V-T39-S0.24",
+     "reference_status_counts": {
+      "FEASIBLE": 0,
+      "INFEASIBLE": 35,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 0
+     },
+     "resolved_member_records": 99,
+     "selected_ambiguous_actions": {},
+     "split": "verification",
+     "temperature_block": "V-T39"
+    },
+    {
+     "all_reference_actions_resolved": true,
+     "common_resolved": true,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 99,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "SELECTED_FEASIBLE": 60,
+      "SELECTED_INFEASIBLE": 39
+     },
+     "question": "V-T39-S0.38",
+     "reference_status_counts": {
+      "FEASIBLE": 3,
+      "INFEASIBLE": 32,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 0
+     },
+     "resolved_member_records": 99,
+     "selected_ambiguous_actions": {},
+     "split": "verification",
+     "temperature_block": "V-T39"
+    }
+   ],
+   "recipes": 79,
+   "splits": {
+    "development": {
+     "all_reference_actions_resolved": 4,
+     "common_resolved": 5,
+     "excluded_questions": [
+      "D-T16-S0.10",
+      "D-T16-S0.30",
+      "D-T26-S0.46",
+      "D-T35-S0.10",
+      "D-T35-S0.30",
+      "D-T35-S0.46",
+      "D-T6-S0.46"
+     ],
+     "fully_all_infeasible": 2,
+     "member_records": 1188,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": 0,
+     "numeric_member_records": 937,
+     "offered": 12,
+     "outcome_kinds": {
+      "CORRECT_ABSTENTION": 133,
+      "MISSED_OPPORTUNITY": 11,
+      "SELECTED_FEASIBLE": 689,
+      "SELECTED_INFEASIBLE": 104,
+      "SELECTED_UNRESOLVED": 251
+     },
+     "rate": 0.4166666666666667
+    },
+    "verification": {
+     "all_reference_actions_resolved": 7,
+     "common_resolved": 8,
+     "excluded_questions": [
+      "V-T10-S0.07",
+      "V-T20-S0.24",
+      "V-T20-S0.38",
+      "V-T30-S0.24"
+     ],
+     "fully_all_infeasible": 3,
+     "member_records": 1188,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": 1,
+     "numeric_member_records": 977,
+     "offered": 12,
+     "outcome_kinds": {
+      "ABSTENTION_UNRESOLVED": 18,
+      "CORRECT_ABSTENTION": 206,
+      "MISSED_OPPORTUNITY": 5,
+      "SELECTED_FEASIBLE": 605,
+      "SELECTED_INFEASIBLE": 161,
+      "SELECTED_UNRESOLVED": 193
+     },
+     "rate": 0.6666666666666666
+    }
+   },
+   "summary": {
+    "all_reference_actions_resolved": 11,
+    "common_resolved": 13,
+    "excluded_questions": [
+     "D-T16-S0.10",
+     "D-T16-S0.30",
+     "D-T26-S0.46",
+     "D-T35-S0.10",
+     "D-T35-S0.30",
+     "D-T35-S0.46",
+     "D-T6-S0.46",
+     "V-T10-S0.07",
+     "V-T20-S0.24",
+     "V-T20-S0.38",
+     "V-T30-S0.24"
+    ],
+    "fully_all_infeasible": 5,
+    "member_records": 2376,
+    "missing_member_records": 0,
+    "no_known_feasible_but_uncertain": 1,
+    "numeric_member_records": 1914,
+    "offered": 24,
+    "outcome_kinds": {
+     "ABSTENTION_UNRESOLVED": 18,
+     "CORRECT_ABSTENTION": 339,
+     "MISSED_OPPORTUNITY": 16,
+     "SELECTED_FEASIBLE": 1294,
+     "SELECTED_INFEASIBLE": 265,
+     "SELECTED_UNRESOLVED": 444
+    },
+    "rate": 0.5416666666666666
+   }
+  },
+  "run5": {
+   "all_eligible_panel": {
+    "all_reference_actions_resolved": 12,
+    "common_resolved": 16,
+    "excluded_questions": [
+     "D-T14-S0.12",
+     "D-T14-S0.48",
+     "D-T24-S0.48",
+     "D-T34-S0.33",
+     "D-T5-S0.33",
+     "D-T5-S0.48",
+     "V-T19-S0.22",
+     "V-T38-S0.40"
+    ],
+    "fully_all_infeasible": 4,
+    "member_records": 768,
+    "missing_member_records": 0,
+    "no_known_feasible_but_uncertain": 2,
+    "numeric_member_records": 639,
+    "offered": 24,
+    "outcome_kinds": {
+     "ABSTENTION_UNRESOLVED": 29,
+     "CORRECT_ABSTENTION": 109,
+     "MISSED_OPPORTUNITY": 4,
+     "MODEL_OUTPUT_MISSING": 5,
+     "SELECTED_FEASIBLE": 452,
+     "SELECTED_INFEASIBLE": 69,
+     "SELECTED_UNRESOLVED": 100
+    },
+    "rate": 0.6666666666666666
+   },
+   "coverage_rules_diagnostics_not_adoption": {
+    "0.8": {
+     "excluded_incomplete_rows_retained_as_unknown": 3,
+     "questions": 19
+    },
+    "0.9": {
+     "excluded_incomplete_rows_retained_as_unknown": 2,
+     "questions": 18
+    },
+    "0.95": {
+     "excluded_incomplete_rows_retained_as_unknown": 0,
+     "questions": 16
+    },
+    "1.0": {
+     "excluded_incomplete_rows_retained_as_unknown": 0,
+     "questions": 16
+    }
+   },
+   "member_numeric_coverage": {
+    "max": 0.9583333333333334,
+    "mean": 0.8256172839506173,
+    "min": 0.75
+   },
+   "members": 27,
+   "preassigned_cohort_diagnostics": {
+    "2": [
+     {
+      "all_reference_actions_resolved": 12,
+      "common_resolved": 16,
+      "excluded_questions": [
+       "D-T14-S0.12",
+       "D-T14-S0.48",
+       "D-T24-S0.48",
+       "D-T34-S0.33",
+       "D-T5-S0.33",
+       "D-T5-S0.48",
+       "V-T19-S0.22",
+       "V-T38-S0.40"
+      ],
+      "fully_all_infeasible": 4,
+      "member_records": 576,
+      "members": 24,
+      "missing_member_records": 0,
+      "no_known_feasible_but_uncertain": 2,
+      "numeric_member_records": 476,
+      "offered": 24,
+      "outcome_kinds": {
+       "ABSTENTION_UNRESOLVED": 23,
+       "CORRECT_ABSTENTION": 84,
+       "SELECTED_FEASIBLE": 352,
+       "SELECTED_INFEASIBLE": 40,
+       "SELECTED_UNRESOLVED": 77
+      },
+      "rate": 0.6666666666666666,
+      "recipes": 7
+     },
+     {
+      "all_reference_actions_resolved": 12,
+      "common_resolved": 19,
+      "excluded_questions": [
+       "D-T14-S0.48",
+       "D-T24-S0.48",
+       "D-T5-S0.33",
+       "D-T5-S0.48",
+       "V-T19-S0.22"
+      ],
+      "fully_all_infeasible": 4,
+      "member_records": 72,
+      "members": 3,
+      "missing_member_records": 0,
+      "no_known_feasible_but_uncertain": 2,
+      "numeric_member_records": 59,
+      "offered": 24,
+      "outcome_kinds": {
+       "ABSTENTION_UNRESOLVED": 3,
+       "CORRECT_ABSTENTION": 11,
+       "SELECTED_FEASIBLE": 42,
+       "SELECTED_INFEASIBLE": 6,
+       "SELECTED_UNRESOLVED": 10
+      },
+      "rate": 0.7916666666666666,
+      "recipes": 1
+     }
+    ],
+    "4": [
+     {
+      "all_reference_actions_resolved": 12,
+      "common_resolved": 16,
+      "excluded_questions": [
+       "D-T14-S0.12",
+       "D-T14-S0.48",
+       "D-T24-S0.48",
+       "D-T34-S0.33",
+       "D-T5-S0.33",
+       "D-T5-S0.48",
+       "V-T19-S0.22",
+       "V-T38-S0.40"
+      ],
+      "fully_all_infeasible": 4,
+      "member_records": 360,
+      "members": 15,
+      "missing_member_records": 0,
+      "no_known_feasible_but_uncertain": 2,
+      "numeric_member_records": 301,
+      "offered": 24,
+      "outcome_kinds": {
+       "ABSTENTION_UNRESOLVED": 13,
+       "CORRECT_ABSTENTION": 52,
+       "SELECTED_FEASIBLE": 224,
+       "SELECTED_INFEASIBLE": 25,
+       "SELECTED_UNRESOLVED": 46
+      },
+      "rate": 0.6666666666666666,
+      "recipes": 4
+     },
+     {
+      "all_reference_actions_resolved": 12,
+      "common_resolved": 16,
+      "excluded_questions": [
+       "D-T14-S0.12",
+       "D-T14-S0.48",
+       "D-T24-S0.48",
+       "D-T34-S0.33",
+       "D-T5-S0.33",
+       "D-T5-S0.48",
+       "V-T19-S0.22",
+       "V-T38-S0.40"
+      ],
+      "fully_all_infeasible": 4,
+      "member_records": 216,
+      "members": 9,
+      "missing_member_records": 0,
+      "no_known_feasible_but_uncertain": 2,
+      "numeric_member_records": 175,
+      "offered": 24,
+      "outcome_kinds": {
+       "ABSTENTION_UNRESOLVED": 10,
+       "CORRECT_ABSTENTION": 32,
+       "SELECTED_FEASIBLE": 128,
+       "SELECTED_INFEASIBLE": 15,
+       "SELECTED_UNRESOLVED": 31
+      },
+      "rate": 0.6666666666666666,
+      "recipes": 3
+     },
+     {
+      "all_reference_actions_resolved": 12,
+      "common_resolved": 19,
+      "excluded_questions": [
+       "D-T14-S0.48",
+       "D-T24-S0.48",
+       "D-T5-S0.33",
+       "D-T5-S0.48",
+       "V-T19-S0.22"
+      ],
+      "fully_all_infeasible": 4,
+      "member_records": 72,
+      "members": 3,
+      "missing_member_records": 0,
+      "no_known_feasible_but_uncertain": 2,
+      "numeric_member_records": 59,
+      "offered": 24,
+      "outcome_kinds": {
+       "ABSTENTION_UNRESOLVED": 3,
+       "CORRECT_ABSTENTION": 11,
+       "SELECTED_FEASIBLE": 42,
+       "SELECTED_INFEASIBLE": 6,
+       "SELECTED_UNRESOLVED": 10
+      },
+      "rate": 0.7916666666666666,
+      "recipes": 1
+     }
+    ],
+    "8": [
+     {
+      "all_reference_actions_resolved": 12,
+      "common_resolved": 17,
+      "excluded_questions": [
+       "D-T14-S0.48",
+       "D-T24-S0.48",
+       "D-T34-S0.33",
+       "D-T5-S0.33",
+       "D-T5-S0.48",
+       "V-T19-S0.22",
+       "V-T38-S0.40"
+      ],
+      "fully_all_infeasible": 4,
+      "member_records": 216,
+      "members": 9,
+      "missing_member_records": 0,
+      "no_known_feasible_but_uncertain": 2,
+      "numeric_member_records": 183,
+      "offered": 24,
+      "outcome_kinds": {
+       "ABSTENTION_UNRESOLVED": 7,
+       "CORRECT_ABSTENTION": 32,
+       "SELECTED_FEASIBLE": 133,
+       "SELECTED_INFEASIBLE": 18,
+       "SELECTED_UNRESOLVED": 26
+      },
+      "rate": 0.7083333333333334,
+      "recipes": 2
+     },
+     {
+      "all_reference_actions_resolved": 12,
+      "common_resolved": 17,
+      "excluded_questions": [
+       "D-T14-S0.12",
+       "D-T24-S0.48",
+       "D-T34-S0.33",
+       "D-T5-S0.33",
+       "D-T5-S0.48",
+       "V-T19-S0.22",
+       "V-T38-S0.40"
+      ],
+      "fully_all_infeasible": 4,
+      "member_records": 144,
+      "members": 6,
+      "missing_member_records": 0,
+      "no_known_feasible_but_uncertain": 2,
+      "numeric_member_records": 116,
+      "offered": 24,
+      "outcome_kinds": {
+       "ABSTENTION_UNRESOLVED": 7,
+       "CORRECT_ABSTENTION": 20,
+       "SELECTED_FEASIBLE": 85,
+       "SELECTED_INFEASIBLE": 11,
+       "SELECTED_UNRESOLVED": 21
+      },
+      "rate": 0.7083333333333334,
+      "recipes": 2
+     },
+     {
+      "all_reference_actions_resolved": 12,
+      "common_resolved": 18,
+      "excluded_questions": [
+       "D-T14-S0.12",
+       "D-T14-S0.48",
+       "D-T24-S0.48",
+       "D-T5-S0.33",
+       "D-T5-S0.48",
+       "V-T19-S0.22"
+      ],
+      "fully_all_infeasible": 4,
+      "member_records": 144,
+      "members": 6,
+      "missing_member_records": 0,
+      "no_known_feasible_but_uncertain": 2,
+      "numeric_member_records": 118,
+      "offered": 24,
+      "outcome_kinds": {
+       "ABSTENTION_UNRESOLVED": 6,
+       "CORRECT_ABSTENTION": 20,
+       "SELECTED_FEASIBLE": 91,
+       "SELECTED_INFEASIBLE": 7,
+       "SELECTED_UNRESOLVED": 20
+      },
+      "rate": 0.75,
+      "recipes": 2
+     },
+     {
+      "all_reference_actions_resolved": 12,
+      "common_resolved": 18,
+      "excluded_questions": [
+       "D-T14-S0.48",
+       "D-T24-S0.48",
+       "D-T5-S0.33",
+       "D-T5-S0.48",
+       "V-T19-S0.22",
+       "V-T38-S0.40"
+      ],
+      "fully_all_infeasible": 4,
+      "member_records": 72,
+      "members": 3,
+      "missing_member_records": 0,
+      "no_known_feasible_but_uncertain": 2,
+      "numeric_member_records": 59,
+      "offered": 24,
+      "outcome_kinds": {
+       "ABSTENTION_UNRESOLVED": 3,
+       "CORRECT_ABSTENTION": 12,
+       "SELECTED_FEASIBLE": 43,
+       "SELECTED_INFEASIBLE": 4,
+       "SELECTED_UNRESOLVED": 10
+      },
+      "rate": 0.75,
+      "recipes": 1
+     },
+     {
+      "all_reference_actions_resolved": 12,
+      "common_resolved": 19,
+      "excluded_questions": [
+       "D-T14-S0.48",
+       "D-T24-S0.48",
+       "D-T5-S0.33",
+       "D-T5-S0.48",
+       "V-T19-S0.22"
+      ],
+      "fully_all_infeasible": 4,
+      "member_records": 72,
+      "members": 3,
+      "missing_member_records": 0,
+      "no_known_feasible_but_uncertain": 2,
+      "numeric_member_records": 59,
+      "offered": 24,
+      "outcome_kinds": {
+       "ABSTENTION_UNRESOLVED": 3,
+       "CORRECT_ABSTENTION": 11,
+       "SELECTED_FEASIBLE": 42,
+       "SELECTED_INFEASIBLE": 6,
+       "SELECTED_UNRESOLVED": 10
+      },
+      "rate": 0.7916666666666666,
+      "recipes": 1
+     }
+    ]
+   },
+   "questions": [
+    {
+     "all_reference_actions_resolved": false,
+     "common_resolved": false,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 27,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "SELECTED_FEASIBLE": 25,
+      "SELECTED_UNRESOLVED": 2
+     },
+     "question": "D-T14-S0.12",
+     "reference_status_counts": {
+      "FEASIBLE": 4,
+      "INFEASIBLE": 29,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 2
+     },
+     "resolved_member_records": 25,
+     "selected_ambiguous_actions": {
+      "c1=1.5,c2=0.8": 2
+     },
+     "split": "development",
+     "temperature_block": "D-T14"
+    },
+    {
+     "all_reference_actions_resolved": true,
+     "common_resolved": true,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 27,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "SELECTED_FEASIBLE": 27
+     },
+     "question": "D-T14-S0.33",
+     "reference_status_counts": {
+      "FEASIBLE": 3,
+      "INFEASIBLE": 32,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 0
+     },
+     "resolved_member_records": 27,
+     "selected_ambiguous_actions": {},
+     "split": "development",
+     "temperature_block": "D-T14"
+    },
+    {
+     "all_reference_actions_resolved": false,
+     "common_resolved": false,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 27,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "SELECTED_FEASIBLE": 21,
+      "SELECTED_UNRESOLVED": 6
+     },
+     "question": "D-T14-S0.48",
+     "reference_status_counts": {
+      "FEASIBLE": 4,
+      "INFEASIBLE": 29,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 2
+     },
+     "resolved_member_records": 21,
+     "selected_ambiguous_actions": {
+      "c1=1,c2=0.6": 6
+     },
+     "split": "development",
+     "temperature_block": "D-T14"
+    },
+    {
+     "all_reference_actions_resolved": true,
+     "common_resolved": true,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 27,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "SELECTED_FEASIBLE": 4,
+      "SELECTED_INFEASIBLE": 23
+     },
+     "question": "D-T24-S0.12",
+     "reference_status_counts": {
+      "FEASIBLE": 14,
+      "INFEASIBLE": 21,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 0
+     },
+     "resolved_member_records": 27,
+     "selected_ambiguous_actions": {},
+     "split": "development",
+     "temperature_block": "D-T24"
+    },
+    {
+     "all_reference_actions_resolved": false,
+     "common_resolved": true,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 27,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "SELECTED_FEASIBLE": 27
+     },
+     "question": "D-T24-S0.33",
+     "reference_status_counts": {
+      "FEASIBLE": 10,
+      "INFEASIBLE": 24,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 1
+     },
+     "resolved_member_records": 27,
+     "selected_ambiguous_actions": {},
+     "split": "development",
+     "temperature_block": "D-T24"
+    },
+    {
+     "all_reference_actions_resolved": false,
+     "common_resolved": false,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 27,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "SELECTED_FEASIBLE": 1,
+      "SELECTED_UNRESOLVED": 26
+     },
+     "question": "D-T24-S0.48",
+     "reference_status_counts": {
+      "FEASIBLE": 9,
+      "INFEASIBLE": 20,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 6
+     },
+     "resolved_member_records": 1,
+     "selected_ambiguous_actions": {
+      "c1=1,c2=1": 3,
+      "c1=1.25,c2=1": 20,
+      "c1=1.5,c2=1": 3
+     },
+     "split": "development",
+     "temperature_block": "D-T24"
+    },
+    {
+     "all_reference_actions_resolved": true,
+     "common_resolved": true,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 27,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "SELECTED_FEASIBLE": 27
+     },
+     "question": "D-T34-S0.12",
+     "reference_status_counts": {
+      "FEASIBLE": 4,
+      "INFEASIBLE": 31,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 0
+     },
+     "resolved_member_records": 27,
+     "selected_ambiguous_actions": {},
+     "split": "development",
+     "temperature_block": "D-T34"
+    },
+    {
+     "all_reference_actions_resolved": false,
+     "common_resolved": false,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 27,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "SELECTED_FEASIBLE": 25,
+      "SELECTED_UNRESOLVED": 2
+     },
+     "question": "D-T34-S0.33",
+     "reference_status_counts": {
+      "FEASIBLE": 17,
+      "INFEASIBLE": 15,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 3
+     },
+     "resolved_member_records": 25,
+     "selected_ambiguous_actions": {
+      "c1=2,c2=1": 2
+     },
+     "split": "development",
+     "temperature_block": "D-T34"
+    },
+    {
+     "all_reference_actions_resolved": true,
+     "common_resolved": true,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 27,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "SELECTED_FEASIBLE": 27
+     },
+     "question": "D-T34-S0.48",
+     "reference_status_counts": {
+      "FEASIBLE": 22,
+      "INFEASIBLE": 13,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 0
+     },
+     "resolved_member_records": 27,
+     "selected_ambiguous_actions": {},
+     "split": "development",
+     "temperature_block": "D-T34"
+    },
+    {
+     "all_reference_actions_resolved": true,
+     "common_resolved": true,
+     "contested_known_feasible_and_infeasible": false,
+     "fully_all_infeasible": true,
+     "members": 27,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "CORRECT_ABSTENTION": 27
+     },
+     "question": "D-T5-S0.12",
+     "reference_status_counts": {
+      "FEASIBLE": 0,
+      "INFEASIBLE": 35,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 0
+     },
+     "resolved_member_records": 27,
+     "selected_ambiguous_actions": {},
+     "split": "development",
+     "temperature_block": "D-T5"
+    },
+    {
+     "all_reference_actions_resolved": false,
+     "common_resolved": false,
+     "contested_known_feasible_and_infeasible": false,
+     "fully_all_infeasible": false,
+     "members": 27,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": true,
+     "outcome_kinds": {
+      "ABSTENTION_UNRESOLVED": 21,
+      "SELECTED_INFEASIBLE": 5,
+      "SELECTED_UNRESOLVED": 1
+     },
+     "question": "D-T5-S0.33",
+     "reference_status_counts": {
+      "FEASIBLE": 0,
+      "INFEASIBLE": 34,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 1
+     },
+     "resolved_member_records": 5,
+     "selected_ambiguous_actions": {
+      "c1=0.75,c2=0.4": 1
+     },
+     "split": "development",
+     "temperature_block": "D-T5"
+    },
+    {
+     "all_reference_actions_resolved": false,
+     "common_resolved": false,
+     "contested_known_feasible_and_infeasible": false,
+     "fully_all_infeasible": false,
+     "members": 27,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": true,
+     "outcome_kinds": {
+      "ABSTENTION_UNRESOLVED": 5,
+      "SELECTED_INFEASIBLE": 2,
+      "SELECTED_UNRESOLVED": 20
+     },
+     "question": "D-T5-S0.48",
+     "reference_status_counts": {
+      "FEASIBLE": 0,
+      "INFEASIBLE": 29,
+      "REFERENCE_UNAVAILABLE": 5,
+      "UNRESOLVED": 1
+     },
+     "resolved_member_records": 2,
+     "selected_ambiguous_actions": {
+      "c1=0.5,c2=0.4": 20
+     },
+     "split": "development",
+     "temperature_block": "D-T5"
+    },
+    {
+     "all_reference_actions_resolved": false,
+     "common_resolved": true,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 27,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "SELECTED_FEASIBLE": 27
+     },
+     "question": "V-T19-S0.06",
+     "reference_status_counts": {
+      "FEASIBLE": 13,
+      "INFEASIBLE": 19,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 3
+     },
+     "resolved_member_records": 27,
+     "selected_ambiguous_actions": {},
+     "split": "verification",
+     "temperature_block": "V-T19"
+    },
+    {
+     "all_reference_actions_resolved": false,
+     "common_resolved": false,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 27,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "SELECTED_FEASIBLE": 2,
+      "SELECTED_UNRESOLVED": 25
+     },
+     "question": "V-T19-S0.22",
+     "reference_status_counts": {
+      "FEASIBLE": 6,
+      "INFEASIBLE": 23,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 6
+     },
+     "resolved_member_records": 2,
+     "selected_ambiguous_actions": {
+      "c1=1.25,c2=1": 9,
+      "c1=1.5,c2=0.8": 11,
+      "c1=1.5,c2=1": 5
+     },
+     "split": "verification",
+     "temperature_block": "V-T19"
+    },
+    {
+     "all_reference_actions_resolved": false,
+     "common_resolved": true,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 27,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "SELECTED_FEASIBLE": 27
+     },
+     "question": "V-T19-S0.40",
+     "reference_status_counts": {
+      "FEASIBLE": 4,
+      "INFEASIBLE": 29,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 2
+     },
+     "resolved_member_records": 27,
+     "selected_ambiguous_actions": {},
+     "split": "verification",
+     "temperature_block": "V-T19"
+    },
+    {
+     "all_reference_actions_resolved": true,
+     "common_resolved": true,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 27,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "SELECTED_FEASIBLE": 27
+     },
+     "question": "V-T29-S0.06",
+     "reference_status_counts": {
+      "FEASIBLE": 6,
+      "INFEASIBLE": 29,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 0
+     },
+     "resolved_member_records": 27,
+     "selected_ambiguous_actions": {},
+     "split": "verification",
+     "temperature_block": "V-T29"
+    },
+    {
+     "all_reference_actions_resolved": false,
+     "common_resolved": true,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 27,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "SELECTED_FEASIBLE": 27
+     },
+     "question": "V-T29-S0.22",
+     "reference_status_counts": {
+      "FEASIBLE": 18,
+      "INFEASIBLE": 16,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 1
+     },
+     "resolved_member_records": 27,
+     "selected_ambiguous_actions": {},
+     "split": "verification",
+     "temperature_block": "V-T29"
+    },
+    {
+     "all_reference_actions_resolved": true,
+     "common_resolved": true,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 27,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "SELECTED_FEASIBLE": 27
+     },
+     "question": "V-T29-S0.40",
+     "reference_status_counts": {
+      "FEASIBLE": 15,
+      "INFEASIBLE": 20,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 0
+     },
+     "resolved_member_records": 27,
+     "selected_ambiguous_actions": {},
+     "split": "verification",
+     "temperature_block": "V-T29"
+    },
+    {
+     "all_reference_actions_resolved": true,
+     "common_resolved": true,
+     "contested_known_feasible_and_infeasible": false,
+     "fully_all_infeasible": true,
+     "members": 27,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "CORRECT_ABSTENTION": 27
+     },
+     "question": "V-T38-S0.06",
+     "reference_status_counts": {
+      "FEASIBLE": 0,
+      "INFEASIBLE": 35,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 0
+     },
+     "resolved_member_records": 27,
+     "selected_ambiguous_actions": {},
+     "split": "verification",
+     "temperature_block": "V-T38"
+    },
+    {
+     "all_reference_actions_resolved": true,
+     "common_resolved": true,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 27,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "SELECTED_FEASIBLE": 27
+     },
+     "question": "V-T38-S0.22",
+     "reference_status_counts": {
+      "FEASIBLE": 1,
+      "INFEASIBLE": 34,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 0
+     },
+     "resolved_member_records": 27,
+     "selected_ambiguous_actions": {},
+     "split": "verification",
+     "temperature_block": "V-T38"
+    },
+    {
+     "all_reference_actions_resolved": false,
+     "common_resolved": false,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 27,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "SELECTED_FEASIBLE": 22,
+      "SELECTED_UNRESOLVED": 5
+     },
+     "question": "V-T38-S0.40",
+     "reference_status_counts": {
+      "FEASIBLE": 13,
+      "INFEASIBLE": 20,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 2
+     },
+     "resolved_member_records": 22,
+     "selected_ambiguous_actions": {
+      "c1=1.25,c2=0.8": 5
+     },
+     "split": "verification",
+     "temperature_block": "V-T38"
+    },
+    {
+     "all_reference_actions_resolved": true,
+     "common_resolved": true,
+     "contested_known_feasible_and_infeasible": false,
+     "fully_all_infeasible": true,
+     "members": 27,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "CORRECT_ABSTENTION": 14,
+      "SELECTED_INFEASIBLE": 13
+     },
+     "question": "V-T9-S0.06",
+     "reference_status_counts": {
+      "FEASIBLE": 0,
+      "INFEASIBLE": 35,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 0
+     },
+     "resolved_member_records": 27,
+     "selected_ambiguous_actions": {},
+     "split": "verification",
+     "temperature_block": "V-T9"
+    },
+    {
+     "all_reference_actions_resolved": true,
+     "common_resolved": true,
+     "contested_known_feasible_and_infeasible": false,
+     "fully_all_infeasible": true,
+     "members": 27,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "CORRECT_ABSTENTION": 27
+     },
+     "question": "V-T9-S0.22",
+     "reference_status_counts": {
+      "FEASIBLE": 0,
+      "INFEASIBLE": 35,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 0
+     },
+     "resolved_member_records": 27,
+     "selected_ambiguous_actions": {},
+     "split": "verification",
+     "temperature_block": "V-T9"
+    },
+    {
+     "all_reference_actions_resolved": true,
+     "common_resolved": true,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 27,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "SELECTED_FEASIBLE": 24,
+      "SELECTED_INFEASIBLE": 3
+     },
+     "question": "V-T9-S0.40",
+     "reference_status_counts": {
+      "FEASIBLE": 2,
+      "INFEASIBLE": 33,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 0
+     },
+     "resolved_member_records": 27,
+     "selected_ambiguous_actions": {},
+     "split": "verification",
+     "temperature_block": "V-T9"
+    }
+   ],
+   "recipes": 8,
+   "splits": {
+    "development": {
+     "all_reference_actions_resolved": 5,
+     "common_resolved": 6,
+     "excluded_questions": [
+      "D-T14-S0.12",
+      "D-T14-S0.48",
+      "D-T24-S0.48",
+      "D-T34-S0.33",
+      "D-T5-S0.33",
+      "D-T5-S0.48"
+     ],
+     "fully_all_infeasible": 1,
+     "member_records": 324,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": 2,
+     "numeric_member_records": 241,
+     "offered": 12,
+     "outcome_kinds": {
+      "ABSTENTION_UNRESOLVED": 26,
+      "CORRECT_ABSTENTION": 27,
+      "SELECTED_FEASIBLE": 184,
+      "SELECTED_INFEASIBLE": 30,
+      "SELECTED_UNRESOLVED": 57
+     },
+     "rate": 0.5
+    },
+    "verification": {
+     "all_reference_actions_resolved": 7,
+     "common_resolved": 10,
+     "excluded_questions": [
+      "V-T19-S0.22",
+      "V-T38-S0.40"
+     ],
+     "fully_all_infeasible": 3,
+     "member_records": 324,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": 0,
+     "numeric_member_records": 294,
+     "offered": 12,
+     "outcome_kinds": {
+      "CORRECT_ABSTENTION": 68,
+      "SELECTED_FEASIBLE": 210,
+      "SELECTED_INFEASIBLE": 16,
+      "SELECTED_UNRESOLVED": 30
+     },
+     "rate": 0.8333333333333334
+    }
+   },
+   "summary": {
+    "all_reference_actions_resolved": 12,
+    "common_resolved": 16,
+    "excluded_questions": [
+     "D-T14-S0.12",
+     "D-T14-S0.48",
+     "D-T24-S0.48",
+     "D-T34-S0.33",
+     "D-T5-S0.33",
+     "D-T5-S0.48",
+     "V-T19-S0.22",
+     "V-T38-S0.40"
+    ],
+    "fully_all_infeasible": 4,
+    "member_records": 648,
+    "missing_member_records": 0,
+    "no_known_feasible_but_uncertain": 2,
+    "numeric_member_records": 535,
+    "offered": 24,
+    "outcome_kinds": {
+     "ABSTENTION_UNRESOLVED": 26,
+     "CORRECT_ABSTENTION": 95,
+     "SELECTED_FEASIBLE": 394,
+     "SELECTED_INFEASIBLE": 46,
+     "SELECTED_UNRESOLVED": 87
+    },
+    "rate": 0.6666666666666666
+   }
+  },
+  "run5-refined": {
+   "all_eligible_panel": {
+    "all_reference_actions_resolved": 13,
+    "common_resolved": 17,
+    "excluded_questions": [
+     "D-T14-S0.12",
+     "D-T14-S0.48",
+     "D-T24-S0.48",
+     "D-T5-S0.33",
+     "D-T5-S0.48",
+     "V-T19-S0.22",
+     "V-T38-S0.40"
+    ],
+    "fully_all_infeasible": 4,
+    "member_records": 768,
+    "missing_member_records": 0,
+    "no_known_feasible_but_uncertain": 2,
+    "numeric_member_records": 643,
+    "offered": 24,
+    "outcome_kinds": {
+     "ABSTENTION_UNRESOLVED": 29,
+     "CORRECT_ABSTENTION": 109,
+     "MISSED_OPPORTUNITY": 4,
+     "MODEL_OUTPUT_MISSING": 5,
+     "SELECTED_FEASIBLE": 454,
+     "SELECTED_INFEASIBLE": 71,
+     "SELECTED_UNRESOLVED": 96
+    },
+    "rate": 0.7083333333333334
+   },
+   "coverage_rules_diagnostics_not_adoption": {
+    "0.8": {
+     "excluded_incomplete_rows_retained_as_unknown": 2,
+     "questions": 19
+    },
+    "0.9": {
+     "excluded_incomplete_rows_retained_as_unknown": 1,
+     "questions": 18
+    },
+    "0.95": {
+     "excluded_incomplete_rows_retained_as_unknown": 0,
+     "questions": 17
+    },
+    "1.0": {
+     "excluded_incomplete_rows_retained_as_unknown": 0,
+     "questions": 17
+    }
+   },
+   "member_numeric_coverage": {
+    "max": 0.9583333333333334,
+    "mean": 0.8287037037037037,
+    "min": 0.7916666666666666
+   },
+   "members": 27,
+   "preassigned_cohort_diagnostics": {
+    "2": [
+     {
+      "all_reference_actions_resolved": 13,
+      "common_resolved": 17,
+      "excluded_questions": [
+       "D-T14-S0.12",
+       "D-T14-S0.48",
+       "D-T24-S0.48",
+       "D-T5-S0.33",
+       "D-T5-S0.48",
+       "V-T19-S0.22",
+       "V-T38-S0.40"
+      ],
+      "fully_all_infeasible": 4,
+      "member_records": 576,
+      "members": 24,
+      "missing_member_records": 0,
+      "no_known_feasible_but_uncertain": 2,
+      "numeric_member_records": 478,
+      "offered": 24,
+      "outcome_kinds": {
+       "ABSTENTION_UNRESOLVED": 23,
+       "CORRECT_ABSTENTION": 84,
+       "SELECTED_FEASIBLE": 352,
+       "SELECTED_INFEASIBLE": 42,
+       "SELECTED_UNRESOLVED": 75
+      },
+      "rate": 0.7083333333333334,
+      "recipes": 7
+     },
+     {
+      "all_reference_actions_resolved": 13,
+      "common_resolved": 19,
+      "excluded_questions": [
+       "D-T14-S0.48",
+       "D-T24-S0.48",
+       "D-T5-S0.33",
+       "D-T5-S0.48",
+       "V-T19-S0.22"
+      ],
+      "fully_all_infeasible": 4,
+      "member_records": 72,
+      "members": 3,
+      "missing_member_records": 0,
+      "no_known_feasible_but_uncertain": 2,
+      "numeric_member_records": 59,
+      "offered": 24,
+      "outcome_kinds": {
+       "ABSTENTION_UNRESOLVED": 3,
+       "CORRECT_ABSTENTION": 11,
+       "SELECTED_FEASIBLE": 42,
+       "SELECTED_INFEASIBLE": 6,
+       "SELECTED_UNRESOLVED": 10
+      },
+      "rate": 0.7916666666666666,
+      "recipes": 1
+     }
+    ],
+    "4": [
+     {
+      "all_reference_actions_resolved": 13,
+      "common_resolved": 17,
+      "excluded_questions": [
+       "D-T14-S0.12",
+       "D-T14-S0.48",
+       "D-T24-S0.48",
+       "D-T5-S0.33",
+       "D-T5-S0.48",
+       "V-T19-S0.22",
+       "V-T38-S0.40"
+      ],
+      "fully_all_infeasible": 4,
+      "member_records": 360,
+      "members": 15,
+      "missing_member_records": 0,
+      "no_known_feasible_but_uncertain": 2,
+      "numeric_member_records": 302,
+      "offered": 24,
+      "outcome_kinds": {
+       "ABSTENTION_UNRESOLVED": 13,
+       "CORRECT_ABSTENTION": 52,
+       "SELECTED_FEASIBLE": 224,
+       "SELECTED_INFEASIBLE": 26,
+       "SELECTED_UNRESOLVED": 45
+      },
+      "rate": 0.7083333333333334,
+      "recipes": 4
+     },
+     {
+      "all_reference_actions_resolved": 13,
+      "common_resolved": 17,
+      "excluded_questions": [
+       "D-T14-S0.12",
+       "D-T14-S0.48",
+       "D-T24-S0.48",
+       "D-T5-S0.33",
+       "D-T5-S0.48",
+       "V-T19-S0.22",
+       "V-T38-S0.40"
+      ],
+      "fully_all_infeasible": 4,
+      "member_records": 216,
+      "members": 9,
+      "missing_member_records": 0,
+      "no_known_feasible_but_uncertain": 2,
+      "numeric_member_records": 176,
+      "offered": 24,
+      "outcome_kinds": {
+       "ABSTENTION_UNRESOLVED": 10,
+       "CORRECT_ABSTENTION": 32,
+       "SELECTED_FEASIBLE": 128,
+       "SELECTED_INFEASIBLE": 16,
+       "SELECTED_UNRESOLVED": 30
+      },
+      "rate": 0.7083333333333334,
+      "recipes": 3
+     },
+     {
+      "all_reference_actions_resolved": 13,
+      "common_resolved": 19,
+      "excluded_questions": [
+       "D-T14-S0.48",
+       "D-T24-S0.48",
+       "D-T5-S0.33",
+       "D-T5-S0.48",
+       "V-T19-S0.22"
+      ],
+      "fully_all_infeasible": 4,
+      "member_records": 72,
+      "members": 3,
+      "missing_member_records": 0,
+      "no_known_feasible_but_uncertain": 2,
+      "numeric_member_records": 59,
+      "offered": 24,
+      "outcome_kinds": {
+       "ABSTENTION_UNRESOLVED": 3,
+       "CORRECT_ABSTENTION": 11,
+       "SELECTED_FEASIBLE": 42,
+       "SELECTED_INFEASIBLE": 6,
+       "SELECTED_UNRESOLVED": 10
+      },
+      "rate": 0.7916666666666666,
+      "recipes": 1
+     }
+    ],
+    "8": [
+     {
+      "all_reference_actions_resolved": 13,
+      "common_resolved": 18,
+      "excluded_questions": [
+       "D-T14-S0.48",
+       "D-T24-S0.48",
+       "D-T5-S0.33",
+       "D-T5-S0.48",
+       "V-T19-S0.22",
+       "V-T38-S0.40"
+      ],
+      "fully_all_infeasible": 4,
+      "member_records": 216,
+      "members": 9,
+      "missing_member_records": 0,
+      "no_known_feasible_but_uncertain": 2,
+      "numeric_member_records": 184,
+      "offered": 24,
+      "outcome_kinds": {
+       "ABSTENTION_UNRESOLVED": 7,
+       "CORRECT_ABSTENTION": 32,
+       "SELECTED_FEASIBLE": 133,
+       "SELECTED_INFEASIBLE": 19,
+       "SELECTED_UNRESOLVED": 25
+      },
+      "rate": 0.75,
+      "recipes": 2
+     },
+     {
+      "all_reference_actions_resolved": 13,
+      "common_resolved": 18,
+      "excluded_questions": [
+       "D-T14-S0.12",
+       "D-T24-S0.48",
+       "D-T5-S0.33",
+       "D-T5-S0.48",
+       "V-T19-S0.22",
+       "V-T38-S0.40"
+      ],
+      "fully_all_infeasible": 4,
+      "member_records": 144,
+      "members": 6,
+      "missing_member_records": 0,
+      "no_known_feasible_but_uncertain": 2,
+      "numeric_member_records": 117,
+      "offered": 24,
+      "outcome_kinds": {
+       "ABSTENTION_UNRESOLVED": 7,
+       "CORRECT_ABSTENTION": 20,
+       "SELECTED_FEASIBLE": 85,
+       "SELECTED_INFEASIBLE": 12,
+       "SELECTED_UNRESOLVED": 20
+      },
+      "rate": 0.75,
+      "recipes": 2
+     },
+     {
+      "all_reference_actions_resolved": 13,
+      "common_resolved": 18,
+      "excluded_questions": [
+       "D-T14-S0.12",
+       "D-T14-S0.48",
+       "D-T24-S0.48",
+       "D-T5-S0.33",
+       "D-T5-S0.48",
+       "V-T19-S0.22"
+      ],
+      "fully_all_infeasible": 4,
+      "member_records": 144,
+      "members": 6,
+      "missing_member_records": 0,
+      "no_known_feasible_but_uncertain": 2,
+      "numeric_member_records": 118,
+      "offered": 24,
+      "outcome_kinds": {
+       "ABSTENTION_UNRESOLVED": 6,
+       "CORRECT_ABSTENTION": 20,
+       "SELECTED_FEASIBLE": 91,
+       "SELECTED_INFEASIBLE": 7,
+       "SELECTED_UNRESOLVED": 20
+      },
+      "rate": 0.75,
+      "recipes": 2
+     },
+     {
+      "all_reference_actions_resolved": 13,
+      "common_resolved": 18,
+      "excluded_questions": [
+       "D-T14-S0.48",
+       "D-T24-S0.48",
+       "D-T5-S0.33",
+       "D-T5-S0.48",
+       "V-T19-S0.22",
+       "V-T38-S0.40"
+      ],
+      "fully_all_infeasible": 4,
+      "member_records": 72,
+      "members": 3,
+      "missing_member_records": 0,
+      "no_known_feasible_but_uncertain": 2,
+      "numeric_member_records": 59,
+      "offered": 24,
+      "outcome_kinds": {
+       "ABSTENTION_UNRESOLVED": 3,
+       "CORRECT_ABSTENTION": 12,
+       "SELECTED_FEASIBLE": 43,
+       "SELECTED_INFEASIBLE": 4,
+       "SELECTED_UNRESOLVED": 10
+      },
+      "rate": 0.75,
+      "recipes": 1
+     },
+     {
+      "all_reference_actions_resolved": 13,
+      "common_resolved": 19,
+      "excluded_questions": [
+       "D-T14-S0.48",
+       "D-T24-S0.48",
+       "D-T5-S0.33",
+       "D-T5-S0.48",
+       "V-T19-S0.22"
+      ],
+      "fully_all_infeasible": 4,
+      "member_records": 72,
+      "members": 3,
+      "missing_member_records": 0,
+      "no_known_feasible_but_uncertain": 2,
+      "numeric_member_records": 59,
+      "offered": 24,
+      "outcome_kinds": {
+       "ABSTENTION_UNRESOLVED": 3,
+       "CORRECT_ABSTENTION": 11,
+       "SELECTED_FEASIBLE": 42,
+       "SELECTED_INFEASIBLE": 6,
+       "SELECTED_UNRESOLVED": 10
+      },
+      "rate": 0.7916666666666666,
+      "recipes": 1
+     }
+    ]
+   },
+   "questions": [
+    {
+     "all_reference_actions_resolved": false,
+     "common_resolved": false,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 27,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "SELECTED_FEASIBLE": 25,
+      "SELECTED_UNRESOLVED": 2
+     },
+     "question": "D-T14-S0.12",
+     "reference_status_counts": {
+      "FEASIBLE": 4,
+      "INFEASIBLE": 30,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 1
+     },
+     "resolved_member_records": 25,
+     "selected_ambiguous_actions": {
+      "c1=1.5,c2=0.8": 2
+     },
+     "split": "development",
+     "temperature_block": "D-T14"
+    },
+    {
+     "all_reference_actions_resolved": true,
+     "common_resolved": true,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 27,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "SELECTED_FEASIBLE": 27
+     },
+     "question": "D-T14-S0.33",
+     "reference_status_counts": {
+      "FEASIBLE": 3,
+      "INFEASIBLE": 32,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 0
+     },
+     "resolved_member_records": 27,
+     "selected_ambiguous_actions": {},
+     "split": "development",
+     "temperature_block": "D-T14"
+    },
+    {
+     "all_reference_actions_resolved": false,
+     "common_resolved": false,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 27,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "SELECTED_FEASIBLE": 21,
+      "SELECTED_UNRESOLVED": 6
+     },
+     "question": "D-T14-S0.48",
+     "reference_status_counts": {
+      "FEASIBLE": 4,
+      "INFEASIBLE": 29,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 2
+     },
+     "resolved_member_records": 21,
+     "selected_ambiguous_actions": {
+      "c1=1,c2=0.6": 6
+     },
+     "split": "development",
+     "temperature_block": "D-T14"
+    },
+    {
+     "all_reference_actions_resolved": true,
+     "common_resolved": true,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 27,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "SELECTED_FEASIBLE": 4,
+      "SELECTED_INFEASIBLE": 23
+     },
+     "question": "D-T24-S0.12",
+     "reference_status_counts": {
+      "FEASIBLE": 14,
+      "INFEASIBLE": 21,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 0
+     },
+     "resolved_member_records": 27,
+     "selected_ambiguous_actions": {},
+     "split": "development",
+     "temperature_block": "D-T24"
+    },
+    {
+     "all_reference_actions_resolved": false,
+     "common_resolved": true,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 27,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "SELECTED_FEASIBLE": 27
+     },
+     "question": "D-T24-S0.33",
+     "reference_status_counts": {
+      "FEASIBLE": 10,
+      "INFEASIBLE": 24,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 1
+     },
+     "resolved_member_records": 27,
+     "selected_ambiguous_actions": {},
+     "split": "development",
+     "temperature_block": "D-T24"
+    },
+    {
+     "all_reference_actions_resolved": false,
+     "common_resolved": false,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 27,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "SELECTED_FEASIBLE": 1,
+      "SELECTED_UNRESOLVED": 26
+     },
+     "question": "D-T24-S0.48",
+     "reference_status_counts": {
+      "FEASIBLE": 9,
+      "INFEASIBLE": 20,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 6
+     },
+     "resolved_member_records": 1,
+     "selected_ambiguous_actions": {
+      "c1=1,c2=1": 3,
+      "c1=1.25,c2=1": 20,
+      "c1=1.5,c2=1": 3
+     },
+     "split": "development",
+     "temperature_block": "D-T24"
+    },
+    {
+     "all_reference_actions_resolved": true,
+     "common_resolved": true,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 27,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "SELECTED_FEASIBLE": 27
+     },
+     "question": "D-T34-S0.12",
+     "reference_status_counts": {
+      "FEASIBLE": 4,
+      "INFEASIBLE": 31,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 0
+     },
+     "resolved_member_records": 27,
+     "selected_ambiguous_actions": {},
+     "split": "development",
+     "temperature_block": "D-T34"
+    },
+    {
+     "all_reference_actions_resolved": true,
+     "common_resolved": true,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 27,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "SELECTED_FEASIBLE": 25,
+      "SELECTED_INFEASIBLE": 2
+     },
+     "question": "D-T34-S0.33",
+     "reference_status_counts": {
+      "FEASIBLE": 17,
+      "INFEASIBLE": 18,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 0
+     },
+     "resolved_member_records": 27,
+     "selected_ambiguous_actions": {},
+     "split": "development",
+     "temperature_block": "D-T34"
+    },
+    {
+     "all_reference_actions_resolved": true,
+     "common_resolved": true,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 27,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "SELECTED_FEASIBLE": 27
+     },
+     "question": "D-T34-S0.48",
+     "reference_status_counts": {
+      "FEASIBLE": 22,
+      "INFEASIBLE": 13,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 0
+     },
+     "resolved_member_records": 27,
+     "selected_ambiguous_actions": {},
+     "split": "development",
+     "temperature_block": "D-T34"
+    },
+    {
+     "all_reference_actions_resolved": true,
+     "common_resolved": true,
+     "contested_known_feasible_and_infeasible": false,
+     "fully_all_infeasible": true,
+     "members": 27,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "CORRECT_ABSTENTION": 27
+     },
+     "question": "D-T5-S0.12",
+     "reference_status_counts": {
+      "FEASIBLE": 0,
+      "INFEASIBLE": 35,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 0
+     },
+     "resolved_member_records": 27,
+     "selected_ambiguous_actions": {},
+     "split": "development",
+     "temperature_block": "D-T5"
+    },
+    {
+     "all_reference_actions_resolved": false,
+     "common_resolved": false,
+     "contested_known_feasible_and_infeasible": false,
+     "fully_all_infeasible": false,
+     "members": 27,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": true,
+     "outcome_kinds": {
+      "ABSTENTION_UNRESOLVED": 21,
+      "SELECTED_INFEASIBLE": 5,
+      "SELECTED_UNRESOLVED": 1
+     },
+     "question": "D-T5-S0.33",
+     "reference_status_counts": {
+      "FEASIBLE": 0,
+      "INFEASIBLE": 34,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 1
+     },
+     "resolved_member_records": 5,
+     "selected_ambiguous_actions": {
+      "c1=0.75,c2=0.4": 1
+     },
+     "split": "development",
+     "temperature_block": "D-T5"
+    },
+    {
+     "all_reference_actions_resolved": false,
+     "common_resolved": false,
+     "contested_known_feasible_and_infeasible": false,
+     "fully_all_infeasible": false,
+     "members": 27,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": true,
+     "outcome_kinds": {
+      "ABSTENTION_UNRESOLVED": 5,
+      "SELECTED_INFEASIBLE": 2,
+      "SELECTED_UNRESOLVED": 20
+     },
+     "question": "D-T5-S0.48",
+     "reference_status_counts": {
+      "FEASIBLE": 0,
+      "INFEASIBLE": 29,
+      "REFERENCE_UNAVAILABLE": 5,
+      "UNRESOLVED": 1
+     },
+     "resolved_member_records": 2,
+     "selected_ambiguous_actions": {
+      "c1=0.5,c2=0.4": 20
+     },
+     "split": "development",
+     "temperature_block": "D-T5"
+    },
+    {
+     "all_reference_actions_resolved": false,
+     "common_resolved": true,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 27,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "SELECTED_FEASIBLE": 27
+     },
+     "question": "V-T19-S0.06",
+     "reference_status_counts": {
+      "FEASIBLE": 13,
+      "INFEASIBLE": 19,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 3
+     },
+     "resolved_member_records": 27,
+     "selected_ambiguous_actions": {},
+     "split": "verification",
+     "temperature_block": "V-T19"
+    },
+    {
+     "all_reference_actions_resolved": false,
+     "common_resolved": false,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 27,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "SELECTED_FEASIBLE": 2,
+      "SELECTED_UNRESOLVED": 25
+     },
+     "question": "V-T19-S0.22",
+     "reference_status_counts": {
+      "FEASIBLE": 6,
+      "INFEASIBLE": 23,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 6
+     },
+     "resolved_member_records": 2,
+     "selected_ambiguous_actions": {
+      "c1=1.25,c2=1": 9,
+      "c1=1.5,c2=0.8": 11,
+      "c1=1.5,c2=1": 5
+     },
+     "split": "verification",
+     "temperature_block": "V-T19"
+    },
+    {
+     "all_reference_actions_resolved": false,
+     "common_resolved": true,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 27,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "SELECTED_FEASIBLE": 27
+     },
+     "question": "V-T19-S0.40",
+     "reference_status_counts": {
+      "FEASIBLE": 4,
+      "INFEASIBLE": 29,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 2
+     },
+     "resolved_member_records": 27,
+     "selected_ambiguous_actions": {},
+     "split": "verification",
+     "temperature_block": "V-T19"
+    },
+    {
+     "all_reference_actions_resolved": true,
+     "common_resolved": true,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 27,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "SELECTED_FEASIBLE": 27
+     },
+     "question": "V-T29-S0.06",
+     "reference_status_counts": {
+      "FEASIBLE": 6,
+      "INFEASIBLE": 29,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 0
+     },
+     "resolved_member_records": 27,
+     "selected_ambiguous_actions": {},
+     "split": "verification",
+     "temperature_block": "V-T29"
+    },
+    {
+     "all_reference_actions_resolved": false,
+     "common_resolved": true,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 27,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "SELECTED_FEASIBLE": 27
+     },
+     "question": "V-T29-S0.22",
+     "reference_status_counts": {
+      "FEASIBLE": 18,
+      "INFEASIBLE": 16,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 1
+     },
+     "resolved_member_records": 27,
+     "selected_ambiguous_actions": {},
+     "split": "verification",
+     "temperature_block": "V-T29"
+    },
+    {
+     "all_reference_actions_resolved": true,
+     "common_resolved": true,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 27,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "SELECTED_FEASIBLE": 27
+     },
+     "question": "V-T29-S0.40",
+     "reference_status_counts": {
+      "FEASIBLE": 15,
+      "INFEASIBLE": 20,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 0
+     },
+     "resolved_member_records": 27,
+     "selected_ambiguous_actions": {},
+     "split": "verification",
+     "temperature_block": "V-T29"
+    },
+    {
+     "all_reference_actions_resolved": true,
+     "common_resolved": true,
+     "contested_known_feasible_and_infeasible": false,
+     "fully_all_infeasible": true,
+     "members": 27,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "CORRECT_ABSTENTION": 27
+     },
+     "question": "V-T38-S0.06",
+     "reference_status_counts": {
+      "FEASIBLE": 0,
+      "INFEASIBLE": 35,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 0
+     },
+     "resolved_member_records": 27,
+     "selected_ambiguous_actions": {},
+     "split": "verification",
+     "temperature_block": "V-T38"
+    },
+    {
+     "all_reference_actions_resolved": true,
+     "common_resolved": true,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 27,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "SELECTED_FEASIBLE": 27
+     },
+     "question": "V-T38-S0.22",
+     "reference_status_counts": {
+      "FEASIBLE": 1,
+      "INFEASIBLE": 34,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 0
+     },
+     "resolved_member_records": 27,
+     "selected_ambiguous_actions": {},
+     "split": "verification",
+     "temperature_block": "V-T38"
+    },
+    {
+     "all_reference_actions_resolved": false,
+     "common_resolved": false,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 27,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "SELECTED_FEASIBLE": 22,
+      "SELECTED_UNRESOLVED": 5
+     },
+     "question": "V-T38-S0.40",
+     "reference_status_counts": {
+      "FEASIBLE": 13,
+      "INFEASIBLE": 20,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 2
+     },
+     "resolved_member_records": 22,
+     "selected_ambiguous_actions": {
+      "c1=1.25,c2=0.8": 5
+     },
+     "split": "verification",
+     "temperature_block": "V-T38"
+    },
+    {
+     "all_reference_actions_resolved": true,
+     "common_resolved": true,
+     "contested_known_feasible_and_infeasible": false,
+     "fully_all_infeasible": true,
+     "members": 27,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "CORRECT_ABSTENTION": 14,
+      "SELECTED_INFEASIBLE": 13
+     },
+     "question": "V-T9-S0.06",
+     "reference_status_counts": {
+      "FEASIBLE": 0,
+      "INFEASIBLE": 35,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 0
+     },
+     "resolved_member_records": 27,
+     "selected_ambiguous_actions": {},
+     "split": "verification",
+     "temperature_block": "V-T9"
+    },
+    {
+     "all_reference_actions_resolved": true,
+     "common_resolved": true,
+     "contested_known_feasible_and_infeasible": false,
+     "fully_all_infeasible": true,
+     "members": 27,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "CORRECT_ABSTENTION": 27
+     },
+     "question": "V-T9-S0.22",
+     "reference_status_counts": {
+      "FEASIBLE": 0,
+      "INFEASIBLE": 35,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 0
+     },
+     "resolved_member_records": 27,
+     "selected_ambiguous_actions": {},
+     "split": "verification",
+     "temperature_block": "V-T9"
+    },
+    {
+     "all_reference_actions_resolved": true,
+     "common_resolved": true,
+     "contested_known_feasible_and_infeasible": true,
+     "fully_all_infeasible": false,
+     "members": 27,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": false,
+     "outcome_kinds": {
+      "SELECTED_FEASIBLE": 24,
+      "SELECTED_INFEASIBLE": 3
+     },
+     "question": "V-T9-S0.40",
+     "reference_status_counts": {
+      "FEASIBLE": 2,
+      "INFEASIBLE": 33,
+      "REFERENCE_UNAVAILABLE": 0,
+      "UNRESOLVED": 0
+     },
+     "resolved_member_records": 27,
+     "selected_ambiguous_actions": {},
+     "split": "verification",
+     "temperature_block": "V-T9"
+    }
+   ],
+   "recipes": 8,
+   "splits": {
+    "development": {
+     "all_reference_actions_resolved": 6,
+     "common_resolved": 7,
+     "excluded_questions": [
+      "D-T14-S0.12",
+      "D-T14-S0.48",
+      "D-T24-S0.48",
+      "D-T5-S0.33",
+      "D-T5-S0.48"
+     ],
+     "fully_all_infeasible": 1,
+     "member_records": 324,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": 2,
+     "numeric_member_records": 243,
+     "offered": 12,
+     "outcome_kinds": {
+      "ABSTENTION_UNRESOLVED": 26,
+      "CORRECT_ABSTENTION": 27,
+      "SELECTED_FEASIBLE": 184,
+      "SELECTED_INFEASIBLE": 32,
+      "SELECTED_UNRESOLVED": 55
+     },
+     "rate": 0.5833333333333334
+    },
+    "verification": {
+     "all_reference_actions_resolved": 7,
+     "common_resolved": 10,
+     "excluded_questions": [
+      "V-T19-S0.22",
+      "V-T38-S0.40"
+     ],
+     "fully_all_infeasible": 3,
+     "member_records": 324,
+     "missing_member_records": 0,
+     "no_known_feasible_but_uncertain": 0,
+     "numeric_member_records": 294,
+     "offered": 12,
+     "outcome_kinds": {
+      "CORRECT_ABSTENTION": 68,
+      "SELECTED_FEASIBLE": 210,
+      "SELECTED_INFEASIBLE": 16,
+      "SELECTED_UNRESOLVED": 30
+     },
+     "rate": 0.8333333333333334
+    }
+   },
+   "summary": {
+    "all_reference_actions_resolved": 13,
+    "common_resolved": 17,
+    "excluded_questions": [
+     "D-T14-S0.12",
+     "D-T14-S0.48",
+     "D-T24-S0.48",
+     "D-T5-S0.33",
+     "D-T5-S0.48",
+     "V-T19-S0.22",
+     "V-T38-S0.40"
+    ],
+    "fully_all_infeasible": 4,
+    "member_records": 648,
+    "missing_member_records": 0,
+    "no_known_feasible_but_uncertain": 2,
+    "numeric_member_records": 537,
+    "offered": 24,
+    "outcome_kinds": {
+     "ABSTENTION_UNRESOLVED": 26,
+     "CORRECT_ABSTENTION": 95,
+     "SELECTED_FEASIBLE": 394,
+     "SELECTED_INFEASIBLE": 48,
+     "SELECTED_UNRESOLVED": 85
+    },
+    "rate": 0.7083333333333334
+   }
+  }
+ },
+ "cause_summary": {
+  "distinct_selected_ambiguous_actions_across_questions": 38,
+  "excluded": 21,
+  "member_losses_missing_reference_ambiguity": 837,
+  "unresolved_reference_actions_across_all_questions": 68,
+  "with_missing_member_records": 0,
+  "with_no_known_feasible_action_but_uncertainty": 3,
+  "with_unavailable_reference_actions": 1,
+  "with_unresolved_reference_actions": 21
+ },
+ "cost_model": {
+  "117_action_grid_same_yield_counterexample": {
+   "base": 651.5562857142858,
+   "high": 714.0342857142858,
+   "low": 589.0782857142858
+  },
+  "95pct_member_coverage_counterexample": {
+   "CPU_hours_ASSUMPTION": {
+    "base": 188.34,
+    "high": 206.4,
+    "low": 170.28
+   },
+   "offered_for_150": 258
+  },
+  "baseline": {
+   "CPU_hours_ASSUMPTION": {
+    "base": 194.91,
+    "high": 213.60000000000002,
+    "low": 176.22
+   },
+   "offered_for_150": 267
+  },
+  "drop_all_infeasible_counterexample": {
+   "CPU_hours_ASSUMPTION": {
+    "base": 237.25,
+    "high": 260.0,
+    "low": 214.5
+   },
+   "offered_for_150": 325
+  },
+  "hours_per_offered_question": {
+   "base": 0.73,
+   "high": 0.8,
+   "low": 0.66
+  },
+  "known_contested_defensive_Q_raw_yield_diagnostic": [
+   {
+    "CPU_hours_ASSUMPTION": {
+     "base": 213.89,
+     "high": 234.4,
+     "low": 193.38
+    },
+    "epsilon_ASSUMPTION": 0.2,
+    "offered_for_150": 293,
+    "public_support_raw_yield_diagnostic": 0.5125000000000001
+   },
+   {
+    "CPU_hours_ASSUMPTION": {
+     "base": 206.59,
+     "high": 226.4,
+     "low": 186.78
+    },
+    "epsilon_ASSUMPTION": 0.5,
+    "offered_for_150": 283,
+    "public_support_raw_yield_diagnostic": 0.53125
+   },
+   {
+    "CPU_hours_ASSUMPTION": {
+     "base": 199.29,
+     "high": 218.4,
+     "low": 180.18
+    },
+    "epsilon_ASSUMPTION": 0.8,
+    "offered_for_150": 273,
+    "public_support_raw_yield_diagnostic": 0.55
+   }
+  ],
+  "max_gross_saving_at_perfect_resolution": {
+   "base": 85.41,
+   "high": 93.60000000000002,
+   "low": 77.22
+  },
+  "refinement_transport_scenario": {
+   "assumption": "Transport the historical +1/12 recovery to the EV4/EV5 pooled mix; one busy core; selection/refinement pattern repeats. Hindsight target is an optimistic diagnostic, not a promised policy.",
+   "blanket_all_cases": {
+    "CPU_hours_ASSUMPTION": {
+     "base": 205.70366676531611,
+     "high": 222.01366676531612,
+     "low": 189.39366676531614
+    },
+    "net_CPU_hours_saved_ASSUMPTION": {
+     "base": -10.793666765316118,
+     "high": -8.413666765316094,
+     "low": -13.173666765316142
+    },
+    "offered_for_150": 233
+   },
+   "targeted_hindsight": {
+    "CPU_hours_ASSUMPTION": {
+     "base": 171.2831004916594,
+     "high": 187.59310049165944,
+     "low": 154.97310049165944
+    },
+    "net_CPU_hours_saved_ASSUMPTION": {
+     "base": 23.626899508340585,
+     "high": 26.00689950834058,
+     "low": 21.24689950834056
+    },
+    "offered_for_150": 233
+   },
+   "yield_assumption": 0.6458333333333335
+  },
+  "sealed_run_measured": false,
+  "spend_or_euro_quote": false,
+  "target_owner": 150,
+  "yield_scenarios": [
+   {
+    "CPU_hours_ASSUMPTION": {
+     "base": 182.5,
+     "high": 200.0,
+     "low": 165.0
+    },
+    "break_even_extra_CPU_hours_per_offer": {
+     "base": 0.04964000000000002,
+     "high": 0.054400000000000004,
+     "low": 0.04487999999999992
+    },
+    "gross_CPU_hours_saved_ASSUMPTION": {
+     "base": 12.409999999999997,
+     "high": 13.600000000000023,
+     "low": 11.219999999999999
+    },
+    "offered_for_150": 250,
+    "yield_ASSUMPTION": 0.6
+   },
+   {
+    "CPU_hours_ASSUMPTION": {
+     "base": 168.63,
+     "high": 184.8,
+     "low": 152.46
+    },
+    "break_even_extra_CPU_hours_per_offer": {
+     "base": 0.11376623376623374,
+     "high": 0.12467532467532472,
+     "low": 0.10285714285714287
+    },
+    "gross_CPU_hours_saved_ASSUMPTION": {
+     "base": 26.28,
+     "high": 28.80000000000001,
+     "low": 23.75999999999999
+    },
+    "offered_for_150": 231,
+    "yield_ASSUMPTION": 0.65
+   },
+   {
+    "CPU_hours_ASSUMPTION": {
+     "base": 156.95,
+     "high": 172.0,
+     "low": 141.9
+    },
+    "break_even_extra_CPU_hours_per_offer": {
+     "base": 0.17655813953488375,
+     "high": 0.19348837209302328,
+     "low": 0.15962790697674412
+    },
+    "gross_CPU_hours_saved_ASSUMPTION": {
+     "base": 37.96000000000001,
+     "high": 41.60000000000002,
+     "low": 34.31999999999999
+    },
+    "offered_for_150": 215,
+    "yield_ASSUMPTION": 0.7
+   },
+   {
+    "CPU_hours_ASSUMPTION": {
+     "base": 146.0,
+     "high": 160.0,
+     "low": 132.0
+    },
+    "break_even_extra_CPU_hours_per_offer": {
+     "base": 0.24455000000000005,
+     "high": 0.268,
+     "low": 0.22109999999999996
+    },
+    "gross_CPU_hours_saved_ASSUMPTION": {
+     "base": 48.91,
+     "high": 53.60000000000002,
+     "low": 44.22
+    },
+    "offered_for_150": 200,
+    "yield_ASSUMPTION": 0.75
+   },
+   {
+    "CPU_hours_ASSUMPTION": {
+     "base": 137.24,
+     "high": 150.4,
+     "low": 124.08000000000001
+    },
+    "break_even_extra_CPU_hours_per_offer": {
+     "base": 0.3067553191489363,
+     "high": 0.3361702127659576,
+     "low": 0.27734042553191485
+    },
+    "gross_CPU_hours_saved_ASSUMPTION": {
+     "base": 57.66999999999999,
+     "high": 63.20000000000002,
+     "low": 52.139999999999986
+    },
+    "offered_for_150": 188,
+    "yield_ASSUMPTION": 0.8
+   },
+   {
+    "CPU_hours_ASSUMPTION": {
+     "base": 121.91,
+     "high": 133.6,
+     "low": 110.22
+    },
+    "break_even_extra_CPU_hours_per_offer": {
+     "base": 0.437125748502994,
+     "high": 0.47904191616766467,
+     "low": 0.39520958083832325
+    },
+    "gross_CPU_hours_saved_ASSUMPTION": {
+     "base": 73.0,
+     "high": 80.00000000000003,
+     "low": 66.0
+    },
+    "offered_for_150": 167,
+    "yield_ASSUMPTION": 0.9
+   },
+   {
+    "CPU_hours_ASSUMPTION": {
+     "base": 109.5,
+     "high": 120.0,
+     "low": 99.0
+    },
+    "break_even_extra_CPU_hours_per_offer": {
+     "base": 0.5693999999999999,
+     "high": 0.6240000000000001,
+     "low": 0.5148
+    },
+    "gross_CPU_hours_saved_ASSUMPTION": {
+     "base": 85.41,
+     "high": 93.60000000000002,
+     "low": 77.22
+    },
+    "offered_for_150": 150,
+    "yield_ASSUMPTION": 1.0
+   }
+  ]
+ },
+ "grid_refinement_diagnostic": {
+  "coarse_actions": 35,
+  "pick_shift_rate": 0.18376068376068377,
+  "refined_actions": 117,
+  "resolution_gain": "NOT_ESTABLISHED: diagnostic changes selections/feasibility labels, not common-question resolution",
+  "verdict_change_rate": 0.038461538461538464,
+  "verdict_changes": 2,
+  "verdicts_judged": 52
+ },
+ "label": "PUBLIC DEVELOPMENT RESEARCH; NO QUALIFICATION",
+ "numeric_policy": "Measured counts/timings/point fractions low=base=high; forward CPU estimates and yield scenarios explicitly ASSUMPTION. Owner supplied base 0.73 CPU-h/offered question and target 150; sensitivity endpoints 0.66/0.80 are ASSUMPTION, not measured confidence bounds.",
+ "pooled_EV4_EV5": {
+  "all_reference_actions_resolved": 23,
+  "common_resolved": 27,
+  "excluded_questions": [
+   "D-T14-S0.12",
+   "D-T14-S0.48",
+   "D-T24-S0.48",
+   "D-T34-S0.33",
+   "D-T5-S0.33",
+   "D-T5-S0.48",
+   "V-T19-S0.06",
+   "V-T19-S0.22",
+   "V-T19-S0.40",
+   "V-T38-S0.40",
+   "D-T16-S0.10",
+   "D-T16-S0.30",
+   "D-T26-S0.46",
+   "D-T35-S0.10",
+   "D-T35-S0.30",
+   "D-T35-S0.46",
+   "D-T6-S0.46",
+   "V-T10-S0.07",
+   "V-T20-S0.24",
+   "V-T20-S0.38",
+   "V-T30-S0.24"
+  ],
+  "fully_all_infeasible": 9,
+  "member_records": 4752,
+  "missing_member_records": 0,
+  "no_known_feasible_but_uncertain": 3,
+  "numeric_member_records": 3915,
+  "offered": 48,
+  "outcome_kinds": {
+   "ABSTENTION_UNRESOLVED": 68,
+   "CORRECT_ABSTENTION": 680,
+   "MISSED_OPPORTUNITY": 31,
+   "SELECTED_FEASIBLE": 2742,
+   "SELECTED_INFEASIBLE": 462,
+   "SELECTED_UNRESOLVED": 769
+  },
+  "rate": 0.5625
+ },
+ "reference_refinement": {
+  "after_development": {
+   "all_reference_actions_resolved": 6,
+   "common_resolved": 7,
+   "excluded_questions": [
+    "D-T14-S0.12",
+    "D-T14-S0.48",
+    "D-T24-S0.48",
+    "D-T5-S0.33",
+    "D-T5-S0.48"
+   ],
+   "fully_all_infeasible": 1,
+   "member_records": 324,
+   "missing_member_records": 0,
+   "no_known_feasible_but_uncertain": 2,
+   "numeric_member_records": 243,
+   "offered": 12,
+   "outcome_kinds": {
+    "ABSTENTION_UNRESOLVED": 26,
+    "CORRECT_ABSTENTION": 27,
+    "SELECTED_FEASIBLE": 184,
+    "SELECTED_INFEASIBLE": 32,
+    "SELECTED_UNRESOLVED": 55
+   },
+   "rate": 0.5833333333333334
+  },
+  "before_development": {
+   "all_reference_actions_resolved": 5,
+   "common_resolved": 6,
+   "excluded_questions": [
+    "D-T14-S0.12",
+    "D-T14-S0.48",
+    "D-T24-S0.48",
+    "D-T34-S0.33",
+    "D-T5-S0.33",
+    "D-T5-S0.48"
+   ],
+   "fully_all_infeasible": 1,
+   "member_records": 324,
+   "missing_member_records": 0,
+   "no_known_feasible_but_uncertain": 2,
+   "numeric_member_records": 241,
+   "offered": 12,
+   "outcome_kinds": {
+    "ABSTENTION_UNRESOLVED": 26,
+    "CORRECT_ABSTENTION": 27,
+    "SELECTED_FEASIBLE": 184,
+    "SELECTED_INFEASIBLE": 30,
+    "SELECTED_UNRESOLVED": 57
+   },
+   "rate": 0.5
+  },
+  "cases": 27,
+  "counterfactual_CPU_model": {
+   "assumption": "One busy core; historical 12-question mix and same improvement repeat; not a sealed-run measurement or achievable-rate promise",
+   "new_all_27_cases": {
+    "CPU_hours_ASSUMPTION": {
+     "base": 227.77487564571484,
+     "high": 245.83487564571485,
+     "low": 209.71487564571487
+    },
+    "offered_for_150": 258
+   },
+   "new_hindsight_critical_case_only": {
+    "CPU_hours_ASSUMPTION": {
+     "base": 189.6611155658718,
+     "high": 207.72111556587183,
+     "low": 171.60111556587182
+    },
+    "offered_for_150": 258
+   },
+   "old": {
+    "CPU_hours_ASSUMPTION": {
+     "base": 219.0,
+     "high": 240.0,
+     "low": 198.0
+    },
+    "offered_for_150": 300
+   }
+  },
+  "critical_cases_hindsight": [
+   "ev4:D-T34-S0.33:c1=2,c2=1:0"
+  ],
+  "critical_elapsed_hours_hindsight": 0.06144723562194448,
+  "failure_elapsed_hours_measured": 0.3630880760108332,
+  "outcome_changes": [
+   {
+    "after": "SELECTED_INFEASIBLE",
+    "before": "SELECTED_UNRESOLVED",
+    "member": "graphite-run5-p-1d4aaff5d292-s3718551112",
+    "question": "D-T34-S0.33",
+    "selected": "c1=2,c2=1"
+   },
+   {
+    "after": "SELECTED_INFEASIBLE",
+    "before": "SELECTED_UNRESOLVED",
+    "member": "graphite-run5-p-69268f1b74ec-s1551240145",
+    "question": "D-T34-S0.33",
+    "selected": "c1=2,c2=1"
+   }
+  ],
+  "settling_resolved": 6,
+  "status_counts": {
+   "OK": 22,
+   "REFERENCE_SOLVER_FAILED": 5
+  },
+  "sum_elapsed_hours_measured": 1.8341802625913883,
+  "sum_solver_elapsed_hours_measured": 1.8324638309644443
+ },
+ "runtime": {
+  "canonical": false,
+  "python": "3.12.14"
+ },
+ "schema": "carbon.research.question-resolution-rate.v1",
+ "sources": {
+  "ev4.json": {
+   "bytes": 2206408,
+   "git_blob": "67ca13b966a2f6fb4b2e68b084e2909657e7ba7f",
+   "path": "docs/development/evidence/ev4-2026-10-01/results.json",
+   "sha256": "3bd9b954f4bace5f0299b6cbe9301e27407cb846dd51e5793bd5b5f6f33b0371",
+   "source_commit": "0d1370d01ec4bf76c38627c85b9426910d8be3a3"
+  },
+  "ev5.json": {
+   "bytes": 2375178,
+   "git_blob": "7d6ccf75a47c2df56c66d0b223300e5fd9398512",
+   "path": "docs/development/evidence/ev5-2026-10-03/results.json",
+   "sha256": "60e4a856fb2ee6556d3e7115411e5b00d84c84c02603c2473392c713bfacc254",
+   "source_commit": "0d1370d01ec4bf76c38627c85b9426910d8be3a3"
+  },
+  "grid-resolution.json": {
+   "bytes": 37720,
+   "git_blob": "68221beb898560f3cf3fbe8ff626f0ff95ef8d4b",
+   "path": "docs/development/evidence/battery-quiz-designs/grid-resolution-v1/grid-resolution.json",
+   "sha256": "813921386666337b3af6d72116ad1c610daa5d121b15aaa34f635e443688f84d",
+   "source_commit": "0d1370d01ec4bf76c38627c85b9426910d8be3a3"
+  },
+  "refined-records.jsonl.gz": {
+   "bytes": 44129,
+   "git_blob": "c2840676909bae6585e92402a3bc7b86d6b59c27",
+   "path": "docs/development/evidence/ev4-dev-refined-v1/records.jsonl.gz",
+   "sha256": "74004d86fedcdf05d672a861a78fb1a243436e841b388e3fee54c544797e8fa8",
+   "source_commit": "0d1370d01ec4bf76c38627c85b9426910d8be3a3"
+  },
+  "run5-refined.json": {
+   "bytes": 672831,
+   "git_blob": "91505359446f3a13163a1371590fcad0b2a4041b",
+   "path": "docs/development/evidence/graphite-run5-q1-refined/results.json",
+   "sha256": "0a9cf996eda517a8bbe65b8c287e4fb10893be88970bd9dba7d8ea851bcb32a5",
+   "source_commit": "0d1370d01ec4bf76c38627c85b9426910d8be3a3"
+  },
+  "run5.json": {
+   "bytes": 671957,
+   "git_blob": "2ea791a0c8dd8badd41a9d5823d491ec39ee9ed8",
+   "path": "docs/development/evidence/graphite-run5-q1/results.json",
+   "sha256": "f1d1409b3774b27fd1d6452298bcded451bce4cc9d4fa91b2336600d8b018d68",
+   "source_commit": "0d1370d01ec4bf76c38627c85b9426910d8be3a3"
+  },
+  "settling.json": {
+   "bytes": 9484,
+   "git_blob": "28bd84370ec3e07cfbfe4627c85559fd09409b30",
+   "path": "docs/development/evidence/ev4-dev-refined-v1/settling.json",
+   "sha256": "36e608494500ca51f51379a2d63e6a7e79e85bdeb94ffe22126e63faec6b11e2",
+   "source_commit": "0d1370d01ec4bf76c38627c85b9426910d8be3a3"
+  }
+ },
+ "unmeasured": {
+  "future_frontier_Q_yield": "NOT_IDENTIFIABLE: public label-selected subset is not a deployable unbiased prescreen",
+  "importance_weighted_tau_power": "NOT_IDENTIFIABLE: changing Q and member masks changes variance and the estimand; 150 count not automatically effective questions",
+  "ties": "No TIE_UNRESOLVED outcome; deterministic objective/c1/c2 tie break in pinned decision.py. Number of objective ties not exposed by aggregate inputs."
+ }
+}
