@@ -89,40 +89,92 @@ def tau_b(x, y):
     return float((dx * dy)[both].sum() / denominator)
 
 
-def bootstrap(
-    scores, base_scores, values, recipe_of, members, *, n=BOOTSTRAP, seed=SEED
-):
-    """`(tau interval, paired delta-tau interval)` over recipe-cluster
-    resamples: a recipe's seeds move together, and a recipe drawn twice
-    appears twice. The delta needs the rule in force's score for every member
-    the candidate scores; otherwise it is None."""
+def tie_counts(scores, values, members):
+    """The point tau's pair accounting on the usable members."""
     import numpy as np
 
     usable = [
         m for m in members if scores.get(m) is not None and values.get(m) is not None
     ]
+    x = np.asarray([scores[m] for m in usable], float)
+    y = -np.asarray([values[m] for m in usable], float)
+    i, j = np.triu_indices(len(usable), 1)
+    dx, dy = np.sign(x[i] - x[j]), np.sign(y[i] - y[j])
+    return {
+        "usable_members": len(usable),
+        "pairs": len(i),
+        "score_ties": int(((dx == 0) & (dy != 0)).sum()),
+        "value_ties": int(((dy == 0) & (dx != 0)).sum()),
+        "double_ties": int(((dx == 0) & (dy == 0)).sum()),
+    }
+
+
+def bootstrap(
+    scores, base_scores, losses, recipe_of, members, *, n=BOOTSTRAP, seed=SEED
+):
+    """Crossed recipe x decision-question resampling (SCORE-PROOF-DESIGN-01).
+
+    `losses` maps each member to its decision losses on the pool's common
+    resolved mask, one per question. Each replicate draws recipe clusters (a
+    recipe's seeds move together; a recipe drawn twice appears twice) and,
+    independently, questions with replacement, and recomputes every member's
+    value from the drawn questions. The scoring cases are fixed: the
+    intervals are conditional on the scoring set. Returns the joint 95 %
+    interval of tau and of the paired delta against the rule in force, the
+    recipe-only and question-only sensitivity intervals, and the fraction of
+    replicates where tau was undefined (never counted as 0)."""
+    import numpy as np
+
+    usable = [m for m in members if scores.get(m) is not None and m in losses]
     groups = {}
     for k, m in enumerate(usable):
         groups.setdefault(recipe_of[m], []).append(k)
     keys = sorted(groups)
     if len(keys) < 2:
-        return None, None
+        return None
     s = np.asarray([scores[m] for m in usable], float)
-    v = -np.asarray([values[m] for m in usable], float)
+    loss = np.asarray([losses[m] for m in usable], float)
+    q = loss.shape[1]
     paired = all(base_scores.get(m) is not None for m in usable)
     b = np.asarray([base_scores[m] for m in usable], float) if paired else None
     rng = random.Random(seed)
-    taus, deltas = [], []
-    for _ in range(n):
-        index = np.asarray(
-            [k for key in (rng.choice(keys) for _ in keys) for k in groups[key]]
+    every_member = np.arange(len(usable))
+    every_question = np.arange(q)
+
+    def draw(recipes, questions):
+        rows = (
+            np.asarray(
+                [k for key in (rng.choice(keys) for _ in keys) for k in groups[key]]
+            )
+            if recipes
+            else every_member
         )
-        t = tau_b(s[index], v[index])
-        taus.append(t)
-        if paired:
-            tb = tau_b(b[index], v[index])
-            deltas.append(None if t is None or tb is None else t - tb)
-    return _interval(taus), (_interval(deltas) if paired else None)
+        cols = (
+            np.asarray([rng.randrange(q) for _ in range(q)])
+            if questions
+            else every_question
+        )
+        return rows, -loss[np.ix_(rows, cols)].mean(axis=1)
+
+    out = {"replicates": n, "questions": q, "scoring_cases": "fixed (conditional)"}
+    for mode, recipes, questions, count in (
+        ("joint", True, True, n),
+        ("recipe_only", True, False, max(1, n // 4)),
+        ("question_only", False, True, max(1, n // 4)),
+    ):
+        taus, deltas = [], []
+        for _ in range(count):
+            rows, value = draw(recipes, questions)
+            tau = tau_b(s[rows], value)
+            taus.append(tau)
+            if paired and mode == "joint":
+                tb = tau_b(b[rows], value)
+                deltas.append(None if tau is None or tb is None else tau - tb)
+        out[mode] = _interval(taus)
+        if mode == "joint":
+            out["undefined_fraction"] = sum(x is None for x in taus) / count
+            out["delta_joint"] = _interval(deltas) if paired else None
+    return out
 
 
 def _spread(xs):
@@ -226,9 +278,16 @@ def level_report(
     case_fold_scores=(),
     n_bootstrap=BOOTSTRAP,
     unscored=(),
+    purposive=(),
+    losses=None,
 ):
     """One candidate's proof metrics on one pool of members. `unscored` are
-    the members with no raw score under the candidate."""
+    the members with no raw score under the candidate. `purposive` members
+    (the controls and the registered roles' constructions) are placed in the
+    full ranking but kept out of the primary pool that tau, its intervals,
+    the folds and top-1 regret are computed on (SCORE-PROOF-DESIGN-01: they
+    are falsification probes, not random recipes). `losses` are per-question
+    decision losses for the crossed bootstrap."""
     members = [m for m in members if values.get(m) is not None]
     missing = sorted(set(unscored) & set(members))
     if missing:
@@ -247,25 +306,62 @@ def level_report(
     ranked = _ranked(scores, members)
     n = len(ranked)
     top_half = set(ranked[: n // 2]) if n else set()
-    best = min((values[m] for m in members), default=None)
-    top1 = ranked[0] if ranked else None
+    purposive = set(purposive)
+    primary = [m for m in members if m not in purposive]
+    gated = bool(verdicts)
+    # Deployment: the top-scoring admissible real recipe. With every primary
+    # member failing the gate there is none to deploy (never the floor's
+    # arbitrary top member).
+    deployable = [
+        m
+        for m in _ranked(scores, primary)
+        if not gated or verdicts.get(m) != admissibility.FAIL
+    ]
+    top1 = deployable[0] if deployable else None
+    best = min((values[m] for m in primary), default=None)
     band = score_value.value_noise_band(
         {
             m: {"value": values[m], "eligible": True, "recipe": recipe_of[m]}
             for m in members
         }
     )
-    tau_ci, delta_ci = bootstrap(
-        scores, base_scores, values, recipe_of, members, n=n_bootstrap
+    if losses is None:
+        losses = {m: [values[m]] for m in primary}
+    intervals = bootstrap(
+        scores,
+        base_scores,
+        {m: losses[m] for m in primary if m in losses},
+        recipe_of,
+        primary,
+        n=n_bootstrap,
     )
     unsafe = [u for u in unsafe if u in members]
-    gated = bool(verdicts)
+    sensitivity = (
+        None
+        if intervals is None
+        else {k: intervals[k] for k in ("recipe_only", "question_only")}
+    )
+    resampling = (
+        None
+        if intervals is None
+        else {
+            k: intervals[k]
+            for k in ("replicates", "questions", "scoring_cases", "undefined_fraction")
+        }
+    )
     return {
         "members": len(members),
+        "primary_members": len(primary),
         "status": "COMPLETE",
-        "tau": _tau(scores, values, members),
-        "tau_ci95": tau_ci,
-        "delta_tau_vs_rule_in_force_ci95": delta_ci,
+        "deployment": "NONE_ELIGIBLE" if top1 is None and primary else "TOP1",
+        "tau": _tau(scores, values, primary),
+        "tau_ci95": None if intervals is None else intervals["joint"],
+        "tau_sensitivity": sensitivity,
+        "bootstrap": resampling,
+        "ties": tie_counts(scores, values, primary),
+        "delta_tau_vs_rule_in_force_ci95": (
+            None if intervals is None else intervals["delta_joint"]
+        ),
         "known_bad_in_top_half": sorted(m for m in known_bad if m in top_half),
         "adversarial_in_top_half": sorted(m for m in adversarial if m in top_half),
         "top1_regret": (None if top1 is None or best is None else values[top1] - best),
@@ -279,8 +375,8 @@ def level_report(
             u: (ranked.index(u) + 1 if u in ranked else None, n) for u in unsafe
         },
         "fold_stability": {
-            "scenario_folds": _spread([_tau(scores, v, members) for v in value_folds]),
-            "case_folds": _spread([_tau(s, values, members) for s in case_fold_scores]),
+            "scenario_folds": _spread([_tau(scores, v, primary) for v in value_folds]),
+            "case_folds": _spread([_tau(s, values, primary) for s in case_fold_scores]),
         },
         "adversarial_divergence": adversarial_divergence(
             scores, values, members, [a for a in adversarial if a in members], band
@@ -350,6 +446,17 @@ def prove(
         ]
         for cid in ids
     }
+    purposive = set(anchors) | set(known_bad) | set(adversarial)
+    pool_losses = {}
+    for name, pool in pools.items():
+        if results is None:
+            pool_losses[name] = None
+            continue
+        _v, mask, _o = st.decision_values(results, pool)
+        decisions = results["decisions"]
+        pool_losses[name] = {
+            m: [decisions[m][s]["outcome"]["decision_loss"] for s in mask] for m in pool
+        }
     report, gate_checks = {}, {}
     for cid in ids:
         scores, verdicts = scored[cid]
@@ -371,6 +478,8 @@ def prove(
                 case_fold_scores=fold_scores[cid],
                 n_bootstrap=n_bootstrap,
                 unscored=unscored[cid],
+                purposive=purposive,
+                losses=pool_losses[name],
             )
             for name, pool in pools.items()
         }

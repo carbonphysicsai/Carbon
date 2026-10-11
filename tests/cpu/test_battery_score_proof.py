@@ -92,7 +92,13 @@ def test_the_proof_reports_every_metric_per_level_and_pooled():
     assert ce["known_bad_in_top_half"] == ["control-bad"]
     assert ce["adversarial_in_top_half"] == ["gamed-s0"]
     assert ce["adversarial_divergence"]["gamed-s0"] > 0
-    assert ce["top1_regret"] == pytest.approx(9.0 - 1.0)  # the gamed member tops -E
+    # The gamed member and the bad control are probes, never deployed: top-1
+    # is the best-scoring real recipe, here the unsafe one (value 8).
+    assert ce["primary_members"] == 13 and ce["deployment"] == "TOP1"
+    assert ce["top1_regret"] == pytest.approx(8.0 - 1.0)
+    assert ce["bootstrap"]["undefined_fraction"] == 0.0
+    assert set(ce["tau_sensitivity"]) == {"recipe_only", "question_only"}
+    assert ce["ties"]["usable_members"] == 13
     assert ce["gate_recall_unsafe"] is None  # no gate
     lo, hi = ce["tau_ci95"]
     assert lo <= ce["tau"] <= hi
@@ -226,3 +232,31 @@ def test_confirmation_gives_a_verdict_naming_each_failed_criterion():
     assert "pooled: known-bad member in the top half" in verdict["failed"]
     assert "pooled: adversarial divergence" in verdict["failed"]
     assert not any(f.startswith("L1:") for f in verdict["failed"])  # too few members
+
+
+def test_a_gate_that_fails_every_real_recipe_deploys_nothing():
+    legs, values, recipe_of, levels = panel()
+    candidates, identity = registry()
+    candidates["CE+near0"] = st.parse_candidate(
+        {
+            "id": "CE+near0",
+            "kind": "deciding",
+            "gate": {"measure": "near", "cutoff": 0.0},
+        }
+    )
+    report = sp.prove(
+        (candidates, identity), legs, values, recipe_of, levels,
+        ids=["CE+near0"], n_bootstrap=20,
+    )  # fmt: skip
+    pooled = report["candidates"]["CE+near0"]["pooled"]
+    assert pooled["deployment"] == "NONE_ELIGIBLE" and pooled["top1_regret"] is None
+
+
+def test_the_crossed_bootstrap_resamples_questions_as_well_as_recipes():
+    scores = {f"m{i}": float(i) for i in range(8)}
+    recipe_of = {m: m for m in scores}
+    losses = {f"m{i}": [8 - i, 8 - i + (i % 2)] for i in range(8)}
+    out = sp.bootstrap(scores, scores, losses, recipe_of, list(scores), n=200)
+    assert out["questions"] == 2 and out["joint"][1] <= 1.0
+    assert out["delta_joint"] == [0.0, 0.0]  # the same rule against itself
+    assert out["question_only"] is not None and out["recipe_only"] is not None
