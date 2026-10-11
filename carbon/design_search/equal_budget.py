@@ -19,7 +19,14 @@ from . import budget_registration, track_b
 
 SCHEMA = "carbon.design-search.equal-budget-panel.v1"
 REPORT_SCHEMA = "carbon.design-search.equal-budget-report.v1"
-CHALLENGES = {"battery-v3", "motor", "f02", "f13", "bolted-joint"}
+CHALLENGES = {
+    "battery-v3",
+    "motor",
+    "f02",
+    "f13",
+    "bolted-joint",
+    "metagrating-3d",
+}
 ARMS = ("solver_alone", "model_then_solver", "baseline_then_solver")
 
 
@@ -391,16 +398,17 @@ def _summarize(results, direction):
 def compare(panel, *, bootstrap_replicates, confidence, seed, registration=None):
     """Return paired, cluster-bootstrap curves; no inference or solver calls."""
     _validate(panel)
-    if panel["challenge"] == "bolted-joint":
-        from . import bolted_budget
+    validate_registration = budget_registration.validate
+    if panel["challenge"] == "metagrating-3d":
+        from .metagrating_budget import validate as validate_registration
+    elif panel["challenge"] == "bolted-joint":
+        from .bolted_budget import validate as validate_registration
 
+        # bolted-joint keeps its own rule: the proposal is not optional.
         if registration is None:
             raise EqualBudgetError("representative budget proposal required")
-        registered = bolted_budget.validate(registration)
-    else:
-        registered = (
-            None if registration is None else budget_registration.validate(registration)
-        )
+
+    registered = None if registration is None else validate_registration(registration)
     if registered is not None:
         expected = [
             registered.cap(panel["challenge"], tier).time_compute

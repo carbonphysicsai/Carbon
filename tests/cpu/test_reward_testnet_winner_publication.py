@@ -350,3 +350,50 @@ def test_preview_reuses_a_recorded_promotion_and_its_clock(tmp_path):
     seen = twp.preview(issuer, state)
     assert seen["records"][BATTERY]["clock_ms"] == recorded[0]["clock_ms"]
     assert issuer.ledger.records(BATTERY) == recorded
+
+
+# --- an earlier timelocked commit is settled before the next publication -----------
+
+
+class _Publisher:
+    """A publisher whose one open dispatch reconciles through `returns`:
+    each call reads one 256-block slice."""
+
+    def __init__(self, returns, open_dispatch=True):
+        self.returns, self.open, self.calls = list(returns), open_dispatch, 0
+        self.journal = self
+
+    def pending(self):
+        return "e1" if self.open else None
+
+    async def reconcile(self, identity):
+        self.calls += 1
+        state = self.returns.pop(0) if len(self.returns) > 1 else self.returns[0]
+        if state not in twp.RECONCILABLE:
+            self.open = False
+        return {"identity": identity, "state": state}
+
+
+def test_a_revealed_commit_is_settled_before_the_next_publication():
+    publisher = _Publisher(["REVEAL_PENDING", "REVEAL_PENDING", "ROW_VERIFIED"])
+    assert asyncio.run(twp.settle_pending(publisher)) is None
+    assert publisher.calls == 3
+
+
+def test_an_unrevealed_commit_keeps_the_run_from_publishing():
+    publisher = _Publisher(["REVEAL_PENDING"])
+    row = asyncio.run(twp.settle_pending(publisher, calls=4))
+    assert row["state"] == "REVEAL_PENDING" and publisher.calls == 4
+
+
+def test_nothing_pending_publishes_straight_away():
+    publisher = _Publisher(["ROW_VERIFIED"], open_dispatch=False)
+    assert asyncio.run(twp.settle_pending(publisher)) is None
+    assert publisher.calls == 0
+
+
+def test_the_run_settles_before_it_issues():
+    import inspect
+
+    source = inspect.getsource(twp._run)
+    assert source.index("settle_pending(publisher)") < source.index("issuer.issue(")
