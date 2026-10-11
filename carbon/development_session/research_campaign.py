@@ -933,16 +933,28 @@ class OperationRefused(ValueError):
 
 
 def _complete(prepared):
+    _complete_ledger(prepared.ledger)
+
+
+def _complete_ledger(ledger):
     write_once(
-        prepared.ledger.root / "campaign-complete.json",
+        ledger.root / "campaign-complete.json",
         canonical(
             {
                 "status": "FINITE_CAMPAIGN_STOPPED",
                 "new_network_transactions": 0,
-                "completed_unix": prepared.ledger.clock(),
+                "completed_unix": ledger.clock(),
             }
         ),
     )
+
+
+def after_stored_verdict(ledger, epoch):
+    """What `submit_frozen` does once an epoch's verdict is stored, for a
+    verdict stored another way (observe's read of a queued verdict, LA-F18):
+    the last committed final epoch's verdict completes the campaign."""
+    if epoch == FINAL_EPOCHS[-1]:
+        _complete_ledger(ledger)
 
 
 async def submit_candidate(prepared, epoch, strategy):

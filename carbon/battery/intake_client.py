@@ -294,7 +294,8 @@ REFUSALS = {
     # A campaign's own trip through an intake (`campaign._evaluate_through_intake`).
     "evaluation_queued": (
         "Your submission is on the validator's queue and has no verdict yet. "
-        "Your candidate stays frozen; submit again later to ask for its result. "
+        "Your candidate stays frozen. On the Launchpad, observe asks the "
+        "validator for its result (LA-F18); submitting again also asks. "
         "It is the same submission, never a second one."
     ),
     "intake_unreachable": (

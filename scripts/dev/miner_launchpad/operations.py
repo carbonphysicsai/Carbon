@@ -587,7 +587,9 @@ OPERATIONS = {
         Operation(
             "observe",
             "The campaign's state, epochs, practice results and any frozen "
-            "candidate or final feedback. Reads only.",
+            "candidate or final feedback. Reads only; for a submission the "
+            "validator queued, it also asks the validator for its verdict, at "
+            "most once a minute, with a read-only signed status read.",
             frozenset({"campaign"}),
             frozenset(),
             ("request", "profile", "campaign"),

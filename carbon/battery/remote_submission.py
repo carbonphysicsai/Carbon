@@ -19,6 +19,8 @@ owner's record (OWNER-INTAKE-EXPOSURE-01), over TLS.
 from __future__ import annotations
 
 import json
+import os
+import tempfile
 import time
 from pathlib import Path
 
@@ -55,6 +57,16 @@ def _signed(signer, facts, body):
     from carbon.chain.auth import BittensorMessageSigner
 
     return BittensorMessageSigner(signer).sign(
+        body, receiver=facts["receiver"], nonce_ns=time.time_ns()
+    )
+
+
+def _status_read_signed(signer, facts, body):
+    """A status read's headers, from the signer's read-only kind (LA-F18):
+    it signs only a `battery_status` read, never a submission or commitment."""
+    from carbon.chain.auth import BittensorMessageSigner
+
+    return BittensorMessageSigner(signer).sign_status_read(
         body, receiver=facts["receiver"], nonce_ns=time.time_ns()
     )
 
@@ -144,3 +156,83 @@ def submit_and_wait(
                 "evaluation_queued", intake_client.describe(status, answer)
             )
         sleep(POLL_S)
+
+
+# --- observe's read of a queued verdict (LA-F18) ----------------------------------
+
+#: How often observe may ask the intake about one epoch's recorded submission:
+#: at most one read-only status read per epoch in this many seconds, so an
+#: observe called in a loop never hammers the intake. An engineering bound,
+#: twice `POLL_S`, never a scientific value.
+READ_INTERVAL_S = 60.0
+
+
+def _read_mark_path(root, epoch):
+    return Path(root) / f"intake-status-read-epoch-{int(epoch)}.json"
+
+
+def claim_status_read(root, epoch, *, now, interval=READ_INTERVAL_S):
+    """Whether observe may ask the intake about this epoch's submission now,
+    recording that it does (LA-F18).
+
+    False, with nothing recorded, when the epoch has no recorded submission
+    (`intake-submission-epoch-N.json`) or was asked less than `interval`
+    seconds ago. The time is recorded (owner-only) before the read is sent,
+    so a read that fails or is refused waits out the interval too. A record
+    that cannot be read is replaced."""
+    if not _record_path(root, epoch).exists():
+        return False
+    mark = _read_mark_path(root, epoch)
+    try:
+        last = json.loads(mark.read_bytes())["polled_unix"]
+    except (OSError, ValueError, KeyError, TypeError):
+        last = None
+    if type(last) in (int, float) and abs(now - last) < interval:
+        return False
+    descriptor, staged = tempfile.mkstemp(prefix=f".{mark.name}.", dir=mark.parent)
+    try:
+        with os.fdopen(descriptor, "wb") as stream:
+            stream.write(json.dumps({"epoch": int(epoch), "polled_unix": now}).encode())
+        os.chmod(staged, 0o600)
+        os.replace(staged, mark)
+    except BaseException:
+        Path(staged).unlink(missing_ok=True)
+        raise
+    return True
+
+
+def read_status_once(
+    url,
+    signer,
+    *,
+    root,
+    epoch,
+    read=intake_client.read_intake,
+    post=intake_client.post,
+    receiver=None,
+):
+    """One read-only status read of the epoch's recorded submission (LA-F18).
+
+    Returns `(status, answer, submission_id)`, or None when the epoch has no
+    recorded submission. It never submits, resends or commits, and it polls
+    once, never waiting: the read is signed through the signer's read-only
+    kind (`_status_read_signed`), which signs only a `battery_status` read.
+    Raises `IntakeRefusal` for a refusal, `intake_changed_since_submission`
+    when the epoch was submitted to another intake, and
+    `intake_receiver_mismatch` (`check_receiver`) before anything is signed.
+    """
+    record = _record_path(root, epoch)
+    if not record.exists():
+        return None
+    recorded = json.loads(record.read_bytes())
+    if recorded.get("url") != url:
+        raise IntakeRefusal("intake_changed_since_submission")
+    submission_id = recorded["submission_id"]
+    facts = check_receiver(read(url), receiver)
+    body = intake_client.status_message(facts, submission_id)
+    status, answer = post(url, body, _status_read_signed(signer, facts, body))
+    if type(answer) is not dict:
+        raise IntakeRefusal("intake_answer_unrecognised")
+    if "refused" in answer:
+        raise IntakeRefusal(answer["refused"], intake_client.describe(status, answer))
+    return status, answer, submission_id

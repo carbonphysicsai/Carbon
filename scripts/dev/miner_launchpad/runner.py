@@ -3212,7 +3212,18 @@ class RunnerAdapter:
         if verdict["verdict"] != "submittable":
             raise Rejected("design_" + verdict["verdict"], 409)
 
+    #: How observe reaches the miner's signer for a queued verdict's read
+    #: (LA-F18): None is the profile's `carbon-miner-signer` (`signer_ready`);
+    #: a test names its own.
+    verdict_signer = None
+
     def observe_admitted(self, admitted, request):
+        # LA-F18: a queued submission's verdict is asked for here, read-only
+        # and throttled (`verdict_read`). Observe answers whatever happens.
+        from scripts.dev.miner_launchpad.verdict_read import read_queued_verdict
+
+        with contextlib.suppress(Exception):
+            read_queued_verdict(self, admitted)
         return self.get(admitted.campaign["id"])
 
     def campaign_view_admitted(self, admitted, request):
