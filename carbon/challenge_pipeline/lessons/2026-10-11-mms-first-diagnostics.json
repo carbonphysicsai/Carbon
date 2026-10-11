@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-11-mms-first-diagnostics",
+  "recorded_at": "2026-10-11T00:47:55Z",
+  "challenge": "protocol",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "CODE-VERIFICATION-MMS-01 first checker diagnostics", "description": "Native Windows synthetic checker/source/deck tests; no reference solver invocation."},
+  "expected": "Finite, identity-bound manufactured-field diagnostics without claiming physical accuracy.",
+  "observed": "19 tests passed. Ruff found two pairwise-style findings, subsequently repaired. Native output is diagnostic, not canonical acceptance.",
+  "keep": ["Keep existing pinned package workers and separate verification from application adequacy."],
+  "change": ["Use actual refinement ratios and refuse zero-error or empty-field order claims."],
+  "protocol_elements": ["code verification", "reference identity", "no solver execution"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
