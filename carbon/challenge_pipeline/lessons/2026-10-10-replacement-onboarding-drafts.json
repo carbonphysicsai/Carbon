@@ -1,0 +1,15 @@
+{
+  "schema":"carbon.challenge-pipeline.lesson.v1",
+  "lesson_id":"2026-10-10-replacement-onboarding-drafts",
+  "recorded_at":"2026-10-10T19:32:42Z",
+  "challenge":"protocol",
+  "stage":"test_iterate",
+  "execution":{"kind":"test_run","ref":"REPLACEMENT-ONBOARDING-01","description":"Three explicit replacement four-tool applications, intake handoffs and retained output/source digests; native regression and formatting diagnostics."},
+  "expected":"Use the new research audit without converting licensed ingredients into a complete or accepted input set.",
+  "observed":"Three draft sets retained; all stage exits unverified, numeric panel seed/reuse inventory absent and run authority false. 45 focused native tests passed, Ruff and Black diagnostics passed. #1001 remains open at its pinned research head; all original jobs HOLD. No solver runs, builds, fitting, spend or protected-data access. Canonical acceptance remains GitHub-owned.",
+  "keep":["Keep source excerpts and applicability decisions separate", "Use one next action/owner per candidate", "Retain source-era one-band prose while applying the current two-band working rule prospectively"],
+  "change":["A public benchmark of another architecture cannot silently replace the buyer job", "Record field-level inputs and rights rather than a generic request for more data"],
+  "protocol_elements":["claim_control","scientific_contracts","evidence_identity"],
+  "proposed_revision":null,
+  "status":"RECORDED"
+}

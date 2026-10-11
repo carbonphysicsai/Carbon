@@ -75,3 +75,24 @@ the Control Centers. Every unit should be `active running`, and every port
 
 To stop one signer: `systemctl --user stop carbon-test-signer@<lane>`. To
 keep it off after reboots as well, `disable --now` it.
+
+## Incentive runners (INCENTIVE-CANARY-01)
+
+The role miners' runner cycles (minerH strong, minerI degraded) run as
+`incentive-runner@<lane>.timer` on `carbon-fresh` as `miner`. The owner
+approved them on 2026-10-10. The schedule is one cycle per 1080-block
+rotation (12960 s), with the first 5 minutes after boot. Each lane needs its
+runner config at `~/.carbon/incentive-runner/<lane>/config.json` (mode 600).
+
+```bash
+scripts/dev/survive_reboot/install_incentive_runners.sh minerH minerI
+```
+
+**Before moving the shared checkout,** stop them, so a cycle frozen under the
+old revision doesn't meet LA-F19:
+
+```bash
+systemctl --user stop 'incentive-runner@*.timer'
+```
+
+Start them again after every lane is re-reviewed.

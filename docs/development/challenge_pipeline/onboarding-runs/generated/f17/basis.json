@@ -1,0 +1,18 @@
+[
+  {
+    "path": "docs/development/challenge_pipeline/round1/f17-passive-micromixer.md",
+    "sha256": "ffd8383d497a9175f1a09c0e8180410d92fdd8c7f899b8f1e7dd56e50697c75c"
+  },
+  {
+    "path": "docs/development/challenge_pipeline/value-cost/f17.md",
+    "sha256": "1c9b9855369e62f84f91f966e00c415a4012ebff8c7e5574051fa1fd2b8b29a3"
+  },
+  {
+    "path": "docs/development/challenge_pipeline/cheap-baselines/f17.md",
+    "sha256": "cdad4882d7e645848631eb2ed0181cc1738acd127d437c61700e3c9d71632861"
+  },
+  {
+    "path": "docs/development/challenge_pipeline/solver-package-specs/f17-openfoam.md",
+    "sha256": "33872ebdffb8ab9afc1ea676b40ddc26414bbf492f1580405196a06115c66b07"
+  }
+]

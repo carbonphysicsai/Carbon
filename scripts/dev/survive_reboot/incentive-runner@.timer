@@ -1,0 +1,14 @@
+# One runner cycle per 1080-block producer rotation (about 12960 s), the
+# canary's cadence (OWNER-CANARY-MINER-01 item 6). The runner's
+# max_wait_seconds (10800) stays under the period. The first cycle starts 5
+# minutes after the timer does, at boot or install.
+
+[Unit]
+Description=Carbon incentive runner %i, once per rotation
+
+[Timer]
+OnActiveSec=5min
+OnUnitActiveSec=12960
+
+[Install]
+WantedBy=timers.target

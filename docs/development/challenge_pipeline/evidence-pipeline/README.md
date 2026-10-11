@@ -187,3 +187,25 @@ Fixture packs are prominently **SYNTHETIC FIXTURE**, confer no reference or
 Challenge qualification, and cannot be silently relabelled public evidence.
 Pages are draft evidence artifacts for owner review, not automatic investor
 publication, traction or LIVE claims. Battery EV5/journal14 remains untouched.
+
+## The Carbon arm
+
+`python -m carbon.development_comparison.carbon_arm battery-v3 --export ... --export-sha256 ... --train ... --train-sha256 ... --scope ... --output-dir ...`
+produces the `carbon` role (`predictions.json`) and its receipt
+(`receipt.json`), whose digest the predictions carry.
+
+The arm trains the kit's registered default recipe on a pinned TRAIN set only.
+A row outside TRAIN's support abstains, and a fixture TRAIN set can never
+produce public predictions. The receipt records the fit cost and the
+inference cost, cold and warm. See MODEL-PREDICTIONS-FOR-EVIDENCE-01.
+
+Kits:
+- **`battery-v3`** waits for its registered TRAIN set.
+- **`motor`** is the 10p/12s machine. It needs `--material` set to the curve
+  sidecar, for the panel designs' grammar. Its DEVELOPMENT TRAIN comes from
+  the sidecar's study designs
+  (`python -m carbon.development_comparison.motor_10p12s_kit`) until the
+  registered TRAIN set lands.
+- **`f02`** has 24 plain context questions. Its support is the registered
+  960-case TRAIN plan's domain, and `carbon_arm.domain_gaps` must find no
+  panel row outside it.

@@ -1,0 +1,1332 @@
+{
+  "artifact_timeline": {
+    "basis": {
+      "head": "0dece5122775ba468dc60e96eecfc89055dabaec",
+      "main": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+      "shallow": false,
+      "supplement_sha256": "2f64020444335a1f9692e6440cf66d894780e6a868c3c8982d4f9317e7b05eb6"
+    },
+    "brief_to_tested_seconds": null,
+    "challenge": "f06",
+    "coverage": "PINNED_GIT_HISTORY",
+    "human_effort_saved_hours": null,
+    "limits": [
+      "Artifact creation and integration are not stage entry or completion.",
+      "First is path-history topology, not oldest wall-clock timestamp; renames and repeated additions are ambiguous.",
+      "Main integration time is Git committer time, not GitHub mergedAt; main is the locally available pinned ref, never fetched here.",
+      "Missing or shallow history cannot establish absence. Legacy versions and pre-brief reusable infrastructure do not qualify the current contract.",
+      "Calendar milestones are not effort, blocked time, spend or measured time saved. TESTED requires #970 plus the owner's cheap-baseline comparison."
+    ],
+    "schema": "carbon.onboarding.artifact-timeline.v1",
+    "stages": [
+      {
+        "accepted_entry_utc": null,
+        "accepted_exit_utc": null,
+        "artifacts": [
+          {
+            "accepted_stage_completion_utc": null,
+            "coverage": "PATH_HISTORY_OBSERVED",
+            "first_main_integration": {
+              "authored_utc": "2026-10-07T13:43:17Z",
+              "commit": "27dc151f3599b1f28a2f9be99a5a3b8a1b229ed4",
+              "committed_utc": "2026-10-07T13:43:17Z",
+              "kind": "MERGE_INTEGRATION",
+              "parents": [
+                "ccc4e295b9c3dd3dac8cb82f9fc4fde8312dbce7",
+                "4b2b308a00577841ecf8a3c78b097ff63732f6ae"
+              ]
+            },
+            "first_recorded": {
+              "authored_utc": "2026-10-06T21:22:58Z",
+              "commit": "bd8a1a72e40f713833b1cceebded5f445a3770f7",
+              "committed_utc": "2026-10-06T21:22:58Z",
+              "kind": "DIRECT_COMMIT",
+              "parents": [
+                "7f4f6936af8e4ebd327a9be92428c916e2185647"
+              ]
+            },
+            "main_additions": 1,
+            "main_state": "INTEGRATION_OBSERVED",
+            "path": "docs/development/challenge_pipeline/round1/f06-grating-coupler.md",
+            "path_additions": 1,
+            "rename_seen": false
+          }
+        ],
+        "effort_person_hours": null,
+        "id": "S0_brief",
+        "stage_cycle_seconds": null
+      },
+      {
+        "accepted_entry_utc": null,
+        "accepted_exit_utc": null,
+        "artifacts": [
+          {
+            "accepted_stage_completion_utc": null,
+            "coverage": "PATH_HISTORY_OBSERVED",
+            "first_main_integration": {
+              "authored_utc": "2026-10-07T13:43:17Z",
+              "commit": "27dc151f3599b1f28a2f9be99a5a3b8a1b229ed4",
+              "committed_utc": "2026-10-07T13:43:17Z",
+              "kind": "MERGE_INTEGRATION",
+              "parents": [
+                "ccc4e295b9c3dd3dac8cb82f9fc4fde8312dbce7",
+                "4b2b308a00577841ecf8a3c78b097ff63732f6ae"
+              ]
+            },
+            "first_recorded": {
+              "authored_utc": "2026-10-06T21:22:58Z",
+              "commit": "bd8a1a72e40f713833b1cceebded5f445a3770f7",
+              "committed_utc": "2026-10-06T21:22:58Z",
+              "kind": "DIRECT_COMMIT",
+              "parents": [
+                "7f4f6936af8e4ebd327a9be92428c916e2185647"
+              ]
+            },
+            "main_additions": 1,
+            "main_state": "INTEGRATION_OBSERVED",
+            "path": "docs/development/challenge_pipeline/round1/f06-grating-coupler.md",
+            "path_additions": 1,
+            "rename_seen": false
+          }
+        ],
+        "effort_person_hours": null,
+        "id": "S1_packet",
+        "stage_cycle_seconds": null
+      },
+      {
+        "accepted_entry_utc": null,
+        "accepted_exit_utc": null,
+        "artifacts": [
+          {
+            "accepted_stage_completion_utc": null,
+            "coverage": "PATH_HISTORY_OBSERVED",
+            "first_main_integration": {
+              "authored_utc": "2026-10-10T02:05:55Z",
+              "commit": "dc46a89856517ec53eaa2daf4f51777e972f8d38",
+              "committed_utc": "2026-10-10T02:05:55Z",
+              "kind": "MERGE_INTEGRATION",
+              "parents": [
+                "98f01376248622d8ef3c1d271a3454efa8ace846",
+                "0e02f68002bae1854058116dc2049b0742799682"
+              ]
+            },
+            "first_recorded": {
+              "authored_utc": "2026-10-09T21:56:07Z",
+              "commit": "0e02f68002bae1854058116dc2049b0742799682",
+              "committed_utc": "2026-10-09T21:56:41Z",
+              "kind": "DIRECT_COMMIT",
+              "parents": [
+                "4578d20b27f3d88641a8fe06b3bdbbde8aca17f7"
+              ]
+            },
+            "main_additions": 1,
+            "main_state": "INTEGRATION_OBSERVED",
+            "path": "docs/development/challenge_pipeline/solver-package-specs/f06-meep.md",
+            "path_additions": 1,
+            "rename_seen": false
+          }
+        ],
+        "effort_person_hours": null,
+        "id": "S2_solver_package",
+        "stage_cycle_seconds": null
+      },
+      {
+        "accepted_entry_utc": null,
+        "accepted_exit_utc": null,
+        "artifacts": [
+          {
+            "accepted_stage_completion_utc": null,
+            "coverage": "PATH_HISTORY_OBSERVED",
+            "first_main_integration": {
+              "authored_utc": "2026-10-08T22:48:01Z",
+              "commit": "0accdc568e10a439ed97e34272b6bdee4ddf4e46",
+              "committed_utc": "2026-10-08T22:48:01Z",
+              "kind": "MERGE_INTEGRATION",
+              "parents": [
+                "76224d6035968dbaf58cb5067ef218507ba02010",
+                "ebde5b577c00d44ec7eca257c3112d122f3bd264"
+              ]
+            },
+            "first_recorded": {
+              "authored_utc": "2026-10-08T21:19:38Z",
+              "commit": "ebde5b577c00d44ec7eca257c3112d122f3bd264",
+              "committed_utc": "2026-10-08T21:19:38Z",
+              "kind": "DIRECT_COMMIT",
+              "parents": [
+                "35bb89ad85087de259b3c5c285db863f2bb44ca4"
+              ]
+            },
+            "main_additions": 1,
+            "main_state": "INTEGRATION_OBSERVED",
+            "path": "docs/development/challenge_pipeline/value-cost/f06.md",
+            "path_additions": 1,
+            "rename_seen": false
+          },
+          {
+            "accepted_stage_completion_utc": null,
+            "coverage": "PATH_HISTORY_OBSERVED",
+            "first_main_integration": {
+              "authored_utc": "2026-10-10T13:07:12Z",
+              "commit": "5aacb1809c402f6196eb48483049cb5ad483299e",
+              "committed_utc": "2026-10-10T13:07:12Z",
+              "kind": "MERGE_INTEGRATION",
+              "parents": [
+                "e294ce806d9fea31ab93da44da1e42de93e4d5cd",
+                "79f5142ac650341205f407a4b6408dad7ac98b7a"
+              ]
+            },
+            "first_recorded": {
+              "authored_utc": "2026-10-10T03:21:16Z",
+              "commit": "57c442790a73ee944183ec0a5f737b087c5695a3",
+              "committed_utc": "2026-10-10T03:21:16Z",
+              "kind": "DIRECT_COMMIT",
+              "parents": [
+                "915225242146be67e6de098d4a08324cc63dc684"
+              ]
+            },
+            "main_additions": 1,
+            "main_state": "INTEGRATION_OBSERVED",
+            "path": "docs/development/challenge_pipeline/solver-package-specs/f06-resolution-cost/analysis.json",
+            "path_additions": 1,
+            "rename_seen": false
+          }
+        ],
+        "effort_person_hours": null,
+        "id": "S3_feasibility_value_panel",
+        "stage_cycle_seconds": null
+      },
+      {
+        "accepted_entry_utc": null,
+        "accepted_exit_utc": null,
+        "artifacts": [
+          {
+            "accepted_stage_completion_utc": null,
+            "coverage": "PATH_HISTORY_OBSERVED",
+            "first_main_integration": {
+              "authored_utc": "2026-10-08T02:11:33Z",
+              "commit": "0318521193df5ec810c0bf324499eae952683487",
+              "committed_utc": "2026-10-08T02:11:33Z",
+              "kind": "MERGE_INTEGRATION",
+              "parents": [
+                "53fffa512df84d5590e1116cc038219428843e1f",
+                "63d641b65a7e54ee547c1dd7b2aafece3b4d1366"
+              ]
+            },
+            "first_recorded": {
+              "authored_utc": "2026-10-07T21:40:15Z",
+              "commit": "5aee0b14345ba6f897d2fad402748ddf1dc3195f",
+              "committed_utc": "2026-10-07T21:40:15Z",
+              "kind": "DIRECT_COMMIT",
+              "parents": [
+                "520cefc4ae4184e8d4243c1bfab8e0ff14046d00"
+              ]
+            },
+            "main_additions": 1,
+            "main_state": "INTEGRATION_OBSERVED",
+            "path": "docs/development/challenge_pipeline/question-laws/proposals.json",
+            "path_additions": 1,
+            "rename_seen": false
+          }
+        ],
+        "effort_person_hours": null,
+        "id": "S4_question_law",
+        "stage_cycle_seconds": null
+      },
+      {
+        "accepted_entry_utc": null,
+        "accepted_exit_utc": null,
+        "artifacts": [],
+        "effort_person_hours": null,
+        "id": "S5_bank",
+        "stage_cycle_seconds": null
+      },
+      {
+        "accepted_entry_utc": null,
+        "accepted_exit_utc": null,
+        "artifacts": [],
+        "effort_person_hours": null,
+        "id": "S6_readiness",
+        "stage_cycle_seconds": null
+      },
+      {
+        "accepted_entry_utc": null,
+        "accepted_exit_utc": null,
+        "artifacts": [],
+        "effort_person_hours": null,
+        "id": "S7_stage_a",
+        "stage_cycle_seconds": null
+      },
+      {
+        "accepted_entry_utc": null,
+        "accepted_exit_utc": null,
+        "artifacts": [],
+        "effort_person_hours": null,
+        "id": "S8_stage_b",
+        "stage_cycle_seconds": null
+      },
+      {
+        "accepted_entry_utc": null,
+        "accepted_exit_utc": null,
+        "artifacts": [],
+        "effort_person_hours": null,
+        "id": "S9_stage_c",
+        "stage_cycle_seconds": null
+      },
+      {
+        "accepted_entry_utc": null,
+        "accepted_exit_utc": null,
+        "artifacts": [],
+        "effort_person_hours": null,
+        "id": "S10_tested",
+        "stage_cycle_seconds": null
+      }
+    ]
+  },
+  "basis": {
+    "bindings_sha256": "200e1d1ae076c32210dbccd81ec917f5cb14ae9b1d006e9f388f24a783796ca9",
+    "repository": {
+      "dirty": true,
+      "sha": "0dece5122775ba468dc60e96eecfc89055dabaec"
+    },
+    "stage_map_sha256": "de571f6cf5356656776841e0e149de2022277a12e18a587af4f8c9c6ad6c2f83"
+  },
+  "binding_status": "CONFIGURED",
+  "challenge": "f06",
+  "current_stage": "UNDETERMINED_WITHOUT_VERIFIED_EXIT_EVIDENCE",
+  "limit": "Reports source-backed draft/gap/snapshot progress. No stage exit is adjudicated from file presence; independent stage acceptance remains with #970 owners.",
+  "observed_artifact_stages": [
+    "S0_brief",
+    "S1_packet",
+    "S2_solver_package",
+    "S3_feasibility_value_panel",
+    "S4_question_law"
+  ],
+  "schema": "carbon.onboarding.status-view.v1",
+  "stages": [
+    {
+      "artifacts": [
+        {
+          "human_input_markers": 5,
+          "numbered_sections": 10,
+          "path": "docs/development/challenge_pipeline/round1/f06-grating-coupler.md",
+          "sha256": "572b8e7264467e0993d5fdb8ee8a259af3de84ffe19ec4e49b585bc83507141f",
+          "size_bytes": 10791,
+          "state": "READ"
+        }
+      ],
+      "blockers": [],
+      "definition_note": "Selecting a Challenge stays the owner's; nothing here admits one.",
+      "exit_verified": false,
+      "id": "S0_brief",
+      "name": "Brief",
+      "next_required": "A one-page brief naming the buyer role, the decision and the value at stake, with sources or labelled assumptions.",
+      "owner": "Owner picks; Codex researches",
+      "progress": "ARTIFACTS_PRESENT_EXIT_NOT_VERIFIED",
+      "what_was_checked": {
+        "configured": 1,
+        "read": 1
+      }
+    },
+    {
+      "artifacts": [
+        {
+          "human_input_markers": 5,
+          "numbered_sections": 10,
+          "path": "docs/development/challenge_pipeline/round1/f06-grating-coupler.md",
+          "sha256": "572b8e7264467e0993d5fdb8ee8a259af3de84ffe19ec4e49b585bc83507141f",
+          "size_bytes": 10791,
+          "state": "READ"
+        }
+      ],
+      "blockers": [],
+      "definition_note": "The owner-session mapping is UNVERIFIED; the sections and exit are verified.",
+      "exit_verified": false,
+      "id": "S1_packet",
+      "name": "Design packet",
+      "next_required": "The ten sections of COMMON_DESIGN_PACKET_V1 filled with source-linked facts; every value without an owner decision or evidence is OPEN with owner, needed decision and held-closed behavior.",
+      "owner": "Codex drafts; Test Lead reviews",
+      "progress": "ARTIFACTS_PRESENT_EXIT_NOT_VERIFIED",
+      "what_was_checked": {
+        "configured": 1,
+        "read": 1
+      }
+    },
+    {
+      "artifacts": [
+        {
+          "human_input_markers": 8,
+          "numbered_sections": 5,
+          "path": "docs/development/challenge_pipeline/solver-package-specs/f06-meep.md",
+          "sha256": "4b5a06be366829c82f88f67eb10f8d48debd5f000497ec05eb6d80aa60685287",
+          "size_bytes": 10918,
+          "state": "READ"
+        }
+      ],
+      "blockers": [],
+      "definition_note": "The specs are SPECIFIED, not built or qualified; accepted identities are null.",
+      "exit_verified": false,
+      "id": "S2_solver_package",
+      "name": "Solver package",
+      "next_required": "A pinned reference package with an accepted image and manifest identity, measured per-case cost and memory, and conservation checks within packet tolerances.",
+      "owner": "Data Collection builds and measures",
+      "progress": "ARTIFACTS_PRESENT_EXIT_NOT_VERIFIED",
+      "what_was_checked": {
+        "configured": 1,
+        "read": 1
+      }
+    },
+    {
+      "artifacts": [
+        {
+          "human_input_markers": 1,
+          "numbered_sections": 0,
+          "path": "docs/development/challenge_pipeline/value-cost/f06.md",
+          "sha256": "6f03019bfce7367dc26de1f1cefed9428304bad68503769f0f710e4e82f41535",
+          "size_bytes": 8198,
+          "state": "READ"
+        },
+        {
+          "gaps": [],
+          "path": "docs/development/challenge_pipeline/solver-package-specs/f06-resolution-cost/analysis.json",
+          "sha256": "bb3e5ad5b86548455a21ad5b92ca23f9b2a25a1aeec73482967f9a468b5776cd",
+          "size_bytes": 2157,
+          "state": "READ"
+        }
+      ],
+      "blockers": [],
+      "definition_note": "Working values only; final thresholds are the owner's.",
+      "exit_verified": false,
+      "id": "S3_feasibility_value_panel",
+      "name": "Feasibility and value panel",
+      "next_required": "Value criteria V1-V5, validity criteria T1-T5 and cost criteria C1 onward evidenced for the Challenge, with a keep, reframe or replace decision recorded.",
+      "owner": "Codex packets the value case; Data Collection measures; Test Lead judges; owner sets final thresholds",
+      "progress": "ARTIFACTS_PRESENT_EXIT_NOT_VERIFIED",
+      "what_was_checked": {
+        "configured": 2,
+        "read": 2
+      }
+    },
+    {
+      "artifacts": [
+        {
+          "gaps": [
+            {
+              "field": "common.variant_selection.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "common.variant_selection.registered",
+              "state": null
+            },
+            {
+              "field": "common.continuous_P.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "common.continuous_P.registered",
+              "state": null
+            },
+            {
+              "field": "common.continuous_Q.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "common.continuous_Q.registered",
+              "state": null
+            },
+            {
+              "field": "common.continuous_w.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "common.continuous_w.registered",
+              "state": null
+            },
+            {
+              "field": "common.winner_expectation_method.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "common.winner_expectation_method.registered",
+              "state": null
+            },
+            {
+              "field": "common.close_call_method.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "common.close_call_method.registered",
+              "state": null
+            },
+            {
+              "field": "common.P.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "common.P.registered",
+              "state": null
+            },
+            {
+              "field": "common.Q.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "common.Q.registered",
+              "state": null
+            },
+            {
+              "field": "common.w.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "common.w.registered",
+              "state": null
+            },
+            {
+              "field": "common.questions_per_underlying_window_draw.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "common.questions_per_underlying_window_draw.registered",
+              "state": null
+            },
+            {
+              "field": "common.minimum_distinct_resolved_picks_per_batch.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "common.minimum_distinct_resolved_picks_per_batch.registered",
+              "state": null
+            },
+            {
+              "field": "common.exposure_E.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "common.exposure_E.registered",
+              "state": null
+            },
+            {
+              "field": "common.near_limit_bands.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "common.near_limit_bands.registered",
+              "state": null
+            },
+            {
+              "field": "common.feasible_none_feasible_mix.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "common.feasible_none_feasible_mix.registered",
+              "state": null
+            },
+            {
+              "field": "challenges[0].service_contexts.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[0].service_contexts.registered",
+              "state": null
+            },
+            {
+              "field": "challenges[0].requirement_axes[0].status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[0].requirement_axes[0].registered",
+              "state": null
+            },
+            {
+              "field": "challenges[0].requirement_axes[0].continuous_interval.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[0].requirement_axes[0].continuous_interval.registered",
+              "state": null
+            },
+            {
+              "field": "challenges[0].requirement_axes[1].status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[0].requirement_axes[1].registered",
+              "state": null
+            },
+            {
+              "field": "challenges[0].requirement_axes[1].continuous_interval.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[0].requirement_axes[1].continuous_interval.registered",
+              "state": null
+            },
+            {
+              "field": "challenges[0].requirement_axes[2].status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[0].requirement_axes[2].registered",
+              "state": null
+            },
+            {
+              "field": "challenges[0].requirement_axes[2].continuous_interval.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[0].requirement_axes[2].continuous_interval.registered",
+              "state": null
+            },
+            {
+              "field": "challenges[0].objective.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[0].objective.registered",
+              "state": null
+            },
+            {
+              "field": "challenges[0].bank_candidates.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[0].bank_candidates.registered",
+              "state": null
+            },
+            {
+              "field": "challenges[0].questions_per_batch.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[0].questions_per_batch.registered",
+              "state": null
+            },
+            {
+              "field": "challenges[0].continuous_variant.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[0].continuous_variant.registered",
+              "state": null
+            },
+            {
+              "field": "challenges[1].service_contexts.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[1].service_contexts.registered",
+              "state": null
+            },
+            {
+              "field": "challenges[1].requirement_axes[0].status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[1].requirement_axes[0].registered",
+              "state": null
+            },
+            {
+              "field": "challenges[1].requirement_axes[0].continuous_interval.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[1].requirement_axes[0].continuous_interval.registered",
+              "state": null
+            },
+            {
+              "field": "challenges[1].requirement_axes[1].status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[1].requirement_axes[1].registered",
+              "state": null
+            },
+            {
+              "field": "challenges[1].requirement_axes[1].continuous_interval.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[1].requirement_axes[1].continuous_interval.registered",
+              "state": null
+            },
+            {
+              "field": "challenges[1].requirement_axes[2].status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[1].requirement_axes[2].registered",
+              "state": null
+            },
+            {
+              "field": "challenges[1].requirement_axes[2].continuous_interval.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[1].requirement_axes[2].continuous_interval.registered",
+              "state": null
+            },
+            {
+              "field": "challenges[1].requirement_axes[3].status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[1].requirement_axes[3].registered",
+              "state": null
+            },
+            {
+              "field": "challenges[1].requirement_axes[3].continuous_interval.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[1].requirement_axes[3].continuous_interval.registered",
+              "state": null
+            },
+            {
+              "field": "challenges[1].requirement_axes[4].status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[1].requirement_axes[4].registered",
+              "state": null
+            },
+            {
+              "field": "challenges[1].requirement_axes[4].continuous_interval.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[1].requirement_axes[4].continuous_interval.registered",
+              "state": null
+            },
+            {
+              "field": "challenges[1].objective.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[1].objective.registered",
+              "state": null
+            },
+            {
+              "field": "challenges[1].bank_candidates.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[1].bank_candidates.registered",
+              "state": null
+            },
+            {
+              "field": "challenges[1].questions_per_batch.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[1].questions_per_batch.registered",
+              "state": null
+            },
+            {
+              "field": "challenges[1].continuous_variant.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[1].continuous_variant.registered",
+              "state": null
+            },
+            {
+              "field": "challenges[2].service_contexts.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[2].service_contexts.registered",
+              "state": null
+            },
+            {
+              "field": "challenges[2].requirement_axes[0].status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[2].requirement_axes[0].registered",
+              "state": null
+            },
+            {
+              "field": "challenges[2].requirement_axes[0].continuous_interval.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[2].requirement_axes[0].continuous_interval.registered",
+              "state": null
+            },
+            {
+              "field": "challenges[2].requirement_axes[1].status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[2].requirement_axes[1].registered",
+              "state": null
+            },
+            {
+              "field": "challenges[2].requirement_axes[1].continuous_interval.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[2].requirement_axes[1].continuous_interval.registered",
+              "state": null
+            },
+            {
+              "field": "challenges[2].objective.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[2].objective.registered",
+              "state": null
+            },
+            {
+              "field": "challenges[2].bank_candidates.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[2].bank_candidates.registered",
+              "state": null
+            },
+            {
+              "field": "challenges[2].questions_per_batch.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[2].questions_per_batch.registered",
+              "state": null
+            },
+            {
+              "field": "challenges[2].continuous_variant.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[2].continuous_variant.registered",
+              "state": null
+            },
+            {
+              "field": "challenges[3].service_contexts.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[3].service_contexts.registered",
+              "state": null
+            }
+          ],
+          "path": "docs/development/challenge_pipeline/question-laws/proposals.json",
+          "sha256": "c27149f55d7ae69718e3e71eea0c07b12a68d723aaa8f7ecaf1b39c2c0030744",
+          "size_bytes": 26348,
+          "state": "READ"
+        }
+      ],
+      "blockers": [
+        {
+          "gaps": [
+            {
+              "field": "common.variant_selection.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "common.variant_selection.registered",
+              "state": null
+            },
+            {
+              "field": "common.continuous_P.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "common.continuous_P.registered",
+              "state": null
+            },
+            {
+              "field": "common.continuous_Q.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "common.continuous_Q.registered",
+              "state": null
+            },
+            {
+              "field": "common.continuous_w.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "common.continuous_w.registered",
+              "state": null
+            },
+            {
+              "field": "common.winner_expectation_method.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "common.winner_expectation_method.registered",
+              "state": null
+            },
+            {
+              "field": "common.close_call_method.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "common.close_call_method.registered",
+              "state": null
+            },
+            {
+              "field": "common.P.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "common.P.registered",
+              "state": null
+            },
+            {
+              "field": "common.Q.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "common.Q.registered",
+              "state": null
+            },
+            {
+              "field": "common.w.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "common.w.registered",
+              "state": null
+            },
+            {
+              "field": "common.questions_per_underlying_window_draw.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "common.questions_per_underlying_window_draw.registered",
+              "state": null
+            },
+            {
+              "field": "common.minimum_distinct_resolved_picks_per_batch.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "common.minimum_distinct_resolved_picks_per_batch.registered",
+              "state": null
+            },
+            {
+              "field": "common.exposure_E.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "common.exposure_E.registered",
+              "state": null
+            },
+            {
+              "field": "common.near_limit_bands.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "common.near_limit_bands.registered",
+              "state": null
+            },
+            {
+              "field": "common.feasible_none_feasible_mix.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "common.feasible_none_feasible_mix.registered",
+              "state": null
+            },
+            {
+              "field": "challenges[0].service_contexts.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[0].service_contexts.registered",
+              "state": null
+            },
+            {
+              "field": "challenges[0].requirement_axes[0].status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[0].requirement_axes[0].registered",
+              "state": null
+            },
+            {
+              "field": "challenges[0].requirement_axes[0].continuous_interval.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[0].requirement_axes[0].continuous_interval.registered",
+              "state": null
+            },
+            {
+              "field": "challenges[0].requirement_axes[1].status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[0].requirement_axes[1].registered",
+              "state": null
+            },
+            {
+              "field": "challenges[0].requirement_axes[1].continuous_interval.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[0].requirement_axes[1].continuous_interval.registered",
+              "state": null
+            },
+            {
+              "field": "challenges[0].requirement_axes[2].status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[0].requirement_axes[2].registered",
+              "state": null
+            },
+            {
+              "field": "challenges[0].requirement_axes[2].continuous_interval.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[0].requirement_axes[2].continuous_interval.registered",
+              "state": null
+            },
+            {
+              "field": "challenges[0].objective.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[0].objective.registered",
+              "state": null
+            },
+            {
+              "field": "challenges[0].bank_candidates.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[0].bank_candidates.registered",
+              "state": null
+            },
+            {
+              "field": "challenges[0].questions_per_batch.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[0].questions_per_batch.registered",
+              "state": null
+            },
+            {
+              "field": "challenges[0].continuous_variant.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[0].continuous_variant.registered",
+              "state": null
+            },
+            {
+              "field": "challenges[1].service_contexts.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[1].service_contexts.registered",
+              "state": null
+            },
+            {
+              "field": "challenges[1].requirement_axes[0].status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[1].requirement_axes[0].registered",
+              "state": null
+            },
+            {
+              "field": "challenges[1].requirement_axes[0].continuous_interval.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[1].requirement_axes[0].continuous_interval.registered",
+              "state": null
+            },
+            {
+              "field": "challenges[1].requirement_axes[1].status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[1].requirement_axes[1].registered",
+              "state": null
+            },
+            {
+              "field": "challenges[1].requirement_axes[1].continuous_interval.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[1].requirement_axes[1].continuous_interval.registered",
+              "state": null
+            },
+            {
+              "field": "challenges[1].requirement_axes[2].status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[1].requirement_axes[2].registered",
+              "state": null
+            },
+            {
+              "field": "challenges[1].requirement_axes[2].continuous_interval.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[1].requirement_axes[2].continuous_interval.registered",
+              "state": null
+            },
+            {
+              "field": "challenges[1].requirement_axes[3].status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[1].requirement_axes[3].registered",
+              "state": null
+            },
+            {
+              "field": "challenges[1].requirement_axes[3].continuous_interval.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[1].requirement_axes[3].continuous_interval.registered",
+              "state": null
+            },
+            {
+              "field": "challenges[1].requirement_axes[4].status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[1].requirement_axes[4].registered",
+              "state": null
+            },
+            {
+              "field": "challenges[1].requirement_axes[4].continuous_interval.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[1].requirement_axes[4].continuous_interval.registered",
+              "state": null
+            },
+            {
+              "field": "challenges[1].objective.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[1].objective.registered",
+              "state": null
+            },
+            {
+              "field": "challenges[1].bank_candidates.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[1].bank_candidates.registered",
+              "state": null
+            },
+            {
+              "field": "challenges[1].questions_per_batch.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[1].questions_per_batch.registered",
+              "state": null
+            },
+            {
+              "field": "challenges[1].continuous_variant.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[1].continuous_variant.registered",
+              "state": null
+            },
+            {
+              "field": "challenges[2].service_contexts.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[2].service_contexts.registered",
+              "state": null
+            },
+            {
+              "field": "challenges[2].requirement_axes[0].status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[2].requirement_axes[0].registered",
+              "state": null
+            },
+            {
+              "field": "challenges[2].requirement_axes[0].continuous_interval.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[2].requirement_axes[0].continuous_interval.registered",
+              "state": null
+            },
+            {
+              "field": "challenges[2].requirement_axes[1].status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[2].requirement_axes[1].registered",
+              "state": null
+            },
+            {
+              "field": "challenges[2].requirement_axes[1].continuous_interval.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[2].requirement_axes[1].continuous_interval.registered",
+              "state": null
+            },
+            {
+              "field": "challenges[2].objective.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[2].objective.registered",
+              "state": null
+            },
+            {
+              "field": "challenges[2].bank_candidates.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[2].bank_candidates.registered",
+              "state": null
+            },
+            {
+              "field": "challenges[2].questions_per_batch.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[2].questions_per_batch.registered",
+              "state": null
+            },
+            {
+              "field": "challenges[2].continuous_variant.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[2].continuous_variant.registered",
+              "state": null
+            },
+            {
+              "field": "challenges[3].service_contexts.status",
+              "state": "HUMAN_INPUT"
+            },
+            {
+              "field": "challenges[3].service_contexts.registered",
+              "state": null
+            }
+          ],
+          "path": "docs/development/challenge_pipeline/question-laws/proposals.json",
+          "state": "READ"
+        }
+      ],
+      "definition_note": "A law sheet registers no sampler and no exposure setting.",
+      "exit_verified": false,
+      "id": "S4_question_law",
+      "name": "Question law",
+      "next_required": "A non-runtime law sheet (population, action lattice, strata, near rule) whose HUMAN_INPUT values the owner has accepted or declined; the four-check design-value prerequisite met before any new hidden bank.",
+      "owner": "Codex proposes; owner accepts",
+      "progress": "ARTIFACTS_PRESENT_EXIT_NOT_VERIFIED",
+      "what_was_checked": {
+        "configured": 1,
+        "read": 1
+      }
+    },
+    {
+      "artifacts": [],
+      "blockers": [],
+      "definition_note": "Owner session settled by the Test Lead ruling. Entry and exit are still assembled from the hidden-pool runbook and register lessons S11 and S12, not from one stage definition.",
+      "exit_verified": false,
+      "id": "S5_bank",
+      "name": "Bank",
+      "next_required": "A sealed hidden bank prepared on the hidden host from a pinned validator image, never on a host every agent session can read.",
+      "owner": "Carbon Validator (producer, bank adapters, VALIDATOR-28 family sources); Data Collection supplies each family's reference package and panel; the owner approves startup spend",
+      "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+      "what_was_checked": {
+        "configured": 0,
+        "read": 0
+      }
+    },
+    {
+      "artifacts": [],
+      "blockers": [],
+      "definition_note": "A waiver is never a PASS and a review never turns a FAIL into one.",
+      "exit_verified": false,
+      "id": "S6_readiness",
+      "name": "Readiness gate",
+      "next_required": "launch_ready true at that exact SHA: no FAIL, NOT_BUILT or REVIEW_REQUIRED; waivers are stage-bound and measurement-only; reports committed through PR Head.",
+      "owner": "Graphite Testing Manager runs; Test Lead reviews and waives",
+      "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+      "what_was_checked": {
+        "configured": 0,
+        "read": 0
+      }
+    },
+    {
+      "artifacts": [],
+      "blockers": [],
+      "definition_note": "Stage A is measurement only; L1 confirmations wait for an L1 Q1 report and VALIDATOR-25.",
+      "exit_verified": false,
+      "id": "S7_stage_a",
+      "name": "Graphite stage A (L0 and L1)",
+      "next_required": "The checklist runs complete with a lessons entry, evidence digest and spend count per run; L0 confirmations through the Launchpad; refused-capability extracts collected; stage report to the Test Lead.",
+      "owner": "Executor runs; Launchpad lanes; Test Engineer bindings; Test Lead decides",
+      "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+      "what_was_checked": {
+        "configured": 0,
+        "read": 0
+      }
+    },
+    {
+      "artifacts": [],
+      "blockers": [],
+      "definition_note": "Stage B's grant files do not exist; its spend line is only prepared.",
+      "exit_verified": false,
+      "id": "S8_stage_b",
+      "name": "Graphite stage B (L2 and L3 on the dev-ladder)",
+      "next_required": "Per the stage B plan: runs complete with lessons entries and a stage summary.",
+      "owner": "Executor runs; Carbon Validator owns VALIDATOR-25; owner approves spend",
+      "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+      "what_was_checked": {
+        "configured": 0,
+        "read": 0
+      }
+    },
+    {
+      "artifacts": [],
+      "blockers": [],
+      "definition_note": "Permission is not spend approval.",
+      "exit_verified": false,
+      "id": "S9_stage_c",
+      "name": "Graphite stage C (L4, graph only)",
+      "next_required": "Per the wave plan section 4a: the stage C Constructor and Attacker runs complete with lessons entries.",
+      "owner": "Executor runs; Level 4 engineer owns the rebuild path; owner approves spend",
+      "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+      "what_was_checked": {
+        "configured": 0,
+        "read": 0
+      }
+    },
+    {
+      "artifacts": [],
+      "blockers": [],
+      "definition_note": "A working definition for development, ruled by the Test Lead. TESTED is not scientific qualification, security acceptance, LIVE or a launch claim; LIVE or qualification is a separate owner step.",
+      "exit_verified": false,
+      "id": "S10_tested",
+      "name": "Tested Challenge",
+      "next_required": "TESTED when ALL hold: (1) the readiness gate is launch_ready at every enabled level (no FAIL; waivers expired or closed); (2) a sealed hidden bank exists, with exposure accounting; (3) Graphite stages are complete at every enabled level, with real Launchpad confirmations scored by a validator, and every Attacker finding dispositioned (fixed, or accepted with a reason); (4) score-value alignment is measured on confirmed recipes (a Q1 report exists), and a negative result is allowed but must trigger a scoring iteration; (5) control detection (T3) meets its target at the chosen k and E; (6) the incentive canary shows the best model weighted (INCENTIVE-CANARY-01); (7) the stage-end report is filed; (8) the cheap-baseline comparison (V4) is done: the models' decisions are compared, at matched admissibility, with the strongest cheap method a buyer would otherwise use.",
+      "owner": "Test Lead",
+      "progress": "NO_PERMITTED_EVIDENCE_TO_VERIFY_EXIT",
+      "what_was_checked": {
+        "configured": 0,
+        "read": 0
+      }
+    }
+  ],
+  "tested_challenge_claim": false
+}
