@@ -43,7 +43,26 @@ def main(argv=None):
     status_parser.add_argument(
         "--main-ref", default="origin/main", help="locally available main ref; no fetch"
     )
+    pack_parser = sub.add_parser(
+        "pack",
+        help="provenance and freshness of a committed evidence pack (read only)",
+    )
+    pack_parser.add_argument(
+        "--run", required=True, help="the pack's run record, relative to the repository"
+    )
+    pack_parser.add_argument("--format", choices=("text", "json"), default="text")
     args = parser.parse_args(argv)
+    if args.command == "pack":
+        from carbon.challenge_pipeline.onboarding import provenance
+
+        report = provenance.check(args.root, args.run)
+        print(
+            json.dumps(report, indent=1, sort_keys=True)
+            if args.format == "json"
+            else provenance.render(report)
+        )
+        # Freshness is a reported status; only a provenance problem fails.
+        return 1 if report["provenance_problems"] else 0
     try:
         if args.command == "status":
             from carbon.challenge_pipeline.onboarding import status
