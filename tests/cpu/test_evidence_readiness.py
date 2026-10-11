@@ -291,6 +291,12 @@ class RouteTree:
         return path in self.files if self.available else None
 
 
+def test_bfs_budget_identity_matches_the_producer_proposal():
+    assert er.BENCHMARK_ROUTES["backward-facing-step"]["budget"][1] == (
+        "BFS-DEVELOPMENT-PROPOSED-V1"
+    )
+
+
 @pytest.mark.parametrize("family", er.BENCHMARK_ROUTES)
 def test_benchmark_route_inspects_implementation_not_pending_pr(family):
     path, functions = er.BENCHMARK_ROUTES[family]["baseline"]

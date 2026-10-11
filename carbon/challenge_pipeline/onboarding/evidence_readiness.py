@@ -43,7 +43,7 @@ BENCHMARK_ROUTES = {
         ),
         "budget": (
             "carbon/design_search/bfs_budget.py",
-            "EQUAL-BUDGET-BFS-DEVELOPMENT-V1",
+            "BFS-DEVELOPMENT-PROPOSED-V1",
         ),
     },
     "metagrating-3d": {
