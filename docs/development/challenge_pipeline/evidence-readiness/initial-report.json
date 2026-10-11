@@ -1,0 +1,1046 @@
+[
+  {
+    "schema": "carbon.onboarding.evidence-readiness.v1",
+    "challenge": "battery-v3",
+    "main": "fb47eb5725338a7733f6074650e58271c355006b",
+    "observed_at": "2026-10-11T00:24:09.715649+00:00",
+    "items": [
+      {
+        "item": 1,
+        "label": "Registered, deduplicated, reuse-checked panel on main",
+        "state": "PLANNED",
+        "basis": "Proposal/pending work exists; required structured main evidence not yet inspectable",
+        "owner": "Data Collection / owner registration",
+        "pointers": [
+          "docs/development/challenge_pipeline/evidence-readiness/inputs/battery-v3.json",
+          "docs/development/challenge_pipeline/round1/battery-ambient-map-v3.md",
+          "https://github.com/carbonphysicsai/Carbon/pull/1034"
+        ]
+      },
+      {
+        "item": 2,
+        "label": "Pinned package and current operator-store image observation",
+        "state": "PLANNED",
+        "basis": "Proposal/pending work exists; required structured main evidence not yet inspectable",
+        "owner": "Data Collection / operator",
+        "pointers": [
+          "docs/development/challenge_pipeline/evidence-readiness/inputs/battery-v3.json",
+          "docs/development/challenge_pipeline/round1/battery-ambient-map-v3.md",
+          "https://github.com/carbonphysicsai/Carbon/pull/1034"
+        ]
+      },
+      {
+        "item": 3,
+        "label": "Convergence, conservation AND code verification for current image/family",
+        "state": "PLANNED",
+        "basis": "Proposal/pending work exists; required structured main evidence not yet inspectable",
+        "owner": "Data Collection / science acceptance",
+        "pointers": [
+          "docs/development/challenge_pipeline/evidence-readiness/inputs/battery-v3.json",
+          "docs/development/challenge_pipeline/round1/battery-ambient-map-v3.md",
+          "https://github.com/carbonphysicsai/Carbon/pull/1034"
+        ]
+      },
+      {
+        "item": 4,
+        "label": "Kit covers every panel action, condition and observable",
+        "state": "PLANNED",
+        "basis": "Proposal/pending work exists; required structured main evidence not yet inspectable",
+        "owner": "Model Kits / Data Collection",
+        "pointers": [
+          "docs/development/challenge_pipeline/evidence-readiness/inputs/battery-v3.json",
+          "docs/development/challenge_pipeline/round1/battery-ambient-map-v3.md",
+          "https://github.com/carbonphysicsai/Carbon/pull/1034"
+        ]
+      },
+      {
+        "item": 5,
+        "label": "Registered TRAIN physically disjoint from panel",
+        "state": "PLANNED",
+        "basis": "Proposal/pending work exists; required structured main evidence not yet inspectable",
+        "owner": "Data Collection",
+        "pointers": [
+          "docs/development/challenge_pipeline/evidence-readiness/inputs/battery-v3.json",
+          "docs/development/challenge_pipeline/round1/battery-ambient-map-v3.md",
+          "https://github.com/carbonphysicsai/Carbon/pull/1034"
+        ]
+      },
+      {
+        "item": 6,
+        "label": "Strong cheap-baseline implementation ready",
+        "state": "YES",
+        "basis": "Implemented offline route; producer materials/coverage and empirical value not implied",
+        "owner": "Packets Codex / Data Collection materials",
+        "pointers": [
+          "carbon/development_comparison/cheap_baselines.py"
+        ]
+      },
+      {
+        "item": 7,
+        "label": "Challenge-supported equal-budget implementation ready",
+        "state": "YES",
+        "basis": "Implemented offline route; producer materials/coverage and empirical value not implied",
+        "owner": "Optimizer Codex",
+        "pointers": [
+          "carbon/development_comparison/evidence_pipeline.py"
+        ]
+      }
+    ],
+    "yes_count": 2,
+    "all_prerequisites_yes": false,
+    "spend_authorized": false,
+    "qualified": false,
+    "paid_run_output_exception": "Only exact owner/operator authorization may identify data produced by that run; no automatic waiver",
+    "examined_sources": {
+      "docs/development/challenge_pipeline/round1/battery-ambient-map-v3.md": "sha256:a6c1fef9469b47f933c40d0cddf2441270db771412f1b4dadf60c7ba5fa637a4",
+      "carbon/development_comparison/cheap_baselines.py": "sha256:a3075f089e29d1caca199708846d6ecd6d9180394f72e155746d050b40bd2694",
+      "carbon/development_comparison/evidence_pipeline.py": "sha256:b30623cf5719226516b8421401088cdfc0d235314b8a7e4721c9e88b468e2a8b"
+    },
+    "rank": 1
+  },
+  {
+    "schema": "carbon.onboarding.evidence-readiness.v1",
+    "challenge": "f02",
+    "main": "fb47eb5725338a7733f6074650e58271c355006b",
+    "observed_at": "2026-10-11T00:24:10.193510+00:00",
+    "items": [
+      {
+        "item": 1,
+        "label": "Registered, deduplicated, reuse-checked panel on main",
+        "state": "PLANNED",
+        "basis": "Proposal/pending work exists; required structured main evidence not yet inspectable",
+        "owner": "Data Collection / owner registration",
+        "pointers": [
+          "docs/development/challenge_pipeline/evidence-readiness/inputs/f02.json",
+          "docs/development/challenge_pipeline/question-laws/f02-round2.md",
+          "https://github.com/carbonphysicsai/Carbon/pull/1036"
+        ]
+      },
+      {
+        "item": 2,
+        "label": "Pinned package and current operator-store image observation",
+        "state": "PLANNED",
+        "basis": "Proposal/pending work exists; required structured main evidence not yet inspectable",
+        "owner": "Data Collection / operator",
+        "pointers": [
+          "docs/development/challenge_pipeline/evidence-readiness/inputs/f02.json",
+          "docs/development/challenge_pipeline/question-laws/f02-round2.md",
+          "https://github.com/carbonphysicsai/Carbon/pull/1036"
+        ]
+      },
+      {
+        "item": 3,
+        "label": "Convergence, conservation AND code verification for current image/family",
+        "state": "PLANNED",
+        "basis": "Proposal/pending work exists; required structured main evidence not yet inspectable",
+        "owner": "Data Collection / science acceptance",
+        "pointers": [
+          "docs/development/challenge_pipeline/evidence-readiness/inputs/f02.json",
+          "docs/development/challenge_pipeline/question-laws/f02-round2.md",
+          "https://github.com/carbonphysicsai/Carbon/pull/1036"
+        ]
+      },
+      {
+        "item": 4,
+        "label": "Kit covers every panel action, condition and observable",
+        "state": "PLANNED",
+        "basis": "Proposal/pending work exists; required structured main evidence not yet inspectable",
+        "owner": "Model Kits / Data Collection",
+        "pointers": [
+          "docs/development/challenge_pipeline/evidence-readiness/inputs/f02.json",
+          "docs/development/challenge_pipeline/question-laws/f02-round2.md",
+          "https://github.com/carbonphysicsai/Carbon/pull/1036"
+        ]
+      },
+      {
+        "item": 5,
+        "label": "Registered TRAIN physically disjoint from panel",
+        "state": "PLANNED",
+        "basis": "Proposal/pending work exists; required structured main evidence not yet inspectable",
+        "owner": "Data Collection",
+        "pointers": [
+          "docs/development/challenge_pipeline/evidence-readiness/inputs/f02.json",
+          "docs/development/challenge_pipeline/question-laws/f02-round2.md",
+          "https://github.com/carbonphysicsai/Carbon/pull/1036"
+        ]
+      },
+      {
+        "item": 6,
+        "label": "Strong cheap-baseline implementation ready",
+        "state": "YES",
+        "basis": "Implemented offline route; producer materials/coverage and empirical value not implied",
+        "owner": "Packets Codex / Data Collection materials",
+        "pointers": [
+          "carbon/development_comparison/portfolio_baselines.py"
+        ]
+      },
+      {
+        "item": 7,
+        "label": "Challenge-supported equal-budget implementation ready",
+        "state": "YES",
+        "basis": "Implemented offline route; producer materials/coverage and empirical value not implied",
+        "owner": "Optimizer Codex",
+        "pointers": [
+          "carbon/development_comparison/evidence_pipeline.py"
+        ]
+      }
+    ],
+    "yes_count": 2,
+    "all_prerequisites_yes": false,
+    "spend_authorized": false,
+    "qualified": false,
+    "paid_run_output_exception": "Only exact owner/operator authorization may identify data produced by that run; no automatic waiver",
+    "examined_sources": {
+      "docs/development/challenge_pipeline/question-laws/f02-round2.md": "sha256:ab75bfb91b35f369f7631eba208dd27b4fdee5d17611429563e9728b6911562a",
+      "carbon/development_comparison/portfolio_baselines.py": "sha256:b9d2810ddba212ffd60e7743951cc2ed547c546238e13b355504413940c5f87e",
+      "carbon/development_comparison/evidence_pipeline.py": "sha256:b30623cf5719226516b8421401088cdfc0d235314b8a7e4721c9e88b468e2a8b"
+    },
+    "rank": 1
+  },
+  {
+    "schema": "carbon.onboarding.evidence-readiness.v1",
+    "challenge": "motor",
+    "main": "fb47eb5725338a7733f6074650e58271c355006b",
+    "observed_at": "2026-10-11T00:24:09.975822+00:00",
+    "items": [
+      {
+        "item": 1,
+        "label": "Registered, deduplicated, reuse-checked panel on main",
+        "state": "PLANNED",
+        "basis": "Proposal/pending work exists; required structured main evidence not yet inspectable",
+        "owner": "Data Collection / owner registration",
+        "pointers": [
+          "docs/development/challenge_pipeline/evidence-readiness/inputs/motor.json",
+          "docs/development/challenge_pipeline/round1/motor-precision-joint-v2.md",
+          "https://github.com/carbonphysicsai/Carbon/pull/1035"
+        ]
+      },
+      {
+        "item": 2,
+        "label": "Pinned package and current operator-store image observation",
+        "state": "PLANNED",
+        "basis": "Proposal/pending work exists; required structured main evidence not yet inspectable",
+        "owner": "Data Collection / operator",
+        "pointers": [
+          "docs/development/challenge_pipeline/evidence-readiness/inputs/motor.json",
+          "docs/development/challenge_pipeline/round1/motor-precision-joint-v2.md",
+          "https://github.com/carbonphysicsai/Carbon/pull/1035"
+        ]
+      },
+      {
+        "item": 3,
+        "label": "Convergence, conservation AND code verification for current image/family",
+        "state": "PLANNED",
+        "basis": "Proposal/pending work exists; required structured main evidence not yet inspectable",
+        "owner": "Data Collection / science acceptance",
+        "pointers": [
+          "docs/development/challenge_pipeline/evidence-readiness/inputs/motor.json",
+          "docs/development/challenge_pipeline/round1/motor-precision-joint-v2.md",
+          "https://github.com/carbonphysicsai/Carbon/pull/1035"
+        ]
+      },
+      {
+        "item": 4,
+        "label": "Kit covers every panel action, condition and observable",
+        "state": "PLANNED",
+        "basis": "Proposal/pending work exists; required structured main evidence not yet inspectable",
+        "owner": "Model Kits / Data Collection",
+        "pointers": [
+          "docs/development/challenge_pipeline/evidence-readiness/inputs/motor.json",
+          "docs/development/challenge_pipeline/round1/motor-precision-joint-v2.md",
+          "https://github.com/carbonphysicsai/Carbon/pull/1035"
+        ]
+      },
+      {
+        "item": 5,
+        "label": "Registered TRAIN physically disjoint from panel",
+        "state": "PLANNED",
+        "basis": "Proposal/pending work exists; required structured main evidence not yet inspectable",
+        "owner": "Data Collection",
+        "pointers": [
+          "docs/development/challenge_pipeline/evidence-readiness/inputs/motor.json",
+          "docs/development/challenge_pipeline/round1/motor-precision-joint-v2.md",
+          "https://github.com/carbonphysicsai/Carbon/pull/1035"
+        ]
+      },
+      {
+        "item": 6,
+        "label": "Strong cheap-baseline implementation ready",
+        "state": "YES",
+        "basis": "Implemented offline route; producer materials/coverage and empirical value not implied",
+        "owner": "Packets Codex / Data Collection materials",
+        "pointers": [
+          "carbon/development_comparison/cheap_baselines.py"
+        ]
+      },
+      {
+        "item": 7,
+        "label": "Challenge-supported equal-budget implementation ready",
+        "state": "YES",
+        "basis": "Implemented offline route; producer materials/coverage and empirical value not implied",
+        "owner": "Optimizer Codex",
+        "pointers": [
+          "carbon/development_comparison/evidence_pipeline.py"
+        ]
+      }
+    ],
+    "yes_count": 2,
+    "all_prerequisites_yes": false,
+    "spend_authorized": false,
+    "qualified": false,
+    "paid_run_output_exception": "Only exact owner/operator authorization may identify data produced by that run; no automatic waiver",
+    "examined_sources": {
+      "docs/development/challenge_pipeline/round1/motor-precision-joint-v2.md": "sha256:eb2e8fef4a93df2719dc3e97c0daa68c403acb70a8f3a7c150a690327e9a6bb1",
+      "carbon/development_comparison/cheap_baselines.py": "sha256:a3075f089e29d1caca199708846d6ecd6d9180394f72e155746d050b40bd2694",
+      "carbon/development_comparison/evidence_pipeline.py": "sha256:b30623cf5719226516b8421401088cdfc0d235314b8a7e4721c9e88b468e2a8b"
+    },
+    "rank": 1
+  },
+  {
+    "schema": "carbon.onboarding.evidence-readiness.v1",
+    "challenge": "cooling-cell",
+    "main": "fb47eb5725338a7733f6074650e58271c355006b",
+    "observed_at": "2026-10-11T00:24:11.012575+00:00",
+    "items": [
+      {
+        "item": 1,
+        "label": "Registered, deduplicated, reuse-checked panel on main",
+        "state": "PLANNED",
+        "basis": "Proposal/pending work exists; required structured main evidence not yet inspectable",
+        "owner": "Data Collection / owner registration",
+        "pointers": [
+          "docs/development/challenge_pipeline/evidence-readiness/inputs/cooling-cell.json",
+          "docs/development/challenge_pipeline/round1/cooling-cell-v3.md"
+        ]
+      },
+      {
+        "item": 2,
+        "label": "Pinned package and current operator-store image observation",
+        "state": "PLANNED",
+        "basis": "Proposal/pending work exists; required structured main evidence not yet inspectable",
+        "owner": "Data Collection / operator",
+        "pointers": [
+          "docs/development/challenge_pipeline/evidence-readiness/inputs/cooling-cell.json",
+          "docs/development/challenge_pipeline/round1/cooling-cell-v3.md"
+        ]
+      },
+      {
+        "item": 3,
+        "label": "Convergence, conservation AND code verification for current image/family",
+        "state": "PLANNED",
+        "basis": "Proposal/pending work exists; required structured main evidence not yet inspectable",
+        "owner": "Data Collection / science acceptance",
+        "pointers": [
+          "docs/development/challenge_pipeline/evidence-readiness/inputs/cooling-cell.json",
+          "docs/development/challenge_pipeline/round1/cooling-cell-v3.md"
+        ]
+      },
+      {
+        "item": 4,
+        "label": "Kit covers every panel action, condition and observable",
+        "state": "PLANNED",
+        "basis": "Proposal/pending work exists; required structured main evidence not yet inspectable",
+        "owner": "Model Kits / Data Collection",
+        "pointers": [
+          "docs/development/challenge_pipeline/evidence-readiness/inputs/cooling-cell.json",
+          "docs/development/challenge_pipeline/round1/cooling-cell-v3.md"
+        ]
+      },
+      {
+        "item": 5,
+        "label": "Registered TRAIN physically disjoint from panel",
+        "state": "PLANNED",
+        "basis": "Proposal/pending work exists; required structured main evidence not yet inspectable",
+        "owner": "Data Collection",
+        "pointers": [
+          "docs/development/challenge_pipeline/evidence-readiness/inputs/cooling-cell.json",
+          "docs/development/challenge_pipeline/round1/cooling-cell-v3.md"
+        ]
+      },
+      {
+        "item": 6,
+        "label": "Strong cheap-baseline implementation ready",
+        "state": "YES",
+        "basis": "Implemented offline route; producer materials/coverage and empirical value not implied",
+        "owner": "Packets Codex / Data Collection materials",
+        "pointers": [
+          "carbon/development_comparison/portfolio_baselines.py"
+        ]
+      },
+      {
+        "item": 7,
+        "label": "Challenge-supported equal-budget implementation ready",
+        "state": "NO",
+        "basis": "Required family/functions not present in route implementation",
+        "owner": "Optimizer Codex",
+        "pointers": [
+          "carbon/development_comparison/evidence_pipeline.py"
+        ]
+      }
+    ],
+    "yes_count": 1,
+    "all_prerequisites_yes": false,
+    "spend_authorized": false,
+    "qualified": false,
+    "paid_run_output_exception": "Only exact owner/operator authorization may identify data produced by that run; no automatic waiver",
+    "examined_sources": {
+      "docs/development/challenge_pipeline/round1/cooling-cell-v3.md": "sha256:e95ca8287278c2cc4733a1a898ddbc0bde490f7310acffbf30971a9f1eb06429",
+      "carbon/development_comparison/portfolio_baselines.py": "sha256:b9d2810ddba212ffd60e7743951cc2ed547c546238e13b355504413940c5f87e",
+      "carbon/development_comparison/evidence_pipeline.py": "sha256:b30623cf5719226516b8421401088cdfc0d235314b8a7e4721c9e88b468e2a8b"
+    },
+    "rank": 4
+  },
+  {
+    "schema": "carbon.onboarding.evidence-readiness.v1",
+    "challenge": "f08",
+    "main": "fb47eb5725338a7733f6074650e58271c355006b",
+    "observed_at": "2026-10-11T00:24:11.271675+00:00",
+    "items": [
+      {
+        "item": 1,
+        "label": "Registered, deduplicated, reuse-checked panel on main",
+        "state": "PLANNED",
+        "basis": "Proposal/pending work exists; required structured main evidence not yet inspectable",
+        "owner": "Data Collection / owner registration",
+        "pointers": [
+          "docs/development/challenge_pipeline/evidence-readiness/inputs/f08.json",
+          "docs/development/challenge_pipeline/cheap-baselines/f08.md",
+          "https://github.com/carbonphysicsai/Carbon/pull/1030"
+        ]
+      },
+      {
+        "item": 2,
+        "label": "Pinned package and current operator-store image observation",
+        "state": "PLANNED",
+        "basis": "Proposal/pending work exists; required structured main evidence not yet inspectable",
+        "owner": "Data Collection / operator",
+        "pointers": [
+          "docs/development/challenge_pipeline/evidence-readiness/inputs/f08.json",
+          "docs/development/challenge_pipeline/cheap-baselines/f08.md",
+          "https://github.com/carbonphysicsai/Carbon/pull/1030"
+        ]
+      },
+      {
+        "item": 3,
+        "label": "Convergence, conservation AND code verification for current image/family",
+        "state": "PLANNED",
+        "basis": "Proposal/pending work exists; required structured main evidence not yet inspectable",
+        "owner": "Data Collection / science acceptance",
+        "pointers": [
+          "docs/development/challenge_pipeline/evidence-readiness/inputs/f08.json",
+          "docs/development/challenge_pipeline/cheap-baselines/f08.md",
+          "https://github.com/carbonphysicsai/Carbon/pull/1030"
+        ]
+      },
+      {
+        "item": 4,
+        "label": "Kit covers every panel action, condition and observable",
+        "state": "PLANNED",
+        "basis": "Proposal/pending work exists; required structured main evidence not yet inspectable",
+        "owner": "Model Kits / Data Collection",
+        "pointers": [
+          "docs/development/challenge_pipeline/evidence-readiness/inputs/f08.json",
+          "docs/development/challenge_pipeline/cheap-baselines/f08.md",
+          "https://github.com/carbonphysicsai/Carbon/pull/1030"
+        ]
+      },
+      {
+        "item": 5,
+        "label": "Registered TRAIN physically disjoint from panel",
+        "state": "PLANNED",
+        "basis": "Proposal/pending work exists; required structured main evidence not yet inspectable",
+        "owner": "Data Collection",
+        "pointers": [
+          "docs/development/challenge_pipeline/evidence-readiness/inputs/f08.json",
+          "docs/development/challenge_pipeline/cheap-baselines/f08.md",
+          "https://github.com/carbonphysicsai/Carbon/pull/1030"
+        ]
+      },
+      {
+        "item": 6,
+        "label": "Strong cheap-baseline implementation ready",
+        "state": "YES",
+        "basis": "Implemented offline route; producer materials/coverage and empirical value not implied",
+        "owner": "Packets Codex / Data Collection materials",
+        "pointers": [
+          "carbon/development_comparison/reduced_baselines.py"
+        ]
+      },
+      {
+        "item": 7,
+        "label": "Challenge-supported equal-budget implementation ready",
+        "state": "NO",
+        "basis": "Required family/functions not present in route implementation",
+        "owner": "Optimizer Codex",
+        "pointers": [
+          "carbon/development_comparison/evidence_pipeline.py"
+        ]
+      }
+    ],
+    "yes_count": 1,
+    "all_prerequisites_yes": false,
+    "spend_authorized": false,
+    "qualified": false,
+    "paid_run_output_exception": "Only exact owner/operator authorization may identify data produced by that run; no automatic waiver",
+    "examined_sources": {
+      "docs/development/challenge_pipeline/cheap-baselines/f08.md": "sha256:d50dabfcbe22b0defd88bdd822093a5800f0f5ba014777dbf09bc6729093a712",
+      "carbon/development_comparison/reduced_baselines.py": "sha256:5165f96109e6d87830c7e6f9c0cf54c8f846517dc75dd09fdaf38376f3098a2a",
+      "carbon/development_comparison/evidence_pipeline.py": "sha256:b30623cf5719226516b8421401088cdfc0d235314b8a7e4721c9e88b468e2a8b"
+    },
+    "rank": 4
+  },
+  {
+    "schema": "carbon.onboarding.evidence-readiness.v1",
+    "challenge": "f13",
+    "main": "fb47eb5725338a7733f6074650e58271c355006b",
+    "observed_at": "2026-10-11T00:24:10.417660+00:00",
+    "items": [
+      {
+        "item": 1,
+        "label": "Registered, deduplicated, reuse-checked panel on main",
+        "state": "PLANNED",
+        "basis": "Proposal/pending work exists; required structured main evidence not yet inspectable",
+        "owner": "Data Collection / owner registration",
+        "pointers": [
+          "docs/development/challenge_pipeline/evidence-readiness/inputs/f13.json",
+          "docs/development/challenge_pipeline/round1/f13-compressor-silencer.md",
+          "https://github.com/carbonphysicsai/Carbon/pull/1030"
+        ]
+      },
+      {
+        "item": 2,
+        "label": "Pinned package and current operator-store image observation",
+        "state": "PLANNED",
+        "basis": "Proposal/pending work exists; required structured main evidence not yet inspectable",
+        "owner": "Data Collection / operator",
+        "pointers": [
+          "docs/development/challenge_pipeline/evidence-readiness/inputs/f13.json",
+          "docs/development/challenge_pipeline/round1/f13-compressor-silencer.md",
+          "https://github.com/carbonphysicsai/Carbon/pull/1030"
+        ]
+      },
+      {
+        "item": 3,
+        "label": "Convergence, conservation AND code verification for current image/family",
+        "state": "PLANNED",
+        "basis": "Proposal/pending work exists; required structured main evidence not yet inspectable",
+        "owner": "Data Collection / science acceptance",
+        "pointers": [
+          "docs/development/challenge_pipeline/evidence-readiness/inputs/f13.json",
+          "docs/development/challenge_pipeline/round1/f13-compressor-silencer.md",
+          "https://github.com/carbonphysicsai/Carbon/pull/1030"
+        ]
+      },
+      {
+        "item": 4,
+        "label": "Kit covers every panel action, condition and observable",
+        "state": "PLANNED",
+        "basis": "Proposal/pending work exists; required structured main evidence not yet inspectable",
+        "owner": "Model Kits / Data Collection",
+        "pointers": [
+          "docs/development/challenge_pipeline/evidence-readiness/inputs/f13.json",
+          "docs/development/challenge_pipeline/round1/f13-compressor-silencer.md",
+          "https://github.com/carbonphysicsai/Carbon/pull/1030"
+        ]
+      },
+      {
+        "item": 5,
+        "label": "Registered TRAIN physically disjoint from panel",
+        "state": "PLANNED",
+        "basis": "Proposal/pending work exists; required structured main evidence not yet inspectable",
+        "owner": "Data Collection",
+        "pointers": [
+          "docs/development/challenge_pipeline/evidence-readiness/inputs/f13.json",
+          "docs/development/challenge_pipeline/round1/f13-compressor-silencer.md",
+          "https://github.com/carbonphysicsai/Carbon/pull/1030"
+        ]
+      },
+      {
+        "item": 6,
+        "label": "Strong cheap-baseline implementation ready",
+        "state": "YES",
+        "basis": "Implemented offline route; producer materials/coverage and empirical value not implied",
+        "owner": "Packets Codex / Data Collection materials",
+        "pointers": [
+          "carbon/development_comparison/reduced_baselines.py"
+        ]
+      },
+      {
+        "item": 7,
+        "label": "Challenge-supported equal-budget implementation ready",
+        "state": "NO",
+        "basis": "Required family/functions not present in route implementation",
+        "owner": "Optimizer Codex",
+        "pointers": [
+          "carbon/development_comparison/evidence_pipeline.py"
+        ]
+      }
+    ],
+    "yes_count": 1,
+    "all_prerequisites_yes": false,
+    "spend_authorized": false,
+    "qualified": false,
+    "paid_run_output_exception": "Only exact owner/operator authorization may identify data produced by that run; no automatic waiver",
+    "examined_sources": {
+      "docs/development/challenge_pipeline/round1/f13-compressor-silencer.md": "sha256:397361ad8340ccbc19f07e2a025fb9c9c29934a9b1159e0c7000fc1e061fdde0",
+      "carbon/development_comparison/reduced_baselines.py": "sha256:5165f96109e6d87830c7e6f9c0cf54c8f846517dc75dd09fdaf38376f3098a2a",
+      "carbon/development_comparison/evidence_pipeline.py": "sha256:b30623cf5719226516b8421401088cdfc0d235314b8a7e4721c9e88b468e2a8b"
+    },
+    "rank": 4
+  },
+  {
+    "schema": "carbon.onboarding.evidence-readiness.v1",
+    "challenge": "bolted-joint",
+    "main": "fb47eb5725338a7733f6074650e58271c355006b",
+    "observed_at": "2026-10-11T00:24:11.676385+00:00",
+    "items": [
+      {
+        "item": 1,
+        "label": "Registered, deduplicated, reuse-checked panel on main",
+        "state": "PLANNED",
+        "basis": "Proposal/pending work exists; required structured main evidence not yet inspectable",
+        "owner": "Data Collection / owner registration",
+        "pointers": [
+          "docs/development/challenge_pipeline/evidence-readiness/inputs/bolted-joint.json",
+          "docs/development/challenge_pipeline/value-cost/replacements/README.md"
+        ]
+      },
+      {
+        "item": 2,
+        "label": "Pinned package and current operator-store image observation",
+        "state": "PLANNED",
+        "basis": "Proposal/pending work exists; required structured main evidence not yet inspectable",
+        "owner": "Data Collection / operator",
+        "pointers": [
+          "docs/development/challenge_pipeline/evidence-readiness/inputs/bolted-joint.json",
+          "docs/development/challenge_pipeline/value-cost/replacements/README.md"
+        ]
+      },
+      {
+        "item": 3,
+        "label": "Convergence, conservation AND code verification for current image/family",
+        "state": "PLANNED",
+        "basis": "Proposal/pending work exists; required structured main evidence not yet inspectable",
+        "owner": "Data Collection / science acceptance",
+        "pointers": [
+          "docs/development/challenge_pipeline/evidence-readiness/inputs/bolted-joint.json",
+          "docs/development/challenge_pipeline/value-cost/replacements/README.md"
+        ]
+      },
+      {
+        "item": 4,
+        "label": "Kit covers every panel action, condition and observable",
+        "state": "PLANNED",
+        "basis": "Proposal/pending work exists; required structured main evidence not yet inspectable",
+        "owner": "Model Kits / Data Collection",
+        "pointers": [
+          "docs/development/challenge_pipeline/evidence-readiness/inputs/bolted-joint.json",
+          "docs/development/challenge_pipeline/value-cost/replacements/README.md"
+        ]
+      },
+      {
+        "item": 5,
+        "label": "Registered TRAIN physically disjoint from panel",
+        "state": "PLANNED",
+        "basis": "Proposal/pending work exists; required structured main evidence not yet inspectable",
+        "owner": "Data Collection",
+        "pointers": [
+          "docs/development/challenge_pipeline/evidence-readiness/inputs/bolted-joint.json",
+          "docs/development/challenge_pipeline/value-cost/replacements/README.md"
+        ]
+      },
+      {
+        "item": 6,
+        "label": "Strong cheap-baseline implementation ready",
+        "state": "NO",
+        "basis": "No implemented family adapter in this tool's closed route inventory",
+        "owner": "Packets Codex / Data Collection materials",
+        "pointers": []
+      },
+      {
+        "item": 7,
+        "label": "Challenge-supported equal-budget implementation ready",
+        "state": "NO",
+        "basis": "Required family/functions not present in route implementation",
+        "owner": "Optimizer Codex",
+        "pointers": [
+          "carbon/development_comparison/evidence_pipeline.py"
+        ]
+      }
+    ],
+    "yes_count": 0,
+    "all_prerequisites_yes": false,
+    "spend_authorized": false,
+    "qualified": false,
+    "paid_run_output_exception": "Only exact owner/operator authorization may identify data produced by that run; no automatic waiver",
+    "examined_sources": {
+      "docs/development/challenge_pipeline/value-cost/replacements/README.md": "sha256:7483843bc61094f7f954d2d3ab1d2cef2d8cedfc65be8959350fb4e2544a90bc",
+      "carbon/development_comparison/evidence_pipeline.py": "sha256:b30623cf5719226516b8421401088cdfc0d235314b8a7e4721c9e88b468e2a8b"
+    },
+    "rank": 7
+  },
+  {
+    "schema": "carbon.onboarding.evidence-readiness.v1",
+    "challenge": "f06",
+    "main": "fb47eb5725338a7733f6074650e58271c355006b",
+    "observed_at": "2026-10-11T00:24:10.832645+00:00",
+    "items": [
+      {
+        "item": 1,
+        "label": "Registered, deduplicated, reuse-checked panel on main",
+        "state": "PLANNED",
+        "basis": "Proposal/pending work exists; required structured main evidence not yet inspectable",
+        "owner": "Data Collection / owner registration",
+        "pointers": [
+          "docs/development/challenge_pipeline/evidence-readiness/inputs/f06.json",
+          "docs/development/challenge_pipeline/solver-package-specs/f06-meep.md"
+        ]
+      },
+      {
+        "item": 2,
+        "label": "Pinned package and current operator-store image observation",
+        "state": "PLANNED",
+        "basis": "Proposal/pending work exists; required structured main evidence not yet inspectable",
+        "owner": "Data Collection / operator",
+        "pointers": [
+          "docs/development/challenge_pipeline/evidence-readiness/inputs/f06.json",
+          "docs/development/challenge_pipeline/solver-package-specs/f06-meep.md"
+        ]
+      },
+      {
+        "item": 3,
+        "label": "Convergence, conservation AND code verification for current image/family",
+        "state": "PLANNED",
+        "basis": "Proposal/pending work exists; required structured main evidence not yet inspectable",
+        "owner": "Data Collection / science acceptance",
+        "pointers": [
+          "docs/development/challenge_pipeline/evidence-readiness/inputs/f06.json",
+          "docs/development/challenge_pipeline/solver-package-specs/f06-meep.md"
+        ]
+      },
+      {
+        "item": 4,
+        "label": "Kit covers every panel action, condition and observable",
+        "state": "PLANNED",
+        "basis": "Proposal/pending work exists; required structured main evidence not yet inspectable",
+        "owner": "Model Kits / Data Collection",
+        "pointers": [
+          "docs/development/challenge_pipeline/evidence-readiness/inputs/f06.json",
+          "docs/development/challenge_pipeline/solver-package-specs/f06-meep.md"
+        ]
+      },
+      {
+        "item": 5,
+        "label": "Registered TRAIN physically disjoint from panel",
+        "state": "PLANNED",
+        "basis": "Proposal/pending work exists; required structured main evidence not yet inspectable",
+        "owner": "Data Collection",
+        "pointers": [
+          "docs/development/challenge_pipeline/evidence-readiness/inputs/f06.json",
+          "docs/development/challenge_pipeline/solver-package-specs/f06-meep.md"
+        ]
+      },
+      {
+        "item": 6,
+        "label": "Strong cheap-baseline implementation ready",
+        "state": "NO",
+        "basis": "No implemented family adapter in this tool's closed route inventory",
+        "owner": "Packets Codex / Data Collection materials",
+        "pointers": []
+      },
+      {
+        "item": 7,
+        "label": "Challenge-supported equal-budget implementation ready",
+        "state": "NO",
+        "basis": "Required family/functions not present in route implementation",
+        "owner": "Optimizer Codex",
+        "pointers": [
+          "carbon/development_comparison/evidence_pipeline.py"
+        ]
+      }
+    ],
+    "yes_count": 0,
+    "all_prerequisites_yes": false,
+    "spend_authorized": false,
+    "qualified": false,
+    "paid_run_output_exception": "Only exact owner/operator authorization may identify data produced by that run; no automatic waiver",
+    "examined_sources": {
+      "docs/development/challenge_pipeline/solver-package-specs/f06-meep.md": "sha256:4b5a06be366829c82f88f67eb10f8d48debd5f000497ec05eb6d80aa60685287",
+      "carbon/development_comparison/evidence_pipeline.py": "sha256:b30623cf5719226516b8421401088cdfc0d235314b8a7e4721c9e88b468e2a8b"
+    },
+    "rank": 7
+  },
+  {
+    "schema": "carbon.onboarding.evidence-readiness.v1",
+    "challenge": "f17",
+    "main": "fb47eb5725338a7733f6074650e58271c355006b",
+    "observed_at": "2026-10-11T00:24:10.640420+00:00",
+    "items": [
+      {
+        "item": 1,
+        "label": "Registered, deduplicated, reuse-checked panel on main",
+        "state": "PLANNED",
+        "basis": "Proposal/pending work exists; required structured main evidence not yet inspectable",
+        "owner": "Data Collection / owner registration",
+        "pointers": [
+          "docs/development/challenge_pipeline/evidence-readiness/inputs/f17.json",
+          "docs/development/challenge_pipeline/solver-package-specs/f17-openfoam.md"
+        ]
+      },
+      {
+        "item": 2,
+        "label": "Pinned package and current operator-store image observation",
+        "state": "PLANNED",
+        "basis": "Proposal/pending work exists; required structured main evidence not yet inspectable",
+        "owner": "Data Collection / operator",
+        "pointers": [
+          "docs/development/challenge_pipeline/evidence-readiness/inputs/f17.json",
+          "docs/development/challenge_pipeline/solver-package-specs/f17-openfoam.md"
+        ]
+      },
+      {
+        "item": 3,
+        "label": "Convergence, conservation AND code verification for current image/family",
+        "state": "PLANNED",
+        "basis": "Proposal/pending work exists; required structured main evidence not yet inspectable",
+        "owner": "Data Collection / science acceptance",
+        "pointers": [
+          "docs/development/challenge_pipeline/evidence-readiness/inputs/f17.json",
+          "docs/development/challenge_pipeline/solver-package-specs/f17-openfoam.md"
+        ]
+      },
+      {
+        "item": 4,
+        "label": "Kit covers every panel action, condition and observable",
+        "state": "PLANNED",
+        "basis": "Proposal/pending work exists; required structured main evidence not yet inspectable",
+        "owner": "Model Kits / Data Collection",
+        "pointers": [
+          "docs/development/challenge_pipeline/evidence-readiness/inputs/f17.json",
+          "docs/development/challenge_pipeline/solver-package-specs/f17-openfoam.md"
+        ]
+      },
+      {
+        "item": 5,
+        "label": "Registered TRAIN physically disjoint from panel",
+        "state": "PLANNED",
+        "basis": "Proposal/pending work exists; required structured main evidence not yet inspectable",
+        "owner": "Data Collection",
+        "pointers": [
+          "docs/development/challenge_pipeline/evidence-readiness/inputs/f17.json",
+          "docs/development/challenge_pipeline/solver-package-specs/f17-openfoam.md"
+        ]
+      },
+      {
+        "item": 6,
+        "label": "Strong cheap-baseline implementation ready",
+        "state": "NO",
+        "basis": "No implemented family adapter in this tool's closed route inventory",
+        "owner": "Packets Codex / Data Collection materials",
+        "pointers": []
+      },
+      {
+        "item": 7,
+        "label": "Challenge-supported equal-budget implementation ready",
+        "state": "NO",
+        "basis": "Required family/functions not present in route implementation",
+        "owner": "Optimizer Codex",
+        "pointers": [
+          "carbon/development_comparison/evidence_pipeline.py"
+        ]
+      }
+    ],
+    "yes_count": 0,
+    "all_prerequisites_yes": false,
+    "spend_authorized": false,
+    "qualified": false,
+    "paid_run_output_exception": "Only exact owner/operator authorization may identify data produced by that run; no automatic waiver",
+    "examined_sources": {
+      "docs/development/challenge_pipeline/solver-package-specs/f17-openfoam.md": "sha256:33872ebdffb8ab9afc1ea676b40ddc26414bbf492f1580405196a06115c66b07",
+      "carbon/development_comparison/evidence_pipeline.py": "sha256:b30623cf5719226516b8421401088cdfc0d235314b8a7e4721c9e88b468e2a8b"
+    },
+    "rank": 7
+  },
+  {
+    "schema": "carbon.onboarding.evidence-readiness.v1",
+    "challenge": "seal-gland",
+    "main": "fb47eb5725338a7733f6074650e58271c355006b",
+    "observed_at": "2026-10-11T00:24:11.844294+00:00",
+    "items": [
+      {
+        "item": 1,
+        "label": "Registered, deduplicated, reuse-checked panel on main",
+        "state": "PLANNED",
+        "basis": "Proposal/pending work exists; required structured main evidence not yet inspectable",
+        "owner": "Data Collection / owner registration",
+        "pointers": [
+          "docs/development/challenge_pipeline/evidence-readiness/inputs/seal-gland.json",
+          "docs/development/challenge_pipeline/value-cost/replacements/README.md"
+        ]
+      },
+      {
+        "item": 2,
+        "label": "Pinned package and current operator-store image observation",
+        "state": "PLANNED",
+        "basis": "Proposal/pending work exists; required structured main evidence not yet inspectable",
+        "owner": "Data Collection / operator",
+        "pointers": [
+          "docs/development/challenge_pipeline/evidence-readiness/inputs/seal-gland.json",
+          "docs/development/challenge_pipeline/value-cost/replacements/README.md"
+        ]
+      },
+      {
+        "item": 3,
+        "label": "Convergence, conservation AND code verification for current image/family",
+        "state": "PLANNED",
+        "basis": "Proposal/pending work exists; required structured main evidence not yet inspectable",
+        "owner": "Data Collection / science acceptance",
+        "pointers": [
+          "docs/development/challenge_pipeline/evidence-readiness/inputs/seal-gland.json",
+          "docs/development/challenge_pipeline/value-cost/replacements/README.md"
+        ]
+      },
+      {
+        "item": 4,
+        "label": "Kit covers every panel action, condition and observable",
+        "state": "PLANNED",
+        "basis": "Proposal/pending work exists; required structured main evidence not yet inspectable",
+        "owner": "Model Kits / Data Collection",
+        "pointers": [
+          "docs/development/challenge_pipeline/evidence-readiness/inputs/seal-gland.json",
+          "docs/development/challenge_pipeline/value-cost/replacements/README.md"
+        ]
+      },
+      {
+        "item": 5,
+        "label": "Registered TRAIN physically disjoint from panel",
+        "state": "PLANNED",
+        "basis": "Proposal/pending work exists; required structured main evidence not yet inspectable",
+        "owner": "Data Collection",
+        "pointers": [
+          "docs/development/challenge_pipeline/evidence-readiness/inputs/seal-gland.json",
+          "docs/development/challenge_pipeline/value-cost/replacements/README.md"
+        ]
+      },
+      {
+        "item": 6,
+        "label": "Strong cheap-baseline implementation ready",
+        "state": "NO",
+        "basis": "No implemented family adapter in this tool's closed route inventory",
+        "owner": "Packets Codex / Data Collection materials",
+        "pointers": []
+      },
+      {
+        "item": 7,
+        "label": "Challenge-supported equal-budget implementation ready",
+        "state": "NO",
+        "basis": "Required family/functions not present in route implementation",
+        "owner": "Optimizer Codex",
+        "pointers": [
+          "carbon/development_comparison/evidence_pipeline.py"
+        ]
+      }
+    ],
+    "yes_count": 0,
+    "all_prerequisites_yes": false,
+    "spend_authorized": false,
+    "qualified": false,
+    "paid_run_output_exception": "Only exact owner/operator authorization may identify data produced by that run; no automatic waiver",
+    "examined_sources": {
+      "docs/development/challenge_pipeline/value-cost/replacements/README.md": "sha256:7483843bc61094f7f954d2d3ab1d2cef2d8cedfc65be8959350fb4e2544a90bc",
+      "carbon/development_comparison/evidence_pipeline.py": "sha256:b30623cf5719226516b8421401088cdfc0d235314b8a7e4721c9e88b468e2a8b"
+    },
+    "rank": 7
+  },
+  {
+    "schema": "carbon.onboarding.evidence-readiness.v1",
+    "challenge": "solenoid-pole",
+    "main": "fb47eb5725338a7733f6074650e58271c355006b",
+    "observed_at": "2026-10-11T00:24:11.507079+00:00",
+    "items": [
+      {
+        "item": 1,
+        "label": "Registered, deduplicated, reuse-checked panel on main",
+        "state": "PLANNED",
+        "basis": "Proposal/pending work exists; required structured main evidence not yet inspectable",
+        "owner": "Data Collection / owner registration",
+        "pointers": [
+          "docs/development/challenge_pipeline/evidence-readiness/inputs/solenoid-pole.json",
+          "docs/development/challenge_pipeline/magnetics-first-panels/solenoid-pole.md"
+        ]
+      },
+      {
+        "item": 2,
+        "label": "Pinned package and current operator-store image observation",
+        "state": "PLANNED",
+        "basis": "Proposal/pending work exists; required structured main evidence not yet inspectable",
+        "owner": "Data Collection / operator",
+        "pointers": [
+          "docs/development/challenge_pipeline/evidence-readiness/inputs/solenoid-pole.json",
+          "docs/development/challenge_pipeline/magnetics-first-panels/solenoid-pole.md"
+        ]
+      },
+      {
+        "item": 3,
+        "label": "Convergence, conservation AND code verification for current image/family",
+        "state": "PLANNED",
+        "basis": "Proposal/pending work exists; required structured main evidence not yet inspectable",
+        "owner": "Data Collection / science acceptance",
+        "pointers": [
+          "docs/development/challenge_pipeline/evidence-readiness/inputs/solenoid-pole.json",
+          "docs/development/challenge_pipeline/magnetics-first-panels/solenoid-pole.md"
+        ]
+      },
+      {
+        "item": 4,
+        "label": "Kit covers every panel action, condition and observable",
+        "state": "PLANNED",
+        "basis": "Proposal/pending work exists; required structured main evidence not yet inspectable",
+        "owner": "Model Kits / Data Collection",
+        "pointers": [
+          "docs/development/challenge_pipeline/evidence-readiness/inputs/solenoid-pole.json",
+          "docs/development/challenge_pipeline/magnetics-first-panels/solenoid-pole.md"
+        ]
+      },
+      {
+        "item": 5,
+        "label": "Registered TRAIN physically disjoint from panel",
+        "state": "PLANNED",
+        "basis": "Proposal/pending work exists; required structured main evidence not yet inspectable",
+        "owner": "Data Collection",
+        "pointers": [
+          "docs/development/challenge_pipeline/evidence-readiness/inputs/solenoid-pole.json",
+          "docs/development/challenge_pipeline/magnetics-first-panels/solenoid-pole.md"
+        ]
+      },
+      {
+        "item": 6,
+        "label": "Strong cheap-baseline implementation ready",
+        "state": "NO",
+        "basis": "No implemented family adapter in this tool's closed route inventory",
+        "owner": "Packets Codex / Data Collection materials",
+        "pointers": []
+      },
+      {
+        "item": 7,
+        "label": "Challenge-supported equal-budget implementation ready",
+        "state": "NO",
+        "basis": "Required family/functions not present in route implementation",
+        "owner": "Optimizer Codex",
+        "pointers": [
+          "carbon/development_comparison/evidence_pipeline.py"
+        ]
+      }
+    ],
+    "yes_count": 0,
+    "all_prerequisites_yes": false,
+    "spend_authorized": false,
+    "qualified": false,
+    "paid_run_output_exception": "Only exact owner/operator authorization may identify data produced by that run; no automatic waiver",
+    "examined_sources": {
+      "docs/development/challenge_pipeline/magnetics-first-panels/solenoid-pole.md": "sha256:99df90ce0ab5a9f7f865387e467c24b204808c1261bb159f4d6c427a0ed02881",
+      "carbon/development_comparison/evidence_pipeline.py": "sha256:b30623cf5719226516b8421401088cdfc0d235314b8a7e4721c9e88b468e2a8b"
+    },
+    "rank": 7
+  }
+]
