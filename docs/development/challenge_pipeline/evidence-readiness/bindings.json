@@ -1,0 +1,105 @@
+{
+  "schema": "carbon.onboarding.evidence-bindings.v1",
+  "challenges": [
+    {
+      "challenge": "battery-v3",
+      "aliases": [
+        "battery"
+      ],
+      "inputs": "docs/development/challenge_pipeline/evidence-readiness/inputs/battery-v3.json",
+      "proposal": "docs/development/challenge_pipeline/round1/battery-ambient-map-v3.md",
+      "pending": "https://github.com/carbonphysicsai/Carbon/pull/1034"
+    },
+    {
+      "challenge": "motor",
+      "aliases": [
+        "motor-10p12s",
+        "electric-motor-magnetics"
+      ],
+      "inputs": "docs/development/challenge_pipeline/evidence-readiness/inputs/motor.json",
+      "proposal": "docs/development/challenge_pipeline/round1/motor-precision-joint-v2.md",
+      "pending": "https://github.com/carbonphysicsai/Carbon/pull/1035"
+    },
+    {
+      "challenge": "f02",
+      "aliases": [
+        "burst-thermal"
+      ],
+      "inputs": "docs/development/challenge_pipeline/evidence-readiness/inputs/f02.json",
+      "proposal": "docs/development/challenge_pipeline/question-laws/f02-round2.md",
+      "pending": "https://github.com/carbonphysicsai/Carbon/pull/1036"
+    },
+    {
+      "challenge": "f13",
+      "aliases": [
+        "silencer"
+      ],
+      "inputs": "docs/development/challenge_pipeline/evidence-readiness/inputs/f13.json",
+      "proposal": "docs/development/challenge_pipeline/round1/f13-compressor-silencer.md",
+      "pending": "https://github.com/carbonphysicsai/Carbon/pull/1030"
+    },
+    {
+      "challenge": "f17",
+      "aliases": [
+        "micromixer"
+      ],
+      "inputs": "docs/development/challenge_pipeline/evidence-readiness/inputs/f17.json",
+      "proposal": "docs/development/challenge_pipeline/solver-package-specs/f17-openfoam.md",
+      "pending": null
+    },
+    {
+      "challenge": "f06",
+      "aliases": [
+        "grating-coupler"
+      ],
+      "inputs": "docs/development/challenge_pipeline/evidence-readiness/inputs/f06.json",
+      "proposal": "docs/development/challenge_pipeline/solver-package-specs/f06-meep.md",
+      "pending": null
+    },
+    {
+      "challenge": "cooling-cell",
+      "aliases": [
+        "cooling"
+      ],
+      "inputs": "docs/development/challenge_pipeline/evidence-readiness/inputs/cooling-cell.json",
+      "proposal": "docs/development/challenge_pipeline/round1/cooling-cell-v3.md",
+      "pending": null
+    },
+    {
+      "challenge": "f08",
+      "aliases": [
+        "structures"
+      ],
+      "inputs": "docs/development/challenge_pipeline/evidence-readiness/inputs/f08.json",
+      "proposal": "docs/development/challenge_pipeline/cheap-baselines/f08.md",
+      "pending": "https://github.com/carbonphysicsai/Carbon/pull/1030"
+    },
+    {
+      "challenge": "solenoid-pole",
+      "aliases": [
+        "solenoid"
+      ],
+      "inputs": "docs/development/challenge_pipeline/evidence-readiness/inputs/solenoid-pole.json",
+      "proposal": "docs/development/challenge_pipeline/magnetics-first-panels/solenoid-pole.md",
+      "pending": null
+    },
+    {
+      "challenge": "bolted-joint",
+      "aliases": [
+        "bolt"
+      ],
+      "inputs": "docs/development/challenge_pipeline/evidence-readiness/inputs/bolted-joint.json",
+      "proposal": "docs/development/challenge_pipeline/value-cost/replacements/README.md",
+      "pending": null
+    },
+    {
+      "challenge": "seal-gland",
+      "aliases": [
+        "seal"
+      ],
+      "inputs": "docs/development/challenge_pipeline/evidence-readiness/inputs/seal-gland.json",
+      "proposal": "docs/development/challenge_pipeline/value-cost/replacements/README.md",
+      "pending": null
+    }
+  ]
+}
