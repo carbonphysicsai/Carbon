@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-11-mg-preparation",
+  "recorded_at": "2026-10-11T02:42:02Z",
+  "challenge": "metagrating-3d",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "BENCHMARK-READINESS-BUILD-MG-01", "description": "Native generator/deck syntax, full-order polarization arithmetic, library and equal-budget fixture checks; public-anchor novelty analysis; no solver or spend"},
+  "expected": "All-order and cross-polarized accounting avoids accepting desired-efficiency-only scripts as complete reference decks.",
+  "observed": "Meep/S4 are not installed natively, so no smoke solves occurred. Analytic slab and Fourier-polarization arithmetic passed; generated scripts remain unverified in actual images. Public source masks are excluded and variant decision novelty is unresolved. S4 has no universal second-order harmonic convergence claim. Ledger API tests initially assumed a nonexistent can_launch method, then an exception instead of its documented False refusal; corrected against source, without changing the ledger.",
+  "keep": ["Fixed hardware period per complete question", "Every outgoing order and both polarizations", "Separate field-density and plane-flux normalization checks", "Measured tie equivalence instead of raw pick changes"],
+  "change": ["Retain full matched public variant decisions before certifying novelty", "Run analytic tests after every image re-pin", "Do not promote syntax or a source pin to reference adequacy"],
+  "protocol_elements": ["CODE-VERIFICATION-MMS-01", "BENCHMARK-READINESS-BUILD-01", "EQUAL-BUDGET-V1"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

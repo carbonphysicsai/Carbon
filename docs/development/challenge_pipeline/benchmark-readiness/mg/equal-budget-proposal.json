@@ -1,0 +1,20 @@
+{
+  "schema": "carbon.design-search.equal-budget-registration.v1",
+  "registration_id": "EQUAL-BUDGET-MG-DEVELOPMENT-V1",
+  "authority": "Test Lead delegated development decision 17 and bounded owner build request; ASSUMPTION comparison proposal, not spend authority",
+  "evidence_scope": "DEVELOPMENT",
+  "challenge_budgets": {
+    "metagrating-3d": {
+      "decision_scope": "one fixed-period full-vector pattern across a complete service brief, including final reference verification",
+      "basis": "ASSUMPTION",
+      "justification": "Four host-hours and eight complete verified patterns is a prospective cap, not a claim they fit. Normalization, both reference routes, harmonic/spatial/time refinement, screening, failed attempts and final verification all count. Real costs remain unmeasured.",
+      "source_refs": ["Business/research/benchmark-challenge-briefs/METAGRATING_3D.md", "#1047 EQUAL-BUDGET-V1 form", "#1053 delegated development decisions"],
+      "tiers": {
+        "half": {"solver_evaluations": 4, "wall_s": 7200, "core_s": 115200},
+        "base": {"solver_evaluations": 8, "wall_s": 14400, "core_s": 230400},
+        "double": {"solver_evaluations": 16, "wall_s": 28800, "core_s": 460800}
+      }
+    }
+  },
+  "registration_digest": "sha256:5a56ef6ead9bcad5f9c1c392ce35e68873ac1fdc04fd2897573dcdebed8d9c7a"
+}
