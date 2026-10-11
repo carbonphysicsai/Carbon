@@ -1,0 +1,125 @@
+{
+  "schema": "carbon.pilot-cap-plan.v1",
+  "status": "SPECIFIED_PROPOSALS_NOT_REGISTERED",
+  "dispatch_allowed": false,
+  "solver_runs_permitted": false,
+  "host": {
+    "proposal": "One fresh Hetzner CCX43 EU CPU lease per family; no sharing or transferred caps",
+    "provider_offer": "CCX43 16 dedicated vCPU / 64 GB / 360 GB NVMe",
+    "capacity_status": "NOT_CONFIRMED; public page reported unavailable on 2026-10-11",
+    "observed_ex_vat_eur_h": 0.4423,
+    "observation_source": "https://docs.hetzner.com/general/infrastructure-and-availability/price-adjustment/",
+    "hardware_source": "https://www.hetzner.com/cloud/general-purpose/",
+    "inclusive_hourly_ceiling_cents": 53,
+    "all_other_charges_ceiling_cents": 40,
+    "quote_required": true,
+    "billing_quantum_s": 3600,
+    "billing_source": "https://docs.hetzner.com/general/billing-and-account-management/billing-at-hetzner/billing-system-hetzner/",
+    "all_other_charges": "Setup, IPv4, VAT not included in hourly quote, storage, export, retention, network, fees and teardown; quoted total <=40 cents, not 40 per item",
+    "probe_lifetime_s": 3600,
+    "total_lifetime_s_including_probe": 64800,
+    "probe_upper_cents": 93,
+    "total_upper_cents": 994,
+    "setup_allowance_s": 1200,
+    "single_probe_case_wall_cap_s": 1500,
+    "export_and_verified_deletion_allowance_s": 600,
+    "safety_allowance_s": 300,
+    "storage_policy": "No snapshots/backups/extra volumes; <=2 GB compressed retained artifacts exported to existing approved store within quoted fees, otherwise refuse",
+    "enforcement": "Operator-independent accepted lifecycle deadline through provider deletion, CPU/RSS/process caps, ledger and expiry test; NOT_IMPLEMENTED_BY_THIS_TICKET"
+  },
+  "families": [
+    {
+      "family": "backward-facing-step", "scope": "PUBLIC_DEVELOPMENT",
+      "proposal_source": "docs/development/challenge_pipeline/benchmark-readiness/bfs/measurement-pilot.json",
+      "allocated_vcpus": 4, "rss_limit_mb": 12000, "retries": 0,
+      "probe": "One complete non-scoring NASA source anchor at coarse rung, including mesh/input/observers; exact public mesh/inlet/SSTm pinned by Data Collection",
+      "probe_wall_hypothesis_s": 900, "hypothesis_status": "ASSUMPTION_NOT_MEASURED",
+      "exact_registered_manifest": null,
+      "follow_on": [
+        {"id": "bfs-MMS-17", "role": "LAMINAR_MMS", "probe_runtime_multiplier": 1},
+        {"id": "bfs-MMS-33", "role": "LAMINAR_MMS", "probe_runtime_multiplier": 2},
+        {"id": "bfs-MMS-65", "role": "LAMINAR_MMS", "probe_runtime_multiplier": 4},
+        {"id": "bfs-anchor-rung1", "role": "PUBLIC_ANCHOR_NOT_SCORED", "probe_runtime_multiplier": 4},
+        {"id": "bfs-novel-nominal-rung0", "role": "PUBLIC_NOVEL_COST", "probe_runtime_multiplier": 2},
+        {"id": "bfs-novel-corner-rung0", "role": "PUBLIC_NOVEL_COST", "probe_runtime_multiplier": 2}
+      ]
+    },
+    {
+      "family": "metagrating-3d", "scope": "PUBLIC_DEVELOPMENT",
+      "proposal_source": "docs/development/challenge_pipeline/benchmark-readiness/mg/measurement-pilot.json",
+      "allocated_vcpus": 4, "rss_limit_mb": 48000, "retries": 0,
+      "probe": "One complete 3D periodic nominal public mask at registered coarse grid, both Meep normalization/device and S4; all propagating orders and energy observers. Not f06's large 3D device",
+      "probe_wall_hypothesis_s": 1500, "hypothesis_status": "ASSUMPTION_NOT_MEASURED",
+      "exact_registered_manifest": null,
+      "follow_on": [
+        {"id": "mg-slab-low", "role": "MEEP_PLUS_S4_NORMALIZATION_AND_DEVICE", "probe_runtime_multiplier": 1},
+        {"id": "mg-slab-mid", "role": "MEEP_PLUS_S4_NORMALIZATION_AND_DEVICE", "probe_runtime_multiplier": 2},
+        {"id": "mg-slab-high", "role": "MEEP_PLUS_S4_NORMALIZATION_AND_DEVICE", "probe_runtime_multiplier": 4},
+        {"id": "mg-public-anchor", "role": "NOT_SCORED_COMPLETE_BOTH_ROUTES", "probe_runtime_multiplier": 2},
+        {"id": "mg-novel-frontier", "role": "COMPLETE_BOTH_ROUTES", "probe_runtime_multiplier": 2}
+      ]
+    },
+    {
+      "family": "f13", "scope": "PUBLIC_DEVELOPMENT",
+      "proposal_source": "docs/development/challenge_pipeline/silencer-readiness/measurement-pilot.json",
+      "allocated_vcpus": 1, "rss_limit_mb": 12000, "retries": 0,
+      "probe": "Offset [62.5,62.5,75,75,30,12.5] mm complete rung-1 curve, 201 frequency systems, 60 mm stubs, de-embedded panel planes; whole process including meshing",
+      "probe_wall_hypothesis_s": 1500, "hypothesis_status": "ASSUMPTION_NOT_MEASURED",
+      "exact_registered_manifest": null,
+      "follow_on": [
+        {"id": "f13-matched-50mm-duct", "role": "COMPLETE_201_SYSTEM_CURVE", "probe_runtime_multiplier": 1},
+        {"id": "f13-coaxial-55-55-40-40-10-0", "role": "COMPLETE_201_SYSTEM_CURVE", "probe_runtime_multiplier": 1},
+        {"id": "f13-offset-rung2", "role": "COMPLETE_401_SYSTEM_PAIRED_REFINEMENT", "probe_runtime_multiplier": 4}
+      ]
+    },
+    {
+      "family": "bolted-joint", "scope": "REPRESENTATIVE",
+      "proposal_source": "#1091 @ d1cfdb46c94742399968b08b8166e3198b962453 docs/development/challenge_pipeline/bolted-rehearsal/measurement-pilot.json",
+      "allocated_vcpus": 4, "rss_limit_mb": 12000, "retries": 0,
+      "probe": "Complete assembly-lock-service bracket history: M10, 55 mm spacing, 12 mm support, 12000 N maximum preload, low-clamp-friction condition, rung 1",
+      "probe_wall_hypothesis_s": 600, "hypothesis_status": "ASSUMPTION_NOT_MEASURED",
+      "exact_registered_manifest": null,
+      "follow_on": [
+        {"id": "bolt-affine-pretension-lock", "role": "ANALYTIC_CONTROL_NOT_BUYER_C1", "probe_runtime_multiplier": 1},
+        {"id": "bolt-nominal-rung1", "role": "COMPLETE_ASSEMBLY_LOCK_SERVICE", "probe_runtime_multiplier": 1},
+        {"id": "bolt-low-clamp-rung2", "role": "COMPLETE_PAIRED_REFINEMENT", "probe_runtime_multiplier": 4}
+      ]
+    },
+    {
+      "family": "package-warpage", "scope": "REPRESENTATIVE",
+      "proposal_source": "#1095 @ 592fc9bc51766a1bb9de4a25324f9cd06f017bfc docs/development/challenge_pipeline/warpage-rehearsal/README.md",
+      "allocated_vcpus": 4, "rss_limit_mb": 24000, "retries": 0,
+      "probe": "One full 3D registered approximately 63 mm package history, including cure/solder/residual state; no substitution of an elastic strip or shortened history",
+      "probe_wall_hypothesis_s": 1500, "hypothesis_status": "ASSUMPTION_NOT_MEASURED; full-history physics not packaged",
+      "exact_registered_manifest": null,
+      "follow_on": [
+        {"id": "warpage-expansion-bimetal", "role": "ANALYTIC_CONTROL_NOT_FULL_TASK_C1", "probe_runtime_multiplier": 1},
+        {"id": "warpage-material-history", "role": "MATERIAL_POINT_AND_RESTART", "probe_runtime_multiplier": 1},
+        {"id": "warpage-full-history-rung2", "role": "FULL_3D_PAIRED_REFINEMENT", "probe_runtime_multiplier": 4}
+      ]
+    },
+    {
+      "family": "f17", "scope": "PUBLIC_DEVELOPMENT",
+      "proposal_source": "#1102 @ 3d80adf544d360b99de713581d6b47d2969f9a14 docs/development/challenge_pipeline/micromixer-readiness/README.md",
+      "allocated_vcpus": 4, "rss_limit_mb": 16000, "retries": 0,
+      "probe": "One registered full 3D helical-baffle geometry and nominal flow/scalar condition at rung 1, including flow setup and complete scalar outlet integrals; no different easy 2D job",
+      "probe_wall_hypothesis_s": 1200, "hypothesis_status": "ASSUMPTION_NOT_MEASURED",
+      "exact_registered_manifest": null,
+      "follow_on": [
+        {"id": "f17-straight-controls", "role": "FLOW_AND_SCALAR_ANALYTIC", "probe_runtime_multiplier": 1},
+        {"id": "f17-nominal-second-geometry", "role": "COMPLETE_FLOW_PLUS_SCALAR", "probe_runtime_multiplier": 1},
+        {"id": "f17-high-Pe", "role": "COMPLETE_FLOW_PLUS_SCALAR", "probe_runtime_multiplier": 2},
+        {"id": "f17-nominal-rung2", "role": "PAIRED_MESH_SCALAR_REFINEMENT", "probe_runtime_multiplier": 4}
+      ]
+    }
+  ],
+  "release_holds": [
+    "Exact operator grant, no borrowed startup-host authority or transfer between families",
+    "Current same-host quote <=53 inclusive cents/hour and <=40 cents ALL other lifetime costs, available capacity",
+    "Registered main manifest with complete physical tuple and image/mesh/deck/observer/material identities, public rights and retained/scheduled reuse audit",
+    "Adequacy/code verification/kit/TRAIN/comparator/budget prerequisites or exact permitted pilot-produced exceptions",
+    "Accepted independent lifecycle enforcement through provider deletion, tested deadline, CPU/RSS caps and retained failure ledger",
+    "Complete same-host same-core measured probe, exact lease start, actual setup and retention/deletion accounting",
+    "Stop on timeout/OOM/partial output, typed incomplete reference evidence, no redraw, truncation, favorable replacement or retries"
+  ]
+}
