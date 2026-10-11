@@ -3823,7 +3823,8 @@ class RunnerAdapter:
     def _require_level_served(self, admitted):
         """A level campaign's pre-sign refusals (LAUNCHPAD-LEVELS-01 S2):
         `level_not_registered`, `level_not_served_by_target`, and for Level 4
-        `level4_envelope_transport_unavailable`. A Level 0 campaign passes."""
+        `level4_envelope_transport_unavailable` when the target takes no
+        envelope parts (S4). A Level 0 campaign passes."""
         path = Path(admitted.campaign["root"]) / "campaign-manifest.json"
         if not path.exists():
             raise Rejected("campaign_not_prepared", 409)

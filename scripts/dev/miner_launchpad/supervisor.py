@@ -1376,9 +1376,10 @@ NEXT_ACTIONS = {
         "pins. Update the Launchpad to the release that pins it."
     ),
     "level4_envelope_transport_unavailable": (
-        "No validator intake carries a Level 4 submission's documents yet, so "
-        "nothing was signed or sent. The frozen candidate and its envelope "
-        "are kept for when the development ladder opens Level 4."
+        "This Challenge's validator intake does not take Level 4 envelope "
+        "parts, so nothing was signed or sent. Point the intake at the "
+        "development ladder that serves Level 4 under Set up your environment, "
+        "then submit again; the frozen candidate and its envelope are kept."
     ),
 }
 FALLBACK_ACTION = (
