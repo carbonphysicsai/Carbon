@@ -148,6 +148,29 @@ def test_a_higher_level_builds_on_level_zero_and_lists_its_additions():
     assert "batching.steps" in domain["level_additions"]
 
 
+@pytest.mark.parametrize("level", [1, 2, 3, 4])
+def test_a_development_level_lists_its_variants_widened_surface(level):
+    # Battery's Level 4 document declares no capability, so a domain built from
+    # it alone told the Constructor only Level 0's names were accepted.
+    from carbon.reconstruction import development_variants as dv
+
+    variant = dv.variant(BATTERY, level)
+    domain = ld.for_scoring(_scoring("jax"), variant)
+    widened = [w.capability_id for w in variant.widened]
+    listed = [entry["capability"] for entry in domain["level_additions"]]
+    assert widened and listed[: len(widened)] == widened
+    assert len(listed) == len(set(listed))
+    for entry in domain["level_additions"][: len(widened)]:
+        assert entry["field"] == "parameters." + entry["capability"].partition(".")[2]
+        assert entry["source"] == "development variant " + variant.version
+    if level == 4:
+        assert listed[0] == "hybrid.composition_graphs"
+        assert domain["level_additions"][0]["bounds"]["admission"] == "graph_only"
+    assert "level_additions field" in domain["note"]
+    # Level 0 and a stand-in without a variant document are unchanged.
+    assert ld.for_scoring(_scoring("jax"), None) == _domain("jax")
+
+
 # -- the generated domain equals the real compile step -------------------------------------------
 BASES = {
     "knn": {"backbone": "knn", "parameters": {"neighbours": 6}},
