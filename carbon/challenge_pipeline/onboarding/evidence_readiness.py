@@ -34,6 +34,47 @@ OWNERS = (
     "Packets Codex / Data Collection materials",
     "Optimizer Codex",
 )
+BENCHMARK_ROUTES = {
+    "backward-facing-step": {
+        "kind": "PUBLISHED_BENCHMARK_DERIVED",
+        "pending": "https://github.com/carbonphysicsai/Carbon/pull/1061",
+        "baseline": (
+            "carbon/development_comparison/bfs_baselines.py",
+            {"measure", "validate_materials", "duty_task", "duty_values"},
+        ),
+        "budget": (
+            "carbon/design_search/bfs_budget.py",
+            "BFS-DEVELOPMENT-PROPOSED-V1",
+        ),
+    },
+    "metagrating-3d": {
+        "kind": "PUBLISHED_BENCHMARK_DERIVED",
+        "pending": "https://github.com/carbonphysicsai/Carbon/pull/1065",
+        "baseline": (
+            "carbon/development_comparison/metagrating_baselines.py",
+            {"measure", "validate"},
+        ),
+        "budget": (
+            "carbon/design_search/metagrating_budget.py",
+            "EQUAL-BUDGET-MG-DEVELOPMENT-V1",
+        ),
+    },
+    # Legacy table name; this is NOT a published benchmark or customer result.
+    "package-warpage": {
+        "kind": "REPRESENTATIVE_REHEARSAL",
+        "pending": "https://github.com/carbonphysicsai/Carbon/pull/1095",
+        "baseline": (
+            "carbon/challenge_pipeline/warpage_rehearsal.py",
+            {"laminate_estimate", "comparator_ranking"},
+        ),
+        "baseline_ready": False,
+        "baseline_gap": "Elastic strip screen only; strongest full-history cached FE comparator still required",
+        "budget": (
+            "carbon/design_search/warpage_budget.py",
+            "WARPAGE-REHEARSAL-PROPOSED-V1",
+        ),
+    },
+}
 
 
 def sha(raw):
@@ -97,6 +138,16 @@ class MainTree:
             return None
         self.examined[path] = sha(raw)
         return raw
+
+    def contains(self, path):
+        """Distinguish an absent main path from an unavailable Git read."""
+        public_path(path)
+        raw = (
+            self._git("ls-tree", "--name-only", self.commit, "--", path)
+            if self.commit
+            else None
+        )
+        return None if raw is None else raw.decode().strip() == path
 
     def json(self, path):
         raw = self.read(path)
@@ -318,54 +369,104 @@ def check_train(tree, data, cases):
     )
 
 
-def code_route(tree, family, optimizer=False):
-    if tree.commit is None:
-        return "UNKNOWN", "Main unavailable; no implementation inspected", []
-    if family == "package-warpage":
-        if not optimizer:
-            return (
-                "PLANNED",
-                "Elastic strip screen exists; strongest full-history FE comparator still required",
-                [
-                    "carbon/challenge_pipeline/warpage_rehearsal.py",
-                    "docs/development/challenge_pipeline/warpage-rehearsal/README.md",
-                ],
-            )
-        required = (
-            (
-                "carbon/design_search/warpage_budget.py",
-                {"validate"},
-                {"package-warpage", "WARPAGE-REHEARSAL-PROPOSED-V1"},
-            ),
+def benchmark_route(tree, family, optimizer):
+    route = BENCHMARK_ROUTES[family]
+    if optimizer:
+        path, registration = route["budget"]
+        requirements = [
+            (path, {"validate"}, {family, registration}),
             (
                 "carbon/design_search/equal_budget.py",
                 {"compare", "_validate"},
-                {"package-warpage", "validate_registration"},
+                {family},
             ),
-        )
-        for path, functions, literals in required:
-            raw = tree.read(path)
-            if raw is None:
-                return (
-                    "PLANNED",
-                    "Prospective route not inspectable on main",
-                    [p for p, _, _ in required],
-                )
+        ]
+    else:
+        path, functions = route["baseline"]
+        requirements = [(path, functions, {family})]
+    pointers = [p for p, _, _ in requirements] + [route["pending"]]
+    for path, functions, literals in requirements:
+        raw = tree.read(path)
+        if raw is None:
+            present = tree.contains(path)
+            return (
+                "PLANNED" if present is False else "UNKNOWN",
+                (
+                    "Pending family route is absent on inspected main"
+                    if present is False
+                    else "Cannot inspect promised route on main"
+                ),
+                pointers,
+            )
+        try:
             parsed = ast.parse(raw)
-            declared = {n.name for n in parsed.body if isinstance(n, ast.FunctionDef)}
-            names = {n.id for n in ast.walk(parsed) if isinstance(n, ast.Name)}
-            values = {
-                n.value
-                for n in ast.walk(parsed)
-                if isinstance(n, ast.Constant) and type(n.value) is str
-            }
-            if not functions <= declared or not literals <= (values | names):
-                return "NO", "Incomplete prospective warpage route", [path]
-        return (
-            "YES",
-            "Representative comparison route implemented; full-history inputs and adequacy remain separate",
-            [p for p, _, _ in required],
-        )
+        except (SyntaxError, ValueError):
+            return "NO", "Route source is not valid Python", pointers
+        declared = {n.name for n in parsed.body if isinstance(n, ast.FunctionDef)}
+        values = {
+            n.value
+            for n in ast.walk(parsed)
+            if isinstance(n, ast.Constant) and type(n.value) is str
+        }
+        if not functions <= declared or not literals <= values:
+            return (
+                "NO",
+                "Required family/functions/registration not present in implementation",
+                pointers,
+            )
+        if optimizer and path.endswith("equal_budget.py"):
+            expected = route["budget"][0].split("/")[-1][:-3]
+            compare = next(
+                n
+                for n in parsed.body
+                if isinstance(n, ast.FunctionDef) and n.name == "compare"
+            )
+            branches = [
+                n
+                for n in ast.walk(compare)
+                if isinstance(n, ast.If)
+                and isinstance(n.test, ast.Compare)
+                and len(n.test.ops) == 1
+                and isinstance(n.test.ops[0], ast.Eq)
+                and any(
+                    isinstance(v, ast.Constant) and v.value == family
+                    for v in (n.test.left, *n.test.comparators)
+                )
+            ]
+            imports = [
+                n
+                for branch in branches
+                for statement in branch.body
+                for n in ast.walk(statement)
+                if isinstance(n, ast.ImportFrom)
+            ]
+            if not any(
+                n.module in (expected, "carbon.design_search." + expected)
+                and any(
+                    a.name == "validate" and a.asname == "validate_registration"
+                    for a in n.names
+                )
+                for n in imports
+            ):
+                return (
+                    "NO",
+                    "Family registration validator is not wired into compare",
+                    pointers,
+                )
+    if not optimizer and route.get("baseline_ready") is False:
+        return "PLANNED", route["baseline_gap"], pointers
+    return (
+        "YES",
+        f"{route['kind']} offline implementation inspected; no claim of measured value, package adequacy or dispatch permission",
+        pointers,
+    )
+
+
+def code_route(tree, family, optimizer=False):
+    if tree.commit is None:
+        return "UNKNOWN", "Main unavailable; no implementation inspected", []
+    if family in BENCHMARK_ROUTES:
+        return benchmark_route(tree, family, optimizer)
     if optimizer:
         path = "carbon/development_comparison/evidence_pipeline.py"
         functions = {"run", "_baseline"}
@@ -483,6 +584,9 @@ def generate(root, challenge, *, main_ref="origin/main", now=None):
     for i, check in enumerate(checks):
         state = "PLANNED" if proposal is not None or binding["pending"] else "UNKNOWN"
         reason = "Proposal/pending work exists; required structured main evidence not yet inspectable"
+        plan = binding.get("plans", {}).get(str(i + 1))
+        if plan is not None and state == "PLANNED":
+            reason = plan["basis"] + "; measured/registered prerequisite not earned"
         if tree.commit is None:
             state, reason = (
                 "UNKNOWN",
@@ -505,6 +609,7 @@ def generate(root, challenge, *, main_ref="origin/main", now=None):
                 "basis": reason,
                 "owner": OWNERS[i],
                 "pointers": [binding["inputs"], binding["proposal"]]
+                + ([public_path(p) for p in plan["pointers"]] if plan else [])
                 + ([binding["pending"]] if binding["pending"] else []),
             }
         )

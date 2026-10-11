@@ -89,6 +89,12 @@ is advertised as beating the real buyer workflow.
 
 ## Budget, pilot and readiness
 
+`package-warpage` is an entry in the existing `BENCHMARK_ROUTES` dispatch
+table, with route kind **REPRESENTATIVE_REHEARSAL**, not a published benchmark
+or a customer result. It uses `route = BENCHMARK_ROUTES[family]`, preserving
+the BFS/MG routes and their main-inspection checks. The elastic strip screen
+does not earn a full-history comparator YES; that prerequisite stays PLANNED.
+
 `warpage_budget.proposal()` uses #1047's half/base/double provenance and
 time/compute/evaluation caps for direct, model and ordinary-screen arms.
 It is a new representative registration identity, preserving EQUAL-BUDGET-V1.

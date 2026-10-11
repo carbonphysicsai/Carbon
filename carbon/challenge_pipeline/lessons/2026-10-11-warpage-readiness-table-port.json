@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-11-warpage-readiness-table-port",
+  "recorded_at": "2026-10-11T15:52:07Z",
+  "challenge": "package-warpage",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "AI-PACKAGE-WARPAGE-REHEARSAL-BUILD-01", "description": "Native readiness/warpage/equal-budget tests: first 58 passed / 3 failed because old registry lacked main's BFS/MG entries; after porting the registry and correcting the comparator function identity, 61 passed. No solver/spend."},
+  "expected": "Main's shared table implementation and every existing family survive the warpage port.",
+  "observed": "Restored immutable-main route inspection and existing tests; representative rehearsal dispatch is explicit, strongest full-history comparator remains PLANNED and counts follow the registry.",
+  "keep": ["Preserve current shared dispatch and all main family registrations, not an obsolete conflict-resolved if form."],
+  "change": ["Name route kind explicitly so a legacy BENCHMARK_ROUTES table entry does not imply published benchmark provenance."],
+  "protocol_elements": ["reference policy", "measurement authority"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
