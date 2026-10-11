@@ -2,7 +2,7 @@
  "schema": "carbon.battery.v3-panel-export-note.v1",
  "export_schema": "carbon.design-search.solved-panel-export.v1",
  "family": "battery-v3",
- "path": "/home/carbon/shared/design-panels/battery-v3-export.json (operator host, not committed; 4.3 MB)",
+ "path": "~carbon/shared/design-panels/battery-v3-export.json (operator host, not committed; 4.3 MB)",
  "export_digest": "sha256:4594c73236f609556ec59f1dc68c4af9dd422f243a6f07b4c96a133165f3d7e5",
  "file_sha256": "5ea5df8f83880e75d35df8b1361e948b6e09ea66bdbc538dc29f9b82e5098f48",
  "builder": "scripts/dev/battery/v3_panel_export.py (questions 24 + nominal, seed 846; run against main 9d7327e6e)",

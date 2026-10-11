@@ -2,7 +2,7 @@
  "schema": "carbon.motor.panel-export-note.v1",
  "export_schema": "carbon.design-search.solved-panel-export.v1",
  "family": "motor",
- "path": "/home/carbon/shared/design-panels/motor-export.json (operator host, not committed)",
+ "path": "~carbon/shared/design-panels/motor-export.json (operator host, not committed)",
  "export_digest": "sha256:720e93a2d6bf4540119fa46c3d47478811a7f412dc80f6627ef228a6c5758569",
  "file_sha256": "b6fe2086d95744efc64d2058f148622e1904a8be3d4df167fdd0cc15a5cbed0d",
  "builder": "scripts/dev/motor/feasibility02/panel_export.py, run against main 9d7327e6e",
