@@ -109,7 +109,10 @@
     INTERRUPTED: "The controller stopped mid-step. Resume continues the campaign from its record; Reconcile checks again what it holds and settles it; Stop ends it.",
     RECONCILIATION_REQUIRED: RECOVERY.RECONCILIATION_REQUIRED,
   };
-  const RECOVERY_ACTIONS = {resume: "Resume", stop: "Stop", reconcile: "Reconcile"};
+  const RECOVERY_ACTIONS = {resume: "Resume", stop: "Stop", reconcile: "Reconcile", retry_interrupted: "Retry practice"};
+  // An interrupted practice's one-step retry (LAUNCHPAD-PRACTICE-RETRY-01):
+  // the header has no control for it, so its button is always the line's own.
+  const RETRY_PRACTICE = "A practice stopped before it finished, most likely because the process running it exited. Retry practice sends it again exactly as it was: the same recipe, hypothesis and expected effect.";
   // A fresh launch is QUEUED, with no frozen record, until its run thread
   // creates its ledger: "never started" is said only once it has stayed so
   // this long, as this page has seen it.
@@ -126,6 +129,7 @@
     if (actions) {
       // PAUSED is the miner's own choice: its Resume is the header's.
       if (!actions.length || state === "PAUSED") return null;
+      if (actions[0] === "retry_interrupted") return {text: RETRY_PRACTICE, actions};
       return {text: RECOVERY_OFFERED[state] || "To move again it needs: " + actions.map(a => RECOVERY_ACTIONS[a]).join(" or ") + ".", actions};
     }
     // Recorded, but its campaign was never created here: no frozen manifest,
@@ -148,14 +152,15 @@
     const box = el("div", undefined, "rs-recovery");
     box.setAttribute("role", "status");
     box.append(el("p", "Needs attention · " + words(state).toLowerCase(), "eyebrow"), el("p", needs.text, "status-line"));
-    if (!doc) {
-      needs.actions.forEach((action, index) => {
-        const b = button(RECOVERY_ACTIONS[action], action === "stop" ? "rs-stop" : index === 0 ? "primary" : "", () => CC.researchAction(run.id, action));
-        b.dataset.action = action;
-        b.disabled = !CC.state().connected || CC.state().busy || TERMINAL.includes(state);
-        box.append(b);
-      });
-    }
+    const id = run?.id || doc?.campaign?.id;
+    needs.actions.forEach((action, index) => {
+      // With the view, only what the header has no control for.
+      if (doc && action !== "retry_interrupted") return;
+      const b = button(RECOVERY_ACTIONS[action], action === "stop" ? "rs-stop" : index === 0 ? "primary" : "", () => CC.researchAction(id, action));
+      b.dataset.action = action;
+      b.disabled = !CC.state().connected || CC.state().busy || TERMINAL.includes(state);
+      box.append(b);
+    });
     parent.append(box);
     return box;
   }
