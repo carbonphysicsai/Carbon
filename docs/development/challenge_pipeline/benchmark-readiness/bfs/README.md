@@ -185,15 +185,26 @@ holds described above. The equal-budget proposal is digest-bound in #1047's
 field shape, but its closed four-family validator still needs optimizer's
 additive BFS route; it is not a spend grant or accepted registration.
 
-Native tests: 57 passed (BFS, portfolio and #994 comparator regressions).
+Native tests: 63 passed (BFS, portfolio and #994 comparator regressions).
 Black, Ruff, pipeline validation and diff whitespace checks passed locally;
 canonical exact-head CI is the delivery gate, not native-host output.
 
 Integration holds: the branch predates #1047's merged budget registration;
 PR Head was asked for a base sync before the BFS registration/replay bridge.
-The current neutral plain task aggregates a uniform mean. A nonuniform
-per-brief duty-weighted objective needs an explicit matched task adapter;
-the duty metadata in the law is not proof that this weighting is implemented
-by that judge. Until then do not relabel a uniform-mean comparator as the
-complete nonuniform buyer decision. Calibration also rejects a common
+The current neutral plain task aggregates a uniform mean.
+`bfs_baselines.duty_task` now compiles an explicitly supplied normalized duty
+cycle into a **new** task/observer identity. N times each condition's duty
+weight times its raw loss has a neutral arithmetic mean equal to the required
+duty-weighted mean. Every hard limit still uses unscaled per-point values,
+including zero-duty points; missing zero-duty truth remains unresolved.
+`duty_values` applies the same transform to predictions and reference only
+after their separate provenance has been retained. No shared task schema or
+sealed historical result changes. The comparator uses per-brief matched
+decision and candidate-ranking reports, while pointwise errors stay in raw
+physical units. Shared physical cache costs are not added again for each
+requirement/duty draw. Public buyer comparisons require duty weights;
+unweighted synthetic fixtures are labelled diagnostic-only. Existing settled
+receipts must be regenerated against the new task identity, never silently
+reused. Measured weights/calibration remain registration inputs, not defaults.
+Calibration also rejects a common
 value-equivalent pick across all strata, not just identical raw winners.

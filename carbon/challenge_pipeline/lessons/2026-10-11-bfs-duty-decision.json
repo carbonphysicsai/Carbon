@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-11-bfs-duty-decision",
+  "recorded_at": "2026-10-11T03:02:00Z",
+  "challenge": "backward-facing-step",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "BENCHMARK-READINESS-BUILD-BFS-01", "description": "Native matched-duty comparator regressions; no solver or spend"},
+  "expected": "A buyer's supplied duty weights change the pressure-loss ranking without compensating any hard-limit breach.",
+  "observed": "The neutral task mean ignores duty metadata. A new compiler binds N*w_i*loss_i and the duty cycle into a new task/observer identity. Synthetic tests change the winner under a 90/10 duty cycle and show that zero-duty hard-limit breaches and missing truth still block feasibility. Per-brief comparator rankings agree with this transform; physical error reports stay unweighted.",
+  "keep": ["Unscaled per-point safety and service constraints", "Shared neutral task schema and separate prediction/reference provenance"],
+  "change": ["Compile prospective duty objectives rather than assuming metadata implements weighting", "Charge the shared cache once across requirement questions; regenerate settled receipts for new task identities"],
+  "protocol_elements": ["BENCHMARK-READINESS-BUILD-01", "EQUAL-BUDGET-DESIGN-01"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

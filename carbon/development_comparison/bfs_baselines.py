@@ -10,12 +10,151 @@ from __future__ import annotations
 
 import math
 import time
+from copy import deepcopy
 
 from carbon.design_search import tasks
 from carbon.development_comparison import cheap_baselines as cb
 from carbon.development_comparison import portfolio_baselines as pb
 
 FAMILY = "backward-facing-step"
+DUTY_COMPILER = "carbon.bfs-duty-objective.development.v1"
+DUTY_QUANTITY = "buyer_duty_loss_pa"
+
+
+def duty_task(registered, weights):
+    """Compile a supplied duty cycle without changing the shared task schema.
+
+    The neutral mean of N*w_i*loss_i is exactly sum(w_i*loss_i). Hard limits
+    retain the unscaled per-condition observables, including zero-duty points.
+    The compiler and weights are bound into a NEW observer/task identity; no
+    sealed task is reinterpreted. This does not choose or qualify the weights.
+    """
+    tasks._verify_task_digest(registered)
+    ids = [c["id"] for c in registered["conditions"]]
+    if (
+        registered["schema"] != tasks.RUNNABLE_SCHEMA
+        or registered["objective"]
+        != {"quantity": "loss_pa", "unit": "Pa", "sense": "min", "aggregate": "mean"}
+        or type(weights) is not dict
+        or set(weights) != set(ids)
+        or any(
+            type(w) not in (int, float) or not math.isfinite(w) or w < 0
+            for w in weights.values()
+        )
+        or not math.isclose(sum(weights.values()), 1, rel_tol=1e-12, abs_tol=1e-12)
+    ):
+        raise ValueError(
+            "registered BFS mean loss and complete normalized duty weights required"
+        )
+    if any(l["quantity"] == DUTY_QUANTITY for l in registered["limits"]):
+        raise ValueError("duty weighting must never scale a hard limit")
+    identity = deepcopy(registered["identity"])
+    identity["observer_version"] = {
+        "source": identity["observer_version"],
+        "compiler": DUTY_COMPILER,
+        "duty_weights": dict(weights),
+    }
+    return tasks.task(
+        registered["task_id"] + ":duty-v1",
+        identity=identity,
+        conditions=registered["conditions"],
+        strata=registered["strata"],
+        candidates=registered["candidates"],
+        actions=registered["actions"],
+        objective={**registered["objective"], "quantity": DUTY_QUANTITY},
+        secondary=registered["secondary"],
+        limits=registered["limits"],
+        tie_rule=registered["tie_rule"],
+    )
+
+
+def duty_values(compiled, values):
+    """Apply the same registered transform to prediction OR reference values.
+
+    No reference access, fitting, prediction repair or imputation takes place.
+    Missing conditions stay missing; a zero-duty condition still needs truth
+    and must satisfy every hard limit.
+    """
+    tasks._verify_task_digest(compiled)
+    observer = compiled["identity"]["observer_version"]
+    if not isinstance(observer, dict) or observer.get("compiler") != DUTY_COMPILER:
+        raise ValueError("duty-compiled task required")
+    weights = observer["duty_weights"]
+    result = {}
+    for (candidate, condition), row in values.items():
+        if candidate not in compiled["candidates"] or condition not in weights:
+            raise ValueError("unregistered candidate or service condition")
+        if (
+            DUTY_QUANTITY in row
+            or type(row.get("loss_pa")) not in (int, float)
+            or not math.isfinite(row["loss_pa"])
+        ):
+            raise ValueError(
+                "finite raw loss, not an already transformed value, required"
+            )
+        result[(candidate, condition)] = {
+            **row,
+            DUTY_QUANTITY: len(weights) * weights[condition] * row["loss_pa"],
+        }
+    return result
+
+
+def _duty_reports(export, predicted, screens):
+    """Per-brief matched neutral reports; physical errors remain unweighted."""
+    decisions, screening = [], []
+    for entry in export["questions"]:
+        if "duty_weights" not in entry:
+            if export["scope"] != "SYNTHETIC_FIXTURE":
+                raise ValueError(
+                    "public BFS buyer comparison requires each brief's duty weights"
+                )
+            single = {**export, "questions": [entry]}
+            predictions = predicted
+        else:
+            compiled = duty_task(entry["task"], entry["duty_weights"])
+            references = duty_values(
+                compiled,
+                {
+                    (r["candidate"], r["condition"]): r["values"]
+                    for r in entry["reference"]
+                },
+            )
+            prediction_rows = duty_values(
+                compiled,
+                {
+                    (c, cond): v
+                    for (band, c, cond), v in predicted.items()
+                    if band is None
+                    and c in compiled["candidates"]
+                    and cond in entry["duty_weights"]
+                },
+            )
+            predictions = {
+                (None, c, cond): v for (c, cond), v in prediction_rows.items()
+            }
+            transformed = {
+                **entry,
+                "task": compiled,
+                "reference": [
+                    {**r, "values": references[(r["candidate"], r["condition"])]}
+                    for r in entry["reference"]
+                ],
+            }
+            if "settled" in entry:
+                raise ValueError(
+                    "settled reference receipt must be regenerated for the new task identity"
+                )
+            single = {**export, "questions": [transformed]}
+        single.pop("export_digest")
+        single["export_digest"] = tasks.digest(single)
+        decisions.append(cb.decision_report(single, predictions))
+        screened = pb.screening_export(single, predictions, screens)
+        screened["source_export_digest"] = export["export_digest"]
+        screened["cache_cost_accounting"] = (
+            "SHARED_PANEL_FIT_AND_QUERY_COST_DO_NOT_SUM_ACROSS_REQUIREMENT_DRAWS"
+        )
+        screening.append(screened)
+    return decisions, screening
 
 
 def validate_materials(export, material):
@@ -122,6 +261,18 @@ def measure(export, *, material):
                 "query_cost": query,
             }
         )
+    if (
+        any("duty_weights" in e for e in export["questions"])
+        or export["scope"] != "SYNTHETIC_FIXTURE"
+    ):
+        decisions, screening = _duty_reports(export, predicted, screens)
+        decision_report = {"questions": len(decisions), "per_brief": decisions}
+        screening_report = {"per_brief": screening}
+        objective_coverage = "REGISTERED_DUTY_WEIGHTED_COMPLETE_BRIEF"
+    else:
+        decision_report = cb.decision_report(export, predicted)
+        screening_report = pb.screening_export(export, predicted, screens)
+        objective_coverage = "UNWEIGHTED_SYNTHETIC_DIAGNOSTIC_ONLY"
     return {
         "schema": "carbon.development-bfs-baseline-report.v1",
         "family": FAMILY,
@@ -129,8 +280,9 @@ def measure(export, *, material):
         "reference_solves_launched": 0,
         "held_out_unit": "WHOLE_GEOMETRY_ALL_CONDITIONS",
         "pointwise": cb.pointwise_errors(export, predicted),
-        "decision": cb.decision_report(export, predicted),
-        "equal_budget_screening": pb.screening_export(export, predicted, screens),
+        "decision": decision_report,
+        "equal_budget_screening": screening_report,
+        "objective_coverage": objective_coverage,
         "fit_cost": cb._cost(fits),
         "retained_costs": material.get("costs"),
         "unknown_costs": (

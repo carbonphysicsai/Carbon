@@ -367,3 +367,149 @@ def test_execution_lesson_is_in_the_validated_log_not_only_a_document_folder():
 
     p = LESSONS / "2026-10-11-bfs-preparation.json"
     assert validate(json.loads(p.read_text()), p.stem, {})["challenge"] == b.FAMILY
+
+
+def duty_fixture():
+    export, _ = fixture("cooling-cell")
+    old = export["questions"][0]["task"]
+    return tasks.task(
+        "synthetic-duty-question",
+        identity=old["identity"],
+        conditions=[{"id": c, "stratum": "s"} for c in ("nominal", "rare")],
+        strata={"s": {"p": 1, "q": 1, "w": 1}},
+        candidates=old["candidates"],
+        actions=old["actions"],
+        objective={
+            "quantity": "loss_pa",
+            "unit": "Pa",
+            "sense": "min",
+            "aggregate": "mean",
+        },
+        limits=[
+            {"quantity": "reattachment_over_H", "unit": "H", "op": "<=", "value": 6},
+            {
+                "quantity": "exit_reverse_flow",
+                "unit": "fraction",
+                "op": "<=",
+                "value": 0,
+            },
+        ],
+    )
+
+
+def test_duty_cycle_changes_pick_not_per_point_limits_or_original_task():
+    original = duty_fixture()
+    registered = baseline.duty_task(original, {"nominal": 0.9, "rare": 0.1})
+    candidates = original["candidates"]
+    truth = {
+        (c, cond): {"loss_pa": 100, "reattachment_over_H": 4, "exit_reverse_flow": 0}
+        for c in candidates
+        for cond in ("nominal", "rare")
+    }
+    a, bb = candidates[:2]
+    truth[(a, "nominal")]["loss_pa"], truth[(a, "rare")]["loss_pa"] = 1, 30
+    truth[(bb, "nominal")]["loss_pa"], truth[(bb, "rare")]["loss_pa"] = 10, 10
+    assert tasks.select(original, tasks.assess(original, truth)) == bb
+    transformed = baseline.duty_values(registered, truth)
+    assert tasks.select(registered, tasks.assess(registered, transformed)) == a
+    assert tasks.assess(registered, transformed)[a]["objective"] == pytest.approx(3.9)
+    assert original["objective"]["quantity"] == "loss_pa"
+    assert registered["task_digest"] != original["task_digest"]
+    zero = baseline.duty_task(original, {"nominal": 1, "rare": 0})
+    truth[(a, "rare")]["reattachment_over_H"] = 7
+    assert (
+        tasks.assess(zero, baseline.duty_values(zero, truth), reference=True)[a][
+            "feasible"
+        ]
+        is False
+    )
+    truth.pop((bb, "rare"))
+    assert (
+        tasks.assess(zero, baseline.duty_values(zero, truth), reference=True)[bb][
+            "feasible"
+        ]
+        is None
+    )
+
+
+@pytest.mark.parametrize(
+    "weights",
+    [
+        {"nominal": 1},
+        {"nominal": -0.1, "rare": 1.1},
+        {"nominal": True, "rare": 0},
+        {"nominal": 0.4, "rare": 0.4},
+    ],
+)
+def test_duty_weights_missing_negative_boolean_or_unnormalized_fail_closed(weights):
+    with pytest.raises(ValueError):
+        baseline.duty_task(duty_fixture(), weights)
+
+
+def test_duty_comparator_has_matched_decision_and_equal_budget_rankings():
+    task = duty_fixture()
+    reference = [
+        {
+            "candidate": c,
+            "condition": cond,
+            "values": {
+                "loss_pa": i + 1 if cond == "nominal" else 20 - 2 * i,
+                "reattachment_over_H": 4,
+                "exit_reverse_flow": 0,
+            },
+        }
+        for i, c in enumerate(task["candidates"])
+        for cond in ("nominal", "rare")
+    ]
+    export = {
+        "scope": "SYNTHETIC_FIXTURE",
+        "family": b.FAMILY,
+        "questions": [
+            {
+                "case": "nominal-heavy",
+                "task": task,
+                "reference": reference,
+                "duty_weights": {"nominal": 0.9, "rare": 0.1},
+            },
+            {
+                "case": "rare-heavy",
+                "task": task,
+                "reference": reference,
+                "duty_weights": {"nominal": 0.1, "rare": 0.9},
+            },
+        ],
+    }
+    export["export_digest"] = tasks.digest(export)
+    material = {
+        "export_digest": export["export_digest"],
+        "coordinate_fields": ["coordinate"],
+        "rows": [],
+    }
+    for r in reference:
+        material["rows"].append(
+            {
+                "candidate": r["candidate"],
+                "condition": r["condition"],
+                "geometry_id": r["candidate"],
+                "coordinates": [task["actions"][r["candidate"]]["coordinate"]],
+                "coarse_values": r["values"],
+                "coarse_source": "coarse:" + r["candidate"],
+                "fine_source": "fine:" + r["candidate"],
+            }
+        )
+    report = baseline.measure(export, material=material)
+    assert report["objective_coverage"] == "REGISTERED_DUTY_WEIGHTED_COMPLETE_BRIEF"
+    ranks = report["equal_budget_screening"]["per_brief"]
+    assert (
+        ranks[0]["candidate_rankings"][0]["objective"]["quantity"]
+        == baseline.DUTY_QUANTITY
+    )
+    assert (
+        ranks[0]["candidate_rankings"][0]["ranked_feasible"][0]["candidate"]
+        != ranks[1]["candidate_rankings"][0]["ranked_feasible"][0]["candidate"]
+    )
+    assert (
+        ranks[0]["candidate_rankings"][0]["task_digest"]
+        != ranks[1]["candidate_rankings"][0]["task_digest"]
+    )
+    assert report["pointwise"]["predicted_rows"] == 6
