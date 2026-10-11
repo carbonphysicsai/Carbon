@@ -1,0 +1,54 @@
+{
+  "ticket": "BURST-COMPUTE-OPTIONS-01",
+  "observed_date": "2026-10-11",
+  "scope": "anonymous public feeds; no account quotas or capacity checked",
+  "numeric_policy": "observations have low=base=high at retrieval; future bills require a new quote",
+  "aws_spot": {
+    "source": "https://spot-price.s3.amazonaws.com/spot.js",
+    "region": "us-east-1",
+    "os": "linux",
+    "currency": "USD",
+    "limitation": "regional public display feed, not AZ-specific price history or launch quote",
+    "observations": [
+      {"size": "c7a.12xlarge", "vcpu_full_cores": 48, "instance_hour": 1.0134},
+      {"size": "c7a.24xlarge", "vcpu_full_cores": 96, "instance_hour": 2.0936},
+      {"size": "c7a.48xlarge", "vcpu_full_cores": 192, "instance_hour": 4.02}
+    ]
+  },
+  "azure_retail": {
+    "source": "https://prices.azure.com/api/retail/prices",
+    "filter": "armRegionName eq 'eastus' and armSkuName eq selected_sku and priceType eq 'Consumption'; exclude Windows products",
+    "api_documentation": "https://learn.microsoft.com/en-us/rest/api/cost-management/retail-prices/azure-retail-prices",
+    "region": "eastus",
+    "currency": "USD",
+    "observations": [
+      {"sku": "Standard_F64as_v6", "vcpu_full_cores": 64, "on_demand_hour": 4.371, "spot_hour": 0.921407, "spot_effective_start": "2026-07-01"},
+      {"sku": "Standard_DC96as_v5", "vcpu_threads": 96, "on_demand_hour": 4.128, "spot_hour": 0.871421, "spot_effective_start": "2026-06-01"}
+    ],
+    "limitation": "retail observation; no guarantee a confidential Spot instance is provisionable in this subscription, size or zone"
+  },
+  "vultr_plan": {
+    "source": "https://api.vultr.com/v2/plans?per_page=500",
+    "id": "vx1-g-192c-768g",
+    "vcpu_count": 192,
+    "vcpu_type": "thread",
+    "ram_mib": 786432,
+    "hourly_cost_usd": 5.76,
+    "monthly_cost_usd": 4204.8,
+    "invoice_type": "hourly",
+    "storage_type": "block_storage",
+    "locations": ["ewr", "ord", "atl"],
+    "limitation": "plan catalogue, not account entitlement or live inventory; data storage is additional"
+  },
+  "scaleway_html": {
+    "source": "https://www.scaleway.com/en/pricing/elastic-metal/",
+    "zone_selected": "PAR-1",
+    "currency": "EUR",
+    "tax": "excluded",
+    "observations": [
+      {"name": "EM-I520E-NVMe", "cores": 48, "threads": 96, "ram_gb": 384, "hourly": 1.562, "monthly": 569.99},
+      {"name": "EM-I620E-NVMe", "cores": 64, "threads": 128, "ram_gb": 576, "hourly": 1.863, "monthly": 679.99}
+    ],
+    "limitation": "public pricing rows extracted without login; stock/identity approval not checked"
+  }
+}

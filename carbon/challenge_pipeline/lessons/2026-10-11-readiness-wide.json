@@ -1,0 +1,27 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-11-readiness-wide",
+  "recorded_at": "2026-10-11T00:29:00Z",
+  "challenge": "protocol",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "EVIDENCE-READINESS-CHECK-01",
+    "description": "Bounded read-only metadata/tool diagnostics on Windows; no physics execution."
+  },
+  "expected": "Report prerequisites and failures without inferring acceptance from missing evidence.",
+  "observed": "73 native diagnostics passed; 3 existing open-benchmark onboarding tests failed on current main's historical status renderer/hash drift. status.py was unchanged by this ticket; PR Head notified.",
+  "keep": [
+    "Immutable main-source identity and explicit public pointers",
+    "Missing evidence fails closed; protected case bodies stay inaccessible"
+  ],
+  "change": [
+    "Historical provenance and current rendering freshness are different claims; preserve teammate repair ownership."
+  ],
+  "protocol_elements": [
+    "reference_verification",
+    "evidence_readiness"
+  ],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
