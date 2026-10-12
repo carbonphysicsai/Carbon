@@ -47,3 +47,19 @@ PRACTICE cases). **The recomputed scores equal the recorded practice-feedback v3
 One seed per recipe, so the tau band is 0.0. Seven of twelve development scenarios, EV4 references. A measurement, not a
 threshold; Level 1 remains an alignment measurement, not improvement hunting. The 16 divergences are real score-value findings (lessons
 row S10).
+
+## Order of knowledge, and what the rescore showed (read this before relying on the number)
+
+The 20-member values (tau-b 0.467, rho 0.659) were **already known** as the mixed-basis secondary before the second ruling was made.
+The second ruling did not discover a better figure. The 20 were admitted as the gate input because the basis confound was
+**cured**, not because the number was more favourable: the rescore is deterministic under a frozen rule with a committed script
+(`scripts/dev/battery/l1_anchor_rescore.py`), so nothing could be tuned, and the six anchors reproduced their recorded scores to six
+decimals from digest-verified outputs.
+
+A finding of the Graphite Testing Manager that bears on the first ruling: the rescored 20 came out **identical** to the mixed 20.
+So the basis confound was not what separated the 14-member figure (0.281) from the 20-member figure (0.467). What moved the number
+was the six anchors' inclusion, that is the sample itself (and how far apart their scores sit from the rest), not a difference
+between score rules. The first ruling's stated rationale, that an unnamed rule might distort the correlation, is therefore not
+supported by the evidence. The first ruling remains a reasonable fail-closed step when the basis was unverified, and the 14-member
+result is kept as SUPERSEDED, not deleted. Whichever figure is read, it is a measurement over a small, one-seed panel (tau band 0.0),
+not a threshold and not an improvement claim.
