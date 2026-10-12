@@ -60,6 +60,8 @@ BATTERY_DIRS = (
     "bfeas", "bfeas-t2", "bfeas-t2r", "bfeas-t3", "bfeas-t3r", "bfeas-t4a", "bfeas-t4b",
     "bfeas-t4r", "bfeas-t5r", "bfeas-t6r3", "bmid-a", "bmid-r2", "bmid-r3",
 )  # fmt: skip
+#: the motor reference panel solves into one run directory (stages 1-3's cases)
+MOTOR_DIRS = ("motor-ref",)
 REUSE_INPUT = re.compile(r"reuse_records_[0-9]{3}\Z")
 #: every helper file a stage runs or imports, beyond the registered entrypoints
 PINNED = {
@@ -70,9 +72,10 @@ PINNED = {
     "scripts/dev/battery/middle_bands.py": "de3a1523ea66f8c77c72d5a804bfe61a84225487ca60c0ea4c5296fded8023a3",
     "scripts/dev/battery/middle_bands_refine.py": "7c19f736465e17b2e17966db8269039cb1d04a16b97d9a184d0b0bdaa8fa84fe",
     "scripts/dev/battery/v3_panel_export.py": "c99ccd31f36dd185b3f83114a388b393f6d0d17f6878a77a3b387263118c1402",
-    "scripts/dev/evidence_runs/comparison_inputs.py": "9e0c8f36231ef603ab6335f52bd200aebd164b6445589f4890166396bbba7d51",
+    "scripts/dev/evidence_runs/comparison_inputs.py": "8837c5d1d2c97767e8ae62d12ee9f06923b8420823cf2e1c57d3392f6b9559d6",
     "scripts/dev/evidence_runs/common.py": "9d6b1cc835f1e6cb0593bf01c0d3ebd03385c0ee5bc1d5eee44519eac756bf19",
     "scripts/dev/evidence_runs/settlement.py": "a2e7af4ba2405284a4cd466124ea1d53032d2ecc9ce80b3dbceda74fe5345f75",
+    "scripts/dev/motor/feasibility02/panel_export.py": "8ebd7be2be7ca9dd83ce8364d7e318b96071ad4667fcb6512ba73cbd506380ed",
     "scripts/dev/motor/feasibility02/run.py": "bf34864c82a939fcdde0042299f0ed9e5944c27fccde28b2b1e80e70dee594e6",
     "scripts/dev/reference_packages/elmer/f02_baselines.py": "1ae03bf7aeb498a45f161e7a518fccad54b7c427df9e356ed6ff69414be7516a",
     "scripts/dev/reference_packages/elmer/f02_deck.py": "80a7bf5f937cce64dab99afcec209418e99ec89d2eb80886e2ad88b3911af123",
@@ -181,7 +184,11 @@ def _reuse_chunk(body, family):
         or type(body["records"]) is not list
     ):
         raise Refused("REUSE_RECORDS_INVALID")
-    dirs = BATTERY_DIRS if family == "battery-v3" else ()
+    dirs = (
+        BATTERY_DIRS
+        if family == "battery-v3"
+        else MOTOR_DIRS if family == "motor" else ()
+    )
     for row in body["records"]:
         if (
             type(row) is not dict
@@ -395,7 +402,7 @@ class Stage:
         self.emit(
             "cost-ledger.json", json.loads(ledger.read_text()), "HELDOUT_REFERENCE"
         )
-        if self.family == "f02":
+        if self.family in ("f02", "motor"):
             bindings = self.work / "bindings.json"
             self.script("bindings", tool, "bindings", export_path, bindings)
             self.emit(
@@ -412,9 +419,6 @@ class Stage:
             and "candidate-view" in artifacts
         ]
         if not views:
-            if self.family == "motor":  # its reference stage is not registered yet
-                self.counts["model_predictions"] = "MOTOR_REFERENCE_NOT_REGISTERED"
-                return
             raise Failed(
                 "CANDIDATE_VIEW_REQUIRED", "the reference stage's candidate view"
             )
@@ -428,8 +432,14 @@ class Stage:
             self.work / "carbon-predictions.json",
             self.work / "carbon-receipt.json",
         )
+        # motor's kit needs its panel designs' geometry, read from the registered reference plan
+        extra = (
+            [_registration().ENTRYPOINTS["motor"]["reference"]["plan"]]
+            if self.family == "motor"
+            else []
+        )
         self.script("model", "scripts/dev/evidence_runs/comparison_inputs.py", "predict", self.family,
-                    view["path"], jsonl, pred, receipt)  # fmt: skip
+                    view["path"], jsonl, pred, receipt, *extra)  # fmt: skip
         self.emit("carbon-predictions.json", json.loads(pred.read_text()), "MODEL")
         self.emit("carbon-receipt.json", json.loads(receipt.read_text()), "MODEL")
 
@@ -579,6 +589,53 @@ class Stage:
             "HELDOUT_REFERENCE",
         )
 
+    def motor_reference(self, meter):
+        runs = self.work / "runs" / "motor-ref"
+        runs.mkdir(parents=True, exist_ok=True)
+        for chunk in self.reuse:
+            with (runs / "records.jsonl").open("a") as handle:
+                for row in chunk["records"]:
+                    handle.write(json.dumps(row["record"], sort_keys=True) + "\n")
+        self.entry_step("check", "check", "--kind", "reference-panel")
+        parallel = str(max(1, (self.vcpus - 1) // 2))  # two CPUs per motor case
+        self.entry_step(
+            "solve",
+            "solve",
+            "--kind",
+            "reference-panel",
+            "--out",
+            runs,
+            "--parallel",
+            parallel,
+        )
+        plan = ROOT / self.row["plan"]
+        cases = json.loads(plan.read_text())["cases"]
+        _complete(
+            [c["case_id"] for c in cases],
+            _jsonl(runs / "records.jsonl"),
+            "case_id",
+            "reference",
+        )
+        export = self.work / "panel-export.json"
+        self.step("export", [PY, "-m", "scripts.dev.motor.feasibility02.panel_export", "--runs", runs,
+                             "--plan", plan, "--out", export, "--campaign"])  # fmt: skip
+        self.emit_export(export)
+        self.comparison_inputs(export, ("ledger-motor", export, runs))
+        curves = self.work / "comparator-materials.json"
+        self.script("comparator-materials", "scripts/dev/evidence_runs/comparison_inputs.py", "motor-curves",
+                    export, runs, plan, curves)  # fmt: skip
+        self.emit(
+            "comparator-materials.json",
+            json.loads(curves.read_text()),
+            "HELDOUT_REFERENCE",
+        )
+        rows = [
+            {"dir": "motor-ref", "record": r} for r in _jsonl(runs / "records.jsonl")
+        ]
+        self.counts["records"] = len(rows)
+        self.counts["not_ok"] = sum(r["record"].get("status") != "OK" for r in rows)
+        self.emit_chunks("reference-records", rows, "HELDOUT_REFERENCE")
+
     def _f02_complete(self, root, step):
         cases = [
             e["case"] for e in json.loads((root / "manifest.json").read_text())["cases"]
@@ -675,9 +732,7 @@ class Stage:
             elif self.family == "f02":
                 self.f02_reference(meter)
             else:
-                raise Refused(
-                    "ENTRYPOINT_NOT_REGISTERED", f"{self.family}/{self.phase}"
-                )
+                self.motor_reference(meter)
             # Every solve step has returned; read before the sentinel leaves,
             # since an empty systemd slice may be collected.
             container_s, container_peak = meter.read()

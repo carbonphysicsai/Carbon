@@ -44,7 +44,7 @@ that main refuses, or a missing meter. It is never a candidate result.
 | Family | `reference` | `train` |
 |---|---|---|
 | battery-v3 | overlay from the lock (`truth_env.materialize`/`verify`); `battery_v3 check/solve --kind panel-a` into `bmid-a`; #965 rung-2 then rung-3 plans (`middle_bands_refine.py`) solved into `bmid-r2`/`bmid-r3`; `v3_panel_export.py --campaign` | overlay; `battery_v3 check/solve/export-train --kind train` |
-| motor | not registered yet: refused `ENTRYPOINT_NOT_REGISTERED` until the reference-panel plan lands after amendment 4 | `motor_10p12s check/solve/export-train --kind train-stage1` (two CPUs per case) |
+| motor | `motor_10p12s check/solve --kind reference-panel` (the registered 230 cases of stages 1-3, plan sha256 `41e55a55…`; a reuse bundle may fill `motor-ref`), then `panel_export.py --campaign` (the 44-candidate holding panel with two-rung settlement) and the comparison inputs | `motor_10p12s check/solve/export-train --kind train-stage1` (two CPUs per case) |
 | f02 | `f02 plan/solve --kind menu`; `f02_menu.py plan-refine` and `run` (the registry's mesh-2 and dt/2 re-solves within 1 C of 95 C); `f02_export.py` | `f02 plan/solve/export-train --kind train` |
 
 Battery and f02 solvers get `vcpus − 1` CPUs and motor gets
@@ -64,10 +64,11 @@ mean.
 | train (f02) | `train-diagnostics-NNN` | PUBLIC_TRAIN | crossing times and histories, never in a row's values |
 | reference | `candidate-view` | PUBLIC_INPUT | `producer-candidate-view.v1`: the sealed export with every reference value set to 0, every `refined.*` rung and every settlement removed; it keeps the true `export_digest`, candidates, actions, conditions and observable names. It is the only reference artifact the TRAIN stage may read |
 | reference | `cost-ledger` | HELDOUT_REFERENCE | `producer-cost-ledger.v1`: per physical row (band, candidate, condition), every reference solve behind it (source, rung, status, wall_s, core_s), and their sums. f02 core_s is the container's measured user+system CPU. Battery core_s is null: one process per solve at CPU cap 1, so core_s <= wall_s |
-| reference (f02) | `bindings` | HELDOUT_REFERENCE | `carbon.development-replay-bindings.v1`: one job per question, one design per bank candidate (`{"plain": candidate}`). Battery's indexed export binds designs across bands, which is the replay panel's choice, so the Optimizer builds those bindings |
+| reference (f02, motor) | `bindings` | HELDOUT_REFERENCE | `carbon.development-replay-bindings.v1`: one job per question, one design per bank candidate (`{"plain": candidate}`). Battery's indexed export binds designs across bands, which is the replay panel's choice, so the Optimizer builds those bindings |
 | reference (f02) | `comparator-materials` | HELDOUT_REFERENCE | `carbon.development-comparator-materials.v1` for the impulse-response comparator, on the **coarse 0.5 s grid** (Test Lead: separate grids). Per physical row: time_s, two-patch extra power as exact interval means (so the left-sum energy equals the export's), the base-only baseline top trace and the case's top trace, both interpolated from the solver steps. settings.lags = 128 (64 s); coordinates peak_w, on_time_s; calibration source = the context's base-only baseline solve |
 | reference (f02) | `comparator-witness-NNN` | HELDOUT_REFERENCE | `producer-f02-witness.v1` chunks, 96 rows each: the **fine 0.02 s witness** over the burst window. Each bin holds the largest solver value in it, so the witness maximum equals the export's peak over every solver step exactly; the exact peak is recorded alongside |
 | reference (f02) | `comparator-witness-manifest` | HELDOUT_REFERENCE | `producer-f02-witness-manifest.v1`: each chunk's order, name and sha256, for reassembly and verification. The coarse-grid materials pass pb's validator only once pb reads the peak from this witness (Optimizer, #1131) |
+| reference (motor) | `comparator-materials` | HELDOUT_REFERENCE | the motor curve set `cheap_baselines.motor_predictions` reads: per candidate, the stacked loaded (J 10, gamma 0) and cogging curves on the observer's 0.25 deg grid, the base design's physical coordinates plus skew, `geometry_id`; their reductions reproduce the export to 1e-12 |
 | train | `carbon-predictions` | MODEL | `carbon.development-prediction-input.v1` from `carbon_arm.run`: the kit's registered default recipe, trained on this stage's TRAIN and queried on the candidate view |
 | train | `carbon-receipt` | MODEL | `carbon_arm`'s receipt: recipe, TRAIN identity, fit and query cost. The predictions' `source_receipt_digest` binds it |
 | both | `stage-summary` | ANALYSIS | `producer-summary.v1`: entrypoint row, vCPUs, every step's argv/exit/wall, counts (plan sha256s of refinement rungs, export digest), meter detail |
@@ -142,10 +143,15 @@ short grace before SIGKILL.
 5. **Reuse** of host records is by pinned bundle, never by host path. A
    server stage without a bundle re-solves the registered plan.
 
-## Motor (pending)
+## Motor
 
-The motor reference stage needs a committed reference-panel plan covering the
-complete command-angle-skew panel. That plan follows the amendment-4 skew and
-bisection results, plus per-candidate settlement in `panel_export.py`. Until
-then the stage refuses, and #1080's inventory keeps `motor/reference`
-`NOT_REGISTERED`.
+The reference stage is registered: the holding panel of MOTOR-FEASIBILITY-02
+stages 1-3, which `panel_export.py` builds. The model's kit material is
+geometry only, built from the registered plan's designs, so the TRAIN stage
+never reads a reference curve.
+
+Not yet in the panel: the full question (holding plus peak plus skew, with
+amendment 4's designs, including the settled-feasible b3 at 6 deg). It needs
+peak observables that the motor kit and cheap baseline do not compute today,
+which is an Optimizer-side change; this panel is the registered holding
+question.

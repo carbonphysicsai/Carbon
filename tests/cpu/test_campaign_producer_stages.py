@@ -74,7 +74,6 @@ def test_a_registered_train_context_loads(tmp_path):
         ({"family": "f13"}, "4", "FAMILY_NOT_PRODUCER"),
         ({"shards": 2}, "4", "SHARDING_NOT_REGISTERED"),
         ({"entrypoint_registration_digest": "sha256:" + "1" * 64}, "4", "REGISTRATION_DIGEST_MISMATCH"),
-        ({"family": "motor", "phase": "reference"}, "4", "ENTRYPOINT_NOT_REGISTERED"),
         ({"family": "battery-v3", "phase": "reference"}, "4", "REUSE_RECORDS_REQUIRED"),
         ({"inputs": {"x": {"path": "x", "sha256": "sha256:" + "0" * 64, "role": "PUBLIC_INPUT"}}}, "4",
          "UNREGISTERED_INPUT"),
@@ -449,8 +448,29 @@ def test_the_train_stage_needs_the_reference_candidate_view(tmp_path):
     assert failed.value.code == "CANDIDATE_VIEW_REQUIRED"
     context, vcpus, reuse = _load(tmp_path, _context(family="motor"), threads="4")
     stage = producer.Stage(context, vcpus, reuse, tmp_path / "out")
-    stage.model_predictions(tmp_path / "train.jsonl")
-    assert stage.counts["model_predictions"] == "MOTOR_REFERENCE_NOT_REGISTERED"
+    with pytest.raises(producer.Failed) as failed:
+        stage.model_predictions(tmp_path / "train.jsonl")
+    assert failed.value.code == "CANDIDATE_VIEW_REQUIRED"
+
+
+def test_the_motor_reference_stage_is_registered_with_its_plan(tmp_path):
+    from carbon.development_comparison import campaign_entrypoints as ce
+
+    row = ce.ENTRYPOINTS["motor"]["reference"]
+    assert (
+        row["kind"] == "reference-panel"
+        and ce.inspect(ROOT)["motor"]["reference"]
+        == "REGISTERED_FILES_ONLY_IMAGE_NOT_CHECKED"
+    )
+    plan = json.loads((ROOT / row["plan"]).read_text())
+    assert (
+        len(plan["designs"]) == 24
+        and len(plan["cases"]) == len({c["case_id"] for c in plan["cases"]}) == 230
+    )
+    context, _vcpus, reuse = _load(
+        tmp_path, _context(family="motor", phase="reference"), threads="4"
+    )
+    assert (context["family"], context["phase"], reuse) == ("motor", "reference", [])
 
 
 def _write_trace(case_dir, case, deck):

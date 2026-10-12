@@ -220,9 +220,14 @@ def main(argv=None):
         )
         return 0
     if cmd == "predict":
-        family, view, train, out_pred, out_receipt = args
+        family, view, train, out_pred, out_receipt = args[:5]
+        material = None
+        if (
+            family == "motor"
+        ):  # the geometry-only material from the registered reference plan
+            material = json.dumps(motor_geometry(ROOT / args[5])).encode()
         pred, receipt = predictions(family, json.loads(Path(view).read_text()), Path(train).read_bytes(),
-                                    scope="PUBLIC_DEVELOPMENT")  # fmt: skip
+                                    scope="PUBLIC_DEVELOPMENT", material=material)  # fmt: skip
         _write(out_pred, pred)
         _write(out_receipt, receipt)
         return 0
@@ -231,6 +236,10 @@ def main(argv=None):
         _write(args[1], candidate_view(export))
     elif cmd == "bindings":
         _write(args[1], plain_bindings(export))
+    elif cmd == "ledger-motor":
+        _write(args[2], cost_ledger_motor(export, args[1]))
+    elif cmd == "motor-curves":
+        _write(args[3], motor_curve_set(export, args[1], args[2]))
     elif cmd == "ledger-f02":
         _write(args[2], cost_ledger_f02(export, args[1]))
     elif cmd == "ledger-battery":
@@ -249,10 +258,6 @@ def main(argv=None):
     else:
         raise SystemExit(f"unknown command {cmd}")
     return 0
-
-
-if __name__ == "__main__":
-    sys.exit(main())
 
 
 # -- f02 comparator materials (Test Lead 2026-10-12: separate grids) ---------------------
@@ -430,3 +435,114 @@ def witness_manifest(export_digest, chunk_files):
     return {"schema": WITNESS_MANIFEST, "family": "f02", "export_digest": export_digest,
             "chunks": [{"order": i, "name": Path(f).name, "sha256": _sha256_hex(Path(f).read_bytes())}
                        for i, f in enumerate(chunk_files)]}  # fmt: skip
+
+
+# -- motor 10p/12s (the holding reference panel of panel_export.py) ---------------------
+
+
+def _motor_candidate(candidate):
+    design, span = candidate.split("-skew")
+    return int(design[1:]), float(span)
+
+
+def _motor_case_ids(i, span):
+    """The solves behind one candidate's stacked observables, as stages.py reads them."""
+    from scripts.dev.motor.feasibility02 import stages
+
+    half = span / 2
+    loaded = [
+        stages.cid(i, 10, 0.0 - stages.PP * d, "s1" if d == 0 else "s2")
+        for d in (-half, 0.0, half)
+    ]
+    refined = [
+        stages.cid(i, 10, 0.0 - stages.PP * d, "s3r2") for d in (-half, 0.0, half)
+    ]
+    return (list(dict.fromkeys(loaded)), stages.cid(i, 0, 0),
+            list(dict.fromkeys(refined)), stages.cid(i, 0, 0, "s3r2"))  # fmt: skip
+
+
+def cost_ledger_motor(export, runs):
+    """Motor solves run at a CPU cap of 2 with one GetDP thread; records hold wall time."""
+    from scripts.dev.motor.feasibility02 import stages
+
+    records = stages._records([runs])
+
+    def solves_for(row):
+        i, span = _motor_candidate(row["candidate"])
+        loaded, cog, refined, cog_r2 = _motor_case_ids(i, span)
+        out = []
+        for rung, ids in (("standard", [*loaded, cog]), ("rung2", [*refined, cog_r2])):
+            for case_id in ids:
+                r = records.get(case_id)
+                if r is not None and "wall_s" in r:
+                    out.append({"source": f"records:{case_id}", "rung": rung, "status": r["status"],
+                                "wall_s": float(r["wall_s"]), "core_s": None})  # fmt: skip
+        return out
+
+    return _ledger(
+        export,
+        solves_for,
+        "motor: one GetDP case per container at CPU cap 2 (single-threaded); wall_s "
+        "from each record, core_s not measured per solve",
+    )
+
+
+def motor_curve_set(export, runs, plan):
+    """The comparator's curve set: each candidate's stacked loaded and cogging curves
+    on the observer's own grid, with its physical geometry and skew."""
+    from carbon.development_comparison import cheap_baselines as cb
+    from scripts.dev.motor.feasibility02 import stages
+    from scripts.dev.motor.feasibility02 import topology as tp
+
+    records = stages._records([runs])
+    designs = json.loads(Path(plan).read_text())["designs"]
+    observers = {e["task"]["identity"]["observer_version"] for e in export["questions"]}
+    rows = []
+    for row in _rows(export):
+        i, span = _motor_candidate(row["candidate"])
+        _, cog_id, _, _ = _motor_case_ids(i, span)
+        half = span / 2
+        slices = []
+        for d in (-half, 0.0, half):
+            case_id = stages.cid(i, 10, 0.0 - stages.PP * d, "s1" if d == 0 else "s2")
+            slices.append(
+                tp.slice_curve(
+                    records[case_id]["outputs"]["torque_nm"], round(d / stages.STEP_DEG)
+                )
+            )
+        loaded = tp.stack_curve(slices)
+        curve = records[cog_id]["outputs"]["torque_nm"]
+        off = round(half / stages.STEP_DEG)
+        cogging = tp.stack_curve([tp.slice_curve(curve, o) for o in (-off, 0, off)])
+        reduced = cb.curve_observables(loaded, cogging)
+        if any(
+            not math.isclose(reduced[q], row["values"][q], rel_tol=1e-12, abs_tol=1e-12)
+            for q in reduced
+        ):
+            raise ValueError(
+                f"{row['candidate']}: curves do not reproduce the export's observables"
+            )
+        rows.append({"candidate": row["candidate"], "geometry_id": f"d{i:02d}",
+                     "coordinates": {**{k: designs[i][k] for k in cb.MOTOR_FEATURES if k != "skew_deg"},
+                                     "skew_deg": span},
+                     "loaded_nm": loaded, "cogging_nm": cogging})  # fmt: skip
+    source = Path(runs) / "records.jsonl"
+    return {"export_digest": export["export_digest"], "sampling": "one-period-without-repeated-endpoint",
+            "source_hashes": [_sha256_hex(source.read_bytes()), _sha256_hex(Path(plan).read_bytes())],
+            "observer_version": observers.pop() if len(observers) == 1 else sorted(observers),
+            "angle_deg": [k * stages.STEP_DEG for k in range(len(rows[0]["loaded_nm"]))], "rows": rows}  # fmt: skip
+
+
+def motor_geometry(plan):
+    """The kit's material: the panel designs' grammar only, never a curve."""
+    from carbon.development_comparison import motor_10p12s_kit as mk
+
+    designs = json.loads(Path(plan).read_text())["designs"]
+    return {"schema": mk.SIDECAR_SCHEMA,
+            "designs": {f"{mk.PANEL_TAG}{i:02d}": {"tags": [f"{mk.PANEL_TAG}{i:02d}"],
+                                                    "grammar": {k: d[k] for k in mk.GRAMMAR}}
+                        for i, d in enumerate(designs)}}  # fmt: skip
+
+
+if __name__ == "__main__":
+    sys.exit(main())
