@@ -76,3 +76,15 @@ def test_verify_r_scores_the_leg_questions_on_the_35_action_bank():
     assert "control-oracle" in legs["v3"]
     assert diagnostics["v3"]["questions"] == 6
     assert diagnostics["v3"]["budget_stopped"] == 0
+
+
+def test_the_cli_writes_owner_only_files(tmp_path, monkeypatch):
+    import os
+    import stat
+
+    legs = {"legs": {"v3": {"m": 1.0}}, "leg_questions": ["D-0000"], "diagnostics": {}}
+    results = {"decisions": {}, "value_split": {"questions": ["D-0001"]}}
+    monkeypatch.setattr(vp, "run", lambda work, split: (legs, results))
+    assert vp.main(["--work", str(tmp_path), "--out", str(tmp_path / "out")]) == 0
+    for name in ("verify-r-public.json", "results-value.json"):
+        assert stat.S_IMODE(os.lstat(tmp_path / "out" / name).st_mode) == 0o600

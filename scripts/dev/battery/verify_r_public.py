@@ -21,6 +21,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -114,13 +115,19 @@ def main(argv=None):
     ap.add_argument("--split", type=Path, default=SPLIT)
     args = ap.parse_args(argv)
     legs, results = run(args.work, args.split)
-    args.out.mkdir(parents=True, exist_ok=True)
-    (args.out / "verify-r-public.json").write_text(
-        json.dumps(legs, sort_keys=True) + "\n"
-    )
-    (args.out / "results-value.json").write_text(
-        json.dumps(results, sort_keys=True) + "\n"
-    )
+    # Owner-only: the same script splits the fresh sealed questions on the
+    # operator host (SCORE-PROOF-01 amendment 10), where nothing is world-readable.
+    args.out.mkdir(mode=0o700, parents=True, exist_ok=True)
+    for name, value in (
+        ("verify-r-public.json", legs),
+        ("results-value.json", results),
+    ):
+        path = args.out / name
+        if path.exists():
+            path.unlink()
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        with os.fdopen(fd, "w") as handle:
+            handle.write(json.dumps(value, sort_keys=True) + "\n")
     print(
         json.dumps(
             {
