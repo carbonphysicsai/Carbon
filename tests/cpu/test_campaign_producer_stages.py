@@ -567,3 +567,46 @@ def test_f02_materials_separate_grids_reproduce_the_export(monkeypatch, tmp_path
         files[-1].write_text(json.dumps(c))
     manifest = ci.witness_manifest(export["export_digest"], files)
     assert [c["order"] for c in manifest["chunks"]] == [0, 1, 2, 3]
+
+
+def test_the_battery_stage_runner_stamps_image_and_lock_on_every_record(
+    tmp_path, monkeypatch
+):
+    import types
+    from concurrent.futures import ThreadPoolExecutor
+
+    from carbon.battery import truth_env
+    from scripts.dev.battery import feasibility02
+
+    lock, lock_sha = truth_env.load_lock(producer.ROOT)
+    version = truth_env.pinned_version(lock)
+    monkeypatch.setitem(
+        sys.modules, "pybamm", types.SimpleNamespace(__version__=version)
+    )
+    monkeypatch.setattr(feasibility02, "ProcessPoolExecutor", ThreadPoolExecutor)
+    statuses = {"a": "OK", "b": "REFERENCE_SOLVER_FAILED"}
+    monkeypatch.setattr(
+        feasibility02,
+        "solve_one",
+        lambda job: {**job, "status": statuses[job["case_id"]]},
+    )
+    monkeypatch.chdir(producer.ROOT)
+    jobs = tmp_path / "jobs.json"
+    jobs.write_text(json.dumps({"jobs": [{"case_id": "a"}, {"case_id": "b"}]}))
+    records = tmp_path / "records.jsonl"
+    feasibility02.solve(jobs, records, 1)
+    rows = [json.loads(x) for x in records.read_text().splitlines()]
+    assert [r["case_id"] for r in rows] == ["a", "b"]
+    for row in rows:
+        assert row[truth_env.PROVENANCE_FIELD] == {
+            "schema": "carbon.battery.solver-provenance.v1",
+            "solver_image": truth_env.TRUTH_IMAGE["base_image"],
+            "overlay_lock": "scripts/dev/exam_design/locks/battery-overlay.lock.json",
+            "overlay_lock_sha256": "sha256:" + lock_sha,
+            "pybamm": version,
+        }
+    # The image the stage's entrypoint row registers.
+    registered = campaign_entrypoints.ENTRYPOINTS["battery-v3"]["reference"]
+    assert rows[0][truth_env.PROVENANCE_FIELD]["solver_image"].endswith(
+        "@" + registered["image_digest"]
+    )

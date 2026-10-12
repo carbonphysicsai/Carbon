@@ -81,6 +81,15 @@ The receipt is the runner's `…v1.stage-result`: `status` OK, `core_s`,
 TRAIN rows `carbon.battery-v3.train-record.v1`,
 `carbon.motor-10p12s.train-record.v1` and `carbon.f02.train-record.v1`.
 
+**Solver provenance in every record.** Each battery record names its solver
+in the record itself: `solver_provenance`
+(`carbon.battery.solver-provenance.v1`) carries the image digest, the overlay
+lock path and sha256, and the PyBaMM version. The feasibility runner stamps
+it on every record it writes; `truth_env.solve` (bank, sealed confirmation,
+public pod) does the same, including the timeouts and worker exits it writes
+itself. Motor records carry `image` (the pinned digest) and f02 ledger rows
+`image`. Records written before this change are not rewritten.
+
 **Extra rungs in exports** live under the `refined.` namespace: battery
 `refined.<q>` (rung 2) and `refined.rung3.<q>`; f02 `refined.mesh2.peak_top_c`
 and `refined.dthalf.peak_top_c`. The comparison's physical rows drop

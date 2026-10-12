@@ -297,7 +297,7 @@ def solve_one(job):
 def solve(jobs_path, records_path, workers):
     from carbon.battery import truth_env
 
-    truth_env.require_truth_runtime(".")
+    solver_provenance = truth_env.provenance(".")
     jobs = json.loads(Path(jobs_path).read_text())["jobs"]
     records = Path(records_path)
     done = set()
@@ -310,6 +310,7 @@ def solve(jobs_path, records_path, workers):
     todo = [j for j in jobs if j["case_id"] not in done]
     with ProcessPoolExecutor(workers) as pool:
         for record in pool.map(solve_one, todo):
+            record = truth_env.stamp(record, solver_provenance)
             with records.open("a") as handle:
                 handle.write(json.dumps(record, sort_keys=True) + "\n")
             print(record["case_id"], record["status"], round(record.get("wall_s", 0), 1),
