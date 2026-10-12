@@ -132,8 +132,8 @@ the weekly ledger, and one hard stop.
 | Item | Value |
 |---|---|
 | Draw | **240 questions**, registered here before any solve. Same public seed and grid. The registered 110 are its first 110, byte for byte (a test pins both). Contract digest `sha256:7ab72c9b…7d5c30c`; jobs (8,400) sha256 `2e48aed4…ade101a0d3fb3d` |
-| Pod | One 32 vCPU / 256 GB pod at USD 1.76/h. PROBE_DEADLINE = creation + 9.0 h − 6 min, a ceiling of USD 15.8 |
-| Solve budget | PDD_SOLVE_BUDGET_S = 30,540 s; PDD_QUESTIONS = 240 |
+| Pod | One 32 vCPU / 256 GB pod at USD 1.76/h. PROBE_DEADLINE = spec time + 8.75 h − 6 min, about 8.65 pod-hours: a worst case of about USD 15.22, leaving about USD 0.78 of the cap (PR Head's headroom check). The launcher refuses unless that deadline is in the spec and within the window |
+| Solve budget | PDD_SOLVE_BUDGET_S = 29,640 s; PDD_QUESTIONS = 240 |
 | Projection | At 76.8 CPU-s per solve: about 6.0 h standard + 0.7 h refine + 0.3 h setup and fetch, about 7 pod-hours (about USD 12.7). A slower pod solves the first N of 240 in order |
 | Split | Test Engineer's `public-dev-split-v1` covers any prefix: 121 LEG / 119 VALUE at 240, 104 / 96 at 200 |
 | Weekly ledger | The launcher claims USD 16 in OWNER-TESTNET-WEEKLY-BUDGET-01's ledger before creating the pod, and settles to the actual charge after |
