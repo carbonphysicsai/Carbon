@@ -6,6 +6,13 @@ from pathlib import Path
 
 import pytest
 
+from carbon.design_search import (
+    bfs_budget,
+    bolted_budget,
+    metagrating_budget,
+    micromixer_budget,
+    structures_budget,
+)
 from carbon.design_search import budget_registration as br
 from carbon.design_search import equal_budget as eb
 
@@ -82,6 +89,97 @@ def panel(challenge="motor", direction="min"):
             "jobs": jobs,
         }
     )
+
+
+def test_challenge_routes_preserve_registered_validators_and_flags():
+    expected = {
+        "battery-v3": br.validate,
+        "motor": br.validate,
+        "f02": br.validate,
+        "f13": br.validate,
+        "backward-facing-step": bfs_budget.validate,
+        "bolted-joint": bolted_budget.validate,
+        "metagrating-3d": metagrating_budget.validate,
+        "f17": micromixer_budget.validate,
+        "f08": structures_budget.validate,
+    }
+    assert eb.CHALLENGES == set(expected) == set(eb.CHALLENGE_ROUTES)
+    assert {
+        name: route["validator"] for name, route in eb.CHALLENGE_ROUTES.items()
+    } == expected
+    assert {
+        name for name, route in eb.CHALLENGE_ROUTES.items() if route.get("indexed")
+    } == {"battery-v3"}
+    assert {
+        name
+        for name, route in eb.CHALLENGE_ROUTES.items()
+        if route.get("representative")
+    } == {"bolted-joint"}
+
+
+@pytest.mark.parametrize(
+    ("challenge", "registration_path"),
+    [
+        ("backward-facing-step", "benchmark-readiness/bfs/equal-budget-proposal.json"),
+        ("metagrating-3d", "benchmark-readiness/mg/equal-budget-proposal.json"),
+        ("bolted-joint", None),
+        ("f17", "proposal"),
+    ],
+)
+def test_special_challenge_registration_routes_keep_report_shape(
+    challenge, registration_path
+):
+    if registration_path is None:
+        registration = bolted_budget.proposal()
+    elif registration_path == "proposal":
+        registration = micromixer_budget.proposal()
+    else:
+        registration = json.loads(
+            (
+                Path(__file__).resolve().parents[2]
+                / "docs/development/challenge_pipeline"
+                / registration_path
+            ).read_text(encoding="utf-8")
+        )
+    body = {
+        key: value for key, value in panel(challenge).items() if key != "panel_digest"
+    }
+    route = eb.CHALLENGE_ROUTES[challenge]
+    registered = route["validator"](registration)
+    body["budgets"] = [
+        registered.cap(challenge, tier).time_compute for tier in br.TIERS
+    ]
+    body["registrations"]["cost_plan"] = registered.registration_id
+    if route.get("representative"):
+        body.update(evidence_scope="REPRESENTATIVE", customer_result=False)
+    report = eb.compare(
+        eb.seal(body),
+        bootstrap_replicates=100,
+        confidence=0.95,
+        seed=3,
+        registration=registration,
+    )
+    assert report["status"] == "OK"
+    assert report["budget_registration_id"] == registered.registration_id
+    assert report["budget_registration_digest"] == registered.registration_digest
+    if route.get("representative"):
+        assert report["evidence_scope"] == "REPRESENTATIVE"
+        assert report["customer_result"] is False
+    else:
+        assert "evidence_scope" not in report and "customer_result" not in report
+
+
+def test_bolted_route_still_requires_its_representative_proposal():
+    body = {
+        key: value
+        for key, value in panel("bolted-joint").items()
+        if key != "panel_digest"
+    }
+    body.update(evidence_scope="REPRESENTATIVE", customer_result=False)
+    with pytest.raises(
+        eb.EqualBudgetError, match="representative budget proposal required"
+    ):
+        eb.compare(eb.seal(body), bootstrap_replicates=100, confidence=0.95, seed=3)
 
 
 @pytest.mark.parametrize("challenge", ["battery-v3", "motor", "f02", "f13"])

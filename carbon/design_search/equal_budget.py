@@ -15,21 +15,34 @@ import random
 import re
 from collections import defaultdict
 
-from . import budget_registration, track_b
+from . import (
+    bfs_budget,
+    bolted_budget,
+    budget_registration,
+    metagrating_budget,
+    micromixer_budget,
+    structures_budget,
+    track_b,
+)
 
 SCHEMA = "carbon.design-search.equal-budget-panel.v1"
 REPORT_SCHEMA = "carbon.design-search.equal-budget-report.v1"
-CHALLENGES = {
-    "f08",
-    "battery-v3",
-    "motor",
-    "f02",
-    "f13",
-    "backward-facing-step",
-    "bolted-joint",
-    "metagrating-3d",
-    "f17",
+CHALLENGE_ROUTES = {
+    "battery-v3": {"validator": budget_registration.validate, "indexed": True},
+    "motor": {"validator": budget_registration.validate},
+    "f02": {"validator": budget_registration.validate},
+    "f13": {"validator": budget_registration.validate},
+    "backward-facing-step": {"validator": bfs_budget.validate},
+    "bolted-joint": {
+        "validator": bolted_budget.validate,
+        "representative": True,
+        "registration_required": True,
+    },
+    "metagrating-3d": {"validator": metagrating_budget.validate},
+    "f17": {"validator": micromixer_budget.validate},
+    "f08": {"validator": structures_budget.validate},
 }
+CHALLENGES = set(CHALLENGE_ROUTES)
 ARMS = ("solver_alone", "model_then_solver", "baseline_then_solver")
 
 
@@ -65,6 +78,8 @@ def seal(body):
 
 
 def _validate(panel):
+    challenge = panel.get("challenge") if type(panel) is dict else None
+    route = CHALLENGE_ROUTES.get(challenge) if type(challenge) is str else None
     expected_keys = {
         "schema",
         "evidence_class",
@@ -79,7 +94,7 @@ def _validate(panel):
         "registrations",
         "panel_digest",
     }
-    if type(panel) is dict and panel.get("challenge") == "bolted-joint":
+    if route is not None and route.get("representative", False):
         expected_keys.update({"evidence_scope", "customer_result"})
     if type(panel) is not dict or set(panel) != expected_keys:
         raise EqualBudgetError("closed equal-budget panel schema required")
@@ -87,7 +102,7 @@ def _validate(panel):
         raise EqualBudgetError("development panel required")
     if panel["challenge"] not in CHALLENGES:
         raise EqualBudgetError("unsupported Challenge")
-    if panel["challenge"] == "bolted-joint" and (
+    if route.get("representative", False) and (
         panel["evidence_scope"] != "REPRESENTATIVE"
         or panel["customer_result"] is not False
     ):
@@ -105,14 +120,14 @@ def _validate(panel):
     objective = panel["objective"]
     expected_objective = (
         {"direction", "unit", "index_weights"}
-        if panel["challenge"] == "battery-v3"
+        if route.get("indexed", False)
         else {"direction", "unit"}
     )
     if type(objective) is not dict or set(objective) != expected_objective:
         raise EqualBudgetError("objective direction and unit required")
     if objective["direction"] not in ("min", "max") or not objective["unit"]:
         raise EqualBudgetError("objective direction or unit invalid")
-    if panel["challenge"] == "battery-v3":
+    if route.get("indexed", False):
         weights = objective["index_weights"]
         if type(weights) is not dict or set(weights) != {"5", "15", "25", "35", "40"}:
             raise EqualBudgetError("battery v3 five-band weights required")
@@ -194,7 +209,7 @@ def _validate(panel):
             reference = row["reference"]
             reference_fields = (
                 {"status", "value", "per_index"}
-                if panel["challenge"] == "battery-v3"
+                if route.get("indexed", False)
                 else {"status", "value"}
             )
             if type(reference) is not dict or set(reference) != reference_fields:
@@ -208,7 +223,7 @@ def _validate(panel):
                     raise EqualBudgetError("feasible value must be finite")
             elif reference["value"] is not None:
                 raise EqualBudgetError("only feasible candidates have values")
-            if panel["challenge"] == "battery-v3":
+            if route.get("indexed", False):
                 bands = reference["per_index"]
                 if type(bands) is not dict or set(bands) != set(weights):
                     raise EqualBudgetError("every battery band required")
@@ -401,21 +416,11 @@ def _summarize(results, direction):
 def compare(panel, *, bootstrap_replicates, confidence, seed, registration=None):
     """Return paired, cluster-bootstrap curves; no inference or solver calls."""
     _validate(panel)
-    validate_registration = budget_registration.validate
-    if panel["challenge"] == "backward-facing-step":
-        from .bfs_budget import validate as validate_registration
-    elif panel["challenge"] == "f17":
-        from .micromixer_budget import validate as validate_registration
-    elif panel["challenge"] == "metagrating-3d":
-        from .metagrating_budget import validate as validate_registration
-    elif panel["challenge"] == "bolted-joint":
-        from .bolted_budget import validate as validate_registration
-
-        # bolted-joint keeps its own rule: the proposal is not optional.
-        if registration is None:
-            raise EqualBudgetError("representative budget proposal required")
-    elif panel["challenge"] == "f08":
-        from .structures_budget import validate as validate_registration
+    route = CHALLENGE_ROUTES[panel["challenge"]]
+    validate_registration = route["validator"]
+    # bolted-joint keeps its own rule: the proposal is not optional.
+    if route.get("registration_required", False) and registration is None:
+        raise EqualBudgetError("representative budget proposal required")
 
     registered = None if registration is None else validate_registration(registration)
     if registered is not None:
@@ -450,7 +455,7 @@ def compare(panel, *, bootstrap_replicates, confidence, seed, registration=None)
             ),
             "curves": [],
         }
-        if panel["challenge"] == "bolted-joint":
+        if route.get("representative", False):
             unresolved_report.update(
                 evidence_scope="REPRESENTATIVE", customer_result=False
             )
@@ -545,7 +550,7 @@ def compare(panel, *, bootstrap_replicates, confidence, seed, registration=None)
         "bootstrap_seed": seed,
         "curves": curves,
     }
-    if panel["challenge"] == "bolted-joint":
+    if route.get("representative", False):
         report.update(evidence_scope="REPRESENTATIVE", customer_result=False)
     if registered is not None:
         report.update(

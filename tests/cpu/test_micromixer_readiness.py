@@ -327,9 +327,7 @@ def test_readiness_inspects_real_routes_and_refuses_unwired_budget():
     assert er.code_route(tree, "f17")[0] == "YES"
     assert er.code_route(tree, "f17", optimizer=True)[0] == "YES"
     path = "carbon/design_search/equal_budget.py"
-    tree.files[path] = tree.files[path].replace(
-        b".micromixer_budget", b".not_the_budget"
-    )
+    tree.files[path] = tree.files[path].replace(b"micromixer_budget", b"not_the_budget")
     assert er.code_route(tree, "f17", optimizer=True)[0] == "NO"
     tree.files.pop("carbon/design_search/micromixer_budget.py")
     assert er.code_route(tree, "f17", optimizer=True)[0] == "PLANNED"
