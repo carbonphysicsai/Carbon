@@ -97,6 +97,17 @@ def quiz_conditions(quiz):
     return out
 
 
+def work_conditions(works):
+    """Every condition an earlier sealed work directory drew (its own
+    `contract.json`), so a fresh set never repeats one (CUSTODY-03-EXT-01:
+    fresh questions, never a set already drawn or used)."""
+    out = set()
+    for work in works or ():
+        document = json.loads((Path(work) / "contract.json").read_bytes())
+        out |= public_conditions(document)
+    return out
+
+
 def draw_conditions(seed_bytes, count, envelope, excluded):
     """`count` distinct grid conditions inside the envelope, none excluded,
     in the seed's deterministic order."""
@@ -142,7 +153,7 @@ def sealed_contract(base, conditions):
     return contract
 
 
-def draw(work, questions, quiz=None):
+def draw(work, questions, quiz=None, exclude_works=()):
     from carbon.battery.value import contract as ev
     from carbon.battery.value.experiment import Experiment
 
@@ -150,7 +161,9 @@ def draw(work, questions, quiz=None):
     if (work / "contract.json").exists():
         raise SystemExit("refused: this work directory already holds its questions")
     base, _ = ev.load(BASE_CONTRACT)
-    excluded = public_conditions(base) | quiz_conditions(quiz)
+    excluded = (
+        public_conditions(base) | quiz_conditions(quiz) | work_conditions(exclude_works)
+    )
     conditions = draw_conditions(
         seed(work), questions, base["operating_conditions"]["envelope"], excluded
     )
@@ -254,6 +267,13 @@ def main(argv=None):
     drawn.add_argument("--work", type=Path, required=True)
     drawn.add_argument("--questions", type=int, required=True)
     drawn.add_argument("--quiz", type=Path)
+    drawn.add_argument(
+        "--exclude-work",
+        type=Path,
+        action="append",
+        default=[],
+        help="an earlier sealed work directory whose conditions are excluded",
+    )
     refined = sub.add_parser("refine")
     refined.add_argument("--work", type=Path, required=True)
     evaluated = sub.add_parser("evaluate")
@@ -261,7 +281,7 @@ def main(argv=None):
     evaluated.add_argument("--workers", type=int, default=1)
     args = parser.parse_args(argv)
     if args.command == "draw":
-        result = draw(args.work, args.questions, args.quiz)
+        result = draw(args.work, args.questions, args.quiz, args.exclude_work)
     elif args.command == "refine":
         result = refine(args.work)
     else:
