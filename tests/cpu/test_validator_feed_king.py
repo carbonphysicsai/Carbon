@@ -91,6 +91,7 @@ def test_the_king_its_share_and_handovers_come_from_the_ledger_and_the_chain(
         "f2": {"outcome": "WITHDRAWN", "promotable": False},
     }
     monkeypatch.setattr(store, "final", lambda f: {"outcome": outcomes.get(f)})
+    monkeypatch.setattr(store, "incumbent", lambda: {"model_id": "m2"})
     winners = [
         _record("5First", None, "m1", kind="FIRST", clock=CROWNED - 5 * DAY_MS),
         _record("5King", "5First", "m2"),
@@ -139,6 +140,7 @@ def test_an_ineligible_record_pays_nothing_and_a_canary_is_never_named(
     store = validator["store"]
     key = sf.FeedKey.create(tmp_path / "feed.key")
     monkeypatch.setattr(canary, "CANARY_HOTKEYS", ("5Canary",))
+    monkeypatch.setattr(store, "incumbent", lambda: {"model_id": "m2"})
     ineligible = [_record("5King", None, "m2", eligible=False)]
     feed = sf.build(
         validator["target"],
@@ -162,6 +164,28 @@ def test_an_ineligible_record_pays_nothing_and_a_canary_is_never_named(
     assert feed["king"] is None
     assert feed["handovers"][1]["to_hotkey"] is None
     assert "5Canary" not in str(feed)
+
+
+@pytest.mark.parametrize("live", [None, {"model_id": "m-new"}])
+def test_after_a_cutover_the_old_deployments_winner_is_not_the_king(
+    validator, tmp_path, monkeypatch, live  # noqa: F811
+):
+    """The ledger still names the archived deployment's last winner; the
+    publisher pays it nothing once the live deployment has no incumbent (or
+    another one), so the feed names no king, and keeps the handovers."""
+    store = validator["store"]
+    monkeypatch.setattr(canary, "CANARY_HOTKEYS", ())
+    monkeypatch.setattr(store, "incumbent", lambda: live)
+    feed = sf.build(
+        validator["target"],
+        key=sf.FeedKey.create(tmp_path / "feed.key"),
+        hotkey="5Val",
+        network="testnet",
+        chain=_chain(store, CROWNED + 1),
+        winners=[_record("5OldKing", None, "m-old")],
+    )
+    assert feed["king"] is None
+    assert [h["to_hotkey"] for h in feed["handovers"]] == ["5OldKing"]
 
 
 @pytest.mark.parametrize("registered", [False, True])
