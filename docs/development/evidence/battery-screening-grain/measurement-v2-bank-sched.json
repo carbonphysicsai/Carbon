@@ -1,0 +1,23 @@
+{
+ "schema": "carbon.battery.screening-grain-measurement.v1",
+ "ticket": "SCREENING-GRAIN-01",
+ "data": "public EV4 scoring set; public stored predictions (srb1-ev4, graphite-run5-q1)",
+ "pooled_screening_cases": 294,
+ "members": 126,
+ "common_scorable_cases": 1588,
+ "analytic_se": {
+  "median": 0.030429984327052358,
+  "p10": 0.022538707191761632,
+  "p90": 0.034741209192734115
+ },
+ "bootstrap_se": {
+  "median": 0.02767531140940138,
+  "p10": 0.020441243054975272,
+  "p90": 0.03174113789653113,
+  "reps": 4000
+ },
+ "measured_se": 0.030429984327052358,
+ "rule": "measured SE = median over members of the larger estimator; grain = SE rounded UP to a 0.5 % step, floor 0.5 % (owner, 2026-10-12)",
+ "grain": 0.035,
+ "grain_if_p90_member": 0.035
+}
