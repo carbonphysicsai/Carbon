@@ -671,7 +671,10 @@ class CampaignController:
             if spec.max_runtime_s > self.grant.max_runtime_s:
                 raise ControllerError("runtime_above_grant")
             rows = self._rows(db)
-            if len(rows) >= self.grant.permitted_runs:
+            # A live controller's run slots are the shared ledger's (it counts this root's
+            # runs, and a refunded run no longer holds one), so the per-root count only
+            # applies without it.
+            if not self.shared_runs and len(rows) >= self.grant.permitted_runs:
                 raise ControllerError("run_limit_reached")
             if self.shared_runs:
                 # The grant's runs across every root on this host; fails closed.
@@ -935,11 +938,52 @@ class CampaignController:
         except grant_runs.SharedRunsError:
             return
 
+    def _refundable(self, row, final, usage):
+        """The refund reason when the run POSITIVELY failed as infrastructure with a
+        readable pod record that shows no pod created (none ambiguous or recovered), else
+        None. The provider states the evidence; anything it cannot state, or any error,
+        is no refund: the run stays consumed."""
+        if not self.shared_runs or usage is None or final is not Phase.FAILED:
+            return None
+        evidence_of = getattr(self.provider, "refund_evidence", None)
+        if evidence_of is None:
+            return None
+        try:
+            evidence = evidence_of(row["run_id"])
+        except Exception:  # noqa: BLE001 - nothing proved means no refund
+            return None
+        if type(evidence) is not dict:
+            return None
+        proved = (
+            evidence.get("failed_infra") is True
+            and evidence.get("pod_record_readable") is True
+            and type(evidence.get("pods_created")) is int
+            and evidence["pods_created"] == 0
+            and type(evidence.get("pods_uncertain")) is int
+            and evidence["pods_uncertain"] == 0
+        )
+        return grant_runs.REFUND_FAILED_INFRA if proved else None
+
     def _settle(self, key, final, status):
         with self._db() as db:
             row = self._rows(db, "WHERE key=?", (key,))[0]
         usage = self._usage(key, row)
-        self._weekly_settle(key, usage)
+        reason = self._refundable(row, final, usage)
+        if reason is not None:
+            try:
+                grant_runs.refund(
+                    self.grant,
+                    self.store_id,
+                    key,
+                    usage.settled + usage.pending,
+                    pending_usd=usage.pending,
+                    reason=reason,
+                    clock=lambda: self.clock().timestamp(),
+                )
+            except grant_runs.SharedRunsError:
+                self._weekly_settle(key, usage)  # no refund: the slot stays consumed
+        else:
+            self._weekly_settle(key, usage)
         with self._db() as db:
             db.execute("UPDATE runs SET phase=? WHERE key=?", (final.value, key))
             if usage is not None:
