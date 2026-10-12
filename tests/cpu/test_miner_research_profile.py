@@ -147,11 +147,24 @@ class Inspector:
 
 
 def inspected(run, **host):
-    labels = {"org.opencontainers.image.carbon.lane": mc.LANE}
     profile = run.resource_profile
-    if profile is not None:
+    # Under a profile the lane is bounded: only /input is mounted and scratch
+    # is the capped tmpfs (LANE-RESOURCE-BOUND-01).
+    lane = mc.LANE if profile is None else mc.BOUNDED_LANE
+    labels = {"org.opencontainers.image.carbon.lane": lane}
+    mounts = [
+        {
+            "Destination": "/input",
+            "Source": str(run.input_directory),
+            "RW": False,
+        }
+    ]
+    if profile is None:
+        mounts.append({"Destination": "/scratch", "Source": str(run.scratch_directory)})
+    else:
         labels[mc._PROFILE_LABEL] = profile.digest()
         host = {
+            "Tmpfs": {"/scratch": mc.SCRATCH_TMPFS_OPTIONS},
             "NanoCpus": profile.cpus * 10**9,
             "Memory": profile.memory_bytes,
             "MemorySwap": profile.memory_bytes,
@@ -174,14 +187,7 @@ def inspected(run, **host):
             "SecurityOpt": ["no-new-privileges=true"],
             **host,
         },
-        "Mounts": [
-            {
-                "Destination": "/input",
-                "Source": str(run.input_directory),
-                "RW": False,
-            },
-            {"Destination": "/scratch", "Source": str(run.scratch_directory)},
-        ],
+        "Mounts": mounts,
     }
 
 
