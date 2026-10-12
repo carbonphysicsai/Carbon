@@ -11,8 +11,19 @@ left these values HUMAN_INPUT.
   recover from one or two near-limit misses; 5 is the sensitivity point.
 - **Verification budget:** k complete panels, at 120 s wall each. 120 s is
   about 1.5 times the measured median solve (82 CPU-s per solve on the
-  pinned truth image, B4's 210 solves). A solve that runs longer uses up
-  budget and can stop the list early; the share that stops is reported.
+  pinned truth image, B4's 210 solves).
+  - **Amended 2026-10-12 (SCORE-PROOF-01 amendment 9).** As first recorded,
+    a solve that ran longer used up budget and could stop the list early,
+    with the stopped share reported. In the run that stopped 35-42% of
+    lists. The recorded `wall_s` measures the solver host, not the model
+    being judged, and slow solves cluster on near-limit, refined lattice
+    points, so charging it biased against exactly the picks that matter.
+    Every verified panel is now charged the registered 120 s allotment, so
+    the budget is exactly k panels. Overruns are counted
+    (`panels_over_allotment`) and unmeasured records are counted
+    (`cost_unmeasured_panels`), but neither stops a list. The owner
+    confirmed this change directly in the PR Head session; k, the 120 s
+    allotment and the regret unit below are unchanged.
 - **Regret unit:** 1,200 s. That is EV4's false-acceptance cost (10) times
   its minimum useful improvement (120 s), which keeps EV4's provisional cost
   ratios: finding nothing feasible costs 1.0, as a false acceptance does,
