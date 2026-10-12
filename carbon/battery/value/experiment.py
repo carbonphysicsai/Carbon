@@ -609,6 +609,15 @@ def member_bundle(
             (strategy, seed)
         ]:
             raise ExperimentError(LEVEL_REFUSED, member)
+        identity = None
+        if panel_name == "ev4-dev-proof-bundled":
+            identity = pn.BUNDLED_IDENTITIES.get(member)
+            try:
+                variant_digest = level_compiler.variant_digest(level, arm)
+            except level_compiler.LevelCompileRefused as refused:
+                raise ExperimentError(LEVEL_REFUSED, member) from refused
+            if identity is None or variant_digest != identity["variant_digest"]:
+                raise ExperimentError(LEVEL_REFUSED, member)
         try:
             strategy = level_compiler.base_for(strategy, level, arm)
         except level_compiler.LevelCompileRefused as refused:
@@ -616,6 +625,12 @@ def member_bundle(
     elif arm is not None:
         raise ExperimentError(LEVEL_REFUSED, member)
     _, recipe = compile_recipe(strategy)
+    if (
+        level
+        and identity is not None
+        and recipe.recipe_digest != identity["recipe_digest"]
+    ):
+        raise ExperimentError(LEVEL_REFUSED, member)
     started = time.monotonic()
     state, stats = backend.reconstruct(f"ev1-rec-{member}", recipe, seed)
     trained = time.monotonic() - started

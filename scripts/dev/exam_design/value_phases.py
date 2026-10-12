@@ -187,13 +187,19 @@ def run_value_panel(cfg, out, *, backend=None):
         )
         backend = DirectBackend(".")
     contract, contract_digest = ev.load(Path(cfg["contract"]))
-    if contract.get("panel") == "ev4-dev-proof-l1":
+    if contract.get("panel") in ("ev4-dev-proof-l1", "ev4-dev-proof-bundled"):
         from scripts.dev.battery import l1_decision_q1 as l1
 
-        if contract_digest != ev.load(l1.CONTRACT)[1]:
-            raise ValueError("L1 panel requires its exact registered public contract")
+        registered = (
+            l1.CONTRACT
+            if contract["panel"] == "ev4-dev-proof-l1"
+            else Path(__file__).resolve().parents[3]
+            / "carbon/battery/value/contracts/ev4-dev-proof-bundled-v1.json"
+        )
+        if contract_digest != ev.load(registered)[1]:
+            raise ValueError("public panel requires its exact registered contract")
         if contract.get("public_reference_sha256") != l1.REFERENCE_SHA:
-            raise ValueError("L1 panel public reference digest changed")
+            raise ValueError("public panel reference digest changed")
         inputs = panel_inputs(contract, ".", scoring_set=l1.public_ev4_scoring_set)
     else:
         inputs = panel_inputs(contract, ".")
