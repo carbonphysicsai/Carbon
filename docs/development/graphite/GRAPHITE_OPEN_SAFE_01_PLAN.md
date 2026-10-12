@@ -79,7 +79,7 @@ filed (TESTED condition 3 in `ONBOARDING_PIPELINE.md`); that disposition is not 
 acceptance of Level 4, the per-run Level 5 grants, any adoption of a capability, and every spend
 approval.
 
-## 2. GRAPHITE-L5-HUNT-01: a round of Level 5 opportunity hunting (PROPOSALS ONLY)
+## 2. GRAPHITE-L5-HUNT-01: a round of Level 5 opportunity hunting (PROPOSALS ONLY; the runs are approved, the findings are not)
 
 **Authority and frame.** The owner's direction is "for graphite to find all positive level 5
 opportunities and add them into the base image for every miner" (OWNER-CHALLENGE-ONBOARDING-LADDER-01).
@@ -113,7 +113,7 @@ refusals, and the Attacker's failed attempts), and re-ranks.
 UNMEASURED with the tool that would measure it), the containment, the attacks tried and their results, and
 the owner question. No adoption, no base-image change, no grant authored.
 
-## 3. One spend line for the owner (PROPOSAL; the grant file binds spend, not this page)
+## 3. The spend line (hunt and Constructor pass approved by the owner; the grant file binds spend, not this page)
 
 Public repo: caps, rates and run counts only. Per-run worst cases are from the committed grants. The run
 counts below are from the executor host's grant-runs ledger (read-only, 2026-10-12; the ledger is not
@@ -144,38 +144,40 @@ ledger is reservation-based (a safety-conservative basis) and holds no settled p
 are the binding limit here: a grant's ceiling is its permitted runs times the worst-case run cost, and the
 runs actually cost less than that worst case.
 
-**New money (PROPOSAL).**
+**New money (approved 2026-10-12: OWNER-GRAPHITE-OPEN-SAFE-01-GRANTS, #1163; two separate ceilings, no transfer between them).**
 
 | Item | Runs | Worst case |
 |---|---|---|
 | Hunt, Constructor at L4 with the wish channel, 4 themes (compute and steps; PyTorch families; solver ops; kernels and libraries): 4 x 14.91 = 59.64, cleanup 0.12 | 4 | 59.76 |
 | Hunt, Attacker against each shortlisted candidate: 2 x 13.41 = 26.82, cleanup 0.13 | 2 | 26.95 |
-| **Hunt total** | 6 | **86.71** |
-| Optional: one more max-freedom Constructor pass each at L2, L3 and L4 after brief changes (3 x 14.91 = 44.73, cleanup 0.12), because the approved Constructor runs are consumed | 3 | 44.85 |
-| **New money, hunt plus optional re-pass** | 9 | **131.56** |
+| **Hunt total (the owner's "L5 hunt" ceiling)** | 6 | **86.71** |
+| One more max-freedom Constructor pass each at L2, L3 and L4 after brief changes (3 x 14.91 = 44.73, cleanup 0.12), because the earlier Constructor runs are consumed (the owner's "L2-L4 Constructor pass" ceiling) | 3 | 44.85 |
+| **Approved, hunt plus Constructor pass** | 9 | **131.56** |
 
 **The one line:** "Graphite open-and-safe: the approved Constructor runs of stages B and C are used up (6 of 6, 3 of 3);
-3 approved Attacker runs remain (USD 40.23 worst case); the Level 5 hunt is a PROPOSED USD 86.71 (4 Constructor
-runs at 14.91, 2 Attacker runs at 13.41, cleanup 0.12 and 0.13), plus an optional USD 44.85 for one more
-Constructor pass each at L2 to L4; USD 131.56 new at most, at the 0.65 per hour pod ceiling."
+3 approved Attacker runs remain (USD 40.23 worst case); the owner approved USD 86.71 for the Level 5 hunt (4 Constructor
+runs at 14.91, 2 Attacker runs at 13.41, cleanup 0.12 and 0.13) and USD 44.85 for one more Constructor pass
+each at L2 to L4, USD 131.56 in all (#1163), at the 0.65 per hour pod ceiling."
 
 **Assumptions.**
 - The hunt runs under a new R4-style grant bound to Level 4 (and the wish channel), plus a kimi-k3 Attacker grant. The existing stage C grants cover three Constructor and two Attacker runs at L4 and cannot be borrowed for the hunt.
 - The hunt Constructor costs the same as an R4 run; the Attacker is priced as in the wave plan.
 - Stage A (L0 and L1) grants are separate and not repeated here; their remaining runs were not checked.
 
-**The weekly cap (OWNER-TESTNET-WEEKLY-BUDGET-01).** USD 150 across any rolling seven days, pods plus model
-charges, enforced on the host ledger (#1067). A run is reserved at its worst case at launch and settled at
+**The weekly cap (OWNER-TESTNET-WEEKLY-BUDGET-01, amended by OWNER-TEST-GRANT-01, #1167).** USD 300 across any
+rolling seven days and USD 50 per run, pods plus model charges, enforced on the host ledger (#1067, #1168). The
+ledger's constants follow the record once the cap PR (#1178) merges; until then the host ledger still reads 150.
+The figures below were derived against 150 and fit within 300 with room to spare. A run is reserved at its worst case at launch and settled at
 its reported cost, and a launch that would pass the cap is refused (`weekly_budget_reached`). The usage so far is a moving number: read it with
 `python -m carbon.agent_campaign.grant_runs weekly` before each wave. The ledger's window starts with the
 ledger, so spend before it (including the seeded Constructor runs) is not counted in it. Consequences:
-- The approved Attacker runs left (40.23) plus the hunt (86.71) are 126.94 at worst-case reservation: one window, if the rolling usage is at most 23.06 when they launch. The optional re-pass (44.85) makes 171.79, which needs a second window.
+- The approved Attacker runs left (40.23) plus the hunt (86.71) are 126.94 at worst-case reservation: one window at the old 150 cap if the rolling usage is at most 23.06 when they launch; the re-pass (44.85) makes 171.79, which needs the 300 cap or a second window.
 - Settled costs are lower than worst cases, so real scheduling can be faster. Reservations are released as runs settle.
 
 | Wave | Runs | Worst-case reservation |
 |---|---|---|
 | 1 | The 3 approved Attacker runs (L2, L3, L4 once the L4 prerequisites hold), then the hunt's 4 Constructor runs | 40.23 + 59.64 = 99.87 |
-| 2 | The hunt's 2 Attacker runs, and the optional re-pass | 26.82 (+ 44.73) |
+| 2 | The hunt's 2 Attacker runs, and the Constructor pass | 26.82 (+ 44.73) |
 
 - L4 runs wait for the prerequisites in section 1; if they slip, the L2 and L3 Attacker runs and the hunt's non-L4 themes can move forward in their place.
 - Server runs (CCX63), mainnet and anything over the cap are not covered by the weekly budget and stay the owner's.
