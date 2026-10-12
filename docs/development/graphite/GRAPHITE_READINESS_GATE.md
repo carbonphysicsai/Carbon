@@ -74,6 +74,7 @@ fails the gate gets no live Graphite run, at any level.
 | R5 | Grants: a per-challenge grant bound to main's blob, priced with lost-run headroom, tokens-only where no pods run. | [auto] | I2 |
 | R6 | Host: free disk at least the threshold, and a host window agreed in writing between the executor and Data Collection. | [auto] disk; [review] window | E5, E6 |
 | R7 | Agent-facing budget text matches the real ledger; no "0 of 0". | [auto] | E9 |
+| R8 | Level 4 only: the hostile-model lowering probe (memory, time, scratch flood) passed on the current analysis image digest. A readiness item, not a security acceptance. | [auto] | B17 |
 
 ## A. Attack instrument
 
