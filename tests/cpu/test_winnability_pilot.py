@@ -164,6 +164,7 @@ def test_reference_unresolved_is_not_a_candidate_failure():
         "value": None,
     }
     source["panel"] = eb.seal(body)
+    source["learning"][0]["reference_status"] = "UNRESOLVED"
     source["learning"][0]["pointwise_error"] = None
     source["learning"][0]["decision_agreement"] = None
     source["learning"][0]["false_feasible"] = None
@@ -176,6 +177,10 @@ def test_reference_unresolved_is_not_a_candidate_failure():
         == "UNRESOLVED_PANEL"
     )
     assert report["advantage_and_headroom"][0]["model_vs_cheap"] == []
+    assert report["learnable"]["toy-interior"]["unresolved_count"] == 1
+    source["learning"][0]["false_feasible"] = True
+    with pytest.raises(wp.WinnabilityError, match="unresolved references"):
+        wp.evaluate(source, bootstrap_replicates=100, confidence=0.95, seed=7)
 
 
 def test_battery_retro_checks_public_digests_and_keeps_missing_costs(tmp_path):

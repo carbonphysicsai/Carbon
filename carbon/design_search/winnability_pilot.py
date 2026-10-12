@@ -82,9 +82,9 @@ def _learning(rows, panel):
             raise WinnabilityError("registered stratum required")
         statuses = {c["reference"]["status"] for c in jobs[job_id]["candidates"]}
         expected = (
-            "FEASIBLE_EXISTS"
-            if "FEASIBLE" in statuses
-            else "UNRESOLVED" if "UNRESOLVED" in statuses else "NONE_FEASIBLE"
+            "UNRESOLVED"
+            if "UNRESOLVED" in statuses
+            else "FEASIBLE_EXISTS" if "FEASIBLE" in statuses else "NONE_FEASIBLE"
         )
         if row["reference_status"] != expected:
             raise WinnabilityError("learning reference status differs from panel")
