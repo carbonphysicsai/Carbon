@@ -284,13 +284,16 @@ def test_run_spends_only_with_the_owners_enabling_file(tmp_path):
     for document in (
         {"enabled": False, "upload_roots": []},
         {"enabled": True, "upload_roots": ["relative"]},
-        {"enabled": True, "upload_roots": ["/home/carbon/shared/evidence"]},
+        {"enabled": True, "upload_roots": [str(tmp_path / "shared" / "evidence")]},
     ):
         enable.write_text(json.dumps(document))
         with pytest.raises(pod_jobs.SpecRefused):
             pod_jobs.require_enabled(key)
     enable.write_text(json.dumps({"enabled": True, "upload_roots": [str(tmp_path)]}))
     assert pod_jobs.require_enabled(key) == [str(tmp_path)]
+    # A home-relative root is expanded, never kept as a literal "~" directory.
+    enable.write_text(json.dumps({"enabled": True, "upload_roots": ["~/pod-uploads"]}))
+    assert pod_jobs.require_enabled(key) == [str(Path("~/pod-uploads").expanduser())]
 
 
 def test_uploads_come_only_from_an_allowed_public_root(tmp_path):
@@ -323,7 +326,7 @@ def test_uploads_come_only_from_an_allowed_public_root(tmp_path):
     "name",
     [
         "a b.json",
-        "cafÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©.json",
+        "cafÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©.json",
         "x%2e.json",
         "ev4/a.json",
         "private/a.json",

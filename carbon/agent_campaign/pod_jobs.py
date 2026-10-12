@@ -721,22 +721,25 @@ def read_uploads(spec, directory, roots):
 
 def require_enabled(key_file):
     """The owner's enabling file beside the key file: `run` spends only when it
-    says `"enabled": true`, and uploads come only from its `upload_roots`.
-    Missing or malformed: `SpecRefused("pod_jobs_not_enabled")`."""
+    says `"enabled": true`, and uploads come only from its `upload_roots`
+    (absolute, or `~user/...`, expanded here). Missing or malformed:
+    `SpecRefused("pod_jobs_not_enabled")`."""
     path = Path(key_file).expanduser().parent / ENABLE_FILE
     try:
         document = json.loads(path.read_text())
     except (OSError, ValueError):
         raise SpecRefused("pod_jobs_not_enabled", str(path)) from None
-    roots = document.get("upload_roots") if type(document) is dict else None
-    if (
-        document.get("enabled") is not True
-        or type(roots) is not list
-        or not all(type(r) is str and Path(r).is_absolute() for r in roots)
-        or any(_sealed(r) for r in roots)
+    if type(document) is not dict or document.get("enabled") is not True:
+        raise SpecRefused("pod_jobs_not_enabled", str(path))
+    roots = document.get("upload_roots")
+    if type(roots) is not list or not all(type(r) is str for r in roots):
+        raise SpecRefused("pod_jobs_not_enabled", str(path))
+    expanded = [str(Path(r).expanduser()) for r in roots]
+    if not all(Path(r).is_absolute() for r in expanded) or any(
+        _sealed(r) for r in expanded
     ):
         raise SpecRefused("pod_jobs_not_enabled", str(path))
-    return roots
+    return expanded
 
 
 # -- one job end to end ---------------------------------------------------------------------

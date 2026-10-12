@@ -24,11 +24,11 @@ miner's; the launcher never prints, logs or stores it.
 **The owner's switch.** `run` spends only when `pod-jobs.json` sits beside the key file:
 
 ```json
-{"enabled": true, "upload_roots": ["/home/carbon/runs/pod-uploads"]}
+{"enabled": true, "upload_roots": ["~carbon/runs/pod-uploads"]}
 ```
 
 Without it, or with `enabled` not true, `run` refuses (`pod_jobs_not_enabled`); a key
-file alone never spends. `upload_roots` is the allow-list uploads may come from, and no
+file alone never spends. `upload_roots` (absolute or `~user/...`) is the allow-list uploads may come from, and no
 root may sit under a sealed, hidden or evidence path. `check` needs neither.
 
 **Before the first live job** seed the weekly ledger with every earlier controller root
