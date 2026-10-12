@@ -1,0 +1,644 @@
+{
+  "existing_public_tuples": 8,
+  "inventory_basis": "No complete public completed/scheduled inventory supplied; do not assume no reuse",
+  "registration_adopted": false,
+  "results": [
+    {
+      "basis": {
+        "case_count": 1,
+        "inventory_basis": null,
+        "inventory_coverage": "UNKNOWN_NO_INDEX",
+        "inventory_digest": null,
+        "panel_generator": "carbon.onboarding.panel-draft.v1",
+        "requested_aliases": 1,
+        "seed_digest": "sha256:671c7d0736f39d286c3ede43d9ffa13d40c80241ff1bda9f7d11fd3bc10d9715"
+      },
+      "challenge": "f02",
+      "completed": [],
+      "conflicts": [],
+      "cost": {
+        "basis": "UNKNOWN",
+        "cpu_hours_new_only": null,
+        "eur": null
+      },
+      "execution_authorized": false,
+      "held_closed": "DC verifies inventory receipts and adopts registration; science support, image availability, reference acceptance and exact grant remain independent. No solver/spend or exposure renewal.",
+      "maturity": "PREPARATION_ONLY",
+      "missing_pins": [
+        "materials",
+        "environment",
+        "geometry_grammar",
+        "observer",
+        "solver"
+      ],
+      "new": [],
+      "registration_adopted": false,
+      "registration_input_ready": false,
+      "reuse_verified_by_tool": false,
+      "scheduled": [],
+      "schema": "carbon.onboarding.panel-registration-diff.v1",
+      "tuples": [
+        {
+          "aliases": [
+            {
+              "design": "cool-rect-low",
+              "rung": "proposed-standard",
+              "stratum": "cool-rect"
+            }
+          ],
+          "physical_identity": null,
+          "proposal_digest": "sha256:8da457a242cd0e027452078103e583f115bf295549c21932c14c865101d82093",
+          "receipts": [],
+          "reuse_state": "UNSEEN",
+          "tuple": {
+            "challenge": "f02",
+            "coordinates": {
+              "on_time_s": 5,
+              "peak_w": 80,
+              "waveform": "rectangular"
+            },
+            "inputs": {
+              "coolant_c": 30,
+              "h_w_m2_k": 2500,
+              "initial_c": 40,
+              "left_source_fraction": 0.5
+            },
+            "pins": {
+              "environment": null,
+              "geometry_grammar": null,
+              "materials": null,
+              "observer": null,
+              "solver": null
+            },
+            "rung_settings": {
+              "dt_scale": 1,
+              "mesh_level": 1
+            }
+          }
+        }
+      ],
+      "unseen": [
+        "sha256:8da457a242cd0e027452078103e583f115bf295549c21932c14c865101d82093"
+      ],
+      "unused_inventory_identities": 0
+    },
+    {
+      "basis": {
+        "case_count": 1,
+        "inventory_basis": null,
+        "inventory_coverage": "UNKNOWN_NO_INDEX",
+        "inventory_digest": null,
+        "panel_generator": "carbon.onboarding.panel-draft.v1",
+        "requested_aliases": 1,
+        "seed_digest": "sha256:92ec2392cd8e8e36ba942c42601bffa9e13058304a47f1729f6d669148fe2afa"
+      },
+      "challenge": "f02",
+      "completed": [],
+      "conflicts": [],
+      "cost": {
+        "basis": "UNKNOWN",
+        "cpu_hours_new_only": null,
+        "eur": null
+      },
+      "execution_authorized": false,
+      "held_closed": "DC verifies inventory receipts and adopts registration; science support, image availability, reference acceptance and exact grant remain independent. No solver/spend or exposure renewal.",
+      "maturity": "PREPARATION_ONLY",
+      "missing_pins": [
+        "materials",
+        "environment",
+        "geometry_grammar",
+        "observer",
+        "solver"
+      ],
+      "new": [],
+      "registration_adopted": false,
+      "registration_input_ready": false,
+      "reuse_verified_by_tool": false,
+      "scheduled": [],
+      "schema": "carbon.onboarding.panel-registration-diff.v1",
+      "tuples": [
+        {
+          "aliases": [
+            {
+              "design": "cool-rect-middle",
+              "rung": "proposed-standard",
+              "stratum": "cool-rect"
+            }
+          ],
+          "physical_identity": null,
+          "proposal_digest": "sha256:267b070fe744d8d1561f3158b0b153b8c211de1c67006ecdcb07f0e1f54e374e",
+          "receipts": [],
+          "reuse_state": "UNSEEN",
+          "tuple": {
+            "challenge": "f02",
+            "coordinates": {
+              "on_time_s": 10,
+              "peak_w": 110,
+              "waveform": "rectangular"
+            },
+            "inputs": {
+              "coolant_c": 30,
+              "h_w_m2_k": 2500,
+              "initial_c": 40,
+              "left_source_fraction": 0.5
+            },
+            "pins": {
+              "environment": null,
+              "geometry_grammar": null,
+              "materials": null,
+              "observer": null,
+              "solver": null
+            },
+            "rung_settings": {
+              "dt_scale": 1,
+              "mesh_level": 1
+            }
+          }
+        }
+      ],
+      "unseen": [
+        "sha256:267b070fe744d8d1561f3158b0b153b8c211de1c67006ecdcb07f0e1f54e374e"
+      ],
+      "unused_inventory_identities": 0
+    },
+    {
+      "basis": {
+        "case_count": 1,
+        "inventory_basis": null,
+        "inventory_coverage": "UNKNOWN_NO_INDEX",
+        "inventory_digest": null,
+        "panel_generator": "carbon.onboarding.panel-draft.v1",
+        "requested_aliases": 1,
+        "seed_digest": "sha256:213b9576017c2a4023e839553163e8de66fc4fe3996a6bbe6809b30ca29d514d"
+      },
+      "challenge": "f02",
+      "completed": [],
+      "conflicts": [],
+      "cost": {
+        "basis": "UNKNOWN",
+        "cpu_hours_new_only": null,
+        "eur": null
+      },
+      "execution_authorized": false,
+      "held_closed": "DC verifies inventory receipts and adopts registration; science support, image availability, reference acceptance and exact grant remain independent. No solver/spend or exposure renewal.",
+      "maturity": "PREPARATION_ONLY",
+      "missing_pins": [
+        "materials",
+        "environment",
+        "geometry_grammar",
+        "observer",
+        "solver"
+      ],
+      "new": [],
+      "registration_adopted": false,
+      "registration_input_ready": false,
+      "reuse_verified_by_tool": false,
+      "scheduled": [],
+      "schema": "carbon.onboarding.panel-registration-diff.v1",
+      "tuples": [
+        {
+          "aliases": [
+            {
+              "design": "cool-rect-short-high",
+              "rung": "proposed-standard",
+              "stratum": "cool-rect"
+            }
+          ],
+          "physical_identity": null,
+          "proposal_digest": "sha256:e7a4e3e3942f3e18b92b79573805a398fbdb38ca42da64600ba0af32d680128b",
+          "receipts": [],
+          "reuse_state": "UNSEEN",
+          "tuple": {
+            "challenge": "f02",
+            "coordinates": {
+              "on_time_s": 5,
+              "peak_w": 140,
+              "waveform": "rectangular"
+            },
+            "inputs": {
+              "coolant_c": 30,
+              "h_w_m2_k": 2500,
+              "initial_c": 40,
+              "left_source_fraction": 0.5
+            },
+            "pins": {
+              "environment": null,
+              "geometry_grammar": null,
+              "materials": null,
+              "observer": null,
+              "solver": null
+            },
+            "rung_settings": {
+              "dt_scale": 1,
+              "mesh_level": 1
+            }
+          }
+        }
+      ],
+      "unseen": [
+        "sha256:e7a4e3e3942f3e18b92b79573805a398fbdb38ca42da64600ba0af32d680128b"
+      ],
+      "unused_inventory_identities": 0
+    },
+    {
+      "basis": {
+        "case_count": 1,
+        "inventory_basis": null,
+        "inventory_coverage": "UNKNOWN_NO_INDEX",
+        "inventory_digest": null,
+        "panel_generator": "carbon.onboarding.panel-draft.v1",
+        "requested_aliases": 1,
+        "seed_digest": "sha256:68f14b134e4afd5026e1fe286b817094d21b959d8c104c4e03eeec27fb7ccd8b"
+      },
+      "challenge": "f02",
+      "completed": [],
+      "conflicts": [],
+      "cost": {
+        "basis": "UNKNOWN",
+        "cpu_hours_new_only": null,
+        "eur": null
+      },
+      "execution_authorized": false,
+      "held_closed": "DC verifies inventory receipts and adopts registration; science support, image availability, reference acceptance and exact grant remain independent. No solver/spend or exposure renewal.",
+      "maturity": "PREPARATION_ONLY",
+      "missing_pins": [
+        "materials",
+        "environment",
+        "geometry_grammar",
+        "observer",
+        "solver"
+      ],
+      "new": [],
+      "registration_adopted": false,
+      "registration_input_ready": false,
+      "reuse_verified_by_tool": false,
+      "scheduled": [],
+      "schema": "carbon.onboarding.panel-registration-diff.v1",
+      "tuples": [
+        {
+          "aliases": [
+            {
+              "design": "cool-rect-long-high",
+              "rung": "proposed-standard",
+              "stratum": "cool-rect"
+            }
+          ],
+          "physical_identity": null,
+          "proposal_digest": "sha256:904a17eab9c19e1f0f8b518d59b956c437fc579b51cee27ca8f77e0d99204d26",
+          "receipts": [],
+          "reuse_state": "UNSEEN",
+          "tuple": {
+            "challenge": "f02",
+            "coordinates": {
+              "on_time_s": 20,
+              "peak_w": 140,
+              "waveform": "rectangular"
+            },
+            "inputs": {
+              "coolant_c": 30,
+              "h_w_m2_k": 2500,
+              "initial_c": 40,
+              "left_source_fraction": 0.5
+            },
+            "pins": {
+              "environment": null,
+              "geometry_grammar": null,
+              "materials": null,
+              "observer": null,
+              "solver": null
+            },
+            "rung_settings": {
+              "dt_scale": 1,
+              "mesh_level": 1
+            }
+          }
+        }
+      ],
+      "unseen": [
+        "sha256:904a17eab9c19e1f0f8b518d59b956c437fc579b51cee27ca8f77e0d99204d26"
+      ],
+      "unused_inventory_identities": 0
+    },
+    {
+      "basis": {
+        "case_count": 1,
+        "inventory_basis": null,
+        "inventory_coverage": "UNKNOWN_NO_INDEX",
+        "inventory_digest": null,
+        "panel_generator": "carbon.onboarding.panel-draft.v1",
+        "requested_aliases": 1,
+        "seed_digest": "sha256:a7cbf44ad2b9c94d6fc654e49237ab2cd603d5c82a64612d41a0285f00980fe4"
+      },
+      "challenge": "f02",
+      "completed": [],
+      "conflicts": [],
+      "cost": {
+        "basis": "UNKNOWN",
+        "cpu_hours_new_only": null,
+        "eur": null
+      },
+      "execution_authorized": false,
+      "held_closed": "DC verifies inventory receipts and adopts registration; science support, image availability, reference acceptance and exact grant remain independent. No solver/spend or exposure renewal.",
+      "maturity": "PREPARATION_ONLY",
+      "missing_pins": [
+        "materials",
+        "environment",
+        "geometry_grammar",
+        "observer",
+        "solver"
+      ],
+      "new": [],
+      "registration_adopted": false,
+      "registration_input_ready": false,
+      "reuse_verified_by_tool": false,
+      "scheduled": [],
+      "schema": "carbon.onboarding.panel-registration-diff.v1",
+      "tuples": [
+        {
+          "aliases": [
+            {
+              "design": "warm-ramp-low",
+              "rung": "proposed-standard",
+              "stratum": "warm-ramp"
+            }
+          ],
+          "physical_identity": null,
+          "proposal_digest": "sha256:aded7be6060d44d1fc1f1bbb54146613e2a29afed51e256a7c61dad17759359f",
+          "receipts": [],
+          "reuse_state": "UNSEEN",
+          "tuple": {
+            "challenge": "f02",
+            "coordinates": {
+              "on_time_s": 20,
+              "peak_w": 80,
+              "waveform": "ramp"
+            },
+            "inputs": {
+              "coolant_c": 40,
+              "h_w_m2_k": 1500,
+              "initial_c": 55,
+              "left_source_fraction": 0.8
+            },
+            "pins": {
+              "environment": null,
+              "geometry_grammar": null,
+              "materials": null,
+              "observer": null,
+              "solver": null
+            },
+            "rung_settings": {
+              "dt_scale": 1,
+              "mesh_level": 1
+            }
+          }
+        }
+      ],
+      "unseen": [
+        "sha256:aded7be6060d44d1fc1f1bbb54146613e2a29afed51e256a7c61dad17759359f"
+      ],
+      "unused_inventory_identities": 0
+    },
+    {
+      "basis": {
+        "case_count": 1,
+        "inventory_basis": null,
+        "inventory_coverage": "UNKNOWN_NO_INDEX",
+        "inventory_digest": null,
+        "panel_generator": "carbon.onboarding.panel-draft.v1",
+        "requested_aliases": 1,
+        "seed_digest": "sha256:16609126ee1ae716cd2db48a227c6865b2b5a356bc3505fdaad6e26aa7dbe513"
+      },
+      "challenge": "f02",
+      "completed": [],
+      "conflicts": [],
+      "cost": {
+        "basis": "UNKNOWN",
+        "cpu_hours_new_only": null,
+        "eur": null
+      },
+      "execution_authorized": false,
+      "held_closed": "DC verifies inventory receipts and adopts registration; science support, image availability, reference acceptance and exact grant remain independent. No solver/spend or exposure renewal.",
+      "maturity": "PREPARATION_ONLY",
+      "missing_pins": [
+        "materials",
+        "environment",
+        "geometry_grammar",
+        "observer",
+        "solver"
+      ],
+      "new": [],
+      "registration_adopted": false,
+      "registration_input_ready": false,
+      "reuse_verified_by_tool": false,
+      "scheduled": [],
+      "schema": "carbon.onboarding.panel-registration-diff.v1",
+      "tuples": [
+        {
+          "aliases": [
+            {
+              "design": "warm-ramp-high",
+              "rung": "proposed-standard",
+              "stratum": "warm-ramp"
+            }
+          ],
+          "physical_identity": null,
+          "proposal_digest": "sha256:f7c5e0e38544c4a0e5ffc82d38b2203643945ab5b018ed0dd3b6711f0ba41061",
+          "receipts": [],
+          "reuse_state": "UNSEEN",
+          "tuple": {
+            "challenge": "f02",
+            "coordinates": {
+              "on_time_s": 10,
+              "peak_w": 140,
+              "waveform": "ramp"
+            },
+            "inputs": {
+              "coolant_c": 40,
+              "h_w_m2_k": 1500,
+              "initial_c": 55,
+              "left_source_fraction": 0.8
+            },
+            "pins": {
+              "environment": null,
+              "geometry_grammar": null,
+              "materials": null,
+              "observer": null,
+              "solver": null
+            },
+            "rung_settings": {
+              "dt_scale": 1,
+              "mesh_level": 1
+            }
+          }
+        }
+      ],
+      "unseen": [
+        "sha256:f7c5e0e38544c4a0e5ffc82d38b2203643945ab5b018ed0dd3b6711f0ba41061"
+      ],
+      "unused_inventory_identities": 0
+    },
+    {
+      "basis": {
+        "case_count": 1,
+        "inventory_basis": null,
+        "inventory_coverage": "UNKNOWN_NO_INDEX",
+        "inventory_digest": null,
+        "panel_generator": "carbon.onboarding.panel-draft.v1",
+        "requested_aliases": 1,
+        "seed_digest": "sha256:689c80e8c4e1b6bb3342ef27629f6881d444725d920da34ac45603d2c9547452"
+      },
+      "challenge": "f02",
+      "completed": [],
+      "conflicts": [],
+      "cost": {
+        "basis": "UNKNOWN",
+        "cpu_hours_new_only": null,
+        "eur": null
+      },
+      "execution_authorized": false,
+      "held_closed": "DC verifies inventory receipts and adopts registration; science support, image availability, reference acceptance and exact grant remain independent. No solver/spend or exposure renewal.",
+      "maturity": "PREPARATION_ONLY",
+      "missing_pins": [
+        "materials",
+        "environment",
+        "geometry_grammar",
+        "observer",
+        "solver"
+      ],
+      "new": [],
+      "registration_adopted": false,
+      "registration_input_ready": false,
+      "reuse_verified_by_tool": false,
+      "scheduled": [],
+      "schema": "carbon.onboarding.panel-registration-diff.v1",
+      "tuples": [
+        {
+          "aliases": [
+            {
+              "design": "warm-two-short",
+              "rung": "proposed-standard",
+              "stratum": "warm-two"
+            }
+          ],
+          "physical_identity": null,
+          "proposal_digest": "sha256:04bb4d92aa005cfaa99d264c20df01dfb122fcf482169714a616ab0991ef699a",
+          "receipts": [],
+          "reuse_state": "UNSEEN",
+          "tuple": {
+            "challenge": "f02",
+            "coordinates": {
+              "on_time_s": 5,
+              "peak_w": 140,
+              "waveform": "two-pulse"
+            },
+            "inputs": {
+              "coolant_c": 40,
+              "h_w_m2_k": 1500,
+              "initial_c": 55,
+              "left_source_fraction": 0.8
+            },
+            "pins": {
+              "environment": null,
+              "geometry_grammar": null,
+              "materials": null,
+              "observer": null,
+              "solver": null
+            },
+            "rung_settings": {
+              "dt_scale": 1,
+              "mesh_level": 1
+            }
+          }
+        }
+      ],
+      "unseen": [
+        "sha256:04bb4d92aa005cfaa99d264c20df01dfb122fcf482169714a616ab0991ef699a"
+      ],
+      "unused_inventory_identities": 0
+    },
+    {
+      "basis": {
+        "case_count": 1,
+        "inventory_basis": null,
+        "inventory_coverage": "UNKNOWN_NO_INDEX",
+        "inventory_digest": null,
+        "panel_generator": "carbon.onboarding.panel-draft.v1",
+        "requested_aliases": 1,
+        "seed_digest": "sha256:900744d2853f3128ae915a5690a4197d8f10ef77cc83022f885695f83d4cc6e8"
+      },
+      "challenge": "f02",
+      "completed": [],
+      "conflicts": [],
+      "cost": {
+        "basis": "UNKNOWN",
+        "cpu_hours_new_only": null,
+        "eur": null
+      },
+      "execution_authorized": false,
+      "held_closed": "DC verifies inventory receipts and adopts registration; science support, image availability, reference acceptance and exact grant remain independent. No solver/spend or exposure renewal.",
+      "maturity": "PREPARATION_ONLY",
+      "missing_pins": [
+        "materials",
+        "environment",
+        "geometry_grammar",
+        "observer",
+        "solver"
+      ],
+      "new": [],
+      "registration_adopted": false,
+      "registration_input_ready": false,
+      "reuse_verified_by_tool": false,
+      "scheduled": [],
+      "schema": "carbon.onboarding.panel-registration-diff.v1",
+      "tuples": [
+        {
+          "aliases": [
+            {
+              "design": "warm-two-long",
+              "rung": "proposed-standard",
+              "stratum": "warm-two"
+            }
+          ],
+          "physical_identity": null,
+          "proposal_digest": "sha256:6af2fad87ae7adec5633d79117b1329a0fced75ff5c277b78149512f99acffcd",
+          "receipts": [],
+          "reuse_state": "UNSEEN",
+          "tuple": {
+            "challenge": "f02",
+            "coordinates": {
+              "on_time_s": 20,
+              "peak_w": 110,
+              "waveform": "two-pulse"
+            },
+            "inputs": {
+              "coolant_c": 40,
+              "h_w_m2_k": 1500,
+              "initial_c": 55,
+              "left_source_fraction": 0.8
+            },
+            "pins": {
+              "environment": null,
+              "geometry_grammar": null,
+              "materials": null,
+              "observer": null,
+              "solver": null
+            },
+            "rung_settings": {
+              "dt_scale": 1,
+              "mesh_level": 1
+            }
+          }
+        }
+      ],
+      "unseen": [
+        "sha256:6af2fad87ae7adec5633d79117b1329a0fced75ff5c277b78149512f99acffcd"
+      ],
+      "unused_inventory_identities": 0
+    }
+  ],
+  "rung_basis": "Proposed standard settings from f02 deck; adequacy/pins not accepted by this tool",
+  "scope": "PUBLIC_DEVELOPMENT_PREPARATION_ONLY",
+  "solver_runs": false,
+  "source": "docs/development/challenge_pipeline/round1/reference-route-panels.json",
+  "source_sha256": "2a1d81e8a1a099b19f10463787994e6dede32d307b36845c15d95ab548eac1c3"
+}
