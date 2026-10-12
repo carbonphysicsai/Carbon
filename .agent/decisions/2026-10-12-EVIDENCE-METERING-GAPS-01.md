@@ -26,3 +26,12 @@
 - **Acceptance:** synthetic fixture tests for complete-question timing,
   identity/inventory refusal and cost pairing; Carbon-arm and campaign
   regressions; canonical CI on the exact PR head.
+
+## Exact-source readiness binding
+
+The first PR CI run found that the three committed public readiness source
+indexes pin `carbon_arm.py` byte-for-byte. This ticket changes those bytes, so
+the battery-v3, motor and f02 item-4 pins were rebound to the new file digest
+in this same reviewable PR. Their `finding` and `missing` text did not change;
+each still reports `UNKNOWN` until actual panel/TRAIN coverage evidence exists.
+The pin refresh is an identity repair, not a readiness or qualification claim.
