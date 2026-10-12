@@ -26,7 +26,17 @@ document. It adds no field the feed does not carry and invents no value:
   stay. The feed's own rotation (`rotation`, from
   `release.rotation_every_blocks`) and its section metadata (`sections`) are
   such numbers (DASHBOARD-02 S2): shown whatever the status, while
-  `next_round.every` stays the rule's round period.
+  `next_round.every` stays the rule's round period;
+- VALIDATOR-33 A (#1143) feeds add chain time, the king from the winner
+  ledger, its handovers and the target to beat (DASHBOARD-02 S1b). The king's
+  UID, coldkey, crowning, share, next halving and defences fill the board's
+  king only when the feed's king is its released incumbent; otherwise they
+  stay null with `king_not_released`. The target's margins and noise guard
+  are values the validator posts in its signed feed, not rule statements, so
+  they show whatever the rules card's status; the rule's prose stays the
+  card's. The next release block is the feed's next rotation block, and its
+  time is an estimate from `as_of_block` at the nominal block time. With
+  `as_of_block`, the feed's age is measured from its chain time.
 
 Display software only: nothing here ranks, nominates or promotes.
 """
@@ -61,7 +71,17 @@ REASONS = (
     "sealed_until_grain",
     "grain_human_input",
     "not_a_numeric_section",
+    # VALIDATOR-33 A: the feed's king is not (yet) the released incumbent.
+    "king_not_released",
+    # The king is not paid now (ineligible, or its share is 0): no halving.
+    "king_not_paid",
+    # The deployed rule names no registered score.
+    "no_registered_score",
+    # The latest king's reign has no end yet.
+    "reigning",
 )
+#: The noise guard's parameters, as the feed's final comparison states them.
+NOISE_GUARD_KEYS = feed.COMPARISON_KEYS
 RULES_STATES = ("UNAVAILABLE", "DIGEST_MISMATCH", "OK")
 # The championship's shape (Test Lead, VALIDATOR-32 rev 7 §5), for S2. None
 # of it is in the feed yet, so `championship.rounds` and every `entry` field are
@@ -118,6 +138,27 @@ def utc_seconds(text):
     return int(moment.timestamp())
 
 
+#: The latest whole second `utc_text` writes (9999-12-31T23:59:59Z).
+_MAX_UTC_SECONDS = feed.MAX_UTC_MS // 1000
+
+
+def utc_text(seconds):
+    """`YYYY-MM-DDTHH:MM:SSZ` for whole seconds since the epoch, or None when
+    out of range."""
+    if seconds is None or not 0 <= seconds <= _MAX_UTC_SECONDS:
+        return None
+    d = datetime.datetime.fromtimestamp(seconds, tz=datetime.timezone.utc)
+    return (
+        f"{d.year:04d}-{d.month:02d}-{d.day:02d}"
+        f"T{d.hour:02d}:{d.minute:02d}:{d.second:02d}Z"
+    )
+
+
+def _utc_of_ms(ms):
+    """A feed time in UTC ms as text, to the whole second (rounded down)."""
+    return None if ms is None else utc_text(ms // 1000)
+
+
 def _span(blocks):
     """A block count with its nominal duration; None when the feed states none."""
     if blocks is None:
@@ -134,11 +175,16 @@ def _units(value, digits):
     return round(value * 10**digits)
 
 
-def freshness(generated_at, released_count, now):
-    """`(phase, freshness)` from the feed's `generated_at` and `now`."""
+def freshness(generated_at, released_count, now, as_of=None):
+    """`(phase, freshness)` from the feed's age at `now`: measured from its
+    chain time `as_of` (whole seconds, from `as_of_block`) when it carries one,
+    else from `generated_at`. `basis` says which."""
     if type(now) is not int:
         raise ValueError("now is whole seconds since the epoch")
-    stamp = utc_seconds(generated_at)
+    if as_of is not None:
+        stamp, basis = as_of, "as_of_block"
+    else:
+        stamp, basis = utc_seconds(generated_at), "generated_at"
     age = None if stamp is None else now - stamp
     if age is None or age > STALE_AFTER_SECONDS:
         phase = "STALE"
@@ -150,14 +196,19 @@ def freshness(generated_at, released_count, now):
     return phase, {
         **_fields(("age_seconds", age, reason)),
         "stale_after_seconds": STALE_AFTER_SECONDS,
+        "basis": basis,
     }
 
 
 def restamp(board, now):
     """A stored v2 board with its phase recomputed at `now` (for the last
     accepted board kept when a newer feed is refused)."""
+    as_of = board.get("as_of_block")
     phase, fresh = freshness(
-        board["generated_at"], board["next_release"]["released_windows"], now
+        board["generated_at"],
+        board["next_release"]["released_windows"],
+        now,
+        None if as_of is None else utc_seconds(as_of["timestamp_utc"]),
     )
     return {**board, "phase": phase, "freshness": fresh}
 
@@ -221,21 +272,56 @@ def _king(board, section, challengers):
         ahead = other - king if section["sense"] == "lower_is_better" else king - other
         margin = ahead / 10**digits
     gates = incumbent["sections"].get("gates")
+    ledger, why = _ledger_king(board, incumbent)
+
+    def of(key):
+        return None if ledger is None else ledger[key]
+
+    crowned_ms = of("crowned_utc_ms")
+    crowned = _utc_of_ms(crowned_ms)
+    as_of = board.get("as_of_block")
+    held = None
+    if (
+        crowned_ms is not None
+        and as_of is not None
+        and as_of["timestamp_ms"] >= crowned_ms
+    ):
+        held = (as_of["timestamp_ms"] - crowned_ms) // 1000
+    unpaid = ledger is not None and (
+        ledger["eligible"] is False or ledger["share_now"] == 0
+    )
+    submission = incumbent["submission_id"]
     return (
         _fields(
             ("hotkey", incumbent["hotkey"], None),
-            ("uid", None, "not_in_feed"),
-            ("submission_id", incumbent["submission_id"], "not_in_feed"),
+            ("uid", of("uid"), why),
+            ("coldkey", of("coldkey"), why),
+            (
+                "submission_id",
+                of("submission_id") if submission is None else submission,
+                "not_in_feed",
+            ),
             ("section", name, "no_ranking_section"),
             ("value", value, "no_ranking_section" if name is None else "not_in_feed"),
             ("registered_score", None, "not_in_feed"),
             ("since_block", incumbent["since_block"], "not_in_feed"),
-            ("since_utc", None, "not_in_feed"),
+            # Held since the crowning: a defence never resets the king's clock.
+            ("since_utc", crowned, why),
+            ("crowned_utc", crowned, why),
+            # Seconds held at the feed's chain time (`as_of_block`).
+            ("held_for", held, why),
             ("crowned_epoch", None, "not_in_feed"),
-            ("share_now", None, "not_in_feed"),
+            ("eligible", of("eligible"), why),
+            ("eligibility_reason", of("reason"), why),
+            ("share_now", of("share_now"), why),
+            (
+                "next_halving_utc",
+                _utc_of_ms(of("next_halving_utc_ms")),
+                "king_not_paid" if unpaid else why,
+            ),
             ("next_halving_epoch", None, "not_in_feed"),
-            # A defence never resets the king's clock.
-            ("defences", None, "not_in_feed"),
+            # The finals the king survived, as the feed counts them.
+            ("defences", of("challenges_survived"), why),
             # Positive: the king is ahead of the runner-up in the section's sense.
             ("margin", margin, margin_reason),
             (
@@ -252,6 +338,69 @@ def _king(board, section, challengers):
         ),
         None,
     )
+
+
+def _ledger_king(board, incumbent):
+    """`(king, reason)`: the feed's king (VALIDATOR-33 A) when it is the
+    released incumbent; else None and why its fields are null."""
+    king = board.get("king")
+    if king is None:
+        return None, "not_in_feed"
+    if king["hotkey"] != incumbent["hotkey"]:
+        return None, "king_not_released"
+    return king, "not_in_feed"
+
+
+def _target(board):
+    """The target to beat as the validator posts it in its signed feed: the
+    rule's kind, the posted (final) and screening margins, the noise guard
+    (the final comparison's parameters), the registered score and the gates.
+    `value` has no feed field yet."""
+    target = board.get("target_to_beat")
+
+    def of(key):
+        return None if target is None else target[key]
+
+    comparison = of("final_comparison")
+    score = of("score")
+    return _fields(
+        ("value", None, "not_in_feed"),
+        ("kind", of("kind"), "not_in_feed"),
+        ("posted_margin", of("final_margin_rel"), "not_in_feed"),
+        ("screening_margin", of("screening_margin_rel"), "not_in_feed"),
+        (
+            "noise_guard",
+            None
+            if comparison is None
+            else _fields(
+                *((k, comparison[k], "not_in_feed") for k in NOISE_GUARD_KEYS)
+            ),
+            "not_in_feed",
+        ),
+        (
+            "registered_score",
+            None
+            if score is None
+            else _fields(
+                ("candidate", score["candidate"], "not_in_feed"),
+                ("registry_sha256", score["registry_sha256"], "not_in_feed"),
+                ("decision", score["decision"], "not_in_feed"),
+            ),
+            "not_in_feed" if target is None else "no_registered_score",
+        ),
+        ("gates", None if of("gates") is None else list(of("gates")), "not_in_feed"),
+    )
+
+
+def _next_release_time(board, release):
+    """`(next_block, next_utc)`: the feed's next rotation block, and its time
+    estimated from `as_of_block` at the nominal block time."""
+    block = release.get("next_rotation_block")
+    as_of = board.get("as_of_block")
+    if block is None or as_of is None:
+        return block, None
+    seconds = as_of["timestamp_ms"] // 1000 + (block - as_of["number"]) * BLOCK_SECONDS
+    return block, utc_text(seconds)
 
 
 def _rules(board, card):
@@ -362,11 +511,40 @@ def _history(board, section):
             ]
             if kept:
                 points[hotkey] = kept
+    handovers = board.get("handovers")
+    rows = kings = None
+    if handovers is not None:
+        rows = [
+            _fields(
+                ("utc", _utc_of_ms(h["utc_ms"]), "not_in_feed"),
+                ("to_hotkey", h["to_hotkey"], "not_in_feed"),
+                ("from_hotkey", h["from_hotkey"], "not_in_feed"),
+                ("kind", h["kind"], "not_in_feed"),
+                ("eligible", h["eligible"], "not_in_feed"),
+                ("eligibility_reason", h["reason"], "not_in_feed"),
+            )
+            for h in handovers
+        ]
+        # Each reign runs from one handover to the next, in the feed's order.
+        kings = [
+            _fields(
+                ("hotkey", row["to_hotkey"], "not_in_feed"),
+                ("crowned_utc", row["utc"], "not_in_feed"),
+                (
+                    "until_utc",
+                    rows[i + 1]["utc"] if i + 1 < len(rows) else None,
+                    "not_in_feed" if i + 1 < len(rows) else "reigning",
+                ),
+                ("eligible", row["eligible"], "not_in_feed"),
+            )
+            for i, row in enumerate(rows)
+        ]
     return {
         **_fields(
             ("era", board["challenge"]["rule_digest"], None),
             ("section", name, "no_ranking_section"),
-            ("kings", None, "not_in_feed"),
+            ("kings", kings, "not_in_feed"),
+            ("handovers", rows, "not_in_feed"),
         ),
         "points": points,
     }
@@ -409,7 +587,14 @@ def project(board, now, rules_card=None):
         raise ValueError("board.v2 is projected from a verified board.v1 model")
     release = board["release"] or {}
     released = len(board["released_windows"])
-    phase, fresh = freshness(board["generated_at"], released, now)
+    as_of = board.get("as_of_block")
+    phase, fresh = freshness(
+        board["generated_at"],
+        released,
+        now,
+        None if as_of is None else as_of["timestamp_ms"] // 1000,
+    )
+    next_block, next_utc = _next_release_time(board, release)
     section, section_reason = _ranking_section(board)
     challengers = {}
     for row in board["challengers"]:
@@ -428,6 +613,18 @@ def project(board, now, rules_card=None):
             # a block count measured in the feed (DASHBOARD-02 S2), shown
             # whatever the rules card's status.
             ("rotation", _span(every), "not_in_feed"),
+            # The finalized block the feed's chain-time fields were read at.
+            (
+                "as_of_block",
+                None
+                if as_of is None
+                else {
+                    "number": as_of["number"],
+                    "hash": as_of["hash"],
+                    "timestamp_utc": _utc_of_ms(as_of["timestamp_ms"]),
+                },
+                "not_in_feed",
+            ),
         ),
         # What is scored: each section's display name, unit and sense, as
         # the feed states them.
@@ -458,13 +655,10 @@ def project(board, now, rules_card=None):
             ),
         ),
         "rules": rules,
-        # Both parts are the rule's: the posted margin and the comparison's
-        # noise guard. Neither is in the feed yet, so no target is shown.
-        "target_to_beat": _fields(
-            ("value", None, "not_in_feed"),
-            ("posted_margin", None, "not_in_feed"),
-            ("noise_guard", None, "not_in_feed"),
-        ),
+        # The two bars, the posted margin and the final comparison's noise
+        # guard, as the validator posts them in its signed feed (VALIDATOR-33
+        # A); their prose stays the rules card's.
+        "target_to_beat": _target(board),
         "schema": SCHEMA,
         "source_schema": board["source_schema"],
         "fixture": board["fixture"],
@@ -495,8 +689,9 @@ def project(board, now, rules_card=None):
                 ("predicate", *_ruled(release.get("predicate"), gate)),
                 ("retire_at", *_ruled(release.get("retire_at"), gate)),
                 ("lag", *_ruled(lag, gate)),
-                ("next_block", None, "not_in_feed"),
-                ("next_utc", None, "not_in_feed"),
+                # The feed's next rotation block; its time an estimate.
+                ("next_block", next_block, "not_in_feed"),
+                ("next_utc", next_utc, "not_in_feed"),
             ),
             "released_windows": released,
         },

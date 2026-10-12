@@ -343,6 +343,109 @@ def test_worker_board_v2_matches_board_v2_py(tmp_path):
     assert phases == {"LIVE", "PRE_FIRST_RELEASE", "STALE"}
 
 
+def _chain_variants():
+    """VALIDATOR-33 A feeds (#1143): accepted, older (each field absent),
+    edge values, and malformed ones, unsigned (DASHBOARD-02 S1b)."""
+    from test_dashboard_chain_fields import MALFORMED, _set
+
+    def body(released_king=True):
+        if released_king:
+            return fixtures.chain_document(
+                "fixture-challenge-eta", "gpu:FIXTURE-GPU", seed=8
+            )
+        return fixtures.chain_document(
+            "fixture-challenge-theta", "cpu", seed=9, released_king=False
+        )
+
+    out = [body(), body(released_king=False)]
+    for drop in ("as_of_block", "king", "handovers", "target_to_beat"):
+        doc = body()
+        del doc[drop]
+        out.append(doc)
+    edits = [
+        (("king", "eligible"), False),
+        (("king", "share_now"), 0),
+        (("king", "share_now"), 1),
+        (("king", "share_now"), 0.123457),
+        (("king", "next_halving_utc_ms"), None),
+        (("king", "crowned_utc_ms"), fixtures.FIXTURE_NOW * 1000 + 1),
+        (("king", "uid"), None),
+        (("handovers",), []),
+        (("handovers", 1, "to_hotkey"), None),
+        (("handovers", 1, "utc_ms"), None),
+        (("target_to_beat", "score"), None),
+        (("target_to_beat", "final_comparison"), None),
+        (("target_to_beat", "final_comparison"), {"n_min": 3}),
+        (("target_to_beat", "final_margin_rel"), 0.056993107446249414),
+        (("target_to_beat", "gates"), None),
+        (("release", "next_rotation_block"), None),
+        (("release", "next_rotation_block"), 1),
+        (("as_of_block", "timestamp_ms"), 1_791_421_200_999),
+        (("as_of_block", "timestamp_ms"), 0),
+    ]
+    for path, value in edits + [(p, v) for p, v, _code in MALFORMED]:
+        doc = body()
+        _set(doc, path, value)
+        out.append(doc)
+    return out
+
+
+def test_worker_matches_feed_py_and_board_v2_py_on_chain_fields(tmp_path):
+    """DASHBOARD-02 S1b: the Worker reads #1143's fields as feed.py does, and
+    projects them into board.v2 as board_v2.py does."""
+    trust = fixtures.fixture_trust()
+    items, expected, items_v2, expected_v2 = [], [], [], []
+    for document in _chain_variants():
+        text = json.dumps(fixtures.sign(document))
+        items.append({"text": text, "fixture": True, "keys": sorted(trust.keys)})
+        expected.append(_python(text, trust))
+        for now in (fixtures.FIXTURE_NOW, fixtures.FIXTURE_NOW + 7_201):
+            for card in _cards(document):
+                items_v2.append({**items[-1], "now": now, "card": card})
+                expected_v2.append(_python_v2(text, trust, now, card))
+    got = _node({"mode": "project", "items": items}, tmp_path)
+    for index, (have, want) in enumerate(zip(got, expected, strict=True)):
+        assert have == want, index
+    got = _node({"mode": "project_v2", "items": items_v2}, tmp_path)
+    for index, (have, want) in enumerate(zip(got, expected_v2, strict=True)):
+        assert have == want, index
+    codes = {w.get("code") for w in expected}
+    assert None in codes and "target_invalid" in codes and "king_invalid" in codes
+    accepted = [w["board"] for w in expected_v2 if "board" in w]
+    assert {b["phase"] for b in accepted} >= {"LIVE", "STALE"}
+    assert any(b["king"]["share_now"] == 0.5 for b in accepted)
+
+
+def test_worker_restamps_a_chain_board_as_board_v2_py(tmp_path):
+    """A kept board from a #1143 feed keeps measuring its age from chain time."""
+    key = Ed25519PrivateKey.generate()
+    trust = feed.Trust(keys=frozenset({_public(key)}))
+    chain = fixtures.chain_document("fixture-challenge-eta", "gpu:FIXTURE-GPU", seed=8)
+    chain = json.loads(
+        json.dumps(chain).replace("fixture-coldkey-0", "5" + "C" * 44 + "A")
+    )
+    built = _production(chain, key)
+    site = _site(tmp_path, [built], trust)
+    slug = feed.project(built, trust)["slug"]
+    env = {
+        "FEED_URLS": "https://validator.example/carbon/v1/feed/a",
+        "FEED_KEYS": _public(key),
+    }
+    bad = copy.deepcopy(built)
+    bad["version"] = 99
+    (page,) = _worker(
+        tmp_path,
+        site,
+        env,
+        {env["FEED_URLS"]: json.dumps(bad)},
+        [f"/data/v2/{slug}.json"],
+    )
+    board = json.loads(page["body"])
+    assert board["feed_state"] == {"state": "REFUSED", "code": "signature_invalid"}
+    assert board["freshness"]["basis"] == "as_of_block"
+    assert board["as_of_block"]["number"] == chain["as_of_block"]["number"]
+
+
 def test_worker_board_v2_matches_for_a_production_key(tmp_path):
     key = Ed25519PrivateKey.generate()
     trust = feed.Trust(keys=frozenset({_public(key)}))

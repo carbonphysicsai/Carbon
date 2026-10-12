@@ -58,6 +58,7 @@ ALLOWED = {
     "freshness",
     "freshness.age_seconds",
     "freshness.stale_after_seconds",
+    "freshness.basis",
     "block_seconds",
     "ranking_section",
     "ranking_section.name",
@@ -179,6 +180,44 @@ FUTURE = {
         for k in board_v2.CHAMPIONSHIP_ENTRY_COLDKEY_KEYS
     ),
 }
+# VALIDATOR-33 A's fields (#1143, DASHBOARD-02 S1b): allowed, but the default
+# fixtures carry none of them (as feeds before #1143); fixtures.chain_documents()
+# carries every one (test_chain_boards_keep_the_contract).
+CHAIN = {
+    "as_of_block",
+    "as_of_block.number",
+    "as_of_block.hash",
+    "as_of_block.timestamp_utc",
+    "king.coldkey",
+    "king.crowned_utc",
+    "king.held_for",
+    "king.eligible",
+    "king.eligibility_reason",
+    "king.next_halving_utc",
+    "target_to_beat.kind",
+    "target_to_beat.screening_margin",
+    *(f"target_to_beat.noise_guard.{k}" for k in board_v2.NOISE_GUARD_KEYS),
+    "target_to_beat.registered_score",
+    "target_to_beat.registered_score.candidate",
+    "target_to_beat.registered_score.registry_sha256",
+    "target_to_beat.registered_score.decision",
+    "target_to_beat.gates",
+    "target_to_beat.gates[]",
+    "history.kings[]",
+    "history.kings[].hotkey",
+    "history.kings[].crowned_utc",
+    "history.kings[].until_utc",
+    "history.kings[].eligible",
+    "history.handovers",
+    "history.handovers[]",
+    "history.handovers[].utc",
+    "history.handovers[].to_hotkey",
+    "history.handovers[].from_hotkey",
+    "history.handovers[].kind",
+    "history.handovers[].eligible",
+    "history.handovers[].eligibility_reason",
+}
+FUTURE |= CHAIN
 # Per-case, input and prediction data never appear in a board.v2, at any depth.
 FORBIDDEN = {
     "case",
