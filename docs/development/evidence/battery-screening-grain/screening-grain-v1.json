@@ -2,26 +2,57 @@
  "schema": "carbon.battery.screening-grain.v1",
  "challenge": "battery-fastcharge-ageing-development-v1",
  "authority": "OWNER-BATTERY-CHAMPIONSHIP-03 \u00a71; the owner, 2026-10-12 (Test Lead session): \"the grain is the Test Engineer's measured screening standard error, rounded up to the nearest 0.5% (minimum 0.5%)\"",
- "grain": 0.035,
- "unit": "relative (fraction of the pooled screening score)",
- "measured_se": 0.03043,
- "pooled_screening_cases": 294,
- "rounding": "measured SE rounded UP to a 0.005 step, floor 0.005",
- "measured": "2026-10-12, SCREENING-GRAIN-01, on public data only (measurement.json, measure.py in this folder)",
- "state": "DEVELOPMENT; a measured value under the owner's rule, not a new threshold",
- "grain_pct": 3.5,
- "rule": "v2-bank-sched",
- "score_section": "accuracy",
- "sense": "lower_is_better",
- "sense_source": "carbon/challenge_validator/score_feed.py SECTION_META['accuracy'] (the pooled mean per-case error, the quantity measured here)",
- "applies_only_to": "a deployment whose rule is v2-bank-sched and whose screening score is the accuracy section; any other rule or score (e.g. a v3-bank-sched registered candidate) needs its own measured grain, so PLT-08 refuses this file there (fail closed)",
+ "rounding": "each entry: its measured SE rounded UP to a 0.005 step, floor 0.005",
+ "lookup": "PLT-08 uses the ONE entry whose `match` equals the deployment: its rule name, the published score section and, when the rule has a registered score term, that term's candidate and registry_sha256; where an entry gives `rule_digest`, the deployment's rule digest must equal it too. No match, or more than one: SEALED_UNTIL_GRAIN (fail closed).",
+ "new_rule": "a newly adopted rule or score candidate (e.g. a v9 or v10 pick) gets its own measured entry, as a new file version, before it goes live; until then the lookup refuses",
  "display_grid": "geometric",
- "display_rule": "displayed = (1 + grain)^k, k an integer; k is rounded toward the WORSE side by the score's sense, so the display never overstates: lower_is_better -> k = ceil(ln(score) / ln(1 + grain))",
- "update_rule": "a coldkey's displayed value changes only when a submission's grid value is at least one grid step better than the coldkey's displayed best (lower_is_better: k_new <= k_best - 1); otherwise the status is 'no improvement beyond the grain'",
+ "display_rule": "displayed = (1 + grain)^k, k an integer, rounded toward the WORSE side by the entry's sense so the display never overstates: lower_is_better -> k = ceil(ln(score) / ln(1 + grain)); higher_is_better -> k = floor(ln(score) / ln(1 + grain))",
+ "update_rule": "a coldkey's displayed value changes only when a submission's grid value is at least one grid step better than the coldkey's displayed best (lower_is_better: k_new <= k_best - 1; higher_is_better: k_new >= k_best + 1); otherwise 'no improvement beyond the grain'",
  "convention": "a display convention under the owner's grain decision (OWNER-BATTERY-CHAMPIONSHIP-04 section 3), not a new threshold",
- "worked_example": {
-  "score": 0.1234,
-  "k": -60,
-  "displayed": 0.126934
- }
+ "entries": [
+  {
+   "match": {
+    "rule": "v2-bank-sched",
+    "rule_digest": "sha256:c6fc92b3afbbdd40452fbd52fb822e5cff26867da9caf21b3d8a18719da24f67",
+    "score_section": "accuracy"
+   },
+   "sense": "lower_is_better",
+   "sense_source": "carbon/challenge_validator/score_feed.py SECTION_META['accuracy']",
+   "score": "the pooled mean per-case error on the pooled screening cases",
+   "grain": 0.035,
+   "grain_pct": 3.5,
+   "measured_se": 0.03043,
+   "pooled_screening_cases": 294,
+   "measurement": "measurement-v2-bank-sched.json (measure.py)",
+   "worked_example": {
+    "score": 0.1234,
+    "k": -60,
+    "displayed": 0.126934
+   }
+  },
+  {
+   "match": {
+    "rule": "v3-bank-sched",
+    "score_section": "registered",
+    "score_candidate": "G-FEAS/A-Q>@0.05",
+    "registry_sha256": "70f2943814db0531429613e6ca5e2bd1c0b656673c6ee74de08e98f540758277"
+   },
+   "rule_digest_note": "not given: the deployed v3 rule carries the deployment's own score term, whose bytes are not in the repository (the template digest covers its REGISTERED_BY_DEPLOYMENT placeholder); the operator may add the deployed digest in a later version",
+   "sense": "higher_is_better",
+   "sense_source": "carbon/battery/exam.py rule v3-bank-sched: the registered candidate's score, higher is better (OWNER-BATTERY-SCORE-CANDIDATE-01)",
+   "score": "the registered score a^0.5 q^0.5 on the pooled screening cases and the active windows' design questions",
+   "grain": 0.025,
+   "grain_pct": 2.5,
+   "measured_se": 0.024642,
+   "pooled_screening_cases": 294,
+   "design_questions": 24,
+   "measurement": "measurement-v3-bank-sched.json (measure_v3.py)",
+   "evidence_strength": "thin: 10 public members with EV4 development decisions, 9 public scenarios; member spread P10-P90 1.743615-11.615765 %. Remeasure on PUBLIC-DEV-DECISIONS-01's public run, and from scored submissions after the cutover; each is a new file version",
+   "worked_example": {
+    "score": 0.8,
+    "k": -10,
+    "displayed": 0.781198
+   }
+  }
+ ]
 }
