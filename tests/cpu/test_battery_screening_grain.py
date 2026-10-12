@@ -60,3 +60,20 @@ def test_the_display_never_overstates_in_either_sense():
         rounding = math.ceil if e["sense"] == "lower_is_better" else math.floor
         assert ex["k"] == rounding(math.log(ex["score"]) / math.log(1 + g))
         assert math.isclose(ex["displayed"], (1 + g) ** ex["k"], rel_tol=1e-5)
+
+
+def test_v2_adds_the_per_coldkey_noise_floor_and_keeps_the_grids():
+    v1 = doc()
+    v2 = json.loads((D / "screening-grain-v2.json").read_text())
+    assert v2["version"] == 2 and "highest-numbered" in v2["file_lookup"]
+    assert v2["entries"] == v1["entries"]  # the median grids are kept
+    nf = v2["noise_floor"]
+    assert nf["min_cases"] == 294 and nf["min_design_questions"] == 24
+    assert set(nf["own_se"]) == {"v2-bank-sched", "v3-bank-sched"}
+    assert "max(grain, own_se_rounded)" in nf["step"]
+    # The step never falls below the grain, and own SE rounds up.
+    grain = 0.025
+    for own in (0.001, 0.0249, 0.026, 0.11):
+        rounded = math.ceil(round(100 * own, 9) / 0.5) * 0.5 / 100
+        step = max(grain, rounded)
+        assert step >= grain and step >= own

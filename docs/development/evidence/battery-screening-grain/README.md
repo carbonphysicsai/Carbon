@@ -21,3 +21,8 @@
 - for v3, the PUBLIC-DEV-DECISIONS-01 public run lands, which has far more members and questions.
 
 **A newly adopted rule or candidate** (a v9 or v10 pick) gets its own measured entry before it goes live.
+
+**Version 2 (`screening-grain-v2.json`, which PLT-08 reads) adds a per-coldkey noise floor** (Test Lead ruling, 2026-10-12). The grids are unchanged.
+- **The step:** a coldkey's display moves only when it beats its displayed best by more than `step` = max(grain, its own screening SE rounded up to 0.5 %).
+- **Its own SE** comes from the submission's own scored cases, with the formula per rule in `noise_floor.own_se`.
+- **The minimum before any display or update:** 294 scored cases, plus 24 design questions under v3.
