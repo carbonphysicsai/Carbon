@@ -92,3 +92,24 @@ def test_the_run_command_takes_only_registered_themes():
                 "bogus",
             ]
         )
+
+
+def test_the_causal_structure_theme_is_registered_for_levels_three_and_four_only():
+    entry = hunt_themes.THEMES["causal-structure"]
+    assert entry["levels"] == (3, 4)
+    for level in (3, 4):
+        block = hunt_themes.theme_block("causal-structure", level)
+        assert not toolbox.protected({"hunt_theme": block})
+        assert "up to t" in block["text"] and "WISH" in block["text"]
+        assert "which Level 5 freedom would" in block["report_requirement"]
+        assert block["report_requirement"].startswith(hunt_themes.REPORT_REQUIREMENT)
+    with pytest.raises(hunt_themes.UnknownTheme, match="not_for_this_level"):
+        hunt_themes.theme_block("causal-structure", 2)
+
+
+def test_the_earlier_themes_are_unchanged_by_the_causal_structure_theme():
+    for theme_id in ("physics-law-losses", "physics-structure", "open"):
+        level = hunt_themes.THEMES[theme_id]["levels"][0]
+        block = hunt_themes.theme_block(theme_id, level)
+        assert block["report_requirement"] == hunt_themes.REPORT_REQUIREMENT
+        assert "report_extra" not in hunt_themes.THEMES[theme_id]

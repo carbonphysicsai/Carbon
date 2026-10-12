@@ -157,35 +157,51 @@ def test_a_reachable_family_under_k_makes_the_report_incomplete():
     assert outcome["status"] == "INCOMPLETE" and outcome["not_run"] == []
 
 
-# -- a level whose doors reach one family ----------------------------------------------------
-def test_level_two_lists_its_unreachable_families_and_reports_each_as_a_gap():
-    adapter = ADAPTERS[(CID, 2)]
-    adapter = adapter() if isinstance(adapter, type) else adapter
-    table = phase4.stop_rule_coverage(adapter, TOOLS, schema=V3)
-    reachable = [row["family"] for row in table["families"]]
-    assert len(reachable) >= 1
-    unreachable = [row["family"] for row in table["unreachable"]]
-    assert unreachable  # the L2 families the doors do not reach
-    found = []
-    for family in reachable:
-        found += _door_attempts(table, family, len(found))
-    full = phase4.stop_rule_coverage(adapter, TOOLS, found, schema=V3)
-    outcome = phase4.stop_rule_outcome(full, [])
-    assert outcome["status"] in ("DONE_WITH_GAPS", "DONE")
-    assert set(outcome["gaps"]) <= set(unreachable)
+# -- levels after #1184: declared families make every level family reachable but L1's two ----------
+def _level_adapter(level):
+    adapter = ADAPTERS[(CID, level)]
+    return adapter() if isinstance(adapter, type) else adapter
 
 
 def _door_attempts(table, family, offset):
-    """Three attempts through the family's first door."""
+    """Three attempts through the family's first door, declaring the family in the hypothesis."""
     from test_graphite_attacker_stop_rule import _attempt
 
     door = next(r for r in table["families"] if r["family"] == family)["doors"][0]
-    name, _, shape = door.partition("[")
-    arguments = {}
+    base = door.split("+")[0]
+    name, _, shape = base.partition("[")
+    arguments = {"hypothesis": f"[family: {family}]"}
     if shape:
         kind, _, action = shape.rstrip("]").partition("/")
-        arguments = {"kind": kind, "action": action}
+        arguments.update({"kind": kind, "action": action})
     return [_attempt(offset + n + 1, name, arguments) for n in range(3)]
+
+
+def _full_outcome(level):
+    adapter = _level_adapter(level)
+    table = phase4.stop_rule_coverage(adapter, TOOLS, schema=V3)
+    found = []
+    for row in table["families"]:
+        found += _door_attempts(table, row["family"], len(found))
+    full = phase4.stop_rule_coverage(adapter, TOOLS, found, schema=V3)
+    return table, full, phase4.stop_rule_outcome(full, [])
+
+
+def test_level_one_reports_its_two_unreachable_families_as_gaps():
+    table, full, outcome = _full_outcome(1)
+    unreachable = sorted(r["family"] for r in table["unreachable"])
+    assert unreachable == ["l1_permission_ablation", "l1_rebuild_identity"]
+    assert all(row["covered"] for row in full["families"])
+    assert outcome["status"] == "DONE_WITH_GAPS"
+    assert sorted(outcome["gaps"]) == unreachable
+
+
+@pytest.mark.parametrize("level", [2, 3, 4])
+def test_levels_two_to_four_reach_every_family_and_finish_without_gaps(level):
+    table, full, outcome = _full_outcome(level)
+    assert table["unreachable"] == []
+    assert all(row["covered"] for row in full["families"])
+    assert outcome["status"] == "DONE" and outcome["gaps"] == []
 
 
 # -- the live Attacker runs under v3 ---------------------------------------------------------

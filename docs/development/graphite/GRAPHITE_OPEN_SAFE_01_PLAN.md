@@ -139,7 +139,7 @@ comes back to the Test Lead first.
 | H1 | Constructor, L1 | `physics-law-losses`: conservation, bounds and monotonicity as losses and constraints | 14.91 worst case, 39,600 s, pod ceiling 0.65 per hour |
 | H2 | Constructor, L2 | `physics-law-losses` | same |
 | H3 | Constructor, L3 | `physics-structure`: symmetry, positivity and boundedness, behaviour at limits | same |
-| H4 | Constructor, L4 | `open`: whatever the Constructor judges most likely to make a model learn the physics (**waits for the L4 graph-variant fix**; if it slips, run at L3) | same |
+| H4 | Constructor, L4 | `causal-structure`: predictions at time t use only the protocol up to t (was `open`; research #1193; **waits for the L4 graph-variant fix**; if it slips, run at L3) | same |
 | A1 | Attacker, L1 (loss expressions) | stop rule v3 (the live Attacker provider's default) | 13.41 worst case, 15,600 s |
 | A2 | Attacker, L3 (cross-level fields) | stop rule v3 | same |
 
@@ -147,6 +147,13 @@ comes back to the Test Lead first.
   `phase3 run --theme ID`. Opt-in: a run without `--theme` has exactly the brief it had before, so every earlier session
   replays byte for byte. A theme is advice; the level's domain, the grant and every boundary are unchanged. A theme is
   refused for a level it does not name.
+- **Causal structure (added 2026-10-12, research #1193).** All 100 real battery models were non-causal: changing later charge
+  steps shifted earlier voltage predictions by 65 to 397 mV. H4 (L4, or L3 if the variant fix slips) now carries the theme
+  `causal-structure`: predictions at time t use only the protocol up to t (for example a recurrent or step-by-step rollout
+  structure). No run and no spend is added: it reuses H4's existing slot, and H3 keeps `physics-structure`. The report must say
+  whether the level's freedoms allow a causal structure at all and which Level 5 freedom would. A possible public-only check, not
+  a gate and not built unless asked: a causality probe that perturbs later protocol steps and measures the change in earlier
+  predictions (the #1193 measure), reportable per bundled model on public development data.
 - **Report requirement** (in every theme's brief text): for the physics the run tried to build in, which freedom this level
   does not offer would have let it, one `WISH:` line each (what it is, what it needs, the expected gain, the evidence).
   The wish channel stores the lines as data in the refused-capability log; nothing is granted.
