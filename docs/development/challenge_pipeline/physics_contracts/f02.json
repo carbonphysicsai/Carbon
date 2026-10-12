@@ -1,0 +1,69 @@
+{
+  "schema": "carbon.physics-contract.draft.v1",
+  "challenge": "f02",
+  "maturity": "DRAFT",
+  "status": "HUMAN_INPUT",
+  "runtime_enabled": false,
+  "scope": "Layered constant-property conduction, nonnegative prescribed burst heating, insulated sides and passive underside Robin cooling. Menu v2, not a new population.",
+  "sources": {
+    "heat": "https://www.nic.funet.fi/index/elmer/doc/ElmerModelsManual.pdf",
+    "linearity": "https://doc.comsol.com/5.5/doc/com.comsol.help.heat/heat_ug_modeling.06.33.html",
+    "energy": "https://www.comsol.com/multiphysics/heat-transfer-conservation-of-energy",
+    "bound": "https://www.comsol.com/blogs/exploiting-maximum-principles-to-save-time-and-resources/",
+    "packet": "docs/development/challenge_pipeline/round1/f02-burst-thermal.md",
+    "kit": "carbon/development_comparison/f02_kit.py",
+    "deck": "scripts/dev/reference_packages/elmer/f02_deck.py",
+    "validity": "carbon/challenge_validator/validity.py",
+    "verification": ".agent/decisions/2026-10-11-OWNER-CODE-VERIFICATION-ACCEPT-01.md"
+  },
+  "validity": {
+    "status": "HUMAN_INPUT_UNDECLARED",
+    "implementation_support": {
+      "geometry": "20x20x0.5 mm Si surrogate, 20x20x0.2 mm TIM, 30x30x2 mm Cu; two 8x8 mm top patches centred at x = +/-5 mm",
+      "source": "20 W baseline; rectangular/ramp/two-pulse burst over 20 s; 120 s observation horizon",
+      "menu_v2": "Peak 80/100/120/140 W and duration 5/10/15/20 s; training support 80-140 W, 5-20 s",
+      "contexts": "Cooling (30 C,2500 W/m2/K) or (40 C,1500 W/m2/K); initial 40/55 C; left source fraction 0.5/0.8",
+      "material": "Positive constant isotropic k, rho and cp, perfect internal thermal continuity; no temperature-dependent or phase-change claim"
+    },
+    "decision_needed": "Science declares material temperature ranges and model applicability. Input support is not physical validation.",
+    "outside_or_unknown": "UNRESOLVED_NOT_CANDIDATE_FAILURE",
+    "sources": ["packet", "kit", "deck", "validity"]
+  },
+  "required_outputs": {
+    "peak_top_c": {"availability": "MODEL_AVAILABLE", "sources": ["kit"]},
+    "extra_energy_j": {"availability": "MODEL_AVAILABLE", "note": "Delivered burst energy above baseline, not total source energy or a conservation residual", "sources": ["kit", "deck"]},
+    "temperature_history_field": {"availability": "MISSING_MODEL", "note": "Reference scalar history/VTU exists; define sampling, units, initial field and interface traces before adoption", "sources": ["deck"]},
+    "patch_centre_histories": {"availability": "REFERENCE_ONLY", "note": "0.5 s reference samples; not proof of every-step extrema", "sources": ["deck"]},
+    "heat_in_j": {"availability": "REFERENCE_ONLY", "note": "All input energy, including 20 W baseline", "sources": ["deck"]},
+    "stored_j": {"availability": "REFERENCE_ONLY", "note": "Volume-integrated final heat relative to initial state", "sources": ["deck"]},
+    "robin_out_j": {"availability": "REFERENCE_ONLY", "note": "Time-integrated underside outward heat", "sources": ["deck"]},
+    "interface_normal_flux": {"availability": "MISSING", "note": "Matched interface temperature and equal/opposite normal heat-flux traces", "sources": ["deck"]}
+  },
+  "laws": [
+    {"id": "initial-temperature", "type": "initial_condition", "status": "HUMAN_INPUT", "statement": "T(x,0) = T_initial on each layer", "conditions": "Registered uniform initial state, matched field sampling", "required_outputs": ["temperature_history_field"], "sources": ["heat", "deck"], "calibration": "Initial-field interpolation residual at the registered mesh; not peak-only equality"},
+    {"id": "integrated-heat-balance", "type": "balance", "status": "HUMAN_INPUT", "statement": "Delta U = E_source - E_Robin_out with Delta U = integral rho*cp*(T_final-T_initial) dV", "conditions": "No advection, radiation, contact storage or other omitted boundary loss; include baseline energy", "required_outputs": ["heat_in_j", "stored_j", "robin_out_j"], "sources": ["heat", "energy", "deck"], "calibration": "Signed and absolute joule closure plus relative closure with HUMAN_INPUT absolute denominator floor; mesh and timestep refinement"},
+    {"id": "layer-interface", "type": "balance", "status": "HUMAN_INPUT", "statement": "T_left = T_right and q_left.n_left + q_right.n_right = 0", "conditions": "Perfect interfaces in the pinned deck, no contact resistance", "required_outputs": ["temperature_history_field", "interface_normal_flux"], "sources": ["heat", "deck"], "calibration": "Matched interface traces with quadrature and interpolation error; no separate-max comparison"},
+    {"id": "passive-lower-bound", "type": "bound", "status": "HUMAN_INPUT", "statement": "T(x,t) >= min(T_initial,T_coolant)", "conditions": "Nonnegative source, positive constant material properties, insulated sides, positive passive Robin coefficient and no other sink", "required_outputs": ["temperature_history_field"], "sources": ["heat", "bound"], "calibration": "Minimum over the registered field/time grid with refined undershoot floor; science must confirm parabolic applicability"},
+    {"id": "ordered-source-temperature", "type": "monotone", "status": "HUMAN_INPUT", "statement": "Pointwise ordered heating q_A <= q_B implies T_A <= T_B and peak_A <= peak_B", "conditions": "Same geometry, duration, waveform timing, split, initial state and cooling; increase power only", "required_outputs": ["temperature_history_field", "peak_top_c"], "sources": ["heat", "kit"], "calibration": "Matched ordered pairs; resolve only differences outside numerical uncertainty, retain violation rate and sampling uncertainty"},
+    {"id": "linear-field-superposition", "type": "invariance", "status": "HUMAN_INPUT", "statement": "Temperature increments about the same baseline superpose for added source histories", "conditions": "Constant coefficients and identical initial/boundary data; fields, not sums of spatial or temporal maxima", "required_outputs": ["temperature_history_field"], "sources": ["heat", "linearity", "deck"], "calibration": "Matched single/pair/triple source controls and field residual versus mesh/time refinement"},
+    {"id": "balanced-patch-symmetry", "type": "invariance", "status": "HUMAN_INPUT", "statement": "Equal left/right source fractions give equal reflected patch-centre histories", "conditions": "Split 0.5 only and symmetric mesh/geometry/boundaries; split 0.8 is not symmetric", "required_outputs": ["patch_centre_histories"], "sources": ["heat", "packet", "deck"], "calibration": "Reflected sample pairs and mesh asymmetry error; no unsupported 0.2 split added to the action grammar"},
+    {"id": "zero-source-equilibrium", "type": "limit", "status": "HUMAN_INPUT", "statement": "Zero total source with initial T = coolant gives constant coolant temperature", "conditions": "Analytic code/calibration control outside the buyer menu; zero EXTRA burst still leaves the 20 W baseline", "required_outputs": ["temperature_history_field"], "sources": ["heat", "deck"], "calibration": "Equilibrium residual at each refinement rung; control is not a fresh scored question"}
+  ],
+  "excluded_claims": [
+    "Peak temperatures do not obey equality under superposition; maximum is a nonlinear functional.",
+    "No blanket temperature monotonicity during cooldown, or duration ordering across changed two-pulse timing.",
+    "No 95 C physical-law upper bound: this is a buyer limit, not the heat equation's maximum principle."
+  ],
+  "tolerances": {"status": "HUMAN_INPUT", "calibration_status": "NOT_RUN", "quantile": null, "multiplier": null, "absolute_floors": null, "sampling_uncertainty": null, "recipe": "Common README plan; measured per-law residual and observable-level error, bound to image/deck/observer/material identities"},
+  "calibration": {
+    "status": "NOT_RUN",
+    "image_digest": "sha256:6fab746f31257236da9e91b5be681bfbd2d25bd69f5dcd9a2e350394e8bcb675",
+    "image_basis": "Owner accepted Elmer 26.2.1 heat MMS, Hex808+BDF2, with t_end=0.375; not law calibration or material applicability",
+    "verification_sources": ["verification"],
+    "holds": ["Declared material validity", "Prospective model outputs", "Matched public calibration manifest", "Deck/observer/material hashes", "Residual distributions and science-selected budgets"],
+    "recalibrate_on": ["image rebuild or re-pin", "deck", "material", "observer", "scope"]
+  },
+  "probes": {"status": "HUMAN_INPUT", "density": null, "pair_count": null, "path_step": null, "proposal": "Supported singles, power-ordered pairs, split-0.5 symmetry and separately labelled analytic controls; no runs authorised"},
+  "gates": {"status": "HUMAN_INPUT", "adopted": false, "allocations": null, "score_use": null},
+  "review_owner": "Carbon Validator and science; owner adoption remains reserved"
+}

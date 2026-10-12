@@ -177,7 +177,14 @@ from ..provider import (
     RunStatus,
     TaskSpec,
 )
-from . import capability_log, grant_binding, level_domain, model_providers, next_level
+from . import (
+    capability_log,
+    grant_binding,
+    hunt_themes,
+    level_domain,
+    model_providers,
+    next_level,
+)
 from . import delivery as deliver_
 from . import experiment as ex
 from . import literature as lit
@@ -1121,6 +1128,7 @@ def session_brief(
     score_variant=None,
     study=None,
     level_domain_text=False,
+    hunt_theme=None,
 ):
     """The Constructor's brief: the session Challenge's public development
     material only (its `ChallengeScoring`), and the session's offered
@@ -1194,12 +1202,19 @@ def session_brief(
                 "Level 0 and the strategy field each goes in; a recipe may use them "
                 "or not."
             )
+    if hunt_theme is not None:
+        # Opt-in (GRAPHITE-L5-HUNT-01): a brief recorded without a theme keeps its digest.
+        block = hunt_themes.theme_block(hunt_theme, level)
+        observation["hunt_theme"] = block
+        observation["instructions"] += (
+            " " + block["text"] + " " + block["report_requirement"]
+        )
     # A new Level 4 session (it asks for the level text) offers the stage tool
     # (GRAPHITE-L4-STAGING-01); every other brief is exactly as before.
     level4_stage = bool(level_domain_text) and level == 4 and study is None
     if level4_stage:
         observation["instructions"] += (
-            " At Level 4 a recipe may carry a graph submission: call "
+            " At Level 4 every proposal must carry a staged graph submission: call "
             + LEVEL4_STAGE
             + " with task_id empty for the interface and the commands, lower "
             "your model in a workspace run_python task, then call it again with "
@@ -1967,6 +1982,7 @@ def command_run(args):
                 score_variant=sv.identity_of(scored),
                 study=getattr(args, "study", None),
                 level_domain_text=True,
+                hunt_theme=getattr(args, "theme", None),
             )
             _install_cancel(provider, provider.run_id_for(session_key(args.session)))
             result = run_session(control, provider, brief, args.session, variant)
@@ -2745,6 +2761,12 @@ def main(argv=None):
         type=int,
         help="the run's scored-submission cap, copied from the study's frozen "
         "freeze-manifest.json; one of the study's arm caps",
+    )
+    run.add_argument(
+        "--theme",
+        choices=sorted(hunt_themes.THEMES),
+        help="a registered hunt theme (GRAPHITE-L5-HUNT-01) that steers the Constructor; "
+        "opt-in, advice only: the level's domain, the grant and every boundary are unchanged",
     )
     run.add_argument(
         "--level",

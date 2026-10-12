@@ -1,0 +1,67 @@
+{
+  "schema": "carbon.physics-contract.draft.v1",
+  "challenge": "f13",
+  "maturity": "DRAFT",
+  "status": "HUMAN_INPUT",
+  "runtime_enabled": false,
+  "scope": "Quiescent, linear, rigid-wall lossless two-chamber silencer. De-embedded buyer reference planes; 60 mm numerical port stubs, not a flowing hot exhaust or lined absorber.",
+  "sources": {
+    "acoustics": "https://www.comsol.com/multiphysics/acoustics",
+    "reciprocity": "https://arxiv.org/abs/1210.6309",
+    "helmholtz": "https://www.nic.funet.fi/index/elmer/doc/ElmerModelsManual.pdf",
+    "packet": "docs/development/challenge_pipeline/round1/f13-compressor-silencer.md",
+    "readiness": "carbon/challenge_pipeline/silencer_readiness.py",
+    "deck": "scripts/dev/reference_packages/elmer/f13_deck.py",
+    "verification": "docs/development/challenge_pipeline/silencer-readiness/verification.json",
+    "validity": "carbon/challenge_validator/validity.py"
+  },
+  "validity": {
+    "status": "HUMAN_INPUT_NO_REGISTERED_DECLARATION",
+    "implementation_support": {
+      "geometry": "Two chamber radii 55-70 mm and lengths 40-110 mm, neck 10-50 mm, offset 0-25 mm, 30 mm clearance and package <=300 mm including physical leads",
+      "leads": "10 mm physical leads but 60 mm numerical stubs; observer de-embeds the extra 50 mm",
+      "medium": "rho=1.2 kg/m3, c=343 m/s, no flow, absorption, liner, thermal or nonlinear acoustic claim",
+      "frequency": "500-2500 Hz, 201 rung-1 or 401 rung-2 points; narrow resonances need refined support",
+      "modes": "Port-only single propagating mode must be verified on the exact port cross-section; chambers can have higher modes and evanescent fields"
+    },
+    "decision_needed": "Science declares acoustic amplitude, port mode/frequency, medium/material and source-model applicability; no existing f13 validity registry entry is inferred",
+    "outside_or_unknown": "UNRESOLVED_NOT_CANDIDATE_FAILURE",
+    "sources": ["packet", "readiness", "deck", "validity"]
+  },
+  "required_outputs": {
+    "complex_R_T": {"availability": "PLANNED_REFERENCE_MISSING_REGISTERED_MODEL", "note": "Complex de-embedded coefficients, exp(+i*omega*t) convention and pressure normalisation", "sources": ["readiness"]},
+    "incident_reflected_transmitted_power": {"availability": "PLANNED_REFERENCE_MISSING_REGISTERED_MODEL", "note": "Watts at matched equal-area reference planes; signed plane flux and saved |p|2 integrals retained", "sources": ["readiness", "deck"]},
+    "TL_curve_and_intervals": {"availability": "PLANNED_REFERENCE_MISSING_REGISTERED_MODEL", "note": "Power-ratio dB curve and refinement intervals; p10/min are derived, not interchangeable", "sources": ["readiness"]},
+    "interior_p_gradp_u": {"availability": "MISSING_MODEL", "note": "Complex pressure, gradient/velocity and mesh/quadrature for local equation and wall checks", "sources": ["deck", "helmholtz"]},
+    "reverse_port_S": {"availability": "MISSING", "note": "Reverse excitation with power-normalised port scattering amplitudes", "sources": ["readiness", "acoustics"]},
+    "propagating_mode_power": {"availability": "MISSING_IF_MULTIMODE", "note": "Every propagating order needed if port single-mode scope is exceeded; scalar R/T no longer sufficient", "sources": ["acoustics", "readiness"]}
+  },
+  "laws": [
+    {"id": "source-free-helmholtz", "type": "balance", "status": "HUMAN_INPUT", "statement": "Laplacian p + k^2*p = 0 in uniform source-free fluid", "conditions": "Linear constant rho/c quiescent lossless medium; explicit excitation boundary and rigid-wall normal velocity", "required_outputs": ["interior_p_gradp_u"], "sources": ["helmholtz", "acoustics", "deck"], "calibration": "Weak field residual, normal wall velocity and mesh-order study on the actual element route"},
+    {"id": "acoustic-power-balance", "type": "balance", "status": "HUMAN_INPUT", "statement": "P_incident = P_reflected + P_transmitted, with intensity 0.5*Re(p*conjugate(u))", "conditions": "Current rigid lossless route, no absorption or mean flow; account for all propagating port modes", "required_outputs": ["incident_reflected_transmitted_power", "complex_R_T"], "sources": ["acoustics", "readiness", "deck"], "calibration": "Independent plane/saved-integral closure in watts plus relative residual, frequency and mesh ladder; historical <=0.02% observation is not an adopted tolerance"},
+    {"id": "passive-port-bounds", "type": "bound", "status": "HUMAN_INPUT", "statement": "0 <= reflected/transmitted power fractions <= 1 and TL >= 0", "conditions": "Resolved positive incident power, passive medium, matched normalisation and all modes; no active source inside", "required_outputs": ["incident_reflected_transmitted_power", "TL_curve_and_intervals"], "sources": ["acoustics", "readiness"], "calibration": "Uncertainty-aware absolute power floors; zero transmission has no finite exact dB value and must not be silently clipped"},
+    {"id": "TL-normalisation", "type": "balance", "status": "HUMAN_INPUT", "statement": "TL = -10*log10(P_transmitted/P_incident)", "conditions": "Use power, not a bare unequal-port pressure ratio; equal single-mode ports allow TL=-20*log10(|T|)", "required_outputs": ["complex_R_T", "incident_reflected_transmitted_power", "TL_curve_and_intervals"], "sources": ["acoustics", "readiness"], "calibration": "Observer algebra plus power uncertainty propagated to dB; refine/mark UNRESOLVED at deep transmission zeros"},
+    {"id": "linear-amplitude-invariance", "type": "invariance", "status": "HUMAN_INPUT", "statement": "Source amplitude a scales p and u by a and power by |a|^2; normalised R/T and TL are unchanged", "conditions": "Linear source model and unchanged geometry/frequency; amplitude is an analytic control, not a new buyer action", "required_outputs": ["complex_R_T", "incident_reflected_transmitted_power", "interior_p_gradp_u"], "sources": ["helmholtz", "acoustics"], "calibration": "Matched amplitude controls outside singular zero-input normalisation"},
+    {"id": "reciprocal-transmission", "type": "invariance", "status": "HUMAN_INPUT", "statement": "Power-normalised S21 = S12", "conditions": "Reciprocal quiescent medium and matched port bases; offset geometry may have S11 != S22", "required_outputs": ["reverse_port_S", "complex_R_T"], "sources": ["reciprocity", "helmholtz", "acoustics"], "calibration": "Forward/reverse matched witnesses; science validates reciprocity and mode normalisation on the actual port model"},
+    {"id": "uniform-lead-deembedding", "type": "invariance", "status": "HUMAN_INPUT", "statement": "Reference-plane shifts in uniform single-mode leads change phase, not normalised transmitted/reflected power", "conditions": "Exact propagation/sign convention and 50 mm numerical extension; higher/evanescent modes require a different observer", "required_outputs": ["complex_R_T", "incident_reflected_transmitted_power"], "sources": ["helmholtz", "readiness"], "calibration": "Matched plane locations and independent saved-integral check; detect port contamination rather than declaring candidate failure"},
+    {"id": "matched-straight-duct", "type": "limit", "status": "HUMAN_INPUT", "statement": "Matched rigid straight duct gives R=0, |T|=1 and TL=0", "conditions": "Analytic verification control outside the two-chamber design grammar, single-mode matched ports", "required_outputs": ["complex_R_T", "incident_reflected_transmitted_power", "TL_curve_and_intervals"], "sources": ["helmholtz", "acoustics"], "calibration": "Complex phase, normalisation and mesh/frequency error; no absorption manufactured to close a lossless power gap"}
+  ],
+  "excluded_claims": [
+    "No monotonic TL-versus-frequency, chamber radius or length law: resonances and interference can reverse the trend.",
+    "No equality of forward/reverse reflection for an asymmetric offset silencer.",
+    "A p10 TL buyer requirement does not imply every frequency exceeds that value.",
+    "No heated flowing exhaust, liner-loss, nonlinear amplitude or experimental credibility claim from this lossless quiescent route."
+  ],
+  "tolerances": {"status": "HUMAN_INPUT", "calibration_status": "NOT_RUN", "quantile": null, "multiplier": null, "absolute_floors": null, "sampling_uncertainty": null, "recipe": "Common README plan; calibrate complex amplitude and absolute power before derived dB and near-zero bounds"},
+  "calibration": {
+    "status": "NOT_RUN",
+    "image_digest": "sha256:8bcd864dd60be0a80be9769c1a95c67db76eca9e718212f63dd0460cf3a08fc6",
+    "image_basis": "Elmer image recorded in the silencer verification proposal, SPECIFIED_NOT_RUN; accepted f02 heat MMS is not Helmholtz/port/P2-tet acceptance",
+    "verification_sources": ["verification"],
+    "holds": ["Exact-image Helmholtz/port code-verification acceptance", "Registered acoustic validity", "Prospective model output contract", "Single-mode port proof and saved-integral closure", "Matched mesh/frequency/refined-edge calibration"],
+    "recalibrate_on": ["image rebuild or re-pin", "element/mesh", "port/reference plane", "medium", "observer", "frequency scope"]
+  },
+  "probes": {"status": "HUMAN_INPUT", "density": null, "pair_count": null, "path_step": null, "proposal": "Supported single-frequency/full-curve cases, low-attenuation and resonance edges, plane/amplitude/reciprocity controls; no solver runs authorised"},
+  "gates": {"status": "HUMAN_INPUT", "adopted": false, "allocations": null, "score_use": null},
+  "review_owner": "Carbon Validator and science; owner adoption remains reserved"
+}

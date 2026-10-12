@@ -98,3 +98,77 @@ def test_declared_shape_lie_stays_a_permanent_specimen(adapter):
     held = L4.carbon_gates(value)
     assert (held["status"], held["code"]) == ("REFUSED", "declared_aval_mismatch")
     assert L4._accepted(L4.unchecked_gate(value))
+
+
+FAMILY_CASES = [(4, "l4_constant_smuggling")]
+
+
+def _session_attempt(identity, strategy_json, design):
+    import json as _json
+
+    from carbon.agent_campaign.attack import analysis
+    from carbon.agent_campaign.attack.identity import digest
+
+    return analysis.Attempt(
+        identity=identity,
+        epoch=1,
+        stage=None,
+        turn=1,
+        position=0,
+        tool=analysis.PREFIX + "start_research_task",
+        arguments={
+            "action": "check_design",
+            "arguments_json": _json.dumps({"design": design}),
+            "kind": "workspace",
+            "strategy_json": strategy_json,
+        },
+        result={"status": "MINER_PATH_REFUSED"},
+        withheld=None,
+        intent_digest=digest(identity.encode()),
+        result_digest=digest(b"refused"),
+    )
+
+
+@pytest.mark.parametrize("level,family", FAMILY_CASES)
+def test_a_session_attempt_is_judged_never_an_oracle_crash(level, family):
+    """Stage-A L2-L4 (2026-10-12): verify hands these adapters a view without
+    a `value` (they inherit Level 0's `attempt_input`), and the generic oracle
+    crashed (`oracle_crashed:TypeError`, INFRA). The value is now the
+    attempt's strategy, unwrapped as the rebuild unwraps it."""
+    import json as _json
+
+    from carbon.agent_campaign.attack import adapter as core
+    from carbon.agent_campaign.attack import verify
+
+    adapter = core.ADAPTERS[("battery-fastcharge-ageing-development-v1", level)]
+    design = {"strategy": {"schema_version": "1.0",
+              "challenge_id": "battery-fastcharge-ageing-development-v1",
+              "backbone": "mlp", "parameters": {}}}  # fmt: skip
+    for attempt in (
+        _session_attempt("epoch-1-tool-003", _json.dumps(design), design),
+        _session_attempt("epoch-1-tool-004", None, design),
+    ):
+        verdict = verify.verify(attempt, adapter, family=family)
+        assert not str(verdict.reason).startswith("oracle_crashed"), verdict
+        assert verdict.outcome != verify.INFRA, verdict
+
+
+def test_a_session_attempt_carrying_a_graph_document_is_judged_on_it():
+    """The L4 graph families judge the document an attempt carries."""
+    import json as _json
+
+    from carbon.agent_campaign.attack import adapter as core
+    from carbon.agent_campaign.attack import verify
+    from carbon.agent_campaign.attack.adapters import battery_level4 as l4
+
+    adapter = core.ADAPTERS[("battery-fastcharge-ageing-development-v1", 4)]
+    family = "l4_constant_smuggling"
+    document = l4._family_table()[family][5]["document"]
+    attempt = _session_attempt("epoch-1-tool-006", None, {"document": document})
+    view = l4.graph_view(
+        verify.oracle_attempt(attempt, None, adapter=adapter, rebuilt=True)
+    )
+    assert view.value == {"document": document}
+    result = adapter.oracle(family, view)
+    assert result.verdict not in ("CRASHED", "FAILED_INFRA"), result
+    assert _json.loads(document)  # a real graph document, not a strategy

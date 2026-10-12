@@ -1179,9 +1179,7 @@ class BatteryLevel1Adapter(b.BatteryLevel0Adapter):
 
     def family_for(self, tool, arguments=None):
         """Which Level-1 family a research tool call probes, or None."""
-        if b.construction_door(tool, arguments):
-            return "l1_expression_surface"
-        return None
+        return b.door_family(tool, arguments, L1_DECLARABLE, "l1_expression_surface")
 
     def attempt_input(self, family, attempt):
         for key in ("value", "input"):
@@ -1191,9 +1189,29 @@ class BatteryLevel1Adapter(b.BatteryLevel0Adapter):
         arguments = b._get(attempt, "arguments")
         if not isinstance(arguments, Mapping):
             return b._MISSING
+        strategy = b._strategy_from(arguments)
         if family in ("l1_expression_surface", "l1_declarative_only"):
-            return b._strategy_from(arguments)
+            return strategy
+        if strategy is b._MISSING:
+            return b._MISSING
+        if family == "l1_degenerate_losses":
+            return strategy
+        if family == "l1_nonfinite_typing":
+            return {"strategy": strategy}
         return b._MISSING
+
+
+#: The Level-1 families a session attempt can reach (its input is the
+#: attempt's strategy): the rest take declared attack items only
+#: (permission ablations, rebuild-identity kinds) and stay unreachable.
+L1_DECLARABLE = frozenset(
+    {
+        "l1_expression_surface",
+        "l1_declarative_only",
+        "l1_degenerate_losses",
+        "l1_nonfinite_typing",
+    }
+)
 
 
 ADAPTER = BatteryLevel1Adapter()

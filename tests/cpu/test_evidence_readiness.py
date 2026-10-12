@@ -244,9 +244,10 @@ def test_missing_main_reports_unknown_without_spend_permission():
     assert not result["spend_authorized"] and not result["qualified"]
 
 
-def test_all_thirteen_rank_ties_and_attach_source_digests():
+def test_registered_portfolio_rank_ties_and_attach_source_digests():
     reports = er.portfolio(ROOT, now=NOW)
-    assert len(reports) == 13
+    bindings = json.loads((ROOT / er.BINDINGS).read_text())
+    assert len(reports) == len(bindings["challenges"])
     assert {r["challenge"] for r in reports} >= {
         "solenoid-pole",
         "bolted-joint",
@@ -306,7 +307,12 @@ def test_benchmark_route_inspects_implementation_not_pending_pr(family):
     tree.files[path] = (
         f'FAMILY = "{family}"\n' + "\n".join(f"def {f}(): pass" for f in functions)
     ).encode()
-    assert er.code_route(tree, family)[0] == "YES"
+    expected = (
+        "PLANNED"
+        if er.BENCHMARK_ROUTES[family].get("baseline_ready") is False
+        else "YES"
+    )
+    assert er.code_route(tree, family)[0] == expected
     tree.files[path] = f'FAMILY = "{family}"'.encode()
     assert er.code_route(tree, family)[0] == "NO"
 
@@ -334,6 +340,13 @@ def test_budget_file_alone_does_not_establish_dispatch(family):
         f'CHALLENGES = {{"{family}"}}\ndef _validate(): pass\ndef compare():\n if challenge == "{family}":\n  from .{module} import validate as validate_registration\n'.encode()
     )
     assert er.code_route(tree, family, optimizer=True)[0] == "YES"
+
+
+def test_warpage_is_a_representative_route_not_a_published_benchmark():
+    route = er.BENCHMARK_ROUTES["package-warpage"]
+    assert route["kind"] == "REPRESENTATIVE_REHEARSAL"
+    assert route["baseline_ready"] is False
+    assert "full-history" in route["baseline_gap"]
 
 
 def table_route_tree(family, *, module=None, body=None):

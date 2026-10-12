@@ -625,3 +625,19 @@ def test_the_identity_module_names_no_challenge():
     source = Path(identity.__file__).read_text(encoding="utf-8").lower()
     for token in ("battery", "cooling", "cold-plate", "motor"):
         assert token not in source, token
+
+
+@pytest.mark.parametrize("level", [0, 1, 2, 3, 4])
+def test_the_copy_probe_holds_with_a_valid_control_at_every_battery_level(level):
+    """Battery Levels 2-4 compile the strategy at their own pinned seed and
+    drop a submitted seed, so the incumbent at another seed is the SAME
+    construction there (one rebuilt artifact). The control is then the
+    incumbent with one setting changed, which Carbon rebuilds differently
+    and which must count as two (stage-A L2-L4 reports, 2026-10-12)."""
+    adapter = core.ADAPTERS[(BATTERY, level)]
+    plan = identity._plan(identity._remembered(adapter))
+    [control] = plan["controls"]
+    tally = identity._counted(identity._remembered(adapter), control, False)
+    assert tally["accepted"], tally["counts"]
+    # Every copy held, the text-keyed specimen fired, the control passed.
+    held_and_fired(identity.copy_probe(adapter))

@@ -1,0 +1,73 @@
+{
+  "schema": "carbon.physics-contract.draft.v1",
+  "challenge": "cooling-cell",
+  "maturity": "DRAFT",
+  "status": "HUMAN_INPUT",
+  "runtime_enabled": false,
+  "scope": "Interior cooling cell at representative point C, draft only. No central-point B replacement, optional stress activation, full plate or manifold.",
+  "sources": {
+    "fluid": "https://www.comsol.com/multiphysics/fluid-flow-conservation-of-momentum-mass-and-energy",
+    "energy": "https://www.comsol.com/multiphysics/heat-transfer-conservation-of-energy",
+    "bound": "https://www.comsol.com/blogs/exploiting-maximum-principles-to-save-time-and-resources/",
+    "operating_point": "Business/research/ai-chip-cooling-sources/operating-points.json",
+    "readiness": "docs/development/challenge_pipeline/cooling-readiness/README.md",
+    "domain": "carbon/cold_plate/domain.py",
+    "reference": "carbon/cold_plate/openfoam.py",
+    "legacy_outputs": "carbon/cold_plate/analysis.py",
+    "observer": "carbon/challenge_pipeline/cooling_readiness.py",
+    "verification": "docs/development/challenge_pipeline/cooling-readiness/verification.json",
+    "validity": "carbon/challenge_validator/validity.py"
+  },
+  "validity": {
+    "status": "HUMAN_INPUT_PARTIAL_DECLARATION",
+    "implementation_support": {
+      "point_C": "45 C inlet, 1400 W interface heat, 2.8 L/min total footprint flow, 30 kPa cell allocation; representative sourced operating point, not a new adopted population",
+      "geometry": "Channel width/fin width 0.2-0.5 mm, depth 1-3 mm; fixed 30 mm footprint/length, 1 mm plate base and 0.5 mm cold-plate cover",
+      "buyer_interface": "85 C lid-side TIM2 case plane; vapour-chamber post-spreader map, TIM2 resistance and uncertainty require matched buyer input. Plate cover is not the vapour lid.",
+      "declared": "PG25 fluid 30-99 C, laminar Reynolds <=2000, checked at reference extrema",
+      "reference_simplification": "Steady conjugate laminar route: variable rho/mu/k but cp held at inlet in the reference. variable-cp is diagnostic, not the current reference.",
+      "heat_map": "Existing axial map is transverse-uniform; no general 2D hotspot/spreader claim without an adopted map contract"
+    },
+    "decision_needed": "Science confirms point-C/map/TIM2 applicability and bounds the cp-held and other simplifications separately from numerical residuals",
+    "outside_or_unknown": "UNRESOLVED_NOT_CANDIDATE_FAILURE",
+    "sources": ["operating_point", "readiness", "domain", "reference", "validity"]
+  },
+  "required_outputs": {
+    "legacy_peak_profile_pressure": {"availability": "MODEL_AVAILABLE_LEGACY", "note": "peak_c/profile_c/pressure_drop_pa; not co-located lid-side TIM2 temperature", "sources": ["domain"]},
+    "case_faces": {"availability": "PLANNED_REFERENCE_MISSING_MODEL", "note": "Co-located x/y/area/plate temperature and post-spreader heat-flux samples", "sources": ["observer"]},
+    "peak_case_c_interval": {"availability": "PLANNED_REFERENCE_MISSING_MODEL", "note": "Computed on matched faces as max(T_plate + R_TIM2*q_local), with map/numerical uncertainty", "sources": ["observer"]},
+    "mass_flux_in_out": {"availability": "REFERENCE_ONLY", "note": "Signed surface integrals with normals and density convention, not prescribed input flow alone", "sources": ["legacy_outputs", "reference"]},
+    "enthalpy_and_boundary_flux": {"availability": "MISSING_MODEL", "note": "Reference bookkeeping exists; prospective contract must retain independent integrals and the pinned cp-held convention", "sources": ["legacy_outputs", "reference"]},
+    "solid_fluid_interface_flux": {"availability": "MISSING", "note": "Matched normal flux and temperatures on both sides", "sources": ["reference"]},
+    "temperature_extrema_field": {"availability": "REFERENCE_ONLY", "note": "Fluid/solid extrema and actual field sampling, not just model peak/profile", "sources": ["legacy_outputs", "observer"]},
+    "cell_pressure_flow_power": {"availability": "PLANNED_REFERENCE_PARTIAL_MODEL", "note": "Delta p in Pa, actual cell/half-cell flow in m3/s and hydraulic power on the same basis; footprint flow is not half-cell flow", "sources": ["observer", "domain"]}
+  },
+  "laws": [
+    {"id": "steady-mass-balance", "type": "balance", "status": "HUMAN_INPUT", "statement": "Sum of outward signed mass-flow surface integrals is zero", "conditions": "No mass source, steady closed accounting surface; use actual pinned density and normals", "required_outputs": ["mass_flux_in_out"], "sources": ["fluid", "reference"], "calibration": "Absolute kg/s and relative mass closure, independently integrated at matched inlet/outlet planes"},
+    {"id": "combined-energy-balance", "type": "balance", "status": "HUMAN_INPUT", "statement": "Imposed interface heat equals net outward fluid enthalpy plus other retained boundary energy fluxes", "conditions": "Steady solid+fluid volume, exact reference energy convention, account for any retained mechanical terms; internal flux cancels", "required_outputs": ["enthalpy_and_boundary_flux", "mass_flux_in_out"], "sources": ["fluid", "energy", "reference"], "calibration": "Watts closure with mesh/iteration refinement; derived outlet T from input heat is not independent closure; cp-held physical discrepancy needs separate review"},
+    {"id": "conjugate-interface", "type": "balance", "status": "HUMAN_INPUT", "statement": "Matched interface temperatures agree and outward heat fluxes cancel", "conditions": "Perfect solid-fluid coupling in pinned reference; keep TIM2 as a separate contact law", "required_outputs": ["solid_fluid_interface_flux"], "sources": ["energy", "reference"], "calibration": "Paired face traces and area-weighted normal flux with non-conformal interpolation uncertainty"},
+    {"id": "TIM2-case-plane", "type": "balance", "status": "HUMAN_INPUT", "statement": "T_case(x,y)-T_plate(x,y) = R_TIM2*q_local(x,y)", "conditions": "Approved areal contact resistance in m2*K/W, co-located post-spreader flux in W/m2, no hidden redistribution in TIM2", "required_outputs": ["case_faces", "peak_case_c_interval"], "sources": ["energy", "observer", "readiness"], "calibration": "Matched-point K residual and maximum-location check; never add maxima from different locations; map uncertainty is separate"},
+    {"id": "passive-steady-temperature-bound", "type": "bound", "status": "HUMAN_INPUT", "statement": "Temperature is not below inlet temperature", "conditions": "Nonnegative heat input, passive insulated exterior, no other colder sink, positive conductivity and approved steady advective-diffusive scope", "required_outputs": ["temperature_extrema_field"], "sources": ["bound", "energy", "reference"], "calibration": "Registered field minima and refined undershoot; no arbitrary 85 C physics-law ceiling"},
+    {"id": "hydraulic-accounting", "type": "balance", "status": "HUMAN_INPUT", "statement": "Hydraulic power = Delta p * Q on the same cell basis", "conditions": "Pascal pressure difference and m3/s flow; compare like static-head/area stations; pump input/electrical efficiency is not claimed", "required_outputs": ["cell_pressure_flow_power"], "sources": ["fluid", "observer"], "calibration": "Unit/convention verification, footprint-to-half-cell mapping and pressure observer refinement"},
+    {"id": "half-cell-symmetry", "type": "invariance", "status": "HUMAN_INPUT", "statement": "Reflection across the declared transverse symmetry plane leaves temperature/flow unchanged and normal flux zero", "conditions": "Transverse-uniform buyer map and identical reflected boundary data; no inlet/outlet reversal invariance", "required_outputs": ["case_faces", "solid_fluid_interface_flux"], "sources": ["fluid", "domain", "reference"], "calibration": "Mirrored face/field witnesses or zero-normal-flux trace with mesh symmetry error"},
+    {"id": "zero-heat-equilibrium", "type": "limit", "status": "HUMAN_INPUT", "statement": "With zero heat and no other thermal source/sink, temperature equals inlet temperature", "conditions": "Separate analytic verification control; finite supported flow, no dissipation term absent from pinned energy model", "required_outputs": ["temperature_extrema_field", "enthalpy_and_boundary_flux"], "sources": ["energy", "reference"], "calibration": "Uniform-temperature residual; control outside the point-C buyer question"}
+  ],
+  "excluded_claims": [
+    "No universal peak-temperature monotonicity versus flow or geometry with changing heat maps, variable properties or flow linked to power; any matched-pair tendency is diagnostic until separately justified.",
+    "No finite-temperature zero-flow limit at nonzero power, and no inlet/outlet-reversal symmetry under advection.",
+    "No die/junction or full-plate performance claim; the 85 C limit is the lid-side TIM2 case plane.",
+    "Do not demand variable-cp closure from the cp-held reference or call reference simplification error a candidate failure."
+  ],
+  "tolerances": {"status": "HUMAN_INPUT", "calibration_status": "NOT_RUN", "quantile": null, "multiplier": null, "absolute_floors": null, "sampling_uncertainty": null, "recipe": "Common README plan; numerical residuals plus separately reviewed map/TIM2 and physical-simplification uncertainty"},
+  "calibration": {
+    "status": "NOT_RUN",
+    "image_digest": "sha256:33fb575aa9980d2bc42fd58c75ae698c489293ba30c991380fe3f899c622f319",
+    "image_basis": "Pinned OpenCFD image in cooling verification draft; code verification SPECIFIED_NOT_RUN, not accepted by this contract",
+    "verification_sources": ["verification"],
+    "holds": ["Exact-image code verification: Poiseuille, energy MMS, layered conduction", "Declared point-C post-spreader map/TIM2 and uncertainty", "Pressure/enthalpy observer conventions", "Prospective model outputs", "Matched calibration and convergence"],
+    "recalibrate_on": ["image rebuild or re-pin", "deck", "fluid/property model", "map or TIM2", "observer", "scope"]
+  },
+  "probes": {"status": "HUMAN_INPUT", "density": null, "pair_count": null, "path_step": null, "proposal": "Point-C supported geometries, Re/property-edge checks, matched mirror pairs and separately labelled analytic controls; no jobs authorised"},
+  "gates": {"status": "HUMAN_INPUT", "adopted": false, "allocations": null, "score_use": null},
+  "review_owner": "Carbon Validator and science; point-C use and owner adoption remain reserved"
+}

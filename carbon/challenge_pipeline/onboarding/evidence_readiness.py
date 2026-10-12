@@ -85,6 +85,21 @@ BENCHMARK_ROUTES = {
             "EQUAL-BUDGET-MG-DEVELOPMENT-V1",
         ),
     },
+    # Legacy table name; this is NOT a published benchmark or customer result.
+    "package-warpage": {
+        "kind": "REPRESENTATIVE_REHEARSAL",
+        "pending": "https://github.com/carbonphysicsai/Carbon/pull/1095",
+        "baseline": (
+            "carbon/challenge_pipeline/warpage_rehearsal.py",
+            {"laminate_estimate", "comparator_ranking"},
+        ),
+        "baseline_ready": False,
+        "baseline_gap": "Elastic strip screen only; strongest full-history cached FE comparator still required",
+        "budget": (
+            "carbon/design_search/warpage_budget.py",
+            "WARPAGE-REHEARSAL-PROPOSED-V1",
+        ),
+    },
 }
 
 
@@ -551,6 +566,8 @@ def benchmark_route(tree, family, optimizer):
                     "Family registration validator is not wired into compare",
                     pointers,
                 )
+    if not optimizer and route.get("baseline_ready") is False:
+        return "PLANNED", route["baseline_gap"], pointers
     return (
         "YES",
         "Family offline implementation inspected; no claim of measured value, package adequacy or dispatch permission",

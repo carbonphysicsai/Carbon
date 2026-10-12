@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-11-warpage-rehearsal-first-tests",
+  "recorded_at": "2026-10-11T14:20:00Z",
+  "challenge": "package-warpage",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "AI-PACKAGE-WARPAGE-REHEARSAL-BUILD-01", "description": "First native focused run: 56 passed, one readiness assertion failed because a new proposal is not yet on immutable main. Two lint findings repaired. No solver execution."},
+  "expected": "New preparation remains PLANNED until merged and independently evidenced.",
+  "observed": "The existing test assumed every configured family already had main sources. A second run had 61 passes and the same not-yet-main proposal issue. The binding now points to the already-merged full-3D packet, not a working-tree-only README. No main source or pass is invented.",
+  "keep": ["Inspect main rather than borrowing working-tree evidence."],
+  "change": ["Assert zero/PLANNED for a newly configured unmerged proposal without examined main sources."],
+  "protocol_elements": ["reference policy", "evidence plan"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

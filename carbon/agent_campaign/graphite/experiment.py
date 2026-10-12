@@ -865,6 +865,13 @@ class Experiment:
                 "proposal_id": pid,
                 "status": record["status"],
                 "result_digest": digest(canonical(record)),
+                # This fixed admission code is allowlisted for the session log.
+                **(
+                    {"reason_code": "level4_submission_required"}
+                    if record["status"] == "REFUSED_UNREBUILDABLE"
+                    and record.get("reason_code") == "level4_submission_required"
+                    else {}
+                ),
             },
         )
         return record
@@ -1218,11 +1225,12 @@ class Experiment:
             "authority_granted": False,
         }
 
-    def _level4_documents(self, folder, strategy):
+    def _level4_documents(self, folder, strategy, *, required=False):
         """At Level 4, a strategy naming a submission digest gets its kept
         envelope's documents (`staging.workspace`), and the envelope is written
         beside the proposal for its pod. None when the strategy names none or
-        the session is not at Level 4. A digest that was never staged, or an
+        the session is not at Level 4. Proposals require a graph; plain
+        baselines and ablations remain comparison controls. A digest that was never staged, or an
         envelope over the pod transport, is `Unrebuildable`, typed."""
         from carbon.battery import level4 as battery_level4
         from carbon.level4 import staging
@@ -1238,6 +1246,8 @@ class Experiment:
             else None
         )
         if submission is None:
+            if required:
+                raise Unrebuildable("level4_submission_required")
             return None
         kept = self.level4_staged(submission)
         if kept is None:
@@ -1573,7 +1583,9 @@ class Experiment:
                 if self.development_variant is None
                 else {"variant": self.development_variant}
             )
-            documents = self._level4_documents(folder, strategy)
+            documents = self._level4_documents(
+                folder, strategy, required=kind == "proposal"
+            )
             if documents is not None:
                 level["workspace"] = documents
             expected = admit(strategy, seed, self.repository, self.scoring, **level)
