@@ -131,3 +131,43 @@ def test_it_fits_the_weekly_cap_beside_the_owners_other_open_grants():
     grant = _grant()
     # The other open grants total 184.56 of the 300 per rolling week (CONFIRM-02 at 37); this one adds its ceiling.
     assert OTHER_OPEN_GRANTS + grant.monetary_ceiling <= WEEKLY_CAP_USD
+
+
+def _index_rows():
+    text = (GRANTS / "README.md").read_text(encoding="utf-8")
+    section = text[text.index("## Level 4 Constructor grants (index)") :]
+    section = section[: section.index("\n## ", 5)]
+    rows = {}
+    for line in section.splitlines():
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        if len(cells) == 7 and cells[0].startswith("GRAPHITE-GRANT-"):
+            rows[cells[0]] = {
+                "level": cells[1],
+                "lane": cells[2],
+                "purpose": cells[3],
+                "authority": cells[4],
+                "ceiling": Decimal(cells[5]),
+            }
+    return rows
+
+
+def test_the_grants_index_lists_every_level_4_constructor_grant_with_its_pool():
+    rows = _index_rows()
+    level_four = {
+        grant_id: entry
+        for grant_id, entry in grant_binding.PHASE3_GRANTS.items()
+        if entry.runner == "phase3" and entry.min_level == entry.max_level == 4
+    }
+    assert set(rows) == set(level_four)
+    purposes = [row["purpose"] for row in rows.values()]
+    assert len(set(purposes)) == len(purposes) and all(purposes)
+    for grant_id, entry in level_four.items():
+        assert rows[grant_id]["authority"] == entry.authority
+        assert rows[grant_id]["level"] == "4"
+        assert rows[grant_id]["ceiling"] == _grant(grant_id).monetary_ceiling
+    pools = {}
+    for row in rows.values():
+        pools[row["authority"]] = (
+            pools.get(row["authority"], Decimal(0)) + row["ceiling"]
+        )
+    assert pools[grant_binding.STANDING_TEST_GRANT_AUTHORITY] == Decimal("14.94")

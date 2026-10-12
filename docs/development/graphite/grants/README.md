@@ -1045,6 +1045,19 @@ R4 (45.00, 3 runs, Level 1 and above) is unchanged and stays spendable.
 - **Whether a Level 4 live run happens** stays the owner's and the security
   owner's (plan section 1). This grant authorizes spend only.
 
+## Level 4 Constructor grants (index)
+
+The grant file has no free-text field (the loader requires an exact field set), so what each Level 4 Constructor grant is FOR
+is recorded here and in the comments beside its binding entry in `grant_binding.py`. Two grants can look alike (one lane G
+Level 4 Constructor run at 14.94); they differ in purpose and in the pool that funds them. A test keeps this table complete:
+every Level 4 Constructor grant in the binding appears once, with a distinct purpose, and each pool's total here equals the
+sum of its grant files' ceilings.
+
+| Grant | Level | Lane | Purpose | Authority (pool) | Ceiling | State |
+|---|---|---|---|---|---|---|
+| GRAPHITE-GRANT-STAGE-C-CONSTRUCTOR | 4 | G | Stage C: up to three Level 4 Constructor runs of the ladder wave | OWNER-GRAPHITE-STAGE-C-01 | 44.85 | registered |
+| GRAPHITE-GRANT-L4-G-CONSTRUCTOR-2 | 4 | G | The Level 4 graph-variant (`l4-graph-v3`) valid-graph Constructor run that leads to the live Level 4 submit and smoke practice; no theme | OWNER-TEST-GRANT-01 | 14.94 | registered |
+
 ## The optional pod rate ceiling (GRANT-POD-CEILING-01)
 
 - **The field.** A grant may carry `pod_rate_ceiling_usd_per_hr`, the most a
