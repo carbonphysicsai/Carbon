@@ -17,8 +17,13 @@ REPAIR proposed f08/f17 (and cooling's explicit ASSUMPTION proposal) budgets:
 implemented dispatch is not an adopted budget. PROPOSED contributes zero YES.
 Apply this same classification to the explicitly proposed BFS, MG and warpage
 routes found in their current source; an inconsistent YES would defeat the fix.
-New readiness outputs are v2; v1 receipts and all reference evidence remain
-unchanged. No optimizer, producer, kit, solver, authority or thresholds changed.
+The final consumer audit found evidence_campaign's closed v1 schema, state enum
+and labels. Preserve v1 defaults for the APIs and JSON CLI: proposed budgets
+are PLANNED with PROPOSED in the basis, never YES. Text defaults to v2; explicit
+version selection exposes v2 JSON or legacy text. Exercise the unchanged real
+campaign reader in regression tests instead of editing optimizer-owned code.
+v1 receipts and all reference evidence remain unchanged. No optimizer,
+producer, kit, solver, authority or thresholds changed.
 
 Candidate inputs are audited against main source bytes but are not called
 merged inputs. The regenerated observation separates them. Data Collection

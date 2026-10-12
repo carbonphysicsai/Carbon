@@ -518,7 +518,7 @@ def test_committed_source_indexes_match_real_public_records_without_overrides(
         assert state == "UNKNOWN", reason
         assert "still required" in reason and pointers
     monkeypatch.setattr(er, "MainTree", lambda *args: tree)
-    report = er.generate(ROOT, family, now=NOW)
+    report = er.generate(ROOT, family, now=NOW, report_version=2)
     assert report["schema"] == "carbon.onboarding.evidence-readiness.v2"
     assert all(row["state"] == "UNKNOWN" for row in report["items"][:5])
     assert all("still required" in row["basis"] for row in report["items"][:5])

@@ -27,7 +27,7 @@ LABELS = (
     "Kit covers every panel action, condition and observable",
     "Registered TRAIN physically disjoint from panel",
     "Strong cheap-baseline implementation ready",
-    "Challenge-supported equal-budget route and registration ready",
+    "Challenge-supported equal-budget implementation ready",
 )
 OWNERS = (
     "Data Collection / owner registration",
@@ -738,7 +738,20 @@ def inspect_partial(tree, evidence):
     return "UNKNOWN", finding + "; still required: " + "; ".join(missing), pointers
 
 
-def generate(root, challenge, *, main_ref="origin/main", now=None):
+def generate(root, challenge, *, main_ref="origin/main", now=None, report_version=1):
+    # The campaign runner consumes the closed v1 schema/labels. Keep that API;
+    # v2 is an explicit presentation contract, not an optimizer migration.
+    if type(report_version) is not int or report_version not in (1, 2):
+        raise packet.DraftError("readiness report version 1 or 2 required")
+    schema = f"carbon.onboarding.evidence-readiness.v{report_version}"
+    labels = (
+        LABELS
+        if report_version == 1
+        else (
+            *LABELS[:6],
+            "Challenge-supported equal-budget route and registration ready",
+        )
+    )
     if type(challenge) is not str or not re.fullmatch(
         r"[a-z0-9][a-z0-9-]{0,79}", challenge
     ):
@@ -756,7 +769,7 @@ def generate(root, challenge, *, main_ref="origin/main", now=None):
     )
     if binding is None:
         return {
-            "schema": "carbon.onboarding.evidence-readiness.v2",
+            "schema": schema,
             "challenge": challenge,
             "main": tree.commit,
             "observed_at": (now or datetime.now(UTC)).isoformat(),
@@ -769,7 +782,7 @@ def generate(root, challenge, *, main_ref="origin/main", now=None):
                     "owner": OWNERS[i],
                     "pointers": [BINDINGS],
                 }
-                for i, label in enumerate(LABELS)
+                for i, label in enumerate(labels)
             ],
             "yes_count": 0,
             "all_prerequisites_yes": False,
@@ -833,7 +846,7 @@ def generate(root, challenge, *, main_ref="origin/main", now=None):
         rows.append(
             {
                 "item": i + 1,
-                "label": LABELS[i],
+                "label": labels[i],
                 "state": state,
                 "basis": reason,
                 "owner": OWNERS[i],
@@ -845,10 +858,13 @@ def generate(root, challenge, *, main_ref="origin/main", now=None):
         )
     for i in (5, 6):
         state, reason, pointers = code_route(tree, family, optimizer=i == 6)
+        if report_version == 1 and state == "PROPOSED":
+            state = "PLANNED"
+            reason = "PROPOSED budget (v1 compatibility): " + reason
         rows.append(
             {
                 "item": i + 1,
-                "label": LABELS[i],
+                "label": labels[i],
                 "state": state,
                 "basis": reason,
                 "owner": OWNERS[i],
@@ -856,7 +872,7 @@ def generate(root, challenge, *, main_ref="origin/main", now=None):
             }
         )
     return {
-        "schema": "carbon.onboarding.evidence-readiness.v2",
+        "schema": schema,
         "challenge": family,
         "main": tree.commit,
         "observed_at": now.isoformat(),

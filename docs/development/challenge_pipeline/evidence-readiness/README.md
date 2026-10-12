@@ -8,6 +8,7 @@ No solver, fitting/training, Docker calls, network or hidden-body reads.
 python -m carbon.challenge_pipeline.onboarding status --challenge motor
 python -m carbon.challenge_pipeline.onboarding readiness
 python -m carbon.challenge_pipeline.onboarding readiness --challenge f02 --format json
+python -m carbon.challenge_pipeline.onboarding readiness --challenge f08 --format json --report-version 2
 ```
 
 `status` now appends this section. Its existing `status.generate/render` API and
@@ -76,8 +77,13 @@ proposal/pending work, with no inspectable completion evidence. **UNKNOWN:**
 missing, malformed, stale or unavailable evidence. Pointers and owning session
 accompany all answers. **PROPOSED:** a family route is implemented but its budget
 is not yet an adopted registration. It contributes zero to the YES count. New
-reports use `carbon.onboarding.evidence-readiness.v2` to add this state
-prospectively; retained v1 reports are historical and are not reinterpreted.
+text reports use `carbon.onboarding.evidence-readiness.v2` to add this state
+prospectively. The existing `generate`/`portfolio` APIs and JSON CLI default to
+v1, preserving the evidence-campaign reader's closed schema and labels.
+In v1, proposed budgets map conservatively to PLANNED (never YES), with PROPOSED
+in the basis. Select `--report-version 2` for v2 JSON, or `--report-version 1`
+for legacy text. API callers may pass `report_version=2`. Retained v1 reports
+are historical and are not reinterpreted. No optimizer consumer is migrated.
 Main source identity is a necessary basis, not proof that
 a producer's acceptance decision was scientifically justified.
 

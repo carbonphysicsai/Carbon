@@ -39,7 +39,11 @@ on the three changed Python files and `carbon.challenge_pipeline validate`
 passed. Delivery hygiene against the starting base passed. Windows output is
 not canonical; GitHub's scope-required CI and Merge gate control handoff.
 
+Final consumer audit: preserve the campaign runner's closed v1 interface and
+labels; expose PROPOSED explicitly through v2 presentation. Native expanded
+regressions including the unchanged real campaign reader: 105 passed.
+
 Expected diff: this ticket, one bounded decision, one lesson;
-`onboarding/evidence_readiness.py`; readiness README, current-main observation
-and three input indexes; readiness and micromixer regression tests. No producer,
+`onboarding/evidence_readiness.py` and version-selecting CLI; readiness README, current-main observation
+and three input indexes; readiness, CLI and micromixer regression tests. No producer,
 solver, optimizer, kit, queue, historical report or scientific record mutation.
