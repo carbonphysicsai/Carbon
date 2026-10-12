@@ -830,11 +830,11 @@ def test_a_registered_record_carries_no_missing_guard_caveat_but_a_guard_flag():
     assert block["guard"] == "registered"
     assert improvement.LEVEL_REBUILD_CAVEAT not in block.get("caveats", [])
     assert improvement.ABSTAIN_CAVEAT in block["caveats"]
-    mixed = improvement.public_dev_block(
+    beside = improvement.public_dev_block(
         [registered(), level_record(level=2, run_id="r2")]
     )["accuracy_error"]
-    assert mixed["guard"] == "mixed"
-    assert improvement.LEVEL_REBUILD_CAVEAT in mixed["caveats"]
+    assert beside["guard"] == "registered" and beside["n"] == 1
+    assert beside["guard_skipped_apart_caveat"] == improvement.LEVEL_REBUILD_CAVEAT
     assert (
         improvement.public_dev_block([level_record(level=2)])["accuracy_error"]["guard"]
         == "skipped"
@@ -868,3 +868,54 @@ def test_non_counting_members_are_listed_apart_and_never_counted():
     ]
     assert counted["n"] == 1 and [r["run"] for r in counted["non_counting"]] == ["g1"]
     assert counted["value"] == pytest.approx(0.2)
+
+
+def test_a_guard_skipped_record_is_shown_apart_where_a_registered_one_exists():
+    skipped = level_record(level=2, run_id="r2")
+    block = improvement.public_dev_block([registered(run="r1"), skipped])[
+        "accuracy_error"
+    ]
+    assert block["n"] == 1 and block["guard"] == "registered"
+    assert [row["run"] for row in block["guard_skipped_apart"]] == ["r2"]
+    assert block["guard_skipped_apart_caveat"] == improvement.LEVEL_REBUILD_CAVEAT
+    # with no registered record the skipped ones are counted as before
+    alone = improvement.public_dev_block([skipped])["accuracy_error"]
+    assert alone["n"] == 1 and "guard_skipped_apart" not in alone
+
+
+def _manifest_with(tmp_path, record):
+    (tmp_path / "c.out").write_text(json.dumps(constructor_doc()))
+    (tmp_path / "new.json").write_text(json.dumps(record))
+    return {
+        "batch": "m",
+        "runs": [
+            {
+                "file": "c.out",
+                "role": "constructor",
+                "level": 2,
+                "public_improvement_file": "new.json",
+            }
+        ],
+    }
+
+
+def test_a_registered_record_must_name_the_real_digest_of_the_file_it_supersedes(
+    tmp_path,
+):
+    old = tmp_path / "old.json"
+    old.write_text("{}")
+    good = registered(
+        supersedes={"file": "old.json", "sha256": improvement.file_sha256(old)}
+    )
+    runs = cli.load_runs(_manifest_with(tmp_path, good), tmp_path)
+    assert runs[0]["public_improvement"]["guard"] == "registered"
+    wrong = registered(supersedes={"file": "old.json", "sha256": "sha256:" + "0" * 64})
+    with pytest.raises(ProgressError, match="supersedes_digest_differs"):
+        cli.load_runs(_manifest_with(tmp_path, wrong), tmp_path)
+
+
+@pytest.mark.parametrize("name", ["missing.json", "../old.json"])
+def test_the_superseded_file_must_still_be_beside_the_record(tmp_path, name):
+    record = registered(supersedes={"file": name, "sha256": "sha256:" + "0" * 64})
+    with pytest.raises(ProgressError, match="supersedes_digest_differs"):
+        cli.load_runs(_manifest_with(tmp_path, record), tmp_path)

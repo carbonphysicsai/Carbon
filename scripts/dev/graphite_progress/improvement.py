@@ -11,6 +11,7 @@ Never sealed, never a qualification claim; small samples are flagged, not hidden
 
 from __future__ import annotations
 
+import hashlib
 import json
 import random
 import re
@@ -87,6 +88,11 @@ def committed_reference_sha(contract=None):
     ):
         raise ProgressError("public_improvement_contract_has_no_reference_digest")
     return value
+
+
+def file_sha256(path):
+    """`sha256:<hex>` of a file's bytes."""
+    return "sha256:" + hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
 def registered_members(contract=None, levels=None):
@@ -290,6 +296,17 @@ def public_dev_block(records, level=None):
             + (f"; {PANEL_MEMBER_NOTE}" if (level or 0) >= 2 else "")
         )
     out = {}
+    # Where a registered-guard record exists at this level, a guard-skipped record (a bundle the panel did not
+    # register) is shown apart, never counted beside it: the two are not the same measurement.
+    registered_here = any(
+        rec.get("guard", GUARD_SKIPPED) == GUARD_REGISTERED for rec in records
+    )
+    apart = [
+        rec
+        for rec in records
+        if registered_here and rec.get("guard", GUARD_SKIPPED) == GUARD_SKIPPED
+    ]
+    records = [rec for rec in records if rec not in apart]
     counting = [rec for rec in records if rec.get("counts_for_level", True)]
     non_counting = [rec for rec in records if not rec.get("counts_for_level", True)]
     guards = {rec.get("guard", GUARD_SKIPPED) for rec in counting}
@@ -307,6 +324,12 @@ def public_dev_block(records, level=None):
                 rec.get("run_id"),
             )
             for rec in counting
+            if (r := relative(rec["baseline"].get(name), rec["model"].get(name)))
+            is not None
+        ]
+        skipped_apart = [
+            {"run": rec.get("run_id"), "relative_improvement": round(r, 6)}
+            for rec in apart
             if (r := relative(rec["baseline"].get(name), rec["model"].get(name)))
             is not None
         ]
@@ -358,6 +381,14 @@ def public_dev_block(records, level=None):
             **({"caveats": _caveats(records)} if _caveats(records) else {}),
             **({"guard": guard} if guard else {}),
             **({"non_counting": aside} if aside else {}),
+            **(
+                {
+                    "guard_skipped_apart": skipped_apart,
+                    "guard_skipped_apart_caveat": LEVEL_REBUILD_CAVEAT,
+                }
+                if skipped_apart
+                else {}
+            ),
             **({"superseded": superseded} if superseded else {}),
             **(
                 {
