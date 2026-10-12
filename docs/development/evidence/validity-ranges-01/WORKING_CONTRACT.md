@@ -1,0 +1,11 @@
+# RES-05 — VALIDITY-RANGES-01 working scope
+
+Owner-authorized research queue item, 2026-10-12. Deliver primary-source validity proposals for battery DFN, motor demagnetization, f02 conduction and point-B cooling. One PR against main; stop after green exact-head handoff to PR Head. No runtime changes, solver or property-engine execution, reconstruction, spend, hidden/sealed material, AX42 access, changes to existing Challenge packets or scientific adoption.
+
+Authority read at main `c47e95349ae5ba862d8a873a2ec9b42932eb9fa0`: AGENTS, Constitution, invariants, WAVE, delivery and delegated-decision protocols, Build_Out and constitutional overlay, scientific canon, Business canon and publication rules. The direct research queue supplies this bounded ticket. WAVE selects no runtime successor. The Development Hub stays frozen under OWNER-WORKFLOW-SPEED-01. The queue's explicit PR Head stop controls delivery; this executor does not merge.
+
+KEEP existing scientific contracts, source versions and historical results. Read current implementation and primary solver documentation, originating research and material datasheets. Separate mathematical admissibility, published experimental support, source-simulated conditions, material ratings, fitted-property domains and Carbon's chosen job envelope. Do not turn a source's setpoints into a validated continuous box or silently change P, Q or w.
+
+Proposed admission bounds, margins, interpolation rules, acceptable model discrepancy and claim scope remain HUMAN_INPUT. Missing source-backed endpoints remain unset. Reference applicability is checked from trusted reference states, independently of candidate predictions. Outside declared applicability means UNRESOLVED or REFERENCE_INVALID, never candidate failure; a valid prediction of a buyer-limit violation remains useful evidence.
+
+Deliver only this contract, SOURCES.md and reports/REPORT.md in this new directory. Write the separate local queue receipt under codex-queue/reports, never commit it or owner inputs. Validate the explicit manifest, Markdown/source references and text hygiene, then require applicable canonical GitHub CI at the exact head. Research findings earn documented proposals, not scientific qualification or readiness. Owner adoption and any implementation belong to their respective lanes.
