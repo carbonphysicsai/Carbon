@@ -57,10 +57,10 @@ envelope is a typed refusal, never a score.
 
 ## The owner's decision
 
-The owner decided on 2026-10-13, directly in the coordinating session. Asked to accept the isolation of lowering untrusted model
+The owner decided on 2026-10-12, directly in the coordinating session, and confirmed it himself in the PR Head session before the record merged. Asked to accept the isolation of lowering untrusted model
 source in the existing analysis container and the envelope transport for development and testnet only, to have the containment
 check run on the new image first, or to decline, he answered: "I fully accept it into testing. We will analyze it there"
-(`.agent/decisions/2026-10-13-OWNER-L4-STAGING-IMAGE-RELEASE-01.md`). That is the release word for the rebuild, for testing
+(`.agent/decisions/2026-10-12-OWNER-L4-STAGING-IMAGE-RELEASE-01.md`). That is the release word for the rebuild, for testing
 (development and testnet) only; mainnet is outside it. The "not verified" list above stays attached: this is an acceptance into
 testing, not a claim that a security audit was done. The Test Lead's conditions apply to the release: the containment check on the
 rebuilt image runs first and must pass before any Level 4 lowering, and a hostile-model lowering probe goes in the first Level 4

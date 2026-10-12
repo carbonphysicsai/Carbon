@@ -75,7 +75,7 @@ The Attacker is graded by the oracle, not by its own claims (#1031).
 Open Attacker findings from stage A L0 (1 finding) must be dispositioned before the stage A report is
 filed (TESTED condition 3 in `ONBOARDING_PIPELINE.md`); that disposition is not yet recorded.
 
-**Level 4 entry checks (added 2026-10-13, after the owner's release word, OWNER-L4-STAGING-IMAGE-RELEASE-01).**
+**Level 4 entry checks (added 2026-10-12, after the owner's release word, OWNER-L4-STAGING-IMAGE-RELEASE-01).**
 1. **Containment first.** After the analysis image is rebuilt, the fixed carrier containment check runs on the CURRENT image
    digest and must pass before any Level 4 lowering, Graphite's own included. The readiness gate's R1 already runs it against the
    manifest's image each time and fails when the image does not match the repository, so an L4 run is not launch_ready until it
