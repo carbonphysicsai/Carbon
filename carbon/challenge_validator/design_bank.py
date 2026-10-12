@@ -173,8 +173,11 @@ def checked_solve(solve, directory, overlay, workers, **options):
     """Run a truth solve and refuse when its container did not exit 0: a
     container that never started (a docker argument error, a missing image)
     or crashed must fail the fill, never read as a quiet pending tranche."""
-    found = solve(directory, overlay, workers=workers, **options) or {}
-    if found.get("returncode", 0) != 0:
+    found = solve(directory, overlay, workers=workers, **options)
+    # Only an explicit integer 0 is success: no result, no return code, a
+    # None or any other value is a container that never reported (fail closed).
+    code = found.get("returncode") if isinstance(found, dict) else None
+    if type(code) is not int or code != 0:
         raise ProducerRefused("producer_truth_solve_failed")
     return found
 

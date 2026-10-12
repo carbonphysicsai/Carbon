@@ -30,6 +30,16 @@ def test_a_failed_container_refuses_the_fill(returncode):
     assert calls == [("work", "overlay", 8, {"runner": "r"})]
 
 
+@pytest.mark.parametrize(
+    "result",
+    [None, {}, {"returncode": None}, {"returncode": "0"}, {"returncode": False}],
+)
+def test_a_missing_or_malformed_return_code_is_a_failure(result):
+    """A container that never reported a return code is not a success."""
+    with pytest.raises(ProducerRefused, match="producer_truth_solve_failed"):
+        dbk.checked_solve(lambda d, o, *, workers: result, "w", "o", 6)
+
+
 def test_a_clean_container_passes_through():
     found = dbk.checked_solve(
         lambda d, o, *, workers: {"returncode": 0, "solved": 3}, "w", "o", 6
