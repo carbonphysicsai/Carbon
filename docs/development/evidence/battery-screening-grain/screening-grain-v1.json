@@ -8,5 +8,20 @@
  "pooled_screening_cases": 294,
  "rounding": "measured SE rounded UP to a 0.005 step, floor 0.005",
  "measured": "2026-10-12, SCREENING-GRAIN-01, on public data only (measurement.json, measure.py in this folder)",
- "state": "DEVELOPMENT; a measured value under the owner's rule, not a new threshold"
+ "state": "DEVELOPMENT; a measured value under the owner's rule, not a new threshold",
+ "grain_pct": 3.5,
+ "rule": "v2-bank-sched",
+ "score_section": "accuracy",
+ "sense": "lower_is_better",
+ "sense_source": "carbon/challenge_validator/score_feed.py SECTION_META['accuracy'] (the pooled mean per-case error, the quantity measured here)",
+ "applies_only_to": "a deployment whose rule is v2-bank-sched and whose screening score is the accuracy section; any other rule or score (e.g. a v3-bank-sched registered candidate) needs its own measured grain, so PLT-08 refuses this file there (fail closed)",
+ "display_grid": "geometric",
+ "display_rule": "displayed = (1 + grain)^k, k an integer; k is rounded toward the WORSE side by the score's sense, so the display never overstates: lower_is_better -> k = ceil(ln(score) / ln(1 + grain))",
+ "update_rule": "a coldkey's displayed value changes only when a submission's grid value is at least one grid step better than the coldkey's displayed best (lower_is_better: k_new <= k_best - 1); otherwise the status is 'no improvement beyond the grain'",
+ "convention": "a display convention under the owner's grain decision (OWNER-BATTERY-CHAMPIONSHIP-04 section 3), not a new threshold",
+ "worked_example": {
+  "score": 0.1234,
+  "k": -59,
+  "displayed": 0.131377
+ }
 }
