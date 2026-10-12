@@ -168,3 +168,4 @@ def test_the_grants_index_lists_every_level_4_constructor_grant_with_its_pool():
             pools.get(row["authority"], Decimal(0)) + row["ceiling"]
         )
     assert pools[grant_binding.STANDING_TEST_GRANT_AUTHORITY] == Decimal("14.94")
+    assert pools[grant_binding.HUNT_AUTHORITY] == Decimal("14.94")

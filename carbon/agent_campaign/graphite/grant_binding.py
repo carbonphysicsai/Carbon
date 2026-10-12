@@ -353,6 +353,11 @@ PHASE3_GRANTS = types.MappingProxyType(
                 token_share_usd=STAGE_TOKEN_SHARE,
                 authority=STANDING_TEST_GRANT_AUTHORITY,
             ),
+            # H4 (n = 4) PURPOSE: the Level 5 hunt's own Level 4 Constructor run, lane G, launched with
+            # `--theme causal-structure`. POOL: OWNER-GRAPHITE-OPEN-SAFE-01-GRANTS, the hunt's last share
+            # (71.76 + 14.94 = 86.70 of the owner's 86.71). It is NOT GRAPHITE-GRANT-L4-G-CONSTRUCTOR-2 (the
+            # graph-variant valid-graph run, no theme, funded by the standing weekly test grant). Index:
+            # docs/development/graphite/grants/README.md, "Level 4 Constructor grants".
             # The Level 5 hunt: one run per grant, each at its own level (H1 at L1, H2 at L2,
             # H3 at L3, H4 at L4).
             *(
