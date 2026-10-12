@@ -38,6 +38,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import secrets
 import sys
 from pathlib import Path
@@ -97,13 +98,44 @@ def quiz_conditions(quiz):
     return out
 
 
-def work_conditions(works):
+#: An excludable earlier set: a sibling score-proof work directory.
+EXCLUDABLE = re.compile(r"score-proof-[0-9]+")
+
+
+def excluded_work(earlier, work):
+    """`earlier` as a work directory `--exclude-work` may read, else refused.
+    The Carbon Validator's reading of CUSTODY-03-EXT-01 (2026-10-12): the
+    exclusion reads only an earlier SCORE-PROOF-01 sealed set on the
+    operator host, never EV5's sealed batch (journal sequence 14),
+    `graphite-confirmation-v1` or any other set. So it must be a real (not
+    symlinked) directory named `score-proof-<n>` beside this draw's own work
+    directory, other than it, whose contract is this module's sealed
+    contract."""
+    earlier, work = Path(earlier), Path(work)
+    real = Path(os.path.realpath(earlier))
+    if (
+        earlier.is_symlink()
+        or not EXCLUDABLE.fullmatch(real.name)
+        or real.parent != Path(os.path.realpath(work)).parent
+        or real == Path(os.path.realpath(work))
+        or not (real / "contract.json").is_file()
+        or (real / "contract.json").is_symlink()
+    ):
+        raise SystemExit("refused: exclude_work_not_a_score_proof_set: " + str(earlier))
+    document = json.loads((real / "contract.json").read_bytes())
+    if document.get("contract_id") != CONTRACT_ID:
+        raise SystemExit("refused: exclude_work_not_a_score_proof_set: " + str(earlier))
+    return real, document
+
+
+def work_conditions(works, work):
     """Every condition an earlier sealed work directory drew (its own
     `contract.json`), so a fresh set never repeats one (CUSTODY-03-EXT-01:
-    fresh questions, never a set already drawn or used)."""
+    fresh questions, never a set already drawn or used). Each earlier work
+    must pass `excluded_work`."""
     out = set()
-    for work in works or ():
-        document = json.loads((Path(work) / "contract.json").read_bytes())
+    for earlier in works or ():
+        _real, document = excluded_work(earlier, work)
         out |= public_conditions(document)
     return out
 
@@ -162,7 +194,9 @@ def draw(work, questions, quiz=None, exclude_works=()):
         raise SystemExit("refused: this work directory already holds its questions")
     base, _ = ev.load(BASE_CONTRACT)
     excluded = (
-        public_conditions(base) | quiz_conditions(quiz) | work_conditions(exclude_works)
+        public_conditions(base)
+        | quiz_conditions(quiz)
+        | work_conditions(exclude_works, work)
     )
     conditions = draw_conditions(
         seed(work), questions, base["operating_conditions"]["envelope"], excluded
