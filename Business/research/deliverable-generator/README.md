@@ -54,3 +54,93 @@ Tests cover changed-source extraction, adverse/missing/ambiguous evidence, manua
 This is a development renderer, not the later neutral EV/receipt/Attacker join promised by the framework. It does not authenticate an offline exporter, certify full JSON Schema semantics, quantify physical uncertainty, review professional competence, determine standard applicability, inspect private confirmation, or create a Product Battery/Qualification Record. The record is constructed in the closed framework shape; full independent schema validation remains additional review work.
 
 Next adapters should consume registered safe machine outputs with stable measurement/requirement IDs and evidence-role/mask semantics. Add approved buyer projections and source completeness controls before external use. Extend ASME clause mappings only after authorized licensed review. [Working contract](WORKING_CONTRACT.md) records the authority, plan, validation and maturity ceiling. Adoption and qualification remain the owner's decisions; delivery stops at PR Head.
+
+## PRD-01 — Carbon Model Package development sections
+
+The same command now renders five additional views: **physics contract and
+law-check report**, **model card**, **trust map**, **solver code verification
+(MMS)**, and **decision evidence**. They index the same D01–D11 record; the
+unchanged PROPOSAL_V1 schema and the four output filenames remain intact.
+Detailed normalized fields, their sources/locators, denominators, outcomes and
+reasons live in `generation-manifest.json` under `package_evidence`. The source
+policy's content digest is also recorded. A manual D-section can have PARTIAL
+factual coverage while its acceptance/judgment stays HUMAN_INPUT.
+
+Current main public sources provide battery and motor particle/field MMS
+machine records, the separate owner acceptance decision, f02's original MMS
+and separate time-only diagnostic, and f02/motor/cooling draft contract
+definitions. The earlier machine verdict is copied unchanged; the acceptance
+link is a distinct observation. The f02 t_end=0.5 time orders remain beside the
+t_end=0.375 rerun. A verification plan is not a measured MMS result, and EV5
+rebuild agreement never fills this section. None establishes physical validity,
+full application/reference adequacy or product qualification.
+
+PLT-01 law-check outputs, a complete product Model Card, measured maps and
+current job-shaped VERIFY-R/equal-budget output are not present in the registered
+public source snapshot used by the v2 examples. Those fields are GAP with their
+individual reasons. Draft output availability is definition metadata, not a
+measurement. No sample calls a solver, imports a prediction bank, searches for
+private files or fills the gaps with synthetic values. The examples were
+generated battery first, then f02, motor and cooling-cell; prior examples retain
+their original source revisions and bytes.
+
+### Optional reviewed public export transport
+
+`package_sources` explicitly registers the optional
+`docs/development/product-evidence/<family>/package-projection.json` blob for
+each supported family. This is a **generator-owned transport**, not a new
+PLT-01, Model Card or scientific evaluator API. Upstream producers must publish
+a reviewed public aggregate projection before it can be consumed. No arbitrary
+filesystem path, scan or hidden-material export is accepted.
+
+The closed header is `schema: carbon.customer-deliverable.public-package-projection.v1`,
+`mode: DEVELOPMENT_SAMPLE`, exact dossier `challenge`, `disclosure` with
+`kind: PUBLIC|RELEASED` and an HTTPS evidence location, and `identity` with
+SHA-256 `model_artifact_hash`, `reference_image_digest`, `physics_contract_digest`.
+Its five payload keys are `law_checks`, `model_card`, `trust_map`, `verify_r`,
+`equal_budget`, each nullable. The image must match an available image-bound
+MMS result. A law join additionally checks the exact draft contract bytes and
+the per-law calibration image. Identity/disclosure assertions are not independent
+attestation or evidence that the exam/reference is scientifically qualified.
+
+- `law_checks`: `producer: PLT-01`, a `measurement_version` token and `laws`.
+  Each result has a draft-bound `id`, positive `sample_count`, `violation_rate`,
+  nullable `residual_median`, `unit`, typed `outcome`, Boolean `adopted`, and
+  `calibration_image_digest`. A draft can supply diagnostics only; a projection's
+  adoption flag cannot make it a registered gate. Missing law/residual fields
+  remain GAP; uncalibrated/incompatible results are refused.
+- `model_card`: optional fixed metrics `accuracy_overall`, `accuracy_near_limits`,
+  `robustness`, `extrapolation`, `uncertainty_calibration`, `speedup_equal_accuracy`,
+  `inference_latency`, `training_cost`. Each supplied metric has `value`, `unit`,
+  `sample_count`, `statistic`, `measurement_version`, `outcome`. Null/unmeasured
+  values remain GAP; FAILED_REFERENCE/FAILED_INFRA retain their classification.
+  All floors/acceptance are null / HUMAN_INPUT, independent of the source verdict.
+- `trust_map`: the native `carbon.trust-map.v1` DEVELOPMENT aggregate from
+  `carbon.trust_map`, with PUBLIC/RELEASED provenance and matching accepted
+  verification/image fields. Copy error/disagreement median/p90, units and cell
+  counts; NO_DATA is GAP. Current schema has no law or interval layers. A map
+  never substitutes for solver verification of Assistant-selected picks.
+- `verify_r`: the standalone native `carbon.design-search.verify-aware-result.v1`
+  aggregate, never per-question rows. Bounded service regret remains dimensionless;
+  an incomplete offered set has no regret default. The native aggregate omits
+  k, budget and inference timings; these remain explicit gaps until a matched
+  public rule/cost receipt is added prospectively.
+- `equal_budget`: native `carbon.design-search.equal-budget-report.v1` aggregates
+  only, with the matching family and MEASURED cost basis. Copy the three arms'
+  conditional verified value/regret, feasible-pick fraction, registered budget,
+  complete paired value delta and valid cluster-bootstrap interval. Unresolved
+  panels, assumed costs or incomplete pairs cannot manufacture a measurement.
+  Replay is not a measured live Assistant search; selected-pick false feasibility
+  still requires PB-INV/ADV evidence.
+
+These shapes are exercised with **synthetic test-only fixtures**; there is no
+claim of real positive card/map/decision measurements from their test pass.
+All five adapters refuse malformed/nonfinite/identity-mismatched fields with
+non-echoing GAP reasons and retain independently readable adverse records.
+No numerical threshold, physical validation, qualification, standards compliance,
+security audit, legal/export clearance, LIVE or commercial acceptance is issued.
+
+[PRD-01 samples](examples/v2/README.md) and the [working contract](WORKING_CONTRACT.md)
+record source scope and remaining proof. Reviewer route: Carbon Validator and
+Data Collection for reference/data joins. The Product queue stops at the green
+exact-head PR Head handoff; Guard and Assistant implementation are later items.

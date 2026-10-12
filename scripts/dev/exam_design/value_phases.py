@@ -159,6 +159,7 @@ def _gzip_json(value):
 
 def run_value_panel(cfg, out, *, backend=None):
     from carbon.battery.value import contract as ev
+    from carbon.battery.value import level_compile
     from carbon.battery.value import optimizer as op
     from carbon.battery.value import panel as pn
     from carbon.battery.value.experiment import (
@@ -186,10 +187,26 @@ def run_value_panel(cfg, out, *, backend=None):
         )
         backend = DirectBackend(".")
     contract, contract_digest = ev.load(Path(cfg["contract"]))
+    if contract.get("panel") in ("ev4-dev-proof-l1", "ev4-dev-proof-bundled"):
+        from scripts.dev.battery import l1_decision_q1 as l1
+
+        registered = (
+            l1.CONTRACT
+            if contract["panel"] == "ev4-dev-proof-l1"
+            else Path(__file__).resolve().parents[3]
+            / "carbon/battery/value/contracts/ev4-dev-proof-bundled-v1.json"
+        )
+        if contract_digest != ev.load(registered)[1]:
+            raise ValueError("public panel requires its exact registered contract")
+        if contract.get("public_reference_sha256") != l1.REFERENCE_SHA:
+            raise ValueError("public panel reference digest changed")
+        inputs = panel_inputs(contract, ".", scoring_set=l1.public_ev4_scoring_set)
+    else:
+        inputs = panel_inputs(contract, ".")
     members = shard(
         pn.members(contract["panel"]), cfg.get("shard", 0), cfg.get("shards", 1)
     )
-    inputs = panel_inputs(contract, ".")
+    levels = pn.levels(contract["panel"])
     predictions = Path(out) / "predictions"
     grid = Path(out) / "grid"
     predictions.mkdir(parents=True, exist_ok=True)
@@ -207,7 +224,18 @@ def run_value_panel(cfg, out, *, backend=None):
             done["not_admitted"] = len(members) - index
             break
         try:
-            bundle, state = member_bundle(backend, member, strategy, seed, inputs)
+            level, arm = levels.get(member, (0, None))
+            bundle, state = member_bundle(
+                backend,
+                member,
+                strategy,
+                seed,
+                inputs,
+                level=level,
+                arm=arm,
+                level_compiler=level_compile if level else None,
+                panel_name=contract["panel"] if level else None,
+            )
             if not bundle_path.exists():
                 bundle_path.write_bytes(bundle_bytes(bundle))
             t0 = time.monotonic()

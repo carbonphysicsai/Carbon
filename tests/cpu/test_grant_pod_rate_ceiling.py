@@ -40,9 +40,10 @@ def test_every_committed_grant_is_unchanged(path):
     document = json.loads(path.read_text())
     grant = SpendingGrant.from_document(document)
     # The standing 0.65/h ceiling is on the stage grants and R4 (owner-confirmed:
-    # GRANT-POD-CEILING-01, OWNER-GRAPHITE-PHASE3-R4-CEILING-01).
-    ceiling = path.name.startswith("GRAPHITE-GRANT-STAGE-") or path.name == (
-        "GRAPHITE-GRANT-PHASE3-R4.json"
+    # GRANT-POD-CEILING-01, OWNER-GRAPHITE-PHASE3-R4-CEILING-01); the hunt's grants copy it.
+    ceiling = (
+        path.name.startswith(("GRAPHITE-GRANT-STAGE-", "GRAPHITE-GRANT-HUNT-"))
+        or path.name == "GRAPHITE-GRANT-PHASE3-R4.json"
     )
     expected = Decimal("0.65") if ceiling else None
     assert grant.pod_rate_ceiling_usd_per_hr == expected

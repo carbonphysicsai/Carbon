@@ -330,7 +330,7 @@ def gate_check(candidate, legs, unsafe):
         "cutoff_in_force": candidate.gate["cutoff"],
         "catching_cutoff": catching_cutoff(
             candidate.gate,
-            [legs[u]["gates"][candidate.gate["measure"]] for u in unsafe],
+            [legs[u]["gates"].get(candidate.gate["measure"]) for u in unsafe],
         ),
     }
     if len(candidate.gates) > 1:
@@ -340,7 +340,7 @@ def gate_check(candidate, legs, unsafe):
             {
                 "gate": g,
                 "catching_cutoff": catching_cutoff(
-                    g, [legs[u]["gates"][g["measure"]] for u in missed]
+                    g, [legs[u]["gates"].get(g["measure"]) for u in missed]
                 ),
             }
             for g in candidate.gates[1:]

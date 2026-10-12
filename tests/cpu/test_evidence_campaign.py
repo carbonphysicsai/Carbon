@@ -312,6 +312,10 @@ def test_three_challenge_dry_run_and_resume(tmp_path):
     assert result["challenges"]["battery-v3"]["score_plugin"] == "RECORDED_NOT_ADOPTED"
     assert result["challenges"]["f02"]["score_plugin"] == "NOT_REGISTERED"
     assert (workspace / "battery-v3/evidence-pack/score-plugin.json").is_file()
+    context = json.loads(
+        (workspace / "f02/reference/0/attempt-1/context.json").read_text()
+    )
+    assert context["vcpus"] == 1
     for family in campaign.FAMILIES:
         assert (
             "SYNTHETIC FIXTURE"
@@ -340,6 +344,62 @@ def test_three_challenge_dry_run_and_resume(tmp_path):
     manifest.write_text("tampered\n", encoding="utf-8")
     with pytest.raises(campaign.CampaignRefused, match="BYTE_PIN_MISMATCH"):
         campaign.run(plan, tmp_path, workspace, dry_run=True)
+
+
+def test_stage_shutdown_sends_term_then_escalates_after_grace(monkeypatch):
+    if campaign.os.name != "posix":
+        pytest.skip("process-group signals are a Linux runner property")
+    calls = []
+
+    class Process:
+        pid = 12345
+
+        def poll(self):
+            return None
+
+        def wait(self, timeout=None):
+            calls.append(("wait", timeout))
+            if timeout is not None:
+                raise campaign.subprocess.TimeoutExpired(["fixture"], timeout)
+            return -9
+
+    monkeypatch.setattr(
+        campaign.os, "killpg", lambda pid, sig: calls.append((pid, sig))
+    )
+    campaign._terminate(Process())
+    assert calls == [
+        (12345, campaign.signal.SIGTERM),
+        ("wait", campaign.TERMINATION_GRACE_S),
+        (12345, campaign.signal.SIGKILL),
+        ("wait", None),
+    ]
+
+
+def test_stage_shutdown_sweeps_children_after_leader_exits(monkeypatch):
+    if campaign.os.name != "posix":
+        pytest.skip("process-group signals are a Linux runner property")
+    calls = []
+
+    class Process:
+        pid = 12345
+
+        def poll(self):
+            return None
+
+        def wait(self, timeout=None):
+            calls.append(("wait", timeout))
+            return 0
+
+    monkeypatch.setattr(
+        campaign.os, "killpg", lambda pid, sig: calls.append((pid, sig))
+    )
+    campaign._terminate(Process())
+    assert calls == [
+        (12345, campaign.signal.SIGTERM),
+        ("wait", campaign.TERMINATION_GRACE_S),
+        (12345, campaign.signal.SIGKILL),
+        ("wait", None),
+    ]
 
 
 def test_pilot_receipt_must_be_capped_and_digest_bound(tmp_path):
@@ -493,8 +553,12 @@ def test_one_command_sheet_lists_registration_gaps(tmp_path, capsys):
     assert sheet["planning_only"] is True
     assert sheet["dispatch_authorized"] is False
     assert sheet["registration_gap_owner"] == "Data Collection"
-    assert any(
+    # the motor reference stage is registered (#1114); the assembler is not yet
+    assert not any(
         "reference entrypoint" in gap for gap in sheet["registration_gaps"]["motor"]
+    )
+    assert any(
+        "comparison entrypoint" in gap for gap in sheet["registration_gaps"]["motor"]
     )
     assert sheet["total"]["eur_estimate"] > 0
 
@@ -593,7 +657,7 @@ def test_merged_entrypoint_bindings_and_comparison_receipt_are_strict():
         == "REGISTERED_FILES_ONLY_IMAGE_NOT_CHECKED"
     )
     assert inspected["motor"]["train"] == "REGISTERED_FILES_ONLY_IMAGE_NOT_CHECKED"
-    assert inspected["motor"]["reference"] == "NOT_REGISTERED"
+    assert inspected["motor"]["reference"] == "REGISTERED_FILES_ONLY_IMAGE_NOT_CHECKED"
     assert inspected["f02"]["train"] == "REGISTERED_FILES_ONLY_IMAGE_NOT_CHECKED"
     assert all(
         rows["comparison"] == "ASSEMBLER_NOT_REGISTERED" for rows in inspected.values()

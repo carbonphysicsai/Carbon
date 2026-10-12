@@ -408,3 +408,341 @@ def test_the_build_command_writes_the_per_level_file(tmp_path, monkeypatch):
         assert q1.main(argv) == 0
         written = json.loads((tmp_path / CHALLENGE / name).read_text("utf-8"))
         assert written["level"] == level
+
+
+# -- score-basis split (Test Lead ruling, 2026-10-12) ---------------------------------------------
+PRIMARY = "named frozen-rule score"
+OTHER = "unnamed-rule aggregate"
+COMMITTED_L1_SOURCE_SHA = (
+    "sha256:5b3ba57430ba2a0087626b249ab9afbd576edebed2706187654d5786103dacf7"
+)
+
+
+def _mixed_panel():
+    return _panel(_members(("d03", "d07", "d03", "d07", "d03")))
+
+
+@pytest.fixture
+def split(monkeypatch, tmp_path):
+    """A mixed-basis source report, its basis evidence and the derived primary report."""
+    directory = tmp_path / CHALLENGE
+    directory.mkdir()
+    monkeypatch.setattr(q1, "PACKAGE", tmp_path)
+    monkeypatch.setattr(
+        q1, "current_rule_digest", lambda c, r=None: "sha256:" + "a" * 64
+    )
+    source = q1.build_report(CHALLENGE, 1, _mixed_panel(), "sha256:" + "a" * 64)
+    (directory / "q1_report.L1.mixed-basis.json").write_text(
+        json.dumps(source), encoding="utf-8"
+    )
+    evidence = {
+        name: {
+            "basis": PRIMARY if name in ("m0", "m1", "m2") else OTHER,
+            "score": row["score"],
+        }
+        for name, row in source["members"].items()
+    }
+    (directory / "q1_basis.L1.json").write_text(json.dumps(evidence), encoding="utf-8")
+
+    def derive():
+        return q1.build_primary_report(
+            directory / "q1_report.L1.mixed-basis.json",
+            directory / "q1_basis.L1.json",
+            PRIMARY,
+        )
+
+    def write(report):
+        (directory / "q1_report.L1.json").write_text(
+            json.dumps(report), encoding="utf-8"
+        )
+
+    report = derive()
+    write(report)
+    return directory, report, write, derive
+
+
+def test_a_derived_primary_report_passes_and_names_the_secondary(split):
+    _, report, _, _ = split
+    assert sorted(report["members"]) == ["m0", "m1", "m2"]
+    assert [e["member"] for e in report["basis_split"]["excluded"]] == ["m3", "m4"]
+    result = q1.v1_alignment_report({}, _ctx(1))
+    assert result.status == model.PASS
+    assert "SECONDARY" in result.detail
+    assert "primary_n:3" in result.evidence
+    assert "secondary_mixed_basis_n:5" in result.evidence
+    assert _status(q1.v2_panel_discrimination, 1) == model.PASS
+
+
+def test_the_alignment_is_recomputed_on_the_primary_members_only(split):
+    _, report, _, _ = split
+    assert report["alignment"] == q1._alignment_of(report["members"])
+    mixed = json.loads(json.dumps(q1._alignment_of(_mixed_panel()["members"])))
+    assert report["alignment"] != mixed
+
+
+def test_v2_counts_only_primary_members(split):
+    directory, _, write, _ = split
+    source_path = directory / "q1_report.L1.mixed-basis.json"
+    source = json.loads(source_path.read_text())
+    for name in ("m0", "m1", "m2"):
+        source["members"][name]["decision_outcome"] = "d03"
+    source["members"]["m3"]["decision_outcome"] = "d09"
+    source_path.write_text(json.dumps(source))
+    report = q1.build_primary_report(
+        source_path, directory / "q1_basis.L1.json", PRIMARY
+    )
+    write(report)
+    assert _status(q1.v2_panel_discrimination, 1) == model.FAIL
+
+
+def _rewrite_evidence(directory, report, edit):
+    path = directory / "q1_basis.L1.json"
+    evidence = json.loads(path.read_text())
+    edit(evidence)
+    path.write_text(json.dumps(evidence))
+    report["basis_split"]["basis_evidence"]["sha256"] = q1.file_sha256(path)
+
+
+@pytest.mark.parametrize(
+    "tamper",
+    [
+        "row_edited",
+        "member_added_from_other_basis",
+        "excluded_wrong",
+        "secondary_tau_changed",
+        "primary_basis_renamed",
+        "source_digest",
+        "evidence_digest",
+        "evidence_basis_missing",
+        "evidence_score_differs",
+        "source_deleted",
+    ],
+)
+def test_a_split_that_does_not_follow_from_its_committed_files_fails_closed(
+    split, tamper
+):
+    directory, report, write, _ = split
+    block = report["basis_split"]
+    if tamper == "row_edited":
+        report["members"]["m0"]["score"] = 99.0
+    elif tamper == "member_added_from_other_basis":
+        source = json.loads((directory / "q1_report.L1.mixed-basis.json").read_text())
+        report["members"]["m3"] = {**source["members"]["m3"], "basis": PRIMARY}
+    elif tamper == "excluded_wrong":
+        block["excluded"] = block["excluded"][:1]
+    elif tamper == "secondary_tau_changed":
+        block["secondary"]["kendall_tau_b"] = 0.99
+    elif tamper == "primary_basis_renamed":
+        block["primary_basis"] = OTHER
+    elif tamper == "source_digest":
+        block["source"]["sha256"] = "sha256:" + "0" * 64
+    elif tamper == "evidence_digest":
+        (directory / "q1_basis.L1.json").write_text("{}")
+    elif tamper == "evidence_basis_missing":
+        _rewrite_evidence(directory, report, lambda e: e["m4"].pop("basis"))
+    elif tamper == "evidence_score_differs":
+        _rewrite_evidence(directory, report, lambda e: e["m0"].update(score=5.0))
+    elif tamper == "source_deleted":
+        (directory / "q1_report.L1.mixed-basis.json").unlink()
+    write(report)
+    for function in (q1.v1_alignment_report, q1.v2_panel_discrimination):
+        result = function({}, _ctx(1))
+        assert result.status == model.FAIL
+        assert "score-basis split" in result.detail
+
+
+def test_a_member_with_no_recorded_basis_cannot_be_derived(split):
+    directory, _, _, derive = split
+    path = directory / "q1_basis.L1.json"
+    evidence = json.loads(path.read_text())
+    del evidence["m1"]
+    path.write_text(json.dumps(evidence))
+    with pytest.raises(ValueError, match="no recorded score basis"):
+        derive()
+
+
+def test_a_split_file_name_cannot_leave_the_report_folder(split):
+    _, report, write, _ = split
+    report["basis_split"]["source"]["file"] = "../elsewhere.json"
+    write(report)
+    assert q1.v1_alignment_report({}, _ctx(1)).status == model.FAIL
+
+
+def test_a_report_without_a_split_is_read_as_before(recorded):
+    recorded(level=1)
+    assert _status(q1.v1_alignment_report, 1) == model.PASS
+
+
+def test_the_committed_level_one_report_is_the_same_basis_twenty():
+    folder = q1.PACKAGE / "battery-fastcharge-ageing-development-v1"
+    report = json.loads((folder / "q1_report.L1.json").read_bytes())
+    block = report["basis_split"]
+    assert q1.split_problem(report, folder) is None
+    assert len(report["members"]) == 20 and block["excluded"] == []
+    assert len(block["rescored"]) == 6
+    assert all(
+        row["basis"] == block["primary_basis"] for row in report["members"].values()
+    )
+    # the executor's 20-member file is kept byte-identical, never edited
+    source = folder / "q1_report.L1.mixed-basis.json"
+    assert q1.file_sha256(source) == COMMITTED_L1_SOURCE_SHA
+    assert block["source"]["sha256"] == COMMITTED_L1_SOURCE_SHA
+    assert q1._alignment_of(report["members"]) == report["alignment"]
+    rescore = json.loads((folder / "q1_rescore.L1.json").read_bytes())
+    assert all(r["output_digest_matches"] is True for r in rescore["rows"])
+    assert all(
+        abs(r["recomputed_score"] - r["recorded_score"]) <= q1.RESCORE_TOLERANCE
+        for r in rescore["rows"]
+    )
+
+
+def test_the_superseded_fourteen_member_result_stays_in_the_report_with_its_reason():
+    folder = q1.PACKAGE / "battery-fastcharge-ageing-development-v1"
+    report = json.loads((folder / "q1_report.L1.json").read_bytes())
+    (old,) = report["basis_split"]["superseded"]
+    assert old["members"] == 14 and old["reason"]
+    kept = folder / old["file"]
+    assert q1.file_sha256(kept) == old["sha256"]
+    previous = json.loads(kept.read_bytes())
+    assert len(previous["members"]) == 14
+    assert q1.split_problem(previous, folder) is None  # history stays verifiable
+    assert (old["kendall_tau_b"], old["divergences"]) != (
+        report["alignment"]["kendall_tau_b"],
+        sum(
+            c["condition"] == "SCORE_VALUE_DIVERGENCE"
+            for c in report["alignment"]["conditions"]
+        ),
+    )
+
+
+@pytest.mark.parametrize(
+    "tamper", ["file_edited", "reason_removed", "numbers_changed", "file_deleted"]
+)
+def test_a_superseded_result_that_does_not_match_its_file_fails_closed(
+    rescored, tamper
+):
+    directory, _, write, derive = rescored
+    old = directory / "q1_report.L1.superseded.json"
+    old.write_text(json.dumps(_mixed_report_stub()), encoding="utf-8")
+    report = derive()
+    report["basis_split"]["superseded"] = [
+        {
+            "file": old.name,
+            "sha256": q1.file_sha256(old),
+            "reason": "history",
+            **q1._secondary_summary(json.loads(old.read_text())),
+        }
+    ]
+    entry = report["basis_split"]["superseded"][0]
+    if tamper == "file_edited":
+        old.write_text(json.dumps({**_mixed_report_stub(), "x": 1}), encoding="utf-8")
+    elif tamper == "reason_removed":
+        entry["reason"] = ""
+    elif tamper == "numbers_changed":
+        entry["kendall_tau_b"] = 0.99
+    elif tamper == "file_deleted":
+        old.unlink()
+    write(report)
+    result = q1.v1_alignment_report({}, _ctx(1))
+    assert result.status == model.FAIL and "score-basis split" in result.detail
+
+
+def _mixed_report_stub():
+    return {
+        "members": {"a": {}, "b": {}},
+        "alignment": {
+            "kendall_tau_b": 0.3,
+            "spearman_rho": 0.4,
+            "top_k": {"overlap": 0},
+            "conditions": [],
+        },
+    }
+
+
+# -- rescoring non-primary members under the primary rule -----------------------------------------
+@pytest.fixture
+def rescored(split):
+    directory, _, write, _ = split
+    rows = [{"member": name, "output_digest_matches": True} for name in ("m3", "m4")]
+    # the fixture's source scores are 1.0 - 0.1 * i (higher is better): rescore rows carry the positive error
+    source = json.loads((directory / "q1_report.L1.mixed-basis.json").read_text())
+    for row in rows:
+        row["recorded_score"] = -source["members"][row["member"]]["score"]
+        row["recomputed_score"] = row["recorded_score"] + 1e-7
+    path = directory / "q1_rescore.L1.json"
+    path.write_text(json.dumps({"rows": rows}), encoding="utf-8")
+
+    def derive(**changes):
+        edited = json.loads(path.read_text())
+        for key, value in changes.items():
+            for row in edited["rows"]:
+                row[key] = value
+        path.write_text(json.dumps(edited), encoding="utf-8")
+        report = q1.build_primary_report(
+            directory / "q1_report.L1.mixed-basis.json",
+            directory / "q1_basis.L1.json",
+            PRIMARY,
+            rescore_path=path,
+        )
+        write(report)
+        return report
+
+    return directory, path, write, derive
+
+
+def test_rescored_members_join_the_primary_with_their_recomputed_score(rescored):
+    directory, path, _, derive = rescored
+    report = derive()
+    assert sorted(report["members"]) == ["m0", "m1", "m2", "m3", "m4"]
+    assert report["basis_split"]["excluded"] == []
+    assert report["members"]["m3"]["score"] == -(
+        json.loads(path.read_text())["rows"][0]["recomputed_score"]
+    )
+    assert q1.split_problem(report, directory) is None
+    assert q1.v1_alignment_report({}, _ctx(1)).status == model.PASS
+    assert q1.v2_panel_discrimination({}, _ctx(1)).status == model.PASS
+
+
+def test_a_rescore_whose_output_digest_was_not_verified_leaves_the_member_excluded(
+    rescored,
+):
+    _, _, _, derive = rescored
+    report = derive(output_digest_matches=False)
+    assert sorted(report["members"]) == ["m0", "m1", "m2"]
+    assert "rescored" not in report["basis_split"]
+
+
+def test_a_recomputed_score_that_does_not_round_to_the_recorded_one_is_not_accepted(
+    rescored,
+):
+    _, _, _, derive = rescored
+    report = derive(recomputed_score=9.9)
+    assert sorted(report["members"]) == ["m0", "m1", "m2"]
+
+
+@pytest.mark.parametrize(
+    "tamper", ["score_edited", "rescore_digest", "rescore_row_dropped", "basis_member"]
+)
+def test_a_rescore_that_does_not_follow_from_its_committed_record_fails_closed(
+    rescored, tamper
+):
+    _, path, write, derive = rescored
+    report = derive()
+    block = report["basis_split"]
+    if tamper == "score_edited":
+        report["members"]["m3"]["score"] = 0.123
+        block["rescored"][0]["score"] = 0.123
+    elif tamper == "rescore_digest":
+        block["rescore"]["sha256"] = "sha256:" + "0" * 64
+    elif tamper == "rescore_row_dropped":
+        document = json.loads(path.read_text())
+        document["rows"] = document["rows"][1:]
+        path.write_text(json.dumps(document))
+        block["rescore"]["sha256"] = q1.file_sha256(path)
+    elif tamper == "basis_member":
+        block["rescored"].append(
+            {"member": "m0", "score": report["members"]["m0"]["score"]}
+        )
+    write(report)
+    result = q1.v1_alignment_report({}, _ctx(1))
+    assert result.status == model.FAIL and "score-basis split" in result.detail

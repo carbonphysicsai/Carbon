@@ -63,8 +63,17 @@
         "silencer"
       ],
       "inputs": "docs/development/challenge_pipeline/evidence-readiness/inputs/f13.json",
-      "proposal": "docs/development/challenge_pipeline/round1/f13-compressor-silencer.md",
-      "pending": "https://github.com/carbonphysicsai/Carbon/pull/1030"
+      "proposal": "docs/development/challenge_pipeline/silencer-readiness/README.md",
+      "pending": null,
+      "plans": {
+        "1": {"basis": "Generated exact curves and explicit completed/scheduled reuse inventory await main registration", "pointers": ["carbon/challenge_pipeline/silencer_readiness.py"]},
+        "2": {"basis": "Pinned Elmer/Gmsh source identities need a current operator-store observation", "pointers": ["scripts/dev/reference_packages/elmer/sources.lock.json", "scripts/dev/reference_packages/elmer/f13_deck.py"]},
+        "3": {"basis": "60mm probe is not complete-curve code/conservation/convergence acceptance", "pointers": ["docs/development/challenge_pipeline/silencer-readiness/verification.json"]},
+        "4": {"basis": "Kit hook awaits actual panel action/condition/de-embedded observer coverage", "pointers": ["carbon/challenge_pipeline/silencer_readiness.py"]},
+        "5": {"basis": "Public TRAIN plan excludes physical panel copies at every rung; solved registration needed", "pointers": ["carbon/challenge_pipeline/silencer_readiness.py"]},
+        "6": {"basis": "Plane-wave control and stronger held-geometry reduced Helmholtz implementation on main; material/operator coverage still required", "pointers": ["carbon/development_comparison/portfolio_baselines.py", "carbon/development_comparison/reduced_baselines.py"]},
+        "7": {"basis": "Reuse existing f13 EQUAL-BUDGET-V1 row and complete-panel ledger", "pointers": ["carbon/design_search/equal_budget.py", "docs/development/challenge_pipeline/equal-budget-registration-v1.json"]}
+      }
     },
     {
       "challenge": "f17",
@@ -142,6 +151,47 @@
       "inputs": "docs/development/challenge_pipeline/evidence-readiness/inputs/seal-gland.json",
       "proposal": "docs/development/challenge_pipeline/value-cost/replacements/README.md",
       "pending": null
+    },
+    {
+      "challenge": "package-warpage",
+      "aliases": [
+        "warpage"
+      ],
+      "inputs": "docs/development/challenge_pipeline/evidence-readiness/inputs/package-warpage.json",
+      "proposal": "docs/development/challenge_pipeline/discovery/warpage-packet/PACKAGE_WARPAGE_DESIGN_PACKET.md",
+      "pending": null,
+      "plans": {
+        "1": {
+          "basis": "Proposed full action/history/rung tuples await main registration and actual reuse index",
+          "pointers": [
+            "carbon/challenge_pipeline/warpage_rehearsal.py"
+          ]
+        },
+        "2": {
+          "basis": "CalculiX source recipe is not full-history image/feature/store proof",
+          "pointers": [
+            "docs/development/challenge_pipeline/solver-package-specs/warpage-calculix.md"
+          ]
+        },
+        "3": {
+          "basis": "Coherent cure/relaxation/formation and restart plus accepted analytic/MMS/refinement evidence missing",
+          "pointers": [
+            "docs/development/challenge_pipeline/warpage-rehearsal/verification.json"
+          ]
+        },
+        "4": {
+          "basis": "Full-history kit coverage hook awaits a real kit",
+          "pointers": [
+            "carbon/challenge_pipeline/warpage_rehearsal.py"
+          ]
+        },
+        "5": {
+          "basis": "Disjoint physical TRAIN proposal is not a registered solved TRAIN set",
+          "pointers": [
+            "carbon/challenge_pipeline/warpage_rehearsal.py"
+          ]
+        }
+      }
     }
   ]
 }

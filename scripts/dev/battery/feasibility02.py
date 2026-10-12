@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import sys
 import time
@@ -108,12 +109,19 @@ def _simulation(job):
     )
     npts = spec["refined_mesh_points"] if job["refined"] else spec["mesh_points"]
     rung3 = job.get("rung") == 3  # registered third rung (v3-panel-export.json)
+    # rung 0: one step below the standard rung on the same ladder (mesh / 2,
+    # tolerances x 10), a control-variate companion, never a reference value
+    rung0 = job.get("rung") == 0
     if rung3:
         npts = 80
+    if rung0:
+        npts = 10
     var_pts = {"x_n": npts, "x_s": npts, "x_p": npts, "r_n": npts, "r_p": npts}
     s = spec["refined_solver"] if job["refined"] else spec["solver"]
     if rung3:
         s = {"rtol": 1e-7, "atol": 1e-9}
+    if rung0:
+        s = {"rtol": 1e-4, "atol": 1e-6}
     solver = pybamm.IDAKLUSolver(
         rtol=s["rtol"], atol=s["atol"], output_variables=VARIABLES
     )
@@ -289,7 +297,7 @@ def solve_one(job):
 def solve(jobs_path, records_path, workers):
     from carbon.battery import truth_env
 
-    truth_env.require_truth_runtime(".")
+    solver_provenance = truth_env.provenance(".")
     jobs = json.loads(Path(jobs_path).read_text())["jobs"]
     records = Path(records_path)
     done = set()
@@ -302,6 +310,7 @@ def solve(jobs_path, records_path, workers):
     todo = [j for j in jobs if j["case_id"] not in done]
     with ProcessPoolExecutor(workers) as pool:
         for record in pool.map(solve_one, todo):
+            record = truth_env.stamp(record, solver_provenance)
             with records.open("a") as handle:
                 handle.write(json.dumps(record, sort_keys=True) + "\n")
             print(record["case_id"], record["status"], round(record.get("wall_s", 0), 1),
@@ -330,6 +339,10 @@ def run(plan_path, overlay, out, workers, cpus, cpu_shares=None):
     if cpu_shares:  # low priority behind other operator work; never preempts it
         at = command.index("--rm") + 1
         command[at:at] = ["--cpu-shares", str(cpu_shares)]
+    parent = os.environ.get("CARBON_STAGE_CGROUP_PARENT")
+    if parent:  # campaign stage metering only; the solve is unchanged
+        at = command.index("--rm") + 1
+        command[at:at] = ["--cgroup-parent", parent]
     return subprocess.run(command, check=False).returncode
 
 

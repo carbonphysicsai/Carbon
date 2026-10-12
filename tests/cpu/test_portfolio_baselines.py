@@ -174,6 +174,44 @@ def thermal_payloads(n=5):
     return output
 
 
+def test_f02_exact_peak_witness_is_separate_from_coarse_fir_grid():
+    export, material = fixture("f02", thermal_payloads())
+    body = {k: copy.deepcopy(v) for k, v in material.items() if k != "materials_digest"}
+    row = body["rows"][0]
+    # The coarse interpolation misses a narrow solver peak. The registered
+    # observer stays tied to the exact 0.02 s witness, not the FIR grid.
+    row["payload"]["temperature_c"] = [[0.0, 0.0] for _ in row["payload"]["time_s"]]
+    coarse = pb.seal_materials(body)
+    physical = {
+        (r["candidate"], r["condition"]): r for r in export["questions"][0]["reference"]
+    }
+    witnesses = [
+        {
+            "candidate": r["candidate"],
+            "condition": r["condition"],
+            "reference_source_sha256": r["reference_source_sha256"],
+            "window_start_s": 1.0,
+            "dt_s": 0.02,
+            "top_c": [
+                0.0,
+                physical[(r["candidate"], r["condition"])]["values"]["safety"],
+            ],
+            "peak_top_c": physical[(r["candidate"], r["condition"])]["values"][
+                "safety"
+            ],
+        }
+        for r in coarse["rows"]
+    ]
+    with pytest.raises(ValueError, match="witness reduction differs"):
+        pb.validate_materials(export, coarse)
+    pb.validate_materials(export, coarse, witness_rows=witnesses)
+    with pytest.raises(ValueError, match="inventory incomplete"):
+        pb.validate_materials(export, coarse, witness_rows=witnesses[:-1])
+    witnesses[0]["reference_source_sha256"] = "2" * 64
+    with pytest.raises(ValueError, match="identity mismatch"):
+        pb.validate_materials(export, coarse, witness_rows=witnesses)
+
+
 def modal_payloads():
     output = []
     for i in range(5):

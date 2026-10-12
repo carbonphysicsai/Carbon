@@ -1,0 +1,3540 @@
+{
+ "batch": "motor-feas02-reference-panel",
+ "source": "MOTOR-FEASIBILITY-02 stages 1-3 (the registered s1/s2/s3 plans, unchanged): the holding panel panel_export.py builds",
+ "designs": [
+  {
+   "magnet_mm": 2.7898295607012393,
+   "coverage": 0.9421294669904794,
+   "airgap_mm": 0.5955323383010738,
+   "tooth_frac": 0.3163171649241207,
+   "opening_frac": 0.09335939286382244,
+   "slot_bottom_mm": 36.14278984719403
+  },
+  {
+   "magnet_mm": 3.508794345632948,
+   "coverage": 0.7409469471463304,
+   "airgap_mm": 0.9092166649047719,
+   "tooth_frac": 0.3234842870098141,
+   "opening_frac": 0.09448544421713542,
+   "slot_bottom_mm": 40.66516455530484
+  },
+  {
+   "magnet_mm": 2.062733426369975,
+   "coverage": 0.8657009048907868,
+   "airgap_mm": 0.6265069106153673,
+   "tooth_frac": 0.3653721518162166,
+   "opening_frac": 0.06666948481673991,
+   "slot_bottom_mm": 40.433655181411524
+  },
+  {
+   "magnet_mm": 3.6542529179615815,
+   "coverage": 0.6826535356550245,
+   "airgap_mm": 0.9418284321961605,
+   "tooth_frac": 0.3550749051871631,
+   "opening_frac": 0.05691877647618909,
+   "slot_bottom_mm": 37.91396530803881
+  },
+  {
+   "magnet_mm": 2.362576804214913,
+   "coverage": 0.7997877865637706,
+   "airgap_mm": 0.4762643328044315,
+   "tooth_frac": 0.3505954781110584,
+   "opening_frac": 0.06616968485810476,
+   "slot_bottom_mm": 35.39064672221049
+  },
+  {
+   "magnet_mm": 2.9519291949965365,
+   "coverage": 0.7894562706586812,
+   "airgap_mm": 0.31057256728882354,
+   "tooth_frac": 0.30653738005166786,
+   "opening_frac": 0.0728855938905595,
+   "slot_bottom_mm": 34.136973563752846
+  },
+  {
+   "magnet_mm": 2.7524535076443137,
+   "coverage": 0.7148237547459616,
+   "airgap_mm": 0.388880801977472,
+   "tooth_frac": 0.3822860375815222,
+   "opening_frac": 0.08368914121725156,
+   "slot_bottom_mm": 38.705050193870505
+  },
+  {
+   "magnet_mm": 3.4675066041263056,
+   "coverage": 0.9219615222126403,
+   "airgap_mm": 0.6960421603712535,
+   "tooth_frac": 0.2392248549441212,
+   "opening_frac": 0.10567048479968642,
+   "slot_bottom_mm": 36.460599368013376
+  },
+  {
+   "magnet_mm": 2.609409664966142,
+   "coverage": 0.802377854405922,
+   "airgap_mm": 0.4658332879398716,
+   "tooth_frac": 0.21264523492987517,
+   "opening_frac": 0.10246585615749312,
+   "slot_bottom_mm": 34.959263926702754
+  },
+  {
+   "magnet_mm": 1.9381000811178226,
+   "coverage": 0.7698785727606005,
+   "airgap_mm": 0.38007423221718145,
+   "tooth_frac": 0.23544816569353438,
+   "opening_frac": 0.06022961453640503,
+   "slot_bottom_mm": 41.221031772980126
+  },
+  {
+   "magnet_mm": 2.015655583342511,
+   "coverage": 0.8125632983702391,
+   "airgap_mm": 0.9753199181125352,
+   "tooth_frac": 0.25043683237454284,
+   "opening_frac": 0.03964731999800855,
+   "slot_bottom_mm": 41.48297205996601
+  },
+  {
+   "magnet_mm": 2.5830221630856043,
+   "coverage": 0.7278139573369076,
+   "airgap_mm": 0.5607260928009767,
+   "tooth_frac": 0.3540984931751079,
+   "opening_frac": 0.11941652917113652,
+   "slot_bottom_mm": 36.49675684311484
+  },
+  {
+   "magnet_mm": 2.737330032277213,
+   "coverage": 0.745259544043141,
+   "airgap_mm": 0.3895959582002487,
+   "tooth_frac": 0.2570495080364024,
+   "opening_frac": 0.07738784986702094,
+   "slot_bottom_mm": 39.73782877222557
+  },
+  {
+   "magnet_mm": 2.508263442300188,
+   "coverage": 0.7759516293373092,
+   "airgap_mm": 0.7439638305140931,
+   "tooth_frac": 0.38353954846899974,
+   "opening_frac": 0.0326659531788367,
+   "slot_bottom_mm": 34.72932321414008
+  },
+  {
+   "magnet_mm": 2.6246572924600313,
+   "coverage": 0.8156675076222479,
+   "airgap_mm": 0.7190582941050325,
+   "tooth_frac": 0.3590630818159263,
+   "opening_frac": 0.0633661473124191,
+   "slot_bottom_mm": 34.314565477376256
+  },
+  {
+   "magnet_mm": 3.255765612930257,
+   "coverage": 0.6664154442330402,
+   "airgap_mm": 0.3906577882183528,
+   "tooth_frac": 0.30062476057940307,
+   "opening_frac": 0.06814481352270657,
+   "slot_bottom_mm": 37.035722722906065
+  },
+  {
+   "magnet_mm": 3.8870658855252125,
+   "coverage": 0.8557136482047045,
+   "airgap_mm": 0.5940567425473162,
+   "tooth_frac": 0.2867418901548715,
+   "opening_frac": 0.11002833401964227,
+   "slot_bottom_mm": 40.31216198295938
+  },
+  {
+   "magnet_mm": 2.623284299831053,
+   "coverage": 0.7837594013101037,
+   "airgap_mm": 0.5554491527383287,
+   "tooth_frac": 0.3451795427425462,
+   "opening_frac": 0.09299987876928814,
+   "slot_bottom_mm": 39.134668158803706
+  },
+  {
+   "magnet_mm": 1.7730656365301227,
+   "coverage": 0.908128859511626,
+   "airgap_mm": 0.7251910244251318,
+   "tooth_frac": 0.24473476721790377,
+   "opening_frac": 0.09417422802890807,
+   "slot_bottom_mm": 39.18367949943624
+  },
+  {
+   "magnet_mm": 2.617618688309652,
+   "coverage": 0.814596509434543,
+   "airgap_mm": 0.6363004429971085,
+   "tooth_frac": 0.37197062378984136,
+   "opening_frac": 0.07173704297921867,
+   "slot_bottom_mm": 36.935320420210125
+  },
+  {
+   "magnet_mm": 3.632018647096414,
+   "coverage": 0.8148620050334255,
+   "airgap_mm": 0.7476118640060735,
+   "tooth_frac": 0.25576292686018587,
+   "opening_frac": 0.07221520835429798,
+   "slot_bottom_mm": 34.180372141780836
+  },
+  {
+   "magnet_mm": 1.8042018601082797,
+   "coverage": 0.9403446160535693,
+   "airgap_mm": 0.30607513455811697,
+   "tooth_frac": 0.2505493014862449,
+   "opening_frac": 0.046320282114925185,
+   "slot_bottom_mm": 41.35993057671528
+  },
+  {
+   "magnet_mm": 3.272429278637566,
+   "coverage": 0.835635570769643,
+   "airgap_mm": 0.45941802153241196,
+   "tooth_frac": 0.36761864164443137,
+   "opening_frac": 0.11462666718878566,
+   "slot_bottom_mm": 36.68877465254283
+  },
+  {
+   "magnet_mm": 1.5218357088175285,
+   "coverage": 0.9480536170811025,
+   "airgap_mm": 0.42517996038116046,
+   "tooth_frac": 0.37600079069522746,
+   "opening_frac": 0.10178151339651026,
+   "slot_bottom_mm": 37.71284083707479
+  }
+ ],
+ "cases": [
+  {
+   "case_id": "s1-d00-j0g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.7898295607012393,
+    "coverage": 0.9421294669904794,
+    "airgap_mm": 0.5955323383010738,
+    "tooth_frac": 0.3163171649241207,
+    "opening_frac": 0.09335939286382244,
+    "slot_bottom_mm": 36.14278984719403
+   },
+   "j_a_mm2": 0.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d00-j8g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.7898295607012393,
+    "coverage": 0.9421294669904794,
+    "airgap_mm": 0.5955323383010738,
+    "tooth_frac": 0.3163171649241207,
+    "opening_frac": 0.09335939286382244,
+    "slot_bottom_mm": 36.14278984719403
+   },
+   "j_a_mm2": 8.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d00-j8g15",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.7898295607012393,
+    "coverage": 0.9421294669904794,
+    "airgap_mm": 0.5955323383010738,
+    "tooth_frac": 0.3163171649241207,
+    "opening_frac": 0.09335939286382244,
+    "slot_bottom_mm": 36.14278984719403
+   },
+   "j_a_mm2": 8.0,
+   "gamma_deg": 15.0
+  },
+  {
+   "case_id": "s1-d00-j10g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.7898295607012393,
+    "coverage": 0.9421294669904794,
+    "airgap_mm": 0.5955323383010738,
+    "tooth_frac": 0.3163171649241207,
+    "opening_frac": 0.09335939286382244,
+    "slot_bottom_mm": 36.14278984719403
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d00-j10g15",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.7898295607012393,
+    "coverage": 0.9421294669904794,
+    "airgap_mm": 0.5955323383010738,
+    "tooth_frac": 0.3163171649241207,
+    "opening_frac": 0.09335939286382244,
+    "slot_bottom_mm": 36.14278984719403
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 15.0
+  },
+  {
+   "case_id": "s1-d01-j0g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 3.508794345632948,
+    "coverage": 0.7409469471463304,
+    "airgap_mm": 0.9092166649047719,
+    "tooth_frac": 0.3234842870098141,
+    "opening_frac": 0.09448544421713542,
+    "slot_bottom_mm": 40.66516455530484
+   },
+   "j_a_mm2": 0.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d01-j8g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 3.508794345632948,
+    "coverage": 0.7409469471463304,
+    "airgap_mm": 0.9092166649047719,
+    "tooth_frac": 0.3234842870098141,
+    "opening_frac": 0.09448544421713542,
+    "slot_bottom_mm": 40.66516455530484
+   },
+   "j_a_mm2": 8.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d01-j8g15",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 3.508794345632948,
+    "coverage": 0.7409469471463304,
+    "airgap_mm": 0.9092166649047719,
+    "tooth_frac": 0.3234842870098141,
+    "opening_frac": 0.09448544421713542,
+    "slot_bottom_mm": 40.66516455530484
+   },
+   "j_a_mm2": 8.0,
+   "gamma_deg": 15.0
+  },
+  {
+   "case_id": "s1-d01-j10g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 3.508794345632948,
+    "coverage": 0.7409469471463304,
+    "airgap_mm": 0.9092166649047719,
+    "tooth_frac": 0.3234842870098141,
+    "opening_frac": 0.09448544421713542,
+    "slot_bottom_mm": 40.66516455530484
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d01-j10g15",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 3.508794345632948,
+    "coverage": 0.7409469471463304,
+    "airgap_mm": 0.9092166649047719,
+    "tooth_frac": 0.3234842870098141,
+    "opening_frac": 0.09448544421713542,
+    "slot_bottom_mm": 40.66516455530484
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 15.0
+  },
+  {
+   "case_id": "s1-d02-j0g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.062733426369975,
+    "coverage": 0.8657009048907868,
+    "airgap_mm": 0.6265069106153673,
+    "tooth_frac": 0.3653721518162166,
+    "opening_frac": 0.06666948481673991,
+    "slot_bottom_mm": 40.433655181411524
+   },
+   "j_a_mm2": 0.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d02-j8g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.062733426369975,
+    "coverage": 0.8657009048907868,
+    "airgap_mm": 0.6265069106153673,
+    "tooth_frac": 0.3653721518162166,
+    "opening_frac": 0.06666948481673991,
+    "slot_bottom_mm": 40.433655181411524
+   },
+   "j_a_mm2": 8.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d02-j8g15",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.062733426369975,
+    "coverage": 0.8657009048907868,
+    "airgap_mm": 0.6265069106153673,
+    "tooth_frac": 0.3653721518162166,
+    "opening_frac": 0.06666948481673991,
+    "slot_bottom_mm": 40.433655181411524
+   },
+   "j_a_mm2": 8.0,
+   "gamma_deg": 15.0
+  },
+  {
+   "case_id": "s1-d02-j10g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.062733426369975,
+    "coverage": 0.8657009048907868,
+    "airgap_mm": 0.6265069106153673,
+    "tooth_frac": 0.3653721518162166,
+    "opening_frac": 0.06666948481673991,
+    "slot_bottom_mm": 40.433655181411524
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d02-j10g15",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.062733426369975,
+    "coverage": 0.8657009048907868,
+    "airgap_mm": 0.6265069106153673,
+    "tooth_frac": 0.3653721518162166,
+    "opening_frac": 0.06666948481673991,
+    "slot_bottom_mm": 40.433655181411524
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 15.0
+  },
+  {
+   "case_id": "s1-d03-j0g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 3.6542529179615815,
+    "coverage": 0.6826535356550245,
+    "airgap_mm": 0.9418284321961605,
+    "tooth_frac": 0.3550749051871631,
+    "opening_frac": 0.05691877647618909,
+    "slot_bottom_mm": 37.91396530803881
+   },
+   "j_a_mm2": 0.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d03-j8g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 3.6542529179615815,
+    "coverage": 0.6826535356550245,
+    "airgap_mm": 0.9418284321961605,
+    "tooth_frac": 0.3550749051871631,
+    "opening_frac": 0.05691877647618909,
+    "slot_bottom_mm": 37.91396530803881
+   },
+   "j_a_mm2": 8.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d03-j8g15",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 3.6542529179615815,
+    "coverage": 0.6826535356550245,
+    "airgap_mm": 0.9418284321961605,
+    "tooth_frac": 0.3550749051871631,
+    "opening_frac": 0.05691877647618909,
+    "slot_bottom_mm": 37.91396530803881
+   },
+   "j_a_mm2": 8.0,
+   "gamma_deg": 15.0
+  },
+  {
+   "case_id": "s1-d03-j10g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 3.6542529179615815,
+    "coverage": 0.6826535356550245,
+    "airgap_mm": 0.9418284321961605,
+    "tooth_frac": 0.3550749051871631,
+    "opening_frac": 0.05691877647618909,
+    "slot_bottom_mm": 37.91396530803881
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d03-j10g15",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 3.6542529179615815,
+    "coverage": 0.6826535356550245,
+    "airgap_mm": 0.9418284321961605,
+    "tooth_frac": 0.3550749051871631,
+    "opening_frac": 0.05691877647618909,
+    "slot_bottom_mm": 37.91396530803881
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 15.0
+  },
+  {
+   "case_id": "s1-d04-j0g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.362576804214913,
+    "coverage": 0.7997877865637706,
+    "airgap_mm": 0.4762643328044315,
+    "tooth_frac": 0.3505954781110584,
+    "opening_frac": 0.06616968485810476,
+    "slot_bottom_mm": 35.39064672221049
+   },
+   "j_a_mm2": 0.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d04-j8g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.362576804214913,
+    "coverage": 0.7997877865637706,
+    "airgap_mm": 0.4762643328044315,
+    "tooth_frac": 0.3505954781110584,
+    "opening_frac": 0.06616968485810476,
+    "slot_bottom_mm": 35.39064672221049
+   },
+   "j_a_mm2": 8.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d04-j8g15",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.362576804214913,
+    "coverage": 0.7997877865637706,
+    "airgap_mm": 0.4762643328044315,
+    "tooth_frac": 0.3505954781110584,
+    "opening_frac": 0.06616968485810476,
+    "slot_bottom_mm": 35.39064672221049
+   },
+   "j_a_mm2": 8.0,
+   "gamma_deg": 15.0
+  },
+  {
+   "case_id": "s1-d04-j10g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.362576804214913,
+    "coverage": 0.7997877865637706,
+    "airgap_mm": 0.4762643328044315,
+    "tooth_frac": 0.3505954781110584,
+    "opening_frac": 0.06616968485810476,
+    "slot_bottom_mm": 35.39064672221049
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d04-j10g15",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.362576804214913,
+    "coverage": 0.7997877865637706,
+    "airgap_mm": 0.4762643328044315,
+    "tooth_frac": 0.3505954781110584,
+    "opening_frac": 0.06616968485810476,
+    "slot_bottom_mm": 35.39064672221049
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 15.0
+  },
+  {
+   "case_id": "s1-d05-j0g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.9519291949965365,
+    "coverage": 0.7894562706586812,
+    "airgap_mm": 0.31057256728882354,
+    "tooth_frac": 0.30653738005166786,
+    "opening_frac": 0.0728855938905595,
+    "slot_bottom_mm": 34.136973563752846
+   },
+   "j_a_mm2": 0.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d05-j8g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.9519291949965365,
+    "coverage": 0.7894562706586812,
+    "airgap_mm": 0.31057256728882354,
+    "tooth_frac": 0.30653738005166786,
+    "opening_frac": 0.0728855938905595,
+    "slot_bottom_mm": 34.136973563752846
+   },
+   "j_a_mm2": 8.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d05-j8g15",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.9519291949965365,
+    "coverage": 0.7894562706586812,
+    "airgap_mm": 0.31057256728882354,
+    "tooth_frac": 0.30653738005166786,
+    "opening_frac": 0.0728855938905595,
+    "slot_bottom_mm": 34.136973563752846
+   },
+   "j_a_mm2": 8.0,
+   "gamma_deg": 15.0
+  },
+  {
+   "case_id": "s1-d05-j10g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.9519291949965365,
+    "coverage": 0.7894562706586812,
+    "airgap_mm": 0.31057256728882354,
+    "tooth_frac": 0.30653738005166786,
+    "opening_frac": 0.0728855938905595,
+    "slot_bottom_mm": 34.136973563752846
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d05-j10g15",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.9519291949965365,
+    "coverage": 0.7894562706586812,
+    "airgap_mm": 0.31057256728882354,
+    "tooth_frac": 0.30653738005166786,
+    "opening_frac": 0.0728855938905595,
+    "slot_bottom_mm": 34.136973563752846
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 15.0
+  },
+  {
+   "case_id": "s1-d06-j0g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.7524535076443137,
+    "coverage": 0.7148237547459616,
+    "airgap_mm": 0.388880801977472,
+    "tooth_frac": 0.3822860375815222,
+    "opening_frac": 0.08368914121725156,
+    "slot_bottom_mm": 38.705050193870505
+   },
+   "j_a_mm2": 0.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d06-j8g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.7524535076443137,
+    "coverage": 0.7148237547459616,
+    "airgap_mm": 0.388880801977472,
+    "tooth_frac": 0.3822860375815222,
+    "opening_frac": 0.08368914121725156,
+    "slot_bottom_mm": 38.705050193870505
+   },
+   "j_a_mm2": 8.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d06-j8g15",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.7524535076443137,
+    "coverage": 0.7148237547459616,
+    "airgap_mm": 0.388880801977472,
+    "tooth_frac": 0.3822860375815222,
+    "opening_frac": 0.08368914121725156,
+    "slot_bottom_mm": 38.705050193870505
+   },
+   "j_a_mm2": 8.0,
+   "gamma_deg": 15.0
+  },
+  {
+   "case_id": "s1-d06-j10g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.7524535076443137,
+    "coverage": 0.7148237547459616,
+    "airgap_mm": 0.388880801977472,
+    "tooth_frac": 0.3822860375815222,
+    "opening_frac": 0.08368914121725156,
+    "slot_bottom_mm": 38.705050193870505
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d06-j10g15",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.7524535076443137,
+    "coverage": 0.7148237547459616,
+    "airgap_mm": 0.388880801977472,
+    "tooth_frac": 0.3822860375815222,
+    "opening_frac": 0.08368914121725156,
+    "slot_bottom_mm": 38.705050193870505
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 15.0
+  },
+  {
+   "case_id": "s1-d07-j0g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 3.4675066041263056,
+    "coverage": 0.9219615222126403,
+    "airgap_mm": 0.6960421603712535,
+    "tooth_frac": 0.2392248549441212,
+    "opening_frac": 0.10567048479968642,
+    "slot_bottom_mm": 36.460599368013376
+   },
+   "j_a_mm2": 0.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d07-j8g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 3.4675066041263056,
+    "coverage": 0.9219615222126403,
+    "airgap_mm": 0.6960421603712535,
+    "tooth_frac": 0.2392248549441212,
+    "opening_frac": 0.10567048479968642,
+    "slot_bottom_mm": 36.460599368013376
+   },
+   "j_a_mm2": 8.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d07-j8g15",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 3.4675066041263056,
+    "coverage": 0.9219615222126403,
+    "airgap_mm": 0.6960421603712535,
+    "tooth_frac": 0.2392248549441212,
+    "opening_frac": 0.10567048479968642,
+    "slot_bottom_mm": 36.460599368013376
+   },
+   "j_a_mm2": 8.0,
+   "gamma_deg": 15.0
+  },
+  {
+   "case_id": "s1-d07-j10g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 3.4675066041263056,
+    "coverage": 0.9219615222126403,
+    "airgap_mm": 0.6960421603712535,
+    "tooth_frac": 0.2392248549441212,
+    "opening_frac": 0.10567048479968642,
+    "slot_bottom_mm": 36.460599368013376
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d07-j10g15",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 3.4675066041263056,
+    "coverage": 0.9219615222126403,
+    "airgap_mm": 0.6960421603712535,
+    "tooth_frac": 0.2392248549441212,
+    "opening_frac": 0.10567048479968642,
+    "slot_bottom_mm": 36.460599368013376
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 15.0
+  },
+  {
+   "case_id": "s1-d08-j0g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.609409664966142,
+    "coverage": 0.802377854405922,
+    "airgap_mm": 0.4658332879398716,
+    "tooth_frac": 0.21264523492987517,
+    "opening_frac": 0.10246585615749312,
+    "slot_bottom_mm": 34.959263926702754
+   },
+   "j_a_mm2": 0.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d08-j8g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.609409664966142,
+    "coverage": 0.802377854405922,
+    "airgap_mm": 0.4658332879398716,
+    "tooth_frac": 0.21264523492987517,
+    "opening_frac": 0.10246585615749312,
+    "slot_bottom_mm": 34.959263926702754
+   },
+   "j_a_mm2": 8.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d08-j8g15",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.609409664966142,
+    "coverage": 0.802377854405922,
+    "airgap_mm": 0.4658332879398716,
+    "tooth_frac": 0.21264523492987517,
+    "opening_frac": 0.10246585615749312,
+    "slot_bottom_mm": 34.959263926702754
+   },
+   "j_a_mm2": 8.0,
+   "gamma_deg": 15.0
+  },
+  {
+   "case_id": "s1-d08-j10g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.609409664966142,
+    "coverage": 0.802377854405922,
+    "airgap_mm": 0.4658332879398716,
+    "tooth_frac": 0.21264523492987517,
+    "opening_frac": 0.10246585615749312,
+    "slot_bottom_mm": 34.959263926702754
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d08-j10g15",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.609409664966142,
+    "coverage": 0.802377854405922,
+    "airgap_mm": 0.4658332879398716,
+    "tooth_frac": 0.21264523492987517,
+    "opening_frac": 0.10246585615749312,
+    "slot_bottom_mm": 34.959263926702754
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 15.0
+  },
+  {
+   "case_id": "s1-d09-j0g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 1.9381000811178226,
+    "coverage": 0.7698785727606005,
+    "airgap_mm": 0.38007423221718145,
+    "tooth_frac": 0.23544816569353438,
+    "opening_frac": 0.06022961453640503,
+    "slot_bottom_mm": 41.221031772980126
+   },
+   "j_a_mm2": 0.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d09-j8g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 1.9381000811178226,
+    "coverage": 0.7698785727606005,
+    "airgap_mm": 0.38007423221718145,
+    "tooth_frac": 0.23544816569353438,
+    "opening_frac": 0.06022961453640503,
+    "slot_bottom_mm": 41.221031772980126
+   },
+   "j_a_mm2": 8.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d09-j8g15",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 1.9381000811178226,
+    "coverage": 0.7698785727606005,
+    "airgap_mm": 0.38007423221718145,
+    "tooth_frac": 0.23544816569353438,
+    "opening_frac": 0.06022961453640503,
+    "slot_bottom_mm": 41.221031772980126
+   },
+   "j_a_mm2": 8.0,
+   "gamma_deg": 15.0
+  },
+  {
+   "case_id": "s1-d09-j10g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 1.9381000811178226,
+    "coverage": 0.7698785727606005,
+    "airgap_mm": 0.38007423221718145,
+    "tooth_frac": 0.23544816569353438,
+    "opening_frac": 0.06022961453640503,
+    "slot_bottom_mm": 41.221031772980126
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d09-j10g15",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 1.9381000811178226,
+    "coverage": 0.7698785727606005,
+    "airgap_mm": 0.38007423221718145,
+    "tooth_frac": 0.23544816569353438,
+    "opening_frac": 0.06022961453640503,
+    "slot_bottom_mm": 41.221031772980126
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 15.0
+  },
+  {
+   "case_id": "s1-d10-j0g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.015655583342511,
+    "coverage": 0.8125632983702391,
+    "airgap_mm": 0.9753199181125352,
+    "tooth_frac": 0.25043683237454284,
+    "opening_frac": 0.03964731999800855,
+    "slot_bottom_mm": 41.48297205996601
+   },
+   "j_a_mm2": 0.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d10-j8g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.015655583342511,
+    "coverage": 0.8125632983702391,
+    "airgap_mm": 0.9753199181125352,
+    "tooth_frac": 0.25043683237454284,
+    "opening_frac": 0.03964731999800855,
+    "slot_bottom_mm": 41.48297205996601
+   },
+   "j_a_mm2": 8.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d10-j8g15",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.015655583342511,
+    "coverage": 0.8125632983702391,
+    "airgap_mm": 0.9753199181125352,
+    "tooth_frac": 0.25043683237454284,
+    "opening_frac": 0.03964731999800855,
+    "slot_bottom_mm": 41.48297205996601
+   },
+   "j_a_mm2": 8.0,
+   "gamma_deg": 15.0
+  },
+  {
+   "case_id": "s1-d10-j10g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.015655583342511,
+    "coverage": 0.8125632983702391,
+    "airgap_mm": 0.9753199181125352,
+    "tooth_frac": 0.25043683237454284,
+    "opening_frac": 0.03964731999800855,
+    "slot_bottom_mm": 41.48297205996601
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d10-j10g15",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.015655583342511,
+    "coverage": 0.8125632983702391,
+    "airgap_mm": 0.9753199181125352,
+    "tooth_frac": 0.25043683237454284,
+    "opening_frac": 0.03964731999800855,
+    "slot_bottom_mm": 41.48297205996601
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 15.0
+  },
+  {
+   "case_id": "s1-d11-j0g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.5830221630856043,
+    "coverage": 0.7278139573369076,
+    "airgap_mm": 0.5607260928009767,
+    "tooth_frac": 0.3540984931751079,
+    "opening_frac": 0.11941652917113652,
+    "slot_bottom_mm": 36.49675684311484
+   },
+   "j_a_mm2": 0.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d11-j8g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.5830221630856043,
+    "coverage": 0.7278139573369076,
+    "airgap_mm": 0.5607260928009767,
+    "tooth_frac": 0.3540984931751079,
+    "opening_frac": 0.11941652917113652,
+    "slot_bottom_mm": 36.49675684311484
+   },
+   "j_a_mm2": 8.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d11-j8g15",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.5830221630856043,
+    "coverage": 0.7278139573369076,
+    "airgap_mm": 0.5607260928009767,
+    "tooth_frac": 0.3540984931751079,
+    "opening_frac": 0.11941652917113652,
+    "slot_bottom_mm": 36.49675684311484
+   },
+   "j_a_mm2": 8.0,
+   "gamma_deg": 15.0
+  },
+  {
+   "case_id": "s1-d11-j10g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.5830221630856043,
+    "coverage": 0.7278139573369076,
+    "airgap_mm": 0.5607260928009767,
+    "tooth_frac": 0.3540984931751079,
+    "opening_frac": 0.11941652917113652,
+    "slot_bottom_mm": 36.49675684311484
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d11-j10g15",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.5830221630856043,
+    "coverage": 0.7278139573369076,
+    "airgap_mm": 0.5607260928009767,
+    "tooth_frac": 0.3540984931751079,
+    "opening_frac": 0.11941652917113652,
+    "slot_bottom_mm": 36.49675684311484
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 15.0
+  },
+  {
+   "case_id": "s1-d12-j0g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.737330032277213,
+    "coverage": 0.745259544043141,
+    "airgap_mm": 0.3895959582002487,
+    "tooth_frac": 0.2570495080364024,
+    "opening_frac": 0.07738784986702094,
+    "slot_bottom_mm": 39.73782877222557
+   },
+   "j_a_mm2": 0.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d12-j8g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.737330032277213,
+    "coverage": 0.745259544043141,
+    "airgap_mm": 0.3895959582002487,
+    "tooth_frac": 0.2570495080364024,
+    "opening_frac": 0.07738784986702094,
+    "slot_bottom_mm": 39.73782877222557
+   },
+   "j_a_mm2": 8.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d12-j8g15",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.737330032277213,
+    "coverage": 0.745259544043141,
+    "airgap_mm": 0.3895959582002487,
+    "tooth_frac": 0.2570495080364024,
+    "opening_frac": 0.07738784986702094,
+    "slot_bottom_mm": 39.73782877222557
+   },
+   "j_a_mm2": 8.0,
+   "gamma_deg": 15.0
+  },
+  {
+   "case_id": "s1-d12-j10g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.737330032277213,
+    "coverage": 0.745259544043141,
+    "airgap_mm": 0.3895959582002487,
+    "tooth_frac": 0.2570495080364024,
+    "opening_frac": 0.07738784986702094,
+    "slot_bottom_mm": 39.73782877222557
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d12-j10g15",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.737330032277213,
+    "coverage": 0.745259544043141,
+    "airgap_mm": 0.3895959582002487,
+    "tooth_frac": 0.2570495080364024,
+    "opening_frac": 0.07738784986702094,
+    "slot_bottom_mm": 39.73782877222557
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 15.0
+  },
+  {
+   "case_id": "s1-d13-j0g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.508263442300188,
+    "coverage": 0.7759516293373092,
+    "airgap_mm": 0.7439638305140931,
+    "tooth_frac": 0.38353954846899974,
+    "opening_frac": 0.0326659531788367,
+    "slot_bottom_mm": 34.72932321414008
+   },
+   "j_a_mm2": 0.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d13-j8g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.508263442300188,
+    "coverage": 0.7759516293373092,
+    "airgap_mm": 0.7439638305140931,
+    "tooth_frac": 0.38353954846899974,
+    "opening_frac": 0.0326659531788367,
+    "slot_bottom_mm": 34.72932321414008
+   },
+   "j_a_mm2": 8.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d13-j8g15",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.508263442300188,
+    "coverage": 0.7759516293373092,
+    "airgap_mm": 0.7439638305140931,
+    "tooth_frac": 0.38353954846899974,
+    "opening_frac": 0.0326659531788367,
+    "slot_bottom_mm": 34.72932321414008
+   },
+   "j_a_mm2": 8.0,
+   "gamma_deg": 15.0
+  },
+  {
+   "case_id": "s1-d13-j10g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.508263442300188,
+    "coverage": 0.7759516293373092,
+    "airgap_mm": 0.7439638305140931,
+    "tooth_frac": 0.38353954846899974,
+    "opening_frac": 0.0326659531788367,
+    "slot_bottom_mm": 34.72932321414008
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d13-j10g15",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.508263442300188,
+    "coverage": 0.7759516293373092,
+    "airgap_mm": 0.7439638305140931,
+    "tooth_frac": 0.38353954846899974,
+    "opening_frac": 0.0326659531788367,
+    "slot_bottom_mm": 34.72932321414008
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 15.0
+  },
+  {
+   "case_id": "s1-d14-j0g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.6246572924600313,
+    "coverage": 0.8156675076222479,
+    "airgap_mm": 0.7190582941050325,
+    "tooth_frac": 0.3590630818159263,
+    "opening_frac": 0.0633661473124191,
+    "slot_bottom_mm": 34.314565477376256
+   },
+   "j_a_mm2": 0.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d14-j8g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.6246572924600313,
+    "coverage": 0.8156675076222479,
+    "airgap_mm": 0.7190582941050325,
+    "tooth_frac": 0.3590630818159263,
+    "opening_frac": 0.0633661473124191,
+    "slot_bottom_mm": 34.314565477376256
+   },
+   "j_a_mm2": 8.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d14-j8g15",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.6246572924600313,
+    "coverage": 0.8156675076222479,
+    "airgap_mm": 0.7190582941050325,
+    "tooth_frac": 0.3590630818159263,
+    "opening_frac": 0.0633661473124191,
+    "slot_bottom_mm": 34.314565477376256
+   },
+   "j_a_mm2": 8.0,
+   "gamma_deg": 15.0
+  },
+  {
+   "case_id": "s1-d14-j10g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.6246572924600313,
+    "coverage": 0.8156675076222479,
+    "airgap_mm": 0.7190582941050325,
+    "tooth_frac": 0.3590630818159263,
+    "opening_frac": 0.0633661473124191,
+    "slot_bottom_mm": 34.314565477376256
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d14-j10g15",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.6246572924600313,
+    "coverage": 0.8156675076222479,
+    "airgap_mm": 0.7190582941050325,
+    "tooth_frac": 0.3590630818159263,
+    "opening_frac": 0.0633661473124191,
+    "slot_bottom_mm": 34.314565477376256
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 15.0
+  },
+  {
+   "case_id": "s1-d15-j0g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 3.255765612930257,
+    "coverage": 0.6664154442330402,
+    "airgap_mm": 0.3906577882183528,
+    "tooth_frac": 0.30062476057940307,
+    "opening_frac": 0.06814481352270657,
+    "slot_bottom_mm": 37.035722722906065
+   },
+   "j_a_mm2": 0.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d15-j8g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 3.255765612930257,
+    "coverage": 0.6664154442330402,
+    "airgap_mm": 0.3906577882183528,
+    "tooth_frac": 0.30062476057940307,
+    "opening_frac": 0.06814481352270657,
+    "slot_bottom_mm": 37.035722722906065
+   },
+   "j_a_mm2": 8.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d15-j8g15",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 3.255765612930257,
+    "coverage": 0.6664154442330402,
+    "airgap_mm": 0.3906577882183528,
+    "tooth_frac": 0.30062476057940307,
+    "opening_frac": 0.06814481352270657,
+    "slot_bottom_mm": 37.035722722906065
+   },
+   "j_a_mm2": 8.0,
+   "gamma_deg": 15.0
+  },
+  {
+   "case_id": "s1-d15-j10g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 3.255765612930257,
+    "coverage": 0.6664154442330402,
+    "airgap_mm": 0.3906577882183528,
+    "tooth_frac": 0.30062476057940307,
+    "opening_frac": 0.06814481352270657,
+    "slot_bottom_mm": 37.035722722906065
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d15-j10g15",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 3.255765612930257,
+    "coverage": 0.6664154442330402,
+    "airgap_mm": 0.3906577882183528,
+    "tooth_frac": 0.30062476057940307,
+    "opening_frac": 0.06814481352270657,
+    "slot_bottom_mm": 37.035722722906065
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 15.0
+  },
+  {
+   "case_id": "s1-d16-j0g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 3.8870658855252125,
+    "coverage": 0.8557136482047045,
+    "airgap_mm": 0.5940567425473162,
+    "tooth_frac": 0.2867418901548715,
+    "opening_frac": 0.11002833401964227,
+    "slot_bottom_mm": 40.31216198295938
+   },
+   "j_a_mm2": 0.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d16-j8g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 3.8870658855252125,
+    "coverage": 0.8557136482047045,
+    "airgap_mm": 0.5940567425473162,
+    "tooth_frac": 0.2867418901548715,
+    "opening_frac": 0.11002833401964227,
+    "slot_bottom_mm": 40.31216198295938
+   },
+   "j_a_mm2": 8.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d16-j8g15",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 3.8870658855252125,
+    "coverage": 0.8557136482047045,
+    "airgap_mm": 0.5940567425473162,
+    "tooth_frac": 0.2867418901548715,
+    "opening_frac": 0.11002833401964227,
+    "slot_bottom_mm": 40.31216198295938
+   },
+   "j_a_mm2": 8.0,
+   "gamma_deg": 15.0
+  },
+  {
+   "case_id": "s1-d16-j10g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 3.8870658855252125,
+    "coverage": 0.8557136482047045,
+    "airgap_mm": 0.5940567425473162,
+    "tooth_frac": 0.2867418901548715,
+    "opening_frac": 0.11002833401964227,
+    "slot_bottom_mm": 40.31216198295938
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d16-j10g15",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 3.8870658855252125,
+    "coverage": 0.8557136482047045,
+    "airgap_mm": 0.5940567425473162,
+    "tooth_frac": 0.2867418901548715,
+    "opening_frac": 0.11002833401964227,
+    "slot_bottom_mm": 40.31216198295938
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 15.0
+  },
+  {
+   "case_id": "s1-d17-j0g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.623284299831053,
+    "coverage": 0.7837594013101037,
+    "airgap_mm": 0.5554491527383287,
+    "tooth_frac": 0.3451795427425462,
+    "opening_frac": 0.09299987876928814,
+    "slot_bottom_mm": 39.134668158803706
+   },
+   "j_a_mm2": 0.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d17-j8g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.623284299831053,
+    "coverage": 0.7837594013101037,
+    "airgap_mm": 0.5554491527383287,
+    "tooth_frac": 0.3451795427425462,
+    "opening_frac": 0.09299987876928814,
+    "slot_bottom_mm": 39.134668158803706
+   },
+   "j_a_mm2": 8.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d17-j8g15",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.623284299831053,
+    "coverage": 0.7837594013101037,
+    "airgap_mm": 0.5554491527383287,
+    "tooth_frac": 0.3451795427425462,
+    "opening_frac": 0.09299987876928814,
+    "slot_bottom_mm": 39.134668158803706
+   },
+   "j_a_mm2": 8.0,
+   "gamma_deg": 15.0
+  },
+  {
+   "case_id": "s1-d17-j10g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.623284299831053,
+    "coverage": 0.7837594013101037,
+    "airgap_mm": 0.5554491527383287,
+    "tooth_frac": 0.3451795427425462,
+    "opening_frac": 0.09299987876928814,
+    "slot_bottom_mm": 39.134668158803706
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d17-j10g15",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.623284299831053,
+    "coverage": 0.7837594013101037,
+    "airgap_mm": 0.5554491527383287,
+    "tooth_frac": 0.3451795427425462,
+    "opening_frac": 0.09299987876928814,
+    "slot_bottom_mm": 39.134668158803706
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 15.0
+  },
+  {
+   "case_id": "s1-d18-j0g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 1.7730656365301227,
+    "coverage": 0.908128859511626,
+    "airgap_mm": 0.7251910244251318,
+    "tooth_frac": 0.24473476721790377,
+    "opening_frac": 0.09417422802890807,
+    "slot_bottom_mm": 39.18367949943624
+   },
+   "j_a_mm2": 0.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d18-j8g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 1.7730656365301227,
+    "coverage": 0.908128859511626,
+    "airgap_mm": 0.7251910244251318,
+    "tooth_frac": 0.24473476721790377,
+    "opening_frac": 0.09417422802890807,
+    "slot_bottom_mm": 39.18367949943624
+   },
+   "j_a_mm2": 8.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d18-j8g15",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 1.7730656365301227,
+    "coverage": 0.908128859511626,
+    "airgap_mm": 0.7251910244251318,
+    "tooth_frac": 0.24473476721790377,
+    "opening_frac": 0.09417422802890807,
+    "slot_bottom_mm": 39.18367949943624
+   },
+   "j_a_mm2": 8.0,
+   "gamma_deg": 15.0
+  },
+  {
+   "case_id": "s1-d18-j10g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 1.7730656365301227,
+    "coverage": 0.908128859511626,
+    "airgap_mm": 0.7251910244251318,
+    "tooth_frac": 0.24473476721790377,
+    "opening_frac": 0.09417422802890807,
+    "slot_bottom_mm": 39.18367949943624
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d18-j10g15",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 1.7730656365301227,
+    "coverage": 0.908128859511626,
+    "airgap_mm": 0.7251910244251318,
+    "tooth_frac": 0.24473476721790377,
+    "opening_frac": 0.09417422802890807,
+    "slot_bottom_mm": 39.18367949943624
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 15.0
+  },
+  {
+   "case_id": "s1-d19-j0g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.617618688309652,
+    "coverage": 0.814596509434543,
+    "airgap_mm": 0.6363004429971085,
+    "tooth_frac": 0.37197062378984136,
+    "opening_frac": 0.07173704297921867,
+    "slot_bottom_mm": 36.935320420210125
+   },
+   "j_a_mm2": 0.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d19-j8g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.617618688309652,
+    "coverage": 0.814596509434543,
+    "airgap_mm": 0.6363004429971085,
+    "tooth_frac": 0.37197062378984136,
+    "opening_frac": 0.07173704297921867,
+    "slot_bottom_mm": 36.935320420210125
+   },
+   "j_a_mm2": 8.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d19-j8g15",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.617618688309652,
+    "coverage": 0.814596509434543,
+    "airgap_mm": 0.6363004429971085,
+    "tooth_frac": 0.37197062378984136,
+    "opening_frac": 0.07173704297921867,
+    "slot_bottom_mm": 36.935320420210125
+   },
+   "j_a_mm2": 8.0,
+   "gamma_deg": 15.0
+  },
+  {
+   "case_id": "s1-d19-j10g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.617618688309652,
+    "coverage": 0.814596509434543,
+    "airgap_mm": 0.6363004429971085,
+    "tooth_frac": 0.37197062378984136,
+    "opening_frac": 0.07173704297921867,
+    "slot_bottom_mm": 36.935320420210125
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d19-j10g15",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.617618688309652,
+    "coverage": 0.814596509434543,
+    "airgap_mm": 0.6363004429971085,
+    "tooth_frac": 0.37197062378984136,
+    "opening_frac": 0.07173704297921867,
+    "slot_bottom_mm": 36.935320420210125
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 15.0
+  },
+  {
+   "case_id": "s1-d20-j0g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 3.632018647096414,
+    "coverage": 0.8148620050334255,
+    "airgap_mm": 0.7476118640060735,
+    "tooth_frac": 0.25576292686018587,
+    "opening_frac": 0.07221520835429798,
+    "slot_bottom_mm": 34.180372141780836
+   },
+   "j_a_mm2": 0.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d20-j8g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 3.632018647096414,
+    "coverage": 0.8148620050334255,
+    "airgap_mm": 0.7476118640060735,
+    "tooth_frac": 0.25576292686018587,
+    "opening_frac": 0.07221520835429798,
+    "slot_bottom_mm": 34.180372141780836
+   },
+   "j_a_mm2": 8.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d20-j8g15",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 3.632018647096414,
+    "coverage": 0.8148620050334255,
+    "airgap_mm": 0.7476118640060735,
+    "tooth_frac": 0.25576292686018587,
+    "opening_frac": 0.07221520835429798,
+    "slot_bottom_mm": 34.180372141780836
+   },
+   "j_a_mm2": 8.0,
+   "gamma_deg": 15.0
+  },
+  {
+   "case_id": "s1-d20-j10g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 3.632018647096414,
+    "coverage": 0.8148620050334255,
+    "airgap_mm": 0.7476118640060735,
+    "tooth_frac": 0.25576292686018587,
+    "opening_frac": 0.07221520835429798,
+    "slot_bottom_mm": 34.180372141780836
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d20-j10g15",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 3.632018647096414,
+    "coverage": 0.8148620050334255,
+    "airgap_mm": 0.7476118640060735,
+    "tooth_frac": 0.25576292686018587,
+    "opening_frac": 0.07221520835429798,
+    "slot_bottom_mm": 34.180372141780836
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 15.0
+  },
+  {
+   "case_id": "s1-d21-j0g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 1.8042018601082797,
+    "coverage": 0.9403446160535693,
+    "airgap_mm": 0.30607513455811697,
+    "tooth_frac": 0.2505493014862449,
+    "opening_frac": 0.046320282114925185,
+    "slot_bottom_mm": 41.35993057671528
+   },
+   "j_a_mm2": 0.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d21-j8g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 1.8042018601082797,
+    "coverage": 0.9403446160535693,
+    "airgap_mm": 0.30607513455811697,
+    "tooth_frac": 0.2505493014862449,
+    "opening_frac": 0.046320282114925185,
+    "slot_bottom_mm": 41.35993057671528
+   },
+   "j_a_mm2": 8.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d21-j8g15",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 1.8042018601082797,
+    "coverage": 0.9403446160535693,
+    "airgap_mm": 0.30607513455811697,
+    "tooth_frac": 0.2505493014862449,
+    "opening_frac": 0.046320282114925185,
+    "slot_bottom_mm": 41.35993057671528
+   },
+   "j_a_mm2": 8.0,
+   "gamma_deg": 15.0
+  },
+  {
+   "case_id": "s1-d21-j10g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 1.8042018601082797,
+    "coverage": 0.9403446160535693,
+    "airgap_mm": 0.30607513455811697,
+    "tooth_frac": 0.2505493014862449,
+    "opening_frac": 0.046320282114925185,
+    "slot_bottom_mm": 41.35993057671528
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d21-j10g15",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 1.8042018601082797,
+    "coverage": 0.9403446160535693,
+    "airgap_mm": 0.30607513455811697,
+    "tooth_frac": 0.2505493014862449,
+    "opening_frac": 0.046320282114925185,
+    "slot_bottom_mm": 41.35993057671528
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 15.0
+  },
+  {
+   "case_id": "s1-d22-j0g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 3.272429278637566,
+    "coverage": 0.835635570769643,
+    "airgap_mm": 0.45941802153241196,
+    "tooth_frac": 0.36761864164443137,
+    "opening_frac": 0.11462666718878566,
+    "slot_bottom_mm": 36.68877465254283
+   },
+   "j_a_mm2": 0.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d22-j8g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 3.272429278637566,
+    "coverage": 0.835635570769643,
+    "airgap_mm": 0.45941802153241196,
+    "tooth_frac": 0.36761864164443137,
+    "opening_frac": 0.11462666718878566,
+    "slot_bottom_mm": 36.68877465254283
+   },
+   "j_a_mm2": 8.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d22-j8g15",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 3.272429278637566,
+    "coverage": 0.835635570769643,
+    "airgap_mm": 0.45941802153241196,
+    "tooth_frac": 0.36761864164443137,
+    "opening_frac": 0.11462666718878566,
+    "slot_bottom_mm": 36.68877465254283
+   },
+   "j_a_mm2": 8.0,
+   "gamma_deg": 15.0
+  },
+  {
+   "case_id": "s1-d22-j10g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 3.272429278637566,
+    "coverage": 0.835635570769643,
+    "airgap_mm": 0.45941802153241196,
+    "tooth_frac": 0.36761864164443137,
+    "opening_frac": 0.11462666718878566,
+    "slot_bottom_mm": 36.68877465254283
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d22-j10g15",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 3.272429278637566,
+    "coverage": 0.835635570769643,
+    "airgap_mm": 0.45941802153241196,
+    "tooth_frac": 0.36761864164443137,
+    "opening_frac": 0.11462666718878566,
+    "slot_bottom_mm": 36.68877465254283
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 15.0
+  },
+  {
+   "case_id": "s1-d23-j0g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 1.5218357088175285,
+    "coverage": 0.9480536170811025,
+    "airgap_mm": 0.42517996038116046,
+    "tooth_frac": 0.37600079069522746,
+    "opening_frac": 0.10178151339651026,
+    "slot_bottom_mm": 37.71284083707479
+   },
+   "j_a_mm2": 0.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d23-j8g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 1.5218357088175285,
+    "coverage": 0.9480536170811025,
+    "airgap_mm": 0.42517996038116046,
+    "tooth_frac": 0.37600079069522746,
+    "opening_frac": 0.10178151339651026,
+    "slot_bottom_mm": 37.71284083707479
+   },
+   "j_a_mm2": 8.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d23-j8g15",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 1.5218357088175285,
+    "coverage": 0.9480536170811025,
+    "airgap_mm": 0.42517996038116046,
+    "tooth_frac": 0.37600079069522746,
+    "opening_frac": 0.10178151339651026,
+    "slot_bottom_mm": 37.71284083707479
+   },
+   "j_a_mm2": 8.0,
+   "gamma_deg": 15.0
+  },
+  {
+   "case_id": "s1-d23-j10g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 1.5218357088175285,
+    "coverage": 0.9480536170811025,
+    "airgap_mm": 0.42517996038116046,
+    "tooth_frac": 0.37600079069522746,
+    "opening_frac": 0.10178151339651026,
+    "slot_bottom_mm": 37.71284083707479
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s1-d23-j10g15",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 1.5218357088175285,
+    "coverage": 0.9480536170811025,
+    "airgap_mm": 0.42517996038116046,
+    "tooth_frac": 0.37600079069522746,
+    "opening_frac": 0.10178151339651026,
+    "slot_bottom_mm": 37.71284083707479
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 15.0
+  },
+  {
+   "case_id": "s2-d01-j10g10",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 3.508794345632948,
+    "coverage": 0.7409469471463304,
+    "airgap_mm": 0.9092166649047719,
+    "tooth_frac": 0.3234842870098141,
+    "opening_frac": 0.09448544421713542,
+    "slot_bottom_mm": 40.66516455530484
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 10.0
+  },
+  {
+   "case_id": "s2-d01-j10g5",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 3.508794345632948,
+    "coverage": 0.7409469471463304,
+    "airgap_mm": 0.9092166649047719,
+    "tooth_frac": 0.3234842870098141,
+    "opening_frac": 0.09448544421713542,
+    "slot_bottom_mm": 40.66516455530484
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 5.0
+  },
+  {
+   "case_id": "s2-d01-j10g-5",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 3.508794345632948,
+    "coverage": 0.7409469471463304,
+    "airgap_mm": 0.9092166649047719,
+    "tooth_frac": 0.3234842870098141,
+    "opening_frac": 0.09448544421713542,
+    "slot_bottom_mm": 40.66516455530484
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": -5.0
+  },
+  {
+   "case_id": "s2-d01-j10g-10",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 3.508794345632948,
+    "coverage": 0.7409469471463304,
+    "airgap_mm": 0.9092166649047719,
+    "tooth_frac": 0.3234842870098141,
+    "opening_frac": 0.09448544421713542,
+    "slot_bottom_mm": 40.66516455530484
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": -10.0
+  },
+  {
+   "case_id": "s2-d01-j10g25",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 3.508794345632948,
+    "coverage": 0.7409469471463304,
+    "airgap_mm": 0.9092166649047719,
+    "tooth_frac": 0.3234842870098141,
+    "opening_frac": 0.09448544421713542,
+    "slot_bottom_mm": 40.66516455530484
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 25.0
+  },
+  {
+   "case_id": "s2-d01-j10g20",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 3.508794345632948,
+    "coverage": 0.7409469471463304,
+    "airgap_mm": 0.9092166649047719,
+    "tooth_frac": 0.3234842870098141,
+    "opening_frac": 0.09448544421713542,
+    "slot_bottom_mm": 40.66516455530484
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 20.0
+  },
+  {
+   "case_id": "s2-d02-j10g10",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.062733426369975,
+    "coverage": 0.8657009048907868,
+    "airgap_mm": 0.6265069106153673,
+    "tooth_frac": 0.3653721518162166,
+    "opening_frac": 0.06666948481673991,
+    "slot_bottom_mm": 40.433655181411524
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 10.0
+  },
+  {
+   "case_id": "s2-d02-j10g5",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.062733426369975,
+    "coverage": 0.8657009048907868,
+    "airgap_mm": 0.6265069106153673,
+    "tooth_frac": 0.3653721518162166,
+    "opening_frac": 0.06666948481673991,
+    "slot_bottom_mm": 40.433655181411524
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 5.0
+  },
+  {
+   "case_id": "s2-d02-j10g-5",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.062733426369975,
+    "coverage": 0.8657009048907868,
+    "airgap_mm": 0.6265069106153673,
+    "tooth_frac": 0.3653721518162166,
+    "opening_frac": 0.06666948481673991,
+    "slot_bottom_mm": 40.433655181411524
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": -5.0
+  },
+  {
+   "case_id": "s2-d02-j10g-10",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.062733426369975,
+    "coverage": 0.8657009048907868,
+    "airgap_mm": 0.6265069106153673,
+    "tooth_frac": 0.3653721518162166,
+    "opening_frac": 0.06666948481673991,
+    "slot_bottom_mm": 40.433655181411524
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": -10.0
+  },
+  {
+   "case_id": "s2-d02-j10g25",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.062733426369975,
+    "coverage": 0.8657009048907868,
+    "airgap_mm": 0.6265069106153673,
+    "tooth_frac": 0.3653721518162166,
+    "opening_frac": 0.06666948481673991,
+    "slot_bottom_mm": 40.433655181411524
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 25.0
+  },
+  {
+   "case_id": "s2-d02-j10g20",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.062733426369975,
+    "coverage": 0.8657009048907868,
+    "airgap_mm": 0.6265069106153673,
+    "tooth_frac": 0.3653721518162166,
+    "opening_frac": 0.06666948481673991,
+    "slot_bottom_mm": 40.433655181411524
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 20.0
+  },
+  {
+   "case_id": "s2-d06-j10g10",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.7524535076443137,
+    "coverage": 0.7148237547459616,
+    "airgap_mm": 0.388880801977472,
+    "tooth_frac": 0.3822860375815222,
+    "opening_frac": 0.08368914121725156,
+    "slot_bottom_mm": 38.705050193870505
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 10.0
+  },
+  {
+   "case_id": "s2-d06-j10g5",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.7524535076443137,
+    "coverage": 0.7148237547459616,
+    "airgap_mm": 0.388880801977472,
+    "tooth_frac": 0.3822860375815222,
+    "opening_frac": 0.08368914121725156,
+    "slot_bottom_mm": 38.705050193870505
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 5.0
+  },
+  {
+   "case_id": "s2-d06-j10g-5",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.7524535076443137,
+    "coverage": 0.7148237547459616,
+    "airgap_mm": 0.388880801977472,
+    "tooth_frac": 0.3822860375815222,
+    "opening_frac": 0.08368914121725156,
+    "slot_bottom_mm": 38.705050193870505
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": -5.0
+  },
+  {
+   "case_id": "s2-d06-j10g-10",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.7524535076443137,
+    "coverage": 0.7148237547459616,
+    "airgap_mm": 0.388880801977472,
+    "tooth_frac": 0.3822860375815222,
+    "opening_frac": 0.08368914121725156,
+    "slot_bottom_mm": 38.705050193870505
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": -10.0
+  },
+  {
+   "case_id": "s2-d06-j10g25",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.7524535076443137,
+    "coverage": 0.7148237547459616,
+    "airgap_mm": 0.388880801977472,
+    "tooth_frac": 0.3822860375815222,
+    "opening_frac": 0.08368914121725156,
+    "slot_bottom_mm": 38.705050193870505
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 25.0
+  },
+  {
+   "case_id": "s2-d06-j10g20",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.7524535076443137,
+    "coverage": 0.7148237547459616,
+    "airgap_mm": 0.388880801977472,
+    "tooth_frac": 0.3822860375815222,
+    "opening_frac": 0.08368914121725156,
+    "slot_bottom_mm": 38.705050193870505
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 20.0
+  },
+  {
+   "case_id": "s2-d09-j10g10",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 1.9381000811178226,
+    "coverage": 0.7698785727606005,
+    "airgap_mm": 0.38007423221718145,
+    "tooth_frac": 0.23544816569353438,
+    "opening_frac": 0.06022961453640503,
+    "slot_bottom_mm": 41.221031772980126
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 10.0
+  },
+  {
+   "case_id": "s2-d09-j10g5",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 1.9381000811178226,
+    "coverage": 0.7698785727606005,
+    "airgap_mm": 0.38007423221718145,
+    "tooth_frac": 0.23544816569353438,
+    "opening_frac": 0.06022961453640503,
+    "slot_bottom_mm": 41.221031772980126
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 5.0
+  },
+  {
+   "case_id": "s2-d09-j10g-5",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 1.9381000811178226,
+    "coverage": 0.7698785727606005,
+    "airgap_mm": 0.38007423221718145,
+    "tooth_frac": 0.23544816569353438,
+    "opening_frac": 0.06022961453640503,
+    "slot_bottom_mm": 41.221031772980126
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": -5.0
+  },
+  {
+   "case_id": "s2-d09-j10g-10",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 1.9381000811178226,
+    "coverage": 0.7698785727606005,
+    "airgap_mm": 0.38007423221718145,
+    "tooth_frac": 0.23544816569353438,
+    "opening_frac": 0.06022961453640503,
+    "slot_bottom_mm": 41.221031772980126
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": -10.0
+  },
+  {
+   "case_id": "s2-d09-j10g25",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 1.9381000811178226,
+    "coverage": 0.7698785727606005,
+    "airgap_mm": 0.38007423221718145,
+    "tooth_frac": 0.23544816569353438,
+    "opening_frac": 0.06022961453640503,
+    "slot_bottom_mm": 41.221031772980126
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 25.0
+  },
+  {
+   "case_id": "s2-d09-j10g20",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 1.9381000811178226,
+    "coverage": 0.7698785727606005,
+    "airgap_mm": 0.38007423221718145,
+    "tooth_frac": 0.23544816569353438,
+    "opening_frac": 0.06022961453640503,
+    "slot_bottom_mm": 41.221031772980126
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 20.0
+  },
+  {
+   "case_id": "s2-d10-j10g10",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.015655583342511,
+    "coverage": 0.8125632983702391,
+    "airgap_mm": 0.9753199181125352,
+    "tooth_frac": 0.25043683237454284,
+    "opening_frac": 0.03964731999800855,
+    "slot_bottom_mm": 41.48297205996601
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 10.0
+  },
+  {
+   "case_id": "s2-d10-j10g5",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.015655583342511,
+    "coverage": 0.8125632983702391,
+    "airgap_mm": 0.9753199181125352,
+    "tooth_frac": 0.25043683237454284,
+    "opening_frac": 0.03964731999800855,
+    "slot_bottom_mm": 41.48297205996601
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 5.0
+  },
+  {
+   "case_id": "s2-d10-j10g-5",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.015655583342511,
+    "coverage": 0.8125632983702391,
+    "airgap_mm": 0.9753199181125352,
+    "tooth_frac": 0.25043683237454284,
+    "opening_frac": 0.03964731999800855,
+    "slot_bottom_mm": 41.48297205996601
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": -5.0
+  },
+  {
+   "case_id": "s2-d10-j10g-10",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.015655583342511,
+    "coverage": 0.8125632983702391,
+    "airgap_mm": 0.9753199181125352,
+    "tooth_frac": 0.25043683237454284,
+    "opening_frac": 0.03964731999800855,
+    "slot_bottom_mm": 41.48297205996601
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": -10.0
+  },
+  {
+   "case_id": "s2-d10-j10g25",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.015655583342511,
+    "coverage": 0.8125632983702391,
+    "airgap_mm": 0.9753199181125352,
+    "tooth_frac": 0.25043683237454284,
+    "opening_frac": 0.03964731999800855,
+    "slot_bottom_mm": 41.48297205996601
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 25.0
+  },
+  {
+   "case_id": "s2-d10-j10g20",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.015655583342511,
+    "coverage": 0.8125632983702391,
+    "airgap_mm": 0.9753199181125352,
+    "tooth_frac": 0.25043683237454284,
+    "opening_frac": 0.03964731999800855,
+    "slot_bottom_mm": 41.48297205996601
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 20.0
+  },
+  {
+   "case_id": "s2-d12-j10g10",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.737330032277213,
+    "coverage": 0.745259544043141,
+    "airgap_mm": 0.3895959582002487,
+    "tooth_frac": 0.2570495080364024,
+    "opening_frac": 0.07738784986702094,
+    "slot_bottom_mm": 39.73782877222557
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 10.0
+  },
+  {
+   "case_id": "s2-d12-j10g5",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.737330032277213,
+    "coverage": 0.745259544043141,
+    "airgap_mm": 0.3895959582002487,
+    "tooth_frac": 0.2570495080364024,
+    "opening_frac": 0.07738784986702094,
+    "slot_bottom_mm": 39.73782877222557
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 5.0
+  },
+  {
+   "case_id": "s2-d12-j10g-5",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.737330032277213,
+    "coverage": 0.745259544043141,
+    "airgap_mm": 0.3895959582002487,
+    "tooth_frac": 0.2570495080364024,
+    "opening_frac": 0.07738784986702094,
+    "slot_bottom_mm": 39.73782877222557
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": -5.0
+  },
+  {
+   "case_id": "s2-d12-j10g-10",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.737330032277213,
+    "coverage": 0.745259544043141,
+    "airgap_mm": 0.3895959582002487,
+    "tooth_frac": 0.2570495080364024,
+    "opening_frac": 0.07738784986702094,
+    "slot_bottom_mm": 39.73782877222557
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": -10.0
+  },
+  {
+   "case_id": "s2-d12-j10g25",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.737330032277213,
+    "coverage": 0.745259544043141,
+    "airgap_mm": 0.3895959582002487,
+    "tooth_frac": 0.2570495080364024,
+    "opening_frac": 0.07738784986702094,
+    "slot_bottom_mm": 39.73782877222557
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 25.0
+  },
+  {
+   "case_id": "s2-d12-j10g20",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.737330032277213,
+    "coverage": 0.745259544043141,
+    "airgap_mm": 0.3895959582002487,
+    "tooth_frac": 0.2570495080364024,
+    "opening_frac": 0.07738784986702094,
+    "slot_bottom_mm": 39.73782877222557
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 20.0
+  },
+  {
+   "case_id": "s2-d16-j10g10",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 3.8870658855252125,
+    "coverage": 0.8557136482047045,
+    "airgap_mm": 0.5940567425473162,
+    "tooth_frac": 0.2867418901548715,
+    "opening_frac": 0.11002833401964227,
+    "slot_bottom_mm": 40.31216198295938
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 10.0
+  },
+  {
+   "case_id": "s2-d16-j10g5",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 3.8870658855252125,
+    "coverage": 0.8557136482047045,
+    "airgap_mm": 0.5940567425473162,
+    "tooth_frac": 0.2867418901548715,
+    "opening_frac": 0.11002833401964227,
+    "slot_bottom_mm": 40.31216198295938
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 5.0
+  },
+  {
+   "case_id": "s2-d16-j10g-5",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 3.8870658855252125,
+    "coverage": 0.8557136482047045,
+    "airgap_mm": 0.5940567425473162,
+    "tooth_frac": 0.2867418901548715,
+    "opening_frac": 0.11002833401964227,
+    "slot_bottom_mm": 40.31216198295938
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": -5.0
+  },
+  {
+   "case_id": "s2-d16-j10g-10",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 3.8870658855252125,
+    "coverage": 0.8557136482047045,
+    "airgap_mm": 0.5940567425473162,
+    "tooth_frac": 0.2867418901548715,
+    "opening_frac": 0.11002833401964227,
+    "slot_bottom_mm": 40.31216198295938
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": -10.0
+  },
+  {
+   "case_id": "s2-d16-j10g25",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 3.8870658855252125,
+    "coverage": 0.8557136482047045,
+    "airgap_mm": 0.5940567425473162,
+    "tooth_frac": 0.2867418901548715,
+    "opening_frac": 0.11002833401964227,
+    "slot_bottom_mm": 40.31216198295938
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 25.0
+  },
+  {
+   "case_id": "s2-d16-j10g20",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 3.8870658855252125,
+    "coverage": 0.8557136482047045,
+    "airgap_mm": 0.5940567425473162,
+    "tooth_frac": 0.2867418901548715,
+    "opening_frac": 0.11002833401964227,
+    "slot_bottom_mm": 40.31216198295938
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 20.0
+  },
+  {
+   "case_id": "s2-d17-j10g10",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.623284299831053,
+    "coverage": 0.7837594013101037,
+    "airgap_mm": 0.5554491527383287,
+    "tooth_frac": 0.3451795427425462,
+    "opening_frac": 0.09299987876928814,
+    "slot_bottom_mm": 39.134668158803706
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 10.0
+  },
+  {
+   "case_id": "s2-d17-j10g5",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.623284299831053,
+    "coverage": 0.7837594013101037,
+    "airgap_mm": 0.5554491527383287,
+    "tooth_frac": 0.3451795427425462,
+    "opening_frac": 0.09299987876928814,
+    "slot_bottom_mm": 39.134668158803706
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 5.0
+  },
+  {
+   "case_id": "s2-d17-j10g-5",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.623284299831053,
+    "coverage": 0.7837594013101037,
+    "airgap_mm": 0.5554491527383287,
+    "tooth_frac": 0.3451795427425462,
+    "opening_frac": 0.09299987876928814,
+    "slot_bottom_mm": 39.134668158803706
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": -5.0
+  },
+  {
+   "case_id": "s2-d17-j10g-10",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.623284299831053,
+    "coverage": 0.7837594013101037,
+    "airgap_mm": 0.5554491527383287,
+    "tooth_frac": 0.3451795427425462,
+    "opening_frac": 0.09299987876928814,
+    "slot_bottom_mm": 39.134668158803706
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": -10.0
+  },
+  {
+   "case_id": "s2-d17-j10g25",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.623284299831053,
+    "coverage": 0.7837594013101037,
+    "airgap_mm": 0.5554491527383287,
+    "tooth_frac": 0.3451795427425462,
+    "opening_frac": 0.09299987876928814,
+    "slot_bottom_mm": 39.134668158803706
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 25.0
+  },
+  {
+   "case_id": "s2-d17-j10g20",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.623284299831053,
+    "coverage": 0.7837594013101037,
+    "airgap_mm": 0.5554491527383287,
+    "tooth_frac": 0.3451795427425462,
+    "opening_frac": 0.09299987876928814,
+    "slot_bottom_mm": 39.134668158803706
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 20.0
+  },
+  {
+   "case_id": "s2-d21-j10g10",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 1.8042018601082797,
+    "coverage": 0.9403446160535693,
+    "airgap_mm": 0.30607513455811697,
+    "tooth_frac": 0.2505493014862449,
+    "opening_frac": 0.046320282114925185,
+    "slot_bottom_mm": 41.35993057671528
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 10.0
+  },
+  {
+   "case_id": "s2-d21-j10g5",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 1.8042018601082797,
+    "coverage": 0.9403446160535693,
+    "airgap_mm": 0.30607513455811697,
+    "tooth_frac": 0.2505493014862449,
+    "opening_frac": 0.046320282114925185,
+    "slot_bottom_mm": 41.35993057671528
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 5.0
+  },
+  {
+   "case_id": "s2-d21-j10g-5",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 1.8042018601082797,
+    "coverage": 0.9403446160535693,
+    "airgap_mm": 0.30607513455811697,
+    "tooth_frac": 0.2505493014862449,
+    "opening_frac": 0.046320282114925185,
+    "slot_bottom_mm": 41.35993057671528
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": -5.0
+  },
+  {
+   "case_id": "s2-d21-j10g-10",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 1.8042018601082797,
+    "coverage": 0.9403446160535693,
+    "airgap_mm": 0.30607513455811697,
+    "tooth_frac": 0.2505493014862449,
+    "opening_frac": 0.046320282114925185,
+    "slot_bottom_mm": 41.35993057671528
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": -10.0
+  },
+  {
+   "case_id": "s2-d21-j10g25",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 1.8042018601082797,
+    "coverage": 0.9403446160535693,
+    "airgap_mm": 0.30607513455811697,
+    "tooth_frac": 0.2505493014862449,
+    "opening_frac": 0.046320282114925185,
+    "slot_bottom_mm": 41.35993057671528
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 25.0
+  },
+  {
+   "case_id": "s2-d21-j10g20",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 1.8042018601082797,
+    "coverage": 0.9403446160535693,
+    "airgap_mm": 0.30607513455811697,
+    "tooth_frac": 0.2505493014862449,
+    "opening_frac": 0.046320282114925185,
+    "slot_bottom_mm": 41.35993057671528
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 20.0
+  },
+  {
+   "case_id": "s2-d23-j10g10",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 1.5218357088175285,
+    "coverage": 0.9480536170811025,
+    "airgap_mm": 0.42517996038116046,
+    "tooth_frac": 0.37600079069522746,
+    "opening_frac": 0.10178151339651026,
+    "slot_bottom_mm": 37.71284083707479
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 10.0
+  },
+  {
+   "case_id": "s2-d23-j10g5",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 1.5218357088175285,
+    "coverage": 0.9480536170811025,
+    "airgap_mm": 0.42517996038116046,
+    "tooth_frac": 0.37600079069522746,
+    "opening_frac": 0.10178151339651026,
+    "slot_bottom_mm": 37.71284083707479
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 5.0
+  },
+  {
+   "case_id": "s2-d23-j10g-5",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 1.5218357088175285,
+    "coverage": 0.9480536170811025,
+    "airgap_mm": 0.42517996038116046,
+    "tooth_frac": 0.37600079069522746,
+    "opening_frac": 0.10178151339651026,
+    "slot_bottom_mm": 37.71284083707479
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": -5.0
+  },
+  {
+   "case_id": "s2-d23-j10g-10",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 1.5218357088175285,
+    "coverage": 0.9480536170811025,
+    "airgap_mm": 0.42517996038116046,
+    "tooth_frac": 0.37600079069522746,
+    "opening_frac": 0.10178151339651026,
+    "slot_bottom_mm": 37.71284083707479
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": -10.0
+  },
+  {
+   "case_id": "s2-d23-j10g25",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 1.5218357088175285,
+    "coverage": 0.9480536170811025,
+    "airgap_mm": 0.42517996038116046,
+    "tooth_frac": 0.37600079069522746,
+    "opening_frac": 0.10178151339651026,
+    "slot_bottom_mm": 37.71284083707479
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 25.0
+  },
+  {
+   "case_id": "s2-d23-j10g20",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 1.5218357088175285,
+    "coverage": 0.9480536170811025,
+    "airgap_mm": 0.42517996038116046,
+    "tooth_frac": 0.37600079069522746,
+    "opening_frac": 0.10178151339651026,
+    "slot_bottom_mm": 37.71284083707479
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 20.0
+  },
+  {
+   "case_id": "s3r2-d09-j0g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 1.9381000811178226,
+    "coverage": 0.7698785727606005,
+    "airgap_mm": 0.38007423221718145,
+    "tooth_frac": 0.23544816569353438,
+    "opening_frac": 0.06022961453640503,
+    "slot_bottom_mm": 41.221031772980126
+   },
+   "j_a_mm2": 0.0,
+   "gamma_deg": 0.0,
+   "options": {
+    "n_gap": 2880,
+    "h_max": 0.5
+   }
+  },
+  {
+   "case_id": "s3r2-d09-j10g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 1.9381000811178226,
+    "coverage": 0.7698785727606005,
+    "airgap_mm": 0.38007423221718145,
+    "tooth_frac": 0.23544816569353438,
+    "opening_frac": 0.06022961453640503,
+    "slot_bottom_mm": 41.221031772980126
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 0.0,
+   "options": {
+    "n_gap": 2880,
+    "h_max": 0.5
+   }
+  },
+  {
+   "case_id": "s3r2-d09-j10g10",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 1.9381000811178226,
+    "coverage": 0.7698785727606005,
+    "airgap_mm": 0.38007423221718145,
+    "tooth_frac": 0.23544816569353438,
+    "opening_frac": 0.06022961453640503,
+    "slot_bottom_mm": 41.221031772980126
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 10.0,
+   "options": {
+    "n_gap": 2880,
+    "h_max": 0.5
+   }
+  },
+  {
+   "case_id": "s3r2-d09-j10g-10",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 1.9381000811178226,
+    "coverage": 0.7698785727606005,
+    "airgap_mm": 0.38007423221718145,
+    "tooth_frac": 0.23544816569353438,
+    "opening_frac": 0.06022961453640503,
+    "slot_bottom_mm": 41.221031772980126
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": -10.0,
+   "options": {
+    "n_gap": 2880,
+    "h_max": 0.5
+   }
+  },
+  {
+   "case_id": "s3r2-d16-j0g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 3.8870658855252125,
+    "coverage": 0.8557136482047045,
+    "airgap_mm": 0.5940567425473162,
+    "tooth_frac": 0.2867418901548715,
+    "opening_frac": 0.11002833401964227,
+    "slot_bottom_mm": 40.31216198295938
+   },
+   "j_a_mm2": 0.0,
+   "gamma_deg": 0.0,
+   "options": {
+    "n_gap": 2880,
+    "h_max": 0.5
+   }
+  },
+  {
+   "case_id": "s3r2-d16-j10g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 3.8870658855252125,
+    "coverage": 0.8557136482047045,
+    "airgap_mm": 0.5940567425473162,
+    "tooth_frac": 0.2867418901548715,
+    "opening_frac": 0.11002833401964227,
+    "slot_bottom_mm": 40.31216198295938
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 0.0,
+   "options": {
+    "n_gap": 2880,
+    "h_max": 0.5
+   }
+  },
+  {
+   "case_id": "s3r2-d16-j10g10",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 3.8870658855252125,
+    "coverage": 0.8557136482047045,
+    "airgap_mm": 0.5940567425473162,
+    "tooth_frac": 0.2867418901548715,
+    "opening_frac": 0.11002833401964227,
+    "slot_bottom_mm": 40.31216198295938
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 10.0,
+   "options": {
+    "n_gap": 2880,
+    "h_max": 0.5
+   }
+  },
+  {
+   "case_id": "s3r2-d16-j10g-10",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 3.8870658855252125,
+    "coverage": 0.8557136482047045,
+    "airgap_mm": 0.5940567425473162,
+    "tooth_frac": 0.2867418901548715,
+    "opening_frac": 0.11002833401964227,
+    "slot_bottom_mm": 40.31216198295938
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": -10.0,
+   "options": {
+    "n_gap": 2880,
+    "h_max": 0.5
+   }
+  },
+  {
+   "case_id": "s3r2-d21-j0g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 1.8042018601082797,
+    "coverage": 0.9403446160535693,
+    "airgap_mm": 0.30607513455811697,
+    "tooth_frac": 0.2505493014862449,
+    "opening_frac": 0.046320282114925185,
+    "slot_bottom_mm": 41.35993057671528
+   },
+   "j_a_mm2": 0.0,
+   "gamma_deg": 0.0,
+   "options": {
+    "n_gap": 2880,
+    "h_max": 0.5
+   }
+  },
+  {
+   "case_id": "s3r2-d21-j10g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 1.8042018601082797,
+    "coverage": 0.9403446160535693,
+    "airgap_mm": 0.30607513455811697,
+    "tooth_frac": 0.2505493014862449,
+    "opening_frac": 0.046320282114925185,
+    "slot_bottom_mm": 41.35993057671528
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 0.0,
+   "options": {
+    "n_gap": 2880,
+    "h_max": 0.5
+   }
+  },
+  {
+   "case_id": "s3r2-d21-j10g10",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 1.8042018601082797,
+    "coverage": 0.9403446160535693,
+    "airgap_mm": 0.30607513455811697,
+    "tooth_frac": 0.2505493014862449,
+    "opening_frac": 0.046320282114925185,
+    "slot_bottom_mm": 41.35993057671528
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 10.0,
+   "options": {
+    "n_gap": 2880,
+    "h_max": 0.5
+   }
+  },
+  {
+   "case_id": "s3r2-d21-j10g-10",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 1.8042018601082797,
+    "coverage": 0.9403446160535693,
+    "airgap_mm": 0.30607513455811697,
+    "tooth_frac": 0.2505493014862449,
+    "opening_frac": 0.046320282114925185,
+    "slot_bottom_mm": 41.35993057671528
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": -10.0,
+   "options": {
+    "n_gap": 2880,
+    "h_max": 0.5
+   }
+  },
+  {
+   "case_id": "s3r2-d12-j0g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.737330032277213,
+    "coverage": 0.745259544043141,
+    "airgap_mm": 0.3895959582002487,
+    "tooth_frac": 0.2570495080364024,
+    "opening_frac": 0.07738784986702094,
+    "slot_bottom_mm": 39.73782877222557
+   },
+   "j_a_mm2": 0.0,
+   "gamma_deg": 0.0,
+   "options": {
+    "n_gap": 2880,
+    "h_max": 0.5
+   }
+  },
+  {
+   "case_id": "s3r2-d12-j10g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.737330032277213,
+    "coverage": 0.745259544043141,
+    "airgap_mm": 0.3895959582002487,
+    "tooth_frac": 0.2570495080364024,
+    "opening_frac": 0.07738784986702094,
+    "slot_bottom_mm": 39.73782877222557
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 0.0,
+   "options": {
+    "n_gap": 2880,
+    "h_max": 0.5
+   }
+  },
+  {
+   "case_id": "s3r2-d12-j10g5",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.737330032277213,
+    "coverage": 0.745259544043141,
+    "airgap_mm": 0.3895959582002487,
+    "tooth_frac": 0.2570495080364024,
+    "opening_frac": 0.07738784986702094,
+    "slot_bottom_mm": 39.73782877222557
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 5.0,
+   "options": {
+    "n_gap": 2880,
+    "h_max": 0.5
+   }
+  },
+  {
+   "case_id": "s3r2-d12-j10g-5",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.737330032277213,
+    "coverage": 0.745259544043141,
+    "airgap_mm": 0.3895959582002487,
+    "tooth_frac": 0.2570495080364024,
+    "opening_frac": 0.07738784986702094,
+    "slot_bottom_mm": 39.73782877222557
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": -5.0,
+   "options": {
+    "n_gap": 2880,
+    "h_max": 0.5
+   }
+  },
+  {
+   "case_id": "s3r2-d12-j10g10",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.737330032277213,
+    "coverage": 0.745259544043141,
+    "airgap_mm": 0.3895959582002487,
+    "tooth_frac": 0.2570495080364024,
+    "opening_frac": 0.07738784986702094,
+    "slot_bottom_mm": 39.73782877222557
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 10.0,
+   "options": {
+    "n_gap": 2880,
+    "h_max": 0.5
+   }
+  },
+  {
+   "case_id": "s3r2-d12-j10g-10",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.737330032277213,
+    "coverage": 0.745259544043141,
+    "airgap_mm": 0.3895959582002487,
+    "tooth_frac": 0.2570495080364024,
+    "opening_frac": 0.07738784986702094,
+    "slot_bottom_mm": 39.73782877222557
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": -10.0,
+   "options": {
+    "n_gap": 2880,
+    "h_max": 0.5
+   }
+  },
+  {
+   "case_id": "s3r2-d01-j0g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 3.508794345632948,
+    "coverage": 0.7409469471463304,
+    "airgap_mm": 0.9092166649047719,
+    "tooth_frac": 0.3234842870098141,
+    "opening_frac": 0.09448544421713542,
+    "slot_bottom_mm": 40.66516455530484
+   },
+   "j_a_mm2": 0.0,
+   "gamma_deg": 0.0,
+   "options": {
+    "n_gap": 2880,
+    "h_max": 0.5
+   }
+  },
+  {
+   "case_id": "s3r2-d01-j10g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 3.508794345632948,
+    "coverage": 0.7409469471463304,
+    "airgap_mm": 0.9092166649047719,
+    "tooth_frac": 0.3234842870098141,
+    "opening_frac": 0.09448544421713542,
+    "slot_bottom_mm": 40.66516455530484
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 0.0,
+   "options": {
+    "n_gap": 2880,
+    "h_max": 0.5
+   }
+  },
+  {
+   "case_id": "s3r2-d01-j10g10",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 3.508794345632948,
+    "coverage": 0.7409469471463304,
+    "airgap_mm": 0.9092166649047719,
+    "tooth_frac": 0.3234842870098141,
+    "opening_frac": 0.09448544421713542,
+    "slot_bottom_mm": 40.66516455530484
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 10.0,
+   "options": {
+    "n_gap": 2880,
+    "h_max": 0.5
+   }
+  },
+  {
+   "case_id": "s3r2-d01-j10g-10",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 3.508794345632948,
+    "coverage": 0.7409469471463304,
+    "airgap_mm": 0.9092166649047719,
+    "tooth_frac": 0.3234842870098141,
+    "opening_frac": 0.09448544421713542,
+    "slot_bottom_mm": 40.66516455530484
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": -10.0,
+   "options": {
+    "n_gap": 2880,
+    "h_max": 0.5
+   }
+  },
+  {
+   "case_id": "s3r2-d06-j0g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.7524535076443137,
+    "coverage": 0.7148237547459616,
+    "airgap_mm": 0.388880801977472,
+    "tooth_frac": 0.3822860375815222,
+    "opening_frac": 0.08368914121725156,
+    "slot_bottom_mm": 38.705050193870505
+   },
+   "j_a_mm2": 0.0,
+   "gamma_deg": 0.0,
+   "options": {
+    "n_gap": 2880,
+    "h_max": 0.5
+   }
+  },
+  {
+   "case_id": "s3r2-d06-j10g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.7524535076443137,
+    "coverage": 0.7148237547459616,
+    "airgap_mm": 0.388880801977472,
+    "tooth_frac": 0.3822860375815222,
+    "opening_frac": 0.08368914121725156,
+    "slot_bottom_mm": 38.705050193870505
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 0.0,
+   "options": {
+    "n_gap": 2880,
+    "h_max": 0.5
+   }
+  },
+  {
+   "case_id": "s3r2-d06-j10g10",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.7524535076443137,
+    "coverage": 0.7148237547459616,
+    "airgap_mm": 0.388880801977472,
+    "tooth_frac": 0.3822860375815222,
+    "opening_frac": 0.08368914121725156,
+    "slot_bottom_mm": 38.705050193870505
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 10.0,
+   "options": {
+    "n_gap": 2880,
+    "h_max": 0.5
+   }
+  },
+  {
+   "case_id": "s3r2-d06-j10g-10",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.7524535076443137,
+    "coverage": 0.7148237547459616,
+    "airgap_mm": 0.388880801977472,
+    "tooth_frac": 0.3822860375815222,
+    "opening_frac": 0.08368914121725156,
+    "slot_bottom_mm": 38.705050193870505
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": -10.0,
+   "options": {
+    "n_gap": 2880,
+    "h_max": 0.5
+   }
+  },
+  {
+   "case_id": "s3r2-d17-j0g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.623284299831053,
+    "coverage": 0.7837594013101037,
+    "airgap_mm": 0.5554491527383287,
+    "tooth_frac": 0.3451795427425462,
+    "opening_frac": 0.09299987876928814,
+    "slot_bottom_mm": 39.134668158803706
+   },
+   "j_a_mm2": 0.0,
+   "gamma_deg": 0.0,
+   "options": {
+    "n_gap": 2880,
+    "h_max": 0.5
+   }
+  },
+  {
+   "case_id": "s3r2-d17-j10g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.623284299831053,
+    "coverage": 0.7837594013101037,
+    "airgap_mm": 0.5554491527383287,
+    "tooth_frac": 0.3451795427425462,
+    "opening_frac": 0.09299987876928814,
+    "slot_bottom_mm": 39.134668158803706
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 0.0,
+   "options": {
+    "n_gap": 2880,
+    "h_max": 0.5
+   }
+  },
+  {
+   "case_id": "s3r2-d17-j10g10",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.623284299831053,
+    "coverage": 0.7837594013101037,
+    "airgap_mm": 0.5554491527383287,
+    "tooth_frac": 0.3451795427425462,
+    "opening_frac": 0.09299987876928814,
+    "slot_bottom_mm": 39.134668158803706
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": 10.0,
+   "options": {
+    "n_gap": 2880,
+    "h_max": 0.5
+   }
+  },
+  {
+   "case_id": "s3r2-d17-j10g-10",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.623284299831053,
+    "coverage": 0.7837594013101037,
+    "airgap_mm": 0.5554491527383287,
+    "tooth_frac": 0.3451795427425462,
+    "opening_frac": 0.09299987876928814,
+    "slot_bottom_mm": 39.134668158803706
+   },
+   "j_a_mm2": 10.0,
+   "gamma_deg": -10.0,
+   "options": {
+    "n_gap": 2880,
+    "h_max": 0.5
+   }
+  },
+  {
+   "case_id": "s3pk-d09-j15g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 1.9381000811178226,
+    "coverage": 0.7698785727606005,
+    "airgap_mm": 0.38007423221718145,
+    "tooth_frac": 0.23544816569353438,
+    "opening_frac": 0.06022961453640503,
+    "slot_bottom_mm": 41.221031772980126
+   },
+   "j_a_mm2": 15.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s3pk-d09-j15g10",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 1.9381000811178226,
+    "coverage": 0.7698785727606005,
+    "airgap_mm": 0.38007423221718145,
+    "tooth_frac": 0.23544816569353438,
+    "opening_frac": 0.06022961453640503,
+    "slot_bottom_mm": 41.221031772980126
+   },
+   "j_a_mm2": 15.0,
+   "gamma_deg": 10.0
+  },
+  {
+   "case_id": "s3pk-d09-j15g-10",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 1.9381000811178226,
+    "coverage": 0.7698785727606005,
+    "airgap_mm": 0.38007423221718145,
+    "tooth_frac": 0.23544816569353438,
+    "opening_frac": 0.06022961453640503,
+    "slot_bottom_mm": 41.221031772980126
+   },
+   "j_a_mm2": 15.0,
+   "gamma_deg": -10.0
+  },
+  {
+   "case_id": "s3pk-d09-j15g5",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 1.9381000811178226,
+    "coverage": 0.7698785727606005,
+    "airgap_mm": 0.38007423221718145,
+    "tooth_frac": 0.23544816569353438,
+    "opening_frac": 0.06022961453640503,
+    "slot_bottom_mm": 41.221031772980126
+   },
+   "j_a_mm2": 15.0,
+   "gamma_deg": 5.0
+  },
+  {
+   "case_id": "s3pk-d09-j15g-5",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 1.9381000811178226,
+    "coverage": 0.7698785727606005,
+    "airgap_mm": 0.38007423221718145,
+    "tooth_frac": 0.23544816569353438,
+    "opening_frac": 0.06022961453640503,
+    "slot_bottom_mm": 41.221031772980126
+   },
+   "j_a_mm2": 15.0,
+   "gamma_deg": -5.0
+  },
+  {
+   "case_id": "s3pk-d16-j15g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 3.8870658855252125,
+    "coverage": 0.8557136482047045,
+    "airgap_mm": 0.5940567425473162,
+    "tooth_frac": 0.2867418901548715,
+    "opening_frac": 0.11002833401964227,
+    "slot_bottom_mm": 40.31216198295938
+   },
+   "j_a_mm2": 15.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s3pk-d16-j15g10",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 3.8870658855252125,
+    "coverage": 0.8557136482047045,
+    "airgap_mm": 0.5940567425473162,
+    "tooth_frac": 0.2867418901548715,
+    "opening_frac": 0.11002833401964227,
+    "slot_bottom_mm": 40.31216198295938
+   },
+   "j_a_mm2": 15.0,
+   "gamma_deg": 10.0
+  },
+  {
+   "case_id": "s3pk-d16-j15g-10",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 3.8870658855252125,
+    "coverage": 0.8557136482047045,
+    "airgap_mm": 0.5940567425473162,
+    "tooth_frac": 0.2867418901548715,
+    "opening_frac": 0.11002833401964227,
+    "slot_bottom_mm": 40.31216198295938
+   },
+   "j_a_mm2": 15.0,
+   "gamma_deg": -10.0
+  },
+  {
+   "case_id": "s3pk-d16-j15g5",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 3.8870658855252125,
+    "coverage": 0.8557136482047045,
+    "airgap_mm": 0.5940567425473162,
+    "tooth_frac": 0.2867418901548715,
+    "opening_frac": 0.11002833401964227,
+    "slot_bottom_mm": 40.31216198295938
+   },
+   "j_a_mm2": 15.0,
+   "gamma_deg": 5.0
+  },
+  {
+   "case_id": "s3pk-d16-j15g-5",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 3.8870658855252125,
+    "coverage": 0.8557136482047045,
+    "airgap_mm": 0.5940567425473162,
+    "tooth_frac": 0.2867418901548715,
+    "opening_frac": 0.11002833401964227,
+    "slot_bottom_mm": 40.31216198295938
+   },
+   "j_a_mm2": 15.0,
+   "gamma_deg": -5.0
+  },
+  {
+   "case_id": "s3pk-d21-j15g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 1.8042018601082797,
+    "coverage": 0.9403446160535693,
+    "airgap_mm": 0.30607513455811697,
+    "tooth_frac": 0.2505493014862449,
+    "opening_frac": 0.046320282114925185,
+    "slot_bottom_mm": 41.35993057671528
+   },
+   "j_a_mm2": 15.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s3pk-d21-j15g10",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 1.8042018601082797,
+    "coverage": 0.9403446160535693,
+    "airgap_mm": 0.30607513455811697,
+    "tooth_frac": 0.2505493014862449,
+    "opening_frac": 0.046320282114925185,
+    "slot_bottom_mm": 41.35993057671528
+   },
+   "j_a_mm2": 15.0,
+   "gamma_deg": 10.0
+  },
+  {
+   "case_id": "s3pk-d21-j15g-10",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 1.8042018601082797,
+    "coverage": 0.9403446160535693,
+    "airgap_mm": 0.30607513455811697,
+    "tooth_frac": 0.2505493014862449,
+    "opening_frac": 0.046320282114925185,
+    "slot_bottom_mm": 41.35993057671528
+   },
+   "j_a_mm2": 15.0,
+   "gamma_deg": -10.0
+  },
+  {
+   "case_id": "s3pk-d21-j15g5",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 1.8042018601082797,
+    "coverage": 0.9403446160535693,
+    "airgap_mm": 0.30607513455811697,
+    "tooth_frac": 0.2505493014862449,
+    "opening_frac": 0.046320282114925185,
+    "slot_bottom_mm": 41.35993057671528
+   },
+   "j_a_mm2": 15.0,
+   "gamma_deg": 5.0
+  },
+  {
+   "case_id": "s3pk-d21-j15g-5",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 1.8042018601082797,
+    "coverage": 0.9403446160535693,
+    "airgap_mm": 0.30607513455811697,
+    "tooth_frac": 0.2505493014862449,
+    "opening_frac": 0.046320282114925185,
+    "slot_bottom_mm": 41.35993057671528
+   },
+   "j_a_mm2": 15.0,
+   "gamma_deg": -5.0
+  },
+  {
+   "case_id": "s3pk-d12-j15g0",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.737330032277213,
+    "coverage": 0.745259544043141,
+    "airgap_mm": 0.3895959582002487,
+    "tooth_frac": 0.2570495080364024,
+    "opening_frac": 0.07738784986702094,
+    "slot_bottom_mm": 39.73782877222557
+   },
+   "j_a_mm2": 15.0,
+   "gamma_deg": 0.0
+  },
+  {
+   "case_id": "s3pk-d12-j15g10",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.737330032277213,
+    "coverage": 0.745259544043141,
+    "airgap_mm": 0.3895959582002487,
+    "tooth_frac": 0.2570495080364024,
+    "opening_frac": 0.07738784986702094,
+    "slot_bottom_mm": 39.73782877222557
+   },
+   "j_a_mm2": 15.0,
+   "gamma_deg": 10.0
+  },
+  {
+   "case_id": "s3pk-d12-j15g-10",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.737330032277213,
+    "coverage": 0.745259544043141,
+    "airgap_mm": 0.3895959582002487,
+    "tooth_frac": 0.2570495080364024,
+    "opening_frac": 0.07738784986702094,
+    "slot_bottom_mm": 39.73782877222557
+   },
+   "j_a_mm2": 15.0,
+   "gamma_deg": -10.0
+  },
+  {
+   "case_id": "s3pk-d12-j15g5",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.737330032277213,
+    "coverage": 0.745259544043141,
+    "airgap_mm": 0.3895959582002487,
+    "tooth_frac": 0.2570495080364024,
+    "opening_frac": 0.07738784986702094,
+    "slot_bottom_mm": 39.73782877222557
+   },
+   "j_a_mm2": 15.0,
+   "gamma_deg": 5.0
+  },
+  {
+   "case_id": "s3pk-d12-j15g-5",
+   "topology": "10p12s",
+   "design": {
+    "magnet_mm": 2.737330032277213,
+    "coverage": 0.745259544043141,
+    "airgap_mm": 0.3895959582002487,
+    "tooth_frac": 0.2570495080364024,
+    "opening_frac": 0.07738784986702094,
+    "slot_bottom_mm": 39.73782877222557
+   },
+   "j_a_mm2": 15.0,
+   "gamma_deg": -5.0
+  }
+ ]
+}

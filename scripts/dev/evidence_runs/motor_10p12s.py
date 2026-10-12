@@ -36,6 +36,9 @@ IMAGE_DIGEST = "sha256:599521e79786ee0326a0754ba0545f51ee9665adff73c3515c8d4b8ba
 PLANS = {
     "train-stage1": ("docs/development/evidence/motor-feasibility-02/plans/train-stage1-plan.json",
                      "4a067614ee921d20069504937e3913cebb30226cafe35c489d3a9356a2f4f2cd"),
+    # the holding reference panel: stages 1-3's registered cases, unchanged (230)
+    "reference-panel": ("docs/development/evidence/motor-feasibility-02/plans/reference-panel-plan.json",
+                        "41e55a557544df3c6c2226c852427c5a0149767fae07c38bafc797396a0f379b"),
 }  # fmt: skip
 TRAIN_SCHEMA = "carbon.motor-10p12s.train-record.v1"
 GRAMMAR = (

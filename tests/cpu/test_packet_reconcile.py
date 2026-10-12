@@ -126,3 +126,49 @@ def test_real_battery_motor_cooling_checklists_and_mutations():
 def test_example_replay_is_deterministic_and_has_source_pointers():
     assert examples.build() == examples.build()
     assert "OWNER-BATTERY-AMBIENT-MAP-03" in examples.build()["battery-v3-report.json"]
+
+
+def test_physics_notice_does_not_change_buyer_results_or_historical_api(tmp_path):
+    spec = manifest(tmp_path)
+    old = r.reconcile(tmp_path, spec)
+    new = r.reconcile(tmp_path, spec, include_physics_contract=True)
+    assert old["schema"].endswith(".v1") and "physics_contract" not in old
+    assert new["schema"].endswith(".v2")
+    assert new["physics_contract"]["message"] == "physics contract missing"
+    assert {k: v for k, v in old.items() if k != "schema"} == {
+        k: v for k, v in new.items() if k not in {"schema", "physics_contract"}
+    }
+    assert "physics contract missing" in r.render(new)
+    assert "Physics contract" not in r.render(old)
+
+
+def test_cli_notice_is_nonblocking_for_a_clear_packet(tmp_path, monkeypatch, capsys):
+    import json
+    import sys
+
+    spec = manifest(tmp_path)
+    base = spec["checks"][0]
+    spec["checks"] = [
+        {**copy.deepcopy(base), "id": field, "field": field}
+        for field in sorted(r.BUYER_FIELDS)
+    ]
+    path = tmp_path / "docs/development/check.json"
+    path.write_text(json.dumps(spec))
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "reconcile",
+            "--root",
+            str(tmp_path),
+            "--manifest",
+            "docs/development/check.json",
+            "--format",
+            "json",
+        ],
+    )
+    assert r.main() == 0
+    out = json.loads(capsys.readouterr().out)
+    assert out["checklist_clear"]
+    assert out["physics_contract"]["state"] == "MISSING"
+    assert not out["authority_granted"]

@@ -8,6 +8,12 @@ hostile research code and the controller that records its results: no network,
 a read-only image, no capabilities, no privilege escalation, a non-root user,
 and nothing mounted but the run's own input (read-only) and scratch.
 
+Carbon's own operator host is the one exception: it installs a resource
+profile (`load_host_profile`; INTERNAL-RESOURCE-PROFILE-01, delivered to every
+process on that host by LANE-RESOURCE-BOUND-01), and its Level 4 hostile-model
+probe and staging sessions refuse to start without one
+(`require_host_profile`). Nothing is installed on a miner's machine.
+
 This is a separate lane from the validator's grading worker in
 `carbon.reconstruction.worker.docker_runtime`, which keeps every one of its
 limits. The two share no argument builder: the miner lane cannot reach the
@@ -47,7 +53,18 @@ GPU_CAPABILITIES = "compute,utility"
 #: host's operator names in this variable; a miner's own machine sets nothing,
 #: so its research stays unlimited exactly as before.
 RESOURCE_PROFILE_ENV = "CARBON_RESEARCH_RESOURCE_PROFILE"
+#: LANE-RESOURCE-BOUND-01: where Carbon's own host installs the same file, so
+#: a process started without the variable (an MCP door another session starts
+#: through `wsl.exe ... env PYTHONPATH=...`, or the detached supervisors it
+#: spawns) is bounded too. Relative to the process user's home; read only when
+#: the variable is unset and the file exists. A miner's machine has nothing
+#: there, so its research stays unlimited exactly as before.
+RESOURCE_PROFILE_FALLBACK = Path(".config", "carbon", "research-resource-profile.json")
 RESOURCE_PROFILE_SCHEMA = "carbon.miner-research.resource-profile.v1"
+#: The closed refusal codes of a Carbon-operated hostile-code path that must
+#: never start unbounded (`require_host_profile`).
+RESOURCE_PROFILE_REQUIRED = "resource_profile_required"
+RESOURCE_PROFILE_INVALID = "resource_profile_invalid"
 _PROFILE_FIELDS = ("cpus", "memory_bytes", "pids_limit", "nofile")
 _PROFILE_LABEL = "carbon.resource-profile"
 
@@ -80,17 +97,57 @@ class ResourceProfile:
 
 
 def load_host_profile(environ=None):
-    """The host's resource profile, or None when the operator names none.
+    """The host's resource profile, or None when the operator installs none.
 
-    Fail closed: a named file that is not a regular, owner-only file owned by
-    this user, or whose record is not exactly the v1 schema, refuses the
-    launch (POLICY) rather than running unbounded on a host that asked for
-    bounds."""
+    The file named in `RESOURCE_PROFILE_ENV` when it is set; otherwise
+    `~/.config/carbon/research-resource-profile.json` when that exists
+    (LANE-RESOURCE-BOUND-01). The variable takes precedence: a named file is
+    the only one read, and the fallback is never consulted beside it.
+
+    Fail closed: a file that is not a regular, owner-only file owned by this
+    user, or whose record is not exactly the v1 schema, refuses the launch
+    (POLICY) rather than running unbounded on a host that asked for bounds.
+    Both locations are held to the same rules."""
     environ = os.environ if environ is None else environ
     named = environ.get(RESOURCE_PROFILE_ENV)
-    if not named:
+    if named:
+        return _read_profile(Path(named))
+    fallback = _fallback_profile(environ)
+    if fallback is None:
         return None
-    path = Path(named)
+    try:
+        fallback.lstat()
+    except (FileNotFoundError, NotADirectoryError):
+        # Nothing installed: a miner's machine, exactly as before.
+        return None
+    except OSError:
+        raise WorkerFailure(WorkerCode.POLICY) from None
+    return _read_profile(fallback)
+
+
+def _process_home():
+    """This process's home: `HOME`, else the password database's entry."""
+    home = os.environ.get("HOME")
+    if home:
+        return home
+    try:
+        import pwd
+
+        return pwd.getpwuid(os.getuid()).pw_dir
+    except (ImportError, KeyError):
+        return None
+
+
+def _fallback_profile(environ):
+    """The well-known profile path under the home `environ` gives (this
+    process's own home for the process environment), or None without one."""
+    home = _process_home() if environ is os.environ else environ.get("HOME")
+    if not home or not Path(home).is_absolute():
+        return None
+    return Path(home) / RESOURCE_PROFILE_FALLBACK
+
+
+def _read_profile(path):
     try:
         info = path.lstat()
         if (
@@ -110,6 +167,198 @@ def load_host_profile(environ=None):
     ):
         raise WorkerFailure(WorkerCode.POLICY)
     return ResourceProfile(**{name: document[name] for name in _PROFILE_FIELDS})
+
+
+class ResourceProfileRefused(ValueError):
+    """A Carbon-operated hostile-code path refused to start: no host resource
+    profile is in force (`RESOURCE_PROFILE_REQUIRED`), or the installed one
+    is unreadable or malformed (`RESOURCE_PROFILE_INVALID`)."""
+
+    def __init__(self, code):
+        super().__init__(code)
+        self.code = code
+
+
+def require_host_profile(environ=None):
+    """The host's profile, for a Carbon-operated path that runs hostile code
+    in this lane (the Level 4 hostile-model probe and staging sessions); it
+    refuses to start without one (LANE-RESOURCE-BOUND-01).
+
+    Never called on a miner's own research, which `load_host_profile` alone
+    governs: with nothing installed it stays unlimited."""
+    try:
+        profile = load_host_profile(environ)
+    except WorkerFailure:
+        raise ResourceProfileRefused(RESOURCE_PROFILE_INVALID) from None
+    if profile is None:
+        raise ResourceProfileRefused(RESOURCE_PROFILE_REQUIRED)
+    return profile
+
+
+#: The free space a Carbon-operated Level 4-5 session needs on the filesystem
+#: holding scratch before it starts (LANE-RESOURCE-BOUND-01): several capped
+#: runs and the host's other sessions fit, and a full disk would make the
+#: shared WSL host read-only.
+SCRATCH_HOST_FLOOR_BYTES = 15 * 10**9
+SCRATCH_HOST_LOW_SPACE = "scratch_host_low_space"
+
+
+def require_scratch_floor(path, floor=SCRATCH_HOST_FLOOR_BYTES):
+    """Refuse (`scratch_host_low_space`) unless the filesystem holding `path`
+    has at least `floor` bytes free; an unreadable one refuses too. Only for
+    the Carbon-operated hostile-code sessions, never a miner's research."""
+    import shutil
+
+    try:
+        free = shutil.disk_usage(path).free
+    except OSError:
+        raise ResourceProfileRefused(SCRATCH_HOST_LOW_SPACE) from None
+    if free < floor:
+        raise ResourceProfileRefused(SCRATCH_HOST_LOW_SPACE)
+    return free
+
+
+#: LANE-RESOURCE-BOUND-01 (the Test Lead's choice (c), 2026-10-12): on a host
+#: whose resource profile is in force, one run's scratch may hold at most this
+#: many bytes. A named constant, so profile v1 is unchanged; a miner's machine
+#: has no profile and so no watch and no cap.
+SCRATCH_CAP_BYTES = 2 * 1024**3
+#: How often the watchdog measures scratch (the ruling: every 2 s at most).
+SCRATCH_POLL_SECONDS = 1.0
+#: Consecutive failed measurements, while the run lives, after which its
+#: scratch counts as unmeasurable and the run is stopped (fail closed: a run
+#: that exhausts its own process bound must not blind the watch).
+SCRATCH_UNMEASURED_POLLS = 15
+#: The closed refusal a run stopped by the watchdog is typed with.
+SCRATCH_CAP_EXCEEDED = "scratch_cap_exceeded"
+#: Measured inside the container, as the worker that owns every byte of it:
+#: the host user cannot list a directory the worker made private. `-I`, so
+#: nothing the run wrote under /scratch is imported. Directories it hid from
+#: its own user are reported, never skipped silently.
+SCRATCH_MEASURE = r"""
+import json, os
+total, denied = 0, False
+def refused(error):
+    global denied
+    if isinstance(error, PermissionError):
+        denied = True
+for directory, dirnames, filenames in os.walk("/scratch", onerror=refused):
+    for name in dirnames + filenames:
+        try:
+            total += os.lstat(os.path.join(directory, name)).st_size
+        except FileNotFoundError:
+            pass
+        except PermissionError:
+            denied = True
+print(json.dumps({"bytes": total, "denied": denied}))
+"""
+
+
+def measure_scratch(cli, container_name, timeout=10):
+    """`(bytes, denied)` for the running container's scratch, measured inside
+    it; a failed or malformed measurement raises (`WorkerFailure`)."""
+    value = cli.json(
+        [
+            "exec",
+            container_name,
+            "/opt/carbon-worker/bin/python",
+            "-I",
+            "-c",
+            SCRATCH_MEASURE,
+        ],
+        timeout=timeout,
+    )
+    if (
+        type(value) is not dict
+        or set(value) != {"bytes", "denied"}
+        or type(value["bytes"]) is not int
+        or value["bytes"] < 0
+        or type(value["denied"]) is not bool
+    ):
+        raise WorkerFailure(WorkerCode.RUNTIME)
+    return value["bytes"], value["denied"]
+
+
+class ScratchWatchdog:
+    """Stop a run whose scratch passes the cap (LANE-RESOURCE-BOUND-01).
+
+    A thread measures every `interval` seconds while the run executes. It
+    trips, once, when the measured bytes exceed `cap_bytes`, when the run hid
+    part of its scratch from its own user, or after `unmeasured_limit`
+    consecutive failed measurements; it then calls `stop_run` (the carrier
+    kills the container). `tripped` holds the typed record, else None. Used
+    only where a host profile is in force; never on a miner's machine."""
+
+    def __init__(
+        self,
+        measure,
+        stop_run,
+        *,
+        cap_bytes=SCRATCH_CAP_BYTES,
+        interval=SCRATCH_POLL_SECONDS,
+        unmeasured_limit=SCRATCH_UNMEASURED_POLLS,
+    ):
+        import threading
+
+        if (
+            type(cap_bytes) is not int
+            or cap_bytes <= 0
+            or type(unmeasured_limit) is not int
+            or unmeasured_limit <= 0
+            or type(interval) not in (int, float)
+            or not 0 < interval <= 2
+        ):
+            raise WorkerFailure(WorkerCode.INVALID)
+        self.measure, self.stop_run = measure, stop_run
+        self.cap_bytes, self.interval = cap_bytes, interval
+        self.unmeasured_limit = unmeasured_limit
+        self.tripped = None
+        self.polls = 0
+        self._stop = threading.Event()
+        self._thread = threading.Thread(target=self._watch, daemon=True)
+
+    def __enter__(self):
+        self._thread.start()
+        return self
+
+    def __exit__(self, *exc):
+        self._stop.set()
+        self._thread.join(timeout=60)
+        return False
+
+    def _trip(self, reason, observed):
+        self.tripped = {
+            "refusal": SCRATCH_CAP_EXCEEDED,
+            "reason": reason,
+            "observed_bytes": observed,
+            "cap_bytes": self.cap_bytes,
+        }
+        try:
+            self.stop_run()
+        except Exception as error:  # noqa: BLE001 - the run may already be gone
+            # Recorded, not raised: the carrier still removes the container
+            # exactly, and the run is typed as stopped by the watchdog.
+            self.tripped["stop_error"] = type(error).__name__
+
+    def _watch(self):
+        misses = 0
+        while not self._stop.wait(self.interval):
+            self.polls += 1
+            try:
+                used, denied = self.measure()
+            except Exception:  # noqa: BLE001 - a miss, counted below
+                misses += 1
+                if misses >= self.unmeasured_limit:
+                    self._trip("unmeasurable", None)
+                    return
+                continue
+            misses = 0
+            if used > self.cap_bytes:
+                self._trip("over_cap", used)
+                return
+            if denied:
+                self._trip("hidden_from_its_own_user", used)
+                return
 
 
 @dataclass(frozen=True)

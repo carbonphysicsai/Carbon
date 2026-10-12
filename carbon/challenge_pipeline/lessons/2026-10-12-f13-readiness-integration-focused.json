@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-12-f13-readiness-integration-focused",
+  "recorded_at": "2026-10-12T14:41:56Z",
+  "challenge": "f13",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "F13-SILENCER-READINESS-BUILD-01", "description": "PKT-03 registry, actual table-dispatch inspection and linked lifecycle cap regressions"},
+  "expected": "Recognize implemented software without promoting missing measured prerequisites or granting execution.",
+  "observed": "89 focused native diagnostic tests passed. Black and Ruff passed. Wrong/unused table validators are refused; descriptor pointers and all-in cap are checked. No reference solver or provider was called.",
+  "keep": ["Existing de-embedded full-curve contract and prospective budget identity", "Native tests remain diagnostics; canonical CI supplies acceptance"],
+  "change": ["Require actual family-to-validator consumption in table-based readiness inspection", "Use the selected-host lifecycle plan instead of stale CCX63 planning rates"],
+  "protocol_elements": ["measurement_authority", "reference_adequacy", "equal_budget"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

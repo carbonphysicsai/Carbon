@@ -92,6 +92,20 @@ FIELDS = {
     "used_feedback": ("boolean", "Whether prior final feedback informed it."),
     "hypothesis": ("string", "What this trial tests."),
     "expected_effect": ("string", "What you expect it to show."),
+    "mode": (
+        "string",
+        (
+            "practice only: full (the default) trains the recipe as it is "
+            "within the practice budget. smoke runs the same recipe through "
+            "the same path with its training steps truncated to fit that "
+            "budget, to prove it runs: its result carries status (PASSED or "
+            "FAILED), runtime and the truncation, never a score or metrics, "
+            "and a PASSED smoke practice lets that exact recipe be frozen. "
+            "Submission and the validator's rebuild are unchanged: the full "
+            "recipe is rebuilt. A Challenge without a smoke practice refuses "
+            "it smoke_practice_unavailable."
+        ),
+    ),
     "action": ("string", "stop, pause or reconcile."),
     "retry_interrupted": (
         "boolean",
@@ -338,6 +352,7 @@ CHOICES = {
     "action": ("stop", "pause", "reconcile"),
     "note_kind": ("hypothesis", "plan", "observation", "reply"),
     "graphite_mode": ("RESEARCH", "BUILD", "FULL"),
+    "mode": ("full", "smoke"),
 }
 
 #: The library and plan operations (S4). Reads answer from the miner's own
@@ -427,6 +442,9 @@ REFUSAL_FIELDS = {
     "design_needs_owner_decision": "strategy",
     "strategy_names_another_challenge": "strategy",
     "bounded_hypothesis_required": "hypothesis",
+    # Smoke practice (LAUNCHPAD-SMOKE-PRACTICE-01).
+    "practice_mode_invalid": "mode",
+    "smoke_practice_unavailable": "mode",
     "bounded_reason_required": "reason",
     "used_feedback_boolean_required": "used_feedback",
     "recommit_boolean_required": "recommit",
@@ -714,9 +732,11 @@ OPERATIONS = {
             "practice",
             "Run one practice trial of a registered recipe in the campaign: "
             "real training on public TRAIN data, self-reported. A candidate "
-            "must have a practice result before it can be frozen.",
+            "must have a practice result before it can be frozen: a full "
+            "practice, or a PASSED smoke practice (mode=smoke) for a recipe "
+            "too heavy for the practice budget.",
             frozenset({"campaign", "strategy", "hypothesis"}),
-            frozenset({"expected_effect", "idempotency_key"}),
+            frozenset({"expected_effect", "idempotency_key", "mode"}),
             ("request", "profile", "replay", "registration", "campaign"),
         ),
         Operation(

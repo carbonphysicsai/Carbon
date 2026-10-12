@@ -1,0 +1,83 @@
+{
+ "batch": "stage-a-2026-10-10",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "date": "2026-10-10",
+ "runs": [
+  {
+   "file": "constructor-D-run-1.out",
+   "role": "constructor",
+   "level": 0,
+   "chain_log": "chain-D.log",
+   "chain_label": "lane D session 1",
+   "public_improvement_file": "graphite-913bf1889a6db2d1-D-public-improvement.json"
+  },
+  {
+   "file": "constructor-D-run-2.out",
+   "role": "constructor",
+   "level": 0,
+   "chain_log": "chain-D.log",
+   "chain_label": "lane D session 2",
+   "public_improvement_file": "graphite-d90a8ccfd603cf6a-D-public-improvement.json"
+  },
+  {
+   "file": "constructor-D-run-3.out",
+   "role": "constructor",
+   "level": 0,
+   "chain_log": "chain-D.log",
+   "chain_label": "lane D session 3",
+   "public_improvement_file": "graphite-18fc7b1c1eeea8aa-D-public-improvement.json"
+  },
+  {
+   "file": "constructor-E-run-1.out",
+   "role": "constructor",
+   "level": 0,
+   "chain_log": "chain-E.log",
+   "chain_label": "lane E session 1",
+   "public_improvement_file": "graphite-913bf1889a6db2d1-E-public-improvement.json"
+  },
+  {
+   "file": "constructor-E-run-2.out",
+   "role": "constructor",
+   "level": 0,
+   "chain_log": "chain-E.log",
+   "chain_label": "lane E session 2",
+   "public_improvement_file": "graphite-d90a8ccfd603cf6a-E-public-improvement.json"
+  },
+  {
+   "file": "attacker-D-run-1.out",
+   "role": "attacker",
+   "level": 0
+  },
+  {
+   "file": "attacker-E-run-1.out",
+   "role": "attacker",
+   "level": 0
+  }
+ ],
+ "excluded": [
+  {
+   "file": "constructor-run-1.out",
+   "level": null,
+   "reason": "an early launch whose level and lane are not recorded in the file"
+  },
+  {
+   "file": "constructor-run-2.out",
+   "level": null,
+   "reason": "holds no result document (a failed launch)"
+  }
+ ],
+ "refusal_classes": {
+  "L0:p-c41a9a1ebb82": "envelope_too_tight",
+  "L0:p-8d5d61fc1308": "brief_gap",
+  "L0:p-69268f1b74ec": "brief_gap",
+  "L0:p-5a3b8fe3c06f": "brief_gap",
+  "L0:p-22e81b9d0595": "envelope_too_tight",
+  "L0:p-1585ecbf838a": "envelope_too_tight",
+  "L0:p-37985e699fe3": "envelope_too_tight",
+  "L0:p-74b8c69ead59": "brief_gap"
+ },
+ "triage": {
+  "attack-failing-trigger-2a84f968e6ffc6e8-0": "FALSE_POSITIVE"
+ },
+ "triage_source": "executor report, 2026-10-12 (stage A Attacker L0 findings note: an oracle false positive, not an escape)"
+}

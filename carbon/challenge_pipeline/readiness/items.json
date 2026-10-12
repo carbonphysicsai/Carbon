@@ -180,6 +180,13 @@
    }
   },
   {
+   "id": "R8",
+   "kind": "auto",
+   "lesson": "B17",
+   "title": "Level 4 only: the hostile-model lowering probe (memory, time, scratch flood) passed on the current analysis image digest. A readiness item, not a security acceptance.",
+   "check": "hostile_probe"
+  },
+  {
    "id": "A1",
    "kind": "auto",
    "lesson": "A1",

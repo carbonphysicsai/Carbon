@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-12-physics-contract-focused",
+  "recorded_at": "2026-10-12T16:17:15Z",
+  "challenge": "f02",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "PHYSICS-CONTRACT-PACKETS-01", "description": "Four draft inventories, non-blocking notice and historical packet regressions"},
+  "expected": "Draft presence/missing/unavailable states carry no qualification; notices leave buyer-field results and exit codes unchanged.",
+  "observed": "40 native diagnostic tests passed, one symlink test skipped by Windows privilege. Initial WindowsApps launch and temporary-directory setup failed; bundled Python with a new workspace temporary directory resolved test execution. Two native Black invocations stalled and were interrupted; Ruff check/format succeeded. Canonical Linux acceptance is still required.",
+  "keep": ["Separate absent documents from unreadable/malformed ones", "Bind every draft law to sources, output gaps and unrun image-specific calibration"],
+  "change": ["Use an executable Python runtime and a created workspace temp parent on this host", "Do not transfer heat MMS acceptance to acoustics or global MMS error to buyer observables"],
+  "protocol_elements": ["measurement_authority", "reference_adequacy"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

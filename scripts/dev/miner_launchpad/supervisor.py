@@ -342,6 +342,20 @@ NEXT_ACTIONS = {
         "Practice this recipe first; only a practiced recipe can be frozen "
         "and submitted."
     ),
+    # Smoke practice (LAUNCHPAD-SMOKE-PRACTICE-01).
+    "practice_time_budget_reached": (
+        "The full practice ran to the practice time budget and ended without "
+        "a result, so this recipe is too heavy to practise in full here. Run "
+        "a smoke practice of the same recipe (carbon_practice {campaign, "
+        "strategy, hypothesis, mode: smoke}): it runs with its training steps "
+        "truncated to fit the budget, and a PASSED smoke practice lets that "
+        "exact recipe be frozen. The validator still rebuilds it in full."
+    ),
+    "smoke_practice_unavailable": (
+        "This Challenge offers no smoke practice. Practise the recipe in full "
+        "(omit mode), or lighten it so its full practice fits the budget."
+    ),
+    "practice_mode_invalid": ("Send mode as full (the default) or smoke, or omit it."),
     "candidate_awaits_submission": (
         "A frozen candidate is waiting. Submit it before freezing another."
     ),

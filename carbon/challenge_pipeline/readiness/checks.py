@@ -694,6 +694,111 @@ def _analysis_image_manifest():
     return str(path), None
 
 
+HOSTILE_PROBE_FILE = "hostile_probe.json"
+HOSTILE_PROBE_SCHEMA = "carbon.readiness.hostile-lowering-probe.v1"
+HOSTILE_PROBES = ("memory", "time", "scratch_flood")
+HOSTILE_PROBE_LEVEL = 4
+
+
+def hostile_probe(item, ctx):
+    """R8 (Level 4 only): the hostile-model lowering probe (memory, time, scratch flood)
+    passed on the CURRENT analysis image digest. A readiness gate item for the
+    development and testnet gate; it is NOT a security acceptance.
+
+    The result is a digest-bound record the executor commits beside the challenge's other
+    readiness records (`readiness/<challenge>/hostile_probe.json`: schema, challenge, the
+    image id and runtime digest the probe ran on, and one PASS result with a digest per
+    probe). It binds to the manifest the gate is given (`ANALYSIS_IMAGE_ENV`), so a new
+    image digest re-arms it, as it re-arms R1. Below Level 4 the item does not apply.
+    No record is NOT_BUILT; an unreadable, malformed, stale or incomplete record, or a
+    missing manifest to bind it to, never passes."""
+    if ctx.level != HOSTILE_PROBE_LEVEL:
+        return Result(
+            PASS,
+            f"not applicable below Level {HOSTILE_PROBE_LEVEL}: the hostile-model lowering "
+            "probe applies to the Level 4 lowering tooling only",
+        )
+    path = (
+        ctx.repository
+        / "carbon/challenge_pipeline/readiness"
+        / ctx.challenge
+        / HOSTILE_PROBE_FILE
+    )
+    if not path.is_file():
+        return Result(
+            NOT_BUILT,
+            "no hostile-model lowering probe result is recorded for this challenge "
+            f"(readiness/<challenge>/{HOSTILE_PROBE_FILE}); owner: executor runs it "
+            "after the analysis image rebuild, Test Engineer writes the sources",
+        )
+    try:
+        record = json.loads(path.read_bytes())
+    except (OSError, ValueError):
+        return Result(FAIL, f"{HOSTILE_PROBE_FILE} is unreadable", (path.name,))
+    if (
+        type(record) is not dict
+        or record.get("schema") != HOSTILE_PROBE_SCHEMA
+        or record.get("challenge") != ctx.challenge
+    ):
+        return Result(
+            FAIL,
+            f"{HOSTILE_PROBE_FILE} is not this challenge's hostile-probe record",
+            (path.name,),
+        )
+    manifest, refusal = _analysis_image_manifest()
+    if manifest is None:
+        return Result(
+            FAIL,
+            "the probe result cannot be bound to the current image digest: " + refusal,
+            (path.name,),
+        )
+    from carbon.development_session import research_image
+
+    image = research_image.load_analysis_image(Path(manifest))
+    if (
+        record.get("image_id") != image.image_id
+        or record.get("runtime_digest") != image.runtime_digest
+    ):
+        return Result(
+            FAIL,
+            "the probe result was recorded on another analysis image digest; rerun the "
+            "probe on the current image",
+            (
+                f"recorded {record.get('image_id')}",
+                f"current {image.image_id}",
+            ),
+        )
+    results = record.get("results")
+    if type(results) is not dict or set(results) != set(HOSTILE_PROBES):
+        return Result(
+            FAIL,
+            "the probe record does not hold exactly the memory, time and scratch_flood "
+            "results",
+            (path.name,),
+        )
+    for name in HOSTILE_PROBES:
+        row = results[name]
+        if (
+            type(row) is not dict
+            or row.get("status") != "PASS"
+            or not (
+                isinstance(row.get("result_digest"), str)
+                and row["result_digest"].startswith("sha256:")
+            )
+        ):
+            return Result(
+                FAIL,
+                f"the {name} probe did not record a PASS with a result digest",
+                (f"probe:{name}", path.name),
+            )
+    return Result(
+        PASS,
+        "memory, time and scratch-flood lowering probes passed on the current analysis "
+        "image digest (a readiness item, not a security acceptance)",
+        (file_digest(path), f"image:{image.image_id}"),
+    )
+
+
 def _remove_scratch(root):
     """Best-effort removal of the prelive scratch root. The containment cell writes
     its own scratch as the container's uid, which the host user cannot remove, so a
@@ -881,6 +986,7 @@ CHECKS = {
     "scoring_registered": scoring_registered,
     "compute_lanes": compute_lanes,
     "prelive": prelive,
+    "hostile_probe": hostile_probe,
     "attack_families": attack_families,
     "confirmation_role": confirmation_role,
 }

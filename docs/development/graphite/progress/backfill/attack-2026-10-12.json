@@ -1,0 +1,37 @@
+{
+ "batch": "attack-2026-10-12",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "date": "2026-10-12",
+ "runs": [
+  {
+   "file": "att-2-E-s1.out",
+   "role": "attacker",
+   "level": 2,
+   "chain_log": "lvl-chain-att-2-E-s1.log",
+   "chain_label": "att-2-E-s1"
+  },
+  {
+   "file": "att-3-F-s1.out",
+   "role": "attacker",
+   "level": 3,
+   "chain_log": "lvl-chain-att-3-F-s1.log",
+   "chain_label": "att-3-F-s1"
+  },
+  {
+   "file": "att-4-G-s1.out",
+   "role": "attacker",
+   "level": 4,
+   "chain_log": "lvl-chain-att-4-G-s1.log",
+   "chain_label": "att-4-G-s1"
+  }
+ ],
+ "excluded": [],
+ "refusal_classes": {},
+ "triage": {
+  "attack-failing-trigger-1bf5ff17f2d1bd82-e": "ORACLE_GAP"
+ },
+ "finding_fixes": {
+  "attack-failing-trigger-1bf5ff17f2d1bd82-e": "PR 1184"
+ },
+ "triage_source": "Graphite Testing Manager triage, 2026-10-12: the copy probe's valid control was wrongly refused at L2-L4; fixed in #1184"
+}

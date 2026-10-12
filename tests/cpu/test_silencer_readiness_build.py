@@ -179,3 +179,31 @@ def test_comparators_require_matched_panel_planes_and_keep_missing_data_closed()
     result = s.compare(export)
     assert result["V4"] == "NOT_DEMONSTRATED"
     assert result["plane_wave"]["held_out"]["status"].startswith("HOLD_")
+
+
+def test_silencer_pilot_points_to_the_existing_all_in_plan_not_a_new_grant():
+    from carbon.challenge_pipeline import pilot_caps
+
+    proposal = json.loads(
+        (
+            ROOT
+            / "docs/development/challenge_pipeline/silencer-readiness/measurement-pilot.json"
+        ).read_text()
+    )
+    plan = pilot_caps.validate(
+        json.loads((ROOT / proposal["lifecycle_plan"]).read_text())
+    )
+    entry = next(
+        row for row in plan["families"] if row["family"] == proposal["lifecycle_family"]
+    )
+    assert entry["family"] == "f13"
+    assert entry["proposal_source"].endswith(
+        "silencer-readiness/measurement-pilot.json"
+    )
+    assert proposal["run_authorized"] is False
+    assert plan["dispatch_allowed"] is False and plan["solver_runs_permitted"] is False
+    host = pilot_caps.host(plan)
+    assert pilot_caps.host_cost(host["probe_lifetime_s"], host) <= 100
+    assert pilot_caps.host_cost(host["total_lifetime_s_including_probe"], host) == 980
+    assert "terminate" in plan["deployment"]["end_state"].lower()
+    assert proposal["frequency_systems"] == 1004

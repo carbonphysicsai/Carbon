@@ -72,6 +72,8 @@ PANELS = (
     "graphite-run5",
     "ev4-dev-tuning",
     "ev4-dev-proof",
+    "ev4-dev-proof-l1",
+    "ev4-dev-proof-bundled",
 )
 
 
@@ -87,6 +89,62 @@ def canonical(value):
 
 def digest(value):
     return "sha256:" + hashlib.sha256(canonical(value)).hexdigest()
+
+
+def _proof_registration(sources, rows):
+    """Pin public source bytes and member identities without importing panel.py."""
+    members = {
+        f"{row['label']}-s{seed}": digest(
+            {
+                "strategy": row["strategy"],
+                "seed": seed,
+                "level": level,
+                "arm": arm,
+            }
+        )
+        for row, level, arm in rows
+        for seed in row["seeds"]
+    }
+    if len(members) != sum(len(row["seeds"]) for row, _, _ in rows):
+        raise ContractError("panel_member_duplicate")
+    return {
+        "source_sha256": {
+            name: "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
+            for name, path in sources.items()
+        },
+        "member_sha256": members,
+    }
+
+
+def proof_l1_registration():
+    """The public L1 study's eleven anchors and nine counted L1 rows."""
+    folder = Path(__file__).with_name("panels")
+    sources = {
+        name: folder / name
+        for name in ("proof-panel-l0-v1.json", "proof-panel-levels-v1.json")
+    }
+    anchors = json.loads(sources["proof-panel-l0-v1.json"].read_bytes())["members"]
+    levels = json.loads(sources["proof-panel-levels-v1.json"].read_bytes())["members"]
+    rows = [(row, 0, None) for row in anchors]
+    rows.extend(
+        (row, 1, row.get("arm"))
+        for row in levels
+        if row["level"] == 1 and row.get("counts_for_level", True)
+    )
+    return _proof_registration(sources, rows)
+
+
+def proof_bundled_registration():
+    """The ten public bundled L1-L4 rows, including non-counting Lane G."""
+    source = Path(__file__).with_name("panels") / "proof-panel-levels-v1.json"
+    sources = {source.name: source}
+    levels = json.loads(source.read_bytes())["members"]
+    rows = [
+        (row, row["level"], row.get("arm"))
+        for row in levels
+        if row["level"] in (1, 2, 3, 4) and row.get("source", {}).get("bundled") is True
+    ]
+    return _proof_registration(sources, rows)
 
 
 def _within(value, bounds):
@@ -153,6 +211,27 @@ def validate(document):
         raise ContractError("case_prefix", ",".join(CASE_PREFIXES))
     if document.get("panel", "ev1") not in PANELS:
         raise ContractError("panel", ",".join(PANELS))
+    registration = document.get("panel_registration")
+    registered_panels = {
+        "ev4-dev-proof-l1": proof_l1_registration,
+        "ev4-dev-proof-bundled": proof_bundled_registration,
+    }
+    panel_name = document.get("panel")
+    if panel_name in registered_panels and registration is None:
+        raise ContractError("panel_registration_required")
+    if registration is not None:
+        if panel_name not in registered_panels:
+            raise ContractError("panel_registration_not_applicable")
+        if type(registration) is not dict or set(registration) != {
+            "source_sha256",
+            "member_sha256",
+        }:
+            raise ContractError("panel_registration")
+        expected = registered_panels[panel_name]()
+        if registration["source_sha256"] != expected["source_sha256"]:
+            raise ContractError("panel_source_mismatch")
+        if registration["member_sha256"] != expected["member_sha256"]:
+            raise ContractError("panel_member_mismatch")
     ids = [p["id"] for p in document["scoring_candidates"]["weight_profiles"]]
     for profile in document["scoring_candidates"].get("decision_aware_profiles", []):
         parse(profile)

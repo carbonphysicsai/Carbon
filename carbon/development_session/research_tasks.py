@@ -941,7 +941,24 @@ class PublicResearchExecutor:
         elif type(spec) is PracticeTaskSpec:
             # The practice adapter supplies trusted labels/randomness and the
             # catalog compiler; the requester supplies only a registered recipe.
-            result = self.practice(identity, spec.strategy)
+            # A smoke practice the campaign's own practice path recorded for
+            # this trial runs the same callback, truncated, and keeps only
+            # its smoke result (LAUNCHPAD-SMOKE-PRACTICE-01).
+            from . import smoke_practice
+
+            smoke = smoke_practice.requested(
+                self.ledger, self.owner, request.idempotency_key
+            )
+            if smoke is None:
+                result = self.practice(identity, spec.strategy)
+            else:
+                result = smoke_practice.run(
+                    self.practice,
+                    identity,
+                    spec.strategy,
+                    smoke,
+                    workspace=self.workspace,
+                )
             evidence = ResearchEvidenceClass.PRACTICE_NON_AUTHORITATIVE
         else:
             raise ValueError("task kind unavailable in real D4 provider")

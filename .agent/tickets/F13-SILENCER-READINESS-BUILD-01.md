@@ -20,3 +20,12 @@ reuse #1047's existing f13 registration rather than alter its identity; TRAIN
 and kit hooks; seven-item readiness pointers; <=EUR10 proposed pilot; fixtures,
 subsystem regressions, quality and applicable canonical CI. Fixture passes
 earn implementation diagnostics only. Hub retired under current delivery.
+
+## PKT-03 queue completion, 2026-10-12
+
+Starting main fcab655b30f42d4e3a42786f22af8aa2b08402e2 contains merged #1086.
+One main-based follow-up integrates its exact descriptor with merged #1039,
+recognizes the real table-based f13 EQUAL-BUDGET-V1 validator without modifying
+optimizer's dispatch, and connects #1107's existing capped lifecycle proposal.
+Regress unsupported/unused/wrong routes and pointer custody; no invented public
+evidence inputs or earned statuses. Existing scope and human-reserved holds stay.

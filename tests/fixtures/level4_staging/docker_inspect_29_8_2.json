@@ -1,0 +1,112 @@
+{
+  "docker_server_version": "29.8.2",
+  "provenance": "Sanitized inspections of two benign CPU-only sleeping containers on Docker 29.8.2; no model source was supplied or executed. IDs and input source path replaced with fixture values; only guard-relevant fields retained.",
+  "records": {
+    "tmpfs_flag": {
+      "Id": "2222222222222222222222222222222222222222222222222222222222222222",
+      "Image": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "State": {
+        "Running": true
+      },
+      "Config": {
+        "User": "1001:1001",
+        "Labels": {
+          "org.opencontainers.image.carbon.lane": "carbon.miner-research.bounded.v1"
+        }
+      },
+      "HostConfig": {
+        "Memory": 268435456,
+        "MemorySwap": 268435456,
+        "NanoCpus": 500000000,
+        "PidsLimit": 32,
+        "ReadonlyRootfs": true,
+        "Privileged": false,
+        "NetworkMode": "none",
+        "PidMode": "",
+        "IpcMode": "private",
+        "CapAdd": null,
+        "CapDrop": [
+          "ALL"
+        ],
+        "SecurityOpt": [
+          "no-new-privileges=true"
+        ],
+        "Devices": [],
+        "DeviceRequests": null,
+        "DeviceCgroupRules": null,
+        "PortBindings": {},
+        "PublishAllPorts": false,
+        "Tmpfs": {
+          "/scratch": "rw,nosuid,nodev,noexec,size=2g,nr_inodes=100000"
+        },
+        "Runtime": "runc"
+      },
+      "Mounts": [
+        {
+          "Type": "bind",
+          "Source": "/FIXTURE/empty-input",
+          "Destination": "/input",
+          "Mode": "",
+          "RW": false,
+          "Propagation": "rprivate"
+        }
+      ]
+    },
+    "mount_tmpfs": {
+      "Id": "2222222222222222222222222222222222222222222222222222222222222222",
+      "Image": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "State": {
+        "Running": true
+      },
+      "Config": {
+        "User": "1001:1001",
+        "Labels": {
+          "org.opencontainers.image.carbon.lane": "carbon.miner-research.bounded.v1"
+        }
+      },
+      "HostConfig": {
+        "Memory": 268435456,
+        "MemorySwap": 268435456,
+        "NanoCpus": 500000000,
+        "PidsLimit": 32,
+        "ReadonlyRootfs": true,
+        "Privileged": false,
+        "NetworkMode": "none",
+        "PidMode": "",
+        "IpcMode": "private",
+        "CapAdd": null,
+        "CapDrop": [
+          "ALL"
+        ],
+        "SecurityOpt": [
+          "no-new-privileges=true"
+        ],
+        "Devices": [],
+        "DeviceRequests": null,
+        "DeviceCgroupRules": null,
+        "PortBindings": {},
+        "PublishAllPorts": false,
+        "Tmpfs": null,
+        "Runtime": "runc"
+      },
+      "Mounts": [
+        {
+          "Type": "bind",
+          "Source": "/FIXTURE/empty-input",
+          "Destination": "/input",
+          "Mode": "",
+          "RW": false,
+          "Propagation": "rprivate"
+        },
+        {
+          "Type": "tmpfs",
+          "Source": "",
+          "Destination": "/scratch",
+          "Mode": "",
+          "RW": true,
+          "Propagation": ""
+        }
+      ]
+    }
+  }
+}

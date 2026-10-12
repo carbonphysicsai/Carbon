@@ -1,0 +1,21 @@
+"""HOSTILE FIXTURE: lower only in the executor's bounded probe container."""
+
+from pathlib import Path
+
+FRAMEWORK = "jax"
+INPUTS = {"inputs/features": ((3,), "float32")}
+
+
+def init(key):
+    return []
+
+
+def forward(params, x):
+    print("HOSTILE_L4_PROBE:scratch_flood", flush=True)
+    scratch = Path("/scratch/hostile-l4-flood")
+    scratch.mkdir()
+    block = bytes(1 << 20)
+    n = 0
+    while True:
+        (scratch / str(n)).write_bytes(block)
+        n += 1

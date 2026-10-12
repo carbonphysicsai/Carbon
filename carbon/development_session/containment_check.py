@@ -331,16 +331,25 @@ def _ledger(root):
 def _create_arguments_digest(ledger, operation, image):
     """The lane's own create arguments for this run, rebuilt from its durable
     intent with `miner_container.create_arguments` on this host."""
-    from .miner_container import MinerResearchLaunch, create_arguments
+    from .miner_container import (
+        MinerResearchLaunch,
+        create_arguments,
+        load_host_profile,
+    )
 
     folder = ledger.root / operation
     intent = json.loads((folder / "intent.json").read_bytes())
+    # The host's profile, as the carrier read it for the run: on a bounded
+    # Carbon host the digest covers the bounds the container was given
+    # (LANE-RESOURCE-BOUND-01); with none, the arguments are exactly as before.
+    profile = load_host_profile()
     launch = MinerResearchLaunch(
         intent["container"],
         image.image_id,
         intent["launch"],
         folder / "input",
         folder / "scratch",
+        **({} if profile is None else {"resource_profile": profile}),
     )
     return digest(canonical(create_arguments(launch)))
 
@@ -477,7 +486,9 @@ def _run_cell(root, image, host, home, directory, canary, canary_digest, fields)
     try:
         arguments_digest = _create_arguments_digest(ledger, operation, image)
         isolation = json.loads((folder / "resources.json").read_bytes())["isolation"]
-    except (OSError, ValueError, KeyError, TypeError):
+    except (OSError, ValueError, KeyError, TypeError, RuntimeError):
+        # RuntimeError: the host profile became unreadable after the run
+        # (`WorkerFailure`); the check fails closed, never digests a guess.
         arguments_digest = isolation = None
         passed = False
     return _report(

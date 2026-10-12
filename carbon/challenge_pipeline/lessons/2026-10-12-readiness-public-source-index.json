@@ -1,0 +1,19 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-12-readiness-public-source-index",
+  "recorded_at": "2026-10-12T19:20:42Z",
+  "challenge": "f02",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "READINESS-INPUTS-AND-COOLING-ROUTE-01",
+    "description": "Native regressions first passed 66/78/103 checks; micromixer collection required a worktree-local temporary scipy install. Final consumer audit found the campaign reader's closed v1 contract; compatibility repair and real-reader regression passed 105 checks. Pipeline validate passed (7 records, 644 lessons). Canonical CI remains required."
+  },
+  "expected": "Recognize real source records and proposed routes without granting readiness from partial evidence.",
+  "observed": "Partial citations remain UNKNOWN; changed digests stay UNKNOWN; contradictory anchors are metadata findings; proposed budgets are not YES.",
+  "keep": ["Main-only source reads", "Full identity-bound prerequisite checks", "Historical MMS and report identities"],
+  "change": ["Expose partial source evidence rather than repeat a generic pending message", "Use the common table-dispatch inspector for cooling and f17", "Preserve v1 machine consumers while versioning the new PROPOSED presentation"],
+  "protocol_elements": ["reference_adequacy", "measurement_authority"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

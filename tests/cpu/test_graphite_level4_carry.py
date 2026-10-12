@@ -18,8 +18,8 @@ import types
 
 import pytest
 
+from carbon.agent_campaign.graphite import delivery, pod_phase, pods
 from carbon.agent_campaign.graphite import experiment as ex
-from carbon.agent_campaign.graphite import pod_phase, pods
 from carbon.challenge_validator.scoring import Unrebuildable
 
 jax = pytest.importorskip("jax")
@@ -84,6 +84,43 @@ def test_a_proposal_carries_only_a_staged_submission(tmp_path, staged):
     assert (
         ex.Experiment._level4_documents(_holder(tmp_path, kept), folder, plain) is None
     )
+    with pytest.raises(Unrebuildable) as refused:
+        ex.Experiment._level4_documents(
+            _holder(tmp_path, kept), folder, plain, required=True
+        )
+    assert refused.value.code == "level4_submission_required"
+
+
+def test_a_graphless_l4_bundle_cannot_report_a_clean_rebuild(tmp_path, staged):
+    from carbon.development_session.profile import canonical, digest
+    from carbon.reconstruction.artifact_identity import build_identity
+
+    strategy = json.loads(json.dumps(staged[0]))
+    del strategy["parameters"]["composition_graphs"]
+    # Reproduce the old defect: a base MLP admitted under the L4 variant,
+    # with internally consistent digests and no graph documents.
+    recipe = ex.admit(strategy, 7, variant=_variant())
+    bodies = {
+        "strategy.json": canonical(strategy),
+        "recipe.json": canonical(recipe),
+        "score.json": canonical({"recipe_digest": recipe["recipe_digest"]}),
+    }
+    for name, body in bodies.items():
+        (tmp_path / name).write_bytes(body)
+    (tmp_path / "manifest.json").write_bytes(
+        canonical(
+            {
+                "schema": delivery.BUNDLE_SCHEMA,
+                "files": {name: digest(body) for name, body in bodies.items()},
+                "contract_digest": recipe["contract_digest"],
+                "recipe_digest": recipe["recipe_digest"],
+                "artifact": build_identity(recipe),
+            }
+        )
+    )
+    result = delivery.clean_rebuild(tmp_path)
+    assert result["status"] == "REBUILD_MISMATCH"
+    assert result["differences"] == ["not_rebuildable:level4_submission_required"]
 
 
 def test_the_job_carries_the_envelope_and_the_pod_unpacks_it_bounded(staged):

@@ -1,0 +1,102 @@
+{
+ "l1-D-913bf188-p-1585ecbf838a-s1327839545": {
+  "basis": "graphite frozen-rule pod score",
+  "eligible": true,
+  "score": -0.05163784149265063
+ },
+ "l1-D-913bf188-p-4fd7fb870d2b-s2687932037": {
+  "basis": "graphite frozen-rule pod score",
+  "eligible": true,
+  "score": -0.051299155126023205
+ },
+ "l1-D-913bf188-p-50299fa270c6-s1880388380": {
+  "basis": "graphite frozen-rule pod score",
+  "eligible": true,
+  "score": -0.06824508538142246
+ },
+ "l1-D-913bf188-p-5a3b8fe3c06f-s525414255": {
+  "basis": "graphite frozen-rule pod score",
+  "eligible": true,
+  "score": -0.05432558158135933
+ },
+ "l1-D-913bf188-p-69268f1b74ec-s2959432269": {
+  "basis": "graphite frozen-rule pod score",
+  "eligible": true,
+  "score": -0.05286282914457087
+ },
+ "l1-D-913bf188-p-891e0fd1ebdb-s3188610978": {
+  "basis": "graphite frozen-rule pod score",
+  "eligible": true,
+  "score": -0.058212162073824576
+ },
+ "l1-D-913bf188-p-8e47250e297c-s2120047928": {
+  "basis": "graphite frozen-rule pod score",
+  "eligible": true,
+  "score": -0.05174190732454328
+ },
+ "l1-D-913bf188-p-c1c8903402bd-s2770094579": {
+  "basis": "graphite frozen-rule pod score",
+  "eligible": true,
+  "score": -0.058830906701510546
+ },
+ "l1-D-913bf188-p-c41a9a1ebb82-s3433577451": {
+  "basis": "graphite frozen-rule pod score",
+  "eligible": true,
+  "score": -0.051466752812457786
+ },
+ "minerH-bsub-8df17aba-s0": {
+  "basis": "launchpad rehearsal practice-feedback v3 aggregate (rule unnamed)",
+  "eligible": true,
+  "score": -0.172788
+ },
+ "minerH-bsub-9a658866-s0": {
+  "basis": "launchpad rehearsal practice-feedback v3 aggregate (rule unnamed)",
+  "eligible": true,
+  "score": -0.172113
+ },
+ "minerH-bsub-b1d1f99f-s0": {
+  "basis": "launchpad rehearsal practice-feedback v3 aggregate (rule unnamed)",
+  "eligible": true,
+  "score": -0.176268
+ },
+ "minerI-bsub-925d55a1-s0": {
+  "basis": "launchpad rehearsal practice-feedback v3 aggregate (rule unnamed)",
+  "eligible": true,
+  "score": -0.442789
+ },
+ "minerI-bsub-e8efce9a-s0": {
+  "basis": "launchpad rehearsal practice-feedback v3 aggregate (rule unnamed)",
+  "eligible": true,
+  "score": -0.474859
+ },
+ "minerI-bsub-ed8a517f-s0": {
+  "basis": "launchpad rehearsal practice-feedback v3 aggregate (rule unnamed)",
+  "eligible": true,
+  "score": -0.535447
+ },
+ "stage-a-D-18fc7b1c1eeea8aa-s951580812": {
+  "basis": "graphite frozen-rule pod score",
+  "eligible": true,
+  "score": -0.04530068030484403
+ },
+ "stage-a-D-913bf1889a6db2d1-s513121153": {
+  "basis": "graphite frozen-rule pod score",
+  "eligible": true,
+  "score": -0.06657883956115879
+ },
+ "stage-a-D-d90a8ccfd603cf6a-s1480945710": {
+  "basis": "graphite frozen-rule pod score",
+  "eligible": true,
+  "score": -0.06063661635496517
+ },
+ "stage-a-E-913bf1889a6db2d1-s2602521316": {
+  "basis": "graphite frozen-rule pod score",
+  "eligible": true,
+  "score": -0.05471546460789854
+ },
+ "stage-a-E-d90a8ccfd603cf6a-s2253865531": {
+  "basis": "graphite frozen-rule pod score",
+  "eligible": true,
+  "score": -0.05638796758434937
+ }
+}

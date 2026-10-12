@@ -403,11 +403,28 @@ PROOF_L0 = tuple(
 )
 PANELS["ev4-dev-proof"] = PANELS["ev4-dev-tuning"] + PROOF_L0
 
+# The L1 readiness study compares the eleven registered Level 0 anchors with
+# the nine counted Level 1 members. It does not inherit EV4's wider proof panel
+# or the Track A attack constructions.
+PANELS["ev4-dev-proof-l1"] = PROOF_L0
+
 #: ev4-dev-proof-levels (LEVEL-AWARE-PROOF-01): ev4-dev-proof plus the registered
 #: Level 1 to 3 proof members (`panels/proof-panel-levels-v1.json`, present once
 #: registered), each compiled at its OWN construction level when its bundle is
 #: verified (`level_compile`). A member's level is data in the panel file.
 PROOF_LEVELS = Path(__file__).with_name("panels") / "proof-panel-levels-v1.json"
+# Source digests belong to the public bundled run registration. Lane G stays
+# non-counting even though its bundles may be rebuilt for the ledger.
+BUNDLED_IDENTITIES = {
+    f"{row['label']}-s{seed}": {
+        "recipe_digest": row["source"]["recipe_digest"],
+        "variant_digest": row["variant"]["digest"],
+        "counts_for_level": row.get("counts_for_level", True),
+    }
+    for row in json.loads(PROOF_LEVELS.read_text(encoding="utf-8"))["members"]
+    if row.get("source", {}).get("bundled") is True
+    for seed in row["seeds"]
+}
 #: `{label: (level, arm)}` for every panel row that names a level above 0.
 LEVELS = {}
 
@@ -418,16 +435,23 @@ def register_levels(
     levels=(1, 2, 3),
     base="ev4-dev-proof",
     attack=True,
+    bundled_only=False,
+    include_uncounted=False,
 ):
     """Register the level members of the panel file at `path` as panel `name`
-    (the proof panel plus them). Only members that count for their level and
-    name a level in `levels` join; none are registered when the file is absent."""
+    (the proof panel plus them). By default only members that count for their
+    level join. A separate public bundle panel may include explicitly
+    non-counting members without granting them level credit."""
     path = Path(path)
     if not path.is_file():
         return ()
     rows = []
     for member in json.loads(path.read_text(encoding="utf-8"))["members"]:
-        if member["level"] in levels and member.get("counts_for_level", True):
+        if (
+            member["level"] in levels
+            and (include_uncounted or member.get("counts_for_level", True))
+            and (not bundled_only or member.get("source", {}).get("bundled") is True)
+        ):
             rows.append((member["label"], member["strategy"], tuple(member["seeds"])))
             LEVELS[member["label"]] = (member["level"], member.get("arm"))
     PANELS[name] = (PANELS[base] if base else ()) + tuple(rows)
@@ -444,6 +468,22 @@ ATTACK_ORIGIN = "track_a_harness"
 #: Panels that carry the harness's attack constructions.
 ATTACK_PANELS = ["ev5", "ev4-dev-tuning", "ev4-dev-proof"]
 register_levels(PROOF_LEVELS)
+register_levels(
+    PROOF_LEVELS,
+    name="ev4-dev-proof-l1",
+    levels=(1,),
+    base="ev4-dev-proof-l1",
+    attack=False,
+)
+register_levels(
+    PROOF_LEVELS,
+    name="ev4-dev-proof-bundled",
+    levels=(1, 2, 3, 4),
+    base=None,
+    attack=False,
+    bundled_only=True,
+    include_uncounted=True,
+)
 
 
 def family(strategy):

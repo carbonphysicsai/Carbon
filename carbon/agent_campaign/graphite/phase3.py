@@ -177,7 +177,14 @@ from ..provider import (
     RunStatus,
     TaskSpec,
 )
-from . import capability_log, grant_binding, level_domain, model_providers, next_level
+from . import (
+    capability_log,
+    grant_binding,
+    hunt_themes,
+    level_domain,
+    model_providers,
+    next_level,
+)
 from . import delivery as deliver_
 from . import experiment as ex
 from . import literature as lit
@@ -1121,6 +1128,7 @@ def session_brief(
     score_variant=None,
     study=None,
     level_domain_text=False,
+    hunt_theme=None,
 ):
     """The Constructor's brief: the session Challenge's public development
     material only (its `ChallengeScoring`), and the session's offered
@@ -1194,12 +1202,19 @@ def session_brief(
                 "Level 0 and the strategy field each goes in; a recipe may use them "
                 "or not."
             )
+    if hunt_theme is not None:
+        # Opt-in (GRAPHITE-L5-HUNT-01): a brief recorded without a theme keeps its digest.
+        block = hunt_themes.theme_block(hunt_theme, level)
+        observation["hunt_theme"] = block
+        observation["instructions"] += (
+            " " + block["text"] + " " + block["report_requirement"]
+        )
     # A new Level 4 session (it asks for the level text) offers the stage tool
     # (GRAPHITE-L4-STAGING-01); every other brief is exactly as before.
     level4_stage = bool(level_domain_text) and level == 4 and study is None
     if level4_stage:
         observation["instructions"] += (
-            " At Level 4 a recipe may carry a graph submission: call "
+            " At Level 4 every proposal must carry a staged graph submission: call "
             + LEVEL4_STAGE
             + " with task_id empty for the interface and the commands, lower "
             "your model in a workspace run_python task, then call it again with "
@@ -1664,6 +1679,61 @@ def compute_lane(args, grant):
     return compute
 
 
+#: The first construction level whose sessions run participant model code
+#: (Level 4 lowering, in the miner lane on this host).
+HOSTILE_CODE_LEVEL = 4
+
+
+def hostile_lane_bounds(level, environ=None):
+    """LANE-RESOURCE-BOUND-01: a live Level 4-5 session, the Level 4
+    hostile-model probe and staging path, lowers participant models in the
+    miner research lane on this Carbon-operated host. It refuses to start,
+    typed (`resource_profile_required`, or `resource_profile_invalid` for an
+    unreadable installed profile), unless the host's resource profile is in
+    force; the profile is returned. Below Level 4 nothing is checked, and a
+    miner's own research never comes here."""
+    if type(level) is not int or level < HOSTILE_CODE_LEVEL:
+        return None
+    from carbon.development_session.miner_container import (
+        ResourceProfileRefused,
+        require_host_profile,
+    )
+
+    try:
+        return require_host_profile(environ)
+    except ResourceProfileRefused as refused:
+        raise RunnerRefused(refused.code) from None
+
+
+def _scratch_root(configuration, campaign):
+    """The miner campaign's root, where its runs' scratch lives; read only."""
+    from carbon.miner_mcp.standard_cli import AttachRefused, load_profile
+
+    try:
+        return load_profile(Path(configuration), campaign).root
+    except AttachRefused as refused:
+        raise RunnerRefused(refused.code) from None
+
+
+def hostile_scratch_floor(level, configuration, campaign):
+    """LANE-RESOURCE-BOUND-01: a live Level 4-5 session does not start when
+    the filesystem holding its campaign's scratch has less than the floor
+    free (`scratch_host_low_space`, by `shutil.disk_usage`). Below Level 4
+    nothing is checked."""
+    if type(level) is not int or level < HOSTILE_CODE_LEVEL:
+        return None
+    from carbon.development_session.miner_container import (
+        ResourceProfileRefused,
+        require_scratch_floor,
+    )
+
+    root = _scratch_root(configuration, campaign)
+    try:
+        return require_scratch_floor(root)
+    except ResourceProfileRefused as refused:
+        raise RunnerRefused(refused.code) from None
+
+
 def carrier_pods(root, manifest):
     """The CPU carrier backend on this (operator) host: the pinned C-03 worker
     image, refused unless the host doctor finds this host eligible."""
@@ -1820,6 +1890,9 @@ def command_run(args):
             analysis_image_manifest=getattr(args, "analysis_image_manifest", None),
             **level,
         )
+    # Level 4-5 runs participant model code on this host: never unbounded,
+    # refused before anything is read or spent (LANE-RESOURCE-BOUND-01).
+    hostile_lane_bounds(getattr(args, "level", 0))
     root = _root(args.root)
     grant = load_grant(args.grant)
     if grant.provider != "graphite":
@@ -1855,6 +1928,10 @@ def command_run(args):
         raise RunnerRefused("model_provider_key_by_file_only")
     if args.miner_profile is None or args.miner_campaign is None:
         raise RunnerRefused("the_real_miner_path_needs_a_miner_profile_and_campaign")
+    # And never on a host short of disk for its scratch (LANE-RESOURCE-BOUND-01).
+    hostile_scratch_floor(
+        getattr(args, "level", 0), args.miner_profile, args.miner_campaign
+    )
     if args.literature_snapshot is None:
         # GRAPHITE-D28: a paid session never runs on the synthetic fixture.
         raise RunnerRefused("live_run_needs_a_literature_snapshot")
@@ -1967,6 +2044,7 @@ def command_run(args):
                 score_variant=sv.identity_of(scored),
                 study=getattr(args, "study", None),
                 level_domain_text=True,
+                hunt_theme=getattr(args, "theme", None),
             )
             _install_cancel(provider, provider.run_id_for(session_key(args.session)))
             result = run_session(control, provider, brief, args.session, variant)
@@ -2745,6 +2823,12 @@ def main(argv=None):
         type=int,
         help="the run's scored-submission cap, copied from the study's frozen "
         "freeze-manifest.json; one of the study's arm caps",
+    )
+    run.add_argument(
+        "--theme",
+        choices=sorted(hunt_themes.THEMES),
+        help="a registered hunt theme (GRAPHITE-L5-HUNT-01) that steers the Constructor; "
+        "opt-in, advice only: the level's domain, the grant and every boundary are unchanged",
     )
     run.add_argument(
         "--level",

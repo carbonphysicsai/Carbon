@@ -121,9 +121,11 @@ class MinerProgramFailure(Exception):
 MINER_FAILURE_SCHEMA = "carbon.autoresearch.miner-program-failure.v1"
 # Existing worker codes, reused: the miner's allowance elapsed (DEADLINE), their
 # program failed (RUNTIME: nonzero exit or OOM kill), their output was refused
-# for its own content (OUTPUT).
+# for its own content (OUTPUT), or, on a host whose resource profile is in
+# force, their scratch passed its cap (POLICY, observation
+# `scratch_cap_exceeded`; LANE-RESOURCE-BOUND-01).
 MINER_FAILURE_CODES = frozenset(
-    {WorkerCode.DEADLINE, WorkerCode.RUNTIME, WorkerCode.OUTPUT}
+    {WorkerCode.DEADLINE, WorkerCode.RUNTIME, WorkerCode.OUTPUT, WorkerCode.POLICY}
 )
 
 
@@ -792,12 +794,15 @@ def _run_miner_lane(
     raised. Every other failure keeps its infrastructure meaning.
     """
     from .miner_container import (
+        SCRATCH_CAP_EXCEEDED,
         MinerOutputRefused,
         MinerResearchLaunch,
+        ScratchWatchdog,
         collect_outputs,
         create_arguments,
         inspect_isolation,
         load_host_profile,
+        measure_scratch,
         prepare_scratch,
     )
 
@@ -887,23 +892,52 @@ def _run_miner_lane(
             )
         cli.run(["start", name], timeout=20)
         isolation = inspect_isolation(cli, run)
-        try:
-            # The last 64 KiB of stdout and of stderr are kept, whatever the
-            # outcome (RSURF-D21). A Docker double supplies its own.
-            keep = getattr(cli, "stream_kept", None) or partial(stream_kept, cli)
-            keep(
-                ["exec", name, "/opt/carbon-worker/bin/python", "-I", "-c", bootstrap],
-                operation,
-                timeout=unbounded if seconds is None else max(1, seconds),
+        # Carbon's own host bounds scratch too (LANE-RESOURCE-BOUND-01): a
+        # watchdog stops a run whose scratch passes the cap. A miner's
+        # machine has no profile, so no watch, exactly as before.
+        watch = (
+            None
+            if profile is None
+            else ScratchWatchdog(
+                partial(measure_scratch, cli, name),
+                partial(cli.run, ["kill", name], timeout=20),
             )
+        )
+        try:
+            with watch if watch is not None else ExitStack():
+                # The last 64 KiB of stdout and of stderr are kept, whatever
+                # the outcome (RSURF-D21). A Docker double supplies its own.
+                keep = getattr(cli, "stream_kept", None) or partial(stream_kept, cli)
+                keep(
+                    [
+                        "exec",
+                        name,
+                        "/opt/carbon-worker/bin/python",
+                        "-I",
+                        "-c",
+                        bootstrap,
+                    ],
+                    operation,
+                    timeout=unbounded if seconds is None else max(1, seconds),
+                )
         except WorkerFailure as error:
             # Classified while the container still exists to be inspected. A
             # requested cancellation is never the miner's failure.
-            if not miner_authored or _cancel_path(ledger, owner, identity).exists():
+            if watch is not None and watch.tripped is not None:
+                pass  # typed below: the watchdog stopped the run
+            elif not miner_authored or _cancel_path(ledger, owner, identity).exists():
                 raise
-            failure = _observed_miner_failure(cli, name, error, seconds, started)
-            if failure is None:
-                raise
+            else:
+                failure = _observed_miner_failure(cli, name, error, seconds, started)
+                if failure is None:
+                    raise
+        if watch is not None and watch.tripped is not None:
+            # Typed, never a score or a scientific outcome: the run's own
+            # scratch passed the host's cap, measured inside its container.
+            write_once(operation / "scratch-watch.json", canonical(watch.tripped))
+            if not miner_authored:
+                raise WorkerFailure(WorkerCode.POLICY)
+            failure = (WorkerCode.POLICY, SCRATCH_CAP_EXCEEDED)
         if failure is None:
             # The worker writes as its fixed non-root uid, so a directory the
             # miner's code creates with default modes is unreadable to the host
