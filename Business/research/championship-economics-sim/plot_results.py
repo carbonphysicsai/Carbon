@@ -61,7 +61,12 @@ def main():
         fontsize=15,
         fontweight="bold",
     )
-    fig.savefig(root / "economics.svg", metadata={"Date": None})
+    svg = root / "economics.svg"
+    fig.savefig(svg, metadata={"Date": None})
+    # Matplotlib leaves trailing spaces in path data; strip them for git diff --check.
+    lines = svg.read_text(encoding="utf-8").splitlines()
+    stripped = "\n".join(line.rstrip() for line in lines) + "\n"
+    svg.write_text(stripped, encoding="utf-8", newline="\n")
     if args.preview:
         fig.savefig(args.preview, dpi=150)
     plt.close(fig)
