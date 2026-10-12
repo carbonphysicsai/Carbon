@@ -28,6 +28,14 @@ from pathlib import Path
 
 from carbon.dashboard import build, feed, fixtures
 
+#: Sent with `fetch`, and the same as the Worker's (worker/feed.mjs
+#: FETCH_HEADERS). Cloudflare refuses Python's default urllib agent with 403,
+#: so the request names itself plainly.
+FETCH_HEADERS = {
+    "User-Agent": "carbon-dashboard/1 (+https://dashboard.carbonphysics.ai)",
+    "Accept": "application/json",
+}
+
 MAX_FEED_BYTES = 16 * 2**20
 
 
@@ -72,7 +80,8 @@ def main(argv=None):
     if args.command == "fetch":
         if not args.url.startswith("https://"):
             parser.error("--url must be https")
-        with urllib.request.urlopen(args.url, timeout=60) as answer:
+        request = urllib.request.Request(args.url, headers=FETCH_HEADERS)
+        with urllib.request.urlopen(request, timeout=60) as answer:
             body = answer.read(MAX_FEED_BYTES + 1)
         if len(body) > MAX_FEED_BYTES:
             print("feed too large", file=sys.stderr)

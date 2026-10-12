@@ -12,7 +12,7 @@
 // exact range, so they are read from the number's source text (feed.mjs's
 // `parse`) and returned as decimal strings, as snapshot.py does.
 
-import {FIXTURE_PUBLIC_KEY, Num, canonical, parse, trust} from "./feed.mjs";
+import {FETCH_HEADERS, FIXTURE_PUBLIC_KEY, Num, canonical, parse, trust} from "./feed.mjs";
 
 export const SCHEMA = "carbon.validator.network-snapshot.v1";
 export const VIEW_SCHEMA = "carbon.dashboard.network.v1";
@@ -193,7 +193,7 @@ export async function liveNetwork(env, fetcher = fetch, nowMs = Date.now()) {
   const snapshots = [];
   for (const url of urls) {
     try {
-      const response = await fetcher(url, {cf: {cacheTtl: seconds, cacheEverything: true}, signal: AbortSignal.timeout(15000)});
+      const response = await fetcher(url, {headers: FETCH_HEADERS, cf: {cacheTtl: seconds, cacheEverything: true}, signal: AbortSignal.timeout(15000)});
       if (!response.ok) throw new SnapshotRefused("snapshot_unavailable");
       const body = await response.text();
       if (body.length > MAX_SNAPSHOT_BYTES) throw new SnapshotRefused("snapshot_too_large");

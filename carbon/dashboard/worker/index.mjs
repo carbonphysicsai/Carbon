@@ -21,7 +21,7 @@
 // Design showcase replays stay static: they need Carbon's Python optimizer,
 // so they are rebuilt and redeployed when the incumbent changes.
 
-import {FeedRefused, boardSlug, entry, panelSummary, parse, project, projectV2, restamp, trust} from "./feed.mjs";
+import {FETCH_HEADERS, FeedRefused, boardSlug, entry, panelSummary, parse, project, projectV2, restamp, trust} from "./feed.mjs";
 // DASHBOARD-02 S3: /data/network.json from the signed network snapshots in
 // the optional secret SNAPSHOT_URLS, checked against FEED_KEYS (404 unset).
 import {liveNetwork} from "./snapshot.mjs";
@@ -65,7 +65,7 @@ export function config(env) {
 }
 
 async function fetchFeed(url, seconds, fetcher) {
-  const response = await fetcher(url, {cf: {cacheTtl: seconds, cacheEverything: true}, signal: AbortSignal.timeout(15000)});
+  const response = await fetcher(url, {headers: FETCH_HEADERS, cf: {cacheTtl: seconds, cacheEverything: true}, signal: AbortSignal.timeout(15000)});
   if (!response.ok) throw new FeedRefused("feed_unavailable", String(response.status));
   const body = await response.text();
   if (body.length > MAX_FEED_BYTES) throw new FeedRefused("feed_too_large");
