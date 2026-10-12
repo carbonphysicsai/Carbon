@@ -342,6 +342,11 @@ class DecisionAssistant:
                 ),
                 "reference_kind": None if reference is None else reference.kind,
                 "reference_status": None if reference is None else reference.status,
+                "guard_reference_status": (
+                    None
+                    if guard_inputs["reference"] is None
+                    else guard_inputs["reference"]["status"]
+                ),
             }
         )
         setup = _elapsed(started, _now())
@@ -576,13 +581,26 @@ def assess_finite_bank(assistant, result, *, reference, budget):
     meter = _Meter(b, cap, {k: setup[k] + b["startup_cost"][k] for k in setup})
     q = _plain(assistant._q)
     rows = []
+    # A new callback cannot remove a hold frozen into the searched workflow.
+    # Changed acceptance needs a new configuration/result, not a reassessment
+    # of that historical result under silently widened authority.
+    holds = [
+        state
+        for state in (
+            body["pins"]["reference_status"],
+            body["pins"]["guard_reference_status"],
+            reference.status,
+        )
+        if state is not None and state != "READY"
+    ]
+    reference_status = holds[0] if holds else reference.status
     if reference.kind == "SYNTHETIC_FIXTURE":
         cfg.require(
             q["basis"] == "SYNTHETIC_FIXTURE" and b["basis"] == "SYNTHETIC_FIXTURE",
             "fixture_reference_scope_mismatch",
         )
     if (
-        reference.status == "READY"
+        reference_status == "READY"
         and q["authority_ref"] is not None
         and b["authority_ref"] is not None
     ):
@@ -654,7 +672,11 @@ def assess_finite_bank(assistant, result, *, reference, budget):
         "scope": "DEVELOPMENT",
         "search_audit_digest": body["audit_digest"],
         "search_commitment_digest": body["search_commitment_digest"],
-        "reference_status": reference.status,
+        "reference_status": reference_status,
+        "reference_holds": sorted(set(holds)),
+        "reference_image": reference.image_digest,
+        "reference_record": reference.record_digest,
+        "reference_runtime": reference.runtime_digest,
         "reference_kind": reference.kind,
         "assessment_budget_digest": cfg.digest(b),
         "basis": "FINITE_BANK_REFERENCE_RELATIVE",

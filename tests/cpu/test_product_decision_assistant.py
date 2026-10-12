@@ -106,6 +106,50 @@ def test_missing_executor_returns_plan_never_verified_recommendation():
     assert "REFERENCE_EXECUTOR_MISSING" in r["reasons"]
 
 
+@pytest.mark.parametrize(
+    "hold", ["SOLVER_NOT_ACCEPTED", "UNRESOLVED", "FAILED_REFERENCE", "FAILED_INFRA"]
+)
+def test_assessment_cannot_replace_a_frozen_reference_hold_with_ready(hold):
+    inputs = fixture()
+    ready = inputs["reference"]
+    inputs["reference"] = replace(ready, status=hold)
+    assistant = DecisionAssistant(**inputs)
+    result = assistant.run()
+    ready = replace(ready, solve=lambda _: pytest.fail("frozen hold bypassed"))
+    report = assess_finite_bank(
+        assistant, result, reference=ready, budget=inputs["budget"]
+    )
+    assert report["reference_status"] == hold and report["reference_holds"] == [hold]
+    assert not report["complete"] and report["spent"]["reference_calls"] == 0
+    assert (
+        report["realized_regret"]["value"] is None
+        and not report["none_feasible_established"]
+    )
+    assert report["reference_runtime"] == ready.runtime_digest
+
+
+def test_assessment_preserves_the_guard_reference_hold_without_an_executor():
+    inputs = fixture()
+    ready = inputs["reference"]
+    inputs["reference"] = None
+    inputs["guard_inputs"]["reference"]["status"] = "UNRESOLVED"
+    repin({**inputs["guard_inputs"], "model": inputs["model"]})
+    ready = replace(
+        ready,
+        record_digest=digest(inputs["guard_inputs"]["reference"]),
+        solve=lambda _: pytest.fail("guard hold bypassed"),
+    )
+    assistant = DecisionAssistant(**inputs)
+    report = assess_finite_bank(
+        assistant, assistant.run(), reference=ready, budget=inputs["budget"]
+    )
+    assert report["reference_status"] == "UNRESOLVED"
+    assert (
+        report["spent"]["reference_calls"] == 0
+        and report["realized_regret"]["value"] is None
+    )
+
+
 def test_public_record_replay_cannot_be_called_fresh_verification():
     inputs = fixture()
     inputs["reference"] = replace(inputs["reference"], kind="PUBLIC_RECORD_REPLAY")

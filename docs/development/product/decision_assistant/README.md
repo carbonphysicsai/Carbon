@@ -10,6 +10,8 @@ It performs 27 toy model calls and 3 arithmetic reference calls per workflow.
 Median 35.993 ms, nearest-rank p95 63.045 ms, maximum 98.118 ms; one decision
 digest. Imports and fixture assembly are outside that measurement boundary.
 This is NATIVE_DIAGNOSTIC, not real-model or accepted production latency.
+The timing record is pinned to the first PRD-03 candidate; later assessment-hold
+repairs do not relabel it as a new measurement.
 
 [Public panel gap](public-panel-gap.json) is an aggregate-only inspection of the
 owner-named read-only calibration copy. The input manifest, whole records file,

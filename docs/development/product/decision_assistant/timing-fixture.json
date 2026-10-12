@@ -2,6 +2,7 @@
   "basis": "NATIVE_DIAGNOSTIC_SYNTHETIC_FIXTURE",
   "iterations": 200,
   "machine": "AMD64",
+  "measurement_revision": "f5bd7abd0383a3fc2469a6403b53b239b79c6483",
   "measurement_boundary": "Assistant construction + search + 27 Guard model calls + 3 synthetic reference calls + returned snapshot; imports/fixture assembly excluded",
   "outcomes": {
     "REFERENCE_RELATIVE_CHOICE": 200

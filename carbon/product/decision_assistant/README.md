@@ -106,6 +106,10 @@ bank resolves and the delivered choice has a feasible reference value. Its oracl
 is that finite bank, never a global optimum. NONE_FEASIBLE is established only
 on complete resolved bank evidence; incomplete or failed evidence stays GAP.
 It does not establish expected regret on a question population or qualify a product.
+An assessment callback cannot remove a reference hold frozen into the searched
+workflow or its Guard record. Changed acceptance requires a new configured run;
+the original result stays attributable to its original authority. Assessment
+receipts also bind the supplied reference's exact image, record and runtime.
 
 ## Demonstration and the real battery hold
 

@@ -97,3 +97,6 @@ reference calls and returned snapshot, have one decision digest. Measured median
 35.993 ms, nearest-rank p95 63.045 ms, max 98.118 ms. Imports and fixture assembly
 are excluded explicitly. Actual-model latency and production target remain null.
 Acceptance and exact-head PR handoff are external GitHub evidence, not new commits.
+
+The prospective assessment-hold repair is recorded separately in
+`2026-10-12-PRD03-ASSESSMENT-HOLD-01.md`.
