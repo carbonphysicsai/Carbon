@@ -126,6 +126,28 @@ def stats(values):
     }
 
 
+def dependency_paths(source, reference_helper=None, ev4_contract=None):
+    """Prefer retained adjacent assets, then pinned canonical checkout files."""
+    root = pathlib.Path(__file__).resolve().parents[3]
+    adjacent_helper = source.parent / "decision.py"
+    adjacent_contract = source.parent / "ev4-contract.json"
+    return (
+        reference_helper
+        or (
+            adjacent_helper
+            if adjacent_helper.exists()
+            else root / "carbon/battery/value/decision.py"
+        ),
+        ev4_contract
+        or (
+            adjacent_contract
+            if adjacent_contract.exists()
+            else root
+            / "carbon/battery/value/contracts/ev4-charge-protocol-selection.v1.json"
+        ),
+    )
+
+
 def prepare(args):
     """Reuse source function bodies; skip original top-level analysis/writes."""
     source_raw = require_hash(args.res07_code, SOURCE_HASH)
@@ -133,8 +155,9 @@ def prepare(args):
     prior = json.loads(require_hash(args.res07_results, PRIOR_HASH))
     require_hash(args.public_inputs / "ev4-decision-references.jsonl", REFERENCE_HASH)
     original_dir = args.res07_code.parent
-    helper = original_dir / "decision.py"
-    contract = original_dir / "ev4-contract.json"
+    helper, contract = dependency_paths(
+        args.res07_code, args.reference_helper, args.ev4_contract
+    )
     if blob(helper.read_bytes().replace(b"\r\n", b"\n")) != HELPER_BLOB:
         raise ValueError("Pinned isolated measurement helper changed")
     if blob(contract.read_bytes().replace(b"\r\n", b"\n")) != CONTRACT_BLOB:
@@ -447,6 +470,8 @@ def family_values(data, bi, ki, kappa, unit=120, eta=0, mask="all"):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--res07-code", type=pathlib.Path, required=True)
+    parser.add_argument("--reference-helper", type=pathlib.Path)
+    parser.add_argument("--ev4-contract", type=pathlib.Path)
     parser.add_argument("--res07-results", type=pathlib.Path, required=True)
     parser.add_argument("--res06-json", type=pathlib.Path, required=True)
     parser.add_argument("--public-inputs", type=pathlib.Path, required=True)
