@@ -107,9 +107,10 @@ def load_context(path, *, root=ROOT, environ=os.environ):
     context = json.loads(Path(path).read_text(encoding="utf-8"))
     fields = {"schema", "plan_digest", "entrypoint_registration_digest", "scope", "family", "phase",
               "shard", "shards", "inputs", "prior", "prior_receipts"}  # fmt: skip
+    # #1131 adds the runner's explicit `vcpus`; a context without it is the #1080 shape
     if (
         type(context) is not dict
-        or set(context) != fields
+        or set(context) not in (fields, fields | {"vcpus"})
         or context["schema"] != CONTEXT
     ):
         raise Refused("STAGE_CONTEXT_INVALID")
@@ -157,6 +158,8 @@ def load_context(path, *, root=ROOT, environ=os.environ):
         vcpus = int(environ.get("OMP_NUM_THREADS", ""))
     except ValueError:
         raise Refused("VCPU_ALLOTMENT_REQUIRED") from None
+    if "vcpus" in context and (type(context["vcpus"]) is not int or context["vcpus"] != vcpus):
+        raise Refused("VCPU_CONTEXT_MISMATCH", f"context {context['vcpus']!r}, environment {vcpus}")
     if vcpus < FAMILIES[family]["min_vcpus"]:
         raise Refused("VCPU_ALLOTMENT_TOO_SMALL", str(vcpus))
     return context, vcpus, reuse

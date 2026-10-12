@@ -337,3 +337,12 @@ def test_middle_band_rung_plans_follow_the_registered_windows(tmp_path):
     body, summary = mbr.plan(runs, 3)
     assert [j["case_id"] for j in body["jobs"]] == [f"rung3:t7:{rows[0]['id']}"]
     assert body["jobs"][0]["rung"] == 3 and summary["rung3_candidates"] == 1
+
+
+def test_the_runner_vcpus_field_must_match_the_environment_allotment(tmp_path):
+    context, vcpus, _ = _load(tmp_path, _context(vcpus=4), threads="4")
+    assert vcpus == 4 and context["vcpus"] == 4
+    for bad in (8, "4", True):
+        with pytest.raises(producer.Refused) as refused:
+            _load(tmp_path, _context(vcpus=bad), threads="4")
+        assert refused.value.code == "VCPU_CONTEXT_MISMATCH"

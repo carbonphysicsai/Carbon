@@ -21,8 +21,10 @@ refuses (exit 2, `failure.json` with a typed `code`) unless:
   bytes unchanged;
 - every helper file in `producer.PINNED` has its pinned sha256;
 - the vCPU allotment, read from the runner's `OMP_NUM_THREADS`, is at least
-  2 (battery, f02) or 3 (motor). *Optimizer follow-up:* put `vcpus` in the
-  context so this stops relying on the environment.
+  2 (battery, f02) or 3 (motor). When the context carries the runner's
+  explicit `vcpus` (#1131), it must be an integer equal to that allotment,
+  or the stage refuses with `VCPU_CONTEXT_MISMATCH`. A context without it
+  (the #1080 shape) still loads.
 
 Inputs are refused unless registered. The only registered input is a reuse
 bundle for a battery (required) or motor (optional) `reference` stage:
