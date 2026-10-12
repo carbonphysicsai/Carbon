@@ -337,6 +337,11 @@ PHASE3_GRANTS = types.MappingProxyType(
                 authority=STAGE_C_AUTHORITY,
                 runner="phase4",
             ),
+            # PURPOSE: the Level 4 graph-variant (`l4-graph-v3`) valid-graph Constructor run, lane G,
+            # that leads to the live Level 4 submit and smoke practice. No theme. POOL: the standing weekly
+            # test grant (OWNER-TEST-GRANT-01). It is NOT the Level 5 hunt's H4 run (that is
+            # GRAPHITE-GRANT-HUNT-H4-CONSTRUCTOR, theme `causal-structure`, the hunt's own pool). Index:
+            # docs/development/graphite/grants/README.md, "Level 4 Constructor grants".
             Phase3Grant(
                 grant_id="GRAPHITE-GRANT-L4-G-CONSTRUCTOR-2",
                 challenge=BATTERY_CHALLENGE,
