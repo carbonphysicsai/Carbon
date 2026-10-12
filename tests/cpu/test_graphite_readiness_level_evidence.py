@@ -96,11 +96,22 @@ def test_phase3_dry_run_at_the_named_level(tmp_path, capsys, monkeypatch, level)
 def test_each_roles_turn_text_matches_its_scripted_ledger(
     tmp_path, monkeypatch, level, role
 ):
-    adapter = adapters.load(CID, level)
-    script = [tool("carbon_research_v2__get_challenge_info", {}), text("done")]
+    script = [
+        tool("carbon_research_v2__get_challenge_info", {}),
+        (
+            text("done")
+            if role is RoleName.CONSTRUCTOR
+            else tool(
+                phase4.FINISH_TOOL_NAME, {"summary": "fixture budget is nearly used"}
+            )
+        ),
+    ]
     if role is RoleName.CONSTRUCTOR:
         provider = p3f.provider(tmp_path, script, p3f.ScriptedPods())
     else:
+        adapter = adapters.load(CID, level)
+        families = adapter.families()
+        monkeypatch.setattr(adapter, "families", lambda: families)
         provider = phase4.live_provider(
             tmp_path,
             grant=_grant(),
@@ -120,8 +131,8 @@ def test_each_roles_turn_text_matches_its_scripted_ledger(
             provider_attempts=13, provider_nanodollars=9_000_000_000, research_trials=0
         )
         row["used"].update(
-            provider_attempts=len(seen) + 2,
-            provider_nanodollars=(len(seen) + 1) * 1_000_000_000,
+            provider_attempts=len(seen) + (2 if role is RoleName.CONSTRUCTOR else 10),
+            provider_nanodollars=(len(seen) + 1) * 1_000_000,
             research_trials=0,
         )
         source_rows.append(row)
@@ -200,13 +211,14 @@ def test_the_level_provider_records_its_rule_and_withholds_finish(
 ):
     adapter = adapters.load(CID, level)
     families = adapter.families()
+    source_adapter = adapter
 
     class Snapshot:
         def families(self):
             return families
 
         def __getattr__(self, name):
-            return getattr(adapter, name)
+            return getattr(source_adapter, name)
 
     adapter = Snapshot()
     provider = phase4.live_provider(

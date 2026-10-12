@@ -197,14 +197,18 @@ def recorded_tests(item, ctx):
     if type(scoped) is not dict:
         return Result(FAIL, "tests_by_level is not an object")
     if item_id in LEVEL_SCOPED_ITEMS and item_id not in scoped:
-        return Result(NOT_BUILT, f"no {item_id} test is recorded for level {ctx.level}")
+        return Result(
+            NOT_BUILT,
+            f"no {item_id} test is recorded for level {ctx.level}; owner: {pending.get('owner', 'unassigned')}",
+        )
     if item_id in scoped:
         levels = scoped[item_id]
         if type(levels) is not dict:
             return Result(FAIL, "item's level-scoped tests are malformed")
         if str(ctx.level) not in levels:
             return Result(
-                NOT_BUILT, f"no {item_id} test is recorded for level {ctx.level}"
+                NOT_BUILT,
+                f"no {item_id} test is recorded for level {ctx.level}; owner: {pending.get('owner', 'unassigned')}",
             )
         record = levels[str(ctx.level)]
         if (
