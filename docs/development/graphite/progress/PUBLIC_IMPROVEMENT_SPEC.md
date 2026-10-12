@@ -52,7 +52,7 @@ evidence that it is public; check the source files it reads.
       "run_id": "...", "lane": "D|E|F|G", "level": 0-4,
       "model": {"member": "...", "bundle_digest": "sha256:...", "accuracy_error": 0.0, "decision_loss": 0.0},
       "baseline": {"definition": "the run's own baseline strategy from its proposals' expected.json", "recipe_digest": "sha256:...",
-                   "seed": 0, "accuracy_error": 0.0, "decision_loss": 0.0},
+                   "seeds": [0], "accuracy_error": 0.0, "decision_loss": 0.0},
       "panel": {"scoring_set": {"function": "public_ev4_scoring_set", "sha256": "sha256:ff10f9aea9097cd500d646ffe02f479d04401207b30a44aeee33566433e436cb", "cases": 0}},
       "questions": {"contract_digests": ["sha256:..."], "common_mask": 0,
                     "skipped": [{"contract": "public-dev-decisions-v1", "reason": "references_unresolved"}]},
@@ -105,8 +105,13 @@ rule #1188 sets); nothing here is purchased.
 
 For each level and metric (`accuracy_error`, `decision_loss`): the **median** and the **best** relative improvement over the
 level's runs, a **95% percentile-bootstrap interval of the median** (2000 resamples, fixed seed 20261012, so the same records
-give the same interval), the number of runs `n`, and a `small_n` flag when `n` is under 5. Its label is "PUBLIC-DEV-MEASURED".
+give the same interval), the number of runs `n`, and a `small_n` flag when `n` is under 10. Its label is "PUBLIC-DEV-MEASURED".
 The column is `constructor.improvement.public_dev.{accuracy_error,decision_loss}` in each ledger line.
+
+**Noisy decision loss.** Decision loss is scored on the common resolved mask, which differs between runs. When the masks differ or
+the runs disagree in sign, the ledger shows the column as `MEASURED_BUT_NOISY` with the per-run values and the masks, and it is
+not an improvement claim; the accuracy-error column is the headline until the masks are comparable (for instance when
+`public-dev-decisions-v1` is resolved).
 
 ## How the executor hands it over
 

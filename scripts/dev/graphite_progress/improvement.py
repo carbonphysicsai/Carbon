@@ -42,7 +42,7 @@ LABEL = (
 )
 BOOTSTRAP_SEED = 20261012
 BOOTSTRAP_REPS = 2000
-SMALL_N = 5
+SMALL_N = 10
 
 
 def committed_reference_sha(contract=None):
@@ -109,28 +109,79 @@ def bootstrap_interval(values, *, seed=BOOTSTRAP_SEED, reps=BOOTSTRAP_REPS, leve
     return [round(low, 6), round(high, 6)]
 
 
+NOISY = "MEASURED_BUT_NOISY"
+
+
+def _decision_noise(pairs):
+    """Why a decision-loss column must not be read as an improvement claim, or []: the common resolved
+    masks differ between runs (each run is scored on a different set of questions), or the runs disagree
+    in sign (some better, some worse than their own baseline)."""
+    reasons = []
+    masks = {m for _, m, _ in pairs if m is not None}
+    if len(masks) > 1:
+        reasons.append(
+            f"the common masks differ per run ({sorted(masks)} of the development scenarios)"
+        )
+    values = [v for v, _, _ in pairs]
+    if min(values) < 0 < max(values):
+        reasons.append(
+            "the runs disagree in sign; at least one is worse than its own baseline"
+        )
+    return reasons
+
+
 def public_dev_block(records):
-    """`{metric: {value (median), best, ci95, n, small_n, ...}}` over the runs that hold a record."""
+    """`{metric: {value (median), best, ci95, n, small_n, ...}}` over the runs that hold a record. A
+    decision-loss column whose masks differ or whose runs disagree in sign is MEASURED_BUT_NOISY: its
+    per-run values are shown and it is NOT an improvement claim."""
     if not records:
         return unmeasured(
             "no run has a public-development improvement record from the executor"
         )
     out = {}
     for name in METRICS:
-        values = [
-            r
+        pairs = [
+            (
+                r,
+                (rec.get("questions") or {}).get("common_mask"),
+                rec.get("run_id"),
+            )
             for rec in records
             if (r := relative(rec["baseline"].get(name), rec["model"].get(name)))
             is not None
         ]
-        if not values:
+        if not pairs:
             out[name] = unmeasured(f"no run measured {name} on both sides")
             continue
+        values = [r for r, _, _ in pairs]
+        reasons = _decision_noise(pairs) if name == "decision_loss" else []
         out[name] = {
-            **metric(round(statistics.median(values), 6), len(values), LABEL),
+            **metric(
+                NOISY if reasons else round(statistics.median(values), 6),
+                len(values),
+                LABEL,
+            ),
             "best": round(max(values), 6),
             "ci95": bootstrap_interval(values),
             "small_n": len(values) < SMALL_N,
             "interval": f"percentile bootstrap of the median, {BOOTSTRAP_REPS} resamples, seed {BOOTSTRAP_SEED}",
+            **(
+                {
+                    "reading": f"{NOISY}: "
+                    + "; ".join(reasons)
+                    + "; NOT an improvement claim",
+                    "median_if_read": round(statistics.median(values), 6),
+                    "per_run": [
+                        {
+                            "run": run,
+                            "relative_improvement": round(r, 6),
+                            "common_mask": mask,
+                        }
+                        for r, mask, run in pairs
+                    ],
+                }
+                if reasons
+                else {}
+            ),
         }
     return out

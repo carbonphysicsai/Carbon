@@ -586,3 +586,64 @@ def test_a_missing_or_digestless_contract_refuses_every_record(contract, content
         contract.write_text(content)
     with pytest.raises(ProgressError, match="contract"):
         improvement.validate(pub(10.0, 9.0))
+
+
+# -- noisy decision loss ---------------------------------------------------------------------------------
+def with_mask(record, mask, run):
+    return {**record, "questions": {"common_mask": mask}, "run_id": run}
+
+
+def test_decision_loss_with_differing_masks_is_measured_but_noisy_and_not_a_claim():
+    records = [
+        with_mask(pub(10.0, 9.0), 9, "r1"),
+        with_mask(pub(10.0, 8.0), 8, "r2"),
+        with_mask(pub(10.0, 7.0), 8, "r3"),
+    ]
+    block = line([crun(public_improvement=r) for r in records])["constructor"][
+        "improvement"
+    ]["public_dev"]
+    decision = block["decision_loss"]
+    assert decision["value"] == improvement.NOISY
+    assert (
+        "masks differ" in decision["reading"]
+        and "NOT an improvement claim" in decision["reading"]
+    )
+    assert [p["common_mask"] for p in decision["per_run"]] == [9, 8, 8]
+    assert decision["per_run"][0]["run"] == "r1" and decision[
+        "median_if_read"
+    ] == pytest.approx(0.2)
+    # the accuracy column is unaffected and numeric
+    assert block["accuracy_error"]["value"] == pytest.approx(0.2)
+
+
+def test_runs_that_disagree_in_sign_are_noisy_even_on_one_mask():
+    records = [with_mask(pub(10.0, 9.0), 9, "r1"), with_mask(pub(10.0, 12.0), 9, "r2")]
+    decision = line([crun(public_improvement=r) for r in records])["constructor"][
+        "improvement"
+    ]["public_dev"]["decision_loss"]
+    assert (
+        decision["value"] == improvement.NOISY
+        and "disagree in sign" in decision["reading"]
+    )
+
+
+def test_a_consistent_decision_loss_is_a_number():
+    records = [with_mask(pub(10.0, 9.0), 9, "r1"), with_mask(pub(10.0, 8.0), 9, "r2")]
+    decision = line([crun(public_improvement=r) for r in records])["constructor"][
+        "improvement"
+    ]["public_dev"]["decision_loss"]
+    assert decision["value"] == pytest.approx(0.15) and "reading" not in decision
+
+
+def test_the_chart_leaves_a_noisy_column_as_a_gap():
+    records = [with_mask(pub(10.0, 9.0), 9, "r1"), with_mask(pub(10.0, 8.0), 8, "r2")]
+    svg = chart.render_svg([line([crun(public_improvement=r) for r in records])])
+    assert "UNMEASURED" in svg  # the decision-loss panel has no plottable point
+
+
+def test_five_runs_still_carry_the_small_n_flag():
+    records = [with_mask(pub(10.0, 9.0 - i / 10), 9, f"r{i}") for i in range(5)]
+    block = line([crun(public_improvement=r) for r in records])["constructor"][
+        "improvement"
+    ]["public_dev"]["accuracy_error"]
+    assert block["n"] == 5 and block["small_n"] is True
