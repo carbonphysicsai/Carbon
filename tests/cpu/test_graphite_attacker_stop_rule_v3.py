@@ -299,3 +299,59 @@ def test_no_family_is_dropped_silently_at_any_level(level):
     assert set(outcome["gaps"]) == {
         r["family"] for r in outcome["unreachable"] if r["reported_gap"]
     }
+
+
+# -- declared families and the brief's tagging block ---------------------------------------------
+class TaggedAdapter:
+    """A level whose doors reach family `a`, and any family an attempt declares in its hypothesis."""
+
+    def __init__(self, names=("a", "b", "c")):
+        self._names = names
+
+    def families(self):
+        return [SimpleNamespace(name=n) for n in self._names]
+
+    def family_for(self, tool, arguments=None):
+        text = (arguments or {}).get("hypothesis", "")
+        for name in self._names:
+            if f"[family: {name}]" in str(text):
+                return name
+        return self._names[0]
+
+
+def test_declared_families_are_reachable_under_v3_only():
+    adapter = TaggedAdapter()
+    plain = phase4.reachable_families(adapter, TOOLS)
+    assert list(plain) == ["a"]  # v1 and v2: the doors reach one family
+    declared = phase4.reachable_families(adapter, TOOLS, declare=True)
+    assert list(declared) == ["a", "b", "c"]
+    assert any(d.endswith("+[family: b]") for d in declared["b"])
+    table = phase4.stop_rule_coverage(adapter, TOOLS, schema=V3)
+    assert [r["family"] for r in table["families"]] == ["a", "b", "c"]
+    assert table["unreachable"] == []
+    v2 = phase4.stop_rule_coverage(adapter, TOOLS)
+    assert [r["family"] for r in v2["families"]] == ["a"]
+    assert [r["family"] for r in v2["unreachable"]] == ["b", "c"]
+
+
+def test_the_v3_brief_carries_the_tagging_text_and_the_reachable_names():
+    brief = phase4.brief_observation(_adapter(), stop_rule=V3)["stop_rule"]
+    tagging = brief["tagging"]
+    assert (
+        tagging["field"] == "hypothesis" and tagging["syntax"] == "[family: <family>]"
+    )
+    assert tagging["reachable"] == [r["family"] for r in brief["coverage"]["families"]]
+    assert "3 counted attempts" in tagging["text"]
+    # v1 and v2 briefs carry no tagging block
+    assert (
+        "tagging"
+        not in phase4.brief_observation(_adapter(), stop_rule=True)["stop_rule"]
+    )
+
+
+@pytest.mark.parametrize("level", [0, 1, 2, 3, 4])
+def test_every_reachable_family_is_an_adapter_family_name(level):
+    adapter = ADAPTERS[(CID, level)]
+    adapter = adapter() if isinstance(adapter, type) else adapter
+    names = {f.name for f in adapter.families()}
+    assert set(phase4.reachable_families(adapter, TOOLS, declare=True)) <= names
