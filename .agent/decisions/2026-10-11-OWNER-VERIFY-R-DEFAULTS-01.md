@@ -2,7 +2,7 @@
 
 **Authority.** The owner, verbatim, relayed by the Test Lead: "approve
 VERIFY-R defaults". These are the Test Engineer's recommended defaults
-(`/home/carbon/shared/evidence/verify-r/`, 2026-10-11). VERIFY-AWARE-SCORE-01
+(`~carbon/shared/evidence/verify-r/`, 2026-10-11). VERIFY-AWARE-SCORE-01
 left these values HUMAN_INPUT.
 
 **Values.**
