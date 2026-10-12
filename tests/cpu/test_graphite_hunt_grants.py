@@ -2,8 +2,8 @@
 
 Claims tested:
 - each file loads through the grant loader, is one run, and stays under the USD 50 per-run cap;
-- the figures are the existing stage grants' worst cases (14.91 and 13.41) with no new assumption, and the five
-  ceilings total no more than the owner's USD 86.71 for the hunt (H4's share is left unallocated);
+- the figures are the existing stage grants' worst cases (14.91 and 13.41) with no new assumption, and the six
+  ceilings (H1 to H4, A1, A2) total no more than the owner's USD 86.71 for the hunt;
 - the binding registers each: Constructors at their own level only, Attackers through phase 4 at their own level only,
   all on kimi-k3, citing the owner's record.
 """
@@ -16,6 +16,7 @@ from pathlib import Path
 
 import pytest
 
+from carbon.agent_campaign import grant_runs
 from carbon.agent_campaign.grant import SpendingGrant
 from carbon.agent_campaign.graphite import grant_binding, phase4
 from carbon.agent_campaign.graphite.roles import RoleName
@@ -38,6 +39,7 @@ CONSTRUCTORS = {
     "GRAPHITE-GRANT-HUNT-H1-CONSTRUCTOR": 1,
     "GRAPHITE-GRANT-HUNT-H2-CONSTRUCTOR": 2,
     "GRAPHITE-GRANT-HUNT-H3-CONSTRUCTOR": 3,
+    "GRAPHITE-GRANT-HUNT-H4-CONSTRUCTOR": 4,
 }
 ATTACKERS = {"GRAPHITE-GRANT-HUNT-A1-ATTACKER": 1, "GRAPHITE-GRANT-HUNT-A2-ATTACKER": 3}
 
@@ -95,16 +97,23 @@ def test_the_ceilings_total_no_more_than_the_owners_hunt_figure():
     total = sum(
         (_grant(g).monetary_ceiling for g in (*CONSTRUCTORS, *ATTACKERS)), Decimal(0)
     )
-    assert total == Decimal("71.76")
+    # H1 to H3 and A1, A2 are 71.76; H4, the hunt's own Level 4 Constructor run and its last share, takes it to 86.70.
+    assert total == Decimal("86.70")
     assert total <= HUNT_TOTAL
-    # The unallocated remainder is H4's share (one more Constructor run).
-    assert (
-        HUNT_TOTAL - total
-        >= _grant("GRAPHITE-GRANT-HUNT-H1-CONSTRUCTOR").monetary_ceiling
-    )
     constructors = sum((_grant(g).cleanup_allowance for g in CONSTRUCTORS), Decimal(0))
     attackers = sum((_grant(g).cleanup_allowance for g in ATTACKERS), Decimal(0))
     assert constructors <= Decimal("0.12") and attackers <= Decimal("0.13")
+
+
+def test_the_hunts_grants_and_the_other_pending_grants_stay_within_the_weekly_cap():
+    """The weekly-budget record's four grants with CONFIRM-02 at its amended 37 are 86.71 + 44.85 + 37 + 16 = 184.56, and
+    the 86.71 already holds H4's slot. Adding the Level 4 Constructor (#1221, 14.94) and the A2 re-run (#1228, 13.47),
+    both on the standing grant, gives 212.97; counting H4's 14.94 a second time, conservatively, gives 227.91. Both stay
+    under the 300 cap and under the 260 a claim sees while CONFIRM-02's 40 is held."""
+    standing = Decimal("184.56") + Decimal("14.94") + Decimal("13.47")
+    twice = standing + _grant("GRAPHITE-GRANT-HUNT-H4-CONSTRUCTOR").monetary_ceiling
+    assert standing == Decimal("212.97") and twice == Decimal("227.91")
+    assert twice <= Decimal(260) <= grant_runs.WEEKLY_CAP_USD
 
 
 @pytest.mark.parametrize(("grant_id", "level"), CONSTRUCTORS.items())

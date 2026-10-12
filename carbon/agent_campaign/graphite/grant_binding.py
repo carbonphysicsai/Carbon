@@ -74,12 +74,10 @@ phase-3 grant: outside its study it is refused `grant_is_bound_to_a_study`.
   the owner's and the security owner's.
 
 - GRAPHITE-GRANT-HUNT-H1/H2/H3-CONSTRUCTOR and GRAPHITE-GRANT-HUNT-A1/A2-ATTACKER are the
-  Level 5 hunt's per-run grants (OWNER-GRAPHITE-OPEN-SAFE-01-GRANTS): one run each, H1, H2
-  and H3 registering `min_level` = `max_level` = 1, 2 and 3, A1 and A2 attacking Level 1 and
+  Level 5 hunt's per-run grants (OWNER-GRAPHITE-OPEN-SAFE-01-GRANTS): one run each, H1, H2,
+  H3 and H4 registering `min_level` = `max_level` = 1, 2, 3 and 4, A1 and A2 attacking Level 1 and
   Level 3 (`Phase4Grant.levels`). They authorize spend, never a Level 5 capability.
 
-- GRAPHITE-GRANT-HUNT-H4-CONSTRUCTOR is the hunt's Level 4 Constructor run (lane G, theme causal-structure): one run
-  under the standing weekly test grant (OWNER-TEST-GRANT-01), the Constructor figures (14.91 + 0.03 = 14.94).
 - GRAPHITE-GRANT-HUNT-A2-RERUN-ATTACKER is the Level 3 Attacker re-run of the interrupted hunt run A2: one run
   under the standing weekly test grant (OWNER-TEST-GRANT-01), a copy of A2's figures (13.41 + 0.06 = 13.47), phase 4.
 - GRAPHITE-GRANT-L4-G-CONSTRUCTOR-2 is one lane G Level 4 Constructor run under the standing weekly
@@ -351,7 +349,7 @@ PHASE3_GRANTS = types.MappingProxyType(
                 authority=STANDING_TEST_GRANT_AUTHORITY,
             ),
             # The Level 5 hunt: one run per grant, each at its own level (H1 at L1, H2 at L2,
-            # H3 at L3; H4 is not granted in this batch).
+            # H3 at L3, H4 at L4).
             *(
                 Phase3Grant(
                     grant_id=f"GRAPHITE-GRANT-HUNT-H{n}-CONSTRUCTOR",
@@ -365,7 +363,7 @@ PHASE3_GRANTS = types.MappingProxyType(
                     token_share_usd=STAGE_TOKEN_SHARE,
                     authority=HUNT_AUTHORITY,
                 )
-                for n in (1, 2, 3)
+                for n in (1, 2, 3, 4)
             ),
             *(
                 Phase3Grant(
@@ -379,20 +377,6 @@ PHASE3_GRANTS = types.MappingProxyType(
                     runner="phase4",
                 )
                 for n in (1, 2)
-            ),
-            # H4: the Level 4 hunt Constructor (theme `causal-structure`; the theme is in the plan, the
-            # grant binds spend). The A2 re-run consumed the unallocated H4 share of the hunt's USD 86.71,
-            # so H4 is funded from the standing weekly test grant, not from the hunt's record.
-            Phase3Grant(
-                grant_id="GRAPHITE-GRANT-HUNT-H4-CONSTRUCTOR",
-                challenge=BATTERY_CHALLENGE,
-                grant_file=GRANTS_DIR + "/GRAPHITE-GRANT-HUNT-H4-CONSTRUCTOR.json",
-                main_blob=True,
-                min_level=4,
-                max_level=4,
-                start_model="kimi-k3",
-                token_share_usd=STAGE_TOKEN_SHARE,
-                authority=STANDING_TEST_GRANT_AUTHORITY,
             ),
             # A2's re-run: the interrupted A2 stranded in `reconciliation_required` (phase4 cannot
             # settle an interrupted model call), so its one run is spent. One run at Level 3 under the
