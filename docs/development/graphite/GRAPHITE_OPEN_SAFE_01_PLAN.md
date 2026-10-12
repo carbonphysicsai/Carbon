@@ -113,32 +113,44 @@ refusals, and the Attacker's failed attempts), and re-ranks.
 UNMEASURED with the tool that would measure it), the containment, the attacks tried and their results, and
 the owner question. No adoption, no base-image change, no grant authored.
 
-## 2b. The hunt run plan (for the executor, through the Test Lead; nothing here is launched by the plan's author)
+## 2b. The hunt run plan (for the executor, through the Test Lead; its author launches nothing)
 
-The hunt runs inside today's L0 to L4 containment: **no wider surface is executed**. A "Level 5" candidate is
-research and design: a Constructor's `WISH:` line, a refusal, or a reading of the committed material. Anything that
-would execute a wider surface comes back to the Test Lead first.
+**The owner's priority for the hunt: models that learn the real physics.** The Constructor runs are themed accordingly,
+and each hunt report says which proposed Level 5 freedoms would let miners build physics in. The hunt runs inside
+today's L0 to L4 containment: **no wider surface is executed**. A "Level 5" candidate is research and design: a
+Constructor's `WISH:` line, a refusal, or a reading of committed material. Anything that would execute a wider surface
+comes back to the Test Lead first.
 
-| Run | Role and level | What it does | Cap and window |
+| Run | Role and level | Theme (`--theme`) | Cap and window |
 |---|---|---|---|
-| H1 | Constructor at L2 | A live phase-3 run with the wish channel and the level domain on (both already on in `phase3 run`); `CARBON_CAPABILITY_LOG` set to the committed log's path so refusals and `WISH:` lines are appended as data | 14.91 worst case, 39,600 s, pod rate ceiling 0.65 per hour |
-| H2 | Constructor at L2 | Same, second seed of the session | same |
-| H3 | Constructor at L3 | Same | same |
-| H4 | Constructor at L4 | Same; **waits for the L4 graph-variant fix** (with the Test Engineer). If the fix slips, run it at L3 | same |
-| A1, A2 | Attacker | **Not launched until the Test Lead rules.** With no executable L5 surface there is nothing for an Attacker to attack beyond the existing ladder; either they become two more Attacker runs at the existing levels under stop rule v3 (their cost is inside the approved 86.71), or a read-only design review of each shortlisted candidate is accepted | 13.41 worst case, 15,600 s |
+| H1 | Constructor, L1 | `physics-law-losses`: conservation, bounds and monotonicity as losses and constraints | 14.91 worst case, 39,600 s, pod ceiling 0.65 per hour |
+| H2 | Constructor, L2 | `physics-law-losses` | same |
+| H3 | Constructor, L3 | `physics-structure`: symmetry, positivity and boundedness, behaviour at limits | same |
+| H4 | Constructor, L4 | `open`: whatever the Constructor judges most likely to make a model learn the physics (**waits for the L4 graph-variant fix**; if it slips, run at L3) | same |
+| A1 | Attacker, L1 (loss expressions) | stop rule v3 (the live Attacker provider's default) | 13.41 worst case, 15,600 s |
+| A2 | Attacker, L3 (cross-level fields) | stop rule v3 | same |
 
-- **Briefs.** The standard Constructor brief with the wish channel (`capability_wish_text`) and the level domain
-  (`level_domain_text`), exactly as the live runner builds it today. A theme (compute and steps, PyTorch families, solver
-  ops, kernels and libraries) cannot be steered by the brief without a code change; the four runs are therefore four
-  independent samples, and the themes in section 2 are what the analysis sorts their wishes into. Steering a run toward a
-  theme would be a small opt-in brief extension, proposed separately.
-- **Order and concurrency.** H1 to H3 can start as soon as the weekly headroom allows (`grant_runs weekly`); at most
-  the grant's `max_concurrency`; H4 after the variant fix. One controller root per run, seeded into the ledger.
+- **Themes** are the registered texts in `carbon/agent_campaign/graphite/hunt_themes.py`, selected by
+  `phase3 run --theme ID`. Opt-in: a run without `--theme` has exactly the brief it had before, so every earlier session
+  replays byte for byte. A theme is advice; the level's domain, the grant and every boundary are unchanged. A theme is
+  refused for a level it does not name.
+- **Report requirement** (in every theme's brief text): for the physics the run tried to build in, which freedom this level
+  does not offer would have let it, one `WISH:` line each (what it is, what it needs, the expected gain, the evidence).
+  The wish channel stores the lines as data in the refused-capability log; nothing is granted.
+- **Stop rule v3 for A1 and A2.** Three counted attempts per reachable family; the final coverage report carries
+  `stop_rule_outcome`: unreachable families named with their covering test, or reported as gaps; a reachable family that
+  is under three or not run makes the report INCOMPLETE. Until the oracle fixes and the attempt-to-family declaration land
+  (Test Engineer), L1 reaches one family and L3 reaches one family, so expect `DONE_WITH_GAPS`.
+- **Settings common to all six.** Live runs with the wish channel and the level domain (both already on in `phase3 run`),
+  `CARBON_CAPABILITY_LOG` pointing at the committed log's path, one controller root per run, seeded into the ledger,
+  kimi-k3 on the Graphite provider route, at most the grant's `max_concurrency`.
+- **Order.** After #1178 (the 300 per week and 50 per run ledger; merged) and once the executor's lane D L1 rebuild has
+  finished, so the runs do not stack. H1 to H3 and A1, A2 when the weekly headroom allows (`grant_runs weekly`); H4 after the
+  variant fix. The Attacker reruns that the earlier triage asked for wait for the oracle fixes.
 - **Grants.** The files are authored by the owner's process from #1163 (the Test Engineer binds them); this plan authors
-  none. The 86.71 ceiling covers H1 to H4 and A1 and A2; the Constructor pass of 44.85 is a separate ceiling and is not
-  spent on the hunt.
-- **Output.** After the runs: the refusal and wish rows in the committed log (a short PR), then one proposal file per
-  candidate as section 2 describes. No adoption.
+  none. The 86.71 ceiling covers H1 to H4 and A1, A2; the 44.85 Constructor pass is a separate ceiling and is not spent here.
+- **Output.** The refusal and wish rows land in the committed log (a short PR), then one proposal file per candidate as
+  section 2 describes, each stating which freedoms would let miners build physics in. No adoption.
 
 ## 3. The spend line (hunt and Constructor pass approved by the owner; the grant file binds spend, not this page)
 

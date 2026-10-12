@@ -213,3 +213,89 @@ def test_the_provider_resumes_a_v3_session_under_the_v3_record():
         )
         expected = provider._expected_limits(opened)["session_limits"]["stop_rule"]
     assert expected == phase4.stop_rule_record(V3)
+
+
+# -- v1 and v2 are untouched, and v3 is chosen only by name (invariant 10) -------------------
+#: Digests of what v1 and v2 produced on main before v3 existed (canonical JSON, sorted keys):
+#: the records, the empty and two-each coverage tables, the finish refusal and the brief block.
+GOLDEN = {
+    "STOP_RULE_V1.record": "1d2477fe17d0d9c3fd19e2496c48b385d9e7ead46baecaa255a3325919c5c1e6",
+    "STOP_RULE_V1.empty": "0ce6849e786e126543ca244dd49d29e741c23084b145c27ace428032df065cae",
+    "STOP_RULE_V1.two_each": "7f7dad24d161c6c01177d3bad165aedfb63a55c8a1fa91b2e55de825c2458c10",
+    "STOP_RULE_V1.refusal": "d610533595594e638d28d9f720b90d20dee80c1331e7869df589a25e34438429",
+    "STOP_RULE_V2.record": "3d4b6fbdaee84280da10439ed8783310df74585761813bfe75733ead14c18efc",
+    "STOP_RULE_V2.empty": "1773b168e356dffc7c83ef75016ae35c703f928a99eb0f9d5621a88eae6dfbbc",
+    "STOP_RULE_V2.two_each": "76b5565cdf5352b4c47e0124de03e2e8e49dfb029a26d9645c95188156490569",
+    "STOP_RULE_V2.refusal": "be83671603c811795c47413f756a9c43f3d42bbf07a0b891f8671376ead21867",
+    "observation": "d1372cb36ab49e21a458a50de90b639bc25598c39dd97f5c4d8193e69201f6d5",
+}
+
+
+def _digest(value):
+    import hashlib
+    import json
+
+    return hashlib.sha256(
+        json.dumps(value, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+
+
+def test_v1_and_v2_outputs_are_byte_identical_to_what_main_produced_before_v3():
+    got = {}
+    for name in ("STOP_RULE_V1", "STOP_RULE_V2"):
+        schema = getattr(phase4, name)
+        got[name + ".record"] = _digest(phase4.stop_rule_record(schema))
+        got[name + ".empty"] = _digest(
+            phase4.stop_rule_coverage(_adapter(), TOOLS, schema=schema)
+        )
+        got[name + ".two_each"] = _digest(
+            phase4.stop_rule_coverage(
+                _adapter(), TOOLS, _attempts(dict.fromkeys(REACHABLE, 2)), schema=schema
+            )
+        )
+        short = phase4.stop_rule_coverage(
+            _adapter(),
+            TOOLS,
+            _attempts({**dict.fromkeys(REACHABLE, 2), "staged_bytes": 1}),
+            schema=schema,
+        )
+        got[name + ".refusal"] = _digest(phase4.finish_verdict(short, None)[1])
+    got["observation"] = _digest(
+        phase4.brief_observation(_adapter(), stop_rule=True)["stop_rule"]
+    )
+    assert got == GOLDEN
+
+
+def test_v3_is_chosen_only_by_name():
+    assert phase4.stop_rule_record()["schema"] == phase4.STOP_RULE_V2
+    assert phase4.stop_rule_coverage(_adapter(), TOOLS)["schema"] == phase4.STOP_RULE_V2
+    observation = phase4.brief_observation(_adapter(), stop_rule=True)["stop_rule"]
+    assert observation["coverage"]["schema"] == phase4.STOP_RULE_V2
+    assert "stop_rule" not in phase4.brief_observation(_adapter())
+    provider = object.__new__(phase4.AttackerProvider)
+    assert not hasattr(provider, "stop_rule") or provider.stop_rule is None
+
+
+def test_v3_claims_development_evidence_only():
+    outcome = phase4.stop_rule_outcome(table_v3(dict.fromkeys(REACHABLE, 3)), [])
+    assert outcome["authority"].startswith("DEVELOPMENT evidence only")
+    assert "no qualification" in outcome["authority"]
+
+
+@pytest.mark.parametrize("level", [0, 1, 2, 3, 4])
+def test_no_family_is_dropped_silently_at_any_level(level):
+    adapter = ADAPTERS[(CID, level)]
+    adapter = adapter() if isinstance(adapter, type) else adapter
+    table = phase4.stop_rule_coverage(adapter, TOOLS, schema=V3)
+    outcome = phase4.stop_rule_outcome(table, [])
+    named = [r["family"] for r in table["families"]] + [
+        r["family"] for r in outcome["unreachable"]
+    ]
+    expected = sorted(f.name for f in adapter.families())
+    assert sorted(named) == expected  # each family exactly once
+    for row in outcome["unreachable"]:
+        # covered by a named test, or visible as a gap: never absent, never blank
+        assert (row["covering_test"] is not None) != row["reported_gap"]
+    assert set(outcome["gaps"]) == {
+        r["family"] for r in outcome["unreachable"] if r["reported_gap"]
+    }

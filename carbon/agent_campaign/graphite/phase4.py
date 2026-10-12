@@ -1065,6 +1065,9 @@ def stop_rule_outcome(table, baseline_runs=()):
         "unreachable": unreachable,
         "gaps": gaps,
         "gap_label": GAP_LABEL,
+        "authority": (
+            "DEVELOPMENT evidence only: no qualification, no security acceptance, no grade"
+        ),
     }
 
 
