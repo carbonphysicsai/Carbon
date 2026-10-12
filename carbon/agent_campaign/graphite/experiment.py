@@ -379,6 +379,13 @@ class PodLedger:
         self.path = Path(path)
         self.clock = clock
 
+    def ensure(self):
+        """Create the (empty) ledger file if it is absent, so a run that failed before
+        any pod event has a readable record showing none; an existing file is left
+        alone."""
+        if not self.path.exists():
+            self.path.touch(mode=0o600)
+
     def append(self, event, **body):
         row = {"event": event, "at": self.clock(), **body}
         with self.path.open("ab") as stream:
@@ -433,6 +440,7 @@ class PodLedger:
             elif event == "pod_duplicates_counted":
                 pod["duplicates"] = row["count"]
                 pod["duplicate_usd"] = row["charged_usd"]
+                pod["unknown_duplicates"] = row.get("unknown_charges", 0)
         return state
 
     def committed(self):
@@ -441,6 +449,10 @@ class PodLedger:
         for pod in self.pods().values():
             # A duplicate's real charge is spend even though it is not the pod.
             settled += Decimal(pod.get("duplicate_usd") or 0)
+            # A duplicate whose charge the provider did not report stays at the
+            # reservation of the pod it duplicates, never at zero.
+            if pod.get("unknown_duplicates") and pod["reserved_usd"] is not None:
+                pending += pod["unknown_duplicates"] * Decimal(pod["reserved_usd"])
             if pod["settled_usd"] is not None:
                 settled += Decimal(pod["settled_usd"])
             elif pod["reserved_usd"] is not None:
@@ -666,6 +678,7 @@ class Experiment:
         self.scorer = scorer
         self.repository, self.clock, self.randomness = repository, clock, randomness
         self.ledger = PodLedger(self.root / "pod-ledger.jsonl", clock)
+        self.ledger.ensure()
         self._cancel = RunCancelled
         self.scoring = challenge_scoring.resolve(scoring)
         self.construction_level = construction_level
