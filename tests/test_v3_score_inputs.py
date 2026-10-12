@@ -15,7 +15,16 @@ def _git(root, *args):
     return subprocess.run(
         # Background upkeep writes and removes `.git` lock files
         # asynchronously, which races this fixture's own commands.
-        ["git", "-C", str(root), "-c", "maintenance.auto=false", "-c", "gc.auto=0", *args],
+        [
+            "git",
+            "-C",
+            str(root),
+            "-c",
+            "maintenance.auto=false",
+            "-c",
+            "gc.auto=0",
+            *args,
+        ],
         capture_output=True,
         check=True,
     )
