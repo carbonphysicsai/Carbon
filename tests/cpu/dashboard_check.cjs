@@ -113,7 +113,7 @@ for (const name of fs.readdirSync(path.join(site, "data", "v2")).sort()) {
   // Rule statements: one "Rules unavailable" line while the card is not OK.
   assert.notEqual(board.rules.status, "OK", "no fixture build has a rules card");
   assert.equal(rulesLines(text), 1, where + ": one rules line");
-  assert.ok(!/about \d+ h after a window|First scores publish ~|Release lag/.test(text), where + ": no lag without the rules card");
+  assert.ok(!/about \d+ h after a window|First scores publish about|Release lag/.test(text), where + ": no lag without the rules card");
   // What is scored, from the feed's sections.
   for (const s of board.sections) assert.ok(text.includes(s.display), where + ": scored " + s.name);
   if (board.rotation) assert.ok(text.includes(D.rotationText(board)), where + ": the feed's rotation");
@@ -148,7 +148,7 @@ for (const name of fs.readdirSync(path.join(site, "data", "v2")).sort()) {
   const okText = check(D.boardPage(ok, ctx), where + " rules OK");
   assert.equal(rulesLines(okText), 0, where + ": no rules line when OK");
   assert.ok(okText.includes("Rule fixture-rule-card"), where + ": rule shown when OK");
-  assert.ok(board.phase === "PRE_FIRST_RELEASE" ? okText.includes("First scores publish ~18 h after the first round") : okText.includes("Scores publish about 18 h after a window."), where + ": lag when OK");
+  assert.ok(board.phase === "PRE_FIRST_RELEASE" ? okText.includes("First scores publish about 18 h after the first round") : okText.includes("Scores publish about 18 h after a window."), where + ": lag when OK");
   // The same values with the card unavailable never show.
   const withheld = clone(ok); withheld.rules = board.rules;
   const withheldText = check(D.boardPage(withheld, ctx), where + " rules withheld");

@@ -316,7 +316,7 @@
     const when = timingOf(board.next_release, ctx) || timingOf(board.next_round, ctx);
     return h("section", {class: "hero", "aria-labelledby": "hero-title"},
       eyebrow("First release"),
-      h("h2", {id: "hero-title"}, ok ? "First scores publish ~" + Math.round(lag.hours) + " h after the first round" : "First scores publish after the first round is released"),
+      h("h2", {id: "hero-title"}, ok ? "First scores publish about " + Math.round(lag.hours) + " h after the first round" : "First scores publish after the first round is released"),
       h("p", {class: "lede"}, "No window of this rule era has been released yet, so no score is shown.",
         rotationText(board) ? " " + rotationText(board) + "." : ""),
       when ? h("div", {class: "hero-count"}, when) : null,
@@ -327,7 +327,7 @@
   // The feed's own rotation period (board.v2 `rotation`), not a rule statement.
   function rotationText(board) {
     const r = board.rotation;
-    return r && isNum(r.blocks) ? "Rounds rotate every " + r.blocks.toLocaleString("en-US") + " blocks, ~" + r.hours + " h" : null;
+    return r && isNum(r.blocks) ? "Rounds rotate every " + r.blocks.toLocaleString("en-US") + " blocks, about " + r.hours + " h" : null;
   }
 
   // What is scored: each section's name, sense and unit, as the feed states them.
@@ -398,9 +398,9 @@
   function timingCard(board, ctx) {
     const round = board.next_round || {}, release = board.next_release || {};
     const ok = rulesOk(board);
-    const every = ok && round.every ? h("p", {class: "hint"}, "Every " + round.every.blocks.toLocaleString("en-US") + " blocks (~" + round.every.hours + " h)")
+    const every = ok && round.every ? h("p", {class: "hint"}, "Every " + round.every.blocks.toLocaleString("en-US") + " blocks (about " + round.every.hours + " h)")
       : rotationText(board) ? h("p", {class: "hint"}, rotationText(board) + ".") : null;
-    const lag = ok && release.lag ? "Release lag " + release.lag.blocks.toLocaleString("en-US") + " blocks (~" + Math.round(release.lag.hours) + " h)." : "";
+    const lag = ok && release.lag ? "Release lag " + release.lag.blocks.toLocaleString("en-US") + " blocks (about " + Math.round(release.lag.hours) + " h)." : "";
     const roundWhen = timingOf(round, ctx);
     return section("timing", {class: "timing-block", "aria-label": "Next round and release"},
       h("div", {class: "timing"},
