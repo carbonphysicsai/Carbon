@@ -266,8 +266,9 @@ def main(argv=None):
     parser.add_argument("value", nargs="?")
     parser.add_argument("--ref")
     parser.add_argument("--repo", default=str(ROOT))
-    parser.add_argument("--out", default="/home/carbon/runs/pdd/spec")
+    parser.add_argument("--out", default="~carbon/runs/pdd/spec")
     args = parser.parse_args(argv)
+    args.out = str(Path(args.out).expanduser())
     if args.command == "launch":
         if (Path(args.out) / "pod_id").exists():
             raise SystemExit(
