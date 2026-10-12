@@ -57,6 +57,16 @@ def base_for(strategy, level=0, arm=None, *, challenge=CHALLENGE_ID):
     return base_strategy(strategy, compiled.widened)
 
 
+def variant_digest(level, arm=None, *, challenge=CHALLENGE_ID):
+    """The registered development-variant digest used to compile a member."""
+    from carbon.reconstruction import development_variants as dv
+
+    try:
+        return dv.variant(challenge, level, arm).digest
+    except dv.VariantRefused as refused:
+        raise LevelCompileRefused(level, type(refused).__name__) from None
+
+
 def recipe_digests(strategy, *, versions, level=0, arm=None, challenge=CHALLENGE_ID):
     """Every recipe digest a member's bundle may carry: one per registered
     implementation version (a bundle verifies under the version it was made under)."""

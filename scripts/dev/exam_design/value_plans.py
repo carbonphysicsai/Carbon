@@ -123,6 +123,13 @@ def _study(name):
             "prefix": "ev4-l1",
             "panel_data": L1_PANEL_DATA,
         }
+    if name == "ev4-bundled":
+        return {
+            "contract": "carbon/battery/value/contracts/ev4-dev-proof-bundled-v1.json",
+            "plans": "docs/development/evidence/battery-level-bundles/plans",
+            "prefix": "ev4-bundled",
+            "panel_data": L1_PANEL_DATA,
+        }
     from carbon.battery.value import ev5
 
     return {
@@ -139,13 +146,15 @@ def main(argv=None):
     )
     parser.add_argument("kind", choices=("refs", "panel", "verify"))
     parser.add_argument("--shards", type=int, required=True)
-    parser.add_argument("--study", choices=("ev4", "ev4-l1", "ev5"), default="ev4")
+    parser.add_argument(
+        "--study", choices=("ev4", "ev4-l1", "ev4-bundled", "ev5"), default="ev4"
+    )
     parser.add_argument("--out-dir")
     parser.add_argument("--jobs", help="verify: the optimizer's jobs.json")
     args = parser.parse_args(argv)
     study = _study(args.study)
-    if args.study == "ev4-l1" and args.kind != "panel":
-        parser.error("ev4-l1 uses the committed public EV4 references; panel only")
+    if args.study in ("ev4-l1", "ev4-bundled") and args.kind != "panel":
+        parser.error("public EV4 studies use committed references; panel only")
     out_dir = args.out_dir or str(REPO / study["plans"])
     if args.kind == "refs":
         plans = refs_plans(args.shards, study["contract"], study["prefix"])
