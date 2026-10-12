@@ -8,6 +8,7 @@ All numerical policies/calibrations/validity here are synthetic test inputs.
 from __future__ import annotations
 
 import argparse
+import bisect
 import copy
 import json
 import math
@@ -47,10 +48,66 @@ def toy_prediction(query):
     )
 
 
+def _synthetic_map(panel, spec):
+    """Plain fixture cells, not a call to the accepted-solver map producer.
+
+    Two identical arithmetic observations at one query have zero spread/error.
+    This deliberately preserves the historical fixture bytes and replay vectors.
+    Real maps must be produced by carbon.trust_map with its acceptance links.
+    """
+    query = panel["cases"][0]["inputs"]
+    axes = [*spec["axes"], spec["bands"]]
+    coordinate = [
+        min(bisect.bisect_right(a["edges"], query[a["name"]]) - 1, len(a["edges"]) - 2)
+        for a in axes
+    ]
+    cells = []
+    for band in range(len(spec["bands"]["edges"]) - 1):
+        for y in range(len(spec["axes"][1]["edges"]) - 1):
+            for x in range(len(spec["axes"][0]["edges"]) - 1):
+                observed = [x, y, band] == coordinate
+                layers = {
+                    k: {
+                        "median": 0.0 if observed else None,
+                        "p90": 0.0 if observed else None,
+                    }
+                    for k in spec["outputs"]
+                }
+                cells.append(
+                    {
+                        "band": band,
+                        "y": y,
+                        "x": x,
+                        "count": 2 if observed else 0,
+                        "status": "OBSERVED" if observed else "NO_DATA",
+                        "near_limit_count": 0,
+                        "error": copy.deepcopy(layers),
+                        "disagreement": copy.deepcopy(layers),
+                    }
+                )
+    return {
+        "schema": "carbon.trust-map.v1",
+        "maturity": "DEVELOPMENT",
+        "model": "toy-battery-interface",
+        "spec": spec,
+        "top_models": panel["top_models"],
+        "source": panel["disclosure"],
+        "reference_verification": panel["reference_verification"],
+        "cells": cells,
+        "basis": {"cases": 2, "models": 2, "top_models": 2},
+        "methods": {
+            "error": "per-case RMS in native units; cell median and linear p90",
+            "disagreement": "RMS population standard deviation across named top models; cell median and linear p90",
+            "marginalization": "empirical pooling of all disclosed cases; no population weights",
+        },
+        "scored_case_selection": "FORBIDDEN",
+    }
+
+
 def fixture_inputs(predict=toy_prediction, *, query=None):
     """Synthetic records around public interface constants, not an owner policy."""
     from carbon.battery.domain import INPUT_BOUNDS
-    from carbon.battery.trust_map import battery_spec, build_battery_maps
+    from carbon.battery.trust_map import battery_spec
 
     query = dict(QUERY if query is None else query)
     image = digest({"kind": "synthetic-reference-image-not-a-solver"})
@@ -154,7 +211,7 @@ def fixture_inputs(predict=toy_prediction, *, query=None):
         },
         "top_models": [model.model_id, "toy-second"],
     }
-    trust_map = build_battery_maps(panel)[model.model_id]
+    trust_map = _synthetic_map(panel, battery_spec())
     model_validity = validity.NoPropertyModel(
         "Synthetic arithmetic interface fixture, not a physical model"
     )

@@ -1,0 +1,29 @@
+{
+  "basis": "NATIVE_DIAGNOSTIC_SYNTHETIC_FIXTURE",
+  "iterations": 200,
+  "machine": "AMD64",
+  "measurement_boundary": "Assistant construction + search + 27 Guard model calls + 3 synthetic reference calls + returned snapshot; imports/fixture assembly excluded",
+  "outcomes": {
+    "REFERENCE_RELATIVE_CHOICE": 200
+  },
+  "platform": "Windows",
+  "process_cpu_ms": {
+    "caveat": "Native timer quantization; other-process/GPU cost not measured",
+    "maximum": 62.5,
+    "median": 31.25
+  },
+  "production_latency_target": null,
+  "python": "3.12.14",
+  "qualification_claim": false,
+  "real_model_latency": null,
+  "schema": "carbon.product.assistant-timing-fixture.v1",
+  "scope": "DEVELOPMENT",
+  "target_status": "HUMAN_INPUT",
+  "unique_decision_digests": 1,
+  "wall_ms": {
+    "maximum": 98.11849999823608,
+    "median": 35.99324999959208,
+    "p95_nearest_rank": 63.04519998957403
+  },
+  "warmups": 10
+}

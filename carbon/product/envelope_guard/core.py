@@ -129,6 +129,7 @@ class EnvelopeGuard:
                 parsed_contract["reference_image"],
                 names,
                 parsed_contract["outputs"],
+                basis=policy.get("basis") if type(policy) is dict else "HUMAN_INPUT",
             )
             parsed_policy = cfg.policy(policy, pins, names, parsed_contract["outputs"])
             self._contract = cfg.freeze(parsed_contract)

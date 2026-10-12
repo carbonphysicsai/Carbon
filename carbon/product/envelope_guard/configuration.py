@@ -287,7 +287,7 @@ def reference(raw, image):
     return value
 
 
-def native_map(raw, model_id, image, inputs, outputs):
+def native_map(raw, model_id, image, inputs, outputs, *, basis="HUMAN_INPUT"):
     if raw is None:
         return None
     value = snapshot(raw)
@@ -308,7 +308,14 @@ def native_map(raw, model_id, image, inputs, outputs):
         },
     )
     require(
-        value["schema"] == MAP_SCHEMA and value["maturity"] == "DEVELOPMENT",
+        (
+            value["schema"] == MAP_SCHEMA
+            or (
+                basis in ("SYNTHETIC_FIXTURE", "HUMAN_INPUT")
+                and value["schema"] == "carbon.trust-map.v1"
+            )
+        )
+        and value["maturity"] == "DEVELOPMENT",
         "native_development_map_required",
     )
     require(
@@ -323,19 +330,48 @@ def native_map(raw, model_id, image, inputs, outputs):
     )
     sha("sha256:" + value["source"]["source_sha256"])
     verification = value["reference_verification"]
-    closed(
-        verification, {"state", "accepted_development_pass", "image_digest", "evidence"}
-    )
-    require(
-        verification["state"] == "PASS"
-        and verification["accepted_development_pass"] is True,
-        "map_verification_unavailable",
-    )
-    require(sha(verification["image_digest"]) == image, "map_reference_mismatch")
-    require(
-        type(verification["evidence"]) is str and bool(verification["evidence"]),
-        "map_verification_basis_required",
-    )
+    if basis in ("SYNTHETIC_FIXTURE", "HUMAN_INPUT") and set(verification) == {
+        "state",
+        "accepted_development_pass",
+        "image_digest",
+        "evidence",
+    }:
+        # The old arithmetic fixture is deliberately not a solver acceptance.
+        # Registered development maps cannot use this test-only projection.
+        require(
+            verification["state"] == "PASS"
+            and verification["accepted_development_pass"] is True,
+            "map_verification_unavailable",
+        )
+        require(sha(verification["image_digest"]) == image, "map_reference_mismatch")
+        require(
+            type(verification["evidence"]) is str and bool(verification["evidence"]),
+            "map_verification_basis_required",
+        )
+    else:
+        from carbon.trust_map.acceptance import AcceptanceRefused, load_acceptance
+
+        closed(
+            verification,
+            {
+                "schema",
+                "scope",
+                "family",
+                "image_digest",
+                "criteria_digest",
+                "link_digest",
+                "decision",
+                "conditions",
+            },
+        )
+        require(sha(verification["image_digest"]) == image, "map_reference_mismatch")
+        try:
+            accepted = load_acceptance(
+                verification["family"], image, sha(verification["criteria_digest"])
+            )
+        except AcceptanceRefused:
+            raise GuardConfigurationError("map_verification_unavailable") from None
+        require(verification == accepted, "map_acceptance_receipt_mismatch")
     spec = value["spec"]
     closed(spec, {"axes", "bands", "marginalized", "outputs", "near_limit"})
     require(

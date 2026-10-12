@@ -68,6 +68,17 @@ before merge; PR Head/owner handles that gate. The Product queue stops here.
 
 ## API and records
 
+PRD-03 compatibility note: native maps now use `carbon.trust-map.v2` and carry
+the registered code-verification acceptance-link receipt. Guard construction
+revalidates that receipt against the current registered public source bytes.
+The prior v1 arithmetic fixture is isolated to SYNTHETIC_FIXTURE policy, or a
+missing policy that can only REFUSE; REGISTERED_DEVELOPMENT cannot use it.
+The demo builds plain synthetic cells rather than invoking an accepted-solver
+map producer with a fake image. A historical code-verification link cannot
+override a current product-use solver/applicability hold. The PRD-02 latency
+record preserves its original implementation byte hashes and is historical
+evidence, not a fresh measurement of the PRD-03 composition.
+
 ```python
 from carbon.product.envelope_guard import EnvelopeGuard
 from carbon.product.envelope_guard.demo import fixture_inputs, QUERY, UNITS

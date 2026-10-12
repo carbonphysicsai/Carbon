@@ -7,7 +7,8 @@ for reference, measurement and data joins. Adoption and acceptance: HUMAN_INPUT.
 
 PRD-01 amendment (2026-10-12): incorporates the
 [Carbon Validator follow-ups](https://github.com/carbonphysicsai/Carbon/pull/1195#issuecomment-6129429811).
-The Guard and Assistant remain designs for PRD-02/03; PRD-01 implements only
+Guard and Assistant development implementations are recorded in the prospective
+PRD-02/03 notes below; PRD-01 implements only
 DEVELOPMENT_SAMPLE document automation.
 
 The Carbon Model Package is one versioned engineering product: an exact fast
@@ -456,6 +457,26 @@ false feasibility/law failures; PB-ESC tests refusal and fallback; PB-ART/LAT
 test the deployed composition. A model that passes its component tests does
 not qualify an optimizer/Guard composition. Value is demonstrated only from
 measured solver-verified workflow outcomes, including negative comparisons.
+
+**PRD-03 development implementation (prospective, 2026-10-12).**
+`carbon/product/decision_assistant/` wraps the Guard, native budget ledger,
+public battery observer and equal-budget replay with bounded finite-bank search,
+pre-reference ranking/plan commitment, independent selected-pick verification,
+typed abstention and audit. Map TRUST never substitutes for verifying a pick.
+Selected false feasibility retains resolved/unresolved denominators. Expected
+regret stays null/GAP without matched independently assessed evidence; realized
+regret is separate complete finite-bank reference work. Public-record replay
+cannot produce a fresh verified recommendation. The synthetic demonstration
+retains an adverse smallest-budget comparison and earns no physical claim.
+
+The owner expressly permits the real battery comparison to remain GAP for this
+ticket: the named public calibration copy lacks CPU core-seconds and its solver
+is not accepted for that use. Its 800 byte-bound records support only a labelled
+DEVELOPMENT wall-cost estimate. Show SOLVER_NOT_ACCEPTED and `accepted: false`;
+do not override the current hold with older MMS/manifest text or infer core cost.
+No real solver/training, protected material, qualification, deployment or LIVE
+authority is exercised. Policies, physical applicability, current-use reference
+acceptance, full cost metering and actual-model PB evidence remain HUMAN_INPUT.
 
 ## 12. CMP-10 — lifecycle and change handling
 
