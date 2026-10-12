@@ -68,8 +68,7 @@ The three backfill manifests (stage A, the L1 to L4 ladder sessions, and the L2 
 4. `git diff --check origin/main...HEAD` AND `python scripts/dev/check_diff_hygiene.py --base origin/main` (the second catches what
    the first and the quality gates miss), and run the long suites in the background to completion rather than under a short
    timeout.
-5. **Generated files are clean text.** Write them with LF endings (`newline="
-"`; a Windows text-mode append wrote CRLF into a JSON
+5. **Generated files are clean text.** Write them with LF endings (`newline="\n"` in Python; a Windows text-mode append wrote CRLF into a JSON
    file), no trailing whitespace and exactly one final newline. Three rejections in one night came from scripted JSON and Markdown.
 
 ## Reading the first lines
