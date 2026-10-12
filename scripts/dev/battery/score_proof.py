@@ -353,6 +353,30 @@ def criteria_lines(report):
     return "\n".join(out) + "\n"
 
 
+def ceiling_line(c):
+    """One line: how far the decision value lets any score reach."""
+    if c.get("status") != "MEASURED":
+        return (
+            f"**τ ceiling (SCORE-CEILING-01):** not measurable "
+            f"({c.get('resolved_questions', 0)} resolved decision questions).\n"
+        )
+    lo, hi = c["tau_ceiling_ci95"]
+    line = (
+        f"**τ ceiling (SCORE-CEILING-01):** {c['informative_questions']} informative "
+        f"of {c['resolved_questions']} resolved decision questions, "
+        f"{c['members']} members; per-question value reliability "
+        f"{c['per_question_reliability']:.3f}, value reliability "
+        f"{c['reliability']:.3f}; a perfect score reaches τ {c['tau_ceiling']:.3f} "
+        f"[{_f(lo)}, {_f(hi)}]."
+    )
+    if c.get("observed_tau") is not None and c.get("share_of_ceiling") is not None:
+        line += (
+            f" Observed τ {c['observed_tau']:.3f} ({c['rule']}) is "
+            f"{100 * c['share_of_ceiling']:.0f} % of the ceiling."
+        )
+    return line + "\n"
+
+
 def table(report):
     """One table per level, the rule in force first."""
     base = report["rule_in_force"]
@@ -514,6 +538,24 @@ def main(argv=None):
         }
         report["pickability_in_force"] = sp.PICKABILITY_IN_FORCE
         report["pickable"] = report["pickable_by_criterion"][sp.PICKABILITY_IN_FORCE]
+    # The value side's ceiling (SCORE-CEILING-01), from the decision losses
+    # on this phase's resolved mask only.
+    ceiling_rule = (
+        args.rule if args.phase == "confirmation" else report["rule_in_force"]
+    )
+    report["value_ceiling"] = {
+        "rule": ceiling_rule,
+        **sp.value_ceiling(
+            [
+                [
+                    panel["results"]["decisions"][m][s]["outcome"]["decision_loss"]
+                    for s in panel["mask"]
+                ]
+                for m in panel["names"]
+            ],
+            report["candidates"].get(ceiling_rule, {}).get(sp.POOLED, {}).get("tau"),
+        ),
+    }
     report["source"] = (
         "PUBLIC_STANDIN (plumbing only; not proof)"
         if args.public_standin
@@ -540,7 +582,9 @@ def main(argv=None):
     header = (
         f"# Score proof ({report['source']})\n\n{lead}\n\n"
         f"{phase['cases']} scoring cases; member split at levels "
-        f"{phase['member_split_levels'] or 'none'}.\n\n{report['threshold']}\n"
+        f"{phase['member_split_levels'] or 'none'}.\n\n"
+        + ceiling_line(report["value_ceiling"])
+        + f"\n{report['threshold']}\n"
     )
     for name, text in (
         (

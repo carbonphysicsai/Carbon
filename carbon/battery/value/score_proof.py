@@ -76,6 +76,80 @@ def _interval(xs, level=0.95):
     return [xs[int(tail * (len(xs) - 1))], xs[math.ceil((1 - tail) * (len(xs) - 1))]]
 
 
+def value_ceiling(losses, observed_tau=None, n_boot=500, seed=SEED):
+    """How far the decision value lets any score reach (SCORE-CEILING-01).
+
+    `losses` is a members x questions matrix of decision losses on the
+    resolved mask. A question on which every member scores the same carries no
+    ranking information and is left out. Per-question reliability is the mean
+    Spearman correlation of member losses over pairs of informative questions;
+    Spearman-Brown gives the value's reliability R over the k informative
+    questions; a perfect score's Kendall ceiling is (2 / pi) asin(sqrt(R))
+    (bivariate normal). The 95 % interval resamples questions (pairs of the
+    same original question are skipped). `observed_tau`, if given, is reported
+    as a share of the ceiling. Uses only the losses: nothing sealed is read.
+    """
+    import math
+
+    import numpy as np
+
+    L = np.asarray(losses, dtype=float)
+    out = {
+        "members": int(L.shape[0]) if L.ndim == 2 else 0,
+        "resolved_questions": int(L.shape[1]) if L.ndim == 2 else 0,
+    }
+    if L.ndim != 2 or L.shape[0] < 3:
+        return {**out, "status": "NOT_MEASURABLE"}
+    keep = [j for j in range(L.shape[1]) if np.ptp(L[:, j]) > 0]
+    out["informative_questions"] = len(keep)
+    if len(keep) < 2:
+        return {**out, "status": "NOT_MEASURABLE"}
+    ranks = np.empty((L.shape[0], len(keep)), dtype=float)
+    for j in range(len(keep)):
+        col = L[:, keep[j]]
+        # Average ranks for ties (Spearman).
+        _, inverse, counts = np.unique(col, return_inverse=True, return_counts=True)
+        starts = np.concatenate(([0], np.cumsum(counts)[:-1]))
+        ranks[:, j] = (starts + (counts - 1) / 2.0)[inverse]
+    C = np.corrcoef(ranks, rowvar=False)
+    k = len(keep)
+
+    def ceiling(rho):
+        R = k * rho / (1 + (k - 1) * rho) if rho > 0 else 0.0
+        R = min(max(R, 0.0), 1.0)
+        return R, 2 / math.pi * math.asin(math.sqrt(R))
+
+    iu = np.triu_indices(k, 1)
+    rho = float(C[iu].mean())
+    R, tau_max = ceiling(rho)
+    rng = np.random.default_rng(seed)
+    boots = []
+    for _ in range(n_boot):
+        idx = rng.integers(k, size=k)
+        a, b = np.meshgrid(idx, idx, indexing="ij")
+        mask = np.triu(np.ones((k, k), bool), 1) & (a != b)
+        if mask.any():
+            boots.append(ceiling(float(C[a[mask], b[mask]].mean()))[1])
+    lo, hi = (
+        (float(np.quantile(boots, 0.025)), float(np.quantile(boots, 0.975)))
+        if boots
+        else (None, None)
+    )
+    out.update(
+        {
+            "status": "MEASURED",
+            "per_question_reliability": rho,
+            "reliability": R,
+            "tau_ceiling": tau_max,
+            "tau_ceiling_ci95": [lo, hi],
+        }
+    )
+    if observed_tau is not None:
+        out["observed_tau"] = observed_tau
+        out["share_of_ceiling"] = observed_tau / tau_max if tau_max > 0 else None
+    return out
+
+
 def _ranked(scores, members):
     return sorted(
         (m for m in members if scores.get(m) is not None), key=lambda m: (-scores[m], m)
