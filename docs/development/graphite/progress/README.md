@@ -52,6 +52,22 @@ A manifest names, for one batch, the run output files (basenames under `--root`)
 (finding id to `REAL_ESCAPE`, `ORACLE_GAP` or `FALSE_POSITIVE`), `finding_fixes` (finding id to the fixing PR) and `excluded`.
 The three backfill manifests (stage A, the L1 to L4 ladder sessions, and the L2 to L4 Attacker sessions) are in `backfill/`.
 
+## Before you push (standing checklist for the progress ledger and gate work)
+
+1. **Pinned formatters, changed files only.** Black 26.5.1 (`~carbon/tools/black26/bin/black --config /dev/null FILES`) and ruff 0.16.3
+   (`ruff check --isolated --no-cache --target-version py310 FILES`). Never run Black over all of `scripts/`. An older local Black
+   is not evidence (lessons B-series; #1202 and #1210 failed CI on it).
+2. **Check the environment before trusting a local failure** (lessons B19). In a WSL-native clone:
+   - `git rev-parse origin/main` must equal `git ls-remote origin main` taken from the GitHub URL. A `git clone --shared` of the
+     Windows checkout makes `origin/main` that checkout's stale local `main`; tests that read `main_ref="origin/main"` then see
+     an old tree and fail falsely.
+   - `git status` is clean and `HEAD` is the head you mean to test.
+   - A known-green canary passes first (for example `tests/cpu/test_challenge_readiness_gate_q1.py`).
+3. **Safer clone recipe.** Clone from the GitHub URL; or after `--shared`, run `git remote set-url origin
+   https://github.com/carbonphysicsai/Carbon.git && git fetch origin` (or `git update-ref refs/remotes/origin/main <tip>`).
+4. `git diff --check origin/main...HEAD`, and run the long suites in the background to completion rather than under a short
+   timeout.
+
 ## Reading the first lines
 
 - Stage A to C are one point per level, so no trend exists yet; the ledger shows level against level and, from the next batch,
