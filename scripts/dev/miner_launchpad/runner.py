@@ -783,6 +783,9 @@ def practice_auto_retry(cfg):
 
 #: What a recorded practice request holds, from `practice_admitted`.
 PRACTICE_PARAMS = frozenset({"strategy", "hypothesis", "expected_effect", "identity"})
+#: What a smoke practice's request holds besides (LAUNCHPAD-SMOKE-PRACTICE-01):
+#: its mode, recorded only for a smoke practice so a full one is unchanged.
+SMOKE_PRACTICE_PARAMS = PRACTICE_PARAMS | {"mode"}
 
 
 def _remote_machine(cfg, runtime):
@@ -1956,7 +1959,8 @@ class RunnerAdapter:
             return None
         if (
             type(params) is not dict
-            or set(params) != PRACTICE_PARAMS
+            or set(params) not in (PRACTICE_PARAMS, SMOKE_PRACTICE_PARAMS)
+            or params.get("mode", "smoke") != "smoke"
             or type(params["strategy"]) is not dict
             or type(params["hypothesis"]) is not str
             or type(params["expected_effect"]) is not str
@@ -1980,6 +1984,8 @@ class RunnerAdapter:
             "hypothesis": params["hypothesis"],
             "expected_effect": params["expected_effect"],
             "identity": "miner-practice-" + uuid.uuid4().hex[:16],
+            # A smoke practice is sent again as a smoke practice.
+            **({"mode": params["mode"]} if "mode" in params else {}),
         }
 
     def _auto_retry_practice(self, identity):
@@ -3896,6 +3902,7 @@ class RunnerAdapter:
         from scripts.dev.miner_launchpad.operations import strategy_value
 
         strategy = strategy_value(request)
+        mode = self._practice_mode(admitted, request)
         self._practice_gates(admitted, strategy)
         hypothesis = request["hypothesis"]
         expected = request.get("expected_effect", hypothesis)
@@ -3908,7 +3915,33 @@ class RunnerAdapter:
             "expected_effect": expected,
             "identity": "miner-practice-" + uuid.uuid4().hex[:16],
         }
+        if mode == "smoke":
+            # Recorded only for a smoke practice: a full one's request is
+            # exactly what it always was.
+            params["mode"] = mode
         return self._background(admitted, "practice", params, "PRACTICING", request)
+
+    @staticmethod
+    def _practice_mode(admitted, request):
+        """A practice's mode (LAUNCHPAD-SMOKE-PRACTICE-01): full when omitted;
+        smoke only where the campaign's Challenge has a smoke hook, refused
+        `smoke_practice_unavailable` now, before anything starts."""
+        from carbon.challenge_registry.campaigns import campaign_for_manifest
+        from carbon.development_session import smoke_practice as smoke
+
+        try:
+            mode = smoke.mode_of(request.get("mode"))
+            if mode == smoke.SMOKE:
+                root = Path(admitted.campaign["root"])
+                manifest = json.loads((root / "campaign-manifest.json").read_bytes())
+                smoke.hook_of(campaign_for_manifest(manifest))
+        except smoke.SmokeUnavailable as refused:
+            status = 400 if refused.code == smoke.MODE_INVALID else 409
+            raise Rejected(refused.code, status) from None
+        except (OSError, ValueError, TypeError, LookupError):
+            # No readable manifest or campaign: no smoke practice (fail closed).
+            raise Rejected(smoke.UNAVAILABLE, 409) from None
+        return mode
 
     def freeze_candidate_admitted(self, admitted, request):
         """Freeze a practiced recipe. Its refusals - agent-selected campaign,

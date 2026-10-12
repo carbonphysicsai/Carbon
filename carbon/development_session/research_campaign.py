@@ -224,6 +224,13 @@ def practice_provenances():
 
 
 def trial_supports_selection(ledger, owner, strategy):
+    """Whether `owner` holds a practice result of exactly `strategy` that
+    supports selecting it: a full practice (`practice_provenances`), or a
+    PASSED smoke practice (`smoke_practice.is_passed`), whose `recipe` is
+    the original strategy. One rule for every Challenge and level
+    (LAUNCHPAD-SMOKE-PRACTICE-01)."""
+    from .smoke_practice import is_passed
+
     with ledger.db() as db:
         rows = db.execute(
             "SELECT body,digest FROM research_results WHERE owner=?", (owner,)
@@ -232,9 +239,8 @@ def trial_supports_selection(ledger, owner, strategy):
         if digest(body) != fingerprint:
             raise ValueError("retained practice result changed")
         result = json.loads(body)
-        if (
-            result.get("provenance") in practice_provenances()
-            and result.get("recipe") == strategy
+        if result.get("recipe") == strategy and (
+            result.get("provenance") in practice_provenances() or is_passed(result)
         ):
             return True
     return False
@@ -1294,16 +1300,48 @@ async def freeze_candidate(
     return {"epoch": epoch, "selection": record}
 
 
-async def practice_recipe(prepared, *, strategy, hypothesis, expected_effect, identity):
+async def practice_recipe(
+    prepared, *, strategy, hypothesis, expected_effect, identity, mode=None
+):
     """A miner's practice trial of a registered recipe on a prepared campaign.
 
     The same research task the agent's practice runs, through the campaign's
     own research service: real training on public TRAIN data, self-reported,
     and the result a later freeze needs.
+
+    `mode` "smoke" asks for a bounded smoke practice of the same recipe
+    (`smoke_practice`, LAUNCHPAD-SMOKE-PRACTICE-01): refused
+    `smoke_practice_unavailable` where the Challenge has no smoke hook, and
+    otherwise recorded for this trial identity before the task starts, so
+    the executor runs it truncated. Omitted, or "full": the full practice,
+    unchanged. A full practice that ends FAILED_INFRA at its time budget is
+    refused `practice_time_budget_reached`, whose next step is a smoke
+    practice of the same recipe.
     """
+    from . import smoke_practice as smoke
     from .research_tools import PREFIX
 
-    return await prepared.sdk.call(
+    try:
+        mode = smoke.mode_of(mode)
+        if mode == smoke.SMOKE:
+            smoke.hook_of(prepared.campaign)
+    except smoke.SmokeUnavailable as refused:
+        raise OperationRefused(refused.code) from None
+    if mode == smoke.SMOKE:
+        smoke.record_request(
+            prepared.ledger,
+            prepared.owner,
+            identity,
+            strategy,
+            prepared.manifest.get("challenge"),
+        )
+    seconds = getattr(
+        getattr(getattr(prepared.composition, "executor", None), "practice", None),
+        "seconds",
+        None,
+    )
+    started = time.monotonic()
+    answer = await prepared.sdk.call(
         PREFIX + "start_research_task",
         {
             "kind": "practice",
@@ -1315,6 +1353,11 @@ async def practice_recipe(prepared, *, strategy, hypothesis, expected_effect, id
         },
         identity,
     )
+    if mode == smoke.FULL and smoke.reached_time_budget(
+        answer, time.monotonic() - started, seconds
+    ):
+        raise OperationRefused(smoke.TIME_BUDGET_REACHED)
+    return answer
 
 
 async def submit_frozen(prepared):
