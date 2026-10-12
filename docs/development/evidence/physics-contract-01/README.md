@@ -64,20 +64,58 @@ The pooled residual p99 is only about 0.0000009 degC because the large errors
 are rare: 571/103,220 paired readings exceed 0.1 degC. A pooled p99 therefore
 hides substantial per-model tail failures.
 
-## Pair calibration pending
+## Verified public pair calibration
 
-The owner's public directory is
-`/home/carbon/shared/evidence/physics-calibration-01/`. Data Collection's plan
-is now present: 100 base points, 800 jobs and seven partner moves, with each
-law's own step. The 0.01 smoothness moves cover all four input axes. Its complete
-MANIFEST.json is expected around 20:30 UTC on 2026-10-12.
+Data Collection supplied 800 OK public records: 100 bases and 700 physical
+pairs, with each law's own step. The 0.01 smoothness moves cover all four
+input axes. The published source contract remains historical; current
+existing pair-law semantics are checked against its hash-bound bytes.
 
-The loader verifies the image, repository overlay lock, plan, jobs and each
-reference-record SHA. It supports the actual JSONL/plan format and refuses
-wrong axes/steps, changed other inputs, missing records and reference failures.
-Member inference can use the same public plan, avoiding a reference/model
-sampling mismatch at the input-box headroom. No solver runs for member probes.
-B5a/B5b/B6/B7/B8/B10 remain UNRESOLVED until verified calibration exists.
+| Binding | SHA-256 |
+| --- | --- |
+| MANIFEST.json | 7d4529df11998aadb6c16f6d87fcccde64fe24009aed1089f6959c8f1e31785b |
+| Simulator image | 2d19b261e722fe67f20bee02e115f2277a799c448b90d54d2872361b341bd940 |
+| Repository overlay lock | 6267e033b30728b200d9e0c2aa6b55a9117cd67e03c6f89c9a17294d12e594ee |
+| plan.json | 83d7ddce8a7e260fe2e0f19968b045abf15b522fa7d2df61b7fb0d3567ac6fdf |
+| jobs.json | eebb8066d60af75fc3cf0f71e65885688da35da16c99313e7f846ccdf1c98308 |
+| records.jsonl | 7670d5fbb524e6c31a0a04749b53dcb86b9c16cb791b67bfe3673681481b4474 |
+| Source contract at ddb63227d | fd2d92811ba2fe2f1f5c9ce6d296a943694530a9df306c7ff1ce271edc246cb2 |
+
+Canonical verification checks these bindings, the generator and solve-command
+bytes, every record's exact JSONL-line SHA, every record's solver provenance,
+complete job/record coverage, pair geometry/step and the committed MMS
+acceptance link. A mismatch is refused. No model residual replaces a
+reference residual. The acceptance is code discretisation verification;
+reference adequacy, real-cell validity and gate adoption are separate.
+
+B15 is screened first. B15/B16 reuse the same c1/c2 0.05-step pairs and inspect
+0, 30, 60 and 90 seconds only. The 120-second switch is excluded. This gives
+200 verified readings each, both with exactly zero reference residual.
+B5a's reference maximum residual is 0.9835582801131864 degC; B6's is
+0.0014502727396130816 V. B5b/B7/B8 have zero reference residual on these
+pairs. B10 has 400 readings, with a maximum 143.36326175450458 in the
+proposal's raw output-change/input-step convention (not a registered
+physical tolerance). These measurements establish diagnostic calibration;
+all gate states, quantiles, margins and allowed rates remain UNRESOLVED or
+HUMAN_INPUT pending owner registration.
+
+## Pinned B9 parameter reading
+
+`physics-parameters.json` comes from the retained
+`scripts/dev/battery/physics_parameters.py`, run inside the accepted simulator
+image with the verified overlay, read-only source/root and no network. It
+reads parameters without solving. Both OKane2022 electrode OCP entropic
+coefficients are zero, giving a zero reversible-heat cooling bound. It also
+records nominal capacity 5 Ah, maximum protocol current 10 A, heat-transfer
+coefficient 10 W/m2/K, cooling area 0.00531 m2 and effective heat capacity
+42.77529812749004 J/K at both ambient bounds, all read or derived from the
+pinned parameter set and reference specification.
+
+B9 stays diagnostic. Its accuracy term and proof for other signed heat
+terms stay HUMAN_INPUT. Zero entropic coefficients do not establish a
+universal real-cell temperature floor. B16 is a model-card metric only;
+B1-B3 reference `carbon.battery.exam.GATES` as consistency evidence.
+**Gates never substitute for verified decisions.**
 
 Example (on public copies inside the canonical checkout):
 
@@ -86,12 +124,33 @@ python -m scripts.dev.battery.physics_screen \
   --ev4 public-inputs/ev4 --run5 public-inputs/run5 \
   --attack public-inputs/attack --dev-results public-inputs/dev-results.json \
   --pairs 100 --calibration-panel public-inputs/calibration \
+  --pair-readings public-inputs/calibrated-readings.json \
   --out public-inputs/screen-pairs
 ```
 
 Only aggregate screen evidence is committed. Raw/public pair-reading caches
-stay outside the repository and bind the contract/checker and public plan.
+stay outside the repository and bind the contract/checker/adapter, public
+plan, manifest, member identities, builder source and requested count. The pre-RES-06 cache
+is refused; missing or partial model readings stay UNRESOLVED.
+The roster is frozen to the original public bundles, five controls and
+decision file. Later score-proof screen additions (including always-abstain)
+cannot silently widen this registry-v9 comparison.
+Generate readings first with `--pair-cache-only` and the same public input
+arguments, then run the screen with `--pair-readings`. The cache producer
+reads one prediction bundle at a time to determine decided membership, and
+releases compiled model programs after each member; it does not retain the
+historical full-panel curves during rebuilds. Per-member public checkpoint
+lines allow an interrupted run to resume under exactly matching identities.
+An incomplete cache is refused by the screen, even if labelled complete.
+The initial combined run exited under shared WSL memory exhaustion before
+a complete cache existed; it is infrastructure failure, not a model verdict.
+The handoff's `recipes.py` log(0) warning is traced to
+`model_from_bytes` calling `features(np.zeros((1, 4)), ...)` to determine
+feature width. It is a zero-input construction sentinel, not a calibration
+probe. All public plan inputs are checked against the positive input box;
+the pinned recipe modules are unchanged.
 Fixture/canonical tests validate engineering boundaries only. The inherited
-329-test baseline passed with science-jax/chain dependencies; the focused
-checker/screen/validity tests passed. Exact final checks remain in the PR and
+329-test baseline and resumed 38-test baseline passed with science-jax/chain
+dependencies; the expanded focused checker/screen/validity suite has 64
+passing tests. Exact final checks remain in the PR and
 untracked queue report. Hub maintenance is retired; no Hub outputs are changed.

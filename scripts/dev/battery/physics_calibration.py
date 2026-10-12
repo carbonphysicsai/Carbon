@@ -1,7 +1,7 @@
 """Load PUBLIC reference pairs with byte-bound provenance for PLT-01.
 
 This consumes existing solves; it never starts a solver or grants scientific
-qualification. The panel is pending Data Collection. No member residual is
+qualification. The panel is supplied by Data Collection. No member residual is
 ever substituted for a reference residual.
 """
 
@@ -49,10 +49,97 @@ def public_plan(directory, contract):
         raise CalibrationRefused("calibration_jobs_hash")
     if plan["contract"]["probe_region"] != contract["probe_region"]:
         raise CalibrationRefused("calibration_plan_region")
-    return plan, json.loads(jobs_body)["jobs"], hashlib.sha256(body).hexdigest()
+    if "sha256" in plan["contract"]:
+        source_body = _file(directory, "contract.v1.json")
+        _hash(source_body, plan["contract"]["sha256"], "contract_hash")
+        source = json.loads(source_body)
+        if any(
+            plan["contract"][k] != source[k]
+            for k in ("challenge", "version", "probe_region")
+        ):
+            raise CalibrationRefused("calibration_contract_identity")
+        if (
+            source["challenge"] != contract["challenge"]
+            or source["required_outputs"] != contract["required_outputs"]
+        ):
+            raise CalibrationRefused("calibration_contract_identity")
+        current = {law["id"]: law for law in contract["laws"]}
+        original = {law["id"]: law for law in source["laws"]}
+        semantic_fields = (
+            "type",
+            "output",
+            "outputs",
+            "summary",
+            "input",
+            "direction",
+            "step",
+        )
+        for pair in plan["pairs"]:
+            for lid in pair["laws"]:
+                if (
+                    lid not in current
+                    or lid not in original
+                    or any(
+                        current[lid].get(k) != original[lid].get(k)
+                        for k in semantic_fields
+                    )
+                ):
+                    raise CalibrationRefused("calibration_contract_law")
+    jobs = json.loads(jobs_body)["jobs"]
+    if type(jobs) is not list or len({j["case_id"] for j in jobs}) != len(jobs):
+        raise CalibrationRefused("calibration_job_ids")
+    if "jobs" in plan and plan["jobs"] != len(jobs):
+        raise CalibrationRefused("calibration_job_count")
+    return plan, jobs, hashlib.sha256(body).hexdigest()
 
 
-def load_directory(directory, contract, *, repository):
+def _hash(body, expected, reason):
+    actual = hashlib.sha256(body).hexdigest()
+    if expected not in (actual, "sha256:" + actual):
+        raise CalibrationRefused("calibration_" + reason)
+    return actual
+
+
+def planned_pairs(plan, records, contract):
+    """Reuse hash-bound c1/c2 pairs for rest causality at the declared step.
+
+    The original plan predates RES-06. No pair input or reference is changed;
+    the additional law IDs are an explicit prospective projection.
+    """
+    pairs = []
+    for pair in plan["pairs"]:
+        lids = list(pair["laws"])
+        for law in contract["laws"]:
+            if (
+                law["type"] == "prefix_invariance"
+                and pair["input"] in law["inputs"]
+                and pair["step_fraction"] == law["step"]
+            ):
+                lids.append(law["id"])
+        for lid in lids:
+            pairs.append(
+                {
+                    "law_id": lid,
+                    "along": pair["input"],
+                    "base": records[pair["base"]],
+                    "partner": records[pair["partner"]],
+                }
+            )
+    return pairs
+
+
+def load_directory(directory, contract, *, repository, include_records=False):
+    try:
+        return _load_directory(
+            directory, contract, repository=repository, include_records=include_records
+        )
+    except (OSError, KeyError, TypeError, AttributeError, ValueError) as exc:
+        if isinstance(exc, CalibrationRefused):
+            raise
+        raise CalibrationRefused("calibration_panel_schema") from exc
+
+
+def _load_directory(directory, contract, *, repository, include_records=False):
     """MANIFEST.json binds plan.json and one JSON reference file per record.
 
     `records` maps relative file names to SHA-256 strings (or {sha256: ...}).
@@ -63,6 +150,50 @@ def load_directory(directory, contract, *, repository):
     directory = Path(directory)
     manifest_body = _file(directory, "MANIFEST.json")
     manifest = json.loads(manifest_body)
+    strict = manifest.get("schema") == "carbon.battery.physics-calibration-manifest.v1"
+    if strict:
+        if not manifest.get("scope", "").startswith("PUBLIC_DEVELOPMENT"):
+            raise CalibrationRefused("calibration_not_public")
+        plan, jobs, _ = public_plan(directory, contract)
+        binding, solver = manifest["plan"], manifest["solver"]
+        if manifest.get("missing") != [] or manifest.get("counts") != {"OK": len(jobs)}:
+            raise CalibrationRefused("calibration_incomplete")
+        if binding["jobs"] != len(jobs) or binding["pairs"] != len(plan["pairs"]):
+            raise CalibrationRefused("calibration_plan_count")
+        if binding["contract_sha256"] != plan["contract"]["sha256"]:
+            raise CalibrationRefused("calibration_contract_hash")
+        _hash(_file(directory, "jobs.json"), binding["jobs_sha256"], "jobs_hash")
+        _hash(
+            _file(directory, "records.jsonl"),
+            manifest["records_file_sha256"],
+            "records_file_hash",
+        )
+        _hash(
+            _file(directory, "physcal_plan.py"),
+            binding["generator_sha256"],
+            "generator_hash",
+        )
+        _hash(
+            _file(directory, "solve-command.json"),
+            solver["solve_command_sha256"],
+            "solve_command_hash",
+        )
+        verified = solver["overlay_verified"]
+        if (
+            solver["overlay_lock"] != OVERLAY
+            or verified["base_image"] != solver["image"]
+            or verified["lock_sha256"]
+            != solver["overlay_lock_sha256"].removeprefix("sha256:")
+            or verified["network"] != "none"
+        ):
+            raise CalibrationRefused("calibration_solver_binding")
+        manifest = {
+            **manifest,
+            "image_digest": solver["image"],
+            "overlay_lock_sha256": solver["overlay_lock_sha256"],
+            "plan": "plan.json",
+            "plan_sha256": binding["plan_sha256"],
+        }
     image = manifest.get("image_digest", manifest.get("reference_image_digest", ""))
     if image.split("@")[-1] != IMAGE:
         raise CalibrationRefused("calibration_reference_image")
@@ -97,16 +228,9 @@ def load_directory(directory, contract, *, repository):
             cid = record.get("case_id")
             expected = hashes.get(cid)
             expected = expected.get("sha256") if type(expected) is dict else expected
-            encodings = (
-                line,
-                line + b"\n",
-                json.dumps(record, sort_keys=True, separators=(",", ":")).encode(),
-            )
-            actuals = {hashlib.sha256(body).hexdigest() for body in encodings}
-            if (
-                type(expected) is not str
-                or expected.removeprefix("sha256:") not in actuals
-            ):
+            # Published per-record identity is exactly the JSONL line without LF.
+            actual = hashlib.sha256(line).hexdigest()
+            if type(expected) is not str or expected.removeprefix("sha256:") != actual:
                 raise CalibrationRefused("calibration_record_hash")
             if type(cid) is not str or cid in records:
                 raise CalibrationRefused("calibration_record_id")
@@ -125,6 +249,20 @@ def load_directory(directory, contract, *, repository):
             if type(cid) is not str or cid in records:
                 raise CalibrationRefused("calibration_record_id")
             records[cid] = record
+    if strict:
+        if set(records) != {job["case_id"] for job in jobs}:
+            raise CalibrationRefused("calibration_record_missing")
+        for record in records.values():
+            observed = record.get("solver_provenance", {})
+            if (
+                record.get("status") != "OK"
+                or observed.get("schema") != "carbon.battery.solver-provenance.v1"
+                or observed.get("solver_image") != solver["image"]
+                or observed.get("overlay_lock") != OVERLAY
+                or observed.get("overlay_lock_sha256") != solver["overlay_lock_sha256"]
+                or observed.get("pybamm") != verified["versions"]["pybamm"]
+            ):
+                raise CalibrationRefused("calibration_record_provenance")
     if plan.get("scope", "").startswith("PUBLIC"):
         jobs_body = _file(directory, "jobs.json")
         if plan.get("jobs_sha256") != hashlib.sha256(jobs_body).hexdigest():
@@ -158,7 +296,32 @@ def load_directory(directory, contract, *, repository):
                 )
         except KeyError as exc:
             raise CalibrationRefused("calibration_record_missing") from exc
-    return readings({"pairs": pairs}, contract), {
+    if strict:
+        pairs = planned_pairs(plan, records, contract)
+        identities = {
+            (p["law_id"], p["base"]["case_id"], p["partner"]["case_id"]) for p in pairs
+        }
+        if len(identities) != len(pairs):
+            raise CalibrationRefused("calibration_duplicate_pair")
+        for law in contract["laws"]:
+            if law["type"] not in pc.PAIR:
+                continue
+            axes = (
+                list(contract["probe_region"])
+                if law["type"] == "smoothness"
+                else (
+                    law["inputs"]
+                    if law["type"] == "prefix_invariance"
+                    else [law["input"]]
+                )
+            )
+            for axis in axes:
+                if (
+                    sum(p["law_id"] == law["id"] and p["along"] == axis for p in pairs)
+                    != plan["bases"]
+                ):
+                    raise CalibrationRefused("calibration_pair_coverage")
+    provenance = {
         "image_digest": IMAGE,
         "overlay_lock_sha256": overlay_sha,
         "plan_sha256": plan_sha,
@@ -168,6 +331,35 @@ def load_directory(directory, contract, *, repository):
         "acceptance": ACCEPTANCE,
         "contract_digest": pc.digest(contract),
     }
+    if strict:
+        from carbon.trust_map.acceptance import AcceptanceRefused, load_acceptance
+
+        try:
+            acceptance = load_acceptance(
+                "battery-v3",
+                IMAGE,
+                verification["criteria_digest"],
+                root=Path(repository),
+            )
+        except AcceptanceRefused as exc:
+            raise CalibrationRefused("calibration_reference_unverified") from exc
+        provenance.update(
+            {
+                "jobs_sha256": binding["jobs_sha256"],
+                "records_file_sha256": manifest["records_file_sha256"],
+                "source_contract_sha256": binding["contract_sha256"],
+                "source_contract": binding["contract_source"],
+                "physical_pairs": len(plan["pairs"]),
+                "derived_prefix_laws": [
+                    law["id"]
+                    for law in contract["laws"]
+                    if law["type"] == "prefix_invariance"
+                ],
+                "acceptance_link": acceptance,
+            }
+        )
+    result = readings({"pairs": pairs}, contract), provenance
+    return (*result, records) if include_records else result
 
 
 def readings(panel, contract):
@@ -189,7 +381,10 @@ def readings(panel, contract):
         )
         region = contract["probe_region"]
         if along not in region or (
-            law["type"] != "smoothness" and along != law["input"]
+            law["type"] == "prefix_invariance"
+            and along not in law["inputs"]
+            or law["type"] not in ("smoothness", "prefix_invariance")
+            and along != law["input"]
         ):
             raise CalibrationRefused("calibration_pair_axis")
         if (

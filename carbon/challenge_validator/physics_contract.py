@@ -40,7 +40,7 @@ SCHEMA = "carbon.physics-contract.v1"
 SINGLE = frozenset(
     {"bound", "initial_equals_input", "initial_near_aux", "ordered", "floor_input"}
 )
-PAIR = frozenset({"monotone", "monotone_curve", "smoothness"})
+PAIR = frozenset({"monotone", "monotone_curve", "smoothness", "prefix_invariance"})
 LAW_TYPES = SINGLE | PAIR
 SUMMARIES = frozenset({"max", "min", "first", "last", "value"})
 HUMAN_INPUT = "HUMAN_INPUT"
@@ -149,6 +149,25 @@ def validate(contract):
             raise ContractRefused("physics_contract_law_summary:" + law["id"])
         if law.get("direction", "increasing") not in ("increasing", "decreasing"):
             raise ContractRefused("physics_contract_law_direction:" + law["id"])
+        if law["type"] == "prefix_invariance":
+            axes = law.get("inputs")
+            grid, switch = law.get("grid_step_s"), law.get("switch_time_s")
+            size = shapes.get(law["output"])
+            if (
+                type(axes) is not list
+                or not axes
+                or any(type(axis) is not str for axis in axes)
+                or len(set(axes)) != len(axes)
+                or any(axis not in region for axis in axes)
+                or not _number(grid)
+                or grid <= 0
+                or not _number(switch)
+                or switch <= 0
+                or type(size) is not int
+                or size <= 0
+                or math.ceil(switch / grid) > size
+            ):
+                raise ContractRefused("physics_contract_law_prefix:" + law["id"])
     return contract
 
 
@@ -311,7 +330,11 @@ def probe_pairs(contract, law, *, seed, count):
     pairs = []
     while len(pairs) < count:
         base = {k: rng.uniform(*region[k]) for k in names}
-        along = law["input"] if law["type"] != "smoothness" else rng.choice(names)
+        along = (
+            rng.choice(law["inputs"])
+            if law["type"] == "prefix_invariance"
+            else rng.choice(names) if law["type"] == "smoothness" else law["input"]
+        )
         low, high = region[along]
         step = float(law["step"]) * (high - low)
         if base[along] + step > high:
@@ -331,6 +354,14 @@ def pair_residual(law, base_out, partner_out, along, step, scale=None):
             a, b = _values(base_out[name]), _values(partner_out[name])
             if len(a) != len(b):
                 return None
+        if law["type"] == "prefix_invariance":
+            if along not in law["inputs"]:
+                return None
+            count = math.ceil(law["switch_time_s"] / law["grid_step_s"])
+            if len(a) < count:
+                return None
+            # t < switch: the switch endpoint is never part of the rest prefix.
+            return max(abs(y - x) for x, y in zip(a[:count], b[:count]))
         if law["type"] == "monotone":
             a = _summary(base_out[law["output"]], law.get("summary", "value"))
             b = _summary(partner_out[law["output"]], law.get("summary", "value"))

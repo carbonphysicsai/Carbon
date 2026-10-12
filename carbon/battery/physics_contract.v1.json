@@ -3,7 +3,7 @@
   "challenge": "battery-fastcharge-ageing-development-v1",
   "version": "battery-physics-v1",
   "status": "DEVELOPMENT_PROPOSAL",
-  "note": "PHYSICS-CONTRACT-01. Laws B1-B10, checkable on today's outputs. Hard gates when adopted (admissibility before ranking), never score terms. Every tolerance's quantile and margin is HUMAN_INPUT until the owner registers it; the law list is reconciled with research RES-06. Validity: the DFN's ranges are pending (VALIDITY-ENVELOPE-01, research RES-05); until declared, probes stay inside the input box.",
+  "note": "PHYSICS-CONTRACT-01, reconciled with RES-06. B15 is screened first as candidate gate #1; B16 and B9 are diagnostic only. B1-B3 reference existing exam checks and are consistency evidence, not duplicate gates. Gates never substitute for verified decisions. All law adoption, quantile, margin, gate rate and scientific validity remain HUMAN_INPUT. In-box DEVELOPMENT diagnostics only; no LIVE, scoring or daemon integration.",
   "validity": "battery-fastcharge-ageing-development-v1",
   "validity_status": "PENDING_SCIENCE_OWNER",
   "validity_models": [],
@@ -16,16 +16,18 @@
     "soc0": [0.05, 0.5]
   },
   "laws": [
-    {"id": "B1", "name": "cycler window", "type": "bound", "output": "voltage_v", "low": 2.5, "high": 4.2},
-    {"id": "B2", "name": "initial temperature is ambient", "type": "initial_equals_input", "output": "temperature_c", "input": "t_amb_c"},
-    {"id": "B3", "name": "initial voltage near OCV(soc0)", "type": "initial_near_aux", "output": "voltage_v", "aux": "ocv", "input": "soc0"},
+    {"id": "B15", "name": "rest temperature causality", "type": "prefix_invariance", "output": "temperature_c", "inputs": ["c1", "c2"], "step": 0.05, "grid_step_s": 30, "switch_time_s": 120, "role": "CANDIDATE_GATE_1", "evidence": "RES-06 R04; PHYSICS_CONTRACT_01_HANDOFF.md: RES-06 folded in", "adoption": "HUMAN_INPUT"},
+    {"id": "B16", "name": "rest voltage causality", "type": "prefix_invariance", "output": "voltage_v", "inputs": ["c1", "c2"], "step": 0.05, "grid_step_s": 30, "switch_time_s": 120, "role": "MODEL_CARD_METRIC_ONLY", "evidence": "RES-06; PHYSICS_CONTRACT_01_HANDOFF.md: RES-06 folded in", "adoption": "HUMAN_INPUT"},
+    {"id": "B1", "name": "cycler window", "type": "bound", "output": "voltage_v", "low": 2.5, "high": 4.2, "role": "EXISTING_EXAM_CONSISTENCY", "existing_exam_gate": "carbon.battery.exam.GATES: voltage_ceiling, voltage_floor"},
+    {"id": "B2", "name": "initial temperature is ambient", "type": "initial_equals_input", "output": "temperature_c", "input": "t_amb_c", "role": "EXISTING_EXAM_CONSISTENCY", "existing_exam_gate": "carbon.battery.exam.GATES: initial_temperature"},
+    {"id": "B3", "name": "initial voltage near OCV(soc0)", "type": "initial_near_aux", "output": "voltage_v", "aux": "ocv", "input": "soc0", "role": "EXISTING_EXAM_CONSISTENCY", "existing_exam_gate": "carbon.battery.exam.GATES: initial_voltage"},
     {"id": "B4", "name": "capacity fades over cycles", "type": "ordered", "output": "capacity_ah", "direction": "decreasing"},
     {"id": "B5a", "name": "peak temperature rises with c1", "type": "monotone", "output": "temperature_c", "summary": "max", "input": "c1", "direction": "increasing", "step": 0.05},
     {"id": "B5b", "name": "peak temperature rises with c2", "type": "monotone", "output": "temperature_c", "summary": "max", "input": "c2", "direction": "increasing", "step": 0.05},
     {"id": "B6", "name": "plating margin falls with c1", "type": "monotone", "output": "plating_margin_v", "summary": "value", "input": "c1", "direction": "decreasing", "step": 0.05},
     {"id": "B7", "name": "plating margin rises with ambient (RES-06 to confirm)", "type": "monotone", "output": "plating_margin_v", "summary": "value", "input": "t_amb_c", "direction": "increasing", "step": 0.05},
     {"id": "B8", "name": "temperature curve rises with ambient", "type": "monotone_curve", "output": "temperature_c", "input": "t_amb_c", "direction": "increasing", "step": 0.05},
-    {"id": "B9", "name": "temperature floor relative to ambient (reference-calibrated proposal)", "type": "floor_input", "output": "temperature_c", "input": "t_amb_c", "offset": 0.0},
+    {"id": "B9", "name": "temperature floor relative to ambient (diagnostic only)", "type": "floor_input", "output": "temperature_c", "input": "t_amb_c", "offset": 0.0, "role": "DIAGNOSTIC_ONLY", "margin_derivation": {"status": "HUMAN_INPUT", "parameter_set": "OKane2022", "coefficient_reading": "See physics-parameters.json from the pinned image and overlay; both electrode entropic coefficients are zero", "accuracy_term": "HUMAN_INPUT", "other_signed_heat_nonnegative_proof": "HUMAN_INPUT", "gate_proposal": false}},
     {"id": "B10", "name": "smoothness (robustness probe)", "type": "smoothness", "outputs": ["voltage_v", "temperature_c", "plating_margin_v", "capacity_ah"], "step": 0.01}
   ],
   "tolerance": {

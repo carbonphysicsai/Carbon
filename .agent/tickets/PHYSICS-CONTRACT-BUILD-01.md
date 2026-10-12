@@ -1,7 +1,7 @@
 # PLT-01 — PHYSICS-CONTRACT-BUILD-01
 
-Status: implementation and public diagnostic evidence candidate; calibration
-panel pending. Reviewer: **Carbon Validator**. One PR from
+Status: resumed public calibration and RES-06 implementation candidate.
+Reviewer: **Carbon Validator**. One PR from
 `agent/physics-contract-01` to `main`. Never merge or approve in this session.
 
 Authority: owner's Platform queue assignment on 2026-10-12;
@@ -18,7 +18,8 @@ machinery. No pinned implementation module changes.
 
 Scope: Challenge-neutral declarative contract identity, single/pair checks
 without probe solves, battery B1–B10, byte-verified PUBLIC reference-pair input,
-JSON/Markdown diagnostics, role-specific catches, registry-v9 tau comparisons
+JSON/Markdown diagnostics, B15-first prefix causality and B16 card metrics,
+role-specific catches, registry-v9 tau comparisons
 and independent B9 raw-curve analysis. No daemon/score integration or adoption.
 
 Quantile, margin and allowed violation rate remain HUMAN_INPUT. Battery's DFN
@@ -33,9 +34,15 @@ and exact-head CI/Merge gate. Full regression follows the path classifier.
 
 Public aggregate evidence: `docs/development/evidence/physics-contract-01/`.
 Final exact head and CI result belong in the PR and untracked queue report.
-The owner will supply `/home/carbon/shared/evidence/physics-calibration-01/`
-around 20:30 UTC; verify MANIFEST.json and run the pair screen when it arrives.
-Until then B5a/B5b/B6/B7/B8/B10 remain UNRESOLVED.
+The owner supplied `public-inputs/calibration/`:
+800 public solves, 700 physical pairs over 100 bases. Bind its MANIFEST.json
+sha256 `7d4529df11998aadb6c16f6d87fcccde64fe24009aed1089f6959c8f1e31785b`;
+verify every file and record before screening. Its source contract is
+`ddb63227d` (raw SHA fd2d9281...), preserved by digest; current pair-law
+semantics must match. Prospectively reuse the c1/c2 0.05-step pairs for
+B15/B16 at 0/30/60/90 seconds, excluding the 120-second switch endpoint.
+B9 and B16 remain diagnostics; B1-B3 reference existing exam gates.
+Gates never substitute for verified decisions. All adoption remains HUMAN_INPUT.
 
 Primary historical map_ref: WAVE-C/C-05. Hub maintenance is retired by the
 current delivery protocol; no Hub files are edited or regenerated.

@@ -19,12 +19,10 @@ rate a member may show):
 Single-point laws (B1-B4, B9) run on stored predictions over the public
 scoring set and are calibrated on the EV4 references (the verified image
 carbon-determinism-study@sha256:2d19b261..., OWNER-CODE-VERIFICATION-ACCEPT-01).
-Pair laws (B5-B8, B10) need each member to predict at probe pairs, so
-`--pairs N` rebuilds members (CPU, DirectBackend, no spend). Their tolerance
-needs reference **pairs**, which no record holds yet: they are reported
-UNCALIBRATED and are not proposable until Data Collection solves a calibration
-panel. The controls are derived from references, so they have no pair-law
-reading.
+Pair laws (B15 first, B16, B5-B8 and B10) use member predictions and the
+byte-verified public reference pairs. `--pairs N` rebuilds members locally;
+the existing synthetic controls are derived from the same reference records.
+An identity-matching cache can reuse these readings without another rebuild.
 
 DEVELOPMENT evidence on public data: aggregates only. Nothing here is a
 gate, a tolerance or a margin until the owner records it.
@@ -33,6 +31,8 @@ gate, a tolerance or a margin until the owner records it.
 from __future__ import annotations
 
 import argparse
+import gc
+import gzip
 import hashlib
 import json
 import statistics
@@ -137,6 +137,7 @@ def screen(
         lid = law["id"]
         if law["type"] in pc.PAIR:
             readings = (pair_residuals or {}).get(lid) or {}
+            raw_readings = readings
             rows = []
             good_read = [m for m in good if readings.get(m)]
             bad_read = [m for m in bad if readings.get(m)]
@@ -148,6 +149,11 @@ def screen(
             )
             ref = ref_row["residuals"]
             calibrated = bool(ref) and ref_row["unresolved"] == 0
+            if calibrated:
+                # A partial member reading cannot look like a passing member.
+                readings = {m: v for m, v in readings.items() if len(v) == len(ref)}
+                good_read = [m for m in good if readings.get(m)]
+                bad_read = [m for m in bad if readings.get(m)]
             tols = (
                 [(q, 0.0, pc.tolerance(ref, q=q, margin=0)) for q in QUANTILES]
                 if calibrated
@@ -195,6 +201,7 @@ def screen(
             laws[lid] = {
                 "name": law["name"],
                 "type": law["type"],
+                "role": law.get("role", "UNADOPTED_LAW_PROPOSAL"),
                 "calibration": (
                     "REFERENCE_CALIBRATED_DIAGNOSTIC"
                     if calibrated
@@ -205,6 +212,18 @@ def screen(
                 "reference_unresolved": ref_row["unresolved"],
                 "reference_residual": _distribution(ref),
                 "members_read": len(readings),
+                "member_residuals": {
+                    m: {
+                        **_distribution(raw_readings.get(m, [])),
+                        "points": len(raw_readings.get(m, [])),
+                        "missing_pairs": (
+                            max(0, len(ref) - len(raw_readings.get(m, [])))
+                            if calibrated
+                            else None
+                        ),
+                    }
+                    for m in members
+                },
                 "unresolved_members": sorted(m for m in members if not readings.get(m)),
                 "screen": rows,
             }
@@ -286,6 +305,8 @@ def screen(
         laws[lid] = {
             "name": law["name"],
             "type": law["type"],
+            "role": law.get("role", "UNADOPTED_LAW_PROPOSAL"),
+            "existing_exam_gate": law.get("existing_exam_gate"),
             "reference_points": len(ref),
             "reference_unresolved": reference_detail[lid]["unresolved"],
             "unresolved_members": sorted(set(members) - resolved),
@@ -310,6 +331,7 @@ def screen(
         "contract": contract["version"],
         "contract_digest": pc.digest(contract),
         "maturity": "DEVELOPMENT_DIAGNOSTIC",
+        "notes": "Gates never substitute for verified decisions. B15 is screened first; B16 and B9 are diagnostic only. B1-B3 reference existing exam gates. No law is adopted here.",
         "validity_status": contract.get("validity_status", "HUMAN_INPUT"),
         "registered_quantile": contract["tolerance"]["quantile"],
         "registered_margin": contract["tolerance"]["margin"],
@@ -407,12 +429,17 @@ def markdown(result):
         "",
         "DEVELOPMENT diagnostics only. All gates remain UNRESOLVED; quantile, margin, gate rate and adoption are HUMAN_INPUT. Pair rows without verified calibration are diagnostics only.",
         "",
+        result.get("notes", "Gates never substitute for verified decisions."),
+        "",
         f"Panel: {result['members']} members; {result['good_value']} good-value members (loss at or below the benign reconstructed panel median).",
         "",
         "| Law | Calibration | Reference points | Tolerance candidate | Rate candidate | False rejection | Catch | Reference violation rate | Tau before / after |",
         "| --- | --- | ---: | ---: | ---: | --- | --- | --- | --- |",
     ]
     for lid, law in result["laws"].items():
+        lines.append(
+            f"| {lid} ({law.get('role', 'UNADOPTED_LAW_PROPOSAL')}) | {law.get('calibration', 'PUBLIC_REFERENCE_DIAGNOSTIC')} | {law['reference_points']} | | | | | | |"
+        )
         for row in law["screen"]:
             taus = "; ".join(
                 f"{name}: {row['tau_before'].get(name)} / {row['tau_after'].get(name)}"
@@ -437,7 +464,16 @@ def markdown(result):
     return "\n".join(lines)
 
 
-def _pair_readings(panel_names, contract, count, seed, plan_directory=None):
+def _pair_readings(
+    panel_names,
+    contract,
+    count,
+    seed,
+    plan_directory=None,
+    reference_records=None,
+    initial=None,
+    checkpoint=None,
+):
     """Rebuild the reconstructed and attack members (CPU) and read the pair
     laws at `count` probe pairs per law."""
     from carbon.battery.value import experiment as ex
@@ -447,14 +483,16 @@ def _pair_readings(panel_names, contract, count, seed, plan_directory=None):
 
     backend = DirectBackend(ROOT)
     wanted = set(panel_names)
-    readings = {law["id"]: {} for law in contract["laws"] if law["type"] in pc.PAIR}
+    readings = initial or {
+        law["id"]: {} for law in contract["laws"] if law["type"] in pc.PAIR
+    }
     plan = jobs = None
     if plan_directory:
         from scripts.dev.battery.physics_calibration import public_plan
 
         plan, jobs, _identity = public_plan(plan_directory, contract)
     for member, _family, strategy, seed_m in pn.members("ev4-dev-proof"):
-        if member not in wanted:
+        if member not in wanted or all(member in row for row in readings.values()):
             continue
 
         def predict(points, member=member, strategy=strategy, seed_m=seed_m):
@@ -477,21 +515,23 @@ def _pair_readings(panel_names, contract, count, seed, plan_directory=None):
                 job["case_id"]: {"status": "OK", "inputs": point, "outputs": output}
                 for job, point, output in zip(jobs, points, outputs)
             }
-            pairs = [
-                {
-                    "law_id": lid,
-                    "along": pair["input"],
-                    "base": by_id[pair["base"]],
-                    "partner": by_id[pair["partner"]],
-                }
-                for pair in plan["pairs"]
-                for lid in pair["laws"]
-            ]
+            from scripts.dev.battery.physics_calibration import planned_pairs
+
+            pairs = planned_pairs(plan, by_id, contract)
             found = planned_readings({"pairs": pairs}, contract)
         for lid, values in found.items():
             readings[lid][member] = (
                 values["residuals"] if values["unresolved"] == 0 else []
             )
+        if checkpoint:
+            checkpoint(member, {lid: row[member] for lid, row in readings.items()})
+        # Rebuilds need no historical full-panel curves or compiled programs.
+        # Clearing compilation caches changes resource use, not model inputs,
+        # construction settings, seeds, or law arithmetic.
+        runtime = sys.modules.get("jax")
+        if runtime is not None:
+            runtime.clear_caches()
+        gc.collect()
         print(
             json.dumps(
                 {
@@ -504,7 +544,52 @@ def _pair_readings(panel_names, contract, count, seed, plan_directory=None):
             file=sys.stderr,
             flush=True,
         )
+    if reference_records is not None and plan is not None:
+        from scripts.dev.battery.physics_calibration import (
+            planned_pairs,
+        )
+        from scripts.dev.battery.physics_calibration import (
+            readings as planned_readings,
+        )
+
+        for kind in pn.CONTROLS:
+            member = "control-" + kind
+            if member not in wanted or all(member in row for row in readings.values()):
+                continue
+            outputs = pn.control_predictions(kind, reference_records)
+            records = {
+                cid: {**record, "outputs": outputs[cid]}
+                for cid, record in reference_records.items()
+                if cid in outputs
+            }
+            found = planned_readings(
+                {"pairs": planned_pairs(plan, records, contract)}, contract
+            )
+            for lid, row in found.items():
+                readings[lid][member] = (
+                    row["residuals"] if row["unresolved"] == 0 else []
+                )
+            if checkpoint:
+                checkpoint(member, {lid: row[member] for lid, row in readings.items()})
     return readings
+
+
+def public_member_names(directories, dev_results):
+    """Read one public bundle at a time; match assemble's decided membership."""
+    from carbon.battery.value.panel import CONTROLS
+
+    names = {"control-" + kind for kind in CONTROLS}
+    for directory in directories:
+        for path in sorted(Path(directory).glob("*.json.gz")):
+            with gzip.open(path, "rt") as handle:
+                bundle = json.load(handle)
+            member = bundle.get("member")
+            if type(member) is not str or not member:
+                raise ValueError("physics_public_member_identity")
+            names.add(member)
+            del bundle
+    decided = json.loads(Path(dev_results).read_text())["decisions"]
+    return sorted(names & set(decided))
 
 
 def main(argv=None):
@@ -520,6 +605,11 @@ def main(argv=None):
     parser.add_argument("--pairs", type=int, default=0)
     parser.add_argument("--seed", default="physics-screen-v1")
     parser.add_argument(
+        "--pair-cache-only",
+        action="store_true",
+        help="Rebuild public pair readings without retaining full-panel historical curves; resume an exact-identity partial cache",
+    )
+    parser.add_argument(
         "--probe-plan",
         help="PUBLIC calibration plan directory; use the same public pairs for member and reference diagnostics",
     )
@@ -533,8 +623,14 @@ def main(argv=None):
     )
     args = parser.parse_args(argv)
     contract = pc.load(CONTRACT)
-    store, ids, predictions = _standin([args.ev4, args.run5, args.attack])
-    panel = assemble(store, ids, predictions, args.dev_results)
+    directories = [args.ev4, args.run5, args.attack]
+    if args.pair_cache_only:
+        if not args.pairs or not args.calibration_panel:
+            raise pc.ContractRefused("physics_contract_cache_requires_calibration")
+        panel = {"names": public_member_names(directories, args.dev_results)}
+    else:
+        store, ids, predictions = _standin(directories)
+        panel = assemble(store, ids, predictions, args.dev_results)
     roles = json.loads(ROLES.read_text())["roles"]
     pair_plan = args.probe_plan or args.calibration_panel
     plan_sha = None
@@ -542,34 +638,84 @@ def main(argv=None):
         from scripts.dev.battery.physics_calibration import public_plan
 
         _plan, _jobs, plan_sha = public_plan(pair_plan, contract)
+        if args.pairs != _plan.get("bases", args.pairs):
+            raise pc.ContractRefused("physics_contract_pair_count")
+    reference_pairs, provenance, reference_records = None, None, None
+    if args.calibration_panel:
+        from scripts.dev.battery.physics_calibration import load_directory
+
+        reference_pairs, provenance, reference_records = load_directory(
+            args.calibration_panel, contract, repository=ROOT, include_records=True
+        )
     cache_identity = {
-        "schema": "carbon.physics-pair-readings.v1",
+        "schema": "carbon.physics-pair-readings.v2",
         "scope": "PUBLIC_DEVELOPMENT",
         "contract_digest": pc.digest(contract),
         "plan_sha256": plan_sha,
         "public_seed": args.seed,
+        "pairs_per_base": args.pairs,
+        "calibration_sha256": hashlib.sha256(
+            (ROOT / "scripts/dev/battery/physics_calibration.py").read_bytes()
+        ).hexdigest(),
+        "manifest_sha256": provenance["manifest_sha256"] if provenance else None,
+        "public_members": sorted(panel["names"]),
+        "pair_builder_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         "checker_sha256": hashlib.sha256(
             (ROOT / "carbon/challenge_validator/physics_contract.py").read_bytes()
         ).hexdigest(),
     }
     if args.pair_readings:
         cached = json.loads(Path(args.pair_readings).read_text())
-        if any(cached.get(k) != v for k, v in cache_identity.items()):
-            raise pc.ContractRefused("physics_contract_pair_cache_identity")
-        pairs = cached["readings"]
+        pairs = cached_readings(
+            cached, cache_identity, contract, allow_incomplete=args.pair_cache_only
+        )
     else:
         pairs = (
-            _pair_readings(panel["names"], contract, args.pairs, args.seed, pair_plan)
-            if args.pairs
+            _pair_readings(
+                panel["names"],
+                contract,
+                args.pairs,
+                args.seed,
+                pair_plan,
+                reference_records,
+            )
+            if args.pairs and not args.pair_cache_only
             else None
         )
-    reference_pairs, provenance = None, None
-    if args.calibration_panel:
-        from scripts.dev.battery.physics_calibration import load_directory
+    if args.pair_cache_only:
 
-        reference_pairs, provenance = load_directory(
-            args.calibration_panel, contract, repository=ROOT
+        def checkpoint(member, rows):
+            print(
+                "PLT01_PAIR_MEMBER_CHECKPOINT "
+                + json.dumps(
+                    {"identity": cache_identity, "member": member, "readings": rows},
+                    sort_keys=True,
+                ),
+                flush=True,
+            )
+
+        pairs = _pair_readings(
+            panel["names"],
+            contract,
+            args.pairs,
+            args.seed,
+            pair_plan,
+            reference_records,
+            initial=pairs,
+            checkpoint=checkpoint,
         )
+        complete = all(set(row) == set(panel["names"]) for row in pairs.values())
+        out = Path(args.out)
+        out.mkdir(parents=True, exist_ok=True)
+        (out / "pair-readings.json").write_text(
+            json.dumps(
+                {**cache_identity, "complete": complete, "readings": pairs},
+                sort_keys=True,
+            )
+        )
+        if not complete:
+            raise pc.ContractRefused("physics_contract_pair_cache_incomplete")
+        return 0
     result = screen(
         panel,
         roles,
@@ -605,10 +751,40 @@ def main(argv=None):
     (out / "physics-screen.md").write_text(markdown(result))
     if pairs is not None:
         (out / "pair-readings.json").write_text(
-            json.dumps({**cache_identity, "readings": pairs}, sort_keys=True)
+            json.dumps(
+                {**cache_identity, "complete": True, "readings": pairs}, sort_keys=True
+            )
         )
     print(json.dumps({k: result[k] for k in ("members", "good_value")}, sort_keys=True))
     return 0
+
+
+def cached_readings(cached, identity, contract, *, allow_incomplete=False):
+    from carbon.challenge_validator import physics_contract as pc
+
+    if type(cached) is not dict or any(cached.get(k) != v for k, v in identity.items()):
+        raise pc.ContractRefused("physics_contract_pair_cache_identity")
+    readings = cached.get("readings")
+    expected = {law["id"] for law in contract["laws"] if law["type"] in pc.PAIR}
+    if type(readings) is not dict or set(readings) != expected:
+        raise pc.ContractRefused("physics_contract_pair_cache_shape")
+    if type(cached.get("complete")) is not bool:
+        raise pc.ContractRefused("physics_contract_pair_cache_shape")
+    if not allow_incomplete and cached.get("complete") is not True:
+        raise pc.ContractRefused("physics_contract_pair_cache_incomplete")
+    for members in readings.values():
+        if type(members) is not dict or any(
+            m not in identity["public_members"] for m in members
+        ):
+            raise pc.ContractRefused("physics_contract_pair_cache_shape")
+        if cached["complete"] and set(members) != set(identity["public_members"]):
+            raise pc.ContractRefused("physics_contract_pair_cache_incomplete")
+        if any(
+            type(row) is not list or any(not pc._number(v) or v < 0 for v in row)
+            for row in members.values()
+        ):
+            raise pc.ContractRefused("physics_contract_pair_cache_shape")
+    return readings
 
 
 if __name__ == "__main__":

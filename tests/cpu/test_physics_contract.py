@@ -31,6 +31,8 @@ def test_battery_contract_loads_and_leaves_every_tolerance_to_the_owner():
         "B8",
         "B9",
         "B10",
+        "B15",
+        "B16",
     }
     tolerance = contract["tolerance"]
     assert tolerance["quantile"] == tolerance["margin"] == pc.HUMAN_INPUT
@@ -206,12 +208,58 @@ def test_digest_and_step_validation_are_prospective():
     contract = pc.load(BATTERY)
     assert pc.digest(contract) == pc.digest(dict(reversed(list(contract.items()))))
     changed = copy.deepcopy(contract)
-    changed["laws"][0]["high"] += 0.01
+    _law(changed, "B1")["high"] += 0.01
     assert pc.digest(contract) != pc.digest(changed)
-    changed["laws"][4]["step"] = 0
+    _law(changed, "B5a")["step"] = 0
     with pytest.raises(pc.ContractRefused, match="law_step"):
         pc.validate(changed)
     with pytest.raises(pc.ContractRefused, match="margin"):
         pc.tolerance([0.0], q=1, margin=-1)
     with pytest.raises(pc.ContractRefused, match="quantile"):
         pc.tolerance([0.0], q=1.1, margin=0)
+
+
+def test_prefix_causality_excludes_the_switch_and_later_samples():
+    contract = pc.load(BATTERY)
+    law = _law(contract, "B15")
+    a = {"temperature_c": [25.0] * 121}
+    b = {"temperature_c": [25.0] * 4 + [80.0] * 117}
+    assert pc.pair_residual(law, a, b, "c1", 0.075) == 0
+    b["temperature_c"][3] += 0.5
+    assert pc.pair_residual(law, a, b, "c2", 0.04) == 0.5
+    assert pc.pair_residual(law, a, b, "soc0", 0.04) is None
+    assert pc.pair_residual(law, a, {"temperature_c": [25.0]}, "c1", 0.075) is None
+    assert law["role"] == "CANDIDATE_GATE_1"
+    assert _law(contract, "B16")["role"] == "MODEL_CARD_METRIC_ONLY"
+    assert _law(contract, "B9")["role"] == "DIAGNOSTIC_ONLY"
+    assert "never substitute for verified decisions" in contract["note"]
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        {"inputs": ["soc9"]},
+        {"inputs": [{}]},
+        {"switch_time_s": 0},
+        {"grid_step_s": 0},
+        {"switch_time_s": 10000},
+    ],
+)
+def test_invalid_prefix_definition_is_refused(change):
+    contract = pc.load(BATTERY)
+    _law(contract, "B15").update(change)
+    with pytest.raises(pc.ContractRefused, match="law_prefix"):
+        pc.validate(contract)
+
+
+def test_prefix_probe_pairs_only_move_later_acting_inputs_and_count_missing():
+    contract = pc.load(BATTERY)
+    law = _law(contract, "B15")
+    pairs = pc.probe_pairs(contract, law, seed="prefix-fixture", count=20)
+    assert {axis for axis, *_ in pairs} == {"c1", "c2"}
+    for axis, a, b, _ in pairs:
+        assert all(a[k] == b[k] for k in a if k != axis)
+    rows = pc.probe_readings(
+        contract, lambda pts: [{} for p in pts], seed="fixture", count=2
+    )
+    assert rows["B15"] == {"residuals": [], "unresolved": 2}
