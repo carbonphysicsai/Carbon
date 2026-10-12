@@ -60,6 +60,8 @@ def legs_from(contract, scenarios, predictions, refs, receipt_id):
     members = dict(predictions)
     for kind in pn.CONTROLS:
         members["control-" + kind] = pn.control_predictions(kind, refs)
+    for kind in pn.SCREEN_CONTROLS:  # SCORE-PROOF-01 amendment 13
+        members["control-" + kind] = pn.screen_control_predictions(kind, refs)
     return vq.member_scores(
         contract,
         scenarios,

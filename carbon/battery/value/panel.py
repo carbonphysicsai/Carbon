@@ -636,6 +636,72 @@ CONTROLS = (
 )
 
 
+#: SCORE-PROOF-01 amendment 13 (RES-07, #1209): the score proof's screen adds an
+#: always-abstain control as a known-bad member. Kept out of `CONTROLS`, so no
+#: frozen study's panel changes. Its predictions put every protocol far past
+#: both limits, so the selector never picks; its decisions need no rebuild
+#: (`abstain_decisions`). The offsets only have to exceed any limit: they are
+#: not a scored or tuned value.
+SCREEN_CONTROLS = ("always_abstain",)
+ABSTAIN_MARGIN_V = 1.0
+ABSTAIN_HEAT_C = 100.0
+
+
+def always_abstain(outputs):
+    """Every protocol predicted infeasible: plating margin far below onset and
+    the trajectory far over the temperature limit (T(0) kept at ambient)."""
+    out = copy.deepcopy(outputs)
+    out["plating_margin_v"] = out["plating_margin_v"] - ABSTAIN_MARGIN_V
+    out["temperature_c"] = _after_start(out["temperature_c"], ABSTAIN_HEAT_C)
+    return out
+
+
+def screen_control_predictions(kind, references):
+    """A screen control's predictions for every case with an OK reference."""
+    if kind != "always_abstain":
+        raise ValueError("unknown screen control")
+    return {
+        case_id: always_abstain(record["outputs"])
+        for case_id, record in references.items()
+        if record.get("status") == "OK"
+    }
+
+
+def abstain_decisions(contract, results):
+    """The always-abstain control's decision on every scenario the other
+    members were decided on, from each scenario's reference summary alone
+    (`decision.outcome` with no selection): MISSED_OPPORTUNITY when the tested
+    set has a feasible design, else CORRECT_ABSTENTION, or ABSTENTION_UNRESOLVED
+    (unscored) when a reference is unresolved. Only scenarios already present
+    in `results["decisions"]` are decided, so a VALUE-only file stays VALUE-only."""
+    from . import decision as d
+
+    decided = {s for member in results["decisions"].values() for s in member}
+    costs = contract["mistake_costs"]
+    out = {}
+    for scenario_id in sorted(decided):
+        ref = results["references"][scenario_id]
+        counts = ref.get("status_counts") or {}
+        unresolved = counts.get(d.UNRESOLVED, 0) + counts.get(d.UNAVAILABLE, 0) > 0
+        best = ref.get("best_in_tested_set")
+        if best is None:
+            kind = "ABSTENTION_UNRESOLVED" if unresolved else "CORRECT_ABSTENTION"
+            loss = None if unresolved else 0.0
+        else:
+            kind, loss = "MISSED_OPPORTUNITY", costs["missed_opportunity"]
+        out[scenario_id] = {
+            "split": ref["split"],
+            "outcome": {
+                "selected": None,
+                "best_in_tested_set": best,
+                "kind": kind,
+                "decision_loss": loss,
+            },
+            "agreement": None,
+        }
+    return out
+
+
 def control_predictions(kind, references):
     """A control's predictions for every case with an OK reference."""
     return {

@@ -484,6 +484,11 @@ function ladder(raw, digits, pinned) {
   const grainRaw = get(raw, "grain_pct");
   const grain = grainRaw === null ? null : number(grainRaw, "ladder_invalid");
   if (grain !== null && grain <= 0) throw new FeedRefused("ladder_invalid");
+  const geometric = own(raw, "display_grid");
+  const sense = get(raw, "sense");
+  if (geometric && (raw.display_grid !== "geometric" ||
+      !["lower_is_better", "higher_is_better", null].includes(sense) ||
+      (grain !== null && sense === null))) throw new FeedRefused("ladder_invalid");
   const rows = [], seen = new Set();
   for (const row of raw.coldkeys) {
     if (!isDict(row)) throw new FeedRefused("ladder_invalid");
@@ -491,7 +496,21 @@ function ladder(raw, digits, pinned) {
     const status = get(row, "status");
     if (seen.has(coldkey) || !LADDER_STATES.includes(status)) throw new FeedRefused("ladder_invalid");
     seen.add(coldkey);
-    const score = rounded(get(row, "displayed_score"), digits, "ladder");
+    let score;
+    if (geometric) {
+      score = get(row, "displayed_score");
+      if (score !== null) {
+        score = number(score, "ladder_invalid");
+        if (grain === null) throw new FeedRefused("ladder_grain_unposted");
+        if (score <= 0) throw new FeedRefused("ladder_invalid");
+        const base = 1 + grain / 100;
+        const exponent = Math.round(Math.log(score) / Math.log(base));
+        const expected = base ** exponent;
+        if (!Number.isFinite(expected) || base <= 1) throw new FeedRefused("ladder_invalid");
+        if (Math.abs(score - expected) > 8 * Number.EPSILON * Math.max(Math.abs(score), Math.abs(expected)))
+          throw new FeedRefused("ladder_unrounded");
+      }
+    } else score = rounded(get(row, "displayed_score"), digits, "ladder");
     if (status === "SEALED_UNTIL_GRAIN" && score !== null) throw new FeedRefused("ladder_sealed_value");
     if (status !== "SEALED_UNTIL_GRAIN" && score === null) throw new FeedRefused("ladder_invalid");
     if (status !== "SEALED_UNTIL_GRAIN" && grain === null) throw new FeedRefused("ladder_grain_unposted");
@@ -508,7 +527,9 @@ function ladder(raw, digits, pinned) {
     });
   }
   const order = r => (r.rank === null ? UNRANKED : r.rank);
-  return {grain_pct: grain, coldkeys: rows.sort((a, b) => order(a) - order(b) || cmp(a.coldkey, b.coldkey))};
+  const result = {grain_pct: grain, coldkeys: rows.sort((a, b) => order(a) - order(b) || cmp(a.coldkey, b.coldkey))};
+  if (geometric) Object.assign(result, {display_grid: "geometric", sense});
+  return result;
 }
 
 export function boardSlug(challengeId, deviceClass) {
