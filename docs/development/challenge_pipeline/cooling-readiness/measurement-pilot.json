@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.cooling-cell.measurement-pilot-proposal.v1",
+  "scope": "PUBLIC_DEVELOPMENT",
+  "status": "PROPOSED_NOT_GRANTED",
+  "cap_eur_all_in": 10,
+  "platform": "owner-selected free CPU first; otherwise separately approved CCX63 CPU quote",
+  "quote_eur_host_hour": 1.37,
+  "quote_basis": "ASSUMPTION supplied planning rate, actual quote/tax/storage must fit the all-in cap",
+  "parallel_processes": 1,
+  "allocated_vcpus": 2,
+  "maximum_host_hours_before_overheads": 7.2992700729927,
+  "tuples": [
+    {"action": "HUMAN_INPUT preregistered low-flow frontier action", "service": "HUMAN_INPUT frozen uniform map", "resolution": 2},
+    {"action": "HUMAN_INPUT preregistered alternative geometry/flow action", "service": "same frozen uniform map", "resolution": 2},
+    {"action": "same frontier action", "service": "HUMAN_INPUT frozen nonuniform map", "resolution": 2},
+    {"action": "same alternative action", "service": "same frozen nonuniform map", "resolution": 2},
+    {"action": "same frontier action", "service": "same frozen nonuniform map", "resolution": 4},
+    {"action": "same alternative action", "service": "same frozen nonuniform map", "resolution": 4}
+  ],
+  "hypotheses": {"standard_case_wall_hours": {"low": 0.2, "base": 0.5, "high": 1}, "refined_case_wall_hours": {"low": 0.6, "base": 1.5, "high": 6}, "overhead_host_hours": 0.4, "total_host_hours": {"low": 2.4, "base": 5.4, "high": 16.4}, "total_eur_before_quote_changes": {"low": 3.288, "base": 7.398, "high": 22.468}, "peak_ram_gib": {"low": 1, "base": 4, "high": 12}, "basis": "ASSUMPTION; old ~0.45 CPU-h context is not a wall-time or v3 p50/p95 measurement"},
+  "stop": "Reserve measured/quoted overhead first; no launch unless its charged two-core/host-time bound fits remaining all-in cap; terminate over-bound case, no retries/redraws. High hypothesis cannot fit. Partial result stays partial.",
+  "retain": ["registered exact tuples and reuse receipts", "source/image/material/observer/deck hashes", "all failure classifications", "wall, user+system CPU and allocated core-seconds", "peak RSS", "charged euros including overhead", "local face fields and map fluxes", "mass/energy/iteration checks", "paired numerical differences"],
+  "release_requires": ["frozen sourced buyer services and cell constraints", "actual package present", "code-verification results", "main registration and completed/scheduled dedup", "exact stage permission and operator grant", "enforced resource/spend ledger and retention"],
+  "T2a_claim": "NONE: six timing/closure tuples cannot establish five feasible and five infeasible actions within two refinement bands per stratum",
+  "dispatchable": false
+}

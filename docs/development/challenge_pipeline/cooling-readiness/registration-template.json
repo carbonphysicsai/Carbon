@@ -1,0 +1,12 @@
+{
+  "schema": "carbon.cooling-cell.preparation.v1",
+  "scope": "PUBLIC_DEVELOPMENT",
+  "authority": "HUMAN_INPUT: Test Lead final sourced buyer services and cell requirements",
+  "pins": {"solver_image": "sha256:33fb575aa9980d2bc42fd58c75ae698c489293ba30c991380fe3f899c622f319", "solver_source": null, "materials": null, "observer": null},
+  "grammar": null,
+  "services": null,
+  "P": null,
+  "Q": null,
+  "w": null,
+  "digest": null
+}

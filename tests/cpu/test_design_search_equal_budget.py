@@ -9,6 +9,7 @@ import pytest
 from carbon.design_search import (
     bfs_budget,
     bolted_budget,
+    cooling_budget,
     metagrating_budget,
     micromixer_budget,
     structures_budget,
@@ -102,6 +103,7 @@ def test_challenge_routes_preserve_registered_validators_and_flags():
         "metagrating-3d": metagrating_budget.validate,
         "f17": micromixer_budget.validate,
         "f08": structures_budget.validate,
+        "cooling-cell": cooling_budget.validate,
     }
     assert eb.CHALLENGES == set(expected) == set(eb.CHALLENGE_ROUTES)
     assert {
