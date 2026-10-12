@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-12-challenge-factory-plan",
+  "recorded_at": "2026-10-12T21:00:58Z",
+  "challenge": "protocol",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "CHALLENGE-FACTORY-PLAN-01 / tests/cpu/test_challenge_factory_plan.py", "description": "Document/arithmetic diagnostics and reused onboarding metrics/telemetry tests; no scientific pilot or solver execution."},
+  "expected": "Reuse exact family applicability, screen strong cheap methods before full onboarding, and separate clock/tool evidence from unknown human labour.",
+  "observed": "61 native diagnostics passed, 1 existing skip, across factory-plan, metrics, telemetry and pipeline tests. The initial temporary-parent setup was corrected, and native UTF-8 mode avoided a Windows default-decoding failure in an unchanged roadmap test. Plan regressions caught and repaired a stage-ID argument mistake and explicit unknown/schema declarations. Source scenarios, ranking arithmetic, public timer totals and target assumptions agree. Canonical acceptance is still required; no empirical winnability or speed-up is earned.",
+  "keep": ["Narrow image-bound MMS acceptance does not transfer to new material/observer/PDE features.", "RES-07's nominal and robust questions have different cheap-map outcomes; matched budgets remain required."],
+  "change": ["Place a public three-arm winnability pilot before expensive onboarding, without turning portfolio triage into scientific candidate rejection.", "Prefer independent integral terms and registered probes from the first output version; don't fabricate balance closure or labour savings."],
+  "protocol_elements": ["challenge_onboarding", "reference_policy", "effort_measurement", "lessons_learned"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
