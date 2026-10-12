@@ -162,7 +162,9 @@ def test_the_cli_writes_owner_only_legs_with_the_controls(tmp_path, quiz):
     assert result["quiz_digest"] == qs.digest(document)
     assert result["legs"]["v3"]["oracle"] == 1.0
     assert "control-oracle" in result["legs"]["v3"]
-    assert set(result["legs"]) == {"v1", "v3", "v5"}
+    # v3s: registry v10 (SCORE-PROOF-01 amendment 11), beside v3, never instead.
+    assert set(result["legs"]) == {"v1", "v3", "v5", "v3s"}
+    assert set(result["legs"]["v3s"]) == set(result["legs"]["v3"])
 
 
 def test_registry_v8_keeps_v7_and_adds_verify_r():

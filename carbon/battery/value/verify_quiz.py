@@ -47,6 +47,13 @@ WALL_PER_PANEL_S = 120.0
 REGRET_UNIT_S = 1200.0
 #: The leg name for each k (`score_tuning.LEGS`).
 LEG = {k: f"v{k}" for k in K_POINTS}
+#: Registry v10's `v3s` (SCORE-PROOF-01 amendment 11): v3, except that a
+#: question on which any verified pick is INFEASIBLE costs `KAPPA` regret
+#: units instead of its bounded regret (at most one). KAPPA is a registered
+#: candidate value; adopting it is HUMAN_INPUT.
+HARSH_K = 3
+HARSH_LEG = "v3s"
+KAPPA = 3.0
 
 SELECTOR_VERSION = "q3-predicted-feasible-selector-order-v1"
 REFERENCE_POLICY = "battery-quiz-q3-settled-references"
@@ -205,6 +212,22 @@ def _reliability(losses):
     return {k: c[k] for k in keep if k in c}
 
 
+def harsh_leg(rows, kappa=KAPPA):
+    """`v3s` from one member's k = 3 question results: `1 / (1 + mean loss)`,
+    where a question with an INFEASIBLE verified pick costs `kappa` and every
+    other question its bounded regret. None when any question is unscored
+    (never a partial leg)."""
+    losses = []
+    for row in rows:
+        if row["score"] is None:
+            return None
+        harsh = "INFEASIBLE" in row.get("attempt_statuses", ())
+        losses.append(kappa if harsh else row["score"])
+    if not losses:
+        return None
+    return 1.0 / (1.0 + sum(losses) / len(losses))
+
+
 def member_scores(contract, scenarios, predictions, refs, receipt_id, candidates=None):
     """Every member's VERIFY-R result at each registered k.
 
@@ -278,6 +301,8 @@ def member_scores(contract, scenarios, predictions, refs, receipt_id, candidates
                 the_rule, member, questions, commitments, receipts, eligibility
             )
             legs[LEG[k]][member] = report["aggregate"]["v"]
+            if k == HARSH_K:
+                legs.setdefault(HARSH_LEG, {})[member] = harsh_leg(report["questions"])
             if all(row["score"] is not None for row in report["questions"]):
                 losses.append([row["score"] for row in report["questions"]])
             for row in report["questions"]:
@@ -296,4 +321,9 @@ def member_scores(contract, scenarios, predictions, refs, receipt_id, candidates
             # tau a perfect score could reach against it (SCORE-CEILING-01).
             "reliability": _reliability(losses),
         }
+    diagnostics[HARSH_LEG] = {
+        "of": LEG[HARSH_K],
+        "kappa": KAPPA,
+        "rule": "a question with an INFEASIBLE verified pick costs kappa regret units",
+    }
     return legs, diagnostics

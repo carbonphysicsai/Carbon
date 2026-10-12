@@ -48,7 +48,7 @@ from pathlib import Path
 
 from carbon.design_search import score_value
 
-from . import admissibility, margins, ratios
+from . import admissibility, margins, ratios, sign_gate
 from . import decision as d
 from . import false_acceptance as fa
 from . import score_candidates_b1 as b1
@@ -341,6 +341,10 @@ def member_legs(
             # exam error E, higher is worse; an ineligible member is
             # unmeasured, so a set gate fails it.
             "error": component["E"] if component["eligible"] else None,
+            # Registry v10's sign consistency at the pair-law probe pairs.
+            "sign": sign_gate.sign_disagreement(
+                contract, predictions, case_ids, store.refs
+            ),
         },
     }
 
