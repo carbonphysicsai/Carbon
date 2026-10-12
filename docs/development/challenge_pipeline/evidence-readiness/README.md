@@ -11,7 +11,7 @@ python -m carbon.challenge_pipeline.onboarding readiness --challenge f02 --forma
 ```
 
 `status` now appends this section. Its existing `status.generate/render` API and
-historical tool-run receipts remain unchanged. `readiness` ranks eleven jobs by
+historical tool-run receipts remain unchanged. `readiness` ranks registered jobs by
 verified prerequisite count, with tied ranks. Ranking is **not** a launch order
 or a value score. The locally available `origin/main` is resolved by Git; there
 is no fetch. A missing main is UNKNOWN, not an empty successful inventory. Only
@@ -64,22 +64,30 @@ commit and observation timestamp. Refetch before acting on a stale local view.
    registered EQUAL-BUDGET-V1 row through `equal_budget.CHALLENGE_ROUTES` and
    `budget_registration.validate`. Inspect that table entry, imported validator,
    dynamic family selection and call; merely mentioning a table/module cannot
-   earn YES. A neutral core without a family adapter is NO, not YES. Optimizer
+   earn YES. Cooling uses the same inspection for `cooling_budget.validate`.
+   f08, f17, cooling, BFS, MG and warpage have implemented dispatch but **proposed** ASSUMPTION
+   budgets: PROPOSED, not YES. A neutral core without a family adapter is NO,
+   not YES. Optimizer
    owns execution-route extensions; this inventory does not add one.
 
 **YES:** the item's bounded basis was examined and satisfied. **NO:** observed
 contradiction or known unsupported implemented route. **PLANNED:** sourced
 proposal/pending work, with no inspectable completion evidence. **UNKNOWN:**
 missing, malformed, stale or unavailable evidence. Pointers and owning session
-accompany all answers. Main source identity is a necessary basis, not proof that
+accompany all answers. **PROPOSED:** a family route is implemented but its budget
+is not yet an adopted registration. It contributes zero to the YES count. New
+reports use `carbon.onboarding.evidence-readiness.v2` to add this state
+prospectively; retained v1 reports are historical and are not reinterpreted.
+Main source identity is a necessary basis, not proof that
 a producer's acceptance decision was scientifically justified.
 
 ## Public metadata handoff, without moving case bodies
 
 `bindings.json` contains pointers, aliases and pending PRs, never YES overrides.
 The per-family `inputs/<family>.json` is an optional **PUBLIC_DEVELOPMENT**
-summary of operator/producer evidence; none exists at this ticket's starting
-main. Add it only from real public artifacts, not synthetic passing fixtures.
+summary of operator/producer evidence. Battery v3, motor and f02 now have
+partial source indexes bound to public registrations, kits and accepted MMS.
+Add it only from real public artifacts, not synthetic passing fixtures.
 Existing fixtures in the tests are structurally examples, not earned evidence.
 No hidden EVAL/STRESS/quiz/tuning inventory belongs here.
 
@@ -114,6 +122,34 @@ Each source binding is `{path, sha256}`. `identity` is tagged SHA-256 of compact
 sorted-key JSON (same implementation exported by the tool); no manually chosen
 authority_main. Metadata has bounded sizes and explicitly allowed paths. Raw
 reference values/curves, seeds and detailed inputs never appear in this report.
+
+### Partial evidence is visible, but cannot earn YES
+
+The optional `source_evidence` extension to input v1 maps item numbers `1`–`5`
+to `{finding, sources, missing}`. Each source has a normal `binding` and either
+nonempty `json_fields` (exact top-level field anchors) or `text_contains`
+(bounded literal anchors). Digests and anchors are checked against main, not
+the checkout. Findings are reviewed summaries; anchors are citation integrity,
+not scientific acceptance or a substitute for the full checks above. `missing`
+must be nonempty. No status override is accepted.
+
+Use it when real records have not yet supplied a complete normalized handoff.
+It explains an UNKNOWN result; it can never create YES. A changed/unavailable
+source is UNKNOWN, and a contradictory anchor is a metadata/reference finding
+(NO), never a candidate failure. Full valid v1 sections remain the only route
+to YES for items 1–5.
+
+Current indexes distinguish battery's registered 4,000-case TRAIN plan from
+actual TRAIN evidence; f02's 16 × 24 menu from the historical nine-action menu;
+and motor's registered stages 1–3 holding reference from the larger
+holding-plus-peak buyer packet. OWNER-CODE-VERIFICATION-ACCEPT-01 supersedes the
+accepted MMS results' provisional labels **only in its explicit scope**. It
+does not rewrite historical verdicts or supply convergence/conservation.
+
+`current-main-report.md` is a new observation plus a separately labelled
+candidate citation audit. The inputs are not main evidence until merged:
+the command deliberately cannot inspect unmerged HEAD as main. After merge,
+rerun it; do not replace `initial-report.json` or fake an authority main ref.
 
 ## Spending rule and today's next action
 

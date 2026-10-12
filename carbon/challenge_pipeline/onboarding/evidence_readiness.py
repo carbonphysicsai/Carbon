@@ -27,7 +27,7 @@ LABELS = (
     "Kit covers every panel action, condition and observable",
     "Registered TRAIN physically disjoint from panel",
     "Strong cheap-baseline implementation ready",
-    "Challenge-supported equal-budget implementation ready",
+    "Challenge-supported equal-budget route and registration ready",
 )
 OWNERS = (
     "Data Collection / owner registration",
@@ -39,6 +39,32 @@ OWNERS = (
     "Optimizer Codex",
 )
 BENCHMARK_ROUTES = {
+    "cooling-cell": {
+        "kind": "ROUND_ONE_DEVELOPMENT",
+        "pending": "COOLING-CELL-READINESS-BUILD-01",
+        "baseline": (
+            "carbon/development_comparison/portfolio_baselines.py",
+            {"measure", "validate_materials", "screening_export"},
+        ),
+        "budget": (
+            "carbon/design_search/cooling_budget.py",
+            "EQUAL-BUDGET-COOLING-DEVELOPMENT-V1",
+        ),
+        "budget_state": "PROPOSED",
+    },
+    "f17": {
+        "kind": "ROUND_ONE_DEVELOPMENT",
+        "pending": "F17-MICROMIXER-READINESS-BUILD-01",
+        "baseline": (
+            "carbon/challenge_pipeline/micromixer_readiness.py",
+            {"measure", "decision_report"},
+        ),
+        "budget": (
+            "carbon/design_search/micromixer_budget.py",
+            "F17-DEVELOPMENT-PROPOSED-V1",
+        ),
+        "budget_state": "PROPOSED",
+    },
     "f13": {
         "kind": "ROUND_ONE_DEVELOPMENT",
         "pending": "F13-SILENCER-READINESS-BUILD-01",
@@ -62,6 +88,7 @@ BENCHMARK_ROUTES = {
             "carbon/design_search/structures_budget.py",
             "F08-DEVELOPMENT-PROPOSED-V1",
         ),
+        "budget_state": "PROPOSED",
     },
     "backward-facing-step": {
         "pending": "https://github.com/carbonphysicsai/Carbon/pull/1061",
@@ -73,6 +100,7 @@ BENCHMARK_ROUTES = {
             "carbon/design_search/bfs_budget.py",
             "BFS-DEVELOPMENT-PROPOSED-V1",
         ),
+        "budget_state": "PROPOSED",
     },
     "metagrating-3d": {
         "pending": "https://github.com/carbonphysicsai/Carbon/pull/1065",
@@ -84,6 +112,7 @@ BENCHMARK_ROUTES = {
             "carbon/design_search/metagrating_budget.py",
             "EQUAL-BUDGET-MG-DEVELOPMENT-V1",
         ),
+        "budget_state": "PROPOSED",
     },
     # Legacy table name; this is NOT a published benchmark or customer result.
     "package-warpage": {
@@ -99,6 +128,7 @@ BENCHMARK_ROUTES = {
             "carbon/design_search/warpage_budget.py",
             "WARPAGE-REHEARSAL-PROPOSED-V1",
         ),
+        "budget_state": "PROPOSED",
     },
 }
 
@@ -568,6 +598,12 @@ def benchmark_route(tree, family, optimizer):
                 )
     if not optimizer and route.get("baseline_ready") is False:
         return "PLANNED", route["baseline_gap"], pointers
+    if optimizer and route.get("budget_state") == "PROPOSED":
+        return (
+            "PROPOSED",
+            "Family dispatch is implemented, but its budget is an ASSUMPTION proposal, not an adopted registration",
+            pointers,
+        )
     return (
         "YES",
         "Family offline implementation inspected; no claim of measured value, package adequacy or dispatch permission",
@@ -580,128 +616,6 @@ def code_route(tree, family, optimizer=False):
         return "UNKNOWN", "Main unavailable; no implementation inspected", []
     if family in BENCHMARK_ROUTES:
         return benchmark_route(tree, family, optimizer)
-    if family == "f17":
-        requirements = (
-            [
-                (
-                    "carbon/design_search/micromixer_budget.py",
-                    {"validate"},
-                    {"f17", "F17-DEVELOPMENT-PROPOSED-V1"},
-                ),
-                (
-                    "carbon/design_search/equal_budget.py",
-                    {"compare", "_validate"},
-                    {"f17"},
-                ),
-            ]
-            if optimizer
-            else [
-                (
-                    "carbon/challenge_pipeline/micromixer_readiness.py",
-                    {"measure", "decision_report"},
-                    {"f17"},
-                )
-            ]
-        )
-        for path, functions, literals in requirements:
-            raw = tree.read(path)
-            if raw is None:
-                return (
-                    "PLANNED",
-                    "Family preparation not yet on inspected main",
-                    [p for p, _, _ in requirements],
-                )
-            parsed = ast.parse(raw)
-            declared = {n.name for n in parsed.body if isinstance(n, ast.FunctionDef)}
-            values = {
-                n.value
-                for n in ast.walk(parsed)
-                if isinstance(n, ast.Constant) and type(n.value) is str
-            }
-            if not functions <= declared or not literals <= values:
-                return "NO", "Required f17 route incomplete", [path]
-            if optimizer and path.endswith("equal_budget.py"):
-                compare = next(
-                    n
-                    for n in parsed.body
-                    if isinstance(n, ast.FunctionDef) and n.name == "compare"
-                )
-                wired = any(
-                    isinstance(n, ast.ImportFrom)
-                    and n.module == "micromixer_budget"
-                    and any(
-                        a.name == "validate" and a.asname == "validate_registration"
-                        for a in n.names
-                    )
-                    for n in ast.walk(compare)
-                )
-                # A table route has the same execution path without a local
-                # challenge-specific import inside compare().
-                routes = next(
-                    (
-                        n.value
-                        for n in parsed.body
-                        if isinstance(n, ast.Assign)
-                        and any(
-                            isinstance(target, ast.Name)
-                            and target.id == "CHALLENGE_ROUTES"
-                            for target in n.targets
-                        )
-                    ),
-                    None,
-                )
-                if isinstance(routes, ast.Dict):
-                    f17_route = next(
-                        (
-                            value
-                            for key, value in zip(
-                                routes.keys, routes.values, strict=True
-                            )
-                            if isinstance(key, ast.Constant) and key.value == "f17"
-                        ),
-                        None,
-                    )
-                    if isinstance(f17_route, ast.Dict):
-                        validator = next(
-                            (
-                                value
-                                for key, value in zip(
-                                    f17_route.keys, f17_route.values, strict=True
-                                )
-                                if isinstance(key, ast.Constant)
-                                and key.value == "validator"
-                            ),
-                            None,
-                        )
-                        wired = wired or (
-                            isinstance(validator, ast.Attribute)
-                            and validator.attr == "validate"
-                            and isinstance(validator.value, ast.Name)
-                            and validator.value.id == "micromixer_budget"
-                            and any(
-                                isinstance(n, ast.ImportFrom)
-                                and n.level == 1
-                                and any(a.name == "micromixer_budget" for a in n.names)
-                                for n in parsed.body
-                            )
-                            and any(
-                                isinstance(n, ast.Name) and n.id == "CHALLENGE_ROUTES"
-                                for n in ast.walk(compare)
-                            )
-                        )
-                called = any(
-                    isinstance(n, ast.Call)
-                    and isinstance(n.func, ast.Name)
-                    and n.func.id == "validate_registration"
-                    for n in ast.walk(compare)
-                )
-                if not wired or not called:
-                    return "NO", "f17 budget validator not wired into compare", [path]
-        return (
-            "YES",
-            "Offline family comparison route implemented; real panel/verification/empirical advantage not implied",
-            [p for p, _, _ in requirements],
-        )
     if optimizer:
         path = "carbon/development_comparison/evidence_pipeline.py"
         functions = {"run", "_baseline"}
@@ -756,6 +670,74 @@ def code_route(tree, family, optimizer=False):
     )
 
 
+def inspect_partial(tree, evidence):
+    """Bind real partial records without promoting them to a full prerequisite.
+
+    This additive v1 input section is a citation index, never a YES override.
+    The existing complete-evidence checks remain the only way to earn YES.
+    """
+    if type(evidence) is not dict or set(evidence) != {"finding", "sources", "missing"}:
+        raise packet.DraftError("closed partial evidence index required")
+    finding, sources, missing = (
+        evidence["finding"],
+        evidence["sources"],
+        evidence["missing"],
+    )
+    if not (
+        type(finding) is str
+        and 0 < len(finding) <= 1000
+        and type(sources) is list
+        and 0 < len(sources) <= 12
+        and type(missing) is list
+        and 0 < len(missing) <= 12
+        and all(type(s) is str and 0 < len(s) <= 300 for s in missing)
+    ):
+        raise packet.DraftError(
+            "bounded finding, sources and outstanding proof required"
+        )
+    pointers = []
+    for source in sources:
+        if type(source) is not dict or set(source) not in (
+            {"binding", "json_fields"},
+            {"binding", "text_contains"},
+        ):
+            raise packet.DraftError("source binding and explicit anchors required")
+        binding = source["binding"]
+        pointers.append(public_path(binding["path"]))
+        if not tree.source(binding):
+            return (
+                "UNKNOWN",
+                "Partial evidence source missing or digest changed; rebind after review",
+                pointers,
+            )
+        raw = tree.read(binding["path"])
+        if "json_fields" in source:
+            anchors = source["json_fields"]
+            if type(anchors) is not dict or not anchors:
+                raise packet.DraftError("nonempty JSON field anchors required")
+            value = json.loads(raw)
+            matches = type(value) is dict and all(
+                key in value and value[key] == expected
+                for key, expected in anchors.items()
+            )
+        else:
+            anchors = source["text_contains"]
+            if not (
+                type(anchors) is list
+                and 0 < len(anchors) <= 12
+                and all(type(s) is str and 0 < len(s) <= 300 for s in anchors)
+            ):
+                raise packet.DraftError("bounded text anchors required")
+            matches = all(s in raw.decode("utf-8") for s in anchors)
+        if not matches:
+            return (
+                "NO",
+                "Partial evidence anchor contradicts its cited source; reference/metadata finding, not candidate failure",
+                pointers,
+            )
+    return "UNKNOWN", finding + "; still required: " + "; ".join(missing), pointers
+
+
 def generate(root, challenge, *, main_ref="origin/main", now=None):
     if type(challenge) is not str or not re.fullmatch(
         r"[a-z0-9][a-z0-9-]{0,79}", challenge
@@ -774,7 +756,7 @@ def generate(root, challenge, *, main_ref="origin/main", now=None):
     )
     if binding is None:
         return {
-            "schema": "carbon.onboarding.evidence-readiness.v1",
+            "schema": "carbon.onboarding.evidence-readiness.v2",
             "challenge": challenge,
             "main": tree.commit,
             "observed_at": (now or datetime.now(UTC)).isoformat(),
@@ -817,6 +799,7 @@ def generate(root, challenge, *, main_ref="origin/main", now=None):
         lambda: check_train(tree, data["train"], data["panel"]["cases"]),
     )
     for i, check in enumerate(checks):
+        source_pointers = []
         state = "PLANNED" if proposal is not None or binding["pending"] else "UNKNOWN"
         reason = "Proposal/pending work exists; required structured main evidence not yet inspectable"
         plan = binding.get("plans", {}).get(str(i + 1))
@@ -836,6 +819,17 @@ def generate(root, challenge, *, main_ref="origin/main", now=None):
                     "UNKNOWN",
                     "Missing, malformed or unbound public evidence; no success inferred",
                 )
+            partials = data.get("source_evidence", {})
+            if state == "UNKNOWN" and type(partials) is dict and str(i + 1) in partials:
+                try:
+                    state, reason, source_pointers = inspect_partial(
+                        tree, partials[str(i + 1)]
+                    )
+                except (KeyError, TypeError, ValueError, packet.DraftError):
+                    state, reason = (
+                        "UNKNOWN",
+                        "Malformed partial source index; no success inferred",
+                    )
         rows.append(
             {
                 "item": i + 1,
@@ -844,6 +838,7 @@ def generate(root, challenge, *, main_ref="origin/main", now=None):
                 "basis": reason,
                 "owner": OWNERS[i],
                 "pointers": [binding["inputs"], binding["proposal"]]
+                + source_pointers
                 + ([public_path(p) for p in plan["pointers"]] if plan else [])
                 + ([binding["pending"]] if binding["pending"] else []),
             }
@@ -861,7 +856,7 @@ def generate(root, challenge, *, main_ref="origin/main", now=None):
             }
         )
     return {
-        "schema": "carbon.onboarding.evidence-readiness.v1",
+        "schema": "carbon.onboarding.evidence-readiness.v2",
         "challenge": family,
         "main": tree.commit,
         "observed_at": now.isoformat(),

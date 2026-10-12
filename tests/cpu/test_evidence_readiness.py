@@ -274,7 +274,9 @@ def test_registered_portfolio_rank_ties_and_attach_source_digests():
 def test_bound_benchmarks_are_planned_not_unknown_on_available_main(family):
     result = er.generate(ROOT, family, now=NOW)
     assert len(result["items"]) == 7
-    assert all(r["state"] in {"YES", "NO", "PLANNED"} for r in result["items"])
+    assert all(
+        r["state"] in {"YES", "NO", "PLANNED", "PROPOSED"} for r in result["items"]
+    )
     assert all(r["pointers"] and r["basis"] for r in result["items"])
     assert not result["spend_authorized"] and not result["qualified"]
 
@@ -339,7 +341,8 @@ def test_budget_file_alone_does_not_establish_dispatch(family):
     tree.files[compare] = (
         f'CHALLENGES = {{"{family}"}}\ndef _validate(): pass\ndef compare():\n if challenge == "{family}":\n  from .{module} import validate as validate_registration\n'.encode()
     )
-    assert er.code_route(tree, family, optimizer=True)[0] == "YES"
+    expected = er.BENCHMARK_ROUTES[family].get("budget_state", "YES")
+    assert er.code_route(tree, family, optimizer=True)[0] == expected
 
 
 def test_warpage_is_a_representative_route_not_a_published_benchmark():
@@ -374,7 +377,8 @@ def table_route_tree(family, *, module=None, body=None):
 @pytest.mark.parametrize("family", er.BENCHMARK_ROUTES)
 def test_main_table_dispatch_is_inspected_without_importing_it(family):
     tree = table_route_tree(family)
-    assert er.code_route(tree, family, optimizer=True)[0] == "YES"
+    expected = er.BENCHMARK_ROUTES[family].get("budget_state", "YES")
+    assert er.code_route(tree, family, optimizer=True)[0] == expected
 
 
 @pytest.mark.parametrize(
@@ -443,3 +447,79 @@ def test_f13_matches_retained_route_sources_not_a_synthetic_yes_receipt():
         er.code_route(RouteTree({}, available=False), "f13", optimizer=True)[0]
         == "UNKNOWN"
     )
+
+
+@pytest.mark.parametrize("family", ["cooling-cell", "f08", "f17"])
+def test_implemented_proposed_budget_is_not_earned_registration(family):
+    paths = {
+        er.BENCHMARK_ROUTES[family]["budget"][0],
+        "carbon/design_search/equal_budget.py",
+    }
+    tree = RouteTree({path: (ROOT / path).read_bytes() for path in paths})
+    state, reason, pointers = er.code_route(tree, family, optimizer=True)
+    assert state == "PROPOSED" and "ASSUMPTION" in reason
+    assert er.BENCHMARK_ROUTES[family]["budget"][0] in pointers
+    tree.files["carbon/design_search/equal_budget.py"] = (
+        b"def compare(): pass\ndef _validate(): pass"
+    )
+    assert er.code_route(tree, family, optimizer=True)[0] == "NO"
+
+
+def test_partial_sources_cannot_create_yes_even_with_success_fields():
+    tree = Tree()
+    binding = tree.add(
+        "registration", {"status": "PASS", "scope": "PUBLIC_DEVELOPMENT"}
+    )
+    partial = {
+        "finding": "Registered proposal only",
+        "sources": [{"binding": binding, "json_fields": {"status": "PASS"}}],
+        "missing": ["Actual current observation"],
+    }
+    assert er.inspect_partial(tree, partial)[0] == "UNKNOWN"
+    partial["missing"] = []
+    with pytest.raises(packet.DraftError):
+        er.inspect_partial(tree, partial)
+
+
+def test_partial_sources_reject_stale_contradictory_and_unsafe_citations():
+    tree = Tree()
+    binding = tree.add("registration", {"schema": "actual"})
+    partial = {
+        "finding": "A registered source",
+        "sources": [{"binding": binding, "json_fields": {"schema": "claimed"}}],
+        "missing": ["Full proof"],
+    }
+    assert er.inspect_partial(tree, partial)[0] == "NO"
+    tree.files[binding["path"]] = b"{}"
+    assert er.inspect_partial(tree, partial)[0] == "UNKNOWN"
+    partial["sources"][0]["binding"]["path"] = ".git/config"
+    with pytest.raises(packet.DraftError):
+        er.inspect_partial(tree, partial)
+
+
+@pytest.mark.parametrize("family", ["battery-v3", "motor", "f02"])
+def test_committed_source_indexes_match_real_public_records_without_overrides(
+    family, monkeypatch
+):
+    data_path = (
+        f"docs/development/challenge_pipeline/evidence-readiness/inputs/{family}.json"
+    )
+    data = json.loads((ROOT / data_path).read_bytes())
+    assert set(data) == {"schema", "scope", "challenge", "source_evidence"}
+    assert data["challenge"] == family and set(data["source_evidence"]) == set("12345")
+    tree = Tree()
+    tree.examined = {}
+    tree.files[data_path] = (ROOT / data_path).read_bytes()
+    for partial in data["source_evidence"].values():
+        for source in partial["sources"]:
+            path = er.public_path(source["binding"]["path"])
+            tree.files[path] = (ROOT / path).read_bytes()
+        state, reason, pointers = er.inspect_partial(tree, partial)
+        assert state == "UNKNOWN", reason
+        assert "still required" in reason and pointers
+    monkeypatch.setattr(er, "MainTree", lambda *args: tree)
+    report = er.generate(ROOT, family, now=NOW)
+    assert report["schema"] == "carbon.onboarding.evidence-readiness.v2"
+    assert all(row["state"] == "UNKNOWN" for row in report["items"][:5])
+    assert all("still required" in row["basis"] for row in report["items"][:5])
+    assert not report["spend_authorized"] and not report["qualified"]

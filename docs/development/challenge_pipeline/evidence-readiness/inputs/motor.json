@@ -1,0 +1,138 @@
+{
+  "schema": "carbon.onboarding.evidence-inputs.v1",
+  "scope": "PUBLIC_DEVELOPMENT",
+  "challenge": "motor",
+  "source_evidence": {
+    "1": {
+      "finding": "Motor #1114 reference stage binds the 230-case stages 1-3 holding plan; this is not full holding-plus-peak packet coverage",
+      "sources": [
+        {
+          "binding": {
+            "sha256": "sha256:41e55a557544df3c6c2226c852427c5a0149767fae07c38bafc797396a0f379b",
+            "path": "docs/development/evidence/motor-feasibility-02/plans/reference-panel-plan.json"
+          },
+          "json_fields": {
+            "batch": "motor-feas02-reference-panel"
+          }
+        },
+        {
+          "binding": {
+            "sha256": "sha256:7ebb337fd30563732f115975c80cea78b450a3485b1e42172cdce65fab8b1ffc",
+            "path": "carbon/development_comparison/campaign_entrypoints.py"
+          },
+          "text_contains": [
+            "\"motor\"",
+            "sha256:599521e79786ee0326a0754ba0545f51ee9665adff73c3515c8d4b8ba24c1c05"
+          ]
+        }
+      ],
+      "missing": [
+        "Normalized physical tuples with all five current pins",
+        "Complete public COMPLETED and SCHEDULED reuse inventory with receipts"
+      ]
+    },
+    "2": {
+      "finding": "Merged producer registration selects sha256:599521e79786ee0326a0754ba0545f51ee9665adff73c3515c8d4b8ba24c1c05",
+      "sources": [
+        {
+          "binding": {
+            "sha256": "sha256:7ebb337fd30563732f115975c80cea78b450a3485b1e42172cdce65fab8b1ffc",
+            "path": "carbon/development_comparison/campaign_entrypoints.py"
+          },
+          "text_contains": [
+            "\"motor\"",
+            "sha256:599521e79786ee0326a0754ba0545f51ee9665adff73c3515c8d4b8ba24c1c05"
+          ]
+        }
+      ],
+      "missing": [
+        "Operator-supplied current presence observation bound to package/image; no host or Docker query performed"
+      ]
+    },
+    "3": {
+      "finding": "OWNER-CODE-VERIFICATION-ACCEPT-01 accepts the cited pinned-image MMS discretisation results only; historical provisional verdicts are not rewritten",
+      "sources": [
+        {
+          "binding": {
+            "sha256": "sha256:942ee4536b159884897d3f7eca2e5a95a0adcb032d5d8f129fdfef5a5a264cfd",
+            "path": "docs/development/evidence/motor-feasibility-02/code-verification/getdp-verdict.json"
+          },
+          "json_fields": {
+            "schema": "carbon.code-verification.result.v1",
+            "family": "motor",
+            "image_digest": "sha256:599521e79786ee0326a0754ba0545f51ee9665adff73c3515c8d4b8ba24c1c05"
+          }
+        },
+        {
+          "binding": {
+            "sha256": "sha256:341737286869281794a87b6f4df71d0bf8ad9c301e89e9b777fae667737a12d9",
+            "path": "docs/development/evidence/motor-feasibility-02/code-verification/getdp.flux.json"
+          },
+          "text_contains": [
+            "sha256:599521e79786ee0326a0754ba0545f51ee9665adff73c3515c8d4b8ba24c1c05"
+          ]
+        },
+        {
+          "binding": {
+            "sha256": "sha256:64b32bf2225465c3b35a60dd2de41023bcce70279e3c0fff50339d6c0ba7fa25",
+            "path": ".agent/decisions/2026-10-11-OWNER-CODE-VERIFICATION-ACCEPT-01.md"
+          },
+          "text_contains": [
+            "OWNER-CODE-VERIFICATION-ACCEPT-01",
+            "sha256:599521e79786ee0326a0754ba0545f51ee9665adff73c3515c8d4b8ba24c1c05"
+          ]
+        }
+      ],
+      "missing": [
+        "Image- and case-family-bound convergence and conservation measurements with accepted criteria",
+        "Full normalized adequacy binding; MMS does not establish physical validity or Tier-2 agreement"
+      ]
+    },
+    "4": {
+      "finding": "Merged family kit and common domain_gaps hook exist; software presence is not actual panel/TRAIN support",
+      "sources": [
+        {
+          "binding": {
+            "sha256": "sha256:93a060afed66aa070fa718428abfbb6d55af899a63825b9f84272eda6ed26b40",
+            "path": "carbon/development_comparison/motor_10p12s_kit.py"
+          },
+          "text_contains": [
+            "FAMILY = \"motor\"",
+            "OBSERVABLES"
+          ]
+        },
+        {
+          "binding": {
+            "sha256": "sha256:3d1de72c58a885f1ffd125f37834f44b4266353f3cc9ba270470ec70eaa9f7ea",
+            "path": "carbon/development_comparison/carbon_arm.py"
+          },
+          "text_contains": [
+            "def domain_gaps"
+          ]
+        }
+      ],
+      "missing": [
+        "Exported exact domain/observer coverage against every registered panel row",
+        "Peak-command/full-packet coverage beyond the current holding stage"
+      ]
+    },
+    "5": {
+      "finding": "Public TRAIN generation is registered; no solved TRAIN or complete physical-disjointness proof inferred",
+      "sources": [
+        {
+          "binding": {
+            "sha256": "sha256:4a067614ee921d20069504937e3913cebb30226cafe35c489d3a9356a2f4f2cd",
+            "path": "docs/development/evidence/motor-feasibility-02/plans/train-stage1-plan.json"
+          },
+          "json_fields": {
+            "batch": "motor-10p12s-train-stage1"
+          }
+        }
+      ],
+      "missing": [
+        "Public normalized TRAIN inventory and registration digest",
+        "Recomputed physical overlap against the complete panel, ignoring rung differences"
+      ]
+    }
+  }
+}
