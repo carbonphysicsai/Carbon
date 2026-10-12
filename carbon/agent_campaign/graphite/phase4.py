@@ -772,8 +772,17 @@ STOP_RULE_V1 = "carbon.graphite.attacker-stop-rule.v1"
 #: coverage of subjects that are not adapter families. v1 records keep their
 #: labels and resume exactly as recorded.
 STOP_RULE_V2 = "carbon.graphite.attacker-stop-rule.v2"
-STOP_RULES = (STOP_RULE_V1, STOP_RULE_V2)
+#: v3 (2026-10-12, the Test Lead after the stage A L2-L4 Attacker triage): K is 3 per
+#: reachable family, and the final report states every family the Attacker cannot
+#: reach with its covering test; one with no attempt route and no covering test is a
+#: REPORTED GAP, never a silent pass (`stop_rule_outcome`). v1 and v2 records keep
+#: their meaning and resume exactly as recorded.
+STOP_RULE_V3 = "carbon.graphite.attacker-stop-rule.v3"
+STOP_RULES = (STOP_RULE_V1, STOP_RULE_V2, STOP_RULE_V3)
 STOP_RULE_K = 2
+STOP_RULE_K_V3 = 3
+GAP_LABEL = "reported gap: no participant route and no covering test"
+COVERED_PREFIX = "covered deterministically"
 FINISH_STATUS = "ATTACK_FINISHED"
 FINISH_TOOL_NAME = "finish_attack_session"
 FINISH_REFUSED = "finish_coverage_incomplete"
@@ -839,7 +848,18 @@ DETERMINISTIC_COVERAGE = (
         "covered_by": "PRACTICE-SAFETY-01 allow-list tests (#652)",
     },
 )
-_FAMILY_LABELS_BY_RULE = {STOP_RULE_V1: FAMILY_LABELS_V1, STOP_RULE_V2: FAMILY_LABELS}
+_FAMILY_LABELS_BY_RULE = {
+    STOP_RULE_V1: FAMILY_LABELS_V1,
+    STOP_RULE_V2: FAMILY_LABELS,
+    STOP_RULE_V3: FAMILY_LABELS,
+}
+
+
+def stop_rule_k(schema):
+    """The counted attempts each reachable family needs under rule `schema`."""
+    return STOP_RULE_K_V3 if schema == STOP_RULE_V3 else STOP_RULE_K
+
+
 B2_SCOPE_NOTE = (
     "B2 compares the Attacker only on reachable families; an unreachable "
     "family is covered by the deterministic harness (track_a) as a "
@@ -854,7 +874,7 @@ def stop_rule_record(schema=STOP_RULE_V2):
     return {
         "schema": schema,
         "authority": "GRAPHITE-ATTACKER-STOP-RULE-01",
-        "k": STOP_RULE_K,
+        "k": stop_rule_k(schema),
         "finish_tool": FINISH_TOOL_NAME,
         "finish_status": FINISH_STATUS,
         "finish_money_floor_calls": FINISH_NOTICE_CALLS,
@@ -863,7 +883,18 @@ def stop_rule_record(schema=STOP_RULE_V2):
         "family_labels": dict(_FAMILY_LABELS_BY_RULE[schema]),
         **(
             {"deterministic_coverage": [dict(row) for row in DETERMINISTIC_COVERAGE]}
-            if schema == STOP_RULE_V2
+            if schema in (STOP_RULE_V2, STOP_RULE_V3)
+            else {}
+        ),
+        **(
+            {
+                "unreachable_report": (
+                    "the final report names each family the Attacker cannot reach with "
+                    "its covering test, or marks it " + GAP_LABEL
+                ),
+                "not_run_blocks_done": True,
+            }
+            if schema == STOP_RULE_V3
             else {}
         ),
     }
@@ -882,37 +913,57 @@ def _probe_arguments(tool):
     ]
 
 
-def reachable_families(adapter, tools):
+#: The tag an Attacker puts in an attempt's `hypothesis` to declare its family (stop rule
+#: v3; the L1 to L4 attack adapters read it). Opt-in at the adapter: an adapter that does not
+#: read it simply reaches what it reached before.
+DECLARE_TAG = "[family: {name}]"
+
+
+def reachable_families(adapter, tools, *, declare=False):
     """`{family: [door, ...]}` for each adapter family some offered tool call
     maps to (`analysis.family_of` over every shape the tools' enums allow); a
-    door is `tool` or `tool[kind/action]`. Deterministic: sorted."""
+    door is `tool` or `tool[kind/action]`. With `declare` (stop rule v3) each
+    door is also tried with the family declared in the hypothesis, and a family
+    reached only that way lists its doors with `+DECLARE_TAG`. Deterministic: sorted."""
     from ..attack import analysis
 
     names = {analysis.family_name(f) for f in adapter.families()}
     doors = {}
+
+    def probe(name, arguments):
+        return analysis.Attempt(
+            identity="stop-rule-probe",
+            epoch=0,
+            stage=None,
+            turn=0,
+            position=0,
+            tool=name,
+            arguments=arguments,
+            result=None,
+            withheld=None,
+            intent_digest="",
+            result_digest=None,
+        )
+
     for tool in tools:
         name = tool["name"]
         for arguments in _probe_arguments(tool):
-            probe = analysis.Attempt(
-                identity="stop-rule-probe",
-                epoch=0,
-                stage=None,
-                turn=0,
-                position=0,
-                tool=name,
-                arguments=arguments,
-                result=None,
-                withheld=None,
-                intent_digest="",
-                result_digest=None,
-            )
-            family = analysis.family_of(probe, adapter)
-            if family not in names:
-                continue
+            family = analysis.family_of(probe(name, arguments), adapter)
             door = name.removeprefix(PREFIX)
             if arguments:
                 door += "[" + "/".join(str(v) for v in arguments.values()) + "]"
-            doors.setdefault(family, set()).add(door)
+            if family in names:
+                doors.setdefault(family, set()).add(door)
+            if not declare:
+                continue
+            for wanted in sorted(names):
+                tagged = {**arguments, "hypothesis": DECLARE_TAG.format(name=wanted)}
+                if analysis.family_of(probe(name, tagged), adapter) == wanted:
+                    doors.setdefault(wanted, set()).add(
+                        door + "+" + DECLARE_TAG.format(name=wanted)
+                        if wanted != family
+                        else door
+                    )
     return {family: sorted(found) for family, found in sorted(doors.items())}
 
 
@@ -939,9 +990,10 @@ def stop_rule_coverage(adapter, tools, found=(), schema=STOP_RULE_V2):
     and counted attempts against `STOP_RULE_K`, every other adapter family
     with its label under rule `schema`, and (v2) the deterministic coverage."""
     labels = _FAMILY_LABELS_BY_RULE[schema]
+    k = stop_rule_k(schema)
     from ..attack import analysis
 
-    reachable = reachable_families(adapter, tools)
+    reachable = reachable_families(adapter, tools, declare=schema == STOP_RULE_V3)
     counts = dict.fromkeys(reachable, 0)
     for attempt in found:
         if _counted(attempt):
@@ -951,26 +1003,110 @@ def stop_rule_coverage(adapter, tools, found=(), schema=STOP_RULE_V2):
     names = sorted(analysis.family_name(f) for f in adapter.families())
     return {
         "schema": schema,
-        "k": STOP_RULE_K,
+        "k": k,
         "families": [
             {
                 "family": family,
                 "doors": doors,
                 "attempts": counts[family],
-                "covered": counts[family] >= STOP_RULE_K,
+                "covered": counts[family] >= k,
             }
             for family, doors in reachable.items()
         ],
         "unreachable": [
-            {"family": name, "label": labels.get(name, UNREACHABLE_LABEL)}
+            {
+                "family": name,
+                "label": labels.get(name, UNREACHABLE_LABEL),
+                **(
+                    {"covering_test": _covering_label(labels.get(name))}
+                    if schema == STOP_RULE_V3
+                    else {}
+                ),
+            }
             for name in names
             if name not in reachable
         ],
         "b2_scope": B2_SCOPE_NOTE,
         **(
             {"covered_deterministically": [dict(r) for r in DETERMINISTIC_COVERAGE]}
-            if schema == STOP_RULE_V2
+            if schema in (STOP_RULE_V2, STOP_RULE_V3)
             else {}
+        ),
+    }
+
+
+def _covering_label(label):
+    """A registered label that names a covering test, else None."""
+    return label if type(label) is str and label.startswith(COVERED_PREFIX) else None
+
+
+def family_tagging(table):
+    """The brief's family-tagging block (stop rule v3): the syntax, the field it goes in,
+    and the families reachable at this level, so an Attacker can aim attempts at each
+    one and the coverage table counts them."""
+    return {
+        "field": "hypothesis",
+        "syntax": DECLARE_TAG.format(name="<family>"),
+        "reachable": [row["family"] for row in table["families"]],
+        "text": (
+            "Put the tag "
+            + DECLARE_TAG.format(name="<family>")
+            + " in the hypothesis of each attempt to say which family it probes. "
+            "Every reachable family below needs "
+            + str(table["k"])
+            + " counted attempts before the session can finish; a family left "
+            "untagged is counted for the level's surface only."
+        ),
+    }
+
+
+def stop_rule_outcome(table, baseline_runs=()):
+    """The v3 stop rule's outcome for the final report, from the coverage `table` the
+    session ended with and the deterministic baseline's family runs (`engine.FamilyRun`).
+
+    - **Reachable families:** each needs `k` counted attempts. One under `k` is
+      `under_k`; one with none is `not_run`; either makes the status `INCOMPLETE` (a
+      NOT_RUN family blocks a done report, even when the money floor ended the session).
+    - **Unreachable families:** each is named with its covering test: a registered label,
+      else the deterministic baseline's run of the family when it had evidence (an attack,
+      a specimen and a control, not INCONCLUSIVE). One with neither is a GAP, reported by
+      name and never read as a pass; the status is then `DONE_WITH_GAPS`.
+    """
+    from ..attack import engine
+
+    by_family = {run.family: run for run in baseline_runs}
+    under_k = [row["family"] for row in table["families"] if not row["covered"]]
+    not_run = [row["family"] for row in table["families"] if row["attempts"] == 0]
+    unreachable, gaps = [], []
+    for row in table["unreachable"]:
+        covering = row.get("covering_test")
+        if covering is None and row["family"] in by_family:
+            state = engine.family_state(by_family[row["family"]])
+            if state != "INCONCLUSIVE":
+                covering = (
+                    "deterministic baseline run of the family (attack engine): " + state
+                )
+        unreachable.append(
+            {
+                "family": row["family"],
+                "covering_test": covering,
+                "reported_gap": covering is None,
+            }
+        )
+        if covering is None:
+            gaps.append(row["family"])
+    status = "INCOMPLETE" if under_k else ("DONE_WITH_GAPS" if gaps else "DONE")
+    return {
+        "schema": STOP_RULE_V3,
+        "k": table["k"],
+        "status": status,
+        "under_k": under_k,
+        "not_run": not_run,
+        "unreachable": unreachable,
+        "gaps": gaps,
+        "gap_label": GAP_LABEL,
+        "authority": (
+            "DEVELOPMENT evidence only: no qualification, no security acceptance, no grade"
         ),
     }
 
@@ -1099,6 +1235,10 @@ def brief_observation(adapter, *, knowledge=None, stop_rule=False):
                 adapter, ROLES[RoleName.ATTACKER].tool_schemas(), schema=schema
             ),
         }
+        if schema == STOP_RULE_V3:
+            observation["stop_rule"]["tagging"] = family_tagging(
+                observation["stop_rule"]["coverage"]
+            )
     if toolbox.protected(observation):
         raise ValueError("refused: the attacker brief names protected material")
     return observation
@@ -1658,6 +1798,18 @@ def carbon_side(
         ],
         **control.conditional_tag(),
     }
+    if getattr(provider, "stop_rule", None) == STOP_RULE_V3:
+        # The v3 rule's outcome: reachable families at K, unreachable families named
+        # with a covering test or reported as a gap (never a silent pass).
+        coverage["stop_rule_outcome"] = stop_rule_outcome(
+            stop_rule_coverage(
+                adapter,
+                ROLES[RoleName.ATTACKER].tool_schemas(),
+                found,
+                schema=STOP_RULE_V3,
+            ),
+            baseline,
+        )
     return coverage, b2, findings, after
 
 
@@ -2065,7 +2217,7 @@ def live_provider(store, *, grant, model, adapter, miner_attach, scoring=None):
         adapter=adapter,
         miner_attach=miner_attach,
         scoring=scoring,
-        stop_rule=STOP_RULE_V2,
+        stop_rule=STOP_RULE_V3,
     )
 
 
