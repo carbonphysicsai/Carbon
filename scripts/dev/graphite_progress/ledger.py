@@ -267,6 +267,9 @@ def build_line(
         r for r in runs if r["role"] == "constructor" and r["level"] == level
     ]
     attackers = [r for r in runs if r["role"] == "attacker" and r["level"] == level]
+    caveats = improvement.line_caveats(
+        [r.get("public_improvement") for r in constructors]
+    )
     return {
         "schema": LINE_SCHEMA,
         "batch": batch_id,
@@ -277,6 +280,7 @@ def build_line(
         "constructor": constructor_block(constructors, classes),
         "attacker": attacker_block(attackers, triage, fixes),
         "gate": gate_block(history, level, challenge),
+        **({"caveats": caveats} if caveats else {}),
         "excluded_sources": [
             dict(e) for e in excluded if e.get("level") in (None, level)
         ],
