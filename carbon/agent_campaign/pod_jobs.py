@@ -391,6 +391,7 @@ class JobPods(pods.RunPodPods):
 
         # The owner's switch beside the key file: without it no backend exists,
         # so no caller (the CLI or a library) can spend with a key file alone.
+        self.key_file = Path(key_file)
         self.upload_roots = require_enabled(key_file)
         self.spec = spec
         self.repository = Path(repository)
@@ -758,8 +759,10 @@ def run(spec, out, *, backend, ledger=None, private=None, uploads=None):
     ledger = grant_runs if ledger is None else ledger
     if not all(hasattr(ledger, f) for f in ("claim_pod_job", "settle_pod_job")):
         raise SpecRefused("pod_job_grant_unavailable", "grant_runs has no pod_job kind")
-    # Uploads only from the owner's allow-list the backend was built under.
-    files_in = read_uploads(spec, uploads, backend.upload_roots)
+    # The owner's switch, read again now: off (or gone since the backend was
+    # built) refuses before any claim or provider call.
+    roots = require_enabled(backend.key_file)
+    files_in = read_uploads(spec, uploads, roots)  # only from the allow-list
     out = pods.private_dir(out)
     private = pods.private_dir(private or out / "private")
     receipt = {

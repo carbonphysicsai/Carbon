@@ -321,7 +321,13 @@ def test_uploads_come_only_from_an_allowed_public_root(tmp_path):
 
 @pytest.mark.parametrize(
     "name",
-    ["a b.json", "cafÃƒÆ’Ã‚Â©.json", "x%2e.json", "ev4/a.json", "private/a.json"],
+    [
+        "a b.json",
+        "cafÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©.json",
+        "x%2e.json",
+        "ev4/a.json",
+        "private/a.json",
+    ],
 )
 def test_an_upload_name_that_needs_encoding_or_is_forbidden_is_refused(name):
     entry = {"sha256": "0" * 64, "bytes": 1}
@@ -563,3 +569,17 @@ def test_no_backend_exists_without_the_owners_switch(tmp_path):
             repository=REPOSITORY,
         )
     assert refused.value.code == "pod_jobs_not_enabled"
+
+
+def test_a_library_run_with_the_switch_off_refuses_with_zero_spend(lifecycle, tmp_path):
+    make, _go = lifecycle
+    spec, backend, account = make()
+    (tmp_path / pod_jobs.ENABLE_FILE).write_text(
+        json.dumps({"enabled": False, "upload_roots": []})
+    )
+    with pytest.raises(pod_jobs.SpecRefused) as refused:
+        pod_jobs.run(spec, tmp_path / "out", backend=backend)
+    assert refused.value.code == "pod_jobs_not_enabled"
+    assert account.creates == [] and account.pods == {}
+    assert not (tmp_path / "ledger" / grant_runs.WEEKLY_FILE).exists()
+    assert not (tmp_path / "out").exists()
