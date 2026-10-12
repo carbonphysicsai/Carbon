@@ -421,7 +421,10 @@ def test_cli_persists_lazy_codex_preflight_failure_and_status_still_works(
     paused = StateStore(store).load_state()
     assert paused["phase"] == "PAUSED_INFRA"
     assert paused["paused_from"] == "PLANNING"
-    assert "synthetic Codex preflight unavailable" in paused["last_error"]
+    assert (
+        paused["last_error"]
+        == "ExecutorUnavailable: synthetic Codex preflight unavailable"
+    )
     assert cli.main(["status", str(manifest_path), "--state-dir", str(store)]) == 0
 
 

@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-12-onboarding-effort-records",
+  "recorded_at": "2026-10-12T01:04:08Z",
+  "challenge": "protocol",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "ONBOARDING-EFFORT-RECORDS-01 / tests/cpu/test_onboarding_telemetry.py", "description": "Native explicit process/timer tests plus existing status, timeline and immutable open-benchmark pack regressions."},
+  "expected": "Measure declared active intervals with provenance, without inferring person-hours, accepting stages, double-counting shared work or rewriting historical packs.",
+  "observed": "68/68 affected diagnostics passed. Stage calendar intervals and explicit active blocks are separate; missing/open effort is unknown. Overlapping closed/open contributions across Challenges are refused. Human, agent and tool hours stay separate; legacy metrics export includes humans only. Source drift is reported without erasing clock records. Existing immutable packs remain unchanged. Native only; no solver/cloud/spend.",
+  "keep": ["Append-only unique public events with UTC/source/stage-definition identities.", "Recorded acceptance is a claim, never automatic qualification or a TESTED promotion."],
+  "change": ["Do not combine AI/tool runtimes into labour; a fast generator is not measured human savings.", "Finish active timers before waits, and allocate shared work once rather than to every receiving Challenge."],
+  "protocol_elements": ["challenge_onboarding", "effort_measurement", "historical_evidence", "lessons_learned"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

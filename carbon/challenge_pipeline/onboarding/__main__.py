@@ -98,9 +98,13 @@ def main(argv=None):
             result["evidence_readiness"] = evidence_readiness.generate(
                 args.root, args.challenge, main_ref=args.main_ref
             )
+            from carbon.challenge_pipeline.onboarding import telemetry
+
+            result["recorded_process"] = telemetry.view(args.root, result["challenge"])
             if args.format == "text":
                 print(status.render(result))
                 print(evidence_readiness.render(result["evidence_readiness"]))
+                print(telemetry.render(result["recorded_process"]))
                 return 0
         else:
             draft = packet.generate(packet.read_json(args.brief), args.root)

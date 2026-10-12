@@ -297,7 +297,16 @@ def test_the_constructor_brief_carries_the_domain_from_the_scoring_record():
     assert digest(canonical(observation)) == digest(canonical(again))
 
 
-def test_a_fno_request_is_refused_before_the_compile_step_with_the_served_set(tmp_path):
+def test_a_fno_request_is_refused_before_the_compile_step_with_the_served_set(
+    tmp_path, monkeypatch
+):
+    # Battery scoring v2 serves PyTorch (TORCH-POD-01), so the early refusal is
+    # held on the v1 record, where PyTorch is the backend the pods do not serve.
+    from carbon.challenge_validator.battery_scoring import SERVED_BACKENDS
+
+    monkeypatch.setattr(
+        p3f.SCORING, "served_backends", SERVED_BACKENDS["battery-scoring-v1"]
+    )
     fno = {**BASELINE, "backbone": "fno", "parameters": {"backend": "pytorch"}}
     account = p3f.ScriptedPods(steps=steps(1.0))
     _result, graphite, _ = session(tmp_path, [propose(fno), text("done")], account)
@@ -307,5 +316,21 @@ def test_a_fno_request_is_refused_before_the_compile_step_with_the_served_set(tm
     assert record["issues"] == [
         ["level_domain.backend_not_served", "/parameters/backend"]
     ]
-    assert record["served_backends"] == list(SCORING.served_backends)
+    assert record["served_backends"] == ["jax"]
     assert account.launched == [] and "finding" not in record
+
+
+def test_a_fno_request_on_a_served_pytorch_passes_the_early_check_to_a_pytorch_pod(
+    tmp_path,
+):
+    # Under the current record PyTorch is served: the level domain opens fno
+    # and the proposal goes on to be built by a PyTorch pod job, not refused.
+    assert "pytorch" in SCORING.served_backends
+    fno = {**BASELINE, "backbone": "fno", "parameters": {"backend": "pytorch"}}
+    account = p3f.ScriptedPods(steps=steps(1.0, 0.4))
+    _result, graphite, _ = session(tmp_path, [propose(fno), text("done")], account)
+    [record] = graphite.experiment(p3f.run_id()).records("proposal")
+    assert record["status"] != "REFUSED_BACKEND_NOT_SERVED"
+    assert "level_domain.backend_not_served" not in json.dumps(record)
+    [job] = [job for _intent, job in account.launched if job.strategy == fno]
+    assert job.backend == "pytorch"

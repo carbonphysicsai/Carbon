@@ -35,6 +35,18 @@ OWNERS = (
     "Optimizer Codex",
 )
 BENCHMARK_ROUTES = {
+    "f08": {
+        "kind": "ROUND_ONE_DEVELOPMENT",
+        "pending": "F08-STRUCTURES-READINESS-BUILD-01",
+        "baseline": (
+            "carbon/development_comparison/reduced_baselines.py",
+            {"measure", "validate_operators", "structural_curve", "predict"},
+        ),
+        "budget": (
+            "carbon/design_search/structures_budget.py",
+            "F08-DEVELOPMENT-PROPOSED-V1",
+        ),
+    },
     "backward-facing-step": {
         "pending": "https://github.com/carbonphysicsai/Carbon/pull/1061",
         "baseline": (
@@ -448,6 +460,128 @@ def code_route(tree, family, optimizer=False):
         return "UNKNOWN", "Main unavailable; no implementation inspected", []
     if family in BENCHMARK_ROUTES:
         return benchmark_route(tree, family, optimizer)
+    if family == "f17":
+        requirements = (
+            [
+                (
+                    "carbon/design_search/micromixer_budget.py",
+                    {"validate"},
+                    {"f17", "F17-DEVELOPMENT-PROPOSED-V1"},
+                ),
+                (
+                    "carbon/design_search/equal_budget.py",
+                    {"compare", "_validate"},
+                    {"f17"},
+                ),
+            ]
+            if optimizer
+            else [
+                (
+                    "carbon/challenge_pipeline/micromixer_readiness.py",
+                    {"measure", "decision_report"},
+                    {"f17"},
+                )
+            ]
+        )
+        for path, functions, literals in requirements:
+            raw = tree.read(path)
+            if raw is None:
+                return (
+                    "PLANNED",
+                    "Family preparation not yet on inspected main",
+                    [p for p, _, _ in requirements],
+                )
+            parsed = ast.parse(raw)
+            declared = {n.name for n in parsed.body if isinstance(n, ast.FunctionDef)}
+            values = {
+                n.value
+                for n in ast.walk(parsed)
+                if isinstance(n, ast.Constant) and type(n.value) is str
+            }
+            if not functions <= declared or not literals <= values:
+                return "NO", "Required f17 route incomplete", [path]
+            if optimizer and path.endswith("equal_budget.py"):
+                compare = next(
+                    n
+                    for n in parsed.body
+                    if isinstance(n, ast.FunctionDef) and n.name == "compare"
+                )
+                wired = any(
+                    isinstance(n, ast.ImportFrom)
+                    and n.module == "micromixer_budget"
+                    and any(
+                        a.name == "validate" and a.asname == "validate_registration"
+                        for a in n.names
+                    )
+                    for n in ast.walk(compare)
+                )
+                # A table route has the same execution path without a local
+                # challenge-specific import inside compare().
+                routes = next(
+                    (
+                        n.value
+                        for n in parsed.body
+                        if isinstance(n, ast.Assign)
+                        and any(
+                            isinstance(target, ast.Name)
+                            and target.id == "CHALLENGE_ROUTES"
+                            for target in n.targets
+                        )
+                    ),
+                    None,
+                )
+                if isinstance(routes, ast.Dict):
+                    f17_route = next(
+                        (
+                            value
+                            for key, value in zip(
+                                routes.keys, routes.values, strict=True
+                            )
+                            if isinstance(key, ast.Constant) and key.value == "f17"
+                        ),
+                        None,
+                    )
+                    if isinstance(f17_route, ast.Dict):
+                        validator = next(
+                            (
+                                value
+                                for key, value in zip(
+                                    f17_route.keys, f17_route.values, strict=True
+                                )
+                                if isinstance(key, ast.Constant)
+                                and key.value == "validator"
+                            ),
+                            None,
+                        )
+                        wired = wired or (
+                            isinstance(validator, ast.Attribute)
+                            and validator.attr == "validate"
+                            and isinstance(validator.value, ast.Name)
+                            and validator.value.id == "micromixer_budget"
+                            and any(
+                                isinstance(n, ast.ImportFrom)
+                                and n.level == 1
+                                and any(a.name == "micromixer_budget" for a in n.names)
+                                for n in parsed.body
+                            )
+                            and any(
+                                isinstance(n, ast.Name) and n.id == "CHALLENGE_ROUTES"
+                                for n in ast.walk(compare)
+                            )
+                        )
+                called = any(
+                    isinstance(n, ast.Call)
+                    and isinstance(n.func, ast.Name)
+                    and n.func.id == "validate_registration"
+                    for n in ast.walk(compare)
+                )
+                if not wired or not called:
+                    return "NO", "f17 budget validator not wired into compare", [path]
+        return (
+            "YES",
+            "Offline family comparison route implemented; real panel/verification/empirical advantage not implied",
+            [p for p, _, _ in requirements],
+        )
     if optimizer:
         path = "carbon/development_comparison/evidence_pipeline.py"
         functions = {"run", "_baseline"}

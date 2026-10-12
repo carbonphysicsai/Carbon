@@ -1,7 +1,9 @@
 """`python -m carbon.dashboard build|serve`.
 
 build --fixtures --out DIR
-    Build the site from the signed synthetic fixtures (labelled FIXTURE).
+    Build the site from the signed synthetic fixtures (labelled FIXTURE), at
+    the fixtures' clock, so board.v2 shows each phase (LIVE, STALE, and
+    PRE_FIRST_RELEASE after a rule cutover).
     Every build also writes the design showcase from public EV4 material,
     unless --no-showcase.
 build --feed FILE [--feed FILE ...] --trust-key HEX [...] --out DIR
@@ -25,6 +27,14 @@ import urllib.request
 from pathlib import Path
 
 from carbon.dashboard import build, feed, fixtures
+
+#: Sent with `fetch`, and the same as the Worker's (worker/feed.mjs
+#: FETCH_HEADERS). Cloudflare refuses Python's default urllib agent with 403,
+#: so the request names itself plainly.
+FETCH_HEADERS = {
+    "User-Agent": "carbon-dashboard/1 (+https://dashboard.carbonphysics.ai)",
+    "Accept": "application/json",
+}
 
 MAX_FEED_BYTES = 16 * 2**20
 
@@ -51,13 +61,18 @@ def main(argv=None):
         if args.fixtures:
             if args.trust_key:
                 parser.error("--fixtures takes no --trust-key")
-            trust, documents = fixtures.fixture_trust(), fixtures.documents()
+            trust = fixtures.fixture_trust()
+            documents = fixtures.documents() + fixtures.phase_documents()
+            now = fixtures.FIXTURE_NOW
         else:
             if not args.trust_key:
                 parser.error("--feed needs at least one pinned --trust-key")
             trust = feed.Trust(keys=frozenset(args.trust_key))
             documents = [json.loads(p.read_text(encoding="utf-8")) for p in args.feed]
-        index = build.build(args.out, documents, trust, showcase=not args.no_showcase)
+            now = None
+        index = build.build(
+            args.out, documents, trust, showcase=not args.no_showcase, now=now
+        )
         for board in index["boards"]:
             print(board["state"], board["slug"], board["code"] or "")
         return 0
@@ -65,7 +80,8 @@ def main(argv=None):
     if args.command == "fetch":
         if not args.url.startswith("https://"):
             parser.error("--url must be https")
-        with urllib.request.urlopen(args.url, timeout=60) as answer:
+        request = urllib.request.Request(args.url, headers=FETCH_HEADERS)
+        with urllib.request.urlopen(request, timeout=60) as answer:
             body = answer.read(MAX_FEED_BYTES + 1)
         if len(body) > MAX_FEED_BYTES:
             print("feed too large", file=sys.stderr)

@@ -1,0 +1,46 @@
+{
+  "schema": "carbon.reference-verification-spec.v1",
+  "family": "f08",
+  "status": "SPECIFIED_NOT_EXECUTED",
+  "image": "sha256:d9ef68d016226a945c7eefcb6b2261c60a11249ee0f93458ae6c3aca956fd6f8",
+  "source": "scripts/dev/reference_packages/calculix/sources.lock.json",
+  "rerun_after": ["image rebuild or re-pin", "mesher/element re-pin", "deck, boundary, unit, projection or observer change"],
+  "units": "mm,N,t,s; elastic MPa, density t/mm3, output mm/N, Hz",
+  "tests": [
+    {
+      "name": "3D cubic small-strain elasticity MMS",
+      "field": "u_i=a*x_i^3/L^2; L=1mm, a=1e-4 (isolated verification field)",
+      "source": "f_i=-6*a*(lambda+2*mu)*x_i/L^2, lambda=E*nu/((1+nu)*(1-2nu)), mu=E/(2*(1+nu))",
+      "boundary": "prescribe exact displacement on all faces of unit cube, apply manufactured body force; integrate source consistently, not pointwise arbitrary nodal loads",
+      "implementation": "carbon.challenge_pipeline.structures_readiness.manufactured",
+      "element": "C3D10 quadratic tetrahedra, shape regular refinement",
+      "mesh_ladder_h": [0.25,0.125,0.0625],
+      "errors": ["volume L2 displacement with independent integration", "H1 strain/energy seminorm", "reaction/body-force force and moment balance"],
+      "expected_asymptotic_order": {"L2":3,"H1":2},
+      "proposed_order_band_HUMAN_INPUT": {"L2":[2.5,3.5],"H1":[1.5,2.5]},
+      "stop": "not asymptotic, roundoff floor or integration deficiency => UNRESOLVED, never fitted order by choosing rungs"
+    },
+    {
+      "name":"uncoupled exact spring-mass oscillators",
+      "deck":"scripts/dev/reference_packages/calculix/f08_proof.py:oscillator_deck",
+      "reference":"H=1/(m*(omega_n^2-omega^2+2i*zeta*omega_n*omega)); mass-normalized eigenvectors; exp(+i omega t)",
+      "checks":["signed real/imag FRF including -90-degree resonance phase","modal damping for all 0.005/0.01/0.02","12/24/48 truncation where supported; ten-oscillator control is not a 48-mode proof","mass/load/probe projection and static residual"],
+      "agreement_HUMAN_INPUT":"recommend <=1e-6 relative complex error plus accepted absolute floor; do not use phase near zero amplitude; not a discretization order test"
+    },
+    {
+      "name":"unribbed unrelieved slender-beam analytic control",
+      "reference":"Euler-Bernoulli compliance a^3/(3EI), f1=1.8751041^2/(2pi)*sqrt(EI/(rho*A*L^4)); 3D shear/pad corrections independently assessed",
+      "source":"scripts/dev/reference_packages/calculix/f08_deck.py:beam_theory",
+      "checks":["consistent TRI6 1N resultant and exact centroid","C3D10 edge order, inverted elements and volume","thin-limit/model discrepancy separated from numerical error"],
+      "agreement_HUMAN_INPUT":"source packet recommends <=2% static and <=1% frequency in matched Tier2 witnesses; analytic slender-beam applicability needs science acceptance"
+    }
+  ],
+  "task_adequacy_separate_from_MMS": {
+    "mesh_h_mm":[3,2.25,1.7], "retained_modes":[12,24,48],
+    "frequency":"80-600 Hz, adaptive bracketing, <=1/10 half-power bandwidth; evaluate tip and separate probe; no fixed-grid peak assertion",
+    "packet_targets_HUMAN_INPUT":{"eigen_change_percent":1,"peak_change_percent":5,"peak_location_hz":"min(2Hz,1% of peak)","phase_deg":5},
+    "conservation":"root reactions balance 1N static resultant/moments; mesh vs CAD mass; complex input power=modal dissipation under declared damping; no energy balance inferred from a frequency alone",
+    "receipt":"science-accepted case-bound mesh/mode/frequency uncertainty and convergence/conservation/code-verification receipts for exact image; no acceptance from file presence"
+  },
+  "tier2_target":"Matched Mechanical/NAFEMS plus independent public task witnesses; NOT_DEMONSTRATED, no physical joint-damping or full-machine claim"
+}

@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-11-pilot-all-in-cap",
+  "recorded_at": "2026-10-11T16:08:23Z",
+  "challenge": "portfolio",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "PILOT-PLANS-WITHIN-CAP-01", "description": "19 arithmetic tests, then 35 pilot/equal-budget tests passed natively; CLI reported six non-dispatchable plans, 93-cent probe and 994-cent total bounds. Pipeline validate initially failed due to absent public prior-work folders in the storage-saving sparse checkout; restoring those tracked folders resolved it. No solver, host or spend."},
+  "expected": "Whole-lifecycle billing and a measured same-host probe determine a bounded pilot, not prorated solver CPU time.",
+  "observed": "Fresh CCX63 probe exceeds EUR1 minimum billed hour; proposed smaller-host ceiling accounts for hourly rounding, all fees and deletion. Capacity and independent enforcement remain missing, not earned.",
+  "keep": ["Retain complete curves/histories, all failures and exact public identities."],
+  "change": ["Budget allocation-to-deletion lifetime, and never infer p95 from a single timing probe."],
+  "protocol_elements": ["reference policy", "measurement authority"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

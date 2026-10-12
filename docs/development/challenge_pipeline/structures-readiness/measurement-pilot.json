@@ -1,0 +1,29 @@
+{
+  "schema":"carbon.f08-measurement-pilot.v1",
+  "status":"PROPOSED_NOT_REGISTERED_NOT_DISPATCHABLE",
+  "run_authorized":false,
+  "scope":"PUBLIC_DEVELOPMENT",
+  "cap_eur_all_in_including_probe":10,
+  "platform":"One proposed EU CCX43 lease, 16 dedicated vCPU/64 GB; pinned ccx runtime serial one solver core, no GPU, no implicit parallel build/run",
+  "host_rate_inclusive_ceiling_eur_h":0.53,
+  "all_other_lifetime_charges_ceiling_eur":0.40,
+  "quote_and_capacity":"HUMAN_INPUT; current quote/tax/fees, approved store/export and independent expiry/deletion bound required",
+  "probe":{"complete_geometry":[220,80,6,12,4,40],"mesh_h_mm":3,"modes":48,"all_damping":[0.005,0.01,0.02],"expected_wall_s_low_base_high":[40,300,1500],"basis":"ASSUMPTION: 40-110s modal observation is not complete geometry C1","setup_max_s":1200,"case_wall_cap_s":1500,"export_delete_reserve_s":600,"safety_s":300,"allocation_to_deletion_max_s":3600,"upper_eur":0.93},
+  "ordered_follow_on":[
+    {"id":"exact-oscillator-control","unit":"one control process; not buyer-task C1","measured_probe_multiplier":1},
+    {"id":"unribbed-beam-control","unit":"one control process; not buyer-task C1","measured_probe_multiplier":1},
+    {"id":"low-rib-220-80-6-8-4-40","unit":"static/eigen/all-three complete damping curves","h_mm":3,"modes":48,"measured_probe_multiplier":1},
+    {"id":"high-rib-220-80-6-16-4-40","unit":"static/eigen/all-three complete damping curves","h_mm":3,"modes":48,"measured_probe_multiplier":1},
+    {"id":"nominal-refine-h2.25","unit":"complete all-damping paired mesh","h_mm":2.25,"modes":48,"measured_probe_multiplier":4},
+    {"id":"nominal-refine-h1.7","unit":"complete all-damping paired mesh","h_mm":1.7,"modes":48,"measured_probe_multiplier":8}
+  ],
+  "sizing":"After a completed same-host/same-core/pin probe only: case wall cap=2*measured probe wall*listed hypothesis multiplier; select ordered prefix fitting remaining allocation-to-deletion lifetime after 900s tail. No p95 inference. Worst multiplier may time out: retain incomplete evidence, do not change mesh/damping/history to make it cheap.",
+  "total_lease_max_s_including_probe":64800,
+  "all_in_upper_eur":9.94,
+  "cap_proof":"ceil(total lifetime/3600)*0.53+0.40 <=9.94; deletion bound independently accepted before allocation, not just solver shutdown",
+  "RSS_limit_MB":24000,
+  "processes_at_once":1,"retries":0,
+  "registration_holds":["exact main tuples and source/image/deck/mesh/projection pins","complete completed/scheduled reuse audit","seven prerequisites or exact pilot-produced exceptions","operator grant","quote/capacity/lifecycle and resource enforcement receipts"],
+  "return":["allocated-to-deleted wall and invoice/tax/fees","actual process CPU and allocated core time separately","peak RSS, elements/DOFs and every launch/step count","all raw signed tip/probe curves, adaptive peaks and modal truncations","mesh/mode/frequency/conservation/code-verification findings","failed/partial attempts and reference uncertainty","strong cross-geometry baseline agreement/regret/abstention and screening/query costs"],
+  "does_not_establish":["T2(a) five near-feasible/five near-infeasible per stratum","p95 complete geometry cost","Tier2 or qualification","V4 advantage","bank startup or execution grant"]
+}

@@ -76,6 +76,80 @@ def _interval(xs, level=0.95):
     return [xs[int(tail * (len(xs) - 1))], xs[math.ceil((1 - tail) * (len(xs) - 1))]]
 
 
+def value_ceiling(losses, observed_tau=None, n_boot=500, seed=SEED):
+    """How far the decision value lets any score reach (SCORE-CEILING-01).
+
+    `losses` is a members x questions matrix of decision losses on the
+    resolved mask. A question on which every member scores the same carries no
+    ranking information and is left out. Per-question reliability is the mean
+    Spearman correlation of member losses over pairs of informative questions;
+    Spearman-Brown gives the value's reliability R over the k informative
+    questions; a perfect score's Kendall ceiling is (2 / pi) asin(sqrt(R))
+    (bivariate normal). The 95 % interval resamples questions (pairs of the
+    same original question are skipped). `observed_tau`, if given, is reported
+    as a share of the ceiling. Uses only the losses: nothing sealed is read.
+    """
+    import math
+
+    import numpy as np
+
+    L = np.asarray(losses, dtype=float)
+    out = {
+        "members": int(L.shape[0]) if L.ndim == 2 else 0,
+        "resolved_questions": int(L.shape[1]) if L.ndim == 2 else 0,
+    }
+    if L.ndim != 2 or L.shape[0] < 3:
+        return {**out, "status": "NOT_MEASURABLE"}
+    keep = [j for j in range(L.shape[1]) if np.ptp(L[:, j]) > 0]
+    out["informative_questions"] = len(keep)
+    if len(keep) < 2:
+        return {**out, "status": "NOT_MEASURABLE"}
+    ranks = np.empty((L.shape[0], len(keep)), dtype=float)
+    for j in range(len(keep)):
+        col = L[:, keep[j]]
+        # Average ranks for ties (Spearman).
+        _, inverse, counts = np.unique(col, return_inverse=True, return_counts=True)
+        starts = np.concatenate(([0], np.cumsum(counts)[:-1]))
+        ranks[:, j] = (starts + (counts - 1) / 2.0)[inverse]
+    C = np.corrcoef(ranks, rowvar=False)
+    k = len(keep)
+
+    def ceiling(rho):
+        R = k * rho / (1 + (k - 1) * rho) if rho > 0 else 0.0
+        R = min(max(R, 0.0), 1.0)
+        return R, 2 / math.pi * math.asin(math.sqrt(R))
+
+    iu = np.triu_indices(k, 1)
+    rho = float(C[iu].mean())
+    R, tau_max = ceiling(rho)
+    rng = np.random.default_rng(seed)
+    boots = []
+    for _ in range(n_boot):
+        idx = rng.integers(k, size=k)
+        a, b = np.meshgrid(idx, idx, indexing="ij")
+        mask = np.triu(np.ones((k, k), bool), 1) & (a != b)
+        if mask.any():
+            boots.append(ceiling(float(C[a[mask], b[mask]].mean()))[1])
+    lo, hi = (
+        (float(np.quantile(boots, 0.025)), float(np.quantile(boots, 0.975)))
+        if boots
+        else (None, None)
+    )
+    out.update(
+        {
+            "status": "MEASURED",
+            "per_question_reliability": rho,
+            "reliability": R,
+            "tau_ceiling": tau_max,
+            "tau_ceiling_ci95": [lo, hi],
+        }
+    )
+    if observed_tau is not None:
+        out["observed_tau"] = observed_tau
+        out["share_of_ceiling"] = observed_tau / tau_max if tau_max > 0 else None
+    return out
+
+
 def _ranked(scores, members):
     return sorted(
         (m for m in members if scores.get(m) is not None), key=lambda m: (-scores[m], m)
@@ -250,7 +324,7 @@ def gate_check(candidate, legs, unsafe):
     missed = sorted(u for u, v in verdicts.items() if v != admissibility.FAIL)
     if not missed:
         return {"status": "PASS"}
-    return {
+    out = {
         "status": "FAIL",
         "missed": missed,
         "cutoff_in_force": candidate.gate["cutoff"],
@@ -259,6 +333,19 @@ def gate_check(candidate, legs, unsafe):
             [legs[u]["gates"][candidate.gate["measure"]] for u in unsafe],
         ),
     }
+    if len(candidate.gates) > 1:
+        # Each further gate's catching range over the members every gate
+        # missed (amendment 7): tightening any one gate catches them.
+        out["and_gates"] = [
+            {
+                "gate": g,
+                "catching_cutoff": catching_cutoff(
+                    g, [legs[u]["gates"][g["measure"]] for u in missed]
+                ),
+            }
+            for g in candidate.gates[1:]
+        ]
+    return out
 
 
 def adversarial_divergence(scores, values, members, adversarial, band):
@@ -675,8 +762,8 @@ def screens(report, rule, minimum_level_members=10):
     return out
 
 
-#: The screens that make a rule unpickable at selection
-#: (SCORE-PROOF-PICKABLE-01): a rule that places a known-bad control or an adversarial
+#: The screens that made a rule unpickable at selection under
+#: SCORE-PROOF-PICKABLE-01 (superseded by PICKABLE-02; still reported): a rule that places a known-bad control or an adversarial
 #: construction in the top half of any screened pool cannot go to the sealed
 #: confirmation, whatever its tau. Placement needs no precise tau, so it holds
 #: on the selection fold's few questions.
@@ -686,14 +773,36 @@ PLACEMENT_SCREENS = (
 )
 
 
-def pickable(report, rule, minimum_level_members=10):
+#: The criterion in force (SCORE-PROOF-PICKABLE-02, the owner, after the
+#: selection was seen): a known-bad control in the top half, or adversarial
+#: divergence (an adversarial member scoring above a member of better value),
+#: replacing adversarial placement. On the selection fold the adversarial
+#: members decide well, so placing them high is the correct value ordering;
+#: divergence is what the screen means. Selection only.
+DIVERGENCE_SCREENS = (
+    "known-bad member in the top half",
+    "adversarial divergence",
+)
+
+#: The pickability criteria computed and reported side by side at selection:
+#: PICKABLE-01's placement (superseded) and PICKABLE-02's divergence. Only
+#: the one in force gates the confirmation; changing it is the owner's.
+PICKABILITY_CRITERIA = {
+    "placement": PLACEMENT_SCREENS,
+    "divergence": DIVERGENCE_SCREENS,
+}
+PICKABILITY_IN_FORCE = "divergence"
+
+
+def pickable(report, rule, minimum_level_members=10, criterion=PICKABILITY_IN_FORCE):
     """`(True, [])`, or `(False, ["<pool>: <screen>", ...])`: whether the
-    owner may pick `rule` from this selection report."""
+    owner may pick `rule` from this selection report under `criterion`."""
+    counted = PICKABILITY_CRITERIA[criterion]
     failed = [
         f"{pool}: {screen}"
         for pool, screens_failed in screens(report, rule, minimum_level_members).items()
         for screen in screens_failed
-        if screen in PLACEMENT_SCREENS or screen == "incomplete legs"
+        if screen in counted or screen == "incomplete legs"
     ]
     return (not failed, failed)
 

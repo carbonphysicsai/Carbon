@@ -162,7 +162,20 @@ def test_inputs_match_the_tools_at_authority_main_not_at_head():
 # -- provenance fails on tampering and incomplete records; freshness never fails -------------------
 def _git(root, *args):
     subprocess.run(
-        ["git", "-c", "user.email=t@t", "-c", "user.name=t", *args],
+        # Background upkeep writes and removes `.git` lock files
+        # asynchronously, which races this fixture's own commands.
+        [
+            "git",
+            "-c",
+            "user.email=t@t",
+            "-c",
+            "user.name=t",
+            "-c",
+            "maintenance.auto=false",
+            "-c",
+            "gc.auto=0",
+            *args,
+        ],
         cwd=root,
         check=True,
         capture_output=True,

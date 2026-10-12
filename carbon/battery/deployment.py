@@ -159,7 +159,11 @@ def _private(path):
 
 #: The registered-score term's fields (VALIDATOR-26), checked here by shape
 #: only: the registry itself is read by the operator's setup, never here.
-SCORE_FIELDS = frozenset({"registry", "registry_sha256", "candidate"})
+#: `decision` names the owner's record that adopts this candidate (the
+#: owner's #1101 security conditions): the scorer refuses unless that record
+#: names the candidate and the registry digest.
+SCORE_FIELDS = frozenset({"registry", "registry_sha256", "candidate", "decision"})
+SCORE_DECISION = re.compile(r"OWNER-[A-Z0-9]+(?:-[A-Z0-9]+)*-\d{2}\Z")
 
 
 def rule_for(config):
@@ -178,6 +182,7 @@ def rule_for(config):
         type(term) is not dict
         or set(term) != SCORE_FIELDS
         or not all(type(v) is str and v for v in term.values())
+        or not SCORE_DECISION.match(term["decision"])
     ):
         raise EvaluationUnavailable("evaluation_config_score")
     return {**rule, "score": dict(term)}
@@ -537,7 +542,11 @@ def evaluate(target, submission):
     """
     from carbon.chain.commitments import CommitmentUnavailable
 
-    from .daemon import BackendNotServed, CommitmentRequired
+    from .daemon import (
+        BackendNotServed,
+        CommitmentRequired,
+        DevelopmentCompilerUnavailable,
+    )
     from .pool_store import HotkeyWindowUsed
 
     if getattr(target, "readonly", False):
@@ -564,10 +573,24 @@ def evaluate(target, submission):
             raise EvaluationUnavailable(code) from None
         except BackendNotServed:
             raise EvaluationUnavailable("backend_not_served") from None
+        except DevelopmentCompilerUnavailable:
+            raise EvaluationUnavailable("development_compiler_unavailable") from None
         sid = admitted["submission_id"]
         # Under a registered score, a process without the score (the
         # intake's) admits only; the daemon scores (VALIDATOR-26).
-        if admitted["state"] != "INVALID_CONSTRUCTION" and scores_here(target):
+        if admitted["state"] != "INVALID_CONSTRUCTION" and processes_here(target):
             target.process(sid)
             target.run_pending()
         return target.outcome(sid)
+
+
+def processes_here(target):
+    """Whether this process can advance `target`'s submissions: it holds the
+    registered score its rule names (`scores_here`), and, on a development
+    ladder, the ladder's compiler. Otherwise the daemon, whose entry point
+    installs both, advances them; this process only admits."""
+    if not scores_here(target):
+        return False
+    if getattr(target, "ladder", None) is not None:
+        return callable(getattr(target, "development_compiler", None))
+    return True

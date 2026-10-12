@@ -830,7 +830,13 @@ def in_flight(own):
 
 def recovery(own):
     """What gets the campaign moving again: [{action, operation}]."""
-    allowed = {("resume", "resume"), ("stop", "halt"), ("reconcile", "halt")}
+    allowed = {
+        ("resume", "resume"),
+        ("stop", "halt"),
+        ("reconcile", "halt"),
+        # An interrupted practice's one-step retry (LAUNCHPAD-PRACTICE-RETRY-01).
+        ("retry_interrupted", "resume"),
+    }
     return [
         {"action": item["action"], "operation": item["operation"]}
         for item in (own.get("recovery") or [])

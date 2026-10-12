@@ -86,8 +86,9 @@ class Truth:
         self.calls = 0
 
     def __call__(self, command, check):
-        mount = next(a for a in command if a.endswith(":/work:rw"))
-        work = Path(mount.removesuffix(":/work:rw"))
+        from carbon.battery.truth_env import mounted_work
+
+        work = mounted_work(command)
         draws = work / pr.Producer.QUIZ_DRAWS
         if self.short and draws.exists():
             value = json.loads(draws.read_text())

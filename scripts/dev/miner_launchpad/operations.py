@@ -93,6 +93,17 @@ FIELDS = {
     "hypothesis": ("string", "What this trial tests."),
     "expected_effect": ("string", "What you expect it to show."),
     "action": ("string", "stop, pause or reconcile."),
+    "retry_interrupted": (
+        "boolean",
+        (
+            "true sends this campaign's interrupted practice again exactly as "
+            "it was sent (its recipe, hypothesis and expected effect), in "
+            "place of resuming the campaign: offered when observe shows "
+            "last_refusal operation_interrupted for a practice. Never a "
+            "freeze, submit or commit, and never a practice refused for a "
+            "typed reason (no_interrupted_practice). Omitted: false."
+        ),
+    ),
     "challenge": (
         "string",
         (
@@ -419,6 +430,8 @@ REFUSAL_FIELDS = {
     "bounded_reason_required": "reason",
     "used_feedback_boolean_required": "used_feedback",
     "recommit_boolean_required": "recommit",
+    "retry_interrupted_boolean_required": "retry_interrupted",
+    "no_interrupted_practice": "retry_interrupted",
     "invalid_research_control": "action",
     "note_kind_unknown": "note_kind",
     "bounded_note_required": "note",
@@ -587,7 +600,10 @@ OPERATIONS = {
         Operation(
             "observe",
             "The campaign's state, epochs, practice results and any frozen "
-            "candidate or final feedback. Reads only.",
+            "candidate or final feedback. Reads only; on testnet 567, for a "
+            "submission the validator queued, it also asks the validator for "
+            "its verdict, at most once per chain epoch, with a read-only "
+            "signed status read.",
             frozenset({"campaign"}),
             frozenset(),
             ("request", "profile", "campaign"),
@@ -719,9 +735,11 @@ OPERATIONS = {
         ),
         Operation(
             "resume",
-            "Resume a paused or interrupted campaign.",
+            "Resume a paused or interrupted campaign. With "
+            "retry_interrupted=true, send its interrupted practice again "
+            "exactly as it was, in one call.",
             frozenset({"campaign"}),
-            frozenset(),
+            frozenset({"retry_interrupted"}),
             ("request", "profile", "registration", "campaign"),
         ),
         Operation(

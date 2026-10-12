@@ -1,0 +1,32 @@
+{
+ "schema": "carbon.cooling.point-b-registry.v1",
+ "registered": "2026-10-11, before any point-B solve",
+ "authority": "Owner delegation to the Test Lead (\"make the lid and inlet settings so it makes our challenge most believable and valuable\"); the Test Lead set the AI-chip cooling-cell operating point to #1084's point B on 2026-10-11 and asked for the value check there; point C (45 C, 1,400 W, 2.0 L/min/kW, 30 kPa) only as a stress stratum if needed",
+ "operating_point_B": {
+  "inlet_c": 40,
+  "interface_heat_w": 1000,
+  "flow_lpm_per_kw": 1.5,
+  "cell_pressure_allocation_kpa": 25,
+  "source": "#1084 operating-points.json point B (ASSUMPTION representative choices; OCP 1 kW TTV anchor; ASHRAE warm-water class)"
+ },
+ "fixed": {
+  "footprint_mm": [
+   30,
+   30
+  ],
+  "limit_c": 85,
+  "limit_location": "lid-side TIM2 interface",
+  "tim2_m2k_w": 5e-06,
+  "coolant": "PG25 (supported 30-99 C)",
+  "lid": "isotropic effective k, REPRESENTATIVE screen {2000, 5000 base, 10000} W/mK, 3.0 mm (Set A thickness); real lid characterisation is the customer's input"
+ },
+ "designs": "the 32 cooling-feasibility-02 designs (24 seeded draws + 8 heat-transfer corners)",
+ "solves": "per design, the cell CFD (pinned OpenFOAM image, as cooling-feasibility-02) at B base: uniform map; ratio-2 band at x = 15 mm (central); ratio-2 band at x = 25 mm (outlet); 96 solves; no new solver settings",
+ "strata": "service map: inlet {37, 40, 42} C x interface heat {900, 1000, 1100} W x map ratio {1, 1.5, 2} (central and outlet bands, scored on the worse map) at flow 1.5 L/min/kW, with lid k {2000, 5000, 10000} as a sensitivity, not a stratum",
+ "evaluation": "the registered value-search composition (h-model from the uniform solve, hotspot shape from the ratio-2 solves scaled to the stratum ratio, linear in inlet and heat at fixed flow per kW, the exact 2D lid series with TIM2 5e-6 for the post-spreader map); hydraulic feasibility: cell pressure drop at the stratum flow <= the 25 kPa allocation (dp scaled linearly with flow from the base solve, laminar)",
+ "verdict": "PASS when the composed TIM2-interface peak <= 85 C and dp <= 25 kPa; margins in K",
+ "value_checks": "per stratum: pass fraction (Test Lead's 20-80 % target, reported), contested decisions (>= 5 PASS and >= 5 FAIL within 2 K of the limit), margin spread >= 5 K; >= 1 design PASS in every stratum; the best design (lowest dp among PASS, ties by margin) changes across strata",
+ "stress_C": "point C only if B fails a value check, registered separately before its solves",
+ "plan_sha256": "dc11be088d3548ae241d0cd772ed8834d15c80a126f32672a0fc561963751935",
+ "plan": "~carbon/runs/cpb-plan.json (32 designs x 3 = 96 cases, from cfeas-plan.json's design geometry)"
+}

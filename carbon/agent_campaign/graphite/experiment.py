@@ -100,9 +100,23 @@ RELAUNCH_REFUSED = "pod_environment_relaunch_refused:"
 #: The session baseline's retry never gets a relaunch too: the baseline gets
 #: at most one extra pod from the two rules together.
 BASELINE_RETRY_USED = "baseline_retry_used"
+#: GRAPHITE-POD-LAUNCH-RETRY-01: a transient refusal of the session baseline's
+#: launch (before any provider write; nothing created, nothing charged) is
+#: tried again in place, up to `LAUNCH_ATTEMPTS` launches in all, after a
+#: jittered wait in `LAUNCH_BACKOFF_S`. Hard refusals are never retried. This
+#: is not the registered baseline retry (`baseline_retry`), which runs a
+#: second pod and still never follows a refused launch.
+LAUNCH_ATTEMPTS = 3
+LAUNCH_BACKOFF_S = (30.0, 120.0)
 RELAUNCH_NO_TIME = "relaunch_cannot_fit_remaining_time"
 NANO = Decimal(10) ** 9
 MAX_STRATEGY_BYTES = 16384
+#: GRAPHITE-L4-STAGING-01: the one export a Level 4 lowering run writes, and
+#: the most bytes Carbon reads of it, packed and unpacked. Unpacked, an
+#: envelope is G0's whole-submission bound (`intake.BOUNDS`) in base64 plus
+#: its JSON: twice that bound holds any admissible one.
+LEVEL4_ENVELOPE_EXPORT = "level4-envelope.json.gz"
+LEVEL4_ENVELOPE_LIMIT_FACTOR = 2
 
 
 class BudgetRefused(ValueError):
@@ -244,7 +258,7 @@ def recorded_contract(scoring=None):
     return challenge_scoring.resolve(scoring).recorded_contract()
 
 
-def admit(strategy, seed, root=REPOSITORY, scoring=None, variant=None):
+def admit(strategy, seed, root=REPOSITORY, scoring=None, variant=None, workspace=None):
     """Compile `strategy` exactly as Carbon would rebuild it; return what
     Carbon would build (`ChallengeScoring.built_record`). Raises `Unrebuildable`
     (never scored) or `NotServed` (Carbon rebuilds it, these pods do not).
@@ -266,7 +280,12 @@ def admit(strategy, seed, root=REPOSITORY, scoring=None, variant=None):
     if variant is not None:
         from carbon.reconstruction import development_variants
 
-        return development_variants.admit(resolved, strategy, seed, root, variant)
+        # Only a Level 4 proposal with staged documents passes them; every
+        # other level calls admission exactly as before.
+        extra = {} if workspace is None else {"workspace": workspace}
+        return development_variants.admit(
+            resolved, strategy, seed, root, variant, **extra
+        )
     contract = recorded_contract(resolved)
     return challenge_scoring.admit(resolved, strategy, seed, root, contract=contract)
 
@@ -368,6 +387,13 @@ class PodLedger:
         self.path = Path(path)
         self.clock = clock
 
+    def ensure(self):
+        """Create the (empty) ledger file if it is absent, so a run that failed before
+        any pod event has a readable record showing none; an existing file is left
+        alone."""
+        if not self.path.exists():
+            self.path.touch(mode=0o600)
+
     def append(self, event, **body):
         row = {"event": event, "at": self.clock(), **body}
         with self.path.open("ab") as stream:
@@ -422,6 +448,7 @@ class PodLedger:
             elif event == "pod_duplicates_counted":
                 pod["duplicates"] = row["count"]
                 pod["duplicate_usd"] = row["charged_usd"]
+                pod["unknown_duplicates"] = row.get("unknown_charges", 0)
         return state
 
     def committed(self):
@@ -430,6 +457,10 @@ class PodLedger:
         for pod in self.pods().values():
             # A duplicate's real charge is spend even though it is not the pod.
             settled += Decimal(pod.get("duplicate_usd") or 0)
+            # A duplicate whose charge the provider did not report stays at the
+            # reservation of the pod it duplicates, never at zero.
+            if pod.get("unknown_duplicates") and pod["reserved_usd"] is not None:
+                pending += pod["unknown_duplicates"] * Decimal(pod["reserved_usd"])
             if pod["settled_usd"] is not None:
                 settled += Decimal(pod["settled_usd"])
             elif pod["reserved_usd"] is not None:
@@ -576,6 +607,15 @@ def _variant_feedback(view, record):
     return view
 
 
+def _l4_refused(code):
+    return {
+        "status": "REJECTED_BEFORE_DISPATCH",
+        "reason_code": str(code),
+        "dispatched": False,
+        "authority_granted": False,
+    }
+
+
 class Experiment:
     """One run's proposals: admission, pods, rebuild check, frozen-rule score.
 
@@ -634,6 +674,7 @@ class Experiment:
         on_finding=None,
         score_variant=None,
         hidden=None,
+        sleep=None,
     ):
         from .provider import RunCancelled
 
@@ -645,7 +686,12 @@ class Experiment:
         self.ladder, self.emit = ladder, emit
         self.scorer = scorer
         self.repository, self.clock, self.randomness = repository, clock, randomness
+        import time as _time
+
+        self.sleep = _time.sleep if sleep is None else sleep
+        self._refusals = {}
         self.ledger = PodLedger(self.root / "pod-ledger.jsonl", clock)
+        self.ledger.ensure()
         self._cancel = RunCancelled
         self.scoring = challenge_scoring.resolve(scoring)
         self.construction_level = construction_level
@@ -1069,6 +1115,148 @@ class Experiment:
         )
         self._stop_session(pid, SimpleNamespace(reason_code=TOKENS_ONLY_CHARGE))
 
+    # -- Level 4 staging (GRAPHITE-L4-STAGING-01) ----------------------------------------
+    def level4_variant_bounds(self):
+        """The Level 4 variant's bounds (its `loss_override`), or None when this
+        session is not at Level 4."""
+        variant = self.development_variant
+        if variant is None or getattr(variant, "level", None) != 4:
+            return None
+        for widened in variant.widened:
+            return json.loads(widened.bounds_json)
+        return None
+
+    def level4_envelope_limit(self):
+        from carbon.level4 import intake
+
+        return LEVEL4_ENVELOPE_LIMIT_FACTOR * intake.BOUNDS["submission_bytes"]
+
+    def level4_interface(self, strategy):
+        """What a lowering for `strategy` must target: its interface digest,
+        inputs and training batch, and the two commands."""
+        from carbon.battery import level4 as battery_level4
+        from carbon.battery import level4_admission
+
+        interface, batch = level4_admission.interface_and_batch(strategy)
+        digest = interface.digest()
+        challenge = battery_level4.challenge_id()
+        return {
+            "status": "LEVEL4_INTERFACE",
+            "interface": digest,
+            "inputs": [list(i) for i in interface.inputs],
+            "outputs": [list(o) for o in interface.outputs],
+            "batch": batch,
+            "field": "parameters." + battery_level4.FIELD,
+            "commands": [
+                (
+                    "python -m carbon.level4.tooling lower spec.py lowered "
+                    f"--challenge {challenge} --interface {digest} --batch {batch}"
+                ),
+                (
+                    "python -m carbon.level4.tooling envelope lowered "
+                    "/scratch/output/" + LEVEL4_ENVELOPE_EXPORT
+                ),
+            ],
+            "authority_granted": False,
+        }
+
+    def level4_stage(self, strategy, packed):
+        """Admit the envelope `packed` (gzip bytes the agent's run exported)
+        for `strategy` through G0, G3 and G4, as data, and keep it by its
+        submission digest. Returns the reply; a refusal is typed."""
+        import zlib
+
+        from carbon.battery import level4 as battery_level4
+        from carbon.battery import level4_admission
+        from carbon.level4 import graph, intake, staging
+
+        bounds = self.level4_variant_bounds()
+        if bounds is None:
+            return _l4_refused("level4_stage_not_at_level_4")
+        limit = self.level4_envelope_limit()
+        try:
+            unpack = zlib.decompressobj(16 + zlib.MAX_WBITS)
+            body = unpack.decompress(packed, limit + 1)
+            if len(body) > limit or unpack.unconsumed_tail:
+                return _l4_refused("level4_envelope_over_bound")
+            envelope = json.loads(body)
+            declared, raw_manifest, files = staging.from_envelope(envelope)
+        except (zlib.error, ValueError, UnicodeDecodeError):
+            return _l4_refused("level4_envelope_malformed")
+        except graph.GraphRefused as refused:
+            return _l4_refused(refused.code)
+        staged = json.loads(json.dumps(strategy))
+        parameters = staged.get("parameters")
+        if not isinstance(parameters, dict):
+            return _l4_refused("strategy_parameters_required")
+        parameters[battery_level4.FIELD] = declared
+        try:
+            level4_admission.admit_envelope(
+                staged, body, loss_override=bounds.get("loss_override")
+            )
+        except graph.GraphRefused as refused:
+            return _l4_refused(refused.code)
+        except intake.IntakeBlocked as blocked:
+            return _l4_refused("level4_intake_blocked: " + str(blocked))
+        store = podlib.private_dir(self.root / "level4")
+        target = store / (declared.removeprefix("sha256:") + ".json")
+        target.write_bytes(
+            json.dumps(
+                staging.envelope(raw_manifest, files),
+                sort_keys=True,
+                separators=(",", ":"),
+            ).encode()
+        )
+        target.chmod(0o600)
+        return {
+            "status": "LEVEL4_STAGED",
+            "submission": declared,
+            "documents": len(files),
+            "gates": ["G0", "G3", "G4"],
+            "next": "set parameters." + battery_level4.FIELD + " to this submission "
+            "and propose the strategy",
+            "authority_granted": False,
+        }
+
+    def _level4_documents(self, folder, strategy):
+        """At Level 4, a strategy naming a submission digest gets its kept
+        envelope's documents (`staging.workspace`), and the envelope is written
+        beside the proposal for its pod. None when the strategy names none or
+        the session is not at Level 4. A digest that was never staged, or an
+        envelope over the pod transport, is `Unrebuildable`, typed."""
+        from carbon.battery import level4 as battery_level4
+        from carbon.level4 import staging
+
+        from .pod_phase import LEVEL4_TRANSPORT_CHARS, level4_transport
+
+        if self.level4_variant_bounds() is None or not isinstance(strategy, dict):
+            return None
+        parameters = strategy.get("parameters")
+        submission = (
+            parameters.get(battery_level4.FIELD)
+            if isinstance(parameters, dict)
+            else None
+        )
+        if submission is None:
+            return None
+        kept = self.level4_staged(submission)
+        if kept is None:
+            raise Unrebuildable("level4_submission_not_staged")
+        if len(level4_transport(kept)) > LEVEL4_TRANSPORT_CHARS:
+            raise Unrebuildable("level4_envelope_over_transport")
+        _digest, raw_manifest, files = staging.from_envelope(json.loads(kept))
+        target = folder / "level4-envelope.json"
+        if not target.is_file():
+            write_once(target, kept)
+        return staging.workspace(raw_manifest, files)
+
+    def level4_staged(self, submission):
+        """The kept envelope's bytes for `submission`, or None."""
+        if type(submission) is not str or not submission.startswith("sha256:"):
+            return None
+        path = self.root / "level4" / (submission.removeprefix("sha256:") + ".json")
+        return path.read_bytes() if path.is_file() else None
+
     # -- one proposal --------------------------------------------------------------------------
     def propose_tool(self, arguments, identity):
         """The agent's `graphite_run_proposal` tool."""
@@ -1385,6 +1573,9 @@ class Experiment:
                 if self.development_variant is None
                 else {"variant": self.development_variant}
             )
+            documents = self._level4_documents(folder, strategy)
+            if documents is not None:
+                level["workspace"] = documents
             expected = admit(strategy, seed, self.repository, self.scoring, **level)
         except Unrebuildable as refused:
             finding = self._finding(
@@ -1513,12 +1704,14 @@ class Experiment:
                 pid, job_intent, reservation, strategy, expected, seed
             )
             if outcome in ("launch_refused", "launch_unresolved", "infra"):
+                refusal = self._refusals.pop(pid, None)
                 return self._close(
                     pid,
                     {
                         **common,
                         "status": "FAILED_INFRA",
                         "reason_code": outcome,
+                        **({"launch_refusal": refusal} if refusal else {}),
                         **_attempts(attempts),
                         "scored": False,
                         "pods_left": self.pods_left(),
@@ -1704,8 +1897,17 @@ class Experiment:
                 if self.development_variant is None
                 else self.development_variant.digest
             ),
+            backend=podlib.job_backend(self.scoring.backend(expected)),
+            level4_envelope=self._level4_transport(pid),
         )
         return self._pod(pid, job)
+
+    def _level4_transport(self, pid):
+        """The proposal's kept Level 4 envelope as its job carries it, or None."""
+        from .pod_phase import level4_transport
+
+        kept = self._dir(pid) / "level4-envelope.json"
+        return level4_transport(kept.read_bytes()) if kept.is_file() else None
 
     def _type_unfinished(
         self, pid, intent_id, attempt, files, failure, timing, earlier=()
@@ -1829,23 +2031,65 @@ class Experiment:
                 (intent_id, logs, self._listing(handle))
             )
 
+    def _launch_backoff(self):
+        """A jittered wait in `LAUNCH_BACKOFF_S`, from the run's randomness."""
+        low, high = LAUNCH_BACKOFF_S
+        draw = int.from_bytes(self.randomness(2), "big") / 0xFFFF
+        return round(low + (high - low) * draw, 1)
+
     def _pod(self, pid, job):
         """Launch, wait, fetch, terminate and settle one pod. Returns the
         outcome and the fetched files. A process death propagates without
         terminating (a restart reconciles); every other failure terminates."""
         private = podlib.private_dir(self._dir(pid) / "private")
-        self.ledger.append(
-            "pod_launch_requested", intent_id=job.intent_id, proposal=pid
-        )
-        try:
-            handle = self.pods.launch(job, private)
-        except podlib.PodFailure as failure:
-            if not failure.executed:
+        handle = None
+        for attempt in range(1, LAUNCH_ATTEMPTS + 1):
+            self.ledger.append(
+                "pod_launch_requested", intent_id=job.intent_id, proposal=pid
+            )
+            try:
+                handle = self.pods.launch(job, private)
+                break
+            except podlib.PodFailure as failure:
+                if failure.executed:
+                    self.ledger.append(
+                        "pod_launch_ambiguous", intent_id=job.intent_id, proposal=pid
+                    )
+                    handle = self._recover(pid, job.intent_id)
+                    if handle is None:
+                        return "launch_refused", {}, None
+                    if handle == "unknown":
+                        return "launch_unresolved", {}, None
+                    break
+                refusal = {
+                    "stage": failure.stage,
+                    "code": getattr(
+                        failure, "code", podlib.refusal_code(failure.detail)
+                    ),
+                    "detail": podlib.bounded_detail(failure.detail),
+                }
+                if (
+                    pid in (baseline_retry.BASELINE_ID, baseline_retry.RETRY_ID)
+                    and refusal["code"] in podlib.TRANSIENT_REFUSALS
+                    and attempt < LAUNCH_ATTEMPTS
+                ):
+                    wait = self._launch_backoff()
+                    self.ledger.append(
+                        "pod_launch_retry",
+                        intent_id=job.intent_id,
+                        proposal=pid,
+                        attempt=attempt,
+                        wait_s=wait,
+                        **refusal,
+                    )
+                    self.sleep(wait)
+                    continue
                 self.ledger.append(
                     "pod_launch_refused",
                     intent_id=job.intent_id,
                     proposal=pid,
-                    stage=failure.stage,
+                    attempt=attempt,
+                    **refusal,
                 )
                 self.ledger.append(
                     "pod_settled",
@@ -1854,15 +2098,8 @@ class Experiment:
                     charge_usd="0",
                     basis="refused_before_any_create",
                 )
+                self._refusals[pid] = {**refusal, "attempts": attempt}
                 return "launch_refused", {}, None
-            self.ledger.append(
-                "pod_launch_ambiguous", intent_id=job.intent_id, proposal=pid
-            )
-            handle = self._recover(pid, job.intent_id)
-            if handle is None:
-                return "launch_refused", {}, None
-            if handle == "unknown":
-                return "launch_unresolved", {}, None
         self.ledger.append(
             "pod_created",
             intent_id=job.intent_id,

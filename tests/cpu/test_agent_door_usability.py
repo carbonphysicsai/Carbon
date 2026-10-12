@@ -379,7 +379,14 @@ def test_the_v2_agents_turn_status_names_its_trial_slots(tmp_path):
 # ---- A7. A refusal on an unserved backend lists the served ones.
 
 
-def test_an_unserved_backend_refusal_lists_the_served_backends(tmp_path):
+def test_an_unserved_backend_refusal_lists_the_served_backends(tmp_path, monkeypatch):
+    # Battery scoring v2 serves PyTorch (TORCH-POD-01), so the refusal is held
+    # on the v1 record, where PyTorch is the backend the pods do not serve.
+    from carbon.challenge_validator.battery_scoring import SERVED_BACKENDS
+
+    monkeypatch.setattr(
+        p3f.SCORING, "served_backends", SERVED_BACKENDS["battery-scoring-v1"]
+    )
     strategy = {
         **BASELINE,
         "parameters": {**BASELINE["parameters"], "backend": "pytorch"},

@@ -1,0 +1,15 @@
+{
+ "schema": "carbon.graphite.refused-capability-backfill.v1",
+ "rule": "Rows for refusals that happened before the log existed, from the cited source. Names only: no key, seed, account or hidden material. Code, field and requested value were not in the extract (it held the status line and proposal id only), so those cells are empty, not guessed.",
+ "source": "executor report, 2026-10-12 (the stage A Constructor L1-L4 extracts refusals-lvl-1-D, refusals-lvl-2-E, refusals-lvl-3-F and refusals-lvl-4-G, one file per session, with the run outputs lvl-N-X[-s2|-s3].out; not committed)",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "when": "2026-10-11",
+ "sessions_with_no_refusal": ["L1 D", "L2 E s2", "L2 E s3", "L4 G", "L4 G s3"],
+ "rows": [
+  {"level": 2, "run": "L2 E", "proposal": "p-4e02e0f7c41a", "status": "REFUSED_UNREBUILDABLE"},
+  {"level": 3, "run": "L3 F", "proposal": "p-37985e699fe3", "status": "REFUSED_UNREBUILDABLE"},
+  {"level": 3, "run": "L3 F s2", "proposal": "p-8e47250e297c", "status": "REFUSED_UNREBUILDABLE"},
+  {"level": 3, "run": "L3 F s3", "proposal": "p-891e0fd1ebdb", "status": "REFUSED_UNREBUILDABLE"},
+  {"level": 4, "run": "L4 G s2", "proposal": "p-839de482ac6b", "status": "REFUSED_UNREBUILDABLE"}
+ ]
+}

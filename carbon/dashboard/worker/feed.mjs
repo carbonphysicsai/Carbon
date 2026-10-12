@@ -36,6 +36,14 @@ const STATE = /^[A-Z][A-Z0-9_]{0,39}$/u;
 const TEXT = /^[^\u0000-\u001f\u007f<>]{1,200}$/u;
 const SHOWCASE_CASE = /^ev4:[A-Za-z0-9.-]{1,40}:c1=[0-9.]{1,6},c2=[0-9.]{1,6}:0$/u;
 const SHA256 = /^[0-9a-f]{64}$/u;
+const BLOCK_HASH = /^0x[0-9a-fA-F]{64}$/u;
+const CODE = /^[a-z][a-z0-9_]{0,63}$/u;
+const CANDIDATE = /^[^\u0000-\u001f\u007f<]{1,200}$/u;
+// feed.py MAX_UTC_MS, SHARE_DIGITS, COMPARISON_INTS (VALIDATOR-33 A, #1143).
+export const MAX_UTC_MS = 253402300799999;
+const SHARE_DIGITS = 6;
+const COMPARISON_INTS = ["n_min", "n_boot", "important_min"];
+export const COMPARISON_KEYS = ["alpha", ...COMPARISON_INTS];
 
 export class FeedRefused extends Error {
   constructor(code, detail = "") {
@@ -307,8 +315,113 @@ function release(raw) {
   if (!isDict(raw)) throw new FeedRefused("release_invalid");
   const predicate = get(raw, "predicate");
   const out = {predicate: predicate === null ? null : text(predicate, "release_invalid")};
-  for (const k of ["retire_at", "rotation_every_blocks", "expected_lag_blocks"]) out[k] = int(get(raw, k), "release_invalid", {optional: true});
+  for (const k of ["retire_at", "rotation_every_blocks", "expected_lag_blocks", "next_rotation_block"]) out[k] = int(get(raw, k), "release_invalid", {optional: true});
   return out;
+}
+// ---- VALIDATOR-33 A (#1143): chain time, king, handovers, target (feed.py) ----
+function utcMs(value, code) {
+  if (value === null) return null;
+  if (!isNum(value) || !value.isInt || value.value < 0 || value.value > MAX_UTC_MS) throw new FeedRefused(code);
+  return value.value;
+}
+function flag(value, code) {
+  if (value === null) return null;
+  if (typeof value !== "boolean") throw new FeedRefused(code);
+  return value;
+}
+const maybeText = (value, code) => (value === null ? null : text(value, code));
+function asOfBlock(raw) {
+  if (raw === null) return null;
+  if (!isDict(raw)) throw new FeedRefused("as_of_block_invalid");
+  const hash = get(raw, "hash");
+  if (typeof hash !== "string" || !BLOCK_HASH.test(hash)) throw new FeedRefused("as_of_block_invalid");
+  const stamp = utcMs(get(raw, "timestamp_ms"), "as_of_block_invalid");
+  if (stamp === null) throw new FeedRefused("as_of_block_invalid");
+  return {number: int(get(raw, "number"), "as_of_block_invalid"), hash, timestamp_ms: stamp};
+}
+function kingOf(raw, pinned) {
+  if (raw === null) return null;
+  if (!isDict(raw)) throw new FeedRefused("king_invalid");
+  let share = get(raw, "share_now");
+  if (share !== null) {
+    share = number(share, "king_invalid");
+    if (!(share >= 0 && share <= 1)) throw new FeedRefused("king_invalid");
+    if (Number(share.toFixed(SHARE_DIGITS)) !== share) throw new FeedRefused("unrounded_value", "king.share_now");
+  }
+  const coldkey = get(raw, "coldkey");
+  return {
+    hotkey: hotkey(get(raw, "hotkey"), pinned),
+    uid: int(get(raw, "uid"), "king_invalid", {optional: true}),
+    coldkey: coldkey === null ? null : hotkey(coldkey, pinned),
+    submission_id: maybeText(get(raw, "submission_id"), "king_invalid"),
+    crowned_utc_ms: utcMs(get(raw, "crowned_utc_ms"), "king_invalid"),
+    eligible: flag(get(raw, "eligible"), "king_invalid"),
+    reason: maybeText(get(raw, "reason"), "king_invalid"),
+    share_now: share,
+    next_halving_utc_ms: utcMs(get(raw, "next_halving_utc_ms"), "king_invalid"),
+    challenges_survived: int(get(raw, "challenges_survived"), "king_invalid", {optional: true}),
+  };
+}
+function handovers(raw, pinned) {
+  if (raw === null) return null;
+  if (!Array.isArray(raw)) throw new FeedRefused("handovers_invalid");
+  return raw.map(row => {
+    if (!isDict(row)) throw new FeedRefused("handovers_invalid");
+    const to = get(row, "to_hotkey"), from = get(row, "from_hotkey");
+    return {
+      utc_ms: utcMs(get(row, "utc_ms"), "handovers_invalid"),
+      to_hotkey: to === null ? null : hotkey(to, pinned),
+      from_hotkey: from === null ? null : hotkey(from, pinned),
+      kind: maybeText(get(row, "kind"), "handovers_invalid"),
+      eligible: flag(get(row, "eligible"), "handovers_invalid"),
+      reason: maybeText(get(row, "reason"), "handovers_invalid"),
+    };
+  });
+}
+function margin(value) {
+  if (value === null) return null;
+  const v = number(value, "target_invalid");
+  if (v < 0) throw new FeedRefused("target_invalid");
+  return v;
+}
+function comparison(raw) {
+  if (raw === null) return null;
+  if (!isDict(raw)) throw new FeedRefused("target_invalid");
+  const out = {};
+  for (const k of COMPARISON_INTS) out[k] = int(get(raw, k), "target_invalid", {optional: true});
+  let alpha = get(raw, "alpha");
+  if (alpha !== null) {
+    alpha = number(alpha, "target_invalid");
+    if (!(alpha > 0 && alpha < 1)) throw new FeedRefused("target_invalid");
+  }
+  return {alpha, ...out};
+}
+function target(raw) {
+  if (raw === null) return null;
+  if (!isDict(raw)) throw new FeedRefused("target_invalid");
+  const kind = get(raw, "kind");
+  if (typeof kind !== "string" || !CODE.test(kind)) throw new FeedRefused("target_invalid");
+  let score = get(raw, "score");
+  if (score !== null) {
+    if (!isDict(score)) throw new FeedRefused("target_invalid");
+    const candidate = get(score, "candidate"), digest = get(score, "registry_sha256");
+    if (candidate !== null && (typeof candidate !== "string" || !CANDIDATE.test(candidate))) throw new FeedRefused("target_invalid");
+    if (digest !== null && (typeof digest !== "string" || !SHA256.test(digest))) throw new FeedRefused("target_invalid");
+    score = {candidate, registry_sha256: digest, decision: maybeText(get(score, "decision"), "target_invalid")};
+  }
+  let gates = get(raw, "gates");
+  if (gates !== null) {
+    if (!Array.isArray(gates) || gates.some(g => typeof g !== "string" || !CODE.test(g))) throw new FeedRefused("target_invalid");
+    gates = [...gates];
+  }
+  return {
+    kind,
+    screening_margin_rel: margin(get(raw, "screening_margin_rel")),
+    final_margin_rel: margin(get(raw, "final_margin_rel")),
+    final_comparison: comparison(get(raw, "final_comparison")),
+    score,
+    gates,
+  };
 }
 function showcase(raw, incumbent, pinned) {
   if (raw === null) return null;
@@ -360,6 +473,42 @@ function showcase(raw, incumbent, pinned) {
     panel.predictions[caseId] = row;
   }
   return panel;
+}
+
+// OWNER-BATTERY-CHAMPIONSHIP-03: the proposed `leaderboard.ladder` (feed.py _ladder).
+const LADDER_STATES = ["SHOWN", "NO_IMPROVEMENT_BEYOND_GRAIN", "SEALED_UNTIL_GRAIN"];
+const UNRANKED = 10 ** 9;
+function ladder(raw, digits, pinned) {
+  if (raw === null) return null;
+  if (!isDict(raw) || !Array.isArray(get(raw, "coldkeys"))) throw new FeedRefused("ladder_invalid");
+  const grainRaw = get(raw, "grain_pct");
+  const grain = grainRaw === null ? null : number(grainRaw, "ladder_invalid");
+  if (grain !== null && grain <= 0) throw new FeedRefused("ladder_invalid");
+  const rows = [], seen = new Set();
+  for (const row of raw.coldkeys) {
+    if (!isDict(row)) throw new FeedRefused("ladder_invalid");
+    const coldkey = hotkey(get(row, "coldkey"), pinned);
+    const status = get(row, "status");
+    if (seen.has(coldkey) || !LADDER_STATES.includes(status)) throw new FeedRefused("ladder_invalid");
+    seen.add(coldkey);
+    const score = rounded(get(row, "displayed_score"), digits, "ladder");
+    if (status === "SEALED_UNTIL_GRAIN" && score !== null) throw new FeedRefused("ladder_sealed_value");
+    if (status !== "SEALED_UNTIL_GRAIN" && score === null) throw new FeedRefused("ladder_invalid");
+    if (status !== "SEALED_UNTIL_GRAIN" && grain === null) throw new FeedRefused("ladder_grain_unposted");
+    const keys = get(row, "hotkeys");
+    if (!Array.isArray(keys)) throw new FeedRefused("ladder_invalid");
+    rows.push({
+      coldkey,
+      rank: int(get(row, "rank"), "ladder_invalid", {minimum: 1, optional: true}),
+      displayed_score: score,
+      status,
+      hotkeys: [...new Set(keys.map(h => hotkey(h, pinned)))].sort(codePointCompare),
+      best_submission_id: get(row, "best_submission_id") === null ? null : text(row.best_submission_id, "ladder_invalid"),
+      displayed_at_block: int(get(row, "displayed_at_block"), "ladder_invalid", {optional: true}),
+    });
+  }
+  const order = r => (r.rank === null ? UNRANKED : r.rank);
+  return {grain_pct: grain, coldkeys: rows.sort((a, b) => order(a) - order(b) || cmp(a.coldkey, b.coldkey))};
 }
 
 export function boardSlug(challengeId, deviceClass) {
@@ -487,16 +636,22 @@ export async function project(document, pinned) {
     values: vals,
     section_meta: sectionMeta(get(document, "sections")),
     release: release(get(document, "release")),
+    as_of_block: asOfBlock(get(document, "as_of_block")),
+    king: kingOf(get(document, "king"), pinned),
+    handovers: handovers(get(document, "handovers"), pinned),
+    target_to_beat: target(get(document, "target_to_beat")),
     released_windows: [...windows],
     incumbent,
     challengers,
     standing,
+    ladder: ladder(get(board, "ladder"), digits, pinned),
     history,
     miners: sortedMiners,
     excluded_canaries: canaries,
     showcase_panel: showcase(get(document, "showcase"), incumbent, pinned),
     feed: {
       key_id: "feed-" + (await sha256Hex(hexBytes(signer))).slice(0, 16),
+      public_key: signer,
       digest: "sha256:" + (await sha256Hex(bytes)),
     },
   };
@@ -522,3 +677,340 @@ export function entry(board) {
     miners: Object.keys(board.miners).length,
   };
 }
+
+// ---- board.v2 (DASHBOARD-02 S1): a port of carbon/dashboard/board_v2.py ----
+// Projected from the verified board.v1 model only. Every null has a reason at
+// reasons[<key>] of the object that holds it; tests/cpu/test_dashboard_worker.py
+// holds this equal to board_v2.py.
+export const BOARD_V2_SCHEMA = "carbon.dashboard.board.v2";
+export const BLOCK_SECONDS = 12;
+// ENGINEERING UI DEFAULT, not a registered value (board_v2.STALE_AFTER_SECONDS).
+export const STALE_AFTER_SECONDS = 2 * 60 * 60;
+const UTC = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})Z$/u;
+export const ELIGIBLE_LABEL = "Eligible for the championship";
+const CARD_DIGEST = /^sha256:[0-9a-f]{64}$/u;
+// The rules card is the only source of a rule statement (board_v2._rules).
+function rulesStatus(board, card) {
+  if (card === null || card === undefined) {
+    return [fields(["status", "UNAVAILABLE", null], ["card_digest", null, "rules_unavailable"]), "rules_unavailable"];
+  }
+  const digest = isDict(card) ? pick(card, "digest") : null;
+  const rule = isDict(card) ? pick(card, "rule") : null;
+  if (typeof digest !== "string" || !CARD_DIGEST.test(digest)) throw new Error("a rules card summary names its sha256 digest");
+  if (!isDict(rule) || typeof pick(rule, "digest") !== "string") throw new Error("a rules card summary names its rule digest");
+  const ok = rule.digest === board.challenge.rule_digest;
+  return [fields(["status", ok ? "OK" : "DIGEST_MISMATCH", null], ["card_digest", digest, null]), ok ? null : "rules_digest_mismatch"];
+}
+const ruled = (value, gate) => (gate !== null ? [null, gate] : [value, "not_in_feed"]);
+
+function fields(...items) {
+  const out = {}, reasons = {};
+  for (const [key, value, reason] of items) {
+    out[key] = value;
+    if (value === null) reasons[key] = reason;
+  }
+  out.reasons = reasons;
+  return out;
+}
+export function utcSeconds(textValue) {
+  const m = typeof textValue === "string" ? UTC.exec(textValue) : null;
+  if (!m) return null;
+  const [y, mo, d, h, mi, s] = m.slice(1).map(Number);
+  if (y < 1970) return null;
+  const ms = Date.UTC(y, mo - 1, d, h, mi, s);
+  const t = new Date(ms);
+  if (t.getUTCFullYear() !== y || t.getUTCMonth() !== mo - 1 || t.getUTCDate() !== d
+      || t.getUTCHours() !== h || t.getUTCMinutes() !== mi || t.getUTCSeconds() !== s) return null;
+  return ms / 1000;
+}
+function span(blocks) {
+  if (blocks === null || blocks === undefined) return null;
+  return {blocks, seconds: blocks * BLOCK_SECONDS, hours: Math.round(blocks / 3) / 100};
+}
+// board_v2.utc_text: whole seconds as YYYY-MM-DDTHH:MM:SSZ, or null out of range.
+const MAX_UTC_SECONDS = Math.floor(MAX_UTC_MS / 1000);
+export function utcText(seconds) {
+  if (seconds === null || seconds === undefined || !(seconds >= 0 && seconds <= MAX_UTC_SECONDS)) return null;
+  return new Date(seconds * 1000).toISOString().slice(0, 19) + "Z";
+}
+const utcOfMs = ms => (ms === null ? null : utcText(Math.floor(ms / 1000)));
+export function freshness(generatedAt, releasedCount, now, asOf = null) {
+  if (!Number.isInteger(now)) throw new Error("now is whole seconds since the epoch");
+  const [stamp, basis] = asOf !== null ? [asOf, "as_of_block"] : [utcSeconds(generatedAt), "generated_at"];
+  const age = stamp === null ? null : now - stamp;
+  const phase = age === null || age > STALE_AFTER_SECONDS ? "STALE" : releasedCount === 0 ? "PRE_FIRST_RELEASE" : "LIVE";
+  const reason = generatedAt === null ? "not_in_feed" : "generated_at_unparseable";
+  return [phase, {...fields(["age_seconds", age, reason]), stale_after_seconds: STALE_AFTER_SECONDS, basis}];
+}
+export function restamp(board, now) {
+  const asOf = pick(board, "as_of_block");
+  const [phase, fresh] = freshness(board.generated_at, board.next_release.released_windows, now,
+    asOf === null ? null : utcSeconds(asOf.timestamp_utc));
+  return {...board, phase, freshness: fresh};
+}
+const has = (o, k) => o !== null && o !== undefined && own(o, k);
+const pick = (o, k) => (has(o, k) ? o[k] : null);
+function rankingSection(board) {
+  const names = new Set();
+  for (const row of board.standing) for (const k of Object.keys(row.best)) if (NUMERIC_SECTIONS.includes(k)) names.add(k);
+  if (!board.standing.length) return [null, "no_standing"];
+  if (names.size !== 1) return [null, "ranking_section_ambiguous"];
+  const [name] = names;
+  const meta = pick(board.section_meta, name);
+  const sense = meta === null ? null : meta.sense;
+  return [fields(
+    ["name", name, null],
+    ["display", meta === null ? null : meta.display, "not_in_feed"],
+    ["unit", meta === null ? null : meta.unit, "not_in_feed"],
+    ["sense", sense, "not_in_feed"],
+    ["label", sense === null ? null : `${name} (${sense.replaceAll("_", " ")})`, "not_in_feed"],
+  ), null];
+}
+function king(board, section, challengers) {
+  const incumbent = board.incumbent;
+  if (incumbent === null) return [null, "no_released_incumbent"];
+  const name = section === null ? null : section.name;
+  const value = name === null ? null : pick(incumbent.sections, name);
+  const runner = name === null ? null
+    : board.standing.find(row => row.hotkey !== incumbent.hotkey && pick(row.best, name) !== null) || null;
+  let margin = null, marginReason = null;
+  if (name === null) marginReason = "no_ranking_section";
+  else if (value === null) marginReason = "not_in_feed";
+  else if (runner === null) marginReason = "no_runner_up";
+  else if (section.sense === null) marginReason = "not_in_feed";
+  else {
+    const scale = 10 ** board.values.digits;
+    const k = Math.round(value * scale), o = Math.round(runner.best[name] * scale);
+    margin = (section.sense === "lower_is_better" ? o - k : k - o) / scale;
+  }
+  const gates = pick(incumbent.sections, "gates");
+  const [ledger, why] = ledgerKing(board, incumbent);
+  const of = key => (ledger === null ? null : ledger[key]);
+  const crownedMs = of("crowned_utc_ms");
+  const crowned = utcOfMs(crownedMs);
+  const asOf = pick(board, "as_of_block");
+  const held = crownedMs !== null && asOf !== null && asOf.timestamp_ms >= crownedMs
+    ? Math.floor((asOf.timestamp_ms - crownedMs) / 1000) : null;
+  const unpaid = ledger !== null && (ledger.eligible === false || ledger.share_now === 0);
+  return [fields(
+    ["hotkey", incumbent.hotkey, null],
+    ["uid", of("uid"), why],
+    ["coldkey", of("coldkey"), why],
+    ["submission_id", incumbent.submission_id === null ? of("submission_id") : incumbent.submission_id, "not_in_feed"],
+    ["section", name, "no_ranking_section"],
+    ["value", value, name === null ? "no_ranking_section" : "not_in_feed"],
+    ["registered_score", null, "not_in_feed"],
+    ["since_block", incumbent.since_block, "not_in_feed"],
+    ["since_utc", crowned, why],
+    ["crowned_utc", crowned, why],
+    ["held_for", held, why],
+    ["crowned_epoch", null, "not_in_feed"],
+    ["eligible", of("eligible"), why],
+    ["eligibility_reason", of("reason"), why],
+    ["share_now", of("share_now"), why],
+    ["next_halving_utc", utcOfMs(of("next_halving_utc_ms")), unpaid ? "king_not_paid" : why],
+    ["next_halving_epoch", null, "not_in_feed"],
+    ["defences", of("challenges_survived"), why],
+    ["margin", margin, marginReason],
+    ["runner_up", runner === null ? null : runner.hotkey, name === null ? "no_ranking_section" : "no_runner_up"],
+    ["challenger_state", has(challengers, incumbent.hotkey) ? challengers[incumbent.hotkey] : null, "not_a_challenger"],
+    ["gates", gates === null ? null : {...gates}, "not_in_feed"],
+  ), null];
+}
+// board_v2._ledger_king, _target and _next_release_time (VALIDATOR-33 A).
+function ledgerKing(board, incumbent) {
+  const k = pick(board, "king");
+  if (k === null) return [null, "not_in_feed"];
+  if (k.hotkey !== incumbent.hotkey) return [null, "king_not_released"];
+  return [k, "not_in_feed"];
+}
+function targetV2(board) {
+  const t = pick(board, "target_to_beat");
+  const of = key => (t === null ? null : t[key]);
+  const cmp = of("final_comparison"), score = of("score"), gates = of("gates");
+  return fields(
+    ["value", null, "not_in_feed"],
+    ["kind", of("kind"), "not_in_feed"],
+    ["posted_margin", of("final_margin_rel"), "not_in_feed"],
+    ["screening_margin", of("screening_margin_rel"), "not_in_feed"],
+    ["noise_guard", cmp === null ? null : fields(...COMPARISON_KEYS.map(k => [k, cmp[k], "not_in_feed"])), "not_in_feed"],
+    ["registered_score", score === null ? null : fields(
+      ["candidate", score.candidate, "not_in_feed"],
+      ["registry_sha256", score.registry_sha256, "not_in_feed"],
+      ["decision", score.decision, "not_in_feed"]), t === null ? "not_in_feed" : "no_registered_score"],
+    ["gates", gates === null ? null : [...gates], "not_in_feed"],
+  );
+}
+function nextReleaseTime(board, relGet) {
+  const block = relGet("next_rotation_block");
+  const asOf = pick(board, "as_of_block");
+  if (block === null || asOf === null) return [block, null];
+  return [block, utcText(Math.floor(asOf.timestamp_ms / 1000) + (block - asOf.number) * BLOCK_SECONDS)];
+}
+function coldkeys(board) {
+  const ladder = pick(board, "ladder");
+  if (ladder === null) return null;
+  return ladder.coldkeys.map(row => ({
+    ...fields(
+      ["coldkey", row.coldkey, null],
+      ["rank", row.rank, "not_in_feed"],
+      ["displayed_score", row.displayed_score, "sealed_until_grain"],
+      ["status", row.status, null],
+      ["best_submission_id", row.best_submission_id, "not_in_feed"],
+      ["displayed_at_block", row.displayed_at_block, "not_in_feed"],
+    ),
+    hotkeys: [...row.hotkeys],
+  }));
+}
+function grainPct(board, gate) {
+  const ladder = pick(board, "ladder");
+  if (gate !== null) return [null, gate];
+  if (ladder === null) return [null, "not_in_feed"];
+  return [ladder.grain_pct, "grain_human_input"];
+}
+function leaderboard(board, section, challengers, lag, gate) {
+  const name = section === null ? null : section.name;
+  const kingKey = board.incumbent === null ? null : board.incumbent.hotkey;
+  const entries = board.standing.map(row => ({
+    ...fields(
+      ["rank", row.rank, null],
+      ["hotkey", row.hotkey, null],
+      ["uid", null, "not_in_feed"],
+      ["screening_value", name === null ? null : pick(row.best, name), name === null ? "no_ranking_section" : "not_in_feed"],
+      ["registered_score", null, "not_in_feed"],
+      ["best_at_block", row.best_at_block, "not_in_feed"],
+      ["challenger_state", has(challengers, row.hotkey) ? challengers[row.hotkey] : null, "not_a_challenger"],
+    ),
+    is_king: row.hotkey === kingKey,
+  }));
+  return {...fields(["section", name, "no_ranking_section"], ["release_lag", ...lag], ["coldkeys", coldkeys(board), "not_in_feed"], ["grain_pct", ...grainPct(board, gate)]), label: ELIGIBLE_LABEL, entries};
+}
+function historyV2(board, section) {
+  const name = section === null ? null : section.name;
+  const points = {};
+  if (name !== null) {
+    for (const key of Object.keys(board.history).sort(codePointCompare)) {
+      const kept = board.history[key]
+        .filter(p => p.receipt_block !== null && pick(p.sections, name) !== null)
+        .map(p => ({receipt_block: p.receipt_block, value: p.sections[name]}));
+      if (kept.length) points[key] = kept;
+    }
+  }
+  const list = pick(board, "handovers");
+  let rows = null, kings = null;
+  if (list !== null) {
+    rows = list.map(x => fields(
+      ["utc", utcOfMs(x.utc_ms), "not_in_feed"],
+      ["to_hotkey", x.to_hotkey, "not_in_feed"],
+      ["from_hotkey", x.from_hotkey, "not_in_feed"],
+      ["kind", x.kind, "not_in_feed"],
+      ["eligible", x.eligible, "not_in_feed"],
+      ["eligibility_reason", x.reason, "not_in_feed"],
+    ));
+    kings = rows.map((row, i) => fields(
+      ["hotkey", row.to_hotkey, "not_in_feed"],
+      ["crowned_utc", row.utc, "not_in_feed"],
+      ["until_utc", i + 1 < rows.length ? rows[i + 1].utc : null, i + 1 < rows.length ? "not_in_feed" : "reigning"],
+      ["eligible", row.eligible, "not_in_feed"],
+    ));
+  }
+  return {
+    ...fields(["era", board.challenge.rule_digest, null], ["section", name, "no_ranking_section"], ["kings", kings, "not_in_feed"], ["handovers", rows, "not_in_feed"]),
+    points,
+  };
+}
+function gatesV2(board, kingView) {
+  const meta = pick(board.section_meta, "gates");
+  const names = new Set(), failing = {};
+  let count = 0;
+  for (const miner of Object.values(board.miners)) {
+    for (const row of miner.submissions) {
+      const gates = pick(row.sections, "gates");
+      if (gates === null) continue;
+      count += 1;
+      for (const gate of Object.keys(gates)) {
+        names.add(gate);
+        if (gates[gate] === "FAIL") failing[gate] = (failing[gate] || 0) + 1;
+      }
+    }
+  }
+  const sortedFailing = {};
+  for (const g of Object.keys(failing).sort(codePointCompare)) sortedFailing[g] = failing[g];
+  return {
+    ...fields(
+      ["display", meta === null ? null : meta.display, "not_in_feed"],
+      ["unit", meta === null ? null : meta.unit, "not_in_feed"],
+      ["king", kingView === null ? null : kingView.gates, kingView === null ? "no_released_incumbent" : "not_in_feed"],
+    ),
+    names: [...names].sort(codePointCompare),
+    submissions_with_gates: count,
+    failing: sortedFailing,
+  };
+}
+export function projectV2(board, now, rulesCard = null) {
+  if (board.schema !== BOARD_SCHEMA) throw new Error("board.v2 is projected from a verified board.v1 model");
+  const rel = board.release || {};
+  const relGet = k => (own(rel, k) ? rel[k] : null);
+  const released = board.released_windows.length;
+  const asOf = pick(board, "as_of_block");
+  const [phase, fresh] = freshness(board.generated_at, released, now, asOf === null ? null : Math.floor(asOf.timestamp_ms / 1000));
+  const [nextBlock, nextUtc] = nextReleaseTime(board, relGet);
+  const [section, sectionReason] = rankingSection(board);
+  const challengers = {};
+  for (const row of board.challengers) if (!own(challengers, row.hotkey)) challengers[row.hotkey] = row.state;
+  const lag = span(relGet("expected_lag_blocks"));
+  const [kingView, kingReason] = king(board, section, challengers);
+  const [rules, gate] = rulesStatus(board, rulesCard);
+  const challenge = {};
+  for (const k of Object.keys(board.challenge)) if (k !== "rule") challenge[k] = board.challenge[k];
+  return {
+    ...fields(
+      ["generated_at", board.generated_at, "not_in_feed"],
+      ["ranking_section", section, sectionReason],
+      ["king", kingView, kingReason],
+      ["rotation", span(relGet("rotation_every_blocks")), "not_in_feed"],
+      ["as_of_block", asOf === null ? null : {number: asOf.number, hash: asOf.hash, timestamp_utc: utcOfMs(asOf.timestamp_ms)}, "not_in_feed"],
+    ),
+    sections: Object.entries(board.section_meta).map(([name, meta]) => fields(
+      ["name", name, null], ["display", meta.display, "not_in_feed"], ["unit", meta.unit, "not_in_feed"],
+      ["sense", meta.sense, name === "gates" ? "not_a_numeric_section" : "not_in_feed"])),
+    championship: fields(
+      ["rounds", null, "not_in_feed"],
+      ["entry", fields(["trigger_bar", null, "not_in_feed"], ["king_screening_display", null, "not_in_feed"], ["coldkeys", null, "not_in_feed"]), null],
+    ),
+    rules,
+    target_to_beat: targetV2(board),
+    schema: BOARD_V2_SCHEMA,
+    source_schema: board.source_schema,
+    fixture: board.fixture,
+    labels: [...board.labels],
+    challenge: {...challenge, ...fields(["rule", ...ruled(board.challenge.rule, gate)])},
+    era: board.challenge.rule_digest,
+    device_class: board.device_class,
+    slug: board.slug,
+    version: board.version,
+    feed: {...board.feed},
+    phase,
+    freshness: fresh,
+    block_seconds: BLOCK_SECONDS,
+    eligible_leaderboard: leaderboard(board, section, challengers, ruled(lag, gate), gate),
+    history: historyV2(board, section),
+    next_round: fields(["every", ...ruled(span(relGet("rotation_every_blocks")), gate)], ["next_block", null, "not_in_feed"], ["next_utc", null, "not_in_feed"]),
+    next_release: {
+      ...fields(
+        ["predicate", ...ruled(relGet("predicate"), gate)],
+        ["retire_at", ...ruled(relGet("retire_at"), gate)],
+        ["lag", ...ruled(lag, gate)],
+        ["next_block", nextBlock, "not_in_feed"],
+        ["next_utc", nextUtc, "not_in_feed"],
+      ),
+      released_windows: released,
+    },
+    gates: gatesV2(board, kingView),
+    excluded_canaries: board.excluded_canaries,
+  };
+}
+
+// Sent with every server-side fetch of a feed or snapshot. Cloudflare can
+// refuse a request with no browser-like agent, so name this one plainly.
+export const FETCH_HEADERS = Object.freeze({"User-Agent": "carbon-dashboard/1 (+https://dashboard.carbonphysics.ai)", "Accept": "application/json"});

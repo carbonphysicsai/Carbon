@@ -1,0 +1,18 @@
+{
+  "challenge": "f17",
+  "scope": "PUBLIC_DEVELOPMENT",
+  "status": "SPECIFIED_NOT_RUN",
+  "solver": "OpenCFD v2506 @ 615aae61d7e95e110ca842ca105c799d10f59178",
+  "image_digest": null,
+  "acceptance": "HUMAN_INPUT: science; proposed bands are not accepted or earned",
+  "tests": [
+    {"id": "developed-duct", "field": "3D smooth rectangular no-slip developed Poiseuille profile; analytic pressure from odd-mode series in rectangular_pressure_pa", "boundary": "exact developed inlet, known outlet p datum; use fully developed segment, not an entrance-flow comparison", "ladder": [10, 5, 2.5], "recommendation": "relative pressure <=1%, velocity L2 order 2 in [1.5,2.5]; accepted nonzero absolute floor required"},
+    {"id": "flow-mms", "field": "u=(sin(pi*x)*cos(pi*y),-cos(pi*x)*sin(pi*y),0); p=0.1*sin(pi*z), unit cube", "source": "f=(pi*sin(pi*x)*cos(pi*x),pi*sin(pi*y)*cos(pi*y),0.1*pi*cos(pi*z)) + 2*nu*pi^2*u; steady incompressible kinematic NS", "boundary": "exact U and compatible p gauge/traction; retain mass residual", "ladder": [0.1,0.05,0.025], "recommendation": "U,p L2 observed order 2, proposed [1.5,2.5]; source adapter inside pinned image, no turbulence closure claimed"},
+    {"id": "scalar-mms", "field": "c=0.5+0.1*sin(pi*x)*sin(pi*y)*sin(pi*z); uniform U=(a,0,0), D>0", "source": "s=a*dc/dx+3*D*pi^2*(c-0.5) for div(phi,c)-D*laplacian(c)=s", "boundary": "exact manufactured c, normal total solute flux; no clipping", "ladder": [0.1,0.05,0.025], "recommendation": "volume-weighted c L2 order 2, proposed [1.5,2.5]; limiter/mesh must actually reach asymptotic regime"},
+    {"id": "uniform-tracer", "field": "uniform c=0.5, zero variance and M=1", "observable": "independent advective+diffusive solute and volume balance; zero-diffusive gradients", "recommendation": "HUMAN_INPUT absolute concentration/flux floors; checks conservation, not mixing ability"},
+    {"id": "zero-D-and-high-Pe", "field": "two unmixed c=0/1 inlet streams, D=0 diagnostic outside P, and maximum-Pe supported D=0.5e-10 at Q=5", "observable": "raw flux-weighted variance/M at finite outlet; independent mesh and scalar scheme refinement; no periodic concentration reset", "recommendation": "HUMAN_INPUT zero-D artificial-mixing band; packet supported-D delta-M<=0.02 and delta-pressure<=5% are not accepted near-band widths"},
+    {"id": "reuse-and-repeat", "field": "fresh same-input flow/scalar pair versus retained U,p,phi; repeat complete mesh/observer", "observable": "raw fields and decision observables agree at approved numerical band; wrong mesh/Q/image/phi refused", "recommendation": "HUMAN_INPUT accepted numerical/decision tolerances, repeat after image or scheme repin"},
+    {"id": "Tier2-witness", "field": "matched COMSOL public micromixer/transport benchmarks + independent full-task non-hidden draw or retired public cases", "observable": "pointwise M/pressure/residence AND per-design feasibility/pick/regret; conserve raw fields and custody", "recommendation": "HUMAN_INPUT recommendation abs M<=0.02, pressure/residence<=5% with absolute floors; no reality/assay claim"}
+  ],
+  "failure_policy": "Reference inadequacy, backflow-inapplicable observer and infrastructure failures remain distinct; no candidate penalty or NONE_FEASIBLE invented. Systematic witness disagreement versions future references, never silently rescores sealed results."
+}

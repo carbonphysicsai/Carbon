@@ -3,6 +3,8 @@
 //
 // mode "project": [{text, fixture, keys}] -> [{board} | {code}], the Worker's
 //   projection of each served feed text, for parity with feed.py.
+// mode "project_v2": [{text, fixture, keys, now, card}] -> [{board} | {code}], the
+//   Worker's board.v2 of each, for parity with board_v2.py (DASHBOARD-02 S1).
 // mode "worker": {site, env, feeds: {url: text}, requests: [path]} ->
 //   [{path, status, headers, body}], the fetch handler over a built site.
 import fs from "node:fs";
@@ -24,6 +26,18 @@ if (spec.mode === "project") {
     }
   }
   process.stdout.write(JSON.stringify(out));
+} else if (spec.mode === "project_v2") {
+  const out = [];
+  for (const item of spec.items) {
+    try {
+      const pinned = feed.trust(item.keys, {fixture: item.fixture});
+      out.push({board: feed.projectV2(await feed.project(feed.parse(item.text), pinned), item.now, item.card ?? null)});
+    } catch (error) {
+      if (!(error instanceof feed.FeedRefused)) throw error;
+      out.push({code: error.code});
+    }
+  }
+  process.stdout.write(JSON.stringify(out));
 } else {
   const site = spec.site;
   const ASSETS = {
@@ -35,7 +49,9 @@ if (spec.mode === "project") {
     },
   };
   const realFetch = globalThis.fetch;
-  globalThis.fetch = async url => (url in spec.feeds ? new Response(spec.feeds[url], {status: 200}) : new Response("down", {status: 502}));
+  // Like Cloudflare in front of feeds.carbonphysics.ai: no named agent, 403.
+  globalThis.fetch = async (url, init) => (!String((init && init.headers && init.headers["User-Agent"]) || "").startsWith("carbon-dashboard/") ? new Response("agent", {status: 403})
+    : url in spec.feeds ? new Response(spec.feeds[url], {status: 200}) : new Response("down", {status: 502}));
   const out = [];
   for (const p of spec.requests) {
     const response = await worker.fetch(new Request("https://dashboard.example" + p), {...spec.env, ASSETS}, {});

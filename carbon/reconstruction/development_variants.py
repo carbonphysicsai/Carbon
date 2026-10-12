@@ -894,7 +894,9 @@ def compile_development(strategy, variant_, *, without=(), check_budget=True):
     )
 
 
-def built_record(strategy, variant_digest, seed, root=".", scoring=None):
+def built_record(
+    strategy, variant_digest, seed, root=".", scoring=None, workspace=None
+):
     """What Carbon builds for `strategy` under a registered variant (by its
     digest): the Challenge's `ChallengeScoring.built_from` over
     `compile_development`. Used on the pod and, for the rebuild check, on
@@ -905,10 +907,12 @@ def built_record(strategy, variant_digest, seed, root=".", scoring=None):
     scoring = (
         challenge_scoring.scoring_for(found.challenge) if scoring is None else scoring
     )
-    return scoring.built_from(compile_development(strategy, found), seed, root)
+    # A Level 4 record's staged submission documents, when there are any.
+    extra = {} if workspace is None else {"workspace": workspace}
+    return scoring.built_from(compile_development(strategy, found), seed, root, **extra)
 
 
-def admit(scoring, strategy, seed, root, variant_, *, without=()):
+def admit(scoring, strategy, seed, root, variant_, *, without=(), workspace=None):
     """The development counterpart of `challenge_scoring.admit`: what Carbon
     would build for `strategy` under `variant_` (less the capabilities a climb
     ablation leaves out), with the base record's sequence and the variant's
@@ -921,8 +925,12 @@ def admit(scoring, strategy, seed, root, variant_, *, without=()):
         raise challenge_scoring.Unrebuildable(scoring.wrong_challenge_code)
     try:
         recorded = recorded_variant(variant_)
+        extra = {} if workspace is None else {"workspace": workspace}
         built, _files, _program = scoring.built_from(
-            compile_development(strategy, variant_, without=without), seed, root
+            compile_development(strategy, variant_, without=without),
+            seed,
+            root,
+            **extra,
         )
     except VariantRefused as refused:
         raise challenge_scoring.Unrebuildable(refused.code, refused.issues) from None
@@ -933,7 +941,8 @@ def admit(scoring, strategy, seed, root, variant_, *, without=()):
         code, issues = refused
         raise challenge_scoring.Unrebuildable(code, issues) from None
     backend = scoring.backend(built)
-    if backend not in scoring.served_backends:
+    served = getattr(scoring, "development_backends", scoring.served_backends)
+    if backend not in served:
         raise challenge_scoring.NotServed("backend_not_served:" + str(backend))
     return {
         **built,

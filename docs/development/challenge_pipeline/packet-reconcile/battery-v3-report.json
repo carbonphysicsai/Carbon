@@ -1,0 +1,274 @@
+{
+  "schema": "carbon.onboarding.packet-reconciliation-report.v1",
+  "challenge": "battery-v3",
+  "manifest_sha256": "fbb81c19100015476a68d0b0be1ac638b598324e976560c9c297569ae67ceda9",
+  "documents": {
+    "packet": {
+      "path": "docs/development/challenge_pipeline/round1/battery-ambient-map-v3.md",
+      "kind": "PACKET",
+      "sha256": "a6c1fef9469b47f933c40d0cddf2441270db771412f1b4dadf60c7ba5fa637a4",
+      "observed_sha256": "a6c1fef9469b47f933c40d0cddf2441270db771412f1b4dadf60c7ba5fa637a4",
+      "state": "PIN_MATCH"
+    },
+    "owner": {
+      "path": ".agent/decisions/2026-10-08-OWNER-BATTERY-AMBIENT-MAP-03.md",
+      "kind": "OWNER_DECISION",
+      "sha256": "70b35c1e515664674c4072084b590e66048eb006fd248301d9c46f4506156ec5",
+      "observed_sha256": "70b35c1e515664674c4072084b590e66048eb006fd248301d9c46f4506156ec5",
+      "state": "PIN_MATCH"
+    }
+  },
+  "checks": [
+    {
+      "id": "charging-temperature",
+      "field": "hard_limits",
+      "state": "CONSISTENT",
+      "packet": {
+        "document": "packet",
+        "path": "docs/development/challenge_pipeline/round1/battery-ambient-map-v3.md",
+        "selector": {
+          "document": "packet",
+          "kind": "number",
+          "section": null,
+          "prefix": "Hard charging T<=",
+          "suffix": "C,"
+        },
+        "state": "EXTRACTED",
+        "value": "45"
+      },
+      "evidence": [
+        {
+          "document": "owner",
+          "path": ".agent/decisions/2026-10-08-OWNER-BATTERY-AMBIENT-MAP-03.md",
+          "selector": {
+            "document": "owner",
+            "kind": "number",
+            "section": null,
+            "prefix": "Every band meets charging T<=",
+            "suffix": "C,"
+          },
+          "state": "EXTRACTED",
+          "value": "45"
+        }
+      ]
+    },
+    {
+      "id": "plating",
+      "field": "hard_limits",
+      "state": "CONSISTENT",
+      "packet": {
+        "document": "packet",
+        "path": "docs/development/challenge_pipeline/round1/battery-ambient-map-v3.md",
+        "selector": {
+          "document": "packet",
+          "kind": "number",
+          "section": null,
+          "prefix": "every-charge plating overpotential>=",
+          "suffix": "V,"
+        },
+        "state": "EXTRACTED",
+        "value": "0"
+      },
+      "evidence": [
+        {
+          "document": "owner",
+          "path": ".agent/decisions/2026-10-08-OWNER-BATTERY-AMBIENT-MAP-03.md",
+          "selector": {
+            "document": "owner",
+            "kind": "number",
+            "section": null,
+            "prefix": "every-charge plating>=",
+            "suffix": "V,"
+          },
+          "state": "EXTRACTED",
+          "value": "0"
+        }
+      ]
+    },
+    {
+      "id": "voltage",
+      "field": "hard_limits",
+      "state": "CONSISTENT",
+      "packet": {
+        "document": "packet",
+        "path": "docs/development/challenge_pipeline/round1/battery-ambient-map-v3.md",
+        "selector": {
+          "document": "packet",
+          "kind": "number",
+          "section": null,
+          "prefix": "programme voltage<=",
+          "suffix": "V and"
+        },
+        "state": "EXTRACTED",
+        "value": "4.2"
+      },
+      "evidence": [
+        {
+          "document": "owner",
+          "path": ".agent/decisions/2026-10-08-OWNER-BATTERY-AMBIENT-MAP-03.md",
+          "selector": {
+            "document": "owner",
+            "kind": "number",
+            "section": null,
+            "prefix": "programme voltage<=",
+            "suffix": "V and"
+          },
+          "state": "EXTRACTED",
+          "value": "4.2"
+        }
+      ]
+    },
+    {
+      "id": "retention",
+      "field": "hard_limits",
+      "state": "CONSISTENT",
+      "packet": {
+        "document": "packet",
+        "path": "docs/development/challenge_pipeline/round1/battery-ambient-map-v3.md",
+        "selector": {
+          "document": "packet",
+          "kind": "number",
+          "section": null,
+          "prefix": "Q30/Q1>=",
+          "suffix": "apply to"
+        },
+        "state": "EXTRACTED",
+        "value": "0.99"
+      },
+      "evidence": [
+        {
+          "document": "owner",
+          "path": ".agent/decisions/2026-10-08-OWNER-BATTERY-AMBIENT-MAP-03.md",
+          "selector": {
+            "document": "owner",
+            "kind": "number",
+            "section": null,
+            "prefix": "Q30/Q1>=",
+            "suffix": "."
+          },
+          "state": "EXTRACTED",
+          "value": "0.99"
+        }
+      ]
+    },
+    {
+      "id": "time-is-objective",
+      "field": "objective",
+      "state": "CONSISTENT",
+      "packet": {
+        "document": "packet",
+        "path": "docs/development/challenge_pipeline/round1/battery-ambient-map-v3.md",
+        "selector": {
+          "document": "packet",
+          "kind": "literal",
+          "section": null,
+          "phrase": "Minimize each band's session-start-to80 time;",
+          "value": "MINIMIZE_SESSION_TIME"
+        },
+        "state": "EXTRACTED",
+        "value": "MINIMIZE_SESSION_TIME"
+      },
+      "evidence": [
+        {
+          "document": "owner",
+          "path": ".agent/decisions/2026-10-08-OWNER-BATTERY-AMBIENT-MAP-03.md",
+          "selector": {
+            "document": "owner",
+            "kind": "literal",
+            "section": null,
+            "phrase": "Minimize band session minutes;",
+            "value": "MINIMIZE_SESSION_TIME"
+          },
+          "state": "EXTRACTED",
+          "value": "MINIMIZE_SESSION_TIME"
+        }
+      ]
+    },
+    {
+      "id": "discharge-scope",
+      "field": "outputs",
+      "state": "CONSISTENT",
+      "packet": {
+        "document": "packet",
+        "path": "docs/development/challenge_pipeline/round1/battery-ambient-map-v3.md",
+        "selector": {
+          "document": "packet",
+          "kind": "literal",
+          "section": null,
+          "phrase": "Discharge and rest temperatures are diagnostics.",
+          "value": "DISCHARGE_DIAGNOSTIC"
+        },
+        "state": "EXTRACTED",
+        "value": "DISCHARGE_DIAGNOSTIC"
+      },
+      "evidence": [
+        {
+          "document": "owner",
+          "path": ".agent/decisions/2026-10-08-OWNER-BATTERY-AMBIENT-MAP-03.md",
+          "selector": {
+            "document": "owner",
+            "kind": "literal",
+            "section": null,
+            "phrase": "Discharge thermal extrema remain diagnostics.",
+            "value": "DISCHARGE_DIAGNOSTIC"
+          },
+          "state": "EXTRACTED",
+          "value": "DISCHARGE_DIAGNOSTIC"
+        }
+      ]
+    },
+    {
+      "id": "buyer-mix",
+      "field": "w",
+      "state": "CONSISTENT",
+      "packet": {
+        "document": "packet",
+        "path": "docs/development/challenge_pipeline/round1/battery-ambient-map-v3.md",
+        "selector": {
+          "document": "packet",
+          "kind": "literal",
+          "section": null,
+          "phrase": "owner selects `w_band=buyer_mix`",
+          "value": "BUYER_MIX"
+        },
+        "state": "EXTRACTED",
+        "value": "BUYER_MIX"
+      },
+      "evidence": [
+        {
+          "document": "owner",
+          "path": ".agent/decisions/2026-10-08-OWNER-BATTERY-AMBIENT-MAP-03.md",
+          "selector": {
+            "document": "owner",
+            "kind": "literal",
+            "section": null,
+            "phrase": "owner selects buyer-mix weighting of band value.",
+            "value": "BUYER_MIX"
+          },
+          "state": "EXTRACTED",
+          "value": "BUYER_MIX"
+        }
+      ]
+    }
+  ],
+  "unbound_buyer_fields": [
+    "P",
+    "Q",
+    "buyer",
+    "conditions",
+    "decision",
+    "exclusions",
+    "geometry",
+    "value",
+    "wrong_decision"
+  ],
+  "coverage": {
+    "required_buyer_fields": 13,
+    "bound_buyer_fields": 4,
+    "checks_examined": 7,
+    "consistent": 7
+  },
+  "checklist_clear": false,
+  "authority_granted": false,
+  "basis": "Reviewed clause bindings only: numeric equality or exact phrase-to-token mappings. Not empirical credibility, semantic entailment, approval, qualification or readiness. Unbound fields need reviewed bindings; do not guess values."
+}

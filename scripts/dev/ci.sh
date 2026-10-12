@@ -14,7 +14,8 @@ cd "${repo_root}"
 # CARBON_CI_SHARD=<index>/<count> splits this command across parallel runners.
 # The default CPU suite is divided by test file (scripts/dev/ci_shard.py); every
 # other lane runs whole on exactly one shard. Unset means one shard: the full
-# serial command, as local and dev-image runs use it.
+# serial command, as local runs use it; the dev-image job passes its shard
+# through verify_image.sh, exactly as the canonical job does.
 shard_spec="${CARBON_CI_SHARD:-0/1}"
 if [[ ! "${shard_spec}" =~ ^([0-9]+)/([1-9][0-9]*)$ ]] \
   || (( 10#${BASH_REMATCH[1]} >= 10#${BASH_REMATCH[2]} )); then

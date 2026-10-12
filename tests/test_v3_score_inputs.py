@@ -13,7 +13,20 @@ from scripts.dev.battery import v3_score_inputs as v3
 
 def _git(root, *args):
     return subprocess.run(
-        ["git", "-C", str(root), *args], capture_output=True, check=True
+        # Background upkeep writes and removes `.git` lock files
+        # asynchronously, which races this fixture's own commands.
+        [
+            "git",
+            "-C",
+            str(root),
+            "-c",
+            "maintenance.auto=false",
+            "-c",
+            "gc.auto=0",
+            *args,
+        ],
+        capture_output=True,
+        check=True,
     )
 
 

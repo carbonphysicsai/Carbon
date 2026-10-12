@@ -124,11 +124,20 @@ echo "  candidate:    ${candidate_sha}"
 "${container_exec[@]}" env \
   "CARBON_UV_GROUPS=${CARBON_UV_GROUPS:-}" \
   ./scripts/dev/doctor.sh
+# CARBON_CI_SHARD=<index>/<count> runs one shard of the canonical command inside the
+# image, as the canonical job does; unset runs the whole command serially.
+shard_env=()
+if [[ -n "${CARBON_CI_SHARD:-}" ]]; then
+  [[ "${CARBON_CI_SHARD}" =~ ^[0-9]+/[1-9][0-9]*$ ]] \
+    || fail "CARBON_CI_SHARD must be <index>/<count>, not ${CARBON_CI_SHARD}."
+  shard_env=(--env "CARBON_CI_SHARD=${CARBON_CI_SHARD}")
+fi
 docker exec \
   --workdir /workspaces/Carbon \
   --env "QUALITY_BASE_SHA=${quality_base}" \
   --env CARBON_ARTIFACT_DIR=/tmp/carbon-artifacts \
   --env "CARBON_UV_GROUPS=${CARBON_UV_GROUPS:-}" \
+  ${shard_env[@]+"${shard_env[@]}"} \
   "${container_id}" \
   ./scripts/dev/ci.sh
 
