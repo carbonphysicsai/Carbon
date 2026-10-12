@@ -28,8 +28,8 @@ import numpy as np
 
 REPO, OUT = sys.argv[1], Path(sys.argv[2])
 sys.path.insert(0, REPO)
-from carbon.battery import exam  # noqa: E402
-from carbon.battery.value import scoring as sc  # noqa: E402
+from carbon.battery import exam
+from carbon.battery.value import scoring as sc
 
 DIRS = [
     "/home/carbon/shared/evidence/srb1-ev4/experiment/predictions",
