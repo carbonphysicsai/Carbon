@@ -770,6 +770,52 @@ class Phase3Provider(GraphiteProvider):
             pending + ex.usd_to_nano(pods[1]),
         )
 
+    def refund_evidence(self, run_id):
+        """What the controller needs to refund a run slot (`grant_runs.refund`): the run
+        ended `failed` with code `failed_infra`, and its pod record is readable and shows
+        no pod created and none uncertain (a launch requested or ambiguous, a recovered
+        or duplicate pod). A missing or corrupt record is `pod_record_readable` False;
+        this never builds the experiment, so it creates nothing."""
+        state = self._state(run_id)
+        failure = state.get("failure")
+        failed_infra = (
+            state.get("state") == "failed"
+            and type(failure) is dict
+            and failure.get("code") == "failed_infra"
+        )
+        ledger = ex.PodLedger(
+            self._dir(run_id) / "experiment" / "pod-ledger.jsonl", self.clock
+        )
+        evidence = {
+            "failed_infra": failed_infra,
+            "pod_record_readable": False,
+            "pods_created": 0,
+            "pods_uncertain": 0,
+        }
+        try:
+            if not ledger.path.is_file():
+                return evidence
+            pods = ledger.pods()
+            events = {row["event"] for row in ledger.rows()}
+        except (OSError, ValueError, KeyError, TypeError):
+            return evidence
+        created = sum(
+            1 for p in pods.values() if p["launch"] == "created" or p["pod_id"]
+        )
+        uncertain = sum(
+            1
+            for p in pods.values()
+            if p["launch"] in ("requested", "ambiguous")
+            and not p["terminated"]
+            and p["pod_id"] is None
+        )
+        if "pod_duplicates_counted" in events:
+            uncertain += 1
+        evidence.update(
+            pod_record_readable=True, pods_created=created, pods_uncertain=uncertain
+        )
+        return evidence
+
     def _unresolved(self, run_id):
         experiment = self.experiment(run_id)
         return (

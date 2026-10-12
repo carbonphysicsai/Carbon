@@ -8,8 +8,8 @@ repository:
 * one ledger per grant id, and a launch is refused when the grant's `permitted_runs`
   entries are already claimed, whichever root claimed them;
 * one host-wide spend ledger for the standing testnet testing budget
-  (OWNER-TESTNET-WEEKLY-BUDGET-01: USD 150 per rolling seven days, pods plus model
-  charges): a launch whose worst-case run cost would take the last seven days over the
+  (OWNER-TESTNET-WEEKLY-BUDGET-01, amended by OWNER-TEST-GRANT-01: USD 300 per rolling
+  seven days, pods plus model charges, and USD 50 per run): a launch whose worst-case run cost would take the last seven days over the
   cap is refused. A run is reserved at its grant's worst-case run cost and later settled
   at its reported cost, so the window counts reservations until they settle.
 * The cost basis is pod RESERVATION plus the provider-reported model charge. A pod's
@@ -31,6 +31,13 @@ takes a run slot.
 * Fail closed: an unusable directory, an unreadable or corrupt ledger, a grant id that
   cannot name a file, a currency that is not USD, or a cost that cannot be read refuses
   the launch (`grant_runs_unavailable`). There is no fallback to the per-root count alone.
+* Refund: a run that failed as infrastructure before any pod was created may release its
+  run SLOT (`settle(..., refund_reason=REFUND_FAILED_INFRA)`), and only the slot: the
+  weekly window keeps its reported model charge and any pod reservation. A refund is
+  written once per claim under both locks, with a reason code and the claim id; it is
+  refused for a seeded claim, a run already settled, or a claim already refunded, and a
+  refunded claim cannot be claimed again under the same key. The caller must prove the
+  failure and the empty pod record (the controller refuses on anything it cannot read).
 * Migration: the first claim from a root seeds the per-grant ledger with that root's
   existing runs (so they are never under-counted from then on), and so is their cost
   basis: each seeded run enters the rolling window at its own start time and at the
@@ -67,10 +74,24 @@ DEFAULT = Path("~/.local/state/carbon/grant-runs")
 LIMIT = "run_limit_reached"
 WEEKLY_LIMIT = "weekly_budget_reached"
 UNAVAILABLE = "grant_runs_unavailable"
-#: OWNER-TESTNET-WEEKLY-BUDGET-01: one hundred fifty US dollars per rolling seven days.
-WEEKLY_CAP_USD = Decimal(150)
+#: The one committed source of both figures: `.agent/decisions/2026-10-11-OWNER-TESTNET-WEEKLY-BUDGET-01.md`,
+#: as amended 2026-10-12 by OWNER-TEST-GRANT-01 (#1167): "The figure is USD 300 per
+#: rolling seven days" and "Per-run safety cap: USD 50". A test parses that record and
+#: pins both constants to its text, so a figure here cannot drift from it.
+CAP_DECISION = "OWNER-TESTNET-WEEKLY-BUDGET-01, amended by OWNER-TEST-GRANT-01 (#1167)"
+CAP_RECORD = ".agent/decisions/2026-10-11-OWNER-TESTNET-WEEKLY-BUDGET-01.md"
+WEEKLY_CAP_USD = Decimal(300)
+#: A run whose worst-case reservation is above this is refused (fail closed); a larger
+#: run needs its own owner record.
+PER_RUN_CAP_USD = Decimal(50)
+PER_RUN_LIMIT = "per_run_cap_exceeded"
 WEEK_SECONDS = 7 * 24 * 3600
 WEEKLY_FILE = "weekly-spend.jsonl"
+NL = "\n"
+#: The one reason a claim's run slot is refunded: the run failed as infrastructure
+#: before any pod was created. The slot only: its cost stays in the weekly window.
+REFUND_FAILED_INFRA = "failed_infra_before_any_pod"
+REFUND_REASONS = (REFUND_FAILED_INFRA,)
 BASIS = (
     "pod reservation plus provider-reported model charge; pod charges are unresolved "
     "at the provider and stay at their reservation"
@@ -122,23 +143,43 @@ def entry_id(store_id, key):
     return hashlib.sha256(f"{store_id}\0{key}".encode()).hexdigest()
 
 
-def _read(stream):
+def _read_all(stream):
+    """`(active claims, refunded claims)` from a per-grant ledger. A refund line must
+    follow its own claim and appear once; anything else is corrupt."""
     stream.seek(0)
-    entries = {}
+    entries, refunded = {}, {}
     for number, line in enumerate(stream.read().decode("utf-8").splitlines(), 1):
         if not line.strip():
             continue
         try:
             entry = json.loads(line)
+            if "refund" in entry:
+                identifier = entry["refund"]
+                if (
+                    type(identifier) is not str
+                    or not _ENTRY.fullmatch(identifier)
+                    or identifier not in entries
+                    or entry.get("reason") not in REFUND_REASONS
+                ):
+                    raise ValueError
+                refunded[identifier] = entries.pop(identifier)
+                continue
             identifier = entry["entry"]
-        except (ValueError, KeyError, TypeError):
+        except (ValueError, KeyError, TypeError, AttributeError):
             raise SharedRunsError(
                 UNAVAILABLE, f"ledger line {number} is corrupt"
             ) from None
         if type(identifier) is not str or not _ENTRY.fullmatch(identifier):
             raise SharedRunsError(UNAVAILABLE, f"ledger line {number} is corrupt")
+        if identifier in refunded:
+            raise SharedRunsError(UNAVAILABLE, f"ledger line {number} is corrupt")
         entries[identifier] = entry
-    return entries
+    return entries, refunded
+
+
+def _read(stream):
+    """The active claims (a refunded claim no longer holds a run slot)."""
+    return _read_all(stream)[0]
 
 
 def _line(store_id, key, seeded):
@@ -279,6 +320,11 @@ def claim(
     if grant.currency != "USD":
         raise SharedRunsError(UNAVAILABLE, "the grant's currency is not USD")
     cost = _cost(grant.worst_case_run_cost)
+    if cost > PER_RUN_CAP_USD:
+        raise SharedRunsError(
+            PER_RUN_LIMIT,
+            f"worst case {cost} is above the {PER_RUN_CAP_USD} USD per-run cap",
+        )
     path = _file(grant.grant_id, repository)
     weekly_path = ledger_dir(repository) / WEEKLY_FILE
     now = float(clock())
@@ -289,19 +335,23 @@ def claim(
         try:
             fcntl.flock(stream, fcntl.LOCK_EX)
             fcntl.flock(weekly, fcntl.LOCK_EX)
-            entries = _read(stream)
+            entries, refunded = _read_all(stream)
             spent = _read_weekly(weekly)
             stream.seek(0, os.SEEK_END)
             # This store's existing runs are facts: record them before deciding.
             for seed in seed_keys:
                 identifier = entry_id(store_id, seed)
-                if identifier not in entries:
+                if identifier not in entries and identifier not in refunded:
                     entries[identifier] = {}
                     stream.write(_line(store_id, seed, True))
             stream.flush()
             os.fsync(stream.fileno())
             _seed_costs(weekly, spent, grant.grant_id, store_id, seed_runs)
             identifier = entry_id(store_id, key)
+            if identifier in refunded:
+                raise SharedRunsError(
+                    UNAVAILABLE, "this claim was refunded; launch under a new key"
+                )
             if identifier in entries:
                 return len(entries)
             if len(entries) >= grant.permitted_runs:
@@ -384,6 +434,99 @@ def settle(grant, store_id, key, cost_usd, repository=REPOSITORY, *, pending_usd
     return True
 
 
+def refund(
+    grant,
+    store_id,
+    key,
+    cost_usd,
+    repository=REPOSITORY,
+    *,
+    pending_usd=0,
+    reason=REFUND_FAILED_INFRA,
+    clock=time.time,
+):
+    """Release one claim's run SLOT and settle its weekly cost, together, under both
+    locks. Only the slot is released: `cost_usd` (the reported model charge plus any pod
+    reservation, `pending_usd` of it) stays in the rolling window. The caller proves the
+    run failed as infrastructure before any pod was created; this function refuses what
+    it can check itself: an unknown reason, a claim that is missing, seeded (a run that
+    predates the ledger) or already refunded, and a run already settled. A refusal
+    raises `SharedRunsError`; the slot then stays consumed (the conservative side).
+    Returns the number of active claims after."""
+    if reason not in REFUND_REASONS:
+        raise SharedRunsError(UNAVAILABLE, "unknown refund reason")
+    cost = _cost(cost_usd)
+    pending = _cost(pending_usd)
+    if pending > cost:
+        raise SharedRunsError(UNAVAILABLE, "pending exceeds the reported cost")
+    if grant.currency != "USD":
+        raise SharedRunsError(UNAVAILABLE, "the grant's currency is not USD")
+    path = _file(grant.grant_id, repository)
+    weekly_path = ledger_dir(repository) / WEEKLY_FILE
+    identifier = entry_id(store_id, key)
+    with (
+        os.fdopen(_open(path), "r+b") as stream,
+        os.fdopen(_open(weekly_path), "r+b") as weekly,
+    ):
+        try:
+            fcntl.flock(stream, fcntl.LOCK_EX)
+            fcntl.flock(weekly, fcntl.LOCK_EX)
+            entries, refunded = _read_all(stream)
+            runs = _read_weekly(weekly)
+            if identifier in refunded:
+                raise SharedRunsError(UNAVAILABLE, "refund refused: already refunded")
+            claim_line = entries.get(identifier)
+            if claim_line is None or claim_line.get("seeded") is not False:
+                raise SharedRunsError(
+                    UNAVAILABLE, "refund refused: not a launch claimed here"
+                )
+            row = runs.get(identifier)
+            if row is None or row["settled"] or row["seeded"]:
+                raise SharedRunsError(
+                    UNAVAILABLE, "refund refused: the run is already settled"
+                )
+            weekly.seek(0, os.SEEK_END)
+            weekly.write(
+                (
+                    json.dumps(
+                        {
+                            "settle": identifier,
+                            "cost_usd": str(cost),
+                            "pending_usd": str(pending),
+                        },
+                        sort_keys=True,
+                        separators=(",", ":"),
+                    )
+                    + NL
+                ).encode()
+            )
+            weekly.flush()
+            os.fsync(weekly.fileno())
+            stream.seek(0, os.SEEK_END)
+            stream.write(
+                (
+                    json.dumps(
+                        {
+                            "refund": identifier,
+                            "reason": reason,
+                            "store": store_id,
+                            "at": float(clock()),
+                        },
+                        sort_keys=True,
+                        separators=(",", ":"),
+                    )
+                    + NL
+                ).encode()
+            )
+            stream.flush()
+            os.fsync(stream.fileno())
+        except SharedRunsError:
+            raise
+        except OSError as error:
+            raise SharedRunsError(UNAVAILABLE, type(error).__name__) from None
+    return len(entries) - 1
+
+
 def _seed_costs(weekly, spent, grant_id, store_id, seed_runs):
     """Enter each seeded run's cost basis in the rolling window at its own start time,
     once (a run already in the window is left alone). Writes under the weekly lock the
@@ -442,6 +585,8 @@ def weekly_report(repository=REPOSITORY, *, clock=time.time, weekly_cap=WEEKLY_C
         "basis": BASIS,
         "spent_usd": str(spent.quantize(cents)),
         "cap_usd": str(Decimal(weekly_cap).quantize(cents)),
+        "per_run_cap_usd": str(PER_RUN_CAP_USD.quantize(cents)),
+        "cap_decision": CAP_DECISION,
         "remaining_usd": str(max(Decimal(0), weekly_cap - spent).quantize(cents)),
         "runs": len(inside),
         "pod_reservation_unresolved_usd": str(
@@ -463,6 +608,8 @@ def weekly_line(report):
         f"USD {report['spent_usd']} of {report['cap_usd']} used, "
         f"USD {report['remaining_usd']} headroom, {report['runs']} runs "
         f"({report['seeded_runs']} seeded from earlier roots). "
+        f"Cap: USD {report['cap_usd']} per rolling 7 days and USD "
+        f"{report['per_run_cap_usd']} per run ({report['cap_decision']}). "
         f"Basis: {report['basis']}."
     )
 
@@ -541,12 +688,12 @@ def claim_seeds(grant, store_id, keys, repository=REPOSITORY, runs=()):
         try:
             fcntl.flock(stream, fcntl.LOCK_EX)
             fcntl.flock(weekly, fcntl.LOCK_EX)
-            entries = _read(stream)
+            entries, refunded = _read_all(stream)
             spent = _read_weekly(weekly)
             stream.seek(0, os.SEEK_END)
             for key in keys:
                 identifier = entry_id(store_id, key)
-                if identifier not in entries:
+                if identifier not in entries and identifier not in refunded:
                     entries[identifier] = {}
                     stream.write(_line(store_id, key, True))
             stream.flush()

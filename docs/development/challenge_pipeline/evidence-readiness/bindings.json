@@ -63,8 +63,17 @@
         "silencer"
       ],
       "inputs": "docs/development/challenge_pipeline/evidence-readiness/inputs/f13.json",
-      "proposal": "docs/development/challenge_pipeline/round1/f13-compressor-silencer.md",
-      "pending": "https://github.com/carbonphysicsai/Carbon/pull/1030"
+      "proposal": "docs/development/challenge_pipeline/silencer-readiness/README.md",
+      "pending": null,
+      "plans": {
+        "1": {"basis": "Generated exact curves and explicit completed/scheduled reuse inventory await main registration", "pointers": ["carbon/challenge_pipeline/silencer_readiness.py"]},
+        "2": {"basis": "Pinned Elmer/Gmsh source identities need a current operator-store observation", "pointers": ["scripts/dev/reference_packages/elmer/sources.lock.json", "scripts/dev/reference_packages/elmer/f13_deck.py"]},
+        "3": {"basis": "60mm probe is not complete-curve code/conservation/convergence acceptance", "pointers": ["docs/development/challenge_pipeline/silencer-readiness/verification.json"]},
+        "4": {"basis": "Kit hook awaits actual panel action/condition/de-embedded observer coverage", "pointers": ["carbon/challenge_pipeline/silencer_readiness.py"]},
+        "5": {"basis": "Public TRAIN plan excludes physical panel copies at every rung; solved registration needed", "pointers": ["carbon/challenge_pipeline/silencer_readiness.py"]},
+        "6": {"basis": "Plane-wave control and stronger held-geometry reduced Helmholtz implementation on main; material/operator coverage still required", "pointers": ["carbon/development_comparison/portfolio_baselines.py", "carbon/development_comparison/reduced_baselines.py"]},
+        "7": {"basis": "Reuse existing f13 EQUAL-BUDGET-V1 row and complete-panel ledger", "pointers": ["carbon/design_search/equal_budget.py", "docs/development/challenge_pipeline/equal-budget-registration-v1.json"]}
+      }
     },
     {
       "challenge": "f17",
