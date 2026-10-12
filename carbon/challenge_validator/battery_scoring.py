@@ -91,10 +91,26 @@ def _row(row):
     return clean({k: row[k] for k in keep if k in row})
 
 
+#: The backends Carbon's pods build, by scoring version (DEVELOPMENT).
+#: v1 built JAX only. v2 (TORCH-POD-01) adds PyTorch: the same practice
+#: program with PyTorch's runtime record, in the released torch-gpu worker
+#: image, its pod build checked against Carbon's rebuild identity. A record
+#: made under v1 keeps its meaning: its backend was JAX.
+SERVED_BACKENDS = {
+    "battery-scoring-v1": ("jax",),
+    "battery-scoring-v2-pytorch": ("jax", "pytorch"),
+}
+SCORING_VERSION = "battery-scoring-v2-pytorch"
+
+
 class BatteryScoring(ChallengeScoring):
     """The battery DEVELOPMENT Challenge's construction scoring."""
 
-    served_backends = ("jax",)
+    scoring_version = SCORING_VERSION
+    served_backends = SERVED_BACKENDS[SCORING_VERSION]
+    #: Development levels 1-3 train with their own JAX programs, so a
+    #: development construction is built on JAX only.
+    development_backends = ("jax",)
     data_paths = (
         EVIDENCE + "/datasets/train-v1.jsonl.gz",
         EVIDENCE + "/ocv_table.json",
@@ -152,7 +168,9 @@ class BatteryScoring(ChallengeScoring):
         plan = admitted.compiled.construction_plan
         # KNN-STATE-GPU-01: a KNN builds with GPU program v2, which stages the
         # versioned state digest; every other recipe keeps v1 byte for byte.
-        program, extra = pod_program(recipe.family)
+        program, extra = pod_program(
+            recipe.family, self.backend({"recipe": recipe.document()})
+        )
         base = staged_files(
             root, PracticeSet.load(root), recipe, seed, implementation=implementation
         )

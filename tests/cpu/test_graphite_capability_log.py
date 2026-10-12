@@ -185,6 +185,29 @@ def test_the_committed_log_starts_with_the_backfilled_stage_a_refusals():
     assert "official_seed" not in text_ and "draw_id" not in text_
 
 
+def test_the_committed_log_holds_the_l2_l4_backfill_with_no_invented_cause():
+    document = json.loads(
+        (
+            REPOSITORY
+            / "docs/development/graphite/level4/refused_capability_backfill_l2_l4.json"
+        ).read_text(encoding="utf-8")
+    )
+    text_ = LOG.read_bytes().decode("utf-8")
+    assert len(document["rows"]) == 5
+    assert "executor report, 2026-10-12" in document["source"]
+    for item in document["rows"]:
+        assert set(item) == {"level", "run", "proposal", "status"}
+        line = next(
+            r
+            for r in text_.splitlines()
+            if item["proposal"] in r and (f"| {item['level']} | {item['run']} |" in r)
+        )
+        # code, field and requested were not in the extract: empty cells
+        assert "| REFUSED_UNREBUILDABLE |  |  |  |" in line
+    assert text_.count("(stage A L2-L4 extract, backfill)") == 5
+    assert "official_seed" not in text_ and "draw_id" not in text_
+
+
 def test_the_checklist_names_this_log_as_the_only_one():
     checklist = (
         REPOSITORY / "docs/development/graphite/GRAPHITE_LADDER_STAGE_A_CHECKLIST.md"

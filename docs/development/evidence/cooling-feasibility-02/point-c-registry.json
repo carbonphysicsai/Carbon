@@ -1,0 +1,90 @@
+{
+ "derivation": {
+  "dp_limit_pa": {
+   "binding_strata": 9,
+   "note": "one high-dp design is the largest thermal passer everywhere, so the allocation can only bind by heat level (0, 9, 18 or 27 of 27 strata); under the registered selection (lowest dp among PASS) an allocation removes high-dp designs but never changes the best",
+   "rationale": "median over strata of the largest dp among thermally passing designs: the allocation excludes a thermally adequate design in about half the strata (B's 25 kPa never bound)",
+   "stratum_max_thermal_pass_dp_pa": [
+    5719.285924169996,
+    5719.285924169996,
+    5719.285924169996,
+    5719.285924169996,
+    5719.285924169996,
+    5719.285924169996,
+    5719.285924169996,
+    5719.285924169996,
+    5719.285924169996,
+    5865.934281199995,
+    5865.934281199995,
+    5865.934281199995,
+    5865.934281199995,
+    5865.934281199995,
+    5865.934281199995,
+    5865.934281199995,
+    5865.934281199995,
+    5865.934281199995,
+    6452.527709319996,
+    6452.527709319996,
+    6452.527709319996,
+    6452.527709319996,
+    6452.527709319996,
+    6452.527709319996,
+    6452.527709319996,
+    6452.527709319996,
+    6452.527709319996
+   ],
+   "value": 5900.0
+  },
+  "lid_t_mm": {
+   "median_ratio2_minus_ratio1p5_k": {
+    "1.0": 1.185321654589103,
+    "1.5": 0.3592112469833779,
+    "2.0": -0.019733452720295475,
+    "2.5": -0.04124101543194314,
+    "3.0": -0.05140371900986196
+   },
+   "rationale": "largest thickness where the median design's ratio-2 vs ratio-1.5 peak differs by >= 1.0 K (B's 3 mm gives -0.05 K)",
+   "value": 1.0
+  },
+  "low_heat_w": {
+   "max_thermal_pass_fraction_by_level": {
+    "900.0": 0.9166666666666666,
+    "925.0": 0.875,
+    "950.0": 0.875,
+    "975.0": 0.7916666666666666
+   },
+   "rationale": "smallest step up from B's 900 W at which no stratum passes more than 80% thermally",
+   "value": 975.0
+  }
+ },
+ "derived_from": "point B's 96 cell solves (~carbon/runs/cpb, plan sha256 dc11be08...) by scripts/dev/cold_plate/point_c.py; no new solves",
+ "envelope": {
+  "dp_limit_pa": 5900.0,
+  "heats_w": [
+   975.0,
+   1000.0,
+   1100.0
+  ],
+  "inlets_c": [
+   37.0,
+   40.0,
+   42.0
+  ],
+  "lid_k": [
+   2000.0,
+   5000.0,
+   10000.0
+  ],
+  "lid_t_mm": 1.0,
+  "ratios": [
+   1.0,
+   1.5,
+   2.0
+  ],
+  "validity": true
+ },
+ "independence": "C's values are tuned on B's outcomes: its value check is a calibration, not out-of-sample evidence",
+ "schema": "carbon.cooling.point-c-registry.v1",
+ "status": "DEVELOPMENT stress stratum (Test Lead 2026-10-11, dev autonomy); adoption into the frozen envelope is the owner's",
+ "unchanged_from_B": "inlets 37/40/42 C, ratios 1/1.5/2 (worse of the central and outlet bands), 1,000 and 1,100 W, flow 1.5 L/min/kW, TIM2 5e-6, limit 85 C, lid k 2,000/5,000/10,000 as a sensitivity"
+}

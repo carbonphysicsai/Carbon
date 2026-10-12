@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-12-packet-reconcile",
+  "recorded_at": "2026-10-12T00:44:55Z",
+  "challenge": "protocol",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "PACKET-RECONCILE-01 / tests/cpu/test_packet_reconcile.py", "description": "Native checklist fixtures, three existing public packets and packet/law/panel regressions; public example replay."},
+  "expected": "Report exact buyer-clause agreement or discrepancy without source guessing, qualification, hidden reads or packet mutation.",
+  "observed": "First diagnostic: 9/11 passed; literal substring matched charge-only inside discharge-only, and a case-sensitive owner phrase missed the existing battery statement. Word-bounded case-insensitive literal extraction repaired both. Final 32/32 affected diagnostics passed; three deterministic examples cover 14 critical clauses, while unbound buyer fields keep full checklists open. Native results are not canonical acceptance.",
+  "keep": ["Retain expected/observed source digests, exact clause selectors and extracted values.", "Separate byte/declared-token agreement from scientific authority and full packet coverage."],
+  "change": ["Use whole-phrase boundaries for scope checks; a substring can reverse charge/discharge meaning.", "Report missing bindings as tool coverage gaps, not absent packet content or approval."],
+  "protocol_elements": ["challenge_onboarding", "customer_packet", "lessons_learned"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

@@ -265,12 +265,16 @@ def test_every_candidate_reports_each_known_bad_controls_rank_and_pickability():
     ce = report["candidates"]["CE"]["pooled"]
     # -E ranks the bad control second of 15 (after the gamed member): by name.
     assert ce["known_bad_ranks"] == {"control-bad": (2, 15)}
-    ok, failed = sp.pickable(report, "CE")
+    ok, failed = sp.pickable(report, "CE", criterion="placement")
     assert not ok
     assert "pooled: known-bad member in the top half" in failed
     assert "pooled: adversarial member in the top half" in failed
-    # Placement alone decides pickability: regret or divergence do not.
+    # Under PICKABLE-01, placement alone decides: regret or divergence do not.
     assert all(f.split(": ", 1)[1] in sp.PLACEMENT_SCREENS for f in failed)
+    # Under PICKABLE-02 (in force) the known-bad placement still refuses it.
+    ok, failed = sp.pickable(report, "CE")
+    assert not ok and "pooled: known-bad member in the top half" in failed
+    assert all(f.split(": ", 1)[1] in sp.DIVERGENCE_SCREENS for f in failed)
 
 
 def test_the_confirmation_refuses_a_rule_selection_did_not_mark_pickable(tmp_path):
@@ -287,4 +291,28 @@ def test_the_confirmation_refuses_a_rule_selection_did_not_mark_pickable(tmp_pat
     assert script.pick_refusal(None, "A-Q").startswith("confirmation needs --selection")
     assert (
         script.pick_refusal(tmp_path / "absent.json", "A-Q") == "selection_unreadable"
+    )
+
+
+def test_a_confirmation_with_missing_legs_is_refused_not_failed():
+    from scripts.dev.battery import score_proof as script
+
+    def report(status):
+        rows = {"L0": {"status": "OK"}, "pooled": {"status": status}}
+        return {
+            "candidates": {
+                "ARP-V3": rows,
+                "G-FEAS/A-Q>@0.05": {"pooled": {"status": "OK"}},
+            }
+        }
+
+    picked = ["ARP-V3", "G-FEAS/A-Q>@0.05"]
+    assert script.incomplete_refusal(report("OK"), picked) is None
+    refused = script.incomplete_refusal(report("INCOMPLETE_LEGS"), picked)
+    assert refused.startswith("confirmation_incomplete_legs: ARP-V3 pooled")
+    assert "nothing written" in refused
+    # Only the pick and the contrast are read.
+    assert (
+        script.incomplete_refusal(report("INCOMPLETE_LEGS"), ["G-FEAS/A-Q>@0.05"])
+        is None
     )

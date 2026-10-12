@@ -1,0 +1,14 @@
+{
+  "schema": "carbon.onboarding.process-event.v1",
+  "challenge": "motor",
+  "cycle": "motor-command-trial-law-per-clause",
+  "stage": "S4_question_law",
+  "kind": "ENTRY",
+  "actor": "checker-law",
+  "actor_kind": "TOOL",
+  "source": "docs/development/challenge_pipeline/automation-rehearsal/README.md",
+  "source_sha256": "6f2cc78489e3aed9083c895413a1c7d0525fe15e338765101ede729ad65ca97d",
+  "stage_map_sha256": "e4370a51650ce7d638767c9d40e5804a246728f25dbbb1ab06ecc5648ea4c2f8",
+  "id": "5094fadcb5b2471facc2681807f88000",
+  "at": "2026-10-12T01:20:38.663013+00:00"
+}

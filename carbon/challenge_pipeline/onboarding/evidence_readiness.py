@@ -16,6 +16,10 @@ from pathlib import Path
 from carbon.challenge_pipeline.onboarding import packet
 
 BINDINGS = "docs/development/challenge_pipeline/evidence-readiness/bindings.json"
+PUBLIC_REFERENCE_POINTERS = {
+    "scripts/dev/reference_packages/elmer/sources.lock.json",
+    "scripts/dev/reference_packages/elmer/f13_deck.py",
+}
 LABELS = (
     "Registered, deduplicated, reuse-checked panel on main",
     "Pinned package and current operator-store image observation",
@@ -35,6 +39,18 @@ OWNERS = (
     "Optimizer Codex",
 )
 BENCHMARK_ROUTES = {
+    "f13": {
+        "kind": "ROUND_ONE_DEVELOPMENT",
+        "pending": "F13-SILENCER-READINESS-BUILD-01",
+        "baseline": (
+            "carbon/development_comparison/reduced_baselines.py",
+            {"measure", "validate_operators", "acoustic_curve", "predict"},
+        ),
+        "budget": (
+            "carbon/design_search/budget_registration.py",
+            "EQUAL-BUDGET-V1",
+        ),
+    },
     "f08": {
         "kind": "ROUND_ONE_DEVELOPMENT",
         "pending": "F08-STRUCTURES-READINESS-BUILD-01",
@@ -69,6 +85,21 @@ BENCHMARK_ROUTES = {
             "EQUAL-BUDGET-MG-DEVELOPMENT-V1",
         ),
     },
+    # Legacy table name; this is NOT a published benchmark or customer result.
+    "package-warpage": {
+        "kind": "REPRESENTATIVE_REHEARSAL",
+        "pending": "https://github.com/carbonphysicsai/Carbon/pull/1095",
+        "baseline": (
+            "carbon/challenge_pipeline/warpage_rehearsal.py",
+            {"laminate_estimate", "comparator_ranking"},
+        ),
+        "baseline_ready": False,
+        "baseline_gap": "Elastic strip screen only; strongest full-history cached FE comparator still required",
+        "budget": (
+            "carbon/design_search/warpage_budget.py",
+            "WARPAGE-REHEARSAL-PROPOSED-V1",
+        ),
+    },
 }
 
 
@@ -85,8 +116,11 @@ def public_path(value):
         type(value) is not str
         or not re.fullmatch(r"[A-Za-z0-9_./-]{1,240}", value)
         or any(p in ("", ".", "..") for p in value.split("/"))
-        or not value.startswith(
-            ("docs/development/", ".agent/decisions/", "carbon/", "tests/cpu/")
+        or not (
+            value.startswith(
+                ("docs/development/", ".agent/decisions/", "carbon/", "tests/cpu/")
+            )
+            or value in PUBLIC_REFERENCE_POINTERS
         )
         or re.search(
             r"hidden|protected|private|secret|(?:^|/)(?:eval|stress|banks)(?:/|\.)",
@@ -364,6 +398,87 @@ def check_train(tree, data, cases):
     )
 
 
+def _table_registration_wired(parsed, compare, family, expected):
+    """Inspect main's table dispatch without importing or calling its code."""
+    modules = {
+        alias.asname or alias.name
+        for node in parsed.body
+        if isinstance(node, ast.ImportFrom)
+        and (
+            node.level == 1
+            and node.module is None
+            or node.level == 0
+            and node.module == "carbon.design_search"
+        )
+        for alias in node.names
+        if alias.name == expected
+    }
+    tables = [
+        node.value
+        for node in parsed.body
+        if isinstance(node, ast.Assign)
+        and any(
+            isinstance(t, ast.Name) and t.id == "CHALLENGE_ROUTES" for t in node.targets
+        )
+    ]
+    if len(tables) != 1 or not isinstance(tables[0], ast.Dict):
+        return False
+    matches = [
+        value
+        for key, value in zip(tables[0].keys, tables[0].values, strict=True)
+        if isinstance(key, ast.Constant) and key.value == family
+    ]
+    if len(matches) != 1 or not isinstance(matches[0], ast.Dict):
+        return False
+    validators = [
+        value
+        for key, value in zip(matches[0].keys, matches[0].values, strict=True)
+        if isinstance(key, ast.Constant) and key.value == "validator"
+    ]
+    if len(validators) != 1:
+        return False
+    validator = validators[0]
+    if not (
+        isinstance(validator, ast.Attribute)
+        and validator.attr == "validate"
+        and isinstance(validator.value, ast.Name)
+        and validator.value.id in modules
+    ):
+        return False
+    assignments = [n for n in ast.walk(compare) if isinstance(n, ast.Assign)]
+    route_read = any(
+        any(isinstance(t, ast.Name) and t.id == "route" for t in n.targets)
+        and isinstance(n.value, ast.Subscript)
+        and isinstance(n.value.value, ast.Name)
+        and n.value.value.id == "CHALLENGE_ROUTES"
+        and isinstance(n.value.slice, ast.Subscript)
+        and isinstance(n.value.slice.value, ast.Name)
+        and n.value.slice.value.id == "panel"
+        and isinstance(n.value.slice.slice, ast.Constant)
+        and n.value.slice.slice.value == "challenge"
+        for n in assignments
+    )
+    validator_read = any(
+        any(
+            isinstance(t, ast.Name) and t.id == "validate_registration"
+            for t in n.targets
+        )
+        and isinstance(n.value, ast.Subscript)
+        and isinstance(n.value.value, ast.Name)
+        and n.value.value.id == "route"
+        and isinstance(n.value.slice, ast.Constant)
+        and n.value.slice.value == "validator"
+        for n in assignments
+    )
+    validator_called = any(
+        isinstance(n, ast.Call)
+        and isinstance(n.func, ast.Name)
+        and n.func.id == "validate_registration"
+        for n in ast.walk(compare)
+    )
+    return route_read and validator_read and validator_called
+
+
 def benchmark_route(tree, family, optimizer):
     route = BENCHMARK_ROUTES[family]
     if optimizer:
@@ -435,19 +550,24 @@ def benchmark_route(tree, family, optimizer):
                 for n in ast.walk(statement)
                 if isinstance(n, ast.ImportFrom)
             ]
-            if not any(
+            branch_wired = any(
                 n.module in (expected, "carbon.design_search." + expected)
                 and any(
                     a.name == "validate" and a.asname == "validate_registration"
                     for a in n.names
                 )
                 for n in imports
+            )
+            if not branch_wired and not _table_registration_wired(
+                parsed, compare, family, expected
             ):
                 return (
                     "NO",
                     "Family registration validator is not wired into compare",
                     pointers,
                 )
+    if not optimizer and route.get("baseline_ready") is False:
+        return "PLANNED", route["baseline_gap"], pointers
     return (
         "YES",
         "Family offline implementation inspected; no claim of measured value, package adequacy or dispatch permission",

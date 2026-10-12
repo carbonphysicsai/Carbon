@@ -282,6 +282,14 @@ class BackendNotServed(PermissionError):
         self.backend = backend
 
 
+class DevelopmentCompilerUnavailable(RuntimeError):
+    """This process can't compile a development variant the ladder serves to
+    this listed hotkey: its compiler is installed only by the ladder's own
+    entry point, never in the intake's process (whose import closure must not
+    reach the variant module). Infrastructure, never the miner's: nothing is
+    recorded, and the process that holds the compiler admits it."""
+
+
 class ContractRevised(ValueError):
     """A recipe admitted under an earlier contract that the current one refuses.
 
@@ -620,6 +628,16 @@ class BatteryValidator:
                     and submission.contract_digest not in self.ladder["variants"]
                 ):
                     return refuse(self._ladder_refusal(submission.contract_digest))
+                if (
+                    self.ladder is not None
+                    and self.development_only
+                    and submission.hotkey in self.ladder["hotkeys"]
+                    and not callable(self.development_compiler)
+                ):
+                    # A variant this ladder lists, from a hotkey it lists, in a
+                    # process without the compiler (the intake's): Carbon's
+                    # state, never the miner's. Nothing is recorded.
+                    raise DevelopmentCompilerUnavailable(submission.contract_digest)
                 if not self._serves_development(submission.hotkey):
                     # A development-only contract variant is never served to a
                     # miner (OWNER-GRAPHITE-TEST-WAVE-03 §1).

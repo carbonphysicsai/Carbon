@@ -28,7 +28,9 @@ checker = _load_checker()
 
 def _git(repository: Path, *arguments: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
-        ["git", *arguments],
+        # Background upkeep writes and removes `.git` lock files
+        # asynchronously, which races this fixture's own commands.
+        ["git", "-c", "maintenance.auto=false", "-c", "gc.auto=0", *arguments],
         cwd=repository,
         check=False,
         capture_output=True,

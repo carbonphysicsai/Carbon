@@ -247,3 +247,203 @@ def documents():
 
 def _with_panel(document):
     return {**document, "showcase": unavailable_panel(document)}
+
+
+#: The fixtures' clock (2026-10-08T01:00:00Z), so a fixture build shows each
+#: board.v2 phase whatever the day: the boards above are an hour old (LIVE).
+FIXTURE_NOW = 1_791_421_200
+
+
+def post_cutover_document():
+    """A feed right after a rule cutover, unsigned: a new (v3) rule digest, a
+    fresh state with no released window, submission, incumbent or history.
+    board.v2 phase PRE_FIRST_RELEASE."""
+    document = board_document("fixture-challenge-delta", "gpu:FIXTURE-GPU", seed=4)
+    return {
+        **document,
+        "challenge": {
+            **document["challenge"],
+            "version": "0.1-fixture",
+            "rule": "fixture-rule-v3",
+            "rule_digest": _fingerprint("fixture-challenge-delta", "rule-v3"),
+        },
+        "version": 1,
+        "generated_at": "2026-10-08T00:30:00Z",
+        "released_through_block": None,
+        "released_windows": [],
+        "submissions": [],
+        "leaderboard": {
+            "incumbent": None,
+            "challengers": [],
+            "standing": [],
+            "history": {},
+        },
+        "excluded": {"canary_hotkeys": 0},
+    }
+
+
+def stale_document():
+    """A populated feed generated a day before FIXTURE_NOW, unsigned: board.v2
+    phase STALE."""
+    document = board_document("fixture-challenge-gamma", "cpu", seed=5)
+    return {**document, "generated_at": "2026-10-07T01:00:00Z"}
+
+
+def ladder_document(challenge_id, device_class, *, seed, sealed):
+    """A LIVE feed with the proposed coldkey ladder (OWNER-BATTERY-
+    CHAMPIONSHIP-03), unsigned. Two hotkeys share each made-up coldkey.
+    `sealed`: every entry SEALED_UNTIL_GRAIN, as while the grain is
+    HUMAN_INPUT; otherwise SHOWN, and NO_IMPROVEMENT_BEYOND_GRAIN for every
+    second coldkey. The displayed scores and the grain are made up."""
+    document = board_document(challenge_id, device_class, seed=seed)
+    owners = {}
+    for row in document["leaderboard"]["standing"]:
+        number = int(row["hotkey"].rsplit("-", 1)[1])
+        owners.setdefault(f"fixture-coldkey-{(number + 1) // 2:02d}", []).append(row)
+    order = sorted(owners, key=lambda c: min(r["best"]["accuracy"] for r in owners[c]))
+    rows = []
+    for rank, coldkey in enumerate(order, start=1):
+        top = min(owners[coldkey], key=lambda r: r["best"]["accuracy"])
+        best = top["best"]["accuracy"]
+        submission = next(
+            s["submission_id"]
+            for s in document["submissions"]
+            if s["hotkey"] == top["hotkey"]
+            and s["receipt_block"] == top["best_at_block"]
+        )
+        hotkeys = sorted(r["hotkey"] for r in owners[coldkey])
+        if sealed:
+            entry = {"status": "SEALED_UNTIL_GRAIN", "displayed_score": None}
+        elif rank % 2 == 0:
+            entry = {"status": "NO_IMPROVEMENT_BEYOND_GRAIN", "displayed_score": best}
+        else:
+            entry = {"status": "SHOWN", "displayed_score": best}
+        rows.append(
+            {
+                "coldkey": coldkey,
+                "rank": None if sealed else rank,
+                "hotkeys": hotkeys,
+                "best_submission_id": None if sealed else submission,
+                "displayed_at_block": None if sealed else top["best_at_block"],
+                **entry,
+            }
+        )
+    ladder = {"grain_pct": None if sealed else 0.5, "coldkeys": rows}
+    return {
+        **document,
+        "leaderboard": {**document["leaderboard"], "ladder": ladder},
+    }
+
+
+FIXTURE_HOUR_MS = 3_600_000
+
+
+def chain_document(challenge_id, device_class, *, seed, released_king=True):
+    """A LIVE feed with VALIDATOR-33 A's fields (#1143), unsigned: the chain
+    time it was read at (10 min before FIXTURE_NOW), the next rotation block,
+    a king from a made-up winner ledger with two handovers, and a target to
+    beat. Every value is made up; the margins, share and noise guard are not
+    any rule's. With `released_king` False, the ledger's king is a miner the
+    leaderboard has not released as its incumbent yet, and is not paid."""
+    document = board_document(challenge_id, device_class, seed=seed)
+    incumbent = document["leaderboard"]["incumbent"]
+    others = [
+        r["hotkey"]
+        for r in document["leaderboard"]["standing"]
+        if r["hotkey"] != incumbent["hotkey"]
+    ]
+    now_ms = FIXTURE_NOW * 1000
+    crowned = now_ms - 30 * FIXTURE_HOUR_MS
+    block = document["released_through_block"] + 1_000
+    king = incumbent["hotkey"] if released_king else others[0]
+    first = others[1] if released_king else incumbent["hotkey"]
+    return {
+        **document,
+        "as_of_block": {
+            "number": block,
+            "hash": "0x" + hashlib.sha256(challenge_id.encode()).hexdigest(),
+            "timestamp_ms": now_ms - 600_000,
+        },
+        "release": {**document["release"], "next_rotation_block": block + 350},
+        "king": {
+            "hotkey": king,
+            "uid": 7,
+            "coldkey": "fixture-coldkey-07",
+            "submission_id": incumbent["submission_id"] if released_king else None,
+            "crowned_utc_ms": crowned,
+            "eligible": released_king,
+            "reason": "fixture-final" if released_king else "fixture-not-paid",
+            "share_now": 0.5 if released_king else 0.0,
+            "next_halving_utc_ms": (
+                crowned + 48 * FIXTURE_HOUR_MS if released_king else None
+            ),
+            "challenges_survived": 2,
+        },
+        "handovers": [
+            {
+                "utc_ms": crowned - 72 * FIXTURE_HOUR_MS,
+                "to_hotkey": first,
+                "from_hotkey": None,
+                "kind": "FIRST",
+                "eligible": True,
+                "reason": "fixture-first",
+            },
+            {
+                "utc_ms": crowned,
+                "to_hotkey": king,
+                "from_hotkey": first,
+                "kind": "FINAL",
+                "eligible": released_king,
+                "reason": "fixture-final" if released_king else "fixture-not-paid",
+            },
+        ],
+        "target_to_beat": {
+            "kind": "registered_score_margin_then_final",
+            "screening_margin_rel": 0.04,
+            "final_margin_rel": 0.05,
+            "final_comparison": {
+                "n_min": 20,
+                "n_boot": 1000,
+                "alpha": 0.1,
+                "important_min": 5,
+                # Not a noise guard parameter: dropped.
+                "bootstrap_seed": 12345,
+            },
+            "score": {
+                "candidate": "FIXTURE-SCORE>@0.1",
+                "registry_sha256": hashlib.sha256(b"fixture-registry").hexdigest(),
+                "decision": "FIXTURE-DECISION-01",
+            },
+            "gates": ["eligibility", "registered_score_gate", "important_region"],
+        },
+    }
+
+
+def chain_documents():
+    """Signed fixtures with VALIDATOR-33 A's fields: a released, paid king,
+    and a ledger king the leaderboard has not released yet. The default
+    fixture set carries none of these fields, as feeds before #1143."""
+    return [
+        sign(chain_document("fixture-challenge-eta", "gpu:FIXTURE-GPU", seed=8)),
+        sign(
+            chain_document(
+                "fixture-challenge-theta", "cpu", seed=9, released_king=False
+            )
+        ),
+    ]
+
+
+def phase_documents():
+    """Signed fixtures for the board.v2 states the documents() set lacks:
+    PRE_FIRST_RELEASE after a cutover, STALE, and the coldkey ladder with
+    each status (SHOWN and NO_IMPROVEMENT_BEYOND_GRAIN; SEALED_UNTIL_GRAIN)."""
+    return [
+        sign(post_cutover_document()),
+        sign(stale_document()),
+        sign(
+            ladder_document(
+                "fixture-challenge-epsilon", "gpu:FIXTURE-GPU", seed=6, sealed=False
+            )
+        ),
+        sign(ladder_document("fixture-challenge-zeta", "cpu", seed=7, sealed=True)),
+    ]

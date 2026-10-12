@@ -161,6 +161,9 @@ def solve(case_dir, p, name, cpus, timeout_s):
         "--user", f"{os.getuid()}:{os.getgid()}",
         "-v", f"{case_dir.resolve()}:/w", "-w", "/w", IMAGE, "bash", "-c", script,
     ]  # fmt: skip
+    parent = os.environ.get("CARBON_STAGE_CGROUP_PARENT")
+    if parent:  # campaign stage metering only; the solve is unchanged
+        command[3:3] = ["--cgroup-parent", parent]
     start = time.monotonic()
     try:
         done = subprocess.run(

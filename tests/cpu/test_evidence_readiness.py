@@ -244,9 +244,10 @@ def test_missing_main_reports_unknown_without_spend_permission():
     assert not result["spend_authorized"] and not result["qualified"]
 
 
-def test_all_thirteen_rank_ties_and_attach_source_digests():
+def test_registered_portfolio_rank_ties_and_attach_source_digests():
     reports = er.portfolio(ROOT, now=NOW)
-    assert len(reports) == 13
+    bindings = json.loads((ROOT / er.BINDINGS).read_text())
+    assert len(reports) == len(bindings["challenges"])
     assert {r["challenge"] for r in reports} >= {
         "solenoid-pole",
         "bolted-joint",
@@ -306,7 +307,12 @@ def test_benchmark_route_inspects_implementation_not_pending_pr(family):
     tree.files[path] = (
         f'FAMILY = "{family}"\n' + "\n".join(f"def {f}(): pass" for f in functions)
     ).encode()
-    assert er.code_route(tree, family)[0] == "YES"
+    expected = (
+        "PLANNED"
+        if er.BENCHMARK_ROUTES[family].get("baseline_ready") is False
+        else "YES"
+    )
+    assert er.code_route(tree, family)[0] == expected
     tree.files[path] = f'FAMILY = "{family}"'.encode()
     assert er.code_route(tree, family)[0] == "NO"
 
@@ -334,3 +340,106 @@ def test_budget_file_alone_does_not_establish_dispatch(family):
         f'CHALLENGES = {{"{family}"}}\ndef _validate(): pass\ndef compare():\n if challenge == "{family}":\n  from .{module} import validate as validate_registration\n'.encode()
     )
     assert er.code_route(tree, family, optimizer=True)[0] == "YES"
+
+
+def test_warpage_is_a_representative_route_not_a_published_benchmark():
+    route = er.BENCHMARK_ROUTES["package-warpage"]
+    assert route["kind"] == "REPRESENTATIVE_REHEARSAL"
+    assert route["baseline_ready"] is False
+    assert "full-history" in route["baseline_gap"]
+
+
+def table_route_tree(family, *, module=None, body=None):
+    path, registration = er.BENCHMARK_ROUTES[family]["budget"]
+    expected = path.split("/")[-1][:-3]
+    module = module or expected
+    body = body or (
+        'route = CHALLENGE_ROUTES[panel["challenge"]]\n'
+        'validate_registration = route["validator"]\n'
+        "return validate_registration(registration)"
+    )
+    return RouteTree(
+        {
+            path: f'FAMILY = "{family}"\nID = "{registration}"\ndef validate(raw): pass'.encode(),
+            "carbon/design_search/equal_budget.py": (
+                f"from . import {module}\n"
+                f'CHALLENGE_ROUTES = {{"{family}": {{"validator": {module}.validate}}}}\n'
+                "def _validate(): pass\ndef compare(panel, registration):\n"
+                + "\n".join(" " + line for line in body.splitlines())
+            ).encode(),
+        }
+    )
+
+
+@pytest.mark.parametrize("family", er.BENCHMARK_ROUTES)
+def test_main_table_dispatch_is_inspected_without_importing_it(family):
+    tree = table_route_tree(family)
+    assert er.code_route(tree, family, optimizer=True)[0] == "YES"
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        "return None",
+        'route = CHALLENGE_ROUTES[panel["challenge"]]\nreturn None',
+        'route = CHALLENGE_ROUTES[panel["challenge"]]\nvalidate_registration = route["validator"]\nreturn None',
+        'route = CHALLENGE_ROUTES["motor"]\nvalidate_registration = route["validator"]\nreturn validate_registration(registration)',
+        'route = CHALLENGE_ROUTES[panel["challenge"]]\nvalidate_registration = unrelated\nreturn validate_registration(registration)',
+    ],
+)
+def test_table_mention_or_unused_wrong_dispatch_never_earns_yes(body):
+    tree = table_route_tree("f13", body=body)
+    assert er.code_route(tree, "f13", optimizer=True)[0] == "NO"
+
+
+def test_wrong_table_validator_module_never_earns_yes():
+    tree = table_route_tree("f13", module="structures_budget")
+    assert er.code_route(tree, "f13", optimizer=True)[0] == "NO"
+
+
+def test_f13_preparation_descriptor_is_integrated_without_evidence_overrides():
+    bindings = json.loads((ROOT / er.BINDINGS).read_text())
+    binding = next(row for row in bindings["challenges"] if row["challenge"] == "f13")
+    descriptor = json.loads(
+        (
+            ROOT
+            / "docs/development/challenge_pipeline/silencer-readiness/readiness-binding.json"
+        ).read_text()
+    )
+    assert binding == {
+        k: v for k, v in descriptor.items() if k not in {"wiring", "spend_authorized"}
+    }
+    assert binding["pending"] is None
+    assert set(binding["plans"]) == set("1234567")
+    assert er.BENCHMARK_ROUTES["f13"]["kind"] == "ROUND_ONE_DEVELOPMENT"
+    for plan in binding["plans"].values():
+        assert plan["basis"] and plan["pointers"]
+        for pointer in plan["pointers"]:
+            assert (ROOT / er.public_path(pointer)).is_file()
+
+
+def test_reference_pointer_allowlist_does_not_admit_other_scripts():
+    for path in er.PUBLIC_REFERENCE_POINTERS:
+        assert er.public_path(path) == path
+    for path in (
+        "scripts/dev/reference_packages/elmer/private.json",
+        "scripts/dev/run_solver.py",
+        "scripts/dev/reference_packages/elmer/../f13_deck.py",
+    ):
+        with pytest.raises(packet.DraftError):
+            er.public_path(path)
+
+
+def test_f13_matches_retained_route_sources_not_a_synthetic_yes_receipt():
+    paths = {
+        er.BENCHMARK_ROUTES["f13"]["baseline"][0],
+        er.BENCHMARK_ROUTES["f13"]["budget"][0],
+        "carbon/design_search/equal_budget.py",
+    }
+    tree = RouteTree({path: (ROOT / path).read_bytes() for path in paths})
+    assert er.code_route(tree, "f13")[0] == "YES"
+    assert er.code_route(tree, "f13", optimizer=True)[0] == "YES"
+    assert (
+        er.code_route(RouteTree({}, available=False), "f13", optimizer=True)[0]
+        == "UNKNOWN"
+    )

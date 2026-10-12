@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-11-warpage-rehearsal-baseline",
+  "recorded_at": "2026-10-11T13:50:00Z",
+  "challenge": "package-warpage",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "AI-PACKAGE-WARPAGE-REHEARSAL-BUILD-01", "description": "Native existing panel-generator and budget tests: 12 passed. No solver/build/spend."},
+  "expected": "Reuse exact-tuple deduplication and shared budget accounting without widening authority.",
+  "observed": "Existing tools pass; package-specific material history and observable coverage still need their own tests.",
+  "keep": ["Reuse physical identities and closed historical budget registrations."],
+  "change": ["Add full-history-specific preparation rather than treating a thermal elastic control as the complete buyer reference."],
+  "protocol_elements": ["reference policy", "measurement authority", "cost"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

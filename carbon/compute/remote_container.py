@@ -289,15 +289,19 @@ carbon_session={session}
 carbon_since={since}
 carbon_status() {{
   carbon_state='' carbon_ppid='' carbon_uid='' carbon_pgid='' carbon_sid=''
-  {{ while read -r carbon_key carbon_value carbon_rest; do
-      case "$carbon_key" in
-        State:) carbon_state="$carbon_value" ;;
-        PPid:) carbon_ppid="$carbon_value" ;;
-        Uid:) carbon_uid="$carbon_value" ;;
-        NSpgid:) carbon_pgid="$carbon_value" ;;
-        NSsid:) carbon_sid="$carbon_value" ;;
-      esac
-    done < "/proc/$1/status"; }} 2>/dev/null
+  # Read whole, at once: read line by line, the file is generated again for
+  # each line, so a process that wakes meanwhile shifts its lines and can
+  # lose one (its Uid), and the scan would pass over a live job process.
+  {{ carbon_text=$(< "/proc/$1/status"); }} 2>/dev/null
+  while read -r carbon_key carbon_value carbon_rest; do
+    case "$carbon_key" in
+      State:) carbon_state="$carbon_value" ;;
+      PPid:) carbon_ppid="$carbon_value" ;;
+      Uid:) carbon_uid="$carbon_value" ;;
+      NSpgid:) carbon_pgid="$carbon_value" ;;
+      NSsid:) carbon_sid="$carbon_value" ;;
+    esac
+  done <<< "$carbon_text"
   [ -n "$carbon_uid" ]
 }}
 carbon_started() {{

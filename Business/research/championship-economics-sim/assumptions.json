@@ -1,0 +1,491 @@
+{
+  "ticket": "CHAMPIONSHIP-ECONOMICS-SIM-01",
+  "status": "PUBLIC_ASSUMPTIONS_ONLY",
+  "version": 1,
+  "authority_snapshot": "24e03bf9e7f5e34a7a9425ded33bc2736da1b298",
+  "parameters": {
+    "use_ladder": {"status": "OWNER_STRUCTURE_RESEARCH_SURROGATE", "low": false, "base": true, "high": true, "source": "OWNER-BATTERY-CHAMPIONSHIP-03; false is a counterfactual."},
+    "ladder_grain": {"status": "ASSUMPTION_RELATIVE_LOG_SCORE_GRAIN", "low": 0.005, "base": 0.005, "high": 0.025, "source": "Actual measured grain/score operator HUMAN_INPUT. Illustrative relative-log surrogate starts at the announced 0.5% floor."},
+    "incumbent_may_contend": {"status": "ASSUMPTION_CALLER_INTERPRETATION", "low": false, "base": true, "high": true, "source": "Eligibility supports same-miner events; championship caller details require confirmation."},
+    "initial_gap_low": {"status": "ASSUMPTION_DISTRIBUTION_ENDPOINT", "low": 0.02, "base": 0.02, "high": 0.02},
+    "initial_gap_high": {"status": "ASSUMPTION_DISTRIBUTION_ENDPOINT", "low": 0.12, "base": 0.12, "high": 0.12},
+    "skill_factor_low": {"status": "ASSUMPTION_DISTRIBUTION_ENDPOINT", "low": 0.7, "base": 0.7, "high": 0.7},
+    "skill_factor_high": {"status": "ASSUMPTION_DISTRIBUTION_ENDPOINT", "low": 1.3, "base": 1.3, "high": 1.3},
+    "days": {
+      "status": "ASSUMPTION",
+      "low": 90,
+      "base": 180,
+      "high": 365,
+      "source": null
+    },
+    "public_seed": {
+      "status": "PUBLIC_SYNTHETIC_SEED",
+      "low": 73119,
+      "base": 73119,
+      "high": 73119,
+      "source": null
+    },
+    "k": {
+      "status": "OWNER_DESIGN",
+      "low": 10,
+      "base": 10,
+      "high": 10,
+      "source": "C01"
+    },
+    "offered_cases": {
+      "status": "OWNER_DESIGN",
+      "low": 4000,
+      "base": 4000,
+      "high": 4000,
+      "source": "C01"
+    },
+    "blocks": {
+      "status": "ASSUMPTION_INFORMATION",
+      "low": 2000,
+      "base": 4000,
+      "high": 4000,
+      "source": "C02 declares collapse; effective count unknown"
+    },
+    "alpha": {
+      "status": "OWNER_DESIGN",
+      "low": 0.01,
+      "base": 0.01,
+      "high": 0.01,
+      "source": "C02"
+    },
+    "margin": {
+      "status": "OWNER_DESIGN",
+      "low": 0.0225,
+      "base": 0.0225,
+      "high": 0.0225,
+      "source": "C01"
+    },
+    "experts": {
+      "status": "ASSUMPTION",
+      "low": 2,
+      "base": 4,
+      "high": 8,
+      "source": null
+    },
+    "steady": {
+      "status": "ASSUMPTION",
+      "low": 4,
+      "base": 8,
+      "high": 16,
+      "source": null
+    },
+    "imitators": {
+      "status": "ASSUMPTION",
+      "low": 0,
+      "base": 4,
+      "high": 12,
+      "source": null
+    },
+    "holders": {
+      "status": "ASSUMPTION",
+      "low": 0,
+      "base": 4,
+      "high": 8,
+      "source": null
+    },
+    "newcomers": {
+      "status": "ASSUMPTION",
+      "low": 2,
+      "base": 4,
+      "high": 8,
+      "source": null
+    },
+    "growth_by_role": {
+      "status": "ASSUMPTION_SCENARIO_TABLE",
+      "low": {
+        "expert": 0.003,
+        "steady": 0.0015,
+        "imitator": 0.0015,
+        "holder": 0,
+        "newcomer": 0.0025
+      },
+      "base": {
+        "expert": 0.006,
+        "steady": 0.003,
+        "imitator": 0.003,
+        "holder": 0,
+        "newcomer": 0.005
+      },
+      "high": {
+        "expert": 0.012,
+        "steady": 0.006,
+        "imitator": 0.006,
+        "holder": 0,
+        "newcomer": 0.01
+      },
+      "source": null
+    },
+    "hours_by_role": {
+      "status": "ASSUMPTION_SCENARIO_TABLE",
+      "low": {
+        "expert": 4,
+        "steady": 1.5,
+        "imitator": 1.5,
+        "holder": 0,
+        "newcomer": 2
+      },
+      "base": {
+        "expert": 8,
+        "steady": 3,
+        "imitator": 3,
+        "holder": 0,
+        "newcomer": 4
+      },
+      "high": {
+        "expert": 24,
+        "steady": 9,
+        "imitator": 9,
+        "holder": 0,
+        "newcomer": 12
+      },
+      "source": null
+    },
+    "gpu_rate_by_role": {
+      "status": "SOURCE_RATE_TRANSFER_ASSUMPTION",
+      "low": null,
+      "base": {
+        "expert": 1.09,
+        "steady": 0.59,
+        "imitator": 0.59,
+        "holder": 0.59,
+        "newcomer": 0.59
+      },
+      "high": null,
+      "source": "S01: advertised L40S/A40, not measured recipe costs"
+    },
+    "effort_overhead": {
+      "status": "ASSUMPTION",
+      "low": 0,
+      "base": 5,
+      "high": 100,
+      "source": null
+    },
+    "copy_hours": {
+      "status": "ASSUMPTION",
+      "low": 0.05,
+      "base": 0.25,
+      "high": 2,
+      "source": null
+    },
+    "growth_scale": {
+      "status": "ASSUMPTION",
+      "low": 0.5,
+      "base": 1,
+      "high": 2,
+      "source": null
+    },
+    "growth_jitter": {
+      "status": "ASSUMPTION",
+      "low": 0.2,
+      "base": 0.6,
+      "high": 1,
+      "source": null
+    },
+    "breakthrough_probability": {
+      "status": "ASSUMPTION",
+      "low": 0,
+      "base": 0.01,
+      "high": 0.03,
+      "source": null
+    },
+    "breakthrough_mean": {
+      "status": "ASSUMPTION",
+      "low": 0.01,
+      "base": 0.04,
+      "high": 0.08,
+      "source": null
+    },
+    "quality_floor": {
+      "status": "ASSUMPTION_NORMALIZED_ERROR",
+      "low": 0.15,
+      "base": 0.3,
+      "high": 0.6,
+      "source": null
+    },
+    "diminishing_days": {
+      "status": "ASSUMPTION",
+      "low": 30,
+      "base": 90,
+      "high": 365,
+      "source": null
+    },
+    "arrival_day": {
+      "status": "ASSUMPTION",
+      "low": 7,
+      "base": 30,
+      "high": 90,
+      "source": null
+    },
+    "newcomer_gap": {
+      "status": "ASSUMPTION",
+      "low": -0.03,
+      "base": 0.03,
+      "high": 0.12,
+      "source": null
+    },
+    "case_sd": {
+      "status": "ASSUMPTION_RELATIVE_PER_CASE_ERROR_SD",
+      "low": 0.2,
+      "base": 0.4,
+      "high": 0.9,
+      "source": null
+    },
+    "shared_correlation": {
+      "status": "ASSUMPTION",
+      "low": 0.25,
+      "base": 0.75,
+      "high": 0.95,
+      "source": null
+    },
+    "copy_affinity": {
+      "status": "ASSUMPTION",
+      "low": 0,
+      "base": 0.92,
+      "high": 0.99,
+      "source": null
+    },
+    "copy_mode": {
+      "status": "ASSUMPTION_DISCRETE_OPTIONS",
+      "low": "exact",
+      "base": "improve",
+      "high": "near",
+      "source": null
+    },
+    "copy_penalty": {
+      "status": "ASSUMPTION",
+      "low": 0,
+      "base": 0.003,
+      "high": 0.02,
+      "source": null
+    },
+    "copy_screen_bias": {
+      "status": "ASSUMPTION",
+      "low": 0,
+      "base": 0,
+      "high": 0.03,
+      "source": null
+    },
+    "screen_sd": {
+      "status": "ASSUMPTION",
+      "low": 0,
+      "base": 0.0075,
+      "high": 0.03,
+      "source": null
+    },
+    "belief_sd": {
+      "status": "ASSUMPTION",
+      "low": 0,
+      "base": 0.01,
+      "high": 0.03,
+      "source": null
+    },
+    "gate_reject": {
+      "status": "ASSUMPTION_BUILD_OR_GATE_REJECTION",
+      "low": 0,
+      "base": 0.05,
+      "high": 0.2,
+      "source": null
+    },
+    "daily_pool": {
+      "status": "ASSUMPTION_USD_EQUIVALENT_MINER_POOL",
+      "low": 100,
+      "base": 1000,
+      "high": 10000,
+      "source": null
+    },
+    "cost_scale": {
+      "status": "ASSUMPTION",
+      "low": 0.5,
+      "base": 1,
+      "high": 3,
+      "source": null
+    },
+    "challenges": {
+      "status": "ASSUMPTION_OPTIONS",
+      "low": 3,
+      "base": 4,
+      "high": 8,
+      "source": null
+    },
+    "decay": {
+      "status": "SOURCE_BASE_AND_OPTION",
+      "low": 0.5,
+      "base": 0.5,
+      "high": 1,
+      "source": "C03 current half per day; slower options counterfactual"
+    },
+    "self_reset": {
+      "status": "SOURCE_BASE_AND_COUNTERFACTUAL",
+      "low": false,
+      "base": false,
+      "high": true,
+      "source": "C04"
+    },
+    "planning_days": {
+      "status": "ASSUMPTION",
+      "low": 7,
+      "base": 14,
+      "high": 30,
+      "source": null
+    },
+    "forecast_hazard": {
+      "status": "ASSUMPTION",
+      "low": 0.01,
+      "base": 0.05,
+      "high": 0.15,
+      "source": null
+    },
+    "discount": {
+      "status": "ASSUMPTION",
+      "low": 0.97,
+      "base": 0.99,
+      "high": 1,
+      "source": null
+    },
+    "rank_temperature": {
+      "status": "ASSUMPTION",
+      "low": 0.5,
+      "base": 2,
+      "high": 4,
+      "source": null
+    },
+    "defense_sensitivity": {
+      "status": "ASSUMPTION",
+      "low": 5,
+      "base": 20,
+      "high": 50,
+      "source": null
+    },
+    "behavior": {
+      "status": "ASSUMPTION_OPTIONS",
+      "low": "fixed",
+      "base": "adaptive",
+      "high": "adaptive",
+      "source": null
+    }
+  },
+  "replicates": {
+    "status": "ASSUMPTION_COMPUTATIONAL_DESIGN",
+    "low": 80,
+    "base": 160,
+    "high": 320,
+    "source": null
+  },
+  "sweep": {
+    "decay": [
+      0.5,
+      0.8,
+      0.9,
+      0.95,
+      1
+    ],
+    "challenges": [
+      3,
+      4,
+      8
+    ]
+  },
+  "sensitivity": {
+    "growth_slow": {
+      "growth_scale": 0.5
+    },
+    "growth_fast": {
+      "growth_scale": 2
+    },
+    "noise_low": {
+      "case_sd": 0.2
+    },
+    "noise_high": {
+      "case_sd": 0.9
+    },
+    "cost_low": {
+      "cost_scale": 0.5
+    },
+    "cost_high": {
+      "cost_scale": 3
+    },
+    "pool_low": {
+      "daily_pool": 100
+    },
+    "pool_high": {
+      "daily_pool": 10000
+    },
+    "copy_exact": {
+      "copy_mode": "exact"
+    },
+    "copy_near": {
+      "copy_mode": "near"
+    },
+    "copy_pressure": {
+      "imitators": 12
+    },
+    "screen_bias": {
+      "copy_screen_bias": 0.03
+    },
+    "oracle_belief": {
+      "belief_sd": 0
+    },
+    "belief_noisy": {
+      "belief_sd": 0.03
+    },
+    "newcomer_strong": {
+      "newcomer_gap": -0.03
+    },
+    "newcomer_weak": {
+      "newcomer_gap": 0.12
+    },
+    "plan_short": {
+      "planning_days": 7
+    },
+    "self_reset_counterfactual": {
+      "self_reset": true
+    },
+    "half_information": {
+      "blocks": 2000
+    },
+    "long_horizon": {
+      "days": 365
+    },
+    "focused_battery_share_counterfactual": {
+      "share_override": 0.5
+    },
+    "no_overhead": {
+      "effort_overhead": 0
+    },
+    "high_overhead": {
+      "effort_overhead": 50
+    },
+    "no_self_entry": {
+      "incumbent_may_contend": false
+    },
+    "ladder_medium": {
+      "ladder_grain": 0.01
+    },
+    "ladder_coarse": {
+      "ladder_grain": 0.025
+    },
+    "no_ladder_counterfactual": {
+      "use_ladder": false
+    }
+  },
+  "controls": {
+    "null_rounds": 20000,
+    "power_rounds": 10000
+  },
+  "quantity_policy": "All free inputs are ASSUMPTION with low/base/high; owner/source observations fixed triplets. Discrete option triplets are scenario labels, not ordered percentiles. Intervals in results cover Monte Carlo episodes only, not unmeasured behavioral uncertainty.",
+  "cost_exclusions": "No actual income forecast. Registration, opportunity-cost/labor beyond assumed overhead, tax, funding, token liquidity/FX, consensus and settlement lag excluded. Target values only.",
+  "randomness": "Public NumPy PCG64 streams; no official seeds, cases or state.",
+  "software_requirements": "numpy; existing science-jax group. SciPy not required by simulator.",
+  "sources": {
+    "C01": ".agent/decisions/2026-10-11-OWNER-BATTERY-CHAMPIONSHIP-01.md",
+    "C02": ".agent/decisions/2026-10-11-OWNER-BATTERY-CHAMPIONSHIP-02.md",
+    "C03": "carbon/rewards/winner_decay.py",
+    "C04": "carbon/rewards/winner_eligibility.py",
+    "S01": "https://www.runpod.io/pricing"
+  }
+}

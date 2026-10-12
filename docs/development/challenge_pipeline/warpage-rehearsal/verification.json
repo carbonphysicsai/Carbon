@@ -1,0 +1,17 @@
+{
+  "challenge": "package-warpage",
+  "scope": "REPRESENTATIVE_DEVELOPMENT",
+  "status": "SPECIFIED_NOT_RUN",
+  "solver_source": "reference_packages/calculix/sources.lock.json",
+  "image_digest": null,
+  "acceptance": "HUMAN_INPUT: science; recommendations below are not earned",
+  "tests": [
+    {"id": "free-expansion", "field": "u_i = alpha * deltaT * x_i; traction free with minimal rigid-mode constraints", "observable": "zero stress and linear displacement; no overconstrained thermal stress", "recommendation": "relative displacement error <=1e-6 with an approved absolute stress floor", "ladder": [1, 0.5, 0.25]},
+    {"id": "bimetal", "field": "two equal-thickness/equal-E layers, total h; kappa=1.5*(alpha_top-alpha_bottom)*deltaT/h", "observable": "signed curvature and midpoint sag kappa*L^2/8; free-strip assumptions, not 3D package truth", "ladder": [1, 0.5, 0.25], "recommendation": "<=1% curvature after slenderness/edge-effect accounting; converge signed curvature, not only displacement norm"},
+    {"id": "stoney-thin-film", "field": "kappa=6*sigma_f*t_f/(M_s*t_s^2), M_s=E_s/(1-nu_s)", "observable": "biaxial thin film on thick substrate; compare only in the asymptotic validity regime", "recommendation": "HUMAN_INPUT; show convergence of finite-thickness result to thin-film limit"},
+    {"id": "3d-navier-mms", "field": "u=(x^3,y^3,z^3), T=T0 constant, isotropic linear elastic unit cube; no cure/phase physics claimed", "source": "lambda=E*nu/((1+nu)*(1-2nu)); mu=E/(2*(1+nu)); b_i=-(6*lambda+12*mu)*x_i, from -div(sigma)", "boundary": "exact displacement on every face", "ladder": [0.25, 0.125, 0.0625], "element": "C3D8 fully integrated", "expected_order": "displacement L2:2; stress L2:1", "recommended_order_bands": {"displacement": [1.7, 2.3], "stress": [0.7, 1.3]}, "measurement": "volume-quadrature L2, not nodal or averaged FRD stress; asymptotic regime with linear-solver error below discretization error"},
+    {"id": "material-and-restart", "field": "same-formulation cure conversion, shrinkage, modulus, shear/bulk relaxation and solder solid/formation states", "observable": "material-point histories + uninterrupted versus stopped/restarted 3D history, every internal state and surrounding residual stress", "recommendation": "HUMAN_INPUT; independently transcribed source-bound controls and accepted time/state tolerances; missing formation/fit is HOLD, never zero state"},
+    {"id": "task-refinement", "field": "full asymmetric ASIC/six-HBM geometry and complete history", "observable": "signed warpage/coplanarity/stress changes, force/moment equilibrium, repeat/state continuity and independent buyer-tool decision witnesses", "recommendation": "HUMAN_INPUT: zone/error bands/decisions and absolute floors; refine mesh and time independently"}
+  ],
+  "claim": "analytic controls verify implemented equations only; Tier 2 full-package agreement NOT_DEMONSTRATED"
+}

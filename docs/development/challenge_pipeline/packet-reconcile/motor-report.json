@@ -1,0 +1,178 @@
+{
+  "schema": "carbon.onboarding.packet-reconciliation-report.v1",
+  "challenge": "motor",
+  "manifest_sha256": "072beeb96d7034e56b71d649d391c374223c455c0c44ffbc947fcda1198f38cf",
+  "documents": {
+    "packet": {
+      "path": "docs/development/challenge_pipeline/round1/motor-precision-joint-v2.md",
+      "kind": "PACKET",
+      "sha256": "eb2e8fef4a93df2719dc3e97c0daa68c403acb70a8f3a7c150a690327e9a6bb1",
+      "observed_sha256": "eb2e8fef4a93df2719dc3e97c0daa68c403acb70a8f3a7c150a690327e9a6bb1",
+      "state": "PIN_MATCH"
+    },
+    "owner": {
+      "path": ".agent/decisions/2026-10-07-OWNER-FIRST-THREE-CUSTOMER-ROUND-01.md",
+      "kind": "OWNER_DECISION",
+      "sha256": "cb4c70dc7898fdcc066c5a158fbcf24919fbd4ac65e6ba51da2db2421ba1461b",
+      "observed_sha256": "cb4c70dc7898fdcc066c5a158fbcf24919fbd4ac65e6ba51da2db2421ba1461b",
+      "state": "PIN_MATCH"
+    }
+  },
+  "checks": [
+    {
+      "id": "holding-floor",
+      "field": "hard_limits",
+      "state": "CONSISTENT",
+      "packet": {
+        "document": "packet",
+        "path": "docs/development/challenge_pipeline/round1/motor-precision-joint-v2.md",
+        "selector": {
+          "document": "packet",
+          "kind": "number",
+          "section": null,
+          "prefix": "Round up to **",
+          "suffix": "N·m holding torque**."
+        },
+        "state": "EXTRACTED",
+        "value": "6"
+      },
+      "evidence": [
+        {
+          "document": "owner",
+          "path": ".agent/decisions/2026-10-07-OWNER-FIRST-THREE-CUSTOMER-ROUND-01.md",
+          "selector": {
+            "document": "owner",
+            "kind": "number",
+            "section": null,
+            "prefix": "Precision robot-joint integrator |",
+            "suffix": "N·m holding;"
+          },
+          "state": "EXTRACTED",
+          "value": "6"
+        }
+      ]
+    },
+    {
+      "id": "peak-floor",
+      "field": "hard_limits",
+      "state": "CONSISTENT",
+      "packet": {
+        "document": "packet",
+        "path": "docs/development/challenge_pipeline/round1/motor-precision-joint-v2.md",
+        "selector": {
+          "document": "packet",
+          "kind": "number",
+          "section": null,
+          "prefix": "Demand **",
+          "suffix": "N·m for a 2-s"
+        },
+        "state": "EXTRACTED",
+        "value": "12"
+      },
+      "evidence": [
+        {
+          "document": "owner",
+          "path": ".agent/decisions/2026-10-07-OWNER-FIRST-THREE-CUSTOMER-ROUND-01.md",
+          "selector": {
+            "document": "owner",
+            "kind": "number",
+            "section": null,
+            "prefix": "N·m holding;",
+            "suffix": "N·m short peak;"
+          },
+          "state": "EXTRACTED",
+          "value": "12"
+        }
+      ]
+    },
+    {
+      "id": "ripple-relative",
+      "field": "hard_limits",
+      "state": "CONSISTENT",
+      "packet": {
+        "document": "packet",
+        "path": "docs/development/challenge_pipeline/round1/motor-precision-joint-v2.md",
+        "selector": {
+          "document": "packet",
+          "kind": "number",
+          "section": null,
+          "prefix": "Energized peak-to-peak ripple ≤",
+          "suffix": "% of absolute mean"
+        },
+        "state": "EXTRACTED",
+        "value": "5"
+      },
+      "evidence": [
+        {
+          "document": "owner",
+          "path": ".agent/decisions/2026-10-07-OWNER-FIRST-THREE-CUSTOMER-ROUND-01.md",
+          "selector": {
+            "document": "owner",
+            "kind": "number",
+            "section": null,
+            "prefix": "energized ripple ≤",
+            "suffix": "% and"
+          },
+          "state": "EXTRACTED",
+          "value": "5"
+        }
+      ]
+    },
+    {
+      "id": "cogging",
+      "field": "hard_limits",
+      "state": "CONSISTENT",
+      "packet": {
+        "document": "packet",
+        "path": "docs/development/challenge_pipeline/round1/motor-precision-joint-v2.md",
+        "selector": {
+          "document": "packet",
+          "kind": "number",
+          "section": null,
+          "prefix": "Zero-current cogging peak-to-peak ≤",
+          "suffix": "N·m"
+        },
+        "state": "EXTRACTED",
+        "value": "0.05"
+      },
+      "evidence": [
+        {
+          "document": "owner",
+          "path": ".agent/decisions/2026-10-07-OWNER-FIRST-THREE-CUSTOMER-ROUND-01.md",
+          "selector": {
+            "document": "owner",
+            "kind": "number",
+            "section": null,
+            "prefix": "unpowered cogging ≤",
+            "suffix": "N·m peak-to-peak"
+          },
+          "state": "EXTRACTED",
+          "value": "0.05"
+        }
+      ]
+    }
+  ],
+  "unbound_buyer_fields": [
+    "P",
+    "Q",
+    "buyer",
+    "conditions",
+    "decision",
+    "exclusions",
+    "geometry",
+    "objective",
+    "outputs",
+    "value",
+    "w",
+    "wrong_decision"
+  ],
+  "coverage": {
+    "required_buyer_fields": 13,
+    "bound_buyer_fields": 1,
+    "checks_examined": 4,
+    "consistent": 4
+  },
+  "checklist_clear": false,
+  "authority_granted": false,
+  "basis": "Reviewed clause bindings only: numeric equality or exact phrase-to-token mappings. Not empirical credibility, semantic entailment, approval, qualification or readiness. Unbound fields need reviewed bindings; do not guess values."
+}

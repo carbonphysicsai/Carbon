@@ -58,7 +58,16 @@ from .near import near_cases
 REGISTRY_SCHEMA = "carbon.battery.score-tuning-registry.v1"
 RESULT_SCHEMA = "carbon.battery.score-tuning-result.v1"
 LEGS = ("a", "r", "g", "m", "n", "p", "q")
-GATES = ("near", "envelope", "feasibility", "plating_fa", "error")
+#: `v1`, `v3`, `v5`: the VERIFY-R leg at k = 1, 3, 5 on the Q3 quiz
+#: (`verify_quiz`, OWNER-VERIFY-R-DEFAULTS-01; registry v8). Score-proof
+#: legs only: computed once per member from the quiz, never per submission,
+#: so not in `LEGS` (the legs a development score variant may weight).
+#: `v3s` (registry v10): v3 with unsafe and infeasible picks charged harder.
+VERIFY_LEGS = ("v1", "v3", "v5", "v3s")
+SCORE_LEGS = LEGS + VERIFY_LEGS
+#: `sign` (registry v10): sign consistency at the pair-law probe pairs. A
+#: measure the panel did not compute leaves its candidates unscored.
+GATES = ("near", "envelope", "feasibility", "plating_fa", "error", "sign")
 #: How a gate compares its measure with its cutoff. "at_or_above" fails at
 #: or above the cutoff (`admissibility.verdict`, pinned, and every candidate
 #: registered before v5 without a `comparison`). "exceeds" fails only above
@@ -89,32 +98,61 @@ class Candidate:
     gate: dict | None = None
     stable: bool = False
     basis: str = ""
+    #: Every gate the candidate applies, `gate` first; a member fails if any
+    #: gate fails (SCORE-PROOF-01 amendment 7). A one-gate candidate holds
+    #: `(gate,)`, an ungated one `()`.
+    gates: tuple = ()
+
+    def __post_init__(self):
+        if not self.gates and self.gate is not None:
+            object.__setattr__(self, "gates", (self.gate,))
+        if self.gates and self.gates[0] != self.gate:
+            raise TuningError("candidate_gates", self.id)
+
+
+def _valid_gate(gate):
+    """One gate: a registered measure, a numeric cutoff and an optional
+    registered comparison, nothing else."""
+    return (
+        isinstance(gate, dict)
+        and set(gate) - {"comparison"} == {"measure", "cutoff"}
+        and gate.get("comparison", COMPARISONS[0]) in COMPARISONS
+        and gate["measure"] in GATES
+        and isinstance(gate["cutoff"], (int, float))
+    )
 
 
 def parse_candidate(entry):
     """One registry entry as a `Candidate`, validated (public: the Validator's
     development score variants wrap the same entry, VALIDATOR-09)."""
-    if set(entry) - {"id", "kind", "weights", "gate", "stable", "basis"}:
+    if set(entry) - {"id", "kind", "weights", "gate", "gates", "stable", "basis"}:
         raise TuningError("candidate_fields", entry.get("id"))
     kind = entry.get("kind", "geometric")
     weights = dict(entry.get("weights") or {})
     if kind not in ("geometric", "deciding"):
         raise TuningError("candidate_kind", entry.get("id"))
     if kind == "geometric":
-        if not weights or set(weights) - set(LEGS):
+        if not weights or set(weights) - set(SCORE_LEGS):
             raise TuningError("candidate_legs", entry.get("id"))
         if any(not isinstance(w, (int, float)) or w < 0 for w in weights.values()):
             raise TuningError("candidate_weights", entry.get("id"))
         if not math.isclose(sum(weights.values()), 1.0, abs_tol=1e-9):
             raise TuningError("candidate_weights_sum", entry.get("id"))
     gate = entry.get("gate")
-    if gate is not None and (
-        set(gate) - {"comparison"} != {"measure", "cutoff"}
-        or gate.get("comparison", COMPARISONS[0]) not in COMPARISONS
-        or gate["measure"] not in GATES
-        or not isinstance(gate["cutoff"], (int, float))
-    ):
+    if gate is not None and not _valid_gate(gate):
         raise TuningError("candidate_gate", entry.get("id"))
+    # `gates` (two or more, all applied) replaces `gate`; one gate keeps the
+    # one-gate form, so no earlier registry's candidates change.
+    gates = entry.get("gates")
+    if gates is not None:
+        if (
+            gate is not None
+            or not isinstance(gates, list)
+            or len(gates) < 2
+            or not all(_valid_gate(g) for g in gates)
+        ):
+            raise TuningError("candidate_gates", entry.get("id"))
+        gate = gates[0]
     return Candidate(
         entry["id"],
         kind,
@@ -122,6 +160,7 @@ def parse_candidate(entry):
         gate,
         bool(entry.get("stable", False)),
         entry.get("basis", ""),
+        tuple(gates or ()),
     )
 
 
@@ -200,7 +239,16 @@ def load_registry(path, *, repository=None):
 def expand_sweep(entry, registered):
     """A registered threshold sweep: one candidate per cutoff, each the base
     candidate's weighting gated at that cutoff. No cutoff is chosen here."""
-    if set(entry) - {"id", "kind", "measure", "grid", "base", "basis", "comparison"}:
+    if set(entry) - {
+        "id",
+        "kind",
+        "measure",
+        "grid",
+        "base",
+        "basis",
+        "comparison",
+        "and_gates",
+    }:
         raise TuningError("sweep_fields", entry.get("id"))
     if entry.get("comparison", COMPARISONS[0]) not in COMPARISONS:
         raise TuningError("sweep_comparison", entry.get("id"))
@@ -220,26 +268,45 @@ def expand_sweep(entry, registered):
         or grid != sorted(set(grid))
     ):
         raise TuningError("sweep_grid", entry.get("id"))
-    return [
-        Candidate(
-            f"{entry['id']}@{cutoff:g}",
-            base.kind,
-            dict(base.weights),
-            {"measure": entry["measure"], "cutoff": float(cutoff), **comparison},
-            base.stable,
-            f"sweep {entry['id']} of {base.id} at {cutoff:g}",
+    # `and_gates`: fixed gates applied beside the swept one at every cutoff
+    # (a member fails if any gate fails; SCORE-PROOF-01 amendment 7).
+    fixed = entry.get("and_gates", [])
+    if not isinstance(fixed, list) or "and_gates" in entry and not fixed:
+        raise TuningError("sweep_and_gates", entry.get("id"))
+    if not all(_valid_gate(g) for g in fixed):
+        raise TuningError("sweep_and_gates", entry.get("id"))
+    fixed = [dict(g, cutoff=float(g["cutoff"])) for g in fixed]
+    also = "".join(f" and {g['measure']} at {g['cutoff']:g}" for g in fixed)
+    out = []
+    for cutoff in grid:
+        swept = {"measure": entry["measure"], "cutoff": float(cutoff), **comparison}
+        out.append(
+            Candidate(
+                f"{entry['id']}@{cutoff:g}",
+                base.kind,
+                dict(base.weights),
+                swept,
+                base.stable,
+                f"sweep {entry['id']} of {base.id} at {cutoff:g}{also}",
+                (swept, *fixed) if fixed else (),
+            )
         )
-        for cutoff in grid
-    ]
+    return out
 
 
 # --- legs ------------------------------------------------------------------------------
 
 
-def member_legs(contract, predictions, store, case_ids, decision_regret=None):
+def member_legs(
+    contract, predictions, store, case_ids, decision_regret=None, verify=None
+):
     """One member's legs and gate measures on `case_ids` of `store`.
     `decision_regret`: the member's mean Q3 decision regret over the quiz's
-    feasible decision scenarios (registry v3's leg q), or None."""
+    feasible decision scenarios (registry v3's leg q), or None. `verify`:
+    the member's VERIFY-R legs on the quiz (`VERIFY_LEGS` to v or None),
+    added only when given."""
+    if verify is not None and set(verify) - set(VERIFY_LEGS):
+        raise TuningError("verify_legs", ",".join(sorted(verify)))
     near = near_cases(store, case_ids)
     inside = b1.envelope_ids(store, case_ids)
     component = sc.components(predictions, case_ids, store, contract)
@@ -257,6 +324,7 @@ def member_legs(contract, predictions, store, case_ids, decision_regret=None):
             "n": None if n is None else n["score"],
             "p": b1.proximity_leg(contract, predictions, case_ids, store.refs),
             "q": None if decision_regret is None else 1.0 / (1.0 + decision_regret),
+            **(verify or {}),
         },
         "gates": {
             "near": admissibility.near_optimism(
@@ -359,23 +427,35 @@ def score_member(candidate, row):
     seed mean and gate (public: shared with the Validator's variants)."""
     if candidate.kind == "deciding":
         return -row["E"] if row["eligible"] and row["E"] is not None else None
+    used = candidate.gates or ((candidate.gate,) if candidate.gate else ())
+    if any(g["measure"] not in row["gates"] for g in used):
+        return None  # a measure this panel did not compute: withheld, never scored
     if not row["eligible"]:
         return 0.0
     return b1._geometric(
-        tuple(row["legs"].get(leg) for leg in LEGS),
-        tuple(candidate.weights.get(leg, 0.0) for leg in LEGS),
+        tuple(row["legs"].get(leg) for leg in SCORE_LEGS),
+        tuple(candidate.weights.get(leg, 0.0) for leg in SCORE_LEGS),
     )
 
 
-def gate_verdict(candidate, row):
-    """The candidate's gate verdict for one member (None without a gate)."""
-    if candidate.gate is None:
-        return None
-    measured = row["gates"][candidate.gate["measure"]]
-    cutoff = candidate.gate["cutoff"]
-    if candidate.gate.get("comparison") == "exceeds":
+def one_gate_verdict(gate, row):
+    """One gate's verdict for one member."""
+    measured = row["gates"].get(gate["measure"])
+    cutoff = gate["cutoff"]
+    if gate.get("comparison") == "exceeds":
         return exceeds_verdict(measured, cutoff)
     return admissibility.verdict(measured, threshold=cutoff)
+
+
+def gate_verdict(candidate, row):
+    """The candidate's gate verdict for one member (None without a gate):
+    FAIL if any of its gates fails."""
+    if candidate.gate is None:
+        return None
+    verdicts = [one_gate_verdict(g, row) for g in candidate.gates]
+    if len(verdicts) == 1:
+        return verdicts[0]
+    return admissibility.FAIL if admissibility.FAIL in verdicts else admissibility.PASS
 
 
 def exceeds_verdict(measured, cutoff):
@@ -612,7 +692,7 @@ def diagnosis(results, members, legs, values, mask, split="development"):
         }
     usable = [m for m in members if values[m] is not None]
     attribution = {}
-    for leg in LEGS:
+    for leg in SCORE_LEGS:
         pairs = [
             (legs[m]["legs"].get(leg), -values[m])
             for m in usable

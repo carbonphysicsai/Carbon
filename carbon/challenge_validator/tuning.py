@@ -175,6 +175,10 @@ def _record_lines(path):
 #: The quiz's refined solves (quiz-registry-v8) live in their own work
 #: directory under the quiz's, solved by `solve --work Q/refine`.
 REFINE_DIR = "refine"
+#: QUIZ-EXTEND-01: the Q3 extension is a quiz document of its own (no Q2
+#: cases), selected and sealed under this role, so the sealed quiz, its
+#: q3-regret and every candidate reading them are unchanged.
+QUIZ_EXT_ROLE_SUFFIX = "+q3-ext-v1"
 
 
 def _refined_records(work):
@@ -392,7 +396,7 @@ def load_quiz(quiz):
         return qs.check(_read_private(path))
 
 
-def predict(work, panel_path, *, quiz=None, backend=None):
+def predict(work, panel_path, *, quiz=None, quiz_ext=None, backend=None):
     """Rebuild each panel member on host CPU and predict the batch's inputs,
     and with `quiz` (a quiz work directory) the quiz's inputs too, which are
     kept apart in `quiz-predictions/`. Owner-only bundles; resumable (one
@@ -405,9 +409,17 @@ def predict(work, panel_path, *, quiz=None, backend=None):
     inputs = {c["case_id"]: dict(c["inputs"]) for c in batch["cases"]}
     document = None if quiz is None else load_quiz(quiz)
     quiz_inputs = {} if document is None else qs.inputs(document)
+    # QUIZ-EXTEND-01: the extension's inputs, kept apart again.
+    extension = None if quiz_ext is None else load_quiz(quiz_ext)
+    if extension is not None and not extension["role"].endswith(QUIZ_EXT_ROLE_SUFFIX):
+        raise TuningRefused("tuning_quiz_ext_not_an_extension")
+    ext_inputs = {} if extension is None else qs.inputs(extension)
     backend = _backend(backend)
     out = _owner_only_dir(work / "predictions")
     quiz_out = None if document is None else _owner_only_dir(work / "quiz-predictions")
+    ext_out = (
+        None if extension is None else _owner_only_dir(work / "quiz-ext-predictions")
+    )
     done = failed = 0
     for member in load_panel(panel_path):
         path = out / f"{member['member']}.json"
@@ -415,6 +427,9 @@ def predict(work, panel_path, *, quiz=None, backend=None):
         needed = {} if path.exists() else dict(inputs)
         if quiz_path is not None and not quiz_path.exists():
             needed.update(quiz_inputs)
+        ext_path = None if ext_out is None else ext_out / f"{member['member']}.json"
+        if ext_path is not None and not ext_path.exists():
+            needed.update(ext_inputs)
         if not needed:
             continue
         failure = out / f"{member['member']}.failure.json"
@@ -435,6 +450,16 @@ def predict(work, panel_path, *, quiz=None, backend=None):
                     "kind": member["kind"],
                     "quiz_digest": qs.digest(document),
                     "predictions": _only(bundle["predictions"], quiz_inputs),
+                },
+            )
+        if ext_path is not None and not ext_path.exists():
+            _write_private(
+                ext_path,
+                {
+                    "member": member["member"],
+                    "kind": member["kind"],
+                    "quiz_digest": qs.digest(extension),
+                    "predictions": _only(bundle["predictions"], ext_inputs),
                 },
             )
         done += 1
@@ -633,6 +658,33 @@ def _draws(root, pin, role, round_, repository):
         }
 
 
+def _ext_draws(root, pin, role, round_, base, base_draws, repository):
+    """The Q3 extension's draws: its own index range, kept away from every
+    protected condition and from every condition the quiz drew."""
+    from carbon.battery import quiz_stratum as qs
+
+    with _quiz_refusals():
+        points = qs.protected_conditions(repository) + [
+            (float(t), float(s)) for t, s in (e["condition"] for e in base_draws["q3"])
+        ]
+        return {
+            "schema": QUIZ_DRAWS_SCHEMA,
+            "role": role,
+            "round": round_,
+            "q2": [],
+            "q3": qs.q3_conditions(
+                root,
+                pin,
+                role,
+                qs.q3_ext_draws(round_),
+                points,
+                base=qs.Q3X_BASE,
+                label="q3x",
+            ),
+            "extension_of": qs.digest(base),
+        }
+
+
 def _quiz_draws(work):
     """The quiz work directory's draws (`quiz-jobs`), checked."""
     if not (Path(work) / "draws.json").exists():
@@ -730,6 +782,111 @@ def quiz_jobs(config_path, work, round_=1, repository=REPOSITORY):
         "q3_protected_redraws": last["attempt"] + 1 - len(draws["q3"]),
         "solve_jobs": len(jobs),
     }
+
+
+def quiz_ext_jobs(config_path, work, quiz, round_=1, repository=REPOSITORY):
+    """QUIZ-EXTEND-01: draw the Q3 extension of the selected quiz `quiz`
+    (`Q3_EXT_K + 4` conditions in round 1, 4 more a round) and write its
+    lattice solve jobs. Its work directory is its own; `solve`, `quiz-refine`
+    and `solve` on `refine/` then run on it as on the quiz. Owner-only."""
+    from carbon.battery import quiz_stratum as qs
+
+    if type(round_) is not int or round_ < 1:
+        raise TuningRefused("tuning_quiz_round_malformed")
+    work = _quiz_dir(work)
+    if (work / "quiz.json").exists():
+        raise TuningRefused("tuning_quiz_already_selected")
+    base = load_quiz(quiz)
+    if base["role"].endswith(QUIZ_EXT_ROLE_SUFFIX):
+        raise TuningRefused("tuning_quiz_ext_of_an_extension")
+    role = _tuning_set().role
+    root, pin, _journal = _hidden(config_path)
+    draws = _ext_draws(root, pin, role, round_, base, _quiz_draws(quiz), repository)
+    jobs = qs.solve_jobs(qs.contract(repository), [], draws["q3"])
+    _replace_private(work / "draws.json", draws)
+    _replace_private(
+        work / "jobs.json", {"fingerprint": qs.digest(draws), "jobs": jobs}
+    )
+    if not (work / "records.jsonl").exists():
+        (work / "records.jsonl").touch(mode=0o600)
+    last = draws["q3"][-1]
+    return {
+        "round": round_,
+        "q3_conditions": len(draws["q3"]),
+        "q3_protected_redraws": last["attempt"] + 1 - len(draws["q3"]),
+        "solve_jobs": len(jobs),
+    }
+
+
+def quiz_ext_select(work, quiz, repository=REPOSITORY):
+    """QUIZ-EXTEND-01: select the extension: each lattice settled with its
+    refined solves, the first `Q3_EXT_K` feasible scenarios (refused, naming
+    the next `--round`, when fewer are). Writes owner-only `quiz.json`, a
+    quiz document with no Q2 cases under the extension role."""
+    from carbon.battery import quiz_stratum as qs
+    from carbon.battery.value import quiz as qz
+
+    work = _quiz_dir(work)
+    if (work / "quiz.json").exists():
+        raise TuningRefused("tuning_quiz_already_selected")
+    draws = _quiz_draws(work)
+    base = load_quiz(quiz)
+    if draws.get("extension_of") is None:
+        raise TuningRefused("tuning_quiz_ext_not_an_extension")
+    if draws["extension_of"] != qs.digest(base):
+        raise TuningRefused("tuning_quiz_ext_base_mismatch")
+    contract = qs.contract(repository)
+    _refs, points, refined, settled = _settled(work, contract, draws["q3"])
+    with _quiz_refusals():
+        q3, redraws = qs.q3_select(contract, draws["q3"], settled, k=qs.Q3_EXT_K)
+    if len(q3) < qs.Q3_EXT_K:
+        raise TuningRefused(f"tuning_quiz_needs_more_q3:--round {draws['round'] + 1}")
+    q3 = qs.with_refine(contract, q3, points, refined, settled)
+    document = qs.document(
+        draws["role"] + QUIZ_EXT_ROLE_SUFFIX, qz.PANEL_VERSION, [], q3, redraws
+    )
+    _write_private(work / "quiz.json", document)
+    return {
+        "digest": qs.digest(document),
+        "extension_of": draws["extension_of"],
+        "q3_scenarios": len(q3),
+        "q3_refine": {
+            k: sum(s["refine"][k] for s in q3)
+            for k in ("refine_points", "refined_ok", "residual")
+        },
+        "redraws": redraws,
+    }
+
+
+def quiz_ext_seal(config_path, work, quiz, repository=REPOSITORY):
+    """QUIZ-EXTEND-01: commit the extension's digest to the seed journal
+    (kind `quiz`, under the extension role: digest and counts only). Refused
+    unless its scenarios are this root's own extension draws of `quiz`."""
+    from carbon.battery import deployment
+    from carbon.battery import quiz_stratum as qs
+
+    work = _quiz_dir(work)
+    document = load_quiz(work)
+    draws = _read_private(work / "draws.json")
+    base = load_quiz(quiz)
+    root, pin, _journal = _hidden(config_path)
+    regenerated = _ext_draws(
+        root, pin, draws["role"], draws["round"], base, _quiz_draws(quiz), repository
+    )
+    q3 = {s["scenario_id"]: s["condition"] for s in regenerated["q3"]}
+    if (
+        regenerated != draws
+        or document["role"] != draws["role"] + QUIZ_EXT_ROLE_SUFFIX
+        or document["q2"]
+        or any(q3.get(s["scenario_id"]) != s["condition"] for s in document["q3"])
+    ):
+        raise TuningRefused("tuning_quiz_not_from_this_root")
+    target = deployment.validator(
+        Path(config_path), repository=repository, readonly=True
+    )
+    with deployment.writer(target), _quiz_refusals():
+        entry = qs.seal(target.journal, document)
+    return {"digest": entry["digest"], "journal_sequence": entry["sequence"]}
 
 
 def _panel_predictions(members, inputs, cache, backend):
@@ -933,6 +1090,7 @@ def main(argv=None):
     predicted.add_argument("--work", required=True)
     predicted.add_argument("--panel", required=True)
     predicted.add_argument("--quiz")
+    predicted.add_argument("--quiz-ext")
     scored = sub.add_parser("score")
     scored.add_argument("--work", required=True)
     scored.add_argument("--quiz")
@@ -950,6 +1108,16 @@ def main(argv=None):
     committed = sub.add_parser("quiz-seal")
     committed.add_argument("--config", required=True)
     committed.add_argument("--work", required=True)
+    ext_drawn = sub.add_parser("quiz-ext-jobs")
+    for name in ("config", "work", "quiz"):
+        ext_drawn.add_argument("--" + name, required=True)
+    ext_drawn.add_argument("--round", type=int, default=1)
+    ext_selected = sub.add_parser("quiz-ext-select")
+    for name in ("work", "quiz"):
+        ext_selected.add_argument("--" + name, required=True)
+    ext_sealed = sub.add_parser("quiz-ext-seal")
+    for name in ("config", "work", "quiz"):
+        ext_sealed.add_argument("--" + name, required=True)
     args = parser.parse_args(argv)
     try:
         if args.command == "export-pool":
@@ -964,7 +1132,9 @@ def main(argv=None):
                 timeout_s=args.timeout_s,
             )
         elif args.command == "predict":
-            result = predict(args.work, args.panel, quiz=args.quiz)
+            result = predict(
+                args.work, args.panel, quiz=args.quiz, quiz_ext=args.quiz_ext
+            )
         elif args.command == "recheck":
             result = recheck(args.config, args.commitment, args.public, args.work)
         elif args.command == "quiz-jobs":
@@ -975,6 +1145,12 @@ def main(argv=None):
             result = quiz_select(args.work, args.panel)
         elif args.command == "quiz-seal":
             result = quiz_seal(args.config, args.work)
+        elif args.command == "quiz-ext-jobs":
+            result = quiz_ext_jobs(args.config, args.work, args.quiz, args.round)
+        elif args.command == "quiz-ext-select":
+            result = quiz_ext_select(args.work, args.quiz)
+        elif args.command == "quiz-ext-seal":
+            result = quiz_ext_seal(args.config, args.work, args.quiz)
         else:
             result = score(args.work, quiz=args.quiz)
     except TuningRefused as refused:

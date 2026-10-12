@@ -43,7 +43,7 @@ if str(ROOT) not in sys.path:
 from scripts.dev.battery import tuning_rescore as tr
 
 MEMBERS = ROOT / "docs/development/evidence/battery-score-tuning/proof-members-v1.json"
-REGISTRY = ROOT / "docs/development/evidence/battery-score-tuning/registry-v6.json"
+REGISTRY = ROOT / "docs/development/evidence/battery-score-tuning/registry-v8.json"
 #: The rule in force (OWNER-BATTERY-SCORE-RULE-01): A-Q with the G-FEAS gate at
 #: 0.05, recorded as "exceeds" (registry v5's `G-FEAS/A-Q>@0.05`).
 RULE_IN_FORCE = "G-FEAS/A-Q>@0.05"
@@ -86,6 +86,27 @@ def load_sequential(path=SEQUENTIAL):
     if document.get("schema") != sp.SEQUENTIAL_SCHEMA:
         raise SystemExit("refused: unknown sequential design schema")
     return document
+
+
+def incomplete_refusal(report, candidates):
+    """A confirmation whose pick or contrast has a pool withheld for missing
+    legs (`INCOMPLETE_LEGS`: no --verify-r for a VERIFY-R rule, or no
+    --q3-regret) is an input problem, not a verdict (infrastructure failure is
+    not scientific failure). It is refused before anything is written, so the
+    look stays unspent; a FAIL is never recorded for it."""
+    withheld = sorted(
+        f"{cid} {pool}"
+        for cid in candidates
+        for pool, row in (report.get("candidates", {}).get(cid) or {}).items()
+        if isinstance(row, dict) and row.get("status") == "INCOMPLETE_LEGS"
+    )
+    if not withheld:
+        return None
+    return (
+        "confirmation_incomplete_legs: "
+        + ", ".join(withheld)
+        + " (supply the missing legs: --verify-r, --q3-regret); nothing written"
+    )
 
 
 def sequential_look(design, questions, which, interim_fraction=None):
@@ -160,6 +181,7 @@ def fold_legs(panel, folds):
                     panel["store"],
                     subset,
                     panel["q3_regret"].get(m),
+                    tr.verify_of(panel.get("verify_r"), m),
                 )
                 for m in panel["names"]
             }
@@ -252,11 +274,18 @@ def gate_lines(report):
         if check["status"] == "FAIL":
             catch = check["catching_cutoff"]
             bound = ", ".join(f"{k} {v}" for k, v in catch.items())
-            out.append(
+            line = (
                 f"- **{cid}: FAIL.** It misses {len(check['missed'])} unsafe "
                 f"member(s) at cutoff {check['cutoff_in_force']}; every one fails "
-                f"at {bound}. The cutoff stays the owner's."
+                f"at {bound}"
             )
+            for extra in check.get("and_gates", []):
+                gate, catch = extra["gate"], extra["catching_cutoff"]
+                line += (
+                    f", or with the {gate['measure']} gate (now {gate['cutoff']}) at "
+                    + ", ".join(f"{k} {v}" for k, v in catch.items())
+                )
+            out.append(line + ". The cutoff stays the owner's.")
     if len(out) == 1:
         out.append("- Every gated rule fails every unsafe member (PASS).")
     return "\n".join(out) + "\n"
@@ -297,8 +326,76 @@ def placement_lines(report):
                 if entry["pickable"]
                 else ". **Not pickable:** " + "; ".join(entry["failed"]) + "."
             )
+        for criterion, entries in report.get("pickable_by_criterion", {}).items():
+            other = entries.get(cid)
+            if (
+                criterion != report.get("pickability_in_force")
+                and other
+                and (other["pickable"] != pick.get(cid, {}).get("pickable"))
+            ):
+                line += f" Under {criterion} (superseded): " + (
+                    "pickable." if other["pickable"] else "not pickable."
+                )
         out.append(line)
     return "\n".join(out) + "\n"
+
+
+def criteria_lines(report):
+    """Both pickability criteria (amendment 7), best pooled tau first, each
+    rule with its gate recall: only the criterion in force gates the
+    confirmation; the other is reported for the owner's ruling."""
+    from carbon.battery.value import score_proof as sp
+
+    by = report.get("pickable_by_criterion")
+    if not by:
+        return ""
+    out = ["\n## Pickable rules under each criterion (pooled, best tau first)\n"]
+    for criterion, entries in by.items():
+        state = (
+            "in force"
+            if criterion == sp.PICKABILITY_IN_FORCE
+            else "superseded, reported only"
+        )
+        screens = " and ".join(sp.PICKABILITY_CRITERIA[criterion])
+        ok = [c for c, e in entries.items() if e["pickable"]]
+        ok.sort(key=lambda c: -(report["candidates"][c]["pooled"].get("tau") or -2))
+        out.append(
+            f"### {criterion} ({state}): unpickable on {screens}; "
+            f"{len(ok)} of {len(entries)} pickable\n"
+        )
+        for cid in ok:
+            r = report["candidates"][cid]["pooled"]
+            recall = report["gate_recall_check"].get(cid, {}).get("status", "—")
+            out.append(
+                f"- **{cid}**: τ {_f(r.get('tau'))} {_ci(r.get('tau_ci95'))}, "
+                f"top-1 regret {_f(r.get('top1_regret'))}, gate recall {recall}"
+            )
+        out.append("")
+    return "\n".join(out) + "\n"
+
+
+def ceiling_line(c):
+    """One line: how far the decision value lets any score reach."""
+    if c.get("status") != "MEASURED":
+        return (
+            f"**τ ceiling (SCORE-CEILING-01):** not measurable "
+            f"({c.get('resolved_questions', 0)} resolved decision questions).\n"
+        )
+    lo, hi = c["tau_ceiling_ci95"]
+    line = (
+        f"**τ ceiling (SCORE-CEILING-01):** {c['informative_questions']} informative "
+        f"of {c['resolved_questions']} resolved decision questions, "
+        f"{c['members']} members; per-question value reliability "
+        f"{c['per_question_reliability']:.3f}, value reliability "
+        f"{c['reliability']:.3f}; a perfect score reaches τ {c['tau_ceiling']:.3f} "
+        f"[{_f(lo)}, {_f(hi)}]."
+    )
+    if c.get("observed_tau") is not None and c.get("share_of_ceiling") is not None:
+        line += (
+            f" Observed τ {c['observed_tau']:.3f} ({c['rule']}) is "
+            f"{100 * c['share_of_ceiling']:.0f} % of the ceiling."
+        )
+    return line + "\n"
 
 
 def table(report):
@@ -347,6 +444,12 @@ def main(argv=None):
     parser.add_argument("--attack", type=Path)
     parser.add_argument("--dev-results", type=Path, required=True)
     parser.add_argument("--q3-regret", type=Path)
+    parser.add_argument(
+        "--verify-r",
+        type=Path,
+        help="the quiz's VERIFY-R legs (`verify_r_quiz`); without it the "
+        "VERIFY-R candidates are unscored (INCOMPLETE_LEGS), never guessed",
+    )
     parser.add_argument("--members", type=Path, default=MEMBERS)
     parser.add_argument("--registry", type=Path, default=REGISTRY)
     parser.add_argument("--baseline", default=RULE_IN_FORCE)
@@ -401,9 +504,10 @@ def main(argv=None):
     split = load_split(args.split)
     members = load_members(args.members)
     q3 = json.loads(args.q3_regret.read_text()) if args.q3_regret else None
+    verify_r = json.loads(args.verify_r.read_text())["legs"] if args.verify_r else None
     cases = sp.split_cases(split, ids, args.phase)
     panel = phase_panel(
-        tr.assemble(store, cases, predictions, args.dev_results, q3),
+        tr.assemble(store, cases, predictions, args.dev_results, q3, verify_r),
         members,
         split,
         args.phase,
@@ -429,6 +533,10 @@ def main(argv=None):
         baseline=args.baseline,
         level=level,
     )
+    if args.phase == "confirmation":
+        refused = incomplete_refusal(report, candidates)
+        if refused:
+            raise SystemExit("refused: " + refused)
     report["phase"] = {
         "phase": args.phase,
         "split": split["salt"],
@@ -439,10 +547,40 @@ def main(argv=None):
         report["verdict"] = sp.sequential_verdict(report, args.rule, look, design)
     else:
         minimum = load_sequential(args.sequential)["minimum_level_members"]
-        report["pickable"] = {
-            cid: dict(zip(("pickable", "failed"), sp.pickable(report, cid, minimum)))
-            for cid in report["candidates"]
+        # Both criteria are computed (amendment 7); `pickable` is the one in
+        # force and the only one the confirmation reads.
+        report["pickable_by_criterion"] = {
+            criterion: {
+                cid: dict(
+                    zip(
+                        ("pickable", "failed"),
+                        sp.pickable(report, cid, minimum, criterion),
+                    )
+                )
+                for cid in report["candidates"]
+            }
+            for criterion in sp.PICKABILITY_CRITERIA
         }
+        report["pickability_in_force"] = sp.PICKABILITY_IN_FORCE
+        report["pickable"] = report["pickable_by_criterion"][sp.PICKABILITY_IN_FORCE]
+    # The value side's ceiling (SCORE-CEILING-01), from the decision losses
+    # on this phase's resolved mask only.
+    ceiling_rule = (
+        args.rule if args.phase == "confirmation" else report["rule_in_force"]
+    )
+    report["value_ceiling"] = {
+        "rule": ceiling_rule,
+        **sp.value_ceiling(
+            [
+                [
+                    panel["results"]["decisions"][m][s]["outcome"]["decision_loss"]
+                    for s in panel["mask"]
+                ]
+                for m in panel["names"]
+            ],
+            report["candidates"].get(ceiling_rule, {}).get(sp.POOLED, {}).get("tau"),
+        ),
+    }
     report["source"] = (
         "PUBLIC_STANDIN (plumbing only; not proof)"
         if args.public_standin
@@ -469,7 +607,9 @@ def main(argv=None):
     header = (
         f"# Score proof ({report['source']})\n\n{lead}\n\n"
         f"{phase['cases']} scoring cases; member split at levels "
-        f"{phase['member_split_levels'] or 'none'}.\n\n{report['threshold']}\n"
+        f"{phase['member_split_levels'] or 'none'}.\n\n"
+        + ceiling_line(report["value_ceiling"])
+        + f"\n{report['threshold']}\n"
     )
     for name, text in (
         (
@@ -478,7 +618,11 @@ def main(argv=None):
         ),
         (
             f"{args.phase}.md",
-            header + gate_lines(report) + placement_lines(report) + table(report),
+            header
+            + gate_lines(report)
+            + criteria_lines(report)
+            + placement_lines(report)
+            + table(report),
         ),
     ):
         path = args.out / name

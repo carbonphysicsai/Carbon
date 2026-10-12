@@ -24,6 +24,7 @@ from . import (
     micromixer_budget,
     structures_budget,
     track_b,
+    warpage_budget,
 )
 
 SCHEMA = "carbon.design-search.equal-budget-panel.v1"
@@ -43,6 +44,7 @@ CHALLENGE_ROUTES = {
     "f17": {"validator": micromixer_budget.validate},
     "f08": {"validator": structures_budget.validate},
     "cooling-cell": {"validator": cooling_budget.validate},
+    "package-warpage": {"validator": warpage_budget.validate},
 }
 CHALLENGES = set(CHALLENGE_ROUTES)
 ARMS = ("solver_alone", "model_then_solver", "baseline_then_solver")

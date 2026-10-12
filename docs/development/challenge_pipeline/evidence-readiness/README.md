@@ -60,8 +60,12 @@ commit and observation timestamp. Refetch before acting on a stale local view.
    success or full-panel coverage.
 7. **Equal budget:** inspect the family-supported #1016 evidence route, which
    wraps #998's replay. Current supported families are battery-v3 (indexed),
-   motor and f02 (including indexed contexts). A neutral core without a family
-   adapter is NO, not YES. Optimizer owns extending the closed route inventory.
+   motor and f02 (including indexed contexts). f13 additionally uses its already
+   registered EQUAL-BUDGET-V1 row through `equal_budget.CHALLENGE_ROUTES` and
+   `budget_registration.validate`. Inspect that table entry, imported validator,
+   dynamic family selection and call; merely mentioning a table/module cannot
+   earn YES. A neutral core without a family adapter is NO, not YES. Optimizer
+   owns execution-route extensions; this inventory does not add one.
 
 **YES:** the item's bounded basis was examined and satisfied. **NO:** observed
 contradiction or known unsupported implemented route. **PLANNED:** sourced

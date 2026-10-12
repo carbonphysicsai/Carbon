@@ -1113,7 +1113,13 @@ def _git(cwd, *args):
         "GIT_CONFIG_NOSYSTEM": "1",
     }
     return subprocess.run(
-        ["git", *args], cwd=cwd, env=env, check=True, capture_output=True
+        # Background upkeep writes and removes `.git` lock files
+        # asynchronously, which races this fixture's own commands.
+        ["git", "-c", "maintenance.auto=false", "-c", "gc.auto=0", *args],
+        cwd=cwd,
+        env=env,
+        check=True,
+        capture_output=True,
     )
 
 

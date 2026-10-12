@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-12-law-consistency",
+  "recorded_at": "2026-10-12T01:13:06Z",
+  "challenge": "protocol",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "LAW-CONSISTENCY-CHECK-01 / tests/cpu/test_law_consistency.py", "description": "Native eight-facet mutation fixtures, current battery/motor/f02 packet-law replay and existing generator regressions."},
+  "expected": "Precise source-bound typed diffs without inferred science, P/Q/w conflation, absence agreement or runtime changes.",
+  "observed": "First 10/11 tests passed; an example quote belonged to the owner decision rather than its declared packet source, so the verifier correctly refused it. Bound an actual packet quote instead. Final 32/32 affected diagnostics passed with deterministic 15-projection replay. Unbound facets remain open; no complete semantic/approval claim. Native only, no solver/spend.",
+  "keep": ["Exact excerpt/digest and JSON-pointer bases in every comparison.", "Missing paths differ from explicit null; bool does not coerce to a number; unbound facets cannot green a full checklist."],
+  "change": ["Bind a claim to its actual cited document, not an approximate quote remembered from another authority layer."],
+  "protocol_elements": ["challenge_onboarding", "question_law", "source_authority", "lessons_learned"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

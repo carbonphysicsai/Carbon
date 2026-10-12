@@ -97,3 +97,5 @@ them. No automatic reset, unrelated container removal, or grant extension occurs
 The initial release condition is deliberately strict: no compute processes and
 zero reported used device memory. If the driver cannot report/reach that state,
 acceptance stays blocked pending an explicitly reviewed release contract.
+
+<!-- CI-DEVIMAGE-SHARD-01: this file is under .devcontainer/, so a change here makes the sharded clean dev-container image job run. -->

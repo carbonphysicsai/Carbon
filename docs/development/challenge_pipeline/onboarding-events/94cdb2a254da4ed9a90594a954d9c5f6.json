@@ -1,0 +1,15 @@
+{
+  "id": "94cdb2a254da4ed9a90594a954d9c5f6",
+  "actor_kind": "TOOL",
+  "stage": "S3_feasibility_value_panel",
+  "at": "2026-10-12T01:20:41.640738+00:00",
+  "actor": "checker-panel",
+  "kind": "EFFORT_END",
+  "cycle": "motor-command-trial-panel-batched",
+  "source": "docs/development/challenge_pipeline/automation-rehearsal/README.md",
+  "source_sha256": "6f2cc78489e3aed9083c895413a1c7d0525fe15e338765101ede729ad65ca97d",
+  "stage_map_sha256": "e4370a51650ce7d638767c9d40e5804a246728f25dbbb1ab06ecc5648ea4c2f8",
+  "challenge": "motor",
+  "schema": "carbon.onboarding.process-event.v1",
+  "start_id": "5a981051503049078a7badcf12c5d66a"
+}

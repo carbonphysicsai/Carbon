@@ -305,9 +305,14 @@ def test_page_text_makes_no_qualification_claims():
 
 
 def test_page_loads_nothing_from_the_internet():
+    """The only absolute URLs are the SVG namespace and links (never loads) to
+    Carbon's own public repository: the "How to mine" docs and the source.
+    The CSP (test_dashboard_web.py) blocks any load from another origin."""
+    allowed = r"www\.w3\.org/2000/svg|github\.com/carbonphysicsai/Carbon(?![\w-])"
     for path in sorted((PACKAGE / "web").glob("*")):
         text = path.read_text(encoding="utf-8")
-        assert not re.search(r"https?://(?!www\.w3\.org/2000/svg)", text), path.name
+        assert not re.search(rf"https?://(?!{allowed})", text), path.name
+        assert not re.search(r"""(src|url)\s*[=(]\s*["']?https?:""", text), path.name
 
 
 def test_dashboard_imports_no_validator_state_or_private_material():
@@ -346,19 +351,59 @@ def test_dashboard_imports_no_validator_state_or_private_material():
 
 
 def test_view_models_in_node(tmp_path):
+    """The pages render every board.v2 file of a fixture build, in each phase
+    (DASHBOARD-02 S2; tests/cpu/dashboard_check.cjs)."""
     node = shutil.which("node")
     if node is None:
         pytest.skip("node is not installed here")
-    _site(tmp_path, fixtures.documents())
-    boards = sorted((tmp_path / "site" / "data" / "boards").glob("*.json"))
+    documents = fixtures.documents() + fixtures.phase_documents()
+    build.build(
+        tmp_path / "site", documents, fixtures.fixture_trust(), now=fixtures.FIXTURE_NOW
+    )
     result = subprocess.run(
-        [node, str(CHECK), *map(str, boards)],
+        [node, str(CHECK), str(tmp_path / "site"), str(fixtures.FIXTURE_NOW)],
         capture_output=True,
         text=True,
         check=False,
     )
     assert result.returncode == 0, result.stdout + result.stderr
-    assert json.loads(result.stdout)["boards"] == len(boards)
+    summary = json.loads(result.stdout)
+    assert summary["boards"] == len(documents)
+    assert summary["phases"] == ["LIVE", "PRE_FIRST_RELEASE", "STALE"]
+
+
+def test_chain_view_models_in_node(tmp_path):
+    """DASHBOARD-02 S1b: boards from VALIDATOR-33 A feeds (#1143) show the
+    king's share and halving with a live countdown, the estimated next release
+    countdown, the margins only with a rules card, and the handovers
+    (tests/cpu/dashboard_check.cjs, its third argument)."""
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("node is not installed here")
+    documents = fixtures.documents() + fixtures.phase_documents()
+    build.build(
+        tmp_path / "site", documents, fixtures.fixture_trust(), now=fixtures.FIXTURE_NOW
+    )
+    chain = fixtures.chain_documents()
+    build.build(
+        tmp_path / "chain", chain, fixtures.fixture_trust(), now=fixtures.FIXTURE_NOW
+    )
+    result = subprocess.run(
+        [
+            node,
+            str(CHECK),
+            str(tmp_path / "site"),
+            str(fixtures.FIXTURE_NOW),
+            str(tmp_path / "chain"),
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    summary = json.loads(result.stdout)
+    assert summary["boards"] == len(documents)
+    assert summary["chain"] == len(chain)
 
 
 def test_section_meta_comes_from_the_feed_sections():

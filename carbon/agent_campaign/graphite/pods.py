@@ -89,6 +89,35 @@ def proposal_minutes(scoring=None):
     return STARTUP_MINUTES + -(-contract_work_seconds(scoring) // 60) + EXPORT_MINUTES
 
 
+#: The pod backends (TORCH-POD-01): JAX's image and environment serve every
+#: build that is not PyTorch (JAX's, and NumPy's), as before.
+POD_BACKENDS = ("jax", "pytorch")
+#: The released torch-gpu worker image's lock, whose CUDA runtime bounds the
+#: host CUDA versions a PyTorch pod may run on (as `ACCELERATOR_LOCK` does
+#: JAX's). Read only, never edited here.
+TORCH_LOCK = ".devcontainer/torch/torch-cu130-py311.txt"
+
+
+def job_backend(backend):
+    """The pod backend a build's reconstruction backend runs on."""
+    return "pytorch" if backend == "pytorch" else "jax"
+
+
+def pod_image(backend="jax"):
+    """The pinned image a pod of `backend` runs: JAX's EV4 study image
+    (`pod_control.IMAGE`), or the released torch-gpu worker image the A40
+    acceptance harness pins (`a40_acceptance.IMAGES`, worker-images-v3)."""
+    from scripts.dev.exam_design.runpod import pod_control
+
+    if backend == "jax":
+        return pod_control.IMAGE
+    if backend == "pytorch":
+        from scripts.dev.exam_design.runpod.a40_acceptance import IMAGES
+
+        return IMAGES["pytorch"]
+    raise PodFailure("launch", "no pod image for this backend", executed=False)
+
+
 def prices(rate_ceiling=None):
     """The EV4 pod economics, read from pod_control (never restated here).
     `rate_ceiling` is a grant's own pod rate ceiling (GRANT-POD-CEILING-01);
@@ -165,13 +194,79 @@ def pod_reservation(minutes, hourly):
     return exact.quantize(NANODOLLAR, rounding=ROUND_CEILING)
 
 
+#: GRAPHITE-POD-LAUNCH-RETRY-01: a refused launch's code, from its detail.
+#: Transient codes (the provider rate-limited us, had no offer at the rate
+#: ceiling right now, or answered nothing) may be retried for the session's
+#: baseline; every other code is a hard refusal and never retried.
+TRANSIENT_REFUSALS = frozenset({"rate_limited", "offer_unavailable", "empty"})
+_REFUSAL_CODES = (
+    ("balance_floor", ("balance would fall below the floor", "no balance_floor_usd")),
+    ("cuda_policy", ("torch lock", "cuda runtime")),
+    ("pod_env_too_large", ("pod_env_too_large",)),
+    ("job_record_conflict", ("pod job record conflict",)),
+    ("no_image", ("no pod image",)),
+    (
+        "credential",
+        ("401", "403", "unauthor", "forbidden", "api key", "credential", "permission"),
+    ),
+    (
+        "rate_limited",
+        (
+            "429",
+            "rate limit",
+            "rate-limit",
+            "ratelimit",
+            "too many requests",
+            "throttl",
+        ),
+    ),
+    (
+        "offer_unavailable",
+        (
+            "no a40 secure pod",
+            "no offer",
+            "unavailable",
+            "no instances",
+            "insufficient capacity",
+            "out of stock",
+            "no longer available",
+            "capacity",
+        ),
+    ),
+)
+DETAIL_LIMIT = 300
+
+
+def refusal_code(detail):
+    """A refused launch's code: `empty`, a named code, or `provider_other`."""
+    text = " ".join(str(detail or "").split()).lower()
+    if not text:
+        return "empty"
+    for code, needles in _REFUSAL_CODES:
+        if any(n in text for n in needles):
+            return code
+    return "provider_other"
+
+
+def bounded_detail(detail, limit=DETAIL_LIMIT):
+    """The provider's message for the ledger: one line, bounded, and with
+    every long token-like run redacted (no secret reaches a record)."""
+    import re
+
+    text = " ".join(str(detail or "").split())
+    text = re.sub(r"[A-Za-z0-9_\-]{24,}", "<redacted>", text)
+    return text[:limit]
+
+
 class PodFailure(RuntimeError):
     """A pod step failed. `executed` says whether anything may have been created
-    or charged: False only when the failure precedes any provider write."""
+    or charged: False only when the failure precedes any provider write.
+    `code` classifies the detail (`refusal_code`)."""
 
-    def __init__(self, stage, detail, *, executed):
+    def __init__(self, stage, detail, *, executed, code=None):
         super().__init__(f"{stage}: {detail}")
         self.stage, self.detail, self.executed = stage, detail, executed
+        self.code = refusal_code(detail) if code is None else code
 
 
 @dataclass(frozen=True)
@@ -190,6 +285,9 @@ class PodJob:
     #: The registered development-only variant the strategy compiles under
     #: (its digest), or None at Level 0, whose configuration is unchanged.
     development_variant: str | None = None
+    #: The pod backend (`job_backend`): "jax" (every build before
+    #: TORCH-POD-01, whose configuration is unchanged) or "pytorch".
+    backend: str = "jax"
     #: A Level 4 job's submission envelope (`pod_phase.level4_transport`),
     #: or None, whose configuration is then unchanged.
     level4_envelope: str | None = None
@@ -205,9 +303,35 @@ class PodJob:
         }
         if self.development_variant is not None:
             config["development_variant"] = self.development_variant
+        if self.backend != "jax":
+            config["backend"] = self.backend
         if self.level4_envelope is not None:
             config["level4_envelope"] = self.level4_envelope
         return config
+
+
+def _torch_cuda_versions(repository):
+    """A PyTorch pod's host CUDA versions: from the CUDA runtime the torch-gpu
+    lock pins (`nvidia-cuda-runtime==NN.M.*`) up to RunPod's schema ceiling,
+    within that major. `PodFailure` (nothing launched) when the lock names
+    none, or a major RunPod does not accept."""
+    import re
+
+    try:
+        text = (Path(repository) / TORCH_LOCK).read_text()
+    except OSError:
+        raise PodFailure("launch", "torch lock unreadable", executed=False) from None
+    runtime = re.search(r"^nvidia-cuda-runtime==(\d+)\.(\d+)\.", text, re.MULTILINE)
+    major, ceiling = RUNPOD_CUDA_CEILING
+    if runtime is None or int(runtime.group(1)) != major:
+        raise PodFailure(
+            "launch", "the torch lock names no usable CUDA runtime", executed=False
+        )
+    if int(runtime.group(2)) > ceiling:
+        raise PodFailure(
+            "launch", "the torch CUDA runtime is above RunPod's", executed=False
+        )
+    return tuple(f"{major}.{m}" for m in range(int(runtime.group(2)), ceiling + 1))
 
 
 @dataclass(frozen=True)
@@ -311,7 +435,7 @@ ACCELERATOR_LOCK = ".devcontainer/accelerators/cuda13-py311.txt"
 RUNPOD_CUDA_CEILING = (13, 0)
 
 
-def allowed_cuda_versions(repository=REPOSITORY):
+def allowed_cuda_versions(repository=REPOSITORY, backend="jax"):
     """The CUDA versions a Graphite pod's host may run (`allowedCudaVersions`),
     derived deterministically from the pinned image's JAX CUDA plugin
     (GRAPHITE-POD-GPU-PROBE-01): every version from the CUDA runtime the lock
@@ -323,6 +447,8 @@ def allowed_cuda_versions(repository=REPOSITORY):
     launched) when the lock does not name both or the ceiling is below them."""
     import re
 
+    if backend == "pytorch":
+        return _torch_cuda_versions(repository)
     try:
         text = (Path(repository) / ACCELERATOR_LOCK).read_text()
     except OSError:
@@ -529,8 +655,10 @@ class RunPodPods:
             **pod_control.manifest_env(self.manifest),
             "PHASE": PHASE,
             "PHASE_CONFIG": json.dumps(job.config(stop), sort_keys=True),
-            # EV4's GPU settings (`--jax-platform cuda,cpu --pinned-xla`).
-            "JAX_PLATFORMS": "cuda,cpu",
+            # EV4's GPU settings (`--jax-platform cuda,cpu --pinned-xla`). A
+            # PyTorch pod names exactly `cuda`: the platform
+            # `torch_training.rebuild_device` rebuilds on (TORCH-POD-01).
+            "JAX_PLATFORMS": "cuda" if job.backend == "pytorch" else "cuda,cpu",
             "XLA_FLAGS": "--xla_gpu_deterministic_ops=true "
             "--xla_gpu_exclude_nondeterministic_ops=true --xla_gpu_autotune_level=0",
             "NVIDIA_TF32_OVERRIDE": "0",
@@ -539,6 +667,17 @@ class RunPodPods:
             "JAX_ENABLE_COMPILATION_CACHE": "false",
             "XLA_PYTHON_CLIENT_PREALLOCATE": "false",
         }
+        if job.backend == "pytorch":
+            # PyTorch's CUDA rebuild refuses a run bound to no device kind,
+            # or without the pinned CUDA library controls
+            # (`torch_gpu.require_ready`), as the validator's overlay binds
+            # them (`accelerators.worker_environment`). The kind is the GPU
+            # type the pod is rented as: RunPod's type id is the exact name
+            # the device reports (`a40_acceptance.TARGET_DEVICES`). Read
+            # through the execution side, never the accelerator profile here.
+            from carbon.development_session.battery_gpu import torch_pod_environment
+
+            env.update(torch_pod_environment(self.economics["gpu"]))
         return tuple(sorted(env.items()))
 
     def _record(self, job, private):
@@ -561,7 +700,9 @@ class RunPodPods:
                             "intent_id": job.intent_id,
                             "token": secrets.token_urlsafe(24),
                             "deadline_at": int(self.clock() + job.minutes * 60),
-                            "allowed_cuda_versions": list(self.cuda_versions),
+                            "allowed_cuda_versions": list(
+                                self._cuda_versions(job.backend)
+                            ),
                         },
                         sort_keys=True,
                     ).encode(),
@@ -570,6 +711,13 @@ class RunPodPods:
         if record["intent_id"] != job.intent_id:
             raise PodFailure("launch", "pod job record conflict", executed=False)
         return record
+
+    def _cuda_versions(self, backend):
+        """The host CUDA versions a pod of `backend` may run: JAX's derived at
+        start-up (`cuda_versions`), PyTorch's from the torch-gpu lock."""
+        if backend == "jax":
+            return self.cuda_versions
+        return allowed_cuda_versions(getattr(self, "repository", REPOSITORY), backend)
 
     def pod_spec(self, job, record, *, start_command=None):
         """The create request's `PodSpec` for `job`, its environment measured
@@ -595,7 +743,7 @@ class RunPodPods:
                 executed=False,
             )
         return PodSpec(
-            image=economics["image"],
+            image=pod_image(job.backend),
             gpu_type_id=economics["gpu"],
             gpu_count=1,
             cloud_type="SECURE",
@@ -626,15 +774,26 @@ class RunPodPods:
                 raise PodFailure(
                     "launch", "balance would fall below the floor", executed=False
                 )
-            [offer] = self.adapter.offers([economics["gpu"]], gpu_count=1)
+            offers = self.adapter.offers([economics["gpu"]], gpu_count=1)
+            if len(offers) != 1:
+                raise PodFailure(
+                    "launch", "no A40 Secure pod offer now", executed=False
+                )
+            [offer] = offers
             if (
                 offer.usd_per_hr is None
                 or Decimal(str(offer.usd_per_hr)) > economics["rate_ceiling_usd_per_hr"]
                 or not offer.stock_status
             ):
+                # The offer read is recorded with the refusal: a non-200 answer
+                # (for example a 429 at a run's start) or a null stock leaves no
+                # price, which is a transient read, not a price over the ceiling
+                # (GRAPHITE-POD-LAUNCH-RETRY-01, lane D).
                 raise PodFailure(
                     "launch",
-                    "no A40 Secure pod at or below the rate ceiling now",
+                    "no A40 Secure pod at or below the rate ceiling now "
+                    f"(price {offer.usd_per_hr}, stock {offer.stock_status}, "
+                    f"source {offer.source})",
                     executed=False,
                 )
             resource = self.service.provision(
@@ -926,6 +1085,10 @@ class Step:
     crash: str | None = None
     timing: dict | None = None
     listed: dict | None = None
+    #: Refusals before the launch takes (definitive, nothing created), each
+    #: with `refusal_detail`: fault injection for the launch retry.
+    refusals: int = 0
+    refusal_detail: str = "scripted refusal"
 
 
 @dataclass
@@ -952,14 +1115,19 @@ class ScriptedPods:
         }
 
     def _step(self, intent_id):
-        index = [i for i, _ in self.launched].index(intent_id)
+        index = list(dict.fromkeys(i for i, _ in self.launched)).index(intent_id)
         return self.steps[index] if index < len(self.steps) else Step()
 
     def launch(self, job, private):
-        if job.intent_id in [i for i, _ in self.launched]:
+        tries = [i for i, _ in self.launched].count(job.intent_id)
+        if tries and job.intent_id not in getattr(self, "_refused", set()):
             raise AssertionError("a pod job was launched twice: " + job.intent_id)
         self.launched.append((job.intent_id, job))
         step = self._step(job.intent_id)
+        if tries < step.refusals:
+            self.__dict__.setdefault("_refused", set()).add(job.intent_id)
+            raise PodFailure("launch", step.refusal_detail, executed=False)
+        getattr(self, "_refused", set()).discard(job.intent_id)
         if step.launch == "refused":
             raise PodFailure("launch", "scripted refusal", executed=False)
         if step.launch == "lost":

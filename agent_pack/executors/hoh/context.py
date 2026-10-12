@@ -529,6 +529,11 @@ class ContextBroker:
             ("config", "user.name", "Carbon HoH Projection"),
             ("config", "user.email", "carbon-hoh@example.invalid"),
             ("config", "commit.gpgsign", "false"),
+            # Background upkeep in a projection would hold and then drop
+            # `.git` lock files under a role process the controller does not
+            # drive, racing the controller's own copies and reads of the tree.
+            ("config", "maintenance.auto", "false"),
+            ("config", "gc.auto", "0"),
             ("add", "--all"),
             ("commit", "--quiet", "--message", "isolated role projection"),
         )

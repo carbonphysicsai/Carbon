@@ -542,7 +542,11 @@ def evaluate(target, submission):
     """
     from carbon.chain.commitments import CommitmentUnavailable
 
-    from .daemon import BackendNotServed, CommitmentRequired
+    from .daemon import (
+        BackendNotServed,
+        CommitmentRequired,
+        DevelopmentCompilerUnavailable,
+    )
     from .pool_store import HotkeyWindowUsed
 
     if getattr(target, "readonly", False):
@@ -569,10 +573,24 @@ def evaluate(target, submission):
             raise EvaluationUnavailable(code) from None
         except BackendNotServed:
             raise EvaluationUnavailable("backend_not_served") from None
+        except DevelopmentCompilerUnavailable:
+            raise EvaluationUnavailable("development_compiler_unavailable") from None
         sid = admitted["submission_id"]
         # Under a registered score, a process without the score (the
         # intake's) admits only; the daemon scores (VALIDATOR-26).
-        if admitted["state"] != "INVALID_CONSTRUCTION" and scores_here(target):
+        if admitted["state"] != "INVALID_CONSTRUCTION" and processes_here(target):
             target.process(sid)
             target.run_pending()
         return target.outcome(sid)
+
+
+def processes_here(target):
+    """Whether this process can advance `target`'s submissions: it holds the
+    registered score its rule names (`scores_here`), and, on a development
+    ladder, the ladder's compiler. Otherwise the daemon, whose entry point
+    installs both, advances them; this process only admits."""
+    if not scores_here(target):
+        return False
+    if getattr(target, "ladder", None) is not None:
+        return callable(getattr(target, "development_compiler", None))
+    return True

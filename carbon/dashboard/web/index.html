@@ -5,29 +5,34 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="referrer" content="no-referrer">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="description" content="Carbon subnet leaderboard: the king, the target to beat and the eligible ladder for each Challenge, from the Carbon Validator's signed score feed.">
+<meta name="theme-color" content="#f5f5f0">
 <title>Carbon Leaderboard</title>
+<link rel="preload" href="fonts/neue-0.otf" as="font" type="font/otf" crossorigin>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
+<a class="skip" href="#app">Skip to content</a>
 <header class="topbar">
-  <a class="wordmark" href="#/"><img src="brand/brand-2.svg" alt="Carbon"><span class="eyebrow">Leaderboard</span></a>
-  <nav class="topnav" aria-label="Sections"><a href="#/" data-view="board">Leaders</a><a href="#/showcase" data-view="showcase">Design showcase</a></nav>
-  <div class="topbar-state" id="labels" aria-label="Labels"></div>
+  <a class="wordmark" href="#/"><img src="brand/brand-2.svg" alt="Carbon" width="96" height="22"><span class="eyebrow">Leaderboard</span></a>
+  <nav class="topnav" aria-label="Sections"><a href="#/" data-view="board">Leaders</a><a href="#/mine" data-view="mine">How to mine</a><a href="#/showcase" data-view="showcase">Design showcase</a></nav>
+  <div class="labels" id="labels" aria-label="Labels"></div>
 </header>
-<div class="banner" id="banner" role="note">
-  <strong>Development display.</strong> Scores shown here are rounded, lagged to
-  released windows, and carry no qualification. They do not show that any model
-  or design is correct in practice.
+<div class="banner" role="note">
+  <strong>Development display.</strong> Scores are rounded, lagged to released
+  windows, and carry no qualification. They do not show that any model or
+  design is correct in practice.
 </div>
-<main id="app" aria-live="polite">
+<main id="app" tabindex="-1">
   <noscript><p class="notice">The leaderboard draws its pages with JavaScript.</p></noscript>
 </main>
 <footer class="footer">
-  <p class="eyebrow">Carbon · Development / Testnet display</p>
-  <p class="hint">Scores, ranks and incumbents come from the Carbon Validator's signed score feed,
-    checked again here. Case-level values appear only for released, published windows.
-    Model recipes are not shown. The design showcase replays public cases and public reference
+  <div class="foot-row"><span class="chip chip-label">DEVELOPMENT</span><span id="feedstamp">Verified signed feed</span></div>
+  <p class="hint">Kings, ranks and scores come from the Carbon Validator's signed score feed, checked
+    again by this site. Rule statements appear only from the Validator's rules card. Recipes and
+    per-case values are not shown. The design showcase replays public cases and public reference
     solves only.</p>
+  <div class="foot-row"><a href="https://github.com/carbonphysicsai/Carbon/tree/main/carbon/dashboard">Source</a><a href="#/mine">How to mine</a></div>
 </footer>
 <script src="showcase.js"></script>
 <script src="dashboard.js"></script>

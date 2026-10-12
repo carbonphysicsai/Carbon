@@ -100,6 +100,14 @@ RELAUNCH_REFUSED = "pod_environment_relaunch_refused:"
 #: The session baseline's retry never gets a relaunch too: the baseline gets
 #: at most one extra pod from the two rules together.
 BASELINE_RETRY_USED = "baseline_retry_used"
+#: GRAPHITE-POD-LAUNCH-RETRY-01: a transient refusal of the session baseline's
+#: launch (before any provider write; nothing created, nothing charged) is
+#: tried again in place, up to `LAUNCH_ATTEMPTS` launches in all, after a
+#: jittered wait in `LAUNCH_BACKOFF_S`. Hard refusals are never retried. This
+#: is not the registered baseline retry (`baseline_retry`), which runs a
+#: second pod and still never follows a refused launch.
+LAUNCH_ATTEMPTS = 3
+LAUNCH_BACKOFF_S = (30.0, 120.0)
 RELAUNCH_NO_TIME = "relaunch_cannot_fit_remaining_time"
 NANO = Decimal(10) ** 9
 MAX_STRATEGY_BYTES = 16384
@@ -379,6 +387,13 @@ class PodLedger:
         self.path = Path(path)
         self.clock = clock
 
+    def ensure(self):
+        """Create the (empty) ledger file if it is absent, so a run that failed before
+        any pod event has a readable record showing none; an existing file is left
+        alone."""
+        if not self.path.exists():
+            self.path.touch(mode=0o600)
+
     def append(self, event, **body):
         row = {"event": event, "at": self.clock(), **body}
         with self.path.open("ab") as stream:
@@ -433,6 +448,7 @@ class PodLedger:
             elif event == "pod_duplicates_counted":
                 pod["duplicates"] = row["count"]
                 pod["duplicate_usd"] = row["charged_usd"]
+                pod["unknown_duplicates"] = row.get("unknown_charges", 0)
         return state
 
     def committed(self):
@@ -441,6 +457,10 @@ class PodLedger:
         for pod in self.pods().values():
             # A duplicate's real charge is spend even though it is not the pod.
             settled += Decimal(pod.get("duplicate_usd") or 0)
+            # A duplicate whose charge the provider did not report stays at the
+            # reservation of the pod it duplicates, never at zero.
+            if pod.get("unknown_duplicates") and pod["reserved_usd"] is not None:
+                pending += pod["unknown_duplicates"] * Decimal(pod["reserved_usd"])
             if pod["settled_usd"] is not None:
                 settled += Decimal(pod["settled_usd"])
             elif pod["reserved_usd"] is not None:
@@ -654,6 +674,7 @@ class Experiment:
         on_finding=None,
         score_variant=None,
         hidden=None,
+        sleep=None,
     ):
         from .provider import RunCancelled
 
@@ -665,7 +686,12 @@ class Experiment:
         self.ladder, self.emit = ladder, emit
         self.scorer = scorer
         self.repository, self.clock, self.randomness = repository, clock, randomness
+        import time as _time
+
+        self.sleep = _time.sleep if sleep is None else sleep
+        self._refusals = {}
         self.ledger = PodLedger(self.root / "pod-ledger.jsonl", clock)
+        self.ledger.ensure()
         self._cancel = RunCancelled
         self.scoring = challenge_scoring.resolve(scoring)
         self.construction_level = construction_level
@@ -839,6 +865,13 @@ class Experiment:
                 "proposal_id": pid,
                 "status": record["status"],
                 "result_digest": digest(canonical(record)),
+                # This fixed admission code is allowlisted for the session log.
+                **(
+                    {"reason_code": "level4_submission_required"}
+                    if record["status"] == "REFUSED_UNREBUILDABLE"
+                    and record.get("reason_code") == "level4_submission_required"
+                    else {}
+                ),
             },
         )
         return record
@@ -1192,11 +1225,12 @@ class Experiment:
             "authority_granted": False,
         }
 
-    def _level4_documents(self, folder, strategy):
+    def _level4_documents(self, folder, strategy, *, required=False):
         """At Level 4, a strategy naming a submission digest gets its kept
         envelope's documents (`staging.workspace`), and the envelope is written
         beside the proposal for its pod. None when the strategy names none or
-        the session is not at Level 4. A digest that was never staged, or an
+        the session is not at Level 4. Proposals require a graph; plain
+        baselines and ablations remain comparison controls. A digest that was never staged, or an
         envelope over the pod transport, is `Unrebuildable`, typed."""
         from carbon.battery import level4 as battery_level4
         from carbon.level4 import staging
@@ -1212,6 +1246,8 @@ class Experiment:
             else None
         )
         if submission is None:
+            if required:
+                raise Unrebuildable("level4_submission_required")
             return None
         kept = self.level4_staged(submission)
         if kept is None:
@@ -1547,7 +1583,9 @@ class Experiment:
                 if self.development_variant is None
                 else {"variant": self.development_variant}
             )
-            documents = self._level4_documents(folder, strategy)
+            documents = self._level4_documents(
+                folder, strategy, required=kind == "proposal"
+            )
             if documents is not None:
                 level["workspace"] = documents
             expected = admit(strategy, seed, self.repository, self.scoring, **level)
@@ -1678,12 +1716,14 @@ class Experiment:
                 pid, job_intent, reservation, strategy, expected, seed
             )
             if outcome in ("launch_refused", "launch_unresolved", "infra"):
+                refusal = self._refusals.pop(pid, None)
                 return self._close(
                     pid,
                     {
                         **common,
                         "status": "FAILED_INFRA",
                         "reason_code": outcome,
+                        **({"launch_refusal": refusal} if refusal else {}),
                         **_attempts(attempts),
                         "scored": False,
                         "pods_left": self.pods_left(),
@@ -1869,6 +1909,7 @@ class Experiment:
                 if self.development_variant is None
                 else self.development_variant.digest
             ),
+            backend=podlib.job_backend(self.scoring.backend(expected)),
             level4_envelope=self._level4_transport(pid),
         )
         return self._pod(pid, job)
@@ -2002,23 +2043,65 @@ class Experiment:
                 (intent_id, logs, self._listing(handle))
             )
 
+    def _launch_backoff(self):
+        """A jittered wait in `LAUNCH_BACKOFF_S`, from the run's randomness."""
+        low, high = LAUNCH_BACKOFF_S
+        draw = int.from_bytes(self.randomness(2), "big") / 0xFFFF
+        return round(low + (high - low) * draw, 1)
+
     def _pod(self, pid, job):
         """Launch, wait, fetch, terminate and settle one pod. Returns the
         outcome and the fetched files. A process death propagates without
         terminating (a restart reconciles); every other failure terminates."""
         private = podlib.private_dir(self._dir(pid) / "private")
-        self.ledger.append(
-            "pod_launch_requested", intent_id=job.intent_id, proposal=pid
-        )
-        try:
-            handle = self.pods.launch(job, private)
-        except podlib.PodFailure as failure:
-            if not failure.executed:
+        handle = None
+        for attempt in range(1, LAUNCH_ATTEMPTS + 1):
+            self.ledger.append(
+                "pod_launch_requested", intent_id=job.intent_id, proposal=pid
+            )
+            try:
+                handle = self.pods.launch(job, private)
+                break
+            except podlib.PodFailure as failure:
+                if failure.executed:
+                    self.ledger.append(
+                        "pod_launch_ambiguous", intent_id=job.intent_id, proposal=pid
+                    )
+                    handle = self._recover(pid, job.intent_id)
+                    if handle is None:
+                        return "launch_refused", {}, None
+                    if handle == "unknown":
+                        return "launch_unresolved", {}, None
+                    break
+                refusal = {
+                    "stage": failure.stage,
+                    "code": getattr(
+                        failure, "code", podlib.refusal_code(failure.detail)
+                    ),
+                    "detail": podlib.bounded_detail(failure.detail),
+                }
+                if (
+                    pid in (baseline_retry.BASELINE_ID, baseline_retry.RETRY_ID)
+                    and refusal["code"] in podlib.TRANSIENT_REFUSALS
+                    and attempt < LAUNCH_ATTEMPTS
+                ):
+                    wait = self._launch_backoff()
+                    self.ledger.append(
+                        "pod_launch_retry",
+                        intent_id=job.intent_id,
+                        proposal=pid,
+                        attempt=attempt,
+                        wait_s=wait,
+                        **refusal,
+                    )
+                    self.sleep(wait)
+                    continue
                 self.ledger.append(
                     "pod_launch_refused",
                     intent_id=job.intent_id,
                     proposal=pid,
-                    stage=failure.stage,
+                    attempt=attempt,
+                    **refusal,
                 )
                 self.ledger.append(
                     "pod_settled",
@@ -2027,15 +2110,8 @@ class Experiment:
                     charge_usd="0",
                     basis="refused_before_any_create",
                 )
+                self._refusals[pid] = {**refusal, "attempts": attempt}
                 return "launch_refused", {}, None
-            self.ledger.append(
-                "pod_launch_ambiguous", intent_id=job.intent_id, proposal=pid
-            )
-            handle = self._recover(pid, job.intent_id)
-            if handle is None:
-                return "launch_refused", {}, None
-            if handle == "unknown":
-                return "launch_unresolved", {}, None
         self.ledger.append(
             "pod_created",
             intent_id=job.intent_id,

@@ -195,3 +195,121 @@ def test_rebuild_and_surface(level):
     assert adapter.admission_refusals(outside)
     assert adapter.permission_inventory()["profile"] == f"level-{level}"
     assert adapter.surface()["variant_version"] == d.variant(level).version
+
+
+FAMILY_CASES = [(2, "l2_pool_sources_and_weights"), (3, "l3_cross_level_fields")]
+
+
+def _session_attempt(identity, strategy_json, design):
+    import json as _json
+
+    from carbon.agent_campaign.attack import analysis
+    from carbon.agent_campaign.attack.identity import digest
+
+    return analysis.Attempt(
+        identity=identity,
+        epoch=1,
+        stage=None,
+        turn=1,
+        position=0,
+        tool=analysis.PREFIX + "start_research_task",
+        arguments={
+            "action": "check_design",
+            "arguments_json": _json.dumps({"design": design}),
+            "kind": "workspace",
+            "strategy_json": strategy_json,
+        },
+        result={"status": "MINER_PATH_REFUSED"},
+        withheld=None,
+        intent_digest=digest(identity.encode()),
+        result_digest=digest(b"refused"),
+    )
+
+
+@pytest.mark.parametrize("level,family", FAMILY_CASES)
+def test_a_session_attempt_is_judged_never_an_oracle_crash(level, family):
+    """Stage-A L2-L4 (2026-10-12): verify hands these adapters a view without
+    a `value` (they inherit Level 0's `attempt_input`), and the generic oracle
+    crashed (`oracle_crashed:TypeError`, INFRA). The value is now the
+    attempt's strategy, unwrapped as the rebuild unwraps it."""
+    import json as _json
+
+    from carbon.agent_campaign.attack import adapter as core
+    from carbon.agent_campaign.attack import verify
+
+    adapter = core.ADAPTERS[("battery-fastcharge-ageing-development-v1", level)]
+    design = {"strategy": {"schema_version": "1.0",
+              "challenge_id": "battery-fastcharge-ageing-development-v1",
+              "backbone": "mlp", "parameters": {}}}  # fmt: skip
+    for attempt in (
+        _session_attempt("epoch-1-tool-003", _json.dumps(design), design),
+        _session_attempt("epoch-1-tool-004", None, design),
+    ):
+        verdict = verify.verify(attempt, adapter, family=family)
+        assert not str(verdict.reason).startswith("oracle_crashed"), verdict
+        assert verdict.outcome != verify.INFRA, verdict
+
+
+@pytest.mark.parametrize("level", [1, 2, 3, 4])
+def test_the_attacker_declares_the_family_per_attempt(level):
+    """Levels 1-4 take the family an attempt declares (`[family: <name>]` in
+    its hypothesis) when the level lists it as reachable by a session
+    attempt; anything else maps to the level's surface, as before."""
+    import json as _json
+
+    from carbon.agent_campaign.attack import adapter as core
+    from carbon.agent_campaign.attack import analysis
+
+    adapter = core.ADAPTERS[("battery-fastcharge-ageing-development-v1", level)]
+    names = [f.name for f in adapter.families()]
+    design = {"strategy": {"schema_version": "1.0",
+              "challenge_id": "battery-fastcharge-ageing-development-v1",
+              "backbone": "mlp", "parameters": {}}}  # fmt: skip
+
+    def mapped(hypothesis):
+        attempt = _session_attempt("epoch-1-tool-001", _json.dumps(design), design)
+        attempt = attempt.__class__(
+            **{
+                **attempt.__dict__,
+                "arguments": {**attempt.arguments, "hypothesis": hypothesis},
+            }
+        )
+        return analysis.family_of(attempt, adapter)
+
+    surface = mapped("no declaration")
+    assert surface in names
+    reachable = [n for n in names if mapped(f"probe [family: {n}] here") == n]
+    expected = {1: 4, 2: 5, 3: 5, 4: 7}[level]
+    assert len(reachable) == expected, reachable
+    assert mapped("[family: no_such_family]") == surface
+    # Two different declarations are no declaration.
+    assert mapped(f"[family: {names[0]}] [family: {names[-1]}]") == surface
+    # Off the construction door, nothing is declared into a family.
+    off = _session_attempt("epoch-1-tool-002", None, design)
+    off = off.__class__(**{**off.__dict__, "tool": analysis.PREFIX + "get_challenge_info",
+                           "arguments": {"hypothesis": f"[family: {names[0]}]"}})  # fmt: skip
+    assert analysis.family_of(off, adapter) == analysis.UNASSIGNED
+
+
+@pytest.mark.parametrize(
+    "level,family",
+    [
+        (2, "l2_off_family"),
+        (2, "l2_slot_ablation"),
+        (3, "l3_off_lane"),
+        (3, "l3_slot_ablation"),
+    ],
+)
+def test_a_declared_family_judges_the_attempt_never_crashes(level, family):
+    import json as _json
+
+    from carbon.agent_campaign.attack import adapter as core
+    from carbon.agent_campaign.attack import verify
+
+    adapter = core.ADAPTERS[("battery-fastcharge-ageing-development-v1", level)]
+    design = {"strategy": {"schema_version": "1.0",
+              "challenge_id": "battery-fastcharge-ageing-development-v1",
+              "backbone": "mlp", "parameters": {}}}  # fmt: skip
+    attempt = _session_attempt("epoch-1-tool-003", _json.dumps(design), design)
+    verdict = verify.verify(attempt, adapter, family=family)
+    assert verdict.outcome != verify.INFRA, verdict

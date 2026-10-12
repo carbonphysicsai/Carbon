@@ -17,7 +17,9 @@ an operator host, in three steps:
    one batch's jobs file (`operate jobs`), into an owner-only records file
    that `operate ingest` reads. It first checks PyBaMM is at the pinned
    version (`require_truth_runtime`), so a reference is never produced by an
-   unverified environment. The container has no network and sees only the
+   unverified environment. Every record it writes carries
+   `solver_provenance`: the image digest, the overlay lock sha256 and the
+   PyBaMM version. The container has no network and sees only the
    overlay, Carbon's source (read-only) and the jobs/records directory -
    never the validator state, private root or journal.
 
@@ -26,6 +28,7 @@ Base-image presence alone is never treated as a runnable truth solver.
 
 from __future__ import annotations
 
+import functools
 import hashlib
 import io
 import json
@@ -41,6 +44,9 @@ from .truth import LOCK_PATH, TRUTH_IMAGE
 MANIFEST = ".carbon-overlay.json"
 VERIFIED = ".carbon-overlay-verified.json"
 SCHEMA = "carbon.battery.truth-overlay.v1"
+PROVENANCE = "carbon.battery.solver-provenance.v1"
+#: Every reference record names what solved it, in the record itself.
+PROVENANCE_FIELD = "solver_provenance"
 INTERPRETER = "/opt/carbon-worker/bin/python"
 
 
@@ -145,6 +151,30 @@ def materialize(target, *, repository=".", wheels_dir=None, fetch=_fetch):
     return manifest
 
 
+def bind(source, target, *, readonly):
+    """One bind mount as `--mount`, never `-v`: `-v` splits its argument on
+    ':', so a host path holding one (a design bank's tranche
+    `bank-design:battery-q3-T1`) failed as "too many colons". `--mount`
+    splits on ',' only, and a path holding one is refused."""
+    path = str(Path(source).resolve())
+    if "," in path:
+        raise TruthEnvironmentError("a bind-mounted path may not contain ','")
+    return [
+        "--mount",
+        f"type=bind,source={path},target={target}" + (",readonly" if readonly else ""),
+    ]
+
+
+def mounted_work(command):
+    """The host work directory a `solve_command` mounts at `/work` (for
+    scripted test containers that play the truth solve)."""
+    for part in command:
+        if part.startswith("type=bind,") and ",target=/work" in part:
+            fields = dict(f.split("=", 1) for f in part.split(",") if "=" in f)
+            return Path(fields["source"])
+    raise TruthEnvironmentError("the command mounts no /work")
+
+
 def verify_command(target, repository="."):
     """The exact read-only, network-less container run that verifies the overlay."""
     probe = (
@@ -169,8 +199,7 @@ def verify_command(target, repository="."):
         # enter it, and PyBaMM would look absent. Run as the owner, as solve does.
         "--user",
         f"{os.getuid()}:{os.getgid()}",
-        "-v",
-        f"{Path(target).resolve()}:/overlay:ro",
+        *bind(target, "/overlay", readonly=True),
         "-e",
         "PYTHONPATH=/overlay",
         "--entrypoint",
@@ -231,6 +260,51 @@ def require_truth_runtime(repository="."):
     return pybamm.__version__
 
 
+def provenance(repository="."):
+    """What solves a record here: the pinned solver image digest, the overlay
+    lock's path and sha256, and the PyBaMM version this interpreter runs.
+
+    A container cannot read its own image digest. The image is the one
+    `solve_command` runs, and the lock (`load_lock`) must name that same
+    base image; the PyBaMM version is checked by `require_truth_runtime`.
+    """
+    _lock, lock_sha = load_lock(repository)
+    return {
+        "schema": PROVENANCE,
+        "solver_image": TRUTH_IMAGE["base_image"],
+        "overlay_lock": LOCK_PATH,
+        "overlay_lock_sha256": "sha256:" + lock_sha,
+        "pybamm": require_truth_runtime(repository),
+    }
+
+
+def stamp(record, solver_provenance):
+    """The record with its solver provenance; a record already stamped keeps
+    its own."""
+    return {PROVENANCE_FIELD: solver_provenance, **record}
+
+
+def _stamped(solver, solver_provenance, job):
+    return stamp(solver(job), solver_provenance)
+
+
+def _stamp_from(records, offset, solver_provenance):
+    """Stamp the records this run appended after `offset` that the service
+    wrote itself (timeouts, worker exits); earlier lines are left as they
+    are."""
+    body = records.read_bytes()
+    lines = body[offset:].decode().splitlines()
+    tail = "".join(
+        json.dumps(stamp(json.loads(x), solver_provenance), sort_keys=True) + "\n"
+        for x in lines
+        if x.strip()
+    )
+    temporary = records.with_name(records.name + ".stamping")
+    temporary.write_bytes(body[:offset] + tail.encode())
+    temporary.chmod(0o600)
+    os.replace(temporary, records)
+
+
 def solve_command(target, workdir, *, repository=".", workers=1, timeout_s=1200.0):
     """The exact container run that solves `workdir/jobs.json` into
     `workdir/records.jsonl`: no network, read-only root, overlay and source
@@ -250,12 +324,9 @@ def solve_command(target, workdir, *, repository=".", workers=1, timeout_s=1200.
         "no-new-privileges",
         "--user",
         f"{os.getuid()}:{os.getgid()}",
-        "-v",
-        f"{Path(target).resolve()}:/overlay:ro",
-        "-v",
-        f"{Path(repository).resolve()}:/carbon:ro",
-        "-v",
-        f"{Path(workdir).resolve()}:/work:rw",
+        *bind(target, "/overlay", readonly=True),
+        *bind(repository, "/carbon", readonly=True),
+        *bind(workdir, "/work", readonly=False),
         "-w",
         "/carbon",
         "-e",
@@ -280,18 +351,26 @@ def solve_command(target, workdir, *, repository=".", workers=1, timeout_s=1200.
 def solve(jobs_path, records_path, *, repository=".", workers=1, timeout_s=1200.0):
     """Solve a jobs file (inside the truth image). Resumable: terminal records
     are kept, FAILED_INFRA is retried."""
-    from .truth import TruthService
+    from .truth import TruthService, reference_solver
 
-    require_truth_runtime(repository)
+    solver_provenance = provenance(repository)
     document = json.loads(Path(jobs_path).read_bytes())
     records = Path(records_path)
     if not records.exists():
         records.touch(mode=0o600)
     if records.stat().st_mode & 0o077:
         raise TruthEnvironmentError("the records file must be owner-only")
-    summary = TruthService(records, workers=workers, timeout_s=timeout_s).run(
-        document["jobs"]
+    offset = records.stat().st_size
+    service = TruthService(
+        records,
+        solver=functools.partial(_stamped, reference_solver, solver_provenance),
+        workers=workers,
+        timeout_s=timeout_s,
     )
+    try:
+        summary = service.run(document["jobs"])
+    finally:
+        _stamp_from(records, offset, solver_provenance)
     return {"fingerprint": document["fingerprint"], **summary}
 
 

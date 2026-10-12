@@ -54,6 +54,7 @@ import functools
 import hashlib
 import json
 import math
+import re
 import struct
 import threading
 from collections.abc import Mapping
@@ -212,6 +213,35 @@ TOOL_FAMILIES = {
     "cancel_research_task": "resource_accounting",
 }
 CODE_ACTIONS = ("run_python", "run_julia")
+
+
+#: An Attacker's declared family for one attempt (Levels 1-4): the tag
+#: `[family: <name>]` in the call's free-text `hypothesis`. The research
+#: tools' argument schema is closed and miner-facing, so the declaration
+#: rides in a field it already has; the path ignores it.
+DECLARED_FAMILY = re.compile(r"\[family:\s*([a-z0-9_]+)\s*\]")
+
+
+def declared_family(arguments):
+    """The one family an attempt declares (`DECLARED_FAMILY`), or None (none,
+    or two different ones)."""
+    if not isinstance(arguments, Mapping):
+        return None
+    text = arguments.get("hypothesis")
+    if not isinstance(text, str):
+        return None
+    found = set(DECLARED_FAMILY.findall(text))
+    return found.pop() if len(found) == 1 else None
+
+
+def door_family(tool, arguments, declarable, default):
+    """A level's family for a research tool call: None off the construction
+    door; else the declared family when the level lists it as declarable
+    (one a session attempt's input can reach), else the level's surface."""
+    if not construction_door(tool, arguments):
+        return None
+    declared = declared_family(arguments)
+    return declared if declared in declarable else default
 
 
 def construction_door(tool, arguments=None):
@@ -2454,6 +2484,30 @@ def _strategy_from(arguments):
     from carbon.agent_campaign.attack import analysis
 
     return analysis.strategy_argument(arguments, _MISSING)
+
+
+def oracle_view(attempt):
+    """A verify view (`verify.OracleAttempt`) for the generic oracle
+    (`attack.adapter.family_oracle`) that Levels 2-4 use. Those adapters
+    inherit Level 0's per-family `attempt_input`, so verify hands them a view
+    without a `value`; the generic oracle needs one. The value is the
+    attempt's strategy, unwrapped exactly as their rebuild unwraps it; an
+    attempt that carries none is a view without a rebuilt construction
+    (NOT_RUN, never a crash). Stage-A L2/L3 `oracle_crashed:TypeError`,
+    2026-10-12."""
+    import dataclasses
+
+    if hasattr(attempt, "value") or not dataclasses.is_dataclass(attempt):
+        return attempt
+    if not hasattr(attempt, "given"):
+        return attempt
+    arguments = getattr(attempt, "arguments", None)
+    value = _strategy_from(arguments) if isinstance(arguments, Mapping) else _MISSING
+    if isinstance(value, Mapping) and "strategy" in value:
+        value = value["strategy"]
+    if value is _MISSING:
+        return dataclasses.replace(attempt, rebuilt=False)
+    return dataclasses.replace(attempt, given=value)
 
 
 def _inner_arguments(arguments):

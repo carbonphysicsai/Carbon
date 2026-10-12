@@ -1036,6 +1036,13 @@ def work_once(inbox, target):
     duration only. An infrastructure state leaves the submission where it
     was, to be retried; it is never a refusal of the miner. Returns what the
     pass moved, as counts only.
+
+    Each process does only what it can (`deployment.processes_here`). The
+    intake's process holds neither the registered score nor the ladder's
+    compiler, so on such a deployment it admits what needs neither and
+    leaves the rest RECEIVED, and it advances nothing. The daemon runs this
+    same pass over the same inbox (`operate run --inbox`) with both
+    installed.
     """
     from .daemon import (
         BackendNotServed,
@@ -1043,15 +1050,20 @@ def work_once(inbox, target):
         CommitmentNotVariant,
         CommitmentRequired,
         CommitmentStale,
+        DevelopmentCompilerUnavailable,
     )
-    from .deployment import writer
+    from .deployment import processes_here, writer
     from .pool_store import HotkeyWindowUsed
 
-    moved = {"admitted": 0, "refused": 0, "processed": 0, "advanced": 0}
+    moved = {"admitted": 0, "refused": 0, "processed": 0, "advanced": 0, "left": 0}
     for submission_id, submission in inbox.received():
         try:
             with writer(target):
                 admitted = target.admit(submission)
+        except DevelopmentCompilerUnavailable:
+            # Carbon's state: the daemon, which holds the compiler, admits it.
+            moved["left"] += 1
+            continue
         except HotkeyWindowUsed as used:
             failure = (
                 {"code": "hotkey_window_used", "next_block": used.next_block}
@@ -1099,6 +1111,11 @@ def work_once(inbox, target):
             ),
         )
         moved["admitted"] += 1
+    if not processes_here(target):
+        # Advancing would fail as infrastructure here (no score, no
+        # compiler) and spend the submission's infrastructure attempts; the
+        # daemon advances it.
+        return moved
     for submission_id in inbox.admitted():
         with writer(target):
             if target.outcome(submission_id)["state"] not in _TERMINAL:

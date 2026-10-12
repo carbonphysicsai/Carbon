@@ -67,3 +67,71 @@ def test_refinement_asks_for_failed_and_unresolved_references_only(tmp_path):
     # Already refined: never asked twice.
     assert spq.refine_jobs(contract, [failed], jobs + added) == []
     assert spq.refine({"x": 1} and work)["refine_jobs"] == 0  # no records yet
+
+
+def test_a_fresh_set_excludes_every_condition_an_earlier_set_drew(
+    tmp_path, monkeypatch
+):
+    """CUSTODY-03-EXT-01: fresh sealed confirmation questions never repeat a
+    condition of a set already drawn or used (`--exclude-work`)."""
+    first = tmp_path / "score-proof-1"
+    spq.draw(first, 30)
+    earlier, _ = ev.load(first / "contract.json")
+    taken = {tuple(s["conditions"][0]) for s in earlier["scenarios"]["development"]}
+    # Force the second seed to be the first's: without the exclusion it would
+    # draw exactly the same conditions.
+    monkeypatch.setattr(spq, "seed", lambda work: (first / "seed").read_bytes())
+    second = tmp_path / "score-proof-2"
+    out = spq.draw(second, 30, exclude_works=[first])
+    fresh, _ = ev.load(second / "contract.json")
+    drawn = {tuple(s["conditions"][0]) for s in fresh["scenarios"]["development"]}
+    assert out["questions"] == 30 and len(drawn) == 30
+    assert not drawn & taken
+    assert spq.work_conditions([first], second) == taken
+    assert spq.work_conditions([], second) == set()
+
+
+def test_the_exclusion_reads_only_an_earlier_score_proof_set_beside_this_one(
+    tmp_path,
+):
+    """The Validator's reading of CUSTODY-03-EXT-01: `--exclude-work` reads
+    the first score-proof set only (a sibling `score-proof-<n>` with the
+    sealed contract), never EV5's sealed batch, `graphite-confirmation-v1`
+    or another set."""
+    private = tmp_path / "private"
+    first = private / "score-proof-1"
+    spq.draw(first, 5)
+    fresh = private / "score-proof-2"
+    assert spq.excluded_work(first, fresh)[0] == first.resolve()
+
+    def refused(earlier, work=fresh):
+        with pytest.raises(SystemExit, match="exclude_work_not_a_score_proof_set"):
+            spq.excluded_work(earlier, work)
+
+    # Another set's name, even with a score-proof contract.
+    for name in ("ev5-sealed-14", "graphite-confirmation-v1", "score-proof-x"):
+        other = private / name
+        other.mkdir()
+        (other / "contract.json").write_bytes((first / "contract.json").read_bytes())
+        refused(other)
+    # Not beside this draw's work directory.
+    elsewhere = tmp_path / "elsewhere" / "score-proof-1"
+    elsewhere.mkdir(parents=True)
+    (elsewhere / "contract.json").write_bytes((first / "contract.json").read_bytes())
+    refused(elsewhere)
+    # A symlink to the first set, and the draw's own directory.
+    link = private / "score-proof-3"
+    link.symlink_to(first)
+    refused(link)
+    refused(first, work=first)
+    # A score-proof-named directory whose contract is not the sealed one.
+    foreign = private / "score-proof-4"
+    foreign.mkdir()
+    (foreign / "contract.json").write_text(
+        '{"contract_id": "graphite-confirmation-v1"}'
+    )
+    refused(foreign)
+    # The draw refuses before writing anything.
+    with pytest.raises(SystemExit, match="exclude_work_not_a_score_proof_set"):
+        spq.draw(private / "score-proof-5", 5, exclude_works=[foreign])
+    assert not (private / "score-proof-5" / "contract.json").exists()
