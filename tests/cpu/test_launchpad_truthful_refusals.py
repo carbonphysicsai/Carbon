@@ -495,7 +495,9 @@ def git_repository(tmp_path):
 
     def git(*argv):
         return subprocess.run(
-            ["git", *argv],
+            # Background upkeep writes and removes `.git` lock files
+            # asynchronously, which races this fixture's own commands.
+            ["git", "-c", "maintenance.auto=false", "-c", "gc.auto=0", *argv],
             cwd=repository,
             env=environment,
             check=True,

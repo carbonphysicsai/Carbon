@@ -1222,7 +1222,7 @@ def test_paused_infrastructure_run_can_retry_same_phase(tmp_path: Path) -> None:
     paused = controller.step()
     assert paused["phase"] == "PAUSED_INFRA"
     assert paused["paused_from"] == "PLANNING"
-    assert "Planner startup failed" in paused["last_error"]
+    assert paused["last_error"] == "ExecutorUnavailable: Planner startup failed"
     retried = controller.retry()
     assert retried["phase"] == "PLANNING"
     assert retried["paused_from"] is None
@@ -1265,7 +1265,7 @@ def test_executor_failure_pauses_and_retries_developer(tmp_path: Path) -> None:
     assert paused["phase"] == "PAUSED_INFRA"
     assert paused["paused_from"] == "DEVELOPING"
     assert paused["active_plan"] is not None
-    assert "Developer startup failed" in paused["last_error"]
+    assert paused["last_error"] == "ExecutorUnavailable: Developer startup failed"
     controller.retry()
     assert controller.step()["phase"] == "TESTING"
     assert outside.read_text(encoding="utf-8") == "must survive\n"
@@ -1297,7 +1297,7 @@ def test_executor_failure_pauses_and_retries_tester(tmp_path: Path) -> None:
     assert paused["phase"] == "PAUSED_INFRA"
     assert paused["paused_from"] == "TESTING"
     assert paused["active_plan"] is not None
-    assert "Tester timed out" in paused["last_error"]
+    assert paused["last_error"] == "ExecutorUnavailable: Tester timed out"
     controller.retry()
     assert controller.step()["phase"] == "FINAL_CANDIDATE_READY"
 
@@ -1344,7 +1344,7 @@ def test_evidence_executor_failure_pauses_and_retries_testing(
     paused = controller.step()
     assert paused["phase"] == "PAUSED_INFRA"
     assert paused["paused_from"] == "TESTING"
-    assert "evidence sandbox unavailable" in paused["last_error"]
+    assert paused["last_error"] == "ExecutorUnavailable: evidence sandbox unavailable"
     controller.retry()
     assert controller.step()["phase"] == "FINAL_CANDIDATE_READY"
 

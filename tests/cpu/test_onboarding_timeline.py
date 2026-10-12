@@ -14,7 +14,14 @@ def command(root, *args):
         GIT_COMMITTER_DATE="2026-10-01T12:00:00+00:00",
     )
     return subprocess.run(
-        ["git", *args], cwd=root, env=env, check=True, capture_output=True, text=True
+        # Background upkeep writes and removes `.git` lock files
+        # asynchronously, which races this fixture's own commands.
+        ["git", "-c", "maintenance.auto=false", "-c", "gc.auto=0", *args],
+        cwd=root,
+        env=env,
+        check=True,
+        capture_output=True,
+        text=True,
     ).stdout.strip()
 
 

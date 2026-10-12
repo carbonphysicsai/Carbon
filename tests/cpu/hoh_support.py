@@ -25,7 +25,9 @@ PYTHON_EXECUTABLE = str(Path(sys.executable).resolve(strict=True))
 
 def git(repository: Path, *arguments: str) -> str:
     process = subprocess.run(
-        ["git", *arguments],
+        # Background upkeep writes and removes `.git` lock files
+        # asynchronously, which races the controller reading this repository.
+        ["git", "-c", "maintenance.auto=false", "-c", "gc.auto=0", *arguments],
         cwd=repository,
         check=False,
         capture_output=True,
@@ -149,6 +151,10 @@ def make_repository(tmp_path: Path) -> tuple[Path, dict[str, Any]]:
     git(repository, "config", "user.name", "Carbon HoH Test")
     git(repository, "config", "user.email", "carbon-hoh@example.invalid")
     git(repository, "config", "commit.gpgsign", "false")
+    # Also refused in the repository itself: tests drive this fixture with raw
+    # `git` calls that do not go through the helper above.
+    git(repository, "config", "maintenance.auto", "false")
+    git(repository, "config", "gc.auto", "0")
     (repository / "ticket.md").write_text("# Synthetic ticket\n", encoding="utf-8")
     (repository / "src.txt").write_text("base\n", encoding="utf-8")
     (repository / "verify.py").write_text(
