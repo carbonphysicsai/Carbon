@@ -1,0 +1,61 @@
+# Public-data analysis plan — RES-07
+
+**Exploratory DEVELOPMENT research.** Written before the measurements in this audit; the sources were already public and earlier studies were known. This is not a confirmatory preregistration. Scientific thresholds/costs/P/Q/w and adoption remain HUMAN_INPUT. Mathematical definitions below do not change historical records.
+
+## Inputs and provenance
+
+Pin Carbon main `1238dd3471f73d3fc0df375de1d63c4663e380b3`. Use the committed public EV4/EV5 result JSON and their contracts; verify Git blob hashes against the pin. Analyze original A40-era selections as recorded, separately from the owner's public EV4 CPU prediction bundles. Hash the owner's supplied reference file and each bundle; deduplicate byte-identical copies by member identity. Only the EV4 contract's 420 development and 420 verification keys may be read from those bundles. No other predictions, hidden data, solvers or ready model artifacts are used.
+
+Use pure measurement/assessment/selection functions from pinned decision.py as read-only analysis helpers; no Carbon package import or worker/model execution. Primary fresh-array analysis uses supplied standard references and original uncertainty bands. An explicitly labelled second analysis may overlay OK committed refined EV4 development records using reference-policy v1; never replace historical EV4/EV5 outcomes with this result. The five failed references remain unavailable. B1–B10 and beyond-envelope stretch evidence are NOT_MEASURABLE per the owner's reply.
+
+## Historical metric decomposition
+
+For each recorded resolved outcome, separate false-feasible loss, feasible objective regret, missed-opportunity loss and correct-abstention zero. Verify their sum reproduces registered decision_loss exactly. Report raw offered-question counts and each member's numeric denominator, then repeat rankings on a common resolved-question mask within each cohort/split. Reference missingness never receives zero loss or becomes model failure.
+
+For feasible selections with a FEASIBLE registered baseline, show the identity: gap to best = available baseline-to-best gain minus selected baseline gain. Negative gain is allowed. If the registered baseline is infeasible/unresolved, its gain is missing, not a safe baseline. Quantify component magnitudes, tau-b agreement, pairwise rank reversals under component removal and realized gains separately. Do not label any single variance share a unique causal importance when components covary.
+
+## Constructed controls
+
+Report controls separately from real-member inference. Include the published controls unchanged. Construct always-abstain; always-pick registered default; a default guarded by temperature/SOC thresholds selected solely on EV4 development references for maximum resolved-safe coverage, with deterministic tie-breaking; and a reference-feasibility-filtered default as an explicitly oracle diagnostic. A guarded control sees public inputs only at evaluation. Freeze its rule on development and apply it unchanged to verification and new question families. Never assert universal safety from observed safe picks. Add a slowest-reference-feasible oracle diagnostic if useful to expose the metric's tradeoff, clearly unavailable as a production model.
+
+## Buyer-workflow sensitivity
+
+Use gain units u = 120 seconds only as the historical opportunity unit, not money or target-SOC charge benefit. Test failure-to-one-unit-gain ratios lambda = 0, 0.1, 0.3, 1, 3, 10, 30, 100 (ASSUMPTION sensitivity, not prices). Report signed selected gain, unsafe selections, missed gain and coverage. Use a verified safe fallback per question only as an oracle/cached-reference diagnostic, defined by lowest c1 then c2 among FEASIBLE actions. Its acquisition and lookup costs are not assumed free in a sellable workflow.
+
+For the screen-then-verify product, model ordering sees predictions only. Verify the predicted-feasible shortlist in frozen objective/c1/c2 order; return the best VERIFIED-feasible design within the budget, else return no new design/fallback. Unsafe proposals are verification rejections, not deployed failures. A physical false-feasible risk after reference verification is unmeasured and not claimed zero. Keep admissibility separate from utility.
+
+ASSUMPTION budget sensitivities: at most 1/3/5 complete-action verification attempts, shortlist k equal to that cap; constant-cost tokens as primary accounting, measured historical case wall-time as a separate proxy sensitivity when available. For robust questions, a complete action includes every mandatory condition. Buyer value per verification-token cost = 0/0.01/0.1/1 gain units is ASSUMPTION; actual pricing and latency remain HUMAN_INPUT. A finite-grid solver-alone fixed/random-order replay is an illustrative comparator only, not a VALUE-BAR-V1 pass or proof against industry search. Match every compared arm's budget and reference status treatment.
+
+## Public shifts and reuse
+
+Nominal: EV4 development single-condition questions. Shift: EV4's already public interleaved verification conditions, within original P. Edge: verification questions whose normalized ambient/SOC distance to a registered envelope boundary is at most 0.1 (ASSUMPTION sensitivity definition, fixed before measuring); report them without calling them beyond-envelope.
+
+New held-out task families, on verification inputs only: one common protocol across all three SOC values at fixed temperature; one common protocol across all four temperatures at fixed SOC. These are research post-hoc question families using stored case outputs, not the registered customer question law or independent new physical observations. Objective is worst-condition time; all constraints must pass in every condition. Retain NONE_FEASIBLE/unresolved families. No new cases or answers are generated.
+
+Relate nominal RES-06 compliance residuals to shifted value, unsafe-pick rates and verified return/gain. Use the existing rest-voltage/rest-temperature/below-ambient residuals and historical gate violations, with the same digests and cohort identities. Report all associations, including failures and direction changes. Primary real CPU-rebuild cohort excludes constructed controls and adversarial members; additional/adversarial cohorts are descriptive diagnostics. Condition on nominal decision performance and show architecture-stratified sensitivity before suggesting transferable economic value. Correlation alone does not justify adopting a hard gate.
+
+Reuse weights rho = 0, 0.1, 0.25, 0.5, 1 (ASSUMPTION sensitivity) mix nominal and shifted workflow value, with question-family weights and NONE handling explicit. They never conceal empty/unresolved families. The final owner choice is one joint policy profile (lambda, rho), with low/base/high sensitivity and evidence limitations; no buyer-independent cost ratio is inferred.
+
+## Inference and verification
+
+Recipes/lineages are not independent seeds. Point rankings retain observed member multiplicity; cluster reconstruction seeds under recipe labels for uncertainty. Use paired recipe-cluster and temperature-block resampling, 2,000 replicates, public analysis seed 20261012 (ASSUMPTION numerical resolution/exchangeability, confidence 95%). Report undefined tau and coarse block counts; no confirmatory significance, universal CI coverage or winner selection is claimed. Source parameters, exact counts and measured quantities have low=base=high; CIs, scenario ranges and unknown HUMAN_INPUT values are separately labelled.
+
+Checks: exact historical decomposition; baseline-gain/regret identity; zero-unsafe verified returns relative to supplied reference labels; no budget overrun or duplicate verification; controls see only permitted inputs; original/refined cohorts distinct; existing RES-06 metrics match digests; no use of non-allowlisted predictions; JSON contains no nonfinite placeholders; deterministic aggregate rerun. Only aggregate output and provenance manifest enter the PR.
+
+## Recorded exploratory additions and limits
+
+After the first replay, add two **D-only cached scalar response maps** to avoid relying on weak solver-order comparators. These were not preregistered. For each action, measure CV-onset time, plating margin and peak temperature from public D reference outputs. The nearest map uses squared Euclidean distance in ambient/35 and SOC/0.45, then lexicographic ties. The bilinear map interpolates those scalar quantities on D's rectangular ambient/SOC grid, clamping outside that rectangle; it does not extrapolate. A missing source or a source without a CV onset makes that action's map prediction unavailable. Apply unchanged point-prediction constraint checks and objective order, then verify against V references under the same cap and bands. V responses never choose the map's order. The nominal map comparison reuses its cache source and is descriptive; only its V ordering is D-only.
+
+Account for the D cache's 420 source cases and historical wall-time sum separately. Its acquisition budget is not matched to model training. Also report the exact lookup on already-solved query inputs as an upper-bound cheap comparator: no fast model can exceed that reference-relative finite-grid design benefit. Lookup performance on public known inputs does not establish unseen-case performance or authorize answer caching on a hidden exam.
+
+The fixed-order replay orders c2 as 0.6, 0.4, 0.8, 0.2, 1 and, within each, c1 as 2, 1.75, 1.5, 1.25, 1, 0.75, 0.5 (ASSUMPTION). The random comparator uses 128 frozen action permutations and analysis seed 20261012 (ASSUMPTION). Both are diagnostics, not industrial optimization. All arms verify the whole prefix, allowing fewer attempts if no more proposals exist. Equal caps do not imply equal spent wall/core budget.
+
+The verified workflow can retain its known fallback if a verified return is worse, so credited new gain is max(0, signed gain); the direct-pick utility retains signed gain. Verify-token costs include rejected and band-unresolved attempts. No new design, or unresolved verification, gives no credited improvement; it does **not** become physical infeasibility. Settled NONE has no gain opportunity and no invented optimum. Primary gain/rank tables condition on known-opportunity questions; all offered questions, empty/unresolved counts, return rates and costs remain in the output. This is a diagnostic selection, not a new P or registered w. The intermediate bounded service-loss field in JSON is a VERIFY-style diagnostic, not the buyer utility and not a physical loss for NONE cases.
+
+Repeat verified ranks on questions where the **registered** default is FEASIBLE, crediting zero gain for keeping it, to expose sensitivity to the oracle fallback. Failure-ratio changes concern a direct unverified deployment counterfactual. In the simulated screen-then-verify arm all returned designs are reference-FEASIBLE by definition; lambda has no effect on those ranks. Real residual failure risk after verification is unknown, not zero. A future policy needs a reference-error/risk model before it can price that risk.
+
+Measured historical wall-times are reported as proxy sums and member quantiles; no independent wall-budget selection was run. A token budget is the only enforced research budget here. Whole-query inference cost, core-time, startup, prior cache construction, refinement and prospective hardware timing remain gaps for VALUE-BAR-V1.
+
+For refined sensitivity, report the newly resolved mask separately, but compare original/refined ranks only on their joint complete mask. Report unsafe-per-offered and verified-return associations as secondary descriptors, retaining unknown/reference-failure counts. No p-values, multiple-comparison winner selection or economic justification of a gate follows from these exploratory associations.
+
+Arithmetic review caught and corrected a draft direct-utility omission: a reference-INFEASIBLE pick on a settled-NONE question must still incur the failure cost, even though its possible design gain is zero. The final calculation asserts a numeric utility for every member on every common priced question; none are silently dropped. Refined rank comparisons likewise require both original and refined values on the same mask. Published tables use only the corrected calculations.
