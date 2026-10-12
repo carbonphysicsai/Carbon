@@ -41,6 +41,28 @@
 - **A refusal is typed** and never scored. Infrastructure failure stays `FAILED_INFRA`.
 - **Nothing reaches a frozen or LIVE rule.**
 
+## Host bounds (LANE-RESOURCE-BOUND-01, 2026-10-12)
+
+The lowering runs in the miner research lane (`carbon.miner-research.unlimited.v1`). On Carbon's own operator host that lane is bounded; on a miner's machine it is not.
+
+- **A live Level 4-5 session refuses to start unbounded.** `phase3 run` and `phase4 run` at `--level 4` or above refuse, typed, before anything is read or spent:
+  - `resource_profile_required`: no host resource profile is in force;
+  - `resource_profile_invalid`: the installed profile is unreadable or malformed.
+  Dry runs and Levels 0-3 are unchanged (`phase3.hostile_lane_bounds`, `miner_container.require_host_profile`).
+- **How the profile reaches every process.** It is read from the owner-only file named in `CARBON_RESEARCH_RESOURCE_PROFILE`, or, when that is unset, from `~/.config/carbon/research-resource-profile.json` if it exists. The fallback reaches MCP door processes started without the variable, and the supervisors they spawn. Both locations fail closed under the same rules. The variable takes precedence.
+- **Operator profile for `carbon-fresh`** (installed by the operator after merge, mode `0600`, owned by the lane's user):
+
+  ```json
+  {"schema": "carbon.miner-research.resource-profile.v1", "cpus": 4, "memory_bytes": 8589934592, "pids_limit": 512, "nofile": 8192}
+  ```
+
+  - 8 GiB memory, swap included, leaves about half of the 15.9 GB WSL VM to the other sessions.
+  - 512 tasks stop a fork bomb but leave room for the thread pools of JAX and BLAS.
+  - 4 CPUs keep the host responsive.
+  - 8,192 open files are generous for research. Kernel memory for descriptors is charged to the memory bound.
+- **Scratch is not capped.** Scratch is a host bind mount (`<operation>/scratch`). The carrier reads `scratch/output` from the host disk after removing the container, and a bind mount takes no size option. Capping scratch is open with the owner (see the PR).
+- **The bound is per container.** Concurrent runs from several sessions each get their own bound.
+
 ## Slices
 
 | Slice | Content | State |

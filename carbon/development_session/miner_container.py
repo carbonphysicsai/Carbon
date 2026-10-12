@@ -8,6 +8,12 @@ hostile research code and the controller that records its results: no network,
 a read-only image, no capabilities, no privilege escalation, a non-root user,
 and nothing mounted but the run's own input (read-only) and scratch.
 
+Carbon's own operator host is the one exception: it installs a resource
+profile (`load_host_profile`; INTERNAL-RESOURCE-PROFILE-01, delivered to every
+process on that host by LANE-RESOURCE-BOUND-01), and its Level 4 hostile-model
+probe and staging sessions refuse to start without one
+(`require_host_profile`). Nothing is installed on a miner's machine.
+
 This is a separate lane from the validator's grading worker in
 `carbon.reconstruction.worker.docker_runtime`, which keeps every one of its
 limits. The two share no argument builder: the miner lane cannot reach the
@@ -47,7 +53,18 @@ GPU_CAPABILITIES = "compute,utility"
 #: host's operator names in this variable; a miner's own machine sets nothing,
 #: so its research stays unlimited exactly as before.
 RESOURCE_PROFILE_ENV = "CARBON_RESEARCH_RESOURCE_PROFILE"
+#: LANE-RESOURCE-BOUND-01: where Carbon's own host installs the same file, so
+#: a process started without the variable (an MCP door another session starts
+#: through `wsl.exe ... env PYTHONPATH=...`, or the detached supervisors it
+#: spawns) is bounded too. Relative to the process user's home; read only when
+#: the variable is unset and the file exists. A miner's machine has nothing
+#: there, so its research stays unlimited exactly as before.
+RESOURCE_PROFILE_FALLBACK = Path(".config", "carbon", "research-resource-profile.json")
 RESOURCE_PROFILE_SCHEMA = "carbon.miner-research.resource-profile.v1"
+#: The closed refusal codes of a Carbon-operated hostile-code path that must
+#: never start unbounded (`require_host_profile`).
+RESOURCE_PROFILE_REQUIRED = "resource_profile_required"
+RESOURCE_PROFILE_INVALID = "resource_profile_invalid"
 _PROFILE_FIELDS = ("cpus", "memory_bytes", "pids_limit", "nofile")
 _PROFILE_LABEL = "carbon.resource-profile"
 
@@ -80,17 +97,57 @@ class ResourceProfile:
 
 
 def load_host_profile(environ=None):
-    """The host's resource profile, or None when the operator names none.
+    """The host's resource profile, or None when the operator installs none.
 
-    Fail closed: a named file that is not a regular, owner-only file owned by
-    this user, or whose record is not exactly the v1 schema, refuses the
-    launch (POLICY) rather than running unbounded on a host that asked for
-    bounds."""
+    The file named in `RESOURCE_PROFILE_ENV` when it is set; otherwise
+    `~/.config/carbon/research-resource-profile.json` when that exists
+    (LANE-RESOURCE-BOUND-01). The variable takes precedence: a named file is
+    the only one read, and the fallback is never consulted beside it.
+
+    Fail closed: a file that is not a regular, owner-only file owned by this
+    user, or whose record is not exactly the v1 schema, refuses the launch
+    (POLICY) rather than running unbounded on a host that asked for bounds.
+    Both locations are held to the same rules."""
     environ = os.environ if environ is None else environ
     named = environ.get(RESOURCE_PROFILE_ENV)
-    if not named:
+    if named:
+        return _read_profile(Path(named))
+    fallback = _fallback_profile(environ)
+    if fallback is None:
         return None
-    path = Path(named)
+    try:
+        fallback.lstat()
+    except (FileNotFoundError, NotADirectoryError):
+        # Nothing installed: a miner's machine, exactly as before.
+        return None
+    except OSError:
+        raise WorkerFailure(WorkerCode.POLICY) from None
+    return _read_profile(fallback)
+
+
+def _process_home():
+    """This process's home: `HOME`, else the password database's entry."""
+    home = os.environ.get("HOME")
+    if home:
+        return home
+    try:
+        import pwd
+
+        return pwd.getpwuid(os.getuid()).pw_dir
+    except (ImportError, KeyError):
+        return None
+
+
+def _fallback_profile(environ):
+    """The well-known profile path under the home `environ` gives (this
+    process's own home for the process environment), or None without one."""
+    home = _process_home() if environ is os.environ else environ.get("HOME")
+    if not home or not Path(home).is_absolute():
+        return None
+    return Path(home) / RESOURCE_PROFILE_FALLBACK
+
+
+def _read_profile(path):
     try:
         info = path.lstat()
         if (
@@ -110,6 +167,32 @@ def load_host_profile(environ=None):
     ):
         raise WorkerFailure(WorkerCode.POLICY)
     return ResourceProfile(**{name: document[name] for name in _PROFILE_FIELDS})
+
+
+class ResourceProfileRefused(ValueError):
+    """A Carbon-operated hostile-code path refused to start: no host resource
+    profile is in force (`RESOURCE_PROFILE_REQUIRED`), or the installed one
+    is unreadable or malformed (`RESOURCE_PROFILE_INVALID`)."""
+
+    def __init__(self, code):
+        super().__init__(code)
+        self.code = code
+
+
+def require_host_profile(environ=None):
+    """The host's profile, for a Carbon-operated path that runs hostile code
+    in this lane (the Level 4 hostile-model probe and staging sessions); it
+    refuses to start without one (LANE-RESOURCE-BOUND-01).
+
+    Never called on a miner's own research, which `load_host_profile` alone
+    governs: with nothing installed it stays unlimited."""
+    try:
+        profile = load_host_profile(environ)
+    except WorkerFailure:
+        raise ResourceProfileRefused(RESOURCE_PROFILE_INVALID) from None
+    if profile is None:
+        raise ResourceProfileRefused(RESOURCE_PROFILE_REQUIRED)
+    return profile
 
 
 @dataclass(frozen=True)
