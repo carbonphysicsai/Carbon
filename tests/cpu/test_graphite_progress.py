@@ -440,6 +440,13 @@ def pub(baseline_dec, model_dec, baseline_acc=0.10, model_acc=0.08):
     return {
         "schema": improvement.IMPROVEMENT_SCHEMA,
         "public_only": True,
+        "panel": {
+            "scoring_set": {
+                "function": improvement.PUBLIC_EV4_FUNCTION,
+                "sha256": improvement.PUBLIC_EV4_SHA,
+                "cases": 12,
+            }
+        },
         "baseline": {"accuracy_error": baseline_acc, "decision_loss": baseline_dec},
         "model": {"accuracy_error": model_acc, "decision_loss": model_dec},
     }
@@ -508,3 +515,42 @@ def test_a_record_file_with_a_sealed_name_is_refused(tmp_path):
     path.write_text(json.dumps(pub(10.0, 9.0)))
     with pytest.raises(ProgressError, match="sealed_source_refused"):
         extract.read_document(path)
+
+
+@pytest.mark.parametrize(
+    "panel",
+    [
+        None,
+        {},
+        {
+            "scoring_set": {
+                "function": "scoring_set",
+                "sha256": improvement.PUBLIC_EV4_SHA,
+            }
+        },
+        {
+            "scoring_set": {
+                "function": improvement.PUBLIC_EV4_FUNCTION,
+                "sha256": "sha256:" + "0" * 64,
+            }
+        },
+        {"scoring_set": {"function": improvement.PUBLIC_EV4_FUNCTION}},
+    ],
+)
+def test_a_record_not_on_the_public_ev4_scoring_set_digest_is_refused(panel):
+    record = pub(10.0, 9.0)
+    if panel is None:
+        del record["panel"]
+    else:
+        record["panel"] = panel
+    with pytest.raises(ProgressError, match="scoring_set_not_public_ev4"):
+        improvement.validate(record)
+
+
+def test_a_record_that_names_a_private_role_source_is_refused():
+    record = pub(10.0, 9.0)
+    record["note"] = (
+        "docs/development/evidence/exam-design-2026-09-24/refs-b/out/battery_refs/records.jsonl"
+    )
+    with pytest.raises(ProgressError, match="names_a_private_source"):
+        improvement.validate(record)

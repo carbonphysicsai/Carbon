@@ -14,19 +14,24 @@ spec; the ledger's script reads the executor's output (`improvement.py`).
 | Input | What | Pin |
 |---|---|---|
 | The run's best model | The run's BUNDLED proposal: `delivery.bundle` and `delivery.proposal_id` in the run's result document | the bundle's digest (`delivery.manifest_digest`) recorded in the output |
-| The public accuracy panel | The public EV4 development scoring set that `carbon.battery.value.scoring.scoring_set` loads (public practice and development cases with their committed references) | the scoring set's digest, recorded in the output |
-| The public decision questions | The EV4 development decision contract with its committed references (`ev4-dev-proof-v1`), and the public-dev-decisions questions (`public-dev-decisions-v1`) when their references are resolved | each contract digest, and the number of questions resolved for every member (the common mask) |
+| The public scoring set (accuracy panel and decision references) | `public_ev4_scoring_set` from #1188's runner (`scripts/dev/battery/l1_decision_q1.py`): only the committed public EV4 decision references, `docs/development/evidence/ev4-2026-10-01/decision-references.jsonl.gz`, digest `sha256:ff10f9aea9097cd500d646ffe02f479d04401207b30a44aeee33566433e436cb`. Accuracy and decision loss BOTH use it (pass it as `scoring_set=` to the experiment, as #1188 does) | the digest, recorded in the output; the ledger refuses any other |
+| The public decision questions | The EV4 development decision contract (`ev4-dev-proof-v1`, or `ev4-dev-proof-l1-v1` for Level 1) run with `scoring_set=public_ev4_scoring_set`, and the public-dev-decisions questions (`public-dev-decisions-v1`) when their references are resolved | each contract digest, and the number of questions resolved for every member (the common mask) |
 | The run's own baseline | The baseline strategy of that run's session: the baseline entry in the run's proposals' `expected.json` (its recipe digest and scored seed). Each run is compared with its OWN baseline; baselines are not shared across runs or lanes | the baseline recipe digest and seed, per run |
 
 No sealed, hidden, tuning, bank or validator material is an input. A path that names such material is refused by the ledger.
+
+**What is NOT public, and never used here.** `carbon.battery.value.scoring.scoring_set` (and the default scoring set of the
+EV contracts, whose `scoring_data` reads "retained exam-design private-role references") loads the retained exam-design
+private-role references under `docs/development/evidence/exam-design-2026-09-24/refs-b/`. Those are not public. They are never
+opened on this path: the run uses `public_ev4_scoring_set` and nothing else. A function's name or a contract's title is not
+evidence that it is public; check the source files it reads.
 
 ## Procedure
 
 1. Rebuild the bundle's model from the bundle alone (the clean rebuild the run already passed), and rebuild the run's OWN baseline
    (the baseline recipe at the seed its `expected.json` records), with the same trainer and the same backend. The rebuild uses CPU or the lane's own
    existing path; nothing is purchased.
-2. **Accuracy error** = the frozen exam's public error on the public panel (`carbon.battery.exam.evaluate` over the scoring
-   set): the mean over the SCORABLE cases, lower is better. The baseline's value is its single rebuild at the recorded seed.
+2. **Accuracy error** = the frozen exam's error (`carbon.battery.exam.evaluate`) on the cases of `public_ev4_scoring_set`: the mean over the SCORABLE cases, lower is better. The baseline's value is its single rebuild at the recorded seed.
 3. **Decision loss** = the decision value of the model's recommendations on the public decision questions, scored against the
    committed references on the common resolved mask (`carbon.battery.value` evaluate): lower is better. Reference failures are
    not a model penalty (they leave the mask). The baseline's value is its rebuild at the recorded seed, on the same mask.
@@ -41,14 +46,15 @@ No sealed, hidden, tuning, bank or validator material is an input. A path that n
       "model": {"member": "...", "bundle_digest": "sha256:...", "accuracy_error": 0.0, "decision_loss": 0.0},
       "baseline": {"definition": "the run's own baseline strategy from its proposals' expected.json", "recipe_digest": "sha256:...",
                    "seed": 0, "accuracy_error": 0.0, "decision_loss": 0.0},
-      "panel": {"scoring_set_digest": "sha256:...", "cases": 0},
+      "panel": {"scoring_set": {"function": "public_ev4_scoring_set", "sha256": "sha256:ff10f9aea9097cd500d646ffe02f479d04401207b30a44aeee33566433e436cb", "cases": 0}},
       "questions": {"contract_digests": ["sha256:..."], "common_mask": 0,
                     "skipped": [{"contract": "public-dev-decisions-v1", "reason": "references_unresolved"}]},
       "computed_by": "executor", "computed_on": "YYYY-MM-DD"
     }
 
-A metric the executor could not measure is `null`, never a guess; `public_only` must be `true` (the ledger refuses a record
-that says otherwise). The relative improvement is `(baseline - model) / baseline`, positive when the model is better.
+A metric the executor could not measure is `null`, never a guess; `public_only` must be `true` and `panel.scoring_set` must
+name `public_ev4_scoring_set` with that digest (the ledger refuses a record that says otherwise, lacks the digest, or names a
+private-role source). The relative improvement is `(baseline - model) / baseline`, positive when the model is better.
 
 ## Which levels are measurable when
 
@@ -57,7 +63,7 @@ of the value path (`Experiment(level_compiler=...)`, `carbon.battery.value.level
 
 | Levels | Measurable | Entry point |
 |---|---|---|
-| L0 | now | the existing value path (`carbon.battery.value`, no level compile) |
+| L0 | now, using `public_ev4_scoring_set` (defined in #1188's runner; until that merges the executor imports it from the branch, read-only) | the existing value path (`carbon.battery.value`, no level compile) with `scoring_set=public_ev4_scoring_set` |
 | L1 | after OPT-08 (#1188) merges | `python -m scripts.dev.battery.l1_decision_q1` over `ev4-dev-proof-l1-v1` (public EV4 decision, public references; bundles compiled at Level 1), verified against #1188's branch (head 442643fe9) |
 | L2 to L4 | after the same registration exists for those levels (a contract and a runner like #1188's); not yet built | `level_compile` with a per-level contract |
 

@@ -19,6 +19,14 @@ from .model import ProgressError, metric, unmeasured
 IMPROVEMENT_SCHEMA = "carbon.graphite.public-improvement.v1"
 #: The two lower-is-better public metrics.
 METRICS = ("accuracy_error", "decision_loss")
+#: The one scoring set a public-improvement record may use: #1188's `public_ev4_scoring_set`, the committed public
+#: EV4 decision references. `carbon.battery.value.scoring.scoring_set` loads the retained exam-design private-role
+#: references and is never used on this path.
+PUBLIC_EV4_FUNCTION = "public_ev4_scoring_set"
+PUBLIC_EV4_SHA = (
+    "sha256:ff10f9aea9097cd500d646ffe02f479d04401207b30a44aeee33566433e436cb"
+)
+PRIVATE_MARKERS = ("refs-b", "private-role", "battery_refs")
 LABEL = (
     "PUBLIC-DEV-MEASURED: the public EV4 development panel and the public decision questions, "
     "against the lane's Level 0 baseline; never sealed data; not a qualification claim"
@@ -34,6 +42,15 @@ def validate(record):
         raise ProgressError("public_improvement_schema")
     if record.get("public_only") is not True:
         raise ProgressError("public_improvement_not_public_only")
+    scoring = (record.get("panel") or {}).get("scoring_set")
+    if (
+        type(scoring) is not dict
+        or scoring.get("function") != PUBLIC_EV4_FUNCTION
+        or scoring.get("sha256") != PUBLIC_EV4_SHA
+    ):
+        raise ProgressError("public_improvement_scoring_set_not_public_ev4")
+    if any(marker in repr(record).lower() for marker in PRIVATE_MARKERS):
+        raise ProgressError("public_improvement_names_a_private_source")
     for side in ("baseline", "model"):
         row = record.get(side)
         if type(row) is not dict:
