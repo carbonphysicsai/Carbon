@@ -128,7 +128,7 @@ def test_check_runs_the_real_lifecycle_with_no_network_and_no_spend(tmp_path):
     assert report["creates"] == [receipt["pod_id"]] and report["pods_left"] == []
     # The real ledger: claimed at the job's cap before any provider call, then
     # settled at the provider's charge.
-    entry = grant_runs.entry_id(pod_jobs.STORE_ID, "pod-job-test")
+    entry = grant_runs.entry_id(grant_runs.POD_JOB_STORE, "pod-job-test")
     claim, settle = report["ledger"]
     assert claim["entry"] == entry and claim["cost_usd"] == "1.00"
     assert settle == {"settle": entry, "cost_usd": "0.07", "pending_usd": "0"}
@@ -258,11 +258,11 @@ def test_duplicates_of_an_ambiguous_create_are_terminated_and_counted(lifecycle)
 
 def test_the_real_ledger_refuses_past_the_weekly_cap(tmp_path, monkeypatch):
     monkeypatch.setenv(grant_runs.ENV, str(tmp_path / "ledger"))
-    grant = pod_jobs.JobGrant(Decimal(50))
-    for index in range(6):
-        grant_runs.claim(grant, pod_jobs.STORE_ID, f"job-{index}")
+    # USD 300 a week less the CONFIRM-02 reserve: five USD 50 jobs, not six.
+    for index in range(5):
+        grant_runs.claim_pod_job(f"job-{index}", Decimal(50))
     with pytest.raises(grant_runs.SharedRunsError) as refused:
-        grant_runs.claim(grant, pod_jobs.STORE_ID, "job-6")
+        grant_runs.claim_pod_job("job-5", Decimal(50))
     assert refused.value.code == grant_runs.WEEKLY_LIMIT
 
 
@@ -312,7 +312,7 @@ def test_uploads_come_only_from_an_allowed_public_root(tmp_path):
 
 
 @pytest.mark.parametrize(
-    "name", ["a b.json", "cafÃ©.json", "x%2e.json", "ev4/a.json", "private/a.json"]
+    "name", ["a b.json", "cafÃƒÂ©.json", "x%2e.json", "ev4/a.json", "private/a.json"]
 )
 def test_an_upload_name_that_needs_encoding_or_is_forbidden_is_refused(name):
     entry = {"sha256": "0" * 64, "bytes": 1}
@@ -431,12 +431,12 @@ def test_a_local_directory_that_differs_from_the_declared_uploads_is_refused(tmp
     spec = pod_jobs.load_spec(spec_document(uploads=pod_jobs.uploads_manifest(uploads)))
     (uploads / "a.json").write_bytes(b"2")
     with pytest.raises(pod_jobs.SpecRefused) as refused:
-        pod_jobs.read_uploads(spec, uploads)
+        pod_jobs.read_uploads(spec, uploads, [str(tmp_path)])
     assert refused.value.code == "uploads_differ"
     with pytest.raises(pod_jobs.SpecRefused):
-        pod_jobs.read_uploads(spec, None)
+        pod_jobs.read_uploads(spec, None, [str(tmp_path)])
     with pytest.raises(pod_jobs.SpecRefused):
-        pod_jobs.read_uploads(pod_jobs.load_spec(spec_document()), uploads)
+        pod_jobs.read_uploads(pod_jobs.load_spec(spec_document()), uploads, [])
 
 
 def test_the_bootstrap_accepts_only_declared_inputs_at_their_digest(
@@ -531,3 +531,11 @@ def test_the_pod_stops_waiting_for_inputs_at_its_deadline(tmp_path, monkeypatch)
     spec.loader.exec_module(module)
     with pytest.raises(RuntimeError, match="inputs incomplete"):
         module.wait_for_inputs()
+
+
+def test_run_refuses_without_the_pod_job_grant_kind(tmp_path):
+    spec = pod_jobs.load_spec(spec_document())
+    with pytest.raises(pod_jobs.SpecRefused) as refused:
+        pod_jobs.run(spec, tmp_path / "out", backend=None, ledger=object())
+    assert refused.value.code == "pod_job_grant_unavailable"
+    assert not (tmp_path / "out").exists()

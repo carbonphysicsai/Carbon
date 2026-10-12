@@ -35,8 +35,9 @@ created pod, the pod's own self-terminate at its deadline (`bootstrap.py`),
 deletion verified by absence, and the provider's charge when it reports one.
 Its own lane is the campaign `pod-jobs`.
 
-`run` claims the job in the host ledger (`grant_runs`, OWNER-TEST-GRANT-01:
-USD 300 per rolling week, USD 50 per run) before any provider call, then
+`run` claims the job in the host ledger (`grant_runs.claim_pod_job`,
+OWNER-TEST-GRANT-01: USD 50 per run, USD 300 per rolling week less the held
+CONFIRM-02 reserve) before any provider call, then
 launches, waits, fetches every result file checked against the pod's own
 sha256 listing, and terminates the pod whatever happened. The receipt
 (`carbon.pod-job.receipt.v1`, `OUT/receipt.json`) records the files and
@@ -74,8 +75,6 @@ REPOSITORY = Path(__file__).resolve().parents[2]
 SPEC_SCHEMA = "carbon.pod-job.spec.v1"
 RECEIPT_SCHEMA = "carbon.pod-job.receipt.v1"
 CAMPAIGN = "pod-jobs"
-#: The ledger store id (`grant_runs` requires 32 hex): fixed for every pod job.
-STORE_ID = hashlib.sha256(b"POD-JOBS-01").hexdigest()[:32]
 #: The owner's enabling file, beside the RunPod key file: `{"enabled": true,
 #: "upload_roots": [absolute directories]}`. Without it `run` refuses: a key
 #: file alone never spends (`require_enabled`).
@@ -99,7 +98,7 @@ SEALED_FRAGMENTS = (
 #: Upload paths are plain: no character a URL path would have to encode.
 _UPLOAD_PATH = re.compile(r"[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*")
 PHASE_MODULE = "carbon.agent_campaign.pod_job_phase"
-GRANT_ID = "OWNER-TEST-GRANT-01"
+GRANT_ID = "OWNER-TEST-GRANT-01:pod-jobs"
 #: The code trees a job's module and its imports are taken from.
 CODE_TREES = ("carbon", "scripts")
 BOOTSTRAP = "scripts/dev/exam_design/runpod/bootstrap.py"
@@ -736,20 +735,6 @@ def require_enabled(key_file):
     return roots
 
 
-# -- the ledger -----------------------------------------------------------------------------
-@dataclass(frozen=True)
-class JobGrant:
-    """A job's claim on OWNER-TEST-GRANT-01, in the shape `grant_runs` reads:
-    the job's own cost cap is its worst-case run cost."""
-
-    worst_case_run_cost: Decimal
-    grant_id: str = GRANT_ID
-    currency: str = "USD"
-    #: The standing weekly grant counts spend, not runs; the run count is the
-    #: ledger's own bound on concurrent claims from one key space.
-    permitted_runs: int = 1_000_000
-
-
 # -- one job end to end ---------------------------------------------------------------------
 RECONCILE = (
     "python -m scripts.dev.exam_design.runpod.operator_compute reconcile "
@@ -768,10 +753,11 @@ def run(spec, out, *, backend, ledger=None, private=None, uploads=None, roots=()
     from carbon.agent_campaign import grant_runs
 
     ledger = grant_runs if ledger is None else ledger
+    if not all(hasattr(ledger, f) for f in ("claim_pod_job", "settle_pod_job")):
+        raise SpecRefused("pod_job_grant_unavailable", "grant_runs has no pod_job kind")
     files_in = read_uploads(spec, uploads, roots)  # refused before any claim
     out = pods.private_dir(out)
     private = pods.private_dir(private or out / "private")
-    grant = JobGrant(backend.money["cap_usd"])
     receipt = {
         "schema": RECEIPT_SCHEMA,
         "job": backend.describe(),
@@ -786,7 +772,7 @@ def run(spec, out, *, backend, ledger=None, private=None, uploads=None, roots=()
         "cost": None,
         "ok": False,
     }
-    ledger.claim(grant, STORE_ID, spec.job_id)
+    ledger.claim_pod_job(spec.job_id, backend.money["cap_usd"])
     handle, executed = None, False
     try:
         try:
@@ -816,7 +802,7 @@ def run(spec, out, *, backend, ledger=None, private=None, uploads=None, roots=()
         receipt["errors"].append(_error("run", error))
         receipt["outcome"] = receipt["outcome"] or "error"
     finally:
-        _finish(receipt, ledger, grant, spec, backend, handle, executed, private, out)
+        _finish(receipt, ledger, spec, backend, handle, executed, private, out)
     return receipt
 
 
@@ -830,7 +816,7 @@ def _error(stage, error):
     return {"stage": stage, "detail": pods.bounded_detail(repr(error))}
 
 
-def _finish(receipt, ledger, grant, spec, backend, handle, executed, private, out):
+def _finish(receipt, ledger, spec, backend, handle, executed, private, out):
     """Teardown, duplicates and settlement, each guarded so the receipt is
     always written."""
     try:
@@ -847,9 +833,7 @@ def _finish(receipt, ledger, grant, spec, backend, handle, executed, private, ou
             receipt["errors"].append(_error("duplicates", error))
             receipt["duplicates"] = None
     try:
-        receipt["cost"] = _settle(
-            ledger, grant, spec, backend, handle, executed, receipt
-        )
+        receipt["cost"] = _settle(ledger, spec, backend, handle, executed, receipt)
     except Exception as error:  # noqa: BLE001 -- the claim stays at its cap
         receipt["errors"].append(_error("settle", error))
     try:
@@ -932,13 +916,13 @@ def _duplicates(backend, spec):
     return found
 
 
-def _settle(ledger, grant, spec, backend, handle, executed, receipt):
-    """`grant_runs.settle(cost, pending)`: cost is the total, pending the part
+def _settle(ledger, spec, backend, handle, executed, receipt):
+    """`grant_runs.settle_pod_job(cost, pending)`: cost is the total, pending the part
     still at a pod reservation. A refusal before any provider write settles at
     zero. A pod (or a duplicate) with no provider charge, or not confirmed
     gone, stays at its full reservation."""
     if not executed:
-        ledger.settle(grant, STORE_ID, spec.job_id, Decimal(0))
+        ledger.settle_pod_job(spec.job_id, Decimal(0))
         return {"reserved_usd": "0", "charged_usd": "0", "pending_usd": "0"}
     reserved = backend.money["worst_case_usd"]
     charged, pending = Decimal(0), Decimal(0)
@@ -962,7 +946,7 @@ def _settle(ledger, grant, spec, backend, handle, executed, receipt):
         else:
             charged += Decimal(row["charge_usd"])
     total = charged + pending
-    ledger.settle(grant, STORE_ID, spec.job_id, total, pending_usd=pending)
+    ledger.settle_pod_job(spec.job_id, total, pending_usd=pending)
     return {
         "reserved_usd": str(reserved),
         "charged_usd": str(charged),
