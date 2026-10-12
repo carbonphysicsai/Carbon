@@ -383,6 +383,20 @@ def test_f02_witness_chunk_order_is_digest_bound(tmp_path):
         assemble.load_producer_sources(context)
 
 
+def test_motor_ledger_without_per_solve_cpu_remains_unmeasured(tmp_path):
+    context, _ = _context(tmp_path, "motor")
+
+    def remove_cpu(ledger):
+        for row in ledger["rows"]:
+            row["core_s"] = None
+            for solve in row["solves"]:
+                solve["core_s"] = None
+
+    _reseal_artifact(context, "motor", "reference", "cost-ledger", remove_cpu)
+    with pytest.raises(assemble.AssemblyRefused, match="COST_LEDGER_CPU_MISSING"):
+        assemble.load_producer_sources(context)
+
+
 @pytest.mark.parametrize("family", ["battery-v3", "motor", "f02"])
 def test_comparison_design_uses_registered_producer_artifacts(tmp_path, family):
     context, _ = _context(tmp_path, family)

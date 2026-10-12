@@ -52,7 +52,10 @@ against held-out execution before enabling a real adaptive panel. It does not
 accept a locally asserted timestamp or the post-reference TRAIN receipt as a
 substitute. Battery's per-physical-row CPU time is unmetered (one-core
 wall time is a conservative upper bound), so public equal-budget replay cannot
-call it measured. The Carbon receipt times one batched inference, not a full
+call it measured. The current motor producer ledger also has null per-solve
+`core_s` and remains fail closed under `COST_LEDGER_CPU_MISSING`; synthetic
+motor fixtures with measured costs do not establish real motor readiness. The
+Carbon receipt times one batched inference, not a full
 per-question query, so item-3 speed remains unmeasured. These sub-scopes remain
 explicit and fail closed; no comparator or model claim is promoted by a
 synthetic fixture.

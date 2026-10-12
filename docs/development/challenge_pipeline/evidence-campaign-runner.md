@@ -102,7 +102,10 @@ The public assembler currently returns
 Battery's
 physical-row CPU cost is not metered, so its one-core wall upper bound is
 labelled `ASSUMPTION` and cannot satisfy the public measured-cost gate. The
-Carbon receipt measures one batched inference, not per-decision query latency;
+current motor producer ledger also has null per-solve `core_s`; the assembler
+refuses it as `COST_LEDGER_CPU_MISSING` until CPU cost is independently metered
+or separately approved bound semantics are registered. The Carbon receipt
+measures one batched inference, not per-decision query latency;
 the value context leaves item-3 speed unmeasured. No public value verdict or
 adaptive-competitor advantage is claimed by the fixture run.
 
