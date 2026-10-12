@@ -6,6 +6,9 @@
  "threshold": "HUMAN_INPUT: every gate cutoff is a registered point (the envelope's 1.0 is G-N+env1's), never an adopted threshold",
  "public_split": "public-dev-split-v1.json (registered 2026-10-12, before any public result is scored): salt SCORE-PROOF-01/public-dev-split-v1, leg_share 0.5, keyed on the question's scenario id (PUBLIC-DEV-DECISIONS-01's D-0000..D-0109); LEG questions feed VERIFY-R's legs only, VALUE questions the selection's value only",
  "controls": "A-Q (the base the contrast needs) and the rule in force G-FEAS/A-Q>@0.05 (the contrast), unchanged from v8",
+ "pickability": "SCORE-PROOF-PICKABLE-02, in force and unchanged, applies to every v9 rule: no known-bad control in the top half of any screened pool, and no adversarial divergence",
+ "gate_values": "the envelope gate's cutoff 1.0 is registered here as a candidate value (G-N+env1's registered point); adopting any threshold stays the owner's (HUMAN_INPUT)",
+ "sealed_confirmation_split": "the fresh sealed confirmation questions are split by the same registered rule (public-dev-split-v1: salt, leg_share 0.5, keyed on the sealed scenario id): V3 (VERIFY-R) is computed on sealed LEG questions only and the confirmation's tau on sealed VALUE questions only",
  "candidates": [
   {
    "id": "A",
