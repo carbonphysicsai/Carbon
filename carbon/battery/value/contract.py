@@ -72,6 +72,7 @@ PANELS = (
     "graphite-run5",
     "ev4-dev-tuning",
     "ev4-dev-proof",
+    "ev4-dev-proof-l1",
 )
 
 
@@ -87,6 +88,45 @@ def canonical(value):
 
 def digest(value):
     return "sha256:" + hashlib.sha256(canonical(value)).hexdigest()
+
+
+def proof_l1_registration():
+    """The public L1 panel's byte and member pins, without importing the
+    development panel module into a miner-reachable contract validator."""
+    folder = Path(__file__).with_name("panels")
+    sources = {
+        name: folder / name
+        for name in ("proof-panel-l0-v1.json", "proof-panel-levels-v1.json")
+    }
+    anchors = json.loads(sources["proof-panel-l0-v1.json"].read_bytes())["members"]
+    levels = json.loads(sources["proof-panel-levels-v1.json"].read_bytes())["members"]
+    rows = [(row, 0, None) for row in anchors]
+    rows.extend(
+        (row, 1, row.get("arm"))
+        for row in levels
+        if row["level"] == 1 and row.get("counts_for_level", True)
+    )
+    members = {
+        f"{row['label']}-s{seed}": digest(
+            {
+                "strategy": row["strategy"],
+                "seed": seed,
+                "level": level,
+                "arm": arm,
+            }
+        )
+        for row, level, arm in rows
+        for seed in row["seeds"]
+    }
+    if len(members) != sum(len(row["seeds"]) for row, _, _ in rows):
+        raise ContractError("panel_member_duplicate")
+    return {
+        "source_sha256": {
+            name: "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
+            for name, path in sources.items()
+        },
+        "member_sha256": members,
+    }
 
 
 def _within(value, bounds):
@@ -153,6 +193,22 @@ def validate(document):
         raise ContractError("case_prefix", ",".join(CASE_PREFIXES))
     if document.get("panel", "ev1") not in PANELS:
         raise ContractError("panel", ",".join(PANELS))
+    registration = document.get("panel_registration")
+    if document.get("panel") == "ev4-dev-proof-l1" and registration is None:
+        raise ContractError("panel_registration_required")
+    if registration is not None:
+        if document.get("panel") != "ev4-dev-proof-l1":
+            raise ContractError("panel_registration_not_applicable")
+        if type(registration) is not dict or set(registration) != {
+            "source_sha256",
+            "member_sha256",
+        }:
+            raise ContractError("panel_registration")
+        expected = proof_l1_registration()
+        if registration["source_sha256"] != expected["source_sha256"]:
+            raise ContractError("panel_source_mismatch")
+        if registration["member_sha256"] != expected["member_sha256"]:
+            raise ContractError("panel_member_mismatch")
     ids = [p["id"] for p in document["scoring_candidates"]["weight_profiles"]]
     for profile in document["scoring_candidates"].get("decision_aware_profiles", []):
         parse(profile)

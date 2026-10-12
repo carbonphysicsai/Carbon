@@ -403,6 +403,11 @@ PROOF_L0 = tuple(
 )
 PANELS["ev4-dev-proof"] = PANELS["ev4-dev-tuning"] + PROOF_L0
 
+# The L1 readiness study compares the eleven registered Level 0 anchors with
+# the nine counted Level 1 members. It does not inherit EV4's wider proof panel
+# or the Track A attack constructions.
+PANELS["ev4-dev-proof-l1"] = PROOF_L0
+
 #: ev4-dev-proof-levels (LEVEL-AWARE-PROOF-01): ev4-dev-proof plus the registered
 #: Level 1 to 3 proof members (`panels/proof-panel-levels-v1.json`, present once
 #: registered), each compiled at its OWN construction level when its bundle is
@@ -444,6 +449,13 @@ ATTACK_ORIGIN = "track_a_harness"
 #: Panels that carry the harness's attack constructions.
 ATTACK_PANELS = ["ev5", "ev4-dev-tuning", "ev4-dev-proof"]
 register_levels(PROOF_LEVELS)
+register_levels(
+    PROOF_LEVELS,
+    name="ev4-dev-proof-l1",
+    levels=(1,),
+    base="ev4-dev-proof-l1",
+    attack=False,
+)
 
 
 def family(strategy):

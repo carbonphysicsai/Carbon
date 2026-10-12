@@ -74,7 +74,9 @@ LEVEL_COMPILER_REQUIRED = "level_compiler_required"
 
 
 class Experiment:
-    def __init__(self, root, *, repository=REPOSITORY, level_compiler=None):
+    def __init__(
+        self, root, *, repository=REPOSITORY, level_compiler=None, scoring_set=None
+    ):
         self.root = Path(root)
         self.repository = Path(repository)
         # A panel member above Level 0 is compiled at its own level by the injected
@@ -82,6 +84,9 @@ class Experiment:
         # nothing a miner surface reaches may import the development-variant module,
         # and this module is reachable from the validator's side.
         self.level_compiler = level_compiler
+        # An explicitly public development study can supply its own scoring
+        # cases. The default remains the historical EV experiment unchanged.
+        self.scoring_set = scoring_set or sc.scoring_set
 
     # --- layout and locking ------------------------------------------------------
 
@@ -183,7 +188,7 @@ class Experiment:
             return self.manifest()
         from ..contracts import implementation_digest
 
-        _store, _case_ids, scoring_identity = sc.scoring_set(self.repository)
+        _store, _case_ids, scoring_identity = self.scoring_set(self.repository)
         manifest = {
             "schema": SCHEMA,
             "contract_digest": contract_digest,
@@ -330,7 +335,9 @@ class Experiment:
             from ..worker import DirectBackend
 
             backend = DirectBackend(self.repository)
-        inputs = panel_inputs(self.contract(), self.repository)
+        inputs = panel_inputs(
+            self.contract(), self.repository, scoring_set=self.scoring_set
+        )
         done = []
         levels = pn.levels(self.contract().get("panel", "ev1"))
         for member, _family, strategy, seed in self._members():
@@ -443,6 +450,7 @@ class Experiment:
                 if kinds[member] == "RECONSTRUCTED"
             },
             kinds_by_member=kinds,
+            scoring_set=self.scoring_set,
         )
         results["manifest_digest"] = ev.digest(self.manifest())
         out = self._dir("results")
@@ -550,10 +558,10 @@ class Experiment:
 # --- reconstruction, shared by the local panel stage and the pod phase -------------------------
 
 
-def panel_inputs(contract, repository):
+def panel_inputs(contract, repository, *, scoring_set=sc.scoring_set):
     """Every input a panel member predicts: the scoring set and the
     contract's decision cases (inputs only, never a reference value)."""
-    store, scoring_ids, _ = sc.scoring_set(repository)
+    store, scoring_ids, _ = scoring_set(repository)
     decision_inputs = {
         job["case_id"]: {k: job[k] for k in ("c1", "c2", "t_amb_c", "soc0")}
         for job in ev.decision_cases(contract)
@@ -566,11 +574,47 @@ def panel_inputs(contract, repository):
     return {**scoring_inputs, **decision_inputs}
 
 
-def member_bundle(backend, member, strategy, seed, inputs):
+def member_bundle(
+    backend,
+    member,
+    strategy,
+    seed,
+    inputs,
+    *,
+    level=0,
+    arm=None,
+    level_compiler=None,
+    panel_name=None,
+):
     """Reconstruct one member and predict `inputs`. Returns the prediction
-    bundle `Experiment.panel` writes and the trained state."""
+    bundle `Experiment.panel` writes and the trained state. A level member
+    requires its registered compiler before the Level 0 recipe is built."""
     from ..compile import compile_recipe
 
+    declared = pn.LEVELS.get(member.rpartition("-s")[0], (0, None))
+    if declared[0] and (level, arm) != declared:
+        raise ExperimentError(LEVEL_COMPILER_REQUIRED, member)
+    if level:
+        if level_compiler is None or panel_name is None:
+            raise ExperimentError(LEVEL_COMPILER_REQUIRED, member)
+        if panel_name not in pn.PANELS:
+            raise ExperimentError(LEVEL_REFUSED, member)
+        registered = [
+            (document, registered_seed)
+            for label, document, seeds in pn.PANELS[panel_name]
+            for registered_seed in seeds
+            if f"{label}-s{registered_seed}" == member
+        ]
+        if pn.levels(panel_name).get(member) != (level, arm) or registered != [
+            (strategy, seed)
+        ]:
+            raise ExperimentError(LEVEL_REFUSED, member)
+        try:
+            strategy = level_compiler.base_for(strategy, level, arm)
+        except level_compiler.LevelCompileRefused as refused:
+            raise ExperimentError(LEVEL_REFUSED, member) from refused
+    elif arm is not None:
+        raise ExperimentError(LEVEL_REFUSED, member)
     _, recipe = compile_recipe(strategy)
     started = time.monotonic()
     state, stats = backend.reconstruct(f"ev1-rec-{member}", recipe, seed)
@@ -670,6 +714,7 @@ def evaluate(
     controls=True,
     families_by_member=None,
     kinds_by_member=None,
+    scoring_set=sc.scoring_set,
 ):
     """Every member's decisions, every rule's scores, and their comparison.
 
@@ -678,7 +723,7 @@ def evaluate(
     and scored like any other, and kept out of the real-member pools."""
     candidates = ev.candidates(contract)
     baseline_id = ev.candidate_id(contract["baseline"]["protocol"])
-    store, scoring_ids, scoring_identity = sc.scoring_set(repository)
+    store, scoring_ids, scoring_identity = scoring_set(repository)
     predictions = {
         member: bundle["predictions"] for member, bundle in member_predictions.items()
     }

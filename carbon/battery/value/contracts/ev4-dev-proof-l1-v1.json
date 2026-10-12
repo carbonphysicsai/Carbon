@@ -1,0 +1,499 @@
+{
+  "acceptance": {
+    "rule_selection": "None; Q1 reports alignment under the current registered score only.",
+    "success_condition": "Measure whether the registered public Level 1 panel yields a current score-to-value alignment report and distinct decisions for readiness V1/V2.",
+    "verification": "No claim of qualification or prospective score-rule selection."
+  },
+  "authority": {
+    "chain": false,
+    "changes_testnet_rule": false,
+    "qualification": false,
+    "record": "OPT-08 L1-DECISION-EXPERIMENT-01; public DEVELOPMENT only. Thresholds and readiness acceptance remain with Test Lead.",
+    "reward": false
+  },
+  "baseline": {
+    "method": "fixed conservative default declared before any evaluation",
+    "protocol": {
+      "c1": 0.75,
+      "c2": 0.6
+    }
+  },
+  "budgets": {
+    "compute": "CPU public-development evidence; estimates are planning-only and execution requires Test Lead resource review",
+    "reconstructions_max": 20,
+    "reference_solves_max": 0
+  },
+  "case_prefix": "ev4",
+  "challenge": {
+    "id": "battery-fastcharge-ageing-development-v1",
+    "version": "1.0"
+  },
+  "constraints": [
+    {
+      "id": "reach_cv_in_window",
+      "quantity": "time_to_cv_onset_s",
+      "rule": "reached within the window",
+      "unit": "s"
+    },
+    {
+      "id": "no_plating_onset",
+      "meaning": "cycle-1 minimum plating overpotential stays non-negative",
+      "quantity": "plating_margin_v",
+      "rule": ">=",
+      "threshold": 0.0,
+      "unit": "V"
+    },
+    {
+      "id": "peak_temperature",
+      "meaning": "maximum volume-averaged temperature over the first hour",
+      "quantity": "peak_temperature_c",
+      "rule": "<=",
+      "threshold": 45.0,
+      "unit": "degC"
+    }
+  ],
+  "contract_id": "ev4-dev-proof-l1-v1",
+  "data_scope": {
+    "classification": "PUBLIC_SYNTHETIC",
+    "permitted_use": "public DEVELOPMENT evidence; no client material; client studies require the private execution route"
+  },
+  "decision": {
+    "adaptation": "one protocol per operating condition (each scenario holds exactly one condition)",
+    "changes_from_ev2": [
+      "Prospective Level 1 Q1 panel and public-only scoring-set binding; no change to the EV4 decision physics, grid, scenarios, limits or reference."
+    ],
+    "claim_scope": "Charging speed is measured as time to constant-voltage onset (the voltage proxy below), not time to a target state of charge. The 30-cycle reference is not extrapolated to real-cell lifetime or safety.",
+    "intended_use": "Public EV4 Level 1 Q1 measurement: compare eleven Level 0 proof anchors with nine counted Level 1 members on the same public development decisions. No rule adoption or qualification.",
+    "statement": "For each declared operating condition, select from a fixed grid of two-stage fast-charge protocols the one that reaches the constant-voltage phase soonest while meeting every constraint in that condition, or abstain if none qualifies.",
+    "unchanged_from_ev2": "EV4 decision objective, scenarios, candidate grid, hard constraints, bands, tie rule and public references."
+  },
+  "design_variables": {
+    "c1": {
+      "allowed": [
+        0.5,
+        0.75,
+        1.0,
+        1.25,
+        1.5,
+        1.75,
+        2.0
+      ],
+      "meaning": "first-stage constant-current rate, until 4.0 V",
+      "unit": "C"
+    },
+    "c2": {
+      "allowed": [
+        0.2,
+        0.4,
+        0.6,
+        0.8,
+        1.0
+      ],
+      "meaning": "second-stage constant-current rate, until 4.2 V",
+      "unit": "C"
+    }
+  },
+  "intended_use": "DEVELOPMENT Level 1 readiness Q1 on public EV4 references; Level 0 proof anchors plus nine counted Level 1 proposals only. No hidden cases, qualification, score-rule selection or LIVE claim.",
+  "minimum_useful_improvement_s": 120.0,
+  "mistake_costs": {
+    "false_acceptance": 10.0,
+    "missed_opportunity": 1.0,
+    "regret_per_minimum_useful_improvement": 1.0,
+    "status": "PROVISIONAL_DEVELOPMENT",
+    "unit": "multiples of the minimum useful improvement"
+  },
+  "models": {
+    "prediction_access": "models receive only design variables and operating conditions; reference answers are never visible to training or selection",
+    "reconstruction": "Carbon rebuilds each declared recipe with its declared seed through the battery construction contract",
+    "repetition": "reconstruction seeds are repetitions of one recipe, never separate model families",
+    "training_data": "public TRAIN v1 only"
+  },
+  "objective": {
+    "charge_start_s": 120.0,
+    "definition": "For the scenario's one condition, the time from charge start (the end of the reference's 120 s initial rest) to the first crossing of the terminal voltage above 4.19 V on the 30 s grid, by linear interpolation.",
+    "name": "time_to_cv_onset",
+    "sense": "minimize",
+    "threshold_v": 4.19,
+    "unit": "s",
+    "unreached": "NOT_REACHED_IN_WINDOW: the protocol fails the reach constraint in that condition; its objective is undefined, never the window length.",
+    "window_s": 3600.0
+  },
+  "operating_conditions": {
+    "envelope": {
+      "soc0": [
+        0.05,
+        0.5
+      ],
+      "t_amb_c": [
+        5.0,
+        40.0
+      ]
+    },
+    "rule": "Conditions are fixed by the scenario; a selector cannot choose them.",
+    "variables": {
+      "soc0": {
+        "meaning": "initial state of charge",
+        "unit": "fraction"
+      },
+      "t_amb_c": {
+        "meaning": "ambient and initial temperature",
+        "unit": "degC"
+      }
+    }
+  },
+  "panel": "ev4-dev-proof-l1",
+  "panel_registration": {
+    "member_sha256": {
+      "l1-D-913bf188-p-1585ecbf838a-s1327839545": "sha256:d78e31c62dfc5b2d599764cfac96f034f9d20052e3469a22ce428a588411eaec",
+      "l1-D-913bf188-p-4fd7fb870d2b-s2687932037": "sha256:4fdc487acecc5575699e9823c579663944a9559dae52bb3caa174788f484b0dc",
+      "l1-D-913bf188-p-50299fa270c6-s1880388380": "sha256:4f0b680406328e18d31ec60490e31b0f17aa6e502b076acbc0a9ff188059b592",
+      "l1-D-913bf188-p-5a3b8fe3c06f-s525414255": "sha256:167a9c72549abd6d022a8db0524b5d8bd7b90f03e181b8be0622760c20e0266b",
+      "l1-D-913bf188-p-69268f1b74ec-s2959432269": "sha256:c6f9378c9f6eaca75c3ef3fa42c04d0183a85fc0393bf8878606a5ec2483c401",
+      "l1-D-913bf188-p-891e0fd1ebdb-s3188610978": "sha256:6c94b53fd638690ecdc116cbee12f22c2aa48d83381d4aa1896958b2ce95ce83",
+      "l1-D-913bf188-p-8e47250e297c-s2120047928": "sha256:6eb13a234b54e1dee36b0e6fb81e174244ffff19bd811fdce220256685db2c30",
+      "l1-D-913bf188-p-c1c8903402bd-s2770094579": "sha256:969e7308d792084b179454481fb04436f01065a60a8567efcb5c044c639c80d2",
+      "l1-D-913bf188-p-c41a9a1ebb82-s3433577451": "sha256:e2d6d1042e61cef9028fdfafd5952d9ca66a325bb5b7fcff626e692ce4d7033b",
+      "minerH-bsub-8df17aba-s0": "sha256:c96ecedc89bdb680fa5da2e7483a883f95162e98de046d990b6c8ace571e7b57",
+      "minerH-bsub-9a658866-s0": "sha256:7652d70f6e3960bd860011b5510fba1c701bb1d239906fbef7faf33b6026b52f",
+      "minerH-bsub-b1d1f99f-s0": "sha256:c013c79b5c63b0aa2615d453ba88e27b588fd59e1c59566a90356cd2ad401da2",
+      "minerI-bsub-925d55a1-s0": "sha256:fdd06e391cb1c956374cb26e06af9a9513550f1d6072b4243cbf624a90cf8e36",
+      "minerI-bsub-e8efce9a-s0": "sha256:036f6737d5f3ff527610f094c850bf00ca31e0dd4d62dbb41c8bc924fbb14d1f",
+      "minerI-bsub-ed8a517f-s0": "sha256:36a7731e1268eb516de9a40d817ee8de9df0f6eb679add2106103bdb1738e13d",
+      "stage-a-D-18fc7b1c1eeea8aa-s951580812": "sha256:896bf6dee89ba87df71c3cce26e231cc6a26f7d4907da3c21b7076009939e7bf",
+      "stage-a-D-913bf1889a6db2d1-s513121153": "sha256:c30939a7011e0918994940fe661a49429b1ccaa3b4b851b26db65457a82590f6",
+      "stage-a-D-d90a8ccfd603cf6a-s1480945710": "sha256:ff450ae2c82066ae19f1001b72a9357484d280acf3947027bec16e361ca64abb",
+      "stage-a-E-913bf1889a6db2d1-s2602521316": "sha256:e96805136ba7b5286a4c84494fe039c1ed8aefc6d0ae5096485c02bd235d235d",
+      "stage-a-E-d90a8ccfd603cf6a-s2253865531": "sha256:1ecf858c86e5fcf2bc686e53348bf00b82a847c98584751f0aee68be51c4c4e6"
+    },
+    "source_sha256": {
+      "proof-panel-l0-v1.json": "sha256:dd5d3411dcdcb33fd6cb31698ad1c383be2d7afd6727d67cf733e76ddf049c5b",
+      "proof-panel-levels-v1.json": "sha256:653155caa2f925f11cda7c5fdb2f11d4f26f0dc0dda0a423131e6f4445d4216c"
+    }
+  },
+  "preferences_status": "The thresholds, candidate grid, baseline, minimum useful improvement and mistake costs are provisional DEVELOPMENT engineering preferences. No customer declared them and none is commercially qualified.",
+  "public_reference_sha256": "sha256:ff10f9aea9097cd500d646ffe02f479d04401207b30a44aeee33566433e436cb",
+  "reference": {
+    "generator": "carbon.battery.reference (PyBaMM 26.8.0.0, DFN, OKane2022, 30 cycles), pinned truth image and overlay lock",
+    "measurement_limitations": [
+      "voltage and temperature are kept only over the first 3600 s on a 30 s grid",
+      "no state-of-charge or current trajectory is recorded, so time to a target state of charge is not measurable",
+      "the plating margin is a cycle-1 minimum, not a lifetime plating measure"
+    ],
+    "uncertainty": {
+      "bands": {
+        "peak_temperature_c": 0.157,
+        "plating_margin_v": 0.00197,
+        "time_to_cv_onset_s": 3.15
+      },
+      "basis": "maximum observed shift between standard and refined solves of the refined TRAIN cases (docs/development/evidence/exam-design-2026-09-24/refs-a-part*)",
+      "treatment": "a reference value within the band of a threshold is UNRESOLVED, never forced to pass or fail; a missing or failed reference is REFERENCE_UNAVAILABLE, never a candidate failure"
+    }
+  },
+  "scenarios": {
+    "condition_order": [
+      "t_amb_c",
+      "soc0"
+    ],
+    "development": [
+      {
+        "conditions": [
+          [
+            5.0,
+            0.12
+          ]
+        ],
+        "id": "D-T5-S0.12"
+      },
+      {
+        "conditions": [
+          [
+            5.0,
+            0.33
+          ]
+        ],
+        "id": "D-T5-S0.33"
+      },
+      {
+        "conditions": [
+          [
+            5.0,
+            0.48
+          ]
+        ],
+        "id": "D-T5-S0.48"
+      },
+      {
+        "conditions": [
+          [
+            14.0,
+            0.12
+          ]
+        ],
+        "id": "D-T14-S0.12"
+      },
+      {
+        "conditions": [
+          [
+            14.0,
+            0.33
+          ]
+        ],
+        "id": "D-T14-S0.33"
+      },
+      {
+        "conditions": [
+          [
+            14.0,
+            0.48
+          ]
+        ],
+        "id": "D-T14-S0.48"
+      },
+      {
+        "conditions": [
+          [
+            24.0,
+            0.12
+          ]
+        ],
+        "id": "D-T24-S0.12"
+      },
+      {
+        "conditions": [
+          [
+            24.0,
+            0.33
+          ]
+        ],
+        "id": "D-T24-S0.33"
+      },
+      {
+        "conditions": [
+          [
+            24.0,
+            0.48
+          ]
+        ],
+        "id": "D-T24-S0.48"
+      },
+      {
+        "conditions": [
+          [
+            34.0,
+            0.12
+          ]
+        ],
+        "id": "D-T34-S0.12"
+      },
+      {
+        "conditions": [
+          [
+            34.0,
+            0.33
+          ]
+        ],
+        "id": "D-T34-S0.33"
+      },
+      {
+        "conditions": [
+          [
+            34.0,
+            0.48
+          ]
+        ],
+        "id": "D-T34-S0.48"
+      }
+    ],
+    "rule": "Two interleaved 4 x 3 grids spanning the envelope, fixed before any EV4 solve; no condition repeats an EV1 or EV2 condition. A verification condition with no feasible protocol is reported as such, never replaced.",
+    "verification": [
+      {
+        "conditions": [
+          [
+            9.0,
+            0.06
+          ]
+        ],
+        "id": "V-T9-S0.06"
+      },
+      {
+        "conditions": [
+          [
+            9.0,
+            0.22
+          ]
+        ],
+        "id": "V-T9-S0.22"
+      },
+      {
+        "conditions": [
+          [
+            9.0,
+            0.4
+          ]
+        ],
+        "id": "V-T9-S0.40"
+      },
+      {
+        "conditions": [
+          [
+            19.0,
+            0.06
+          ]
+        ],
+        "id": "V-T19-S0.06"
+      },
+      {
+        "conditions": [
+          [
+            19.0,
+            0.22
+          ]
+        ],
+        "id": "V-T19-S0.22"
+      },
+      {
+        "conditions": [
+          [
+            19.0,
+            0.4
+          ]
+        ],
+        "id": "V-T19-S0.40"
+      },
+      {
+        "conditions": [
+          [
+            29.0,
+            0.06
+          ]
+        ],
+        "id": "V-T29-S0.06"
+      },
+      {
+        "conditions": [
+          [
+            29.0,
+            0.22
+          ]
+        ],
+        "id": "V-T29-S0.22"
+      },
+      {
+        "conditions": [
+          [
+            29.0,
+            0.4
+          ]
+        ],
+        "id": "V-T29-S0.40"
+      },
+      {
+        "conditions": [
+          [
+            38.0,
+            0.06
+          ]
+        ],
+        "id": "V-T38-S0.06"
+      },
+      {
+        "conditions": [
+          [
+            38.0,
+            0.22
+          ]
+        ],
+        "id": "V-T38-S0.22"
+      },
+      {
+        "conditions": [
+          [
+            38.0,
+            0.4
+          ]
+        ],
+        "id": "V-T38-S0.40"
+      }
+    ]
+  },
+  "schema": "carbon.engineering-value-contract.v1",
+  "scoring_candidates": {
+    "aggregation": "carbon.development-weight-profile.v1 weighted geometric mean; zero weights removed from ranking, gates kept",
+    "components": {
+      "accuracy": "1/(1+E): mean normalized case error over all scorable cases",
+      "decision_agreement": "1/(1 + mean cost per resolved constraint call) on the scoring set: for every case and every contract constraint, the model's PASS/FAIL call from its own predictions against the reference call with the contract's bands (UNRESOLVED references excluded); a false acceptance costs mistake_costs.false_acceptance, a false rejection mistake_costs.missed_opportunity",
+      "physics": "NOT_MEASURABLE for battery: no defensible physics measurement exists; the gates are mandatory checks, not a score",
+      "robustness": "1/(1+E_important): mean normalized case error over the published important region"
+    },
+    "control": "carbon.battery.exam.v1 approved DEVELOPMENT rule: gates, then mean normalized case error",
+    "decision_aware_profiles": [
+      {
+        "id": "dar-p0-r100-a0",
+        "rationale": "decision agreement alone",
+        "weights": {
+          "accuracy": 0.0,
+          "physics": 0.0,
+          "robustness": 1.0
+        }
+      },
+      {
+        "id": "dar-p0-r30-a70",
+        "rationale": "EV1's p0-r30-a70 with the decision-aware robustness leg",
+        "weights": {
+          "accuracy": 0.7,
+          "physics": 0.0,
+          "robustness": 0.3
+        }
+      },
+      {
+        "id": "dar-p0-r50-a50",
+        "rationale": "sensitivity",
+        "weights": {
+          "accuracy": 0.5,
+          "physics": 0.0,
+          "robustness": 0.5
+        }
+      }
+    ],
+    "scoring_data": "Only digest-bound public EV4 decision references for this Level 1 development measurement; readiness score rows are supplied separately as current-rule public practice stand-ins.",
+    "weight_profiles": [
+      {
+        "id": "p45-r30-a25",
+        "weights": {
+          "accuracy": 0.25,
+          "physics": 0.45,
+          "robustness": 0.3
+        }
+      },
+      {
+        "id": "p0-r30-a70",
+        "weights": {
+          "accuracy": 0.7,
+          "physics": 0.0,
+          "robustness": 0.3
+        }
+      },
+      {
+        "id": "p0-r20-a80",
+        "rationale": "sensitivity of p0-r30-a70",
+        "weights": {
+          "accuracy": 0.8,
+          "physics": 0.0,
+          "robustness": 0.2
+        }
+      },
+      {
+        "id": "p0-r40-a60",
+        "rationale": "sensitivity of p0-r30-a70",
+        "weights": {
+          "accuracy": 0.6,
+          "physics": 0.0,
+          "robustness": 0.4
+        }
+      }
+    ]
+  },
+  "status": "PROVISIONAL_DEVELOPMENT",
+  "tie_rule": "lowest predicted objective; exact ties broken by lower c1, then lower c2",
+  "version": "1.0"
+}
