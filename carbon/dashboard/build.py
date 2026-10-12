@@ -158,6 +158,8 @@ def build(out, documents, trust, *, showcase=False, now=None):
         "schema": INDEX_SCHEMA,
         "fixture": trust.fixture,
         "brand_assets": brand,
+        # S3's signed network snapshot: the page fetches it only when present.
+        "network": (out / "data" / "network.json").is_file(),
         "boards": [entries[k] for k in sorted(entries)],
     }
     _write_json(out / "data" / "index.json", index)

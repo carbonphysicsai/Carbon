@@ -39,6 +39,17 @@ ALLOWED = {
     "generated_at",
     "feed",
     "feed.key_id",
+    "feed.public_key",
+    "rotation",
+    "rotation.blocks",
+    "rotation.seconds",
+    "rotation.hours",
+    "sections",
+    "sections[]",
+    "sections[].name",
+    "sections[].display",
+    "sections[].unit",
+    "sections[].sense",
     "feed.digest",
     "feed_state",
     "feed_state.state",
@@ -708,3 +719,32 @@ def test_v1_boards_are_unchanged_by_v2(tmp_path):
         )
         assert stored["schema"] == feed.BOARD_SCHEMA
         assert set(stored) == set(v1) | {"feed_state"}
+
+
+def test_rotation_sections_and_public_key_come_from_the_feed():
+    """DASHBOARD-02 S2: the feed's own rotation period and section metadata
+    show whatever the rules card's status; the round period stays a rule
+    statement. The feed key is the pinned public key that signed it."""
+    body = _alpha()
+    board = _v2(fixtures.sign(body), card=None)
+    every = body["release"]["rotation_every_blocks"]
+    assert board["rules"]["status"] == "UNAVAILABLE"
+    assert board["rotation"] == {
+        "blocks": every,
+        "seconds": every * board_v2.BLOCK_SECONDS,
+        "hours": round(every / 3) / 100,
+    }
+    assert board["next_round"]["every"] is None
+    assert [s["name"] for s in board["sections"]] == [
+        name
+        for name in (*feed.NUMERIC_SECTIONS, "gates")
+        if name in body.get("sections", {})
+    ]
+    for row in board["sections"]:
+        assert set(row) == {"name", "display", "unit", "sense", "reasons"}
+    assert board["feed"]["public_key"] == fixtures.fixture_public_key()
+    assert board["feed"]["key_id"] == feed.key_id(fixtures.fixture_public_key())
+    del body["release"]["rotation_every_blocks"]
+    board = _v2(fixtures.sign(body), card=None)
+    assert board["rotation"] is None
+    assert board["reasons"]["rotation"] == "not_in_feed"

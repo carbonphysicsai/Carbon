@@ -29,7 +29,9 @@ code,pre,.mono,.key{font-family:var(--mono)}
 .notice{font-size:15px;color:var(--muted-fg);border-left:3px solid var(--red);padding:6px 0 6px 16px;margin:20px 0;max-width:80ch}
 .notice strong{color:var(--fg)}
 .empty{font-size:15px;color:var(--muted-fg);padding:18px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
-.pending{color:var(--muted-fg);font-weight:400;font-size:15px;letter-spacing:0}
+.more-line{font-size:13px;color:var(--muted-fg);margin-top:12px}
+.rules-line{font-size:14px;color:var(--muted-fg);margin-top:10px}
+.timing-block{display:grid;gap:0}
 .fail{color:var(--fg);border-left:3px solid var(--red);padding-left:8px}
 
 /* Header, banner, footer */
@@ -64,7 +66,7 @@ main:focus{outline:none}
 .btn-primary{background:var(--fg);color:var(--bg)}
 .btn-primary:hover{background:#000}
 .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}
-.copy{font:inherit;font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;min-height:32px;min-width:44px;padding:0 10px;border:1px solid var(--input);background:var(--card);color:var(--fg);cursor:pointer}
+.copy{font:inherit;font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;min-height:40px;min-width:48px;padding:0 10px;border:1px solid var(--input);background:var(--card);color:var(--fg);cursor:pointer}
 .copy:hover{border-color:var(--fg)}
 
 /* Board page */
@@ -246,3 +248,14 @@ a.board-card:hover{border-color:var(--fg)}
 @media (min-width:1040px){.stage{grid-template-columns:minmax(0,1.25fr) minmax(0,1fr)}}
 .spark-y,.spark-x{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;color:var(--muted-fg)}
 .spark-y{margin-bottom:4px}.spark-x{margin-top:4px}
+.hero-labels{margin-top:16px}
+.scored{list-style:none;margin:0;padding:0;display:grid;gap:1px;background:var(--border);border:1px solid var(--border)}
+.scored-row{background:var(--card);padding:12px 14px;display:flex;justify-content:space-between;gap:4px 16px;flex-wrap:wrap}
+.scored-name{font-weight:600}
+.scored-sense{font-size:14px;color:var(--muted-fg)}
+.crumbs a,.foot-row a,.board-head .crumbs a{display:inline-flex;align-items:center;min-height:40px}
+.hotkeys summary,.more summary{display:flex;align-items:center;min-height:40px}
+.hotkeys li a{display:inline-flex;align-items:center;min-height:40px}
+td a.key{display:inline-flex;align-items:center;min-height:40px;margin:-10px 0}
+.page>*,.block>*,.duo>*,.timing>*,.timing-block>*,.steps>*,.step>*{min-width:0}
+.king-key a.key{display:inline-flex;align-items:center;min-height:40px}

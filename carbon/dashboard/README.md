@@ -59,11 +59,15 @@ How the key and the feed are handled:
 the target to beat with both bars, the eligible ladder (per coldkey when the
 feed carries one), the history sparkline, the championship rounds, the next
 round and release, and the safety gates. It computes no rank, king, margin or
-rule value; a null shows its reason ("to be announced", "not yet published",
-"rules unavailable"). Rule text and the release lag show only while the rules
-card's status is OK. Before the first release a board shows a hero state and
-"How to mine", never an empty table. `data/network.json` (S3's signed network
-snapshot) is drawn only when present.
+rule value. A null field is not drawn: its reason stays in the board.v2 JSON,
+and a section with one (king, target, timing, championship, network) shows a
+single muted line, "More coming as the Validator publishes it". Rule text and
+the release lag show only while the rules card's status is OK; otherwise one
+"Rules unavailable" line stands where they would be. Before the first release
+a board shows a hero state (the feed's rotation, labels, "What is scored" and
+"How to mine"), never an empty table. The feed key shows as the pinned public
+key's first and last bytes. `data/network.json` (S3's signed network snapshot)
+is fetched only when `index.json` says `network: true`.
 
 - Plain HTML, CSS and JS, mobile first; no framework, CDN or inline script or
   style, under the strict CSP. HTML, CSS, JS and the wordmark stay under

@@ -15,6 +15,9 @@ const now = Number(clock);
 assert.ok(site && Number.isInteger(now), "usage: dashboard_check.cjs SITE NOW");
 const read = file => JSON.parse(fs.readFileSync(file, "utf8"));
 const clone = value => JSON.parse(JSON.stringify(value));
+// Text a null field never renders: its reason stays in the board.v2 JSON.
+const NULL_TEXTS = ["not yet published", "to be announced", "timing unavailable", "not in feed", "no runner-up", "no king yet",
+  "not_in_feed", "rules_unavailable", "sealed_until_grain", "grain_human_input"];
 const ctx = {now};
 
 // ---- A minimal DOM: enough to mount a tree the way the browser does ----
@@ -53,12 +56,45 @@ function check(tree, where) {
     const body = t.children.find(c => c.tag === "tbody");
     assert.ok(body && body.children.length > 0, where + ": never an empty table");
   }
+  for (const phrase of NULL_TEXTS) {
+    assert.ok(!text.toLowerCase().includes(phrase), where + ": no per-field null text: " + phrase);
+  }
   const mounted = D.mount(tree, fakeDocument);
   assert.equal(fakeText(mounted).replace(/\s+/g, " ").trim(), text, where + ": mounted text matches the tree");
   return text;
 }
 
+
+// The one muted line per section: present exactly when a field the section
+// would draw is null. These lists are the test's own, not the page's.
+const nullIn = (obj, keys) => !obj || keys.some(k => obj[k] === null || obj[k] === undefined);
+const EXPECT = {
+  king: b => nullIn(b.king, ["uid", "value", "margin", "share_now", "next_halving_epoch", "since_block", "since_utc", "crowned_epoch", "defences"]),
+  target: b => nullIn(b.target_to_beat, ["value", "posted_margin", "noise_guard"]),
+  timing: b => nullIn(b.next_round, ["next_utc", "next_block"]) || (nullIn(b.next_round, ["every"]) && nullIn(b, ["rotation"]))
+    || nullIn(b.next_release, ["next_utc", "next_block", "lag"]),
+  championship: b => !Array.isArray(b.championship.rounds) || nullIn(b.championship.entry, ["trigger_bar", "king_screening_display", "coldkeys"]),
+  network: (b, net) => nullIn(net, ["uids", "validators", "emission"]),
+};
+function moreLines(node) { let n = 0; D.walk(node, x => { if (x.attrs.class === "more-line") { n += 1; assert.equal(D.textOf(x), D.MORE); } }); return n; }
+function sectionLines(tree, board, network, where) {
+  let expected = 0;
+  D.walk(tree, n => {
+    const name = n.attrs["data-section"];
+    if (!name) return;
+    const lines = moreLines(n);
+    if (name in EXPECT) {
+      const want = EXPECT[name](board, network);
+      assert.equal(lines, want ? 1 : 0, where + ": " + name + " line only when a field is null");
+      expected += lines;
+    } else assert.equal(lines, 0, where + ": no line in " + name);
+  });
+  assert.equal(moreLines(tree), expected, where + ": lines only inside sections");
+}
+function rulesLines(text) { return text.toLowerCase().split("rules unavailable").length - 1; }
+
 const index = read(path.join(site, "data", "index.json"));
+assert.equal(typeof index.network, "boolean", "the index says whether a network snapshot exists");
 const boards = {};
 const phases = new Set();
 let count = 0;
@@ -70,27 +106,30 @@ for (const name of fs.readdirSync(path.join(site, "data", "v2")).sort()) {
   const where = board.slug + " (" + board.phase + ")";
   const tree = D.boardPage(board, ctx);
   const text = check(tree, where);
+  sectionLines(tree, board, null, where);
   assert.ok(text.includes(board.challenge.id), where + ": title");
-  assert.ok(text.includes(D.CHAMPIONSHIP_PENDING), where + ": championship not yet published");
-  assert.ok(text.includes("key " + board.feed.key_id), where + ": feed key shown");
-  // Rule statements: none while the rules card is not OK.
+  assert.ok(text.includes("key " + D.keyShort(board)), where + ": feed key as people know it");
+  assert.ok(!text.includes(board.feed.key_id), where + ": internal key id only in an attribute");
+  // Rule statements: one "Rules unavailable" line while the card is not OK.
   assert.notEqual(board.rules.status, "OK", "no fixture build has a rules card");
-  assert.ok(text.includes(D.RULES_UNAVAILABLE), where + ": rules unavailable");
-  assert.ok(!/about \d+ h after a window|First scores publish ~/.test(text), where + ": no lag without the rules card");
+  assert.equal(rulesLines(text), 1, where + ": one rules line");
+  assert.ok(!/about \d+ h after a window|First scores publish ~|Release lag/.test(text), where + ": no lag without the rules card");
+  // What is scored, from the feed's sections.
+  for (const s of board.sections) assert.ok(text.includes(s.display), where + ": scored " + s.name);
+  if (board.rotation) assert.ok(text.includes(D.rotationText(board)), where + ": the feed's rotation");
   if (board.phase === "STALE") assert.ok(text.includes("Stale feed."), where + ": stale banner");
   if (board.phase === "PRE_FIRST_RELEASE") {
     assert.ok(hasClass(tree, "hero"), where + ": hero state");
     assert.ok(text.includes("First scores publish"), where + ": first-release message");
     assert.equal(nodes(tree, "table").length, 0, where + ": no table before the first release");
     assert.ok(text.includes("How to mine"), where + ": call to action");
+    for (const l of board.labels) assert.ok(text.includes(l), where + ": label " + l);
   } else {
     assert.ok(text.includes(D.ELIGIBLE), where + ": eligible wording");
     assert.ok(text.includes(board.ranking_section.label), where + ": section labelled by name and sense");
     assert.ok(text.includes("accuracy (lower is better)"), where + ": accuracy label");
-    // Both bars, each to be announced while null.
-    assert.ok(text.includes("Posted margin") && text.includes("Noise guard"), where + ": both bars");
-    assert.equal(text.split(D.TBA).length - 1 >= 3, true, where + ": target and both bars to be announced");
-    assert.ok(text.includes("Share now " + D.UNPUBLISHED), where + ": share not yet published");
+    assert.ok(!text.includes("Posted margin") && !text.includes("Noise guard the"), where + ": null bars hidden");
+    assert.ok(!text.includes("Share now") && !text.includes("Next halving") && !text.includes("Crowned"), where + ": null king fields hidden");
     assert.ok(text.includes(D.shortKey(board.king.hotkey)), where + ": king shown");
     const copies = []; D.walk(tree, n => { if (n.attrs["data-copy"]) copies.push(n.attrs["data-copy"]); });
     assert.ok(copies.includes(board.king.hotkey), where + ": king hotkey copy button");
@@ -100,13 +139,14 @@ for (const name of fs.readdirSync(path.join(site, "data", "v2")).sort()) {
     if (Array.isArray(lb.coldkeys)) for (const row of lb.coldkeys) assert.ok(text.includes(D.LADDER[row.status][0]), where + ": status chip " + row.status);
     for (const entry of lb.entries) check(D.minerPage(board, entry.hotkey, ctx), where + " miner " + entry.hotkey);
   }
-  // A rules card that matches: its lag and rule show (display only).
+  // A rules card that matches: its lag and rule show, and the rules line goes.
   const ok = clone(board);
   ok.rules = {status: "OK", card_digest: "sha256:" + "0".repeat(64), reasons: {}};
   ok.challenge.rule = "fixture-rule-card";
   const lag = {blocks: 5400, seconds: 64800, hours: 18};
   ok.eligible_leaderboard.release_lag = lag; ok.next_release.lag = lag;
   const okText = check(D.boardPage(ok, ctx), where + " rules OK");
+  assert.equal(rulesLines(okText), 0, where + ": no rules line when OK");
   assert.ok(okText.includes("Rule fixture-rule-card"), where + ": rule shown when OK");
   assert.ok(board.phase === "PRE_FIRST_RELEASE" ? okText.includes("First scores publish ~18 h after the first round") : okText.includes("Scores publish about 18 h after a window."), where + ": lag when OK");
   // The same values with the card unavailable never show.
@@ -116,33 +156,45 @@ for (const name of fs.readdirSync(path.join(site, "data", "v2")).sort()) {
   count += 1;
 }
 
-// Championship rounds, once the feed carries them (rev 7 shape).
+// Every field published: values show and no section line remains.
 const live = Object.values(boards).find(b => b.phase === "LIVE" && b.king);
-const rounds = clone(live);
-rounds.championship.rounds = [
+const full = clone(live);
+full.rules = {status: "OK", card_digest: "sha256:" + "0".repeat(64), reasons: {}};
+Object.assign(full.king, {uid: 7, share_now: 0.5, next_halving_epoch: 43, since_utc: "2026-10-07T01:00:00Z", crowned_epoch: 39, defences: 2});
+Object.assign(full.target_to_beat, {value: 0.12, posted_margin: 2.25, noise_guard: "paired test"});
+const at = new Date((now + 3723) * 1000).toISOString().replace(/\.\d+Z$/, "Z");
+Object.assign(full.next_round, {next_utc: at, next_block: 8200000, every: {blocks: 7200, seconds: 86400, hours: 24}});
+Object.assign(full.next_release, {next_utc: at, next_block: 8205400, lag: {blocks: 5400, seconds: 64800, hours: 18}});
+full.championship.entry = {trigger_bar: 0.13, king_screening_display: 0.123, coldkeys: [{entered: true}], reasons: {}};
+full.championship.rounds = [
   {epoch: 41, chunks_used: 2, stopped: "efficacy", n_solved: 812, margin_pct: 2.25, new_king: null, paid_from_epoch: null,
     entrants: [{hotkey: "fixture-miner-01", est_improvement_pct: 3.1, lower_bound_pct: 2.6, guard_bar_pct: 2.4, gap_to_win_pct: -0.2, safety: "PASS", outcome: "WON"}]},
   {epoch: 40, chunks_used: 0, stopped: null, n_solved: 0, margin_pct: 2.25, entrants: [], new_king: null, paid_from_epoch: null},
 ];
-rounds.king.share_now = 0.5; rounds.king.next_halving_epoch = 43; rounds.king.uid = 7;
-rounds.target_to_beat.posted_margin = 2.25; rounds.target_to_beat.noise_guard = "paired test";
-const roundsText = check(D.boardPage(rounds, ctx), "rounds");
-for (const want of ["Epoch 41", "stopped early: efficacy", "812 solved", "3.1%", "2.6%", "2.4%", "-0.2%", D.EMPTY_EPOCH, "UID 7", "epoch 43", "2.25", "paired test"]) {
-  assert.ok(roundsText.includes(want), "rounds: " + want);
+const fullTree = D.boardPage(full, ctx);
+const fullText = check(fullTree, "full");
+sectionLines(fullTree, full, null, "full");
+assert.equal(moreLines(fullTree), 0, "full: no section line");
+for (const want of ["UID 7", "Share now 0.5", "epoch 43", "Held for 1 d", "Crowned epoch 39", "Defences 2", "Posted margin 2.25", "Noise guard paired test",
+  "01:02:03", "Every 7,200 blocks", "Release lag 5,400 blocks", "Entry trigger bar 0.13", "Epoch 41", "stopped early: efficacy", "812 solved",
+  "3.1%", "2.6%", "2.4%", "-0.2%", D.EMPTY_EPOCH]) {
+  assert.ok(fullText.includes(want), "full: " + want);
 }
-assert.ok(!roundsText.includes(D.CHAMPIONSHIP_PENDING), "rounds replace the pending note");
+// One null in a section brings its line back.
+for (const [name, unset] of [["king", b => { b.king.share_now = null; }], ["target", b => { b.target_to_beat.noise_guard = null; }],
+  ["timing", b => { b.next_release.lag = null; }], ["championship", b => { b.championship.entry.trigger_bar = null; }]]) {
+  const one = clone(full); unset(one);
+  const oneTree = D.boardPage(one, ctx);
+  check(oneTree, "one null " + name);
+  sectionLines(oneTree, one, null, "one null " + name);
+  assert.equal(moreLines(oneTree), 1, "one null in " + name + ": one line");
+}
 // A king history with a handover marks an era change.
 const kings = clone(live);
 kings.history.kings = [{hotkey: "a", receipt_block: 1, value: 0.2}, {hotkey: "a", receipt_block: 2, value: 0.19}, {hotkey: "b", receipt_block: 3, value: 0.18}];
 const kingsTree = D.boardPage(kings, ctx);
 check(kingsTree, "kings");
 assert.equal(nodes(kingsTree, "line").filter(n => n.attrs.class === "handover").length, 1, "one handover marked");
-// Timing: a countdown from a published time, else "timing unavailable".
-const timed = clone(live);
-timed.next_round.next_utc = new Date((now + 3723) * 1000).toISOString().replace(/\.\d+Z$/, "Z");
-const timedTree = D.boardPage(timed, ctx);
-assert.ok(D.textOf(timedTree).includes("01:02:03"), "countdown from next_utc");
-assert.ok(D.textOf(D.boardPage(live, ctx)).includes(D.TIMING_UNAVAILABLE), "timing unavailable");
 // A rule-era change since the last visit is labelled.
 assert.ok(D.textOf(D.boardPage(live, {now, eraBefore: "sha256:" + "1".repeat(64)})).includes("New rule era."), "era change labelled");
 // A refused newest feed says so.
@@ -153,8 +205,14 @@ assert.ok(D.textOf(D.boardPage(refused, ctx)).includes("Newest feed refused"), "
 const home = check(D.homePage(index, boards, {now, network: null}), "home");
 assert.ok(home.includes("Fixture data."), "fixture notice");
 assert.equal(D.networkStrip(null), null, "no snapshot, no strip");
-assert.equal(D.networkStrip({other: 1}), null, "unknown fields, no strip");
-assert.ok(D.textOf(D.homePage(index, boards, {now, network: {uids: 256, validators: 12, emission: 0.5}})).includes("Validators 12"), "network strip");
+const partNet = {uids: 256};
+const partTree = D.homePage(index, boards, {now, network: partNet});
+sectionLines(partTree, null, partNet, "network partial");
+assert.ok(D.textOf(partTree).includes("UIDs 256") && D.textOf(partTree).includes(D.MORE), "network partial");
+const fullNet = {uids: 256, validators: 12, emission: 0.5};
+const netTree = D.homePage(index, boards, {now, network: fullNet});
+sectionLines(netTree, null, fullNet, "network full");
+assert.ok(D.textOf(netTree).includes("Validators 12") && !D.textOf(netTree).includes(D.MORE), "network full");
 const mine = check(D.minePage(), "mine");
 for (const want of ["Start", "Practice", "Submit", "My status"]) assert.ok(mine.includes(want), "how to mine: " + want);
 const links = []; D.walk(D.minePage(), n => { if (n.attrs.href) links.push(n.attrs.href); });
@@ -165,4 +223,5 @@ assert.deepEqual(D.parseRoute("#/mine"), {view: "mine"});
 assert.deepEqual(D.parseRoute("#/"), {view: "home"});
 assert.equal(D.countdown(3723), "01:02:03");
 assert.equal(D.signed(0.015, 3), "+0.015");
+assert.equal(D.keyShort({feed: {public_key: "bc45568c50bd8d60a211310ffad7936ee9ff21908c9b14021acd0ba11416d3ae"}}), "bc45568c…d3ae");
 process.stdout.write(JSON.stringify({boards: count, phases: [...phases].sort()}) + "\n");

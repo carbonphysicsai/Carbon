@@ -11,7 +11,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from carbon.dashboard import build
+from carbon.dashboard import build, fixtures
 
 ROOT = Path(__file__).resolve().parents[2]
 WEB = ROOT / "carbon" / "dashboard" / "web"
@@ -90,3 +90,32 @@ def test_files_are_utf8_with_lf_endings():
         body = path.read_bytes()
         body.decode("utf-8")
         assert b"\r\n" not in body, path.name
+
+
+def test_no_per_field_null_text_in_the_pages():
+    """A null field is hidden: its reason stays in the board.v2 JSON. The pages
+    carry one section line and one rules line instead (Test Lead review)."""
+    for path in _web_files():
+        text = path.read_text(encoding="utf-8").lower()
+        for phrase in ("not yet published", "to be announced", "timing unavailable"):
+            assert phrase not in text, (path.name, phrase)
+    script = (WEB / "dashboard.js").read_text(encoding="utf-8")
+    assert script.count('"More coming as the Validator publishes it"') == 1
+    assert script.count('"Rules unavailable"') == 1
+
+
+def test_the_index_says_whether_a_network_snapshot_exists(tmp_path):
+    site = tmp_path / "site"
+    assert (
+        build.build(site, fixtures.documents(), fixtures.fixture_trust())["network"]
+        is False
+    )
+    (site / "data" / "network.json").write_text("{}", encoding="utf-8")
+    assert (
+        build.build(site, fixtures.documents(), fixtures.fixture_trust())["network"]
+        is True
+    )
+    # The Worker serves no snapshot yet (S3), so its index says so.
+    assert "network: false" in WORKER.read_text(encoding="utf-8")
+    script = (WEB / "dashboard.js").read_text(encoding="utf-8")
+    assert 'index.network === true ? await optional("data/network.json")' in script
