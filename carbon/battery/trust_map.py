@@ -80,6 +80,12 @@ def build_battery_maps(panel):
     """Require the pooled input to remain within battery's public bounds too."""
     from carbon.battery.domain import INPUT_BOUNDS
 
+    if (
+        type(panel) is not dict
+        or type(panel.get("reference_verification")) is not dict
+        or panel["reference_verification"].get("family") != "battery-v3"
+    ):
+        raise MapRefused("battery_reference_family_required")
     maps = build_maps(panel, battery_spec())
     low, high = INPUT_BOUNDS["c2"]
     for case in panel["cases"]:

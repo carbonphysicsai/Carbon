@@ -13,6 +13,7 @@ from pathlib import Path
 from carbon.design_search import budget_registration, equal_budget, tasks
 from carbon.development_comparison import cheap_baselines as cb
 from carbon.development_comparison import evidence_pipeline as ep
+from carbon.development_comparison import value_bar as vb
 
 ROOT = Path(__file__).resolve().parents[3]
 METHODS = {"battery-v3": "protocol", "motor": "gaussian", "f02": "impulse-response"}
@@ -263,8 +264,102 @@ def build(export, ledger, predictions, receipt, comparator, bindings=None):
     return replay, bound
 
 
-def value_context(export, predictions):
-    """Bind selection and independent support clusters without inventing speed."""
+def _measured_speed(export, ledger, receipt):
+    """Pair warm full-question inference with serial reference panel wall time.
+
+    The result is a wall-time receipt only. A stage CPU total cannot establish
+    the CPU time of one reference solve for the flagship allowance.
+    """
+    if ledger is None or receipt is None:
+        return None
+    measured = receipt.get("cost", {}).get("inference", {}).get("decision_queries")
+    if measured is None:
+        return None  # older batched receipts cannot be divided into questions
+    if (
+        type(measured) is not list
+        or ledger.get("export_digest") != export["export_digest"]
+        or receipt.get("export_digest") != export["export_digest"]
+    ):
+        raise DesignRefused("DECISION_QUERY_METER_IDENTITY_INVALID")
+    timing = {}
+    for row in measured:
+        if (
+            type(row) is not dict
+            or set(row)
+            != {
+                "query",
+                "physical_rows",
+                "model_queries",
+                "cold_wall_s",
+                "cold_cpu_s",
+                "wall_s",
+                "cpu_s",
+            }
+            or not isinstance(row["query"], str)
+            or not row["query"]
+            or row["query"] in timing
+        ):
+            raise DesignRefused("DECISION_QUERY_METER_INVALID")
+        if (
+            type(row["physical_rows"]) is not int
+            or type(row["model_queries"]) is not int
+            or row["physical_rows"] <= 0
+            or row["model_queries"] < row["physical_rows"]
+            or any(
+                type(row[name]) not in (int, float)
+                or not math.isfinite(row[name])
+                or row[name] < 0
+                for name in ("cold_wall_s", "cold_cpu_s", "wall_s", "cpu_s")
+            )
+            or row["wall_s"] <= 0
+        ):
+            raise DesignRefused("DECISION_QUERY_METER_INVALID")
+        timing[row["query"]] = row
+    if set(timing) != {q["case"] for q in export["questions"]}:
+        raise DesignRefused("DECISION_QUERY_METER_INVENTORY_MISMATCH")
+    costs = {(r["band"], r["candidate"], r["condition"]): r for r in ledger["rows"]}
+    if len(costs) != len(ledger["rows"]):
+        raise DesignRefused("DECISION_QUERY_REFERENCE_INVENTORY_MISMATCH")
+    pairs = []
+    for question in export["questions"]:
+        keys = [
+            (band, row["candidate"], row["condition"])
+            for band, _task, panel in cb._panels(question)
+            for row in panel
+        ]
+        if (
+            not keys
+            or len(keys) != len(set(keys))
+            or len(keys) != timing[question["case"]]["physical_rows"]
+            or any(key not in costs for key in keys)
+        ):
+            raise DesignRefused("DECISION_QUERY_REFERENCE_INVENTORY_MISMATCH")
+        walls = [costs[key]["wall_s"] for key in keys]
+        if any(
+            type(v) not in (int, float) or not math.isfinite(v) or v <= 0 for v in walls
+        ):
+            raise DesignRefused("DECISION_QUERY_REFERENCE_COST_INVALID")
+        pairs.append(
+            {
+                "query": question["case"],
+                "reference_wall_s": sum(walls),
+                "carbon_wall_s": timing[question["case"]]["wall_s"],
+            }
+        )
+    return {
+        "schema": vb.SPEED_SCHEMA,
+        "export_digest": export["export_digest"],
+        "status": "MEASURED",
+        "query_unit": "full_registered_decision_query",
+        "route": "serial-complete-panel-vs-warm-carbon-question-v1",
+        "pairs": pairs,
+        "reference_solve_core_s": None,
+        "reference_solve_source_digest": None,
+    }
+
+
+def value_context(export, predictions, ledger=None, receipt=None):
+    """Bind selection, independent support clusters and paired query speed."""
     groups = {}
     for question in export["questions"]:
         groups.setdefault(question["support_case"], []).append(question["case"])
@@ -301,8 +396,7 @@ def value_context(export, predictions):
             "selection_receipt_digest": predictions["source_receipt_digest"],
         },
         "folds": folds,
-        # A batched warm model query is not a measured per-decision query.
-        "speed": None,
+        "speed": _measured_speed(export, ledger, receipt),
         "item_1": None,
         "item_4": None,
     }

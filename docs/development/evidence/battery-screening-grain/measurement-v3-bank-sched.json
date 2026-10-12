@@ -1,0 +1,26 @@
+{
+ "schema": "carbon.battery.screening-grain-measurement.v1",
+ "ticket": "SCREENING-GRAIN-01",
+ "rule": "v3-bank-sched",
+ "score": "registered G-FEAS/A-Q>@0.05 (OWNER-BATTERY-SCORE-CANDIDATE-01): a^0.5 q^0.5, higher is better",
+ "data": "public EV4 scoring set + ev4-dev-tuning-v1 verification scenarios with a feasible design",
+ "pooled_screening_cases": 294,
+ "design_questions": 24,
+ "public_scenarios": 9,
+ "members": 10,
+ "common_scorable_cases": 1588,
+ "bootstrap_se": {
+  "median": 0.024641860085010472,
+  "p10": 0.01743614844729785,
+  "p90": 0.11615765460997206,
+  "reps": 4000
+ },
+ "leg_relative_se_median": {
+  "a": 0.0027006542099904406,
+  "q": 0.0492801110236384
+ },
+ "measured_se": 0.024641860085010472,
+ "grain": 0.025,
+ "grain_if_p90_member": 0.12,
+ "caveat": "q is resampled from only the public verification scenarios each member was scored on; live windows draw design questions from the sealed design bank. Remeasure from scored submissions after the cutover."
+}

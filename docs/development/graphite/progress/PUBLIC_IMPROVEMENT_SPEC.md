@@ -72,7 +72,7 @@ of the value path (`Experiment(level_compiler=...)`, `carbon.battery.value.level
 |---|---|---|
 | L0 | now, using `public_ev4_scoring_set` (defined in #1188's runner; until that merges the executor imports it from the branch, read-only) | the existing value path (`carbon.battery.value`, no level compile) with `scoring_set=public_ev4_scoring_set` |
 | L1 | accuracy error now (executor records of 2026-10-12, #1188 on main); decision loss only once the bundle is a registered panel member | `python -m scripts.dev.battery.l1_decision_q1` over `ev4-dev-proof-l1-v1` (public EV4 decision, public references; bundles compiled at Level 1), verified against #1188's branch (head 442643fe9) |
-| L2 to L4 | after the same registration exists for those levels (a contract and a runner like #1188's); not yet built | `level_compile` with a per-level contract |
+| L2 to L4 | accuracy error now (executor records of 2026-10-12: the level-compile rebuild works for every level without a panel registration); decision loss only after a panel-member registration | `level_compile.base_for(strategy, level, None)` then the Level 0 base, as at Level 1 |
 
 Until then the record for such a run is not written (the ledger reads UNMEASURED for that level), never a Level 0 rebuild of a
 level bundle.
@@ -82,9 +82,11 @@ level bundle.
 the way that path does (`level_compile.base_for(strategy, level, None)` then the Level 0 base) without the registered-panel
 guard, scores accuracy error on `public_ev4_scoring_set` against its own baseline, and writes `decision_loss` null with
 `questions.decision_loss_null_reason`. The ledger keeps that reason on the decision-loss column and carries a **caveat on the
-accuracy column** naming the missing guard (`improvement.public_dev.accuracy_error.caveats`). Registering Graphite bundles as panel
-members, for decision loss at Level 1 and for any scoring at Levels 2 to 4, is the Test Engineer's decision; until it is made, Levels 2
-to 4 read UNMEASURED and the line says why. A record's `level` must equal its manifest run's level or the batch is refused.
+accuracy column** naming the missing guard (`improvement.public_dev.accuracy_error.caveats`). Registering Graphite bundles as panel members, for decision loss at every level, is the Test Engineer's decision; until it is made, decision loss reads UNMEASURED with the executor's reason at Levels 1 to 4. A record's `level` must equal its manifest run's level or the batch is refused.
+
+**Level 4 is a base-recipe-only measurement.** The Level 4 bundles scored in the 2026-10-12 records were built on variant `ad15d6a8` with no graph, so their accuracy numbers measure the base recipe, not any graph lowering or Level 4 freedom. The ledger line carries this as a top-level `caveats` entry and on the accuracy column (`L4_BASE_RECIPE_CAVEAT`), so it cannot be read as evidence about Level 4. When Level 4 bundles that actually build the graph are scored, the caveat is dropped by a code change tied to that evidence, never by an edit to a record.
+
+With 3 runs the bootstrap interval is computed but flagged coarse (`ci95_note`): the bootstrap median can only take the 3 observed values, so it is roughly their range. It is not an error bar.
 
 ## Questions that cannot be scored
 

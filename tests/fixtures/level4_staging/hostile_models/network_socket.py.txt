@@ -1,0 +1,19 @@
+"""HOSTILE FIXTURE: lower only in the executor's bounded probe container."""
+
+import socket
+
+FRAMEWORK = "jax"
+INPUTS = {"inputs/features": ((3,), "float32")}
+
+
+def init(key):
+    return []
+
+
+def forward(params, x):
+    print("HOSTILE_L4_PROBE:network_socket", flush=True)
+    # A documentation-only address: no DNS lookup or third-party service.
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as connection:
+        connection.settimeout(1)
+        connection.connect(("198.51.100.1", 9))
+    return x

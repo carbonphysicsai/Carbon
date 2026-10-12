@@ -46,6 +46,9 @@ SMALL_N = 10
 #: A percentile bootstrap of a median from fewer than three values is just the range of the values, so no interval is
 #: reported below this size; the ledger says so instead of printing a fabricated one.
 MIN_N_INTERVAL = 3
+#: Below this size the interval is reported but flagged coarse: a bootstrap of the median of n values can only return
+#: observed values, so it is roughly the sample's range.
+COARSE_N = 5
 #: Why a record above Level 0 carries a caveat: the executor rebuilds the bundle through `level_compile.base_for`
 #: without `member_bundle`'s registered-panel guard (a Graphite bundle is not a registered panel member).
 LEVEL_REBUILD_CAVEAT = (
@@ -140,12 +143,27 @@ def _decision_noise(pairs):
     return reasons
 
 
+#: Level 4 caveat (executor report, 2026-10-12): the Level 4 bundles scored here were built on variant ad15d6a8
+#: with no graph, so the accuracy numbers measure the BASE recipe, not any graph lowering or Level 4 freedom.
+L4_BASE_RECIPE_CAVEAT = (
+    "LEVEL 4 BASE-RECIPE-ONLY MEASUREMENT: the bundles scored here are on variant ad15d6a8 with no graph, so the "
+    "number measures the base recipe, NOT graph lowering or the Level 4 freedoms; not evidence about Level 4"
+)
+
+
 def _caveats(records):
     """Caveats the ledger line must carry for these records (levels above 0 rebuild without the panel guard)."""
     out = []
     if any((rec.get("level") or 0) > 0 for rec in records):
         out.append(LEVEL_REBUILD_CAVEAT)
+    if any(rec.get("level") == 4 for rec in records):
+        out.append(L4_BASE_RECIPE_CAVEAT)
     return out
+
+
+def line_caveats(records):
+    """The caveats a ledger line must carry for its public-improvement records (empty when none apply)."""
+    return _caveats([r for r in records if r])
 
 
 def _null_reasons(records, name):
@@ -159,8 +177,8 @@ def _null_reasons(records, name):
 
 
 PANEL_MEMBER_NOTE = (
-    "Levels 2-4 need the same panel-member registration as Level 1 (the Test Engineer's decision) before the "
-    "executor can score a bundle at that level"
+    "decision loss at Levels 2-4 needs the panel-member registration (the Test Engineer's decision); the executor "
+    "can score accuracy error without it, and this run has no record"
 )
 
 
@@ -206,7 +224,13 @@ def public_dev_block(records, level=None):
             **(
                 {"ci95_note": f"interval not meaningful at n={len(values)}"}
                 if len(values) < MIN_N_INTERVAL
-                else {}
+                else (
+                    {
+                        "ci95_note": f"coarse at n={len(values)}: the bootstrap median can only take the observed values"
+                    }
+                    if len(values) < COARSE_N
+                    else {}
+                )
             ),
             **({"caveats": _caveats(records)} if _caveats(records) else {}),
             "interval": f"percentile bootstrap of the median, {BOOTSTRAP_REPS} resamples, seed {BOOTSTRAP_SEED}",
