@@ -8,7 +8,8 @@
    "role": "constructor",
    "level": 1,
    "chain_log": "lvl-chain-D.log",
-   "chain_label": "L1 lane D"
+   "chain_label": "L1 lane D",
+   "public_improvement_file": "graphite-913bf1889a6db2d1-D-L1-public-improvement.json"
   },
   {
    "file": "lvl-1-D-r4-s1.out",
@@ -23,7 +24,8 @@
   {
    "file": "lvl-1-D-r4-s3.out",
    "role": "constructor",
-   "level": 1
+   "level": 1,
+   "public_improvement_file": "graphite-18fc7b1c1eeea8aa-D-L1-public-improvement.json"
   },
   {
    "file": "lvl-2-E.out",

@@ -52,7 +52,7 @@ evidence that it is public; check the source files it reads.
       "run_id": "...", "lane": "D|E|F|G", "level": 0-4,
       "model": {"member": "...", "bundle_digest": "sha256:...", "accuracy_error": 0.0, "decision_loss": 0.0},
       "baseline": {"definition": "the run's own baseline strategy from its proposals' expected.json", "recipe_digest": "sha256:...",
-                   "seed": 0, "accuracy_error": 0.0, "decision_loss": 0.0},
+                   "seeds": [0], "accuracy_error": 0.0, "decision_loss": 0.0},
       "panel": {"scoring_set": {"function": "public_ev4_scoring_set", "sha256": "sha256:ff10f9aea9097cd500d646ffe02f479d04401207b30a44aeee33566433e436cb", "cases": 0}},
       "questions": {"contract_digests": ["sha256:..."], "common_mask": 0,
                     "skipped": [{"contract": "public-dev-decisions-v1", "reason": "references_unresolved"}]},
@@ -71,11 +71,20 @@ of the value path (`Experiment(level_compiler=...)`, `carbon.battery.value.level
 | Levels | Measurable | Entry point |
 |---|---|---|
 | L0 | now, using `public_ev4_scoring_set` (defined in #1188's runner; until that merges the executor imports it from the branch, read-only) | the existing value path (`carbon.battery.value`, no level compile) with `scoring_set=public_ev4_scoring_set` |
-| L1 | after OPT-08 (#1188) merges | `python -m scripts.dev.battery.l1_decision_q1` over `ev4-dev-proof-l1-v1` (public EV4 decision, public references; bundles compiled at Level 1), verified against #1188's branch (head 442643fe9) |
+| L1 | accuracy error now (executor records of 2026-10-12, #1188 on main); decision loss only once the bundle is a registered panel member | `python -m scripts.dev.battery.l1_decision_q1` over `ev4-dev-proof-l1-v1` (public EV4 decision, public references; bundles compiled at Level 1), verified against #1188's branch (head 442643fe9) |
 | L2 to L4 | after the same registration exists for those levels (a contract and a runner like #1188's); not yet built | `level_compile` with a per-level contract |
 
 Until then the record for such a run is not written (the ledger reads UNMEASURED for that level), never a Level 0 rebuild of a
 level bundle.
+
+**Level 1 accuracy error without a panel registration.** A Graphite bundle is not a registered member of the 20-member
+`ev4-dev-proof-l1-v1` panel (11 Level 0 anchors, 9 Level 1), so `member_bundle`'s level path refuses it. The executor rebuilds it
+the way that path does (`level_compile.base_for(strategy, level, None)` then the Level 0 base) without the registered-panel
+guard, scores accuracy error on `public_ev4_scoring_set` against its own baseline, and writes `decision_loss` null with
+`questions.decision_loss_null_reason`. The ledger keeps that reason on the decision-loss column and carries a **caveat on the
+accuracy column** naming the missing guard (`improvement.public_dev.accuracy_error.caveats`). Registering Graphite bundles as panel
+members, for decision loss at Level 1 and for any scoring at Levels 2 to 4, is the Test Engineer's decision; until it is made, Levels 2
+to 4 read UNMEASURED and the line says why. A record's `level` must equal its manifest run's level or the batch is refused.
 
 ## Questions that cannot be scored
 
@@ -105,8 +114,14 @@ rule #1188 sets); nothing here is purchased.
 
 For each level and metric (`accuracy_error`, `decision_loss`): the **median** and the **best** relative improvement over the
 level's runs, a **95% percentile-bootstrap interval of the median** (2000 resamples, fixed seed 20261012, so the same records
-give the same interval), the number of runs `n`, and a `small_n` flag when `n` is under 5. Its label is "PUBLIC-DEV-MEASURED".
+give the same interval; with fewer than 3 runs the interval is `null` and the column says "interval not meaningful at n=2", since
+a bootstrap of two values is only their range), the number of runs `n`, and a `small_n` flag when `n` is under 10. Its label is "PUBLIC-DEV-MEASURED".
 The column is `constructor.improvement.public_dev.{accuracy_error,decision_loss}` in each ledger line.
+
+**Noisy decision loss.** Decision loss is scored on the common resolved mask, which differs between runs. When the masks differ or
+the runs disagree in sign, the ledger shows the column as `MEASURED_BUT_NOISY` with the per-run values and the masks, and it is
+not an improvement claim; the accuracy-error column is the headline until the masks are comparable (for instance when
+`public-dev-decisions-v1` is resolved).
 
 ## How the executor hands it over
 

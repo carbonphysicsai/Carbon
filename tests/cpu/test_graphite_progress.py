@@ -586,3 +586,125 @@ def test_a_missing_or_digestless_contract_refuses_every_record(contract, content
         contract.write_text(content)
     with pytest.raises(ProgressError, match="contract"):
         improvement.validate(pub(10.0, 9.0))
+
+
+# -- noisy decision loss ---------------------------------------------------------------------------------
+def with_mask(record, mask, run):
+    return {**record, "questions": {"common_mask": mask}, "run_id": run}
+
+
+def test_decision_loss_with_differing_masks_is_measured_but_noisy_and_not_a_claim():
+    records = [
+        with_mask(pub(10.0, 9.0), 9, "r1"),
+        with_mask(pub(10.0, 8.0), 8, "r2"),
+        with_mask(pub(10.0, 7.0), 8, "r3"),
+    ]
+    block = line([crun(public_improvement=r) for r in records])["constructor"][
+        "improvement"
+    ]["public_dev"]
+    decision = block["decision_loss"]
+    assert decision["value"] == improvement.NOISY
+    assert (
+        "masks differ" in decision["reading"]
+        and "NOT an improvement claim" in decision["reading"]
+    )
+    assert [p["common_mask"] for p in decision["per_run"]] == [9, 8, 8]
+    assert decision["per_run"][0]["run"] == "r1" and decision[
+        "median_if_read"
+    ] == pytest.approx(0.2)
+    # the accuracy column is unaffected and numeric
+    assert block["accuracy_error"]["value"] == pytest.approx(0.2)
+
+
+def test_runs_that_disagree_in_sign_are_noisy_even_on_one_mask():
+    records = [with_mask(pub(10.0, 9.0), 9, "r1"), with_mask(pub(10.0, 12.0), 9, "r2")]
+    decision = line([crun(public_improvement=r) for r in records])["constructor"][
+        "improvement"
+    ]["public_dev"]["decision_loss"]
+    assert (
+        decision["value"] == improvement.NOISY
+        and "disagree in sign" in decision["reading"]
+    )
+
+
+def test_a_consistent_decision_loss_is_a_number():
+    records = [with_mask(pub(10.0, 9.0), 9, "r1"), with_mask(pub(10.0, 8.0), 9, "r2")]
+    decision = line([crun(public_improvement=r) for r in records])["constructor"][
+        "improvement"
+    ]["public_dev"]["decision_loss"]
+    assert decision["value"] == pytest.approx(0.15) and "reading" not in decision
+
+
+def test_the_chart_leaves_a_noisy_column_as_a_gap():
+    records = [with_mask(pub(10.0, 9.0), 9, "r1"), with_mask(pub(10.0, 8.0), 8, "r2")]
+    svg = chart.render_svg([line([crun(public_improvement=r) for r in records])])
+    assert "UNMEASURED" in svg  # the decision-loss panel has no plottable point
+
+
+def test_five_runs_still_carry_the_small_n_flag():
+    records = [with_mask(pub(10.0, 9.0 - i / 10), 9, f"r{i}") for i in range(5)]
+    block = line([crun(public_improvement=r) for r in records])["constructor"][
+        "improvement"
+    ]["public_dev"]["accuracy_error"]
+    assert block["n"] == 5 and block["small_n"] is True
+
+
+# -- Level 1 records -----------------------------------------------------------------------------------
+def level_record(level=1, **kw):
+    record = {**pub(None, None, 0.0997, 0.0722), "level": level, "run_id": "r1"}
+    record["questions"] = {
+        "decision_loss_null_reason": "bundle is not a registered member of the panel"
+    }
+    record["model"]["rebuild"] = "rebuilt through level_compile.base_for"
+    return {**record, **kw}
+
+
+def test_two_runs_have_no_interval_and_say_so_instead_of_a_fabricated_one():
+    records = [level_record(), level_record(run_id="r2")]
+    records[1]["model"] = {**records[1]["model"], "accuracy_error": 0.0651}
+    block = improvement.public_dev_block(records)["accuracy_error"]
+    assert block["n"] == 2 and block["small_n"] is True and block["ci95"] is None
+    assert block["ci95_note"] == "interval not meaningful at n=2"
+    assert block["best"] > block["value"] > 0.2
+    assert improvement.bootstrap_interval([0.1, 0.2]) is None
+    assert len(improvement.bootstrap_interval([0.1, 0.2, 0.3])) == 2
+
+
+def test_a_level_above_zero_record_carries_the_missing_panel_guard_caveat():
+    block = improvement.public_dev_block([level_record()])["accuracy_error"]
+    assert block["caveats"] == [improvement.LEVEL_REBUILD_CAVEAT]
+    assert "WITHOUT its registered-panel guard" in block["caveats"][0]
+    level_zero = improvement.public_dev_block([level_record(level=0)])["accuracy_error"]
+    assert "caveats" not in level_zero
+
+
+def test_a_null_decision_loss_keeps_the_executors_reason():
+    block = improvement.public_dev_block([level_record()])["decision_loss"]
+    assert block["value"] == UNMEASURED
+    assert "not a registered member" in block["source"]
+
+
+def test_levels_two_to_four_say_they_need_the_panel_member_registration():
+    for level in (2, 3, 4):
+        block = improvement.public_dev_block([], level)
+        assert block["value"] == UNMEASURED and "Test Engineer" in block["source"]
+    assert "Test Engineer" not in improvement.public_dev_block([], 1)["source"]
+    assert "Test Engineer" not in improvement.public_dev_block([])["source"]
+
+
+def test_a_record_for_a_different_level_than_its_manifest_run_is_refused(tmp_path):
+    (tmp_path / "c.out").write_text(json.dumps(constructor_doc()))
+    (tmp_path / "rec.json").write_text(json.dumps(level_record(level=1)))
+    manifest = {
+        "batch": "m",
+        "runs": [
+            {
+                "file": "c.out",
+                "role": "constructor",
+                "level": 2,
+                "public_improvement_file": "rec.json",
+            }
+        ],
+    }
+    with pytest.raises(ProgressError, match="public_improvement_level_mismatch"):
+        cli.load_runs(manifest, tmp_path)
