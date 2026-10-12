@@ -151,6 +151,47 @@
       "inputs": "docs/development/challenge_pipeline/evidence-readiness/inputs/seal-gland.json",
       "proposal": "docs/development/challenge_pipeline/value-cost/replacements/README.md",
       "pending": null
+    },
+    {
+      "challenge": "package-warpage",
+      "aliases": [
+        "warpage"
+      ],
+      "inputs": "docs/development/challenge_pipeline/evidence-readiness/inputs/package-warpage.json",
+      "proposal": "docs/development/challenge_pipeline/discovery/warpage-packet/PACKAGE_WARPAGE_DESIGN_PACKET.md",
+      "pending": null,
+      "plans": {
+        "1": {
+          "basis": "Proposed full action/history/rung tuples await main registration and actual reuse index",
+          "pointers": [
+            "carbon/challenge_pipeline/warpage_rehearsal.py"
+          ]
+        },
+        "2": {
+          "basis": "CalculiX source recipe is not full-history image/feature/store proof",
+          "pointers": [
+            "docs/development/challenge_pipeline/solver-package-specs/warpage-calculix.md"
+          ]
+        },
+        "3": {
+          "basis": "Coherent cure/relaxation/formation and restart plus accepted analytic/MMS/refinement evidence missing",
+          "pointers": [
+            "docs/development/challenge_pipeline/warpage-rehearsal/verification.json"
+          ]
+        },
+        "4": {
+          "basis": "Full-history kit coverage hook awaits a real kit",
+          "pointers": [
+            "carbon/challenge_pipeline/warpage_rehearsal.py"
+          ]
+        },
+        "5": {
+          "basis": "Disjoint physical TRAIN proposal is not a registered solved TRAIN set",
+          "pointers": [
+            "carbon/challenge_pipeline/warpage_rehearsal.py"
+          ]
+        }
+      }
     }
   ]
 }

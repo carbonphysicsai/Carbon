@@ -106,6 +106,35 @@ def carbon_gates(value):
     return {"status": "OK"}
 
 
+def graph_view(attempt):
+    """A verify view for this level's graph families, which judge a graph
+    DOCUMENT (`carbon_gates`), not a strategy. Verify hands this adapter a
+    view without a `value` (it inherits Level 0's `attempt_input`); the value
+    is the document the attempt itself carries (its arguments, or their
+    `design`), and an attempt that carries none, such as a strategy naming a
+    graph by digest, is a view without a rebuilt construction: NOT_RUN,
+    never a crash (stage-A L4, 2026-10-12: the documents reach no rebuild
+    worker yet, module docstring)."""
+    import dataclasses
+
+    if hasattr(attempt, "value") or not dataclasses.is_dataclass(attempt):
+        return attempt
+    if not hasattr(attempt, "given"):
+        return attempt
+    arguments = getattr(attempt, "arguments", None)
+    found = None
+    if isinstance(arguments, Mapping):
+        inner = b._inner_arguments(arguments)
+        design = inner.get("design") if isinstance(inner, Mapping) else None
+        for holder in (inner, design, arguments):
+            if isinstance(holder, Mapping) and isinstance(holder.get("document"), str):
+                found = {"document": holder["document"]}
+                break
+    if found is None:
+        return dataclasses.replace(attempt, rebuilt=False)
+    return dataclasses.replace(attempt, given=found)
+
+
 def unchecked_gate(value):
     """The vulnerable specimen: a boundary that enforces nothing, so it
     accepts every document, parseable or not."""
@@ -427,10 +456,10 @@ class BatteryLevel4Adapter(b.BatteryLevel0Adapter):
     deterministic_baseline = None
 
     def family_for(self, tool, arguments=None):
-        """Which Level-4 family a research tool call probes, or None."""
-        if b.construction_door(tool, arguments):
-            return SURFACE
-        return None
+        """Which Level-4 family a research tool call probes, or None: the
+        declared one, else the surface. A graph family judges the document
+        the attempt carries (`graph_view`); the slot ablation, its strategy."""
+        return b.door_family(tool, arguments, frozenset(_family_table()), SURFACE)
 
     @property
     def contract_digest(self):
@@ -499,7 +528,12 @@ class BatteryLevel4Adapter(b.BatteryLevel0Adapter):
 
     def oracle(self, family, attempt):
         if family in _family_table():
-            return family_oracle(self._engine(family), attempt)
+            view = (
+                graph_view(attempt)
+                if _family_table()[family][3] is carbon_gates
+                else b.oracle_view(attempt)
+            )
+            return family_oracle(self._engine(family), view)
         for seam in self.level_families():
             if seam.name == family:
                 return seam_oracle(seam, attempt)
@@ -542,7 +576,16 @@ class BatteryLevel4Adapter(b.BatteryLevel0Adapter):
             )
         return b.Rebuilt(
             construction_digest=b._digest(strategy),
-            rebuilt_digest=b._digest(found.reconstruction),
+            # The compiled recipe AND the level's added fields: the added
+            # fields alone are empty for a strategy that uses none, which
+            # made every such construction one artifact (stage-A L2-L4
+            # copy-probe control, 2026-10-12).
+            rebuilt_digest=b._digest(
+                {
+                    "recipe_digest": found.construction.recipe_digest,
+                    "reconstruction": found.reconstruction,
+                }
+            ),
             detail={
                 "record": found.reconstruction,
                 "served": True,

@@ -38,10 +38,18 @@ ENTRYPOINTS = {
         },
     },
     "motor": {
-        "reference": None,  # #1078 registered TRAIN only; Data Collection owns this gap.
+        "reference": {
+            "module": "scripts.dev.evidence_runs.motor_10p12s",
+            "module_sha256": "448fd565d8894411bd11d57ba0750be8886d700917c0f9c2c389dbccd3a668d3",
+            "kind": "reference-panel",
+            "plan": "docs/development/evidence/motor-feasibility-02/plans/reference-panel-plan.json",
+            "plan_sha256": "41e55a557544df3c6c2226c852427c5a0149767fae07c38bafc797396a0f379b",
+            "image_digest": "sha256:599521e79786ee0326a0754ba0545f51ee9665adff73c3515c8d4b8ba24c1c05",
+            "output_contract": "records.jsonl:carbon.motor.feasibility02-record.v1",
+        },
         "train": {
             "module": "scripts.dev.evidence_runs.motor_10p12s",
-            "module_sha256": "0355eefb28e32859281ab3eb7b6ef5f5c4a5a87a93c5e5463abbb38fdb4964ef",
+            "module_sha256": "448fd565d8894411bd11d57ba0750be8886d700917c0f9c2c389dbccd3a668d3",
             "kind": "train-stage1",
             "plan": "docs/development/evidence/motor-feasibility-02/plans/train-stage1-plan.json",
             "plan_sha256": "4a067614ee921d20069504937e3913cebb30226cafe35c489d3a9356a2f4f2cd",

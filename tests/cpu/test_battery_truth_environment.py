@@ -290,3 +290,69 @@ def test_operate_jobs_writes_an_owner_only_file_without_starting(tmp_path, capsy
     # The terminal never shows a case; only the owner-only file holds them.
     assert all(job["case_id"] not in printed for job in document["jobs"])
     deployment._VALIDATORS.clear()
+
+
+def _fake_reference(job):
+    if job["case_id"] == "fails":
+        raise ValueError("solver fault")
+    if job["case_id"] == "slow":
+        import time
+
+        time.sleep(30)
+    return {"status": "OK", "value": job["c1"]}
+
+
+def test_every_record_a_solve_writes_names_its_image_and_overlay_lock(
+    tmp_path, monkeypatch
+):
+    import sys
+
+    from carbon.battery import truth
+
+    lock, lock_sha = truth_env.load_lock(REPOSITORY)
+    monkeypatch.setitem(
+        sys.modules,
+        "pybamm",
+        types.SimpleNamespace(__version__=truth_env.pinned_version(lock)),
+    )
+    monkeypatch.setattr(truth, "reference_solver", _fake_reference)
+    inputs = {"c1": 1.0, "c2": 0.5, "t_amb_c": 25.0, "soc0": 0.1}
+    jobs = tmp_path / "jobs.json"
+    jobs.write_text(
+        json.dumps(
+            {
+                "fingerprint": "fp",
+                "jobs": [
+                    {"case_id": c, **inputs} for c in ("ok", "fails", "slow", "earlier")
+                ],
+            }
+        )
+    )
+    records = tmp_path / "records.jsonl"
+    # A record from an earlier run is kept exactly as it was written.
+    earlier = json.dumps({"case_id": "earlier", "status": "OK"}, sort_keys=True) + "\n"
+    records.write_text(earlier)
+    records.chmod(0o600)
+    truth_env.solve(jobs, records, repository=REPOSITORY, workers=3, timeout_s=2.0)
+    lines = records.read_text().splitlines()
+    assert lines[0] + "\n" == earlier
+    written = {r["case_id"]: r for r in map(json.loads, lines[1:])}
+    assert {c: r["status"] for c, r in written.items()} == {
+        "ok": truth.OK,
+        "fails": truth.SOLVER_FAILED,
+        "slow": truth.TIMEOUT,
+    }
+    expected = {
+        "schema": truth_env.PROVENANCE,
+        "solver_image": TRUTH_IMAGE["base_image"],
+        "overlay_lock": LOCK_PATH,
+        "overlay_lock_sha256": "sha256:" + lock_sha,
+        "pybamm": truth_env.pinned_version(lock),
+    }
+    assert expected["solver_image"].split("@")[1] == (
+        "sha256:2d19b261e722fe67f20bee02e115f2277a799c448b90d54d2872361b341bd940"
+    )
+    for record in written.values():
+        assert record[truth_env.PROVENANCE_FIELD] == expected
+    assert records.stat().st_mode & 0o077 == 0
+    assert not list(tmp_path.glob("*.stamping"))

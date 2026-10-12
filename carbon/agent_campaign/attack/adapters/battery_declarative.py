@@ -231,10 +231,12 @@ class BatteryDeclarativeAdapter(b.BatteryLevel0Adapter):
         return self.spec.families()
 
     def family_for(self, tool, arguments=None):
-        """Which family of this level a research tool call probes, or None."""
-        if b.construction_door(tool, arguments):
-            return self.spec.surface
-        return None
+        """Which family of this level a research tool call probes, or None:
+        the declared one (every run family takes a strategy), else the
+        level's surface."""
+        return b.door_family(
+            tool, arguments, frozenset(self._table()), self.spec.surface
+        )
 
     def _engine(self, name):
         row = self._table()[name]
@@ -282,7 +284,7 @@ class BatteryDeclarativeAdapter(b.BatteryLevel0Adapter):
 
     def oracle(self, family, attempt):
         if family in self._table():
-            return family_oracle(self._engine(family), attempt)
+            return family_oracle(self._engine(family), b.oracle_view(attempt))
         for seam in self.level_families():
             if seam.name == family:
                 return seam_oracle(seam, attempt)
@@ -325,7 +327,16 @@ class BatteryDeclarativeAdapter(b.BatteryLevel0Adapter):
             )
         return b.Rebuilt(
             construction_digest=b._digest(value),
-            rebuilt_digest=b._digest(found.reconstruction),
+            # The compiled recipe AND the level's added fields: the added
+            # fields alone are empty for a strategy that uses none, which
+            # made every such construction one artifact (stage-A L2-L4
+            # copy-probe control, 2026-10-12).
+            rebuilt_digest=b._digest(
+                {
+                    "recipe_digest": found.construction.recipe_digest,
+                    "reconstruction": found.reconstruction,
+                }
+            ),
             detail={
                 "record": found.reconstruction,
                 "served": True,
