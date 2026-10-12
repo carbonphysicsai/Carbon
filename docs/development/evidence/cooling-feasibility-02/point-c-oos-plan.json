@@ -1,0 +1,2453 @@
+{
+ "batch": "cooling-feas02-point-c-oos",
+ "cases": [
+  {
+   "case_id": "o00-B_uniform",
+   "design_id": "o00",
+   "stratum": "B_uniform",
+   "base_mm": 0.794,
+   "inputs": {
+    "channel_width_mm": 0.3735,
+    "fin_width_mm": 0.4731,
+    "channel_depth_mm": 3.3495,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 1.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o00-B_central_r2",
+   "design_id": "o00",
+   "stratum": "B_central_r2",
+   "base_mm": 0.794,
+   "inputs": {
+    "channel_width_mm": 0.3735,
+    "fin_width_mm": 0.4731,
+    "channel_depth_mm": 3.3495,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o00-B_outlet_r2",
+   "design_id": "o00",
+   "stratum": "B_outlet_r2",
+   "base_mm": 0.794,
+   "inputs": {
+    "channel_width_mm": 0.3735,
+    "fin_width_mm": 0.4731,
+    "channel_depth_mm": 3.3495,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 25.0
+   }
+  },
+  {
+   "case_id": "o01-B_uniform",
+   "design_id": "o01",
+   "stratum": "B_uniform",
+   "base_mm": 0.8191,
+   "inputs": {
+    "channel_width_mm": 0.3785,
+    "fin_width_mm": 0.3272,
+    "channel_depth_mm": 3.0632,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 1.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o01-B_central_r2",
+   "design_id": "o01",
+   "stratum": "B_central_r2",
+   "base_mm": 0.8191,
+   "inputs": {
+    "channel_width_mm": 0.3785,
+    "fin_width_mm": 0.3272,
+    "channel_depth_mm": 3.0632,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o01-B_outlet_r2",
+   "design_id": "o01",
+   "stratum": "B_outlet_r2",
+   "base_mm": 0.8191,
+   "inputs": {
+    "channel_width_mm": 0.3785,
+    "fin_width_mm": 0.3272,
+    "channel_depth_mm": 3.0632,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 25.0
+   }
+  },
+  {
+   "case_id": "o02-B_uniform",
+   "design_id": "o02",
+   "stratum": "B_uniform",
+   "base_mm": 0.7688,
+   "inputs": {
+    "channel_width_mm": 0.4136,
+    "fin_width_mm": 0.4811,
+    "channel_depth_mm": 4.8,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 1.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o02-B_central_r2",
+   "design_id": "o02",
+   "stratum": "B_central_r2",
+   "base_mm": 0.7688,
+   "inputs": {
+    "channel_width_mm": 0.4136,
+    "fin_width_mm": 0.4811,
+    "channel_depth_mm": 4.8,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o02-B_outlet_r2",
+   "design_id": "o02",
+   "stratum": "B_outlet_r2",
+   "base_mm": 0.7688,
+   "inputs": {
+    "channel_width_mm": 0.4136,
+    "fin_width_mm": 0.4811,
+    "channel_depth_mm": 4.8,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 25.0
+   }
+  },
+  {
+   "case_id": "o03-B_uniform",
+   "design_id": "o03",
+   "stratum": "B_uniform",
+   "base_mm": 0.6174,
+   "inputs": {
+    "channel_width_mm": 0.3884,
+    "fin_width_mm": 0.3848,
+    "channel_depth_mm": 3.1056,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 1.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o03-B_central_r2",
+   "design_id": "o03",
+   "stratum": "B_central_r2",
+   "base_mm": 0.6174,
+   "inputs": {
+    "channel_width_mm": 0.3884,
+    "fin_width_mm": 0.3848,
+    "channel_depth_mm": 3.1056,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o03-B_outlet_r2",
+   "design_id": "o03",
+   "stratum": "B_outlet_r2",
+   "base_mm": 0.6174,
+   "inputs": {
+    "channel_width_mm": 0.3884,
+    "fin_width_mm": 0.3848,
+    "channel_depth_mm": 3.1056,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 25.0
+   }
+  },
+  {
+   "case_id": "o04-B_uniform",
+   "design_id": "o04",
+   "stratum": "B_uniform",
+   "base_mm": 0.9563,
+   "inputs": {
+    "channel_width_mm": 0.4088,
+    "fin_width_mm": 0.381,
+    "channel_depth_mm": 4.5012,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 1.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o04-B_central_r2",
+   "design_id": "o04",
+   "stratum": "B_central_r2",
+   "base_mm": 0.9563,
+   "inputs": {
+    "channel_width_mm": 0.4088,
+    "fin_width_mm": 0.381,
+    "channel_depth_mm": 4.5012,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o04-B_outlet_r2",
+   "design_id": "o04",
+   "stratum": "B_outlet_r2",
+   "base_mm": 0.9563,
+   "inputs": {
+    "channel_width_mm": 0.4088,
+    "fin_width_mm": 0.381,
+    "channel_depth_mm": 4.5012,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 25.0
+   }
+  },
+  {
+   "case_id": "o05-B_uniform",
+   "design_id": "o05",
+   "stratum": "B_uniform",
+   "base_mm": 0.5953,
+   "inputs": {
+    "channel_width_mm": 0.4303,
+    "fin_width_mm": 0.2221,
+    "channel_depth_mm": 4.8662,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 1.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o05-B_central_r2",
+   "design_id": "o05",
+   "stratum": "B_central_r2",
+   "base_mm": 0.5953,
+   "inputs": {
+    "channel_width_mm": 0.4303,
+    "fin_width_mm": 0.2221,
+    "channel_depth_mm": 4.8662,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o05-B_outlet_r2",
+   "design_id": "o05",
+   "stratum": "B_outlet_r2",
+   "base_mm": 0.5953,
+   "inputs": {
+    "channel_width_mm": 0.4303,
+    "fin_width_mm": 0.2221,
+    "channel_depth_mm": 4.8662,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 25.0
+   }
+  },
+  {
+   "case_id": "o06-B_uniform",
+   "design_id": "o06",
+   "stratum": "B_uniform",
+   "base_mm": 0.6039,
+   "inputs": {
+    "channel_width_mm": 0.4473,
+    "fin_width_mm": 0.292,
+    "channel_depth_mm": 5.437,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 1.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o06-B_central_r2",
+   "design_id": "o06",
+   "stratum": "B_central_r2",
+   "base_mm": 0.6039,
+   "inputs": {
+    "channel_width_mm": 0.4473,
+    "fin_width_mm": 0.292,
+    "channel_depth_mm": 5.437,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o06-B_outlet_r2",
+   "design_id": "o06",
+   "stratum": "B_outlet_r2",
+   "base_mm": 0.6039,
+   "inputs": {
+    "channel_width_mm": 0.4473,
+    "fin_width_mm": 0.292,
+    "channel_depth_mm": 5.437,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 25.0
+   }
+  },
+  {
+   "case_id": "o07-B_uniform",
+   "design_id": "o07",
+   "stratum": "B_uniform",
+   "base_mm": 0.8567,
+   "inputs": {
+    "channel_width_mm": 0.4271,
+    "fin_width_mm": 0.2135,
+    "channel_depth_mm": 4.3353,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 1.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o07-B_central_r2",
+   "design_id": "o07",
+   "stratum": "B_central_r2",
+   "base_mm": 0.8567,
+   "inputs": {
+    "channel_width_mm": 0.4271,
+    "fin_width_mm": 0.2135,
+    "channel_depth_mm": 4.3353,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o07-B_outlet_r2",
+   "design_id": "o07",
+   "stratum": "B_outlet_r2",
+   "base_mm": 0.8567,
+   "inputs": {
+    "channel_width_mm": 0.4271,
+    "fin_width_mm": 0.2135,
+    "channel_depth_mm": 4.3353,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 25.0
+   }
+  },
+  {
+   "case_id": "o08-B_uniform",
+   "design_id": "o08",
+   "stratum": "B_uniform",
+   "base_mm": 0.5017,
+   "inputs": {
+    "channel_width_mm": 0.4407,
+    "fin_width_mm": 0.4691,
+    "channel_depth_mm": 3.853,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 1.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o08-B_central_r2",
+   "design_id": "o08",
+   "stratum": "B_central_r2",
+   "base_mm": 0.5017,
+   "inputs": {
+    "channel_width_mm": 0.4407,
+    "fin_width_mm": 0.4691,
+    "channel_depth_mm": 3.853,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o08-B_outlet_r2",
+   "design_id": "o08",
+   "stratum": "B_outlet_r2",
+   "base_mm": 0.5017,
+   "inputs": {
+    "channel_width_mm": 0.4407,
+    "fin_width_mm": 0.4691,
+    "channel_depth_mm": 3.853,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 25.0
+   }
+  },
+  {
+   "case_id": "o09-B_uniform",
+   "design_id": "o09",
+   "stratum": "B_uniform",
+   "base_mm": 0.8372,
+   "inputs": {
+    "channel_width_mm": 0.4031,
+    "fin_width_mm": 0.2215,
+    "channel_depth_mm": 3.1316,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 1.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o09-B_central_r2",
+   "design_id": "o09",
+   "stratum": "B_central_r2",
+   "base_mm": 0.8372,
+   "inputs": {
+    "channel_width_mm": 0.4031,
+    "fin_width_mm": 0.2215,
+    "channel_depth_mm": 3.1316,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o09-B_outlet_r2",
+   "design_id": "o09",
+   "stratum": "B_outlet_r2",
+   "base_mm": 0.8372,
+   "inputs": {
+    "channel_width_mm": 0.4031,
+    "fin_width_mm": 0.2215,
+    "channel_depth_mm": 3.1316,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 25.0
+   }
+  },
+  {
+   "case_id": "o10-B_uniform",
+   "design_id": "o10",
+   "stratum": "B_uniform",
+   "base_mm": 0.7502,
+   "inputs": {
+    "channel_width_mm": 0.4562,
+    "fin_width_mm": 0.212,
+    "channel_depth_mm": 5.9168,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 1.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o10-B_central_r2",
+   "design_id": "o10",
+   "stratum": "B_central_r2",
+   "base_mm": 0.7502,
+   "inputs": {
+    "channel_width_mm": 0.4562,
+    "fin_width_mm": 0.212,
+    "channel_depth_mm": 5.9168,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o10-B_outlet_r2",
+   "design_id": "o10",
+   "stratum": "B_outlet_r2",
+   "base_mm": 0.7502,
+   "inputs": {
+    "channel_width_mm": 0.4562,
+    "fin_width_mm": 0.212,
+    "channel_depth_mm": 5.9168,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 25.0
+   }
+  },
+  {
+   "case_id": "o11-B_uniform",
+   "design_id": "o11",
+   "stratum": "B_uniform",
+   "base_mm": 0.907,
+   "inputs": {
+    "channel_width_mm": 0.4531,
+    "fin_width_mm": 0.271,
+    "channel_depth_mm": 5.1448,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 1.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o11-B_central_r2",
+   "design_id": "o11",
+   "stratum": "B_central_r2",
+   "base_mm": 0.907,
+   "inputs": {
+    "channel_width_mm": 0.4531,
+    "fin_width_mm": 0.271,
+    "channel_depth_mm": 5.1448,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o11-B_outlet_r2",
+   "design_id": "o11",
+   "stratum": "B_outlet_r2",
+   "base_mm": 0.907,
+   "inputs": {
+    "channel_width_mm": 0.4531,
+    "fin_width_mm": 0.271,
+    "channel_depth_mm": 5.1448,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 25.0
+   }
+  },
+  {
+   "case_id": "o12-B_uniform",
+   "design_id": "o12",
+   "stratum": "B_uniform",
+   "base_mm": 0.9225,
+   "inputs": {
+    "channel_width_mm": 0.4533,
+    "fin_width_mm": 0.4494,
+    "channel_depth_mm": 5.9094,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 1.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o12-B_central_r2",
+   "design_id": "o12",
+   "stratum": "B_central_r2",
+   "base_mm": 0.9225,
+   "inputs": {
+    "channel_width_mm": 0.4533,
+    "fin_width_mm": 0.4494,
+    "channel_depth_mm": 5.9094,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o12-B_outlet_r2",
+   "design_id": "o12",
+   "stratum": "B_outlet_r2",
+   "base_mm": 0.9225,
+   "inputs": {
+    "channel_width_mm": 0.4533,
+    "fin_width_mm": 0.4494,
+    "channel_depth_mm": 5.9094,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 25.0
+   }
+  },
+  {
+   "case_id": "o13-B_uniform",
+   "design_id": "o13",
+   "stratum": "B_uniform",
+   "base_mm": 0.5107,
+   "inputs": {
+    "channel_width_mm": 0.4391,
+    "fin_width_mm": 0.3403,
+    "channel_depth_mm": 3.5136,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 1.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o13-B_central_r2",
+   "design_id": "o13",
+   "stratum": "B_central_r2",
+   "base_mm": 0.5107,
+   "inputs": {
+    "channel_width_mm": 0.4391,
+    "fin_width_mm": 0.3403,
+    "channel_depth_mm": 3.5136,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o13-B_outlet_r2",
+   "design_id": "o13",
+   "stratum": "B_outlet_r2",
+   "base_mm": 0.5107,
+   "inputs": {
+    "channel_width_mm": 0.4391,
+    "fin_width_mm": 0.3403,
+    "channel_depth_mm": 3.5136,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 25.0
+   }
+  },
+  {
+   "case_id": "o14-B_uniform",
+   "design_id": "o14",
+   "stratum": "B_uniform",
+   "base_mm": 0.9421,
+   "inputs": {
+    "channel_width_mm": 0.368,
+    "fin_width_mm": 0.2734,
+    "channel_depth_mm": 3.7348,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 1.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o14-B_central_r2",
+   "design_id": "o14",
+   "stratum": "B_central_r2",
+   "base_mm": 0.9421,
+   "inputs": {
+    "channel_width_mm": 0.368,
+    "fin_width_mm": 0.2734,
+    "channel_depth_mm": 3.7348,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o14-B_outlet_r2",
+   "design_id": "o14",
+   "stratum": "B_outlet_r2",
+   "base_mm": 0.9421,
+   "inputs": {
+    "channel_width_mm": 0.368,
+    "fin_width_mm": 0.2734,
+    "channel_depth_mm": 3.7348,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 25.0
+   }
+  },
+  {
+   "case_id": "o15-B_uniform",
+   "design_id": "o15",
+   "stratum": "B_uniform",
+   "base_mm": 0.6914,
+   "inputs": {
+    "channel_width_mm": 0.3783,
+    "fin_width_mm": 0.2032,
+    "channel_depth_mm": 3.8313,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 1.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o15-B_central_r2",
+   "design_id": "o15",
+   "stratum": "B_central_r2",
+   "base_mm": 0.6914,
+   "inputs": {
+    "channel_width_mm": 0.3783,
+    "fin_width_mm": 0.2032,
+    "channel_depth_mm": 3.8313,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o15-B_outlet_r2",
+   "design_id": "o15",
+   "stratum": "B_outlet_r2",
+   "base_mm": 0.6914,
+   "inputs": {
+    "channel_width_mm": 0.3783,
+    "fin_width_mm": 0.2032,
+    "channel_depth_mm": 3.8313,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 25.0
+   }
+  },
+  {
+   "case_id": "o16-B_uniform",
+   "design_id": "o16",
+   "stratum": "B_uniform",
+   "base_mm": 0.6179,
+   "inputs": {
+    "channel_width_mm": 0.4087,
+    "fin_width_mm": 0.4977,
+    "channel_depth_mm": 5.9553,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 1.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o16-B_central_r2",
+   "design_id": "o16",
+   "stratum": "B_central_r2",
+   "base_mm": 0.6179,
+   "inputs": {
+    "channel_width_mm": 0.4087,
+    "fin_width_mm": 0.4977,
+    "channel_depth_mm": 5.9553,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o16-B_outlet_r2",
+   "design_id": "o16",
+   "stratum": "B_outlet_r2",
+   "base_mm": 0.6179,
+   "inputs": {
+    "channel_width_mm": 0.4087,
+    "fin_width_mm": 0.4977,
+    "channel_depth_mm": 5.9553,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 25.0
+   }
+  },
+  {
+   "case_id": "o17-B_uniform",
+   "design_id": "o17",
+   "stratum": "B_uniform",
+   "base_mm": 0.9644,
+   "inputs": {
+    "channel_width_mm": 0.3474,
+    "fin_width_mm": 0.3964,
+    "channel_depth_mm": 3.378,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 1.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o17-B_central_r2",
+   "design_id": "o17",
+   "stratum": "B_central_r2",
+   "base_mm": 0.9644,
+   "inputs": {
+    "channel_width_mm": 0.3474,
+    "fin_width_mm": 0.3964,
+    "channel_depth_mm": 3.378,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o17-B_outlet_r2",
+   "design_id": "o17",
+   "stratum": "B_outlet_r2",
+   "base_mm": 0.9644,
+   "inputs": {
+    "channel_width_mm": 0.3474,
+    "fin_width_mm": 0.3964,
+    "channel_depth_mm": 3.378,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 25.0
+   }
+  },
+  {
+   "case_id": "o18-B_uniform",
+   "design_id": "o18",
+   "stratum": "B_uniform",
+   "base_mm": 0.7885,
+   "inputs": {
+    "channel_width_mm": 0.3858,
+    "fin_width_mm": 0.3293,
+    "channel_depth_mm": 4.0536,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 1.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o18-B_central_r2",
+   "design_id": "o18",
+   "stratum": "B_central_r2",
+   "base_mm": 0.7885,
+   "inputs": {
+    "channel_width_mm": 0.3858,
+    "fin_width_mm": 0.3293,
+    "channel_depth_mm": 4.0536,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o18-B_outlet_r2",
+   "design_id": "o18",
+   "stratum": "B_outlet_r2",
+   "base_mm": 0.7885,
+   "inputs": {
+    "channel_width_mm": 0.3858,
+    "fin_width_mm": 0.3293,
+    "channel_depth_mm": 4.0536,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 25.0
+   }
+  },
+  {
+   "case_id": "o19-B_uniform",
+   "design_id": "o19",
+   "stratum": "B_uniform",
+   "base_mm": 0.9779,
+   "inputs": {
+    "channel_width_mm": 0.3685,
+    "fin_width_mm": 0.4936,
+    "channel_depth_mm": 4.8465,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 1.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o19-B_central_r2",
+   "design_id": "o19",
+   "stratum": "B_central_r2",
+   "base_mm": 0.9779,
+   "inputs": {
+    "channel_width_mm": 0.3685,
+    "fin_width_mm": 0.4936,
+    "channel_depth_mm": 4.8465,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o19-B_outlet_r2",
+   "design_id": "o19",
+   "stratum": "B_outlet_r2",
+   "base_mm": 0.9779,
+   "inputs": {
+    "channel_width_mm": 0.3685,
+    "fin_width_mm": 0.4936,
+    "channel_depth_mm": 4.8465,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 25.0
+   }
+  },
+  {
+   "case_id": "o20-B_uniform",
+   "design_id": "o20",
+   "stratum": "B_uniform",
+   "base_mm": 0.621,
+   "inputs": {
+    "channel_width_mm": 0.3778,
+    "fin_width_mm": 0.4626,
+    "channel_depth_mm": 4.0265,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 1.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o20-B_central_r2",
+   "design_id": "o20",
+   "stratum": "B_central_r2",
+   "base_mm": 0.621,
+   "inputs": {
+    "channel_width_mm": 0.3778,
+    "fin_width_mm": 0.4626,
+    "channel_depth_mm": 4.0265,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o20-B_outlet_r2",
+   "design_id": "o20",
+   "stratum": "B_outlet_r2",
+   "base_mm": 0.621,
+   "inputs": {
+    "channel_width_mm": 0.3778,
+    "fin_width_mm": 0.4626,
+    "channel_depth_mm": 4.0265,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 25.0
+   }
+  },
+  {
+   "case_id": "o21-B_uniform",
+   "design_id": "o21",
+   "stratum": "B_uniform",
+   "base_mm": 0.7204,
+   "inputs": {
+    "channel_width_mm": 0.4562,
+    "fin_width_mm": 0.4034,
+    "channel_depth_mm": 3.8104,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 1.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o21-B_central_r2",
+   "design_id": "o21",
+   "stratum": "B_central_r2",
+   "base_mm": 0.7204,
+   "inputs": {
+    "channel_width_mm": 0.4562,
+    "fin_width_mm": 0.4034,
+    "channel_depth_mm": 3.8104,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o21-B_outlet_r2",
+   "design_id": "o21",
+   "stratum": "B_outlet_r2",
+   "base_mm": 0.7204,
+   "inputs": {
+    "channel_width_mm": 0.4562,
+    "fin_width_mm": 0.4034,
+    "channel_depth_mm": 3.8104,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 25.0
+   }
+  },
+  {
+   "case_id": "o22-B_uniform",
+   "design_id": "o22",
+   "stratum": "B_uniform",
+   "base_mm": 0.5324,
+   "inputs": {
+    "channel_width_mm": 0.4749,
+    "fin_width_mm": 0.2739,
+    "channel_depth_mm": 4.0969,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 1.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o22-B_central_r2",
+   "design_id": "o22",
+   "stratum": "B_central_r2",
+   "base_mm": 0.5324,
+   "inputs": {
+    "channel_width_mm": 0.4749,
+    "fin_width_mm": 0.2739,
+    "channel_depth_mm": 4.0969,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o22-B_outlet_r2",
+   "design_id": "o22",
+   "stratum": "B_outlet_r2",
+   "base_mm": 0.5324,
+   "inputs": {
+    "channel_width_mm": 0.4749,
+    "fin_width_mm": 0.2739,
+    "channel_depth_mm": 4.0969,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 25.0
+   }
+  },
+  {
+   "case_id": "o23-B_uniform",
+   "design_id": "o23",
+   "stratum": "B_uniform",
+   "base_mm": 0.6034,
+   "inputs": {
+    "channel_width_mm": 0.4445,
+    "fin_width_mm": 0.4921,
+    "channel_depth_mm": 3.188,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 1.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o23-B_central_r2",
+   "design_id": "o23",
+   "stratum": "B_central_r2",
+   "base_mm": 0.6034,
+   "inputs": {
+    "channel_width_mm": 0.4445,
+    "fin_width_mm": 0.4921,
+    "channel_depth_mm": 3.188,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o23-B_outlet_r2",
+   "design_id": "o23",
+   "stratum": "B_outlet_r2",
+   "base_mm": 0.6034,
+   "inputs": {
+    "channel_width_mm": 0.4445,
+    "fin_width_mm": 0.4921,
+    "channel_depth_mm": 3.188,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 25.0
+   }
+  },
+  {
+   "case_id": "o24-B_uniform",
+   "design_id": "o24",
+   "stratum": "B_uniform",
+   "base_mm": 0.978,
+   "inputs": {
+    "channel_width_mm": 0.4277,
+    "fin_width_mm": 0.4945,
+    "channel_depth_mm": 3.6407,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 1.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o24-B_central_r2",
+   "design_id": "o24",
+   "stratum": "B_central_r2",
+   "base_mm": 0.978,
+   "inputs": {
+    "channel_width_mm": 0.4277,
+    "fin_width_mm": 0.4945,
+    "channel_depth_mm": 3.6407,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o24-B_outlet_r2",
+   "design_id": "o24",
+   "stratum": "B_outlet_r2",
+   "base_mm": 0.978,
+   "inputs": {
+    "channel_width_mm": 0.4277,
+    "fin_width_mm": 0.4945,
+    "channel_depth_mm": 3.6407,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 25.0
+   }
+  },
+  {
+   "case_id": "o25-B_uniform",
+   "design_id": "o25",
+   "stratum": "B_uniform",
+   "base_mm": 0.5356,
+   "inputs": {
+    "channel_width_mm": 0.4957,
+    "fin_width_mm": 0.2411,
+    "channel_depth_mm": 5.869,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 1.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o25-B_central_r2",
+   "design_id": "o25",
+   "stratum": "B_central_r2",
+   "base_mm": 0.5356,
+   "inputs": {
+    "channel_width_mm": 0.4957,
+    "fin_width_mm": 0.2411,
+    "channel_depth_mm": 5.869,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o25-B_outlet_r2",
+   "design_id": "o25",
+   "stratum": "B_outlet_r2",
+   "base_mm": 0.5356,
+   "inputs": {
+    "channel_width_mm": 0.4957,
+    "fin_width_mm": 0.2411,
+    "channel_depth_mm": 5.869,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 25.0
+   }
+  },
+  {
+   "case_id": "o26-B_uniform",
+   "design_id": "o26",
+   "stratum": "B_uniform",
+   "base_mm": 0.5509,
+   "inputs": {
+    "channel_width_mm": 0.4949,
+    "fin_width_mm": 0.349,
+    "channel_depth_mm": 4.5462,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 1.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o26-B_central_r2",
+   "design_id": "o26",
+   "stratum": "B_central_r2",
+   "base_mm": 0.5509,
+   "inputs": {
+    "channel_width_mm": 0.4949,
+    "fin_width_mm": 0.349,
+    "channel_depth_mm": 4.5462,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o26-B_outlet_r2",
+   "design_id": "o26",
+   "stratum": "B_outlet_r2",
+   "base_mm": 0.5509,
+   "inputs": {
+    "channel_width_mm": 0.4949,
+    "fin_width_mm": 0.349,
+    "channel_depth_mm": 4.5462,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 25.0
+   }
+  },
+  {
+   "case_id": "o27-B_uniform",
+   "design_id": "o27",
+   "stratum": "B_uniform",
+   "base_mm": 0.7786,
+   "inputs": {
+    "channel_width_mm": 0.5003,
+    "fin_width_mm": 0.3817,
+    "channel_depth_mm": 5.9643,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 1.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o27-B_central_r2",
+   "design_id": "o27",
+   "stratum": "B_central_r2",
+   "base_mm": 0.7786,
+   "inputs": {
+    "channel_width_mm": 0.5003,
+    "fin_width_mm": 0.3817,
+    "channel_depth_mm": 5.9643,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o27-B_outlet_r2",
+   "design_id": "o27",
+   "stratum": "B_outlet_r2",
+   "base_mm": 0.7786,
+   "inputs": {
+    "channel_width_mm": 0.5003,
+    "fin_width_mm": 0.3817,
+    "channel_depth_mm": 5.9643,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 25.0
+   }
+  },
+  {
+   "case_id": "o28-B_uniform",
+   "design_id": "o28",
+   "stratum": "B_uniform",
+   "base_mm": 0.7647,
+   "inputs": {
+    "channel_width_mm": 0.3796,
+    "fin_width_mm": 0.2584,
+    "channel_depth_mm": 5.0334,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 1.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o28-B_central_r2",
+   "design_id": "o28",
+   "stratum": "B_central_r2",
+   "base_mm": 0.7647,
+   "inputs": {
+    "channel_width_mm": 0.3796,
+    "fin_width_mm": 0.2584,
+    "channel_depth_mm": 5.0334,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o28-B_outlet_r2",
+   "design_id": "o28",
+   "stratum": "B_outlet_r2",
+   "base_mm": 0.7647,
+   "inputs": {
+    "channel_width_mm": 0.3796,
+    "fin_width_mm": 0.2584,
+    "channel_depth_mm": 5.0334,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 25.0
+   }
+  },
+  {
+   "case_id": "o29-B_uniform",
+   "design_id": "o29",
+   "stratum": "B_uniform",
+   "base_mm": 0.9049,
+   "inputs": {
+    "channel_width_mm": 0.4534,
+    "fin_width_mm": 0.3376,
+    "channel_depth_mm": 3.5613,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 1.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o29-B_central_r2",
+   "design_id": "o29",
+   "stratum": "B_central_r2",
+   "base_mm": 0.9049,
+   "inputs": {
+    "channel_width_mm": 0.4534,
+    "fin_width_mm": 0.3376,
+    "channel_depth_mm": 3.5613,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o29-B_outlet_r2",
+   "design_id": "o29",
+   "stratum": "B_outlet_r2",
+   "base_mm": 0.9049,
+   "inputs": {
+    "channel_width_mm": 0.4534,
+    "fin_width_mm": 0.3376,
+    "channel_depth_mm": 3.5613,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 25.0
+   }
+  },
+  {
+   "case_id": "o30-B_uniform",
+   "design_id": "o30",
+   "stratum": "B_uniform",
+   "base_mm": 0.9701,
+   "inputs": {
+    "channel_width_mm": 0.466,
+    "fin_width_mm": 0.2651,
+    "channel_depth_mm": 4.0641,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 1.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o30-B_central_r2",
+   "design_id": "o30",
+   "stratum": "B_central_r2",
+   "base_mm": 0.9701,
+   "inputs": {
+    "channel_width_mm": 0.466,
+    "fin_width_mm": 0.2651,
+    "channel_depth_mm": 4.0641,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o30-B_outlet_r2",
+   "design_id": "o30",
+   "stratum": "B_outlet_r2",
+   "base_mm": 0.9701,
+   "inputs": {
+    "channel_width_mm": 0.466,
+    "fin_width_mm": 0.2651,
+    "channel_depth_mm": 4.0641,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 25.0
+   }
+  },
+  {
+   "case_id": "o31-B_uniform",
+   "design_id": "o31",
+   "stratum": "B_uniform",
+   "base_mm": 0.511,
+   "inputs": {
+    "channel_width_mm": 0.3618,
+    "fin_width_mm": 0.2882,
+    "channel_depth_mm": 3.3864,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 1.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o31-B_central_r2",
+   "design_id": "o31",
+   "stratum": "B_central_r2",
+   "base_mm": 0.511,
+   "inputs": {
+    "channel_width_mm": 0.3618,
+    "fin_width_mm": 0.2882,
+    "channel_depth_mm": 3.3864,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o31-B_outlet_r2",
+   "design_id": "o31",
+   "stratum": "B_outlet_r2",
+   "base_mm": 0.511,
+   "inputs": {
+    "channel_width_mm": 0.3618,
+    "fin_width_mm": 0.2882,
+    "channel_depth_mm": 3.3864,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 25.0
+   }
+  },
+  {
+   "case_id": "o32-B_uniform",
+   "design_id": "o32",
+   "stratum": "B_uniform",
+   "base_mm": 0.726,
+   "inputs": {
+    "channel_width_mm": 0.3949,
+    "fin_width_mm": 0.3211,
+    "channel_depth_mm": 5.8397,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 1.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o32-B_central_r2",
+   "design_id": "o32",
+   "stratum": "B_central_r2",
+   "base_mm": 0.726,
+   "inputs": {
+    "channel_width_mm": 0.3949,
+    "fin_width_mm": 0.3211,
+    "channel_depth_mm": 5.8397,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o32-B_outlet_r2",
+   "design_id": "o32",
+   "stratum": "B_outlet_r2",
+   "base_mm": 0.726,
+   "inputs": {
+    "channel_width_mm": 0.3949,
+    "fin_width_mm": 0.3211,
+    "channel_depth_mm": 5.8397,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 25.0
+   }
+  },
+  {
+   "case_id": "o33-B_uniform",
+   "design_id": "o33",
+   "stratum": "B_uniform",
+   "base_mm": 0.7464,
+   "inputs": {
+    "channel_width_mm": 0.3549,
+    "fin_width_mm": 0.2847,
+    "channel_depth_mm": 3.5217,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 1.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o33-B_central_r2",
+   "design_id": "o33",
+   "stratum": "B_central_r2",
+   "base_mm": 0.7464,
+   "inputs": {
+    "channel_width_mm": 0.3549,
+    "fin_width_mm": 0.2847,
+    "channel_depth_mm": 3.5217,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o33-B_outlet_r2",
+   "design_id": "o33",
+   "stratum": "B_outlet_r2",
+   "base_mm": 0.7464,
+   "inputs": {
+    "channel_width_mm": 0.3549,
+    "fin_width_mm": 0.2847,
+    "channel_depth_mm": 3.5217,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 25.0
+   }
+  },
+  {
+   "case_id": "o34-B_uniform",
+   "design_id": "o34",
+   "stratum": "B_uniform",
+   "base_mm": 0.5188,
+   "inputs": {
+    "channel_width_mm": 0.364,
+    "fin_width_mm": 0.2321,
+    "channel_depth_mm": 3.5868,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 1.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o34-B_central_r2",
+   "design_id": "o34",
+   "stratum": "B_central_r2",
+   "base_mm": 0.5188,
+   "inputs": {
+    "channel_width_mm": 0.364,
+    "fin_width_mm": 0.2321,
+    "channel_depth_mm": 3.5868,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o34-B_outlet_r2",
+   "design_id": "o34",
+   "stratum": "B_outlet_r2",
+   "base_mm": 0.5188,
+   "inputs": {
+    "channel_width_mm": 0.364,
+    "fin_width_mm": 0.2321,
+    "channel_depth_mm": 3.5868,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 25.0
+   }
+  },
+  {
+   "case_id": "o35-B_uniform",
+   "design_id": "o35",
+   "stratum": "B_uniform",
+   "base_mm": 0.9494,
+   "inputs": {
+    "channel_width_mm": 0.3727,
+    "fin_width_mm": 0.4164,
+    "channel_depth_mm": 5.5664,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 1.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o35-B_central_r2",
+   "design_id": "o35",
+   "stratum": "B_central_r2",
+   "base_mm": 0.9494,
+   "inputs": {
+    "channel_width_mm": 0.3727,
+    "fin_width_mm": 0.4164,
+    "channel_depth_mm": 5.5664,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o35-B_outlet_r2",
+   "design_id": "o35",
+   "stratum": "B_outlet_r2",
+   "base_mm": 0.9494,
+   "inputs": {
+    "channel_width_mm": 0.3727,
+    "fin_width_mm": 0.4164,
+    "channel_depth_mm": 5.5664,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 25.0
+   }
+  },
+  {
+   "case_id": "o36-B_uniform",
+   "design_id": "o36",
+   "stratum": "B_uniform",
+   "base_mm": 0.5386,
+   "inputs": {
+    "channel_width_mm": 0.3272,
+    "fin_width_mm": 0.4801,
+    "channel_depth_mm": 3.0437,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 1.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o36-B_central_r2",
+   "design_id": "o36",
+   "stratum": "B_central_r2",
+   "base_mm": 0.5386,
+   "inputs": {
+    "channel_width_mm": 0.3272,
+    "fin_width_mm": 0.4801,
+    "channel_depth_mm": 3.0437,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o36-B_outlet_r2",
+   "design_id": "o36",
+   "stratum": "B_outlet_r2",
+   "base_mm": 0.5386,
+   "inputs": {
+    "channel_width_mm": 0.3272,
+    "fin_width_mm": 0.4801,
+    "channel_depth_mm": 3.0437,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 25.0
+   }
+  },
+  {
+   "case_id": "o37-B_uniform",
+   "design_id": "o37",
+   "stratum": "B_uniform",
+   "base_mm": 0.9959,
+   "inputs": {
+    "channel_width_mm": 0.5157,
+    "fin_width_mm": 0.3528,
+    "channel_depth_mm": 5.5594,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 1.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o37-B_central_r2",
+   "design_id": "o37",
+   "stratum": "B_central_r2",
+   "base_mm": 0.9959,
+   "inputs": {
+    "channel_width_mm": 0.5157,
+    "fin_width_mm": 0.3528,
+    "channel_depth_mm": 5.5594,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o37-B_outlet_r2",
+   "design_id": "o37",
+   "stratum": "B_outlet_r2",
+   "base_mm": 0.9959,
+   "inputs": {
+    "channel_width_mm": 0.5157,
+    "fin_width_mm": 0.3528,
+    "channel_depth_mm": 5.5594,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 25.0
+   }
+  },
+  {
+   "case_id": "o38-B_uniform",
+   "design_id": "o38",
+   "stratum": "B_uniform",
+   "base_mm": 0.8884,
+   "inputs": {
+    "channel_width_mm": 0.4501,
+    "fin_width_mm": 0.2776,
+    "channel_depth_mm": 3.0511,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 1.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o38-B_central_r2",
+   "design_id": "o38",
+   "stratum": "B_central_r2",
+   "base_mm": 0.8884,
+   "inputs": {
+    "channel_width_mm": 0.4501,
+    "fin_width_mm": 0.2776,
+    "channel_depth_mm": 3.0511,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o38-B_outlet_r2",
+   "design_id": "o38",
+   "stratum": "B_outlet_r2",
+   "base_mm": 0.8884,
+   "inputs": {
+    "channel_width_mm": 0.4501,
+    "fin_width_mm": 0.2776,
+    "channel_depth_mm": 3.0511,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 25.0
+   }
+  },
+  {
+   "case_id": "o39-B_uniform",
+   "design_id": "o39",
+   "stratum": "B_uniform",
+   "base_mm": 0.9025,
+   "inputs": {
+    "channel_width_mm": 0.4929,
+    "fin_width_mm": 0.4481,
+    "channel_depth_mm": 4.6938,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 1.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o39-B_central_r2",
+   "design_id": "o39",
+   "stratum": "B_central_r2",
+   "base_mm": 0.9025,
+   "inputs": {
+    "channel_width_mm": 0.4929,
+    "fin_width_mm": 0.4481,
+    "channel_depth_mm": 4.6938,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o39-B_outlet_r2",
+   "design_id": "o39",
+   "stratum": "B_outlet_r2",
+   "base_mm": 0.9025,
+   "inputs": {
+    "channel_width_mm": 0.4929,
+    "fin_width_mm": 0.4481,
+    "channel_depth_mm": 4.6938,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 25.0
+   }
+  },
+  {
+   "case_id": "o40-B_uniform",
+   "design_id": "o40",
+   "stratum": "B_uniform",
+   "base_mm": 0.9203,
+   "inputs": {
+    "channel_width_mm": 0.4382,
+    "fin_width_mm": 0.484,
+    "channel_depth_mm": 3.1173,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 1.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o40-B_central_r2",
+   "design_id": "o40",
+   "stratum": "B_central_r2",
+   "base_mm": 0.9203,
+   "inputs": {
+    "channel_width_mm": 0.4382,
+    "fin_width_mm": 0.484,
+    "channel_depth_mm": 3.1173,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o40-B_outlet_r2",
+   "design_id": "o40",
+   "stratum": "B_outlet_r2",
+   "base_mm": 0.9203,
+   "inputs": {
+    "channel_width_mm": 0.4382,
+    "fin_width_mm": 0.484,
+    "channel_depth_mm": 3.1173,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 25.0
+   }
+  },
+  {
+   "case_id": "o41-B_uniform",
+   "design_id": "o41",
+   "stratum": "B_uniform",
+   "base_mm": 0.9811,
+   "inputs": {
+    "channel_width_mm": 0.4455,
+    "fin_width_mm": 0.3609,
+    "channel_depth_mm": 3.1782,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 1.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o41-B_central_r2",
+   "design_id": "o41",
+   "stratum": "B_central_r2",
+   "base_mm": 0.9811,
+   "inputs": {
+    "channel_width_mm": 0.4455,
+    "fin_width_mm": 0.3609,
+    "channel_depth_mm": 3.1782,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o41-B_outlet_r2",
+   "design_id": "o41",
+   "stratum": "B_outlet_r2",
+   "base_mm": 0.9811,
+   "inputs": {
+    "channel_width_mm": 0.4455,
+    "fin_width_mm": 0.3609,
+    "channel_depth_mm": 3.1782,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 25.0
+   }
+  },
+  {
+   "case_id": "o42-B_uniform",
+   "design_id": "o42",
+   "stratum": "B_uniform",
+   "base_mm": 0.6612,
+   "inputs": {
+    "channel_width_mm": 0.3416,
+    "fin_width_mm": 0.2052,
+    "channel_depth_mm": 5.8105,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 1.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o42-B_central_r2",
+   "design_id": "o42",
+   "stratum": "B_central_r2",
+   "base_mm": 0.6612,
+   "inputs": {
+    "channel_width_mm": 0.3416,
+    "fin_width_mm": 0.2052,
+    "channel_depth_mm": 5.8105,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o42-B_outlet_r2",
+   "design_id": "o42",
+   "stratum": "B_outlet_r2",
+   "base_mm": 0.6612,
+   "inputs": {
+    "channel_width_mm": 0.3416,
+    "fin_width_mm": 0.2052,
+    "channel_depth_mm": 5.8105,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 25.0
+   }
+  },
+  {
+   "case_id": "o43-B_uniform",
+   "design_id": "o43",
+   "stratum": "B_uniform",
+   "base_mm": 0.9054,
+   "inputs": {
+    "channel_width_mm": 0.3174,
+    "fin_width_mm": 0.2047,
+    "channel_depth_mm": 4.0848,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 1.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o43-B_central_r2",
+   "design_id": "o43",
+   "stratum": "B_central_r2",
+   "base_mm": 0.9054,
+   "inputs": {
+    "channel_width_mm": 0.3174,
+    "fin_width_mm": 0.2047,
+    "channel_depth_mm": 4.0848,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o43-B_outlet_r2",
+   "design_id": "o43",
+   "stratum": "B_outlet_r2",
+   "base_mm": 0.9054,
+   "inputs": {
+    "channel_width_mm": 0.3174,
+    "fin_width_mm": 0.2047,
+    "channel_depth_mm": 4.0848,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 25.0
+   }
+  },
+  {
+   "case_id": "o44-B_uniform",
+   "design_id": "o44",
+   "stratum": "B_uniform",
+   "base_mm": 0.9993,
+   "inputs": {
+    "channel_width_mm": 0.337,
+    "fin_width_mm": 0.2634,
+    "channel_depth_mm": 5.2899,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 1.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o44-B_central_r2",
+   "design_id": "o44",
+   "stratum": "B_central_r2",
+   "base_mm": 0.9993,
+   "inputs": {
+    "channel_width_mm": 0.337,
+    "fin_width_mm": 0.2634,
+    "channel_depth_mm": 5.2899,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o44-B_outlet_r2",
+   "design_id": "o44",
+   "stratum": "B_outlet_r2",
+   "base_mm": 0.9993,
+   "inputs": {
+    "channel_width_mm": 0.337,
+    "fin_width_mm": 0.2634,
+    "channel_depth_mm": 5.2899,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 25.0
+   }
+  },
+  {
+   "case_id": "o45-B_uniform",
+   "design_id": "o45",
+   "stratum": "B_uniform",
+   "base_mm": 0.947,
+   "inputs": {
+    "channel_width_mm": 0.2997,
+    "fin_width_mm": 0.2793,
+    "channel_depth_mm": 3.0202,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 1.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o45-B_central_r2",
+   "design_id": "o45",
+   "stratum": "B_central_r2",
+   "base_mm": 0.947,
+   "inputs": {
+    "channel_width_mm": 0.2997,
+    "fin_width_mm": 0.2793,
+    "channel_depth_mm": 3.0202,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o45-B_outlet_r2",
+   "design_id": "o45",
+   "stratum": "B_outlet_r2",
+   "base_mm": 0.947,
+   "inputs": {
+    "channel_width_mm": 0.2997,
+    "fin_width_mm": 0.2793,
+    "channel_depth_mm": 3.0202,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 25.0
+   }
+  },
+  {
+   "case_id": "o46-B_uniform",
+   "design_id": "o46",
+   "stratum": "B_uniform",
+   "base_mm": 0.5007,
+   "inputs": {
+    "channel_width_mm": 0.3643,
+    "fin_width_mm": 0.2597,
+    "channel_depth_mm": 5.1235,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 1.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o46-B_central_r2",
+   "design_id": "o46",
+   "stratum": "B_central_r2",
+   "base_mm": 0.5007,
+   "inputs": {
+    "channel_width_mm": 0.3643,
+    "fin_width_mm": 0.2597,
+    "channel_depth_mm": 5.1235,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o46-B_outlet_r2",
+   "design_id": "o46",
+   "stratum": "B_outlet_r2",
+   "base_mm": 0.5007,
+   "inputs": {
+    "channel_width_mm": 0.3643,
+    "fin_width_mm": 0.2597,
+    "channel_depth_mm": 5.1235,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 25.0
+   }
+  },
+  {
+   "case_id": "o47-B_uniform",
+   "design_id": "o47",
+   "stratum": "B_uniform",
+   "base_mm": 0.9756,
+   "inputs": {
+    "channel_width_mm": 0.2793,
+    "fin_width_mm": 0.4545,
+    "channel_depth_mm": 3.0015,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 1.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o47-B_central_r2",
+   "design_id": "o47",
+   "stratum": "B_central_r2",
+   "base_mm": 0.9756,
+   "inputs": {
+    "channel_width_mm": 0.2793,
+    "fin_width_mm": 0.4545,
+    "channel_depth_mm": 3.0015,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 15.0
+   }
+  },
+  {
+   "case_id": "o47-B_outlet_r2",
+   "design_id": "o47",
+   "stratum": "B_outlet_r2",
+   "base_mm": 0.9756,
+   "inputs": {
+    "channel_width_mm": 0.2793,
+    "fin_width_mm": 0.4545,
+    "channel_depth_mm": 3.0015,
+    "flow_lpm_per_kw": 1.5,
+    "inlet_c": 40.0,
+    "heat_load_w": 1000.0,
+    "hotspot_width_mm": 2.5,
+    "hotspot_ratio": 2.0,
+    "hotspot_center_mm": 25.0
+   }
+  }
+ ]
+}
