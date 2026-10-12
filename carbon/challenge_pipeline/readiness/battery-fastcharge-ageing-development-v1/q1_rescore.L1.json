@@ -1,0 +1,89 @@
+{
+ "anchors_source_sha256": "sha256:357f6d3ae479ce8d342b38e9069118526c3ed76e97022a262c7fd4daa25a3aaa",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "lower_is_better": true,
+ "practice_source_sha256": "7d3955b278b0aab08fe0abc530eded6511531d086e7f0cd94f6c09dc3e98fb8d",
+ "rows": [
+  {
+   "eligible": true,
+   "export_stream_sha256": "sha256:8b24e9cd39a0bcd56cb821e76baca50a042e709d725142758d6df8ec02cf41d6",
+   "member": "minerH-bsub-8df17aba-s0",
+   "n_missing": 0,
+   "n_scored": 200,
+   "output_digest_matches": true,
+   "predictions_sha256": "sha256:392b7db06fbc5940630daf0ad7630b5e6991733220f66aa25fd18489435f0b73",
+   "recomputed_score": 0.17278820736218464,
+   "recorded_output_digest": "sha256:8b24e9cd39a0bcd56cb821e76baca50a042e709d725142758d6df8ec02cf41d6",
+   "recorded_score": 0.172788,
+   "submission_id": "bsub-8df17aba9c8ddb7079fec723568dfbfa"
+  },
+  {
+   "eligible": true,
+   "export_stream_sha256": "sha256:21d9085bab19117aa7f880adfe69d5c5162988fa0f736635cbe61f4ab70801b4",
+   "member": "minerH-bsub-9a658866-s0",
+   "n_missing": 0,
+   "n_scored": 200,
+   "output_digest_matches": true,
+   "predictions_sha256": "sha256:5887c1bf09ef6134152fb6d6e74f0cd90a50dbc0c674a03a9b05ae797729ee7d",
+   "recomputed_score": 0.17211265944009782,
+   "recorded_output_digest": "sha256:21d9085bab19117aa7f880adfe69d5c5162988fa0f736635cbe61f4ab70801b4",
+   "recorded_score": 0.172113,
+   "submission_id": "bsub-9a658866eafba0958f452e5ff48505ca"
+  },
+  {
+   "eligible": true,
+   "export_stream_sha256": "sha256:5dae596bd86ba4de8f61508c6e2025ba7418762548363e7861c0bdbd12e95e70",
+   "member": "minerH-bsub-b1d1f99f-s0",
+   "n_missing": 0,
+   "n_scored": 200,
+   "output_digest_matches": true,
+   "predictions_sha256": "sha256:db6b0180debf12d7aaed47a34f188c138c986369c85bd8ed430593208c4e9d65",
+   "recomputed_score": 0.17626759231725128,
+   "recorded_output_digest": "sha256:5dae596bd86ba4de8f61508c6e2025ba7418762548363e7861c0bdbd12e95e70",
+   "recorded_score": 0.176268,
+   "submission_id": "bsub-b1d1f99f0e49fd087bad4e80466c3f9e"
+  },
+  {
+   "eligible": true,
+   "export_stream_sha256": "sha256:da8ed97e168373f3a615e01c3ca5ab14bd690be625bc9dc069b4b116628706c4",
+   "member": "minerI-bsub-925d55a1-s0",
+   "n_missing": 0,
+   "n_scored": 200,
+   "output_digest_matches": true,
+   "predictions_sha256": "sha256:894668e33941ffcb78f765451c3bed4e3bbe4c3273288d943e967c96a2499dd5",
+   "recomputed_score": 0.44278854970408593,
+   "recorded_output_digest": "sha256:da8ed97e168373f3a615e01c3ca5ab14bd690be625bc9dc069b4b116628706c4",
+   "recorded_score": 0.442789,
+   "submission_id": "bsub-925d55a1c879744790cb099c3efd3147"
+  },
+  {
+   "eligible": true,
+   "export_stream_sha256": "sha256:a3b818feee605ba0c374fb63eaf0916c9be9ceaee1b959bc73dc0b039bf338cc",
+   "member": "minerI-bsub-e8efce9a-s0",
+   "n_missing": 0,
+   "n_scored": 200,
+   "output_digest_matches": true,
+   "predictions_sha256": "sha256:f2c7d5bc717b1f4fc4abd95fb9f4c3d3b2b9457b8c515789ef8fbe2dc6ed770b",
+   "recomputed_score": 0.4748589522488142,
+   "recorded_output_digest": "sha256:a3b818feee605ba0c374fb63eaf0916c9be9ceaee1b959bc73dc0b039bf338cc",
+   "recorded_score": 0.474859,
+   "submission_id": "bsub-e8efce9a90eb1be30243ef4087090d0a"
+  },
+  {
+   "eligible": true,
+   "export_stream_sha256": "sha256:c58f1eb1c4539a9a87c1c2c7ea1790df34f5629d0458c9b3e4f0c0970cfe6995",
+   "member": "minerI-bsub-ed8a517f-s0",
+   "n_missing": 0,
+   "n_scored": 200,
+   "output_digest_matches": true,
+   "predictions_sha256": "sha256:f1b4a5d06181afe87d0e55d50bb5a7a26a0e995f7eb5e72cccdcf7c50cca71a5",
+   "recomputed_score": 0.5354465636141551,
+   "recorded_output_digest": "sha256:c58f1eb1c4539a9a87c1c2c7ea1790df34f5629d0458c9b3e4f0c0970cfe6995",
+   "recorded_score": 0.535447,
+   "submission_id": "bsub-ed8a517fb30a555b893b95c05a10d72e"
+  }
+ ],
+ "rule": "Graphite frozen rule: BatteryPracticeRule.score on the public PRACTICE cases",
+ "rule_identity_digest": "sha256:d3c9fb0fbf83b2abed2128d49ab52e1338b7d5bc693cd1fb89977171f7c7b61f",
+ "schema": "carbon.graphite.l1-anchor-rescore.v1"
+}
