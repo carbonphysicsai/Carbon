@@ -104,6 +104,26 @@ def validate_acceptance(link, *, family, image_digest, criteria_digest, files):
         data = files.get(item["path"])
         if type(data) is not bytes or byte_digest(data) != _digest(item["sha256"]):
             raise AcceptanceRefused("acceptance_source_mismatch")
+        if item is not decision:
+            try:
+                result = json.loads(data)
+                expected_schema = (
+                    "carbon.reference-package.mms.v1"
+                    if family == "f02"
+                    else "carbon.code-verification.result.v1"
+                )
+                if result.get("schema") != expected_schema:
+                    raise AcceptanceRefused("acceptance_evidence_result_required")
+                if result.get("image_digest", result.get("image")) != image_digest:
+                    raise AcceptanceRefused("acceptance_evidence_image_mismatch")
+                if family != "f02" and result.get("criteria_digest") != criteria_digest:
+                    raise AcceptanceRefused("acceptance_evidence_criteria_mismatch")
+                if family != "f02" and result.get("family") != family:
+                    raise AcceptanceRefused("acceptance_evidence_family_mismatch")
+            except (TypeError, ValueError, AttributeError) as error:
+                if isinstance(error, AcceptanceRefused):
+                    raise
+                raise AcceptanceRefused("acceptance_evidence_malformed") from error
     criteria_bytes = files.get(link["criteria_path"])
     if type(criteria_bytes) is not bytes:
         raise AcceptanceRefused("acceptance_criteria_unavailable")

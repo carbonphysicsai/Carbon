@@ -10,6 +10,7 @@ from carbon.trust_map.acceptance import (
     LINKS,
     ROOT,
     AcceptanceRefused,
+    byte_digest,
     digest,
     load_acceptance,
     validate_acceptance,
@@ -55,6 +56,34 @@ def test_missing_link_is_unavailable(tmp_path):
     with pytest.raises(AcceptanceRefused, match="unavailable"):
         load_acceptance(
             "battery-v3", link["image_digest"], link["criteria_digest"], root=tmp_path
+        )
+
+
+@pytest.mark.parametrize("part", ["image", "criteria", "format"])
+def test_relinking_a_record_cannot_reinterpret_older_mms_headers(part):
+    link, files = registered("battery-v3")
+    if part == "image":
+        link["image_digest"] = "sha256:" + "a" * 64
+    elif part == "criteria":
+        criteria = json.loads(files[link["criteria_path"]])
+        criteria["t"] = 0.5
+        files[link["criteria_path"]] = json.dumps(criteria).encode()
+        link["criteria_digest"] = digest(criteria)
+    else:
+        path = link["evidence"][0]["path"]
+        result = json.loads(files[path])
+        result["schema"] = "carbon.code-verification.fields.v1"
+        files[path] = json.dumps(result).encode()
+        link["evidence"][0]["sha256"] = byte_digest(files[path])
+    with pytest.raises(
+        AcceptanceRefused, match="evidence_(.*mismatch|result_required)"
+    ):
+        validate_acceptance(
+            link,
+            family="battery-v3",
+            image_digest=link["image_digest"],
+            criteria_digest=link["criteria_digest"],
+            files=files,
         )
 
 
