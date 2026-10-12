@@ -62,9 +62,12 @@ LEGS = ("a", "r", "g", "m", "n", "p", "q")
 #: (`verify_quiz`, OWNER-VERIFY-R-DEFAULTS-01; registry v8). Score-proof
 #: legs only: computed once per member from the quiz, never per submission,
 #: so not in `LEGS` (the legs a development score variant may weight).
-VERIFY_LEGS = ("v1", "v3", "v5")
+#: `v3s` (registry v10): v3 with unsafe and infeasible picks charged harder.
+VERIFY_LEGS = ("v1", "v3", "v5", "v3s")
 SCORE_LEGS = LEGS + VERIFY_LEGS
-GATES = ("near", "envelope", "feasibility", "plating_fa", "error")
+#: `sign` (registry v10): sign consistency at the pair-law probe pairs. A
+#: measure the panel did not compute leaves its candidates unscored.
+GATES = ("near", "envelope", "feasibility", "plating_fa", "error", "sign")
 #: How a gate compares its measure with its cutoff. "at_or_above" fails at
 #: or above the cutoff (`admissibility.verdict`, pinned, and every candidate
 #: registered before v5 without a `comparison`). "exceeds" fails only above
@@ -424,6 +427,9 @@ def score_member(candidate, row):
     seed mean and gate (public: shared with the Validator's variants)."""
     if candidate.kind == "deciding":
         return -row["E"] if row["eligible"] and row["E"] is not None else None
+    used = candidate.gates or ((candidate.gate,) if candidate.gate else ())
+    if any(g["measure"] not in row["gates"] for g in used):
+        return None  # a measure this panel did not compute: withheld, never scored
     if not row["eligible"]:
         return 0.0
     return b1._geometric(
@@ -434,7 +440,7 @@ def score_member(candidate, row):
 
 def one_gate_verdict(gate, row):
     """One gate's verdict for one member."""
-    measured = row["gates"][gate["measure"]]
+    measured = row["gates"].get(gate["measure"])
     cutoff = gate["cutoff"]
     if gate.get("comparison") == "exceeds":
         return exceeds_verdict(measured, cutoff)

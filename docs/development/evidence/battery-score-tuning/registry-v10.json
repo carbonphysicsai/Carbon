@@ -1,0 +1,117 @@
+{
+ "schema": "carbon.battery.score-tuning-registry.v1",
+ "registered": "2026-10-12T16:04Z, registry v10: a pre-registered CONTINGENCY, committed before any public development result is scored for the v9 selection (Test Lead, development). Seeds: RES-02 (#1183) found on public EV4/EV5 that the localized sign-error control outranks every eligible real member and makes 4 unsafe verification picks, and that R misses sparse sign errors.",
+ "order": "Registry v9 is scored first. Registry v10 is scored ONLY IF no v9 rule is pickable under the screen in force (SCORE-PROOF-PICKABLE-02, unchanged). The owner picks from whichever family is scored, never from both, and never a rule the screen rejects.",
+ "supersedes": "nothing: v9 stays registered and is scored first",
+ "pickability": "SCORE-PROOF-PICKABLE-02 (known-bad placement and adversarial divergence), unchanged",
+ "public_split": "public-dev-split-v1.json, unchanged: v3s is computed on LEG questions only, value on VALUE questions only",
+ "legs": {
+  "v3s": "VERIFY-R at k = 3 on the LEG questions (as v3, OWNER-VERIFY-R-DEFAULTS-01), except that a verified pick the reference finds infeasible or unsafe is charged kappa regret units instead of one. kappa = 3 (one registered candidate weight; adoption is HUMAN_INPUT)."
+ },
+ "gate_measures": {
+  "sign": "Sign consistency at probe pairs (PHYSICS-CONTRACT-01 pair laws B5-B8): pairs of scoring cases that differ in exactly one law input at fixed others -- B5 peak T vs c1 and vs c2, B6 plating margin vs c1, B7 plating margin vs T_amb, B8 peak T vs T_amb. The measure is the share of pairs whose predicted change has the opposite sign to the REFERENCE's change, over pairs whose reference |change| is at least epsilon = 1 % of that output's reference range over the pairs (a registered candidate; HUMAN_INPUT adopts). The reference's sign is used, not the law's asserted direction, so B7's possible non-monotonicity at high rate (RES-06) cannot fail a correct model. Cutoff 0.0, comparison exceeds: any disagreement fails. A member with no evaluable pair is unmeasured, and a candidate using an unmeasured measure is withheld (INCOMPLETE_LEGS), never scored."
+ },
+ "threshold": "HUMAN_INPUT: kappa, epsilon and every cutoff are registered candidate values, never adopted thresholds",
+ "implementation": "The v3s leg and the sign measure are computed only if v10 is scored; until then every v10 rule is withheld (INCOMPLETE_LEGS) and a confirmation refuses (confirmation_incomplete_legs).",
+ "controls": "A-Q and the rule in force G-FEAS/A-Q>@0.05, unchanged from v8 and v9",
+ "candidates": [
+  {
+   "id": "V3S",
+   "weights": {
+    "v3s": 1.0
+   },
+   "basis": "registry v10 (contingency): held-out decision outcomes with unsafe and infeasible picks charged harder (leg v3s)"
+  },
+  {
+   "id": "ARP-V3S",
+   "weights": {
+    "a": 0.25,
+    "r": 0.25,
+    "p": 0.25,
+    "v3s": 0.25
+   },
+   "basis": "registry v10 (contingency): the simple legs with v3s, equal weights"
+  },
+  {
+   "id": "ENV/ARP-V3S",
+   "weights": {
+    "a": 0.25,
+    "r": 0.25,
+    "p": 0.25,
+    "v3s": 0.25
+   },
+   "gate": {
+    "measure": "envelope",
+    "cutoff": 1.0
+   },
+   "basis": "registry v10 (contingency): ARP-V3S with the envelope gate at 1.0"
+  },
+  {
+   "id": "SIGN/V3S",
+   "weights": {
+    "v3s": 1.0
+   },
+   "gate": {
+    "measure": "sign",
+    "cutoff": 0.0,
+    "comparison": "exceeds"
+   },
+   "basis": "registry v10 (contingency): V3S with the sign-consistency hard gate"
+  },
+  {
+   "id": "SIGN/ARP-V3S",
+   "weights": {
+    "a": 0.25,
+    "r": 0.25,
+    "p": 0.25,
+    "v3s": 0.25
+   },
+   "gate": {
+    "measure": "sign",
+    "cutoff": 0.0,
+    "comparison": "exceeds"
+   },
+   "basis": "registry v10 (contingency): ARP-V3S with the sign-consistency hard gate"
+  },
+  {
+   "id": "SIGN+ENV/ARP-V3S",
+   "weights": {
+    "a": 0.25,
+    "r": 0.25,
+    "p": 0.25,
+    "v3s": 0.25
+   },
+   "gates": [
+    {
+     "measure": "envelope",
+     "cutoff": 1.0
+    },
+    {
+     "measure": "sign",
+     "cutoff": 0.0,
+     "comparison": "exceeds"
+    }
+   ],
+   "basis": "registry v10 (contingency): ARP-V3S with the envelope gate and the sign-consistency gate"
+  },
+  {
+   "id": "A-Q",
+   "weights": {
+    "a": 0.5,
+    "q": 0.5
+   },
+   "basis": "accuracy next to Q3 decision regret (owner: 'not gameable?'): over-caution costs score"
+  },
+  {
+   "id": "G-FEAS/A-Q>",
+   "kind": "gate_sweep",
+   "measure": "feasibility",
+   "grid": [
+    0.05
+   ],
+   "base": "A-Q",
+   "comparison": "exceeds",
+   "basis": "OWNER-BATTERY-SCORE-RULE-01's rule (G-FEAS@0.05 over A-Q) with the gate comparison the record states: fail only above 0.05 (#961)"
+  }
+ ]
+}
