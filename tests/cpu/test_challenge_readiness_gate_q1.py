@@ -408,3 +408,183 @@ def test_the_build_command_writes_the_per_level_file(tmp_path, monkeypatch):
         assert q1.main(argv) == 0
         written = json.loads((tmp_path / CHALLENGE / name).read_text("utf-8"))
         assert written["level"] == level
+
+
+# -- score-basis split (Test Lead ruling, 2026-10-12) ---------------------------------------------
+PRIMARY = "named frozen-rule score"
+OTHER = "unnamed-rule aggregate"
+COMMITTED_L1_SOURCE_SHA = (
+    "sha256:5b3ba57430ba2a0087626b249ab9afbd576edebed2706187654d5786103dacf7"
+)
+
+
+def _mixed_panel():
+    return _panel(_members(("d03", "d07", "d03", "d07", "d03")))
+
+
+@pytest.fixture
+def split(monkeypatch, tmp_path):
+    """A mixed-basis source report, its basis evidence and the derived primary report."""
+    directory = tmp_path / CHALLENGE
+    directory.mkdir()
+    monkeypatch.setattr(q1, "PACKAGE", tmp_path)
+    monkeypatch.setattr(
+        q1, "current_rule_digest", lambda c, r=None: "sha256:" + "a" * 64
+    )
+    source = q1.build_report(CHALLENGE, 1, _mixed_panel(), "sha256:" + "a" * 64)
+    (directory / "q1_report.L1.mixed-basis.json").write_text(
+        json.dumps(source), encoding="utf-8"
+    )
+    evidence = {
+        name: {
+            "basis": PRIMARY if name in ("m0", "m1", "m2") else OTHER,
+            "score": row["score"],
+        }
+        for name, row in source["members"].items()
+    }
+    (directory / "q1_basis.L1.json").write_text(json.dumps(evidence), encoding="utf-8")
+
+    def derive():
+        return q1.build_primary_report(
+            directory / "q1_report.L1.mixed-basis.json",
+            directory / "q1_basis.L1.json",
+            PRIMARY,
+        )
+
+    def write(report):
+        (directory / "q1_report.L1.json").write_text(
+            json.dumps(report), encoding="utf-8"
+        )
+
+    report = derive()
+    write(report)
+    return directory, report, write, derive
+
+
+def test_a_derived_primary_report_passes_and_names_the_secondary(split):
+    _, report, _, _ = split
+    assert sorted(report["members"]) == ["m0", "m1", "m2"]
+    assert [e["member"] for e in report["basis_split"]["excluded"]] == ["m3", "m4"]
+    result = q1.v1_alignment_report({}, _ctx(1))
+    assert result.status == model.PASS
+    assert "SECONDARY" in result.detail
+    assert "primary_n:3" in result.evidence
+    assert "secondary_mixed_basis_n:5" in result.evidence
+    assert _status(q1.v2_panel_discrimination, 1) == model.PASS
+
+
+def test_the_alignment_is_recomputed_on_the_primary_members_only(split):
+    _, report, _, _ = split
+    assert report["alignment"] == q1._alignment_of(report["members"])
+    mixed = json.loads(json.dumps(q1._alignment_of(_mixed_panel()["members"])))
+    assert report["alignment"] != mixed
+
+
+def test_v2_counts_only_primary_members(split):
+    directory, _, write, _ = split
+    source_path = directory / "q1_report.L1.mixed-basis.json"
+    source = json.loads(source_path.read_text())
+    for name in ("m0", "m1", "m2"):
+        source["members"][name]["decision_outcome"] = "d03"
+    source["members"]["m3"]["decision_outcome"] = "d09"
+    source_path.write_text(json.dumps(source))
+    report = q1.build_primary_report(
+        source_path, directory / "q1_basis.L1.json", PRIMARY
+    )
+    write(report)
+    assert _status(q1.v2_panel_discrimination, 1) == model.FAIL
+
+
+def _rewrite_evidence(directory, report, edit):
+    path = directory / "q1_basis.L1.json"
+    evidence = json.loads(path.read_text())
+    edit(evidence)
+    path.write_text(json.dumps(evidence))
+    report["basis_split"]["basis_evidence"]["sha256"] = q1.file_sha256(path)
+
+
+@pytest.mark.parametrize(
+    "tamper",
+    [
+        "row_edited",
+        "member_added_from_other_basis",
+        "excluded_wrong",
+        "secondary_tau_changed",
+        "primary_basis_renamed",
+        "source_digest",
+        "evidence_digest",
+        "evidence_basis_missing",
+        "evidence_score_differs",
+        "source_deleted",
+    ],
+)
+def test_a_split_that_does_not_follow_from_its_committed_files_fails_closed(
+    split, tamper
+):
+    directory, report, write, _ = split
+    block = report["basis_split"]
+    if tamper == "row_edited":
+        report["members"]["m0"]["score"] = 99.0
+    elif tamper == "member_added_from_other_basis":
+        source = json.loads((directory / "q1_report.L1.mixed-basis.json").read_text())
+        report["members"]["m3"] = {**source["members"]["m3"], "basis": PRIMARY}
+    elif tamper == "excluded_wrong":
+        block["excluded"] = block["excluded"][:1]
+    elif tamper == "secondary_tau_changed":
+        block["secondary"]["kendall_tau_b"] = 0.99
+    elif tamper == "primary_basis_renamed":
+        block["primary_basis"] = OTHER
+    elif tamper == "source_digest":
+        block["source"]["sha256"] = "sha256:" + "0" * 64
+    elif tamper == "evidence_digest":
+        (directory / "q1_basis.L1.json").write_text("{}")
+    elif tamper == "evidence_basis_missing":
+        _rewrite_evidence(directory, report, lambda e: e["m4"].pop("basis"))
+    elif tamper == "evidence_score_differs":
+        _rewrite_evidence(directory, report, lambda e: e["m0"].update(score=5.0))
+    elif tamper == "source_deleted":
+        (directory / "q1_report.L1.mixed-basis.json").unlink()
+    write(report)
+    for function in (q1.v1_alignment_report, q1.v2_panel_discrimination):
+        result = function({}, _ctx(1))
+        assert result.status == model.FAIL
+        assert "score-basis split" in result.detail
+
+
+def test_a_member_with_no_recorded_basis_cannot_be_derived(split):
+    directory, _, _, derive = split
+    path = directory / "q1_basis.L1.json"
+    evidence = json.loads(path.read_text())
+    del evidence["m1"]
+    path.write_text(json.dumps(evidence))
+    with pytest.raises(ValueError, match="no recorded score basis"):
+        derive()
+
+
+def test_a_split_file_name_cannot_leave_the_report_folder(split):
+    _, report, write, _ = split
+    report["basis_split"]["source"]["file"] = "../elsewhere.json"
+    write(report)
+    assert q1.v1_alignment_report({}, _ctx(1)).status == model.FAIL
+
+
+def test_a_report_without_a_split_is_read_as_before(recorded):
+    recorded(level=1)
+    assert _status(q1.v1_alignment_report, 1) == model.PASS
+
+
+def test_the_committed_level_one_split_follows_from_its_committed_files():
+    folder = q1.PACKAGE / "battery-fastcharge-ageing-development-v1"
+    report = json.loads((folder / "q1_report.L1.json").read_bytes())
+    block = report["basis_split"]
+    assert q1.split_problem(report, folder) is None
+    assert len(report["members"]) == 14 and block["secondary"]["members"] == 20
+    assert all(
+        row["basis"] == block["primary_basis"] for row in report["members"].values()
+    )
+    assert {e["member"][:5] for e in block["excluded"]} == {"miner"}
+    # the executor's 20-member file is kept byte-identical, never edited
+    source = folder / "q1_report.L1.mixed-basis.json"
+    assert q1.file_sha256(source) == COMMITTED_L1_SOURCE_SHA
+    assert block["source"]["sha256"] == COMMITTED_L1_SOURCE_SHA
+    assert q1._alignment_of(report["members"]) == report["alignment"]

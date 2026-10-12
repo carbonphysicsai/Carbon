@@ -25,6 +25,19 @@ exactly the `members` shape `score_value.alignment` takes plus each member's
 alignment, so a recorded report cannot disagree with its members, and binds the
 report to the digest of the scoring rule in force.
 
+Score basis (Test Lead ruling, 2026-10-12). V1 and V2 are gate evidence only over members
+that share ONE named, reproducible score basis. A panel that mixes bases (for example
+Graphite frozen-rule pod scores and a Launchpad aggregate under an unnamed rule) is not
+gate evidence as a whole. The gate reads a DERIVED primary-basis report: `basis_split`
+names the primary basis, the source report it was derived from (file and sha256, kept
+beside it as the labelled SECONDARY), the per-member basis evidence (file and sha256) and
+the excluded members with their bases. `split_problem` re-derives the split from those
+two committed files on every gate run: the primary members must be exactly the source
+members whose recorded basis is the primary basis, each row must equal its source row,
+the excluded members must be the rest with a recorded basis, and the secondary summary
+must equal the source's own alignment. A member with no recorded basis fails closed. A
+report without `basis_split` (the level-0 report) is read as before.
+
 Nothing here chooses a value: no threshold other than the two-outcome floor the
 gate document names, and no panel is produced.
 
@@ -43,6 +56,7 @@ controls stay visible.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
 from pathlib import Path
@@ -137,6 +151,176 @@ def build_report(challenge, level, panel, rule_digest):
     }
 
 
+def file_sha256(path):
+    return "sha256:" + hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
+def _sibling(folder, name):
+    """A committed file next to the report, by plain name only (no path parts)."""
+    if not (isinstance(name, str) and name and Path(name).name == name):
+        return None
+    path = Path(folder) / name
+    return path if path.is_file() else None
+
+
+def _split_files(split, folder):
+    """`(source, evidence, problem)`: the two committed files a split rests on, each
+    matching its recorded digest."""
+    loaded = []
+    for key in ("source", "basis_evidence"):
+        entry = split.get(key)
+        if not isinstance(entry, dict):
+            return None, None, f"basis_split has no {key}"
+        path = _sibling(folder, entry.get("file"))
+        if path is None:
+            return (
+                None,
+                None,
+                f"basis_split {key} file is not committed beside the report",
+            )
+        if file_sha256(path) != entry.get("sha256"):
+            return (
+                None,
+                None,
+                f"basis_split {key} digest differs from the committed file",
+            )
+        try:
+            loaded.append(json.loads(path.read_bytes()))
+        except ValueError:
+            return None, None, f"basis_split {key} file is not JSON"
+    return loaded[0], loaded[1], None
+
+
+def _secondary_summary(source):
+    alignment = source.get("alignment") or {}
+    return {
+        "members": len(source.get("members") or {}),
+        "kendall_tau_b": alignment.get("kendall_tau_b"),
+        "spearman_rho": alignment.get("spearman_rho"),
+        "top_k_overlap": (alignment.get("top_k") or {}).get("overlap"),
+        "divergences": sum(
+            1
+            for c in alignment.get("conditions", [])
+            if c.get("condition") == "SCORE_VALUE_DIVERGENCE"
+        ),
+    }
+
+
+def split_problem(report, folder):
+    """Why a report's `basis_split` does not follow from its committed source and basis
+    evidence, or None (also None when the report carries no split)."""
+    split = report.get("basis_split")
+    if split is None:
+        return None
+    if not isinstance(split, dict):
+        return "basis_split is not an object"
+    primary = split.get("primary_basis")
+    if not (isinstance(primary, str) and primary):
+        return "basis_split names no primary basis"
+    source, evidence, problem = _split_files(split, folder)
+    if problem:
+        return problem
+    if not (isinstance(source, dict) and source.get("schema") == REPORT_SCHEMA):
+        return "basis_split source is not a readiness Q1 report"
+    for key in (
+        "challenge",
+        "level",
+        "reference",
+        "decision_study",
+        "scoring_rule_digest",
+    ):
+        if source.get(key) != report.get(key):
+            return f"basis_split source differs from the report in {key}"
+    source_members = source.get("members")
+    if not (isinstance(source_members, dict) and isinstance(evidence, dict)):
+        return "basis_split source or evidence has no members"
+    bases = {}
+    for name, row in source_members.items():
+        recorded = evidence.get(name)
+        basis = recorded.get("basis") if isinstance(recorded, dict) else None
+        if not (isinstance(basis, str) and basis):
+            return f"member {name} has no recorded score basis"
+        if recorded.get("score") != row.get("score"):
+            return f"member {name}: the basis evidence score differs from the source"
+        bases[name] = basis
+    primary_names = {n for n, b in bases.items() if b == primary}
+    members = report["members"]
+    if set(members) != primary_names:
+        return "the report's members are not exactly the source members on the primary basis"
+    for name, row in members.items():
+        if row != {**source_members[name], "basis": primary}:
+            return f"member {name} differs from its source row"
+    excluded = sorted(
+        (
+            {"basis": bases[n], "member": n}
+            for n in source_members
+            if n not in primary_names
+        ),
+        key=lambda e: e["member"],
+    )
+    if split.get("excluded") != excluded:
+        return "the excluded members are not the rest of the source with their bases"
+    secondary = split.get("secondary")
+    expected = _secondary_summary(source)
+    if not isinstance(secondary, dict) or any(
+        secondary.get(k) != v for k, v in expected.items()
+    ):
+        return (
+            "the recorded secondary summary differs from the source report's alignment"
+        )
+    return None
+
+
+def build_primary_report(source_path, evidence_path, primary_basis, rule_digest=None):
+    """The derived primary-basis report for a mixed-basis source report: the members
+    whose recorded basis is `primary_basis`, alignment recomputed on them, the source and
+    its excluded members recorded. Both files must sit in the report folder."""
+    source_path, evidence_path = Path(source_path), Path(evidence_path)
+    source = json.loads(source_path.read_bytes())
+    evidence = json.loads(evidence_path.read_bytes())
+    members = {}
+    excluded = []
+    for name, row in sorted(source["members"].items()):
+        recorded = evidence.get(name)
+        basis = recorded.get("basis") if isinstance(recorded, dict) else None
+        if not (isinstance(basis, str) and basis):
+            raise ValueError(f"member {name} has no recorded score basis")
+        if basis == primary_basis:
+            members[name] = {**row, "basis": primary_basis}
+        else:
+            excluded.append({"basis": basis, "member": name})
+    panel = {
+        "reference": source["reference"],
+        "decision_study": source["decision_study"],
+        "aliases": source.get("aliases", []),
+        "members": members,
+    }
+    report = build_report(
+        source["challenge"],
+        source["level"],
+        panel,
+        rule_digest or source["scoring_rule_digest"],
+    )
+    report["basis_split"] = {
+        "primary_basis": primary_basis,
+        "label": (
+            "PRIMARY: members on one named score basis. The source report mixes bases and "
+            "is the SECONDARY, not gate evidence"
+        ),
+        "source": {"file": source_path.name, "sha256": file_sha256(source_path)},
+        "basis_evidence": {
+            "file": evidence_path.name,
+            "sha256": file_sha256(evidence_path),
+        },
+        "excluded": excluded,
+        "secondary": {
+            "label": "MIXED-BASIS SECONDARY: not gate evidence",
+            **_secondary_summary(source),
+        },
+    }
+    return report
+
+
 def report_names(level):
     """The file names a level's Q1 report may have, in order. Level 0 also reads
     the older single-file name; every other level has exactly one."""
@@ -188,6 +372,11 @@ def v1_alignment_report(item, ctx):
     problem = _problem(report, ctx.challenge, ctx.level) if report else "unreadable"
     if problem:
         return Result(FAIL, f"{path.name} is unusable: {problem}", (path.name,))
+    split = split_problem(report, path.parent)
+    if split:
+        return Result(
+            FAIL, f"{path.name} has an invalid score-basis split: {split}", (path.name,)
+        )
     refused = reference_problem(report, ctx.repository)
     if refused:
         return Result(FAIL, refused, (path.name,))
@@ -218,17 +407,34 @@ def v1_alignment_report(item, ctx):
         for c in a["conditions"]
         if c["condition"] == "SCORE_VALUE_DIVERGENCE"
     ]
+    basis_note = ""
+    basis_evidence = ()
+    if report.get("basis_split"):
+        split_block = report["basis_split"]
+        secondary = split_block["secondary"]
+        basis_note = (
+            f" Primary basis {split_block['primary_basis']!r}, n={len(report['members'])}; the "
+            f"{secondary['members']}-member mixed-basis source is a labelled SECONDARY "
+            f"(tau {secondary['kendall_tau_b']}), not gate evidence."
+        )
+        basis_evidence = (
+            f"primary_basis:{split_block['primary_basis']}",
+            f"primary_n:{len(report['members'])}",
+            f"secondary_mixed_basis_n:{secondary['members']}",
+            f"source:{split_block['source']['sha256']}",
+        )
     return Result(
         PASS,
         f"Q1 report recorded: tau {a['kendall_tau_b']} (band {band}), rho "
         f"{a['spearman_rho']}, {len(divergences)} divergences. A measurement, not a "
         "threshold: a negative or within-noise tau is recorded, and the first runs "
-        "are framed as alignment measurements (review).",
+        "are framed as alignment measurements (review)." + basis_note,
         (
             f"report:{digest(report)}",
             f"tau:{a['kendall_tau_b']}",
             f"rho:{a['spearman_rho']}",
             f"tau_band:{band}",
+            *basis_evidence,
             *[f"divergence:{m}" for m in divergences],
         ),
     )
@@ -286,6 +492,11 @@ def v2_panel_discrimination(item, ctx):
     problem = _problem(report, ctx.challenge, ctx.level) if report else "unreadable"
     if problem:
         return Result(FAIL, f"{path.name} is unusable: {problem}", (path.name,))
+    split = split_problem(report, path.parent)
+    if split:
+        return Result(
+            FAIL, f"{path.name} has an invalid score-basis split: {split}", (path.name,)
+        )
     aliased, alias_problem = _alias_map(report)
     if alias_problem:
         return Result(FAIL, alias_problem, (path.name,))
@@ -332,7 +543,27 @@ def main(argv=None):
         help="default: readiness/<challenge>/q1_report.json for level 0, "
         "q1_report.L<N>.json otherwise",
     )
+    d = sub.add_parser(
+        "build-primary",
+        help="derive the primary-basis report from a mixed-basis source report",
+    )
+    d.add_argument("--source", required=True)
+    d.add_argument("--basis-evidence", required=True)
+    d.add_argument("--primary-basis", required=True)
+    d.add_argument("--out", required=True)
     args = parser.parse_args(argv)
+    if args.command == "build-primary":
+        try:
+            report = build_primary_report(
+                args.source, args.basis_evidence, args.primary_basis
+            )
+        except (OSError, ValueError, KeyError) as error:
+            print(f"cannot derive the primary-basis report: {error}")
+            return 2
+        Path(args.out).parent.mkdir(parents=True, exist_ok=True)
+        with open(args.out, "w", encoding="utf-8", newline=chr(10)) as out:
+            out.write(json.dumps(report, indent=1, sort_keys=True) + chr(10))
+        return 0
     panel = json.loads(Path(args.panel).read_bytes())
     for key in ("reference", "decision_study", "members"):
         if key not in panel:

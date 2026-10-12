@@ -2,18 +2,34 @@
  "schema": "carbon.challenge-pipeline.readiness-review.v1",
  "challenge": "battery-fastcharge-ageing-development-v1",
  "level": [
-  0
+  0,
+  1
  ],
  "item": "V1",
  "decision": "PASS",
  "reviewer": "Test Lead",
- "date": "2026-10-09",
+ "date": "2026-10-12",
  "evidence": [
   {
    "kind": "file",
    "ref": "carbon/challenge_pipeline/readiness/battery-fastcharge-ageing-development-v1/q1_report.json",
    "sha256": "sha256:91d4b27a661d55a6c686e811ad5a0526765b3c1bde63b42356722947137fbe8b"
+  },
+  {
+   "kind": "file",
+   "ref": "carbon/challenge_pipeline/readiness/battery-fastcharge-ageing-development-v1/q1_report.L1.json",
+   "sha256": "sha256:319972273a07538cc4cfded794146f4c931d7ad391b8db40d8fc265aceaca206"
+  },
+  {
+   "kind": "file",
+   "ref": "carbon/challenge_pipeline/readiness/battery-fastcharge-ageing-development-v1/q1_report.L1.mixed-basis.json",
+   "sha256": "sha256:5b3ba57430ba2a0087626b249ab9afbd576edebed2706187654d5786103dacf7"
+  },
+  {
+   "kind": "file",
+   "ref": "carbon/challenge_pipeline/readiness/battery-fastcharge-ageing-development-v1/q1_basis.L1.json",
+   "sha256": "sha256:1146692378e5207de41809cbb42850caae032ea2e39b74bd4ee4b43e579a9b1a"
   }
  ],
- "notes": "PASS as a measurement, not a threshold: Kendall tau-b -0.473 and Spearman rho -0.539 over n = 8 members at one seed per recipe (EV4 references, graphite-run5 panel). Stage A is an ALIGNMENT MEASUREMENT, not improvement hunting; the negative tau is escalated to the owner by the Test Lead. Level 0 only: Level 1 has no Q1 report yet."
+ "notes": "Level 0 (2026-10-09): PASS as a measurement, not a threshold: Kendall tau-b -0.473 and Spearman rho -0.539 over n = 8 members at one seed per recipe (EV4 references, graphite-run5 panel). Stage A is an ALIGNMENT MEASUREMENT, not improvement hunting; the negative tau is escalated to the owner by the Test Lead. Level 1 (2026-10-12), transcribed from the Test Lead's ruling that an unnamed-rule score basis is not reproducible and is not accepted as gate evidence: V1 is judged on the 14 members that share one named basis (the Graphite frozen-rule pod score) in the derived primary report q1_report.L1.json (n = 14, EV4 references, 7 of 12 development scenarios, one seed per recipe so the tau band is 0.0): Kendall tau-b 0.281, Spearman rho 0.488, top-1 overlap 0, 10 divergences. PASS as a measurement, not a threshold; Level 1 remains an ALIGNMENT MEASUREMENT, not improvement hunting. Basis caveat: the 20-member source report (tau-b 0.467, rho 0.659, 16 divergences) mixes those 14 with six Launchpad practice-feedback v3 aggregates under an unnamed rule (minerH/minerI-bsub anchors); it is kept byte-identical as the labelled SECONDARY (q1_report.L1.mixed-basis.json), and the six are excluded from the gate metric. Divergences that involve the six are basis-confounded, not findings against the score. The six may be recomputed under a named rule if their stored outputs can be recovered; V1 is then re-evaluated."
 }
