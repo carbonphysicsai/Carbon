@@ -1,0 +1,157 @@
+{
+  "schema": "carbon.research.score-attacks-v9.handoff.v1",
+  "ticket": "RES-02 / SCORE-CANDIDATE-ATTACKS-01",
+  "recipient": "Test Engineer / SCORE-PROOF-01 adversarial check",
+  "maturity": "DEVELOPMENT_RECOMMENDATION_NOT_ADOPTED",
+  "source_main": "fcab655b30f42d4e3a42786f22af8aa2b08402e2",
+  "registry": {
+    "head": "e99881523712d2a8969a003a7ffcdd99641f1d01",
+    "git_blob": "698aa61873e6970039d0c8a9d76da21a4a269412",
+    "candidate_ids": [
+      "A",
+      "R",
+      "P",
+      "ARP",
+      "V3",
+      "ARP-V3",
+      "ENV/ARP",
+      "ENV/ARP-V3",
+      "A-Q",
+      "G-FEAS/A-Q>@0.05"
+    ],
+    "description_seam": "PR body describes a different family absent from the pinned registry; use actual bytes and prospectively version a later revision"
+  },
+  "measured": [
+    "A and R from public components",
+    "known-bad/control placement versus eligible real members",
+    "historical and bounded single-pick verification-service diagnostics",
+    "public condition-envelope coverage",
+    "finite count allowance",
+    "explicitly assumed pool-cloning and structural counterexamples"
+  ],
+  "not_measured": [
+    "P for these exact artifacts",
+    "scoring-set ENV measure",
+    "case-wise joint G-FEAS",
+    "Q3 q",
+    "real k3 orders and V3 on registered LEG questions",
+    "actual copying prevalence or effort",
+    "exact artifact uniqueness/equivalence of the original public member rows",
+    "physical realizability of toy prediction transforms"
+  ],
+  "public_export_needed": [
+    "source-bound per-case score contributions and signed margins with stratum labels",
+    "P leg numerator/denominator and ENV membership/mean/tail diagnostics",
+    "joint reference-any-FAIL/model-all-PASS case mask; do not sum constraint counts",
+    "committed unique model top-k lists from predicted-feasible Q3 choices before reference",
+    "all offered questions, reference states, attempted panels and full denominators",
+    "independent per-question verifier result and objective gap",
+    "startup/inference/search, planned allotment and actual solver cost logs",
+    "registered LEG/VALUE assignment and provenance proving no overlap",
+    "stable model/artifact/recipe/seed groups using public identities only"
+  ],
+  "detector_bundles": [
+    {
+      "id": "D1",
+      "name": "paired decision invariance and signed controls",
+      "stage": "public development then frozen adversarial proof",
+      "transforms": [
+        "localized boundary optimism",
+        "always-cautious/missed-opportunity",
+        "irrelevant-output accuracy improvement with exact lists and verifier results frozen"
+      ],
+      "metrics": [
+        "delta registered score",
+        "paired verified loss/gap delta",
+        "unsafe/no-return/UNRESOLVED/missed opportunities",
+        "offer and feasible-return coverage",
+        "signed error by registered stratum"
+      ],
+      "expected_exact_invariant": "Pure V3 unchanged for identical ordered actions and independent reference outcomes; blend credit may rise by algebra",
+      "manual": [
+        "allowed physically admissible transform",
+        "value equivalence/no-useful-gain region",
+        "delta score alert",
+        "alpha/multiplicity and paired resampling"
+      ]
+    },
+    {
+      "id": "D2",
+      "name": "list, commitment and budget mutation controls",
+      "status": "REUSE already enforced public verifier guards; wrapper has uncharged inference overhead",
+      "mutations": [
+        "disable duplicate refusal",
+        "disable list length/family/digest/receipt check",
+        "skip failed attempts for free",
+        "scan padded surplus actions",
+        "drop hard/missing questions from denominator"
+      ],
+      "expected": "Budget counted on every complete attempt; no beyond-k action; reference infrastructure failure not candidate loss",
+      "manual": [
+        "actual overhead charging policy",
+        "over-allotment reference handling"
+      ]
+    },
+    {
+      "id": "D3",
+      "name": "fold/support and pool integrity",
+      "checks": [
+        "registered LEG/VALUE split before draw with no overlap",
+        "semantic-family reuse audit beyond seed/salt separation",
+        "every claimed P stratum covered by gate or explicit gap",
+        "fixed member/recipe/artifact pool and source-bound grouping",
+        "public row-clone stress plus distinct-artifact/recipe sensitivity"
+      ],
+      "copying": "Exact identity reuse and residual correlations are investigation evidence, not authorship proof or a scientific score penalty",
+      "manual": [
+        "semantic overlap metric/cutoff",
+        "copy false-positive calibration and attribution/IP disposition"
+      ]
+    }
+  ],
+  "sensitivity": {
+    "diagnostic_regret_unit_s_low_base_high": [
+      60,
+      120,
+      240
+    ],
+    "additional_transfer_point_s": 1200,
+    "basis": "ASSUMPTION diagnostic units; 1200 matches Q3 source unit but does not make EV banks equivalent",
+    "toy_margin_bias_low_base_high": [
+      2,
+      4,
+      8
+    ],
+    "toy_boundary_epsilon_low_base_high": [
+      0.01,
+      0.05,
+      0.1
+    ],
+    "toy_additional_clone_rows_low_base_high": [
+      0,
+      10,
+      100
+    ],
+    "retained_scalar_E_low_base_high": [
+      0,
+      0.5,
+      1
+    ],
+    "registered_source_points": {
+      "k": [
+        1,
+        3,
+        5
+      ],
+      "picked_k": 3,
+      "panel_allotment_wall_s": 120,
+      "regret_unit_s": 1200
+    }
+  },
+  "thresholds": "HUMAN_INPUT for new alert/tail/calibration/equivalence/attribution values; existing registered source points unchanged",
+  "runtime_changes": false,
+  "hidden_material_access": false,
+  "solvers_or_training": false,
+  "adoption": "OWNER",
+  "next_lane_item": "RES-03 only after owner types next"
+}
