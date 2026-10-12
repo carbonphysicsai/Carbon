@@ -246,7 +246,7 @@ def test_selection_md_lists_both_criteria_and_marks_the_one_in_force():
     }
     text = script.criteria_lines(report)
     assert "### placement (in force)" in text and "1 of 2 pickable" in text
-    assert "### divergence (proposed, not in force" in text and "2 of 2" in text
+    assert "### divergence (proposed; not in force" in text and "2 of 2" in text
     proposed = text.split("### divergence", 1)[1]
     assert proposed.index("**HIGH**") < proposed.index("**OK**")  # best tau first
     assert "gate recall PASS" in proposed

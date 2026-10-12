@@ -329,7 +329,7 @@ def criteria_lines(report):
         state = (
             "in force"
             if criterion == sp.PICKABILITY_IN_FORCE
-            else "proposed, not in force (the owner's ruling)"
+            else "proposed; not in force until the owner rules"
         )
         screens = " and ".join(sp.PICKABILITY_CRITERIA[criterion])
         ok = [c for c, e in entries.items() if e["pickable"]]
