@@ -246,7 +246,8 @@ L4_BASE_RECIPE_CAVEAT = (
 #: EV5 mask. A decision-loss number is read against that control, never alone.
 ABSTAIN_CAVEAT = (
     "ALWAYS-ABSTAIN CONTROL (#1209): read every decision-loss number against the always-abstain control's loss and rank "
-    "beside it; a metric that rewards abstaining must not be mistaken for better decisions"
+    "beside it. Under the current value metric, which rewards abstention (RES-07), never deciding can score better than a "
+    "model; that is a property of the metric, not evidence the models are worse"
 )
 
 
@@ -302,7 +303,8 @@ def _control_noise(records):
         return []
     reason = (
         f"{len(worse)} of {len(records)} runs score a decision loss above the always-abstain control's: "
-        "never deciding scores better than those models"
+        "under the current value metric, which rewards abstention (RES-07), never deciding scores better than those models; "
+        "not evidence the models are worse"
     )
     return [reason]
 

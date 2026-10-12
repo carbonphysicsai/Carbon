@@ -953,3 +953,16 @@ def test_one_decision_loss_run_has_no_spread_to_read():
     record = _with_losses(registered(), 0.30, 0.20, 0.857)
     block = improvement.public_dev_block([record])["decision_loss"]
     assert block["value"] == improvement.NOISY and "one run only" in block["reading"]
+
+
+def test_the_abstain_caveat_says_the_metric_not_the_models_is_the_cause():
+    assert "rewards abstention (RES-07)" in improvement.ABSTAIN_CAVEAT
+    assert "not evidence the models are worse" in improvement.ABSTAIN_CAVEAT
+    records = [
+        _with_losses(registered(run="r1"), 1.45, 1.43, 0.857),
+        _with_losses(registered(run="r2"), 1.45, 1.44, 0.857),
+    ]
+    block = improvement.public_dev_block(records)["decision_loss"]
+    assert block["value"] == improvement.NOISY
+    assert "rewards abstention (RES-07)" in block["reading"]
+    assert "not evidence the models are worse" in block["reading"]
