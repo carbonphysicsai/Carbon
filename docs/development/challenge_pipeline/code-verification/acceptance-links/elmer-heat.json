@@ -1,0 +1,27 @@
+{
+  "schema": "carbon.code-verification.acceptance-link.v1",
+  "scope": "DEVELOPMENT_CODE_VERIFICATION",
+  "solver": "Elmer 26.2.1 heat",
+  "family": "f02",
+  "image_digest": "sha256:6fab746f31257236da9e91b5be681bfbd2d25bd69f5dcd9a2e350394e8bcb675",
+  "criteria_digest": "sha256:ce1cdee81369d5ad21446ec8cfb165ac13f1b8c49aad0d328a0a2fcd2dab77fe",
+  "criteria_path": "docs/development/challenge_pipeline/code-verification/acceptance-links/elmer-heat-criteria.json",
+  "decision": {
+    "id": "OWNER-CODE-VERIFICATION-ACCEPT-01",
+    "path": ".agent/decisions/2026-10-11-OWNER-CODE-VERIFICATION-ACCEPT-01.md",
+    "sha256": "sha256:64b32bf2225465c3b35a60dd2de41023bcce70279e3c0fff50339d6c0ba7fa25"
+  },
+  "evidence": [
+    {
+      "path": "docs/development/evidence/reference-packages-01/elmer-mms-heat.json",
+      "sha256": "sha256:60edc8b1847d4a66c41601c03f78b8beccdf4fd3a05bc81629e0b64f1d70726e"
+    },
+    {
+      "path": "docs/development/evidence/reference-packages-01/elmer-mms-heat-time-t0375.json",
+      "sha256": "sha256:bf893b594591ca3bc3f2940d8aa568ef96a1824397a1140cb18d3ba63f997919"
+    }
+  ],
+  "conditions": {
+    "t_end": 0.375
+  }
+}

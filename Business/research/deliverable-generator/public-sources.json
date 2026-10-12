@@ -23,7 +23,9 @@
       "package_family": "battery-v3",
       "package_sources": [
         {"id": "P1", "path": "docs/development/evidence/battery-feasibility-02/code-verification/pybamm-verdict.json", "role": "public particle MMS machine record; separate owner acceptance, not full DFN or physical validation"},
-        {"id": "P2", "path": ".agent/decisions/2026-10-11-OWNER-CODE-VERIFICATION-ACCEPT-01.md", "role": "separate owner code-verification acceptance link; never rewrites earlier machine verdict"},
+        {"id": "P2", "path": "docs/development/challenge_pipeline/code-verification/acceptance-links/pybamm.json", "role": "image-and-criteria-bound owner acceptance link; never rewrites earlier machine verdict"},
+        {"id": "P6", "path": ".agent/decisions/2026-10-11-OWNER-CODE-VERIFICATION-ACCEPT-01.md", "role": "immutable owner code-verification decision"},
+        {"id": "P7", "path": "docs/development/evidence/battery-feasibility-02/code-verification/pybamm-criteria.json", "role": "historical measured particle MMS criteria identity"},
         {"id": "P3", "path": "docs/development/challenge_pipeline/physics_contracts/battery-v3.json", "role": "optional public battery draft contract; absent means GAP"},
         {"id": "P4", "path": "docs/development/product-evidence/battery-v3/package-projection.json", "role": "optional reviewed public aggregate package projection; absent means GAP"}
       ],
@@ -163,7 +165,9 @@
       "package_family": "motor",
       "package_sources": [
         {"id": "P1", "path": "docs/development/evidence/motor-feasibility-02/code-verification/getdp-verdict.json", "role": "public linear magnetostatic MMS machine record; not nonlinear torque/skew or physical validation"},
-        {"id": "P2", "path": ".agent/decisions/2026-10-11-OWNER-CODE-VERIFICATION-ACCEPT-01.md", "role": "separate owner code-verification acceptance link"},
+        {"id": "P2", "path": "docs/development/challenge_pipeline/code-verification/acceptance-links/getdp.json", "role": "image-and-criteria-bound owner code-verification acceptance link"},
+        {"id": "P6", "path": ".agent/decisions/2026-10-11-OWNER-CODE-VERIFICATION-ACCEPT-01.md", "role": "immutable owner code-verification decision"},
+        {"id": "P7", "path": "docs/development/evidence/motor-feasibility-02/code-verification/getdp-criteria.json", "role": "historical measured magnetostatic MMS criteria identity"},
         {"id": "P3", "path": "docs/development/challenge_pipeline/physics_contracts/motor.json", "role": "10p/12s draft law definitions; not adopted gates or measurements"},
         {"id": "P4", "path": "docs/development/product-evidence/motor/package-projection.json", "role": "optional reviewed public aggregate package projection; absent means GAP"}
       ],
@@ -206,7 +210,9 @@
       "package_family": "f02",
       "package_sources": [
         {"id": "P1", "path": "docs/development/evidence/reference-packages-01/elmer-mms-heat.json", "role": "original native heat MMS space/time observations at t_end 0.5; adverse time-order behavior retained"},
-        {"id": "P2", "path": ".agent/decisions/2026-10-11-OWNER-CODE-VERIFICATION-ACCEPT-01.md", "role": "separate conditional owner acceptance at t_end 0.375"},
+        {"id": "P2", "path": "docs/development/challenge_pipeline/code-verification/acceptance-links/elmer-heat.json", "role": "image-and-criteria-bound conditional owner acceptance at t_end 0.375"},
+        {"id": "P6", "path": ".agent/decisions/2026-10-11-OWNER-CODE-VERIFICATION-ACCEPT-01.md", "role": "immutable conditional owner code-verification decision"},
+        {"id": "P7", "path": "docs/development/challenge_pipeline/code-verification/acceptance-links/elmer-heat-criteria.json", "role": "owner-accepted heat MMS criteria with t_end 0.375"},
         {"id": "P3", "path": "docs/development/challenge_pipeline/physics_contracts/f02.json", "role": "menu-v2 draft law definitions; not adopted gates or measurements"},
         {"id": "P4", "path": "docs/development/product-evidence/f02/package-projection.json", "role": "optional reviewed public aggregate package projection; absent means GAP"},
         {"id": "P5", "path": "docs/development/evidence/reference-packages-01/elmer-mms-heat-time-t0375.json", "role": "separate native time-only diagnostic at t_end 0.375; preserves the earlier MMS record"}

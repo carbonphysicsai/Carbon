@@ -17,8 +17,10 @@ import re
 from html import escape
 from itertools import pairwise
 
-PANEL_SCHEMA = "carbon.trust-map.disclosed-panel.v1"
-MAP_SCHEMA = "carbon.trust-map.v1"
+from carbon.trust_map.acceptance import AcceptanceRefused, load_acceptance
+
+PANEL_SCHEMA = "carbon.trust-map.disclosed-panel.v2"
+MAP_SCHEMA = "carbon.trust-map.v2"
 
 
 class MapRefused(ValueError):
@@ -119,18 +121,25 @@ def build_maps(panel, spec):
         r"sha256:[0-9a-f]{64}", panel["reference_image"]
     ):
         raise MapRefused("reference_image_digest_required")
-    if (
-        not isinstance(verification, dict)
-        or set(verification)
-        != {"state", "accepted_development_pass", "image_digest", "evidence"}
-        or verification["state"] != "PASS"
-        or verification["accepted_development_pass"] is not True
-    ):
+    if not isinstance(verification, dict) or set(verification) != {
+        "family",
+        "criteria_digest",
+        "image_digest",
+        "evidence",
+    }:
         raise MapRefused("reference_verification_unavailable")
     if verification["image_digest"] != panel["reference_image"] or not (
         isinstance(verification["evidence"], str) and verification["evidence"].strip()
     ):
         raise MapRefused("reference_verification_binding")
+    try:
+        acceptance = load_acceptance(
+            verification["family"],
+            panel["reference_image"],
+            verification["criteria_digest"],
+        )
+    except AcceptanceRefused as error:
+        raise MapRefused("reference_verification_" + str(error)) from error
 
     spec = copy.deepcopy(spec)
     if set(spec) != {"axes", "bands", "marginalized", "outputs", "near_limit"}:
@@ -249,7 +258,7 @@ def build_maps(panel, spec):
         }
         groups[b, y, x].append((important, spread, errors))
     result = {}
-    verification = copy.deepcopy(verification)
+    verification = acceptance
     for model in models:
         cells = []
         for (b, y, x), rows in groups.items():

@@ -1,0 +1,24 @@
+{
+  "schema": "carbon.code-verification.elmer-heat-accepted-criteria.v1",
+  "family": "f02",
+  "kind": "elmer-heat",
+  "t_end": 0.375,
+  "expected_order": 2,
+  "order_band": [
+    1.7,
+    2.3
+  ],
+  "solver": "Elmer HeatSolver, hex808, BDF2",
+  "space_n": [
+    8,
+    16,
+    32
+  ],
+  "time_dt": [
+    "1/8",
+    "1/16",
+    "1/32",
+    "1/64"
+  ],
+  "authority": "OWNER-CODE-VERIFICATION-ACCEPT-01"
+}
