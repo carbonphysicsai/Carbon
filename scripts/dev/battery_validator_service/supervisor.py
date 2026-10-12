@@ -93,6 +93,10 @@ def children(service, *, repository=REPOSITORY, python=None):
             repr(service.run_every_s),
             "--heartbeat",
             str(heartbeat_path(service)),
+            # The daemon admits what the intake's process can't (a ladder
+            # variant, a registered score's deployment) from the same inbox.
+            "--inbox",
+            str(intake_config["inbox"]),
         ],
     }
 

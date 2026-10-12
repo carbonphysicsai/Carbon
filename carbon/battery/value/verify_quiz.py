@@ -96,10 +96,13 @@ def rule(k):
     )
 
 
-def _lattice(contract, scenario):
+def _lattice(contract, scenario, candidates=None):
+    """The question's bank: the Q3 lattice, or `candidates` (for example EV4's
+    35 actions on a public development question, PUBLIC-DEV-DECISIONS-01)."""
+    candidates = quiz.q3_candidates() if candidates is None else candidates
     return [
         (candidate, ev.case_id(contract, scenario, candidate, 0))
-        for candidate in quiz.q3_candidates()
+        for candidate in candidates
     ]
 
 
@@ -115,9 +118,11 @@ def _cost(record, unmeasured, over):
     return dict(charge), dict(charge)
 
 
-def question(contract, the_rule, scenario, grid_refs, unmeasured, over):
-    """One Q3 scenario as a sealed VERIFY-R question over its lattice."""
-    lattice = _lattice(contract, scenario)
+def question(
+    contract, the_rule, scenario, grid_refs, unmeasured, over, candidates=None
+):
+    """One scenario as a sealed VERIFY-R question over its bank."""
+    lattice = _lattice(contract, scenario, candidates)
     candidates = [c for c, _ in lattice]
     refs = {
         (c["id"], 0): grid_refs[case_id]
@@ -163,11 +168,11 @@ def question(contract, the_rule, scenario, grid_refs, unmeasured, over):
     )
 
 
-def ordered_actions(contract, scenario, grid_predictions):
+def ordered_actions(contract, scenario, grid_predictions, candidates=None):
     """The model's lattice points it predicts feasible, in the selector's
     order (lowest predicted objective, ties by lower c1 then c2), or None
     when a prediction is missing. Its first entry is `decision.select`'s."""
-    lattice = _lattice(contract, scenario)
+    lattice = _lattice(contract, scenario, candidates)
     quantities = {}
     for candidate, case_id in lattice:
         outputs = grid_predictions.get(case_id)
@@ -200,7 +205,7 @@ def _reliability(losses):
     return {k: c[k] for k in keep if k in c}
 
 
-def member_scores(contract, scenarios, predictions, refs, receipt_id):
+def member_scores(contract, scenarios, predictions, refs, receipt_id, candidates=None):
     """Every member's VERIFY-R result at each registered k.
 
     `scenarios`: the quiz's Q3 entries (each with `scenario_id`, `condition`
@@ -215,16 +220,24 @@ def member_scores(contract, scenarios, predictions, refs, receipt_id):
     legs, diagnostics = {}, {}
     orders = {}
     for entry in scenarios:
-        scenario = qs.scenario(entry)
+        scenario = entry if candidates is not None else qs.scenario(entry)
         for member, member_predictions in predictions.items():
             orders[(member, scenario["id"])] = ordered_actions(
-                contract, scenario, member_predictions
+                contract, scenario, member_predictions, candidates
             )
     for k in K_POINTS:
         the_rule = rule(k)
         unmeasured, over = [], []
         questions = [
-            question(contract, the_rule, qs.scenario(entry), refs, unmeasured, over)
+            question(
+                contract,
+                the_rule,
+                entry if candidates is not None else qs.scenario(entry),
+                refs,
+                unmeasured,
+                over,
+                candidates,
+            )
             for entry in scenarios
         ]
         ids = [q["question_id"] for q in questions]

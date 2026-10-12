@@ -1,0 +1,11 @@
+{
+ "schema": "carbon.battery.public-dev-split.v1",
+ "ticket": "SCORE-PROOF-01 amendment 10; PUBLIC-DEV-DECISIONS-01",
+ "registered": "2026-10-12, before any public development question of PUBLIC-DEV-DECISIONS-01 is drawn or solved",
+ "salt": "SCORE-PROOF-01/public-dev-split-v1",
+ "leg_share": 0.5,
+ "rule": "a public development question (its scenario id) is a LEG question when int(sha256(salt + ':question:' + scenario_id)[:8], 16) / 2**32 < leg_share, otherwise a VALUE question",
+ "legs": "VERIFY-R's legs (v1, v3, v5) are scored on LEG questions only, each question's solved candidate grid being its verification bank",
+ "value": "the selection's decision value is computed on VALUE questions only; no question is ever both",
+ "sizing": "leg_share is a registered parameter, fixed before the draw; the run's size follows the owner-confirmed budget (USD 8 gives about 32 resolved per half; USD 16 about 64)"
+}

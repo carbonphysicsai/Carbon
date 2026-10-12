@@ -94,7 +94,7 @@ def test_the_controller_records_the_unresolved_pod_part(tmp_path):
     controller = ctl.CampaignController(
         root=tmp_path / "a",
         provider=FakeProvider(),
-        grant=grant(cost="60.00", runs=10, max_concurrency=10),
+        grant=grant(cost="50.00", runs=10, max_concurrency=10),
         operator="carbon-operator",
         clock=Clock(),
         shared_runs=True,
@@ -145,7 +145,7 @@ def test_seeded_spend_rolls_off_at_its_own_start_time(tmp_path):
 
 
 def test_seeded_spend_counts_against_a_new_launch(tmp_path):
-    root = old_root(tmp_path, "old", settled="140.00")
+    root = old_root(tmp_path, "old", settled="290.00")
     gr.seed_root(grant(), root)
     at = started(root)
     with pytest.raises(gr.SharedRunsError) as refused:
@@ -208,3 +208,69 @@ def test_the_report_line_states_the_basis_and_the_headroom():
     claim(grant(), 1, "k", T0)
     line = gr.weekly_line(gr.weekly_report(clock=lambda: T0 + 1))
     assert "headroom" in line and "pod reservation" in line and "unresolved" in line
+
+
+def pod_ledger(tmp_path):
+    from carbon.agent_campaign.graphite import experiment as ex
+
+    ledger = ex.PodLedger(tmp_path / "pod-ledger.jsonl", clock=lambda: 0.0)
+    for event, body in (
+        ("pod_reserved", {"reserved_usd": "0.25", "minutes": 10}),
+        ("pod_launch_requested", {}),
+        ("pod_created", {"pod_id": "p", "rate_usd_per_hr": "0.49"}),
+        ("pod_terminated_verified", {"pod_id": "p"}),
+        ("pod_charge_unresolved", {"note": "no provider-reported charge"}),
+    ):
+        ledger.append(event, intent_id="i1", proposal="p-1", **body)
+    return ledger
+
+
+def test_a_created_pod_with_no_reported_charge_is_counted_at_its_reservation(tmp_path):
+    ledger = pod_ledger(tmp_path)
+    assert ledger.committed() == (Decimal(0), Decimal("0.25"))
+
+
+def test_a_duplicate_pod_with_no_reported_charge_is_counted_at_the_reservation(
+    tmp_path,
+):
+    ledger = pod_ledger(tmp_path)
+    ledger.append(
+        "pod_duplicates_counted",
+        intent_id="i1",
+        proposal="p-1",
+        count=2,
+        charged_usd="0",
+        unknown_charges=2,
+    )
+    # the pod itself plus two duplicates whose charge is unknown: never zero
+    assert ledger.committed() == (Decimal(0), Decimal("0.75"))
+
+
+def test_a_duplicate_with_a_reported_charge_adds_that_charge_only(tmp_path):
+    ledger = pod_ledger(tmp_path)
+    ledger.append(
+        "pod_duplicates_counted",
+        intent_id="i1",
+        proposal="p-1",
+        count=1,
+        charged_usd="0.07",
+        unknown_charges=0,
+    )
+    assert ledger.committed() == (Decimal("0.07"), Decimal("0.25"))
+
+
+def test_a_pod_that_was_never_dispatched_or_found_absent_costs_nothing(tmp_path):
+    from carbon.agent_campaign.graphite import experiment as ex
+
+    ledger = ex.PodLedger(tmp_path / "pod-ledger.jsonl", clock=lambda: 0.0)
+    ledger.append(
+        "pod_reserved", intent_id="i2", proposal="p-2", reserved_usd="0.25", minutes=10
+    )
+    ledger.append(
+        "pod_settled",
+        intent_id="i2",
+        proposal="p-2",
+        charge_usd="0",
+        basis="reserved_never_dispatched",
+    )
+    assert ledger.committed() == (Decimal(0), Decimal(0))
