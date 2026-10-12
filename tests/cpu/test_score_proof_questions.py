@@ -67,3 +67,25 @@ def test_refinement_asks_for_failed_and_unresolved_references_only(tmp_path):
     # Already refined: never asked twice.
     assert spq.refine_jobs(contract, [failed], jobs + added) == []
     assert spq.refine({"x": 1} and work)["refine_jobs"] == 0  # no records yet
+
+
+def test_a_fresh_set_excludes_every_condition_an_earlier_set_drew(
+    tmp_path, monkeypatch
+):
+    """CUSTODY-03-EXT-01: fresh sealed confirmation questions never repeat a
+    condition of a set already drawn or used (`--exclude-work`)."""
+    first = tmp_path / "w1"
+    spq.draw(first, 30)
+    earlier, _ = ev.load(first / "contract.json")
+    taken = {tuple(s["conditions"][0]) for s in earlier["scenarios"]["development"]}
+    # Force the second seed to be the first's: without the exclusion it would
+    # draw exactly the same conditions.
+    monkeypatch.setattr(spq, "seed", lambda work: (first / "seed").read_bytes())
+    second = tmp_path / "w2"
+    out = spq.draw(second, 30, exclude_works=[first])
+    fresh, _ = ev.load(second / "contract.json")
+    drawn = {tuple(s["conditions"][0]) for s in fresh["scenarios"]["development"]}
+    assert out["questions"] == 30 and len(drawn) == 30
+    assert not drawn & taken
+    assert spq.work_conditions([first]) == taken
+    assert spq.work_conditions([]) == set()
