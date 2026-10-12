@@ -1705,6 +1705,35 @@ def hostile_lane_bounds(level, environ=None):
         raise RunnerRefused(refused.code) from None
 
 
+def _scratch_root(configuration, campaign):
+    """The miner campaign's root, where its runs' scratch lives; read only."""
+    from carbon.miner_mcp.standard_cli import AttachRefused, load_profile
+
+    try:
+        return load_profile(Path(configuration), campaign).root
+    except AttachRefused as refused:
+        raise RunnerRefused(refused.code) from None
+
+
+def hostile_scratch_floor(level, configuration, campaign):
+    """LANE-RESOURCE-BOUND-01: a live Level 4-5 session does not start when
+    the filesystem holding its campaign's scratch has less than the floor
+    free (`scratch_host_low_space`, by `shutil.disk_usage`). Below Level 4
+    nothing is checked."""
+    if type(level) is not int or level < HOSTILE_CODE_LEVEL:
+        return None
+    from carbon.development_session.miner_container import (
+        ResourceProfileRefused,
+        require_scratch_floor,
+    )
+
+    root = _scratch_root(configuration, campaign)
+    try:
+        return require_scratch_floor(root)
+    except ResourceProfileRefused as refused:
+        raise RunnerRefused(refused.code) from None
+
+
 def carrier_pods(root, manifest):
     """The CPU carrier backend on this (operator) host: the pinned C-03 worker
     image, refused unless the host doctor finds this host eligible."""
@@ -1899,6 +1928,10 @@ def command_run(args):
         raise RunnerRefused("model_provider_key_by_file_only")
     if args.miner_profile is None or args.miner_campaign is None:
         raise RunnerRefused("the_real_miner_path_needs_a_miner_profile_and_campaign")
+    # And never on a host short of disk for its scratch (LANE-RESOURCE-BOUND-01).
+    hostile_scratch_floor(
+        getattr(args, "level", 0), args.miner_profile, args.miner_campaign
+    )
     if args.literature_snapshot is None:
         # GRAPHITE-D28: a paid session never runs on the synthetic fixture.
         raise RunnerRefused("live_run_needs_a_literature_snapshot")

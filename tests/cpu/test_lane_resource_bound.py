@@ -18,7 +18,13 @@ Claims tested:
 - end to end through the real carrier code (Docker replaced): with nothing
   installed the miner lane's create arguments carry no caps, exactly as
   before; with the fallback installed they carry its bounds, and the
-  containment check's arguments digest covers them.
+  containment check's arguments digest covers them;
+- the scratch floor: a Level 4-5 session refuses to start, typed
+  `scratch_host_low_space`, when the filesystem holding its scratch has less
+  than 15 GB free (`shutil.disk_usage` faked);
+- the scratch watchdog: a flooding container is killed under a (tiny, test)
+  cap and settled typed `scratch_cap_exceeded`, never a score; hidden or
+  unmeasurable scratch fails closed; with no profile there is no watchdog.
 
 The profile values are synthetic test fixtures, not Carbon policy. Not
 security acceptance.
@@ -28,6 +34,9 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
+import threading
+import time
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -309,11 +318,23 @@ def phase4_live(monkeypatch, tmp_path):
     monkeypatch.setattr(challenge_scoring, "scoring_for", lambda challenge: object())
     monkeypatch.setattr(phase4, "attack_modules", dict)
     monkeypatch.setattr(phase4, "adapter_for", lambda *a: (object(), None))
+    # The campaign's scratch root, on a filesystem with room (faked).
+    monkeypatch.setattr(phase3, "_scratch_root", lambda *a: tmp_path)
+    free_space(monkeypatch, 100 * 10**9)
 
     def live_checks(*args, **kwargs):
         raise Started
 
     monkeypatch.setattr(phase4, "live_checks", live_checks)
+
+
+def free_space(monkeypatch, free):
+    """Fake `shutil.disk_usage` reporting `free` bytes free."""
+    monkeypatch.setattr(
+        shutil,
+        "disk_usage",
+        lambda path: SimpleNamespace(total=free * 2, used=free, free=free),
+    )
 
 
 def _phase4_args(tmp_path, level):
@@ -427,3 +448,271 @@ def test_the_installed_fallback_bounds_the_carriers_container(tmp_path, monkeypa
     assert f"{mc._PROFILE_LABEL}={PROFILE.digest()}" in created
     # The containment check's digest covers the bounds the container was given.
     assert report["create_arguments_digest"] == digest(canonical(created))
+
+
+# -- the scratch floor ---------------------------------------------------------------------
+def test_the_floor_refuses_below_15_gb_free(tmp_path, monkeypatch):
+    assert mc.SCRATCH_HOST_FLOOR_BYTES == 15 * 10**9
+    free_space(monkeypatch, 15 * 10**9 - 1)
+    with pytest.raises(mc.ResourceProfileRefused) as low:
+        mc.require_scratch_floor(tmp_path)
+    assert low.value.code == mc.SCRATCH_HOST_LOW_SPACE == "scratch_host_low_space"
+    free_space(monkeypatch, 15 * 10**9)
+    assert mc.require_scratch_floor(tmp_path) == 15 * 10**9
+
+
+def test_an_unmeasurable_filesystem_refuses_too(tmp_path, monkeypatch):
+    def unreadable(path):
+        raise PermissionError(path)
+
+    monkeypatch.setattr(shutil, "disk_usage", unreadable)
+    with pytest.raises(mc.ResourceProfileRefused) as low:
+        mc.require_scratch_floor(tmp_path)
+    assert low.value.code == mc.SCRATCH_HOST_LOW_SPACE
+
+
+def test_the_floor_is_checked_only_at_level_4_and_above(tmp_path, monkeypatch):
+    def no_root(*args):
+        raise AssertionError("below Level 4 nothing is read")
+
+    monkeypatch.setattr(phase3, "_scratch_root", no_root)
+    free_space(monkeypatch, 1)
+    for level in (0, 1, 2, 3):
+        assert phase3.hostile_scratch_floor(level, "p.json", "c") is None
+    monkeypatch.setattr(phase3, "_scratch_root", lambda *a: tmp_path)
+    with pytest.raises(phase3.RunnerRefused):
+        phase3.hostile_scratch_floor(4, "p.json", "c")
+
+
+def test_a_level_4_attacker_session_refuses_a_host_low_on_space(
+    tmp_path, phase4_live, monkeypatch, capsys
+):
+    install(tmp_path)
+    free_space(monkeypatch, 14 * 10**9)
+    with pytest.raises(phase3.RunnerRefused):
+        phase4.command_run(_phase4_args(tmp_path, 4))
+    assert _refusal(capsys)["reason_code"] == "scratch_host_low_space"
+    assert not (tmp_path / "root").exists()
+
+
+def test_a_level_4_constructor_session_refuses_a_host_low_on_space(
+    tmp_path, phase3_live, monkeypatch, capsys
+):
+    install(tmp_path)
+    grant = SimpleNamespace(provider="graphite")
+    monkeypatch.setattr(phase3, "load_grant", lambda path: grant)
+    monkeypatch.setattr(
+        phase3.grant_binding, "check_phase3_grant", lambda *a, **k: None
+    )
+    monkeypatch.setattr(phase3.grant_binding, "model_provider_refusal", lambda *a: None)
+    monkeypatch.setattr(phase3, "_scratch_root", lambda *a: tmp_path)
+    args = _phase3_args(tmp_path, 4)
+    args.__dict__.update(
+        study=None,
+        model_provider=None,
+        credential_file=None,
+        miner_profile="profile.json",
+        miner_campaign="c" * 32,
+        literature_snapshot=None,
+    )
+    free_space(monkeypatch, 14 * 10**9)
+    with pytest.raises(phase3.RunnerRefused):
+        phase3.command_run(args)
+    assert _refusal(capsys)["reason_code"] == "scratch_host_low_space"
+    # With room, the session goes on to its next check.
+    free_space(monkeypatch, 15 * 10**9)
+    with pytest.raises(phase3.RunnerRefused):
+        phase3.command_run(args)
+    assert _refusal(capsys)["reason_code"] == "live_run_needs_a_literature_snapshot"
+
+
+# -- the scratch watchdog ------------------------------------------------------------------
+def _watch(measurements, **kwargs):
+    stops = []
+    values = iter(measurements)
+
+    def measure():
+        value = next(values, measurements[-1])
+        if isinstance(value, Exception):
+            raise value
+        return value
+
+    watch = mc.ScratchWatchdog(
+        measure, lambda: stops.append(1), interval=0.01, **kwargs
+    )
+    return watch, stops
+
+
+def _until(condition, seconds=10):
+    deadline = time.monotonic() + seconds
+    while not condition() and time.monotonic() < deadline:
+        time.sleep(0.01)
+    return condition()
+
+
+def test_the_watchdog_trips_once_over_the_cap():
+    watch, stops = _watch([(10, False), (50, False), (101, False)], cap_bytes=100)
+    with watch:
+        assert _until(lambda: watch.tripped is not None)
+        time.sleep(0.05)
+    assert stops == [1]
+    assert watch.tripped == {
+        "refusal": "scratch_cap_exceeded",
+        "reason": "over_cap",
+        "observed_bytes": 101,
+        "cap_bytes": 100,
+    }
+
+
+def test_the_watchdog_trips_on_scratch_hidden_from_its_own_user():
+    watch, stops = _watch([(10, True)], cap_bytes=100)
+    with watch:
+        assert _until(lambda: watch.tripped is not None)
+    assert watch.tripped["reason"] == "hidden_from_its_own_user" and stops == [1]
+
+
+def test_the_watchdog_fails_closed_when_scratch_stays_unmeasurable():
+    miss = WorkerFailure(WorkerCode.RUNTIME)
+    watch, stops = _watch(
+        [miss, miss, (10, False), miss, miss, miss], cap_bytes=100, unmeasured_limit=3
+    )
+    with watch:
+        assert _until(lambda: watch.tripped is not None)
+    assert watch.tripped["reason"] == "unmeasurable" and stops == [1]
+    assert watch.polls == 6  # a good measurement in between reset the count
+
+
+def test_the_watchdog_lets_a_run_under_the_cap_finish():
+    watch, stops = _watch([(10, False)], cap_bytes=100)
+    with watch:
+        assert _until(lambda: watch.polls >= 5)
+    assert watch.tripped is None and stops == []
+
+
+@pytest.mark.parametrize(
+    "bad",
+    [
+        {"cap_bytes": 0},
+        {"cap_bytes": 1.5},
+        {"interval": 3},
+        {"interval": 0},
+        {"unmeasured_limit": 0},
+    ],
+)
+def test_the_watchdog_takes_only_a_sound_configuration(bad):
+    with pytest.raises(WorkerFailure):
+        mc.ScratchWatchdog(lambda: (0, False), lambda: None, **bad)
+
+
+# -- a scratch flood, end to end through the real carrier ----------------------------------
+class FloodingDocker(RecordingDocker):
+    """A container whose program writes to scratch until it is killed or has
+    written `limit` bytes; the measurement exec reads the host scratch."""
+
+    def __init__(self, limit):
+        super().__init__()
+        self.limit, self.written = limit, 0
+        self.killed = threading.Event()
+        self.scratch = None
+
+    def run(self, arguments, *, timeout=30, accepted=(0,)):
+        if arguments[:1] == ["kill"]:
+            self.killed.set()
+        return super().run(arguments, timeout=timeout, accepted=accepted)
+
+    def json(self, arguments, *, timeout=30):
+        if mc.SCRATCH_MEASURE in arguments:
+            self.commands.append(["exec", "<measure>"])
+            if self.scratch is None:
+                raise WorkerFailure(WorkerCode.RUNTIME)
+            total = sum(p.stat().st_size for p in self.scratch.rglob("*"))
+            return {"bytes": total, "denied": False}
+        return super().json(arguments, timeout=timeout)
+
+    def stream_kept(self, arguments, operation, *, timeout):
+        self.commands.append(list(arguments))
+        (operation / "stdout.txt").write_bytes(b"")
+        (operation / "stderr.txt").write_bytes(b"")
+        output = operation / "scratch" / "output"
+        output.mkdir(exist_ok=True)
+        self.scratch = operation / "scratch"
+        with open(output / "flood.bin", "wb") as flood:
+            while self.written < self.limit:
+                if self.killed.is_set():
+                    raise WorkerFailure(
+                        WorkerCode.RUNTIME, private_diagnostic=b"exit=137\n"
+                    )
+                flood.write(b"x" * 1024)
+                flood.flush()
+                self.written += 1024
+                time.sleep(0.002)
+
+
+def _flood(tmp_path, monkeypatch, *, profile, limit):
+    fake = FloodingDocker(limit)
+    home = tmp_path / "home"
+    home.mkdir()
+    if profile:
+        install(home)
+    monkeypatch.delenv(mc.RESOURCE_PROFILE_ENV, raising=False)
+    monkeypatch.setattr(mc, "_process_home", lambda: str(home))
+    monkeypatch.setattr(carrier, "DockerCLI", lambda: fake)
+    monkeypatch.setattr(
+        carrier, "doctor", lambda **kwargs: SimpleNamespace(eligible=True, cpuset="0")
+    )
+    monkeypatch.setattr(research_image, "verify_image", lambda image, cli: image)
+    monkeypatch.setattr(carrier, "spawn_watchdog", lambda **kwargs: None)
+    monkeypatch.setattr(carrier, "remove_exact_container", lambda **kwargs: None)
+    monkeypatch.setattr(
+        mc, "inspect_isolation", lambda cli, run: {"lane": mc.LANE, "network": "none"}
+    )
+    ledger = cc._ledger(tmp_path / "ledger")
+    run = carrier.run_script(
+        ledger,
+        owner=cc.OWNER,
+        identity="scratch-flood-1",
+        source="flood",
+        files={},
+        image=IMAGE,
+        seconds=180,
+    )
+    return fake, run
+
+
+def test_a_scratch_flood_is_killed_under_the_cap_typed(tmp_path, monkeypatch):
+    real = mc.ScratchWatchdog
+
+    def tiny(measure, stop_run):
+        return real(measure, stop_run, cap_bytes=8 * 1024, interval=0.05)
+
+    monkeypatch.setattr(mc, "ScratchWatchdog", tiny)
+    limit = 8 * 1024**2
+    with pytest.raises(carrier.MinerProgramFailure) as refused:
+        _flood(tmp_path, monkeypatch, profile=True, limit=limit)
+    result = refused.value.result
+    assert refused.value.code is WorkerCode.POLICY
+    assert result["observation"] == mc.SCRATCH_CAP_EXCEEDED == "scratch_cap_exceeded"
+    assert result["state"] == "FAILED_MINER"
+    assert result["scientific_qualification"] is False
+    assert result["official_eligible"] is False
+    (operation,) = (tmp_path / "ledger").glob("operation-*")
+    watch = json.loads((operation / "scratch-watch.json").read_bytes())
+    assert watch["refusal"] == "scratch_cap_exceeded"
+    assert watch["reason"] == "over_cap" and watch["cap_bytes"] == 8 * 1024
+    flood = operation / "scratch" / "output" / "flood.bin"
+    # Killed long before the flood finished; no output was collected.
+    assert flood.stat().st_size < limit
+    assert not (operation / "snapshot").exists()
+
+
+def test_a_miners_research_with_no_profile_is_never_watched(tmp_path, monkeypatch):
+    def never(*args, **kwargs):
+        raise AssertionError("no watchdog without a host profile")
+
+    monkeypatch.setattr(mc, "ScratchWatchdog", never)
+    fake, run = _flood(tmp_path, monkeypatch, profile=False, limit=64 * 1024)
+    # Far past any cap, it runs to completion, unmeasured and unkilled.
+    assert fake.written == 64 * 1024
+    assert set(run["files"]) == {"flood.bin"}
+    assert not any(c[:2] == ["exec", "<measure>"] for c in fake.commands)
+    assert not any(c[:1] == ["kill"] for c in fake.commands)
