@@ -1,0 +1,33 @@
+{
+  "schema": "carbon.onboarding.packet-law-bindings.v1",
+  "challenge": "f02",
+  "law": {
+    "path": "docs/development/challenge_pipeline/question-laws/f02-round2.json",
+    "schema": "carbon.development.f02-question-law.v1",
+    "sha256": "914e3f28b05474790837030984335f6254eb23156cc60b19fea395aecfe95702"
+  },
+  "checks": [
+    {
+      "id": "temperature-anchor",
+      "facet": "hard_limits",
+      "packet_value": 95,
+      "law_pointer": "/hard_temperature_anchor_c",
+      "packet_source": {
+        "path": "docs/development/challenge_pipeline/round1/f02-burst-thermal.md",
+        "sha256": "e4d3ce14fde60ed5e9e2990ceb735f62357d6b16b9fcb34e9a8df9ed63ffd4bb",
+        "excerpt": "**95 °C over 120 s**"
+      }
+    },
+    {
+      "id": "context-count",
+      "facet": "P",
+      "packet_value": 24,
+      "law_pointer": "/context_count",
+      "packet_source": {
+        "path": "docs/development/challenge_pipeline/round1/f02-burst-thermal.md",
+        "sha256": "e4d3ce14fde60ed5e9e2990ceb735f62357d6b16b9fcb34e9a8df9ed63ffd4bb",
+        "excerpt": "uniform over 24 exogenous strata"
+      }
+    }
+  ]
+}
