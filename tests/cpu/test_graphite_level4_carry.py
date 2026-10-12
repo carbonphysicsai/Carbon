@@ -18,9 +18,8 @@ import types
 
 import pytest
 
-from carbon.agent_campaign.graphite import delivery
+from carbon.agent_campaign.graphite import delivery, pod_phase, pods
 from carbon.agent_campaign.graphite import experiment as ex
-from carbon.agent_campaign.graphite import pod_phase, pods
 from carbon.challenge_validator.scoring import Unrebuildable
 
 jax = pytest.importorskip("jax")
