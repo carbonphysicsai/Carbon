@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-12-f13-readiness-integration-regression",
+  "recorded_at": "2026-10-12T14:44:22Z",
+  "challenge": "f13",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "F13-SILENCER-READINESS-BUILD-01", "description": "Corrected expanded no-solver readiness/comparator/budget regression and pipeline validation"},
+  "expected": "Preserve all existing comparator and equal-budget behavior while completing source-backed f13 inspection.",
+  "observed": "155 native tests passed. Black, Ruff, pipeline validate, render --check and diff checks passed. The readiness command inspected main ff43212ede45842eb3285b254323458c8bd056b5 and reported two software YES and five PLANNED items with no spend or qualification permission. Canonical CI is still required.",
+  "keep": ["Historical deck/reference/budget identities and old cost hypotheses", "Actual comparator material coverage and measured adequacy remain separate requirements"],
+  "change": ["A prepared artifact's dependency note must be reconciled after its prerequisite merges", "A capped proposal is a conditional arithmetic plan, never enforced provider acceptance"],
+  "protocol_elements": ["measurement_authority", "reference_adequacy", "equal_budget"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

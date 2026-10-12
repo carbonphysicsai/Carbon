@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-12-f13-readiness-integration-baseline",
+  "recorded_at": "2026-10-12T14:37:05Z",
+  "challenge": "f13",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "F13-SILENCER-READINESS-BUILD-01", "description": "PKT-03 current-main no-solver preparation, readiness and lifecycle-cost baseline"},
+  "expected": "Reuse merged f13 work and detect only concrete post-dependency integration gaps.",
+  "observed": "73 native diagnostic tests passed. The central registry still points to the old packet; the closed route inventory incorrectly excludes f13 despite main's actual EQUAL-BUDGET-V1 table validator. No physics was run.",
+  "keep": ["Merged generators, de-embedding, complete-curve accounting and strongest comparator", "Existing conditional lifecycle cap and historical identities"],
+  "change": ["Inspect actual table wiring rather than a stale closed family list", "Link prepared descriptors only after their prerequisite merges; links never substitute for evidence"],
+  "protocol_elements": ["measurement_authority", "reference_adequacy", "equal_budget"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

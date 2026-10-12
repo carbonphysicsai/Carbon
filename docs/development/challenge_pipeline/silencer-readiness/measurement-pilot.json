@@ -1,7 +1,10 @@
 {
   "schema":"carbon.measurement-pilot-proposal.v1", "family":"f13",
   "status":"PROPOSED_NOT_REGISTERED", "run_authorized":false,
-  "platform":"free CPU first; separately granted CCX63 only if needed",
+  "platform":"RunPod Secure Cloud CPU primary; free CPU where available; CCX43 only as the quoted available alternative in pilot-caps/plans.json",
+  "lifecycle_plan":"docs/development/challenge_pipeline/pilot-caps/plans.json",
+  "lifecycle_family":"f13",
+  "historical_hypothesis_basis":"The following CCX63 rate and low/base/high hypotheses are retained for traceability only. Current paid-pilot sizing must use the selected-host lifecycle plan, same-host measured complete-curve probe and all release holds; this proposal grants no execution.",
   "cap_eur":10, "rate_eur_host_h":1.37, "rate_basis":"ASSUMPTION, quote/tax/capacity required",
   "processes_at_once":1, "allocated_cores":1, "retries":0,
   "jobs":[

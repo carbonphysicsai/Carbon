@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-12-f13-readiness-regression-path",
+  "recorded_at": "2026-10-12T14:42:27Z",
+  "challenge": "f13",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "F13-SILENCER-READINESS-BUILD-01", "description": "Expanded native diagnostic collection plus read-only current-main readiness report"},
+  "expected": "Run all named comparator and registration regressions and report honest source-backed readiness.",
+  "observed": "The expanded pytest invocation collected zero tests because test_equal_budget_registration.py does not exist; the actual file is test_design_search_budget_registration.py. The separate read-only readiness command succeeded and reports two software YES items and five PLANNED items, with HOLD. No expanded pass is claimed.",
+  "keep": ["Readiness software evidence remains separate from measured prerequisites and grants"],
+  "change": ["Resolve test paths from the repository before collecting; rerun the corrected manifest"],
+  "protocol_elements": ["measurement_authority", "equal_budget"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
