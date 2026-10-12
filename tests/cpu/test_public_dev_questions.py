@@ -52,3 +52,16 @@ def test_the_pod_sizes_whole_questions_to_its_budget():
     assert phase.size(77.0, 30, 110 * per_question + 1) == 110
     assert phase.size(77.0, 30, 64.5 * per_question) == 64
     assert phase.size(77.0, 30, 10.0) == 0
+
+
+def test_the_usd_16_draw_is_registered_and_keeps_the_110_as_its_prefix(tmp_path):
+    import json
+
+    from scripts.dev.battery import public_dev_pod_phase as phase
+
+    big = pdq.draw(tmp_path / "w240", 240)
+    assert big["jobs_sha256"] == phase.REGISTERED[240]
+    small = pdq.draw(tmp_path / "w110", 110)
+    a = json.loads((tmp_path / "w110" / "jobs.json").read_bytes())["jobs"]
+    b = json.loads((tmp_path / "w240" / "jobs.json").read_bytes())["jobs"]
+    assert small["jobs_sha256"] == phase.REGISTERED[110] and b[: len(a)] == a
