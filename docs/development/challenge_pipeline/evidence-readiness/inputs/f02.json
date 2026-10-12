@@ -1,0 +1,176 @@
+{
+  "schema": "carbon.onboarding.evidence-inputs.v1",
+  "scope": "PUBLIC_DEVELOPMENT",
+  "challenge": "f02",
+  "source_evidence": {
+    "1": {
+      "finding": "f02 menu v2 has 16 actions x 24 contexts (384 primary cases), prospectively adopted in F02-MENU-V2-REGISTRATION",
+      "sources": [
+        {
+          "binding": {
+            "sha256": "sha256:62f529ce70f28772bb17bc74abad3a296fe4b342a419dc95f07885f19922c1d2",
+            "path": "docs/development/evidence/reference-packages-01/f02-menu-v2/registry.json"
+          },
+          "json_fields": {
+            "schema": "carbon.f02-menu-v2.registry.v1",
+            "contexts": 24,
+            "primary_solves": 384
+          }
+        },
+        {
+          "binding": {
+            "sha256": "sha256:69ae549d7aa12add3ed410dd8534be4a4ab38c40fc578fd43394fa74e62074d7",
+            "path": "docs/development/evidence/reference-packages-01/f02-menu-v2/decks-manifest.json"
+          },
+          "json_fields": {
+            "schema": "carbon.f02-menu-v2.decks.v1"
+          }
+        },
+        {
+          "binding": {
+            "sha256": "sha256:aca2d8e95ffbff1e3683d826c8b23da90159bff0a454cbd1aaa20fc040155df6",
+            "path": ".agent/decisions/2026-10-11-F02-MENU-V2-REGISTRATION.md"
+          },
+          "text_contains": [
+            "F02-MENU-V2"
+          ]
+        },
+        {
+          "binding": {
+            "sha256": "sha256:7ebb337fd30563732f115975c80cea78b450a3485b1e42172cdce65fab8b1ffc",
+            "path": "carbon/development_comparison/campaign_entrypoints.py"
+          },
+          "text_contains": [
+            "\"f02\"",
+            "sha256:6fab746f31257236da9e91b5be681bfbd2d25bd69f5dcd9a2e350394e8bcb675"
+          ]
+        }
+      ],
+      "missing": [
+        "Normalized physical tuples with all five current pins",
+        "Complete public COMPLETED and SCHEDULED reuse inventory with receipts"
+      ]
+    },
+    "2": {
+      "finding": "Merged producer registration selects sha256:6fab746f31257236da9e91b5be681bfbd2d25bd69f5dcd9a2e350394e8bcb675",
+      "sources": [
+        {
+          "binding": {
+            "sha256": "sha256:7ebb337fd30563732f115975c80cea78b450a3485b1e42172cdce65fab8b1ffc",
+            "path": "carbon/development_comparison/campaign_entrypoints.py"
+          },
+          "text_contains": [
+            "\"f02\"",
+            "sha256:6fab746f31257236da9e91b5be681bfbd2d25bd69f5dcd9a2e350394e8bcb675"
+          ]
+        }
+      ],
+      "missing": [
+        "Operator-supplied current presence observation bound to package/image; no host or Docker query performed"
+      ]
+    },
+    "3": {
+      "finding": "OWNER-CODE-VERIFICATION-ACCEPT-01 accepts the cited pinned-image MMS discretisation results only; historical provisional verdicts are not rewritten",
+      "sources": [
+        {
+          "binding": {
+            "sha256": "sha256:bf893b594591ca3bc3f2940d8aa568ef96a1824397a1140cb18d3ba63f997919",
+            "path": "docs/development/evidence/reference-packages-01/elmer-mms-heat-time-t0375.json"
+          },
+          "json_fields": {
+            "schema": "carbon.reference-package.mms.v1",
+            "image": "sha256:6fab746f31257236da9e91b5be681bfbd2d25bd69f5dcd9a2e350394e8bcb675"
+          }
+        },
+        {
+          "binding": {
+            "sha256": "sha256:60edc8b1847d4a66c41601c03f78b8beccdf4fd3a05bc81629e0b64f1d70726e",
+            "path": "docs/development/evidence/reference-packages-01/elmer-mms-heat.json"
+          },
+          "json_fields": {
+            "schema": "carbon.reference-package.mms.v1"
+          }
+        },
+        {
+          "binding": {
+            "sha256": "sha256:cc79e68a8d85020a866e4ed02237fc3d87a06cd844d5ab77e2a17965d635a971",
+            "path": "docs/development/challenge_pipeline/code-verification/specs.json"
+          },
+          "text_contains": [
+            "0.375"
+          ]
+        },
+        {
+          "binding": {
+            "sha256": "sha256:64b32bf2225465c3b35a60dd2de41023bcce70279e3c0fff50339d6c0ba7fa25",
+            "path": ".agent/decisions/2026-10-11-OWNER-CODE-VERIFICATION-ACCEPT-01.md"
+          },
+          "text_contains": [
+            "OWNER-CODE-VERIFICATION-ACCEPT-01",
+            "sha256:6fab746f31257236da9e91b5be681bfbd2d25bd69f5dcd9a2e350394e8bcb675"
+          ]
+        }
+      ],
+      "missing": [
+        "Image- and case-family-bound convergence and conservation measurements with accepted criteria",
+        "Full normalized adequacy binding; MMS does not establish physical validity or Tier-2 agreement"
+      ]
+    },
+    "4": {
+      "finding": "Merged family kit and common domain_gaps hook exist; software presence is not actual panel/TRAIN support",
+      "sources": [
+        {
+          "binding": {
+            "sha256": "sha256:adfb952f13bcabd8e334f2f6a7f165e9cf62a3531d23e12d757bacfed37338d4",
+            "path": "carbon/development_comparison/f02_kit.py"
+          },
+          "text_contains": [
+            "FAMILY = \"f02\"",
+            "OBSERVABLES"
+          ]
+        },
+        {
+          "binding": {
+            "sha256": "sha256:3d1de72c58a885f1ffd125f37834f44b4266353f3cc9ba270470ec70eaa9f7ea",
+            "path": "carbon/development_comparison/carbon_arm.py"
+          },
+          "text_contains": [
+            "def domain_gaps"
+          ]
+        }
+      ],
+      "missing": [
+        "Exact kit-domain export against every panel action, condition and observable; no support inferred from panel extrema"
+      ]
+    },
+    "5": {
+      "finding": "Public TRAIN generation is registered; no solved TRAIN or complete physical-disjointness proof inferred",
+      "sources": [
+        {
+          "binding": {
+            "sha256": "sha256:676fa53422b112de15c5e129affa2ae27ea1ae8892772bbad5699e93c6bd9671",
+            "path": "docs/development/evidence/reference-packages-01/f02-menu-v2/train-registry.json"
+          },
+          "json_fields": {
+            "schema": "carbon.f02-train.registry.v1",
+            "size": 960,
+            "per_context": 40
+          }
+        },
+        {
+          "binding": {
+            "sha256": "sha256:5763d244d15a3a485bf4ad046a0c482f47b698d1051735dcd238d5f907b6d281",
+            "path": "docs/development/evidence/reference-packages-01/f02-menu-v2/train-decks-manifest.json"
+          },
+          "json_fields": {
+            "schema": "carbon.f02-menu-v2.decks.v1"
+          }
+        }
+      ],
+      "missing": [
+        "Public normalized TRAIN inventory and registration digest",
+        "Recomputed physical overlap against the complete panel, ignoring rung differences"
+      ]
+    }
+  }
+}
