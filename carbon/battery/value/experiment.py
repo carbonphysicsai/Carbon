@@ -74,7 +74,9 @@ LEVEL_COMPILER_REQUIRED = "level_compiler_required"
 
 
 class Experiment:
-    def __init__(self, root, *, repository=REPOSITORY, level_compiler=None):
+    def __init__(
+        self, root, *, repository=REPOSITORY, level_compiler=None, scoring_set=None
+    ):
         self.root = Path(root)
         self.repository = Path(repository)
         # A panel member above Level 0 is compiled at its own level by the injected
@@ -82,6 +84,9 @@ class Experiment:
         # nothing a miner surface reaches may import the development-variant module,
         # and this module is reachable from the validator's side.
         self.level_compiler = level_compiler
+        # An explicitly public development study can supply its own scoring
+        # cases. The default remains the historical EV experiment unchanged.
+        self.scoring_set = scoring_set or sc.scoring_set
 
     # --- layout and locking ------------------------------------------------------
 
@@ -183,7 +188,7 @@ class Experiment:
             return self.manifest()
         from ..contracts import implementation_digest
 
-        _store, _case_ids, scoring_identity = sc.scoring_set(self.repository)
+        _store, _case_ids, scoring_identity = self.scoring_set(self.repository)
         manifest = {
             "schema": SCHEMA,
             "contract_digest": contract_digest,
@@ -330,7 +335,9 @@ class Experiment:
             from ..worker import DirectBackend
 
             backend = DirectBackend(self.repository)
-        inputs = panel_inputs(self.contract(), self.repository)
+        inputs = panel_inputs(
+            self.contract(), self.repository, scoring_set=self.scoring_set
+        )
         done = []
         levels = pn.levels(self.contract().get("panel", "ev1"))
         for member, _family, strategy, seed in self._members():
@@ -443,6 +450,7 @@ class Experiment:
                 if kinds[member] == "RECONSTRUCTED"
             },
             kinds_by_member=kinds,
+            scoring_set=self.scoring_set,
         )
         results["manifest_digest"] = ev.digest(self.manifest())
         out = self._dir("results")
@@ -550,10 +558,10 @@ class Experiment:
 # --- reconstruction, shared by the local panel stage and the pod phase -------------------------
 
 
-def panel_inputs(contract, repository):
+def panel_inputs(contract, repository, *, scoring_set=sc.scoring_set):
     """Every input a panel member predicts: the scoring set and the
     contract's decision cases (inputs only, never a reference value)."""
-    store, scoring_ids, _ = sc.scoring_set(repository)
+    store, scoring_ids, _ = scoring_set(repository)
     decision_inputs = {
         job["case_id"]: {k: job[k] for k in ("c1", "c2", "t_amb_c", "soc0")}
         for job in ev.decision_cases(contract)
@@ -670,6 +678,7 @@ def evaluate(
     controls=True,
     families_by_member=None,
     kinds_by_member=None,
+    scoring_set=sc.scoring_set,
 ):
     """Every member's decisions, every rule's scores, and their comparison.
 
@@ -678,7 +687,7 @@ def evaluate(
     and scored like any other, and kept out of the real-member pools."""
     candidates = ev.candidates(contract)
     baseline_id = ev.candidate_id(contract["baseline"]["protocol"])
-    store, scoring_ids, scoring_identity = sc.scoring_set(repository)
+    store, scoring_ids, scoring_identity = scoring_set(repository)
     predictions = {
         member: bundle["predictions"] for member, bundle in member_predictions.items()
     }

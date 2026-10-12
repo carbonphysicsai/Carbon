@@ -72,6 +72,7 @@ PANELS = (
     "graphite-run5",
     "ev4-dev-tuning",
     "ev4-dev-proof",
+    "ev4-dev-proof-l1",
 )
 
 
@@ -153,6 +154,42 @@ def validate(document):
         raise ContractError("case_prefix", ",".join(CASE_PREFIXES))
     if document.get("panel", "ev1") not in PANELS:
         raise ContractError("panel", ",".join(PANELS))
+    registration = document.get("panel_registration")
+    if document.get("panel") == "ev4-dev-proof-l1" and registration is None:
+        raise ContractError("panel_registration_required")
+    if registration is not None:
+        from . import panel as pn
+
+        if type(registration) is not dict or set(registration) != {
+            "source_sha256",
+            "member_sha256",
+        }:
+            raise ContractError("panel_registration")
+        sources = {
+            "proof-panel-l0-v1.json": pn.PROOF_PANEL,
+            "proof-panel-levels-v1.json": pn.PROOF_LEVELS,
+        }
+        if set(registration["source_sha256"]) != set(sources) or any(
+            registration["source_sha256"][name]
+            != "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
+            for name, path in sources.items()
+        ):
+            raise ContractError("panel_source_mismatch")
+        names = pn.members(document["panel"])
+        levels = pn.levels(document["panel"])
+        actual = {
+            member: digest(
+                {
+                    "strategy": strategy,
+                    "seed": seed,
+                    "level": levels.get(member, (0, None))[0],
+                    "arm": levels.get(member, (0, None))[1],
+                }
+            )
+            for member, _family, strategy, seed in names
+        }
+        if registration["member_sha256"] != actual:
+            raise ContractError("panel_member_mismatch")
     ids = [p["id"] for p in document["scoring_candidates"]["weight_profiles"]]
     for profile in document["scoring_candidates"].get("decision_aware_profiles", []):
         parse(profile)
