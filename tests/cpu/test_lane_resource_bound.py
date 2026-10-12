@@ -412,7 +412,9 @@ class RecordingDocker:
 
 
 def _through_the_carrier(tmp_path, monkeypatch, home):
-    fake = RecordingDocker()
+    # The cell's output is written to scratch: the host's bind mount, or under
+    # a profile the container's own tmpfs, copied out before removal.
+    fake = TmpfsDocker({cc.OUTPUT_NAME: b"{}"})
     monkeypatch.delenv(mc.RESOURCE_PROFILE_ENV, raising=False)
     monkeypatch.setattr(mc, "_process_home", lambda: str(home))
     monkeypatch.setattr(carrier, "DockerCLI", lambda: fake)
