@@ -79,6 +79,18 @@ a failed attempt gets a new directory. The scheduler respects the registered
 host's vCPUs and RAM, each stage's wall bound, the campaign wall cap and the
 paid host's euro deadline.
 
+The runner now includes its registered `vcpus` allotment in each stage context.
+At a wall or euro cap it sends SIGTERM to the stage process group, waits two
+seconds, then sends SIGKILL to any remaining group members. Data Collection's
+producer draft #1114 must accept the explicit field and compare it with the
+environment allotment before its stage can run. The prospective assembler
+checks the producer's sealed export and TRAIN against the exact stage receipt,
+role, summary and plan pins. Its fixture route proves the comparison bridge
+through the existing #975 pipeline. Public comparison remains fail closed:
+#1114 has no registered model prediction, comparator calibration, per-candidate
+measured cost/proposal history, replay bindings, fold or adaptive-policy
+receipt. The assembler cannot make those from a reference value alone.
+
 ## Server sheet for the owner's one-figure approval
 
 The generated `owner-server-sheet.json` has one battery, motor and f02 row plus
