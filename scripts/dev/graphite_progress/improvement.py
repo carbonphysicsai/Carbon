@@ -224,11 +224,13 @@ def public_dev_block(records, level=None):
             **(
                 {"ci95_note": f"interval not meaningful at n={len(values)}"}
                 if len(values) < MIN_N_INTERVAL
-                else {
-                    "ci95_note": f"coarse at n={len(values)}: the bootstrap median can only take the observed values"
-                }
-                if len(values) < COARSE_N
-                else {}
+                else (
+                    {
+                        "ci95_note": f"coarse at n={len(values)}: the bootstrap median can only take the observed values"
+                    }
+                    if len(values) < COARSE_N
+                    else {}
+                )
             ),
             **({"caveats": _caveats(records)} if _caveats(records) else {}),
             "interval": f"percentile bootstrap of the median, {BOOTSTRAP_REPS} resamples, seed {BOOTSTRAP_SEED}",
