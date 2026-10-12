@@ -169,6 +169,16 @@ def _write_jobs(directory, tranche, jobs):
         records.touch(mode=0o600)
 
 
+def checked_solve(solve, directory, overlay, workers, **options):
+    """Run a truth solve and refuse when its container did not exit 0: a
+    container that never started (a docker argument error, a missing image)
+    or crashed must fail the fill, never read as a quiet pending tranche."""
+    found = solve(directory, overlay, workers=workers, **options) or {}
+    if found.get("returncode", 0) != 0:
+        raise ProducerRefused("producer_truth_solve_failed")
+    return found
+
+
 class DesignBank:
     """Fill one design bank: draw a tranche, solve its questions through the
     law's stages, store each reference, and seal. Resumable: a rerun finishes
@@ -287,7 +297,7 @@ def main(argv=None):
 
             if source.overlay is None:
                 raise ProducerRefused("producer_no_truth_overlay")
-            solve(directory, source.overlay, workers=workers)
+            checked_solve(solve, directory, source.overlay, workers)
 
         bank = DesignBank(args.dir, law, solver)
         result = {}
@@ -298,6 +308,11 @@ def main(argv=None):
         print(json.dumps(refused.record()))
         return 2
     print(json.dumps(result, sort_keys=True))
+    if any(t.get("state") != "SEALED" for t in result.get("tranches") or ()):
+        # A tranche this run left unsolved is a failure the operator must
+        # see (the unit fails); the next run resumes it.
+        print(json.dumps({"refused": "producer_design_tranche_unsolved"}))
+        return 3
     return 0
 
 

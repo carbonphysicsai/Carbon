@@ -145,6 +145,30 @@ def materialize(target, *, repository=".", wheels_dir=None, fetch=_fetch):
     return manifest
 
 
+def bind(source, target, *, readonly):
+    """One bind mount as `--mount`, never `-v`: `-v` splits its argument on
+    ':', so a host path holding one (a design bank's tranche
+    `bank-design:battery-q3-T1`) failed as "too many colons". `--mount`
+    splits on ',' only, and a path holding one is refused."""
+    path = str(Path(source).resolve())
+    if "," in path:
+        raise TruthEnvironmentError("a bind-mounted path may not contain ','")
+    return [
+        "--mount",
+        f"type=bind,source={path},target={target}" + (",readonly" if readonly else ""),
+    ]
+
+
+def mounted_work(command):
+    """The host work directory a `solve_command` mounts at `/work` (for
+    scripted test containers that play the truth solve)."""
+    for part in command:
+        if part.startswith("type=bind,") and ",target=/work" in part:
+            fields = dict(f.split("=", 1) for f in part.split(",") if "=" in f)
+            return Path(fields["source"])
+    raise TruthEnvironmentError("the command mounts no /work")
+
+
 def verify_command(target, repository="."):
     """The exact read-only, network-less container run that verifies the overlay."""
     probe = (
@@ -169,8 +193,7 @@ def verify_command(target, repository="."):
         # enter it, and PyBaMM would look absent. Run as the owner, as solve does.
         "--user",
         f"{os.getuid()}:{os.getgid()}",
-        "-v",
-        f"{Path(target).resolve()}:/overlay:ro",
+        *bind(target, "/overlay", readonly=True),
         "-e",
         "PYTHONPATH=/overlay",
         "--entrypoint",
@@ -250,12 +273,9 @@ def solve_command(target, workdir, *, repository=".", workers=1, timeout_s=1200.
         "no-new-privileges",
         "--user",
         f"{os.getuid()}:{os.getgid()}",
-        "-v",
-        f"{Path(target).resolve()}:/overlay:ro",
-        "-v",
-        f"{Path(repository).resolve()}:/carbon:ro",
-        "-v",
-        f"{Path(workdir).resolve()}:/work:rw",
+        *bind(target, "/overlay", readonly=True),
+        *bind(repository, "/carbon", readonly=True),
+        *bind(workdir, "/work", readonly=False),
         "-w",
         "/carbon",
         "-e",

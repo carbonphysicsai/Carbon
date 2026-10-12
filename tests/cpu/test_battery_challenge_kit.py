@@ -102,8 +102,9 @@ class FakeTruthContainer:
 
     def __call__(self, command, check=False, **_):
         self.commands.append(command)
-        mounts = [command[i + 1] for i, a in enumerate(command) if a == "-v"]
-        work = Path(next(m for m in mounts if m.endswith(":/work:rw")).split(":")[0])
+        from carbon.battery.truth_env import mounted_work
+
+        work = mounted_work(command)
         document = json.loads((work / "jobs.json").read_bytes())
         records = work / "records.jsonl"
         if not records.exists():
