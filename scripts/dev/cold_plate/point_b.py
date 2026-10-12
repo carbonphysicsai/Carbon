@@ -1,5 +1,6 @@
 """Cooling value check at #1084 point B (registry
-cooling-feasibility-02/point-b-registry.json).
+cooling-feasibility-02/point-b-registry.json), and the evaluation `point_c`
+reuses with its own envelope.
 
     python -m scripts.dev.cold_plate.point_b --runs DIR --out OUT.json
 
@@ -10,16 +11,19 @@ The registered value-search composition applied to the point-B solves:
 - a stratum (inlet, heat, map ratio, band) scales the face rise linearly in
   heat, adds the inlet, and for a ratio > 1 adds the solved ratio-2 band
   response scaled by the post-spreader excess, (peak/mean - 1) / (2 - 1);
-- the post-spreader flux is the exact 2D lid series (lid k, 3.0 mm, TIM2
+- the post-spreader flux is the exact 2D lid series (lid k, thickness, TIM2
   5e-6 m2K/W) from `lid_spreading.presolve`; the interface peak is
   max(face + TIM2 * q_b);
 - a ratio > 1 stratum is scored on the worse of the central (15 mm) and
   outlet (25 mm) bands;
 - hydraulics: dp at the stratum flow = base dp x heat / 1,000 (laminar,
-  flow per kW fixed), feasible when <= 25 kPa.
+  flow per kW fixed), feasible when <= the allocation.
 
 PASS = interface peak <= 85 C and dp feasible. A design with an invalid
-reference solve for a needed map is UNRESOLVED there, never a FAIL.
+reference solve for a needed map is UNRESOLVED there, never a FAIL. With
+`validity` on, a stratum whose predicted coolant maximum (inlet + heat-scaled
+rise of the design's own valid solve) exceeds the PG25 model's 99 C is also
+UNRESOLVED for that design.
 """
 
 from __future__ import annotations
@@ -38,13 +42,20 @@ if str(ROOT) not in sys.path:
 
 from scripts.dev.cold_plate import lid_spreading as ls
 
-LIMIT_C, DP_LIMIT_PA, TIM2, LID_T_MM = 85.0, 25_000.0, 5e-6, 3.0
+LIMIT_C, TIM2, COOLANT_MAX_C = 85.0, 5e-6, 99.0
 BASE_INLET_C, BASE_HEAT_W, SOLVED_RATIO = 40.0, 1000.0, 2.0
-INLETS, HEATS, RATIOS = (37.0, 40.0, 42.0), (900.0, 1000.0, 1100.0), (1.0, 1.5, 2.0)
-LID_K = (2000.0, 5000.0, 10000.0)
-BASE_LID_K = 5000.0
 BANDS = {"central": ("B_central_r2", 15.0), "outlet": ("B_outlet_r2", 25.0)}
 NEAR_K = 2.0
+#: the registered point-B envelope
+B = {
+    "inlets_c": (37.0, 40.0, 42.0),
+    "heats_w": (900.0, 1000.0, 1100.0),
+    "ratios": (1.0, 1.5, 2.0),
+    "lid_t_mm": 3.0,
+    "lid_k": (2000.0, 5000.0, 10000.0),
+    "dp_limit_pa": 25_000.0,
+    "validity": False,
+}
 
 
 def load(runs):
@@ -67,10 +78,18 @@ def prepare(designs):
             out[did] = None
             continue
         h, prof = ls.design_h(u)
+        fluid = {"uniform": u["checks"]["fluid_max_c"] - BASE_INLET_C}
+        for name, (s, _) in BANDS.items():
+            fluid[name] = (
+                recs[s]["checks"]["fluid_max_c"] - BASE_INLET_C
+                if _ok(recs.get(s))
+                else None
+            )
         out[did] = {
             "h": h,
             "rise": prof - BASE_INLET_C,
             "coolant_rise": u["outputs"]["outlet_c"] - BASE_INLET_C,
+            "fluid_rise": fluid,
             "dp_pa": u["outputs"]["pressure_drop_pa"],
             "bands": {
                 name: np.array(recs[s]["outputs"]["profile_c"]) - prof if _ok(recs.get(s)) else None
@@ -80,28 +99,34 @@ def prepare(designs):
     return out
 
 
-def interface_peak(d, inlet, heat, ratio, band, lid_k):
+def interface_peak(d, inlet, heat, ratio, band, lid_k, lid_t_mm, validity=False):
     s = heat / BASE_HEAT_W
     seg = (np.arange(len(d["rise"])) + 0.5) * ls.L / len(d["rise"])
+    if validity:
+        rise = d["fluid_rise"]["uniform" if ratio == 1.0 else band]
+        if rise is None or inlet + s * rise > COOLANT_MAX_C:
+            return None
     if ratio == 1.0:
         return inlet + s * float(d["rise"].max()) + TIM2 * heat / ls.L**2
     if d["bands"][band] is None:
         return None
     x, q = ls.raw_flux(heat, ratio, BANDS[band][1])
-    qb = ls.presolve(q, x, LID_T_MM, lid_k, TIM2, d["h"], d["coolant_rise"])
+    qb = ls.presolve(q, x, lid_t_mm, lid_k, TIM2, d["h"], d["coolant_rise"])
     beta = (qb.max() / qb.mean() - 1.0) / (SOLVED_RATIO - 1.0)
     face = inlet + s * (d["rise"] + beta * d["bands"][band])
     return float(np.max(face + TIM2 * np.interp(seg, x, qb)))
 
 
-def stratum(prepared, inlet, heat, ratio, lid_k):
+def stratum(prepared, inlet, heat, ratio, lid_k, env):
     rows = {}
     for did, d in prepared.items():
         if d is None:
             rows[did] = None
             continue
         peaks = [
-            interface_peak(d, inlet, heat, ratio, b, lid_k)
+            interface_peak(
+                d, inlet, heat, ratio, b, lid_k, env["lid_t_mm"], env["validity"]
+            )
             for b in (BANDS if ratio > 1 else ["central"])
         ]
         if any(p is None for p in peaks):
@@ -112,10 +137,11 @@ def stratum(prepared, inlet, heat, ratio, lid_k):
         rows[did] = {
             "margin_k": margin,
             "dp_pa": dp,
-            "pass": margin >= 0 and dp <= DP_LIMIT_PA,
+            "pass": margin >= 0 and dp <= env["dp_limit_pa"],
         }
     resolved = {k: v for k, v in rows.items() if v is not None}
     passing = [k for k, v in resolved.items() if v["pass"]]
+    thermal = [k for k, v in resolved.items() if v["margin_k"] >= 0]
     margins = [v["margin_k"] for v in resolved.values()]
     best = (
         min(passing, key=lambda k: (resolved[k]["dp_pa"], -resolved[k]["margin_k"]))
@@ -127,9 +153,10 @@ def stratum(prepared, inlet, heat, ratio, lid_k):
         "resolved": len(resolved), "unresolved": len(rows) - len(resolved), "pass": len(passing),
         "pass_fraction": len(passing) / len(resolved) if resolved else None,
         "near_pass_2k": sum(v["pass"] and v["margin_k"] <= NEAR_K for v in resolved.values()),
-        "near_fail_2k": sum((not v["pass"]) and -NEAR_K <= v["margin_k"] < 0 and v["dp_pa"] <= DP_LIMIT_PA
+        "near_fail_2k": sum((not v["pass"]) and -NEAR_K <= v["margin_k"] < 0 and v["dp_pa"] <= env["dp_limit_pa"]
                             for v in resolved.values()),
-        "dp_infeasible": sum(v["dp_pa"] > DP_LIMIT_PA for v in resolved.values()),
+        "dp_infeasible": sum(v["dp_pa"] > env["dp_limit_pa"] for v in resolved.values()),
+        "dp_binds": len(thermal) > len(passing),
         "margin_spread_k": max(margins) - min(margins) if margins else None,
         "margin_range_k": [min(margins), max(margins)] if margins else None,
         "median_margin_k": median_margin,
@@ -141,11 +168,13 @@ def stratum(prepared, inlet, heat, ratio, lid_k):
     }  # fmt: skip
 
 
-def evaluate(prepared, lid_k):
+def evaluate(prepared, lid_k, env=B):
     per = {}
-    for inlet, heat, ratio in itertools.product(INLETS, HEATS, RATIOS):
+    for inlet, heat, ratio in itertools.product(
+        env["inlets_c"], env["heats_w"], env["ratios"]
+    ):
         per[f"i{inlet:g}-q{heat:g}-r{ratio:g}"] = stratum(
-            prepared, inlet, heat, ratio, lid_k
+            prepared, inlet, heat, ratio, lid_k, env
         )
     frac = [v["pass_fraction"] for v in per.values()]
     bests = {v["best"] for v in per.values() if v["best"]}
@@ -156,6 +185,7 @@ def evaluate(prepared, lid_k):
         "spread_5k_all": all(v["margin_spread_k"] is not None and v["margin_spread_k"] >= 5 for v in per.values()),
         "pass_every_stratum": all(v["pass"] >= 1 for v in per.values()),
         "contested_strata": sum(v["near_pass_2k"] >= 5 and v["near_fail_2k"] >= 5 for v in per.values()),
+        "dp_binding_strata": sum(v["dp_binds"] for v in per.values()),
         "distinct_bests": sorted(bests),
         "best_changes": len(bests) >= 2,
     }  # fmt: skip
@@ -170,7 +200,7 @@ def main(runs, out):
         "designs_without_valid_uniform": sorted(
             k for k, v in prepared.items() if v is None
         ),
-        "lid_k": {f"k{k:g}": evaluate(prepared, k) for k in LID_K},
+        "lid_k": {f"k{k:g}": evaluate(prepared, k) for k in B["lid_k"]},
     }
     Path(out).write_text(json.dumps(doc, indent=1, sort_keys=True) + "\n")
     return doc
