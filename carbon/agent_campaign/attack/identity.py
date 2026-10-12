@@ -558,9 +558,47 @@ def _plan(adapter, constructions=None):
                     {"incumbent": original, "other": text, "expect": 1},
                 )
             )
-        other = json.dumps({"strategy": construction, "seed": 1})
+        other = _distinct_control(adapter, construction, made)
         plan["controls"].append({"incumbent": original, "other": other, "expect": 2})
     return plan
+
+
+def _int_paths(value, path=()):
+    """Every integer setting in a construction (not bool), in sorted key
+    order: the candidates `_distinct_control` changes by one."""
+    if isinstance(value, Mapping):
+        for key in sorted(value, key=str):
+            yield from _int_paths(value[key], (*path, key))
+    elif isinstance(value, int) and not isinstance(value, bool):
+        yield path
+
+
+def _distinct_control(adapter, construction, made):
+    """The control: a construction Carbon's rebuild tells apart from the
+    incumbent, which must count as two. First the incumbent at another seed;
+    where the level's rebuild pins its own seed and drops a submitted one
+    (another seed is then the SAME construction: one rebuilt artifact), the
+    incumbent with one integer setting changed by one,
+    the first such change Carbon rebuilds to a different artifact. If none
+    differs, the seed control stays and fails: an identity that tells
+    nothing apart is a finding, never a pass."""
+    from carbon.agent_campaign.attack import verify as verifier
+
+    def artifact(value):
+        built = adapter.rebuild(value)
+        if verifier.is_unrebuildable(built):
+            return None
+        return artifact_of(adapter, built, verifier.record_of(built))
+
+    incumbent = artifact_of(adapter, made, verifier.record_of(made))
+    seeded = {"strategy": construction, "seed": 1}
+    if artifact(seeded) not in (None, incumbent):
+        return json.dumps(seeded)
+    for path in _int_paths(construction):
+        changed = _replace(construction, path, _get_path(construction, path) + 1)
+        if artifact(changed) not in (None, incumbent):
+            return json.dumps(changed)
+    return json.dumps(seeded)
 
 
 NOT_RUN = "NOT_RUN"
