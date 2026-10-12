@@ -292,3 +292,27 @@ def test_the_confirmation_refuses_a_rule_selection_did_not_mark_pickable(tmp_pat
     assert (
         script.pick_refusal(tmp_path / "absent.json", "A-Q") == "selection_unreadable"
     )
+
+
+def test_a_confirmation_with_missing_legs_is_refused_not_failed():
+    from scripts.dev.battery import score_proof as script
+
+    def report(status):
+        rows = {"L0": {"status": "OK"}, "pooled": {"status": status}}
+        return {
+            "candidates": {
+                "ARP-V3": rows,
+                "G-FEAS/A-Q>@0.05": {"pooled": {"status": "OK"}},
+            }
+        }
+
+    picked = ["ARP-V3", "G-FEAS/A-Q>@0.05"]
+    assert script.incomplete_refusal(report("OK"), picked) is None
+    refused = script.incomplete_refusal(report("INCOMPLETE_LEGS"), picked)
+    assert refused.startswith("confirmation_incomplete_legs: ARP-V3 pooled")
+    assert "nothing written" in refused
+    # Only the pick and the contrast are read.
+    assert (
+        script.incomplete_refusal(report("INCOMPLETE_LEGS"), ["G-FEAS/A-Q>@0.05"])
+        is None
+    )
