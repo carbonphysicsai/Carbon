@@ -5,8 +5,28 @@
 > Approve SCORE-PROOF-CONFIRM-02 grant, USD 25, RunPod, sealed confirmation
 > questions
 
-**The grant.**
-- **Cap: USD 25**, all in. A ceiling, not a target.
+**Amended 2026-10-12: raised to USD 37 for 545 questions, and its subject
+changed.** The owner, typed directly in the PR Head session:
+
+> USD 37 for SCORE-PROOF-CONFIRM-02: 545 fresh sealed questions, confirming
+> the rule I will pick from registry v9 (#1161) and record as
+> OWNER-SCORE-PROOF-PICK-02. The run starts only after that pick is
+> recorded. PICK-01's confirmation (FAIL) is closed
+
+Three things follow, and the second is a precondition, not a note:
+- **Cap: USD 37** all in, for **545 fresh sealed confirmation questions**.
+- **The run starts only after `OWNER-SCORE-PROOF-PICK-02` is recorded.** This
+  grant funds the confirmation of a pick that **does not yet exist**: the
+  owner will choose it from registry v9, which is itself not yet on main
+  (#1161). Creating a pod before that pick is recorded would be spending
+  against an undefined subject, and this grant does not authorize it.
+- **It is no longer the confirmation of the PICK-01 rule.** That confirmation
+  is finished and its verdict was **FAIL**; see
+  `OWNER-SCORE-PROOF-PICK-01`.
+
+**The grant, as originally approved.**
+- **Cap: USD 25**, all in, for the confirmation of the PICK-01 rule.
+  **Superseded by the amendment above.**
 - **Platform:** RunPod, for the SCORE-PROOF-01 confirmation shard.
 - **What it is for:** the second SCORE-PROOF-01 shard, carrying fresh sealed
   confirmation questions, against the owner's pick
