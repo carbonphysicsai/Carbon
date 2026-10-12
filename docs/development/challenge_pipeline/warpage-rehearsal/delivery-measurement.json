@@ -1,0 +1,18 @@
+{
+  "schema": "carbon.representative-delivery-measurement.v1",
+  "challenge": "package-warpage",
+  "scope": "REPRESENTATIVE_NOT_CUSTOMER",
+  "brief_received_at": null,
+  "source_main": "8d1c4dcaa",
+  "stages": [
+    {"stage": "intake_and_rights", "owner": "buyer/owner", "start": null, "end": null, "person_hours": null, "actual_eur": null},
+    {"stage": "geometry_laws_history_package", "owner": "Data Collection", "start": null, "end": null, "person_hours": null, "actual_eur": null},
+    {"stage": "verification_and_panel", "owner": "Data Collection/science", "start": null, "end": null, "person_hours": null, "actual_eur": null},
+    {"stage": "baseline_and_equal_budget", "owner": "Packets/Optimizer", "start": null, "end": null, "person_hours": null, "actual_eur": null},
+    {"stage": "training_independent_test_dossier", "owner": "Model Kits/Validator", "start": null, "end": null, "person_hours": null, "actual_eur": null}
+  ],
+  "required_receipts": ["exact inputs and rights", "queue and actual stage times", "all setup, failed/refined/witness attempts", "CPU/wall/RSS and allocated hours", "accepted scope/uncertainty and adverse findings", "quote versus actuals and owner acceptance"],
+  "delivered_at": null,
+  "customer_result": false,
+  "pricing_or_commitment": "HUMAN_INPUT: owner; no fabricated days-to-delivery"
+}
