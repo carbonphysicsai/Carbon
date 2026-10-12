@@ -527,6 +527,17 @@ def test_memory_bounded_public_names_match_decided_bundles_and_controls(tmp_path
     ]
 
 
+def test_later_screen_controls_cannot_silently_expand_frozen_study():
+    panel = fixture_panel()
+    original = list(panel["names"])
+    panel["names"].append("control-always_abstain")
+    frozen = screen.frozen_public_panel(panel, original)
+    assert frozen["names"] == sorted(original)
+    assert "control-always_abstain" in panel["names"]
+    with pytest.raises(pc.ContractRefused, match="members_missing"):
+        screen.frozen_public_panel(panel, ["missing-member"])
+
+
 def test_pair_builder_resumes_completed_members_and_emits_checkpoint(
     tmp_path, monkeypatch
 ):

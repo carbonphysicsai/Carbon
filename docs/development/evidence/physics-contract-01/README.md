@@ -99,6 +99,83 @@ physical tolerance). These measurements establish diagnostic calibration;
 all gate states, quantiles, margins and allowed rates remain UNRESOLVED or
 HUMAN_INPUT pending owner registration.
 
+## Completed same-plan model screen
+
+`physics-screen-pairs.json` and `.md` retain the canonical screen of all 142
+members: 137 rebuilt members and five existing reference-derived controls.
+Every pair law has complete coverage; all 65 descriptive good-value and all
+13 registered bad members are resolved. The JSON reports every family's
+catch count, per-member residual distributions and all before/after tau rows.
+This uses the same 100 bases and law-specific partner steps as the reference.
+
+At the reference maximum, zero additional margin and zero allowed rate
+(all unregistered diagnostic candidates):
+
+| Law | Good-value members rejected | Bad members caught | Reading |
+| --- | --- | --- | --- |
+| B15 | 65/65 | 12/13 | Exact-zero precision trap; magnitude discussion below |
+| B16 | 65/65 | 11/13 | Card metric only |
+| B5a | 1/65 | 0/13 | At 5% diagnostic rate, 0/65 rejected and still none caught |
+| B5b | 65/65 | 11/13 | Rejects every good member |
+| B6 | 23/65 | 2/13 | One rebuild-identity attack and the localized-sign control |
+| B7 | 2/65 | 2/13 | Only the two constructed controls |
+| B8 | 1/65 | 1/13 | Only the boundary-optimist control |
+| B10 | 1/65 | 1/13 | Only the boundary-optimist control |
+
+**B15 first: do not interpret exact-zero rejection as substantial causal
+failure in every good model.** The reference prefix residual is exactly zero,
+but good-model residuals over 13,000 pairs have median
+3.654887059667544e-8 degC, p99 2.445380220805761e-7 degC and maximum
+2.11948649919691e-6 degC. Their per-member maxima have median
+2.078301299945906e-7 degC. Every good member is rejected at zero tolerance
+even at the 1% and 5% diagnostic rate allowances. These are tiny measured
+model/reference differences; this screen does not establish material physical
+causality failure or qualify their numerical precision. A numerical/accuracy
+allowance must come from an owner-registered reference-verification basis,
+not an agent-selected or good-model-fitted threshold.
+
+The constructed boundary optimist has a 3.5 degC B15 prefix change. All
+137 rebuilt members have maximum changes at or below
+7.16782545326922e-5 degC, and the 11 registered bad rebuilds are at or below
+4.768818975264821e-7 degC. Thus the large measured separation is the
+constructed control, not a newly demonstrated adversarial catch. B15 remains
+candidate #1 for the owner's tolerance work; this report adopts no margin.
+Its strict row's improved tau mostly reflects removing all good members and
+must not be called a useful gate improvement.
+
+**B16 stays a card metric.** Good-model maximum prefix differences range from
+6.7792555329799775 to 82.27912869952281 mV (median 16.010589608984827 mV)
+at these 0.05-step pairs. The different perturbation size means these numbers
+do not rewrite RES-06's earlier wider-step measurement. Every good member
+fails exact invariance; no B16 gate is proposed.
+
+**B8 has a narrow clean diagnostic row:** zero reference residual/margin and
+1% allowed violation rate give 0/65 good rejections and 1/13 bad catch,
+`control-boundary_optimist`. It catches 1/2 known-bad controls, 0/10
+adversarial and 0/1 unsafe members. Tau declines for A (0.143636 to 0.137599),
+ARP (0.189477 to 0.156754) and ENV/ARP (0.168379 to 0.146039). At 5% it
+catches none. This is constructed-control coverage, not a broad new attack
+defence, and the numeric allowance remains HUMAN_INPUT for any adoption.
+
+The calibrated screen therefore corrects the earlier uncalibrated blanket
+claim that pair laws add no catches: reference-derived controls now have
+actual pair readings. It does not find a generally useful clean pair gate
+against the real adversarial/unsafe panel. Rebuild-identity catches already
+have an existing identity guard; all other strict settings retain the shown
+false rejections. B1-B3 remain existing-exam consistency evidence. The B9
+reference-relative tails and p99 reference-rejection artefact above persist.
+
+The public JSON binds cache SHA
+`fcef0c36ba570d6af260c23919a80bed76fbcca95ff9754b163e4eb4be17ded2`
+and exact producer SHA
+`95c0eee590ac15ce50e2b2ab64ee96f0b73bd8c5e5a170de81f06515afd5f1df`
+at source revision `c45ef29b8c57106ea84acc0af2258acdd1769583`.
+Both generation and replay used these exact bytes; no cache pin was changed.
+The later final-tree wrapper additionally freezes that same original roster
+against upstream score-screen additions. The physics arithmetic, checker,
+contract, reference plan and measured cohort are identical. The scientific
+evidence remains bound to its actual producer version.
+
 ## Pinned B9 parameter reading
 
 `physics-parameters.json` comes from the retained

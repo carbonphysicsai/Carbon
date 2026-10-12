@@ -592,6 +592,15 @@ def public_member_names(directories, dev_results):
     return sorted(names & set(decided))
 
 
+def frozen_public_panel(panel, names):
+    """Freeze the study's declared roster when a later score screen adds controls."""
+    from carbon.challenge_validator import physics_contract as pc
+
+    if not set(names) <= set(panel["names"]):
+        raise pc.ContractRefused("physics_public_panel_members_missing")
+    return {**panel, "names": sorted(names)}
+
+
 def main(argv=None):
     from carbon.challenge_validator import physics_contract as pc
     from scripts.dev.battery.tuning_rescore import _standin, assemble
@@ -630,7 +639,10 @@ def main(argv=None):
         panel = {"names": public_member_names(directories, args.dev_results)}
     else:
         store, ids, predictions = _standin(directories)
-        panel = assemble(store, ids, predictions, args.dev_results)
+        panel = frozen_public_panel(
+            assemble(store, ids, predictions, args.dev_results),
+            public_member_names(directories, args.dev_results),
+        )
     roles = json.loads(ROLES.read_text())["roles"]
     pair_plan = args.probe_plan or args.calibration_panel
     plan_sha = None
