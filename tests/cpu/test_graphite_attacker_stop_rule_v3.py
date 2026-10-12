@@ -158,35 +158,32 @@ def test_a_reachable_family_under_k_makes_the_report_incomplete():
     assert outcome["status"] == "INCOMPLETE" and outcome["not_run"] == []
 
 
-# -- a level whose doors reach one family ----------------------------------------------------
-def test_level_two_lists_its_unreachable_families_and_reports_each_as_a_gap():
-    adapter = ADAPTERS[(CID, 2)]
+# -- families with no offered construction door ---------------------------------------------
+@pytest.mark.parametrize("level", [1, 2, 3, 4])
+def test_families_without_an_offered_construction_door_are_named_at_every_level(
+    level, monkeypatch
+):
+    """An unavailable construction door leaves named gaps instead of silent passes."""
+    adapter = ADAPTERS[(CID, level)]
     adapter = adapter() if isinstance(adapter, type) else adapter
-    table = phase4.stop_rule_coverage(adapter, TOOLS, schema=V3)
-    reachable = [row["family"] for row in table["families"]]
-    assert len(reachable) >= 1
-    unreachable = [row["family"] for row in table["unreachable"]]
-    assert unreachable  # the L2 families the doors do not reach
-    found = []
-    for family in reachable:
-        found += _door_attempts(table, family, len(found))
-    full = phase4.stop_rule_coverage(adapter, TOOLS, found, schema=V3)
-    outcome = phase4.stop_rule_outcome(full, [])
-    assert outcome["status"] in ("DONE_WITH_GAPS", "DONE")
-    assert set(outcome["gaps"]) <= set(unreachable)
-
-
-def _door_attempts(table, family, offset):
-    """Three attempts through the family's first door."""
-    from test_graphite_attacker_stop_rule import _attempt
-
-    door = next(r for r in table["families"] if r["family"] == family)["doors"][0]
-    name, _, shape = door.partition("[")
-    arguments = {}
-    if shape:
-        kind, _, action = shape.rstrip("]").partition("/")
-        arguments = {"kind": kind, "action": action}
-    return [_attempt(offset + n + 1, name, arguments) for n in range(3)]
+    families = adapter.families()
+    monkeypatch.setattr(adapter, "families", lambda: families)
+    names = sorted(f.name for f in families)
+    assert names
+    tools = [tool for tool in TOOLS if tool["name"].endswith("get_challenge_info")]
+    assert len(tools) == 1
+    found = [_attempt(1, "get_challenge_info", {}, {"status": "SUCCEEDED"})]
+    table = phase4.stop_rule_coverage(adapter, tools, found, schema=V3)
+    assert table["families"] == []
+    assert [r["family"] for r in table["unreachable"]] == names
+    assert all(r["label"] for r in table["unreachable"])
+    outcome = phase4.stop_rule_outcome(table, [])
+    assert outcome["status"] == "DONE_WITH_GAPS"
+    assert outcome["gaps"] == names
+    assert [r["family"] for r in outcome["unreachable"]] == names
+    assert all(
+        r["covering_test"] is None and r["reported_gap"] for r in outcome["unreachable"]
+    )
 
 
 # -- the live Attacker runs under v3 ---------------------------------------------------------
@@ -407,30 +404,3 @@ def test_declared_families_each_need_three_counted_attempts_at_every_level(
         outcome = phase4.stop_rule_outcome(short, [])
         assert outcome["status"] == "INCOMPLETE"
         assert outcome["under_k"] == [family] and outcome["not_run"] == []
-
-
-@pytest.mark.parametrize("level", [1, 2, 3, 4])
-def test_families_without_an_offered_construction_door_are_named_at_every_level(
-    level, monkeypatch
-):
-    """An unavailable construction door leaves named gaps instead of silent passes."""
-    adapter = ADAPTERS[(CID, level)]
-    adapter = adapter() if isinstance(adapter, type) else adapter
-    families = adapter.families()
-    monkeypatch.setattr(adapter, "families", lambda: families)
-    names = sorted(f.name for f in families)
-    assert names
-    tools = [tool for tool in TOOLS if tool["name"].endswith("get_challenge_info")]
-    assert len(tools) == 1
-    found = [_attempt(1, "get_challenge_info", {}, {"status": "SUCCEEDED"})]
-    table = phase4.stop_rule_coverage(adapter, tools, found, schema=V3)
-    assert table["families"] == []
-    assert [r["family"] for r in table["unreachable"]] == names
-    assert all(r["label"] for r in table["unreachable"])
-    outcome = phase4.stop_rule_outcome(table, [])
-    assert outcome["status"] == "DONE_WITH_GAPS"
-    assert outcome["gaps"] == names
-    assert [r["family"] for r in outcome["unreachable"]] == names
-    assert all(
-        r["covering_test"] is None and r["reported_gap"] for r in outcome["unreachable"]
-    )
