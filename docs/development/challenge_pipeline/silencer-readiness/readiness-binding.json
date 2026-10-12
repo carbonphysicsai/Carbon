@@ -12,6 +12,6 @@
     "6":{"basis":"Plane-wave control and stronger held-geometry reduced Helmholtz implementation on main; material/operator coverage still required", "pointers":["carbon/development_comparison/portfolio_baselines.py", "carbon/development_comparison/reduced_baselines.py"]},
     "7":{"basis":"Reuse existing f13 EQUAL-BUDGET-V1 row and complete-panel ledger", "pointers":["carbon/design_search/equal_budget.py", "docs/development/challenge_pipeline/equal-budget-registration-v1.json"]}
   },
-  "wiring":"#1039 dependency must merge before the central adapter is edited; no copied/stacked tool",
+  "wiring":"Integrated into the main-based readiness registry after #1039 and #1086; plans are pointers, never earned evidence or YES overrides",
   "spend_authorized":false
 }

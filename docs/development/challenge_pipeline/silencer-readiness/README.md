@@ -74,19 +74,31 @@ because a scanning process reuses mesh/setup. Rung 2 is 401 systems per curve.
 
 TRAIN generator and domain hook are proposals only; need public solved TRAIN
 registration disjoint from test geometry/context and actual kit coverage.
-[Readiness descriptor](readiness-binding.json) supplies all seven owners/pointers;
-central integration waits for #1039 rather than copying an unmerged tool.
+[Readiness descriptor](readiness-binding.json) supplies all seven owners/pointers
+and is integrated in the central registry after #1039 and #1086 merged.
 Items 1–5 require retained registrations/receipts. Main already has comparator
-and f13 budget implementations; the older readiness inspector's optimizer
-inventory still needs the explicit f13 route binding, not a fake YES receipt.
+and f13 budget implementations; the inspector checks the stronger reduced
+Helmholtz comparator and the real `CHALLENGE_ROUTES` f13 validator route.
+Software YES for items 6–7 does not establish panel/operator coverage, measured
+V4, accepted reference adequacy, qualification or a spend grant. Missing main
+source remains UNKNOWN; absent/malformed dispatch cannot earn YES.
 
 ## Pilot and next handoff
 
-[<=EUR10 proposal](measurement-pilot.json): four complete/control/refined curves,
+[Original job proposal](measurement-pilot.json): four complete/control/refined curves,
 four process launches / 1004 frequency systems, one core/process, no retries.
-Low/base/high estimates are hypotheses; the high EUR13.70 scenario does not
-fit. Free CPU first; any paid run needs an exact grant, enforced resource/spend
-bound and current quote. A partial stop is a cost finding, not a qualified panel.
+Its CCX63 low/base/high estimates are retained historical hypotheses; the high
+EUR13.70 scenario does not fit. The current [all-in lifecycle plan](../pilot-caps/README.md)
+and its [f13 row](../pilot-caps/plans.json) supersede that platform/cost sizing:
+RunPod CPU primary, one complete offset-curve timing probe first, then only
+the ordered follow-ons that fit the measured same-host allowance. The primary
+conditional bound is <=EUR1 for the probe and <=EUR9.80 for the entire
+allocation-to-confirmed-termination lifecycle, including the probe. No price
+or capacity is promised; inclusive quote, fixed overhead reserve, exact grant,
+registered tuples, enforced deadline, retained ledger and all release holds
+are required. Terminate, never merely stop the pod. No dispatch is enabled.
+A timeout/partial curve is a cost finding, not a qualified panel; never truncate
+a curve, retry, substitute cheaper jobs or transfer a family's cap.
 This small pilot cannot demonstrate T2(a): five feasible and five infeasible
 within **two** accepted refinement bands in every mandatory stratum. DC owns
 registration, runs and return; Test Lead owns law, power, bands and acceptance.
