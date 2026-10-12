@@ -129,6 +129,17 @@ def test_status_and_rounded_screening_are_signed_without_released_windows(
     )
     assert sealed["leaderboard"]["ladder"]["coldkeys"][0]["displayed_score"] is None
     assert sealed["miner_status"] is None
+    # -04 reserves mainnet: a registered testnet grain confers no authority
+    # there, and the builder must not even read the ledger for these fields.
+    monkeypatch.setattr(
+        score_feed,
+        "_screening_disclosure",
+        lambda *args: pytest.fail("mainnet disclosure called"),
+    )
+    mainnet = score_feed.build(
+        target, key=key, hotkey="5Validator", network="mainnet", chain=chain
+    )
+    assert mainnet["miner_status"] is None and mainnet["leaderboard"]["ladder"] is None
 
 
 def test_late_worker_completion_appends_instead_of_reordering_display(

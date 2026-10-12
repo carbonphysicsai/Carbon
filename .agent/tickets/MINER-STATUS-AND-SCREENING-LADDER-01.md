@@ -64,3 +64,7 @@ Operator integration: supply the existing owner-only ledger via build's
 --attempt-ledger path. Omission/unavailability returns null activity; no new
 ledger is initialized. Provide the existing finalized chain snapshot; no
 ownership is inferred from submitted metadata. No deployment is performed.
+OWNER-BATTERY-CHAMPIONSHIP-04 on main confirms Testnet DEVELOPMENT only.
+Both additions are null on mainnet. The source ledger must belong to the
+current deployment/inbox; a mixed historical ledger cannot be split by rule
+from its older contract-only records and is not an admissible source.

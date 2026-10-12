@@ -47,3 +47,15 @@ Human-owned: the measurement/entry registration and release/cutover authority.
 No such missing input is guessed; missing registration remains sealed. No Hub
 update is made under the current retirement policy. Decisions travel with the
 implementation PR, under the queue's no-decision-only-PR instruction.
+
+After synchronizing main, OWNER-BATTERY-CHAMPIONSHIP-04 is the merged direct
+owner confirmation. Its Testnet DEVELOPMENT boundary is enforced at build:
+mainnet emits null for both additions and never calls the new disclosure path.
+The status source must be the current deployment's existing attempt ledger
+(intake.attempt_ledger_path, normally beside that deployment's inbox). The
+ledger predates this feature and records contract identity, not rule identity;
+there is no safe retrospective split of a mixed historical ledger across rules
+sharing a contract. Do not supply a shared historical ledger or infer a split.
+The optional source remains null until the operator supplies the correct ledger.
+Activity counts include current-rule scored submissions across device classes;
+only the score-bearing ladder is filtered/ranked within a device class.

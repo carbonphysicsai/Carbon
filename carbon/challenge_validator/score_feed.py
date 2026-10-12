@@ -624,9 +624,19 @@ def build(
     }
     # PLT-08: an explicitly registered pooled-screening exception to sealed
     # disclosure. Existing released-only sections keep their own policy.
-    status, screening = _screening_disclosure(
-        target, identities, device_class, chain, canaries, attempt_ledger, repository
-    )
+    # OWNER-BATTERY-CHAMPIONSHIP-04 authorizes these additions only for
+    # testnet DEVELOPMENT. Mainnet disclosure values remain human-reserved.
+    status, screening = (None, None)
+    if network == "testnet":
+        status, screening = _screening_disclosure(
+            target,
+            identities,
+            device_class,
+            chain,
+            canaries,
+            attempt_ledger,
+            repository,
+        )
     document["miner_status"] = status
     document["leaderboard"]["ladder"] = screening
     king, handovers = king_record(store, list(winners or ()), canaries)
