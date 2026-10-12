@@ -681,6 +681,19 @@ class CampaignController:
                         self.store_id,
                         idempotency_key,
                         seed_keys=[row["key"] for row in rows],
+                        seed_runs=[
+                            (
+                                row["key"],
+                                grant_runs.run_start(row["started_at"]),
+                                grant_runs.run_cost(
+                                    Phase(row["phase"]) in OPEN,
+                                    row["reserved"],
+                                    row["settled"],
+                                    row["usage_known"],
+                                ),
+                            )
+                            for row in rows
+                        ],
                         clock=lambda: self.clock().timestamp(),
                     )
                 except grant_runs.SharedRunsError as error:
@@ -910,8 +923,14 @@ class CampaignController:
         if not self.shared_runs or usage is None:
             return
         try:
+            # `pending` is the pods whose charge the provider never reported: they stay
+            # at their reservation, inside the cost, and are recorded as such.
             grant_runs.settle(
-                self.grant, self.store_id, key, usage.settled + usage.pending
+                self.grant,
+                self.store_id,
+                key,
+                usage.settled + usage.pending,
+                pending_usd=usage.pending,
             )
         except grant_runs.SharedRunsError:
             return
