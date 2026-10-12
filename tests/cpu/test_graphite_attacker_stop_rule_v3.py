@@ -18,6 +18,7 @@ from test_graphite_attacker_stop_rule import (
     REACHABLE,
     TOOLS,
     _adapter,
+    _attempt,
     _attempts,
     _table,
 )
@@ -157,35 +158,32 @@ def test_a_reachable_family_under_k_makes_the_report_incomplete():
     assert outcome["status"] == "INCOMPLETE" and outcome["not_run"] == []
 
 
-# -- a level whose doors reach one family ----------------------------------------------------
-def test_level_two_lists_its_unreachable_families_and_reports_each_as_a_gap():
-    adapter = ADAPTERS[(CID, 2)]
+# -- families with no offered construction door ---------------------------------------------
+@pytest.mark.parametrize("level", [1, 2, 3, 4])
+def test_families_without_an_offered_construction_door_are_named_at_every_level(
+    level, monkeypatch
+):
+    """An unavailable construction door leaves named gaps instead of silent passes."""
+    adapter = ADAPTERS[(CID, level)]
     adapter = adapter() if isinstance(adapter, type) else adapter
-    table = phase4.stop_rule_coverage(adapter, TOOLS, schema=V3)
-    reachable = [row["family"] for row in table["families"]]
-    assert len(reachable) >= 1
-    unreachable = [row["family"] for row in table["unreachable"]]
-    assert unreachable  # the L2 families the doors do not reach
-    found = []
-    for family in reachable:
-        found += _door_attempts(table, family, len(found))
-    full = phase4.stop_rule_coverage(adapter, TOOLS, found, schema=V3)
-    outcome = phase4.stop_rule_outcome(full, [])
-    assert outcome["status"] in ("DONE_WITH_GAPS", "DONE")
-    assert set(outcome["gaps"]) <= set(unreachable)
-
-
-def _door_attempts(table, family, offset):
-    """Three attempts through the family's first door."""
-    from test_graphite_attacker_stop_rule import _attempt
-
-    door = next(r for r in table["families"] if r["family"] == family)["doors"][0]
-    name, _, shape = door.partition("[")
-    arguments = {}
-    if shape:
-        kind, _, action = shape.rstrip("]").partition("/")
-        arguments = {"kind": kind, "action": action}
-    return [_attempt(offset + n + 1, name, arguments) for n in range(3)]
+    families = adapter.families()
+    monkeypatch.setattr(adapter, "families", lambda: families)
+    names = sorted(f.name for f in families)
+    assert names
+    tools = [tool for tool in TOOLS if tool["name"].endswith("get_challenge_info")]
+    assert len(tools) == 1
+    found = [_attempt(1, "get_challenge_info", {}, {"status": "SUCCEEDED"})]
+    table = phase4.stop_rule_coverage(adapter, tools, found, schema=V3)
+    assert table["families"] == []
+    assert [r["family"] for r in table["unreachable"]] == names
+    assert all(r["label"] for r in table["unreachable"])
+    outcome = phase4.stop_rule_outcome(table, [])
+    assert outcome["status"] == "DONE_WITH_GAPS"
+    assert outcome["gaps"] == names
+    assert [r["family"] for r in outcome["unreachable"]] == names
+    assert all(
+        r["covering_test"] is None and r["reported_gap"] for r in outcome["unreachable"]
+    )
 
 
 # -- the live Attacker runs under v3 ---------------------------------------------------------
@@ -355,3 +353,54 @@ def test_every_reachable_family_is_an_adapter_family_name(level):
     adapter = adapter() if isinstance(adapter, type) else adapter
     names = {f.name for f in adapter.families()}
     assert set(phase4.reachable_families(adapter, TOOLS, declare=True)) <= names
+
+
+@pytest.mark.parametrize("level", [1, 2, 3, 4])
+def test_declared_families_each_need_three_counted_attempts_at_every_level(
+    level, monkeypatch
+):
+    """PLT-04: actual L1-L4 adapters count tags independently, without running attacks."""
+    adapter = ADAPTERS[(CID, level)]
+    adapter = adapter() if isinstance(adapter, type) else adapter
+    families = adapter.families()
+    # The declarations are fixed at this level; avoid lowering L4 specimens per probe.
+    monkeypatch.setattr(adapter, "families", lambda: families)
+    unreachable = (
+        ["l1_permission_ablation", "l1_rebuild_identity"] if level == 1 else []
+    )
+    names = sorted(f.name for f in families if f.name not in unreachable)
+    assert names
+    found = [
+        _attempt(
+            i * 3 + n + 1,
+            "start_research_task",
+            {"kind": "practice", "hypothesis": f"[family: {family}]"},
+            {"status": "SUCCEEDED"},
+        )
+        for i, family in enumerate(names)
+        for n in range(3)
+    ]
+    full = phase4.stop_rule_coverage(adapter, TOOLS, found, schema=V3)
+    assert full["k"] == 3
+    assert [r["family"] for r in full["families"]] == names
+    assert [r["family"] for r in full["unreachable"]] == unreachable
+    assert all(r["label"] for r in full["unreachable"])
+    assert all(r["attempts"] == 3 and r["covered"] for r in full["families"])
+    assert phase4.finish_verdict(full, None) == (True, None)
+    outcome = phase4.stop_rule_outcome(full, [])
+    assert outcome["status"] == ("DONE_WITH_GAPS" if unreachable else "DONE")
+    assert outcome["gaps"] == unreachable
+    assert [r["family"] for r in outcome["unreachable"]] == unreachable
+
+    for i, family in enumerate(names):
+        # Three attempts in every other family cannot cover this family's third.
+        short = phase4.stop_rule_coverage(
+            adapter, TOOLS, found[: i * 3 + 2] + found[i * 3 + 3 :], schema=V3
+        )
+        counts = {r["family"]: r["attempts"] for r in short["families"]}
+        assert counts == {name: 2 if name == family else 3 for name in names}
+        ok, refusal = phase4.finish_verdict(short, None)
+        assert not ok and f"{family} (2/3)" in refusal["reason"]
+        outcome = phase4.stop_rule_outcome(short, [])
+        assert outcome["status"] == "INCOMPLETE"
+        assert outcome["under_k"] == [family] and outcome["not_run"] == []
