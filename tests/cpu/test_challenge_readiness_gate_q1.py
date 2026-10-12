@@ -47,21 +47,25 @@ def recorded(monkeypatch, tmp_path):
         q1, "current_rule_digest", lambda c, r=None: "sha256:" + "a" * 64
     )
 
-    def write(panel=None, *, digest="sha256:" + "a" * 64, mutate=None):
-        report = q1.build_report(CHALLENGE, 0, panel or _panel(), digest)
+    def write(
+        panel=None, *, digest="sha256:" + "a" * 64, mutate=None, level=0, name=None
+    ):
+        report = q1.build_report(CHALLENGE, level, panel or _panel(), digest)
         if mutate:
             mutate(report)
-        (directory / "q1_report.json").write_text(json.dumps(report), encoding="utf-8")
+        (directory / (name or q1.report_name(level))).write_text(
+            json.dumps(report), encoding="utf-8"
+        )
 
     return write
 
 
-def _ctx():
-    return checks.Context(challenge=CHALLENGE, level=0)
+def _ctx(level=0):
+    return checks.Context(challenge=CHALLENGE, level=level)
 
 
-def _status(function):
-    return function({}, _ctx()).status
+def _status(function, level=0):
+    return function({}, _ctx(level)).status
 
 
 def test_missing_report_fails_both_items(recorded):
@@ -340,3 +344,67 @@ def test_p4_passes_only_with_neutral_v2_and_passing_plumbing_tests(monkeypatch):
         checks, "run_tests", lambda c, p: model.Result(model.FAIL, "red")
     )
     assert checks.neutral_path({"id": "P4"}, ctx).status == model.FAIL
+
+
+# -- per-level reports ---------------------------------------------------------------------------
+def test_the_l0_report_does_not_satisfy_l1(recorded):
+    recorded()  # level 0, the legacy name q1_report.json
+    assert _status(q1.v1_alignment_report, 0) == model.PASS
+    assert _status(q1.v1_alignment_report, 1) == model.FAIL
+    assert _status(q1.v2_panel_discrimination, 1) == model.FAIL
+
+
+def test_an_l1_report_satisfies_l1_and_leaves_l0_alone(recorded):
+    recorded(level=1)
+    assert _status(q1.v1_alignment_report, 1) == model.PASS
+    assert _status(q1.v2_panel_discrimination, 1) == model.PASS
+    assert _status(q1.v1_alignment_report, 0) == model.FAIL
+
+
+def test_both_levels_can_be_recorded_side_by_side(recorded):
+    recorded(level=0)
+    recorded(level=1)
+    for level in (0, 1):
+        assert _status(q1.v1_alignment_report, level) == model.PASS
+        assert _status(q1.v2_panel_discrimination, level) == model.PASS
+
+
+def test_a_report_whose_recorded_level_differs_from_its_file_fails(recorded):
+    recorded(level=0, name="q1_report.L1.json")  # records level 0 under the L1 name
+    result = q1.v1_alignment_report({}, _ctx(1))
+    assert result.status == model.FAIL and "another challenge or level" in result.detail
+    assert _status(q1.v2_panel_discrimination, 1) == model.FAIL
+
+
+def test_the_legacy_name_is_read_as_level_zero_only(recorded):
+    recorded(level=1, name="q1_report.json")  # an L1 report under the L0 name
+    assert _status(q1.v1_alignment_report, 0) == model.FAIL
+    assert _status(q1.v1_alignment_report, 1) == model.FAIL
+
+
+def test_reference_provenance_rules_apply_at_every_level(recorded):
+    recorded(_panel(reference={"provenance": "SYNTHETIC", "ref": REAL["ref"]}), level=1)
+    assert _status(q1.v1_alignment_report, 1) == model.FAIL
+    assert _status(q1.v2_panel_discrimination, 1) == model.FAIL
+
+
+def test_the_build_command_writes_the_per_level_file(tmp_path, monkeypatch):
+    monkeypatch.setattr(q1, "PACKAGE", tmp_path)
+    monkeypatch.setattr(
+        q1, "current_rule_digest", lambda c, r=None: "sha256:" + "a" * 64
+    )
+    panel = tmp_path / "panel.json"
+    panel.write_text(json.dumps(_panel()), encoding="utf-8")
+    for level, name in ((0, "q1_report.json"), (2, "q1_report.L2.json")):
+        argv = [
+            "build",
+            "--challenge",
+            CHALLENGE,
+            "--level",
+            str(level),
+            "--panel",
+            str(panel),
+        ]
+        assert q1.main(argv) == 0
+        written = json.loads((tmp_path / CHALLENGE / name).read_text("utf-8"))
+        assert written["level"] == level
