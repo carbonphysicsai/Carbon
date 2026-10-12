@@ -35,6 +35,11 @@ PANEL_DATA = (
     f"{EVIDENCE}/prepare.json",
     f"{EVIDENCE}/refs-b/out/battery_refs/records.jsonl",
 )
+L1_PANEL_DATA = (
+    *PANEL_DATA[:3],
+    "docs/development/evidence/ev4-2026-10-01/decision-references.jsonl.gz",
+    "scripts/dev/battery/l1_decision_q1.py",
+)
 MAX_SHARDS = 3
 
 
@@ -58,14 +63,14 @@ def refs_plans(shards, contract=CONTRACT, prefix="ev4"):
     }
 
 
-def panel_plans(shards, contract=CONTRACT, prefix="ev4"):
+def panel_plans(shards, contract=CONTRACT, prefix="ev4", panel_data=PANEL_DATA):
     return {
         f"{prefix}-panel-shard{i}-of{shards}.json": {
             "phase": "value_panel",
             "contract": contract,
             "shard": i,
             "shards": shards,
-            "ship": ["carbon", *PANEL_DATA],
+            "ship": ["carbon", *panel_data],
         }
         for i in _shards(shards)
     }
@@ -105,10 +110,27 @@ def write(plans, out_dir):
 def _study(name):
     """A study's contract, plans directory and plan-name prefix."""
     if name == "ev4":
-        return {"contract": CONTRACT, "plans": PLANS, "prefix": "ev4"}
+        return {
+            "contract": CONTRACT,
+            "plans": PLANS,
+            "prefix": "ev4",
+            "panel_data": PANEL_DATA,
+        }
+    if name == "ev4-l1":
+        return {
+            "contract": "carbon/battery/value/contracts/ev4-dev-proof-l1-v1.json",
+            "plans": "docs/development/evidence/battery-level1-q1/plans",
+            "prefix": "ev4-l1",
+            "panel_data": L1_PANEL_DATA,
+        }
     from carbon.battery.value import ev5
 
-    return {"contract": ev5.CONTRACT, "plans": ev5.PLANS, "prefix": "ev5"}
+    return {
+        "contract": ev5.CONTRACT,
+        "plans": ev5.PLANS,
+        "prefix": "ev5",
+        "panel_data": PANEL_DATA,
+    }
 
 
 def main(argv=None):
@@ -117,16 +139,20 @@ def main(argv=None):
     )
     parser.add_argument("kind", choices=("refs", "panel", "verify"))
     parser.add_argument("--shards", type=int, required=True)
-    parser.add_argument("--study", choices=("ev4", "ev5"), default="ev4")
+    parser.add_argument("--study", choices=("ev4", "ev4-l1", "ev5"), default="ev4")
     parser.add_argument("--out-dir")
     parser.add_argument("--jobs", help="verify: the optimizer's jobs.json")
     args = parser.parse_args(argv)
     study = _study(args.study)
+    if args.study == "ev4-l1" and args.kind != "panel":
+        parser.error("ev4-l1 uses the committed public EV4 references; panel only")
     out_dir = args.out_dir or str(REPO / study["plans"])
     if args.kind == "refs":
         plans = refs_plans(args.shards, study["contract"], study["prefix"])
     elif args.kind == "panel":
-        plans = panel_plans(args.shards, study["contract"], study["prefix"])
+        plans = panel_plans(
+            args.shards, study["contract"], study["prefix"], study["panel_data"]
+        )
     else:
         if not args.jobs:
             raise SystemExit("verify needs --jobs")
