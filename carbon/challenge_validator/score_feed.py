@@ -16,6 +16,11 @@ about E rotations; its `release` metadata says so.
   design-q leg, gates, near-limit) rounded to the registered precision; and
   a lagged leaderboard (incumbent, challengers, standing, history).
   - Canary hotkeys never appear; only their count does.
+  - VALIDATOR-33 A adds, under the same schema (readers drop keys they
+    don't know): `king` and `handovers` from the weights publisher's winner
+    ledger, a rule-tagged `target_to_beat`, and, from a finalized chain read
+    added after versioning, `as_of_block`, `release.next_rotation_block` and
+    the king's UID, coldkey, share and next halving.
   - It is labelled DEVELOPMENT, and TESTNET on testnet.
   - It is signed by the validator's feed key and versioned whenever it
     changes.
@@ -328,11 +333,156 @@ def canary_hotkeys():
     return registered()
 
 
-def build(target, *, key, hotkey, network, device_class="cpu", with_showcase=False):
+def target_to_beat(rule):
+    """What a challenger must clear under the deployed rule, rule-tagged
+    (VALIDATOR-33 A): `kind` names the takeover design, so a later rule
+    fills the same slot with its own kind and parameters. Values come from
+    the rule itself; nothing is computed from hidden data."""
+    margin = rule.get("equivalence_margin_rel")
+    registered = rule.get("score")
+    return {
+        "kind": (
+            "registered_score_margin_then_final"
+            if registered is not None
+            else "accuracy_margin_then_final"
+        ),
+        # Screening nominates beyond the margin; the final's paired
+        # comparison also requires it (#1105/#1108).
+        "screening_margin_rel": margin,
+        "final_margin_rel": margin,
+        "final_comparison": rule.get("comparison"),
+        "score": (
+            None
+            if registered is None
+            else {
+                "candidate": registered.get("candidate"),
+                "registry_sha256": registered.get("registry_sha256"),
+                "decision": registered.get("decision"),
+            }
+        ),
+        "gates": ["eligibility"]
+        + (["registered_score_gate"] if registered is not None else [])
+        + ["important_region"],
+    }
+
+
+def king_record(store, records, canaries):
+    """The king and its handovers from the weights publisher's winner ledger
+    records for this Challenge (oldest first), or `(None, [])`. A canary
+    hotkey is never named (`None` in its place)."""
+
+    def named(hotkey):
+        return None if hotkey in canaries else hotkey
+
+    handovers = [
+        {
+            "utc_ms": r.get("clock_ms"),
+            "to_hotkey": named(r["promotion"].get("hotkey")),
+            "from_hotkey": named(r["promotion"].get("previous_hotkey")),
+            "kind": r["promotion"].get("kind"),
+            "eligible": bool(r.get("eligible")),
+            "reason": r.get("reason"),
+        }
+        for r in records
+    ]
+    if not records:
+        return None, handovers
+    current = records[-1]
+    hotkey = current["promotion"].get("hotkey")
+    if hotkey in canaries:
+        return None, handovers
+    model_id = current["promotion"].get("model_id")
+    survived = 0
+    for row in store.finals_rows():
+        if row["incumbent"] != model_id or row["state"] != "DECIDED":
+            continue
+        outcome = (store.final(row["final_id"]) or {}).get("outcome") or {}
+        if outcome.get("outcome") != "WITHDRAWN" and not outcome.get("promotable"):
+            survived += 1
+    king = {
+        "hotkey": hotkey,
+        "submission_id": model_id,
+        "eligible": bool(current.get("eligible")),
+        "reason": current.get("reason"),
+        "crowned_utc_ms": current.get("clock_ms"),
+        "challenges_survived": survived,
+    }
+    return king, handovers
+
+
+def _live(feed, chain, store):
+    """The chain-time fields, added after versioning so a version changes only
+    when the standings do: `as_of_block`, the next rotation, and the king's
+    UID, coldkey, share and next halving at the finalized chain time."""
+    from carbon.rewards.winner_decay import DAY_MS, Q12, winner_fraction
+
+    if chain is None:
+        return {**feed, "as_of_block": None}
+    block = chain["block"]
+    upcoming = [
+        w["activate_block"]
+        for w in (store.window(f) for f in store.batch_fingerprints())
+        if w is not None and w["activate_block"] > block
+    ]
+    release = {
+        **feed["release"],
+        "next_rotation_block": min(upcoming) if upcoming else None,
+    }
+    king = feed.get("king")
+    if king is not None:
+        seat = chain["participants"].get(king["hotkey"]) or {}
+        clock = king["crowned_utc_ms"]
+        now = chain["timestamp_ms"]
+        share = (
+            winner_fraction(clock, now) / Q12
+            if king["eligible"] and type(clock) is int and clock <= now
+            else 0.0
+        )
+        days = (now - clock) // DAY_MS if type(clock) is int and clock <= now else None
+        king = {
+            **king,
+            "uid": seat.get("uid"),
+            "coldkey": seat.get("coldkey"),
+            "share_now": round(share, 6),
+            "next_halving_utc_ms": (
+                None if days is None or not share else clock + (days + 1) * DAY_MS
+            ),
+        }
+    return {
+        **feed,
+        "as_of_block": {
+            "number": block,
+            "hash": chain["hash"],
+            "timestamp_ms": chain["timestamp_ms"],
+        },
+        "release": release,
+        "king": king,
+    }
+
+
+def build(
+    target,
+    *,
+    key,
+    hotkey,
+    network,
+    device_class="cpu",
+    with_showcase=False,
+    chain=None,
+    winners=None,
+):
     """The signed feed for this validator's deployment and one device class,
     stored as a new version when it changed. Returns the feed. Scores of
     another class never appear in it (`rebuild_identity.require_one_class`):
-    CPU and GPU are never ranked together."""
+    CPU and GPU are never ranked together.
+
+    VALIDATOR-33 A adds, all optional and null when their source is absent:
+    `king` and `handovers` from `winners` (the weights publisher's winner
+    ledger records for this Challenge), `target_to_beat` from the rule, and,
+    from `chain` (`{"block", "hash", "timestamp_ms", "participants":
+    {hotkey: {"uid", "coldkey"}}}`, a finalized read), `as_of_block`, the
+    next rotation block and the king's UID, coldkey, share and next
+    halving."""
     if network not in ("testnet", "mainnet"):
         raise FeedRefused("feed_network_unknown")
     if type(device_class) is not str or not device_class:
@@ -454,7 +604,11 @@ def build(target, *, key, hotkey, network, device_class="cpu", with_showcase=Fal
             "history": history,
         },
         "excluded": {"canary_hotkeys": excluded},
+        "target_to_beat": target_to_beat(rule),
     }
+    king, handovers = king_record(store, list(winners or ()), canaries)
+    document["king"] = king
+    document["handovers"] = handovers
     if with_showcase:
         # The live incumbent (SHOWCASE["disclosure"]); a canary is never one.
         document["showcase"] = showcase(target, live_incumbent(target))
@@ -462,8 +616,37 @@ def build(target, *, key, hotkey, network, device_class="cpu", with_showcase=Fal
 
     version = store.record_feed(document)
     generated = datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
-    feed = {**document, "version": version, "generated_at": generated}
+    feed = _live(
+        {**document, "version": version, "generated_at": generated},
+        chain,
+        store,
+    )
     return {**feed, "signature": key.sign(feed)}
+
+
+def chain_snapshot(context):
+    """A finalized read for the feed's chain-time fields, or None when the
+    chain can't be read (the fields are then null; the feed still builds)."""
+    import asyncio
+    import dataclasses
+
+    from carbon.chain.models import ChainFailure
+    from carbon.chain.sdk import BittensorReader
+
+    try:
+        snap = asyncio.run(BittensorReader().capture(context))
+    except (ChainFailure, OSError):
+        return None
+    d = dataclasses.asdict(snap) if dataclasses.is_dataclass(snap) else dict(snap)
+    return {
+        "block": d["finalized_block"],
+        "hash": d["block_hash"],
+        "timestamp_ms": d["timestamp_ms"],
+        "participants": {
+            p["hotkey"]: {"uid": p["uid"], "coldkey": p["coldkey"]}
+            for p in d.get("participants") or ()
+        },
+    }
 
 
 # --- the command line ---------------------------------------------------------------
@@ -507,6 +690,15 @@ def main(argv=None):
         action="store_true",
         help="query the released incumbent on the public showcase task",
     )
+    built.add_argument(
+        "--winner-ledger",
+        help="the weights publisher's winner ledger (king and handovers)",
+    )
+    built.add_argument(
+        "--no-chain",
+        action="store_true",
+        help="skip the finalized chain read (chain-time fields are null)",
+    )
     args = parser.parse_args(argv)
     try:
         if args.command == "keygen":
@@ -531,6 +723,19 @@ def main(argv=None):
             from carbon.battery import deployment
 
             target = deployment.validator(Path(args.deployment), repository=REPOSITORY)
+            winners = None
+            if args.winner_ledger:
+                from carbon.rewards.winner_eligibility import WinnerLedger
+
+                winners = WinnerLedger(Path(args.winner_ledger)).records(
+                    target.identities()["challenge"]["id"]
+                )
+            # The deployment's own chain context (its commitment reader), read
+            # at the finalized head; absent or unreadable leaves the fields null.
+            context = getattr(getattr(target, "commitments", None), "context", None)
+            chain = (
+                None if args.no_chain or context is None else chain_snapshot(context)
+            )
             with deployment.writer(target):
                 feed = build(
                     target,
@@ -539,6 +744,8 @@ def main(argv=None):
                     network=args.network,
                     device_class=args.device_class,
                     with_showcase=args.showcase,
+                    chain=chain,
+                    winners=winners,
                 )
             if args.out:
                 write_feed(args.out, feed)
@@ -547,6 +754,8 @@ def main(argv=None):
                 "released_windows": len(feed["released_windows"]),
                 "submissions": len(feed["submissions"]),
                 "excluded": feed["excluded"],
+                "as_of_block": (feed["as_of_block"] or {}).get("number"),
+                "king": feed["king"] is not None,
             }
     except FeedRefused as refused:
         print(json.dumps({"refused": refused.code}))
