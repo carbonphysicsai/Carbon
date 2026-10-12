@@ -62,6 +62,11 @@ mean.
 | train | `train` | PUBLIC_TRAIN | `carbon.development-evidence-campaign.producer-train.v1`: `{schema, family, record_schema, jsonl_sha256, records, export}`. `records` are the kit TRAIN rows. The kit's JSONL bytes are `"".join(json.dumps(r, sort_keys=True) + "\n")`, and `jsonl_sha256` is their sha256 |
 | train | `train-records-NNN` | PUBLIC_TRAIN | raw solver records (f02: the ledger) as `producer-records.v1` chunks |
 | train (f02) | `train-diagnostics-NNN` | PUBLIC_TRAIN | crossing times and histories, never in a row's values |
+| reference | `candidate-view` | PUBLIC_INPUT | `producer-candidate-view.v1`: the sealed export with every reference value set to 0, every `refined.*` rung and every settlement removed; it keeps the true `export_digest`, candidates, actions, conditions and observable names. It is the only reference artifact the TRAIN stage may read |
+| reference | `cost-ledger` | HELDOUT_REFERENCE | `producer-cost-ledger.v1`: per physical row (band, candidate, condition), every reference solve behind it (source, rung, status, wall_s, core_s), and their sums. f02 core_s is the container's measured user+system CPU. Battery core_s is null: one process per solve at CPU cap 1, so core_s <= wall_s |
+| reference (f02) | `bindings` | HELDOUT_REFERENCE | `carbon.development-replay-bindings.v1`: one job per question, one design per bank candidate (`{"plain": candidate}`). Battery's indexed export binds designs across bands, which is the replay panel's choice, so the Optimizer builds those bindings |
+| train | `carbon-predictions` | MODEL | `carbon.development-prediction-input.v1` from `carbon_arm.run`: the kit's registered default recipe, trained on this stage's TRAIN and queried on the candidate view |
+| train | `carbon-receipt` | MODEL | `carbon_arm`'s receipt: recipe, TRAIN identity, fit and query cost. The predictions' `source_receipt_digest` binds it |
 | both | `stage-summary` | ANALYSIS | `producer-summary.v1`: entrypoint row, vCPUs, every step's argv/exit/wall, counts (plan sha256s of refinement rungs, export digest), meter detail |
 
 The receipt is the runner's `…v1.stage-result`: `status` OK, `core_s`,
@@ -71,6 +76,15 @@ The receipt is the runner's `…v1.stage-result`: `status` OK, `core_s`,
 `carbon.motor.feasibility02-record.v1`, the f02 ledger rows, and the kit
 TRAIN rows `carbon.battery-v3.train-record.v1`,
 `carbon.motor-10p12s.train-record.v1` and `carbon.f02.train-record.v1`.
+
+**Extra rungs in exports** live under the `refined.` namespace: battery
+`refined.<q>` (rung 2) and `refined.rung3.<q>`; f02 `refined.mesh2.peak_top_c`
+and `refined.dthalf.peak_top_c`. The comparison's physical rows drop
+`refined.*`, so every row carries exactly the kit's observables. The campaign
+battery export uses integer band values (5, 15, 25, 35, 40), as the evidence
+pipeline expects. Comparator materials: battery needs none (the pipeline
+computes its baseline). The f02 impulse-response materials and the motor
+curve set follow in this PR.
 
 ## Metering
 

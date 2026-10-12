@@ -346,3 +346,107 @@ def test_the_runner_vcpus_field_must_match_the_environment_allotment(tmp_path):
         with pytest.raises(producer.Refused) as refused:
             _load(tmp_path, _context(vcpus=bad), threads="4")
         assert refused.value.code == "VCPU_CONTEXT_MISMATCH"
+
+
+# -- comparison inputs (Test Lead 2026-10-12: Data Collection's (a)-(d)) ---------
+
+
+def _f02_export(monkeypatch):
+    ctx0 = next(f02_export.menu.contexts())[0]
+    rungs = {(ctx0, 140.0, 20.0): {"mesh2": 95.2, "dt0.5": 95.1}}
+
+    def peak(ctx, p, d):
+        return 95.3 if (ctx, p, d) == (ctx0, 140.0, 20.0) else 60.0 + p * d / 41.0
+
+    monkeypatch.setattr(
+        f02_export.menu, "_observed", lambda root: _f02_observed(peak, rungs)
+    )
+    return f02_export.build("unused")[0]
+
+
+def test_physical_rows_carry_exactly_the_kit_observables(monkeypatch):
+    from carbon.development_comparison import cheap_baselines as cb
+    from carbon.development_comparison.f02_kit import KIT
+
+    export = _f02_export(monkeypatch)
+    assert all(
+        set(r["values"]) == set(KIT.observables) for r in cb._physical_rows(export)
+    )
+
+
+def test_the_candidate_view_holds_no_reference_value(monkeypatch):
+    from scripts.dev.evidence_runs import comparison_inputs as ci
+
+    export = _f02_export(monkeypatch)
+    view = ci.candidate_view(export)
+    assert view["export_digest"] == export["export_digest"] and view["family"] == "f02"
+    for entry in view["export"]["questions"]:
+        assert "settled" not in entry
+        for row in entry["reference"]:
+            assert set(row["values"]) == {"peak_top_c", "extra_energy_j"}
+            assert set(row["values"].values()) == {0.0}
+
+
+def test_plain_bindings_and_the_indexed_refusal(monkeypatch):
+    from scripts.dev.evidence_runs import comparison_inputs as ci
+
+    export = _f02_export(monkeypatch)
+    bindings = ci.plain_bindings(export)
+    assert (
+        bindings["export_digest"] == export["export_digest"]
+        and len(bindings["jobs"]) == 24
+    )
+    job = bindings["jobs"][0]
+    assert job["case"] == export["questions"][0]["case"] and job["candidates"][
+        "p80-d5"
+    ] == {"plain": "p80-d5"}
+    indexed = {
+        **export,
+        "questions": [
+            {
+                **export["questions"][0],
+                "task": {"schema": tasks.INDEXED_SCHEMA, "indices": []},
+                "reference": [],
+            }
+        ],
+    }
+    with pytest.raises(ValueError):
+        ci.plain_bindings(indexed)
+
+
+def test_the_f02_cost_ledger_carries_every_solve_with_measured_cpu(
+    monkeypatch, tmp_path
+):
+    from scripts.dev.evidence_runs import comparison_inputs as ci
+
+    export = _f02_export(monkeypatch)
+    menu = f02_export.menu
+    lines = []
+    for ctx, _ in menu.contexts():
+        for p in menu.PEAKS_W:
+            for d in menu.ON_TIMES_S:
+                for tag in ("primary",) + (
+                    ("mesh2", "dt0.5") if (p, d) == (140.0, 20.0) else ()
+                ):
+                    lines.append({"case": menu.case_name(ctx, p, d, tag), "wall_s": 100.0, "outcome": "COMPLETED",
+                                  "children_cpu": "1m30.000s 0m10.000s"})  # fmt: skip
+    (tmp_path / "ledger.jsonl").write_bytes(
+        "".join(json.dumps(x) + "\n" for x in lines).encode()
+    )
+    ledger = ci.cost_ledger_f02(export, tmp_path)
+    assert len(ledger["rows"]) == 24 * 16
+    near = next(r for r in ledger["rows"] if r["candidate"] == "p140-d20")
+    assert [s["rung"] for s in near["solves"]] == ["primary", "mesh2", "dt0.5"]
+    assert near["wall_s"] == 300.0 and near["core_s"] == 300.0
+
+
+def test_the_train_stage_needs_the_reference_candidate_view(tmp_path):
+    context, vcpus, reuse = _load(tmp_path, _context())
+    stage = producer.Stage(context, vcpus, reuse, tmp_path / "out")
+    with pytest.raises(producer.Failed) as failed:
+        stage.model_predictions(tmp_path / "train.jsonl")
+    assert failed.value.code == "CANDIDATE_VIEW_REQUIRED"
+    context, vcpus, reuse = _load(tmp_path, _context(family="motor"), threads="4")
+    stage = producer.Stage(context, vcpus, reuse, tmp_path / "out")
+    stage.model_predictions(tmp_path / "train.jsonl")
+    assert stage.counts["model_predictions"] == "MOTOR_REFERENCE_NOT_REGISTERED"

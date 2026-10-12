@@ -116,7 +116,7 @@ def solved_with_switch(runs, dirs=t4.DIRS, rung3_dirs=(RUNG3_DIR,)):
     return {k: (m, refined.get(k), rung3.get(k)) for k, m in base.items()}
 
 
-def band_bank(have, t):
+def band_bank(have, t, rung3_prefix="rung3"):
     keys = sorted(
         k
         for k in have
@@ -142,7 +142,7 @@ def band_bank(have, t):
         if r3 is not None:
             values.update(
                 {
-                    f"rung3.{q}": float(r3[q])
+                    f"{rung3_prefix}.{q}": float(r3[q])
                     for q in ("charging_t_max_c", "plating_min_v")
                 }
             )
@@ -181,7 +181,12 @@ def build(
     """`settle=True` (the campaign export) adds the export-level rule and each
     question's per-candidate verdicts (two finest rungs, ruling (a))."""
     have = solved_with_switch(runs, dirs, rung3_dirs)
-    banks = {t: band_bank(have, t) for t in BANDS}
+    # the campaign export keeps every extra rung under `refined.` (the comparison's
+    # physical rows drop that prefix) and integer band values (the pipeline's 5/15/25/35/40)
+    banks = {
+        t: band_bank(have, t, "refined.rung3" if settle else "rung3") for t in BANDS
+    }
+    band_value = int if settle else float
     rng = np.random.default_rng(seed)
     draws = [(np.array(MIX_ALPHA) / sum(MIX_ALPHA), 0.0, 0.0)]
     for _ in range(n_questions):
@@ -200,9 +205,9 @@ def build(
         micro[-1] = 1_000_000 - sum(micro[:-1])  # exact unit sum after rounding
         for t, w in zip(BANDS, (m / 1_000_000 for m in micro)):
             cands, actions, rows = banks[t]
-            indices.append({"index_value": t, "buyer_weight": w,
+            indices.append({"index_value": band_value(t), "buyer_weight": w,
                             "task": subtask(case, t, cands, actions, round(m_t, 4), round(m_p, 6))})  # fmt: skip
-            reference.append({"index_value": t, "panel": rows})
+            reference.append({"index_value": band_value(t), "panel": rows})
         registered = indexed.indexed_task(
             case, index_axis="ambient_c", indices=indices,
             query_budget=sum(len(banks[t][0]) for t in BANDS),
@@ -239,7 +244,7 @@ def _settled(registered, reference):
     for index, panel in zip(registered["indices"], reference):
         task = index["task"]
         verdicts = settlement.verdicts(
-            task, panel["panel"], ("refined", "rung3"), "finest_two"
+            task, panel["panel"], ("refined", "refined.rung3"), "finest_two"
         )
         cond = task["conditions"][0]["id"]
         truth = tasks.assess(

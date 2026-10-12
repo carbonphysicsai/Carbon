@@ -69,12 +69,13 @@ PINNED = {
     "scripts/dev/battery/feasibility02_v2.py": "17235eaddf8d505113999b5fd12585d94750e3f3166f1c846e941e6a347ac44c",
     "scripts/dev/battery/middle_bands.py": "de3a1523ea66f8c77c72d5a804bfe61a84225487ca60c0ea4c5296fded8023a3",
     "scripts/dev/battery/middle_bands_refine.py": "7c19f736465e17b2e17966db8269039cb1d04a16b97d9a184d0b0bdaa8fa84fe",
-    "scripts/dev/battery/v3_panel_export.py": "9f0af6d3acde03d4255d0745b2ed9a6dcdd407a60d628a7f9554930bd6475f38",
+    "scripts/dev/battery/v3_panel_export.py": "c99ccd31f36dd185b3f83114a388b393f6d0d17f6878a77a3b387263118c1402",
+    "scripts/dev/evidence_runs/comparison_inputs.py": "93576970556a4d30bf2672d75400af48eb0f1482111d554006bbc97b362c599d",
     "scripts/dev/evidence_runs/common.py": "9d6b1cc835f1e6cb0593bf01c0d3ebd03385c0ee5bc1d5eee44519eac756bf19",
     "scripts/dev/evidence_runs/settlement.py": "a2e7af4ba2405284a4cd466124ea1d53032d2ecc9ce80b3dbceda74fe5345f75",
     "scripts/dev/motor/feasibility02/run.py": "bf34864c82a939fcdde0042299f0ed9e5944c27fccde28b2b1e80e70dee594e6",
     "scripts/dev/reference_packages/elmer/f02_deck.py": "80a7bf5f937cce64dab99afcec209418e99ec89d2eb80886e2ad88b3911af123",
-    "scripts/dev/reference_packages/elmer/f02_export.py": "6daa585072d3ed6afdfd9b132220e26d367f4f3371e9d91961915c00bc978aa8",
+    "scripts/dev/reference_packages/elmer/f02_export.py": "b9e1ce939cd0d024704baba5b1fb8882a5b3e16ce36aac8676f06be1e9def222",
     "scripts/dev/reference_packages/elmer/f02_menu.py": "9cce4f466101077e7aad04012fcc247fcdb5ecdbdd054653919069d18577f76d",
 }
 
@@ -158,8 +159,13 @@ def load_context(path, *, root=ROOT, environ=os.environ):
         vcpus = int(environ.get("OMP_NUM_THREADS", ""))
     except ValueError:
         raise Refused("VCPU_ALLOTMENT_REQUIRED") from None
-    if "vcpus" in context and (type(context["vcpus"]) is not int or context["vcpus"] != vcpus):
-        raise Refused("VCPU_CONTEXT_MISMATCH", f"context {context['vcpus']!r}, environment {vcpus}")
+    if "vcpus" in context and (
+        type(context["vcpus"]) is not int or context["vcpus"] != vcpus
+    ):
+        raise Refused(
+            "VCPU_CONTEXT_MISMATCH",
+            f"context {context['vcpus']!r}, environment {vcpus}",
+        )
     if vcpus < FAMILIES[family]["min_vcpus"]:
         raise Refused("VCPU_ALLOTMENT_TOO_SMALL", str(vcpus))
     return context, vcpus, reuse
@@ -374,6 +380,57 @@ class Stage:
             raise Failed("EXPORT_FAMILY_MISMATCH")
         self.counts["export_digest"] = export["export_digest"]
         self.emit("panel-export.json", export, "HELDOUT_REFERENCE")
+        return export
+
+    def comparison_inputs(self, export_path, ledger_args):
+        """The candidate view (PUBLIC_INPUT, for the TRAIN stage's model), the
+        measured cost ledger and, for a plain export, the replay bindings."""
+        tool = "scripts/dev/evidence_runs/comparison_inputs.py"
+        view = self.work / "candidate-view.json"
+        self.script("candidate-view", tool, "view", export_path, view)
+        self.emit("candidate-view.json", json.loads(view.read_text()), "PUBLIC_INPUT")
+        ledger = self.work / "cost-ledger.json"
+        self.script("cost-ledger", tool, *ledger_args, ledger)
+        self.emit(
+            "cost-ledger.json", json.loads(ledger.read_text()), "HELDOUT_REFERENCE"
+        )
+        if self.family == "f02":
+            bindings = self.work / "bindings.json"
+            self.script("bindings", tool, "bindings", export_path, bindings)
+            self.emit(
+                "bindings.json", json.loads(bindings.read_text()), "HELDOUT_REFERENCE"
+            )
+
+    def model_predictions(self, jsonl):
+        """The Carbon arm's registered default recipe on this registered TRAIN,
+        queried on the reference stage's candidate view (never its values)."""
+        views = [
+            artifacts["candidate-view"]
+            for key, artifacts in self.context["prior"].items()
+            if key.startswith(f"{self.family}/reference/")
+            and "candidate-view" in artifacts
+        ]
+        if not views:
+            if self.family == "motor":  # its reference stage is not registered yet
+                self.counts["model_predictions"] = "MOTOR_REFERENCE_NOT_REGISTERED"
+                return
+            raise Failed(
+                "CANDIDATE_VIEW_REQUIRED", "the reference stage's candidate view"
+            )
+        view = views[0]
+        if (
+            view.get("role") != "PUBLIC_INPUT"
+            or _sha(Path(view["path"]).read_bytes()) != view["sha256"]
+        ):
+            raise Failed("CANDIDATE_VIEW_PIN_MISMATCH")
+        pred, receipt = (
+            self.work / "carbon-predictions.json",
+            self.work / "carbon-receipt.json",
+        )
+        self.script("model", "scripts/dev/evidence_runs/comparison_inputs.py", "predict", self.family,
+                    view["path"], jsonl, pred, receipt)  # fmt: skip
+        self.emit("carbon-predictions.json", json.loads(pred.read_text()), "MODEL")
+        self.emit("carbon-receipt.json", json.loads(receipt.read_text()), "MODEL")
 
     # -- families --------------------------------------------------------------
     def overlay(self, meter):
@@ -444,6 +501,7 @@ class Stage:
             export,
         )
         self.emit_export(export)
+        self.comparison_inputs(export, ("ledger-battery", export, runs))
         rows = [
             {"dir": d.name, "record": r}
             for d in sorted(runs.iterdir())
@@ -479,6 +537,7 @@ class Stage:
             "export", "scripts/dev/reference_packages/elmer/f02_export.py", root, export
         )
         self.emit_export(export)
+        self.comparison_inputs(export, ("ledger-f02", export, root))
         ledger = _jsonl(root / "ledger.jsonl")
         self.counts["records"] = len(ledger)
         self.counts["not_completed"] = sum(
@@ -567,6 +626,7 @@ class Stage:
             [{"dir": "train", "record": r} for r in raw],
             "PUBLIC_TRAIN",
         )
+        self.model_predictions(jsonl)
 
     # -- the stage -------------------------------------------------------------
     def execute(self):

@@ -17,8 +17,9 @@ Development panel, not hidden material.
 - **Objective and limit.** Most extra energy (J above the 20 W base), subject
   to the top-die maximum <= 95 C with the registry's 0.5 C band.
 - **Rungs and settlement.** A primary within 1 C of 95 C has the registry's
-  mesh-2 and dt/2 re-solves; their peaks ride as `mesh2.peak_top_c` and
-  `dthalf.peak_top_c`. Per-candidate verdicts come from
+  mesh-2 and dt/2 re-solves; their peaks ride as `refined.mesh2.peak_top_c`
+  and `refined.dthalf.peak_top_c` (the comparison's physical rows drop the
+  `refined.` namespace). Per-candidate verdicts come from
   `scripts.dev.evidence_runs.settlement` in `all` mode: every rung on one
   side of 95 C and their spread below the band. A question keeps
   `refinement_demand` true while an in-band candidate stays unsettled.
@@ -47,7 +48,10 @@ from scripts.dev.evidence_runs import settlement
 CHALLENGE = "f02"
 SUPPORT = "f02-menu-v2-public-panel"
 RULE = settlement.rule("f02-menu-v2.all-rungs-agree.v1")
-RUNGS = (("mesh2", "mesh2"), ("dt0.5", "dthalf"))  # (case tag, value prefix)
+RUNGS = (
+    ("mesh2", "refined.mesh2"),
+    ("dt0.5", "refined.dthalf"),
+)  # (case tag, value prefix)
 EXPOSURE_LIMIT = 5  # f02-round2 bank recommendation e, development value
 BATCH = 8  # f02-round2 k recommendation, development value
 GRAMMAR = {
