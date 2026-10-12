@@ -324,10 +324,11 @@
       h("div", {class: "actions"}, h("a", {class: "btn btn-primary", href: "#/mine"}, "How to mine"), h("a", {class: "btn", href: LINKS.launchpad}, "Launchpad docs")));
   }
 
-  // The feed's own rotation period (board.v2 `rotation`), not a rule statement.
+  // The round period is a rule statement: shown only from a matching rules card
+  // (the Test Lead, 2026-10-12; the card is the single source of public rules).
   function rotationText(board) {
     const r = board.rotation;
-    return r && isNum(r.blocks) ? "Rounds rotate every " + r.blocks.toLocaleString("en-US") + " blocks, about " + r.hours + " h" : null;
+    return rulesOk(board) && r && isNum(r.blocks) ? "Rounds rotate every " + r.blocks.toLocaleString("en-US") + " blocks, about " + r.hours + " h" : null;
   }
 
   // What is scored: each section's name, sense and unit, as the feed states them.

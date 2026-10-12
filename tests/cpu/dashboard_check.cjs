@@ -116,7 +116,8 @@ for (const name of fs.readdirSync(path.join(site, "data", "v2")).sort()) {
   assert.ok(!/about \d+ h after a window|First scores publish about|Release lag/.test(text), where + ": no lag without the rules card");
   // What is scored, from the feed's sections.
   for (const s of board.sections) assert.ok(text.includes(s.display), where + ": scored " + s.name);
-  if (board.rotation) assert.ok(text.includes(D.rotationText(board)), where + ": the feed's rotation");
+  assert.equal(D.rotationText(board), null, where + ": no round period without the rules card");
+  assert.ok(!text.includes("Rounds rotate"), where + ": no round period without the rules card");
   if (board.phase === "STALE") assert.ok(text.includes("Stale feed."), where + ": stale banner");
   if (board.phase === "PRE_FIRST_RELEASE") {
     assert.ok(hasClass(tree, "hero"), where + ": hero state");
