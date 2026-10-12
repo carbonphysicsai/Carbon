@@ -3,8 +3,9 @@
 The Carbon Validator's condition 4: the signed network snapshot is display
 data only. It never feeds scoring or weights. Its builder
 (`carbon/challenge_validator/network_snapshot.py`), the dashboard's reader
-(`carbon/dashboard/snapshot.py`) and its fixture
-(`carbon/dashboard/snapshot_fixtures.py`) are unreachable from every scoring
+(`carbon/dashboard/snapshot.py`), its fixture
+(`carbon/dashboard/snapshot_fixtures.py`) and its chain read
+(`carbon/chain/metagraph_read.py`) are unreachable from every scoring
 and weight module: Carbon's scoring engine and weight profile
 (`carbon/scoring`), the reward and weight policies (`carbon/rewards`), the
 weight publisher (`carbon/chain/sdk_weights.py`) and every Challenge's
@@ -36,6 +37,8 @@ MODULES = {
     ),
     "carbon.dashboard.snapshot": "carbon/dashboard/snapshot.py",
     "carbon.dashboard.snapshot_fixtures": "carbon/dashboard/snapshot_fixtures.py",
+    # The snapshot's metagraph read: weights code has its own reads.
+    "carbon.chain.metagraph_read": "carbon/chain/metagraph_read.py",
 }
 #: Text that names a snapshot module. Kept literal, so a rename fails
 #: `test_the_names_searched_for_are_the_modules_own` first.

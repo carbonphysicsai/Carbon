@@ -15,7 +15,8 @@ dashboard verifies it as it verifies the feed (`carbon/dashboard/snapshot.py`,
 - **Key:** the validator's feed key (`score_feed.FeedKey`), so the key the
   dashboard pins is unchanged. `SnapshotKey` signs under `SNAPSHOT_DOMAIN`
   only, and `build` signs with nothing else.
-- **Chain reads:** the validator's existing public reads only, at one
+- **Chain reads:** the validator's existing public reads only
+  (`carbon.chain.metagraph_read`, inside the chain boundary), at one
   finalized block, genesis-checked, with its hash re-read after the reads as
   `carbon.chain.sdk.BittensorReader` does. The participants (uid, hotkey) are
   `carbon.chain.adapter.translate`'s, and incentive is the same metagraph
@@ -94,67 +95,22 @@ class SnapshotKey(FeedKey):
 # --- the chain read -----------------------------------------------------------------
 
 
-async def _read(context):
-    """`{"block", "block_hash", "timestamp_ms", "graph"}` at the finalized
-    head: `chain.sdk._capture`'s read, keeping the metagraph's columns."""
-    from contextlib import aclosing
-    from importlib.metadata import version
-
-    from carbon.chain.models import ChainFailure, FailureCode, hash256, uint
-    from carbon.chain.sdk import SDK_VERSION
-
-    if version("bittensor") != SDK_VERSION:
-        raise ChainFailure(FailureCode.UNSUPPORTED)
-    import bittensor as bt
-
-    substrate = bt.RpcSubstrate(
-        context.endpoint,
-        fallback_endpoints=[],
-        archive_endpoints=[],
-        retry_forever=False,
-    )
-    client = bt.Client(context.endpoint, substrate=substrate)
-    try:
-        await substrate.connect()
-        genesis = hash256(await substrate.block_hash(0))
-        if genesis != context.genesis_hash:
-            raise ChainFailure(FailureCode.IDENTITY)
-        async with aclosing(client.blocks(finalized=True)) as headers:
-            header = await anext(headers)
-        block = uint(header.number)
-        digest = hash256(await substrate.block_hash(block))
-        view = await client.at(block)
-        graph = await view.read("metagraph", netuid=context.netuid)
-        timestamp_ms = uint(await view.query(bt.storage.Timestamp.Now))
-        # As `chain.sdk._capture`: a contradictory provider must not make the
-        # number-pinned reads look like one hash-pinned observation.
-        if (
-            hash256(await substrate.block_hash(block)) != digest
-            or hash256(await substrate.block_hash(0)) != genesis
-        ):
-            raise ChainFailure(FailureCode.IDENTITY)
-        return {
-            "block": block,
-            "block_hash": digest,
-            "timestamp_ms": timestamp_ms,
-            "graph": graph,
-        }
-    finally:
-        await client.close()
-
-
 def read_chain(context, *, fetch=None):
     """One reading of the subnet at its finalized head. `fetch(context)` is
-    the async read; tests inject one. Any provider failure is infrastructure
+    the async read; tests inject one. The default is
+    `carbon.chain.metagraph_read.read_metagraph`, which keeps the SDK inside
+    `carbon/chain`. Any provider failure is infrastructure
     (`snapshot_chain_unavailable`), never data."""
     from carbon.chain.models import ChainContext
 
     if type(context) is not ChainContext:
         raise TypeError("a ChainContext is required")
+    if fetch is None:
+        from carbon.chain.metagraph_read import read_metagraph as fetch
     try:
         # A private event loop in a worker thread, as `chain.permits` reads.
         with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
-            return pool.submit(asyncio.run, (fetch or _read)(context)).result()
+            return pool.submit(asyncio.run, fetch(context)).result()
     except Exception:  # noqa: BLE001 -- any provider error is infrastructure
         raise SnapshotRefused("snapshot_chain_unavailable") from None
 
