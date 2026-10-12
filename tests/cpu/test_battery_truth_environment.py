@@ -354,5 +354,7 @@ def test_every_record_a_solve_writes_names_its_image_and_overlay_lock(
     )
     for record in written.values():
         assert record[truth_env.PROVENANCE_FIELD] == expected
+    # v3 record bytes are frozen (the v3 golden): core-seconds are v4-only.
+    assert not any("core_s" in record for record in written.values())
     assert records.stat().st_mode & 0o077 == 0
     assert not list(tmp_path.glob("*.stamping"))
