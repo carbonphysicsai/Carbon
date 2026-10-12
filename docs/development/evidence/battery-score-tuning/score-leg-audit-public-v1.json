@@ -1,0 +1,410 @@
+{
+  "common_resolved_development_questions": 6,
+  "missing": {
+    "later_levels": "no public EV4 decision results and score legs for Levels 1-4",
+    "member_level_legs": "The committed EV4 result has aggregate E, E_important and decision agreement, but not public member-level predictions, Q3 regret or the other gate measures. Historical private-role scoring references are outside this public-only audit.",
+    "score_proof_postmortem": "not present on main; score_proof methods reused"
+  },
+  "pools": {
+    "L0": {
+      "measures": {
+        "MISSED_OPPORTUNITY": {
+          "adversarial_top_half": [],
+          "bootstrap": {
+            "question_only": [
+              -0.10011575623838939,
+              0.2761246335950639
+            ],
+            "recipe_only": [
+              -0.07805434888992978,
+              0.24957798408344933
+            ],
+            "replicates": 500,
+            "undefined_fraction": 0.128
+          },
+          "known_bad_top_half": [
+            "control-boundary_optimist",
+            "control-localized_sign_error"
+          ],
+          "status": "MEASURED",
+          "tau": 0.07146675187206096,
+          "tau_ci95": [
+            -0.14654736785999545,
+            0.2970008161752934
+          ]
+        },
+        "SELECTED_INFEASIBLE": {
+          "adversarial_top_half": [
+            "mlp_t6000_w256_d3_ens2-s0",
+            "mlp_t6000_w512_d3-s1"
+          ],
+          "bootstrap": {
+            "question_only": [
+              0.08602911184022534,
+              0.9117032874242745
+            ],
+            "recipe_only": [
+              0.6294776150757622,
+              0.7824579459360548
+            ],
+            "replicates": 500,
+            "undefined_fraction": 0.0
+          },
+          "known_bad_top_half": [],
+          "status": "MEASURED",
+          "tau": 0.723410454390314,
+          "tau_ci95": [
+            -0.04591919739439393,
+            0.9133655081553167
+          ]
+        },
+        "a": {
+          "adversarial_top_half": [
+            "mlp_t6000_w256_d3_ens2-s0",
+            "mlp_t6000_w512_d3-s1"
+          ],
+          "bootstrap": {
+            "question_only": [
+              -0.03814885817150666,
+              0.45917409459963937
+            ],
+            "recipe_only": [
+              0.06797625260919028,
+              0.32154753583456025
+            ],
+            "replicates": 500,
+            "undefined_fraction": 0.0
+          },
+          "known_bad_top_half": [
+            "control-boundary_optimist",
+            "control-localized_sign_error"
+          ],
+          "status": "MEASURED",
+          "tau": 0.18847107503252428,
+          "tau_ci95": [
+            -0.09057835224587153,
+            0.4661042615138804
+          ]
+        },
+        "envelope": {
+          "reason": "The committed EV4 result has aggregate E, E_important and decision agreement, but not public member-level predictions, Q3 regret or the other gate measures. Historical private-role scoring references are outside this public-only audit.",
+          "status": "UNMEASURED"
+        },
+        "error": {
+          "reason": "At least one primary member lacks this recorded measure.",
+          "status": "UNMEASURED"
+        },
+        "feasibility": {
+          "reason": "The committed EV4 result has aggregate E, E_important and decision agreement, but not public member-level predictions, Q3 regret or the other gate measures. Historical private-role scoring references are outside this public-only audit.",
+          "status": "UNMEASURED"
+        },
+        "g": {
+          "adversarial_top_half": [
+            "mlp_t6000_w512_d3-s1"
+          ],
+          "bootstrap": {
+            "question_only": [
+              -0.12290046938982294,
+              0.27915786355234906
+            ],
+            "recipe_only": [
+              -0.11105023113548029,
+              0.2003115246670553
+            ],
+            "replicates": 500,
+            "undefined_fraction": 0.0
+          },
+          "known_bad_top_half": [],
+          "status": "MEASURED",
+          "tau": 0.017242131601115752,
+          "tau_ci95": [
+            -0.20336787004351925,
+            0.3360799847498213
+          ]
+        },
+        "m": {
+          "reason": "The committed EV4 result has aggregate E, E_important and decision agreement, but not public member-level predictions, Q3 regret or the other gate measures. Historical private-role scoring references are outside this public-only audit.",
+          "status": "UNMEASURED"
+        },
+        "n": {
+          "reason": "The committed EV4 result has aggregate E, E_important and decision agreement, but not public member-level predictions, Q3 regret or the other gate measures. Historical private-role scoring references are outside this public-only audit.",
+          "status": "UNMEASURED"
+        },
+        "near": {
+          "reason": "The committed EV4 result has aggregate E, E_important and decision agreement, but not public member-level predictions, Q3 regret or the other gate measures. Historical private-role scoring references are outside this public-only audit.",
+          "status": "UNMEASURED"
+        },
+        "p": {
+          "reason": "The committed EV4 result has aggregate E, E_important and decision agreement, but not public member-level predictions, Q3 regret or the other gate measures. Historical private-role scoring references are outside this public-only audit.",
+          "status": "UNMEASURED"
+        },
+        "plating_fa": {
+          "reason": "The committed EV4 result has aggregate E, E_important and decision agreement, but not public member-level predictions, Q3 regret or the other gate measures. Historical private-role scoring references are outside this public-only audit.",
+          "status": "UNMEASURED"
+        },
+        "q": {
+          "reason": "The committed EV4 result has aggregate E, E_important and decision agreement, but not public member-level predictions, Q3 regret or the other gate measures. Historical private-role scoring references are outside this public-only audit.",
+          "status": "UNMEASURED"
+        },
+        "r": {
+          "adversarial_top_half": [
+            "mlp_t6000_w256_d3_ens2-s0",
+            "mlp_t6000_w512_d3-s1"
+          ],
+          "bootstrap": {
+            "question_only": [
+              -0.037230652141653865,
+              0.4492638623420932
+            ],
+            "recipe_only": [
+              0.057514188343019426,
+              0.31314062952545196
+            ],
+            "replicates": 500,
+            "undefined_fraction": 0.0
+          },
+          "known_bad_top_half": [
+            "control-localized_sign_error"
+          ],
+          "status": "MEASURED",
+          "tau": 0.18281259010083184,
+          "tau_ci95": [
+            -0.09492263772528983,
+            0.4690819339411146
+          ]
+        }
+      },
+      "members": 105,
+      "outcome_shares": {
+        "MISSED_OPPORTUNITY": 0.003401360544217687,
+        "SELECTED_INFEASIBLE": 0.10544217687074825
+      },
+      "primary_members": 98,
+      "resolved_questions": 6,
+      "status": "PARTIAL_PUBLIC_EVIDENCE",
+      "value_ceiling": {
+        "informative_questions": 6,
+        "members": 98,
+        "per_question_reliability": 0.0006997550680024305,
+        "reliability": 0.0041838919101739895,
+        "resolved_questions": 6,
+        "status": "MEASURED",
+        "tau_ceiling": 0.041207252314320396,
+        "tau_ceiling_ci95": [
+          0.0,
+          0.4505610465094991
+        ]
+      }
+    },
+    "L1": {
+      "primary_members": 0,
+      "status": "NOT_MEASURABLE"
+    },
+    "L2": {
+      "primary_members": 0,
+      "status": "NOT_MEASURABLE"
+    },
+    "L3": {
+      "primary_members": 0,
+      "status": "NOT_MEASURABLE"
+    },
+    "L4": {
+      "primary_members": 0,
+      "status": "NOT_MEASURABLE"
+    },
+    "pooled": {
+      "measures": {
+        "MISSED_OPPORTUNITY": {
+          "adversarial_top_half": [],
+          "bootstrap": {
+            "question_only": [
+              -0.10011575623838939,
+              0.2761246335950639
+            ],
+            "recipe_only": [
+              -0.07805434888992978,
+              0.24957798408344933
+            ],
+            "replicates": 500,
+            "undefined_fraction": 0.128
+          },
+          "known_bad_top_half": [
+            "control-boundary_optimist",
+            "control-localized_sign_error"
+          ],
+          "status": "MEASURED",
+          "tau": 0.07146675187206096,
+          "tau_ci95": [
+            -0.14654736785999545,
+            0.2970008161752934
+          ]
+        },
+        "SELECTED_INFEASIBLE": {
+          "adversarial_top_half": [
+            "mlp_t6000_w256_d3_ens2-s0",
+            "mlp_t6000_w512_d3-s1"
+          ],
+          "bootstrap": {
+            "question_only": [
+              0.08602911184022534,
+              0.9117032874242745
+            ],
+            "recipe_only": [
+              0.6294776150757622,
+              0.7824579459360548
+            ],
+            "replicates": 500,
+            "undefined_fraction": 0.0
+          },
+          "known_bad_top_half": [],
+          "status": "MEASURED",
+          "tau": 0.723410454390314,
+          "tau_ci95": [
+            -0.04591919739439393,
+            0.9133655081553167
+          ]
+        },
+        "a": {
+          "adversarial_top_half": [
+            "mlp_t6000_w256_d3_ens2-s0",
+            "mlp_t6000_w512_d3-s1"
+          ],
+          "bootstrap": {
+            "question_only": [
+              -0.03814885817150666,
+              0.45917409459963937
+            ],
+            "recipe_only": [
+              0.06797625260919028,
+              0.32154753583456025
+            ],
+            "replicates": 500,
+            "undefined_fraction": 0.0
+          },
+          "known_bad_top_half": [
+            "control-boundary_optimist",
+            "control-localized_sign_error"
+          ],
+          "status": "MEASURED",
+          "tau": 0.18847107503252428,
+          "tau_ci95": [
+            -0.09057835224587153,
+            0.4661042615138804
+          ]
+        },
+        "envelope": {
+          "reason": "The committed EV4 result has aggregate E, E_important and decision agreement, but not public member-level predictions, Q3 regret or the other gate measures. Historical private-role scoring references are outside this public-only audit.",
+          "status": "UNMEASURED"
+        },
+        "error": {
+          "reason": "At least one primary member lacks this recorded measure.",
+          "status": "UNMEASURED"
+        },
+        "feasibility": {
+          "reason": "The committed EV4 result has aggregate E, E_important and decision agreement, but not public member-level predictions, Q3 regret or the other gate measures. Historical private-role scoring references are outside this public-only audit.",
+          "status": "UNMEASURED"
+        },
+        "g": {
+          "adversarial_top_half": [
+            "mlp_t6000_w512_d3-s1"
+          ],
+          "bootstrap": {
+            "question_only": [
+              -0.12290046938982294,
+              0.27915786355234906
+            ],
+            "recipe_only": [
+              -0.11105023113548029,
+              0.2003115246670553
+            ],
+            "replicates": 500,
+            "undefined_fraction": 0.0
+          },
+          "known_bad_top_half": [],
+          "status": "MEASURED",
+          "tau": 0.017242131601115752,
+          "tau_ci95": [
+            -0.20336787004351925,
+            0.3360799847498213
+          ]
+        },
+        "m": {
+          "reason": "The committed EV4 result has aggregate E, E_important and decision agreement, but not public member-level predictions, Q3 regret or the other gate measures. Historical private-role scoring references are outside this public-only audit.",
+          "status": "UNMEASURED"
+        },
+        "n": {
+          "reason": "The committed EV4 result has aggregate E, E_important and decision agreement, but not public member-level predictions, Q3 regret or the other gate measures. Historical private-role scoring references are outside this public-only audit.",
+          "status": "UNMEASURED"
+        },
+        "near": {
+          "reason": "The committed EV4 result has aggregate E, E_important and decision agreement, but not public member-level predictions, Q3 regret or the other gate measures. Historical private-role scoring references are outside this public-only audit.",
+          "status": "UNMEASURED"
+        },
+        "p": {
+          "reason": "The committed EV4 result has aggregate E, E_important and decision agreement, but not public member-level predictions, Q3 regret or the other gate measures. Historical private-role scoring references are outside this public-only audit.",
+          "status": "UNMEASURED"
+        },
+        "plating_fa": {
+          "reason": "The committed EV4 result has aggregate E, E_important and decision agreement, but not public member-level predictions, Q3 regret or the other gate measures. Historical private-role scoring references are outside this public-only audit.",
+          "status": "UNMEASURED"
+        },
+        "q": {
+          "reason": "The committed EV4 result has aggregate E, E_important and decision agreement, but not public member-level predictions, Q3 regret or the other gate measures. Historical private-role scoring references are outside this public-only audit.",
+          "status": "UNMEASURED"
+        },
+        "r": {
+          "adversarial_top_half": [
+            "mlp_t6000_w256_d3_ens2-s0",
+            "mlp_t6000_w512_d3-s1"
+          ],
+          "bootstrap": {
+            "question_only": [
+              -0.037230652141653865,
+              0.4492638623420932
+            ],
+            "recipe_only": [
+              0.057514188343019426,
+              0.31314062952545196
+            ],
+            "replicates": 500,
+            "undefined_fraction": 0.0
+          },
+          "known_bad_top_half": [
+            "control-localized_sign_error"
+          ],
+          "status": "MEASURED",
+          "tau": 0.18281259010083184,
+          "tau_ci95": [
+            -0.09492263772528983,
+            0.4690819339411146
+          ]
+        }
+      },
+      "members": 105,
+      "outcome_shares": {
+        "MISSED_OPPORTUNITY": 0.003401360544217687,
+        "SELECTED_INFEASIBLE": 0.10544217687074825
+      },
+      "primary_members": 98,
+      "resolved_questions": 6,
+      "status": "PARTIAL_PUBLIC_EVIDENCE",
+      "value_ceiling": {
+        "informative_questions": 6,
+        "members": 98,
+        "per_question_reliability": 0.0006997550680024305,
+        "reliability": 0.0041838919101739895,
+        "resolved_questions": 6,
+        "status": "MEASURED",
+        "tau_ceiling": 0.041207252314320396,
+        "tau_ceiling_ci95": [
+          0.0,
+          0.4505610465094991
+        ]
+      }
+    }
+  },
+  "schema": "carbon.battery.score-leg-audit-public.v1",
+  "scope": "descriptive; no score rule, cutoff or qualification is adopted",
+  "source": "committed EV4 public synthetic development results only",
+  "source_sha256": "3bd9b954f4bace5f0299b6cbe9301e27407cb846dd51e5793bd5b5f6f33b0371"
+}
