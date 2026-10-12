@@ -14,11 +14,18 @@ spec; the ledger's script reads the executor's output (`improvement.py`).
 | Input | What | Pin |
 |---|---|---|
 | The run's best model | The run's BUNDLED proposal: `delivery.bundle` and `delivery.proposal_id` in the run's result document | the bundle's digest (`delivery.manifest_digest`) recorded in the output |
-| The public scoring set (accuracy panel and decision references) | `public_ev4_scoring_set` from #1188's runner (`scripts/dev/battery/l1_decision_q1.py`): only the committed public EV4 decision references, `docs/development/evidence/ev4-2026-10-01/decision-references.jsonl.gz`, digest `sha256:ff10f9aea9097cd500d646ffe02f479d04401207b30a44aeee33566433e436cb`. Accuracy and decision loss BOTH use it (pass it as `scoring_set=` to the experiment, as #1188 does) | the digest, recorded in the output; the ledger refuses any other |
+| The public scoring set (accuracy panel and decision references) | `public_ev4_scoring_set` from #1188's runner (`scripts/dev/battery/l1_decision_q1.py`): only the committed public EV4 decision references, `docs/development/evidence/ev4-2026-10-01/decision-references.jsonl.gz`, digest `sha256:ff10f9aea9097cd500d646ffe02f479d04401207b30a44aeee33566433e436cb` (the contract's literal). Accuracy and decision loss BOTH use it (pass it as `scoring_set=` to the experiment, as #1188 does) | the digest, recorded in the output; the ledger compares it with the committed contract's literal (below) and refuses any other |
 | The public decision questions | The EV4 development decision contract (`ev4-dev-proof-v1`, or `ev4-dev-proof-l1-v1` for Level 1) run with `scoring_set=public_ev4_scoring_set`, and the public-dev-decisions questions (`public-dev-decisions-v1`) when their references are resolved | each contract digest, and the number of questions resolved for every member (the common mask) |
 | The run's own baseline | The baseline strategy of that run's session: the baseline entry in the run's proposals' `expected.json` (its recipe digest and scored seed). Each run is compared with its OWN baseline; baselines are not shared across runs or lanes | the baseline recipe digest and seed, per run |
 
 No sealed, hidden, tuning, bank or validator material is an input. A path that names such material is refused by the ledger.
+
+**Where the pin is.** The pin is the committed contract `ev4-dev-proof-l1-v1.json` (#1188), whose literal
+`public_reference_sha256` is `sha256:ff10f9ae…436cb`; #1188's test asserts that literal equals the runner's reference digest and
+that no "private" path is in the scoring identity. The runner's own check inside `public_ev4_scoring_set` compares a fresh read with
+a digest taken from the same file at import: it guards a change in between, not the content, so it is not the pin. The ledger reads
+the literal from the committed contract and compares the record's digest with it; a missing contract or one without the literal
+refuses every record.
 
 **What is NOT public, and never used here.** `carbon.battery.value.scoring.scoring_set` (and the default scoring set of the
 EV contracts, whose `scoring_data` reads "retained exam-design private-role references") loads the retained exam-design
@@ -53,7 +60,7 @@ evidence that it is public; check the source files it reads.
     }
 
 A metric the executor could not measure is `null`, never a guess; `public_only` must be `true` and `panel.scoring_set` must
-name `public_ev4_scoring_set` with that digest (the ledger refuses a record that says otherwise, lacks the digest, or names a
+name `public_ev4_scoring_set` with the contract's literal digest (the ledger refuses a record that says otherwise, lacks the digest, or names a
 private-role source). The relative improvement is `(baseline - model) / baseline`, positive when the model is better.
 
 ## Which levels are measurable when

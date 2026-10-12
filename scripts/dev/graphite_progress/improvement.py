@@ -11,8 +11,10 @@ Never sealed, never a qualification claim; small samples are flagged, not hidden
 
 from __future__ import annotations
 
+import json
 import random
 import statistics
+from pathlib import Path
 
 from .model import ProgressError, metric, unmeasured
 
@@ -22,9 +24,16 @@ METRICS = ("accuracy_error", "decision_loss")
 #: The one scoring set a public-improvement record may use: #1188's `public_ev4_scoring_set`, the committed public
 #: EV4 decision references. `carbon.battery.value.scoring.scoring_set` loads the retained exam-design private-role
 #: references and is never used on this path.
+#:
+#: The PIN is the committed contract `ev4-dev-proof-l1-v1.json`, whose `public_reference_sha256` is a literal digest
+#: that #1188's test asserts equals the runner's reference digest (and that no "private" path is in the scoring
+#: identity). The runner's own check compares a fresh read of the file with a digest taken from the same file at
+#: import, which guards a change in between, not the content. So this module reads the digest from the committed
+#: contract and compares the record's digest with that literal; the contract being absent refuses every record.
 PUBLIC_EV4_FUNCTION = "public_ev4_scoring_set"
-PUBLIC_EV4_SHA = (
-    "sha256:ff10f9aea9097cd500d646ffe02f479d04401207b30a44aeee33566433e436cb"
+CONTRACT = (
+    Path(__file__).resolve().parents[3]
+    / "carbon/battery/value/contracts/ev4-dev-proof-l1-v1.json"
 )
 PRIVATE_MARKERS = ("refs-b", "private-role", "battery_refs")
 LABEL = (
@@ -36,8 +45,25 @@ BOOTSTRAP_REPS = 2000
 SMALL_N = 5
 
 
-def validate(record):
-    """The record as a checked dict, or a typed refusal."""
+def committed_reference_sha(contract=None):
+    """The public EV4 reference digest as the COMMITTED contract states it (its literal
+    `public_reference_sha256`), or a typed refusal when the contract is absent or has none.
+    """
+    path = Path(contract) if contract is not None else CONTRACT
+    try:
+        value = json.loads(path.read_bytes()).get("public_reference_sha256")
+    except (OSError, ValueError, AttributeError) as error:
+        raise ProgressError("public_improvement_contract_unreadable") from error
+    if not (
+        isinstance(value, str) and value.startswith("sha256:") and len(value) == 71
+    ):
+        raise ProgressError("public_improvement_contract_has_no_reference_digest")
+    return value
+
+
+def validate(record, contract=None):
+    """The record as a checked dict, or a typed refusal. Its scoring-set digest must equal the
+    committed contract's literal."""
     if type(record) is not dict or record.get("schema") != IMPROVEMENT_SCHEMA:
         raise ProgressError("public_improvement_schema")
     if record.get("public_only") is not True:
@@ -46,7 +72,7 @@ def validate(record):
     if (
         type(scoring) is not dict
         or scoring.get("function") != PUBLIC_EV4_FUNCTION
-        or scoring.get("sha256") != PUBLIC_EV4_SHA
+        or scoring.get("sha256") != committed_reference_sha(contract)
     ):
         raise ProgressError("public_improvement_scoring_set_not_public_ev4")
     if any(marker in repr(record).lower() for marker in PRIVATE_MARKERS):

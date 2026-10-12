@@ -436,6 +436,18 @@ def test_a_partial_session_duration_says_how_many_runs_have_one():
 
 
 # -- public-development improvement (the executor's records) -----------------------------------------
+PUBLIC_SHA = "sha256:" + "ab" * 32
+
+
+@pytest.fixture(autouse=True)
+def contract(tmp_path, monkeypatch):
+    """A stand-in for the committed contract's literal digest (the contract is #1188's file)."""
+    path = tmp_path / "contract.json"
+    path.write_text(json.dumps({"public_reference_sha256": PUBLIC_SHA}))
+    monkeypatch.setattr(improvement, "CONTRACT", path)
+    return path
+
+
 def pub(baseline_dec, model_dec, baseline_acc=0.10, model_acc=0.08):
     return {
         "schema": improvement.IMPROVEMENT_SCHEMA,
@@ -443,7 +455,7 @@ def pub(baseline_dec, model_dec, baseline_acc=0.10, model_acc=0.08):
         "panel": {
             "scoring_set": {
                 "function": improvement.PUBLIC_EV4_FUNCTION,
-                "sha256": improvement.PUBLIC_EV4_SHA,
+                "sha256": PUBLIC_SHA,
                 "cases": 12,
             }
         },
@@ -525,7 +537,7 @@ def test_a_record_file_with_a_sealed_name_is_refused(tmp_path):
         {
             "scoring_set": {
                 "function": "scoring_set",
-                "sha256": improvement.PUBLIC_EV4_SHA,
+                "sha256": PUBLIC_SHA,
             }
         },
         {
@@ -554,3 +566,23 @@ def test_a_record_that_names_a_private_role_source_is_refused():
     )
     with pytest.raises(ProgressError, match="names_a_private_source"):
         improvement.validate(record)
+
+
+def test_the_digest_is_read_from_the_committed_contract_not_a_constant(contract):
+    assert improvement.committed_reference_sha() == PUBLIC_SHA
+    contract.write_text(json.dumps({"public_reference_sha256": "sha256:" + "cd" * 32}))
+    with pytest.raises(ProgressError, match="scoring_set_not_public_ev4"):
+        improvement.validate(pub(10.0, 9.0))  # the record carries the old digest
+
+
+@pytest.mark.parametrize(
+    "content",
+    [None, "{not json", "{}", json.dumps({"public_reference_sha256": "abc"})],
+)
+def test_a_missing_or_digestless_contract_refuses_every_record(contract, content):
+    if content is None:
+        contract.unlink()
+    else:
+        contract.write_text(content)
+    with pytest.raises(ProgressError, match="contract"):
+        improvement.validate(pub(10.0, 9.0))
