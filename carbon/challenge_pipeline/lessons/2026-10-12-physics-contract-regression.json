@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-12-physics-contract-regression",
+  "recorded_at": "2026-10-12T16:23:11Z",
+  "challenge": "f02",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "PHYSICS-CONTRACT-PACKETS-01", "description": "Draft/checker, packet, question-law and validity regressions plus pipeline validation"},
+  "expected": "No new authority or validity from metadata; historical report replay remains stable.",
+  "observed": "63 native diagnostic tests passed, one Windows symlink-permission skip. A first expanded command named a nonexistent test file and ran no tests; the corrected command passed. Sparse missing public evidence initially blocked pipeline validation; materialising only existing public evidence resolved it: 7 records, 638 lessons valid. Three historical example reports passed replay. Ruff passed; Black outside the process sandbox identified one formatting change, which was applied. No solver/provider/hidden material accessed.",
+  "keep": ["Exact-byte digest for the same metadata parse", "Existing validity UNRESOLVED semantics and public-only historical replay"],
+  "change": ["Keep presence notices explicitly narrower than law, scope or calibration validation", "Use observable-specific matched calibration and prospective output additions"],
+  "protocol_elements": ["measurement_authority", "reference_adequacy"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
