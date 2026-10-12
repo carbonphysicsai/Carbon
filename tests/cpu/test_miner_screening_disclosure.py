@@ -87,6 +87,27 @@ def test_missing_module_or_file_never_invents_a_grain(tmp_path, monkeypatch):
     assert "must-never-leak" not in json.dumps(result)
 
 
+def test_loader_accepts_the_committed_reference_registration():
+    from pathlib import Path
+
+    sg = pytest.importorskip("carbon.challenge_validator.screening_grain")
+    repository = Path(__file__).resolve().parents[2]
+    doc = sg.load(repository / sl.GRAIN_DIR)
+    for entry in doc["entries"]:
+        match = entry["match"]
+        identities = {"challenge": {"id": doc["challenge"]},
+                      "rule_digest": match.get("rule_digest", "sha256:" + "d" * 64)}
+        rule = {"rule_version": match["rule"]}
+        if match["score_section"] == "registered":
+            rule["score"] = {"candidate": match["score_candidate"],
+                             "registry_sha256": match["registry_sha256"]}
+        policy = sl.load_grain(repository, identities, rule)
+        assert policy is not None and policy[1] == doc and policy[2] == entry
+        if "score" in rule:
+            rule["score"]["candidate"] = "unregistered-fixture-term"
+            assert sl.load_grain(repository, identities, rule) is None
+
+
 def test_latest_file_matches_exactly_or_seals_without_history_fallback(registration):
     repo, path, doc = registration
     assert sl.load_grain(repo, IDENTITIES, RULE) is not None
@@ -95,6 +116,7 @@ def test_latest_file_matches_exactly_or_seals_without_history_fallback(registrat
         {**doc, "challenge": "other"},
         {**doc, "entries": doc["entries"] * 2},
         {**doc, "noise_floor": None},
+        {**doc, "entries": [{"match": None}]},
         {**doc, "entries": [{**doc["entries"][0], "grain": 0.03}]},
         {**doc, "entries": [{**doc["entries"][0], "match": {"rule": "v2-bank-sched"}}]},
     ):
@@ -286,6 +308,19 @@ def test_disclosure_filters_final_fresh_canary_rule_device_and_development(
             "errors",
         )
     )
+    directory = repo / "private"
+    directory.mkdir(mode=0o700)
+    path = directory / "attempts.sqlite"
+    ledger.AttemptLedger(path)
+    status, same_ladder = score_feed._screening_disclosure(
+        target, IDENTITIES, "cpu", CHAIN, {"canary"}, path, repo
+    )
+    mine = next(r for r in status if r["hotkey"] == "hk-A")
+    # Received/refused counts cannot know a future rebuild device. All three
+    # current-rule screening outcomes count as activity; only the CPU eligible
+    # one may provide this board's displayed score.
+    assert mine == {"hotkey": "hk-A", "received": 0, "refused": {}, "scored": 3}
+    assert same_ladder == ladder
 
 
 def test_scoring_preserves_only_its_scored_noise_without_changing_grade(monkeypatch):

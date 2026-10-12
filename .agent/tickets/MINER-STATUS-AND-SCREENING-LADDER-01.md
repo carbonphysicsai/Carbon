@@ -50,7 +50,7 @@ Public additions (signed under the existing feed.v1 domain):
 - miner_status: null when its ledger/chain source is unavailable; otherwise
   [{hotkey, received, scored, refused: {closed_code: count}}]. Received counts
   transport attempts; scored counts immutable screening submissions for the
-  current rule/device, including ineligible scores. Refusal counts include the
+  current rule across device classes, including ineligible scores. Refusal counts include the
   bounded ledger's overflow tally. No raw exception text or unknown code.
 - leaderboard.ladder: {grain_pct, display_grid, sense, grain_version,
   grain_registration_digest, coldkeys}. Registration digest hashes the canonical

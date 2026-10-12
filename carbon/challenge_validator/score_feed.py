@@ -672,7 +672,6 @@ def _screening_disclosure(
             row["hotkey"] not in owners
             or row["state"] != "SCORED"
             or "development" in binding
-            or row_class != device_class
             or record.get("rule_digest") != identities["rule_digest"]
             or binding.get("rule_digest") != identities["rule_digest"]
             or type(used) is not list
@@ -684,7 +683,9 @@ def _screening_disclosure(
         if any(batch is None or batch["kind"] != "screening" for batch in batches):
             continue
         scored[row["hotkey"]] = scored.get(row["hotkey"], 0) + 1
-        if record.get("eligible") is not True:
+        # Activity is per hotkey/served contract; unlike scores it is not
+        # ranked by device. The ladder alone must keep device classes apart.
+        if row_class != device_class or record.get("eligible") is not True:
             continue
         registered = record.get("registered")
         if target.rule.get("score") is not None:

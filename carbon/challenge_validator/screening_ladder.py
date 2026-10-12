@@ -47,6 +47,11 @@ def load_grain(repository, identities, rule):
             or type(doc.get("noise_floor")) is not dict
             or type(doc.get("version")) is not int
             or doc["version"] < 1
+            or type(doc.get("entries")) is not list
+            or any(
+                type(e) is not dict or type(e.get("match")) is not dict
+                for e in doc["entries"]
+            )
         ):
             return None
         entry = sg.entry_for(doc, deployment)
