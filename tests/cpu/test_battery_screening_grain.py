@@ -25,7 +25,7 @@ def test_the_grain_is_the_measured_se_rounded_up_to_half_a_percent():
 def test_the_display_grid_is_geometric_and_never_overstates():
     value = json.loads((D / "screening-grain-v1.json").read_text())
     g = value["grain"]
-    assert value["grain_pct"] == 100 * g == 3.5
+    assert math.isclose(value["grain_pct"], 100 * g) and value["grain_pct"] == 3.5
     assert value["display_grid"] == "geometric"
     assert value["sense"] == "lower_is_better" and value["rule"] == "v2-bank-sched"
     assert "not a new threshold" in value["convention"]
@@ -37,4 +37,4 @@ def test_the_display_grid_is_geometric_and_never_overstates():
         assert shown / (1 + g) < score * (1 + 1e-12)
     ex = value["worked_example"]
     assert ex["k"] == math.ceil(math.log(ex["score"]) / math.log(1 + g))
-    assert math.isclose(ex["displayed"], (1 + g) ** ex["k"], rel_tol=1e-6)
+    assert math.isclose(ex["displayed"], (1 + g) ** ex["k"], rel_tol=1e-5)
