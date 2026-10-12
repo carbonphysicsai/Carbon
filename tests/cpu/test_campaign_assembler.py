@@ -398,6 +398,75 @@ def test_motor_ledger_without_per_solve_cpu_remains_unmeasured(tmp_path):
 
 
 @pytest.mark.parametrize("family", ["battery-v3", "motor", "f02"])
+def test_complete_question_speed_pairs_the_measured_model_and_reference(
+    tmp_path, family
+):
+    context, _ = _context(tmp_path, family)
+    sources = assemble.load_producer_sources(context)
+    ledger = assemble._read(
+        sources.reference_artifacts["cost-ledger"], "HELDOUT_REFERENCE"
+    )
+    predictions = assemble._read(sources.train_artifacts["carbon-predictions"], "MODEL")
+    receipt = assemble._read(sources.train_artifacts["carbon-receipt"], "MODEL")
+    receipt["cost"]["inference"]["decision_queries"] = [
+        {
+            "query": question["case"],
+            "physical_rows": sum(len(panel) for _, _, panel in cb._panels(question)),
+            "model_queries": sum(len(panel) for _, _, panel in cb._panels(question)),
+            "cold_wall_s": 0.04,
+            "cold_cpu_s": 0.03,
+            "wall_s": 0.02,
+            "cpu_s": 0.01,
+        }
+        for question in sources.export["questions"]
+    ]
+    value = assembly_design.value_context(sources.export, predictions, ledger, receipt)
+    speed = value["speed"]
+    assert speed["status"] == "MEASURED"
+    assert speed["query_unit"] == "full_registered_decision_query"
+    assert speed["export_digest"] == sources.export["export_digest"]
+    assert {row["query"] for row in speed["pairs"]} == {
+        question["case"] for question in sources.export["questions"]
+    }
+    by_key = {(r["band"], r["candidate"], r["condition"]): r for r in ledger["rows"]}
+    for question, pair in zip(sources.export["questions"], speed["pairs"]):
+        expected_wall = sum(
+            by_key[(band, row["candidate"], row["condition"])]["wall_s"]
+            for band, _, panel in cb._panels(question)
+            for row in panel
+        )
+        assert pair == {
+            "query": question["case"],
+            "carbon_wall_s": 0.02,
+            "reference_wall_s": expected_wall,
+        }
+    assert speed["reference_solve_core_s"] is None
+    assert speed["reference_solve_source_digest"] is None
+    evidence_pipeline._context_provenance(value, sources.export)
+
+
+def test_partial_or_mismatched_question_timing_refuses_speed_claim(tmp_path):
+    context, _ = _context(tmp_path, "motor")
+    sources = assemble.load_producer_sources(context)
+    ledger = assemble._read(
+        sources.reference_artifacts["cost-ledger"], "HELDOUT_REFERENCE"
+    )
+    predictions = assemble._read(sources.train_artifacts["carbon-predictions"], "MODEL")
+    receipt = assemble._read(sources.train_artifacts["carbon-receipt"], "MODEL")
+    assert (
+        assembly_design.value_context(sources.export, predictions, ledger, receipt)[
+            "speed"
+        ]
+        is None
+    )
+    receipt["cost"]["inference"]["decision_queries"] = []
+    with pytest.raises(
+        assembly_design.DesignRefused, match="DECISION_QUERY_METER_INVENTORY_MISMATCH"
+    ):
+        assembly_design.value_context(sources.export, predictions, ledger, receipt)
+
+
+@pytest.mark.parametrize("family", ["battery-v3", "motor", "f02"])
 def test_comparison_design_uses_registered_producer_artifacts(tmp_path, family):
     context, _ = _context(tmp_path, family)
     sources = assemble.load_producer_sources(context)

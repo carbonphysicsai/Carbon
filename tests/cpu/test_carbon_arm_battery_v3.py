@@ -84,6 +84,18 @@ def test_predictions_pass_the_pipelines_carbon_hop():
     cost = receipt["cost"]
     assert cost["fit"]["fit_wall_s"] > 0 and cost["inference"]["wall_s"] >= 0
     assert cost["inference"]["rows"] == len(predictions["rows"])
+    measured = cost["inference"]["decision_queries"]
+    assert {r["query"] for r in measured} == {
+        question["case"] for question in export["questions"]
+    }
+    assert all(
+        r["physical_rows"] > 0 and r["model_queries"] >= r["physical_rows"]
+        for r in measured
+    )
+    assert all(r["wall_s"] > 0 and r["cold_wall_s"] > 0 for r in measured)
+    assert cost["inference"]["decision_query_unit"] == (
+        "one warm call over the complete registered question bank"
+    )
     assert all(
         math.isfinite(v) for row in predictions["rows"] for v in row["values"].values()
     )
@@ -104,6 +116,14 @@ def test_rows_outside_trains_support_abstain_explicitly():
         assert (row["values"] is None) == (actions[row["candidate"]]["c1"] > 1.5)
     assert receipt["abstained"] == sum(row["values"] is None for row in rows) > 0
     ep._predictions(export, predictions)  # abstention is accepted, never repaired
+
+
+def test_decision_query_inventory_refuses_duplicate_questions():
+    export = fixture_export()
+    physical = cb._physical_rows(export)
+    export["questions"].append(dict(export["questions"][0]))
+    with pytest.raises(arm.ArmRefused, match="DECISION_QUERY_INVENTORY_INVALID"):
+        list(arm._decision_query_indices(export, physical))
 
 
 def test_the_rebuild_is_reproducible_at_its_seed():
