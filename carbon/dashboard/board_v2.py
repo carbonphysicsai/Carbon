@@ -370,21 +370,25 @@ def _target(board):
         ("screening_margin", of("screening_margin_rel"), "not_in_feed"),
         (
             "noise_guard",
-            None
-            if comparison is None
-            else _fields(
-                *((k, comparison[k], "not_in_feed") for k in NOISE_GUARD_KEYS)
+            (
+                None
+                if comparison is None
+                else _fields(
+                    *((k, comparison[k], "not_in_feed") for k in NOISE_GUARD_KEYS)
+                )
             ),
             "not_in_feed",
         ),
         (
             "registered_score",
-            None
-            if score is None
-            else _fields(
-                ("candidate", score["candidate"], "not_in_feed"),
-                ("registry_sha256", score["registry_sha256"], "not_in_feed"),
-                ("decision", score["decision"], "not_in_feed"),
+            (
+                None
+                if score is None
+                else _fields(
+                    ("candidate", score["candidate"], "not_in_feed"),
+                    ("registry_sha256", score["registry_sha256"], "not_in_feed"),
+                    ("decision", score["decision"], "not_in_feed"),
+                )
             ),
             "not_in_feed" if target is None else "no_registered_score",
         ),
@@ -616,13 +620,15 @@ def project(board, now, rules_card=None):
             # The finalized block the feed's chain-time fields were read at.
             (
                 "as_of_block",
-                None
-                if as_of is None
-                else {
-                    "number": as_of["number"],
-                    "hash": as_of["hash"],
-                    "timestamp_utc": _utc_of_ms(as_of["timestamp_ms"]),
-                },
+                (
+                    None
+                    if as_of is None
+                    else {
+                        "number": as_of["number"],
+                        "hash": as_of["hash"],
+                        "timestamp_utc": _utc_of_ms(as_of["timestamp_ms"]),
+                    }
+                ),
                 "not_in_feed",
             ),
         ),

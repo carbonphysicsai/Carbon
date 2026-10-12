@@ -374,9 +374,9 @@ def chain_document(challenge_id, device_class, *, seed, released_king=True):
             "eligible": released_king,
             "reason": "fixture-final" if released_king else "fixture-not-paid",
             "share_now": 0.5 if released_king else 0.0,
-            "next_halving_utc_ms": crowned + 48 * FIXTURE_HOUR_MS
-            if released_king
-            else None,
+            "next_halving_utc_ms": (
+                crowned + 48 * FIXTURE_HOUR_MS if released_king else None
+            ),
             "challenges_survived": 2,
         },
         "handovers": [
