@@ -51,6 +51,13 @@ def _closed(value, fields):
         raise AcceptanceRefused("acceptance_link_schema")
 
 
+def _read_regular(root, path):
+    target = root / path
+    if any(parent.is_symlink() for parent in [target, *target.parents]):
+        raise AcceptanceRefused("acceptance_regular_file_required")
+    return target.read_bytes()
+
+
 def validate_acceptance(link, *, family, image_digest, criteria_digest, files):
     """Bind the link to decision, criteria and result bytes from one snapshot.
 
@@ -133,7 +140,7 @@ def load_acceptance(family, image_digest, criteria_digest, *, root=ROOT):
     if type(family) is not str or family not in LINKS:
         raise AcceptanceRefused("acceptance_link_unavailable")
     try:
-        link = json.loads((root / DIRECTORY / LINKS[family]).read_bytes())
+        link = json.loads(_read_regular(root, DIRECTORY + "/" + LINKS[family]))
         paths = [
             DECISION_PATH,
             link["criteria_path"],
@@ -161,10 +168,7 @@ def load_acceptance(family, image_digest, criteria_digest, *, root=ROOT):
                 )
             ):
                 raise AcceptanceRefused("acceptance_public_path_required")
-            target = root / path
-            if any(parent.is_symlink() for parent in [target, *target.parents]):
-                raise AcceptanceRefused("acceptance_regular_file_required")
-            files[path] = target.read_bytes()
+            files[path] = _read_regular(root, path)
         return validate_acceptance(
             link,
             family=family,

@@ -58,6 +58,18 @@ def test_missing_link_is_unavailable(tmp_path):
         )
 
 
+def test_link_symlink_is_refused_before_any_unregistered_file_read(tmp_path):
+    link, _ = registered("battery-v3")
+    directory = tmp_path / DIRECTORY
+    directory.mkdir(parents=True)
+    # Dangling synthetic target: refusal must precede opening even the link.
+    (directory / LINKS["battery-v3"]).symlink_to(tmp_path / "unregistered.json")
+    with pytest.raises(AcceptanceRefused, match="regular_file_required"):
+        load_acceptance(
+            "battery-v3", link["image_digest"], link["criteria_digest"], root=tmp_path
+        )
+
+
 @pytest.mark.parametrize("part", ["decision", "criteria", "result"])
 def test_changed_evidence_or_decision_bytes_cannot_establish_acceptance(part):
     link, files = registered("battery-v3")
