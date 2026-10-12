@@ -428,6 +428,34 @@ def test_stopping_kills_a_process_that_ignores_the_request(tmp_path):
     assert job_pids(jobs / NAME) == [] and not (jobs / NAME).exists()
 
 
+def test_the_stop_scan_never_passes_over_a_process_that_keeps_waking(tmp_path):
+    """Each process's status is read whole. Read line by line, the file is
+    generated again for each line, so a process waking meanwhile shifted its
+    lines and lost its Uid now and then: the scan passed over it, and a stop
+    could leave the job running (seen in CI with the stubborn server above)."""
+    script = remote_container.stop_script(NAME, root=str(tmp_path / "jobs"))
+    status = script[script.index("carbon_status() {") : script.index("carbon_started")]
+    waking = subprocess.Popen(
+        ["/bin/bash", "-c", "trap '' TERM; while :; do sleep 0.002; done"]
+    )
+    try:
+        probe = (
+            f"{status}missed=0\n"
+            "for ((i = 0; i < 2000; i++)); do\n"
+            f"  carbon_status {waking.pid} || missed=$((missed + 1))\n"
+            "done\n"
+            'echo "$missed"\n'
+        )
+        read = subprocess.run(
+            ["/bin/bash", "-c", probe], capture_output=True, check=True, timeout=120
+        )
+        assert waking.poll() is None
+        assert read.stdout == b"0\n"
+    finally:
+        waking.kill()
+        waking.wait()
+
+
 def test_stopping_leaves_every_other_process_alone(tmp_path):
     _, ssh, _ = container(tmp_path, image())
     jobs = tmp_path / "container" / "jobs"
