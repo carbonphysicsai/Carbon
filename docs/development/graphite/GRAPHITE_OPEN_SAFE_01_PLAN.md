@@ -18,7 +18,7 @@ and development variants at L1 to L4. Cooling and motor are L0 only and are out 
 | Fact | State | Evidence |
 |---|---|---|
 | Constructor on kimi-k3 at Level 1 and above, R4 at the 0.65/h pod ceiling with a 10.99 token share per 14.91 run | VERIFIED | `.agent/decisions/2026-10-11-OWNER-GRAPHITE-PHASE3-R4-CEILING-01.md` (#1076) |
-| Stage B grants (L2 and L3, USD 143.35) and stage C grants (L4, USD 71.80) approved by the owner | VERIFIED in the repo (committed owner records and grant files on main); how much of each is used is UNVERIFIED (the repo holds no spend ledger) | Stage B: `.agent/decisions/2026-10-10-OWNER-GRAPHITE-STAGE-B-01.md` (commit 1dfb93165), grants `GRAPHITE-GRANT-STAGE-B-CONSTRUCTOR` and `GRAPHITE-GRANT-STAGE-B-ATTACKER`. Stage C: `.agent/decisions/2026-10-10-OWNER-GRAPHITE-STAGE-C-01.md` (commit 31f64e049), grants `GRAPHITE-GRANT-STAGE-C-CONSTRUCTOR` and `GRAPHITE-GRANT-STAGE-C-ATTACKER`. Grant files are under `docs/development/graphite/grants/`. |
+| Stage B grants (L2 and L3, USD 143.35) and stage C grants (L4, USD 71.80) approved by the owner | VERIFIED in the repo (committed owner records and grant files on main); run use is from the executor host's grant-runs ledger (not committed; run counts only here): stage B Constructor 6 of 6 claimed, Attacker 2 of 4; stage C Constructor 3 of 3, Attacker 1 of 2 | Stage B: `.agent/decisions/2026-10-10-OWNER-GRAPHITE-STAGE-B-01.md` (commit 1dfb93165), grants `GRAPHITE-GRANT-STAGE-B-CONSTRUCTOR` and `GRAPHITE-GRANT-STAGE-B-ATTACKER`. Stage C: `.agent/decisions/2026-10-10-OWNER-GRAPHITE-STAGE-C-01.md` (commit 31f64e049), grants `GRAPHITE-GRANT-STAGE-C-CONSTRUCTOR` and `GRAPHITE-GRANT-STAGE-C-ATTACKER`. Grant files are under `docs/development/graphite/grants/`. |
 | Attack adapters for battery at L0 to L4; Levels 2 to 4 name only their own families | VERIFIED | `attack/adapters` `BUILTIN`; #1072 |
 | The brief lists each development level's widened surface | VERIFIED | #1081 |
 | Level 4 staging, route R1 (Graphite lowers a graph in its own sandbox; Carbon handles the envelope as data) | MERGED; the isolation acceptance is the owner's review | #1098, `level4/L4_STAGING_R1_CONTRACT.md` |
@@ -26,10 +26,10 @@ and development variants at L1 to L4. Cooling and motor are L0 only and are out 
 | Refused-capability log with the Constructor wish channel | VERIFIED; stage A L0 rows (8) merged, L2 to L4 rows (5) in #1154 | #1063, `level4/REFUSED_CAPABILITY_LOG.md` |
 | Per-level readiness Q1 reports (so V1 and V2 at L1 can pass) | OPEN PR | #1157 |
 | Dev-ladder deployment serving the development variants (VALIDATOR-25) | Code accepts a `development` served-variants map (`challenge_validator/dispatch.py`); what the running deployment serves is host state, UNVERIFIED here | |
-| RELEASE_SCHED section 4b-early, r8.1 | NOT IN THE REPO; UNVERIFIED. The scheduled bank rotation rule and its security acceptance are merged | #1079, #1149 |
+| RELEASE_SCHED section 4b-early, r8.1 | An operator sheet (`RELEASE_SCHED_VALV2.md` on the shared operator folder), not in the repo by design; the owner is applying it on r8.1 now (Test Lead, 2026-10-12). The scheduled bank rotation rule and its security acceptance are merged | #1079, #1149 |
 | Launchpad lanes minerD to G (UIDs 8 to 11, main, L0 confirmations) | OWNER-REGISTERED (nothing on main names them, by design); lane to UID mapping is in the executor's stage A folder, UNVERIFIED here | `GRAPHITE_LADDER_WAVE_PLAN.md` section 0 |
-| minerH and minerI used on the testnet (their 6 submissions are in the L0 proof panel); minerJ and minerK | minerH, minerI: VERIFIED by name in `proof-panel-l0-v1.json`; minerJ, minerK: UNVERIFIED | |
-| The Level 4 "graph-variant fix" the Test Lead says L4 waits for | UNVERIFIED: no PR or ticket by that name found on main or in open PRs | ask the Test Lead for the reference |
+| minerH and minerI used on the testnet (their 6 submissions are in the L0 proof panel); minerJ and minerK | minerH, minerI: VERIFIED by name in `proof-panel-l0-v1.json`; minerJ, minerK: UNVERIFIED (asked the Launchpad session) | |
+| The Level 4 "graph-variant fix" the Test Lead says L4 waits for | The Test Engineer is diagnosing it; no PR yet (Test Lead, 2026-10-12) | |
 | Executor stage A L0 results (4 of 4 confirmations scored, Attacker 1 finding and 20 INCONCLUSIVE, 7 plus 1 Constructor refusals) | Executor report, 2026-10-12; the refusals are in the committed log | |
 | Executor L1 to L4 Constructor sessions (L1 D, L2 E, L3 F, L4 G) ran on 2026-10-11 | Executor report and host logs, not committed; refusals: L1 none, L2 one, L3 three, L4 one | #1154 |
 
@@ -115,49 +115,62 @@ the owner question. No adoption, no base-image change, no grant authored.
 
 ## 3. One spend line for the owner (PROPOSAL; the grant file binds spend, not this page)
 
-Public repo: caps and rates only. Per-run worst cases are from the committed grants. The executor's
-private ledger holds actual costs and is not in the repo, so these are worst cases, and the remaining
-amounts below must be re-derived with `python -m carbon.agent_campaign.grant_runs status` before launching.
+Public repo: caps, rates and run counts only. Per-run worst cases are from the committed grants. The run
+counts below are from the executor host's grant-runs ledger (read-only, 2026-10-12; the ledger is not
+committed, and it holds ids, digests, timestamps and cost totals only).
 
 **Per-run basis.** Constructor run 14.91 USD (R4 worst case, cleanup 0.12 per grant). Attacker run 13.41
 USD (a stated assumption: 10.00 model share plus the 3.41 PHASE4 worst case; cleanup 0.13 per grant).
 
-| Lane | What | Runs | Worst case | Status |
-|---|---|---|---|---|
-| L2 (lane E) | 3 Constructor, 2 Attacker | 5 | 71.55 | Approved in stage B |
-| L3 (lane F) | 3 Constructor, 2 Attacker | 5 | 71.55 | Approved in stage B |
-| Stage B grant cleanup | | | 0.25 | Approved |
-| **Stage B total** | | 10 | **143.35** | Approved (OWNER-GRAPHITE-STAGE-B-01) |
-| L4 (lane G) | 3 Constructor, 2 Attacker | 5 | 71.55 | Approved in stage C |
-| Stage C grant cleanup | | | 0.25 | Approved |
-| **Stage C total** | | 5 | **71.80** | Approved (OWNER-GRAPHITE-STAGE-C-01) |
-| Hunt, Constructor at L4 with the wish channel, 4 themes (compute and steps; PyTorch families; solver ops; kernels and libraries) | 4 x 14.91 = 59.64, cleanup 0.12 | 4 | 59.76 | **PROPOSAL** |
-| Hunt, Attacker against each shortlisted candidate | 2 x 13.41 = 26.82, cleanup 0.13 | 2 | 26.95 | **PROPOSAL** |
-| **Hunt total** | | 6 | **86.71** | **PROPOSAL** |
-| **All of B, C and the hunt** | | 21 | **301.86** | 215.15 approved, 86.71 proposed |
+**What is approved and what is left.** The approvals are committed (section 0). The Constructor approvals
+are consumed; the Attacker approvals are partly unused.
 
-**The one line:** "Graphite open-and-safe: USD 215.15 already approved (stage B 143.35, stage C 71.80) plus a PROPOSED
-USD 86.71 for the Level 5 hunt (4 Constructor runs at 14.91 and 2 Attacker runs at 13.41, cleanup 0.12 and
-0.13); USD 301.86 worst case in all, at the 0.65 per hour pod ceiling."
+| Grant | Approved ceiling | Runs claimed (ledger) | Runs left | Worst case left |
+|---|---|---|---|---|
+| Stage B Constructor (L2, L3) | 89.58 | 6 of 6 | 0 | 0 |
+| Stage B Attacker (L2, L3) | 53.77 | 2 of 4 | 2 | 26.82 |
+| Stage C Constructor (L4) | 44.85 | 3 of 3 | 0 | 0 |
+| Stage C Attacker (L4) | 26.95 | 1 of 2 | 1 | 13.41 |
+| **Approved and unused** | | | 3 Attacker runs | **40.23** |
+
+The Constructor runs of stages B and C were counted from the existing controller roots (the ledger's
+migration), so their settled USD is not in the ledger; the executor holds it. The settled cost of the
+Attacker runs claimed so far is far below their worst case.
+
+**New money (PROPOSAL).**
+
+| Item | Runs | Worst case |
+|---|---|---|
+| Hunt, Constructor at L4 with the wish channel, 4 themes (compute and steps; PyTorch families; solver ops; kernels and libraries): 4 x 14.91 = 59.64, cleanup 0.12 | 4 | 59.76 |
+| Hunt, Attacker against each shortlisted candidate: 2 x 13.41 = 26.82, cleanup 0.13 | 2 | 26.95 |
+| **Hunt total** | 6 | **86.71** |
+| Optional: one more max-freedom Constructor pass each at L2, L3 and L4 after brief changes (3 x 14.91 = 44.73, cleanup 0.12), because the approved Constructor runs are consumed | 3 | 44.85 |
+| **New money, hunt plus optional re-pass** | 9 | **131.56** |
+
+**The one line:** "Graphite open-and-safe: the approved Constructor runs of stages B and C are used up (6 of 6, 3 of 3);
+3 approved Attacker runs remain (USD 40.23 worst case); the Level 5 hunt is a PROPOSED USD 86.71 (4 Constructor
+runs at 14.91, 2 Attacker runs at 13.41, cleanup 0.12 and 0.13), plus an optional USD 44.85 for one more
+Constructor pass each at L2 to L4; USD 131.56 new at most, at the 0.65 per hour pod ceiling."
 
 **Assumptions.**
 - The hunt runs under a new R4-style grant bound to Level 4 (and the wish channel), plus a kimi-k3 Attacker grant. The existing stage C grants cover three Constructor and two Attacker runs at L4 and cannot be borrowed for the hunt.
 - The hunt Constructor costs the same as an R4 run; the Attacker is priced as in the wave plan.
-- The L2 to L4 Constructor sessions the executor already ran on 2026-10-11 may have used part of stage B and C (UNVERIFIED). If so, the approved amounts still available are lower than shown, and the plan's remaining runs shrink; the proposal for the hunt does not change.
+- Stage A (L0 and L1) grants are separate and not repeated here; their remaining runs were not checked.
 
 **The weekly cap (OWNER-TESTNET-WEEKLY-BUDGET-01).** USD 150 across any rolling seven days, pods plus model
 charges, enforced on the host ledger (#1067). A run is reserved at its worst case at launch and settled at
-its reported cost, and a launch that would pass the cap is refused (`weekly_budget_reached`). Consequences:
-- Stage B alone (143.35) almost fills one window, and all of B, C and the hunt (301.86) cannot fit in two (300): **three windows at least, at worst-case reservation.** Settled costs are lower than worst cases, so real scheduling can be faster.
-- A schedule that stays under the cap at worst case (spend already in the last seven days counts and is not known to this page; check `grant_runs weekly` first):
+its reported cost, and a launch that would pass the cap is refused (`weekly_budget_reached`). The usage so far is a moving number: read it with
+`python -m carbon.agent_campaign.grant_runs weekly` before each wave. The ledger's window starts with the
+ledger, so spend before it (including the seeded Constructor runs) is not counted in it. Consequences:
+- The approved Attacker runs left (40.23) plus the hunt (86.71) are 126.94 at worst-case reservation: one window, if the rolling usage is at most 23.06 when they launch. The optional re-pass (44.85) makes 171.79, which needs a second window.
+- Settled costs are lower than worst cases, so real scheduling can be faster. Reservations are released as runs settle.
 
-| Window | Runs | Worst-case reservation |
+| Wave | Runs | Worst-case reservation |
 |---|---|---|
-| 1 (days 0 to 6) | Stage B: 6 Constructor and 4 Attacker | 143.10 (143.35 with cleanup) |
-| 2 (days 7 to 13) | Stage C (after the L4 prerequisites): 3 Constructor and 2 Attacker, then the hunt's 4 Constructor | 71.55 + 59.64 = 131.19 |
-| 3 (days 14 to 20) | The hunt's 2 Attacker runs, then the re-run of any run a finding requires | 26.82 plus a reserve |
+| 1 | The 3 approved Attacker runs (L2, L3, L4 once the L4 prerequisites hold), then the hunt's 4 Constructor runs | 40.23 + 59.64 = 99.87 |
+| 2 | The hunt's 2 Attacker runs, and the optional re-pass | 26.82 (+ 44.73) |
 
-- L4 runs in windows 2 and 3 wait for the prerequisites in section 1; if they slip, the hunt and the L0 to L3 work can move forward in their place.
+- L4 runs wait for the prerequisites in section 1; if they slip, the L2 and L3 Attacker runs and the hunt's non-L4 themes can move forward in their place.
 - Server runs (CCX63), mainnet and anything over the cap are not covered by the weekly budget and stay the owner's.
 
 ## 4. Order of work
