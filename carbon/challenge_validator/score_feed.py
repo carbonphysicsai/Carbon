@@ -369,7 +369,13 @@ def target_to_beat(rule):
 def king_record(store, records, canaries):
     """The king and its handovers from the weights publisher's winner ledger
     records for this Challenge (oldest first), or `(None, [])`. A canary
-    hotkey is never named (`None` in its place)."""
+    hotkey is never named (`None` in its place).
+
+    The king is the ledger's latest record **only while it is this
+    deployment's current incumbent**: the publisher pays a ledger winner only
+    through the deployment's live promotion, so after a cutover to a new
+    deployment (no incumbent yet) the old deployment's last winner is not the
+    king, and none is shown. Handovers stay the Challenge's whole history."""
 
     def named(hotkey):
         return None if hotkey in canaries else hotkey
@@ -392,6 +398,9 @@ def king_record(store, records, canaries):
     if hotkey in canaries:
         return None, handovers
     model_id = current["promotion"].get("model_id")
+    live = store.incumbent()
+    if live is None or live["model_id"] != model_id:
+        return None, handovers
     survived = 0
     for row in store.finals_rows():
         if row["incumbent"] != model_id or row["state"] != "DECIDED":
