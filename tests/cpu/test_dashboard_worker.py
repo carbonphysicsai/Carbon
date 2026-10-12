@@ -320,6 +320,14 @@ def test_worker_board_v2_matches_board_v2_py(tmp_path):
         )
         body["leaderboard"]["ladder"]["grain_pct"] = grain
         documents.append(fixtures.sign(body))
+    for status in ("SHOWN", "NO_IMPROVEMENT_BEYOND_GRAIN"):
+        body = fixtures.ladder_document(
+            "fixture-challenge-epsilon", "gpu:FIXTURE-GPU", seed=6, sealed=False
+        )
+        body["leaderboard"]["ladder"]["grain_pct"] = None
+        for row in body["leaderboard"]["ladder"]["coldkeys"]:
+            row["status"] = status
+        documents.append(fixtures.sign(body))
     items, expected = [], []
     for document in documents:
         text = json.dumps(document)

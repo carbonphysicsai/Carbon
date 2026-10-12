@@ -403,6 +403,17 @@ def test_a_shown_score_needs_a_posted_grain(grain, code):
     assert caught.value.code == code
 
 
+@pytest.mark.parametrize("status", ["SHOWN", "NO_IMPROVEMENT_BEYOND_GRAIN"])
+def test_only_sealed_entries_while_the_grain_is_unposted(status):
+    body = _laddered()
+    body["leaderboard"]["ladder"]["grain_pct"] = None
+    for row in body["leaderboard"]["ladder"]["coldkeys"]:
+        row["status"] = status
+    with pytest.raises(feed.FeedRefused) as caught:
+        feed.project(fixtures.sign(body), fixtures.fixture_trust())
+    assert caught.value.code == "ladder_grain_unposted"
+
+
 def test_a_list_shaped_ladder_is_refused():
     body = _laddered()
     body["leaderboard"]["ladder"] = body["leaderboard"]["ladder"]["coldkeys"]
