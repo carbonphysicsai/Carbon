@@ -1664,6 +1664,32 @@ def compute_lane(args, grant):
     return compute
 
 
+#: The first construction level whose sessions run participant model code
+#: (Level 4 lowering, in the miner lane on this host).
+HOSTILE_CODE_LEVEL = 4
+
+
+def hostile_lane_bounds(level, environ=None):
+    """LANE-RESOURCE-BOUND-01: a live Level 4-5 session, the Level 4
+    hostile-model probe and staging path, lowers participant models in the
+    miner research lane on this Carbon-operated host. It refuses to start,
+    typed (`resource_profile_required`, or `resource_profile_invalid` for an
+    unreadable installed profile), unless the host's resource profile is in
+    force; the profile is returned. Below Level 4 nothing is checked, and a
+    miner's own research never comes here."""
+    if type(level) is not int or level < HOSTILE_CODE_LEVEL:
+        return None
+    from carbon.development_session.miner_container import (
+        ResourceProfileRefused,
+        require_host_profile,
+    )
+
+    try:
+        return require_host_profile(environ)
+    except ResourceProfileRefused as refused:
+        raise RunnerRefused(refused.code) from None
+
+
 def carrier_pods(root, manifest):
     """The CPU carrier backend on this (operator) host: the pinned C-03 worker
     image, refused unless the host doctor finds this host eligible."""
@@ -1820,6 +1846,9 @@ def command_run(args):
             analysis_image_manifest=getattr(args, "analysis_image_manifest", None),
             **level,
         )
+    # Level 4-5 runs participant model code on this host: never unbounded,
+    # refused before anything is read or spent (LANE-RESOURCE-BOUND-01).
+    hostile_lane_bounds(getattr(args, "level", 0))
     root = _root(args.root)
     grant = load_grant(args.grant)
     if grant.provider != "graphite":

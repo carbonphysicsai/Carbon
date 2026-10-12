@@ -150,6 +150,7 @@ from .phase3 import (
     _root,
     check_code_ref,
     ensure_development_expansion,
+    hostile_lane_bounds,
     load_grant,
 )
 from .pods import PodFailure
@@ -1920,6 +1921,9 @@ def command_run(args):
     ]
     if missing:
         raise RunnerRefused("required: " + ", ".join(missing))
+    # A Level 4-5 Attacker probes with participant model code in the miner
+    # lane on this host: never unbounded (LANE-RESOURCE-BOUND-01).
+    hostile_lane_bounds(CONSTRUCTION_LEVEL if level is None else level)
     root = _root(args.root)
     grant, head = live_checks(
         args.grant,
