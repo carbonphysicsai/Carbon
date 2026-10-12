@@ -172,7 +172,8 @@ def test_the_weekly_report_line_and_command(capsys):
     line = gr.weekly_line(gr.weekly_report(clock=lambda: T0 + 1))
     assert line == (
         "Testnet testing budget, rolling 7 days: USD 20.00 of 150.00 used, "
-        "USD 130.00 remaining, 1 runs."
+        "USD 130.00 headroom, 1 runs (0 seeded from earlier roots). "
+        f"Basis: {gr.BASIS}."
     )
     assert gr.main(["weekly"]) == 0
     assert "Testnet testing budget, rolling 7 days: USD 20.00 of 150.00 used" in (
