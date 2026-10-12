@@ -20,6 +20,7 @@ from scripts.dev.customer_deliverable.generate import (
     scalar_fact,
     write_outputs,
 )
+from scripts.dev.customer_deliverable.package_sections import PROJECTION_SCHEMA
 
 CHALLENGE = "battery-fastcharge-ageing-development-v1"
 
@@ -51,6 +52,7 @@ def fixture_texts():
         "D10": "automatable later",
         "D11": "automatable now",
     }
+
     template = "\n".join(
         f"## {sid} synthetic document fixture\n\n"
         f"Coverage: HUMAN_INPUT. Automation: {classes.get(sid, 'manual')}.\n"
@@ -94,6 +96,199 @@ def fixture_texts():
         "R5": "V3 τ/ρ and every v3 term contribution are therefore "
         "**uncomputable**\n",
     }
+
+
+def package_fixture_texts():
+    """Synthetic arithmetic/transport fixtures; never scientific measurements."""
+    texts = fixture_texts()
+    image = "sha256:" + "1" * 64
+    texts["P1"] = json.dumps(
+        {
+            "schema": "carbon.code-verification.result.v1",
+            "kind": "code_verification",
+            "family": "battery-v3",
+            "image_digest": image,
+            "source_digest": "sha256:" + "3" * 64,
+            "criteria_digest": "sha256:" + "4" * 64,
+            "norms": [{"l2": 0.01, "linf": 0.02, "samples": 20}],
+            "metrics": {"l2_order": 2.0, "linf_order": 2.0},
+            "state": "HUMAN_INPUT",
+            "accepted_development_pass": False,
+            "qualified": False,
+        }
+    )
+    texts["P2"] = "OWNER-CODE-VERIFICATION-ACCEPT-01\n" + image
+    texts["P3"] = json.dumps(
+        {
+            "schema": "carbon.physics-contract.draft.v1",
+            "challenge": "battery-v3",
+            "runtime_enabled": False,
+            "validity": {"status": "HUMAN_INPUT_UNDECLARED"},
+            "required_outputs": {"voltage_v": {"availability": "MODEL_AVAILABLE"}},
+            "laws": [{"id": "initial-temperature"}, {"id": "capacity-bound"}],
+        }
+    )
+    card = {
+        name: {
+            "value": 0.1,
+            "unit": "fixture-unit",
+            "sample_count": 8,
+            "statistic": "mean",
+            "measurement_version": "fixture-v1",
+            "outcome": "NOT_ASSESSED",
+        }
+        for name in (
+            "accuracy_overall",
+            "accuracy_near_limits",
+            "robustness",
+            "extrapolation",
+            "uncertainty_calibration",
+            "speedup_equal_accuracy",
+            "inference_latency",
+            "training_cost",
+        )
+    }
+    spec = {
+        "axes": [
+            {"name": "c1", "edges": [0, 1, 2]},
+            {"name": "t_amb_c", "edges": [0, 1]},
+        ],
+        "bands": {"name": "soc0", "edges": [0, 1]},
+        "marginalized": ["c2"],
+        "outputs": {"voltage_v": {"length": 1, "unit": "V"}},
+        "near_limit": [
+            {"output": "voltage_v", "statistic": "max", "operator": "ge", "value": 1}
+        ],
+    }
+    cells = [
+        {
+            "band": 0,
+            "y": 0,
+            "x": i,
+            "count": 2 if i == 0 else 0,
+            "status": "OBSERVED" if i == 0 else "NO_DATA",
+            "near_limit_count": 0,
+            "error": {
+                "voltage_v": {
+                    "median": 0.1 if i == 0 else None,
+                    "p90": 0.2 if i == 0 else None,
+                }
+            },
+            "disagreement": {
+                "voltage_v": {
+                    "median": 0.05 if i == 0 else None,
+                    "p90": 0.08 if i == 0 else None,
+                }
+            },
+        }
+        for i in range(2)
+    ]
+    native_map = {
+        "schema": "carbon.trust-map.v1",
+        "maturity": "DEVELOPMENT",
+        "model": "synthetic-model",
+        "spec": spec,
+        "top_models": ["a", "b"],
+        "source": {
+            "kind": "PUBLIC",
+            "evidence": "synthetic fixture",
+            "source_sha256": "5" * 64,
+        },
+        "reference_verification": {
+            "state": "PASS",
+            "accepted_development_pass": True,
+            "image_digest": image,
+            "evidence": "synthetic fixture",
+        },
+        "cells": cells,
+        "basis": {"cases": 2, "models": 2, "top_models": 2},
+        "methods": {
+            "error": "synthetic",
+            "disagreement": "synthetic",
+            "marginalization": "synthetic",
+        },
+        "scored_case_selection": "FORBIDDEN",
+    }
+    estimates = {
+        arm: {
+            "mean_best_verified_value_conditional": value,
+            "mean_regret_conditional": value / 10,
+            "feasible_pick_fraction": 1.0,
+        }
+        for arm, value in (
+            ("solver_alone", 5.0),
+            ("baseline_then_solver", 6.0),
+            ("model_then_solver", 4.0),
+        )
+    }
+    estimates.update(paired_verified_value_delta=-1.0, paired_verified_value_count=8)
+    equal = {
+        "schema": "carbon.design-search.equal-budget-report.v1",
+        "challenge": "battery-v3",
+        "status": "OK",
+        "cost_basis": "MEASURED",
+        "source_digest": "sha256:" + "6" * 64,
+        "panel_digest": "sha256:" + "7" * 64,
+        "job_count": 8,
+        "independent_clusters": 2,
+        "confidence": 0.95,
+        "objective": {"direction": "min", "unit": "s"},
+        "curves": [
+            {
+                "budget": {"wall_s": 10, "core_s": 20},
+                "estimates": estimates,
+                "bootstrap_ci": {"paired_verified_value_delta": [-2.0, -0.5]},
+            }
+        ],
+    }
+    projection = {
+        "schema": PROJECTION_SCHEMA,
+        "mode": "DEVELOPMENT_SAMPLE",
+        "challenge": CHALLENGE,
+        "disclosure": {
+            "kind": "PUBLIC",
+            "evidence": "https://example.invalid/synthetic-only",
+        },
+        "identity": {
+            "model_artifact_hash": "sha256:" + "2" * 64,
+            "reference_image_digest": image,
+            "physics_contract_digest": "sha256:"
+            + hashlib.sha256(texts["P3"].encode()).hexdigest(),
+        },
+        "law_checks": {
+            "producer": "PLT-01",
+            "measurement_version": "fixture-v1",
+            "laws": [
+                {
+                    "id": "initial-temperature",
+                    "sample_count": 8,
+                    "violation_rate": 0.25,
+                    "residual_median": 0.1,
+                    "unit": "K",
+                    "outcome": "FAIL",
+                    "adopted": False,
+                    "calibration_image_digest": image,
+                }
+            ],
+        },
+        "model_card": card,
+        "trust_map": native_map,
+        "verify_r": {
+            "schema": "carbon.design-search.verify-aware-result.v1",
+            "rule_digest": "sha256:" + "8" * 64,
+            "status": "SCORED",
+            "v": 1 / 1.2,
+            "mean_service_regret": 0.2,
+            "offered": 8,
+            "unscored": 0,
+            "best_known_only": 0,
+            "unresolved_family": 0,
+            "none_feasible": 0,
+        },
+        "equal_budget": equal,
+    }
+    texts["P4"] = json.dumps(projection)
+    return texts
 
 
 class GeneratorTests(unittest.TestCase):
@@ -296,7 +491,9 @@ class GeneratorTests(unittest.TestCase):
         reader = MemoryReader(self.texts)
         output = render(CHALLENGE, "nasa-std-7009b", reader, self.policy)
         expected = (
-            self.policy["framework"] + self.policy["challenges"][CHALLENGE]["sources"]
+            self.policy["framework"]
+            + self.policy["challenges"][CHALLENGE]["sources"]
+            + self.policy["challenges"][CHALLENGE]["package_sources"]
         )
         self.assertEqual(set(reader.calls), {s["path"] for s in expected})
         self.assertNotIn("SYNTHETIC_CANARY_NOT_FOR_DISCLOSURE", str(output))
@@ -419,6 +616,379 @@ class GeneratorTests(unittest.TestCase):
             write_outputs(self.root, self.outputs())
         self.assertEqual((self.root / "sample.md").read_text(), "retain")
         self.assertFalse((self.root / "sample.json").exists())
+
+
+class PackageEvidenceTests(unittest.TestCase):
+    def setUp(self):
+        self.policy = load_policy()
+        self.texts = package_fixture_texts()
+
+    def outputs(self):
+        return render(
+            CHALLENGE, "nasa-std-7009b", MemoryReader(self.texts), self.policy
+        )
+
+    def package(self):
+        return json.loads(self.outputs()["generation-manifest.json"])[
+            "package_evidence"
+        ]
+
+    def mutate(self, change):
+        projection = json.loads(self.texts["P4"])
+        change(projection)
+        self.texts["P4"] = json.dumps(projection)
+
+    def rows(self, section):
+        return {
+            row["field"]: row for row in self.package()["sections"][section]["rows"]
+        }
+
+    def test_five_views_fill_without_qualification_or_schema_widening(self):
+        output = self.outputs()
+        package = self.package()
+        self.assertEqual(
+            set(package["sections"]),
+            {
+                "law_checks",
+                "model_card",
+                "trust_map",
+                "solver_verification",
+                "decision_evidence",
+            },
+        )
+        self.assertTrue(
+            all(
+                section["coverage"] == "PARTIAL"
+                for section in package["sections"].values()
+            )
+        )
+        record = json.loads(output["sample.json"])
+        self.assertEqual(record["mode"], "DEVELOPMENT_SAMPLE")
+        self.assertEqual(record["eligible_tier"], "UNESTABLISHED")
+        self.assertIsNone(record["qualification_record"])
+        self.assertFalse(package["qualification_claim"])
+        self.assertEqual(output["deliverable.schema.json"], self.texts["F2"])
+        self.assertEqual(
+            set(output),
+            {
+                "sample.md",
+                "sample.json",
+                "deliverable.schema.json",
+                "generation-manifest.json",
+            },
+        )
+
+    def test_missing_projection_preserves_mms_and_named_gaps(self):
+        self.texts.pop("P4")
+        package = self.package()
+        for name in ("law_checks", "model_card", "trust_map", "decision_evidence"):
+            self.assertEqual(package["sections"][name]["coverage"], "GAP")
+            self.assertTrue(package["sections"][name]["gaps"])
+        self.assertEqual(
+            package["sections"]["solver_verification"]["coverage"], "PARTIAL"
+        )
+        self.assertIsNone(package["identity"])
+
+    def test_law_failure_retained_and_unadopted_draft_never_gate_authority(self):
+        rows = self.rows("law_checks")
+        failure = rows["initial-temperature.violation_rate"]
+        self.assertEqual(failure["coverage"], "EVIDENCED")
+        self.assertEqual(failure["outcome"], "FAIL")
+        self.assertFalse(failure["gate_input_eligible"])
+        self.assertEqual(rows["capacity-bound"]["coverage"], "GAP")
+        record = json.loads(self.outputs()["sample.json"])
+        self.assertTrue(
+            any(
+                f["outcome"] == "FAIL" and f["id"].startswith("PACKAGE_law_checks")
+                for f in record["adverse_findings"]
+            )
+        )
+        self.assertIn(
+            "EV5 reported adversarial-score verdict: **FAIL**",
+            self.outputs()["sample.md"],
+        )
+
+    def test_contract_and_calibration_mismatch_hold_only_law_join(self):
+        for field in ("contract", "image"):
+            with self.subTest(field=field):
+                self.texts = package_fixture_texts()
+                if field == "contract":
+                    self.mutate(
+                        lambda p: p["identity"].update(
+                            physics_contract_digest="sha256:" + "f" * 64
+                        )
+                    )
+                else:
+                    self.mutate(
+                        lambda p: p["law_checks"]["laws"][0].update(
+                            calibration_image_digest="sha256:" + "f" * 64
+                        )
+                    )
+                self.assertEqual(
+                    self.package()["sections"]["law_checks"]["coverage"], "GAP"
+                )
+                self.assertEqual(
+                    self.package()["sections"]["model_card"]["coverage"], "PARTIAL"
+                )
+
+    def test_each_card_metric_is_sourced_or_gap_and_floor_is_null(self):
+        self.mutate(lambda p: p["model_card"].pop("extrapolation"))
+        rows = self.rows("model_card")
+        self.assertEqual(rows["accuracy_near_limits"]["sample_count"], 8)
+        self.assertTrue(
+            rows["accuracy_near_limits"]["citation"].endswith(
+                "package-projection.json)"
+            )
+        )
+        self.assertEqual(rows["extrapolation"]["coverage"], "GAP")
+        self.assertIsNone(rows["extrapolation"]["value"])
+        self.assertTrue(
+            all(
+                row["floor"] is None and row["floor_authority"] == "HUMAN_INPUT"
+                for row in rows.values()
+            )
+        )
+
+    def test_unmeasured_or_nonfinite_card_values_never_zero_or_pass(self):
+        for value, count in ((None, 0), (True, 8), (float("inf"), 8), (0.1, True)):
+            with self.subTest(value=value, count=count):
+                self.texts = package_fixture_texts()
+                self.mutate(
+                    lambda p, value=value, count=count: p["model_card"][
+                        "robustness"
+                    ].update(value=value, sample_count=count, outcome="PASS")
+                )
+                row = self.rows("model_card")["robustness"]
+                self.assertEqual(row["coverage"], "GAP")
+                self.assertIsNone(row["value"])
+                self.assertNotEqual(row["outcome"], "PASS")
+
+    def test_reference_and_infra_failure_classification_survives_null_measurement(self):
+        for state in ("FAILED_REFERENCE", "FAILED_INFRA"):
+            self.texts = package_fixture_texts()
+            self.mutate(
+                lambda p, state=state: p["model_card"]["accuracy_overall"].update(
+                    value=None, sample_count=0, outcome=state
+                )
+            )
+            row = self.rows("model_card")["accuracy_overall"]
+            self.assertEqual(row["coverage"], "GAP")
+            self.assertEqual(row["outcome"], state)
+            record = json.loads(self.outputs()["sample.json"])
+            self.assertTrue(
+                any(f["outcome"] == state for f in record["adverse_findings"])
+            )
+
+    def test_native_map_preserves_cells_units_and_no_data(self):
+        rows = self.rows("trust_map")
+        self.assertEqual(rows["cell.0.error.voltage_v.median"]["value"], 0.1)
+        self.assertEqual(rows["cell.0.error.voltage_v.median"]["unit"], "V")
+        empty = rows["cell.1.error.voltage_v.median"]
+        self.assertEqual(empty["coverage"], "GAP")
+        self.assertIsNone(empty["value"])
+        self.assertEqual(rows["law_layer"]["coverage"], "GAP")
+        self.assertEqual(rows["interval_layer"]["coverage"], "GAP")
+
+    def test_map_disclosure_reference_and_denominator_mismatches_are_gaps(self):
+        changes = [
+            lambda p: p["trust_map"]["source"].update(kind="PROTECTED"),
+            lambda p: p["trust_map"]["reference_verification"].update(
+                image_digest="sha256:" + "f" * 64
+            ),
+            lambda p: p["trust_map"]["basis"].update(cases=999),
+            lambda p: p["trust_map"]["cells"][1].update(count=1),
+        ]
+        for change in changes:
+            self.texts = package_fixture_texts()
+            self.mutate(change)
+            self.assertEqual(self.package()["sections"]["trust_map"]["coverage"], "GAP")
+
+    def test_mms_observations_and_acceptance_link_are_separate(self):
+        rows = self.rows("solver_verification")
+        self.assertEqual(rows["norm.0.l2"]["value"], 0.01)
+        self.assertEqual(rows["machine_verdict"]["value"], "HUMAN_INPUT")
+        self.assertFalse(rows["machine_acceptance"]["value"])
+        self.assertEqual(
+            rows["owner_acceptance_link"]["value"], "RECORDED_OWNER_DECISION"
+        )
+        self.assertEqual(rows["physical_validation"]["coverage"], "GAP")
+
+    def test_successful_ev5_rebuild_is_never_mms(self):
+        self.texts.pop("P1")
+        self.texts.pop("P4")
+        self.assertEqual(
+            self.package()["sections"]["solver_verification"]["coverage"], "GAP"
+        )
+        self.assertIn("110 / 110", self.outputs()["sample.md"])
+
+    def test_wrong_mms_family_or_unmeasured_mms_refuses_dependent_joins(self):
+        for change in (
+            lambda p: p.update(family="motor"),
+            lambda p: p.update(norms=[]),
+            lambda p: p.update(image_digest="not-an-image"),
+        ):
+            self.texts = package_fixture_texts()
+            mms = json.loads(self.texts["P1"])
+            change(mms)
+            self.texts["P1"] = json.dumps(mms)
+            package = self.package()
+            self.assertIsNone(package["identity"])
+            self.assertEqual(
+                package["sections"]["solver_verification"]["coverage"], "GAP"
+            )
+            self.assertEqual(package["sections"]["model_card"]["coverage"], "GAP")
+
+    def test_verify_r_and_equal_budget_keep_distinct_bases(self):
+        rows = self.rows("decision_evidence")
+        self.assertEqual(rows["verify_r.regret"]["value"], 0.2)
+        self.assertEqual(
+            rows["verify_r.regret"]["unit"], "dimensionless bounded regret"
+        )
+        self.assertEqual(rows["curve.0.paired_delta"]["value"], -1.0)
+        self.assertEqual(rows["curve.0.paired_delta"]["unit"], "s")
+        self.assertEqual(rows["curve.0.paired_ci"]["value"], [-2.0, -0.5])
+        self.assertEqual(rows["false_feasibility"]["coverage"], "GAP")
+
+    def test_incomplete_verify_r_has_no_regret_default(self):
+        self.mutate(
+            lambda p: p["verify_r"].update(status="INCOMPLETE_LEGS", unscored=1, v=None)
+        )
+        row = self.rows("decision_evidence")["verify_r.regret"]
+        self.assertEqual(row["coverage"], "GAP")
+        self.assertIsNone(row["value"])
+
+    def test_assumed_unresolved_or_wrong_family_equal_budget_cannot_be_measurement(
+        self,
+    ):
+        for change in (
+            lambda r: r.update(cost_basis="ASSUMPTION"),
+            lambda r: r.update(status="UNRESOLVED_PANEL"),
+            lambda r: r.update(challenge="motor"),
+        ):
+            self.texts = package_fixture_texts()
+            self.mutate(lambda p, change=change: change(p["equal_budget"]))
+            row = self.rows("decision_evidence")["equal_budget"]
+            self.assertEqual(row["coverage"], "GAP")
+            self.assertIsNone(row["value"])
+
+    def test_incomplete_paired_jobs_retain_adverse_arms_and_gap_the_delta(self):
+        def change(p):
+            estimates = p["equal_budget"]["curves"][0]["estimates"]
+            estimates["paired_verified_value_count"] = 7
+            estimates["paired_verified_value_delta"] = None
+            estimates["model_then_solver"]["feasible_pick_fraction"] = 0.5
+
+        self.mutate(change)
+        rows = self.rows("decision_evidence")
+        self.assertEqual(rows["curve.0.paired_delta"]["coverage"], "GAP")
+        self.assertEqual(
+            rows["curve.0.model_then_solver.feasible_pick_fraction"]["value"], 0.5
+        )
+
+    def test_projection_identity_and_disclosure_fail_closed_without_input_echo(self):
+        changes = [
+            lambda p: p.update(challenge="motor"),
+            lambda p: p["identity"].update(reference_image_digest="sha256:" + "f" * 64),
+            lambda p: p["disclosure"].update(kind="PROTECTED"),
+            lambda p: p.update(unregistered="SYNTHETIC_CANARY_NOT_FOR_DISCLOSURE"),
+        ]
+        for change in changes:
+            self.texts = package_fixture_texts()
+            self.mutate(change)
+            output = self.outputs()
+            package = json.loads(output["generation-manifest.json"])["package_evidence"]
+            self.assertIsNone(package["identity"])
+            self.assertNotIn("SYNTHETIC_CANARY_NOT_FOR_DISCLOSURE", str(output))
+
+    def test_malformed_nested_interval_is_a_gap_without_stopping_other_evidence(self):
+        self.mutate(
+            lambda p: p["equal_budget"]["curves"][0].update(
+                bootstrap_ci=["SYNTHETIC_CANARY_NOT_FOR_DISCLOSURE"]
+            )
+        )
+        output = self.outputs()
+        self.assertEqual(
+            self.rows("decision_evidence")["equal_budget"]["coverage"], "GAP"
+        )
+        self.assertEqual(
+            self.rows("decision_evidence")["verify_r.regret"]["value"], 0.2
+        )
+        self.assertEqual(self.rows("solver_verification")["norm.0.l2"]["value"], 0.01)
+        self.assertNotIn("SYNTHETIC_CANARY_NOT_FOR_DISCLOSURE", str(output))
+
+    def test_malformed_draft_shapes_are_gaps_without_stopping_other_evidence(self):
+        for shape in ("root", "required_outputs"):
+            with self.subTest(shape=shape):
+                self.texts = package_fixture_texts()
+                draft = json.loads(self.texts["P3"])
+                if shape == "root":
+                    draft = ["SYNTHETIC_CANARY_NOT_FOR_DISCLOSURE"]
+                else:
+                    draft["required_outputs"] = ["SYNTHETIC_CANARY_NOT_FOR_DISCLOSURE"]
+                self.texts["P3"] = json.dumps(draft)
+                output = self.outputs()
+                self.assertEqual(self.rows("law_checks")["contract"]["coverage"], "GAP")
+                self.assertEqual(
+                    self.rows("solver_verification")["norm.0.l2"]["value"], 0.01
+                )
+                self.assertEqual(
+                    self.rows("model_card")["accuracy_overall"]["value"], 0.1
+                )
+                self.assertNotIn("SYNTHETIC_CANARY_NOT_FOR_DISCLOSURE", str(output))
+
+    def test_duplicate_json_keys_and_raw_questions_do_not_escape(self):
+        self.texts["P4"] = self.texts["P4"].replace(
+            '"model_card":', '"model_card": null, "model_card":', 1
+        )
+        self.assertIsNone(self.package()["identity"])
+        self.texts = package_fixture_texts()
+        self.mutate(
+            lambda p: p["verify_r"].update(
+                questions=["SYNTHETIC_CANARY_NOT_FOR_DISCLOSURE"]
+            )
+        )
+        self.assertNotIn("SYNTHETIC_CANARY_NOT_FOR_DISCLOSURE", str(self.outputs()))
+        self.assertEqual(self.rows("decision_evidence")["verify_r"]["coverage"], "GAP")
+
+    def test_all_registered_families_have_package_views_without_cross_family_facts(
+        self,
+    ):
+        for challenge in (CHALLENGE, "f02", "motor", "cooling-cell"):
+            output = render(
+                challenge, "asme-vv10", MemoryReader(fixture_texts()), self.policy
+            )
+            package = json.loads(output["generation-manifest.json"])["package_evidence"]
+            self.assertEqual(package["challenge"], challenge)
+            self.assertEqual(len(package["sections"]), 5)
+            self.assertTrue(
+                all(
+                    section["coverage"] == "GAP"
+                    for section in package["sections"].values()
+                )
+            )
+
+    def test_package_generation_is_deterministic_and_public_paths_stay_registered(self):
+        self.assertEqual(self.outputs(), self.outputs())
+        reader = MemoryReader(self.texts)
+        render(CHALLENGE, "nasa-std-7009b", reader, self.policy)
+        config = self.policy["challenges"][CHALLENGE]
+        self.assertEqual(
+            set(reader.calls),
+            {
+                item["path"]
+                for item in self.policy["framework"]
+                + config["sources"]
+                + config["package_sources"]
+            },
+        )
+        manifest = json.loads(self.outputs()["generation-manifest.json"])
+        self.assertRegex(manifest["source_policy_digest"], r"^sha256:[0-9a-f]{64}$")
+        self.assertTrue(
+            all(
+                row["evidence_refs"] == ["P4"]
+                for row in self.rows("model_card").values()
+            )
+        )
 
 
 if __name__ == "__main__":

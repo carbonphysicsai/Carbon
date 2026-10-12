@@ -5,6 +5,11 @@
 is delivered by this ticket. Reviewer route: Carbon Validator; Data Collection
 for reference, measurement and data joins. Adoption and acceptance: HUMAN_INPUT.
 
+PRD-01 amendment (2026-10-12): incorporates the
+[Carbon Validator follow-ups](https://github.com/carbonphysicsai/Carbon/pull/1195#issuecomment-6129429811).
+The Guard and Assistant remain designs for PRD-02/03; PRD-01 implements only
+DEVELOPMENT_SAMPLE document automation.
+
 The Carbon Model Package is one versioned engineering product: an exact fast
 model, the contract describing its supported job, evidence explaining where its
 answers hold, and a guarded design workflow that escalates doubtful answers to
@@ -59,11 +64,14 @@ term. Mandatory failure cannot be offset by value, speed or purchase. A floor
 becomes a gate only after the governing owner registers and screens it. No
 scoring or crown rule is imported from the operator draft by this specification.
 
-Two seams are explicit. **DOCUMENTATION_LAG:** the shared
-`PHYSICS_CONTRACT_01_DRAFT.md` §1 discusses scored laws while its later §5 says
-laws are gates; the [committed packet drafts](../../../docs/development/challenge_pipeline/physics_contracts/README.md)
-adopt only the format and solver-calibration principle. Neither passage changes
-runtime authority; law adoption, floors and score use remain HUMAN_INPUT.
+Two seams are explicit. **DOCUMENTATION_LAG resolved prospectively:** the shared
+`PHYSICS_CONTRACT_01_DRAFT.md` §1/§2 now says gates or measured deliverables,
+never scored laws. PRD-01 read that update at SHA-256
+`362d9fc397865dd66c065107bcddad724bc4f4c72deb1eaad0a3659b2148f5c1`.
+The earlier digest above remains PRD-00's historical input. The
+[committed packet drafts](../../../docs/development/challenge_pipeline/physics_contracts/README.md)
+adopt only the format and solver-calibration principle. The wording repair
+does not adopt a gate; law adoption, floors and score use remain HUMAN_INPUT.
 **IMPLEMENTATION_LAG:** the merged
 [MMS owner decision](../../../.agent/decisions/2026-10-11-OWNER-CODE-VERIFICATION-ACCEPT-01.md)
 accepts bounded battery/motor/f02 code checks, while the older
@@ -81,7 +89,7 @@ there is no second fact store or second qualification authority.
 | Package element | D-section homes | Q-step homes | Existing PB homes | Additive work |
 | --- | --- | --- | --- | --- |
 | CMP-01 Exact artifact and rebuild recipe | D08, D11 | Q0, Q5, Q8 | PB-ART, PB-LAT, PB-PHYS | Bind full runtime and wrapper identity, parity and cost evidence |
-| CMP-02 Physics contract and compliance report | D02–D05, D07 | Q0, Q1, Q2, Q8 | PB-PHYS, PB-ADV; PB-ROLL where required | Join adopted laws, required outputs and image-bound calibration to results |
+| CMP-02 Physics contract and law-check report | D02–D05, D07 | Q0, Q1, Q2, Q8 | PB-PHYS, PB-ADV; PB-ROLL where required | Join adopted laws, required outputs and image-bound calibration to results |
 | CMP-03 Model card and floor register | D05–D08, D10 | Q0, Q1, Q2 | PB-PHYS, PB-ADV, PB-LAT; applicable PB-ROLL | Region accuracy, robustness, stretch error, calibration and full cost |
 | CMP-04 Trust map | D03, D05–D07, D09 | Q1, Q4, Q5 | PB-PHYS, PB-ADV, PB-ESC | Add law and later interval layers; accepted query-time interpretation |
 | CMP-05 Decision evidence | D01, D02, D05, D07 | Q1, Q2 | PB-INV, PB-ADV, PB-LAT | Safe VERIFY-R/top-k and equal-budget evidence joins |
@@ -124,7 +132,7 @@ load. Report raw model latency and end-to-end guarded workflow latency
 separately. Parity tolerance, latency class/SLA and supported runtime acceptance
 are HUMAN_INPUT. No unmeasured performance claim is filled from a library name.
 
-## 4. CMP-02 — physics contract and compliance report
+## 4. CMP-02 — physics contract and law-check report
 
 The contract binds laws and their scientific sources, mathematical assumptions,
 validity envelope, required inputs/outputs and observers, calibration route,
@@ -270,7 +278,7 @@ severity-to-sample-count or risk-to-approval formula is supplied.
 
 | Requirement / use | Model influence / consequence / required credibility | Verification evidence | Reference-relative evidence | Physical-validation evidence | Outcome, gap, adverse link / authority |
 | --- | --- | --- | --- | --- | --- |
-| CMP-PILOT-LIMIT: agreed buyer limit, units and observer HUMAN_INPUT | HUMAN_INPUT / HUMAN_INPUT / HUMAN_INPUT | Exact-image MMS plus application convergence: cite or GAP | Exact product/panel/observer compliance: cite or GAP | Customer-host referent, measurement uncertainty and applicability: GAP / HUMAN_INPUT | NOT_ASSESSED; no limit or acceptance inferred |
+| CMP-PILOT-LIMIT: agreed buyer limit, units and observer HUMAN_INPUT | HUMAN_INPUT / HUMAN_INPUT / HUMAN_INPUT | Exact-image MMS plus application convergence: cite or GAP | Exact product/panel/observer law checks: cite or GAP | Customer-host referent, measurement uncertainty and applicability: GAP / HUMAN_INPUT | NOT_ASSESSED; no limit or acceptance inferred |
 | CMP-PILOT-DECISION: offline design selection under agreed budget | HUMAN_INPUT / HUMAN_INPUT / HUMAN_INPUT | Export/Guard/Assistant code and integration evidence: cite or GAP | Solver-verified decision value, false feasibility and adequate baseline: cite or GAP | Real-system corroboration needed for a physical claim: GAP / HUMAN_INPUT | Historical adverse results retained; customer acceptance HUMAN_INPUT |
 
 These are proposed requirement slots, not completed customer assessments. Code
@@ -345,12 +353,19 @@ trust and security acceptance remain HUMAN_INPUT; no keys are created here.
 Ship the Guard with the model as part of the exact Q5 package. Proposed
 PRD-02 inputs: validated package/contract/envelope/map identities, model callable,
 query plus context/units, and an accepted guard policy. It checks every query:
-input and physical/model applicability; cheap registered law probes around the
+input and physical/model applicability; cheap adopted-law probes around the
 query; trust-map cell and marginalized-context coverage; and model uncertainty
 when the policy requires or supports it. Probe construction stays inside its
-declared applicability, with public/local randomness and a bounded cost.
+declared applicability, with a deterministic probe set derived from query,
+policy version and contract, and a bounded cost. Record its seed derivation and
+identities in the local receipt so repeated queries replay the same verdict.
 No official seeds, protected data, arbitrary contract code or solver call is
 needed for an inline law check.
+
+Only adopted laws with registered, image-bound tolerances are Guard verdict
+inputs. Unadopted or uncalibrated laws remain separately labelled diagnostics;
+they do not force every query into VERIFY. Their proposed thresholds cannot
+become production policy through a document or source-projection flag.
 
 | Verdict | Required meaning | Buyer workflow |
 | --- | --- | --- |
@@ -404,6 +419,13 @@ feasibility on the reference before naming a verified choice. An unavailable
 reference or exhausted verification budget returns unresolved/abstention and
 the remaining plan, not a verified recommendation. Report proven NONE_FEASIBLE
 only when the registered question law's evidence establishes it.
+
+Search concentrates on optimistic model errors; pooled trust-map error may
+understate error on the selected candidates. A map/Guard TRUST verdict can
+order verification, never replace solver verification of the Assistant's
+picks. PB-INV/ADV must measure false feasibility on those picks themselves.
+The Validator's RES-06 bypass example keeps unsafe picks after visible law
+checks pass: adopted gates still do not certify design safety.
 
 Expected regret is an estimate requiring an independently assessed, matching
 question population, units, policy and budget, with its uncertainty/basis.
@@ -486,7 +508,7 @@ these observations prospectively with exact identities.
 | Element | Designed | Implemented at baseline | Test/evidence basis at baseline | Qualified package state / next gap |
 | --- | --- | --- | --- | --- |
 | CMP-01 Artifact | Yes; Q0/Q5/PB-ART/LAT | Reconstruction/runtime pieces exist; complete product bundle not established | Historical rebuilds differ from exact customer export/Guard parity | UNESTABLISHED; fresh artifact, parity, runtime and accepted recipe rights |
-| CMP-02 Physics report | Yes; four packet drafts | Draft metadata advisory; adopted general compliance report not established | Packet/checker engineering checks; limited owner-accepted MMS routes; no law calibration by this ticket | UNESTABLISHED; adopted laws/outputs/validity, matched calibration and accepted reference adequacy |
+| CMP-02 Physics report | Yes; four packet drafts | Draft metadata advisory; adopted general law-check report not established | Packet/checker engineering checks; limited owner-accepted MMS routes; no law calibration by this ticket | UNESTABLISHED; adopted laws/outputs/validity, matched calibration and accepted reference adequacy |
 | CMP-03 Model card | Yes; existing role plus added fields | Existing evaluation/card/timing pieces; v2 product card/floors incomplete | Historical scoped development metrics; new required rows may be GAP | UNESTABLISHED; all applicable rows, registered floors, independent fresh product evidence |
 | CMP-04 Map | Yes; PLT-05 plus extensions | Error/disagreement DEVELOPMENT core and battery adapter | `tests/cpu/test_trust_map.py` defines synthetic checks; no measured package map supplied by PRD-00 | UNESTABLISHED; accepted reference projection, law/interval layers and Guard policy |
 | CMP-05 Decision evidence | Yes; VALUE-BAR/equal-budget | Development evaluator and replay; safe complete package join missing | Existing component tests and historical decision evidence retain adverse outcomes; replay is not live search | UNESTABLISHED; exact product/held-out joins, measured costs and customer value evidence |
@@ -501,7 +523,7 @@ these observations prospectively with exact identities.
 
 The nearest useful milestone is a **battery DEVELOPMENT_SAMPLE diagnostic
 package**, following the existing pilot plan: one named offline screening job,
-all D01–D11 sections, an identity/source manifest, law-compliance skeleton,
+all D01–D11 sections, an identity/source manifest, law-check skeleton,
 model-card rows, public error/disagreement map if its inputs are eligible,
 historical decision/adverse annex, risk/requirements matrix and standards
 crosswalk. Every absent artifact, measurement, floor, physical referent and
@@ -532,6 +554,10 @@ The current delivery protocol retires the Hub: no map/event/regeneration change.
 | Physics and reference | Adopted laws, output/validity contract, verified route/observable uncertainty and calibration/gate-screening acceptance; science/Carbon Validator and Data Collection | Required law/applicability unresolved; no TRUST or scientific pass |
 | Floors and evolution | Each card floor, applicability/mandatory status, tolerances and any proposed ratchet adoption; science/owner | Null criteria; no automatic eligibility or crown decision |
 | Guard policy and latency | Coverage, uncertainty/no-interval policy, reference fallback, probe budget and latency target; product/science/customer authority | Missing required policy prevents TRUST; unsupported resolution REFUSE |
+| Artifact/runtime evidence | Export-parity and rebuild-agreement tolerances, supported runtime/hardware acceptance; product/runtime and science owners | Exact deployable artifact claim unestablished |
+| Disclosure projections | Q4 public/buyer allow-lists and their designated approver; rights/security/product owners | Affected evidence projection or delivery blocked |
+| Standards review | Applicable editions, tailoring, licensed clause review and responsible acceptance authority; customer/assurance owner | Crosswalk only; compliance/accreditation unestablished |
+| Guard audit handling | Local audit-log retention, telemetry policy and responsible approver; customer/privacy/security owners | No telemetry or retention authority inferred |
 | Assistant/value | Search/verification budget, k, abstention and expected-regret evidence; question/value and customer owners | No accepted recommendation or claimed value; missing regret null |
 | Credibility/physical evidence | Risk categories, required credibility, referents, independence, uncertainty and acceptance authority; assurance/customer | Physical validation and accreditation unestablished |
 | Lifecycle/security/deployment | Exact Q3 states, material-change/drift triggers, incident responsibility, signing trust and deployment/security acceptance; owners | Affected continued-use/delivery blocked or explicitly development-only |
