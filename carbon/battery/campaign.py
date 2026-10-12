@@ -1004,6 +1004,7 @@ INTAKE_UNAVAILABLE = frozenset(
         "receipt_block_missing",
         "commitment_reader_unavailable",
         "backend_not_served",
+        "level4_store_not_owner_only",
         "TRANSPORT_CAPACITY",
         "TRANSPORT_STORE",
         "AUTH_UNAVAILABLE",
@@ -1089,6 +1090,7 @@ def submit_through_intake(
     post=None,
     receiver=None,
     construction_level=None,
+    level4_envelope=None,
 ):
     """The epoch's frozen candidate through a validator intake, to a verdict.
 
@@ -1111,6 +1113,10 @@ def submit_through_intake(
     `IntakeRefusal` with the intake's or the transport's code.
     `construction_level` is the frozen record's level binding
     (LAUNCHPAD-LEVELS-01), or None: a variant digest is sent only with it.
+    `level4_envelope`, a Level 4 candidate's frozen staging envelope bytes,
+    is sent in signed parts (`remote_submission.send_level4_envelope`, only
+    the parts the intake lacks) before the candidate is submitted or resent
+    for a submission the intake no longer holds (LAUNCHPAD-LEVELS-01 S4).
     """
     from carbon.reconstruction.capability_registry import (
         DEVELOPMENT_VARIANT_NOT_SERVED,
@@ -1150,6 +1156,20 @@ def submit_through_intake(
     if recorded is not None and recorded.get("url") != url:
         raise rs.IntakeRefusal("intake_changed_since_submission")
 
+    def envelope_held():
+        if level4_envelope is None:
+            return
+        from .level4_parts import FIELD
+
+        rs.send_level4_envelope(
+            url,
+            signer,
+            submission=strategy["parameters"][FIELD],
+            envelope=level4_envelope,
+            receiver=receiver,
+            **io,
+        )
+
     def wait():
         return rs.submit_and_wait(
             url,
@@ -1161,17 +1181,21 @@ def submit_through_intake(
             **passed,
         )
 
+    if recorded is None:
+        envelope_held()
     try:
         status, answer, submission_id = wait()
     except rs.IntakeRefusal as refused:
         if refused.code != "not_found" or recorded is None:
             raise
         sid = recorded["submission_id"]
+        envelope_held()
         _resend(url, signer, sid, None, strategy, contract_digest, io, receiver)
         return wait()
     failure = answer.get("failure") or {}
     if answer.get("state") != "REFUSED" or failure.get("code") not in RECEIVED_AGAIN:
         return status, answer, submission_id
+    envelope_held()
     _resend(
         url, signer, submission_id, failure, strategy, contract_digest, io, receiver
     )
@@ -1300,6 +1324,37 @@ def _level_record_bound(prepared, record):
         raise OperationRefused("level_not_registered")
 
 
+def _level4_envelope(folder, record):
+    """A Level 4 candidate's frozen envelope bytes, unchanged, once
+    `construction_level.read_envelope` checks them and the strategy's Level 4
+    field names the envelope's submission; `OperationRefused` otherwise."""
+    from carbon.development_session import construction_level as cl
+    from carbon.development_session.research_campaign import OperationRefused
+
+    from .level4_parts import FIELD
+
+    try:
+        envelope = cl.read_envelope(folder, record)
+    except cl.LevelRefused as refused:
+        raise OperationRefused(refused.code) from None
+    parameters = record["strategy"].get("parameters") or {}
+    if parameters.get(FIELD) != envelope["submission"]:
+        raise OperationRefused("level4_submission_not_in_strategy")
+    return (Path(folder) / cl.LEVEL4_ENVELOPE).read_bytes()
+
+
+def _carries_level4(url, read=None):
+    """Whether the intake's public facts, read now, list the Level 4 part
+    tools. Unread is never carried."""
+    from . import intake_client
+    from .level4_parts import carries_parts
+
+    try:
+        return carries_parts((read or intake_client.read_intake)(url))
+    except Exception:  # noqa: BLE001 - unread is never carried (fail closed)
+        return False
+
+
 async def _evaluate_through_intake(prepared, epoch, record, url):
     """One frozen candidate through the validator's intake; see
     `submit_through_intake`. The epoch is consumed only by a verdict: SCORED,
@@ -1320,7 +1375,6 @@ async def _evaluate_through_intake(prepared, epoch, record, url):
     from carbon.chain.external_signer import SignerFailure
     from carbon.development_session.research_campaign import OperationRefused
 
-    from .intake_client import describe
     from .remote_submission import IntakeRefusal
 
     root = prepared.ledger.root
@@ -1328,16 +1382,18 @@ async def _evaluate_through_intake(prepared, epoch, record, url):
     frozen_level = record.get("construction_level")
     if type(frozen_level) is dict and frozen_level.get("level") == 4:
         # A Level 4 candidate travels with its staging envelope beside the
-        # signed strategy (LEVEL4_STAGING_CONTRACT §4). It is read and checked
-        # here, unchanged; no intake carries it yet (the validator's upload,
-        # VALIDATOR-25 slice 4), so nothing is signed or sent.
-        from carbon.development_session import construction_level as cl
+        # signed strategy (LEVEL4_STAGING_CONTRACT §4), read and checked here
+        # and sent as frozen, in signed parts ahead of the submission
+        # (LAUNCHPAD-LEVELS-01 S4). Only to an intake whose public facts list
+        # the part tools: any other, or one not read, is refused before
+        # anything is signed or committed (fail closed).
+        level4_envelope = _level4_envelope(root / ("epoch-" + str(epoch)), record)
+        if not _carries_level4(url):
+            from carbon.development_session import construction_level as cl
 
-        try:
-            cl.read_envelope(root / ("epoch-" + str(epoch)), record)
-        except cl.LevelRefused as refused:
-            raise OperationRefused(refused.code) from None
-        raise OperationRefused(cl.LEVEL4_TRANSPORT_UNAVAILABLE)
+            raise OperationRefused(cl.LEVEL4_TRANSPORT_UNAVAILABLE)
+    else:
+        level4_envelope = None
     gate = getattr(prepared.args, "commitment_gate", None)
     asks = getattr(prepared, "agent", "none") != "none"
     if gate is not None and commitment_due(prepared.args, root, epoch):
@@ -1356,6 +1412,7 @@ async def _evaluate_through_intake(prepared, epoch, record, url):
                 or prepared.manifest["contract_digest"],
                 receiver=_receiver(prepared),
                 construction_level=record.get("construction_level"),
+                level4_envelope=level4_envelope,
             )
         except IntakeRefusal as refused:
             raise OperationRefused(intake_code(refused.code)) from None
@@ -1381,10 +1438,26 @@ async def _evaluate_through_intake(prepared, epoch, record, url):
         await _committed(
             gate, root, epoch, record, prepared.manifest, request=True, recommit=True
         )
+    return intake_feedback(epoch, url, status, answer, submission_id)
+
+
+#: The intake states that are an epoch's verdict: the only ones that consume it.
+VERDICT_STATES = frozenset({"SCORED", "INVALID_CONSTRUCTION", "RECONSTRUCTION_FAILED"})
+
+
+def intake_feedback(epoch, url, status, answer, submission_id):
+    """The permitted feedback for an intake's verdict on the epoch's
+    submission, as a submit stores it and as observe's read of a queued
+    verdict stores it (LA-F18): one builder, so the two cannot differ.
+    Raises `OperationRefused` for an answer that is not a verdict."""
+    from carbon.development_session.research_campaign import OperationRefused
+
+    from .intake_client import describe
+
     state = answer.get("state")
     if state == "FAILED_INFRA_EXHAUSTED":
         raise OperationRefused("evaluation_failed_infra")
-    if state not in ("SCORED", "INVALID_CONSTRUCTION", "RECONSTRUCTION_FAILED"):
+    if state not in VERDICT_STATES:
         raise OperationRefused("intake_answer_unrecognised")
     try:
         description = describe(status, answer)
@@ -1402,21 +1475,113 @@ async def _evaluate_through_intake(prepared, epoch, record, url):
     }
 
 
-async def evaluate_frozen(prepared, epoch, strategy):
-    """This Challenge's validator daemon judges the frozen candidate; the
-    Burgers final epoch never sees it."""
+def queued_verdict(
+    args, root, epoch, connect, *, now=None, read=None, post=None, floor=None
+):
+    """Observe's read of a queued submission's verdict (LA-F18).
+
+    For the open epoch of a campaign whose candidate went through this
+    Challenge's validator intake and is recorded there
+    (`intake-submission-epoch-N.json`) with no verdict yet, ask the intake
+    once for its status, at most once per chain epoch: no sooner than
+    `remote_submission.READ_FLOOR_S` after the last read
+    (`claim_status_read`), and never twice in the tempo of the intake's
+    finalized block (`read_status_once(once_per_tempo=True)`). Returns the permitted feedback, built as a
+    submit's is (`intake_feedback`), when the answer is a verdict, for the
+    caller to store as a submit would (`record_verdict`); otherwise None.
+
+    Read-only: the read is signed through the signer's read-only kind
+    (`remote_submission.read_status_once`), which signs only a
+    `battery_status` read. `connect()` reaches the miner's signer, and is
+    called only once a read is due. Nothing is submitted, resent or committed, and a
+    refusal, a failure or an answer that is not a verdict changes nothing
+    but the read's recorded time. A deployment on this machine, a missing
+    intake, a candidate frozen under another level binding and a Level 4
+    candidate (never sent) are not read.
+    """
+    import http.client
+
+    from carbon.chain.external_signer import SignerFailure
+    from carbon.development_session.research_campaign import OperationRefused
+
+    from . import intake_client
+    from . import remote_submission as rs
+
+    root = Path(root)
+    prepared = SimpleNamespace(args=args)
+    url = _intake(prepared)
+    if evaluation_config(prepared) is not None or url is None:
+        return None
+    folder = root / ("epoch-" + str(epoch))
+    if (folder / "permitted-final-feedback.json").exists():
+        return None
+    try:
+        record = json.loads((folder / "selected-recipe.json").read_bytes())
+        prepared.manifest = json.loads((root / "campaign-manifest.json").read_bytes())
+        _level_record_bound(prepared, record)
+    except (OSError, ValueError, OperationRefused):
+        return None
+    frozen_level = record.get("construction_level")
+    if type(frozen_level) is dict and frozen_level.get("level") == 4:
+        return None
+    if not rs.claim_status_read(
+        root,
+        epoch,
+        now=time.time() if now is None else now,
+        floor=rs.READ_FLOOR_S if floor is None else floor,
+    ):
+        return None
+    try:
+        found = rs.read_status_once(
+            url,
+            connect(),
+            root=root,
+            epoch=epoch,
+            read=read or intake_client.read_intake,
+            post=post or intake_client.post,
+            receiver=_receiver(prepared),
+            once_per_tempo=True,
+        )
+        if found is None:
+            return None
+        return intake_feedback(epoch, url, *found)
+    except (
+        rs.IntakeRefusal,
+        OperationRefused,
+        SignerFailure,
+        OSError,
+        http.client.HTTPException,
+        ValueError,
+        KeyError,
+        TypeError,
+        AttributeError,
+    ):
+        return None
+
+
+def record_verdict(ledger, owner, epoch, feedback):
+    """Store an epoch's permitted feedback as `evaluate_frozen` stores a
+    submit's: the epoch's `permitted-final-feedback.json`, written once, and
+    the owner report."""
     from carbon.development_session.data import write_once
     from carbon.development_session.profile import canonical
     from carbon.development_session.research_report import report
 
+    folder = ledger.root / ("epoch-" + str(epoch))
+    write_once(folder / "permitted-final-feedback.json", canonical(feedback))
+    report(ledger, owner=owner)
+
+
+async def evaluate_frozen(prepared, epoch, strategy):
+    """This Challenge's validator daemon judges the frozen candidate; the
+    Burgers final epoch never sees it."""
     ledger, owner = prepared.ledger, prepared.owner
     folder = ledger.root / ("epoch-" + str(epoch))
     record = json.loads((folder / "selected-recipe.json").read_bytes())
     if record["strategy"] != strategy:
         raise ValueError("submitted strategy differs from the frozen candidate")
     feedback = await evaluate_candidate(prepared, epoch, record)
-    write_once(folder / "permitted-final-feedback.json", canonical(feedback))
-    report(ledger, owner=owner)
+    record_verdict(ledger, owner, epoch, feedback)
     return feedback
 
 

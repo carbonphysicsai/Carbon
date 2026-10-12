@@ -22,6 +22,13 @@ The checks:
 7. every window a submission used, and every `detail` key, released;
 8. allow-listed fields only: anything else is dropped.
 
+VALIDATOR-33 A (#1143) adds, under the same schema and signature: the chain
+time the feed was read at (`as_of_block`), the next rotation block, the king
+from the weights publisher's winner ledger (`king`) with its `handovers`, and
+the rule-tagged `target_to_beat`. Each is checked like the rest: a malformed
+value refuses the whole document, an absent one is null, and times are whole
+UTC milliseconds.
+
 Display software only: nothing here ranks, nominates or promotes. Rank,
 incumbent and challenger states are the validator's and are copied as given.
 """
@@ -60,6 +67,19 @@ _HEX_SIGNATURE = re.compile(r"[0-9a-f]{128}")
 _DEVICE = re.compile(r"cpu|gpu:[A-Za-z0-9][A-Za-z0-9 ._-]{0,63}")
 _STATE = re.compile(r"[A-Z][A-Z0-9_]{0,39}")
 _TEXT = re.compile(r"[^\x00-\x1f\x7f<>]{1,200}")
+_BLOCK_HASH = re.compile(r"0x[0-9a-fA-F]{64}")
+_CODE = re.compile(r"[a-z][a-z0-9_]{0,63}")
+# A registered score candidate names its comparison, as in "G-FEAS/A-Q>@0.05":
+# text without markup's opening bracket. The pages never draw it.
+_CANDIDATE = re.compile(r"[^\x00-\x1f\x7f<]{1,200}")
+#: The latest time a feed may state, 9999-12-31T23:59:59.999Z, in UTC ms.
+MAX_UTC_MS = 253_402_300_799_999
+#: The king's share is a fraction the validator rounds to 6 places.
+SHARE_DIGITS = 6
+#: The final comparison's parameters a board shows (the noise guard). Any other
+#: key of the rule's comparison is dropped.
+COMPARISON_INTS = ("n_min", "n_boot", "important_min")
+COMPARISON_KEYS = ("alpha", *COMPARISON_INTS)
 
 
 class FeedRefused(ValueError):
@@ -297,9 +317,242 @@ def _release(raw):
         ),
         **{
             k: _int(raw.get(k), "release_invalid", optional=True)
-            for k in ("retire_at", "rotation_every_blocks", "expected_lag_blocks")
+            for k in (
+                "retire_at",
+                "rotation_every_blocks",
+                "expected_lag_blocks",
+                # VALIDATOR-33 A: the next window's activation block at the
+                # feed's chain time.
+                "next_rotation_block",
+            )
         },
     }
+
+
+def _utc_ms(value, code):
+    """A UTC time in whole milliseconds, or None."""
+    if value is None:
+        return None
+    if type(value) is not int or not 0 <= value <= MAX_UTC_MS:
+        raise FeedRefused(code)
+    return value
+
+
+def _flag(value, code):
+    if value is None:
+        return None
+    if type(value) is not bool:
+        raise FeedRefused(code)
+    return value
+
+
+def _maybe_text(value, code):
+    return None if value is None else _text(value, code)
+
+
+def _as_of_block(raw):
+    """The finalized block the feed's chain-time fields were read at, or None."""
+    if raw is None:
+        return None
+    if type(raw) is not dict:
+        raise FeedRefused("as_of_block_invalid")
+    block_hash = raw.get("hash")
+    if type(block_hash) is not str or not _BLOCK_HASH.fullmatch(block_hash):
+        raise FeedRefused("as_of_block_invalid")
+    stamp = _utc_ms(raw.get("timestamp_ms"), "as_of_block_invalid")
+    if stamp is None:
+        raise FeedRefused("as_of_block_invalid")
+    return {
+        "number": _int(raw.get("number"), "as_of_block_invalid"),
+        "hash": block_hash,
+        "timestamp_ms": stamp,
+    }
+
+
+def _king(raw, trust):
+    """The king from the weights publisher's winner ledger, as the feed states
+    it, or None. Its share is a fraction in [0, 1] rounded to SHARE_DIGITS."""
+    if raw is None:
+        return None
+    if type(raw) is not dict:
+        raise FeedRefused("king_invalid")
+    share = raw.get("share_now")
+    if share is not None:
+        _number(share, "king_invalid")
+        if not 0 <= share <= 1:
+            raise FeedRefused("king_invalid")
+        if round(share, SHARE_DIGITS) != share:
+            raise FeedRefused("unrounded_value", "king.share_now")
+    coldkey = raw.get("coldkey")
+    return {
+        "hotkey": _hotkey(raw.get("hotkey"), trust),
+        "uid": _int(raw.get("uid"), "king_invalid", optional=True),
+        "coldkey": None if coldkey is None else _hotkey(coldkey, trust),
+        "submission_id": _maybe_text(raw.get("submission_id"), "king_invalid"),
+        "crowned_utc_ms": _utc_ms(raw.get("crowned_utc_ms"), "king_invalid"),
+        "eligible": _flag(raw.get("eligible"), "king_invalid"),
+        "reason": _maybe_text(raw.get("reason"), "king_invalid"),
+        "share_now": share,
+        "next_halving_utc_ms": _utc_ms(raw.get("next_halving_utc_ms"), "king_invalid"),
+        "challenges_survived": _int(
+            raw.get("challenges_survived"), "king_invalid", optional=True
+        ),
+    }
+
+
+def _handovers(raw, trust):
+    """Each change of king, oldest first, as the feed lists them, or None. A
+    hotkey the feed does not name (a canary) stays None."""
+    if raw is None:
+        return None
+    if type(raw) is not list:
+        raise FeedRefused("handovers_invalid")
+    rows = []
+    for row in raw:
+        if type(row) is not dict:
+            raise FeedRefused("handovers_invalid")
+        to_key, from_key = row.get("to_hotkey"), row.get("from_hotkey")
+        rows.append(
+            {
+                "utc_ms": _utc_ms(row.get("utc_ms"), "handovers_invalid"),
+                "to_hotkey": None if to_key is None else _hotkey(to_key, trust),
+                "from_hotkey": None if from_key is None else _hotkey(from_key, trust),
+                "kind": _maybe_text(row.get("kind"), "handovers_invalid"),
+                "eligible": _flag(row.get("eligible"), "handovers_invalid"),
+                "reason": _maybe_text(row.get("reason"), "handovers_invalid"),
+            }
+        )
+    return rows
+
+
+def _margin(value):
+    if value is None:
+        return None
+    if _number(value, "target_invalid") < 0:
+        raise FeedRefused("target_invalid")
+    return value
+
+
+def _comparison(raw):
+    """The final comparison's allow-listed parameters (the noise guard)."""
+    if raw is None:
+        return None
+    if type(raw) is not dict:
+        raise FeedRefused("target_invalid")
+    out = {
+        k: _int(raw.get(k), "target_invalid", optional=True) for k in COMPARISON_INTS
+    }
+    alpha = raw.get("alpha")
+    if alpha is not None and not 0 < _number(alpha, "target_invalid") < 1:
+        raise FeedRefused("target_invalid")
+    return {"alpha": alpha, **out}
+
+
+def _target(raw):
+    """What a challenger must clear under the deployed rule, rule-tagged by
+    `kind`, as the validator posts it, or None."""
+    if raw is None:
+        return None
+    if type(raw) is not dict:
+        raise FeedRefused("target_invalid")
+    kind = raw.get("kind")
+    if type(kind) is not str or not _CODE.fullmatch(kind):
+        raise FeedRefused("target_invalid")
+    score = raw.get("score")
+    if score is not None:
+        if type(score) is not dict:
+            raise FeedRefused("target_invalid")
+        candidate, digest = score.get("candidate"), score.get("registry_sha256")
+        if candidate is not None and (
+            type(candidate) is not str or not _CANDIDATE.fullmatch(candidate)
+        ):
+            raise FeedRefused("target_invalid")
+        if digest is not None and (
+            type(digest) is not str or not _SHA256.fullmatch(digest)
+        ):
+            raise FeedRefused("target_invalid")
+        score = {
+            "candidate": candidate,
+            "registry_sha256": digest,
+            "decision": _maybe_text(score.get("decision"), "target_invalid"),
+        }
+    gates = raw.get("gates")
+    if gates is not None:
+        if type(gates) is not list or any(
+            type(g) is not str or not _CODE.fullmatch(g) for g in gates
+        ):
+            raise FeedRefused("target_invalid")
+        gates = list(gates)
+    return {
+        "kind": kind,
+        "screening_margin_rel": _margin(raw.get("screening_margin_rel")),
+        "final_margin_rel": _margin(raw.get("final_margin_rel")),
+        "final_comparison": _comparison(raw.get("final_comparison")),
+        "score": score,
+        "gates": gates,
+    }
+
+
+# OWNER-BATTERY-CHAMPIONSHIP-03 (#1135): screening shown per coldkey on a
+# ladder. `leaderboard.ladder` is `{grain_pct, coldkeys: [...]}`, the shape the
+# Validator adopted (VALIDATOR-32 rev 7 §5). `grain_pct` is null while the
+# grain is HUMAN_INPUT, and then every entry must be sealed.
+LADDER_STATES = ("SHOWN", "NO_IMPROVEMENT_BEYOND_GRAIN", "SEALED_UNTIL_GRAIN")
+_UNRANKED = 10**9
+
+
+def _ladder(raw, digits, trust):
+    """Each coldkey's pooled displayed score and status, or None when the feed
+    carries no ladder. A sealed entry that carries a value is refused whole."""
+    if raw is None:
+        return None
+    if type(raw) is not dict or type(raw.get("coldkeys")) is not list:
+        raise FeedRefused("ladder_invalid")
+    grain = raw.get("grain_pct")
+    if grain is not None and _number(grain, "ladder_invalid") <= 0:
+        raise FeedRefused("ladder_invalid")
+    rows, seen = [], set()
+    for row in raw["coldkeys"]:
+        if type(row) is not dict:
+            raise FeedRefused("ladder_invalid")
+        coldkey = _hotkey(row.get("coldkey"), trust)
+        status = row.get("status")
+        if coldkey in seen or status not in LADDER_STATES:
+            raise FeedRefused("ladder_invalid")
+        seen.add(coldkey)
+        score = _rounded(row.get("displayed_score"), digits, "ladder")
+        if status == "SEALED_UNTIL_GRAIN" and score is not None:
+            raise FeedRefused("ladder_sealed_value")
+        if status != "SEALED_UNTIL_GRAIN" and score is None:
+            raise FeedRefused("ladder_invalid")
+        if status != "SEALED_UNTIL_GRAIN" and grain is None:
+            raise FeedRefused("ladder_grain_unposted")
+        hotkeys = row.get("hotkeys")
+        if type(hotkeys) is not list:
+            raise FeedRefused("ladder_invalid")
+        rows.append(
+            {
+                "coldkey": coldkey,
+                "rank": _int(
+                    row.get("rank"), "ladder_invalid", minimum=1, optional=True
+                ),
+                "displayed_score": score,
+                "status": status,
+                "hotkeys": sorted({_hotkey(h, trust) for h in hotkeys}),
+                "best_submission_id": (
+                    None
+                    if row.get("best_submission_id") is None
+                    else _text(row["best_submission_id"], "ladder_invalid")
+                ),
+                "displayed_at_block": _int(
+                    row.get("displayed_at_block"), "ladder_invalid", optional=True
+                ),
+            }
+        )
+    rows.sort(
+        key=lambda r: (_UNRANKED if r["rank"] is None else r["rank"], r["coldkey"])
+    )
+    return {"grain_pct": grain, "coldkeys": rows}
 
 
 SHOWCASE_SCHEMA = "carbon.validator.showcase-panel.v1"
@@ -592,16 +845,23 @@ def project(document, trust):
         "values": values,
         "section_meta": _section_meta(document.get("sections")),
         "release": _release(document.get("release")),
+        "as_of_block": _as_of_block(document.get("as_of_block")),
+        "king": _king(document.get("king"), trust),
+        "handovers": _handovers(document.get("handovers"), trust),
+        "target_to_beat": _target(document.get("target_to_beat")),
         "released_windows": released,
         "incumbent": incumbent,
         "challengers": challengers,
         "standing": standing,
+        "ladder": _ladder(board.get("ladder"), digits, trust),
         "history": history,
         "miners": dict(sorted(miners.items())),
         "excluded_canaries": canaries,
         "showcase_panel": _showcase(document.get("showcase"), incumbent, trust),
         "feed": {
             "key_id": key_id(signer),
+            # The pinned public key that signed it, as people know the key.
+            "public_key": signer,
             "digest": "sha256:" + hashlib.sha256(canonical_bytes(document)).hexdigest(),
         },
     }

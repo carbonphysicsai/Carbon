@@ -1,0 +1,78 @@
+{
+  "schema": "carbon.onboarding.packet-reconcile.v1",
+  "challenge": "cooling-cell",
+  "documents": {
+    "packet": {
+      "path": "docs/development/challenge_pipeline/round1/cooling-cell-v3.md",
+      "kind": "PACKET",
+      "sha256": "e95ca8287278c2cc4733a1a898ddbc0bde490f7310acffbf30971a9f1eb06429"
+    },
+    "owner": {
+      "path": ".agent/decisions/2026-10-08-OWNER-DESIGN-VALUE-01.md",
+      "kind": "OWNER_DECISION",
+      "sha256": "681ff689cf1e5dbde0e83fb291769dfa8e46204c1135342673e1eab9c9a4bd9c"
+    }
+  },
+  "checks": [
+    {
+      "id": "case-temperature",
+      "field": "hard_limits",
+      "packet": {
+        "document": "packet",
+        "kind": "number",
+        "section": null,
+        "prefix": "selects **",
+        "suffix": "C at the lid-side"
+      },
+      "evidence": [
+        {
+          "document": "owner",
+          "kind": "number",
+          "section": null,
+          "prefix": "Cooling's",
+          "suffix": "C limit is the"
+        }
+      ]
+    },
+    {
+      "id": "temperature-plane",
+      "field": "outputs",
+      "packet": {
+        "document": "packet",
+        "kind": "literal",
+        "section": null,
+        "phrase": "lid-side TIM2 interface (case temperature)",
+        "value": "LID_TIM2_CASE"
+      },
+      "evidence": [
+        {
+          "document": "owner",
+          "kind": "literal",
+          "section": null,
+          "phrase": "lid-side TIM2 interface / case temperature",
+          "value": "LID_TIM2_CASE"
+        }
+      ]
+    },
+    {
+      "id": "vapour-chamber-input",
+      "field": "conditions",
+      "packet": {
+        "document": "packet",
+        "kind": "literal",
+        "section": null,
+        "phrase": "vapour-chamber lid as buyer input",
+        "value": "BUYER_VAPOUR_CHAMBER"
+      },
+      "evidence": [
+        {
+          "document": "owner",
+          "kind": "literal",
+          "section": null,
+          "phrase": "The buyer supplies a **vapour-chamber lid**",
+          "value": "BUYER_VAPOUR_CHAMBER"
+        }
+      ]
+    }
+  ]
+}

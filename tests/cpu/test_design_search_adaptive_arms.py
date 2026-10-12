@@ -14,14 +14,16 @@ REGISTRATION = (
     Path(__file__).resolve().parents[2]
     / "docs/development/challenge_pipeline/equal-budget-registration-v1.json"
 )
+REGISTRATION_V2 = REGISTRATION.with_name("equal-budget-registration-v2-f02-menu.json")
 
 
 def _cost(value):
     return {"wall_s": value, "core_s": value}
 
 
-def _registration():
-    raw = json.loads(REGISTRATION.read_text(encoding="utf-8"))
+def _registration(*, menu_v2=False):
+    path = REGISTRATION_V2 if menu_v2 else REGISTRATION
+    raw = json.loads(path.read_text(encoding="utf-8"))
     body = {key: value for key, value in raw.items() if key != "registration_digest"}
     for tier, count, seconds in (("half", 2, 4), ("base", 4, 8), ("double", 8, 16)):
         body["challenge_budgets"]["motor"]["tiers"][tier] = {
@@ -32,10 +34,12 @@ def _registration():
     return budgets.seal(body)
 
 
-def _panel(*, cached=False, f02=False, battery=False):
+def _panel(*, cached=False, f02=False, battery=False, menu_v2=False):
+    if menu_v2 and not f02:
+        raise ValueError("v2 menu fixture requires f02")
     challenge = "battery-v3" if battery else "f02" if f02 else "motor"
-    registration = _registration()
-    n = 9 if f02 else 5
+    registration = _registration(menu_v2=menu_v2)
+    n = 16 if menu_v2 else 9 if f02 else 5
     base_jobs = []
     extra_jobs = []
     for group in range(2):
@@ -176,7 +180,7 @@ def _panel(*, cached=False, f02=False, battery=False):
                 "solver_search": "toy-fixed",
                 "model_screen": "toy-model",
                 "baseline_screen": "toy-baseline",
-                "cost_plan": budgets.REGISTRATION_ID,
+                "cost_plan": registration["registration_id"],
             },
         }
     )
@@ -430,6 +434,27 @@ def test_finite_f02_direct_enumeration_and_registration_tampering():
     bad["policy"]["direct"]["method"] = "pattern_multistart"
     with pytest.raises(adaptive.AdaptiveArmError, match="policy digest"):
         adaptive.validate(_reseal(bad), registration)
+
+
+def test_f02_v2_sixteen_action_menu_uses_same_ledger_for_all_arms():
+    panel, registration = _panel(f02=True, menu_v2=True)
+    assert budgets.validate(registration).cap("f02", "base").solver_evaluations == 16
+    half = adaptive.replay(panel, registration, "half")
+    assert half["results"][0]["arms"]["adaptive_solver"]["status"] == "BUDGET_STOP"
+    full = adaptive.replay(panel, registration, "base")
+    direct = full["results"][0]["arms"]["adaptive_solver"]
+    assert direct["status"] == "BUDGET_STOP"
+    assert direct["verified_count"] == 15  # one failed attempt consumes a query
+    double = adaptive.replay(panel, registration, "double")
+    assert double["results"][0]["arms"]["adaptive_solver"]["status"] == "EXHAUSTIVE"
+    assert double["results"][0]["arms"]["adaptive_solver"]["verified_count"] == 16
+    assert all(
+        row["solver_attempts"] <= 16 for row in full["results"][0]["arms"].values()
+    )
+    with pytest.raises(
+        adaptive.AdaptiveArmError, match="panel ladder differs|cost plan differs"
+    ):
+        adaptive.validate(panel, _registration())
 
 
 def test_battery_any_band_hard_breach_and_unresolved_margin():

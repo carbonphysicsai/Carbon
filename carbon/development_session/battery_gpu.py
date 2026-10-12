@@ -80,9 +80,65 @@ PROGRAMS = {
 }
 
 
-def pod_program(family):
-    """(program, extra staged files) a Level-0 pod build runs for `family`:
-    v2 and the staged `knn_state.py` for a KNN, v1 and nothing else otherwise."""
+#: TORCH-POD-01: PyTorch on Carbon's pods. The same practice program (it
+#: already stages battery's PyTorch trainer and families, and `recipes.build`
+#: builds the recipe's own backend), with the runtime record PyTorch observes
+#: in place of JAX's, under the keys the rebuild identity reads
+#: (`rebuild_identity.from_runtime`: `default_backend`, `devices`). It runs in
+#: the released torch-gpu worker image with `JAX_PLATFORMS=cuda`, the switch
+#: `torch_training.rebuild_device` reads, and records the device that switch
+#: chose, never one assumed. JAX's v1 and v2 stay byte for byte.
+PROGRAM_V3 = "carbon.battery.gpu-practice.program.v3-torch"
+TORCH_GPU_PROGRAM = PROGRAM + r"""
+import os
+
+import torch
+
+from carbon_battery_lab import torch_training  # noqa: E402
+
+_device = torch_training.rebuild_device()
+_gpu = _device.type == "cuda"
+(out / "runtime.json").write_text(
+    json.dumps(
+        {
+            "jax_platforms": os.environ.get("JAX_PLATFORMS"),
+            "framework": "pytorch",
+            "torch": torch.__version__,
+            "default_backend": "gpu" if _gpu else "cpu",
+            "devices": [torch.cuda.get_device_name(_device)] if _gpu else [],
+            "device_count": torch.cuda.device_count() if _gpu else 0,
+        },
+        sort_keys=True,
+    )
+)
+"""
+PROGRAMS[digest(TORCH_GPU_PROGRAM.encode())] = (PROGRAM_V3, TORCH_GPU_PROGRAM)
+
+
+def torch_pod_environment(device_kind):
+    """The GPU environment a PyTorch pod binds (TORCH-POD-01): the pinned CUDA
+    library controls and the device kind the run is bound to, as
+    `torch_gpu.require_ready` requires. The accelerator profile stays on the
+    execution side of the boundary (`test_protected_material_isolation`):
+    Graphite's pod runner asks for this, never imports the profile itself."""
+    from carbon.reconstruction.accelerators import GPU_DETERMINISM_ENVIRONMENT
+
+    if type(device_kind) is not str or not device_kind:
+        raise ValueError("a PyTorch pod is bound to a named device kind")
+    return {
+        **GPU_DETERMINISM_ENVIRONMENT,
+        "CARBON_ACCELERATOR_DEVICE_KIND": device_kind,
+    }
+
+
+def pod_program(family, backend="jax"):
+    """(program, extra staged files) a Level-0 pod build runs for `family` on
+    `backend`: for JAX, v2 and the staged `knn_state.py` for a KNN, v1 and
+    nothing else otherwise; for PyTorch, v3 (TORCH-POD-01)."""
+    if backend == "pytorch":
+        return TORCH_GPU_PROGRAM, {}
+    if backend != "jax":
+        raise ValueError("no battery pod program for backend " + str(backend))
     if family != "knn":
         return GPU_PROGRAM, {}
     from pathlib import Path

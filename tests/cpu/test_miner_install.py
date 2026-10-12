@@ -290,6 +290,12 @@ class Sandbox:
                 "user.name=fixture",
                 "-c",
                 "user.email=fixture@invalid",
+                # Background upkeep writes and removes `.git` lock files
+                # asynchronously, which races this fixture's own commands.
+                "-c",
+                "maintenance.auto=false",
+                "-c",
+                "gc.auto=0",
                 *args,
             ],
             cwd=cwd or self.work,

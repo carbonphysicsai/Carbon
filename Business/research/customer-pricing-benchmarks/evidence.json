@@ -1,0 +1,833 @@
+{
+  "ticket": "CUSTOMER-PRICING-BENCHMARKS-01",
+  "version": 1,
+  "status": "RESEARCH_RECOMMENDATION_ONLY",
+  "reviewed": "2026-10-11",
+  "authority_snapshot": "173d0a1927c085ab75deafebf7da709c87cc80a8",
+  "quantity_policy": "Source points are equal triplets, not uncertainty intervals. null is HUMAN_INPUT. Scenarios are ASSUMPTION, not probabilistic forecasts.",
+  "sources": [
+    {
+      "id": "S01",
+      "url": "https://8020engineering.com/cfd-consulting-packages-and-pricing-us/"
+    },
+    {
+      "id": "S02",
+      "url": "https://josephwebb.net/pricing.html"
+    },
+    {
+      "id": "S03",
+      "url": "https://www.applytosupply.digitalmarketplace.service.gov.uk/g-cloud/services/403132573695999"
+    },
+    {
+      "id": "S04",
+      "url": "https://coolsimsoftware.com/pricing/"
+    },
+    {
+      "id": "S05",
+      "url": "https://ansys.synopsys.com/en-gb/products/ai/simai",
+      "supplementary_urls": ["https://ansyshelp.ansys.com/public/Views/Secured/SimAI/v000/en/SimAI_ug/SimAI_ug/C_UG_SAI_build_duration.html"]
+    },
+    {
+      "id": "S06",
+      "url": "https://help.altair.com/simulation/pdfs/install/altairhyperworks_2025_1_unitslicensing.pdf"
+    },
+    {
+      "id": "S07",
+      "url": "https://www.siemens.com/en-us/products/simcenter/engineering-data-science-ai/"
+    },
+    {
+      "id": "S08",
+      "url": "https://www.physicsx.ai/newsroom/transforming-engineering-with-ai---an-introduction-to-physicsx"
+    },
+    {
+      "id": "S09",
+      "url": "https://www.monolithai.com/faqs"
+    },
+    {
+      "id": "S10",
+      "url": "https://www.neuralconcept.com/customer-stories/mitsubishi-chemical-material-characterization",
+      "supplementary_urls": ["https://www.neuralconcept.com/spark"]
+    },
+    {
+      "id": "S11",
+      "url": "https://cdfam.com/navasto_interview_ai_engineering/"
+    },
+    {
+      "id": "S12",
+      "url": "https://www.simscale.com/customers/harcourt-industrial/"
+    },
+    {
+      "id": "S13",
+      "url": "https://www.simscale.com/customers/european-gravitational-observatory/"
+    },
+    {
+      "id": "S14",
+      "url": "https://www.simscale.com/customers/dmg/"
+    },
+    {
+      "id": "S15",
+      "url": "https://www.bls.gov/ooh/architecture-and-engineering/mechanical-engineers.htm"
+    },
+    {
+      "id": "S16",
+      "url": "https://www.bls.gov/news.release/ecec.htm",
+      "supplementary_urls": ["https://www.bls.gov/charts/employer-costs-for-employee-compensation/costs-per-hour.htm"]
+    }
+  ],
+  "observations": [
+    {
+      "id": "cfd_packages",
+      "status": "SOURCED_PUBLISHER_CLAIM",
+      "sources": [
+        "S01"
+      ],
+      "unit": "USD/study",
+      "low": 2490,
+      "base": null,
+      "high": 6990,
+      "interpretation": "Different complexity scopes; base unknown; advertised, not paid."
+    },
+    {
+      "id": "quote_response",
+      "status": "SOURCED_PUBLISHER_CLAIM",
+      "sources": [
+        "S01"
+      ],
+      "unit": "hours after usable inputs",
+      "low": 4,
+      "base": 4,
+      "high": 4,
+      "interpretation": "Quote only."
+    },
+    {
+      "id": "fea_rate_basic",
+      "status": "SOURCED_PUBLISHER_CLAIM",
+      "sources": [
+        "S02"
+      ],
+      "unit": "USD/expert-hour",
+      "low": 75,
+      "base": 75,
+      "high": 75,
+      "interpretation": "Advertised role rate."
+    },
+    {
+      "id": "fea_rate_standard",
+      "status": "SOURCED_PUBLISHER_CLAIM",
+      "sources": [
+        "S02"
+      ],
+      "unit": "USD/expert-hour",
+      "low": 125,
+      "base": 125,
+      "high": 125,
+      "interpretation": "Advertised role rate."
+    },
+    {
+      "id": "fea_rate_advanced",
+      "status": "SOURCED_PUBLISHER_CLAIM",
+      "sources": [
+        "S02"
+      ],
+      "unit": "USD/expert-hour",
+      "low": 165,
+      "base": 165,
+      "high": 165,
+      "interpretation": "Advertised role rate."
+    },
+    {
+      "id": "fea_quick",
+      "status": "SOURCED_PUBLISHER_CLAIM",
+      "sources": [
+        "S02"
+      ],
+      "unit": "USD/study",
+      "low": 1200,
+      "base": null,
+      "high": 2000,
+      "interpretation": "Advertised quick check."
+    },
+    {
+      "id": "fea_standard",
+      "status": "SOURCED_PUBLISHER_CLAIM",
+      "sources": [
+        "S02"
+      ],
+      "unit": "USD/study",
+      "low": 2800,
+      "base": null,
+      "high": 5500,
+      "interpretation": "Advertised standard study."
+    },
+    {
+      "id": "fea_complex",
+      "status": "SOURCED_PUBLISHER_CLAIM",
+      "sources": [
+        "S02"
+      ],
+      "unit": "USD/study",
+      "low": 6500,
+      "base": null,
+      "high": null,
+      "interpretation": "From price; upper bound unknown."
+    },
+    {
+      "id": "fea_turnaround_linear",
+      "status": "SOURCED_PUBLISHER_CLAIM",
+      "sources": [
+        "S02"
+      ],
+      "unit": "days",
+      "low": 1,
+      "base": null,
+      "high": 3,
+      "interpretation": "Supplier turnaround, ready inputs assumed by offer."
+    },
+    {
+      "id": "fea_turnaround_assembly",
+      "status": "SOURCED_PUBLISHER_CLAIM",
+      "sources": [
+        "S02"
+      ],
+      "unit": "days",
+      "low": 3,
+      "base": null,
+      "high": 7,
+      "interpretation": "Supplier turnaround, ready inputs assumed by offer."
+    },
+    {
+      "id": "fea_turnaround_nonlinear",
+      "status": "SOURCED_PUBLISHER_CLAIM",
+      "sources": [
+        "S02"
+      ],
+      "unit": "days",
+      "low": 5,
+      "base": null,
+      "high": 12,
+      "interpretation": "Supplier turnaround, ready inputs assumed by offer."
+    },
+    {
+      "id": "fea_turnaround_dynamics",
+      "status": "SOURCED_PUBLISHER_CLAIM",
+      "sources": [
+        "S02"
+      ],
+      "unit": "days",
+      "low": 7,
+      "base": null,
+      "high": 20,
+      "interpretation": "Supplier turnaround, ready inputs assumed by offer."
+    },
+    {
+      "id": "vv_day",
+      "status": "SOURCED_PUBLISHER_CLAIM",
+      "sources": [
+        "S03"
+      ],
+      "unit": "GBP/unit/day",
+      "low": 546.36,
+      "base": null,
+      "high": 1326.57,
+      "interpretation": "Person-day interpretation unverified."
+    },
+    {
+      "id": "coolsim_project_pass",
+      "status": "SOURCED_PUBLISHER_CLAIM",
+      "sources": [
+        "S04"
+      ],
+      "unit": "USD/offer",
+      "low": 4500,
+      "base": 4500,
+      "high": 4500,
+      "interpretation": "Separate scope, not one uncertainty range."
+    },
+    {
+      "id": "coolsim_annual",
+      "status": "SOURCED_PUBLISHER_CLAIM",
+      "sources": [
+        "S04"
+      ],
+      "unit": "USD/year",
+      "low": 9500,
+      "base": 9500,
+      "high": 9500,
+      "interpretation": "Separate scope, not one uncertainty range."
+    },
+    {
+      "id": "coolsim_team",
+      "status": "SOURCED_PUBLISHER_CLAIM",
+      "sources": [
+        "S04"
+      ],
+      "unit": "USD/year",
+      "low": 15000,
+      "base": 15000,
+      "high": 15000,
+      "interpretation": "Separate scope, not one uncertainty range."
+    },
+    {
+      "id": "coolsim_workshop",
+      "status": "SOURCED_PUBLISHER_CLAIM",
+      "sources": [
+        "S04"
+      ],
+      "unit": "USD/offer",
+      "low": 2000,
+      "base": 2000,
+      "high": 2000,
+      "interpretation": "Separate scope, not one uncertainty range."
+    },
+    {
+      "id": "coolsim_transient",
+      "status": "SOURCED_PUBLISHER_CLAIM",
+      "sources": [
+        "S04"
+      ],
+      "unit": "USD/project",
+      "low": 5000,
+      "base": null,
+      "high": null,
+      "interpretation": "From completed steady-state model."
+    },
+    {
+      "id": "coolsim_access",
+      "status": "SOURCED_PUBLISHER_CLAIM",
+      "sources": [
+        "S04"
+      ],
+      "unit": "months",
+      "low": null,
+      "base": null,
+      "high": 3,
+      "interpretation": "Project-pass maximum access period, not delivery time."
+    },
+    {
+      "id": "simai_training",
+      "status": "SOURCED_PUBLISHER_CLAIM",
+      "sources": [
+        "S05"
+      ],
+      "unit": "days",
+      "low": 1,
+      "base": 2,
+      "high": 5,
+      "interpretation": "Typical vendor guidance; default base, not dataset-to-qualified-tool SLA."
+    },
+    {
+      "id": "physicsai_units_training",
+      "status": "SOURCED_PUBLISHER_CLAIM",
+      "sources": [
+        "S06"
+      ],
+      "unit": "Altair Units",
+      "low": 75,
+      "base": 75,
+      "high": 75,
+      "interpretation": "Historical 2025.1 token count, not money."
+    },
+    {
+      "id": "physicsai_units_inference_inside",
+      "status": "SOURCED_PUBLISHER_CLAIM",
+      "sources": [
+        "S06"
+      ],
+      "unit": "Altair Units",
+      "low": 75,
+      "base": 75,
+      "high": 75,
+      "interpretation": "Historical 2025.1 token count, not money."
+    },
+    {
+      "id": "physicsai_units_inference_outside",
+      "status": "SOURCED_PUBLISHER_CLAIM",
+      "sources": [
+        "S06"
+      ],
+      "unit": "Altair Units",
+      "low": 150,
+      "base": 150,
+      "high": 150,
+      "interpretation": "Historical 2025.1 token count, not money."
+    },
+    {
+      "id": "physicsx_incumbent",
+      "status": "SOURCED_PUBLISHER_CLAIM",
+      "sources": [
+        "S08"
+      ],
+      "unit": "weeks",
+      "low": 6,
+      "base": null,
+      "high": 8,
+      "interpretation": "Supplier characterization of incumbent workflow."
+    },
+    {
+      "id": "neural_concept_session",
+      "status": "SOURCED_PUBLISHER_CLAIM",
+      "sources": [
+        "S10"
+      ],
+      "unit": "hours",
+      "low": 4,
+      "base": 4,
+      "high": 4,
+      "interpretation": "Spark guided demo; supplementary Spark URL in SOURCES.md."
+    },
+    {
+      "id": "neural_concept_trial",
+      "status": "SOURCED_PUBLISHER_CLAIM",
+      "sources": [
+        "S10"
+      ],
+      "unit": "hours",
+      "low": 48,
+      "base": 48,
+      "high": 48,
+      "interpretation": "Spark access; not delivery."
+    },
+    {
+      "id": "harcourt_productivity",
+      "status": "SOURCED_PUBLISHER_CLAIM",
+      "sources": [
+        "S12"
+      ],
+      "unit": "days",
+      "low": 60,
+      "base": 60,
+      "high": 60,
+      "interpretation": "Vendor-hosted customer account, not surrogate build."
+    },
+    {
+      "id": "ego_avoided_cost",
+      "status": "SOURCED_PUBLISHER_CLAIM",
+      "sources": [
+        "S13"
+      ],
+      "unit": "EUR/project",
+      "low": null,
+      "base": null,
+      "high": 50000,
+      "interpretation": "Avoided consultancy cost, not verified invoice."
+    },
+    {
+      "id": "ego_avoided_time",
+      "status": "SOURCED_PUBLISHER_CLAIM",
+      "sources": [
+        "S13"
+      ],
+      "unit": "months",
+      "low": null,
+      "base": null,
+      "high": 3,
+      "interpretation": "Upper-bound saving."
+    },
+    {
+      "id": "dmg_labor_saving",
+      "status": "SOURCED_PUBLISHER_CLAIM",
+      "sources": [
+        "S14"
+      ],
+      "unit": "percent",
+      "low": 35,
+      "base": 35,
+      "high": 35,
+      "interpretation": "Vendor-hosted relative claim, no absolute price."
+    },
+    {
+      "id": "salary_lower_decile_boundary",
+      "status": "SOURCED_PUBLISHER_CLAIM",
+      "sources": [
+        "S15"
+      ],
+      "unit": "USD/year",
+      "low": 73990,
+      "base": 73990,
+      "high": 73990,
+      "interpretation": "May 2025 mechanical-engineer wage statistic."
+    },
+    {
+      "id": "salary_median",
+      "status": "SOURCED_PUBLISHER_CLAIM",
+      "sources": [
+        "S15"
+      ],
+      "unit": "USD/year",
+      "low": 104110,
+      "base": 104110,
+      "high": 104110,
+      "interpretation": "May 2025 mechanical-engineer wage statistic."
+    },
+    {
+      "id": "salary_upper_decile_boundary",
+      "status": "SOURCED_PUBLISHER_CLAIM",
+      "sources": [
+        "S15"
+      ],
+      "unit": "USD/year",
+      "low": 164340,
+      "base": 164340,
+      "high": 164340,
+      "interpretation": "May 2025 mechanical-engineer wage statistic."
+    },
+    {
+      "id": "ecec_total",
+      "status": "SOURCED_PUBLISHER_CLAIM",
+      "sources": [
+        "S16"
+      ],
+      "unit": "USD/hour",
+      "low": 46.89,
+      "base": 46.89,
+      "high": 46.89,
+      "interpretation": "June 2026 private industry, not engineer-specific."
+    },
+    {
+      "id": "ecec_wages",
+      "status": "SOURCED_PUBLISHER_CLAIM",
+      "sources": [
+        "S16"
+      ],
+      "unit": "USD/hour",
+      "low": 32.82,
+      "base": 32.82,
+      "high": 32.82,
+      "interpretation": "June 2026 private industry, not engineer-specific."
+    },
+    {
+      "id": "ecec_benefits",
+      "status": "SOURCED_PUBLISHER_CLAIM",
+      "sources": [
+        "S16"
+      ],
+      "unit": "USD/hour",
+      "low": 14.07,
+      "base": 14.07,
+      "high": 14.07,
+      "interpretation": "June 2026 private industry, not engineer-specific."
+    },
+    {
+      "id": "ecec_paid_leave",
+      "status": "SOURCED_PUBLISHER_CLAIM",
+      "sources": [
+        "S16"
+      ],
+      "unit": "USD/hour",
+      "low": 3.54,
+      "base": 3.54,
+      "high": 3.54,
+      "interpretation": "June 2026 private industry, not engineer-specific."
+    }
+  ],
+  "unknown_vendor_prices": [
+    {
+      "name": "Ansys SimAI",
+      "status": "HUMAN_INPUT",
+      "currency": null,
+      "low": null,
+      "base": null,
+      "high": null,
+      "reason": "No verified numerical price in reviewed material."
+    },
+    {
+      "name": "Altair/Siemens",
+      "status": "HUMAN_INPUT",
+      "currency": null,
+      "low": null,
+      "base": null,
+      "high": null,
+      "reason": "No verified numerical price in reviewed material."
+    },
+    {
+      "name": "PhysicsX",
+      "status": "HUMAN_INPUT",
+      "currency": null,
+      "low": null,
+      "base": null,
+      "high": null,
+      "reason": "No verified numerical price in reviewed material."
+    },
+    {
+      "name": "Monolith",
+      "status": "HUMAN_INPUT",
+      "currency": null,
+      "low": null,
+      "base": null,
+      "high": null,
+      "reason": "No verified numerical price in reviewed material."
+    },
+    {
+      "name": "Neural Concept",
+      "status": "HUMAN_INPUT",
+      "currency": null,
+      "low": null,
+      "base": null,
+      "high": null,
+      "reason": "No verified numerical price in reviewed material."
+    },
+    {
+      "name": "NAVASTO/Autodesk NavPack",
+      "status": "HUMAN_INPUT",
+      "currency": null,
+      "low": null,
+      "base": null,
+      "high": null,
+      "reason": "Official buy-page retrieval failed."
+    }
+  ],
+  "assumptions": {
+    "service_rate_transfer": {
+      "status": "ASSUMPTION_TRANSFER",
+      "source": "S02",
+      "unit": "USD/expert-hour",
+      "low": 75,
+      "base": 125,
+      "high": 165
+    },
+    "nonlabor": {
+      "status": "ASSUMPTION",
+      "unit": "USD",
+      "low": 500,
+      "base": 2000,
+      "high": 10000
+    },
+    "productive_hours": {
+      "status": "ASSUMPTION",
+      "unit": "hours/year",
+      "low": 2000,
+      "base": 1800,
+      "high": 1600
+    },
+    "overhead_multiplier": {
+      "status": "ASSUMPTION",
+      "low": 1.1,
+      "base": 1.25,
+      "high": 1.5
+    },
+    "team_capacity": {
+      "status": "ASSUMPTION",
+      "unit": "FTE",
+      "low": 1,
+      "base": 1.5,
+      "high": 2
+    },
+    "business_days_per_week": {
+      "status": "ASSUMPTION",
+      "low": 5,
+      "base": 5,
+      "high": 5
+    },
+    "productive_hours_per_day": {
+      "status": "ASSUMPTION",
+      "low": 8,
+      "base": 8,
+      "high": 8
+    }
+  },
+  "calculations": {
+    "nonleave_multiplier": {
+      "status": "DERIVED_WITH_ASSUMPTION_TRANSFER",
+      "formula": "(ecec_total - ecec_paid_leave) / ecec_wages",
+      "value": 1.3208409506398537
+    },
+    "internal_hourly_labor": {
+      "status": "DERIVED_ASSUMPTION",
+      "unit": "USD/productive-hour",
+      "formula": "selected salary * nonleave_multiplier / productive_hours",
+      "low": 48.86451096892139,
+      "base": 76.39597298395287,
+      "high": 135.66687614259598
+    },
+    "internal_hourly_with_overhead": {
+      "status": "DERIVED_ASSUMPTION",
+      "unit": "USD/productive-hour",
+      "low": 53.75096206581353,
+      "base": 95.4949662299411,
+      "high": 203.50031421389397
+    }
+  },
+  "jobs": [
+    {
+      "id": "battery",
+      "status": "ASSUMPTION",
+      "expert_hours": {
+        "low": 80,
+        "base": 240,
+        "high": 640
+      },
+      "elapsed_weeks": {
+        "low": 2,
+        "base": 5,
+        "high": 12
+      },
+      "budget_usd": {
+        "low": 6500,
+        "base": 32000,
+        "high": 115600
+      },
+      "budget_formula": "expert_hours * transferred_service_rate + nonlabor_allowance",
+      "internal_labor_usd": {
+        "low": 3909.160877513711,
+        "base": 18335.03351614869,
+        "high": 86826.80073126144
+      },
+      "condition": "Usable coherent data, existing credible reference and reusable workflow; no physical tests, certification or bespoke enterprise terms.",
+      "unready_upper_bound": null
+    },
+    {
+      "id": "motor",
+      "status": "ASSUMPTION",
+      "expert_hours": {
+        "low": 64,
+        "base": 160,
+        "high": 400
+      },
+      "elapsed_weeks": {
+        "low": 2,
+        "base": 4,
+        "high": 8
+      },
+      "budget_usd": {
+        "low": 5300,
+        "base": 22000,
+        "high": 76000
+      },
+      "budget_formula": "expert_hours * transferred_service_rate + nonlabor_allowance",
+      "internal_labor_usd": {
+        "low": 3127.3287020109688,
+        "base": 12223.35567743246,
+        "high": 54266.75045703839
+      },
+      "condition": "Usable coherent data, existing credible reference and reusable workflow; no physical tests, certification or bespoke enterprise terms.",
+      "unready_upper_bound": null
+    },
+    {
+      "id": "burst_thermal",
+      "status": "ASSUMPTION",
+      "expert_hours": {
+        "low": 48,
+        "base": 120,
+        "high": 320
+      },
+      "elapsed_weeks": {
+        "low": 2,
+        "base": 3,
+        "high": 8
+      },
+      "budget_usd": {
+        "low": 4100,
+        "base": 17000,
+        "high": 62800
+      },
+      "budget_formula": "expert_hours * transferred_service_rate + nonlabor_allowance",
+      "internal_labor_usd": {
+        "low": 2345.4965265082265,
+        "base": 9167.516758074345,
+        "high": 43413.40036563072
+      },
+      "condition": "Usable coherent data, existing credible reference and reusable workflow; no physical tests, certification or bespoke enterprise terms.",
+      "unready_upper_bound": null
+    },
+    {
+      "id": "ai_chip_cooling",
+      "status": "ASSUMPTION",
+      "expert_hours": {
+        "low": 64,
+        "base": 200,
+        "high": 480
+      },
+      "elapsed_weeks": {
+        "low": 2,
+        "base": 5,
+        "high": 12
+      },
+      "budget_usd": {
+        "low": 5300,
+        "base": 27000,
+        "high": 89200
+      },
+      "budget_formula": "expert_hours * transferred_service_rate + nonlabor_allowance",
+      "internal_labor_usd": {
+        "low": 3127.3287020109688,
+        "base": 15279.194596790574,
+        "high": 65120.10054844607
+      },
+      "condition": "Usable coherent data, existing credible reference and reusable workflow; no physical tests, certification or bespoke enterprise terms.",
+      "unready_upper_bound": null
+    },
+    {
+      "id": "silencer",
+      "status": "ASSUMPTION",
+      "expert_hours": {
+        "low": 80,
+        "base": 240,
+        "high": 640
+      },
+      "elapsed_weeks": {
+        "low": 2,
+        "base": 6,
+        "high": 16
+      },
+      "budget_usd": {
+        "low": 6500,
+        "base": 32000,
+        "high": 115600
+      },
+      "budget_formula": "expert_hours * transferred_service_rate + nonlabor_allowance",
+      "internal_labor_usd": {
+        "low": 3909.160877513711,
+        "base": 18335.03351614869,
+        "high": 86826.80073126144
+      },
+      "condition": "Usable coherent data, existing credible reference and reusable workflow; no physical tests, certification or bespoke enterprise terms.",
+      "unready_upper_bound": null
+    },
+    {
+      "id": "warpage",
+      "status": "ASSUMPTION",
+      "expert_hours": {
+        "low": 160,
+        "base": 400,
+        "high": 1200
+      },
+      "elapsed_weeks": {
+        "low": 4,
+        "base": 10,
+        "high": 26
+      },
+      "budget_usd": {
+        "low": 12500,
+        "base": 52000,
+        "high": 208000
+      },
+      "budget_formula": "expert_hours * transferred_service_rate + nonlabor_allowance",
+      "internal_labor_usd": {
+        "low": 7818.321755027422,
+        "base": 30558.389193581148,
+        "high": 162800.25137111518
+      },
+      "condition": "Usable coherent data, existing credible reference and reusable workflow; no physical tests, certification or bespoke enterprise terms.",
+      "unready_upper_bound": null
+    }
+  ],
+  "intake": {
+    "status": "ASSUMPTION",
+    "expert_hours": {
+      "low": 8,
+      "base": 24,
+      "high": 64
+    },
+    "labor_only_usd": {
+      "low": 600,
+      "base": 3000,
+      "high": 10560
+    },
+    "elapsed_business_days": {
+      "low": 1,
+      "base": 3,
+      "high": 10
+    }
+  },
+  "qualification": "No paid traction, WTP, calibrated quote, SLA or scientifically qualified customer tool demonstrated."
+}

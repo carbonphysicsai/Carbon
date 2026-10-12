@@ -709,3 +709,26 @@ def test_campaign_ledger_allows_one_registered_retry_for_eligible_cases(tmp_path
     }
     with pytest.raises(reference_campaign.CampaignLedgerError):
         ledger.reserve(retry, tmp_path / "retry-again")
+
+
+def test_fixture_record_computes_applicability_not_a_hardcoded_ok(monkeypatch):
+    config = load()
+    inputs = study.reference_plan(config, "sha256:" + "0" * 64)["cases"][0]["inputs"]
+    assert study.fixture_record(inputs)["status"] == "OK"
+    real = study.analytic.predict
+
+    def hot(case):
+        out = real(case)
+        return {**out, "diagnostics": {**out["diagnostics"], "max_wall_c": 101.0}}
+
+    monkeypatch.setattr(study.analytic, "predict", hot)
+    record = study.fixture_record(inputs)
+    assert record["status"] == "REFERENCE_INVALID"
+    assert "fluid_max_c" in record["reasons"][0]
+
+    def turbulent(case):
+        out = real(case)
+        return {**out, "diagnostics": {**out["diagnostics"], "re_max": 2500.0}}
+
+    monkeypatch.setattr(study.analytic, "predict", turbulent)
+    assert study.fixture_record(inputs)["status"] == "REFERENCE_INVALID"

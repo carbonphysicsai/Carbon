@@ -19,7 +19,40 @@ python -m carbon.dashboard build --fixtures --out /tmp/carbon-dashboard
 python -m carbon.dashboard serve --dir /tmp/carbon-dashboard --port 8765
 ```
 
-`--fixtures` draws signed synthetic feeds labelled FIXTURE.
+`--fixtures` draws signed synthetic feeds labelled FIXTURE, at the fixtures'
+clock, so board.v2 shows each phase: LIVE, STALE, and PRE_FIRST_RELEASE after
+a rule cutover.
+
+## board.v2
+
+`board_v2.project` reads only the verified board model `feed.py` returns.
+- Every `null` has a reason at `reasons[<key>]` beside it. `not_in_feed` means
+  the signed feed does not carry the field yet.
+- An era is one rule digest; histories never cross digests.
+- Rule statements (rule text, round period, release predicate and lag) show
+  only when a rules card from the Validator matches the feed's rule digest
+  (`rules.status` OK). No card is configured yet, so they are null with
+  `rules_unavailable`.
+- `phase` is STALE once the feed is more than 2 h old: an engineering UI
+  default (`STALE_AFTER_SECONDS`), not a registered value. The age runs from
+  the feed's `as_of_block` chain time when it carries one (`freshness.basis`).
+- VALIDATOR-33 A's fields (#1143, DASHBOARD-02 S1b), each null with
+  `not_in_feed` in an older feed:
+  - the ledger king's UID, coldkey, crowning, share, next halving, defences
+    (finals survived) and reward eligibility fill `king` only when the ledger
+    king is the released incumbent (else `king_not_released`);
+  - `history.handovers` and `history.kings` (each reign) from `handovers`;
+  - `target_to_beat`: the rule's kind, the posted (final) and screening
+    margins, the noise guard (the final comparison's `alpha`, `n_min`,
+    `n_boot`, `important_min`; other keys dropped), the registered score and
+    the gates, kept as the signed feed posts them. They are rule statements
+    (Test Lead, #1144): the page draws the bars only with an OK rules card,
+    and otherwise shows the king's score and gates and the one "Rules
+    unavailable" line in the target panel;
+  - `next_release.next_block` is the next rotation block, and `next_utc` its
+    time estimated from `as_of_block` at 12 s per block.
+- `worker/feed.mjs` ports it as `projectV2`; the Worker serves it at
+  `/data/v2/<slug>.json`.
 
 To build from a real feed, fetch it from a validator's public door, then build
 it against that validator's pinned feed key:
@@ -36,11 +69,37 @@ How the key and the feed are handled:
   marked with the reason.
 - `--no-showcase` skips the showcase replays (about 10 s).
 
+## The pages (DASHBOARD-02 S2)
+
+`web/` draws every Challenge page from `data/v2/<slug>.json` only: the king,
+the target to beat with both bars, the eligible ladder (per coldkey when the
+feed carries one), the history sparkline, the championship rounds, the next
+round and release, and the safety gates. It computes no rank, king, margin or
+rule value. A null field is not drawn: its reason stays in the board.v2 JSON,
+and a section with one (king, target, timing, championship, network) shows a
+single muted line, "More coming as the Validator publishes it". Rule text and
+the release lag show only while the rules card's status is OK; otherwise one
+"Rules unavailable" line stands where they would be. Before the first release
+a board shows a hero state (the feed's rotation, labels, "What is scored" and
+"How to mine"), never an empty table. The feed key shows as the pinned public
+key's first and last bytes. `data/network.json` (S3's signed network snapshot)
+is fetched only when `index.json` says `network: true`.
+
+- Plain HTML, CSS and JS, mobile first; no framework, CDN or inline script or
+  style, under the strict CSP. HTML, CSS, JS and the wordmark stay under
+  120 KB (`tests/cpu/test_dashboard_web.py`).
+- `tests/cpu/dashboard_check.cjs` renders every fixture board in each phase
+  in Node and mounts it into a minimal DOM. A third argument, a site built from
+  `fixtures.chain_documents()`, checks the #1143 fields: the king's share and
+  halving countdown, the release countdown, the margins only with a rules
+  card, and the handovers.
+
 ## What the build writes
 
 | Path | Content |
 |---|---|
 | `data/index.json`, `data/boards/<slug>.json` | One board per Challenge and device class, checked by `feed.py` |
+| `data/v2/<slug>.json` | The same board as `carbon.dashboard.board.v2` (`board_v2.py`, DASHBOARD-02 S1): king, target to beat, eligible leaderboard, history, rounds, gates and phase |
 | `showcase/index.json`, `showcase/*.json` | Replays of EV4's public decision: the released incumbent's panel, when the feed carries one, and the synthetic controls |
 | `index.html`, `*.js`, `style.css`, `fonts/`, `brand/` | The static app. No third-party script, no CDN, no cookies |
 

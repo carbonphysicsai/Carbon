@@ -1,0 +1,107 @@
+{
+ "schema": "carbon.battery.score-tuning-registry.v1",
+ "registered": "2026-10-12, registry v9 (SCORE-PROOF-01 amendment 10): a small value-first family, its own registry, registered after the confirmation of G-FEAS+ENV/A-Q@0.01 FAILED and the post-mortem, before any public result is scored and before any fresh sealed draw",
+ "seeds": "SCORE-PROOF-POSTMORTEM-01 (aggregates from the confirmation fold): single legs a, r, p carry tau 0.46-0.53 against value while the gated A-Q composite fell to 0.097; value is almost entirely infeasible-pick avoidance; selection optimism over 255 rules was real (0.312 -> 0.097)",
+ "supersedes": "nothing: v8 stays registered and unchanged; v9 is a separate, deliberately small family so the selection's optimism stays low",
+ "threshold": "HUMAN_INPUT: every gate cutoff is a registered point (the envelope's 1.0 is G-N+env1's), never an adopted threshold",
+ "public_split": "public-dev-split-v1.json (registered 2026-10-12, before any public result is scored): salt SCORE-PROOF-01/public-dev-split-v1, leg_share 0.5, keyed on the question's scenario id (PUBLIC-DEV-DECISIONS-01's D-0000..D-0109); LEG questions feed VERIFY-R's legs only, VALUE questions the selection's value only",
+ "controls": "A-Q (the base the contrast needs) and the rule in force G-FEAS/A-Q>@0.05 (the contrast), unchanged from v8",
+ "pickability": "SCORE-PROOF-PICKABLE-02, in force and unchanged, applies to every v9 rule: no known-bad control in the top half of any screened pool, and no adversarial divergence",
+ "gate_values": "the envelope gate's cutoff 1.0 is registered here as a candidate value (G-N+env1's registered point); adopting any threshold stays the owner's (HUMAN_INPUT)",
+ "sealed_confirmation_split": "the fresh sealed confirmation questions are split by the same registered rule (public-dev-split-v1: salt, leg_share 0.5, keyed on the sealed scenario id): V3 (VERIFY-R) is computed on sealed LEG questions only and the confirmation's tau on sealed VALUE questions only",
+ "candidates": [
+  {
+   "id": "A",
+   "weights": {
+    "a": 1.0
+   },
+   "basis": "SCORE-PROOF-POSTMORTEM-01: accuracy alone (single-leg tau 0.495 on the confirmation fold)"
+  },
+  {
+   "id": "R",
+   "weights": {
+    "r": 1.0
+   },
+   "basis": "SCORE-PROOF-POSTMORTEM-01: important-region accuracy alone (0.527)"
+  },
+  {
+   "id": "P",
+   "weights": {
+    "p": 1.0
+   },
+   "basis": "SCORE-PROOF-POSTMORTEM-01: proximity-weighted optimism leg alone (0.523)"
+  },
+  {
+   "id": "ARP",
+   "weights": {
+    "a": 0.3333333333333333,
+    "r": 0.3333333333333333,
+    "p": 0.3333333333333333
+   },
+   "basis": "SCORE-PROOF-POSTMORTEM-01: the three simple legs, equal weights"
+  },
+  {
+   "id": "V3",
+   "weights": {
+    "v3": 1.0
+   },
+   "basis": "SCORE-PROOF-POSTMORTEM-01: held-out decision outcomes, VERIFY-R at k = 3 on the public LEG questions (public-dev-split-v1), never the value questions"
+  },
+  {
+   "id": "ARP-V3",
+   "weights": {
+    "a": 0.25,
+    "r": 0.25,
+    "p": 0.25,
+    "v3": 0.25
+   },
+   "basis": "SCORE-PROOF-POSTMORTEM-01: the simple legs with the held-out decision outcomes, equal weights"
+  },
+  {
+   "id": "ENV/ARP",
+   "weights": {
+    "a": 0.3333333333333333,
+    "r": 0.3333333333333333,
+    "p": 0.3333333333333333
+   },
+   "gate": {
+    "measure": "envelope",
+    "cutoff": 1.0
+   },
+   "basis": "SCORE-PROOF-POSTMORTEM-01: ARP with hard safety only, the envelope gate at 1.0 (unsafe recall 1); no FEAS or PLATE gate"
+  },
+  {
+   "id": "ENV/ARP-V3",
+   "weights": {
+    "a": 0.25,
+    "r": 0.25,
+    "p": 0.25,
+    "v3": 0.25
+   },
+   "gate": {
+    "measure": "envelope",
+    "cutoff": 1.0
+   },
+   "basis": "SCORE-PROOF-POSTMORTEM-01: ARP-V3 with hard safety only, the envelope gate at 1.0"
+  },
+  {
+   "id": "A-Q",
+   "weights": {
+    "a": 0.5,
+    "q": 0.5
+   },
+   "basis": "accuracy next to Q3 decision regret (owner: 'not gameable?'): over-caution costs score"
+  },
+  {
+   "id": "G-FEAS/A-Q>",
+   "kind": "gate_sweep",
+   "measure": "feasibility",
+   "grid": [
+    0.05
+   ],
+   "base": "A-Q",
+   "comparison": "exceeds",
+   "basis": "OWNER-BATTERY-SCORE-RULE-01's rule (G-FEAS@0.05 over A-Q) with the gate comparison the record states: fail only above 0.05 (#961)"
+  }
+ ]
+}

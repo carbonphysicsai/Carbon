@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-11-cooling-preparation",
+  "recorded_at": "2026-10-11T11:53:24Z",
+  "challenge": "cooling-cell",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "COOLING-CELL-READINESS-BUILD-01", "description": "Native synthetic generator/observer/budget and retained comparator regression diagnostics; no reference solve or spend"},
+  "expected": "Existing cell packaging can support a prospective case-plane task without choosing the buyer inlet or lid.",
+  "observed": "Initial 59 focused/regression diagnostics passed; expanded portable UTF-8 bundle passed 95, including an actual synthetic held-geometry map and screening report. The broad native run had seven unchanged Linux UID/permission failures plus a Windows encoding failure; UTF-8 repaired the latter and POSIX tests remain for canonical CI. The current route is axial-map PG25, whose inlet support starts at 30 C. A colder sourced candidate or transverse map needs a new route, not extrapolation. Same physical TRAIN/test points remain duplicates despite changed service labels, requirements or refinement rungs. Native lint identified mechanical style issues, repaired without changing test semantics.",
+  "keep": ["Render supported OpenFOAM decks in memory", "Co-located TIM2 flux and plate temperature", "Independent map and numerical uncertainty intervals"],
+  "change": ["Require exact buyer service and current package pins before tuple generation", "Keep unsupported material/maps closed", "Do not treat a coverage hook or analytic source formula as a completed kit or solver verification"],
+  "protocol_elements": ["COOLING-CELL-READINESS-BUILD-01", "CODE-VERIFICATION-MMS-01", "EQUAL-BUDGET-V1"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

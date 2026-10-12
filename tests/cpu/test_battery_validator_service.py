@@ -253,7 +253,7 @@ def self_signed(folder):
 
     key = ec.generate_private_key(ec.SECP256R1())
     name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "localhost")])
-    now = datetime.datetime.now(datetime.timezone.utc)
+    now = datetime.datetime.now(datetime.UTC)
     cert = (
         x509.CertificateBuilder()
         .subject_name(name)
@@ -1205,6 +1205,9 @@ def test_the_supervised_commands_are_the_intake_and_operate_run(tmp_path):
         "30.0",
         "--heartbeat",
         str(tmp_path / "service" / "daemon-heartbeat.json"),
+        # The daemon admits what the intake's process can't, from its inbox.
+        "--inbox",
+        str(json.loads(made.intake.read_text())["inbox"]),
     ]
 
 

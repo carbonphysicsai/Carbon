@@ -214,6 +214,29 @@ DEVELOPMENT_RULE_V2_BANK_SCHED = {
 }
 
 
+#: A rule whose score is a registered score-tuning candidate (VALIDATOR-26):
+#: the deployment's configuration supplies the term (`score`: registry,
+#: registry_sha256, candidate, decision), and the deployment's rule carries
+#: it, so its digest binds the term. The marker itself is never scored.
+REGISTERED_SCORE = "REGISTERED_BY_DEPLOYMENT"
+
+#: Rule `v3-bank-sched` (VALIDATOR-26; OWNER-BATTERY-SCORE-RULE-01;
+#: OWNER-BATTERY-V3-FINALS-01): `v2-bank-sched` scored by a registered
+#: candidate. Screening and nomination use the candidate's score (higher is
+#: better) and gate, with v2's important-region guard kept; finals keep v2's
+#: paired accuracy comparison on the finalist batch and add the candidate's
+#: gate there. Miner disclosure is v2's (sealed).
+DEVELOPMENT_RULE_V3_BANK_SCHED = {
+    **DEVELOPMENT_RULE_V2_BANK_SCHED,
+    "authority": (
+        DEVELOPMENT_RULE_V2_BANK_SCHED["authority"]
+        + "; registered score: OWNER-BATTERY-SCORE-RULE-01, "
+        "OWNER-BATTERY-V3-FINALS-01 (VALIDATOR-26)"
+    ),
+    "score": REGISTERED_SCORE,
+}
+
+
 def _rate_study_rule(window_blocks):
     """SUBMISSION-RATE-STUDY-01's development rule variants (VALIDATOR-30):
     `v2-bank` with the per-hotkey window at `window_blocks` (360, 180, 90 for
@@ -248,6 +271,7 @@ RULES = {
     "v2-bank-e2": DEVELOPMENT_RULE_V2_BANK_E2,
     "v2-bank-e1-r360": DEVELOPMENT_RULE_V2_BANK_E1_R360,
     "v2-bank-sched": DEVELOPMENT_RULE_V2_BANK_SCHED,
+    "v3-bank-sched": DEVELOPMENT_RULE_V3_BANK_SCHED,
     # SUBMISSION-RATE-STUDY-01's rates m = 1, 2, 4 (VALIDATOR-30).
     "v2-bank-rate-1": _rate_study_rule(360),
     "v2-bank-rate-2": _rate_study_rule(180),
@@ -892,6 +916,37 @@ EXISTING_DISPOSITION = {
     NO_IMPROVEMENT: "DEVELOPMENT_EQUIVALENT",
     INSUFFICIENT: "INDETERMINATE_REPLICA_OR_EFFECT_RESOLUTION",
 }
+
+
+def nominate_registered(
+    record: dict, incumbent: dict | None, margin: float
+) -> tuple[bool, str]:
+    """Nomination under a registered score (VALIDATOR-26): eligible (its gate
+    passed), its registered score better than the incumbent's by the margin
+    (higher is better), and, kept from v2 (OWNER-BATTERY-V3-FINALS-01), no
+    important-region accuracy regression beyond the margin."""
+    from .rebuild_identity import device_class
+
+    if not record["eligible"]:
+        return False, "gate failure"
+    mine = (record.get("registered") or {}).get("score")
+    if mine is None:
+        return False, "no registered score"
+    if incumbent is None:
+        return True, "no incumbent"
+    if record["pool_version"] != incumbent["pool_version"]:
+        return False, "incumbent not scored on this pool version"
+    if device_class(record) != device_class(incumbent):
+        return False, "incumbent rebuilt on another device class"
+    theirs = (incumbent.get("registered") or {}).get("score")
+    if theirs is None:
+        return False, "the incumbent has no registered score on this pool"
+    if mine <= theirs * (1 + margin):
+        return False, "not better than the incumbent by the margin"
+    ri, ii = record.get("important_score"), incumbent.get("important_score")
+    if ri is not None and ii is not None and ri > ii * (1 + margin):
+        return False, "important-region regression beyond the margin"
+    return True, "nominated"
 
 
 def nominate(record: dict, incumbent: dict | None, margin: float) -> tuple[bool, str]:

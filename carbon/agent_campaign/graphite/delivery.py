@@ -70,6 +70,8 @@ FILES = (
     "REBUILD.md",
     "next-level-proposals.json",
 )
+#: A Level 4 bundle's submission envelope (`experiment._level4_documents`).
+LEVEL4_ENVELOPE = "level4-envelope.json"
 NUMERICAL = {
     "status": "NOT_JUDGED",
     "tolerance": "HUMAN_INPUT",
@@ -209,13 +211,21 @@ def deliver(experiment, directory, *, selection=None, proposals=()):
             }
         ),
     }
-    for name in FILES:
+    # A Level 4 proposal's kept submission envelope travels in its bundle, so
+    # the clean rebuild stages the same documents from the bundle alone
+    # (GRAPHITE-L4-STAGING-01); every other bundle's files are unchanged.
+    names = list(FILES)
+    envelope = experiment.root / "proposals" / pid / LEVEL4_ENVELOPE
+    if envelope.is_file():
+        bodies[LEVEL4_ENVELOPE] = envelope.read_bytes()
+        names.append(LEVEL4_ENVELOPE)
+    for name in names:
         write_once(folder / name, bodies[name])
     manifest = {
         "schema": BUNDLE_SCHEMA,
         "proposal_id": pid,
         "run_id": experiment.run_id,
-        "files": {name: digest(bodies[name]) for name in FILES},
+        "files": {name: digest(bodies[name]) for name in names},
         "contract_digest": expected["contract_digest"],
         "record_sequence": expected["record_sequence"],
         "recipe_digest": expected["recipe_digest"],
@@ -296,6 +306,13 @@ def clean_rebuild(directory, *, repository=ex.REPOSITORY):
             return _rebuild_result(["not_rebuildable:" + str(refused)], manifest)
     try:
         level = {} if variant is None else {"variant": variant}
+        if (folder / LEVEL4_ENVELOPE).is_file():
+            from carbon.level4 import staging
+
+            _digest, raw_manifest, documents = staging.from_envelope(
+                json.loads((folder / LEVEL4_ENVELOPE).read_bytes())
+            )
+            level["workspace"] = staging.workspace(raw_manifest, documents)
         rebuilt = ex.admit(strategy, recipe.get("seed"), repository, **level)
     except (ex.Unrebuildable, ex.NotServed, ValueError, TypeError) as refused:
         return _rebuild_result(["not_rebuildable:" + str(refused)], manifest)

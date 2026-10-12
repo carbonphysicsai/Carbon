@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-12-panel-diff",
+  "recorded_at": "2026-10-12T00:52:46Z",
+  "challenge": "protocol",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "PANEL-DIFF-GEN-01 / tests/cpu/test_panel_diff.py", "description": "Native physical-tuple/reuse fixtures, existing public f02 eight-tuple replay and panel/packet generator regressions."},
+  "expected": "Export immutable physical tuple snapshots, reuse differences and explicit blockers without source invention or duplicate solves.",
+  "observed": "First 14/15 diagnostics passed; input mutation also changed a returned tuple's shared pin dictionary and made old reuse appear current. Deep snapshots repaired it. Final 25/25 affected diagnostics passed; deterministic public f02 replay kept eight specified tuples without crossing new contexts. Missing pins/index remain blocked/unseen. Native only, no solver or spend.",
+  "keep": ["Full physical/pin identity, every alias and completed/scheduled receipt declarations.", "Incomplete inventory means unseen, not proven new; costs and adoption stay separate."],
+  "change": ["Snapshot nested tuple values before hashing/returning so caller mutation cannot reinterpret an existing identity."],
+  "protocol_elements": ["challenge_onboarding", "physical_case_identity", "reuse", "lessons_learned"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

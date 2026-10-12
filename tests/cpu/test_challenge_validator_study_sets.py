@@ -106,8 +106,9 @@ def scripted(failed=()):
     set is in `failed` gets REFERENCE_SOLVER_FAILED."""
 
     def run(command, check):
-        mount = next(a for a in command if a.endswith(":/work:rw"))
-        work = Path(mount.removesuffix(":/work:rw"))
+        from carbon.battery.truth_env import mounted_work
+
+        work = mounted_work(command)
         jobs = json.loads((work / "jobs.json").read_text())["jobs"]
         with (work / "records.jsonl").open("a") as handle:
             for position, job in enumerate(jobs):

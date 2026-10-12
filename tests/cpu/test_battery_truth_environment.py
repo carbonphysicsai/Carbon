@@ -144,7 +144,10 @@ def test_verify_runs_the_pinned_image_offline_and_records_versions(tmp_path):
     command = seen[0]
     assert TRUTH_IMAGE["base_image"] in command
     assert command[command.index("--network") + 1] == "none"
-    assert any(part.endswith(":/overlay:ro") for part in command)
+    assert any(
+        part.startswith("type=bind,") and part.endswith(",target=/overlay,readonly")
+        for part in command
+    )
     assert (target / truth_env.VERIFIED).stat().st_mode & 0o077 == 0
 
 
@@ -204,15 +207,29 @@ def test_the_solve_container_sees_only_overlay_source_and_workdir(tmp_path):
     command = truth_env.solve_command(
         tmp_path / "overlay", tmp_path / "work", repository=REPOSITORY, workers=6
     )
-    mounts = [command[i + 1] for i, part in enumerate(command) if part == "-v"]
+    mounts = [command[i + 1] for i, part in enumerate(command) if part == "--mount"]
     assert mounts == [
-        f"{(tmp_path / 'overlay').resolve()}:/overlay:ro",
-        f"{REPOSITORY.resolve()}:/carbon:ro",
-        f"{(tmp_path / 'work').resolve()}:/work:rw",
+        f"type=bind,source={(tmp_path / 'overlay').resolve()},target=/overlay,readonly",
+        f"type=bind,source={REPOSITORY.resolve()},target=/carbon,readonly",
+        f"type=bind,source={(tmp_path / 'work').resolve()},target=/work",
     ]
+    assert "-v" not in command
     assert command[command.index("--network") + 1] == "none"
     assert "--read-only" in command and TRUTH_IMAGE["base_image"] in command
     assert command[-8:-6] == ["--jobs", "/work/jobs.json"]
+
+
+def test_a_colon_in_a_work_path_mounts_and_a_comma_is_refused(tmp_path):
+    """A design bank's tranche directory holds ':' (`bank-design:battery-q3-T1`):
+    `-v` split it ("too many colons"); `--mount` carries it whole. `--mount`
+    splits on ',', so a path holding one is refused, never mis-mounted."""
+    work = tmp_path / "work" / "bank-design:battery-q3-T1"
+    command = truth_env.solve_command(tmp_path / "overlay", work, repository=REPOSITORY)
+    assert f"type=bind,source={work.resolve()},target=/work" in command
+    with pytest.raises(truth_env.TruthEnvironmentError, match="','"):
+        truth_env.solve_command(
+            tmp_path / "overlay", tmp_path / "a,b", repository=REPOSITORY
+        )
 
 
 def test_operate_jobs_writes_an_owner_only_file_without_starting(tmp_path, capsys):

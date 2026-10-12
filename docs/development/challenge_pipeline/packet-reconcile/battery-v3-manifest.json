@@ -1,0 +1,158 @@
+{
+  "schema": "carbon.onboarding.packet-reconcile.v1",
+  "challenge": "battery-v3",
+  "documents": {
+    "packet": {
+      "path": "docs/development/challenge_pipeline/round1/battery-ambient-map-v3.md",
+      "kind": "PACKET",
+      "sha256": "a6c1fef9469b47f933c40d0cddf2441270db771412f1b4dadf60c7ba5fa637a4"
+    },
+    "owner": {
+      "path": ".agent/decisions/2026-10-08-OWNER-BATTERY-AMBIENT-MAP-03.md",
+      "kind": "OWNER_DECISION",
+      "sha256": "70b35c1e515664674c4072084b590e66048eb006fd248301d9c46f4506156ec5"
+    }
+  },
+  "checks": [
+    {
+      "id": "charging-temperature",
+      "field": "hard_limits",
+      "packet": {
+        "document": "packet",
+        "kind": "number",
+        "section": null,
+        "prefix": "Hard charging T<=",
+        "suffix": "C,"
+      },
+      "evidence": [
+        {
+          "document": "owner",
+          "kind": "number",
+          "section": null,
+          "prefix": "Every band meets charging T<=",
+          "suffix": "C,"
+        }
+      ]
+    },
+    {
+      "id": "plating",
+      "field": "hard_limits",
+      "packet": {
+        "document": "packet",
+        "kind": "number",
+        "section": null,
+        "prefix": "every-charge plating overpotential>=",
+        "suffix": "V,"
+      },
+      "evidence": [
+        {
+          "document": "owner",
+          "kind": "number",
+          "section": null,
+          "prefix": "every-charge plating>=",
+          "suffix": "V,"
+        }
+      ]
+    },
+    {
+      "id": "voltage",
+      "field": "hard_limits",
+      "packet": {
+        "document": "packet",
+        "kind": "number",
+        "section": null,
+        "prefix": "programme voltage<=",
+        "suffix": "V and"
+      },
+      "evidence": [
+        {
+          "document": "owner",
+          "kind": "number",
+          "section": null,
+          "prefix": "programme voltage<=",
+          "suffix": "V and"
+        }
+      ]
+    },
+    {
+      "id": "retention",
+      "field": "hard_limits",
+      "packet": {
+        "document": "packet",
+        "kind": "number",
+        "section": null,
+        "prefix": "Q30/Q1>=",
+        "suffix": "apply to"
+      },
+      "evidence": [
+        {
+          "document": "owner",
+          "kind": "number",
+          "section": null,
+          "prefix": "Q30/Q1>=",
+          "suffix": "."
+        }
+      ]
+    },
+    {
+      "id": "time-is-objective",
+      "field": "objective",
+      "packet": {
+        "document": "packet",
+        "kind": "literal",
+        "section": null,
+        "phrase": "Minimize each band's session-start-to80 time;",
+        "value": "MINIMIZE_SESSION_TIME"
+      },
+      "evidence": [
+        {
+          "document": "owner",
+          "kind": "literal",
+          "section": null,
+          "phrase": "Minimize band session minutes;",
+          "value": "MINIMIZE_SESSION_TIME"
+        }
+      ]
+    },
+    {
+      "id": "discharge-scope",
+      "field": "outputs",
+      "packet": {
+        "document": "packet",
+        "kind": "literal",
+        "section": null,
+        "phrase": "Discharge and rest temperatures are diagnostics.",
+        "value": "DISCHARGE_DIAGNOSTIC"
+      },
+      "evidence": [
+        {
+          "document": "owner",
+          "kind": "literal",
+          "section": null,
+          "phrase": "Discharge thermal extrema remain diagnostics.",
+          "value": "DISCHARGE_DIAGNOSTIC"
+        }
+      ]
+    },
+    {
+      "id": "buyer-mix",
+      "field": "w",
+      "packet": {
+        "document": "packet",
+        "kind": "literal",
+        "section": null,
+        "phrase": "owner selects `w_band=buyer_mix`",
+        "value": "BUYER_MIX"
+      },
+      "evidence": [
+        {
+          "document": "owner",
+          "kind": "literal",
+          "section": null,
+          "phrase": "owner selects buyer-mix weighting of band value.",
+          "value": "BUYER_MIX"
+        }
+      ]
+    }
+  ]
+}

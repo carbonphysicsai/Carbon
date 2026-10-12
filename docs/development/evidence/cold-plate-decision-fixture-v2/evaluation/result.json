@@ -25,18 +25,18 @@
         "selected_geometry_same": true
       },
       "commitment": {
-        "commitment_digest": "sha256:87c0a4f331e4f678558a240dcd3bdf1ea95393393031c1762926b4c1184e67d2",
-        "file_sha256": "sha256:86d3e933a471f146ba875c763cd7230ede5f16ec8db64c040e8b20fd21c993dc",
-        "relative_path": "commitments/analytic-v1/fixed_grid/964d84a9df8ac4870ec7c061374606fed0c176bb00243260974761882d5ee09d.commitment.json",
+        "commitment_digest": "sha256:ec7ffd25753529efb1bde60693d473b9e74c3b9de0602f1d88a95124c38b195d",
+        "file_sha256": "sha256:3cab5635cd9d5042594dea3e70fdfd4cb6b2711422a9564b74d85c09046aaf69",
+        "relative_path": "commitments/analytic-v1/fixed_grid/2d478820be7ae0cce6f35b40f9ff9a552c74cff8bf71beba431baae867b416c0.commitment.json",
         "status": "PROPOSAL"
       },
-      "construction_wall_s": 0.19388169999001548,
+      "construction_wall_s": 0.4331465590003063,
       "declared_query_budget": 48,
-      "end_to_end_wall_s": 0.21930860000429675,
-      "evaluation_wall_s": 0.025426900014281273,
+      "end_to_end_wall_s": 0.48429315999965183,
+      "evaluation_wall_s": 0.05114660099934554,
       "method": "fixed_grid",
       "model": "analytic-v1",
-      "model_inference_wall_s": 0.18801659997552633,
+      "model_inference_wall_s": 0.4258426249944023,
       "model_query_attempts": 48,
       "model_query_successes": 48,
       "predicted_scenarios": [
@@ -101,8 +101,8 @@
             "total_flow_lpm": 1.25
           },
           "prediction": {
-            "die_margin_c": 21.66869822961627,
-            "die_peak_c": 78.33130177038373,
+            "die_margin_c": 21.668698229616155,
+            "die_peak_c": 78.33130177038385,
             "feasible": true,
             "hydraulic_margin_w": 0.16941202927518328,
             "hydraulic_w": 0.08058797072481673,
@@ -387,8 +387,8 @@
             "total_flow_lpm": 1.25
           },
           "prediction": {
-            "die_margin_c": 21.66869822961627,
-            "die_peak_c": 78.33130177038373,
+            "die_margin_c": 21.668698229616155,
+            "die_peak_c": 78.33130177038385,
             "feasible": true,
             "hydraulic_margin_w": 0.16941202927518328,
             "hydraulic_w": 0.08058797072481673,
@@ -401,8 +401,8 @@
             }
           },
           "reference": {
-            "die_margin_c": 21.66869822961627,
-            "die_peak_c": 78.33130177038373,
+            "die_margin_c": 21.668698229616155,
+            "die_peak_c": 78.33130177038385,
             "feasible": true,
             "hydraulic_margin_w": 0.16941202927518328,
             "hydraulic_w": 0.08058797072481673,
@@ -681,7 +681,7 @@
           }
         }
       ],
-      "search_wall_s": 0.19035529997199774,
+      "search_wall_s": 0.43056258500291733,
       "selection": {
         "channel_depth_mm": 2.5,
         "channel_width_mm": 0.25,
@@ -699,7 +699,7 @@
           "scientific_qualification": false,
           "unavailable_counted_as_feasible_or_infeasible": false
         },
-        "commitment_digest": "sha256:87c0a4f331e4f678558a240dcd3bdf1ea95393393031c1762926b4c1184e67d2",
+        "commitment_digest": "sha256:ec7ffd25753529efb1bde60693d473b9e74c3b9de0602f1d88a95124c38b195d",
         "contract_digest": "sha256:00975715ab96e9f2ee007021d103d01d61c94bedf8e7177d068088035a89e261",
         "counted_cfd_evidence": false,
         "false_feasible": false,
@@ -724,7 +724,7 @@
           "solver_wall_s": 0.0,
           "source_calls": 1
         },
-        "request_digest": "sha256:964d84a9df8ac4870ec7c061374606fed0c176bb00243260974761882d5ee09d",
+        "request_digest": "sha256:2d478820be7ae0cce6f35b40f9ff9a552c74cff8bf71beba431baae867b416c0",
         "rows": [
           {
             "case_id": "cold-plate-decision:5bd3ca8fd5d9ce2c4e5e48b805674345d5359f459299fc872477b69cce3b2980",
@@ -753,8 +753,8 @@
           {
             "case_id": "cold-plate-decision:14c2b36efec0e6cf9e754d7da5bca9214effa0ac377fee81eb3657de5bfb08af",
             "reference": {
-              "die_margin_c": 21.66869822961627,
-              "die_peak_c": 78.33130177038373,
+              "die_margin_c": 21.668698229616155,
+              "die_peak_c": 78.33130177038385,
               "feasible": true,
               "hydraulic_margin_w": 0.16941202927518328,
               "hydraulic_w": 0.08058797072481673,
@@ -894,18 +894,18 @@
         "selected_geometry_same": true
       },
       "commitment": {
-        "commitment_digest": "sha256:d9b1c39a698d81f84722a636992a018fb091e0a5abbe815764aa8825ccc37389",
-        "file_sha256": "sha256:552935579782067462d15c17bf38f44b6c0ed4da8f497cab41d7b64b9ef0f0d8",
-        "relative_path": "commitments/analytic-v1/screen_then_confirm/cba51cbcc2a661150523c0309e5a853134a525b670adf997c659e7175f863972.commitment.json",
+        "commitment_digest": "sha256:b8fcab6f6696b2662ea91cb9a9bb1893009b5df908f5992ccdc8da89b5e3b28c",
+        "file_sha256": "sha256:f6da371ec2949f0f9323067c9a9f6f2781ee0353e7e56e8961fbb27ce80ff74a",
+        "relative_path": "commitments/analytic-v1/screen_then_confirm/399ace0d37b3c76170e9c7b7ff253928f5650f8676a0a5da136dca0afc45c788.commitment.json",
         "status": "PROPOSAL"
       },
-      "construction_wall_s": 0.053799099987372756,
+      "construction_wall_s": 0.10791666500153951,
       "declared_query_budget": 48,
-      "end_to_end_wall_s": 0.05461899994406849,
-      "evaluation_wall_s": 0.0008198999566957355,
+      "end_to_end_wall_s": 0.1089599340048153,
+      "evaluation_wall_s": 0.0010432690032757819,
       "method": "screen_then_confirm",
       "model": "analytic-v1",
-      "model_inference_wall_s": 0.051134000066667795,
+      "model_inference_wall_s": 0.10469689700403251,
       "model_query_attempts": 13,
       "model_query_successes": 13,
       "predicted_scenarios": [
@@ -970,8 +970,8 @@
             "total_flow_lpm": 1.25
           },
           "prediction": {
-            "die_margin_c": 21.66869822961627,
-            "die_peak_c": 78.33130177038373,
+            "die_margin_c": 21.668698229616155,
+            "die_peak_c": 78.33130177038385,
             "feasible": true,
             "hydraulic_margin_w": 0.16941202927518328,
             "hydraulic_w": 0.08058797072481673,
@@ -1256,8 +1256,8 @@
             "total_flow_lpm": 1.25
           },
           "prediction": {
-            "die_margin_c": 21.66869822961627,
-            "die_peak_c": 78.33130177038373,
+            "die_margin_c": 21.668698229616155,
+            "die_peak_c": 78.33130177038385,
             "feasible": true,
             "hydraulic_margin_w": 0.16941202927518328,
             "hydraulic_w": 0.08058797072481673,
@@ -1270,8 +1270,8 @@
             }
           },
           "reference": {
-            "die_margin_c": 21.66869822961627,
-            "die_peak_c": 78.33130177038373,
+            "die_margin_c": 21.668698229616155,
+            "die_peak_c": 78.33130177038385,
             "feasible": true,
             "hydraulic_margin_w": 0.16941202927518328,
             "hydraulic_w": 0.08058797072481673,
@@ -1550,7 +1550,7 @@
           }
         }
       ],
-      "search_wall_s": 0.05194360000314191,
+      "search_wall_s": 0.1061582760012243,
       "selection": {
         "channel_depth_mm": 2.5,
         "channel_width_mm": 0.25,
@@ -1568,7 +1568,7 @@
           "scientific_qualification": false,
           "unavailable_counted_as_feasible_or_infeasible": false
         },
-        "commitment_digest": "sha256:d9b1c39a698d81f84722a636992a018fb091e0a5abbe815764aa8825ccc37389",
+        "commitment_digest": "sha256:b8fcab6f6696b2662ea91cb9a9bb1893009b5df908f5992ccdc8da89b5e3b28c",
         "contract_digest": "sha256:00975715ab96e9f2ee007021d103d01d61c94bedf8e7177d068088035a89e261",
         "counted_cfd_evidence": false,
         "false_feasible": false,
@@ -1593,7 +1593,7 @@
           "solver_wall_s": 0.0,
           "source_calls": 1
         },
-        "request_digest": "sha256:cba51cbcc2a661150523c0309e5a853134a525b670adf997c659e7175f863972",
+        "request_digest": "sha256:399ace0d37b3c76170e9c7b7ff253928f5650f8676a0a5da136dca0afc45c788",
         "rows": [
           {
             "case_id": "cold-plate-decision:5bd3ca8fd5d9ce2c4e5e48b805674345d5359f459299fc872477b69cce3b2980",
@@ -1622,8 +1622,8 @@
           {
             "case_id": "cold-plate-decision:14c2b36efec0e6cf9e754d7da5bca9214effa0ac377fee81eb3657de5bfb08af",
             "reference": {
-              "die_margin_c": 21.66869822961627,
-              "die_peak_c": 78.33130177038373,
+              "die_margin_c": 21.668698229616155,
+              "die_peak_c": 78.33130177038385,
               "feasible": true,
               "hydraulic_margin_w": 0.16941202927518328,
               "hydraulic_w": 0.08058797072481673,
@@ -1763,18 +1763,18 @@
         "selected_geometry_same": true
       },
       "commitment": {
-        "commitment_digest": "sha256:21bb56bb3d681b79fcf070a3d5ba3cf821b7505de80930e22eaa2c6a03659b10",
-        "file_sha256": "sha256:d73c2b435dbee76d3749447937be364544ca9911b20ebdb5eb9a6acb071a412a",
-        "relative_path": "commitments/learned-krr-v1/fixed_grid/83ffc7c914439130639fe0d4bd2bb7a3404238f610f0736813a036174368bdd3.commitment.json",
+        "commitment_digest": "sha256:6f10d816310f5467dd497775fd3f5aa51ddd025193a8dc9601638e9520f09ba7",
+        "file_sha256": "sha256:f7c1acfec2c859f0d8c567f95a7efb7a98d89b44685b380dd4aaccaf81737b90",
+        "relative_path": "commitments/learned-krr-v1/fixed_grid/5d94f4a8133eabc7a9a76a9722f7ffeece5d10a60cf73dc900b4132985695772.commitment.json",
         "status": "PROPOSAL"
       },
-      "construction_wall_s": 0.009942599979694933,
+      "construction_wall_s": 0.012765386003593449,
       "declared_query_budget": 48,
-      "end_to_end_wall_s": 0.010601999994833022,
-      "evaluation_wall_s": 0.0006594000151380897,
+      "end_to_end_wall_s": 0.013700163006433286,
+      "evaluation_wall_s": 0.0009347770028398372,
       "method": "fixed_grid",
       "model": "learned-krr-v1",
-      "model_inference_wall_s": 0.002043600019533187,
+      "model_inference_wall_s": 0.00576440199802164,
       "model_query_attempts": 48,
       "model_query_successes": 48,
       "predicted_scenarios": [
@@ -1788,7 +1788,7 @@
             "inlet_c": 35.0
           },
           "engineering_cost": {
-            "predicted": 0.0598008462337577,
+            "predicted": 0.05980084623484972,
             "quantity": "hydraulic_power",
             "unit": "W"
           },
@@ -1798,11 +1798,11 @@
             "total_flow_lpm": 1.0
           },
           "prediction": {
-            "die_margin_c": 32.75507007449136,
-            "die_peak_c": 67.24492992550864,
+            "die_margin_c": 32.75507007332506,
+            "die_peak_c": 67.24492992667494,
             "feasible": true,
-            "hydraulic_margin_w": 0.1901991537662423,
-            "hydraulic_w": 0.0598008462337577,
+            "hydraulic_margin_w": 0.1901991537651503,
+            "hydraulic_w": 0.05980084623484972,
             "prediction_validity_gates": {
               "face_above_inlet": "PASS",
               "paired_repeat": "NOT_APPLICABLE",
@@ -1829,7 +1829,7 @@
             "inlet_c": 40.0
           },
           "engineering_cost": {
-            "predicted": 0.08394479825117605,
+            "predicted": 0.08394479824862094,
             "quantity": "hydraulic_power",
             "unit": "W"
           },
@@ -1839,11 +1839,11 @@
             "total_flow_lpm": 1.25
           },
           "prediction": {
-            "die_margin_c": 20.1930192350316,
-            "die_peak_c": 79.8069807649684,
+            "die_margin_c": 20.193019255109093,
+            "die_peak_c": 79.80698074489091,
             "feasible": true,
-            "hydraulic_margin_w": 0.16605520174882393,
-            "hydraulic_w": 0.08394479825117605,
+            "hydraulic_margin_w": 0.16605520175137906,
+            "hydraulic_w": 0.08394479824862094,
             "prediction_validity_gates": {
               "face_above_inlet": "PASS",
               "paired_repeat": "NOT_APPLICABLE",
@@ -1870,7 +1870,7 @@
             "inlet_c": 35.0
           },
           "engineering_cost": {
-            "predicted": 0.1297953455389026,
+            "predicted": 0.12979534553337166,
             "quantity": "hydraulic_power",
             "unit": "W"
           },
@@ -1880,11 +1880,11 @@
             "total_flow_lpm": 1.5
           },
           "prediction": {
-            "die_margin_c": 15.615436332568535,
-            "die_peak_c": 84.38456366743146,
+            "die_margin_c": 15.615436329289139,
+            "die_peak_c": 84.38456367071086,
             "feasible": true,
-            "hydraulic_margin_w": 0.1202046544610974,
-            "hydraulic_w": 0.1297953455389026,
+            "hydraulic_margin_w": 0.12020465446662834,
+            "hydraulic_w": 0.12979534553337166,
             "prediction_validity_gates": {
               "face_above_inlet": "PASS",
               "paired_repeat": "NOT_APPLICABLE",
@@ -1911,7 +1911,7 @@
             "inlet_c": 40.0
           },
           "engineering_cost": {
-            "predicted": 0.08285518913007646,
+            "predicted": 0.082855189132094,
             "quantity": "hydraulic_power",
             "unit": "W"
           },
@@ -1921,11 +1921,11 @@
             "total_flow_lpm": 1.25
           },
           "prediction": {
-            "die_margin_c": 18.367410511072748,
-            "die_peak_c": 81.63258948892725,
+            "die_margin_c": 18.367410499522393,
+            "die_peak_c": 81.63258950047761,
             "feasible": true,
-            "hydraulic_margin_w": 0.16714481086992355,
-            "hydraulic_w": 0.08285518913007646,
+            "hydraulic_margin_w": 0.167144810867906,
+            "hydraulic_w": 0.082855189132094,
             "prediction_validity_gates": {
               "face_above_inlet": "PASS",
               "paired_repeat": "NOT_APPLICABLE",
@@ -1952,7 +1952,7 @@
             "inlet_c": 40.0
           },
           "engineering_cost": {
-            "predicted": 0.1176208644643454,
+            "predicted": 0.1176208644586174,
             "quantity": "hydraulic_power",
             "unit": "W"
           },
@@ -1962,11 +1962,11 @@
             "total_flow_lpm": 1.5
           },
           "prediction": {
-            "die_margin_c": 11.576397617578735,
-            "die_peak_c": 88.42360238242127,
+            "die_margin_c": 11.576397571898639,
+            "die_peak_c": 88.42360242810136,
             "feasible": true,
-            "hydraulic_margin_w": 0.1323791355356546,
-            "hydraulic_w": 0.1176208644643454,
+            "hydraulic_margin_w": 0.1323791355413826,
+            "hydraulic_w": 0.1176208644586174,
             "prediction_validity_gates": {
               "face_above_inlet": "PASS",
               "paired_repeat": "NOT_APPLICABLE",
@@ -1993,7 +1993,7 @@
             "inlet_c": 45.0
           },
           "engineering_cost": {
-            "predicted": 0.0732927038564637,
+            "predicted": 0.07329270385869445,
             "quantity": "hydraulic_power",
             "unit": "W"
           },
@@ -2003,11 +2003,11 @@
             "total_flow_lpm": 1.25
           },
           "prediction": {
-            "die_margin_c": 6.642677707147584,
-            "die_peak_c": 93.35732229285242,
+            "die_margin_c": 6.642677710431727,
+            "die_peak_c": 93.35732228956827,
             "feasible": true,
-            "hydraulic_margin_w": 0.1767072961435363,
-            "hydraulic_w": 0.0732927038564637,
+            "hydraulic_margin_w": 0.17670729614130554,
+            "hydraulic_w": 0.07329270385869445,
             "prediction_validity_gates": {
               "face_above_inlet": "PASS",
               "paired_repeat": "NOT_APPLICABLE",
@@ -2037,8 +2037,8 @@
         {
           "baseline_comparison": {
             "baseline_arm": "analytic-v1/fixed_grid",
-            "predicted_die_margin_delta_c": 0.6663739458838762,
-            "predicted_hydraulic_margin_delta_w": -0.001348023635971335,
+            "predicted_die_margin_delta_c": 0.6663739447175772,
+            "predicted_hydraulic_margin_delta_w": -0.0013480236370633503,
             "selected_geometry_same": true
           },
           "case_id": "cold-plate-decision:5bd3ca8fd5d9ce2c4e5e48b805674345d5359f459299fc872477b69cce3b2980",
@@ -2050,7 +2050,7 @@
             "inlet_c": 35.0
           },
           "engineering_cost": {
-            "predicted": 0.0598008462337577,
+            "predicted": 0.05980084623484972,
             "quantity": "hydraulic_power",
             "reference": 0.05845282259778636,
             "unit": "W"
@@ -2061,11 +2061,11 @@
             "total_flow_lpm": 1.0
           },
           "prediction": {
-            "die_margin_c": 32.75507007449136,
-            "die_peak_c": 67.24492992550864,
+            "die_margin_c": 32.75507007332506,
+            "die_peak_c": 67.24492992667494,
             "feasible": true,
-            "hydraulic_margin_w": 0.1901991537662423,
-            "hydraulic_w": 0.0598008462337577,
+            "hydraulic_margin_w": 0.1901991537651503,
+            "hydraulic_w": 0.05980084623484972,
             "prediction_validity_gates": {
               "face_above_inlet": "PASS",
               "paired_repeat": "NOT_APPLICABLE",
@@ -2101,8 +2101,8 @@
         {
           "baseline_comparison": {
             "baseline_arm": "analytic-v1/fixed_grid",
-            "predicted_die_margin_delta_c": -1.4756789945846691,
-            "predicted_hydraulic_margin_delta_w": -0.0033568275263593517,
+            "predicted_die_margin_delta_c": -1.475678974507062,
+            "predicted_hydraulic_margin_delta_w": -0.003356827523804229,
             "selected_geometry_same": true
           },
           "case_id": "cold-plate-decision:14c2b36efec0e6cf9e754d7da5bca9214effa0ac377fee81eb3657de5bfb08af",
@@ -2114,7 +2114,7 @@
             "inlet_c": 40.0
           },
           "engineering_cost": {
-            "predicted": 0.08394479825117605,
+            "predicted": 0.08394479824862094,
             "quantity": "hydraulic_power",
             "reference": 0.08058797072481673,
             "unit": "W"
@@ -2125,11 +2125,11 @@
             "total_flow_lpm": 1.25
           },
           "prediction": {
-            "die_margin_c": 20.1930192350316,
-            "die_peak_c": 79.8069807649684,
+            "die_margin_c": 20.193019255109093,
+            "die_peak_c": 79.80698074489091,
             "feasible": true,
-            "hydraulic_margin_w": 0.16605520174882393,
-            "hydraulic_w": 0.08394479825117605,
+            "hydraulic_margin_w": 0.16605520175137906,
+            "hydraulic_w": 0.08394479824862094,
             "prediction_validity_gates": {
               "face_above_inlet": "PASS",
               "paired_repeat": "NOT_APPLICABLE",
@@ -2139,8 +2139,8 @@
             }
           },
           "reference": {
-            "die_margin_c": 21.66869822961627,
-            "die_peak_c": 78.33130177038373,
+            "die_margin_c": 21.668698229616155,
+            "die_peak_c": 78.33130177038385,
             "feasible": true,
             "hydraulic_margin_w": 0.16941202927518328,
             "hydraulic_w": 0.08058797072481673,
@@ -2165,8 +2165,8 @@
         {
           "baseline_comparison": {
             "baseline_arm": "analytic-v1/fixed_grid",
-            "predicted_die_margin_delta_c": 1.6727892172540209,
-            "predicted_hydraulic_margin_delta_w": -0.005132719243958278,
+            "predicted_die_margin_delta_c": 1.6727892139746245,
+            "predicted_hydraulic_margin_delta_w": -0.005132719238427341,
             "selected_geometry_same": true
           },
           "case_id": "cold-plate-decision:de4fcafc8f2f52ac3849af4b516a5686d8ddc94b2d85caf0893a24578d993963",
@@ -2178,7 +2178,7 @@
             "inlet_c": 35.0
           },
           "engineering_cost": {
-            "predicted": 0.1297953455389026,
+            "predicted": 0.12979534553337166,
             "quantity": "hydraulic_power",
             "reference": 0.12466262629494432,
             "unit": "W"
@@ -2189,11 +2189,11 @@
             "total_flow_lpm": 1.5
           },
           "prediction": {
-            "die_margin_c": 15.615436332568535,
-            "die_peak_c": 84.38456366743146,
+            "die_margin_c": 15.615436329289139,
+            "die_peak_c": 84.38456367071086,
             "feasible": true,
-            "hydraulic_margin_w": 0.1202046544610974,
-            "hydraulic_w": 0.1297953455389026,
+            "hydraulic_margin_w": 0.12020465446662834,
+            "hydraulic_w": 0.12979534553337166,
             "prediction_validity_gates": {
               "face_above_inlet": "PASS",
               "paired_repeat": "NOT_APPLICABLE",
@@ -2229,8 +2229,8 @@
         {
           "baseline_comparison": {
             "baseline_arm": "analytic-v1/fixed_grid",
-            "predicted_die_margin_delta_c": 2.0709390806732415,
-            "predicted_hydraulic_margin_delta_w": -0.0027020617621384413,
+            "predicted_die_margin_delta_c": 2.070939069122886,
+            "predicted_hydraulic_margin_delta_w": -0.002702061764155994,
             "selected_geometry_same": true
           },
           "case_id": "cold-plate-decision:5873602b5df5cd0160f733a3923b3630fba5af559b7b44c652709a4d05bca697",
@@ -2242,7 +2242,7 @@
             "inlet_c": 40.0
           },
           "engineering_cost": {
-            "predicted": 0.08285518913007646,
+            "predicted": 0.082855189132094,
             "quantity": "hydraulic_power",
             "reference": 0.08015312736793802,
             "unit": "W"
@@ -2253,11 +2253,11 @@
             "total_flow_lpm": 1.25
           },
           "prediction": {
-            "die_margin_c": 18.367410511072748,
-            "die_peak_c": 81.63258948892725,
+            "die_margin_c": 18.367410499522393,
+            "die_peak_c": 81.63258950047761,
             "feasible": true,
-            "hydraulic_margin_w": 0.16714481086992355,
-            "hydraulic_w": 0.08285518913007646,
+            "hydraulic_margin_w": 0.167144810867906,
+            "hydraulic_w": 0.082855189132094,
             "prediction_validity_gates": {
               "face_above_inlet": "PASS",
               "paired_repeat": "NOT_APPLICABLE",
@@ -2293,8 +2293,8 @@
         {
           "baseline_comparison": {
             "baseline_arm": "analytic-v1/fixed_grid",
-            "predicted_die_margin_delta_c": 2.4942641672177075,
-            "predicted_hydraulic_margin_delta_w": -0.004445013974460843,
+            "predicted_die_margin_delta_c": 2.4942641215376113,
+            "predicted_hydraulic_margin_delta_w": -0.004445013968732869,
             "selected_geometry_same": true
           },
           "case_id": "cold-plate-decision:eb1fd617da978d39cdb923ba47fd38222abbb5b53254ea12da406bfaa787286a",
@@ -2306,7 +2306,7 @@
             "inlet_c": 40.0
           },
           "engineering_cost": {
-            "predicted": 0.1176208644643454,
+            "predicted": 0.1176208644586174,
             "quantity": "hydraulic_power",
             "reference": 0.11317585048988456,
             "unit": "W"
@@ -2317,11 +2317,11 @@
             "total_flow_lpm": 1.5
           },
           "prediction": {
-            "die_margin_c": 11.576397617578735,
-            "die_peak_c": 88.42360238242127,
+            "die_margin_c": 11.576397571898639,
+            "die_peak_c": 88.42360242810136,
             "feasible": true,
-            "hydraulic_margin_w": 0.1323791355356546,
-            "hydraulic_w": 0.1176208644643454,
+            "hydraulic_margin_w": 0.1323791355413826,
+            "hydraulic_w": 0.1176208644586174,
             "prediction_validity_gates": {
               "face_above_inlet": "PASS",
               "paired_repeat": "NOT_APPLICABLE",
@@ -2357,8 +2357,8 @@
         {
           "baseline_comparison": {
             "baseline_arm": "analytic-v1/fixed_grid",
-            "predicted_die_margin_delta_c": -3.462179816447673,
-            "predicted_hydraulic_margin_delta_w": -0.0008447047873242353,
+            "predicted_die_margin_delta_c": -3.46217981316353,
+            "predicted_hydraulic_margin_delta_w": -0.0008447047895550064,
             "selected_geometry_same": true
           },
           "case_id": "cold-plate-decision:f656a48ac2de4623d5abcddbeba5971e883579655c7d82a7343b83b1d4c02a6f",
@@ -2370,7 +2370,7 @@
             "inlet_c": 45.0
           },
           "engineering_cost": {
-            "predicted": 0.0732927038564637,
+            "predicted": 0.07329270385869445,
             "quantity": "hydraulic_power",
             "reference": 0.07244799906913946,
             "unit": "W"
@@ -2381,11 +2381,11 @@
             "total_flow_lpm": 1.25
           },
           "prediction": {
-            "die_margin_c": 6.642677707147584,
-            "die_peak_c": 93.35732229285242,
+            "die_margin_c": 6.642677710431727,
+            "die_peak_c": 93.35732228956827,
             "feasible": true,
-            "hydraulic_margin_w": 0.1767072961435363,
-            "hydraulic_w": 0.0732927038564637,
+            "hydraulic_margin_w": 0.17670729614130554,
+            "hydraulic_w": 0.07329270385869445,
             "prediction_validity_gates": {
               "face_above_inlet": "PASS",
               "paired_repeat": "NOT_APPLICABLE",
@@ -2419,13 +2419,13 @@
           }
         }
       ],
-      "search_wall_s": 0.005370299972128123,
+      "search_wall_s": 0.01020374500512844,
       "selection": {
         "channel_depth_mm": 2.5,
         "channel_width_mm": 0.25,
         "fin_width_mm": 0.3,
         "flow_lpm_per_kw": 1.25,
-        "predicted_worst_hydraulic_w": 0.1297953455389026
+        "predicted_worst_hydraulic_w": 0.12979534553337166
       },
       "status": "PROPOSAL",
       "verification": {
@@ -2437,7 +2437,7 @@
           "scientific_qualification": false,
           "unavailable_counted_as_feasible_or_infeasible": false
         },
-        "commitment_digest": "sha256:21bb56bb3d681b79fcf070a3d5ba3cf821b7505de80930e22eaa2c6a03659b10",
+        "commitment_digest": "sha256:6f10d816310f5467dd497775fd3f5aa51ddd025193a8dc9601638e9520f09ba7",
         "contract_digest": "sha256:00975715ab96e9f2ee007021d103d01d61c94bedf8e7177d068088035a89e261",
         "counted_cfd_evidence": false,
         "false_feasible": false,
@@ -2462,7 +2462,7 @@
           "solver_wall_s": 0.0,
           "source_calls": 1
         },
-        "request_digest": "sha256:83ffc7c914439130639fe0d4bd2bb7a3404238f610f0736813a036174368bdd3",
+        "request_digest": "sha256:5d94f4a8133eabc7a9a76a9722f7ffeece5d10a60cf73dc900b4132985695772",
         "rows": [
           {
             "case_id": "cold-plate-decision:5bd3ca8fd5d9ce2c4e5e48b805674345d5359f459299fc872477b69cce3b2980",
@@ -2491,8 +2491,8 @@
           {
             "case_id": "cold-plate-decision:14c2b36efec0e6cf9e754d7da5bca9214effa0ac377fee81eb3657de5bfb08af",
             "reference": {
-              "die_margin_c": 21.66869822961627,
-              "die_peak_c": 78.33130177038373,
+              "die_margin_c": 21.668698229616155,
+              "die_peak_c": 78.33130177038385,
               "feasible": true,
               "hydraulic_margin_w": 0.16941202927518328,
               "hydraulic_w": 0.08058797072481673,
@@ -2632,18 +2632,18 @@
         "selected_geometry_same": true
       },
       "commitment": {
-        "commitment_digest": "sha256:5e9e5ba27f2a8f8794e7aaa9fa30af6f969b9552d88c39875cd8f52a3250a99b",
-        "file_sha256": "sha256:67c1aa769b3966d3bbe7cac43104c937adc33ddb7a7c480775e66a779eb64071",
-        "relative_path": "commitments/learned-krr-v1/screen_then_confirm/e452654bca960bae86c4c80d71ccb32f3dff03249fa1629629dc85865f4afe24.commitment.json",
+        "commitment_digest": "sha256:65868d52cba301f74ff36743ccdb4bea1111d9a1a45df5175a612f3d8f1f61f6",
+        "file_sha256": "sha256:168efad6bebce4220d8adc7691710b6181f4cc6a07a69add6b2a2ffc55df143e",
+        "relative_path": "commitments/learned-krr-v1/screen_then_confirm/2056f9642ba3875ac04ae9a93e75256c7e9093ad848463d1877cbbdc9d6c7cf9.commitment.json",
         "status": "PROPOSAL"
       },
-      "construction_wall_s": 0.004127499996684492,
+      "construction_wall_s": 0.008348495000973344,
       "declared_query_budget": 48,
-      "end_to_end_wall_s": 0.004723099991679192,
-      "evaluation_wall_s": 0.0005955999949947,
+      "end_to_end_wall_s": 0.009736643005453516,
+      "evaluation_wall_s": 0.001388148004480172,
       "method": "screen_then_confirm",
       "model": "learned-krr-v1",
-      "model_inference_wall_s": 0.001028600090648979,
+      "model_inference_wall_s": 0.0024476739927195013,
       "model_query_attempts": 18,
       "model_query_successes": 18,
       "predicted_scenarios": [
@@ -2657,7 +2657,7 @@
             "inlet_c": 35.0
           },
           "engineering_cost": {
-            "predicted": 0.0598008462337577,
+            "predicted": 0.05980084623484972,
             "quantity": "hydraulic_power",
             "unit": "W"
           },
@@ -2667,11 +2667,11 @@
             "total_flow_lpm": 1.0
           },
           "prediction": {
-            "die_margin_c": 32.75507007449136,
-            "die_peak_c": 67.24492992550864,
+            "die_margin_c": 32.75507007332506,
+            "die_peak_c": 67.24492992667494,
             "feasible": true,
-            "hydraulic_margin_w": 0.1901991537662423,
-            "hydraulic_w": 0.0598008462337577,
+            "hydraulic_margin_w": 0.1901991537651503,
+            "hydraulic_w": 0.05980084623484972,
             "prediction_validity_gates": {
               "face_above_inlet": "PASS",
               "paired_repeat": "NOT_APPLICABLE",
@@ -2698,7 +2698,7 @@
             "inlet_c": 40.0
           },
           "engineering_cost": {
-            "predicted": 0.08394479825117605,
+            "predicted": 0.08394479824862094,
             "quantity": "hydraulic_power",
             "unit": "W"
           },
@@ -2708,11 +2708,11 @@
             "total_flow_lpm": 1.25
           },
           "prediction": {
-            "die_margin_c": 20.1930192350316,
-            "die_peak_c": 79.8069807649684,
+            "die_margin_c": 20.193019255109093,
+            "die_peak_c": 79.80698074489091,
             "feasible": true,
-            "hydraulic_margin_w": 0.16605520174882393,
-            "hydraulic_w": 0.08394479825117605,
+            "hydraulic_margin_w": 0.16605520175137906,
+            "hydraulic_w": 0.08394479824862094,
             "prediction_validity_gates": {
               "face_above_inlet": "PASS",
               "paired_repeat": "NOT_APPLICABLE",
@@ -2739,7 +2739,7 @@
             "inlet_c": 35.0
           },
           "engineering_cost": {
-            "predicted": 0.1297953455389026,
+            "predicted": 0.12979534553337166,
             "quantity": "hydraulic_power",
             "unit": "W"
           },
@@ -2749,11 +2749,11 @@
             "total_flow_lpm": 1.5
           },
           "prediction": {
-            "die_margin_c": 15.615436332568535,
-            "die_peak_c": 84.38456366743146,
+            "die_margin_c": 15.615436329289139,
+            "die_peak_c": 84.38456367071086,
             "feasible": true,
-            "hydraulic_margin_w": 0.1202046544610974,
-            "hydraulic_w": 0.1297953455389026,
+            "hydraulic_margin_w": 0.12020465446662834,
+            "hydraulic_w": 0.12979534553337166,
             "prediction_validity_gates": {
               "face_above_inlet": "PASS",
               "paired_repeat": "NOT_APPLICABLE",
@@ -2780,7 +2780,7 @@
             "inlet_c": 40.0
           },
           "engineering_cost": {
-            "predicted": 0.08285518913007646,
+            "predicted": 0.082855189132094,
             "quantity": "hydraulic_power",
             "unit": "W"
           },
@@ -2790,11 +2790,11 @@
             "total_flow_lpm": 1.25
           },
           "prediction": {
-            "die_margin_c": 18.367410511072748,
-            "die_peak_c": 81.63258948892725,
+            "die_margin_c": 18.367410499522393,
+            "die_peak_c": 81.63258950047761,
             "feasible": true,
-            "hydraulic_margin_w": 0.16714481086992355,
-            "hydraulic_w": 0.08285518913007646,
+            "hydraulic_margin_w": 0.167144810867906,
+            "hydraulic_w": 0.082855189132094,
             "prediction_validity_gates": {
               "face_above_inlet": "PASS",
               "paired_repeat": "NOT_APPLICABLE",
@@ -2821,7 +2821,7 @@
             "inlet_c": 40.0
           },
           "engineering_cost": {
-            "predicted": 0.1176208644643454,
+            "predicted": 0.1176208644586174,
             "quantity": "hydraulic_power",
             "unit": "W"
           },
@@ -2831,11 +2831,11 @@
             "total_flow_lpm": 1.5
           },
           "prediction": {
-            "die_margin_c": 11.576397617578735,
-            "die_peak_c": 88.42360238242127,
+            "die_margin_c": 11.576397571898639,
+            "die_peak_c": 88.42360242810136,
             "feasible": true,
-            "hydraulic_margin_w": 0.1323791355356546,
-            "hydraulic_w": 0.1176208644643454,
+            "hydraulic_margin_w": 0.1323791355413826,
+            "hydraulic_w": 0.1176208644586174,
             "prediction_validity_gates": {
               "face_above_inlet": "PASS",
               "paired_repeat": "NOT_APPLICABLE",
@@ -2862,7 +2862,7 @@
             "inlet_c": 45.0
           },
           "engineering_cost": {
-            "predicted": 0.0732927038564637,
+            "predicted": 0.07329270385869445,
             "quantity": "hydraulic_power",
             "unit": "W"
           },
@@ -2872,11 +2872,11 @@
             "total_flow_lpm": 1.25
           },
           "prediction": {
-            "die_margin_c": 6.642677707147584,
-            "die_peak_c": 93.35732229285242,
+            "die_margin_c": 6.642677710431727,
+            "die_peak_c": 93.35732228956827,
             "feasible": true,
-            "hydraulic_margin_w": 0.1767072961435363,
-            "hydraulic_w": 0.0732927038564637,
+            "hydraulic_margin_w": 0.17670729614130554,
+            "hydraulic_w": 0.07329270385869445,
             "prediction_validity_gates": {
               "face_above_inlet": "PASS",
               "paired_repeat": "NOT_APPLICABLE",
@@ -2906,8 +2906,8 @@
         {
           "baseline_comparison": {
             "baseline_arm": "analytic-v1/fixed_grid",
-            "predicted_die_margin_delta_c": 0.6663739458838762,
-            "predicted_hydraulic_margin_delta_w": -0.001348023635971335,
+            "predicted_die_margin_delta_c": 0.6663739447175772,
+            "predicted_hydraulic_margin_delta_w": -0.0013480236370633503,
             "selected_geometry_same": true
           },
           "case_id": "cold-plate-decision:5bd3ca8fd5d9ce2c4e5e48b805674345d5359f459299fc872477b69cce3b2980",
@@ -2919,7 +2919,7 @@
             "inlet_c": 35.0
           },
           "engineering_cost": {
-            "predicted": 0.0598008462337577,
+            "predicted": 0.05980084623484972,
             "quantity": "hydraulic_power",
             "reference": 0.05845282259778636,
             "unit": "W"
@@ -2930,11 +2930,11 @@
             "total_flow_lpm": 1.0
           },
           "prediction": {
-            "die_margin_c": 32.75507007449136,
-            "die_peak_c": 67.24492992550864,
+            "die_margin_c": 32.75507007332506,
+            "die_peak_c": 67.24492992667494,
             "feasible": true,
-            "hydraulic_margin_w": 0.1901991537662423,
-            "hydraulic_w": 0.0598008462337577,
+            "hydraulic_margin_w": 0.1901991537651503,
+            "hydraulic_w": 0.05980084623484972,
             "prediction_validity_gates": {
               "face_above_inlet": "PASS",
               "paired_repeat": "NOT_APPLICABLE",
@@ -2970,8 +2970,8 @@
         {
           "baseline_comparison": {
             "baseline_arm": "analytic-v1/fixed_grid",
-            "predicted_die_margin_delta_c": -1.4756789945846691,
-            "predicted_hydraulic_margin_delta_w": -0.0033568275263593517,
+            "predicted_die_margin_delta_c": -1.475678974507062,
+            "predicted_hydraulic_margin_delta_w": -0.003356827523804229,
             "selected_geometry_same": true
           },
           "case_id": "cold-plate-decision:14c2b36efec0e6cf9e754d7da5bca9214effa0ac377fee81eb3657de5bfb08af",
@@ -2983,7 +2983,7 @@
             "inlet_c": 40.0
           },
           "engineering_cost": {
-            "predicted": 0.08394479825117605,
+            "predicted": 0.08394479824862094,
             "quantity": "hydraulic_power",
             "reference": 0.08058797072481673,
             "unit": "W"
@@ -2994,11 +2994,11 @@
             "total_flow_lpm": 1.25
           },
           "prediction": {
-            "die_margin_c": 20.1930192350316,
-            "die_peak_c": 79.8069807649684,
+            "die_margin_c": 20.193019255109093,
+            "die_peak_c": 79.80698074489091,
             "feasible": true,
-            "hydraulic_margin_w": 0.16605520174882393,
-            "hydraulic_w": 0.08394479825117605,
+            "hydraulic_margin_w": 0.16605520175137906,
+            "hydraulic_w": 0.08394479824862094,
             "prediction_validity_gates": {
               "face_above_inlet": "PASS",
               "paired_repeat": "NOT_APPLICABLE",
@@ -3008,8 +3008,8 @@
             }
           },
           "reference": {
-            "die_margin_c": 21.66869822961627,
-            "die_peak_c": 78.33130177038373,
+            "die_margin_c": 21.668698229616155,
+            "die_peak_c": 78.33130177038385,
             "feasible": true,
             "hydraulic_margin_w": 0.16941202927518328,
             "hydraulic_w": 0.08058797072481673,
@@ -3034,8 +3034,8 @@
         {
           "baseline_comparison": {
             "baseline_arm": "analytic-v1/fixed_grid",
-            "predicted_die_margin_delta_c": 1.6727892172540209,
-            "predicted_hydraulic_margin_delta_w": -0.005132719243958278,
+            "predicted_die_margin_delta_c": 1.6727892139746245,
+            "predicted_hydraulic_margin_delta_w": -0.005132719238427341,
             "selected_geometry_same": true
           },
           "case_id": "cold-plate-decision:de4fcafc8f2f52ac3849af4b516a5686d8ddc94b2d85caf0893a24578d993963",
@@ -3047,7 +3047,7 @@
             "inlet_c": 35.0
           },
           "engineering_cost": {
-            "predicted": 0.1297953455389026,
+            "predicted": 0.12979534553337166,
             "quantity": "hydraulic_power",
             "reference": 0.12466262629494432,
             "unit": "W"
@@ -3058,11 +3058,11 @@
             "total_flow_lpm": 1.5
           },
           "prediction": {
-            "die_margin_c": 15.615436332568535,
-            "die_peak_c": 84.38456366743146,
+            "die_margin_c": 15.615436329289139,
+            "die_peak_c": 84.38456367071086,
             "feasible": true,
-            "hydraulic_margin_w": 0.1202046544610974,
-            "hydraulic_w": 0.1297953455389026,
+            "hydraulic_margin_w": 0.12020465446662834,
+            "hydraulic_w": 0.12979534553337166,
             "prediction_validity_gates": {
               "face_above_inlet": "PASS",
               "paired_repeat": "NOT_APPLICABLE",
@@ -3098,8 +3098,8 @@
         {
           "baseline_comparison": {
             "baseline_arm": "analytic-v1/fixed_grid",
-            "predicted_die_margin_delta_c": 2.0709390806732415,
-            "predicted_hydraulic_margin_delta_w": -0.0027020617621384413,
+            "predicted_die_margin_delta_c": 2.070939069122886,
+            "predicted_hydraulic_margin_delta_w": -0.002702061764155994,
             "selected_geometry_same": true
           },
           "case_id": "cold-plate-decision:5873602b5df5cd0160f733a3923b3630fba5af559b7b44c652709a4d05bca697",
@@ -3111,7 +3111,7 @@
             "inlet_c": 40.0
           },
           "engineering_cost": {
-            "predicted": 0.08285518913007646,
+            "predicted": 0.082855189132094,
             "quantity": "hydraulic_power",
             "reference": 0.08015312736793802,
             "unit": "W"
@@ -3122,11 +3122,11 @@
             "total_flow_lpm": 1.25
           },
           "prediction": {
-            "die_margin_c": 18.367410511072748,
-            "die_peak_c": 81.63258948892725,
+            "die_margin_c": 18.367410499522393,
+            "die_peak_c": 81.63258950047761,
             "feasible": true,
-            "hydraulic_margin_w": 0.16714481086992355,
-            "hydraulic_w": 0.08285518913007646,
+            "hydraulic_margin_w": 0.167144810867906,
+            "hydraulic_w": 0.082855189132094,
             "prediction_validity_gates": {
               "face_above_inlet": "PASS",
               "paired_repeat": "NOT_APPLICABLE",
@@ -3162,8 +3162,8 @@
         {
           "baseline_comparison": {
             "baseline_arm": "analytic-v1/fixed_grid",
-            "predicted_die_margin_delta_c": 2.4942641672177075,
-            "predicted_hydraulic_margin_delta_w": -0.004445013974460843,
+            "predicted_die_margin_delta_c": 2.4942641215376113,
+            "predicted_hydraulic_margin_delta_w": -0.004445013968732869,
             "selected_geometry_same": true
           },
           "case_id": "cold-plate-decision:eb1fd617da978d39cdb923ba47fd38222abbb5b53254ea12da406bfaa787286a",
@@ -3175,7 +3175,7 @@
             "inlet_c": 40.0
           },
           "engineering_cost": {
-            "predicted": 0.1176208644643454,
+            "predicted": 0.1176208644586174,
             "quantity": "hydraulic_power",
             "reference": 0.11317585048988456,
             "unit": "W"
@@ -3186,11 +3186,11 @@
             "total_flow_lpm": 1.5
           },
           "prediction": {
-            "die_margin_c": 11.576397617578735,
-            "die_peak_c": 88.42360238242127,
+            "die_margin_c": 11.576397571898639,
+            "die_peak_c": 88.42360242810136,
             "feasible": true,
-            "hydraulic_margin_w": 0.1323791355356546,
-            "hydraulic_w": 0.1176208644643454,
+            "hydraulic_margin_w": 0.1323791355413826,
+            "hydraulic_w": 0.1176208644586174,
             "prediction_validity_gates": {
               "face_above_inlet": "PASS",
               "paired_repeat": "NOT_APPLICABLE",
@@ -3226,8 +3226,8 @@
         {
           "baseline_comparison": {
             "baseline_arm": "analytic-v1/fixed_grid",
-            "predicted_die_margin_delta_c": -3.462179816447673,
-            "predicted_hydraulic_margin_delta_w": -0.0008447047873242353,
+            "predicted_die_margin_delta_c": -3.46217981316353,
+            "predicted_hydraulic_margin_delta_w": -0.0008447047895550064,
             "selected_geometry_same": true
           },
           "case_id": "cold-plate-decision:f656a48ac2de4623d5abcddbeba5971e883579655c7d82a7343b83b1d4c02a6f",
@@ -3239,7 +3239,7 @@
             "inlet_c": 45.0
           },
           "engineering_cost": {
-            "predicted": 0.0732927038564637,
+            "predicted": 0.07329270385869445,
             "quantity": "hydraulic_power",
             "reference": 0.07244799906913946,
             "unit": "W"
@@ -3250,11 +3250,11 @@
             "total_flow_lpm": 1.25
           },
           "prediction": {
-            "die_margin_c": 6.642677707147584,
-            "die_peak_c": 93.35732229285242,
+            "die_margin_c": 6.642677710431727,
+            "die_peak_c": 93.35732228956827,
             "feasible": true,
-            "hydraulic_margin_w": 0.1767072961435363,
-            "hydraulic_w": 0.0732927038564637,
+            "hydraulic_margin_w": 0.17670729614130554,
+            "hydraulic_w": 0.07329270385869445,
             "prediction_validity_gates": {
               "face_above_inlet": "PASS",
               "paired_repeat": "NOT_APPLICABLE",
@@ -3288,13 +3288,13 @@
           }
         }
       ],
-      "search_wall_s": 0.0024435999803245068,
+      "search_wall_s": 0.005081768998934422,
       "selection": {
         "channel_depth_mm": 2.5,
         "channel_width_mm": 0.25,
         "fin_width_mm": 0.3,
         "flow_lpm_per_kw": 1.25,
-        "predicted_worst_hydraulic_w": 0.1297953455389026
+        "predicted_worst_hydraulic_w": 0.12979534553337166
       },
       "status": "PROPOSAL",
       "verification": {
@@ -3306,7 +3306,7 @@
           "scientific_qualification": false,
           "unavailable_counted_as_feasible_or_infeasible": false
         },
-        "commitment_digest": "sha256:5e9e5ba27f2a8f8794e7aaa9fa30af6f969b9552d88c39875cd8f52a3250a99b",
+        "commitment_digest": "sha256:65868d52cba301f74ff36743ccdb4bea1111d9a1a45df5175a612f3d8f1f61f6",
         "contract_digest": "sha256:00975715ab96e9f2ee007021d103d01d61c94bedf8e7177d068088035a89e261",
         "counted_cfd_evidence": false,
         "false_feasible": false,
@@ -3331,7 +3331,7 @@
           "solver_wall_s": 0.0,
           "source_calls": 1
         },
-        "request_digest": "sha256:e452654bca960bae86c4c80d71ccb32f3dff03249fa1629629dc85865f4afe24",
+        "request_digest": "sha256:2056f9642ba3875ac04ae9a93e75256c7e9093ad848463d1877cbbdc9d6c7cf9",
         "rows": [
           {
             "case_id": "cold-plate-decision:5bd3ca8fd5d9ce2c4e5e48b805674345d5359f459299fc872477b69cce3b2980",
@@ -3360,8 +3360,8 @@
           {
             "case_id": "cold-plate-decision:14c2b36efec0e6cf9e754d7da5bca9214effa0ac377fee81eb3657de5bfb08af",
             "reference": {
-              "die_margin_c": 21.66869822961627,
-              "die_peak_c": 78.33130177038373,
+              "die_margin_c": 21.668698229616155,
+              "die_peak_c": 78.33130177038385,
               "feasible": true,
               "hydraulic_margin_w": 0.16941202927518328,
               "hydraulic_w": 0.08058797072481673,
@@ -3755,8 +3755,8 @@
           "inlet_c": 40.0
         },
         "reference": {
-          "die_margin_c": 15.93601346408667,
-          "die_peak_c": 84.06398653591333,
+          "die_margin_c": 15.9360134640865,
+          "die_peak_c": 84.0639865359135,
           "feasible": true,
           "hydraulic_margin_w": 0.11076284755324386,
           "hydraulic_w": 0.13923715244675614,
@@ -3953,8 +3953,8 @@
           "inlet_c": 40.0
         },
         "reference": {
-          "die_margin_c": 18.86477969539777,
-          "die_peak_c": 81.13522030460223,
+          "die_margin_c": 18.864779695397715,
+          "die_peak_c": 81.13522030460229,
           "feasible": false,
           "hydraulic_margin_w": -0.041862844993958315,
           "hydraulic_w": 0.2918628449939583,
@@ -4151,8 +4151,8 @@
           "inlet_c": 40.0
         },
         "reference": {
-          "die_margin_c": 21.66869822961627,
-          "die_peak_c": 78.33130177038373,
+          "die_margin_c": 21.668698229616155,
+          "die_peak_c": 78.33130177038385,
           "feasible": true,
           "hydraulic_margin_w": 0.16941202927518328,
           "hydraulic_w": 0.08058797072481673,
@@ -4349,8 +4349,8 @@
           "inlet_c": 40.0
         },
         "reference": {
-          "die_margin_c": 24.034947328106625,
-          "die_peak_c": 75.96505267189337,
+          "die_margin_c": 24.03494732810674,
+          "die_peak_c": 75.96505267189326,
           "feasible": true,
           "hydraulic_margin_w": 0.08368638433984574,
           "hydraulic_w": 0.16631361566015426,
@@ -4745,8 +4745,8 @@
           "inlet_c": 40.0
         },
         "reference": {
-          "die_margin_c": 6.755460891797611,
-          "die_peak_c": 93.24453910820239,
+          "die_margin_c": 6.755460891797554,
+          "die_peak_c": 93.24453910820245,
           "feasible": true,
           "hydraulic_margin_w": 0.1479875447103808,
           "hydraulic_w": 0.10201245528961919,
@@ -4814,8 +4814,8 @@
           "die_margin_c": 0.8521068434581167,
           "die_peak_c": 99.14789315654188,
           "feasible": true,
-          "hydraulic_margin_w": 0.14813151567790964,
-          "hydraulic_w": 0.10186848432209036,
+          "hydraulic_margin_w": 0.1481315156779215,
+          "hydraulic_w": 0.10186848432207851,
           "prediction_validity_gates": {
             "face_above_inlet": "PASS",
             "paired_repeat": "NOT_APPLICABLE",
@@ -5141,8 +5141,8 @@
           "inlet_c": 40.0
         },
         "reference": {
-          "die_margin_c": 13.18313951582843,
-          "die_peak_c": 86.81686048417157,
+          "die_margin_c": 13.183139515828373,
+          "die_peak_c": 86.81686048417163,
           "feasible": true,
           "hydraulic_margin_w": 0.19668520684125657,
           "hydraulic_w": 0.05331479315874344,
@@ -5243,8 +5243,8 @@
           "die_margin_c": -1.199872623027204,
           "die_peak_c": 101.1998726230272,
           "feasible": false,
-          "hydraulic_margin_w": 0.17399575294383907,
-          "hydraulic_w": 0.07600424705616092,
+          "hydraulic_margin_w": 0.17399575294383915,
+          "hydraulic_w": 0.07600424705616085,
           "prediction_validity_gates": {
             "face_above_inlet": "PASS",
             "paired_repeat": "NOT_APPLICABLE",
@@ -5350,8 +5350,8 @@
       "Does the learned model change or improve the decision in this particular study?"
     ]
   },
-  "construction_digest": "sha256:4a71a4cdf3879018058dc4b9a95ea0117f2d58e1ba2edfe94921e8114d2edf4e",
-  "construction_identity_digest": "sha256:7b7913372af32b0d6d64be140f9f5dd6f2ad388b8fdb86129e2d0a680b2df9ea",
+  "construction_digest": "sha256:05363779045fd68133004bf06f29cf7f91b501c3f1b7701138a208c1ecff7e85",
+  "construction_identity_digest": "sha256:00ba8ff57d2d3df510f9533511ac325a4ce4e1c80dc2999162d4961d6d426487",
   "construction_state": "ALL_ARMS_COMMITTED_BEFORE_REFERENCE",
   "control_policy": {
     "assumption": "An implementable supervisory controller receives a commanded or measured steady-state heat load and commands pump flow proportionally before each settled operating point.",
@@ -5388,17 +5388,17 @@
       "initial_solver_executions": 48,
       "retry_reserve": 12
     },
-    "construction_wall_s": 1.604997300019022,
-    "evaluation_wall_s": 0.2032605999847874,
-    "model_inference_wall_s": 0.2422228001523763,
+    "construction_wall_s": 0.7237953020012355,
+    "evaluation_wall_s": 0.41561489600280765,
+    "model_inference_wall_s": 0.5387515979891759,
     "model_query_attempts": 127,
     "monetary_cost_status": "NO_OWNER_APPROVED_RESOURCE_RATE",
     "monetary_cost_usd": null,
     "per_decision_wall_s_by_arm": {
-      "analytic-v1/fixed_grid": 0.21930860000429675,
-      "analytic-v1/screen_then_confirm": 0.05461899994406849,
-      "learned-krr-v1/fixed_grid": 0.010601999994833022,
-      "learned-krr-v1/screen_then_confirm": 0.004723099991679192
+      "analytic-v1/fixed_grid": 0.48429315999965183,
+      "analytic-v1/screen_then_confirm": 0.1089599340048153,
+      "learned-krr-v1/fixed_grid": 0.013700163006433286,
+      "learned-krr-v1/screen_then_confirm": 0.009736643005453516
     },
     "reference_campaign_wall_s": 0.0,
     "reference_condition_evaluations": 72,
@@ -5406,24 +5406,24 @@
     "reference_executions": 0,
     "reference_retries": 0,
     "reference_solver_wall_s": 0.0,
-    "study_end_to_end_wall_s": 1.8082579000038095,
+    "study_end_to_end_wall_s": 1.1394101980040432,
     "training_and_reconstruction": {
       "analytic-v1": {
         "kind": "ANALYTICAL_BASELINE"
       },
       "learned-krr-v1": {
-        "cpu_s": 15.640625,
+        "cpu_s": 0.12106337600000006,
         "historical_cost_status": "NOT_RECORDED_IN_PINNED_BASELINE_ARTIFACT",
         "historical_training_and_tuning_cost": null,
         "kind": "LEARNED_RECONSTRUCTION",
         "training_records": 400,
-        "wall_s": 1.1632293000002392
+        "wall_s": 0.028092392996768467
       }
     }
   },
   "evidence_class": "ANALYTICAL_FIXTURE",
   "evidence_label": "ANALYTICAL_FIXTURE_SMOKE_TEST_NOT_CFD",
-  "freeze_digest": "sha256:9583f6917850d05091047b81c04c35df7640e2b7dd76d96a6951d459d3684040",
+  "freeze_digest": "sha256:56053a51a51cb1863d784962aad733ec446c039f17cc099ee8e2d871c1ed3a95",
   "material": "DEVELOPMENT",
   "metrics": {
     "abstention_rate": 0.0,

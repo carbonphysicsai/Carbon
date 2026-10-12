@@ -101,11 +101,25 @@ class ChallengeCampaign:
     #: this machine checks its own setting; a submission the intake already
     #: holds is not gated again.
     commitment_due: Callable | None = None
+    #: (args, root, epoch, connect) -> the permitted feedback when one read of
+    #: the epoch's queued submission at its validator intake finds a verdict,
+    #: else None (LA-F18). Read-only: signed through the signer's read-only
+    #: kind, throttled per epoch; nothing is submitted or committed.
+    #: `connect()` reaches the miner's signer once a read is due. None: the
+    #: Challenge offers no such read.
+    queued_verdict: Callable | None = None
+    #: (ledger, owner, epoch, feedback) -> None: store a verdict exactly as
+    #: its `evaluate` stores a submit's. Set with `queued_verdict`.
+    record_verdict: Callable | None = None
     #: Whether this campaign compiles, freezes and commits at a construction
     #: level its launch names (LAUNCHPAD-LEVELS-01 S2,
     #: `carbon.development_session.construction_level`). False: a launch at
     #: any level above 0 is refused, never silently run at Level 0.
     construction_levels: bool = False
+    #: (intake facts) -> whether that intake takes a Level 4 submission's
+    #: envelope in signed parts (LAUNCHPAD-LEVELS-01 S4). None: the Challenge
+    #: has no Level 4 envelope transport, so Level 4 is refused (fail closed).
+    level4_parts: Callable | None = None
 
     def remote_runner(self, runtime, machine, gpu_image):
         """The campaign's practice runner on the miner's own remote setup, or
@@ -176,6 +190,7 @@ def _battery_intake_outcome(code):
 
 def _battery():
     from carbon.battery import campaign as battery
+    from carbon.battery import level4_parts as battery_level4
     from carbon.battery import research_view as battery_view
     from carbon.development_session import battery_gpu
     from carbon.reconstruction.capability_registry import BATTERY_BACKENDS
@@ -202,7 +217,10 @@ def _battery():
         backends=tuple(BATTERY_BACKENDS),
         commitment=battery.frozen_commitment,
         commitment_due=battery.commitment_due,
+        queued_verdict=battery.queued_verdict,
+        record_verdict=battery.record_verdict,
         construction_levels=True,
+        level4_parts=battery_level4.carries_parts,
     )
 
 

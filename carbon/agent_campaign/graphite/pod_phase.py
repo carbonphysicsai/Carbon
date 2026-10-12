@@ -107,14 +107,69 @@ except BaseException as error:
     raise
 done()
 """
+#: TORCH-POD-01: PyTorch's probe, for a PyTorch pod, in the same shape. It
+#: initialises CUDA as `torch_training.rebuild_device` will (`JAX_PLATFORMS`
+#: names the platform) and runs a small computation on that device.
+TORCH_PROBE = r"""
+import json, os, sys
+result = {"ok": False, "jax_platforms": os.environ.get("JAX_PLATFORMS")}
+platforms = [p.strip() for p in (result["jax_platforms"] or "").split(",")]
+result["requires_gpu"] = any(p in ("cuda", "gpu") for p in platforms)
+
+
+def done():
+    with open(sys.argv[1], "w") as stream:
+        json.dump(result, stream)
+
+
+try:
+    import torch
+
+    result["torch"] = torch.__version__
+    cuda = torch.cuda.is_available()
+    result["backend"] = "gpu" if cuda and result["requires_gpu"] else "cpu"
+    device = torch.device("cuda", 0) if result["backend"] == "gpu" else torch.device("cpu")
+    result["devices"] = [
+        {
+            "platform": device.type,
+            "kind": torch.cuda.get_device_name(device) if device.type == "cuda" else "cpu",
+        }
+    ]
+    x = torch.arange(8.0, device=device)
+    result["checksum"] = float((x * 2.0).sum().item())
+    # The device must be the kind the run is bound to, as PyTorch's rebuild
+    # requires (`torch_gpu.require_ready`).
+    bound = os.environ.get("CARBON_ACCELERATOR_DEVICE_KIND", "")
+    result["device_kind_bound"] = bool(bound) and (
+        device.type != "cuda" or torch.cuda.get_device_name(device) == bound
+    )
+    result["ok"] = (
+        result["checksum"] == 56.0
+        and (not result["requires_gpu"] or result["backend"] == "gpu")
+        and (not result["requires_gpu"] or result["device_kind_bound"])
+    )
+except BaseException as error:
+    result["error_type"] = type(error).__name__
+    done()
+    raise
+done()
+"""
 #: What the probe record keeps of the probe's own result: short typed values.
 _PROBE_FIELDS = {
     "jax_platforms": str,
     "requires_gpu": bool,
     "jax": str,
+    "torch": str,
     "backend": str,
+    "device_kind_bound": bool,
     "error_type": str,
 }
+
+
+def probe_for(cfg):
+    """Carbon's probe for the job's backend: PyTorch's for a PyTorch job, JAX's
+    for every other (whose configuration names no backend)."""
+    return TORCH_PROBE if cfg.get("backend") == "pytorch" else PROBE
 
 
 def _write(path, value):
@@ -211,7 +266,46 @@ def built_record(strategy, contract_digest, seed, root=".", scoring=None):
     return scoring.built_record(strategy, contract_digest, seed, root)
 
 
-def development_built_record(strategy, contract_digest, variant_digest, seed, root="."):
+#: GRAPHITE-L4-STAGING-01: a Level 4 job's submission envelope travels in its
+#: configuration as gzip then base64, at most this many characters (the
+#: configuration's own transport bound, `pod_env.ENV_LIMIT_CHARS`, holds the
+#: rest of the job beside it), and unpacks to at most `LEVEL4_ENVELOPE_BYTES`.
+LEVEL4_TRANSPORT_CHARS = 60000
+LEVEL4_ENVELOPE_BYTES = 8 * 1024 * 1024
+
+
+def level4_transport(envelope_bytes):
+    """A kept envelope's bytes as a job carries them (gzip, then base64)."""
+    import base64
+    import gzip
+
+    return base64.b64encode(gzip.compress(envelope_bytes, mtime=0)).decode("ascii")
+
+
+def level4_workspace(transport):
+    """The staged documents (`staging.workspace`) from a job's envelope,
+    bounded before parsing; a malformed one raises `ValueError`."""
+    import base64
+    import json
+    import zlib
+
+    from carbon.level4 import staging
+
+    if type(transport) is not str or len(transport) > LEVEL4_TRANSPORT_CHARS:
+        raise ValueError("level4_transport_over_bound")
+    unpack = zlib.decompressobj(16 + zlib.MAX_WBITS)
+    body = unpack.decompress(
+        base64.b64decode(transport, validate=True), LEVEL4_ENVELOPE_BYTES + 1
+    )
+    if len(body) > LEVEL4_ENVELOPE_BYTES or unpack.unconsumed_tail:
+        raise ValueError("level4_envelope_over_bound")
+    _digest, raw_manifest, files = staging.from_envelope(json.loads(body))
+    return staging.workspace(raw_manifest, files)
+
+
+def development_built_record(
+    strategy, contract_digest, variant_digest, seed, root=".", workspace=None
+):
     """What Carbon builds for `strategy` under a registered development-only
     variant (a development level, Graphite only): the variant's own compile
     path, never `compile_submission`. The job's contract digest must be the
@@ -223,7 +317,9 @@ def development_built_record(strategy, contract_digest, variant_digest, seed, ro
         raise development_variants.VariantRefused(
             development_variants.BASE_STALE, "the job names another base contract"
         )
-    return development_variants.built_record(strategy, variant_digest, seed, root)
+    return development_variants.built_record(
+        strategy, variant_digest, seed, root, workspace=workspace
+    )
 
 
 def pinned(record, expected):
@@ -235,11 +331,12 @@ def pinned(record, expected):
 
 
 def run(cfg, out, *, root=".", probe=None):
-    """`probe` replaces Carbon's probe code (tests only); None runs `PROBE`."""
+    """`probe` replaces Carbon's probe code (tests only); None runs the
+    probe for the job's backend (`probe_for`)."""
     out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
     # Before any candidate code: the strategy is not even compiled yet.
-    checked = probe_environment(probe)
+    checked = probe_environment(probe_for(cfg) if probe is None else probe)
     if not checked["ok"]:
         _report(out, checked, stage=ENVIRONMENT, program_started=False)
         _write(
@@ -256,6 +353,11 @@ def run(cfg, out, *, root=".", probe=None):
                 cfg["development_variant"],
                 cfg["seed"],
                 root,
+                workspace=(
+                    level4_workspace(cfg["level4_envelope"])
+                    if "level4_envelope" in cfg
+                    else None
+                ),
             )
         else:
             record, files, program = built_record(

@@ -204,6 +204,7 @@ from .provider import (
 from .roles import (
     CONSTRUCTOR_SESSION_TURNS,
     CONSTRUCTOR_STALL_ATTEMPTS,
+    LEVEL4_STAGE,
     PARALLEL_RULES,
     PROPOSE,
     ROLES,
@@ -256,6 +257,8 @@ class Phase3Tools:
         self.seconds_left = seconds_left
 
     async def call(self, name, arguments, identity):
+        if name == LEVEL4_STAGE:
+            return await self._level4_stage(arguments, identity)
         if name == PROPOSE:
             late = self._no_time()
             if late is not None:
@@ -272,6 +275,53 @@ class Phase3Tools:
                 reason="This session has no miner campaign attached; nothing ran.",
             )
         return await self.miner.call(name, arguments, identity)
+
+    async def _level4_stage(self, arguments, identity):
+        """`graphite_level4_stage` (GRAPHITE-L4-STAGING-01): the interface for
+        a recipe, or the agent's exported envelope staged as data."""
+        from . import miner_path
+
+        if (
+            type(arguments) is not dict
+            or set(arguments) != {"strategy_json", "task_id"}
+            or type(arguments["strategy_json"]) is not str
+            or type(arguments["task_id"]) is not str
+            or len(arguments["strategy_json"].encode()) > ex.MAX_STRATEGY_BYTES
+        ):
+            return ex._l4_refused("level4_stage_arguments_malformed")
+        try:
+            strategy = json.loads(arguments["strategy_json"])
+        except ValueError:
+            return ex._l4_refused("strategy_json_malformed")
+        if not isinstance(strategy, dict):
+            return ex._l4_refused("strategy_json_malformed")
+        if self.experiment.level4_variant_bounds() is None:
+            return ex._l4_refused("level4_stage_not_at_level_4")
+        if not arguments["task_id"]:
+            try:
+                return await asyncio.to_thread(
+                    self.experiment.level4_interface, strategy
+                )
+            except Exception as refused:  # noqa: BLE001 - the recipe's, typed
+                return ex._l4_refused(
+                    "level4_interface_unavailable: " + type(refused).__name__
+                )
+        if self.miner is None:
+            return toolbox.refusal(
+                toolbox.UNAVAILABLE,
+                "miner_path_not_attached",
+                reason="This session has no miner campaign attached; nothing ran.",
+            )
+        packed = await miner_path.read_export(
+            self.miner,
+            arguments["task_id"],
+            ex.LEVEL4_ENVELOPE_EXPORT,
+            identity,
+            max_bytes=self.experiment.level4_envelope_limit(),
+        )
+        if isinstance(packed, dict):
+            return packed
+        return await asyncio.to_thread(self.experiment.level4_stage, strategy, packed)
 
     def _no_time(self):
         """The typed refusal of a proposal whose pods cannot finish within the
@@ -1098,6 +1148,18 @@ def session_brief(
                 "Level 0 and the strategy field each goes in; a recipe may use them "
                 "or not."
             )
+    # A new Level 4 session (it asks for the level text) offers the stage tool
+    # (GRAPHITE-L4-STAGING-01); every other brief is exactly as before.
+    level4_stage = bool(level_domain_text) and level == 4 and study is None
+    if level4_stage:
+        observation["instructions"] += (
+            " At Level 4 a recipe may carry a graph submission: call "
+            + LEVEL4_STAGE
+            + " with task_id empty for the interface and the commands, lower "
+            "your model in a workspace run_python task, then call it again with "
+            "that task's id, and propose the recipe with the submission digest "
+            "it returns."
+        )
     return SessionBrief(
         role=RoleName.CONSTRUCTOR,
         initial_observation=observation,
@@ -1106,6 +1168,7 @@ def session_brief(
         # A new session reads challenge-neutral tool text (VALIDATOR-07).
         tool_text=tool_text,
         study=study,
+        level4_stage=level4_stage,
     )
 
 

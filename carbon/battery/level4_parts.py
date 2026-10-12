@@ -74,6 +74,28 @@ def submission_key(submission):
     return found.group(1)
 
 
+def split(envelope):
+    """The parts of an envelope's bytes, in order: the slices of `PART_BYTES`
+    that `Level4Parts.envelope` joins back. `PartRefused`
+    (`level4_part_malformed`) for no bytes or more than `MAX_PARTS` parts."""
+    if type(envelope) is not bytes or not envelope:
+        raise PartRefused("level4_part_malformed")
+    parts = [
+        envelope[start : start + PART_BYTES]
+        for start in range(0, len(envelope), PART_BYTES)
+    ]
+    if len(parts) > MAX_PARTS:
+        raise PartRefused("level4_part_malformed")
+    return parts
+
+
+def carries_parts(facts):
+    """Whether an intake's public facts list both envelope tools, so it takes
+    Level 4 envelope parts (only a ladder deployment serving Level 4 does)."""
+    tools = facts.get("tools") if type(facts) is dict else None
+    return type(tools) is list and PART_TOOL in tools and STATUS_TOOL in tools
+
+
 class Level4Parts:
     """The parts of the envelopes the ladder's listed hotkeys sent."""
 
@@ -151,5 +173,7 @@ __all__ = [
     "STATUS_TOOL",
     "Level4Parts",
     "PartRefused",
+    "carries_parts",
+    "split",
     "submission_key",
 ]

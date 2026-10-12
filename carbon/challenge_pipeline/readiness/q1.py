@@ -8,8 +8,11 @@ distinct decision outcomes on the decision study. Members the report lists as
 `aliases` (`[{alias, target}]`, identical predictions) are skipped, not counted
 as distinct evidence.
 
-The report is `readiness/<challenge>/q1_report.json`. It is built from the
-panel Data Collection's Track B harness produced (`carbon.design_search.
+The report for level N is `readiness/<challenge>/q1_report.L<N>.json`; the
+level-0 report is also read from the older single-file name `q1_report.json`
+(`report_name`), so existing records stay valid. V1 and V2 at level N read only
+that level's report, and a report whose recorded level differs from the level
+asked still fails. It is built from the panel Data Collection's Track B harness produced (`carbon.design_search.
 track_b.alignment` and `score_value.alignment`):
 
     python -m carbon.challenge_pipeline.readiness.q1 build \
@@ -134,10 +137,25 @@ def build_report(challenge, level, panel, rule_digest):
     }
 
 
-def load_report(challenge, root=None):
-    path = Path(PACKAGE if root is None else root) / challenge / "q1_report.json"
-    if not path.is_file():
-        return None, path
+def report_names(level):
+    """The file names a level's Q1 report may have, in order. Level 0 also reads
+    the older single-file name; every other level has exactly one."""
+    named = f"q1_report.L{int(level)}.json"
+    return (named, "q1_report.json") if level == 0 else (named,)
+
+
+def report_name(level):
+    """The name `build` writes by default: `q1_report.json` for level 0 (the
+    existing record, read as level 0), `q1_report.L<N>.json` otherwise."""
+    return "q1_report.json" if level == 0 else report_names(level)[0]
+
+
+def load_report(challenge, level=0, root=None):
+    folder = Path(PACKAGE if root is None else root) / challenge
+    names = report_names(level)
+    path = next((folder / n for n in names if (folder / n).is_file()), None)
+    if path is None:
+        return None, folder / names[0]
     try:
         return json.loads(path.read_bytes()), path
     except ValueError:
@@ -158,17 +176,18 @@ def _problem(report, challenge, level):
 
 
 def v1_alignment_report(item, ctx):
-    report, path = load_report(ctx.challenge)
+    report, path = load_report(ctx.challenge, ctx.level)
     if report is None:
         return Result(
             FAIL,
-            "no Q1 alignment report is recorded (readiness/<challenge>/q1_report.json); "
-            "run the Track B alignment on the registered panel and build one with "
-            "`readiness.q1 build`",
+            "no Q1 alignment report is recorded for level "
+            f"{ctx.level} (readiness/<challenge>/{report_name(ctx.level)}); run the "
+            "Track B alignment on the registered panel and build one with "
+            "`readiness.q1 build --level N`",
         )
     problem = _problem(report, ctx.challenge, ctx.level) if report else "unreadable"
     if problem:
-        return Result(FAIL, f"q1_report.json is unusable: {problem}", (path.name,))
+        return Result(FAIL, f"{path.name} is unusable: {problem}", (path.name,))
     refused = reference_problem(report, ctx.repository)
     if refused:
         return Result(FAIL, refused, (path.name,))
@@ -257,14 +276,16 @@ def _outcome_key(outcome):
 
 
 def v2_panel_discrimination(item, ctx):
-    report, path = load_report(ctx.challenge)
+    report, path = load_report(ctx.challenge, ctx.level)
     if report is None:
         return Result(
-            FAIL, "no Q1 report is recorded, so panel discrimination is unmeasured"
+            FAIL,
+            f"no Q1 report is recorded for level {ctx.level}, so panel "
+            "discrimination is unmeasured",
         )
     problem = _problem(report, ctx.challenge, ctx.level) if report else "unreadable"
     if problem:
-        return Result(FAIL, f"q1_report.json is unusable: {problem}", (path.name,))
+        return Result(FAIL, f"{path.name} is unusable: {problem}", (path.name,))
     aliased, alias_problem = _alias_map(report)
     if alias_problem:
         return Result(FAIL, alias_problem, (path.name,))
@@ -306,7 +327,11 @@ def main(argv=None):
     b.add_argument("--challenge", required=True)
     b.add_argument("--level", type=int, default=0)
     b.add_argument("--panel", required=True)
-    b.add_argument("--out", required=True)
+    b.add_argument(
+        "--out",
+        help="default: readiness/<challenge>/q1_report.json for level 0, "
+        "q1_report.L<N>.json otherwise",
+    )
     args = parser.parse_args(argv)
     panel = json.loads(Path(args.panel).read_bytes())
     for key in ("reference", "decision_study", "members"):
@@ -318,7 +343,9 @@ def main(argv=None):
         print("no scoring is registered for the challenge; cannot bind a rule digest")
         return 2
     report = build_report(args.challenge, args.level, panel, rule)
-    with open(args.out, "w", encoding="utf-8", newline=chr(10)) as out:
+    out_path = args.out or str(Path(PACKAGE) / args.challenge / report_name(args.level))
+    Path(out_path).parent.mkdir(parents=True, exist_ok=True)
+    with open(out_path, "w", encoding="utf-8", newline=chr(10)) as out:
         out.write(json.dumps(report, indent=1, sort_keys=True) + chr(10))
     return 0
 

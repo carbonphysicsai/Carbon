@@ -69,7 +69,10 @@ def main(argv=None):
     optimize.add_argument("--source", help="import-grid: a pod's grid directory")
     optimize.add_argument("--records", help="import-references: records.jsonl")
     args = parser.parse_args(argv)
-    experiment = Experiment(args.root)
+    from . import level_compile
+
+    # The development runner compiles level panel members at their own level.
+    experiment = Experiment(args.root, level_compiler=level_compile)
     try:
         if args.command == "run":
             result = experiment.run(contract_path=args.contract, workers=args.workers)

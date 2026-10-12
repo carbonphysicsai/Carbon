@@ -5,7 +5,10 @@ and writes:
 
 - `data/index.json`: one entry per board (Challenge, device class, labels,
   feed state);
-- `data/boards/<slug>.json`: the board model the pages draw.
+- `data/boards/<slug>.json`: the verified board model (board.v1);
+- `data/v2/<slug>.json`: the same board as `carbon.dashboard.board.v2`
+  (`board_v2.project`), whose phase is computed at `now`. The pages draw
+  this file only (DASHBOARD-02 S2).
 
 A refused document never overwrites an accepted board. When an accepted board
 for the same Challenge and device class is already in `out`, it stays, marked
@@ -23,9 +26,10 @@ from __future__ import annotations
 import hashlib
 import json
 import shutil
+import time
 from pathlib import Path
 
-from carbon.dashboard import feed
+from carbon.dashboard import board_v2, feed
 
 INDEX_SCHEMA = "carbon.dashboard.index.v1"
 WEB = Path(__file__).with_name("web")
@@ -85,6 +89,13 @@ def _previous(out, slug):
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def _previous_v2(out, slug):
+    path = out / "data" / "v2" / f"{slug}.json"
+    if not path.is_file():
+        return None
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
 def _slug_of(document):
     """Where a refused document would have gone, when that much is readable."""
     try:
@@ -98,9 +109,11 @@ def _slug_of(document):
         return None
 
 
-def build(out, documents, trust, *, showcase=False):
+def build(out, documents, trust, *, showcase=False, now=None):
     """Build the site into `out`; return the index written. With `showcase`,
-    also write the design showcase replays (public EV4 material only)."""
+    also write the design showcase replays (public EV4 material only). `now`
+    (whole seconds since the epoch, default the clock) sets the v2 phase."""
+    now = int(time.time()) if now is None else now
     out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
     brand = _copy_web(out)
@@ -119,6 +132,11 @@ def build(out, documents, trust, *, showcase=False):
             previous["feed_state"] = {"state": "REFUSED", "code": refusal.code}
             _write_json(out / "data" / "boards" / f"{slug}.json", previous)
             entries[slug] = _entry(previous)
+            kept = _previous_v2(out, slug)
+            if kept is not None:
+                kept = board_v2.restamp(kept, now)
+                kept["feed_state"] = previous["feed_state"]
+                _write_json(out / "data" / "v2" / f"{slug}.json", kept)
             continue
         board["feed_state"] = {"state": "ACCEPTED", "code": None}
         if board["showcase_panel"] is not None:
@@ -128,6 +146,9 @@ def build(out, documents, trust, *, showcase=False):
         if board["slug"] in entries and entries[board["slug"]]["state"] == "ACCEPTED":
             raise ValueError(f"two feeds for one board: {board['slug']}")
         _write_json(out / "data" / "boards" / f"{board['slug']}.json", board)
+        v2 = board_v2.project(board, now)
+        v2["feed_state"] = board["feed_state"]
+        _write_json(out / "data" / "v2" / f"{board['slug']}.json", v2)
         entries[board["slug"]] = _entry(board)
     if showcase:
         from carbon.dashboard import showcase as replays
@@ -137,6 +158,8 @@ def build(out, documents, trust, *, showcase=False):
         "schema": INDEX_SCHEMA,
         "fixture": trust.fixture,
         "brand_assets": brand,
+        # S3's signed network snapshot: the page fetches it only when present.
+        "network": (out / "data" / "network.json").is_file(),
         "boards": [entries[k] for k in sorted(entries)],
     }
     _write_json(out / "data" / "index.json", index)

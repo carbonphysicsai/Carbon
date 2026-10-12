@@ -87,6 +87,7 @@ OPTIONAL = {
     "device",
     "ladder",
     "ladder_deployment",
+    "score",
 }
 READER_FIELDS = {"network", "endpoint", "provider", "genesis_hash", "netuid"}
 BACKENDS = ("carrier", "direct")
@@ -99,6 +100,32 @@ _LOCK = threading.RLock()
 #: and the daemon never import the variant module. Applied only to a ladder
 #: deployment; without it a ladder serves no variant (fail closed).
 _LADDER_SETUP = None
+
+
+#: The registered score's setup (VALIDATOR-26), installed by the operator's
+#: entry point (`carbon.battery.value.scored_operate`), so the intake and the
+#: daemon never import the score's value-analysis code. Without it, a
+#: deployment whose rule names a registered score scores nothing: its intake
+#: admits only, and its daemon types each screening FAILED_INFRA.
+_SCORE_SETUP = None
+
+
+def set_score_setup(setup):
+    """Install the registered score's setup for this process."""
+    global _SCORE_SETUP
+    if not callable(setup):
+        raise TypeError("a callable setup is required")
+    _SCORE_SETUP = setup
+
+
+def scores_here(target):
+    """Whether this process can score `target`: its rule names no registered
+    score, or the registered score is installed."""
+    rule = getattr(target, "rule", None) or {}
+    return (
+        rule.get("score") is None
+        or getattr(target, "registered_score", None) is not None
+    )
 
 
 def set_ladder_setup(setup):
@@ -130,11 +157,35 @@ def _private(path):
     return path
 
 
-def rule_for(config):
-    """The exam rule a deployment runs: `rule` in its configuration, else v1."""
-    from .exam import RULES
+#: The registered-score term's fields (VALIDATOR-26), checked here by shape
+#: only: the registry itself is read by the operator's setup, never here.
+#: `decision` names the owner's record that adopts this candidate (the
+#: owner's #1101 security conditions): the scorer refuses unless that record
+#: names the candidate and the registry digest.
+SCORE_FIELDS = frozenset({"registry", "registry_sha256", "candidate", "decision"})
+SCORE_DECISION = re.compile(r"OWNER-[A-Z0-9]+(?:-[A-Z0-9]+)*-\d{2}\Z")
 
-    return RULES[config.get("rule", "v1")]
+
+def rule_for(config):
+    """The exam rule a deployment runs: `rule` in its configuration, else v1.
+    A rule naming a registered score takes its term from the configuration's
+    `score` (VALIDATOR-26), so the rule's digest binds it."""
+    from .exam import REGISTERED_SCORE, RULES
+
+    rule = RULES[config.get("rule", "v1")]
+    term = config.get("score")
+    if rule.get("score") != REGISTERED_SCORE:
+        if term is not None:
+            raise EvaluationUnavailable("evaluation_config_score_not_in_rule")
+        return rule
+    if (
+        type(term) is not dict
+        or set(term) != SCORE_FIELDS
+        or not all(type(v) is str and v for v in term.values())
+        or not SCORE_DECISION.match(term["decision"])
+    ):
+        raise EvaluationUnavailable("evaluation_config_score")
+    return {**rule, "score": dict(term)}
 
 
 def load_config(path):
@@ -459,6 +510,8 @@ def build(config, *, repository, readonly=False):
     validator.readonly = readonly
     if validator.ladder is not None and _LADDER_SETUP is not None:
         _LADDER_SETUP(validator, config)
+    if validator.rule.get("score") is not None and _SCORE_SETUP is not None:
+        _SCORE_SETUP(validator)
     if readonly:
         return validator
     try:
@@ -489,7 +542,11 @@ def evaluate(target, submission):
     """
     from carbon.chain.commitments import CommitmentUnavailable
 
-    from .daemon import BackendNotServed, CommitmentRequired
+    from .daemon import (
+        BackendNotServed,
+        CommitmentRequired,
+        DevelopmentCompilerUnavailable,
+    )
     from .pool_store import HotkeyWindowUsed
 
     if getattr(target, "readonly", False):
@@ -516,8 +573,24 @@ def evaluate(target, submission):
             raise EvaluationUnavailable(code) from None
         except BackendNotServed:
             raise EvaluationUnavailable("backend_not_served") from None
+        except DevelopmentCompilerUnavailable:
+            raise EvaluationUnavailable("development_compiler_unavailable") from None
         sid = admitted["submission_id"]
-        if admitted["state"] != "INVALID_CONSTRUCTION":
+        # Under a registered score, a process without the score (the
+        # intake's) admits only; the daemon scores (VALIDATOR-26).
+        if admitted["state"] != "INVALID_CONSTRUCTION" and processes_here(target):
             target.process(sid)
             target.run_pending()
         return target.outcome(sid)
+
+
+def processes_here(target):
+    """Whether this process can advance `target`'s submissions: it holds the
+    registered score its rule names (`scores_here`), and, on a development
+    ladder, the ladder's compiler. Otherwise the daemon, whose entry point
+    installs both, advances them; this process only admits."""
+    if not scores_here(target):
+        return False
+    if getattr(target, "ladder", None) is not None:
+        return callable(getattr(target, "development_compiler", None))
+    return True

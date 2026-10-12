@@ -253,3 +253,42 @@ def test_the_sequential_verdict_stops_only_on_a_clear_result():
     v = sp.sequential_verdict(clean, "CE", final, design)
     assert v["verdict"] in (sp.PROVEN, sp.UNPROVEN, sp.FAIL)
     assert v["target_half_width"] == 0.15
+
+
+def test_every_candidate_reports_each_known_bad_controls_rank_and_pickability():
+    legs, values, recipe_of, levels = panel()
+    report = sp.prove(
+        registry(), legs, values, recipe_of, levels,
+        known_bad=["control-bad"], adversarial=["gamed-s0"], unsafe=["unsafe-s0"],
+        n_bootstrap=50,
+    )  # fmt: skip
+    ce = report["candidates"]["CE"]["pooled"]
+    # -E ranks the bad control second of 15 (after the gamed member): by name.
+    assert ce["known_bad_ranks"] == {"control-bad": (2, 15)}
+    ok, failed = sp.pickable(report, "CE", criterion="placement")
+    assert not ok
+    assert "pooled: known-bad member in the top half" in failed
+    assert "pooled: adversarial member in the top half" in failed
+    # Under PICKABLE-01, placement alone decides: regret or divergence do not.
+    assert all(f.split(": ", 1)[1] in sp.PLACEMENT_SCREENS for f in failed)
+    # Under PICKABLE-02 (in force) the known-bad placement still refuses it.
+    ok, failed = sp.pickable(report, "CE")
+    assert not ok and "pooled: known-bad member in the top half" in failed
+    assert all(f.split(": ", 1)[1] in sp.DIVERGENCE_SCREENS for f in failed)
+
+
+def test_the_confirmation_refuses_a_rule_selection_did_not_mark_pickable(tmp_path):
+    from scripts.dev.battery import score_proof as script
+
+    selection = tmp_path / "selection.json"
+    selection.write_text(
+        '{"pickable": {"A": {"pickable": false, "failed": ["pooled: known-bad member in the top half"]},'
+        ' "A-Q": {"pickable": true, "failed": []}}}'
+    )
+    assert script.pick_refusal(selection, "A-Q") is None
+    assert script.pick_refusal(selection, "A").startswith("rule_not_pickable: A")
+    assert script.pick_refusal(selection, "B").startswith("rule_not_in_selection")
+    assert script.pick_refusal(None, "A-Q").startswith("confirmation needs --selection")
+    assert (
+        script.pick_refusal(tmp_path / "absent.json", "A-Q") == "selection_unreadable"
+    )

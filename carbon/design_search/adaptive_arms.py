@@ -301,8 +301,16 @@ def validate(panel, registration):
         actions = job["actions"]
         if type(actions) is not list or len(actions) != len(base_rows):
             raise AdaptiveArmError("every base design needs one action")
-        if challenge == "f02" and len(actions) != 9:
-            raise AdaptiveArmError("registered f02 contract has nine finite actions")
+        if challenge == "f02":
+            menu_actions = (
+                16
+                if registered.registration_id == budgets.F02_MENU_V2_REGISTRATION_ID
+                else 9
+            )
+            if len(actions) != menu_actions:
+                raise AdaptiveArmError(
+                    f"registered f02 contract has {menu_actions} finite actions"
+                )
         action_ids = set()
         coordinates = set()
         for action in actions:
