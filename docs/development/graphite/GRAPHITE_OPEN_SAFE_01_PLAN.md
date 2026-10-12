@@ -133,9 +133,16 @@ are consumed; the Attacker approvals are partly unused.
 | Stage C Attacker (L4) | 26.95 | 1 of 2 | 1 | 13.41 |
 | **Approved and unused** | | | 3 Attacker runs | **40.23** |
 
-The Constructor runs of stages B and C were counted from the existing controller roots (the ledger's
-migration), so their settled USD is not in the ledger; the executor holds it. The settled cost of the
-Attacker runs claimed so far is far below their worst case.
+**Basis for usage (the figures are with the Test Lead, not in the repo).** Pods never settle at the
+provider: every created pod ends in `pod_charge_unresolved`, and only the zero-cost refusals are
+`pod_settled`. So a run's usage is its pod reservation plus the provider-reported model charge. The model
+charge is partial: the session-1 outputs of the stage B and C Constructor runs were overwritten by a
+relaunch (lessons register B14), so usage computed this way is a **lower bound**, and the USD left under
+each ceiling is an upper bound. The Constructor runs of stages B and C were counted from the existing
+controller roots (the ledger's migration), so the ledger holds their counts, not their cost. The weekly cap
+ledger is reservation-based (a safety-conservative basis) and holds no settled pod charge. The run counts
+are the binding limit here: a grant's ceiling is its permitted runs times the worst-case run cost, and the
+runs actually cost less than that worst case.
 
 **New money (PROPOSAL).**
 
