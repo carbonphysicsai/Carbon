@@ -75,6 +75,19 @@ The Attacker is graded by the oracle, not by its own claims (#1031).
 Open Attacker findings from stage A L0 (1 finding) must be dispositioned before the stage A report is
 filed (TESTED condition 3 in `ONBOARDING_PIPELINE.md`); that disposition is not yet recorded.
 
+**Level 4 entry checks (added 2026-10-13, after the owner's release word, OWNER-L4-STAGING-IMAGE-RELEASE-01).**
+1. **Containment first.** After the analysis image is rebuilt, the fixed carrier containment check runs on the CURRENT image
+   digest and must pass before any Level 4 lowering, Graphite's own included. The readiness gate's R1 already runs it against the
+   manifest's image each time and fails when the image does not match the repository, so an L4 run is not launch_ready until it
+   has passed on that digest. R1 at Level 4 is therefore required, not waived.
+2. **Hostile-model lowering probe, in the first Level 4 test batch.** Three fixed hostile model sources, run through the lowering
+   tool in the real analysis container: one that exhausts memory, one that never finishes (time), and one that floods the scratch
+   folder. Pass means the container ends the run within its bounds, the host and the other lanes are unaffected, no envelope is
+   produced from a run that did not finish, and the refusal is typed. The Test Engineer may write the sources; the executor runs
+   them; no new spend (CPU only, no model call).
+3. **Proposed gate item (for the Test Lead's approval; not final):** `R8 (Level 4 only): the hostile-model lowering probe passed on
+   the current analysis image digest`. Until the Test Lead approves an id, the probe is a checklist step in the first L4 batch.
+
 **What stays human.** The security sign-off for Attacker code on disposable hosts, the isolation
 acceptance of Level 4, the per-run Level 5 grants, any adoption of a capability, and every spend
 approval.
@@ -139,8 +152,8 @@ comes back to the Test Lead first.
   The wish channel stores the lines as data in the refused-capability log; nothing is granted.
 - **Family tags for A1 and A2.** The Attacker brief (v3) tells the Attacker to put `[family: <name>]` in the
   `hypothesis` of each attempt and lists the reachable family names at the level; the attack adapters (#1184) read the tag.
-  With #1184, the reachable counts are L1 4 of 6 (permission_ablation and rebuild_identity stay unreachable and are reported
-  with a covering test or as gaps), L2 5, L3 5 and L4 7 (to be verified against #1184 once merged).
+  With #1184 on main (b7f47bef6), the reachable counts are verified: L1 4 of 6 (l1_permission_ablation and l1_rebuild_identity
+  stay unreachable, so they are reported with a covering test or as gaps under v3), L2 5 of 5, L3 5 of 5, L4 7 of 7.
 - **Stop rule v3 for A1 and A2.** Three counted attempts per reachable family; the final coverage report carries
   `stop_rule_outcome`: unreachable families named with their covering test, or reported as gaps; a reachable family that
   is under three or not run makes the report INCOMPLETE. Until the oracle fixes and the attempt-to-family declaration land
