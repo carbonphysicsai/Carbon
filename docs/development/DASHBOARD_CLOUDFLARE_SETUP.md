@@ -118,6 +118,66 @@ Expect:
 
 A `503 Feed not configured` means step 3's secrets are not set yet.
 
+## 6. The network snapshot (optional, DASHBOARD-02 S3)
+
+`/data/network.json` shows testnet 567's public state: each UID's hotkey,
+incentive, emission, validator permit and stake. The validator host reads the
+chain and signs a snapshot with its **feed key**, under the snapshot's own
+signing domain, so the key the Worker pins (`FEED_KEYS`) does not change.
+Until `SNAPSHOT_URLS` is set, the path answers `404`. A snapshot that fails a
+check is listed as `REFUSED` with its reason and no data.
+
+**On the validator host (the operator).** Write the builder's config as
+`~/.config/carbon/network-snapshot.json` (mode 600). The chain block is the
+validator's own chain context; `key` is the feed key file the feed build
+already uses:
+
+```json
+{"schema": "carbon.validator.network-snapshot.config.v1",
+ "chain": {"network": "testnet", "endpoint": "<validator chain endpoint>", "provider": "<provider>", "genesis_hash": "<testnet genesis>", "netuid": 567},
+ "key": "<path to the feed key file>",
+ "hotkey": "<validator hotkey SS58>"}
+```
+
+Run it on a timer, every 5 minutes, and upload the file next to the feed, the
+same way and to the same bucket as the feed upload, as `valv2/network.json`:
+
+```bash
+python -m carbon.challenge_validator.network_snapshot build --config ~/.config/carbon/network-snapshot.json --out <feed directory>/network.json
+```
+
+```bash
+npx wrangler@4 r2 object put "<feed bucket>/valv2/network.json" --file <feed directory>/network.json --content-type application/json --remote
+```
+
+A systemd timer does it. Make the service `Type=oneshot` with those two
+commands in order, and the timer `OnBootSec=1min` and `OnUnitActiveSec=5min`.
+The build prints `{"block": …, "neurons": …}`, or `{"refused": "<code>"}` and
+exit code 2. `snapshot_chain_unavailable` is an infrastructure failure: the
+next run retries.
+
+**On the Worker (the owner).** Save the snapshot's public URL,
+`https://<public bucket host>/valv2/network.json`, as
+`~/.config/carbon/dashboard-snapshot-urls`, then set it as a secret:
+
+```bash
+npx wrangler@4 secret put SNAPSHOT_URLS --config carbon/dashboard/wrangler.dashboard.toml < ~/.config/carbon/dashboard-snapshot-urls
+```
+
+A snapshot older than 30 minutes, by its block's chain timestamp, is refused
+as `snapshot_stale`. The optional var `SNAPSHOT_MAX_AGE_SECONDS` changes that
+bound, within 60 to 86400 seconds.
+
+**Check it:**
+
+```bash
+curl -s https://dashboard.carbonphysics.ai/data/network.json
+```
+
+Expect every snapshot `"state": "ACCEPTED"` with labels `DEVELOPMENT` and
+`TESTNET`. A `REFUSED` `snapshot_stale` means the timer stopped. Any other
+code, send it to the Carbon Validator session.
+
 ## Afterwards
 
 - **The leaderboard** updates by itself, within about 60 s of a new feed
