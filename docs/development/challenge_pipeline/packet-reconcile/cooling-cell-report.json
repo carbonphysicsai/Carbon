@@ -1,0 +1,143 @@
+{
+  "schema": "carbon.onboarding.packet-reconciliation-report.v1",
+  "challenge": "cooling-cell",
+  "manifest_sha256": "bc4924a3d95953acf7213913f5411a217ab05dbc76402f3e6cee642ad4ad8f96",
+  "documents": {
+    "packet": {
+      "path": "docs/development/challenge_pipeline/round1/cooling-cell-v3.md",
+      "kind": "PACKET",
+      "sha256": "e95ca8287278c2cc4733a1a898ddbc0bde490f7310acffbf30971a9f1eb06429",
+      "observed_sha256": "e95ca8287278c2cc4733a1a898ddbc0bde490f7310acffbf30971a9f1eb06429",
+      "state": "PIN_MATCH"
+    },
+    "owner": {
+      "path": ".agent/decisions/2026-10-08-OWNER-DESIGN-VALUE-01.md",
+      "kind": "OWNER_DECISION",
+      "sha256": "681ff689cf1e5dbde0e83fb291769dfa8e46204c1135342673e1eab9c9a4bd9c",
+      "observed_sha256": "681ff689cf1e5dbde0e83fb291769dfa8e46204c1135342673e1eab9c9a4bd9c",
+      "state": "PIN_MATCH"
+    }
+  },
+  "checks": [
+    {
+      "id": "case-temperature",
+      "field": "hard_limits",
+      "state": "CONSISTENT",
+      "packet": {
+        "document": "packet",
+        "path": "docs/development/challenge_pipeline/round1/cooling-cell-v3.md",
+        "selector": {
+          "document": "packet",
+          "kind": "number",
+          "section": null,
+          "prefix": "selects **",
+          "suffix": "C at the lid-side"
+        },
+        "state": "EXTRACTED",
+        "value": "85"
+      },
+      "evidence": [
+        {
+          "document": "owner",
+          "path": ".agent/decisions/2026-10-08-OWNER-DESIGN-VALUE-01.md",
+          "selector": {
+            "document": "owner",
+            "kind": "number",
+            "section": null,
+            "prefix": "Cooling's",
+            "suffix": "C limit is the"
+          },
+          "state": "EXTRACTED",
+          "value": "85"
+        }
+      ]
+    },
+    {
+      "id": "temperature-plane",
+      "field": "outputs",
+      "state": "CONSISTENT",
+      "packet": {
+        "document": "packet",
+        "path": "docs/development/challenge_pipeline/round1/cooling-cell-v3.md",
+        "selector": {
+          "document": "packet",
+          "kind": "literal",
+          "section": null,
+          "phrase": "lid-side TIM2 interface (case temperature)",
+          "value": "LID_TIM2_CASE"
+        },
+        "state": "EXTRACTED",
+        "value": "LID_TIM2_CASE"
+      },
+      "evidence": [
+        {
+          "document": "owner",
+          "path": ".agent/decisions/2026-10-08-OWNER-DESIGN-VALUE-01.md",
+          "selector": {
+            "document": "owner",
+            "kind": "literal",
+            "section": null,
+            "phrase": "lid-side TIM2 interface / case temperature",
+            "value": "LID_TIM2_CASE"
+          },
+          "state": "EXTRACTED",
+          "value": "LID_TIM2_CASE"
+        }
+      ]
+    },
+    {
+      "id": "vapour-chamber-input",
+      "field": "conditions",
+      "state": "CONSISTENT",
+      "packet": {
+        "document": "packet",
+        "path": "docs/development/challenge_pipeline/round1/cooling-cell-v3.md",
+        "selector": {
+          "document": "packet",
+          "kind": "literal",
+          "section": null,
+          "phrase": "vapour-chamber lid as buyer input",
+          "value": "BUYER_VAPOUR_CHAMBER"
+        },
+        "state": "EXTRACTED",
+        "value": "BUYER_VAPOUR_CHAMBER"
+      },
+      "evidence": [
+        {
+          "document": "owner",
+          "path": ".agent/decisions/2026-10-08-OWNER-DESIGN-VALUE-01.md",
+          "selector": {
+            "document": "owner",
+            "kind": "literal",
+            "section": null,
+            "phrase": "The buyer supplies a **vapour-chamber lid**",
+            "value": "BUYER_VAPOUR_CHAMBER"
+          },
+          "state": "EXTRACTED",
+          "value": "BUYER_VAPOUR_CHAMBER"
+        }
+      ]
+    }
+  ],
+  "unbound_buyer_fields": [
+    "P",
+    "Q",
+    "buyer",
+    "decision",
+    "exclusions",
+    "geometry",
+    "objective",
+    "value",
+    "w",
+    "wrong_decision"
+  ],
+  "coverage": {
+    "required_buyer_fields": 13,
+    "bound_buyer_fields": 3,
+    "checks_examined": 3,
+    "consistent": 3
+  },
+  "checklist_clear": false,
+  "authority_granted": false,
+  "basis": "Reviewed clause bindings only: numeric equality or exact phrase-to-token mappings. Not empirical credibility, semantic entailment, approval, qualification or readiness. Unbound fields need reviewed bindings; do not guess values."
+}
