@@ -22,6 +22,9 @@
 // so they are rebuilt and redeployed when the incumbent changes.
 
 import {FeedRefused, boardSlug, entry, panelSummary, parse, project, projectV2, restamp, trust} from "./feed.mjs";
+// DASHBOARD-02 S3: /data/network.json from the signed network snapshots in
+// the optional secret SNAPSHOT_URLS, checked against FEED_KEYS (404 unset).
+import {liveNetwork} from "./snapshot.mjs";
 
 const INDEX_SCHEMA = "carbon.dashboard.index.v1";
 const MAX_FEED_BYTES = 16 * 2 ** 20;
@@ -135,6 +138,11 @@ export default {
       const slug = decodeURIComponent(url.pathname.slice(prefix.length)).replace(/\.json$/, "");
       const board = (v2 ? site.boardsV2 : site.boards).get(slug);
       return board ? json(board, 200, seconds) : plain("No such board", 404);
+    }
+    if (url.pathname === "/data/network.json") {
+      let network;
+      try { network = await liveNetwork(env); } catch (error) { return plain("Network snapshot not configured: " + (error.code || "error"), 503); }
+      return network ? json(network.view, 200, network.seconds) : plain("Network snapshot not configured", 404);
     }
     if (url.pathname.startsWith("/data/")) return plain("Not found", 404);
     return withHeaders(await env.ASSETS.fetch(request));
