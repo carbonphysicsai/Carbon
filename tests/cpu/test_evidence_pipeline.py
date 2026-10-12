@@ -674,10 +674,45 @@ def test_public_evidence_cannot_replay_assumed_costs():
     manifest, docs = bundle()
     manifest["scope"] = docs["carbon"]["scope"] = "PUBLIC_DEVELOPMENT"
     docs["comparator"]["scope"] = "PUBLIC_DEVELOPMENT"
+    material = ep.pb.seal_materials(
+        {k: v for k, v in docs["comparator"].items() if k != "materials_digest"}
+    )
+    sources = {
+        (row["candidate"], row["condition"]): row["reference_source_sha256"]
+        for row in material["rows"]
+    }
+    witness_rows = [
+        {
+            "candidate": row["candidate"],
+            "condition": row["condition"],
+            "reference_source_sha256": sources[(row["candidate"], row["condition"])],
+            "window_start_s": 1.0,
+            "dt_s": 0.02,
+            "top_c": [0.0, row["values"]["safety"]],
+            "peak_top_c": row["values"]["safety"],
+        }
+        for row in cb._physical_rows(docs["export"])
+    ]
+    docs["comparator"] = {
+        "schema": ep.F02_FINE_BUNDLE,
+        "scope": "PUBLIC_DEVELOPMENT",
+        "export_digest": docs["export"]["export_digest"],
+        "materials": material,
+        "witness_rows": witness_rows,
+        "witness_manifest_sha256": "sha256:" + "a" * 64,
+    }
+    with pytest.raises(ep.Refusal, match="MEASURED_COSTS_REQUIRED"):
+        invoke(manifest, docs)
+
+
+def test_public_f02_evidence_requires_exact_peak_witness():
+    manifest, docs = bundle()
+    manifest["scope"] = docs["carbon"]["scope"] = "PUBLIC_DEVELOPMENT"
+    docs["comparator"]["scope"] = "PUBLIC_DEVELOPMENT"
     docs["comparator"] = ep.pb.seal_materials(
         {k: v for k, v in docs["comparator"].items() if k != "materials_digest"}
     )
-    with pytest.raises(ep.Refusal, match="MEASURED_COSTS_REQUIRED"):
+    with pytest.raises(ep.Refusal, match="F02_FINE_WITNESS_REQUIRED"):
         invoke(manifest, docs)
 
 

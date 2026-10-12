@@ -29,6 +29,7 @@ PREDICTIONS = "carbon.development-prediction-input.v1"
 BINDINGS = "carbon.development-replay-bindings.v1"
 CONTEXT = "carbon.development-value-context.v1"
 INDEXED_F02 = "carbon.development-indexed-f02-materials.v1"
+F02_FINE_BUNDLE = "carbon.development-f02-fine-witness-bundle.v1"
 ROLES = {"export", "comparator", "carbon", "replay", "bindings", "context", "rule"}
 ALIASES = {
     "battery-v3": "battery-fastcharge-ageing-development-v1",
@@ -198,7 +199,7 @@ def _predictions(export, supplied):
     return out
 
 
-def _baseline(export, material, method):
+def _baseline(export, material, method, *, require_fine_witness=False):
     family = export["family"]
     if family == "battery-v3" and method in ("protocol", "band"):
         predicted, envelopes, cost = cb.battery_predictions(export, holdout=method)
@@ -250,7 +251,33 @@ def _baseline(export, material, method):
                     "fold_unit": "whole_action_waveform_per_registered_context",
                 },
             )
-        verified = pb.validate_materials(export, material)
+        witness_rows = None
+        if type(material) is dict and material.get("schema") == F02_FINE_BUNDLE:
+            _shape(
+                material,
+                {
+                    "schema",
+                    "scope",
+                    "export_digest",
+                    "materials",
+                    "witness_rows",
+                    "witness_manifest_sha256",
+                },
+                "comparator",
+            )
+            if (
+                material["export_digest"] != export["export_digest"]
+                or material["scope"] != material["materials"].get("scope")
+                or not re.fullmatch(
+                    r"sha256:[0-9a-f]{64}", str(material["witness_manifest_sha256"])
+                )
+            ):
+                raise Refusal("comparator", "FINE_WITNESS_SOURCE_IDENTITY_MISMATCH")
+            witness_rows = material["witness_rows"]
+            material = material["materials"]
+        if require_fine_witness and witness_rows is None:
+            raise Refusal("comparator", "F02_FINE_WITNESS_REQUIRED")
+        verified = pb.validate_materials(export, material, witness_rows=witness_rows)
         predicted, cost = pb._predict(export, verified)
         return predicted, None, cost
     raise Refusal("comparator", "UNREGISTERED_METHOD")
@@ -398,6 +425,42 @@ def _reference(parts, choices, weights):
     }
 
 
+def _rank_bound_choices(parts, assessed, bound, weights):
+    """Rank complete bound designs using the same rule in assembly and replay."""
+    definition = next(iter(parts.values()))[0]["objective"]
+    order = {candidate: i for i, candidate in enumerate(bound)}
+
+    def key(candidate):
+        choices = bound[candidate]
+        rows = [values[choices[band]] for band, (_, values) in assessed.items()]
+        tie = tuple(
+            task["candidates"].index(choices[band])
+            for band, (task, _) in assessed.items()
+        )
+        if any(row["feasible"] is None or row["objective"] is None for row in rows):
+            return 2, 0, 0, tie, order[candidate]
+        objective = sum(
+            (1 if weights is None else weights[band])
+            * values[choices[band]]["objective"]
+            for band, (_, values) in assessed.items()
+        )
+        secondary = (
+            0
+            if weights is not None or parts["plain"][0]["secondary"] is None
+            else rows[0]["secondary"]
+            * (1 if parts["plain"][0]["secondary"]["sense"] == "min" else -1)
+        )
+        return (
+            0 if all(row["feasible"] for row in rows) else 1,
+            objective * (1 if definition["sense"] == "min" else -1),
+            secondary,
+            tie,
+            order[candidate],
+        )
+
+    return sorted(bound, key=key)
+
+
 def _verify_replay(export, replay, binding, baseline, carbon, envelopes):
     eb._validate(replay)
     _shape(binding, {"schema", "export_digest", "jobs"}, "replay")
@@ -477,43 +540,9 @@ def _verify_replay(export, replay, binding, baseline, carbon, envelopes):
             ("model", carbon, None),
         ):
             assessed = _assess(entry, predictions, envelopes=env)
-            order = {c["design_id"]: i for i, c in enumerate(job["candidates"])}
-
-            def ranking_key(
-                c,
-                row=row,
-                assessed=assessed,
-                weights=weights,
-                parts=parts,
-                definition=definition,
-            ):
-                choices = row["candidates"][c]
-                rows = [a[choices[b]] for b, (_, a) in assessed.items()]
-                tie = tuple(
-                    t["candidates"].index(choices[b]) for b, (t, _) in assessed.items()
-                )
-                if any(r["feasible"] is None or r["objective"] is None for r in rows):
-                    return 2, 0, 0, tie
-                objective = sum(
-                    (1 if weights is None else weights[b]) * a[choices[b]]["objective"]
-                    for b, (_, a) in assessed.items()
-                )
-                secondary = (
-                    0
-                    if weights is not None or parts["plain"][0]["secondary"] is None
-                    else rows[0]["secondary"]
-                    * (1 if parts["plain"][0]["secondary"]["sense"] == "min" else -1)
-                )
-                return (
-                    0 if all(r["feasible"] for r in rows) else 1,
-                    objective * (1 if definition["sense"] == "min" else -1),
-                    secondary,
-                    tie,
-                )
-
-            expected = sorted(order, key=ranking_key)
+            expected = _rank_bound_choices(parts, assessed, row["candidates"], weights)
             supplied = sorted(
-                order,
+                row["candidates"],
                 key=lambda c: next(
                     r["screen_rank"][arm]
                     for r in job["candidates"]
@@ -607,7 +636,12 @@ def run(manifest, documents, pins):
     carbon = _stage("carbon", lambda: _predictions(export, documents["carbon"]))
     predicted, envelopes, costs = _stage(
         "comparator",
-        lambda: _baseline(export, documents["comparator"], manifest["method"]),
+        lambda: _baseline(
+            export,
+            documents["comparator"],
+            manifest["method"],
+            require_fine_witness=manifest["scope"] == "PUBLIC_DEVELOPMENT",
+        ),
     )
     screen = _stage(
         "comparator",

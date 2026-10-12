@@ -26,3 +26,29 @@
 - **Invariants:** no hidden material, no TRAIN access to held-out reference,
   byte-pinned source identity, reference/infra failure separation, no fixture
   qualification, no spend or solver execution by this ticket.
+
+## 2026-10-12 producer-contract update
+
+#1114 has merged with registered `vcpus`, candidate view, cost ledger, model
+predictions and receipt, plain bindings, motor/f02 comparator material, and
+f02's separately pinned fine peak witness. Assembly now validates these names,
+roles, receipt hashes, identities and inventories; it builds a replay design
+and value context from them on synthetic fixtures. The fine 0.02 s witness
+checks the peak while the 0.5 s material remains the FIR fit grid (128 lags).
+
+**Remaining real-run gaps:** #1056 requires an adaptive policy calibrated on
+independent PUBLIC_TRAIN jobs with a receipt proved to predate held-out
+execution. The #1114 TRAIN stage follows reference and cannot itself establish
+that chronology. Data Collection confirmed on 2026-10-12 that the per-Challenge
+`adaptive-policy.v1` registrations do not exist yet. Its future pre-experiment
+receipt is the policy PR's merge-commit SHA on main; GitHub's server-side merge
+time supplies the independent chronology. The assembler must check the pinned
+policy bytes, the separate calibration identity, and that independent receipt
+against held-out execution before enabling a real adaptive panel. It does not
+accept a locally asserted timestamp or the post-reference TRAIN receipt as a
+substitute. Battery's per-physical-row CPU time is unmetered (one-core
+wall time is a conservative upper bound), so public equal-budget replay cannot
+call it measured. The Carbon receipt times one batched inference, not a full
+per-question query, so item-3 speed remains unmeasured. These sub-scopes remain
+explicit and fail closed; no comparator or model claim is promoted by a
+synthetic fixture.

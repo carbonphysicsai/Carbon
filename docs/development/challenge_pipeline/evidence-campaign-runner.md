@@ -81,15 +81,30 @@ paid host's euro deadline.
 
 The runner now includes its registered `vcpus` allotment in each stage context.
 At a wall or euro cap it sends SIGTERM to the stage process group, waits two
-seconds, then sends SIGKILL to any remaining group members. Data Collection's
-producer draft #1114 must accept the explicit field and compare it with the
-environment allotment before its stage can run. The prospective assembler
-checks the producer's sealed export and TRAIN against the exact stage receipt,
-role, summary and plan pins. Its fixture route proves the comparison bridge
-through the existing #975 pipeline. Public comparison remains fail closed:
-#1114 has no registered model prediction, comparator calibration, per-candidate
-measured cost/proposal history, replay bindings, fold or adaptive-policy
-receipt. The assembler cannot make those from a reference value alone.
+seconds, then sends SIGKILL to any remaining group members. Data
+Collection's merged #1114 stage verifies the explicit `vcpus` against the
+environment allotment. The assembler checks the sealed reference and TRAIN
+receipts, their exact roles, byte pins, inventory and plan. It also accepts
+the producer's candidate view, physical cost ledger, model prediction receipt,
+plain bindings and comparator materials. For f02, each fine 0.02 s witness
+chunk and its manifest are pinned separately; the comparator's FIR still fits
+the coarse 0.5 s grid with at most 128 lags. Synthetic fixtures build and run
+the #975 comparison design for all three families.
+
+Public comparison remains fail closed pending #1056's independent adaptive
+calibration policy and a receipt proved to predate held-out execution. The
+per-Challenge `adaptive-policy.v1` registration has not yet merged. Data
+Collection will provide its path and the registering PR's merge-commit SHA on
+main; GitHub's server-side merge time is the independent chronology. Neither
+a self-declared timestamp nor the post-reference TRAIN receipt establishes it.
+The public assembler currently returns
+`PRE_EXPERIMENT_ADAPTIVE_POLICY_RECEIPT_REQUIRED` before emitting a bridge.
+Battery's
+physical-row CPU cost is not metered, so its one-core wall upper bound is
+labelled `ASSUMPTION` and cannot satisfy the public measured-cost gate. The
+Carbon receipt measures one batched inference, not per-decision query latency;
+the value context leaves item-3 speed unmeasured. No public value verdict or
+adaptive-competitor advantage is claimed by the fixture run.
 
 ## Server sheet for the owner's one-figure approval
 

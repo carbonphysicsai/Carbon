@@ -75,7 +75,72 @@ class Materials:
         return json.loads(self.body_json)
 
 
-def validate_materials(export, material):
+def _f02_witness_rows(export, material, witness_rows):
+    """Validate the exact peak witness independently of the coarse FIR grid."""
+    if type(witness_rows) is not list:
+        raise ValueError("f02 fine witness rows required")
+    physical = {(r["candidate"], r["condition"]): r for r in cb._physical_rows(export)}
+    sources = {
+        (r["candidate"], r["condition"]): r["reference_source_sha256"]
+        for r in material["rows"]
+    }
+    peak_names = [
+        r["quantity"]
+        for r in material["settings"]["reducers"]
+        if r["kind"] == "temperature_max"
+    ]
+    if len(peak_names) != 1:
+        raise ValueError("one registered f02 peak observer required")
+    peak_name = peak_names[0]
+    seen = set()
+    for row in witness_rows:
+        _shape(
+            row,
+            (
+                "candidate",
+                "condition",
+                "reference_source_sha256",
+                "window_start_s",
+                "dt_s",
+                "top_c",
+                "peak_top_c",
+            ),
+        )
+        key = (row["candidate"], row["condition"])
+        if (
+            key not in physical
+            or key in seen
+            or row["reference_source_sha256"] != sources.get(key)
+        ):
+            raise ValueError("f02 fine witness identity mismatch")
+        seen.add(key)
+        top = _numbers(row["top_c"], 1)
+        if (
+            len(top) < 2
+            or type(row["window_start_s"]) not in (int, float)
+            or not math.isfinite(row["window_start_s"])
+            or type(row["dt_s"]) not in (int, float)
+            or not math.isclose(row["dt_s"], 0.02, rel_tol=0, abs_tol=1e-12)
+            or type(row["peak_top_c"]) not in (int, float)
+            or not math.isfinite(row["peak_top_c"])
+            or not math.isclose(
+                float(np.max(top)), row["peak_top_c"], rel_tol=0, abs_tol=1e-9
+            )
+        ):
+            raise ValueError("f02 fine witness grid or peak invalid")
+        if not math.isclose(
+            row["peak_top_c"],
+            physical[key]["values"][peak_name],
+            rel_tol=0,
+            abs_tol=1e-9,
+        ):
+            raise ValueError("f02 fine witness does not reproduce registered peak")
+    if seen != set(physical):
+        raise ValueError("f02 fine witness inventory incomplete")
+    return peak_name, {(r["candidate"], r["condition"]): r for r in witness_rows}
+
+
+def validate_materials(export, material, *, witness_rows=None):
     producer_panels.adapt_export(export)
     if export["family"] not in FAMILIES:
         raise ValueError("ticket owns four portfolio comparator families only")
@@ -180,6 +245,11 @@ def validate_materials(export, material):
     witness_sources = {
         r.get("reference_source_sha256") for r in material["rows"] if type(r) is dict
     }
+    fine = (
+        _f02_witness_rows(export, material, witness_rows)
+        if export["family"] == "f02" and witness_rows is not None
+        else None
+    )
     for r in material["rows"]:
         _shape(
             r,
@@ -226,6 +296,9 @@ def validate_materials(export, material):
                 )
             )
             reduced = _reduce(export["family"], p, witness, reducers)
+            if fine is not None:
+                peak_name, peaks = fine
+                reduced[peak_name] = peaks[key]["peak_top_c"]
             if any(
                 not math.isclose(v, index[key]["values"][q], rel_tol=1e-9, abs_tol=1e-9)
                 for q, v in reduced.items()
