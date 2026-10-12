@@ -99,15 +99,32 @@ main; GitHub's server-side merge time is the independent chronology. Neither
 a self-declared timestamp nor the post-reference TRAIN receipt establishes it.
 The public assembler currently returns
 `PRE_EXPERIMENT_ADAPTIVE_POLICY_RECEIPT_REQUIRED` before emitting a bridge.
-Battery's
-physical-row CPU cost is not metered, so its one-core wall upper bound is
-labelled `ASSUMPTION` and cannot satisfy the public measured-cost gate. The
-current motor producer ledger also has null per-solve `core_s`; the assembler
-refuses it as `COST_LEDGER_CPU_MISSING` until CPU cost is independently metered
-or separately approved bound semantics are registered. The Carbon receipt
-measures one batched inference, not per-decision query latency;
-the value context leaves item-3 speed unmeasured. No public value verdict or
-adaptive-competitor advantage is claimed by the fixture run.
+OPT-10 records the three remaining measurement boundaries:
+
+1. Battery and motor reference stages meter **total stage CPU**, but their raw
+   solve records contain only per-solve wall time. The total cannot honestly be
+   allocated to physical candidate rows. Battery's one-core wall upper bound
+   remains `ASSUMPTION`; motor's null per-solve `core_s` still refuses public
+   replay as `COST_LEDGER_CPU_MISSING`. Data Collection must register a
+   per-solve CPU meter in those producer receipts, or the owner must approve
+   separately specified bound semantics before these can close.
+2. The Carbon arm now times a warm inference over **each complete registered
+   decision question** after a same-shape warm-up, in addition to its old
+   whole-export batch timing. The pinned model receipt names every question,
+   physical-row count, model-query count, and its measured wall/CPU time.
+   Assembly pairs each measured warm question with the serial sum of its
+   producer-recorded reference wall times, requiring identical question and
+   row inventories. It never divides one batched call by the question count.
+   This is development measurement machinery, not a real speed result. The
+   VALUE-BAR-V1 flagship CPU-hour allowance stays unavailable because this
+   route does not nominate a measured representative reference solve.
+3. Motor's registered panel remains the **holding question**. The full
+   holding-plus-peak-plus-skew question needs peak observables in the motor
+   model kit and cheap comparator, with matching Data Collection reference
+   evidence. No peak result is inferred from the holding panel.
+
+No public value verdict or adaptive-competitor advantage is claimed by the
+fixture run.
 
 ## Server sheet for the owner's one-figure approval
 
