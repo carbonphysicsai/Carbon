@@ -1,5 +1,8 @@
 # Graphite readiness gate: what a challenge must pass before any live Graphite run
 
+Automated assertions recorded for a development level follow the
+[level-scoped test contract](../challenge_pipeline/readiness/LEVEL_SCOPED_TESTS.md).
+
 **Owner:** Test Lead session. **Why:** the first wave on battery, cooling and
 motor was costly, and its lessons are in `LESSONS_REGISTER.md`. The owner set
 this goal on 2026-10-05: "This should be the messiest run we ever have." This

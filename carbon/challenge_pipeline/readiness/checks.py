@@ -17,6 +17,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import xml.etree.ElementTree as ET
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -79,7 +80,7 @@ def _is_file(ctx, relative):
 
 
 # -- running recorded tests ---------------------------------------------------------------------
-def run_tests(ctx, paths):
+def run_tests(ctx, paths, *, strict=False, summary_item=None):
     """Run pytest on `paths` (repository-relative). PASS only on a clean run;
     a missing file, collection error or interpreter failure is FAIL."""
     missing = [p for p in paths if not _is_file(ctx, p.split("::")[0])]
@@ -95,21 +96,89 @@ def run_tests(ctx, paths):
         "no:cacheprovider",
         *paths,
     ]
-    try:
-        done = subprocess.run(
-            command,
-            cwd=ctx.repository,
-            capture_output=True,
-            text=True,
-            timeout=TEST_TIMEOUT_SECONDS,
-            check=False,
-        )
-    except (OSError, subprocess.TimeoutExpired) as error:
-        return Result(
-            FAIL, f"tests could not run: {type(error).__name__}", tuple(paths)
-        )
+    with tempfile.TemporaryDirectory(prefix="readiness-tests-") as directory:
+        junit = Path(directory) / "results.xml"
+        if strict:
+            command += ["--junitxml", str(junit)]
+        if summary_item is not None:
+            command += ["--capture=tee-sys"]
+        try:
+            done = subprocess.run(
+                command,
+                cwd=ctx.repository,
+                capture_output=True,
+                text=True,
+                timeout=TEST_TIMEOUT_SECONDS,
+                check=False,
+            )
+        except (OSError, subprocess.TimeoutExpired) as error:
+            return Result(
+                FAIL, f"tests could not run: {type(error).__name__}", tuple(paths)
+            )
+        if strict and done.returncode == 0:
+            try:
+                cases = ET.parse(junit).getroot().findall(".//testcase")
+            except (OSError, ET.ParseError):
+                return Result(
+                    FAIL, "test execution report is absent or malformed", tuple(paths)
+                )
+            if not cases or any(
+                case.find(tag) is not None
+                for case in cases
+                for tag in ("skipped", "failure", "error")
+            ):
+                return Result(
+                    FAIL,
+                    "every recorded assertion must execute and pass (no skips)",
+                    tuple(paths),
+                )
+            for target in paths:
+                if "::" in target:
+                    name = target.split("::")[-1]
+                    if not any(
+                        case.get("name") == name
+                        or case.get("name", "").startswith(name + "[")
+                        for case in cases
+                    ):
+                        return Result(
+                            FAIL, "a recorded assertion was not executed", tuple(paths)
+                        )
     tail = (done.stdout or "").strip().splitlines()[-1:] or [""]
-    evidence = tuple(paths) + (tail[0],)
+    evidence = (
+        tuple(paths)
+        + tuple(
+            f"{p.split('::')[0]}:{file_digest(ctx.repository / p.split('::')[0])}"
+            for p in dict.fromkeys(paths)
+        )
+        + (tail[0],)
+    )
+    if done.returncode == 0 and summary_item is not None:
+        summaries = []
+        for line in (done.stdout or "").splitlines():
+            if not line.startswith("READINESS_LEVEL_EVIDENCE "):
+                continue
+            try:
+                row = json.loads(line.removeprefix("READINESS_LEVEL_EVIDENCE "))
+            except ValueError:
+                return Result(FAIL, "level evidence summary is malformed", evidence)
+            if (
+                type(row) is not dict
+                or row.get("item") != summary_item
+                or row.get("challenge") != ctx.challenge
+                or type(row.get("level")) is not int
+                or row.get("level") != ctx.level
+            ):
+                return Result(
+                    FAIL,
+                    "test summary names another item, challenge or level",
+                    evidence,
+                )
+            summaries.append(line)
+        if not summaries:
+            return Result(
+                FAIL, "no level-specific execution summary was emitted", evidence
+            )
+        evidence += tuple(summaries)
     if done.returncode == 0:
         return Result(PASS, "recorded tests passed", evidence)
     return Result(
@@ -122,12 +191,57 @@ def recorded_tests(item, ctx):
     in this tree, plus tests recorded for this challenge in challenges.json.
     Nothing to run is NOT_BUILT with the item's reason and owner."""
     pending = item.get("pending", {})
+    item_id = item.get("id", "P4")
+    scoped = ctx.data.get("tests_by_level", {})
+    if type(scoped) is not dict:
+        return Result(FAIL, "tests_by_level is not an object")
+    if item_id in scoped:
+        levels = scoped[item_id]
+        if type(levels) is not dict:
+            return Result(FAIL, "item's level-scoped tests are malformed")
+        if str(ctx.level) not in levels:
+            return Result(
+                NOT_BUILT, f"no {item_id} test is recorded for level {ctx.level}"
+            )
+        record = levels[str(ctx.level)]
+        if (
+            type(record) is not dict
+            or record.get("challenge") != ctx.challenge
+            or type(record.get("levels")) is not list
+            or not record["levels"]
+            or any(
+                type(level) is not int or not 0 <= level <= 5
+                for level in record["levels"]
+            )
+            or len(set(record["levels"])) != len(record["levels"])
+            or ctx.level not in record["levels"]
+            or not isinstance(record.get("basis"), str)
+            or not record["basis"].strip()
+            or type(record.get("tests")) is not list
+            or not record["tests"]
+            or any(
+                type(p) is not str
+                or not p.startswith("tests/")
+                or "\\" in p
+                or not p.split("::")[0].endswith(".py")
+                or ".." in Path(p.split("::")[0]).parts
+                for p in record["tests"]
+            )
+        ):
+            return Result(
+                FAIL, "test record is malformed or names another challenge/level"
+            )
+        return run_tests(
+            ctx,
+            list(dict.fromkeys(record["tests"])),
+            strict=True,
+            summary_item=item_id if item_id in {"P3", "R7", "A3"} else None,
+        )
     paths = [
         p.replace("{challenge}", ctx.challenge)
         for p in pending.get("neutral_tests", [])
-        if _is_file(ctx, p.split("::")[0])
     ]
-    paths += list(ctx.data.get("tests", {}).get(item.get("id", "P4"), []))
+    paths += list(ctx.data.get("tests", {}).get(item_id, []))
     if paths:
         return run_tests(ctx, list(dict.fromkeys(paths)))
     reason = pending.get("reason", "no check is wired")
@@ -901,6 +1015,8 @@ def attack_families(item, ctx):
         return Result(FAIL, f"attack adapters could not load: {type(error).__name__}")
     try:
         families = adapter.families()
+        if not families or len({f.name for f in families}) != len(families):
+            return Result(FAIL, "attack families are empty or duplicated")
         problems = []
         for split in core.SPLITS:
             have = {c.family for c in adapter.controls(split)}
@@ -911,12 +1027,44 @@ def attack_families(item, ctx):
         return Result(FAIL, f"adapter could not be read: {type(error).__name__}")
     if problems:
         return Result(FAIL, "families without both control splits", tuple(problems))
+    from carbon.agent_campaign.graphite import phase4
+    from carbon.agent_campaign.graphite.roles import ROLES, RoleName
+
+    class Snapshot:
+        # Take families once; the same public adapter still classifies every call.
+        def families(self):
+            return families
+
+        def __getattr__(self, name):
+            return getattr(adapter, name)
+
+    table = phase4.stop_rule_coverage(
+        Snapshot(), ROLES[RoleName.ATTACKER].tool_schemas(), schema=phase4.STOP_RULE_V3
+    )
+    names = {f.name for f in families}
+    reachable = {row["family"] for row in table["families"]}
+    unreachable = {row["family"] for row in table["unreachable"]}
+    if reachable & unreachable or reachable | unreachable != names:
+        return Result(FAIL, "reachability table silently dropped or invented a family")
+    evidence = tuple(f"family:{name}" for name in sorted(names))
+    covering = ctx.data.get("family_covering_tests", {}).get(str(ctx.level), {})
+    for row in table["unreachable"]:
+        target = covering.get(row["family"])
+        if not row.get("label") or not isinstance(target, str):
+            return Result(
+                FAIL, "an unreachable family has no named covering assertion", evidence
+            )
+        result = run_tests(ctx, [target], strict=True)
+        if result.status != PASS:
+            return result
+        evidence += result.evidence
+    assertions = recorded_tests(item, ctx)
+    if assertions.status != PASS:
+        return assertions
     return Result(
-        NOT_BUILT,
-        "every family has an attack example, a control and trained and held-out "
-        "controls; the Attacker's route to each family is not machine-checked "
-        "(lesson A2 OPEN); owner: Test Engineer",
-        tuple(f"family:{f.name}" for f in families),
+        PASS,
+        "every family has controls and an Attacker route or a passing covering assertion",
+        evidence + assertions.evidence,
     )
 
 
