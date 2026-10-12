@@ -1,0 +1,727 @@
+{
+ "aliases": [],
+ "alignment": {
+  "conditions": [
+   {
+    "basis": "Challenge score against Track B decision value at an equal search budget; band from seed replicates",
+    "condition": "SCORE_VALUE_DIVERGENCE",
+    "kind": "RECONSTRUCTED",
+    "member": "l1-D-913bf188-p-4fd7fb870d2b-s2687932037",
+    "schema": "carbon.admission-condition.v1",
+    "scored_at_or_above": [
+     "l1-D-913bf188-p-1585ecbf838a-s1327839545"
+    ],
+    "value": [
+     0,
+     0.017207758244822593
+    ],
+    "value_noise_band": null
+   },
+   {
+    "basis": "Challenge score against Track B decision value at an equal search budget; band from seed replicates",
+    "condition": "SCORE_VALUE_DIVERGENCE",
+    "kind": "RECONSTRUCTED",
+    "member": "l1-D-913bf188-p-50299fa270c6-s1880388380",
+    "schema": "carbon.admission-condition.v1",
+    "scored_at_or_above": [
+     "minerI-bsub-ed8a517f-s0"
+    ],
+    "value": [
+     0,
+     1.4470404359838174
+    ],
+    "value_noise_band": null
+   },
+   {
+    "basis": "Challenge score against Track B decision value at an equal search budget; band from seed replicates",
+    "condition": "SCORE_VALUE_DIVERGENCE",
+    "kind": "RECONSTRUCTED",
+    "member": "l1-D-913bf188-p-5a3b8fe3c06f-s525414255",
+    "schema": "carbon.admission-condition.v1",
+    "scored_at_or_above": [
+     "l1-D-913bf188-p-50299fa270c6-s1880388380",
+     "l1-D-913bf188-p-891e0fd1ebdb-s3188610978",
+     "l1-D-913bf188-p-c1c8903402bd-s2770094579",
+     "minerI-bsub-ed8a517f-s0",
+     "stage-a-D-913bf1889a6db2d1-s513121153",
+     "stage-a-D-d90a8ccfd603cf6a-s1480945710",
+     "stage-a-E-d90a8ccfd603cf6a-s2253865531"
+    ],
+    "value": [
+     0,
+     1.4528823893377865
+    ],
+    "value_noise_band": null
+   },
+   {
+    "basis": "Challenge score against Track B decision value at an equal search budget; band from seed replicates",
+    "condition": "SCORE_VALUE_DIVERGENCE",
+    "kind": "RECONSTRUCTED",
+    "member": "l1-D-913bf188-p-891e0fd1ebdb-s3188610978",
+    "schema": "carbon.admission-condition.v1",
+    "scored_at_or_above": [
+     "minerI-bsub-ed8a517f-s0",
+     "stage-a-D-913bf1889a6db2d1-s513121153"
+    ],
+    "value": [
+     0,
+     1.4298326777389947
+    ],
+    "value_noise_band": null
+   },
+   {
+    "basis": "Challenge score against Track B decision value at an equal search budget; band from seed replicates",
+    "condition": "SCORE_VALUE_DIVERGENCE",
+    "kind": "RECONSTRUCTED",
+    "member": "l1-D-913bf188-p-8e47250e297c-s2120047928",
+    "schema": "carbon.admission-condition.v1",
+    "scored_at_or_above": [
+     "l1-D-913bf188-p-69268f1b74ec-s2959432269",
+     "l1-D-913bf188-p-891e0fd1ebdb-s3188610978",
+     "l1-D-913bf188-p-c1c8903402bd-s2770094579",
+     "minerI-bsub-ed8a517f-s0",
+     "stage-a-D-913bf1889a6db2d1-s513121153",
+     "stage-a-D-d90a8ccfd603cf6a-s1480945710"
+    ],
+    "value": [
+     0,
+     1.4470404359838174
+    ],
+    "value_noise_band": null
+   },
+   {
+    "basis": "Challenge score against Track B decision value at an equal search budget; band from seed replicates",
+    "condition": "SCORE_VALUE_DIVERGENCE",
+    "kind": "RECONSTRUCTED",
+    "member": "l1-D-913bf188-p-c1c8903402bd-s2770094579",
+    "schema": "carbon.admission-condition.v1",
+    "scored_at_or_above": [
+     "minerI-bsub-ed8a517f-s0",
+     "stage-a-D-913bf1889a6db2d1-s513121153"
+    ],
+    "value": [
+     0,
+     1.4370467623896084
+    ],
+    "value_noise_band": null
+   },
+   {
+    "basis": "Challenge score against Track B decision value at an equal search budget; band from seed replicates",
+    "condition": "SCORE_VALUE_DIVERGENCE",
+    "kind": "RECONSTRUCTED",
+    "member": "l1-D-913bf188-p-c41a9a1ebb82-s3433577451",
+    "schema": "carbon.admission-condition.v1",
+    "scored_at_or_above": [
+     "l1-D-913bf188-p-1585ecbf838a-s1327839545"
+    ],
+    "value": [
+     0,
+     0.01846900741238858
+    ],
+    "value_noise_band": null
+   },
+   {
+    "basis": "Challenge score against Track B decision value at an equal search budget; band from seed replicates",
+    "condition": "SCORE_VALUE_DIVERGENCE",
+    "kind": "RECONSTRUCTED",
+    "member": "minerH-bsub-8df17aba-s0",
+    "schema": "carbon.admission-condition.v1",
+    "scored_at_or_above": [
+     "minerI-bsub-e8efce9a-s0",
+     "minerI-bsub-ed8a517f-s0"
+    ],
+    "value": [
+     0,
+     2.976437970301211
+    ],
+    "value_noise_band": null
+   },
+   {
+    "basis": "Challenge score against Track B decision value at an equal search budget; band from seed replicates",
+    "condition": "SCORE_VALUE_DIVERGENCE",
+    "kind": "RECONSTRUCTED",
+    "member": "minerH-bsub-9a658866-s0",
+    "schema": "carbon.admission-condition.v1",
+    "scored_at_or_above": [
+     "minerI-bsub-e8efce9a-s0",
+     "minerI-bsub-ed8a517f-s0"
+    ],
+    "value": [
+     0,
+     2.976437970301211
+    ],
+    "value_noise_band": null
+   },
+   {
+    "basis": "Challenge score against Track B decision value at an equal search budget; band from seed replicates",
+    "condition": "SCORE_VALUE_DIVERGENCE",
+    "kind": "RECONSTRUCTED",
+    "member": "minerH-bsub-b1d1f99f-s0",
+    "schema": "carbon.admission-condition.v1",
+    "scored_at_or_above": [
+     "minerI-bsub-e8efce9a-s0",
+     "minerI-bsub-ed8a517f-s0"
+    ],
+    "value": [
+     0,
+     2.976437970301211
+    ],
+    "value_noise_band": null
+   },
+   {
+    "basis": "Challenge score against Track B decision value at an equal search budget; band from seed replicates",
+    "condition": "SCORE_VALUE_DIVERGENCE",
+    "kind": "RECONSTRUCTED",
+    "member": "minerI-bsub-925d55a1-s0",
+    "schema": "carbon.admission-condition.v1",
+    "scored_at_or_above": [
+     "minerI-bsub-e8efce9a-s0",
+     "minerI-bsub-ed8a517f-s0"
+    ],
+    "value": [
+     0,
+     3.144118392024709
+    ],
+    "value_noise_band": null
+   },
+   {
+    "basis": "Challenge score against Track B decision value at an equal search budget; band from seed replicates",
+    "condition": "SCORE_VALUE_DIVERGENCE",
+    "kind": "RECONSTRUCTED",
+    "member": "minerI-bsub-e8efce9a-s0",
+    "schema": "carbon.admission-condition.v1",
+    "scored_at_or_above": [
+     "minerI-bsub-ed8a517f-s0"
+    ],
+    "value": [
+     0,
+     1.9479151225529858
+    ],
+    "value_noise_band": null
+   },
+   {
+    "basis": "Challenge score against Track B decision value at an equal search budget; band from seed replicates",
+    "condition": "SCORE_VALUE_DIVERGENCE",
+    "kind": "RECONSTRUCTED",
+    "member": "stage-a-D-18fc7b1c1eeea8aa-s951580812",
+    "schema": "carbon.admission-condition.v1",
+    "scored_at_or_above": [
+     "l1-D-913bf188-p-1585ecbf838a-s1327839545",
+     "l1-D-913bf188-p-4fd7fb870d2b-s2687932037",
+     "l1-D-913bf188-p-69268f1b74ec-s2959432269",
+     "l1-D-913bf188-p-c41a9a1ebb82-s3433577451"
+    ],
+    "value": [
+     0,
+     0.02304971159879193
+    ],
+    "value_noise_band": null
+   },
+   {
+    "basis": "Challenge score against Track B decision value at an equal search budget; band from seed replicates",
+    "condition": "SCORE_VALUE_DIVERGENCE",
+    "kind": "RECONSTRUCTED",
+    "member": "stage-a-D-d90a8ccfd603cf6a-s1480945710",
+    "schema": "carbon.admission-condition.v1",
+    "scored_at_or_above": [
+     "minerI-bsub-ed8a517f-s0",
+     "stage-a-D-913bf1889a6db2d1-s513121153"
+    ],
+    "value": [
+     0,
+     1.4370467623896084
+    ],
+    "value_noise_band": null
+   },
+   {
+    "basis": "Challenge score against Track B decision value at an equal search budget; band from seed replicates",
+    "condition": "SCORE_VALUE_DIVERGENCE",
+    "kind": "RECONSTRUCTED",
+    "member": "stage-a-E-913bf1889a6db2d1-s2602521316",
+    "schema": "carbon.admission-condition.v1",
+    "scored_at_or_above": [
+     "l1-D-913bf188-p-50299fa270c6-s1880388380",
+     "l1-D-913bf188-p-891e0fd1ebdb-s3188610978",
+     "l1-D-913bf188-p-c1c8903402bd-s2770094579",
+     "minerI-bsub-ed8a517f-s0",
+     "stage-a-D-913bf1889a6db2d1-s513121153",
+     "stage-a-D-d90a8ccfd603cf6a-s1480945710",
+     "stage-a-E-d90a8ccfd603cf6a-s2253865531"
+    ],
+    "value": [
+     0,
+     1.4528823893377865
+    ],
+    "value_noise_band": null
+   },
+   {
+    "basis": "Challenge score against Track B decision value at an equal search budget; band from seed replicates",
+    "condition": "SCORE_VALUE_DIVERGENCE",
+    "kind": "RECONSTRUCTED",
+    "member": "stage-a-E-d90a8ccfd603cf6a-s2253865531",
+    "schema": "carbon.admission-condition.v1",
+    "scored_at_or_above": [
+     "l1-D-913bf188-p-50299fa270c6-s1880388380",
+     "l1-D-913bf188-p-891e0fd1ebdb-s3188610978",
+     "l1-D-913bf188-p-c1c8903402bd-s2770094579",
+     "minerI-bsub-ed8a517f-s0",
+     "stage-a-D-913bf1889a6db2d1-s513121153",
+     "stage-a-D-d90a8ccfd603cf6a-s1480945710"
+    ],
+    "value": [
+     0,
+     1.4516211401702204
+    ],
+    "value_noise_band": null
+   }
+  ],
+  "excluded_unresolved_or_ineligible": [],
+  "kendall_tau_b": 0.46657010381870195,
+  "members_ranked": [
+   "l1-D-913bf188-p-1585ecbf838a-s1327839545",
+   "l1-D-913bf188-p-4fd7fb870d2b-s2687932037",
+   "l1-D-913bf188-p-50299fa270c6-s1880388380",
+   "l1-D-913bf188-p-5a3b8fe3c06f-s525414255",
+   "l1-D-913bf188-p-69268f1b74ec-s2959432269",
+   "l1-D-913bf188-p-891e0fd1ebdb-s3188610978",
+   "l1-D-913bf188-p-8e47250e297c-s2120047928",
+   "l1-D-913bf188-p-c1c8903402bd-s2770094579",
+   "l1-D-913bf188-p-c41a9a1ebb82-s3433577451",
+   "minerH-bsub-8df17aba-s0",
+   "minerH-bsub-9a658866-s0",
+   "minerH-bsub-b1d1f99f-s0",
+   "minerI-bsub-925d55a1-s0",
+   "minerI-bsub-e8efce9a-s0",
+   "minerI-bsub-ed8a517f-s0",
+   "stage-a-D-18fc7b1c1eeea8aa-s951580812",
+   "stage-a-D-913bf1889a6db2d1-s513121153",
+   "stage-a-D-d90a8ccfd603cf6a-s1480945710",
+   "stage-a-E-913bf1889a6db2d1-s2602521316",
+   "stage-a-E-d90a8ccfd603cf6a-s2253865531"
+  ],
+  "schema": "carbon.design-search.score-value-alignment.v1",
+  "spearman_rho": 0.659128187518624,
+  "tau_noise_band": {
+   "band": 0.0,
+   "panels": 1,
+   "tau_max": 0.46657010381870195,
+   "tau_min": 0.46657010381870195
+  },
+  "top_k": {
+   "by_score": [
+    "stage-a-D-18fc7b1c1eeea8aa-s951580812"
+   ],
+   "by_value": [
+    "l1-D-913bf188-p-1585ecbf838a-s1327839545"
+   ],
+   "k": 1,
+   "overlap": 0
+  },
+  "value_noise_band": null
+ },
+ "basis_split": {
+  "basis_evidence": {
+   "file": "q1_basis.L1.json",
+   "sha256": "sha256:1146692378e5207de41809cbb42850caae032ea2e39b74bd4ee4b43e579a9b1a"
+  },
+  "excluded": [],
+  "label": "PRIMARY: members on one named score basis. The source report mixes bases and is the SECONDARY, not gate evidence",
+  "primary_basis": "graphite frozen-rule pod score",
+  "rescore": {
+   "file": "q1_rescore.L1.json",
+   "sha256": "sha256:d539f93f98b5da6ac8631247a3f98ccf2e60fc06d638ff1124115c409fd5c3d3"
+  },
+  "rescored": [
+   {
+    "member": "minerH-bsub-8df17aba-s0",
+    "score": -0.17278820736218464
+   },
+   {
+    "member": "minerH-bsub-9a658866-s0",
+    "score": -0.17211265944009782
+   },
+   {
+    "member": "minerH-bsub-b1d1f99f-s0",
+    "score": -0.17626759231725128
+   },
+   {
+    "member": "minerI-bsub-925d55a1-s0",
+    "score": -0.44278854970408593
+   },
+   {
+    "member": "minerI-bsub-e8efce9a-s0",
+    "score": -0.4748589522488142
+   },
+   {
+    "member": "minerI-bsub-ed8a517f-s0",
+    "score": -0.5354465636141551
+   }
+  ],
+  "secondary": {
+   "divergences": 16,
+   "kendall_tau_b": 0.46657010381870195,
+   "label": "MIXED-BASIS SECONDARY: not gate evidence",
+   "members": 20,
+   "spearman_rho": 0.659128187518624,
+   "top_k_overlap": 0
+  },
+  "source": {
+   "file": "q1_report.L1.mixed-basis.json",
+   "sha256": "sha256:5b3ba57430ba2a0087626b249ab9afbd576edebed2706187654d5786103dacf7"
+  }
+ },
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "decision_study": "carbon/battery/value/contracts/ev4-dev-proof-l1-v1.json; common resolved EV4 development scenarios 7/12; reference sha256:ff10f9aea9097cd500d646ffe02f479d04401207b30a44aeee33566433e436cb; experiment sha256:d12d31a3e9cae78d46a26b4745197c141f5c01f73463f40944c06e35b8b467e3",
+ "level": 1,
+ "member_kinds": {
+  "RECONSTRUCTED": 20
+ },
+ "members": {
+  "l1-D-913bf188-p-1585ecbf838a-s1327839545": {
+   "basis": "graphite frozen-rule pod score",
+   "decision_outcome": {
+    "D-T14-S0.33": "c1=1,c2=0.6",
+    "D-T24-S0.12": "c1=1.75,c2=1",
+    "D-T24-S0.33": "c1=1.25,c2=1",
+    "D-T34-S0.12": "c1=1,c2=1",
+    "D-T34-S0.33": "c1=1.5,c2=1",
+    "D-T34-S0.48": "c1=1.5,c2=1",
+    "D-T5-S0.12": "ABSTAIN"
+   },
+   "eligible": true,
+   "kind": "RECONSTRUCTED",
+   "recipe": "sha256:d78e31c62dfc5b2d599764cfac96f034f9d20052e3469a22ce428a588411eaec",
+   "score": -0.05163784149265063,
+   "value": 0.008475333818179684
+  },
+  "l1-D-913bf188-p-4fd7fb870d2b-s2687932037": {
+   "basis": "graphite frozen-rule pod score",
+   "decision_outcome": {
+    "D-T14-S0.33": "c1=1,c2=0.6",
+    "D-T24-S0.12": "c1=1.75,c2=1",
+    "D-T24-S0.33": "c1=1.25,c2=1",
+    "D-T34-S0.12": "c1=1,c2=1",
+    "D-T34-S0.33": "c1=1.75,c2=1",
+    "D-T34-S0.48": "c1=1.75,c2=1",
+    "D-T5-S0.12": "ABSTAIN"
+   },
+   "eligible": true,
+   "kind": "RECONSTRUCTED",
+   "recipe": "sha256:4fdc487acecc5575699e9823c579663944a9559dae52bb3caa174788f484b0dc",
+   "score": -0.051299155126023205,
+   "value": 0.017207758244822593
+  },
+  "l1-D-913bf188-p-50299fa270c6-s1880388380": {
+   "basis": "graphite frozen-rule pod score",
+   "decision_outcome": {
+    "D-T14-S0.33": "c1=1,c2=0.6",
+    "D-T24-S0.12": "c1=2,c2=1",
+    "D-T24-S0.33": "c1=1.25,c2=1",
+    "D-T34-S0.12": "c1=1,c2=1",
+    "D-T34-S0.33": "c1=1.5,c2=1",
+    "D-T34-S0.48": "c1=1.75,c2=1",
+    "D-T5-S0.12": "ABSTAIN"
+   },
+   "eligible": true,
+   "kind": "RECONSTRUCTED",
+   "recipe": "sha256:4f0b680406328e18d31ec60490e31b0f17aa6e502b076acbc0a9ff188059b592",
+   "score": -0.06824508538142246,
+   "value": 1.4470404359838174
+  },
+  "l1-D-913bf188-p-5a3b8fe3c06f-s525414255": {
+   "basis": "graphite frozen-rule pod score",
+   "decision_outcome": {
+    "D-T14-S0.33": "c1=1,c2=0.6",
+    "D-T24-S0.12": "c1=2,c2=1",
+    "D-T24-S0.33": "c1=1.25,c2=1",
+    "D-T34-S0.12": "c1=1,c2=1",
+    "D-T34-S0.33": "c1=1.5,c2=1",
+    "D-T34-S0.48": "c1=2,c2=1",
+    "D-T5-S0.12": "ABSTAIN"
+   },
+   "eligible": true,
+   "kind": "RECONSTRUCTED",
+   "recipe": "sha256:167a9c72549abd6d022a8db0524b5d8bd7b90f03e181b8be0622760c20e0266b",
+   "score": -0.05432558158135933,
+   "value": 1.4528823893377865
+  },
+  "l1-D-913bf188-p-69268f1b74ec-s2959432269": {
+   "basis": "graphite frozen-rule pod score",
+   "decision_outcome": {
+    "D-T14-S0.33": "c1=1,c2=0.6",
+    "D-T24-S0.12": "c1=1.75,c2=1",
+    "D-T24-S0.33": "c1=1.25,c2=1",
+    "D-T34-S0.12": "c1=1,c2=1",
+    "D-T34-S0.33": "c1=1.5,c2=1",
+    "D-T34-S0.48": "c1=1.75,c2=1",
+    "D-T5-S0.12": "ABSTAIN"
+   },
+   "eligible": true,
+   "kind": "RECONSTRUCTED",
+   "recipe": "sha256:c6f9378c9f6eaca75c3ef3fa42c04d0183a85fc0393bf8878606a5ec2483c401",
+   "score": -0.05286282914457087,
+   "value": 0.01846900741238858
+  },
+  "l1-D-913bf188-p-891e0fd1ebdb-s3188610978": {
+   "basis": "graphite frozen-rule pod score",
+   "decision_outcome": {
+    "D-T14-S0.33": "c1=1,c2=0.6",
+    "D-T24-S0.12": "c1=2,c2=1",
+    "D-T24-S0.33": "c1=1.25,c2=1",
+    "D-T34-S0.12": "c1=1,c2=1",
+    "D-T34-S0.33": "c1=1.5,c2=1",
+    "D-T34-S0.48": "c1=1.25,c2=1",
+    "D-T5-S0.12": "ABSTAIN"
+   },
+   "eligible": true,
+   "kind": "RECONSTRUCTED",
+   "recipe": "sha256:6c94b53fd638690ecdc116cbee12f22c2aa48d83381d4aa1896958b2ce95ce83",
+   "score": -0.058212162073824576,
+   "value": 1.4298326777389947
+  },
+  "l1-D-913bf188-p-8e47250e297c-s2120047928": {
+   "basis": "graphite frozen-rule pod score",
+   "decision_outcome": {
+    "D-T14-S0.33": "c1=1,c2=0.6",
+    "D-T24-S0.12": "c1=2,c2=1",
+    "D-T24-S0.33": "c1=1.25,c2=1",
+    "D-T34-S0.12": "c1=1,c2=1",
+    "D-T34-S0.33": "c1=1.5,c2=1",
+    "D-T34-S0.48": "c1=1.75,c2=1",
+    "D-T5-S0.12": "ABSTAIN"
+   },
+   "eligible": true,
+   "kind": "RECONSTRUCTED",
+   "recipe": "sha256:6eb13a234b54e1dee36b0e6fb81e174244ffff19bd811fdce220256685db2c30",
+   "score": -0.05174190732454328,
+   "value": 1.4470404359838174
+  },
+  "l1-D-913bf188-p-c1c8903402bd-s2770094579": {
+   "basis": "graphite frozen-rule pod score",
+   "decision_outcome": {
+    "D-T14-S0.33": "c1=1,c2=0.6",
+    "D-T24-S0.12": "c1=2,c2=1",
+    "D-T24-S0.33": "c1=1.25,c2=1",
+    "D-T34-S0.12": "c1=1,c2=1",
+    "D-T34-S0.33": "c1=1.5,c2=1",
+    "D-T34-S0.48": "c1=1.5,c2=1",
+    "D-T5-S0.12": "ABSTAIN"
+   },
+   "eligible": true,
+   "kind": "RECONSTRUCTED",
+   "recipe": "sha256:969e7308d792084b179454481fb04436f01065a60a8567efcb5c044c639c80d2",
+   "score": -0.058830906701510546,
+   "value": 1.4370467623896084
+  },
+  "l1-D-913bf188-p-c41a9a1ebb82-s3433577451": {
+   "basis": "graphite frozen-rule pod score",
+   "decision_outcome": {
+    "D-T14-S0.33": "c1=1,c2=0.6",
+    "D-T24-S0.12": "c1=1.75,c2=1",
+    "D-T24-S0.33": "c1=1.25,c2=1",
+    "D-T34-S0.12": "c1=1,c2=1",
+    "D-T34-S0.33": "c1=1.5,c2=1",
+    "D-T34-S0.48": "c1=1.75,c2=1",
+    "D-T5-S0.12": "ABSTAIN"
+   },
+   "eligible": true,
+   "kind": "RECONSTRUCTED",
+   "recipe": "sha256:e2d6d1042e61cef9028fdfafd5952d9ca66a325bb5b7fcff626e692ce4d7033b",
+   "score": -0.051466752812457786,
+   "value": 0.01846900741238858
+  },
+  "minerH-bsub-8df17aba-s0": {
+   "basis": "graphite frozen-rule pod score",
+   "decision_outcome": {
+    "D-T14-S0.33": "c1=0.75,c2=0.6",
+    "D-T24-S0.12": "c1=2,c2=1",
+    "D-T24-S0.33": "c1=1.25,c2=1",
+    "D-T34-S0.12": "c1=1.25,c2=0.8",
+    "D-T34-S0.33": "c1=1.75,c2=1",
+    "D-T34-S0.48": "c1=1.75,c2=1",
+    "D-T5-S0.12": "ABSTAIN"
+   },
+   "eligible": true,
+   "kind": "RECONSTRUCTED",
+   "recipe": "sha256:c96ecedc89bdb680fa5da2e7483a883f95162e98de046d990b6c8ace571e7b57",
+   "score": -0.17278820736218464,
+   "value": 2.976437970301211
+  },
+  "minerH-bsub-9a658866-s0": {
+   "basis": "graphite frozen-rule pod score",
+   "decision_outcome": {
+    "D-T14-S0.33": "c1=0.75,c2=0.6",
+    "D-T24-S0.12": "c1=2,c2=1",
+    "D-T24-S0.33": "c1=1.25,c2=1",
+    "D-T34-S0.12": "c1=1.25,c2=0.8",
+    "D-T34-S0.33": "c1=1.75,c2=1",
+    "D-T34-S0.48": "c1=1.75,c2=1",
+    "D-T5-S0.12": "ABSTAIN"
+   },
+   "eligible": true,
+   "kind": "RECONSTRUCTED",
+   "recipe": "sha256:7652d70f6e3960bd860011b5510fba1c701bb1d239906fbef7faf33b6026b52f",
+   "score": -0.17211265944009782,
+   "value": 2.976437970301211
+  },
+  "minerH-bsub-b1d1f99f-s0": {
+   "basis": "graphite frozen-rule pod score",
+   "decision_outcome": {
+    "D-T14-S0.33": "c1=0.75,c2=0.6",
+    "D-T24-S0.12": "c1=1.75,c2=1",
+    "D-T24-S0.33": "c1=1.5,c2=0.8",
+    "D-T34-S0.12": "c1=1.25,c2=0.8",
+    "D-T34-S0.33": "c1=1.75,c2=1",
+    "D-T34-S0.48": "c1=1.75,c2=1",
+    "D-T5-S0.12": "ABSTAIN"
+   },
+   "eligible": true,
+   "kind": "RECONSTRUCTED",
+   "recipe": "sha256:c013c79b5c63b0aa2615d453ba88e27b588fd59e1c59566a90356cd2ad401da2",
+   "score": -0.17626759231725128,
+   "value": 2.976437970301211
+  },
+  "minerI-bsub-925d55a1-s0": {
+   "basis": "graphite frozen-rule pod score",
+   "decision_outcome": {
+    "D-T14-S0.33": "c1=0.75,c2=1",
+    "D-T24-S0.12": "ABSTAIN",
+    "D-T24-S0.33": "c1=1.5,c2=1",
+    "D-T34-S0.12": "ABSTAIN",
+    "D-T34-S0.33": "c1=1.5,c2=1",
+    "D-T34-S0.48": "c1=1.25,c2=1",
+    "D-T5-S0.12": "ABSTAIN"
+   },
+   "eligible": true,
+   "kind": "RECONSTRUCTED",
+   "recipe": "sha256:fdd06e391cb1c956374cb26e06af9a9513550f1d6072b4243cbf624a90cf8e36",
+   "score": -0.44278854970408593,
+   "value": 3.144118392024709
+  },
+  "minerI-bsub-e8efce9a-s0": {
+   "basis": "graphite frozen-rule pod score",
+   "decision_outcome": {
+    "D-T14-S0.33": "c1=0.75,c2=1",
+    "D-T24-S0.12": "ABSTAIN",
+    "D-T24-S0.33": "c1=1.25,c2=1",
+    "D-T34-S0.12": "ABSTAIN",
+    "D-T34-S0.33": "c1=1.5,c2=1",
+    "D-T34-S0.48": "c1=0.75,c2=1",
+    "D-T5-S0.12": "ABSTAIN"
+   },
+   "eligible": true,
+   "kind": "RECONSTRUCTED",
+   "recipe": "sha256:036f6737d5f3ff527610f094c850bf00ca31e0dd4d62dbb41c8bc924fbb14d1f",
+   "score": -0.4748589522488142,
+   "value": 1.9479151225529858
+  },
+  "minerI-bsub-ed8a517f-s0": {
+   "basis": "graphite frozen-rule pod score",
+   "decision_outcome": {
+    "D-T14-S0.33": "ABSTAIN",
+    "D-T24-S0.12": "ABSTAIN",
+    "D-T24-S0.33": "c1=1.25,c2=1",
+    "D-T34-S0.12": "ABSTAIN",
+    "D-T34-S0.33": "ABSTAIN",
+    "D-T34-S0.48": "ABSTAIN",
+    "D-T5-S0.12": "ABSTAIN"
+   },
+   "eligible": true,
+   "kind": "RECONSTRUCTED",
+   "recipe": "sha256:36a7731e1268eb516de9a40d817ee8de9df0f6eb679add2106103bdb1738e13d",
+   "score": -0.5354465636141551,
+   "value": 0.7142857142857143
+  },
+  "stage-a-D-18fc7b1c1eeea8aa-s951580812": {
+   "basis": "graphite frozen-rule pod score",
+   "decision_outcome": {
+    "D-T14-S0.33": "c1=1,c2=0.6",
+    "D-T24-S0.12": "c1=1.75,c2=1",
+    "D-T24-S0.33": "c1=1.25,c2=1",
+    "D-T34-S0.12": "c1=1,c2=1",
+    "D-T34-S0.33": "c1=1.75,c2=1",
+    "D-T34-S0.48": "c1=2,c2=1",
+    "D-T5-S0.12": "ABSTAIN"
+   },
+   "eligible": true,
+   "kind": "RECONSTRUCTED",
+   "recipe": "sha256:896bf6dee89ba87df71c3cce26e231cc6a26f7d4907da3c21b7076009939e7bf",
+   "score": -0.04530068030484403,
+   "value": 0.02304971159879193
+  },
+  "stage-a-D-913bf1889a6db2d1-s513121153": {
+   "basis": "graphite frozen-rule pod score",
+   "decision_outcome": {
+    "D-T14-S0.33": "c1=1,c2=0.6",
+    "D-T24-S0.12": "c1=1.75,c2=1",
+    "D-T24-S0.33": "c1=1.25,c2=1",
+    "D-T34-S0.12": "c1=1,c2=1",
+    "D-T34-S0.33": "c1=1.5,c2=1",
+    "D-T34-S0.48": "c1=2,c2=1",
+    "D-T5-S0.12": "ABSTAIN"
+   },
+   "eligible": true,
+   "kind": "RECONSTRUCTED",
+   "recipe": "sha256:c30939a7011e0918994940fe661a49429b1ccaa3b4b851b26db65457a82590f6",
+   "score": -0.06657883956115879,
+   "value": 0.024310960766357918
+  },
+  "stage-a-D-d90a8ccfd603cf6a-s1480945710": {
+   "basis": "graphite frozen-rule pod score",
+   "decision_outcome": {
+    "D-T14-S0.33": "c1=1,c2=0.6",
+    "D-T24-S0.12": "c1=2,c2=1",
+    "D-T24-S0.33": "c1=1.25,c2=1",
+    "D-T34-S0.12": "c1=1,c2=1",
+    "D-T34-S0.33": "c1=1.5,c2=1",
+    "D-T34-S0.48": "c1=1.5,c2=1",
+    "D-T5-S0.12": "ABSTAIN"
+   },
+   "eligible": true,
+   "kind": "RECONSTRUCTED",
+   "recipe": "sha256:ff450ae2c82066ae19f1001b72a9357484d280acf3947027bec16e361ca64abb",
+   "score": -0.06063661635496517,
+   "value": 1.4370467623896084
+  },
+  "stage-a-E-913bf1889a6db2d1-s2602521316": {
+   "basis": "graphite frozen-rule pod score",
+   "decision_outcome": {
+    "D-T14-S0.33": "c1=1,c2=0.6",
+    "D-T24-S0.12": "c1=2,c2=1",
+    "D-T24-S0.33": "c1=1.25,c2=1",
+    "D-T34-S0.12": "c1=1,c2=1",
+    "D-T34-S0.33": "c1=1.5,c2=1",
+    "D-T34-S0.48": "c1=2,c2=1",
+    "D-T5-S0.12": "ABSTAIN"
+   },
+   "eligible": true,
+   "kind": "RECONSTRUCTED",
+   "recipe": "sha256:e96805136ba7b5286a4c84494fe039c1ed8aefc6d0ae5096485c02bd235d235d",
+   "score": -0.05471546460789854,
+   "value": 1.4528823893377865
+  },
+  "stage-a-E-d90a8ccfd603cf6a-s2253865531": {
+   "basis": "graphite frozen-rule pod score",
+   "decision_outcome": {
+    "D-T14-S0.33": "c1=1,c2=0.6",
+    "D-T24-S0.12": "c1=1.75,c2=1",
+    "D-T24-S0.33": "c1=1.25,c2=1",
+    "D-T34-S0.12": "c1=1,c2=1",
+    "D-T34-S0.33": "c1=1.75,c2=1",
+    "D-T34-S0.48": "c1=2,c2=1",
+    "D-T5-S0.12": "c1=0.5,c2=0.2"
+   },
+   "eligible": true,
+   "kind": "RECONSTRUCTED",
+   "recipe": "sha256:1ecf858c86e5fcf2bc686e53348bf00b82a847c98584751f0aee68be51c4c4e6",
+   "score": -0.05638796758434937,
+   "value": 1.4516211401702204
+  }
+ },
+ "reference": {
+  "provenance": "EV4_REFERENCE",
+  "ref": "docs/development/evidence/ev4-2026-10-01/decision-references.jsonl.gz"
+ },
+ "schema": "carbon.challenge-pipeline.readiness-q1-report.v1",
+ "scoring_rule_digest": "sha256:d3c9fb0fbf83b2abed2128d49ab52e1338b7d5bc693cd1fb89977171f7c7b61f"
+}

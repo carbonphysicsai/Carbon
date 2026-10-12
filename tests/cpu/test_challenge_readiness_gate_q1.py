@@ -588,3 +588,114 @@ def test_the_committed_level_one_split_follows_from_its_committed_files():
     assert q1.file_sha256(source) == COMMITTED_L1_SOURCE_SHA
     assert block["source"]["sha256"] == COMMITTED_L1_SOURCE_SHA
     assert q1._alignment_of(report["members"]) == report["alignment"]
+
+
+# -- rescoring non-primary members under the primary rule -----------------------------------------
+@pytest.fixture
+def rescored(split):
+    directory, _, write, _ = split
+    rows = [{"member": name, "output_digest_matches": True} for name in ("m3", "m4")]
+    # the fixture's source scores are 1.0 - 0.1 * i (higher is better): rescore rows carry the positive error
+    source = json.loads((directory / "q1_report.L1.mixed-basis.json").read_text())
+    for row in rows:
+        row["recorded_score"] = -source["members"][row["member"]]["score"]
+        row["recomputed_score"] = row["recorded_score"] + 1e-7
+    path = directory / "q1_rescore.L1.json"
+    path.write_text(json.dumps({"rows": rows}), encoding="utf-8")
+
+    def derive(**changes):
+        edited = json.loads(path.read_text())
+        for key, value in changes.items():
+            for row in edited["rows"]:
+                row[key] = value
+        path.write_text(json.dumps(edited), encoding="utf-8")
+        report = q1.build_primary_report(
+            directory / "q1_report.L1.mixed-basis.json",
+            directory / "q1_basis.L1.json",
+            PRIMARY,
+            rescore_path=path,
+        )
+        write(report)
+        return report
+
+    return directory, path, write, derive
+
+
+def test_rescored_members_join_the_primary_with_their_recomputed_score(rescored):
+    directory, path, _, derive = rescored
+    report = derive()
+    assert sorted(report["members"]) == ["m0", "m1", "m2", "m3", "m4"]
+    assert report["basis_split"]["excluded"] == []
+    assert report["members"]["m3"]["score"] == -(
+        json.loads(path.read_text())["rows"][0]["recomputed_score"]
+    )
+    assert q1.split_problem(report, directory) is None
+    assert q1.v1_alignment_report({}, _ctx(1)).status == model.PASS
+    assert q1.v2_panel_discrimination({}, _ctx(1)).status == model.PASS
+
+
+def test_a_rescore_whose_output_digest_was_not_verified_leaves_the_member_excluded(
+    rescored,
+):
+    _, _, _, derive = rescored
+    report = derive(output_digest_matches=False)
+    assert sorted(report["members"]) == ["m0", "m1", "m2"]
+    assert "rescored" not in report["basis_split"]
+
+
+def test_a_recomputed_score_that_does_not_round_to_the_recorded_one_is_not_accepted(
+    rescored,
+):
+    _, _, _, derive = rescored
+    report = derive(recomputed_score=9.9)
+    assert sorted(report["members"]) == ["m0", "m1", "m2"]
+
+
+@pytest.mark.parametrize(
+    "tamper", ["score_edited", "rescore_digest", "rescore_row_dropped", "basis_member"]
+)
+def test_a_rescore_that_does_not_follow_from_its_committed_record_fails_closed(
+    rescored, tamper
+):
+    _, path, write, derive = rescored
+    report = derive()
+    block = report["basis_split"]
+    if tamper == "score_edited":
+        report["members"]["m3"]["score"] = 0.123
+        block["rescored"][0]["score"] = 0.123
+    elif tamper == "rescore_digest":
+        block["rescore"]["sha256"] = "sha256:" + "0" * 64
+    elif tamper == "rescore_row_dropped":
+        document = json.loads(path.read_text())
+        document["rows"] = document["rows"][1:]
+        path.write_text(json.dumps(document))
+        block["rescore"]["sha256"] = q1.file_sha256(path)
+    elif tamper == "basis_member":
+        block["rescored"].append(
+            {"member": "m0", "score": report["members"]["m0"]["score"]}
+        )
+    write(report)
+    result = q1.v1_alignment_report({}, _ctx(1))
+    assert result.status == model.FAIL and "score-basis split" in result.detail
+
+
+def test_the_committed_same_basis_report_follows_from_its_committed_records():
+    folder = q1.PACKAGE / "battery-fastcharge-ageing-development-v1"
+    report = json.loads((folder / "q1_report.L1.same-basis.json").read_bytes())
+    assert q1.split_problem(report, folder) is None
+    assert len(report["members"]) == 20 and report["basis_split"]["excluded"] == []
+    assert len(report["basis_split"]["rescored"]) == 6
+    rescore = json.loads((folder / "q1_rescore.L1.json").read_bytes())
+    assert all(r["output_digest_matches"] is True for r in rescore["rows"])
+    assert all(
+        abs(r["recomputed_score"] - r["recorded_score"]) <= q1.RESCORE_TOLERANCE
+        for r in rescore["rows"]
+    )
+    assert q1._alignment_of(report["members"]) == report["alignment"]
+    # the gate's own Level 1 report and the executor's mixed file are untouched by this variant
+    assert (
+        q1.file_sha256(folder / "q1_report.L1.mixed-basis.json")
+        == COMMITTED_L1_SOURCE_SHA
+    )
+    gate = json.loads((folder / "q1_report.L1.json").read_bytes())
+    assert len(gate["members"]) == 14

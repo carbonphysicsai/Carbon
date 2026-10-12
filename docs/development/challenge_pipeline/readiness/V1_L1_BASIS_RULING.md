@@ -36,9 +36,17 @@ Six of the 16 secondary divergences are **basis-confounded**: the five Launchpad
 `minerI-bsub-ed8a517f`, and `l1-D-913bf188-p-50299fa270c6`, whose only better-valued comparator is that anchor. They are not
 findings against the score.
 
-## Open
+## Update: the six anchors rescored under the named rule (2026-10-12)
 
-The six Launchpad anchors (`minerH-bsub-8df17aba-s0`, `-9a658866-s0`, `-b1d1f99f-s0`, `minerI-bsub-925d55a1-s0`, `-e8efce9a-s0`,
-`-ed8a517f-s0`) can be recomputed under the named frozen rule if their stored outputs are recoverable (asked of the Launchpad
-owner). When recomputed a new source report carries them on the primary basis, the derived report is rebuilt and V1 and
-V2 are re-evaluated.
+Launchpad confirmed the six anchors' stored practice outputs are recoverable. Each `export.stream` sha256 equals its recorded
+`output_digest`. `scripts/dev/battery/l1_anchor_rescore.py` scored each recovered `predictions.json` with the Graphite frozen rule
+(`BatteryPracticeRule.score`, the 200 public PRACTICE cases); the record is `q1_rescore.L1.json` (digests and scores, no host paths).
+**The recomputed scores equal the recorded practice-feedback v3 scores to six decimals for all six**, so the "unnamed rule" is the
+same function on the same cases, now shown rather than assumed.
+
+`q1_report.L1.same-basis.json` is the 20-member variant with all 20 on the named basis (six rescored, `basis_split.rescored`
+records them; the source stays byte-identical). It re-evaluates as: tau-b 0.467, rho 0.659, top-1 overlap 0, 16 divergences; V1
+automated PASS and V2 PASS (15 outcomes). That is **identical** to the mixed 20 and different from the 14-member primary
+(0.281 / 0.488 / 0 / 10). The gate still reads the 14-member `q1_report.L1.json` (the Test Lead's ruling, and `reviews/V1.json` names
+its digest); promoting the same-basis variant is the Test Lead's decision. The divergences that involve the six are therefore not
+basis-confounded after all.

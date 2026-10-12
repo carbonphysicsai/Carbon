@@ -36,6 +36,10 @@ two committed files on every gate run: the primary members must be exactly the s
 members whose recorded basis is the primary basis, each row must equal its source row,
 the excluded members must be the rest with a recorded basis, and the secondary summary
 must equal the source's own alignment. A member with no recorded basis fails closed. A
+non-primary member whose stored outputs were recovered may be RESCORED under the primary
+rule: `rescored` names it and `rescore` the committed record (verified output digest, the
+recomputed score rounding to the recorded one); the report row then carries the recomputed
+score. Rescoring never changes the source file, which stays byte-identical. A
 report without `basis_split` (the level-0 report) is read as before.
 
 Nothing here chooses a value: no threshold other than the two-outcome floor the
@@ -206,6 +210,63 @@ def _secondary_summary(source):
     }
 
 
+#: A score recorded to six decimals: a recomputed value agrees with it when it rounds to it.
+RESCORE_TOLERANCE = 5e-7
+
+
+def _rescored_scores(split, folder, source_members, bases, primary):
+    """`({member: score}, problem)` for members whose score was recomputed under the
+    primary basis from recovered outputs. Each needs a committed rescore row whose output
+    digest was verified, whose recomputed value rounds to the recorded one, and whose
+    negated value is the score the report row carries."""
+    entries = split.get("rescored")
+    if entries is None:
+        return {}, None
+    entry = split.get("rescore")
+    if not (isinstance(entries, list) and isinstance(entry, dict)):
+        return {}, "basis_split rescored or rescore is malformed"
+    path = _sibling(folder, entry.get("file"))
+    if path is None or file_sha256(path) != entry.get("sha256"):
+        return {}, "basis_split rescore file is missing or its digest differs"
+    try:
+        rows = {
+            r.get("member"): r for r in json.loads(path.read_bytes()).get("rows", [])
+        }
+    except (ValueError, AttributeError):
+        return {}, "basis_split rescore file is not a rescore record"
+    scores = {}
+    for item in entries:
+        name = item.get("member") if isinstance(item, dict) else None
+        row = rows.get(name)
+        if name not in source_members or bases.get(name) == primary or row is None:
+            return (
+                {},
+                f"rescored member {name} is not a non-primary source member with a rescore row",
+            )
+        recorded, recomputed = row.get("recorded_score"), row.get("recomputed_score")
+        if row.get("output_digest_matches") is not True or not all(
+            type(v) in (int, float) for v in (recorded, recomputed)
+        ):
+            return {}, f"rescored member {name} has no verified output digest or score"
+        if abs(recomputed - recorded) > RESCORE_TOLERANCE:
+            return (
+                {},
+                f"rescored member {name}: the recomputed score differs from the recorded one",
+            )
+        if abs(-recorded - source_members[name]["score"]) > 1e-9:
+            return (
+                {},
+                f"rescored member {name}: the rescore row differs from the source score",
+            )
+        if item.get("score") != -recomputed:
+            return (
+                {},
+                f"rescored member {name}: the report score is not the recomputed score",
+            )
+        scores[name] = item["score"]
+    return scores, None
+
+
 def split_problem(report, folder):
     """Why a report's `basis_split` does not follow from its committed source and basis
     evidence, or None (also None when the report carries no split)."""
@@ -243,12 +304,20 @@ def split_problem(report, folder):
         if recorded.get("score") != row.get("score"):
             return f"member {name}: the basis evidence score differs from the source"
         bases[name] = basis
-    primary_names = {n for n, b in bases.items() if b == primary}
+    rescored, rescore_problem = _rescored_scores(
+        split, folder, source_members, bases, primary
+    )
+    if rescore_problem:
+        return rescore_problem
+    primary_names = {n for n, b in bases.items() if b == primary} | set(rescored)
     members = report["members"]
     if set(members) != primary_names:
         return "the report's members are not exactly the source members on the primary basis"
     for name, row in members.items():
-        if row != {**source_members[name], "basis": primary}:
+        expected = {**source_members[name], "basis": primary}
+        if name in rescored:
+            expected["score"] = rescored[name]
+        if row != expected:
             return f"member {name} differs from its source row"
     excluded = sorted(
         (
@@ -271,7 +340,9 @@ def split_problem(report, folder):
     return None
 
 
-def build_primary_report(source_path, evidence_path, primary_basis, rule_digest=None):
+def build_primary_report(
+    source_path, evidence_path, primary_basis, rule_digest=None, rescore_path=None
+):
     """The derived primary-basis report for a mixed-basis source report: the members
     whose recorded basis is `primary_basis`, alignment recomputed on them, the source and
     its excluded members recorded. Both files must sit in the report folder."""
@@ -280,13 +351,30 @@ def build_primary_report(source_path, evidence_path, primary_basis, rule_digest=
     evidence = json.loads(evidence_path.read_bytes())
     members = {}
     excluded = []
+    rescored = []
+    rescore_rows = {}
+    if rescore_path is not None:
+        rescore_path = Path(rescore_path)
+        rescore_rows = {
+            r["member"]: r for r in json.loads(rescore_path.read_bytes())["rows"]
+        }
     for name, row in sorted(source["members"].items()):
         recorded = evidence.get(name)
         basis = recorded.get("basis") if isinstance(recorded, dict) else None
         if not (isinstance(basis, str) and basis):
             raise ValueError(f"member {name} has no recorded score basis")
+        again = rescore_rows.get(name) if basis != primary_basis else None
         if basis == primary_basis:
             members[name] = {**row, "basis": primary_basis}
+        elif (
+            again
+            and again.get("output_digest_matches") is True
+            and abs(again["recomputed_score"] - again["recorded_score"])
+            <= RESCORE_TOLERANCE
+        ):
+            score = -again["recomputed_score"]
+            members[name] = {**row, "basis": primary_basis, "score": score}
+            rescored.append({"member": name, "score": score})
         else:
             excluded.append({"basis": basis, "member": name})
     panel = {
@@ -313,6 +401,17 @@ def build_primary_report(source_path, evidence_path, primary_basis, rule_digest=
             "sha256": file_sha256(evidence_path),
         },
         "excluded": excluded,
+        **(
+            {
+                "rescored": rescored,
+                "rescore": {
+                    "file": rescore_path.name,
+                    "sha256": file_sha256(rescore_path),
+                },
+            }
+            if rescored
+            else {}
+        ),
         "secondary": {
             "label": "MIXED-BASIS SECONDARY: not gate evidence",
             **_secondary_summary(source),
@@ -550,12 +649,18 @@ def main(argv=None):
     d.add_argument("--source", required=True)
     d.add_argument("--basis-evidence", required=True)
     d.add_argument("--primary-basis", required=True)
+    d.add_argument(
+        "--rescore", help="a verified rescore record for non-primary members"
+    )
     d.add_argument("--out", required=True)
     args = parser.parse_args(argv)
     if args.command == "build-primary":
         try:
             report = build_primary_report(
-                args.source, args.basis_evidence, args.primary_basis
+                args.source,
+                args.basis_evidence,
+                args.primary_basis,
+                rescore_path=args.rescore,
             )
         except (OSError, ValueError, KeyError) as error:
             print(f"cannot derive the primary-basis report: {error}")
