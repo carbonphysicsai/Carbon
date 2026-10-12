@@ -137,6 +137,10 @@ comes back to the Test Lead first.
 - **Report requirement** (in every theme's brief text): for the physics the run tried to build in, which freedom this level
   does not offer would have let it, one `WISH:` line each (what it is, what it needs, the expected gain, the evidence).
   The wish channel stores the lines as data in the refused-capability log; nothing is granted.
+- **Family tags for A1 and A2.** The Attacker brief (v3) tells the Attacker to put `[family: <name>]` in the
+  `hypothesis` of each attempt and lists the reachable family names at the level; the attack adapters (#1184) read the tag.
+  With #1184, the reachable counts are L1 4 of 6 (permission_ablation and rebuild_identity stay unreachable and are reported
+  with a covering test or as gaps), L2 5, L3 5 and L4 7 (to be verified against #1184 once merged).
 - **Stop rule v3 for A1 and A2.** Three counted attempts per reachable family; the final coverage report carries
   `stop_rule_outcome`: unreachable families named with their covering test, or reported as gaps; a reachable family that
   is under three or not run makes the report INCOMPLETE. Until the oracle fixes and the attempt-to-family declaration land
