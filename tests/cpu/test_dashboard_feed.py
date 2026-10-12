@@ -372,6 +372,40 @@ def test_view_models_in_node(tmp_path):
     assert summary["phases"] == ["LIVE", "PRE_FIRST_RELEASE", "STALE"]
 
 
+def test_chain_view_models_in_node(tmp_path):
+    """DASHBOARD-02 S1b: boards from VALIDATOR-33 A feeds (#1143) show the
+    king's share and halving with a live countdown, the estimated next release
+    countdown, the validator's posted margins and the handovers
+    (tests/cpu/dashboard_check.cjs, its third argument)."""
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("node is not installed here")
+    documents = fixtures.documents() + fixtures.phase_documents()
+    build.build(
+        tmp_path / "site", documents, fixtures.fixture_trust(), now=fixtures.FIXTURE_NOW
+    )
+    chain = fixtures.chain_documents()
+    build.build(
+        tmp_path / "chain", chain, fixtures.fixture_trust(), now=fixtures.FIXTURE_NOW
+    )
+    result = subprocess.run(
+        [
+            node,
+            str(CHECK),
+            str(tmp_path / "site"),
+            str(fixtures.FIXTURE_NOW),
+            str(tmp_path / "chain"),
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    summary = json.loads(result.stdout)
+    assert summary["boards"] == len(documents)
+    assert summary["chain"] == len(chain)
+
+
 def test_section_meta_comes_from_the_feed_sections():
     board = feed.project(fixtures.sign(_fixture()), fixtures.fixture_trust())
     assert board["section_meta"]["accuracy"]["sense"] == "lower_is_better"

@@ -225,4 +225,74 @@ assert.deepEqual(D.parseRoute("#/"), {view: "home"});
 assert.equal(D.countdown(3723), "01:02:03");
 assert.equal(D.signed(0.015, 3), "+0.015");
 assert.equal(D.keyShort({feed: {public_key: "bc45568c50bd8d60a211310ffad7936ee9ff21908c9b14021acd0ba11416d3ae"}}), "bc45568c…d3ae");
-process.stdout.write(JSON.stringify({boards: count, phases: [...phases].sort()}) + "\n");
+
+// ---- VALIDATOR-33 A (#1143, DASHBOARD-02 S1b) ----
+// An optional third argument: a site built from fixtures.chain_documents(), whose
+// feeds carry chain time, the ledger king, handovers and the target to beat.
+const chainSite = process.argv[4];
+let chainCount = 0;
+function countdownNode(tree, at) {
+  let found = null;
+  D.walk(tree, n => { if (n.attrs["data-until"] !== undefined && Number(n.attrs["data-until"]) === at) found = n; });
+  return found;
+}
+function sectionNode(tree, name) { let found = null; D.walk(tree, n => { if (n.attrs["data-section"] === name) found = n; }); return found; }
+if (chainSite) {
+  for (const name of fs.readdirSync(path.join(chainSite, "data", "v2")).sort()) {
+    const board = read(path.join(chainSite, "data", "v2", name));
+    const where = "chain " + board.slug;
+    assert.equal(board.phase, "LIVE", where + ": the chain time is fresh");
+    assert.equal(board.freshness.basis, "as_of_block", where + ": age from the chain time");
+    const tree = D.boardPage(board, ctx);
+    const text = check(tree, where);
+    const k = board.king;
+    const kingNode = sectionNode(tree, "king");
+    if (k.share_now !== null) {
+      // The king card shows the share and the halving, with a live countdown.
+      const halving = D.utcSeconds(k.next_halving_utc);
+      assert.ok(text.includes("Share now " + D.fmt(k.share_now)), where + ": share");
+      assert.ok(text.includes("Next halving"), where + ": halving");
+      const count = countdownNode(kingNode, halving);
+      assert.ok(count, where + ": halving countdown");
+      assert.equal(D.textOf(count), D.countdown(halving - now), where + ": halving countdown text");
+      assert.match(D.textOf(count), /^(\d+ d )?\d\d:\d\d:\d\d$/, where + ": a clock");
+      for (const want of ["UID " + k.uid, "Crowned " + D.utc(D.utcSeconds(k.crowned_utc)), "Defences " + k.defences, "Reward eligible", "Held for"]) {
+        assert.ok(text.includes(want), where + ": " + want);
+      }
+      assert.equal(moreLines(kingNode), 0, where + ": every king field present");
+    } else {
+      // The ledger's king is not the released incumbent yet: nothing of it shows.
+      assert.equal(k.reasons.share_now, "king_not_released", where);
+      for (const absent of ["Share now", "Next halving", "Crowned", "Reward", "Defences"]) assert.ok(!D.textOf(kingNode).includes(absent), where + ": " + absent);
+      assert.equal(moreLines(kingNode), 1, where + ": the king's line");
+    }
+    // The next release: block, an estimated time, and a live countdown.
+    const at = D.utcSeconds(board.next_release.next_utc);
+    const release = countdownNode(sectionNode(tree, "timing"), at);
+    assert.ok(release, where + ": release countdown");
+    assert.equal(D.textOf(release), D.countdown(at - now), where + ": release countdown text");
+    assert.ok(text.includes("block " + D.block(board.next_release.next_block) + ", about " + D.utc(at) + " at 12 s per block"), where + ": estimated release time");
+    assert.ok(!text.includes("~"), where + ": about, never a tilde");
+    // The target's values, posted by the validator, show without a rules card;
+    // their prose waits for it. The registered score's candidate is never drawn.
+    const t = board.target_to_beat;
+    assert.notEqual(board.rules.status, "OK");
+    assert.ok(text.includes("Posted margin " + D.fmt(t.posted_margin)), where + ": posted margin");
+    assert.ok(text.includes("Screening margin " + D.fmt(t.screening_margin)), where + ": screening margin");
+    assert.ok(text.includes("Noise guard " + D.guardText(t.noise_guard)), where + ": noise guard");
+    assert.ok(text.includes(D.POSTED), where + ": labelled posted by the validator");
+    assert.ok(!text.includes("rules card sets them"), where + ": the bars' prose waits for the rules card");
+    assert.ok(!text.includes(t.registered_score.candidate), where + ": candidate never drawn");
+    assert.ok(text.includes("Registered score: " + t.registered_score.decision), where + ": registered score decision");
+    const ok = clone(board); ok.rules = {status: "OK", card_digest: "sha256:" + "0".repeat(64), reasons: {}};
+    assert.ok(check(D.boardPage(ok, ctx), where + " rules OK").includes("rules card sets them"), where + ": prose with the card");
+    // Handovers, newest first, and the chain time in the feed block.
+    assert.ok(text.includes("Handovers"), where + ": handovers");
+    const handovers = nodes(nodes(tree, "table").find(t2 => D.textOf(t2).includes("New king")), "tr").length - 1;
+    assert.equal(handovers, board.history.handovers.length, where + ": every handover drawn");
+    assert.ok(text.includes("Chain time block " + D.block(board.as_of_block.number)), where + ": chain time");
+    chainCount += 1;
+  }
+  assert.ok(chainCount >= 2, "chain fixtures: a released and an unreleased ledger king");
+}
+process.stdout.write(JSON.stringify({boards: count, phases: [...phases].sort(), chain: chainCount}) + "\n");

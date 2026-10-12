@@ -34,7 +34,22 @@ a rule cutover.
   (`rules.status` OK). No card is configured yet, so they are null with
   `rules_unavailable`.
 - `phase` is STALE once the feed is more than 2 h old: an engineering UI
-  default (`STALE_AFTER_SECONDS`), not a registered value.
+  default (`STALE_AFTER_SECONDS`), not a registered value. The age runs from
+  the feed's `as_of_block` chain time when it carries one (`freshness.basis`).
+- VALIDATOR-33 A's fields (#1143, DASHBOARD-02 S1b), each null with
+  `not_in_feed` in an older feed:
+  - the ledger king's UID, coldkey, crowning, share, next halving, defences
+    (finals survived) and reward eligibility fill `king` only when the ledger
+    king is the released incumbent (else `king_not_released`);
+  - `history.handovers` and `history.kings` (each reign) from `handovers`;
+  - `target_to_beat`: the rule's kind, the posted (final) and screening
+    margins, the noise guard (the final comparison's `alpha`, `n_min`,
+    `n_boot`, `important_min`; other keys dropped), the registered score and
+    the gates. These are values the validator posts in its signed feed, so the
+    page shows them labelled "posted by the validator"; what they mean is rule
+    prose, shown only with an OK rules card;
+  - `next_release.next_block` is the next rotation block, and `next_utc` its
+    time estimated from `as_of_block` at 12 s per block.
 - `worker/feed.mjs` ports it as `projectV2`; the Worker serves it at
   `/data/v2/<slug>.json`.
 
@@ -73,7 +88,9 @@ is fetched only when `index.json` says `network: true`.
   style, under the strict CSP. HTML, CSS, JS and the wordmark stay under
   120 KB (`tests/cpu/test_dashboard_web.py`).
 - `tests/cpu/dashboard_check.cjs` renders every fixture board in each phase
-  in Node and mounts it into a minimal DOM.
+  in Node and mounts it into a minimal DOM. A third argument, a site built from
+  `fixtures.chain_documents()`, checks the #1143 fields: the king's share and
+  halving countdown, the release countdown, the posted margins and handovers.
 
 ## What the build writes
 

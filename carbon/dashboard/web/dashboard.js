@@ -7,7 +7,10 @@
 // it. A null field is not drawn (its reason stays in the JSON); a section
 // with one shows a single muted line (MORE). Rule statements appear only
 // while the rules card's status is OK, else one RULES_LINE stands in their
-// place. No per-case, input or prediction value is drawn.
+// place. No per-case, input or prediction value is drawn. The target's
+// margins and noise guard are the validator's posted values, from its signed
+// feed (VALIDATOR-33 A): they show labelled "posted by the validator", and
+// only their prose explanation waits for the rules card.
 //
 // Pages are pure functions from a board to a node tree ({tag, attrs,
 // children}); `mount` turns a tree into DOM with createElement and text nodes,
@@ -248,7 +251,9 @@
     const points = hist.points || {};
     const king = board.king && board.king.hotkey;
     const label = sectionLabel(board);
-    if (Array.isArray(hist.kings) && hist.kings.length) {
+    // A king series with values; the feed's reigns (VALIDATOR-33 A) carry none
+    // and are listed as handovers instead.
+    if (Array.isArray(hist.kings) && hist.kings.some(k => isNum(k.value))) {
       const main = [], handovers = [];
       let previous = null;
       hist.kings.forEach((k, i) => {
@@ -283,8 +288,9 @@
     if (board.phase === "STALE") {
       const age = board.freshness && board.freshness.age_seconds;
       const after = board.freshness && board.freshness.stale_after_seconds;
+      const read = board.freshness && board.freshness.basis === "as_of_block" ? "The feed's chain time is " + span(age) + " old" : "The feed was generated " + span(age) + " ago";
       out.push(h("div", {class: "alert", role: "alert"}, h("strong", null, "Stale feed. "),
-        isNum(age) ? "The feed was generated " + span(age) + " ago" + (isNum(after) ? " (stale after " + span(after) + "). " : ". ") : "",
+        isNum(age) ? read + (isNum(after) ? " (stale after " + span(after) + "). " : ". ") : "",
         "Values may be out of date."));
     }
     if (ctx.eraBefore && ctx.eraBefore !== board.era) {
@@ -313,7 +319,7 @@
   function heroPre(board, ctx) {
     const lag = board.next_release && board.next_release.lag;
     const ok = rulesOk(board) && lag && isNum(lag.hours);
-    const when = timingOf(board.next_release, ctx) || timingOf(board.next_round, ctx);
+    const when = timingOf(board.next_release, ctx, !!board.as_of_block) || timingOf(board.next_round, ctx);
     return h("section", {class: "hero", "aria-labelledby": "hero-title"},
       eyebrow("First release"),
       h("h2", {id: "hero-title"}, ok ? "First scores publish about " + Math.round(lag.hours) + " h after the first round" : "First scores publish after the first round is released"),
@@ -344,7 +350,22 @@
       h("p", {class: "hint"}, "A failed safety gate is never offset by a better score on another section."));
   }
 
+  // The king card's fields. Crowning and the next halving are given in UTC
+  // (the feed's ledger clock) or, in an older shape, as an epoch: either fills
+  // them. The coldkey and reward eligibility are drawn when present.
   const KING_FIELDS = ["uid", "value", "margin", "share_now", "next_halving_epoch", "since_block", "since_utc", "crowned_epoch", "defences"];
+  const KING_EITHER = {crowned_epoch: "crowned_utc", next_halving_epoch: "next_halving_utc"};
+  function kingMissing(k) {
+    if (!k) return true;
+    return KING_FIELDS.some(key => {
+      if (key === "next_halving_epoch" && k.share_now === 0) return false; // not paid now: no halving
+      const other = KING_EITHER[key];
+      return (k[key] === null || k[key] === undefined) && (!other || k[other] === null || k[other] === undefined);
+    });
+  }
+  function until(at, ctx) {
+    return h("span", {class: "count-value", "data-until": at, "aria-live": "off"}, countdown(at - ctx.now));
+  }
   function kingCard(board, ctx) {
     const k = board.king;
     const top = h("div", {class: "card-top"}, crown(), h("h2", {id: "king-title", class: "card-title"}, "King"),
@@ -353,44 +374,72 @@
     if (!k) return section("king", {class: "card king", "aria-labelledby": "king-title"}, top, moreLine(true));
     const digits = places([k.value, k.margin]);
     const since = utcSeconds(k.since_utc);
+    const crowned = utcSeconds(k.crowned_utc);
+    const halving = utcSeconds(k.next_halving_utc);
     const stats = [
       isNum(k.margin) ? stat("Margin over runner-up", signed(k.margin, digits), k.runner_up ? "runner-up " + shortKey(k.runner_up) : null) : null,
-      isNum(k.share_now) ? stat("Share now", fmt(k.share_now)) : null,
-      isNum(k.next_halving_epoch) ? stat("Next halving", "epoch " + k.next_halving_epoch) : null,
+      isNum(k.share_now) ? stat("Share now", fmt(k.share_now), "from the validator's reward clock") : null,
+      halving !== null ? stat("Next halving", until(halving, ctx), utc(halving))
+        : isNum(k.next_halving_epoch) ? stat("Next halving", "epoch " + k.next_halving_epoch) : null,
       since !== null ? stat("Held for", span(ctx.now - since), "since " + utc(since)) : null,
       since === null && isNum(k.since_block) ? stat("Held since", "block " + block(k.since_block)) : null,
-      isNum(k.crowned_epoch) ? stat("Crowned", "epoch " + k.crowned_epoch) : null,
-      isNum(k.defences) ? stat("Defences", String(k.defences)) : null,
+      crowned !== null ? stat("Crowned", utc(crowned)) : isNum(k.crowned_epoch) ? stat("Crowned", "epoch " + k.crowned_epoch) : null,
+      isNum(k.defences) ? stat("Defences", String(k.defences), "finals survived") : null,
+      typeof k.eligible === "boolean" ? stat("Reward", k.eligible ? "eligible" : "not eligible", k.eligibility_reason ? words(k.eligibility_reason) : null) : null,
+      k.coldkey ? stat("Coldkey", h("span", {class: "key", title: k.coldkey}, shortKey(k.coldkey))) : null,
     ].filter(Boolean);
     return section("king", {class: "card king", "aria-labelledby": "king-title"}, top,
       h("p", {class: "king-key"}, hotkey(k.hotkey, {copy: true, href: minerHref(board.slug, k.hotkey)})),
       isNum(k.value) ? h("div", {class: "metric"}, h("span", {class: "metric-value"}, fmt(k.value, digits)), h("span", {class: "metric-label"}, sectionLabel(board))) : null,
       stats.length ? h("dl", {class: "stats"}, stats) : null,
-      moreLine(anyNull(k, KING_FIELDS)));
+      moreLine(kingMissing(k)));
   }
 
+  // The target's values are the validator's, posted in its signed feed: they
+  // show labelled so. What the bars mean is a rule statement, so that prose
+  // shows only while the rules card is OK (the card is the single source).
   const TARGET_FIELDS = ["value", "posted_margin", "noise_guard"];
+  const POSTED = "posted by the validator";
+  function percent(v) { return isNum(v) ? (v * 100).toFixed(2) + "%" : null; }
+  function guardText(g) {
+    if (g === null || g === undefined) return null;
+    if (typeof g !== "object") return plain(g);
+    const parts = [["alpha", "alpha"], ["n_min", "n_min"], ["n_boot", "n_boot"], ["important_min", "important_min"]]
+      .filter(([key]) => isNum(g[key])).map(([key, name]) => name + " " + g[key].toLocaleString("en-US"));
+    return parts.length ? parts.join(", ") : null;
+  }
   function targetCard(board) {
     const t = board.target_to_beat || {};
-    const bars = [["Posted margin", "posted_margin", "the margin the rule posts"], ["Noise guard", "noise_guard", "the comparison's noise guard"]]
-      .filter(([, key]) => plain(t[key]) !== null)
-      .map(([name, key, note]) => h("li", {class: "bar-row"}, h("span", {class: "bar-name"}, name), h("span", {class: "bar-value"}, plain(t[key])), h("span", {class: "bar-note"}, note)));
+    const ok = rulesOk(board);
+    const margin = (v, what) => (isNum(v) ? what + ", " + percent(v) + ", " + POSTED : POSTED);
+    const bars = [
+      ["Posted margin", plain(t.posted_margin), margin(t.posted_margin, "relative, final")],
+      isNum(t.screening_margin) ? ["Screening margin", plain(t.screening_margin), margin(t.screening_margin, "relative, screening entry")] : null,
+      ["Noise guard", guardText(t.noise_guard), typeof t.noise_guard === "object" ? "the final comparison, " + POSTED : POSTED],
+    ].filter(row => row && row[1] !== null)
+      .map(([name, value, note]) => h("li", {class: "bar-row"}, h("span", {class: "bar-name"}, name), h("span", {class: "bar-value"}, value), h("span", {class: "bar-note"}, note)));
     const value = plain(t.value);
+    const score = t.registered_score;
+    const gates = Array.isArray(t.gates) ? t.gates : [];
     return section("target", {class: "card target", "aria-labelledby": "target-title"},
-      h("div", {class: "card-top"}, h("h2", {id: "target-title", class: "card-title"}, "Target to beat")),
+      h("div", {class: "card-top"}, h("h2", {id: "target-title", class: "card-title"}, "Target to beat"),
+        t.kind ? chip(words(t.kind), "chip-plain") : null),
       value !== null ? h("div", {class: "metric"}, h("span", {class: "metric-value"}, value), h("span", {class: "metric-label"}, sectionLabel(board))) : null,
       bars.length ? h("ul", {class: "bars", "aria-label": "Both bars"}, bars) : null,
-      h("p", {class: "hint"}, "Two bars, the posted margin and the noise guard, both from the Validator's rules card."),
+      score && score.decision ? h("p", {class: "hint"}, "Registered score: " + score.decision + (score.registry_sha256 ? ", registry " + shortDigest(score.registry_sha256) : "") + ".") : null,
+      gates.length ? h("p", {class: "hint"}, "Gates: " + gates.map(words).join(", ") + ".") : null,
+      ok ? h("p", {class: "hint"}, "Two bars, the posted margin and the noise guard, as the Validator's rules card sets them.") : null,
       moreLine(anyNull(t, TARGET_FIELDS)));
   }
 
-  function timingOf(part, ctx) {
+  // `estimate`: the time is the feed's block estimated at the nominal block time.
+  function timingOf(part, ctx, estimate) {
     if (!part) return null;
     const at = utcSeconds(part.next_utc);
     if (at !== null) {
-      return h("span", {class: "count"},
-        h("span", {class: "count-value", "data-until": at, "aria-live": "off"}, countdown(at - ctx.now)),
-        h("span", {class: "count-note"}, utc(at)));
+      const where = isNum(part.next_block) ? "block " + block(part.next_block) + ", " : "";
+      return h("span", {class: "count"}, until(at, ctx),
+        h("span", {class: "count-note"}, where + (estimate ? "about " + utc(at) + " at 12 s per block" : utc(at))));
     }
     if (isNum(part.next_block)) return h("span", {class: "count"}, h("span", {class: "count-value"}, "block " + block(part.next_block)));
     return null;
@@ -406,7 +455,7 @@
     return section("timing", {class: "timing-block", "aria-label": "Next round and release"},
       h("div", {class: "timing"},
         roundWhen || every ? h("div", {class: "card tick"}, eyebrow("Next round"), roundWhen, every) : null,
-        h("div", {class: "card tick"}, eyebrow("Next release"), timingOf(release, ctx),
+        h("div", {class: "card tick"}, eyebrow("Next release"), timingOf(release, ctx, !!board.as_of_block),
           h("p", {class: "hint"}, release.released_windows + " released window" + (release.released_windows === 1 ? "" : "s") + " in this era. " + lag))),
       moreLine(anyNull(round, ["next_utc", "next_block"]) || (anyNull(round, ["every"]) && anyNull(board, ["rotation"])) || anyNull(release, RELEASE_FIELDS)));
   }
@@ -471,7 +520,23 @@
       h("div", {class: "block-head"}, h("h2", {id: "hist-title"}, "History"), chip("Era " + shortDigest(board.history && board.history.era), "chip-plain")),
       has ? sparkFigure(spec, caption) : h("p", {class: "empty"}, "No released windows in this rule era yet. Each rule digest is its own era; history never crosses eras."),
       rows.length ? h("details", {class: "more"}, h("summary", null, "Show the line as a table"),
-        table("King history values", [["Block", "num"], ["Hotkey"], [label, "num"]], rows)) : null);
+        table("King history values", [["Block", "num"], ["Hotkey"], [label, "num"]], rows)) : null,
+      handoverTable(board));
+  }
+  // Each change of king, newest first, from the validator's winner ledger. A
+  // hotkey the feed does not name stays blank.
+  function handoverTable(board) {
+    const list = board.history && Array.isArray(board.history.handovers) ? board.history.handovers.slice().reverse() : [];
+    const key = k => (k ? h("a", {href: minerHref(board.slug, k), class: "key", title: k}, shortKey(k)) : "");
+    const rows = list.map(x => h("tr", null,
+      h("td", null, x.utc ? utc(utcSeconds(x.utc)) : ""),
+      h("td", null, key(x.to_hotkey)),
+      h("td", {class: "opt"}, key(x.from_hotkey)),
+      h("td", {class: "opt"}, x.kind ? words(x.kind) : ""),
+      h("td", null, typeof x.eligible === "boolean" ? (x.eligible ? "eligible" : "not eligible") + (x.eligibility_reason ? ": " + words(x.eligibility_reason) : "") : "")));
+    if (!rows.length) return null;
+    return h("div", {class: "handovers"}, h("h3", null, "Handovers"),
+      table("Handovers, newest first", [["When (UTC)"], ["New king"], ["Previous", "opt"], ["Kind", "opt"], ["Reward"]], rows));
   }
 
   const ENTRY_FIELDS = ["trigger_bar", "king_screening_display", "coldkeys"];
@@ -527,12 +592,15 @@
 
   function feedBlock(board) {
     const f = board.freshness || {};
+    const chainAge = f.basis === "as_of_block"; // the age runs from the chain time
     return section("feed", {class: "block feedinfo", "aria-label": "Feed"},
       h("dl", {class: "stats compact"},
         keyShort(board) ? stat("Signed feed", h("span", {class: "key", title: board.feed.key_id || null, "data-key-id": board.feed.key_id || null}, "key " + keyShort(board))) : null,
         stat("Feed version", String(board.version)),
-        board.generated_at ? stat("Generated", board.generated_at, isNum(f.age_seconds) ? span(f.age_seconds) + " old when served" : null) : null,
+        board.generated_at ? stat("Generated", board.generated_at, isNum(f.age_seconds) && !chainAge ? span(f.age_seconds) + " old when served" : null) : null,
         board.feed && board.feed.digest ? stat("Feed digest", shortDigest(board.feed.digest)) : null,
+        board.as_of_block ? stat("Chain time", "block " + block(board.as_of_block.number),
+          utc(utcSeconds(board.as_of_block.timestamp_utc)) + (chainAge && isNum(f.age_seconds) ? ", " + span(f.age_seconds) + " old when served" : "")) : null,
         stat("Canary miners excluded", String(board.excluded_canaries)),
         rulesOk(board) ? stat("Rules card", shortDigest(board.rules.card_digest)) : null));
   }
@@ -646,8 +714,8 @@
   }
 
   const api = {sparkFigure, sectionShort, SVG_NS, LINKS, ELIGIBLE, RULES_LINE, MORE, EMPTY_EPOCH, LADDER, PHASES,
-    KING_FIELDS, TARGET_FIELDS, RELEASE_FIELDS, ENTRY_FIELDS, NETWORK_FIELDS, keyShort, rotationText,
-    h, walk, textOf, mount, places, fmt, signed, shortKey, shortDigest, utcSeconds, utc, span, countdown, parseRoute, boardHref, minerHref, labelsOf,
+    KING_FIELDS, TARGET_FIELDS, RELEASE_FIELDS, ENTRY_FIELDS, NETWORK_FIELDS, keyShort, rotationText, kingMissing, guardText, POSTED,
+    h, walk, textOf, mount, places, fmt, signed, block, shortKey, shortDigest, utcSeconds, utc, span, countdown, parseRoute, boardHref, minerHref, labelsOf,
     rulesOk, sectionLabel, sparkline, historySpec, boardPage, minerPage, homePage, minePage, networkStrip, footerStamp};
   if (typeof module === "object" && module.exports) module.exports = api;
   if (typeof document === "undefined") return;
