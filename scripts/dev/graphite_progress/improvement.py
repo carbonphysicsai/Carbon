@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import random
+import re
 import statistics
 from pathlib import Path
 
@@ -36,6 +37,21 @@ CONTRACT = (
     / "carbon/battery/value/contracts/ev4-dev-proof-l1-v1.json"
 )
 PRIVATE_MARKERS = ("refs-b", "private-role", "battery_refs")
+#: Registered-guard records (OPT-09, #1208): the bundle was rebuilt through `member_bundle` WITH the registered-panel
+#: guard. The registration is the committed bundled contract (`panel` name and `panel_registration.member_sha256`
+#: labels) and `proof-panel-levels-v1.json` (each member's level and `counts_for_level`); a record that disagrees
+#: with either is refused. A record with no `guard` is the older guard-skipped shape and is accepted unchanged.
+GUARD_SKIPPED = "skipped"
+GUARD_REGISTERED = "registered"
+BUNDLED_CONTRACT = (
+    Path(__file__).resolve().parents[3]
+    / "carbon/battery/value/contracts/ev4-dev-proof-bundled-v1.json"
+)
+PROOF_LEVELS = (
+    Path(__file__).resolve().parents[3]
+    / "carbon/battery/value/panels/proof-panel-levels-v1.json"
+)
+_SHA256 = re.compile(r"^sha256:[0-9a-f]{64}$")
 LABEL = (
     "PUBLIC-DEV-MEASURED: the public EV4 development panel and the public decision questions, "
     "against the lane's Level 0 baseline; never sealed data; not a qualification claim"
@@ -46,6 +62,9 @@ SMALL_N = 10
 #: A percentile bootstrap of a median from fewer than three values is just the range of the values, so no interval is
 #: reported below this size; the ledger says so instead of printing a fabricated one.
 MIN_N_INTERVAL = 3
+#: Below this size the interval is reported but flagged coarse: a bootstrap of the median of n values can only return
+#: observed values, so it is roughly the sample's range.
+COARSE_N = 5
 #: Why a record above Level 0 carries a caveat: the executor rebuilds the bundle through `level_compile.base_for`
 #: without `member_bundle`'s registered-panel guard (a Graphite bundle is not a registered panel member).
 LEVEL_REBUILD_CAVEAT = (
@@ -70,14 +89,82 @@ def committed_reference_sha(contract=None):
     return value
 
 
-def validate(record, contract=None):
+def registered_members(contract=None, levels=None):
+    """`(panel name, {label: (level, counts_for_level)})` from the COMMITTED bundled contract and panel file,
+    or a typed refusal."""
+    try:
+        document = json.loads(Path(contract or BUNDLED_CONTRACT).read_bytes())
+        labels = set(document["panel_registration"]["member_sha256"])
+        name = document["panel"]
+        rows = json.loads(Path(levels or PROOF_LEVELS).read_bytes())["members"]
+    except (OSError, ValueError, KeyError, TypeError, AttributeError) as error:
+        raise ProgressError("public_improvement_registration_unreadable") from error
+    members = {
+        f"{row['label']}-s{seed}": (row["level"], row.get("counts_for_level", True))
+        for row in rows
+        for seed in row.get("seeds", ())
+        if f"{row.get('label')}-s{seed}" in labels
+    }
+    if not (isinstance(name, str) and name) or set(members) != labels:
+        raise ProgressError("public_improvement_registration_incomplete")
+    return name, members
+
+
+def _validate_registered(record, registration):
+    """The extra shape and pins of a registered-guard record."""
+    panel_name, members = registration if registration else registered_members()
+    panel = record.get("panel")
+    if type(panel) is not dict or panel.get("name") != panel_name:
+        raise ProgressError("public_improvement_panel_name_not_registered")
+    member = record.get("member")
+    if member not in members:
+        raise ProgressError("public_improvement_member_not_registered")
+    level, counts = members[member]
+    if record.get("level") != level:
+        raise ProgressError("public_improvement_member_level_differs")
+    if record.get("counts_for_level") is not counts:
+        raise ProgressError("public_improvement_counts_for_level_differs")
+    old = record.get("supersedes")
+    if type(old) is not dict or not (
+        isinstance(old.get("file"), str)
+        and old["file"]
+        and isinstance(old.get("sha256"), str)
+        and _SHA256.match(old["sha256"])
+    ):
+        raise ProgressError("public_improvement_supersedes_malformed")
+    control = (record.get("controls") or {}).get("always_abstain")
+    if type(control) is not dict:
+        raise ProgressError("public_improvement_no_always_abstain_control")
+    loss, rank = control.get("decision_loss"), control.get("rank")
+    if (
+        (loss is not None and (type(loss) not in (int, float) or loss < 0))
+        or (rank is not None and (type(rank) is not int or rank < 1))
+        or any(
+            key in control and (type(control[key]) is not int or control[key] < 0)
+            for key in ("of", "mask")
+        )
+    ):
+        raise ProgressError("public_improvement_bad_always_abstain_control")
+
+
+def validate(record, contract=None, registration=None):
     """The record as a checked dict, or a typed refusal. Its scoring-set digest must equal the
     committed contract's literal."""
     if type(record) is not dict or record.get("schema") != IMPROVEMENT_SCHEMA:
         raise ProgressError("public_improvement_schema")
     if record.get("public_only") is not True:
         raise ProgressError("public_improvement_not_public_only")
-    scoring = (record.get("panel") or {}).get("scoring_set")
+    guard = record.get("guard", GUARD_SKIPPED)
+    if guard not in (GUARD_SKIPPED, GUARD_REGISTERED):
+        raise ProgressError("public_improvement_unknown_guard")
+    if guard == GUARD_SKIPPED and any(
+        key in record for key in ("counts_for_level", "supersedes", "controls")
+    ):
+        raise ProgressError("public_improvement_registered_fields_without_guard")
+    panel = record.get("panel")
+    if panel is not None and type(panel) is not dict:
+        raise ProgressError("public_improvement_panel_not_object")
+    scoring = (panel or {}).get("scoring_set")
     if (
         type(scoring) is not dict
         or scoring.get("function") != PUBLIC_EV4_FUNCTION
@@ -86,6 +173,8 @@ def validate(record, contract=None):
         raise ProgressError("public_improvement_scoring_set_not_public_ev4")
     if any(marker in repr(record).lower() for marker in PRIVATE_MARKERS):
         raise ProgressError("public_improvement_names_a_private_source")
+    if guard == GUARD_REGISTERED:
+        _validate_registered(record, registration)
     for side in ("baseline", "model"):
         row = record.get(side)
         if type(row) is not dict:
@@ -140,12 +229,39 @@ def _decision_noise(pairs):
     return reasons
 
 
+#: Level 4 caveat (executor report, 2026-10-12): the Level 4 bundles scored here were built on variant ad15d6a8
+#: with no graph, so the accuracy numbers measure the BASE recipe, not any graph lowering or Level 4 freedom.
+L4_BASE_RECIPE_CAVEAT = (
+    "LEVEL 4 BASE-RECIPE-ONLY MEASUREMENT: the bundles scored here are on variant ad15d6a8 with no graph, so the "
+    "number measures the base recipe, NOT graph lowering or the Level 4 freedoms; not evidence about Level 4"
+)
+
+#: #1209 (RES-07): the public battery value metric ranked an always-abstaining control 2nd of 100 on the historical
+#: EV5 mask. A decision-loss number is read against that control, never alone.
+ABSTAIN_CAVEAT = (
+    "ALWAYS-ABSTAIN CONTROL (#1209): read every decision-loss number against the always-abstain control's loss and rank "
+    "beside it; a metric that rewards abstaining must not be mistaken for better decisions"
+)
+
+
 def _caveats(records):
     """Caveats the ledger line must carry for these records (levels above 0 rebuild without the panel guard)."""
     out = []
-    if any((rec.get("level") or 0) > 0 for rec in records):
+    if any(
+        (rec.get("level") or 0) > 0 and rec.get("guard", GUARD_SKIPPED) == GUARD_SKIPPED
+        for rec in records
+    ):
         out.append(LEVEL_REBUILD_CAVEAT)
+    if any(rec.get("level") == 4 for rec in records):
+        out.append(L4_BASE_RECIPE_CAVEAT)
+    if any(rec.get("controls") for rec in records):
+        out.append(ABSTAIN_CAVEAT)
     return out
+
+
+def line_caveats(records):
+    """The caveats a ledger line must carry for its public-improvement records (empty when none apply)."""
+    return _caveats([r for r in records if r])
 
 
 def _null_reasons(records, name):
@@ -159,8 +275,8 @@ def _null_reasons(records, name):
 
 
 PANEL_MEMBER_NOTE = (
-    "Levels 2-4 need the same panel-member registration as Level 1 (the Test Engineer's decision) before the "
-    "executor can score a bundle at that level"
+    "decision loss at Levels 2-4 needs the panel-member registration (the Test Engineer's decision); the executor "
+    "can score accuracy error without it, and this run has no record"
 )
 
 
@@ -174,6 +290,15 @@ def public_dev_block(records, level=None):
             + (f"; {PANEL_MEMBER_NOTE}" if (level or 0) >= 2 else "")
         )
     out = {}
+    counting = [rec for rec in records if rec.get("counts_for_level", True)]
+    non_counting = [rec for rec in records if not rec.get("counts_for_level", True)]
+    guards = {rec.get("guard", GUARD_SKIPPED) for rec in counting}
+    guard = guards.pop() if len(guards) == 1 else ("mixed" if guards else None)
+    superseded = [
+        {"run": rec.get("run_id"), **rec["supersedes"]}
+        for rec in records
+        if type(rec.get("supersedes")) is dict
+    ]
     for name in METRICS:
         pairs = [
             (
@@ -181,16 +306,32 @@ def public_dev_block(records, level=None):
                 (rec.get("questions") or {}).get("common_mask"),
                 rec.get("run_id"),
             )
-            for rec in records
+            for rec in counting
+            if (r := relative(rec["baseline"].get(name), rec["model"].get(name)))
+            is not None
+        ]
+        aside = [
+            {"run": rec.get("run_id"), "relative_improvement": round(r, 6)}
+            for rec in non_counting
             if (r := relative(rec["baseline"].get(name), rec["model"].get(name)))
             is not None
         ]
         if not pairs:
-            reasons = _null_reasons(records, name)
-            out[name] = unmeasured(
-                f"no run measured {name} on both sides"
-                + (f" ({'; '.join(reasons)})" if reasons else "")
-            )
+            reasons = _null_reasons(counting, name)
+            why = f"no run measured {name} on both sides"
+            if non_counting and not counting:
+                why = (
+                    "no counting member: the non-counting members (their plain strategies did not exercise the "
+                    "level's freedom) are listed apart, not counted"
+                )
+            out[name] = {
+                **unmeasured(why + (f" ({'; '.join(reasons)})" if reasons else "")),
+                **(
+                    {"non_counting": aside, "caveats": _caveats(non_counting)}
+                    if aside
+                    else {}
+                ),
+            }
             continue
         values = [r for r, _, _ in pairs]
         reasons = _decision_noise(pairs) if name == "decision_loss" else []
@@ -206,9 +347,32 @@ def public_dev_block(records, level=None):
             **(
                 {"ci95_note": f"interval not meaningful at n={len(values)}"}
                 if len(values) < MIN_N_INTERVAL
-                else {}
+                else (
+                    {
+                        "ci95_note": f"coarse at n={len(values)}: the bootstrap median can only take the observed values"
+                    }
+                    if len(values) < COARSE_N
+                    else {}
+                )
             ),
             **({"caveats": _caveats(records)} if _caveats(records) else {}),
+            **({"guard": guard} if guard else {}),
+            **({"non_counting": aside} if aside else {}),
+            **({"superseded": superseded} if superseded else {}),
+            **(
+                {
+                    "always_abstain_control": [
+                        {"run": rec.get("run_id"), **rec["controls"]["always_abstain"]}
+                        for rec in records
+                        if (rec.get("controls") or {}).get("always_abstain")
+                    ]
+                }
+                if name == "decision_loss"
+                and any(
+                    (rec.get("controls") or {}).get("always_abstain") for rec in records
+                )
+                else {}
+            ),
             "interval": f"percentile bootstrap of the median, {BOOTSTRAP_REPS} resamples, seed {BOOTSTRAP_SEED}",
             **(
                 {

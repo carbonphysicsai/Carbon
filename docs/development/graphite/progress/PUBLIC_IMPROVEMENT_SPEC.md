@@ -137,8 +137,9 @@ number is the point.
 
 ## Addendum: registered-guard records for Levels 1 to 4 (plan; OPT-09 panel, #1208)
 
-**Status: PLAN, 2026-10-12. Nothing here is built in the ledger yet and nothing is authorised to run until the Test Lead's
-resource decision (OPT-09 README: the total for these builds is UNMEASURED).** It replaces the guard-skipped, accuracy-only
+**Status, 2026-10-12: the record shape and the ledger reading below are built (`improvement.validate`, `public_dev_block`, with
+tests); the rebuild is run by the executor under the Test Lead's resource decision (OPT-09 README: the total for these builds is
+UNMEASURED).** It replaces the guard-skipped, accuracy-only
 Level 1 to 4 records. Those stay in the ledger, labelled `guard: skipped`, as history.
 
 ### Which bundles
@@ -176,17 +177,38 @@ exactly as the existing public-improvement records do:
   against the baseline's decisions (three baseline rebuilds, one per run, about 10 s each, are needed for the baseline side).
   This is the EV4-scenario column, so the existing noise rule applies (masks that differ, or runs that disagree in sign, read
   `MEASURED_BUT_NOISY`); the public-dev VALUE-half column, when built, supersedes it as the headline.
-- **Always-abstain control (#1209).** The public battery value metric ranked an always-abstaining control second of 100 on the
-  historical EV5 mask. Every decision-loss number must therefore be read against that control: the record carries
-  `controls.always_abstain` = the control's decision loss on the same mask and its rank among {panel members, baseline, control}.
-  A decision-loss improvement that does not beat the control is not evidence of better decisions.
+- **Always-abstain control (#1209, read narrowly).** RES-07 (`Business/research/value-metric-audit/reports/REPORT.md`, section 3)
+  constructs *always abstain* as "not a prediction model: zero unsafe selections and zero new design benefit" and computes its
+  **registered loss** only on the real cohort's common mask; a question with no feasible design is settled NONE, not unresolved.
+  It ranked 2nd of 100 on the historical EV5 verification mask. The executor computes the control the same way: it never selects;
+  its loss on each scenario of the same common mask is the registered decision loss of an ABSTAIN outcome, through the same
+  `carbon.battery.value` loss function as the models (a missed opportunity when the reference has a feasible best design in the
+  tested set, 0 when none does), not a re-derived formula. The record carries `controls.always_abstain` =
+  `{"decision_loss": number or null, "rank": integer or null, "of": integer, "mask": integer}`: its loss, its rank among {panel
+  members, baseline, control} by decision loss (1 = lowest), the size of that field and the common-mask size. A decision-loss
+  improvement that does not beat the control is not evidence of better decisions.
 
-Record: the same schema `carbon.graphite.public-improvement.v1`, one file per member named
-`<run>-<lane>-L<n>-registered-public-improvement.json`, with these added fields (older records have none, which the ledger reads as
-`guard: skipped`): `guard: "registered"`, `panel: "ev4-dev-proof-bundled"`, `member` (the registered label), `counts_for_level`
-(bool), `supersedes` (the filename and sha256 of the guard-skipped record it replaces), `controls.always_abstain`. The ledger
-checks `panel` and `member` against the committed contract's `panel_registration.member_sha256` and `counts_for_level` against
-`carbon/battery/value/panels/proof-panel-levels-v1.json`, and refuses a record that disagrees.
+### Record shape the ledger accepts
+
+The schema stays `carbon.graphite.public-improvement.v1`; every addition is optional, so **every existing record is still
+accepted unchanged** (no `guard` field reads as `guard: skipped`). `panel` is always an object. A registered-guard record is a v1
+record with these changes (one file per member, `<run>-<lane>-L<n>-registered-public-improvement.json`):
+
+    "guard": "registered",
+    "panel": {"name": "ev4-dev-proof-bundled",
+              "scoring_set": {"function": "public_ev4_scoring_set", "sha256": "sha256:ff10f9ae...436cb", "cases": 840}},
+    "member": "<registered label, e.g. l2-E-913bf188-p-fa5c88711f35-s441520862>",
+    "level": <the member's level>, "counts_for_level": true | false,
+    "supersedes": {"file": "<guard-skipped record file>", "sha256": "sha256:..."},
+    "controls": {"always_abstain": {"decision_loss": 0.0, "rank": 1, "of": 12, "mask": 7}}
+
+There is no top-level `scoring_set` or `scoring_set_digest` duplicate: the scoring set stays at `panel.scoring_set`, where the
+ledger already reads it, and the same digest pin applies (the committed contract's literal `public_reference_sha256`). The ledger
+refuses a registered record when: `panel.name` is not the committed bundled contract's panel; `member` is not in the contract's
+`panel_registration.member_sha256` (labels with the seed suffix `-s<seed>`); `level` or `counts_for_level` differs from
+`carbon/battery/value/panels/proof-panel-levels-v1.json`; `supersedes` lacks a file and a `sha256:` digest;
+`controls.always_abstain` is missing or malformed; or `counts_for_level`, `supersedes` or `controls` appear without `guard:
+"registered"`.
 
 ### Ledger change
 
