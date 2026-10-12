@@ -1,0 +1,15 @@
+{
+ "schema":"carbon.customer-rehearsal.delivery-measurement.v1","scope":"REPRESENTATIVE","customer_result":false,
+ "brief_identity":null,"input_manifest_digest":null,"source_main":null,"question_and_measurement_versions":null,
+ "stage_map":"docs/development/challenge_pipeline/onboarding/stage_map.json",
+ "timeline":[
+  {"stage":"S0/S1 intake and brief","owner":"packet/customer owner","started_utc":null,"completed_utc":null,"active_person_hours":null,"blocked_hours":null,"receipt":null},
+  {"stage":"S2 reference package and adequacy","owner":"Data Collection / Test Lead","started_utc":null,"completed_utc":null,"active_person_hours":null,"blocked_hours":null,"receipt":null},
+  {"stage":"S3/S4 panel registration","owner":"Data Collection / Optimizer","started_utc":null,"completed_utc":null,"active_person_hours":null,"blocked_hours":null,"receipt":null},
+  {"stage":"evidence/baseline and dossier","owner":"Data Collection / Codex","started_utc":null,"completed_utc":null,"active_person_hours":null,"blocked_hours":null,"receipt":null}
+ ],
+ "costs":{"solver_cpu_s":null,"allocated_core_s":null,"wall_s":null,"peak_ram_bytes":null,"setup_fit_query_verify_s":null,"failed_attempt_count":null,"actual_bill_eur":null,"labour_hours_by_role":null,"rights_license_retention_eur":null},
+ "deliverable":{"renderer":"Business/research/deliverable-generator/README.md","D01_D11_coverage":null,"artifact_digest":null,"limitations":[],"state":"NOT_DELIVERED"},
+ "customer_replacement_receipts":{"B01":null,"B02":null,"B03":null,"B04":null,"B05":null,"B06":null,"I01_I17":null},
+ "summary":{"brief_to_gap_report_wall_hours":null,"brief_to_tested_wall_hours":null,"consumed_cost_eur":null,"commercial_price_eur":null,"time_saved_vs_battery":null,"basis":"UNKNOWN until receipts; git intervals are not active effort or completion"}
+}

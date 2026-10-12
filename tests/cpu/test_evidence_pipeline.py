@@ -110,9 +110,11 @@ def plain_task(actions, objective, limit):
     )
 
 
-def bundle(family="f02", *, indexed_f02=False):
+def bundle(family="f02", *, indexed_f02=False, full_f02=False):
     if family == "f02":
-        original, material = portfolio_fixture("f02", thermal_payloads())
+        original, material = portfolio_fixture(
+            "f02", thermal_payloads(9 if full_f02 else 5)
+        )
         first = original["questions"][0]
         export = export_questions(family, first["task"], first["reference"])
         material = ep.pb.seal_materials(

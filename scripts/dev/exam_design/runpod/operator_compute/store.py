@@ -95,6 +95,20 @@ CREATE TABLE IF NOT EXISTS state_events (
     state TEXT NOT NULL,
     at REAL NOT NULL
 );
+CREATE TABLE IF NOT EXISTS resend_claims (
+    campaign_id TEXT NOT NULL,
+    intent_id TEXT NOT NULL,
+    claimed_at REAL NOT NULL,
+    PRIMARY KEY (campaign_id, intent_id)
+);
+CREATE TABLE IF NOT EXISTS reconcile_lag (
+    campaign_id TEXT NOT NULL,
+    intent_id TEXT NOT NULL,
+    reconcile_number INTEGER NOT NULL,
+    seconds REAL NOT NULL,
+    observed_at REAL NOT NULL,
+    PRIMARY KEY (campaign_id, intent_id)
+);
 CREATE TABLE IF NOT EXISTS provider_charges (
     provider TEXT NOT NULL,
     resource_id TEXT NOT NULL,
@@ -379,6 +393,44 @@ class ComputeStore:
                 ),
             ).rowcount
         return moved == 1
+
+    def claim_resend(self, campaign_id: str, intent_id: str) -> bool:
+        """True for the ONE caller that may resend an ambiguous create for
+        this intent, once ever: the claim is a primary-key insert, so two
+        threads or processes can never both resend, and a claim survives a
+        restart."""
+
+        with self._tx() as db:
+            inserted = db.execute(
+                "INSERT OR IGNORE INTO resend_claims VALUES (?,?,?)",
+                (campaign_id, intent_id, self.clock()),
+            ).rowcount
+        return inserted == 1
+
+    def record_lag(
+        self, campaign_id: str, intent_id: str, reconcile_number: int, seconds: float
+    ) -> None:
+        """The time from an ambiguous create to the first reconcile that showed its
+        pod (the provider's list lag), once per intent."""
+
+        with self._tx() as db:
+            db.execute(
+                "INSERT OR IGNORE INTO reconcile_lag VALUES (?,?,?,?,?)",
+                (campaign_id, intent_id, reconcile_number, seconds, self.clock()),
+            )
+
+    def lag(self, campaign_id: str, intent_id: str) -> dict | None:
+        rows = self._all(
+            "SELECT reconcile_number, seconds FROM reconcile_lag "
+            "WHERE campaign_id = ? AND intent_id = ?",
+            (campaign_id, intent_id),
+        )
+        if not rows:
+            return None
+        return {
+            "reconcile_number": rows[0]["reconcile_number"],
+            "seconds": rows[0]["seconds"],
+        }
 
     # resources ----------------------------------------------------------
     def bind_resource(

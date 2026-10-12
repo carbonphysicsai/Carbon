@@ -569,6 +569,32 @@ async def _preview(args):
         return preview(issuer, snapshot)
 
 
+#: The most reconcile calls one run makes for an earlier dispatch (each scans
+#: at most 256 finalized blocks): enough to find a reveal several epochs back.
+RECONCILE_CALLS = 40
+#: Dispatch states reconcile may still move on: a timelocked commit not yet
+#: revealed, or a transaction not yet found in the finalized backfill.
+RECONCILABLE = ("REVEAL_PENDING", "AMBIGUOUS")
+
+
+async def settle_pending(publisher, calls=RECONCILE_CALLS):
+    """Reconcile an earlier, unfinished dispatch before a new publication.
+
+    A timelocked commit stays `REVEAL_PENDING` until its reveal is read, and
+    the shared publisher refuses a new publication while one is open
+    (`RECONCILE_PENDING_DISPATCH_FIRST`). Without this, the first commit-reveal
+    publication blocked every later one. Bounded: None once nothing is
+    pending, else the open dispatch's latest row. Reads the chain only; signs
+    nothing."""
+    row = None
+    for _ in range(calls):
+        pending = publisher.journal.pending()
+        if pending is None:
+            return None
+        row = await publisher.reconcile(pending)
+    return row if publisher.journal.pending() is not None else None
+
+
 async def _run(args):
     from pathlib import Path
 
@@ -585,6 +611,16 @@ async def _run(args):
     )
     try:
         publisher = TestnetWinnerPublisher(issuer, backend)
+        # An earlier timelocked commit is settled first; while it cannot be,
+        # nothing new is published (fail closed), and the result says why.
+        open_row = await settle_pending(publisher)
+        if open_row is not None:
+            return {
+                "status": "RECONCILE_PENDING",
+                "dispatch": open_row.get("identity"),
+                "state": open_row["state"],
+                "reason": open_row.get("reason"),
+            }
         snapshot, _ = await backend.observe()
         return await publisher.publish(issuer.issue(snapshot))
     finally:

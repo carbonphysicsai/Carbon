@@ -1,0 +1,19 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-11-onboarding-metrics-validation",
+  "recorded_at": "2026-10-11T17:09:57Z",
+  "challenge": "protocol",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "ONBOARDING-METRICS-01 / tests/cpu/test_onboarding_metrics.py + test_onboarding_timeline.py + test_onboarding_status.py + test_onboarding_pipeline_data.py",
+    "description": "Native diagnostic onboarding regression group after restoring every missing cited public reference in the isolated sparse worktree."
+  },
+  "expected": "Existing onboarding invariants and new metrics fixtures pass without changing reference authority or weakening tests.",
+  "observed": "52 tests passed in 72.45 seconds on the Windows diagnostic host. Earlier sparse-checkout-only failures were fixed by restoring the exact public tracked docs. Pipeline validation accepted 618 lessons and seven records; Windows render CRLF was normalized only on the generated page, leaving no substantive derived-view diff. Canonical CI remains a submitted-head acceptance task, not a claim from native results.",
+  "keep": ["Missing checkout content is not a reason to weaken a regression or its source pointer.", "Separate native diagnostics and canonical acceptance."],
+  "change": ["Inspect all public cited paths before rerunning a source-presence group, rather than repairing one sparse omission per run."],
+  "protocol_elements": ["challenge_onboarding", "lessons_learned", "canonical_validation"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

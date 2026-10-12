@@ -5,9 +5,10 @@ Claims tested:
 - the grant is the owner's: R3's exact shape with only the approved fields
   changed, and its arithmetic holds (3 × 14.91 + 0.25 = 44.98 ≤ 45.00);
 - a full-window kimi-k3 call at the Constructor's settings reserves exactly
-  USD 2.0646912: five fit the run's USD 11.93 token share, four the approved
+  USD 2.0646912: five fit the run's USD 10.99 token share (11.93 before the
+  0.65/h ceiling, OWNER-GRAPHITE-PHASE3-R4-CEILING-01), four the approved
   USD 10 model allowance, none a Level 0 run's USD 1.95;
-- the run's budget uses the registered USD 11.93 share, and its pods get the
+- the run's budget uses the registered USD 10.99 share, and its pods get the
   rest only while that covers them; every other grant's budget is unchanged;
 - a Level 0 run under R4 is refused typed, at the CLI before anything opens
   and again before a session opens;
@@ -33,6 +34,7 @@ import pytest
 from carbon.agent_campaign.grant import SpendingGrant
 from carbon.agent_campaign.graphite import experiment as ex
 from carbon.agent_campaign.graphite import grant_binding, phase3, pods, roles
+from carbon.agent_campaign.graphite import pods as podlib
 from carbon.agent_campaign.graphite.ladder import Ladder, LadderError
 from carbon.agent_campaign.graphite.model import ScriptedModel, text, tool
 from carbon.agent_campaign.graphite.roles import FailureKind, RoleName
@@ -130,7 +132,9 @@ def _run(tmp_path, grant, model=None):
 # -- the grant ----------------------------------------------------------------------------------
 def test_the_r4_grant_is_r3_with_only_the_approved_fields_changed():
     r3, r4 = _document("GRAPHITE-GRANT-PHASE3-R3.json"), _document()
-    assert list(r4) == list(r3)
+    # OWNER-GRAPHITE-PHASE3-R4-CEILING-01 adds the standing 0.65/h ceiling.
+    assert list(r4) == [*r3, "pod_rate_ceiling_usd_per_hr"]
+    assert r4["pod_rate_ceiling_usd_per_hr"] == "0.65"
     changed = {key for key in r3 if r3[key] != r4[key]}
     assert changed == {"grant_id", "monetary_ceiling", "worst_case_run_cost"}
     assert r4["grant_id"] == R4_ID
@@ -196,7 +200,9 @@ def test_the_registry_binds_r4_to_battery_main_level_1_and_the_top_rung():
     assert entry.grant_file == grant_binding.GRANTS_DIR + "/" + R4_NAME
     assert entry.min_level == 1
     assert entry.start_model == "kimi-k3" == ENGY_LADDER[-1]
-    assert entry.token_share_usd == Decimal("11.93")
+    # 11.93 until OWNER-GRAPHITE-PHASE3-R4-CEILING-01 (owner-confirmed).
+    assert entry.token_share_usd == Decimal("10.99")
+    assert entry.token_share_usd == grant_binding.STAGE_TOKEN_SHARE
     assert grant_binding.start_rungs(_grant()) == {
         RoleName.CONSTRUCTOR: len(ENGY_LADDER) - 1,
         RoleName.PLANNER: len(ENGY_LADDER) - 1,
@@ -223,10 +229,13 @@ def test_the_registry_binds_r4_to_battery_main_level_1_and_the_top_rung():
 
 def test_the_run_budget_uses_the_registered_token_share():
     budget = ex.phase3_budget(_grant(), BATTERY)
-    assert budget.token_allowance_usd == Decimal("11.93")
-    assert budget.pod_allowance_usd == Decimal("2.98") >= budget.pods_need_usd
-    assert budget.pods_need_usd == Decimal("2.96") and budget.max_pods == 12
-    assert budget.record()["token_share_usd"] == "11.93"
+    # At the grant's 0.65/h ceiling the session's 12 pods need exactly the
+    # 3.92 that the 10.99 share leaves of the 14.91 run.
+    assert budget.hourly_usd == podlib.prices(Decimal("0.65"))["hourly_usd"]
+    assert budget.token_allowance_usd == Decimal("10.99")
+    assert budget.pod_allowance_usd == Decimal("3.92") >= budget.pods_need_usd
+    assert budget.pods_need_usd == Decimal("3.92") and budget.max_pods == 12
+    assert budget.record()["token_share_usd"] == "10.99"
     assert ex.usd_to_nano(budget.token_allowance_usd) >= KIMI_RESERVATION_NANO
 
 
@@ -336,12 +345,12 @@ def test_a_level_1_session_opens_on_kimi_k3_and_its_first_call_is_admitted(tmp_p
         "min_construction_level": 1,
         "start_model": "kimi-k3",
         "start_roles": ["constructor", "planner"],
-        "token_share_usd": "11.93",
+        "token_share_usd": "10.99",
     }
     [call] = record["calls"]
     assert call["state"] == "SUCCEEDED" and call["provider_model"] == "kimi-k3"
     assert call["reservation"]["provider_nanodollars"] == KIMI_RESERVATION_NANO
-    assert record["caps"]["provider_nanodollars"] == 11930000000
+    assert record["caps"]["provider_nanodollars"] == 10990000000
 
 
 def test_there_is_no_rung_above_the_top(tmp_path):
@@ -415,7 +424,7 @@ def test_23_settled_kimi_k3_calls_are_admitted_under_the_r4_share(tmp_path):
         assert call["reservation"]["provider_nanodollars"] == KIMI_RESERVATION_NANO
         assert call["settlement"]["provider_nanodollars"] == RUN5_CHARGED_MICRO * 1000
     spent = Decimal(RUN5_CALLS * RUN5_CHARGED_MICRO) / 10**6
-    assert spent + Decimal(KIMI_RESERVATION_NANO) / NANO <= Decimal("11.93")
+    assert spent + Decimal(KIMI_RESERVATION_NANO) / NANO <= Decimal("10.99")
 
 
 def test_mutation_keeping_each_full_reservation_stops_after_5_calls(
