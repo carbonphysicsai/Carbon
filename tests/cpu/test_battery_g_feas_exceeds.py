@@ -75,10 +75,10 @@ def test_v6_keeps_every_v5_candidate_and_adds_1059s_selection_candidates():
     assert score_tuning.gate_verdict(tight, row(0.021)) == admissibility.FAIL
 
 
-def test_the_score_proof_reads_registry_v7_which_keeps_v6():
+def test_the_score_proof_reads_registry_v8_which_keeps_v6():
     from scripts.dev.battery import score_proof
 
-    assert score_proof.REGISTRY.name == "registry-v7.json"
+    assert score_proof.REGISTRY.name == "registry-v8.json"
 
 
 def test_an_unknown_comparison_is_refused():
