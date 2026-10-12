@@ -1071,3 +1071,22 @@ R4 (45.00, 3 runs, Level 1 and above) is unchanged and stays spendable.
   `pod_rate_ceiling_usd_per_hr` 0.65, and the stage Constructors' token
   share is 10.99 (`grant_binding.STAGE_TOKEN_SHARE`).
 - **Unchanged:** stage caps, run counts and per-run caps.
+
+## The Level 5 hunt's per-run grants (OWNER-GRAPHITE-OPEN-SAFE-01-GRANTS, #1163)
+
+**Authority.** The owner's record `.agent/decisions/2026-10-12-OWNER-GRAPHITE-OPEN-SAFE-01-GRANTS.md`: USD 86.71 for the Level 5 hunt
+(four Constructor runs at 14.91 and two Attacker runs at 13.41, cleanup 0.12 and 0.13), a ceiling for the hunt and not a target.
+
+| File | Run | Level | Worst case | Cleanup | Ceiling |
+|---|---|---|---|---|---|
+| `GRAPHITE-GRANT-HUNT-H1-CONSTRUCTOR` | H1, Constructor | 1 | 14.91 | 0.03 | 14.94 |
+| `GRAPHITE-GRANT-HUNT-H2-CONSTRUCTOR` | H2, Constructor | 2 | 14.91 | 0.03 | 14.94 |
+| `GRAPHITE-GRANT-HUNT-H3-CONSTRUCTOR` | H3, Constructor | 3 | 14.91 | 0.03 | 14.94 |
+| `GRAPHITE-GRANT-HUNT-A1-ATTACKER` | A1, Attacker | 1 | 13.41 | 0.06 | 13.47 |
+| `GRAPHITE-GRANT-HUNT-A2-ATTACKER` | A2, Attacker | 3 | 13.41 | 0.06 | 13.47 |
+
+The five ceilings total 71.76. The fourth Constructor run (H4, Level 4, waiting for the variant fix) is not granted in this batch
+and its share is left unallocated. Every worst case is the existing stage grants' figure; each run is far under the USD 50 per-run
+cap. One run per file, `max_concurrency` 1, runtimes 39,600 s and 15,600 s, the 0.65 per hour pod rate ceiling, expiry
+2026-12-31. A grant file binds spend only because the runner's grant binding registers it (`grant_binding.PHASE3_GRANTS`, and
+`phase4.PHASE4_STAGE_GRANTS` for the Attackers' levels); this change adds exactly those table entries.
