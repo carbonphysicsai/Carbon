@@ -143,6 +143,7 @@ tr.is-king td:first-child{box-shadow:inset 3px 0 0 var(--red)}
 .spark .handover{stroke:var(--red);stroke-width:1.5;stroke-dasharray:4 4}
 .spark .handover-label{fill:var(--red)}
 .more summary{font-size:14px;min-height:32px;cursor:pointer}
+.handovers{display:grid;gap:10px;margin-top:16px}
 .quiet{border-style:dashed;display:grid;gap:16px}
 .quiet-title{font-weight:600}
 .round{display:grid;gap:12px}
