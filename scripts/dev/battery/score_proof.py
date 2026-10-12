@@ -88,6 +88,27 @@ def load_sequential(path=SEQUENTIAL):
     return document
 
 
+def incomplete_refusal(report, candidates):
+    """A confirmation whose pick or contrast has a pool withheld for missing
+    legs (`INCOMPLETE_LEGS`: no --verify-r for a VERIFY-R rule, or no
+    --q3-regret) is an input problem, not a verdict (infrastructure failure is
+    not scientific failure). It is refused before anything is written, so the
+    look stays unspent; a FAIL is never recorded for it."""
+    withheld = sorted(
+        f"{cid} {pool}"
+        for cid in candidates
+        for pool, row in (report.get("candidates", {}).get(cid) or {}).items()
+        if isinstance(row, dict) and row.get("status") == "INCOMPLETE_LEGS"
+    )
+    if not withheld:
+        return None
+    return (
+        "confirmation_incomplete_legs: "
+        + ", ".join(withheld)
+        + " (supply the missing legs: --verify-r, --q3-regret); nothing written"
+    )
+
+
 def sequential_look(design, questions, which, interim_fraction=None):
     """This look's boundary, by the registered spending: the interim at its
     actual information fraction (resolved questions over the planned
@@ -512,6 +533,10 @@ def main(argv=None):
         baseline=args.baseline,
         level=level,
     )
+    if args.phase == "confirmation":
+        refused = incomplete_refusal(report, candidates)
+        if refused:
+            raise SystemExit("refused: " + refused)
     report["phase"] = {
         "phase": args.phase,
         "split": split["salt"],
