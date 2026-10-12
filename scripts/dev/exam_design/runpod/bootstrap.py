@@ -10,7 +10,10 @@
 #    the results directory, /files lists its regular files with sha256 and
 #    /file/<path> serves one of them, so a large result can be fetched file by file.
 #    It holds campaign records only - no credential, environment or filesystem path
-#    outside it is served, and nothing is writable over HTTP.
+#    outside it is served. The only writes over HTTP, both with the token, are
+#    POST /go (a marker file) and, for a job that declares inputs, POST
+#    /input/<path>: one declared input file, whose size and sha256 are pinned in
+#    INPUTS_MANIFEST_GZ_B64, written under INPUT_DIR. Anything else is refused.
 # 2. Fetches the Carbon files named in CODE_MANIFEST (or CODE_MANIFEST_GZ_B64, the
 #    same JSON gzipped, for a manifest that ships the whole carbon/ package) from the
 #    public repository at CODE_REF and refuses any whose sha256 differs.
@@ -58,6 +61,16 @@ PHASE_MODULE = os.environ.get("PHASE_MODULE", "scripts.dev.exam_design.runner")
 # passed on to the phase.
 os.environ.pop("CARBON_BOOT", None)
 ROOT, OVL, OUT = "/tmp/carbon", "/tmp/overlay", "/tmp/out"
+# A shared pod job's uploaded inputs (`carbon.agent_campaign.pod_jobs`): {path:
+# {"sha256", "bytes"}}. Empty for every other campaign, whose behaviour is unchanged.
+INPUTS = json.loads(
+    gzip.decompress(base64.b64decode(os.environ.pop("INPUTS_MANIFEST_GZ_B64"))).decode()
+    if os.environ.get("INPUTS_MANIFEST_GZ_B64")
+    else "{}"
+)
+INPUT_DIR = os.environ.get("INPUT_DIR", "/tmp/inputs")
+MAX_INPUT_BYTES = max([v["bytes"] for v in INPUTS.values()] + [0])
+RECEIVED = set()
 GO_FILE = os.environ.get("GO_FILE", "/tmp/carbon-go")
 CTX = ssl.create_default_context(cadata=CA) if CA else ssl.create_default_context()
 STATE = {
@@ -193,17 +206,29 @@ class H(http.server.BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def do_POST(self):
-        """The only write: POST /go with the matching token drops a marker file
-        outside the served results directory (the A40 acceptance barrier); any
-        other POST is 404 as before."""
-        ok = (
-            TOKEN
-            and self.path == "/go"
-            and hmac.compare_digest(self.headers.get("X-Probe-Token", ""), TOKEN)
+        """POST /go with the matching token drops a marker file outside the
+        served results directory (the A40 acceptance barrier). POST
+        /input/<path> with the token writes one declared input (`receive`).
+        Any other POST is 404 as before."""
+        token = TOKEN and hmac.compare_digest(
+            self.headers.get("X-Probe-Token", ""), TOKEN
         )
-        if ok:
+        # The body is read before any answer (at most one declared file's
+        # size, else a small limit), so a refused request ends cleanly.
+        limit = (
+            MAX_INPUT_BYTES if token and self.path.startswith("/input/") else 1 << 20
+        )
+        body = read_body(self.headers, self.rfile, limit)
+        if body is None:
+            self.close_connection = True
+        if token and body is not None and self.path.startswith("/input/"):
+            code = receive(self.path[len("/input/") :], body)
+        elif token and self.path == "/go":
             Path(GO_FILE).write_text("go")
-        self.send_response(200 if ok else 404)
+            code = 200
+        else:
+            code = 404
+        self.send_response(code)
         self.send_header("Content-Length", "0")
         self.end_headers()
 
@@ -214,6 +239,56 @@ class H(http.server.BaseHTTPRequestHandler):
 
     def log_message(self, *a):
         pass
+
+
+def read_body(headers, stream, limit):
+    """The request body, or None when its length is missing, invalid or over
+    `limit` (the connection is then closed rather than read)."""
+    try:
+        length = int(headers.get("Content-Length", "0"))
+    except ValueError:
+        return None
+    if not 0 <= length <= limit:
+        return None
+    body = stream.read(length)
+    return body if len(body) == length else None
+
+
+def receive(rel, body):
+    """One declared input: its size and sha256 checked, then written under
+    INPUT_DIR. 404 for an undeclared path, 409 for a size or digest that
+    differs (nothing written). A file already received is accepted again only
+    with the same bytes."""
+    want = INPUTS.get(rel)
+    parts = rel.split("/")
+    if (
+        want is None
+        or rel.startswith("/")
+        or "\\" in rel
+        or {"", ".", ".."} & set(parts)
+    ):
+        return 404
+    if len(body) != want["bytes"] or hashlib.sha256(body).hexdigest() != want["sha256"]:
+        return 409
+    path = os.path.join(INPUT_DIR, *rel.split("/"))
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    partial = path + ".partial"
+    Path(partial).write_bytes(body)
+    os.replace(partial, path)
+    RECEIVED.add(rel)
+    return 200
+
+
+def wait_for_inputs():
+    """Until every declared input has arrived, or the deadline."""
+    STATE["stage"] = "waiting_inputs"
+    STATE["inputs"] = {"declared": len(INPUTS), "received": 0}
+    while len(RECEIVED) < len(INPUTS):
+        if DEADLINE and time.time() > DEADLINE:
+            raise RuntimeError("inputs incomplete at the deadline")
+        STATE["inputs"]["received"] = len(RECEIVED)
+        time.sleep(2)
+    STATE["inputs"]["received"] = len(RECEIVED)
 
 
 def install_overlay(lock_path, target):
@@ -284,6 +359,8 @@ def main():
             STATE["overlay"][name] = install_overlay(
                 os.path.join(ROOT, lock), os.path.join(OVL, name)
             ) | {"seconds": round(time.time() - t, 1)}
+        if INPUTS:
+            wait_for_inputs()
         STATE["stage"] = "running_phase"
         env = {
             k: v
@@ -296,6 +373,8 @@ def main():
             p for p in (ROOT, *single, env.get("PYTHONPATH", "")) if p
         )
         env["OVERLAY_ROOT"] = OVL
+        if INPUTS:
+            env["INPUTS_DIR"] = INPUT_DIR
         env["PYBAMM_DISABLE_TELEMETRY"] = "true"
         env["HOME"] = "/tmp"
         env.setdefault("XLA_PYTHON_CLIENT_PREALLOCATE", "false")
