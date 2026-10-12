@@ -185,6 +185,21 @@ def ordered_actions(contract, scenario, grid_predictions):
     return [cid for _, cid in pool]
 
 
+def _reliability(losses):
+    from .score_proof import value_ceiling
+
+    c = value_ceiling(losses) if losses else {"status": "NOT_MEASURABLE"}
+    keep = (
+        "status",
+        "members",
+        "informative_questions",
+        "per_question_reliability",
+        "reliability",
+        "tau_ceiling",
+    )
+    return {k: c[k] for k in keep if k in c}
+
+
 def member_scores(contract, scenarios, predictions, refs, receipt_id):
     """Every member's VERIFY-R result at each registered k.
 
@@ -213,7 +228,7 @@ def member_scores(contract, scenarios, predictions, refs, receipt_id):
             for entry in scenarios
         ]
         ids = [q["question_id"] for q in questions]
-        legs[LEG[k]], stopped, statuses = {}, 0, {}
+        legs[LEG[k]], stopped, statuses, losses = {}, 0, {}, []
         for member in sorted(predictions):
             commitments, receipts = {}, {}
             for qid in ids:
@@ -250,6 +265,8 @@ def member_scores(contract, scenarios, predictions, refs, receipt_id):
                 the_rule, member, questions, commitments, receipts, eligibility
             )
             legs[LEG[k]][member] = report["aggregate"]["v"]
+            if all(row["score"] is not None for row in report["questions"]):
+                losses.append([row["score"] for row in report["questions"]])
             for row in report["questions"]:
                 stopped += bool(row.get("budget_stopped"))
                 statuses[row["status"]] = statuses.get(row["status"], 0) + 1
@@ -262,5 +279,8 @@ def member_scores(contract, scenarios, predictions, refs, receipt_id):
             "cost_unmeasured_panels": len(unmeasured),
             "panels_over_allotment": len(over),
             "overhead_charged": False,
+            # The power check: the leg's own per-question reliability and the
+            # tau a perfect score could reach against it (SCORE-CEILING-01).
+            "reliability": _reliability(losses),
         }
     return legs, diagnostics
