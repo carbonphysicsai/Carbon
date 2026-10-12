@@ -45,7 +45,8 @@ those guards in the proof. Current quiz replay does not charge inference
 overhead, so actual delivery latency/cost remains an evidence gap.
 
 Copying prevalence is unmeasured. An assumed row-cloning stress changes
-pooled rank agreement without changing any unique artifact's value. Freeze
+pooled rank agreement without changing any original member's value. Actual
+artifact uniqueness is unmeasured. Freeze
 the comparison pool, show recipe/artifact views and keep attribution/IP
 separate from scientific score.
 

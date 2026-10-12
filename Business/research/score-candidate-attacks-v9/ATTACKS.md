@@ -145,9 +145,11 @@ the realizability of a raw prediction transform must be tested separately.
    a harness mutation control, **not a discovered current verifier bug**.
 5. **Copy/clone pool distortion:** assumed additional identical boundary-
    control rows low/base/high 0/10/100. EV5 R tau changes
-   0.481328/0.492701/0.526279 while every unique artifact's score and value
+   0.481328/0.492701/0.526279 while every original member's score and value
    are unchanged. A tau changes 0.446308/0.211158/−0.481905. This stresses
-   the score-proof statistic, not an individual model score or an observed
+   Only added toy copies are de-cloned by public member label; actual
+   artifact uniqueness/equivalence of the original members is unmeasured.
+   This stresses the score-proof statistic, not an individual model score or an observed
    copy/Sybil rate. Seed replicas already have dependence; artifact/recipe
    views and a frozen pool are necessary, not a similarity-score penalty.
 

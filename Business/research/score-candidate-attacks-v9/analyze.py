@@ -285,11 +285,12 @@ def measure_panel(data, unit):
                     "tau_rows": tau(
                         [mapping[m] for m in expanded], [losses[m] for m in expanded]
                     ),
-                    "tau_unique_artifacts": tau(
+                    "tau_de_cloned_public_member_rows": tau(
                         [mapping[m] for m in original], [losses[m] for m in original]
                     ),
                     "individual_score_change": 0,
-                    "unique_artifact_value_change": 0,
+                    "original_member_value_change": 0,
+                    "grouping_basis": "Original public member labels; only added toy clones removed. Exact artifact uniqueness/equivalence of original members is UNMEASURED.",
                     "basis": "ASSUMPTION row-cloning stress, not an observed Sybil/copying attack",
                 }
             )
