@@ -364,7 +364,20 @@ class GeneratorTests(unittest.TestCase):
     def test_git_reader_uses_commit_and_ignores_working_tree(self):
         def git(*args):
             return subprocess.run(
-                ["git", "-C", str(self.root), *args], check=True, capture_output=True
+                # Background upkeep writes and removes `.git` lock files
+                # asynchronously, which races this fixture's own commands.
+                [
+                    "git",
+                    "-C",
+                    str(self.root),
+                    "-c",
+                    "maintenance.auto=false",
+                    "-c",
+                    "gc.auto=0",
+                    *args,
+                ],
+                check=True,
+                capture_output=True,
             ).stdout
 
         git("init")

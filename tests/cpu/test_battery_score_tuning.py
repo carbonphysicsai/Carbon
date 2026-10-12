@@ -61,6 +61,12 @@ REGISTRY = {
 
 def _registry(tmp_path, document=REGISTRY, commit=True):
     subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
+    # Background upkeep writes and removes `.git` lock files asynchronously,
+    # which races this fixture's own commands.
+    for key, value in (("maintenance.auto", "false"), ("gc.auto", "0")):
+        subprocess.run(
+            ["git", "-C", str(tmp_path), "config", key, value], check=True
+        )
     path = tmp_path / "registry.json"
     path.write_text(json.dumps(document))
     if commit:

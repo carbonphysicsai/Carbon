@@ -204,6 +204,12 @@ def test_real_git_metadata_is_not_worktree_bytes_and_missing_path_is_unknown(tmp
                 "user.name=fixture",
                 "-c",
                 "user.email=fixture@example.invalid",
+                # Background upkeep writes and removes `.git` lock files
+                # asynchronously, which races this fixture's own commands.
+                "-c",
+                "maintenance.auto=false",
+                "-c",
+                "gc.auto=0",
                 *args,
             ],
             cwd=tmp_path,
