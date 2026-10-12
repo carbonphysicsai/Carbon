@@ -561,9 +561,9 @@ def test_a_record_not_on_the_public_ev4_scoring_set_digest_is_refused(panel):
 
 def test_a_record_that_names_a_private_role_source_is_refused():
     record = pub(10.0, 9.0)
-    record["note"] = (
-        "docs/development/evidence/exam-design-2026-09-24/refs-b/out/battery_refs/records.jsonl"
-    )
+    record[
+        "note"
+    ] = "docs/development/evidence/exam-design-2026-09-24/refs-b/out/battery_refs/records.jsonl"
     with pytest.raises(ProgressError, match="names_a_private_source"):
         improvement.validate(record)
 
@@ -708,3 +708,29 @@ def test_a_record_for_a_different_level_than_its_manifest_run_is_refused(tmp_pat
     }
     with pytest.raises(ProgressError, match="public_improvement_level_mismatch"):
         cli.load_runs(manifest, tmp_path)
+
+
+# -- Levels 2 to 4 -------------------------------------------------------------------------------------
+def test_three_runs_get_an_interval_flagged_coarse_and_five_do_not():
+    three = [level_record(level=2, run_id=f"r{i}") for i in range(3)]
+    for i, record in enumerate(three):
+        record["model"] = {**record["model"], "accuracy_error": 0.08 - i / 100}
+    block = improvement.public_dev_block(three)["accuracy_error"]
+    assert block["n"] == 3 and block["small_n"] is True and len(block["ci95"]) == 2
+    assert block["ci95_note"].startswith("coarse at n=3")
+    five = [level_record(level=2, run_id=f"r{i}") for i in range(5)]
+    for i, record in enumerate(five):
+        record["model"] = {**record["model"], "accuracy_error": 0.08 - i / 100}
+    assert "ci95_note" not in improvement.public_dev_block(five)["accuracy_error"]
+
+
+def test_a_level_four_line_is_labelled_base_recipe_only_on_the_line_and_the_column():
+    record = level_record(level=4)
+    block = improvement.public_dev_block([record])["accuracy_error"]
+    assert improvement.L4_BASE_RECIPE_CAVEAT in block["caveats"]
+    assert "NOT graph lowering" in improvement.L4_BASE_RECIPE_CAVEAT
+    made = line([crun(public_improvement=record)], level=2)
+    assert "caveats" in made and improvement.L4_BASE_RECIPE_CAVEAT in made["caveats"]
+    lower = line([crun(public_improvement=level_record(level=2))], level=2)
+    assert improvement.L4_BASE_RECIPE_CAVEAT not in lower["caveats"]
+    assert "caveats" not in line([crun(public_improvement=level_record(level=0))])
