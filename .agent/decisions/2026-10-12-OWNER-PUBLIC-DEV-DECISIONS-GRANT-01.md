@@ -1,4 +1,4 @@
-## 2026-10-12 — OWNER-PUBLIC-DEV-DECISIONS-GRANT-01: USD 8 for the public-dev-decisions RunPod run
+## 2026-10-12 — OWNER-PUBLIC-DEV-DECISIONS-GRANT-01: USD 16 for the public-dev-decisions RunPod run (raised from USD 8 the same day)
 
 **Authority.** The owner, 2026-10-12, confirmed directly in the PR Head
 session. He was asked to confirm the cap because the Test Lead's relay
@@ -13,8 +13,23 @@ as `RUN_SHEET.md` requires: "Spend only under
 OWNER-PUBLIC-DEV-DECISIONS-GRANT-01, once the owner has confirmed it in PR
 Head's session and it is merged."
 
+**Amended 2026-10-12: the cap is raised to USD 16.** The owner, typed
+directly in the PR Head session:
+
+> Raise PUBLIC-DEV-DECISIONS-01 to USD 16
+
+The original USD 8 is kept below rather than edited away, so the run sheet's
+projection against it stays readable. At USD 1.76/h, USD 16 buys about 9.0
+pod-hours against USD 8's 4.5, so the solve budget and the questions fitted
+roughly double; the run sheet's table projects USD 8 at about 110 questions
+and about 64 resolved, and has no row for 16, so the new figures are for Data
+Collection to derive before launch rather than for this record to invent.
+Everything else is unchanged: the platform, the public-data-only scope, and
+what is not authorized.
+
 **The grant.**
-- **Cap: USD 8**, all in. This is a ceiling, not a target.
+- **Cap: USD 16**, all in, as amended above. A ceiling, not a target.
+- **Cap as originally approved: USD 8**, all in, superseded by the amendment.
 - **Platform:** one RunPod Secure Cloud CPU pod, 32 vCPU / 256 GB, at
   USD 1.76/h, from the truth image by digest.
 - **What that buys, as the run sheet projects it:** about 4.5 pod-hours, a

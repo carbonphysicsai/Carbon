@@ -52,3 +52,25 @@ whole outcome vectors differ (key order ignored; an empty vector is unrecorded).
   given, so list the analysis's one-seed-per-recipe panel.
 
 Cooling's fixture smoke uses an analytical pseudo-reference and is refused by V1.
+
+## One report per level
+
+V1 and V2 at level N read only `readiness/<challenge>/q1_report.L<N>.json`. The
+level-0 report is also read from the older name `q1_report.json`, so existing
+records stay valid (and `readiness.q1 build --level 0` still writes that name).
+`readiness.q1 build --level N` (default 0) writes the per-level file when `--out`
+is omitted. An L0 report never satisfies L1, a report whose recorded `level` does
+not match the level asked fails, and the reference provenance rules are the same at
+every level. History and run schema are unchanged.
+
+## What an L1 battery panel needs
+
+Not built here; building it needs training compute, which the Test Lead authorises.
+- **Per-member `value` and `decision_outcome`** come from the level-aware decision
+  experiment, `carbon.battery.value` (`freeze`, `import-references`,
+  `import-predictions`, `evaluate`; #1089), over
+  `carbon/battery/value/panels/proof-panel-levels-v1.json` (panel
+  `ev4-dev-proof-levels`), plus a new L1 contract file.
+- **Reference:** `EV4_REFERENCE`, development only, with no sealed material.
+- **The pod score alone is only a stand-in** for the panel's `score`; it does not
+  give `value` or `decision_outcome`.

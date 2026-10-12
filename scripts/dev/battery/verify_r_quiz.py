@@ -27,7 +27,7 @@ if str(ROOT) not in sys.path:
 SCHEMA = "carbon.battery.verify-r-quiz.v1"
 
 
-def legs(work, quiz_dir):
+def legs(work, quiz_dir, ext_dir=None):
     """`{schema, quiz_digest, legs, diagnostics}` for every member with
     stored quiz predictions, plus the synthetic controls."""
     from carbon.battery import quiz_stratum as qs
@@ -35,27 +35,48 @@ def legs(work, quiz_dir):
     from carbon.battery.value import verify_quiz as vq
     from carbon.challenge_validator import tuning
 
-    document = tuning.load_quiz(quiz_dir)
-    quiz_digest = qs.digest(document)
     contract = qs.contract(tuning.REPOSITORY)
-    refs = tuning.quiz_references(quiz_dir, document, contract)
-    predictions = {}
-    folder = Path(work) / "quiz-predictions"
-    for path in sorted(folder.glob("*.json")) if folder.exists() else ():
-        bundle = tuning._read_private(path)
-        if bundle.get("quiz_digest") != quiz_digest:
-            raise SystemExit("refused: tuning_quiz_predictions_stale")
-        predictions[bundle["member"]] = bundle["predictions"]
+
+    def one(quiz, folder_name):
+        document = tuning.load_quiz(quiz)
+        digest = qs.digest(document)
+        refs = tuning.quiz_references(quiz, document, contract)
+        found = {}
+        folder = Path(work) / folder_name
+        for path in sorted(folder.glob("*.json")) if folder.exists() else ():
+            bundle = tuning._read_private(path)
+            if bundle.get("quiz_digest") != digest:
+                raise SystemExit("refused: tuning_quiz_predictions_stale")
+            found[bundle["member"]] = bundle["predictions"]
+        return document, digest, refs, found
+
+    document, quiz_digest, refs, predictions = one(quiz_dir, "quiz-predictions")
+    scenarios = list(document["q3"])
+    ext_digest = None
+    if ext_dir is not None:
+        # QUIZ-EXTEND-01: the extension's scenarios join VERIFY-R only; a
+        # member must have predicted both, or its legs stay unscored.
+        ext, ext_digest, ext_refs, ext_predictions = one(
+            ext_dir, "quiz-ext-predictions"
+        )
+        if not ext["role"].endswith(tuning.QUIZ_EXT_ROLE_SUFFIX):
+            raise SystemExit("refused: tuning_quiz_ext_not_an_extension")
+        scenarios += ext["q3"]
+        refs = {**refs, **ext_refs}
+        predictions = {
+            m: {**p, **ext_predictions.get(m, {})} for m, p in predictions.items()
+        }
     if not predictions:
         raise SystemExit("refused: no stored quiz predictions")
     for kind in pn.CONTROLS:
         predictions["control-" + kind] = pn.control_predictions(kind, refs)
     by_leg, diagnostics = vq.member_scores(
-        contract, document["q3"], predictions, refs, quiz_digest
+        contract, scenarios, predictions, refs, quiz_digest
     )
     return {
         "schema": SCHEMA,
         "quiz_digest": quiz_digest,
+        "quiz_ext_digest": ext_digest,
         "legs": by_leg,
         "diagnostics": diagnostics,
         "state": "DEVELOPMENT_TUNING",
@@ -67,9 +88,14 @@ def main(argv=None):
     parser = argparse.ArgumentParser(prog="verify_r_quiz")
     parser.add_argument("--work", type=Path, required=True)
     parser.add_argument("--quiz", type=Path, required=True)
+    parser.add_argument(
+        "--quiz-ext",
+        type=Path,
+        help="the Q3 extension's work directory (QUIZ-EXTEND-01), optional",
+    )
     parser.add_argument("--out", type=Path, help="default: WORK/verify-r.json")
     args = parser.parse_args(argv)
-    result = legs(args.work, args.quiz)
+    result = legs(args.work, args.quiz, args.quiz_ext)
     out = args.out or args.work / "verify-r.json"
     if out.exists():
         out.unlink()

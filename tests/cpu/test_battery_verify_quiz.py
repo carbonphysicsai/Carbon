@@ -119,16 +119,26 @@ def test_a_missing_prediction_leaves_the_leg_unscored(quiz):
     assert all(legs[leg]["partial"] is None for leg in vq.LEG.values())
 
 
-def test_a_solve_over_its_allotment_uses_up_the_budget(quiz):
+def test_a_slow_reference_solve_does_not_stop_the_list(quiz):
+    """Amendment 9: every panel is charged the registered 120 s, so the budget
+    is exactly k panels; a slow recorded solve is counted, never charged."""
     _work, document, contract, refs = quiz
     slow = {c: {**r, "wall_s": 200.0} for c, r in refs.items()}
+    near = near_miss(document)
     legs, diagnostics = vq.member_scores(
-        contract, document["q3"], {"oracle": _member(document, 0.0)}, slow, "q"
+        contract,
+        document["q3"],
+        {"oracle": _member(document, 0.0), "near-miss": near},
+        slow,
+        "q",
     )
-    # 200 s does not fit k = 1's 120 s; at k = 3 (360 s) one panel fits.
-    assert legs["v1"]["oracle"] == 0.5 and diagnostics["v1"]["budget_stopped"] == 2
-    assert legs["v3"]["oracle"] == 1.0 and diagnostics["v3"]["budget_stopped"] == 2
-    assert diagnostics["v3"]["cost_unmeasured_panels"] == 0
+    assert legs["v1"]["oracle"] == legs["v3"]["oracle"] == 1.0
+    # The near miss still needs k = 3 to recover; k = 1 still fails.
+    assert legs["v1"]["near-miss"] == 0.5 and legs["v3"]["near-miss"] == 1.0
+    for leg in vq.LEG.values():
+        assert diagnostics[leg]["budget_stopped"] == 0
+        assert diagnostics[leg]["panels_over_allotment"] == 2 * 117
+        assert diagnostics[leg]["cost_unmeasured_panels"] == 0
 
 
 def test_the_cli_writes_owner_only_legs_with_the_controls(tmp_path, quiz):

@@ -19,12 +19,13 @@ defaults"): `k` at 1, 3 and 5 (3 picked), a budget of `k` complete panels at
 10 times its 120 s minimum useful improvement).
 
 Replay conventions, reported with every result:
-- a panel's cost is its reference solve's recorded `wall_s`; core seconds
-  equal wall seconds (the producer runs one solve per core). A record with
-  no `wall_s` is charged the planning bound and counted `cost_unmeasured`;
-- a panel's planning bound is the registered 120 s, or its recorded cost when
-  that is higher, so an overrunning solve uses up budget and can stop the
-  list early (`budget_stopped`);
+- every verified panel is charged the registered 120 s allotment (wall and
+  core), so the budget is exactly k panels (SCORE-PROOF-01 amendment 9).
+  The reference solve's recorded `wall_s` measures the solver host, not the
+  model, and charging it stopped lists early on slow (near-limit, refined)
+  lattice points, a bias against near-limit picks. Panels whose recorded
+  solve ran over the allotment are counted (`panels_over_allotment`), and
+  records with no `wall_s` are counted (`cost_unmeasured_panels`);
 - inference overhead is not charged: the stored quiz predictions carry no
   timings (`overhead_charged: false`).
 
@@ -102,17 +103,19 @@ def _lattice(contract, scenario):
     ]
 
 
-def _cost(record, unmeasured):
+def _cost(record, unmeasured, over):
+    """The registered allotment, charged for every panel (amendment 9); the
+    recorded solve time is only counted."""
     wall = record.get("wall_s") if isinstance(record, dict) else None
     if not isinstance(wall, (int, float)) or wall <= 0:
         unmeasured.append(1)
-        wall = WALL_PER_PANEL_S
-    actual = {"wall_s": float(wall), "core_s": float(wall)}
-    bound = max(WALL_PER_PANEL_S, float(wall))
-    return {"wall_s": bound, "core_s": bound}, actual
+    elif wall > WALL_PER_PANEL_S:
+        over.append(1)
+    charge = {"wall_s": WALL_PER_PANEL_S, "core_s": WALL_PER_PANEL_S}
+    return dict(charge), dict(charge)
 
 
-def question(contract, the_rule, scenario, grid_refs, unmeasured):
+def question(contract, the_rule, scenario, grid_refs, unmeasured, over):
     """One Q3 scenario as a sealed VERIFY-R question over its lattice."""
     lattice = _lattice(contract, scenario)
     candidates = [c for c, _ in lattice]
@@ -130,7 +133,7 @@ def question(contract, the_rule, scenario, grid_refs, unmeasured):
         if state is None:
             failed = isinstance(record, dict) and record.get("status") == "FAILED_INFRA"
             state = "FAILED_INFRA" if failed else "MISSING"
-        planning, actual = _cost(record, unmeasured)
+        planning, actual = _cost(record, unmeasured, over)
         bank.append(
             {
                 "action_id": candidate["id"],
@@ -182,6 +185,21 @@ def ordered_actions(contract, scenario, grid_predictions):
     return [cid for _, cid in pool]
 
 
+def _reliability(losses):
+    from .score_proof import value_ceiling
+
+    c = value_ceiling(losses) if losses else {"status": "NOT_MEASURABLE"}
+    keep = (
+        "status",
+        "members",
+        "informative_questions",
+        "per_question_reliability",
+        "reliability",
+        "tau_ceiling",
+    )
+    return {k: c[k] for k in keep if k in c}
+
+
 def member_scores(contract, scenarios, predictions, refs, receipt_id):
     """Every member's VERIFY-R result at each registered k.
 
@@ -204,13 +222,13 @@ def member_scores(contract, scenarios, predictions, refs, receipt_id):
             )
     for k in K_POINTS:
         the_rule = rule(k)
-        unmeasured = []
+        unmeasured, over = [], []
         questions = [
-            question(contract, the_rule, qs.scenario(entry), refs, unmeasured)
+            question(contract, the_rule, qs.scenario(entry), refs, unmeasured, over)
             for entry in scenarios
         ]
         ids = [q["question_id"] for q in questions]
-        legs[LEG[k]], stopped, statuses = {}, 0, {}
+        legs[LEG[k]], stopped, statuses, losses = {}, 0, {}, []
         for member in sorted(predictions):
             commitments, receipts = {}, {}
             for qid in ids:
@@ -247,6 +265,8 @@ def member_scores(contract, scenarios, predictions, refs, receipt_id):
                 the_rule, member, questions, commitments, receipts, eligibility
             )
             legs[LEG[k]][member] = report["aggregate"]["v"]
+            if all(row["score"] is not None for row in report["questions"]):
+                losses.append([row["score"] for row in report["questions"]])
             for row in report["questions"]:
                 stopped += bool(row.get("budget_stopped"))
                 statuses[row["status"]] = statuses.get(row["status"], 0) + 1
@@ -257,6 +277,10 @@ def member_scores(contract, scenarios, predictions, refs, receipt_id):
             "budget_stopped": stopped,
             "question_statuses": dict(sorted(statuses.items())),
             "cost_unmeasured_panels": len(unmeasured),
+            "panels_over_allotment": len(over),
             "overhead_charged": False,
+            # The power check: the leg's own per-question reliability and the
+            # tau a perfect score could reach against it (SCORE-CEILING-01).
+            "reliability": _reliability(losses),
         }
     return legs, diagnostics

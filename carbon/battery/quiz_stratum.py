@@ -74,6 +74,11 @@ PROTECTED_T_C, PROTECTED_SOC = 2.0, 0.03
 #: up to its size, so the quiz's draws never repeat one of them.
 Q2_BASE = 1 << 40
 Q3_BASE = 2 << 40
+#: QUIZ-EXTEND-01: the Q3 extension's draws, under the same role but their
+#: own index range and tag label, so they never repeat a quiz draw. Its size
+#: is its own constant; the quiz's `Q3_K` is unchanged.
+Q3X_BASE = 3 << 40
+Q3_EXT_K = 30
 #: Refused draws a condition may take before the box is called unreachable.
 Q3_ATTEMPTS_PER_CONDITION = 1000
 STATUS_FAILED_INFRA = "FAILED_INFRA"
@@ -93,6 +98,11 @@ def q2_draws():
 
 def q3_draws(round_):
     return quiz.Q3_K + Q3_EXTRA * round_
+
+
+def q3_ext_draws(round_):
+    """The Q3 extension's conditions drawn by `round_` (QUIZ-EXTEND-01)."""
+    return Q3_EXT_K + Q3_EXTRA * round_
 
 
 # --- draws -----------------------------------------------------------------------------
@@ -177,21 +187,22 @@ def is_protected(condition, points):
     )
 
 
-def q3_conditions(root, pin, role, count, points):
+def q3_conditions(root, pin, role, count, points, *, base=Q3_BASE, label="q3"):
     """The first `count` accepted Q3 conditions, in draw order. Each carries
     an opaque scenario id and its draw `attempt`; a protected draw is
-    refused and the next one taken."""
+    refused and the next one taken. The extension (QUIZ-EXTEND-01) draws from
+    `Q3X_BASE` under the label `q3x`."""
     key, context = _key(root, role), seeds._context(root, pin)
     accepted, attempt = [], 0
     while len(accepted) < count:
         if attempt >= Q3_ATTEMPTS_PER_CONDITION * count:
             raise QuizRefused("quiz_q3_conditions_unreachable")
-        drawn = seeds.draw_inputs(context, role, Q3_BASE + attempt)
+        drawn = seeds.draw_inputs(context, role, base + attempt)
         condition = [drawn["t_amb_c"], drawn["soc0"]]
         if not is_protected(condition, points):
             accepted.append(
                 {
-                    "scenario_id": f"q3-{_tag(key, f'q3/{attempt}')}",
+                    "scenario_id": f"{label}-{_tag(key, f'{label}/{attempt}')}",
                     "condition": condition,
                     "attempt": attempt,
                 }
@@ -341,11 +352,12 @@ def q2_choose(contract, pool_ids, panel_predictions):
     return quiz.q2_select(contract, pool_ids, panel_predictions, n=quiz.Q2_N)
 
 
-def q3_select(contract, conditions, refs):
-    """The first `quiz.Q3_K` conditions, in draw order, whose reference grid
-    holds a feasible design, each with its grid; and the redraws: protected
-    draws refused and infeasible scenarios skipped, up to the last one kept.
-    Fewer than `quiz.Q3_K` are returned when the draws run out."""
+def q3_select(contract, conditions, refs, k=None):
+    """The first `k` (default `quiz.Q3_K`) conditions, in draw order, whose
+    reference grid holds a feasible design, each with its grid; and the
+    redraws: protected draws refused and infeasible scenarios skipped, up to
+    the last one kept. Fewer than `k` are returned when the draws run out."""
+    k = quiz.Q3_K if k is None else k
     chosen, infeasible, last = [], 0, None
     for ordinal, entry in enumerate(conditions):
         grid = quiz.q3_grid(contract, scenario(entry))
@@ -361,7 +373,7 @@ def q3_select(contract, conditions, refs):
                 }
             )
             last = (ordinal, entry["attempt"])
-            if len(chosen) == quiz.Q3_K:
+            if len(chosen) == k:
                 break
         else:
             infeasible += 1
