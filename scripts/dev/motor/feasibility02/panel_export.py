@@ -103,7 +103,25 @@ def question(case, cands, actions, floor, pk, cog):
     )  # fmt: skip
 
 
-def build(runs, plan):
+def _settled(task, rows):
+    """Per-candidate verdicts under ruling (a): the two finest rungs (standard and
+    S3's rung 2, `refined.*`) on one side of each in-band limit, differing by
+    less than its band."""
+    sys.path.insert(0, str(ROOT))
+    from scripts.dev.evidence_runs import settlement
+
+    verdicts = settlement.verdicts(task, rows, ("refined",), "finest_two")
+    truth = tasks.assess(
+        task,
+        {(r["candidate"], r["condition"]): r["values"] for r in rows},
+        reference=True,
+    )
+    return verdicts, sum(v["feasible"] is None for v in truth.values()) > len(verdicts)
+
+
+def build(runs, plan, settle=False):
+    """`settle=True` (the campaign export) adds the export-level rule and each
+    question's per-candidate verdicts; the default reproduces the historical export."""
     cands, actions, rows = bank(runs, plan)
     variants = [(6.0, 0.30, 0.05)] + [
         v for v in itertools.product(FLOORS, PK, COG) if v != (6.0, 0.30, 0.05)
@@ -111,8 +129,12 @@ def build(runs, plan):
     questions = []
     for i, (floor, pk, cog) in enumerate(variants):
         case = f"motor-q{i:02d}"
-        questions.append({"case": case, "support_case": SUPPORT, "task": question(case, cands, actions, floor, pk, cog),
-                          "reference": rows, "close_call": False, "refinement_demand": False})  # fmt: skip
+        task = question(case, cands, actions, floor, pk, cog)
+        entry = {"case": case, "support_case": SUPPORT, "task": task, "reference": rows,
+                 "close_call": False, "refinement_demand": False}  # fmt: skip
+        if settle:
+            entry["settled"], entry["refinement_demand"] = _settled(task, rows)
+        questions.append(entry)
     cases = [q["case"] for q in questions]
     law = diversity.register_law({
         "schema": diversity.LAW_SCHEMA_V2, "population_status": "UNREGISTERED", "kind": "grid",
@@ -127,6 +149,7 @@ def build(runs, plan):
             case_strata=[{"case": c, "stratum": "all"} for c in cases],
             quotas_by_k=[{"questions_per_batch": k, "quotas": {"all": k}} for k in range(1, BATCH + 1)]),
         "questions": questions, "laws": [law],
+        **({"refinement_rule": {"id": RULE, "method": "two-rungs-same-side-change-below-band.v1"}} if settle else {}),
     })  # fmt: skip
 
 
@@ -135,8 +158,11 @@ def main(argv=None):
     parser.add_argument("--runs", type=Path, nargs="+", required=True)
     parser.add_argument("--plan", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument(
+        "--campaign", action="store_true", help="with per-candidate settlement"
+    )
     args = parser.parse_args(argv)
-    export = build(args.runs, args.plan)
+    export = build(args.runs, args.plan, settle=args.campaign)
     bank_, _grid, _, _ = producer_panels.adapt_export(export)
     states = {}
     for row in bank_["cases"]:

@@ -493,8 +493,12 @@ def test_one_command_sheet_lists_registration_gaps(tmp_path, capsys):
     assert sheet["planning_only"] is True
     assert sheet["dispatch_authorized"] is False
     assert sheet["registration_gap_owner"] == "Data Collection"
-    assert any(
+    # the motor reference stage is registered (#1114); the assembler is not yet
+    assert not any(
         "reference entrypoint" in gap for gap in sheet["registration_gaps"]["motor"]
+    )
+    assert any(
+        "comparison entrypoint" in gap for gap in sheet["registration_gaps"]["motor"]
     )
     assert sheet["total"]["eur_estimate"] > 0
 
@@ -593,7 +597,7 @@ def test_merged_entrypoint_bindings_and_comparison_receipt_are_strict():
         == "REGISTERED_FILES_ONLY_IMAGE_NOT_CHECKED"
     )
     assert inspected["motor"]["train"] == "REGISTERED_FILES_ONLY_IMAGE_NOT_CHECKED"
-    assert inspected["motor"]["reference"] == "NOT_REGISTERED"
+    assert inspected["motor"]["reference"] == "REGISTERED_FILES_ONLY_IMAGE_NOT_CHECKED"
     assert inspected["f02"]["train"] == "REGISTERED_FILES_ONLY_IMAGE_NOT_CHECKED"
     assert all(
         rows["comparison"] == "ASSEMBLER_NOT_REGISTERED" for rows in inspected.values()

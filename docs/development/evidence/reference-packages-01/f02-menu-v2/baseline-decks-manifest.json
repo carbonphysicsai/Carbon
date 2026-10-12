@@ -1,0 +1,133 @@
+{
+ "schema": "carbon.f02-menu-v2.decks.v1",
+ "cases": [
+  {
+   "case": "c30-i40-s0.5-baseline",
+   "context": "c30-i40-s0.5-baseline",
+   "peak_w": 20.0,
+   "on_time_s": 0.0,
+   "tag": "baseline",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "1f4d1a47cd16208cbbe0c50125c9d38c565f7a198cb4e2457bce29d2aafdf867",
+    "deck.json": "a12f46c2ebddd947cbbd4a5a892720334a65fddb9702f2fb5a435a09f997a494",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   }
+  },
+  {
+   "case": "c30-i40-s0.8-baseline",
+   "context": "c30-i40-s0.8-baseline",
+   "peak_w": 20.0,
+   "on_time_s": 0.0,
+   "tag": "baseline",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "b37066189bc36aa644413b41ea690b2b6416e0e12b5b86db11375daee91cdb8f",
+    "deck.json": "9f1c94ed82ddc95826ff0fa100d0b105ec00f6c0b33ebdc2b15bd4f6347fde65",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   }
+  },
+  {
+   "case": "c30-i55-s0.5-baseline",
+   "context": "c30-i55-s0.5-baseline",
+   "peak_w": 20.0,
+   "on_time_s": 0.0,
+   "tag": "baseline",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "54262cd477c97b6a4b78d20e2f6a0c11ca5e179c4f8ff31d9fab889a895dd217",
+    "deck.json": "30ea61ba996b96a9b3f53b1b304d57a1399611fa3f704c617e62fb8ecdd99812",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   }
+  },
+  {
+   "case": "c30-i55-s0.8-baseline",
+   "context": "c30-i55-s0.8-baseline",
+   "peak_w": 20.0,
+   "on_time_s": 0.0,
+   "tag": "baseline",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "cf0d36c1c22b7357f3049b4a39d387f1d18c23711476b7032cf3e4d9e53e0772",
+    "deck.json": "d72c45918ece40ad4176a6d2a8466697262a4bc004b59219c57e639a27ec2e35",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   }
+  },
+  {
+   "case": "c40-i40-s0.5-baseline",
+   "context": "c40-i40-s0.5-baseline",
+   "peak_w": 20.0,
+   "on_time_s": 0.0,
+   "tag": "baseline",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "6eb39a52a276b6a60a4ec1c500a53c3e4b99a71df58fed0b275f6ded38a5fb9d",
+    "deck.json": "0979e2291724666a23386710a6642e745ff69022ef2c8e8df72d242da13a938d",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   }
+  },
+  {
+   "case": "c40-i40-s0.8-baseline",
+   "context": "c40-i40-s0.8-baseline",
+   "peak_w": 20.0,
+   "on_time_s": 0.0,
+   "tag": "baseline",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "f3efef5afa52bc15c829b1aa616bc6e5ea1ebfff33db1aeebddaea94a77d0fa0",
+    "deck.json": "7d1b6d89c5bc71b61167e878c6fc759041064a840aa1b4367719e13c24e4c899",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   }
+  },
+  {
+   "case": "c40-i55-s0.5-baseline",
+   "context": "c40-i55-s0.5-baseline",
+   "peak_w": 20.0,
+   "on_time_s": 0.0,
+   "tag": "baseline",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "bf6df86cf2c46d85b1e30cbb892e6059c8018757546e324dba6ca9f8e6f5e15d",
+    "deck.json": "37904f0e97c71f94c46ef1abee2447a3742c5a7fd6653126533340499fc59be0",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   }
+  },
+  {
+   "case": "c40-i55-s0.8-baseline",
+   "context": "c40-i55-s0.8-baseline",
+   "peak_w": 20.0,
+   "on_time_s": 0.0,
+   "tag": "baseline",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "c1094dc2cc25a37381b6eb9ec6c3299772cb4ba781b6155ce1ed770ed759ab54",
+    "deck.json": "6095eff48907b65e14e11ce740838070aacc9b8f4b53248a314b586331316498",
+    "mesh/mesh.boundary": "b2aefd578a816bfdfbb72528d8a2c20207afb7438a413a568af430706d4a15b7",
+    "mesh/mesh.elements": "0e613b31ab16d6741bc9f34eb5d60460156c37121f2215d9d91116cacebc474f",
+    "mesh/mesh.header": "319fa46b2b21a18ce0cd8504261872ba83db58b1c39209c9b07090c6a25e13f3",
+    "mesh/mesh.nodes": "45295b5a74711466b2d6d79794abc5d5c8de1b5cd12028a08c165e81de6bdccc"
+   }
+  }
+ ]
+}
