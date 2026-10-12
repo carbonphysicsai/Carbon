@@ -68,3 +68,32 @@ def test_the_sign_measure_follows_the_reference_not_the_law():
     # No evaluable pair at all: unmeasured.
     lone = refs_for({"d": CASES["d"]})
     assert sg.sign_disagreement(None, truthful, ["d"], lone, measure) is None
+
+
+def test_the_sign_measure_is_absent_without_a_pinned_panel():
+    """Amendment 12: sign is computed only on the calibration panel's pairs;
+    without one the measure is ABSENT, so its rules are withheld, never
+    failed (an unmeasured-but-present measure would fail every member)."""
+    import inspect
+    import json
+    from pathlib import Path
+
+    from carbon.battery.value import score_tuning as st
+
+    assert "probes" in inspect.signature(st.member_legs).parameters
+    root = Path(__file__).resolve().parents[2]
+    add = json.loads(
+        (
+            root
+            / "docs/development/evidence/battery-score-tuning/registry-v10-addendum-1.json"
+        ).read_text()
+    )
+    assert "NOT scoring cases" in add["sign"]["pairs"]
+    assert add["sign"]["zero_predicted_change"] == "a disagreement"
+    assert "HUMAN_INPUT" in add["anything_else"]
+    v10, _ = st.load_registry(
+        root / "docs/development/evidence/battery-score-tuning/registry-v10.json"
+    )
+    row = {"eligible": True, "E": 0.1, "legs": {"a": 0.5, "r": 0.5, "p": 0.5, "v3s": 0.5},
+           "gates": {"envelope": 0.0}}  # fmt: skip
+    assert st.score_member(v10["SIGN/ARP-V3S"], row) is None

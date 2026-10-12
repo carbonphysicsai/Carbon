@@ -1,0 +1,27 @@
+{
+ "schema": "carbon.battery.score-tuning-registry-addendum.v1",
+ "registry": "registry-v10.json",
+ "addendum": 1,
+ "registered": "2026-10-12T17:10Z, SCORE-PROOF-01 amendment 12: every implementation choice registry v10 leaves open, committed BEFORE any v9 public development result is scored (Test Lead guardrail, 2026-10-12). Development; not an owner decision.",
+ "candidates": "unchanged: kappa = 3, epsilon = 1 %, sign cutoff 0 (exceeds) stay registered candidates; adoption is HUMAN_INPUT",
+ "v3s": {
+  "unit": "per question, at k = 3, on the LEG questions (as v3)",
+  "unsafe_or_infeasible": "a verified pick whose reference status is INFEASIBLE",
+  "charge": "a question with at least one INFEASIBLE verified pick costs kappa regret units, whatever any later pick returned; every other question costs its v3 bounded regret",
+  "unresolved_missing_failed_infra": "not charged kappa: such a question keeps v3's own handling (its bounded regret, or unscored)",
+  "unscored_question": "any unscored question leaves the member's v3s unscored (withheld), never a partial leg",
+  "ties_and_order": "v3's selector and tie order, unchanged (q3-predicted-feasible-selector-order-v1)",
+  "leg": "v3s = 1 / (1 + mean question loss)"
+ },
+ "sign": {
+  "pairs": "the B5-B8 reference pairs of Data Collection's calibration panel (shared/evidence/physics-calibration-01), named by the sha256 of its MANIFEST.json, NOT scoring cases. Until a manifest digest is pinned in a committed addendum, sign is not computed and every rule using it is withheld.",
+  "pair_rule": "every pair of panel cases differing in exactly the law's input, all other inputs equal (not only adjacent pairs)",
+  "laws": "B5 peak T vs c1 and vs c2; B6 plating margin vs c1; B7 plating margin vs T_amb; B8 peak T vs T_amb; outputs by the decision contract's measure",
+  "evaluable": "reference |change| >= epsilon x that law's reference range over its pairs; a zero or smaller reference change is not evaluable",
+  "zero_predicted_change": "a disagreement",
+  "missing_prediction": "a member missing a prediction on any evaluable pair is unmeasured (withheld)",
+  "no_evaluable_pair": "unmeasured (withheld)",
+  "measure": "disagreeing evaluable pairs / evaluable pairs; FAIL when it exceeds the cutoff"
+ },
+ "anything_else": "HUMAN_INPUT, fail-closed: the rule is withheld, never scored"
+}

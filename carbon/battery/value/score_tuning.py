@@ -298,7 +298,13 @@ def expand_sweep(entry, registered):
 
 
 def member_legs(
-    contract, predictions, store, case_ids, decision_regret=None, verify=None
+    contract,
+    predictions,
+    store,
+    case_ids,
+    decision_regret=None,
+    verify=None,
+    probes=None,
 ):
     """One member's legs and gate measures on `case_ids` of `store`.
     `decision_regret`: the member's mean Q3 decision regret over the quiz's
@@ -313,7 +319,7 @@ def member_legs(
     a, r, g = ratios.legs(component)
     m = margins.margin_component(contract, predictions, case_ids, store.refs)
     n = margins.margin_component(contract, predictions, near, store.refs)
-    return {
+    row = {
         "eligible": bool(component["eligible"]),
         "E": component["E"],
         "legs": {
@@ -341,12 +347,16 @@ def member_legs(
             # exam error E, higher is worse; an ineligible member is
             # unmeasured, so a set gate fails it.
             "error": component["E"] if component["eligible"] else None,
-            # Registry v10's sign consistency at the pair-law probe pairs.
-            "sign": sign_gate.sign_disagreement(
-                contract, predictions, case_ids, store.refs
-            ),
         },
     }
+    if probes is not None:
+        # Registry v10's sign consistency, on the pinned calibration panel's
+        # B5-B8 pairs only (amendment 12). Without a pinned panel the measure
+        # is absent, so every rule using it is withheld, never failed or passed.
+        row["gates"]["sign"] = sign_gate.sign_disagreement(
+            contract, probes["predictions"], probes["case_ids"], probes["refs"]
+        )
+    return row
 
 
 def false_feasible_rate(contract, predictions, case_ids, refs):
