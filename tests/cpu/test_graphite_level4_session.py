@@ -76,6 +76,7 @@ def test_a_level4_constructor_stages_and_proposes_a_graph(tmp_path, lowered):
     variant = dv.variant(p3f.SCORING.challenge_id, 4)
     door = Door(TASK[-20:] + "-" + ex.LEVEL4_ENVELOPE_EXPORT, packed)
     script = [
+        p3f.propose(strategy, "a plain recipe must not become an L4 bundle"),
         tool(LEVEL4_STAGE, {"strategy_json": json.dumps(strategy), "task_id": TASK}),
         p3f.propose(graph, "the baseline's own network, as a Level 4 graph"),
         text("DRY RUN: the scripted Constructor stops here."),
@@ -100,6 +101,7 @@ def test_a_level4_constructor_stages_and_proposes_a_graph(tmp_path, lowered):
     run = tmp_path / "graphite" / "runs" / p3f.run_id(1)
     events = (run / "events.jsonl").read_text()
     assert '"status":"LEVEL4_STAGED"' in events
+    assert '"reason_code":"level4_submission_required"' in events
     delivery = json.loads((run / "delivery.json").read_bytes())
     # The bundle carries the envelope, and rebuilds from itself alone.
     assert delivery["clean_rebuild"]["status"] == "REBUILT", delivery["clean_rebuild"]

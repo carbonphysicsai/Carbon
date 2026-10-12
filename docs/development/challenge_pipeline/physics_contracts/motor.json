@@ -1,0 +1,70 @@
+{
+  "schema": "carbon.physics-contract.draft.v1",
+  "challenge": "motor",
+  "maturity": "DRAFT",
+  "status": "HUMAN_INPUT",
+  "runtime_enabled": false,
+  "scope": "10p/12s double-layer tooth-wound development motor, 2D cross-section with three equal skew slices; not the runtime 8p/24s adapter or a 3D/end-effect qualification.",
+  "sources": {
+    "magnetostatics": "https://getdp.info/doc/texinfo/getdp.html",
+    "force": "https://ocw.mit.edu/courses/6-685-electric-machines-fall-2013/06deccf046b565a8295e5ada36b252df_MIT6_685F13_chapter1.pdf",
+    "topology": "scripts/dev/motor/feasibility02/topology.py",
+    "run": "scripts/dev/motor/feasibility02/run.py",
+    "sidecar": "scripts/dev/motor/feasibility02/sidecar.py",
+    "kit": "carbon/development_comparison/motor_10p12s_kit.py",
+    "validity": "carbon/challenge_validator/validity.py",
+    "verification": ".agent/decisions/2026-10-11-OWNER-CODE-VERIFICATION-ACCEPT-01.md"
+  },
+  "validity": {
+    "status": "HUMAN_INPUT_UNDECLARED",
+    "implementation_support": {
+      "fixed_geometry": "Shaft radius 10.5 mm, rotor outer radius 25.6 mm, stator outer radius 46 mm, stack 35 mm",
+      "coordinates": "Magnet thickness 1.5-4 mm, coverage 0.65-0.95, gap 0.3-1 mm, tooth fraction 0.2-0.4, opening 0.03-0.12, slot bottom radius 34-42 mm; geometry grammar must also pass",
+      "skew": "0/2/4 degrees, three equally weighted offsets -s/2,0,+s/2",
+      "materials": "Linear remanent magnet Br 1.2 T, relative permeability 1; Brauer nonlinear steel route without hysteresis; demagnetisation/thermal/2-second duty not modelled",
+      "loaded_curve": "48 signed samples, 0.25 degree spacing over the registered 12 degree window; same geometry/current/phase registration",
+      "current": "Actual TRAIN support and registered J/phase commands, not scaler ranges as a new envelope"
+    },
+    "decision_needed": "Declare magnet/steel validity, saturation/demagnetisation applicability and angle/current conventions; image MMS acceptance is not nonlinear-material or torque adequacy",
+    "outside_or_unknown": "UNRESOLVED_NOT_CANDIDATE_FAILURE",
+    "sources": ["topology", "run", "kit", "validity"]
+  },
+  "required_outputs": {
+    "signed_torque_curve": {"availability": "MODEL_AVAILABLE", "note": "t00-t47 in N*m plus angle/current/phase identity", "sources": ["kit"]},
+    "signed_cogging_curve": {"availability": "MODEL_AVAILABLE", "note": "J=0 route, mean/peak-to-peak in physical units; no division by near-zero mean", "sources": ["kit"]},
+    "summary_observables": {"availability": "MODEL_DERIVED", "note": "Mean, peak-to-peak, ripple fraction and cogging derived from the signed curves", "sources": ["kit"]},
+    "slice_curves": {"availability": "MISSING_MODEL", "note": "Unaveraged registered 2D slices with phase offset; needed for independent skew accounting", "sources": ["kit", "run"]},
+    "vector_B_H_J_mesh": {"availability": "MISSING_MODEL", "note": "Element fields, coordinates, quadrature, normals and constitutive relation; optional regional B_rms sidecar is insufficient", "sources": ["sidecar", "run"]},
+    "airgap_stress_contour": {"availability": "MISSING", "note": "B_r/B_theta and contour weights at registered airgap radii", "sources": ["run", "force"]},
+    "energy_coenergy_angle": {"availability": "MISSING", "note": "Material-consistent energy/coenergy including permanent-magnet state and fixed phase-current convention", "sources": ["force", "run"]},
+    "full_closed_period_curve": {"availability": "REQUIRES_PERIOD_VERIFICATION", "note": "Registered winding/rotor period and nonduplicated endpoint samples; a 12 degree loaded window alone does not prove every identity", "sources": ["topology", "run", "kit"]}
+  },
+  "laws": [
+    {"id": "magnetic-flux-balance", "type": "balance", "status": "HUMAN_INPUT", "statement": "div B = 0, equivalently net outward magnetic flux through a closed contour is zero", "conditions": "Matched 2D field, mesh and out-of-plane assumptions; B=curl A in the pinned formulation", "required_outputs": ["vector_B_H_J_mesh"], "sources": ["magnetostatics", "run"], "calibration": "Weak/contour residual, mesh refinement and trace error in magnetic-flux units; not regional RMS comparison"},
+    {"id": "ampere-material-consistency", "type": "balance", "status": "HUMAN_INPUT", "statement": "curl H = J with the pinned steel/magnet constitutive laws", "conditions": "Magnetostatic quiescent model, correct winding signs, remanence and nonlinear steel law", "required_outputs": ["vector_B_H_J_mesh"], "sources": ["magnetostatics", "run"], "calibration": "Weak Ampere residual and material-law mismatch separately, including nonlinear iteration and mesh error"},
+    {"id": "torque-force-consistency", "type": "balance", "status": "HUMAN_INPUT", "statement": "Airgap Maxwell-stress torque agrees with the registered energy/coenergy derivative", "conditions": "Identical current/PM state, stack scaling and rotor angle; use the correct fixed-current energy derivative, not naive PM energy", "required_outputs": ["signed_torque_curve", "airgap_stress_contour", "energy_coenergy_angle"], "sources": ["force", "magnetostatics"], "calibration": "N*m discrepancy across contour radii, mesh rungs and angular derivative steps; test end/stack modelling discrepancy separately"},
+    {"id": "curve-summary-consistency", "type": "bound", "status": "HUMAN_INPUT", "statement": "Peak-to-peak >= 0; mean and extrema lie inside the signed sampled curve; ripple uses its registered positive loaded mean", "conditions": "Same angular sampling, unit and current command; cogging reported in N*m not as a near-zero-normalised percentage", "required_outputs": ["signed_torque_curve", "signed_cogging_curve", "summary_observables"], "sources": ["kit"], "calibration": "Observer algebra and angular refinement error; not a test of PDE fidelity by itself"},
+    {"id": "skew-average-once", "type": "invariance", "status": "HUMAN_INPUT", "statement": "Skewed torque is the mean of three slices at theta+d and loaded phase gamma-5*d", "conditions": "10p means five pole pairs; equal slices d=-s/2,0,+s/2; J=0 cogging uses angle shifts without a loaded phase", "required_outputs": ["signed_torque_curve", "signed_cogging_curve", "slice_curves"], "sources": ["kit", "run"], "calibration": "Matched slice/averaged curves, sign and phase offset tests; no second averaging or implicit 3D claim"},
+    {"id": "zero-current-cogging", "type": "limit", "status": "HUMAN_INPUT", "statement": "Loaded command at J=0 reduces to the registered cogging curve, not identically zero torque", "conditions": "Same PM/geometry/angle/skew, no winding source", "required_outputs": ["signed_torque_curve", "signed_cogging_curve"], "sources": ["magnetostatics", "kit", "run"], "calibration": "Matched zero-current curves and reference solver noise in N*m"},
+    {"id": "cogging-closed-cycle-work", "type": "balance", "status": "HUMAN_INPUT", "statement": "Integral of J=0 cogging torque over a proven conservative closed period is zero", "conditions": "Full physical/registered symmetry period, no hysteresis, fixed PM state; endpoint not double counted", "required_outputs": ["signed_cogging_curve", "full_closed_period_curve"], "sources": ["force", "topology", "run"], "calibration": "Angle-integrated work and finer angular quadrature; hold until period/winding equivalence is verified"},
+    {"id": "registered-rotation-covariance", "type": "invariance", "status": "HUMAN_INPUT", "statement": "A registered symmetry transformation of rotor, winding and electrical phase gives the correspondingly transformed torque curve", "conditions": "Exact topology/winding/current map required; not arbitrary phase reversal or rotor-only rotation", "required_outputs": ["signed_torque_curve", "full_closed_period_curve"], "sources": ["magnetostatics", "topology", "run"], "calibration": "Matched transformed witnesses with identical current magnitude and material state"}
+  ],
+  "excluded_claims": [
+    "No universal linear or monotone torque-versus-current/geometry law under saturation, reluctance torque or varying electrical phase.",
+    "No blind torque sign change under J reversal: permanent magnets, cogging and reluctance terms must be accounted for.",
+    "Buyer 6/12 N*m, ripple and cogging limits are not physics-law bounds and are not relaxed.",
+    "No demagnetisation, hysteresis, losses, temperature, voltage-speed or 2-second peak-duty safety proof from a magnetostatic torque curve."
+  ],
+  "tolerances": {"status": "HUMAN_INPUT", "calibration_status": "NOT_RUN", "quantile": null, "multiplier": null, "absolute_floors": null, "sampling_uncertainty": null, "recipe": "Common README plan; absolute N*m floors near zero, observable-specific field/flux units and independent mesh/angle uncertainty"},
+  "calibration": {
+    "status": "NOT_RUN",
+    "image_digest": "sha256:599521e79786ee0326a0754ba0545f51ee9665adff73c3515c8d4b8ba24c1c05",
+    "image_basis": "Owner accepted GetDP 3.5.0 A2D/P1 MMS (A order 2, B order 1); nonlinear material, PM, torque and skew adequacy are separate",
+    "verification_sources": ["verification"],
+    "holds": ["Declared material validity", "Exact nonlinear/PM/torque route checks", "Prospective field/energy/slice outputs", "Winding/period verification", "Matched reference residual calibration"],
+    "recalibrate_on": ["image rebuild or re-pin", "topology/winding", "material", "torque observer", "angle/current grammar", "skew model"]
+  },
+  "probes": {"status": "HUMAN_INPUT", "density": null, "pair_count": null, "path_step": null, "proposal": "Registered geometry/current/phase singles, zero-current controls, exact symmetry transforms and 0/2/4 degree matched skew paths; no global monotonicity gate or runs"},
+  "gates": {"status": "HUMAN_INPUT", "adopted": false, "allocations": null, "score_use": null},
+  "review_owner": "Carbon Validator and science; owner adoption remains reserved"
+}
