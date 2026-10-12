@@ -1,0 +1,971 @@
+{
+ "schema": "carbon.battery.score-tuning-registry.v1",
+ "registered": "2026-10-12, registry v9: registry v8 unchanged plus the value-first family (SCORE-PROOF-01 amendment 10), registered after the confirmation of G-FEAS+ENV/A-Q@0.01 FAILED and before any selection or sealed draw that includes it",
+ "seeds": "EV5 adversarial FAIL (8 top-half infeasible rebuild-identity constructions; Mode X violators best_deciding and best_proposed), SR-B1 (#618), run-5 diagnosis (thermal false acceptance at the limit); FEASIBILITY-GATE-DESIGN-01 (#1059) public safety curves; the 2026-10-11 selection: no gated rule catches run 5's unsafe member except the envelope gate, which alone does not demote the known-bad controls",
+ "supersedes": "registry-v8.json (all its candidates kept unchanged)",
+ "threshold": "HUMAN_INPUT: each sweep reports a curve; the owner picks a cutoff (1.01 is the ungated reference point)",
+ "comparison_added": {
+  "exceeds": "OWNER-BATTERY-SCORE-RULE-01: a submission is ineligible if its per-case false-feasible rate exceeds 0.05. #961 (V3-RULE-ROBUSTNESS-01) found the shared gate failed at exactly 0.05 (>=); v5 registers the strict form."
+ },
+ "grid_note": "#1059 proposed a 0.0 point; the registry grid admits only cutoffs above 0 (score_tuning.expand_sweep), so 0.005 is the tightest registered point. Each cutoff is a curve point for selection, never an adopted threshold (HUMAN_INPUT).",
+ "later_additions": "A candidate registered in a merged registry after the sealed questions are solved, but before the confirmation unlock (SCORE-PROOF-01 amendment 5), joins the selection fold and is scored on the retained AX42 references without re-solving.",
+ "two_gates": "`and_gates` holds fixed gates applied beside the swept one: a member fails if any gate fails. The envelope cutoff 1.0 is G-N+env1's registered point (SR-B1's G2), not an adopted threshold (HUMAN_INPUT).",
+ "verify_r": "legs v1, v3, v5: verify_quiz on the quiz's settled Q3 lattices; a run without --verify-r leaves these candidates unscored (INCOMPLETE_LEGS)",
+ "value_first": "VERIFY-R- and Q3-regret-led rules with accuracy as a tiebreak only; v8's A-Q-led rules (A-Q, G-FEAS+ENV/A-Q, the rule in force) stay as controls. A pick from v9 is confirmed only on freshly drawn sealed questions (amendment 5)",
+ "candidates": [
+  {
+   "id": "CE",
+   "kind": "deciding",
+   "basis": "baseline: the deciding testnet rule control-exam-v1 (-E)"
+  },
+  {
+   "id": "CE+near2",
+   "kind": "deciding",
+   "gate": {
+    "measure": "near",
+    "cutoff": 2.0
+   },
+   "basis": "the deciding rule plus EV5's gate as frozen (failures last)"
+  },
+  {
+   "id": "SR2",
+   "weights": {
+    "r": 0.3,
+    "g": 0.6,
+    "m": 0.1
+   },
+   "basis": "EV5's SR-2 candidate sr2-a0-r0.3-g0.6-m0.1"
+  },
+  {
+   "id": "G-N",
+   "weights": {
+    "g": 0.5,
+    "n": 0.5
+   },
+   "basis": "EV5: top-half constructions and Mode X violators accept unsafe protocols; weight decision agreement and the near-limit margin only"
+  },
+  {
+   "id": "G-N+near2",
+   "weights": {
+    "g": 0.5,
+    "n": 0.5
+   },
+   "gate": {
+    "measure": "near",
+    "cutoff": 2.0
+   },
+   "basis": "G-N plus EV5's gate"
+  },
+  {
+   "id": "R-G-N",
+   "weights": {
+    "r": 0.2,
+    "g": 0.4,
+    "n": 0.4
+   },
+   "basis": "G-N keeping some important-region accuracy so good deciders are not demoted"
+  },
+  {
+   "id": "N-heavy",
+   "weights": {
+    "g": 0.3,
+    "n": 0.7
+   },
+   "basis": "run-5 diagnosis: the failure is a near-limit thermal sign error; push weight onto the near-limit margin"
+  },
+  {
+   "id": "G-P",
+   "weights": {
+    "g": 0.5,
+    "p": 0.5
+   },
+   "basis": "SR-B1's proximity-weighted optimism leg with decision agreement"
+  },
+  {
+   "id": "P1",
+   "weights": {
+    "r": 0.3,
+    "g": 0.6,
+    "p": 0.1
+   },
+   "basis": "SR-B1's registered P1"
+  },
+  {
+   "id": "S-G-N",
+   "weights": {
+    "g": 0.5,
+    "n": 0.5
+   },
+   "stable": true,
+   "basis": "G-N averaged over a recipe's seeds (SR-B1: seed luck)"
+  },
+  {
+   "id": "G-N+env1",
+   "weights": {
+    "g": 0.5,
+    "n": 0.5
+   },
+   "gate": {
+    "measure": "envelope",
+    "cutoff": 1.0
+   },
+   "basis": "G-N with SR-B1's decision-envelope gate G2 at 1.0 band"
+  },
+  {
+   "id": "A-G-N",
+   "weights": {
+    "a": 0.2,
+    "g": 0.4,
+    "n": 0.4
+   },
+   "basis": "control: G-N keeping whole-set accuracy, to test whether accuracy alone re-admits the constructions"
+  },
+  {
+   "id": "G-FEAS/CE",
+   "kind": "gate_sweep",
+   "measure": "feasibility",
+   "grid": [
+    0.005,
+    0.01,
+    0.02,
+    0.05,
+    0.1,
+    0.2,
+    0.5,
+    1.01
+   ],
+   "base": "CE",
+   "basis": "EV5: constructions and Mode X violators that select reference-infeasible designs; the per-case false-feasible rate on the scoring set (never the decision scenarios)"
+  },
+  {
+   "id": "G-FEAS/SR2",
+   "kind": "gate_sweep",
+   "measure": "feasibility",
+   "grid": [
+    0.005,
+    0.01,
+    0.02,
+    0.05,
+    0.1,
+    0.2,
+    0.5,
+    1.01
+   ],
+   "base": "SR2",
+   "basis": "EV5: constructions and Mode X violators that select reference-infeasible designs; the per-case false-feasible rate on the scoring set (never the decision scenarios)"
+  },
+  {
+   "id": "G-FEAS/G-N",
+   "kind": "gate_sweep",
+   "measure": "feasibility",
+   "grid": [
+    0.005,
+    0.01,
+    0.02,
+    0.05,
+    0.1,
+    0.2,
+    0.5,
+    1.01
+   ],
+   "base": "G-N",
+   "basis": "EV5: constructions and Mode X violators that select reference-infeasible designs; the per-case false-feasible rate on the scoring set (never the decision scenarios)"
+  },
+  {
+   "id": "G-FEAS/R-G-N",
+   "kind": "gate_sweep",
+   "measure": "feasibility",
+   "grid": [
+    0.005,
+    0.01,
+    0.02,
+    0.05,
+    0.1,
+    0.2,
+    0.5,
+    1.01
+   ],
+   "base": "R-G-N",
+   "basis": "EV5: constructions and Mode X violators that select reference-infeasible designs; the per-case false-feasible rate on the scoring set (never the decision scenarios)"
+  },
+  {
+   "id": "G-FEAS/N-heavy",
+   "kind": "gate_sweep",
+   "measure": "feasibility",
+   "grid": [
+    0.005,
+    0.01,
+    0.02,
+    0.05,
+    0.1,
+    0.2,
+    0.5,
+    1.01
+   ],
+   "base": "N-heavy",
+   "basis": "EV5: constructions and Mode X violators that select reference-infeasible designs; the per-case false-feasible rate on the scoring set (never the decision scenarios)"
+  },
+  {
+   "id": "G-PLATE/CE",
+   "kind": "gate_sweep",
+   "measure": "plating_fa",
+   "grid": [
+    0.005,
+    0.01,
+    0.02,
+    0.05,
+    0.1,
+    0.2,
+    0.5,
+    1.01
+   ],
+   "base": "CE",
+   "basis": "run 5: the winner's near-limit plating false acceptance (9.5 % on one seed)"
+  },
+  {
+   "id": "G-PLATE/SR2",
+   "kind": "gate_sweep",
+   "measure": "plating_fa",
+   "grid": [
+    0.005,
+    0.01,
+    0.02,
+    0.05,
+    0.1,
+    0.2,
+    0.5,
+    1.01
+   ],
+   "base": "SR2",
+   "basis": "run 5: the winner's near-limit plating false acceptance (9.5 % on one seed)"
+  },
+  {
+   "id": "G-PLATE/G-N",
+   "kind": "gate_sweep",
+   "measure": "plating_fa",
+   "grid": [
+    0.005,
+    0.01,
+    0.02,
+    0.05,
+    0.1,
+    0.2,
+    0.5,
+    1.01
+   ],
+   "base": "G-N",
+   "basis": "run 5: the winner's near-limit plating false acceptance (9.5 % on one seed)"
+  },
+  {
+   "id": "G-PLATE/R-G-N",
+   "kind": "gate_sweep",
+   "measure": "plating_fa",
+   "grid": [
+    0.005,
+    0.01,
+    0.02,
+    0.05,
+    0.1,
+    0.2,
+    0.5,
+    1.01
+   ],
+   "base": "R-G-N",
+   "basis": "run 5: the winner's near-limit plating false acceptance (9.5 % on one seed)"
+  },
+  {
+   "id": "G-PLATE/N-heavy",
+   "kind": "gate_sweep",
+   "measure": "plating_fa",
+   "grid": [
+    0.005,
+    0.01,
+    0.02,
+    0.05,
+    0.1,
+    0.2,
+    0.5,
+    1.01
+   ],
+   "base": "N-heavy",
+   "basis": "run 5: the winner's near-limit plating false acceptance (9.5 % on one seed)"
+  },
+  {
+   "id": "A-Q",
+   "weights": {
+    "a": 0.5,
+    "q": 0.5
+   },
+   "basis": "accuracy next to Q3 decision regret (owner: 'not gameable?'): over-caution costs score"
+  },
+  {
+   "id": "SR2-Q",
+   "weights": {
+    "r": 0.2,
+    "g": 0.4,
+    "m": 0.1,
+    "q": 0.3
+   },
+   "basis": "SR-2 with Q3 decision regret"
+  },
+  {
+   "id": "G-N-Q",
+   "weights": {
+    "g": 0.35,
+    "n": 0.35,
+    "q": 0.3
+   },
+   "basis": "G-N with Q3 decision regret"
+  },
+  {
+   "id": "R-G-N-Q",
+   "weights": {
+    "r": 0.15,
+    "g": 0.3,
+    "n": 0.3,
+    "q": 0.25
+   },
+   "basis": "R-G-N with Q3 decision regret"
+  },
+  {
+   "id": "G-FEAS/A-Q",
+   "kind": "gate_sweep",
+   "measure": "feasibility",
+   "grid": [
+    0.005,
+    0.01,
+    0.02,
+    0.05,
+    0.1,
+    0.2,
+    0.5,
+    1.01
+   ],
+   "base": "A-Q",
+   "basis": "the G-FEAS gate over A-Q: a safety gate plus a regret leg, so neither unsafe nor over-cautious models win"
+  },
+  {
+   "id": "D",
+   "weights": {
+    "q": 1.0
+   },
+   "basis": "DESIGN-PRIMARY (owner 2026-10-07): the Q3 design-regret leg is the whole score"
+  },
+  {
+   "id": "D|acc",
+   "kind": "gate_sweep",
+   "measure": "error",
+   "grid": [
+    0.05,
+    0.1,
+    0.2,
+    0.3,
+    0.5,
+    1.0,
+    2.0,
+    1000000.0
+   ],
+   "base": "D",
+   "basis": "design primary with accuracy only as a pass/fail gate on the exam error E, swept (1e6 = ungated)"
+  },
+  {
+   "id": "D|feas",
+   "kind": "gate_sweep",
+   "measure": "feasibility",
+   "grid": [
+    0.005,
+    0.01,
+    0.02,
+    0.05,
+    0.1,
+    0.2,
+    0.5,
+    1.01
+   ],
+   "base": "D",
+   "basis": "design primary with the G-FEAS safety gate, swept"
+  },
+  {
+   "id": "A-Q|acc",
+   "kind": "gate_sweep",
+   "measure": "error",
+   "grid": [
+    0.05,
+    0.1,
+    0.2,
+    0.3,
+    0.5,
+    1.0,
+    2.0,
+    1000000.0
+   ],
+   "base": "A-Q",
+   "basis": "the A-Q blend under the same accuracy gate, so the curves compare design-primary against blend at matched gating"
+  },
+  {
+   "id": "G-FEAS/A-Q>",
+   "kind": "gate_sweep",
+   "measure": "feasibility",
+   "grid": [
+    0.05
+   ],
+   "base": "A-Q",
+   "comparison": "exceeds",
+   "basis": "OWNER-BATTERY-SCORE-RULE-01's rule (G-FEAS@0.05 over A-Q) with the gate comparison the record states: fail only above 0.05 (#961)"
+  },
+  {
+   "id": "G-PLATE/A-Q",
+   "kind": "gate_sweep",
+   "measure": "plating_fa",
+   "grid": [
+    0.005,
+    0.01,
+    0.02,
+    0.025,
+    0.05,
+    0.1,
+    1.01
+   ],
+   "base": "A-Q",
+   "comparison": "at_or_above",
+   "basis": "FEASIBILITY-GATE-DESIGN-01 (#1059) recommendation 1: the plating false-acceptance gate over A-Q, failing at or above the cutoff"
+  },
+  {
+   "id": "G-PLATE/A-Q>",
+   "kind": "gate_sweep",
+   "measure": "plating_fa",
+   "grid": [
+    0.005,
+    0.01,
+    0.02,
+    0.025,
+    0.05,
+    0.1,
+    1.01
+   ],
+   "base": "A-Q",
+   "comparison": "exceeds",
+   "basis": "#1059: the same gate failing only above the cutoff (the paired comparator), so a zero-error safe control is never rejected by the comparison"
+  },
+  {
+   "id": "G-FEAS-T/A-Q",
+   "kind": "gate_sweep",
+   "measure": "feasibility",
+   "grid": [
+    0.025
+   ],
+   "base": "A-Q",
+   "comparison": "at_or_above",
+   "basis": "#1059 recommendation 2, tighter G-FEAS over A-Q failing at or above: registry v4's G-FEAS/A-Q already holds 0.005, 0.01 and 0.02, so only 0.025 is new"
+  },
+  {
+   "id": "G-FEAS-T/A-Q>",
+   "kind": "gate_sweep",
+   "measure": "feasibility",
+   "grid": [
+    0.005,
+    0.01,
+    0.02,
+    0.025
+   ],
+   "base": "A-Q",
+   "comparison": "exceeds",
+   "basis": "#1059 recommendation 2, tighter G-FEAS over A-Q with the rule in force's comparison (fail only above), below its 0.05"
+  },
+  {
+   "id": "A",
+   "weights": {
+    "a": 1.0
+   },
+   "basis": "accuracy alone, ungated: the strongest public value-ranking signal (#1073: EV5 tau 0.475 for accuracy against decision value, where VERIFY-R reaches 0.151)"
+  },
+  {
+   "id": "G-FEAS+ENV/A-Q",
+   "kind": "gate_sweep",
+   "measure": "feasibility",
+   "grid": [
+    0.005,
+    0.01,
+    0.02,
+    0.05,
+    0.1,
+    1.01
+   ],
+   "base": "A-Q",
+   "and_gates": [
+    {
+     "measure": "envelope",
+     "cutoff": 1.0
+    }
+   ],
+   "basis": "selection 2026-10-11: G-FEAS demotes the known-bad controls but misses run 5's unsafe member (feasibility 0 on the scoring set); the envelope gate at 1.0 (G-N+env1) catches it; both gates, a member fails if either fails (1.01 = the envelope gate alone)"
+  },
+  {
+   "id": "G-PLATE+ENV/A-Q",
+   "kind": "gate_sweep",
+   "measure": "plating_fa",
+   "grid": [
+    0.005,
+    0.01,
+    0.02,
+    0.025,
+    0.05,
+    0.1,
+    1.01
+   ],
+   "base": "A-Q",
+   "and_gates": [
+    {
+     "measure": "envelope",
+     "cutoff": 1.0
+    }
+   ],
+   "basis": "selection 2026-10-11: the plating gate with the envelope gate at 1.0, which catches run 5's unsafe member (plating_fa 0 on the scoring set); a member fails if either fails (1.01 = the envelope gate alone)"
+  },
+  {
+   "id": "G-FEAS+ENV/D",
+   "kind": "gate_sweep",
+   "measure": "feasibility",
+   "grid": [
+    0.005,
+    0.01,
+    0.02,
+    0.05,
+    0.1,
+    1.01
+   ],
+   "base": "D",
+   "and_gates": [
+    {
+     "measure": "envelope",
+     "cutoff": 1.0
+    }
+   ],
+   "basis": "selection 2026-10-11: G-FEAS demotes the known-bad controls but misses run 5's unsafe member (feasibility 0 on the scoring set); the envelope gate at 1.0 (G-N+env1) catches it; both gates, a member fails if either fails (1.01 = the envelope gate alone)"
+  },
+  {
+   "id": "G-PLATE+ENV/D",
+   "kind": "gate_sweep",
+   "measure": "plating_fa",
+   "grid": [
+    0.005,
+    0.01,
+    0.02,
+    0.025,
+    0.05,
+    0.1,
+    1.01
+   ],
+   "base": "D",
+   "and_gates": [
+    {
+     "measure": "envelope",
+     "cutoff": 1.0
+    }
+   ],
+   "basis": "selection 2026-10-11: the plating gate with the envelope gate at 1.0, which catches run 5's unsafe member (plating_fa 0 on the scoring set); a member fails if either fails (1.01 = the envelope gate alone)"
+  },
+  {
+   "id": "G-FEAS+ENV/A",
+   "kind": "gate_sweep",
+   "measure": "feasibility",
+   "grid": [
+    0.005,
+    0.01,
+    0.02,
+    0.05,
+    0.1,
+    1.01
+   ],
+   "base": "A",
+   "and_gates": [
+    {
+     "measure": "envelope",
+     "cutoff": 1.0
+    }
+   ],
+   "basis": "selection 2026-10-11: G-FEAS demotes the known-bad controls but misses run 5's unsafe member (feasibility 0 on the scoring set); the envelope gate at 1.0 (G-N+env1) catches it; both gates, a member fails if either fails (1.01 = the envelope gate alone)"
+  },
+  {
+   "id": "G-PLATE+ENV/A",
+   "kind": "gate_sweep",
+   "measure": "plating_fa",
+   "grid": [
+    0.005,
+    0.01,
+    0.02,
+    0.025,
+    0.05,
+    0.1,
+    1.01
+   ],
+   "base": "A",
+   "and_gates": [
+    {
+     "measure": "envelope",
+     "cutoff": 1.0
+    }
+   ],
+   "basis": "selection 2026-10-11: the plating gate with the envelope gate at 1.0, which catches run 5's unsafe member (plating_fa 0 on the scoring set); a member fails if either fails (1.01 = the envelope gate alone)"
+  },
+  {
+   "id": "G-FEAS+ENV/CE",
+   "kind": "gate_sweep",
+   "measure": "feasibility",
+   "grid": [
+    0.005,
+    0.01,
+    0.02,
+    0.05,
+    0.1,
+    1.01
+   ],
+   "base": "CE",
+   "and_gates": [
+    {
+     "measure": "envelope",
+     "cutoff": 1.0
+    }
+   ],
+   "basis": "selection 2026-10-11: G-FEAS demotes the known-bad controls but misses run 5's unsafe member (feasibility 0 on the scoring set); the envelope gate at 1.0 (G-N+env1) catches it; both gates, a member fails if either fails (1.01 = the envelope gate alone)"
+  },
+  {
+   "id": "G-PLATE+ENV/CE",
+   "kind": "gate_sweep",
+   "measure": "plating_fa",
+   "grid": [
+    0.005,
+    0.01,
+    0.02,
+    0.025,
+    0.05,
+    0.1,
+    1.01
+   ],
+   "base": "CE",
+   "and_gates": [
+    {
+     "measure": "envelope",
+     "cutoff": 1.0
+    }
+   ],
+   "basis": "selection 2026-10-11: the plating gate with the envelope gate at 1.0, which catches run 5's unsafe member (plating_fa 0 on the scoring set); a member fails if either fails (1.01 = the envelope gate alone)"
+  },
+  {
+   "id": "G-FEAS+ENV/SR2",
+   "kind": "gate_sweep",
+   "measure": "feasibility",
+   "grid": [
+    0.005,
+    0.01,
+    0.02,
+    0.05,
+    0.1,
+    1.01
+   ],
+   "base": "SR2",
+   "and_gates": [
+    {
+     "measure": "envelope",
+     "cutoff": 1.0
+    }
+   ],
+   "basis": "selection 2026-10-11: G-FEAS demotes the known-bad controls but misses run 5's unsafe member (feasibility 0 on the scoring set); the envelope gate at 1.0 (G-N+env1) catches it; both gates, a member fails if either fails (1.01 = the envelope gate alone)"
+  },
+  {
+   "id": "G-PLATE+ENV/SR2",
+   "kind": "gate_sweep",
+   "measure": "plating_fa",
+   "grid": [
+    0.005,
+    0.01,
+    0.02,
+    0.025,
+    0.05,
+    0.1,
+    1.01
+   ],
+   "base": "SR2",
+   "and_gates": [
+    {
+     "measure": "envelope",
+     "cutoff": 1.0
+    }
+   ],
+   "basis": "selection 2026-10-11: the plating gate with the envelope gate at 1.0, which catches run 5's unsafe member (plating_fa 0 on the scoring set); a member fails if either fails (1.01 = the envelope gate alone)"
+  },
+  {
+   "id": "G-FEAS+ENV/G-N",
+   "kind": "gate_sweep",
+   "measure": "feasibility",
+   "grid": [
+    0.005,
+    0.01,
+    0.02,
+    0.05,
+    0.1,
+    1.01
+   ],
+   "base": "G-N",
+   "and_gates": [
+    {
+     "measure": "envelope",
+     "cutoff": 1.0
+    }
+   ],
+   "basis": "selection 2026-10-11: G-FEAS demotes the known-bad controls but misses run 5's unsafe member (feasibility 0 on the scoring set); the envelope gate at 1.0 (G-N+env1) catches it; both gates, a member fails if either fails (1.01 = the envelope gate alone)"
+  },
+  {
+   "id": "G-PLATE+ENV/G-N",
+   "kind": "gate_sweep",
+   "measure": "plating_fa",
+   "grid": [
+    0.005,
+    0.01,
+    0.02,
+    0.025,
+    0.05,
+    0.1,
+    1.01
+   ],
+   "base": "G-N",
+   "and_gates": [
+    {
+     "measure": "envelope",
+     "cutoff": 1.0
+    }
+   ],
+   "basis": "selection 2026-10-11: the plating gate with the envelope gate at 1.0, which catches run 5's unsafe member (plating_fa 0 on the scoring set); a member fails if either fails (1.01 = the envelope gate alone)"
+  },
+  {
+   "id": "G-FEAS+ENV/R-G-N",
+   "kind": "gate_sweep",
+   "measure": "feasibility",
+   "grid": [
+    0.005,
+    0.01,
+    0.02,
+    0.05,
+    0.1,
+    1.01
+   ],
+   "base": "R-G-N",
+   "and_gates": [
+    {
+     "measure": "envelope",
+     "cutoff": 1.0
+    }
+   ],
+   "basis": "selection 2026-10-11: G-FEAS demotes the known-bad controls but misses run 5's unsafe member (feasibility 0 on the scoring set); the envelope gate at 1.0 (G-N+env1) catches it; both gates, a member fails if either fails (1.01 = the envelope gate alone)"
+  },
+  {
+   "id": "G-PLATE+ENV/R-G-N",
+   "kind": "gate_sweep",
+   "measure": "plating_fa",
+   "grid": [
+    0.005,
+    0.01,
+    0.02,
+    0.025,
+    0.05,
+    0.1,
+    1.01
+   ],
+   "base": "R-G-N",
+   "and_gates": [
+    {
+     "measure": "envelope",
+     "cutoff": 1.0
+    }
+   ],
+   "basis": "selection 2026-10-11: the plating gate with the envelope gate at 1.0, which catches run 5's unsafe member (plating_fa 0 on the scoring set); a member fails if either fails (1.01 = the envelope gate alone)"
+  },
+  {
+   "id": "G-FEAS+ENV/N-heavy",
+   "kind": "gate_sweep",
+   "measure": "feasibility",
+   "grid": [
+    0.005,
+    0.01,
+    0.02,
+    0.05,
+    0.1,
+    1.01
+   ],
+   "base": "N-heavy",
+   "and_gates": [
+    {
+     "measure": "envelope",
+     "cutoff": 1.0
+    }
+   ],
+   "basis": "selection 2026-10-11: G-FEAS demotes the known-bad controls but misses run 5's unsafe member (feasibility 0 on the scoring set); the envelope gate at 1.0 (G-N+env1) catches it; both gates, a member fails if either fails (1.01 = the envelope gate alone)"
+  },
+  {
+   "id": "G-PLATE+ENV/N-heavy",
+   "kind": "gate_sweep",
+   "measure": "plating_fa",
+   "grid": [
+    0.005,
+    0.01,
+    0.02,
+    0.025,
+    0.05,
+    0.1,
+    1.01
+   ],
+   "base": "N-heavy",
+   "and_gates": [
+    {
+     "measure": "envelope",
+     "cutoff": 1.0
+    }
+   ],
+   "basis": "selection 2026-10-11: the plating gate with the envelope gate at 1.0, which catches run 5's unsafe member (plating_fa 0 on the scoring set); a member fails if either fails (1.01 = the envelope gate alone)"
+  },
+  {
+   "id": "G-FEAS+ENV/A-Q>",
+   "kind": "gate_sweep",
+   "measure": "feasibility",
+   "grid": [
+    0.05
+   ],
+   "base": "A-Q",
+   "comparison": "exceeds",
+   "and_gates": [
+    {
+     "measure": "envelope",
+     "cutoff": 1.0
+    }
+   ],
+   "basis": "the rule in force (G-FEAS/A-Q>@0.05, failing only above) with the envelope gate at 1.0 beside it"
+  },
+  {
+   "id": "VERIFY-R-k1",
+   "weights": {
+    "v1": 1.0
+   },
+   "basis": "VERIFY-R on the Q3 quiz at k = 1 (OWNER-VERIFY-R-DEFAULTS-01: k 1/3/5, 3 picked; k panels at 120 s wall each; regret unit 1,200 s): the model's top-k predicted-feasible lattice points verified on the solved panels"
+  },
+  {
+   "id": "VERIFY-R-k3",
+   "weights": {
+    "v3": 1.0
+   },
+   "basis": "VERIFY-R on the Q3 quiz at k = 3 (OWNER-VERIFY-R-DEFAULTS-01: k 1/3/5, 3 picked; k panels at 120 s wall each; regret unit 1,200 s): the model's top-k predicted-feasible lattice points verified on the solved panels"
+  },
+  {
+   "id": "VERIFY-R-k5",
+   "weights": {
+    "v5": 1.0
+   },
+   "basis": "VERIFY-R on the Q3 quiz at k = 5 (OWNER-VERIFY-R-DEFAULTS-01: k 1/3/5, 3 picked; k panels at 120 s wall each; regret unit 1,200 s): the model's top-k predicted-feasible lattice points verified on the solved panels"
+  },
+  {
+   "id": "A-VERIFY-R-k3",
+   "weights": {
+    "a": 0.5,
+    "v3": 0.5
+   },
+   "basis": "accuracy with VERIFY-R at k = 3, equal weights as A-Q's (verify_aware.register_candidate's A-VERIFY-R)"
+  },
+  {
+   "id": "G-FEAS+ENV/VERIFY-R-k3",
+   "kind": "gate_sweep",
+   "measure": "feasibility",
+   "grid": [
+    0.005,
+    0.01,
+    0.02,
+    0.05,
+    0.1,
+    1.01
+   ],
+   "base": "VERIFY-R-k3",
+   "and_gates": [
+    {
+     "measure": "envelope",
+     "cutoff": 1.0
+    }
+   ],
+   "basis": "registry v7's two gates (feasibility swept, envelope at 1.0) over VERIFY-R-k3"
+  },
+  {
+   "id": "G-FEAS+ENV/A-VERIFY-R-k3",
+   "kind": "gate_sweep",
+   "measure": "feasibility",
+   "grid": [
+    0.005,
+    0.01,
+    0.02,
+    0.05,
+    0.1,
+    1.01
+   ],
+   "base": "A-VERIFY-R-k3",
+   "and_gates": [
+    {
+     "measure": "envelope",
+     "cutoff": 1.0
+    }
+   ],
+   "basis": "registry v7's two gates (feasibility swept, envelope at 1.0) over A-VERIFY-R-k3"
+  },
+  {
+   "id": "VERIFY-R-k3+tb-a",
+   "weights": {
+    "v3": 0.99,
+    "a": 0.01
+   },
+   "basis": "SCORE-PROOF-POSTMORTEM-01 value-first: VERIFY-R at k = 3 leads; accuracy only breaks near-ties (weight 0.01)"
+  },
+  {
+   "id": "D+tb-a",
+   "weights": {
+    "q": 0.99,
+    "a": 0.01
+   },
+   "basis": "SCORE-PROOF-POSTMORTEM-01 value-first: Q3 design regret leads; accuracy only breaks near-ties (weight 0.01)"
+  },
+  {
+   "id": "G-FEAS+ENV/VERIFY-R-k3+tb-a",
+   "kind": "gate_sweep",
+   "measure": "feasibility",
+   "grid": [
+    0.005,
+    0.01,
+    0.02,
+    0.05,
+    1.01
+   ],
+   "base": "VERIFY-R-k3+tb-a",
+   "and_gates": [
+    {
+     "measure": "envelope",
+     "cutoff": 1.0
+    }
+   ],
+   "basis": "the two gates (feasibility swept, envelope at 1.0) over VERIFY-R-k3+tb-a"
+  },
+  {
+   "id": "G-FEAS+ENV/D+tb-a",
+   "kind": "gate_sweep",
+   "measure": "feasibility",
+   "grid": [
+    0.005,
+    0.01,
+    0.02,
+    0.05,
+    1.01
+   ],
+   "base": "D+tb-a",
+   "and_gates": [
+    {
+     "measure": "envelope",
+     "cutoff": 1.0
+    }
+   ],
+   "basis": "the two gates (feasibility swept, envelope at 1.0) over D+tb-a"
+  }
+ ]
+}
