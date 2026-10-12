@@ -12,6 +12,7 @@ REGISTRATION = (
     Path(__file__).resolve().parents[2]
     / "docs/development/challenge_pipeline/equal-budget-registration-v1.json"
 )
+REGISTRATION_V2 = REGISTRATION.with_name("equal-budget-registration-v2-f02-menu.json")
 BASE_RULE = (
     Path(__file__).resolve().parents[2]
     / "docs/development/challenge_pipeline/value-bar-v1.json"
@@ -40,6 +41,30 @@ def test_prospective_budget_registry_and_value_rule_are_digest_bound():
         "motor", "base"
     )
     assert rule["item_5"]["budget_registration_digest"] == raw["registration_digest"]
+
+
+def test_f02_v2_prospective_registration_preserves_v1_and_binds_sixteen_actions():
+    old = br.validate(registration())
+    raw = json.loads(REGISTRATION_V2.read_text(encoding="utf-8"))
+    new = br.validate(raw)
+    assert old.registration_id == "EQUAL-BUDGET-V1"
+    assert old.cap("f02", "base").solver_evaluations == 9
+    assert new.registration_id == br.F02_MENU_V2_REGISTRATION_ID
+    assert [new.cap("f02", tier).solver_evaluations for tier in br.TIERS] == [8, 16, 32]
+    assert all(
+        new.cap(challenge, "base") == old.cap(challenge, "base")
+        for challenge in ("battery-v3", "motor", "f13")
+    )
+    base_rule = json.loads(BASE_RULE.read_text(encoding="utf-8"))
+    resolved = br.materialize_value_rule(base_rule, raw, "f02")
+    assert (
+        resolved["item_5"]["budget_registration_digest"] == raw["registration_digest"]
+    )
+    assert br.validate_rule_tiers(resolved["item_5"])["base"].solver_evaluations == 16
+    changed = {key: value for key, value in raw.items() if key != "registration_digest"}
+    changed["challenge_budgets"]["f02"]["tiers"]["base"]["solver_evaluations"] = 14
+    with pytest.raises(br.BudgetRegistrationError, match="sensitivity tiers|8/16/32"):
+        br.validate(br.seal(changed))
 
 
 def test_changed_provenance_and_post_hoc_cap_are_refused():

@@ -16,6 +16,8 @@ from dataclasses import dataclass
 
 SCHEMA = "carbon.design-search.equal-budget-registration.v1"
 REGISTRATION_ID = "EQUAL-BUDGET-V1"
+F02_MENU_V2_REGISTRATION_ID = "EQUAL-BUDGET-V2-F02-MENU"
+REGISTRATION_IDS = (REGISTRATION_ID, F02_MENU_V2_REGISTRATION_ID)
 CHALLENGES = ("battery-v3", "motor", "f02", "f13")
 TIERS = ("half", "base", "double")
 SHA = re.compile(r"sha256:[0-9a-f]{64}\Z")
@@ -117,7 +119,7 @@ def validate(raw):
         "registration_digest",
     }:
         raise BudgetRegistrationError("closed budget registration required")
-    if raw["schema"] != SCHEMA or raw["registration_id"] != REGISTRATION_ID:
+    if raw["schema"] != SCHEMA or raw["registration_id"] not in REGISTRATION_IDS:
         raise BudgetRegistrationError("unsupported budget registration version")
     if raw["evidence_scope"] != "DEVELOPMENT":
         raise BudgetRegistrationError("development registration required")
@@ -155,6 +157,10 @@ def validate(raw):
         ):
             raise BudgetRegistrationError(f"{challenge} source anchors required")
         parsed[challenge] = _tiers(row["tiers"], challenge)
+    if raw["registration_id"] == F02_MENU_V2_REGISTRATION_ID:
+        v2 = parsed["f02"]
+        if tuple(v2[tier].solver_evaluations for tier in TIERS) != (8, 16, 32):
+            raise BudgetRegistrationError("f02 menu v2 requires 8/16/32 action caps")
     return RegisteredBudgets(raw["registration_id"], raw["registration_digest"], parsed)
 
 
