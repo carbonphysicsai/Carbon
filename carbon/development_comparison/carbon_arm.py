@@ -9,6 +9,8 @@ decision. This module produces only what its Carbon role needs:
 - a receipt naming the model, TRAIN, code, environment and measured fit and
   inference cost (`carbon.development-carbon-arm-receipt.v1`), whose digest
   the prediction document carries as `source_receipt_digest`.
+  It records whole-export batch cost separately from warm, complete-question
+  inference timings; neither is a reference solve or an adopted speed claim.
 
 **Rules:**
 - **TRAIN only.** The panel's reference values are never read: rows are
@@ -426,6 +428,36 @@ def _environment():
     return {"python": platform.python_version(), "packages": versions}
 
 
+def _decision_query_indices(export, physical):
+    """The complete physical bank for each question, including every condition.
+
+    Requirement variants can share physical rows, but each decision query is
+    measured afresh. The model receipt never reads their reference values.
+    """
+    from carbon.development_comparison import cheap_baselines as cb
+
+    locations = {
+        (row["band"], row["candidate"], row["condition"]): i
+        for i, row in enumerate(physical)
+    }
+    seen_cases = set()
+    for entry in export["questions"]:
+        case = entry["case"]
+        if not isinstance(case, str) or not case or case in seen_cases:
+            raise ArmRefused("DECISION_QUERY_INVENTORY_INVALID")
+        seen_cases.add(case)
+        indices = []
+        for band, _task, panel in cb._panels(entry):
+            for row in panel:
+                key = (band, row["candidate"], row["condition"])
+                if key not in locations:
+                    raise ArmRefused("DECISION_QUERY_INVENTORY_INVALID")
+                indices.append(locations[key])
+        if not indices or len(indices) != len(set(indices)):
+            raise ArmRefused("DECISION_QUERY_INVENTORY_INVALID")
+        yield case, indices
+
+
 def run(kit, export, train, *, scope, seed=0, backend="jax", code=None, settings=None):
     """`(predictions, receipt)` for every physical row of `export`."""
     from carbon.development_comparison import cheap_baselines as cb
@@ -460,6 +492,49 @@ def run(kit, export, train, *, scope, seed=0, backend="jax", code=None, settings
     if runs[0] != runs[1]:
         raise ArmRefused("PREDICTION_NOT_REPEATABLE")
     values = runs[1]
+    decision_queries = [] if "questions" in export else None
+    for case, indices in (
+        _decision_query_indices(export, physical)
+        if decision_queries is not None
+        else ()
+    ):
+        # The warm batch above cannot be divided by the number of questions:
+        # a complete question can contain a different number of candidates,
+        # conditions and model inputs. Time its entire bank separately.
+        query_rows = [physical[i] for i in indices]
+        query_parts = [per_row[i] for i in indices]
+        query_inputs = [q for part in query_parts for q in part]
+        question_timings = []
+        for _ in range(2):  # first call warms this question's actual batch shape
+            wall, cpu = time.perf_counter(), time.process_time()
+            predicted = network.predict(query_inputs)
+            at, reduced = 0, []
+            for row, part in zip(query_rows, query_parts):
+                result = predicted[at : at + len(part)]
+                at += len(part)
+                reduced.append(
+                    None
+                    if any(value is None for value in result)
+                    else kit.row_values(row, result)
+                )
+            question_timings.append(
+                (time.perf_counter() - wall, time.process_time() - cpu)
+            )
+            if [value is None for value in reduced] != [
+                values[i] is None for i in indices
+            ]:
+                raise ArmRefused("DECISION_QUERY_PREDICTION_MISMATCH")
+        decision_queries.append(
+            {
+                "query": case,
+                "physical_rows": len(indices),
+                "model_queries": len(query_inputs),
+                "cold_wall_s": question_timings[0][0],
+                "cold_cpu_s": question_timings[0][1],
+                "wall_s": question_timings[1][0],
+                "cpu_s": question_timings[1][1],
+            }
+        )
     query = {
         "rows": len(physical),
         "model_queries": len(inputs),
@@ -469,7 +544,9 @@ def run(kit, export, train, *, scope, seed=0, backend="jax", code=None, settings
         "wall_s": timings[1][0],
         "cpu_s": timings[1][1],
         "unit": "one batched call over every supported physical row; cold "
-        "includes tracing and compilation, the warm call is the query cost",
+        "includes tracing and compilation, warm is whole-export batch cost",
+        "decision_query_unit": "one warm call over the complete registered question bank",
+        "decision_queries": decision_queries,
     }
     receipt = {
         "schema": RECEIPT,
