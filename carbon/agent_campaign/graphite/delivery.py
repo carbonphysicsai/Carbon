@@ -139,6 +139,13 @@ def deliver(experiment, directory, *, selection=None, proposals=()):
         return {"status": "NO_IMPROVEMENT", "bundle": None}
     pid = record["proposal_id"]
     proposal = _strategy(experiment, pid)
+    if getattr(getattr(experiment, "development_variant", None), "level", None) == 4:
+        from carbon.battery.level4 import FIELD
+
+        if not (proposal.get("parameters") or {}).get(FIELD):
+            raise ex.Unrebuildable("level4_submission_required")
+        if not (experiment.root / "proposals" / pid / LEVEL4_ENVELOPE).is_file():
+            raise ex.Unrebuildable("level4_submission_not_staged")
     baseline = _strategy(experiment, "baseline")
     changes, undefined = ablations(baseline, proposal)
     scorer = experiment._scorer()
@@ -306,6 +313,13 @@ def clean_rebuild(directory, *, repository=ex.REPOSITORY):
             return _rebuild_result(["not_rebuildable:" + str(refused)], manifest)
     try:
         level = {} if variant is None else {"variant": variant}
+        if variant is not None and variant.level == 4:
+            from carbon.battery.level4 import FIELD
+
+            if not (strategy.get("parameters") or {}).get(FIELD):
+                raise ex.Unrebuildable("level4_submission_required")
+            if not (folder / LEVEL4_ENVELOPE).is_file():
+                raise ex.Unrebuildable("level4_submission_not_staged")
         if (folder / LEVEL4_ENVELOPE).is_file():
             from carbon.level4 import staging
 
