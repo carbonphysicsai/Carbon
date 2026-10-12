@@ -195,6 +195,172 @@ def require_host_profile(environ=None):
     return profile
 
 
+#: The free space a Carbon-operated Level 4-5 session needs on the filesystem
+#: holding scratch before it starts (LANE-RESOURCE-BOUND-01): several capped
+#: runs and the host's other sessions fit, and a full disk would make the
+#: shared WSL host read-only.
+SCRATCH_HOST_FLOOR_BYTES = 15 * 10**9
+SCRATCH_HOST_LOW_SPACE = "scratch_host_low_space"
+
+
+def require_scratch_floor(path, floor=SCRATCH_HOST_FLOOR_BYTES):
+    """Refuse (`scratch_host_low_space`) unless the filesystem holding `path`
+    has at least `floor` bytes free; an unreadable one refuses too. Only for
+    the Carbon-operated hostile-code sessions, never a miner's research."""
+    import shutil
+
+    try:
+        free = shutil.disk_usage(path).free
+    except OSError:
+        raise ResourceProfileRefused(SCRATCH_HOST_LOW_SPACE) from None
+    if free < floor:
+        raise ResourceProfileRefused(SCRATCH_HOST_LOW_SPACE)
+    return free
+
+
+#: LANE-RESOURCE-BOUND-01 (the Test Lead's choice (c), 2026-10-12): on a host
+#: whose resource profile is in force, one run's scratch may hold at most this
+#: many bytes. A named constant, so profile v1 is unchanged; a miner's machine
+#: has no profile and so no watch and no cap.
+SCRATCH_CAP_BYTES = 2 * 1024**3
+#: How often the watchdog measures scratch (the ruling: every 2 s at most).
+SCRATCH_POLL_SECONDS = 1.0
+#: Consecutive failed measurements, while the run lives, after which its
+#: scratch counts as unmeasurable and the run is stopped (fail closed: a run
+#: that exhausts its own process bound must not blind the watch).
+SCRATCH_UNMEASURED_POLLS = 15
+#: The closed refusal a run stopped by the watchdog is typed with.
+SCRATCH_CAP_EXCEEDED = "scratch_cap_exceeded"
+#: Measured inside the container, as the worker that owns every byte of it:
+#: the host user cannot list a directory the worker made private. `-I`, so
+#: nothing the run wrote under /scratch is imported. Directories it hid from
+#: its own user are reported, never skipped silently.
+SCRATCH_MEASURE = r"""
+import json, os
+total, denied = 0, False
+def refused(error):
+    global denied
+    if isinstance(error, PermissionError):
+        denied = True
+for directory, dirnames, filenames in os.walk("/scratch", onerror=refused):
+    for name in dirnames + filenames:
+        try:
+            total += os.lstat(os.path.join(directory, name)).st_size
+        except FileNotFoundError:
+            pass
+        except PermissionError:
+            denied = True
+print(json.dumps({"bytes": total, "denied": denied}))
+"""
+
+
+def measure_scratch(cli, container_name, timeout=10):
+    """`(bytes, denied)` for the running container's scratch, measured inside
+    it; a failed or malformed measurement raises (`WorkerFailure`)."""
+    value = cli.json(
+        [
+            "exec",
+            container_name,
+            "/opt/carbon-worker/bin/python",
+            "-I",
+            "-c",
+            SCRATCH_MEASURE,
+        ],
+        timeout=timeout,
+    )
+    if (
+        type(value) is not dict
+        or set(value) != {"bytes", "denied"}
+        or type(value["bytes"]) is not int
+        or value["bytes"] < 0
+        or type(value["denied"]) is not bool
+    ):
+        raise WorkerFailure(WorkerCode.RUNTIME)
+    return value["bytes"], value["denied"]
+
+
+class ScratchWatchdog:
+    """Stop a run whose scratch passes the cap (LANE-RESOURCE-BOUND-01).
+
+    A thread measures every `interval` seconds while the run executes. It
+    trips, once, when the measured bytes exceed `cap_bytes`, when the run hid
+    part of its scratch from its own user, or after `unmeasured_limit`
+    consecutive failed measurements; it then calls `stop_run` (the carrier
+    kills the container). `tripped` holds the typed record, else None. Used
+    only where a host profile is in force; never on a miner's machine."""
+
+    def __init__(
+        self,
+        measure,
+        stop_run,
+        *,
+        cap_bytes=SCRATCH_CAP_BYTES,
+        interval=SCRATCH_POLL_SECONDS,
+        unmeasured_limit=SCRATCH_UNMEASURED_POLLS,
+    ):
+        import threading
+
+        if (
+            type(cap_bytes) is not int
+            or cap_bytes <= 0
+            or type(unmeasured_limit) is not int
+            or unmeasured_limit <= 0
+            or type(interval) not in (int, float)
+            or not 0 < interval <= 2
+        ):
+            raise WorkerFailure(WorkerCode.INVALID)
+        self.measure, self.stop_run = measure, stop_run
+        self.cap_bytes, self.interval = cap_bytes, interval
+        self.unmeasured_limit = unmeasured_limit
+        self.tripped = None
+        self.polls = 0
+        self._stop = threading.Event()
+        self._thread = threading.Thread(target=self._watch, daemon=True)
+
+    def __enter__(self):
+        self._thread.start()
+        return self
+
+    def __exit__(self, *exc):
+        self._stop.set()
+        self._thread.join(timeout=60)
+        return False
+
+    def _trip(self, reason, observed):
+        self.tripped = {
+            "refusal": SCRATCH_CAP_EXCEEDED,
+            "reason": reason,
+            "observed_bytes": observed,
+            "cap_bytes": self.cap_bytes,
+        }
+        try:
+            self.stop_run()
+        except Exception as error:  # noqa: BLE001 - the run may already be gone
+            # Recorded, not raised: the carrier still removes the container
+            # exactly, and the run is typed as stopped by the watchdog.
+            self.tripped["stop_error"] = type(error).__name__
+
+    def _watch(self):
+        misses = 0
+        while not self._stop.wait(self.interval):
+            self.polls += 1
+            try:
+                used, denied = self.measure()
+            except Exception:  # noqa: BLE001 - a miss, counted below
+                misses += 1
+                if misses >= self.unmeasured_limit:
+                    self._trip("unmeasurable", None)
+                    return
+                continue
+            misses = 0
+            if used > self.cap_bytes:
+                self._trip("over_cap", used)
+                return
+            if denied:
+                self._trip("hidden_from_its_own_user", used)
+                return
+
+
 @dataclass(frozen=True)
 class MinerResearchLaunch:
     """One miner research run. Only the carrier's miner lane constructs it."""

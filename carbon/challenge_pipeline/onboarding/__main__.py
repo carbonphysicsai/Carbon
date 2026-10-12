@@ -57,6 +57,13 @@ def main(argv=None):
     )
     readiness_parser.add_argument("--main-ref", default="origin/main")
     readiness_parser.add_argument("--format", choices=("text", "json"), default="text")
+    for command_parser in (status_parser, readiness_parser):
+        command_parser.add_argument(
+            "--report-version",
+            type=int,
+            choices=(1, 2),
+            help="readiness: v1 compatibility or v2 PROPOSED states; defaults to v1 for JSON and v2 for text",
+        )
     args = parser.parse_args(argv)
     if args.command == "pack":
         from carbon.challenge_pipeline.onboarding import provenance
@@ -73,13 +80,20 @@ def main(argv=None):
         if args.command in ("status", "readiness"):
             from carbon.challenge_pipeline.onboarding import evidence_readiness, status
 
+            report_version = args.report_version or (1 if args.format == "json" else 2)
+
             if args.command == "readiness":
                 result = (
                     evidence_readiness.generate(
-                        args.root, args.challenge, main_ref=args.main_ref
+                        args.root,
+                        args.challenge,
+                        main_ref=args.main_ref,
+                        report_version=report_version,
                     )
                     if args.challenge
-                    else evidence_readiness.portfolio(args.root, main_ref=args.main_ref)
+                    else evidence_readiness.portfolio(
+                        args.root, main_ref=args.main_ref, report_version=report_version
+                    )
                 )
                 if args.format == "text":
                     reports = result if isinstance(result, list) else [result]
@@ -96,7 +110,10 @@ def main(argv=None):
             )
             # Preserve the historical renderer used by retained tool-run receipts.
             result["evidence_readiness"] = evidence_readiness.generate(
-                args.root, args.challenge, main_ref=args.main_ref
+                args.root,
+                args.challenge,
+                main_ref=args.main_ref,
+                report_version=report_version,
             )
             from carbon.challenge_pipeline.onboarding import telemetry
 

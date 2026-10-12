@@ -1,0 +1,75 @@
+{
+ "schema": "carbon.battery.screening-grain.v1",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "authority": "OWNER-BATTERY-CHAMPIONSHIP-03 \u00a71; the owner, 2026-10-12 (Test Lead session): \"the grain is the Test Engineer's measured screening standard error, rounded up to the nearest 0.5% (minimum 0.5%)\"",
+ "rounding": "each entry: its measured SE rounded UP to a 0.005 step, floor 0.005",
+ "lookup": "PLT-08 uses the ONE entry whose `match` equals the deployment: its rule name, the published score section and, when the rule has a registered score term, that term's candidate and registry_sha256; where an entry gives `rule_digest`, the deployment's rule digest must equal it too. No match, or more than one: SEALED_UNTIL_GRAIN (fail closed).",
+ "new_rule": "a newly adopted rule or score candidate (e.g. a v9 or v10 pick) gets its own measured entry, as a new file version, before it goes live; until then the lookup refuses",
+ "display_grid": "geometric",
+ "display_rule": "displayed = (1 + grain)^k, k an integer, rounded toward the WORSE side by the entry's sense so the display never overstates: lower_is_better -> k = ceil(ln(score) / ln(1 + grain)); higher_is_better -> k = floor(ln(score) / ln(1 + grain))",
+ "update_rule": "a coldkey's displayed value changes only when a submission's grid value is at least one grid step better than the coldkey's displayed best (lower_is_better: k_new <= k_best - 1; higher_is_better: k_new >= k_best + 1); otherwise 'no improvement beyond the grain'",
+ "convention": "a display convention under the owner's grain decision (OWNER-BATTERY-CHAMPIONSHIP-04 section 3), not a new threshold; the per-coldkey noise floor is the Test Lead's display ruling under the same decision, not a new threshold",
+ "entries": [
+  {
+   "match": {
+    "rule": "v2-bank-sched",
+    "rule_digest": "sha256:c6fc92b3afbbdd40452fbd52fb822e5cff26867da9caf21b3d8a18719da24f67",
+    "score_section": "accuracy"
+   },
+   "sense": "lower_is_better",
+   "sense_source": "carbon/challenge_validator/score_feed.py SECTION_META['accuracy']",
+   "score": "the pooled mean per-case error on the pooled screening cases",
+   "grain": 0.035,
+   "grain_pct": 3.5,
+   "measured_se": 0.03043,
+   "pooled_screening_cases": 294,
+   "measurement": "measurement-v2-bank-sched.json (measure.py)",
+   "worked_example": {
+    "score": 0.1234,
+    "k": -60,
+    "displayed": 0.126934
+   }
+  },
+  {
+   "match": {
+    "rule": "v3-bank-sched",
+    "score_section": "registered",
+    "score_candidate": "G-FEAS/A-Q>@0.05",
+    "registry_sha256": "70f2943814db0531429613e6ca5e2bd1c0b656673c6ee74de08e98f540758277"
+   },
+   "rule_digest_note": "not given: the deployed v3 rule carries the deployment's own score term, whose bytes are not in the repository (the template digest covers its REGISTERED_BY_DEPLOYMENT placeholder); the operator may add the deployed digest in a later version",
+   "sense": "higher_is_better",
+   "sense_source": "carbon/battery/exam.py rule v3-bank-sched: the registered candidate's score, higher is better (OWNER-BATTERY-SCORE-CANDIDATE-01)",
+   "score": "the registered score a^0.5 q^0.5 on the pooled screening cases and the active windows' design questions",
+   "grain": 0.025,
+   "grain_pct": 2.5,
+   "measured_se": 0.024642,
+   "pooled_screening_cases": 294,
+   "design_questions": 24,
+   "measurement": "measurement-v3-bank-sched.json (measure_v3.py)",
+   "evidence_strength": "thin: 10 public members with EV4 development decisions, 9 public scenarios; member spread P10-P90 1.743615-11.615765 %. Remeasure on PUBLIC-DEV-DECISIONS-01's public run, and from scored submissions after the cutover; each is a new file version",
+   "worked_example": {
+    "score": 0.8,
+    "k": -10,
+    "displayed": 0.781198
+   }
+  }
+ ],
+ "version": 2,
+ "supersedes": "screening-grain-v1.json (kept as history)",
+ "file_lookup": "PLT-08 reads the highest-numbered screening-grain-vN.json in this folder; older versions are history",
+ "noise_floor": {
+  "ruling": "the Test Lead, 2026-10-12, on the v3 entry's member spread (median 2.5 %, P90 12 %): keep the median grid; add a per-coldkey noise floor",
+  "step": "step = max(grain, own_se_rounded), where own_se_rounded is the coldkey's OWN screening SE (own_se below) on the scored cases of the submission being considered, rounded UP to a 0.005 step",
+  "update_rule": "a coldkey's display changes only when the submission's score beats the coldkey's displayed best by MORE than `step`, relatively (lower_is_better: displayed_best / score - 1 > step; higher_is_better: score / displayed_best - 1 > step) AND its grid value is at least one grid step better (the top-level update_rule); the new display is the grid value rounded toward the worse side; otherwise 'no improvement beyond the grain'",
+  "own_se": {
+   "v2-bank-sched": "sd(per-case errors) / mean(per-case errors) / sqrt(n), over the submission's n pooled scored cases",
+   "v3-bank-sched": "0.5 * sqrt((SE_E / (1 + E))^2 + (SE_R / (1 + R))^2): E the mean per-case error over n scored cases, SE_E = sd(errors) / sqrt(n); R the mean design regret over m design questions, SE_R = sd(question regrets) / sqrt(m) (the delta method for score = a^0.5 q^0.5, a = 1/(1+E), q = 1/(1+R))"
+  },
+  "min_cases": 294,
+  "min_design_questions": 24,
+  "minimum_rule": "no first display and no update until the submission's screening score rests on at least `min_cases` scored cases (and, under a rule with a design leg, `min_design_questions` design questions); below it the coldkey's display stays as it is (or SEALED_UNTIL_GRAIN when it has none)",
+  "min_basis": "one full pooled screening set (3 active windows x 98 cases; 3 x k = 8 design questions), the least data a coldkey's own SE can rest on. A registered candidate value; adopting a different one is the Test Lead's call",
+  "never": "own_se never lowers the step below the grain, and never exposes a per-case or per-window value"
+ }
+}

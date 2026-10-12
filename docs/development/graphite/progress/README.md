@@ -24,7 +24,7 @@ accepts nothing and claims no qualification.
 | Block | Field | Meaning |
 |---|---|---|
 | `constructor` | `improvement.best`, `.median` | PUBLIC practice scores only; `UNMEASURED` otherwise |
-| | `improvement.public_dev.{accuracy_error,decision_loss}` | the executor's PUBLIC-development measurement per level: median, best, 95% bootstrap interval, `n`, `small_n` ([spec](PUBLIC_IMPROVEMENT_SPEC.md)); `UNMEASURED` until the executor supplies records |
+| | `improvement.public_dev.{accuracy_error,decision_loss}` | the executor's PUBLIC-development measurement per level: median, best, 95% bootstrap interval, `n`, `small_n` ([spec](PUBLIC_IMPROVEMENT_SPEC.md)); `UNMEASURED` until the executor supplies records. A decision-loss column whose common masks differ between runs, or whose runs disagree in sign, reads `MEASURED_BUT_NOISY` with the per-run values and is not an improvement claim; `small_n` is set under 10 runs; under 3 runs the interval is `null` ("interval not meaningful"); a Level 1+ record carries the missing-panel-guard caveat, and Levels 2-4 read `UNMEASURED` until the panel-member registration (the Test Engineer's decision) exists |
 | | `improvement.proposals_with_outcome_IMPROVEMENT` | scored proposals with the public outcome IMPROVEMENT, of all proposals |
 | | `bundled_share` | share of runs BUNDLED |
 | | `refusals.rate`, `.by_class`, `.causes` | refused proposals (`REFUSED_*`, `FAILED_INFRA`) by class: `brief_gap`, `envelope_too_tight`, `correct_block`, `infra`, or `UNCLASSIFIED` |

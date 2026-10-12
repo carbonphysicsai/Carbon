@@ -288,14 +288,24 @@ def _stamped(solver, solver_provenance, job):
     return stamp(solver(job), solver_provenance)
 
 
-def _stamp_from(records, offset, solver_provenance):
+def _stamp_from(records, offset, solver_provenance, record_schema=None):
     """Stamp the records this run appended after `offset` that the service
     wrote itself (timeouts, worker exits); earlier lines are left as they
     are."""
     body = records.read_bytes()
     lines = body[offset:].decode().splitlines()
     tail = "".join(
-        json.dumps(stamp(json.loads(x), solver_provenance), sort_keys=True) + "\n"
+        json.dumps(
+            stamp(
+                {
+                    **json.loads(x),
+                    **({"schema": record_schema} if record_schema else {}),
+                },
+                solver_provenance,
+            ),
+            sort_keys=True,
+        )
+        + "\n"
         for x in lines
         if x.strip()
     )
@@ -305,10 +315,14 @@ def _stamp_from(records, offset, solver_provenance):
     os.replace(temporary, records)
 
 
-def solve_command(target, workdir, *, repository=".", workers=1, timeout_s=1200.0):
+def solve_command(
+    target, workdir, *, repository=".", workers=1, timeout_s=1200.0, output_version="v3"
+):
     """The exact container run that solves `workdir/jobs.json` into
     `workdir/records.jsonl`: no network, read-only root, overlay and source
     mounted read-only, only the work directory writable."""
+    if output_version not in ("v3", "v4"):
+        raise TruthEnvironmentError("unknown prospective output version")
     return [
         "docker",
         "run",
@@ -336,11 +350,11 @@ def solve_command(target, workdir, *, repository=".", workers=1, timeout_s=1200.
         TRUTH_IMAGE["base_image"],
         "-m",
         "carbon.battery.truth_env",
-        "solve",
+        "solve-v4" if output_version == "v4" else "solve",
         "--jobs",
-        "/work/jobs.json",
+        "/work/jobs.v4.json" if output_version == "v4" else "/work/jobs.json",
         "--records",
-        "/work/records.jsonl",
+        "/work/records.v4.jsonl" if output_version == "v4" else "/work/records.jsonl",
         "--workers",
         str(int(workers)),
         "--timeout-s",
@@ -348,14 +362,78 @@ def solve_command(target, workdir, *, repository=".", workers=1, timeout_s=1200.
     ]
 
 
-def solve(jobs_path, records_path, *, repository=".", workers=1, timeout_s=1200.0):
+def solve(
+    jobs_path,
+    records_path,
+    *,
+    repository=".",
+    workers=1,
+    timeout_s=1200.0,
+    output_version="v3",
+):
     """Solve a jobs file (inside the truth image). Resumable: terminal records
     are kept, FAILED_INFRA is retried."""
     from .truth import TruthService, reference_solver
 
+    if output_version not in ("v3", "v4"):
+        raise TruthEnvironmentError("unknown prospective output version")
     solver_provenance = provenance(repository)
     document = json.loads(Path(jobs_path).read_bytes())
     records = Path(records_path)
+    record_schema = None
+    binding = records.with_name(records.name + ".output-contract.json")
+    if output_version == "v3" and binding.exists():
+        raise TruthEnvironmentError(
+            "v3 refuses a version-bound prospective records file"
+        )
+    if output_version == "v3":
+        from . import outputs_v4
+
+        if document.get("schema") == "carbon.battery.truth-jobs.v4":
+            raise TruthEnvironmentError("v3 refuses prospective v4 jobs")
+        if records.exists():
+            for line in records.read_text().splitlines():
+                if json.loads(line).get("schema") == outputs_v4.SCHEMA:
+                    raise TruthEnvironmentError("v3 refuses prospective v4 records")
+    if output_version == "v4":
+        from . import outputs_v4
+        from .reference_v4 import reference_solver
+
+        record_schema = outputs_v4.SCHEMA
+        if (
+            document.get("schema") != "carbon.battery.truth-jobs.v4"
+            or document.get("output_contract_digest") != outputs_v4.digest()
+        ):
+            raise TruthEnvironmentError(
+                "v4 jobs must bind the prospective output contract"
+            )
+        identity = {
+            "schema": record_schema,
+            "output_contract_digest": outputs_v4.digest(),
+        }
+        if binding.exists():
+            if json.loads(binding.read_bytes()) != identity:
+                raise TruthEnvironmentError("records belong to another output contract")
+        elif records.exists() and records.stat().st_size:
+            raise TruthEnvironmentError(
+                "v4 refuses pre-existing unversioned or v3 records"
+            )
+        else:
+            fd = os.open(binding, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+            with os.fdopen(fd, "w") as handle:
+                json.dump(identity, handle, sort_keys=True)
+        if records.exists():
+            for line in records.read_text().splitlines():
+                prior = json.loads(line)
+                if prior.get("schema") != record_schema:
+                    raise TruthEnvironmentError("v4 records contain another schema")
+                if prior.get("status") == "OK":
+                    try:
+                        outputs_v4.validate(prior)
+                    except outputs_v4.OutputV4Refused as exc:
+                        raise TruthEnvironmentError(
+                            "existing v4 record violates its output contract"
+                        ) from exc
     if not records.exists():
         records.touch(mode=0o600)
     if records.stat().st_mode & 0o077:
@@ -370,7 +448,7 @@ def solve(jobs_path, records_path, *, repository=".", workers=1, timeout_s=1200.
     try:
         summary = service.run(document["jobs"])
     finally:
-        _stamp_from(records, offset, solver_provenance)
+        _stamp_from(records, offset, solver_provenance, record_schema)
     return {"fingerprint": document["fingerprint"], **summary}
 
 
@@ -380,11 +458,12 @@ def main(argv=None):
 
     parser = argparse.ArgumentParser(prog="python -m carbon.battery.truth_env")
     sub = parser.add_subparsers(dest="command", required=True)
-    run = sub.add_parser("solve")
-    run.add_argument("--jobs", required=True)
-    run.add_argument("--records", required=True)
-    run.add_argument("--workers", type=int, default=1)
-    run.add_argument("--timeout-s", type=float, default=1200.0)
+    for command in ("solve", "solve-v4"):
+        run = sub.add_parser(command)
+        run.add_argument("--jobs", required=True)
+        run.add_argument("--records", required=True)
+        run.add_argument("--workers", type=int, default=1)
+        run.add_argument("--timeout-s", type=float, default=1200.0)
     args = parser.parse_args(argv)
     try:
         result = solve(
@@ -393,6 +472,7 @@ def main(argv=None):
             repository=".",
             workers=args.workers,
             timeout_s=args.timeout_s,
+            output_version="v4" if args.command == "solve-v4" else "v3",
         )
     except TruthEnvironmentError as refused:
         print(json.dumps({"refused": str(refused)}), file=sys.stderr)

@@ -56,6 +56,10 @@ def load_runs(manifest, root):
                 record = improvement.validate(
                     extract.read_document(root / entry["public_improvement_file"])
                 )
+                if (record.get("level") or 0) != entry["level"]:
+                    raise ProgressError(
+                        f"public_improvement_level_mismatch: {entry['public_improvement_file']}"
+                    )
             common["public_improvement"] = record
             runs.append(
                 extract.constructor_run(

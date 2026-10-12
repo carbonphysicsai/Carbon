@@ -151,6 +151,7 @@ from .phase3 import (
     check_code_ref,
     ensure_development_expansion,
     hostile_lane_bounds,
+    hostile_scratch_floor,
     load_grant,
 )
 from .pods import PodFailure
@@ -231,6 +232,19 @@ PHASE4_STAGE_GRANTS = types.MappingProxyType(
                 grant_id="GRAPHITE-GRANT-STAGE-C-ATTACKER",
                 grant_file=GRANTS_DIR + "/GRAPHITE-GRANT-STAGE-C-ATTACKER.json",
                 levels=(4,),
+            ),
+            # The Level 5 hunt's Attacker runs: A1 attacks Level 1, A2 Level 3.
+            Phase4Grant(
+                challenge=BATTERY_CHALLENGE,
+                grant_id="GRAPHITE-GRANT-HUNT-A1-ATTACKER",
+                grant_file=GRANTS_DIR + "/GRAPHITE-GRANT-HUNT-A1-ATTACKER.json",
+                levels=(1,),
+            ),
+            Phase4Grant(
+                challenge=BATTERY_CHALLENGE,
+                grant_id="GRAPHITE-GRANT-HUNT-A2-ATTACKER",
+                grant_file=GRANTS_DIR + "/GRAPHITE-GRANT-HUNT-A2-ATTACKER.json",
+                levels=(3,),
             ),
         )
     }
@@ -2076,6 +2090,11 @@ def command_run(args):
     # A Level 4-5 Attacker probes with participant model code in the miner
     # lane on this host: never unbounded (LANE-RESOURCE-BOUND-01).
     hostile_lane_bounds(CONSTRUCTION_LEVEL if level is None else level)
+    hostile_scratch_floor(
+        CONSTRUCTION_LEVEL if level is None else level,
+        args.miner_profile,
+        args.miner_campaign,
+    )
     root = _root(args.root)
     grant, head = live_checks(
         args.grant,

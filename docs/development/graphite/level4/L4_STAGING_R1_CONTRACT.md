@@ -60,7 +60,13 @@ The lowering runs in the miner research lane (`carbon.miner-research.unlimited.v
   - 512 tasks stop a fork bomb but leave room for the thread pools of JAX and BLAS.
   - 4 CPUs keep the host responsive.
   - 8,192 open files are generous for research. Kernel memory for descriptors is charged to the memory bound.
-- **Scratch is not capped.** Scratch is a host bind mount (`<operation>/scratch`). The carrier reads `scratch/output` from the host disk after removing the container, and a bind mount takes no size option. Capping scratch is open with the owner (see the PR).
+- **Scratch is capped by a watchdog** (the Test Lead's choice (c)). Scratch stays a host bind mount (`<operation>/scratch`), and the carrier still reads `scratch/output` from the host disk.
+  - The cap is 2 GiB per run (`miner_container.SCRATCH_CAP_BYTES`), a named constant, so profile v1 is unchanged.
+  - Where a host profile is in force, the carrier measures scratch every second, inside the container as the worker that owns it. When a run passes the cap, the carrier kills its container. The run settles typed: `FAILED_MINER`, worker code `POLICY`, observation `scratch_cap_exceeded`. The detail goes in `scratch-watch.json`. It is never a score or a scientific outcome.
+  - A run that hides part of its scratch from its own user, or whose scratch stays unmeasurable for 15 polls, is stopped the same way.
+  - A miner's machine has no profile, and so no watchdog.
+  - A run can overshoot the cap by about one poll's worth of writes before it is killed.
+- **The host floor.** A live Level 4-5 session refuses to start, typed `scratch_host_low_space`, when the filesystem holding its campaign's scratch has less than 15 GB free (`shutil.disk_usage`).
 - **The bound is per container.** Concurrent runs from several sessions each get their own bound.
 
 ## Slices
