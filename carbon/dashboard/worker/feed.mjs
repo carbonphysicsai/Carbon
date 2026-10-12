@@ -367,9 +367,12 @@ const LADDER_STATES = ["SHOWN", "NO_IMPROVEMENT_BEYOND_GRAIN", "SEALED_UNTIL_GRA
 const UNRANKED = 10 ** 9;
 function ladder(raw, digits, pinned) {
   if (raw === null) return null;
-  if (!Array.isArray(raw)) throw new FeedRefused("ladder_invalid");
+  if (!isDict(raw) || !Array.isArray(get(raw, "coldkeys"))) throw new FeedRefused("ladder_invalid");
+  const grainRaw = get(raw, "grain_pct");
+  const grain = grainRaw === null ? null : number(grainRaw, "ladder_invalid");
+  if (grain !== null && grain <= 0) throw new FeedRefused("ladder_invalid");
   const rows = [], seen = new Set();
-  for (const row of raw) {
+  for (const row of raw.coldkeys) {
     if (!isDict(row)) throw new FeedRefused("ladder_invalid");
     const coldkey = hotkey(get(row, "coldkey"), pinned);
     const status = get(row, "status");
@@ -378,6 +381,7 @@ function ladder(raw, digits, pinned) {
     const score = rounded(get(row, "displayed_score"), digits, "ladder");
     if (status === "SEALED_UNTIL_GRAIN" && score !== null) throw new FeedRefused("ladder_sealed_value");
     if (status !== "SEALED_UNTIL_GRAIN" && score === null) throw new FeedRefused("ladder_invalid");
+    if (status !== "SEALED_UNTIL_GRAIN" && grain === null) throw new FeedRefused("ladder_grain_unposted");
     const keys = get(row, "hotkeys");
     if (!Array.isArray(keys)) throw new FeedRefused("ladder_invalid");
     rows.push({
@@ -386,10 +390,12 @@ function ladder(raw, digits, pinned) {
       displayed_score: score,
       status,
       hotkeys: [...new Set(keys.map(h => hotkey(h, pinned)))].sort(codePointCompare),
+      best_submission_id: get(row, "best_submission_id") === null ? null : text(row.best_submission_id, "ladder_invalid"),
+      displayed_at_block: int(get(row, "displayed_at_block"), "ladder_invalid", {optional: true}),
     });
   }
   const order = r => (r.rank === null ? UNRANKED : r.rank);
-  return rows.sort((a, b) => order(a) - order(b) || cmp(a.coldkey, b.coldkey));
+  return {grain_pct: grain, coldkeys: rows.sort((a, b) => order(a) - order(b) || cmp(a.coldkey, b.coldkey))};
 }
 
 export function boardSlug(challengeId, deviceClass) {
@@ -671,17 +677,25 @@ function king(board, section, challengers) {
   ), null];
 }
 function coldkeys(board) {
-  const rows = pick(board, "ladder");
-  if (rows === null) return null;
-  return rows.map(row => ({
+  const ladder = pick(board, "ladder");
+  if (ladder === null) return null;
+  return ladder.coldkeys.map(row => ({
     ...fields(
       ["coldkey", row.coldkey, null],
       ["rank", row.rank, "not_in_feed"],
       ["displayed_score", row.displayed_score, "sealed_until_grain"],
       ["status", row.status, null],
+      ["best_submission_id", row.best_submission_id, "not_in_feed"],
+      ["displayed_at_block", row.displayed_at_block, "not_in_feed"],
     ),
     hotkeys: [...row.hotkeys],
   }));
+}
+function grainPct(board, gate) {
+  const ladder = pick(board, "ladder");
+  if (gate !== null) return [null, gate];
+  if (ladder === null) return [null, "not_in_feed"];
+  return [ladder.grain_pct, "grain_human_input"];
 }
 function leaderboard(board, section, challengers, lag, gate) {
   const name = section === null ? null : section.name;
@@ -698,7 +712,7 @@ function leaderboard(board, section, challengers, lag, gate) {
     ),
     is_king: row.hotkey === kingKey,
   }));
-  return {...fields(["section", name, "no_ranking_section"], ["release_lag", ...lag], ["coldkeys", coldkeys(board), "not_in_feed"], ["grain", ...ruled(null, gate)]), label: ELIGIBLE_LABEL, entries};
+  return {...fields(["section", name, "no_ranking_section"], ["release_lag", ...lag], ["coldkeys", coldkeys(board), "not_in_feed"], ["grain_pct", ...grainPct(board, gate)]), label: ELIGIBLE_LABEL, entries};
 }
 function historyV2(board, section) {
   const name = section === null ? null : section.name;

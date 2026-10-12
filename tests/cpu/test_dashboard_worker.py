@@ -305,11 +305,20 @@ def test_worker_board_v2_matches_board_v2_py(tmp_path):
         {"displayed_score": 0.12345},
         {"rank": 1.0},
         {"hotkeys": ["fixture-miner-01", "fixture-miner-01"]},
+        {"best_submission_id": "<b>"},
+        {"best_submission_id": None, "displayed_at_block": None},
+        {"displayed_at_block": 2.0},
     ):
         body = fixtures.ladder_document(
             "fixture-challenge-epsilon", "gpu:FIXTURE-GPU", seed=6, sealed=False
         )
-        body["leaderboard"]["ladder"][0].update(change)
+        body["leaderboard"]["ladder"]["coldkeys"][0].update(change)
+        documents.append(fixtures.sign(body))
+    for grain in (None, 0, 2.25, True):
+        body = fixtures.ladder_document(
+            "fixture-challenge-epsilon", "gpu:FIXTURE-GPU", seed=6, sealed=False
+        )
+        body["leaderboard"]["ladder"]["grain_pct"] = grain
         documents.append(fixtures.sign(body))
     items, expected = [], []
     for document in documents:

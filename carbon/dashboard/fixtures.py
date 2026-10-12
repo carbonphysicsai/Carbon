@@ -294,16 +294,23 @@ def ladder_document(challenge_id, device_class, *, seed, sealed):
     CHAMPIONSHIP-03), unsigned. Two hotkeys share each made-up coldkey.
     `sealed`: every entry SEALED_UNTIL_GRAIN, as while the grain is
     HUMAN_INPUT; otherwise SHOWN, and NO_IMPROVEMENT_BEYOND_GRAIN for every
-    second coldkey. The displayed scores are made up."""
+    second coldkey. The displayed scores and the grain are made up."""
     document = board_document(challenge_id, device_class, seed=seed)
     owners = {}
     for row in document["leaderboard"]["standing"]:
         number = int(row["hotkey"].rsplit("-", 1)[1])
         owners.setdefault(f"fixture-coldkey-{(number + 1) // 2:02d}", []).append(row)
     order = sorted(owners, key=lambda c: min(r["best"]["accuracy"] for r in owners[c]))
-    ladder = []
+    rows = []
     for rank, coldkey in enumerate(order, start=1):
-        best = min(r["best"]["accuracy"] for r in owners[coldkey])
+        top = min(owners[coldkey], key=lambda r: r["best"]["accuracy"])
+        best = top["best"]["accuracy"]
+        submission = next(
+            s["submission_id"]
+            for s in document["submissions"]
+            if s["hotkey"] == top["hotkey"]
+            and s["receipt_block"] == top["best_at_block"]
+        )
         hotkeys = sorted(r["hotkey"] for r in owners[coldkey])
         if sealed:
             entry = {"status": "SEALED_UNTIL_GRAIN", "displayed_score": None}
@@ -311,14 +318,17 @@ def ladder_document(challenge_id, device_class, *, seed, sealed):
             entry = {"status": "NO_IMPROVEMENT_BEYOND_GRAIN", "displayed_score": best}
         else:
             entry = {"status": "SHOWN", "displayed_score": best}
-        ladder.append(
+        rows.append(
             {
                 "coldkey": coldkey,
                 "rank": None if sealed else rank,
                 "hotkeys": hotkeys,
+                "best_submission_id": None if sealed else submission,
+                "displayed_at_block": None if sealed else top["best_at_block"],
                 **entry,
             }
         )
+    ladder = {"grain_pct": None if sealed else 0.5, "coldkeys": rows}
     return {
         **document,
         "leaderboard": {**document["leaderboard"], "ladder": ladder},

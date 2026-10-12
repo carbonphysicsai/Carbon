@@ -303,8 +303,9 @@ def _release(raw):
 
 
 # OWNER-BATTERY-CHAMPIONSHIP-03 (#1135): screening shown per coldkey on a
-# ladder. `leaderboard.ladder` is the shape the dashboard accepts for it, until
-# the validator publishes one: its fields are proposed here, not registered.
+# ladder. `leaderboard.ladder` is `{grain_pct, coldkeys: [...]}`, the shape the
+# Validator adopted (VALIDATOR-32 rev 7 §5). `grain_pct` is null while the
+# grain is HUMAN_INPUT, and then every entry must be sealed.
 LADDER_STATES = ("SHOWN", "NO_IMPROVEMENT_BEYOND_GRAIN", "SEALED_UNTIL_GRAIN")
 _UNRANKED = 10**9
 
@@ -314,10 +315,13 @@ def _ladder(raw, digits, trust):
     carries no ladder. A sealed entry that carries a value is refused whole."""
     if raw is None:
         return None
-    if type(raw) is not list:
+    if type(raw) is not dict or type(raw.get("coldkeys")) is not list:
+        raise FeedRefused("ladder_invalid")
+    grain = raw.get("grain_pct")
+    if grain is not None and _number(grain, "ladder_invalid") <= 0:
         raise FeedRefused("ladder_invalid")
     rows, seen = [], set()
-    for row in raw:
+    for row in raw["coldkeys"]:
         if type(row) is not dict:
             raise FeedRefused("ladder_invalid")
         coldkey = _hotkey(row.get("coldkey"), trust)
@@ -330,6 +334,8 @@ def _ladder(raw, digits, trust):
             raise FeedRefused("ladder_sealed_value")
         if status != "SEALED_UNTIL_GRAIN" and score is None:
             raise FeedRefused("ladder_invalid")
+        if status != "SEALED_UNTIL_GRAIN" and grain is None:
+            raise FeedRefused("ladder_grain_unposted")
         hotkeys = row.get("hotkeys")
         if type(hotkeys) is not list:
             raise FeedRefused("ladder_invalid")
@@ -342,12 +348,20 @@ def _ladder(raw, digits, trust):
                 "displayed_score": score,
                 "status": status,
                 "hotkeys": sorted({_hotkey(h, trust) for h in hotkeys}),
+                "best_submission_id": (
+                    None
+                    if row.get("best_submission_id") is None
+                    else _text(row["best_submission_id"], "ladder_invalid")
+                ),
+                "displayed_at_block": _int(
+                    row.get("displayed_at_block"), "ladder_invalid", optional=True
+                ),
             }
         )
     rows.sort(
         key=lambda r: (_UNRANKED if r["rank"] is None else r["rank"], r["coldkey"])
     )
-    return rows
+    return {"grain_pct": grain, "coldkeys": rows}
 
 
 SHOWCASE_SCHEMA = "carbon.validator.showcase-panel.v1"

@@ -56,6 +56,7 @@ REASONS = (
     "rules_unavailable",
     "rules_digest_mismatch",
     "sealed_until_grain",
+    "grain_human_input",
 )
 RULES_STATES = ("UNAVAILABLE", "DIGEST_MISMATCH", "OK")
 # The championship's shape (Test Lead, VALIDATOR-32 rev 7 §5), for S2. None
@@ -293,10 +294,23 @@ def _coldkeys(board):
             ("rank", row["rank"], "not_in_feed"),
             ("displayed_score", row["displayed_score"], "sealed_until_grain"),
             ("status", row["status"], None),
+            ("best_submission_id", row["best_submission_id"], "not_in_feed"),
+            ("displayed_at_block", row["displayed_at_block"], "not_in_feed"),
         )
         | {"hotkeys": list(row["hotkeys"])}
-        for row in ladder
+        for row in ladder["coldkeys"]
     ]
+
+
+def _grain_pct(board, gate):
+    """The ladder's grain: a rule value, so shown only when the rules are OK;
+    null while the grain is HUMAN_INPUT."""
+    ladder = board.get("ladder")
+    if gate is not None:
+        return None, gate
+    if ladder is None:
+        return None, "not_in_feed"
+    return ladder["grain_pct"], "grain_human_input"
 
 
 def _leaderboard(board, section, challengers, lag, gate):
@@ -324,7 +338,7 @@ def _leaderboard(board, section, challengers, lag, gate):
             ("section", name, "no_ranking_section"),
             ("release_lag", *lag),
             ("coldkeys", _coldkeys(board), "not_in_feed"),
-            ("grain", *_ruled(None, gate)),
+            ("grain_pct", *_grain_pct(board, gate)),
         ),
         "label": ELIGIBLE_LABEL,
         "entries": entries,

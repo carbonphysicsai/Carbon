@@ -102,7 +102,7 @@ ALLOWED = {
     "eligible_leaderboard.entries[].best_at_block",
     "eligible_leaderboard.entries[].challenger_state",
     "eligible_leaderboard.entries[].is_king",
-    "eligible_leaderboard.grain",
+    "eligible_leaderboard.grain_pct",
     "eligible_leaderboard.coldkeys",
     "eligible_leaderboard.coldkeys[]",
     "eligible_leaderboard.coldkeys[].coldkey",
@@ -111,6 +111,8 @@ ALLOWED = {
     "eligible_leaderboard.coldkeys[].status",
     "eligible_leaderboard.coldkeys[].hotkeys",
     "eligible_leaderboard.coldkeys[].hotkeys[]",
+    "eligible_leaderboard.coldkeys[].best_submission_id",
+    "eligible_leaderboard.coldkeys[].displayed_at_block",
     "history",
     "history.era",
     "history.section",
@@ -349,7 +351,10 @@ def test_ladder_fixtures_cover_every_coldkey_status():
     for row in sealed["coldkeys"]:
         assert row["displayed_score"] is None
         assert row["reasons"]["displayed_score"] == "sealed_until_grain"
-    assert shown["grain"] is None
+    assert shown["grain_pct"] == 0.5
+    no_card = _v2(fixtures.phase_documents()[2], card=None)["eligible_leaderboard"]
+    assert no_card["grain_pct"] is None
+    assert no_card["reasons"]["grain_pct"] == "rules_unavailable"
 
 
 def test_coldkeys_are_null_until_the_feed_carries_a_ladder():
@@ -373,20 +378,60 @@ def _laddered():
         ({"displayed_score": 0.12345}, "unrounded_value"),
         ({"hotkeys": "fixture-miner-01"}, "ladder_invalid"),
         ({"coldkey": "<b>"}, "hotkey_invalid"),
+        ({"best_submission_id": "<b>x</b>"}, "ladder_invalid"),
+        ({"displayed_at_block": 1.5}, "ladder_invalid"),
+        ({"displayed_at_block": -1}, "ladder_invalid"),
     ],
 )
 def test_a_malformed_ladder_is_refused_whole(change, code):
     body = _laddered()
-    body["leaderboard"]["ladder"][0].update(change)
+    body["leaderboard"]["ladder"]["coldkeys"][0].update(change)
     with pytest.raises(feed.FeedRefused) as caught:
         feed.project(fixtures.sign(body), fixtures.fixture_trust())
     assert caught.value.code == code
 
 
+@pytest.mark.parametrize(
+    ("grain", "code"),
+    [(None, "ladder_grain_unposted"), (0, "ladder_invalid"), ("2%", "ladder_invalid")],
+)
+def test_a_shown_score_needs_a_posted_grain(grain, code):
+    body = _laddered()
+    body["leaderboard"]["ladder"]["grain_pct"] = grain
+    with pytest.raises(feed.FeedRefused) as caught:
+        feed.project(fixtures.sign(body), fixtures.fixture_trust())
+    assert caught.value.code == code
+
+
+def test_a_list_shaped_ladder_is_refused():
+    body = _laddered()
+    body["leaderboard"]["ladder"] = body["leaderboard"]["ladder"]["coldkeys"]
+    with pytest.raises(feed.FeedRefused) as caught:
+        feed.project(fixtures.sign(body), fixtures.fixture_trust())
+    assert caught.value.code == "ladder_invalid"
+
+
+def test_ladder_grain_and_coldkey_fields_in_v2():
+    shown = _v2(fixtures.sign(_laddered()))["eligible_leaderboard"]
+    assert shown["grain_pct"] == 0.5
+    for row in shown["coldkeys"]:
+        assert row["best_submission_id"] and type(row["displayed_at_block"]) is int
+    sealed_doc = fixtures.phase_documents()[3]
+    sealed = _v2(sealed_doc)["eligible_leaderboard"]
+    assert sealed["grain_pct"] is None
+    assert sealed["reasons"]["grain_pct"] == "grain_human_input"
+    for row in sealed["coldkeys"]:
+        assert row["reasons"]["displayed_at_block"] == "not_in_feed"
+    assert _v2(fixtures.sign(_alpha()))["eligible_leaderboard"]["reasons"][
+        "grain_pct"
+    ] == ("not_in_feed")
+
+
 def test_a_ladder_shows_only_the_pooled_score():
     body = _laddered()
-    body["leaderboard"]["ladder"][0]["cases"] = [{"case_id": "c-1", "error": 0.5}]
-    body["leaderboard"]["ladder"][0]["grain"] = 0.0225
+    row = body["leaderboard"]["ladder"]["coldkeys"][0]
+    row["cases"] = [{"case_id": "c-1", "error": 0.5}]
+    row["grain"] = 0.0225
     text = json.dumps(_v2(fixtures.sign(body)))
     assert '"cases"' not in text and "c-1" not in text and "0.0225" not in text
 
