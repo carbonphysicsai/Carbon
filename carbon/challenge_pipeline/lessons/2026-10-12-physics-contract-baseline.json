@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-12-physics-contract-baseline",
+  "recorded_at": "2026-10-12T15:58:53Z",
+  "challenge": "f02",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "PHYSICS-CONTRACT-PACKETS-01", "description": "Existing packet-reconcile and packet-generator baseline"},
+  "expected": "Retain historical reconciliation and drafting behaviour before adding an advisory.",
+  "observed": "20 native diagnostic tests passed. No solver, provider or protected material accessed.",
+  "keep": ["Public-source-only clause reconciliation", "Default v1 report replay and no authority inferred from matching text"],
+  "change": ["Version advisory-bearing reports without rewriting historical examples"],
+  "protocol_elements": ["measurement_authority", "reference_adequacy"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

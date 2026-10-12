@@ -9,6 +9,16 @@ from pathlib import Path
 from carbon.challenge_pipeline.onboarding import packet
 
 SCHEMA = "carbon.onboarding.packet-reconcile.v1"
+PHYSICS_DIRECTORY = "docs/development/challenge_pipeline/physics_contracts"
+PHYSICS_ALIASES = {
+    "chip-cold-plate": "cooling-cell",
+    "cooling": "cooling-cell",
+    "electric-motor-magnetics": "motor",
+    "motor-10p12s": "motor",
+    "motor-10p-12s": "motor",
+    "burst-thermal": "f02",
+    "silencer": "f13",
+}
 BUYER_FIELDS = frozenset(
     {
         "buyer",
@@ -146,7 +156,76 @@ def validate(manifest):
             raise packet.DraftError("matched typed selectors required")
 
 
-def reconcile(root, manifest):
+def physics_contract_notice(root, challenge):
+    """Bounded metadata advisory, never contract execution or qualification."""
+    if not re.fullmatch(r"[a-z0-9][a-z0-9-]{0,79}", str(challenge)):
+        raise packet.DraftError("safe challenge identifier required")
+    family = PHYSICS_ALIASES.get(challenge, challenge)
+    name = f"{PHYSICS_DIRECTORY}/{family}.json"
+    notice = {
+        "state": "UNAVAILABLE_NOT_ABSENCE",
+        "message": "physics contract unavailable — not evidence of absence",
+        "path": name,
+        "observed_sha256": None,
+        "blocking": False,
+        "authority_granted": False,
+        "basis": "Public draft metadata only; no laws, applicability, calibration or gate adoption verified. A family alias does not establish packet-scope coverage.",
+    }
+    try:
+        root = Path(root).resolve()
+        target = root / name
+        if not root.is_dir() or not target.resolve().is_relative_to(root):
+            return notice
+        # A broken link is unreadable, not an absent contract. No link traversal
+        # or host scanning, even for an otherwise repository-contained target.
+        if any(
+            p.is_symlink()
+            for p in (target, *target.parents)
+            if p != root and p.is_relative_to(root)
+        ):
+            return notice
+        try:
+            target.stat()
+        except FileNotFoundError:
+            return {
+                **notice,
+                "state": "MISSING",
+                "message": "physics contract missing",
+            }
+        path = packet.source_path(root, name)
+        raw = path.read_bytes()
+        notice["observed_sha256"] = packet.digest(raw)
+        draft = json.loads(
+            raw.decode("utf-8"),
+            parse_constant=lambda _: (_ for _ in ()).throw(
+                packet.DraftError("finite JSON required")
+            ),
+        )
+        if (
+            type(draft) is not dict
+            or draft.get("schema") != "carbon.physics-contract.draft.v1"
+            or draft.get("challenge") != family
+            or draft.get("maturity") != "DRAFT"
+            or draft.get("status") != "HUMAN_INPUT"
+            or draft.get("runtime_enabled") is not False
+        ):
+            return notice
+        return {
+            **notice,
+            "state": "DRAFT_PRESENT",
+            "message": "physics contract draft present — HUMAN_INPUT",
+        }
+    except (
+        packet.DraftError,
+        OSError,
+        UnicodeError,
+        RuntimeError,
+        json.JSONDecodeError,
+    ):
+        return notice
+
+
+def reconcile(root, manifest, *, include_physics_contract=False):
     validate(manifest)
     documents, bodies = {}, {}
     for key, doc in manifest["documents"].items():
@@ -199,7 +278,7 @@ def reconcile(root, manifest):
         )
     bound = {row["field"] for row in rows}
     unbound = sorted(BUYER_FIELDS - bound)
-    return {
+    report = {
         "schema": "carbon.onboarding.packet-reconciliation-report.v1",
         "challenge": manifest["challenge"],
         "manifest_sha256": packet.digest(
@@ -219,6 +298,12 @@ def reconcile(root, manifest):
         "authority_granted": False,
         "basis": "Reviewed clause bindings only: numeric equality or exact phrase-to-token mappings. Not empirical credibility, semantic entailment, approval, qualification or readiness. Unbound fields need reviewed bindings; do not guess values.",
     }
+    if include_physics_contract:
+        report["schema"] = "carbon.onboarding.packet-reconciliation-report.v2"
+        report["physics_contract"] = physics_contract_notice(
+            root, manifest["challenge"]
+        )
+    return report
 
 
 def render(report):
@@ -245,6 +330,20 @@ def render(report):
             "",
         ]
     )
+    if "physics_contract" in report:
+        notice = report["physics_contract"]
+        lines.extend(
+            [
+                "## Physics contract (advisory, non-blocking)",
+                "",
+                notice["message"],
+                "",
+                f"Pointer: `{notice['path']}`; observed digest: `{notice['observed_sha256']}`.",
+                "",
+                notice["basis"],
+                "",
+            ]
+        )
     return "\n".join(lines)
 
 
@@ -261,7 +360,9 @@ def main():
     args = parser.parse_args()
     try:
         report = reconcile(
-            args.root, packet.read_json(packet.source_path(args.root, args.manifest))
+            args.root,
+            packet.read_json(packet.source_path(args.root, args.manifest)),
+            include_physics_contract=True,
         )
     except packet.DraftError as exc:
         parser.exit(2, str(exc) + "\n")
