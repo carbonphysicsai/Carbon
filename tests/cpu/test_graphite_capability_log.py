@@ -326,3 +326,10 @@ def test_the_hunt_wishes_are_in_the_committed_log_via_the_fixed_parser():
         assert cl._cell(wish["needs"]) in text_
     assert text_.count("hunt wish backfill") == 4
     assert "official_seed" not in text_ and "draw_id" not in text_
+
+
+def test_the_hunt_wish_backfill_is_clean_text_with_one_final_newline():
+    raw = HUNT_WISHES.read_bytes()
+    assert b"\r" not in raw
+    assert raw.endswith(b"}\n") and not raw.endswith(b"\n\n")
+    assert all(line == line.rstrip() for line in raw.decode("utf-8").splitlines())
