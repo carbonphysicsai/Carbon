@@ -1199,7 +1199,7 @@ def session_brief(
     level4_stage = bool(level_domain_text) and level == 4 and study is None
     if level4_stage:
         observation["instructions"] += (
-            " At Level 4 a recipe may carry a graph submission: call "
+            " At Level 4 every proposal must carry a staged graph submission: call "
             + LEVEL4_STAGE
             + " with task_id empty for the interface and the commands, lower "
             "your model in a workspace run_python task, then call it again with "
