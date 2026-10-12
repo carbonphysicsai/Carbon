@@ -216,7 +216,14 @@ def harsh_leg(rows, kappa=KAPPA):
     """`v3s` from one member's k = 3 question results: `1 / (1 + mean loss)`,
     where a question with an INFEASIBLE verified pick costs `kappa` and every
     other question its bounded regret. None when any question is unscored
-    (never a partial leg)."""
+    (never a partial leg).
+
+    "Infeasible or unsafe" (amendment 11) is ONE condition, registered in
+    amendment 12 (`registry-v10-addendum-1.json`): a verified pick whose
+    reference status is INFEASIBLE. Battery's decision constraints are its
+    safety limits (no plating onset, peak temperature), so an infeasible pick
+    is the unsafe pick; the attempt vocabulary has no separate unsafe status.
+    UNRESOLVED, MISSING and FAILED_INFRA picks are never charged kappa."""
     losses = []
     for row in rows:
         if row["score"] is None:

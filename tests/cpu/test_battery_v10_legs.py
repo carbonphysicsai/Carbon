@@ -97,3 +97,21 @@ def test_the_sign_measure_is_absent_without_a_pinned_panel():
     row = {"eligible": True, "E": 0.1, "legs": {"a": 0.5, "r": 0.5, "p": 0.5, "v3s": 0.5},
            "gates": {"envelope": 0.0}}  # fmt: skip
     assert st.score_member(v10["SIGN/ARP-V3S"], row) is None
+
+
+def test_unsafe_means_an_infeasible_reference_and_nothing_else():
+    """Amendment 12: one condition. Only INFEASIBLE is charged kappa."""
+    import json
+    from pathlib import Path
+
+    for status in ("UNRESOLVED", "MISSING", "FAILED_INFRA", "FEASIBLE"):
+        assert vq.harsh_leg([q(0.5, status)]) == pytest.approx(1 / 1.5), status
+    assert vq.harsh_leg([q(0.5, "INFEASIBLE")]) == pytest.approx(1 / (1 + vq.KAPPA))
+    root = Path(__file__).resolve().parents[2]
+    add = json.loads(
+        (
+            root
+            / "docs/development/evidence/battery-score-tuning/registry-v10-addendum-1.json"
+        ).read_text()
+    )
+    assert "INFEASIBLE" in add["v3s"]["unsafe_or_infeasible"]
