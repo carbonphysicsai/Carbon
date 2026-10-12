@@ -808,14 +808,22 @@ class PoolStore:
         with self.db() as db:
             return [r[0] for r in db.execute("SELECT fingerprint FROM batches")]
 
-    def scored_submissions(self):
+    def scored_submissions(self, *, scoring_order=False):
         """`[{submission_id, hotkey, binding, state, score}]` for every scored
-        submission, oldest first. Operator-only."""
+        submission, oldest first. Operator-only.
+
+        `scoring_order` replays immutable score insertions for PLT-08's display;
+        a late worker completion must not insert before earlier display events.
+        """
         with self.db() as db:
             rows = db.execute(
                 "SELECT s.submission_id, b.hotkey, b.binding, b.state, s.pool_version, "
                 "s.record FROM scores s JOIN submissions b USING(submission_id) "
-                "ORDER BY b.created, s.submission_id"
+                + (
+                    "ORDER BY s.rowid"
+                    if scoring_order
+                    else "ORDER BY b.created, s.submission_id"
+                )
             ).fetchall()
         return [
             {
