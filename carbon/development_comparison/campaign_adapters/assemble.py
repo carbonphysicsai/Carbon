@@ -634,7 +634,9 @@ def registered_design(context, sources):
         replay, bound = assembly_design.build(
             sources.export, ledger, predictions, receipt, comparator, bindings
         )
-        context_value = assembly_design.value_context(sources.export, predictions)
+        context_value = assembly_design.value_context(
+            sources.export, predictions, ledger, receipt
+        )
         base_rule = json.loads(
             (
                 assembly_design.ROOT
