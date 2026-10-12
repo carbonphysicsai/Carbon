@@ -43,7 +43,7 @@
 
 ## Host bounds (LANE-RESOURCE-BOUND-01, 2026-10-12)
 
-The lowering runs in the miner research lane (`carbon.miner-research.unlimited.v1`). On Carbon's own operator host that lane is bounded; on a miner's machine it is not.
+The lowering runs in the miner research lane. On Carbon's own operator host that lane is bounded and labelled `carbon.miner-research.bounded.v1`; on a miner's machine it is not, and it stays `carbon.miner-research.unlimited.v1`.
 
 - **A live Level 4-5 session refuses to start unbounded.** `phase3 run` and `phase4 run` at `--level 4` or above refuse, typed, before anything is read or spent:
   - `resource_profile_required`: no host resource profile is in force;
@@ -60,12 +60,14 @@ The lowering runs in the miner research lane (`carbon.miner-research.unlimited.v
   - 512 tasks stop a fork bomb but leave room for the thread pools of JAX and BLAS.
   - 4 CPUs keep the host responsive.
   - 8,192 open files are generous for research. Kernel memory for descriptors is charged to the memory bound.
-- **Scratch is capped by a watchdog** (the Test Lead's choice (c)). Scratch stays a host bind mount (`<operation>/scratch`), and the carrier still reads `scratch/output` from the host disk.
-  - The cap is 2 GiB per run (`miner_container.SCRATCH_CAP_BYTES`), a named constant, so profile v1 is unchanged.
-  - Where a host profile is in force, the carrier measures scratch every second, inside the container as the worker that owns it. When a run passes the cap, the carrier kills its container. The run settles typed: `FAILED_MINER`, worker code `POLICY`, observation `scratch_cap_exceeded`. The detail goes in `scratch-watch.json`. It is never a score or a scientific outcome.
-  - A run that hides part of its scratch from its own user, or whose scratch stays unmeasurable for 15 polls, is stopped the same way.
-  - A miner's machine has no profile, and so no watchdog.
-  - A run can overshoot the cap by about one poll's worth of writes before it is killed.
+- **Scratch is a kernel-capped tmpfs** (the Test Lead's ruling of 2026-10-12, replacing the polling watchdog of choice (c)). Where a host profile is in force, `/scratch` is `--tmpfs /scratch:rw,nosuid,nodev,noexec,size=2147483648,nr_inodes=100000`, and only `/input` is mounted.
+  - The caps are 2 GiB and 100,000 inodes per run (`miner_container.SCRATCH_CAP_BYTES`, `SCRATCH_CAP_INODES`): named constants, so profile v1 is unchanged. The kernel enforces both, so a run cannot overshoot.
+  - The tmpfs's pages count against the profile's 8 GiB memory limit.
+  - `noexec`: nothing written to scratch can be executed, including code compiled at run time (for example `torch.compile`'s CPU kernels).
+  - The container's inspection must read back exactly that tmpfs, the `bounded.v1` label, and `/input` as the only mount, or the run is refused (`POLICY`).
+  - `docker cp` cannot read a tmpfs. Before the container is removed, the worker streams `/scratch/output` out as one bounded tar. The carrier unpacks directories and regular files only into `<operation>/scratch/output` and collects from there as before. A link or special file is refused as before.
+  - A run whose program fails with its scratch full (under 1 MiB or no inode free) settles typed: `FAILED_MINER`, worker code `POLICY`, observation `scratch_cap_exceeded`. The detail goes in `scratch-cap.json`. It is never a score or a scientific outcome.
+  - A miner's machine has no profile, and so no cap: its scratch stays a bind mount on its own disk.
 - **The host floor.** A live Level 4-5 session refuses to start, typed `scratch_host_low_space`, when the filesystem holding its campaign's scratch has less than 15 GB free (`shutil.disk_usage`).
 - **The bound is per container.** Concurrent runs from several sessions each get their own bound.
 

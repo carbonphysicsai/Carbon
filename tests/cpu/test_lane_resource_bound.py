@@ -22,9 +22,14 @@ Claims tested:
 - the scratch floor: a Level 4-5 session refuses to start, typed
   `scratch_host_low_space`, when the filesystem holding its scratch has less
   than 15 GB free (`shutil.disk_usage` faked);
-- the scratch watchdog: a flooding container is killed under a (tiny, test)
-  cap and settled typed `scratch_cap_exceeded`, never a score; hidden or
-  unmeasurable scratch fails closed; with no profile there is no watchdog.
+- the bounded lane (the Test Lead's ruling of 2026-10-12, replacing the
+  polling watchdog): under a profile the container is labelled
+  `carbon.miner-research.bounded.v1`, mounts only /input, and has a
+  kernel-capped tmpfs scratch, which its inspection must read back exactly;
+  its output is copied out as a bounded tar stream (directories and regular
+  files only, nothing escapes); a program that fails with its tmpfs full
+  settles typed `scratch_cap_exceeded`, never a score; with no profile the
+  scratch stays a bind mount and nothing is measured or copied.
 
 The profile values are synthetic test fixtures, not Carbon policy. Not
 security acceptance.
@@ -32,11 +37,13 @@ security acceptance.
 
 from __future__ import annotations
 
+import io
 import json
 import os
 import shutil
-import threading
-import time
+import subprocess
+import sys
+import tarfile
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -526,130 +533,271 @@ def test_a_level_4_constructor_session_refuses_a_host_low_on_space(
     assert _refusal(capsys)["reason_code"] == "live_run_needs_a_literature_snapshot"
 
 
-# -- the scratch watchdog ------------------------------------------------------------------
-def _watch(measurements, **kwargs):
-    stops = []
-    values = iter(measurements)
-
-    def measure():
-        value = next(values, measurements[-1])
-        if isinstance(value, Exception):
-            raise value
-        return value
-
-    watch = mc.ScratchWatchdog(
-        measure, lambda: stops.append(1), interval=0.01, **kwargs
+# -- the bounded lane: a kernel-capped tmpfs scratch ---------------------------------------
+def test_the_bounded_lane_mounts_a_capped_tmpfs_and_only_input(tmp_path):
+    assert mc.BOUNDED_LANE == "carbon.miner-research.bounded.v1"
+    assert mc.SCRATCH_TMPFS_OPTIONS == (
+        "rw,nosuid,nodev,noexec,size=2147483648,nr_inodes=100000"
     )
-    return watch, stops
+    bounded = mc.create_arguments(launch(tmp_path, PROFILE))
+    assert f"org.opencontainers.image.carbon.lane={mc.BOUNDED_LANE}" in bounded
+    assert f"org.opencontainers.image.carbon.lane={mc.LANE}" not in bounded
+    assert bounded[bounded.index("--tmpfs") + 1] == (
+        "/scratch:" + mc.SCRATCH_TMPFS_OPTIONS
+    )
+    mounts = [bounded[i + 1] for i, a in enumerate(bounded) if a == "--mount"]
+    assert len(mounts) == 1 and "target=/input," in mounts[0]
+    assert not any("target=/scratch" in a for a in bounded)
 
 
-def _until(condition, seconds=10):
-    deadline = time.monotonic() + seconds
-    while not condition() and time.monotonic() < deadline:
-        time.sleep(0.01)
-    return condition()
+def test_a_miners_lane_keeps_its_bind_mounted_scratch(tmp_path):
+    unbounded = mc.create_arguments(launch(tmp_path))
+    assert f"org.opencontainers.image.carbon.lane={mc.LANE}" in unbounded
+    assert "--tmpfs" not in unbounded
+    assert not any(mc.BOUNDED_LANE in a for a in unbounded)
+    assert any(
+        a.startswith("type=bind,") and "target=/scratch," in a for a in unbounded
+    )
 
 
-def test_the_watchdog_trips_once_over_the_cap():
-    watch, stops = _watch([(10, False), (50, False), (101, False)], cap_bytes=100)
-    with watch:
-        assert _until(lambda: watch.tripped is not None)
-        time.sleep(0.05)
-    assert stops == [1]
-    assert watch.tripped == {
-        "refusal": "scratch_cap_exceeded",
-        "reason": "over_cap",
-        "observed_bytes": 101,
-        "cap_bytes": 100,
+class Inspecting:
+    def __init__(self, value):
+        self.value = value
+
+    def json(self, arguments, *, timeout=30):
+        return self.value
+
+
+def _inspected(run, *, lane, mounts, tmpfs):
+    profile = run.resource_profile
+    host = {
+        "ReadonlyRootfs": True,
+        "Privileged": False,
+        "NetworkMode": "none",
+        "IpcMode": "private",
+        "PidMode": "",
+        "CapDrop": ["ALL"],
+        "SecurityOpt": ["no-new-privileges=true"],
+        "Tmpfs": tmpfs,
+    }
+    labels = {"org.opencontainers.image.carbon.lane": lane}
+    if profile is not None:
+        labels[mc._PROFILE_LABEL] = profile.digest()
+        host.update(
+            NanoCpus=profile.cpus * 10**9,
+            Memory=profile.memory_bytes,
+            MemorySwap=profile.memory_bytes,
+            PidsLimit=profile.pids_limit,
+            Ulimits=[
+                {"Name": "nofile", "Soft": profile.nofile, "Hard": profile.nofile}
+            ],
+        )
+    return {
+        "Image": IMAGE_ID,
+        "HostConfig": host,
+        "Config": {"User": f"{mc.WORKER_UID}:{mc.WORKER_GID}", "Labels": labels},
+        "Mounts": mounts,
     }
 
 
-def test_the_watchdog_trips_on_scratch_hidden_from_its_own_user():
-    watch, stops = _watch([(10, True)], cap_bytes=100)
-    with watch:
-        assert _until(lambda: watch.tripped is not None)
-    assert watch.tripped["reason"] == "hidden_from_its_own_user" and stops == [1]
+def _input(run):
+    return {"Destination": "/input", "Source": str(run.input_directory), "RW": False}
 
 
-def test_the_watchdog_fails_closed_when_scratch_stays_unmeasurable():
-    miss = WorkerFailure(WorkerCode.RUNTIME)
-    watch, stops = _watch(
-        [miss, miss, (10, False), miss, miss, miss], cap_bytes=100, unmeasured_limit=3
-    )
-    with watch:
-        assert _until(lambda: watch.tripped is not None)
-    assert watch.tripped["reason"] == "unmeasurable" and stops == [1]
-    assert watch.polls == 6  # a good measurement in between reset the count
+def _bind_scratch(run):
+    return {"Destination": "/scratch", "Source": str(run.scratch_directory), "RW": True}
 
 
-def test_the_watchdog_lets_a_run_under_the_cap_finish():
-    watch, stops = _watch([(10, False)], cap_bytes=100)
-    with watch:
-        assert _until(lambda: watch.polls >= 5)
-    assert watch.tripped is None and stops == []
+TMPFS = {"/scratch": mc.SCRATCH_TMPFS_OPTIONS}
+
+
+def test_inspection_reads_back_the_bounded_lane_exactly(tmp_path):
+    run = launch(tmp_path, PROFILE)
+    good = _inspected(run, lane=mc.BOUNDED_LANE, mounts=[_input(run)], tmpfs=TMPFS)
+    record = mc.inspect_isolation(Inspecting(good), run)
+    assert record["lane"] == mc.BOUNDED_LANE
+    assert record["scratch_tmpfs"] == mc.SCRATCH_TMPFS_OPTIONS
+    assert record["resource_profile"] == PROFILE.digest()
 
 
 @pytest.mark.parametrize(
-    "bad",
+    "spoil",
     [
-        {"cap_bytes": 0},
-        {"cap_bytes": 1.5},
-        {"interval": 3},
-        {"interval": 0},
-        {"unmeasured_limit": 0},
+        "unlimited_label",
+        "scratch_bind_too",
+        "no_tmpfs",
+        "larger",
+        "no_inode_cap",
+        "exec",
     ],
 )
-def test_the_watchdog_takes_only_a_sound_configuration(bad):
+def test_inspection_refuses_a_bounded_container_that_is_not_exact(tmp_path, spoil):
+    run = launch(tmp_path, PROFILE)
+    lane, mounts, tmpfs = mc.BOUNDED_LANE, [_input(run)], dict(TMPFS)
+    if spoil == "unlimited_label":
+        lane = mc.LANE
+    elif spoil == "scratch_bind_too":
+        mounts.append(_bind_scratch(run))
+    elif spoil == "no_tmpfs":
+        tmpfs = None
+    elif spoil == "larger":
+        tmpfs["/scratch"] = tmpfs["/scratch"].replace("size=2147483648", "size=4g")
+    elif spoil == "no_inode_cap":
+        tmpfs["/scratch"] = tmpfs["/scratch"].replace(",nr_inodes=100000", "")
+    elif spoil == "exec":
+        tmpfs["/scratch"] = tmpfs["/scratch"].replace("noexec,", "")
+    inspected = _inspected(run, lane=lane, mounts=mounts, tmpfs=tmpfs)
+    with pytest.raises(WorkerFailure) as refused:
+        mc.inspect_isolation(Inspecting(inspected), run)
+    assert refused.value.code is WorkerCode.POLICY
+
+
+def test_inspection_of_a_miners_lane_is_unchanged(tmp_path):
+    run = launch(tmp_path)
+    mounts = [_input(run), _bind_scratch(run)]
+    good = _inspected(run, lane=mc.LANE, mounts=mounts, tmpfs=None)
+    assert mc.inspect_isolation(Inspecting(good), run)["lane"] == mc.LANE
+    bounded_label = _inspected(run, lane=mc.BOUNDED_LANE, mounts=mounts, tmpfs=None)
     with pytest.raises(WorkerFailure):
-        mc.ScratchWatchdog(lambda: (0, False), lambda: None, **bad)
+        mc.inspect_isolation(Inspecting(bounded_label), run)
 
 
-# -- a scratch flood, end to end through the real carrier ----------------------------------
-class FloodingDocker(RecordingDocker):
-    """A container whose program writes to scratch until it is killed or has
-    written `limit` bytes; the measurement exec reads the host scratch."""
+# -- copying a tmpfs scratch's output out ----------------------------------------------------
+def _export(source, archive):
+    """Run the worker's own export script over `source` instead of /scratch."""
+    script = mc.SCRATCH_EXPORT.replace("/scratch/output", str(source))
+    with open(archive, "wb") as out:
+        subprocess.run([sys.executable, "-I", "-c", script], stdout=out, check=True)
+    return archive
 
-    def __init__(self, limit):
+
+def test_the_export_round_trips_regular_files_and_directories(tmp_path):
+    source = tmp_path / "container" / "output"
+    (source / "nested" / "deeper").mkdir(parents=True)
+    (source / "model.json").write_text("{}")
+    (source / "nested" / "deeper" / "w.bin").write_bytes(b"\x00\x01" * 1000)
+    scratch = tmp_path / "scratch"
+    scratch.mkdir()
+    out = mc.unpack_outputs(_export(source, tmp_path / "o.tar"), scratch)
+    assert out == scratch / "output"
+    assert (out / "model.json").read_text() == "{}"
+    assert (out / "nested" / "deeper" / "w.bin").read_bytes() == b"\x00\x01" * 1000
+    assert mc.collect_outputs(scratch, tmp_path / "snapshot") == {
+        "model.json": 2,
+        "nested/deeper/w.bin": 2000,
+    }
+
+
+@pytest.mark.parametrize("kind", ["symlink", "hardlink", "fifo"])
+def test_the_export_refuses_links_and_special_files(tmp_path, kind):
+    source = tmp_path / "container" / "output"
+    source.mkdir(parents=True)
+    (source / "a.txt").write_text("a")
+    if kind == "symlink":
+        (source / "link").symlink_to("/etc/passwd")
+    elif kind == "hardlink":
+        os.link(source / "a.txt", source / "b.txt")
+    else:
+        os.mkfifo(source / "pipe")
+    scratch = tmp_path / "scratch"
+    scratch.mkdir()
+    with pytest.raises(mc.MinerOutputRefused):
+        mc.unpack_outputs(_export(source, tmp_path / "o.tar"), scratch)
+
+
+@pytest.mark.parametrize(
+    "name", ["output/../escape", "other/x", "/output/x", "../output/x"]
+)
+def test_a_malformed_stream_is_refused_and_nothing_escapes(tmp_path, name):
+    archive = tmp_path / "o.tar"
+    with tarfile.open(archive, "w") as tar:
+        info = tarfile.TarInfo(name)
+        info.size = 1
+        tar.addfile(info, io.BytesIO(b"x"))
+    scratch = tmp_path / "scratch"
+    scratch.mkdir()
+    with pytest.raises(ValueError):
+        mc.unpack_outputs(archive, scratch)
+    assert not (tmp_path / "escape").exists()
+    assert not (scratch / "x").exists()
+
+
+class Statvfs:
+    def __init__(self, value):
+        self.value = value
+
+    def json(self, arguments, *, timeout=30):
+        assert mc.SCRATCH_STATVFS in arguments
+        if isinstance(self.value, Exception):
+            raise self.value
+        return self.value
+
+
+@pytest.mark.parametrize(
+    "value, full",
+    [
+        ({"free_bytes": 0, "free_inodes": 5}, True),
+        ({"free_bytes": 1024**2 - 1, "free_inodes": 5}, True),
+        ({"free_bytes": 10 * 1024**2, "free_inodes": 0}, True),
+        ({"free_bytes": 10 * 1024**2, "free_inodes": 5}, False),
+        (WorkerFailure(WorkerCode.RUNTIME), False),
+        ({"free_bytes": -1, "free_inodes": 5}, False),
+        ({"free_bytes": 0}, False),
+        ("full", False),
+    ],
+)
+def test_a_full_scratch_is_bytes_or_inodes_and_unmeasured_is_not_full(value, full):
+    assert mc.scratch_full(Statvfs(value), "c") is full
+
+
+# -- end to end through the real carrier ------------------------------------------------------
+class TmpfsDocker(RecordingDocker):
+    """A container whose program writes `files` (name -> bytes, or a callable
+    making something there) into its own scratch: the host's bind mount
+    without a profile, the container's own tmpfs with one. A program told to
+    `fill` writes, finds its tmpfs full, and exits 1."""
+
+    def __init__(self, files, *, fill=False, free=0):
         super().__init__()
-        self.limit, self.written = limit, 0
-        self.killed = threading.Event()
-        self.scratch = None
+        self.files, self.fill, self.free = files, fill, free
+        self.tmpfs = None
+        self.inside = None
 
     def run(self, arguments, *, timeout=30, accepted=(0,)):
-        if arguments[:1] == ["kill"]:
-            self.killed.set()
+        if arguments[:1] == ["create"]:
+            self.tmpfs = "--tmpfs" in arguments
         return super().run(arguments, timeout=timeout, accepted=accepted)
 
     def json(self, arguments, *, timeout=30):
-        if mc.SCRATCH_MEASURE in arguments:
-            self.commands.append(["exec", "<measure>"])
-            if self.scratch is None:
-                raise WorkerFailure(WorkerCode.RUNTIME)
-            total = sum(p.stat().st_size for p in self.scratch.rglob("*"))
-            return {"bytes": total, "denied": False}
+        if mc.SCRATCH_STATVFS in arguments:
+            self.commands.append(["exec", "<statvfs>"])
+            return {"free_bytes": self.free, "free_inodes": 9}
         return super().json(arguments, timeout=timeout)
 
     def stream_kept(self, arguments, operation, *, timeout):
         self.commands.append(list(arguments))
         (operation / "stdout.txt").write_bytes(b"")
         (operation / "stderr.txt").write_bytes(b"")
-        output = operation / "scratch" / "output"
-        output.mkdir(exist_ok=True)
-        self.scratch = operation / "scratch"
-        with open(output / "flood.bin", "wb") as flood:
-            while self.written < self.limit:
-                if self.killed.is_set():
-                    raise WorkerFailure(
-                        WorkerCode.RUNTIME, private_diagnostic=b"exit=137\n"
-                    )
-                flood.write(b"x" * 1024)
-                flood.flush()
-                self.written += 1024
-                time.sleep(0.002)
+        self.inside = operation / ("container-tmpfs" if self.tmpfs else "scratch")
+        output = self.inside / "output"
+        output.mkdir(parents=True, exist_ok=True)
+        for name, body in self.files.items():
+            if callable(body):
+                body(output / name)
+            else:
+                (output / name).write_bytes(body)
+        if self.fill:
+            raise WorkerFailure(WorkerCode.RUNTIME, private_diagnostic=b"exit=1\n")
+
+    def stream_to_file(self, arguments, destination, *, maximum, timeout):
+        assert mc.SCRATCH_EXPORT in arguments and self.tmpfs
+        assert maximum == mc.SCRATCH_EXPORT_MAX_BYTES
+        self.commands.append(["exec", "<export>"])
+        _export(self.inside / "output", destination)
+        return destination.stat().st_size
 
 
-def _flood(tmp_path, monkeypatch, *, profile, limit):
-    fake = FloodingDocker(limit)
+def _through(tmp_path, monkeypatch, fake, *, profile):
     home = tmp_path / "home"
     home.mkdir()
     if profile:
@@ -664,55 +812,89 @@ def _flood(tmp_path, monkeypatch, *, profile, limit):
     monkeypatch.setattr(carrier, "spawn_watchdog", lambda **kwargs: None)
     monkeypatch.setattr(carrier, "remove_exact_container", lambda **kwargs: None)
     monkeypatch.setattr(
-        mc, "inspect_isolation", lambda cli, run: {"lane": mc.LANE, "network": "none"}
+        mc, "inspect_isolation", lambda cli, run: {"lane": mc.lane_of(run)}
     )
     ledger = cc._ledger(tmp_path / "ledger")
-    run = carrier.run_script(
+    return carrier.run_script(
         ledger,
         owner=cc.OWNER,
-        identity="scratch-flood-1",
-        source="flood",
+        identity="tmpfs-scratch-1",
+        source="cell",
         files={},
         image=IMAGE,
         seconds=180,
     )
-    return fake, run
 
 
-def test_a_scratch_flood_is_killed_under_the_cap_typed(tmp_path, monkeypatch):
-    real = mc.ScratchWatchdog
+def _operation(tmp_path):
+    (operation,) = (tmp_path / "ledger").glob("operation-*")
+    return operation
 
-    def tiny(measure, stop_run):
-        return real(measure, stop_run, cap_bytes=8 * 1024, interval=0.05)
 
-    monkeypatch.setattr(mc, "ScratchWatchdog", tiny)
-    limit = 8 * 1024**2
+def test_a_bounded_runs_output_is_copied_out_of_its_tmpfs(tmp_path, monkeypatch):
+    fake = TmpfsDocker({"model.json": b"{}", "w.bin": b"x" * 4096})
+    run = _through(tmp_path, monkeypatch, fake, profile=True)
+    assert fake.tmpfs is True
+    assert set(run["files"]) == {"model.json", "w.bin"}
+    assert ["exec", "<export>"] in fake.commands
+    operation = _operation(tmp_path)
+    assert (operation / "scratch" / "output" / "w.bin").read_bytes() == b"x" * 4096
+    assert not (operation / "scratch-output.tar").exists()
+    assert ["exec", "<statvfs>"] not in fake.commands
+
+
+def test_a_bounded_runs_link_is_refused_as_its_own_output(tmp_path, monkeypatch):
+    fake = TmpfsDocker({"a.txt": b"a", "link": lambda p: p.symlink_to("/etc/passwd")})
     with pytest.raises(carrier.MinerProgramFailure) as refused:
-        _flood(tmp_path, monkeypatch, profile=True, limit=limit)
+        _through(tmp_path, monkeypatch, fake, profile=True)
+    assert refused.value.code is WorkerCode.OUTPUT
+    assert refused.value.result["observation"] == "OUTPUT_NOT_REGULAR_FILES"
+    assert not (_operation(tmp_path) / "snapshot").exists()
+
+
+def test_a_scratch_flood_fills_the_tmpfs_and_settles_typed(tmp_path, monkeypatch):
+    fake = TmpfsDocker({"flood.bin": b"x" * 1024}, fill=True, free=0)
+    with pytest.raises(carrier.MinerProgramFailure) as refused:
+        _through(tmp_path, monkeypatch, fake, profile=True)
     result = refused.value.result
     assert refused.value.code is WorkerCode.POLICY
     assert result["observation"] == mc.SCRATCH_CAP_EXCEEDED == "scratch_cap_exceeded"
     assert result["state"] == "FAILED_MINER"
     assert result["scientific_qualification"] is False
     assert result["official_eligible"] is False
-    (operation,) = (tmp_path / "ledger").glob("operation-*")
-    watch = json.loads((operation / "scratch-watch.json").read_bytes())
-    assert watch["refusal"] == "scratch_cap_exceeded"
-    assert watch["reason"] == "over_cap" and watch["cap_bytes"] == 8 * 1024
-    flood = operation / "scratch" / "output" / "flood.bin"
-    # Killed long before the flood finished; no output was collected.
-    assert flood.stat().st_size < limit
+    operation = _operation(tmp_path)
+    cap = json.loads((operation / "scratch-cap.json").read_bytes())
+    assert cap == {
+        "refusal": "scratch_cap_exceeded",
+        "cap_bytes": 2 * 1024**3,
+        "cap_inodes": 100_000,
+    }
+    # The flood stayed in the container's tmpfs; nothing reached the host.
+    assert not (operation / "scratch" / "output").exists()
     assert not (operation / "snapshot").exists()
+    assert ["exec", "<export>"] not in fake.commands
 
 
-def test_a_miners_research_with_no_profile_is_never_watched(tmp_path, monkeypatch):
-    def never(*args, **kwargs):
-        raise AssertionError("no watchdog without a host profile")
+def test_a_bounded_failure_with_room_left_keeps_its_own_type(tmp_path, monkeypatch):
+    fake = TmpfsDocker({}, fill=True, free=10 * 1024**2)
+    with pytest.raises(carrier.MinerProgramFailure) as refused:
+        _through(tmp_path, monkeypatch, fake, profile=True)
+    assert refused.value.result["observation"] == "NONZERO_EXIT"
+    assert not (_operation(tmp_path) / "scratch-cap.json").exists()
 
-    monkeypatch.setattr(mc, "ScratchWatchdog", never)
-    fake, run = _flood(tmp_path, monkeypatch, profile=False, limit=64 * 1024)
-    # Far past any cap, it runs to completion, unmeasured and unkilled.
-    assert fake.written == 64 * 1024
+
+def test_a_miners_research_with_no_profile_is_never_capped(tmp_path, monkeypatch):
+    fake = TmpfsDocker({"flood.bin": b"x" * 64 * 1024})
+    run = _through(tmp_path, monkeypatch, fake, profile=False)
+    assert fake.tmpfs is False
     assert set(run["files"]) == {"flood.bin"}
-    assert not any(c[:2] == ["exec", "<measure>"] for c in fake.commands)
-    assert not any(c[:1] == ["kill"] for c in fake.commands)
+    assert ["exec", "<export>"] not in fake.commands
+    assert ["exec", "<statvfs>"] not in fake.commands
+
+
+def test_a_miners_failing_research_is_never_measured(tmp_path, monkeypatch):
+    fake = TmpfsDocker({}, fill=True, free=0)
+    with pytest.raises(carrier.MinerProgramFailure) as refused:
+        _through(tmp_path, monkeypatch, fake, profile=False)
+    assert refused.value.result["observation"] == "NONZERO_EXIT"
+    assert ["exec", "<statvfs>"] not in fake.commands
