@@ -9,7 +9,8 @@ scientific qualification, containment qualification or spend authority is earned
 `basis` and repository-relative pytest `tests`. Missing level keys return
 NOT_BUILT without inheriting legacy or neutral tests. Malformed records, missing
 files, collection errors, failing assertions and skipped assertions return FAIL.
-Existing `tests` wiring continues to work for other items.
+The five batch-1 items always require explicit scoped records, including on
+other challenges. Existing `tests` wiring continues to work for other items.
 
 P3, R7 and A3 assertions emit `READINESS_LEVEL_EVIDENCE` JSON naming their item,
 challenge and level. The runner rejects missing or mismatched summaries and

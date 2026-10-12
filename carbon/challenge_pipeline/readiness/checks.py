@@ -34,6 +34,7 @@ from .model import (
 
 TEST_TIMEOUT_SECONDS = 1800
 PRELIVE_TIMEOUT_SECONDS = 1800
+LEVEL_SCOPED_ITEMS = frozenset({"P3", "R7", "A2", "A3", "S2"})
 
 #: The one explicit value that records "no strata, on purpose" (Test Lead,
 #: citing OWNER-GRAPHITE-TEST-WAVE-05 section 4). An empty list stays a gap.
@@ -195,6 +196,8 @@ def recorded_tests(item, ctx):
     scoped = ctx.data.get("tests_by_level", {})
     if type(scoped) is not dict:
         return Result(FAIL, "tests_by_level is not an object")
+    if item_id in LEVEL_SCOPED_ITEMS and item_id not in scoped:
+        return Result(NOT_BUILT, f"no {item_id} test is recorded for level {ctx.level}")
     if item_id in scoped:
         levels = scoped[item_id]
         if type(levels) is not dict:
@@ -1013,6 +1016,9 @@ def attack_families(item, ctx):
         )
     except Exception as error:  # noqa: BLE001
         return Result(FAIL, f"attack adapters could not load: {type(error).__name__}")
+    levels = ctx.data.get("tests_by_level", {}).get(item.get("id", "A2"), {})
+    if type(levels) is dict and str(ctx.level) not in levels:
+        return recorded_tests(item, ctx)
     try:
         families = adapter.families()
         if not families or len({f.name for f in families}) != len(families):

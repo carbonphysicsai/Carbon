@@ -66,6 +66,12 @@ def test_an_unlisted_level_cannot_inherit_legacy_or_neutral_tests(context):
     assert checks.recorded_tests(item, context).status == model.NOT_BUILT
 
 
+@pytest.mark.parametrize("item", sorted(checks.LEVEL_SCOPED_ITEMS))
+def test_batch1_items_never_fall_back_to_unscoped_evidence(context, item):
+    context.data = {"tests": {item: ["tests/fixture.py"]}}
+    assert checks.recorded_tests({"id": item}, context).status == model.NOT_BUILT
+
+
 @pytest.mark.parametrize(
     "mutation",
     [
@@ -161,6 +167,10 @@ def test_r7_assertion_detects_a_false_remaining_budget(tmp_path, monkeypatch):
 def test_a2_cannot_drop_a_family_or_its_controls(context, monkeypatch, fault):
     from carbon.agent_campaign.attack import adapter as core
     from carbon.agent_campaign.graphite import phase4
+
+    context.data["tests_by_level"]["A2"] = copy.deepcopy(
+        context.data["tests_by_level"]["P3"]
+    )
 
     family = SimpleNamespace(name="fixture-family")
     adapter = SimpleNamespace(
