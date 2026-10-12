@@ -43,6 +43,15 @@ LABEL = (
 BOOTSTRAP_SEED = 20261012
 BOOTSTRAP_REPS = 2000
 SMALL_N = 10
+#: A percentile bootstrap of a median from fewer than three values is just the range of the values, so no interval is
+#: reported below this size; the ledger says so instead of printing a fabricated one.
+MIN_N_INTERVAL = 3
+#: Why a record above Level 0 carries a caveat: the executor rebuilds the bundle through `level_compile.base_for`
+#: without `member_bundle`'s registered-panel guard (a Graphite bundle is not a registered panel member).
+LEVEL_REBUILD_CAVEAT = (
+    "the model was rebuilt through level_compile.base_for then the Level 0 base, i.e. member_bundle's level path "
+    "WITHOUT its registered-panel guard; the bundle is not a registered member of the level panel"
+)
 
 
 def committed_reference_sha(contract=None):
@@ -97,8 +106,9 @@ def relative(baseline, model):
 
 def bootstrap_interval(values, *, seed=BOOTSTRAP_SEED, reps=BOOTSTRAP_REPS, level=0.95):
     """Percentile bootstrap interval of the median: fixed seed, so the same values give the same
-    interval. A single value has no interval (None)."""
-    if len(values) < 2:
+    interval. Fewer than `MIN_N_INTERVAL` values have no interval (None): the bootstrap of two values is only their
+    range."""
+    if len(values) < MIN_N_INTERVAL:
         return None
     rng = random.Random(seed)
     medians = sorted(
@@ -130,13 +140,38 @@ def _decision_noise(pairs):
     return reasons
 
 
-def public_dev_block(records):
+def _caveats(records):
+    """Caveats the ledger line must carry for these records (levels above 0 rebuild without the panel guard)."""
+    out = []
+    if any((rec.get("level") or 0) > 0 for rec in records):
+        out.append(LEVEL_REBUILD_CAVEAT)
+    return out
+
+
+def _null_reasons(records, name):
+    """The executor's own reasons for a null `name`, de-duplicated, in record order."""
+    seen = []
+    for rec in records:
+        reason = (rec.get("questions") or {}).get(f"{name}_null_reason")
+        if reason and reason not in seen:
+            seen.append(reason)
+    return seen
+
+
+PANEL_MEMBER_NOTE = (
+    "Levels 2-4 need the same panel-member registration as Level 1 (the Test Engineer's decision) before the "
+    "executor can score a bundle at that level"
+)
+
+
+def public_dev_block(records, level=None):
     """`{metric: {value (median), best, ci95, n, small_n, ...}}` over the runs that hold a record. A
     decision-loss column whose masks differ or whose runs disagree in sign is MEASURED_BUT_NOISY: its
     per-run values are shown and it is NOT an improvement claim."""
     if not records:
         return unmeasured(
             "no run has a public-development improvement record from the executor"
+            + (f"; {PANEL_MEMBER_NOTE}" if (level or 0) >= 2 else "")
         )
     out = {}
     for name in METRICS:
@@ -151,7 +186,11 @@ def public_dev_block(records):
             is not None
         ]
         if not pairs:
-            out[name] = unmeasured(f"no run measured {name} on both sides")
+            reasons = _null_reasons(records, name)
+            out[name] = unmeasured(
+                f"no run measured {name} on both sides"
+                + (f" ({'; '.join(reasons)})" if reasons else "")
+            )
             continue
         values = [r for r, _, _ in pairs]
         reasons = _decision_noise(pairs) if name == "decision_loss" else []
@@ -164,6 +203,12 @@ def public_dev_block(records):
             "best": round(max(values), 6),
             "ci95": bootstrap_interval(values),
             "small_n": len(values) < SMALL_N,
+            **(
+                {"ci95_note": f"interval not meaningful at n={len(values)}"}
+                if len(values) < MIN_N_INTERVAL
+                else {}
+            ),
+            **({"caveats": _caveats(records)} if _caveats(records) else {}),
             "interval": f"percentile bootstrap of the median, {BOOTSTRAP_REPS} resamples, seed {BOOTSTRAP_SEED}",
             **(
                 {

@@ -561,9 +561,9 @@ def test_a_record_not_on_the_public_ev4_scoring_set_digest_is_refused(panel):
 
 def test_a_record_that_names_a_private_role_source_is_refused():
     record = pub(10.0, 9.0)
-    record["note"] = (
-        "docs/development/evidence/exam-design-2026-09-24/refs-b/out/battery_refs/records.jsonl"
-    )
+    record[
+        "note"
+    ] = "docs/development/evidence/exam-design-2026-09-24/refs-b/out/battery_refs/records.jsonl"
     with pytest.raises(ProgressError, match="names_a_private_source"):
         improvement.validate(record)
 
@@ -647,3 +647,64 @@ def test_five_runs_still_carry_the_small_n_flag():
         "improvement"
     ]["public_dev"]["accuracy_error"]
     assert block["n"] == 5 and block["small_n"] is True
+
+
+# -- Level 1 records -----------------------------------------------------------------------------------
+def level_record(level=1, **kw):
+    record = {**pub(None, None, 0.0997, 0.0722), "level": level, "run_id": "r1"}
+    record["questions"] = {
+        "decision_loss_null_reason": "bundle is not a registered member of the panel"
+    }
+    record["model"]["rebuild"] = "rebuilt through level_compile.base_for"
+    return {**record, **kw}
+
+
+def test_two_runs_have_no_interval_and_say_so_instead_of_a_fabricated_one():
+    records = [level_record(), level_record(run_id="r2")]
+    records[1]["model"] = {**records[1]["model"], "accuracy_error": 0.0651}
+    block = improvement.public_dev_block(records)["accuracy_error"]
+    assert block["n"] == 2 and block["small_n"] is True and block["ci95"] is None
+    assert block["ci95_note"] == "interval not meaningful at n=2"
+    assert block["best"] > block["value"] > 0.2
+    assert improvement.bootstrap_interval([0.1, 0.2]) is None
+    assert len(improvement.bootstrap_interval([0.1, 0.2, 0.3])) == 2
+
+
+def test_a_level_above_zero_record_carries_the_missing_panel_guard_caveat():
+    block = improvement.public_dev_block([level_record()])["accuracy_error"]
+    assert block["caveats"] == [improvement.LEVEL_REBUILD_CAVEAT]
+    assert "WITHOUT its registered-panel guard" in block["caveats"][0]
+    level_zero = improvement.public_dev_block([level_record(level=0)])["accuracy_error"]
+    assert "caveats" not in level_zero
+
+
+def test_a_null_decision_loss_keeps_the_executors_reason():
+    block = improvement.public_dev_block([level_record()])["decision_loss"]
+    assert block["value"] == UNMEASURED
+    assert "not a registered member" in block["source"]
+
+
+def test_levels_two_to_four_say_they_need_the_panel_member_registration():
+    for level in (2, 3, 4):
+        block = improvement.public_dev_block([], level)
+        assert block["value"] == UNMEASURED and "Test Engineer" in block["source"]
+    assert "Test Engineer" not in improvement.public_dev_block([], 1)["source"]
+    assert "Test Engineer" not in improvement.public_dev_block([])["source"]
+
+
+def test_a_record_for_a_different_level_than_its_manifest_run_is_refused(tmp_path):
+    (tmp_path / "c.out").write_text(json.dumps(constructor_doc()))
+    (tmp_path / "rec.json").write_text(json.dumps(level_record(level=1)))
+    manifest = {
+        "batch": "m",
+        "runs": [
+            {
+                "file": "c.out",
+                "role": "constructor",
+                "level": 2,
+                "public_improvement_file": "rec.json",
+            }
+        ],
+    }
+    with pytest.raises(ProgressError, match="public_improvement_level_mismatch"):
+        cli.load_runs(manifest, tmp_path)
