@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pytest
 
-from carbon.agent_campaign import pod_job_phase, pod_jobs
+from carbon.agent_campaign import grant_runs, pod_job_phase, pod_jobs
 from carbon.agent_campaign.graphite import pods
 
 REPOSITORY = Path(__file__).resolve().parents[2]
@@ -105,6 +105,10 @@ def test_the_ship_list_holds_the_module_closure_and_the_inputs():
     assert all(pods.shippable(path) for path in ships)
 
 
+def _ledger(path):
+    return [json.loads(x) for x in Path(path).read_text().splitlines() if x]
+
+
 def test_check_runs_the_real_lifecycle_with_no_network_and_no_spend(tmp_path):
     spec = pod_jobs.load_spec(spec_document())
     files = {"job.json": b'{"exit": 0}', "result/values.json": b"[1, 2, 3]"}
@@ -113,7 +117,7 @@ def test_check_runs_the_real_lifecycle_with_no_network_and_no_spend(tmp_path):
     )
     receipt = report["receipt"]
     assert receipt["schema"] == pod_jobs.RECEIPT_SCHEMA
-    assert receipt["outcome"] == "done"
+    assert receipt["outcome"] == "done" and receipt["ok"] is True
     assert receipt["files"] == {
         path: {"sha256": hashlib.sha256(body).hexdigest(), "bytes": len(body)}
         for path, body in files.items()
@@ -122,40 +126,199 @@ def test_check_runs_the_real_lifecycle_with_no_network_and_no_spend(tmp_path):
     assert kept.read_bytes() == b"[1, 2, 3]"
     assert receipt["teardown"]["terminated"] is True
     assert report["creates"] == [receipt["pod_id"]] and report["pods_left"] == []
-    # Claimed before any provider call, settled at the provider's charge.
-    assert report["ledger"][0] == ("claim", "pod-jobs", "pod-job-test", "1.00")
-    assert report["ledger"][1][:4] == ("settle", "pod-jobs", "pod-job-test", "0.07")
+    # The real ledger: claimed at the job's cap before any provider call, then
+    # settled at the provider's charge.
+    entry = grant_runs.entry_id(pod_jobs.STORE_ID, "pod-job-test")
+    claim, settle = report["ledger"]
+    assert claim["entry"] == entry and claim["cost_usd"] == "1.00"
+    assert settle == {"settle": entry, "cost_usd": "0.07", "pending_usd": "0"}
     assert receipt["cost"]["charged_usd"] == "0.07"
     written = json.loads((tmp_path / "check" / "out" / "receipt.json").read_text())
     assert written == json.loads(json.dumps(receipt))
 
 
-def test_a_launch_refused_before_any_create_settles_at_zero(tmp_path):
-    spec = pod_jobs.load_spec(spec_document())
+@pytest.fixture
+def lifecycle(tmp_path, monkeypatch):
+    """A JobPods over an in-memory RunPod and the real ledger in tmp_path."""
+    monkeypatch.setenv(grant_runs.ENV, str(tmp_path / "ledger"))
     key = tmp_path / "key"
     key.write_text(pods.CHECK_KEY + "\n")
     key.chmod(0o600)
-    account = pods.InMemoryRunPod(balance=5.0)
-    backend = pod_jobs.JobPods(
-        spec,
-        root=tmp_path / "pods",
-        key_file=key,
-        repository=REPOSITORY,
-        transport=account.transport,
-        http=account.http,
-        sleep=lambda _s: None,
-        balance_floor=lambda: Decimal(10),
-    )
-    ledger = pod_jobs._MemoryLedger()
-    receipt = pod_jobs.run(spec, tmp_path / "out", backend=backend, ledger=ledger)
-    assert receipt["outcome"].startswith("launch_refused:")
+
+    def make(account=None, **changes):
+        account = account or pods.InMemoryRunPod()
+        spec = pod_jobs.load_spec(spec_document())
+        backend = pod_jobs.JobPods(
+            spec,
+            root=tmp_path / "pods",
+            key_file=key,
+            repository=REPOSITORY,
+            transport=account.transport,
+            http=account.http,
+            sleep=lambda _s: None,
+            balance_floor=lambda: Decimal(0),
+        )
+        for name, value in changes.items():
+            setattr(backend, name, value)
+        return spec, backend, account
+
+    def go(spec, backend):
+        receipt = pod_jobs.run(spec, tmp_path / "out", backend=backend)
+        on_disk = json.loads((tmp_path / "out" / "receipt.json").read_text())
+        assert on_disk == json.loads(json.dumps(receipt))
+        weekly = tmp_path / "ledger" / grant_runs.WEEKLY_FILE
+        return receipt, _ledger(weekly)
+
+    return make, go
+
+
+def test_a_launch_refused_before_any_create_settles_at_zero(lifecycle):
+    make, go = lifecycle
+    spec, backend, account = make(pods.InMemoryRunPod(balance=5.0))
+    backend.balance_floor = lambda: Decimal(10)
+    receipt, ledger = go(spec, backend)
+    assert receipt["outcome"].startswith("launch_refused:") and not receipt["ok"]
     assert account.creates == [] and receipt["pod_id"] is None
-    assert ledger.calls[-1] == ("settle", "pod-jobs", "pod-job-test", "0", "0")
-    assert receipt["cost"] == {
-        "reserved_usd": "0",
-        "charged_usd": "0",
-        "pending_usd": "0",
-    }
+    assert ledger[-1]["cost_usd"] == "0" and ledger[-1]["pending_usd"] == "0"
+    assert receipt["teardown"]["terminated"] is True
+
+
+def test_an_unreported_charge_stays_at_the_full_reservation(lifecycle):
+    make, go = lifecycle
+    spec, backend, _account = make(pods.InMemoryRunPod(charge=None))
+    receipt, ledger = go(spec, backend)
+    reserved = receipt["cost"]["reserved_usd"]
+    assert receipt["ok"] is True and receipt["cost"]["charged_usd"] == "0"
+    assert ledger[-1]["cost_usd"] == reserved == ledger[-1]["pending_usd"]
+
+
+def test_an_unconfirmed_teardown_is_a_failed_run_at_the_full_reservation(lifecycle):
+    make, go = lifecycle
+    spec, backend, _account = make()
+    backend.terminate = lambda handle: False
+    receipt, ledger = go(spec, backend)
+    assert receipt["teardown"]["terminated"] is False and not receipt["ok"]
+    assert "reconcile" in receipt
+    assert ledger[-1]["pending_usd"] == receipt["cost"]["reserved_usd"]
+
+
+def test_an_error_after_the_create_still_tears_down_and_writes_the_receipt(lifecycle):
+    make, go = lifecycle
+    spec, backend, account = make()
+
+    def broken(handle, **kwargs):
+        raise RuntimeError("status read failed")
+
+    backend.wait = broken
+    receipt, ledger = go(spec, backend)
+    assert receipt["outcome"] == "error" and not receipt["ok"]
+    assert receipt["errors"][0]["stage"] == "run"
+    assert receipt["teardown"]["terminated"] is True and account.pods == {}
+    assert ledger[-1]["settle"]
+
+
+def test_a_create_that_cannot_be_recovered_is_never_called_terminated(lifecycle):
+    make, go = lifecycle
+    spec, backend, _account = make()
+
+    def launched_then_lost(private):
+        raise pods.PodFailure("launch", "create response lost", executed=True)
+
+    def recover(intent_id, private):
+        raise pods.PodFailure("recover", "cannot say yet", executed=True)
+
+    backend.launch_job, backend.recover = launched_then_lost, recover
+    receipt, ledger = go(spec, backend)
+    assert receipt["teardown"]["terminated"] is None and not receipt["ok"]
+    assert "reconcile" in receipt
+    assert ledger[-1]["pending_usd"] == receipt["cost"]["reserved_usd"]
+
+
+def test_duplicates_of_an_ambiguous_create_are_terminated_and_counted(lifecycle):
+    make, go = lifecycle
+    spec, backend, _account = make()
+    killed = []
+    real_terminate = backend.terminate
+
+    def terminate(handle):
+        killed.append(handle.pod_id)
+        return True if handle.pod_id == "dup0001" else real_terminate(handle)
+
+    backend.terminate = terminate
+    backend.duplicates = lambda intent_id: [{"pod_id": "dup0001", "charge_usd": None}]
+    receipt, ledger = go(spec, backend)
+    reserved = Decimal(receipt["cost"]["reserved_usd"])
+    assert "dup0001" in killed and receipt["ok"] is True
+    assert receipt["duplicates"] == [
+        {"pod_id": "dup0001", "charge_usd": None, "terminated": True}
+    ]
+    assert Decimal(ledger[-1]["pending_usd"]) == reserved
+    assert Decimal(ledger[-1]["cost_usd"]) == reserved + Decimal("0.07")
+
+
+def test_the_real_ledger_refuses_past_the_weekly_cap(tmp_path, monkeypatch):
+    monkeypatch.setenv(grant_runs.ENV, str(tmp_path / "ledger"))
+    grant = pod_jobs.JobGrant(Decimal(50))
+    for index in range(6):
+        grant_runs.claim(grant, pod_jobs.STORE_ID, f"job-{index}")
+    with pytest.raises(grant_runs.SharedRunsError) as refused:
+        grant_runs.claim(grant, pod_jobs.STORE_ID, "job-6")
+    assert refused.value.code == grant_runs.WEEKLY_LIMIT
+
+
+def test_run_spends_only_with_the_owners_enabling_file(tmp_path):
+    key = tmp_path / "keys" / "api_key"
+    key.parent.mkdir()
+    with pytest.raises(pod_jobs.SpecRefused) as refused:
+        pod_jobs.require_enabled(key)
+    assert refused.value.code == "pod_jobs_not_enabled"
+    enable = key.parent / pod_jobs.ENABLE_FILE
+    for document in (
+        {"enabled": False, "upload_roots": []},
+        {"enabled": True, "upload_roots": ["relative"]},
+        {"enabled": True, "upload_roots": ["/home/carbon/shared/evidence"]},
+    ):
+        enable.write_text(json.dumps(document))
+        with pytest.raises(pod_jobs.SpecRefused):
+            pod_jobs.require_enabled(key)
+    enable.write_text(json.dumps({"enabled": True, "upload_roots": [str(tmp_path)]}))
+    assert pod_jobs.require_enabled(key) == [str(tmp_path)]
+
+
+def test_uploads_come_only_from_an_allowed_public_root(tmp_path):
+    public = tmp_path / "public" / "job"
+    public.mkdir(parents=True)
+    (public / "a.json").write_text("{}")
+    spec = pod_jobs.load_spec(spec_document(uploads=pod_jobs.uploads_manifest(public)))
+    assert pod_jobs.read_uploads(spec, public, [str(tmp_path / "public")])
+    with pytest.raises(pod_jobs.SpecRefused) as refused:
+        pod_jobs.read_uploads(spec, public, [str(tmp_path / "elsewhere")])
+    assert refused.value.code == "uploads_root_not_allowed"
+    sealed = tmp_path / "shared" / "evidence" / "job"
+    sealed.mkdir(parents=True)
+    (sealed / "a.json").write_text("{}")
+    with pytest.raises(pod_jobs.SpecRefused) as refused:
+        pod_jobs.read_uploads(spec, sealed, [str(tmp_path)])
+    assert refused.value.code == "uploads_sealed_path"
+    linked = tmp_path / "public" / "linked"
+    linked.mkdir()
+    try:
+        (linked / "a.json").symlink_to(public / "a.json")
+    except OSError:
+        pytest.skip("this host cannot make symbolic links")
+    with pytest.raises(pod_jobs.SpecRefused) as refused:
+        pod_jobs.read_uploads(spec, linked, [str(tmp_path / "public")])
+    assert refused.value.code == "uploads_symlink"
+
+
+@pytest.mark.parametrize(
+    "name", ["a b.json", "cafÃ©.json", "x%2e.json", "ev4/a.json", "private/a.json"]
+)
+def test_an_upload_name_that_needs_encoding_or_is_forbidden_is_refused(name):
+    entry = {"sha256": "0" * 64, "bytes": 1}
+    with pytest.raises(pod_jobs.SpecRefused) as refused:
+        pod_jobs.load_spec(spec_document(uploads={name: entry}))
+    assert refused.value.code == "spec_uploads"
 
 
 def test_the_create_request_pins_image_cpu_placement_phase_and_deadline(tmp_path):
@@ -346,3 +509,25 @@ def test_the_phase_collects_declared_paths_from_the_inputs(tmp_path):
         pod_job_phase.command(
             {"module": "scripts.x", "args": ["{inputs}"]}, out, tmp_path
         )
+
+
+def test_the_pod_stops_waiting_for_inputs_at_its_deadline(tmp_path, monkeypatch):
+    import base64
+    import gzip
+    import importlib.util
+
+    declared = {"a.json": {"sha256": "0" * 64, "bytes": 1}}
+    monkeypatch.setenv("PROBE_DEADLINE", "1")
+    monkeypatch.setenv("INPUT_DIR", str(tmp_path / "inputs"))
+    monkeypatch.setenv(
+        "INPUTS_MANIFEST_GZ_B64",
+        base64.b64encode(gzip.compress(json.dumps(declared).encode())).decode(),
+    )
+    spec = importlib.util.spec_from_file_location(
+        "pod_jobs_bootstrap_deadline",
+        REPOSITORY / "scripts/dev/exam_design/runpod/bootstrap.py",
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    with pytest.raises(RuntimeError, match="inputs incomplete"):
+        module.wait_for_inputs()

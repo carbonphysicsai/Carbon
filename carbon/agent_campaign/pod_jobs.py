@@ -63,7 +63,6 @@ import secrets
 import sys
 import threading
 import time
-import urllib.parse
 from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
@@ -75,7 +74,30 @@ REPOSITORY = Path(__file__).resolve().parents[2]
 SPEC_SCHEMA = "carbon.pod-job.spec.v1"
 RECEIPT_SCHEMA = "carbon.pod-job.receipt.v1"
 CAMPAIGN = "pod-jobs"
-STORE_ID = "pod-jobs"
+#: The ledger store id (`grant_runs` requires 32 hex): fixed for every pod job.
+STORE_ID = hashlib.sha256(b"POD-JOBS-01").hexdigest()[:32]
+#: The owner's enabling file, beside the RunPod key file: `{"enabled": true,
+#: "upload_roots": [absolute directories]}`. Without it `run` refuses: a key
+#: file alone never spends (`require_enabled`).
+ENABLE_FILE = "pod-jobs.json"
+#: Path fragments that mark sealed, hidden or evidence material on a host. An
+#: upload directory or file whose resolved path holds one is refused, whatever
+#: the allow-list says (CLOUD-FIRST-COMPUTE-01 rule 2: public material only).
+SEALED_FRAGMENTS = (
+    "shared/evidence",
+    "deploy",
+    "journal",
+    "custody",
+    "sealed",
+    "hidden",
+    "confirm",
+    "tuning",
+    "/.runpod",
+    "/.ssh",
+    *pods.FORBIDDEN_DATA,
+)
+#: Upload paths are plain: no character a URL path would have to encode.
+_UPLOAD_PATH = re.compile(r"[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*")
 PHASE_MODULE = "carbon.agent_campaign.pod_job_phase"
 GRANT_ID = "OWNER-TEST-GRANT-01"
 #: The code trees a job's module and its imports are taken from.
@@ -199,7 +221,7 @@ def load_spec(document):
         raise SpecRefused("spec_inputs", "repository-relative paths only")
     uploads, collect = document["uploads"], document["collect"]
     if type(uploads) is not dict or not all(
-        _repo_path(path) and _upload_entry(entry) for path, entry in uploads.items()
+        _upload_path(path) and _upload_entry(entry) for path, entry in uploads.items()
     ):
         raise SpecRefused("spec_uploads")
     if sum(entry["bytes"] for entry in uploads.values()) > MAX_UPLOAD_BYTES:
@@ -257,6 +279,23 @@ def load_spec(document):
             f"{money['cap_usd']} USD: shorten the job or lower the rate ceiling",
         )
     return spec
+
+
+def _upload_path(path):
+    """A plain relative path the ship guard accepts (no private directory, no
+    forbidden name) and no URL would have to encode."""
+    return (
+        _repo_path(path)
+        and _UPLOAD_PATH.fullmatch(path) is not None
+        and not {".", ".."} & set(path.split("/"))
+        and pods.shippable(path)
+        and not _sealed(path)
+    )
+
+
+def _sealed(path):
+    text = "/" + str(path).replace("\\", "/").lower()
+    return any(fragment in text for fragment in SEALED_FRAGMENTS)
 
 
 def _upload_entry(entry):
@@ -534,9 +573,14 @@ class JobPods(pods.RunPodPods):
                 )
             if not self.spec.cpu:
                 compute = self.spec.document["compute"]
-                [offer] = self.adapter.offers(
+                offers = self.adapter.offers(
                     [compute["type"]], gpu_count=compute["count"]
                 )
+                if len(offers) != 1:
+                    raise PodFailure(
+                        "launch", "no single GPU pod offer now", executed=False
+                    )
+                [offer] = offers
                 if (
                     offer.usd_per_hr is None
                     or Decimal(str(offer.usd_per_hr))
@@ -594,7 +638,7 @@ class JobPods(pods.RunPodPods):
             self.sleep(POLL_SECONDS)
         base = self.adapter.connect_url(self._owned(handle), 8000)
         for path, body in sorted(files.items()):
-            url = base + "/input/" + urllib.parse.quote(path)
+            url = base + "/input/" + path  # plain by `_upload_path`
             code = self.post(url, self._token(handle), body, 600)
             if code != 200:
                 raise PodFailure("upload", f"{path} refused ({code})", executed=True)
@@ -632,9 +676,14 @@ def uploads_manifest(directory):
     }
 
 
-def read_uploads(spec, directory):
-    """The job's declared uploads from `directory`, each at its declared size
-    and sha256, and nothing else there. `SpecRefused` otherwise."""
+def read_uploads(spec, directory, roots):
+    """The job's declared uploads, fail closed (CLOUD-FIRST-COMPUTE-01 rule 2).
+
+    `directory` must resolve under one of `roots` (the owner's allow-list,
+    `require_enabled`), and neither it, a root, nor any file may sit under a
+    sealed, hidden or evidence path (`SEALED_FRAGMENTS`). No symbolic link
+    anywhere in it. Its files must be exactly the declared ones, each at its
+    declared size and sha256. `SpecRefused` otherwise; nothing is sent."""
     declared = spec.document["uploads"]
     if not declared:
         if directory is not None:
@@ -642,9 +691,49 @@ def read_uploads(spec, directory):
         return {}
     if directory is None or not Path(directory).is_dir():
         raise SpecRefused("uploads_missing", "run --uploads DIR")
+    directory = Path(directory)
+    real = directory.resolve()
+    allowed = [Path(r).resolve() for r in roots]
+    if not any(real == r or real.is_relative_to(r) for r in allowed):
+        raise SpecRefused("uploads_root_not_allowed", str(real))
+    if _sealed(real) or any(_sealed(r) for r in allowed):
+        raise SpecRefused("uploads_sealed_path", str(real))
+    for path in directory.rglob("*"):
+        if path.is_symlink():
+            raise SpecRefused("uploads_symlink", str(path.relative_to(directory)))
+        if _sealed(path.resolve()) or not path.resolve().is_relative_to(real):
+            raise SpecRefused("uploads_sealed_path", str(path.relative_to(directory)))
     if uploads_manifest(directory) != declared:
         raise SpecRefused("uploads_differ", "the directory is not the spec's uploads")
-    return {path: (Path(directory) / path).read_bytes() for path in declared}
+    files = {path: (directory / path).read_bytes() for path in declared}
+    for path, body in files.items():  # read once more: the bytes that are sent
+        want = declared[path]
+        if (
+            len(body) != want["bytes"]
+            or hashlib.sha256(body).hexdigest() != want["sha256"]
+        ):
+            raise SpecRefused("uploads_differ", path)
+    return files
+
+
+def require_enabled(key_file):
+    """The owner's enabling file beside the key file: `run` spends only when it
+    says `"enabled": true`, and uploads come only from its `upload_roots`.
+    Missing or malformed: `SpecRefused("pod_jobs_not_enabled")`."""
+    path = Path(key_file).expanduser().parent / ENABLE_FILE
+    try:
+        document = json.loads(path.read_text())
+    except (OSError, ValueError):
+        raise SpecRefused("pod_jobs_not_enabled", str(path)) from None
+    roots = document.get("upload_roots") if type(document) is dict else None
+    if (
+        document.get("enabled") is not True
+        or type(roots) is not list
+        or not all(type(r) is str and Path(r).is_absolute() for r in roots)
+        or any(_sealed(r) for r in roots)
+    ):
+        raise SpecRefused("pod_jobs_not_enabled", str(path))
+    return roots
 
 
 # -- the ledger -----------------------------------------------------------------------------
@@ -662,14 +751,24 @@ class JobGrant:
 
 
 # -- one job end to end ---------------------------------------------------------------------
-def run(spec, out, *, backend, ledger=None, private=None, uploads=None):
-    """Claim, launch, upload, wait, fetch, terminate and settle one job. Returns
-    the receipt (also written to `out/receipt.json`). The pod is terminated
-    whatever happens after its create."""
+RECONCILE = (
+    "python -m scripts.dev.exam_design.runpod.operator_compute reconcile "
+    "--root ROOT/compute --runpod-key-file KEY"
+)
+
+
+def run(spec, out, *, backend, ledger=None, private=None, uploads=None, roots=()):
+    """Claim, launch, upload, wait, fetch, terminate and settle one job.
+
+    Returns the receipt, always written to `out/receipt.json` whatever fails.
+    `receipt["ok"]` is True only for a finished job whose pod (and every
+    duplicate an ambiguous create made) is confirmed gone and whose cost is
+    settled. A pod whose teardown is not confirmed keeps its full reservation
+    in the ledger and the receipt names the reconcile to run."""
     from carbon.agent_campaign import grant_runs
 
     ledger = grant_runs if ledger is None else ledger
-    files_in = read_uploads(spec, uploads)  # refused before any claim
+    files_in = read_uploads(spec, uploads, roots)  # refused before any claim
     out = pods.private_dir(out)
     private = pods.private_dir(private or out / "private")
     grant = JobGrant(backend.money["cap_usd"])
@@ -681,8 +780,11 @@ def run(spec, out, *, backend, ledger=None, private=None, uploads=None):
         "pod_id": None,
         "rate_usd_per_hr": None,
         "files": {},
+        "errors": [],
         "teardown": None,
+        "duplicates": [],
         "cost": None,
+        "ok": False,
     }
     ledger.claim(grant, STORE_ID, spec.job_id)
     handle, executed = None, False
@@ -691,36 +793,85 @@ def run(spec, out, *, backend, ledger=None, private=None, uploads=None):
             handle = backend.launch_job(private)
         except PodFailure as failure:
             executed = failure.executed
-            if failure.executed:
-                handle = backend.recover(spec.job_id, private)
             receipt["outcome"] = "launch_refused:" + pods.refusal_code(failure.detail)
             receipt["refusal"] = pods.bounded_detail(failure.detail)
         if handle is not None:
             executed = True
-            receipt["pod_id"], receipt["rate_usd_per_hr"] = (
-                handle.pod_id,
-                handle.rate_usd_per_hr,
-            )
-            if receipt["outcome"] is None:
-                deadline = backend.clock() + (spec.minutes + EXPORT_MINUTES) * 60
-                if files_in:
-                    backend.upload(handle, files_in, deadline=deadline)
-                    receipt["uploads"] = {
-                        path: spec.document["uploads"][path]["sha256"]
-                        for path in sorted(files_in)
-                    }
-                state = backend.wait(handle, deadline=deadline, cancelled=lambda: False)
-                receipt["outcome"] = state
-                if state in ("done", "failed"):
-                    receipt["files"] = _keep(backend.fetch(handle), out / "files")
+            receipt["pod_id"] = handle.pod_id
+            receipt["rate_usd_per_hr"] = handle.rate_usd_per_hr
+            deadline = backend.clock() + (spec.minutes + EXPORT_MINUTES) * 60
+            if files_in:
+                backend.upload(handle, files_in, deadline=deadline)
+                receipt["uploads"] = {
+                    path: spec.document["uploads"][path]["sha256"]
+                    for path in sorted(files_in)
+                }
+            state = backend.wait(handle, deadline=deadline, cancelled=lambda: False)
+            receipt["outcome"] = state
+            if state in ("done", "failed"):
+                receipt["files"] = _keep(backend.fetch(handle), out / "files")
+    except Exception as error:  # noqa: BLE001 -- recorded, then torn down
+        if handle is not None or _maybe_created(error):
+            executed = True
+        receipt["errors"].append(_error("run", error))
+        receipt["outcome"] = receipt["outcome"] or "error"
     finally:
-        receipt["teardown"] = _teardown(backend, handle)
-        receipt["cost"] = _settle(ledger, grant, spec, backend, handle, executed)
-        receipt["weekly"] = ledger.weekly_line(ledger.weekly_report())
-        (out / "receipt.json").write_text(
-            json.dumps(receipt, indent=1, sort_keys=True) + "\n"
-        )
+        _finish(receipt, ledger, grant, spec, backend, handle, executed, private, out)
     return receipt
+
+
+def _maybe_created(error):
+    """Whether an error during the launch may have followed a create: anything
+    but a typed failure that says nothing ran."""
+    return not (isinstance(error, PodFailure) and not error.executed)
+
+
+def _error(stage, error):
+    return {"stage": stage, "detail": pods.bounded_detail(repr(error))}
+
+
+def _finish(receipt, ledger, grant, spec, backend, handle, executed, private, out):
+    """Teardown, duplicates and settlement, each guarded so the receipt is
+    always written."""
+    try:
+        receipt["teardown"], handle = _teardown(
+            backend, handle, executed, spec, private
+        )
+    except Exception as error:  # noqa: BLE001
+        receipt["errors"].append(_error("teardown", error))
+        receipt["teardown"] = {"pod": receipt["pod_id"], "terminated": None}
+    if executed:
+        try:
+            receipt["duplicates"] = _duplicates(backend, spec)
+        except Exception as error:  # noqa: BLE001
+            receipt["errors"].append(_error("duplicates", error))
+            receipt["duplicates"] = None
+    try:
+        receipt["cost"] = _settle(
+            ledger, grant, spec, backend, handle, executed, receipt
+        )
+    except Exception as error:  # noqa: BLE001 -- the claim stays at its cap
+        receipt["errors"].append(_error("settle", error))
+    try:
+        receipt["weekly"] = ledger.weekly_line(ledger.weekly_report())
+    except Exception as error:  # noqa: BLE001
+        receipt["errors"].append(_error("weekly", error))
+    gone = (receipt["teardown"] or {}).get("terminated") is True
+    duplicates_gone = receipt["duplicates"] is not None and all(
+        row["terminated"] is True for row in receipt["duplicates"]
+    )
+    if not (gone and duplicates_gone):
+        receipt["reconcile"] = RECONCILE
+    receipt["ok"] = (
+        receipt["outcome"] == "done"
+        and gone
+        and duplicates_gone
+        and receipt["cost"] is not None
+        and not receipt["errors"]
+    )
+    (Path(out) / "receipt.json").write_text(
+        json.dumps(receipt, indent=1, sort_keys=True) + "\n"
+    )
 
 
 def _keep(files, directory):
@@ -735,65 +886,96 @@ def _keep(files, directory):
     return kept
 
 
-def _teardown(backend, handle):
+def _teardown(backend, handle, executed, spec, private):
+    """(record, handle). No create: nothing to tear down. A create that may
+    have happened with no handle: recovered by its ownership tag first; when
+    that cannot say, `terminated` is None (unknown), never True."""
+    if handle is None and not executed:
+        record = {"pod": None, "terminated": True, "note": "refused before any create"}
+        return record, None
     if handle is None:
-        return {"pod": None, "terminated": True, "note": "no pod was created"}
-    gone = backend.terminate(handle)
-    return {
+        try:
+            handle = backend.recover(spec.job_id, private)
+        except PodFailure as failure:
+            record = {
+                "pod": None,
+                "terminated": None,
+                "note": "the create may have happened; recover could not say: "
+                + pods.bounded_detail(failure.detail),
+            }
+            return record, None
+        if handle is None:
+            return {"pod": None, "terminated": True, "note": "no pod exists"}, None
+    gone = backend.terminate(handle) is True
+    record = {
         "pod": handle.pod_id,
         "terminated": gone,
         "verified": "deletion verified by the pod's absence" if gone else None,
         "at_unix": int(backend.clock()),
     }
+    return record, handle
 
 
-def _settle(ledger, grant, spec, backend, handle, executed):
-    """A pod refused before any provider write settles at zero; otherwise the
-    provider's charge when it reports one, and the full reservation stays
-    pending when it does not (grant_runs' reservation basis)."""
+def _duplicates(backend, spec):
+    """Every further pod an ambiguous create made under this job's tag (#1068,
+    #1178): terminated, each with its provider charge when known."""
+    found = []
+    for row in backend.duplicates(spec.job_id):
+        gone = backend.terminate(PodHandle(spec.job_id, row["pod_id"], None))
+        found.append(
+            {
+                "pod_id": row["pod_id"],
+                "charge_usd": row["charge_usd"],
+                "terminated": gone is True,
+            }
+        )
+    return found
+
+
+def _settle(ledger, grant, spec, backend, handle, executed, receipt):
+    """`grant_runs.settle(cost, pending)`: cost is the total, pending the part
+    still at a pod reservation. A refusal before any provider write settles at
+    zero. A pod (or a duplicate) with no provider charge, or not confirmed
+    gone, stays at its full reservation."""
     if not executed:
         ledger.settle(grant, STORE_ID, spec.job_id, Decimal(0))
         return {"reserved_usd": "0", "charged_usd": "0", "pending_usd": "0"}
-    charge = None if handle is None else backend.charge(handle)
     reserved = backend.money["worst_case_usd"]
+    charged, pending = Decimal(0), Decimal(0)
+    confirmed = (receipt["teardown"] or {}).get("terminated") is True
+    charge = None
+    if handle is not None and confirmed:
+        try:
+            charge = backend.charge(handle)
+        except Exception as error:  # noqa: BLE001 -- unknown: the reservation stays
+            receipt["errors"].append(_error("charge", error))
     if charge is None:
-        ledger.settle(grant, STORE_ID, spec.job_id, Decimal(0), pending_usd=reserved)
-        return {
-            "reserved_usd": str(reserved),
-            "charged_usd": None,
-            "pending_usd": str(reserved),
-        }
-    ledger.settle(grant, STORE_ID, spec.job_id, charge)
+        pending += reserved
+    else:
+        charged += charge
+    duplicates = receipt["duplicates"]
+    if duplicates is None:  # unknown: one more reservation, conservatively
+        pending += reserved
+    for row in duplicates or ():
+        if row["charge_usd"] is None or row["terminated"] is not True:
+            pending += reserved
+        else:
+            charged += Decimal(row["charge_usd"])
+    total = charged + pending
+    ledger.settle(grant, STORE_ID, spec.job_id, total, pending_usd=pending)
     return {
         "reserved_usd": str(reserved),
-        "charged_usd": str(charge),
-        "pending_usd": "0",
+        "charged_usd": str(charged),
+        "pending_usd": str(pending),
+        "total_usd": str(total),
     }
 
 
 # -- the no-spend check ---------------------------------------------------------------------
-class _MemoryLedger:
-    """The ledger's calls, in memory, for `check`: nothing is claimed or spent."""
-
-    def __init__(self):
-        self.calls = []
-
-    def claim(self, grant, store_id, key):
-        self.calls.append(("claim", store_id, key, str(grant.worst_case_run_cost)))
-
-    def settle(self, grant, store_id, key, cost, pending_usd=0):
-        self.calls.append(("settle", store_id, key, str(cost), str(pending_usd)))
-
-    def weekly_report(self):
-        return None
-
-    def weekly_line(self, report):
-        return "check: no ledger"
-
-
 class _MemoryInputs:
     """A pod's input door in memory, for `check`: it waits until every declared
-    input has arrived at its declared size and sha256, as `bootstrap.receive`."""
+    input has arrived at its declared size and sha256, and reads the request
+    path as the real door does (`bootstrap.receive`: no decoding)."""
 
     def __init__(self, account, declared):
         self.account, self.declared, self.received = account, declared, {}
@@ -804,7 +986,7 @@ class _MemoryInputs:
         return self.account.http(url, token, timeout)
 
     def post(self, url, token, body, timeout):
-        path = urllib.parse.unquote(url.split("/input/", 1)[1])
+        path = url.split("/input/", 1)[1]
         want = self.declared.get(path)
         if want is None:
             return 404
@@ -817,10 +999,15 @@ class _MemoryInputs:
         return 200
 
 
-def check(spec, root, *, repository=REPOSITORY, files=None, uploads=None):
-    """`run` against an in-memory RunPod and an in-memory ledger: the real
-    launch, upload, wait, fetch, terminate and settle code, no network and no
-    spend."""
+def check(spec, root, *, repository=REPOSITORY, files=None, uploads=None, account=None):
+    """`run` against an in-memory RunPod and the real ledger (`grant_runs`) in a
+    ledger directory of its own under `root`: the real launch, upload, wait,
+    fetch, terminate and settle code, no network and no spend. The uploads
+    directory is its own allow-list root here; the sealed-path guard applies."""
+    import os
+
+    from carbon.agent_campaign import grant_runs
+
     root = Path(root)
     if root.exists() and any(root.iterdir()):
         raise ValueError("the check's root must be new or empty")
@@ -828,7 +1015,7 @@ def check(spec, root, *, repository=REPOSITORY, files=None, uploads=None):
     key = root / "runpod-key"
     key.write_text(pods.CHECK_KEY + "\n")
     key.chmod(0o600)
-    account = pods.InMemoryRunPod()
+    account = account or pods.InMemoryRunPod()
     if files is not None:
         account.FILES = files
     door = _MemoryInputs(account, spec.document["uploads"])
@@ -843,11 +1030,27 @@ def check(spec, root, *, repository=REPOSITORY, files=None, uploads=None):
         sleep=lambda _seconds: None,
         balance_floor=lambda: Decimal(0),
     )
-    ledger = _MemoryLedger()
-    receipt = run(spec, root / "out", backend=backend, ledger=ledger, uploads=uploads)
+    previous = os.environ.get(grant_runs.ENV)
+    os.environ[grant_runs.ENV] = str(root / "ledger")
+    try:
+        receipt = run(
+            spec,
+            root / "out",
+            backend=backend,
+            ledger=grant_runs,
+            uploads=uploads,
+            roots=() if uploads is None else (uploads,),
+        )
+        weekly = grant_runs.ledger_dir() / grant_runs.WEEKLY_FILE
+        ledger = [json.loads(x) for x in weekly.read_text().splitlines() if x]
+    finally:
+        if previous is None:
+            os.environ.pop(grant_runs.ENV, None)
+        else:
+            os.environ[grant_runs.ENV] = previous
     return {
         "receipt": receipt,
-        "ledger": ledger.calls,
+        "ledger": ledger,
         "creates": list(account.creates),
         "pods_left": sorted(account.pods),
         "received": sorted(door.received),
@@ -875,6 +1078,8 @@ def main(argv=None):
                 default=Path("~/.local/state/carbon/pod-jobs").expanduser(),
             )
     args = parser.parse_args(argv)
+    from carbon.agent_campaign import grant_runs
+
     if args.command == "uploads":
         print(json.dumps(uploads_manifest(args.directory), indent=1, sort_keys=True))
         return 0
@@ -891,14 +1096,21 @@ def main(argv=None):
         elif args.command == "check":
             result = check(spec, args.root, uploads=args.uploads)
         else:
-            read_uploads(spec, args.uploads)  # refused before the backend is built
+            roots = require_enabled(args.key_file)  # the owner's switch first
+            read_uploads(spec, args.uploads, roots)  # before the backend is built
             backend = JobPods(spec, root=args.root, key_file=args.key_file)
-            result = run(spec, args.out, backend=backend, uploads=args.uploads)
+            result = run(
+                spec, args.out, backend=backend, uploads=args.uploads, roots=roots
+            )
     except SpecRefused as refused:
         print(json.dumps({"refused": refused.code, "detail": str(refused)}))
         return 2
+    except grant_runs.SharedRunsError as refused:
+        print(json.dumps({"refused": refused.code, "detail": str(refused)}))
+        return 2
     print(json.dumps(result, indent=1, sort_keys=True, default=str))
-    return 0
+    receipt = result.get("receipt", result) if args.command != "plan" else {"ok": True}
+    return 0 if receipt.get("ok") else 1
 
 
 if __name__ == "__main__":

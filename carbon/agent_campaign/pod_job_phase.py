@@ -64,7 +64,8 @@ def collect(paths, inputs, target):
         destination = target / rel
         destination.parent.mkdir(parents=True, exist_ok=True)
         if source.is_dir():
-            shutil.copytree(source, destination, symlinks=False, dirs_exist_ok=True)
+            # A link is copied as a link, which the bootstrap never serves.
+            shutil.copytree(source, destination, symlinks=True, dirs_exist_ok=True)
         else:
             shutil.copy2(source, destination)
     return {"paths": list(paths), "missing": missing}
