@@ -2,6 +2,11 @@
 
 **CHAMPIONSHIP-ECONOMICS-SIM-01; research/recommendation only.** Source authority is pinned in [SOURCES](SOURCES.md). Every numerical output below is generated from [public synthetic assumptions](assumptions.json), not observed miners or payouts. Current announced scoring and current public decay are modeled prospectively. No live economics, physical solver/model run, hidden data, AX42 or spend.
 
+**Design version.** This models the takeover of VALIDATOR-32 rev 5: a daily championship against the king under OWNER-BATTERY-CHAMPIONSHIP-01 to -03.
+- **Later draft:** as of 2026-10-12, a later revision, the VALIDATOR-32 rev 8 draft, is awaiting the owner's decision. It proposes a proven leaderboard with a stepped handover and would supersede the takeover modeled here.
+- **What still applies:** rev 8 keeps the leader's decaying share. The decay-rate findings therefore stay relevant to it.
+- **What does not carry over:** all crown-turnover and advance counts were computed under rev 5's takeover and cannot be carried over to rev 8.
+
 ## Recommendation and the objective trade-off
 
 For owner consideration, take **d=0.90 (10% daily reduction)** forward as the primary slower-decay option; retain **d=0.80 (20% reduction)** where faster burn/lower passive rent is the priority. **d=0.95 (5% reduction)** is an explicit longer-research/defense option with more concentration and weaker newcomer results in the base population. **d=1** is a useful no-decay control, not the recommended default. These are ASSUMPTION option points, not statistically selected optimal policy or calibrated economic prescriptions.
