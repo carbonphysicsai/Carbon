@@ -592,6 +592,10 @@ def weekly_report(repository=REPOSITORY, *, clock=time.time, weekly_cap=WEEKLY_C
         by_grant[row["grant"]] = by_grant.get(row["grant"], Decimal(0)) + row["cost"]
     spent = sum(by_grant.values(), Decimal(0))
     cents = Decimal("0.01")
+    # What a claim can actually use (every claim honours the held reserves), so the
+    # headroom reported is the headroom a launch will be granted.
+    held = {k: _cost(v) for k, v in sorted(HELD_RESERVES.items())}
+    claimable = Decimal(weekly_cap) - sum(held.values(), Decimal(0))
 
     def total(rows):
         return str(sum((r["cost"] for r in rows), Decimal(0)).quantize(cents))
@@ -603,7 +607,9 @@ def weekly_report(repository=REPOSITORY, *, clock=time.time, weekly_cap=WEEKLY_C
         "cap_usd": str(Decimal(weekly_cap).quantize(cents)),
         "per_run_cap_usd": str(PER_RUN_CAP_USD.quantize(cents)),
         "cap_decision": CAP_DECISION,
-        "remaining_usd": str(max(Decimal(0), weekly_cap - spent).quantize(cents)),
+        "held_reserves_usd": {k: str(v.quantize(cents)) for k, v in held.items()},
+        "claimable_cap_usd": str(claimable.quantize(cents)),
+        "remaining_usd": str(max(Decimal(0), claimable - spent).quantize(cents)),
         "runs": len(inside),
         "pod_reservation_unresolved_usd": str(
             sum((r["pending"] for r in inside.values()), Decimal(0)).quantize(cents)
@@ -619,9 +625,19 @@ def weekly_report(repository=REPOSITORY, *, clock=time.time, weekly_cap=WEEKLY_C
 
 def weekly_line(report):
     """One line for the Test Lead: the usage, the basis and the headroom."""
+    held = report.get("held_reserves_usd") or {}
+    if held:
+        names = ", ".join(k.removeprefix("OWNER-").removesuffix("-GRANT") for k in held)
+        total = sum((Decimal(v) for v in held.values()), Decimal(0))
+        of = (
+            f"{report['claimable_cap_usd']} claimable ({report['cap_usd']} less "
+            f"{total.quantize(Decimal('0.01'))} held for {names})"
+        )
+    else:
+        of = report["cap_usd"]
     return (
         f"Testnet testing budget, rolling {report['window_days']} days: "
-        f"USD {report['spent_usd']} of {report['cap_usd']} used, "
+        f"USD {report['spent_usd']} of {of} used, "
         f"USD {report['remaining_usd']} headroom, {report['runs']} runs "
         f"({report['seeded_runs']} seeded from earlier roots). "
         f"Cap: USD {report['cap_usd']} per rolling 7 days and USD "

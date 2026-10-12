@@ -120,3 +120,22 @@ def test_removing_the_reserve_once_confirm02_settles_frees_the_headroom(
     assert gr.effective_weekly_cap() == Decimal(300)
     gr.claim_pod_job("job-6", "40", clock=clock)  # the USD 40 is free again
     refused(gr.WEEKLY_LIMIT, gr.claim_pod_job, "job-7", "0.01", clock=clock)
+
+
+def test_the_weekly_report_names_what_is_claimable_and_why(ledger):
+    """The report's headroom is the headroom a launch gets: USD 260 claimable while
+    CONFIRM-02's USD 40 is held, and the line says why the number moved."""
+    clock, _ = ledger
+    gr.claim_pod_job("job-a", "20", clock=clock)
+    report = gr.weekly_report(clock=clock)
+    assert report["cap_usd"] == "300.00" and report["claimable_cap_usd"] == "260.00"
+    assert report["remaining_usd"] == "240.00"
+    assert report["held_reserves_usd"] == {
+        "OWNER-SCORE-PROOF-CONFIRM-02-GRANT": "40.00"
+    }
+    line = gr.weekly_line(report)
+    assert (
+        "USD 20.00 of 260.00 claimable (300.00 less 40.00 held for SCORE-PROOF-CONFIRM-02) used"
+        in line
+    )
+    assert "USD 240.00 headroom" in line
