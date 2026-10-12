@@ -24,14 +24,29 @@ So, from this amendment:
   collection and Graphite alike.
 - **Per-run safety cap: USD 50.** A single run above that still needs its own
   owner record.
-- **Per-run approval is removed, but NOT YET.** This is the condition he
-  attached, and it is the operative part of his answer: individual runs stop
-  needing his approval **only once the ledger counts settled pod charges**
-  (the `pod_charge_unresolved` fix). Until that lands, every run still comes
-  to him as before. He was offered the version that took effect immediately
-  and declined it, on the stated ground that once per-run approval goes the
-  ledger is the only control on spend, so it must count correctly before it
-  is the sole guard rather than after.
+- **Per-run approval is removed when #1168 is on main, and not before.** The
+  condition he attached was "fix the ledger first": individual runs stop
+  needing his approval only once the ledger is a sound sole control. He was
+  offered the version effective immediately and declined it, on the ground
+  that once per-run approval goes the ledger is the only control on spend.
+- **How the condition is met, which is not how it was worded.** He asked for
+  the ledger to count settled pod charges. It cannot: the provider never
+  reports a pod's charge, so there is no settled figure to count, and #1168
+  says so plainly — "the ledger holds no settled pod charge of its own".
+  Instead #1168 refuses to ever count *less*: an unresolved pod stays counted
+  at its **full reservation**, only a provider-reported charge or a zero-cost
+  refusal lowers a run's count, an unreadable root refuses the seed, and
+  seeded historical spend counts against new launches and rolls off at its own
+  start time. Put that way to him, he answered:
+
+  > Yes — that satisfies it, lift per-run approval
+
+- **So the cap binds on worst-case reservations, not on actual spend.** That
+  is the deliberate trade. If a reservation overestimates, a launch is refused
+  slightly earlier than the real spend required. If a reservation ever
+  underestimates a real charge, actual spend can exceed USD 300 without the
+  ledger refusing anything — the worst-case basis is the only thing guarding
+  that, so a grant's `worst_case_run_cost` being honest is now load-bearing.
 - **Still their own record regardless of the cap:** anything carrying sealed
   or hidden material — custody is a security acceptance and stays separate
   from spend — anything on mainnet, anything touching LIVE, and any run above
