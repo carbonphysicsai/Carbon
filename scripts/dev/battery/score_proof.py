@@ -43,7 +43,7 @@ if str(ROOT) not in sys.path:
 from scripts.dev.battery import tuning_rescore as tr
 
 MEMBERS = ROOT / "docs/development/evidence/battery-score-tuning/proof-members-v1.json"
-REGISTRY = ROOT / "docs/development/evidence/battery-score-tuning/registry-v7.json"
+REGISTRY = ROOT / "docs/development/evidence/battery-score-tuning/registry-v8.json"
 #: The rule in force (OWNER-BATTERY-SCORE-RULE-01): A-Q with the G-FEAS gate at
 #: 0.05, recorded as "exceeds" (registry v5's `G-FEAS/A-Q>@0.05`).
 RULE_IN_FORCE = "G-FEAS/A-Q>@0.05"
@@ -160,6 +160,7 @@ def fold_legs(panel, folds):
                     panel["store"],
                     subset,
                     panel["q3_regret"].get(m),
+                    tr.verify_of(panel.get("verify_r"), m),
                 )
                 for m in panel["names"]
             }
@@ -398,6 +399,12 @@ def main(argv=None):
     parser.add_argument("--attack", type=Path)
     parser.add_argument("--dev-results", type=Path, required=True)
     parser.add_argument("--q3-regret", type=Path)
+    parser.add_argument(
+        "--verify-r",
+        type=Path,
+        help="the quiz's VERIFY-R legs (`verify_r_quiz`); without it the "
+        "VERIFY-R candidates are unscored (INCOMPLETE_LEGS), never guessed",
+    )
     parser.add_argument("--members", type=Path, default=MEMBERS)
     parser.add_argument("--registry", type=Path, default=REGISTRY)
     parser.add_argument("--baseline", default=RULE_IN_FORCE)
@@ -452,9 +459,10 @@ def main(argv=None):
     split = load_split(args.split)
     members = load_members(args.members)
     q3 = json.loads(args.q3_regret.read_text()) if args.q3_regret else None
+    verify_r = json.loads(args.verify_r.read_text())["legs"] if args.verify_r else None
     cases = sp.split_cases(split, ids, args.phase)
     panel = phase_panel(
-        tr.assemble(store, cases, predictions, args.dev_results, q3),
+        tr.assemble(store, cases, predictions, args.dev_results, q3, verify_r),
         members,
         split,
         args.phase,

@@ -77,7 +77,15 @@ def _standin(dirs):
     return store, ids, predictions
 
 
-def assemble(store, ids, predictions, dev_results, q3_regret=None):
+def verify_of(verify_r, member):
+    """A member's VERIFY-R legs from `verify_r.json`'s `legs` ({leg: {member:
+    v}}), None without VERIFY-R; a member it does not score is unmeasured."""
+    if verify_r is None:
+        return None
+    return {leg: by_member.get(member) for leg, by_member in verify_r.items()}
+
+
+def assemble(store, ids, predictions, dev_results, q3_regret=None, verify_r=None):
     """The panel the rescore and the score proof (SCORE-PROOF-01) share: each
     decided member's legs, decision value and outcomes, recipe and seed
     grouping, and what the legs were computed from."""
@@ -94,7 +102,14 @@ def assemble(store, ids, predictions, dev_results, q3_regret=None):
     names = sorted(m for m in members if m in decided)
     q3_regret = q3_regret or {}
     legs = {
-        m: st.member_legs(contract, members[m], store, ids, q3_regret.get(m))
+        m: st.member_legs(
+            contract,
+            members[m],
+            store,
+            ids,
+            q3_regret.get(m),
+            verify_of(verify_r, m),
+        )
         for m in names
     }
     values, mask, outcomes = st.decision_values(results, names)
@@ -118,6 +133,7 @@ def assemble(store, ids, predictions, dev_results, q3_regret=None):
         "ids": ids,
         "predictions": members,
         "q3_regret": q3_regret,
+        "verify_r": verify_r,
         "results": results,
         "names": names,
         "legs": legs,

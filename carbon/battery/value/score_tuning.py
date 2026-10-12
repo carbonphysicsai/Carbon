@@ -58,6 +58,12 @@ from .near import near_cases
 REGISTRY_SCHEMA = "carbon.battery.score-tuning-registry.v1"
 RESULT_SCHEMA = "carbon.battery.score-tuning-result.v1"
 LEGS = ("a", "r", "g", "m", "n", "p", "q")
+#: `v1`, `v3`, `v5`: the VERIFY-R leg at k = 1, 3, 5 on the Q3 quiz
+#: (`verify_quiz`, OWNER-VERIFY-R-DEFAULTS-01; registry v8). Score-proof
+#: legs only: computed once per member from the quiz, never per submission,
+#: so not in `LEGS` (the legs a development score variant may weight).
+VERIFY_LEGS = ("v1", "v3", "v5")
+SCORE_LEGS = LEGS + VERIFY_LEGS
 GATES = ("near", "envelope", "feasibility", "plating_fa", "error")
 #: How a gate compares its measure with its cutoff. "at_or_above" fails at
 #: or above the cutoff (`admissibility.verdict`, pinned, and every candidate
@@ -123,7 +129,7 @@ def parse_candidate(entry):
     if kind not in ("geometric", "deciding"):
         raise TuningError("candidate_kind", entry.get("id"))
     if kind == "geometric":
-        if not weights or set(weights) - set(LEGS):
+        if not weights or set(weights) - set(SCORE_LEGS):
             raise TuningError("candidate_legs", entry.get("id"))
         if any(not isinstance(w, (int, float)) or w < 0 for w in weights.values()):
             raise TuningError("candidate_weights", entry.get("id"))
@@ -288,10 +294,16 @@ def expand_sweep(entry, registered):
 # --- legs ------------------------------------------------------------------------------
 
 
-def member_legs(contract, predictions, store, case_ids, decision_regret=None):
+def member_legs(
+    contract, predictions, store, case_ids, decision_regret=None, verify=None
+):
     """One member's legs and gate measures on `case_ids` of `store`.
     `decision_regret`: the member's mean Q3 decision regret over the quiz's
-    feasible decision scenarios (registry v3's leg q), or None."""
+    feasible decision scenarios (registry v3's leg q), or None. `verify`:
+    the member's VERIFY-R legs on the quiz (`VERIFY_LEGS` to v or None),
+    added only when given."""
+    if verify is not None and set(verify) - set(VERIFY_LEGS):
+        raise TuningError("verify_legs", ",".join(sorted(verify)))
     near = near_cases(store, case_ids)
     inside = b1.envelope_ids(store, case_ids)
     component = sc.components(predictions, case_ids, store, contract)
@@ -309,6 +321,7 @@ def member_legs(contract, predictions, store, case_ids, decision_regret=None):
             "n": None if n is None else n["score"],
             "p": b1.proximity_leg(contract, predictions, case_ids, store.refs),
             "q": None if decision_regret is None else 1.0 / (1.0 + decision_regret),
+            **(verify or {}),
         },
         "gates": {
             "near": admissibility.near_optimism(
@@ -414,8 +427,8 @@ def score_member(candidate, row):
     if not row["eligible"]:
         return 0.0
     return b1._geometric(
-        tuple(row["legs"].get(leg) for leg in LEGS),
-        tuple(candidate.weights.get(leg, 0.0) for leg in LEGS),
+        tuple(row["legs"].get(leg) for leg in SCORE_LEGS),
+        tuple(candidate.weights.get(leg, 0.0) for leg in SCORE_LEGS),
     )
 
 
@@ -673,7 +686,7 @@ def diagnosis(results, members, legs, values, mask, split="development"):
         }
     usable = [m for m in members if values[m] is not None]
     attribution = {}
-    for leg in LEGS:
+    for leg in SCORE_LEGS:
         pairs = [
             (legs[m]["legs"].get(leg), -values[m])
             for m in usable
