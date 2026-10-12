@@ -65,8 +65,12 @@ The three backfill manifests (stage A, the L1 to L4 ladder sessions, and the L2 
    - A known-green canary passes first (for example `tests/cpu/test_challenge_readiness_gate_q1.py`).
 3. **Safer clone recipe.** Clone from the GitHub URL; or after `--shared`, run `git remote set-url origin
    https://github.com/carbonphysicsai/Carbon.git && git fetch origin` (or `git update-ref refs/remotes/origin/main <tip>`).
-4. `git diff --check origin/main...HEAD`, and run the long suites in the background to completion rather than under a short
+4. `git diff --check origin/main...HEAD` AND `python scripts/dev/check_diff_hygiene.py --base origin/main` (the second catches what
+   the first and the quality gates miss), and run the long suites in the background to completion rather than under a short
    timeout.
+5. **Generated files are clean text.** Write them with LF endings (`newline="
+"`; a Windows text-mode append wrote CRLF into a JSON
+   file), no trailing whitespace and exactly one final newline. Three rejections in one night came from scripted JSON and Markdown.
 
 ## Reading the first lines
 
