@@ -81,7 +81,9 @@ def test_it_is_its_own_grant_and_the_hunt_grants_are_unchanged():
     assert grant_binding.PHASE3_GRANTS[
         "GRAPHITE-GRANT-HUNT-H3-CONSTRUCTOR"
     ].authority == (grant_binding.HUNT_AUTHORITY)
-    assert {n for n in grant_binding.PHASE3_GRANTS if "HUNT-H4" in n} == set()
+    # H4 (granted separately, from the standing grant) is not funded from the hunt's record.
+    h4 = grant_binding.PHASE3_GRANTS.get("GRAPHITE-GRANT-HUNT-H4-CONSTRUCTOR")
+    assert h4 is None or h4.authority != grant_binding.HUNT_AUTHORITY
     assert GRANT_ID not in {g for g in grant_binding.PHASE3_GRANTS if "HUNT" in g}
 
 
