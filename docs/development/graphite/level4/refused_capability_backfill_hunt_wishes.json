@@ -1,0 +1,41 @@
+{
+ "schema": "carbon.graphite.refused-capability-backfill.v1",
+ "rule": "Wishes the Level 5 hunt's Constructors filed inline at the end of a hypothesis sentence, which the line-start parser missed; recovered read-only from each proposal's intent.json (the WISH text only). Names and out-of-range values only: no key, seed, account or hidden material.",
+ "source": "executor run roots of hunt runs H1 (Level 1, lane D), H2 (Level 2, lane E) and H3 (Level 3, lane F), 2026-10-12; the stored proposals' intent.json hypotheses (not committed)",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "when": "2026-10-12",
+ "rows": [
+  {
+   "hunt": "H1",
+   "level": 1,
+   "lane": "D",
+   "run": "graphite-913bf1889a6db2d1",
+   "proposal": "p-839de482ac6b",
+   "wish": "WISH: optimisation=hard monotone-capacity head (cumulative-softplus decrements between checkpoints); needs=physical_structure.structure_layers which the registry marks 'not designed yet'; expected_gain=capacity is 100% monotone non-increasing in TRAIN, so a head that is monotone by construction removes residual inversions and shrinks the dominant capacity share; evidence=TRAIN analysis shows monotone frac 1.0 and physical_structure.structure_layers is research_only (blocked_on engineering)."
+  },
+  {
+   "hunt": "H1",
+   "level": 1,
+   "lane": "D",
+   "run": "graphite-913bf1889a6db2d1",
+   "proposal": "p-87b76ad0a2fd",
+   "wish": "WISH: optimisation=declarative loss expressions (carbon.loss-expression.v2) rebuilt by Carbon's JAX trainer; needs=Carbon rebuild of parameters.loss_expressions with terms traj_d1, traj_ramp_late, sq_error_temperature; expected_gain=encode CV-phase ramp alignment and high-temperature robustness directly in the objective instead of approximating with scalar h1_weight/time_weighting; evidence=objective.loss_expressions is listed in level_additions for Level 1 but dry_validate returns parameter.not_rebuildable, so the freedom the level documents is not actually served."
+  },
+  {
+   "hunt": "H2",
+   "level": 2,
+   "lane": "E",
+   "run": "graphite-913bf1889a6db2d1",
+   "proposal": "p-1585ecbf838a",
+   "wish": "WISH: optimisation=monotone capacity-fade constraint layer enforcing nonincreasing fade across checkpoints; needs=a monotone cumulative head (softplus-delta capacity checkpoints); expected_gain=guaranteed monotone capacity irrespective of data noise, reducing capacity error at small-sample regimes; evidence=capacity is monotone in 100% of TRAIN cases yet the fade head's predicted fade is unconstrained and capacity is the largest error component (0.0786)"
+  },
+  {
+   "hunt": "H3",
+   "level": 3,
+   "lane": "F",
+   "run": "graphite-913bf1889a6db2d1",
+   "proposal": "p-1585ecbf838a",
+   "wish": "WISH: optimisation=self-scaled BFGS/Broyden polish with a chosen line search; needs=Carbon to surface parameters.quasi_newton_family and parameters.line_search (both refused as unrecognized this session); expected_gain=a better-conditioned full-batch polish than memory-limited L-BFGS on a smooth 400-case objective; evidence=the level-3 additions list these exact fields with bounds and a CPU lane, but the compiler has no vocabulary for them."
+  }
+ ]
+}
