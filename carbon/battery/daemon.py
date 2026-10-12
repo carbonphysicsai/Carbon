@@ -1122,6 +1122,11 @@ class BatteryValidator:
             "rule_digest": rule_digest(self.rule),
             "coverage_rule": dict(COVERAGE_IDENTITY),
             **agg,
+            # PLT-08: prospective operator-only inputs for the registered
+            # display noise floor. No case identities or new evaluation.
+            "screening_noise": {
+                "errors": [r["error"] for r in _rows if r["state"] == "SCORABLE"]
+            },
         }
         if self.rule.get("score") is not None:
             # A registered score (VALIDATOR-26): its gate decides eligibility
@@ -1173,12 +1178,18 @@ class BatteryValidator:
             f"score-v{pool['version']}{tag}",
             namespace=self.DESIGN_PREDICTIONS,
         )
-        regret, cause = scorer.pooled(
-            scorer.design.measure(designs, q_predictions)["batches"]
-        )
+        measured = scorer.design.measure(designs, q_predictions)["batches"]
+        regret, cause = scorer.pooled(measured)
         if cause == "q_unavailable":
             raise WorkerFailure("registered_score_q_unavailable", candidate=False)
         found = scorer.measure(preds, ids, store, regret)
+        found["screening_noise"] = {
+            "regrets": [
+                q.get("regret")
+                for window in measured.values()
+                for q in window.get("per_question", [])
+            ]
+        }
         if cause == "q_candidate_failed":
             found = {**found, "eligible": False, "cause": cause}
         return found
