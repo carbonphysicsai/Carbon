@@ -1010,3 +1010,7 @@ export function projectV2(board, now, rulesCard = null) {
     excluded_canaries: board.excluded_canaries,
   };
 }
+
+// Sent with every server-side fetch of a feed or snapshot. Cloudflare can
+// refuse a request with no browser-like agent, so name this one plainly.
+export const FETCH_HEADERS = Object.freeze({"User-Agent": "carbon-dashboard/1 (+https://dashboard.carbonphysics.ai)", "Accept": "application/json"});

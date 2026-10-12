@@ -49,7 +49,9 @@ if (spec.mode === "project") {
     },
   };
   const realFetch = globalThis.fetch;
-  globalThis.fetch = async url => (url in spec.feeds ? new Response(spec.feeds[url], {status: 200}) : new Response("down", {status: 502}));
+  // Like Cloudflare in front of feeds.carbonphysics.ai: no named agent, 403.
+  globalThis.fetch = async (url, init) => (!String((init && init.headers && init.headers["User-Agent"]) || "").startsWith("carbon-dashboard/") ? new Response("agent", {status: 403})
+    : url in spec.feeds ? new Response(spec.feeds[url], {status: 200}) : new Response("down", {status: 502}));
   const out = [];
   for (const p of spec.requests) {
     const response = await worker.fetch(new Request("https://dashboard.example" + p), {...spec.env, ASSETS}, {});
