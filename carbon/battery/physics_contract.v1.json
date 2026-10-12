@@ -1,0 +1,35 @@
+{
+  "schema": "carbon.physics-contract.v1",
+  "challenge": "battery-fastcharge-ageing-development-v1",
+  "version": "battery-physics-v1",
+  "status": "DEVELOPMENT_PROPOSAL",
+  "note": "PHYSICS-CONTRACT-01. Laws B1-B10, checkable on today's outputs. Hard gates when adopted (admissibility before ranking), never score terms. Every tolerance's quantile and margin is HUMAN_INPUT until the owner registers it; the law list is reconciled with research RES-06. Validity: the DFN's ranges are pending (VALIDITY-ENVELOPE-01, research RES-05); until declared, probes stay inside the input box.",
+  "validity": "battery-fastcharge-ageing-development-v1",
+  "required_outputs": ["voltage_v", "temperature_c", "plating_margin_v", "capacity_ah"],
+  "probe_region": {
+    "c1": [0.5, 2.0],
+    "c2": [0.2, 1.0],
+    "t_amb_c": [5.0, 40.0],
+    "soc0": [0.05, 0.5]
+  },
+  "laws": [
+    {"id": "B1", "name": "cycler window", "type": "bound", "output": "voltage_v", "low": 2.5, "high": 4.2},
+    {"id": "B2", "name": "initial temperature is ambient", "type": "initial_equals_input", "output": "temperature_c", "input": "t_amb_c"},
+    {"id": "B3", "name": "initial voltage near OCV(soc0)", "type": "initial_near_aux", "output": "voltage_v", "aux": "ocv", "input": "soc0"},
+    {"id": "B4", "name": "capacity fades over cycles", "type": "ordered", "output": "capacity_ah", "direction": "decreasing"},
+    {"id": "B5a", "name": "peak temperature rises with c1", "type": "monotone", "output": "temperature_c", "summary": "max", "input": "c1", "direction": "increasing", "step": 0.05},
+    {"id": "B5b", "name": "peak temperature rises with c2", "type": "monotone", "output": "temperature_c", "summary": "max", "input": "c2", "direction": "increasing", "step": 0.05},
+    {"id": "B6", "name": "plating margin falls with c1", "type": "monotone", "output": "plating_margin_v", "summary": "value", "input": "c1", "direction": "decreasing", "step": 0.05},
+    {"id": "B7", "name": "plating margin rises with ambient (RES-06 to confirm)", "type": "monotone", "output": "plating_margin_v", "summary": "value", "input": "t_amb_c", "direction": "increasing", "step": 0.05},
+    {"id": "B8", "name": "temperature curve rises with ambient", "type": "monotone_curve", "output": "temperature_c", "input": "t_amb_c", "direction": "increasing", "step": 0.05},
+    {"id": "B9", "name": "temperature never below ambient", "type": "floor_input", "output": "temperature_c", "input": "t_amb_c", "offset": 0.0},
+    {"id": "B10", "name": "smoothness (robustness probe)", "type": "smoothness", "outputs": ["voltage_v", "temperature_c", "plating_margin_v", "capacity_ah"], "step": 0.01}
+  ],
+  "tolerance": {
+    "rule": "reference residual quantile plus a registered margin",
+    "quantile": "HUMAN_INPUT",
+    "margin": "HUMAN_INPUT",
+    "gate_max_violation_rate": "HUMAN_INPUT"
+  },
+  "aux": {"ocv": "the pinned public OCV table (carbon.battery.challenge.PublicMaterial)"}
+}
