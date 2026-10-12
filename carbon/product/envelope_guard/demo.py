@@ -1,7 +1,8 @@
 """Public battery-interface SYNTHETIC fixtures; never battery physics evidence.
 
 Run `python -m carbon.product.envelope_guard.demo --iterations 500` for a
-bounded toy full-query timing report. No solver, training, file or network I/O.
+bounded toy full-query timing report. No solver, training or network I/O.
+Fixture authoring/construction reads registered public code-verification links.
 All numerical policies/calibrations/validity here are synthetic test inputs.
 """
 
@@ -28,9 +29,16 @@ from carbon.product.envelope_guard import (
     development_pins,
 )
 from carbon.product.envelope_guard.configuration import digest
+from carbon.trust_map.core import PANEL_SCHEMA
 
 QUERY = {"c1": 1.0, "c2": 0.5, "t_amb_c": 25.0, "soc0": 0.25}
 UNITS = {"c1": "C-rate", "c2": "C-rate", "t_amb_c": "C", "soc0": "fraction"}
+CODE_VERIFICATION_IMAGE = (
+    "sha256:2d19b261e722fe67f20bee02e115f2277a799c448b90d54d2872361b341bd940"
+)
+CODE_VERIFICATION_CRITERIA = (
+    "sha256:2182e04bce3612f898e00184ce1e491cca8a54334192e35c4f2cd6fc1d1870c5"
+)
 
 
 def toy_prediction(query):
@@ -53,7 +61,9 @@ def fixture_inputs(predict=toy_prediction, *, query=None):
     from carbon.battery.trust_map import battery_spec, build_battery_maps
 
     query = dict(QUERY if query is None else query)
-    image = digest({"kind": "synthetic-reference-image-not-a-solver"})
+    # Use the registered v2 metadata route; observations remain pure arithmetic.
+    # Code-verification identity is not acceptance for the real battery use.
+    image = CODE_VERIFICATION_IMAGE
     model = ModelBinding(
         "toy-battery-interface",
         digest({"kind": "toy-artifact-v1"}),
@@ -132,18 +142,18 @@ def fixture_inputs(predict=toy_prediction, *, query=None):
     ids = ["synthetic-first", "synthetic-second"]
     observations = {i: toy_prediction(query).outputs for i in ids}
     panel = {
-        "schema": "carbon.trust-map.disclosed-panel.v1",
+        "schema": PANEL_SCHEMA,
         "disclosure": {
             "kind": "PUBLIC",
             "evidence": "SYNTHETIC_FIXTURE_ONLY",
-            "source_sha256": digest({"synthetic_panel": "v1"})[7:],
+            "source_sha256": digest({"synthetic_panel": "v2"})[7:],
         },
         "reference_image": image,
         "reference_verification": {
-            "state": "PASS",
-            "accepted_development_pass": True,
+            "family": "battery-v3",
+            "criteria_digest": CODE_VERIFICATION_CRITERIA,
             "image_digest": image,
-            "evidence": "SYNTHETIC_NOT_MMS_ACCEPTANCE",
+            "evidence": "SYNTHETIC_FIXTURE_ONLY; NOT_REAL_BATTERY_USE_ACCEPTANCE",
         },
         "cases": [
             {"id": i, "inputs": dict(query), "reference": observations[i]} for i in ids
