@@ -1,0 +1,21 @@
+{
+  "schema": "carbon.code-verification.acceptance-link.v1",
+  "scope": "DEVELOPMENT_CODE_VERIFICATION",
+  "solver": "PyBaMM 26.8.0.0",
+  "family": "battery-v3",
+  "image_digest": "sha256:2d19b261e722fe67f20bee02e115f2277a799c448b90d54d2872361b341bd940",
+  "criteria_digest": "sha256:2182e04bce3612f898e00184ce1e491cca8a54334192e35c4f2cd6fc1d1870c5",
+  "criteria_path": "docs/development/evidence/battery-feasibility-02/code-verification/pybamm-criteria.json",
+  "decision": {
+    "id": "OWNER-CODE-VERIFICATION-ACCEPT-01",
+    "path": ".agent/decisions/2026-10-11-OWNER-CODE-VERIFICATION-ACCEPT-01.md",
+    "sha256": "sha256:64b32bf2225465c3b35a60dd2de41023bcce70279e3c0fff50339d6c0ba7fa25"
+  },
+  "evidence": [
+    {
+      "path": "docs/development/evidence/battery-feasibility-02/code-verification/pybamm-verdict.json",
+      "sha256": "sha256:783255a7fc2b540874953b928a48a4b6fdb1cc927ab0ed0bf127b72dbab9ff84"
+    }
+  ],
+  "conditions": {}
+}

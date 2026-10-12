@@ -1,0 +1,29 @@
+{
+  "schema": "carbon.challenge-factory.plan.v1",
+  "ticket": "CHALLENGE-FACTORY-PLAN-01",
+  "status": "PROPOSED_ASSUMPTION",
+  "authority_main": "430740562ecd9b24b8ffb886be96747f59b3b280",
+  "source": "docs/development/challenge_pipeline/discovery/search-completion/data.json",
+  "admitted_count": 0,
+  "dispatch_authorized": false,
+  "solver_runs": 0,
+  "spend": 0,
+  "thresholds": "HUMAN_INPUT",
+  "index": "min(learnability, surrogate_advantage, competitive_headroom)/5 * annual_gross_eur_base / active_engineering_days_base",
+  "index_kind": "CONDITIONAL_PLANNING_PRIORITY_NOT_SCIENTIFIC_SCORE_OR_ROI",
+  "incremental_annual_value_eur_floor": 0,
+  "stage_effort_shares_assumption": {"S0_S1_buyer_packet": 0.2, "S2_reference_observers": 0.4, "pilot_S3_S4_panel_law": 0.25, "S6_S10_interfaces": 0.15},
+  "exclusions": ["S5 bank and S7-S9 real Graphite execution", "accepted S10 exit", "waiting for buyer/owner/CI", "human qualification and rights", "one-time family bootstrap", "paid compute"],
+  "candidates": [
+    {"id": "D012", "name": "Solenoid pole", "family": "electromagnetics", "buyer_role": "Actuator magnetics engineer", "scores_L_A_H_assumption": [4, 3, 4], "winnability_base_assumption": 0.6, "active_engineering_days_low_base_high_assumption": [2, 5, 12], "V2_eur_source": [180, 720, 2400], "V3_decisions_year_source": [30, 480, 3000], "C2_eur_source": [18.982953, 26.368212, 46.062236], "source_keys": ["SOL1", "SOL2", "SOL3"], "priority_base": 41472, "rank": 1},
+    {"id": "D077", "name": "Seal gland", "family": "structures", "buyer_role": "Seal application engineer", "scores_L_A_H_assumption": [3, 3, 4], "winnability_base_assumption": 0.6, "active_engineering_days_low_base_high_assumption": [3, 6, 15], "V2_eur_source": [120, 450, 1440], "V3_decisions_year_source": [50, 800, 5000], "C2_eur_source": [20.2138295, 28.829965, 53.447495], "source_keys": ["SEAL1", "SEAL2"], "priority_base": 36000, "rank": 2},
+    {"id": "B008", "name": "Connector contact spring", "family": "structures", "buyer_role": "Connector mechanical design engineer", "scores_L_A_H_assumption": [4, 3, 4], "winnability_base_assumption": 0.6, "active_engineering_days_low_base_high_assumption": [4, 8, 20], "V2_eur_source": [120, 450, 1440], "V3_decisions_year_source": [50, 800, 5000], "C2_eur_source": [21.444706, 31.291718, 78.065025], "source_keys": ["ROSEN", "CALC"], "priority_base": 27000, "rank": 3},
+    {"id": "D006", "name": "Planar transformer", "family": "electromagnetics", "buyer_role": "Magnetics engineer", "scores_L_A_H_assumption": [4, 3, 3], "winnability_base_assumption": 0.6, "active_engineering_days_low_base_high_assumption": [4, 9, 20], "V2_eur_source": [180, 720, 2400], "V3_decisions_year_source": [30, 480, 3000], "C2_eur_source": [23.906459, 36.215224, 65.75626], "source_keys": ["PLAN1", "PLAN2", "PLAN3", "PLAN4"], "priority_base": 23040, "rank": 4},
+    {"id": "D076", "name": "Bolted joint", "family": "structures", "buyer_role": "Joint-design engineer", "scores_L_A_H_assumption": [3, 3, 4], "winnability_base_assumption": 0.6, "active_engineering_days_low_base_high_assumption": [3, 10, 24], "V2_eur_source": [180, 720, 2400], "V3_decisions_year_source": [30, 480, 3000], "C2_eur_source": [26.107364, 42.084304, 93.210512], "source_keys": ["BOLT1", "BOLT2", "BOLT3"], "priority_base": 20736, "rank": 5},
+    {"id": "B001", "name": "Bottle wall and base", "family": "structures", "buyer_role": "Packaging engineering lead", "scores_L_A_H_assumption": [3, 3, 4], "winnability_base_assumption": 0.6, "active_engineering_days_low_base_high_assumption": [6, 16, 35], "V2_eur_source": [120, 540, 1920], "V3_decisions_year_source": [30, 480, 3000], "C2_eur_source": [21.444706, 36.215224, 90.37379], "source_keys": ["BOTTLE", "KINETIC", "CALC"], "priority_base": 9720, "rank": 6},
+    {"id": "B002", "name": "Speaker baffle directivity", "family": "acoustics", "buyer_role": "Principal acoustics engineer", "scores_L_A_H_assumption": [4, 3, 4], "winnability_base_assumption": 0.6, "active_engineering_days_low_base_high_assumption": [6, 18, 40], "V2_eur_source": [120, 540, 1920], "V3_decisions_year_source": [30, 480, 3000], "C2_eur_source": [23.906459, 41.13873, 90.37379], "source_keys": ["SONOS", "ELMER"], "priority_base": 8640, "rank": 7},
+    {"id": "D018", "name": "Air heat sink", "family": "cfd", "buyer_role": "Electronics thermal engineer", "scores_L_A_H_assumption": [4, 2, 3], "winnability_base_assumption": 0.4, "active_engineering_days_low_base_high_assumption": [6, 14, 30], "V2_eur_source": [60, 360, 1200], "V3_decisions_year_source": [30, 480, 3000], "C2_eur_source": [29.041904, 54.083312, 95.818992], "source_keys": ["AIR1", "AIR2"], "priority_base": 4937.142857142857, "rank": 8},
+    {"id": "D072", "name": "Flexure stage", "family": "structures", "buyer_role": "Precision-motion engineer", "scores_L_A_H_assumption": [5, 1, 2], "winnability_base_assumption": 0.2, "active_engineering_days_low_base_high_assumption": [3, 8, 18], "V2_eur_source": [60, 270, 960], "V3_decisions_year_source": [30, 480, 3000], "C2_eur_source": [18.982953, 31.291718, 90.37379], "source_keys": ["CALC"], "priority_base": 3240, "rank": 9},
+    {"id": "D079", "name": "Duct fitting", "family": "cfd", "buyer_role": "HVAC engineer", "scores_L_A_H_assumption": [4, 2, 3], "winnability_base_assumption": 0.4, "active_engineering_days_low_base_high_assumption": [6, 16, 32], "V2_eur_source": [60, 270, 960], "V3_decisions_year_source": [20, 240, 1500], "C2_eur_source": [28.829965, 53.447495, 97.759049], "source_keys": ["DUCT1", "DUCT2"], "priority_base": 1620, "rank": 10}
+  ]
+}

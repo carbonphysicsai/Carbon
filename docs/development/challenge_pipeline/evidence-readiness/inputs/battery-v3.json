@@ -1,0 +1,149 @@
+{
+  "schema": "carbon.onboarding.evidence-inputs.v1",
+  "scope": "PUBLIC_DEVELOPMENT",
+  "challenge": "battery-v3",
+  "source_evidence": {
+    "1": {
+      "finding": "Battery v3 public #965 manifest bab5ae97 and #1050 TRAIN registration/plan are on main; neither is a solved-TRAIN inventory",
+      "sources": [
+        {
+          "binding": {
+            "sha256": "sha256:2aec860febd86fee6b68676d658cfda6fed8065509651b169817df5d4d9151b3",
+            "path": "docs/development/evidence/battery-feasibility-02/middle-bands/manifest.json"
+          },
+          "json_fields": {
+            "schema": "carbon.battery.middle-bands-manifest.v1",
+            "manifest_sha256": "bab5ae9702dc0a8ec3c8f26b9ddd9337c19152dc4d1f8692c3bc8d33c14f7e39"
+          }
+        },
+        {
+          "binding": {
+            "sha256": "sha256:7ebb337fd30563732f115975c80cea78b450a3485b1e42172cdce65fab8b1ffc",
+            "path": "carbon/development_comparison/campaign_entrypoints.py"
+          },
+          "text_contains": [
+            "\"battery-v3\"",
+            "sha256:2d19b261e722fe67f20bee02e115f2277a799c448b90d54d2872361b341bd940"
+          ]
+        }
+      ],
+      "missing": [
+        "Normalized physical tuples with all five current pins",
+        "Complete public COMPLETED and SCHEDULED reuse inventory with receipts"
+      ]
+    },
+    "2": {
+      "finding": "Merged producer registration selects sha256:2d19b261e722fe67f20bee02e115f2277a799c448b90d54d2872361b341bd940",
+      "sources": [
+        {
+          "binding": {
+            "sha256": "sha256:7ebb337fd30563732f115975c80cea78b450a3485b1e42172cdce65fab8b1ffc",
+            "path": "carbon/development_comparison/campaign_entrypoints.py"
+          },
+          "text_contains": [
+            "\"battery-v3\"",
+            "sha256:2d19b261e722fe67f20bee02e115f2277a799c448b90d54d2872361b341bd940"
+          ]
+        }
+      ],
+      "missing": [
+        "Operator-supplied current presence observation bound to package/image; no host or Docker query performed"
+      ]
+    },
+    "3": {
+      "finding": "OWNER-CODE-VERIFICATION-ACCEPT-01 accepts the cited pinned-image MMS discretisation results only; historical provisional verdicts are not rewritten",
+      "sources": [
+        {
+          "binding": {
+            "sha256": "sha256:783255a7fc2b540874953b928a48a4b6fdb1cc927ab0ed0bf127b72dbab9ff84",
+            "path": "docs/development/evidence/battery-feasibility-02/code-verification/pybamm-verdict.json"
+          },
+          "json_fields": {
+            "schema": "carbon.code-verification.result.v1",
+            "family": "battery-v3",
+            "image_digest": "sha256:2d19b261e722fe67f20bee02e115f2277a799c448b90d54d2872361b341bd940"
+          }
+        },
+        {
+          "binding": {
+            "sha256": "sha256:bd43327c2fbdbc14bf4943529875e2d6b0f337d49a40c8c3938109f032c0d538",
+            "path": "docs/development/evidence/battery-feasibility-02/code-verification/pybamm.heat.json"
+          },
+          "text_contains": [
+            "sha256:2d19b261e722fe67f20bee02e115f2277a799c448b90d54d2872361b341bd940"
+          ]
+        },
+        {
+          "binding": {
+            "sha256": "sha256:64b32bf2225465c3b35a60dd2de41023bcce70279e3c0fff50339d6c0ba7fa25",
+            "path": ".agent/decisions/2026-10-11-OWNER-CODE-VERIFICATION-ACCEPT-01.md"
+          },
+          "text_contains": [
+            "OWNER-CODE-VERIFICATION-ACCEPT-01",
+            "sha256:2d19b261e722fe67f20bee02e115f2277a799c448b90d54d2872361b341bd940"
+          ]
+        }
+      ],
+      "missing": [
+        "Image- and case-family-bound convergence and conservation measurements with accepted criteria",
+        "Full normalized adequacy binding; MMS does not establish physical validity or Tier-2 agreement"
+      ]
+    },
+    "4": {
+      "finding": "Merged family kit and common domain_gaps hook exist; software presence is not actual panel/TRAIN support",
+      "sources": [
+        {
+          "binding": {
+            "sha256": "sha256:8b8c942ebe57b1ed63f92e6dcd056222b5ed913ddc24924e275951632af2a7b4",
+            "path": "carbon/development_comparison/battery_v3_kit.py"
+          },
+          "text_contains": [
+            "FAMILY = \"battery-v3\"",
+            "OBSERVABLES"
+          ]
+        },
+        {
+          "binding": {
+            "sha256": "sha256:ca67e859b4b68515c14c26275cef5f61ed609d27341114f065ae30bd2d920d01",
+            "path": "carbon/development_comparison/carbon_arm.py"
+          },
+          "text_contains": [
+            "def domain_gaps"
+          ]
+        }
+      ],
+      "missing": [
+        "Exact kit-domain export against every panel action, condition and observable; no support inferred from panel extrema"
+      ]
+    },
+    "5": {
+      "finding": "Public TRAIN generation is registered; no solved TRAIN or complete physical-disjointness proof inferred",
+      "sources": [
+        {
+          "binding": {
+            "sha256": "sha256:d9a95d5421989b529bbe9af1d7ba78648d64dacafd9d4c6f0090d3a8ab6c4019",
+            "path": "docs/development/evidence/battery-feasibility-02/v3-train-registry.json"
+          },
+          "json_fields": {
+            "schema": "carbon.battery.v3-train.registry.v1",
+            "size": 4000,
+            "plan_sha256": "b42b41f149e317832c5b41d0c533b046ad16962f47416c553c63be8b7bcf60df"
+          }
+        },
+        {
+          "binding": {
+            "sha256": "sha256:b42b41f149e317832c5b41d0c533b046ad16962f47416c553c63be8b7bcf60df",
+            "path": "docs/development/evidence/battery-feasibility-02/plans/v3-train-plan.json"
+          },
+          "json_fields": {
+            "batch": "battery-v3-train-v1"
+          }
+        }
+      ],
+      "missing": [
+        "Public normalized TRAIN inventory and registration digest",
+        "Recomputed physical overlap against the complete panel, ignoring rung differences"
+      ]
+    }
+  }
+}

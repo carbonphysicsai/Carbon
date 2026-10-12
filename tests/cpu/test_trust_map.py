@@ -54,11 +54,11 @@ def fixture():
             "evidence": "synthetic public fixture only",
             "source_sha256": "a" * 64,
         },
-        "reference_image": "sha256:" + "b" * 64,
+        "reference_image": "sha256:2d19b261e722fe67f20bee02e115f2277a799c448b90d54d2872361b341bd940",
         "reference_verification": {
-            "state": "PASS",
-            "accepted_development_pass": True,
-            "image_digest": "sha256:" + "b" * 64,
+            "family": "battery-v3",
+            "criteria_digest": "sha256:2182e04bce3612f898e00184ce1e491cca8a54334192e35c4f2cd6fc1d1870c5",
+            "image_digest": "sha256:2d19b261e722fe67f20bee02e115f2277a799c448b90d54d2872361b341bd940",
             "evidence": "synthetic fixture; not real reference acceptance",
         },
         "cases": cases,
@@ -97,6 +97,31 @@ def test_quantiles_and_released_cases():
     error = build_maps(panel, spec)["a"]["cells"][0]["error"]["temperature"]
     assert error["median"] == 2.5
     assert error["p90"] == pytest.approx(3.7)
+
+
+def test_missing_acceptance_link_refuses_maps(tmp_path, monkeypatch):
+    from functools import partial
+
+    from carbon.trust_map.acceptance import load_acceptance
+
+    monkeypatch.setattr(
+        "carbon.trust_map.core.load_acceptance", partial(load_acceptance, root=tmp_path)
+    )
+    panel, spec = fixture()
+    with pytest.raises(MapRefused, match="acceptance_link_unavailable"):
+        build_maps(panel, spec)
+
+
+def test_wrong_criteria_and_repinned_image_refuse_maps():
+    panel, spec = fixture()
+    panel["reference_verification"]["criteria_digest"] = "sha256:" + "c" * 64
+    with pytest.raises(MapRefused, match="acceptance_criteria_mismatch"):
+        build_maps(panel, spec)
+    panel, spec = fixture()
+    panel["reference_image"] = "sha256:" + "c" * 64
+    panel["reference_verification"]["image_digest"] = panel["reference_image"]
+    with pytest.raises(MapRefused, match="acceptance_image_mismatch"):
+        build_maps(panel, spec)
 
 
 def test_battery_adapter_and_cli_emit_json_and_svg(tmp_path, capsys):

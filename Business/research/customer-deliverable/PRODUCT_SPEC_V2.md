@@ -396,6 +396,21 @@ isolated fixture policies and cannot issue production trust or Q2 qualification.
 PB-ESC/ADV/ART/LAT must assess erroneous TRUST, refusal/escalation behavior,
 identity tampering, missing evidence, near-boundary cases and runtime parity.
 
+**PRD-02 development implementation (prospective, 2026-10-12).** The
+[development Guard](../../../carbon/product/envelope_guard/README.md) wraps
+native trust-map aggregates and validity declarations, with fixed local probes,
+explicit policy/calibration records and typed advisory receipts. It exposes
+DEVELOPMENT scope only; the public battery-interface demonstration uses
+synthetic predictions and synthetic policy/acceptance/validity records. Main's
+actual battery Undeclared validity remains a hold. Record/digest bindings are
+host assertions, not authenticated scientific acceptance or qualified runtime
+parity. Supported initial primitives are bound, initial_condition and
+prefix_invariance; other adopted primitives require an explicit future adapter.
+The [toy timing record](../../../docs/development/product/envelope_guard/latency-fixture.json)
+binds the measured implementation bytes. Actual-model PB-LAT acceptance and
+the production latency target remain HUMAN_INPUT, as do product qualification
+and the composition evidence needed for Assistant-selected picks.
+
 ## 11. CMP-09 — Decision Assistant (new workflow design)
 
 Proposed PRD-03 inputs: exact question law/action grammar, buyer objectives and

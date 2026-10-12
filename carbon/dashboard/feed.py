@@ -511,6 +511,13 @@ def _ladder(raw, digits, trust):
     grain = raw.get("grain_pct")
     if grain is not None and _number(grain, "ladder_invalid") <= 0:
         raise FeedRefused("ladder_invalid")
+    geometric = "display_grid" in raw
+    if geometric and (
+        raw["display_grid"] != "geometric"
+        or raw.get("sense") not in ("lower_is_better", "higher_is_better", None)
+        or (grain is not None and raw.get("sense") is None)
+    ):
+        raise FeedRefused("ladder_invalid")
     rows, seen = [], set()
     for row in raw["coldkeys"]:
         if type(row) is not dict:
@@ -520,7 +527,26 @@ def _ladder(raw, digits, trust):
         if coldkey in seen or status not in LADDER_STATES:
             raise FeedRefused("ladder_invalid")
         seen.add(coldkey)
-        score = _rounded(row.get("displayed_score"), digits, "ladder")
+        if geometric:
+            score = row.get("displayed_score")
+            if score is not None:
+                score = _number(score, "ladder_invalid")
+                if grain is None:
+                    raise FeedRefused("ladder_grain_unposted")
+                if score <= 0:
+                    raise FeedRefused("ladder_invalid")
+                base = 1 + grain / 100
+                try:
+                    exponent = round(math.log(score) / math.log(base))
+                    expected = base**exponent
+                except (ValueError, OverflowError, ZeroDivisionError):
+                    raise FeedRefused("ladder_invalid") from None
+                # Only binary64 power rounding is allowed across Python/JS.
+                # This is a representation check, not a score tolerance.
+                if not math.isclose(score, expected, rel_tol=8 * 2**-52, abs_tol=0):
+                    raise FeedRefused("ladder_unrounded")
+        else:
+            score = _rounded(row.get("displayed_score"), digits, "ladder")
         if status == "SEALED_UNTIL_GRAIN" and score is not None:
             raise FeedRefused("ladder_sealed_value")
         if status != "SEALED_UNTIL_GRAIN" and score is None:
@@ -552,7 +578,10 @@ def _ladder(raw, digits, trust):
     rows.sort(
         key=lambda r: (_UNRANKED if r["rank"] is None else r["rank"], r["coldkey"])
     )
-    return {"grain_pct": grain, "coldkeys": rows}
+    result = {"grain_pct": grain, "coldkeys": rows}
+    if geometric:
+        result.update(display_grid="geometric", sense=raw.get("sense"))
+    return result
 
 
 SHOWCASE_SCHEMA = "carbon.validator.showcase-panel.v1"
