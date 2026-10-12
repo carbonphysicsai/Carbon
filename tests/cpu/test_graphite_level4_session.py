@@ -101,7 +101,15 @@ def test_a_level4_constructor_stages_and_proposes_a_graph(tmp_path, lowered):
     run = tmp_path / "graphite" / "runs" / p3f.run_id(1)
     events = (run / "events.jsonl").read_text()
     assert '"status":"LEVEL4_STAGED"' in events
-    assert '"reason_code":"level4_submission_required"' in events
+    records = [
+        json.loads(path.read_bytes())
+        for path in (run / "experiment" / "proposals").glob("*/result.json")
+    ]
+    refused = [r for r in records if r["status"] == "REFUSED_UNREBUILDABLE"]
+    assert len(refused) == 1
+    assert refused[0]["reason_code"] == "level4_submission_required"
+    assert refused[0]["scored"] is False
+    assert len(pods.launched) == 2  # Only the baseline and staged graph dispatch.
     delivery = json.loads((run / "delivery.json").read_bytes())
     # The bundle carries the envelope, and rebuilds from itself alone.
     assert delivery["clean_rebuild"]["status"] == "REBUILT", delivery["clean_rebuild"]
