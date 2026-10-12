@@ -9,7 +9,7 @@
    "level": 1,
    "chain_log": "lvl-chain-D.log",
    "chain_label": "L1 lane D",
-   "public_improvement_file": "graphite-913bf1889a6db2d1-D-L1-public-improvement.json"
+   "public_improvement_file": "graphite-913bf1889a6db2d1-D-L1-registered-public-improvement.json"
   },
   {
    "file": "lvl-1-D-r4-s1.out",
@@ -30,59 +30,68 @@
   {
    "file": "lvl-2-E.out",
    "role": "constructor",
-   "level": 2
+   "level": 2,
+   "public_improvement_file": "graphite-913bf1889a6db2d1-E-L2-registered-public-improvement.json"
   },
   {
    "file": "lvl-2-E-s2.out",
    "role": "constructor",
    "level": 2,
    "chain_log": "lvl-chain-E-s2.log",
-   "chain_label": "L2 lane E session 2"
+   "chain_label": "L2 lane E session 2",
+   "public_improvement_file": "graphite-d90a8ccfd603cf6a-E-L2-registered-public-improvement.json"
   },
   {
    "file": "lvl-2-E-s3.out",
    "role": "constructor",
    "level": 2,
    "chain_log": "lvl-chain-E-s3.log",
-   "chain_label": "L2 lane E session 3"
+   "chain_label": "L2 lane E session 3",
+   "public_improvement_file": "graphite-18fc7b1c1eeea8aa-E-L2-registered-public-improvement.json"
   },
   {
    "file": "lvl-3-F.out",
    "role": "constructor",
-   "level": 3
+   "level": 3,
+   "public_improvement_file": "graphite-913bf1889a6db2d1-F-L3-registered-public-improvement.json"
   },
   {
    "file": "lvl-3-F-s2.out",
    "role": "constructor",
    "level": 3,
    "chain_log": "lvl-chain-F-s2.log",
-   "chain_label": "L3 lane F session 2"
+   "chain_label": "L3 lane F session 2",
+   "public_improvement_file": "graphite-d90a8ccfd603cf6a-F-L3-registered-public-improvement.json"
   },
   {
    "file": "lvl-3-F-s3.out",
    "role": "constructor",
    "level": 3,
    "chain_log": "lvl-chain-F-s3.log",
-   "chain_label": "L3 lane F session 3"
+   "chain_label": "L3 lane F session 3",
+   "public_improvement_file": "graphite-18fc7b1c1eeea8aa-F-L3-registered-public-improvement.json"
   },
   {
    "file": "lvl-4-G.out",
    "role": "constructor",
-   "level": 4
+   "level": 4,
+   "public_improvement_file": "graphite-913bf1889a6db2d1-G-L4-registered-public-improvement.json"
   },
   {
    "file": "lvl-4-G-s2.out",
    "role": "constructor",
    "level": 4,
    "chain_log": "lvl-chain-G-s2.log",
-   "chain_label": "L4 lane G session 2"
+   "chain_label": "L4 lane G session 2",
+   "public_improvement_file": "graphite-d90a8ccfd603cf6a-G-L4-registered-public-improvement.json"
   },
   {
    "file": "lvl-4-G-s3.out",
    "role": "constructor",
    "level": 4,
    "chain_log": "lvl-chain-G-s3.log",
-   "chain_label": "L4 lane G session 3"
+   "chain_label": "L4 lane G session 3",
+   "public_improvement_file": "graphite-18fc7b1c1eeea8aa-G-L4-registered-public-improvement.json"
   }
  ],
  "excluded": [],

@@ -286,6 +286,27 @@ PANEL_MEMBER_NOTE = (
 )
 
 
+def _control_noise(records):
+    """Reasons a decision-loss column must not be read as better decisions, from the always-abstain control (#1209):
+    a counting model whose own loss is above the control's did worse than never deciding.
+    """
+    worse = []
+    for rec in records:
+        control = ((rec.get("controls") or {}).get("always_abstain") or {}).get(
+            "decision_loss"
+        )
+        mine = (rec.get("model") or {}).get("decision_loss")
+        if control is not None and mine is not None and mine > control:
+            worse.append(rec.get("run_id"))
+    if not worse:
+        return []
+    reason = (
+        f"{len(worse)} of {len(records)} runs score a decision loss above the always-abstain control's: "
+        "never deciding scores better than those models"
+    )
+    return [reason]
+
+
 def public_dev_block(records, level=None):
     """`{metric: {value (median), best, ci95, n, small_n, ...}}` over the runs that hold a record. A
     decision-loss column whose masks differ or whose runs disagree in sign is MEASURED_BUT_NOISY: its
@@ -357,7 +378,15 @@ def public_dev_block(records, level=None):
             }
             continue
         values = [r for r, _, _ in pairs]
-        reasons = _decision_noise(pairs) if name == "decision_loss" else []
+        reasons = (
+            [
+                *_decision_noise(pairs),
+                *_control_noise(counting),
+                *(["one run only: no spread to read"] if len(pairs) < 2 else []),
+            ]
+            if name == "decision_loss"
+            else []
+        )
         out[name] = {
             **metric(
                 NOISY if reasons else round(statistics.median(values), 6),

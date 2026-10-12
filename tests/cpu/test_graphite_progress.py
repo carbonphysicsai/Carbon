@@ -919,3 +919,37 @@ def test_the_superseded_file_must_still_be_beside_the_record(tmp_path, name):
     record = registered(supersedes={"file": name, "sha256": "sha256:" + "0" * 64})
     with pytest.raises(ProgressError, match="supersedes_digest_differs"):
         cli.load_runs(_manifest_with(tmp_path, record), tmp_path)
+
+
+def _with_losses(record, baseline, model, control):
+    record["baseline"] = {**record["baseline"], "decision_loss": baseline}
+    record["model"] = {**record["model"], "decision_loss": model}
+    record["controls"] = {"always_abstain": {"decision_loss": control, "rank": 9}}
+    return record
+
+
+def test_a_decision_loss_above_the_always_abstain_controls_is_not_better_decisions():
+    records = [
+        _with_losses(registered(run="r1"), 1.45, 1.43, 0.857),
+        _with_losses(registered(run="r2"), 1.45, 1.44, 0.857),
+    ]
+    block = improvement.public_dev_block(records)["decision_loss"]
+    assert block["value"] == improvement.NOISY
+    assert "always-abstain control" in block["reading"]
+    assert "NOT an improvement claim" in block["reading"]
+    assert block["always_abstain_control"][0]["decision_loss"] == 0.857
+
+
+def test_a_decision_loss_below_the_control_from_two_runs_is_a_number():
+    records = [
+        _with_losses(registered(run="r1"), 0.30, 0.20, 0.857),
+        _with_losses(registered(run="r2"), 0.30, 0.25, 0.857),
+    ]
+    block = improvement.public_dev_block(records)["decision_loss"]
+    assert block["value"] != improvement.NOISY and block["n"] == 2
+
+
+def test_one_decision_loss_run_has_no_spread_to_read():
+    record = _with_losses(registered(), 0.30, 0.20, 0.857)
+    block = improvement.public_dev_block([record])["decision_loss"]
+    assert block["value"] == improvement.NOISY and "one run only" in block["reading"]
