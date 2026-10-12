@@ -1,0 +1,44 @@
+{
+  "schema": "carbon.onboarding.packet-law-bindings.v1",
+  "challenge": "motor",
+  "law": {
+    "path": "docs/development/challenge_pipeline/question-laws/motor-round2.json",
+    "schema": "carbon.motor.question-law-proposal.v1",
+    "sha256": "bdae930ac8bf999bfd312c5488db8f8f26d42b2bd8d6c471ec01f3de0933b56a"
+  },
+  "checks": [
+    {
+      "id": "holding-floor",
+      "facet": "hard_limits",
+      "packet_value": 6,
+      "law_pointer": "/requirements/0/anchor",
+      "packet_source": {
+        "path": "docs/development/challenge_pipeline/round1/motor-precision-joint-v2.md",
+        "sha256": "eb2e8fef4a93df2719dc3e97c0daa68c403acb70a8f3a7c150a690327e9a6bb1",
+        "excerpt": "Holding mean ≥6 N·m"
+      }
+    },
+    {
+      "id": "peak-floor",
+      "facet": "hard_limits",
+      "packet_value": 12,
+      "law_pointer": "/requirements/1/anchor",
+      "packet_source": {
+        "path": "docs/development/challenge_pipeline/round1/motor-precision-joint-v2.md",
+        "sha256": "eb2e8fef4a93df2719dc3e97c0daa68c403acb70a8f3a7c150a690327e9a6bb1",
+        "excerpt": "**12 N·m for a 2-s acceleration"
+      }
+    },
+    {
+      "id": "cogging",
+      "facet": "hard_limits",
+      "packet_value": 0.05,
+      "law_pointer": "/requirements/4/anchor",
+      "packet_source": {
+        "path": "docs/development/challenge_pipeline/round1/motor-precision-joint-v2.md",
+        "sha256": "eb2e8fef4a93df2719dc3e97c0daa68c403acb70a8f3a7c150a690327e9a6bb1",
+        "excerpt": "Zero-current cogging peak-to-peak ≤0.05 N·m"
+      }
+    }
+  ]
+}

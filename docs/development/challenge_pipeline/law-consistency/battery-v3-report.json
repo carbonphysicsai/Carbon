@@ -1,0 +1,180 @@
+{
+  "schema": "carbon.onboarding.law-consistency-report.v1",
+  "challenge": "battery-v3",
+  "law_source": {
+    "path": "docs/development/challenge_pipeline/question-laws/battery-v3-round2.json",
+    "schema": "carbon.battery-ambient-question-law.proposal.round2.v1",
+    "sha256": "9c98c03ffdd7ebce9817929a7a057187347f68646dc380d70cfc8df13ef536a6",
+    "observed_sha256": "9c98c03ffdd7ebce9817929a7a057187347f68646dc380d70cfc8df13ef536a6",
+    "state": "PIN_MATCH"
+  },
+  "checks": [
+    {
+      "id": "charging-limit",
+      "facet": "hard_limits",
+      "packet_value": 45,
+      "law_pointer": "/hard_anchor_limits/charging_temperature_max_c",
+      "packet_source": {
+        "path": "docs/development/challenge_pipeline/round1/battery-ambient-map-v3.md",
+        "sha256": "a6c1fef9469b47f933c40d0cddf2441270db771412f1b4dadf60c7ba5fa637a4",
+        "excerpt": "Hard\ncharging T<=45 C"
+      },
+      "source_state": "VERIFIED_EXCERPT_BYTES_NOT_ENTAILMENT",
+      "law_present": true,
+      "law_actual": 45,
+      "state": "CONSISTENT_PROJECTION",
+      "diff": []
+    },
+    {
+      "id": "plating-limit",
+      "facet": "hard_limits",
+      "packet_value": 0,
+      "law_pointer": "/hard_anchor_limits/every_charge_plating_min_v",
+      "packet_source": {
+        "path": "docs/development/challenge_pipeline/round1/battery-ambient-map-v3.md",
+        "sha256": "a6c1fef9469b47f933c40d0cddf2441270db771412f1b4dadf60c7ba5fa637a4",
+        "excerpt": "every-charge plating overpotential>=0 V"
+      },
+      "source_state": "VERIFIED_EXCERPT_BYTES_NOT_ENTAILMENT",
+      "law_present": true,
+      "law_actual": 0,
+      "state": "CONSISTENT_PROJECTION",
+      "diff": []
+    },
+    {
+      "id": "voltage-limit",
+      "facet": "hard_limits",
+      "packet_value": 4.2,
+      "law_pointer": "/hard_anchor_limits/programme_voltage_max_v",
+      "packet_source": {
+        "path": "docs/development/challenge_pipeline/round1/battery-ambient-map-v3.md",
+        "sha256": "a6c1fef9469b47f933c40d0cddf2441270db771412f1b4dadf60c7ba5fa637a4",
+        "excerpt": "programme\nvoltage<=4.2 V"
+      },
+      "source_state": "VERIFIED_EXCERPT_BYTES_NOT_ENTAILMENT",
+      "law_present": true,
+      "law_actual": 4.2,
+      "state": "CONSISTENT_PROJECTION",
+      "diff": []
+    },
+    {
+      "id": "retention",
+      "facet": "hard_limits",
+      "packet_value": 0.99,
+      "law_pointer": "/hard_anchor_limits/q30_over_q1_min",
+      "packet_source": {
+        "path": "docs/development/challenge_pipeline/round1/battery-ambient-map-v3.md",
+        "sha256": "a6c1fef9469b47f933c40d0cddf2441270db771412f1b4dadf60c7ba5fa637a4",
+        "excerpt": "Q30/Q1>=0.99"
+      },
+      "source_state": "VERIFIED_EXCERPT_BYTES_NOT_ENTAILMENT",
+      "law_present": true,
+      "law_actual": 0.99,
+      "state": "CONSISTENT_PROJECTION",
+      "diff": []
+    },
+    {
+      "id": "time-not-cap",
+      "facet": "objective",
+      "packet_value": null,
+      "law_pointer": "/hard_anchor_limits/hard_session_time_cap",
+      "packet_source": {
+        "path": "docs/development/challenge_pipeline/round1/battery-ambient-map-v3.md",
+        "sha256": "a6c1fef9469b47f933c40d0cddf2441270db771412f1b4dadf60c7ba5fa637a4",
+        "excerpt": "There is no\n30-minute cutoff."
+      },
+      "source_state": "VERIFIED_EXCERPT_BYTES_NOT_ENTAILMENT",
+      "law_present": true,
+      "law_actual": null,
+      "state": "CONSISTENT_PROJECTION",
+      "diff": []
+    },
+    {
+      "id": "discharge-scope",
+      "facet": "observer_scope",
+      "packet_value": "DIAGNOSTIC",
+      "law_pointer": "/hard_anchor_limits/discharge_thermal_role",
+      "packet_source": {
+        "path": "docs/development/challenge_pipeline/round1/battery-ambient-map-v3.md",
+        "sha256": "a6c1fef9469b47f933c40d0cddf2441270db771412f1b4dadf60c7ba5fa637a4",
+        "excerpt": "Discharge and rest\ntemperatures are diagnostics."
+      },
+      "source_state": "VERIFIED_EXCERPT_BYTES_NOT_ENTAILMENT",
+      "law_present": true,
+      "law_actual": "DIAGNOSTIC",
+      "state": "CONSISTENT_PROJECTION",
+      "diff": []
+    },
+    {
+      "id": "population-unapproved",
+      "facet": "P",
+      "packet_value": null,
+      "law_pointer": "/registered_P",
+      "packet_source": {
+        "path": "docs/development/challenge_pipeline/round1/battery-ambient-map-v3.md",
+        "sha256": "a6c1fef9469b47f933c40d0cddf2441270db771412f1b4dadf60c7ba5fa637a4",
+        "excerpt": "remain HUMAN_INPUT, not measured fleet frequencies."
+      },
+      "source_state": "VERIFIED_EXCERPT_BYTES_NOT_ENTAILMENT",
+      "law_present": true,
+      "law_actual": null,
+      "state": "CONSISTENT_PROJECTION",
+      "diff": []
+    },
+    {
+      "id": "diagnostic-no-redraw",
+      "facet": "Q",
+      "packet_value": false,
+      "law_pointer": "/Q_recommendation/redraw_none_feasible",
+      "packet_source": {
+        "path": "docs/development/challenge_pipeline/round1/battery-ambient-map-v3.md",
+        "sha256": "a6c1fef9469b47f933c40d0cddf2441270db771412f1b4dadf60c7ba5fa637a4",
+        "excerpt": "NONE_FEASIBLE and cannot be replaced with a favorable new draw."
+      },
+      "source_state": "VERIFIED_EXCERPT_BYTES_NOT_ENTAILMENT",
+      "law_present": true,
+      "law_actual": false,
+      "state": "CONSISTENT_PROJECTION",
+      "diff": []
+    },
+    {
+      "id": "band-mix",
+      "facet": "w",
+      "packet_value": "OWNER_SELECTED_BUYER_MIX",
+      "law_pointer": "/w/band_value",
+      "packet_source": {
+        "path": "docs/development/challenge_pipeline/round1/battery-ambient-map-v3.md",
+        "sha256": "a6c1fef9469b47f933c40d0cddf2441270db771412f1b4dadf60c7ba5fa637a4",
+        "excerpt": "Owner\nselects `w_band=buyer_mix`"
+      },
+      "source_state": "VERIFIED_EXCERPT_BYTES_NOT_ENTAILMENT",
+      "law_present": true,
+      "law_actual": "OWNER_SELECTED_BUYER_MIX",
+      "state": "CONSISTENT_PROJECTION",
+      "diff": []
+    },
+    {
+      "id": "none-feasible-no-redraw",
+      "facet": "NONE_FEASIBLE",
+      "packet_value": false,
+      "law_pointer": "/question/none_feasible_policy/redraw",
+      "packet_source": {
+        "path": "docs/development/challenge_pipeline/round1/battery-ambient-map-v3.md",
+        "sha256": "a6c1fef9469b47f933c40d0cddf2441270db771412f1b4dadf60c7ba5fa637a4",
+        "excerpt": "NONE_FEASIBLE and cannot be replaced with a favorable new draw."
+      },
+      "source_state": "VERIFIED_EXCERPT_BYTES_NOT_ENTAILMENT",
+      "law_present": true,
+      "law_actual": false,
+      "state": "CONSISTENT_PROJECTION",
+      "diff": []
+    }
+  ],
+  "unbound_facets": [
+    "boundary"
+  ],
+  "checks_examined": 10,
+  "checklist_clear": false,
+  "authority_granted": false,
+  "basis": "Source bytes and reviewed typed packet projections only, not automatic NLP entailment or owner/science approval. Missing facets remain open; explicit null is not a missing JSON field. No packet/law input is changed."
+}
