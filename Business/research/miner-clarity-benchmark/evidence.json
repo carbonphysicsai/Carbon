@@ -1,0 +1,275 @@
+{
+  "ticket": "MINER-CLARITY-BENCHMARK-01",
+  "version": 1,
+  "status": "RESEARCH_PROPOSAL_ONLY",
+  "authority_snapshot": "ca71b8ecf500250f57c9dfd731950e1ff5e1f731",
+  "reviewed_local_date": "2026-10-11",
+  "input": {
+    "path": "codex-queue/inputs/championship/CHAMPIONSHIP_MINER_SUMMARY_DRAFT.md",
+    "sha256": "d66919079d51c8124eb92f2558ec685900af2f60fb094106f34ce0612459552a",
+    "read_only": true,
+    "commit_input": false,
+    "kind": "PUBLIC_OWNER_SUPPLIED_DRAFT"
+  },
+  "selection": "Visible public implementations and different miner jobs; not an audited success rank or profitability comparison.",
+  "source_snapshots": [
+    {
+      "repository": "chutesai/chutes-miner",
+      "path": "README.md",
+      "commit": "44c6603ced87c5108359a30fa1e1e6c12f864557",
+      "url": "https://github.com/chutesai/chutes-miner/blob/44c6603ced87c5108359a30fa1e1e6c12f864557/README.md"
+    },
+    {
+      "repository": "gradients-ai/G.O.D",
+      "path": "docs/miner.md",
+      "commit": "de5ea9cd90bfff32d59a8403cb62433a8ce46bab",
+      "url": "https://github.com/gradients-ai/G.O.D/blob/de5ea9cd90bfff32d59a8403cb62433a8ce46bab/docs/miner.md"
+    },
+    {
+      "repository": "one-covenant/crusades",
+      "path": "README.md",
+      "commit": "5b9a0c25a705afcd70bfbf135cd79095ba7bebe2",
+      "url": "https://github.com/one-covenant/crusades/blob/5b9a0c25a705afcd70bfbf135cd79095ba7bebe2/README.md"
+    },
+    {
+      "repository": "unarbos/distil",
+      "path": "docs/MINER_FAQ.md",
+      "commit": "88751532bea283d812df98c0b8e304465344eed0",
+      "url": "https://github.com/unarbos/distil/blob/88751532bea283d812df98c0b8e304465344eed0/docs/MINER_FAQ.md"
+    },
+    {
+      "repository": "unarbos/distil",
+      "path": "README.md",
+      "commit": "88751532bea283d812df98c0b8e304465344eed0",
+      "url": "https://github.com/unarbos/distil/blob/88751532bea283d812df98c0b8e304465344eed0/README.md"
+    },
+    {
+      "repository": "unarbos/distil",
+      "path": "frontend/src/lib/subnet-config.json",
+      "commit": "88751532bea283d812df98c0b8e304465344eed0",
+      "url": "https://github.com/unarbos/distil/blob/88751532bea283d812df98c0b8e304465344eed0/frontend/src/lib/subnet-config.json"
+    },
+    {
+      "repository": "AffineFoundation/affine",
+      "path": "docs/MINER_QUICKSTART.md",
+      "commit": "d59a6bde8bc88c975b3b2523732b2d2af9a857a0",
+      "url": "https://github.com/AffineFoundation/affine/blob/d59a6bde8bc88c975b3b2523732b2d2af9a857a0/docs/MINER_QUICKSTART.md"
+    },
+    {
+      "repository": "one-covenant/templar",
+      "path": "README.md",
+      "commit": "0fefc2ad763cd4cfda080e58267fe562455f3b45",
+      "url": "https://github.com/one-covenant/templar/blob/0fefc2ad763cd4cfda080e58267fe562455f3b45/README.md"
+    },
+    {
+      "repository": "one-covenant/templar",
+      "path": "docs/miner.md",
+      "commit": "0fefc2ad763cd4cfda080e58267fe562455f3b45",
+      "url": "https://github.com/one-covenant/templar/blob/0fefc2ad763cd4cfda080e58267fe562455f3b45/docs/miner.md"
+    }
+  ],
+  "owner_sources": [
+    "https://github.com/carbonphysicsai/Carbon/blob/ca71b8ecf500250f57c9dfd731950e1ff5e1f731/.agent/decisions/2026-10-11-OWNER-BATTERY-CHAMPIONSHIP-01.md",
+    "https://github.com/carbonphysicsai/Carbon/blob/ca71b8ecf500250f57c9dfd731950e1ff5e1f731/.agent/decisions/2026-10-11-OWNER-BATTERY-CHAMPIONSHIP-02.md"
+  ],
+  "quantities": [
+    {
+      "id": "contenders",
+      "status": "OWNER_DESIGN",
+      "unit": "count",
+      "low": 10,
+      "base": 10,
+      "high": 10,
+      "source": "C02"
+    },
+    {
+      "id": "batch_cases",
+      "status": "OWNER_DESIGN",
+      "unit": "cases",
+      "low": 4000,
+      "base": 4000,
+      "high": 4000,
+      "source": "C02"
+    },
+    {
+      "id": "posted_margin",
+      "status": "OWNER_DESIGN",
+      "unit": "percent",
+      "low": 2.25,
+      "base": 2.25,
+      "high": 2.25,
+      "source": "C02"
+    },
+    {
+      "id": "round_alpha",
+      "status": "OWNER_DESIGN",
+      "unit": "percent",
+      "low": 1,
+      "base": 1,
+      "high": 1,
+      "source": "C03"
+    },
+    {
+      "id": "screening_publication_lag",
+      "status": "DRAFT_SOURCE",
+      "unit": "approximate hours",
+      "low": 18,
+      "base": 18,
+      "high": 18,
+      "source": "C01"
+    },
+    {
+      "id": "chutes_reward_window",
+      "status": "SOURCED_MAINTAINER",
+      "unit": "days",
+      "low": 7,
+      "base": 7,
+      "high": 7,
+      "source": "S01"
+    },
+    {
+      "id": "gradients_entry_lead",
+      "status": "SOURCED_MAINTAINER",
+      "unit": "hours",
+      "low": 1,
+      "base": null,
+      "high": null,
+      "source": "S02"
+    },
+    {
+      "id": "example_low_se",
+      "status": "ASSUMPTION_EXAMPLE",
+      "unit": "percent",
+      "low": 0.5,
+      "base": 0.5,
+      "high": 0.5,
+      "source": "Research example"
+    },
+    {
+      "id": "example_high_se",
+      "status": "ASSUMPTION_EXAMPLE",
+      "unit": "percent",
+      "low": 1,
+      "base": 1,
+      "high": 1,
+      "source": "Research example"
+    },
+    {
+      "id": "example_multiplier",
+      "status": "ASSUMPTION_EXAMPLE",
+      "unit": "multiplier",
+      "low": 3.09,
+      "base": 3.09,
+      "high": 3.09,
+      "source": "Large-n illustrative multiplier, not deployed constant"
+    },
+    {
+      "id": "example_low_noise",
+      "status": "DERIVED_ASSUMPTION",
+      "unit": "percent",
+      "low": 1.545,
+      "base": 1.545,
+      "high": 1.545,
+      "source": "0.5 * 3.09"
+    },
+    {
+      "id": "example_high_noise",
+      "status": "DERIVED_ASSUMPTION",
+      "unit": "percent",
+      "low": 3.09,
+      "base": 3.09,
+      "high": 3.09,
+      "source": "1.0 * 3.09"
+    },
+    {
+      "id": "weekly_conditional_bound",
+      "status": "DERIVED_CONDITIONAL",
+      "unit": "percent",
+      "low": 6.793465209301008,
+      "base": 6.793465209301008,
+      "high": 6.793465209301008,
+      "source": "C03: 1 - 0.99^7"
+    },
+    {
+      "id": "monthly_conditional_bound",
+      "status": "DERIVED_CONDITIONAL",
+      "unit": "percent",
+      "low": 26.02996266117198,
+      "base": 26.02996266117198,
+      "high": 26.02996266117198,
+      "source": "C03: 1 - 0.99^30"
+    },
+    {
+      "id": "rule_comprehension_target",
+      "status": "ASSUMPTION_PROPOSAL",
+      "unit": "minutes",
+      "low": 2,
+      "base": 3,
+      "high": 5
+    },
+    {
+      "id": "configured_host_preflight_target",
+      "status": "ASSUMPTION_PROPOSAL",
+      "unit": "minutes",
+      "low": 15,
+      "base": 30,
+      "high": 60
+    }
+  ],
+  "statistical_explanation": {
+    "guard": "mean paired draw-unit improvement > t(1 - alpha/K; B-1) * sd(draw-unit means)/sqrt(B)",
+    "duplication": "Collapse hidden duplicate pairs before SE; no hidden identities disclosed.",
+    "q_leg": "If selected, question is its resampling unit; unmeasured composite round remains unposted.",
+    "target": "Posted margin AND positive-improvement guard; not a changed null at the posted margin.",
+    "cumulative_condition": "Conditional per-round error bound or appropriate independence; daily risk is not lifetime risk.",
+    "retirement": "All scored cases retired, per owner instruction."
+  },
+  "route_observations": [
+    {
+      "route": "https://www.gradients.io/app/miners",
+      "outcome": "WEB_RETRIEVAL_TIMEOUT_NOT_OUTAGE_PROOF"
+    },
+    {
+      "route": "https://distil.arbos.life/",
+      "outcome": "WEB_RENDERED_ARBOS_AGENT_LOGIN_NOT_CONFIRMED_MINER_DASHBOARD"
+    },
+    {
+      "route": "https://affine.io/",
+      "outcome": "LOADING_SHELL_LIVE_DATA_UNVERIFIED"
+    }
+  ],
+  "public_reports": [
+    {
+      "url": "https://github.com/chutesai/chutes-miner/issues/135",
+      "kind": "REPORTER_CLAIM",
+      "topic": "Historical authentication/verification"
+    },
+    {
+      "url": "https://github.com/chutesai/chutes-miner/issues/127",
+      "kind": "REPORTER_CLAIM",
+      "topic": "Hardware/runtime compatibility"
+    },
+    {
+      "url": "https://github.com/chutesai/chutes-miner/issues/102",
+      "kind": "REPORTER_CLAIM",
+      "topic": "Contradictory activation state"
+    },
+    {
+      "url": "https://github.com/one-covenant/templar/issues/693",
+      "kind": "COMPATIBILITY_QUESTION",
+      "topic": "ARM hardware compatibility"
+    }
+  ],
+  "publication_gaps": [
+    "Deployed caller/version/status",
+    "Current score-proof choice and paired metric units",
+    "Active setup/practice/intake/status/result URLs",
+    "Registered gate/important-region/failure and tie policy",
+    "Public error-adequacy record",
+    "Operative terms, reward/payment card and disclosure projection"
+  ],
+  "onboarding_measurements": null,
+  "complaint_prevalence": null,
+  "success_rank": null,
+  "runtime_changes": false
+}

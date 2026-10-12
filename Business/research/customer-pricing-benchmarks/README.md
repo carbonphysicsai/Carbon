@@ -12,7 +12,7 @@ The following **ASSUMPTION low/base/high** budgets use explicit expert hours, a 
 | --- | --- | --- |
 | Battery fast-charge | 6,500 / 32,000 / 115,600 | 2 / 5 / 12 |
 | PM motor | 5,300 / 22,000 / 76,000 | 2 / 4 / 8 |
-| Burst thermal | 4,100 / 17,000 / 62,800 | 1 / 3 / 8 |
+| Burst thermal | 4,100 / 17,000 / 62,800 | 2 / 3 / 8 |
 | AI-chip cooling | 5,300 / 27,000 / 89,200 | 2 / 5 / 12 |
 | Silencer | 6,500 / 32,000 / 115,600 | 2 / 6 / 16 |
 | Warpage, coherent customer data supplied | 12,500 / 52,000 / 208,000 | 4 / 10 / 26 |
