@@ -30,8 +30,9 @@ SIZE = 12
 def scripted_solve(command, check):
     """The truth container's contract, scripted: every job in
     `/work/jobs.json` gets a synthetic terminal record."""
-    mount = next(a for a in command if a.endswith(":/work:rw"))
-    work = Path(mount.removesuffix(":/work:rw"))
+    from carbon.battery.truth_env import mounted_work
+
+    work = mounted_work(command)
     jobs = json.loads((work / "jobs.json").read_text())["jobs"]
     with (work / "records.jsonl").open("a") as handle:
         for job in jobs:

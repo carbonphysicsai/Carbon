@@ -138,11 +138,12 @@ class BankedBatterySource(BatteryBatchSource):
             raise ProducerRefused("producer_design_rule_mismatch")
 
         def solve(work, workers):
+            from .design_bank import checked_solve
             from .tuning import solve as truth_solve
 
             if self.overlay is None:
                 raise ProducerRefused("producer_no_truth_overlay")
-            truth_solve(work, self.overlay, workers=workers, runner=self.runner)
+            checked_solve(truth_solve, work, self.overlay, workers, runner=self.runner)
 
         return DesignBank(directory, law, solver or solve)
 
