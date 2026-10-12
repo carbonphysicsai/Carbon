@@ -33,7 +33,9 @@ RECORD = REPOSITORY / ".agent/decisions/2026-10-11-OWNER-TESTNET-WEEKLY-BUDGET-0
 RUN_LIMIT = Decimal(
     15
 )  # the Test Lead's decision: worst case and ceiling at most USD 15
-OTHER_OPEN_GRANTS = Decimal("172.56")  # the record: 86.71 + 44.85 + 25 + 16
+#: The weekly-budget record lists 86.71 + 44.85 + 25 + 16 = 172.56; the owner then amended CONFIRM-02 from 25 to 37
+#: (`.agent/decisions/2026-10-12-OWNER-SCORE-PROOF-CONFIRM-02-GRANT.md`): 86.71 + 44.85 + 37 + 16 = 184.56.
+OTHER_OPEN_GRANTS = Decimal("184.56")
 
 
 def _grant(grant_id=GRANT_ID):
@@ -127,5 +129,5 @@ def test_the_grant_is_for_battery_only(capsys):
 
 def test_it_fits_the_weekly_cap_beside_the_owners_other_open_grants():
     grant = _grant()
-    # The record's other open grants total 172.56 of the 300 per rolling week; this one adds its ceiling.
+    # The other open grants total 184.56 of the 300 per rolling week (CONFIRM-02 at 37); this one adds its ceiling.
     assert OTHER_OPEN_GRANTS + grant.monetary_ceiling <= WEEKLY_CAP_USD
