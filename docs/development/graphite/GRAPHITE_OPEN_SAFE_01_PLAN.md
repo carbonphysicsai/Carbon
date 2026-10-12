@@ -75,11 +75,24 @@ The Attacker is graded by the oracle, not by its own claims (#1031).
 Open Attacker findings from stage A L0 (1 finding) must be dispositioned before the stage A report is
 filed (TESTED condition 3 in `ONBOARDING_PIPELINE.md`); that disposition is not yet recorded.
 
+**Level 4 entry checks (added 2026-10-12, after the owner's release word, OWNER-L4-STAGING-IMAGE-RELEASE-01).**
+1. **Containment first.** After the analysis image is rebuilt, the fixed carrier containment check runs on the CURRENT image
+   digest and must pass before any Level 4 lowering, Graphite's own included. The readiness gate's R1 already runs it against the
+   manifest's image each time and fails when the image does not match the repository, so an L4 run is not launch_ready until it
+   has passed on that digest. R1 at Level 4 is therefore required, not waived.
+2. **Hostile-model lowering probe, in the first Level 4 test batch.** Three fixed hostile model sources, run through the lowering
+   tool in the real analysis container: one that exhausts memory, one that never finishes (time), and one that floods the scratch
+   folder. Pass means the container ends the run within its bounds, the host and the other lanes are unaffected, no envelope is
+   produced from a run that did not finish, and the refusal is typed. The Test Engineer may write the sources; the executor runs
+   them; no new spend (CPU only, no model call).
+3. **Proposed gate item (for the Test Lead's approval; not final):** `R8 (Level 4 only): the hostile-model lowering probe passed on
+   the current analysis image digest`. Until the Test Lead approves an id, the probe is a checklist step in the first L4 batch.
+
 **What stays human.** The security sign-off for Attacker code on disposable hosts, the isolation
 acceptance of Level 4, the per-run Level 5 grants, any adoption of a capability, and every spend
 approval.
 
-## 2. GRAPHITE-L5-HUNT-01: a round of Level 5 opportunity hunting (PROPOSALS ONLY)
+## 2. GRAPHITE-L5-HUNT-01: a round of Level 5 opportunity hunting (PROPOSALS ONLY; the runs are approved, the findings are not)
 
 **Authority and frame.** The owner's direction is "for graphite to find all positive level 5
 opportunities and add them into the base image for every miner" (OWNER-CHALLENGE-ONBOARDING-LADDER-01).
@@ -113,7 +126,50 @@ refusals, and the Attacker's failed attempts), and re-ranks.
 UNMEASURED with the tool that would measure it), the containment, the attacks tried and their results, and
 the owner question. No adoption, no base-image change, no grant authored.
 
-## 3. One spend line for the owner (PROPOSAL; the grant file binds spend, not this page)
+## 2b. The hunt run plan (for the executor, through the Test Lead; its author launches nothing)
+
+**The owner's priority for the hunt: models that learn the real physics.** The Constructor runs are themed accordingly,
+and each hunt report says which proposed Level 5 freedoms would let miners build physics in. The hunt runs inside
+today's L0 to L4 containment: **no wider surface is executed**. A "Level 5" candidate is research and design: a
+Constructor's `WISH:` line, a refusal, or a reading of committed material. Anything that would execute a wider surface
+comes back to the Test Lead first.
+
+| Run | Role and level | Theme (`--theme`) | Cap and window |
+|---|---|---|---|
+| H1 | Constructor, L1 | `physics-law-losses`: conservation, bounds and monotonicity as losses and constraints | 14.91 worst case, 39,600 s, pod ceiling 0.65 per hour |
+| H2 | Constructor, L2 | `physics-law-losses` | same |
+| H3 | Constructor, L3 | `physics-structure`: symmetry, positivity and boundedness, behaviour at limits | same |
+| H4 | Constructor, L4 | `open`: whatever the Constructor judges most likely to make a model learn the physics (**waits for the L4 graph-variant fix**; if it slips, run at L3) | same |
+| A1 | Attacker, L1 (loss expressions) | stop rule v3 (the live Attacker provider's default) | 13.41 worst case, 15,600 s |
+| A2 | Attacker, L3 (cross-level fields) | stop rule v3 | same |
+
+- **Themes** are the registered texts in `carbon/agent_campaign/graphite/hunt_themes.py`, selected by
+  `phase3 run --theme ID`. Opt-in: a run without `--theme` has exactly the brief it had before, so every earlier session
+  replays byte for byte. A theme is advice; the level's domain, the grant and every boundary are unchanged. A theme is
+  refused for a level it does not name.
+- **Report requirement** (in every theme's brief text): for the physics the run tried to build in, which freedom this level
+  does not offer would have let it, one `WISH:` line each (what it is, what it needs, the expected gain, the evidence).
+  The wish channel stores the lines as data in the refused-capability log; nothing is granted.
+- **Family tags for A1 and A2.** The Attacker brief (v3) tells the Attacker to put `[family: <name>]` in the
+  `hypothesis` of each attempt and lists the reachable family names at the level; the attack adapters (#1184) read the tag.
+  With #1184 on main (b7f47bef6), the reachable counts are verified: L1 4 of 6 (l1_permission_ablation and l1_rebuild_identity
+  stay unreachable, so they are reported with a covering test or as gaps under v3), L2 5 of 5, L3 5 of 5, L4 7 of 7.
+- **Stop rule v3 for A1 and A2.** Three counted attempts per reachable family; the final coverage report carries
+  `stop_rule_outcome`: unreachable families named with their covering test, or reported as gaps; a reachable family that
+  is under three or not run makes the report INCOMPLETE. Until the oracle fixes and the attempt-to-family declaration land
+  (Test Engineer), L1 reaches one family and L3 reaches one family, so expect `DONE_WITH_GAPS`.
+- **Settings common to all six.** Live runs with the wish channel and the level domain (both already on in `phase3 run`),
+  `CARBON_CAPABILITY_LOG` pointing at the committed log's path, one controller root per run, seeded into the ledger,
+  kimi-k3 on the Graphite provider route, at most the grant's `max_concurrency`.
+- **Order.** After #1178 (the 300 per week and 50 per run ledger; merged) and once the executor's lane D L1 rebuild has
+  finished, so the runs do not stack. H1 to H3 and A1, A2 when the weekly headroom allows (`grant_runs weekly`); H4 after the
+  variant fix. The Attacker reruns that the earlier triage asked for wait for the oracle fixes.
+- **Grants.** The files are authored by the owner's process from #1163 (the Test Engineer binds them); this plan authors
+  none. The 86.71 ceiling covers H1 to H4 and A1, A2; the 44.85 Constructor pass is a separate ceiling and is not spent here.
+- **Output.** The refusal and wish rows land in the committed log (a short PR), then one proposal file per candidate as
+  section 2 describes, each stating which freedoms would let miners build physics in. No adoption.
+
+## 3. The spend line (hunt and Constructor pass approved by the owner; the grant file binds spend, not this page)
 
 Public repo: caps, rates and run counts only. Per-run worst cases are from the committed grants. The run
 counts below are from the executor host's grant-runs ledger (read-only, 2026-10-12; the ledger is not
@@ -144,38 +200,40 @@ ledger is reservation-based (a safety-conservative basis) and holds no settled p
 are the binding limit here: a grant's ceiling is its permitted runs times the worst-case run cost, and the
 runs actually cost less than that worst case.
 
-**New money (PROPOSAL).**
+**New money (approved 2026-10-12: OWNER-GRAPHITE-OPEN-SAFE-01-GRANTS, #1163; two separate ceilings, no transfer between them).**
 
 | Item | Runs | Worst case |
 |---|---|---|
 | Hunt, Constructor at L4 with the wish channel, 4 themes (compute and steps; PyTorch families; solver ops; kernels and libraries): 4 x 14.91 = 59.64, cleanup 0.12 | 4 | 59.76 |
 | Hunt, Attacker against each shortlisted candidate: 2 x 13.41 = 26.82, cleanup 0.13 | 2 | 26.95 |
-| **Hunt total** | 6 | **86.71** |
-| Optional: one more max-freedom Constructor pass each at L2, L3 and L4 after brief changes (3 x 14.91 = 44.73, cleanup 0.12), because the approved Constructor runs are consumed | 3 | 44.85 |
-| **New money, hunt plus optional re-pass** | 9 | **131.56** |
+| **Hunt total (the owner's "L5 hunt" ceiling)** | 6 | **86.71** |
+| One more max-freedom Constructor pass each at L2, L3 and L4 after brief changes (3 x 14.91 = 44.73, cleanup 0.12), because the earlier Constructor runs are consumed (the owner's "L2-L4 Constructor pass" ceiling) | 3 | 44.85 |
+| **Approved, hunt plus Constructor pass** | 9 | **131.56** |
 
 **The one line:** "Graphite open-and-safe: the approved Constructor runs of stages B and C are used up (6 of 6, 3 of 3);
-3 approved Attacker runs remain (USD 40.23 worst case); the Level 5 hunt is a PROPOSED USD 86.71 (4 Constructor
-runs at 14.91, 2 Attacker runs at 13.41, cleanup 0.12 and 0.13), plus an optional USD 44.85 for one more
-Constructor pass each at L2 to L4; USD 131.56 new at most, at the 0.65 per hour pod ceiling."
+3 approved Attacker runs remain (USD 40.23 worst case); the owner approved USD 86.71 for the Level 5 hunt (4 Constructor
+runs at 14.91, 2 Attacker runs at 13.41, cleanup 0.12 and 0.13) and USD 44.85 for one more Constructor pass
+each at L2 to L4, USD 131.56 in all (#1163), at the 0.65 per hour pod ceiling."
 
 **Assumptions.**
 - The hunt runs under a new R4-style grant bound to Level 4 (and the wish channel), plus a kimi-k3 Attacker grant. The existing stage C grants cover three Constructor and two Attacker runs at L4 and cannot be borrowed for the hunt.
 - The hunt Constructor costs the same as an R4 run; the Attacker is priced as in the wave plan.
 - Stage A (L0 and L1) grants are separate and not repeated here; their remaining runs were not checked.
 
-**The weekly cap (OWNER-TESTNET-WEEKLY-BUDGET-01).** USD 150 across any rolling seven days, pods plus model
-charges, enforced on the host ledger (#1067). A run is reserved at its worst case at launch and settled at
+**The weekly cap (OWNER-TESTNET-WEEKLY-BUDGET-01, amended by OWNER-TEST-GRANT-01, #1167).** USD 300 across any
+rolling seven days and USD 50 per run, pods plus model charges, enforced on the host ledger (#1067, #1168). The
+ledger's constants follow the record once the cap PR (#1178) merges; until then the host ledger still reads 150.
+The figures below were derived against 150 and fit within 300 with room to spare. A run is reserved at its worst case at launch and settled at
 its reported cost, and a launch that would pass the cap is refused (`weekly_budget_reached`). The usage so far is a moving number: read it with
 `python -m carbon.agent_campaign.grant_runs weekly` before each wave. The ledger's window starts with the
 ledger, so spend before it (including the seeded Constructor runs) is not counted in it. Consequences:
-- The approved Attacker runs left (40.23) plus the hunt (86.71) are 126.94 at worst-case reservation: one window, if the rolling usage is at most 23.06 when they launch. The optional re-pass (44.85) makes 171.79, which needs a second window.
+- The approved Attacker runs left (40.23) plus the hunt (86.71) are 126.94 at worst-case reservation: one window at the old 150 cap if the rolling usage is at most 23.06 when they launch; the re-pass (44.85) makes 171.79, which needs the 300 cap or a second window.
 - Settled costs are lower than worst cases, so real scheduling can be faster. Reservations are released as runs settle.
 
 | Wave | Runs | Worst-case reservation |
 |---|---|---|
 | 1 | The 3 approved Attacker runs (L2, L3, L4 once the L4 prerequisites hold), then the hunt's 4 Constructor runs | 40.23 + 59.64 = 99.87 |
-| 2 | The hunt's 2 Attacker runs, and the optional re-pass | 26.82 (+ 44.73) |
+| 2 | The hunt's 2 Attacker runs, and the Constructor pass | 26.82 (+ 44.73) |
 
 - L4 runs wait for the prerequisites in section 1; if they slip, the L2 and L3 Attacker runs and the hunt's non-L4 themes can move forward in their place.
 - Server runs (CCX63), mainnet and anything over the cap are not covered by the weekly budget and stay the owner's.
