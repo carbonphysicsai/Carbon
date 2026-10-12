@@ -561,9 +561,9 @@ def test_a_record_not_on_the_public_ev4_scoring_set_digest_is_refused(panel):
 
 def test_a_record_that_names_a_private_role_source_is_refused():
     record = pub(10.0, 9.0)
-    record[
-        "note"
-    ] = "docs/development/evidence/exam-design-2026-09-24/refs-b/out/battery_refs/records.jsonl"
+    record["note"] = (
+        "docs/development/evidence/exam-design-2026-09-24/refs-b/out/battery_refs/records.jsonl"
+    )
     with pytest.raises(ProgressError, match="names_a_private_source"):
         improvement.validate(record)
 
