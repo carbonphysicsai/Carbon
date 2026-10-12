@@ -1412,3 +1412,42 @@ def test_default_ci_script_invokes_no_archived_path() -> None:
     assert "\ngit diff --check\n" not in ci_source
     assert "tests/cpu/test_package_installation.py" in ci_source
     assert "tests/cpu/test_code_authority.py" in ci_source
+
+
+def test_dev_image_job_is_sharded_like_canonical_and_runs_the_same_tests() -> None:
+    """CI-DEVIMAGE-SHARD-01: the image job shards the canonical command six ways with
+    the same shard plugin and weights, keeps its result name and its per-shard bound,
+    and a candidate that predates the hand-off still runs its full command on shard 0.
+    """
+    workflow = WORKFLOW_PATH.read_text(encoding="utf-8")
+    jobs = _workflow_job_blocks(workflow)
+    image, canonical = jobs["dev-image"], jobs["canonical"]
+    assert _yaml_scalar(image, "name") == "Clean dev-container image"
+    assert "fail-fast: false" in image
+    assert "shard: [0, 1, 2, 3, 4, 5]" in image
+    assert "shard: [0, 1, 2, 3, 4, 5]" in canonical
+    assert "CARBON_CI_SHARD: ${{ matrix.shard }}/6" in image
+    assert (
+        "timeout-minutes: 240" in image
+    )  # a bound per shard; not lowered without data
+    # The shard hand-off needs both the sharded ci.sh and the forwarding verifier.
+    assert "grep -q 'CARBON_CI_SHARD' scripts/dev/ci.sh" in image
+    assert "grep -q 'CARBON_CI_SHARD' scripts/dev/verify_image.sh" in image
+    # A shard that runs nothing skips every later step; the same three steps gate.
+    assert image.count("if: steps.shard.outputs.run == 'true'") == 3
+    assert image.index("id: shard") < image.index("Resolve Docker Hub")
+    assert image.index("docker/build-push-action") < image.index(
+        "./scripts/dev/verify_image.sh"
+    )
+    # The merge gate still reads one result for the whole job.
+    gate = jobs["merge-gate"]
+    assert '--dev-image "${{ needs.dev-image.result }}"' in gate
+    for job in jobs.values():
+        assert "continue-on-error" not in job
+
+    verifier = VERIFY_IMAGE_PATH.read_text(encoding="utf-8")
+    assert verifier.count("CARBON_CI_SHARD") >= 4
+    assert "^[0-9]+/[1-9][0-9]*$" in verifier
+    assert 'shard_env=(--env "CARBON_CI_SHARD=${CARBON_CI_SHARD}")' in verifier
+    assert verifier.index("shard_env=()") < verifier.index("./scripts/dev/ci.sh")
+    assert verifier.count('"CARBON_UV_GROUPS=${CARBON_UV_GROUPS:-}"') == 3
