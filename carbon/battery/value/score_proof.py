@@ -250,7 +250,7 @@ def gate_check(candidate, legs, unsafe):
     missed = sorted(u for u, v in verdicts.items() if v != admissibility.FAIL)
     if not missed:
         return {"status": "PASS"}
-    return {
+    out = {
         "status": "FAIL",
         "missed": missed,
         "cutoff_in_force": candidate.gate["cutoff"],
@@ -259,6 +259,19 @@ def gate_check(candidate, legs, unsafe):
             [legs[u]["gates"][candidate.gate["measure"]] for u in unsafe],
         ),
     }
+    if len(candidate.gates) > 1:
+        # Each further gate's catching range over the members every gate
+        # missed (amendment 7): tightening any one gate catches them.
+        out["and_gates"] = [
+            {
+                "gate": g,
+                "catching_cutoff": catching_cutoff(
+                    g, [legs[u]["gates"][g["measure"]] for u in missed]
+                ),
+            }
+            for g in candidate.gates[1:]
+        ]
+    return out
 
 
 def adversarial_divergence(scores, values, members, adversarial, band):
@@ -686,14 +699,35 @@ PLACEMENT_SCREENS = (
 )
 
 
-def pickable(report, rule, minimum_level_members=10):
+#: The proposed criterion (amendment 7, reported only): a known-bad control
+#: in the top half, or adversarial divergence (an adversarial member scoring
+#: above a member of better value), instead of adversarial placement. On the
+#: selection fold the adversarial members decide well, so placing them high
+#: is the correct value ordering; divergence is what the screen means.
+DIVERGENCE_SCREENS = (
+    "known-bad member in the top half",
+    "adversarial divergence",
+)
+
+#: The pickability criteria computed at selection. Only `IN_FORCE` gates the
+#: confirmation; changing it is the owner's (it changes a pre-registered
+#: criterion after the selection was seen).
+PICKABILITY_CRITERIA = {
+    "placement": PLACEMENT_SCREENS,
+    "divergence": DIVERGENCE_SCREENS,
+}
+PICKABILITY_IN_FORCE = "placement"
+
+
+def pickable(report, rule, minimum_level_members=10, criterion=PICKABILITY_IN_FORCE):
     """`(True, [])`, or `(False, ["<pool>: <screen>", ...])`: whether the
-    owner may pick `rule` from this selection report."""
+    owner may pick `rule` from this selection report under `criterion`."""
+    counted = PICKABILITY_CRITERIA[criterion]
     failed = [
         f"{pool}: {screen}"
         for pool, screens_failed in screens(report, rule, minimum_level_members).items()
         for screen in screens_failed
-        if screen in PLACEMENT_SCREENS or screen == "incomplete legs"
+        if screen in counted or screen == "incomplete legs"
     ]
     return (not failed, failed)
 

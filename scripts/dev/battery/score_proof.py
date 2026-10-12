@@ -43,7 +43,7 @@ if str(ROOT) not in sys.path:
 from scripts.dev.battery import tuning_rescore as tr
 
 MEMBERS = ROOT / "docs/development/evidence/battery-score-tuning/proof-members-v1.json"
-REGISTRY = ROOT / "docs/development/evidence/battery-score-tuning/registry-v6.json"
+REGISTRY = ROOT / "docs/development/evidence/battery-score-tuning/registry-v7.json"
 #: The rule in force (OWNER-BATTERY-SCORE-RULE-01): A-Q with the G-FEAS gate at
 #: 0.05, recorded as "exceeds" (registry v5's `G-FEAS/A-Q>@0.05`).
 RULE_IN_FORCE = "G-FEAS/A-Q>@0.05"
@@ -252,11 +252,18 @@ def gate_lines(report):
         if check["status"] == "FAIL":
             catch = check["catching_cutoff"]
             bound = ", ".join(f"{k} {v}" for k, v in catch.items())
-            out.append(
+            line = (
                 f"- **{cid}: FAIL.** It misses {len(check['missed'])} unsafe "
                 f"member(s) at cutoff {check['cutoff_in_force']}; every one fails "
-                f"at {bound}. The cutoff stays the owner's."
+                f"at {bound}"
             )
+            for extra in check.get("and_gates", []):
+                gate, catch = extra["gate"], extra["catching_cutoff"]
+                line += (
+                    f", or with the {gate['measure']} gate (now {gate['cutoff']}) at "
+                    + ", ".join(f"{k} {v}" for k, v in catch.items())
+                )
+            out.append(line + ". The cutoff stays the owner's.")
     if len(out) == 1:
         out.append("- Every gated rule fails every unsafe member (PASS).")
     return "\n".join(out) + "\n"
@@ -297,7 +304,48 @@ def placement_lines(report):
                 if entry["pickable"]
                 else ". **Not pickable:** " + "; ".join(entry["failed"]) + "."
             )
+        proposed = report.get("pickable_by_criterion", {}).get("divergence", {})
+        if cid in proposed and proposed[cid]["pickable"] != pick.get(cid, {}).get(
+            "pickable"
+        ):
+            line += " Under the proposed criterion: " + (
+                "pickable." if proposed[cid]["pickable"] else "not pickable."
+            )
         out.append(line)
+    return "\n".join(out) + "\n"
+
+
+def criteria_lines(report):
+    """Both pickability criteria (amendment 7), best pooled tau first, each
+    rule with its gate recall: only the criterion in force gates the
+    confirmation; the other is reported for the owner's ruling."""
+    from carbon.battery.value import score_proof as sp
+
+    by = report.get("pickable_by_criterion")
+    if not by:
+        return ""
+    out = ["\n## Pickable rules under each criterion (pooled, best tau first)\n"]
+    for criterion, entries in by.items():
+        state = (
+            "in force"
+            if criterion == sp.PICKABILITY_IN_FORCE
+            else "proposed, not in force (the owner's ruling)"
+        )
+        screens = " and ".join(sp.PICKABILITY_CRITERIA[criterion])
+        ok = [c for c, e in entries.items() if e["pickable"]]
+        ok.sort(key=lambda c: -(report["candidates"][c]["pooled"].get("tau") or -2))
+        out.append(
+            f"### {criterion} ({state}): unpickable on {screens}; "
+            f"{len(ok)} of {len(entries)} pickable\n"
+        )
+        for cid in ok:
+            r = report["candidates"][cid]["pooled"]
+            recall = report["gate_recall_check"].get(cid, {}).get("status", "—")
+            out.append(
+                f"- **{cid}**: τ {_f(r.get('tau'))} {_ci(r.get('tau_ci95'))}, "
+                f"top-1 regret {_f(r.get('top1_regret'))}, gate recall {recall}"
+            )
+        out.append("")
     return "\n".join(out) + "\n"
 
 
@@ -439,10 +487,22 @@ def main(argv=None):
         report["verdict"] = sp.sequential_verdict(report, args.rule, look, design)
     else:
         minimum = load_sequential(args.sequential)["minimum_level_members"]
-        report["pickable"] = {
-            cid: dict(zip(("pickable", "failed"), sp.pickable(report, cid, minimum)))
-            for cid in report["candidates"]
+        # Both criteria are computed (amendment 7); `pickable` is the one in
+        # force and the only one the confirmation reads.
+        report["pickable_by_criterion"] = {
+            criterion: {
+                cid: dict(
+                    zip(
+                        ("pickable", "failed"),
+                        sp.pickable(report, cid, minimum, criterion),
+                    )
+                )
+                for cid in report["candidates"]
+            }
+            for criterion in sp.PICKABILITY_CRITERIA
         }
+        report["pickability_in_force"] = sp.PICKABILITY_IN_FORCE
+        report["pickable"] = report["pickable_by_criterion"][sp.PICKABILITY_IN_FORCE]
     report["source"] = (
         "PUBLIC_STANDIN (plumbing only; not proof)"
         if args.public_standin
@@ -478,7 +538,11 @@ def main(argv=None):
         ),
         (
             f"{args.phase}.md",
-            header + gate_lines(report) + placement_lines(report) + table(report),
+            header
+            + gate_lines(report)
+            + criteria_lines(report)
+            + placement_lines(report)
+            + table(report),
         ),
     ):
         path = args.out / name
