@@ -273,19 +273,30 @@ if (chainSite) {
     assert.equal(D.textOf(release), D.countdown(at - now), where + ": release countdown text");
     assert.ok(text.includes("block " + D.block(board.next_release.next_block) + ", about " + D.utc(at) + " at 12 s per block"), where + ": estimated release time");
     assert.ok(!text.includes("~"), where + ": about, never a tilde");
-    // The target's values, posted by the validator, show without a rules card;
-    // their prose waits for it. The registered score's candidate is never drawn.
+    // The target's margins and noise guard are rule statements (the Test Lead,
+    // #1144): without a rules card the panel shows the king's score and gates
+    // and the page's one rules line; never a margin or guard. The registered
+    // score's candidate is never drawn.
     const t = board.target_to_beat;
     assert.notEqual(board.rules.status, "OK");
-    assert.ok(text.includes("Posted margin " + D.fmt(t.posted_margin)), where + ": posted margin");
-    assert.ok(text.includes("Screening margin " + D.fmt(t.screening_margin)), where + ": screening margin");
-    assert.ok(text.includes("Noise guard " + D.guardText(t.noise_guard)), where + ": noise guard");
-    assert.ok(text.includes(D.POSTED), where + ": labelled posted by the validator");
-    assert.ok(!text.includes("rules card sets them"), where + ": the bars' prose waits for the rules card");
-    assert.ok(!text.includes(t.registered_score.candidate), where + ": candidate never drawn");
-    assert.ok(text.includes("Registered score: " + t.registered_score.decision), where + ": registered score decision");
+    assert.ok(t.posted_margin !== null && t.noise_guard !== null, where + ": board.v2 keeps the values");
+    const targetText = D.textOf(sectionNode(tree, "target"));
+    for (const absent of ["Posted margin", "Screening margin", "Noise guard", D.POSTED, D.guardText(t.noise_guard), "Registered score",
+      "rules card sets them", "registered score margin then final", "important region"]) {
+      assert.ok(!text.includes(absent), where + ": no " + absent + " without the rules card");
+    }
+    assert.ok(targetText.includes(D.RULES_LINE), where + ": the rules line in the target panel");
+    assert.equal(rulesLines(text), 1, where + ": one rules line");
+    assert.ok(targetText.includes(D.fmt(board.king.value) + " king's " + D.sectionLabel(board)), where + ": the king's score");
+    assert.ok(targetText.includes("King's gates:"), where + ": the king's gates");
     const ok = clone(board); ok.rules = {status: "OK", card_digest: "sha256:" + "0".repeat(64), reasons: {}};
-    assert.ok(check(D.boardPage(ok, ctx), where + " rules OK").includes("rules card sets them"), where + ": prose with the card");
+    const okText = check(D.boardPage(ok, ctx), where + " rules OK");
+    assert.equal(rulesLines(okText), 0, where + ": no rules line when OK");
+    for (const want of ["Posted margin " + D.fmt(t.posted_margin), "Screening margin " + D.fmt(t.screening_margin), "Noise guard " + D.guardText(t.noise_guard),
+      D.POSTED, "rules card sets them", "Registered score: " + t.registered_score.decision]) {
+      assert.ok(okText.includes(want), where + ": with the rules card: " + want);
+    }
+    assert.ok(!okText.includes(t.registered_score.candidate), where + ": candidate never drawn");
     // Handovers, newest first, and the chain time in the feed block.
     assert.ok(text.includes("Handovers"), where + ": handovers");
     const handovers = nodes(nodes(tree, "table").find(t2 => D.textOf(t2).includes("New king")), "tr").length - 1;

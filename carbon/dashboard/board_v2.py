@@ -32,9 +32,9 @@ document. It adds no field the feed does not carry and invents no value:
   UID, coldkey, crowning, share, next halving and defences fill the board's
   king only when the feed's king is its released incumbent; otherwise they
   stay null with `king_not_released`. The target's margins and noise guard
-  are values the validator posts in its signed feed, not rule statements, so
-  they show whatever the rules card's status; the rule's prose stays the
-  card's. The next release block is the feed's next rotation block, and its
+  are kept here as the signed feed posts them, whatever the rules card's
+  status; they are rule statements, so the page draws them only while the
+  card is OK (Test Lead, #1144). The next release block is the feed's next rotation block, and its
   time is an estimate from `as_of_block` at the nominal block time. With
   `as_of_block`, the feed's age is measured from its chain time.
 

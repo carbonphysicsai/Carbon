@@ -45,9 +45,10 @@ a rule cutover.
   - `target_to_beat`: the rule's kind, the posted (final) and screening
     margins, the noise guard (the final comparison's `alpha`, `n_min`,
     `n_boot`, `important_min`; other keys dropped), the registered score and
-    the gates. These are values the validator posts in its signed feed, so the
-    page shows them labelled "posted by the validator"; what they mean is rule
-    prose, shown only with an OK rules card;
+    the gates, kept as the signed feed posts them. They are rule statements
+    (Test Lead, #1144): the page draws the bars only with an OK rules card,
+    and otherwise shows the king's score and gates and the one "Rules
+    unavailable" line in the target panel;
   - `next_release.next_block` is the next rotation block, and `next_utc` its
     time estimated from `as_of_block` at 12 s per block.
 - `worker/feed.mjs` ports it as `projectV2`; the Worker serves it at
@@ -90,7 +91,8 @@ is fetched only when `index.json` says `network: true`.
 - `tests/cpu/dashboard_check.cjs` renders every fixture board in each phase
   in Node and mounts it into a minimal DOM. A third argument, a site built from
   `fixtures.chain_documents()`, checks the #1143 fields: the king's share and
-  halving countdown, the release countdown, the posted margins and handovers.
+  halving countdown, the release countdown, the margins only with a rules
+  card, and the handovers.
 
 ## What the build writes
 

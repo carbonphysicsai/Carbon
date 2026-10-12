@@ -375,7 +375,7 @@ def test_view_models_in_node(tmp_path):
 def test_chain_view_models_in_node(tmp_path):
     """DASHBOARD-02 S1b: boards from VALIDATOR-33 A feeds (#1143) show the
     king's share and halving with a live countdown, the estimated next release
-    countdown, the validator's posted margins and the handovers
+    countdown, the margins only with a rules card, and the handovers
     (tests/cpu/dashboard_check.cjs, its third argument)."""
     node = shutil.which("node")
     if node is None:

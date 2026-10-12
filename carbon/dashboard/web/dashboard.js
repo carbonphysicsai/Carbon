@@ -7,10 +7,10 @@
 // it. A null field is not drawn (its reason stays in the JSON); a section
 // with one shows a single muted line (MORE). Rule statements appear only
 // while the rules card's status is OK, else one RULES_LINE stands in their
-// place. No per-case, input or prediction value is drawn. The target's
-// margins and noise guard are the validator's posted values, from its signed
-// feed (VALIDATOR-33 A): they show labelled "posted by the validator", and
-// only their prose explanation waits for the rules card.
+// place (in the target panel on a live board). No per-case, input or
+// prediction value is drawn. The target's margins and noise guard, from the
+// signed feed (VALIDATOR-33 A), are rule statements too: drawn only with an OK
+// rules card (the Test Lead, #1144).
 //
 // Pages are pure functions from a board to a node tree ({tag, attrs,
 // children}); `mount` turns a tree into DOM with createElement and text nodes,
@@ -300,7 +300,9 @@
     return out;
   }
 
-  function boardHead(board) {
+  function rulesLine() { return h("p", {class: "rules-line"}, RULES_LINE); }
+  // `inTarget`: the target panel carries the page's one rules line instead.
+  function boardHead(board, inTarget) {
     const phase = PHASES[board.phase] || [words(board.phase), ""];
     const ok = rulesOk(board);
     return h("header", {class: "board-head"},
@@ -313,7 +315,7 @@
         ok && board.challenge.rule ? chip("Rule " + board.challenge.rule, "chip-plain") : null,
         chip("Version " + board.challenge.version, "chip-plain")),
       // The one place rule text would go while the rules card is not OK.
-      ok ? null : h("p", {class: "rules-line"}, RULES_LINE));
+      ok || inTarget ? null : rulesLine());
   }
 
   function heroPre(board, ctx) {
@@ -395,9 +397,10 @@
       moreLine(kingMissing(k)));
   }
 
-  // The target's values are the validator's, posted in its signed feed: they
-  // show labelled so. What the bars mean is a rule statement, so that prose
-  // shows only while the rules card is OK (the card is the single source).
+  // The target's margins, noise guard, kind, registered score and gate list
+  // are rule statements (the Test Lead, #1144): drawn only while the rules
+  // card is OK, though board.v2 keeps them. Otherwise the panel shows the
+  // king's score and gate results from the feed and the page's one rules line.
   const TARGET_FIELDS = ["value", "posted_margin", "noise_guard"];
   const POSTED = "posted by the validator";
   function percent(v) { return isNum(v) ? (v * 100).toFixed(2) + "%" : null; }
@@ -411,6 +414,17 @@
   function targetCard(board) {
     const t = board.target_to_beat || {};
     const ok = rulesOk(board);
+    const k = board.king;
+    const kingGates = k && k.gates ? Object.entries(k.gates) : [];
+    const kingPart = [
+      k && isNum(k.value) ? h("div", {class: "metric"}, h("span", {class: "metric-value"}, fmt(k.value)), h("span", {class: "metric-label"}, "king's " + sectionLabel(board))) : null,
+      kingGates.length ? h("p", {class: "hint"}, "King's gates: " + kingGates.map(([name, v]) => words(name) + " " + String(v).toLowerCase()).join(", ") + ".") : null,
+    ];
+    if (!ok) {
+      return section("target", {class: "card target", "aria-labelledby": "target-title"},
+        h("div", {class: "card-top"}, h("h2", {id: "target-title", class: "card-title"}, "Target to beat")),
+        kingPart, rulesLine(), moreLine(anyNull(t, TARGET_FIELDS)));
+    }
     const margin = (v, what) => (isNum(v) ? what + ", " + percent(v) + ", " + POSTED : POSTED);
     const bars = [
       ["Posted margin", plain(t.posted_margin), margin(t.posted_margin, "relative, final")],
@@ -424,11 +438,12 @@
     return section("target", {class: "card target", "aria-labelledby": "target-title"},
       h("div", {class: "card-top"}, h("h2", {id: "target-title", class: "card-title"}, "Target to beat"),
         t.kind ? chip(words(t.kind), "chip-plain") : null),
-      value !== null ? h("div", {class: "metric"}, h("span", {class: "metric-value"}, value), h("span", {class: "metric-label"}, sectionLabel(board))) : null,
+      value !== null ? h("div", {class: "metric"}, h("span", {class: "metric-value"}, value), h("span", {class: "metric-label"}, sectionLabel(board))) : kingPart[0],
+      kingPart[1],
       bars.length ? h("ul", {class: "bars", "aria-label": "Both bars"}, bars) : null,
       score && score.decision ? h("p", {class: "hint"}, "Registered score: " + score.decision + (score.registry_sha256 ? ", registry " + shortDigest(score.registry_sha256) : "") + ".") : null,
       gates.length ? h("p", {class: "hint"}, "Gates: " + gates.map(words).join(", ") + ".") : null,
-      ok ? h("p", {class: "hint"}, "Two bars, the posted margin and the noise guard, as the Validator's rules card sets them.") : null,
+      h("p", {class: "hint"}, "Two bars, the posted margin and the noise guard, as the Validator's rules card sets them."),
       moreLine(anyNull(t, TARGET_FIELDS)));
   }
 
@@ -608,7 +623,8 @@
   function boardPage(board, ctx) {
     const c = ctx || {now: Math.floor(Date.now() / 1000)};
     const preRelease = board.phase === "PRE_FIRST_RELEASE" || (board.next_release && board.next_release.released_windows === 0);
-    const out = [boardHead(board), boardBanners(board, c)];
+    // A live board's one rules line sits in the target panel, where the bars would be.
+    const out = [boardHead(board, !preRelease), boardBanners(board, c)];
     if (preRelease) {
       out.push(heroPre(board, c), scoredBlock(board), timingCard(board, c), championshipBlock(board));
     } else {
@@ -716,7 +732,7 @@
   const api = {sparkFigure, sectionShort, SVG_NS, LINKS, ELIGIBLE, RULES_LINE, MORE, EMPTY_EPOCH, LADDER, PHASES,
     KING_FIELDS, TARGET_FIELDS, RELEASE_FIELDS, ENTRY_FIELDS, NETWORK_FIELDS, keyShort, rotationText, kingMissing, guardText, POSTED,
     h, walk, textOf, mount, places, fmt, signed, block, shortKey, shortDigest, utcSeconds, utc, span, countdown, parseRoute, boardHref, minerHref, labelsOf,
-    rulesOk, sectionLabel, sparkline, historySpec, boardPage, minerPage, homePage, minePage, networkStrip, footerStamp};
+    rulesOk, sectionLabel, sparkline, targetCard, historySpec, boardPage, minerPage, homePage, minePage, networkStrip, footerStamp};
   if (typeof module === "object" && module.exports) module.exports = api;
   if (typeof document === "undefined") return;
 
