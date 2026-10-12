@@ -76,3 +76,47 @@ def test_every_pod_job_is_in_the_weekly_summary(ledger):
     assert report["by_grant"] == {gr.POD_JOB_GRANT_ID: "23.00"}
     assert "OWNER-TEST-GRANT-01" in report["cap_decision"]
     assert len(gr.POD_JOB_STORE) == 32 and int(gr.POD_JOB_STORE, 16) >= 0
+
+
+class _Grant:
+    currency = "USD"
+
+    def __init__(self, grant_id, cost, runs=1):
+        self.grant_id, self.worst_case_run_cost, self.permitted_runs = (
+            grant_id,
+            cost,
+            runs,
+        )
+
+
+def test_the_reserve_binds_every_claim_not_only_pod_jobs(ledger):
+    """One rule everywhere (the Test Lead, 2026-10-12): a Graphite grant's claim,
+    e.g. the hunt's, also waits at USD 260 while CONFIRM-02's USD 40 is held."""
+    clock, _ = ledger
+    assert gr.effective_weekly_cap() == Decimal(260)
+    for n in range(5):  # USD 250 of hunt-sized runs
+        gr.claim(
+            _Grant(f"GRAPHITE-GRANT-HUNT-X{n}", Decimal(50)),
+            "a" * 32,
+            f"r{n}",
+            clock=clock,
+        )
+    refused(gr.WEEKLY_LIMIT, gr.claim, _Grant("GRAPHITE-GRANT-HUNT-X5", Decimal("14.94")),
+            "a" * 32, "r5", clock=clock)  # fmt: skip
+    refused(gr.WEEKLY_LIMIT, gr.claim_pod_job, "job-x", "10.01", clock=clock)
+    gr.claim_pod_job("job-y", "10", clock=clock)  # exactly 260, shared across kinds
+
+
+def test_removing_the_reserve_once_confirm02_settles_frees_the_headroom(
+    ledger, monkeypatch
+):
+    clock, _ = ledger
+    for n in range(5):
+        gr.claim_pod_job(f"job-{n}", "50", clock=clock)
+    gr.claim_pod_job("job-5", "10", clock=clock)  # at 260
+    refused(gr.WEEKLY_LIMIT, gr.claim_pod_job, "job-6", "40", clock=clock)
+    # The reviewed change after CONFIRM-02 settles removes its entry.
+    monkeypatch.setattr(gr, "HELD_RESERVES", {})
+    assert gr.effective_weekly_cap() == Decimal(300)
+    gr.claim_pod_job("job-6", "40", clock=clock)  # the USD 40 is free again
+    refused(gr.WEEKLY_LIMIT, gr.claim_pod_job, "job-7", "0.01", clock=clock)

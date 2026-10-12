@@ -84,6 +84,13 @@ WEEKLY_CAP_USD = Decimal(300)
 #: A run whose worst-case reservation is above this is refused (fail closed); a larger
 #: run needs its own owner record.
 PER_RUN_CAP_USD = Decimal(50)
+#: Weekly budget held back from EVERY claim for named runs launched outside this
+#: ledger (CLOUD-FIRST-COMPUTE-01; the Test Lead, 2026-10-12: one rule everywhere,
+#: enforced in code rather than by launch order): the sealed confirmation run's USD 40,
+#: launched from the RunPod console. Released by removing its entry, in a reviewed
+#: change, once that run has settled. It enforces the owner's existing figures and
+#: changes none of them.
+HELD_RESERVES = {"OWNER-SCORE-PROOF-CONFIRM-02-GRANT": Decimal(40)}
 PER_RUN_LIMIT = "per_run_cap_exceeded"
 WEEK_SECONDS = 7 * 24 * 3600
 WEEKLY_FILE = "weekly-spend.jsonl"
@@ -298,6 +305,12 @@ def _open(path):
         raise SharedRunsError(UNAVAILABLE, type(error).__name__) from None
 
 
+def effective_weekly_cap(reserves=None):
+    """The weekly cap a claim sees: the standing USD 300 less the held reserves."""
+    held = HELD_RESERVES if reserves is None else reserves
+    return WEEKLY_CAP_USD - sum((_cost(v) for v in held.values()), Decimal(0))
+
+
 def claim(
     grant,
     store_id,
@@ -306,7 +319,7 @@ def claim(
     repository=REPOSITORY,
     *,
     clock=time.time,
-    weekly_cap=WEEKLY_CAP_USD,
+    weekly_cap=None,
     seed_runs=(),
 ):
     """Claim one run of `grant` for launch `key` in the store `store_id`: against the
@@ -314,7 +327,10 @@ def claim(
     already claimed. `seed_keys` are this store's existing launch keys, added first so
     they are counted; `seed_runs` are `(key, started_at epoch, cost)` for runs whose
     cost basis also enters the rolling window at their own start time. Raises
-    `SharedRunsError`; returns the grant's count after."""
+    `SharedRunsError`; returns the grant's count after. The weekly cap is the
+    standing cap less the held reserves (`effective_weekly_cap`) unless given."""
+    if weekly_cap is None:
+        weekly_cap = effective_weekly_cap()
     if type(store_id) is not str or not _STORE_ID.fullmatch(store_id):
         raise SharedRunsError(UNAVAILABLE, "store id is invalid")
     if grant.currency != "USD":
@@ -711,16 +727,13 @@ def claim_seeds(grant, store_id, keys, repository=REPOSITORY, runs=()):
 # The shared pod launcher's runs (Data Collection's `pod_jobs`) are claimed here under
 # the standing weekly test grant (OWNER-TEST-GRANT-01), with no per-run owner ask: each
 # job's cost cap is its worst case, at most the USD 50 per-run cap; all of them count in
-# the same rolling-week ledger; and they may not use the reserves held for named runs.
+# the same rolling-week ledger; and, like every claim, they may not use the held
+# reserves (`HELD_RESERVES`).
 
 #: The ledger the pod jobs share. The weekly spend cap is their limit, not a run count.
 POD_JOB_GRANT_ID = "OWNER-TEST-GRANT-01:pod-jobs"
 POD_JOB_STORE = hashlib.sha256(b"carbon.grant-runs.pod-jobs.v1").hexdigest()[:32]
 POD_JOB_RUNS = 10**9
-#: Weekly budget held back from pod jobs for named runs (CLOUD-FIRST-COMPUTE-01): the
-#: sealed confirmation run's USD 40. Released by removing its entry, in a reviewed
-#: change, once that run has settled.
-HELD_RESERVES = {"OWNER-SCORE-PROOF-CONFIRM-02-GRANT": Decimal(40)}
 
 
 class PodJobGrant:
@@ -743,9 +756,8 @@ class PodJobGrant:
 
 
 def pod_job_weekly_cap(reserves=None):
-    """The weekly cap a pod job sees: the standing cap less the held reserves."""
-    held = HELD_RESERVES if reserves is None else reserves
-    return WEEKLY_CAP_USD - sum((_cost(v) for v in held.values()), Decimal(0))
+    """The weekly cap a pod job sees: as every claim's (`effective_weekly_cap`)."""
+    return effective_weekly_cap(reserves)
 
 
 def claim_pod_job(
