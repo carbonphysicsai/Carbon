@@ -158,6 +158,26 @@ def test_a_reachable_family_under_k_makes_the_report_incomplete():
     assert outcome["status"] == "INCOMPLETE" and outcome["not_run"] == []
 
 
+# -- levels after #1184: declared families make every level family reachable but L1's two ----------
+def _level_adapter(level):
+    adapter = ADAPTERS[(CID, level)]
+    return adapter() if isinstance(adapter, type) else adapter
+
+
+def _door_attempts(table, family, offset):
+    """Three attempts through the family's first door, declaring the family in the hypothesis."""
+    from test_graphite_attacker_stop_rule import _attempt
+
+    door = next(r for r in table["families"] if r["family"] == family)["doors"][0]
+    base = door.split("+")[0]
+    name, _, shape = base.partition("[")
+    arguments = {"hypothesis": f"[family: {family}]"}
+    if shape:
+        kind, _, action = shape.rstrip("]").partition("/")
+        arguments.update({"kind": kind, "action": action})
+    return [_attempt(offset + n + 1, name, arguments) for n in range(3)]
+
+
 # -- families with no offered construction door ---------------------------------------------
 @pytest.mark.parametrize("level", [1, 2, 3, 4])
 def test_families_without_an_offered_construction_door_are_named_at_every_level(
@@ -184,6 +204,33 @@ def test_families_without_an_offered_construction_door_are_named_at_every_level(
     assert all(
         r["covering_test"] is None and r["reported_gap"] for r in outcome["unreachable"]
     )
+
+
+def _full_outcome(level):
+    adapter = _level_adapter(level)
+    table = phase4.stop_rule_coverage(adapter, TOOLS, schema=V3)
+    found = []
+    for row in table["families"]:
+        found += _door_attempts(table, row["family"], len(found))
+    full = phase4.stop_rule_coverage(adapter, TOOLS, found, schema=V3)
+    return table, full, phase4.stop_rule_outcome(full, [])
+
+
+def test_level_one_reports_its_two_unreachable_families_as_gaps():
+    table, full, outcome = _full_outcome(1)
+    unreachable = sorted(r["family"] for r in table["unreachable"])
+    assert unreachable == ["l1_permission_ablation", "l1_rebuild_identity"]
+    assert all(row["covered"] for row in full["families"])
+    assert outcome["status"] == "DONE_WITH_GAPS"
+    assert sorted(outcome["gaps"]) == unreachable
+
+
+@pytest.mark.parametrize("level", [2, 3, 4])
+def test_levels_two_to_four_reach_every_family_and_finish_without_gaps(level):
+    table, full, outcome = _full_outcome(level)
+    assert table["unreachable"] == []
+    assert all(row["covered"] for row in full["families"])
+    assert outcome["status"] == "DONE" and outcome["gaps"] == []
 
 
 # -- the live Attacker runs under v3 ---------------------------------------------------------

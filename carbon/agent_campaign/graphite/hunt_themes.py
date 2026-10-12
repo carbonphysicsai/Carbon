@@ -49,6 +49,22 @@ THEMES = {
             "expressed here, name it in a WISH line."
         ),
     },
+    "causal-structure": {
+        "levels": (3, 4),
+        "text": (
+            "Theme: causal structure. Research on the public battery models found that "
+            "changing LATER charge steps shifts EARLIER voltage predictions (a prediction at "
+            "time t should depend only on the protocol up to t). Propose recipes whose "
+            "predictions at time t use only the protocol up to t, for example a recurrent or "
+            "step-by-step rollout structure instead of a model that reads the whole protocol "
+            "at once. Use only what this level's domain lists; where the level does not let "
+            "you build such a structure, say so and name the missing freedom in a WISH line."
+        ),
+        "report_extra": (
+            " For this theme also state plainly: whether this level's freedoms allow a causal "
+            "structure at all, and which Level 5 freedom would (what it is and what it needs)."
+        ),
+    },
     "open": {
         "levels": (1, 2, 3, 4),
         "text": (
@@ -79,6 +95,6 @@ def theme_block(theme_id, level):
         "id": theme_id,
         "level": level,
         "text": entry["text"],
-        "report_requirement": REPORT_REQUIREMENT,
+        "report_requirement": REPORT_REQUIREMENT + entry.get("report_extra", ""),
         "effect": "advice only: the level's domain, grant and boundaries are unchanged",
     }
