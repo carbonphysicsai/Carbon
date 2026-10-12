@@ -1,0 +1,15 @@
+{
+  "challenge": "motor",
+  "source_sha256": "6f2cc78489e3aed9083c895413a1c7d0525fe15e338765101ede729ad65ca97d",
+  "source": "docs/development/challenge_pipeline/automation-rehearsal/README.md",
+  "cycle": "motor-command-trial-law-batched",
+  "stage": "S4_question_law",
+  "actor": "checker-law",
+  "at": "2026-10-12T01:20:39.995461+00:00",
+  "schema": "carbon.onboarding.process-event.v1",
+  "kind": "EFFORT_END",
+  "id": "68659fe83af245eda70c14b6a318c5ac",
+  "actor_kind": "TOOL",
+  "stage_map_sha256": "e4370a51650ce7d638767c9d40e5804a246728f25dbbb1ab06ecc5648ea4c2f8",
+  "start_id": "1c4dc979c5194c2da1b1dfe69936b6a6"
+}

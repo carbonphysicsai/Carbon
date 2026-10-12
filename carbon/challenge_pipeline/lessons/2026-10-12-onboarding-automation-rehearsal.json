@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-12-onboarding-automation-rehearsal",
+  "recorded_at": "2026-10-12T01:22:24Z",
+  "challenge": "motor",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "ONBOARDING-AUTOMATION-REHEARSAL-01 / docs/development/challenge_pipeline/automation-rehearsal/report.json", "description": "Public motor preparation command-consolidation trial, explicit TOOL process clocks and retained onboarding metrics replay; native report tests."},
+  "expected": "Compare matched checker outputs and report observed timings, without inventing person-hours, complete readiness or accepted stages.",
+  "observed": "Eight per-clause invocations took 1.062409s, three batched invocations 0.359569s; compared outputs identical, observed 2.954673x command-consolidation ratio in one unblinded trial. Twenty-four events retain PREPARED/TOOL-only clocks. 18/18 report+metrics diagnostics passed. Historical human effort and labour speed-up remain NOT_DEMONSTRATED, missing motor panel inputs remain open. No solver/spend.",
+  "keep": ["Exact candidate-tool heads, output equality and raw timing bases.", "Separate direct benchmark time, timer-wrapper time, active contribution and accepted-stage elapsed."],
+  "change": ["Never turn process launch savings into human labour savings or whole-onboarding speed without a matched recorded baseline.", "Future human/agent before-after blocks need explicit timers, same task scope and activity coverage."],
+  "protocol_elements": ["challenge_onboarding", "effort_measurement", "historical_evidence", "lessons_learned"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

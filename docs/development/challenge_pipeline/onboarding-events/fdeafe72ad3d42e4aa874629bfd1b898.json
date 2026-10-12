@@ -1,0 +1,16 @@
+{
+  "kind": "EXIT",
+  "id": "fdeafe72ad3d42e4aa874629bfd1b898",
+  "source_sha256": "6f2cc78489e3aed9083c895413a1c7d0525fe15e338765101ede729ad65ca97d",
+  "stage_map_sha256": "e4370a51650ce7d638767c9d40e5804a246728f25dbbb1ab06ecc5648ea4c2f8",
+  "stage": "S3_feasibility_value_panel",
+  "source": "docs/development/challenge_pipeline/automation-rehearsal/README.md",
+  "actor_kind": "TOOL",
+  "cycle": "motor-command-trial-panel-batched",
+  "at": "2026-10-12T01:20:41.799750+00:00",
+  "schema": "carbon.onboarding.process-event.v1",
+  "actor": "checker-panel",
+  "challenge": "motor",
+  "entry_id": "e28d43b1c39f4bcca9af80a6075a5272",
+  "disposition": "PREPARED"
+}
