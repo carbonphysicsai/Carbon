@@ -129,7 +129,8 @@ export default {
         return plain("Feed not configured: " + (error.code || "error"), 503);
       }
       const seconds = config(env).seconds;
-      if (url.pathname === "/data/index.json") return json({...site.index, brand_assets: built.brand_assets || []}, 200, seconds);
+      // No signed network snapshot is served yet (S3), so the page never asks.
+      if (url.pathname === "/data/index.json") return json({...site.index, brand_assets: built.brand_assets || [], network: false}, 200, seconds);
       const prefix = v2 ? "/data/v2/" : "/data/boards/";
       const slug = decodeURIComponent(url.pathname.slice(prefix.length)).replace(/\.json$/, "");
       const board = (v2 ? site.boardsV2 : site.boards).get(slug);

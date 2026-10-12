@@ -534,6 +534,7 @@ export async function project(document, pinned) {
     showcase_panel: showcase(get(document, "showcase"), incumbent, pinned),
     feed: {
       key_id: "feed-" + (await sha256Hex(hexBytes(signer))).slice(0, 16),
+      public_key: signer,
       digest: "sha256:" + (await sha256Hex(bytes)),
     },
   };
@@ -777,7 +778,11 @@ export function projectV2(board, now, rulesCard = null) {
       ["generated_at", board.generated_at, "not_in_feed"],
       ["ranking_section", section, sectionReason],
       ["king", kingView, kingReason],
+      ["rotation", span(relGet("rotation_every_blocks")), "not_in_feed"],
     ),
+    sections: Object.entries(board.section_meta).map(([name, meta]) => fields(
+      ["name", name, null], ["display", meta.display, "not_in_feed"], ["unit", meta.unit, "not_in_feed"],
+      ["sense", meta.sense, name === "gates" ? "not_a_numeric_section" : "not_in_feed"])),
     championship: fields(
       ["rounds", null, "not_in_feed"],
       ["entry", fields(["trigger_bar", null, "not_in_feed"], ["king_screening_display", null, "not_in_feed"], ["coldkeys", null, "not_in_feed"]), null],

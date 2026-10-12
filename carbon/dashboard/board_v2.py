@@ -23,7 +23,10 @@ document. It adds no field the feed does not carry and invents no value:
   `challenge.rule_digest`, and OK when they match. Unless OK, the rule text,
   round period, release predicate, retirement count and release lag are null
   with the status's reason; numbers measured in the feed (scores, blocks)
-  stay.
+  stay. The feed's own rotation (`rotation`, from
+  `release.rotation_every_blocks`) and its section metadata (`sections`) are
+  such numbers (DASHBOARD-02 S2): shown whatever the status, while
+  `next_round.every` stays the rule's round period.
 
 Display software only: nothing here ranks, nominates or promotes.
 """
@@ -57,6 +60,7 @@ REASONS = (
     "rules_digest_mismatch",
     "sealed_until_grain",
     "grain_human_input",
+    "not_a_numeric_section",
 )
 RULES_STATES = ("UNAVAILABLE", "DIGEST_MISMATCH", "OK")
 # The championship's shape (Test Lead, VALIDATOR-32 rev 7 §5), for S2. None
@@ -420,7 +424,27 @@ def project(board, now, rules_card=None):
             ("generated_at", board["generated_at"], "not_in_feed"),
             ("ranking_section", section, section_reason),
             ("king", king, king_reason),
+            # The feed's own rotation period (`release.rotation_every_blocks`),
+            # a block count measured in the feed (DASHBOARD-02 S2), shown
+            # whatever the rules card's status.
+            ("rotation", _span(every), "not_in_feed"),
         ),
+        # What is scored: each section's display name, unit and sense, as
+        # the feed states them.
+        "sections": [
+            _fields(
+                ("name", name, None),
+                ("display", meta["display"], "not_in_feed"),
+                ("unit", meta["unit"], "not_in_feed"),
+                # Gates are pass/fail: they have no better direction.
+                (
+                    "sense",
+                    meta["sense"],
+                    "not_a_numeric_section" if name == "gates" else "not_in_feed",
+                ),
+            )
+            for name, meta in board["section_meta"].items()
+        ],
         "championship": _fields(
             ("rounds", None, "not_in_feed"),
             (

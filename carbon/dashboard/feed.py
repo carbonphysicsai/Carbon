@@ -665,6 +665,8 @@ def project(document, trust):
         "showcase_panel": _showcase(document.get("showcase"), incumbent, trust),
         "feed": {
             "key_id": key_id(signer),
+            # The pinned public key that signed it, as people know the key.
+            "public_key": signer,
             "digest": "sha256:" + hashlib.sha256(canonical_bytes(document)).hexdigest(),
         },
     }
