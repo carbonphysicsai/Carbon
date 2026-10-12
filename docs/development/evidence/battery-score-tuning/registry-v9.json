@@ -12,6 +12,7 @@
  "two_gates": "`and_gates` holds fixed gates applied beside the swept one: a member fails if any gate fails. The envelope cutoff 1.0 is G-N+env1's registered point (SR-B1's G2), not an adopted threshold (HUMAN_INPUT).",
  "verify_r": "legs v1, v3, v5: verify_quiz on the quiz's settled Q3 lattices; a run without --verify-r leaves these candidates unscored (INCOMPLETE_LEGS)",
  "value_first": "VERIFY-R- and Q3-regret-led rules with accuracy as a tiebreak only; v8's A-Q-led rules (A-Q, G-FEAS+ENV/A-Q, the rule in force) stay as controls. A pick from v9 is confirmed only on freshly drawn sealed questions (amendment 5)",
+ "public_split": "public-dev-split-v1.json (registered 2026-10-12, before any public result is scored): salt SCORE-PROOF-01/public-dev-split-v1, leg_share 0.5, keyed on the question's scenario id (PUBLIC-DEV-DECISIONS-01's D-0000..D-0109); LEG questions feed VERIFY-R's legs only, VALUE questions the selection's value only",
  "candidates": [
   {
    "id": "CE",
