@@ -29,6 +29,7 @@ variant-invariant surface.
 
 from __future__ import annotations
 
+import hashlib
 import itertools
 import json
 import math
@@ -74,15 +75,72 @@ def validate(contract):
         ):
             raise ContractRefused("physics_contract_region:" + name)
     laws = contract.get("laws")
+    required = contract.get("required_outputs")
+    if (
+        type(required) is not list
+        or not required
+        or any(type(name) is not str or not name for name in required)
+        or len(set(required)) != len(required)
+    ):
+        raise ContractRefused("physics_contract_outputs")
+    shapes = contract.get("output_shapes", {})
+    if type(shapes) is not dict or any(
+        name not in required or type(size) is not int or size < 0
+        for name, size in shapes.items()
+    ):
+        raise ContractRefused("physics_contract_shapes")
+    models = contract.get("validity_models", [])
+    if type(models) is not list:
+        raise ContractRefused("physics_contract_validity")
+    for model in models:
+        if type(model) is not dict or not model.get("name") or not model.get("source"):
+            raise ContractRefused("physics_contract_validity")
+        bounds = model.get("quantities")
+        if type(bounds) is not dict or not bounds:
+            raise ContractRefused("physics_contract_validity")
+        for limits in bounds.values():
+            if (
+                type(limits) is not list
+                or len(limits) != 2
+                or any(v is not None and not _number(v) for v in limits)
+                or limits == [None, None]
+                or all(v is not None for v in limits)
+                and limits[0] >= limits[1]
+            ):
+                raise ContractRefused("physics_contract_validity")
     if type(laws) is not list or not laws:
         raise ContractRefused("physics_contract_laws")
     seen = set()
     for law in laws:
         if type(law) is not dict or law.get("type") not in LAW_TYPES:
             raise ContractRefused("physics_contract_law_type")
-        if law.get("id") in seen or type(law.get("id")) is not str:
+        if type(law.get("id")) is not str or not law["id"] or law["id"] in seen:
             raise ContractRefused("physics_contract_law_id")
         seen.add(law["id"])
+        outputs = (
+            law.get("outputs", [])
+            if law["type"] == "smoothness"
+            else [law.get("output")]
+        )
+        if not outputs or any(name not in required for name in outputs):
+            raise ContractRefused("physics_contract_law_output:" + law["id"])
+        if law["type"] in PAIR and (
+            not _number(law.get("step")) or not 0 < law["step"] <= 1
+        ):
+            raise ContractRefused("physics_contract_law_step:" + law["id"])
+        if (
+            law["type"] in {"initial_equals_input", "initial_near_aux", "floor_input"}
+            and law.get("input") not in region
+        ):
+            raise ContractRefused("physics_contract_law_input:" + law["id"])
+        if law["type"] == "bound" and (
+            not _number(law.get("low"))
+            or not _number(law.get("high"))
+            or law["low"] >= law["high"]
+        ):
+            raise ContractRefused("physics_contract_law_bound:" + law["id"])
+        if law["type"] == "floor_input" and not _number(law.get("offset", 0.0)):
+            raise ContractRefused("physics_contract_law_offset:" + law["id"])
         if law["type"] in ("monotone", "monotone_curve") and (
             law.get("input") not in region
         ):
@@ -94,8 +152,68 @@ def validate(contract):
     return contract
 
 
+def digest(contract):
+    """Prospective identity of a validated plain-data contract; no registration."""
+    validate(contract)
+    return (
+        "sha256:"
+        + hashlib.sha256(
+            json.dumps(
+                contract, sort_keys=True, separators=(",", ":"), allow_nan=False
+            ).encode()
+        ).hexdigest()
+    )
+
+
+def applicable(contract, inputs, outputs=None):
+    """The declared input box and any additional validity models must hold.
+
+    A pending scientific envelope permits in-box DEVELOPMENT diagnostics only;
+    it is not evidence of physical validity or authority to adopt a gate.
+    """
+    if type(inputs) is not dict:
+        return False
+    observed = {**(outputs or {}), **inputs}
+    for bounds in [contract["probe_region"]] + [
+        model["quantities"] for model in contract.get("validity_models", [])
+    ]:
+        for name, (low, high) in bounds.items():
+            value = observed.get(name)
+            if (
+                not _number(value)
+                or (low is not None and value < low)
+                or (high is not None and value > high)
+            ):
+                return False
+    return True
+
+
 def _number(x):
     return type(x) in (int, float) and math.isfinite(x)
+
+
+def _values(value):
+    seq = value if type(value) in (list, tuple) else [value]
+    if not seq or not all(_number(v) for v in seq):
+        raise ValueError("non-finite or absent output")
+    return seq
+
+
+def _outputs_valid(contract, outputs):
+    if type(outputs) is not dict:
+        return False
+    try:
+        for name in contract["required_outputs"]:
+            value = outputs[name]
+            _values(value)
+            size = contract.get("output_shapes", {}).get(name)
+            if size == 0 and not _number(value):
+                return False
+            if size and (type(value) not in (list, tuple) or len(value) != size):
+                return False
+    except (KeyError, ValueError):
+        return False
+    return True
 
 
 def _summary(value, how):
@@ -118,7 +236,10 @@ def single_residual(law, inputs, outputs, aux=None):
     output is absent or non-finite (UNRESOLVED)."""
     try:
         value = outputs[law["output"]]
+        _values(value)
         kind = law["type"]
+        if "input" in law and not _number(inputs.get(law["input"])):
+            return None
         if kind == "bound":
             seq = value if isinstance(value, list) else [value]
             seq = [float(v) for v in seq]
@@ -128,6 +249,8 @@ def single_residual(law, inputs, outputs, aux=None):
             return abs(float(value[0]) - float(inputs[law["input"]]))
         if kind == "initial_near_aux":
             target = aux[law["aux"]](float(inputs[law["input"]]))
+            if not _number(target):
+                return None
             return abs(float(value[0]) - float(target))
         if kind == "ordered":
             seq = [float(v) for v in value]
@@ -148,13 +271,27 @@ def single_residual(law, inputs, outputs, aux=None):
 def check_cases(contract, cases, aux=None):
     """`{law_id: [residual per case]}` for the single-point laws over `cases`,
     an iterable of `(inputs, outputs)`; an UNRESOLVED point is omitted."""
+    return {
+        lid: row["residuals"]
+        for lid, row in case_readings(contract, cases, aux).items()
+    }
+
+
+def case_readings(contract, cases, aux=None):
+    """Residuals and UNRESOLVED counts, retaining the basis of each reading."""
+    validate(contract)
     laws = [law for law in contract["laws"] if law["type"] in SINGLE]
-    found = {law["id"]: [] for law in laws}
+    found = {law["id"]: {"residuals": [], "unresolved": 0} for law in laws}
     for inputs, outputs in cases:
+        valid = applicable(contract, inputs, outputs) and _outputs_valid(
+            contract, outputs
+        )
         for law in laws:
-            r = single_residual(law, inputs, outputs, aux)
+            r = single_residual(law, inputs, outputs, aux) if valid else None
             if r is not None and math.isfinite(r):
-                found[law["id"]].append(r)
+                found[law["id"]]["residuals"].append(r)
+            else:
+                found[law["id"]]["unresolved"] += 1
     return found
 
 
@@ -165,6 +302,9 @@ def probe_pairs(contract, law, *, seed, count):
     """`count` probe pairs for a pair law: a uniform point in the region and
     its partner moved by the law's step (along its input, or a random input
     for smoothness), kept inside the region. Deterministic in `seed`."""
+    validate(contract)
+    if type(count) is not int or count < 0:
+        raise ContractRefused("physics_contract_probe_count")
     region = contract["probe_region"]
     rng = random.Random(f"{seed}:{law['id']}")
     names = sorted(region)
@@ -186,6 +326,11 @@ def pair_residual(law, base_out, partner_out, along, step, scale=None):
     by `step`) breaks the declared direction, or, for smoothness, the
     largest output change per unit input step (scaled by `scale[output]`)."""
     try:
+        names = law["outputs"] if law["type"] == "smoothness" else [law["output"]]
+        for name in names:
+            a, b = _values(base_out[name]), _values(partner_out[name])
+            if len(a) != len(b):
+                return None
         if law["type"] == "monotone":
             a = _summary(base_out[law["output"]], law.get("summary", "value"))
             b = _summary(partner_out[law["output"]], law.get("summary", "value"))
@@ -199,13 +344,17 @@ def pair_residual(law, base_out, partner_out, along, step, scale=None):
                 return max([0.0] + [-g for g in gaps])
             return max([0.0] + gaps)
         if law["type"] == "smoothness":
+            if not _number(step) or step <= 0:
+                return None
             worst = 0.0
             for name in law["outputs"]:
                 a, b = base_out[name], partner_out[name]
                 a = a if isinstance(a, list) else [a]
                 b = b if isinstance(b, list) else [b]
                 change = max(abs(float(y) - float(x)) for x, y in zip(a, b))
-                unit = (scale or {}).get(name, 1.0) or 1.0
+                unit = (scale or {}).get(name, 1.0)
+                if not _number(unit) or unit <= 0:
+                    return None
                 worst = max(worst, change / unit / step)
             return worst
     except (KeyError, TypeError, ValueError):
@@ -217,20 +366,43 @@ def check_probes(contract, predict, *, seed, count, scale=None):
     """`{law_id: [residual per probe pair]}` for the pair laws: probe pairs
     drawn per law, predicted through `predict(list_of_input_dicts) ->
     list_of_output_dicts` (one call), no solver."""
+    return {
+        lid: row["residuals"]
+        for lid, row in probe_readings(
+            contract, predict, seed=seed, count=count, scale=scale
+        ).items()
+    }
+
+
+def probe_readings(contract, predict, *, seed, count, scale=None):
+    """Detailed pair readings; predictions of missing points stay UNRESOLVED."""
+    validate(contract)
     laws = [law for law in contract["laws"] if law["type"] in PAIR]
     drawn = {
         law["id"]: probe_pairs(contract, law, seed=seed, count=count) for law in laws
     }
     points = [p for pairs in drawn.values() for _a, b, q, _s in pairs for p in (b, q)]
     outputs = predict(points) if points else []
+    if type(outputs) not in (list, tuple) or len(outputs) != len(points):
+        raise ContractRefused("physics_contract_prediction_count")
     found, i = {}, 0
     for law in laws:
-        found[law["id"]] = []
-        for along, _b, _q, step in drawn[law["id"]]:
-            r = pair_residual(law, outputs[i], outputs[i + 1], along, step, scale)
+        found[law["id"]] = {"residuals": [], "unresolved": 0}
+        for along, base, partner, step in drawn[law["id"]]:
+            valid = all(
+                applicable(contract, p, o) and _outputs_valid(contract, o)
+                for p, o in ((base, outputs[i]), (partner, outputs[i + 1]))
+            )
+            r = (
+                pair_residual(law, outputs[i], outputs[i + 1], along, step, scale)
+                if valid
+                else None
+            )
             i += 2
             if r is not None and math.isfinite(r):
-                found[law["id"]].append(r)
+                found[law["id"]]["residuals"].append(r)
+            else:
+                found[law["id"]]["unresolved"] += 1
     return found
 
 
@@ -238,6 +410,8 @@ def check_probes(contract, predict, *, seed, count, scale=None):
 
 
 def quantile(values, q):
+    if not _number(q) or not 0 <= q <= 1 or any(not _number(v) for v in values):
+        raise ContractRefused("physics_contract_quantile")
     values = sorted(values)
     if not values:
         return None
@@ -252,6 +426,8 @@ def tolerance(reference_residuals, *, q, margin):
     residuals) leaves the tolerance unset (None): the gate is not ready."""
     if q == HUMAN_INPUT or margin == HUMAN_INPUT or q is None or margin is None:
         return None
+    if not _number(margin) or margin < 0:
+        raise ContractRefused("physics_contract_margin")
     base = quantile(reference_residuals, q)
     return None if base is None else base + margin
 
@@ -260,6 +436,8 @@ def violation_rate(residuals, tol):
     """The share of checked points whose residual exceeds `tol`."""
     if tol is None or not residuals:
         return None
+    if not _number(tol) or tol < 0 or any(not _number(r) or r < 0 for r in residuals):
+        raise ContractRefused("physics_contract_residuals")
     return sum(r > tol for r in residuals) / len(residuals)
 
 
@@ -270,11 +448,15 @@ __all__ = [
     "SCHEMA",
     "SINGLE",
     "ContractRefused",
+    "applicable",
+    "case_readings",
     "check_cases",
     "check_probes",
+    "digest",
     "load",
     "pair_residual",
     "probe_pairs",
+    "probe_readings",
     "quantile",
     "single_residual",
     "tolerance",

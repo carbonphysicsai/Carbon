@@ -5,7 +5,10 @@
   "status": "DEVELOPMENT_PROPOSAL",
   "note": "PHYSICS-CONTRACT-01. Laws B1-B10, checkable on today's outputs. Hard gates when adopted (admissibility before ranking), never score terms. Every tolerance's quantile and margin is HUMAN_INPUT until the owner registers it; the law list is reconciled with research RES-06. Validity: the DFN's ranges are pending (VALIDITY-ENVELOPE-01, research RES-05); until declared, probes stay inside the input box.",
   "validity": "battery-fastcharge-ageing-development-v1",
+  "validity_status": "PENDING_SCIENCE_OWNER",
+  "validity_models": [],
   "required_outputs": ["voltage_v", "temperature_c", "plating_margin_v", "capacity_ah"],
+  "output_shapes": {"voltage_v": 121, "temperature_c": 121, "plating_margin_v": 0, "capacity_ah": 4},
   "probe_region": {
     "c1": [0.5, 2.0],
     "c2": [0.2, 1.0],
@@ -22,7 +25,7 @@
     {"id": "B6", "name": "plating margin falls with c1", "type": "monotone", "output": "plating_margin_v", "summary": "value", "input": "c1", "direction": "decreasing", "step": 0.05},
     {"id": "B7", "name": "plating margin rises with ambient (RES-06 to confirm)", "type": "monotone", "output": "plating_margin_v", "summary": "value", "input": "t_amb_c", "direction": "increasing", "step": 0.05},
     {"id": "B8", "name": "temperature curve rises with ambient", "type": "monotone_curve", "output": "temperature_c", "input": "t_amb_c", "direction": "increasing", "step": 0.05},
-    {"id": "B9", "name": "temperature never below ambient", "type": "floor_input", "output": "temperature_c", "input": "t_amb_c", "offset": 0.0},
+    {"id": "B9", "name": "temperature floor relative to ambient (reference-calibrated proposal)", "type": "floor_input", "output": "temperature_c", "input": "t_amb_c", "offset": 0.0},
     {"id": "B10", "name": "smoothness (robustness probe)", "type": "smoothness", "outputs": ["voltage_v", "temperature_c", "plating_margin_v", "capacity_ah"], "step": 0.01}
   ],
   "tolerance": {

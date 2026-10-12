@@ -107,8 +107,8 @@ def _toy_battery(points, *, wrong=False):
         peak = p["t_amb_c"] + 25 + sign * 10 * p["c1"] + 3 * p["c2"]
         out.append(
             {
-                "voltage_v": [3.7, 4.0],
-                "temperature_c": [p["t_amb_c"], peak],
+                "voltage_v": [3.7] + [4.0] * 120,
+                "temperature_c": [p["t_amb_c"]] + [peak] * 120,
                 "plating_margin_v": 0.05 - sign * 0.02 * p["c1"] + 0.001 * p["t_amb_c"],
                 "capacity_ah": [5.0, 4.9, 4.8, 4.7],
             }
@@ -149,3 +149,69 @@ def test_the_tolerance_is_the_reference_quantile_plus_margin_and_unset_until_reg
     assert pc.tolerance(ref, q=1.0, margin=pc.HUMAN_INPUT) is None
     assert pc.violation_rate([0.0, 0.5, 0.1], 0.2) == pytest.approx(1 / 3)
     assert pc.violation_rate([0.1], None) is None
+
+
+def test_outside_validity_and_absent_outputs_are_unresolved_not_zero_residuals():
+    contract = pc.load(BATTERY)
+    inputs = {"c1": 1.0, "c2": 0.5, "t_amb_c": 25.0, "soc0": 0.2}
+    outputs = _toy_battery([inputs])[0]
+    readings = pc.case_readings(
+        contract, [({**inputs, "c1": 3.0}, outputs), (inputs, {})]
+    )
+    assert all(row == {"residuals": [], "unresolved": 2} for row in readings.values())
+    declared = {
+        **contract,
+        "validity_models": [
+            {
+                "name": "fixture",
+                "source": "synthetic non-production",
+                "quantities": {"t_amb_c": [20, 30]},
+            }
+        ],
+    }
+    assert pc.applicable(declared, inputs)
+    assert not pc.applicable(declared, {**inputs, "t_amb_c": 15})
+    assert not pc.applicable(declared, {**inputs, "t_amb_c": float("nan")})
+
+
+@pytest.mark.parametrize(
+    "value", [float("nan"), float("inf"), float("-inf"), True, "25"]
+)
+def test_invalid_predictions_cannot_be_hidden_by_min_max_or_zero(value):
+    contract = pc.load(BATTERY)
+    inputs = {"c1": 1.0, "c2": 0.5, "t_amb_c": 25.0, "soc0": 0.2}
+    outputs = _toy_battery([inputs])[0]
+    bad = {**outputs, "temperature_c": [25.0, value] + [30.0] * 119}
+    assert pc.single_residual(_law(contract, "B9"), inputs, bad) is None
+    assert pc.pair_residual(_law(contract, "B8"), outputs, bad, "t_amb_c", 1) is None
+    assert pc.case_readings(contract, [(inputs, bad)])["B9"]["unresolved"] == 1
+
+
+def test_short_curves_and_prediction_count_mismatches_are_refused():
+    contract = pc.load(BATTERY)
+    law = _law(contract, "B8")
+    assert (
+        pc.pair_residual(
+            law, {"temperature_c": [1, 2]}, {"temperature_c": [1]}, "t_amb_c", 1
+        )
+        is None
+    )
+    with pytest.raises(pc.ContractRefused, match="prediction_count"):
+        pc.check_probes(contract, lambda points: [], seed="t", count=1)
+
+
+def test_digest_and_step_validation_are_prospective():
+    import copy
+
+    contract = pc.load(BATTERY)
+    assert pc.digest(contract) == pc.digest(dict(reversed(list(contract.items()))))
+    changed = copy.deepcopy(contract)
+    changed["laws"][0]["high"] += 0.01
+    assert pc.digest(contract) != pc.digest(changed)
+    changed["laws"][4]["step"] = 0
+    with pytest.raises(pc.ContractRefused, match="law_step"):
+        pc.validate(changed)
+    with pytest.raises(pc.ContractRefused, match="margin"):
+        pc.tolerance([0.0], q=1, margin=-1)
+    with pytest.raises(pc.ContractRefused, match="quantile"):
+        pc.tolerance([0.0], q=1.1, margin=0)
