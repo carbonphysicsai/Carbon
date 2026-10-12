@@ -213,10 +213,17 @@ def test_another_levels_variant_is_refused_by_its_own_code(
 
 
 def test_a_listed_variant_needs_the_injected_compiler(ladder_validator):
-    # Fail closed until the ladder's service entry point supplies it.
-    assert code(ladder_validator, MINER_C, FIXTURE_DIGESTS[2]) == (
-        "development_variant_not_served"
-    )
+    # Fail closed until the ladder's service entry point supplies it, as
+    # Carbon's state, never the miner's: lane D's first L1 submission was
+    # recorded INVALID_CONSTRUCTION (`development_variant_not_served`) because
+    # the intake's process, which has no compiler, admitted it. Now nothing is
+    # recorded and the process holding the compiler admits it.
+    from carbon.battery.daemon import DevelopmentCompilerUnavailable
+
+    before = ladder_validator.store.pool()["admitted"]
+    with pytest.raises(DevelopmentCompilerUnavailable):
+        ladder_validator.admit(tbd.submission(MINER_C, digest=FIXTURE_DIGESTS[2]))
+    assert ladder_validator.store.pool()["admitted"] == before
     seen = []
 
     def compiler(strategy, digest):
@@ -337,9 +344,13 @@ def test_one_door_serves_several_levels(tmp_path, refs, backend):  # noqa: F811
     )
     validator = tbd.make(tmp_path, refs, backend, development_only=True, ladder=ladder)
     # Each listed level's variant passes the ladder's own check (and, with no
-    # compiler supplied, fails closed after it); an unlisted level is refused.
+    # compiler supplied, fails closed after it as Carbon's state, recording
+    # nothing); an unlisted level is refused.
+    from carbon.battery.daemon import DevelopmentCompilerUnavailable
+
     for digest in (FIXTURE_DIGESTS[1], FIXTURE_DIGESTS[2]):
-        assert code(validator, MINER_C, digest) == "development_variant_not_served"
+        with pytest.raises(DevelopmentCompilerUnavailable):
+            validator.admit(tbd.submission(MINER_C, digest=digest))
     assert code(validator, MINER_C, FIXTURE_DIGESTS[3]) == "ladder_level_not_accepted"
     served = door(validator, tmp_path).served_contracts()
     assert {(s["level"], s.get("variant")) for s in served} == {

@@ -366,8 +366,11 @@ def _beat(heartbeat, state, out):
         _line(out, "heartbeat_failed", type=type(failure).__name__)
 
 
-def _pass(config_path, target, repository, out):
+def _pass(config_path, target, repository, out, inbox=None):
     """One pass: build the deployment if it is not built yet, then one `run`.
+    With `inbox` (the intake's), first one intake pass in this process, which
+    holds what the intake's process does not (the registered score, the
+    ladder's compiler): it admits what the intake left RECEIVED.
     Returns `(target, how the pass ended)`: `ok`, `failed` or `unavailable`."""
     if target is None:
         try:
@@ -378,6 +381,10 @@ def _pass(config_path, target, repository, out):
             _line(out, "pass_unavailable", code=unavailable.code)
             return None, "unavailable"
     try:
+        if inbox is not None:
+            from .intake import Inbox, work_once
+
+            work_once(Inbox(inbox), target)
         with writer(target):
             advanced = target.run_pending()
             status = target.status()
@@ -404,6 +411,7 @@ def run_every(
     out=None,
     repository=REPOSITORY,
     heartbeat=None,
+    inbox=None,
 ):
     """`run`, long-lived: advance the queue once per `every` seconds.
 
@@ -447,7 +455,7 @@ def run_every(
         while not stop.is_set():
             state.update(in_pass=True, pass_started_unix=time.time())
             _beat(heartbeat, state, out)
-            target, ended = _pass(config_path, target, repository, out)
+            target, ended = _pass(config_path, target, repository, out, inbox)
             state["passes"] += 1
             state.update(in_pass=False, last_pass=ended, last_pass_unix=time.time())
             _beat(heartbeat, state, out)
@@ -476,6 +484,10 @@ def main(argv=None):
     run.add_argument(
         "--heartbeat",
         help="with --every: keep a heartbeat at PATH (owner-only directory)",
+    )
+    run.add_argument(
+        "--inbox",
+        help="with --every: also admit and advance the intake's inbox at PATH",
     )
     prepare = sub.add_parser("prepare")
     prepare.add_argument("--config", required=True)
@@ -517,12 +529,20 @@ def main(argv=None):
 
     if args.command == "run" and args.heartbeat is not None and args.every is None:
         parser.error("--heartbeat needs --every")
+    if args.command == "run" and args.inbox is not None and args.every is None:
+        parser.error("--inbox needs --every")
     if args.command == "run" and args.every is not None:
         stop = threading.Event()
         for number in (signal.SIGTERM, signal.SIGINT):
             signal.signal(number, lambda *_: stop.set())
         try:
-            run_every(args.config, args.every, stop=stop, heartbeat=args.heartbeat)
+            run_every(
+                args.config,
+                args.every,
+                stop=stop,
+                heartbeat=args.heartbeat,
+                inbox=args.inbox,
+            )
         except EvaluationUnavailable as unavailable:
             # A configuration refusal exits 2 and is never restarted; any
             # other code is the host's state, exit 1, restarted after backoff.
