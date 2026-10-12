@@ -1,4 +1,4 @@
-"""A validator's public score feed (VALIDATOR-29): released windows only.
+"""A validator's public score feed: released history and a screening ladder.
 
 Under rule v2's SEALED disclosure (OWNER-BATTERY-3B-AND-EXPOSURE-01), nothing
 computed from a hidden window is shown before the window is **released**:
@@ -6,6 +6,11 @@ every case it drew is retired and published in the Challenge's public training
 pool. A submission appears only when every window its score used is released.
 Under the bank a case retires after E draws, so the feed lags the pool by
 about E rotations; its `release` metadata says so.
+
+PLT-08 adds the owner's bounded exception: a pooled screening ladder per
+chain coldkey, governed by the Test Engineer's committed grain/noise policy,
+and per-hotkey attempt counts. Neither block discloses cases, windows, raw
+scores, noise inputs, championship or fresh-batch results.
 
 - **Release records** (`record_releases`): the public training listing is
   read, each file is verified in full (`training_pool.verify`: producer
@@ -479,6 +484,8 @@ def build(
     with_showcase=False,
     chain=None,
     winners=None,
+    attempt_ledger=None,
+    repository=REPOSITORY,
 ):
     """The signed feed for this validator's deployment and one device class,
     stored as a new version when it changed. Returns the feed. Scores of
@@ -615,6 +622,13 @@ def build(
         "excluded": {"canary_hotkeys": excluded},
         "target_to_beat": target_to_beat(rule),
     }
+    # PLT-08: an explicitly registered pooled-screening exception to sealed
+    # disclosure. Existing released-only sections keep their own policy.
+    status, screening = _screening_disclosure(
+        target, identities, device_class, chain, canaries, attempt_ledger, repository
+    )
+    document["miner_status"] = status
+    document["leaderboard"]["ladder"] = screening
     king, handovers = king_record(store, list(winners or ()), canaries)
     document["king"] = king
     document["handovers"] = handovers
@@ -631,6 +645,95 @@ def build(
         store,
     )
     return {**feed, "signature": key.sign(feed)}
+
+
+def _screening_disclosure(
+    target, identities, device_class, chain, canaries, ledger, repository
+):
+    from .ledger import LedgerUnavailable, public_status_counts
+    from .screening_ladder import ladder, load_grain
+
+    owners = {}
+    if type(chain) is dict and type(chain.get("participants")) is dict:
+        for hotkey, seat in chain["participants"].items():
+            if hotkey in canaries or type(hotkey) is not str or type(seat) is not dict:
+                continue
+            coldkey = seat.get("coldkey")
+            if type(coldkey) is str and coldkey:
+                owners[hotkey] = coldkey
+    grain = load_grain(repository, identities, target.rule)
+    candidates, scored = [], {}
+    for row in target.store.scored_submissions(scoring_order=True):
+        record, binding = row["record"], row["binding"]
+        used = record.get("active_batches")
+        rebuilt = record.get("rebuild") or {}
+        row_class = rebuilt.get("device_class", record.get("device_class", "cpu"))
+        if (
+            row["hotkey"] not in owners
+            or row["state"] != "SCORED"
+            or "development" in binding
+            or row_class != device_class
+            or record.get("rule_digest") != identities["rule_digest"]
+            or binding.get("rule_digest") != identities["rule_digest"]
+            or type(used) is not list
+            or not used
+        ):
+            continue
+        # A scalar on a finalist/fresh batch is never a screening scalar.
+        batches = [target.store.batch(fingerprint) for fingerprint in used]
+        if any(batch is None or batch["kind"] != "screening" for batch in batches):
+            continue
+        scored[row["hotkey"]] = scored.get(row["hotkey"], 0) + 1
+        if record.get("eligible") is not True:
+            continue
+        registered = record.get("registered")
+        if target.rule.get("score") is not None:
+            if (
+                type(registered) is not dict
+                or registered.get("candidate") != target.rule["score"]["candidate"]
+                or registered.get("eligible") is not True
+                or registered.get("gate") not in (None, "PASS")
+            ):
+                continue
+            score = registered.get("score")
+        else:
+            score = record.get("score")
+        noise = record.get("screening_noise")
+        if type(noise) is dict and target.rule.get("score") is not None:
+            question_noise = registered.get("screening_noise")
+            noise = (
+                {**noise, **question_noise} if type(question_noise) is dict else None
+            )
+        receipt = binding.get("receipt") or {}
+        commitment = binding.get("commitment") or {}
+        block = commitment.get("block", receipt.get("block"))
+        candidates.append(
+            {
+                "hotkey": row["hotkey"],
+                "score": score,
+                "submission_id": row["submission_id"],
+                "block": block if type(block) is int and block >= 0 else None,
+                "noise": noise,
+            }
+        )
+    counts = None
+    if ledger is not None and chain is not None:
+        try:
+            counted = public_status_counts(
+                ledger, identities["contract_digest"], set(owners)
+            )
+        except LedgerUnavailable:
+            pass  # unknown activity remains null, never fabricated zero counts
+        else:
+            for hotkey in scored:
+                counted.setdefault(
+                    hotkey, {"hotkey": hotkey, "received": 0, "refused": {}}
+                )
+            counts = [
+                {**row, "scored": scored.get(hotkey, 0)}
+                for hotkey, row in sorted(counted.items())
+            ]
+    return counts, ladder(candidates, owners, grain, target.rule)
 
 
 def chain_snapshot(context):
@@ -704,6 +807,9 @@ def main(argv=None):
         help="the weights publisher's winner ledger (king and handovers)",
     )
     built.add_argument(
+        "--attempt-ledger", help="owner-only attempt ledger for public status counts"
+    )
+    built.add_argument(
         "--no-chain",
         action="store_true",
         help="skip the finalized chain read (chain-time fields are null)",
@@ -755,6 +861,7 @@ def main(argv=None):
                     with_showcase=args.showcase,
                     chain=chain,
                     winners=winners,
+                    attempt_ledger=args.attempt_ledger,
                 )
             if args.out:
                 write_feed(args.out, feed)

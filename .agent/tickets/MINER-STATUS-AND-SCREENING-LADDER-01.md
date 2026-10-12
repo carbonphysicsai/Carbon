@@ -45,3 +45,22 @@ Prospectively preserve scored case errors and design regrets in operator-only
 records. Reuse the same scoring outputs; do not rerun evaluation or rewrite old
 records. Missing historical noise evidence remains sealed. Replay score insertion
 order so late worker completions cannot reorder display updates.
+
+Public additions (signed under the existing feed.v1 domain):
+- miner_status: null when its ledger/chain source is unavailable; otherwise
+  [{hotkey, received, scored, refused: {closed_code: count}}]. Received counts
+  transport attempts; scored counts immutable screening submissions for the
+  current rule/device, including ineligible scores. Refusal counts include the
+  bounded ledger's overflow tally. No raw exception text or unknown code.
+- leaderboard.ladder: {grain_pct, display_grid, sense, grain_version,
+  grain_registration_digest, coldkeys}. Registration digest hashes the canonical
+  public JSON document. Each coldkey row contains coldkey, hotkeys, rank,
+  displayed_score, status, best_submission_id and displayed_at_block. Missing
+  registration/noise/minimum evidence has no displayed value, rank, best id or
+  block. The dashboard readers preserve the existing legacy precision contract
+  and admit the new geometric declaration explicitly. LP-02 owns status UI work.
+
+Operator integration: supply the existing owner-only ledger via build's
+--attempt-ledger path. Omission/unavailability returns null activity; no new
+ledger is initialized. Provide the existing finalized chain snapshot; no
+ownership is inferred from submitted metadata. No deployment is performed.
