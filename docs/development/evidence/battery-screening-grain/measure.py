@@ -32,8 +32,8 @@ from carbon.battery import exam
 from carbon.battery.value import scoring as sc
 
 DIRS = [
-    "/home/carbon/shared/evidence/srb1-ev4/experiment/predictions",
-    "/home/carbon/shared/evidence/graphite-run5-q1/predictions",
+    "~carbon/shared/evidence/srb1-ev4/experiment/predictions",
+    "~carbon/shared/evidence/graphite-run5-q1/predictions",
 ]
 POOLED = exam.DEVELOPMENT_RULE_V2["active_batches"] * (
     exam.DEVELOPMENT_RULE_V2["screening_batch_size"] - 2
@@ -44,7 +44,7 @@ rng = np.random.default_rng(20261012)
 store, ids, _ = sc.scoring_set(REPO)
 err = {}
 for d in DIRS:
-    for p in sorted(Path(d).glob("*.json.gz")):
+    for p in sorted(Path(d).expanduser().glob("*.json.gz")):
         b = json.loads(gzip.decompress(p.read_bytes()))
         rows, agg = exam.evaluate(b["predictions"], ids, store)
         if agg["eligible"]:
