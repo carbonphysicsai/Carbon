@@ -103,6 +103,12 @@ BASELINE_RETRY_USED = "baseline_retry_used"
 RELAUNCH_NO_TIME = "relaunch_cannot_fit_remaining_time"
 NANO = Decimal(10) ** 9
 MAX_STRATEGY_BYTES = 16384
+#: GRAPHITE-L4-STAGING-01: the one export a Level 4 lowering run writes, and
+#: the most bytes Carbon reads of it, packed and unpacked. Unpacked, an
+#: envelope is G0's whole-submission bound (`intake.BOUNDS`) in base64 plus
+#: its JSON: twice that bound holds any admissible one.
+LEVEL4_ENVELOPE_EXPORT = "level4-envelope.json.gz"
+LEVEL4_ENVELOPE_LIMIT_FACTOR = 2
 
 
 class BudgetRefused(ValueError):
@@ -244,7 +250,7 @@ def recorded_contract(scoring=None):
     return challenge_scoring.resolve(scoring).recorded_contract()
 
 
-def admit(strategy, seed, root=REPOSITORY, scoring=None, variant=None):
+def admit(strategy, seed, root=REPOSITORY, scoring=None, variant=None, workspace=None):
     """Compile `strategy` exactly as Carbon would rebuild it; return what
     Carbon would build (`ChallengeScoring.built_record`). Raises `Unrebuildable`
     (never scored) or `NotServed` (Carbon rebuilds it, these pods do not).
@@ -266,7 +272,12 @@ def admit(strategy, seed, root=REPOSITORY, scoring=None, variant=None):
     if variant is not None:
         from carbon.reconstruction import development_variants
 
-        return development_variants.admit(resolved, strategy, seed, root, variant)
+        # Only a Level 4 proposal with staged documents passes them; every
+        # other level calls admission exactly as before.
+        extra = {} if workspace is None else {"workspace": workspace}
+        return development_variants.admit(
+            resolved, strategy, seed, root, variant, **extra
+        )
     contract = recorded_contract(resolved)
     return challenge_scoring.admit(resolved, strategy, seed, root, contract=contract)
 
@@ -574,6 +585,15 @@ def _variant_feedback(view, record):
             "score_label": scored.get("label"),
         }
     return view
+
+
+def _l4_refused(code):
+    return {
+        "status": "REJECTED_BEFORE_DISPATCH",
+        "reason_code": str(code),
+        "dispatched": False,
+        "authority_granted": False,
+    }
 
 
 class Experiment:
@@ -1069,6 +1089,148 @@ class Experiment:
         )
         self._stop_session(pid, SimpleNamespace(reason_code=TOKENS_ONLY_CHARGE))
 
+    # -- Level 4 staging (GRAPHITE-L4-STAGING-01) ----------------------------------------
+    def level4_variant_bounds(self):
+        """The Level 4 variant's bounds (its `loss_override`), or None when this
+        session is not at Level 4."""
+        variant = self.development_variant
+        if variant is None or getattr(variant, "level", None) != 4:
+            return None
+        for widened in variant.widened:
+            return json.loads(widened.bounds_json)
+        return None
+
+    def level4_envelope_limit(self):
+        from carbon.level4 import intake
+
+        return LEVEL4_ENVELOPE_LIMIT_FACTOR * intake.BOUNDS["submission_bytes"]
+
+    def level4_interface(self, strategy):
+        """What a lowering for `strategy` must target: its interface digest,
+        inputs and training batch, and the two commands."""
+        from carbon.battery import level4 as battery_level4
+        from carbon.battery import level4_admission
+
+        interface, batch = level4_admission.interface_and_batch(strategy)
+        digest = interface.digest()
+        challenge = battery_level4.challenge_id()
+        return {
+            "status": "LEVEL4_INTERFACE",
+            "interface": digest,
+            "inputs": [list(i) for i in interface.inputs],
+            "outputs": [list(o) for o in interface.outputs],
+            "batch": batch,
+            "field": "parameters." + battery_level4.FIELD,
+            "commands": [
+                (
+                    "python -m carbon.level4.tooling lower spec.py lowered "
+                    f"--challenge {challenge} --interface {digest} --batch {batch}"
+                ),
+                (
+                    "python -m carbon.level4.tooling envelope lowered "
+                    "/scratch/output/" + LEVEL4_ENVELOPE_EXPORT
+                ),
+            ],
+            "authority_granted": False,
+        }
+
+    def level4_stage(self, strategy, packed):
+        """Admit the envelope `packed` (gzip bytes the agent's run exported)
+        for `strategy` through G0, G3 and G4, as data, and keep it by its
+        submission digest. Returns the reply; a refusal is typed."""
+        import zlib
+
+        from carbon.battery import level4 as battery_level4
+        from carbon.battery import level4_admission
+        from carbon.level4 import graph, intake, staging
+
+        bounds = self.level4_variant_bounds()
+        if bounds is None:
+            return _l4_refused("level4_stage_not_at_level_4")
+        limit = self.level4_envelope_limit()
+        try:
+            unpack = zlib.decompressobj(16 + zlib.MAX_WBITS)
+            body = unpack.decompress(packed, limit + 1)
+            if len(body) > limit or unpack.unconsumed_tail:
+                return _l4_refused("level4_envelope_over_bound")
+            envelope = json.loads(body)
+            declared, raw_manifest, files = staging.from_envelope(envelope)
+        except (zlib.error, ValueError, UnicodeDecodeError):
+            return _l4_refused("level4_envelope_malformed")
+        except graph.GraphRefused as refused:
+            return _l4_refused(refused.code)
+        staged = json.loads(json.dumps(strategy))
+        parameters = staged.get("parameters")
+        if not isinstance(parameters, dict):
+            return _l4_refused("strategy_parameters_required")
+        parameters[battery_level4.FIELD] = declared
+        try:
+            level4_admission.admit_envelope(
+                staged, body, loss_override=bounds.get("loss_override")
+            )
+        except graph.GraphRefused as refused:
+            return _l4_refused(refused.code)
+        except intake.IntakeBlocked as blocked:
+            return _l4_refused("level4_intake_blocked: " + str(blocked))
+        store = podlib.private_dir(self.root / "level4")
+        target = store / (declared.removeprefix("sha256:") + ".json")
+        target.write_bytes(
+            json.dumps(
+                staging.envelope(raw_manifest, files),
+                sort_keys=True,
+                separators=(",", ":"),
+            ).encode()
+        )
+        target.chmod(0o600)
+        return {
+            "status": "LEVEL4_STAGED",
+            "submission": declared,
+            "documents": len(files),
+            "gates": ["G0", "G3", "G4"],
+            "next": "set parameters." + battery_level4.FIELD + " to this submission "
+            "and propose the strategy",
+            "authority_granted": False,
+        }
+
+    def _level4_documents(self, folder, strategy):
+        """At Level 4, a strategy naming a submission digest gets its kept
+        envelope's documents (`staging.workspace`), and the envelope is written
+        beside the proposal for its pod. None when the strategy names none or
+        the session is not at Level 4. A digest that was never staged, or an
+        envelope over the pod transport, is `Unrebuildable`, typed."""
+        from carbon.battery import level4 as battery_level4
+        from carbon.level4 import staging
+
+        from .pod_phase import LEVEL4_TRANSPORT_CHARS, level4_transport
+
+        if self.level4_variant_bounds() is None or not isinstance(strategy, dict):
+            return None
+        parameters = strategy.get("parameters")
+        submission = (
+            parameters.get(battery_level4.FIELD)
+            if isinstance(parameters, dict)
+            else None
+        )
+        if submission is None:
+            return None
+        kept = self.level4_staged(submission)
+        if kept is None:
+            raise Unrebuildable("level4_submission_not_staged")
+        if len(level4_transport(kept)) > LEVEL4_TRANSPORT_CHARS:
+            raise Unrebuildable("level4_envelope_over_transport")
+        _digest, raw_manifest, files = staging.from_envelope(json.loads(kept))
+        target = folder / "level4-envelope.json"
+        if not target.is_file():
+            write_once(target, kept)
+        return staging.workspace(raw_manifest, files)
+
+    def level4_staged(self, submission):
+        """The kept envelope's bytes for `submission`, or None."""
+        if type(submission) is not str or not submission.startswith("sha256:"):
+            return None
+        path = self.root / "level4" / (submission.removeprefix("sha256:") + ".json")
+        return path.read_bytes() if path.is_file() else None
+
     # -- one proposal --------------------------------------------------------------------------
     def propose_tool(self, arguments, identity):
         """The agent's `graphite_run_proposal` tool."""
@@ -1385,6 +1547,9 @@ class Experiment:
                 if self.development_variant is None
                 else {"variant": self.development_variant}
             )
+            documents = self._level4_documents(folder, strategy)
+            if documents is not None:
+                level["workspace"] = documents
             expected = admit(strategy, seed, self.repository, self.scoring, **level)
         except Unrebuildable as refused:
             finding = self._finding(
@@ -1704,8 +1869,16 @@ class Experiment:
                 if self.development_variant is None
                 else self.development_variant.digest
             ),
+            level4_envelope=self._level4_transport(pid),
         )
         return self._pod(pid, job)
+
+    def _level4_transport(self, pid):
+        """The proposal's kept Level 4 envelope as its job carries it, or None."""
+        from .pod_phase import level4_transport
+
+        kept = self._dir(pid) / "level4-envelope.json"
+        return level4_transport(kept.read_bytes()) if kept.is_file() else None
 
     def _type_unfinished(
         self, pid, intent_id, attempt, files, failure, timing, earlier=()
