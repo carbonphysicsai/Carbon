@@ -1,0 +1,176 @@
+{
+  "appearance_count_ASSUMPTION": 1000,
+  "battery_Q3_admission_surrogate_ASSUMPTION_low_base_high": [
+    0.5,
+    0.5625,
+    0.7
+  ],
+  "battery_Q3_legacy_route_125_solves_times_91_CPU_s_per_offer_CPU_h": 3.1597222222222223,
+  "battery_Q3_offer_cost_assumption_low_base_high_CPU_h": [
+    0.66,
+    0.73,
+    0.8
+  ],
+  "battery_Q3_refill_8_appearances_E5_CPU_h_low_base_high": [
+    1.5085714285714287,
+    2.0764444444444443,
+    2.56
+  ],
+  "battery_Q3_startup_160_live_CPU_h_low_base_high": [
+    150.8571428571429,
+    207.64444444444445,
+    256.0
+  ],
+  "classes": {
+    "CFD_class": {
+      "CI_width_multiplier_low_base_high": [
+        2.3979157616563596,
+        3.905124837953327,
+        4.47213595499958
+      ],
+      "ESS_for_1000_appearances_at_rho_low_base_high": [
+        173.91304347826087,
+        65.57377049180327,
+        50.0
+      ],
+      "fresh_cases_per_100_appearances": 5.0,
+      "owner_historical_testing_B_over_n": 5,
+      "owner_historical_testing_E": 20,
+      "scheduled_lag_windows_at_spacing_3_duration_3": 60,
+      "single_case_expected_draw_lifetime_random_windows": 100,
+      "variance_multiplier_low_base_high": [
+        5.75,
+        15.25,
+        20.0
+      ]
+    },
+    "battery": {
+      "CI_width_multiplier_low_base_high": [
+        1.4142135623730951,
+        2.0,
+        2.23606797749979
+      ],
+      "ESS_for_1000_appearances_at_rho_low_base_high": [
+        500.0,
+        250.0,
+        200.0
+      ],
+      "fresh_cases_per_100_appearances": 20.0,
+      "owner_historical_testing_B_over_n": 20,
+      "owner_historical_testing_E": 5,
+      "scheduled_lag_windows_at_spacing_3_duration_3": 15,
+      "single_case_expected_draw_lifetime_random_windows": 100,
+      "variance_multiplier_low_base_high": [
+        2.0,
+        4.0,
+        5.0
+      ]
+    },
+    "motor_like": {
+      "CI_width_multiplier_low_base_high": [
+        1.8027756377319946,
+        2.7838821814150108,
+        3.1622776601683795
+      ],
+      "ESS_for_1000_appearances_at_rho_low_base_high": [
+        307.6923076923077,
+        129.03225806451613,
+        100.0
+      ],
+      "fresh_cases_per_100_appearances": 10.0,
+      "owner_historical_testing_B_over_n": 10,
+      "owner_historical_testing_E": 10,
+      "scheduled_lag_windows_at_spacing_3_duration_3": 30,
+      "single_case_expected_draw_lifetime_random_windows": 100,
+      "variance_multiplier_low_base_high": [
+        3.25,
+        7.75,
+        10.0
+      ]
+    }
+  },
+  "cost_basis": {
+    "CFD_class": "2/6/20 core-h ASSUMPTION illustration; actual Challenge cost HUMAN_INPUT",
+    "battery_pool": "91 CPU-s from VALIDATOR-23 planning; 75/120 ASSUMPTION, not current latency measurements",
+    "motor_like": "0.6-1 core-h from owner architecture; .8 midpoint ASSUMPTION",
+    "n": "100 ASSUMPTION common comparison; historical battery n=100 with 98 distinct draws"
+  },
+  "cost_examples": {
+    "CFD_class": {
+      "E": 20,
+      "costs": [
+        2,
+        6,
+        20
+      ],
+      "multiple": 5,
+      "n": 100,
+      "refill_CPU_h_per_window_low_base_high": [
+        10.0,
+        30.0,
+        100.0
+      ],
+      "startup_CPU_h_low_base_high": [
+        1000,
+        3000,
+        10000
+      ]
+    },
+    "battery_pool": {
+      "E": 5,
+      "costs": [
+        0.020833333333333332,
+        0.025277777777777777,
+        0.03333333333333333
+      ],
+      "multiple": 20,
+      "n": 100,
+      "refill_CPU_h_per_window_low_base_high": [
+        0.41666666666666663,
+        0.5055555555555555,
+        0.6666666666666667
+      ],
+      "startup_CPU_h_low_base_high": [
+        41.666666666666664,
+        50.55555555555556,
+        66.66666666666667
+      ]
+    },
+    "motor_like": {
+      "E": 10,
+      "costs": [
+        0.6,
+        0.8,
+        1.0
+      ],
+      "multiple": 10,
+      "n": 100,
+      "refill_CPU_h_per_window_low_base_high": [
+        6.0,
+        8.0,
+        10.0
+      ],
+      "startup_CPU_h_low_base_high": [
+        600.0,
+        800.0,
+        1000.0
+      ]
+    }
+  },
+  "current_testnet_E1_3920_draws_day_at_91_CPU_s_CPU_h": 99.08888888888889,
+  "random_E2_max_repeat_windows_q50_q95_q99": [
+    99,
+    151,
+    183
+  ],
+  "random_E2_release_approx_98_targets_B2000_next_draw_probability": 0.049,
+  "random_release_approximation_basis": "ASSUMPTION independent Bernoulli targets, no active exclusion/turnover; illustrates tail only",
+  "rho_low_base_high_ASSUMPTION": [
+    0.25,
+    0.75,
+    1.0
+  ],
+  "schema": "carbon.research.bank-rotation-stats.v1",
+  "status": "ANALYTICAL_ASSUMPTION_SENSITIVITY_NOT_MEASURED_BANK",
+  "time_basis": "Window/block wall time is owner/chain parameter, not CPU-h"
+}

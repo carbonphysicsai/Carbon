@@ -222,6 +222,9 @@ class PodJob:
     #: The pod backend (`job_backend`): "jax" (every build before
     #: TORCH-POD-01, whose configuration is unchanged) or "pytorch".
     backend: str = "jax"
+    #: A Level 4 job's submission envelope (`pod_phase.level4_transport`),
+    #: or None, whose configuration is then unchanged.
+    level4_envelope: str | None = None
 
     def config(self, stop_admitting_epoch):
         config = {
@@ -236,6 +239,8 @@ class PodJob:
             config["development_variant"] = self.development_variant
         if self.backend != "jax":
             config["backend"] = self.backend
+        if self.level4_envelope is not None:
+            config["level4_envelope"] = self.level4_envelope
         return config
 
 
@@ -513,6 +518,7 @@ class RunPodPods:
         balance_floor=operator_balance_floor,
         scoring=None,
         rate_ceiling=None,
+        retry_ambiguous_create=False,
     ):
         from scripts.dev.exam_design.runpod.operator_compute import (
             ComputeService,
@@ -531,6 +537,9 @@ class RunPodPods:
         self.repository, self.code_ref = Path(repository), code_ref
         self.clock, self.sleep = clock, sleep
         self.balance_floor = balance_floor
+        # One safe retry after an ambiguous create (reconcile by tag first); off
+        # unless asked, so every earlier caller behaves exactly as before.
+        self.retry_ambiguous_create = retry_ambiguous_create is True
         self.http = http or _https_get
         self._record_lock = threading.Lock()
         root = Path(root)
@@ -544,7 +553,9 @@ class RunPodPods:
             clock=clock,
             sleep=sleep,
         )
-        self.service = ComputeService(self.store, self.adapter, clock=clock)
+        self.service = ComputeService(
+            self.store, self.adapter, clock=clock, sleep=sleep
+        )
         self._tokens = {}
         self.cuda_versions = allowed_cuda_versions(self.repository)
         paths = ship_list(code_ref, self.repository, self.scoring)
@@ -716,7 +727,8 @@ class RunPodPods:
                     intent_id=job.intent_id,
                     spec=spec,
                     deadline_at=float(record["deadline_at"]),
-                )
+                ),
+                retry_ambiguous=self.retry_ambiguous_create,
             )
         except ComputeError as failure:
             raise PodFailure(
@@ -873,6 +885,31 @@ class RunPodPods:
         except ComputeError:
             return False
         return True
+
+    def duplicates(self, intent_id):
+        """The pods beyond the first that carry this intent's ownership tag (an
+        ambiguous create that landed twice), each with its provider charge when
+        known: `[{"pod_id", "charge_usd" | None}]`. Reads only."""
+        from scripts.dev.exam_design.runpod.operator_compute import ComputeError
+
+        found = []
+        for record in self.store.resources(self.CAMPAIGN, intent_id):
+            if record.role != "duplicate":
+                continue
+            try:
+                owned = self.service.owned(self.CAMPAIGN, intent_id, record.resource_id)
+                charge = self.adapter.provider_charge(owned)
+            except ComputeError:
+                charge = None
+            found.append(
+                {
+                    "pod_id": record.resource_id,
+                    "charge_usd": (
+                        None if charge is None else str(Decimal(str(charge.amount_usd)))
+                    ),
+                }
+            )
+        return found
 
     def charge(self, handle):
         from scripts.dev.exam_design.runpod.operator_compute import ComputeError
@@ -1112,8 +1149,19 @@ def synthetic_outputs(quality, *, root=REPOSITORY, built=None, scoring=None):
         else:
             # A development level's pod builds through its variant, as
             # `pod_phase.run` does on a real pod.
+            from .pod_phase import level4_workspace
+
             record = development_built_record(
-                job.strategy, job.contract_digest, variant, job.seed, root
+                job.strategy,
+                job.contract_digest,
+                variant,
+                job.seed,
+                root,
+                workspace=(
+                    None
+                    if getattr(job, "level4_envelope", None) is None
+                    else level4_workspace(job.level4_envelope)
+                ),
             )[0]
             _SYNTHETIC_BUILDS[key] = record
         predictions = selected.synthetic_predictions(quality, root)

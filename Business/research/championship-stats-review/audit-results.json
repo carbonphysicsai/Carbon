@@ -1,0 +1,2450 @@
+{
+  "ticket": "CHAMPIONSHIP-STATS-REVIEW-01",
+  "maturity": "PUBLIC_DIAGNOSTIC_NOT_PRODUCTION_VALIDATION",
+  "source_inputs": [
+    {
+      "name": "MARGIN_SIZING_02.md",
+      "bytes": 6921,
+      "sha256": "a73da558d7c5a704fa317b7085d077b006d26f7ac9dd2e89acb013fec5d893ea"
+    },
+    {
+      "name": "MARGIN_SIZING_03.md",
+      "bytes": 4727,
+      "sha256": "2e5ce65e24a1af5dade1966790a870a480887a34945088a3fd0732a221f9db11"
+    },
+    {
+      "name": "MARGIN_SIZING_04.md",
+      "bytes": 5531,
+      "sha256": "af4e5209f7165e7b35f185d10e67cdfd38ad19931fb0cb68857fbf81e8ab8a1c"
+    },
+    {
+      "name": "PROPOSAL.md",
+      "bytes": 5772,
+      "sha256": "8a35185b4c66254c6c1b8f1a4a43bd38470b816f1cc4d2ca54adb46870df9a0e"
+    },
+    {
+      "name": "margin_02.json",
+      "bytes": 8262,
+      "sha256": "57256baa1141838fbecfcfb108e400a140f5b0a894cc891e69217c0c8d002aae"
+    },
+    {
+      "name": "margin_03.json",
+      "bytes": 11889,
+      "sha256": "4b74b628920c41692e2de9fc48340070ee17b842c108d88dcace2118bbbd4f43"
+    },
+    {
+      "name": "margin_04.json",
+      "bytes": 11203,
+      "sha256": "61583cd7aa0b33496b4d09684611e0eb2745acb96c770b5dd13c53c784a04198"
+    },
+    {
+      "name": "analysis.json",
+      "bytes": 4782,
+      "sha256": "7c55d01faab9bec2759c6f068d92fd50ebd97fd4b4fd412dc793200d90a47798"
+    },
+    {
+      "name": "paired.json",
+      "bytes": 1995,
+      "sha256": "bd94c4d1c33bad766fbdd80da3c7eb153a435a0754cae391880762d1a30a68a2"
+    },
+    {
+      "name": "m04.py",
+      "bytes": 3691,
+      "sha256": "4831f3e2834b580776e2c61806b848b18b66eaf01541e76aa99cb5755c30d62a"
+    },
+    {
+      "name": "margin_02.py",
+      "bytes": 4396,
+      "sha256": "adc73240c1d960489a9a68fa3ada6986d652548bed9c7f00f1e8e994f4a7d174"
+    },
+    {
+      "name": "margin_03.py",
+      "bytes": 2952,
+      "sha256": "643e89d4449d6a05dbaa9e442722ad99d20ee9a9b6f3645cc7cdf54b61d33ebe"
+    },
+    {
+      "name": "margin_sizing.py",
+      "bytes": 6011,
+      "sha256": "689f4c64ea1baee8587172ee5941149ade6c65d4af35b05ef68b57385e1fd65c"
+    },
+    {
+      "name": "paired.py",
+      "bytes": 1893,
+      "sha256": "ea9b23eabeab2108f058d8cb6161462a5d7fccb0ffd60ca9c43963f08ad95e44"
+    }
+  ],
+  "synthetic_seed": 731,
+  "synthetic_trials_per_scenario": 40000,
+  "numeric_policy": "scenarios are ASSUMPTION; intervals are Monte Carlo uncertainty only",
+  "original_null_reproduction": {
+    "N": 2000,
+    "rounds": 14,
+    "alpha_art": 0.05,
+    "trials": 6000,
+    "false_crossings": 36,
+    "wilson95_low_point_high": [
+      0.004337221492314936,
+      0.006,
+      0.008294933993614782
+    ],
+    "supplied_rate": 0.006,
+    "matches": true
+  },
+  "synthetic_carry_stress": [
+    {
+      "scenario": "normal_variance_misspecification",
+      "N": 2000,
+      "actual_sd_multiplier": 1.0,
+      "assumption": "independent Gaussian rounds; declared proxy SD remains 0.46",
+      "false_crossings": 250,
+      "trials": 40000,
+      "wilson95_low_point_high": [
+        0.005523677534015104,
+        0.00625,
+        0.007071149373779248
+      ]
+    },
+    {
+      "scenario": "normal_variance_misspecification",
+      "N": 2000,
+      "actual_sd_multiplier": 1.25,
+      "assumption": "independent Gaussian rounds; declared proxy SD remains 0.46",
+      "false_crossings": 1319,
+      "trials": 40000,
+      "wilson95_low_point_high": [
+        0.03126939161579881,
+        0.032975,
+        0.0347703026355686
+      ]
+    },
+    {
+      "scenario": "normal_variance_misspecification",
+      "N": 2000,
+      "actual_sd_multiplier": 1.5,
+      "assumption": "independent Gaussian rounds; declared proxy SD remains 0.46",
+      "false_crossings": 3381,
+      "trials": 40000,
+      "wilson95_low_point_high": [
+        0.08183868515380718,
+        0.084525,
+        0.08729110868825024
+      ]
+    },
+    {
+      "scenario": "normal_variance_misspecification",
+      "N": 2000,
+      "actual_sd_multiplier": 2.0,
+      "assumption": "independent Gaussian rounds; declared proxy SD remains 0.46",
+      "false_crossings": 8587,
+      "trials": 40000,
+      "wilson95_low_point_high": [
+        0.21067872523517128,
+        0.214675,
+        0.2187260727141278
+      ]
+    },
+    {
+      "scenario": "stationary_AR1_round_shocks",
+      "N": 2000,
+      "phi": 0.25,
+      "assumption": "marginal round variance unchanged; carry variance ignores covariance",
+      "false_crossings": 1026,
+      "trials": 40000,
+      "wilson95_low_point_high": [
+        0.024145713345294067,
+        0.02565,
+        0.02724538770526239
+      ]
+    },
+    {
+      "scenario": "stationary_AR1_round_shocks",
+      "N": 2000,
+      "phi": 0.5,
+      "assumption": "marginal round variance unchanged; carry variance ignores covariance",
+      "false_crossings": 2774,
+      "trials": 40000,
+      "wilson95_low_point_high": [
+        0.06690150188351071,
+        0.06935,
+        0.0718812063855356
+      ]
+    },
+    {
+      "scenario": "stationary_AR1_round_shocks",
+      "N": 2000,
+      "phi": 0.75,
+      "assumption": "marginal round variance unchanged; carry variance ignores covariance",
+      "false_crossings": 5519,
+      "trials": 40000,
+      "wilson95_low_point_high": [
+        0.13463004715196164,
+        0.137975,
+        0.1413894813772419
+      ]
+    },
+    {
+      "scenario": "stationary_AR1_round_shocks",
+      "N": 2000,
+      "phi": 0.9,
+      "assumption": "marginal round variance unchanged; carry variance ignores covariance",
+      "false_crossings": 7241,
+      "trials": 40000,
+      "wilson95_low_point_high": [
+        0.1772823753220622,
+        0.181025,
+        0.18482888526105418
+      ]
+    },
+    {
+      "scenario": "rare_positive_round_shock",
+      "N": 2000,
+      "positive_probability": 0.001,
+      "assumption": "independent, zero-mean/unit-variance batch shocks, not IID case noise",
+      "false_crossings": 516,
+      "trials": 40000,
+      "wilson95_low_point_high": [
+        0.011839995988427528,
+        0.0129,
+        0.014053553756963112
+      ]
+    },
+    {
+      "scenario": "rare_positive_round_shock",
+      "N": 2000,
+      "positive_probability": 0.01,
+      "assumption": "independent, zero-mean/unit-variance batch shocks, not IID case noise",
+      "false_crossings": 3523,
+      "trials": 40000,
+      "wilson95_low_point_high": [
+        0.08533710008938206,
+        0.088075,
+        0.09089201195921173
+      ]
+    },
+    {
+      "scenario": "rare_positive_round_shock",
+      "N": 2000,
+      "positive_probability": 0.05,
+      "assumption": "independent, zero-mean/unit-variance batch shocks, not IID case noise",
+      "false_crossings": 3219,
+      "trials": 40000,
+      "wilson95_low_point_high": [
+        0.0778492922761852,
+        0.080475,
+        0.08318127938658426
+      ]
+    },
+    {
+      "scenario": "student_t3_round_shocks",
+      "N": 2000,
+      "assumption": "independent, zero-mean/unit-variance batch shocks; no sub-Gaussian MGF",
+      "false_crossings": 678,
+      "trials": 40000,
+      "wilson95_low_point_high": [
+        0.01573059583386707,
+        0.01695,
+        0.01826217609081154
+      ]
+    },
+    {
+      "scenario": "normal_variance_misspecification",
+      "N": 3000,
+      "actual_sd_multiplier": 1.0,
+      "assumption": "independent Gaussian rounds; declared proxy SD remains 0.46",
+      "false_crossings": 230,
+      "trials": 40000,
+      "wilson95_low_point_high": [
+        0.005055009874287646,
+        0.00575,
+        0.006539913060755105
+      ]
+    },
+    {
+      "scenario": "normal_variance_misspecification",
+      "N": 3000,
+      "actual_sd_multiplier": 1.25,
+      "assumption": "independent Gaussian rounds; declared proxy SD remains 0.46",
+      "false_crossings": 1316,
+      "trials": 40000,
+      "wilson95_low_point_high": [
+        0.03119632136289243,
+        0.0329,
+        0.03469338729256224
+      ]
+    },
+    {
+      "scenario": "normal_variance_misspecification",
+      "N": 3000,
+      "actual_sd_multiplier": 1.5,
+      "assumption": "independent Gaussian rounds; declared proxy SD remains 0.46",
+      "false_crossings": 3325,
+      "trials": 40000,
+      "wilson95_low_point_high": [
+        0.08045941835047404,
+        0.083125,
+        0.08587064436787889
+      ]
+    },
+    {
+      "scenario": "normal_variance_misspecification",
+      "N": 3000,
+      "actual_sd_multiplier": 2.0,
+      "assumption": "independent Gaussian rounds; declared proxy SD remains 0.46",
+      "false_crossings": 8451,
+      "trials": 40000,
+      "wilson95_low_point_high": [
+        0.20730240732283567,
+        0.211275,
+        0.2153030436117525
+      ]
+    },
+    {
+      "scenario": "stationary_AR1_round_shocks",
+      "N": 3000,
+      "phi": 0.25,
+      "assumption": "marginal round variance unchanged; carry variance ignores covariance",
+      "false_crossings": 1011,
+      "trials": 40000,
+      "wilson95_low_point_high": [
+        0.02378181359300739,
+        0.025275,
+        0.02685935947798537
+      ]
+    },
+    {
+      "scenario": "stationary_AR1_round_shocks",
+      "N": 3000,
+      "phi": 0.5,
+      "assumption": "marginal round variance unchanged; carry variance ignores covariance",
+      "false_crossings": 2751,
+      "trials": 40000,
+      "wilson95_low_point_high": [
+        0.06633613118071037,
+        0.068775,
+        0.07129668751967162
+      ]
+    },
+    {
+      "scenario": "stationary_AR1_round_shocks",
+      "N": 3000,
+      "phi": 0.75,
+      "assumption": "marginal round variance unchanged; carry variance ignores covariance",
+      "false_crossings": 5389,
+      "trials": 40000,
+      "wilson95_low_point_high": [
+        0.13141410451373672,
+        0.134725,
+        0.13810604819258146
+      ]
+    },
+    {
+      "scenario": "stationary_AR1_round_shocks",
+      "N": 3000,
+      "phi": 0.9,
+      "assumption": "marginal round variance unchanged; carry variance ignores covariance",
+      "false_crossings": 7195,
+      "trials": 40000,
+      "wilson95_low_point_high": [
+        0.17614184869794292,
+        0.179875,
+        0.1836696327478448
+      ]
+    },
+    {
+      "scenario": "rare_positive_round_shock",
+      "N": 3000,
+      "positive_probability": 0.001,
+      "assumption": "independent, zero-mean/unit-variance batch shocks, not IID case noise",
+      "false_crossings": 567,
+      "trials": 40000,
+      "wilson95_low_point_high": [
+        0.013062313022169866,
+        0.014175,
+        0.015380991853737355
+      ]
+    },
+    {
+      "scenario": "rare_positive_round_shock",
+      "N": 3000,
+      "positive_probability": 0.01,
+      "assumption": "independent, zero-mean/unit-variance batch shocks, not IID case noise",
+      "false_crossings": 3410,
+      "trials": 40000,
+      "wilson95_low_point_high": [
+        0.0825530362770035,
+        0.08525,
+        0.08802661832554376
+      ]
+    },
+    {
+      "scenario": "rare_positive_round_shock",
+      "N": 3000,
+      "positive_probability": 0.05,
+      "assumption": "independent, zero-mean/unit-variance batch shocks, not IID case noise",
+      "false_crossings": 3169,
+      "trials": 40000,
+      "wilson95_low_point_high": [
+        0.07661839496613257,
+        0.079225,
+        0.08191241676475788
+      ]
+    },
+    {
+      "scenario": "student_t3_round_shocks",
+      "N": 3000,
+      "assumption": "independent, zero-mean/unit-variance batch shocks; no sub-Gaussian MGF",
+      "false_crossings": 708,
+      "trials": 40000,
+      "wilson95_low_point_high": [
+        0.01645335497069319,
+        0.0177,
+        0.019039272913112817
+      ]
+    }
+  ],
+  "daily_Holm_stress": [
+    {
+      "scenario": "daily_fixed_round_Holm_all_null",
+      "contenders": 1,
+      "within_round_correlation": 0.0,
+      "assumption": "fresh independent rounds; no carry-forward branch or incumbent changes",
+      "day1": {
+        "false_crossings": 1963,
+        "trials": 40000,
+        "wilson95_low_point_high": [
+          0.047000957365361556,
+          0.049075,
+          0.051235644808607386
+        ]
+      },
+      "any_of_14_days": {
+        "false_crossings": 20487,
+        "trials": 40000,
+        "wilson95_low_point_high": [
+          0.5072756088145196,
+          0.512175,
+          0.5170720529219819
+        ]
+      }
+    },
+    {
+      "scenario": "daily_fixed_round_Holm_all_null",
+      "contenders": 1,
+      "within_round_correlation": 0.5,
+      "assumption": "fresh independent rounds; no carry-forward branch or incumbent changes",
+      "day1": {
+        "false_crossings": 1998,
+        "trials": 40000,
+        "wilson95_low_point_high": [
+          0.04785807291173938,
+          0.04995,
+          0.052128361214544866
+        ]
+      },
+      "any_of_14_days": {
+        "false_crossings": 20344,
+        "trials": 40000,
+        "wilson95_low_point_high": [
+          0.5037002242162821,
+          0.5086,
+          0.5134981241150455
+        ]
+      }
+    },
+    {
+      "scenario": "daily_fixed_round_Holm_all_null",
+      "contenders": 1,
+      "within_round_correlation": 0.9,
+      "assumption": "fresh independent rounds; no carry-forward branch or incumbent changes",
+      "day1": {
+        "false_crossings": 2011,
+        "trials": 40000,
+        "wilson95_low_point_high": [
+          0.04817647653719936,
+          0.050275,
+          0.05245989517137343
+        ]
+      },
+      "any_of_14_days": {
+        "false_crossings": 20383,
+        "trials": 40000,
+        "wilson95_low_point_high": [
+          0.5046753042524007,
+          0.509575,
+          0.5144728568257925
+        ]
+      }
+    },
+    {
+      "scenario": "daily_fixed_round_Holm_all_null",
+      "contenders": 5,
+      "within_round_correlation": 0.0,
+      "assumption": "fresh independent rounds; no carry-forward branch or incumbent changes",
+      "day1": {
+        "false_crossings": 1884,
+        "trials": 40000,
+        "wilson95_low_point_high": [
+          0.045067016075406134,
+          0.0471,
+          0.04921996540619399
+        ]
+      },
+      "any_of_14_days": {
+        "false_crossings": 20170,
+        "trials": 40000,
+        "wilson95_low_point_high": [
+          0.4993500941778758,
+          0.50425,
+          0.5091490895905127
+        ]
+      }
+    },
+    {
+      "scenario": "daily_fixed_round_Holm_all_null",
+      "contenders": 5,
+      "within_round_correlation": 0.5,
+      "assumption": "fresh independent rounds; no carry-forward branch or incumbent changes",
+      "day1": {
+        "false_crossings": 1624,
+        "trials": 40000,
+        "wilson95_low_point_high": [
+          0.038709595614360305,
+          0.0406,
+          0.04257863422146901
+        ]
+      },
+      "any_of_14_days": {
+        "false_crossings": 17502,
+        "trials": 40000,
+        "wilson95_low_point_high": [
+          0.4326946862189516,
+          0.43755,
+          0.4424173075843735
+        ]
+      }
+    },
+    {
+      "scenario": "daily_fixed_round_Holm_all_null",
+      "contenders": 5,
+      "within_round_correlation": 0.9,
+      "assumption": "fresh independent rounds; no carry-forward branch or incumbent changes",
+      "day1": {
+        "false_crossings": 856,
+        "trials": 40000,
+        "wilson95_low_point_high": [
+          0.02002711450808014,
+          0.0214,
+          0.022864802774087714
+        ]
+      },
+      "any_of_14_days": {
+        "false_crossings": 10881,
+        "trials": 40000,
+        "wilson95_low_point_high": [
+          0.2676860999663036,
+          0.272025,
+          0.2764076836576041
+        ]
+      }
+    },
+    {
+      "scenario": "daily_fixed_round_Holm_all_null",
+      "contenders": 20,
+      "within_round_correlation": 0.0,
+      "assumption": "fresh independent rounds; no carry-forward branch or incumbent changes",
+      "day1": {
+        "false_crossings": 1971,
+        "trials": 40000,
+        "wilson95_low_point_high": [
+          0.04719685326705469,
+          0.049275,
+          0.0514397104960149
+        ]
+      },
+      "any_of_14_days": {
+        "false_crossings": 20113,
+        "trials": 40000,
+        "wilson95_low_point_high": [
+          0.49792513222780366,
+          0.502825,
+          0.5077243252182427
+        ]
+      }
+    },
+    {
+      "scenario": "daily_fixed_round_Holm_all_null",
+      "contenders": 20,
+      "within_round_correlation": 0.5,
+      "assumption": "fresh independent rounds; no carry-forward branch or incumbent changes",
+      "day1": {
+        "false_crossings": 1353,
+        "trials": 40000,
+        "wilson95_low_point_high": [
+          0.032097688215383065,
+          0.033825,
+          0.03564184278966207
+        ]
+      },
+      "any_of_14_days": {
+        "false_crossings": 14960,
+        "trials": 40000,
+        "wilson95_low_point_high": [
+          0.3692705353558515,
+          0.374,
+          0.37875366351074513
+        ]
+      }
+    },
+    {
+      "scenario": "daily_fixed_round_Holm_all_null",
+      "contenders": 20,
+      "within_round_correlation": 0.9,
+      "assumption": "fresh independent rounds; no carry-forward branch or incumbent changes",
+      "day1": {
+        "false_crossings": 416,
+        "trials": 40000,
+        "wilson95_low_point_high": [
+          0.009451772517671955,
+          0.0104,
+          0.011442257363960678
+        ]
+      },
+      "any_of_14_days": {
+        "false_crossings": 5696,
+        "trials": 40000,
+        "wilson95_low_point_high": [
+          0.13900968726445623,
+          0.1424,
+          0.14585899142359898
+        ]
+      }
+    }
+  ],
+  "empirical_distribution_status": "PUBLIC_CASE_RESAMPLING_COMPLETE_REALISTIC_BANK_DEPENDENCE_UNVALIDATED",
+  "implemented_in_original": [
+    "known-normal power formula",
+    "single-artifact mixture crossing"
+  ],
+  "not_implemented_in_original": [
+    "full Holm winner selection",
+    "alpha-investing ledger",
+    "incumbent changes",
+    "combined fast-lane/carry error budget",
+    "mandatory/important gates"
+  ],
+  "empirical_public_audit": {
+    "status": "EMPIRICAL_PUBLIC_CONDITIONAL_DIAGNOSTIC_NOT_PRODUCTION_VALIDATION",
+    "source": {
+      "name": "seed-variance-01/rows.jsonl",
+      "bytes": 1377867,
+      "sha256": "1a84f00220d6b3af8aac96ad6b64f338122bcbe52e9c472a5d6005fb9dbcea0a"
+    },
+    "source_run_count": 15,
+    "distinct_cases": 200,
+    "distinct_recipes": 5,
+    "source_eligible_runs": 15,
+    "important_cases": 39,
+    "seed_one_MLP_count": 4,
+    "alias_policy": "M1... in lexicographic public recipe-id order; no raw case/run identifiers published",
+    "bootstrap_assumptions": "N=3000, 14 rounds, empirical vectors centered to zero mean; uniform IID sampling with replacement from public cases; not 3000 distinct physical cases",
+    "bootstrap_trials": 10000,
+    "public_synthetic_seed": 733,
+    "unidentified_dependence": "no source/time blocks supplied; case-id ordering is not chronological; round dependence is not estimated",
+    "pair_diagnostics": [
+      {
+        "pair": "M1-M2",
+        "correlation": 0.8240605522593594,
+        "sample_sd_relative_pair_average": 0.33090645994319834,
+        "empirical_population_sd_relative_pair_average": 0.3300781571173391,
+        "skewness_centered": -0.41978841003642325,
+        "excess_kurtosis_centered": 2.117213413110524,
+        "largest_abs_centered_in_sd": 3.756529461377188,
+        "top_5_percent_cases_variance_share": 0.4305893196395574
+      },
+      {
+        "pair": "M1-M3",
+        "correlation": 0.8891657948308446,
+        "sample_sd_relative_pair_average": 0.2775820710880367,
+        "empirical_population_sd_relative_pair_average": 0.27688724629093386,
+        "skewness_centered": -0.39125985081980624,
+        "excess_kurtosis_centered": 1.5549583233935724,
+        "largest_abs_centered_in_sd": 3.59151993304028,
+        "top_5_percent_cases_variance_share": 0.3811773993608138
+      },
+      {
+        "pair": "M1-M4",
+        "correlation": 0.6904952173570708,
+        "sample_sd_relative_pair_average": 0.6988663915069024,
+        "empirical_population_sd_relative_pair_average": 0.6971170360936458,
+        "skewness_centered": -5.988127926400114,
+        "excess_kurtosis_centered": 45.35152653267027,
+        "largest_abs_centered_in_sd": 8.993963530485741,
+        "top_5_percent_cases_variance_share": 0.8490011271601049
+      },
+      {
+        "pair": "M2-M3",
+        "correlation": 0.8481536236595854,
+        "sample_sd_relative_pair_average": 0.2907391792762013,
+        "empirical_population_sd_relative_pair_average": 0.29001142048955264,
+        "skewness_centered": 0.22680016304660192,
+        "excess_kurtosis_centered": 1.489686708703002,
+        "largest_abs_centered_in_sd": 3.828197310856949,
+        "top_5_percent_cases_variance_share": 0.3770939956267147
+      },
+      {
+        "pair": "M2-M4",
+        "correlation": 0.6747960859311622,
+        "sample_sd_relative_pair_average": 0.5946573359809685,
+        "empirical_population_sd_relative_pair_average": 0.5931688296765117,
+        "skewness_centered": -4.922762020091804,
+        "excess_kurtosis_centered": 37.87777765404582,
+        "largest_abs_centered_in_sd": 9.113585378383148,
+        "top_5_percent_cases_variance_share": 0.7473548149040131
+      },
+      {
+        "pair": "M3-M4",
+        "correlation": 0.7061872213576715,
+        "sample_sd_relative_pair_average": 0.6383393712144725,
+        "empirical_population_sd_relative_pair_average": 0.6367415229732358,
+        "skewness_centered": -4.716396648086373,
+        "excess_kurtosis_centered": 31.52678646687773,
+        "largest_abs_centered_in_sd": 8.152286201663507,
+        "top_5_percent_cases_variance_share": 0.7542280648672314
+      }
+    ],
+    "carry_null_scenarios": [
+      {
+        "scenario": "IID_correct_empirical_population_sd",
+        "assumption": "empirical centered case vectors IID with replacement; reuse is deliberately not fresh evidence",
+        "distinct_batches": 14,
+        "pairs": [
+          {
+            "pair": "M1-M2",
+            "direction": 1,
+            "false_crossings": 62,
+            "trials": 10000,
+            "wilson95_low_point_high": [
+              0.0048397848118849635,
+              0.0062,
+              0.007939451978995241
+            ]
+          },
+          {
+            "pair": "M1-M2",
+            "direction": -1,
+            "false_crossings": 62,
+            "trials": 10000,
+            "wilson95_low_point_high": [
+              0.0048397848118849635,
+              0.0062,
+              0.007939451978995241
+            ]
+          },
+          {
+            "pair": "M1-M3",
+            "direction": 1,
+            "false_crossings": 66,
+            "trials": 10000,
+            "wilson95_low_point_high": [
+              0.005191478817931518,
+              0.0066,
+              0.008387450774252146
+            ]
+          },
+          {
+            "pair": "M1-M3",
+            "direction": -1,
+            "false_crossings": 64,
+            "trials": 10000,
+            "wilson95_low_point_high": [
+              0.005015442801028862,
+              0.0064,
+              0.008163640390503072
+            ]
+          },
+          {
+            "pair": "M1-M4",
+            "direction": 1,
+            "false_crossings": 49,
+            "trials": 10000,
+            "wilson95_low_point_high": [
+              0.003708626762832719,
+              0.0049,
+              0.006471608423811247
+            ]
+          },
+          {
+            "pair": "M1-M4",
+            "direction": -1,
+            "false_crossings": 73,
+            "trials": 10000,
+            "wilson95_low_point_high": [
+              0.005810351168746255,
+              0.0073,
+              0.009168040825718463
+            ]
+          },
+          {
+            "pair": "M2-M3",
+            "direction": 1,
+            "false_crossings": 63,
+            "trials": 10000,
+            "wilson95_low_point_high": [
+              0.004927565458326495,
+              0.0063,
+              0.008051594532879576
+            ]
+          },
+          {
+            "pair": "M2-M3",
+            "direction": -1,
+            "false_crossings": 58,
+            "trials": 10000,
+            "wilson95_low_point_high": [
+              0.004489676579576177,
+              0.0058,
+              0.007489867410000569
+            ]
+          },
+          {
+            "pair": "M2-M4",
+            "direction": 1,
+            "false_crossings": 42,
+            "trials": 10000,
+            "wilson95_low_point_high": [
+              0.003108876968138528,
+              0.0042,
+              0.005671895816224385
+            ]
+          },
+          {
+            "pair": "M2-M4",
+            "direction": -1,
+            "false_crossings": 53,
+            "trials": 10000,
+            "wilson95_low_point_high": [
+              0.0040545228877767025,
+              0.0053,
+              0.0069254051001707215
+            ]
+          },
+          {
+            "pair": "M3-M4",
+            "direction": 1,
+            "false_crossings": 55,
+            "trials": 10000,
+            "wilson95_low_point_high": [
+              0.004228233256266612,
+              0.0055,
+              0.00715154113233254
+            ]
+          },
+          {
+            "pair": "M3-M4",
+            "direction": -1,
+            "false_crossings": 67,
+            "trials": 10000,
+            "wilson95_low_point_high": [
+              0.00527963331754198,
+              0.0067,
+              0.008499219474967548
+            ]
+          }
+        ]
+      },
+      {
+        "scenario": "IID_fixed_median_relative_proxy",
+        "assumption": "empirical centered case vectors IID with replacement; reuse is deliberately not fresh evidence",
+        "distinct_batches": 14,
+        "pairs": [
+          {
+            "pair": "M1-M2",
+            "direction": 1,
+            "false_crossings": 0,
+            "trials": 10000,
+            "wilson95_low_point_high": [
+              0.0,
+              0.0,
+              0.00038399837067659557
+            ]
+          },
+          {
+            "pair": "M1-M2",
+            "direction": -1,
+            "false_crossings": 0,
+            "trials": 10000,
+            "wilson95_low_point_high": [
+              0.0,
+              0.0,
+              0.00038399837067659557
+            ]
+          },
+          {
+            "pair": "M1-M3",
+            "direction": 1,
+            "false_crossings": 0,
+            "trials": 10000,
+            "wilson95_low_point_high": [
+              0.0,
+              0.0,
+              0.00038399837067659557
+            ]
+          },
+          {
+            "pair": "M1-M3",
+            "direction": -1,
+            "false_crossings": 0,
+            "trials": 10000,
+            "wilson95_low_point_high": [
+              0.0,
+              0.0,
+              0.00038399837067659557
+            ]
+          },
+          {
+            "pair": "M1-M4",
+            "direction": 1,
+            "false_crossings": 854,
+            "trials": 10000,
+            "wilson95_low_point_high": [
+              0.08008031480008865,
+              0.0854,
+              0.09103809664887638
+            ]
+          },
+          {
+            "pair": "M1-M4",
+            "direction": -1,
+            "false_crossings": 866,
+            "trials": 10000,
+            "wilson95_low_point_high": [
+              0.08124515806927553,
+              0.0866,
+              0.09227233178359988
+            ]
+          },
+          {
+            "pair": "M2-M3",
+            "direction": 1,
+            "false_crossings": 0,
+            "trials": 10000,
+            "wilson95_low_point_high": [
+              0.0,
+              0.0,
+              0.00038399837067659557
+            ]
+          },
+          {
+            "pair": "M2-M3",
+            "direction": -1,
+            "false_crossings": 0,
+            "trials": 10000,
+            "wilson95_low_point_high": [
+              0.0,
+              0.0,
+              0.00038399837067659557
+            ]
+          },
+          {
+            "pair": "M2-M4",
+            "direction": 1,
+            "false_crossings": 380,
+            "trials": 10000,
+            "wilson95_low_point_high": [
+              0.0344265516422164,
+              0.038,
+              0.04192826285228877
+            ]
+          },
+          {
+            "pair": "M2-M4",
+            "direction": -1,
+            "false_crossings": 413,
+            "trials": 10000,
+            "wilson95_low_point_high": [
+              0.03757291371455923,
+              0.0413,
+              0.04537936639069948
+            ]
+          },
+          {
+            "pair": "M3-M4",
+            "direction": 1,
+            "false_crossings": 561,
+            "trials": 10000,
+            "wilson95_low_point_high": [
+              0.05175793644691601,
+              0.0561,
+              0.06078297730657066
+            ]
+          },
+          {
+            "pair": "M3-M4",
+            "direction": -1,
+            "false_crossings": 568,
+            "trials": 10000,
+            "wilson95_low_point_high": [
+              0.05243133353814889,
+              0.0568,
+              0.06150904261761884
+            ]
+          }
+        ]
+      },
+      {
+        "scenario": "reused_batch_twice_counted_as_fresh",
+        "assumption": "empirical centered case vectors IID with replacement; reuse is deliberately not fresh evidence",
+        "distinct_batches": 7,
+        "pairs": [
+          {
+            "pair": "M1-M2",
+            "direction": 1,
+            "false_crossings": 501,
+            "trials": 10000,
+            "wilson95_low_point_high": [
+              0.04599440546592007,
+              0.0501,
+              0.05455111626801472
+            ]
+          },
+          {
+            "pair": "M1-M2",
+            "direction": -1,
+            "false_crossings": 514,
+            "trials": 10000,
+            "wilson95_low_point_high": [
+              0.04724182497055032,
+              0.0514,
+              0.05590269836762071
+            ]
+          },
+          {
+            "pair": "M1-M3",
+            "direction": 1,
+            "false_crossings": 515,
+            "trials": 10000,
+            "wilson95_low_point_high": [
+              0.047337812436656745,
+              0.0515,
+              0.05600663410184015
+            ]
+          },
+          {
+            "pair": "M1-M3",
+            "direction": -1,
+            "false_crossings": 508,
+            "trials": 10000,
+            "wilson95_low_point_high": [
+              0.04666599590665272,
+              0.0508,
+              0.05527898822956311
+            ]
+          },
+          {
+            "pair": "M1-M4",
+            "direction": 1,
+            "false_crossings": 452,
+            "trials": 10000,
+            "wilson95_low_point_high": [
+              0.041300001086809354,
+              0.0452,
+              0.049449283831158056
+            ]
+          },
+          {
+            "pair": "M1-M4",
+            "direction": -1,
+            "false_crossings": 530,
+            "trials": 10000,
+            "wilson95_low_point_high": [
+              0.048778160614320124,
+              0.053,
+              0.05756513392906473
+            ]
+          },
+          {
+            "pair": "M2-M3",
+            "direction": 1,
+            "false_crossings": 551,
+            "trials": 10000,
+            "wilson95_low_point_high": [
+              0.05079628235660827,
+              0.0551,
+              0.05974539939361975
+            ]
+          },
+          {
+            "pair": "M2-M3",
+            "direction": -1,
+            "false_crossings": 480,
+            "trials": 10000,
+            "wilson95_low_point_high": [
+              0.043981036388118365,
+              0.048,
+              0.05236609813897327
+            ]
+          },
+          {
+            "pair": "M2-M4",
+            "direction": 1,
+            "false_crossings": 481,
+            "trials": 10000,
+            "wilson95_low_point_high": [
+              0.044076862159560894,
+              0.0481,
+              0.0524701955678566
+            ]
+          },
+          {
+            "pair": "M2-M4",
+            "direction": -1,
+            "false_crossings": 527,
+            "trials": 10000,
+            "wilson95_low_point_high": [
+              0.0484900114917122,
+              0.0527,
+              0.05725351345069507
+            ]
+          },
+          {
+            "pair": "M3-M4",
+            "direction": 1,
+            "false_crossings": 494,
+            "trials": 10000,
+            "wilson95_low_point_high": [
+              0.04532304560552551,
+              0.0494,
+              0.05382301372612823
+            ]
+          },
+          {
+            "pair": "M3-M4",
+            "direction": -1,
+            "false_crossings": 529,
+            "trials": 10000,
+            "wilson95_low_point_high": [
+              0.048682106546133155,
+              0.0529,
+              0.05746126479692584
+            ]
+          }
+        ]
+      },
+      {
+        "scenario": "reused_batch_three_times_counted_as_fresh",
+        "assumption": "empirical centered case vectors IID with replacement; reuse is deliberately not fresh evidence",
+        "distinct_batches": 5,
+        "pairs": [
+          {
+            "pair": "M1-M2",
+            "direction": 1,
+            "false_crossings": 937,
+            "trials": 10000,
+            "wilson95_low_point_high": [
+              0.0881434357192143,
+              0.0937,
+              0.0995686013567975
+            ]
+          },
+          {
+            "pair": "M1-M2",
+            "direction": -1,
+            "false_crossings": 981,
+            "trials": 10000,
+            "wilson95_low_point_high": [
+              0.09242349649803105,
+              0.0981,
+              0.1040851613923188
+            ]
+          },
+          {
+            "pair": "M1-M3",
+            "direction": 1,
+            "false_crossings": 959,
+            "trials": 10000,
+            "wilson95_low_point_high": [
+              0.09028300234925091,
+              0.0959,
+              0.10182734513392991
+            ]
+          },
+          {
+            "pair": "M1-M3",
+            "direction": -1,
+            "false_crossings": 1017,
+            "trials": 10000,
+            "wilson95_low_point_high": [
+              0.09592805211846216,
+              0.1017,
+              0.10777784098361883
+            ]
+          },
+          {
+            "pair": "M1-M4",
+            "direction": 1,
+            "false_crossings": 961,
+            "trials": 10000,
+            "wilson95_low_point_high": [
+              0.09047755482691994,
+              0.0961,
+              0.10203263905691262
+            ]
+          },
+          {
+            "pair": "M1-M4",
+            "direction": -1,
+            "false_crossings": 1033,
+            "trials": 10000,
+            "wilson95_low_point_high": [
+              0.09748637603561754,
+              0.1033,
+              0.10941828827167728
+            ]
+          },
+          {
+            "pair": "M2-M3",
+            "direction": 1,
+            "false_crossings": 997,
+            "trials": 10000,
+            "wilson95_low_point_high": [
+              0.09398078620203491,
+              0.0997,
+              0.10572664289352875
+            ]
+          },
+          {
+            "pair": "M2-M3",
+            "direction": -1,
+            "false_crossings": 915,
+            "trials": 10000,
+            "wilson95_low_point_high": [
+              0.08600482594391368,
+              0.0915,
+              0.09730890072492909
+            ]
+          },
+          {
+            "pair": "M2-M4",
+            "direction": 1,
+            "false_crossings": 981,
+            "trials": 10000,
+            "wilson95_low_point_high": [
+              0.09242349649803105,
+              0.0981,
+              0.1040851613923188
+            ]
+          },
+          {
+            "pair": "M2-M4",
+            "direction": -1,
+            "false_crossings": 994,
+            "trials": 10000,
+            "wilson95_low_point_high": [
+              0.09368875860580571,
+              0.0994,
+              0.10541890088878038
+            ]
+          },
+          {
+            "pair": "M3-M4",
+            "direction": 1,
+            "false_crossings": 950,
+            "trials": 10000,
+            "wilson95_low_point_high": [
+              0.08940761135685976,
+              0.095,
+              0.10090342732338828
+            ]
+          },
+          {
+            "pair": "M3-M4",
+            "direction": -1,
+            "false_crossings": 1013,
+            "trials": 10000,
+            "wilson95_low_point_high": [
+              0.09553854164064352,
+              0.1013,
+              0.10736765866013401
+            ]
+          }
+        ]
+      }
+    ],
+    "assumption_power_sensitivity": [
+      {
+        "pair": "M1-M2",
+        "direction": 1,
+        "alpha_art": 0.05,
+        "assumed_relative_pair_average_gain": 0.01,
+        "rounds_to_80_percent_point_estimate": 6,
+        "win_by_14_rounds": {
+          "wins": 9997,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.9991182642277636,
+            0.9997,
+            0.9998979678005822
+          ]
+        }
+      },
+      {
+        "pair": "M1-M2",
+        "direction": -1,
+        "alpha_art": 0.05,
+        "assumed_relative_pair_average_gain": 0.01,
+        "rounds_to_80_percent_point_estimate": 6,
+        "win_by_14_rounds": {
+          "wins": 9995,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.998829974053858,
+            0.9995,
+            0.9997864115738362
+          ]
+        }
+      },
+      {
+        "pair": "M1-M2",
+        "direction": 1,
+        "alpha_art": 0.05,
+        "assumed_relative_pair_average_gain": 0.02,
+        "rounds_to_80_percent_point_estimate": 2,
+        "win_by_14_rounds": {
+          "wins": 10000,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.9996160016293234,
+            1.0,
+            1.0
+          ]
+        }
+      },
+      {
+        "pair": "M1-M2",
+        "direction": -1,
+        "alpha_art": 0.05,
+        "assumed_relative_pair_average_gain": 0.02,
+        "rounds_to_80_percent_point_estimate": 2,
+        "win_by_14_rounds": {
+          "wins": 10000,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.9996160016293234,
+            1.0,
+            1.0
+          ]
+        }
+      },
+      {
+        "pair": "M1-M2",
+        "direction": 1,
+        "alpha_art": 0.05,
+        "assumed_relative_pair_average_gain": 0.03,
+        "rounds_to_80_percent_point_estimate": 1,
+        "win_by_14_rounds": {
+          "wins": 10000,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.9996160016293234,
+            1.0,
+            1.0
+          ]
+        }
+      },
+      {
+        "pair": "M1-M2",
+        "direction": -1,
+        "alpha_art": 0.05,
+        "assumed_relative_pair_average_gain": 0.03,
+        "rounds_to_80_percent_point_estimate": 1,
+        "win_by_14_rounds": {
+          "wins": 10000,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.9996160016293234,
+            1.0,
+            1.0
+          ]
+        }
+      },
+      {
+        "pair": "M1-M2",
+        "direction": 1,
+        "alpha_art": 0.01,
+        "assumed_relative_pair_average_gain": 0.01,
+        "rounds_to_80_percent_point_estimate": 7,
+        "win_by_14_rounds": {
+          "wins": 9957,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.9942133784168481,
+            0.9957,
+            0.9968059255984631
+          ]
+        }
+      },
+      {
+        "pair": "M1-M2",
+        "direction": -1,
+        "alpha_art": 0.01,
+        "assumed_relative_pair_average_gain": 0.01,
+        "rounds_to_80_percent_point_estimate": 7,
+        "win_by_14_rounds": {
+          "wins": 9971,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.9958382254534343,
+            0.9971,
+            0.9979800033664389
+          ]
+        }
+      },
+      {
+        "pair": "M1-M2",
+        "direction": 1,
+        "alpha_art": 0.01,
+        "assumed_relative_pair_average_gain": 0.02,
+        "rounds_to_80_percent_point_estimate": 3,
+        "win_by_14_rounds": {
+          "wins": 10000,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.9996160016293234,
+            1.0,
+            1.0
+          ]
+        }
+      },
+      {
+        "pair": "M1-M2",
+        "direction": -1,
+        "alpha_art": 0.01,
+        "assumed_relative_pair_average_gain": 0.02,
+        "rounds_to_80_percent_point_estimate": 3,
+        "win_by_14_rounds": {
+          "wins": 10000,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.9996160016293234,
+            1.0,
+            1.0
+          ]
+        }
+      },
+      {
+        "pair": "M1-M2",
+        "direction": 1,
+        "alpha_art": 0.01,
+        "assumed_relative_pair_average_gain": 0.03,
+        "rounds_to_80_percent_point_estimate": 2,
+        "win_by_14_rounds": {
+          "wins": 10000,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.9996160016293234,
+            1.0,
+            1.0
+          ]
+        }
+      },
+      {
+        "pair": "M1-M2",
+        "direction": -1,
+        "alpha_art": 0.01,
+        "assumed_relative_pair_average_gain": 0.03,
+        "rounds_to_80_percent_point_estimate": 2,
+        "win_by_14_rounds": {
+          "wins": 10000,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.9996160016293234,
+            1.0,
+            1.0
+          ]
+        }
+      },
+      {
+        "pair": "M1-M3",
+        "direction": 1,
+        "alpha_art": 0.05,
+        "assumed_relative_pair_average_gain": 0.01,
+        "rounds_to_80_percent_point_estimate": 4,
+        "win_by_14_rounds": {
+          "wins": 10000,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.9996160016293234,
+            1.0,
+            1.0
+          ]
+        }
+      },
+      {
+        "pair": "M1-M3",
+        "direction": -1,
+        "alpha_art": 0.05,
+        "assumed_relative_pair_average_gain": 0.01,
+        "rounds_to_80_percent_point_estimate": 4,
+        "win_by_14_rounds": {
+          "wins": 10000,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.9996160016293234,
+            1.0,
+            1.0
+          ]
+        }
+      },
+      {
+        "pair": "M1-M3",
+        "direction": 1,
+        "alpha_art": 0.05,
+        "assumed_relative_pair_average_gain": 0.02,
+        "rounds_to_80_percent_point_estimate": 2,
+        "win_by_14_rounds": {
+          "wins": 10000,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.9996160016293234,
+            1.0,
+            1.0
+          ]
+        }
+      },
+      {
+        "pair": "M1-M3",
+        "direction": -1,
+        "alpha_art": 0.05,
+        "assumed_relative_pair_average_gain": 0.02,
+        "rounds_to_80_percent_point_estimate": 2,
+        "win_by_14_rounds": {
+          "wins": 10000,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.9996160016293234,
+            1.0,
+            1.0
+          ]
+        }
+      },
+      {
+        "pair": "M1-M3",
+        "direction": 1,
+        "alpha_art": 0.05,
+        "assumed_relative_pair_average_gain": 0.03,
+        "rounds_to_80_percent_point_estimate": 1,
+        "win_by_14_rounds": {
+          "wins": 10000,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.9996160016293234,
+            1.0,
+            1.0
+          ]
+        }
+      },
+      {
+        "pair": "M1-M3",
+        "direction": -1,
+        "alpha_art": 0.05,
+        "assumed_relative_pair_average_gain": 0.03,
+        "rounds_to_80_percent_point_estimate": 1,
+        "win_by_14_rounds": {
+          "wins": 10000,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.9996160016293234,
+            1.0,
+            1.0
+          ]
+        }
+      },
+      {
+        "pair": "M1-M3",
+        "direction": 1,
+        "alpha_art": 0.01,
+        "assumed_relative_pair_average_gain": 0.01,
+        "rounds_to_80_percent_point_estimate": 6,
+        "win_by_14_rounds": {
+          "wins": 10000,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.9996160016293234,
+            1.0,
+            1.0
+          ]
+        }
+      },
+      {
+        "pair": "M1-M3",
+        "direction": -1,
+        "alpha_art": 0.01,
+        "assumed_relative_pair_average_gain": 0.01,
+        "rounds_to_80_percent_point_estimate": 6,
+        "win_by_14_rounds": {
+          "wins": 9998,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.9992710041559925,
+            0.9998,
+            0.9999451510726791
+          ]
+        }
+      },
+      {
+        "pair": "M1-M3",
+        "direction": 1,
+        "alpha_art": 0.01,
+        "assumed_relative_pair_average_gain": 0.02,
+        "rounds_to_80_percent_point_estimate": 2,
+        "win_by_14_rounds": {
+          "wins": 10000,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.9996160016293234,
+            1.0,
+            1.0
+          ]
+        }
+      },
+      {
+        "pair": "M1-M3",
+        "direction": -1,
+        "alpha_art": 0.01,
+        "assumed_relative_pair_average_gain": 0.02,
+        "rounds_to_80_percent_point_estimate": 2,
+        "win_by_14_rounds": {
+          "wins": 10000,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.9996160016293234,
+            1.0,
+            1.0
+          ]
+        }
+      },
+      {
+        "pair": "M1-M3",
+        "direction": 1,
+        "alpha_art": 0.01,
+        "assumed_relative_pair_average_gain": 0.03,
+        "rounds_to_80_percent_point_estimate": 1,
+        "win_by_14_rounds": {
+          "wins": 10000,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.9996160016293234,
+            1.0,
+            1.0
+          ]
+        }
+      },
+      {
+        "pair": "M1-M3",
+        "direction": -1,
+        "alpha_art": 0.01,
+        "assumed_relative_pair_average_gain": 0.03,
+        "rounds_to_80_percent_point_estimate": 1,
+        "win_by_14_rounds": {
+          "wins": 10000,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.9996160016293234,
+            1.0,
+            1.0
+          ]
+        }
+      },
+      {
+        "pair": "M1-M4",
+        "direction": 1,
+        "alpha_art": 0.05,
+        "assumed_relative_pair_average_gain": 0.01,
+        "rounds_to_80_percent_point_estimate": null,
+        "win_by_14_rounds": {
+          "wins": 5388,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.5290166962777045,
+            0.5388,
+            0.5485535054487309
+          ]
+        }
+      },
+      {
+        "pair": "M1-M4",
+        "direction": -1,
+        "alpha_art": 0.05,
+        "assumed_relative_pair_average_gain": 0.01,
+        "rounds_to_80_percent_point_estimate": null,
+        "win_by_14_rounds": {
+          "wins": 5311,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.5213090838688913,
+            0.5311,
+            0.5408670314324527
+          ]
+        }
+      },
+      {
+        "pair": "M1-M4",
+        "direction": 1,
+        "alpha_art": 0.05,
+        "assumed_relative_pair_average_gain": 0.02,
+        "rounds_to_80_percent_point_estimate": 6,
+        "win_by_14_rounds": {
+          "wins": 9986,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.9976512388536363,
+            0.9986,
+            0.999165837971125
+          ]
+        }
+      },
+      {
+        "pair": "M1-M4",
+        "direction": -1,
+        "alpha_art": 0.05,
+        "assumed_relative_pair_average_gain": 0.02,
+        "rounds_to_80_percent_point_estimate": 6,
+        "win_by_14_rounds": {
+          "wins": 9989,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.9980311970799692,
+            0.9989,
+            0.9993856493457697
+          ]
+        }
+      },
+      {
+        "pair": "M1-M4",
+        "direction": 1,
+        "alpha_art": 0.05,
+        "assumed_relative_pair_average_gain": 0.03,
+        "rounds_to_80_percent_point_estimate": 3,
+        "win_by_14_rounds": {
+          "wins": 10000,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.9996160016293234,
+            1.0,
+            1.0
+          ]
+        }
+      },
+      {
+        "pair": "M1-M4",
+        "direction": -1,
+        "alpha_art": 0.05,
+        "assumed_relative_pair_average_gain": 0.03,
+        "rounds_to_80_percent_point_estimate": 3,
+        "win_by_14_rounds": {
+          "wins": 10000,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.9996160016293234,
+            1.0,
+            1.0
+          ]
+        }
+      },
+      {
+        "pair": "M1-M4",
+        "direction": 1,
+        "alpha_art": 0.01,
+        "assumed_relative_pair_average_gain": 0.01,
+        "rounds_to_80_percent_point_estimate": null,
+        "win_by_14_rounds": {
+          "wins": 3257,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.3165833578773539,
+            0.3257,
+            0.33495050395466386
+          ]
+        }
+      },
+      {
+        "pair": "M1-M4",
+        "direction": -1,
+        "alpha_art": 0.01,
+        "assumed_relative_pair_average_gain": 0.01,
+        "rounds_to_80_percent_point_estimate": null,
+        "win_by_14_rounds": {
+          "wins": 3198,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.3107294388305545,
+            0.3198,
+            0.3290089541822372
+          ]
+        }
+      },
+      {
+        "pair": "M1-M4",
+        "direction": 1,
+        "alpha_art": 0.01,
+        "assumed_relative_pair_average_gain": 0.02,
+        "rounds_to_80_percent_point_estimate": 8,
+        "win_by_14_rounds": {
+          "wins": 9935,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.991724408237974,
+            0.9935,
+            0.9948965853701682
+          ]
+        }
+      },
+      {
+        "pair": "M1-M4",
+        "direction": -1,
+        "alpha_art": 0.01,
+        "assumed_relative_pair_average_gain": 0.02,
+        "rounds_to_80_percent_point_estimate": 8,
+        "win_by_14_rounds": {
+          "wins": 9902,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.9880722440525997,
+            0.9902,
+            0.9919512839447888
+          ]
+        }
+      },
+      {
+        "pair": "M1-M4",
+        "direction": 1,
+        "alpha_art": 0.01,
+        "assumed_relative_pair_average_gain": 0.03,
+        "rounds_to_80_percent_point_estimate": 4,
+        "win_by_14_rounds": {
+          "wins": 10000,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.9996160016293234,
+            1.0,
+            1.0
+          ]
+        }
+      },
+      {
+        "pair": "M1-M4",
+        "direction": -1,
+        "alpha_art": 0.01,
+        "assumed_relative_pair_average_gain": 0.03,
+        "rounds_to_80_percent_point_estimate": 4,
+        "win_by_14_rounds": {
+          "wins": 10000,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.9996160016293234,
+            1.0,
+            1.0
+          ]
+        }
+      },
+      {
+        "pair": "M2-M3",
+        "direction": 1,
+        "alpha_art": 0.05,
+        "assumed_relative_pair_average_gain": 0.01,
+        "rounds_to_80_percent_point_estimate": 5,
+        "win_by_14_rounds": {
+          "wins": 10000,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.9996160016293234,
+            1.0,
+            1.0
+          ]
+        }
+      },
+      {
+        "pair": "M2-M3",
+        "direction": -1,
+        "alpha_art": 0.05,
+        "assumed_relative_pair_average_gain": 0.01,
+        "rounds_to_80_percent_point_estimate": 5,
+        "win_by_14_rounds": {
+          "wins": 10000,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.9996160016293234,
+            1.0,
+            1.0
+          ]
+        }
+      },
+      {
+        "pair": "M2-M3",
+        "direction": 1,
+        "alpha_art": 0.05,
+        "assumed_relative_pair_average_gain": 0.02,
+        "rounds_to_80_percent_point_estimate": 2,
+        "win_by_14_rounds": {
+          "wins": 10000,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.9996160016293234,
+            1.0,
+            1.0
+          ]
+        }
+      },
+      {
+        "pair": "M2-M3",
+        "direction": -1,
+        "alpha_art": 0.05,
+        "assumed_relative_pair_average_gain": 0.02,
+        "rounds_to_80_percent_point_estimate": 2,
+        "win_by_14_rounds": {
+          "wins": 10000,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.9996160016293234,
+            1.0,
+            1.0
+          ]
+        }
+      },
+      {
+        "pair": "M2-M3",
+        "direction": 1,
+        "alpha_art": 0.05,
+        "assumed_relative_pair_average_gain": 0.03,
+        "rounds_to_80_percent_point_estimate": 1,
+        "win_by_14_rounds": {
+          "wins": 10000,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.9996160016293234,
+            1.0,
+            1.0
+          ]
+        }
+      },
+      {
+        "pair": "M2-M3",
+        "direction": -1,
+        "alpha_art": 0.05,
+        "assumed_relative_pair_average_gain": 0.03,
+        "rounds_to_80_percent_point_estimate": 1,
+        "win_by_14_rounds": {
+          "wins": 10000,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.9996160016293234,
+            1.0,
+            1.0
+          ]
+        }
+      },
+      {
+        "pair": "M2-M3",
+        "direction": 1,
+        "alpha_art": 0.01,
+        "assumed_relative_pair_average_gain": 0.01,
+        "rounds_to_80_percent_point_estimate": 6,
+        "win_by_14_rounds": {
+          "wins": 9996,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.9989718716646431,
+            0.9996,
+            0.9998444371633769
+          ]
+        }
+      },
+      {
+        "pair": "M2-M3",
+        "direction": -1,
+        "alpha_art": 0.01,
+        "assumed_relative_pair_average_gain": 0.01,
+        "rounds_to_80_percent_point_estimate": 6,
+        "win_by_14_rounds": {
+          "wins": 9998,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.9992710041559925,
+            0.9998,
+            0.9999451510726791
+          ]
+        }
+      },
+      {
+        "pair": "M2-M3",
+        "direction": 1,
+        "alpha_art": 0.01,
+        "assumed_relative_pair_average_gain": 0.02,
+        "rounds_to_80_percent_point_estimate": 2,
+        "win_by_14_rounds": {
+          "wins": 10000,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.9996160016293234,
+            1.0,
+            1.0
+          ]
+        }
+      },
+      {
+        "pair": "M2-M3",
+        "direction": -1,
+        "alpha_art": 0.01,
+        "assumed_relative_pair_average_gain": 0.02,
+        "rounds_to_80_percent_point_estimate": 2,
+        "win_by_14_rounds": {
+          "wins": 10000,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.9996160016293234,
+            1.0,
+            1.0
+          ]
+        }
+      },
+      {
+        "pair": "M2-M3",
+        "direction": 1,
+        "alpha_art": 0.01,
+        "assumed_relative_pair_average_gain": 0.03,
+        "rounds_to_80_percent_point_estimate": 1,
+        "win_by_14_rounds": {
+          "wins": 10000,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.9996160016293234,
+            1.0,
+            1.0
+          ]
+        }
+      },
+      {
+        "pair": "M2-M3",
+        "direction": -1,
+        "alpha_art": 0.01,
+        "assumed_relative_pair_average_gain": 0.03,
+        "rounds_to_80_percent_point_estimate": 1,
+        "win_by_14_rounds": {
+          "wins": 10000,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.9996160016293234,
+            1.0,
+            1.0
+          ]
+        }
+      },
+      {
+        "pair": "M2-M4",
+        "direction": 1,
+        "alpha_art": 0.05,
+        "assumed_relative_pair_average_gain": 0.01,
+        "rounds_to_80_percent_point_estimate": null,
+        "win_by_14_rounds": {
+          "wins": 7297,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.720908530893897,
+            0.7297,
+            0.7383150602546142
+          ]
+        }
+      },
+      {
+        "pair": "M2-M4",
+        "direction": -1,
+        "alpha_art": 0.05,
+        "assumed_relative_pair_average_gain": 0.01,
+        "rounds_to_80_percent_point_estimate": null,
+        "win_by_14_rounds": {
+          "wins": 7185,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.7096028287282661,
+            0.7185,
+            0.7272293639837484
+          ]
+        }
+      },
+      {
+        "pair": "M2-M4",
+        "direction": 1,
+        "alpha_art": 0.05,
+        "assumed_relative_pair_average_gain": 0.02,
+        "rounds_to_80_percent_point_estimate": 5,
+        "win_by_14_rounds": {
+          "wins": 10000,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.9996160016293234,
+            1.0,
+            1.0
+          ]
+        }
+      },
+      {
+        "pair": "M2-M4",
+        "direction": -1,
+        "alpha_art": 0.05,
+        "assumed_relative_pair_average_gain": 0.02,
+        "rounds_to_80_percent_point_estimate": 5,
+        "win_by_14_rounds": {
+          "wins": 10000,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.9996160016293234,
+            1.0,
+            1.0
+          ]
+        }
+      },
+      {
+        "pair": "M2-M4",
+        "direction": 1,
+        "alpha_art": 0.05,
+        "assumed_relative_pair_average_gain": 0.03,
+        "rounds_to_80_percent_point_estimate": 3,
+        "win_by_14_rounds": {
+          "wins": 10000,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.9996160016293234,
+            1.0,
+            1.0
+          ]
+        }
+      },
+      {
+        "pair": "M2-M4",
+        "direction": -1,
+        "alpha_art": 0.05,
+        "assumed_relative_pair_average_gain": 0.03,
+        "rounds_to_80_percent_point_estimate": 3,
+        "win_by_14_rounds": {
+          "wins": 10000,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.9996160016293234,
+            1.0,
+            1.0
+          ]
+        }
+      },
+      {
+        "pair": "M2-M4",
+        "direction": 1,
+        "alpha_art": 0.01,
+        "assumed_relative_pair_average_gain": 0.01,
+        "rounds_to_80_percent_point_estimate": null,
+        "win_by_14_rounds": {
+          "wins": 5175,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.5077013426141836,
+            0.5175,
+            0.5272852174428426
+          ]
+        }
+      },
+      {
+        "pair": "M2-M4",
+        "direction": -1,
+        "alpha_art": 0.01,
+        "assumed_relative_pair_average_gain": 0.01,
+        "rounds_to_80_percent_point_estimate": null,
+        "win_by_14_rounds": {
+          "wins": 5115,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.5017002367361996,
+            0.5115,
+            0.5212909313012748
+          ]
+        }
+      },
+      {
+        "pair": "M2-M4",
+        "direction": 1,
+        "alpha_art": 0.01,
+        "assumed_relative_pair_average_gain": 0.02,
+        "rounds_to_80_percent_point_estimate": 6,
+        "win_by_14_rounds": {
+          "wins": 9997,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.9991182642277636,
+            0.9997,
+            0.9998979678005822
+          ]
+        }
+      },
+      {
+        "pair": "M2-M4",
+        "direction": -1,
+        "alpha_art": 0.01,
+        "assumed_relative_pair_average_gain": 0.02,
+        "rounds_to_80_percent_point_estimate": 6,
+        "win_by_14_rounds": {
+          "wins": 10000,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.9996160016293234,
+            1.0,
+            1.0
+          ]
+        }
+      },
+      {
+        "pair": "M2-M4",
+        "direction": 1,
+        "alpha_art": 0.01,
+        "assumed_relative_pair_average_gain": 0.03,
+        "rounds_to_80_percent_point_estimate": 3,
+        "win_by_14_rounds": {
+          "wins": 10000,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.9996160016293234,
+            1.0,
+            1.0
+          ]
+        }
+      },
+      {
+        "pair": "M2-M4",
+        "direction": -1,
+        "alpha_art": 0.01,
+        "assumed_relative_pair_average_gain": 0.03,
+        "rounds_to_80_percent_point_estimate": 3,
+        "win_by_14_rounds": {
+          "wins": 10000,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.9996160016293234,
+            1.0,
+            1.0
+          ]
+        }
+      },
+      {
+        "pair": "M3-M4",
+        "direction": 1,
+        "alpha_art": 0.05,
+        "assumed_relative_pair_average_gain": 0.01,
+        "rounds_to_80_percent_point_estimate": null,
+        "win_by_14_rounds": {
+          "wins": 6393,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.6298363463604889,
+            0.6393,
+            0.6486566716934404
+          ]
+        }
+      },
+      {
+        "pair": "M3-M4",
+        "direction": -1,
+        "alpha_art": 0.05,
+        "assumed_relative_pair_average_gain": 0.01,
+        "rounds_to_80_percent_point_estimate": null,
+        "win_by_14_rounds": {
+          "wins": 6410,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.6315454172713888,
+            0.641,
+            0.6503462951880805
+          ]
+        }
+      },
+      {
+        "pair": "M3-M4",
+        "direction": 1,
+        "alpha_art": 0.05,
+        "assumed_relative_pair_average_gain": 0.02,
+        "rounds_to_80_percent_point_estimate": 5,
+        "win_by_14_rounds": {
+          "wins": 10000,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.9996160016293234,
+            1.0,
+            1.0
+          ]
+        }
+      },
+      {
+        "pair": "M3-M4",
+        "direction": -1,
+        "alpha_art": 0.05,
+        "assumed_relative_pair_average_gain": 0.02,
+        "rounds_to_80_percent_point_estimate": 5,
+        "win_by_14_rounds": {
+          "wins": 10000,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.9996160016293234,
+            1.0,
+            1.0
+          ]
+        }
+      },
+      {
+        "pair": "M3-M4",
+        "direction": 1,
+        "alpha_art": 0.05,
+        "assumed_relative_pair_average_gain": 0.03,
+        "rounds_to_80_percent_point_estimate": 3,
+        "win_by_14_rounds": {
+          "wins": 10000,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.9996160016293234,
+            1.0,
+            1.0
+          ]
+        }
+      },
+      {
+        "pair": "M3-M4",
+        "direction": -1,
+        "alpha_art": 0.05,
+        "assumed_relative_pair_average_gain": 0.03,
+        "rounds_to_80_percent_point_estimate": 3,
+        "win_by_14_rounds": {
+          "wins": 10000,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.9996160016293234,
+            1.0,
+            1.0
+          ]
+        }
+      },
+      {
+        "pair": "M3-M4",
+        "direction": 1,
+        "alpha_art": 0.01,
+        "assumed_relative_pair_average_gain": 0.01,
+        "rounds_to_80_percent_point_estimate": null,
+        "win_by_14_rounds": {
+          "wins": 4251,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.41544133740382067,
+            0.4251,
+            0.4348161855521065
+          ]
+        }
+      },
+      {
+        "pair": "M3-M4",
+        "direction": -1,
+        "alpha_art": 0.01,
+        "assumed_relative_pair_average_gain": 0.01,
+        "rounds_to_80_percent_point_estimate": null,
+        "win_by_14_rounds": {
+          "wins": 4227,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.4130494985649794,
+            0.4227,
+            0.43240986758312716
+          ]
+        }
+      },
+      {
+        "pair": "M3-M4",
+        "direction": 1,
+        "alpha_art": 0.01,
+        "assumed_relative_pair_average_gain": 0.02,
+        "rounds_to_80_percent_point_estimate": 7,
+        "win_by_14_rounds": {
+          "wins": 9991,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.9982902698869756,
+            0.9991,
+            0.999526422939415
+          ]
+        }
+      },
+      {
+        "pair": "M3-M4",
+        "direction": -1,
+        "alpha_art": 0.01,
+        "assumed_relative_pair_average_gain": 0.02,
+        "rounds_to_80_percent_point_estimate": 7,
+        "win_by_14_rounds": {
+          "wins": 9983,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.9972790145849042,
+            0.9983,
+            0.9989382926388795
+          ]
+        }
+      },
+      {
+        "pair": "M3-M4",
+        "direction": 1,
+        "alpha_art": 0.01,
+        "assumed_relative_pair_average_gain": 0.03,
+        "rounds_to_80_percent_point_estimate": 4,
+        "win_by_14_rounds": {
+          "wins": 10000,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.9996160016293234,
+            1.0,
+            1.0
+          ]
+        }
+      },
+      {
+        "pair": "M3-M4",
+        "direction": -1,
+        "alpha_art": 0.01,
+        "assumed_relative_pair_average_gain": 0.03,
+        "rounds_to_80_percent_point_estimate": 4,
+        "win_by_14_rounds": {
+          "wins": 10000,
+          "trials": 10000,
+          "wilson95_low_point_high": [
+            0.9996160016293234,
+            1.0,
+            1.0
+          ]
+        }
+      }
+    ],
+    "normal_approximation_daily_Holm_shared_M1": {
+      "cohort_size": 3,
+      "day1": {
+        "false_crossings": 444,
+        "trials": 10000,
+        "wilson95_low_point_high": [
+          0.04053475956156519,
+          0.0444,
+          0.04861513975379532
+        ]
+      },
+      "any_of_14_days": {
+        "false_crossings": 4664,
+        "trials": 10000,
+        "wilson95_low_point_high": [
+          0.45663710363931237,
+          0.4664,
+          0.476188701051197
+        ]
+      },
+      "limit": "normal-approximate p-values, fixed all-null centered cohort; not full adaptive championship"
+    }
+  }
+}

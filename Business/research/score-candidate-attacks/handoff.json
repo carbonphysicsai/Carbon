@@ -1,0 +1,14 @@
+{
+  "schema": "carbon.research.score-attacks.handoff.v1",
+  "ticket": "SCORE-CANDIDATE-ATTACKS-01",
+  "recipient": "Test Engineer / SCORE-PROOF-01 selection fold",
+  "maturity": "DEVELOPMENT_RECOMMENDATION_NOT_ADOPTED",
+  "candidates": ["A", "A-Q+G-FEAS@0.05", "G-PLATE/A-Q", "tighter G-FEAS/A-Q", "VERIFY-R"],
+  "required_public_export": ["per-case signed predictions and reference bands", "scoring-set joint reference FAIL and predicted PASS mask", "Q3 raw-derived regret and coverage", "committed unique top-k orders", "complete-panel attempt, core and wall cost", "per-stratum identity without protected case reconstruction"],
+  "attack_families": ["boundary optimism", "gate-zone crossing", "easy-region-only accuracy with frozen decisions", "conservative abstention", "shortlist duplicates/padding/failure skipping", "public-case memorization", "copy/Sybil investigation separate from scientific score"],
+  "preregister": {"k": "HUMAN_INPUT", "budget": "HUMAN_INPUT", "delta_score_alert": "HUMAN_INPUT", "value_equivalence_region": "HUMAN_INPUT", "multiplicity_and_alpha": "HUMAN_INPUT", "copying_disposition": "HUMAN_INPUT"},
+  "sensitivity": {"k_low_base_high": [1, 3, 5], "normalization_s_low_base_high": [60, 120, 240], "basis": "ASSUMPTION diagnostics, not production settings"},
+  "automatic_checks_proposed": ["unique in-family committed list", "charge every complete-panel attempt against fixed caps", "reference failure is non-scientific", "retain every offered question", "fixed-list VERIFY-R score invariant to irrelevant prediction changes"],
+  "historical_verdicts": "UNCHANGED",
+  "remaining_exact_comparisons": "NOT_IDENTIFIABLE_WITHOUT_RAW_Q3_AND_SCORING_SET_JOINT_FEASIBILITY"
+}

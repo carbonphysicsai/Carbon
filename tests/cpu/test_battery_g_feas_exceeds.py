@@ -46,6 +46,41 @@ def test_v5_keeps_every_v4_candidate_exactly():
     assert all("comparison" not in (c.gate or {}) for c in v4.values())
 
 
+def test_v6_keeps_every_v5_candidate_and_adds_1059s_selection_candidates():
+    v5, _ = score_tuning.load_registry(REGISTRIES / "registry-v5.json")
+    v6, _ = score_tuning.load_registry(REGISTRIES / "registry-v6.json")
+    assert {k: v for k, v in v6.items() if k in v5} == v5
+    assert len(v5) == 130 and len(v6) == 150
+    grid = ("0.005", "0.01", "0.02", "0.025", "0.05", "0.1", "1.01")
+    expected = {
+        *(f"G-PLATE/A-Q@{c}" for c in grid),
+        *(f"G-PLATE/A-Q>@{c}" for c in grid),
+        "G-FEAS-T/A-Q@0.025",
+        "A",
+        *(f"G-FEAS-T/A-Q>@{c}" for c in ("0.005", "0.01", "0.02", "0.025")),
+    }
+    assert set(v6) - set(v5) == expected
+    at, above = v6["G-PLATE/A-Q@0.01"], v6["G-PLATE/A-Q>@0.01"]
+    assert at.weights == above.weights == v6["A-Q"].weights
+    rate = {"gates": {"plating_fa": 0.01}}
+    assert score_tuning.gate_verdict(at, rate) == admissibility.FAIL
+    assert score_tuning.gate_verdict(above, rate) == admissibility.PASS
+    assert v6["A"].weights == {"a": 1.0} and v6["A"].gate is None
+    tight = v6["G-FEAS-T/A-Q>@0.02"]
+    assert tight.gate == {
+        "measure": "feasibility",
+        "cutoff": 0.02,
+        "comparison": "exceeds",
+    }
+    assert score_tuning.gate_verdict(tight, row(0.021)) == admissibility.FAIL
+
+
+def test_the_score_proof_reads_registry_v6():
+    from scripts.dev.battery import score_proof
+
+    assert score_proof.REGISTRY.name == "registry-v6.json"
+
+
 def test_an_unknown_comparison_is_refused():
     import pytest
 

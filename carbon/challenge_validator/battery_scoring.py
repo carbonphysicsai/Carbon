@@ -159,7 +159,7 @@ class BatteryScoring(ChallengeScoring):
             )
         return self.built_from(admitted, seed, root, implementation=implementation)
 
-    def built_from(self, admitted, seed, root, implementation=None):
+    def built_from(self, admitted, seed, root, implementation=None, workspace=None):
         from carbon.battery.practice import PracticeSet, staged_files
         from carbon.development_session.battery_gpu import pod_program
         from carbon.development_session.profile import digest
@@ -188,6 +188,17 @@ class BatteryScoring(ChallengeScoring):
             program, files, _trainer = development_rebuild.stage(
                 found, program, files, level1_program=level1_worker.program
             )
+        if workspace is not None:
+            # A Level 4 record's submission documents, staged beside it as
+            # `staging.workspace` names them, checked against the digest the
+            # record names (GRAPHITE-L4-STAGING-01); `expected.staged` pins them.
+            from carbon.battery import level4_worker
+            from carbon.level4 import staging
+
+            if type(found) is not dict or found.get("schema") != level4_worker.SCHEMA:
+                raise ValueError("level4_documents_need_a_level4_record")
+            staging.from_workspace(workspace, found.get("submission"))
+            files = {**files, **workspace}
         record = {
             "schema": BUILT_SCHEMA,
             "challenge": recipe.document()["challenge"],

@@ -177,9 +177,9 @@ from ..provider import (
     RunStatus,
     TaskSpec,
 )
+from . import capability_log, grant_binding, level_domain, model_providers, next_level
 from . import delivery as deliver_
 from . import experiment as ex
-from . import grant_binding, level_domain, model_providers, next_level
 from . import literature as lit
 from . import score_variant as sv
 from . import tools as toolbox
@@ -204,6 +204,7 @@ from .provider import (
 from .roles import (
     CONSTRUCTOR_SESSION_TURNS,
     CONSTRUCTOR_STALL_ATTEMPTS,
+    LEVEL4_STAGE,
     PARALLEL_RULES,
     PROPOSE,
     ROLES,
@@ -256,6 +257,8 @@ class Phase3Tools:
         self.seconds_left = seconds_left
 
     async def call(self, name, arguments, identity):
+        if name == LEVEL4_STAGE:
+            return await self._level4_stage(arguments, identity)
         if name == PROPOSE:
             late = self._no_time()
             if late is not None:
@@ -272,6 +275,53 @@ class Phase3Tools:
                 reason="This session has no miner campaign attached; nothing ran.",
             )
         return await self.miner.call(name, arguments, identity)
+
+    async def _level4_stage(self, arguments, identity):
+        """`graphite_level4_stage` (GRAPHITE-L4-STAGING-01): the interface for
+        a recipe, or the agent's exported envelope staged as data."""
+        from . import miner_path
+
+        if (
+            type(arguments) is not dict
+            or set(arguments) != {"strategy_json", "task_id"}
+            or type(arguments["strategy_json"]) is not str
+            or type(arguments["task_id"]) is not str
+            or len(arguments["strategy_json"].encode()) > ex.MAX_STRATEGY_BYTES
+        ):
+            return ex._l4_refused("level4_stage_arguments_malformed")
+        try:
+            strategy = json.loads(arguments["strategy_json"])
+        except ValueError:
+            return ex._l4_refused("strategy_json_malformed")
+        if not isinstance(strategy, dict):
+            return ex._l4_refused("strategy_json_malformed")
+        if self.experiment.level4_variant_bounds() is None:
+            return ex._l4_refused("level4_stage_not_at_level_4")
+        if not arguments["task_id"]:
+            try:
+                return await asyncio.to_thread(
+                    self.experiment.level4_interface, strategy
+                )
+            except Exception as refused:  # noqa: BLE001 - the recipe's, typed
+                return ex._l4_refused(
+                    "level4_interface_unavailable: " + type(refused).__name__
+                )
+        if self.miner is None:
+            return toolbox.refusal(
+                toolbox.UNAVAILABLE,
+                "miner_path_not_attached",
+                reason="This session has no miner campaign attached; nothing ran.",
+            )
+        packed = await miner_path.read_export(
+            self.miner,
+            arguments["task_id"],
+            ex.LEVEL4_ENVELOPE_EXPORT,
+            identity,
+            max_bytes=self.experiment.level4_envelope_limit(),
+        )
+        if isinstance(packed, dict):
+            return packed
+        return await asyncio.to_thread(self.experiment.level4_stage, strategy, packed)
 
     def _no_time(self):
         """The typed refusal of a proposal whose pods cannot finish within the
@@ -1021,6 +1071,7 @@ def session_brief(
     scoring=None,
     variant=None,
     tool_text=TOOL_TEXT_V2,
+    capability_wish_text=False,
     score_variant=None,
     study=None,
     level_domain_text=False,
@@ -1069,6 +1120,10 @@ def session_brief(
             "say why."
         ),
     }
+    if capability_wish_text:
+        # Opt-in: a brief recorded without it keeps its digest (replays byte for byte).
+        observation["capability_wish"] = capability_log.WISH_BRIEF
+        observation["instructions"] += capability_log.WISH_INSTRUCTIONS
     if score_variant is not None:
         observation["score_variant"] = score_variant
     # The level's declared domain, intersected with the backends this Challenge's
@@ -1087,6 +1142,24 @@ def session_brief(
             " The level's domain is in level_domain: use only the families, names and "
             "values it lists, and keep to its combination rules."
         )
+        if domain.get("level") and domain.get("level_additions"):
+            observation["instructions"] += (
+                " level_domain.level_additions lists what this level adds over "
+                "Level 0 and the strategy field each goes in; a recipe may use them "
+                "or not."
+            )
+    # A new Level 4 session (it asks for the level text) offers the stage tool
+    # (GRAPHITE-L4-STAGING-01); every other brief is exactly as before.
+    level4_stage = bool(level_domain_text) and level == 4 and study is None
+    if level4_stage:
+        observation["instructions"] += (
+            " At Level 4 a recipe may carry a graph submission: call "
+            + LEVEL4_STAGE
+            + " with task_id empty for the interface and the commands, lower "
+            "your model in a workspace run_python task, then call it again with "
+            "that task's id, and propose the recipe with the submission digest "
+            "it returns."
+        )
     return SessionBrief(
         role=RoleName.CONSTRUCTOR,
         initial_observation=observation,
@@ -1095,6 +1168,7 @@ def session_brief(
         # A new session reads challenge-neutral tool text (VALIDATOR-07).
         tool_text=tool_text,
         study=study,
+        level4_stage=level4_stage,
     )
 
 
@@ -1171,10 +1245,12 @@ def recorded_level(opened, scoring, score_variant=None):
     return None if found is None else found.level
 
 
-def controller_for(root, provider, grant, clock=None):
+def controller_for(root, provider, grant, clock=None, shared_runs=False):
     from ..controller import CampaignController
 
     kwargs = {} if clock is None else {"clock": clock}
+    if shared_runs:
+        kwargs["shared_runs"] = True
     return CampaignController(
         root=Path(root) / "controller",
         provider=provider,
@@ -1802,6 +1878,7 @@ def command_run(args):
                 key_file=runpod,
                 code_ref=args.code_ref,
                 scoring=scoring,
+                retry_ambiguous_create=True,
             )
         else:
             pods = carrier_pods(root / "carrier", args.image_manifest)
@@ -1831,7 +1908,7 @@ def command_run(args):
             check_resume(provider, args.session)
         except ResumeRefused as refused:
             raise RunnerRefused(refused.code) from None
-        control = controller_for(root, provider, grant)
+        control = controller_for(root, provider, grant, shared_runs=True)
         try:
             budget = provider.budget
             brief = session_brief(
@@ -1840,6 +1917,7 @@ def command_run(args):
                 literature=literature,
                 scoring=scoring,
                 variant=variant,
+                capability_wish_text=True,
                 score_variant=sv.identity_of(scored),
                 study=getattr(args, "study", None),
                 level_domain_text=True,

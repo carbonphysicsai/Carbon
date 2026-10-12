@@ -55,6 +55,15 @@ REPOSITORY = Path(__file__).resolve().parents[2]
 MANIFEST_SCHEMA = "carbon.challenge-validator.startup-shard.v1"
 JOURNAL = "startup-journal.jsonl"
 CUSTODY_RECORD = "OWNER-STARTUP-HOST-CUSTODY-01"
+#: The standing record and the owner's recorded extensions of it: -02 (the
+#: score proof's sealed questions), -03 (a RunPod Secure Cloud pod for the
+#: score proof). A startup names the one it runs under; each must exist as
+#: a decision record whose heading names it.
+CUSTODY_RECORDS = (
+    CUSTODY_RECORD,
+    "OWNER-STARTUP-HOST-CUSTODY-02",
+    "OWNER-STARTUP-HOST-CUSTODY-03",
+)
 HOST_KEY = re.compile(r"SHA256:[A-Za-z0-9+/]{43}=?")
 
 
@@ -170,14 +179,19 @@ def require_custody(record_file, host_keys, *, repository=REPOSITORY):
     return "sha256:" + hashlib.sha256(body).hexdigest()
 
 
-def _standing_record(repository):
-    """The repository's standing custody record (the procedure's approval),
-    or None."""
+def _standing_record(repository, record=CUSTODY_RECORD):
+    """The repository's decision record whose heading names `record` (the
+    standing record, or one of its recorded extensions), or None."""
     for path in sorted((Path(repository) / ".agent" / "decisions").glob("*.md")):
         body = path.read_bytes()
-        if b"## " in body and CUSTODY_RECORD.encode() in body.split(b"\n", 1)[0]:
+        if b"## " in body and record.encode() in body.split(b"\n", 1)[0]:
             return body
     return None
+
+
+def _named_records(body):
+    """The custody records (`CUSTODY_RECORDS`) a hosts file names."""
+    return [r for r in CUSTODY_RECORDS if r.encode() in body]
 
 
 def _startup_hosts_file(path, host_keys, repository):
@@ -189,9 +203,6 @@ def _startup_hosts_file(path, host_keys, repository):
     import os
     import stat
 
-    standing = _standing_record(repository)
-    if standing is None:
-        raise ProducerRefused("startup_custody_unrecorded")
     try:
         info = os.lstat(path)
         body = Path(path).read_bytes()
@@ -199,11 +210,15 @@ def _startup_hosts_file(path, host_keys, repository):
         raise ProducerRefused("startup_custody_unrecorded") from None
     if not stat.S_ISREG(info.st_mode) or info.st_uid != 0 or info.st_mode & 0o022:
         raise ProducerRefused("startup_custody_file_not_owner_written")
-    if CUSTODY_RECORD.encode() not in body or any(
-        k.encode() not in body for k in host_keys
-    ):
+    named = _named_records(body)
+    if not named or any(k.encode() not in body for k in host_keys):
         raise ProducerRefused("startup_custody_unrecorded")
-    return "sha256:" + hashlib.sha256(standing + b"\0" + body).hexdigest()
+    # Every record the file names must be on record in the repository: the
+    # standing record, and any extension it runs under.
+    records = [_standing_record(repository, r) for r in named]
+    if any(r is None for r in records):
+        raise ProducerRefused("startup_custody_unrecorded")
+    return "sha256:" + hashlib.sha256(b"\0".join([*records, body])).hexdigest()
 
 
 # --- the work directory ----------------------------------------------------------

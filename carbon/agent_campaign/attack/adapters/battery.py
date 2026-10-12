@@ -212,6 +212,25 @@ TOOL_FAMILIES = {
     "cancel_research_task": "resource_accounting",
 }
 CODE_ACTIONS = ("run_python", "run_julia")
+
+
+def construction_door(tool, arguments=None):
+    """True for a research tool call that carries a strategy to a level's
+    contract: a practice task, a design check, `dry_validate` or
+    `compile_strategy`. A level above 0 maps these to its strategy-surface
+    family and every other call to None (Level 0's families are not its)."""
+    from carbon.development_session.research_tools import PREFIX
+
+    name = str(tool).removeprefix(PREFIX)
+    arguments = arguments if isinstance(arguments, Mapping) else {}
+    if name == "start_research_task":
+        return (
+            arguments.get("kind") == "practice"
+            or arguments.get("action") == "check_design"
+        )
+    return name in ("dry_validate", "compile_strategy")
+
+
 #: Workspace actions that read or write the session's own sandbox store and so
 #: are judged against the carrier's isolation boundary, not left UNASSIGNED.
 WORKSPACE_ISOLATION_ACTIONS = frozenset(

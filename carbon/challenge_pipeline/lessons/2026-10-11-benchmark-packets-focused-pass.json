@@ -1,0 +1,19 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-11-benchmark-packets-focused-pass",
+  "recorded_at": "2026-10-11T01:44:57Z",
+  "challenge": "protocol",
+  "stage": "test_iterate",
+  "execution": {
+    "kind": "test_run",
+    "ref": "BENCHMARK-PACKETS-01/focused-regression",
+    "description": "Native packet structure, reserved owner values, custody, links, historical preservation and arithmetic, with existing law/panel/data regressions and static checks."
+  },
+  "expected": "Two prospective family expansions keep every scientific selection open, preserve the historical pack and pass focused engineering checks.",
+  "observed": "34 native tests passed; Black/Ruff and diff check passed. Two packets, two laws, two public panel plans and two closed 17-item owner inventories. No reference solver, imported benchmark asset, bank, training, spend, hidden/AX42 data, runtime ID or earned qualification. Exact-head CI remains separate canonical acceptance.",
+  "keep": ["Family-specific physical novelty and complete buyer decisions", "Report high cost risks rather than force a cheap scope", "One owner inventory per family with owner/source/blocking behavior"],
+  "change": ["Measure complete reference, comparator and resource costs before any bank or adoption decision"],
+  "protocol_elements": ["buyer decision", "reference credibility", "benchmark custody", "cost accounting"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

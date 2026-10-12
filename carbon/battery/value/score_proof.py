@@ -390,6 +390,12 @@ def level_report(
             None if intervals is None else intervals["delta_joint"]
         ),
         "known_bad_in_top_half": sorted(m for m in known_bad if m in top_half),
+        # Where each known-bad control ranks, per candidate (#1082: a rule
+        # that ranks the boundary optimist or the sign error above the real
+        # members is caught by name, not only by a count).
+        "known_bad_ranks": {
+            m: (ranked.index(m) + 1, n) for m in sorted(known_bad) if m in ranked
+        },
         "adversarial_in_top_half": sorted(m for m in adversarial if m in top_half),
         "top1_regret": (None if top1 is None or best is None else values[top1] - best),
         "gate_recall_unsafe": (
@@ -667,6 +673,29 @@ def screens(report, rule, minimum_level_members=10):
             failed.append("adversarial divergence")
         out[pool] = failed
     return out
+
+
+#: The screens that make a rule unpickable at selection
+#: (SCORE-PROOF-PICKABLE-01): a rule that places a known-bad control or an adversarial
+#: construction in the top half of any screened pool cannot go to the sealed
+#: confirmation, whatever its tau. Placement needs no precise tau, so it holds
+#: on the selection fold's few questions.
+PLACEMENT_SCREENS = (
+    "known-bad member in the top half",
+    "adversarial member in the top half",
+)
+
+
+def pickable(report, rule, minimum_level_members=10):
+    """`(True, [])`, or `(False, ["<pool>: <screen>", ...])`: whether the
+    owner may pick `rule` from this selection report."""
+    failed = [
+        f"{pool}: {screen}"
+        for pool, screens_failed in screens(report, rule, minimum_level_members).items()
+        for screen in screens_failed
+        if screen in PLACEMENT_SCREENS or screen == "incomplete legs"
+    ]
+    return (not failed, failed)
 
 
 def sequential_verdict(report, rule, look, design):

@@ -1,0 +1,16 @@
+{
+ "schema":"carbon.bolted-rehearsal.pilot.v1","scope":"REPRESENTATIVE","customer_result":false,"status":"PROPOSED_NOT_REGISTERED","run_authorized":false,"cap_eur":10,
+ "jobs":[
+  {"kind":"analytic-affine/pretension-lock control","case_count":1,"purpose":"code/state bridge smoke, not buyer evidence"},
+  {"kind":"bracket nominal","case_count":1,"action":{"bolt_diameter_mm":10,"bolt_spacing_mm":55,"support_thickness_mm":12,"preload_max_n":12000},"condition":"nominal","rung":1},
+  {"kind":"bracket low clamp/friction","case_count":1,"action":{"bolt_diameter_mm":10,"bolt_spacing_mm":55,"support_thickness_mm":12,"preload_max_n":12000},"condition":"low-clamp-friction","rung":1},
+  {"kind":"same boundary candidate refined","case_count":1,"action":{"bolt_diameter_mm":10,"bolt_spacing_mm":55,"support_thickness_mm":12,"preload_max_n":12000},"condition":"low-clamp-friction","rung":2}
+ ],
+ "time_hypotheses":{"basis":"ASSUMPTION inherited D076 case costs plus setup; no native measurement","complete_case_cpu_h_low_base_high":[0.03,0.08,0.24],"setup_host_h_low_base_high":[0.5,1,2],"four_cases_with_one_2x_refinement_equivalents":5,"total_serial_host_h_low_base_high":[0.65,1.4,3.2],"RAM_GiB_low_base_high":[1,4,12]},
+ "platform":"Free CPU first; paid CCX63 only after separate exact approval and current capacity/quote",
+ "rate_eur_per_host_h":1.37,"rate_basis":"Owner task rate, ASSUMPTION not a current quote","compute_component_eur_low_base_high":[0.8905,1.918,4.384],
+ "stop":"<=EUR10 all-in enforced cap incl setup/tax/idle/retention; serial one core/process; no automatic retries; stop before next case if residual bound does not fit; record failed/partial cases and tail, no favorable replacement",
+ "required_before_run":["exact registered mesh/contact/state/pins and tuples","reuse inventory","verified analytic controls","accepted observer/limits for affected judgments","rights and resource/store receipts","exact execution authority"],
+ "return":["wall/CPU/allocated-core time, peak RAM and full attempt ledger","convergence/contact force and moment balances","state lineage assembly/lock/service","all mapped outputs, typed unresolved/reference failures","cheap baseline diagnostics and whole-decision abstention","time/cost delivery template"],
+ "limitations":"Four jobs cannot establish p95 cost or five feasible/five infeasible within two bands per stratum. Not a bank startup, customer delivery or Tier2 result. No hidden data."
+}

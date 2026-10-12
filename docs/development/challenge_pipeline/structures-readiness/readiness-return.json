@@ -1,0 +1,14 @@
+{
+  "schema": "carbon.onboarding.readiness-return.v1",
+  "scope": "PUBLIC_DEVELOPMENT",
+  "family": "f08",
+  "observed_at": "2026-10-11T16:22:20Z",
+  "inspected_main": "8a77b84a569d51bff459db1c583a49ea6a01e72f",
+  "tool": "carbon/challenge_pipeline/onboarding/evidence_readiness.py with this ticket's prospective bindings and route; code evidence inspected only at main",
+  "yes_count": 1,
+  "items": {"1":"PLANNED","2":"PLANNED","3":"PLANNED","4":"PLANNED","5":"PLANNED","6":"YES","7":"PLANNED"},
+  "spend_authorized": false,
+  "qualified": false,
+  "next_action": "Data Collection registers exact public tuples/reuse and current-image store receipt, then current-image verification under its actual local grant",
+  "limit": "Snapshot not current authority or completion. A merged budget route may earn software item7, never the five missing measured/registered prerequisites. No 7/7 or tested-Challenge claim."
+}

@@ -109,6 +109,78 @@ class MinerPathTools:
         return payload
 
 
+#: The bytes one `read_file` returns under the v2 research tools rule
+#: (`research_tasks.READ_FILE_MAX_BYTES`); a smaller answer ends the file.
+READ_CHUNK = 8192
+
+
+def _read_answer(payload):
+    """`(chunk bytes, file bytes)` from a `read_file` answer, wherever the
+    door nests its result, or None when the answer carries no content."""
+    import base64
+
+    if not isinstance(payload, dict):
+        return None
+    if "content_base64" in payload or "content_utf8" in payload:
+        if payload.get("content_base64") is not None:
+            body = base64.b64decode(payload["content_base64"], validate=True)
+        elif payload.get("content_utf8") is not None:
+            body = payload["content_utf8"].encode()
+        else:
+            return None
+        total = payload.get("bytes")
+        return body, total if type(total) is int else None
+    for value in payload.values():
+        found = _read_answer(value)
+        if found is not None:
+            return found
+    return None
+
+
+async def read_export(tools, task_id, name, identity, *, max_bytes):
+    """The bytes of `name`, exported by the agent's finished workspace run
+    `task_id` (`<last 20 characters of the task id>-<name>`), read through the
+    miner's own door with `read_file`, exactly as an MCP client reads it
+    (GRAPHITE-L4-STAGING-01). Returns bytes, or the door's typed answer (a
+    dict) when a read is refused; a file over `max_bytes` is refused here."""
+    if type(task_id) is not str or not task_id or len(task_id) < 20:
+        return _refused("level4_task_id_required")
+    export = task_id[-20:] + "-" + name
+    out, offset, k = bytearray(), 0, 0
+    while True:
+        answer = await tools.call(
+            PREFIX + "start_research_task",
+            {
+                "kind": "workspace",
+                "strategy_json": None,
+                "action": "read_file",
+                "arguments_json": json.dumps(
+                    {"name": export, "offset": offset, "count": READ_CHUNK}
+                ),
+                "hypothesis": "read the Level 4 envelope my lowering run exported",
+                "expected_effect": "Carbon stages the submission",
+            },
+            f"{identity}-l4read-{k}",
+        )
+        found = _read_answer(answer)
+        if found is None:
+            return answer if isinstance(answer, dict) else _refused("read_failed")
+        chunk, total = found
+        out += chunk
+        offset += len(chunk)
+        k += 1
+        if total is not None and total > max_bytes:
+            return _refused("level4_envelope_over_bound")
+        if len(out) > max_bytes:
+            return _refused("level4_envelope_over_bound")
+        if (
+            not chunk
+            or (total is not None and offset >= total)
+            or len(chunk) < READ_CHUNK
+        ):
+            return bytes(out)
+
+
 def _refused(code):
     return {
         "status": "REJECTED_BEFORE_DISPATCH",
