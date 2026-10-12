@@ -865,6 +865,13 @@ class Experiment:
                 "proposal_id": pid,
                 "status": record["status"],
                 "result_digest": digest(canonical(record)),
+                # This fixed admission code is allowlisted for the session log.
+                **(
+                    {"reason_code": "level4_submission_required"}
+                    if record["status"] == "REFUSED_UNREBUILDABLE"
+                    and record.get("reason_code") == "level4_submission_required"
+                    else {}
+                ),
             },
         )
         return record
