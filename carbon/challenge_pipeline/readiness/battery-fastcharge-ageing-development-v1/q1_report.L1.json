@@ -21,12 +21,28 @@
     "basis": "Challenge score against Track B decision value at an equal search budget; band from seed replicates",
     "condition": "SCORE_VALUE_DIVERGENCE",
     "kind": "RECONSTRUCTED",
+    "member": "l1-D-913bf188-p-50299fa270c6-s1880388380",
+    "schema": "carbon.admission-condition.v1",
+    "scored_at_or_above": [
+     "minerI-bsub-ed8a517f-s0"
+    ],
+    "value": [
+     0,
+     1.4470404359838174
+    ],
+    "value_noise_band": null
+   },
+   {
+    "basis": "Challenge score against Track B decision value at an equal search budget; band from seed replicates",
+    "condition": "SCORE_VALUE_DIVERGENCE",
+    "kind": "RECONSTRUCTED",
     "member": "l1-D-913bf188-p-5a3b8fe3c06f-s525414255",
     "schema": "carbon.admission-condition.v1",
     "scored_at_or_above": [
      "l1-D-913bf188-p-50299fa270c6-s1880388380",
      "l1-D-913bf188-p-891e0fd1ebdb-s3188610978",
      "l1-D-913bf188-p-c1c8903402bd-s2770094579",
+     "minerI-bsub-ed8a517f-s0",
      "stage-a-D-913bf1889a6db2d1-s513121153",
      "stage-a-D-d90a8ccfd603cf6a-s1480945710",
      "stage-a-E-d90a8ccfd603cf6a-s2253865531"
@@ -44,6 +60,7 @@
     "member": "l1-D-913bf188-p-891e0fd1ebdb-s3188610978",
     "schema": "carbon.admission-condition.v1",
     "scored_at_or_above": [
+     "minerI-bsub-ed8a517f-s0",
      "stage-a-D-913bf1889a6db2d1-s513121153"
     ],
     "value": [
@@ -62,6 +79,7 @@
      "l1-D-913bf188-p-69268f1b74ec-s2959432269",
      "l1-D-913bf188-p-891e0fd1ebdb-s3188610978",
      "l1-D-913bf188-p-c1c8903402bd-s2770094579",
+     "minerI-bsub-ed8a517f-s0",
      "stage-a-D-913bf1889a6db2d1-s513121153",
      "stage-a-D-d90a8ccfd603cf6a-s1480945710"
     ],
@@ -78,6 +96,7 @@
     "member": "l1-D-913bf188-p-c1c8903402bd-s2770094579",
     "schema": "carbon.admission-condition.v1",
     "scored_at_or_above": [
+     "minerI-bsub-ed8a517f-s0",
      "stage-a-D-913bf1889a6db2d1-s513121153"
     ],
     "value": [
@@ -98,6 +117,85 @@
     "value": [
      0,
      0.01846900741238858
+    ],
+    "value_noise_band": null
+   },
+   {
+    "basis": "Challenge score against Track B decision value at an equal search budget; band from seed replicates",
+    "condition": "SCORE_VALUE_DIVERGENCE",
+    "kind": "RECONSTRUCTED",
+    "member": "minerH-bsub-8df17aba-s0",
+    "schema": "carbon.admission-condition.v1",
+    "scored_at_or_above": [
+     "minerI-bsub-e8efce9a-s0",
+     "minerI-bsub-ed8a517f-s0"
+    ],
+    "value": [
+     0,
+     2.976437970301211
+    ],
+    "value_noise_band": null
+   },
+   {
+    "basis": "Challenge score against Track B decision value at an equal search budget; band from seed replicates",
+    "condition": "SCORE_VALUE_DIVERGENCE",
+    "kind": "RECONSTRUCTED",
+    "member": "minerH-bsub-9a658866-s0",
+    "schema": "carbon.admission-condition.v1",
+    "scored_at_or_above": [
+     "minerI-bsub-e8efce9a-s0",
+     "minerI-bsub-ed8a517f-s0"
+    ],
+    "value": [
+     0,
+     2.976437970301211
+    ],
+    "value_noise_band": null
+   },
+   {
+    "basis": "Challenge score against Track B decision value at an equal search budget; band from seed replicates",
+    "condition": "SCORE_VALUE_DIVERGENCE",
+    "kind": "RECONSTRUCTED",
+    "member": "minerH-bsub-b1d1f99f-s0",
+    "schema": "carbon.admission-condition.v1",
+    "scored_at_or_above": [
+     "minerI-bsub-e8efce9a-s0",
+     "minerI-bsub-ed8a517f-s0"
+    ],
+    "value": [
+     0,
+     2.976437970301211
+    ],
+    "value_noise_band": null
+   },
+   {
+    "basis": "Challenge score against Track B decision value at an equal search budget; band from seed replicates",
+    "condition": "SCORE_VALUE_DIVERGENCE",
+    "kind": "RECONSTRUCTED",
+    "member": "minerI-bsub-925d55a1-s0",
+    "schema": "carbon.admission-condition.v1",
+    "scored_at_or_above": [
+     "minerI-bsub-e8efce9a-s0",
+     "minerI-bsub-ed8a517f-s0"
+    ],
+    "value": [
+     0,
+     3.144118392024709
+    ],
+    "value_noise_band": null
+   },
+   {
+    "basis": "Challenge score against Track B decision value at an equal search budget; band from seed replicates",
+    "condition": "SCORE_VALUE_DIVERGENCE",
+    "kind": "RECONSTRUCTED",
+    "member": "minerI-bsub-e8efce9a-s0",
+    "schema": "carbon.admission-condition.v1",
+    "scored_at_or_above": [
+     "minerI-bsub-ed8a517f-s0"
+    ],
+    "value": [
+     0,
+     1.9479151225529858
     ],
     "value_noise_band": null
    },
@@ -126,6 +224,7 @@
     "member": "stage-a-D-d90a8ccfd603cf6a-s1480945710",
     "schema": "carbon.admission-condition.v1",
     "scored_at_or_above": [
+     "minerI-bsub-ed8a517f-s0",
      "stage-a-D-913bf1889a6db2d1-s513121153"
     ],
     "value": [
@@ -144,6 +243,7 @@
      "l1-D-913bf188-p-50299fa270c6-s1880388380",
      "l1-D-913bf188-p-891e0fd1ebdb-s3188610978",
      "l1-D-913bf188-p-c1c8903402bd-s2770094579",
+     "minerI-bsub-ed8a517f-s0",
      "stage-a-D-913bf1889a6db2d1-s513121153",
      "stage-a-D-d90a8ccfd603cf6a-s1480945710",
      "stage-a-E-d90a8ccfd603cf6a-s2253865531"
@@ -164,6 +264,7 @@
      "l1-D-913bf188-p-50299fa270c6-s1880388380",
      "l1-D-913bf188-p-891e0fd1ebdb-s3188610978",
      "l1-D-913bf188-p-c1c8903402bd-s2770094579",
+     "minerI-bsub-ed8a517f-s0",
      "stage-a-D-913bf1889a6db2d1-s513121153",
      "stage-a-D-d90a8ccfd603cf6a-s1480945710"
     ],
@@ -175,7 +276,7 @@
    }
   ],
   "excluded_unresolved_or_ineligible": [],
-  "kendall_tau_b": 0.2809698283824899,
+  "kendall_tau_b": 0.46657010381870195,
   "members_ranked": [
    "l1-D-913bf188-p-1585ecbf838a-s1327839545",
    "l1-D-913bf188-p-4fd7fb870d2b-s2687932037",
@@ -186,6 +287,12 @@
    "l1-D-913bf188-p-8e47250e297c-s2120047928",
    "l1-D-913bf188-p-c1c8903402bd-s2770094579",
    "l1-D-913bf188-p-c41a9a1ebb82-s3433577451",
+   "minerH-bsub-8df17aba-s0",
+   "minerH-bsub-9a658866-s0",
+   "minerH-bsub-b1d1f99f-s0",
+   "minerI-bsub-925d55a1-s0",
+   "minerI-bsub-e8efce9a-s0",
+   "minerI-bsub-ed8a517f-s0",
    "stage-a-D-18fc7b1c1eeea8aa-s951580812",
    "stage-a-D-913bf1889a6db2d1-s513121153",
    "stage-a-D-d90a8ccfd603cf6a-s1480945710",
@@ -193,12 +300,12 @@
    "stage-a-E-d90a8ccfd603cf6a-s2253865531"
   ],
   "schema": "carbon.design-search.score-value-alignment.v1",
-  "spearman_rho": 0.4878634744660506,
+  "spearman_rho": 0.659128187518624,
   "tau_noise_band": {
    "band": 0.0,
    "panels": 1,
-   "tau_max": 0.2809698283824899,
-   "tau_min": 0.2809698283824899
+   "tau_max": 0.46657010381870195,
+   "tau_min": 0.46657010381870195
   },
   "top_k": {
    "by_score": [
@@ -217,38 +324,43 @@
    "file": "q1_basis.L1.json",
    "sha256": "sha256:1146692378e5207de41809cbb42850caae032ea2e39b74bd4ee4b43e579a9b1a"
   },
-  "excluded": [
+  "excluded": [],
+  "label": "PRIMARY: every member on the named Graphite frozen-rule basis (the non-primary members rescored from recovered outputs)",
+  "primary_basis": "graphite frozen-rule pod score",
+  "rescore": {
+   "file": "q1_rescore.L1.json",
+   "sha256": "sha256:d539f93f98b5da6ac8631247a3f98ccf2e60fc06d638ff1124115c409fd5c3d3"
+  },
+  "rescored": [
    {
-    "basis": "launchpad rehearsal practice-feedback v3 aggregate (rule unnamed)",
-    "member": "minerH-bsub-8df17aba-s0"
+    "member": "minerH-bsub-8df17aba-s0",
+    "score": -0.17278820736218464
    },
    {
-    "basis": "launchpad rehearsal practice-feedback v3 aggregate (rule unnamed)",
-    "member": "minerH-bsub-9a658866-s0"
+    "member": "minerH-bsub-9a658866-s0",
+    "score": -0.17211265944009782
    },
    {
-    "basis": "launchpad rehearsal practice-feedback v3 aggregate (rule unnamed)",
-    "member": "minerH-bsub-b1d1f99f-s0"
+    "member": "minerH-bsub-b1d1f99f-s0",
+    "score": -0.17626759231725128
    },
    {
-    "basis": "launchpad rehearsal practice-feedback v3 aggregate (rule unnamed)",
-    "member": "minerI-bsub-925d55a1-s0"
+    "member": "minerI-bsub-925d55a1-s0",
+    "score": -0.44278854970408593
    },
    {
-    "basis": "launchpad rehearsal practice-feedback v3 aggregate (rule unnamed)",
-    "member": "minerI-bsub-e8efce9a-s0"
+    "member": "minerI-bsub-e8efce9a-s0",
+    "score": -0.4748589522488142
    },
    {
-    "basis": "launchpad rehearsal practice-feedback v3 aggregate (rule unnamed)",
-    "member": "minerI-bsub-ed8a517f-s0"
+    "member": "minerI-bsub-ed8a517f-s0",
+    "score": -0.5354465636141551
    }
   ],
-  "label": "PRIMARY: members on one named score basis. The source report mixes bases and is the SECONDARY, not gate evidence",
-  "primary_basis": "graphite frozen-rule pod score",
   "secondary": {
    "divergences": 16,
    "kendall_tau_b": 0.46657010381870195,
-   "label": "MIXED-BASIS SECONDARY: not gate evidence",
+   "label": "SOURCE REPORT: the executor's file before the non-primary members were rescored",
    "members": 20,
    "spearman_rho": 0.659128187518624,
    "top_k_overlap": 0
@@ -256,13 +368,25 @@
   "source": {
    "file": "q1_report.L1.mixed-basis.json",
    "sha256": "sha256:5b3ba57430ba2a0087626b249ab9afbd576edebed2706187654d5786103dacf7"
-  }
+  },
+  "superseded": [
+   {
+    "divergences": 10,
+    "file": "q1_report.L1.superseded-14-member.json",
+    "kendall_tau_b": 0.2809698283824899,
+    "members": 14,
+    "reason": "The 14-member primary was the gate input while the six Launchpad anchors' practice-feedback v3 rule was unnamed and suspected to differ; rescoring their recovered outputs under the frozen rule reproduced their recorded scores to six decimals, so the basis is one rule and the 20-member report is the gate input (Test Lead ruling, 2026-10-12)",
+    "sha256": "sha256:319972273a07538cc4cfded794146f4c931d7ad391b8db40d8fc265aceaca206",
+    "spearman_rho": 0.4878634744660506,
+    "top_k_overlap": 0
+   }
+  ]
  },
  "challenge": "battery-fastcharge-ageing-development-v1",
  "decision_study": "carbon/battery/value/contracts/ev4-dev-proof-l1-v1.json; common resolved EV4 development scenarios 7/12; reference sha256:ff10f9aea9097cd500d646ffe02f479d04401207b30a44aeee33566433e436cb; experiment sha256:d12d31a3e9cae78d46a26b4745197c141f5c01f73463f40944c06e35b8b467e3",
  "level": 1,
  "member_kinds": {
-  "RECONSTRUCTED": 14
+  "RECONSTRUCTED": 20
  },
  "members": {
   "l1-D-913bf188-p-1585ecbf838a-s1327839545": {
@@ -417,6 +541,108 @@
    "recipe": "sha256:e2d6d1042e61cef9028fdfafd5952d9ca66a325bb5b7fcff626e692ce4d7033b",
    "score": -0.051466752812457786,
    "value": 0.01846900741238858
+  },
+  "minerH-bsub-8df17aba-s0": {
+   "basis": "graphite frozen-rule pod score",
+   "decision_outcome": {
+    "D-T14-S0.33": "c1=0.75,c2=0.6",
+    "D-T24-S0.12": "c1=2,c2=1",
+    "D-T24-S0.33": "c1=1.25,c2=1",
+    "D-T34-S0.12": "c1=1.25,c2=0.8",
+    "D-T34-S0.33": "c1=1.75,c2=1",
+    "D-T34-S0.48": "c1=1.75,c2=1",
+    "D-T5-S0.12": "ABSTAIN"
+   },
+   "eligible": true,
+   "kind": "RECONSTRUCTED",
+   "recipe": "sha256:c96ecedc89bdb680fa5da2e7483a883f95162e98de046d990b6c8ace571e7b57",
+   "score": -0.17278820736218464,
+   "value": 2.976437970301211
+  },
+  "minerH-bsub-9a658866-s0": {
+   "basis": "graphite frozen-rule pod score",
+   "decision_outcome": {
+    "D-T14-S0.33": "c1=0.75,c2=0.6",
+    "D-T24-S0.12": "c1=2,c2=1",
+    "D-T24-S0.33": "c1=1.25,c2=1",
+    "D-T34-S0.12": "c1=1.25,c2=0.8",
+    "D-T34-S0.33": "c1=1.75,c2=1",
+    "D-T34-S0.48": "c1=1.75,c2=1",
+    "D-T5-S0.12": "ABSTAIN"
+   },
+   "eligible": true,
+   "kind": "RECONSTRUCTED",
+   "recipe": "sha256:7652d70f6e3960bd860011b5510fba1c701bb1d239906fbef7faf33b6026b52f",
+   "score": -0.17211265944009782,
+   "value": 2.976437970301211
+  },
+  "minerH-bsub-b1d1f99f-s0": {
+   "basis": "graphite frozen-rule pod score",
+   "decision_outcome": {
+    "D-T14-S0.33": "c1=0.75,c2=0.6",
+    "D-T24-S0.12": "c1=1.75,c2=1",
+    "D-T24-S0.33": "c1=1.5,c2=0.8",
+    "D-T34-S0.12": "c1=1.25,c2=0.8",
+    "D-T34-S0.33": "c1=1.75,c2=1",
+    "D-T34-S0.48": "c1=1.75,c2=1",
+    "D-T5-S0.12": "ABSTAIN"
+   },
+   "eligible": true,
+   "kind": "RECONSTRUCTED",
+   "recipe": "sha256:c013c79b5c63b0aa2615d453ba88e27b588fd59e1c59566a90356cd2ad401da2",
+   "score": -0.17626759231725128,
+   "value": 2.976437970301211
+  },
+  "minerI-bsub-925d55a1-s0": {
+   "basis": "graphite frozen-rule pod score",
+   "decision_outcome": {
+    "D-T14-S0.33": "c1=0.75,c2=1",
+    "D-T24-S0.12": "ABSTAIN",
+    "D-T24-S0.33": "c1=1.5,c2=1",
+    "D-T34-S0.12": "ABSTAIN",
+    "D-T34-S0.33": "c1=1.5,c2=1",
+    "D-T34-S0.48": "c1=1.25,c2=1",
+    "D-T5-S0.12": "ABSTAIN"
+   },
+   "eligible": true,
+   "kind": "RECONSTRUCTED",
+   "recipe": "sha256:fdd06e391cb1c956374cb26e06af9a9513550f1d6072b4243cbf624a90cf8e36",
+   "score": -0.44278854970408593,
+   "value": 3.144118392024709
+  },
+  "minerI-bsub-e8efce9a-s0": {
+   "basis": "graphite frozen-rule pod score",
+   "decision_outcome": {
+    "D-T14-S0.33": "c1=0.75,c2=1",
+    "D-T24-S0.12": "ABSTAIN",
+    "D-T24-S0.33": "c1=1.25,c2=1",
+    "D-T34-S0.12": "ABSTAIN",
+    "D-T34-S0.33": "c1=1.5,c2=1",
+    "D-T34-S0.48": "c1=0.75,c2=1",
+    "D-T5-S0.12": "ABSTAIN"
+   },
+   "eligible": true,
+   "kind": "RECONSTRUCTED",
+   "recipe": "sha256:036f6737d5f3ff527610f094c850bf00ca31e0dd4d62dbb41c8bc924fbb14d1f",
+   "score": -0.4748589522488142,
+   "value": 1.9479151225529858
+  },
+  "minerI-bsub-ed8a517f-s0": {
+   "basis": "graphite frozen-rule pod score",
+   "decision_outcome": {
+    "D-T14-S0.33": "ABSTAIN",
+    "D-T24-S0.12": "ABSTAIN",
+    "D-T24-S0.33": "c1=1.25,c2=1",
+    "D-T34-S0.12": "ABSTAIN",
+    "D-T34-S0.33": "ABSTAIN",
+    "D-T34-S0.48": "ABSTAIN",
+    "D-T5-S0.12": "ABSTAIN"
+   },
+   "eligible": true,
+   "kind": "RECONSTRUCTED",
+   "recipe": "sha256:36a7731e1268eb516de9a40d817ee8de9df0f6eb679add2106103bdb1738e13d",
+   "score": -0.5354465636141551,
+   "value": 0.7142857142857143
   },
   "stage-a-D-18fc7b1c1eeea8aa-s951580812": {
    "basis": "graphite frozen-rule pod score",

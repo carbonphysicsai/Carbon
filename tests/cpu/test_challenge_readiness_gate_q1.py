@@ -573,21 +573,90 @@ def test_a_report_without_a_split_is_read_as_before(recorded):
     assert _status(q1.v1_alignment_report, 1) == model.PASS
 
 
-def test_the_committed_level_one_split_follows_from_its_committed_files():
+def test_the_committed_level_one_report_is_the_same_basis_twenty():
     folder = q1.PACKAGE / "battery-fastcharge-ageing-development-v1"
     report = json.loads((folder / "q1_report.L1.json").read_bytes())
     block = report["basis_split"]
     assert q1.split_problem(report, folder) is None
-    assert len(report["members"]) == 14 and block["secondary"]["members"] == 20
+    assert len(report["members"]) == 20 and block["excluded"] == []
+    assert len(block["rescored"]) == 6
     assert all(
         row["basis"] == block["primary_basis"] for row in report["members"].values()
     )
-    assert {e["member"][:5] for e in block["excluded"]} == {"miner"}
     # the executor's 20-member file is kept byte-identical, never edited
     source = folder / "q1_report.L1.mixed-basis.json"
     assert q1.file_sha256(source) == COMMITTED_L1_SOURCE_SHA
     assert block["source"]["sha256"] == COMMITTED_L1_SOURCE_SHA
     assert q1._alignment_of(report["members"]) == report["alignment"]
+    rescore = json.loads((folder / "q1_rescore.L1.json").read_bytes())
+    assert all(r["output_digest_matches"] is True for r in rescore["rows"])
+    assert all(
+        abs(r["recomputed_score"] - r["recorded_score"]) <= q1.RESCORE_TOLERANCE
+        for r in rescore["rows"]
+    )
+
+
+def test_the_superseded_fourteen_member_result_stays_in_the_report_with_its_reason():
+    folder = q1.PACKAGE / "battery-fastcharge-ageing-development-v1"
+    report = json.loads((folder / "q1_report.L1.json").read_bytes())
+    (old,) = report["basis_split"]["superseded"]
+    assert old["members"] == 14 and old["reason"]
+    kept = folder / old["file"]
+    assert q1.file_sha256(kept) == old["sha256"]
+    previous = json.loads(kept.read_bytes())
+    assert len(previous["members"]) == 14
+    assert q1.split_problem(previous, folder) is None  # history stays verifiable
+    assert (old["kendall_tau_b"], old["divergences"]) != (
+        report["alignment"]["kendall_tau_b"],
+        sum(
+            c["condition"] == "SCORE_VALUE_DIVERGENCE"
+            for c in report["alignment"]["conditions"]
+        ),
+    )
+
+
+@pytest.mark.parametrize(
+    "tamper", ["file_edited", "reason_removed", "numbers_changed", "file_deleted"]
+)
+def test_a_superseded_result_that_does_not_match_its_file_fails_closed(
+    rescored, tamper
+):
+    directory, _, write, derive = rescored
+    old = directory / "q1_report.L1.superseded.json"
+    old.write_text(json.dumps(_mixed_report_stub()), encoding="utf-8")
+    report = derive()
+    report["basis_split"]["superseded"] = [
+        {
+            "file": old.name,
+            "sha256": q1.file_sha256(old),
+            "reason": "history",
+            **q1._secondary_summary(json.loads(old.read_text())),
+        }
+    ]
+    entry = report["basis_split"]["superseded"][0]
+    if tamper == "file_edited":
+        old.write_text(json.dumps({**_mixed_report_stub(), "x": 1}), encoding="utf-8")
+    elif tamper == "reason_removed":
+        entry["reason"] = ""
+    elif tamper == "numbers_changed":
+        entry["kendall_tau_b"] = 0.99
+    elif tamper == "file_deleted":
+        old.unlink()
+    write(report)
+    result = q1.v1_alignment_report({}, _ctx(1))
+    assert result.status == model.FAIL and "score-basis split" in result.detail
+
+
+def _mixed_report_stub():
+    return {
+        "members": {"a": {}, "b": {}},
+        "alignment": {
+            "kendall_tau_b": 0.3,
+            "spearman_rho": 0.4,
+            "top_k": {"overlap": 0},
+            "conditions": [],
+        },
+    }
 
 
 # -- rescoring non-primary members under the primary rule -----------------------------------------
@@ -677,25 +746,3 @@ def test_a_rescore_that_does_not_follow_from_its_committed_record_fails_closed(
     write(report)
     result = q1.v1_alignment_report({}, _ctx(1))
     assert result.status == model.FAIL and "score-basis split" in result.detail
-
-
-def test_the_committed_same_basis_report_follows_from_its_committed_records():
-    folder = q1.PACKAGE / "battery-fastcharge-ageing-development-v1"
-    report = json.loads((folder / "q1_report.L1.same-basis.json").read_bytes())
-    assert q1.split_problem(report, folder) is None
-    assert len(report["members"]) == 20 and report["basis_split"]["excluded"] == []
-    assert len(report["basis_split"]["rescored"]) == 6
-    rescore = json.loads((folder / "q1_rescore.L1.json").read_bytes())
-    assert all(r["output_digest_matches"] is True for r in rescore["rows"])
-    assert all(
-        abs(r["recomputed_score"] - r["recorded_score"]) <= q1.RESCORE_TOLERANCE
-        for r in rescore["rows"]
-    )
-    assert q1._alignment_of(report["members"]) == report["alignment"]
-    # the gate's own Level 1 report and the executor's mixed file are untouched by this variant
-    assert (
-        q1.file_sha256(folder / "q1_report.L1.mixed-basis.json")
-        == COMMITTED_L1_SOURCE_SHA
-    )
-    gate = json.loads((folder / "q1_report.L1.json").read_bytes())
-    assert len(gate["members"]) == 14

@@ -267,6 +267,33 @@ def _rescored_scores(split, folder, source_members, bases, primary):
     return scores, None
 
 
+def _superseded_problem(split, folder):
+    """Why a recorded SUPERSEDED result does not match its committed file, or None. A
+    superseded result stays in the report with its reason (history, never deleted); it is
+    never gate evidence."""
+    entries = split.get("superseded")
+    if entries is None:
+        return None
+    if not isinstance(entries, list):
+        return "basis_split superseded is not a list"
+    for entry in entries:
+        if not isinstance(entry, dict) or not (
+            isinstance(entry.get("reason"), str) and entry["reason"]
+        ):
+            return "a superseded result has no reason"
+        path = _sibling(folder, entry.get("file"))
+        if path is None or file_sha256(path) != entry.get("sha256"):
+            return "a superseded result's file is missing or its digest differs"
+        try:
+            document = json.loads(path.read_bytes())
+        except ValueError:
+            return "a superseded result's file is not JSON"
+        expected = _secondary_summary(document)
+        if any(entry.get(k) != v for k, v in expected.items()):
+            return "a superseded result's recorded numbers differ from its file"
+    return None
+
+
 def split_problem(report, folder):
     """Why a report's `basis_split` does not follow from its committed source and basis
     evidence, or None (also None when the report carries no split)."""
@@ -329,6 +356,9 @@ def split_problem(report, folder):
     )
     if split.get("excluded") != excluded:
         return "the excluded members are not the rest of the source with their bases"
+    superseded_problem = _superseded_problem(split, folder)
+    if superseded_problem:
+        return superseded_problem
     secondary = split.get("secondary")
     expected = _secondary_summary(source)
     if not isinstance(secondary, dict) or any(
@@ -341,7 +371,12 @@ def split_problem(report, folder):
 
 
 def build_primary_report(
-    source_path, evidence_path, primary_basis, rule_digest=None, rescore_path=None
+    source_path,
+    evidence_path,
+    primary_basis,
+    rule_digest=None,
+    rescore_path=None,
+    superseded=(),
 ):
     """The derived primary-basis report for a mixed-basis source report: the members
     whose recorded basis is `primary_basis`, alignment recomputed on them, the source and
@@ -392,8 +427,11 @@ def build_primary_report(
     report["basis_split"] = {
         "primary_basis": primary_basis,
         "label": (
-            "PRIMARY: members on one named score basis. The source report mixes bases and "
-            "is the SECONDARY, not gate evidence"
+            "PRIMARY: every member on the named Graphite frozen-rule basis (the non-primary "
+            "members rescored from recovered outputs)"
+            if rescored and not excluded
+            else "PRIMARY: members on one named score basis. The source report mixes bases "
+            "and is the SECONDARY, not gate evidence"
         ),
         "source": {"file": source_path.name, "sha256": file_sha256(source_path)},
         "basis_evidence": {
@@ -413,9 +451,31 @@ def build_primary_report(
             else {}
         ),
         "secondary": {
-            "label": "MIXED-BASIS SECONDARY: not gate evidence",
+            "label": (
+                "SOURCE REPORT: the executor's file before the non-primary members were "
+                "rescored"
+                if rescored and not excluded
+                else "MIXED-BASIS SECONDARY: not gate evidence"
+            ),
             **_secondary_summary(source),
         },
+        **(
+            {
+                "superseded": [
+                    {
+                        "file": Path(item["file"]).name,
+                        "sha256": file_sha256(item["file"]),
+                        "reason": item["reason"],
+                        **_secondary_summary(
+                            json.loads(Path(item["file"]).read_bytes())
+                        ),
+                    }
+                    for item in superseded
+                ]
+            }
+            if superseded
+            else {}
+        ),
     }
     return report
 
@@ -521,6 +581,10 @@ def v1_alignment_report(item, ctx):
             f"primary_n:{len(report['members'])}",
             f"secondary_mixed_basis_n:{secondary['members']}",
             f"source:{split_block['source']['sha256']}",
+            *[
+                f"superseded:{item['sha256']}"
+                for item in split_block.get("superseded", [])
+            ],
         )
     return Result(
         PASS,
@@ -652,6 +716,13 @@ def main(argv=None):
     d.add_argument(
         "--rescore", help="a verified rescore record for non-primary members"
     )
+    d.add_argument(
+        "--superseded",
+        action="append",
+        default=[],
+        metavar="FILE=REASON",
+        help="a superseded result kept in the report with its reason",
+    )
     d.add_argument("--out", required=True)
     args = parser.parse_args(argv)
     if args.command == "build-primary":
@@ -661,6 +732,10 @@ def main(argv=None):
                 args.basis_evidence,
                 args.primary_basis,
                 rescore_path=args.rescore,
+                superseded=[
+                    {"file": f, "reason": r}
+                    for f, _, r in (x.partition("=") for x in args.superseded)
+                ],
             )
         except (OSError, ValueError, KeyError) as error:
             print(f"cannot derive the primary-basis report: {error}")
