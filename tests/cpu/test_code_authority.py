@@ -1417,7 +1417,8 @@ def test_default_ci_script_invokes_no_archived_path() -> None:
 def test_dev_image_job_is_sharded_like_canonical_and_runs_the_same_tests() -> None:
     """CI-DEVIMAGE-SHARD-01: the image job shards the canonical command six ways with
     the same shard plugin and weights, keeps its result name and its per-shard bound,
-    and a candidate that predates the hand-off still runs its full command on shard 0."""
+    and a candidate that predates the hand-off still runs its full command on shard 0.
+    """
     workflow = WORKFLOW_PATH.read_text(encoding="utf-8")
     jobs = _workflow_job_blocks(workflow)
     image, canonical = jobs["dev-image"], jobs["canonical"]
@@ -1426,7 +1427,9 @@ def test_dev_image_job_is_sharded_like_canonical_and_runs_the_same_tests() -> No
     assert "shard: [0, 1, 2, 3, 4, 5]" in image
     assert "shard: [0, 1, 2, 3, 4, 5]" in canonical
     assert "CARBON_CI_SHARD: ${{ matrix.shard }}/6" in image
-    assert "timeout-minutes: 240" in image  # a bound per shard; not lowered without data
+    assert (
+        "timeout-minutes: 240" in image
+    )  # a bound per shard; not lowered without data
     # The shard hand-off needs both the sharded ci.sh and the forwarding verifier.
     assert "grep -q 'CARBON_CI_SHARD' scripts/dev/ci.sh" in image
     assert "grep -q 'CARBON_CI_SHARD' scripts/dev/verify_image.sh" in image
