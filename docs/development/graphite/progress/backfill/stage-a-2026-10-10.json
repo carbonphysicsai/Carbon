@@ -8,35 +8,40 @@
    "role": "constructor",
    "level": 0,
    "chain_log": "chain-D.log",
-   "chain_label": "lane D session 1"
+   "chain_label": "lane D session 1",
+   "public_improvement_file": "graphite-913bf1889a6db2d1-D-public-improvement.json"
   },
   {
    "file": "constructor-D-run-2.out",
    "role": "constructor",
    "level": 0,
    "chain_log": "chain-D.log",
-   "chain_label": "lane D session 2"
+   "chain_label": "lane D session 2",
+   "public_improvement_file": "graphite-d90a8ccfd603cf6a-D-public-improvement.json"
   },
   {
    "file": "constructor-D-run-3.out",
    "role": "constructor",
    "level": 0,
    "chain_log": "chain-D.log",
-   "chain_label": "lane D session 3"
+   "chain_label": "lane D session 3",
+   "public_improvement_file": "graphite-18fc7b1c1eeea8aa-D-public-improvement.json"
   },
   {
    "file": "constructor-E-run-1.out",
    "role": "constructor",
    "level": 0,
    "chain_log": "chain-E.log",
-   "chain_label": "lane E session 1"
+   "chain_label": "lane E session 1",
+   "public_improvement_file": "graphite-913bf1889a6db2d1-E-public-improvement.json"
   },
   {
    "file": "constructor-E-run-2.out",
    "role": "constructor",
    "level": 0,
    "chain_log": "chain-E.log",
-   "chain_label": "lane E session 2"
+   "chain_label": "lane E session 2",
+   "public_improvement_file": "graphite-d90a8ccfd603cf6a-E-public-improvement.json"
   },
   {
    "file": "attacker-D-run-1.out",

@@ -360,6 +360,8 @@ def project(row, root):
                 }
             )
     from carbon.development_session.research_campaign import practice_provenances
+    from carbon.development_session.smoke_practice import is_smoke
+    from carbon.development_session.smoke_practice import public_view as smoke_view
 
     provenances = practice_provenances()
 
@@ -402,6 +404,13 @@ def project(row, root):
                             "accepted_improvement": False,
                             "adaptively_seen": True,
                         }
+                    )
+                elif is_smoke(result):
+                    # A smoke practice: status, runtime and truncation only,
+                    # never a score (LAUNCHPAD-SMOKE-PRACTICE-01). Listed
+                    # apart, so nothing that reads experiments reads it.
+                    value.setdefault("smoke_practices", []).append(
+                        smoke_view(task, result)
                     )
     value["completed_experiments"] = len(value["experiments"])
     if manifest.get("agent") == "graphite":

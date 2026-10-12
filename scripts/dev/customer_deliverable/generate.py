@@ -15,6 +15,8 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 
+from .package_sections import build_package_sections, package_markdown
+
 REPOSITORY = "carbonphysicsai/Carbon"
 PROFILES = {"nasa-std-7009b": 1, "asme-vv10": 2}
 NASA_STANDARD = (
@@ -78,7 +80,10 @@ def load_policy() -> dict:
         raise ValueError("Source repository is not authorized")
     for group in [
         policy["framework"],
-        *[entry["sources"] for entry in policy["challenges"].values()],
+        *[
+            entry["sources"] + entry.get("package_sources", [])
+            for entry in policy["challenges"].values()
+        ],
     ]:
         ids = [item["id"] for item in group]
         if len(ids) != len(set(ids)):
@@ -88,6 +93,13 @@ def load_policy() -> dict:
             if not re.fullmatch(r"[A-Z]\d+", item["id"]):
                 raise ValueError("Invalid source identity")
     for config in policy["challenges"].values():
+        if config.get("package_sources") and config.get("package_family") not in {
+            "battery-v3",
+            "f02",
+            "motor",
+            "cooling-cell",
+        }:
+            raise ValueError("Registered package family required")
         ids = {item["id"] for item in config["sources"]}
         for rule in config["extractors"]:
             common = {"id", "source", "kind", "label", "basis"}
@@ -402,6 +414,12 @@ def render(challenge: str, profile: str, reader, policy: dict) -> dict:
             missing.append(spec["id"])
         else:
             sources[source.id] = source
+    # Optional package sources retain their own gaps. They do not change the
+    # legacy missing_sources contract or treat a historical absence as failure.
+    for spec in config.get("package_sources", []):
+        source = reader.get(spec, framework=False)
+        if source is not None:
+            sources[source.id] = source
     if not all(key in sources for key in ("F1", "F2", "F3")):
         raise ValueError("Committed framework template/schema/crosswalk required")
     template = sources["F1"].text
@@ -443,6 +461,9 @@ def render(challenge: str, profile: str, reader, policy: dict) -> dict:
     if set(crosswalk) != set(sections):
         raise ValueError("Standard section mapping incomplete")
     facts, gaps = extract_facts(config, sources)
+    package = build_package_sections(
+        challenge, config.get("package_family", challenge), sources
+    )
     now = {
         key
         for key, value in sections.items()
@@ -466,6 +487,22 @@ def render(challenge: str, profile: str, reader, policy: dict) -> dict:
                 *[f"MISSING_SOURCE: {key}" for key in missing],
             ],
         )
+    # Facts can be copied into manual sections while their judgment remains
+    # manual. Existing enums/schema and human acceptance boundaries stay intact.
+    for component in package["sections"].values():
+        for sid in component["d_sections"]:
+            section = sections[sid]
+            if component["coverage"] == "PARTIAL":
+                section["coverage"] = "PARTIAL"
+                section["statement"] = (
+                    "Recorded DEVELOPMENT package facts are indexed in the "
+                    "package evidence annex and generation manifest. "
+                    "Completeness, physical validity and acceptance remain HUMAN_INPUT."
+                )
+            section["evidence_refs"] = sorted(
+                set(section["evidence_refs"]) | set(component["evidence_refs"])
+            )
+            section["gaps"].extend(component["gaps"])
     findings = []
     for fact in facts:
         if fact["kind"] in {"counts", "verdict", "gap", "violations", "fraction"}:
@@ -479,8 +516,28 @@ def render(challenge: str, profile: str, reader, policy: dict) -> dict:
                     "status": "HISTORICAL_RETAINED",
                 }
             )
+    for name, component in package["sections"].items():
+        for row in component["rows"]:
+            if (
+                row["outcome"]
+                in {"FAIL", "FAILED_REFERENCE", "FAILED_INFRA", "UNRESOLVED"}
+                and row["evidence_refs"]
+            ):
+                findings.append(
+                    {
+                        "id": "PACKAGE_" + name + "." + row["field"],
+                        "basis": component["basis"],
+                        "outcome": row["outcome"],
+                        "statement": row["label"] + ": " + row["outcome"],
+                        "evidence_refs": row["evidence_refs"],
+                        "status": "HISTORICAL_RETAINED",
+                    }
+                )
     roles = {
-        spec["id"]: spec["role"] for spec in policy["framework"] + config["sources"]
+        spec["id"]: spec["role"]
+        for spec in policy["framework"]
+        + config["sources"]
+        + config.get("package_sources", [])
     }
     ledgers = [{**sources[key].ledger(), "role": roles[key]} for key in sorted(sources)]
     record = {
@@ -553,6 +610,7 @@ def render(challenge: str, profile: str, reader, policy: dict) -> dict:
                     f"- {fact['label']}: **{fact['value']}**. " f"{fact['citation']}"
                 )
         lines.extend(["", "Gaps:", "", *[f"- {gap}" for gap in section["gaps"]], ""])
+    lines.extend(package_markdown(package))
     lines.extend(["## Adverse evidence retained", ""])
     for fact in facts:
         if fact["kind"] in {"counts", "verdict", "gap", "violations", "fraction"}:
@@ -560,6 +618,11 @@ def render(challenge: str, profile: str, reader, policy: dict) -> dict:
                 f"- {fact['label']}: **{fact['value']}**; "
                 f"source-scoped outcome {fact['outcome']}. "
                 f"{fact['citation']}"
+            )
+    for finding in findings:
+        if finding["id"].startswith("PACKAGE_"):
+            lines.append(
+                f"- {finding['statement']}; basis {finding['basis']}; evidence {', '.join(finding['evidence_refs'])}."
             )
     lines.extend(["", "Missing sources/extraction anchors:", ""])
     for gap in [*[f"MISSING_SOURCE: {key}" for key in missing], *gaps]:
@@ -631,12 +694,26 @@ def render(challenge: str, profile: str, reader, policy: dict) -> dict:
             standard_index["factors"][group] = []
             for name, anchor, linked_sections, linked_facts in factors:
                 available = [fact_map[fid] for fid in linked_facts if fid in fact_map]
+                mms_refs = (
+                    package["sections"]["solver_verification"]["evidence_refs"]
+                    if group == "capability"
+                    and name == "Verification"
+                    and package["sections"]["solver_verification"]["coverage"]
+                    == "PARTIAL"
+                    else []
+                )
                 provenance = "D08" in linked_sections
-                coverage = "PARTIAL" if available or provenance else "GAP"
+                coverage = "PARTIAL" if available or provenance or mms_refs else "GAP"
                 refs = [f["source"] for f in available] or (
                     ["F1"] if provenance else []
                 )
+                refs = sorted(set(refs) | set(mms_refs))
                 evidence = "; ".join(f["citation"] for f in available)
+                if mms_refs:
+                    evidence += (
+                        "; Image-bound MMS records (separate from rebuild agreement): "
+                        + "; ".join(sources[ref].cite() for ref in mms_refs)
+                    )
                 if provenance:
                     evidence = (
                         evidence or f"Public-file ledger D08; {sources['F1'].cite()}"
@@ -715,6 +792,13 @@ def render(challenge: str, profile: str, reader, policy: dict) -> dict:
         "facts": facts,
         "extraction_gaps": gaps,
         "qualification_claim": False,
+        "package_evidence": package,
+        "source_policy_digest": "sha256:"
+        + hashlib.sha256(
+            json.dumps(
+                policy, sort_keys=True, separators=(",", ":"), allow_nan=False
+            ).encode("utf-8")
+        ).hexdigest(),
     }
     return {
         "sample.md": "\n".join(lines),

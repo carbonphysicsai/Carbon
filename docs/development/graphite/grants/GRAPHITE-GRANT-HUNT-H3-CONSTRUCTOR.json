@@ -1,0 +1,17 @@
+{
+ "schema": "carbon.agent-campaign.spending-grant.v1",
+ "provider": "graphite",
+ "account": "Carbon-Account",
+ "granted_by": "owner",
+ "expires_at": "2026-12-31T23:59:59Z",
+ "currency": "USD",
+ "pod_rate_ceiling_usd_per_hr": "0.65",
+ "grant_id": "GRAPHITE-GRANT-HUNT-H3-CONSTRUCTOR",
+ "monetary_ceiling": "14.94",
+ "cleanup_allowance": "0.03",
+ "worst_case_run_cost": "14.91",
+ "permitted_runs": 1,
+ "max_concurrency": 1,
+ "max_runtime_s": 39600,
+ "max_submissions": 1
+}

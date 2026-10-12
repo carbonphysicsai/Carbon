@@ -88,7 +88,8 @@ def constructor_block(runs, classes):
                 else unmeasured("run output holds no public score")
             ),
             "public_dev": improvement.public_dev_block(
-                [r["public_improvement"] for r in runs if r.get("public_improvement")]
+                [r["public_improvement"] for r in runs if r.get("public_improvement")],
+                runs[0]["level"],
             ),
             "proposals_with_outcome_IMPROVEMENT": metric(
                 improving,

@@ -57,6 +57,7 @@ ARTIFACT_ROLES = {
 }
 ROOT = Path(__file__).resolve().parents[2]
 MAX_INPUT_BYTES = 32 * 1024 * 1024
+TERMINATION_GRACE_S = 2.0
 
 
 class CampaignRefused(ValueError):
@@ -773,12 +774,27 @@ def _verified_receipt(task, output, plan):
 
 def _terminate(process):
     if process.poll() is None:
-        if os.name == "posix":
-            import signal
-
-            os.killpg(process.pid, signal.SIGKILL)
-        else:
-            process.kill()
+        try:
+            if os.name == "posix":
+                os.killpg(process.pid, signal.SIGTERM)
+            else:
+                process.terminate()
+        except ProcessLookupError:
+            pass
+        try:
+            process.wait(timeout=TERMINATION_GRACE_S)
+        except subprocess.TimeoutExpired:
+            pass
+        # The leader may exit after TERM while host children still hold the
+        # process group. Sweep that group after the grace interval either way.
+        if os.name == "posix" or process.poll() is None:
+            try:
+                if os.name == "posix":
+                    os.killpg(process.pid, signal.SIGKILL)
+                else:
+                    process.kill()
+            except ProcessLookupError:
+                pass
         process.wait()
 
 
@@ -795,6 +811,7 @@ def _execute_task(
         "scope": plan["scope"],
         "family": task["family"],
         "phase": task["phase"],
+        "vcpus": task["vcpus"],
         "shard": task["shard"],
         "shards": task["shards"],
         "inputs": {
@@ -828,6 +845,8 @@ def _execute_task(
             if key.startswith(task["family"] + "/")
         },
     }
+    if task["phase"] == "assemble":
+        context["analysis"] = plan["analysis"]
     context_path = output / "context.json"
     context_path.write_text(
         json.dumps(context, sort_keys=True) + "\n", encoding="utf-8"
