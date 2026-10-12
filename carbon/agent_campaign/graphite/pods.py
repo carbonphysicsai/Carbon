@@ -194,13 +194,79 @@ def pod_reservation(minutes, hourly):
     return exact.quantize(NANODOLLAR, rounding=ROUND_CEILING)
 
 
+#: GRAPHITE-POD-LAUNCH-RETRY-01: a refused launch's code, from its detail.
+#: Transient codes (the provider rate-limited us, had no offer at the rate
+#: ceiling right now, or answered nothing) may be retried for the session's
+#: baseline; every other code is a hard refusal and never retried.
+TRANSIENT_REFUSALS = frozenset({"rate_limited", "offer_unavailable", "empty"})
+_REFUSAL_CODES = (
+    ("balance_floor", ("balance would fall below the floor", "no balance_floor_usd")),
+    ("cuda_policy", ("torch lock", "cuda runtime")),
+    ("pod_env_too_large", ("pod_env_too_large",)),
+    ("job_record_conflict", ("pod job record conflict",)),
+    ("no_image", ("no pod image",)),
+    (
+        "credential",
+        ("401", "403", "unauthor", "forbidden", "api key", "credential", "permission"),
+    ),
+    (
+        "rate_limited",
+        (
+            "429",
+            "rate limit",
+            "rate-limit",
+            "ratelimit",
+            "too many requests",
+            "throttl",
+        ),
+    ),
+    (
+        "offer_unavailable",
+        (
+            "no a40 secure pod",
+            "no offer",
+            "unavailable",
+            "no instances",
+            "insufficient capacity",
+            "out of stock",
+            "no longer available",
+            "capacity",
+        ),
+    ),
+)
+DETAIL_LIMIT = 300
+
+
+def refusal_code(detail):
+    """A refused launch's code: `empty`, a named code, or `provider_other`."""
+    text = " ".join(str(detail or "").split()).lower()
+    if not text:
+        return "empty"
+    for code, needles in _REFUSAL_CODES:
+        if any(n in text for n in needles):
+            return code
+    return "provider_other"
+
+
+def bounded_detail(detail, limit=DETAIL_LIMIT):
+    """The provider's message for the ledger: one line, bounded, and with
+    every long token-like run redacted (no secret reaches a record)."""
+    import re
+
+    text = " ".join(str(detail or "").split())
+    text = re.sub(r"[A-Za-z0-9_\-]{24,}", "<redacted>", text)
+    return text[:limit]
+
+
 class PodFailure(RuntimeError):
     """A pod step failed. `executed` says whether anything may have been created
-    or charged: False only when the failure precedes any provider write."""
+    or charged: False only when the failure precedes any provider write.
+    `code` classifies the detail (`refusal_code`)."""
 
-    def __init__(self, stage, detail, *, executed):
+    def __init__(self, stage, detail, *, executed, code=None):
         super().__init__(f"{stage}: {detail}")
         self.stage, self.detail, self.executed = stage, detail, executed
+        self.code = refusal_code(detail) if code is None else code
 
 
 @dataclass(frozen=True)
@@ -708,15 +774,26 @@ class RunPodPods:
                 raise PodFailure(
                     "launch", "balance would fall below the floor", executed=False
                 )
-            [offer] = self.adapter.offers([economics["gpu"]], gpu_count=1)
+            offers = self.adapter.offers([economics["gpu"]], gpu_count=1)
+            if len(offers) != 1:
+                raise PodFailure(
+                    "launch", "no A40 Secure pod offer now", executed=False
+                )
+            [offer] = offers
             if (
                 offer.usd_per_hr is None
                 or Decimal(str(offer.usd_per_hr)) > economics["rate_ceiling_usd_per_hr"]
                 or not offer.stock_status
             ):
+                # The offer read is recorded with the refusal: a non-200 answer
+                # (for example a 429 at a run's start) or a null stock leaves no
+                # price, which is a transient read, not a price over the ceiling
+                # (GRAPHITE-POD-LAUNCH-RETRY-01, lane D).
                 raise PodFailure(
                     "launch",
-                    "no A40 Secure pod at or below the rate ceiling now",
+                    "no A40 Secure pod at or below the rate ceiling now "
+                    f"(price {offer.usd_per_hr}, stock {offer.stock_status}, "
+                    f"source {offer.source})",
                     executed=False,
                 )
             resource = self.service.provision(
@@ -1008,6 +1085,10 @@ class Step:
     crash: str | None = None
     timing: dict | None = None
     listed: dict | None = None
+    #: Refusals before the launch takes (definitive, nothing created), each
+    #: with `refusal_detail`: fault injection for the launch retry.
+    refusals: int = 0
+    refusal_detail: str = "scripted refusal"
 
 
 @dataclass
@@ -1034,14 +1115,19 @@ class ScriptedPods:
         }
 
     def _step(self, intent_id):
-        index = [i for i, _ in self.launched].index(intent_id)
+        index = list(dict.fromkeys(i for i, _ in self.launched)).index(intent_id)
         return self.steps[index] if index < len(self.steps) else Step()
 
     def launch(self, job, private):
-        if job.intent_id in [i for i, _ in self.launched]:
+        tries = [i for i, _ in self.launched].count(job.intent_id)
+        if tries and job.intent_id not in getattr(self, "_refused", set()):
             raise AssertionError("a pod job was launched twice: " + job.intent_id)
         self.launched.append((job.intent_id, job))
         step = self._step(job.intent_id)
+        if tries < step.refusals:
+            self.__dict__.setdefault("_refused", set()).add(job.intent_id)
+            raise PodFailure("launch", step.refusal_detail, executed=False)
+        getattr(self, "_refused", set()).discard(job.intent_id)
         if step.launch == "refused":
             raise PodFailure("launch", "scripted refusal", executed=False)
         if step.launch == "lost":
