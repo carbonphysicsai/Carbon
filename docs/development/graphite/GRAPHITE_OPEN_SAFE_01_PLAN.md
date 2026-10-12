@@ -113,6 +113,33 @@ refusals, and the Attacker's failed attempts), and re-ranks.
 UNMEASURED with the tool that would measure it), the containment, the attacks tried and their results, and
 the owner question. No adoption, no base-image change, no grant authored.
 
+## 2b. The hunt run plan (for the executor, through the Test Lead; nothing here is launched by the plan's author)
+
+The hunt runs inside today's L0 to L4 containment: **no wider surface is executed**. A "Level 5" candidate is
+research and design: a Constructor's `WISH:` line, a refusal, or a reading of the committed material. Anything that
+would execute a wider surface comes back to the Test Lead first.
+
+| Run | Role and level | What it does | Cap and window |
+|---|---|---|---|
+| H1 | Constructor at L2 | A live phase-3 run with the wish channel and the level domain on (both already on in `phase3 run`); `CARBON_CAPABILITY_LOG` set to the committed log's path so refusals and `WISH:` lines are appended as data | 14.91 worst case, 39,600 s, pod rate ceiling 0.65 per hour |
+| H2 | Constructor at L2 | Same, second seed of the session | same |
+| H3 | Constructor at L3 | Same | same |
+| H4 | Constructor at L4 | Same; **waits for the L4 graph-variant fix** (with the Test Engineer). If the fix slips, run it at L3 | same |
+| A1, A2 | Attacker | **Not launched until the Test Lead rules.** With no executable L5 surface there is nothing for an Attacker to attack beyond the existing ladder; either they become two more Attacker runs at the existing levels under stop rule v3 (their cost is inside the approved 86.71), or a read-only design review of each shortlisted candidate is accepted | 13.41 worst case, 15,600 s |
+
+- **Briefs.** The standard Constructor brief with the wish channel (`capability_wish_text`) and the level domain
+  (`level_domain_text`), exactly as the live runner builds it today. A theme (compute and steps, PyTorch families, solver
+  ops, kernels and libraries) cannot be steered by the brief without a code change; the four runs are therefore four
+  independent samples, and the themes in section 2 are what the analysis sorts their wishes into. Steering a run toward a
+  theme would be a small opt-in brief extension, proposed separately.
+- **Order and concurrency.** H1 to H3 can start as soon as the weekly headroom allows (`grant_runs weekly`); at most
+  the grant's `max_concurrency`; H4 after the variant fix. One controller root per run, seeded into the ledger.
+- **Grants.** The files are authored by the owner's process from #1163 (the Test Engineer binds them); this plan authors
+  none. The 86.71 ceiling covers H1 to H4 and A1 and A2; the Constructor pass of 44.85 is a separate ceiling and is not
+  spent on the hunt.
+- **Output.** After the runs: the refusal and wish rows in the committed log (a short PR), then one proposal file per
+  candidate as section 2 describes. No adoption.
+
 ## 3. The spend line (hunt and Constructor pass approved by the owner; the grant file binds spend, not this page)
 
 Public repo: caps, rates and run counts only. Per-run worst cases are from the committed grants. The run
