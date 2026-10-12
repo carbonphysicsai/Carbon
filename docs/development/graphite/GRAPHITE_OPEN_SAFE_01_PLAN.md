@@ -18,7 +18,7 @@ and development variants at L1 to L4. Cooling and motor are L0 only and are out 
 | Fact | State | Evidence |
 |---|---|---|
 | Constructor on kimi-k3 at Level 1 and above, R4 at the 0.65/h pod ceiling with a 10.99 token share per 14.91 run | VERIFIED | `.agent/decisions/2026-10-11-OWNER-GRAPHITE-PHASE3-R4-CEILING-01.md` (#1076) |
-| Stage B grants (L2 and L3, USD 143.35) and stage C grants (L4, USD 71.80) approved by the owner | VERIFIED (approval); how much of each is used is UNVERIFIED (the repo holds no spend ledger) | `OWNER-GRAPHITE-STAGE-B-01.md`, `OWNER-GRAPHITE-STAGE-C-01.md` |
+| Stage B grants (L2 and L3, USD 143.35) and stage C grants (L4, USD 71.80) approved by the owner | VERIFIED in the repo (committed owner records and grant files on main); how much of each is used is UNVERIFIED (the repo holds no spend ledger) | Stage B: `.agent/decisions/2026-10-10-OWNER-GRAPHITE-STAGE-B-01.md` (commit 1dfb93165), grants `GRAPHITE-GRANT-STAGE-B-CONSTRUCTOR` and `GRAPHITE-GRANT-STAGE-B-ATTACKER`. Stage C: `.agent/decisions/2026-10-10-OWNER-GRAPHITE-STAGE-C-01.md` (commit 31f64e049), grants `GRAPHITE-GRANT-STAGE-C-CONSTRUCTOR` and `GRAPHITE-GRANT-STAGE-C-ATTACKER`. Grant files are under `docs/development/graphite/grants/`. |
 | Attack adapters for battery at L0 to L4; Levels 2 to 4 name only their own families | VERIFIED | `attack/adapters` `BUILTIN`; #1072 |
 | The brief lists each development level's widened surface | VERIFIED | #1081 |
 | Level 4 staging, route R1 (Graphite lowers a graph in its own sandbox; Carbon handles the envelope as data) | MERGED; the isolation acceptance is the owner's review | #1098, `level4/L4_STAGING_R1_CONTRACT.md` |
