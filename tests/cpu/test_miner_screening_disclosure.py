@@ -95,12 +95,16 @@ def test_loader_accepts_the_committed_reference_registration():
     doc = sg.load(repository / sl.GRAIN_DIR)
     for entry in doc["entries"]:
         match = entry["match"]
-        identities = {"challenge": {"id": doc["challenge"]},
-                      "rule_digest": match.get("rule_digest", "sha256:" + "d" * 64)}
+        identities = {
+            "challenge": {"id": doc["challenge"]},
+            "rule_digest": match.get("rule_digest", "sha256:" + "d" * 64),
+        }
         rule = {"rule_version": match["rule"]}
         if match["score_section"] == "registered":
-            rule["score"] = {"candidate": match["score_candidate"],
-                             "registry_sha256": match["registry_sha256"]}
+            rule["score"] = {
+                "candidate": match["score_candidate"],
+                "registry_sha256": match["registry_sha256"],
+            }
         policy = sl.load_grain(repository, identities, rule)
         assert policy is not None and policy[1] == doc and policy[2] == entry
         if "score" in rule:
