@@ -1,0 +1,489 @@
+{
+  "authority_main": "c80baf0160650711cf5f11e3989dc2cd894b630e",
+  "candidate_tool_heads": {
+    "law": "3651720553a7c167e9c71819c87da98c37230b55",
+    "packet": "481f2e64ac5925013d1e1a06c6a53336fd75249d",
+    "panel": "a410c386f104dc2a1ad4935ddf9ac8be48c2e797",
+    "timer": "b1cc1e8bf0a4fde38cc8c21b0de7c9e8d04380fb"
+  },
+  "comparison": {
+    "all_compared_outputs_equal": true,
+    "baseline_invocations": 8,
+    "batched_invocations": 3,
+    "batched_wall_s": 0.35956899999291636,
+    "control": "SAME_CHECKER_PER_CLAUSE_NOT_HISTORICAL_MANUAL_REVIEW",
+    "human_labour_basis": "NOT_DEMONSTRATED_NO_MEASURED_HUMAN_BASELINE",
+    "human_labour_speedup": null,
+    "observed_command_consolidation_ratio": 2.9546729557469638,
+    "per_clause_wall_s": 1.0624088000040501,
+    "trial_n": 1
+  },
+  "event_ids": [
+    "0195a112fed84a57b4e4019fe62b4ee5",
+    "a382ca2f626343ef93ba82a2254e55c7",
+    "2153919f72e54bd888797515d6fbf258",
+    "18c884cd8cde47a0906ed903a6c3e88e",
+    "2abbb03ea2d7421eab5277018fb4c4bd",
+    "3ab99f4308fb4a8197a7e327dc633da0",
+    "ea9a514e743c4bac8099a3ba6c1f068e",
+    "c268fba55741427ca8fb27037ac8ae3c",
+    "5094fadcb5b2471facc2681807f88000",
+    "614cdd322ddc42468083711179ba8464",
+    "cbde5bfbf9694e158910cee5f7bc5868",
+    "15e2aea8d61b4f7dbff773b75a26af0e",
+    "36b7c11f9509440ca03b3566ad50659c",
+    "1c4dc979c5194c2da1b1dfe69936b6a6",
+    "68659fe83af245eda70c14b6a318c5ac",
+    "181a8317952541e39b617b9c2394281b",
+    "8fdbb51476384b1d9c0a21d2b93824ae",
+    "a7a658fe72ff4fc794b500e8385f2457",
+    "ba09e8f3ee174e2482fbac5a42a8844a",
+    "13f9293422b3451f8928f641998bf30f",
+    "e28d43b1c39f4bcca9af80a6075a5272",
+    "5a981051503049078a7badcf12c5d66a",
+    "94cdb2a254da4ed9a90594a954d9c5f6",
+    "fdeafe72ad3d42e4aa874629bfd1b898"
+  ],
+  "limits": "One unblinded command-consolidation trial; not total onboarding, human labour savings, V4 model value or scientific qualification. Missing panel seed/pins/index and unbound buyer/law fields remain open.",
+  "metrics_replay": {
+    "basis": "RETAINED_HISTORICAL_GIT_PR_CAPTURE_PLUS_NEW_TOOL_CLOCKS_NOT_FRESH_GIT_CAPTURE",
+    "historical_capture_utc": "2026-10-11T17:04:20Z",
+    "historical_sources_sha256": "11a6e67d36239767606a7cf5266a036782aa01644f48dbb95f59b10b79fa8b80",
+    "motor_rows": [
+      {
+        "accepted_stage_elapsed_s": null,
+        "historical_arrival_gap_s": null,
+        "human_team_effort_hours": null,
+        "stage": "brief"
+      },
+      {
+        "accepted_stage_elapsed_s": null,
+        "historical_arrival_gap_s": 92477,
+        "human_team_effort_hours": null,
+        "stage": "packet"
+      },
+      {
+        "accepted_stage_elapsed_s": null,
+        "historical_arrival_gap_s": 77401,
+        "human_team_effort_hours": null,
+        "stage": "question_law"
+      },
+      {
+        "accepted_stage_elapsed_s": null,
+        "historical_arrival_gap_s": 0,
+        "human_team_effort_hours": null,
+        "stage": "panel"
+      },
+      {
+        "accepted_stage_elapsed_s": null,
+        "historical_arrival_gap_s": null,
+        "human_team_effort_hours": null,
+        "stage": "generators_decks"
+      },
+      {
+        "accepted_stage_elapsed_s": null,
+        "historical_arrival_gap_s": 163601,
+        "human_team_effort_hours": null,
+        "stage": "verification_spec"
+      },
+      {
+        "accepted_stage_elapsed_s": null,
+        "historical_arrival_gap_s": null,
+        "human_team_effort_hours": null,
+        "stage": "comparator"
+      },
+      {
+        "accepted_stage_elapsed_s": null,
+        "historical_arrival_gap_s": 102670,
+        "human_team_effort_hours": null,
+        "stage": "equal_budget"
+      },
+      {
+        "accepted_stage_elapsed_s": null,
+        "historical_arrival_gap_s": 13255,
+        "human_team_effort_hours": null,
+        "stage": "train_kit"
+      },
+      {
+        "accepted_stage_elapsed_s": null,
+        "historical_arrival_gap_s": 5627,
+        "human_team_effort_hours": null,
+        "stage": "readiness_bindings"
+      }
+    ]
+  },
+  "phases": [
+    {
+      "baseline_invocations": 4,
+      "batched_wall_s": 0.13333589999820106,
+      "compared_output_digest": "cd2915e86546cca7000ef02badd36bbcac0108c4c6e7efdef679668be5bdb672",
+      "full_checklist_claim": false,
+      "outputs_equal": true,
+      "per_clause_wall_s": 0.5279441000020597,
+      "phase": "packet"
+    },
+    {
+      "baseline_invocations": 3,
+      "batched_wall_s": 0.1076646999863442,
+      "compared_output_digest": "614f9d720b9772c51cc8e3164f073461138468ffe4d0fa0644ad6b7e44853229",
+      "full_checklist_claim": false,
+      "outputs_equal": true,
+      "per_clause_wall_s": 0.32765250001102686,
+      "phase": "law"
+    },
+    {
+      "baseline_invocations": 1,
+      "batched_wall_s": 0.1185684000083711,
+      "compared_output_digest": "8bd72ebf4fc0a1a6e07c0375198b553cc81d96c35c006d30b7ba2a51de3edd38",
+      "full_checklist_claim": false,
+      "outputs_equal": true,
+      "per_clause_wall_s": 0.20681219999096356,
+      "phase": "panel"
+    }
+  ],
+  "process_view": {
+    "authority_granted": false,
+    "basis": "Measured clock intervals declared active by contributor; no independent activity/identity verification. HUMAN, AI_AGENT and TOOL kept separate. Missing/open effort UNKNOWN, totals PARTIAL. Recorded exits do not accept stages. Legacy metrics_effort_events exports HUMAN only: agent/tool time is not labour. Conversion floors whole seconds and omits subsecond intervals.",
+    "challenge": "motor",
+    "effort_exports_by_kind": {
+      "AI_AGENT": [],
+      "HUMAN": [],
+      "TOOL": []
+    },
+    "event_store": "docs/development/challenge_pipeline/onboarding-events",
+    "events_examined": 24,
+    "metrics_effort_events": [],
+    "schema": "carbon.onboarding.recorded-process-view.v1",
+    "source_observations": {
+      "0195a112fed84a57b4e4019fe62b4ee5": {
+        "current_sha256": "6f2cc78489e3aed9083c895413a1c7d0525fe15e338765101ede729ad65ca97d",
+        "path": "docs/development/challenge_pipeline/automation-rehearsal/README.md",
+        "recorded_sha256": "6f2cc78489e3aed9083c895413a1c7d0525fe15e338765101ede729ad65ca97d",
+        "state": "SAME_SOURCE"
+      },
+      "13f9293422b3451f8928f641998bf30f": {
+        "current_sha256": "6f2cc78489e3aed9083c895413a1c7d0525fe15e338765101ede729ad65ca97d",
+        "path": "docs/development/challenge_pipeline/automation-rehearsal/README.md",
+        "recorded_sha256": "6f2cc78489e3aed9083c895413a1c7d0525fe15e338765101ede729ad65ca97d",
+        "state": "SAME_SOURCE"
+      },
+      "15e2aea8d61b4f7dbff773b75a26af0e": {
+        "current_sha256": "6f2cc78489e3aed9083c895413a1c7d0525fe15e338765101ede729ad65ca97d",
+        "path": "docs/development/challenge_pipeline/automation-rehearsal/README.md",
+        "recorded_sha256": "6f2cc78489e3aed9083c895413a1c7d0525fe15e338765101ede729ad65ca97d",
+        "state": "SAME_SOURCE"
+      },
+      "181a8317952541e39b617b9c2394281b": {
+        "current_sha256": "6f2cc78489e3aed9083c895413a1c7d0525fe15e338765101ede729ad65ca97d",
+        "path": "docs/development/challenge_pipeline/automation-rehearsal/README.md",
+        "recorded_sha256": "6f2cc78489e3aed9083c895413a1c7d0525fe15e338765101ede729ad65ca97d",
+        "state": "SAME_SOURCE"
+      },
+      "18c884cd8cde47a0906ed903a6c3e88e": {
+        "current_sha256": "6f2cc78489e3aed9083c895413a1c7d0525fe15e338765101ede729ad65ca97d",
+        "path": "docs/development/challenge_pipeline/automation-rehearsal/README.md",
+        "recorded_sha256": "6f2cc78489e3aed9083c895413a1c7d0525fe15e338765101ede729ad65ca97d",
+        "state": "SAME_SOURCE"
+      },
+      "1c4dc979c5194c2da1b1dfe69936b6a6": {
+        "current_sha256": "6f2cc78489e3aed9083c895413a1c7d0525fe15e338765101ede729ad65ca97d",
+        "path": "docs/development/challenge_pipeline/automation-rehearsal/README.md",
+        "recorded_sha256": "6f2cc78489e3aed9083c895413a1c7d0525fe15e338765101ede729ad65ca97d",
+        "state": "SAME_SOURCE"
+      },
+      "2153919f72e54bd888797515d6fbf258": {
+        "current_sha256": "6f2cc78489e3aed9083c895413a1c7d0525fe15e338765101ede729ad65ca97d",
+        "path": "docs/development/challenge_pipeline/automation-rehearsal/README.md",
+        "recorded_sha256": "6f2cc78489e3aed9083c895413a1c7d0525fe15e338765101ede729ad65ca97d",
+        "state": "SAME_SOURCE"
+      },
+      "2abbb03ea2d7421eab5277018fb4c4bd": {
+        "current_sha256": "6f2cc78489e3aed9083c895413a1c7d0525fe15e338765101ede729ad65ca97d",
+        "path": "docs/development/challenge_pipeline/automation-rehearsal/README.md",
+        "recorded_sha256": "6f2cc78489e3aed9083c895413a1c7d0525fe15e338765101ede729ad65ca97d",
+        "state": "SAME_SOURCE"
+      },
+      "36b7c11f9509440ca03b3566ad50659c": {
+        "current_sha256": "6f2cc78489e3aed9083c895413a1c7d0525fe15e338765101ede729ad65ca97d",
+        "path": "docs/development/challenge_pipeline/automation-rehearsal/README.md",
+        "recorded_sha256": "6f2cc78489e3aed9083c895413a1c7d0525fe15e338765101ede729ad65ca97d",
+        "state": "SAME_SOURCE"
+      },
+      "3ab99f4308fb4a8197a7e327dc633da0": {
+        "current_sha256": "6f2cc78489e3aed9083c895413a1c7d0525fe15e338765101ede729ad65ca97d",
+        "path": "docs/development/challenge_pipeline/automation-rehearsal/README.md",
+        "recorded_sha256": "6f2cc78489e3aed9083c895413a1c7d0525fe15e338765101ede729ad65ca97d",
+        "state": "SAME_SOURCE"
+      },
+      "5094fadcb5b2471facc2681807f88000": {
+        "current_sha256": "6f2cc78489e3aed9083c895413a1c7d0525fe15e338765101ede729ad65ca97d",
+        "path": "docs/development/challenge_pipeline/automation-rehearsal/README.md",
+        "recorded_sha256": "6f2cc78489e3aed9083c895413a1c7d0525fe15e338765101ede729ad65ca97d",
+        "state": "SAME_SOURCE"
+      },
+      "5a981051503049078a7badcf12c5d66a": {
+        "current_sha256": "6f2cc78489e3aed9083c895413a1c7d0525fe15e338765101ede729ad65ca97d",
+        "path": "docs/development/challenge_pipeline/automation-rehearsal/README.md",
+        "recorded_sha256": "6f2cc78489e3aed9083c895413a1c7d0525fe15e338765101ede729ad65ca97d",
+        "state": "SAME_SOURCE"
+      },
+      "614cdd322ddc42468083711179ba8464": {
+        "current_sha256": "6f2cc78489e3aed9083c895413a1c7d0525fe15e338765101ede729ad65ca97d",
+        "path": "docs/development/challenge_pipeline/automation-rehearsal/README.md",
+        "recorded_sha256": "6f2cc78489e3aed9083c895413a1c7d0525fe15e338765101ede729ad65ca97d",
+        "state": "SAME_SOURCE"
+      },
+      "68659fe83af245eda70c14b6a318c5ac": {
+        "current_sha256": "6f2cc78489e3aed9083c895413a1c7d0525fe15e338765101ede729ad65ca97d",
+        "path": "docs/development/challenge_pipeline/automation-rehearsal/README.md",
+        "recorded_sha256": "6f2cc78489e3aed9083c895413a1c7d0525fe15e338765101ede729ad65ca97d",
+        "state": "SAME_SOURCE"
+      },
+      "8fdbb51476384b1d9c0a21d2b93824ae": {
+        "current_sha256": "6f2cc78489e3aed9083c895413a1c7d0525fe15e338765101ede729ad65ca97d",
+        "path": "docs/development/challenge_pipeline/automation-rehearsal/README.md",
+        "recorded_sha256": "6f2cc78489e3aed9083c895413a1c7d0525fe15e338765101ede729ad65ca97d",
+        "state": "SAME_SOURCE"
+      },
+      "94cdb2a254da4ed9a90594a954d9c5f6": {
+        "current_sha256": "6f2cc78489e3aed9083c895413a1c7d0525fe15e338765101ede729ad65ca97d",
+        "path": "docs/development/challenge_pipeline/automation-rehearsal/README.md",
+        "recorded_sha256": "6f2cc78489e3aed9083c895413a1c7d0525fe15e338765101ede729ad65ca97d",
+        "state": "SAME_SOURCE"
+      },
+      "a382ca2f626343ef93ba82a2254e55c7": {
+        "current_sha256": "6f2cc78489e3aed9083c895413a1c7d0525fe15e338765101ede729ad65ca97d",
+        "path": "docs/development/challenge_pipeline/automation-rehearsal/README.md",
+        "recorded_sha256": "6f2cc78489e3aed9083c895413a1c7d0525fe15e338765101ede729ad65ca97d",
+        "state": "SAME_SOURCE"
+      },
+      "a7a658fe72ff4fc794b500e8385f2457": {
+        "current_sha256": "6f2cc78489e3aed9083c895413a1c7d0525fe15e338765101ede729ad65ca97d",
+        "path": "docs/development/challenge_pipeline/automation-rehearsal/README.md",
+        "recorded_sha256": "6f2cc78489e3aed9083c895413a1c7d0525fe15e338765101ede729ad65ca97d",
+        "state": "SAME_SOURCE"
+      },
+      "ba09e8f3ee174e2482fbac5a42a8844a": {
+        "current_sha256": "6f2cc78489e3aed9083c895413a1c7d0525fe15e338765101ede729ad65ca97d",
+        "path": "docs/development/challenge_pipeline/automation-rehearsal/README.md",
+        "recorded_sha256": "6f2cc78489e3aed9083c895413a1c7d0525fe15e338765101ede729ad65ca97d",
+        "state": "SAME_SOURCE"
+      },
+      "c268fba55741427ca8fb27037ac8ae3c": {
+        "current_sha256": "6f2cc78489e3aed9083c895413a1c7d0525fe15e338765101ede729ad65ca97d",
+        "path": "docs/development/challenge_pipeline/automation-rehearsal/README.md",
+        "recorded_sha256": "6f2cc78489e3aed9083c895413a1c7d0525fe15e338765101ede729ad65ca97d",
+        "state": "SAME_SOURCE"
+      },
+      "cbde5bfbf9694e158910cee5f7bc5868": {
+        "current_sha256": "6f2cc78489e3aed9083c895413a1c7d0525fe15e338765101ede729ad65ca97d",
+        "path": "docs/development/challenge_pipeline/automation-rehearsal/README.md",
+        "recorded_sha256": "6f2cc78489e3aed9083c895413a1c7d0525fe15e338765101ede729ad65ca97d",
+        "state": "SAME_SOURCE"
+      },
+      "e28d43b1c39f4bcca9af80a6075a5272": {
+        "current_sha256": "6f2cc78489e3aed9083c895413a1c7d0525fe15e338765101ede729ad65ca97d",
+        "path": "docs/development/challenge_pipeline/automation-rehearsal/README.md",
+        "recorded_sha256": "6f2cc78489e3aed9083c895413a1c7d0525fe15e338765101ede729ad65ca97d",
+        "state": "SAME_SOURCE"
+      },
+      "ea9a514e743c4bac8099a3ba6c1f068e": {
+        "current_sha256": "6f2cc78489e3aed9083c895413a1c7d0525fe15e338765101ede729ad65ca97d",
+        "path": "docs/development/challenge_pipeline/automation-rehearsal/README.md",
+        "recorded_sha256": "6f2cc78489e3aed9083c895413a1c7d0525fe15e338765101ede729ad65ca97d",
+        "state": "SAME_SOURCE"
+      },
+      "fdeafe72ad3d42e4aa874629bfd1b898": {
+        "current_sha256": "6f2cc78489e3aed9083c895413a1c7d0525fe15e338765101ede729ad65ca97d",
+        "path": "docs/development/challenge_pipeline/automation-rehearsal/README.md",
+        "recorded_sha256": "6f2cc78489e3aed9083c895413a1c7d0525fe15e338765101ede729ad65ca97d",
+        "state": "SAME_SOURCE"
+      }
+    },
+    "stages": [
+      {
+        "accepted_exit_verified": false,
+        "active_hours_partial": {
+          "AI_AGENT": null,
+          "HUMAN": null,
+          "TOOL": null
+        },
+        "open_events": 0,
+        "recorded_cycles": [],
+        "stage": "S0_brief"
+      },
+      {
+        "accepted_exit_verified": false,
+        "active_hours_partial": {
+          "AI_AGENT": null,
+          "HUMAN": null,
+          "TOOL": 0.0002660969444444444
+        },
+        "open_events": 0,
+        "recorded_cycles": [
+          {
+            "calendar_s": 1.001335,
+            "current_stage_definition": true,
+            "disposition": "PREPARED",
+            "entered_at": "2026-10-12T01:20:36.777929+00:00",
+            "exited_at": "2026-10-12T01:20:37.779264+00:00",
+            "source": "docs/development/challenge_pipeline/automation-rehearsal/README.md",
+            "source_sha256": "6f2cc78489e3aed9083c895413a1c7d0525fe15e338765101ede729ad65ca97d"
+          },
+          {
+            "calendar_s": 0.587938,
+            "current_stage_definition": true,
+            "disposition": "PREPARED",
+            "entered_at": "2026-10-12T01:20:37.920365+00:00",
+            "exited_at": "2026-10-12T01:20:38.508303+00:00",
+            "source": "docs/development/challenge_pipeline/automation-rehearsal/README.md",
+            "source_sha256": "6f2cc78489e3aed9083c895413a1c7d0525fe15e338765101ede729ad65ca97d"
+          }
+        ],
+        "stage": "S1_packet"
+      },
+      {
+        "accepted_exit_verified": false,
+        "active_hours_partial": {
+          "AI_AGENT": null,
+          "HUMAN": null,
+          "TOOL": null
+        },
+        "open_events": 0,
+        "recorded_cycles": [],
+        "stage": "S2_solver_package"
+      },
+      {
+        "accepted_exit_verified": false,
+        "active_hours_partial": {
+          "AI_AGENT": null,
+          "HUMAN": null,
+          "TOOL": 0.0001821211111111111
+        },
+        "open_events": 0,
+        "recorded_cycles": [
+          {
+            "calendar_s": 0.700401,
+            "current_stage_definition": true,
+            "disposition": "PREPARED",
+            "entered_at": "2026-10-12T01:20:40.302952+00:00",
+            "exited_at": "2026-10-12T01:20:41.003353+00:00",
+            "source": "docs/development/challenge_pipeline/automation-rehearsal/README.md",
+            "source_sha256": "6f2cc78489e3aed9083c895413a1c7d0525fe15e338765101ede729ad65ca97d"
+          },
+          {
+            "calendar_s": 0.594269,
+            "current_stage_definition": true,
+            "disposition": "PREPARED",
+            "entered_at": "2026-10-12T01:20:41.205481+00:00",
+            "exited_at": "2026-10-12T01:20:41.799750+00:00",
+            "source": "docs/development/challenge_pipeline/automation-rehearsal/README.md",
+            "source_sha256": "6f2cc78489e3aed9083c895413a1c7d0525fe15e338765101ede729ad65ca97d"
+          }
+        ],
+        "stage": "S3_feasibility_value_panel"
+      },
+      {
+        "accepted_exit_verified": false,
+        "active_hours_partial": {
+          "AI_AGENT": null,
+          "HUMAN": null,
+          "TOOL": 0.00020196694444444443
+        },
+        "open_events": 0,
+        "recorded_cycles": [
+          {
+            "calendar_s": 0.766282,
+            "current_stage_definition": true,
+            "disposition": "PREPARED",
+            "entered_at": "2026-10-12T01:20:38.663013+00:00",
+            "exited_at": "2026-10-12T01:20:39.429295+00:00",
+            "source": "docs/development/challenge_pipeline/automation-rehearsal/README.md",
+            "source_sha256": "6f2cc78489e3aed9083c895413a1c7d0525fe15e338765101ede729ad65ca97d"
+          },
+          {
+            "calendar_s": 0.559121,
+            "current_stage_definition": true,
+            "disposition": "PREPARED",
+            "entered_at": "2026-10-12T01:20:39.585171+00:00",
+            "exited_at": "2026-10-12T01:20:40.144292+00:00",
+            "source": "docs/development/challenge_pipeline/automation-rehearsal/README.md",
+            "source_sha256": "6f2cc78489e3aed9083c895413a1c7d0525fe15e338765101ede729ad65ca97d"
+          }
+        ],
+        "stage": "S4_question_law"
+      },
+      {
+        "accepted_exit_verified": false,
+        "active_hours_partial": {
+          "AI_AGENT": null,
+          "HUMAN": null,
+          "TOOL": null
+        },
+        "open_events": 0,
+        "recorded_cycles": [],
+        "stage": "S5_bank"
+      },
+      {
+        "accepted_exit_verified": false,
+        "active_hours_partial": {
+          "AI_AGENT": null,
+          "HUMAN": null,
+          "TOOL": null
+        },
+        "open_events": 0,
+        "recorded_cycles": [],
+        "stage": "S6_readiness"
+      },
+      {
+        "accepted_exit_verified": false,
+        "active_hours_partial": {
+          "AI_AGENT": null,
+          "HUMAN": null,
+          "TOOL": null
+        },
+        "open_events": 0,
+        "recorded_cycles": [],
+        "stage": "S7_stage_a"
+      },
+      {
+        "accepted_exit_verified": false,
+        "active_hours_partial": {
+          "AI_AGENT": null,
+          "HUMAN": null,
+          "TOOL": null
+        },
+        "open_events": 0,
+        "recorded_cycles": [],
+        "stage": "S8_stage_b"
+      },
+      {
+        "accepted_exit_verified": false,
+        "active_hours_partial": {
+          "AI_AGENT": null,
+          "HUMAN": null,
+          "TOOL": null
+        },
+        "open_events": 0,
+        "recorded_cycles": [],
+        "stage": "S9_stage_c"
+      },
+      {
+        "accepted_exit_verified": false,
+        "active_hours_partial": {
+          "AI_AGENT": null,
+          "HUMAN": null,
+          "TOOL": null
+        },
+        "open_events": 0,
+        "recorded_cycles": [],
+        "stage": "S10_tested"
+      }
+    ]
+  },
+  "schema": "carbon.onboarding.motor-command-rehearsal.v1",
+  "scope": "PUBLIC_DEVELOPMENT_PREPARATION_ONLY",
+  "solver_runs": 0,
+  "spend": 0,
+  "stage_acceptance": false
+}

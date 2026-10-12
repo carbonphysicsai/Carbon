@@ -1,0 +1,16 @@
+{
+  "id": "181a8317952541e39b617b9c2394281b",
+  "challenge": "motor",
+  "actor_kind": "TOOL",
+  "stage": "S4_question_law",
+  "source_sha256": "6f2cc78489e3aed9083c895413a1c7d0525fe15e338765101ede729ad65ca97d",
+  "source": "docs/development/challenge_pipeline/automation-rehearsal/README.md",
+  "kind": "EXIT",
+  "cycle": "motor-command-trial-law-batched",
+  "at": "2026-10-12T01:20:40.144292+00:00",
+  "actor": "checker-law",
+  "schema": "carbon.onboarding.process-event.v1",
+  "stage_map_sha256": "e4370a51650ce7d638767c9d40e5804a246728f25dbbb1ab06ecc5648ea4c2f8",
+  "entry_id": "36b7c11f9509440ca03b3566ad50659c",
+  "disposition": "PREPARED"
+}
