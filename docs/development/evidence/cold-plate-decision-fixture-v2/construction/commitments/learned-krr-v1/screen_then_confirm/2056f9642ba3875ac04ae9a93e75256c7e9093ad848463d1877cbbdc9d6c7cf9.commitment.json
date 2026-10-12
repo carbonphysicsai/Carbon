@@ -1,8 +1,8 @@
 {
- "commitment_digest": "sha256:5e9e5ba27f2a8f8794e7aaa9fa30af6f969b9552d88c39875cd8f52a3250a99b",
+ "commitment_digest": "sha256:65868d52cba301f74ff36743ccdb4bea1111d9a1a45df5175a612f3d8f1f61f6",
  "query_accounting_unit": "ATTEMPTED_MODEL_POINT",
  "query_attempts": 18,
- "query_log_digest": "sha256:fa1dd1f3a0ff16b1314cddd9f6aa839d6452705ea3945d60ddd6a7ea968a2982",
+ "query_log_digest": "sha256:b488575617d4a23f19cc0dacd698c6e79c3c216cab96e26acef74fdf7390f600",
  "query_successes": 18,
  "request": {
   "candidate_space_digest": "sha256:7bdaa03b033261557675c70ee1713fca595a68af3640ca797a84d34a39334de3",
@@ -105,7 +105,7 @@
   ],
   "material": "DEVELOPMENT",
   "method": {
-   "code_digest": "sha256:b70d2b0dfcdd93eb7e82ef581b5f707672de63b1db83bebd1d5ece407e5f16e5",
+   "code_digest": "sha256:a8ae3feac9e4a7ccd1a9629b25b0fbcc61aba383b7fc347f420073a8d1f5f0a6",
    "configuration_digest": "sha256:93756f110bf1471e3fb8f1a526f3a955a83abb4f0b387fdfd7675796d5c0f21c",
    "name": "screen_then_confirm"
   },
@@ -125,7 +125,7 @@
     "new_oracle_required": true
    }
   },
-  "request_digest": "sha256:e452654bca960bae86c4c80d71ccb32f3dff03249fa1629629dc85865f4afe24",
+  "request_digest": "sha256:2056f9642ba3875ac04ae9a93e75256c7e9093ad848463d1877cbbdc9d6c7cf9",
   "schema": "carbon.cold-plate.design-search-request.v2",
   "scope": "periodic-straight-channel-cell-v1",
   "seed_policy": "deterministic frozen DEVELOPMENT models; no random draw",
@@ -143,7 +143,7 @@
    "channel_width_mm": 0.25,
    "fin_width_mm": 0.3,
    "flow_lpm_per_kw": 1.25,
-   "predicted_worst_hydraulic_w": 0.1297953455389026
+   "predicted_worst_hydraulic_w": 0.12979534553337166
   }
  ],
  "status": "PROPOSAL"

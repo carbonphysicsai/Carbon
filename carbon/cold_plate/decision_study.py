@@ -662,19 +662,49 @@ def reference_retry_plan(config, initial_directory):
     )
 
 
+def fixture_record(inputs):
+    """One analytical pseudo-reference record with its applicability computed
+    (VALIDITY-ENVELOPE-01): the coolant extremes inside PG25_VALID_C and the
+    Reynolds number at most RE_LAMINAR_MAX, the ranges the CFD analysis uses.
+    The model's coolant runs from the inlet to at most the hottest wall, so
+    those bound it. Outside the ranges the record is REFERENCE_INVALID, which
+    the decision verifier reports as REFERENCE_UNAVAILABLE, never a verdict."""
+
+    outputs = analytic.predict(inputs)
+    diagnostics = outputs["diagnostics"]
+    checks = {
+        "fixture": True,
+        "fluid_min_c": inputs["inlet_c"],
+        "fluid_max_c": diagnostics["max_wall_c"],
+        "re_max": diagnostics["re_max"],
+    }
+    low, high = domain.PG25_VALID_C
+    reasons = [
+        f"outside applicability: {name} {checks[name]:.2f} C outside {low:g}-{high:g} C"
+        for name in ("fluid_min_c", "fluid_max_c")
+        if not (math.isfinite(checks[name]) and low <= checks[name] <= high)
+    ]
+    if not (
+        math.isfinite(checks["re_max"]) and checks["re_max"] <= domain.RE_LAMINAR_MAX
+    ):
+        reasons.append(
+            f"outside applicability: Re {checks['re_max']:.0f} exceeds "
+            f"{domain.RE_LAMINAR_MAX:g}"
+        )
+    return {
+        "status": "REFERENCE_INVALID" if reasons else "OK",
+        "inputs": inputs,
+        "outputs": outputs,
+        "checks": checks,
+        "reasons": reasons,
+    }
+
+
 def fixture_reference(config):
     """Analytical pseudo-reference, structurally unable to count as CFD."""
 
     def source(jobs):
-        return {
-            job["case_id"]: {
-                "status": "OK",
-                "inputs": job["inputs"],
-                "outputs": analytic.predict(job["inputs"]),
-                "checks": {"fixture": True},
-            }
-            for job in jobs
-        }
+        return {job["case_id"]: fixture_record(job["inputs"]) for job in jobs}
 
     return cd.analytical_fixture_reference(
         source,

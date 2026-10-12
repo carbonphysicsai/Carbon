@@ -20,10 +20,18 @@ The registered value-search composition applied to the point-B solves:
   flow per kW fixed), feasible when <= the allocation.
 
 PASS = interface peak <= 85 C and dp feasible. A design with an invalid
-reference solve for a needed map is UNRESOLVED there, never a FAIL. With
-`validity` on, a stratum whose predicted coolant maximum (inlet + heat-scaled
-rise of the design's own valid solve) exceeds the PG25 model's 99 C is also
-UNRESOLVED for that design.
+reference solve for a needed map is UNRESOLVED there, never a FAIL.
+
+Validity (VALIDITY-ENVELOPE-01, #1141) is applied by default (`"full"`). The
+solve that supplies the stratum (uniform, or each scored band) is scaled to
+the stratum, and the design-stratum is UNRESOLVED, failing closed, unless:
+- the coolant maximum and minimum (inlet + heat-scaled rise of that solve's
+  fluid extrema) lie inside PG25_VALID_C (30-99 C);
+- the outlet Reynolds number (that solve's, scaled with flow and the outlet
+  viscosity ratio) is <= RE_LAMINAR_MAX.
+
+`False` reproduces B's registered v1 scoring (no check); `True` is point C
+v1's 99 C-only check. Both are history; new scoring uses "full".
 """
 
 from __future__ import annotations
@@ -40,13 +48,14 @@ ROOT = Path(__file__).resolve().parents[3]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from carbon.cold_plate.domain import K0, PG25_VALID_C, RE_LAMINAR_MAX, pg25
 from scripts.dev.cold_plate import lid_spreading as ls
 
 LIMIT_C, TIM2, COOLANT_MAX_C = 85.0, 5e-6, 99.0
 BASE_INLET_C, BASE_HEAT_W, SOLVED_RATIO = 40.0, 1000.0, 2.0
 BANDS = {"central": ("B_central_r2", 15.0), "outlet": ("B_outlet_r2", 25.0)}
 NEAR_K = 2.0
-#: the registered point-B envelope
+#: the registered point-B envelope, scored with the full validity check
 B = {
     "inlets_c": (37.0, 40.0, 42.0),
     "heats_w": (900.0, 1000.0, 1100.0),
@@ -54,8 +63,11 @@ B = {
     "lid_t_mm": 3.0,
     "lid_k": (2000.0, 5000.0, 10000.0),
     "dp_limit_pa": 25_000.0,
-    "validity": False,
+    "validity": "full",
 }
+#: B's registered v1 scoring (#1138), kept for reproduction only
+B_V1 = {**B, "validity": False}
+SOLVE_OF = {"uniform": "B_uniform", **{name: s for name, (s, _) in BANDS.items()}}
 
 
 def load(runs):
@@ -78,13 +90,19 @@ def prepare(designs):
             out[did] = None
             continue
         h, prof = ls.design_h(u)
-        fluid = {"uniform": u["checks"]["fluid_max_c"] - BASE_INLET_C}
-        for name, (s, _) in BANDS.items():
-            fluid[name] = (
-                recs[s]["checks"]["fluid_max_c"] - BASE_INLET_C
+        fluid = {
+            name: (
+                {
+                    "max_rise": recs[s]["checks"]["fluid_max_c"] - BASE_INLET_C,
+                    "min_rise": recs[s]["checks"]["fluid_min_c"] - BASE_INLET_C,
+                    "re_outlet": recs[s]["checks"]["re_outlet"],
+                    "outlet_rise": recs[s]["outputs"]["outlet_c"] - BASE_INLET_C,
+                }
                 if _ok(recs.get(s))
                 else None
             )
+            for name, s in SOLVE_OF.items()
+        }
         out[did] = {
             "h": h,
             "rise": prof - BASE_INLET_C,
@@ -99,13 +117,29 @@ def prepare(designs):
     return out
 
 
-def interface_peak(d, inlet, heat, ratio, band, lid_k, lid_t_mm, validity=False):
+def applicable(fluid, inlet, s, validity):
+    """True when the scaled solve stays inside the declared validity ranges."""
+    if not validity:
+        return True
+    if fluid is None:
+        return False
+    if validity is True:  # point C v1: the 99 C maximum only
+        return inlet + s * fluid["max_rise"] <= COOLANT_MAX_C
+    low, high = PG25_VALID_C
+    t_out_base = K0 + BASE_INLET_C + fluid["outlet_rise"]
+    t_out = K0 + inlet + s * fluid["outlet_rise"]
+    reynolds = fluid["re_outlet"] * s * pg25("mu", t_out_base) / pg25("mu", t_out)
+    values = (inlet + s * fluid["max_rise"], inlet + s * fluid["min_rise"])
+    return all(low <= v <= high for v in values) and reynolds <= RE_LAMINAR_MAX
+
+
+def interface_peak(d, inlet, heat, ratio, band, lid_k, lid_t_mm, validity="full"):
     s = heat / BASE_HEAT_W
     seg = (np.arange(len(d["rise"])) + 0.5) * ls.L / len(d["rise"])
-    if validity:
-        rise = d["fluid_rise"]["uniform" if ratio == 1.0 else band]
-        if rise is None or inlet + s * rise > COOLANT_MAX_C:
-            return None
+    if not applicable(
+        d["fluid_rise"]["uniform" if ratio == 1.0 else band], inlet, s, validity
+    ):
+        return None
     if ratio == 1.0:
         return inlet + s * float(d["rise"].max()) + TIM2 * heat / ls.L**2
     if d["bands"][band] is None:
@@ -191,7 +225,7 @@ def evaluate(prepared, lid_k, env=B):
     }  # fmt: skip
 
 
-def main(runs, out):
+def main(runs, out, env=B):
     prepared = prepare(load(runs))
     doc = {
         "schema": "carbon.cooling.point-b-value-check.v1",
@@ -200,7 +234,8 @@ def main(runs, out):
         "designs_without_valid_uniform": sorted(
             k for k, v in prepared.items() if v is None
         ),
-        "lid_k": {f"k{k:g}": evaluate(prepared, k) for k in B["lid_k"]},
+        "validity": env["validity"],
+        "lid_k": {f"k{k:g}": evaluate(prepared, k, env) for k in env["lid_k"]},
     }
     Path(out).write_text(json.dumps(doc, indent=1, sort_keys=True) + "\n")
     return doc
@@ -210,7 +245,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog="point_b")
     parser.add_argument("--runs", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument(
+        "--v1", action="store_true", help="B's registered v1 (no check)"
+    )
     args = parser.parse_args()
-    doc = main(args.runs, args.out)
+    doc = main(args.runs, args.out, B_V1 if args.v1 else B)
     for key, res in doc["lid_k"].items():
         print(key, {k: v for k, v in res.items() if k != "strata"})

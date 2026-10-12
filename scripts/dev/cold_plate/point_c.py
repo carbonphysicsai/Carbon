@@ -114,7 +114,7 @@ def validity_finding(designs, prepared):
                                 "reasons": r["reasons"]})  # fmt: skip
     unresolved = {}
     for checked in (False, True):
-        env = {**pb.B, "validity": checked}
+        env = {**pb.B_V1, "validity": checked}
         unresolved[checked] = sum(
             pb.stratum(prepared, inlet, heat, ratio, BASE_K, env)["unresolved"]
             for inlet, heat, ratio in itertools.product(
@@ -159,6 +159,23 @@ def main(runs, registry_out, out):
     }
     Path(out).write_text(json.dumps(doc, indent=1, sort_keys=True, default=str) + "\n")
     return registry, doc
+
+
+def rescore(runs, registry_path, out, validity="full"):
+    """The registered C envelope rescored with the full validity check (v2)."""
+    prepared = pb.prepare(pb.load(runs))
+    env = json.loads(Path(registry_path).read_text())["envelope"]
+    env = {**env, "validity": validity}
+    for key in ("inlets_c", "heats_w", "ratios", "lid_k"):
+        env[key] = tuple(env[key])
+    doc = {
+        "schema": "carbon.cooling.point-c-value-check.v2",
+        "registry": str(registry_path),
+        "envelope": env,
+        "lid_k": {f"k{k:g}": pb.evaluate(prepared, k, env) for k in env["lid_k"]},
+    }
+    Path(out).write_text(json.dumps(doc, indent=1, sort_keys=True, default=str) + "\n")
+    return doc
 
 
 if __name__ == "__main__":

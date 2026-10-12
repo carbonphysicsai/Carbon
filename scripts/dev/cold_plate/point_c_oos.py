@@ -79,11 +79,15 @@ def training(runs, env):
         x = {**{k: rec["inputs"][k] for k in KEYS[:3]}, "base_mm": rec["base_mm"]}
         values = {}
         for inlet, heat, ratio in strata:
-            peaks = [pb.interface_peak(d, inlet, heat, ratio, b, pc.BASE_K, env["lid_t_mm"])
+            peaks = [pb.interface_peak(
+                    d, inlet, heat, ratio, b, pc.BASE_K, env["lid_t_mm"], False
+                )
                      for b in (pb.BANDS if ratio > 1 else ["central"])]  # fmt: skip
             values[(inlet, heat, ratio)] = pb.LIMIT_C - max(peaks)
         values["log_dp"] = float(np.log(d["dp_pa"]))
-        values["fluid_rise"] = max(v for v in d["fluid_rise"].values() if v is not None)
+        values["fluid_rise"] = max(
+            v["max_rise"] for v in d["fluid_rise"].values() if v is not None
+        )
         rows.append(_x(x))
         for key, value in values.items():
             targets.setdefault(key, []).append(value)
