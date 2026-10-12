@@ -1,7 +1,9 @@
 """`python -m carbon.dashboard build|serve`.
 
 build --fixtures --out DIR
-    Build the site from the signed synthetic fixtures (labelled FIXTURE).
+    Build the site from the signed synthetic fixtures (labelled FIXTURE), at
+    the fixtures' clock, so board.v2 shows each phase (LIVE, STALE, and
+    PRE_FIRST_RELEASE after a rule cutover).
     Every build also writes the design showcase from public EV4 material,
     unless --no-showcase.
 build --feed FILE [--feed FILE ...] --trust-key HEX [...] --out DIR
@@ -51,13 +53,18 @@ def main(argv=None):
         if args.fixtures:
             if args.trust_key:
                 parser.error("--fixtures takes no --trust-key")
-            trust, documents = fixtures.fixture_trust(), fixtures.documents()
+            trust = fixtures.fixture_trust()
+            documents = fixtures.documents() + fixtures.phase_documents()
+            now = fixtures.FIXTURE_NOW
         else:
             if not args.trust_key:
                 parser.error("--feed needs at least one pinned --trust-key")
             trust = feed.Trust(keys=frozenset(args.trust_key))
             documents = [json.loads(p.read_text(encoding="utf-8")) for p in args.feed]
-        index = build.build(args.out, documents, trust, showcase=not args.no_showcase)
+            now = None
+        index = build.build(
+            args.out, documents, trust, showcase=not args.no_showcase, now=now
+        )
         for board in index["boards"]:
             print(board["state"], board["slug"], board["code"] or "")
         return 0
