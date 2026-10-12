@@ -47,9 +47,19 @@ It runs the existing pinned offline container with `solve-v4`, reads
 `schema: carbon.battery.truth-jobs.v4`, `output_contract_digest`, `fingerprint`
 and the existing list of `jobs`. The v4 file binds a sidecar
 `records.v4.jsonl.output-contract.json`. A pre-existing v3/unversioned records
-file is refused, v3 refuses the v4 sidecar, and resumed earlier lines retain
+file is refused. v3 refuses v4 jobs, the v4 sidecar, and existing v4 record
+lines even if that sidecar has been deleted. Resumed earlier lines retain
 their exact bytes. Both routes retain typed reference/timeout/infra semantics
 and the pinned solver-image/overlay/version provenance.
+
+Re-pinned helper: `carbon/battery/truth_env.py` in the producer's exact helper
+registry (`carbon/development_comparison/campaign_adapters/producer.py`).
+The literal v3 golden test in `tests/cpu/test_battery_truth_v3_golden.py` is
+the compatibility justification: it runs unchanged against the old helper
+and this prospective helper, pinning the complete default command and the
+serialized success/failure records, including provenance. v3 adds no record
+schema. The producer still refuses any helper whose exact bytes mismatch
+its registered digest; no pin check or failure is relaxed.
 
 Pinned domain/recipe/training modules and implementation snapshots are
 unchanged. Existing v3 records, output contracts and recipe digests stay as

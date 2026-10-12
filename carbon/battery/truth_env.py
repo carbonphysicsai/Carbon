@@ -386,6 +386,15 @@ def solve(
         raise TruthEnvironmentError(
             "v3 refuses a version-bound prospective records file"
         )
+    if output_version == "v3":
+        from . import outputs_v4
+
+        if document.get("schema") == "carbon.battery.truth-jobs.v4":
+            raise TruthEnvironmentError("v3 refuses prospective v4 jobs")
+        if records.exists():
+            for line in records.read_text().splitlines():
+                if json.loads(line).get("schema") == outputs_v4.SCHEMA:
+                    raise TruthEnvironmentError("v3 refuses prospective v4 records")
     if output_version == "v4":
         from . import outputs_v4
         from .reference_v4 import reference_solver

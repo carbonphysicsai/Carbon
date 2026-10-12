@@ -182,6 +182,55 @@ def test_version_bound_records_resume_without_rewriting_prior_bytes(
         truth_env.solve(jobs_path, records)
 
 
+def test_v3_refuses_v4_jobs_before_creating_records(tmp_path, monkeypatch):
+    from carbon.battery import truth
+
+    monkeypatch.setattr(truth_env, "provenance", lambda repo: {"fixture": True})
+
+    def service_must_not_start(*args, **kwargs):
+        pytest.fail("v3 started a service for v4 material")
+
+    monkeypatch.setattr(truth, "TruthService", service_must_not_start)
+    records = tmp_path / "records.jsonl"
+    with pytest.raises(truth_env.TruthEnvironmentError, match="v3 refuses.*v4 jobs"):
+        truth_env.solve(jobs(tmp_path), records)
+    assert not records.exists()
+    assert not records.with_name(records.name + ".output-contract.json").exists()
+
+
+def test_v3_refuses_v4_record_lines_after_the_binding_is_deleted(tmp_path, monkeypatch):
+    from carbon.battery import truth
+
+    monkeypatch.setattr(truth_env, "provenance", lambda repo: {"fixture": True})
+
+    def service_must_not_start(*args, **kwargs):
+        pytest.fail("v3 started a service for v4 material")
+
+    monkeypatch.setattr(truth, "TruthService", service_must_not_start)
+    jobs_path = tmp_path / "jobs.json"
+    jobs_path.write_text(json.dumps({"fingerprint": "v3-fixture", "jobs": []}))
+    records = tmp_path / "records.jsonl"
+    original = (
+        b'{"case_id":"old-v3","status":"OK"}\n'
+        + json.dumps(
+            {"case_id": "v4-fixture", "schema": v4.SCHEMA, "status": "OK"}
+        ).encode()
+        + b"\n"
+    )
+    records.write_bytes(original)
+    records.chmod(0o600)
+    binding = records.with_name(records.name + ".output-contract.json")
+    binding.write_text(
+        json.dumps({"schema": v4.SCHEMA, "output_contract_digest": v4.digest()})
+    )
+    binding.unlink()
+    with pytest.raises(truth_env.TruthEnvironmentError, match="v3 refuses.*v4 records"):
+        truth_env.solve(jobs_path, records)
+    assert records.read_bytes() == original
+    assert not binding.exists()
+    assert not records.with_name(records.name + ".stamping").exists()
+
+
 def test_v4_container_route_is_explicit_separate_and_offline(tmp_path):
     old = truth_env.solve_command(tmp_path / "overlay", tmp_path)
     new = truth_env.solve_command(tmp_path / "overlay", tmp_path, output_version="v4")

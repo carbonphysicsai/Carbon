@@ -31,8 +31,13 @@ remain HUMAN_INPUT. The Validator/owner must review those scientific seams.
 Tests: exact fixture extraction/sign/units/grid, malformed or truncated
 outputs, one-solve extraction, typed solver/infra failures, prospective
 record identity, append-only resume, v3 refusal and explicit offline container
-route. Run the canonical focused suite with science-jax/chain groups, existing
-truth-service/construction regressions, invariants, quality/package checks
+route. The #1190 Validator review additionally requires a literal v3 command
+and record-byte golden test, passing unchanged against main's old helper;
+v3 refusal of v4 jobs and of v4 record lines after deletion of their binding;
+then a deliberate exact helper re-pin in producer.py. Keep HELPER_PIN_MISMATCH
+enforced and add the review's exact lessons row N4. Run the canonical focused
+suite with science-jax/chain groups, existing truth-service/construction and
+campaign-producer regressions, invariants, quality/package checks
 and the exact-head CI/Merge gate. Real PyBaMM solves are not fixture evidence.
 
 Historical map_ref SYSTEM/AGENT-EXECUTION; the current protocol retires Hub
