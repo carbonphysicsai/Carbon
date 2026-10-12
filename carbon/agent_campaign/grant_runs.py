@@ -706,6 +706,76 @@ def claim_seeds(grant, store_id, keys, repository=REPOSITORY, runs=()):
     return len(entries)
 
 
+# --- pod jobs (CLOUD-FIRST-COMPUTE-01, build item 2) ---------------------------------
+#
+# The shared pod launcher's runs (Data Collection's `pod_jobs`) are claimed here under
+# the standing weekly test grant (OWNER-TEST-GRANT-01), with no per-run owner ask: each
+# job's cost cap is its worst case, at most the USD 50 per-run cap; all of them count in
+# the same rolling-week ledger; and they may not use the reserves held for named runs.
+
+#: The ledger the pod jobs share. The weekly spend cap is their limit, not a run count.
+POD_JOB_GRANT_ID = "OWNER-TEST-GRANT-01:pod-jobs"
+POD_JOB_STORE = hashlib.sha256(b"carbon.grant-runs.pod-jobs.v1").hexdigest()[:32]
+POD_JOB_RUNS = 10**9
+#: Weekly budget held back from pod jobs for named runs (CLOUD-FIRST-COMPUTE-01): the
+#: sealed confirmation run's USD 40. Released by removing its entry, in a reviewed
+#: change, once that run has settled.
+HELD_RESERVES = {"OWNER-SCORE-PROOF-CONFIRM-02-GRANT": Decimal(40)}
+
+
+class PodJobGrant:
+    """A pod job's grant: OWNER-TEST-GRANT-01, worst case = the job's cost cap."""
+
+    grant_id = POD_JOB_GRANT_ID
+    currency = "USD"
+    permitted_runs = POD_JOB_RUNS
+
+    def __init__(self, cost_cap_usd):
+        cost = _cost(cost_cap_usd)
+        if cost <= 0:
+            raise SharedRunsError(UNAVAILABLE, "a pod job needs a positive cost cap")
+        if cost > PER_RUN_CAP_USD:
+            raise SharedRunsError(
+                PER_RUN_LIMIT,
+                f"cost cap {cost} is above the {PER_RUN_CAP_USD} USD per-run cap",
+            )
+        self.worst_case_run_cost = cost
+
+
+def pod_job_weekly_cap(reserves=None):
+    """The weekly cap a pod job sees: the standing cap less the held reserves."""
+    held = HELD_RESERVES if reserves is None else reserves
+    return WEEKLY_CAP_USD - sum((_cost(v) for v in held.values()), Decimal(0))
+
+
+def claim_pod_job(
+    job_id, cost_cap_usd, repository=REPOSITORY, *, clock=time.time, reserves=None
+):
+    """Claim one pod job before any provider call: refused above the per-run cap, or
+    when its cost cap would take the rolling week past the cap less the held reserves.
+    Idempotent for a job id already claimed. Returns the job's grant."""
+    if type(job_id) is not str or not _SAFE.fullmatch(job_id):
+        raise SharedRunsError(UNAVAILABLE, "a pod job id is 1-128 of [A-Za-z0-9._:-]")
+    grant = PodJobGrant(cost_cap_usd)
+    claim(
+        grant,
+        POD_JOB_STORE,
+        job_id,
+        repository=repository,
+        clock=clock,
+        weekly_cap=pod_job_weekly_cap(reserves),
+    )
+    return grant
+
+
+def settle_pod_job(job_id, cost_usd, repository=REPOSITORY, *, pending_usd=0):
+    """Settle a pod job after teardown: its reported cost (settled plus any pod
+    reservation still unresolved, `pending_usd`) replaces its cost cap."""
+    return settle(
+        None, POD_JOB_STORE, job_id, cost_usd, repository, pending_usd=pending_usd
+    )
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="python -m carbon.agent_campaign.grant_runs")
     sub = parser.add_subparsers(dest="command", required=True)
