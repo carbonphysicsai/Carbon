@@ -11,7 +11,7 @@ from decimal import Decimal
 import pytest
 
 from scripts.dev.graphite_progress import __main__ as cli
-from scripts.dev.graphite_progress import chart, extract, ledger
+from scripts.dev.graphite_progress import chart, extract, improvement, ledger
 from scripts.dev.graphite_progress.model import (
     LINE_SCHEMA,
     UNMEASURED,
@@ -78,6 +78,7 @@ def attacker_doc(
 def crun(**kw):
     wall = kw.pop("wall", 3600)
     scores = kw.pop("practice_scores", None)
+    public = kw.pop("public_improvement", None)
     return extract.constructor_run(
         constructor_doc(**kw),
         level=2,
@@ -85,6 +86,7 @@ def crun(**kw):
         batch="b1",
         wall=wall,
         practice_scores=scores,
+        public_improvement=public,
     )
 
 
@@ -431,3 +433,78 @@ def test_a_partial_session_duration_says_how_many_runs_have_one():
     block = line(runs)["constructor"]
     assert block["agent_hours"]["value"] == 1.0 and block["agent_hours"]["n"] == 1
     assert "1 of 2 runs" in block["agent_hours"]["source"]
+
+
+# -- public-development improvement (the executor's records) -----------------------------------------
+def pub(baseline_dec, model_dec, baseline_acc=0.10, model_acc=0.08):
+    return {
+        "schema": improvement.IMPROVEMENT_SCHEMA,
+        "public_only": True,
+        "baseline": {"accuracy_error": baseline_acc, "decision_loss": baseline_dec},
+        "model": {"accuracy_error": model_acc, "decision_loss": model_dec},
+    }
+
+
+def test_the_relative_improvement_is_positive_when_the_model_is_better():
+    assert improvement.relative(10.0, 8.0) == pytest.approx(0.2)
+    assert improvement.relative(10.0, 12.0) == pytest.approx(-0.2)
+    assert (
+        improvement.relative(0, 1.0) is None and improvement.relative(None, 1.0) is None
+    )
+
+
+def test_the_bootstrap_is_deterministic_and_brackets_the_median():
+    values = [0.02, 0.05, 0.03, 0.08, 0.01, 0.04]
+    first = improvement.bootstrap_interval(values)
+    assert first == improvement.bootstrap_interval(values)
+    assert first[0] <= 0.035 <= first[1]
+    assert improvement.bootstrap_interval([0.1]) is None
+
+
+def test_public_dev_improvement_is_median_best_interval_and_n_with_a_small_n_flag():
+    records = [pub(10.0, 9.0), pub(10.0, 8.0), pub(10.0, 7.0)]
+    block = line([crun(public_improvement=r) for r in records])["constructor"][
+        "improvement"
+    ]["public_dev"]
+    decision = block["decision_loss"]
+    assert decision["value"] == pytest.approx(0.2) and decision[
+        "best"
+    ] == pytest.approx(0.3)
+    assert (
+        decision["n"] == 3
+        and decision["small_n"] is True
+        and len(decision["ci95"]) == 2
+    )
+    assert (
+        "PUBLIC-DEV-MEASURED" in decision["source"]
+        and "not a qualification" in decision["source"]
+    )
+    assert block["accuracy_error"]["value"] == pytest.approx(0.2)
+
+
+def test_without_an_executor_record_the_public_improvement_is_unmeasured():
+    assert (
+        line([crun()])["constructor"]["improvement"]["public_dev"]["value"]
+        == UNMEASURED
+    )
+
+
+@pytest.mark.parametrize(
+    "damage",
+    [
+        {"schema": "other"},
+        {"public_only": False},
+        {"baseline": None},
+        {"model": {"decision_loss": -1}},
+    ],
+)
+def test_a_record_that_is_not_public_only_or_is_malformed_is_refused(damage):
+    with pytest.raises(ProgressError):
+        improvement.validate({**pub(10.0, 9.0), **damage})
+
+
+def test_a_record_file_with_a_sealed_name_is_refused(tmp_path):
+    path = tmp_path / "sealed-improvement.json"
+    path.write_text(json.dumps(pub(10.0, 9.0)))
+    with pytest.raises(ProgressError, match="sealed_source_refused"):
+        extract.read_document(path)

@@ -24,6 +24,7 @@ accepts nothing and claims no qualification.
 | Block | Field | Meaning |
 |---|---|---|
 | `constructor` | `improvement.best`, `.median` | PUBLIC practice scores only; `UNMEASURED` otherwise |
+| | `improvement.public_dev.{accuracy_error,decision_loss}` | the executor's PUBLIC-development measurement per level: median, best, 95% bootstrap interval, `n`, `small_n` ([spec](PUBLIC_IMPROVEMENT_SPEC.md)); `UNMEASURED` until the executor supplies records |
 | | `improvement.proposals_with_outcome_IMPROVEMENT` | scored proposals with the public outcome IMPROVEMENT, of all proposals |
 | | `bundled_share` | share of runs BUNDLED |
 | | `refusals.rate`, `.by_class`, `.causes` | refused proposals (`REFUSED_*`, `FAILED_INFRA`) by class: `brief_gap`, `envelope_too_tight`, `correct_block`, `infra`, or `UNCLASSIFIED` |

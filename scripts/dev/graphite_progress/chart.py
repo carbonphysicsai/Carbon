@@ -21,6 +21,14 @@ PANELS = (
         "Share of listed attack families attempted",
         ("attacker", "families", "share_attempted"),
     ),
+    (
+        "Median public-dev decision-loss improvement (n beside; PUBLIC data only)",
+        ("constructor", "improvement", "public_dev", "decision_loss"),
+    ),
+    (
+        "Median public-dev accuracy-error improvement (PUBLIC data only)",
+        ("constructor", "improvement", "public_dev", "accuracy_error"),
+    ),
     ("Readiness items NOT_BUILT", ("gate", "last", "NOT_BUILT")),
 )
 COLORS = ("#1f77b4", "#d62728", "#2ca02c", "#9467bd", "#8c564b")

@@ -13,6 +13,7 @@ import statistics
 from decimal import Decimal
 from pathlib import Path
 
+from . import improvement
 from .model import (
     LINE_SCHEMA,
     REFUSAL_CLASSES,
@@ -85,6 +86,9 @@ def constructor_block(runs, classes):
                 )
                 if scores
                 else unmeasured("run output holds no public score")
+            ),
+            "public_dev": improvement.public_dev_block(
+                [r["public_improvement"] for r in runs if r.get("public_improvement")]
             ),
             "proposals_with_outcome_IMPROVEMENT": metric(
                 improving,

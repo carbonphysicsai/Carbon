@@ -17,7 +17,7 @@ import json
 import sys
 from pathlib import Path
 
-from . import chart, extract, ledger
+from . import chart, extract, improvement, ledger
 from .model import UNMEASURED, ProgressError, refuse_sealed
 
 
@@ -51,6 +51,12 @@ def load_runs(manifest, root):
             "wall": wall,
         }
         if entry["role"] == "constructor":
+            record = None
+            if entry.get("public_improvement_file"):
+                record = improvement.validate(
+                    extract.read_document(root / entry["public_improvement_file"])
+                )
+            common["public_improvement"] = record
             runs.append(
                 extract.constructor_run(
                     document, practice_scores=entry.get("practice_scores"), **common
@@ -125,6 +131,10 @@ def trend_lines(lines):
         ("bundled share", ("constructor", "bundled_share")),
         ("USD per BUNDLED", ("constructor", "usd_per_bundled")),
         ("refusal rate", ("constructor", "refusals", "rate")),
+        (
+            "median public-dev decision-loss improvement",
+            ("constructor", "improvement", "public_dev", "decision_loss"),
+        ),
         ("real findings per attacker run", ("attacker", "real_findings_per_run")),
         ("NOT_BUILT items", ("gate", "last", "NOT_BUILT")),
     )

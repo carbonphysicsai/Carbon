@@ -71,7 +71,16 @@ def wall_seconds(chain_text, label):
     return int((ended - started).total_seconds())
 
 
-def constructor_run(document, *, level, source, batch, wall=None, practice_scores=None):
+def constructor_run(
+    document,
+    *,
+    level,
+    source,
+    batch,
+    wall=None,
+    practice_scores=None,
+    public_improvement=None,
+):
     """A Constructor run summary from the phase-3 result document."""
     summary = document.get("summary") or {}
     proposals = [p for p in summary.get("proposals", []) if p.get("kind") == "proposal"]
@@ -111,6 +120,7 @@ def constructor_run(document, *, level, source, batch, wall=None, practice_score
         "booked_usd": None if booked is None else str(booked),
         "wall_seconds": wall,
         "practice_scores": practice_scores,
+        "public_improvement": public_improvement,
     }
 
 
