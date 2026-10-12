@@ -73,6 +73,11 @@ phase-3 grant: outside its study it is refused `grant_is_bound_to_a_study`.
   The grant authorizes spend, never a Level 4 run: whether one runs stays
   the owner's and the security owner's.
 
+- GRAPHITE-GRANT-HUNT-H1/H2/H3-CONSTRUCTOR and GRAPHITE-GRANT-HUNT-A1/A2-ATTACKER are the
+  Level 5 hunt's per-run grants (OWNER-GRAPHITE-OPEN-SAFE-01-GRANTS): one run each, H1, H2
+  and H3 registering `min_level` = `max_level` = 1, 2 and 3, A1 and A2 attacking Level 1 and
+  Level 3 (`Phase4Grant.levels`). They authorize spend, never a Level 5 capability.
+
 A registered grant named for another Challenge is
 `grant_is_for_another_challenge`. A Challenge in `PHASE3_BOUND_CHALLENGES`
 accepts only a grant registered for it
@@ -188,6 +193,9 @@ STAGE_TOKEN_SHARE = Decimal("10.99")
 STAGE_B_AUTHORITY = "OWNER-GRAPHITE-STAGE-B-01"
 #: Stage C, Level 4 (GRAPHITE_LADDER_WAVE_PLAN.md section 4), approved by the owner.
 STAGE_C_AUTHORITY = "OWNER-GRAPHITE-STAGE-C-01"
+#: The Level 5 hunt's per-run grants (GRAPHITE-OPEN-SAFE-01 section 2b), approved by the owner in
+#: `.agent/decisions/2026-10-12-OWNER-GRAPHITE-OPEN-SAFE-01-GRANTS.md` (USD 86.71 for the hunt).
+HUNT_AUTHORITY = "OWNER-GRAPHITE-OPEN-SAFE-01-GRANTS"
 
 
 @dataclasses.dataclass(frozen=True)
@@ -316,6 +324,36 @@ PHASE3_GRANTS = types.MappingProxyType(
                 start_roles=("attacker",),
                 authority=STAGE_C_AUTHORITY,
                 runner="phase4",
+            ),
+            # The Level 5 hunt: one run per grant, each at its own level (H1 at L1, H2 at L2,
+            # H3 at L3; H4 is not granted in this batch).
+            *(
+                Phase3Grant(
+                    grant_id=f"GRAPHITE-GRANT-HUNT-H{n}-CONSTRUCTOR",
+                    challenge=BATTERY_CHALLENGE,
+                    grant_file=GRANTS_DIR
+                    + f"/GRAPHITE-GRANT-HUNT-H{n}-CONSTRUCTOR.json",
+                    main_blob=True,
+                    min_level=n,
+                    max_level=n,
+                    start_model="kimi-k3",
+                    token_share_usd=STAGE_TOKEN_SHARE,
+                    authority=HUNT_AUTHORITY,
+                )
+                for n in (1, 2, 3)
+            ),
+            *(
+                Phase3Grant(
+                    grant_id=f"GRAPHITE-GRANT-HUNT-A{n}-ATTACKER",
+                    challenge=BATTERY_CHALLENGE,
+                    grant_file=GRANTS_DIR + f"/GRAPHITE-GRANT-HUNT-A{n}-ATTACKER.json",
+                    main_blob=True,
+                    start_model="kimi-k3",
+                    start_roles=("attacker",),
+                    authority=HUNT_AUTHORITY,
+                    runner="phase4",
+                )
+                for n in (1, 2)
             ),
         )
     }

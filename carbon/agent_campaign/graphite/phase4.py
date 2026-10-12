@@ -232,6 +232,19 @@ PHASE4_STAGE_GRANTS = types.MappingProxyType(
                 grant_file=GRANTS_DIR + "/GRAPHITE-GRANT-STAGE-C-ATTACKER.json",
                 levels=(4,),
             ),
+            # The Level 5 hunt's Attacker runs: A1 attacks Level 1, A2 Level 3.
+            Phase4Grant(
+                challenge=BATTERY_CHALLENGE,
+                grant_id="GRAPHITE-GRANT-HUNT-A1-ATTACKER",
+                grant_file=GRANTS_DIR + "/GRAPHITE-GRANT-HUNT-A1-ATTACKER.json",
+                levels=(1,),
+            ),
+            Phase4Grant(
+                challenge=BATTERY_CHALLENGE,
+                grant_id="GRAPHITE-GRANT-HUNT-A2-ATTACKER",
+                grant_file=GRANTS_DIR + "/GRAPHITE-GRANT-HUNT-A2-ATTACKER.json",
+                levels=(3,),
+            ),
         )
     }
 )
