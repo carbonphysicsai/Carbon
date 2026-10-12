@@ -515,6 +515,60 @@ def code_route(tree, family, optimizer=False):
                     )
                     for n in ast.walk(compare)
                 )
+                # A table route has the same execution path without a local
+                # challenge-specific import inside compare().
+                routes = next(
+                    (
+                        n.value
+                        for n in parsed.body
+                        if isinstance(n, ast.Assign)
+                        and any(
+                            isinstance(target, ast.Name)
+                            and target.id == "CHALLENGE_ROUTES"
+                            for target in n.targets
+                        )
+                    ),
+                    None,
+                )
+                if isinstance(routes, ast.Dict):
+                    f17_route = next(
+                        (
+                            value
+                            for key, value in zip(
+                                routes.keys, routes.values, strict=True
+                            )
+                            if isinstance(key, ast.Constant) and key.value == "f17"
+                        ),
+                        None,
+                    )
+                    if isinstance(f17_route, ast.Dict):
+                        validator = next(
+                            (
+                                value
+                                for key, value in zip(
+                                    f17_route.keys, f17_route.values, strict=True
+                                )
+                                if isinstance(key, ast.Constant)
+                                and key.value == "validator"
+                            ),
+                            None,
+                        )
+                        wired = wired or (
+                            isinstance(validator, ast.Attribute)
+                            and validator.attr == "validate"
+                            and isinstance(validator.value, ast.Name)
+                            and validator.value.id == "micromixer_budget"
+                            and any(
+                                isinstance(n, ast.ImportFrom)
+                                and n.level == 1
+                                and any(a.name == "micromixer_budget" for a in n.names)
+                                for n in parsed.body
+                            )
+                            and any(
+                                isinstance(n, ast.Name) and n.id == "CHALLENGE_ROUTES"
+                                for n in ast.walk(compare)
+                            )
+                        )
                 called = any(
                     isinstance(n, ast.Call)
                     and isinstance(n.func, ast.Name)
