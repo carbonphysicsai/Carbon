@@ -1,7 +1,8 @@
 """PLT-06: inspect hostile source text and test the guard; NEVER execute a model.
 
-All container records and limits here are synthetic. No Docker, lowering,
-model import, subprocess, fork, socket, flood or hostile loop is invoked.
+The sanitized Docker 29.8.2 records came from benign sleeping CPU containers;
+mutations are synthetic. No Docker, lowering, model import, subprocess, fork,
+socket, flood or hostile loop is invoked by these tests.
 """
 
 from __future__ import annotations
@@ -9,6 +10,7 @@ from __future__ import annotations
 import ast
 import copy
 import hashlib
+import json
 
 import pytest
 from level4_hostile_fixtures import (
@@ -36,31 +38,32 @@ NAMES = {
 
 
 def inspection():
-    """An inert example of the executor's required shape, not a deployed profile."""
-    return {
-        "Id": CONTAINER,
-        "Image": IMAGE,
-        "State": {"Running": True},
-        "Config": {"User": "1001:1001", "Labels": {LANE_LABEL: BOUNDED_LANE}},
-        "HostConfig": {
-            "Memory": 128 * 1024**2,
-            "MemorySwap": 128 * 1024**2,
-            "NanoCpus": 10**9,
-            "PidsLimit": 16,
-            "ReadonlyRootfs": True,
-            "Privileged": False,
-            "NetworkMode": "none",
-            "PidMode": "private",
-            "IpcMode": "private",
-            "CapDrop": ["ALL"],
-            "SecurityOpt": ["no-new-privileges=true"],
-            "Tmpfs": {"/scratch": "rw,nosuid,nodev,noexec,size=64m,nr_inodes=1024"},
-        },
-        "Mounts": [
-            {"Destination": "/input", "Type": "bind", "RW": False},
-            {"Destination": "/scratch", "Type": "tmpfs", "RW": True},
-        ],
+    """Fresh inert copy of the actual --tmpfs inspection, with identities sanitized."""
+    return docker_inspections()["records"]["tmpfs_flag"]
+
+
+def docker_inspections():
+    return json.loads((SOURCE_ROOT.parent / "docker_inspect_29_8_2.json").read_bytes())
+
+
+def test_docker_29_8_2_tmpfs_flag_has_caps_without_a_scratch_mount():
+    document = docker_inspections()
+    assert document["docker_server_version"] == "29.8.2"
+    record = document["records"]["tmpfs_flag"]
+    assert [row["Destination"] for row in record["Mounts"]] == ["/input"]
+    assert record["HostConfig"]["Tmpfs"] == {
+        "/scratch": "rw,nosuid,nodev,noexec,size=2g,nr_inodes=100000"
     }
+    assert require_probe_container(record, **IDENTITY) is None
+
+
+def test_docker_29_8_2_mount_tmpfs_cannot_supply_the_required_inode_cap():
+    record = docker_inspections()["records"]["mount_tmpfs"]
+    assert record["HostConfig"]["Tmpfs"] is None
+    assert [row["Destination"] for row in record["Mounts"]] == ["/input", "/scratch"]
+    assert record["Mounts"][1]["Type"] == "tmpfs"
+    with pytest.raises(ProbeRefused, match="hostile_probe_scratch_bounds_required"):
+        require_probe_container(record, **IDENTITY)
 
 
 def test_unlimited_lane_is_refused_before_any_source_is_read(monkeypatch):
@@ -101,7 +104,7 @@ def test_a_supervisor_deadline_must_be_supplied(seconds):
         require_probe_container(inspection(), **{**IDENTITY, "wall_seconds": seconds})
 
 
-@pytest.mark.parametrize("swap", [None, -1, 0, True, 256 * 1024**2])
+@pytest.mark.parametrize("swap", [None, -1, 0, True, 512 * 1024**2])
 def test_swap_cannot_bypass_the_memory_cap(swap):
     record = inspection()
     record["HostConfig"]["MemorySwap"] = swap
@@ -138,6 +141,10 @@ def test_the_plan_is_bound_to_the_running_container_and_pinned_image(damage):
         ("SecurityOpt", "no-new-privileges=true"),
         ("Devices", [{"PathOnHost": "/dev/sda"}]),
         ("DeviceRequests", [{}]),
+        ("DeviceRequests", [{"Driver": "nvidia", "Capabilities": [["gpu"]]}]),
+        ("DeviceCgroupRules", ["c 195:* rwm"]),
+        ("Runtime", "nvidia"),
+        ("Runtime", None),
         ("PortBindings", {"80/tcp": [{}]}),
         ("PublishAllPorts", True),
     ],
@@ -157,6 +164,13 @@ def test_root_or_unspecified_user_is_refused(user):
         require_probe_container(record, **IDENTITY)
 
 
+def test_a_gpu_label_is_refused_even_without_a_device_request():
+    record = inspection()
+    record["Config"]["Labels"]["carbon.accelerator.device"] = "GPU-fixture"
+    with pytest.raises(ProbeRefused, match="hostile_probe_isolation_required"):
+        require_probe_container(record, **IDENTITY)
+
+
 @pytest.mark.parametrize(
     "options",
     [
@@ -168,6 +182,10 @@ def test_root_or_unspecified_user_is_refused(user):
         "rw,nosuid,nodev,noexec,size=50%,nr_inodes=1024",
         "rw,nosuid,nodev,noexec,size=64m,size=1g,nr_inodes=1024",
         "rw,nosuid,nodev,noexec,size=64m,nr_inodes=1024,nr_inodes=1",
+        "rw,nosuid,nodev,noexec,size=64m,nr_inodes=1024,ro",
+        "rw,nosuid,nodev,noexec,size=64m,nr_inodes=1024,exec",
+        "rw,nosuid,nodev,noexec,size=64m,nr_inodes=1024,suid",
+        "rw,nosuid,nodev,noexec,size=64m,nr_inodes=1024,dev",
         None,
     ],
 )
@@ -179,18 +197,35 @@ def test_both_scratch_bytes_and_inodes_are_capped(options):
 
 
 @pytest.mark.parametrize(
-    "damage", ["bind_scratch", "writable_input", "extra", "duplicate"]
+    "damage", ["bind_scratch", "writable_input", "extra", "duplicate", "no_input"]
 )
 def test_a_host_disk_scratch_or_other_mount_is_refused(damage):
     record = inspection()
     if damage == "bind_scratch":
-        record["Mounts"][1]["Type"] = "bind"
+        record["Mounts"].append({"Destination": "/scratch", "Type": "bind", "RW": True})
     elif damage == "writable_input":
         record["Mounts"][0]["RW"] = True
     elif damage == "extra":
         record["Mounts"].append({"Destination": "/host", "Type": "bind", "RW": True})
+    elif damage == "duplicate":
+        record["Mounts"].append(copy.deepcopy(record["Mounts"][0]))
     else:
-        record["Mounts"].append(copy.deepcopy(record["Mounts"][1]))
+        record["Mounts"] = []
+    with pytest.raises(ProbeRefused, match="hostile_probe_scratch_bounds_required"):
+        require_probe_container(record, **IDENTITY)
+
+
+@pytest.mark.parametrize("tmpfs", [None, [], {}, {"/scratch": "rw,size=2g"}])
+def test_missing_or_incomplete_hostconfig_tmpfs_is_refused(tmpfs):
+    record = inspection()
+    record["HostConfig"]["Tmpfs"] = tmpfs
+    with pytest.raises(ProbeRefused, match="hostile_probe_scratch_bounds_required"):
+        require_probe_container(record, **IDENTITY)
+
+
+def test_an_extra_tmpfs_mount_is_refused_even_when_scratch_is_capped():
+    record = inspection()
+    record["HostConfig"]["Tmpfs"]["/host"] = "rw"
     with pytest.raises(ProbeRefused, match="hostile_probe_scratch_bounds_required"):
         require_probe_container(record, **IDENTITY)
 
@@ -203,6 +238,7 @@ def test_missing_inspection_is_a_typed_refusal(malformed):
 
 def test_a_checked_plan_contains_six_sources_and_expectations_but_no_result():
     plan = prepare_probe_sources(inspection(), **IDENTITY)
+    assert plan["lane"] == BOUNDED_LANE
     assert plan["image_id"] == IMAGE and plan["container_id"] == CONTAINER
     assert plan["wall_seconds"] == IDENTITY["wall_seconds"]
     assert {row["probe"] for row in plan["sources"]} == NAMES == set(PROBES)

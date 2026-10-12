@@ -12,7 +12,7 @@ import re
 from pathlib import Path
 
 UNLIMITED_LANE = "carbon.miner-research.unlimited.v1"
-# Prospective fixture contract, not a lane installed or activated by this module.
+# Launchpad's bounded probe lane; this module does not install or activate it.
 BOUNDED_LANE = "carbon.miner-research.bounded.v1"
 LANE_LABEL = "org.opencontainers.image.carbon.lane"
 SOURCE_ROOT = (
@@ -71,6 +71,8 @@ def require_probe_container(inspected, *, image_id, container_id, wall_seconds):
 
     The deadline is returned in the plan for the Launchpad supervisor to enforce.
     A resource-profile label alone never suffices; scratch must be capped tmpfs.
+    Docker's --tmpfs entries live in HostConfig.Tmpfs, not in Mounts.
+    R8 probes use CPU containers only.
     """
     if type(inspected) is not dict:
         raise ProbeRefused("hostile_probe_inspection_required")
@@ -116,6 +118,9 @@ def require_probe_container(inspected, *, image_id, container_id, wall_seconds):
         or "no-new-privileges=true" not in host["SecurityOpt"]
         or host.get("Devices")
         or host.get("DeviceRequests")
+        or host.get("DeviceCgroupRules")
+        or host.get("Runtime") != "runc"
+        or labels.get("carbon.accelerator.device")
         or host.get("PortBindings")
         or host.get("PublishAllPorts")
         or re.fullmatch(r"[1-9][0-9]*:[1-9][0-9]*", str(config.get("User"))) is None
@@ -127,17 +132,18 @@ def require_probe_container(inspected, *, image_id, container_id, wall_seconds):
         for row in mounts
     ):
         raise ProbeRefused("hostile_probe_scratch_bounds_required")
-    by_target = {row.get("Destination"): row for row in mounts}
     tmpfs = host.get("Tmpfs")
     scratch_options = tmpfs.get("/scratch") if type(tmpfs) is dict else None
     options = scratch_options.split(",") if type(scratch_options) is str else []
     if (
-        len(mounts) != 2
-        or set(by_target) != {"/input", "/scratch"}
-        or by_target["/input"].get("RW") is not False
-        or by_target["/scratch"].get("Type") != "tmpfs"
-        or by_target["/scratch"].get("RW") is not True
+        len(mounts) != 1
+        or mounts[0].get("Destination") != "/input"
+        or mounts[0].get("Type") != "bind"
+        or mounts[0].get("RW") is not False
+        or type(tmpfs) is not dict
+        or set(tmpfs) != {"/scratch"}
         or not {"rw", "nosuid", "nodev", "noexec"} <= set(options)
+        or {"ro", "suid", "dev", "exec", "remount", "bind", "rbind"} & set(options)
         or not _tmpfs_limit(options, "size")
         or not _tmpfs_limit(options, "nr_inodes")
     ):

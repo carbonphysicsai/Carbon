@@ -40,17 +40,28 @@ scratch, run one probe per container, and verify whole-container cleanup before
 associating any evidence. Preserve the source, image, container, limits and outcome
 identities in the executor's evidence. A preparation plan is not a probe result.
 
-The prospective fixture lane label is `carbon.miner-research.bounded.v1`. This PR
+The required Launchpad lane label is `carbon.miner-research.bounded.v1`. This PR
 does not install or activate that lane. It requires positive memory (swap included),
 CPU and PID caps; read-only root/input; non-root user; no capabilities, devices,
 privilege escalation or network; and scratch on tmpfs with explicit byte and inode
 caps. No operational cap value is chosen by the fixtures.
 
-**Current limitation:** #1199's operator resource profile still uses
-`carbon.miner-research.unlimited.v1` and host-disk scratch. The guard refuses it
-even when memory/CPU/PID caps or a resource-profile digest are present. Launchpad
-must supply the bounded identity and capped scratch before the executor can run
-these sources. Do not work around the guard on a host or an unlimited lane.
+**Docker inspection (PLT-06b):** R8 requires a CPU-only `runc` container without
+GPU devices, requests or an accelerator label. `Mounts` must contain exactly
+the read-only `/input` bind. Scratch caps come exclusively from
+`HostConfig.Tmpfs["/scratch"]`, with `rw,nosuid,nodev,noexec` and explicit positive
+`size=` and `nr_inodes=` limits. Other mounts and conflicting flags are refused.
+On Docker 29.8.2, `--tmpfs /scratch:rw,nosuid,nodev,noexec,size=2g,nr_inodes=100000`
+has no scratch row in `Mounts`. `--mount type=tmpfs` instead leaves
+`HostConfig.Tmpfs` null and cannot supply the required inode cap, so it is refused.
+`../docker_inspect_29_8_2.json` holds sanitized inspections from two benign sleeping
+CPU containers, which were removed after capture. IDs and the empty input path
+are replaced with fixture values; no hostile source was supplied to either.
+
+The guard still refuses `carbon.miner-research.unlimited.v1` even with positive
+memory/CPU/PID caps or a resource-profile digest. Launchpad's bounded identity
+and capped scratch must be verified on the executor's actual container before
+any source preparation. Do not work around the guard on a host or an unlimited lane.
 
 R8 v1 currently records memory, time and scratch-flood results. This pack also
 supplies PID, filesystem and network probes for the executor's isolation evidence;
