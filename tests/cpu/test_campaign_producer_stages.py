@@ -4,6 +4,7 @@ menu-v2 export, producer settlement and the #965 refinement plans."""
 from __future__ import annotations
 
 import hashlib
+import itertools
 import json
 import sys
 from pathlib import Path
@@ -450,3 +451,99 @@ def test_the_train_stage_needs_the_reference_candidate_view(tmp_path):
     stage = producer.Stage(context, vcpus, reuse, tmp_path / "out")
     stage.model_predictions(tmp_path / "train.jsonl")
     assert stage.counts["model_predictions"] == "MOTOR_REFERENCE_NOT_REGISTERED"
+
+
+def _write_trace(case_dir, case, deck):
+    """Synthetic solver output on the deck's own steps: the top maximum follows the
+    extra power with a first-order lag above the context's initial temperature."""
+    sizes, intervals = deck.time_steps(case)
+    times, t = [0.0], 0.0
+    for size, n in zip(sizes, intervals):
+        for _ in range(n):
+            t += size
+            times.append(t)
+    sched, temp, values = deck.schedule(case), case["initial_c"], []
+    for i, ti in enumerate(times):
+        if i:
+            dt, tc = ti - times[i - 1], min(ti, deck.HORIZON_S)
+            p = next(p0 + (p1 - p0) * (tc - t0) / (t1 - t0) for (t0, p0), (t1, p1) in itertools.pairwise(sched)
+                     if t0 <= tc <= t1 and t1 > t0)  # fmt: skip
+            temp += dt * (0.02 * (p - deck.BASE_W) - 0.05 * (temp - case["initial_c"]))
+        values.append(temp)
+    case_dir.mkdir(parents=True, exist_ok=True)
+    (case_dir / "scalars.dat").write_text(
+        "".join(f"{a!r} {v + 273.15!r}\n" for a, v in zip(times, values))
+    )
+    (case_dir / "scalars.dat.names").write_text(
+        "Variables in columns of matrix: scalars.dat\n   1: time\n   2: boundary max: temperature\n"
+    )
+    return max(
+        (v + 273.15) - 273.15 for v in values
+    )  # as the observer reads the Kelvin file
+
+
+def test_f02_materials_separate_grids_reproduce_the_export(monkeypatch, tmp_path):
+    import numpy as np
+
+    from carbon.development_comparison import portfolio_baselines as pb
+    from scripts.dev.evidence_runs import comparison_inputs as ci
+
+    menu, deck = f02_export.menu, f02_export.menu.deck
+    sys.path.insert(0, str(ROOT / "scripts/dev/reference_packages/elmer"))
+    import f02_baselines as fb
+
+    root, base_root, observed, ledger = tmp_path / "menu", tmp_path / "base", {}, []
+    for ctx, base in menu.contexts():
+        for p in menu.PEAKS_W:
+            for d in menu.ON_TIMES_S:
+                case = {**base, "peak_w": p, "on_time_s": d}
+                name = menu.case_name(ctx, p, d)
+                peak = _write_trace(root / "cases" / name, case, deck)
+                energy = sum((b - a) * ((pa + pb_) / 2 - deck.BASE_W)
+                             for (a, pa), (b, pb_) in zip(deck.schedule(case), deck.schedule(case)[1:]))  # fmt: skip
+                observed[name] = {"peak_top_c": peak, "extra_energy_j": energy}
+                ledger.append({"case": name, "tag": "primary", "wall_s": 1.0, "children_cpu": "0m1.000s 0m0.000s",
+                               "cgroup_memory_peak_bytes": "1000"})  # fmt: skip
+    for name, case in fb.contexts():
+        _write_trace(base_root / "cases" / name, case, deck)
+    (root / "ledger.jsonl").write_text("".join(json.dumps(r) + "\n" for r in ledger))
+    monkeypatch.setattr(menu, "_observed", lambda r: observed)
+    export = f02_export.build("unused")[0]
+    materials, chunks = ci.f02_materials(export, root, base_root)
+    assert len(materials["rows"]) == 384 and materials["settings"]["lags"] == 128
+    assert materials["materials_digest"] == pb.tasks.digest(
+        {k: v for k, v in materials.items() if k != "materials_digest"}
+    )
+    reducers = materials["settings"]["reducers"]
+    by_key = {(r["candidate"], r["condition"]): r for r in materials["rows"]}
+    for row in [r for r in materials["rows"]][::37]:
+        pb._validate_payload("f02", row["payload"], reducers)
+        payload = row["payload"]
+        energy = float(
+            np.sum(np.asarray(payload["extra_power_w"])[:-1])
+            * (payload["time_s"][1] - payload["time_s"][0])
+        )
+        want = observed[menu.case_name(row["condition"], *row["coordinates"])][
+            "extra_energy_j"
+        ]
+        assert energy == pytest.approx(want, rel=1e-9, abs=1e-9)
+        assert row["calibration_source_sha256"] != row["reference_source_sha256"]
+    witness = [w for c in chunks for w in c["rows"]]
+    assert len(witness) == 384 and len(chunks) == 4
+    for w in witness:
+        assert (
+            max(w["top_c"])
+            == w["peak_top_c"]
+            == observed[
+                menu.case_name(
+                    w["condition"],
+                    *by_key[(w["candidate"], w["condition"])]["coordinates"],
+                )
+            ]["peak_top_c"]
+        )
+    files = []
+    for c in chunks:
+        files.append(tmp_path / f"comparator-witness-{c['chunk']:03d}.json")
+        files[-1].write_text(json.dumps(c))
+    manifest = ci.witness_manifest(export["export_digest"], files)
+    assert [c["order"] for c in manifest["chunks"]] == [0, 1, 2, 3]

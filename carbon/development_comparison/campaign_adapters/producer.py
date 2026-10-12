@@ -70,10 +70,11 @@ PINNED = {
     "scripts/dev/battery/middle_bands.py": "de3a1523ea66f8c77c72d5a804bfe61a84225487ca60c0ea4c5296fded8023a3",
     "scripts/dev/battery/middle_bands_refine.py": "7c19f736465e17b2e17966db8269039cb1d04a16b97d9a184d0b0bdaa8fa84fe",
     "scripts/dev/battery/v3_panel_export.py": "c99ccd31f36dd185b3f83114a388b393f6d0d17f6878a77a3b387263118c1402",
-    "scripts/dev/evidence_runs/comparison_inputs.py": "93576970556a4d30bf2672d75400af48eb0f1482111d554006bbc97b362c599d",
+    "scripts/dev/evidence_runs/comparison_inputs.py": "9e0c8f36231ef603ab6335f52bd200aebd164b6445589f4890166396bbba7d51",
     "scripts/dev/evidence_runs/common.py": "9d6b1cc835f1e6cb0593bf01c0d3ebd03385c0ee5bc1d5eee44519eac756bf19",
     "scripts/dev/evidence_runs/settlement.py": "a2e7af4ba2405284a4cd466124ea1d53032d2ecc9ce80b3dbceda74fe5345f75",
     "scripts/dev/motor/feasibility02/run.py": "bf34864c82a939fcdde0042299f0ed9e5944c27fccde28b2b1e80e70dee594e6",
+    "scripts/dev/reference_packages/elmer/f02_baselines.py": "1ae03bf7aeb498a45f161e7a518fccad54b7c427df9e356ed6ff69414be7516a",
     "scripts/dev/reference_packages/elmer/f02_deck.py": "80a7bf5f937cce64dab99afcec209418e99ec89d2eb80886e2ad88b3911af123",
     "scripts/dev/reference_packages/elmer/f02_export.py": "b9e1ce939cd0d024704baba5b1fb8882a5b3e16ce36aac8676f06be1e9def222",
     "scripts/dev/reference_packages/elmer/f02_menu.py": "9cce4f466101077e7aad04012fcc247fcdb5ecdbdd054653919069d18577f76d",
@@ -532,12 +533,41 @@ class Stage:
             self.row["image_digest"],
         )
         self._f02_complete(root, "refine")
+        baselines = self.work / "f02-baselines"
+        self.script(
+            "plan-baselines",
+            "scripts/dev/reference_packages/elmer/f02_baselines.py",
+            "plan",
+            baselines,
+        )
+        registered = (
+            ROOT
+            / "docs/development/evidence/reference-packages-01/f02-menu-v2/baseline-decks-manifest.json"
+        )
+        if (baselines / "manifest.json").read_bytes() != registered.read_bytes():
+            raise Refused("BASELINE_DECKS_DIFFER_FROM_REGISTERED")
+        self.script(
+            "solve-baselines",
+            menu,
+            "run",
+            baselines,
+            "--parallel",
+            parallel,
+            "--image",
+            self.row["image_digest"],
+        )
+        self._f02_complete(baselines, "baselines")
         export = self.work / "panel-export.json"
         self.script(
             "export", "scripts/dev/reference_packages/elmer/f02_export.py", root, export
         )
         self.emit_export(export)
         self.comparison_inputs(export, ("ledger-f02", export, root))
+        materials = self.work / "comparator"
+        self.script("comparator-materials", "scripts/dev/evidence_runs/comparison_inputs.py", "f02-materials",
+                    export, root, baselines, materials)  # fmt: skip
+        for path in sorted(materials.glob("*.json")):
+            self.emit(path.name, json.loads(path.read_text()), "HELDOUT_REFERENCE")
         ledger = _jsonl(root / "ledger.jsonl")
         self.counts["records"] = len(ledger)
         self.counts["not_completed"] = sum(
