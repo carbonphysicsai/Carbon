@@ -89,12 +89,34 @@ class Candidate:
     gate: dict | None = None
     stable: bool = False
     basis: str = ""
+    #: Every gate the candidate applies, `gate` first; a member fails if any
+    #: gate fails (SCORE-PROOF-01 amendment 7). A one-gate candidate holds
+    #: `(gate,)`, an ungated one `()`.
+    gates: tuple = ()
+
+    def __post_init__(self):
+        if not self.gates and self.gate is not None:
+            object.__setattr__(self, "gates", (self.gate,))
+        if self.gates and self.gates[0] != self.gate:
+            raise TuningError("candidate_gates", self.id)
+
+
+def _valid_gate(gate):
+    """One gate: a registered measure, a numeric cutoff and an optional
+    registered comparison, nothing else."""
+    return (
+        isinstance(gate, dict)
+        and set(gate) - {"comparison"} == {"measure", "cutoff"}
+        and gate.get("comparison", COMPARISONS[0]) in COMPARISONS
+        and gate["measure"] in GATES
+        and isinstance(gate["cutoff"], (int, float))
+    )
 
 
 def parse_candidate(entry):
     """One registry entry as a `Candidate`, validated (public: the Validator's
     development score variants wrap the same entry, VALIDATOR-09)."""
-    if set(entry) - {"id", "kind", "weights", "gate", "stable", "basis"}:
+    if set(entry) - {"id", "kind", "weights", "gate", "gates", "stable", "basis"}:
         raise TuningError("candidate_fields", entry.get("id"))
     kind = entry.get("kind", "geometric")
     weights = dict(entry.get("weights") or {})
@@ -108,13 +130,20 @@ def parse_candidate(entry):
         if not math.isclose(sum(weights.values()), 1.0, abs_tol=1e-9):
             raise TuningError("candidate_weights_sum", entry.get("id"))
     gate = entry.get("gate")
-    if gate is not None and (
-        set(gate) - {"comparison"} != {"measure", "cutoff"}
-        or gate.get("comparison", COMPARISONS[0]) not in COMPARISONS
-        or gate["measure"] not in GATES
-        or not isinstance(gate["cutoff"], (int, float))
-    ):
+    if gate is not None and not _valid_gate(gate):
         raise TuningError("candidate_gate", entry.get("id"))
+    # `gates` (two or more, all applied) replaces `gate`; one gate keeps the
+    # one-gate form, so no earlier registry's candidates change.
+    gates = entry.get("gates")
+    if gates is not None:
+        if (
+            gate is not None
+            or not isinstance(gates, list)
+            or len(gates) < 2
+            or not all(_valid_gate(g) for g in gates)
+        ):
+            raise TuningError("candidate_gates", entry.get("id"))
+        gate = gates[0]
     return Candidate(
         entry["id"],
         kind,
@@ -122,6 +151,7 @@ def parse_candidate(entry):
         gate,
         bool(entry.get("stable", False)),
         entry.get("basis", ""),
+        tuple(gates or ()),
     )
 
 
@@ -200,7 +230,16 @@ def load_registry(path, *, repository=None):
 def expand_sweep(entry, registered):
     """A registered threshold sweep: one candidate per cutoff, each the base
     candidate's weighting gated at that cutoff. No cutoff is chosen here."""
-    if set(entry) - {"id", "kind", "measure", "grid", "base", "basis", "comparison"}:
+    if set(entry) - {
+        "id",
+        "kind",
+        "measure",
+        "grid",
+        "base",
+        "basis",
+        "comparison",
+        "and_gates",
+    }:
         raise TuningError("sweep_fields", entry.get("id"))
     if entry.get("comparison", COMPARISONS[0]) not in COMPARISONS:
         raise TuningError("sweep_comparison", entry.get("id"))
@@ -220,17 +259,30 @@ def expand_sweep(entry, registered):
         or grid != sorted(set(grid))
     ):
         raise TuningError("sweep_grid", entry.get("id"))
-    return [
-        Candidate(
-            f"{entry['id']}@{cutoff:g}",
-            base.kind,
-            dict(base.weights),
-            {"measure": entry["measure"], "cutoff": float(cutoff), **comparison},
-            base.stable,
-            f"sweep {entry['id']} of {base.id} at {cutoff:g}",
+    # `and_gates`: fixed gates applied beside the swept one at every cutoff
+    # (a member fails if any gate fails; SCORE-PROOF-01 amendment 7).
+    fixed = entry.get("and_gates", [])
+    if not isinstance(fixed, list) or "and_gates" in entry and not fixed:
+        raise TuningError("sweep_and_gates", entry.get("id"))
+    if not all(_valid_gate(g) for g in fixed):
+        raise TuningError("sweep_and_gates", entry.get("id"))
+    fixed = [dict(g, cutoff=float(g["cutoff"])) for g in fixed]
+    also = "".join(f" and {g['measure']} at {g['cutoff']:g}" for g in fixed)
+    out = []
+    for cutoff in grid:
+        swept = {"measure": entry["measure"], "cutoff": float(cutoff), **comparison}
+        out.append(
+            Candidate(
+                f"{entry['id']}@{cutoff:g}",
+                base.kind,
+                dict(base.weights),
+                swept,
+                base.stable,
+                f"sweep {entry['id']} of {base.id} at {cutoff:g}{also}",
+                (swept, *fixed) if fixed else (),
+            )
         )
-        for cutoff in grid
-    ]
+    return out
 
 
 # --- legs ------------------------------------------------------------------------------
@@ -367,15 +419,24 @@ def score_member(candidate, row):
     )
 
 
-def gate_verdict(candidate, row):
-    """The candidate's gate verdict for one member (None without a gate)."""
-    if candidate.gate is None:
-        return None
-    measured = row["gates"][candidate.gate["measure"]]
-    cutoff = candidate.gate["cutoff"]
-    if candidate.gate.get("comparison") == "exceeds":
+def one_gate_verdict(gate, row):
+    """One gate's verdict for one member."""
+    measured = row["gates"][gate["measure"]]
+    cutoff = gate["cutoff"]
+    if gate.get("comparison") == "exceeds":
         return exceeds_verdict(measured, cutoff)
     return admissibility.verdict(measured, threshold=cutoff)
+
+
+def gate_verdict(candidate, row):
+    """The candidate's gate verdict for one member (None without a gate):
+    FAIL if any of its gates fails."""
+    if candidate.gate is None:
+        return None
+    verdicts = [one_gate_verdict(g, row) for g in candidate.gates]
+    if len(verdicts) == 1:
+        return verdicts[0]
+    return admissibility.FAIL if admissibility.FAIL in verdicts else admissibility.PASS
 
 
 def exceeds_verdict(measured, cutoff):
