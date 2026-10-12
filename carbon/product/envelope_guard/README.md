@@ -31,10 +31,11 @@ Local query probes are deterministic functions of query, complete policy/version
 and contract using a domain-separated SHA-256 counter. Steps and model-call
 budget are explicit policy inputs. The receipt includes the derivation and
 query/probe/configuration identities. It contains no official entropy and the
-library writes no logs, performs no network or filesystem I/O and sends no
-telemetry. Audit retention and disclosure remain HUMAN_INPUT.
+query path writes no logs, performs no network or filesystem I/O and sends no
+telemetry. Construction revalidates the map's receipt using the closed registry
+of public code-verification files. Audit retention and disclosure remain HUMAN_INPUT.
 
-Native `carbon.trust-map.v1` cells retain their units, empirical pooling and
+Native `carbon.trust-map.v2` cells retain their units, empirical pooling and
 NO_DATA semantics. Cell support/error/disagreement thresholds come from the
 explicit policy, never defaults. Absent or insufficient cell evidence and
 unresolved mandatory probes cannot become TRUST. Calibrated intervals, when
@@ -52,6 +53,15 @@ battery validity is Undeclared; this package preserves that hold. No real model
 is trained or solver run, no protected material is read or produced, and no
 scientific value is selected. Public benchmark results will report full-query
 overhead, model calls, host/runtime and limitations.
+
+PRD-02c migrates the fixture through the actual native v2 battery map builder,
+declaring `battery-v3`, the registered code-verification image and criteria.
+The observations, policies and law calibrations remain synthetic. The public
+code-verification receipt covers its registered MMS scope; it does not accept
+the real battery comparison, establish full-model adequacy or remove the
+owner's current-use hold. Legacy v1 inputs have no fixture exception. This
+prospective map/reference identity change changes the fixture replay vectors;
+previous timing records keep their original bytes and historical meaning.
 
 **Production latency target: HUMAN_INPUT (null).** The owner must set the
 accepted PB-LAT use/device target. Toy timing is engineering evidence about
@@ -93,7 +103,7 @@ Malformed or incompatible configuration raises a fixed-code
 | Envelopes | `carbon.product.guard-envelope.v1`: separate surrogate and reference documents, each with version and scalar input low/high/unit. These are support records; physical validity remains separately supplied. |
 | Physical declarations | Native `Declared`, `Undeclared` or `NoPropertyModel` from `carbon.challenge_validator.validity`. Every declared observation must be present in the query. Output-dependent applicability needs a separately accepted observation adapter; it is not inferred from the model. |
 | Reference | `carbon.product.guard-reference.v1`: image_digest, separate code_verification_ref and owner_acceptance_ref, and READY/UNRESOLVED/FAILED_REFERENCE/FAILED_INFRA. It is metadata, not a reference executor. Missing acceptance refs refuse configuration; a missing route or failed route refuses a query. |
-| Map | Native DEVELOPMENT `carbon.trust-map.v1`, PUBLIC/RELEASED source and matching model/reference; complete grid and aggregate denominators, native units and NO_DATA checked. Coverage can be smaller than the surrogate envelope; an uncovered query needs verification. No interpolation of empty cells. |
+| Map | Native DEVELOPMENT `carbon.trust-map.v2`, PUBLIC/RELEASED source and matching model/reference; complete grid and aggregate denominators, native units and NO_DATA checked. The embedded acceptance receipt must exactly match `load_acceptance(family, reference_image, criteria_digest)`. No legacy v1 map or Boolean verification header is accepted, including fixture policies. Coverage can be smaller than the surrogate envelope; an uncovered query needs verification. No interpolation of empty cells. |
 | Policy | `carbon.product.guard-policy.v1`: version, SYNTHETIC_FIXTURE/REGISTERED_DEVELOPMENT basis, authority_ref, exact pins, probe_steps, max_model_calls, min_cell_count and per-output error/disagreement limits in native units. Every quantitative decision is an explicit input. No policy or null authority_ref yields REFUSE. |
 | Uncertainty | Explicit EXPLICIT_NO_INTERVALS/REQUIRED policy, nullable image-bound calibration and per-output width limits. Supplied intervals must bound the point prediction; available uncalibrated intervals, missing required intervals or excessive width yield VERIFY. This does not perform an independent calibration study. |
 

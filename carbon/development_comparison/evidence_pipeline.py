@@ -588,11 +588,10 @@ def _context_provenance(context, export):
             banks.update(current)
     speed = context["speed"]
     if speed is not None:
-        _shape(
-            speed,
-            {"schema", "export_digest", "status", "query_unit", "route", "pairs"},
-            "value",
-        )
+        base = {"schema", "export_digest", "status", "query_unit", "route", "pairs"}
+        flagship = {"reference_solve_core_s", "reference_solve_source_digest"}
+        if type(speed) is not dict or set(speed) not in (base, base | flagship):
+            raise Refusal("value", "FULL_DECISION_COST_RECEIPT_REQUIRED")
         if (
             speed["query_unit"] != "full_registered_decision_query"
             or not isinstance(speed["route"], str)
