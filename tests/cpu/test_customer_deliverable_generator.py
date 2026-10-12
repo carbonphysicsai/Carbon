@@ -900,6 +900,42 @@ class PackageEvidenceTests(unittest.TestCase):
             self.assertIsNone(package["identity"])
             self.assertNotIn("SYNTHETIC_CANARY_NOT_FOR_DISCLOSURE", str(output))
 
+    def test_malformed_nested_interval_is_a_gap_without_stopping_other_evidence(self):
+        self.mutate(
+            lambda p: p["equal_budget"]["curves"][0].update(
+                bootstrap_ci=["SYNTHETIC_CANARY_NOT_FOR_DISCLOSURE"]
+            )
+        )
+        output = self.outputs()
+        self.assertEqual(
+            self.rows("decision_evidence")["equal_budget"]["coverage"], "GAP"
+        )
+        self.assertEqual(
+            self.rows("decision_evidence")["verify_r.regret"]["value"], 0.2
+        )
+        self.assertEqual(self.rows("solver_verification")["norm.0.l2"]["value"], 0.01)
+        self.assertNotIn("SYNTHETIC_CANARY_NOT_FOR_DISCLOSURE", str(output))
+
+    def test_malformed_draft_shapes_are_gaps_without_stopping_other_evidence(self):
+        for shape in ("root", "required_outputs"):
+            with self.subTest(shape=shape):
+                self.texts = package_fixture_texts()
+                draft = json.loads(self.texts["P3"])
+                if shape == "root":
+                    draft = ["SYNTHETIC_CANARY_NOT_FOR_DISCLOSURE"]
+                else:
+                    draft["required_outputs"] = ["SYNTHETIC_CANARY_NOT_FOR_DISCLOSURE"]
+                self.texts["P3"] = json.dumps(draft)
+                output = self.outputs()
+                self.assertEqual(self.rows("law_checks")["contract"]["coverage"], "GAP")
+                self.assertEqual(
+                    self.rows("solver_verification")["norm.0.l2"]["value"], 0.01
+                )
+                self.assertEqual(
+                    self.rows("model_card")["accuracy_overall"]["value"], 0.1
+                )
+                self.assertNotIn("SYNTHETIC_CANARY_NOT_FOR_DISCLOSURE", str(output))
+
     def test_duplicate_json_keys_and_raw_questions_do_not_escape(self):
         self.texts["P4"] = self.texts["P4"].replace(
             '"model_card":', '"model_card": null, "model_card":', 1

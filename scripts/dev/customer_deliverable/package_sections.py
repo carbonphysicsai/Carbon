@@ -201,7 +201,8 @@ def _projection(source, challenge):
 def _draft(source, family):
     document = _json(source)
     if (
-        document.get("schema") != "carbon.physics-contract.draft.v1"
+        type(document) is not dict
+        or document.get("schema") != "carbon.physics-contract.draft.v1"
         or document.get("challenge") != family
         or document.get("runtime_enabled") is not False
     ):
@@ -877,6 +878,8 @@ def _decision_rows(projection, source, family):
                     )
                 )
             intervals = curve.get("bootstrap_ci")
+            if intervals is not None and type(intervals) is not dict:
+                raise ValueError("interval index required")
             interval = (
                 None
                 if intervals is None
@@ -1013,7 +1016,10 @@ def build_package_sections(challenge, family, sources):
                     measured=False,
                 ),
             )
-            for name, definition in draft["required_outputs"].items():
+            outputs = draft["required_outputs"]
+            if type(outputs) is not dict:
+                raise ValueError("output definitions required")
+            for name, definition in outputs.items():
                 _token(name)
                 availability = _token(definition["availability"])
                 rows["law_checks"].append(
