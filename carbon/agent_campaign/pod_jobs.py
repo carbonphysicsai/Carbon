@@ -389,6 +389,9 @@ class JobPods(pods.RunPodPods):
             UrllibTransport,
         )
 
+        # The owner's switch beside the key file: without it no backend exists,
+        # so no caller (the CLI or a library) can spend with a key file alone.
+        self.upload_roots = require_enabled(key_file)
         self.spec = spec
         self.repository = Path(repository)
         self.code_ref = spec.document["code_ref"]
@@ -742,7 +745,7 @@ RECONCILE = (
 )
 
 
-def run(spec, out, *, backend, ledger=None, private=None, uploads=None, roots=()):
+def run(spec, out, *, backend, ledger=None, private=None, uploads=None):
     """Claim, launch, upload, wait, fetch, terminate and settle one job.
 
     Returns the receipt, always written to `out/receipt.json` whatever fails.
@@ -755,7 +758,8 @@ def run(spec, out, *, backend, ledger=None, private=None, uploads=None, roots=()
     ledger = grant_runs if ledger is None else ledger
     if not all(hasattr(ledger, f) for f in ("claim_pod_job", "settle_pod_job")):
         raise SpecRefused("pod_job_grant_unavailable", "grant_runs has no pod_job kind")
-    files_in = read_uploads(spec, uploads, roots)  # refused before any claim
+    # Uploads only from the owner's allow-list the backend was built under.
+    files_in = read_uploads(spec, uploads, backend.upload_roots)
     out = pods.private_dir(out)
     private = pods.private_dir(private or out / "private")
     receipt = {
@@ -999,6 +1003,12 @@ def check(spec, root, *, repository=REPOSITORY, files=None, uploads=None, accoun
     key = root / "runpod-key"
     key.write_text(pods.CHECK_KEY + "\n")
     key.chmod(0o600)
+    # The check's own switch: its uploads directory is its only allowed root.
+    (root / ENABLE_FILE).write_text(
+        json.dumps(
+            {"enabled": True, "upload_roots": [str(Path(uploads or root).resolve())]}
+        )
+    )
     account = account or pods.InMemoryRunPod()
     if files is not None:
         account.FILES = files
@@ -1023,7 +1033,6 @@ def check(spec, root, *, repository=REPOSITORY, files=None, uploads=None, accoun
             backend=backend,
             ledger=grant_runs,
             uploads=uploads,
-            roots=() if uploads is None else (uploads,),
         )
         weekly = grant_runs.ledger_dir() / grant_runs.WEEKLY_FILE
         ledger = [json.loads(x) for x in weekly.read_text().splitlines() if x]
@@ -1083,9 +1092,8 @@ def main(argv=None):
             roots = require_enabled(args.key_file)  # the owner's switch first
             read_uploads(spec, args.uploads, roots)  # before the backend is built
             backend = JobPods(spec, root=args.root, key_file=args.key_file)
-            result = run(
-                spec, args.out, backend=backend, uploads=args.uploads, roots=roots
-            )
+            assert backend.upload_roots == roots
+            result = run(spec, args.out, backend=backend, uploads=args.uploads)
     except SpecRefused as refused:
         print(json.dumps({"refused": refused.code, "detail": str(refused)}))
         return 2

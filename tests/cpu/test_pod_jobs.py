@@ -24,6 +24,13 @@ HEAD = subprocess.run(
 ).stdout.strip()
 
 
+def enable(key, roots=()):
+    """The owner's switch beside a test key file."""
+    (Path(key).parent / pod_jobs.ENABLE_FILE).write_text(
+        json.dumps({"enabled": True, "upload_roots": [str(r) for r in roots]})
+    )
+
+
 def spec_document(**changes):
     document = {
         "schema": pod_jobs.SPEC_SCHEMA,
@@ -144,6 +151,7 @@ def lifecycle(tmp_path, monkeypatch):
     key = tmp_path / "key"
     key.write_text(pods.CHECK_KEY + "\n")
     key.chmod(0o600)
+    enable(key)
 
     def make(account=None, **changes):
         account = account or pods.InMemoryRunPod()
@@ -312,7 +320,8 @@ def test_uploads_come_only_from_an_allowed_public_root(tmp_path):
 
 
 @pytest.mark.parametrize(
-    "name", ["a b.json", "cafÃƒÂ©.json", "x%2e.json", "ev4/a.json", "private/a.json"]
+    "name",
+    ["a b.json", "cafÃƒÆ’Ã‚Â©.json", "x%2e.json", "ev4/a.json", "private/a.json"],
 )
 def test_an_upload_name_that_needs_encoding_or_is_forbidden_is_refused(name):
     entry = {"sha256": "0" * 64, "bytes": 1}
@@ -326,6 +335,7 @@ def test_the_create_request_pins_image_cpu_placement_phase_and_deadline(tmp_path
     key = tmp_path / "key"
     key.write_text(pods.CHECK_KEY + "\n")
     key.chmod(0o600)
+    enable(key)
     account = pods.InMemoryRunPod()
     backend = pod_jobs.JobPods(
         spec,
@@ -539,3 +549,17 @@ def test_run_refuses_without_the_pod_job_grant_kind(tmp_path):
         pod_jobs.run(spec, tmp_path / "out", backend=None, ledger=object())
     assert refused.value.code == "pod_job_grant_unavailable"
     assert not (tmp_path / "out").exists()
+
+
+def test_no_backend_exists_without_the_owners_switch(tmp_path):
+    key = tmp_path / "key"
+    key.write_text(pods.CHECK_KEY + "\n")
+    key.chmod(0o600)
+    with pytest.raises(pod_jobs.SpecRefused) as refused:
+        pod_jobs.JobPods(
+            pod_jobs.load_spec(spec_document()),
+            root=tmp_path / "pods",
+            key_file=key,
+            repository=REPOSITORY,
+        )
+    assert refused.value.code == "pod_jobs_not_enabled"
