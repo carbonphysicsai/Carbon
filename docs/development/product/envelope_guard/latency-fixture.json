@@ -1,0 +1,64 @@
+{
+  "construction_basis": "document snapshot/schema/identity/native-map validation and indexing, excluding fixture authoring",
+  "decision_digest_count": 1,
+  "evidence_basis": "SYNTHETIC_FIXTURE",
+  "full_query_includes": [
+    "query-validation",
+    "deterministic-probes",
+    "model-calls",
+    "map-law-interval-checks",
+    "receipt-hash"
+  ],
+  "full_query_ms": {
+    "max": 53.5974,
+    "median": 8.85425,
+    "p95": 20.1025
+  },
+  "guard_construction_ms": 32.6592,
+  "identities": {
+    "contract": "sha256:3a41a45bf4377b6a2e3c5c4effea7c44132cbe955cc1ef46f5a1c7da4f60939d",
+    "model_artifact": "sha256:85111cf038387f1b80e0160607150cd4dc2c2c822f3c367b59e99e268c16de98",
+    "model_runtime": "sha256:6aab23af19a2db4e2b97578f47e72589bb8dd7fda50eda7388ddf1bbe0325b42",
+    "model_validity": "sha256:125d5923798f6c0cdd5a3671fbfe2d67199fcee50e66fea3d856769d8c924f15",
+    "policy": "sha256:52dae7f26fb18b0408b13ad1760ccea7078c56587e6ee99d71992c1b6eebc861",
+    "reference_envelope": "sha256:538f96d3e11696809d52ccefc83f2fa505a1fe1aa8234cf1978f097945c799c1",
+    "reference_image": "sha256:d079b1ea634a0ae9ad699d3b35ed1eb9ed436224e35cf549e5e4833737245f57",
+    "reference_record": "sha256:28b5b3a048a63f5f82339dc1137b248d434b8aa07d54aabfc2e1fa0d365e8973",
+    "reference_validity": "sha256:04593f2e7a398fe15e9b8d89ce4c4c48d1da2c514acc96a65719992f22442db7",
+    "surrogate_envelope": "sha256:bbc2e01197dad44f1d81685e94f3f14683ef9c7d4cee69af9287e1364664bde5",
+    "trust_map": "sha256:a7a37d35288a9a97f1697b6790b54c31b3f5ee5a532213710bd980630646e7d4"
+  },
+  "iterations": 500,
+  "limits": "Toy adapter on this native host only; no real inference, solver, physical validation, latency promise or product qualification",
+  "machine": "AMD64",
+  "model_calls_per_full_query": [
+    9
+  ],
+  "one_toy_model_call_median_ms": 0.1104,
+  "p95_method": "nearest-rank empirical sample, not an uncertainty interval",
+  "platform": "Windows",
+  "production_latency_target_ms": null,
+  "python": "3.12.14",
+  "qualification_claim": false,
+  "schema": "carbon.product.guard-toy-latency.v1",
+  "scope": "DEVELOPMENT",
+  "target_authority": "HUMAN_INPUT",
+  "verdict_counts": {
+    "REFUSE": 0,
+    "TRUST": 500,
+    "VERIFY": 0
+  },
+  "warmup": 20,
+  "implementation_sha256": {
+    "carbon/product/__init__.py": "sha256:c9a39b00ea9820ae5cb0e582ec96aa35a405812f0d6de3a0b9f67d25822b6d26",
+    "carbon/product/envelope_guard/__init__.py": "sha256:5b305af6fb507caf9fc20b579a6ade6fb3a7d40982ad17cc4a0af4b842206656",
+    "carbon/product/envelope_guard/configuration.py": "sha256:e9bd5b6aefa04386b6fdfb23527ca8c158558da9cebd49b564349f49dd5917f4",
+    "carbon/product/envelope_guard/core.py": "sha256:38443287caf64f7c4642da66137eda4b27f28b1baf902386a0659f65fe0c3366",
+    "carbon/product/envelope_guard/demo.py": "sha256:3ddd17980ebdf262a11be66f500e6cf96ea386a295781940a57558aab65cbe89",
+    "carbon/battery/domain.py": "sha256:4268c9a222ab9082a15bf9d34202b4db0a6d7eb943c91840543f3317491e9da4",
+    "carbon/battery/trust_map.py": "sha256:e4a8eb42ace3a3e589fe6b07d9252f3f9a21223d139982d2a6cd073adb0f51b9",
+    "carbon/trust_map/core.py": "sha256:4389adfe219b9d31f5f56b5104dc530e02b046de6b589e9fc414c95c429da2c2",
+    "carbon/challenge_validator/validity.py": "sha256:575bea5e843d6d4975d943c950d9b5f05938b9f272a13fa9c1b286a05669be50"
+  },
+  "environment_basis": "NATIVE_DIAGNOSTIC"
+}
