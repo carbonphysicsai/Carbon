@@ -716,6 +716,14 @@ def test_public_f02_evidence_requires_exact_peak_witness():
         invoke(manifest, docs)
 
 
+def test_public_indexed_f02_cannot_bypass_exact_peak_witness():
+    manifest, docs = bundle(indexed_f02=True)
+    manifest["scope"] = docs["carbon"]["scope"] = "PUBLIC_DEVELOPMENT"
+    docs["comparator"]["scope"] = "PUBLIC_DEVELOPMENT"
+    with pytest.raises(ep.Refusal, match="F02_FINE_WITNESS_REQUIRED"):
+        invoke(manifest, docs)
+
+
 @pytest.mark.parametrize(
     "change,reason",
     [("escape", "LOCAL_RELATIVE_PATH_REQUIRED"), ("missing", "MISSING_CARBON")],

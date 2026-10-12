@@ -213,6 +213,8 @@ def _baseline(export, material, method, *, require_fine_witness=False):
         if material is None:
             raise Refusal("comparator", "MISSING_COMPARATOR_MATERIALS")
         if export["questions"][0]["task"]["schema"] == tasks.INDEXED_SCHEMA:
+            if require_fine_witness:
+                raise Refusal("comparator", "F02_FINE_WITNESS_REQUIRED")
             _shape(
                 material, {"schema", "scope", "export_digest", "indices"}, "comparator"
             )
