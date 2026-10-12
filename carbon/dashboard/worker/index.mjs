@@ -2,6 +2,7 @@
 //
 // Serves the static dashboard built by `python -m carbon.dashboard build` and
 // keeps the leaderboard live: /data/index.json and /data/boards/<slug>.json
+// and /data/v2/<slug>.json (board.v2, DASHBOARD-02 S1)
 // are computed per request (edge-cached briefly) from each configured
 // validator's signed score feed, fetched server-side, checked against the
 // pinned feed keys and projected exactly as carbon/dashboard/feed.py does.
@@ -20,7 +21,7 @@
 // Design showcase replays stay static: they need Carbon's Python optimizer,
 // so they are rebuilt and redeployed when the incumbent changes.
 
-import {FeedRefused, boardSlug, entry, panelSummary, parse, project, trust} from "./feed.mjs";
+import {FeedRefused, boardSlug, entry, panelSummary, parse, project, projectV2, restamp, trust} from "./feed.mjs";
 // DASHBOARD-02 S3: /data/network.json from the signed network snapshots in
 // the optional secret SNAPSHOT_URLS, checked against FEED_KEYS (404 unset).
 import {liveNetwork} from "./snapshot.mjs";
@@ -72,11 +73,12 @@ async function fetchFeed(url, seconds, fetcher) {
 }
 
 // Every board, as build.py's index and boards, from the live feeds.
-export async function liveSite(env, request, fetcher = fetch) {
+export async function liveSite(env, request, fetcher = fetch, now = Math.floor(Date.now() / 1000)) {
   const {urls, pinned} = config(env);
   const seconds = config(env).seconds;
   const entries = new Map();
   const boards = new Map();
+  const boardsV2 = new Map();
   let n = 0;
   for (const url of urls) {
     let document = null;
@@ -87,6 +89,7 @@ export async function liveSite(env, request, fetcher = fetch) {
       board.feed_state = {state: "ACCEPTED", code: null};
       board.showcase_panel = panelSummary(board.showcase_panel);
       boards.set(board.slug, board);
+      boardsV2.set(board.slug, {...projectV2(board, now), feed_state: board.feed_state});
       entries.set(board.slug, entry(board));
     } catch (error) {
       const code = error instanceof FeedRefused ? error.code : "feed_unavailable";
@@ -100,6 +103,8 @@ export async function liveSite(env, request, fetcher = fetch) {
         previous.feed_state = {state: "REFUSED", code};
         boards.set(slug, previous);
         entries.set(slug, entry(previous));
+        const kept = await asset(env, request, `/data/v2/${slug}.json`);
+        if (kept && kept.fixture === false) boardsV2.set(slug, {...restamp(kept, now), feed_state: previous.feed_state});
       } else {
         entries.set(slug && !entries.has(slug) ? slug : `unreadable-${n}`, {slug: null, state: "REFUSED", code});
       }
@@ -107,7 +112,7 @@ export async function liveSite(env, request, fetcher = fetch) {
     n += 1;
   }
   const keys = [...entries.keys()].sort();
-  return {index: {schema: INDEX_SCHEMA, fixture: false, boards: keys.map(k => entries.get(k))}, boards};
+  return {index: {schema: INDEX_SCHEMA, fixture: false, boards: keys.map(k => entries.get(k))}, boards, boardsV2};
 }
 
 export default {
@@ -118,7 +123,8 @@ export default {
     if (!built || built.fixture !== false) {
       return plain("This build is not servable: it carries fixture data or no production index.", 503);
     }
-    if (url.pathname === "/data/index.json" || url.pathname.startsWith("/data/boards/")) {
+    const v2 = url.pathname.startsWith("/data/v2/");
+    if (url.pathname === "/data/index.json" || url.pathname.startsWith("/data/boards/") || v2) {
       let site;
       try {
         site = await liveSite(env, request);
@@ -127,8 +133,9 @@ export default {
       }
       const seconds = config(env).seconds;
       if (url.pathname === "/data/index.json") return json({...site.index, brand_assets: built.brand_assets || []}, 200, seconds);
-      const slug = decodeURIComponent(url.pathname.slice("/data/boards/".length)).replace(/\.json$/, "");
-      const board = site.boards.get(slug);
+      const prefix = v2 ? "/data/v2/" : "/data/boards/";
+      const slug = decodeURIComponent(url.pathname.slice(prefix.length)).replace(/\.json$/, "");
+      const board = (v2 ? site.boardsV2 : site.boards).get(slug);
       return board ? json(board, 200, seconds) : plain("No such board", 404);
     }
     if (url.pathname === "/data/network.json") {

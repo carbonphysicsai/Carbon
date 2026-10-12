@@ -1,0 +1,16 @@
+{
+  "at": "2026-10-12T01:20:38.508303+00:00",
+  "actor_kind": "TOOL",
+  "actor": "checker-packet",
+  "id": "c268fba55741427ca8fb27037ac8ae3c",
+  "source_sha256": "6f2cc78489e3aed9083c895413a1c7d0525fe15e338765101ede729ad65ca97d",
+  "kind": "EXIT",
+  "cycle": "motor-command-trial-packet-batched",
+  "schema": "carbon.onboarding.process-event.v1",
+  "stage": "S1_packet",
+  "challenge": "motor",
+  "source": "docs/development/challenge_pipeline/automation-rehearsal/README.md",
+  "stage_map_sha256": "e4370a51650ce7d638767c9d40e5804a246728f25dbbb1ab06ecc5648ea4c2f8",
+  "entry_id": "2abbb03ea2d7421eab5277018fb4c4bd",
+  "disposition": "PREPARED"
+}

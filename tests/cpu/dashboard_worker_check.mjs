@@ -3,6 +3,8 @@
 //
 // mode "project": [{text, fixture, keys}] -> [{board} | {code}], the Worker's
 //   projection of each served feed text, for parity with feed.py.
+// mode "project_v2": [{text, fixture, keys, now, card}] -> [{board} | {code}], the
+//   Worker's board.v2 of each, for parity with board_v2.py (DASHBOARD-02 S1).
 // mode "worker": {site, env, feeds: {url: text}, requests: [path]} ->
 //   [{path, status, headers, body}], the fetch handler over a built site.
 import fs from "node:fs";
@@ -18,6 +20,18 @@ if (spec.mode === "project") {
     try {
       const pinned = feed.trust(item.keys, {fixture: item.fixture});
       out.push({board: await feed.project(feed.parse(item.text), pinned)});
+    } catch (error) {
+      if (!(error instanceof feed.FeedRefused)) throw error;
+      out.push({code: error.code});
+    }
+  }
+  process.stdout.write(JSON.stringify(out));
+} else if (spec.mode === "project_v2") {
+  const out = [];
+  for (const item of spec.items) {
+    try {
+      const pinned = feed.trust(item.keys, {fixture: item.fixture});
+      out.push({board: feed.projectV2(await feed.project(feed.parse(item.text), pinned), item.now, item.card ?? null)});
     } catch (error) {
       if (!(error instanceof feed.FeedRefused)) throw error;
       out.push({code: error.code});

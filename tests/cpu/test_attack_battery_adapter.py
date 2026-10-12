@@ -553,7 +553,21 @@ def _reading(result):
     return (result.reading, result.oracle.verdict, result.oracle.condition)
 
 
-def test_a_path_that_refuses_what_carbon_admits_and_runs_is_a_wrongful_refusal():
+def _pin_v1_served(monkeypatch):
+    """Battery scoring v1's pods served JAX only; v2 (TORCH-POD-01) serves
+    PyTorch too. The unserved-backend readings are held on v1."""
+    from carbon.challenge_validator import scoring as challenge_scoring
+    from carbon.challenge_validator.battery_scoring import SERVED_BACKENDS
+
+    battery = challenge_scoring.scoring_for("battery-fastcharge-ageing-development-v1")
+    monkeypatch.setattr(
+        battery, "served_backends", SERVED_BACKENDS["battery-scoring-v1"]
+    )
+
+
+def test_a_path_that_refuses_what_carbon_admits_and_runs_is_a_wrongful_refusal(
+    monkeypatch,
+):
     wrongful = (b.WRONGFUL_REFUSAL, b.BREACHED, "FAILING_TRIGGER")
     control = A.assess("recipe_surface", _observed(track_a.RECIPE_CONTROL, False))
     assert _reading(control) == wrongful
@@ -577,11 +591,17 @@ def test_a_path_that_refuses_what_carbon_admits_and_runs_is_a_wrongful_refusal()
         b.INCONCLUSIVE,
         None,
     )
-    # Carbon admits it but the pods do not serve it: the refusal may be the
-    # path's own, so it is undetermined, never HELD and never a finding.
-    unserved = track_a._strategy(backend="pytorch", steps=100)
-    reading = A.assess("recipe_surface", _observed(unserved, False))
+    # Under v2 the pods serve PyTorch: a path refusing a PyTorch recipe that
+    # Carbon admits and runs refuses what Carbon runs, a wrongful refusal.
+    torch_recipe = track_a._strategy(backend="pytorch", steps=100)
+    served = A.assess("recipe_surface", _observed(torch_recipe, False))
+    assert _reading(served) == wrongful
+    # Carbon admits it but the pods do not serve it (v1): the refusal may be
+    # the path's own, so it is undetermined, never HELD and never a finding.
+    _pin_v1_served(monkeypatch)
+    reading = A.assess("recipe_surface", _observed(torch_recipe, False))
     assert _reading(reading) == (b.UNDETERMINED, b.INCONCLUSIVE, None)
+    monkeypatch.undo()
     # Agreement in either direction is HELD.
     nan = dict(track_a.mandatory_inputs())["nan_voltage"]
     refused = {"name": "p", "value": nan, "path_accepted": False}
@@ -698,7 +718,7 @@ def test_a_wrongly_refused_control_fails_its_check(monkeypatch):
 
 
 # -- rebuild --------------------------------------------------------------------------------------
-def test_carbon_rebuilds_with_admit_and_refuses_with_a_typed_code():
+def test_carbon_rebuilds_with_admit_and_refuses_with_a_typed_code(monkeypatch):
     from carbon.agent_campaign.graphite import experiment
 
     rebuilt = A.rebuild(track_a.RECIPE_CONTROL)
@@ -707,9 +727,15 @@ def test_carbon_rebuilds_with_admit_and_refuses_with_a_typed_code():
     assert rebuilt.rebuilt_digest == b._digest(rebuilt.detail["record"])
     seeded = A.rebuild({"strategy": track_a.RECIPE_CONTROL, "seed": 7})
     assert seeded.detail["record"]["seed"] == 7
-    torch = A.rebuild(track_a._strategy(backend="pytorch", steps=100))
+    # v2 serves PyTorch (TORCH-POD-01); v1's pods did not, typed.
+    torch_strategy = track_a._strategy(backend="pytorch", steps=100)
+    torch = A.rebuild(torch_strategy)
+    assert isinstance(torch, b.Rebuilt) and torch.detail["served"]
+    _pin_v1_served(monkeypatch)
+    torch = A.rebuild(torch_strategy)
     assert isinstance(torch, b.Rebuilt) and not torch.detail["served"]
     assert torch.detail["reason"] == "backend_not_served:pytorch"
+    monkeypatch.undo()
     for name, strategy in track_a.RECIPE_ATTACKS:
         refused = A.rebuild(strategy)
         assert isinstance(refused, b.Unrebuildable), name

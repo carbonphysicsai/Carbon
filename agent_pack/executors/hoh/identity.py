@@ -77,7 +77,12 @@ def sanitized_git_environment(
 
 
 def git_command(*arguments: str) -> list[str]:
-    """Build a Git command with executable local hooks and fsmonitor disabled."""
+    """Build a Git command with hooks, fsmonitor, and background upkeep disabled.
+
+    Background maintenance and auto gc are refused per invocation: they write
+    and then remove ``.git`` lock files asynchronously, which would race the
+    controller's own reads of a repository it is in the middle of building.
+    """
 
     return [
         "git",
@@ -85,6 +90,10 @@ def git_command(*arguments: str) -> list[str]:
         "core.fsmonitor=false",
         "-c",
         "core.hooksPath=/dev/null",
+        "-c",
+        "maintenance.auto=false",
+        "-c",
+        "gc.auto=0",
         *arguments,
     ]
 

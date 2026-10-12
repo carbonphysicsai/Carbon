@@ -19,7 +19,24 @@ python -m carbon.dashboard build --fixtures --out /tmp/carbon-dashboard
 python -m carbon.dashboard serve --dir /tmp/carbon-dashboard --port 8765
 ```
 
-`--fixtures` draws signed synthetic feeds labelled FIXTURE.
+`--fixtures` draws signed synthetic feeds labelled FIXTURE, at the fixtures'
+clock, so board.v2 shows each phase: LIVE, STALE, and PRE_FIRST_RELEASE after
+a rule cutover.
+
+## board.v2
+
+`board_v2.project` reads only the verified board model `feed.py` returns.
+- Every `null` has a reason at `reasons[<key>]` beside it. `not_in_feed` means
+  the signed feed does not carry the field yet.
+- An era is one rule digest; histories never cross digests.
+- Rule statements (rule text, round period, release predicate and lag) show
+  only when a rules card from the Validator matches the feed's rule digest
+  (`rules.status` OK). No card is configured yet, so they are null with
+  `rules_unavailable`.
+- `phase` is STALE once the feed is more than 2 h old: an engineering UI
+  default (`STALE_AFTER_SECONDS`), not a registered value.
+- `worker/feed.mjs` ports it as `projectV2`; the Worker serves it at
+  `/data/v2/<slug>.json`.
 
 To build from a real feed, fetch it from a validator's public door, then build
 it against that validator's pinned feed key:
@@ -41,6 +58,7 @@ How the key and the feed are handled:
 | Path | Content |
 |---|---|
 | `data/index.json`, `data/boards/<slug>.json` | One board per Challenge and device class, checked by `feed.py` |
+| `data/v2/<slug>.json` | The same board as `carbon.dashboard.board.v2` (`board_v2.py`, DASHBOARD-02 S1): king, target to beat, eligible leaderboard, history, rounds, gates and phase |
 | `showcase/index.json`, `showcase/*.json` | Replays of EV4's public decision: the released incumbent's panel, when the feed carries one, and the synthetic controls |
 | `index.html`, `*.js`, `style.css`, `fonts/`, `brand/` | The static app. No third-party script, no CDN, no cookies |
 

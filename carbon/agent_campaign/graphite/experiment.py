@@ -1869,6 +1869,7 @@ class Experiment:
                 if self.development_variant is None
                 else self.development_variant.digest
             ),
+            backend=podlib.job_backend(self.scoring.backend(expected)),
             level4_envelope=self._level4_transport(pid),
         )
         return self._pod(pid, job)

@@ -228,20 +228,28 @@ jobs:
     needs: preflight
     runs-on: ubuntu-24.04
     # Runs the same canonical acceptance inside the image (see canonical),
-    # serially and unsharded: on 2026-10-04 its main test lane alone took 79
-    # min for 11,036 tests and the whole run about 100 min, so 90 cancelled a
-    # passing run before its interop and smoke lanes.
+    # sharded the same way: six runners each build the image, then run their
+    # share of the canonical command (scripts/dev/ci.sh splits the default CPU
+    # suite by test file with scripts/dev/ci_shard.py and the #1100 duration
+    # weights, and runs every other lane whole on one shard), so together they
+    # run exactly the tests one serial run did. The job's result succeeds only
+    # when every shard does, so `needs.dev-image.result` is what it always was.
+    # Each shard builds its own image (no cache), which is the price of the
+    # parallelism. A candidate whose ci.sh or verify_image.sh predates the
+    # shard hand-off runs its full serial command on shard 0, as canonical does.
     #
-    # The suite has grown since. On 2026-10-11 the six canonical shards took
-    # 172 min of wall time between them (17.2/22.8/27.6/29.9/35.3/39.0,
-    # each including its own setup), about 148 min of test work, which the
-    # shard-weight measurement in #1100 independently simulated at 24.7 min
-    # per balanced shard. Serially that alone exceeds 150, and #1035 was
-    # cancelled at exactly 150 inside the acceptance step, which is an
-    # infrastructure bound, not a test result. 240 leaves the image build and
-    # the interop and smoke lanes room without approaching the 360-minute
-    # hosted-runner ceiling.
+    # History of the bound: on 2026-10-04 the unsharded main test lane alone
+    # took 79 min for 11,036 tests and the whole run about 100 min, so 90
+    # cancelled a passing run before its interop and smoke lanes. On
+    # 2026-10-11 the suite was about 148 min of test work, #1035 was cancelled
+    # at exactly 150 inside the acceptance step (an infrastructure bound, not a
+    # test result) and #1118 raised the limit to 240. The limit now bounds each
+    # shard, not the sum; it is not lowered without measured shard times.
     timeout-minutes: 240
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5]
     env:
       CARBON_DEV_IMAGE: carbon-dev:${{ needs.preflight.outputs.candidate_sha }}
       CARBON_UV_GROUPS: "chain archive science-jax science-torch mcp"
@@ -252,7 +260,25 @@ jobs:
           ref: ${{ needs.preflight.outputs.candidate_sha }}
           fetch-depth: 0
           persist-credentials: false
+      - name: Select this shard's share of the canonical command
+        id: shard
+        env:
+          SHARD: ${{ matrix.shard }}
+        run: |
+          set -euo pipefail
+          if grep -q 'CARBON_CI_SHARD' scripts/dev/ci.sh \
+            && grep -q 'CARBON_CI_SHARD' scripts/dev/verify_image.sh; then
+            echo "Shard ${SHARD} of 6 runs its share of the canonical command in the image."
+            echo "run=true" >> "${GITHUB_OUTPUT}"
+          elif [[ "${SHARD}" == 0 ]]; then
+            echo "This candidate predates the image shard hand-off: shard 0 runs its full serial command."
+            echo "run=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "This candidate predates the image shard hand-off: shard 0 runs its full serial command, so shard ${SHARD} runs nothing."
+            echo "run=false" >> "${GITHUB_OUTPUT}"
+          fi
       - name: Resolve Docker Hub through a pull-through mirror
+        if: steps.shard.outputs.run == 'true'
         run: |
           set -euo pipefail
           # This job builds an image with `pull: true` and `no-cache: true`, so
@@ -287,6 +313,7 @@ jobs:
           done
           docker info --format '{{json .RegistryConfig.Mirrors}}'
       - name: Build pinned Carbon development image
+        if: steps.shard.outputs.run == 'true'
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: .
@@ -298,8 +325,10 @@ jobs:
           pull: true
           tags: ${{ env.CARBON_DEV_IMAGE }}
       - name: Start image and run canonical acceptance
+        if: steps.shard.outputs.run == 'true'
         env:
           QUALITY_BASE_SHA: ${{ needs.preflight.outputs.base_sha }}
+          CARBON_CI_SHARD: ${{ matrix.shard }}/6
         run: ./scripts/dev/verify_image.sh "${CARBON_DEV_IMAGE}"
 
   c03-worker:
