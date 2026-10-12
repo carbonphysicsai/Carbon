@@ -12,6 +12,8 @@ import json
 import math
 import re
 
+from carbon.trust_map.acceptance import digest, validate_acceptance
+
 PROJECTION_SCHEMA = "carbon.customer-deliverable.public-package-projection.v1"
 PACKAGE_SCHEMA = "carbon.customer-deliverable.package-evidence.v1"
 OUTCOMES = {
@@ -392,7 +394,7 @@ def _card_rows(projection, source):
     ]
 
 
-def _map_rows(projection, source):
+def _map_rows(projection, source, acceptance):
     absent = [
         _gap(
             "map",
@@ -422,7 +424,7 @@ def _map_rows(projection, source):
             },
         )
         if (
-            document["schema"] != "carbon.trust-map.v1"
+            document["schema"] != "carbon.trust-map.v2"
             or document["maturity"] != "DEVELOPMENT"
             or document["scored_case_selection"] != "FORBIDDEN"
         ):
@@ -432,8 +434,8 @@ def _map_rows(projection, source):
             raise ValueError("undisclosed map")
         verification = document["reference_verification"]
         if (
-            verification["state"] != "PASS"
-            or verification["accepted_development_pass"] is not True
+            acceptance is None
+            or verification != acceptance
             or _digest(verification["image_digest"])
             != projection["identity"]["reference_image_digest"]
         ):
@@ -533,7 +535,7 @@ def _map_rows(projection, source):
         ]
 
 
-def _mms_rows(source, acceptance, family):
+def _mms_rows(source, acceptance_source, family, acceptance):
     if source is None:
         return [
             _gap("mms", "MMS measurements", "Public image-bound MMS result unavailable")
@@ -646,17 +648,23 @@ def _mms_rows(source, acceptance, family):
             )
         else:
             raise ValueError("MMS result, not a plan/rebuild required")
-        if (
-            acceptance is not None
-            and "OWNER-CODE-VERIFICATION-ACCEPT-01" in acceptance.text
-            and image in acceptance.text
-        ):
+        if acceptance is not None and image == acceptance["image_digest"]:
             rows.append(
                 _row(
                     "owner_acceptance_link",
                     "Separate owner decision for this exact image",
                     "RECORDED_OWNER_DECISION",
-                    source=acceptance,
+                    source=acceptance_source,
+                    measured=False,
+                )
+            )
+            rows.append(
+                _row(
+                    "acceptance_conditions",
+                    "Owner acceptance conditions",
+                    acceptance["conditions"],
+                    source=acceptance_source,
+                    locator="/conditions",
                     measured=False,
                 )
             )
@@ -685,6 +693,28 @@ def _mms_rows(source, acceptance, family):
                 source,
             )
         ], None
+
+
+def _acceptance_from_sources(sources, family):
+    """Only already allow-listed committed/exported bytes may establish a join."""
+    try:
+        link = _json(sources["P2"])
+        result = _json(sources["P1"])
+        image = result.get("image_digest", result.get("image"))
+        criteria = _json(sources["P7"])
+        criteria_digest = result.get("criteria_digest", digest(criteria))
+        files = {
+            source.path: source.text.encode("utf-8") for source in sources.values()
+        }
+        return validate_acceptance(
+            link,
+            family=family,
+            image_digest=image,
+            criteria_digest=criteria_digest,
+            files=files,
+        )
+    except (ValueError, KeyError, TypeError, AttributeError):
+        return None
 
 
 def _decision_rows(projection, source, family):
@@ -961,9 +991,14 @@ def build_package_sections(challenge, family, sources):
         projection_gap = (
             "P4: public package projection not present at the evidence revision"
         )
-    mms_rows, image = _mms_rows(sources.get("P1"), sources.get("P2"), family)
+    acceptance = _acceptance_from_sources(sources, family)
+    mms_rows, image = _mms_rows(
+        sources.get("P1"), sources.get("P2"), family, acceptance
+    )
     if "P5" in sources:
-        extra_rows, extra_image = _mms_rows(sources["P5"], sources.get("P2"), family)
+        extra_rows, extra_image = _mms_rows(
+            sources["P5"], sources.get("P2"), family, acceptance
+        )
         if image is not None and image == extra_image:
             for row in extra_rows:
                 row["field"] = "supplement." + row["field"]
@@ -978,16 +1013,18 @@ def build_package_sections(challenge, family, sources):
                 )
             )
     if projection is not None and (
-        image is None or projection["identity"]["reference_image_digest"] != image
+        image is None
+        or acceptance is None
+        or projection["identity"]["reference_image_digest"] != image
     ):
         projection = None
-        projection_gap = "P4: reference image does not match an available MMS result; dependent joins refused"
+        projection_gap = "P4: image-and-criteria-bound MMS acceptance unavailable; dependent joins refused"
     rows = {
         "law_checks": _law_rows(
             projection, projection_source, sources.get("P3"), family
         ),
         "model_card": _card_rows(projection, projection_source),
-        "trust_map": _map_rows(projection, projection_source),
+        "trust_map": _map_rows(projection, projection_source, acceptance),
         "solver_verification": mms_rows,
         "decision_evidence": _decision_rows(projection, projection_source, family),
     }

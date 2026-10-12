@@ -117,7 +117,48 @@ def package_fixture_texts():
             "qualified": False,
         }
     )
-    texts["P2"] = "OWNER-CODE-VERIFICATION-ACCEPT-01\n" + image
+    from carbon.trust_map.acceptance import (
+        DECISION_ID,
+        DECISION_PATH,
+        byte_digest,
+        digest,
+        validate_acceptance,
+    )
+
+    policy = load_policy()["challenges"][CHALLENGE]
+    paths = {item["id"]: item["path"] for item in policy["package_sources"]}
+    texts["P6"] = "SYNTHETIC fixture only: " + DECISION_ID
+    criteria = {"family": "battery-v3", "kind": "synthetic-particle"}
+    texts["P7"] = json.dumps(criteria)
+    mms = json.loads(texts["P1"])
+    mms["criteria_digest"] = digest(criteria)
+    texts["P1"] = json.dumps(mms)
+    link = {
+        "schema": "carbon.code-verification.acceptance-link.v1",
+        "scope": "DEVELOPMENT_CODE_VERIFICATION",
+        "solver": "PyBaMM 26.8.0.0",
+        "family": "battery-v3",
+        "image_digest": image,
+        "criteria_digest": digest(criteria),
+        "criteria_path": paths["P7"],
+        "decision": {
+            "id": DECISION_ID,
+            "path": DECISION_PATH,
+            "sha256": byte_digest(texts["P6"].encode()),
+        },
+        "evidence": [
+            {"path": paths["P1"], "sha256": byte_digest(texts["P1"].encode())}
+        ],
+        "conditions": {},
+    }
+    texts["P2"] = json.dumps(link)
+    accepted = validate_acceptance(
+        link,
+        family="battery-v3",
+        image_digest=image,
+        criteria_digest=digest(criteria),
+        files={paths[k]: texts[k].encode() for k in ("P1", "P6", "P7")},
+    )
     texts["P3"] = json.dumps(
         {
             "schema": "carbon.physics-contract.draft.v1",
@@ -184,7 +225,7 @@ def package_fixture_texts():
         for i in range(2)
     ]
     native_map = {
-        "schema": "carbon.trust-map.v1",
+        "schema": "carbon.trust-map.v2",
         "maturity": "DEVELOPMENT",
         "model": "synthetic-model",
         "spec": spec,
@@ -194,12 +235,7 @@ def package_fixture_texts():
             "evidence": "synthetic fixture",
             "source_sha256": "5" * 64,
         },
-        "reference_verification": {
-            "state": "PASS",
-            "accepted_development_pass": True,
-            "image_digest": image,
-            "evidence": "synthetic fixture",
-        },
+        "reference_verification": accepted,
         "cells": cells,
         "basis": {"cases": 2, "models": 2, "top_models": 2},
         "methods": {
@@ -820,6 +856,33 @@ class PackageEvidenceTests(unittest.TestCase):
             self.package()["sections"]["solver_verification"]["coverage"], "GAP"
         )
         self.assertIn("110 / 110", self.outputs()["sample.md"])
+
+    def test_missing_or_mismatched_acceptance_refuses_maps_and_dependent_joins(self):
+        for mutation in ("missing", "image", "criteria", "decision", "old_prose"):
+            with self.subTest(mutation=mutation):
+                self.texts = package_fixture_texts()
+                if mutation == "missing":
+                    self.texts.pop("P2")
+                elif mutation == "decision":
+                    self.texts["P6"] += " changed"
+                elif mutation == "old_prose":
+                    self.texts["P2"] = (
+                        "OWNER-CODE-VERIFICATION-ACCEPT-01\n" + "sha256:" + "1" * 64
+                    )
+                else:
+                    link = json.loads(self.texts["P2"])
+                    link[mutation + "_digest"] = "sha256:" + "a" * 64
+                    self.texts["P2"] = json.dumps(link)
+                package = self.package()
+                self.assertIsNone(package["identity"])
+                rows = self.rows("solver_verification")
+                self.assertEqual(rows["owner_acceptance_link"]["coverage"], "GAP")
+                self.assertEqual(rows["norm.0.l2"]["value"], 0.01)
+                self.assertEqual(package["sections"]["trust_map"]["coverage"], "GAP")
+
+    def test_legacy_map_pass_flag_does_not_establish_acceptance(self):
+        self.mutate(lambda p: p["trust_map"].update(schema="carbon.trust-map.v1"))
+        self.assertEqual(self.rows("trust_map")["map"]["coverage"], "GAP")
 
     def test_wrong_mms_family_or_unmeasured_mms_refuses_dependent_joins(self):
         for change in (

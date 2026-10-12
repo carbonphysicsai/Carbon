@@ -1,0 +1,21 @@
+{
+  "schema": "carbon.code-verification.acceptance-link.v1",
+  "scope": "DEVELOPMENT_CODE_VERIFICATION",
+  "solver": "GetDP 3.5.0",
+  "family": "motor",
+  "image_digest": "sha256:599521e79786ee0326a0754ba0545f51ee9665adff73c3515c8d4b8ba24c1c05",
+  "criteria_digest": "sha256:bb7b8ef213d4069f571b6332be92b1635017c4de0b4b42ee801991ed513809e6",
+  "criteria_path": "docs/development/evidence/motor-feasibility-02/code-verification/getdp-criteria.json",
+  "decision": {
+    "id": "OWNER-CODE-VERIFICATION-ACCEPT-01",
+    "path": ".agent/decisions/2026-10-11-OWNER-CODE-VERIFICATION-ACCEPT-01.md",
+    "sha256": "sha256:64b32bf2225465c3b35a60dd2de41023bcce70279e3c0fff50339d6c0ba7fa25"
+  },
+  "evidence": [
+    {
+      "path": "docs/development/evidence/motor-feasibility-02/code-verification/getdp-verdict.json",
+      "sha256": "sha256:942ee4536b159884897d3f7eca2e5a95a0adcb032d5d8f129fdfef5a5a264cfd"
+    }
+  ],
+  "conditions": {}
+}
