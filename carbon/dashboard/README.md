@@ -53,6 +53,24 @@ How the key and the feed are handled:
   marked with the reason.
 - `--no-showcase` skips the showcase replays (about 10 s).
 
+## The pages (DASHBOARD-02 S2)
+
+`web/` draws every Challenge page from `data/v2/<slug>.json` only: the king,
+the target to beat with both bars, the eligible ladder (per coldkey when the
+feed carries one), the history sparkline, the championship rounds, the next
+round and release, and the safety gates. It computes no rank, king, margin or
+rule value; a null shows its reason ("to be announced", "not yet published",
+"rules unavailable"). Rule text and the release lag show only while the rules
+card's status is OK. Before the first release a board shows a hero state and
+"How to mine", never an empty table. `data/network.json` (S3's signed network
+snapshot) is drawn only when present.
+
+- Plain HTML, CSS and JS, mobile first; no framework, CDN or inline script or
+  style, under the strict CSP. HTML, CSS, JS and the wordmark stay under
+  120 KB (`tests/cpu/test_dashboard_web.py`).
+- `tests/cpu/dashboard_check.cjs` renders every fixture board in each phase
+  in Node and mounts it into a minimal DOM.
+
 ## What the build writes
 
 | Path | Content |

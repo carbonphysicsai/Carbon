@@ -5,9 +5,10 @@ and writes:
 
 - `data/index.json`: one entry per board (Challenge, device class, labels,
   feed state);
-- `data/boards/<slug>.json`: the board model the pages draw;
+- `data/boards/<slug>.json`: the verified board model (board.v1);
 - `data/v2/<slug>.json`: the same board as `carbon.dashboard.board.v2`
-  (`board_v2.project`), whose phase is computed at `now`.
+  (`board_v2.project`), whose phase is computed at `now`. The pages draw
+  this file only (DASHBOARD-02 S2).
 
 A refused document never overwrites an accepted board. When an accepted board
 for the same Challenge and device class is already in `out`, it stays, marked
