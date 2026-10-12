@@ -526,9 +526,7 @@ def test_public_assembly_refuses_without_registered_comparison_builders(tmp_path
         ("motor", "PRE_EXPERIMENT_ADAPTIVE_POLICY_RECEIPT_REQUIRED"),
     ],
 )
-def test_registered_assembly_keeps_real_adaptive_panel_closed(
-    tmp_path, family, reason
-):
+def test_registered_assembly_keeps_real_adaptive_panel_closed(tmp_path, family, reason):
     context, _ = _context(tmp_path, family)
     sources = assemble.load_producer_sources(context)
     output = tmp_path / "public-assembly"

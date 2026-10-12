@@ -1,6 +1,10 @@
 # CAMPAIGN-ASSEMBLER-01 — producer custody before comparison assembly
 
 - **Ticket:** CAMPAIGN-ASSEMBLER-01, development only.
+- **Primary hub map_ref:** `WAVE-C/EVIDENCE-CAMPAIGN-RUNNER-01`. This bounded
+  assembly slice does not change the hub's purpose, placement, maturity or
+  authority ceiling; the merged producer contract and remaining gaps are
+  recorded here and in the runner specification.
 - **Authority:** EVIDENCE-CAMPAIGN-RUNNER-01 (#1080), Data Collection's
   EVIDENCE-PRODUCER-STAGES-01 frozen draft (#1114), #975 comparison and #1056
   adaptive arm contracts. Data Collection owns reference solves and TRAIN;
@@ -12,14 +16,14 @@
   Pass the registered `vcpus` allotment in every runner stage context. On a
   timeout or cap, send SIGTERM and allow a short grace before SIGKILL of the
   process group, including surviving children.
-- **Unresolved assembly input:** #1114 does not emit a model-prediction receipt,
+- **Ticket-start state, superseded below:** #1114 did not emit a model-prediction receipt,
   comparator calibration material, per-candidate measured solver cost and
   proposal history, replay bindings, fold registration or an adaptive policy.
   These cannot be inferred from a sealed reference value without inventing a
   model, competitor or cost. The affected comparison assembly stays fail closed
   until its source route is registered. Synthetic fixtures exercise the
   boundary without creating public evidence.
-- **Integration seam:** #1114 currently rejects `vcpus` in its closed context
+- **Ticket-start integration seam, superseded below:** #1114 rejected `vcpus` in its closed context
   and reads `OMP_NUM_THREADS` instead. Data Collection must accept the explicit
   field and verify it equals the environment allotment before the producer
   stage can run under the revised runner.
