@@ -3,7 +3,9 @@
 **Status:** registered and ready for public input bundles; the actual L1 Q1
 report is **not measured**. This is not a Level 0 report, hidden evaluation,
 readiness acceptance, or a new score rule. The Graphite Test executor owns the
-prediction and score inputs; the Test Lead owns the resource decision.
+prediction and score inputs; the Test Lead owns the resource decision. The
+executor's pod run is separate from this development PR; no pod is dispatched
+by the contract or tests.
 
 The contract is
 [`ev4-dev-proof-l1-v1.json`](../../../../carbon/battery/value/contracts/ev4-dev-proof-l1-v1.json).
@@ -29,6 +31,25 @@ roughly 6 CPU-hours or 10 GB, stop and route the run to Data Collection's
 host for Test Lead disposition. No solver run is needed: the EV4 references
 are already committed.
 
+## Public prediction pod plan
+
+The executor can generate a `value_panel` plan for the registered L1 contract:
+
+```bash
+python -m scripts.dev.exam_design.value_plans panel --study ev4-l1 --shards 1
+```
+
+This plan ships the public EV4 references and public TRAIN/calibration files;
+it does not ship the historical private-role scoring set. The panel phase
+checks the exact L1 contract digest. For each registered Level 1 member it
+applies `level_compile` to the full strategy, compiles the resulting base
+recipe, reconstructs, then predicts. The bundle's recipe digest must match
+the frozen experiment's level-aware digest check. A Level 1 member sent
+through the uncompiled base path, a changed registered strategy, or a
+different contract is refused. The executor reviews the provider's pod-hour
+estimate and cost before any dispatch; this repository command only writes a
+plan.
+
 ## Executor inputs and command
 
 `<PREDICTIONS>` is a directory containing exactly one `NAME.json.gz` bundle
@@ -52,7 +73,8 @@ not an official exam score. Never substitute a toy score for the real report.
 Supply all 20 rows, including ineligible members, and the current rule digest.
 The script refuses missing or extra bundles or score rows before freeze.
 
-On WSL CPU, under the executor's resource review, run with one process, a
+After the public prediction bundles and score records exist, on WSL CPU under
+the executor's resource review, run with one process, a
 positive nice value, and a 10 GiB address-space cap:
 
 ```bash

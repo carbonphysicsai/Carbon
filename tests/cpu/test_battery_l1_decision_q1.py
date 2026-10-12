@@ -2,16 +2,25 @@
 
 import contextlib
 import copy
+import gzip
 import json
 
 import pytest
 
+from carbon.battery.compile import compile_recipe
 from carbon.battery.value import contract as ev
 from carbon.battery.value import level_compile
+from carbon.battery.value import optimizer as op
 from carbon.battery.value import panel as pn
-from carbon.battery.value.experiment import Experiment
+from carbon.battery.value.experiment import (
+    LEVEL_COMPILER_REQUIRED,
+    Experiment,
+    ExperimentError,
+    member_bundle,
+)
 from carbon.challenge_pipeline.readiness import checks, model, q1
 from scripts.dev.battery import l1_decision_q1 as l1
+from scripts.dev.exam_design import runner, value_phases, value_plans
 
 
 def test_registered_panel_is_exactly_the_anchors_and_nine_counted_l1_rows():
@@ -41,6 +50,10 @@ def test_contract_refuses_changed_member_or_source_digest():
     )
     with pytest.raises(ev.ContractError, match="panel_source_mismatch"):
         ev.validate(bad)
+    bad = copy.deepcopy(contract)
+    bad["panel"] = "ev4-dev-proof"
+    with pytest.raises(ev.ContractError, match="panel_registration_not_applicable"):
+        ev.validate(bad)
 
 
 def test_public_scoring_source_is_only_ev4():
@@ -63,6 +76,76 @@ def test_freeze_pins_only_the_public_ev4_scoring_set(tmp_path):
     assert manifest["scoring_set"]["sha256"] == l1.REFERENCE_SHA
     assert manifest["scoring_set"]["classification"] == "PUBLIC_SYNTHETIC_DEVELOPMENT"
     assert not (tmp_path / "q1_report.json").exists()
+
+
+def test_pod_l1_bundle_uses_the_frozen_level_recipe_and_refuses_its_base(
+    tmp_path, monkeypatch
+):
+    rows = pn.members(l1.MEMBERS)
+    levels = pn.levels(l1.MEMBERS)
+    index, (member, _family, strategy, seed) = next(
+        (i, row) for i, row in enumerate(rows) if levels[row[0]][0] == 1
+    )
+    level, arm = levels[member]
+
+    class ProbeBackend:
+        def __init__(self):
+            self.identity = {"kind": "toy"}
+
+        def reconstruct(self, _name, recipe, _seed):
+            self.recipe_digest = recipe.recipe_digest
+            return object(), {}
+
+        def infer(self, _name, _state, _inputs):
+            return {}
+
+    backend = ProbeBackend()
+    with pytest.raises(ExperimentError, match=LEVEL_COMPILER_REQUIRED):
+        member_bundle(backend, member, strategy, seed, {}, level=level, arm=arm)
+    base = level_compile.base_for(strategy, level, arm)
+    with pytest.raises(ExperimentError, match=LEVEL_COMPILER_REQUIRED):
+        member_bundle(backend, member, base, seed, {})
+    monkeypatch.setattr(runner, "host_info", lambda: {"kind": "toy"})
+    monkeypatch.setattr(op, "grid_predictions", lambda *_args: {})
+    monkeypatch.chdir(l1.ROOT)
+    output = tmp_path / "pod"
+    output.mkdir()
+    value_phases.run_value_panel(
+        {
+            "contract": str(l1.CONTRACT),
+            "shard": index,
+            "shards": len(rows),
+        },
+        str(output),
+        backend=backend,
+    )
+    bundle = json.loads(
+        gzip.decompress((output / "predictions" / f"{member}.json.gz").read_bytes())
+    )
+    frozen = Experiment(
+        tmp_path / "frozen",
+        repository=l1.ROOT,
+        level_compiler=level_compile,
+        scoring_set=l1.public_ev4_scoring_set,
+    )
+    frozen.freeze(l1.CONTRACT)
+    assert bundle["recipe_digest"] == backend.recipe_digest
+    assert (
+        bundle["recipe_digest"]
+        == compile_recipe(frozen._base_strategy(member, strategy))[1].recipe_digest
+    )
+    assert bundle["recipe_digest"] in frozen._recipe_digests(member, strategy)
+    contract_path = l1.CONTRACT.relative_to(l1.ROOT).as_posix()
+    plan = value_plans.panel_plans(
+        1, contract_path, "ev4-l1", value_plans.L1_PANEL_DATA
+    )["ev4-l1-panel-shard0-of1.json"]
+    assert plan["contract"] == contract_path
+    assert value_plans.L1_PANEL_DATA[-2].endswith("decision-references.jsonl.gz")
+    assert plan["ship"] == ["carbon", *value_plans.L1_PANEL_DATA]
+    assert all(
+        "private" not in path and "refs-b" not in path
+        for path in value_plans.L1_PANEL_DATA
+    )
 
 
 def test_missing_bundles_fail_before_any_freeze(tmp_path, monkeypatch):

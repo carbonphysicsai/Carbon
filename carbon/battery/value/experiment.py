@@ -574,11 +574,47 @@ def panel_inputs(contract, repository, *, scoring_set=sc.scoring_set):
     return {**scoring_inputs, **decision_inputs}
 
 
-def member_bundle(backend, member, strategy, seed, inputs):
+def member_bundle(
+    backend,
+    member,
+    strategy,
+    seed,
+    inputs,
+    *,
+    level=0,
+    arm=None,
+    level_compiler=None,
+    panel_name=None,
+):
     """Reconstruct one member and predict `inputs`. Returns the prediction
-    bundle `Experiment.panel` writes and the trained state."""
+    bundle `Experiment.panel` writes and the trained state. A level member
+    requires its registered compiler before the Level 0 recipe is built."""
     from ..compile import compile_recipe
 
+    declared = pn.LEVELS.get(member.rpartition("-s")[0], (0, None))
+    if declared[0] and (level, arm) != declared:
+        raise ExperimentError(LEVEL_COMPILER_REQUIRED, member)
+    if level:
+        if level_compiler is None or panel_name is None:
+            raise ExperimentError(LEVEL_COMPILER_REQUIRED, member)
+        if panel_name not in pn.PANELS:
+            raise ExperimentError(LEVEL_REFUSED, member)
+        registered = [
+            (document, registered_seed)
+            for label, document, seeds in pn.PANELS[panel_name]
+            for registered_seed in seeds
+            if f"{label}-s{registered_seed}" == member
+        ]
+        if pn.levels(panel_name).get(member) != (level, arm) or registered != [
+            (strategy, seed)
+        ]:
+            raise ExperimentError(LEVEL_REFUSED, member)
+        try:
+            strategy = level_compiler.base_for(strategy, level, arm)
+        except level_compiler.LevelCompileRefused as refused:
+            raise ExperimentError(LEVEL_REFUSED, member) from refused
+    elif arm is not None:
+        raise ExperimentError(LEVEL_REFUSED, member)
     _, recipe = compile_recipe(strategy)
     started = time.monotonic()
     state, stats = backend.reconstruct(f"ev1-rec-{member}", recipe, seed)

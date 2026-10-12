@@ -33,24 +33,7 @@ UNRESOLVED = {"SELECTED_UNRESOLVED", "ABSTENTION_UNRESOLVED", "REFERENCE_UNAVAIL
 
 def registration():
     """Digest every exact member and both source files before freeze."""
-    levels = pn.levels(MEMBERS)
-    return {
-        "source_sha256": {
-            path.name: "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
-            for path in (pn.PROOF_PANEL, pn.PROOF_LEVELS)
-        },
-        "member_sha256": {
-            member: ev.digest(
-                {
-                    "strategy": strategy,
-                    "seed": seed,
-                    "level": levels[member][0],
-                    "arm": levels[member][1],
-                }
-            )
-            for member, _label, strategy, seed in pn.members(MEMBERS)
-        },
-    }
+    return ev.proof_l1_registration()
 
 
 def estimate():
