@@ -62,4 +62,3 @@ Accessed 2026-10-12. Repository interpretation is pinned to main `b7f47bef6d3a2c
 ## Owner-supplied public evidence
 
 The owner explicitly identified the Windows copy `codex-queue/inputs/ev4-public-proof/` as read-only, public development data with no sealed cases. Only predictions matching the original EV4 **development** decision input keys are used. No raw input, model, seed service, operator ledger or queue file is committed. The output manifest records public-file byte digests; the full supplied bundle contents are not published here. Matching reference bytes and member-artifact digests are in `measurements.json`. This is a fresh descriptive analysis of the supplied artifacts, not a silent historical rescore or a new official exam.
-
