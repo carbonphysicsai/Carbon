@@ -68,11 +68,20 @@ ALLOWED = {
     "king.challenger_state",
     "king.gates",
     "king.gates.*",
+    "king.crowned_epoch",
+    "king.share_now",
+    "king.next_halving_epoch",
+    "king.defences",
     "target_to_beat",
     "target_to_beat.value",
     "target_to_beat.posted_margin",
     "target_to_beat.noise_guard",
     "championship",
+    "championship.rounds",
+    "championship.entry",
+    "championship.entry.trigger_bar",
+    "championship.entry.king_screening_display",
+    "championship.entry.coldkeys",
     "rules",
     "rules.status",
     "rules.card_digest",
@@ -139,6 +148,40 @@ ALLOWED = {
     "gates.failing",
     "gates.failing.*",
     "excluded_canaries",
+}
+# The championship's documented shape (VALIDATOR-32 rev 7 §5): allowed, but
+# not emitted until the feed carries it.
+FUTURE = {
+    *(f"championship.rounds[].{k}" for k in board_v2.CHAMPIONSHIP_ROUND_KEYS),
+    "championship.rounds[]",
+    "championship.rounds[].entrants[]",
+    *(
+        f"championship.rounds[].entrants[].{k}"
+        for k in board_v2.CHAMPIONSHIP_ENTRANT_KEYS
+    ),
+    "championship.entry.coldkeys[]",
+    "championship.entry.coldkeys[].coldkey",
+    *(
+        f"championship.entry.coldkeys[].{k}"
+        for k in board_v2.CHAMPIONSHIP_ENTRY_COLDKEY_KEYS
+    ),
+}
+# Per-case, input and prediction data never appear in a board.v2, at any depth.
+FORBIDDEN = {
+    "case",
+    "cases",
+    "case_id",
+    "case_ids",
+    "detail",
+    "error",
+    "input",
+    "inputs",
+    "prediction",
+    "predictions",
+    "outputs",
+    "seed",
+    "seeds",
+    "draws",
 }
 DATA_KEYED = {"king.gates", "gates.king", "gates.failing", "history.points"}
 
@@ -463,7 +506,14 @@ def test_fields_not_in_the_feed_are_null_with_reasons():
         (board["target_to_beat"], "value"),
         (board["target_to_beat"], "posted_margin"),
         (board["target_to_beat"], "noise_guard"),
-        (board, "championship"),
+        (board["championship"], "rounds"),
+        (board["championship"]["entry"], "trigger_bar"),
+        (board["championship"]["entry"], "king_screening_display"),
+        (board["championship"]["entry"], "coldkeys"),
+        (board["king"], "crowned_epoch"),
+        (board["king"], "share_now"),
+        (board["king"], "next_halving_epoch"),
+        (board["king"], "defences"),
         (board["king"], "uid"),
         (board["king"], "registered_score"),
         (board["king"], "since_block"),
@@ -502,7 +552,9 @@ def test_no_key_outside_the_allow_list(tmp_path):
     for path in (tmp_path / "site" / "data" / "v2").glob("*.json"):
         seen |= _paths(json.loads(path.read_text(encoding="utf-8")))
     reasons = {p for p in seen if p.endswith("reasons.*")}
-    assert seen - reasons <= ALLOWED, sorted(seen - reasons - ALLOWED)
+    assert seen - reasons <= ALLOWED | FUTURE, sorted(seen - reasons - ALLOWED)
+    segments = {s.rstrip("[]") for p in ALLOWED | FUTURE | seen for s in p.split(".")}
+    assert not segments & FORBIDDEN, sorted(segments & FORBIDDEN)
     # The fixtures exercise nearly the whole contract.
     assert len(ALLOWED - seen) <= 3, sorted(ALLOWED - seen)
 
@@ -519,7 +571,8 @@ def test_fields_outside_the_allow_list_never_reach_v2():
     text = json.dumps(board)
     for leaked in ("private-note", "sealed-seed-1", "a" * 64, '"day"'):
         assert leaked not in text
-    assert board["king"]["uid"] is None and board["championship"] is None
+    assert board["king"]["uid"] is None
+    assert board["championship"]["rounds"] is None
 
 
 def test_canaries_stay_excluded_and_only_counted():

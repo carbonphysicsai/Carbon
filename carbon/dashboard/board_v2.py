@@ -58,6 +58,30 @@ REASONS = (
     "sealed_until_grain",
 )
 RULES_STATES = ("UNAVAILABLE", "DIGEST_MISMATCH", "OK")
+# The championship's shape (Test Lead, VALIDATOR-32 rev 7 §5), for S2. None
+# of it is in the feed yet, so `championship.rounds` and every `entry` field are
+# null with `not_in_feed`; nothing here computes them.
+CHAMPIONSHIP_ROUND_KEYS = (
+    "epoch",
+    "chunks_used",
+    "stopped",
+    "n_solved",
+    "margin_pct",
+    "entrants",
+    "new_king",
+    "paid_from_epoch",
+)
+CHAMPIONSHIP_STOPS = ("efficacy", "futility", "max")
+CHAMPIONSHIP_ENTRANT_KEYS = (
+    "est_improvement_pct",
+    "lower_bound_pct",
+    "guard_bar_pct",
+    "gap_to_win_pct",
+    "safety",
+    "outcome",
+)
+EMPTY_EPOCH_OUTCOME = "no contenders: king paid"
+CHAMPIONSHIP_ENTRY_COLDKEY_KEYS = ("screening_display", "gap_to_entry", "entered")
 _CARD_DIGEST = re.compile(r"sha256:[0-9a-f]{64}")
 _UTC = re.compile(r"(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})Z")
 
@@ -202,6 +226,11 @@ def _king(board, section, challengers):
             ("registered_score", None, "not_in_feed"),
             ("since_block", incumbent["since_block"], "not_in_feed"),
             ("since_utc", None, "not_in_feed"),
+            ("crowned_epoch", None, "not_in_feed"),
+            ("share_now", None, "not_in_feed"),
+            ("next_halving_epoch", None, "not_in_feed"),
+            # A defence never resets the king's clock.
+            ("defences", None, "not_in_feed"),
             # Positive: the king is ahead of the runner-up in the section's sense.
             ("margin", margin, margin_reason),
             (
@@ -377,7 +406,18 @@ def project(board, now, rules_card=None):
             ("generated_at", board["generated_at"], "not_in_feed"),
             ("ranking_section", section, section_reason),
             ("king", king, king_reason),
-            ("championship", None, "not_in_feed"),
+        ),
+        "championship": _fields(
+            ("rounds", None, "not_in_feed"),
+            (
+                "entry",
+                _fields(
+                    ("trigger_bar", None, "not_in_feed"),
+                    ("king_screening_display", None, "not_in_feed"),
+                    ("coldkeys", None, "not_in_feed"),
+                ),
+                None,
+            ),
         ),
         "rules": rules,
         # Both parts are the rule's: the posted margin and the comparison's
