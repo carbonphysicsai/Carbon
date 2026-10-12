@@ -688,8 +688,8 @@ def screens(report, rule, minimum_level_members=10):
     return out
 
 
-#: The screens that make a rule unpickable at selection
-#: (SCORE-PROOF-PICKABLE-01): a rule that places a known-bad control or an adversarial
+#: The screens that made a rule unpickable at selection under
+#: SCORE-PROOF-PICKABLE-01 (superseded by PICKABLE-02; still reported): a rule that places a known-bad control or an adversarial
 #: construction in the top half of any screened pool cannot go to the sealed
 #: confirmation, whatever its tau. Placement needs no precise tau, so it holds
 #: on the selection fold's few questions.
@@ -699,24 +699,25 @@ PLACEMENT_SCREENS = (
 )
 
 
-#: The proposed criterion (amendment 7, reported only): a known-bad control
-#: in the top half, or adversarial divergence (an adversarial member scoring
-#: above a member of better value), instead of adversarial placement. On the
-#: selection fold the adversarial members decide well, so placing them high
-#: is the correct value ordering; divergence is what the screen means.
+#: The criterion in force (SCORE-PROOF-PICKABLE-02, the owner, after the
+#: selection was seen): a known-bad control in the top half, or adversarial
+#: divergence (an adversarial member scoring above a member of better value),
+#: replacing adversarial placement. On the selection fold the adversarial
+#: members decide well, so placing them high is the correct value ordering;
+#: divergence is what the screen means. Selection only.
 DIVERGENCE_SCREENS = (
     "known-bad member in the top half",
     "adversarial divergence",
 )
 
-#: The pickability criteria computed at selection. Only `IN_FORCE` gates the
-#: confirmation; changing it is the owner's (it changes a pre-registered
-#: criterion after the selection was seen).
+#: The pickability criteria computed and reported side by side at selection:
+#: PICKABLE-01's placement (superseded) and PICKABLE-02's divergence. Only
+#: the one in force gates the confirmation; changing it is the owner's.
 PICKABILITY_CRITERIA = {
     "placement": PLACEMENT_SCREENS,
     "divergence": DIVERGENCE_SCREENS,
 }
-PICKABILITY_IN_FORCE = "placement"
+PICKABILITY_IN_FORCE = "divergence"
 
 
 def pickable(report, rule, minimum_level_members=10, criterion=PICKABILITY_IN_FORCE):

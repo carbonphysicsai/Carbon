@@ -200,7 +200,7 @@ def pooled(**overrides):
     return {**r, **overrides}
 
 
-def test_both_pickability_criteria_are_computed_and_only_placement_is_in_force():
+def test_both_pickability_criteria_are_computed_and_divergence_is_in_force():
     report = {
         "gate_recall_check": {},
         "candidates": {
@@ -210,17 +210,18 @@ def test_both_pickability_criteria_are_computed_and_only_placement_is_in_force()
             "BAD": {"pooled": pooled(known_bad_in_top_half=["control"])},
         },
     }
-    assert sp.PICKABILITY_IN_FORCE == "placement"
-    assert sp.pickable(report, "HIGH") == (
+    # PICKABLE-02: the owner's correction, selection only.
+    assert sp.PICKABILITY_IN_FORCE == "divergence"
+    assert sp.pickable(report, "HIGH") == (True, [])
+    assert sp.pickable(report, "HIGH", criterion="placement") == (
         False,
         ["pooled: adversarial member in the top half"],
     )
-    assert sp.pickable(report, "HIGH", criterion="divergence") == (True, [])
-    assert sp.pickable(report, "DIVERGES") == (True, [])
-    assert sp.pickable(report, "DIVERGES", criterion="divergence") == (
+    assert sp.pickable(report, "DIVERGES") == (
         False,
         ["pooled: adversarial divergence"],
     )
+    assert sp.pickable(report, "DIVERGES", criterion="placement") == (True, [])
     for criterion in sp.PICKABILITY_CRITERIA:
         assert not sp.pickable(report, "BAD", criterion=criterion)[0]
 
@@ -245,8 +246,9 @@ def test_selection_md_lists_both_criteria_and_marks_the_one_in_force():
         for c in sp.PICKABILITY_CRITERIA
     }
     text = script.criteria_lines(report)
-    assert "### placement (in force)" in text and "1 of 2 pickable" in text
-    assert "### divergence (proposed; not in force" in text and "2 of 2" in text
+    assert "### placement (superseded, reported only)" in text
+    assert "1 of 2 pickable" in text
+    assert "### divergence (in force)" in text and "2 of 2" in text
     proposed = text.split("### divergence", 1)[1]
     assert proposed.index("**HIGH**") < proposed.index("**OK**")  # best tau first
     assert "gate recall PASS" in proposed

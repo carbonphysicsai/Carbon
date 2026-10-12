@@ -304,13 +304,16 @@ def placement_lines(report):
                 if entry["pickable"]
                 else ". **Not pickable:** " + "; ".join(entry["failed"]) + "."
             )
-        proposed = report.get("pickable_by_criterion", {}).get("divergence", {})
-        if cid in proposed and proposed[cid]["pickable"] != pick.get(cid, {}).get(
-            "pickable"
-        ):
-            line += " Under the proposed criterion: " + (
-                "pickable." if proposed[cid]["pickable"] else "not pickable."
-            )
+        for criterion, entries in report.get("pickable_by_criterion", {}).items():
+            other = entries.get(cid)
+            if (
+                criterion != report.get("pickability_in_force")
+                and other
+                and (other["pickable"] != pick.get(cid, {}).get("pickable"))
+            ):
+                line += f" Under {criterion} (superseded): " + (
+                    "pickable." if other["pickable"] else "not pickable."
+                )
         out.append(line)
     return "\n".join(out) + "\n"
 
@@ -329,7 +332,7 @@ def criteria_lines(report):
         state = (
             "in force"
             if criterion == sp.PICKABILITY_IN_FORCE
-            else "proposed; not in force until the owner rules"
+            else "superseded, reported only"
         )
         screens = " and ".join(sp.PICKABILITY_CRITERIA[criterion])
         ok = [c for c, e in entries.items() if e["pickable"]]
