@@ -362,6 +362,36 @@ function showcase(raw, incumbent, pinned) {
   return panel;
 }
 
+// OWNER-BATTERY-CHAMPIONSHIP-03: the proposed `leaderboard.ladder` (feed.py _ladder).
+const LADDER_STATES = ["SHOWN", "NO_IMPROVEMENT_BEYOND_GRAIN", "SEALED_UNTIL_GRAIN"];
+const UNRANKED = 10 ** 9;
+function ladder(raw, digits, pinned) {
+  if (raw === null) return null;
+  if (!Array.isArray(raw)) throw new FeedRefused("ladder_invalid");
+  const rows = [], seen = new Set();
+  for (const row of raw) {
+    if (!isDict(row)) throw new FeedRefused("ladder_invalid");
+    const coldkey = hotkey(get(row, "coldkey"), pinned);
+    const status = get(row, "status");
+    if (seen.has(coldkey) || !LADDER_STATES.includes(status)) throw new FeedRefused("ladder_invalid");
+    seen.add(coldkey);
+    const score = rounded(get(row, "displayed_score"), digits, "ladder");
+    if (status === "SEALED_UNTIL_GRAIN" && score !== null) throw new FeedRefused("ladder_sealed_value");
+    if (status !== "SEALED_UNTIL_GRAIN" && score === null) throw new FeedRefused("ladder_invalid");
+    const keys = get(row, "hotkeys");
+    if (!Array.isArray(keys)) throw new FeedRefused("ladder_invalid");
+    rows.push({
+      coldkey,
+      rank: int(get(row, "rank"), "ladder_invalid", {minimum: 1, optional: true}),
+      displayed_score: score,
+      status,
+      hotkeys: [...new Set(keys.map(h => hotkey(h, pinned)))].sort(codePointCompare),
+    });
+  }
+  const order = r => (r.rank === null ? UNRANKED : r.rank);
+  return rows.sort((a, b) => order(a) - order(b) || cmp(a.coldkey, b.coldkey));
+}
+
 export function boardSlug(challengeId, deviceClass) {
   return `${challengeId}--${deviceClass}`.toLowerCase().replace(/[^a-z0-9.-]+/g, "-").replace(/^-+|-+$/g, "");
 }
@@ -491,6 +521,7 @@ export async function project(document, pinned) {
     incumbent,
     challengers,
     standing,
+    ladder: ladder(get(board, "ladder"), digits, pinned),
     history,
     miners: sortedMiners,
     excluded_canaries: canaries,
@@ -520,5 +551,245 @@ export function entry(board) {
     released_through_block: board.released_through_block,
     incumbent: board.incumbent === null ? null : board.incumbent.hotkey,
     miners: Object.keys(board.miners).length,
+  };
+}
+
+// ---- board.v2 (DASHBOARD-02 S1): a port of carbon/dashboard/board_v2.py ----
+// Projected from the verified board.v1 model only. Every null has a reason at
+// reasons[<key>] of the object that holds it; tests/cpu/test_dashboard_worker.py
+// holds this equal to board_v2.py.
+export const BOARD_V2_SCHEMA = "carbon.dashboard.board.v2";
+export const BLOCK_SECONDS = 12;
+// ENGINEERING UI DEFAULT, not a registered value (board_v2.STALE_AFTER_SECONDS).
+export const STALE_AFTER_SECONDS = 2 * 60 * 60;
+const UTC = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})Z$/u;
+export const ELIGIBLE_LABEL = "Eligible for the championship";
+const CARD_DIGEST = /^sha256:[0-9a-f]{64}$/u;
+// The rules card is the only source of a rule statement (board_v2._rules).
+function rulesStatus(board, card) {
+  if (card === null || card === undefined) {
+    return [fields(["status", "UNAVAILABLE", null], ["card_digest", null, "rules_unavailable"]), "rules_unavailable"];
+  }
+  const digest = isDict(card) ? pick(card, "digest") : null;
+  const rule = isDict(card) ? pick(card, "rule") : null;
+  if (typeof digest !== "string" || !CARD_DIGEST.test(digest)) throw new Error("a rules card summary names its sha256 digest");
+  if (!isDict(rule) || typeof pick(rule, "digest") !== "string") throw new Error("a rules card summary names its rule digest");
+  const ok = rule.digest === board.challenge.rule_digest;
+  return [fields(["status", ok ? "OK" : "DIGEST_MISMATCH", null], ["card_digest", digest, null]), ok ? null : "rules_digest_mismatch"];
+}
+const ruled = (value, gate) => (gate !== null ? [null, gate] : [value, "not_in_feed"]);
+
+function fields(...items) {
+  const out = {}, reasons = {};
+  for (const [key, value, reason] of items) {
+    out[key] = value;
+    if (value === null) reasons[key] = reason;
+  }
+  out.reasons = reasons;
+  return out;
+}
+export function utcSeconds(textValue) {
+  const m = typeof textValue === "string" ? UTC.exec(textValue) : null;
+  if (!m) return null;
+  const [y, mo, d, h, mi, s] = m.slice(1).map(Number);
+  if (y < 1970) return null;
+  const ms = Date.UTC(y, mo - 1, d, h, mi, s);
+  const t = new Date(ms);
+  if (t.getUTCFullYear() !== y || t.getUTCMonth() !== mo - 1 || t.getUTCDate() !== d
+      || t.getUTCHours() !== h || t.getUTCMinutes() !== mi || t.getUTCSeconds() !== s) return null;
+  return ms / 1000;
+}
+function span(blocks) {
+  if (blocks === null || blocks === undefined) return null;
+  return {blocks, seconds: blocks * BLOCK_SECONDS, hours: Math.round(blocks / 3) / 100};
+}
+export function freshness(generatedAt, releasedCount, now) {
+  if (!Number.isInteger(now)) throw new Error("now is whole seconds since the epoch");
+  const stamp = utcSeconds(generatedAt);
+  const age = stamp === null ? null : now - stamp;
+  const phase = age === null || age > STALE_AFTER_SECONDS ? "STALE" : releasedCount === 0 ? "PRE_FIRST_RELEASE" : "LIVE";
+  const reason = generatedAt === null ? "not_in_feed" : "generated_at_unparseable";
+  return [phase, {...fields(["age_seconds", age, reason]), stale_after_seconds: STALE_AFTER_SECONDS}];
+}
+export function restamp(board, now) {
+  const [phase, fresh] = freshness(board.generated_at, board.next_release.released_windows, now);
+  return {...board, phase, freshness: fresh};
+}
+const has = (o, k) => o !== null && o !== undefined && own(o, k);
+const pick = (o, k) => (has(o, k) ? o[k] : null);
+function rankingSection(board) {
+  const names = new Set();
+  for (const row of board.standing) for (const k of Object.keys(row.best)) if (NUMERIC_SECTIONS.includes(k)) names.add(k);
+  if (!board.standing.length) return [null, "no_standing"];
+  if (names.size !== 1) return [null, "ranking_section_ambiguous"];
+  const [name] = names;
+  const meta = pick(board.section_meta, name);
+  const sense = meta === null ? null : meta.sense;
+  return [fields(
+    ["name", name, null],
+    ["display", meta === null ? null : meta.display, "not_in_feed"],
+    ["unit", meta === null ? null : meta.unit, "not_in_feed"],
+    ["sense", sense, "not_in_feed"],
+    ["label", sense === null ? null : `${name} (${sense.replaceAll("_", " ")})`, "not_in_feed"],
+  ), null];
+}
+function king(board, section, challengers) {
+  const incumbent = board.incumbent;
+  if (incumbent === null) return [null, "no_released_incumbent"];
+  const name = section === null ? null : section.name;
+  const value = name === null ? null : pick(incumbent.sections, name);
+  const runner = name === null ? null
+    : board.standing.find(row => row.hotkey !== incumbent.hotkey && pick(row.best, name) !== null) || null;
+  let margin = null, marginReason = null;
+  if (name === null) marginReason = "no_ranking_section";
+  else if (value === null) marginReason = "not_in_feed";
+  else if (runner === null) marginReason = "no_runner_up";
+  else if (section.sense === null) marginReason = "not_in_feed";
+  else {
+    const scale = 10 ** board.values.digits;
+    const k = Math.round(value * scale), o = Math.round(runner.best[name] * scale);
+    margin = (section.sense === "lower_is_better" ? o - k : k - o) / scale;
+  }
+  const gates = pick(incumbent.sections, "gates");
+  return [fields(
+    ["hotkey", incumbent.hotkey, null],
+    ["uid", null, "not_in_feed"],
+    ["submission_id", incumbent.submission_id, "not_in_feed"],
+    ["section", name, "no_ranking_section"],
+    ["value", value, name === null ? "no_ranking_section" : "not_in_feed"],
+    ["registered_score", null, "not_in_feed"],
+    ["since_block", incumbent.since_block, "not_in_feed"],
+    ["since_utc", null, "not_in_feed"],
+    ["margin", margin, marginReason],
+    ["runner_up", runner === null ? null : runner.hotkey, name === null ? "no_ranking_section" : "no_runner_up"],
+    ["challenger_state", has(challengers, incumbent.hotkey) ? challengers[incumbent.hotkey] : null, "not_a_challenger"],
+    ["gates", gates === null ? null : {...gates}, "not_in_feed"],
+  ), null];
+}
+function coldkeys(board) {
+  const rows = pick(board, "ladder");
+  if (rows === null) return null;
+  return rows.map(row => ({
+    ...fields(
+      ["coldkey", row.coldkey, null],
+      ["rank", row.rank, "not_in_feed"],
+      ["displayed_score", row.displayed_score, "sealed_until_grain"],
+      ["status", row.status, null],
+    ),
+    hotkeys: [...row.hotkeys],
+  }));
+}
+function leaderboard(board, section, challengers, lag, gate) {
+  const name = section === null ? null : section.name;
+  const kingKey = board.incumbent === null ? null : board.incumbent.hotkey;
+  const entries = board.standing.map(row => ({
+    ...fields(
+      ["rank", row.rank, null],
+      ["hotkey", row.hotkey, null],
+      ["uid", null, "not_in_feed"],
+      ["screening_value", name === null ? null : pick(row.best, name), name === null ? "no_ranking_section" : "not_in_feed"],
+      ["registered_score", null, "not_in_feed"],
+      ["best_at_block", row.best_at_block, "not_in_feed"],
+      ["challenger_state", has(challengers, row.hotkey) ? challengers[row.hotkey] : null, "not_a_challenger"],
+    ),
+    is_king: row.hotkey === kingKey,
+  }));
+  return {...fields(["section", name, "no_ranking_section"], ["release_lag", ...lag], ["coldkeys", coldkeys(board), "not_in_feed"], ["grain", ...ruled(null, gate)]), label: ELIGIBLE_LABEL, entries};
+}
+function historyV2(board, section) {
+  const name = section === null ? null : section.name;
+  const points = {};
+  if (name !== null) {
+    for (const key of Object.keys(board.history).sort(codePointCompare)) {
+      const kept = board.history[key]
+        .filter(p => p.receipt_block !== null && pick(p.sections, name) !== null)
+        .map(p => ({receipt_block: p.receipt_block, value: p.sections[name]}));
+      if (kept.length) points[key] = kept;
+    }
+  }
+  return {
+    ...fields(["era", board.challenge.rule_digest, null], ["section", name, "no_ranking_section"], ["kings", null, "not_in_feed"]),
+    points,
+  };
+}
+function gatesV2(board, kingView) {
+  const meta = pick(board.section_meta, "gates");
+  const names = new Set(), failing = {};
+  let count = 0;
+  for (const miner of Object.values(board.miners)) {
+    for (const row of miner.submissions) {
+      const gates = pick(row.sections, "gates");
+      if (gates === null) continue;
+      count += 1;
+      for (const gate of Object.keys(gates)) {
+        names.add(gate);
+        if (gates[gate] === "FAIL") failing[gate] = (failing[gate] || 0) + 1;
+      }
+    }
+  }
+  const sortedFailing = {};
+  for (const g of Object.keys(failing).sort(codePointCompare)) sortedFailing[g] = failing[g];
+  return {
+    ...fields(
+      ["display", meta === null ? null : meta.display, "not_in_feed"],
+      ["unit", meta === null ? null : meta.unit, "not_in_feed"],
+      ["king", kingView === null ? null : kingView.gates, kingView === null ? "no_released_incumbent" : "not_in_feed"],
+    ),
+    names: [...names].sort(codePointCompare),
+    submissions_with_gates: count,
+    failing: sortedFailing,
+  };
+}
+export function projectV2(board, now, rulesCard = null) {
+  if (board.schema !== BOARD_SCHEMA) throw new Error("board.v2 is projected from a verified board.v1 model");
+  const rel = board.release || {};
+  const relGet = k => (own(rel, k) ? rel[k] : null);
+  const released = board.released_windows.length;
+  const [phase, fresh] = freshness(board.generated_at, released, now);
+  const [section, sectionReason] = rankingSection(board);
+  const challengers = {};
+  for (const row of board.challengers) if (!own(challengers, row.hotkey)) challengers[row.hotkey] = row.state;
+  const lag = span(relGet("expected_lag_blocks"));
+  const [kingView, kingReason] = king(board, section, challengers);
+  const [rules, gate] = rulesStatus(board, rulesCard);
+  const challenge = {};
+  for (const k of Object.keys(board.challenge)) if (k !== "rule") challenge[k] = board.challenge[k];
+  return {
+    ...fields(
+      ["generated_at", board.generated_at, "not_in_feed"],
+      ["ranking_section", section, sectionReason],
+      ["king", kingView, kingReason],
+      ["championship", null, "not_in_feed"],
+    ),
+    rules,
+    target_to_beat: fields(["value", null, "not_in_feed"], ["posted_margin", null, "not_in_feed"], ["noise_guard", null, "not_in_feed"]),
+    schema: BOARD_V2_SCHEMA,
+    source_schema: board.source_schema,
+    fixture: board.fixture,
+    labels: [...board.labels],
+    challenge: {...challenge, ...fields(["rule", ...ruled(board.challenge.rule, gate)])},
+    era: board.challenge.rule_digest,
+    device_class: board.device_class,
+    slug: board.slug,
+    version: board.version,
+    feed: {...board.feed},
+    phase,
+    freshness: fresh,
+    block_seconds: BLOCK_SECONDS,
+    eligible_leaderboard: leaderboard(board, section, challengers, ruled(lag, gate), gate),
+    history: historyV2(board, section),
+    next_round: fields(["every", ...ruled(span(relGet("rotation_every_blocks")), gate)], ["next_block", null, "not_in_feed"], ["next_utc", null, "not_in_feed"]),
+    next_release: {
+      ...fields(
+        ["predicate", ...ruled(relGet("predicate"), gate)],
+        ["retire_at", ...ruled(relGet("retire_at"), gate)],
+        ["lag", ...ruled(lag, gate)],
+        ["next_block", null, "not_in_feed"],
+        ["next_utc", null, "not_in_feed"],
+      ),
+      released_windows: released,
+    },
+    gates: gatesV2(board, kingView),
+    excluded_canaries: board.excluded_canaries,
   };
 }

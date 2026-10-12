@@ -302,6 +302,54 @@ def _release(raw):
     }
 
 
+# OWNER-BATTERY-CHAMPIONSHIP-03 (#1135): screening shown per coldkey on a
+# ladder. `leaderboard.ladder` is the shape the dashboard accepts for it, until
+# the validator publishes one: its fields are proposed here, not registered.
+LADDER_STATES = ("SHOWN", "NO_IMPROVEMENT_BEYOND_GRAIN", "SEALED_UNTIL_GRAIN")
+_UNRANKED = 10**9
+
+
+def _ladder(raw, digits, trust):
+    """Each coldkey's pooled displayed score and status, or None when the feed
+    carries no ladder. A sealed entry that carries a value is refused whole."""
+    if raw is None:
+        return None
+    if type(raw) is not list:
+        raise FeedRefused("ladder_invalid")
+    rows, seen = [], set()
+    for row in raw:
+        if type(row) is not dict:
+            raise FeedRefused("ladder_invalid")
+        coldkey = _hotkey(row.get("coldkey"), trust)
+        status = row.get("status")
+        if coldkey in seen or status not in LADDER_STATES:
+            raise FeedRefused("ladder_invalid")
+        seen.add(coldkey)
+        score = _rounded(row.get("displayed_score"), digits, "ladder")
+        if status == "SEALED_UNTIL_GRAIN" and score is not None:
+            raise FeedRefused("ladder_sealed_value")
+        if status != "SEALED_UNTIL_GRAIN" and score is None:
+            raise FeedRefused("ladder_invalid")
+        hotkeys = row.get("hotkeys")
+        if type(hotkeys) is not list:
+            raise FeedRefused("ladder_invalid")
+        rows.append(
+            {
+                "coldkey": coldkey,
+                "rank": _int(
+                    row.get("rank"), "ladder_invalid", minimum=1, optional=True
+                ),
+                "displayed_score": score,
+                "status": status,
+                "hotkeys": sorted({_hotkey(h, trust) for h in hotkeys}),
+            }
+        )
+    rows.sort(
+        key=lambda r: (_UNRANKED if r["rank"] is None else r["rank"], r["coldkey"])
+    )
+    return rows
+
+
 SHOWCASE_SCHEMA = "carbon.validator.showcase-panel.v1"
 SHOWCASE_STATES = ("PREDICTED", "UNAVAILABLE")
 SHOWCASE_LIVE = "LIVE"
@@ -596,6 +644,7 @@ def project(document, trust):
         "incumbent": incumbent,
         "challengers": challengers,
         "standing": standing,
+        "ladder": _ladder(board.get("ladder"), digits, trust),
         "history": history,
         "miners": dict(sorted(miners.items())),
         "excluded_canaries": canaries,

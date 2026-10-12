@@ -247,3 +247,95 @@ def documents():
 
 def _with_panel(document):
     return {**document, "showcase": unavailable_panel(document)}
+
+
+#: The fixtures' clock (2026-10-08T01:00:00Z), so a fixture build shows each
+#: board.v2 phase whatever the day: the boards above are an hour old (LIVE).
+FIXTURE_NOW = 1_791_421_200
+
+
+def post_cutover_document():
+    """A feed right after a rule cutover, unsigned: a new (v3) rule digest, a
+    fresh state with no released window, submission, incumbent or history.
+    board.v2 phase PRE_FIRST_RELEASE."""
+    document = board_document("fixture-challenge-delta", "gpu:FIXTURE-GPU", seed=4)
+    return {
+        **document,
+        "challenge": {
+            **document["challenge"],
+            "version": "0.1-fixture",
+            "rule": "fixture-rule-v3",
+            "rule_digest": _fingerprint("fixture-challenge-delta", "rule-v3"),
+        },
+        "version": 1,
+        "generated_at": "2026-10-08T00:30:00Z",
+        "released_through_block": None,
+        "released_windows": [],
+        "submissions": [],
+        "leaderboard": {
+            "incumbent": None,
+            "challengers": [],
+            "standing": [],
+            "history": {},
+        },
+        "excluded": {"canary_hotkeys": 0},
+    }
+
+
+def stale_document():
+    """A populated feed generated a day before FIXTURE_NOW, unsigned: board.v2
+    phase STALE."""
+    document = board_document("fixture-challenge-gamma", "cpu", seed=5)
+    return {**document, "generated_at": "2026-10-07T01:00:00Z"}
+
+
+def ladder_document(challenge_id, device_class, *, seed, sealed):
+    """A LIVE feed with the proposed coldkey ladder (OWNER-BATTERY-
+    CHAMPIONSHIP-03), unsigned. Two hotkeys share each made-up coldkey.
+    `sealed`: every entry SEALED_UNTIL_GRAIN, as while the grain is
+    HUMAN_INPUT; otherwise SHOWN, and NO_IMPROVEMENT_BEYOND_GRAIN for every
+    second coldkey. The displayed scores are made up."""
+    document = board_document(challenge_id, device_class, seed=seed)
+    owners = {}
+    for row in document["leaderboard"]["standing"]:
+        number = int(row["hotkey"].rsplit("-", 1)[1])
+        owners.setdefault(f"fixture-coldkey-{(number + 1) // 2:02d}", []).append(row)
+    order = sorted(owners, key=lambda c: min(r["best"]["accuracy"] for r in owners[c]))
+    ladder = []
+    for rank, coldkey in enumerate(order, start=1):
+        best = min(r["best"]["accuracy"] for r in owners[coldkey])
+        hotkeys = sorted(r["hotkey"] for r in owners[coldkey])
+        if sealed:
+            entry = {"status": "SEALED_UNTIL_GRAIN", "displayed_score": None}
+        elif rank % 2 == 0:
+            entry = {"status": "NO_IMPROVEMENT_BEYOND_GRAIN", "displayed_score": best}
+        else:
+            entry = {"status": "SHOWN", "displayed_score": best}
+        ladder.append(
+            {
+                "coldkey": coldkey,
+                "rank": None if sealed else rank,
+                "hotkeys": hotkeys,
+                **entry,
+            }
+        )
+    return {
+        **document,
+        "leaderboard": {**document["leaderboard"], "ladder": ladder},
+    }
+
+
+def phase_documents():
+    """Signed fixtures for the board.v2 states the documents() set lacks:
+    PRE_FIRST_RELEASE after a cutover, STALE, and the coldkey ladder with
+    each status (SHOWN and NO_IMPROVEMENT_BEYOND_GRAIN; SEALED_UNTIL_GRAIN)."""
+    return [
+        sign(post_cutover_document()),
+        sign(stale_document()),
+        sign(
+            ladder_document(
+                "fixture-challenge-epsilon", "gpu:FIXTURE-GPU", seed=6, sealed=False
+            )
+        ),
+        sign(ladder_document("fixture-challenge-zeta", "cpu", seed=7, sealed=True)),
+    ]
