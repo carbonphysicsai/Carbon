@@ -476,16 +476,16 @@ def check_solved(
                         ):
                             raise LabRefused("bank_in_window_unresolved_required")
                     # Positive-feasible reference rules partition the line:
-                    # below/at the lower edge is INFEASIBLE, strictly inside
-                    # the uncertainty band is UNRESOLVED, and above/at the
+                    # below the lower edge is INFEASIBLE, from the lower edge
+                    # to the upper edge is UNRESOLVED, and above/at the
                     # upper edge is FEASIBLE. Coarse in-window results must
                     # remain UNRESOLVED until a fine-rung reference exists.
                     if (
                         (c["status"] == "FEASIBLE" and margin < band[1])
-                        or (c["status"] == "INFEASIBLE" and margin > band[0])
+                        or (c["status"] == "INFEASIBLE" and margin >= band[0])
                         or (
                             c["status"] == "UNRESOLVED"
-                            and not (band[0] < margin < band[1])
+                            and not (band[0] <= margin < band[1])
                         )
                     ):
                         raise LabRefused("bank_reference_band_status")

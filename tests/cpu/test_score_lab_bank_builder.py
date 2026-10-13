@@ -410,6 +410,7 @@ def test_every_settled_label_matches_its_registered_positive_feasible_band():
     for status, margin, rung in (
         ("UNRESOLVED", 0.1, "toy-coarse"),
         ("INFEASIBLE", 0.1, "toy-coarse"),
+        ("INFEASIBLE", -0.002, "toy-coarse"),
         ("UNRESOLVED", 0.002, "toy-fine"),
         ("INFEASIBLE", 0.001, "toy-fine"),
         ("FEASIBLE", 0.001, "toy-fine"),
@@ -423,10 +424,12 @@ def test_every_settled_label_matches_its_registered_positive_feasible_band():
 
     # The declared edges and both rungs partition the toy margin as recorded.
     for status, margin, rung in (
-        ("INFEASIBLE", -0.002, "toy-coarse"),
+        ("INFEASIBLE", -0.003, "toy-coarse"),
+        ("UNRESOLVED", -0.002, "toy-coarse"),
         ("UNRESOLVED", 0.0, "toy-coarse"),
         ("FEASIBLE", 0.003, "toy-coarse"),
-        ("INFEASIBLE", 0.0, "toy-fine"),
+        ("INFEASIBLE", -0.001, "toy-fine"),
+        ("UNRESOLVED", 0.0, "toy-fine"),
         ("UNRESOLVED", 0.001, "toy-fine"),
         ("FEASIBLE", 0.002, "toy-fine"),
     ):
