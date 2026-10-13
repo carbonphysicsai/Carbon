@@ -1,0 +1,24 @@
+{
+ "batch": "attack-2026-10-13",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "date": "2026-10-13",
+ "runs": [
+  {
+   "file": "att-2-E-l2b-s1.out",
+   "role": "attacker",
+   "level": 2,
+   "chain_log": "lvl-chain-att-2-E-l2b-s1.log",
+   "chain_label": "att-2-E-l2b-s1"
+  }
+ ],
+ "excluded": [],
+ "refusal_classes": {},
+ "triage": {
+  "attack-failing-trigger-7ad4c09d7a275deb-0": "ORACLE_GAP",
+  "attack-failing-trigger-b3645660f3d732d8-0": "ORACLE_GAP",
+  "attack-failing-trigger-91f9a4c36bd6f527-0": "ORACLE_GAP",
+  "attack-failing-trigger-50fe658c9a87d4fa-0": "ORACLE_GAP",
+  "attack-failing-trigger-54b06b49f99c8339-0": "ORACLE_GAP"
+ },
+ "triage_source": "Graphite Testing Manager triage, 2026-10-13: the L2 re-attack's five findings (family l2_pool_sources_and_weights) are honest accepted compiles with no pool_selection and no weights, accepted by both the Level 2 variant gate and the miner contract gate; the oracle judges any accepted compile in the family a breach (the OPT-14 oracle class, as afa773b8 in attack-2026-10-12)"
+}

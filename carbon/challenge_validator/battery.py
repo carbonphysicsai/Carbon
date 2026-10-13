@@ -153,6 +153,22 @@ class BatteryAdapter(ChallengeAdapter):
             predictions, case_ids, self.target._case_store(batches)
         )
         aggregate = _plain(aggregate)
+        physics = getattr(self.target, "physics_contract", None)
+        if physics is not None:
+            # Read-only replay from retained probe predictions. Missing
+            # evidence cannot dispatch inference from a score-record read.
+            inputs = store.case_inputs(batches)
+            probes = store.predictions(
+                physics.namespace + submission_id, list(physics.inputs())
+            )
+            measured = physics.measure(
+                probes, [(inputs[c], predictions.get(c)) for c in inputs]
+            )
+            if measured != record.get("physics"):
+                raise ScoreReplayMismatch(submission_id)
+            if not measured["B15"]["eligible"]:
+                aggregate["eligible"] = False
+                aggregate["gate_failures"]["physics_gate_b15"] = 1
         if any(record.get(k) != v for k, v in aggregate.items()):
             raise ScoreReplayMismatch(submission_id)
         out = {
@@ -173,6 +189,8 @@ class BatteryAdapter(ChallengeAdapter):
             # Operator-only and reported, gating nothing (slice Q, part 2):
             # present only when an active batch carried a quiz.
             out["quiz"] = quiz
+        if physics is not None:
+            out["physics"] = measured
         return out
 
     def sealed_roles(self):

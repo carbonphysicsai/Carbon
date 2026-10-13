@@ -1,0 +1,20 @@
+{
+ "counts": {
+  "questions": 240,
+  "reference_fully_resolved": {
+   "LEG": 55,
+   "VALUE": 61
+  }
+ },
+ "files": {
+  "leg-questions.json": "6a8b0ac2a994c97d478db164a3165d3f39e7af085e0569401a4cb644bf21114b",
+  "report.md": "8ab2832deaeecbdeaa26336d83212b4ca9df16568fdcb06d3a6d8a2fb4ac238d",
+  "results.json": "42ebe0616235029117b41d6d7e77f5dce4e6299201dd191560da610a0909f5de",
+  "value-questions.json": "8e7bd8c57feb7fb3ca32d70a4711d8386b5116c8bc549bd2251087b8874115dd"
+ },
+ "location": "operator host ~carbon/shared/evidence/public-dev-decisions-01/ (public development results; too large to commit)",
+ "note": "reference_fully_resolved: no UNRESOLVED or REFERENCE_UNAVAILABLE candidate in the question; the score's own resolved mask is computed at scoring (Test Engineer)",
+ "pod_job": "pdd-evaluate-20261013t1126z",
+ "schema": "carbon.public-dev-decisions.halves-manifest.v1",
+ "split": "public-dev-split-v1"
+}

@@ -278,17 +278,17 @@
      "level": 4,
      "roles": {
       "constructor": {
-       "grant_id": "GRAPHITE-GRANT-STAGE-C-CONSTRUCTOR",
-       "grant_file": "docs/development/graphite/grants/GRAPHITE-GRANT-STAGE-C-CONSTRUCTOR.json"
-      },
-      "attacker": {
-       "grant_id": "GRAPHITE-GRANT-STAGE-C-ATTACKER",
-       "grant_file": "docs/development/graphite/grants/GRAPHITE-GRANT-STAGE-C-ATTACKER.json"
+       "grant_id": "GRAPHITE-GRANT-L4-G-CONSTRUCTOR-3",
+       "grant_file": "docs/development/graphite/grants/GRAPHITE-GRANT-L4-G-CONSTRUCTOR-3.json"
       }
      },
      "containment_lanes": [
       "carbon.miner-research.unlimited.v1"
-     ]
+     ],
+     "reviews": {
+      "R4": "carbon/challenge_pipeline/readiness/battery-fastcharge-ageing-development-v1/reviews/R4.L4-G-CONSTRUCTOR-3.json",
+      "R5": "carbon/challenge_pipeline/readiness/battery-fastcharge-ageing-development-v1/reviews/R5.L4-G-CONSTRUCTOR-3.json"
+     }
     }
    },
    "studies_by_level": {
@@ -569,6 +569,208 @@
        "tests/cpu/test_battery_ev5_run.py"
       ],
       "pin_schema": "carbon.battery.ev5.run-record.v1"
+     }
+    }
+   },
+   "scoring_by_level": {
+    "S1": {
+     "2": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       2,
+       3,
+       4
+      ],
+      "basis": "PLT-09 batch 4 explicit L2/L3/L4 metadata; no measurement, custody or hidden-host authority granted",
+      "adapter": "carbon.battery.readiness_evidence",
+      "code": [
+       "carbon/battery/exam.py",
+       "carbon/challenge_validator/battery_scoring.py",
+       "carbon/battery/value/admissibility.py",
+       "carbon/battery/physics_gate.py",
+       "carbon/battery/physics_contract.v2.json"
+      ],
+      "measurement": null
+     },
+     "3": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       2,
+       3,
+       4
+      ],
+      "basis": "PLT-09 batch 4 explicit L2/L3/L4 metadata; no measurement, custody or hidden-host authority granted",
+      "adapter": "carbon.battery.readiness_evidence",
+      "code": [
+       "carbon/battery/exam.py",
+       "carbon/challenge_validator/battery_scoring.py",
+       "carbon/battery/value/admissibility.py",
+       "carbon/battery/physics_gate.py",
+       "carbon/battery/physics_contract.v2.json"
+      ],
+      "measurement": null
+     },
+     "4": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       2,
+       3,
+       4
+      ],
+      "basis": "PLT-09 batch 4 explicit L2/L3/L4 metadata; no measurement, custody or hidden-host authority granted",
+      "adapter": "carbon.battery.readiness_evidence",
+      "code": [
+       "carbon/battery/exam.py",
+       "carbon/challenge_validator/battery_scoring.py",
+       "carbon/battery/value/admissibility.py",
+       "carbon/battery/physics_gate.py",
+       "carbon/battery/physics_contract.v2.json"
+      ],
+      "measurement": null
+     }
+    },
+    "S3": {
+     "2": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       2,
+       3,
+       4
+      ],
+      "basis": "PLT-09 batch 4 explicit L2/L3/L4 metadata; no measurement, custody or hidden-host authority granted",
+      "adapter": "carbon.battery.readiness_evidence",
+      "code": [
+       "carbon/battery/exam.py",
+       "carbon/challenge_validator/battery_scoring.py",
+       "carbon/battery/value/admissibility.py",
+       "carbon/battery/physics_gate.py",
+       "carbon/battery/physics_contract.v2.json"
+      ],
+      "registration": "carbon/challenge_pipeline/readiness/battery-fastcharge-ageing-development-v1/gate-margin-registration.json"
+     },
+     "3": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       2,
+       3,
+       4
+      ],
+      "basis": "PLT-09 batch 4 explicit L2/L3/L4 metadata; no measurement, custody or hidden-host authority granted",
+      "adapter": "carbon.battery.readiness_evidence",
+      "code": [
+       "carbon/battery/exam.py",
+       "carbon/challenge_validator/battery_scoring.py",
+       "carbon/battery/value/admissibility.py",
+       "carbon/battery/physics_gate.py",
+       "carbon/battery/physics_contract.v2.json"
+      ],
+      "registration": "carbon/challenge_pipeline/readiness/battery-fastcharge-ageing-development-v1/gate-margin-registration.json"
+     },
+     "4": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       2,
+       3,
+       4
+      ],
+      "basis": "PLT-09 batch 4 explicit L2/L3/L4 metadata; no measurement, custody or hidden-host authority granted",
+      "adapter": "carbon.battery.readiness_evidence",
+      "code": [
+       "carbon/battery/exam.py",
+       "carbon/challenge_validator/battery_scoring.py",
+       "carbon/battery/value/admissibility.py",
+       "carbon/battery/physics_gate.py",
+       "carbon/battery/physics_contract.v2.json"
+      ],
+      "registration": "carbon/challenge_pipeline/readiness/battery-fastcharge-ageing-development-v1/gate-margin-registration.json"
+     }
+    },
+    "H2": {
+     "2": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       2,
+       3,
+       4
+      ],
+      "basis": "PLT-09 batch 4 explicit L2/L3/L4 metadata; no measurement, custody or hidden-host authority granted",
+      "registration": "carbon/challenge_pipeline/readiness/battery-fastcharge-ageing-development-v1/tuning-overlap-registration.json"
+     },
+     "3": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       2,
+       3,
+       4
+      ],
+      "basis": "PLT-09 batch 4 explicit L2/L3/L4 metadata; no measurement, custody or hidden-host authority granted",
+      "registration": "carbon/challenge_pipeline/readiness/battery-fastcharge-ageing-development-v1/tuning-overlap-registration.json"
+     },
+     "4": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       2,
+       3,
+       4
+      ],
+      "basis": "PLT-09 batch 4 explicit L2/L3/L4 metadata; no measurement, custody or hidden-host authority granted",
+      "registration": "carbon/challenge_pipeline/readiness/battery-fastcharge-ageing-development-v1/tuning-overlap-registration.json"
+     }
+    },
+    "H4": {
+     "2": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       2,
+       3,
+       4
+      ],
+      "basis": "PLT-09 batch 4 explicit L2/L3/L4 metadata; no measurement, custody or hidden-host authority granted",
+      "adapter": "carbon.battery.readiness_evidence",
+      "code": [
+       "carbon/battery/exam.py",
+       "carbon/challenge_validator/battery_scoring.py",
+       "carbon/battery/value/admissibility.py",
+       "carbon/battery/physics_gate.py",
+       "carbon/battery/physics_contract.v2.json"
+      ],
+      "registration": "carbon/challenge_pipeline/readiness/battery-fastcharge-ageing-development-v1/gate-audit-registration.json"
+     },
+     "3": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       2,
+       3,
+       4
+      ],
+      "basis": "PLT-09 batch 4 explicit L2/L3/L4 metadata; no measurement, custody or hidden-host authority granted",
+      "adapter": "carbon.battery.readiness_evidence",
+      "code": [
+       "carbon/battery/exam.py",
+       "carbon/challenge_validator/battery_scoring.py",
+       "carbon/battery/value/admissibility.py",
+       "carbon/battery/physics_gate.py",
+       "carbon/battery/physics_contract.v2.json"
+      ],
+      "registration": "carbon/challenge_pipeline/readiness/battery-fastcharge-ageing-development-v1/gate-audit-registration.json"
+     },
+     "4": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       2,
+       3,
+       4
+      ],
+      "basis": "PLT-09 batch 4 explicit L2/L3/L4 metadata; no measurement, custody or hidden-host authority granted",
+      "adapter": "carbon.battery.readiness_evidence",
+      "code": [
+       "carbon/battery/exam.py",
+       "carbon/challenge_validator/battery_scoring.py",
+       "carbon/battery/value/admissibility.py",
+       "carbon/battery/physics_gate.py",
+       "carbon/battery/physics_contract.v2.json"
+      ],
+      "registration": "carbon/challenge_pipeline/readiness/battery-fastcharge-ageing-development-v1/gate-audit-registration.json"
      }
     }
    }

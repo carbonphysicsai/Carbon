@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-10-registration-wrapper-tests",
+  "recorded_at": "2026-10-10T19:06:00Z",
+  "challenge": "protocol",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "READY-TO-RUN-PANELS-01", "description": "Existing packet/panel baseline: 14 passed. First wrapper run: 20 passed, one mutable source alias failed and one Ruff import-order diagnostic. Repaired immutable tuple snapshots and imports; wrapper/packet/panel/pipeline diagnostics: 49 passed; Black, Ruff and whitespace passed."},
+  "expected": "A changed observer must require new work without mutating the retained inventory identity; absent inventory is not empty inventory.",
+  "observed": "Deep-copying the proposed seed and sealed inventory removed the alias. Completed/scheduled exclusions, duplicate physical proposals, changed observers, byte pins and output exclusivity pass. Current real manifests stay HOLD_INPUTS; no scientific approval or completed global inventory was invented.",
+  "keep": ["Reuse the full identity generator and retain bodies as well as readable IDs."],
+  "change": ["Freeze source objects before constructing hash-bound manifests; distinguish snapshot-declared coverage from verified completeness."],
+  "protocol_elements": ["design packet", "lessons"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

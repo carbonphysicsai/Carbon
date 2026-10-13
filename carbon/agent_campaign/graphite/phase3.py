@@ -1219,7 +1219,9 @@ def session_brief(
             + " with task_id empty for the interface and the commands, lower "
             "your model in a workspace run_python task, then call it again with "
             "that task's id, and propose the recipe with the submission digest "
-            "it returns."
+            "it returns. The interface reply carries a known-good example_spec "
+            "and a complete example_run_python: run it as it stands first, then "
+            "edit the model in it."
         )
     return SessionBrief(
         role=RoleName.CONSTRUCTOR,

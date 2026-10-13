@@ -1,0 +1,17 @@
+{
+  "base_main": "af5906f56850bc15f77b586a556c8de7162b4179",
+  "original_research_main": "1238dd3471f73d3fc0df375de1d63c4663e380b3",
+  "provenance": {
+    "contract_git_blob": "3961b89a98c8877190bc010579852497057d3518",
+    "cpu_outcomes_sha256": "7452a1a0ac65bfb0638743bebac2a36655dbb61d996988630d99763245e76660",
+    "ev4_results_git_blob": "67ca13b966a2f6fb4b2e68b084e2909657e7ba7f",
+    "helper_git_blob": "b1d899d116317bd190ad6812f0aae5d3e8a16c0c",
+    "reference_sha256": "72ea300b42fe1ca4e54b9c6131cb126ca7217ebddd5f1dddca8044a7bcef2dbf",
+    "res07_results_sha256": "a1473c98baaf2352c02db38b1aeef3938c41b2a958fd1f568cff0c5e29e975b0",
+    "res07_sha256": "e91f89f9cae53cd7b5e1f252910f197f8a0334adbf47e2bb492d7601dffa91ff"
+  },
+  "results_sha256": "e78ef2256717b6eaac8637923d4ceb4c9dc070ff3de146eda60e4c7edb99ae02",
+  "scope": "PUBLIC_SYNTHETIC_DEVELOPMENT; original EV4 plus retained RES-07 public CPU selections only",
+  "new_solves": 0,
+  "historical_files_changed": false
+}

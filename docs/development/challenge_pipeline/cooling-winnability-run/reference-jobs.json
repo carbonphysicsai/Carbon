@@ -1,0 +1,79 @@
+{
+  "schema": "carbon.cooling-cell.reference-jobs-plan.v1",
+  "status": "PROPOSED_HOLD_NOT_A_RUN_RELEASE",
+  "solver": "OpenFOAM periodic interior-cell conjugate flow; PG25; lid-side TIM2",
+  "image_digest": "sha256:33fb575aa9980d2bc42fd58c75ae698c489293ba30c991380fe3f899c622f319",
+  "image_presence": "UNKNOWN",
+  "basis": "DEVELOPMENT_ASSUMPTION_POINT_B; no qualified population",
+  "source_refs": [
+    "docs/development/challenge_pipeline/challenge-factory/pilots/cooling-cell.md",
+    "docs/development/challenge_pipeline/cheap-baselines/cooling-cell.md",
+    "docs/development/challenge_pipeline/cooling-readiness/verification.json",
+    "Business/research/ai-chip-cooling-sources/operating-points.json"
+  ],
+  "operating_point": {
+    "point": "B",
+    "inlet_c": 40,
+    "heat_load_w": 1000,
+    "footprint_flow_lpm": 1.5,
+    "cell_pressure_limit_pa": 25000,
+    "tim2_limit_c": 85,
+    "optional_C_included": false
+  },
+  "public_jobs": [
+    {"role": "TRAIN", "job_pattern": "T01..T16 x M01..M03", "geometries": 16, "maps_per_geometry": 3, "jobs": 48, "rung": "primary"},
+    {"role": "PUBLIC_HELDOUT", "job_pattern": "H01..H12 x M01..M03", "geometries": 12, "maps_per_geometry": 3, "jobs": 36, "rung": "primary"},
+    {"role": "CONTROL", "jobs": 4, "controls": ["Poiseuille pressure", "conjugate slab", "uniform energy/map integral", "co-located TIM2 plane/coordinate"], "rung": "coarse"},
+    {"role": "PUBLIC_REFINEMENT", "jobs": 4, "selection": "HUMAN_INPUT: preregister exact paired tuples and uncertainty rule", "rung": "refined", "coarse_equivalent_cost_factor_assumption": 2}
+  ],
+  "cold_generation_counts": {
+    "primary": 84,
+    "controls": 4,
+    "refinements": 4,
+    "total_attempts_without_failures": 92,
+    "coarse_equivalents_assumption": 96,
+    "failed_attempts_and_retries": "No free retries; count failures against a prospective owner grant"
+  },
+  "timing_and_memory": {
+    "cpu_seconds_per_coarse_solve_low_base_high": [1620, 3240, 4860],
+    "cpu_seconds_per_refined_solve_low_base_high": [3240, 6480, 9720],
+    "basis": "0.45 CPU-h historical cell context; 0.90/1.35 CPU-h proxy hypotheses from PKT-09; not measured new-map timings",
+    "cpu_seconds_per_control": "HUMAN_INPUT; coarse proxy used only for conservative planning arithmetic",
+    "bulk_reference_cpu_hours_low_base_high_assumption": [43.2, 86.4, 129.6],
+    "fit_and_check_reserve_cpu_hours_assumption": 8,
+    "bulk_total_cpu_hours_low_base_high_assumption": [51.2, 94.4, 137.6],
+    "working_rss_gib_ceiling_proposal": 16,
+    "allocated_memory_gib_profile_proposal": 64,
+    "measured_peak_rss_gib": null,
+    "measured_wall_seconds_per_solve": null,
+    "machine_parallelism": "HUMAN_INPUT after same-image probe; CPU seconds are not elapsed seconds"
+  },
+  "existing_PKT09_bounded_topup": {
+    "required_matching_existing_corpus": 84,
+    "coarse_attempts": 8,
+    "coarse_split": {"controls": 4, "missing_rows": 4},
+    "refined_attempts": 4,
+    "max_new_attempts_including_failures": 12,
+    "automatic_retries": 0,
+    "cpu_hours_cap_proposal": 32,
+    "cold_generation_fits_this_cap": false,
+    "action_if_missing_more_than_four_primary_rows": "HOLD; request a prospective bulk generation plan/grant, never silently widen the top-up"
+  },
+  "protected_half": {
+    "included_in_this_worker": false,
+    "jobs": null,
+    "cpu_seconds_per_solve": null,
+    "memory_gib": null,
+    "status": "HUMAN_INPUT_TO_SEPARATE_CUSTODY_AND_EXECUTION_AUTHORITY",
+    "rule": "No protected paths, seeds, maps, tuple IDs or results enter this public plan, bundle, worker or report"
+  },
+  "holds": [
+    "Characterized representative post-spreader maps, TIM2 and uncertainty",
+    "Registered disjoint geometry inventory and eight buyer questions; P/Q/w and objective",
+    "Pinned image presence, native observer/code/conservation/convergence acceptance",
+    "Complete public TRAIN/held-out face evidence and measured costs",
+    "Strongest TRAIN-only cheap map and preregistered competent direct/adaptive policy",
+    "Separate prospective big-machine authorization and measured per-job RSS/CPU/wall probe"
+  ],
+  "reference_solves_launched": 0
+}

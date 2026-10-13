@@ -18,6 +18,29 @@ def _registration_digest(doc):
     return "sha256:" + hashlib.sha256(body.encode()).hexdigest()
 
 
+def rule_name(rule):
+    """The registered name of a deployment's exam rule (`exam.RULES`), or None.
+
+    A rule dict carries no name, and its `rule_version` is the exam rule's
+    version (2 for both v2-bank-sched and v3-bank-sched), not its name, so the
+    grain file's `match.rule` is matched against the name this recovers. A
+    registered-score rule carries the deployment's own score term in place of
+    the registry's placeholder, so the term is set aside on both sides. Exactly
+    one registered rule must match; anything else seals."""
+    from carbon.battery import exam
+
+    if type(rule) is not dict:
+        return None
+    body = {k: v for k, v in rule.items() if k != "score"}
+    hits = [
+        name
+        for name, registered in exam.RULES.items()
+        if {k: v for k, v in registered.items() if k != "score"} == body
+        and ("score" in registered) == ("score" in rule)
+    ]
+    return hits[0] if len(hits) == 1 else None
+
+
 def load_grain(repository, identities, rule):
     """Latest registered policy and exactly one deployment match, or None.
 
@@ -30,7 +53,7 @@ def load_grain(repository, identities, rule):
         doc = sg.load(Path(repository) / GRAIN_DIR)
         term = rule.get("score")
         deployment = {
-            "rule": rule["rule_version"],
+            "rule": rule_name(rule),
             "rule_digest": identities["rule_digest"],
             "score_section": "accuracy" if term is None else "registered",
         }
@@ -137,8 +160,10 @@ def ladder(rows, owners, policy, rule):
                 )
             ):
                 continue
+            # The matched entry's registered rule name: `rule_version` is the
+            # exam rule's version (2 for v2- and v3-bank-sched), never a name.
             own, n, m = sg.coldkey_own_se(
-                rule["rule_version"],
+                entry["match"]["rule"],
                 [{"coldkey": coldkey, "errors": errors, "regrets": regrets}],
                 coldkey,
             )

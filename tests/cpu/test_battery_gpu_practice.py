@@ -377,7 +377,7 @@ def test_the_gpu_worker_profile_is_the_miner_lane_on_the_recorded_device(
         launch_digest="sha256:" + "f" * 64,
         worker_profile=profile,
     )
-    assert "--gpus" in arguments and f"device={UUID}" in arguments
+    assert arguments[arguments.index("--gpus") + 1] == f"driver=nvidia,device={UUID}"
     assert "JAX_PLATFORMS=cuda" in arguments
     assert "JAX_PLATFORMS=cpu" not in arguments
 

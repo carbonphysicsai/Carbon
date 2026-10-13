@@ -205,7 +205,7 @@ def test_device_requests_are_exact_and_cpu_remains_without_devices(
     )
     gpu = create_arguments(**options, worker_profile=_profile())
     assert "--gpus" not in cpu and "--runtime" not in cpu
-    assert "device=" + DEVICE_UUID in gpu
+    assert gpu[gpu.index("--gpus") + 1] == "driver=nvidia,device=" + DEVICE_UUID
     assert "JAX_PLATFORMS=cuda" in gpu
     assert "JAX_PLATFORMS=cpu" not in gpu
     assert "--network" in gpu and gpu[gpu.index("--network") + 1] == "none"
@@ -224,6 +224,41 @@ def test_device_requests_are_exact_and_cpu_remains_without_devices(
     )
     with pytest.raises(WorkerFailure):
         create_arguments(**options, worker_profile=elsewhere)
+
+
+@pytest.mark.parametrize("driver", ["nvidia", "", "other", None])
+def test_worker_inspection_requires_the_explicit_nvidia_request_driver(
+    tmp_path, monkeypatch, driver
+):
+    from scripted_docker import CONTAINER_ID, ScriptedDocker
+
+    from carbon.reconstruction.worker.docker_runtime import inspect_effective_controls
+
+    root = tmp_path / "host"
+    monkeypatch.setattr(runtime, "HOST_ROOT", root)
+    accelerator_host.install(root)
+    observation = {"scope": "SYNTHETIC_TEST_ONLY"}
+    monkeypatch.setattr(runtime, "inspect_gpu_device", lambda **_: observation)
+    options = {
+        "container_name": "fixture",
+        "image_id": _image().image_id,
+        "input_directory": tmp_path,
+        "cpuset": "0,1",
+        "launch_digest": _sha("1"),
+        "worker_profile": _profile(),
+    }
+    scripted = ScriptedDocker(image=_image())
+    scripted.create_arguments = create_arguments(**options)
+    document = scripted.json(["inspect", "fixture"])
+    document["HostConfig"]["DeviceRequests"][0]["Driver"] = driver
+    cli = SimpleNamespace(json=lambda _: document, run=scripted.run)
+    if driver != "nvidia":
+        with pytest.raises(WorkerFailure) as refused:
+            inspect_effective_controls(cli=cli, **options)
+        assert refused.value.code is WorkerCode.POLICY
+        return
+    _, evidence = inspect_effective_controls(cli=cli, **options)
+    assert evidence["container_id"] == CONTAINER_ID
 
 
 class MetadataCLI:

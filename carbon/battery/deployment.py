@@ -88,6 +88,7 @@ OPTIONAL = {
     "ladder",
     "ladder_deployment",
     "score",
+    "physics_contract",
 }
 READER_FIELDS = {"network", "endpoint", "provider", "genesis_hash", "netuid"}
 BACKENDS = ("carrier", "direct")
@@ -245,6 +246,13 @@ def load_config(path):
         ladder_for(config)  # refuses a malformed ladder now
     if "ladder_deployment" in config:
         reserved_hotkeys(config)  # refuses a missing or malformed ladder now
+    if "physics_contract" in config:
+        from .physics_gate import PhysicsRefused, check_term
+
+        try:
+            check_term(config["physics_contract"])
+        except PhysicsRefused as refused:
+            raise EvaluationUnavailable(refused.code) from None
     return config
 
 
@@ -420,6 +428,21 @@ def build(config, *, repository, readonly=False):
     from .signing import ServiceKey
     from .worker import CarrierBackend, DirectBackend, WorkLedger
 
+    physics = None
+    if "physics_contract" in config:
+        if _network(config) != "testnet":
+            raise EvaluationUnavailable("physics_contract_testnet_only")
+        from .physics_gate import BatteryPhysics, PhysicsRefused
+        from .truth import TRUTH_IMAGE
+
+        try:
+            physics = BatteryPhysics(
+                config["physics_contract"],
+                repository,
+                reference_image=TRUTH_IMAGE["base_image"].split("@")[-1],
+            )
+        except PhysicsRefused as refused:
+            raise EvaluationUnavailable(refused.code) from None
     if not readonly:
         require_live(config)
     root = seeds.PrivateRoot.load(_private(config["private_root"]))
@@ -503,6 +526,7 @@ def build(config, *, repository, readonly=False):
             import_only=config.get("batch_source") == "answer_key",
             ladder=ladder_for(config),
             reserved_hotkeys=reserved_hotkeys(config),
+            physics_contract=physics,
         )
     except StateError as mismatch:
         raise EvaluationUnavailable("evaluation_" + mismatch.code) from None

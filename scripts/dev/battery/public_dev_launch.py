@@ -252,7 +252,9 @@ def _probe(out, path):
     token = (Path(out) / "token").read_text().strip()
     request = urllib.request.Request(
         f"https://{pod_id}-8000.proxy.runpod.net{path}",
-        headers={"X-Probe-Token": token},
+        # The pod proxy refuses urllib's default User-Agent with HTTP 403
+        # (2026-10-12), as `pods._https_get` already knows.
+        headers={"X-Probe-Token": token, "User-Agent": "carbon-public-dev/1"},
     )
     with urllib.request.urlopen(request, timeout=600) as response:
         return response.read()

@@ -326,7 +326,7 @@ def test_uploads_come_only_from_an_allowed_public_root(tmp_path):
     "name",
     [
         "a b.json",
-        "cafÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©.json",
+        "caf\u00e9.json",
         "x%2e.json",
         "ev4/a.json",
         "private/a.json",
@@ -361,9 +361,9 @@ def test_the_create_request_pins_image_cpu_placement_phase_and_deadline(tmp_path
     env = body["env"]
     assert body["computeType"] == "CPU" and body["vcpuCount"] == 8
     assert body["cpuFlavorIds"] == ["cpu5c"] and "gpuTypeIds" not in body
-    assert (
-        body["imageName"] == pods.pod_image("jax") and "@sha256:" in body["imageName"]
-    )
+    # The tagged form of the one pinned study digest (RunPod needs the tag).
+    assert body["imageName"] == pod_jobs.STUDY_IMAGE
+    assert body["imageName"].split("@")[1] == pods.pod_image("jax").split("@")[1]
     assert env["PHASE_MODULE"] == pod_jobs.PHASE_MODULE
     assert json.loads(env["JOB_CONFIG"])["module"] == "scripts.dev.exam_design.runner"
     assert int(env["PROBE_DEADLINE"]) == 1_000_000 + 35 * 60
@@ -586,3 +586,40 @@ def test_a_library_run_with_the_switch_off_refuses_with_zero_spend(lifecycle, tm
     assert account.creates == [] and account.pods == {}
     assert not (tmp_path / "ledger" / grant_runs.WEEKLY_FILE).exists()
     assert not (tmp_path / "out").exists()
+
+
+def test_a_wait_never_ends_before_its_clock_says_it_has(monkeypatch):
+    now = [100.0]
+
+    def early_sleep(seconds):  # wakes 1 ms short, as a slewed wall clock can
+        now[0] += max(0.0, seconds - 0.001)
+
+    wait = pod_jobs.sleep_until(lambda: now[0], early_sleep)
+    wait(60.0)
+    assert now[0] >= 160.0
+
+
+def test_an_ambiguous_create_reports_the_providers_http_status(lifecycle):
+    from scripts.dev.exam_design.runpod.operator_compute import (
+        ComputeError,
+        Execution,
+    )
+
+    make, go = lifecycle
+    spec, backend, _account = make()
+
+    def ambiguous(request, retry_ambiguous=False):
+        raise ComputeError(
+            operation="provision",
+            failed="create response unreadable",
+            execution=Execution.MAY_HAVE_EXECUTED,
+            resources_may_remain=True,
+            retry_safe=False,
+            next_action="reconcile",
+            http_status=500,
+        )
+
+    backend.service.provision = ambiguous
+    backend.recover = lambda intent_id, private: None
+    receipt, _ledger = go(spec, backend)
+    assert "(HTTP 500)" in receipt["refusal"]
