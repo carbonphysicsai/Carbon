@@ -43,9 +43,16 @@ find at that size" and then, after being quoted the USD 25 cap, "Approved";
 he then confirmed the figure again directly in the PR Head session for this
 record.
 
-## Open, and deliberately not resolved here
+## The weekly envelope: reservations against actuals
 
-**Whether the rolling week has room for it is unverified.** The weekly
+**Actual spend has room; the static reservation total is what could not be
+traced.** Data Collection reports that the launcher enforces the live
+`grant_runs` ledger at claim time, and that ledger stands at **USD 56.56 of
+260 used, with D3's cpu3g USD 25 included.** So the rolling week is not over on
+money actually committed, and the pod did not launch outside an enforced limit.
+
+What remains unreconciled is the **reserved** accounting, which is a different
+quantity: the weekly
 accounting in `tests/cpu/test_graphite_score_lab_research.py` asserts
 `other_open + standing + research + 14.94 <= effective_weekly_cap()`, with
 `other_open` a hard-coded `Decimal("184.56")` and the effective cap 260 after
@@ -56,10 +63,26 @@ USD 260 effective cap.
 
 This could not be settled from the repository: **184.56 appears nowhere in it
 except that test.** The comment refers to "the weekly-budget record's other open
-grants", and no decision record contains the number. Data Collection has been
-asked to account for whether D3 is inside the term. The owner's instruction on
-being told this was to confirm the USD 25 and **check the week**, and to come
-back to him before anything further launches if the week is over.
+grants", and no decision record contains the number. Data Collection, who sizes
+these runs, states they do not know its components either and never mapped D3
+into it.
+
+So the position is: **the live ledger is authoritative and shows headroom
+(56.56 of 260), while the test's 259.79-of-260 reservation figure is
+unreconciled with it and traceable by nobody.** Two accountings of the same
+weekly cap differ by about USD 203 and neither side can explain the gap. That
+is not a breach, and it is not safe either — a reservation total that cannot be
+audited cannot refuse an addition that should be refused.
+
+The owner's instruction on being told the headroom was unverified was to
+confirm the USD 25 and **check the week**, and to come back to him before
+anything further launches if the week is over. On the live ledger it is not
+over, so nothing is blocked; the reconciliation is owed regardless.
+
+**Also pending with the owner, not covered by this erratum:** replacing D3 with
+six cpu5m shards at up to USD 7.86 worst case over about 1.25 h, which would
+reduce the USD 25 figure. If he approves that, it needs its own confirmation
+and supersedes the cap recorded here rather than amending it.
 
 ## Follow-up this exposes
 
