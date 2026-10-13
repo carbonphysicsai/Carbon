@@ -551,6 +551,95 @@ def test_a_battery_specimen_rebuilds_from_its_bundle_alone(tmp_path):
     assert {**again.specimen, "reused": False} == verdict.specimen
 
 
+def test_compact_adapter_record_gets_an_attack_bundle_and_can_be_reminted(tmp_path):
+    """A level adapter's compact record has no phase-3 recipe digest."""
+    adapter = StubAdapter(oracle=breaching())
+    found = attempt_of(tmp_path / "journal")
+    verdict = verify.verify(found, adapter, specimen_dir=tmp_path / "specimens")
+    assert verdict.outcome == verify.BREACHED
+    assert verdict.specimen["status"] == "REBUILT"
+    folder = (
+        tmp_path / "specimens" / verify.specimen_name(verdict.family, verdict.artifact)
+    )
+    assert json.loads((folder / "manifest.json").read_bytes())["schema"] == (
+        verify.ATTACK_SPECIMEN_SCHEMA
+    )
+    assert verify.clean_attack_specimen(folder, adapter)["status"] == "REBUILT"
+    replay = verify.remint_specimen(
+        found, adapter, verdict.record(), tmp_path / "specimens"
+    )
+    assert replay["status"] == "REBUILT" and replay["reused"] is True
+    assert replay["folder"] == str(folder)
+    saved_record = (folder / "record.json").read_bytes()
+    (folder / "record.json").write_bytes(b"{}")
+    assert verify.clean_attack_specimen(folder, adapter) == {
+        "status": "REBUILD_MISMATCH",
+        "differences": ["digest:record.json"],
+    }
+    (folder / "record.json").write_bytes(saved_record)
+    manifest = json.loads((folder / "manifest.json").read_bytes())
+    manifest["official_eligible"] = True
+    (folder / "manifest.json").write_bytes(verify.canonical(manifest))
+    assert verify.clean_attack_specimen(folder, adapter) == {
+        "status": "REBUILD_MISMATCH",
+        "differences": ["specimen_authority"],
+    }
+
+
+def test_remint_refuses_changed_or_withheld_attempt_without_erasing_breach(tmp_path):
+    adapter = StubAdapter(oracle=breaching())
+    found = attempt_of(tmp_path / "journal")
+    recorded = verify.verify(found, adapter).record()
+    forged = {
+        **recorded,
+        "evidence": {**recorded["evidence"], "intent": "sha256:" + "0" * 64},
+    }
+    result = verify.remint_specimen(found, adapter, forged, tmp_path / "specimens")
+    assert result["status"] == "SPECIMEN_REFUSED"
+    assert result["code"] == "journal_digests_changed"
+    assert result["attempt"] == found.identity
+    assert not (tmp_path / "specimens").exists()
+    assert recorded["outcome"] == "BREACHED"
+
+
+def test_a_bundling_failure_keeps_the_breach_and_journal_pointer(tmp_path):
+    class BrokenBundle(StubAdapter):
+        def bundle_specimen(self, construction, record, folder):
+            raise ValueError("specimen_record_without_recipe_digest")
+
+    found = attempt_of(tmp_path / "journal")
+    verdict = verify.verify(
+        found, BrokenBundle(oracle=breaching()), specimen_dir=tmp_path / "specimens"
+    )
+    assert verdict.outcome == "BREACHED" and verdict.conditions == ("FAILING_TRIGGER",)
+    assert verdict.specimen["status"] == "SPECIMEN_CHECK_FAILED"
+    assert verdict.specimen["code"] == "specimen_mint_or_check_failed"
+    assert verdict.specimen["attempt"] == found.identity
+    assert verdict.specimen["intent_digest"] == found.intent_digest
+    assert verdict.specimen["result_digest"] == found.result_digest
+
+
+def test_a_protection_check_failure_keeps_the_breach_and_journal_pointer(
+    tmp_path, monkeypatch
+):
+    from carbon.agent_campaign.attack import knowledge
+
+    def unavailable(_construction):
+        raise OSError("fixture store unavailable")
+
+    monkeypatch.setattr(knowledge, "sealed", unavailable)
+    found = attempt_of(tmp_path / "journal")
+    verdict = verify.verify(
+        found, StubAdapter(oracle=breaching()), specimen_dir=tmp_path / "specimens"
+    )
+    assert verdict.outcome == "BREACHED"
+    assert verdict.specimen["status"] == "SPECIMEN_CHECK_FAILED"
+    assert verdict.specimen["reason"] == "OSError"
+    assert verdict.specimen["attempt"] == found.identity
+    assert verdict.specimen["intent_digest"] == found.intent_digest
+    assert verdict.specimen["result_digest"] == found.result_digest
+
+
 def test_a_specimen_that_names_protected_material_is_never_written(tmp_path):
     adapter = SpecimenAdapter("REBUILT")
     adapter._refuse = lambda c: None

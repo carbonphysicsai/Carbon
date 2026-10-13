@@ -34,7 +34,7 @@ import pytest
 pytest.importorskip("jax")
 os.environ.setdefault("JAX_PLATFORMS", "cpu")
 
-from carbon.agent_campaign.attack import adapters, engine
+from carbon.agent_campaign.attack import adapters, engine, identity, verify
 from carbon.agent_campaign.attack.adapter import TRACK_A_CHECKS, validate
 from carbon.agent_campaign.attack.adapters import battery as b
 from carbon.agent_campaign.attack.adapters import battery_declarative as d
@@ -61,6 +61,24 @@ def test_registered_valid_and_bound_to_its_variant(level):
     }
     assert checks == set(TRACK_A_CHECKS)
     assert not any(s.level in (2, 3) for s in b.ADAPTER.level_families())
+
+
+def test_level_2_compact_rebuild_record_mints_a_replayable_specimen(tmp_path):
+    construction = l2._strategy(muon_spectral=True)
+    rebuilt = l2.ADAPTER.rebuild(construction)
+    record = verify.record_of(rebuilt)
+    assert "recipe_digest" not in record  # the historical mint failure
+    artifact = identity.artifact_of(l2.ADAPTER, rebuilt, record)
+    folder = tmp_path / verify.specimen_name("l2_pool_sources_and_weights", artifact)
+    verify.bundle_attack_specimen(
+        l2.ADAPTER,
+        construction,
+        record,
+        folder,
+        label="epoch-1-tool-007",
+        artifact=artifact,
+    )
+    assert verify.clean_attack_specimen(folder, l2.ADAPTER)["status"] == "REBUILT"
 
 
 def test_every_attack_held_every_specimen_fired(level):
