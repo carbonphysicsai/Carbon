@@ -15,7 +15,11 @@ import platform
 import subprocess
 from pathlib import Path
 
-from .pod_env import ENV_LIMIT_CHARS, env_chars, largest_variable
+from scripts.dev.exam_design.runpod.pod_env import (
+    ENV_LIMIT_CHARS,
+    env_chars,
+    largest_variable,
+)
 
 # Preserve the existing test_graphite_pod_env_size reserve (PLT-29 authority).
 CI_RESERVE_CHARS = 8_000
@@ -70,8 +74,7 @@ def profiles(ref="HEAD", *, repository=REPOSITORY):
     from carbon.agent_campaign.graphite import pod_phase, pods
     from carbon.battery.research import SCAFFOLD
     from carbon.challenge_validator import scoring as challenge_scoring
-
-    from . import pod_control
+    from scripts.dev.exam_design.runpod import pod_control
 
     repository = Path(repository)
     commit = _commit(ref, repository)
