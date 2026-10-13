@@ -619,6 +619,35 @@ runtime cap of 4,800 s is under the approved two hours.
 | `max_runtime_s` | `4800` | 8 calls × 600 s, under the approved two hours |
 | `max_submissions` | `2` | As PLANNER-01 |
 
+## GRAPHITE-GRANT-RESEARCH-SCORELAB-1 (a Score Lab research session)
+
+**Authority: OWNER-TEST-GRANT-01** (the standing weekly test grant), at the Test Lead's request on 2026-10-13 for the
+owner's question about how to test inside the Score Lab. The Test Lead approved the smaller ceiling below. The
+executor launches only after this grant merges.
+
+| Grant | Purpose | Authority (pool) | Ceiling | State |
+|---|---|---|---|---|
+| GRAPHITE-GRANT-RESEARCH-SCORELAB-1 | One brief-driven, unscored research session (`score_lab_research`): four questions and a synthesis, answered from public excerpts and method cards; proposes nothing to score, runs no pod | OWNER-TEST-GRANT-01 | 2.00 | registered, draft PR |
+
+The grant file has the planner grants' shape (no free-text field), so the purpose is recorded here.
+
+**Why this ceiling.** The session is the Planner's closed task on glm-5.2, at the planner's settings (196,608 input
+tokens, 32,768 output tokens, 600 s). One call reserves 196,608 x 680 + 32,768 x 1,500 nanodollars, or
+$0.18284544. Eight calls (`MAX_CALLS`: four questions, the synthesis and three retries) reserve $1.46276352, inside
+the worst case of $1.50; the call cap floor($1.50 / $0.18284544) is 8. The runtime cap is 8 x 600 s = 4,800 s.
+One run, one session: the ceiling is the worst case plus a $0.50 margin, well under the $14.94 the Test Lead
+approved for it. A model above glm-5.2 would reserve more per call and the run ledger would refuse the call
+(kimi-k3 would need about $5.62 for eight calls), so the grant cannot silently buy a dearer model.
+
+**What the runner enforces** (`score_lab_research`): it accepts only this grant (`RESEARCH_GRANTS`); the brief holds
+only the excerpts it was handed, and refuses an excerpt naming protected material, a currency figure, a private
+path or an account-like identifier; every source in a reply must resolve to the brief; the report is written once,
+status PROPOSED, with no decision, threshold, adoption or score authority.
+
+**Weekly accounting.** The closed-task path meters against its own run ledger and this grant's ceiling; it does not
+claim against the host weekly ledger the phase 3 and phase 4 runners use. The ceiling counts in the static
+weekly sum of the grant tests, and the executor notes the run against the week by hand.
+
 ## GRAPHITE-GRANT-PHASE4 (Graphite's Attacker, the general attack engine)
 
 **Authority.** OWNER-GRAPHITE-ATTACKER-01
