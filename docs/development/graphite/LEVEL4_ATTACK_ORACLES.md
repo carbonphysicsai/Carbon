@@ -37,6 +37,10 @@ An unknown declaration also remains unavailable (its digest records
 UNDETERMINED with `oracle_evidence_or_inputs_unavailable`, never HELD, NA or
 agreed-admissible closure. The three remaining L4 seams use that same reading.
 Existing INCONCLUSIVE and genuine out-of-scope mappings are retained.
+Readiness A2 names each engine-only probe's existing known-bad/specimen/valid
+control assertion in the Level-4 family_covering_tests mapping. Passing
+those assertions covers the software fixture only; it adds no session route
+and supplies no actual worker, exam or GPU evidence.
 Actual worker and exam entry points are intercepted in the tests so a
 regression that invokes them fails instead of executing a host workload.
 

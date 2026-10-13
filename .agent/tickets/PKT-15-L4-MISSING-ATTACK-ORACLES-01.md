@@ -31,6 +31,14 @@ reachable graph families; three engine-only probes do not add a session
 surface. Add a focused regression without editing the shared Level-2/3
 test file owned by open PR #1296.
 
+Canonical shard 5 then exposed missing readiness covering-test mappings for
+the three engine-only probes. The A2 check requires a passing named assertion
+for every unreachable adapter family. Bind the existing discriminating probe
+tests in this challenge's Level-4 mapping, without changing the readiness
+check or claiming a session/runtime result. No open PR owns this registry
+path at repair start. Native A2 integration remains unavailable because
+Graphite imports POSIX fcntl; pinned Linux CI must execute the actual gate.
+
 Final reachability priority (refined from the proposed queue order):
 1. G7's case-level finite-output detection on Carbon-generated, validated
    CPU graph fixtures. Admitted graph outputs can reach the staged battery
@@ -69,7 +77,8 @@ Expected paths: this ticket; both named decisions; adapter.py; verify.py;
 battery_level4.py;
 battery_level4_checks.py; the new L4 check test file (the original adapter
 test file remains unchanged); and
-docs/development/graphite/LEVEL4_ATTACK_ORACLES.md.
+docs/development/graphite/LEVEL4_ATTACK_ORACLES.md; the three Level-4
+family_covering_tests entries in readiness/challenges.json.
 
 Native diagnostics are noncanonical. Baseline broad checks encountered
 Windows fcntl absence and Python 3.12 Protocol proxy behavior; those do not
