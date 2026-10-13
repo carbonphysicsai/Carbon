@@ -141,3 +141,30 @@ def test_the_d2_panel_is_forty_stratified_public_cases_on_the_short_ladder():
     assert sorted({j["mesh"] for j in jobs}) == [20, 40, 80, 160]
     assert all(j["rtol"] == (1e-5 if j["mesh"] == 20 else 1e-6) for j in jobs)
     assert all(j["cycles"] == 1 and j["period_s"] is None for j in jobs)
+
+
+def test_the_d2_final_panel_is_the_validators_spec():
+    path = (
+        REPOSITORY / "docs/development/evidence/plating-convergence-02/cases-final.json"
+    )
+    document = json.loads(path.read_text(encoding="utf-8"))
+    assert document["ladder"] == pc.PANEL
+    assert document["counts"] == {
+        "feasible_2_4mV": 21,
+        "feasible_4_8mV": 10,
+        "negative_pair": 4,
+    }
+    tiers = {}
+    for case in document["cases"]:
+        tiers.setdefault(case["panel_tier"], []).append(case)
+    assert all(
+        c["reference_status"] == "FEASIBLE" and 2e-3 < c["reference_margin_v"] <= 4e-3
+        for c in tiers["feasible_2_4mV"]
+    )
+    assert all(4e-3 < c["reference_margin_v"] <= 8e-3 for c in tiers["feasible_4_8mV"])
+    assert {(c["question"], c["c1"], c["c2"]) for c in tiers["negative_pair"]} == {
+        ("V-T9-S0.06", 1.25, 0.6),
+        ("V-T9-S0.06", 1.5, 0.6),
+        ("V-T9-S0.06", 1.0, 0.6),
+        ("V-T9-S0.22", 1.0, 0.6),
+    }
