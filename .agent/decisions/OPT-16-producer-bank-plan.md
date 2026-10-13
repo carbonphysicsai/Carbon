@@ -9,6 +9,11 @@ owns the per-Challenge drawer and reference execution. This keeps the generic
 Score Lab interface reusable while refusing any unregistered question law,
 reference policy or TRAIN-separation evidence.
 
+The draw separates buyer `context` from `physical_context`. Every question's
+action-condition requirement is listed, while identical physical cases in
+the same block map to one reference job. A physical case shared across blocks
+is refused so the block split cannot silently reuse a reference solve.
+
 The full plan, split and job list are producer-only. The reconciliation command
 returns aggregate counts and a development-half winnability diagnostic;
 confirmation records are never sent to `bank.check`. Actual near-window jobs

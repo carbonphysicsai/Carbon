@@ -49,6 +49,7 @@ def _fixture():
                 "block_id": f"block-{block}",
                 "task": task,
                 "context": {"toy_load": block},
+                "physical_context": {"toy_load": block},
                 "conditions": [
                     {"id": "cold", "value": {"toy_ambient": 1}},
                     {"id": "warm", "value": {"toy_ambient": 2}},
@@ -95,7 +96,7 @@ def _solved(planned):
     records = []
     jobs = {
         (j["question_id"], j["action_id"], j["condition_id"]): j["job_id"]
-        for j in planned["jobs"]
+        for j in planned["requirements"]
     }
     for q in planned["questions"]:
         records.append(
@@ -119,7 +120,9 @@ def _solved(planned):
                             "job_id": jobs[q["question_id"], action, c["id"]],
                             "status": "FEASIBLE",
                             "objective": 0.5 if action == "a" else 1.0,
-                            "record_sha256": _sha(q["question_id"] + action + c["id"]),
+                            "record_sha256": _sha(
+                                jobs[q["question_id"], action, c["id"]]
+                            ),
                             "image_digest": planned["manifest"]["image_digest"],
                             "overlay_lock_digest": planned["manifest"][
                                 "overlay_lock_digest"
@@ -146,8 +149,11 @@ def test_plan_enumerates_every_action_condition_and_splits_whole_blocks():
     assert replay == planned
     assert planned["scope"] == "PRODUCER_ONLY"
     assert len(planned["questions"]) == 8
-    assert len(planned["jobs"]) == 32
-    assert len({j["job_id"] for j in planned["jobs"]}) == 32
+    assert len(planned["requirements"]) == 32
+    assert (
+        len(planned["jobs"]) == 16
+    )  # target and requirement-only neighbour reuse solves
+    assert len({j["job_id"] for j in planned["jobs"]}) == 16
     assert {j["role"] for j in planned["jobs"]} == {"HELDOUT_REFERENCE"}
     by_block = {}
     for q in planned["questions"]:
@@ -185,6 +191,15 @@ def test_plan_refuses_unregistered_draws_and_insufficient_blocks():
         bank_builder.plan(
             changed, q_draws, definition_bytes=definition, split_seed="split"
         )
+    overlap = json.loads(json.dumps(draws))
+    for row in overlap["contexts"]:
+        if row["block_id"] == "block-1":
+            row["physical_context"] = {"toy_load": 0}
+    changed = {**registration, "draws_digest": bank_builder.digest(overlap)}
+    with pytest.raises(LabRefused, match="bank_block_reference_case_overlap"):
+        bank_builder.plan(
+            changed, overlap, definition_bytes=definition, split_seed="split"
+        )
 
 
 def test_solved_checker_keeps_confirmation_values_out_of_report():
@@ -221,6 +236,15 @@ def test_solved_checker_keeps_confirmation_values_out_of_report():
     first = broken[0]["actions"]["a"][0]
     first["job_id"] = _sha("wrong_job")
     with pytest.raises(LabRefused, match="bank_solved_reference_record"):
+        bank_builder.check_solved(planned, broken, definition_bytes=definition)
+    broken = _solved(planned)
+    match = next(
+        r
+        for r in broken
+        if r["block_id"] == broken[0]["block_id"] and r["task"] != broken[0]["task"]
+    )
+    match["actions"]["a"][0]["record_sha256"] = _sha("different_solve")
+    with pytest.raises(LabRefused, match="bank_reused_solve_digest_mismatch"):
         bank_builder.check_solved(planned, broken, definition_bytes=definition)
     broken = _solved(planned)
     del broken[0]["actions"]["a"][0]["margins"]
@@ -269,15 +293,15 @@ def test_refinement_cost_uses_this_bank_composition_and_unit():
             "record_sha256": _sha(j["job_id"]),
             "margin_quantity": "toy_margin",
             "margin_unit": "toy_unit",
-            "margin": 0.0 if i < 8 else 0.1,
+            "margin": 0.0 if i < 4 else 0.1,
         }
         for i, j in enumerate(planned["jobs"])
     }
     result = bank_builder.reference_cost(planned, policy, coarse)
     assert result["refinement_status"] == "BANK_COMPOSITION_MEASURED"
     assert result["in_window_share"] == 0.25  # own bank, not PDD's 7.3%
-    assert result["fine_jobs"] == 8 and result["trigger_jobs"] == 1
-    assert result["total_cpu_hours"] == pytest.approx((32 * 10 + 8 * 100 + 20) / 3600)
+    assert result["fine_jobs"] == 4 and result["trigger_jobs"] == 1
+    assert result["total_cpu_hours"] == pytest.approx((16 * 10 + 4 * 100 + 20) / 3600)
     wrong = dict(coarse)
     first = planned["jobs"][0]["job_id"]
     wrong[first] = {**wrong[first], "margin_unit": "wrong_unit"}
@@ -317,7 +341,7 @@ def test_producer_cli_writes_jobs_but_prints_only_aggregates(tmp_path, capsys):
         )
         == 0
     )
-    assert len(json.loads(planned.read_text(encoding="utf-8"))["jobs"]) == 32
+    assert len(json.loads(planned.read_text(encoding="utf-8"))["jobs"]) == 16
     assert "q-0" not in capsys.readouterr().out
     records = tmp_path / "records.jsonl"
     records.write_text(

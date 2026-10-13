@@ -5,8 +5,12 @@
 `bank-plan` consumes a registered V2 definition, a digest-bound committed draw
 from the Challenge's P law, and a committed block-split seed. It does not draw
 P, invent a reference policy, or run a solver. Its `--out` file contains the
-full contexts, split and every action-by-condition reference job: keep it on
-the **producer**, never publish it or feed it to a miner. The command prints
+full contexts, split, every action-by-condition requirement and the distinct
+physical reference jobs: keep it on the **producer**, never publish it or feed
+it to a miner. A draw supplies `physical_context` separately from buyer
+requirements, so objective/limit-only neighbours reuse the same solve.
+Reusing one physical case across blocks is refused, and reused records must
+carry the same solve digest. The command prints
 only question and job counts. Data Collection owns the Challenge drawer and
 reference launcher; their outputs are registered inputs, not built here.
 

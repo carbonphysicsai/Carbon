@@ -154,6 +154,7 @@ def plan(registration, draws, *, definition_bytes, split_seed):
             or q.get("fallback_action") not in action_ids
             or not _positive(q.get("weight"))
             or not isinstance(q.get("context"), dict)
+            or not isinstance(q.get("physical_context"), dict)
             or not isinstance(q.get("conditions"), list)
             or not q["conditions"]
             or any(
@@ -187,33 +188,46 @@ def plan(registration, draws, *, definition_bytes, split_seed):
         }
         for q in contexts
     ]
-    jobs = []
+    jobs_by_id = {}
+    requirements = []
+    job_block = {}
     for q in questions:
         for action in actions:
             for condition in q["conditions"]:
                 key = {
-                    "draws_digest": registration["draws_digest"],
-                    "question_id": q["question_id"],
-                    "action_id": action["id"],
-                    "condition_id": condition["id"],
+                    "image_digest": registration["image_digest"],
+                    "reference_policy_digest": registration["reference_policy_digest"],
+                    "physical_context": q["physical_context"],
+                    "action": action["value"],
+                    "condition": condition["value"],
                 }
-                jobs.append(
+                job_id = digest(key)
+                if job_id in job_block and job_block[job_id] != q["block_id"]:
+                    raise LabRefused("bank_block_reference_case_overlap")
+                job_block[job_id] = q["block_id"]
+                requirements.append(
                     {
-                        "job_id": digest(key),
-                        "role": "HELDOUT_REFERENCE",
-                        "half": q["half"],
                         "question_id": q["question_id"],
                         "action_id": action["id"],
                         "condition_id": condition["id"],
+                        "job_id": job_id,
+                    }
+                )
+                jobs_by_id.setdefault(
+                    job_id,
+                    {
+                        "job_id": job_id,
+                        "role": "HELDOUT_REFERENCE",
+                        "half": q["half"],
                         "action": action["value"],
-                        "context": q["context"],
+                        "context": q["physical_context"],
                         "condition": condition["value"],
                         "image_digest": registration["image_digest"],
                         "overlay_lock_digest": registration["overlay_lock_digest"],
                         "reference_policy_digest": registration[
                             "reference_policy_digest"
                         ],
-                    }
+                    },
                 )
     manifest = {
         field: registration[field]
@@ -253,7 +267,8 @@ def plan(registration, draws, *, definition_bytes, split_seed):
         "action_ids": action_ids,
         "manifest": manifest,
         "questions": questions,
-        "jobs": jobs,
+        "requirements": requirements,
+        "jobs": list(jobs_by_id.values()),
     }
 
 
@@ -268,7 +283,7 @@ def check_solved(planned, records, *, definition_bytes, **winnability):
     expected = {q["question_id"]: q for q in planned["questions"]}
     expected_jobs = {
         (j["question_id"], j["action_id"], j["condition_id"]): j["job_id"]
-        for j in planned["jobs"]
+        for j in planned["requirements"]
     }
     if (
         not isinstance(records, list)
@@ -278,6 +293,7 @@ def check_solved(planned, records, *, definition_bytes, **winnability):
     ):
         raise LabRefused("bank_solved_question_coverage")
     by_half = {"development": [], "confirmation": []}
+    solve_digests = {}
     for r in records:
         q = expected[r["question_id"]]
         for field in ("block_id", "task", "half", "fallback_action", "weight"):
@@ -329,6 +345,10 @@ def check_solved(planned, records, *, definition_bytes, **winnability):
                 for c in conditions
             ):
                 raise LabRefused("bank_solved_reference_record")
+            for c in conditions:
+                previous = solve_digests.setdefault(c["job_id"], c["record_sha256"])
+                if previous != c["record_sha256"]:
+                    raise LabRefused("bank_reused_solve_digest_mismatch")
         computed, _ = bank.classify(r)
         if r.get("class") != computed:
             raise LabRefused("bank_class_mismatch")
