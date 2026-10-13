@@ -13,14 +13,14 @@ import pytest
 pytest.importorskip("jax")
 os.environ.setdefault("JAX_PLATFORMS", "cpu")
 
-from test_battery_composed_graph import BASE, PARTS, ROOT, compiled
-from test_battery_composed_graph import (
-    graph_input as graph_input,
-)  # noqa: PLC0414 - pytest fixture registration
+from test_battery_composed_graph import BASE, PARTS, ROOT, compiled, graph_input
 
 from carbon.battery import composed_graph_cost as profile_cost
 from carbon.level4 import compile as g5
 from carbon.training_budget import cost
+
+# Pytest registers this shared fixture by its exported module name.
+__all__ = ["graph_input"]
 
 IMAGE = "sha256:" + "1" * 64  # non-production fixture identity
 
