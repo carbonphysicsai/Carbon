@@ -719,9 +719,16 @@ def test_the_tasks_start_names_the_refused_practice_field(monkeypatch):
 
 def test_a_refusal_without_a_correction_names_no_field():
     assert AdapterFailure(AdapterCode.INVALID_ARGUMENT).field is None
+    # A request that is not an object has no declared field to name.
     with pytest.raises(AdapterFailure) as raised:
+        standard._arguments("start_research_task", ["not", "an", "object"])
+    assert raised.value.correction is None and raised.value.field is None
+    # A bad top-level value is now named with its registered correction
+    # (the 2026-10-13 L4 dry run: seven of seven top-level refusals were mute).
+    with pytest.raises(AdapterFailure) as named:
         standard._arguments("start_research_task", {**door_practice(), "kind": "x"})
-    assert raised.value.correction is None
+    assert named.value.field == "kind"
+    assert named.value.correction["correction_code"] == "tool_value_invalid"
 
 
 # ---- 4. Frozen plans and tool surfaces replay byte for byte.
