@@ -40,3 +40,12 @@ no scientific/security/production qualification, real winnability result,
 spend grant or bank readiness. Owner P/Q/w, uncertainty, objective/law adoption,
 pass/park thresholds and resource grants stay explicit inputs. Queue/report
 remain untracked; stop after this item.
+
+Review repair (PR #1282, 2026-10-13): require content-pinned per-quantity
+reference uncertainty and band coverage; missing values stay HOLD. Input
+bundle v2 is prospective. Include explicit operator CPU placement, caught
+soft CPU-limit HOLD and worker/acquisition sizing clarification in one push.
+Retain all caps and physical/host holds. Root Test Lead now owns engineering
+merge; the prior PR Head routing and per-item cadence are superseded by the
+owner's current team direction. Existing scientific/security/spend/release
+and deployment authorities remain reserved.
