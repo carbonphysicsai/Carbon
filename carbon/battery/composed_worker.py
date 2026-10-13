@@ -1,8 +1,8 @@
 """What Carbon stages for a composed development rebuild (CONSTRUCTION-CONTRACT-01 S1).
 
-A development construction whose reconstruction carries two or more parts
-(Level 1's loss expression, Level 2's SpecMuon or pool selection, Level 3's
-numerics) trains them together with the composed trainer
+A development construction whose reconstruction carries parts of two or more
+levels (Level 1's loss expression, Level 2's SpecMuon or pool selection, Level
+3's numerics) trains them together with the composed trainer
 (`carbon.battery.composed_training`). The worker gets, beside a Level-0
 rebuild's files:
 - `battery-composed.json`: which parts are on, and Level 3's menu;
@@ -12,8 +12,9 @@ rebuild's files:
 
 Nothing the strategy supplied is executed.
 
-**One part is not composed.** A construction with a single part keeps its own
-level's record, program, files and trainer, byte for byte
+**One level is not composed.** A construction whose parts are all one level's
+(SpecMuon and a pool selection are both Level 2's) keeps that level's own
+record, program, files and trainer, byte for byte
 (`development_rebuild`), so composing changes no single-level rebuild.
 
 **Level 4 is S2.** A Level 4 graph beside any other part is refused
@@ -45,6 +46,8 @@ FIELDS = {
     "numerics": "quasi_newton_family/line_search",
     "graph": "composition_graphs",
 }
+#: The level each part belongs to: composing starts at two levels.
+LEVEL_OF = {"expression": 1, "spectral": 2, "pool": 2, "numerics": 3, "graph": 4}
 STAGED_MODULES = {
     "battery-composed-training.py": ("battery", "composed_training.py"),
     "battery-level2-specmuon.py": ("battery", "level2_specmuon.py"),
@@ -126,7 +129,9 @@ def composed_record(reconstruction):
     (a single part keeps its own level's record). A graph beside another part
     is not composed yet: `RebuildUnavailable`, naming the fields."""
     found = parts(reconstruction)
-    if len(found) < 2:
+    if len({LEVEL_OF[name] for name in found}) < 2:
+        # One level's parts (SpecMuon and a pool selection are both Level 2)
+        # keep that level's own record and route.
         return None
     if "graph" in found:
         raise RebuildUnavailable(FIELDS[name] for name in found)

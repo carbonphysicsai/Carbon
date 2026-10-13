@@ -297,3 +297,53 @@ def _named(fields):
     for item in fields:
         names.update(item.split("/"))
     return names
+
+
+def answer(strategy, composition=None, *, check_budget=True):
+    """A plain answer for one strategy: ACCEPTED with the derived description
+    and what the rebuild trains, or REFUSED with the code and the fields it
+    names. For doors and tools; nothing here decides by level."""
+    from carbon.battery import development_rebuild
+    from carbon.development_session.research_catalog import RecipeRejected
+    from carbon.reconstruction.challenge_contracts import SubmissionRefused
+
+    try:
+        found = compile(strategy, composition, check_budget=check_budget)
+    except dv.VariantRefused as refused:
+        return {
+            "status": "REFUSED",
+            "code": refused.code,
+            "issues": [list(issue) for issue in refused.issues],
+        }
+    except (SubmissionRefused, RecipeRejected) as refused:
+        return {
+            "status": "REFUSED",
+            "code": type(refused).__name__,
+            "detail": str(refused),
+        }
+    return {
+        "status": "ACCEPTED",
+        "derived": dict(found.derived),
+        "rebuild": development_rebuild.kind(found.record) or "level0",
+        "development": found.development if found.reconstruction else None,
+    }
+
+
+def main(argv=None):
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        prog="python -m carbon.reconstruction.development_composition",
+        description="Compile one strategy under the construction contract (DEVELOPMENT).",
+    )
+    parser.add_argument("strategy", type=Path, help="a strategy JSON file")
+    parser.add_argument("--no-budget", action="store_true", help="skip the cost check")
+    args = parser.parse_args(argv)
+    strategy = json.loads(args.strategy.read_text(encoding="utf-8"))
+    result = answer(strategy, check_budget=not args.no_budget)
+    print(json.dumps(result, indent=1, sort_keys=True))
+    return 0 if result["status"] == "ACCEPTED" else 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

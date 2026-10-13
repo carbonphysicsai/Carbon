@@ -125,6 +125,16 @@ def test_a_single_level_recipe_compiles_exactly_as_under_its_own_variant(name):
     assert composed.level == level
 
 
+def test_one_levels_own_combination_keeps_that_levels_route():
+    """SpecMuon and a pool selection are both Level 2's: the Level 2 variant
+    already rebuilds them together, so the composition leaves them on it."""
+    own = dv.compile_development(strategy("spectral", "pool"), dv.variant(BATTERY, 2))
+    composed = dc.compile(strategy("spectral", "pool"))
+    assert composed.record == development_rebuild.record(own.reconstruction)
+    assert not composed_worker.is_composed(composed.record)
+    assert composed.level == 2
+
+
 def test_a_level0_recipe_stays_level0():
     composed = dc.compile(strategy())
     assert composed.reconstruction == {} and composed.record is None
@@ -134,7 +144,6 @@ def test_a_level0_recipe_stays_level0():
 @pytest.mark.parametrize(
     "names",
     [
-        ("spectral", "pool"),
         ("l1", "spectral"),
         ("l1", "l3"),
         ("spectral", "l3"),
@@ -242,3 +251,16 @@ def test_registered_variants_and_their_pins_are_untouched():
     assert "battery-construction-v1" not in registry["versions"]
     for level in (1, 2, 3, 4):
         assert dv.variant(BATTERY, level).version in registry["versions"]
+
+
+def test_the_answer_says_accepted_or_names_the_refused_fields(tmp_path):
+    accepted = dc.answer(strategy("spectral", "l3"), check_budget=False)
+    assert accepted["status"] == "ACCEPTED" and accepted["rebuild"] == "composed"
+    assert accepted["derived"]["level"] == 3
+    graph = {"composition_graphs": "sha256:" + "0" * 64}
+    refused = dc.answer(strategy("l3", **graph), check_budget=False)
+    assert refused["status"] == "REFUSED" and refused["code"] == dc.UNAVAILABLE
+    assert [dc.UNAVAILABLE, "/parameters/composition_graphs"] in refused["issues"]
+    path = tmp_path / "strategy.json"
+    path.write_text(json.dumps(strategy("l1", "pool")))
+    assert dc.main([str(path), "--no-budget"]) == 0
