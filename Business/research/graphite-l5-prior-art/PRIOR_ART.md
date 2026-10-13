@@ -44,11 +44,13 @@ The repository interpretation is pinned to main
 - [Loss-expression review packet](https://github.com/carbonphysicsai/Carbon/blob/e9a28008b3975c3aaa93b710b6f623221241c2eb/docs/development/graphite/L1_LOSS_EXPRESSIONS_REVIEW_PACKET.md): its current header says REVIEWED AND BUILT as a development variant, while the miner-facing contract excludes the field. Historical draft text below the header is not current permission. Training-expression reconstruction evidence is not evidence of buyer gain.
 - [Business authority](https://github.com/carbonphysicsai/Carbon/blob/e9a28008b3975c3aaa93b710b6f623221241c2eb/Business/Business_Canon.md) and [invariants](https://github.com/carbonphysicsai/Carbon/blob/e9a28008b3975c3aaa93b710b6f623221241c2eb/.agent/INVARIANTS.md): no commercial claim, scientific acceptance or toolkit widening follows from this research. Population P, sampling Q and weighting w are not changed. Reference-relative error is not physical validation.
 
-**Number convention.** Each individual published point below has
-low = base = high = the printed point because its uncertainty is unavailable
-unless explicitly stated otherwise. This is a transcription convention, not
-a zero-width confidence interval. Arrows compare reported points; they are not
-uncertainty ranges. Cross-condition ranges are labelled as such. Every Carbon
+**Number convention.** Each individual published point below is transcribed as
+low = base = high = the printed point; reported study spread is recorded
+separately where available. This is a transcription convention, not a
+zero-width confidence interval or a claim of no reported uncertainty. Arrows
+compare reported points; they are not uncertainty ranges. Cross-condition
+ranges are labelled as such. None establishes uncertainty on an isolated
+Carbon-candidate contrast. Every Carbon
 effect forecast in Ah, plating-margin mV, verification cost or shifted utility
 has **low/base/high = HUMAN_INPUT / HUMAN_INPUT / HUMAN_INPUT**. No numerical
 production prior or minimum useful gain is selected.
@@ -64,7 +66,8 @@ penalty. Dataset-level SOH MAPE pairs (MLP -> PINN) are XJTU **2.60% -> 0.85%**,
 TJU **1.72% -> 1.21%**, HUST **0.83% -> 0.65%**, MIT **0.83% -> 0.78%**.
 These are same-inference-architecture composite-method comparisons, not an
 isolated monotone-head or CV-loss ablation. MAPE is relative to SOH, not an
-absolute capacity error.
+absolute capacity error. Figure 4b has **10** repeats with mean/SD marks;
+these are not an isolated-candidate effect interval.
 
 Cross-dataset gains use target-labelled fine-tuning, including experiments
 with **one** labelled target battery; they do not establish frozen-model reuse.
@@ -81,7 +84,9 @@ report SOH RMSE (%): without monotonicity **0.63**, without physics loss
 **0.87**, full hybrid **0.29**. Derived differences are **0.34** and **0.58**
 percentage points. Monotonicity penalizes latent irreversible degradation,
 not instantaneous measured capacity. Frozen NASA-trained transfer RMSE is
-**0.41** on Oxford and **0.47** on local LFP. The weighting sweep reports
+**0.41** on Oxford and **0.47** on local LFP. Table 4's Std. entries are
+**+/-0.021 / +/-0.035 / +/-0.042** (NASA/Oxford/LFP; five initializations),
+not paired-effect CIs. The weighting sweep reports
 lambda/RMSE/violation-count: **0/0.52/17**, **0.1/0.39/6**, **0.5/0.29/0**,
 **1/0.34/0**, **5/0.61/0**. Stronger weighting can worsen accuracy despite
 removing violations.
