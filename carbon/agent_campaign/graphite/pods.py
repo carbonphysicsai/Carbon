@@ -559,6 +559,33 @@ def manifest_digest(manifest):
 
 
 # -- the live backend ----------------------------------------------------------------------
+def full_wait(clock, sleep, *, rounds=100):
+    """`sleep(seconds)` that returns only once `clock` agrees the time has passed
+    (at most `rounds` top-ups). Under WSL's slewed wall clock a plain `time.sleep`
+    can wake a moment before `time.time()` reaches its end, so the operator layer
+    stopped an ambiguous create's reconcile gap as not elapsed (Data Collection,
+    2026-10-13; #1250's `pod_jobs.sleep_until` for pod jobs)."""
+
+    def wait(seconds):
+        end = clock() + seconds
+        sleep(seconds)
+        for _ in range(rounds):
+            left = end - clock()
+            if left <= 0:
+                return
+            sleep(max(left, 0.01))
+
+    return wait
+
+
+def _wall_sleep(clock, sleep):
+    """The real `time.sleep` with the real `time.time` waits in full; an injected
+    sleep or clock (tests, fakes) is used exactly as given."""
+    if sleep is time.sleep and clock is time.time:
+        return full_wait(clock, sleep)
+    return sleep
+
+
 class RunPodPods:
     """RunPod pods on Carbon's account through the operator layer (`operator_compute`).
 
@@ -601,6 +628,7 @@ class RunPodPods:
         self.scoring = challenge_scoring.resolve(scoring)
         self.economics = prices(rate_ceiling)
         self.repository, self.code_ref = Path(repository), code_ref
+        sleep = _wall_sleep(clock, sleep)
         self.clock, self.sleep = clock, sleep
         self.balance_floor = balance_floor
         # One safe retry after an ambiguous create (reconcile by tag first); off

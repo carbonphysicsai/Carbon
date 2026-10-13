@@ -1,0 +1,201 @@
+{
+  "schema": "carbon.physics-contract.v1",
+  "challenge": "battery-fastcharge-ageing-development-v1",
+  "version": "battery-physics-v2",
+  "status": "DEVELOPMENT_ADOPTED_B15",
+  "note": "OWNER-PHYSICS-GATES-01: B15 mandatory admissibility, DEVELOPMENT/testnet only. Prospective new deployment state; historical v1 and results unchanged. B16 and B9 remain measurement only; B8 diagnostic. Other laws retain their v1 state. Gates never substitute for verified decisions; no LIVE/mainnet qualification.",
+  "validity": "battery-fastcharge-ageing-development-v1",
+  "validity_status": "PENDING_SCIENCE_OWNER",
+  "validity_models": [],
+  "required_outputs": [
+    "voltage_v",
+    "temperature_c",
+    "plating_margin_v",
+    "capacity_ah"
+  ],
+  "output_shapes": {
+    "voltage_v": 121,
+    "temperature_c": 121,
+    "plating_margin_v": 0,
+    "capacity_ah": 4
+  },
+  "probe_region": {
+    "c1": [
+      0.5,
+      2.0
+    ],
+    "c2": [
+      0.2,
+      1.0
+    ],
+    "t_amb_c": [
+      5.0,
+      40.0
+    ],
+    "soc0": [
+      0.05,
+      0.5
+    ]
+  },
+  "laws": [
+    {
+      "id": "B15",
+      "name": "rest temperature causality",
+      "type": "prefix_invariance",
+      "output": "temperature_c",
+      "inputs": [
+        "c1",
+        "c2"
+      ],
+      "step": 0.05,
+      "grid_step_s": 30,
+      "switch_time_s": 120,
+      "role": "MANDATORY_ADMISSIBILITY",
+      "evidence": "RES-06 R04; PHYSICS_CONTRACT_01_HANDOFF.md: RES-06 folded in",
+      "adoption": "ADOPTED",
+      "allowance_absolute_c": 0.0001,
+      "gate_max_violation_rate": 0,
+      "reference_image": "sha256:2d19b261e722fe67f20bee02e115f2277a799c448b90d54d2872361b341bd940",
+      "adoption_reference": ".agent/decisions/2026-10-13-OWNER-PHYSICS-GATES-01.md"
+    },
+    {
+      "id": "B16",
+      "name": "rest voltage causality",
+      "type": "prefix_invariance",
+      "output": "voltage_v",
+      "inputs": [
+        "c1",
+        "c2"
+      ],
+      "step": 0.05,
+      "grid_step_s": 30,
+      "switch_time_s": 120,
+      "role": "MODEL_CARD_METRIC_ONLY",
+      "evidence": "RES-06; PHYSICS_CONTRACT_01_HANDOFF.md: RES-06 folded in",
+      "adoption": "HUMAN_INPUT"
+    },
+    {
+      "id": "B1",
+      "name": "cycler window",
+      "type": "bound",
+      "output": "voltage_v",
+      "low": 2.5,
+      "high": 4.2,
+      "role": "EXISTING_EXAM_CONSISTENCY",
+      "existing_exam_gate": "carbon.battery.exam.GATES: voltage_ceiling, voltage_floor"
+    },
+    {
+      "id": "B2",
+      "name": "initial temperature is ambient",
+      "type": "initial_equals_input",
+      "output": "temperature_c",
+      "input": "t_amb_c",
+      "role": "EXISTING_EXAM_CONSISTENCY",
+      "existing_exam_gate": "carbon.battery.exam.GATES: initial_temperature"
+    },
+    {
+      "id": "B3",
+      "name": "initial voltage near OCV(soc0)",
+      "type": "initial_near_aux",
+      "output": "voltage_v",
+      "aux": "ocv",
+      "input": "soc0",
+      "role": "EXISTING_EXAM_CONSISTENCY",
+      "existing_exam_gate": "carbon.battery.exam.GATES: initial_voltage"
+    },
+    {
+      "id": "B4",
+      "name": "capacity fades over cycles",
+      "type": "ordered",
+      "output": "capacity_ah",
+      "direction": "decreasing"
+    },
+    {
+      "id": "B5a",
+      "name": "peak temperature rises with c1",
+      "type": "monotone",
+      "output": "temperature_c",
+      "summary": "max",
+      "input": "c1",
+      "direction": "increasing",
+      "step": 0.05
+    },
+    {
+      "id": "B5b",
+      "name": "peak temperature rises with c2",
+      "type": "monotone",
+      "output": "temperature_c",
+      "summary": "max",
+      "input": "c2",
+      "direction": "increasing",
+      "step": 0.05
+    },
+    {
+      "id": "B6",
+      "name": "plating margin falls with c1",
+      "type": "monotone",
+      "output": "plating_margin_v",
+      "summary": "value",
+      "input": "c1",
+      "direction": "decreasing",
+      "step": 0.05
+    },
+    {
+      "id": "B7",
+      "name": "plating margin rises with ambient (RES-06 to confirm)",
+      "type": "monotone",
+      "output": "plating_margin_v",
+      "summary": "value",
+      "input": "t_amb_c",
+      "direction": "increasing",
+      "step": 0.05
+    },
+    {
+      "id": "B8",
+      "name": "temperature curve rises with ambient",
+      "type": "monotone_curve",
+      "output": "temperature_c",
+      "input": "t_amb_c",
+      "direction": "increasing",
+      "step": 0.05
+    },
+    {
+      "id": "B9",
+      "name": "temperature floor relative to ambient (diagnostic only)",
+      "type": "floor_input",
+      "output": "temperature_c",
+      "input": "t_amb_c",
+      "offset": 0.0,
+      "role": "DIAGNOSTIC_ONLY",
+      "margin_derivation": {
+        "status": "HUMAN_INPUT",
+        "parameter_set": "OKane2022",
+        "coefficient_reading": "See physics-parameters.json from the pinned image and overlay; both electrode entropic coefficients are zero",
+        "accuracy_term": "HUMAN_INPUT",
+        "other_signed_heat_nonnegative_proof": "HUMAN_INPUT",
+        "gate_proposal": false
+      }
+    },
+    {
+      "id": "B10",
+      "name": "smoothness (robustness probe)",
+      "type": "smoothness",
+      "outputs": [
+        "voltage_v",
+        "temperature_c",
+        "plating_margin_v",
+        "capacity_ah"
+      ],
+      "step": 0.01
+    }
+  ],
+  "tolerance": {
+    "rule": "reference residual quantile plus a registered margin",
+    "quantile": "HUMAN_INPUT",
+    "margin": "HUMAN_INPUT",
+    "gate_max_violation_rate": "HUMAN_INPUT"
+  },
+  "aux": {
+    "ocv": "the pinned public OCV table (carbon.battery.challenge.PublicMaterial)"
+  }
+}
