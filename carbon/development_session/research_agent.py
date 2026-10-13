@@ -846,6 +846,14 @@ SETTLEMENT_REFUSALS = {
         "this operation is not a model call; reconcile it through its own path"
     ),
     "not_uncertain": "this call's outcome is known; there is nothing to settle",
+    "provider_charge_invalid": (
+        "the retained provider charge is malformed; check the provider's own "
+        "usage record before this campaign makes another call"
+    ),
+    "settlement_journal_invalid": (
+        "the immutable settlement journal is corrupt or conflicts with this "
+        "call; keep the campaign stopped and review its retained records"
+    ),
     "request_changed": (
         "the retained request differs from the one reserved; keep the campaign "
         "as it is and report it"
@@ -880,6 +888,11 @@ SETTLEMENT_ACCOUNTING = (
     "provider's own charge, which may be lower or nothing, is not known to "
     "Carbon."
 )
+REPORTED_SETTLEMENT_ACCOUNTING = (
+    "The retained provider response reports this call's charge. That amount "
+    "is booked within the call's reservation; the model result remains "
+    "FAILED_INFRA and is never scientific evidence."
+)
 #: Recorded on a settlement of a call answered by another model (LP-PROD-A):
 #: booked, with what the booking does not prove.
 MODEL_CAVEAT = (
@@ -887,6 +900,11 @@ MODEL_CAVEAT = (
     "Carbon does not know that model's price, so the booked reservation is the "
     "selected model's maximum, not a proven upper bound on this call's charge; "
     "check the call against the provider's own usage record."
+)
+REPORTED_MODEL_CAVEAT = (
+    "The provider reported serving a different model than the one selected. "
+    "The booked amount is the provider-reported charge, not an estimate from "
+    "the selected model's price; retain the provider usage record for audit."
 )
 SETTLEMENT_RESEND = (
     "Nothing is resent by this settlement. The next model call of this turn goes "
@@ -974,7 +992,7 @@ def _other_model(response, request):
     )
 
 
-def _settlement(ledger, owner, identity):
+def _settlement(ledger, owner, identity, *, charge_from_response=False):
     """The settlement of an unresolved model call, as it would be journalled,
     with what the ledger needs to book it; or the recorded settlement of one
     already settled. Refuses with `SettlementRefused`; changes nothing."""
@@ -1015,6 +1033,20 @@ def _settlement(ledger, owner, identity):
     mismatch = reason == "model_mismatch" or (
         not known and _other_model(response, request)
     )
+    booked = reservation.copy()
+    charge_basis = "full_reservation"
+    if charge_from_response and "provider_nanodollars" in booked:
+        report = response.get("x_engy") if type(response) is dict else None
+        micro = report.get("charged_micro") if type(report) is dict else None
+        if (
+            type(report) is dict
+            and "charged_micro" in report
+            and (type(micro) is not int or micro < 0)
+        ):
+            raise SettlementRefused("provider_charge_invalid")
+        if type(micro) is int and micro >= 0:
+            booked["provider_nanodollars"] = micro * 1000
+            charge_basis = "provider_reported_charge"
     return row[2], {
         "schema": PROVIDER_SETTLEMENT,
         "identity": identity,
@@ -1022,19 +1054,30 @@ def _settlement(ledger, owner, identity):
         "provider_failure": known.get("provider_failure"),
         "request_retained": request_file.exists(),
         "response_retained": response_file.exists(),
-        "booked": reservation,
-        "accounting": SETTLEMENT_ACCOUNTING,
-        "caveat": MODEL_CAVEAT if mismatch else None,
+        "booked": booked,
+        "accounting": (
+            REPORTED_SETTLEMENT_ACCOUNTING
+            if charge_basis == "provider_reported_charge"
+            else SETTLEMENT_ACCOUNTING
+        ),
+        **({"charge_basis": charge_basis} if charge_from_response else {}),
+        "caveat": (
+            REPORTED_MODEL_CAVEAT
+            if mismatch and charge_basis == "provider_reported_charge"
+            else MODEL_CAVEAT if mismatch else None
+        ),
         "resend": SETTLEMENT_RESEND,
         "retry_dispatched": False,
     }
 
 
-def _settle(ledger, owner, identity):
+def _settle(ledger, owner, identity, *, charge_from_response=False):
     """Settle one call; the caller holds the exclusive provider-call lease."""
     from .research_ledger import ReconcileFenced
 
-    fingerprint, settlement = _settlement(ledger, owner, identity)
+    fingerprint, settlement = _settlement(
+        ledger, owner, identity, charge_from_response=charge_from_response
+    )
     if fingerprint is None:
         return settlement
     try:
@@ -1045,7 +1088,31 @@ def _settle(ledger, owner, identity):
         raise SettlementRefused("control_fenced") from None
     directory = _call_directory(ledger, owner, identity)
     directory.mkdir(mode=0o700, exist_ok=True)
-    write_once(directory / "settlement.json", canonical(settlement))
+    journal = directory / "settlement.json"
+    if journal.exists() or journal.is_symlink():
+        # A crash can leave the old full-reservation journal before the ledger
+        # booking. The current opt-in charge mode must not rewrite that
+        # immutable accounting choice. Recompute both recognized modes from
+        # this fenced call and accept only an exact canonical match.
+        try:
+            recorded = _read_record(journal, PROVIDER_SETTLEMENT)
+            raw_journal = journal.read_bytes() if recorded is not None else None
+        except (OSError, ValueError):
+            raise SettlementRefused("settlement_journal_invalid") from None
+        if recorded is None:
+            raise SettlementRefused("settlement_journal_invalid")
+        legacy_fingerprint, legacy = _settlement(ledger, owner, identity)
+        if (
+            legacy_fingerprint != fingerprint
+            or canonical(recorded) != raw_journal
+            or recorded not in (settlement, legacy)
+        ):
+            raise SettlementRefused("settlement_journal_invalid")
+        settlement = recorded
+    try:
+        write_once(journal, canonical(settlement))
+    except (OSError, ValueError):
+        raise SettlementRefused("settlement_journal_invalid") from None
     try:
         ledger.finish(
             identity,
@@ -1141,9 +1208,12 @@ def uncertain_calls(ledger, *, owner):
     return rows
 
 
-def settle_uncertain_calls(ledger, *, owner):
+def settle_uncertain_calls(ledger, *, owner, charge_from_response=False):
     """Settle every model call of this owner whose outcome is unknown: the
     reconcile action's entry point, under one exclusive provider-call lease.
+    By default each call books its full reservation. The opt-in Phase 4 path
+    books a retained provider-reported charge only when it is valid and within
+    the reservation; absent charge evidence still books the full reservation.
     Returns the settlements made and each refusal with its code; a refused
     call stays unresolved. While any call is in flight, every one is refused
     `call_in_flight` and nothing is booked."""
@@ -1155,7 +1225,14 @@ def settle_uncertain_calls(ledger, *, owner):
         with _provider_lease(ledger, exclusive=True):
             for identity in pending:
                 try:
-                    settled.append(_settle(ledger, owner, identity))
+                    settled.append(
+                        _settle(
+                            ledger,
+                            owner,
+                            identity,
+                            charge_from_response=charge_from_response,
+                        )
+                    )
                 except SettlementRefused as refusal:
                     refused.append({"identity": identity, "code": refusal.code})
     except SettlementRefused as busy:
