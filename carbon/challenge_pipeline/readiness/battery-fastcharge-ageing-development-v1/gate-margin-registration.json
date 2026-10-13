@@ -1,0 +1,68 @@
+{
+ "schema": "carbon.readiness.gate-margin-registration.v1",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "levels": [
+  2,
+  3,
+  4
+ ],
+ "basis": "PLT-09 batch 4 explicit L2/L3/L4 metadata; no measurement, custody or hidden-host authority granted",
+ "panel_digest": null,
+ "gates": [
+  {
+   "name": "schema_finite",
+   "unit": null,
+   "scope": "EXAM",
+   "fragile_below": null
+  },
+  {
+   "name": "paired_repeat",
+   "unit": null,
+   "scope": "EXAM",
+   "fragile_below": null
+  },
+  {
+   "name": "initial_voltage",
+   "unit": "V",
+   "scope": "EXAM",
+   "fragile_below": null
+  },
+  {
+   "name": "initial_temperature",
+   "unit": "degC",
+   "scope": "EXAM",
+   "fragile_below": null
+  },
+  {
+   "name": "voltage_ceiling",
+   "unit": "V",
+   "scope": "EXAM",
+   "fragile_below": null
+  },
+  {
+   "name": "voltage_floor",
+   "unit": "V",
+   "scope": "EXAM",
+   "fragile_below": null
+  },
+  {
+   "name": "capacity_bound",
+   "unit": "Ah",
+   "scope": "EXAM",
+   "fragile_below": null
+  },
+  {
+   "name": "near_optimism_bands",
+   "unit": "bands",
+   "scope": "VALUE_STUDY_ONLY",
+   "fragile_below": null
+  },
+  {
+   "name": "physics_gate_b15",
+   "unit": "degC",
+   "scope": "OPT_IN_B15",
+   "fragile_below": null
+  }
+ ],
+ "public_reference_margins": null
+}

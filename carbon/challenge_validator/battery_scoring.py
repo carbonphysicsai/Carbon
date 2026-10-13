@@ -28,6 +28,8 @@ class BatteryPracticeRule(PracticeRule):
     """The battery exam's frozen gates, calibration, score and comparison, on
     the public PRACTICE references (development feedback only)."""
 
+    RULE_KEY = "v2"
+
     def __init__(self, root):
         from carbon.battery import exam
         from carbon.battery.challenge import PublicMaterial
@@ -36,12 +38,12 @@ class BatteryPracticeRule(PracticeRule):
         self.root = Path(root)
         self.practice = PracticeSet.load(root)
         self.material = PublicMaterial.load(root)
-        rule = exam.RULES["v2"]
+        rule = exam.RULES[self.RULE_KEY]
         self.comparison = exam.ComparisonRule(
             equivalence_margin=rule["equivalence_margin_rel"], **rule["comparison"]
         )
         self.identity = {
-            "rule": "v2",
+            "rule": self.RULE_KEY,
             "authority": rule["authority"],
             "status": rule["status"],
             "equivalence_margin_rel": rule["equivalence_margin_rel"],

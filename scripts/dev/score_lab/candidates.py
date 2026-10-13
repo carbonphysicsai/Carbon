@@ -27,6 +27,20 @@ def load(path):
     return rules, hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def load_physics_wrapper(path):
+    """Load the Validator's read-only wrapper, without copying its policy."""
+    path = Path(path)
+    spec = importlib.util.spec_from_file_location("score_lab_physics_candidate", path)
+    if spec is None or spec.loader is None:
+        raise LabRefused("physics_wrapper_unavailable")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    wrapper = getattr(module, "with_physics", None)
+    if not callable(wrapper):
+        raise LabRefused("physics_wrapper_missing")
+    return wrapper
+
+
 def adapt_synthetic(panel, member):
     """Convert only the synthetic scoring half to the candidate contract."""
     if panel["scope"] != "SYNTHETIC_DEVELOPMENT":
@@ -125,6 +139,22 @@ def rule_from_spec(
         synthetic_panel = {"scope": panel["scope"], "score_questions": references}
         synthetic_member = {"score_predictions": predictions}
         cp, cr, cm = adapt_synthetic(synthetic_panel, synthetic_member)
+        cm["physics"] = metadata.get("physics")
+        cm["knobs"].update(metadata.get("knobs", {}))
+        cm["neighbours"] = []
+        for neighbour in metadata.get("neighbours", []):
+            np, nr, nm = adapt_synthetic(
+                {"scope": panel["scope"], "score_questions": neighbour["references"]},
+                {"score_predictions": neighbour["predictions"]},
+            )
+            cm["neighbours"].append(
+                {
+                    "id": neighbour["id"],
+                    "predictions": np,
+                    "references": nr,
+                    "metadata": nm,
+                }
+            )
         result = candidate(cp, cr, cm)
         if not isinstance(result, dict) or result.get("gate") not in (
             None,
@@ -134,7 +164,11 @@ def rule_from_spec(
             raise LabRefused("candidate_result_malformed")
         if result.get("score") is None:
             return None
-        return {"score": result["score"], "admissible": result["gate"] != "FAIL"}
+        return {
+            "score": result["score"],
+            "admissible": result["gate"] != "FAIL",
+            "tier": result.get("tier", 0),
+        }
 
     score.rule_identity = {
         "kind": "validator_candidate_toy_proxy",

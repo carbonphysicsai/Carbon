@@ -488,6 +488,16 @@ def test_real_authenticated_workspace_survives_adapter_reconnect(
             == second.payload["terminal_task"]["task_id"]
         )
         assert first.payload["public_result"] == second.payload["public_result"]
+        # The task id where docs/development/graphite/level4/STARTER.md tells an
+        # agent to read it, on the payload the agent receives: always at
+        # reply.result.task.task_id.value, and at public_result.task_id once the
+        # task has succeeded (null public_result otherwise).
+        task_id = first.payload["reply"]["result"]["task"]["task_id"]["value"]
+        assert task_id.startswith("rtsk_") and len(task_id) == 69
+        if numerical:
+            assert first.payload["public_result"] is None
+        else:
+            assert first.payload["public_result"]["task_id"] == task_id
         # The injected worker fails before its executor reserves anything, so
         # no trial slot is charged; the replay still executes it only once.
         assert ledger.status(owner=owner)["used"]["research_trials"] == 0

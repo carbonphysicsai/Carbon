@@ -479,6 +479,9 @@ NEXT_ACTIONS = {
         "was evaluated; the frozen candidate is kept. Check your connection, "
         "then submit again."
     ),
+    "peer_header_invalid": (
+        "Contact the validator's operator to fix its proxy connection, then retry."
+    ),
     "headers": (
         "The intake refused the request's headers (one was repeated), so "
         "nothing was evaluated; the frozen candidate is kept. Check that "
