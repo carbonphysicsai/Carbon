@@ -83,7 +83,6 @@ def test_it_is_its_own_grant_and_the_hunt_grants_are_unchanged():
     assert grant_binding.PHASE3_GRANTS[
         "GRAPHITE-GRANT-HUNT-H3-CONSTRUCTOR"
     ].authority == (grant_binding.HUNT_AUTHORITY)
-    assert {n for n in grant_binding.PHASE3_GRANTS if "HUNT-H4" in n} == set()
     assert GRANT_ID not in {g for g in grant_binding.PHASE3_GRANTS if "HUNT" in g}
 
 
@@ -171,3 +170,4 @@ def test_the_grants_index_lists_every_level_4_constructor_grant_with_its_pool():
             pools.get(row["authority"], Decimal(0)) + row["ceiling"]
         )
     assert pools[grant_binding.STANDING_TEST_GRANT_AUTHORITY] == Decimal("14.94")
+    assert pools[grant_binding.HUNT_AUTHORITY] == Decimal("14.94")
