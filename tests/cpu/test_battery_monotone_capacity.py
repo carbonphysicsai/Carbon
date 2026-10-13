@@ -201,7 +201,9 @@ def test_candidate_fixed_state_export_import_preserves_predictions(ensemble):
 
 def test_unregistered_candidate_is_outside_registered_graphite_ship():
     from carbon.agent_campaign.graphite import pods
+    from carbon.challenge_validator import scoring
     from carbon.development_comparison import monotone_capacity
+    from carbon.reconstruction.capability_registry import BATTERY_CHALLENGE
 
     repository = Path(__file__).resolve().parents[2]
     ref = subprocess.run(
@@ -210,7 +212,7 @@ def test_unregistered_candidate_is_outside_registered_graphite_ship():
         text=True,
         check=True,
     ).stdout.strip()
-    shipped = pods.ship_list(ref, repository)
+    shipped = pods.ship_list(ref, repository, scoring.scoring_for(BATTERY_CHALLENGE))
     candidate_path = Path(monotone_capacity.__file__).resolve().relative_to(repository)
     assert candidate_path.as_posix() not in shipped
     assert "carbon/battery/recipes.py" in shipped
