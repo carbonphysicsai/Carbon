@@ -43,6 +43,13 @@ def _with(strategy, **parameters):
     return changed
 
 
+def _without(strategy, *names):
+    changed = json.loads(json.dumps(strategy))
+    for name in names:
+        del changed["parameters"][name]
+    return changed
+
+
 def _fit(strategy, found, workspace):
     _, recipe = compile_recipe(strategy)
     model = level4_worker.build_in_process(recipe, found, workspace)
@@ -62,6 +69,7 @@ def trained():
         "base": _fit(base, found, workspace),
         "other": _fit(other, found, workspace),
         "steps": _fit(_with(base, steps=STEPS * 2), found, workspace),
+        "omitted": _fit(_without(base, "width", "depth"), found, workspace),
         "width": width,
         "depth": depth,
     }
@@ -87,3 +95,12 @@ def _leaves(tree):
     import jax
 
     return jax.tree_util.tree_leaves(tree)
+
+
+def test_a_recipe_without_width_and_depth_trains_the_same_graph(trained):
+    """Omitting them is safe on battery-l4-graph-v3: the compiler fills the
+    catalog's defaults before battery's MLP reads `settings["width"]`, and the
+    graph is still the network."""
+    recipe, _model, stats = trained["omitted"]
+    assert "width" in recipe.settings and "depth" in recipe.settings
+    assert stats["params_sha256"] == trained["base"][2]["params_sha256"]
