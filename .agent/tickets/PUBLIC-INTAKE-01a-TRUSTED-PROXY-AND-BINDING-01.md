@@ -68,7 +68,7 @@ agent validation: synthetic fixed snapshots/readers and existing test keys only.
 4. Canonical focused/affected/invariant regression, pinned quality, hygiene
    before each push and exact-head classified CI/Merge gate on the same PR.
 
-Canonical baseline: 147 tests passed. Final local canonical acceptance:
+Canonical baseline: 147 tests passed. Initial local canonical acceptance:
 633 tests passed with no skips, including 33 new proxy/binding/guard tests,
 existing intake and loopback service end-to-end tests, deployment/daemon,
 remote submissions, NET-2/remote transport and all invariants. The HTTP tests
@@ -82,6 +82,20 @@ Regression command from the isolated native-Linux clone:
 Main advanced to `e6ce153a20394c7803586d350f99a0c858c874f6` during this run;
 the intake, client, deployment and service dependencies did not change.
 No base merge was needed for an unrelated main advance.
+
+After the IPv6 repair, main added PLT-13's optional B15 deployment component.
+The branch was synced for that actual dependency change; 683 combined
+canonical tests passed with no skips, including the B15 component/checker and
+all invariants. An earlier repair run had one existing status-poll refusal;
+its unchanged targeted retry and whole 41-test proxy/endpoint rerun passed,
+then the combined 683-test run passed. No assertion was weakened.
+
+Full CI identified the new closed refusal's missing miner next-action entry.
+Add only `peer_header_invalid` to the supervisor's fixed catalog: contact the
+validator operator to fix the proxy, then retry. No intake check is bypassed
+and no miner is told to supply or spoof a trusted header. The existing catalog,
+supervisor/runtime/remote-submission and miner import-boundary regressions
+passed canonically (137 tests); the open-PR overlap scan on that file was empty.
 
 Reversible: remove the optional mode to return to the guarded direct listener;
 commitment enforcement for public exposure is intentionally not relaxable.
