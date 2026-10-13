@@ -674,6 +674,65 @@ class PackageEvidenceTests(unittest.TestCase):
         change(projection)
         self.texts["P4"] = json.dumps(projection)
 
+    def test_honesty_note_keeps_current_plating_hold_and_original_source_outcomes(self):
+        self.mutate(
+            lambda p: p["model_card"]["accuracy_near_limits"].update(outcome="PASS")
+        )
+        for profile in ("nasa-std-7009b", "asme-vv10", "asme-vv40", "dod-vva"):
+            with self.subTest(profile=profile):
+                output = render(
+                    CHALLENGE, profile, MemoryReader(self.texts), self.policy
+                )
+                text = output["sample.md"]
+                self.assertIn("battery-plating-ref-v2", text)
+                self.assertIn("No usable near-onset label", text)
+                self.assertIn("REFERENCE_ADEQUACY_NOT_ESTABLISHED / GAP", text)
+                self.assertIn("annotate, never re-score", text)
+                self.assertIn("refinement/failure/fallback costs", text)
+                self.assertIn(
+                    "Host-declared use, domain and observable coverage are assertions",
+                    text,
+                )
+                manifest = json.loads(output["generation-manifest.json"])
+                package = manifest["package_evidence"]
+                self.assertFalse(package["qualification_claim"])
+                for name in (
+                    "law_checks",
+                    "model_card",
+                    "trust_map",
+                    "decision_evidence",
+                ):
+                    self.assertTrue(
+                        any(
+                            "battery-plating-ref-v2" in gap
+                            and "REFERENCE_ADEQUACY_NOT_ESTABLISHED / GAP" in gap
+                            for gap in package["sections"][name]["gaps"]
+                        )
+                    )
+                row = next(
+                    r
+                    for r in package["sections"]["model_card"]["rows"]
+                    if r["field"] == "accuracy_near_limits"
+                )
+                self.assertEqual(row["value"], 0.1)
+                self.assertEqual(row["measurement_version"], "fixture-v1")
+                self.assertEqual(row["outcome"], "PASS")
+                annex = manifest["credibility_evidence"]
+                indexed = next(
+                    r
+                    for r in annex["matrix"]
+                    if r["requirement_id"] == "DEVREQ.model_card.accuracy_near_limits"
+                )
+                self.assertEqual(indexed["source_outcome"], "PASS")
+                self.assertEqual(indexed["requirement_outcome"], "NOT_ASSESSED")
+                self.assertTrue(
+                    any(
+                        "authority_ref are assertions" in limit
+                        for limit in annex["limits"]
+                    )
+                )
+                self.assertFalse(annex["qualification_claim"])
+
     def rows(self, section):
         return {
             row["field"]: row for row in self.package()["sections"][section]["rows"]

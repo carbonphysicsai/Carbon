@@ -69,6 +69,28 @@ def _holder(tmp_path, kept=None):
     return holder
 
 
+@pytest.mark.parametrize(
+    "shape",
+    [lambda d: [d], lambda d: {"digest": d}, lambda d: d.removeprefix("sha256:")],
+)
+def test_a_wrong_digest_shape_names_the_field_not_staging(tmp_path, staged, shape):
+    """A list, an object or a bare hex digest is refused as a shape fault that
+    names the field, before any staging lookup: even a holder that has the
+    envelope kept does not turn it into `level4_submission_not_staged`."""
+    strategy, digest, kept, _workspace = staged
+    wrong = json.loads(json.dumps(strategy))
+    wrong["parameters"]["composition_graphs"] = shape(digest)
+    folder = tmp_path / "proposal"
+    folder.mkdir()
+    with pytest.raises(Unrebuildable) as refused:
+        ex.Experiment._level4_documents(_holder(tmp_path, kept), folder, wrong)
+    assert refused.value.code == "level4_submission_shape"
+    assert refused.value.issues == (
+        ("level4.submission_one_digest_string", "parameters/composition_graphs"),
+    )
+    assert not (folder / "level4-envelope.json").exists()
+
+
 def test_a_proposal_carries_only_a_staged_submission(tmp_path, staged):
     strategy, _digest, kept, workspace = staged
     folder = tmp_path / "proposal"

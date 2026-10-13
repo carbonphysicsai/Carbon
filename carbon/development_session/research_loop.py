@@ -236,6 +236,13 @@ TOOL_CALL_MALFORMED = "tool_call_malformed"
 #: call of the epoch for nothing.
 REPLIES_TRUNCATED = "replies_truncated"
 MAX_TRUNCATED_TURNS = 2
+#: The named cause of that stop when every reply in the run hit the request's
+#: output cap (`max_output_tokens`): the model's reasoning and reply together
+#: used the whole cap before a tool call was complete. It is a limit of the
+#: turn, never a choice the agent made, so the outcome says so
+#: (`agent_decision: false`) and carries the cap and the tokens each turn
+#: used (`output_cap`). The outcome's `code` is unchanged.
+OUTPUT_CAP_HIT = "turn_hit_output_cap"
 #: At most this many practiced recipes are listed in a
 #: `selection_not_practiced` reply, newest last; the reply also gives the
 #: count.
@@ -1887,6 +1894,7 @@ async def run_epoch(
     parallel_run = 0
     # Consecutive replies ended early with no tool call complete, likewise.
     truncated = []
+    truncated_incomplete = []
     # The last turn's provider-reported input tokens and its request's bytes;
     # None until a turn reports them.
     anchor = None
@@ -2548,6 +2556,7 @@ async def run_epoch(
         # cut call would only be answered `call_truncated`).
         if incomplete is not None and all(p in cut for p in range(len(running))):
             truncated.append(call_id)
+            truncated_incomplete.append(incomplete)
             if len(truncated) >= MAX_TRUNCATED_TURNS:
                 outcome = {
                     "status": "STOPPED",
@@ -2560,9 +2569,32 @@ async def run_epoch(
                     "truncated_turns": truncated,
                     "incomplete": incomplete,
                 }
+                if all(
+                    i["reason"] == "max_output_tokens" for i in truncated_incomplete
+                ):
+                    outcome.update(
+                        {
+                            "reason": (
+                                f"{len(truncated)} replies in a row hit the output "
+                                f"cap of {incomplete['max_output_tokens']} tokens "
+                                "before any tool call in them was complete; "
+                                "retained and stopped"
+                            ),
+                            "cause": OUTPUT_CAP_HIT,
+                            "agent_decision": False,
+                            "output_cap": {
+                                "cap": incomplete["max_output_tokens"],
+                                "turns": [
+                                    {"turn": turn, "output_tokens": i["output_tokens"]}
+                                    for turn, i in zip(truncated, truncated_incomplete)
+                                ],
+                            },
+                        }
+                    )
                 break
         else:
             truncated = []
+            truncated_incomplete = []
         if not calls and incomplete is not None:
             # Ended early before any call: not a choice to stop, and no
             # reminder is spent. The note asks the model to continue.

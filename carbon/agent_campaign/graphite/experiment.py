@@ -616,6 +616,37 @@ def _l4_refused(code):
     }
 
 
+#: graphite_run_proposal's arguments, in its tool's order (`roles.PROPOSAL_TOOL`).
+PROPOSAL_ARGUMENTS = ("strategy_json", "hypothesis", "expected_effect")
+PROPOSAL_ARGUMENTS_CORRECTION = (
+    "graphite_run_proposal takes exactly three arguments: strategy_json, the strategy object "
+    "encoded as a JSON string (not an object); hypothesis and expected_effect, each a string "
+    "of 1 to 2048 characters."
+)
+
+
+def _proposal_argument_fault(arguments):
+    """`(argument, problem)` for the first argument of a `graphite_run_proposal`
+    call that breaks its contract, or None when the call is well formed. The
+    argument is only ever one of `PROPOSAL_ARGUMENTS`, or None for an argument
+    the caller invented (never named back)."""
+    if type(arguments) is not dict:
+        return None, "arguments_not_an_object"
+    for name in PROPOSAL_ARGUMENTS:
+        if name not in arguments:
+            return name, "missing"
+    if set(arguments) != set(PROPOSAL_ARGUMENTS):
+        return None, "unexpected_argument"
+    if type(arguments["strategy_json"]) is not str:
+        return "strategy_json", "json_string_required"
+    if len(arguments["strategy_json"].encode()) > MAX_STRATEGY_BYTES:
+        return "strategy_json", "too_large"
+    for name in ("hypothesis", "expected_effect"):
+        if type(arguments[name]) is not str or not 1 <= len(arguments[name]) <= 2048:
+            return name, "text_1_to_2048_characters"
+    return None
+
+
 class Experiment:
     """One run's proposals: admission, pods, rebuild check, frozen-rule score.
 
@@ -1261,6 +1292,20 @@ class Experiment:
             if required:
                 raise Unrebuildable("level4_submission_required")
             return None
+        if type(submission) is not str or not submission.startswith("sha256:"):
+            # The field is one digest string. A list (the plural name invites
+            # it) used to fall through to `level4_submission_not_staged`, which
+            # sent an agent to re-stage a submission that was staged
+            # (2026-10-13 fresh-agent pass); name the field and its shape.
+            raise Unrebuildable(
+                "level4_submission_shape",
+                [
+                    (
+                        "level4.submission_one_digest_string",
+                        "parameters/" + battery_level4.FIELD,
+                    )
+                ],
+            )
         kept = self.level4_staged(submission)
         if kept is None:
             raise Unrebuildable("level4_submission_not_staged")
@@ -1282,21 +1327,26 @@ class Experiment:
     # -- one proposal --------------------------------------------------------------------------
     def propose_tool(self, arguments, identity):
         """The agent's `graphite_run_proposal` tool."""
-        if (
-            type(arguments) is not dict
-            or set(arguments) != {"strategy_json", "hypothesis", "expected_effect"}
-            or type(arguments["strategy_json"]) is not str
-            or len(arguments["strategy_json"].encode()) > MAX_STRATEGY_BYTES
-            or any(
-                type(arguments[k]) is not str or not 1 <= len(arguments[k]) <= 2048
-                for k in ("hypothesis", "expected_effect")
-            )
-        ):
+        fault = _proposal_argument_fault(arguments)
+        if fault is not None:
+            # The argument to correct and how, from a closed text: the last
+            # refusal before a pod used to name nothing (2026-10-13 fresh-agent
+            # pass). An argument the caller invented is never named back, and
+            # no caller value is repeated.
+            field, problem = fault
             return {
                 "status": "REJECTED_BEFORE_DISPATCH",
                 "reason_code": "proposal_arguments_malformed",
                 "dispatched": False,
                 "authority_granted": False,
+                "field": field,
+                "problem": problem,
+                "correction": PROPOSAL_ARGUMENTS_CORRECTION
+                + (
+                    ""
+                    if field is None
+                    else " The argument that broke it: " + field + "."
+                ),
             }
         try:
             strategy = json.loads(arguments["strategy_json"])

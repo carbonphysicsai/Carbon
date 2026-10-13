@@ -695,11 +695,13 @@ def manifest_env(manifest: dict) -> dict:
     text = json.dumps(manifest, separators=(",", ":"), sort_keys=True)
     if len(text) <= MANIFEST_GZ_ABOVE:
         return {"CODE_MANIFEST": text}
-    return {
-        "CODE_MANIFEST_GZ_B64": base64.b64encode(
-            gzip.compress(text.encode(), 9, mtime=0)
-        ).decode()
-    }
+    import zlib
+
+    # Random digests benefit from filtered deflate. This is the same gzip
+    # wire format and exact JSON bytes; no path or pinned digest is omitted.
+    encoder = zlib.compressobj(level=9, wbits=31, memLevel=9, strategy=zlib.Z_FILTERED)
+    packed = encoder.compress(text.encode()) + encoder.flush()
+    return {"CODE_MANIFEST_GZ_B64": base64.b64encode(packed).decode()}
 
 
 def ref_is_pushed(ref: str) -> bool:
