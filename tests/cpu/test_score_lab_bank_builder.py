@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import hashlib
 import json
 
@@ -105,6 +106,34 @@ def _fixture():
         "alpha": 0.5,
     }
     return definition, registration, draws, policy
+
+
+@pytest.mark.parametrize("target", ["toy-coarse", "toy-fine", "coarse_window"])
+@pytest.mark.parametrize("band", [[1.0, 2.0], [-1.0, -0.5]])
+def test_reference_status_bands_and_window_must_straddle_zero(target, band):
+    definition, registration, draws, _policy = _fixture()
+    registration = copy.deepcopy(registration)
+    rule = registration["reference_status_rule"]
+    if target == "coarse_window":
+        rule[target] = band
+    else:
+        rule["bands"][target] = band
+    with pytest.raises(LabRefused, match="bank_reference_status_rule"):
+        bank_builder.plan(
+            registration, draws, definition_bytes=definition, split_seed="split"
+        )
+
+
+def test_zero_lower_edge_and_realistic_window_shape_remain_allowed():
+    definition, registration, draws, _policy = _fixture()
+    registration = copy.deepcopy(registration)
+    rule = registration["reference_status_rule"]
+    rule["bands"]["toy-fine"] = [0.0, 1.0]
+    rule["coarse_window"] = [-1.97, 4.5]
+    planned = bank_builder.plan(
+        registration, draws, definition_bytes=definition, split_seed="split"
+    )
+    assert planned["manifest"]["reference_status_rule"] == rule
 
 
 def _solved(planned):

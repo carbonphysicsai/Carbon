@@ -89,6 +89,7 @@ def _reference_status_rule(value):
             or len(band) != 2
             or any(type(v) not in (int, float) or not math.isfinite(v) for v in band)
             or band[0] >= band[1]
+            or not band[0] <= 0 < band[1]
         ):
             raise LabRefused("bank_reference_status_rule")
     return value
