@@ -355,6 +355,10 @@ def _replace(path, payload):
 
 
 class GraphiteProvider:
+    # Prospective opening rule: historical records have no telemetry block.
+    # Historical-opening fixtures can reproduce that earlier writer explicitly.
+    NEW_SESSION_ARGUMENT_LOGGING = argument_events.POLICY
+
     #: The call cap a v1 session passes to the loop as `max_provider_calls`,
     #: and its ledger's `provider_attempts` when no operator cap is set. None
     #: here: a v1 harness session kept the loop's shared `MAX_PROVIDER_CALLS`.
@@ -912,8 +916,15 @@ class GraphiteProvider:
             # (`spur:glm-5.2`). Engy, the default, records no block, so an
             # Engy session's bytes are exactly as before.
             opened["model_provider"] = model_provider
-        opened["argument_logging"] = argument_events.POLICY
-        opened["agent_identity"] = self._agent_identity(opened)
+        logging_record = {}
+        if self.NEW_SESSION_ARGUMENT_LOGGING is not None:
+            if self.NEW_SESSION_ARGUMENT_LOGGING != argument_events.POLICY:
+                raise SessionMismatch("argument_logging_identity_changed")
+            logging_record = {
+                "argument_logging": self.NEW_SESSION_ARGUMENT_LOGGING,
+                "agent_identity": self._agent_identity(opened),
+            }
+            opened.update(logging_record)
         # The rules a later phase records with a new session only (none here),
         # so a session opened before records none and resumes as it was.
         opened.update(self.opening_rules())
@@ -931,8 +942,7 @@ class GraphiteProvider:
                 "session_open_digest": digest(canonical(opened)),
                 "role": role.name.value,
                 "model": model_id,
-                "agent_identity": opened["agent_identity"],
-                "argument_logging": argument_events.POLICY,
+                **logging_record,
             },
         )
         self._crash("after_open")
