@@ -43,7 +43,7 @@ CARD_FIELDS = {
     "accuracy_overall": "Overall accuracy",
     "accuracy_near_limits": "Accuracy near limits",
     "robustness": "Robustness / local sensitivity",
-    "extrapolation": "Stretch-set error growth inside physical validity",
+    "extrapolation": "Recorded stretch-set error growth in the declared domain",
     "uncertainty_calibration": "Reference-relative uncertainty calibration",
     "speedup_equal_accuracy": "Speed-up at equal accuracy",
     "inference_latency": "Inference latency",
@@ -661,7 +661,7 @@ def _mms_rows(source, acceptance_source, family, acceptance):
             rows.append(
                 _row(
                     "owner_acceptance_link",
-                    "Separate owner decision for this exact image",
+                    "Registered code-verification decision for this exact image (not use acceptance)",
                     (
                         "CONDITIONAL, t_end 0.375 (MMS test-design scope)"
                         if family == "f02"
@@ -674,7 +674,7 @@ def _mms_rows(source, acceptance_source, family, acceptance):
             rows.append(
                 _row(
                     "acceptance_conditions",
-                    "Owner acceptance conditions",
+                    "Registered MMS verification conditions (test design, not application acceptance)",
                     acceptance["conditions"],
                     source=acceptance_source,
                     locator="/conditions",
@@ -1101,6 +1101,10 @@ def build_package_sections(challenge, family, sources):
         ]
         if projection_gap is not None and name != "solver_verification":
             gaps.insert(0, projection_gap)
+        if family == "battery-v3" and name != "solver_verification":
+            gaps.append(
+                "Current battery-plating-ref-v2 near-onset adequacy: SOLVER_NOT_ACCEPTED / GAP; required resolved mesh-160 evidence, version-bound current-use acceptance and complete refinement/failure/fallback costs are not established by these source-scoped rows"
+            )
         sections[name] = {
             "title": title,
             "d_sections": homes,
@@ -1130,9 +1134,19 @@ def package_markdown(package):
         "",
         "Coverage is not a verdict or qualification. Floors and acceptance remain HUMAN_INPUT.",
         "Identity/disclosure in a public projection is a producer assertion, not attestation.",
+        "Host-declared use, domain and observable coverage are assertions; source identity is not verified applicability.",
         "Maps never replace solver verification of Assistant picks; law diagnostics do not adopt gates.",
         "",
     ]
+    if package["challenge"].startswith("battery"):
+        lines.extend(
+            [
+                "Battery plating reference transition: battery-plating-ref-v2 is not established by an image/MMS link. No usable near-onset label before required resolved mesh-160 evidence and current-use acceptance; SOLVER_NOT_ACCEPTED / GAP remains.",
+                "Historical EV4/EV5/score-proof and card/map values retain their original reference meaning: annotate, never re-score. Current near-limit accuracy, calibration, feasible-pick or speed claims are not established by those rows; refinement/failure/fallback costs are required.",
+                "Reference authority: [OWNER-PLATING-REFERENCE-01, 2026-10-13](https://github.com/carbonphysicsai/Carbon/blob/e9a28008b3975c3aaa93b710b6f623221241c2eb/.agent/decisions/2026-10-13-OWNER-PLATING-REFERENCE-01.md). This dated presentation note leaves the original source observations unchanged.",
+                "",
+            ]
+        )
     for section in package["sections"].values():
         lines.extend(
             [

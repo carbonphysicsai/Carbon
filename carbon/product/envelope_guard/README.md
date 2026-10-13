@@ -97,6 +97,17 @@ retain the registered-equality check at construction and the existing
 repair changes no verdict, acceptance criterion or scientific scope.
 The current battery-use hold and actual Undeclared applicability remain unchanged.
 
+The [2026-10-13 Product audit](../../../Business/research/customer-deliverable/EVIDENCE_HONESTY_2026-10-13.md)
+records the `battery-plating-ref-v2` near-onset transition. This Guard does not
+resolve mesh-160 labels, verify a plating-reference version or authenticate
+host use acceptance. READY, application conditions and observable coverage are
+host assertions checked structurally; registered MMS equality verifies document
+identity/test conditions only. No usable v2 near-onset label exists before the
+required resolved reference evidence and current-use acceptance. The actual
+battery/plating SOLVER_NOT_ACCEPTED / Undeclared holds require refusal, not a
+caveated TRUST. An old map/image binding cannot remove them. No new v2 adapter
+or scientific rule is implemented by this wording repair.
+
 Local query probes are deterministic functions of query, complete policy/version
 and contract using a domain-separated SHA-256 counter. Steps and model-call
 budget are explicit policy inputs. The receipt includes the derivation and
