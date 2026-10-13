@@ -84,6 +84,9 @@ phase-3 grant: outside its study it is refused `grant_is_bound_to_a_study`.
   test grant (OWNER-TEST-GRANT-01): `min_level` = `max_level` = 4, worst case 14.91, ceiling 14.94,
   kimi-k3. It is its own grant, not the hunt's H4 share. It authorizes spend, never a Level 4 run:
   the executor launches only after the Level 4 readiness gate (R1, R8) passes.
+- GRAPHITE-GRANT-L4-G-CONSTRUCTOR-3 is the same grant again (same figures, same standing weekly test grant):
+  the lane G run under -2 was spent without staging a submission (the stage tool's reads were refused, fixed in
+  #1240), so one fresh run needs its own grant. It authorizes spend, never a Level 4 run.
 
 A registered grant named for another Challenge is
 `grant_is_for_another_challenge`. A Challenge in `PHASE3_BOUND_CHALLENGES`
@@ -346,6 +349,21 @@ PHASE3_GRANTS = types.MappingProxyType(
                 grant_id="GRAPHITE-GRANT-L4-G-CONSTRUCTOR-2",
                 challenge=BATTERY_CHALLENGE,
                 grant_file=GRANTS_DIR + "/GRAPHITE-GRANT-L4-G-CONSTRUCTOR-2.json",
+                main_blob=True,
+                min_level=4,
+                max_level=4,
+                start_model="kimi-k3",
+                token_share_usd=STAGE_TOKEN_SHARE,
+                authority=STANDING_TEST_GRANT_AUTHORITY,
+            ),
+            # PURPOSE: the lane G Level 4 Constructor run again, after the run under -2 was spent without
+            # staging a submission (the stage tool's reads were refused; fixed in #1240). Same figures as -2,
+            # POOL: the standing weekly test grant (OWNER-TEST-GRANT-01). Not the hunt's H4 run. Index:
+            # docs/development/graphite/grants/README.md, "Level 4 Constructor grants".
+            Phase3Grant(
+                grant_id="GRAPHITE-GRANT-L4-G-CONSTRUCTOR-3",
+                challenge=BATTERY_CHALLENGE,
+                grant_file=GRANTS_DIR + "/GRAPHITE-GRANT-L4-G-CONSTRUCTOR-3.json",
                 main_blob=True,
                 min_level=4,
                 max_level=4,
