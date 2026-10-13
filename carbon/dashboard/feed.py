@@ -80,6 +80,31 @@ SHARE_DIGITS = 6
 #: key of the rule's comparison is dropped.
 COMPARISON_INTS = ("n_min", "n_boot", "important_min")
 COMPARISON_KEYS = ("alpha", *COMPARISON_INTS)
+# PLT-08's public refusal vocabulary. Keep this display reader independent of
+# validator imports; the producer-parity test binds this list to its contract.
+STATUS_REFUSALS = frozenset(
+    (
+        "malformed_submission",
+        "contract_digest_malformed",
+        "development_variant_not_served",
+        "contract_not_served",
+        "challenge_mismatch",
+        "oversized_submission",
+        "strategy_not_utf8",
+        "strategy_bom",
+        "strategy_nesting_too_deep",
+        "strategy_not_json",
+        "strategy_not_object",
+        "non_finite_value",
+        "duplicate_key",
+        "integer_out_of_range",
+        "hotkey_window_used",
+        "receipt_block_missing",
+        "level4_envelope_incomplete",
+        "unclassified_refusal",
+    )
+)
+MAX_STATUS_COUNT = 2**53 - 1  # exact integer representation in the browser
 
 
 class FeedRefused(ValueError):
@@ -501,6 +526,52 @@ LADDER_STATES = ("SHOWN", "NO_IMPROVEMENT_BEYOND_GRAIN", "SEALED_UNTIL_GRAIN")
 _UNRANKED = 10**9
 
 
+def _status_count(value):
+    value = _int(value, "miner_status_invalid")
+    if value > MAX_STATUS_COUNT:
+        raise FeedRefused("miner_status_invalid")
+    return value
+
+
+def _miner_status(raw, trust):
+    """PLT-08's count-only projection, including before any score is released.
+
+    Unknown code names never survive projection; their counts become other.
+    An absent block is unknown activity, not a list of zero counts.
+    """
+    if raw is None:
+        return None
+    if type(raw) is not list:
+        raise FeedRefused("miner_status_invalid")
+    rows, identities = [], set()
+    for row in raw:
+        if type(row) is not dict or type(row.get("refused")) is not dict:
+            raise FeedRefused("miner_status_invalid")
+        hotkey = _hotkey(row.get("hotkey"), trust)
+        if hotkey in identities:
+            raise FeedRefused("miner_status_invalid")
+        identities.add(hotkey)
+        refused = {}
+        for code, count in row["refused"].items():
+            count = _status_count(count)
+            kept = (
+                code
+                if code in STATUS_REFUSALS and code != "unclassified_refusal"
+                else "other"
+            )
+            refused[kept] = _status_count(refused.get(kept, 0) + count)
+        _status_count(sum(refused.values()))
+        rows.append(
+            {
+                "hotkey": hotkey,
+                "received": _status_count(row.get("received")),
+                "scored": _status_count(row.get("scored")),
+                "refused": dict(sorted(refused.items())),
+            }
+        )
+    return sorted(rows, key=lambda row: row["hotkey"])
+
+
 def _ladder(raw, digits, trust):
     """Each coldkey's pooled displayed score and status, or None when the feed
     carries no ladder. A sealed entry that carries a value is refused whole."""
@@ -854,7 +925,9 @@ def project(document, trust):
         "excluded_invalid",
     )
     generated_at = document.get("generated_at")
+    status = _miner_status(document.get("miner_status"), trust)
     return {
+        **({"miner_status": status} if status is not None else {}),
         "schema": BOARD_SCHEMA,
         "source_schema": SCHEMA,
         "fixture": trust.fixture,

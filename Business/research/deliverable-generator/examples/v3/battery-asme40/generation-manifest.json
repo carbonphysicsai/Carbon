@@ -1,0 +1,3398 @@
+{
+  "status": "DEVELOPMENT_SAMPLE",
+  "challenge": "battery-fastcharge-ageing-development-v1",
+  "profile": "asme-vv40",
+  "standard_rendering": {
+    "profile": "asme-vv40",
+    "edition": "ASME V&V 40-2018 (topic mapping only)",
+    "mapping_status": "TOPIC_ONLY_LICENSED_CLAUSES_HUMAN_INPUT",
+    "clause_complete": false,
+    "applicability": "HUMAN_INPUT",
+    "acceptance_authority": "HUMAN_INPUT",
+    "qualification_claim": false,
+    "section_mapping": [
+      {
+        "section": "D01",
+        "anchor": "Context of use, model risk",
+        "source": "F3"
+      },
+      {
+        "section": "D02",
+        "anchor": "Credibility goals/plan",
+        "source": "F3"
+      },
+      {
+        "section": "D03",
+        "anchor": "Applicability",
+        "source": "F3"
+      },
+      {
+        "section": "D04",
+        "anchor": "Verification/comparator",
+        "source": "F3"
+      },
+      {
+        "section": "D05",
+        "anchor": "Credibility assessment",
+        "source": "F3"
+      },
+      {
+        "section": "D06",
+        "anchor": "Verification/validation uncertainty",
+        "source": "F3"
+      },
+      {
+        "section": "D07",
+        "anchor": "Credibility limitations",
+        "source": "F3"
+      },
+      {
+        "section": "D08",
+        "anchor": "Evidence traceability",
+        "source": "F3"
+      },
+      {
+        "section": "D09",
+        "anchor": "Risk/context of use",
+        "source": "F3"
+      },
+      {
+        "section": "D10",
+        "anchor": "Applicability/gaps",
+        "source": "F3"
+      },
+      {
+        "section": "D11",
+        "anchor": "Documentation/assessment",
+        "source": "F3"
+      }
+    ]
+  },
+  "evidence_revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+  "framework_revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+  "membership_basis": "LOCAL_COMMITTED_GIT_OBJECT",
+  "sources": [
+    {
+      "id": "C1",
+      "path": "docs/development/challenge_pipeline/COMMON_DESIGN_PACKET_V1.md",
+      "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+      "git_blob": "c96842b9916ce159860b17e92f1cbd2cee6266e2",
+      "sha256": "d523d71f73053ffb83fa8ba9e5e7f9490db62a84739ed29cabfd838ad66df9c4",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/challenge_pipeline/COMMON_DESIGN_PACKET_V1.md",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED",
+      "role": "common design packet"
+    },
+    {
+      "id": "C2",
+      "path": "docs/development/graphite/GRAPHITE_READINESS_GATE.md",
+      "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+      "git_blob": "ac2bda83e73eacbb19b3b3c1ed1fdd551aa6d89b",
+      "sha256": "7b8d1a00cb090cc73358dceeef54eef64209e79ebccd19dc2160fa6756f3e742",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/graphite/GRAPHITE_READINESS_GATE.md",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED",
+      "role": "readiness gate specification"
+    },
+    {
+      "id": "C3",
+      "path": "docs/development/graphite/PHASE4_ATTACKER.md",
+      "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+      "git_blob": "7ffdea4d5201f56d5f6cacbbb6196a338f407422",
+      "sha256": "79085bceafc0f3b1801407ce3289bc06c410e959a4137c9f33f827de7680493e",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/graphite/PHASE4_ATTACKER.md",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED",
+      "role": "attack scope specification, not measured coverage"
+    },
+    {
+      "id": "C4",
+      "path": "docs/development/challenge_pipeline/BATTERY_DESIGN_PACKET_WORKED_EXAMPLE.md",
+      "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+      "git_blob": "b7fc0d3b0dff187e1627f02cbab928095b85e9d7",
+      "sha256": "04135f64300b0548f6048a65111dcd6becb053fe5eaf2e312cf80cf9f495406a",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/challenge_pipeline/BATTERY_DESIGN_PACKET_WORKED_EXAMPLE.md",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED",
+      "role": "worked battery design packet; proposed development example"
+    },
+    {
+      "id": "F1",
+      "path": "Business/research/deliverable-framework/TEMPLATE.md",
+      "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+      "git_blob": "7519d1ca8d101ba2956a7ff88e1af6fe93bf15c3",
+      "sha256": "83959e56d77e51bd382595ab301681e92de2cc481bb61300b221ce05b6dcaf38",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/Business/research/deliverable-framework/TEMPLATE.md",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED",
+      "role": "template"
+    },
+    {
+      "id": "F2",
+      "path": "Business/research/deliverable-framework/deliverable.schema.json",
+      "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+      "git_blob": "e5a9b8f042bd065f5995cdbb870eb6bb094123ed",
+      "sha256": "19aa4ceb442d68373420def20a7dbb1ec2733080f8f1fa083d0c489700a9a08e",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/Business/research/deliverable-framework/deliverable.schema.json",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED",
+      "role": "schema"
+    },
+    {
+      "id": "F3",
+      "path": "Business/research/deliverable-framework/STANDARDS.md",
+      "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+      "git_blob": "2f7db5abbf3e7fc7577e0700e9bddf8f2a2660f7",
+      "sha256": "8239f7a4faea896290e2fefd28af8cc5875149945dc132ce6512b6b245f6e502",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/Business/research/deliverable-framework/STANDARDS.md",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED",
+      "role": "standards crosswalk"
+    },
+    {
+      "id": "P1",
+      "path": "docs/development/evidence/battery-feasibility-02/code-verification/pybamm-verdict.json",
+      "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+      "git_blob": "c7454a3fda07c084de36158b4d8d372653553d43",
+      "sha256": "783255a7fc2b540874953b928a48a4b6fdb1cc927ab0ed0bf127b72dbab9ff84",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/battery-feasibility-02/code-verification/pybamm-verdict.json",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED",
+      "role": "public particle MMS machine record; separate owner acceptance, not full DFN or physical validation"
+    },
+    {
+      "id": "P2",
+      "path": "docs/development/challenge_pipeline/code-verification/acceptance-links/pybamm.json",
+      "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+      "git_blob": "e66df55aa7f620d133062a4b67a280908894885b",
+      "sha256": "7598f003125dbb1e7be0afbe8c98696c94896d940da5a27b0989d40c4e174dd7",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/challenge_pipeline/code-verification/acceptance-links/pybamm.json",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED",
+      "role": "image-and-criteria-bound owner acceptance link; never rewrites earlier machine verdict"
+    },
+    {
+      "id": "P6",
+      "path": ".agent/decisions/2026-10-11-OWNER-CODE-VERIFICATION-ACCEPT-01.md",
+      "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+      "git_blob": "6407c9dfa9e57e78679f99b73788ec4fd3b4410e",
+      "sha256": "64b32bf2225465c3b35a60dd2de41023bcce70279e3c0fff50339d6c0ba7fa25",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/.agent/decisions/2026-10-11-OWNER-CODE-VERIFICATION-ACCEPT-01.md",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED",
+      "role": "immutable owner code-verification decision"
+    },
+    {
+      "id": "P7",
+      "path": "docs/development/evidence/battery-feasibility-02/code-verification/pybamm-criteria.json",
+      "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+      "git_blob": "2438df1c4826e54e2fcdd44d2bf93bfebfc0541a",
+      "sha256": "9e1463045d4f3c49a6600579e1afd1631fbb56b5d625fb4a66477c134ddfac23",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/battery-feasibility-02/code-verification/pybamm-criteria.json",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED",
+      "role": "historical measured particle MMS criteria identity"
+    },
+    {
+      "id": "R1",
+      "path": "carbon/challenge_readiness/records/battery-fastcharge-ageing-development-v1.v3.json",
+      "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+      "git_blob": "24c96fba84860c811acfd46155e594e1a030b5f0",
+      "sha256": "f657bd8dfa1144ade3d58fd07e3d8115d8786b55bb0ff2168bbc30f141071c9c",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/carbon/challenge_readiness/records/battery-fastcharge-ageing-development-v1.v3.json",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED",
+      "role": "readiness and reviews"
+    },
+    {
+      "id": "R2",
+      "path": "docs/development/BATTERY_ENGINEERING_VALUE_EV4.md",
+      "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+      "git_blob": "7fb86e7aa5539e0ba51dd32a07c6d68c007816bc",
+      "sha256": "a3da97a8a617164b6530c703df46424cb16abcc25b402180ce7e17a80dcf4210",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/BATTERY_ENGINEERING_VALUE_EV4.md",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED",
+      "role": "EV4 public outcomes/adverse findings"
+    },
+    {
+      "id": "R3",
+      "path": "carbon/battery/value/contracts/ev4-charge-protocol-selection.v1.json",
+      "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+      "git_blob": "3961b89a98c8877190bc010579852497057d3518",
+      "sha256": "fc6f504f3ff69b3add10099056b7a652a28112d3ca1d63ada2fb194aac2d3e18",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/carbon/battery/value/contracts/ev4-charge-protocol-selection.v1.json",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED",
+      "role": "development decision contract"
+    },
+    {
+      "id": "R4",
+      "path": "docs/development/evidence/ev5-2026-10-03/README.md",
+      "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+      "git_blob": "5f9eddf85b0708e44aaeba7e4c057930aae346bd",
+      "sha256": "4db81df4b92e389af26b350c80c9dcae24b1dc6d4810915071a1f79b4eca98ba",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/ev5-2026-10-03/README.md",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED",
+      "role": "EV5 public outcome/attack/rebuild summary"
+    },
+    {
+      "id": "R5",
+      "path": "docs/development/evidence/score-value-alignment-01/README.md",
+      "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+      "git_blob": "d459cff71db3558becf941c1079d2c2e2cca49e0",
+      "sha256": "3f1c7749c285f3cc97ac00276fbaf3844b603be8d3065098b5fa628db0252462",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/score-value-alignment-01/README.md",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED",
+      "role": "Q1 public alignment and missing v3 legs"
+    },
+    {
+      "id": "R6",
+      "path": ".agent/tickets/VALIDATOR-26_battery_rule_v3.md",
+      "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+      "git_blob": "d0f74ec3d7550f259b99cb40afe3a95853600bea",
+      "sha256": "f5c65678dc9a3f8bc6fc8b083e956744b0f3a73ef44996442db02d7b622e5ad8",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/.agent/tickets/VALIDATOR-26_battery_rule_v3.md",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED",
+      "role": "v3 gate plan, not implementation proof"
+    },
+    {
+      "id": "R7",
+      "path": "carbon/challenge_pipeline/readiness/Q1_PANELS.md",
+      "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+      "git_blob": "2c315c6dcea2b94833d931d1563d390382ad018e",
+      "sha256": "a270caab87fce9e55ec49894ebc35e95f48ae661722fd8e3b3d65486d27f59de",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/carbon/challenge_pipeline/readiness/Q1_PANELS.md",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED",
+      "role": "Q1 evidence/mask mapping"
+    }
+  ],
+  "missing_sources": [],
+  "facts": [
+    {
+      "id": "EV4_FALSE_FEASIBLE",
+      "source": "R2",
+      "locator": "L431-L432",
+      "label": "EV4 reported members with false acceptance / eligible members",
+      "value": "56 / 99",
+      "kind": "counts",
+      "basis": "reference-relative",
+      "outcome": "FAIL",
+      "quantities": [
+        {
+          "low": 56,
+          "base": 56,
+          "high": 56,
+          "basis": "SOURCED"
+        },
+        {
+          "low": 99,
+          "base": 99,
+          "high": 99,
+          "basis": "SOURCED"
+        }
+      ],
+      "citation": "[R2:L431-L432](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/BATTERY_ENGINEERING_VALUE_EV4.md#L431-L432)"
+    },
+    {
+      "id": "EV4_H1",
+      "source": "R2",
+      "locator": "L406-L406",
+      "label": "EV4 reported H1 outcome",
+      "value": "UNRESOLVED",
+      "kind": "verdict",
+      "basis": "decision-value",
+      "outcome": "UNRESOLVED",
+      "quantities": [],
+      "citation": "[R2:L406-L406](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/BATTERY_ENGINEERING_VALUE_EV4.md#L406-L406)"
+    },
+    {
+      "id": "EV5_ATTACK",
+      "source": "R4",
+      "locator": "L21-L21",
+      "label": "EV5 reported adversarial-score verdict",
+      "value": "FAIL",
+      "kind": "verdict",
+      "basis": "decision-value",
+      "outcome": "FAIL",
+      "quantities": [],
+      "citation": "[R4:L21-L21](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/ev5-2026-10-03/README.md#L21-L21)"
+    },
+    {
+      "id": "EV5_COUNTEREXAMPLES",
+      "source": "R4",
+      "locator": "L43-L43",
+      "label": "EV5 reported reference-infeasible selections / selected constructions",
+      "value": "8 / 10",
+      "kind": "counts",
+      "basis": "reference-relative",
+      "outcome": "FAIL",
+      "quantities": [
+        {
+          "low": 8,
+          "base": 8,
+          "high": 8,
+          "basis": "SOURCED"
+        },
+        {
+          "low": 10,
+          "base": 10,
+          "high": 10,
+          "basis": "SOURCED"
+        }
+      ],
+      "citation": "[R4:L43-L43](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/ev5-2026-10-03/README.md#L43-L43)"
+    },
+    {
+      "id": "EV5_REBUILDS",
+      "source": "R4",
+      "locator": "L50-L50",
+      "label": "EV5 reported matching rebuilds / frozen panel",
+      "value": "110 / 110",
+      "kind": "rebuilds",
+      "basis": "verification",
+      "outcome": "NOT_ASSESSED",
+      "quantities": [
+        {
+          "low": 110,
+          "base": 110,
+          "high": 110,
+          "basis": "SOURCED"
+        },
+        {
+          "low": 110,
+          "base": 110,
+          "high": 110,
+          "basis": "SOURCED"
+        }
+      ],
+      "citation": "[R4:L50-L50](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/ev5-2026-10-03/README.md#L50-L50)"
+    },
+    {
+      "id": "Q1_MISSING_V3",
+      "source": "R5",
+      "locator": "L7-L7",
+      "label": "Q1 audit reports same-panel v3 measures uncomputable (historical scope)",
+      "value": "uncomputable",
+      "kind": "gap",
+      "basis": "decision-value",
+      "outcome": "NOT_ASSESSED",
+      "quantities": [],
+      "citation": "[R5:L7-L7](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/score-value-alignment-01/README.md#L7-L7)"
+    },
+    {
+      "id": "EV4_MODE_X",
+      "source": "R2",
+      "locator": "L479-L480",
+      "label": "EV4 reported adversarial violations: in-band / out-of-band",
+      "value": "29 / 17",
+      "kind": "violations",
+      "basis": "reference-relative",
+      "outcome": "FAIL",
+      "quantities": [
+        {
+          "low": 29,
+          "base": 29,
+          "high": 29,
+          "basis": "SOURCED"
+        },
+        {
+          "low": 17,
+          "base": 17,
+          "high": 17,
+          "basis": "SOURCED"
+        }
+      ],
+      "citation": "[R2:L479-L480](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/BATTERY_ENGINEERING_VALUE_EV4.md#L479-L480)"
+    },
+    {
+      "id": "EV5_MODE_X",
+      "source": "R4",
+      "locator": "L44-L44",
+      "label": "EV5 reported adversarial findings: in-band / out-of-band",
+      "value": "25 / 21",
+      "kind": "violations",
+      "basis": "reference-relative",
+      "outcome": "FAIL",
+      "quantities": [
+        {
+          "low": 25,
+          "base": 25,
+          "high": 25,
+          "basis": "SOURCED"
+        },
+        {
+          "low": 21,
+          "base": 21,
+          "high": 21,
+          "basis": "SOURCED"
+        }
+      ],
+      "citation": "[R4:L44-L44](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/ev5-2026-10-03/README.md#L44-L44)"
+    },
+    {
+      "id": "EV5_SIGN_ERROR",
+      "source": "R4",
+      "locator": "L38-L38",
+      "label": "EV5 reported sign-error near-limit false-acceptance rate",
+      "value": "0.946",
+      "kind": "fraction",
+      "basis": "reference-relative",
+      "outcome": "NOT_ASSESSED",
+      "quantities": [
+        {
+          "low": 0.946,
+          "base": 0.946,
+          "high": 0.946,
+          "basis": "SOURCED"
+        }
+      ],
+      "citation": "[R4:L38-L38](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/ev5-2026-10-03/README.md#L38-L38)"
+    },
+    {
+      "id": "REVIEW_customer",
+      "source": "R1",
+      "locator": "/reviews/customer/state",
+      "label": "Recorded customer review state",
+      "value": "NOT_STARTED",
+      "kind": "review",
+      "basis": "verification",
+      "outcome": "NOT_ASSESSED",
+      "quantities": [],
+      "citation": "[R1:/reviews/customer/state](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/carbon/challenge_readiness/records/battery-fastcharge-ageing-development-v1.v3.json)"
+    },
+    {
+      "id": "REVIEW_launch",
+      "source": "R1",
+      "locator": "/reviews/launch/state",
+      "label": "Recorded launch review state",
+      "value": "NOT_STARTED",
+      "kind": "review",
+      "basis": "verification",
+      "outcome": "NOT_ASSESSED",
+      "quantities": [],
+      "citation": "[R1:/reviews/launch/state](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/carbon/challenge_readiness/records/battery-fastcharge-ageing-development-v1.v3.json)"
+    },
+    {
+      "id": "REVIEW_numerical_reference",
+      "source": "R1",
+      "locator": "/reviews/numerical_reference/state",
+      "label": "Recorded numerical_reference review state",
+      "value": "NOT_STARTED",
+      "kind": "review",
+      "basis": "verification",
+      "outcome": "NOT_ASSESSED",
+      "quantities": [],
+      "citation": "[R1:/reviews/numerical_reference/state](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/carbon/challenge_readiness/records/battery-fastcharge-ageing-development-v1.v3.json)"
+    },
+    {
+      "id": "REVIEW_scientific",
+      "source": "R1",
+      "locator": "/reviews/scientific/state",
+      "label": "Recorded scientific review state",
+      "value": "NOT_STARTED",
+      "kind": "review",
+      "basis": "verification",
+      "outcome": "NOT_ASSESSED",
+      "quantities": [],
+      "citation": "[R1:/reviews/scientific/state](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/carbon/challenge_readiness/records/battery-fastcharge-ageing-development-v1.v3.json)"
+    },
+    {
+      "id": "REVIEW_security",
+      "source": "R1",
+      "locator": "/reviews/security/state",
+      "label": "Recorded security review state",
+      "value": "IN_REVIEW",
+      "kind": "review",
+      "basis": "verification",
+      "outcome": "NOT_ASSESSED",
+      "quantities": [],
+      "citation": "[R1:/reviews/security/state](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/carbon/challenge_readiness/records/battery-fastcharge-ageing-development-v1.v3.json)"
+    }
+  ],
+  "extraction_gaps": [],
+  "qualification_claim": false,
+  "package_evidence": {
+    "schema": "carbon.customer-deliverable.package-evidence.v1",
+    "mode": "DEVELOPMENT_SAMPLE",
+    "challenge": "battery-fastcharge-ageing-development-v1",
+    "identity": null,
+    "identity_basis": "DECLARED_IN_PUBLIC_PROJECTION_NOT_INDEPENDENTLY_ATTESTED",
+    "qualification_claim": false,
+    "sections": {
+      "law_checks": {
+        "title": "Physics contract and law-check report",
+        "d_sections": [
+          "D02",
+          "D05",
+          "D07"
+        ],
+        "basis": "reference-relative",
+        "coverage": "GAP",
+        "rows": [
+          {
+            "field": "law_results",
+            "label": "Measured law checks / gate outcomes",
+            "coverage": "GAP",
+            "value": null,
+            "unit": null,
+            "sample_count": null,
+            "outcome": "NOT_ASSESSED",
+            "reason": "PLT-01 public aggregate law-check output unavailable",
+            "measured": false,
+            "measurement_version": null,
+            "evidence_refs": [],
+            "locator": "file",
+            "citation": null,
+            "floor": null,
+            "floor_authority": "HUMAN_INPUT"
+          }
+        ],
+        "gaps": [
+          "P4: public package projection not present at the evidence revision",
+          "law_results: PLT-01 public aggregate law-check output unavailable"
+        ],
+        "evidence_refs": []
+      },
+      "model_card": {
+        "title": "Model card",
+        "d_sections": [
+          "D05",
+          "D06",
+          "D08"
+        ],
+        "basis": "reference-relative",
+        "coverage": "GAP",
+        "rows": [
+          {
+            "field": "accuracy_overall",
+            "label": "Overall accuracy",
+            "coverage": "GAP",
+            "value": null,
+            "unit": null,
+            "sample_count": null,
+            "outcome": "NOT_ASSESSED",
+            "reason": "Measurement unavailable / not run",
+            "measured": false,
+            "measurement_version": null,
+            "evidence_refs": [],
+            "locator": "file",
+            "citation": null,
+            "floor": null,
+            "floor_authority": "HUMAN_INPUT"
+          },
+          {
+            "field": "accuracy_near_limits",
+            "label": "Accuracy near limits",
+            "coverage": "GAP",
+            "value": null,
+            "unit": null,
+            "sample_count": null,
+            "outcome": "NOT_ASSESSED",
+            "reason": "Measurement unavailable / not run",
+            "measured": false,
+            "measurement_version": null,
+            "evidence_refs": [],
+            "locator": "file",
+            "citation": null,
+            "floor": null,
+            "floor_authority": "HUMAN_INPUT"
+          },
+          {
+            "field": "robustness",
+            "label": "Robustness / local sensitivity",
+            "coverage": "GAP",
+            "value": null,
+            "unit": null,
+            "sample_count": null,
+            "outcome": "NOT_ASSESSED",
+            "reason": "Measurement unavailable / not run",
+            "measured": false,
+            "measurement_version": null,
+            "evidence_refs": [],
+            "locator": "file",
+            "citation": null,
+            "floor": null,
+            "floor_authority": "HUMAN_INPUT"
+          },
+          {
+            "field": "extrapolation",
+            "label": "Stretch-set error growth inside physical validity",
+            "coverage": "GAP",
+            "value": null,
+            "unit": null,
+            "sample_count": null,
+            "outcome": "NOT_ASSESSED",
+            "reason": "Measurement unavailable / not run",
+            "measured": false,
+            "measurement_version": null,
+            "evidence_refs": [],
+            "locator": "file",
+            "citation": null,
+            "floor": null,
+            "floor_authority": "HUMAN_INPUT"
+          },
+          {
+            "field": "uncertainty_calibration",
+            "label": "Reference-relative uncertainty calibration",
+            "coverage": "GAP",
+            "value": null,
+            "unit": null,
+            "sample_count": null,
+            "outcome": "NOT_ASSESSED",
+            "reason": "Measurement unavailable / not run",
+            "measured": false,
+            "measurement_version": null,
+            "evidence_refs": [],
+            "locator": "file",
+            "citation": null,
+            "floor": null,
+            "floor_authority": "HUMAN_INPUT"
+          },
+          {
+            "field": "speedup_equal_accuracy",
+            "label": "Speed-up at equal accuracy",
+            "coverage": "GAP",
+            "value": null,
+            "unit": null,
+            "sample_count": null,
+            "outcome": "NOT_ASSESSED",
+            "reason": "Measurement unavailable / not run",
+            "measured": false,
+            "measurement_version": null,
+            "evidence_refs": [],
+            "locator": "file",
+            "citation": null,
+            "floor": null,
+            "floor_authority": "HUMAN_INPUT"
+          },
+          {
+            "field": "inference_latency",
+            "label": "Inference latency",
+            "coverage": "GAP",
+            "value": null,
+            "unit": null,
+            "sample_count": null,
+            "outcome": "NOT_ASSESSED",
+            "reason": "Measurement unavailable / not run",
+            "measured": false,
+            "measurement_version": null,
+            "evidence_refs": [],
+            "locator": "file",
+            "citation": null,
+            "floor": null,
+            "floor_authority": "HUMAN_INPUT"
+          },
+          {
+            "field": "training_cost",
+            "label": "Controlled rebuild cost",
+            "coverage": "GAP",
+            "value": null,
+            "unit": null,
+            "sample_count": null,
+            "outcome": "NOT_ASSESSED",
+            "reason": "Measurement unavailable / not run",
+            "measured": false,
+            "measurement_version": null,
+            "evidence_refs": [],
+            "locator": "file",
+            "citation": null,
+            "floor": null,
+            "floor_authority": "HUMAN_INPUT"
+          }
+        ],
+        "gaps": [
+          "P4: public package projection not present at the evidence revision",
+          "accuracy_overall: Measurement unavailable / not run",
+          "accuracy_near_limits: Measurement unavailable / not run",
+          "robustness: Measurement unavailable / not run",
+          "extrapolation: Measurement unavailable / not run",
+          "uncertainty_calibration: Measurement unavailable / not run",
+          "speedup_equal_accuracy: Measurement unavailable / not run",
+          "inference_latency: Measurement unavailable / not run",
+          "training_cost: Measurement unavailable / not run"
+        ],
+        "evidence_refs": []
+      },
+      "trust_map": {
+        "title": "Trust map",
+        "d_sections": [
+          "D03",
+          "D05",
+          "D06",
+          "D09"
+        ],
+        "basis": "reference-relative",
+        "coverage": "GAP",
+        "rows": [
+          {
+            "field": "map",
+            "label": "Reference error / top-model disagreement",
+            "coverage": "GAP",
+            "value": null,
+            "unit": null,
+            "sample_count": null,
+            "outcome": "NOT_ASSESSED",
+            "reason": "Public carbon.trust_map aggregate unavailable",
+            "measured": false,
+            "measurement_version": null,
+            "evidence_refs": [],
+            "locator": "file",
+            "citation": null,
+            "floor": null,
+            "floor_authority": "HUMAN_INPUT"
+          }
+        ],
+        "gaps": [
+          "P4: public package projection not present at the evidence revision",
+          "map: Public carbon.trust_map aggregate unavailable"
+        ],
+        "evidence_refs": []
+      },
+      "solver_verification": {
+        "title": "Solver code verification (MMS)",
+        "d_sections": [
+          "D04",
+          "D08"
+        ],
+        "basis": "verification",
+        "coverage": "PARTIAL",
+        "rows": [
+          {
+            "field": "image_digest",
+            "label": "MMS reference image",
+            "coverage": "EVIDENCED",
+            "value": "sha256:2d19b261e722fe67f20bee02e115f2277a799c448b90d54d2872361b341bd940",
+            "unit": null,
+            "sample_count": null,
+            "outcome": "NOT_ASSESSED",
+            "reason": null,
+            "measured": false,
+            "measurement_version": null,
+            "evidence_refs": [
+              "P1"
+            ],
+            "locator": "/image_digest",
+            "citation": "[P1:/image_digest](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/battery-feasibility-02/code-verification/pybamm-verdict.json)",
+            "floor": null,
+            "floor_authority": "HUMAN_INPUT"
+          },
+          {
+            "field": "norm.0.l2",
+            "label": "MMS rung 1 l2 error",
+            "coverage": "EVIDENCED",
+            "value": 0.003784853498809245,
+            "unit": "dimensionless manufactured-solution error",
+            "sample_count": 20,
+            "outcome": "NOT_ASSESSED",
+            "reason": null,
+            "measured": true,
+            "measurement_version": null,
+            "evidence_refs": [
+              "P1"
+            ],
+            "locator": "/norms/0/l2",
+            "citation": "[P1:/norms/0/l2](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/battery-feasibility-02/code-verification/pybamm-verdict.json)",
+            "floor": null,
+            "floor_authority": "HUMAN_INPUT"
+          },
+          {
+            "field": "norm.0.linf",
+            "label": "MMS rung 1 linf error",
+            "coverage": "EVIDENCED",
+            "value": 0.004400838550357,
+            "unit": "dimensionless manufactured-solution error",
+            "sample_count": 20,
+            "outcome": "NOT_ASSESSED",
+            "reason": null,
+            "measured": true,
+            "measurement_version": null,
+            "evidence_refs": [
+              "P1"
+            ],
+            "locator": "/norms/0/linf",
+            "citation": "[P1:/norms/0/linf](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/battery-feasibility-02/code-verification/pybamm-verdict.json)",
+            "floor": null,
+            "floor_authority": "HUMAN_INPUT"
+          },
+          {
+            "field": "norm.1.l2",
+            "label": "MMS rung 2 l2 error",
+            "coverage": "EVIDENCED",
+            "value": 0.0009465152815789035,
+            "unit": "dimensionless manufactured-solution error",
+            "sample_count": 40,
+            "outcome": "NOT_ASSESSED",
+            "reason": null,
+            "measured": true,
+            "measurement_version": null,
+            "evidence_refs": [
+              "P1"
+            ],
+            "locator": "/norms/1/l2",
+            "citation": "[P1:/norms/1/l2](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/battery-feasibility-02/code-verification/pybamm-verdict.json)",
+            "floor": null,
+            "floor_authority": "HUMAN_INPUT"
+          },
+          {
+            "field": "norm.1.linf",
+            "label": "MMS rung 2 linf error",
+            "coverage": "EVIDENCED",
+            "value": 0.0011020355080928468,
+            "unit": "dimensionless manufactured-solution error",
+            "sample_count": 40,
+            "outcome": "NOT_ASSESSED",
+            "reason": null,
+            "measured": true,
+            "measurement_version": null,
+            "evidence_refs": [
+              "P1"
+            ],
+            "locator": "/norms/1/linf",
+            "citation": "[P1:/norms/1/linf](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/battery-feasibility-02/code-verification/pybamm-verdict.json)",
+            "floor": null,
+            "floor_authority": "HUMAN_INPUT"
+          },
+          {
+            "field": "norm.2.l2",
+            "label": "MMS rung 3 l2 error",
+            "coverage": "EVIDENCED",
+            "value": 0.00023664769015273215,
+            "unit": "dimensionless manufactured-solution error",
+            "sample_count": 80,
+            "outcome": "NOT_ASSESSED",
+            "reason": null,
+            "measured": true,
+            "measurement_version": null,
+            "evidence_refs": [
+              "P1"
+            ],
+            "locator": "/norms/2/l2",
+            "citation": "[P1:/norms/2/l2](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/battery-feasibility-02/code-verification/pybamm-verdict.json)",
+            "floor": null,
+            "floor_authority": "HUMAN_INPUT"
+          },
+          {
+            "field": "norm.2.linf",
+            "label": "MMS rung 3 linf error",
+            "coverage": "EVIDENCED",
+            "value": 0.0002756414115752115,
+            "unit": "dimensionless manufactured-solution error",
+            "sample_count": 80,
+            "outcome": "NOT_ASSESSED",
+            "reason": null,
+            "measured": true,
+            "measurement_version": null,
+            "evidence_refs": [
+              "P1"
+            ],
+            "locator": "/norms/2/linf",
+            "citation": "[P1:/norms/2/linf](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/battery-feasibility-02/code-verification/pybamm-verdict.json)",
+            "floor": null,
+            "floor_authority": "HUMAN_INPUT"
+          },
+          {
+            "field": "l2_order",
+            "label": "MMS l2_order",
+            "coverage": "EVIDENCED",
+            "value": 1.999884958134595,
+            "unit": "dimensionless observed order",
+            "sample_count": null,
+            "outcome": "NOT_ASSESSED",
+            "reason": null,
+            "measured": true,
+            "measurement_version": null,
+            "evidence_refs": [
+              "P1"
+            ],
+            "locator": "/metrics/l2_order",
+            "citation": "[P1:/metrics/l2_order](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/battery-feasibility-02/code-verification/pybamm-verdict.json)",
+            "floor": null,
+            "floor_authority": "HUMAN_INPUT"
+          },
+          {
+            "field": "linf_order",
+            "label": "MMS linf_order",
+            "coverage": "EVIDENCED",
+            "value": 1.9993061531543845,
+            "unit": "dimensionless observed order",
+            "sample_count": null,
+            "outcome": "NOT_ASSESSED",
+            "reason": null,
+            "measured": true,
+            "measurement_version": null,
+            "evidence_refs": [
+              "P1"
+            ],
+            "locator": "/metrics/linf_order",
+            "citation": "[P1:/metrics/linf_order](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/battery-feasibility-02/code-verification/pybamm-verdict.json)",
+            "floor": null,
+            "floor_authority": "HUMAN_INPUT"
+          },
+          {
+            "field": "machine_verdict",
+            "label": "Recorded MMS machine verdict",
+            "coverage": "EVIDENCED",
+            "value": "HUMAN_INPUT",
+            "unit": null,
+            "sample_count": null,
+            "outcome": "NOT_ASSESSED",
+            "reason": null,
+            "measured": false,
+            "measurement_version": null,
+            "evidence_refs": [
+              "P1"
+            ],
+            "locator": "/state",
+            "citation": "[P1:/state](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/battery-feasibility-02/code-verification/pybamm-verdict.json)",
+            "floor": null,
+            "floor_authority": "HUMAN_INPUT"
+          },
+          {
+            "field": "machine_acceptance",
+            "label": "Recorded machine acceptance flag",
+            "coverage": "EVIDENCED",
+            "value": false,
+            "unit": null,
+            "sample_count": null,
+            "outcome": "NOT_ASSESSED",
+            "reason": null,
+            "measured": false,
+            "measurement_version": null,
+            "evidence_refs": [
+              "P1"
+            ],
+            "locator": "/accepted_development_pass",
+            "citation": "[P1:/accepted_development_pass](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/battery-feasibility-02/code-verification/pybamm-verdict.json)",
+            "floor": null,
+            "floor_authority": "HUMAN_INPUT"
+          },
+          {
+            "field": "owner_acceptance_link",
+            "label": "Separate owner decision for this exact image",
+            "coverage": "EVIDENCED",
+            "value": "RECORDED_OWNER_DECISION",
+            "unit": null,
+            "sample_count": null,
+            "outcome": "NOT_ASSESSED",
+            "reason": null,
+            "measured": false,
+            "measurement_version": null,
+            "evidence_refs": [
+              "P2"
+            ],
+            "locator": "file",
+            "citation": "[P2:file](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/challenge_pipeline/code-verification/acceptance-links/pybamm.json)",
+            "floor": null,
+            "floor_authority": "HUMAN_INPUT"
+          },
+          {
+            "field": "acceptance_conditions",
+            "label": "Owner acceptance conditions",
+            "coverage": "EVIDENCED",
+            "value": {},
+            "unit": null,
+            "sample_count": null,
+            "outcome": "NOT_ASSESSED",
+            "reason": null,
+            "measured": false,
+            "measurement_version": null,
+            "evidence_refs": [
+              "P2"
+            ],
+            "locator": "/conditions",
+            "citation": "[P2:/conditions](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/challenge_pipeline/code-verification/acceptance-links/pybamm.json)",
+            "floor": null,
+            "floor_authority": "HUMAN_INPUT"
+          },
+          {
+            "field": "physical_validation",
+            "label": "Physical validation",
+            "coverage": "GAP",
+            "value": null,
+            "unit": null,
+            "sample_count": null,
+            "outcome": "NOT_ASSESSED",
+            "reason": "MMS verifies code against equations; it is not physical validation",
+            "measured": false,
+            "measurement_version": null,
+            "evidence_refs": [],
+            "locator": "file",
+            "citation": null,
+            "floor": null,
+            "floor_authority": "HUMAN_INPUT"
+          }
+        ],
+        "gaps": [
+          "physical_validation: MMS verifies code against equations; it is not physical validation"
+        ],
+        "evidence_refs": [
+          "P1",
+          "P2"
+        ]
+      },
+      "decision_evidence": {
+        "title": "Decision evidence",
+        "d_sections": [
+          "D05",
+          "D07"
+        ],
+        "basis": "decision-value",
+        "coverage": "GAP",
+        "rows": [
+          {
+            "field": "verify_r",
+            "label": "Reference-verified top-k / VERIFY-R",
+            "coverage": "GAP",
+            "value": null,
+            "unit": null,
+            "sample_count": null,
+            "outcome": "NOT_ASSESSED",
+            "reason": "Public VERIFY-R aggregate unavailable or invalid",
+            "measured": false,
+            "measurement_version": null,
+            "evidence_refs": [],
+            "locator": "file",
+            "citation": null,
+            "floor": null,
+            "floor_authority": "HUMAN_INPUT"
+          },
+          {
+            "field": "equal_budget",
+            "label": "Measured equal-budget curves",
+            "coverage": "GAP",
+            "value": null,
+            "unit": null,
+            "sample_count": null,
+            "outcome": "NOT_ASSESSED",
+            "reason": "Public equal-budget aggregate unavailable: missing, unresolved, assumed costs or identity mismatch",
+            "measured": false,
+            "measurement_version": null,
+            "evidence_refs": [],
+            "locator": "file",
+            "citation": null,
+            "floor": null,
+            "floor_authority": "HUMAN_INPUT"
+          },
+          {
+            "field": "false_feasibility",
+            "label": "False feasibility of Assistant-selected picks",
+            "coverage": "GAP",
+            "value": null,
+            "unit": null,
+            "sample_count": null,
+            "outcome": "NOT_ASSESSED",
+            "reason": "Native aggregate does not measure Assistant selection pressure; PB-INV/ADV evidence required",
+            "measured": false,
+            "measurement_version": null,
+            "evidence_refs": [],
+            "locator": "file",
+            "citation": null,
+            "floor": null,
+            "floor_authority": "HUMAN_INPUT"
+          }
+        ],
+        "gaps": [
+          "P4: public package projection not present at the evidence revision",
+          "verify_r: Public VERIFY-R aggregate unavailable or invalid",
+          "equal_budget: Public equal-budget aggregate unavailable: missing, unresolved, assumed costs or identity mismatch",
+          "false_feasibility: Native aggregate does not measure Assistant selection pressure; PB-INV/ADV evidence required"
+        ],
+        "evidence_refs": []
+      }
+    }
+  },
+  "credibility_evidence": {
+    "schema": "carbon.customer-deliverable.credibility-evidence.v1",
+    "mode": "DEVELOPMENT_SAMPLE",
+    "profile": "asme-vv40",
+    "qualification_claim": false,
+    "compliance_claim": false,
+    "accreditation_claim": false,
+    "clause_complete": false,
+    "identity": null,
+    "identity_basis": "DECLARED_IN_PUBLIC_PROJECTION_NOT_INDEPENDENTLY_ATTESTED",
+    "matrix": [
+      {
+        "requirement_id": "DEVREQ.law_checks.law_results",
+        "kind": "DEVELOPMENT_EVIDENCE_OBLIGATION_NOT_CUSTOMER_CRITERION",
+        "description": "Measured law checks / gate outcomes",
+        "sections": [
+          "D02",
+          "D05",
+          "D07"
+        ],
+        "basis": "reference-relative",
+        "coverage": "GAP",
+        "value": null,
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "SOURCE_SCOPE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [],
+        "measured": false,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [],
+        "locator": "file",
+        "citation": null,
+        "gap": "PLT-01 public aggregate law-check output unavailable",
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.model_card.accuracy_overall",
+        "kind": "DEVELOPMENT_EVIDENCE_OBLIGATION_NOT_CUSTOMER_CRITERION",
+        "description": "Overall accuracy",
+        "sections": [
+          "D05",
+          "D06",
+          "D08"
+        ],
+        "basis": "reference-relative",
+        "coverage": "GAP",
+        "value": null,
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "SOURCE_SCOPE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [],
+        "measured": false,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [],
+        "locator": "file",
+        "citation": null,
+        "gap": "Measurement unavailable / not run",
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.model_card.accuracy_near_limits",
+        "kind": "DEVELOPMENT_EVIDENCE_OBLIGATION_NOT_CUSTOMER_CRITERION",
+        "description": "Accuracy near limits",
+        "sections": [
+          "D05",
+          "D06",
+          "D08"
+        ],
+        "basis": "reference-relative",
+        "coverage": "GAP",
+        "value": null,
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "SOURCE_SCOPE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [],
+        "measured": false,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [],
+        "locator": "file",
+        "citation": null,
+        "gap": "Measurement unavailable / not run",
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.model_card.robustness",
+        "kind": "DEVELOPMENT_EVIDENCE_OBLIGATION_NOT_CUSTOMER_CRITERION",
+        "description": "Robustness / local sensitivity",
+        "sections": [
+          "D05",
+          "D06",
+          "D08"
+        ],
+        "basis": "reference-relative",
+        "coverage": "GAP",
+        "value": null,
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "SOURCE_SCOPE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [],
+        "measured": false,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [],
+        "locator": "file",
+        "citation": null,
+        "gap": "Measurement unavailable / not run",
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.model_card.extrapolation",
+        "kind": "DEVELOPMENT_EVIDENCE_OBLIGATION_NOT_CUSTOMER_CRITERION",
+        "description": "Stretch-set error growth inside physical validity",
+        "sections": [
+          "D05",
+          "D06",
+          "D08"
+        ],
+        "basis": "reference-relative",
+        "coverage": "GAP",
+        "value": null,
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "SOURCE_SCOPE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [],
+        "measured": false,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [],
+        "locator": "file",
+        "citation": null,
+        "gap": "Measurement unavailable / not run",
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.model_card.uncertainty_calibration",
+        "kind": "DEVELOPMENT_EVIDENCE_OBLIGATION_NOT_CUSTOMER_CRITERION",
+        "description": "Reference-relative uncertainty calibration",
+        "sections": [
+          "D05",
+          "D06",
+          "D08"
+        ],
+        "basis": "reference-relative",
+        "coverage": "GAP",
+        "value": null,
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "SOURCE_SCOPE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [],
+        "measured": false,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [],
+        "locator": "file",
+        "citation": null,
+        "gap": "Measurement unavailable / not run",
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.model_card.speedup_equal_accuracy",
+        "kind": "DEVELOPMENT_EVIDENCE_OBLIGATION_NOT_CUSTOMER_CRITERION",
+        "description": "Speed-up at equal accuracy",
+        "sections": [
+          "D05",
+          "D06",
+          "D08"
+        ],
+        "basis": "reference-relative",
+        "coverage": "GAP",
+        "value": null,
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "SOURCE_SCOPE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [],
+        "measured": false,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [],
+        "locator": "file",
+        "citation": null,
+        "gap": "Measurement unavailable / not run",
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.model_card.inference_latency",
+        "kind": "DEVELOPMENT_EVIDENCE_OBLIGATION_NOT_CUSTOMER_CRITERION",
+        "description": "Inference latency",
+        "sections": [
+          "D05",
+          "D06",
+          "D08"
+        ],
+        "basis": "reference-relative",
+        "coverage": "GAP",
+        "value": null,
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "SOURCE_SCOPE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [],
+        "measured": false,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [],
+        "locator": "file",
+        "citation": null,
+        "gap": "Measurement unavailable / not run",
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.model_card.training_cost",
+        "kind": "DEVELOPMENT_EVIDENCE_OBLIGATION_NOT_CUSTOMER_CRITERION",
+        "description": "Controlled rebuild cost",
+        "sections": [
+          "D05",
+          "D06",
+          "D08"
+        ],
+        "basis": "reference-relative",
+        "coverage": "GAP",
+        "value": null,
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "SOURCE_SCOPE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [],
+        "measured": false,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [],
+        "locator": "file",
+        "citation": null,
+        "gap": "Measurement unavailable / not run",
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.trust_map.map",
+        "kind": "DEVELOPMENT_EVIDENCE_OBLIGATION_NOT_CUSTOMER_CRITERION",
+        "description": "Reference error / top-model disagreement",
+        "sections": [
+          "D03",
+          "D05",
+          "D06",
+          "D09"
+        ],
+        "basis": "reference-relative",
+        "coverage": "GAP",
+        "value": null,
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "SOURCE_SCOPE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [],
+        "measured": false,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [],
+        "locator": "file",
+        "citation": null,
+        "gap": "Public carbon.trust_map aggregate unavailable",
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.solver_verification.image_digest",
+        "kind": "DEVELOPMENT_EVIDENCE_OBLIGATION_NOT_CUSTOMER_CRITERION",
+        "description": "MMS reference image",
+        "sections": [
+          "D04",
+          "D08"
+        ],
+        "basis": "verification",
+        "coverage": "EVIDENCED",
+        "value": "sha256:2d19b261e722fe67f20bee02e115f2277a799c448b90d54d2872361b341bd940",
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "SOURCE_SCOPE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [
+          {
+            "id": "P1",
+            "path": "docs/development/evidence/battery-feasibility-02/code-verification/pybamm-verdict.json",
+            "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+            "git_blob": "c7454a3fda07c084de36158b4d8d372653553d43",
+            "sha256": "783255a7fc2b540874953b928a48a4b6fdb1cc927ab0ed0bf127b72dbab9ff84",
+            "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/battery-feasibility-02/code-verification/pybamm-verdict.json",
+            "locator": "immutable public file; fact locators in manifest",
+            "access_class": "PUBLIC_COMMITTED"
+          }
+        ],
+        "measured": false,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [
+          "P1"
+        ],
+        "locator": "/image_digest",
+        "citation": "[P1:/image_digest](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/battery-feasibility-02/code-verification/pybamm-verdict.json)",
+        "gap": null,
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.solver_verification.norm.0.l2",
+        "kind": "DEVELOPMENT_EVIDENCE_OBLIGATION_NOT_CUSTOMER_CRITERION",
+        "description": "MMS rung 1 l2 error",
+        "sections": [
+          "D04",
+          "D08"
+        ],
+        "basis": "verification",
+        "coverage": "EVIDENCED",
+        "value": 0.003784853498809245,
+        "unit": "dimensionless manufactured-solution error",
+        "sample_count": 20,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "SOURCE_SCOPE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [
+          {
+            "id": "P1",
+            "path": "docs/development/evidence/battery-feasibility-02/code-verification/pybamm-verdict.json",
+            "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+            "git_blob": "c7454a3fda07c084de36158b4d8d372653553d43",
+            "sha256": "783255a7fc2b540874953b928a48a4b6fdb1cc927ab0ed0bf127b72dbab9ff84",
+            "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/battery-feasibility-02/code-verification/pybamm-verdict.json",
+            "locator": "immutable public file; fact locators in manifest",
+            "access_class": "PUBLIC_COMMITTED"
+          }
+        ],
+        "measured": true,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [
+          "P1"
+        ],
+        "locator": "/norms/0/l2",
+        "citation": "[P1:/norms/0/l2](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/battery-feasibility-02/code-verification/pybamm-verdict.json)",
+        "gap": null,
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.solver_verification.norm.0.linf",
+        "kind": "DEVELOPMENT_EVIDENCE_OBLIGATION_NOT_CUSTOMER_CRITERION",
+        "description": "MMS rung 1 linf error",
+        "sections": [
+          "D04",
+          "D08"
+        ],
+        "basis": "verification",
+        "coverage": "EVIDENCED",
+        "value": 0.004400838550357,
+        "unit": "dimensionless manufactured-solution error",
+        "sample_count": 20,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "SOURCE_SCOPE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [
+          {
+            "id": "P1",
+            "path": "docs/development/evidence/battery-feasibility-02/code-verification/pybamm-verdict.json",
+            "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+            "git_blob": "c7454a3fda07c084de36158b4d8d372653553d43",
+            "sha256": "783255a7fc2b540874953b928a48a4b6fdb1cc927ab0ed0bf127b72dbab9ff84",
+            "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/battery-feasibility-02/code-verification/pybamm-verdict.json",
+            "locator": "immutable public file; fact locators in manifest",
+            "access_class": "PUBLIC_COMMITTED"
+          }
+        ],
+        "measured": true,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [
+          "P1"
+        ],
+        "locator": "/norms/0/linf",
+        "citation": "[P1:/norms/0/linf](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/battery-feasibility-02/code-verification/pybamm-verdict.json)",
+        "gap": null,
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.solver_verification.norm.1.l2",
+        "kind": "DEVELOPMENT_EVIDENCE_OBLIGATION_NOT_CUSTOMER_CRITERION",
+        "description": "MMS rung 2 l2 error",
+        "sections": [
+          "D04",
+          "D08"
+        ],
+        "basis": "verification",
+        "coverage": "EVIDENCED",
+        "value": 0.0009465152815789035,
+        "unit": "dimensionless manufactured-solution error",
+        "sample_count": 40,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "SOURCE_SCOPE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [
+          {
+            "id": "P1",
+            "path": "docs/development/evidence/battery-feasibility-02/code-verification/pybamm-verdict.json",
+            "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+            "git_blob": "c7454a3fda07c084de36158b4d8d372653553d43",
+            "sha256": "783255a7fc2b540874953b928a48a4b6fdb1cc927ab0ed0bf127b72dbab9ff84",
+            "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/battery-feasibility-02/code-verification/pybamm-verdict.json",
+            "locator": "immutable public file; fact locators in manifest",
+            "access_class": "PUBLIC_COMMITTED"
+          }
+        ],
+        "measured": true,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [
+          "P1"
+        ],
+        "locator": "/norms/1/l2",
+        "citation": "[P1:/norms/1/l2](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/battery-feasibility-02/code-verification/pybamm-verdict.json)",
+        "gap": null,
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.solver_verification.norm.1.linf",
+        "kind": "DEVELOPMENT_EVIDENCE_OBLIGATION_NOT_CUSTOMER_CRITERION",
+        "description": "MMS rung 2 linf error",
+        "sections": [
+          "D04",
+          "D08"
+        ],
+        "basis": "verification",
+        "coverage": "EVIDENCED",
+        "value": 0.0011020355080928468,
+        "unit": "dimensionless manufactured-solution error",
+        "sample_count": 40,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "SOURCE_SCOPE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [
+          {
+            "id": "P1",
+            "path": "docs/development/evidence/battery-feasibility-02/code-verification/pybamm-verdict.json",
+            "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+            "git_blob": "c7454a3fda07c084de36158b4d8d372653553d43",
+            "sha256": "783255a7fc2b540874953b928a48a4b6fdb1cc927ab0ed0bf127b72dbab9ff84",
+            "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/battery-feasibility-02/code-verification/pybamm-verdict.json",
+            "locator": "immutable public file; fact locators in manifest",
+            "access_class": "PUBLIC_COMMITTED"
+          }
+        ],
+        "measured": true,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [
+          "P1"
+        ],
+        "locator": "/norms/1/linf",
+        "citation": "[P1:/norms/1/linf](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/battery-feasibility-02/code-verification/pybamm-verdict.json)",
+        "gap": null,
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.solver_verification.norm.2.l2",
+        "kind": "DEVELOPMENT_EVIDENCE_OBLIGATION_NOT_CUSTOMER_CRITERION",
+        "description": "MMS rung 3 l2 error",
+        "sections": [
+          "D04",
+          "D08"
+        ],
+        "basis": "verification",
+        "coverage": "EVIDENCED",
+        "value": 0.00023664769015273215,
+        "unit": "dimensionless manufactured-solution error",
+        "sample_count": 80,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "SOURCE_SCOPE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [
+          {
+            "id": "P1",
+            "path": "docs/development/evidence/battery-feasibility-02/code-verification/pybamm-verdict.json",
+            "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+            "git_blob": "c7454a3fda07c084de36158b4d8d372653553d43",
+            "sha256": "783255a7fc2b540874953b928a48a4b6fdb1cc927ab0ed0bf127b72dbab9ff84",
+            "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/battery-feasibility-02/code-verification/pybamm-verdict.json",
+            "locator": "immutable public file; fact locators in manifest",
+            "access_class": "PUBLIC_COMMITTED"
+          }
+        ],
+        "measured": true,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [
+          "P1"
+        ],
+        "locator": "/norms/2/l2",
+        "citation": "[P1:/norms/2/l2](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/battery-feasibility-02/code-verification/pybamm-verdict.json)",
+        "gap": null,
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.solver_verification.norm.2.linf",
+        "kind": "DEVELOPMENT_EVIDENCE_OBLIGATION_NOT_CUSTOMER_CRITERION",
+        "description": "MMS rung 3 linf error",
+        "sections": [
+          "D04",
+          "D08"
+        ],
+        "basis": "verification",
+        "coverage": "EVIDENCED",
+        "value": 0.0002756414115752115,
+        "unit": "dimensionless manufactured-solution error",
+        "sample_count": 80,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "SOURCE_SCOPE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [
+          {
+            "id": "P1",
+            "path": "docs/development/evidence/battery-feasibility-02/code-verification/pybamm-verdict.json",
+            "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+            "git_blob": "c7454a3fda07c084de36158b4d8d372653553d43",
+            "sha256": "783255a7fc2b540874953b928a48a4b6fdb1cc927ab0ed0bf127b72dbab9ff84",
+            "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/battery-feasibility-02/code-verification/pybamm-verdict.json",
+            "locator": "immutable public file; fact locators in manifest",
+            "access_class": "PUBLIC_COMMITTED"
+          }
+        ],
+        "measured": true,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [
+          "P1"
+        ],
+        "locator": "/norms/2/linf",
+        "citation": "[P1:/norms/2/linf](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/battery-feasibility-02/code-verification/pybamm-verdict.json)",
+        "gap": null,
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.solver_verification.l2_order",
+        "kind": "DEVELOPMENT_EVIDENCE_OBLIGATION_NOT_CUSTOMER_CRITERION",
+        "description": "MMS l2_order",
+        "sections": [
+          "D04",
+          "D08"
+        ],
+        "basis": "verification",
+        "coverage": "EVIDENCED",
+        "value": 1.999884958134595,
+        "unit": "dimensionless observed order",
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "SOURCE_SCOPE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [
+          {
+            "id": "P1",
+            "path": "docs/development/evidence/battery-feasibility-02/code-verification/pybamm-verdict.json",
+            "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+            "git_blob": "c7454a3fda07c084de36158b4d8d372653553d43",
+            "sha256": "783255a7fc2b540874953b928a48a4b6fdb1cc927ab0ed0bf127b72dbab9ff84",
+            "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/battery-feasibility-02/code-verification/pybamm-verdict.json",
+            "locator": "immutable public file; fact locators in manifest",
+            "access_class": "PUBLIC_COMMITTED"
+          }
+        ],
+        "measured": true,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [
+          "P1"
+        ],
+        "locator": "/metrics/l2_order",
+        "citation": "[P1:/metrics/l2_order](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/battery-feasibility-02/code-verification/pybamm-verdict.json)",
+        "gap": null,
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.solver_verification.linf_order",
+        "kind": "DEVELOPMENT_EVIDENCE_OBLIGATION_NOT_CUSTOMER_CRITERION",
+        "description": "MMS linf_order",
+        "sections": [
+          "D04",
+          "D08"
+        ],
+        "basis": "verification",
+        "coverage": "EVIDENCED",
+        "value": 1.9993061531543845,
+        "unit": "dimensionless observed order",
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "SOURCE_SCOPE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [
+          {
+            "id": "P1",
+            "path": "docs/development/evidence/battery-feasibility-02/code-verification/pybamm-verdict.json",
+            "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+            "git_blob": "c7454a3fda07c084de36158b4d8d372653553d43",
+            "sha256": "783255a7fc2b540874953b928a48a4b6fdb1cc927ab0ed0bf127b72dbab9ff84",
+            "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/battery-feasibility-02/code-verification/pybamm-verdict.json",
+            "locator": "immutable public file; fact locators in manifest",
+            "access_class": "PUBLIC_COMMITTED"
+          }
+        ],
+        "measured": true,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [
+          "P1"
+        ],
+        "locator": "/metrics/linf_order",
+        "citation": "[P1:/metrics/linf_order](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/battery-feasibility-02/code-verification/pybamm-verdict.json)",
+        "gap": null,
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.solver_verification.machine_verdict",
+        "kind": "DEVELOPMENT_EVIDENCE_OBLIGATION_NOT_CUSTOMER_CRITERION",
+        "description": "Recorded MMS machine verdict",
+        "sections": [
+          "D04",
+          "D08"
+        ],
+        "basis": "verification",
+        "coverage": "EVIDENCED",
+        "value": "HUMAN_INPUT",
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "SOURCE_SCOPE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [
+          {
+            "id": "P1",
+            "path": "docs/development/evidence/battery-feasibility-02/code-verification/pybamm-verdict.json",
+            "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+            "git_blob": "c7454a3fda07c084de36158b4d8d372653553d43",
+            "sha256": "783255a7fc2b540874953b928a48a4b6fdb1cc927ab0ed0bf127b72dbab9ff84",
+            "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/battery-feasibility-02/code-verification/pybamm-verdict.json",
+            "locator": "immutable public file; fact locators in manifest",
+            "access_class": "PUBLIC_COMMITTED"
+          }
+        ],
+        "measured": false,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [
+          "P1"
+        ],
+        "locator": "/state",
+        "citation": "[P1:/state](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/battery-feasibility-02/code-verification/pybamm-verdict.json)",
+        "gap": null,
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.solver_verification.machine_acceptance",
+        "kind": "DEVELOPMENT_EVIDENCE_OBLIGATION_NOT_CUSTOMER_CRITERION",
+        "description": "Recorded machine acceptance flag",
+        "sections": [
+          "D04",
+          "D08"
+        ],
+        "basis": "verification",
+        "coverage": "EVIDENCED",
+        "value": false,
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "SOURCE_SCOPE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [
+          {
+            "id": "P1",
+            "path": "docs/development/evidence/battery-feasibility-02/code-verification/pybamm-verdict.json",
+            "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+            "git_blob": "c7454a3fda07c084de36158b4d8d372653553d43",
+            "sha256": "783255a7fc2b540874953b928a48a4b6fdb1cc927ab0ed0bf127b72dbab9ff84",
+            "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/battery-feasibility-02/code-verification/pybamm-verdict.json",
+            "locator": "immutable public file; fact locators in manifest",
+            "access_class": "PUBLIC_COMMITTED"
+          }
+        ],
+        "measured": false,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [
+          "P1"
+        ],
+        "locator": "/accepted_development_pass",
+        "citation": "[P1:/accepted_development_pass](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/battery-feasibility-02/code-verification/pybamm-verdict.json)",
+        "gap": null,
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.solver_verification.owner_acceptance_link",
+        "kind": "DEVELOPMENT_EVIDENCE_OBLIGATION_NOT_CUSTOMER_CRITERION",
+        "description": "Separate owner decision for this exact image",
+        "sections": [
+          "D04",
+          "D08"
+        ],
+        "basis": "verification",
+        "coverage": "EVIDENCED",
+        "value": "RECORDED_OWNER_DECISION",
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "SOURCE_SCOPE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [
+          {
+            "id": "P2",
+            "path": "docs/development/challenge_pipeline/code-verification/acceptance-links/pybamm.json",
+            "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+            "git_blob": "e66df55aa7f620d133062a4b67a280908894885b",
+            "sha256": "7598f003125dbb1e7be0afbe8c98696c94896d940da5a27b0989d40c4e174dd7",
+            "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/challenge_pipeline/code-verification/acceptance-links/pybamm.json",
+            "locator": "immutable public file; fact locators in manifest",
+            "access_class": "PUBLIC_COMMITTED"
+          }
+        ],
+        "measured": false,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [
+          "P2"
+        ],
+        "locator": "file",
+        "citation": "[P2:file](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/challenge_pipeline/code-verification/acceptance-links/pybamm.json)",
+        "gap": null,
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.solver_verification.acceptance_conditions",
+        "kind": "DEVELOPMENT_EVIDENCE_OBLIGATION_NOT_CUSTOMER_CRITERION",
+        "description": "Owner acceptance conditions",
+        "sections": [
+          "D04",
+          "D08"
+        ],
+        "basis": "verification",
+        "coverage": "EVIDENCED",
+        "value": {},
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "SOURCE_SCOPE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [
+          {
+            "id": "P2",
+            "path": "docs/development/challenge_pipeline/code-verification/acceptance-links/pybamm.json",
+            "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+            "git_blob": "e66df55aa7f620d133062a4b67a280908894885b",
+            "sha256": "7598f003125dbb1e7be0afbe8c98696c94896d940da5a27b0989d40c4e174dd7",
+            "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/challenge_pipeline/code-verification/acceptance-links/pybamm.json",
+            "locator": "immutable public file; fact locators in manifest",
+            "access_class": "PUBLIC_COMMITTED"
+          }
+        ],
+        "measured": false,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [
+          "P2"
+        ],
+        "locator": "/conditions",
+        "citation": "[P2:/conditions](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/challenge_pipeline/code-verification/acceptance-links/pybamm.json)",
+        "gap": null,
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.solver_verification.physical_validation",
+        "kind": "DEVELOPMENT_EVIDENCE_OBLIGATION_NOT_CUSTOMER_CRITERION",
+        "description": "Physical validation",
+        "sections": [
+          "D04",
+          "D08"
+        ],
+        "basis": "physical",
+        "coverage": "GAP",
+        "value": null,
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "SOURCE_SCOPE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [],
+        "measured": false,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [],
+        "locator": "file",
+        "citation": null,
+        "gap": "MMS verifies code against equations; it is not physical validation",
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.decision_evidence.verify_r",
+        "kind": "DEVELOPMENT_EVIDENCE_OBLIGATION_NOT_CUSTOMER_CRITERION",
+        "description": "Reference-verified top-k / VERIFY-R",
+        "sections": [
+          "D05",
+          "D07"
+        ],
+        "basis": "decision-value",
+        "coverage": "GAP",
+        "value": null,
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "SOURCE_SCOPE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [],
+        "measured": false,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [],
+        "locator": "file",
+        "citation": null,
+        "gap": "Public VERIFY-R aggregate unavailable or invalid",
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.decision_evidence.equal_budget",
+        "kind": "DEVELOPMENT_EVIDENCE_OBLIGATION_NOT_CUSTOMER_CRITERION",
+        "description": "Measured equal-budget curves",
+        "sections": [
+          "D05",
+          "D07"
+        ],
+        "basis": "decision-value",
+        "coverage": "GAP",
+        "value": null,
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "SOURCE_SCOPE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [],
+        "measured": false,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [],
+        "locator": "file",
+        "citation": null,
+        "gap": "Public equal-budget aggregate unavailable: missing, unresolved, assumed costs or identity mismatch",
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.decision_evidence.false_feasibility",
+        "kind": "DEVELOPMENT_EVIDENCE_OBLIGATION_NOT_CUSTOMER_CRITERION",
+        "description": "False feasibility of Assistant-selected picks",
+        "sections": [
+          "D05",
+          "D07"
+        ],
+        "basis": "decision-value",
+        "coverage": "GAP",
+        "value": null,
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "SOURCE_SCOPE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [],
+        "measured": false,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [],
+        "locator": "file",
+        "citation": null,
+        "gap": "Native aggregate does not measure Assistant selection pressure; PB-INV/ADV evidence required",
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.historical.EV4_FALSE_FEASIBLE",
+        "kind": "HISTORICAL_OBSERVATION_NOT_CURRENT_PRODUCT_ACCEPTANCE",
+        "description": "EV4 reported members with false acceptance / eligible members",
+        "sections": [
+          "D07",
+          "D10",
+          "D11"
+        ],
+        "basis": "reference-relative",
+        "coverage": "EVIDENCED",
+        "value": "56 / 99",
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "HISTORICAL_SOURCE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [
+          {
+            "id": "R2",
+            "path": "docs/development/BATTERY_ENGINEERING_VALUE_EV4.md",
+            "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+            "git_blob": "7fb86e7aa5539e0ba51dd32a07c6d68c007816bc",
+            "sha256": "a3da97a8a617164b6530c703df46424cb16abcc25b402180ce7e17a80dcf4210",
+            "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/BATTERY_ENGINEERING_VALUE_EV4.md",
+            "locator": "immutable public file; fact locators in manifest",
+            "access_class": "PUBLIC_COMMITTED"
+          }
+        ],
+        "measured": false,
+        "source_outcome": "FAIL",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [
+          "R2"
+        ],
+        "locator": "L431-L432",
+        "citation": "[R2:L431-L432](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/BATTERY_ENGINEERING_VALUE_EV4.md#L431-L432)",
+        "gap": null,
+        "adverse_links": [
+          "EV4_FALSE_FEASIBLE"
+        ]
+      },
+      {
+        "requirement_id": "DEVREQ.historical.EV4_H1",
+        "kind": "HISTORICAL_OBSERVATION_NOT_CURRENT_PRODUCT_ACCEPTANCE",
+        "description": "EV4 reported H1 outcome",
+        "sections": [
+          "D07",
+          "D10",
+          "D11"
+        ],
+        "basis": "decision-value",
+        "coverage": "EVIDENCED",
+        "value": "UNRESOLVED",
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "HISTORICAL_SOURCE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [
+          {
+            "id": "R2",
+            "path": "docs/development/BATTERY_ENGINEERING_VALUE_EV4.md",
+            "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+            "git_blob": "7fb86e7aa5539e0ba51dd32a07c6d68c007816bc",
+            "sha256": "a3da97a8a617164b6530c703df46424cb16abcc25b402180ce7e17a80dcf4210",
+            "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/BATTERY_ENGINEERING_VALUE_EV4.md",
+            "locator": "immutable public file; fact locators in manifest",
+            "access_class": "PUBLIC_COMMITTED"
+          }
+        ],
+        "measured": false,
+        "source_outcome": "UNRESOLVED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [
+          "R2"
+        ],
+        "locator": "L406-L406",
+        "citation": "[R2:L406-L406](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/BATTERY_ENGINEERING_VALUE_EV4.md#L406-L406)",
+        "gap": null,
+        "adverse_links": [
+          "EV4_H1"
+        ]
+      },
+      {
+        "requirement_id": "DEVREQ.historical.EV5_ATTACK",
+        "kind": "HISTORICAL_OBSERVATION_NOT_CURRENT_PRODUCT_ACCEPTANCE",
+        "description": "EV5 reported adversarial-score verdict",
+        "sections": [
+          "D07",
+          "D10",
+          "D11"
+        ],
+        "basis": "decision-value",
+        "coverage": "EVIDENCED",
+        "value": "FAIL",
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "HISTORICAL_SOURCE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [
+          {
+            "id": "R4",
+            "path": "docs/development/evidence/ev5-2026-10-03/README.md",
+            "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+            "git_blob": "5f9eddf85b0708e44aaeba7e4c057930aae346bd",
+            "sha256": "4db81df4b92e389af26b350c80c9dcae24b1dc6d4810915071a1f79b4eca98ba",
+            "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/ev5-2026-10-03/README.md",
+            "locator": "immutable public file; fact locators in manifest",
+            "access_class": "PUBLIC_COMMITTED"
+          }
+        ],
+        "measured": false,
+        "source_outcome": "FAIL",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [
+          "R4"
+        ],
+        "locator": "L21-L21",
+        "citation": "[R4:L21-L21](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/ev5-2026-10-03/README.md#L21-L21)",
+        "gap": null,
+        "adverse_links": [
+          "EV5_ATTACK"
+        ]
+      },
+      {
+        "requirement_id": "DEVREQ.historical.EV5_COUNTEREXAMPLES",
+        "kind": "HISTORICAL_OBSERVATION_NOT_CURRENT_PRODUCT_ACCEPTANCE",
+        "description": "EV5 reported reference-infeasible selections / selected constructions",
+        "sections": [
+          "D07",
+          "D10",
+          "D11"
+        ],
+        "basis": "reference-relative",
+        "coverage": "EVIDENCED",
+        "value": "8 / 10",
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "HISTORICAL_SOURCE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [
+          {
+            "id": "R4",
+            "path": "docs/development/evidence/ev5-2026-10-03/README.md",
+            "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+            "git_blob": "5f9eddf85b0708e44aaeba7e4c057930aae346bd",
+            "sha256": "4db81df4b92e389af26b350c80c9dcae24b1dc6d4810915071a1f79b4eca98ba",
+            "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/ev5-2026-10-03/README.md",
+            "locator": "immutable public file; fact locators in manifest",
+            "access_class": "PUBLIC_COMMITTED"
+          }
+        ],
+        "measured": false,
+        "source_outcome": "FAIL",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [
+          "R4"
+        ],
+        "locator": "L43-L43",
+        "citation": "[R4:L43-L43](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/ev5-2026-10-03/README.md#L43-L43)",
+        "gap": null,
+        "adverse_links": [
+          "EV5_COUNTEREXAMPLES"
+        ]
+      },
+      {
+        "requirement_id": "DEVREQ.historical.EV5_REBUILDS",
+        "kind": "HISTORICAL_OBSERVATION_NOT_CURRENT_PRODUCT_ACCEPTANCE",
+        "description": "EV5 reported matching rebuilds / frozen panel",
+        "sections": [
+          "D08",
+          "D11"
+        ],
+        "basis": "verification",
+        "coverage": "EVIDENCED",
+        "value": "110 / 110",
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "HISTORICAL_SOURCE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [
+          {
+            "id": "R4",
+            "path": "docs/development/evidence/ev5-2026-10-03/README.md",
+            "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+            "git_blob": "5f9eddf85b0708e44aaeba7e4c057930aae346bd",
+            "sha256": "4db81df4b92e389af26b350c80c9dcae24b1dc6d4810915071a1f79b4eca98ba",
+            "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/ev5-2026-10-03/README.md",
+            "locator": "immutable public file; fact locators in manifest",
+            "access_class": "PUBLIC_COMMITTED"
+          }
+        ],
+        "measured": false,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [
+          "R4"
+        ],
+        "locator": "L50-L50",
+        "citation": "[R4:L50-L50](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/ev5-2026-10-03/README.md#L50-L50)",
+        "gap": null,
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.historical.Q1_MISSING_V3",
+        "kind": "HISTORICAL_OBSERVATION_NOT_CURRENT_PRODUCT_ACCEPTANCE",
+        "description": "Q1 audit reports same-panel v3 measures uncomputable (historical scope)",
+        "sections": [
+          "D07",
+          "D10",
+          "D11"
+        ],
+        "basis": "decision-value",
+        "coverage": "EVIDENCED",
+        "value": "uncomputable",
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "HISTORICAL_SOURCE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [
+          {
+            "id": "R5",
+            "path": "docs/development/evidence/score-value-alignment-01/README.md",
+            "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+            "git_blob": "d459cff71db3558becf941c1079d2c2e2cca49e0",
+            "sha256": "3f1c7749c285f3cc97ac00276fbaf3844b603be8d3065098b5fa628db0252462",
+            "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/score-value-alignment-01/README.md",
+            "locator": "immutable public file; fact locators in manifest",
+            "access_class": "PUBLIC_COMMITTED"
+          }
+        ],
+        "measured": false,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [
+          "R5"
+        ],
+        "locator": "L7-L7",
+        "citation": "[R5:L7-L7](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/score-value-alignment-01/README.md#L7-L7)",
+        "gap": null,
+        "adverse_links": [
+          "Q1_MISSING_V3"
+        ]
+      },
+      {
+        "requirement_id": "DEVREQ.historical.EV4_MODE_X",
+        "kind": "HISTORICAL_OBSERVATION_NOT_CURRENT_PRODUCT_ACCEPTANCE",
+        "description": "EV4 reported adversarial violations: in-band / out-of-band",
+        "sections": [
+          "D07",
+          "D10",
+          "D11"
+        ],
+        "basis": "reference-relative",
+        "coverage": "EVIDENCED",
+        "value": "29 / 17",
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "HISTORICAL_SOURCE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [
+          {
+            "id": "R2",
+            "path": "docs/development/BATTERY_ENGINEERING_VALUE_EV4.md",
+            "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+            "git_blob": "7fb86e7aa5539e0ba51dd32a07c6d68c007816bc",
+            "sha256": "a3da97a8a617164b6530c703df46424cb16abcc25b402180ce7e17a80dcf4210",
+            "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/BATTERY_ENGINEERING_VALUE_EV4.md",
+            "locator": "immutable public file; fact locators in manifest",
+            "access_class": "PUBLIC_COMMITTED"
+          }
+        ],
+        "measured": false,
+        "source_outcome": "FAIL",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [
+          "R2"
+        ],
+        "locator": "L479-L480",
+        "citation": "[R2:L479-L480](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/BATTERY_ENGINEERING_VALUE_EV4.md#L479-L480)",
+        "gap": null,
+        "adverse_links": [
+          "EV4_MODE_X"
+        ]
+      },
+      {
+        "requirement_id": "DEVREQ.historical.EV5_MODE_X",
+        "kind": "HISTORICAL_OBSERVATION_NOT_CURRENT_PRODUCT_ACCEPTANCE",
+        "description": "EV5 reported adversarial findings: in-band / out-of-band",
+        "sections": [
+          "D07",
+          "D10",
+          "D11"
+        ],
+        "basis": "reference-relative",
+        "coverage": "EVIDENCED",
+        "value": "25 / 21",
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "HISTORICAL_SOURCE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [
+          {
+            "id": "R4",
+            "path": "docs/development/evidence/ev5-2026-10-03/README.md",
+            "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+            "git_blob": "5f9eddf85b0708e44aaeba7e4c057930aae346bd",
+            "sha256": "4db81df4b92e389af26b350c80c9dcae24b1dc6d4810915071a1f79b4eca98ba",
+            "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/ev5-2026-10-03/README.md",
+            "locator": "immutable public file; fact locators in manifest",
+            "access_class": "PUBLIC_COMMITTED"
+          }
+        ],
+        "measured": false,
+        "source_outcome": "FAIL",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [
+          "R4"
+        ],
+        "locator": "L44-L44",
+        "citation": "[R4:L44-L44](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/ev5-2026-10-03/README.md#L44-L44)",
+        "gap": null,
+        "adverse_links": [
+          "EV5_MODE_X"
+        ]
+      },
+      {
+        "requirement_id": "DEVREQ.historical.EV5_SIGN_ERROR",
+        "kind": "HISTORICAL_OBSERVATION_NOT_CURRENT_PRODUCT_ACCEPTANCE",
+        "description": "EV5 reported sign-error near-limit false-acceptance rate",
+        "sections": [
+          "D07",
+          "D10",
+          "D11"
+        ],
+        "basis": "reference-relative",
+        "coverage": "EVIDENCED",
+        "value": "0.946",
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "HISTORICAL_SOURCE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [
+          {
+            "id": "R4",
+            "path": "docs/development/evidence/ev5-2026-10-03/README.md",
+            "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+            "git_blob": "5f9eddf85b0708e44aaeba7e4c057930aae346bd",
+            "sha256": "4db81df4b92e389af26b350c80c9dcae24b1dc6d4810915071a1f79b4eca98ba",
+            "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/ev5-2026-10-03/README.md",
+            "locator": "immutable public file; fact locators in manifest",
+            "access_class": "PUBLIC_COMMITTED"
+          }
+        ],
+        "measured": false,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [
+          "R4"
+        ],
+        "locator": "L38-L38",
+        "citation": "[R4:L38-L38](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/ev5-2026-10-03/README.md#L38-L38)",
+        "gap": null,
+        "adverse_links": [
+          "EV5_SIGN_ERROR"
+        ]
+      },
+      {
+        "requirement_id": "DEVREQ.historical.REVIEW_customer",
+        "kind": "HISTORICAL_OBSERVATION_NOT_CURRENT_PRODUCT_ACCEPTANCE",
+        "description": "Recorded customer review state",
+        "sections": [
+          "D08",
+          "D11"
+        ],
+        "basis": "verification",
+        "coverage": "EVIDENCED",
+        "value": "NOT_STARTED",
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "HISTORICAL_SOURCE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [
+          {
+            "id": "R1",
+            "path": "carbon/challenge_readiness/records/battery-fastcharge-ageing-development-v1.v3.json",
+            "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+            "git_blob": "24c96fba84860c811acfd46155e594e1a030b5f0",
+            "sha256": "f657bd8dfa1144ade3d58fd07e3d8115d8786b55bb0ff2168bbc30f141071c9c",
+            "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/carbon/challenge_readiness/records/battery-fastcharge-ageing-development-v1.v3.json",
+            "locator": "immutable public file; fact locators in manifest",
+            "access_class": "PUBLIC_COMMITTED"
+          }
+        ],
+        "measured": false,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [
+          "R1"
+        ],
+        "locator": "/reviews/customer/state",
+        "citation": "[R1:/reviews/customer/state](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/carbon/challenge_readiness/records/battery-fastcharge-ageing-development-v1.v3.json)",
+        "gap": null,
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.historical.REVIEW_launch",
+        "kind": "HISTORICAL_OBSERVATION_NOT_CURRENT_PRODUCT_ACCEPTANCE",
+        "description": "Recorded launch review state",
+        "sections": [
+          "D08",
+          "D11"
+        ],
+        "basis": "verification",
+        "coverage": "EVIDENCED",
+        "value": "NOT_STARTED",
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "HISTORICAL_SOURCE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [
+          {
+            "id": "R1",
+            "path": "carbon/challenge_readiness/records/battery-fastcharge-ageing-development-v1.v3.json",
+            "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+            "git_blob": "24c96fba84860c811acfd46155e594e1a030b5f0",
+            "sha256": "f657bd8dfa1144ade3d58fd07e3d8115d8786b55bb0ff2168bbc30f141071c9c",
+            "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/carbon/challenge_readiness/records/battery-fastcharge-ageing-development-v1.v3.json",
+            "locator": "immutable public file; fact locators in manifest",
+            "access_class": "PUBLIC_COMMITTED"
+          }
+        ],
+        "measured": false,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [
+          "R1"
+        ],
+        "locator": "/reviews/launch/state",
+        "citation": "[R1:/reviews/launch/state](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/carbon/challenge_readiness/records/battery-fastcharge-ageing-development-v1.v3.json)",
+        "gap": null,
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.historical.REVIEW_numerical_reference",
+        "kind": "HISTORICAL_OBSERVATION_NOT_CURRENT_PRODUCT_ACCEPTANCE",
+        "description": "Recorded numerical_reference review state",
+        "sections": [
+          "D08",
+          "D11"
+        ],
+        "basis": "verification",
+        "coverage": "EVIDENCED",
+        "value": "NOT_STARTED",
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "HISTORICAL_SOURCE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [
+          {
+            "id": "R1",
+            "path": "carbon/challenge_readiness/records/battery-fastcharge-ageing-development-v1.v3.json",
+            "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+            "git_blob": "24c96fba84860c811acfd46155e594e1a030b5f0",
+            "sha256": "f657bd8dfa1144ade3d58fd07e3d8115d8786b55bb0ff2168bbc30f141071c9c",
+            "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/carbon/challenge_readiness/records/battery-fastcharge-ageing-development-v1.v3.json",
+            "locator": "immutable public file; fact locators in manifest",
+            "access_class": "PUBLIC_COMMITTED"
+          }
+        ],
+        "measured": false,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [
+          "R1"
+        ],
+        "locator": "/reviews/numerical_reference/state",
+        "citation": "[R1:/reviews/numerical_reference/state](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/carbon/challenge_readiness/records/battery-fastcharge-ageing-development-v1.v3.json)",
+        "gap": null,
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.historical.REVIEW_scientific",
+        "kind": "HISTORICAL_OBSERVATION_NOT_CURRENT_PRODUCT_ACCEPTANCE",
+        "description": "Recorded scientific review state",
+        "sections": [
+          "D08",
+          "D11"
+        ],
+        "basis": "verification",
+        "coverage": "EVIDENCED",
+        "value": "NOT_STARTED",
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "HISTORICAL_SOURCE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [
+          {
+            "id": "R1",
+            "path": "carbon/challenge_readiness/records/battery-fastcharge-ageing-development-v1.v3.json",
+            "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+            "git_blob": "24c96fba84860c811acfd46155e594e1a030b5f0",
+            "sha256": "f657bd8dfa1144ade3d58fd07e3d8115d8786b55bb0ff2168bbc30f141071c9c",
+            "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/carbon/challenge_readiness/records/battery-fastcharge-ageing-development-v1.v3.json",
+            "locator": "immutable public file; fact locators in manifest",
+            "access_class": "PUBLIC_COMMITTED"
+          }
+        ],
+        "measured": false,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [
+          "R1"
+        ],
+        "locator": "/reviews/scientific/state",
+        "citation": "[R1:/reviews/scientific/state](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/carbon/challenge_readiness/records/battery-fastcharge-ageing-development-v1.v3.json)",
+        "gap": null,
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.historical.REVIEW_security",
+        "kind": "HISTORICAL_OBSERVATION_NOT_CURRENT_PRODUCT_ACCEPTANCE",
+        "description": "Recorded security review state",
+        "sections": [
+          "D08",
+          "D11"
+        ],
+        "basis": "verification",
+        "coverage": "EVIDENCED",
+        "value": "IN_REVIEW",
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "HISTORICAL_SOURCE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [
+          {
+            "id": "R1",
+            "path": "carbon/challenge_readiness/records/battery-fastcharge-ageing-development-v1.v3.json",
+            "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+            "git_blob": "24c96fba84860c811acfd46155e594e1a030b5f0",
+            "sha256": "f657bd8dfa1144ade3d58fd07e3d8115d8786b55bb0ff2168bbc30f141071c9c",
+            "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/carbon/challenge_readiness/records/battery-fastcharge-ageing-development-v1.v3.json",
+            "locator": "immutable public file; fact locators in manifest",
+            "access_class": "PUBLIC_COMMITTED"
+          }
+        ],
+        "measured": false,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [
+          "R1"
+        ],
+        "locator": "/reviews/security/state",
+        "citation": "[R1:/reviews/security/state](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/carbon/challenge_readiness/records/battery-fastcharge-ageing-development-v1.v3.json)",
+        "gap": null,
+        "adverse_links": []
+      }
+    ],
+    "risk_informed_plan": {
+      "context_of_use": null,
+      "context_citation": null,
+      "model_influence": {
+        "value": null,
+        "authority_ref": null,
+        "basis": "HUMAN_INPUT",
+        "citation": null
+      },
+      "decision_consequence": {
+        "value": null,
+        "authority_ref": null,
+        "basis": "HUMAN_INPUT",
+        "citation": null
+      },
+      "required_credibility": {
+        "value": null,
+        "authority_ref": null,
+        "basis": "HUMAN_INPUT",
+        "citation": null
+      },
+      "risk_combination": {
+        "form": "model influence × decision consequence",
+        "value": null,
+        "rule": null,
+        "authority": "HUMAN_INPUT"
+      },
+      "goals": [
+        {
+          "id": "DEVREQ.D01",
+          "description": "Intended use and decision consequence",
+          "coverage": "GAP",
+          "supporting_rows": [],
+          "evidence_refs": [],
+          "source_outcomes": [],
+          "criterion": null,
+          "authority": "HUMAN_INPUT",
+          "requirement_outcome": "NOT_ASSESSED",
+          "owner_role": "Customer/program use authority",
+          "next_proof": [
+            "HUMAN_INPUT: section completion and responsible authority"
+          ]
+        },
+        {
+          "id": "DEVREQ.D02",
+          "description": "Requirements, criteria and approving authority",
+          "coverage": "GAP",
+          "supporting_rows": [
+            "DEVREQ.law_checks.law_results"
+          ],
+          "evidence_refs": [],
+          "source_outcomes": [
+            "NOT_ASSESSED"
+          ],
+          "criterion": null,
+          "authority": "HUMAN_INPUT",
+          "requirement_outcome": "NOT_ASSESSED",
+          "owner_role": "Customer/science authority",
+          "next_proof": [
+            "HUMAN_INPUT: section completion and responsible authority",
+            "P4: public package projection not present at the evidence revision",
+            "law_results: PLT-01 public aggregate law-check output unavailable"
+          ]
+        },
+        {
+          "id": "DEVREQ.D03",
+          "description": "Applicable population, coverage and exclusions",
+          "coverage": "GAP",
+          "supporting_rows": [
+            "DEVREQ.trust_map.map"
+          ],
+          "evidence_refs": [],
+          "source_outcomes": [
+            "NOT_ASSESSED"
+          ],
+          "criterion": null,
+          "authority": "HUMAN_INPUT",
+          "requirement_outcome": "NOT_ASSESSED",
+          "owner_role": "Science/customer authority",
+          "next_proof": [
+            "HUMAN_INPUT: section completion and responsible authority",
+            "P4: public package projection not present at the evidence revision",
+            "map: Public carbon.trust_map aggregate unavailable"
+          ]
+        },
+        {
+          "id": "DEVREQ.D04",
+          "description": "Reference verification and physical adequacy",
+          "coverage": "PARTIAL",
+          "supporting_rows": [
+            "DEVREQ.solver_verification.image_digest",
+            "DEVREQ.solver_verification.norm.0.l2",
+            "DEVREQ.solver_verification.norm.0.linf",
+            "DEVREQ.solver_verification.norm.1.l2",
+            "DEVREQ.solver_verification.norm.1.linf",
+            "DEVREQ.solver_verification.norm.2.l2",
+            "DEVREQ.solver_verification.norm.2.linf",
+            "DEVREQ.solver_verification.l2_order",
+            "DEVREQ.solver_verification.linf_order",
+            "DEVREQ.solver_verification.machine_verdict",
+            "DEVREQ.solver_verification.machine_acceptance",
+            "DEVREQ.solver_verification.owner_acceptance_link",
+            "DEVREQ.solver_verification.acceptance_conditions",
+            "DEVREQ.solver_verification.physical_validation"
+          ],
+          "evidence_refs": [
+            "P1",
+            "P2"
+          ],
+          "source_outcomes": [
+            "NOT_ASSESSED"
+          ],
+          "criterion": null,
+          "authority": "HUMAN_INPUT",
+          "requirement_outcome": "NOT_ASSESSED",
+          "owner_role": "Reference/science authority",
+          "next_proof": [
+            "HUMAN_INPUT: section completion and responsible authority",
+            "physical_validation: MMS verifies code against equations; it is not physical validation"
+          ]
+        },
+        {
+          "id": "DEVREQ.D05",
+          "description": "Artifact-bound requirement evidence",
+          "coverage": "GAP",
+          "supporting_rows": [
+            "DEVREQ.law_checks.law_results",
+            "DEVREQ.model_card.accuracy_overall",
+            "DEVREQ.model_card.accuracy_near_limits",
+            "DEVREQ.model_card.robustness",
+            "DEVREQ.model_card.extrapolation",
+            "DEVREQ.model_card.uncertainty_calibration",
+            "DEVREQ.model_card.speedup_equal_accuracy",
+            "DEVREQ.model_card.inference_latency",
+            "DEVREQ.model_card.training_cost",
+            "DEVREQ.trust_map.map",
+            "DEVREQ.decision_evidence.verify_r",
+            "DEVREQ.decision_evidence.equal_budget",
+            "DEVREQ.decision_evidence.false_feasibility"
+          ],
+          "evidence_refs": [],
+          "source_outcomes": [
+            "NOT_ASSESSED"
+          ],
+          "criterion": null,
+          "authority": "HUMAN_INPUT",
+          "requirement_outcome": "NOT_ASSESSED",
+          "owner_role": "Science/product authority",
+          "next_proof": [
+            "HUMAN_INPUT: section completion and responsible authority",
+            "P4: public package projection not present at the evidence revision",
+            "law_results: PLT-01 public aggregate law-check output unavailable",
+            "P4: public package projection not present at the evidence revision",
+            "accuracy_overall: Measurement unavailable / not run",
+            "accuracy_near_limits: Measurement unavailable / not run",
+            "robustness: Measurement unavailable / not run",
+            "extrapolation: Measurement unavailable / not run",
+            "uncertainty_calibration: Measurement unavailable / not run",
+            "speedup_equal_accuracy: Measurement unavailable / not run",
+            "inference_latency: Measurement unavailable / not run",
+            "training_cost: Measurement unavailable / not run",
+            "P4: public package projection not present at the evidence revision",
+            "map: Public carbon.trust_map aggregate unavailable",
+            "P4: public package projection not present at the evidence revision",
+            "verify_r: Public VERIFY-R aggregate unavailable or invalid",
+            "equal_budget: Public equal-budget aggregate unavailable: missing, unresolved, assumed costs or identity mismatch",
+            "false_feasibility: Native aggregate does not measure Assistant selection pressure; PB-INV/ADV evidence required"
+          ]
+        },
+        {
+          "id": "DEVREQ.D06",
+          "description": "Uncertainty, sensitivity and applicability",
+          "coverage": "GAP",
+          "supporting_rows": [
+            "DEVREQ.model_card.accuracy_overall",
+            "DEVREQ.model_card.accuracy_near_limits",
+            "DEVREQ.model_card.robustness",
+            "DEVREQ.model_card.extrapolation",
+            "DEVREQ.model_card.uncertainty_calibration",
+            "DEVREQ.model_card.speedup_equal_accuracy",
+            "DEVREQ.model_card.inference_latency",
+            "DEVREQ.model_card.training_cost",
+            "DEVREQ.trust_map.map"
+          ],
+          "evidence_refs": [],
+          "source_outcomes": [
+            "NOT_ASSESSED"
+          ],
+          "criterion": null,
+          "authority": "HUMAN_INPUT",
+          "requirement_outcome": "NOT_ASSESSED",
+          "owner_role": "Science/statistics authority",
+          "next_proof": [
+            "HUMAN_INPUT: section completion and responsible authority",
+            "P4: public package projection not present at the evidence revision",
+            "accuracy_overall: Measurement unavailable / not run",
+            "accuracy_near_limits: Measurement unavailable / not run",
+            "robustness: Measurement unavailable / not run",
+            "extrapolation: Measurement unavailable / not run",
+            "uncertainty_calibration: Measurement unavailable / not run",
+            "speedup_equal_accuracy: Measurement unavailable / not run",
+            "inference_latency: Measurement unavailable / not run",
+            "training_cost: Measurement unavailable / not run",
+            "P4: public package projection not present at the evidence revision",
+            "map: Public carbon.trust_map aggregate unavailable"
+          ]
+        },
+        {
+          "id": "DEVREQ.D07",
+          "description": "Adverse findings, robustness and retest",
+          "coverage": "GAP",
+          "supporting_rows": [
+            "DEVREQ.law_checks.law_results",
+            "DEVREQ.decision_evidence.verify_r",
+            "DEVREQ.decision_evidence.equal_budget",
+            "DEVREQ.decision_evidence.false_feasibility",
+            "DEVREQ.historical.EV4_FALSE_FEASIBLE",
+            "DEVREQ.historical.EV4_H1",
+            "DEVREQ.historical.EV5_ATTACK",
+            "DEVREQ.historical.EV5_COUNTEREXAMPLES",
+            "DEVREQ.historical.Q1_MISSING_V3",
+            "DEVREQ.historical.EV4_MODE_X",
+            "DEVREQ.historical.EV5_MODE_X",
+            "DEVREQ.historical.EV5_SIGN_ERROR"
+          ],
+          "evidence_refs": [
+            "R2",
+            "R4",
+            "R5"
+          ],
+          "source_outcomes": [
+            "FAIL",
+            "NOT_ASSESSED",
+            "UNRESOLVED"
+          ],
+          "criterion": null,
+          "authority": "HUMAN_INPUT",
+          "requirement_outcome": "NOT_ASSESSED",
+          "owner_role": "Independent assessment authority",
+          "next_proof": [
+            "HUMAN_INPUT: section completion and responsible authority",
+            "P4: public package projection not present at the evidence revision",
+            "law_results: PLT-01 public aggregate law-check output unavailable",
+            "P4: public package projection not present at the evidence revision",
+            "verify_r: Public VERIFY-R aggregate unavailable or invalid",
+            "equal_budget: Public equal-budget aggregate unavailable: missing, unresolved, assumed costs or identity mismatch",
+            "false_feasibility: Native aggregate does not measure Assistant selection pressure; PB-INV/ADV evidence required"
+          ]
+        },
+        {
+          "id": "DEVREQ.D08",
+          "description": "Artifact/runtime provenance and reproducibility",
+          "coverage": "PARTIAL",
+          "supporting_rows": [
+            "DEVREQ.model_card.accuracy_overall",
+            "DEVREQ.model_card.accuracy_near_limits",
+            "DEVREQ.model_card.robustness",
+            "DEVREQ.model_card.extrapolation",
+            "DEVREQ.model_card.uncertainty_calibration",
+            "DEVREQ.model_card.speedup_equal_accuracy",
+            "DEVREQ.model_card.inference_latency",
+            "DEVREQ.model_card.training_cost",
+            "DEVREQ.solver_verification.image_digest",
+            "DEVREQ.solver_verification.norm.0.l2",
+            "DEVREQ.solver_verification.norm.0.linf",
+            "DEVREQ.solver_verification.norm.1.l2",
+            "DEVREQ.solver_verification.norm.1.linf",
+            "DEVREQ.solver_verification.norm.2.l2",
+            "DEVREQ.solver_verification.norm.2.linf",
+            "DEVREQ.solver_verification.l2_order",
+            "DEVREQ.solver_verification.linf_order",
+            "DEVREQ.solver_verification.machine_verdict",
+            "DEVREQ.solver_verification.machine_acceptance",
+            "DEVREQ.solver_verification.owner_acceptance_link",
+            "DEVREQ.solver_verification.acceptance_conditions",
+            "DEVREQ.solver_verification.physical_validation",
+            "DEVREQ.historical.EV5_REBUILDS",
+            "DEVREQ.historical.REVIEW_customer",
+            "DEVREQ.historical.REVIEW_launch",
+            "DEVREQ.historical.REVIEW_numerical_reference",
+            "DEVREQ.historical.REVIEW_scientific",
+            "DEVREQ.historical.REVIEW_security"
+          ],
+          "evidence_refs": [
+            "P1",
+            "P2",
+            "R1",
+            "R4"
+          ],
+          "source_outcomes": [
+            "NOT_ASSESSED"
+          ],
+          "criterion": null,
+          "authority": "HUMAN_INPUT",
+          "requirement_outcome": "NOT_ASSESSED",
+          "owner_role": "Engineering/product authority",
+          "next_proof": [
+            "HUMAN_INPUT: product identity/parity, rights, independent review and qualification authority",
+            "P4: public package projection not present at the evidence revision",
+            "accuracy_overall: Measurement unavailable / not run",
+            "accuracy_near_limits: Measurement unavailable / not run",
+            "robustness: Measurement unavailable / not run",
+            "extrapolation: Measurement unavailable / not run",
+            "uncertainty_calibration: Measurement unavailable / not run",
+            "speedup_equal_accuracy: Measurement unavailable / not run",
+            "inference_latency: Measurement unavailable / not run",
+            "training_cost: Measurement unavailable / not run",
+            "physical_validation: MMS verifies code against equations; it is not physical validation"
+          ]
+        },
+        {
+          "id": "DEVREQ.D09",
+          "description": "Fallback, abstention and unavailable-reference handling",
+          "coverage": "GAP",
+          "supporting_rows": [
+            "DEVREQ.trust_map.map"
+          ],
+          "evidence_refs": [],
+          "source_outcomes": [
+            "NOT_ASSESSED"
+          ],
+          "criterion": null,
+          "authority": "HUMAN_INPUT",
+          "requirement_outcome": "NOT_ASSESSED",
+          "owner_role": "Customer/operations authority",
+          "next_proof": [
+            "HUMAN_INPUT: section completion and responsible authority",
+            "P4: public package projection not present at the evidence revision",
+            "map: Public carbon.trust_map aggregate unavailable"
+          ]
+        },
+        {
+          "id": "DEVREQ.D10",
+          "description": "Limitations, missing proof and change impact",
+          "coverage": "GAP",
+          "supporting_rows": [
+            "DEVREQ.historical.EV4_FALSE_FEASIBLE",
+            "DEVREQ.historical.EV4_H1",
+            "DEVREQ.historical.EV5_ATTACK",
+            "DEVREQ.historical.EV5_COUNTEREXAMPLES",
+            "DEVREQ.historical.Q1_MISSING_V3",
+            "DEVREQ.historical.EV4_MODE_X",
+            "DEVREQ.historical.EV5_MODE_X",
+            "DEVREQ.historical.EV5_SIGN_ERROR"
+          ],
+          "evidence_refs": [
+            "R2",
+            "R4",
+            "R5"
+          ],
+          "source_outcomes": [
+            "FAIL",
+            "NOT_ASSESSED",
+            "UNRESOLVED"
+          ],
+          "criterion": null,
+          "authority": "HUMAN_INPUT",
+          "requirement_outcome": "NOT_ASSESSED",
+          "owner_role": "Customer/science authority",
+          "next_proof": [
+            "HUMAN_INPUT: section completion and responsible authority"
+          ]
+        },
+        {
+          "id": "DEVREQ.D11",
+          "description": "Audit, review independence, rights and acceptance",
+          "coverage": "PARTIAL",
+          "supporting_rows": [
+            "DEVREQ.historical.EV4_FALSE_FEASIBLE",
+            "DEVREQ.historical.EV4_H1",
+            "DEVREQ.historical.EV5_ATTACK",
+            "DEVREQ.historical.EV5_COUNTEREXAMPLES",
+            "DEVREQ.historical.EV5_REBUILDS",
+            "DEVREQ.historical.Q1_MISSING_V3",
+            "DEVREQ.historical.EV4_MODE_X",
+            "DEVREQ.historical.EV5_MODE_X",
+            "DEVREQ.historical.EV5_SIGN_ERROR",
+            "DEVREQ.historical.REVIEW_customer",
+            "DEVREQ.historical.REVIEW_launch",
+            "DEVREQ.historical.REVIEW_numerical_reference",
+            "DEVREQ.historical.REVIEW_scientific",
+            "DEVREQ.historical.REVIEW_security"
+          ],
+          "evidence_refs": [
+            "R1",
+            "R2",
+            "R4",
+            "R5"
+          ],
+          "source_outcomes": [
+            "FAIL",
+            "NOT_ASSESSED",
+            "UNRESOLVED"
+          ],
+          "criterion": null,
+          "authority": "HUMAN_INPUT",
+          "requirement_outcome": "NOT_ASSESSED",
+          "owner_role": "Customer/accreditation authority",
+          "next_proof": [
+            "HUMAN_INPUT: product identity/parity, rights, independent review and qualification authority"
+          ]
+        }
+      ],
+      "gaps": [
+        "P8: public risk/context declaration unavailable",
+        "HUMAN_INPUT: accepted use, risk combination rule, credibility criteria and applicability",
+        "HUMAN_INPUT: independent physical evidence, competence/independence, rights and acceptance"
+      ]
+    },
+    "defense_vva": [
+      {
+        "id": "VV&A-USE",
+        "question": "What exact purpose, use and consequences are being assessed?",
+        "sections": [
+          "D01",
+          "D03",
+          "D09"
+        ],
+        "coverage": "GAP",
+        "answer": "Evidence unavailable for this question",
+        "evidence_rows": [
+          "DEVREQ.trust_map.map"
+        ],
+        "anchors": [
+          "A.4/B.4/C.4/D.4 problem statement",
+          "A.4/B.4/C.4/D.4 scope/limitations",
+          "A.4/D.4 risks/impacts"
+        ],
+        "mapping_source": "F3",
+        "accreditation_outcome": "NOT_ASSESSED",
+        "customer_action": [
+          "Intended use and decision consequence: HUMAN_INPUT",
+          "Applicable population, coverage and exclusions: HUMAN_INPUT",
+          "Fallback, abstention and unavailable-reference handling: HUMAN_INPUT"
+        ]
+      },
+      {
+        "id": "VV&A-CRITERIA",
+        "question": "Who approved the criteria and traceability to the intended use?",
+        "sections": [
+          "D02",
+          "D05"
+        ],
+        "coverage": "GAP",
+        "answer": "Evidence unavailable for this question",
+        "evidence_rows": [
+          "DEVREQ.law_checks.law_results",
+          "DEVREQ.model_card.accuracy_overall",
+          "DEVREQ.model_card.accuracy_near_limits",
+          "DEVREQ.model_card.robustness",
+          "DEVREQ.model_card.extrapolation",
+          "DEVREQ.model_card.uncertainty_calibration",
+          "DEVREQ.model_card.speedup_equal_accuracy",
+          "DEVREQ.model_card.inference_latency",
+          "DEVREQ.model_card.training_cost",
+          "DEVREQ.trust_map.map",
+          "DEVREQ.decision_evidence.verify_r",
+          "DEVREQ.decision_evidence.equal_budget",
+          "DEVREQ.decision_evidence.false_feasibility"
+        ],
+        "anchors": [
+          "A.14; C.7",
+          "C.4/C.7; A.14"
+        ],
+        "mapping_source": "F3",
+        "accreditation_outcome": "NOT_ASSESSED",
+        "customer_action": [
+          "Requirements, criteria and approving authority: HUMAN_INPUT",
+          "Artifact-bound requirement evidence: HUMAN_INPUT"
+        ]
+      },
+      {
+        "id": "VV&A-REFERENT",
+        "question": "What supports reference adequacy and physical comparison?",
+        "sections": [
+          "D04",
+          "D05",
+          "D06"
+        ],
+        "coverage": "PARTIAL",
+        "answer": "Indexed development evidence only; customer judgment remains open",
+        "evidence_rows": [
+          "DEVREQ.law_checks.law_results",
+          "DEVREQ.model_card.accuracy_overall",
+          "DEVREQ.model_card.accuracy_near_limits",
+          "DEVREQ.model_card.robustness",
+          "DEVREQ.model_card.extrapolation",
+          "DEVREQ.model_card.uncertainty_calibration",
+          "DEVREQ.model_card.speedup_equal_accuracy",
+          "DEVREQ.model_card.inference_latency",
+          "DEVREQ.model_card.training_cost",
+          "DEVREQ.trust_map.map",
+          "DEVREQ.solver_verification.image_digest",
+          "DEVREQ.solver_verification.norm.0.l2",
+          "DEVREQ.solver_verification.norm.0.linf",
+          "DEVREQ.solver_verification.norm.1.l2",
+          "DEVREQ.solver_verification.norm.1.linf",
+          "DEVREQ.solver_verification.norm.2.l2",
+          "DEVREQ.solver_verification.norm.2.linf",
+          "DEVREQ.solver_verification.l2_order",
+          "DEVREQ.solver_verification.linf_order",
+          "DEVREQ.solver_verification.machine_verdict",
+          "DEVREQ.solver_verification.machine_acceptance",
+          "DEVREQ.solver_verification.owner_acceptance_link",
+          "DEVREQ.solver_verification.acceptance_conditions",
+          "DEVREQ.solver_verification.physical_validation",
+          "DEVREQ.decision_evidence.verify_r",
+          "DEVREQ.decision_evidence.equal_budget",
+          "DEVREQ.decision_evidence.false_feasibility"
+        ],
+        "anchors": [
+          "C.16",
+          "C.4/C.7; A.14",
+          "C.16; DoDI §3.3(b) contents anchor"
+        ],
+        "mapping_source": "F3",
+        "accreditation_outcome": "NOT_ASSESSED",
+        "customer_action": [
+          "Reference verification and physical adequacy: HUMAN_INPUT",
+          "Artifact-bound requirement evidence: HUMAN_INPUT",
+          "Uncertainty, sensitivity and applicability: HUMAN_INPUT"
+        ]
+      },
+      {
+        "id": "VV&A-ADVERSE",
+        "question": "Which discrepancies, limits and missing tests remain?",
+        "sections": [
+          "D07",
+          "D10"
+        ],
+        "coverage": "PARTIAL",
+        "answer": "Indexed development evidence only; customer judgment remains open",
+        "evidence_rows": [
+          "DEVREQ.law_checks.law_results",
+          "DEVREQ.decision_evidence.verify_r",
+          "DEVREQ.decision_evidence.equal_budget",
+          "DEVREQ.decision_evidence.false_feasibility",
+          "DEVREQ.historical.EV4_FALSE_FEASIBLE",
+          "DEVREQ.historical.EV4_H1",
+          "DEVREQ.historical.EV5_ATTACK",
+          "DEVREQ.historical.EV5_COUNTEREXAMPLES",
+          "DEVREQ.historical.Q1_MISSING_V3",
+          "DEVREQ.historical.EV4_MODE_X",
+          "DEVREQ.historical.EV5_MODE_X",
+          "DEVREQ.historical.EV5_SIGN_ERROR"
+        ],
+        "anchors": [
+          "C.4/D.4 issues",
+          "A.4/C.4/D.4 limitations/issues"
+        ],
+        "mapping_source": "F3",
+        "accreditation_outcome": "NOT_ASSESSED",
+        "customer_action": [
+          "Adverse findings, robustness and retest: HUMAN_INPUT",
+          "Limitations, missing proof and change impact: HUMAN_INPUT"
+        ]
+      },
+      {
+        "id": "VV&A-CONFIG",
+        "question": "Which exact artifact, runtime and evidence versions were inspected?",
+        "sections": [
+          "D08",
+          "D11"
+        ],
+        "coverage": "PARTIAL",
+        "answer": "Indexed development evidence only; customer judgment remains open",
+        "evidence_rows": [
+          "DEVREQ.model_card.accuracy_overall",
+          "DEVREQ.model_card.accuracy_near_limits",
+          "DEVREQ.model_card.robustness",
+          "DEVREQ.model_card.extrapolation",
+          "DEVREQ.model_card.uncertainty_calibration",
+          "DEVREQ.model_card.speedup_equal_accuracy",
+          "DEVREQ.model_card.inference_latency",
+          "DEVREQ.model_card.training_cost",
+          "DEVREQ.solver_verification.image_digest",
+          "DEVREQ.solver_verification.norm.0.l2",
+          "DEVREQ.solver_verification.norm.0.linf",
+          "DEVREQ.solver_verification.norm.1.l2",
+          "DEVREQ.solver_verification.norm.1.linf",
+          "DEVREQ.solver_verification.norm.2.l2",
+          "DEVREQ.solver_verification.norm.2.linf",
+          "DEVREQ.solver_verification.l2_order",
+          "DEVREQ.solver_verification.linf_order",
+          "DEVREQ.solver_verification.machine_verdict",
+          "DEVREQ.solver_verification.machine_acceptance",
+          "DEVREQ.solver_verification.owner_acceptance_link",
+          "DEVREQ.solver_verification.acceptance_conditions",
+          "DEVREQ.solver_verification.physical_validation",
+          "DEVREQ.historical.EV4_FALSE_FEASIBLE",
+          "DEVREQ.historical.EV4_H1",
+          "DEVREQ.historical.EV5_ATTACK",
+          "DEVREQ.historical.EV5_COUNTEREXAMPLES",
+          "DEVREQ.historical.EV5_REBUILDS",
+          "DEVREQ.historical.Q1_MISSING_V3",
+          "DEVREQ.historical.EV4_MODE_X",
+          "DEVREQ.historical.EV5_MODE_X",
+          "DEVREQ.historical.EV5_SIGN_ERROR",
+          "DEVREQ.historical.REVIEW_customer",
+          "DEVREQ.historical.REVIEW_launch",
+          "DEVREQ.historical.REVIEW_numerical_reference",
+          "DEVREQ.historical.REVIEW_scientific",
+          "DEVREQ.historical.REVIEW_security"
+        ],
+        "anchors": [
+          "A.2/B.2/C.2/D.2; record-of-changes clauses *.3",
+          "All four templates; A.14; DoDI §§3.1–3.2 contents anchors"
+        ],
+        "mapping_source": "F3",
+        "accreditation_outcome": "NOT_ASSESSED",
+        "customer_action": [
+          "Artifact/runtime provenance and reproducibility: HUMAN_INPUT",
+          "Audit, review independence, rights and acceptance: HUMAN_INPUT"
+        ]
+      },
+      {
+        "id": "VV&A-ACCEPT",
+        "question": "Who tailors the program and independently decides accreditation?",
+        "sections": [
+          "D01",
+          "D11"
+        ],
+        "coverage": "PARTIAL",
+        "answer": "Indexed development evidence only; customer judgment remains open",
+        "evidence_rows": [
+          "DEVREQ.historical.EV4_FALSE_FEASIBLE",
+          "DEVREQ.historical.EV4_H1",
+          "DEVREQ.historical.EV5_ATTACK",
+          "DEVREQ.historical.EV5_COUNTEREXAMPLES",
+          "DEVREQ.historical.EV5_REBUILDS",
+          "DEVREQ.historical.Q1_MISSING_V3",
+          "DEVREQ.historical.EV4_MODE_X",
+          "DEVREQ.historical.EV5_MODE_X",
+          "DEVREQ.historical.EV5_SIGN_ERROR",
+          "DEVREQ.historical.REVIEW_customer",
+          "DEVREQ.historical.REVIEW_launch",
+          "DEVREQ.historical.REVIEW_numerical_reference",
+          "DEVREQ.historical.REVIEW_scientific",
+          "DEVREQ.historical.REVIEW_security"
+        ],
+        "anchors": [
+          "A.4/B.4/C.4/D.4 problem statement",
+          "All four templates; A.14; DoDI §§3.1–3.2 contents anchors"
+        ],
+        "mapping_source": "F3",
+        "accreditation_outcome": "NOT_ASSESSED",
+        "customer_action": [
+          "Intended use and decision consequence: HUMAN_INPUT",
+          "Audit, review independence, rights and acceptance: HUMAN_INPUT"
+        ]
+      }
+    ],
+    "retained_findings": [
+      {
+        "id": "EV4_FALSE_FEASIBLE",
+        "basis": "reference-relative",
+        "outcome": "FAIL",
+        "statement": "EV4 reported members with false acceptance / eligible members: 56 / 99",
+        "evidence_refs": [
+          "R2"
+        ],
+        "status": "HISTORICAL_RETAINED"
+      },
+      {
+        "id": "EV4_H1",
+        "basis": "decision-value",
+        "outcome": "UNRESOLVED",
+        "statement": "EV4 reported H1 outcome: UNRESOLVED",
+        "evidence_refs": [
+          "R2"
+        ],
+        "status": "HISTORICAL_RETAINED"
+      },
+      {
+        "id": "EV5_ATTACK",
+        "basis": "decision-value",
+        "outcome": "FAIL",
+        "statement": "EV5 reported adversarial-score verdict: FAIL",
+        "evidence_refs": [
+          "R4"
+        ],
+        "status": "HISTORICAL_RETAINED"
+      },
+      {
+        "id": "EV5_COUNTEREXAMPLES",
+        "basis": "reference-relative",
+        "outcome": "FAIL",
+        "statement": "EV5 reported reference-infeasible selections / selected constructions: 8 / 10",
+        "evidence_refs": [
+          "R4"
+        ],
+        "status": "HISTORICAL_RETAINED"
+      },
+      {
+        "id": "Q1_MISSING_V3",
+        "basis": "decision-value",
+        "outcome": "NOT_ASSESSED",
+        "statement": "Q1 audit reports same-panel v3 measures uncomputable (historical scope): uncomputable",
+        "evidence_refs": [
+          "R5"
+        ],
+        "status": "HISTORICAL_RETAINED"
+      },
+      {
+        "id": "EV4_MODE_X",
+        "basis": "reference-relative",
+        "outcome": "FAIL",
+        "statement": "EV4 reported adversarial violations: in-band / out-of-band: 29 / 17",
+        "evidence_refs": [
+          "R2"
+        ],
+        "status": "HISTORICAL_RETAINED"
+      },
+      {
+        "id": "EV5_MODE_X",
+        "basis": "reference-relative",
+        "outcome": "FAIL",
+        "statement": "EV5 reported adversarial findings: in-band / out-of-band: 25 / 21",
+        "evidence_refs": [
+          "R4"
+        ],
+        "status": "HISTORICAL_RETAINED"
+      },
+      {
+        "id": "EV5_SIGN_ERROR",
+        "basis": "reference-relative",
+        "outcome": "NOT_ASSESSED",
+        "statement": "EV5 reported sign-error near-limit false-acceptance rate: 0.946",
+        "evidence_refs": [
+          "R4"
+        ],
+        "status": "HISTORICAL_RETAINED"
+      }
+    ],
+    "limits": [
+      "Development obligation IDs are not customer requirements or normative standard clause IDs",
+      "EVIDENCED coverage can retain FAIL; source PASS cannot issue requirement acceptance",
+      "MMS supports code verification only; reference-relative evidence is not physical validation",
+      "ASME V&V 40 clause IDs and cross-domain applicability remain HUMAN_INPUT",
+      "DoDI mappings are contents-only anchors; tailoring and accreditation remain HUMAN_INPUT"
+    ]
+  },
+  "source_policy_digest": "sha256:e081f9f7833c9a132318ff562dcbcfac9bd8c1cdc3603b04dcbbb6641c3eefbb"
+}

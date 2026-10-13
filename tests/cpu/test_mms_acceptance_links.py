@@ -166,12 +166,20 @@ def test_deliverable_reads_registered_links_and_retains_original_verdicts(challe
     rows = {
         row["field"]: row for row in package["sections"]["solver_verification"]["rows"]
     }
-    assert rows["owner_acceptance_link"]["value"] == "RECORDED_OWNER_DECISION"
+    assert rows["owner_acceptance_link"]["value"] == (
+        "CONDITIONAL, t_end 0.375 (MMS test-design scope)"
+        if challenge == "f02"
+        else "RECORDED_OWNER_DECISION"
+    )
     assert package["qualification_claim"] is False
     if challenge == "battery-fastcharge-ageing-development-v1":
         assert rows["machine_verdict"]["value"] == "HUMAN_INPUT"
         assert rows["machine_acceptance"]["value"] is False
     if challenge == "f02":
+        assert (
+            rows["supplement.owner_acceptance_link"]["value"]
+            == rows["owner_acceptance_link"]["value"]
+        )
         assert rows["acceptance_conditions"]["value"] == {"t_end": 0.375}
         assert rows["time_orders.1.max"]["value"] > 2.3  # adverse t_end=0.5 retained
         assert rows["supplement.time_orders.2.max"]["value"] < 2.3

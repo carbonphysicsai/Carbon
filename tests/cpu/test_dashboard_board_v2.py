@@ -166,6 +166,14 @@ ALLOWED = {
 # The championship's documented shape (VALIDATOR-32 rev 7 §5): allowed, but
 # not emitted until the feed carries it.
 FUTURE = {
+    # PLT-08 status is optional; the LP-02 tests supply its count-only fixtures.
+    "miner_status",
+    "miner_status[]",
+    "miner_status[].hotkey",
+    "miner_status[].received",
+    "miner_status[].scored",
+    "miner_status[].refused",
+    *(f"miner_status[].refused.{code}" for code in feed.STATUS_REFUSALS | {"other"}),
     *(f"championship.rounds[].{k}" for k in board_v2.CHAMPIONSHIP_ROUND_KEYS),
     "championship.rounds[]",
     "championship.rounds[].entrants[]",

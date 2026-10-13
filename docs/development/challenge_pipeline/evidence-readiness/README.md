@@ -66,7 +66,7 @@ commit and observation timestamp. Refetch before acting on a stale local view.
    `budget_registration.validate`. Inspect that table entry, imported validator,
    dynamic family selection and call; merely mentioning a table/module cannot
    earn YES. Cooling uses the same inspection for `cooling_budget.validate`.
-   f08, f17, cooling, BFS, MG and warpage have implemented dispatch but **proposed** ASSUMPTION
+   f08, f17, cooling, BFS, MG, warpage and bolted joint have implemented dispatch but **proposed** ASSUMPTION
    budgets: PROPOSED, not YES. A neutral core without a family adapter is NO,
    not YES. Optimizer
    owns execution-route extensions; this inventory does not add one.
@@ -93,6 +93,9 @@ a producer's acceptance decision was scientifically justified.
 The per-family `inputs/<family>.json` is an optional **PUBLIC_DEVELOPMENT**
 summary of operator/producer evidence. Battery v3, motor and f02 now have
 partial source indexes bound to public registrations, kits and accepted MMS.
+Bolted joint has a [representative preparation index](bolted-joint-wiring.md),
+not registered execution or accepted contact/history evidence. Its partial hand
+comparator stays PLANNED until the strongest contact-aware FE arm is supplied.
 Add it only from real public artifacts, not synthetic passing fixtures.
 Existing fixtures in the tests are structurally examples, not earned evidence.
 No hidden EVAL/STRESS/quiz/tuning inventory belongs here.
