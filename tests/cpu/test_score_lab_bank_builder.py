@@ -163,6 +163,14 @@ def test_plan_enumerates_every_action_condition_and_splits_whole_blocks():
     assert all(len(halves) == 1 for halves in by_block.values())
     assert planned["manifest"]["confirmation_blocks"] == 2
     assert planned["manifest"]["minimum_confirmation_blocks"] == 1
+    assert (
+        planned["manifest"]["reference_policy_digest"]
+        == registration["reference_policy_digest"]
+    )
+    assert (
+        planned["manifest"]["block_independence_digest"]
+        == registration["block_independence_digest"]
+    )
     assert planned["manifest"]["split_seed_commitment"] == _sha("split")
     assert "split" not in planned["manifest"].values()
 
