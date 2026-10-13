@@ -60,6 +60,20 @@ def load_runs(manifest, root):
                     raise ProgressError(
                         f"public_improvement_level_mismatch: {entry['public_improvement_file']}"
                     )
+                old = record.get("supersedes")
+                if old:
+                    # a record that supersedes another must name that file's real digest, and the old
+                    # file must still be there beside it (history is kept, never deleted)
+                    kept = root / old["file"]
+                    if (
+                        Path(old["file"]).name != old["file"]
+                        or not kept.is_file()
+                        or improvement.file_sha256(kept) != old["sha256"]
+                    ):
+                        raise ProgressError(
+                            "public_improvement_supersedes_digest_differs: "
+                            f"{entry['public_improvement_file']}"
+                        )
             common["public_improvement"] = record
             runs.append(
                 extract.constructor_run(

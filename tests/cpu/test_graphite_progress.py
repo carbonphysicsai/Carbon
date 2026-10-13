@@ -734,3 +734,235 @@ def test_a_level_four_line_is_labelled_base_recipe_only_on_the_line_and_the_colu
     lower = line([crun(public_improvement=level_record(level=2))], level=2)
     assert improvement.L4_BASE_RECIPE_CAVEAT not in lower["caveats"]
     assert "caveats" not in line([crun(public_improvement=level_record(level=0))])
+
+
+# -- registered-guard records (OPT-09 panel) -------------------------------------------------------
+L2_MEMBER = "l2-E-913bf188-p-fa5c88711f35-s441520862"
+L4_MEMBER = "l4v3-plain-G-913bf188-p-e11e2f73879f-s2331991164"
+
+
+def registered(member=L2_MEMBER, level=2, counts=True, run="r1", **changes):
+    record = pub(0.2, 0.15, 0.10, 0.08)
+    record["panel"] = {
+        "name": "ev4-dev-proof-bundled",
+        "scoring_set": record["panel"]["scoring_set"],
+    }
+    record.update(
+        guard="registered",
+        member=member,
+        level=level,
+        counts_for_level=counts,
+        run_id=run,
+        supersedes={"file": "old.json", "sha256": "sha256:" + "c" * 64},
+        controls={"always_abstain": {"decision_loss": 0.4, "rank": 3}},
+    )
+    record.update(changes)
+    return record
+
+
+def test_a_registered_guard_record_with_a_panel_object_is_accepted():
+    record = improvement.validate(registered())
+    assert record["panel"]["name"] == "ev4-dev-proof-bundled"
+    assert record["panel"]["scoring_set"]["function"] == improvement.PUBLIC_EV4_FUNCTION
+    # the older shape with no guard field is still accepted unchanged
+    assert improvement.validate(pub(10.0, 9.0))["panel"]["scoring_set"]
+
+
+def test_the_registration_is_read_from_the_committed_contract_and_panel_file():
+    name, members = improvement.registered_members()
+    assert name == "ev4-dev-proof-bundled" and len(members) == 10
+    assert members[L2_MEMBER] == (2, True)
+    assert members[L4_MEMBER] == (4, False)
+
+
+@pytest.mark.parametrize(
+    "change,code",
+    [
+        ({"panel": "ev4-dev-proof-bundled"}, "public_improvement_panel_not_object"),
+        (
+            {"panel": {"name": "ev4-dev-proof-l1", "scoring_set": None}},
+            "public_improvement_scoring_set_not_public_ev4",
+        ),
+        (
+            {"member": "l2-E-not-a-member-s1"},
+            "public_improvement_member_not_registered",
+        ),
+        ({"level": 3}, "public_improvement_member_level_differs"),
+        ({"counts_for_level": False}, "public_improvement_counts_for_level_differs"),
+        ({"supersedes": None}, "public_improvement_supersedes_malformed"),
+        (
+            {"supersedes": {"file": "old.json", "sha256": "abc"}},
+            "public_improvement_supersedes_malformed",
+        ),
+        ({"controls": {}}, "public_improvement_no_always_abstain_control"),
+        (
+            {"controls": {"always_abstain": {"decision_loss": -1, "rank": 1}}},
+            "public_improvement_bad_always_abstain_control",
+        ),
+        (
+            {"controls": {"always_abstain": {"decision_loss": 0.4, "rank": 0}}},
+            "public_improvement_bad_always_abstain_control",
+        ),
+        ({"guard": "bypassed"}, "public_improvement_unknown_guard"),
+    ],
+)
+def test_a_registered_guard_record_that_disagrees_with_the_registration_is_refused(
+    change, code
+):
+    record = registered(**change)
+    if "panel" in change and isinstance(change["panel"], dict):
+        record["panel"]["scoring_set"] = registered()["panel"]["scoring_set"]
+        if change["panel"].get("name") == "ev4-dev-proof-l1":
+            code = "public_improvement_panel_name_not_registered"
+    with pytest.raises(ProgressError, match=code):
+        improvement.validate(record)
+
+
+def test_registered_only_fields_without_the_guard_flag_are_refused():
+    record = pub(10.0, 9.0)
+    record["counts_for_level"] = True
+    with pytest.raises(ProgressError, match="registered_fields_without_guard"):
+        improvement.validate(record)
+
+
+def test_a_registered_record_carries_no_missing_guard_caveat_but_a_guard_flag():
+    block = improvement.public_dev_block([registered()])["accuracy_error"]
+    assert block["guard"] == "registered"
+    assert improvement.LEVEL_REBUILD_CAVEAT not in block.get("caveats", [])
+    assert improvement.ABSTAIN_CAVEAT in block["caveats"]
+    beside = improvement.public_dev_block(
+        [registered(), level_record(level=2, run_id="r2")]
+    )["accuracy_error"]
+    assert beside["guard"] == "registered" and beside["n"] == 1
+    assert beside["guard_skipped_apart_caveat"] == improvement.LEVEL_REBUILD_CAVEAT
+    assert (
+        improvement.public_dev_block([level_record(level=2)])["accuracy_error"]["guard"]
+        == "skipped"
+    )
+
+
+def test_the_superseded_record_and_the_always_abstain_control_are_listed():
+    block = improvement.public_dev_block([registered()])
+    assert block["accuracy_error"]["superseded"] == [
+        {"run": "r1", "file": "old.json", "sha256": "sha256:" + "c" * 64}
+    ]
+    assert block["decision_loss"]["always_abstain_control"] == [
+        {"run": "r1", "decision_loss": 0.4, "rank": 3}
+    ]
+    assert "always_abstain_control" not in block["accuracy_error"]
+
+
+def test_non_counting_members_are_listed_apart_and_never_counted():
+    records = [
+        registered(L4_MEMBER, level=4, counts=False, run="g1"),
+        registered(level=4, run="g2")
+        | {"member": L4_MEMBER, "counts_for_level": False},
+    ]
+    block = improvement.public_dev_block(records)["accuracy_error"]
+    assert block["value"] == UNMEASURED and block["n"] == 0
+    assert [row["run"] for row in block["non_counting"]] == ["g1", "g2"]
+    assert improvement.L4_BASE_RECIPE_CAVEAT in block["caveats"]
+    # a counting member beside them is the only one in n and the median
+    counted = improvement.public_dev_block([registered(run="e1"), records[0]])[
+        "accuracy_error"
+    ]
+    assert counted["n"] == 1 and [r["run"] for r in counted["non_counting"]] == ["g1"]
+    assert counted["value"] == pytest.approx(0.2)
+
+
+def test_a_guard_skipped_record_is_shown_apart_where_a_registered_one_exists():
+    skipped = level_record(level=2, run_id="r2")
+    block = improvement.public_dev_block([registered(run="r1"), skipped])[
+        "accuracy_error"
+    ]
+    assert block["n"] == 1 and block["guard"] == "registered"
+    assert [row["run"] for row in block["guard_skipped_apart"]] == ["r2"]
+    assert block["guard_skipped_apart_caveat"] == improvement.LEVEL_REBUILD_CAVEAT
+    # with no registered record the skipped ones are counted as before
+    alone = improvement.public_dev_block([skipped])["accuracy_error"]
+    assert alone["n"] == 1 and "guard_skipped_apart" not in alone
+
+
+def _manifest_with(tmp_path, record):
+    (tmp_path / "c.out").write_text(json.dumps(constructor_doc()))
+    (tmp_path / "new.json").write_text(json.dumps(record))
+    return {
+        "batch": "m",
+        "runs": [
+            {
+                "file": "c.out",
+                "role": "constructor",
+                "level": 2,
+                "public_improvement_file": "new.json",
+            }
+        ],
+    }
+
+
+def test_a_registered_record_must_name_the_real_digest_of_the_file_it_supersedes(
+    tmp_path,
+):
+    old = tmp_path / "old.json"
+    old.write_text("{}")
+    good = registered(
+        supersedes={"file": "old.json", "sha256": improvement.file_sha256(old)}
+    )
+    runs = cli.load_runs(_manifest_with(tmp_path, good), tmp_path)
+    assert runs[0]["public_improvement"]["guard"] == "registered"
+    wrong = registered(supersedes={"file": "old.json", "sha256": "sha256:" + "0" * 64})
+    with pytest.raises(ProgressError, match="supersedes_digest_differs"):
+        cli.load_runs(_manifest_with(tmp_path, wrong), tmp_path)
+
+
+@pytest.mark.parametrize("name", ["missing.json", "../old.json"])
+def test_the_superseded_file_must_still_be_beside_the_record(tmp_path, name):
+    record = registered(supersedes={"file": name, "sha256": "sha256:" + "0" * 64})
+    with pytest.raises(ProgressError, match="supersedes_digest_differs"):
+        cli.load_runs(_manifest_with(tmp_path, record), tmp_path)
+
+
+def _with_losses(record, baseline, model, control):
+    record["baseline"] = {**record["baseline"], "decision_loss": baseline}
+    record["model"] = {**record["model"], "decision_loss": model}
+    record["controls"] = {"always_abstain": {"decision_loss": control, "rank": 9}}
+    return record
+
+
+def test_a_decision_loss_above_the_always_abstain_controls_is_not_better_decisions():
+    records = [
+        _with_losses(registered(run="r1"), 1.45, 1.43, 0.857),
+        _with_losses(registered(run="r2"), 1.45, 1.44, 0.857),
+    ]
+    block = improvement.public_dev_block(records)["decision_loss"]
+    assert block["value"] == improvement.NOISY
+    assert "always-abstain control" in block["reading"]
+    assert "NOT an improvement claim" in block["reading"]
+    assert block["always_abstain_control"][0]["decision_loss"] == 0.857
+
+
+def test_a_decision_loss_below_the_control_from_two_runs_is_a_number():
+    records = [
+        _with_losses(registered(run="r1"), 0.30, 0.20, 0.857),
+        _with_losses(registered(run="r2"), 0.30, 0.25, 0.857),
+    ]
+    block = improvement.public_dev_block(records)["decision_loss"]
+    assert block["value"] != improvement.NOISY and block["n"] == 2
+
+
+def test_one_decision_loss_run_has_no_spread_to_read():
+    record = _with_losses(registered(), 0.30, 0.20, 0.857)
+    block = improvement.public_dev_block([record])["decision_loss"]
+    assert block["value"] == improvement.NOISY and "one run only" in block["reading"]
+
+
+def test_the_abstain_caveat_says_the_metric_not_the_models_is_the_cause():
+    assert "rewards abstention (RES-07)" in improvement.ABSTAIN_CAVEAT
+    assert "not evidence the models are worse" in improvement.ABSTAIN_CAVEAT
+    records = [
+        _with_losses(registered(run="r1"), 1.45, 1.43, 0.857),
+        _with_losses(registered(run="r2"), 1.45, 1.44, 0.857),
+    ]
+    block = improvement.public_dev_block(records)["decision_loss"]
+    assert block["value"] == improvement.NOISY
+    assert "rewards abstention (RES-07)" in block["reading"]
+    assert "not evidence the models are worse" in block["reading"]
