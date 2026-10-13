@@ -84,11 +84,21 @@ class BatteryAdapter:
         from . import development_rebuild
 
         try:
-            if level == development_composition.COMPOSED:
+            if (
+                level == development_composition.COMPOSED
+                or type(level) is development_composition.Composition
+            ):
                 # The whole 0-4 plan in one recipe (CONSTRUCTION-CONTRACT-01):
                 # costed as the composed rebuild trains it, never refused for
                 # being a combination.
-                found = development_composition.compile(strategy, check_budget=False)
+                selected = (
+                    level
+                    if type(level) is development_composition.Composition
+                    else None
+                )
+                found = development_composition.compile(
+                    strategy, selected, check_budget=False
+                )
             else:
                 found = dv.compile_development(
                     strategy, dv.variant(CHALLENGE, level), check_budget=False

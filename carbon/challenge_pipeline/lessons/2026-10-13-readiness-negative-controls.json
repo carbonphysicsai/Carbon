@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-13-readiness-negative-controls",
+  "recorded_at": "2026-10-13T18:27:38+00:00",
+  "challenge": "challenge-neutral",
+  "stage": "design",
+  "execution": {"kind": "test_run", "ref": "PKT-14 GATE-NEGATIVE-CONTROLS-01", "description": "Native synthetic/public control regressions and three-item P1/P2/A4 registration checks; no host, solver or protected input execution."},
+  "expected": "A live checker must accept a positive witness and refuse its known-bad control for the specific reason. Missing controls and missing numerical noise must not become controlled readiness.",
+  "observed": "Pre-review native diagnostics: 156 passed, 12 Linux-dependent deselected; baseline failures from absent temporary parent and Windows fcntl were preserved, not science failures. The canonical wrapper refused Windows-managed worktree identity; CI remains required. Public subset controlled PASS counts: battery 3/3, motor 2/3, cooling 2/3; pending operator identities remain and all partial runs stay unready. Always-pass/fail, wrong-reason, malformed-result and raising fixtures earn no controlled pass. Synthetic noise changes alter the count without qualification. Quantile, CLI routing and caller-data mutation have explicit controls. Owner delivery/Hub hold resolved. Review R1/R2 then reproduced as two failing native regressions: cross-sign evidence_paths marker could fake detection, and specimen hashing bound post-call mutation. Fresh per-sign paths and pre-call digest fixed these; focused control module 52 passed, without duplicating the prior suite. An unsupported lesson review_repair field failed schema validation and was moved into this allowed observed field. No production leak or changed physical passing count is inferred.",
+  "keep": ["Original roster, values, reviews, waivers and historical report interpretation."],
+  "change": ["Report control/specimen/code identities and both signs beside original status; require controlled_ready for CLI success."],
+  "protocol_elements": ["negative-controls", "measurement-noise", "historical-evidence", "fail-closed", "subset-denominator"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

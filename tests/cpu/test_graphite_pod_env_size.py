@@ -144,6 +144,33 @@ def test_a_real_level_4_job_environment_keeps_its_headroom(shipped):
     assert pod_env.env_chars(spec.env) < pod_env.ENV_LIMIT_CHARS - 8_000
 
 
+def test_manifest_transport_is_lossless_deterministic_and_keeps_the_existing_wire():
+    import base64
+    import gzip
+
+    from scripts.dev.exam_design.runpod import pod_control
+
+    small = {"public/a.py": "1" * 64}
+    assert pod_control.manifest_env(small) == {
+        "CODE_MANIFEST": json.dumps(small, separators=(",", ":"), sort_keys=True)
+    }
+    manifest = {
+        f"public/module-{index}.py": hashlib.sha256(str(index).encode()).hexdigest()
+        for index in range(1000)
+    }
+    expected = json.dumps(manifest, separators=(",", ":"), sort_keys=True).encode()
+    encoded = pod_control.manifest_env(manifest)
+    assert set(encoded) == {"CODE_MANIFEST_GZ_B64"}
+    assert encoded == pod_control.manifest_env(manifest)
+    raw = gzip.decompress(base64.b64decode(encoded["CODE_MANIFEST_GZ_B64"]))
+    assert raw == expected
+    assert json.loads(raw) == manifest
+    damaged = bytearray(base64.b64decode(encoded["CODE_MANIFEST_GZ_B64"]))
+    damaged[-8] ^= 1
+    with pytest.raises(gzip.BadGzipFile):
+        gzip.decompress(damaged)
+
+
 def test_the_pod_phase_runs_from_the_shipped_files_alone(shipped, tmp_path):
     """The real entry (`runner graphite_practice`) in a directory holding only
     the shipped files: it rebuilds what Carbon pinned and predicts PRACTICE.

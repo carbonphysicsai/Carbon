@@ -609,7 +609,10 @@ OPERATIONS = {
             "options",
             "Every launch-time choice with its true availability now: who "
             "selects, each model family's registry verdict, and the research "
-            "lanes this host has. Reads only.",
+            "lanes this host has; construction_options lists every registered "
+            "change with Available or Coming soon and a plain reason. "
+            "Launch retains the registered level binding until the composed "
+            "compile supplies its derived summary. Reads only.",
             frozenset(),
             frozenset(),
             ("request", "profile"),

@@ -34,7 +34,7 @@ is a new, prospective document beside them. DEVELOPMENT only.
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
 from carbon.reconstruction import development_variants as dv
@@ -128,16 +128,33 @@ def load(challenge, version=None, directory=None):
     if document["scope"] != "DEVELOPMENT" or document["participant_code"] is not False:
         raise dv.VariantRefused(MALFORMED, "scope")
     base = document["base_contract"]
+    # A composition pins immutable versions, including ones no longer current.
+    # dv.registered remains the current-only admission resolver elsewhere.
+    registry_variants = dv.load()
     variants, levels = [], set()
     for entry in document["composes"]:
-        found = dv.registered(entry["digest"], challenge)
-        if found is None or found.version != entry["version"]:
+        found = registry_variants.by_version.get(entry["version"])
+        if (
+            found is None
+            or registry_variants.by_digest.get(entry["digest"]) != found
+            or found.digest != entry["digest"]
+        ):
             raise dv.VariantRefused(UNREGISTERED, str(entry.get("version")))
-        if found.level != entry["level"] or found.level in levels:
+        if found.challenge != challenge:
+            raise dv.VariantRefused(MALFORMED, "variant names another challenge")
+        if (
+            type(entry["level"]) is not int
+            or found.level != entry["level"]
+            or found.level in levels
+        ):
             raise dv.VariantRefused(MALFORMED, "one variant per level")
-        if found.base_contract_digest != base["digest"]:
+        if (
+            found.base_contract_digest != base["digest"]
+            or type(base["record_sequence"]) is not int
+            or found.base_record_sequence != base["record_sequence"]
+        ):
             raise dv.VariantRefused(
-                MALFORMED, found.version + ": another base contract"
+                MALFORMED, found.version + ": another base contract or record"
             )
         levels.add(found.level)
         variants.append(found)
@@ -219,6 +236,25 @@ def compile(strategy, composition=None, *, check_budget=True):
         raise dv.VariantRefused(dv.PARAMETER_REFUSED, "strategy is an object")
     if composition is None:
         composition = load(strategy.get("challenge_id"))
+    else:
+        if type(composition) is not Composition:
+            raise TypeError("a Composition is required")
+        registered = load(composition.challenge, version=composition.version)
+        # Equality covers every descriptor, not just its claimed digest. The
+        # canonical comparison also distinguishes bool/int and int/float.
+        try:
+            authentic = (
+                type(composition.variants) is tuple
+                and all(type(v) is dv.DevContractVariant for v in composition.variants)
+                and composition == registered
+                and dv._canonical(asdict(composition))
+                == dv._canonical(asdict(registered))
+            )
+        except (TypeError, ValueError):
+            authentic = False
+        if not authentic:
+            raise dv.VariantRefused(UNREGISTERED, composition.version)
+        composition = registered
     if strategy.get("challenge_id") != composition.challenge:
         raise dv.VariantRefused(dv.WRONG_CHALLENGE)
     fields = composition.fields()
@@ -275,7 +311,7 @@ def compile(strategy, composition=None, *, check_budget=True):
         from carbon.reconstruction.challenge_contracts import check_compute_budget
 
         check_compute_budget(
-            dv.CONTRACTS[composition.challenge], strategy, level=COMPOSED
+            dv.CONTRACTS[composition.challenge], strategy, level=composition
         )
     return CompiledComposition(
         challenge=composition.challenge,

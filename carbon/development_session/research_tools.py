@@ -1175,6 +1175,39 @@ class ResearchMinerTools:
         if self.ledger is not None:
             self.ledger.note(owner=self.owner, kind=kind, body=body)
 
+    def _construction_result(self, operation, args, public_result):
+        """Append registered display notices to the public result, never admission."""
+        if operation not in {"dry_validate", "compile_strategy"} or self.ledger is None:
+            return public_result
+        if (
+            type(public_result) is not dict
+            or type(public_result.get("result")) is not dict
+        ):
+            return public_result
+        from carbon.challenge_registry.campaigns import campaign_for_manifest
+
+        from .construction_level import binding
+
+        try:
+            manifest = json.loads(
+                (self.ledger.root / "campaign-manifest.json").read_bytes()
+            )
+            hook = campaign_for_manifest(manifest).construction_notices
+            notices = (
+                []
+                if hook is None
+                else hook(_object(args, "strategy_json"), binding(manifest))
+            )
+        except (OSError, ValueError, TypeError, LookupError):
+            # Missing historical metadata offers no new notice or authority.
+            return public_result
+        if not notices:
+            return public_result
+        return {
+            **public_result,
+            "result": {**public_result["result"], "construction_notices": notices},
+        }
+
     def rejected(
         self,
         operation,
@@ -1383,7 +1416,9 @@ class ResearchMinerTools:
                 if result["terminal_observation_base64"]
                 else None
             ),
-            "public_result": result["public_result"],
+            "public_result": self._construction_result(
+                operation, args, result["public_result"]
+            ),
             "requires_reconciliation": result["requires_reconciliation"],
             **(
                 {"original_operation_id": result["original_operation_id"]}
