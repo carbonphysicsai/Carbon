@@ -131,6 +131,25 @@ def test_spoofed_unknown_code_is_not_an_orphan(modules, tmp_path):
     assert caught.value is failure and target.pending_calls == 0
 
 
+def test_nonstring_state_code_cannot_spoof_equality_with_unknown_submission(
+    modules, tmp_path
+):
+    intake, _, _, store = modules
+
+    class SpoofCode:
+        def __ne__(self, other):
+            return False
+
+    target = Target(store.StateError)
+    inbox = planted_inbox(intake, tmp_path, ("known-first",))
+    failure = store.StateError("different_code")
+    failure.code = SpoofCode()
+    target.outcome = lambda sid: (_ for _ in ()).throw(failure)
+    with pytest.raises(store.StateError) as caught:
+        intake.work_once(inbox, target)
+    assert caught.value is failure and target.pending_calls == 0
+
+
 def test_unknown_error_from_process_is_not_silently_skipped(modules, tmp_path):
     intake, _, _, store = modules
     target = Target(store.StateError)

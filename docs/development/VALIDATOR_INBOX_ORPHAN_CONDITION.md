@@ -9,7 +9,7 @@ work. An unknown submission raised `pool_store.StateError("unknown_submission")`
 and aborted the entire pass. One orphan could therefore prevent later known
 submissions and `run_pending` from being attempted.
 
-The repair catches **only that typed code, only around outcome lookup**, inside
+The repair catches **only that typed exact-string code, only around outcome lookup**, inside
 the existing writer scope. It increments `moved["orphaned"]`, logs a fixed
 `worker_orphan_skipped` event with `code: unknown_submission, count: 1`, and
 continues. Worker pass counts report the cumulative orphan count. `operate._pass`
@@ -17,6 +17,8 @@ forwards its operator stream to the inbox pass, so skipped conditions remain
 visible even if later pending work fails. Neither event names an identifier,
 recipe, hotkey, path or state object. Each skipped row remains ADMITTED unchanged;
 the condition repeats until the Validator resolves it.
+Missing or nonstring code fields propagate; custom equality cannot manufacture
+the unknown_submission condition.
 
 This does **not** delete, refuse, re-register, recover, score, settle, charge or
 change the identity of an orphan. Recovery/loss/disposition of real submissions

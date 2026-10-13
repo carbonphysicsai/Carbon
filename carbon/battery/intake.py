@@ -1240,7 +1240,8 @@ def work_once(inbox, target, *, out=None):
             try:
                 outcome = target.outcome(submission_id)
             except StateError as missing:
-                if missing.code != "unknown_submission":
+                code = missing.__dict__.get("code")
+                if type(code) is not str or code != "unknown_submission":
                     raise
                 # The inbox survives state transitions independently of the
                 # validator store. Keep the row for Validator recovery policy;
