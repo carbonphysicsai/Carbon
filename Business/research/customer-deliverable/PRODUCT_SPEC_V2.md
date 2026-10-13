@@ -85,7 +85,7 @@ accepted input. Data Collection owns a prospective reconciliation.
 optimism and the `battery-plating-ref-v2` transition under
 [OWNER-PLATING-REFERENCE-01](../../../.agent/decisions/2026-10-13-OWNER-PLATING-REFERENCE-01.md).
 The v2 route has no usable near-onset label before required resolved mesh-160
-evidence and current-use acceptance. SOLVER_NOT_ACCEPTED / GAP stays a hold.
+evidence and current-use acceptance. REFERENCE_ADEQUACY_NOT_ESTABLISHED / GAP stays a hold.
 An MMS link or host declaration cannot close it. EV4, EV5, score proofs and
 old card/map/timing observations keep their original reference/version meaning:
 additive annotation, never re-scoring or a current v2 eligibility inference.

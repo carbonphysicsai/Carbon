@@ -35,4 +35,4 @@ PR branch or another lane's plating worker/evidence. Baseline: 261 passed +
 40 subtests, native diagnostic only. Pinned CI/Merge gate required before Ready.
 Carbon Validator + Data Collection review requested in this PR. Hub retired.
 Maturity: bounded documentation/rendering test evidence only; real plating
-SOLVER_NOT_ACCEPTED, physical validity and all qualification/LIVE rights remain.
+REFERENCE_ADEQUACY_NOT_ESTABLISHED, physical validity and all qualification/LIVE rights remain.

@@ -58,7 +58,7 @@ measured product map. Operator disclosure/source descriptions remain assertions.
 The [2026-10-13 Product audit](../../Business/research/customer-deliverable/EVIDENCE_HONESTY_2026-10-13.md)
 records the `battery-plating-ref-v2` transition under OWNER-PLATING-REFERENCE-01.
 Before required resolved mesh-160 evidence and current-use acceptance, no usable
-near-onset label is established; **SOLVER_NOT_ACCEPTED / GAP** remains. An old
+near-onset label is established; **REFERENCE_ADEQUACY_NOT_ESTABLISHED / GAP** remains. An old
 mesh-20 cell/image match cannot supply v2 accuracy, calibrated uncertainty,
 feasible-pick evidence or TRUST permission. Reference refinement/failure/fallback
 costs are required before a current speed or equal-budget value claim. Historical

@@ -686,7 +686,7 @@ class PackageEvidenceTests(unittest.TestCase):
                 text = output["sample.md"]
                 self.assertIn("battery-plating-ref-v2", text)
                 self.assertIn("No usable near-onset label", text)
-                self.assertIn("SOLVER_NOT_ACCEPTED / GAP", text)
+                self.assertIn("REFERENCE_ADEQUACY_NOT_ESTABLISHED / GAP", text)
                 self.assertIn("annotate, never re-score", text)
                 self.assertIn("refinement/failure/fallback costs", text)
                 self.assertIn(
@@ -705,7 +705,7 @@ class PackageEvidenceTests(unittest.TestCase):
                     self.assertTrue(
                         any(
                             "battery-plating-ref-v2" in gap
-                            and "SOLVER_NOT_ACCEPTED / GAP" in gap
+                            and "REFERENCE_ADEQUACY_NOT_ESTABLISHED / GAP" in gap
                             for gap in package["sections"][name]["gaps"]
                         )
                     )

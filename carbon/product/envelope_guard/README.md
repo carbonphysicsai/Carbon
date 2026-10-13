@@ -104,7 +104,7 @@ host use acceptance. READY, application conditions and observable coverage are
 host assertions checked structurally; registered MMS equality verifies document
 identity/test conditions only. No usable v2 near-onset label exists before the
 required resolved reference evidence and current-use acceptance. The actual
-battery/plating SOLVER_NOT_ACCEPTED / Undeclared holds require refusal, not a
+battery/plating REFERENCE_ADEQUACY_NOT_ESTABLISHED / Undeclared holds require refusal, not a
 caveated TRUST. An old map/image binding cannot remove them. No new v2 adapter
 or scientific rule is implemented by this wording repair.
 

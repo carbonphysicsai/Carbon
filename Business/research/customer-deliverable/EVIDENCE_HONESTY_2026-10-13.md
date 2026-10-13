@@ -27,7 +27,7 @@ resolved mesh-160 solve and version-bound reference acceptance exist.** Missing,
 failed or unresolved reference evidence prevents a feasible/accepted decision;
 it cannot become a low-confidence positive or a model failure. A name, image
 digest, host READY flag, map cell or MMS link cannot close this hold.
-The Product battery/plating comparison remains **SOLVER_NOT_ACCEPTED / GAP**.
+The Product battery/plating comparison remains **REFERENCE_ADEQUACY_NOT_ESTABLISHED / GAP**.
 Physical validity remains Undeclared. No physical/qualified claim is supported.
 
 Reference refinement consumes compute. Near-limit speed, cost and equal-budget
