@@ -28,7 +28,14 @@ TRAITS = frozenset(
     }
 )
 VALUE_SCOPES = frozenset(
-    {"in_range", "shifted", "extrapolated", "neighbourhood_blend", "robust_worst_case"}
+    {
+        "in_range",
+        "shifted",
+        "extrapolated",
+        "neighbourhood_blend",
+        "robust_worst_case",
+        "robust_cvar",
+    }
 )
 
 
@@ -53,6 +60,13 @@ def validate(config, search):
         or set(search["parameters"]) - TRAITS
     ):
         raise LabRefused("goodhart_search_spec")
+    tail_fraction = search.get("tail_fraction")
+    if (search["value_scope"] == "robust_cvar") != (tail_fraction is not None):
+        raise LabRefused("goodhart_cvar_tail_fraction")
+    if tail_fraction is not None and not (
+        _finite(tail_fraction) and 0 < tail_fraction <= 1
+    ):
+        raise LabRefused("goodhart_cvar_tail_fraction")
     members = [m for m in config["population"] if m["id"] == search["base_member_id"]]
     if len(members) != 1 or members[0]["kind"] != "MODEL":
         raise LabRefused("goodhart_base_member")
@@ -215,6 +229,7 @@ class ToyTraitEvaluator:
             panel,
             self.search["value_scope"],
             self.config["neighbourhood"]["value_weight"],
+            tail_fraction=self.search.get("tail_fraction"),
         )
         member = next(
             m for m in view["members"] if m["id"] == self.search["base_member_id"]

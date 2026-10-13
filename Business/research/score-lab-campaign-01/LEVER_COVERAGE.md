@@ -8,7 +8,7 @@ fixture exercises it. `PARTIAL` means the setting is narrower than the plan.
 | --- | --- | --- |
 | A: design dimension, space, shape and optimum | One-dimensional small/dense offered grids and 2–8 dimensional bounded offered sets; explicit 1/3/10 analytic wells, sinusoidal roughness and interior/boundary placement | PARTIAL: high-dimensional grids are sampled, not exhaustive; true global continuous optimum remains missing; small vector smoke is one proxy only |
 | A: constraints and objective | Zero to five coupled toy hard margins with an offset, single/weighted/robust analytic objective forms, variable verification cost | PARTIAL: chance objective and reference-noise semantics missing |
-| A: decision forms | Best predicted feasible shortlist with k and abstention/unsafe loss; legacy single-pick value alternative; robust worst-case buyer-value view | PARTIAL: threshold, feasibility-only and sensitivity decisions missing |
+| A: decision forms | Best predicted feasible shortlist with k and abstention/unsafe loss; legacy single-pick value alternative; robust worst-case and declared-tail CVaR buyer-value views | PARTIAL: threshold, feasibility-only and sensitivity decisions missing |
 | B: task neighbourhood | Objective, constraint, operating and boundary changes; size, extrapolation distance and value/score weights | IMPLEMENTED as analytic toy assumptions |
 | C: model errors and traits | Error scale, transfer, score-path overfit, law events, drift, robustness, extrapolation; optional toy heteroscedasticity (uniform/boundary/optimum), cross-design correlation, rare tails and sigma scale | PARTIAL: these new knobs are fixture-tested but not yet in a broad result; gradient fidelity and calibrated uncertainty data are missing |
 | D: population and gamers | Several toy model types, cheap map, abstain, bad and path probes; disclosed-score feedback gamer connected to analytic toy candidate rules | PARTIAL: adaptive competition within every sweep profile and copy/fallback strategies missing |
@@ -28,6 +28,8 @@ its value oracle is approximate and it does not pick a winner.
 `VECTOR_READOUT_8.md` checks one-proxy 2–8D offered-action plumbing only.
 `CONSTRAINTS_READOUT_8.md` checks one-proxy zero-to-five hard-limit plumbing
 only; it does not select a score rule.
+`GOODHART_CVAR_TOY_READOUT.md` checks a declared toy worst-tail value view
+against one proxy; the value oracle remains approximate.
 The 142-member realism calibration, D3-approved EV4 reference v2, independent
 final holdout, tier-2 replay and one-page owner verdict are still absent.
 The held Test Engineer holdout is never read or queried to fill these gaps.

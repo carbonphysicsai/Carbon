@@ -600,10 +600,12 @@ def build(config):
     return panel
 
 
-def value_view(panel, stratum, neighbour_weight=0.0):
+def value_view(panel, stratum, neighbour_weight=0.0, *, tail_fraction=None):
     """Leave the scoring half untouched; select only a true-value estimand."""
     view = copy.copy(panel)
-    if stratum == "robust_worst_case":
+    if stratum in ("robust_worst_case", "robust_cvar"):
+        if stratum == "robust_cvar" and (not _finite(tail_fraction, low=1e-12, high=1)):
+            raise LabRefused("physics_cvar_tail_fraction")
         target = [
             qid for qid, kind in panel["value_strata"].items() if kind == "in_range"
         ]
@@ -618,14 +620,19 @@ def value_view(panel, stratum, neighbour_weight=0.0):
                     for name in panel["value_questions"]
                     if name == qid or name.endswith("-" + suffix)
                 ]
-                losses[qid] = (
-                    max(related)
-                    if related and all(loss is not None for loss in related)
-                    else None
-                )
+                if related and all(loss is not None for loss in related):
+                    if stratum == "robust_worst_case":
+                        losses[qid] = max(related)
+                    else:
+                        tail_count = max(1, math.ceil(len(related) * tail_fraction))
+                        losses[qid] = statistics.fmean(
+                            sorted(related, reverse=True)[:tail_count]
+                        )
+                else:
+                    losses[qid] = None
             view["members"].append({**member, "value_losses": losses})
-        # Per-task minima cannot be combined into the min-max oracle for one
-        # robust decision. Keep that reference explicitly unresolved.
+        # Per-task minima cannot be combined into a robust decision oracle.
+        # Keep that reference explicitly unresolved for worst-case and CVaR.
         view["exact_oracle_losses"] = {qid: None for qid in target}
     elif stratum == "neighbourhood_blend":
         if not _finite(neighbour_weight, high=1):

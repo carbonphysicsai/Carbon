@@ -89,3 +89,19 @@ def test_bad_search_grammar_and_all_gated_scores_refuse():
         "status": "INSUFFICIENT_EVIDENCE",
         "reason": "all_score_proposals_unscored",
     }
+
+
+def test_cvar_goodhart_requires_explicit_tail_fraction():
+    config, search = _inputs()
+    search["value_scope"] = "robust_cvar"
+    with pytest.raises(LabRefused, match="goodhart_cvar_tail_fraction"):
+        campaign_goodhart.validate(config, search)
+    search["tail_fraction"] = 0.5  # illustrative toy fraction, never a score value
+    campaign_goodhart.validate(config, search)
+    result = campaign_goodhart.run(
+        config, "toy", {"rule": _score_only}, candidates_sha256="toy", search=search
+    )
+    assert result["status"] == "MEASURED_SYNTHETIC_DEVELOPMENT"
+    search["tail_fraction"] = 0
+    with pytest.raises(LabRefused, match="goodhart_cvar_tail_fraction"):
+        campaign_goodhart.validate(config, search)

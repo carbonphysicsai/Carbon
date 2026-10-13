@@ -70,3 +70,27 @@ def test_robust_worst_case_value_uses_all_near_and_extrapolated_tasks():
     assert [m["score_predictions"] for m in robust["members"]] == [
         m["score_predictions"] for m in panel["members"]
     ]
+
+
+def test_robust_cvar_value_averages_only_the_worst_declared_tail():
+    config = json.loads(EXAMPLE.read_text(encoding="utf-8"))
+    config["questions_per_side"] = 3
+    panel = physics.build(config)
+    robust = physics.value_view(panel, "robust_cvar", tail_fraction=0.5)
+    for old, new in zip(panel["members"], robust["members"], strict=True):
+        for qid, observed in new["value_losses"].items():
+            related = sorted(
+                (
+                    loss
+                    for name, loss in old["value_losses"].items()
+                    if name == qid or name.endswith("-" + qid.split("-")[-1])
+                ),
+                reverse=True,
+            )
+            assert observed == pytest.approx(
+                sum(related[: (len(related) + 1) // 2]) / ((len(related) + 1) // 2)
+            )
+    assert all(value is None for value in robust["exact_oracle_losses"].values())
+    assert robust["score_questions"] == panel["score_questions"]
+    with pytest.raises(LabRefused, match="physics_cvar_tail_fraction"):
+        physics.value_view(panel, "robust_cvar")
