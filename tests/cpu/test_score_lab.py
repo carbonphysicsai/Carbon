@@ -391,6 +391,22 @@ def test_bank_decision_determined_unresolved_and_scored_share():
     assert result["status"] == "INSUFFICIENT_EVIDENCE"
 
 
+def test_bank_fallback_with_known_breach_is_rescue_even_if_another_condition_is_in_band():
+    _definition, _manifest, records, _cheap, _model = _bank_fixture()
+    question = records[0]
+    unresolved = {
+        **question["actions"]["b"][0],
+        "status": "UNRESOLVED",
+        "objective": 1.0,
+    }
+    breached = {**unresolved, "status": "INFEASIBLE"}
+    mixed = {
+        **question,
+        "actions": {**question["actions"], "b": [breached, unresolved]},
+    }
+    assert bank.classify(mixed) == ("RESCUE", False)
+
+
 def test_public_ev4_adapter_rejects_unpinned_reference(tmp_path):
     (tmp_path / "ev4-decision-references.jsonl").write_text("{}\n", encoding="utf-8")
     with pytest.raises(LabRefused, match="ev4_public_reference_digest_mismatch"):

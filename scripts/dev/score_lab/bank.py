@@ -69,7 +69,8 @@ def classify(q):
         if all(c["status"] == "FEASIBLE" for c in conditions)
     ]
     best = min(feasible) if feasible else None
-    if any(c["status"] == "UNRESOLVED" for c in actions[q["fallback_action"]]):
+    fallback_states = {c["status"] for c in actions[q["fallback_action"]]}
+    if "UNRESOLVED" in fallback_states and "INFEASIBLE" not in fallback_states:
         return "INCOMPLETE", False
     has_unresolved = False
     for conditions in actions.values():
