@@ -13,6 +13,7 @@ import math
 from pathlib import Path
 
 from .model import FAIL, NOT_BUILT, PASS, Result
+from .runtime_checks import _object
 
 MARGIN_REGISTRATION_SCHEMA = "carbon.readiness.gate-margin-registration.v1"
 MARGIN_PANEL_SCHEMA = "carbon.readiness.gate-margin-panel.v1"
@@ -34,7 +35,7 @@ def _digest(path: Path) -> str:
 
 def _load(path: Path) -> dict:
     try:
-        document = json.loads(path.read_bytes())
+        document = json.loads(path.read_bytes(), object_pairs_hook=_object)
     except (OSError, ValueError) as error:
         raise EvidenceInvalid("evidence_unreadable") from error
     if type(document) is not dict:
@@ -64,12 +65,22 @@ def _panel(ctx, item: str, registration: dict, schema: str) -> tuple[dict, str] 
     path = Path(named).resolve()
     if path == ctx.repository.resolve() or ctx.repository.resolve() in path.parents:
         raise EvidenceInvalid("private_panel_inside_repository")
-    if _digest(path) != registration.get("panel_digest"):
+    try:
+        body = path.read_bytes()
+    except OSError as error:
+        raise EvidenceInvalid("evidence_unreadable") from error
+    sha = "sha256:" + hashlib.sha256(body).hexdigest()
+    if sha != registration.get("panel_digest"):
         raise EvidenceInvalid("panel_digest_mismatch")
-    document = _load(path)
+    try:
+        document = json.loads(body, object_pairs_hook=_object)
+    except ValueError as error:
+        raise EvidenceInvalid("evidence_unreadable") from error
+    if type(document) is not dict:
+        raise EvidenceInvalid("evidence_not_object")
     if document.get("schema") != schema or document.get("challenge") != ctx.challenge:
         raise EvidenceInvalid("panel_identity_mismatch")
-    return document, _digest(path)
+    return document, sha
 
 
 def _finite(value) -> bool:
