@@ -136,7 +136,7 @@ GPU_FLAGS = [
     "--runtime",
     "nvidia",
     "--gpus",
-    f"device={UUID}",
+    f"driver=nvidia,device={UUID}",
     "--label",
     f"carbon.accelerator.device={UUID}",
     "--env",
@@ -206,7 +206,7 @@ def inspected(tmp_path, gpu, **changes):
             Runtime="nvidia",
             DeviceRequests=[
                 {
-                    "Driver": "",
+                    "Driver": "nvidia",
                     "Count": 0,
                     "DeviceIDs": [UUID],
                     "Capabilities": [["gpu"]],
@@ -241,6 +241,19 @@ def inspected(tmp_path, gpu, **changes):
 def test_isolation_is_checked_with_the_gpu_attached(tmp_path):
     assert inspected(tmp_path, False)["gpu_device"] is None
     assert inspected(tmp_path, True)["gpu_device"] == UUID
+
+
+@pytest.mark.parametrize("driver", ["nvidia", "", "other", None])
+def test_miner_inspection_requires_the_explicit_nvidia_request_driver(tmp_path, driver):
+    def request_driver(document):
+        document["HostConfig"]["DeviceRequests"][0]["Driver"] = driver
+
+    if driver != "nvidia":
+        with pytest.raises(WorkerFailure) as refused:
+            inspected(tmp_path, True, change=request_driver)
+        assert refused.value.code is WorkerCode.POLICY
+        return
+    assert inspected(tmp_path, True, change=request_driver)["gpu_device"] == UUID
 
 
 @pytest.mark.parametrize(

@@ -239,7 +239,7 @@ def test_a_local_run_reaches_running_through_the_real_public_entry(harness):
     assert labels["carbon.accelerator.device"] == device
     assert docker_runtime.LOCAL_APPROVAL_LABEL in labels
     assert docker_runtime.STRICT_GRANT_LABEL not in labels
-    assert f"device={device}" in flags["gpus"]
+    assert flags["gpus"] == [f"driver=nvidia,device={device}"]
 
 
 def test_the_attempt_is_consumed_exactly_once_by_a_real_run(harness):
