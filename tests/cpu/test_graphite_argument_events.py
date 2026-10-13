@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 
 import pytest
+from graphite_fixtures import RecordingMinerTools, controller, provider, spec, started
+
 from carbon.agent_campaign import boundaries
 from carbon.agent_campaign.controller import SimulatedCrash
 from carbon.agent_campaign.graphite import argument_events as ae
@@ -16,7 +18,6 @@ from carbon.development_session.profile import canonical, digest
 from carbon.development_session.research_agent_policy import COMPACT
 from carbon.development_session.research_loop import SELECT
 from carbon.development_session.research_tools import PREFIX
-from graphite_fixtures import RecordingMinerTools, controller, provider, spec, started
 
 SECRET = "synthetic-value-never-in-events-793f"
 PRIVATE = r"C:\synthetic-operator\local\input.json"
