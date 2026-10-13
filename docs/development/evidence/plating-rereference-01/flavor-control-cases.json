@@ -1,0 +1,122 @@
+{
+ "cases": [
+  {
+   "c1": 1.0,
+   "c2": 0.6,
+   "candidate": "c1=1,c2=0.6",
+   "case_id": "ev4:D-T14-S0.33:c1=1,c2=0.6:0",
+   "panel_tier": "feasible_2_4mV",
+   "question": "D-T14-S0.33",
+   "reference_margin_v": 0.002709379625016011,
+   "reference_rung": "standard",
+   "reference_status": "FEASIBLE",
+   "soc0": 0.33,
+   "split": "development",
+   "t_amb_c": 14.0
+  },
+  {
+   "c1": 2.0,
+   "c2": 0.6,
+   "candidate": "c1=2,c2=0.6",
+   "case_id": "ev4:V-T29-S0.22:c1=2,c2=0.6:0",
+   "panel_tier": "feasible_2_4mV",
+   "question": "V-T29-S0.22",
+   "reference_margin_v": 0.003558660231427569,
+   "reference_rung": "standard",
+   "reference_status": "FEASIBLE",
+   "soc0": 0.22,
+   "split": "verification",
+   "t_amb_c": 29.0
+  },
+  {
+   "c1": 2.0,
+   "c2": 0.6,
+   "candidate": "c1=2,c2=0.6",
+   "case_id": "ev4:D-T34-S0.48:c1=2,c2=0.6:0",
+   "panel_tier": "feasible_2_4mV",
+   "question": "D-T34-S0.48",
+   "reference_margin_v": 0.00395516693485189,
+   "reference_rung": "standard",
+   "reference_status": "FEASIBLE",
+   "soc0": 0.48,
+   "split": "development",
+   "t_amb_c": 34.0
+  },
+  {
+   "c1": 1.0,
+   "c2": 0.8,
+   "candidate": "c1=1,c2=0.8",
+   "case_id": "ev4:V-T19-S0.40:c1=1,c2=0.8:0",
+   "panel_tier": "feasible_2_4mV",
+   "question": "V-T19-S0.40",
+   "reference_margin_v": 0.0022310776690126766,
+   "reference_rung": "standard",
+   "reference_status": "FEASIBLE",
+   "soc0": 0.4,
+   "split": "verification",
+   "t_amb_c": 19.0
+  },
+  {
+   "c1": 0.75,
+   "c2": 1.0,
+   "candidate": "c1=0.75,c2=1",
+   "case_id": "ev4:D-T24-S0.12:c1=0.75,c2=1:0",
+   "panel_tier": "feasible_2_4mV",
+   "question": "D-T24-S0.12",
+   "reference_margin_v": 0.0024460363773513285,
+   "reference_rung": "standard",
+   "reference_status": "FEASIBLE",
+   "soc0": 0.12,
+   "split": "development",
+   "t_amb_c": 24.0
+  },
+  {
+   "c1": 0.75,
+   "c2": 0.4,
+   "candidate": "c1=0.75,c2=0.4",
+   "case_id": "ev4:V-T9-S0.40:c1=0.75,c2=0.4:0",
+   "panel_tier": "feasible_4_8mV",
+   "question": "V-T9-S0.40",
+   "reference_margin_v": 0.006971010444033076,
+   "reference_rung": "standard",
+   "reference_status": "FEASIBLE",
+   "soc0": 0.4,
+   "split": "verification",
+   "t_amb_c": 9.0
+  },
+  {
+   "c1": 1.75,
+   "c2": 1.0,
+   "candidate": "c1=1.75,c2=1",
+   "case_id": "ev4:D-T24-S0.12:c1=1.75,c2=1:0",
+   "panel_tier": "feasible_4_8mV",
+   "question": "D-T24-S0.12",
+   "reference_margin_v": 0.007350009375603551,
+   "reference_rung": "standard",
+   "reference_status": "FEASIBLE",
+   "soc0": 0.12,
+   "split": "development",
+   "t_amb_c": 24.0
+  },
+  {
+   "c1": 1.0,
+   "c2": 0.6,
+   "candidate": "c1=1,c2=0.6",
+   "case_id": "ev4:V-T9-S0.06:c1=1,c2=0.6:0",
+   "panel_tier": "negative_pair",
+   "question": "V-T9-S0.06",
+   "reference_margin_v": -0.002742958763590043,
+   "reference_rung": "standard",
+   "reference_status": "INFEASIBLE",
+   "soc0": 0.06,
+   "split": "verification",
+   "t_amb_c": 9.0
+  }
+ ],
+ "ladder": "panel",
+ "rule": "D3 flavor overlap control (Test Lead 2026-10-13): 8 cases of the D2 Validator-spec panel (solved on cpu5m) re-solved on cpu3m on the same ladder; the margins must reproduce before D3 runs on cpu3m",
+ "schema": "carbon.battery.plating-convergence-cases.v1",
+ "source": {
+  "d2_cases_final_sha256": "43e1b94f6a966e5ba0554c03f62f0bb54ef0c9bde9a6b90489cf192a6a63e415"
+ }
+}
