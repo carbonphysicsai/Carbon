@@ -11,7 +11,7 @@ from carbon.challenge_validator import validity
 
 from . import configuration as cfg
 
-RECEIPT_SCHEMA = "carbon.product.guard-receipt.v2"
+RECEIPT_SCHEMA = "carbon.product.guard-receipt.v3"
 PROBE_DERIVATION = "carbon.product.guard-local-sha256-counter.v1"
 
 
@@ -118,8 +118,8 @@ class EnvelopeGuard:
                 "reference_input_units_mismatch",
             )
             parsed_contract = cfg.contract(contract, names)
-            parsed_reference = cfg.reference(
-                reference, parsed_contract["reference_image"]
+            parsed_reference, reference_verification = cfg.reference(
+                reference, parsed_contract["reference_image"], parsed_contract["family"]
             )
             model_declaration = cfg.declaration(model_validity, names)
             reference_declaration = cfg.declaration(reference_validity, names)
@@ -129,6 +129,12 @@ class EnvelopeGuard:
                 parsed_contract["reference_image"],
                 names,
                 parsed_contract["outputs"],
+            )
+            cfg.require(
+                reference_verification is None
+                or parsed_map is None
+                or parsed_map["reference_verification"] == reference_verification,
+                "reference_map_acceptance_mismatch",
             )
             parsed_policy = cfg.policy(policy, pins, names, parsed_contract["outputs"])
             cfg.require(
@@ -143,6 +149,7 @@ class EnvelopeGuard:
             self._envelope = cfg.freeze(model_envelope)
             self._reference_envelope = cfg.freeze(solver_envelope)
             self._reference = cfg.freeze(parsed_reference)
+            self._reference_verification = cfg.freeze(reference_verification)
             self._map = cfg.freeze(parsed_map)
             self._policy = cfg.freeze(parsed_policy)
             self._pins = cfg.freeze(
@@ -218,12 +225,23 @@ class EnvelopeGuard:
                     "status": self._reference["status"],
                     "acceptance_scope": cfg.thaw(self._reference["acceptance_scope"]),
                     "basis": "DECLARED_DEVELOPMENT_USE_NOT_QUALIFICATION",
+                    "observables_basis": "HOST_DECLARED_NOT_VERIFIED_COVERAGE",
+                    "verification_conditions_basis": (
+                        "REGISTERED_DEVELOPMENT_CODE_VERIFICATION"
+                        if self._reference_verification is not None
+                        else "UNRESOLVED_HOST_DECLARATION"
+                    ),
+                    "application_conditions_basis": "HOST_DECLARED_USE_RESTRICTION",
                 }
             ),
             "code_verification": (
-                None
-                if self._map is None
-                else cfg.thaw(self._map["reference_verification"])
+                cfg.thaw(self._reference_verification)
+                if self._reference_verification is not None
+                else (
+                    None
+                    if self._map is None
+                    else cfg.thaw(self._map["reference_verification"])
+                )
             ),
         }
         result["decision_digest"] = cfg.digest(result)
@@ -273,7 +291,7 @@ class EnvelopeGuard:
             and set(self._contract["outputs"]) <= set(scope["observables"])
             and all(
                 value is not None and name in query and query[name] == value
-                for name, value in scope["conditions"].items()
+                for name, value in scope["application_conditions"].items()
             )
         )
 
