@@ -10,17 +10,28 @@ acceptance, and such a decision is not recorded on a relay alone.
 and testnet** testing, on the same terms as `12e1b55b` and `20e18ff2`, when all
 six R8 hostile probes pass:
 
-| probe | required outcome |
+| probe | required result |
 |---|---|
-| memory | CONTAINED |
-| time | CONTAINED |
-| scratch_flood | CONTAINED |
-| fork_bomb | CONTAINED |
-| outside_scratch | CONTAINED |
-| network_socket | CONTAINED |
+| memory | `PASS` |
+| time | `PASS` |
+| scratch_flood | `PASS` |
+| fork_bomb | `PASS` |
+| outside_scratch | `PASS` |
+| network_socket | `PASS` |
 
-and a `hostile_probe` record **keyed to that image** records them. All six are
-required; a missing or unkeyed record is not an acceptance.
+and a `hostile_probe` record **keyed to that image** records them, each with its
+own result digest. All six are required; a missing or unkeyed record is not an
+acceptance.
+
+**A note on the word.** The owner's condition was "all CONTAINED". The records
+and the gate do not use that word: the schema's success value is `PASS`, and
+`carbon/challenge_pipeline/readiness/checks.py:832` requires "one PASS result
+with a digest per" probe. They are the same condition -- containment
+demonstrated under each attack -- and this table names the term the data
+actually carries so the rule can be checked. The first record written under this
+rule, `hostile_probe.20e18ff2.json` for image
+`sha256:28815c8eb808b93dad1a3dd80a715c4ba0282bf7378932e5b90f61548fedeca5`,
+carries `PASS` for all six.
 
 **What stays with the owner.** Mainnet and LIVE need his word for each image,
 every time. This rule does not reach them.
