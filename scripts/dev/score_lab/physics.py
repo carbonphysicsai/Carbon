@@ -47,6 +47,11 @@ def validate_config(config):
     ):
         raise LabRefused("physics_question_count")
     decision = config.get("decision", {})
+    if config.get("value_definition", "v2_shortlist") not in (
+        "v2_shortlist",
+        "legacy_one_pick",
+    ):
+        raise LabRefused("physics_value_definition")
     if (
         type(decision.get("k")) is not int
         or decision["k"] < 1
@@ -378,11 +383,20 @@ def build(config):
                 "score_row": synthetic._row(score, sp, problem),
                 "score_metadata": {"physics": physics, "neighbours": neighbours},
                 "value_losses": {
-                    qid: _loss(
-                        q,
-                        vp[qid],
-                        config["decision"],
-                        problem["verification_cost_ASSUMPTION"],
+                    qid: (
+                        _loss(
+                            q,
+                            vp[qid],
+                            config["decision"],
+                            problem["verification_cost_ASSUMPTION"],
+                        )
+                        if config.get("value_definition", "v2_shortlist")
+                        == "v2_shortlist"
+                        else synthetic._decision_loss(
+                            q,
+                            vp[qid],
+                            problem["verification_cost_ASSUMPTION"],
+                        )
                     )
                     for qid, q in value.items()
                 },
@@ -400,8 +414,16 @@ def build(config):
         "value_strata": strata,
         "oracle_kind": "EXACT_ENUMERATED_OFFERED_ACTIONS",
         "exact_oracle_losses": {
-            qid: _oracle_loss(
-                q, config["decision"], problem["verification_cost_ASSUMPTION"]
+            qid: (
+                _oracle_loss(
+                    q, config["decision"], problem["verification_cost_ASSUMPTION"]
+                )
+                if config.get("value_definition", "v2_shortlist") == "v2_shortlist"
+                else _oracle_loss(
+                    q,
+                    {**config["decision"], "abstention_loss": 0.0, "unit": 1.0},
+                    problem["verification_cost_ASSUMPTION"],
+                )
             )
             for qid, q in value.items()
         },

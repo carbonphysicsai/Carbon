@@ -29,6 +29,9 @@ mean(neighbours)` on a matched question index. The "exact oracle" for this
 extension is exact enumeration of the offered actions, including when the
 underlying analytic surface is sampled densely. The Score Lab does not claim
 a continuous-domain optimum from that enumeration.
+The optional `value_definition` lever compares `v2_shortlist` (the default)
+with `legacy_one_pick` on those same scoring questions. It is a toy comparison
+of buyer-loss definitions and never reinterprets historical evidence.
 
 The candidate adapter forwards only scoring-side neighbour questions and
 member physics traits. It preserves the Validator wrapper's GATE/FLOOR/BLEND
