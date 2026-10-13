@@ -1,0 +1,13 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-13-solenoid-batch1-amendment",
+  "recorded_at": "2026-10-13T15:09:40+00:00",
+  "challenge": "solenoid-pole", "stage": "design",
+  "execution": {"kind": "test_run", "ref": "PKT-10 Test Lead amendment", "description": "Run the whole pilot-plan guard, equal-budget routes and solenoid pilot tests after separating historical snapshot facts from the live no-alias invariant."},
+  "expected": "A family-independent live invariant must survive later routes without rewriting PKT-09's dated evidence.",
+  "observed": "53 native focused tests passed, 3 Linux/JAX checks await canonical CI. The snapshot is unchanged; the new guard permits unique family validators and only the existing shared generic validator. Existing battery, motor and f02 kit bindings are pinned independently of the added solenoid kit. Public and operator-only reference work are planned separately. The draft-window dad64e85 push had skipped checks, not successful acceptance.",
+  "keep": ["PKT-09 plans.json and its original source_main/ranking evidence."],
+  "change": ["Remove the per-solenoid exception from the historical test; check live validator ownership outside its snapshot loop."],
+  "protocol_elements": ["historical-evidence", "family-independent-invariant", "operator-custody"],
+  "proposed_revision": null, "status": "RECORDED"
+}

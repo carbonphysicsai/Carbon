@@ -12,6 +12,7 @@ from carbon.design_search import (
     cooling_budget,
     metagrating_budget,
     micromixer_budget,
+    solenoid_budget,
     structures_budget,
     warpage_budget,
 )
@@ -95,6 +96,7 @@ def panel(challenge="motor", direction="min"):
 
 def test_challenge_routes_preserve_registered_validators_and_flags():
     expected = {
+        "solenoid-pole": solenoid_budget.validate,
         "battery-v3": br.validate,
         "motor": br.validate,
         "f02": br.validate,
@@ -118,7 +120,7 @@ def test_challenge_routes_preserve_registered_validators_and_flags():
         name
         for name, route in eb.CHALLENGE_ROUTES.items()
         if route.get("representative")
-    } == {"bolted-joint"}
+    } == {"bolted-joint", "solenoid-pole"}
 
 
 @pytest.mark.parametrize(

@@ -74,10 +74,12 @@ def _admit_level4(strategy, variant, parts):
     return admit_envelope(strategy, envelope, loss_override=loss_override)
 
 
-def setup(target, config=None):
+def setup(target, config=None, *, shadow=None):
     """Supply the compiler to one development-ladder deployment, with its
     Level 4 envelope parts when it serves Level 4, and the staged workspace a
-    Level 4 rebuild needs (`workspace_for`)."""
+    Level 4 rebuild needs (`workspace_for`). An optional operator-only shadow
+    observer runs after a successful compile. Its diagnostics and failures
+    cannot change admission, compilation, evaluation or scoring."""
     if getattr(target, "ladder", None) is None:
         raise ValueError("not a development-ladder deployment")
     parts = None
@@ -92,7 +94,16 @@ def setup(target, config=None):
     held = {}
 
     def compile_listed(strategy, variant_digest):
-        return compile_variant(strategy, variant_digest, parts, held)
+        compiled = compile_variant(strategy, variant_digest, parts, held)
+        if shadow is not None:
+            try:
+                from copy import deepcopy
+
+                shadow(deepcopy(strategy), variant_digest)
+            except Exception:  # noqa: BLE001
+                # Observational failure is not a candidate/infra verdict.
+                compile_listed.shadow_failures += 1
+        return compiled
 
     def workspace_for(strategy):
         submission = _submission(strategy)
@@ -109,6 +120,7 @@ def setup(target, config=None):
         return staging.workspace(raw_manifest, files)
 
     compile_listed.parts = parts
+    compile_listed.shadow_failures = 0
     compile_listed.workspace_for = workspace_for
     target.development_compiler = compile_listed
 

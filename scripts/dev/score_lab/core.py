@@ -166,20 +166,23 @@ def v2_rule(*, definition, kappa, cap, unit):
 
 def _number(result):
     if result is None:
-        return None, False
+        return None, False, 0
     if isinstance(result, dict):
         value, admissible = result.get("score"), result.get("admissible")
         if type(admissible) is not bool:
             raise LabRefused("rule_admissibility_malformed")
+        tier = result.get("tier", 0)
+        if type(tier) is not int or tier < 0:
+            raise LabRefused("rule_tier_malformed")
     else:
-        value, admissible = result, True
+        value, admissible, tier = result, True, 0
     if (
         isinstance(value, bool)
         or not isinstance(value, (float, int))
         or not math.isfinite(value)
     ):
         raise LabRefused("rule_score_nonfinite")
-    return float(value), admissible
+    return float(value), admissible, tier
 
 
 def analyze(panel, rule, *, bootstrap=200, seed=20261013):
@@ -200,15 +203,19 @@ def analyze(panel, rule, *, bootstrap=200, seed=20261013):
     members = panel["members"]
     names = [m["id"] for m in members]
     recipe_of = {m["id"]: m["recipe"] for m in members}
-    scores, admissibility, losses = {}, {}, {}
+    scores, admissibility, tiers, losses = {}, {}, {}, {}
     for member in members:
         name = member["id"]
         result = rule(
             member["score_predictions"],
             references,
-            {"score_row": member.get("score_row"), **panel.get("score_metadata", {})},
+            {
+                "score_row": member.get("score_row"),
+                **panel.get("score_metadata", {}),
+                **member.get("score_metadata", {}),
+            },
         )
-        scores[name], admissibility[name] = _number(result)
+        scores[name], admissibility[name], tiers[name] = _number(result)
         losses[name] = member["value_losses"]
     mask = sorted(
         q
@@ -229,11 +236,16 @@ def analyze(panel, rule, *, bootstrap=200, seed=20261013):
             "reason": "unscored_primary_members",
             "count": len(missing),
         }
-    finite = [s for s in scores.values() if s is not None]
-    floor = min(finite) - max(1.0, max(finite) - min(finite) + 1.0)
-    ranked_scores = {
-        m: floor if s is None or not admissibility[m] else s for m, s in scores.items()
+    # FLOOR is lexicographic: every lower tier outranks every higher tier,
+    # while the candidate's own score orders members inside each tier. Dense
+    # ordinal ranks avoid numerical overflow and keep every gate failure below
+    # even the worst finite tier; all gate failures remain tied.
+    keys = {
+        m: (1, -tiers[m], s) if s is not None and admissibility[m] else (0, 0, 0.0)
+        for m, s in scores.items()
     }
+    levels = {key: float(i) for i, key in enumerate(sorted(set(keys.values())))}
+    ranked_scores = {m: levels[keys[m]] for m in names}
     boot = score_proof.bootstrap(
         ranked_scores,
         {},
@@ -246,7 +258,7 @@ def analyze(panel, rule, *, bootstrap=200, seed=20261013):
     tau = score_proof._tau(ranked_scores, {m: -v for m, v in values.items()}, primary)
     ranked_primary = sorted(primary, key=lambda m: (-ranked_scores[m], m))
     ranked_all = sorted(names, key=lambda m: (-ranked_scores[m], m))
-    top1 = next((m for m in ranked_primary if admissibility[m]), None)
+    top1 = next((m for m in ranked_primary if admissibility[m] and tiers[m] == 0), None)
     best = max(values[m] for m in primary)
     oracle = panel.get("exact_oracle_losses")
     exact_best = (
@@ -274,7 +286,9 @@ def analyze(panel, rule, *, bootstrap=200, seed=20261013):
             else (exact_best if exact_best is not None else best) - values[top1]
         ),
         "top1_regret_reference": (
-            "EXACT_ANALYTIC_ORACLE" if exact_best is not None else "BEST_MEMBER_IN_POOL"
+            panel.get("oracle_kind", "EXACT_ANALYTIC_ORACLE")
+            if exact_best is not None
+            else "BEST_MEMBER_IN_POOL"
         ),
         "top1_member": top1,
         "probe_rank_of": len(names),
@@ -292,5 +306,9 @@ def analyze(panel, rule, *, bootstrap=200, seed=20261013):
         "always_abstain_rank": probe_ranks.get("control-always-abstain"),
         "cheap_baseline_rank": probe_ranks.get("control-bilinear"),
         "admissibility_failures": sum(not admissibility[m] for m in names),
+        "physics_floor_failures": sum(admissibility[m] and tiers[m] > 0 for m in names),
+        "admissibility": admissibility,
+        "physics_tiers": {m: tiers[m] for m in names},
+        "ranked_scores": ranked_scores,
         "assumption": panel.get("assumption"),
     }
