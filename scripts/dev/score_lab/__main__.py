@@ -10,7 +10,15 @@ import math
 import statistics
 from pathlib import Path
 
-from . import bank, candidates, physics, public_ev4, public_physics, synthetic
+from . import (
+    bank,
+    campaign_gate,
+    candidates,
+    physics,
+    public_ev4,
+    public_physics,
+    synthetic,
+)
 from .core import LabRefused, analyze, registry_rule, v2_rule
 
 
@@ -232,7 +240,27 @@ def main(argv=None):
     )
     phys.add_argument("--tier2-candidate", help="id in --tier2-registry")
     phys.add_argument("--out", type=Path)
+    gate = commands.add_parser(
+        "campaign-gate", help="recompute public and toy controls before any campaign"
+    )
+    gate.add_argument("--audit", type=Path, required=True)
+    gate.add_argument("--stress", type=Path, required=True)
+    gate.add_argument("--toy-problem", type=Path, required=True)
+    gate.add_argument("--questions", type=int, required=True)
+    gate.add_argument("--cap", type=int, required=True)
+    gate.add_argument("--out", type=Path)
     args = parser.parse_args(argv)
+    if args.command == "campaign-gate":
+        report = campaign_gate.run(
+            audit_path=args.audit,
+            stress_path=args.stress,
+            problem=json.loads(args.toy_problem.read_text(encoding="utf-8")),
+            questions_per_side=args.questions,
+            cap=args.cap,
+        )
+        print(json.dumps(report, indent=2, sort_keys=True))
+        _write(args.out, report)
+        return 0 if report["status"] == "CONTROL_PASS" else 2
     if args.command == "physics":
         config = json.loads(args.config.read_text(encoding="utf-8"))
         specs, digest = candidates.load(args.candidates)
