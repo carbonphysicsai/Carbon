@@ -23,12 +23,23 @@ and a `hostile_probe` record **keyed to that image** records them, each with its
 own result digest. All six are required; a missing or unkeyed record is not an
 acceptance.
 
-**A note on the word.** The owner's condition was "all CONTAINED". The records
-and the gate do not use that word: the schema's success value is `PASS`, and
+**A note on the word, and on whose word it was.** The owner's own text, the
+option he chose, was:
+
+> Any rebuilt analysis image that passes all 6 sandbox escape tests is accepted
+> into dev/testnet testing on the same terms as before. Mainnet/LIVE still needs
+> you each time.
+
+"CONTAINED" was **the Test Lead's relay word, not the owner's**, and this record
+first attributed it to him in error. The PR Head's confirmation question
+inherited that word from the relay and put it to the owner, so his "yes" was to
+the relay's phrasing: a confirmation can carry a term the owner never used, and
+checking the words against the evidence is what caught it. His own wording,
+"passes all 6 sandbox escape tests", is closer to the schema than the relay's
+was. The schema's success value is `PASS`, and
 `carbon/challenge_pipeline/readiness/checks.py:832` requires "one PASS result
-with a digest per" probe. They are the same condition -- containment
-demonstrated under each attack -- and this table names the term the data
-actually carries so the rule can be checked. The first record written under this
+with a digest per" probe, so this table names the term the data actually
+carries. The first record written under this
 rule, `hostile_probe.20e18ff2.json` for image
 `sha256:28815c8eb808b93dad1a3dd80a715c4ba0282bf7378932e5b90f61548fedeca5`,
 carries `PASS` for all six.
