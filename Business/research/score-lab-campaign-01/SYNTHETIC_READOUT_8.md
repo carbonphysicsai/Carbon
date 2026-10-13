@@ -22,7 +22,8 @@ estimate for a Challenge.
 
 The saved artifacts are `SYNTHETIC_PLAN_8.json` (SHA-256
 `454eb4b3efe4c041ca895790c8033977b3dbcd6629937f2e7595f41d59702fd0`),
-`SYNTHETIC_SWEEP_8.json` (`f306e63df7c3f70c9a378b48ef509958968aa1a3007a2cda58dd5e53a4b6ca52`),
+`SYNTHETIC_SWEEP_8.json.gz` (`24c822b71556cfbd2f5dd217539285a334fd1d0533fc81f9e589ed0fe12cdc34`;
+decompressed JSON SHA-256 `f306e63df7c3f70c9a378b48ef509958968aa1a3007a2cda58dd5e53a4b6ca52`),
 and `SYNTHETIC_ATLAS_8.json` (`7bd508e3e20544a0283d1a626041d54f07c7d390d4ca4df92fbd6bf6e7f4055c`).
 The atlas reports target, shifted, extrapolated, and neighbourhood-blend
 descriptives. Sobol indices and rule selection are unset: this eight-profile
