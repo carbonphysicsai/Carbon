@@ -29,6 +29,8 @@ python -m carbon.agent_campaign.graphite.phase4 prelive --root DIR --challenge T
 python -m carbon.agent_campaign.graphite.phase4 cancel --root DIR --session N
 python -m carbon.agent_campaign.graphite.phase4 status --root DIR [--dry-run]
 python -m carbon.agent_campaign.graphite.phase4 log --root DIR [--dry-run]
+python -m carbon.agent_campaign.graphite.phase4 remint --root DIR \
+    --attempt ATTEMPT_ID --specimen SPECIMEN_NAME [--session N]
 ```
 
 `--challenge` names any adapter registered at Level 0 in
@@ -80,6 +82,11 @@ From the session's journal, never the model's prose:
    construction with the adapter's `rebuild` (an unrebuildable one is typed
    and never scored), re-checks it with the adapter's oracle, and bundles a
    breach's specimen for a clean rebuild.
+   A compact development-level rebuild record uses the versioned
+   `carbon.attack.specimen.v1` bundle, checked against its registered adapter;
+   a complete phase-3 recipe record retains the existing delivery bundle.
+   A mint/check failure keeps the BREACHED verdict and its raw journal
+   provenance, with a typed specimen refusal. It never becomes a hold.
 3. A verdict is a finding exactly when it is `BREACHED`, and then it carries
    its conditions in the CONDITIONS vocabulary; a verdict where the two
    disagree is refused. Each finding is recorded through `verify.record` ->
@@ -111,6 +118,32 @@ From the session's journal, never the model's prose:
 
 Zero findings is reported as attempted coverage, never an exploit-free bound.
 The coverage report claims neither security acceptance nor a grade.
+
+### Re-mint a recorded breach
+
+`remint` reads the existing `attacker/controller/campaign.sqlite3`, completed
+`attacker/iteration-log.jsonl`, finding evidence and the exact tool journal.
+It checks the evidence digest, session/run binding, attempt digests, rebuilt
+record and artifact. It does not rerun the Attacker, miner door, oracle or
+reference solver, and it writes only under `attacker/specimens/`. A changed,
+missing, protected or ambiguous source is a typed `SPECIMEN_REFUSED`; the
+original attempt and finding remain untouched. It does not classify the
+breach as a real escape, oracle gap or false positive.
+
+For the recorded Level 2 attempt, the executor runs locally from a checkout
+containing OPT-13 (without giving this root to a coding agent):
+
+```bash
+python -m carbon.agent_campaign.graphite.phase4 remint \
+  --root /home/miner/graphite-att-l2-root-E \
+  --attempt epoch-1-tool-007 \
+  --specimen specimen-199bf9ff4936eaf6
+```
+
+The expected specimen name binds the command to the recorded family and
+artifact. If several sessions have the same matching source, add `--session N`
+from the local iteration log; the command refuses ambiguity instead of
+choosing a session. The Graphite Testing Manager owns triage after re-mint.
 
 **Seam: Carbon's verify-pod rebuild.** Rebuilding attack constructions on
 Carbon-launched phase-3 pods is declared NOT_RUN in phase 4
