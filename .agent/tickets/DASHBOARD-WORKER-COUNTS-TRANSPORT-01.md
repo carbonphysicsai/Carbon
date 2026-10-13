@@ -36,6 +36,11 @@ This is IMPLEMENTATION_LAG in one serving path, not a scientific migration.
 The port is reversible by removing the optional projection. Python remains
 the parity oracle; do not weaken its checks to accommodate JavaScript.
 
+REPAIR the parser's plain-object copy with object spread: Object.assign's
+special handling of `__proto__` discarded a legitimate unknown refusal count
+and changed the signed bytes. Preserve it as an own JSON data property, then
+fold its count into `other`. Signed prototype-name cases test the repair.
+
 ## Plan and acceptance
 
 1. Run canonical baseline Worker and LP-02 tests with actual Node execution.
@@ -47,6 +52,20 @@ the parity oracle; do not weaken its checks to accommodate JavaScript.
    a malformed or tampered newer feed retains the last accepted board.
 4. Run canonical dashboard regressions and all invariants, pinned quality,
    delivery hygiene before pushing, and exact-head classified CI/Merge gate.
+
+Canonical baseline: 33 Worker/LP-02 tests passed with Node running.
+Final local canonical run (no skips): 568 tests passed, including all dashboard
+tests, miner screening feed/disclosure tests and all invariants. The new parity
+test covers 48 signed status variants in both compact and indented JSON,
+against both boards and three rules-card states (384 complete comparisons).
+HTTP tests use temporary generated test keys and stub feed transport only.
+Pinned Black 26.5.1/Ruff 0.16.3 and `git diff --check` passed.
+
+Exact regression command from the isolated Linux clone:
+`CARBON_UV_GROUPS="science-jax chain archive mcp" ./scripts/dev/canonical.sh bash lp03-canonical-node.sh tests/cpu/test_dashboard_*.py tests/cpu/test_miner_screening_feed.py tests/cpu/test_miner_screening_disclosure.py tests/invariants`
+The untracked validation wrapper installs CI-pinned Node 24.19.0 in the
+temporary container after checking its official SHA256; repository environment
+and dependency pins are unchanged.
 
 No deploy: Launchpad deploys. No real signing key, chain, AX42, paid compute,
 protected material, scoring rule or grain change. Test fixtures carry only
