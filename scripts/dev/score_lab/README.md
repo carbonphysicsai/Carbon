@@ -169,6 +169,18 @@ python -m scripts.dev.score_lab campaign-run \
   --out /tmp/scorelab-campaign-results.json
 ```
 
+`campaign-atlas` requires every index exactly once across one or more
+digest-matched result shards. It reports target, shifted, extrapolated and
+neighbourhood-blend summaries per candidate and physics switch. Its worst
+tenth is a descriptive sample tail; Sobol indices and final rule selection
+remain unset because LHS profiles do not supply a Saltelli design.
+
+```sh
+python -m scripts.dev.score_lab campaign-atlas \
+  --result /tmp/scorelab-campaign-results.json \
+  --out /tmp/scorelab-atlas.json
+```
+
 `campaign-goodhart` searches the analytic toy member-trait grammar twice:
 once for a candidate's score on scoring questions only, and separately for
 true buyer value as an offline oracle. Both use fixed random starts plus

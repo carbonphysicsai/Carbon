@@ -219,6 +219,7 @@ def evaluate_summary(prepared, specs, digest, *, component_spec=None):
         "component_spec_sha256": (
             canonical_sha(component_spec) if component_spec is not None else None
         ),
+        "count": prepared["count"],
         "shard": prepared["shard"],
         "shards": prepared["shards"],
         "rows": rows,

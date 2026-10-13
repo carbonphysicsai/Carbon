@@ -11,7 +11,11 @@ One local WSL toy profile across the ten candidate proxies took 24.28 CPU-s
 and 25.84 wall-s (2026-10-13, `campaign-run`, seven physics-switch rows per
 candidate, four value strata). At that observed rate, 5,000 profiles cost about
 33.7 CPU-hours before overhead; 20,000 cost about 134.9 CPU-hours. This is a
-size estimate from one profile, not a throughput guarantee. The owner supplied
+size estimate from one profile, not a throughput guarantee. A broader eight-
+profile LHS sample took 112.01 CPU-s plus 3.20 system CPU-s (115.35 wall-s),
+or about 14.4 total CPU-s/profile; the sampled grid sizes differ. The 5,000-
+profile tranche therefore spans roughly 20-35 CPU-hours under these two small
+samples, before startup, I/O, and parallelism losses. The owner supplied
 a planning price of $1.76/h for a 32-vCPU RunPod CPU host on 2026-10-10; Data
 Collection must verify the actual price and available host before launch.
 

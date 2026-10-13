@@ -13,6 +13,7 @@ from pathlib import Path
 
 from . import (
     bank,
+    campaign_atlas,
     campaign_gate,
     campaign_goodhart,
     campaign_sweep,
@@ -275,6 +276,11 @@ def main(argv=None):
     sweep_run.add_argument("--candidate")
     sweep_run.add_argument("--components", type=Path)
     sweep_run.add_argument("--out", type=Path, required=True)
+    atlas = commands.add_parser(
+        "campaign-atlas", help="aggregate complete synthetic sweep shards"
+    )
+    atlas.add_argument("--result", type=Path, required=True, action="append")
+    atlas.add_argument("--out", type=Path, required=True)
     goodhart = commands.add_parser(
         "campaign-goodhart", help="toy score-only random/hill search then value check"
     )
@@ -285,6 +291,15 @@ def main(argv=None):
     goodhart.add_argument("--components", type=Path)
     goodhart.add_argument("--out", type=Path, required=True)
     args = parser.parse_args(argv)
+    if args.command == "campaign-atlas":
+        shards = [json.loads(path.read_text(encoding="utf-8")) for path in args.result]
+        report = campaign_atlas.aggregate(shards)
+        _write(args.out, report)
+        print(
+            f"descriptive toy atlas: {report['profiles']} profiles; "
+            "no Sobol index or final rule selection"
+        )
+        return 0
     if args.command == "campaign-run":
         plan = json.loads(args.plan.read_text(encoding="utf-8"))
         component_spec = (
