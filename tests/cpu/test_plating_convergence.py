@@ -91,3 +91,39 @@ def test_run_refuses_anything_but_a_registered_case_list(tmp_path):
     other.write_text(json.dumps({"schema": "other", "cases": []}))
     with pytest.raises(SystemExit, match="refused"):
         pc.run(other, tmp_path / "out", 1)
+
+
+def test_a_finest_rung_the_host_killed_is_a_failed_rung_not_a_result():
+    cases = [{"case_id": "x", "question": "D-0001", "reference_margin_v": 0.0}]
+    ok = {"case": 0, "rtol": 1e-6, "period_s": None, "cycles": 1, "status": "OK"}
+    records = [
+        {**ok, "mesh": 40, "plating_margin_v": 4e-4},
+        {**ok, "mesh": 80, "plating_margin_v": 2e-4},
+        {**ok, "mesh": 160, "plating_margin_v": 1e-4},
+        {**ok, "mesh": 320, "status": pc.KILLED},
+    ]
+    [row] = pc.summarise(cases, records)
+    assert row["mesh_rungs_v"] == {"40": 4e-4, "80": 2e-4, "160": 1e-4}
+    assert row["richardson_meshes"] == [40, 80, 160]
+
+
+def test_the_committed_study_evidence_matches_its_summary():
+    evidence = REPOSITORY / "docs/development/evidence/plating-convergence-01"
+    records = [
+        json.loads(x)
+        for x in (evidence / "records.jsonl").read_text(encoding="utf-8").splitlines()
+        if x
+    ]
+    summary = json.loads((evidence / "summary.json").read_text(encoding="utf-8"))
+    cases = json.loads(CASES.read_text(encoding="utf-8"))["cases"]
+    assert len(records) == 61 and all(r["status"] == "OK" for r in records)
+    rebuilt = pc.summarise(cases, records)
+    for mine, theirs in zip(rebuilt, summary["cases"], strict=True):
+        # Same rungs exactly; derived values to floating-point agreement across hosts.
+        assert {k: mine[k] for k in ("case_id", "mesh_rungs_v", "standard_rung_v")} == {
+            k: theirs[k] for k in ("case_id", "mesh_rungs_v", "standard_rung_v")
+        }
+        assert mine["observed_order"] == pytest.approx(theirs["observed_order"])
+        assert mine["extrapolated_margin_v"] == pytest.approx(
+            theirs["extrapolated_margin_v"], rel=1e-9
+        )

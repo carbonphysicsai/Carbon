@@ -15,7 +15,8 @@ model, parameters and experiment unchanged; it varies only the mesh, the solver
 tolerance and the output period:
 - mesh 20 at rtol 1e-5 (the reference's standard rung) and mesh 40, 80, 160 at
   rtol 1e-6 (40 is the refined rung), for every case;
-- mesh 320 at rtol 1e-6 for the first `FINE_CASES` cases (it is the costly rung);
+- mesh 320 at rtol 1e-6 for the first `FINE_CASES` cases (it is the costly rung,
+  one solve at a time; a solve the host kills is recorded `KILLED_BY_HOST`);
 - at mesh 80: rtol 1e-8 (tolerance check) and a 5 s output period (sampling check);
 - for the first case only, the standard rung over all 30 cycles: cycle 1 is the
   plating window, so its margin must equal the one-cycle solve's.
@@ -39,6 +40,7 @@ import math
 import sys
 import time
 from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures.process import BrokenProcessPool
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -52,6 +54,8 @@ FINE_CASES = 3
 #: Workers for the finest rung, whose memory is the largest (a cap, not a count).
 FINE_WORKERS = 3
 PLATING = "Negative electrode lithium plating reaction overpotential [V]"
+#: A finest-rung solve the host killed (out of memory): not a solver result.
+KILLED = "KILLED_BY_HOST"
 
 
 def ladder(cases):
@@ -212,14 +216,34 @@ def run(cases_path, out, workers):
     finest = [j for j in jobs if j["mesh"] == max(MESHES)]
     records = []
     with (out / "records.jsonl").open("a") as stream:
-        for batch, cap in ((coarse, workers), (finest, min(workers, FINE_WORKERS))):
-            with ProcessPoolExecutor(
-                max_workers=max(1, cap), max_tasks_per_child=1
-            ) as pool:
-                for record in pool.map(_one, [(cases[j["case"]], j) for j in batch]):
-                    records.append(record)
-                    stream.write(json.dumps(record, sort_keys=True) + "\n")
-                    stream.flush()
+
+        def keep(record):
+            records.append(record)
+            stream.write(json.dumps(record, sort_keys=True) + "\n")
+            stream.flush()
+
+        with ProcessPoolExecutor(
+            max_workers=max(1, workers), max_tasks_per_child=1
+        ) as pool:
+            for record in pool.map(_one, [(cases[j["case"]], j) for j in coarse]):
+                keep(record)
+        write_summary(cases_path, cases, records, out)
+        # The finest rung one solve per pool: a solve the host kills (out of
+        # memory, 2026-10-13) is a typed failed rung, never the end of the study.
+        for job in finest:
+            try:
+                with ProcessPoolExecutor(max_workers=1, max_tasks_per_child=1) as pool:
+                    keep(pool.submit(_one, (cases[job["case"]], job)).result())
+            except BrokenProcessPool:
+                keep(
+                    {**job, "case_id": cases[job["case"]]["case_id"], "status": KILLED}
+                )
+    summary = write_summary(cases_path, cases, records, out)
+    return {k: summary[k] for k in ("solves", "failed")}
+
+
+def write_summary(cases_path, cases, records, out):
+    """The summary of the records so far, rewritten after each stage."""
     summary = {
         "schema": SCHEMA,
         "cases_sha256": hashlib.sha256(Path(cases_path).read_bytes()).hexdigest(),
@@ -234,7 +258,7 @@ def run(cases_path, out, workers):
     (out / "summary.json").write_text(
         json.dumps(summary, indent=1, sort_keys=True) + "\n"
     )
-    return {k: summary[k] for k in ("solves", "failed")}
+    return summary
 
 
 def main(argv=None):
