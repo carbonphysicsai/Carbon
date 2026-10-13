@@ -5,6 +5,7 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+
 from carbon.battery.recipes import Layout
 from carbon.development_comparison.monotone_capacity import layout_type
 
