@@ -58,7 +58,7 @@ This decides whether the Challenge can carry V2 value evidence (DEFINITION §7):
 - **Plan at least 2× that,** so a few unfavourable blocks don't make the test impossible. The final B comes from the development half's measured between-block variance, at the owner's Δ_min.
 - **The development half needs enough SCORED questions** for stable curves across k and κ. Proposal: as many blocks as the confirmation half.
 
-**Cost:** |Q| × |A| × c reference condition-solves × the measured seconds per solve. Use the Challenge's measured solve time from its readiness evidence, on RunPod under the standing test grant. Anything larger goes to the owner as a figure.
+**Cost:** |Q| × |A| × c reference condition-solves × the measured seconds per solve. **Add any refinement the Challenge's reference policy requires for near-limit results** (for example battery-plating-ref-v2: one fine-mesh solve per in-window action × condition, plus a 10 % trigger subsample). Size it from the measured in-window share **before** the bank is cut; a bank concentrated near limits pays most of it. Use the Challenge's measured solve time from its readiness evidence, on RunPod under the standing test grant. Anything larger goes to the owner as a figure.
 
 ## 6. Disclosure and use
 
