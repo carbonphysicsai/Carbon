@@ -215,6 +215,7 @@ def fixture_inputs(predict=toy_prediction, *, query=None):
             "max_width": None,
         },
         "laws": {"mode": "REQUIRED_ADOPTED"},
+        "b9": {"threshold_c": 0.1, "decision_id": "OWNER-PHYSICS-GATES-01"},
         "latency_target_ms": None,
     }
     return materials

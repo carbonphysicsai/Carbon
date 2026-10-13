@@ -21,11 +21,37 @@ units no tighter than its registered reference error. Unadopted laws are listed
 as diagnostics. Unsupported adopted laws refuse construction; missing human
 policy prevents TRUST. Source drafts remain definitions, never adopted gates.
 
-The v2 policy requires `laws.mode`. `REQUIRED_ADOPTED` returns VERIFY with
+The v3 policy requires `laws.mode`. `REQUIRED_ADOPTED` returns VERIFY with
 `ADOPTED_LAWS_UNAVAILABLE` when no law is adopted. `EXPLICIT_NO_LAWS` records
 `NOT_ASSESSED / GAP_EXPLICIT_NO_LAWS_POLICY`; it is refused when the contract
 contains an ADOPTED law. Thus the explicit gap cannot disable a mandatory law.
 Diagnostic mathematical strings remain metadata and are never executed.
+
+PRD-02e adds the separate B9 policy advisory directed by
+[OWNER-PHYSICS-GATES-01](../../../.agent/decisions/2026-10-13-OWNER-PHYSICS-GATES-01.md).
+Battery-v3 policy must explicitly supply
+`b9: {threshold_c: 0.1, decision_id: "OWNER-PHYSICS-GATES-01"}`. Construction
+requires that recorded value/id, the current battery reference image and Celsius
+`t_amb_c`/`temperature_c` units; there is no missing-policy default, host override
+or inferred unit conversion. Other families explicitly use `b9: null`; the battery
+value cannot be transferred to them. A new image or owner amendment needs prospective
+policy support. Host use acceptance and actual battery applicability remain separate.
+
+For the validated base query prediction, B9 measures the maximum below-ambient
+deficit over every temperature grid point. A deficit **strictly greater than
+0.1 C** requests VERIFY with `B9_BELOW_AMBIENT`; exactly 0.1 C does not trigger.
+Comparison uses exact rational arithmetic over serialized decimal scalar values,
+so 25.0 minus 24.9 is 0.1 without introducing a tolerance. Adjacent representable
+temperatures on either side still differ. A deficit that cannot be represented
+in a finite receipt yields `B9_ARITHMETIC_UNRESOLVED`/VERIFY.
+
+This is a policy check, **not an adopted physics law or exam gate**. B9 remains
+DIAGNOSTIC_ONLY in the native physics contract; its underlying heat-sign proof
+remains HUMAN_INPUT. The receipt reports policy threshold/id, measured deficit,
+observed grid-point count and explicit advisory, exam_gate=false and
+candidate_failure=false basis. It adds no model calls and cannot replace
+independent pick verification. The base finding remains visible if later probes
+fail or exhaust their budget. Reference/policy/applicability holds precede it.
 
 The reference route is separate from the surrogate envelope. VERIFY requests
 independent reference work only inside that route's declared applicability;
@@ -142,7 +168,7 @@ Malformed or incompatible configuration raises a fixed-code
 | Physical declarations | Native `Declared`, `Undeclared` or `NoPropertyModel` from `carbon.challenge_validator.validity`. Every declared observation must be present in the query. Output-dependent applicability needs a separately accepted observation adapter; it is not inferred from the model. |
 | Reference | `carbon.product.guard-reference.v3`: image_digest, criteria_digest, code_verification_ref (registered link digest for READY), separate host owner_acceptance_ref, READY/UNRESOLVED/FAILED_REFERENCE/FAILED_INFRA and acceptance_scope with family, observables, verification_conditions and application_conditions. READY family/verification conditions must match load_acceptance; observables remain host-declared. It is metadata, not a reference executor. Invalid bindings refuse construction; missing/failed routes or incompatible application scope refuse queries. |
 | Map | Native DEVELOPMENT `carbon.trust-map.v2`, PUBLIC/RELEASED source and matching model/reference; complete grid and aggregate denominators, native units and NO_DATA checked. The embedded acceptance receipt must exactly match `load_acceptance(family, reference_image, criteria_digest)`. No legacy v1 map or Boolean verification header is accepted, including fixture policies. Coverage can be smaller than the surrogate envelope; an uncovered query needs verification. No interpolation of empty cells. |
-| Policy | `carbon.product.guard-policy.v2`: version, SYNTHETIC_FIXTURE/REGISTERED_DEVELOPMENT basis, authority_ref, exact pins, required laws.mode, probe_steps, max_model_calls, min_cell_count and per-output error/disagreement limits in native units. Every quantitative decision is an explicit input. No policy or null authority_ref yields REFUSE. |
+| Policy | `carbon.product.guard-policy.v3`: version, SYNTHETIC_FIXTURE/REGISTERED_DEVELOPMENT basis, authority_ref, exact pins, laws.mode, explicit b9 (owner threshold_c/decision_id for battery-v3, null for other families), probe_steps, max_model_calls, min_cell_count and per-output error/disagreement limits in native units. Every quantitative decision is an explicit input. No policy or null authority_ref yields REFUSE. |
 | Uncertainty | Explicit EXPLICIT_NO_INTERVALS/REQUIRED policy, nullable image-bound calibration and per-output width limits. Supplied intervals must bound the point prediction; available uncalibrated intervals, missing required intervals or excessive width yield VERIFY. This does not perform an independent calibration study. |
 
 Every projection above has `scope: DEVELOPMENT`; production/LIVE scope is
@@ -153,22 +179,26 @@ not executable Guard contracts. The `demo` module is an explicit fixture
 authoring example; it is not a source of real adoption, calibration or validity.
 
 The development projections require prospective reauthoring and new content pins.
-Contract and policy remain v2; reference and receipt are now v3. V1 contract/policy
-and v1/v2 reference records are refused. The ambiguous old `conditions` block,
+Contract remains v2, reference v3, policy is now v3 and receipt v4. V1 contract,
+v1/v2 policy and v1/v2 reference records are refused. The ambiguous old `conditions` block,
 missing split fields or criteria digest receive no automatic default. The
 synthetic demo shows the new fields and genuine registered MMS metadata explicitly;
 its physics/use policy remains synthetic. Historical receipts and timing records
 retain their original interpretation and replay identities.
 
-`carbon.product.guard-receipt.v3` receipts contain reasons, check outcomes and evidence basis, all configuration
+`carbon.product.guard-receipt.v4` receipts contain reasons, check outcomes and evidence basis, all configuration
 identities, normalized provisional prediction, model-call/observed-probe counts,
 seed derivation, query/probe digests and `decision_digest`. The latter excludes
 elapsed time and latency reporting so a deterministic adapter can replay the
 same decision. Fixed probes do not qualify the adapter's own reproducibility.
 They also show both condition blocks, their separate bases, host-declared observable
 coverage and the full validated native code-verification record, even without a map
-when READY binding was established. An interrupted budget
-marks every remaining scheduled axis unresolved; observed violations stay visible.
+when READY binding was established. Later probe failures retain any already-observed
+B9 policy finding and reason.
+The receipt's `b9_policy` is a snapshot of the explicit threshold/owner id, or null
+when no policy exists or the family is outside this battery policy's scope. An
+interrupted budget marks every remaining scheduled axis unresolved; observed
+violations stay visible.
 A failed model call has visible incomplete evidence.
 No raw query or probe-coordinate list is automatically logged or published.
 
