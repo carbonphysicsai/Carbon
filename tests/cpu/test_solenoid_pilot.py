@@ -3,6 +3,8 @@
 import copy
 import json
 import os
+import subprocess
+from pathlib import Path
 
 import pytest
 
@@ -195,6 +197,31 @@ def test_existing_launcher_controls_allocation_to_termination_cash(
     assert validated.economics()["worst_case_usd"] <= 36.40
     assert spec["minutes"] + pod_jobs.EXPORT_MINUTES <= 1800
     assert spec["image"] == "study" and spec["compute"]["kind"] == "cpu"
+    assert spec["inputs"] == [
+        "docs/development/challenge_pipeline/magnetics-first-panels/panels.json"
+    ]
+
+
+@pytest.mark.skipif(
+    os.name != "posix", reason="Linux launcher ship validator; canonical CI covers"
+)
+def test_public_pod_ships_the_reference_grammar_and_every_kit_source(tmp_path):
+    root = Path(__file__).resolve().parents[2]
+    head = subprocess.run(
+        ["git", "-C", str(root), "rev-parse", "HEAD"],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.strip()
+    spec = pod_jobs.load_spec(pilot.pod_spec(write_bundle(tmp_path), head))
+    shipped = pod_jobs.ship_list(spec, repository=root)
+    assert (
+        "docs/development/challenge_pipeline/magnetics-first-panels/panels.json"
+        in shipped
+    )
+    assert "carbon/development_comparison/solenoid_kit.py" in shipped
+    assert "carbon/development_comparison/carbon_arm.py" in shipped
+    assert "carbon/design_search/solenoid_budget.py" in shipped
 
 
 def test_cli_standin_and_plan_are_not_real_execution(tmp_path):

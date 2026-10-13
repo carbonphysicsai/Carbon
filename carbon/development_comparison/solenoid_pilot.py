@@ -636,7 +636,9 @@ def pod_spec(bundle, code_ref):
         "code_ref": code_ref,
         "module": "carbon.development_comparison.solenoid_pilot",
         "args": ["run", "{inputs}/" + Path(bundle).name, "--out", "{out}/pilot.json"],
-        "inputs": [],
+        "inputs": [
+            "docs/development/challenge_pipeline/magnetics-first-panels/panels.json"
+        ],
         "image": "study",
         "overlays": {},
         "compute": {"kind": "cpu", "flavor": "cpu5c", "vcpus": 32},
