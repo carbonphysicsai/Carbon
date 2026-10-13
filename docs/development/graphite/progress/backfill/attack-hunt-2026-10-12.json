@@ -1,0 +1,27 @@
+{
+ "batch": "attack-hunt-2026-10-12",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "date": "2026-10-12",
+ "runs": [
+  {
+   "file": "att-1-D-a1-s1.out",
+   "role": "attacker",
+   "level": 1,
+   "chain_log": "lvl-chain-att-1-D-a1-s1.log",
+   "chain_label": "att-1-D-a1-s1"
+  },
+  {
+   "file": "att-3-F-a2-s1.resume.out",
+   "role": "attacker",
+   "level": 3,
+   "chain_log": "lvl-chain-att-3-F-a2-s1.log",
+   "chain_label": "att-3-F-a2-s1"
+  }
+ ],
+ "excluded": [],
+ "refusal_classes": {},
+ "triage": {
+  "attack-failing-trigger-9b718c6438cabfe8-0": "ORACLE_GAP"
+ },
+ "triage_source": "Graphite Testing Manager triage, 2026-10-13, read-only from the hunt A2 root: finding 9b718c64 (family l3_cross_level_fields, attempt epoch-1-tool-004) is a compile_strategy with empty parameters, accepted by the path, the Level 3 and Level 2 variant gates and the miner contract gate, so an honest accepted compile (the OPT-14 oracle class). PENDING VALIDATOR CONFIRMATION: the Carbon Validator owns whether such a compile should be accepted at all (the oracle over-fired, or every gate misses the same check). Hunt A1 (Level 1) ran with no finding."
+}
