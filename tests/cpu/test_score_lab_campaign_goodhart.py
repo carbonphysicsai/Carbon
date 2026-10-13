@@ -55,7 +55,9 @@ def test_score_search_and_value_oracle_are_deterministic_and_separate():
     assert result["oracle_kind"] == "RANDOM_PLUS_COORDINATE_HILLCLIMB_ON_ANALYTIC_TOY"
     assert math.isfinite(result["sampled_goodhart_gap"])
     assert result["calls"]["score"] > 0 and result["calls"]["value"] > 0
-    assert result["score_best_parameters"]["score_path_only"] in (0.0, 1.0)
+    assert result["score_best_parameters"]["score_path_only"] == 1.0
+    assert result["value_best_parameters"]["score_path_only"] == 0.0
+    assert result["sampled_goodhart_gap"] > 0
 
 
 def test_bad_search_grammar_and_all_gated_scores_refuse():
