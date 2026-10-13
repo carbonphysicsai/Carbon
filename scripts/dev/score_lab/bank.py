@@ -6,7 +6,6 @@ import hashlib
 import json
 import math
 import random
-import statistics
 from pathlib import Path
 
 from .core import LabRefused
@@ -24,6 +23,13 @@ def _v2_question(q, prediction, *, cap, kappa, unit):
     actions = q["actions"]
     if set(prediction) != set(actions):
         raise LabRefused("bank_predictor_action_coverage")
+    if any(
+        type(p.get("feasible")) is not bool
+        or not isinstance(p.get("objective"), (int, float))
+        or not math.isfinite(p["objective"])
+        for p in prediction.values()
+    ):
+        raise LabRefused("bank_predictor_nonfinite")
     base = max(c["objective"] for c in actions[q["fallback_action"]])
     shortlist = sorted(
         (
@@ -68,6 +74,8 @@ def check(
     digest = hashlib.sha256(definition_bytes).hexdigest()
     if manifest.get("definition_digest") != "sha256:" + digest:
         raise LabRefused("bank_definition_digest")
+    if not isinstance(replicates, int) or replicates < 1:
+        raise LabRefused("bank_bootstrap_count")
     required = (
         "question_law_digest",
         "population_digest",
@@ -125,8 +133,13 @@ def check(
             if not conditions or any(
                 c.get("status")
                 not in ("FEASIBLE", "INFEASIBLE", "UNRESOLVED", "FAILED_REFERENCE")
-                or c.get("objective") is None
-                and c.get("status") == "FEASIBLE"
+                or (
+                    c.get("status") == "FEASIBLE"
+                    and (
+                        not isinstance(c.get("objective"), (int, float))
+                        or not math.isfinite(c["objective"])
+                    )
+                )
                 or not c.get("record_sha256")
                 or c.get("image_digest") != manifest.get("image_digest")
                 for c in conditions
@@ -223,19 +236,21 @@ def check(
     if len(blocks) < 2:
         return result
     by_block = {
-        block: sum(
-            p * q["weight"]
-            for p, q in zip(paired, scored, strict=True)
-            if q["block_id"] == block
+        block: (
+            sum(
+                p * q["weight"]
+                for p, q in zip(paired, scored, strict=True)
+                if q["block_id"] == block
+            ),
+            sum(q["weight"] for q in scored if q["block_id"] == block),
         )
-        / sum(q["weight"] for q in scored if q["block_id"] == block)
         for block in blocks
     }
     rng = random.Random(20261013)
-    boots = [
-        statistics.fmean(by_block[rng.choice(blocks)] for _ in blocks)
-        for _ in range(replicates)
-    ]
+    boots = []
+    for _ in range(replicates):
+        sampled = [by_block[rng.choice(blocks)] for _ in blocks]
+        boots.append(sum(x[0] for x in sampled) / sum(x[1] for x in sampled))
     ci = _interval(boots)
     sizes = learnability.get("train_sizes") if isinstance(learnability, dict) else None
     accuracies = (

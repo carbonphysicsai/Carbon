@@ -298,6 +298,19 @@ def test_bank_missing_registration_is_not_pass():
         dict(manifest, train_separation=None), records, definition_bytes=definition
     )
     assert result["status"] == "INSUFFICIENT_EVIDENCE"
+    with pytest.raises(LabRefused, match="bank_bootstrap_count"):
+        bank.check(manifest, records, definition_bytes=definition, replicates=0)
+    bad = [
+        {
+            **records[0],
+            "actions": {
+                **records[0]["actions"],
+                "b": [{**records[0]["actions"]["b"][0], "objective": float("nan")}],
+            },
+        }
+    ]
+    with pytest.raises(LabRefused, match="bank_condition_record"):
+        bank.check(manifest, bad, definition_bytes=definition)
     assert "train_separation" in result["missing_registration"]
     with pytest.raises(LabRefused, match="bank_objective_aggregation_unsupported"):
         bank.check(
