@@ -62,6 +62,21 @@ def test_both_signs_run_and_context_is_not_mutated(name):
     assert result["measurement"]["minimum"] is None
 
 
+def test_checker_data_mutation_cannot_escape_control_context():
+    context = ctx()
+    before = copy.deepcopy(context.data)
+
+    def mutating_checker(item, actual):
+        actual.data["control_local_marker"] = True
+        return discriminating(item, actual)
+
+    assert (
+        controls.evaluate(item("P2"), context, mutating_checker)["status"]
+        == controls.CONTROL_OK
+    )
+    assert context.data == before
+
+
 @pytest.mark.parametrize("function", [accept_all, wrong_refusal, broken])
 @pytest.mark.parametrize("name", list(controls.CONTROLS))
 def test_known_bad_must_fail_for_the_specific_reason(name, function):

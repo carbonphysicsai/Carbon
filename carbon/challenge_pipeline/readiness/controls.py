@@ -180,7 +180,9 @@ def evaluate(item, ctx, function, measurement=None):
         return {**base, "status": CONTROL_FAILED, "detail": "control_binding_mismatch"}
     # These checks read public code/registration only. A context cannot carry
     # producer paths or a cache populated by another item into either sign.
-    positive_ctx = dataclasses.replace(ctx, cache={}, evidence_paths={})
+    positive_ctx = dataclasses.replace(
+        ctx, data=copy.deepcopy(ctx.data), cache={}, evidence_paths={}
+    )
     data = copy.deepcopy(ctx.data)
     challenge = ctx.challenge
     if spec.mutation == "unregistered_challenge":
