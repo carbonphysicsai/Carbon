@@ -349,14 +349,14 @@ def test_the_standing_weekly_sum_still_fits_with_the_research_ceiling():
     from carbon.agent_campaign import grant_runs
     from carbon.agent_campaign.graphite import grant_binding
 
+    # A grant a later one replaces (-4 by -5) is counted once, as the owner approved.
     standing = [
         SpendingGrant.from_document(
             json.loads(
                 (REPOSITORY / grant_binding.GRANTS_DIR / (gid + ".json")).read_bytes()
             )
         )
-        for gid, registered in grant_binding.PHASE3_GRANTS.items()
-        if registered.authority == grant_binding.STANDING_TEST_GRANT_AUTHORITY
+        for gid in grant_binding.standing_open()
     ]
     effective = grant_runs.effective_weekly_cap()
     other_open = Decimal(
@@ -370,5 +370,5 @@ def test_the_standing_weekly_sum_still_fits_with_the_research_ceiling():
     assert total <= effective
     # Room for the pending open-weight coverage grant (#1257) at its ceiling. The L2 re-attack that this line once also
     # reserved room for has run (under a stage grant already counted), so it is no longer a pending term; with the
-    # third lane G rerun grant (-4) counted, the sum with #1257 is 259.79 of 260.
+    # third lane G rerun grant (-4, replaced by -5 at the same figures) counted, the sum with #1257 is 259.79 of 260.
     assert total + Decimal("14.94") <= effective
