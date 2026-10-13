@@ -187,8 +187,9 @@ comes back to the Test Lead first.
   Two repairs before H4: (1) `parse_wish` must accept a WISH anywhere in a hypothesis (a test with the inline form), and the four
   wishes are backfilled into the log; (2) every hunt run is launched with `--theme`.
 - **H4 as revised: Level 4, lane G, after the L4 grant, MUST end with ranked, evidenced WISH lines.** Theme `causal-structure`
-  (the registered theme for levels 3 and 4), run on the Constructor grant `GRAPHITE-GRANT-L4-G-CONSTRUCTOR-2` once the Level 4 gate
-  (R1, R8) passes. The final report's required shape is a ranked list, best first, each entry carrying:
+  (the registered theme for levels 3 and 4), runs on its own hunt grant `GRAPHITE-GRANT-HUNT-H4-CONSTRUCTOR`
+  (`OWNER-GRAPHITE-OPEN-SAFE-01-GRANTS`), after the `GRAPHITE-GRANT-L4-G-CONSTRUCTOR-2` run and the Level 4 gate
+  (R1, R8). The final report's required shape is a ranked list, best first, each entry carrying:
   1. **the blocked op or freedom** (the code-level optimisation and the op, kernel or library it needs);
   2. **the proof it was blocked**: the refusal code or the failed attempt (proposal id and the typed refusal), not prose;
   3. **the expected gain**, in the run's own measured units where it has a measurement, else "unmeasured";
