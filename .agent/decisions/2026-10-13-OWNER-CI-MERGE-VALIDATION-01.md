@@ -1,8 +1,8 @@
 # OWNER-CI-MERGE-VALIDATION-01 — testing the merge result, and what the strict flip actually costs
 
 Date: 2026-10-13
-Status: ADOPTED for the two engineering changes; the repository-configuration
-flip is AUTHORISED BUT HELD on the owner's revised instruction (below).
+Status: ADOPTED for the two engineering changes. The repository-configuration
+flip is **DECLINED** by the owner (below). It was never applied.
 Authority: the owner, confirmed directly in the PR Head session.
 Scope: `#1246` / PLT-12 `CI-TEST-MERGE-VALIDATION-01`, `.github/workflows/ci.yml`,
 `.github/rulesets/` and the branch ruleset "Carbon main merge gate" (id 24421474).
@@ -37,7 +37,8 @@ flip, which only requires a PR to contain current main before merging. Asked
 again on the corrected basis, he approved three changes:
 
 1. **The ruleset flip** (`strict_required_status_checks_policy: true`) — his to
-   apply, as a repository protection setting. **Subsequently held**: see below.
+   apply, as a repository protection setting. **Subsequently declined**: see
+   below.
 2. **Test the merge result only.** Drop `head` from the `revision` matrix in
    all five job families, keeping `candidate_sha` resolved and reported and
    keeping the live-head equality check (`ci.yml:58-60`). Net CI spend then
@@ -46,7 +47,7 @@ again on the corrected basis, he approved three changes:
    already uses `always()`, so aggregation is sound; the draft guard is the
    whole of the untested-but-CLEAN hole. Neither 1 nor 2 closes it.
 
-## Why the flip is held after being authorised
+## Why the flip was declined after being authorised
 
 A cost not identified at the time of approval was found before anything was
 applied, and reported to him: **strict serialises merges.** It requires a PR to
@@ -61,9 +62,16 @@ mid-resolution (`ci.yml:53-56`, "Main changed during resolution"). The residual
 the flip would close is narrow — main moving *after* a green gate but *before*
 the merge.
 
-The recommendation put to him was therefore to adopt 2 and 3 and hold 1. **No
-repository configuration has been changed.** The flip stays authorised in
-principle; applying it is his action and his timing.
+The recommendation put to him was therefore to adopt 2 and 3 and hold 1, with
+the exact commands he would need if he still wanted 1. **He declined it: "Not
+doing that."** So `strict_required_status_checks_policy` stays `false`, and
+**no repository configuration was changed at any point** in this sequence.
+
+The approval-then-decline is recorded in full deliberately. The approval was
+obtained on a cost figure that was wrong, and the decline followed a cost that
+was right; a record showing only the final answer would hide that the first
+question was badly put. A future proposal to flip strict should begin from the
+serialisation cost, not rediscover it.
 
 ## Standing consequence while the flip is off
 
