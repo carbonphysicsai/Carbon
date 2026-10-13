@@ -323,6 +323,8 @@ def probe(
         or negative.challenge != policy.challenge
     ):
         raise ValueError("probe_challenge_mismatch")
+    if type(baseline) is not Mesh or type(attack) is not Mesh:
+        raise ValueError("probe_mesh_transport_required")
     # Compute pins before ANY callbacks. The transport is separately copied on every call.
     report = {
         "schema": SCHEMA,
@@ -418,6 +420,8 @@ def probe(
     report["covered_attempts"] = 1
     if attempt == engine.BREACHED:
         return finish(engine.BREACHED, "model_boundary_breached")
+    if report["control"]["verdict"] == engine.BREACHED:
+        return finish(engine.BREACHED, "supported_control_breached")
     if report["control"]["verdict"] != engine.HELD:
         return finish("INCONCLUSIVE", "supported_control_failed")
     if report["specimen"]["verdict"] != engine.BREACHED:

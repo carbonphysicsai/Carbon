@@ -97,7 +97,8 @@ Import `Policy`, `Boundary`, `Witness`, `Mesh` and `probe` from
 | Supported input: prediction within the matched witness tolerance | HELD only with both controls |
 | Supported input: wrong/nonfinite/malformed prediction or refusal | BREACHED |
 | Actual endpoint infrastructure failure, timeout or exception | FAILED_INFRA / TIMEOUT / CRASHED, not a scientific finding |
-| Valid control fails or negative predictor is not detected | INCONCLUSIVE, never HELD |
+| Supported valid control is wrong or wrongfully refused | BREACHED; attack/control findings remain independently visible |
+| Valid control endpoint is incomplete or negative predictor is not detected | INCONCLUSIVE, never HELD |
 
 This is an answerability/accuracy diagnostic, not physical validity, decision
 regret, score or admission. The absolute nodal witness metric is a first bounded

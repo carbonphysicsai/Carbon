@@ -70,7 +70,8 @@ def test_always_refuse_cannot_pass_despite_holding_hostile_input():
     row = run(boundary=fixture_boundary(refusal, "always-refuse"))
     assert row["attempt"]["verdict"] == "HELD"
     assert row["control"]["verdict"] == "BREACHED"
-    assert row["verdict"] == "INCONCLUSIVE"
+    assert row["verdict"] == "BREACHED"
+    assert row["reason"] == "supported_control_breached"
 
 
 def test_silent_detector_cannot_pass():
