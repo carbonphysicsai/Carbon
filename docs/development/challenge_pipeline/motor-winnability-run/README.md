@@ -34,7 +34,7 @@ For an independently authorized operator, the existing shared launcher can
 consume a generated job spec; this command only writes the spec:
 
 ```bash
-python -m carbon.development_comparison.motor_pilot pod-spec public-inputs/bundle.json --code-ref COMMIT_SHA --minutes OPERATOR_MINUTES --rate-ceiling-usd-per-hr AUTHORIZED_RATE --cap-usd AUTHORIZED_CAP --out out/motor-job-spec.json
+python -m carbon.development_comparison.motor_pilot pod-spec public-inputs/bundle.json --code-ref COMMIT_SHA --minutes OPERATOR_MINUTES --rate-ceiling-usd-per-hr AUTHORIZED_RATE --cap-usd AUTHORIZED_CAP --cpu-flavor OPERATOR_FLAVOR --vcpus OPERATOR_VCPUS --out out/motor-job-spec.json
 ```
 
 That spec uses the existing `carbon.agent_campaign.pod_jobs` launcher and
@@ -42,7 +42,10 @@ study image; no new cloud launcher or provider integration. An actual launch
 still needs the operator's separate exact grant, capacity and current quote,
 account configuration, retained ledger and termination receipt. This ticket
 does not launch, access keys, or authorize spend. No AX42 access.
-Operator arguments have no guessed defaults. The launcher enforces its existing
+Operator CPU flavor, vCPU count, minutes, rate and cap have no guessed defaults.
+The existing launcher validates the CPU placement. Choose a worker allocation
+from the actual fit probe and current approved capacity; 32 vCPUs is not prescribed.
+The launcher enforces its existing
 USD50 per-run standing guard as well as worst-case disk/cleanup costs. The
 PKT-09 USD77.20 maximum scenario is therefore not launchable through that
 guard. Supply a quoted lower rate/duration fitting both ceilings and complete
@@ -80,7 +83,7 @@ infer a 2-second thermal rating or continuous/3D/end-effect validity.
 
 ## Data Collection input contract
 
-`bundle.json` is a closed manifest with `schema=carbon.motor.pilot-bundle.v1`,
+`bundle.json` is a closed manifest with `schema=carbon.motor.pilot-bundle.v2`,
 `scope=PUBLIC_DEVELOPMENT` and exactly `sources` for the roles below. Each
 source descriptor is `{path,sha256}`: distinct plain relative public paths and
 `sha256:` prefixed lowercase 64-hex byte digests. Paths cannot traverse, alias
@@ -94,7 +97,7 @@ No worker input, raw curve or question is copied into the repository.
 | `train` | Existing raw-slice TRAIN JSONL, 16 independent physical geometries x all eleven commands =176 labels. Every curve carries source/rights provenance; no nonfinite/excluded or repeated commands. All skew siblings of a heldout geometry are excluded. Existing 19 study designs/128-stage1 plan are not automatically this 16-geometry pilot dataset. |
 | `export` | `carbon.motor.complete-panel-export.v1`, scope, family `motor`, questions, `export_digest`. Twelve frozen questions; each has case, support_case, task, reference. Tasks use the existing runnable `tasks.task` schema, finite canonical actions `{design,skew_deg}`, all 12 heldout geometries x three skews =36 actions, one composite condition and all hard limits with adopted nonnegative bands. Reference values include the seven metrics and signed holding/peak/cogging stack samples named `<role>_t00..t47`. They must reproduce the domain's raw curves. |
 | `policy` | scope, export_digest, domain_digest, owner_requirements_digest, precommit_receipt, separate question_law `{P,Q,w,panel_use:PUBLIC_HELDOUT}`, solver_orders, served_decisions and seeds `[0,1,2]`. Each solver order lists all 12 canonical integer geometry indices, frozen before truth; no hindsight optimum order. Threshold questions sharing this bank use the same support_case/reference_bank cluster, never twelve invented independent banks. |
-| `reference` | scope, export_digest, domain_digest, exact image_digest, observer `10p12s-gamma-5d-theta+d-three-equal-slices-v1`, adequacy_receipt, uncertainty_receipt, source_digests. The historical GetDP/Gmsh pin is `sha256:599521e79786ee0326a0754ba0545f51ee9665adff73c3515c8d4b8ba24c1c05`. Presence/applicability and full-role observer/uncertainty are Data Collection holds. Linear MMS acceptance is insufficient. |
+| `reference` | scope, export_digest, domain_digest, exact image_digest, observer `10p12s-gamma-5d-theta+d-three-equal-slices-v1`, adequacy_receipt, uncertainty_receipt, uncertainty_record, source_digests. The receipt must be the canonical record's actual SHA-256; every limit band must cover its supplied quantity bound. The historical GetDP/Gmsh pin is `sha256:599521e79786ee0326a0754ba0545f51ee9665adff73c3515c8d4b8ba24c1c05`. Presence/applicability and full-role observer/uncertainty are Data Collection holds. Linear MMS acceptance is insufficient. |
 | `cheap` | scope, export_digest, method, strongest_method_receipt, train_digest, predictions (existing carbon_arm prediction schema), query_costs per complete question. Full signed-curve/Fourier Kriging/RBF, nonlinear circuit/cached-FE comparison and whole-geometry calibration belong to the comparator owner. Stack reductions must agree with the supplied curves. No weak holding-average baseline stands in for the strongest method. |
 | `costs` | scope, export_digest, preparation `{model,baseline}`, reference list, failed_control_cost, source_digests, new_sweep_attempts, new_field_attempts. Every cost is `{wall_s,core_s}`, separately measured. Reference records give integer design, cost, planning_bound, raw_sweeps=11, field_systems>=528, source_digests. Charge a complete geometry's eleven sweeps once: they supply all three skew reductions. No cross-geometry cache or free acquisition is assumed. |
 
@@ -107,6 +110,22 @@ No approximate tolerance or scientific equivalence policy is invented.
 Proof of nonlinear torque/phase/skew adequacy, complete peak witness and
 appropriate uncertainty remains external evidence. A SHA identifies a receipt;
 it does not independently certify that receipt's scientific adequacy.
+
+The input envelope is now `carbon.motor.pilot-bundle.v2`; old v1 envelopes
+are refused rather than silently reinterpreted. It still loads seven files.
+The embedded `reference.uncertainty_record` has schema
+`carbon.motor.reference-uncertainty.v1`, scope, export_digest, domain_digest,
+image_digest, observer and `bounds`. Each of the seven limit quantities has
+`{"value": <absolute uncertainty>, "unit": <the limit's unit>}`. The record
+must bind the same reference/domain/export and all bounds must be finite and
+nonnegative. `uncertainty_receipt` equals `sha256(canonical(record))`.
+Every question's band must be at least that quantity's bound; equality is
+allowed, and the host can make the band more conservative. Missing record,
+quantity or value produces `REFERENCE_UNCERTAINTY_NOT_COVERED`; changed
+content without the matching receipt produces `REFERENCE_UNCERTAINTY_PIN_MISMATCH`.
+There is no public motor uncertainty record yet. Data Collection must supply
+the actual values; the worker supplies none. The fixture's explicit zero
+bounds are SYNTHETIC_FIXTURE only and do not authorize public uncertainty.
 
 Owner law/support/objective/k/P/Q/w adoption and useful-accuracy/pass/park
 thresholds remain HUMAN_INPUT. Missing input produces HOLD with
@@ -160,11 +179,25 @@ CPU cap 56 hours. The Linux worker uses a 16-GiB address-space ceiling and
 process CPU limit; the shared operator launcher owns the 64-hour lifecycle
 deadline and deletion/ledger checks. Address space and RSS are different;
 the strict address cap may stop JAX before the RSS hypothesis is reached.
-Proposed 32-vCPU allocation totals 2,048 billed vCPU-hours at 64 hours even
-if fewer cores run. USD77.20 is the existing conditional all-in ceiling,
+The 32-vCPU/64-hour/USD77.20 scenario is PKT-09's **reference acquisition**
+proposal, not this worker's measured fit sizing. This worker loads retained
+files, makes zero reference solves and fits the CPU MLP. The fixture probe is
+small; time/RSS on the full 176-record TRAIN set and JAX availability in the
+study image still require actual confirmation. Specify a smaller or larger
+approved allocation explicitly from that evidence; no new grant is implied.
+The acquisition proposal totals 2,048 billed vCPU-hours at 64 hours even
+if fewer cores run. USD77.20 is its existing conditional all-in ceiling,
 dependent on inclusive quote <=USD1.20/hour and extras <=USD0.40; it is not a
 current quote or spending authorization. Probe <=90 lifecycle minutes and
 USD2.20 remains included. No cap promises completed scientific evidence.
+
+The per-fit soft CPU cap now catches SIGXCPU and emits the existing structured
+`HOLD: AGGREGATE_FIT_CAP_EXCEEDED` with `candidate_failure=false`. The handler
+is restored, and stricter inherited CPU limits are retained. An interrupted
+fit emits no partial score report; restart/retry is the operator's decision.
+External hard-limit SIGKILL/OOM and launcher wall termination can still stop
+the process without a worker JSON result; those remain infrastructure evidence,
+never a scientific failure or a completed pilot.
 
 Each seed's `reports[].report.learnable` exposes signed-curve learning and
 unsafe/missed-feasible/abstention outcomes. `curve_diagnostics` adds separate

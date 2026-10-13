@@ -26,6 +26,11 @@ def reseal(docs):
     }
     for role in ("policy", "reference"):
         docs[role]["domain_digest"] = pins["domain"]
+    uncertainty = docs["reference"].get("uncertainty_record")
+    if type(uncertainty) is dict:
+        uncertainty["export_digest"] = export["export_digest"]
+        uncertainty["domain_digest"] = pins["domain"]
+        docs["reference"]["uncertainty_receipt"] = ca.sha256(ca.canonical(uncertainty))
     docs["cheap"]["train_digest"] = pins["train"]
     return {
         k: ca.sha256(v if k == "train" else ca.canonical(v)) for k, v in docs.items()
@@ -226,6 +231,68 @@ def test_reference_band_overlap_stays_unresolved_without_model_failure():
     assert row["pointwise_error"] is None and row["false_feasible"] is None
 
 
+@pytest.mark.parametrize(
+    "quantity",
+    [
+        "holding_mean_nm",
+        "peak_mean_nm",
+        "holding_pk_pk_nm",
+        "peak_pk_pk_nm",
+        "holding_ripple_fraction",
+        "peak_ripple_fraction",
+        "cogging_nm",
+    ],
+)
+def test_zero_reference_band_cannot_understate_positive_uncertainty(quantity):
+    docs, _ = fixture.documents()
+    docs["reference"]["uncertainty_record"]["bounds"][quantity]["value"] = 0.01
+    pins = reseal(docs)
+    with pytest.raises(mp.PilotHold, match="REFERENCE_UNCERTAINTY_NOT_COVERED"):
+        mp.prepare(docs, pins, fixture=True)
+
+
+def test_reference_bands_equal_to_pinned_uncertainty_are_accepted():
+    docs, _ = fixture.documents()
+    for bound in docs["reference"]["uncertainty_record"]["bounds"].values():
+        bound["value"] = 0.01
+    for entry in docs["export"]["questions"]:
+        for limit in entry["task"]["limits"]:
+            limit["band"] = 0.01
+        task_seal(entry["task"])
+    assert mp.prepare(docs, reseal(docs), fixture=True)
+
+
+@pytest.mark.parametrize("missing", ["record", "quantity", "value"])
+def test_missing_reference_uncertainty_is_a_hold(missing):
+    docs, _ = fixture.documents()
+    if missing == "record":
+        docs["reference"].pop("uncertainty_record")
+    elif missing == "quantity":
+        docs["reference"]["uncertainty_record"]["bounds"].pop("peak_mean_nm")
+    else:
+        docs["reference"]["uncertainty_record"]["bounds"]["peak_mean_nm"][
+            "value"
+        ] = None
+    with pytest.raises(mp.PilotHold, match="REFERENCE_UNCERTAINTY_NOT_COVERED"):
+        mp.prepare(docs, reseal(docs), fixture=True)
+
+
+def test_uncertainty_receipt_must_pin_the_record_content():
+    docs, pins = fixture.documents()
+    docs["reference"]["uncertainty_record"]["bounds"]["peak_mean_nm"]["value"] = 0.01
+    # Deliberately do not reseal the receipt: a valid digest's format alone
+    # cannot authorize a changed uncertainty record.
+    with pytest.raises(mp.PilotHold, match="REFERENCE_UNCERTAINTY_PIN_MISMATCH"):
+        mp.prepare(docs, pins, fixture=True)
+
+
+def test_reference_uncertainty_cannot_change_quantity_units():
+    docs, _ = fixture.documents()
+    docs["reference"]["uncertainty_record"]["bounds"]["peak_mean_nm"]["unit"] = "mN m"
+    with pytest.raises(mp.PilotHold, match="REFERENCE_UNCERTAINTY_NOT_COVERED"):
+        mp.prepare(docs, reseal(docs), fixture=True)
+
+
 def bundle(tmp_path):
     docs, _pins = fixture.documents()
     body = {"schema": mp.SCHEMA, "scope": "PUBLIC_DEVELOPMENT", "sources": {}}
@@ -293,7 +360,15 @@ def test_fit_cpu_cap_is_aggregate_across_public_seeds():
 def test_pod_spec_refuses_fixture_bundle_before_launcher_dispatch(tmp_path):
     path, _ = bundle(tmp_path)
     with pytest.raises(mp.PilotHold):
-        mp.pod_spec(path, "a" * 40, minutes=60, rate_ceiling=0.5, cap_usd=2)
+        mp.pod_spec(
+            path,
+            "a" * 40,
+            minutes=60,
+            rate_ceiling=0.5,
+            cap_usd=2,
+            flavor="cpu5m",
+            vcpus=8,
+        )
 
 
 def test_tiny_real_trainer_wiring_uses_only_masked_reference(monkeypatch):
@@ -335,10 +410,142 @@ def test_pod_spec_uses_existing_guard_and_counts_export_tail(tmp_path, monkeypat
     path, _ = bundle(tmp_path)
     # Test specification mechanics only; fixture acceptance remains separately refused.
     monkeypatch.setattr(mp, "prepare", lambda *a: None)
-    spec = mp.pod_spec(path, "a" * 40, minutes=60, rate_ceiling=0.5, cap_usd=2)
+    spec = mp.pod_spec(
+        path,
+        "a" * 40,
+        minutes=60,
+        rate_ceiling=0.5,
+        cap_usd=2,
+        flavor="cpu5m",
+        vcpus=8,
+    )
     assert spec["module"] == "carbon.development_comparison.motor_pilot"
+    assert spec["compute"] == {"kind": "cpu", "flavor": "cpu5m", "vcpus": 8}
     assert pod_jobs.load_spec(spec).minutes + pod_jobs.EXPORT_MINUTES <= 3840
     with pytest.raises(pod_jobs.SpecRefused):
-        mp.pod_spec(path, "a" * 40, minutes=3800, rate_ceiling=1.2, cap_usd=77.2)
+        mp.pod_spec(
+            path,
+            "a" * 40,
+            minutes=3800,
+            rate_ceiling=1.2,
+            cap_usd=77.2,
+            flavor="cpu5m",
+            vcpus=8,
+        )
     with pytest.raises(mp.PilotHold, match="LIFECYCLE"):
-        mp.pod_spec(path, "a" * 40, minutes=3840, rate_ceiling=0.5, cap_usd=40)
+        mp.pod_spec(
+            path,
+            "a" * 40,
+            minutes=3840,
+            rate_ceiling=0.5,
+            cap_usd=40,
+            flavor="cpu5m",
+            vcpus=8,
+        )
+
+
+def test_operator_cpu_placement_is_consumed_by_cli(tmp_path, monkeypatch):
+    seen = {}
+
+    def spec(_bundle, _ref, **options):
+        seen.update(options)
+        return {"fixture_spec_only": True}
+
+    monkeypatch.setattr(mp, "pod_spec", spec)
+    result = mp.main(
+        [
+            "pod-spec",
+            "unopened-bundle.json",
+            "--code-ref",
+            "a" * 40,
+            "--minutes",
+            "60",
+            "--rate-ceiling-usd-per-hr",
+            "0.5",
+            "--cap-usd",
+            "2",
+            "--cpu-flavor",
+            "cpu5m",
+            "--vcpus",
+            "8",
+            "--out",
+            str(tmp_path / "spec.json"),
+        ]
+    )
+    assert result == 0
+    assert seen["flavor"] == "cpu5m" and seen["vcpus"] == 8
+
+
+def test_v1_bundle_is_refused_instead_of_silent_reference_policy_migration(tmp_path):
+    path, manifest = bundle(tmp_path)
+    manifest["schema"] = "carbon.motor.pilot-bundle.v1"
+    mp.write(path, manifest)
+    with pytest.raises(mp.PilotHold, match="PUBLIC_BUNDLE_REQUIRED"):
+        mp.load(path)
+
+
+def cpu_api():
+    from types import SimpleNamespace
+
+    hard = 56 * 3600
+    resource = SimpleNamespace(
+        RLIMIT_CPU=0,
+        RUSAGE_SELF=0,
+        RLIM_INFINITY=-1,
+        limits=[],
+        getrlimit=lambda _: (hard, hard),
+        getrusage=lambda _: SimpleNamespace(ru_utime=0.75, ru_stime=0.75),
+    )
+    resource.setrlimit = lambda _key, limit: resource.limits.append(limit)
+    previous = object()
+    signal = SimpleNamespace(SIGXCPU=24, handlers={24: previous})
+    signal.getsignal = lambda n: signal.handlers[n]
+    signal.signal = lambda n, handler: signal.handlers.__setitem__(n, handler)
+    return resource, signal, previous
+
+
+def test_soft_fit_limit_is_structured_hold_and_restores_cap_handler(
+    tmp_path, monkeypatch, capsys
+):
+    resource, signal, previous = cpu_api()
+    monkeypatch.setattr(mp, "_cpu_api", lambda: (resource, signal))
+
+    def interrupted(*_args, **_kwargs):
+        with mp._fit_cpu_limit(14399):
+            signal.handlers[signal.SIGXCPU](signal.SIGXCPU, None)
+
+    monkeypatch.setattr(mp, "execute", interrupted)
+    assert mp.main(["dry-run", "--out", str(tmp_path / "held.json")]) == 2
+    held = json.loads(capsys.readouterr().out)
+    assert held["reason"] == "AGGREGATE_FIT_CAP_EXCEEDED"
+    assert held["status"] == "HOLD" and held["candidate_failure"] is False
+    assert resource.limits == [(3, 56 * 3600), (56 * 3600, 56 * 3600)]
+    assert signal.handlers[signal.SIGXCPU] is previous
+
+
+def test_normal_fit_limit_completion_restores_handler(monkeypatch):
+    resource, signal, previous = cpu_api()
+    monkeypatch.setattr(mp, "_cpu_api", lambda: (resource, signal))
+    with mp._fit_cpu_limit(0):
+        assert callable(signal.handlers[signal.SIGXCPU])
+    assert signal.handlers[signal.SIGXCPU] is previous
+    assert resource.limits[-1] == (56 * 3600, 56 * 3600)
+
+
+def test_fit_guard_preserves_stricter_inherited_cpu_caps(monkeypatch):
+    resource, signal, _previous = cpu_api()
+    resource.getrlimit = lambda _: (10, 20)
+    monkeypatch.setattr(mp, "_cpu_api", lambda: (resource, signal))
+    with mp._fit_cpu_limit(0):
+        assert resource.limits[-1] == (10, 20)
+    assert resource.limits[-1] == (10, 20)
+
+
+@pytest.mark.parametrize(
+    "before, expected", [((10, 20), (10, 20)), ((-1, -1), (100, 100))]
+)
+def test_process_ceiling_does_not_relax_inherited_limit(before, expected):
+    resource, _signal, _previous = cpu_api()
+    resource.getrlimit = lambda _: before
+    mp._process_limit(resource, resource.RLIMIT_CPU, 100)
+    assert resource.limits == [expected]

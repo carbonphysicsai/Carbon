@@ -224,6 +224,20 @@ def documents():
         "uncertainty_receipt": reference,
         "source_digests": [reference],
     }
+    uncertainty = {
+        "schema": mp.UNCERTAINTY,
+        "scope": scope,
+        "export_digest": export["export_digest"],
+        "domain_digest": domain_pin,
+        "image_digest": mp.IMAGE_DIGEST,
+        "observer": ref["observer"],
+        "bounds": {
+            r["quantity"]: {"value": 0.0, "unit": r["unit"]}
+            for r in questions[0]["task"]["limits"]
+        },
+    }
+    ref["uncertainty_record"] = uncertainty
+    ref["uncertainty_receipt"] = ca.sha256(ca.canonical(uncertainty))
     docs = {
         "export": export,
         "train": train,

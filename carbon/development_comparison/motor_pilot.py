@@ -12,6 +12,7 @@ import json
 import math
 import os
 import re
+from contextlib import contextmanager, nullcontext
 from pathlib import Path
 
 from carbon.design_search import budget_registration as br
@@ -25,7 +26,8 @@ from carbon.development_comparison import motor_10p12s_kit as mk
 from carbon.development_comparison import motor_pilot_kit as pk
 from scripts.dev.evidence_runs.motor_10p12s import IMAGE_DIGEST
 
-SCHEMA = "carbon.motor.pilot-bundle.v1"
+SCHEMA = "carbon.motor.pilot-bundle.v2"
+UNCERTAINTY = "carbon.motor.reference-uncertainty.v1"
 EXPORT = "carbon.motor.complete-panel-export.v1"
 ROLES = {"export", "train", "domain", "cheap", "costs", "policy", "reference"}
 SEEDS = (0, 1, 2)
@@ -218,6 +220,53 @@ def _task(task):
         raise PilotHold("COHERENT_HOLDING_PEAK_REQUIREMENTS_REQUIRED")
 
 
+def _reference_uncertainty(reference, export, domain_digest, scope):
+    """Bind supplied uncertainty content and cover it; never choose a value."""
+    record = reference.get("uncertainty_record")
+    keys = {
+        "schema",
+        "scope",
+        "export_digest",
+        "domain_digest",
+        "image_digest",
+        "observer",
+        "bounds",
+    }
+    if type(record) is not dict or set(record) != keys:
+        raise PilotHold("REFERENCE_UNCERTAINTY_NOT_COVERED")
+    if (
+        record["schema"] != UNCERTAINTY
+        or record["scope"] != scope
+        or record["export_digest"] != export["export_digest"]
+        or record["domain_digest"] != domain_digest
+        or record["image_digest"] != reference["image_digest"]
+        or record["observer"] != reference["observer"]
+    ):
+        raise PilotHold("REFERENCE_UNCERTAINTY_NOT_COVERED")
+    limits = export["questions"][0]["task"]["limits"]
+    units = {r["quantity"]: r["unit"] for r in limits}
+    bounds = record["bounds"]
+    if type(bounds) is not dict or set(bounds) != set(units):
+        raise PilotHold("REFERENCE_UNCERTAINTY_NOT_COVERED")
+    for name, unit in units.items():
+        bound = bounds[name]
+        if (
+            type(bound) is not dict
+            or set(bound) != {"value", "unit"}
+            or bound["unit"] != unit
+            or type(bound["value"]) not in (int, float)
+            or not math.isfinite(bound["value"])
+            or bound["value"] < 0
+        ):
+            raise PilotHold("REFERENCE_UNCERTAINTY_NOT_COVERED")
+    if ca.sha256(ca.canonical(record)) != reference["uncertainty_receipt"]:
+        raise PilotHold("REFERENCE_UNCERTAINTY_PIN_MISMATCH")
+    for entry in export["questions"]:
+        for limit in entry["task"]["limits"]:
+            if limit["band"] < bounds[limit["quantity"]]["value"]:
+                raise PilotHold("REFERENCE_UNCERTAINTY_NOT_COVERED")
+
+
 def prepare(docs, pins, *, fixture=False):
     shape(docs, ROLES)
     shape(pins, ROLES)
@@ -365,6 +414,8 @@ def prepare(docs, pins, *, fixture=False):
             or set(order) != set(geometry)
         ):
             raise PilotHold("COMPLETE_PRECOMMITTED_SOLVER_ORDER_REQUIRED")
+    if type(reference) is not dict or "uncertainty_record" not in reference:
+        raise PilotHold("REFERENCE_UNCERTAINTY_NOT_COVERED")
     shape(
         reference,
         {
@@ -375,6 +426,7 @@ def prepare(docs, pins, *, fixture=False):
             "observer",
             "adequacy_receipt",
             "uncertainty_receipt",
+            "uncertainty_record",
             "source_digests",
         },
     )
@@ -389,6 +441,7 @@ def prepare(docs, pins, *, fixture=False):
     pin(reference["adequacy_receipt"])
     pin(reference["uncertainty_receipt"])
     sources(reference["source_digests"])
+    _reference_uncertainty(reference, export, pins["domain"], scope)
     shape(
         cheap,
         {
@@ -659,6 +712,60 @@ def cpu_trainer(kit, export, train, *, scope, seed, backend, code):
         )
 
 
+def _cpu_api():
+    if os.name != "posix":
+        return None
+    import resource
+    import signal
+
+    return resource, signal
+
+
+def _process_limit(resource, kind, ceiling):
+    """Apply the existing ceiling without relaxing a lower inherited limit."""
+    before = resource.getrlimit(kind)
+    selected = tuple(
+        ceiling if value == resource.RLIM_INFINITY else min(value, ceiling)
+        for value in before
+    )
+    resource.setrlimit(kind, selected)
+
+
+@contextmanager
+def _fit_cpu_limit(fit_cpu):
+    """A caught soft fit cap; keep the existing hard cap and restore handler."""
+    if fit_cpu >= 14400:
+        raise PilotHold("AGGREGATE_FIT_CAP_EXCEEDED")
+    api = _cpu_api()
+    if api is None:
+        yield
+        return
+    resource, signal = api
+    inherited_soft, hard = resource.getrlimit(resource.RLIMIT_CPU)
+    hard = 56 * 3600 if hard == resource.RLIM_INFINITY else min(hard, 56 * 3600)
+    restored_soft = (
+        hard if inherited_soft == resource.RLIM_INFINITY else min(inherited_soft, hard)
+    )
+    used = resource.getrusage(resource.RUSAGE_SELF)
+    soft = min(
+        math.ceil(used.ru_utime + used.ru_stime + 14400 - fit_cpu), restored_soft
+    )
+    previous = signal.getsignal(signal.SIGXCPU)
+
+    def exceeded(_signum, _frame):
+        raise PilotHold("AGGREGATE_FIT_CAP_EXCEEDED")
+
+    signal.signal(signal.SIGXCPU, exceeded)
+    try:
+        resource.setrlimit(resource.RLIMIT_CPU, (soft, hard))
+        yield
+    finally:
+        try:
+            resource.setrlimit(resource.RLIMIT_CPU, (restored_soft, hard))
+        finally:
+            signal.signal(signal.SIGXCPU, previous)
+
+
 def execute(docs, pins, *, fixture=False, trainer=None):
     if not fixture and trainer is not None:
         raise PilotHold("PUBLIC_RUN_REQUIRES_FIXED_CPU_TRAINER")
@@ -671,33 +778,24 @@ def execute(docs, pins, *, fixture=False, trainer=None):
             r["values"] = {k: 0.0 for k in pk.OBSERVABLES}
     results, fit_cpu = [], 0.0
     for seed in SEEDS:
-        if not fixture and os.name == "posix":
-            import resource
-
-            used = resource.getrusage(resource.RUSAGE_SELF)
-            resource.setrlimit(
-                resource.RLIMIT_CPU,
-                (math.ceil(used.ru_utime + used.ru_stime + 14400 - fit_cpu), 56 * 3600),
+        with nullcontext() if fixture else _fit_cpu_limit(fit_cpu):
+            pred, receipt = (trainer or cpu_trainer)(
+                kit,
+                view,
+                train,
+                scope="SYNTHETIC_FIXTURE" if fixture else "PUBLIC_DEVELOPMENT",
+                seed=seed,
+                backend="jax",
+                code={
+                    **ca._code_identity(),
+                    "pilot_module_sha256": ca.sha256(Path(__file__).read_bytes()),
+                    "pilot_kit_sha256": ca.sha256(Path(pk.__file__).read_bytes()),
+                    "launcher_code_ref": os.environ.get("CODE_REF"),
+                },
             )
-        pred, receipt = (trainer or cpu_trainer)(
-            kit,
-            view,
-            train,
-            scope="SYNTHETIC_FIXTURE" if fixture else "PUBLIC_DEVELOPMENT",
-            seed=seed,
-            backend="jax",
-            code={
-                **ca._code_identity(),
-                "pilot_module_sha256": ca.sha256(Path(__file__).read_bytes()),
-                "pilot_kit_sha256": ca.sha256(Path(pk.__file__).read_bytes()),
-                "launcher_code_ref": os.environ.get("CODE_REF"),
-            },
-        )
         fit_cpu += receipt["cost"]["fit"]["fit_cpu_s"]
         if fit_cpu > 14400:
             raise PilotHold("AGGREGATE_FIT_CAP_EXCEEDED")
-        if not fixture and os.name == "posix":
-            resource.setrlimit(resource.RLIMIT_CPU, (56 * 3600, 56 * 3600))
         source = replay(export, pred, receipt, policy, costs, indexed, baseline, cheap)
         results.append(
             {
@@ -849,7 +947,7 @@ def acquisition_plan():
     }
 
 
-def pod_spec(bundle, code_ref, *, minutes, rate_ceiling, cap_usd):
+def pod_spec(bundle, code_ref, *, minutes, rate_ceiling, cap_usd, flavor, vcpus):
     from carbon.agent_campaign.pod_jobs import EXPORT_MINUTES, load_spec
 
     docs, pins = load(bundle)
@@ -880,7 +978,7 @@ def pod_spec(bundle, code_ref, *, minutes, rate_ceiling, cap_usd):
         "inputs": [REGISTRATION],
         "image": "study",
         "overlays": {},
-        "compute": {"kind": "cpu", "flavor": "cpu5c", "vcpus": 32},
+        "compute": {"kind": "cpu", "flavor": flavor, "vcpus": vcpus},
         "minutes": minutes,
         "rate_ceiling_usd_per_hr": rate_ceiling,
         "cap_usd": cap_usd,
@@ -918,6 +1016,8 @@ def main(argv=None):
             p.add_argument("--minutes", required=True, type=int)
             p.add_argument("--rate-ceiling-usd-per-hr", required=True, type=float)
             p.add_argument("--cap-usd", required=True, type=float)
+            p.add_argument("--cpu-flavor", required=True)
+            p.add_argument("--vcpus", required=True, type=int)
     args = parser.parse_args(argv)
     try:
         if args.cmd == "dry-run":
@@ -935,6 +1035,8 @@ def main(argv=None):
                     minutes=args.minutes,
                     rate_ceiling=args.rate_ceiling_usd_per_hr,
                     cap_usd=args.cap_usd,
+                    flavor=args.cpu_flavor,
+                    vcpus=args.vcpus,
                 ),
             )
         else:
@@ -946,8 +1048,8 @@ def main(argv=None):
                     raise PilotHold("LINUX_CPU_MEMORY_ENFORCEMENT_REQUIRED")
                 import resource
 
-                resource.setrlimit(resource.RLIMIT_CPU, (56 * 3600, 56 * 3600))
-                resource.setrlimit(resource.RLIMIT_AS, (16 * 1024**3, 16 * 1024**3))
+                _process_limit(resource, resource.RLIMIT_CPU, 56 * 3600)
+                _process_limit(resource, resource.RLIMIT_AS, 16 * 1024**3)
                 write(args.out, execute(docs, pins))
         print(
             json.dumps(
