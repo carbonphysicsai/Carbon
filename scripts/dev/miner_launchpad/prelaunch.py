@@ -53,10 +53,18 @@ def evaluation(cfg):
     challenges = []
     for challenge in intake_challenges():
         entry = published.get(challenge["id"])
+        entries = entry.get("validators", [entry]) if entry is not None else []
         url = configured.get(challenge["id"])
         item = {"challenge_id": challenge["id"], "title": challenge["title"]}
+        from carbon.development_session.intake_targets import for_challenge
+
+        targets = for_challenge(cfg, challenge["id"])
+        if targets is not None:
+            item["validators"] = [
+                {**target, "receiver_pinned": True} for target in targets
+            ]
         if type(url) is str:
-            mine = not (entry and entry["intake_url"] == url)
+            mine = not any(v["intake_url"] == url for v in entries)
             item.update(
                 status="INTAKE_CONFIGURED",
                 source="YOURS" if mine else "PUBLISHED",

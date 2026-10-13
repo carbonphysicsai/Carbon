@@ -921,6 +921,13 @@ async def evaluate_candidate(prepared, epoch, record):
     if config is None and intake is not None:
         # The validator runs elsewhere: submit through its intake, signed by
         # the miner's own signer (C-MLP-03 slice 6).
+        from carbon.development_session.intake_targets import for_challenge
+
+        targets = for_challenge(vars(prepared.args), CHALLENGE.challenge_id)
+        if targets is not None:
+            from .multi_intake import evaluate as evaluate_many
+
+            return await evaluate_many(prepared, epoch, record, targets)
         return await _evaluate_through_intake(prepared, epoch, record, intake)
     if config is None:
         raise OperationRefused("evaluation_unavailable")
@@ -1010,6 +1017,27 @@ INTAKE_UNAVAILABLE = frozenset(
         "AUTH_UNAVAILABLE",
     }
 )
+
+
+def construction_notices(strategy, binding):
+    """The owner-authorized v3 notice; v4's field refusals stay its compiler's."""
+    if type(binding) is not dict or binding.get("variant") != "battery-l4-graph-v3":
+        return []
+    parameters = strategy.get("parameters") if type(strategy) is dict else None
+    if type(parameters) is not dict or "composition_graphs" not in parameters:
+        return []
+    fields = [field for field in ("width", "depth") if field in parameters]
+    if not fields:
+        return []
+    return [
+        {
+            "code": "level4_fields_inert_notice",
+            "fields": fields,
+            "text": "width and depth are ignored at Level 4: the graph sets the layers. "
+            "They'll be refused from graph-v4.",
+            "blocking": False,
+        }
+    ]
 
 
 def intake_code(code):
@@ -1278,6 +1306,13 @@ def commitment_due(args, root, epoch):
     prepared = SimpleNamespace(args=args)
     if evaluation_config(prepared) is not None or _intake(prepared) is None:
         return False
+    from carbon.development_session.intake_targets import for_challenge, journal
+
+    targets = for_challenge(vars(args), CHALLENGE.challenge_id)
+    if targets is not None:
+        return not any(
+            rs._record_path(journal(root, target), epoch).exists() for target in targets
+        )
     return not rs._record_path(root, epoch).exists()
 
 
@@ -1355,7 +1390,9 @@ def _carries_level4(url, read=None):
         return False
 
 
-async def _evaluate_through_intake(prepared, epoch, record, url):
+async def _evaluate_through_intake(
+    prepared, epoch, record, url, *, submission_root=None, stale_recommit=None
+):
     """One frozen candidate through the validator's intake; see
     `submit_through_intake`. The epoch is consumed only by a verdict: SCORED,
     or the daemon's INVALID_CONSTRUCTION or RECONSTRUCTION_FAILED. Anything
@@ -1405,7 +1442,7 @@ async def _evaluate_through_intake(prepared, epoch, record, url):
                 submit_through_intake,
                 url,
                 prepared.sdk.connection.miner_key,
-                root=root,
+                root=root if submission_root is None else submission_root,
                 epoch=epoch,
                 strategy=record["strategy"],
                 contract_digest=record.get("contract_digest")
@@ -1430,14 +1467,30 @@ async def _evaluate_through_intake(prepared, epoch, record, url):
             break
         # Refused at admission and not received again: never a verdict.
         code = intake_code((answer.get("failure") or {}).get("code"))
-        if code != STALE or gate is None or not asks or recommitted:
+        if (
+            code != STALE
+            or (gate is None and stale_recommit is None)
+            or not asks
+            or recommitted
+        ):
             raise OperationRefused(code)
         # The agent asks for the recommit; the intake then receives the same
         # submission again (`intake.RECEIVED_AGAIN`), never a second one.
         recommitted = True
-        await _committed(
-            gate, root, epoch, record, prepared.manifest, request=True, recommit=True
-        )
+        if stale_recommit is None:
+            await _committed(
+                gate,
+                root,
+                epoch,
+                record,
+                prepared.manifest,
+                request=True,
+                recommit=True,
+            )
+        else:
+            # The multi-target coordinator owns one recovery for this same
+            # frozen model. Every target still retries at most once.
+            await stale_recommit()
     return intake_feedback(epoch, url, status, answer, submission_id)
 
 
@@ -1524,6 +1577,23 @@ def queued_verdict(
     frozen_level = record.get("construction_level")
     if type(frozen_level) is dict and frozen_level.get("level") == 4:
         return None
+    from carbon.development_session.intake_targets import for_challenge
+
+    targets = for_challenge(vars(args), CHALLENGE.challenge_id)
+    if targets is not None:
+        from .multi_intake import queued
+
+        return queued(
+            args,
+            root,
+            epoch,
+            connect,
+            targets,
+            now=now,
+            read=read,
+            post=post,
+            floor=floor,
+        )
     if not rs.claim_status_read(
         root,
         epoch,

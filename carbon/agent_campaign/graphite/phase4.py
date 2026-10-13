@@ -10,6 +10,7 @@
     python -m carbon.agent_campaign.graphite.phase4 prelive --root DIR \
         --challenge TOKEN [--grant PATH]
     python -m carbon.agent_campaign.graphite.phase4 cancel --root DIR --session N
+    python -m carbon.agent_campaign.graphite.phase4 reconcile --root DIR --session N
     python -m carbon.agent_campaign.graphite.phase4 status --root DIR [--dry-run]
     python -m carbon.agent_campaign.graphite.phase4 log --root DIR [--dry-run]
 
@@ -84,6 +85,13 @@ under `DIR/attacker-dry-run`, with a synthetic copy of the grant and no miner
 path, then Carbon's side with the same engine, producing the coverage report
 and B2. It sends nothing and spends nothing.
 
+**`reconcile`** is an operator-only recovery for a crashed session with an
+uncertain model call. It makes no model or pod request. A still-running session
+becomes resumable under its original session number after the call is booked;
+an already terminal `reconciliation_required` export is kept as history and
+gets a separate typed `FAILED_INFRA` closure. This does not reclaim a grant
+slot or revise a weekly settlement already finalized by the controller.
+
 **Grant.** Each Challenge has its own phase-4 grant (`PHASE4_GRANTS`):
 battery runs under `GRAPHITE-GRANT-PHASE4` (OWNER-GRAPHITE-ATTACKER-01 §5) and
 cooling under `GRAPHITE-GRANT-PHASE4-COOLING` (OWNER-GRAPHITE-TEST-WAVE-05 §2).
@@ -122,7 +130,9 @@ from pathlib import Path
 from carbon.challenge_readiness.admission import CHECKS, LEDGER_TRACK
 from carbon.development_session.data import write_once
 from carbon.development_session.profile import canonical, digest
+from carbon.development_session.research_agent import settle_uncertain_calls
 from carbon.development_session.research_agent_policy import FINISH_NOTICE_CALLS
+from carbon.development_session.research_ledger import CampaignLedger
 from carbon.development_session.research_loop import (
     CONTINUE_REMINDER_SCHEMA,
     REFUSAL_CODES,
@@ -2332,6 +2342,125 @@ def command_cancel(args):
     return 0
 
 
+RECONCILIATION_SCHEMA = "carbon.graphite.phase4-reconciliation.v1"
+
+
+def reconcile_session(store, session):
+    """Settle a crashed Attacker's model calls without sending another request.
+
+    A run still open can then resume through its original controller/session.
+    A run previously terminalized keeps its original export as history; this
+    supplementary record makes its resolved accounting and FAILED_INFRA end
+    explicit. The controller's existing claim and weekly settlement are not
+    repeated here.
+    """
+    if type(session) is not int or session < 1:
+        raise RunnerRefused("session_number_invalid")
+    run_id = GraphiteProvider.run_id_for(session_key(session))
+    directory = Path(store) / "graphite" / "runs" / run_id
+    if directory.is_symlink() or not (directory / "session-open.json").is_file():
+        raise RunnerRefused("unknown_session")
+    receipt = directory / "reconciliation.json"
+    try:
+        opened = json.loads((directory / "session-open.json").read_bytes())
+        state = json.loads((directory / "state.json").read_bytes())
+    except (OSError, ValueError):
+        raise RunnerRefused("session_record_invalid") from None
+    if type(opened) is not dict or type(state) is not dict:
+        raise RunnerRefused("session_record_invalid")
+    role = opened.get("role")
+    failure = state.get("failure")
+    if (
+        opened.get("run_id") != run_id
+        or opened.get("idempotency_key") != session_key(session)
+        or type(role) is not dict
+        or role.get("name") != RoleName.ATTACKER.value
+    ):
+        raise RunnerRefused("session_identity_mismatch")
+    terminal = (
+        state.get("state") == "failed"
+        and type(failure) is dict
+        and failure.get("code") == "reconciliation_required"
+    )
+    if not terminal and state.get("state") != "running":
+        raise RunnerRefused("session_not_reconciliation_required")
+    if receipt.is_symlink() or (not terminal and receipt.exists()):
+        raise RunnerRefused("reconciliation_receipt_invalid")
+    if not terminal:
+        from . import heartbeat
+
+        heartbeat_file = directory / heartbeat.NAME
+        if (
+            heartbeat_file.is_file()
+            and heartbeat.read(heartbeat_file)["status"] == heartbeat.ALIVE
+        ):
+            raise RunnerRefused("session_still_active")
+    ledger_dir = directory / "ledger"
+    if not (ledger_dir / "campaign.sqlite3").is_file():
+        raise RunnerRefused("model_ledger_missing")
+    ledger = CampaignLedger(ledger_dir)
+    result = settle_uncertain_calls(ledger, owner=OWNER, charge_from_response=True)
+    # Read back every journalled settlement, including one booked by a prior
+    # invocation that crashed or was only partially successful. The receipt is
+    # a view of durable ledger facts, not a count of this invocation's writes.
+    settled = [
+        op["result"]["provider_settlement"]
+        for op in ledger.status(owner=OWNER)["operations"]
+        if isinstance(op.get("result"), dict)
+        and isinstance(op["result"].get("provider_settlement"), dict)
+    ]
+    rows = [
+        {
+            "identity": row["identity"],
+            "charge_basis": row.get("charge_basis", "full_reservation"),
+            "booked_nanodollars": row["booked"].get("provider_nanodollars"),
+            "reason": row["reason"],
+            "accounting": row["accounting"],
+            "caveat": row.get("caveat"),
+        }
+        for row in settled
+    ]
+    if not rows and not result["refused"]:
+        raise RunnerRefused("no_model_call_to_reconcile")
+    if result["refused"]:
+        return {
+            "schema": RECONCILIATION_SCHEMA,
+            "session": session,
+            "status": "UNRESOLVED",
+            "settled": rows,
+            "refused": result["refused"],
+        }
+    report = {
+        "schema": RECONCILIATION_SCHEMA,
+        "session": session,
+        "status": "FAILED_INFRA_CLOSED" if terminal else "RESUMABLE",
+        "failure": (
+            {"code": "FAILED_INFRA", "cause": "reconciliation_required"}
+            if terminal
+            else None
+        ),
+        "candidate_charged": False,
+        "booked_nanodollars": sum(row["booked_nanodollars"] or 0 for row in rows),
+        "settled": rows,
+        "refused": [],
+    }
+    # A resumable session may crash again. Its ledger, not a frozen receipt,
+    # remains authoritative for every later reconciliation.
+    if terminal:
+        try:
+            write_once(receipt, canonical(report))
+        except (OSError, ValueError):
+            raise RunnerRefused("reconciliation_receipt_invalid") from None
+    return report
+
+
+def command_reconcile(args):
+    store, _runs = _runs_dir(args)
+    report = reconcile_session(store, args.session)
+    print(json.dumps(report, sort_keys=True))
+    return 4 if report["status"] == "UNRESOLVED" else 0
+
+
 def command_status(args):
     store, runs = _runs_dir(args)
     out = {}
@@ -2549,6 +2678,9 @@ def main(argv=None):
     cancel = sub.add_parser("cancel")
     cancel.add_argument("--root", required=True)
     cancel.add_argument("--session", type=int, required=True)
+    reconcile = sub.add_parser("reconcile")
+    reconcile.add_argument("--root", required=True)
+    reconcile.add_argument("--session", type=int, required=True)
     for name in ("status", "log"):
         command = sub.add_parser(name)
         command.add_argument("--root", required=True)
@@ -2577,6 +2709,7 @@ def main(argv=None):
     command = {
         "run": command_run,
         "cancel": command_cancel,
+        "reconcile": command_reconcile,
         "status": command_status,
         "log": command_log,
         "remint": command_remint,

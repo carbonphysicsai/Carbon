@@ -109,6 +109,9 @@ OPTIONAL_PROFILE_FIELDS = {
     # OWNER-INTAKE-EXPOSURE-01), or loopback. And {challenge_id: absolute path}, an operator's own validator
     # deployment for that Challenge.
     "intakes",
+    # LP-04: optional receiver-paired lists. Historical one-intake profiles
+    # retain their existing fields and behavior.
+    "intake_targets",
     "validators",
     # Per Challenge (LAUNCHPAD-ACCEPT-03): {challenge_id: ss58}, the receiver
     # hotkey that Challenge's intake must report before anything is signed
@@ -150,6 +153,10 @@ def intakes(cfg):
     found = dict(cfg.get("intakes") or {})
     if LEGACY_INTAKE in cfg:
         found.setdefault(_legacy_challenge(), cfg[LEGACY_INTAKE])
+    from carbon.development_session.intake_targets import validate
+
+    for challenge, targets in (cfg.get("intake_targets") or {}).items():
+        found.setdefault(challenge, validate(targets)[0]["intake_url"])
     return found
 
 
@@ -160,7 +167,17 @@ RECEIVER_ADDRESS = re.compile(r"[1-9A-HJ-NP-Za-km-z]{47,48}")
 def receivers(cfg):
     """{challenge_id: receiver hotkey} the profile pins (LAUNCHPAD-ACCEPT-03);
     empty for a profile written before receivers were pinned."""
-    return dict(cfg.get("receivers") or {})
+    found = dict(cfg.get("receivers") or {})
+    from carbon.development_session.intake_targets import validate
+
+    for challenge, targets in (cfg.get("intake_targets") or {}).items():
+        paired = validate(targets)
+        primary = intakes(cfg)[challenge]
+        matching = next((v for v in paired if v["intake_url"] == primary), None)
+        if matching is None:
+            raise ValueError("the primary intake must belong to its validator list")
+        found.setdefault(challenge, matching["receiver_hotkey"])
+    return found
 
 
 def validators(cfg):
@@ -179,6 +196,7 @@ def campaign_args(cfg, **fields):
     return SimpleNamespace(
         **{k: Path(v) for k, v in cfg["paths"].items() if k != LEGACY_VALIDATOR},
         intakes=intakes(cfg),
+        intake_targets=cfg.get("intake_targets", {}),
         receivers=receivers(cfg),
         validators=validators(cfg),
         remote_machine=cfg.get("remote_machine"),
@@ -253,19 +271,9 @@ SUPPORTED_RUNTIME_KEYS = REQUIRED_RUNTIME_KEYS | {
 def _intake_url(value):
     """An https URL, or http to this machine's loopback (the intake binds
     loopback until its exposure is recorded)."""
-    from urllib.parse import urlsplit
+    from carbon.development_session.intake_targets import intake_url
 
-    if type(value) is not str or len(value) > 512:
-        return False
-    try:
-        url = urlsplit(value)
-    except ValueError:
-        return False
-    if url.query or url.fragment or not url.hostname:
-        return False
-    return url.scheme == "https" or (
-        url.scheme == "http" and url.hostname in ("127.0.0.1", "localhost")
-    )
+    return intake_url(value)
 
 
 def review_pin(cfg):
@@ -722,6 +730,12 @@ def validated_profile(cfg):
             raise ValueError("a receiver is an ss58 hotkey address")
         if not set(cfg["receivers"]) <= set(intakes(cfg)):
             raise ValueError("a receiver is pinned only beside its intake")
+    if "intake_targets" in cfg:
+        from carbon.development_session.intake_targets import validate
+
+        _registered_challenge_ids(cfg["intake_targets"], "intake_targets")
+        for targets in cfg["intake_targets"].values():
+            validate(targets)
     if "validators" in cfg:
         _registered_challenge_ids(cfg["validators"], "validators")
         if any(
@@ -3214,6 +3228,7 @@ class RunnerAdapter:
             REGISTRY,
             Dimension,
         )
+        from scripts.dev.miner_launchpad.construction_options import for_profile
 
         # The gate established whose profile this is; its content is read here.
         cfg = self.configured()
@@ -3234,6 +3249,7 @@ class RunnerAdapter:
 
         return {
             "schema": "carbon.launchpad.launch-options.v1",
+            "construction_options": for_profile(cfg, self.read_intake_facts),
             # Graphite replaced the autonomous agent for new launches
             # (OWNER-GRAPHITE-MINER-01): it is not offered, and a launch
             # naming it is refused `autonomous_agent_replaced`.
@@ -3343,7 +3359,34 @@ class RunnerAdapter:
         from carbon.development_session.design_check import check_design
 
         try:
+            from carbon.challenge_registry.campaigns import campaign_for_id
+            from carbon.challenge_registry.registry import ResolutionError
+
+            try:
+                composition = (
+                    campaign_for_id(strategy.get("challenge_id"))
+                    if type(strategy) is dict
+                    else None
+                )
+            except ResolutionError:
+                composition = None  # Existing check-design owns unknown/base inputs.
+            if (
+                composition is not None
+                and composition.construction_contract is not None
+            ):
+                from carbon.development_session.unified_construction import classify
+
+                classified = classify(strategy, composition.construction_contract())
+                # Keep the existing base contract's check-design vocabulary;
+                # the new guard owns construction widening, not a silent
+                # migration of historical/base validation semantics.
+                if classified["refusal"] is not None and classified[
+                    "refusal"
+                ].startswith("construction_"):
+                    raise stepped(classified["refusal"], classified["reason"])
             verdict = check_design({"strategy": strategy})
+        except Rejected:
+            raise
         except ValueError:
             raise Rejected("design_malformed") from None
         if verdict["verdict"] != "submittable":

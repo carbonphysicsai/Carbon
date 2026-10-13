@@ -48,6 +48,51 @@ registered selection from its training pool. Your extra local data is not
 uploaded as official TRAIN. [Pinned data](../../carbon/battery/challenge.py),
 [registered pool selection](../../carbon/battery/development_rebuild.py).
 
+## Does reading an export consume a research trial?
+
+No. A workspace `read_file` task returns your file bytes without consuming a
+research trial, including repeated reads that assemble an export in chunks.
+Calls refused before dispatch also consume no trial. An executed workspace
+`run_python` task consumes one research trial; reading its export afterwards
+does not consume another. This is trial accounting, not a promise that AI
+provider calls or compute are free. Read the campaign's own remaining budget.
+
+Use `name`, byte `offset` and `count` for each chunk. The historical tools rule
+allows at most 4 KiB per call and returns base64. The v2 rule allows at most
+8 KiB and returns text as `content_utf8` when suitable, otherwise base64;
+follow the rule your campaign froze. These reads access your workspace files,
+not Carbon's private exam material. [Executor](../../carbon/development_session/research_tasks.py),
+[trial charge](../../carbon/development_session/research_carrier.py).
+
+## What happens when I omit architecture fields?
+
+The compiler fills every applicable omitted field from the Challenge's
+registered catalog. Omission does not mean zero, no layer, or an unspecified
+choice. For the current **battery** catalog:
+
+| Family | Omitted `width` | Omitted layer field |
+|---|---|---|
+| MLP | 256 | `depth`: 3 hidden layers |
+| FNO | 256 | `depth`: 3 Fourier layers |
+| DeepONet | 256 | `deeponet_depth`: 2 hidden layers in each branch/trunk |
+
+These are existing training defaults, not recommended values or neutral
+settings. For example, an MLP with `parameters: {}` compiles to width 256 and
+depth 3; specifying only `width: 64` still leaves depth 3. Supply both fields
+when you intend to choose both. Inapplicable fields remain inapplicable (KNN
+has no neural width/depth), and another Challenge has its own catalog.
+Inspect the resolved design returned by workspace `check_design` before
+training or submitting. [Catalog](../../carbon/reconstruction/capability_registry.py),
+[battery compiler](../../carbon/battery/compile.py).
+
+At **Level 4**, the submitted network graph supplies its own parameter shapes
+and forward operations. The recipe's `width`, `depth` or `deeponet_depth`
+still resolves in the catalog but does not resize that graph. Edit the model
+spec to change its architecture. Below Level 4, those applicable fields
+control the catalog network Carbon builds and trains. Other Level 4 recipe
+controls, including steps and optimizer settings, still control training;
+do not treat the entire recipe as inert. See the [Level 4 starter](graphite/level4/STARTER.md).
+
 ## Is practice the same as the exam?
 
 No. Practice gives feedback on **public cases only**. It can show accuracy,

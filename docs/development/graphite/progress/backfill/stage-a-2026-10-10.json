@@ -77,7 +77,7 @@
   "L0:p-74b8c69ead59": "brief_gap"
  },
  "triage": {
-  "attack-failing-trigger-2a84f968e6ffc6e8-0": "FALSE_POSITIVE"
+  "attack-failing-trigger-2a84f968e6ffc6e8-0": "ORACLE_GAP"
  },
- "triage_source": "executor report, 2026-10-12 (stage A Attacker L0 findings note: an oracle false positive, not an escape)"
+ "triage_source": "Carbon Validator verdict, 2026-10-13, L0_FINDING_2a84f968_VERDICT.md: finding 2a84f968 is ORACLE_GAP, FIXED at 73237b528, not a REAL_ESCAPE. A systematic oracle rule judged the read by its name alone; the path refused it before dispatch (REJECTED_BEFORE_DISPATCH, workspace_name_invalid), accepted: False, with no host bytes or canary returned. The finding record is unchanged."
 }
