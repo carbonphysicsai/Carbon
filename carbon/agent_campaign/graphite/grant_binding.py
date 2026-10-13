@@ -94,9 +94,11 @@ phase-3 grant: outside its study it is refused `grant_is_bound_to_a_study`.
 - GRAPHITE-GRANT-L4-G-CONSTRUCTOR-5 is the same grant a fourth time (same figures) and REPLACES -4
   (`replaced_by`): the run under -4 was spent when its agent's two turns hit the 2,048-token output cap on
   reasoning before writing a call (kimi-k3 now replies with up to 32,768; GRAPHITE-OUTPUT-CAP-KIMI-01). The owner
-  approved -5 as a replacement, so the standing weekly basis stays what it was with -4 (the sum of the open
-  grants); a replaced grant stays registered for its audit trail and is not counted again. It authorizes spend,
-  never a Level 4 run.
+  approved -5 himself ("Yes — approve USD 14.94", relayed through PR Head, put to him as USD 14.91 worst case,
+  14.94 ceiling, replacing -4, basis unchanged at 242.85), so the standing weekly basis stays what it was with -4
+  (the sum of the open grants). A replaced grant stays registered for its audit trail and is not counted again;
+  it cannot be launched (`GRANT_REPLACED`, typed, at the phase-3 door) and its one run is already claimed
+  (`run_limit_reached` in the shared ledger). -5 authorizes spend, never a Level 4 run.
 
 A registered grant named for another Challenge is
 `grant_is_for_another_challenge`. A Challenge in `PHASE3_BOUND_CHALLENGES`
@@ -479,6 +481,8 @@ START_ROLES = ("constructor", "planner")
 #: The run-conditions record a new session freezes (`run_conditions`).
 RUN_CONDITIONS_SCHEMA = "carbon.graphite.phase3.run-conditions.v1"
 RUN_CONDITIONS_AUTHORITY = "OWNER-GRAPHITE-PHASE3-R4-01"
+#: The typed refusal of a launch under a grant a later grant `replaced_by`.
+GRANT_REPLACED = "grant_is_replaced_by_a_later_grant"
 LEVEL_REFUSED = "grant_requires_construction_level_1_or_above"
 LEVEL_RANGE_REFUSED = "grant_level_outside_the_grants_levels"
 START_MODEL_REFUSED = "start_model_below_the_grants_start_rung"
@@ -632,6 +636,10 @@ def check_phase3_grant(path, grant, *, challenge, level=0, repository=REPOSITORY
         return None
     if entry.challenge != challenge:
         raise _refused("grant_is_for_another_challenge")
+    if entry.replaced_by is not None:
+        # A replaced grant's run is spent and the weekly basis counts it once with
+        # its replacement (`standing_open`): it must not be launched, claimed or read.
+        raise _refused(GRANT_REPLACED)
     refused = level_refusal(grant, level)
     if refused is not None:
         raise _refused(refused)

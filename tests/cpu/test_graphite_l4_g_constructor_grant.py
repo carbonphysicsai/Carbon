@@ -279,3 +279,54 @@ def test_minus_five_replaces_minus_four_and_the_owners_basis_is_unchanged():
     # 184.56 (the weekly-budget record's other open grants) + A2 re-run 13.47 + -2, -3, -5 at 14.94 = 242.85.
     basis = OTHER_OPEN_GRANTS + sum(_grant(g).monetary_ceiling for g in open_ids)
     assert basis == Decimal("242.85")
+
+
+def _refusal_code(capsys, call):
+    with pytest.raises(SystemExit):
+        call()
+    return json.loads(capsys.readouterr().out.strip().splitlines()[-1])["reason_code"]
+
+
+def test_a_replaced_grant_cannot_be_launched_or_claimed(tmp_path, monkeypatch, capsys):
+    """The counting rule (-4 and -5 sum as one) is sound only if -4 cannot be claimed. Two independent stops:
+    (1) the phase-3 door refuses it typed before any key, pod, claim or file read; (2) the shared ledger holds a spent grant to
+    its run cap (`run_limit_reached`), whatever the door does."""
+    four, five = (
+        "GRAPHITE-GRANT-L4-G-CONSTRUCTOR-4",
+        "GRAPHITE-GRANT-L4-G-CONSTRUCTOR-5",
+    )
+    # (1) The door, at every level, before the committed-blob read (tmp_path is no repository).
+    for level in (0, 4):
+        code = _refusal_code(
+            capsys,
+            lambda lv=level: grant_binding.check_phase3_grant(
+                GRANTS / (four + ".json"),
+                _grant(four),
+                challenge=BATTERY_CHALLENGE,
+                level=lv,
+                repository=tmp_path,
+            ),
+        )
+        assert (
+            code == grant_binding.GRANT_REPLACED == "grant_is_replaced_by_a_later_grant"
+        )
+    # The replacement is not refused for that reason: it goes on to the committed-blob check.
+    code = _refusal_code(
+        capsys,
+        lambda: grant_binding.check_phase3_grant(
+            GRANTS / (five + ".json"),
+            _grant(five),
+            challenge=BATTERY_CHALLENGE,
+            level=4,
+            repository=tmp_path,
+        ),
+    )
+    assert code != grant_binding.GRANT_REPLACED
+    # (2) The ledger: one run claimed against a one-run grant, then a second launch key is refused.
+    monkeypatch.setenv(grant_runs.ENV, str(tmp_path / "ledger"))
+    grant = _grant(four)
+    assert grant.permitted_runs == 1
+    grant_runs.claim(grant, "a" * 32, "first-launch", repository=tmp_path / "repo")
+    with pytest.raises(grant_runs.SharedRunsError) as refused:
+        grant_runs.claim(grant, "b" * 32, "second-launch", repository=tmp_path / "repo")
+    assert refused.value.code == grant_runs.LIMIT == "run_limit_reached"
