@@ -20,7 +20,9 @@
    - SCORED: complete, with the fallback FEASIBLE;
    - RESCUE: the fallback is INFEASIBLE;
    - NONE: no FEASIBLE action;
-   - INCOMPLETE: any unresolved or failed reference.
+   - INCOMPLETE: any failed or missing reference, or an UNRESOLVED (in-band) action whose reference objective could beat the best feasible action.
+
+   **Decision-determined questions are SCORED** (DEFINITION §4). That covers any question where every UNRESOLVED action is in-band, has a known objective, and is no better than the best FEASIBLE action. Near-limit candidates don't remove a question when they can't change its best answer. The manifest reports, per class, how many questions were admitted only because they are decision-determined.
 
    **Rule:** at least half of the questions should be SCORED. If fewer are, the fallback or population needs redesign before the bank is worth its cost (RES-07: the battery default was feasible on only 5–7 of 12).
 4. **Split into halves by a sealed random assignment at the block level** (§5):
@@ -80,3 +82,16 @@ Battery's v3 design bank already solves every action for its Q3 questions. It be
 - **Cost.** A nudge to objective weights or constraint limits re-uses the target's solves: only the classification and objective are recomputed. A nudge to conditions needs new solves. Prefer the first kind where it is representative.
 - **Use.** The score lab, and later a registered score, may compute value on the target and average it over the neighbours with a neighbourhood weight ρ_n. That weight is HUMAN_INPUT and is read from curves. The definition's reuse rule applies: ρ_n = 0 in any registered score until independent neighbour strata pass their own confirmation.
 - **Records.** Each question record gains `task: "target" | "<neighbour id>"`. The manifest lists the neighbour declarations and their counts per class.
+
+## 9. REF-RESOLVE: a reference-policy proposal for near-limit candidates (owner decision)
+
+**Why.** Near-limit decisions are where customer value lives. PDD shows the battery question law draws many candidates right at plating onset, inside the reference band (±1.97 mV), and re-solving at the same rung never resolves them. Decision-determination (§2.3) keeps questions where those candidates can't be the best. It can't keep questions where they could, and plating-onset designs are often the fastest.
+
+**The proposal:** a tighter band per refinement rung, only where the solver's verified precision supports it.
+1. **Solution verification of the observable first.** For each decision observable (battery: the plating margin), measure its numerical error ε_r at each refinement rung r on the pinned image: a rung-to-rung convergence study with an observed order of convergence. **The accepted MMS doesn't cover this:** it verifies particle diffusion and lumped heat, not plating overpotential.
+2. **The band at rung r:** band_r = c · ε_r, with c ≥ 1 (HUMAN_INPUT). It is never tighter than ε_r (PHYSICS_CONTRACT_01 §0, guardrail 1).
+3. **Adaptive refinement.** Only in-band candidates are re-solved at finer rungs, until they resolve or reach the finest verified rung. A candidate still in-band at the finest rung stays UNRESOLVED (§2.3 then applies).
+4. **Records** carry the rung and band each status was decided at. The manifest reports the refinement solves spent.
+5. **Binding.** The bands, rungs, c and the convergence evidence are bound to the image digest, re-measured on any rebuild, and adopted only by an owner reference-policy record.
+
+**Cost:** extra solves for in-band candidates only, at finer rungs. Estimate it from PDD's in-band share before the owner decides.

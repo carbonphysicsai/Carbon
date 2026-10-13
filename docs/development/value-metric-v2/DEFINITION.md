@@ -49,15 +49,19 @@ The validator computes the selector and counts the solves. **Miners submit model
 
 ## 4. The scored bank
 
-A question is in the **scored bank** only if:
-- the reference result is known for **every** action × condition;
-- its fallback is reference-FEASIBLE.
+A question is in the **scored bank** only if its fallback is reference-FEASIBLE and it is **decision-determined**:
+- every action × condition has a reference result: FEASIBLE, INFEASIBLE, or UNRESOLVED **inside the registered reference band**. A FAILED_REFERENCE or missing result is never allowed;
+- **and** every UNRESOLVED action's reference objective is known and **no better** than the best reference-FEASIBLE action. So the question's best action and its gain ceiling are the same however the unresolved actions would resolve.
+
+**An UNRESOLVED action on a model's shortlist** is charged its solves and earns **no gain**. The buyer's own reference check could not certify it either. It is counted in `unresolved_shortlisted`, which feeds the tie-break (§5).
+
+**A fully resolved question is the special case with no UNRESOLVED actions.** Questions whose unresolved actions could beat the best stay out of U (reference-incomplete) until the reference policy resolves them (BANK_SPEC §9, REF-RESOLVE).
 
 All other questions are excluded from U **for every member** and reported with their counts:
 
 | Excluded class | Treatment |
 |---|---|
-| Reference-incomplete | A reference gap, never a candidate failure (invariant 7.5). Re-admitted when completed |
+| Reference-incomplete (a failed or missing result, or an unresolved action that could beat the best) | A reference gap, never a candidate failure (invariant 7.5). Re-admitted when completed or decision-determined |
 | Fallback-infeasible (rescue) | A separate rescue leg, scored only once a rescue-benefit unit is registered (HUMAN_INPUT) |
 | Settled NONE (no feasible action) | No decision value; counted |
 

@@ -3,7 +3,7 @@
 **Authority.** The owner's directive of 2026-10-13: "Scoring alignment needs to be priority one along with a bank of challenges that are ready to go through the system." The Test Lead assigned Track A step 2 to the Carbon Validator (`shared/operator/PRIORITIES_2026-10-13.md`). Score design is the Carbon Validator's (gate and scoring design ownership). Adopting values, the scored population, payout and mainnet stay with the owner.
 
 **Decision.**
-- Register `docs/development/value-metric-v2/definition.v2.json`, canonical-JSON sha256 `sha256:7dfefb447cbd0633370c7d6abd3b26ab5e2610e315d7b1b0e646b4efdb414906`, with its normative text `DEFINITION.md` and the bank contract `BANK_SPEC.md`.
+- Register `docs/development/value-metric-v2/definition.v2.json`, canonical-JSON sha256 `sha256:0f0e28fbe10127580ada8dd58b3b0fa844a445a9472ee9996653d6596c16a6c0`, with its normative text `DEFINITION.md` and the bank contract `BANK_SPEC.md`.
 - It is registered **before any V2 bank exists**, so the owner's values come from curves on a real bank against a fixed definition, and the sealed confirmation tests a pre-registered rule.
 
 **What it fixes against the current metric** (RES-07 #1209, RES-08 #1218, RES-09 #1241):
