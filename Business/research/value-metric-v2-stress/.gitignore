@@ -1,0 +1,6 @@
+# Research inputs/intermediates never belong in the publication manifest.
+*.jsonl
+*.jsonl.gz
+*cache*
+*sufficient-statistics*
+__pycache__/
