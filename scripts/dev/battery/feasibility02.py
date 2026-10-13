@@ -294,6 +294,14 @@ def solve_one(job):
     return record
 
 
+def _timed(job):
+    """`solve_one` in its worker, with the worker's CPU core-seconds (user +
+    system, every thread) for this case beside `wall_s`."""
+    started = time.process_time()
+    record = solve_one(job)
+    return {**record, "core_s": time.process_time() - started}
+
+
 def solve(jobs_path, records_path, workers):
     from carbon.battery import truth_env
 
@@ -309,7 +317,7 @@ def solve(jobs_path, records_path, workers):
         }
     todo = [j for j in jobs if j["case_id"] not in done]
     with ProcessPoolExecutor(workers) as pool:
-        for record in pool.map(solve_one, todo):
+        for record in pool.map(_timed, todo):
             record = truth_env.stamp(record, solver_provenance)
             with records.open("a") as handle:
                 handle.write(json.dumps(record, sort_keys=True) + "\n")

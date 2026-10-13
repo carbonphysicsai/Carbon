@@ -1,0 +1,54 @@
+# Declared exploratory protocol — RES-08
+
+Written before the new V2 measurements; the public EV4 data and RES-07 findings were already known. **DEVELOPMENT only; not confirmatory preregistration or registration.** Counts and deterministic arithmetic are MEASURED on these finite panels (low = base = high). Grids, bootstrap assumptions and proposed interpretation choices are ASSUMPTION / HUMAN_INPUT; none are selected for adoption.
+
+## Source and function reuse
+
+Pin main `430740562ecd9b24b8ffb886be96747f59b3b280` and the owner draft's byte hash in WORKING_CONTRACT. Use only the owner-authorized EV4 D/V keys from the same 148 public prediction bundles as RES-07, with 21 identical copies deduplicated. Primary member cohort is exactly its 100 real CPU rebuilds / 80 recipe labels. All are reported; this does not mean all pass an official admissibility gate. Standard references contain 840 records, 835 OK. Do not use a sealed confirmation set, unmerged B-probes, ready models, solvers or beyond-envelope data.
+
+Load only whitelisted function definitions from the digest-bound RES-07 executable, without executing its top-level analysis or changing the file. Retain its original isolated decision helper and contract, both matched to pinned Git blobs. Reuse `read_refs`, `ref_assessment`, `qinfo`, `order_and_outcome`, `verify`, `cached_scalar_order`, `fresh_members` and their dependencies. Capture attempted action IDs alongside unchanged `verify` results; discard its old oracle-fallback gain field when calculating V2. Initialize its original public D/V and robust question definitions and standard reference assessments. The old historical loss is not rescored.
+
+Nominal D: 12 single-condition questions. Shifted V: 12 interleaved public questions within the old envelope. Edge: the same six V questions within normalized distance 0.1 of an old envelope boundary (RES-07's ASSUMPTION definition). Robust-SOC: four questions, one action over three V SOC conditions at each temperature. Robust-temperature: three questions, one action over four V temperatures at each SOC. The robust families reuse underlying cases; they are not independent physical samples or current battery-v3 questions.
+
+## Utility and unresolved definition seams
+
+Keep the draft's primary fallback `c1=0.75,c2=0.6`, benefit unit u = 120 s and frozen predicted-feasible order. For a reference-FEASIBLE fallback and returned action, credited gain is `max(0, (t_fallback - t_return)/u)`; retain fallback if better. No verified feasible return credits no improvement. Charge every attempted complete action, including unsafe, band-unresolved and unavailable actions, as the draft instructs. No early stopping, reordering or free duplicates. Robust actions include all mandatory conditions, costing three/four underlying cases despite counting as one token. Every returned new action must be reference-FEASIBLE under unchanged bands.
+
+Always abstain has no attempts and U exactly zero. Proposing the fallback consumes a slot for zero new gain where it is FEASIBLE. Holding an already-known fallback without a proposal is separately the same zero-utility no-op; no verification of it is charged again.
+
+The draft lacks a complete numeric rule for a question whose fallback is not FEASIBLE. Report both: (A) an explicitly assumed **no-rescue-credit bookkeeping proxy**, credit zero gain and charge attempted tokens on every offered question; (B) utility on the fixed paired subset with a known FEASIBLE declared fallback. In A, physical gain on an unpriced rescue stays null in the evidence record; its zero *credited* score is an assumption, not zero buyer benefit or a scientific verdict. Settled NONE has zero possible gain, with attempts still charged. Separate infeasible, band-unresolved and unavailable fallback counts, and separate fully referenced questions. An unavailable reference remains infrastructure/measurement failure. Compare an all-questions-complete-bank mask; do not silently convert these examples into an eligible V2 bank or silently change P.
+
+Question means are uniform finite-panel diagnostics, not unbiased estimates over an independently registered P. Conditional fallback and complete-bank masks are interpretation sensitivities, not adopted sampling/weighting laws. Lambda is absent; residual physical risk is unmeasured. Existing mandatory G-FEAS is not changed, inferred from rank, or relaxed. Shortlist unsafe counts are reported; no new gate verdict is fabricated without its exact registered definition.
+
+## Parameter grids, all ASSUMPTION / HUMAN_INPUT
+
+Primary grid: k = 1,2,3,4,5 and kappa = 0.05,0.1,0.25,0.5 **benefit units per complete-action token**, giving 20 profiles. The draft's kappa is a token charge, not measured solver CPU or money. Report this dimensional distinction rather than interpreting the requested values as a measured fraction of a real solve.
+
+Full numeric sensitivity crosses those 20 profiles with:
+
+- u = 60,120,240 seconds (historical anchor 120; neither alternative is a chosen benefit unit);
+- hypothetical declared fallbacks `(c1,c2) = (0.5,0.6), (0.75,0.6), (1,0.6)`, all in the existing action grammar. The latter alternatives change the assumed question law and are not substitutions in the primary reading;
+- reuse rho = 0,0.1,0.25, mixing separate nominal/shifted means;
+- optional rescue reward eta = 0,0.25,1 benefit units per verified rescue where fallback is reference-INFEASIBLE. This is an explicit counterfactual extra term, not G or a draft-adopted value. Unknown fallback rescues stay separate.
+
+This yields 1,620 numeric profiles. Use `(k=3,kappa=0.1,u=120,declared default,rho=0,eta=0)` only as a display/stability anchor from the draft/RES-07 reporting context, never as a selection. Also check coherent unit rescaling: changing u with kappa and eta scaled by 120/u must scale U, preserving ranks. Other kinds of objective-to-benefit map lack buyer evidence and remain gaps.
+
+Policy-only sensitivities: hypothetical absolute margin 0/0.05/0.1/0.25 benefit units and ceiling-capture threshold 0.5/0.75/0.9/0.99. Report effects on descriptive cheap-arm gaps/capture, without choosing a threshold, guard, payout policy, winner or production margin. Beating the cheap arm as a payout requirement is reported as an option, never applied. A guard/confidence target, prospective P/w and chain-commitment tiebreak cannot be calibrated from this public panel; list them as unsupported HUMAN_INPUT with the smallest question for the Validator. A percentage takeover margin near zero is not transferred.
+
+## Controls and gaming diagnostics
+
+Include always abstain; always propose the declared fallback; D-only nearest and bilinear maps, each with k=1..5; a seeded random-feasible picker with frozen unique order; the physical reference oracle; and a cost-aware oracle bound. Random-feasible and oracle controls intentionally know reference-feasible support, so they are oracle diagnostics, not admissible miners or fair solver-alone competitors. Seed 20261012 and 256 random orders are numerical ASSUMPTION choices; report one frozen realization plus distribution/expected utility, not a selected lucky draw.
+
+Cheap maps reuse RES-07's D-only scalar interpolation, clamping outside the D rectangle and omitting unavailable sources. V responses never order them. Nominal tests reuse their map source; cache acquisition budgets are not matched. An exact-query cache ceiling is reported as an oracle-known-input diagnostic. Do not claim a VALUE-BAR-V1 pass.
+
+Gaming diagnostics: whether any zero-gain control attains positive U; ranks and ties at zero; positive gross gain but negative net U; extra unique verifications without extra gain; D-guarded/map masking and a reference-aware priced-scope mask that can raise score while abandoning unpriced rescue questions. The latter is an oracle diagnostic; the D-only guard is an implementable public-input policy. Padding with duplicates or modifying order is rejected by accounting checks. Reference-unavailable attempts and incomplete-bank effects remain visible. Counts at every cap and cost expose verification-heavy behavior; avoiding useless costs can be legitimate utility improvement, not automatically fraud.
+
+## Ranking, uncertainty and checks
+
+Report per-member U, ranks as intervals (ties are not resolved by invented chain times), exact gross gains/costs, range/IQR/SD, distinct values and pairwise tie fractions. Exact arithmetic ties and an ASSUMPTION 1e-12 benefit-unit numerical-tie diagnostic are distinguished; no production tie epsilon is set. Positive gross gain does not imply positive net U, so the draft's no-op rank claim is tested literally and against the algebraically valid positive-net criterion.
+
+Primary uncertainty: 2,000 paired public temperature-block resamples, four D or four V blocks, numerical seed 20261012 and 95% pointwise percentile intervals (ASSUMPTION). Use the same V weights on edge and robust-SOC compositions. Member mean and member-minus-cheap intervals resample questions, not that member's identity. Aggregate SD and tau sensitivities resample 80 recipe clusters with their seeds plus the same question blocks. Range, IQR and tie fractions are descriptive point estimates; their bootstrap intervals are not claimed. Neighbor-tau resampling uses a separate numerical stream, seed 20261013 (ASSUMPTION), declared when implementing the exploratory aggregation. Do not count duplicate resampled IDs as new structural ties. Robust-temperature has one shared temperature panel and no gain opportunities; do not claim independent-temperature inference there. Report undefined tau. No simultaneous coverage, confirmatory significance, causal transfer or fresh-population winner claim follows.
+
+Publish primary-grid tau matrices and full-grid tau to the display anchor plus one-factor-neighbor tau ranges; avoid a meaningless winner search across all profiles. Checks include input/reuse hashes, safe-fallback-only gain, zero abstention, G nonnegative and bounded by the finite ceiling, unique prefix/cap accounting, all returned actions reference-FEASIBLE, same question denominator per comparison, coherent units, oracle bounds, identical aggregate rerun, unchanged input/draft hashes and finite JSON. Raw inputs and intermediates stay outside the PR. Native diagnostics and pinned Black/Ruff do not replace exact-head canonical CI.
+
+Implementation clarification (exploratory, not a prospective selection): a retrospective cheap budget envelope additionally takes the maximum over abstention, bilinear, nearest and the D-fitted guard at all prefix lengths up to each cap. It is selected on the observed panel, so is an answer-informed diagnostic bound, not an admissible held-out cheap policy. This avoids interpreting gains over a verification-heavy fixed cheap prefix as proof of a strongest-cheap-arm pass.

@@ -48,7 +48,7 @@ from pathlib import Path
 
 from carbon.design_search import score_value
 
-from . import admissibility, margins, ratios
+from . import admissibility, margins, ratios, sign_gate
 from . import decision as d
 from . import false_acceptance as fa
 from . import score_candidates_b1 as b1
@@ -298,7 +298,13 @@ def expand_sweep(entry, registered):
 
 
 def member_legs(
-    contract, predictions, store, case_ids, decision_regret=None, verify=None
+    contract,
+    predictions,
+    store,
+    case_ids,
+    decision_regret=None,
+    verify=None,
+    probes=None,
 ):
     """One member's legs and gate measures on `case_ids` of `store`.
     `decision_regret`: the member's mean Q3 decision regret over the quiz's
@@ -313,7 +319,7 @@ def member_legs(
     a, r, g = ratios.legs(component)
     m = margins.margin_component(contract, predictions, case_ids, store.refs)
     n = margins.margin_component(contract, predictions, near, store.refs)
-    return {
+    row = {
         "eligible": bool(component["eligible"]),
         "E": component["E"],
         "legs": {
@@ -343,6 +349,14 @@ def member_legs(
             "error": component["E"] if component["eligible"] else None,
         },
     }
+    if probes is not None:
+        # Registry v10's sign consistency, on the pinned calibration panel's
+        # B5-B8 pairs only (amendment 12). Without a pinned panel the measure
+        # is absent, so every rule using it is withheld, never failed or passed.
+        row["gates"]["sign"] = sign_gate.sign_disagreement(
+            contract, probes["predictions"], probes["case_ids"], probes["refs"]
+        )
+    return row
 
 
 def false_feasible_rate(contract, predictions, case_ids, refs):
