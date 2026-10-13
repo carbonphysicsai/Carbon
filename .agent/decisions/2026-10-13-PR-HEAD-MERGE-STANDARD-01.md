@@ -61,7 +61,16 @@ Tested on #1275, which was `CLEAN` with the required context `SKIPPED`.
 
 A receipt counts only from the named reviewer's **own word**, and it must name
 the **exact head** it reviewed. A role label, a lane comment naming a reviewer,
-and a keyword match are all finding aids; none is a merge basis. A reviewer who
+and a keyword match are all finding aids; none is a merge basis.
+
+**Naming a head is necessary and not sufficient.** The head a receipt names
+must itself have a `Merge gate` run concluding `success` for that SHA
+(standard 1). A receipt bound to an untested tree is a review of something
+nobody has run, and nothing in the PR's status distinguishes it from a receipt
+bound to a tested one. On #1294 **two** careful reviewers were each bound to
+the exact head whose gate was **absent**; both had done real reviews, and the
+defect was invisible from the PR. So the merge requires the conjunction: a
+named reviewer's own word, an exact head, and a `success` gate on that head. A reviewer who
 lists several PRs as approved speaks for themselves and not for a second
 reviewer the PR names. A receipt does not survive a head change — including a
 head change the merge manager causes by syncing — because a receipt not bound
@@ -109,23 +118,51 @@ the head is, whether a PR is merged, what colour CI is — belong to whoever
 tracks PR state. **Content claims belong to the merge**, and are checked on the
 head about to be merged, never on the author's base.
 
-**Cases.** #1275 arrived green with three of its four required items missing.
-#1297's "one wording fix" was ten occurrences across eight files, two of them
-test assertions. #1277's removal of a reserved amount was safe only because no
+**The clearest case: a check that cannot complete has not passed.** #1295
+changed the miner surface, adding `carbon/reconstruction/development_composition.py`.
+The two invariants that most needed to hold —
+`test_development_variants_unreachable` and
+`test_score_variants_unreachable` — **cannot execute at all** on a Windows
+host: collection aborts at `carbon/battery/intake.py:94`, `import fcntl`. A
+host failure and a real unreachability break present identically in the exit
+code, and "failed to run" must never be read as either a pass or a finding.
+Re-run on the **trial-merged tree** under POSIX, they passed 10 cases, which
+established that the author's `reach()`-is-empty claim held against main
+rather than only against their base. That is the merge's own evidence and
+duplicates no reviewer's work.
+
+**Further cases.** #1275 arrived green with three of its four required items
+missing. #1297's "one wording fix" was ten occurrences across eight files, two
+of them test assertions. #1277's removal of a reserved amount was safe only because no
 such grant file exists anywhere — had one existed it would have un-reserved
 money for a live grant. #1288 cited a cost figure that had stopped matching its
 own case count. #1300's real failure was two stale budget expectations, not the
 pair the lane pointed at. #1296 passed its gate with exclusions dropping
 silently out of a roster via `continue`, which the gate never asked about.
 
-**A corollary with teeth: a check that cannot complete has not passed.** On a
-Windows host, `import fcntl` / `import pwd` abort collection of the very
-unreachability invariants that a miner-surface change most needs
-(`carbon/battery/intake.py:94`). Before merging #1295 those two invariants were
-re-run on the **trial-merged tree** under POSIX, where they passed 10 cases; on
-the host they had merely failed to run. An empty file overlap is likewise not a
-pass: behavioural coupling has no overlap signature, which is how #1211 broke
-#1215 on main.
+An empty file overlap is likewise not a pass: behavioural coupling has no
+overlap signature, which is how #1211 broke #1215 on main. The sharper question
+before merging a stale head is whether the PR's tree already contains the
+merges that could change its expectations
+(`git merge-base --is-ancestor <that merge> <pr head>`), and, inversely, what
+already on main depends on the module the PR is tightening.
+
+## 5. A correction is only true once the thing it corrects to exists
+
+An erratum, migration note or supersession that asserts a change which has not
+landed is itself false, however certain the change is. Write it when the thing
+it points at exists, and record **why** it is being deferred so the next
+session finds a stated reason rather than a gap it might fill wrongly.
+
+**Case.** The `SOLVER_NOT_ACCEPTED` reference in
+`2026-10-13-PRD02F-REFERENCE-PRESENTATION-01.md:35` needs an erratum because
+#1297 renames that status to `REFERENCE_ADEQUACY_NOT_ESTABLISHED`. On
+2026-10-13 that erratum was **not** written: #1297 had not merged, so the
+erratum would have asserted a rename that did not yet exist anywhere. It is
+additive when written — a note beside the record, never an edit to it, since a
+merged decision record is historical evidence under invariant 10 and must not
+be made to say what it did not say. The record's own words stand; the hold it
+describes is the same hold under a new name.
 
 ## What this record does not do
 
@@ -137,14 +174,11 @@ standard 1 exists.
 
 ## Follow-up
 
-- An erratum for `2026-10-13-PRD02F-REFERENCE-PRESENTATION-01.md:35`, which
-  names the `SOLVER_NOT_ACCEPTED` status that #1297 renames to
-  `REFERENCE_ADEQUACY_NOT_ESTABLISHED`, is **deliberately not written here**:
-  #1297 has not merged, and an erratum asserting a rename that has not landed
-  would be false. It is additive when written — a note beside the record, never
-  an edit to it, since a merged decision record is historical evidence under
-  invariant 10 and must not be made to say what it did not say. The record's
-  own words stand; the hold it describes is the same hold under a new name.
+- The PRD02F erratum described in standard 5 is owed **on #1297's merge** and
+  not before. At the synced head `65a496de6` the old label survives in exactly
+  one place in the entire repository: that merged record's line 35. The PR's
+  own files carry the new label in ten places across seven files, two of them
+  test assertions.
 - PLT-12 (`CI-TEST-MERGE-RESULT-01`) remains the real fix for standard 1's root
   cause: CI checks out `.head.sha` rather than the merge result, so a rerun can
   never pick up a fix that landed on main.
