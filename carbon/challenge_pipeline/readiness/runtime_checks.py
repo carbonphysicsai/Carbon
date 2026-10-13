@@ -88,7 +88,7 @@ def _committed(ctx, relative, *, main=False):
 
 def _grants(ctx, record):
     from carbon.agent_campaign.grant import SpendingGrant
-    from carbon.agent_campaign.graphite import grant_binding, phase4
+    from carbon.agent_campaign.graphite import grant_binding, phase4, provider
 
     roles = record.get("roles")
     if type(roles) is not dict or not roles:
@@ -110,6 +110,10 @@ def _grants(ctx, record):
         grant = SpendingGrant.from_document(document)
         if grant.grant_id != entry.grant_id:
             raise Invalid("grant_identity_mismatch")
+        if grant.provider != provider.PROVIDER or grant.currency != "USD":
+            # These are Graphite's existing admission requirements. Comparing
+            # another currency with the standing USD caps would be meaningless.
+            raise Invalid("grant_units_or_provider_mismatch")
         if role == "constructor":
             refused = grant_binding.level_refusal(grant, ctx.level)
         else:

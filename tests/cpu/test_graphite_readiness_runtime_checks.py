@@ -456,6 +456,24 @@ def test_higher_level_registrations_do_not_bypass_the_legacy_grant_binding(ctx):
 
 
 @pytest.mark.parametrize(
+    "field,value", [("provider", "another-provider"), ("currency", "EUR")]
+)
+def test_r5_uses_the_existing_graphite_provider_and_usd_admission_requirements(
+    ctx, monkeypatch, field, value
+):
+    no_pod_attacker(monkeypatch)
+    named = registration(ctx)["roles"]["constructor"]
+    path = ctx.repository / named["grant_file"]
+    document = json.loads(path.read_bytes())
+    document[field] = value
+    path.write_text(json.dumps(document))
+    commit(ctx.repository)
+    result = runtime.grants({}, ctx)
+    assert result.status == model.FAIL
+    assert result.detail == "grant_units_or_provider_mismatch"
+
+
+@pytest.mark.parametrize(
     "mutation", ["wrong_stage", "unsafe_path", "symlink", "bad_json"]
 )
 def test_registered_grant_artifacts_are_fail_closed(ctx, monkeypatch, mutation):
