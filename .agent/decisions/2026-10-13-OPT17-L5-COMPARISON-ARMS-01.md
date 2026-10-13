@@ -48,3 +48,12 @@ Hub retired under OWNER-DX-03. No changes to WAVE or acceptance authority.
 Reversible: remove these additive paths or prospectively version the input
 contract. Material changes to equality, pairing or uncertainty semantics must
 be recorded and reviewed; no historical receipt is silently reinterpreted.
+
+Working-contract refinement: equality now binds the complete base recipe
+family/settings, not only its width/depth/steps. Both arm descriptors retain
+that same base; the baseline excludes the candidate feature, and the candidate
+declares its exact feature definition. The construction digest is derived from
+that full descriptor and its implementation reference. Each receipt also binds
+a model-artifact digest. This prevents an unrelated recipe change from hiding
+behind equal headline dimensions. Actual executor use still requires host
+authentication; a digest is not proof of a training run or physical truth.

@@ -145,11 +145,29 @@ class PairPlan:
         common = plan["common"]
         _shape(
             common,
-            ("steps", "width", "depth", "data_digest", "seeds", "route", "budget"),
+            (
+                "steps",
+                "width",
+                "depth",
+                "recipe",
+                "data_digest",
+                "seeds",
+                "route",
+                "budget",
+            ),
             "common",
         )
         for key in ("steps", "width", "depth"):
             _number(common[key], key, integer=True, positive=True)
+        _shape(common["recipe"], ("family", "settings"), "full base recipe")
+        _text(common["recipe"]["family"], "base recipe family")
+        settings = common["recipe"]["settings"]
+        if type(settings) is not dict or any(
+            settings.get(key) != common[key] for key in ("steps", "width", "depth")
+        ):
+            raise ComparisonRefused(
+                "base recipe must bind the declared architecture and steps"
+            )
         _sha(common["data_digest"], "training data")
         _text(common["route"], "hardware route")
         seeds = common["seeds"]
@@ -174,11 +192,41 @@ class PairPlan:
         for name, arm in plan["arms"].items():
             _shape(
                 arm,
-                ("implementation_ref", "construction_digest", "configuration"),
+                (
+                    "implementation_ref",
+                    "construction_digest",
+                    "construction",
+                    "configuration",
+                ),
                 name,
             )
             _text(arm["implementation_ref"], name)
             _sha(arm["construction_digest"], name)
+            construction = arm["construction"]
+            _shape(construction, ("base_recipe", "feature"), "construction descriptor")
+            if construction["base_recipe"] != common["recipe"]:
+                raise ComparisonRefused(f"{name}: full base recipe differs")
+            feature = construction["feature"]
+            if name == "baseline":
+                if feature is not None:
+                    raise ComparisonRefused("baseline must exclude candidate feature")
+            else:
+                _shape(feature, ("candidate_id", "definition"), "candidate feature")
+                if (
+                    feature["candidate_id"] != plan["candidate_id"]
+                    or type(feature["definition"]) is not dict
+                    or not feature["definition"]
+                ):
+                    raise ComparisonRefused(
+                        "exact candidate feature definition required"
+                    )
+            if arm["construction_digest"] != digest(
+                {
+                    "implementation_ref": arm["implementation_ref"],
+                    "construction": construction,
+                }
+            ):
+                raise ComparisonRefused("construction descriptor digest mismatch")
             if arm["configuration"] != common:
                 raise ComparisonRefused(
                     f"{name}: unequal architecture/data/seeds/steps/route/budget"
@@ -244,6 +292,7 @@ def _receipt(plan, raw):
             "arm",
             "seed",
             "construction_digest",
+            "model_digest",
             "configuration",
             "completion",
             "events",
@@ -255,6 +304,7 @@ def _receipt(plan, raw):
     )
     _bound(raw, "receipt_digest")
     arm, seed = raw["arm"], raw["seed"]
+    _sha(raw["model_digest"], "measured model artifact")
     if (
         raw["schema"] != RECEIPT_SCHEMA
         or raw["evidence_basis"] != plan["evidence_basis"]
@@ -552,6 +602,15 @@ def standin():
         "steps": 4,
         "width": 8,
         "depth": 1,
+        "recipe": {
+            "family": "ANALYTIC_NO_TRAINING",
+            "settings": {
+                "steps": 4,
+                "width": 8,
+                "depth": 1,
+                "note": "synthetic placeholders",
+            },
+        },
         "data_digest": digest({"fixture": "analytic-no-training"}),
         "seeds": [0, 1, 2, 3, 4],
         "route": "synthetic-zero-cost-no-worker",
@@ -573,7 +632,19 @@ def standin():
             "arms": {
                 arm: {
                     "implementation_ref": "ANALYTIC_STANDIN_WITHOUT_L5_TRAINING:" + arm,
-                    "construction_digest": digest({"standin_arm": arm}),
+                    "construction": {
+                        "base_recipe": common["recipe"],
+                        "feature": (
+                            None
+                            if arm == "baseline"
+                            else {
+                                "candidate_id": "MONOTONE_CAPACITY",
+                                "definition": {
+                                    "standin": "identical analytic predictions; no capacity head"
+                                },
+                            }
+                        ),
+                    },
                     "configuration": common,
                 }
                 for arm in ARMS
@@ -582,6 +653,18 @@ def standin():
             "metrics": {"decision_loss": {"direction": "lower", "unit": "toy_loss"}},
             "bootstrap": {"replicates": 200, "confidence": 0.95, "seed": 20261013},
         },
+        "plan_digest",
+    )
+    for arm in ARMS:
+        descriptor = document["arms"][arm]
+        descriptor["construction_digest"] = digest(
+            {
+                "implementation_ref": descriptor["implementation_ref"],
+                "construction": descriptor["construction"],
+            }
+        )
+    document = seal(
+        {key: value for key, value in document.items() if key != "plan_digest"},
         "plan_digest",
     )
     member = panel["members"][0]
@@ -621,6 +704,7 @@ def standin():
                         "construction_digest": document["arms"][arm][
                             "construction_digest"
                         ],
+                        "model_digest": digest({"synthetic_model": arm, "seed": seed}),
                         "configuration": common,
                         "completion": "COMPLETE",
                         "events": phases,

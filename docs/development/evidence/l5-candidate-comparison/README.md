@@ -43,15 +43,19 @@ executor signature or scientific acceptance. Public metering remains
 existing system before relying on it. No source is accepted because it says PASS.
 
 The plan declares MONOTONE_CAPACITY, PHYSICS_LOSS or QUASI_NEWTON; the exact
-baseline/candidate implementation references and construction digests; common
+baseline/candidate implementation references and derived construction digests; common
 data digest, paired seeds, steps, width, depth, hardware route and resource
 caps; all target and near-variant scenarios with public reference digests;
 metric directions/units; and explicit bootstrap replicates/confidence/seed.
-Each arm repeats the complete common configuration and every receipt must bind
-to it. Freeze the construction identities and measurement/scenario definitions
-before execution. A digest alone does not prove that two constructions differ
-only in the intended feature; GTM must bind those identities to its reviewed
-with/without recipes. This tool does not compile or admit a new construction.
+Each arm repeats the complete common configuration, including the full base
+recipe family/settings. Both construction descriptors must carry that identical
+base recipe. The baseline excludes the feature; the candidate supplies its exact
+hypothesis/definition. Their digests are derived from those full descriptors and
+implementation references, not accepted as opaque labels. Every receipt binds
+the descriptor and a measured model-artifact digest. Freeze these identities and
+measurement/scenario definitions before execution. GTM still must authenticate
+that the executor used the reviewed construction: hashing a descriptor cannot
+prove execution. This tool does not compile or admit a new construction.
 
 The executor supplies one closed receipt per arm and reconstruction seed, with
 COMPLETE or FAILED_INFRA, all metering events, exact event-derived totals and

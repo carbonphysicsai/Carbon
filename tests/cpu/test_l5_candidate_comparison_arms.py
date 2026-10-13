@@ -132,9 +132,20 @@ def test_reported_total_cannot_hide_line_search_work(inputs):
 def test_quasi_newton_requires_both_arms_actual_line_search(inputs):
     plan, receipts = inputs
     plan["candidate_id"] = "QUASI_NEWTON"
+    descriptor = plan["arms"]["candidate"]
+    descriptor["construction"]["feature"]["candidate_id"] = "QUASI_NEWTON"
+    descriptor["construction_digest"] = arms.digest(
+        {
+            "implementation_ref": descriptor["implementation_ref"],
+            "construction": descriptor["construction"],
+        }
+    )
     reseal(plan, "plan_digest")
     for record in receipts:
         record["plan_digest"] = plan["plan_digest"]
+        record["construction_digest"] = plan["arms"][record["arm"]][
+            "construction_digest"
+        ]
         reseal(record)
     with pytest.raises(arms.ComparisonRefused, match="line-search metering"):
         run(inputs)
@@ -326,6 +337,38 @@ def test_update_count_cannot_be_disguised_as_prediction_and_tiny_bootstrap_refus
     reseal(plan, "plan_digest")
     with pytest.raises(arms.ComparisonRefused, match="100 bootstrap"):
         arms.PairPlan.from_document(plan)
+
+
+def test_full_recipe_difference_cannot_hide_behind_same_width_and_steps(inputs):
+    plan, _ = inputs
+    arm = plan["arms"]["candidate"]
+    arm["construction"] = copy.deepcopy(arm["construction"])
+    arm["construction"]["base_recipe"]["settings"]["learning_rate"] = 100
+    arm["construction_digest"] = arms.digest(
+        {
+            "implementation_ref": arm["implementation_ref"],
+            "construction": arm["construction"],
+        }
+    )
+    reseal(plan, "plan_digest")
+    with pytest.raises(arms.ComparisonRefused, match="full base recipe differs"):
+        arms.PairPlan.from_document(plan)
+
+
+def test_full_descriptor_identity_must_bind_implementation(inputs):
+    plan, _ = inputs
+    plan["arms"]["candidate"]["implementation_ref"] = "another-constructor"
+    reseal(plan, "plan_digest")
+    with pytest.raises(arms.ComparisonRefused, match="descriptor digest"):
+        arms.PairPlan.from_document(plan)
+
+
+def test_measured_model_identity_cannot_be_omitted(inputs):
+    receipts = inputs[1]
+    receipts[-1]["model_digest"] = None
+    reseal(receipts[-1])
+    with pytest.raises(arms.ComparisonRefused, match="model artifact"):
+        run(inputs)
 
 
 def test_duplicate_json_refuses_and_cli_reports_fixture_caveat(inputs, tmp_path):
