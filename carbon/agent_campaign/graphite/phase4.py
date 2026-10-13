@@ -246,6 +246,13 @@ PHASE4_STAGE_GRANTS = types.MappingProxyType(
                 grant_file=GRANTS_DIR + "/GRAPHITE-GRANT-HUNT-A2-ATTACKER.json",
                 levels=(3,),
             ),
+            # A2's re-run (the interrupted A2 is terminal): the same Level 3 attack, one run.
+            Phase4Grant(
+                challenge=BATTERY_CHALLENGE,
+                grant_id="GRAPHITE-GRANT-HUNT-A2-RERUN-ATTACKER",
+                grant_file=GRANTS_DIR + "/GRAPHITE-GRANT-HUNT-A2-RERUN-ATTACKER.json",
+                levels=(3,),
+            ),
         )
     }
 )

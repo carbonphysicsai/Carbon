@@ -78,6 +78,8 @@ phase-3 grant: outside its study it is refused `grant_is_bound_to_a_study`.
   and H3 registering `min_level` = `max_level` = 1, 2 and 3, A1 and A2 attacking Level 1 and
   Level 3 (`Phase4Grant.levels`). They authorize spend, never a Level 5 capability.
 
+- GRAPHITE-GRANT-HUNT-A2-RERUN-ATTACKER is the Level 3 Attacker re-run of the interrupted hunt run A2: one run
+  under the standing weekly test grant (OWNER-TEST-GRANT-01), a copy of A2's figures (13.41 + 0.06 = 13.47), phase 4.
 - GRAPHITE-GRANT-L4-G-CONSTRUCTOR-2 is one lane G Level 4 Constructor run under the standing weekly
   test grant (OWNER-TEST-GRANT-01): `min_level` = `max_level` = 4, worst case 14.91, ceiling 14.94,
   kimi-k3. It is its own grant, not the hunt's H4 share. It authorizes spend, never a Level 4 run:
@@ -380,6 +382,19 @@ PHASE3_GRANTS = types.MappingProxyType(
                     runner="phase4",
                 )
                 for n in (1, 2)
+            ),
+            # A2's re-run: the interrupted A2 stranded in `reconciliation_required` (phase4 cannot
+            # settle an interrupted model call), so its one run is spent. One run at Level 3 under the
+            # standing weekly test grant; not the hunt's money.
+            Phase3Grant(
+                grant_id="GRAPHITE-GRANT-HUNT-A2-RERUN-ATTACKER",
+                challenge=BATTERY_CHALLENGE,
+                grant_file=GRANTS_DIR + "/GRAPHITE-GRANT-HUNT-A2-RERUN-ATTACKER.json",
+                main_blob=True,
+                start_model="kimi-k3",
+                start_roles=("attacker",),
+                authority=STANDING_TEST_GRANT_AUTHORITY,
+                runner="phase4",
             ),
         )
     }
