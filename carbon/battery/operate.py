@@ -300,7 +300,8 @@ def exit_code(code):
 
 
 def _line(out, event, **fields):
-    """One structured log line: UTC time, service, event and counts only."""
+    """One operator line: time, service, event, counts and closed diagnostic codes.
+    Never arbitrary messages, args, traces, private paths or identifiers."""
     record = {
         "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "service": DAEMON_SERVICE,
@@ -308,6 +309,29 @@ def _line(out, event, **fields):
         **fields,
     }
     print(json.dumps(record, sort_keys=True), file=out, flush=True)
+
+
+def _pass_failure_fields(failure):
+    """Allow-listed diagnosis, not raw str/args (which may carry private cases).
+
+    Exact trusted types prevent a generic exception's spoofed .code from
+    becoming an authorized diagnostic. Even known StateError detail is withheld.
+    BaseException's args slot gives only its count without running custom repr
+    or an overridden property. No traceback or state object is exposed.
+    """
+    from .pool_store import StateError
+
+    args = BaseException.args.__get__(failure)
+    code = "exception_details_withheld"
+    if type(failure) is StateError:
+        known = {"unknown_submission", "unknown_state", "submission_replay_conflict"}
+        supplied = failure.__dict__.get("code")
+        if type(supplied) is str and supplied in known:
+            code = supplied
+    elif type(failure) is KeyError and len(args) == 1:
+        if type(args[0]) is str and args[0] == "fingerprint":
+            code = "missing_fingerprint_key"
+    return {"code": code, "arg_count": len(args)}
 
 
 def _heartbeat_lock(heartbeat):
@@ -384,12 +408,17 @@ def _pass(config_path, target, repository, out, inbox=None):
         if inbox is not None:
             from .intake import Inbox, work_once
 
-            work_once(Inbox(inbox), target)
+            work_once(Inbox(inbox), target, out=out)
         with writer(target):
             advanced = target.run_pending()
             status = target.status()
     except Exception as failure:  # noqa: BLE001 - infrastructure, retried
-        _line(out, "pass_failed", type=type(failure).__name__)
+        _line(
+            out,
+            "pass_failed",
+            type=type(failure).__name__,
+            **_pass_failure_fields(failure),
+        )
         return target, "failed"
     pool = status["pool"]
     _line(
@@ -418,8 +447,8 @@ def run_every(
     Each pass is exactly one `run` (`run_pending` under the writer lock, held
     for that pass only), so the intake's worker, a campaign's submit and
     every operator command interleave with it. An exception inside a pass is
-    infrastructure: its type is logged, never its content, and the next pass
-    retries.
+    infrastructure: its type, argument count and any allow-listed diagnostic
+    code are logged, never arbitrary content, and the next pass retries.
 
     The deployment is built by the first pass. A build refused for the
     host's state (`evaluation_host_unavailable`: Docker down or still
