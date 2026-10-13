@@ -16,6 +16,17 @@ import json
 
 import numpy as np
 
+HUNT_RECOVERY_CAVEAT = (
+    "These three are what one partly-broken hunt recovered (the wish line was "
+    "only counted at the start of a line, so nothing was captured live, and "
+    "the first two runs had no physics theme). A measurement of three is "
+    "not a measurement of Level 5."
+)
+
+
+class _CandidateLayout:
+    """Internal type marker for the sidecar's capacity decoding mechanism."""
+
 
 def _softplus(x):
     return np.maximum(x, 0.0) + np.log1p(np.exp(-np.abs(x)))
@@ -55,9 +66,7 @@ def count_capacity_increases(predictions):
         "increasing_cases": increasing_cases,
         "increasing_transitions": increasing_transitions,
         "disposition": (
-            "STOP_NO_MEASURABLE_HELP"
-            if increasing_cases == 0
-            else "INCREASES_OBSERVED"
+            "STOP_NO_MEASURABLE_HELP" if increasing_cases == 0 else "INCREASES_OBSERVED"
         ),
     }
 
@@ -71,23 +80,27 @@ def main(argv=None):
     args = parser.parse_args(argv)
     with gzip.open(args.count_increases, "rt", encoding="utf-8") as stream:
         predictions = json.load(stream)
-    print(json.dumps(count_capacity_increases(predictions), sort_keys=True))
+    result = count_capacity_increases(predictions)
+    result.update(
+        maturity="DEVELOPMENT",
+        benefit_measured=False,
+        hunt_recovery_caveat=HUNT_RECOVERY_CAVEAT,
+    )
+    print(json.dumps(result, sort_keys=True))
     return 0
 
 
 def layout_type(base_layout):
     """Return a Layout subclass that fits adjacent fade increments as logits."""
 
-    class MonotoneCapacityLayout(base_layout):
+    class MonotoneCapacityLayout(_CandidateLayout, base_layout):
         def targets(self, data):
             if not self.fade:
                 raise ValueError("monotone_capacity.requires_capacity_fade_head")
             target = super().targets(data)
             start = self.nv + self.nt + 1
             cumulative = target[:, start + 1 :]
-            adjacent = np.column_stack(
-                [cumulative[:, :1], np.diff(cumulative, axis=1)]
-            )
+            adjacent = np.column_stack([cumulative[:, :1], np.diff(cumulative, axis=1)])
             target = target.copy()
             target[:, start + 1 :] = _inverse_softplus(adjacent)
             return target
@@ -100,6 +113,25 @@ def layout_type(base_layout):
             return super().split(transformed)
 
     return MonotoneCapacityLayout
+
+
+def _require_candidate_layout(model, *, allow_unfitted=False):
+    """Reject baseline state, including any baseline member of an ensemble."""
+    members = getattr(model, "members", None)
+    if members is not None:
+        if not members:
+            raise ValueError("monotone_capacity.candidate_layout_required")
+        for member in members:
+            _require_candidate_layout(member)
+        return
+    layout = getattr(model, "layout", None)
+    if isinstance(layout, _CandidateLayout) and layout.fade:
+        return
+    if allow_unfitted and not any(
+        hasattr(model, name) for name in ("layout", "members", "params", "s")
+    ):
+        return
+    raise ValueError("monotone_capacity.candidate_layout_required")
 
 
 @contextlib.contextmanager
@@ -126,19 +158,25 @@ class MonotoneCapacityCandidate:
             raise ValueError("monotone_capacity.unsupported_family")
         if settings.get("backend", "jax") != "jax":
             raise ValueError("monotone_capacity.unsupported_backend")
+        _require_candidate_layout(model, allow_unfitted=True)
         self._model = model
 
     def fit(self, *args, **kwargs):
+        _require_candidate_layout(self._model, allow_unfitted=True)
         with _monotone_layout_installed():
-            return self._model.fit(*args, **kwargs)
+            result = self._model.fit(*args, **kwargs)
+        _require_candidate_layout(self._model)
+        return result
 
     def predict(self, *args, **kwargs):
+        _require_candidate_layout(self._model)
         return self._model.predict(*args, **kwargs)
 
     def export_state(self):
         """Export wrapped weights with an explicit candidate identity."""
         from carbon.battery import recipes
 
+        _require_candidate_layout(self._model)
         header, arrays = recipes.export_state(self._model)
         header = dict(header)
         header["construction_variant"] = "battery-monotone-capacity-fade-v1"

@@ -35,9 +35,7 @@ def test_monotone_layout_round_trips_capacity_targets_and_never_rises():
 
 
 def test_monotone_layout_refuses_nonpositive_observed_fade():
-    candidate = layout_type(Layout)(
-        3, 3, bounded_v=False, predict_v0=False, fade=True
-    )
+    candidate = layout_type(Layout)(3, 3, bounded_v=False, predict_v0=False, fade=True)
 
     with pytest.raises(ValueError, match="requires_positive_observed_fade"):
         candidate.targets(_data([2.0, 2.0, 1.5]))
@@ -90,11 +88,140 @@ def test_public_prediction_precheck_counts_strict_rises():
     }
 
 
-def test_public_prediction_precheck_returns_null_stop_when_no_rises(tmp_path, capsys):
-    from carbon.battery.monotone_capacity import main
+@pytest.mark.parametrize(
+    ("capacity", "disposition"),
+    [
+        ([2.0, 1.8, 1.7], "STOP_NO_MEASURABLE_HELP"),
+        ([2.0, 2.1, 1.9], "INCREASES_OBSERVED"),
+    ],
+)
+def test_public_prediction_precheck_output_has_required_caveat(
+    tmp_path, capsys, capacity, disposition
+):
+    from carbon.battery.monotone_capacity import HUNT_RECOVERY_CAVEAT, main
 
     path = tmp_path / "public-predictions.json.gz"
     with gzip.open(path, "wt", encoding="utf-8") as stream:
-        json.dump({"case-a": {"capacity_ah": [2.0, 1.8, 1.7]}}, stream)
+        json.dump({"case-a": {"capacity_ah": capacity}}, stream)
     assert main(["--count-increases", str(path)]) == 0
-    assert "STOP_NO_MEASURABLE_HELP" in capsys.readouterr().out
+    result = json.loads(capsys.readouterr().out)
+    assert result["disposition"] == disposition
+    assert result["maturity"] == "DEVELOPMENT"
+    assert result["benefit_measured"] is False
+    assert result["hunt_recovery_caveat"] == HUNT_RECOVERY_CAVEAT
+    assert "partly-broken hunt" in result["hunt_recovery_caveat"]
+    assert "not a measurement of Level 5" in result["hunt_recovery_caveat"]
+
+
+def _model_with_fixed_weights(*, candidate):
+    """Synthetic inference state using real recipe serialization; never trains."""
+    from carbon.battery import recipes
+
+    settings = {
+        "width": 4,
+        "steps": 1,
+        "depth": 1,
+        "learning_rate": 0.001,
+        "weight_decay": 0.0,
+        "arrhenius_features": False,
+        "bounded_voltage_head": False,
+        "ocv_initial_voltage": False,
+        "capacity_fade_head": True,
+        "important_region_weight": 1.0,
+        "train_fraction": 1.0,
+        "ensemble_members": 1,
+    }
+    model = recipes.MLP("mlp", settings)
+    layout = layout_type(Layout) if candidate else Layout
+    model.layout = layout(3, 3, bounded_v=False, predict_v0=True, fade=True)
+    capacity = [2.0, 1.8, 1.5] if candidate else [2.0, 2.1, 1.8]
+    target = model.layout.targets(_data(capacity))[0]
+    model.s = recipes.Structure([0.0, 1.0], [3.0, 4.0])
+    model.mu, model.sd = np.zeros_like(target), np.ones_like(target)
+    model.classic, model.x64 = True, False
+    model.params = [(np.zeros((4, target.size)), target.copy())]
+    model._net = recipes._classic_net
+    return model
+
+
+@pytest.mark.parametrize("ensemble", [False, True])
+def test_fitted_baseline_cannot_be_labelled_as_candidate(ensemble):
+    from carbon.battery import recipes
+    from carbon.battery.monotone_capacity import MonotoneCapacityCandidate
+
+    baseline = _model_with_fixed_weights(candidate=False)
+    assert np.any(np.diff(baseline.predict(_data([]).x)["q"], axis=1) > 0.0)
+    model = baseline
+    if ensemble:
+        model = recipes.Ensemble(2, "mlp", baseline.settings)
+        model.members = [_model_with_fixed_weights(candidate=True), baseline]
+    with pytest.raises(ValueError, match="candidate_layout_required"):
+        MonotoneCapacityCandidate(model)
+
+
+@pytest.mark.parametrize("ensemble", [False, True])
+def test_candidate_fixed_state_export_import_preserves_predictions(ensemble):
+    from carbon.battery import recipes
+    from carbon.battery.monotone_capacity import MonotoneCapacityCandidate, import_state
+
+    model = _model_with_fixed_weights(candidate=True)
+    if ensemble:
+        member = model
+        model = recipes.Ensemble(2, "mlp", member.settings)
+        model.members = [member, _model_with_fixed_weights(candidate=True)]
+    wrapped = MonotoneCapacityCandidate(model)
+    x = _data([]).x
+    expected = wrapped.predict(x)
+    assert np.all(np.diff(expected["q"], axis=1) <= 0.0)
+    header, arrays = wrapped.export_state()
+    assert header["construction_variant"] == "battery-monotone-capacity-fade-v1"
+    restored = import_state(header, arrays)
+    actual = restored.predict(x)
+    for key in expected:
+        np.testing.assert_array_equal(actual[key], expected[key])
+    restored_header, restored_arrays = restored.export_state()
+    assert restored_header == header
+    for key in arrays:
+        np.testing.assert_array_equal(restored_arrays[key], arrays[key])
+    assert recipes.Layout is Layout
+
+
+@pytest.mark.parametrize("ensemble", [False, True])
+def test_candidate_rechecks_layout_before_prediction_and_export(ensemble):
+    from carbon.battery import recipes
+    from carbon.battery.monotone_capacity import MonotoneCapacityCandidate
+
+    model = _model_with_fixed_weights(candidate=True)
+    member = model
+    if ensemble:
+        model = recipes.Ensemble(2, "mlp", member.settings)
+        model.members = [_model_with_fixed_weights(candidate=True), member]
+    wrapped = MonotoneCapacityCandidate(model)
+    member.layout = Layout(3, 3, bounded_v=False, predict_v0=True, fade=True)
+    with pytest.raises(ValueError, match="candidate_layout_required"):
+        wrapped.predict(_data([]).x)
+    with pytest.raises(ValueError, match="candidate_layout_required"):
+        wrapped.export_state()
+
+
+def test_fresh_candidate_must_fit_before_export_and_fit_uses_sidecar(monkeypatch):
+    from carbon.battery import recipes
+    from carbon.battery.monotone_capacity import MonotoneCapacityCandidate
+
+    model = recipes.build("mlp", _model_with_fixed_weights(candidate=True).settings)
+    wrapped = MonotoneCapacityCandidate(model)
+    with pytest.raises(ValueError, match="candidate_layout_required"):
+        wrapped.export_state()
+
+    def fit():
+        model.layout = recipes.Layout(3, 3, bounded_v=False, predict_v0=True, fade=True)
+        return "fixture-fit"
+
+    monkeypatch.setattr(model, "fit", fit)
+    assert wrapped.fit() == "fixture-fit"
+    assert type(model.layout) is not Layout
+    np.testing.assert_allclose(
+        model.layout.split(model.layout.targets(_data([2, 1.8, 1.5])))[3],
+        [[2, 1.8, 1.5]],
+    )
+    assert recipes.Layout is Layout
