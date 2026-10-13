@@ -102,6 +102,13 @@ GRANT_ID = "OWNER-TEST-GRANT-01:pod-jobs"
 #: The code trees a job's module and its imports are taken from.
 CODE_TREES = ("carbon", "scripts")
 BOOTSTRAP = "scripts/dev/exam_design/runpod/bootstrap.py"
+#: The study image as RunPod is asked for it: a tag beside the pinned digest.
+#: RunPod did not start a CPU pod named by digest alone (the public-dev launcher,
+#: 2026-10-12; the first pod job's create, 2026-10-13). The digest is the pin.
+STUDY_IMAGE = (
+    "ghcr.io/carbonphysicsai/carbon-determinism-study:d0c19830d095"
+    "@sha256:2d19b261e722fe67f20bee02e115f2277a799c448b90d54d2872361b341bd940"
+)
 #: Placeholders a job's arguments may carry, filled on the pod by the phase.
 PLACEHOLDERS = ("{out}", "{root}", "{inputs}")
 #: Upload limits: one request through the pod proxy, and the job's total.
@@ -359,6 +366,25 @@ def ship_list(spec, repository=REPOSITORY):
     return list(dict.fromkeys(code + beside + named))
 
 
+def sleep_until(clock, sleep, *, rounds=100):
+    """`sleep(seconds)` that returns only once `clock` agrees the time has
+    passed (at most `rounds` top-ups). Under a slewed wall clock (WSL) a plain
+    `time.sleep` can wake a moment before `time.time()` reaches its end, which
+    made the operator layer stop an ambiguous create's reconcile gap as not
+    elapsed (2026-10-13)."""
+
+    def wait(seconds):
+        end = clock() + seconds
+        sleep(seconds)
+        for _ in range(rounds):
+            left = end - clock()
+            if left <= 0:
+                return
+            sleep(max(left, 0.01))
+
+    return wait
+
+
 # -- the pod backend ------------------------------------------------------------------------
 class JobPods(pods.RunPodPods):
     """Graphite's `RunPodPods` for one general job: its own campaign lane, ship
@@ -406,15 +432,16 @@ class JobPods(pods.RunPodPods):
         self.store = ComputeStore(root / "compute", clock=clock)
         if self.store.campaign_status(self.CAMPAIGN) is None:
             self.store.start_campaign(self.CAMPAIGN)
+        # Every wait the operator layer makes is a full wait on its own clock
+        # (`sleep_until`): an ambiguous create's reconcile gap is never cut short.
+        wait = sleep_until(clock, sleep)
         self.adapter = RunPodAdapter(
             FileCredentialProvider(Path(key_file)),
             transport or UrllibTransport(),
             clock=clock,
-            sleep=sleep,
+            sleep=wait,
         )
-        self.service = ComputeService(
-            self.store, self.adapter, clock=clock, sleep=sleep
-        )
+        self.service = ComputeService(self.store, self.adapter, clock=clock, sleep=wait)
         self._tokens = {}
         self.money = spec.economics()
         self.manifest = pods.code_manifest(
@@ -428,9 +455,13 @@ class JobPods(pods.RunPodPods):
         self.boot = boot[BOOTSTRAP].decode()
 
     def image(self):
-        return pods.pod_image(
-            "pytorch" if self.spec.document["image"] == "pytorch" else "jax"
-        )
+        if self.spec.document["image"] == "pytorch":
+            return pods.pod_image("pytorch")
+        pinned = pods.pod_image("jax")
+        # The same pinned digest as every other study pod, with its tag.
+        if pinned.split("@")[1] != STUDY_IMAGE.split("@")[1]:
+            raise PodFailure("launch", "study image digest changed", executed=False)
+        return STUDY_IMAGE
 
     def describe(self):
         compute = self.spec.document["compute"]
@@ -609,9 +640,12 @@ class JobPods(pods.RunPodPods):
                 retry_ambiguous=self.retry_ambiguous_create,
             )
         except ComputeError as failure:
+            # The provider's own HTTP status travels with the refusal, so an
+            # ambiguous create says what the provider answered.
+            status = failure.http_status
             raise PodFailure(
                 "launch",
-                failure.failed,
+                failure.failed + ("" if status is None else f" (HTTP {status})"),
                 executed=failure.execution is not Execution.NOT_EXECUTED,
             ) from None
         self._tokens[self.spec.job_id] = record["token"]
