@@ -563,7 +563,7 @@ def _gpu_arguments(device):
         "--runtime",
         "nvidia",
         "--gpus",
-        f"device={device}",
+        f"driver=nvidia,device={device}",
         "--label",
         f"carbon.accelerator.device={device}",
         "--env",
@@ -652,6 +652,7 @@ def _gpu_exactly(device, host, config):
         host.get("Runtime") == "nvidia"
         and len(requests) == 1
         and type(requests[0]) is dict
+        and requests[0].get("Driver") == "nvidia"
         and requests[0].get("DeviceIDs") == [device]
         and not requests[0].get("Count")
         and ["gpu"] in (requests[0].get("Capabilities") or [])
