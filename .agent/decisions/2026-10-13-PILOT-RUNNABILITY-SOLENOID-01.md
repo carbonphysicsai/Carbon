@@ -20,3 +20,9 @@ registrations, preserving existing routes. No Challenge runtime ID, launch
 family queue or native reference acceptance changes. Carbon Validator reviews
 the binding; Data Collection owns return assembly. Reject aliasing or silently
 lowering the buyer requirement. Existing generic judge and cost code are kept.
+
+The additive shared-trainer registry changes carbon_arm.py's byte identity,
+not the existing three kits' semantics. Rebind those three current partial
+readiness source pointers prospectively; keep all missing evidence and UNKNOWN
+states unchanged. The older pilot run-plan snapshot stays historical, while
+its test now asserts the new route is genuinely solenoid-specific.
