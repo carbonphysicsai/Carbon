@@ -1,0 +1,18 @@
+{
+ "schema": "carbon.readiness.runtime-review.v1",
+ "item": "R4",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "level": 4,
+ "decision": "PASS",
+ "reviewer": "Test Engineer",
+ "date": "2026-10-13",
+ "basis": "R4 output sizing for Level 4 lane G's Constructor (GRAPHITE-GRANT-L4-G-CONSTRUCTOR-3 only), on the frozen selection the gate builds: kimi-k3 on engy-chat, input window 1,048,576 (the registered rule: the recorded context 1,113,088 capped at SELECT_MAX_INPUT_TOKENS), output 2,048, charge reporting on. The output is the Constructor's registered default (roles._whole_context: DEFAULT_SETTINGS' 2,048; GRAPHITE-D34's table, which GRAPHITE-ATTACKER-STOP-RULE-01 keeps for the Constructor), below the recorded output maximum 131,072, and input + reserve 4,096 + output 2,048 fits the 1,113,088 context. Accepted as registered; lesson E3 (an output cap sized from use) stays OPEN. Not a spend, security or launch acceptance.",
+ "roles": {
+  "constructor": {
+   "grant_digest": "sha256:266ebbeafc4cf0fb6240a95b7834b9918e176fafe3d6e0bfc3c04b320eef5c02",
+   "model": "kimi-k3",
+   "max_output_tokens": 2048,
+   "sizing_rule": "the Constructor's registered default output (2,048, roles DEFAULT_SETTINGS), inside the context after the registered input window and the 4,096 reserve"
+  }
+ }
+}

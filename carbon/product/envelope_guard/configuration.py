@@ -18,7 +18,7 @@ from carbon.trust_map.core import MAP_SCHEMA
 CONTRACT_SCHEMA = "carbon.product.guard-contract.v2"
 ENVELOPE_SCHEMA = "carbon.product.guard-envelope.v1"
 POLICY_SCHEMA = "carbon.product.guard-policy.v2"
-REFERENCE_SCHEMA = "carbon.product.guard-reference.v2"
+REFERENCE_SCHEMA = "carbon.product.guard-reference.v3"
 PRIMITIVES = {"bound", "initial_condition", "prefix_invariance"}
 
 
@@ -283,15 +283,16 @@ def contract(raw, inputs):
     return value
 
 
-def reference(raw, image):
+def reference(raw, image, family):
     if raw is None:
-        return None
+        return None, None
     value = snapshot(raw)
     header(
         value,
         REFERENCE_SCHEMA,
         {
             "image_digest",
+            "criteria_digest",
             "code_verification_ref",
             "owner_acceptance_ref",
             "status",
@@ -299,6 +300,7 @@ def reference(raw, image):
         },
     )
     require(sha(value["image_digest"]) == image, "reference_image_mismatch")
+    sha(value["criteria_digest"])
     for key in ("code_verification_ref", "owner_acceptance_ref"):
         sha(value[key])
     require(
@@ -306,7 +308,10 @@ def reference(raw, image):
         "reference_status_invalid",
     )
     scope = value["acceptance_scope"]
-    closed(scope, {"family", "observables", "conditions"})
+    closed(
+        scope,
+        {"family", "observables", "verification_conditions", "application_conditions"},
+    )
     token(scope["family"])
     observables = scope["observables"]
     require(
@@ -318,16 +323,35 @@ def reference(raw, image):
     )
     for name in observables:
         token(name)
-    conditions = scope["conditions"]
-    require(
-        type(conditions) is dict and len(conditions) <= 16,
-        "acceptance_conditions_required",
-    )
-    for name, required_value in conditions.items():
-        token(name)
-        if required_value is not None:
-            conditions[name] = number(required_value)
-    return value
+    for field in ("verification_conditions", "application_conditions"):
+        conditions = scope[field]
+        require(
+            type(conditions) is dict and len(conditions) <= 16,
+            "acceptance_conditions_required",
+        )
+        for name, required_value in conditions.items():
+            token(name)
+            if required_value is not None:
+                conditions[name] = number(required_value)
+    accepted = None
+    if value["status"] == "READY":
+        require(scope["family"] == family, "reference_acceptance_family_mismatch")
+        try:
+            accepted = load_acceptance(family, image, value["criteria_digest"])
+        except AcceptanceRefused:
+            raise GuardConfigurationError(
+                "reference_verification_unavailable"
+            ) from None
+        require(
+            scope["family"] == accepted["family"]
+            and scope["verification_conditions"] == accepted["conditions"],
+            "reference_verification_scope_mismatch",
+        )
+        require(
+            value["code_verification_ref"] == accepted["link_digest"],
+            "reference_verification_link_mismatch",
+        )
+    return value, accepted
 
 
 def native_map(raw, model_id, image, inputs, outputs):
