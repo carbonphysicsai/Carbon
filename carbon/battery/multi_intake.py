@@ -46,6 +46,7 @@ def _cached(root, target, epoch):
         or found.get("schema") != "carbon.battery.permitted-feedback.v1"
         or type(found.get("epoch")) is not int
         or found.get("epoch") != epoch
+        or type(found.get("via")) is not dict
         or found.get("via", {}).get("intake") != target["intake_url"]
         or type(found.get("outcome")) is not dict
         or found["outcome"].get("state") not in VERDICT_STATES
@@ -135,10 +136,29 @@ async def evaluate(prepared, epoch, record, targets):
             )
         except OperationRefused as refused:
             return _row(target, code=campaign.intake_code(refused.code))
-        _write(_result_path(root, target, epoch), feedback)
+        try:
+            _write(_result_path(root, target, epoch), feedback)
+        except OSError:
+            return _row(target, code="evaluation_failed_infra")
+        except (ValueError, TypeError, KeyError, AttributeError):
+            return _row(target, code="intake_answer_unrecognised")
         return _row(target, feedback)
 
-    rows = await asyncio.gather(*(one(target) for target in targets))
+    rows = [
+        {**target, "feedback": None, "state": "PENDING", "code": None}
+        for target in targets
+    ]
+    aggregate(root, epoch, rows)
+
+    async def publishing(index, target):
+        rows[index] = await one(target)
+        # Runs on this event loop: a finished peer is visible while another
+        # trip is still waiting. No score is selected from the partial set.
+        aggregate(root, epoch, rows)
+
+    await asyncio.gather(
+        *(publishing(index, target) for index, target in enumerate(targets))
+    )
     return _finish(root, epoch, rows)
 
 
@@ -146,13 +166,13 @@ def queued(
     args, root, epoch, connect, targets, *, now=None, read=None, post=None, floor=None
 ):
     """Read each recorded target once with the retained receiver/floor/tempo guards."""
-    import time
     import http.client
+    import time
 
     from carbon.battery import campaign, intake_client
     from carbon.battery import remote_submission as rs
-    from carbon.development_session.research_campaign import OperationRefused
     from carbon.chain.external_signer import SignerFailure
+    from carbon.development_session.research_campaign import OperationRefused
 
     rows, signer = [], None
     for target in validate(targets):

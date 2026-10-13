@@ -3228,6 +3228,7 @@ class RunnerAdapter:
             REGISTRY,
             Dimension,
         )
+        from scripts.dev.miner_launchpad.construction_options import for_profile
 
         # The gate established whose profile this is; its content is read here.
         cfg = self.configured()
@@ -3248,6 +3249,7 @@ class RunnerAdapter:
 
         return {
             "schema": "carbon.launchpad.launch-options.v1",
+            "construction_options": for_profile(cfg, self.read_intake_facts),
             # Graphite replaced the autonomous agent for new launches
             # (OWNER-GRAPHITE-MINER-01): it is not offered, and a launch
             # naming it is refused `autonomous_agent_replaced`.
@@ -3357,7 +3359,26 @@ class RunnerAdapter:
         from carbon.development_session.design_check import check_design
 
         try:
+            from carbon.reconstruction.capability_registry import BATTERY_CHALLENGE
+
+            if (
+                type(strategy) is dict
+                and strategy.get("challenge_id") == BATTERY_CHALLENGE
+            ):
+                from carbon.battery.unified_contract import contract
+                from carbon.development_session.unified_construction import classify
+
+                classified = classify(strategy, contract())
+                # Keep the existing base contract's check-design vocabulary;
+                # the new guard owns construction widening, not a silent
+                # migration of historical/base validation semantics.
+                if classified["refusal"] is not None and classified[
+                    "refusal"
+                ].startswith("construction_"):
+                    raise stepped(classified["refusal"], classified["reason"])
             verdict = check_design({"strategy": strategy})
+        except Rejected:
+            raise
         except ValueError:
             raise Rejected("design_malformed") from None
         if verdict["verdict"] != "submittable":

@@ -599,8 +599,6 @@ OPERATIONS = {
                     "plan",
                     "hunt",
                     "limits",
-                    "construction_level",
-                    "arm",
                 }
             ),
             ("request", "profile", "replay", "registration"),
@@ -609,7 +607,9 @@ OPERATIONS = {
             "options",
             "Every launch-time choice with its true availability now: who "
             "selects, each model family's registry verdict, and the research "
-            "lanes this host has. Reads only.",
+            "lanes this host has; construction_options lists every registered "
+            "change with Available or Coming soon and a plain reason. "
+            "New launches never pick a construction level. Reads only.",
             frozenset(),
             frozenset(),
             ("request", "profile"),

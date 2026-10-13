@@ -222,15 +222,19 @@ def _multi_validator_outcome(epoch, path):
                     {**target, "state": row["state"], "result": found["result"]}
                 )
             else:
-                if row["state"] not in {"REFUSED", "FAILED_INFRA", "QUEUED"}:
+                if row["state"] not in {"REFUSED", "FAILED_INFRA", "QUEUED", "PENDING"}:
                     return None
-                code = intake_code(row["code"])
+                code = None if row["state"] == "PENDING" else intake_code(row["code"])
                 projected.append(
                     {
                         **target,
                         "state": row["state"],
                         "code": code,
-                        "next_step": next_action(code),
+                        "next_step": (
+                            "Waiting for this validator's trip to finish."
+                            if code is None
+                            else next_action(code)
+                        ),
                         "result": None,
                     }
                 )

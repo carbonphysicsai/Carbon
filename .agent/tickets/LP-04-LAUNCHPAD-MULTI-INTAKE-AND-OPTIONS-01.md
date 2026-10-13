@@ -38,9 +38,13 @@ operation, so the page and agent read the same data. Registered public change
 types retain owner ceiling, opening/check status and reasons; an absent public
 contract or undecided ceiling is explicit and closed. Do not infer an approved
 ceiling from hoped-for Level 4. Remove level picking on the unified path only
-when the shared classifier and served public unified contract are available;
-the current PLT-16 PR #1276 is a dependency, not permission to stack or copy its
-library. No compiler enters the miner import closure. Historical level-bound
+when the shared classifier is available, as the queue directs. PLT-16 #1276
+landed during this work and was synced from main for that actual dependency.
+New launch schemas remove construction_level/arm now; changed constructions
+stay closed without the required ceiling/opening/checks/serving facts. The
+initial stricter assumption that UI removal would await a served unified path
+was superseded prospectively by the queue's explicit classifier timing. No
+compiler enters the miner import closure. Historical level-bound
 campaigns keep their interpretation until their registered migration.
 
 1. Canonical baseline for setup, remote submissions, runner/projection/levels.
@@ -56,3 +60,20 @@ Maturity ceiling: implemented/tested DEVELOPMENT controls, never deployed,
 security-qualified, scientifically qualified or LIVE. Primary historical
 map_ref WAVE-A/A9; affects NET-2 authenticated ingress and miner disclosure.
 Hub maintenance is retired by current delivery authority; no regeneration.
+
+Baseline: 130 canonical tests passed. The first multi-validator slice passed
+148 tests, including 18 new pair/journal/receiver/failure/projection tests.
+The new profile field intake_targets holds closed URL/receiver pairs, bounded
+to 32 validators per Challenge as a configuration resource limit. A prospective
+multi feedback schema reports execution states and individual outcomes, never
+a combined scientific score. The old single-target path remains byte-compatible.
+The schema-parity regression changes its expected launch fields for the owner's
+explicit no-level migration; its parity and historical freeze checks remain.
+
+Final local acceptance: 178 focused construction/setup/transport/history tests
+and 812 broader Launchpad/MCP/intake/invariant tests passed without skips.
+After live peer-progress/cache/read-poll guards, 81 directly affected tests
+passed, including 32 new LP-04 tests. Pinned Black 26.5.1/Ruff 0.16.3 passed.
+New fixture failures were repaired to the existing OWNER-prefix and exact
+registration-digest format; no contract guard or pin was relaxed. Dynamic
+exact-head CI and handoff facts belong in the external/local queue report.

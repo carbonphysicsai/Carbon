@@ -266,3 +266,198 @@ def test_projection_uses_allow_list_and_refuses_result_identity_drift(tmp_path, 
     document["epoch"] = 99
     path.write_text(json.dumps(document), encoding="utf-8")
     assert projection._multi_validator_outcome(1, status) is None
+
+
+def test_review_writes_every_published_validator_and_reuses_legacy_primary_fields(
+    tmp_path, monkeypatch
+):
+    from test_miner_launchpad_environment_setup import Checks, Onboarding, completed
+
+    root = tmp_path / "state"
+    root.mkdir(mode=0o700)
+    environment = setup.EnvironmentSetup(root, onboarding=Onboarding(), checks=Checks())
+    completed(tmp_path, environment)
+    entry = {**PAIRS[0], "validators": list(PAIRS)}
+    monkeypatch.setattr(
+        setup,
+        "published_endpoints",
+        lambda: {"endpoints": {CHALLENGE: entry}, "problem": None},
+    )
+    environment.review({"confirm": True})
+    cfg = runner.validated_profile(json.loads(environment.profile_path.read_bytes()))
+    assert cfg["intake_targets"][CHALLENGE] == PAIRS
+    assert cfg["intakes"][CHALLENGE] == PAIRS[0]["intake_url"]
+    assert cfg["receivers"][CHALLENGE] == PAIRS[0]["receiver_hotkey"]
+    assert (
+        environment._evaluation(environment._record())["challenges"][0]["validators"]
+        == PAIRS
+    )
+
+
+def test_review_checks_each_own_receiver_and_preserves_the_list_for_reinstall(
+    tmp_path, monkeypatch
+):
+    from test_miner_launchpad_environment_setup import Checks, Onboarding, completed
+
+    calls = []
+
+    def read(self, url, campaign=None):
+        assert campaign.intake_check is not None
+        calls.append(url)
+        return {
+            "receiver": next(
+                pair["receiver_hotkey"] for pair in PAIRS if pair["intake_url"] == url
+            )
+        }
+
+    monkeypatch.setattr(Checks, "intake", read, raising=False)
+    monkeypatch.setattr(
+        setup, "published_endpoints", lambda: {"endpoints": {}, "problem": None}
+    )
+    root = tmp_path / "state"
+    root.mkdir(mode=0o700)
+    environment = setup.EnvironmentSetup(root, onboarding=Onboarding(), checks=Checks())
+    completed(tmp_path, environment)
+    environment.review({"confirm": True, "intake_targets": {CHALLENGE: PAIRS}})
+    assert calls == [pair["intake_url"] for pair in PAIRS]
+    assert environment._own_target_lists(environment._record()) == {CHALLENGE: PAIRS}
+    environment.review(
+        {
+            "confirm": True,
+            "intakes": {CHALLENGE: PAIRS[0]["intake_url"]},
+            "receiver_hotkey": PAIRS[0]["receiver_hotkey"],
+        }
+    )
+    assert "intake_targets" not in json.loads(environment.profile_path.read_bytes())
+
+
+def test_observe_reads_only_due_targets_without_signing_another_submission(
+    tmp_path, wire, monkeypatch
+):
+    wire.states[PAIRS[0]["intake_url"]] = "ADMITTED"
+    context = prepared(tmp_path)
+    with pytest.raises(OperationRefused):
+        asyncio.run(campaign.evaluate_candidate(context, 1, RECORD))
+    reads, connects = [], []
+    answer = [None]
+
+    def read_once(url, signer, **kwargs):
+        reads.append((url, kwargs))
+        assert kwargs["receiver"] == PAIRS[0]["receiver_hotkey"]
+        assert kwargs["once_per_tempo"] is True
+        return answer[0]
+
+    monkeypatch.setattr(rs, "read_status_once", read_once)
+
+    def connect():
+        connects.append(True)
+        return "fixture-read-only-signer"
+
+    sent = list(wire.sent)
+    assert (
+        multi_intake.queued(
+            context.args, tmp_path, 1, connect, PAIRS, now=1000, floor=100
+        )
+        is None
+    )
+    assert (
+        multi_intake.queued(
+            context.args, tmp_path, 1, connect, PAIRS, now=1050, floor=100
+        )
+        is None
+    )
+    assert len(reads) == len(connects) == 1
+    answer[0] = (
+        200,
+        {"state": "SCORED", "submission_id": "sub-0", "evidence": "DEVELOPMENT"},
+        "sub-0",
+    )
+    finished = multi_intake.queued(
+        context.args, tmp_path, 1, connect, PAIRS, now=1150, floor=100
+    )
+    assert all(row["state"] == "SCORED" for row in finished["validators"])
+    assert wire.sent == sent
+
+
+def test_malformed_cached_result_does_not_block_another_validator(tmp_path, wire):
+    context = prepared(tmp_path)
+    asyncio.run(campaign.evaluate_candidate(context, 1, RECORD))
+    path = multi_intake._result_path(tmp_path, PAIRS[0], 1)
+    path.write_text(
+        json.dumps(
+            {
+                "schema": "carbon.battery.permitted-feedback.v1",
+                "epoch": 1,
+                "via": None,
+                "outcome": {"state": "SCORED"},
+            }
+        ),
+        encoding="utf-8",
+    )
+    again = asyncio.run(campaign.evaluate_candidate(context, 1, RECORD))
+    assert again["validators"][0]["code"] == "intake_answer_unrecognised"
+    assert again["validators"][1]["state"] == "SCORED"
+
+
+def test_a_finished_peer_is_visible_while_another_trip_is_waiting(
+    tmp_path, monkeypatch
+):
+    async def scenario():
+        release = asyncio.Event()
+        finished = asyncio.Event()
+
+        async def trip(prepared, epoch, record, url, *, submission_root=None):
+            if url == PAIRS[0]["intake_url"]:
+                await release.wait()
+            else:
+                finished.set()
+            return campaign.intake_feedback(
+                epoch,
+                url,
+                200,
+                {
+                    "state": "SCORED",
+                    "submission_id": "fixture-sub",
+                    "evidence": "DEVELOPMENT",
+                },
+                "fixture-sub",
+            )
+
+        monkeypatch.setattr(campaign, "_evaluate_through_intake", trip)
+        task = asyncio.create_task(
+            campaign.evaluate_candidate(prepared(tmp_path), 1, RECORD)
+        )
+        await finished.wait()
+        await asyncio.sleep(0)
+        shown = projection._multi_validator_outcome(
+            1, tmp_path / "epoch-1" / multi_intake.STATUS_NAME
+        )
+        assert [row["state"] for row in shown["validators"]] == ["PENDING", "SCORED"]
+        assert not task.done()
+        release.set()
+        await task
+
+    asyncio.run(scenario())
+
+
+def test_one_commitment_gate_precedes_every_target_send(tmp_path, wire, monkeypatch):
+    gates = []
+
+    async def committed(
+        gate, root, epoch, record, manifest, *, request, recommit=False
+    ):
+        gates.append((record["strategy"], manifest["contract_digest"]))
+        assert request is False and recommit is False
+
+    original_sign = wire.sign
+
+    def sign(signer, facts, body):
+        assert len(gates) == 1
+        return original_sign(signer, facts, body)
+
+    monkeypatch.setattr(campaign, "_committed", committed)
+    monkeypatch.setattr(rs, "_signed", sign)
+    context = prepared(tmp_path)
+    context.args.commitment_gate = object()
+    asyncio.run(campaign.evaluate_candidate(context, 1, RECORD))
+    assert gates == [(RECORD["strategy"], DIGEST)]
