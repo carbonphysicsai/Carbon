@@ -1,0 +1,68 @@
+{
+  "basis": "PUBLIC_D3_DEVELOPMENT_ONLY",
+  "draft_feasible_lost_under_v2": 46,
+  "lost_with_40_80_160_rungs": 6,
+  "lost_without_mesh80": 40,
+  "mesh160_pending": 103,
+  "mesh160_solved": 669,
+  "mesh320": {
+    "achievable_band_mv": null,
+    "approved_cost": null,
+    "measured_cpu_h": null,
+    "memory_requirement": "UNMEASURED; mesh160 reached about 6.3 GB and mesh320 ran out of memory",
+    "recovered_of_46": null,
+    "successful_public_rungs": 0
+  },
+  "owner_decision": "HUMAN_INPUT: reference method, route, spend and v3 band",
+  "public_source_sha256": {
+    "labels-v2-r1.json": "cac1e23001c227d9221653b2a90cee4755f62ca06fec58305d11cb9cba510069",
+    "labels.json": "dc1566085226710ed2c729ddc3e77bd5817142b6a12e0f9aa3b04c4c9609fbc6",
+    "records.jsonl": "ef8c6260b866a106aa88351079e1789b653e652630e996bfb19ae863cab2bc02"
+  },
+  "richardson": {
+    "achievable_band_mv": null,
+    "additional_mesh80_if_pending_103_solved": 103,
+    "additional_mesh80_needed_for_solved": 602,
+    "approved_cost": null,
+    "cost_basis": "67 public mesh80 CPU records; extrapolated arithmetic, not a Data Collection estimate or approval",
+    "indicative_additional_mesh80_cpu_h_all": 10.200023009950248,
+    "indicative_additional_mesh80_cpu_h_solved": 8.70980688225539,
+    "max_extrapolate_interval_width_mv_in_67": 0.7824429100251995,
+    "measured_mesh80_cpu_h_in_67": 0.969363888888889,
+    "measured_mesh80_mean_cpu_s_in_67": 52.08522388059701,
+    "observed_order_max": 1.3815126973532417,
+    "observed_order_min": 0.4677826217948615,
+    "recovered_of_46": null,
+    "sensitivity": [
+      {
+        "assumed_extrapolated_band_mv": 0.1,
+        "full_46_recovered": null,
+        "sample_lost_recovered_at_observed_order": 6,
+        "sample_lost_recovered_at_worst_observed_order": 4
+      },
+      {
+        "assumed_extrapolated_band_mv": 0.2,
+        "full_46_recovered": null,
+        "sample_lost_recovered_at_observed_order": 6,
+        "sample_lost_recovered_at_worst_observed_order": 3
+      },
+      {
+        "assumed_extrapolated_band_mv": 0.4,
+        "full_46_recovered": null,
+        "sample_lost_recovered_at_observed_order": 6,
+        "sample_lost_recovered_at_worst_observed_order": 2
+      }
+    ]
+  },
+  "schema": "carbon.dev.plating-band-v3-options.v1",
+  "source_counts": {
+    "ev4": 77,
+    "pdd": 695
+  },
+  "status": "INSUFFICIENT_EVIDENCE_FOR_V3_BAND",
+  "v2_label_counts": {
+    "FEASIBLE": 114,
+    "INFEASIBLE": 447,
+    "UNRESOLVED": 211
+  }
+}
