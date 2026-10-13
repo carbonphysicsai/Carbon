@@ -442,7 +442,9 @@ def measure(data, analysis, inherited):
                 np.sum((margin > 0) & (values[:real] > 0))
             ),
             "no_member_beats_cheap_point": bool(np.all(margin <= 0)),
-            "paired_CI95_lower_positive": int(np.sum(lower > 0)),
+            "paired_CI95_lower_positive": (
+                int(np.sum(lower > 0)) if len(set(blocks)) >= 2 else None
+            ),
             "paired_CI_available": len(set(blocks)) >= 2,
             "paired_test_pass": int(passed.sum()),
             "bonferroni_round_test_pass": int(

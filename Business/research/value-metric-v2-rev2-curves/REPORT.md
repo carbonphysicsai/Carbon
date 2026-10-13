@@ -126,8 +126,9 @@ anchor are in WORKING_CONTRACT and results.json. There are 25 one-factor
 profiles plus 60 nominal/shifted/union k×κ profiles, including repeated anchors.
 
 **No real member beats the fixed cheap arm at any of the 60 nonempty joint
-settings.** There are zero positive paired lower bounds and zero illustrative
-test passes. At the display anchor, the union cheap U is **7.06555** historical
+settings.** Profiles with available intervals have zero positive paired lower
+bounds; singleton shifted intervals/counts are null, not zero. There are zero
+illustrative test passes. At the display anchor, the union cheap U is **7.06555** historical
 benefit units; **37** real members tie it exactly and none exceed it. All union
 real members have positive U. Always-abstain ranks **101/101** in all union
 joint settings; shifted k=1 can put it **98/101**. Neither rank is an adoption

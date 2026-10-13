@@ -78,6 +78,7 @@ class Rev2ContractTests(unittest.TestCase):
         for row in data["profiles"]:
             if row["n"] == 1:
                 self.assertFalse(row["paired_CI_available"])
+                self.assertIsNone(row["paired_CI95_lower_positive"])
                 self.assertTrue(
                     all(m["paired_CI95"] is None for m in row["per_member"])
                 )
