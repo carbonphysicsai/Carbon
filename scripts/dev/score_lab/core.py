@@ -236,20 +236,16 @@ def analyze(panel, rule, *, bootstrap=200, seed=20261013):
             "reason": "unscored_primary_members",
             "count": len(missing),
         }
-    finite = [s for s in scores.values() if s is not None]
-    floor = min(finite) - max(1.0, max(finite) - min(finite) + 1.0)
     # FLOOR is lexicographic: every lower tier outranks every higher tier,
-    # while the candidate's own score orders members inside each tier.
-    finite_tiers = sorted({tiers[m] for m in names if scores[m] is not None})
-    span = max(finite) - min(finite) + 1.0
-    ranked_scores = {
-        m: (
-            floor - span
-            if s is None or not admissibility[m]
-            else s - (finite_tiers.index(tiers[m]) * span)
-        )
+    # while the candidate's own score orders members inside each tier. Dense
+    # ordinal ranks avoid numerical overflow and keep every gate failure below
+    # even the worst finite tier; all gate failures remain tied.
+    keys = {
+        m: (1, -tiers[m], s) if s is not None and admissibility[m] else (0, 0, 0.0)
         for m, s in scores.items()
     }
+    levels = {key: float(i) for i, key in enumerate(sorted(set(keys.values())))}
+    ranked_scores = {m: levels[keys[m]] for m in names}
     boot = score_proof.bootstrap(
         ranked_scores,
         {},
@@ -262,7 +258,7 @@ def analyze(panel, rule, *, bootstrap=200, seed=20261013):
     tau = score_proof._tau(ranked_scores, {m: -v for m, v in values.items()}, primary)
     ranked_primary = sorted(primary, key=lambda m: (-ranked_scores[m], m))
     ranked_all = sorted(names, key=lambda m: (-ranked_scores[m], m))
-    top1 = next((m for m in ranked_primary if admissibility[m]), None)
+    top1 = next((m for m in ranked_primary if admissibility[m] and tiers[m] == 0), None)
     best = max(values[m] for m in primary)
     oracle = panel.get("exact_oracle_losses")
     exact_best = (
@@ -310,6 +306,7 @@ def analyze(panel, rule, *, bootstrap=200, seed=20261013):
         "always_abstain_rank": probe_ranks.get("control-always-abstain"),
         "cheap_baseline_rank": probe_ranks.get("control-bilinear"),
         "admissibility_failures": sum(not admissibility[m] for m in names),
+        "physics_floor_failures": sum(admissibility[m] and tiers[m] > 0 for m in names),
         "admissibility": admissibility,
         "physics_tiers": {m: tiers[m] for m in names},
         "ranked_scores": ranked_scores,

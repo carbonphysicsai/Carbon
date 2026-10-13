@@ -401,6 +401,33 @@ def test_candidate_adapter_passes_score_only_physics_and_preserves_floor_tier():
     )
 
 
+def test_floor_rank_is_lexicographic_and_gate_failures_stay_last():
+    panel = synthetic.build(_config())
+    for i, member in enumerate(panel["members"]):
+        member["score_metadata"] = {
+            "toy_tier": i % 4,
+            "toy_gate": i == 3,
+            "toy_score": 1e100 if i % 4 == 3 else float(i),
+        }
+
+    def rule(_predictions, _references, metadata):
+        return {
+            "score": metadata["toy_score"],
+            "admissible": not metadata["toy_gate"],
+            "tier": metadata["toy_tier"],
+        }
+
+    result = analyze(panel, rule, bootstrap=3)
+    names = [member["id"] for member in panel["members"]]
+    ranks = result["ranked_scores"]
+    assert ranks[names[0]] > ranks[names[1]] > ranks[names[2]]
+    assert ranks[names[2]] > ranks[names[3]]
+    assert result["physics_floor_failures"] > 0
+    for member in panel["members"]:
+        member["score_metadata"]["toy_tier"] += 1
+    assert analyze(panel, rule, bootstrap=3)["top1_member"] is None
+
+
 def test_physics_switches_and_sensitivity_remain_assumptions():
     config = _physics_config()
     config["sensitivity"] = {"neighbourhood.size": [0.16]}
