@@ -139,6 +139,8 @@ def check(
         # objective aggregation needs an explicit adapter, never an implicit
         # reinterpretation of its buyer job.
         raise LabRefused("bank_objective_aggregation_unsupported")
+    if manifest.get("objective_sense") != "minimize":
+        raise LabRefused("bank_objective_sense_unsupported")
     declared = manifest.get("neighbour_declarations")
     if not isinstance(declared, list) or any(
         not isinstance(item, dict) or not item.get("id") for item in declared

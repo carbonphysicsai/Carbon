@@ -27,6 +27,8 @@ def _fixture():
             "margin_quantity": "toy_margin",
             "margin_unit": "toy_unit",
             "margin_window": [-0.002, 0.003],
+            "fine_rung": "toy-fine",
+            "trigger_rung": "toy-trigger",
             "fine_cpu_s": 100,
             "fine_wall_s": 50,
             "trigger_fraction": 0.1,
@@ -79,6 +81,17 @@ def _fixture():
         "draws_digest": bank_builder.digest(draws),
         "split_seed_commitment": _sha("split"),
         "objective_aggregation": "worst_case",
+        "objective_sense": "minimize",
+        "reference_status_rule": {
+            "id": "toy-reference",
+            "margin_quantity": "toy_margin",
+            "margin_unit": "toy_unit",
+            "coarse_rung": "toy-coarse",
+            "feasible_direction": "positive",
+            "fine_rung": "toy-fine",
+            "coarse_window": [-0.002, 0.003],
+            "bands": {"toy-coarse": [-0.002, 0.003], "toy-fine": [0.0, 0.002]},
+        },
         "train_separation": {"status": "PASS", "evidence_digest": _sha("TRAIN")},
         "cheap_arm_registration": {
             "status": "FROZEN_BEFORE_DRAW",
@@ -130,6 +143,11 @@ def _solved(planned):
                                 "overlay_lock_digest"
                             ],
                             "margins": {"toy_margin": 0.1},
+                            "coarse_margin": 0.1,
+                            "reference_rule_id": "toy-reference",
+                            "rung": "toy-coarse",
+                            "band": [-0.002, 0.003],
+                            "band_unit": "toy_unit",
                         }
                         for c in q["conditions"]
                     ]
@@ -255,6 +273,13 @@ def test_plan_refuses_unregistered_draws_and_insufficient_blocks():
         bank_builder.plan(
             changed, q_draws, definition_bytes=definition, split_seed="split"
         )
+    with pytest.raises(LabRefused, match="bank_objective_sense_unsupported"):
+        bank_builder.plan(
+            {**registration, "objective_sense": "maximize"},
+            draws,
+            definition_bytes=definition,
+            split_seed="split",
+        )
     overlap = json.loads(json.dumps(draws))
     for row in overlap["contexts"]:
         if row["block_id"] == "block-1":
@@ -302,6 +327,40 @@ def test_solved_checker_keeps_confirmation_values_out_of_report():
     first["job_id"] = _sha("wrong_job")
     with pytest.raises(LabRefused, match="bank_solved_reference_record"):
         _check(planned, broken, definition_bytes=definition)
+
+
+def test_registered_rung_and_band_keep_coarse_in_window_decisions_unresolved():
+    definition, registration, draws, _policy = _fixture()
+    planned = bank_builder.plan(
+        registration, draws, definition_bytes=definition, split_seed="split"
+    )
+    records = _solved(planned)
+    cell = records[0]["actions"]["a"][0]
+    cell["coarse_margin"] = 0.0
+    with pytest.raises(LabRefused, match="bank_reference_coarse_margin"):
+        _check(planned, records, definition_bytes=definition)
+    cell["margins"]["toy_margin"] = 0.0
+    with pytest.raises(LabRefused, match="bank_in_window_unresolved_required"):
+        _check(planned, records, definition_bytes=definition)
+    cell["status"] = "UNRESOLVED"
+    records[0]["class"] = "INCOMPLETE"
+    result = _check(planned, records, definition_bytes=definition)
+    assert (
+        sum(rows.get("INCOMPLETE", 0) for rows in result["class_counts"].values()) == 1
+    )
+    cell["band"] = [0.0, 0.002]
+    with pytest.raises(LabRefused, match="bank_reference_rung_band"):
+        _check(planned, records, definition_bytes=definition)
+    fresh = _solved(planned)
+    fine = fresh[0]["actions"]["a"][0]
+    fine.update(
+        rung="toy-fine",
+        band=[0.0, 0.002],
+        coarse_margin=0.0,
+        margins={"toy_margin": 0.001},
+    )
+    with pytest.raises(LabRefused, match="bank_reference_band_status"):
+        _check(planned, fresh, definition_bytes=definition)
     broken = _solved(planned)
     match = next(
         r
@@ -490,6 +549,7 @@ def test_producer_cli_writes_jobs_but_prints_only_aggregates(tmp_path, capsys):
     (tmp_path / "definition.json").write_bytes(definition)
     (tmp_path / "seed.txt").write_text("split\n", encoding="utf-8")
     planned = tmp_path / "plan.json"
+    launcher = tmp_path / "launcher-jobs.json"
     assert (
         main(
             [
@@ -504,11 +564,18 @@ def test_producer_cli_writes_jobs_but_prints_only_aggregates(tmp_path, capsys):
                 str(tmp_path / "seed.txt"),
                 "--out",
                 str(planned),
+                "--jobs-out",
+                str(launcher),
             ]
         )
         == 0
     )
     assert len(json.loads(planned.read_text(encoding="utf-8"))["jobs"]) == 16
+    launcher_rows = json.loads(launcher.read_text(encoding="utf-8"))
+    assert launcher_rows["scope"] == "PRODUCER_WORKER_ONLY"
+    assert len(launcher_rows["jobs"]) == 16
+    assert "half" not in json.dumps(launcher_rows)
+    assert "question_id" not in json.dumps(launcher_rows)
     assert "q-0" not in capsys.readouterr().out
     records = tmp_path / "records.jsonl"
     records.write_text(

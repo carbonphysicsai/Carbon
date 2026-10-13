@@ -27,3 +27,11 @@ condition, rather than an invented zero-INCOMPLETE rule, governs bank size.
 The reference-policy digest identifies the physical resolve rule; a separate
 cost-policy digest identifies measured time and refinement accounting. The
 cost file must name the reference policy it prices.
+The objective sense and signed margin direction are explicit in the
+registration. This version supports minimized worst-case objectives and a
+positive-feasible margin only; other senses/directions refuse. A registered
+coarse/fine band and window are checked against each settled condition, with
+in-window coarse cases held UNRESOLVED until the fine rung. The full plan stays
+on the producer; the separate launcher projection omits question IDs and
+development/confirmation assignment. Whether protected confirmation contexts
+may leave the producer is the owner's custody decision, not made here.

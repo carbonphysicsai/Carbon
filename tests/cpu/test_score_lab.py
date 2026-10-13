@@ -248,6 +248,7 @@ def _bank_fixture():
         "mms_acceptance_digest": "sha256:mms",
         "train_separation": "PASS",
         "objective_aggregation": "worst_case",  # registered toy law
+        "objective_sense": "minimize",
         "neighbour_declarations": [{"id": "slightly-warmer"}],
         "cheap_arm_registration": {
             "status": "FROZEN_BEFORE_DRAW",
@@ -405,6 +406,25 @@ def test_bank_fallback_with_known_breach_is_rescue_even_if_another_condition_is_
         "actions": {**question["actions"], "b": [breached, unresolved]},
     }
     assert bank.classify(mixed) == ("RESCUE", False)
+
+
+def test_bank_refuses_maximize_law_before_classifying_better_unresolved_action():
+    definition, manifest, records, _cheap, _model = _bank_fixture()
+    uncertain = {
+        **records[0]["actions"]["a"][0],
+        "status": "UNRESOLVED",
+        "objective": 2.0,  # better than fallback for a maximizing buyer
+    }
+    question = {
+        **records[0],
+        "actions": {**records[0]["actions"], "c": [uncertain]},
+    }
+    with pytest.raises(LabRefused, match="bank_objective_sense_unsupported"):
+        bank.check(
+            {**manifest, "objective_sense": "maximize"},
+            [question],
+            definition_bytes=definition,
+        )
 
 
 def test_public_ev4_adapter_rejects_unpinned_reference(tmp_path):

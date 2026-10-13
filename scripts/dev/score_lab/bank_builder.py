@@ -20,6 +20,7 @@ SCHEMA = "carbon.value-v2.bank-plan.v1"
 REGISTRATION = "carbon.value-v2.bank-registration.v1"
 DRAWS = "carbon.value-v2.question-draws.v1"
 COST = "carbon.value-v2.reference-cost.v1"
+JOBS = "carbon.value-v2.launcher-jobs.v1"
 STATUSES = frozenset({"FEASIBLE", "INFEASIBLE", "UNRESOLVED", "FAILED_REFERENCE"})
 
 
@@ -46,6 +47,51 @@ def _token(value):
 
 def _positive(value):
     return type(value) in (int, float) and math.isfinite(value) and value > 0
+
+
+def _reference_status_rule(value):
+    """Validate the registered rung and band contract, without choosing it."""
+    fields = {
+        "id",
+        "margin_quantity",
+        "margin_unit",
+        "coarse_rung",
+        "fine_rung",
+        "coarse_window",
+        "feasible_direction",
+        "bands",
+    }
+    if (
+        not isinstance(value, dict)
+        or set(value) != fields
+        or any(
+            not _token(value.get(key))
+            for key in ("id", "margin_quantity", "margin_unit", "coarse_rung")
+        )
+    ):
+        raise LabRefused("bank_reference_status_rule")
+    if value.get("feasible_direction") != "positive":
+        raise LabRefused("bank_reference_status_rule")
+    fine = value["fine_rung"]
+    window = value["coarse_window"]
+    if (fine is None) != (window is None) or (fine is not None and not _token(fine)):
+        raise LabRefused("bank_reference_status_rule")
+    expected_rungs = {value["coarse_rung"]} | ({fine} if fine is not None else set())
+    if (
+        len(expected_rungs) != (2 if fine is not None else 1)
+        or not isinstance(value["bands"], dict)
+        or set(value["bands"]) != expected_rungs
+    ):
+        raise LabRefused("bank_reference_status_rule")
+    for band in [*value["bands"].values(), *([window] if window is not None else [])]:
+        if (
+            not isinstance(band, list)
+            or len(band) != 2
+            or any(type(v) not in (int, float) or not math.isfinite(v) for v in band)
+            or band[0] >= band[1]
+        ):
+            raise LabRefused("bank_reference_status_rule")
+    return value
 
 
 def plan(registration, draws, *, definition_bytes, split_seed):
@@ -102,6 +148,9 @@ def plan(registration, draws, *, definition_bytes, split_seed):
         raise LabRefused("bank_split_seed_commitment")
     if registration.get("objective_aggregation") != "worst_case":
         raise LabRefused("bank_objective_aggregation_unsupported")
+    if registration.get("objective_sense") != "minimize":
+        raise LabRefused("bank_objective_sense_unsupported")
+    _reference_status_rule(registration.get("reference_status_rule"))
     separation = registration.get("train_separation")
     if (
         not isinstance(separation, dict)
@@ -247,6 +296,8 @@ def plan(registration, draws, *, definition_bytes, split_seed):
             "block_independence_digest",
             "cheap_arm_registration",
             "objective_aggregation",
+            "objective_sense",
+            "reference_status_rule",
             "neighbour_declarations",
         )
     }
@@ -290,6 +341,26 @@ def _require_registered_plan(
         raise LabRefused("bank_plan_content_mismatch")
 
 
+def launcher_jobs(planned, *, registration, draws, definition_bytes, split_seed):
+    """Project only physical work needed by a producer-controlled solve worker."""
+    _require_registered_plan(planned, registration, draws, definition_bytes, split_seed)
+    allowed = (
+        "job_id",
+        "role",
+        "action",
+        "context",
+        "condition",
+        "image_digest",
+        "overlay_lock_digest",
+        "reference_policy_digest",
+    )
+    return {
+        "schema": JOBS,
+        "scope": "PRODUCER_WORKER_ONLY",
+        "jobs": [{key: job[key] for key in allowed} for job in planned["jobs"]],
+    }
+
+
 def check_solved(
     planned,
     records,
@@ -311,6 +382,7 @@ def check_solved(
         (j["question_id"], j["action_id"], j["condition_id"]): j["job_id"]
         for j in planned["requirements"]
     }
+    status_rule = planned["manifest"]["reference_status_rule"]
     if (
         not isinstance(records, list)
         or len(records) != len(expected)
@@ -372,6 +444,39 @@ def check_solved(
             ):
                 raise LabRefused("bank_solved_reference_record")
             for c in conditions:
+                rung = c.get("rung")
+                band = status_rule["bands"].get(rung)
+                if (
+                    c.get("reference_rule_id") != status_rule["id"]
+                    or band is None
+                    or c.get("band") != band
+                    or c.get("band_unit") != status_rule["margin_unit"]
+                ):
+                    raise LabRefused("bank_reference_rung_band")
+                if c["status"] != "FAILED_REFERENCE":
+                    margin = c["margins"].get(status_rule["margin_quantity"])
+                    if type(margin) not in (int, float) or not math.isfinite(margin):
+                        raise LabRefused("bank_reference_margin_quantity")
+                    window = status_rule["coarse_window"]
+                    if window is not None:
+                        coarse_margin = c.get("coarse_margin")
+                        if type(coarse_margin) not in (int, float) or not math.isfinite(
+                            coarse_margin
+                        ):
+                            raise LabRefused("bank_reference_coarse_margin")
+                        if (
+                            rung == status_rule["coarse_rung"]
+                            and coarse_margin != margin
+                        ):
+                            raise LabRefused("bank_reference_coarse_margin")
+                        if (
+                            window[0] < coarse_margin < window[1]
+                            and rung != status_rule["fine_rung"]
+                            and c["status"] in ("FEASIBLE", "INFEASIBLE")
+                        ):
+                            raise LabRefused("bank_in_window_unresolved_required")
+                    if c["status"] == "FEASIBLE" and margin < band[1]:
+                        raise LabRefused("bank_reference_band_status")
                 previous = solve_digests.setdefault(c["job_id"], c["record_sha256"])
                 if previous != c["record_sha256"]:
                     raise LabRefused("bank_reused_solve_digest_mismatch")
@@ -464,7 +569,10 @@ def reference_cost(
         "total_serial_wall_hours": wall_s / 3600,
     }
     refinement = policy.get("refinement")
+    status_rule = planned["manifest"]["reference_status_rule"]
     if refinement is None:
+        if status_rule["fine_rung"] is not None:
+            raise LabRefused("bank_required_refinement_cost_missing")
         return out
     if not isinstance(refinement, dict):
         raise LabRefused("bank_refinement_policy_invalid")
@@ -487,6 +595,12 @@ def reference_cost(
         or type(fraction) not in (int, float)
         or not math.isfinite(fraction)
         or not 0 <= fraction <= 1
+        or refinement.get("margin_quantity") != status_rule["margin_quantity"]
+        or refinement.get("margin_unit") != status_rule["margin_unit"]
+        or window != status_rule["coarse_window"]
+        or refinement.get("fine_rung") != status_rule["fine_rung"]
+        or not _token(refinement.get("trigger_rung"))
+        or refinement.get("trigger_rung") in status_rule["bands"]
     ):
         raise LabRefused("bank_refinement_policy_invalid")
     if coarse is None:
@@ -517,7 +631,7 @@ def reference_cost(
     fine_jobs = [
         {
             "source_job_id": job_id,
-            "rung": "fine",
+            "rung": refinement["fine_rung"],
             "reference_policy_digest": planned["reference_policy_digest"],
             "cost_policy_digest": digest(policy),
         }
@@ -530,7 +644,7 @@ def reference_cost(
     trigger_jobs = [
         {
             "source_job_id": job_id,
-            "rung": "trigger",
+            "rung": refinement["trigger_rung"],
             "reference_policy_digest": planned["reference_policy_digest"],
             "cost_policy_digest": digest(policy),
         }

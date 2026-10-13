@@ -232,6 +232,7 @@ def main(argv=None):
     bank_plan.add_argument("--definition", type=Path, required=True)
     bank_plan.add_argument("--split-seed-file", type=Path, required=True)
     bank_plan.add_argument("--out", type=Path, required=True)
+    bank_plan.add_argument("--jobs-out", type=Path, required=True)
     bank_solved = commands.add_parser(
         "bank-solved-check", help="aggregate-only V2 solved-bank reconciliation"
     )
@@ -279,14 +280,29 @@ def main(argv=None):
     phys.add_argument("--out", type=Path)
     args = parser.parse_args(argv)
     if args.command == "bank-plan":
+        registration = json.loads(args.registration.read_text(encoding="utf-8"))
+        draws = json.loads(args.draws.read_text(encoding="utf-8"))
+        definition_bytes = args.definition.read_bytes()
+        split_seed = args.split_seed_file.read_text(encoding="utf-8").strip()
         planned = bank_builder.plan(
-            json.loads(args.registration.read_text(encoding="utf-8")),
-            json.loads(args.draws.read_text(encoding="utf-8")),
-            definition_bytes=args.definition.read_bytes(),
-            split_seed=args.split_seed_file.read_text(encoding="utf-8").strip(),
+            registration,
+            draws,
+            definition_bytes=definition_bytes,
+            split_seed=split_seed,
+        )
+        worker_jobs = bank_builder.launcher_jobs(
+            planned,
+            registration=registration,
+            draws=draws,
+            definition_bytes=definition_bytes,
+            split_seed=split_seed,
         )
         args.out.write_text(
             json.dumps(planned, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        )
+        args.jobs_out.write_text(
+            json.dumps(worker_jobs, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
         )
         print(
             "PRODUCER ONLY: wrote protected V2 plan; "
