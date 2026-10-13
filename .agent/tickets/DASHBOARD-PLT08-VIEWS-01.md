@@ -21,7 +21,9 @@ and board.v2 projection. REPAIR sealed-ladder presentation and rule prose.
 
 The producer's field is `miner_status`: an optional list of `{hotkey,
 received, scored, refused}`, where `refused` maps closed codes to counts.
-Absent/null remains unknown, never manufactured zero activity. Invalid
+Absent/null remains unknown, never manufactured zero activity. The optional
+key is omitted when unavailable, preserving exact legacy Python/Worker models.
+Invalid
 shapes, duplicate identities or unsafe integer counts refuse the signed feed
 whole. Unknown fields are dropped. Unknown/unclassified refusal codes are
 aggregated as `other`; neither their raw names nor payloads reach board JSON
@@ -78,10 +80,21 @@ mismatched rules cards. Run all dashboard subsystem tests, PLT-08 feed tests,
 all invariants, pinned Black 26.5.1/Ruff 0.16.3, diff checks, canonical delivery
 hygiene and the exact-head classified CI/Merge gate.
 
+Final local canonical regression command:
+`CARBON_UV_GROUPS="science-jax chain archive mcp" ./scripts/dev/canonical.sh bash lp02-canonical-node.sh tests/cpu/test_dashboard_*.py tests/cpu/test_miner_screening_feed.py tests/cpu/test_miner_screening_disclosure.py tests/invariants`
+passed 564 tests with no skips. The untracked wrapper installs the SHA-verified
+CI-pinned Node in the temporary validation container, then runs pytest. Pinned
+Black/Ruff and diff checks passed. The earlier seven legacy Worker parity
+failures were repaired by omitting unavailable optional counts, preserving
+the older model shape; no Worker source or parity assertion was changed.
+
 No Worker, signing key, deployment, chain, AX42, paid compute, protected
 material, scoring rule or grain measurement changes. Scientific adoption and
 qualification remain human-owned. Maturity ceiling: implemented/tested display
 software for DEVELOPMENT/TESTNET; no new scientific or production authority.
+Counts are carried by the Python board builder. The unchanged Worker reader
+does not yet carry this optional block; adding it to that separate serving path
+is outside the ticket's explicit Worker exclusion and must not be claimed here.
 
 Primary historical map_ref: WAVE-A/A6 (public disclosure). Hub maintenance is
 retired by the current delivery protocol; no Hub event or derived file changes.
