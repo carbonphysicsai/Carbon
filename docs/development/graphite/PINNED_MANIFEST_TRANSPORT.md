@@ -33,8 +33,9 @@ are kept out of the phase's child environment. Model inputs, code/image/overlay
 pins, ownership, create identity, cancellation and rate/budget bounds remain.
 
 `ENV_LIMIT_CHARS` and the 8,000-character reserve are untouched. The owner's
-108,000 override is owned by PR #1321, which also owns the existing size-test
-file. This transport does not borrow that PR's authority or edit those files.
+108,000 override landed in PR #1321 and is preserved. Once that PR merged,
+the obsolete oversized-manifest test input was replaced with truly oversized
+synthetic phase data; all runtime-refusal/provider-call assertions remain.
 
 ## Measured software evidence
 
@@ -58,8 +59,8 @@ closure and per-file hash refusal before write/phase. The backend wait test
 uses the real upload method with a fixture HTTP boundary. Removing the manifest
 wait barrier deliberately makes the post-create-tamper control fail when it
 reaches the phase boundary. The unchanged ship-size and source-only phase
-tests pass; the old test that makes an environment oversized using a large
-manifest needs a real oversized phase-config fixture after #1321 serialization.
+tests pass. The oversized-environment guard uses a real oversized phase-config
+fixture, since a large code manifest no longer makes the environment large.
 
 Maturity: DEVELOPMENT implementation/testing only. This is not security
 acceptance, isolation qualification, scientific qualification, deployment or

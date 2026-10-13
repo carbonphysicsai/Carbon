@@ -3,8 +3,10 @@
 Platform queue structural prerequisite, reviewer Carbon Validator. Starting
 main `29fa548c45ad7fe7cf71d871c0c1bddc400497e8`. One PR to main; no builder
 merge, release, deployment, provider request, host acceptance or spend.
-Fresh open-PR scan: no overlap on the proposed code paths. PR #1321 owns
-pod_env.py and test_graphite_pod_env_size.py; neither is edited here.
+Initial open-PR scan: no overlap on proposed code paths. After #1321 merged as
+704f0fc1880e131e499aa96ce7ffd1e1b1fa4d4f, its size-test fixture was free to
+repair. Late open #1334 overlaps pods.py and #1324 overlaps phase3's test;
+those publication seams remain held for Test Lead serialization.
 
 Authority: current constitution/invariants/WAVE, delivery/delegated protocol,
 Build Out/overlay, Code Authority, Graphite grant/transport and shared bootstrap
@@ -36,6 +38,7 @@ Manifest: this ticket; carbon/agent_campaign/graphite/pods.py;
 scripts/dev/exam_design/runpod/{pod_control.py,bootstrap.py};
 tests/cpu/test_graphite_manifest_upload.py;
 tests/cpu/test_graphite_phase3.py (exact create-anchor migration assertion);
+tests/cpu/test_graphite_pod_env_size.py (oversized-phase fixture only);
 docs/development/graphite/PINNED_MANIFEST_TRANSPORT.md.
 Maturity ceiling: implemented/tested DEVELOPMENT transport. No isolation,
 security, physical validity, deployment or LIVE qualification is earned.
