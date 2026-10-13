@@ -9,7 +9,12 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from carbon.construction.unified import SCHEMA, UnifiedContract, UnifiedRefused, digest
+from carbon.development_session.unified_construction import (
+    SCHEMA,
+    UnifiedContract,
+    UnifiedRefused,
+    digest,
+)
 from carbon.reconstruction import capability_registry as cr
 
 TYPE_NAMES = {1: "loss_expressions", 2: "optimizer_and_data", 3: "numerics", 4: "graph"}

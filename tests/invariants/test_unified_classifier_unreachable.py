@@ -17,7 +17,7 @@ def test_unified_public_libraries_cannot_reach_variant_compiler():
     walk = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(walk)
     surfaces = (
-        "carbon/construction/unified.py",
+        "carbon/development_session/unified_construction.py",
         "carbon/battery/unified_contract.py",
         "carbon/development_ladder/unified_shadow.py",
     )

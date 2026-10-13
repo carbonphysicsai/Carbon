@@ -50,7 +50,7 @@ DEVELOPMENT library/shadow engineering only. External security acceptance,
 owner ceiling, combinations, production qualification and cutover stay closed.
 
 Manifest: this ticket; .agent/decisions/PLT16-D1.md;
-carbon/construction/unified.py; carbon/battery/unified_contract.py;
+carbon/development_session/unified_construction.py; carbon/battery/unified_contract.py;
 carbon/development_ladder/{unified_shadow,operate}.py;
 tests/cpu/test_unified_construction.py;
 tests/invariants/test_unified_classifier_unreachable.py;

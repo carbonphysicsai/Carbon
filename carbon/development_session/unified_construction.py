@@ -1,4 +1,4 @@
-"""Public, pure unified-construction derivation and commitment (PLT-16).
+"""Public, pure development unified-construction derivation (PLT-16).
 
 These libraries grant no admission. No compiler, signer, evaluator, registry
 file, process or network is accessed by classify/derive/commitment.

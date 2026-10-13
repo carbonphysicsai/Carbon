@@ -7,9 +7,9 @@ from types import SimpleNamespace
 import pytest
 
 from carbon.battery.unified_contract import contract
-from carbon.construction import unified as u
 from carbon.development_ladder import operate
 from carbon.development_ladder.unified_shadow import Observer, compare
+from carbon.development_session import unified_construction as u
 
 
 @pytest.fixture

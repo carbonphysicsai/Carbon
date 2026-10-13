@@ -6,7 +6,7 @@ compiler and evaluation policy still use their existing contracts. PLT-16b
 owns intake wiring after the intake-security prerequisite merges. Phase 2 owns
 registered combinations. No external opening or deployment is performed here.
 
-`carbon.construction.unified.classify(strategy, contract)` is pure and can run
+`carbon.development_session.unified_construction.classify(strategy, contract)` is pure and can run
 before signing. It strictly parses the existing TrainingStrategy schema, checks
 registered field types, ranges and applicability, selects arms by content, and
 returns `change_set`, informational `label`, required `checks`, pinned `binding`,

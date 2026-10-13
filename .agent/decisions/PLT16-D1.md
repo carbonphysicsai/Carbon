@@ -14,3 +14,7 @@ Read registered variants as pinned data. Compiler-route agreement is incomplete
 without independent rebuilt-artifact receipts; no recipe/expression/plan digest
 counts as artifact identity. No score, budget, window, eligibility or weight
 policy changes. Human-reserved scientific/security/opening decisions stay closed.
+
+Boundary repair: the generic public TrainingStrategy classifier lives in
+development_session alongside construction_level, preserving B-02B's
+ratified construction-package dependency boundary. The invariant stays intact.

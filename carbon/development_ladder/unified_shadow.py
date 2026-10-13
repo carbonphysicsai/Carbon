@@ -5,7 +5,7 @@ must come from the two rebuild receipts; recipe/expression/plan digests do not
 substitute for them. No candidate content is emitted in diagnostics.
 """
 
-from carbon.construction.unified import SHA, UnifiedRefused, derive
+from carbon.development_session.unified_construction import SHA, UnifiedRefused, derive
 
 
 def compare(
