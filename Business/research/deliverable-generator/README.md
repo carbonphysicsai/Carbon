@@ -226,3 +226,23 @@ t_end 0.375, in MMS test-design scope, beside both original and supplemental
 observations. Norms/absolute errors say manufactured-solution error; convergence
 orders keep observed-order units. Code verification does not establish physical
 validity, full reference adequacy or the real battery comparison's acceptance.
+
+## 2026-10-13 evidence-honesty presentation repair
+
+See the [five-surface audit](../customer-deliverable/EVIDENCE_HONESTY_2026-10-13.md)
+and OWNER-PLATING-REFERENCE-01. New battery renderings identify the
+`battery-plating-ref-v2` transition and the unresolved near-onset label hold
+before required mesh-160 evidence/current-use acceptance. They make no current
+near-limit accuracy, calibration, feasible-pick or speed claim from old rows.
+Refinement, failure/retry and fallback costs are required for a current workflow
+comparison; historical wall_s is not complete v2 cost or CPU core-seconds.
+
+MMS acceptance conditions are explicitly labelled registered test-design
+conditions, not application acceptance. Declared use/domain/observable coverage
+and risk/authority references remain host assertions. Stretch-set rows describe
+recorded error in the declared domain, without asserting physical validity.
+The crosswalk retains NOT_ASSESSED requirement acceptance and historical outcomes.
+
+No reference adapter, version default, schema/data join, gate or capability is
+added. Existing generated examples and EV4/EV5/score-proof files/hashes remain
+unchanged. Corrections are prospective wording/additive notes, never re-scoring.

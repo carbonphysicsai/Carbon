@@ -1598,13 +1598,15 @@ def published_endpoints(path=None) -> dict:
 
     The list is closed: a top level of `schema`, `about`, `entry_fields` and
     `endpoints`, and entries of exactly `network`, `netuid`, `challenge`,
-    `intake_url` (https) and `receiver_hotkey` (an ss58 address), one per
-    network, subnet and Challenge. Entries for another network or subnet are
+    `intake_url` (https) and `receiver_hotkey` (an ss58 address). Distinct
+    validators may serve one Challenge; URL/receiver conflicts are refused.
+    Entries for another network or subnet are
     not this deployment's and are skipped. A list that breaks any of this is
     read as publishing nothing, with `problem` saying so: a malformed entry
     never reaches a profile.
     """
     from carbon.chain.models import CARBON_NETUID, CARBON_NETWORK
+    from carbon.development_session.intake_targets import validate
     from scripts.dev.miner_launchpad.runner import _intake_url
 
     source = Path(path or PUBLISHED_ENDPOINTS)
@@ -1619,7 +1621,7 @@ def published_endpoints(path=None) -> dict:
             or type(document.get("endpoints")) is not list
         ):
             raise ValueError("published endpoints malformed")
-        seen, found = set(), {}
+        groups, found = {}, {}
         for entry in document["endpoints"]:
             if type(entry) is not dict or set(entry) != PUBLISHED_FIELDS:
                 raise ValueError("published endpoint malformed")
@@ -1636,11 +1638,18 @@ def published_endpoints(path=None) -> dict:
             ):
                 raise ValueError("published endpoint malformed")
             key = (entry["network"], entry["netuid"], entry["challenge"])
-            if key in seen:
-                raise ValueError("one published endpoint per Challenge")
-            seen.add(key)
-            if (entry["network"], entry["netuid"]) == (CARBON_NETWORK, CARBON_NETUID):
-                found[entry["challenge"]] = dict(entry)
+            groups.setdefault(key, []).append(dict(entry))
+        for (network, netuid, challenge), entries in groups.items():
+            validate(
+                [
+                    {k: entry[k] for k in ("intake_url", "receiver_hotkey")}
+                    for entry in entries
+                ]
+            )
+            if (network, netuid) == (CARBON_NETWORK, CARBON_NETUID):
+                found[challenge] = dict(entries[0])
+                if len(entries) > 1:
+                    found[challenge]["validators"] = entries
     except (OSError, ValueError):
         return {"endpoints": {}, "problem": "published_endpoints_unreadable"}
     return {"endpoints": found, "problem": None}
@@ -2145,6 +2154,16 @@ class EnvironmentSetup:
                     # Before Review: the receiver it will pin.
                     receiver = entry["receiver_hotkey"]
             item = {**challenge, "intake": intake, "source": source}
+            targets = (
+                mine.get("targets")
+                if type(written) is dict and type(mine) is dict
+                else entry.get("validators") if entry is not None else None
+            )
+            if type(targets) is list:
+                item["validators"] = [
+                    {k: target[k] for k in ("intake_url", "receiver_hotkey")}
+                    for target in targets
+                ]
             if type(receiver) is str:
                 # Binding (LAUNCHPAD-ACCEPT-03): see RECEIVER_NOTE.
                 item["receiver_hotkey"] = receiver
@@ -2824,6 +2843,7 @@ class EnvironmentSetup:
             {"confirm"},
             {
                 "intakes",
+                "intake_targets",
                 LEGACY_INTAKE,
                 "receiver_hotkey",
                 "receivers",
@@ -2843,6 +2863,22 @@ class EnvironmentSetup:
         if type(intakes) is not dict:
             raise SetupRefused("intakes", "intakes_map_challenge_ids_to_urls")
         intakes = dict(intakes)
+        from carbon.development_session.intake_targets import validate
+
+        target_lists = value.get("intake_targets", {})
+        if type(target_lists) is not dict:
+            raise SetupRefused("intakes", "intakes_map_challenge_ids_to_urls")
+        try:
+            target_lists = {k: validate(v) for k, v in target_lists.items()}
+        except ValueError:
+            raise SetupRefused("intakes", "intake_url_invalid") from None
+        for challenge_id, targets in target_lists.items():
+            if (
+                challenge_id in intakes
+                and intakes[challenge_id] != targets[0]["intake_url"]
+            ):
+                raise SetupRefused("intakes", "intake_url_invalid")
+            intakes[challenge_id] = targets[0]["intake_url"]
         if LEGACY_INTAKE in value:
             intakes.setdefault(_legacy_challenge(), value[LEGACY_INTAKE])
         campaigns = {}
@@ -2855,7 +2891,27 @@ class EnvironmentSetup:
                 raise SetupRefused("intakes", "challenge_not_implemented") from None
             if campaigns[challenge_id].intake_check is None:
                 raise SetupRefused("intakes", "challenge_has_no_intake")
-        receivers = _named_receivers(value, intakes, unpinned)
+        paired_value = value
+        if target_lists:
+            if type(value.get("receivers", {})) is not dict:
+                raise SetupRefused(
+                    "receiver_hotkey", "receiver_hotkey_names_one_intake"
+                )
+            paired_value = dict(value)
+            paired_value["receivers"] = dict(value.get("receivers", {}))
+        for challenge_id, targets in target_lists.items():
+            pin = paired_value["receivers"].get(challenge_id)
+            if pin is not None and pin != targets[0]["receiver_hotkey"]:
+                raise SetupRefused("receiver_hotkey", "intake_receiver_mismatch")
+            paired_value["receivers"][challenge_id] = targets[0]["receiver_hotkey"]
+        # Keep the legacy request's receiver_hotkey semantics exactly.
+        if "receiver_hotkey" in value:
+            if target_lists:
+                raise SetupRefused(
+                    "receiver_hotkey", "receiver_hotkey_names_one_intake"
+                )
+            paired_value = value
+        receivers = _named_receivers(paired_value, intakes, unpinned)
         for challenge_id, url in intakes.items():
             facts = self.checks.intake(url, campaign=campaigns[challenge_id])
             pinned = receivers.get(challenge_id)
@@ -2865,6 +2921,16 @@ class EnvironmentSetup:
                     "intake_receiver_mismatch",
                     next_step=RECEIVER_MISMATCH_STEP,
                 )
+            for target in target_lists.get(challenge_id, [])[1:]:
+                target_facts = self.checks.intake(
+                    target["intake_url"], campaign=campaigns[challenge_id]
+                )
+                if target_facts.get("receiver") != target["receiver_hotkey"]:
+                    raise SetupRefused(
+                        "receiver_hotkey",
+                        "intake_receiver_mismatch",
+                        next_step=RECEIVER_MISMATCH_STEP,
+                    )
         sources = {challenge_id: "yours" for challenge_id in intakes}
         published = published_endpoints()
         warnings = [
@@ -2899,6 +2965,11 @@ class EnvironmentSetup:
                 continue
             intakes[challenge["id"]] = entry["intake_url"]
             receivers[challenge["id"]] = entry["receiver_hotkey"]
+            if "validators" in entry:
+                target_lists[challenge["id"]] = [
+                    {k: target[k] for k in ("intake_url", "receiver_hotkey")}
+                    for target in entry["validators"]
+                ]
             sources[challenge["id"]] = "published"
         with self.lock:
             cfg = self.profile()
@@ -2906,6 +2977,8 @@ class EnvironmentSetup:
                 cfg = {**cfg, "intakes": intakes}
             if receivers:
                 cfg = {**cfg, "receivers": receivers}
+            if target_lists:
+                cfg = {**cfg, "intake_targets": target_lists}
             record = self._record()
             # The miner's auto-retry choice (LAUNCHPAD-PRACTICE-RETRY-01):
             # this Review's when it names one, else the one kept from before,
@@ -2941,6 +3014,11 @@ class EnvironmentSetup:
                     challenge_id: {
                         "url": url,
                         "source": sources[challenge_id],
+                        **(
+                            {"targets": target_lists[challenge_id]}
+                            if challenge_id in target_lists
+                            else {}
+                        ),
                         **(
                             {"receiver": receivers[challenge_id]}
                             if challenge_id in receivers
@@ -3000,6 +3078,16 @@ class EnvironmentSetup:
             and entry.get("source") == "yours"
             and type(entry.get("url")) is str
             and type(entry.get("receiver")) is str
+        }
+
+    def _own_target_lists(self, record) -> dict:
+        written = (record.get("profile") or {}).get("intakes") or {}
+        return {
+            challenge: entry["targets"]
+            for challenge, entry in written.items()
+            if type(entry) is dict
+            and entry.get("source") == "yours"
+            and type(entry.get("targets")) is list
         }
 
     def _set_profile_aside(self) -> str | None:
@@ -3104,6 +3192,7 @@ class EnvironmentSetup:
             had_profile = "profile" in record
             own = self._own_intakes(record) if had_profile else {}
             pinned = self._own_receivers(record) if had_profile else {}
+            own_targets = self._own_target_lists(record) if had_profile else {}
             now = int(time.time())
             record.pop("compute")
             record.pop("profile", None)
@@ -3169,6 +3258,7 @@ class EnvironmentSetup:
                     "confirm": True,
                     **({"intakes": own} if own else {}),
                     **({"receivers": pinned} if pinned else {}),
+                    **({"intake_targets": own_targets} if own_targets else {}),
                 },
                 unpinned=frozenset(own) - set(pinned),
             )
