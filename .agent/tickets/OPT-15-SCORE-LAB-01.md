@@ -2,7 +2,7 @@
 
 Status: IN_PROGRESS, DEVELOPMENT only. Base: `origin/main` at
 `ad870e7d5d30f2840247f40e81c685091bd89b9b` (2026-10-13).
-Primary Hub map_ref: `WAVE-C/SCORE-01` (development score evidence; no change to
+Primary Hub map_ref: `WAVE-C` (development score evidence; no change to
 runtime scoring, promotion, or qualification).
 
 ## Scope and decisions
