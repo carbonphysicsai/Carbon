@@ -42,7 +42,8 @@ committed blob:
   - `token_share_usd` 10.99 (11.93 until OWNER-GRAPHITE-PHASE3-R4-CEILING-01
     set the 0.65/h ceiling): the run's token share is that amount, and its
     pods get the rest of the run cost (`experiment.phase3_budget`), so a
-    full-window kimi-k3 call (USD 2.0646912 reserved) is admitted.
+    full-window kimi-k3 call (USD 2.0646912 reserved; 2.3642112 since kimi-k3's own 32,768-token
+    output cap, GRAPHITE-OUTPUT-CAP-KIMI-01) is admitted.
   A new session records them as its `run_conditions` (`run_conditions`).
 
 **Studies (OWNER-RATE-STUDY-TOKENS-01).** `STUDY_GRANTS` binds each

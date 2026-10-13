@@ -186,6 +186,79 @@ def _validator_outcome(epoch, path):
     }
 
 
+def _multi_validator_outcome(epoch, path):
+    """Project each independently stored allow-listed result; never aggregate scores."""
+    from carbon.challenge_registry.campaigns import campaign_for
+    from carbon.challenge_registry.registry import ResolutionError
+    from carbon.development_session.intake_targets import (
+        MAX_TARGETS,
+        result_path,
+        validate,
+    )
+    from scripts.dev.miner_launchpad.supervisor import next_action
+
+    try:
+        if path.is_symlink() or path.stat().st_size > (MAX_TARGETS + 1) * 65536:
+            return None
+        document = json.loads(path.read_bytes())
+        composition = campaign_for(document["challenge"])
+        if (
+            composition.multi_feedback_schema is None
+            or composition.intake_code is None
+            or document.get("schema") != composition.multi_feedback_schema
+            or document.get("epoch") != epoch
+        ):
+            return None
+        rows = document["validators"]
+        targets = validate(
+            [{k: row[k] for k in ("intake_url", "receiver_hotkey")} for row in rows]
+        )
+        projected = []
+        root = path.parent.parent
+        for row, target in zip(rows, targets):
+            if row["feedback"] is not None:
+                found = _validator_outcome(epoch, result_path(root, target, epoch))
+                if (
+                    found["status"] != "VALIDATOR_OUTCOME"
+                    or found["result"]["state"] != row["state"]
+                ):
+                    return None
+                projected.append(
+                    {**target, "state": row["state"], "result": found["result"]}
+                )
+            else:
+                if row["state"] not in {"REFUSED", "FAILED_INFRA", "QUEUED", "PENDING"}:
+                    return None
+                code = (
+                    None
+                    if row["state"] == "PENDING"
+                    else composition.intake_code(row["code"])
+                )
+                projected.append(
+                    {
+                        **target,
+                        "state": row["state"],
+                        "code": code,
+                        "next_step": (
+                            "Waiting for this validator's trip to finish."
+                            if code is None
+                            else next_action(code)
+                        ),
+                        "result": None,
+                    }
+                )
+        return {
+            "epoch": epoch,
+            "mode": "DEVELOPMENT_EVALUATION",
+            "status": "MULTI_VALIDATOR_OUTCOME",
+            "validators": projected,
+            "qualification": False,
+            "reward": False,
+        }
+    except (OSError, ValueError, KeyError, TypeError, AttributeError, ResolutionError):
+        return None
+
+
 def project(row, root):
     value = {
         "schema": "carbon.launchpad.own-research.v1",
@@ -507,7 +580,23 @@ def project(row, root):
             )
         feedback = directory / "permitted-final-feedback.json"
         if feedback.is_file() and not pointer_exists(directory):
-            value["final_results"].append(_validator_outcome(epoch, feedback))
+            value["final_results"].append(
+                _multi_validator_outcome(epoch, feedback)
+                or _validator_outcome(epoch, feedback)
+            )
+        elif not pointer_exists(directory):
+            from carbon.challenge_registry.campaigns import campaign_for_manifest
+            from carbon.challenge_registry.registry import ResolutionError
+
+            try:
+                status_name = campaign_for_manifest(manifest).multi_feedback_status
+            except ResolutionError:
+                status_name = None  # Retired/unknown history has no new multi hook.
+            status = directory / status_name if status_name is not None else None
+            if status is not None and status.is_file():
+                found = _multi_validator_outcome(epoch, status)
+                if found is not None:
+                    value["final_results"].append(found)
         pointer = directory / "final/comparison-ref.json"
         if pointer.is_file():
             try:

@@ -217,7 +217,7 @@
     {
       "id": "a.scripts.dev.battery.plating-rereference.py",
       "path": "scripts/dev/battery/plating_rereference.py",
-      "sha256": "e07bb3a5a6be6692e11f308777ca148dec9f6bfcb1fb3e7bcbde97a29a95957e"
+      "sha256": "dc8fe7f3f2cadb1993a9fce125ed44d292583e81576de10863e99bd5137351bc"
     }
   ],
   "claims": [
@@ -1776,7 +1776,7 @@
             "kind": "file",
             "value": "file"
           },
-          "sha256": "e07bb3a5a6be6692e11f308777ca148dec9f6bfcb1fb3e7bcbde97a29a95957e"
+          "sha256": "dc8fe7f3f2cadb1993a9fce125ed44d292583e81576de10863e99bd5137351bc"
         }
       ],
       "reference": {
@@ -1832,7 +1832,7 @@
             "kind": "file",
             "value": "file"
           },
-          "sha256": "e07bb3a5a6be6692e11f308777ca148dec9f6bfcb1fb3e7bcbde97a29a95957e"
+          "sha256": "dc8fe7f3f2cadb1993a9fce125ed44d292583e81576de10863e99bd5137351bc"
         }
       ],
       "reference": null
@@ -1881,7 +1881,7 @@
             "kind": "file",
             "value": "file"
           },
-          "sha256": "e07bb3a5a6be6692e11f308777ca148dec9f6bfcb1fb3e7bcbde97a29a95957e"
+          "sha256": "dc8fe7f3f2cadb1993a9fce125ed44d292583e81576de10863e99bd5137351bc"
         }
       ],
       "reference": null
