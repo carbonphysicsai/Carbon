@@ -21,6 +21,12 @@ annotated with the known optimism, up to about **2.6 mV** (PLATING-CONVERGENCE-0
 - **No re-scoring. Recorded results keep their meaning.** This is an annotation
   of existing evidence, not a reinterpretation of it, and invariant 10 holds:
   no historical result is rescored under a newer contract.
+- **How to annotate, and this is binding on the implementation.** Add an
+  **additive note file beside each evidence set**, citing PLATING-CONVERGENCE-01
+  (#1280). **Never edit the frozen EV5 bytes or their pinned digests**, and the
+  same for EV4 and the score proofs. "Annotate EV5" without this mechanism is an
+  instruction someone could satisfy by editing EV5, which would break the freeze
+  and every digest pinned to it -- the exact outcome D4 exists to avoid.
 
 **What is NOT the owner's, and must not be attributed to him.**
 
