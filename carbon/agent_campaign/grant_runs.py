@@ -89,10 +89,11 @@ PER_RUN_CAP_USD = Decimal(50)
 #: enforced in code rather than by launch order): the Test Lead's USD 40 reserve for
 #: the sealed confirmation run, launched from the RunPod console. The owner's cap for
 #: that run is USD 37 (`.agent/decisions/2026-10-12-OWNER-SCORE-PROOF-CONFIRM-02-GRANT.md`,
-#: amended from 25 on 2026-10-12); the extra 3 is the Test Lead's conservative pad, not
-#: an owner figure. Holding back more than the cap can only refuse a claim the owner's
-#: own figures would allow, never permit one they would not. Released, or reduced to the
-#: cap, by changing this entry in a reviewed change once that run has settled.
+#: amended from 25 on 2026-10-12); the extra 3 is the Test Lead's reserve, set when
+#: CONFIRM-02 was planned, and not an owner figure. A reserve withholds headroom from
+#: other claims and never raises CONFIRM-02's own cap, so holding 40 permits less
+#: spend than 37, not more. Released by changing this entry in a reviewed change once
+#: that run has settled.
 HELD_RESERVES = {"OWNER-SCORE-PROOF-CONFIRM-02-GRANT": Decimal(40)}
 PER_RUN_LIMIT = "per_run_cap_exceeded"
 WEEK_SECONDS = 7 * 24 * 3600
