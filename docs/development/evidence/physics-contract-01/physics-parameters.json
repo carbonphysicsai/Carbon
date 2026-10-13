@@ -1,0 +1,35 @@
+{
+  "accuracy_term": "HUMAN_INPUT",
+  "b9_role": "DIAGNOSTIC_ONLY",
+  "derivation": "Both pinned electrode OCP entropic coefficients are identically zero: the reversible heat term and its cooling bound are zero throughout the declared input box.",
+  "entropic_cooling_bound_c": 0.0,
+  "gate_adoption": "HUMAN_INPUT",
+  "grid_step_s": 30,
+  "heat_capacity_j_per_k_at_ambient_bounds": {
+    "278.15": 42.77529812749004,
+    "313.15": 42.77529812749004
+  },
+  "initial_rest_s": 120,
+  "maximum_protocol_current_a": 10.0,
+  "other_signed_heat_nonnegative_proof": "HUMAN_INPUT",
+  "parameter_set": "OKane2022",
+  "parameters": {
+    "Cell cooling surface area [m2]": 0.00531,
+    "Cell volume [m3]": 2.42e-05,
+    "Negative electrode OCP entropic change [V.K-1]": 0.0,
+    "Nominal cell capacity [A.h]": 5.0,
+    "Positive electrode OCP entropic change [V.K-1]": 0.0,
+    "Total heat transfer coefficient [W.m-2.K-1]": 10.0
+  },
+  "reader_sha256": "90f8cd6d9ca29fc4f0d24dbecf56f22f12b6b20e32ac52e3a6a44455fa6d5519",
+  "reference_source_sha256": "5d37d4ca9ffaa1b70c39cef5266d2deb5fb5d70c9ace7e5b22b27a2e02cf7791",
+  "schema": "carbon.battery.physics-parameters.v1",
+  "scope": "PUBLIC_DEVELOPMENT_DIAGNOSTIC",
+  "solver_provenance": {
+    "overlay_lock": "scripts/dev/exam_design/locks/battery-overlay.lock.json",
+    "overlay_lock_sha256": "sha256:6267e033b30728b200d9e0c2aa6b55a9117cd67e03c6f89c9a17294d12e594ee",
+    "pybamm": "26.8.0.0",
+    "schema": "carbon.battery.solver-provenance.v1",
+    "solver_image": "ghcr.io/carbonphysicsai/carbon-determinism-study@sha256:2d19b261e722fe67f20bee02e115f2277a799c448b90d54d2872361b341bd940"
+  }
+}
