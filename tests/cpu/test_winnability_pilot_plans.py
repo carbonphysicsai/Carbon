@@ -7,6 +7,8 @@ from pathlib import Path
 import pytest
 
 from carbon.design_search import equal_budget as eb
+from carbon.design_search import solenoid_budget
+from carbon.development_comparison import carbon_arm, solenoid_kit
 
 ROOT = Path(__file__).resolve().parents[2]
 FOLDER = ROOT / "docs/development/challenge_pipeline/challenge-factory/pilots"
@@ -90,8 +92,19 @@ def test_missing_routes_and_kits_are_not_aliased_to_other_families():
     }
     for name, row in ROWS.items():
         if name in missing:
-            assert row["route"] is None and name not in eb.CHALLENGE_ROUTES
+            # PKT-09 records its audited starting main, not a timeless ban on
+            # implementing the missing family. Keep that snapshot unchanged.
+            assert row["route"] is None
             assert row["budget_status"] == "MISSING_ROUTE_AND_REGISTRATION"
+            if name == "solenoid-pole":
+                assert eb.CHALLENGE_ROUTES[name] == {
+                    "validator": solenoid_budget.validate,
+                    "representative": True,
+                    "registration_required": True,
+                }
+                assert carbon_arm.kits()[name] is solenoid_kit.kit_from_bytes
+            else:
+                assert name not in eb.CHALLENGE_ROUTES
         else:
             assert row["route"] == name and name in eb.CHALLENGE_ROUTES
         if name not in {"motor", "f02"}:
