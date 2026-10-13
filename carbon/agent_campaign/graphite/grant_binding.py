@@ -74,8 +74,8 @@ phase-3 grant: outside its study it is refused `grant_is_bound_to_a_study`.
   the owner's and the security owner's.
 
 - GRAPHITE-GRANT-HUNT-H1/H2/H3-CONSTRUCTOR and GRAPHITE-GRANT-HUNT-A1/A2-ATTACKER are the
-  Level 5 hunt's per-run grants (OWNER-GRAPHITE-OPEN-SAFE-01-GRANTS): one run each, H1, H2
-  and H3 registering `min_level` = `max_level` = 1, 2 and 3, A1 and A2 attacking Level 1 and
+  Level 5 hunt's per-run grants (OWNER-GRAPHITE-OPEN-SAFE-01-GRANTS): one run each, H1, H2,
+  H3 and H4 registering `min_level` = `max_level` = 1, 2, 3 and 4, A1 and A2 attacking Level 1 and
   Level 3 (`Phase4Grant.levels`). They authorize spend, never a Level 5 capability.
 
 - GRAPHITE-GRANT-HUNT-A2-RERUN-ATTACKER is the Level 3 Attacker re-run of the interrupted hunt run A2: one run
@@ -353,8 +353,13 @@ PHASE3_GRANTS = types.MappingProxyType(
                 token_share_usd=STAGE_TOKEN_SHARE,
                 authority=STANDING_TEST_GRANT_AUTHORITY,
             ),
+            # H4 (n = 4) PURPOSE: the Level 5 hunt's own Level 4 Constructor run, lane G, launched with
+            # `--theme causal-structure`. POOL: OWNER-GRAPHITE-OPEN-SAFE-01-GRANTS, the hunt's last share
+            # (71.76 + 14.94 = 86.70 of the owner's 86.71). It is NOT GRAPHITE-GRANT-L4-G-CONSTRUCTOR-2 (the
+            # graph-variant valid-graph run, no theme, funded by the standing weekly test grant). Index:
+            # docs/development/graphite/grants/README.md, "Level 4 Constructor grants".
             # The Level 5 hunt: one run per grant, each at its own level (H1 at L1, H2 at L2,
-            # H3 at L3; H4 is not granted in this batch).
+            # H3 at L3, H4 at L4).
             *(
                 Phase3Grant(
                     grant_id=f"GRAPHITE-GRANT-HUNT-H{n}-CONSTRUCTOR",
@@ -368,7 +373,7 @@ PHASE3_GRANTS = types.MappingProxyType(
                     token_share_usd=STAGE_TOKEN_SHARE,
                     authority=HUNT_AUTHORITY,
                 )
-                for n in (1, 2, 3)
+                for n in (1, 2, 3, 4)
             ),
             *(
                 Phase3Grant(
