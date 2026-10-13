@@ -109,6 +109,9 @@ def test_remint_existing_breach_is_idempotent_and_keeps_raw_attempt(
     assert phase4.main(argv) == 0
     first = json.loads(capsys.readouterr().out)
     assert first["status"] == "REBUILT" and first["reused"] is False
+    assert first["excluded_non_session"] == []
+    assert first["excluded_non_session_count"] == 0
+    assert first["finding_records_seen"] == 1
     folder = store / "specimens" / expected
     assert folder.is_dir()
     assert (
@@ -160,7 +163,9 @@ def test_remint_refuses_changed_evidence_and_wrong_specimen(
     assert not (store / "specimens").exists()
 
 
-def _add_non_session_finding(database, log, evidence_dir, source):
+def _add_non_session_finding(
+    database, log, evidence_dir, source, finding_id="attack-failing-trigger-toy-control"
+):
     common = {"schema": verify.FINDING_SCHEMA, "condition": "FAILING_TRIGGER"}
     if source == "family_report":
         content = {
@@ -182,7 +187,6 @@ def _add_non_session_finding(database, log, evidence_dir, source):
     body = canonical({**common, **content})
     sha = hashlib.sha256(body).hexdigest()
     (evidence_dir / (sha + ".bin")).write_bytes(body)
-    finding_id = "attack-failing-trigger-toy-control"
     with sqlite3.connect(database) as db:
         db.execute(
             "INSERT INTO findings VALUES (?,?)",
@@ -244,7 +248,88 @@ def test_remint_skips_named_older_finding_without_claiming_redaction(
     )
     result = json.loads(capsys.readouterr().out)
     assert result["status"] == "REBUILT"
+    assert result["excluded_non_session_count"] == 1
+    assert result["finding_records_seen"] == 2
+    assert result["excluded_non_session"] == [
+        {"session": 1, "finding_id": older_id, "code": code}
+    ]
     assert (store / "specimens" / expected).is_dir()
+
+
+def test_all_excluded_finding_occurrences_are_accounted_for(
+    tmp_path, monkeypatch, capsys
+):
+    root, _store, attempt, expected, (database, log, _evidence) = _fixture(
+        tmp_path, monkeypatch
+    )
+    first = _add_non_session_finding(
+        database, log, database.parent / "evidence", "family_report", "older-control"
+    )
+    second = _add_non_session_finding(
+        database,
+        log,
+        database.parent / "evidence",
+        "deterministic_baseline",
+        "older-baseline",
+    )
+    assert (
+        phase4.main(
+            [
+                "remint",
+                "--root",
+                str(root),
+                "--attempt",
+                attempt,
+                "--specimen",
+                expected,
+            ]
+        )
+        == 0
+    )
+    result = json.loads(capsys.readouterr().out)
+    assert result["excluded_non_session_count"] == 2
+    assert result["finding_records_seen"] == 3
+    assert {row["finding_id"] for row in result["excluded_non_session"]} == {
+        first,
+        second,
+    }
+    assert {row["code"] for row in result["excluded_non_session"]} == {
+        "finding_non_session_control_v1",
+        "finding_non_session_engine_v1",
+    }
+
+
+def test_current_verdict_with_older_looking_fields_remains_session_verdict(
+    tmp_path, monkeypatch
+):
+    _root, _store, _attempt, _expected, (database, _log, evidence) = _fixture(
+        tmp_path, monkeypatch
+    )
+    body = json.loads(evidence.read_bytes())
+    body.update(
+        source="family_report",
+        role="trained_control",
+        outcome="WRONGLY_REFUSED",
+        family="l2_pool_sources_and_weights",
+        control="honest_control",
+        control_identity="sha256:" + "a" * 64,
+    )
+    raw = canonical(body)
+    sha = hashlib.sha256(raw).hexdigest()
+    (evidence.parent / (sha + ".bin")).write_bytes(raw)
+    with sqlite3.connect(database) as db:
+        finding_id, old = db.execute("SELECT id, body FROM findings").fetchone()
+        row = json.loads(old)
+        row["evidence"] = {
+            "path": "evidence/" + sha + ".bin",
+            "sha256": "sha256:" + sha,
+        }
+        db.execute(
+            "UPDATE findings SET body=? WHERE id=?", (json.dumps(row), finding_id)
+        )
+        verdict = phase4_remint._finding_verdict(database.parent, db, finding_id)
+    assert isinstance(verdict, dict)
+    assert verdict["outcome"] == verify.BREACHED
 
 
 @pytest.mark.parametrize(

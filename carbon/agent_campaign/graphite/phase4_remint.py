@@ -128,6 +128,8 @@ def _sources(store, attempt_id, expected, session):
         raise RemintRefused("campaign_database_missing")
     found = []
     redacted = False
+    excluded_non_session = []
+    finding_records_seen = 0
     try:
         with sqlite3.connect(database.as_uri() + "?mode=ro", uri=True) as db:
             for entry in _entries(store):
@@ -157,11 +159,19 @@ def _sources(store, attempt_id, expected, session):
                 for finding_id in entry.get("findings") or ():
                     if not isinstance(finding_id, str):
                         raise RemintRefused("finding_id_invalid")
+                    finding_records_seen += 1
                     verdict = _finding_verdict(controller, db, finding_id)
                     if verdict is None:
                         redacted = True
                         continue
                     if isinstance(verdict, NonSessionFinding):
+                        excluded_non_session.append(
+                            {
+                                "session": number,
+                                "finding_id": finding_id,
+                                "code": verdict.code,
+                            }
+                        )
                         continue
                     if verdict.get("attempt") != attempt_id:
                         continue
@@ -185,7 +195,7 @@ def _sources(store, attempt_id, expected, session):
         raise RemintRefused("finding_evidence_redacted")
     if len(unique) != 1:
         raise RemintRefused("remint_source_missing_or_ambiguous")
-    return next(iter(unique.values()))
+    return (*next(iter(unique.values())), excluded_non_session, finding_records_seen)
 
 
 def remint(root, attempt_id, expected, *, session=None):
@@ -205,7 +215,9 @@ def remint(root, attempt_id, expected, *, session=None):
     specimens = store / "specimens"
     if specimens.is_symlink():
         raise RemintRefused("specimen_store_is_a_link")
-    entry, recorded = _sources(store, attempt_id, expected, session)
+    entry, recorded, excluded_non_session, finding_records_seen = _sources(
+        store, attempt_id, expected, session
+    )
     run_dir = store / "graphite" / "runs" / entry["run_id"]
     if not run_dir.is_dir() or run_dir.is_symlink():
         raise RemintRefused("attempt_run_directory_missing")
@@ -221,4 +233,11 @@ def remint(root, attempt_id, expected, *, session=None):
     result = verify.remint_specimen(matches[0], adapter, recorded, specimens)
     if result.get("folder") and Path(result["folder"]).name != expected:
         raise RemintRefused("reminted_specimen_identity_changed")
-    return {"session": entry["session"], "run_id": entry["run_id"], **result}
+    return {
+        "session": entry["session"],
+        "run_id": entry["run_id"],
+        "excluded_non_session": excluded_non_session,
+        "excluded_non_session_count": len(excluded_non_session),
+        "finding_records_seen": finding_records_seen,
+        **result,
+    }
