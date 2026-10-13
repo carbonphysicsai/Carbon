@@ -143,7 +143,13 @@ SETUP_OPERATIONS = {
             REGISTERED,
             "Write your runner profile and load it. Nothing is launched or spent.",
             {"confirm"},
-            {"intakes", "receiver_hotkey", "receivers", "practice_auto_retry"},
+            {
+                "intakes",
+                "intake_targets",
+                "receiver_hotkey",
+                "receivers",
+                "practice_auto_retry",
+            },
         ),
     )
 }
@@ -192,6 +198,13 @@ FIELDS = {
     ),
     "confirm": ("boolean", "true"),
     "intakes": ("object", "Challenge id to validator intake URL (optional)."),
+    "intake_targets": (
+        "object",
+        (
+            "Challenge id to a list of distinct {intake_url, receiver_hotkey} validators. "
+            "Every receiver is required and checked before signing; the same frozen model is sent to each."
+        ),
+    ),
     "receiver_hotkey": (
         "string",
         (

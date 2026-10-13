@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Reject workstation-specific text and non-substantive introduced commits.
+"""Reject workstation-specific text, introduced mojibake, and delivery artifacts.
 
 The checker uses only the Python standard library.  By default it scans every
 tracked path changed between the comparison merge base and ``HEAD``, plus
@@ -14,6 +14,12 @@ lines have four tab-separated fields:
 ``text<TAB>repo/path<TAB>exact matched value<TAB>reason``
 ``commit<TAB>40-character SHA<TAB>message|empty|evidence-only<TAB>reason``
 
+The separate ``scripts/dev/delivery_hygiene_mojibake_allowlist.txt`` policy
+accepts only ``text`` entries whose value is the complete introduced line.
+It is initially empty; its policy entries themselves are excluded from the
+mojibake scan. Mojibake is checked only in added/replacement lines relative to
+the merge base, including with ``--all-tree``.
+
 Reasons must be meaningful.  Globs, regular expressions, directory-wide text
 exceptions, and abbreviated commit IDs are not supported.
 """
@@ -21,6 +27,7 @@ exceptions, and abbreviated commit IDs are not supported.
 from __future__ import annotations
 
 import argparse
+import difflib
 import os
 import re
 import subprocess
@@ -29,6 +36,9 @@ from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 
 DEFAULT_ALLOWLIST = Path("scripts/dev/delivery_hygiene_allowlist.txt")
+MOJIBAKE_ALLOWLIST = Path("scripts/dev/delivery_hygiene_mojibake_allowlist.txt")
+# UTF-8 byte prefixes C3 83, C3 A2 E2 82 AC, and C3 82 C2.
+_MOJIBAKE_RE = re.compile(r"\u00c3|\u00e2\u20ac|\u00c2[\u0080-\u00bf]")
 FORBIDDEN_COMMIT_INTENT = (
     "record successful ci",
     "record final review evidence",
@@ -346,6 +356,45 @@ def _text_versions(
     return tuple(versions)
 
 
+def scan_introduced_mojibake(
+    text: str,
+    *,
+    base_text: str,
+    path: str,
+    source: str,
+    allowlist: Allowlist,
+) -> tuple[Finding, ...]:
+    """Reject suspicious encoding only in inserted/replacement lines.
+
+    Exceptions match the complete line and repository path, never a fragment.
+    The base may contain historical corruption that this ticket does not repair.
+    """
+
+    if not _MOJIBAKE_RE.search(text):
+        return ()
+
+    def git_lines(payload: str) -> list[str]:
+        if not payload:
+            return []
+        # LF defines a Git line; Unicode controls inside mojibake are not breaks.
+        return [
+            line.removesuffix("\r") for line in payload.removesuffix("\n").split("\n")
+        ]
+
+    lines = git_lines(text)
+    base_lines = git_lines(base_text)
+    comparison = difflib.SequenceMatcher(a=base_lines, b=lines, autojunk=False)
+    findings: list[Finding] = []
+    for operation, _, _, start, end in comparison.get_opcodes():
+        if operation not in {"insert", "replace"}:
+            continue
+        for offset in range(start, end):
+            line = lines[offset]
+            if _MOJIBAKE_RE.search(line) and not allowlist.allows_text(path, line):
+                findings.append(Finding(path, source, offset + 1, "mojibake", line))
+    return tuple(findings)
+
+
 def _line_number(text: str, offset: int) -> int:
     return text.count("\n", 0, offset) + 1
 
@@ -597,12 +646,15 @@ def check_delivery_hygiene(
         candidate = repository / DEFAULT_ALLOWLIST
         selected_allowlist = candidate if candidate.exists() else None
     allowlist = load_allowlist(selected_allowlist)
+    mojibake_allowlist_path = repository / MOJIBAKE_ALLOWLIST
+    mojibake_allowlist = load_allowlist(mojibake_allowlist_path)
+    if mojibake_allowlist.commits:
+        raise DeliveryHygieneConfigurationError(
+            "Mojibake allow-list permits only exact text entries"
+        )
 
-    paths = (
-        _tracked_paths(repository)
-        if all_tree
-        else _changed_paths(repository, merge_base, head)
-    )
+    mojibake_paths = _changed_paths(repository, merge_base, head)
+    paths = _tracked_paths(repository) if all_tree else set(mojibake_paths)
     if selected_allowlist is not None:
         try:
             allowlist_relative = selected_allowlist.resolve().relative_to(repository)
@@ -612,16 +664,33 @@ def check_delivery_hygiene(
             paths.discard(allowlist_relative.as_posix())
 
     findings: set[Finding] = set()
-    for relative in sorted(paths):
+    for relative in sorted(paths | mojibake_paths):
+        base_payload = (
+            _blob(repository, f"{merge_base}:{relative}")
+            if relative in mojibake_paths
+            else None
+        )
+        base_text = (base_payload or b"").decode("utf-8", "replace")
         for source, text in _text_versions(repository, relative, head=head):
-            findings.update(
-                scan_text(
-                    text,
-                    path=relative,
-                    source=source,
-                    allowlist=allowlist,
+            if relative in mojibake_paths and relative != MOJIBAKE_ALLOWLIST.as_posix():
+                findings.update(
+                    scan_introduced_mojibake(
+                        text,
+                        base_text=base_text,
+                        path=relative,
+                        source=source,
+                        allowlist=mojibake_allowlist,
+                    )
                 )
-            )
+            if relative in paths:
+                findings.update(
+                    scan_text(
+                        text,
+                        path=relative,
+                        source=source,
+                        allowlist=allowlist,
+                    )
+                )
     for commit in _introduced_commits(repository, merge_base, head):
         findings.update(_commit_findings(repository, commit, allowlist))
 
@@ -633,6 +702,7 @@ def check_delivery_hygiene(
     print(
         f"  text scope:     {'complete tracked tree' if all_tree else 'changed tracked text'}"
     )
+    print("  mojibake scope: introduced tracked lines (HEAD/index/worktree)")
     print(f"  tracked paths:  {len(paths)}")
     print(f"  commits:        {len(_introduced_commits(repository, merge_base, head))}")
     return tuple(sorted(findings))
@@ -678,7 +748,7 @@ def main() -> int:
         return 2
     if findings:
         print(
-            "Delivery hygiene rejected workstation or delivery artifacts:",
+            "Delivery hygiene rejected workstation, encoding or delivery artifacts:",
             file=sys.stderr,
         )
         for finding in findings:
