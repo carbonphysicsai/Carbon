@@ -9,7 +9,7 @@ Maturity: process evidence only. This record qualifies nothing.
 
 ## Why this exists
 
-These four standards were applied as habits during 2026-10-13, and each one
+These five standards were applied as habits during 2026-10-13, and each one
 caught a real defect that every other check in the pipeline passed over. A
 habit does not survive the session that holds it, and the sessions holding
 these are standing down or handing off. They are written here so the next
@@ -132,8 +132,10 @@ rather than only against their base. That is the merge's own evidence and
 duplicates no reviewer's work.
 
 **Further cases.** #1275 arrived green with three of its four required items
-missing. #1297's "one wording fix" was ten occurrences across eight files, two
-of them test assertions. #1277's removal of a reserved amount was safe only because no
+missing. #1297's "one wording fix" was **ten references to one status**: nine
+occurrences of the new label across seven files, two of them test assertions,
+plus a tenth in an already-merged decision record that must not be edited at
+all (standard 5). #1277's removal of a reserved amount was safe only because no
 such grant file exists anywhere — had one existed it would have un-reserved
 money for a live grant. #1288 cited a cost figure that had stopped matching its
 own case count. #1300's real failure was two stale budget expectations, not the
@@ -177,7 +179,7 @@ standard 1 exists.
 - The PRD02F erratum described in standard 5 is owed **on #1297's merge** and
   not before. At the synced head `65a496de6` the old label survives in exactly
   one place in the entire repository: that merged record's line 35. The PR's
-  own files carry the new label in ten places across seven files, two of them
+  own files carry the new label in nine places across seven files, two of them
   test assertions.
 - PLT-12 (`CI-TEST-MERGE-RESULT-01`) remains the real fix for standard 1's root
   cause: CI checks out `.head.sha` rather than the merge result, so a rerun can
