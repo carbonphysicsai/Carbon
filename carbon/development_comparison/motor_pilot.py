@@ -67,6 +67,11 @@ def sources(values):
         pin(value)
 
 
+def geometry_key(coordinates):
+    """Exact numeric identity: JSON integer/float spelling is not a new design."""
+    return tuple(float(coordinates[name]) for name in mk.GRAMMAR)
+
+
 def load(path):
     from carbon.agent_campaign.pod_jobs import _sealed, _upload_path
 
@@ -145,7 +150,7 @@ def _domain(doc, scope):
         if set(commands) != set(pk.COMMANDS):
             raise PilotHold("ELEVEN_HOLDING_PEAK_COGGING_SWEEPS_REQUIRED")
         curves[int(index)] = commands
-    if len({ca.canonical(g) for g in geometry.values()}) != len(geometry):
+    if len({geometry_key(g) for g in geometry.values()}) != len(geometry):
         raise PilotHold("DUPLICATE_PHYSICAL_GEOMETRY")
     return geometry, curves
 
@@ -230,14 +235,14 @@ def prepare(docs, pins, *, fixture=False):
         raise PilotHold("FIXTURE_PROMOTION_OR_INVALID_TRAIN")
     training = {}
     for r in train.records:
-        key = ca.canonical({n: r["inputs"][n] for n in mk.GRAMMAR})
+        key = geometry_key(r["inputs"])
         command = (r["inputs"]["j_a_mm2"], r["inputs"]["gamma_deg"])
         if command in training.setdefault(key, set()):
             raise PilotHold("DUPLICATE_TRAIN_CURVE")
         training[key].add(command)
     if any(v != set(pk.COMMANDS) for v in training.values()):
         raise PilotHold("COMPLETE_TRAIN_ROLES_REQUIRED")
-    if set(training) & {ca.canonical(g) for g in geometry.values()}:
+    if set(training) & {geometry_key(g) for g in geometry.values()}:
         raise PilotHold("WHOLE_GEOMETRY_TRAIN_HELDOUT_OVERLAP")
     export = docs["export"]
     shape(export, {"schema", "scope", "family", "questions", "export_digest"})

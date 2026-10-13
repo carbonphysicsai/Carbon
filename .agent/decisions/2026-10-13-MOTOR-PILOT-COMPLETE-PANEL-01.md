@@ -29,6 +29,10 @@ unsettled). The registered 6/12/24 geometry ladder therefore does not charge
 three times for one slice bundle. Screening ranks collapse from raw actions
 to first-occurrence geometry order; raw unsafe-pick/learning diagnostics retain
 the initial specific skew action. No cross-geometry free cache is assumed.
+Physical geometry identity compares exact numeric coordinates in fixed grammar
+order. JSON integer/float spelling cannot create a distinct geometry or bypass
+TRAIN/heldout separation. No tolerance, rounding or approximate equivalence is
+introduced; this supersedes byte-spelling comparison within the working worker.
 
 Operational DOCUMENTATION_LAG: PKT-09's conditional USD77.20 scenario exceeds
 the existing shared launcher's USD50 per-run guard. Job-spec generation takes

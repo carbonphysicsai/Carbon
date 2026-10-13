@@ -167,6 +167,26 @@ def test_train_and_all_skew_siblings_of_held_geometry_are_disjoint():
         mp.prepare(docs, reseal(docs), fixture=True)
 
 
+def test_numeric_json_spelling_cannot_bypass_geometry_holdout_or_diversity():
+    docs, _pins = fixture.documents()
+    g = {
+        "magnet_mm": 2,
+        "coverage": 0.7,
+        "airgap_mm": 0.45,
+        "tooth_frac": 0.25,
+        "opening_frac": 0.05,
+        "slot_bottom_mm": 37,
+    }
+    assert mp.geometry_key(g) == mp.geometry_key({k: float(v) for k, v in g.items()})
+    # This is a physical TRAIN geometry despite its differently spelled integers.
+    docs["domain"]["geometry"]["0"] = g
+    with pytest.raises(mp.PilotHold, match="WHOLE_GEOMETRY"):
+        mp.prepare(docs, reseal(docs), fixture=True)
+    docs["domain"]["geometry"]["1"] = {k: float(v) for k, v in g.items()}
+    with pytest.raises(mp.PilotHold, match="DUPLICATE_PHYSICAL_GEOMETRY"):
+        mp.prepare(docs, reseal(docs), fixture=True)
+
+
 def test_fixture_inputs_refused_by_public_path():
     docs, pins = fixture.documents()
     with pytest.raises(mp.PilotHold, match="DOMAIN_REQUIRED"):

@@ -95,6 +95,10 @@ No worker input, raw curve or question is copied into the repository.
 
 The domain's grid is 48 signed samples over 12 degrees at 0.25 degrees;
 producer must perform registered 96-to-48 export explicitly where applicable.
+
+Geometry identity uses exact numeric values in grammar order, so `2` and `2.0`
+cannot split one physical design across TRAIN and heldout or inflate diversity.
+No approximate tolerance or scientific equivalence policy is invented.
 Proof of nonlinear torque/phase/skew adequacy, complete peak witness and
 appropriate uncertainty remains external evidence. A SHA identifies a receipt;
 it does not independently certify that receipt's scientific adequacy.
