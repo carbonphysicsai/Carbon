@@ -76,15 +76,30 @@ attempt, including a refusal. Own selection never requests a post.
 `carbon_options` and the browser read the same `construction_options` document.
 Every registered public change type is listed in plain words, with Available
 or Coming soon and its reason. The document binds the public unified digest,
-registered ceiling, type opening, check health and serving facts. The current
-battery ceiling is unresolved (`null`), and its widenings remain INTERNAL;
-they are Coming soon. Hoped-for Level 4 is never substituted for an owner record.
+registered identity, check health and receiver-checked serving facts. Under
+OWNER-CONSTRUCTION-ANYTHING-01, the level describes a change; it does not grant
+permission. The historical ceiling, within_ceiling, INTERNAL/EXTERNAL and arm
+external_allowed fields no longer decide options availability. They remain
+recorded data, preserving old contract and evidence identities.
 
-A changed type requires an explicit ceiling, external opening and permitted
-arm, passing registered checks, and matching receiver-checked serving facts to
-be displayed as available. This describes registered configuration, not
+A registered change requires passing registered checks and matching
+receiver-checked serving facts to be displayed as available. This describes
+registered configuration, not
 scientific or security qualification. Contract failure is explicitly
 PUBLIC_CONTRACT_UNAVAILABLE; an empty catalog is not reported as a pass.
+
+PLT-28 changes the former ceiling/above-ceiling/not-external refusals: a served,
+checked registered change is Available even with a null ceiling and INTERNAL
+flags. These refusals are removed, never renamed as scope refusals. Missing or
+failed required checks still show Coming soon, naming the change and check IDs;
+missing, mismatched or wrong-receiver serving facts still show Coming soon,
+naming the change whose route cannot be confirmed. The current battery profile
+still has UNAVAILABLE checks, so this repair does not claim it is ready or
+served. The actual compiler must still refuse any out-of-scope or unrebuildable
+recipe, naming what cannot be rebuilt. An options display never grants admission.
+L1 ops, L2 pools, L3 menus/memory, L4 G0-G7, compute/import bounds and pinned
+v1-v3 module/variant digests are unchanged. This prerequisite must land before
+S5; deployment still needs the owner's separate explicit go.
 
 PLT-16's pure classifier is on main, but the composed door wiring in
 CONSTRUCTION-CONTRACT-01 S3 is still pending. Both browser and MCP launch
@@ -94,8 +109,8 @@ The shared classifier previews construction widening before the existing base
 check-design path; it does not grant composed admission.
 Historical level-bound campaigns retain their versioned manifests, compile,
 freeze and commitment interpretation. No historical rescore or ladder cutover
-occurs here. Unified intake routing and each type's external security opening
-remain their separately owned work.
+occurs here. Unified intake routing and security/deployment acceptance remain
+their separately owned work.
 
 For a campaign bound to `battery-l4-graph-v3`, validate and compile return the
 non-blocking notice when `composition_graphs` accompanies `width` or `depth`:

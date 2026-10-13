@@ -16,7 +16,7 @@ from scripts.dev.miner_launchpad import operations, runner
 from scripts.dev.miner_launchpad.controller import Rejected
 
 
-def test_all_registered_changes_are_visible_and_unknown_ceiling_keeps_them_closed():
+def test_all_registered_changes_are_visible_and_missing_checks_keep_them_closed():
     registered = contract()
     shown = options.build(registered)
     assert shown["ceiling"] is None and not shown["qualification"]
@@ -41,7 +41,7 @@ def test_raw_contract_and_unregistered_serving_claims_never_create_availability(
         registered, [{**registered.facts(), "unified_digest": "sha256:" + "0" * 64}]
     )
     assert shown["submission_path_available"] is False
-    # Owner ceiling/opening still dominates even a matching serving claim.
+    # An unregistered serving identity cannot create availability.
     assert all(row["availability"] == "coming_soon" for row in shown["types"][1:])
 
 
@@ -346,37 +346,106 @@ def test_v3_notice_leaves_freeze_and_submit_guards_unchanged(tmp_path, monkeypat
         cl._compiled.cache_clear()
 
 
-def test_registered_ceiling_opening_checks_and_serving_all_constrain_the_display():
+def _ready_contract(ceiling=None):
     # Synthetic preview data remains structurally DEVELOPMENT_SHADOW_ONLY;
     # it never reaches an intake, deployment, signer or scoring authority.
     doc = contract().document
-    doc["ceiling"] = 2
+    doc["ceiling"] = ceiling
     for row in doc["types"]:
-        row["within_ceiling"] = row["label"] <= 2
-        row["open"], row["owner_acceptance"] = (
-            "EXTERNAL",
-            "OWNER-TEST-ONLY-NOT-AN-ACCEPTANCE",
-        )
+        # Every obsolete permission flag stays closed, even on serving fixtures.
+        row["within_ceiling"] = False
         for arm in row["arms"]:
-            arm["external_allowed"] = True
+            arm["external_allowed"] = False
         for check in row["checks"]:
             check["status"] = "PASS"
         row["registration_digest"] = digest(
             {k: row[k] for k in ("type", "label", "fields", "arms")}
         )
-    registered = UnifiedContract(doc)
+    return UnifiedContract(doc)
+
+
+@pytest.mark.parametrize("ceiling", [None, 0, 2, 4])
+def test_served_checked_changes_are_available_without_ceiling_or_external_permission(
+    ceiling,
+):
+    registered = _ready_contract(ceiling)
     without_route = options.build(registered)
     assert all(
         row["availability"] == "coming_soon" for row in without_route["types"][1:]
     )
     serving = options.build(registered, [registered.facts()])
-    assert [row["availability"] for row in serving["types"][1:]] == [
-        "available",
-        "available",
-        "coming_soon",
-        "coming_soon",
-    ]
+    assert all(row["availability"] == "available" for row in serving["types"])
+    assert all(row["open"] == "INTERNAL" for row in serving["types"][1:])
+    assert all(not row["within_ceiling"] for row in serving["types"][1:])
+    assert all("ceiling" not in row["reason"] for row in serving["types"])
     assert not serving["qualification"]
+
+
+@pytest.mark.parametrize("status", ["FAIL", "UNAVAILABLE"])
+def test_required_check_refusal_names_the_change_and_check_without_closing_peers(
+    status,
+):
+    document = _ready_contract().document
+    blocked = document["types"][0]
+    blocked["checks"][0]["status"] = status
+    registered = UnifiedContract(document)
+    shown = options.build(registered, [registered.facts()])
+    row = shown["types"][1]
+    assert row["availability"] == "coming_soon"
+    assert row["label"] in row["reason"]
+    assert blocked["checks"][0]["id"] in row["reason"]
+    assert "ceiling" not in row["reason"] and "scope" not in row["reason"]
+    assert all(row["availability"] == "available" for row in shown["types"][2:])
+    assert not shown["qualification"]
+
+
+@pytest.mark.parametrize("mutation", ["digest", "types", "absent"])
+def test_ready_checks_do_not_bypass_missing_or_mismatched_serving_identity(mutation):
+    registered = _ready_contract()
+    facts = registered.facts()
+    if mutation == "digest":
+        facts["unified_digest"] = "sha256:" + "0" * 64
+    elif mutation == "types":
+        facts["types"] = facts["types"][:-1]
+    else:
+        facts = None
+    shown = options.build(registered, [facts])
+    assert not shown["submission_path_available"]
+    for row in shown["types"][1:]:
+        assert row["availability"] == "coming_soon"
+        assert row["label"] in row["reason"] and "validator" in row["reason"]
+    assert not shown["qualification"]
+
+
+def test_receiver_binding_still_controls_ready_options(monkeypatch):
+    from carbon.battery import unified_contract
+
+    registered = _ready_contract()
+    monkeypatch.setattr(unified_contract, "contract", lambda: registered)
+    receiver = "5" + "A" * 47
+    cfg = {
+        "intake_targets": {
+            BATTERY_CHALLENGE: [
+                {
+                    "intake_url": "https://fixture.example.test",
+                    "receiver_hotkey": receiver,
+                }
+            ]
+        }
+    }
+    for found_receiver, expected in [
+        (receiver, "available"),
+        ("another receiver", "coming_soon"),
+    ]:
+        shown = options.for_profile(
+            cfg,
+            lambda url, receiver=found_receiver: {
+                **registered.facts(),
+                "receiver": receiver,
+            },
+        )[BATTERY_CHALLENGE]
+        assert all(row["availability"] == expected for row in shown["types"][1:])
+        assert not shown["qualification"]
 
 
 def test_missing_contract_is_explicit_and_never_a_successful_empty_catalog(monkeypatch):
