@@ -286,6 +286,7 @@
       "carbon.miner-research.unlimited.v1"
      ],
      "reviews": {
+      "R4": "carbon/challenge_pipeline/readiness/battery-fastcharge-ageing-development-v1/reviews/R4.L4-G-CONSTRUCTOR-3.json",
       "R5": "carbon/challenge_pipeline/readiness/battery-fastcharge-ageing-development-v1/reviews/R5.L4-G-CONSTRUCTOR-3.json"
      }
     }

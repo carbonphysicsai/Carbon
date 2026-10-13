@@ -232,7 +232,10 @@ def test_r4_reads_actual_frozen_grant_start_model_without_calling_it(ctx):
     # context (1,113,088) capped at SELECT_MAX_INPUT_TOKENS. So the settings pass,
     # and the item waits for its committed sizing review (Test Lead, 2026-10-13).
     result = runtime.model_settings({}, ctx)
-    assert result.status == model.REVIEW_REQUIRED, result.detail
+    named = registration(ctx).get("reviews", {})
+    # Level 4 names its committed lane-G R4 review; other levels await one.
+    expected = model.PASS if "R4" in named else model.REVIEW_REQUIRED
+    assert result.status == expected, result.detail
 
 
 @pytest.mark.parametrize("given", [1113088, 1048577, 65536])
@@ -299,6 +302,7 @@ def review(ctx, item, *, report=None):
 
 def test_r4_machine_pass_needs_an_exact_sizing_review(ctx, monkeypatch):
     report = valid_blocks(ctx, monkeypatch)
+    registration(ctx).pop("reviews", None)  # the case without any committed review
     assert runtime.model_settings({}, ctx).status == model.REVIEW_REQUIRED
     review(ctx, "R4", report=report)
     assert runtime.model_settings({}, ctx).status == model.PASS
@@ -390,7 +394,9 @@ def test_level4_binds_lane_g_and_its_committed_r5_review(ctx):
         == "GRAPHITE-GRANT-L4-G-CONSTRUCTOR-3"
     )
     assert record["reviews"]["R5"].endswith("reviews/R5.L4-G-CONSTRUCTOR-3.json")
+    assert record["reviews"]["R4"].endswith("reviews/R4.L4-G-CONSTRUCTOR-3.json")
     assert runtime.grants({}, ctx).status == model.PASS
+    assert runtime.model_settings({}, ctx).status == model.PASS
 
 
 def test_r5_machine_pass_without_amount_review_requires_review(ctx, monkeypatch):
@@ -594,8 +600,12 @@ def test_gate_integration_keeps_runtime_findings_and_authority_flags_false(
         assert rows["R5"]["status"] == model.FAIL
     else:  # Level 4: lane G's Constructor, with its committed R5 review
         assert rows["R5"]["status"] == model.PASS
-    # R4's frozen settings now pass; it waits for its committed sizing review.
-    assert rows["R4"]["status"] == model.REVIEW_REQUIRED
+    # R4's frozen settings now pass; it waits for its committed sizing review,
+    # which Level 4 names (lane G's Constructor -3).
+    named = registration(ctx).get("reviews", {})
+    assert rows["R4"]["status"] == (
+        model.PASS if "R4" in named else model.REVIEW_REQUIRED
+    )
     if "attacker" in registration(ctx)["roles"]:
         assert "no-pod run carries a pod allowance" in rows["R5"]["detail"]
     assert report["green"] is False and report["launch_ready"] is False
