@@ -25,7 +25,8 @@ an already compiled construction, workspace and paired G5 result. It stages a
 fixed Carbon program in the existing development/testnet compile lane, with the
 same deadline/provenance/resources. The program captures the actual composed
 main loop and separately compiles its full-batch loss/gradient for L3; it stops
-before training or polish. It emits no trained state.
+before training or polish. Capture and subsequent full-batch compilation share
+the recipe-specific precision context, restored on every exit. It emits no trained state.
 
 The profile binds the canonical recipe and full record, verified documents and
 allowlist, complete G5 evidence, fixed algorithm source bytes, image, scope,

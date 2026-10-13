@@ -94,6 +94,12 @@ def profiles(tmp_path_factory, graph_input):
             "line_search": "backtracking",
         },
         "l3_full_data": {"quasi_newton_family": "bfgs", "line_search": "backtracking"},
+        "l3_float64": {
+            "pool_selection": PARTS["pool_selection"],
+            "quasi_newton_family": "bfgs",
+            "line_search": "backtracking",
+            "precision": "float64",
+        },
         "spectral_pool": {
             "pool_selection": PARTS["pool_selection"],
             "muon_spectral": True,
@@ -101,11 +107,30 @@ def profiles(tmp_path_factory, graph_input):
     }
     made = {}
     for name, parts in combinations.items():
-        found = compiled(graph_input, **parts)
+        selected_graph = graph_input
+        selected_g5 = base_g5
+        if name == "l3_float64":
+            from test_battery_composed_graph import battery, strategy
+
+            from carbon.level4 import allowlist, intake, staging, submission
+
+            manifest, files = battery.lower_recipe(
+                strategy(width=12, precision="float64"),
+                allowlist.load(),
+                max_bytes=intake.BOUNDS["document_bytes"],
+            )
+            selected_graph = submission.digest(manifest), staging.workspace(
+                submission.canonical(manifest), files
+            )
+            found = compiled(selected_graph, **parts)
+            _, _, _, wide_hash = profile_cost._verified(selected_graph[1], found.record)
+            selected_g5 = {**base_g5, "input_digest": wide_hash}
+        else:
+            found = compiled(selected_graph, **parts)
         measured = profile_cost.compile_in_isolation(
             found,
-            graph_input[1],
-            base_g5,
+            selected_graph[1],
+            selected_g5,
             ledger=ledger,
             owner="fixture-owner",
             image=IMAGE,
@@ -368,3 +393,41 @@ def test_nonfinite_g5_metadata_has_a_typed_refusal(profiles):
         profile_cost.program(
             found.construction, found.record, changed, PARTS["pool_selection"]["cases"]
         )
+
+
+def test_float64_profile_compiles_the_actual_full_batch_objective_in_float64(profiles):
+    made, _, _ = profiles
+    found, measured = made["l3_float64"]
+    row = measured["composed_profile"]
+    assert row["status"] == "MEASURED"
+    assert row["precision"] == "float64"
+    assert (
+        row["polish_loss_dtype"] == "float64"
+    )  # actual traced scalar, not recipe label
+    assert made["l3_pool"][1]["composed_profile"]["polish_loss_dtype"] == "float32"
+    assert (
+        profile_cost.program(
+            found.construction, found.record, measured, PARTS["pool_selection"]["cases"]
+        ).polish_factor
+        > 0
+    )
+
+
+def test_profile_precision_scope_restores_process_state_even_after_failure(monkeypatch):
+    import jax
+
+    entered = []
+
+    def fail(*args):
+        entered.append(jax.config.x64_enabled)
+        raise RuntimeError("fixture scope exit")
+
+    monkeypatch.setattr(profile_cost, "_measure_precision", fail)
+    with jax.enable_x64(False):
+        for precision, expected in (("float64", True), ("float32", False)):
+            with pytest.raises(RuntimeError, match="fixture scope exit"):
+                profile_cost._worker_measure(
+                    None, None, None, {"settings": {"precision": precision}}, None, None
+                )
+            assert entered[-1] is expected
+            assert jax.config.x64_enabled is False

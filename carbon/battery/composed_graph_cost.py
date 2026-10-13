@@ -166,7 +166,15 @@ def _names(closed, cost):
 
 
 def _worker_measure(model, train, structure, recipe, record, context):
-    """Private entrypoint in the fixed program, never called by the consumer."""
+    """Keep capture and all subsequent compilation in the recipe's precision."""
+    import jax
+
+    with jax.enable_x64(recipe["settings"]["precision"] == "float64"):
+        return _measure_precision(model, train, structure, recipe, record, context)
+
+
+def _measure_precision(model, train, structure, recipe, record, context):
+    """Private fixed-worker implementation; the caller owns precision scope."""
     import jax
     import jax.numpy as jnp
 
@@ -240,7 +248,7 @@ def _worker_measure(model, train, structure, recipe, record, context):
     kwargs = seen[0]
     cases = kwargs["f"].shape[0]
     batch = min(recipe["settings"]["batch_size"], cases)
-    polish_flops = gradient = None
+    polish_flops = gradient = loss_dtype = None
     if record["numerics"] is not None:
         objective = composed_training.loss_program(
             jax=jax,
@@ -276,6 +284,7 @@ def _worker_measure(model, train, structure, recipe, record, context):
                 "field": "composition_graphs",
                 "reason": "+".join(sorted(opaque)),
             }
+        loss_dtype = str(full.out_avals[0].dtype)
         gradient = cost._xla_flops(full) + cost._extra(full)
         numerics = record["numerics"]
         polish_flops = gradient * level3_numerics.evaluations_per_step(
@@ -291,6 +300,7 @@ def _worker_measure(model, train, structure, recipe, record, context):
         "main_step_flops": main_flops,
         "polish_step_flops": polish_flops,
         "polish_gradient_flops": gradient,
+        "polish_loss_dtype": loss_dtype,
         "parameter_count": count,
         "batch_size": batch,
         "precision": recipe["settings"]["precision"],
