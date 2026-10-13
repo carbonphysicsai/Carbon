@@ -10,7 +10,7 @@ import math
 import statistics
 from pathlib import Path
 
-from . import bank, candidates, public_ev4, synthetic
+from . import bank, candidates, physics, public_ev4, public_physics, synthetic
 from .core import LabRefused, analyze, registry_rule, v2_rule
 
 
@@ -216,7 +216,110 @@ def main(argv=None):
     check.add_argument("--unit", type=float)
     check.add_argument("--ceiling-threshold", type=float)
     check.add_argument("--out", type=Path)
+    phys = commands.add_parser(
+        "physics", help="OPT-15b analytic physics and neighbour sweep"
+    )
+    phys.add_argument("--config", type=Path, required=True)
+    phys.add_argument("--candidates", type=Path, required=True)
+    phys.add_argument("--candidate", help="one candidate id; default is all ten")
+    phys.add_argument(
+        "--public-cache", type=Path, help="optional public EV4 Score Lab cache"
+    )
+    phys.add_argument("--plt-readings", type=Path, help="PLT-01 public paired readings")
+    phys.add_argument("--b9-measurements", type=Path, help="public B9 measurement file")
+    phys.add_argument(
+        "--tier2-registry", type=Path, help="exact public registry anchor"
+    )
+    phys.add_argument("--tier2-candidate", help="id in --tier2-registry")
+    phys.add_argument("--out", type=Path)
     args = parser.parse_args(argv)
+    if args.command == "physics":
+        config = json.loads(args.config.read_text(encoding="utf-8"))
+        specs, digest = candidates.load(args.candidates)
+        if args.candidate:
+            if args.candidate not in specs:
+                raise LabRefused("candidate_not_registered")
+            specs = {args.candidate: specs[args.candidate]}
+        report = physics.sensitivity(config, specs, digest)
+        supplied = [args.public_cache, args.plt_readings, args.b9_measurements]
+        if (args.tier2_registry is None) != (args.tier2_candidate is None):
+            raise LabRefused("physics_tier2_anchor_incomplete")
+        if args.tier2_registry is not None and args.public_cache is None:
+            raise LabRefused("physics_tier2_public_cache_required")
+        if any(x is not None for x in supplied):
+            if any(x is None for x in supplied):
+                raise LabRefused("physics_public_inputs_incomplete")
+            with (
+                gzip.open(args.public_cache, "rt", encoding="utf-8")
+                if args.public_cache.suffix == ".gz"
+                else args.public_cache.open("r", encoding="utf-8")
+            ) as handle:
+                public_panel = json.load(handle)
+            traits = public_physics.load_traits(args.plt_readings, args.b9_measurements)
+            wrapper = candidates.load_physics_wrapper(args.candidates)
+            report["tier2_public"] = {}
+            for name, spec in specs.items():
+                rule = candidates.rule_from_spec(
+                    name,
+                    spec,
+                    path_digest=digest,
+                    panel=public_panel,
+                    registry_v5=Path(
+                        "docs/development/evidence/battery-score-tuning/registry-v5.json"
+                    ),
+                    registry_v9=Path(
+                        "docs/development/evidence/battery-score-tuning/registry-v9.json"
+                    ),
+                    registry_v10=Path(
+                        "docs/development/evidence/battery-score-tuning/registry-v10.json"
+                    ),
+                )
+                report["tier2_public"][name] = (
+                    public_physics.replay(
+                        public_panel,
+                        traits,
+                        rule,
+                        config["physics_sweep"],
+                        bootstrap=config["bootstrap"],
+                        with_physics=wrapper,
+                    )
+                    if rule is not None
+                    else {
+                        "status": "INSUFFICIENT_EVIDENCE",
+                        "reason": "exact_public_registry_or_decision_contract_missing",
+                    }
+                )
+            if args.tier2_registry is not None:
+                exact = registry_rule(args.tier2_registry, args.tier2_candidate)
+                report["tier2_public"]["exact_registry_anchor"] = public_physics.replay(
+                    public_panel,
+                    traits,
+                    exact,
+                    config["physics_sweep"],
+                    bootstrap=config["bootstrap"],
+                    with_physics=wrapper,
+                )
+        print("SCORE LAB PHYSICS — SYNTHETIC DEVELOPMENT ONLY")
+        print(
+            f"{len(report['rows'])} rule × switch rows; "
+            f"{len(report['sensitivity']['table'])} sensitivity settings"
+        )
+        for entry in report["sensitivity"]["table"]:
+            changed = {
+                switch: len(moved)
+                for switch, moved in entry["changed_positions"].items()
+                if moved
+            }
+            print(
+                f"{entry['lever']}={json.dumps(entry['setting'], sort_keys=True)} "
+                f"changed rule positions by switch: {changed}"
+            )
+        print(
+            f"physics switch effects: {len(report['physics_verdict']['effects'])}; "
+            "descriptive only, no owner value selected"
+        )
+        _write(args.out, report)
+        return 0
     if args.command == "prepare-ev4":
         panel = public_ev4.build(args.public_dir, args.repository)
         with gzip.open(args.out, "wt", encoding="utf-8") as handle:
