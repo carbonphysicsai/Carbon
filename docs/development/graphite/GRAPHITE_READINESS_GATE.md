@@ -71,7 +71,7 @@ fails the gate gets no live Graphite run, at any level.
 | Item | Check | Kind | Lesson |
 |---|---|---|---|
 | R1 | The real-path no-spend gate passes for this challenge: the provider with a fake transport, the controller, ledger, pods and carrier under live threading. | [auto] `phase4 prelive`, `real_path_check` | E1 |
-| R2 | A deterministic containment check with a host canary passes on the lane this challenge uses (pod, CPU carrier or miner lane). | [auto] (containment PR) | A3 |
+| R2 | A deterministic containment check with a host canary passes on the lane this challenge uses (pod, CPU carrier or miner lane). | [auto] real analysis carrier probe; [runtime evidence contract](../challenge_pipeline/readiness/RUNTIME_CHECKS.md) | A3 |
 | R3 | An environment probe and its attribution policy are registered for every compute lane used. | [auto] | E2 |
 | R4 | Model settings: full context for each role's model, an output cap sized from use, and an endpoint that reports charges. | [auto] the prelive `*_model` blocks | E3, E4 |
 | R5 | Grants: a per-challenge grant bound to main's blob, priced with lost-run headroom, tokens-only where no pods run. | [auto] | I2 |

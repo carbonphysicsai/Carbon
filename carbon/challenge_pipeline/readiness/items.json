@@ -122,9 +122,9 @@
    "kind": "auto",
    "lesson": "A3",
    "title": "A deterministic containment check with a host canary passes on the lane this challenge uses (pod, CPU carrier or miner lane).",
-   "check": "recorded_tests",
+   "check": "carrier_containment",
    "pending": {
-    "reason": "deterministic containment check with host canary: Test Engineer's containment PR not on main",
+    "reason": "real analysis carrier probe requires Docker and the current host analysis-image manifest; fixture tests cannot earn PASS",
     "owner": "Test Engineer",
     "neutral_tests": []
    }
@@ -146,9 +146,9 @@
    "kind": "auto",
    "lesson": "E3, E4",
    "title": "Model settings: full context for each role's model, an output cap sized from use, and an endpoint that reports charges.",
-   "check": "recorded_tests",
+   "check": "model_settings",
    "pending": {
-    "reason": "prelive reports only attacker_model; per-role *_model blocks and the output cap (lesson E3 OPEN) are not reported",
+    "reason": "frozen per-role model blocks are checked; a context mismatch fails and an absent committed output-sizing rule requires Test Engineer review",
     "owner": "Test Engineer",
     "neutral_tests": []
    }
@@ -311,7 +311,7 @@
    "id": "D3",
    "kind": "auto",
    "lesson": "E8",
-   "title": "A timing calibration on the target hardware has run, and counted-plan timeouts are at least 2× p95.",
+   "title": "A timing calibration on the target hardware has run, and counted-plan timeouts are at least 2\u00d7 p95.",
    "check": "recorded_tests",
    "pending": {
     "reason": "no timing calibration check is recorded for the challenge",
@@ -366,7 +366,7 @@
    "id": "V1",
    "kind": "auto+review",
    "lesson": "S1",
-   "title": "A Q1 score-to-value check on the available panel (baselines plus constructed controls): τ/ρ with a band, and divergences listed. A negative or within-noise τ is NOT a blocker, but it is recorded, and the first Graphite runs are then framed as alignment measurements, never as improvement hunting.",
+   "title": "A Q1 score-to-value check on the available panel (baselines plus constructed controls): \u03c4/\u03c1 with a band, and divergences listed. A negative or within-noise \u03c4 is NOT a blocker, but it is recorded, and the first Graphite runs are then framed as alignment measurements, never as improvement hunting.",
    "check": "q1_alignment"
   },
   {
