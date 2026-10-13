@@ -157,6 +157,22 @@ configurations and their digests, and performs no evaluation or holdout read.
 The example axes exercise part of the campaign lever space; they do not stand
 in for the remaining §2 settings or a completed campaign verdict.
 
+`campaign-goodhart` searches the analytic toy member-trait grammar twice:
+once for a candidate's score on scoring questions only, and separately for
+true buyer value as an offline oracle. Both use fixed random starts plus
+coordinate hill climbing. The reported value gap uses an approximate oracle;
+a signed negative gap means it missed a better point. Every search range and
+effort setting is an explicit toy assumption, not a Challenge rule.
+
+```sh
+python -m scripts.dev.score_lab campaign-goodhart \
+  --config scripts/dev/score_lab/physics-example.json \
+  --search scripts/dev/score_lab/goodhart-search-example.json \
+  --candidates codex-queue/inputs/score-lab-candidates/candidates.py \
+  --candidate N1-DECISION-RELEVANCE-ERROR \
+  --out /tmp/scorelab-goodhart-toy.json
+```
+
 ```sh
 python -m scripts.dev.score_lab campaign-plan \
   --base-config scripts/dev/score_lab/physics-example.json \

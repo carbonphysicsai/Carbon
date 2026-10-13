@@ -14,6 +14,7 @@ from pathlib import Path
 from . import (
     bank,
     campaign_gate,
+    campaign_goodhart,
     campaign_sweep,
     candidates,
     physics,
@@ -266,7 +267,49 @@ def main(argv=None):
     sweep.add_argument("--shard", type=int, default=0)
     sweep.add_argument("--shards", type=int, default=1)
     sweep.add_argument("--out", type=Path, required=True)
+    goodhart = commands.add_parser(
+        "campaign-goodhart", help="toy score-only random/hill search then value check"
+    )
+    goodhart.add_argument("--config", type=Path, required=True)
+    goodhart.add_argument("--search", type=Path, required=True)
+    goodhart.add_argument("--candidates", type=Path, required=True)
+    goodhart.add_argument("--candidate")
+    goodhart.add_argument("--components", type=Path)
+    goodhart.add_argument("--out", type=Path, required=True)
     args = parser.parse_args(argv)
+    if args.command == "campaign-goodhart":
+        config = json.loads(args.config.read_text(encoding="utf-8"))
+        search_spec = json.loads(args.search.read_text(encoding="utf-8"))
+        component_spec = (
+            json.loads(args.components.read_text(encoding="utf-8"))
+            if args.components
+            else None
+        )
+        specs, digest = candidates.load(args.candidates)
+        names = [args.candidate] if args.candidate else list(specs)
+        if any(name not in specs for name in names):
+            raise LabRefused("candidate_not_registered")
+        report = {
+            "status": "SYNTHETIC_DEVELOPMENT_DIAGNOSTIC",
+            "candidates_sha256": digest,
+            "results": {
+                name: campaign_goodhart.run(
+                    config,
+                    name,
+                    specs[name],
+                    candidates_sha256=digest,
+                    search=search_spec,
+                    component_spec=component_spec,
+                )
+                for name in names
+            },
+        }
+        _write(args.out, report)
+        print(
+            f"toy Goodhart search for {len(names)} candidates; "
+            "approximate oracle, no held-out or Challenge conclusion"
+        )
+        return 0
     if args.command == "campaign-plan":
         plan = {
             "schema": campaign_sweep.SCHEMA,
