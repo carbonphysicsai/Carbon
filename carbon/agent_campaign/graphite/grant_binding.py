@@ -100,6 +100,12 @@ phase-3 grant: outside its study it is refused `grant_is_bound_to_a_study`.
   (the sum of the open grants). A replaced grant stays registered for its audit trail and is not counted again;
   it cannot be launched (`GRANT_REPLACED`, typed, at the phase-3 door) and its one run is already claimed
   (`run_limit_reached` in the shared ledger). -5 authorizes spend, never a Level 4 run.
+- GRAPHITE-GRANT-L4-G-CONSTRUCTOR-6 is the same grant a fifth time (same figures) and REPLACES -5
+  (`replaced_by`): the run under -5 was spent when its code manifest (91,029 characters) was over the 90,000
+  pod-environment bound, which refused all three pod launches (the provider's real limit is about 118,000;
+  the bound is now 108,000). The owner approved a new grant in chat on 2026-10-13 ("I approve new grant"); it
+  carries -5's exact figures (14.91 worst case, 14.94 ceiling), so the standing weekly basis is unchanged. -5 is
+  replaced the way -4 was. -6 authorizes spend, never a Level 4 run.
 
 A registered grant named for another Challenge is
 `grant_is_for_another_challenge`. A Challenge in `PHASE3_BOUND_CHALLENGES`
@@ -415,6 +421,23 @@ PHASE3_GRANTS = types.MappingProxyType(
                 grant_id="GRAPHITE-GRANT-L4-G-CONSTRUCTOR-5",
                 challenge=BATTERY_CHALLENGE,
                 grant_file=GRANTS_DIR + "/GRAPHITE-GRANT-L4-G-CONSTRUCTOR-5.json",
+                main_blob=True,
+                min_level=4,
+                max_level=4,
+                start_model="kimi-k3",
+                token_share_usd=STAGE_TOKEN_SHARE,
+                authority=STANDING_TEST_GRANT_AUTHORITY,
+                replaced_by="GRAPHITE-GRANT-L4-G-CONSTRUCTOR-6",
+            ),
+            # PURPOSE: the lane G Level 4 Constructor run a fifth time, after the run under -5 was spent when its
+            # code manifest was over the pod-environment bound (91,029 characters against 90,000; the bound is now
+            # 108,000) and every pod launch was refused. It REPLACES -5 in the weekly basis (same figures, USD
+            # 14.94), POOL: the standing weekly test grant (OWNER-TEST-GRANT-01). Not the hunt's H4 run. Index:
+            # docs/development/graphite/grants/README.md, "Level 4 Constructor grants".
+            Phase3Grant(
+                grant_id="GRAPHITE-GRANT-L4-G-CONSTRUCTOR-6",
+                challenge=BATTERY_CHALLENGE,
+                grant_file=GRANTS_DIR + "/GRAPHITE-GRANT-L4-G-CONSTRUCTOR-6.json",
                 main_blob=True,
                 min_level=4,
                 max_level=4,
