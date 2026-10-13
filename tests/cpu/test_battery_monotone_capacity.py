@@ -1,3 +1,6 @@
+import gzip
+import json
+
 import numpy as np
 import pytest
 
@@ -55,6 +58,7 @@ def test_layout_binding_is_restored_after_failed_fit():
     from carbon.battery.monotone_capacity import MonotoneCapacityCandidate
 
     original = recipes.Layout
+
     def fail(self):
         raise RuntimeError("stop")
 
@@ -66,3 +70,31 @@ def test_layout_binding_is_restored_after_failed_fit():
     with pytest.raises(RuntimeError, match="stop"):
         MonotoneCapacityCandidate(model).fit()
     assert recipes.Layout is original
+
+
+def test_public_prediction_precheck_counts_strict_rises():
+    from carbon.battery.monotone_capacity import count_capacity_increases
+
+    result = count_capacity_increases(
+        {
+            "case-a": {"capacity_ah": [2.0, 1.8, 1.7]},
+            "case-b": {"capacity_ah": [2.0, 2.1, 1.9]},
+        }
+    )
+    assert result == {
+        "cases": 2,
+        "adjacent_transitions": 4,
+        "increasing_cases": 1,
+        "increasing_transitions": 1,
+        "disposition": "INCREASES_OBSERVED",
+    }
+
+
+def test_public_prediction_precheck_returns_null_stop_when_no_rises(tmp_path, capsys):
+    from carbon.battery.monotone_capacity import main
+
+    path = tmp_path / "public-predictions.json.gz"
+    with gzip.open(path, "wt", encoding="utf-8") as stream:
+        json.dump({"case-a": {"capacity_ah": [2.0, 1.8, 1.7]}}, stream)
+    assert main(["--count-increases", str(path)]) == 0
+    assert "STOP_NO_MEASURABLE_HELP" in capsys.readouterr().out

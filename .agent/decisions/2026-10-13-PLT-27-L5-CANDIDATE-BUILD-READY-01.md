@@ -14,3 +14,8 @@ Reuse the registered development-only Level 1 loss-expression and Level 3 numeri
 ## Stop conditions
 
 No training compute, host run, spend, hidden/sealed input, security acceptance, or base registration is authorized here. Candidate 1's public zero-cost check precedes any training and a zero count ends that candidate with a null result. Candidate 2 remains held until its exact expression is supplied. Candidate 3 remains held until an equal-budget adapter accounts for its line-search cost.
+
+
+## Candidate-1 no-cost precheck
+
+The public prediction artifact named in the queue input bundle is xperiment-predictions/mlp-s0.json.gz; public EV4 decision references are v4-decision-references.jsonl. From repository root, run python -m carbon.battery.monotone_capacity --count-increases <public-predictions.json.gz> with the supplied gzip path. This reports counts and a stop/continue disposition only; do not proceed if the prediction does not match the unconstrained base recipe.
