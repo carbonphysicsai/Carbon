@@ -1261,6 +1261,20 @@ class Experiment:
             if required:
                 raise Unrebuildable("level4_submission_required")
             return None
+        if type(submission) is not str or not submission.startswith("sha256:"):
+            # The field is one digest string. A list (the plural name invites
+            # it) used to fall through to `level4_submission_not_staged`, which
+            # sent an agent to re-stage a submission that was staged
+            # (2026-10-13 fresh-agent pass); name the field and its shape.
+            raise Unrebuildable(
+                "level4_submission_shape",
+                [
+                    (
+                        "level4.submission_one_digest_string",
+                        "parameters/" + battery_level4.FIELD,
+                    )
+                ],
+            )
         kept = self.level4_staged(submission)
         if kept is None:
             raise Unrebuildable("level4_submission_not_staged")
