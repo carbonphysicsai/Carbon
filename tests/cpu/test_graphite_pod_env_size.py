@@ -28,6 +28,8 @@ from carbon.agent_campaign.graphite import pod_phase, pods
 from scripts.dev.exam_design.runpod import pod_env
 
 REPOSITORY = Path(__file__).resolve().parents[2]
+#: Characters a Level 4 job's submission envelope adds to the pod environment.
+LEVEL4_ENVELOPE_ALLOWANCE = 10_000
 KNN = {**BASELINE, "backbone": "knn", "parameters": {"neighbours": 6}}
 
 
@@ -87,8 +89,17 @@ def test_the_ship_is_the_closure_and_the_environment_fits(shipped):
     manifest = pods.code_manifest(_head(), shipped, REPOSITORY)
     assert set(manifest) == set(shipped)
     assert all(len(sha) == 64 for sha in manifest.values())
-    spec = _backend(manifest).pod_spec(_job(), RECORD)
-    # Room is left for a larger strategy in PHASE_CONFIG.
+    # A Level 4 job also carries its submission envelope in the environment. The
+    # run of 2026-10-13 measured that at about 9,000 characters (the pod
+    # environment was 91,029 while this test's job, with no envelope, was about
+    # 82,000, and the test passed by 9 characters under the old 90,000 bound).
+    # The allowance below stands in for it, so this fails in CI while the real
+    # Level 4 environment still has 8,000 characters of room under the bound.
+    # The shipped closure grew about 1,300 characters a day between the
+    # 2026-10-10 and 2026-10-13 commits: when this fails, trim the closure
+    # (`DYNAMIC_PACKAGES`, `ENTRY_MODULES`) before raising the bound again.
+    job = dataclasses.replace(_job(), level4_envelope="x" * LEVEL4_ENVELOPE_ALLOWANCE)
+    spec = _backend(manifest).pod_spec(job, RECORD)
     assert pod_env.env_chars(spec.env) < pod_env.ENV_LIMIT_CHARS - 8_000
 
 
