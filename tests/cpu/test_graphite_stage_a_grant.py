@@ -37,8 +37,9 @@ REPOSITORY = Path(__file__).resolve().parents[2]
 GRANTS = REPOSITORY / grant_binding.GRANTS_DIR
 CONSTRUCTOR = "GRAPHITE-GRANT-STAGE-A-CONSTRUCTOR"
 ATTACKER = "GRAPHITE-GRANT-STAGE-A-ATTACKER"
-#: kimi-k3's full-window reservation in USD (GRAPHITE-D35).
-KIMI_FULL_CALL = Decimal("2.0646912")
+#: kimi-k3's reservation per call in USD: its whole window and its own 32,768-token output cap
+#: (GRAPHITE-OUTPUT-CAP-KIMI-01; 2.0646912 at the old 2,048, GRAPHITE-D35).
+KIMI_FULL_CALL = Decimal("2.3642112")
 
 
 def _document(grant_id):
