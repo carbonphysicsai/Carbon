@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-13-motor-pilot-complete-panel",
+  "recorded_at": "2026-10-13T13:57:37Z",
+  "challenge": "motor",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "BATCH2-RUNNABILITY-MOTOR-01", "description": "Native focused diagnostics passed 53 tests; two Linux pod-spec checks and tiny JAX fit skipped, one existing JAX trainer test deselected. Tiny synthetic OPT-12 dry-run exercised three seeds without a reference solve or real fit. Docker daemon unavailable; canonical acceptance belongs to pinned CI."},
+  "expected": "Reuse the signed-curve motor kit for the unchanged holding/12-N-m-peak/skew question and expose the acquisition prerequisites.",
+  "observed": "One holding slice does not cover the full buyer decision. Eleven unique command sweeps cover each geometry's three skew actions, but 308 fresh corpus sweeps already estimate 369.6 historical allocated CPU-hours before refinement, above the 56-hour pilot cap. Complete retained references and separate sealed acquisition ownership remain explicit holds.",
+  "keep": ["The gamma-5d/theta+d observer and one equal-slice average", "Whole-geometry TRAIN separation, signed curves, peak constraints and reference-failure separation"],
+  "change": ["Wrap the existing raw-slice kit into a complete buyer panel rather than lowering peak or averaging holding and peak objectives", "Report raw-sweep/field-system units and measured-RSS gaps before dispatch"],
+  "protocol_elements": ["reference_adequacy", "measurement_authority", "evidence_plan"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
