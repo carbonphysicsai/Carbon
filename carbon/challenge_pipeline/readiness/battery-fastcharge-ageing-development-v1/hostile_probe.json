@@ -1,27 +1,27 @@
 {
  "additional_probes": {
   "fork_bomb": {
-   "result_digest": "sha256:7e7886d8df6011f1060a2b43b7ffbfdd53010fb5863dcb0c2a6ee78ddc845ef8",
+   "result_digest": "sha256:fade73534451311ae4c15cc2fb4b7ec89eea2a35fc88f5d6754d945c796f128b",
    "status": "PASS"
   },
   "network_socket": {
-   "result_digest": "sha256:17165191616e5a3a47a19e494eb66001ea613fa4aa9186810b9c1b80e7d0f908",
+   "result_digest": "sha256:4451dda4626fed82293198db375786e30ea2739c9853510398d3961d8493f0e5",
    "status": "PASS"
   },
   "outside_scratch": {
-   "result_digest": "sha256:bed3d41a40742e1c99e3e9c55cf4fd342c00d54066c7d4984f964968b0b97070",
+   "result_digest": "sha256:d1055362af873b9d71ea4e2b428042193499a4c2fee4e25d9fdaf2114f6af5b1",
    "status": "PASS"
   }
  },
  "challenge": "battery-fastcharge-ageing-development-v1",
- "image_id": "sha256:12e1b55beba3461f1d25a60e6b39dbce5ae31b513de9fbb8579a81b88b5488bc",
+ "image_id": "sha256:20e18ff2ef8359f333ea972302898bd700473b0c9874a9cece8d83005f3d0d84",
  "record": {
   "claims": {
    "note": "DEVELOPMENT evidence from the executor; not a security acceptance or audit",
    "security_acceptance": false
   },
-  "create_arguments_digest": "sha256:2477359e7dbbe3dcb76a8957fa6d7b2cb16cafa173043bf779d7ee6cd7ff89e3",
-  "host": "Ubuntu-24.04 native Docker, crash guard live (swap 0, earlyoom)",
+  "create_arguments_digest": "sha256:cfc0560a61d18109583afecd69374666251e8a4aba55c8a7f94d48204dce271b",
+  "host": "carbon-fresh native Docker (lane G's image), crash guard live (swap 0, earlyoom)",
   "isolation": {
    "CapDrop": [
     "ALL"
@@ -54,36 +54,36 @@
      "container_removed": true,
      "work_dir_removed": true
     },
-    "container_id": "fc11f8b034222ed022e058225f3f517787860ba350c64efed00fa2698ce1f2c8",
-    "container_name": "carbon-r8-memory-c31fdc77eefe",
-    "elapsed_s": 6.2,
+    "container_id": "0a8ea1deef78bf2ca8c98ce6c773d0adef89a7c7c540383355c7f3dc2ef36e52",
+    "container_name": "carbon-r8-memory-5407a3a7fe7b",
+    "elapsed_s": 7.2,
     "evidence_file": "r8-probe/memory.json",
     "exit_code": 137,
     "expected_outcomes": [
      "typed_refusal",
      "bounds_held"
     ],
-    "finished_at": "2026-10-13T01:42:46Z",
+    "finished_at": "2026-10-13T01:56:34Z",
     "host_after_cleanup": {
-     "containers_all": 1,
-     "disk_used_bytes": 357520183296,
-     "mem_available_kb": 14446120,
+     "containers_all": 0,
+     "disk_used_bytes": 108178104320,
+     "mem_available_kb": 14295416,
      "responsive": true,
-     "responsive_ms": 1.5,
+     "responsive_ms": 1.6,
      "swap_total_kb": 0
     },
     "host_before": {
-     "containers_all": 1,
-     "disk_used_bytes": 357520179200,
-     "mem_available_kb": 14548872,
+     "containers_all": 0,
+     "disk_used_bytes": 108178108416,
+     "mem_available_kb": 14520416,
      "responsive": true,
-     "responsive_ms": 1.7,
+     "responsive_ms": 1.6,
      "swap_total_kb": 0
     },
     "observed": "OOM-killed at the 8 GiB cap, peak equals the cap",
     "probe": "memory",
     "source_digest": "sha256:aeaf6c1a039d754682cdbd960ee27e1f50c4ec54c06b517ceed26cb3d4f482dc",
-    "started_at": "2026-10-13T01:42:38Z",
+    "started_at": "2026-10-13T01:56:20Z",
     "state": {
      "Dead": false,
      "ExitCode": 0,
@@ -96,7 +96,7 @@
     "cgroup": {
      "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
      "memory.max": "8589934592",
-     "memory.peak": "130285568",
+     "memory.peak": "126476288",
      "pids.events": "max 0",
      "pids.max": "512",
      "pids.peak": "80",
@@ -106,27 +106,27 @@
      "container_removed": true,
      "work_dir_removed": true
     },
-    "container_id": "f8d96e0ee2ed0c805f3d69b10295bcc18bdfcdd0ab298522b3ac5a2521d7a5c9",
-    "container_name": "carbon-r8-time-7190926b9a67",
+    "container_id": "099769f5bebd5cc8819d7d563d07e68f87fb576874f19422711c6c4e161d9b68",
+    "container_name": "carbon-r8-time-a61abcb6df84",
     "elapsed_s": 60.1,
     "evidence_file": "r8-probe/time.json",
     "exit_code": null,
     "expected_outcomes": [
      "timeout"
     ],
-    "finished_at": "2026-10-13T01:40:26Z",
+    "finished_at": "2026-10-13T01:54:12Z",
     "host_after_cleanup": {
-     "containers_all": 1,
-     "disk_used_bytes": 357520171008,
-     "mem_available_kb": 14451920,
+     "containers_all": 0,
+     "disk_used_bytes": 108178083840,
+     "mem_available_kb": 14503040,
      "responsive": true,
-     "responsive_ms": 2.0,
+     "responsive_ms": 2.1,
      "swap_total_kb": 0
     },
     "host_before": {
-     "containers_all": 1,
-     "disk_used_bytes": 357520175104,
-     "mem_available_kb": 14381140,
+     "containers_all": 0,
+     "disk_used_bytes": 108178087936,
+     "mem_available_kb": 14473428,
      "responsive": true,
      "responsive_ms": 1.7,
      "swap_total_kb": 0
@@ -134,7 +134,7 @@
     "observed": "supervisor deadline enforced",
     "probe": "time",
     "source_digest": "sha256:50127cd7d644569c8c8ed3169bae7d0e5faf8de89cfbb2d8b8ac1c7293c746ae",
-    "started_at": "2026-10-13T01:39:25Z",
+    "started_at": "2026-10-13T01:53:05Z",
     "state": {
      "Dead": false,
      "ExitCode": 0,
@@ -147,7 +147,7 @@
     "cgroup": {
      "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
      "memory.max": "8589934592",
-     "memory.peak": "2277539840",
+     "memory.peak": "2276913152",
      "pids.events": "max 0",
      "pids.max": "512",
      "pids.peak": "74",
@@ -157,36 +157,36 @@
      "container_removed": true,
      "work_dir_removed": true
     },
-    "container_id": "cbc39b097fbe392078a9ea5e1942d4f7a2936ff3fbd3a8f3b6b88dd04c1c9214",
-    "container_name": "carbon-r8-scratch_flood-e1a1ea98842f",
-    "elapsed_s": 2.4,
+    "container_id": "f7fa85e9ef1795939a4f0e17a243a9ace38c830f63857a3bfb14a11d276fe69f",
+    "container_name": "carbon-r8-scratch_flood-fbea3997340d",
+    "elapsed_s": 2.5,
     "evidence_file": "r8-probe/scratch_flood.json",
     "exit_code": 1,
     "expected_outcomes": [
      "typed_refusal",
      "bounds_held"
     ],
-    "finished_at": "2026-10-13T01:40:30Z",
+    "finished_at": "2026-10-13T01:54:22Z",
     "host_after_cleanup": {
-     "containers_all": 1,
-     "disk_used_bytes": 357520175104,
-     "mem_available_kb": 14415760,
+     "containers_all": 0,
+     "disk_used_bytes": 108178087936,
+     "mem_available_kb": 14490984,
      "responsive": true,
      "responsive_ms": 1.5,
      "swap_total_kb": 0
     },
     "host_before": {
-     "containers_all": 1,
-     "disk_used_bytes": 357520183296,
-     "mem_available_kb": 14455028,
+     "containers_all": 0,
+     "disk_used_bytes": 108178096128,
+     "mem_available_kb": 14514452,
      "responsive": true,
-     "responsive_ms": 1.8,
+     "responsive_ms": 1.6,
      "swap_total_kb": 0
     },
     "observed": "tmpfs byte cap reached (ENOSPC), scratch full, host disk unchanged",
     "probe": "scratch_flood",
     "source_digest": "sha256:de2f9061a278d21852bd58caf1c071a75bb3881b453079e589a453117f8a8f3f",
-    "started_at": "2026-10-13T01:40:27Z",
+    "started_at": "2026-10-13T01:54:12Z",
     "state": {
      "Dead": false,
      "ExitCode": 0,
@@ -199,7 +199,7 @@
     "cgroup": {
      "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
      "memory.max": "8589934592",
-     "memory.peak": "1104625664",
+     "memory.peak": "1125605376",
      "pids.events": "max 446",
      "pids.max": "512",
      "pids.peak": "518",
@@ -209,8 +209,8 @@
      "container_removed": true,
      "work_dir_removed": true
     },
-    "container_id": "1a9628b11d8e3186aad32e784e71f401fe13ff9c7758a58f402b58659cf476bd",
-    "container_name": "carbon-r8-fork_bomb-963fb91a7bf2",
+    "container_id": "3cb933a4a822d71ab3a83983b2f31ab215e292b535983b9974619d266a62a727",
+    "container_name": "carbon-r8-fork_bomb-e1e6e0308af6",
     "elapsed_s": 60.1,
     "evidence_file": "r8-probe/fork_bomb.json",
     "exit_code": null,
@@ -218,27 +218,27 @@
      "timeout",
      "bounds_held"
     ],
-    "finished_at": "2026-10-13T01:42:28Z",
+    "finished_at": "2026-10-13T01:56:20Z",
     "host_after_cleanup": {
-     "containers_all": 1,
-     "disk_used_bytes": 357520183296,
-     "mem_available_kb": 14560436,
+     "containers_all": 0,
+     "disk_used_bytes": 108178096128,
+     "mem_available_kb": 14549032,
      "responsive": true,
-     "responsive_ms": 1.5,
+     "responsive_ms": 1.7,
      "swap_total_kb": 0
     },
     "host_before": {
-     "containers_all": 1,
-     "disk_used_bytes": 357520187392,
-     "mem_available_kb": 14500536,
+     "containers_all": 0,
+     "disk_used_bytes": 108178104320,
+     "mem_available_kb": 14485764,
      "responsive": true,
-     "responsive_ms": 1.7,
+     "responsive_ms": 1.9,
      "swap_total_kb": 0
     },
     "observed": "PID limit enforced (fork attempts denied), deadline reached",
     "probe": "fork_bomb",
     "source_digest": "sha256:e69d675d1bfef1f4e073b8170e013c5bab37e2aa41f0cc12f641b9502aad8151",
-    "started_at": "2026-10-13T01:40:42Z",
+    "started_at": "2026-10-13T01:54:22Z",
     "state": {
      "Dead": false,
      "ExitCode": 0,
@@ -251,7 +251,7 @@
     "cgroup": {
      "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
      "memory.max": "8589934592",
-     "memory.peak": "120832000",
+     "memory.peak": "121925632",
      "pids.events": "max 0",
      "pids.max": "512",
      "pids.peak": "74",
@@ -261,27 +261,27 @@
      "container_removed": true,
      "work_dir_removed": true
     },
-    "container_id": "f6fe8f87c439c811880db2ca0abaaa14cf1f33d1c66d69b4cbb171bb0016d173",
-    "container_name": "carbon-r8-outside_scratch-3ef5b6de7879",
-    "elapsed_s": 1.4,
+    "container_id": "f9b48cfe1f8cec9f628bf3dfaafa8929fd55090a35eb24e2ae4822205525662c",
+    "container_name": "carbon-r8-outside_scratch-67a089c25c02",
+    "elapsed_s": 1.9,
     "evidence_file": "r8-probe/outside_scratch.json",
     "exit_code": 1,
     "expected_outcomes": [
      "typed_refusal"
     ],
-    "finished_at": "2026-10-13T01:43:03Z",
+    "finished_at": "2026-10-13T01:53:04Z",
     "host_after_cleanup": {
-     "containers_all": 1,
-     "disk_used_bytes": 357520187392,
-     "mem_available_kb": 14407168,
+     "containers_all": 0,
+     "disk_used_bytes": 108178075648,
+     "mem_available_kb": 14465732,
      "responsive": true,
-     "responsive_ms": 1.6,
+     "responsive_ms": 1.8,
      "swap_total_kb": 0
     },
     "host_before": {
-     "containers_all": 1,
-     "disk_used_bytes": 357520195584,
-     "mem_available_kb": 14540884,
+     "containers_all": 0,
+     "disk_used_bytes": 108178079744,
+     "mem_available_kb": 14482676,
      "responsive": true,
      "responsive_ms": 1.6,
      "swap_total_kb": 0
@@ -289,7 +289,7 @@
     "observed": "write denied (read-only root), marker absent",
     "probe": "outside_scratch",
     "source_digest": "sha256:c254d36c074321f1a6fe85c02139bacfa1b73b97faf2a941a64d0d5d6e9d49ab",
-    "started_at": "2026-10-13T01:43:00Z",
+    "started_at": "2026-10-13T01:52:56Z",
     "state": {
      "Dead": false,
      "ExitCode": 0,
@@ -302,7 +302,7 @@
     "cgroup": {
      "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
      "memory.max": "8589934592",
-     "memory.peak": "121131008",
+     "memory.peak": "121569280",
      "pids.events": "max 0",
      "pids.max": "512",
      "pids.peak": "74",
@@ -312,36 +312,36 @@
      "container_removed": true,
      "work_dir_removed": true
     },
-    "container_id": "27555683b7aeb4623f9fd8c262e624f92040ff27c305941dbe092c38951680db",
-    "container_name": "carbon-r8-network_socket-49adf7a55162",
-    "elapsed_s": 1.4,
+    "container_id": "9830fcb1348c27d15df65eb43807113421bbf096356cf3dc0f616445fd7f809c",
+    "container_name": "carbon-r8-network_socket-287f25badf9b",
+    "elapsed_s": 2.2,
     "evidence_file": "r8-probe/network_socket.json",
     "exit_code": 1,
     "expected_outcomes": [
      "typed_refusal",
      "timeout"
     ],
-    "finished_at": "2026-10-13T01:39:12Z",
+    "finished_at": "2026-10-13T01:52:48Z",
     "host_after_cleanup": {
-     "containers_all": 1,
-     "disk_used_bytes": 357520154624,
-     "mem_available_kb": 14400340,
+     "containers_all": 0,
+     "disk_used_bytes": 108178067456,
+     "mem_available_kb": 14446668,
      "responsive": true,
-     "responsive_ms": 1.5,
+     "responsive_ms": 1.6,
      "swap_total_kb": 0
     },
     "host_before": {
-     "containers_all": 1,
-     "disk_used_bytes": 357520158720,
-     "mem_available_kb": 14391216,
+     "containers_all": 0,
+     "disk_used_bytes": 108178075648,
+     "mem_available_kb": 14477164,
      "responsive": true,
-     "responsive_ms": 1.8,
+     "responsive_ms": 1.6,
      "swap_total_kb": 0
     },
     "observed": "connection denied, network none",
     "probe": "network_socket",
     "source_digest": "sha256:ecd4282274a337aada27b5bf7cb6155facb1f358569d7b44adae0d2c8fc2e4c6",
-    "started_at": "2026-10-13T01:39:10Z",
+    "started_at": "2026-10-13T01:52:41Z",
     "state": {
      "Dead": false,
      "ExitCode": 0,
@@ -363,18 +363,18 @@
  },
  "results": {
   "memory": {
-   "result_digest": "sha256:2001a863f05b2679fcf5cae53b416f8f975e20734d9f5724632a9f98c4b68d61",
+   "result_digest": "sha256:608e31b84801227e6e59da762f31534890cb4c7c0132e77658ae3b9f6a1e430b",
    "status": "PASS"
   },
   "scratch_flood": {
-   "result_digest": "sha256:abab9a043a7e632fc6a42bb1c5180e6083c9ce41bbfe5252fbcd12ce0f906f84",
+   "result_digest": "sha256:596dc8dda23ec267e8202ef0db94d7c3f706ad41cfbb4e8880d496124b7466cd",
    "status": "PASS"
   },
   "time": {
-   "result_digest": "sha256:b91e57ff33da7b7380a7703419c7e4bf88deffafec7c7621055d0a2533f088ef",
+   "result_digest": "sha256:a728901c2191ac7b23f3a13f44c9d212032fd4599adeae48ed5df6883f89e181",
    "status": "PASS"
   }
  },
- "runtime_digest": "sha256:6f5db72017a62d5f9154fd241d23382736e7caf1bb7d9f4e856aa33f03901397",
+ "runtime_digest": "sha256:7ccf7556beb00d85f328647bbc9dd849611e7e5e5a5e8c72faff1a863a37cccb",
  "schema": "carbon.readiness.hostile-lowering-probe.v1"
 }
