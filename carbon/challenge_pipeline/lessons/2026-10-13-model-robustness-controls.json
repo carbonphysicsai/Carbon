@@ -6,7 +6,7 @@
   "stage": "design",
   "execution": {"kind": "test_run", "ref": "PKT-18", "description": "Public synthetic model-input probes; no trained participant or solver execution."},
   "expected": "Hostile-input verdicts require both a supported control and a known-bad predictor that the detector catches.",
-  "observed": "Existing physics_contract residuals and Envelope Guard probes contradict the blanket zero-matches inventory. Their presence does not establish geometric hostile-input coverage of a rebuilt model. A refusal-only boundary cannot demonstrate useful robustness.",
+  "observed": "Existing physics_contract residuals and Envelope Guard probes contradict the blanket zero-matches inventory without establishing hostile-input model coverage. Test Lead review found incomplete attacks could hide a supported-control breach and identical meshes could gain coverage. Four regressions failed before the focused repair; aggregate control findings and zero incomplete/non-perturbation coverage are now preserved.",
   "keep": ["Keep real physics gates separate from model-input probes and scores.", "Retain actual failures and both controls without suppressing observed breaches."],
   "change": ["Bind matched perturbed-input witnesses and measured effects, rather than naming a perturbation radical or accepting an unperturbed reference."],
   "protocol_elements": ["evidence basis", "negative control", "reference failure separation", "mock isolation"],

@@ -187,6 +187,54 @@ def test_bad_control_crash_does_not_suppress_actual_breach():
 
 
 @pytest.mark.parametrize(
+    "exception,expected",
+    [
+        (engine.InfrastructureFailure, "FAILED_INFRA"),
+        (TimeoutError, "TIMEOUT"),
+        (RuntimeError, "CRASHED"),
+    ],
+)
+def test_incomplete_attack_does_not_suppress_observed_supported_control_breach(
+    exception, expected
+):
+    def wrong_control_then_fail(payload):
+        if payload["cells"][0][0] == payload["cells"][0][1]:
+            raise exception("private host failure")
+        return bad_predict(payload)
+
+    row = run(boundary=fixture_boundary(wrong_control_then_fail, "wrong-then-fail"))
+    assert row["control"]["verdict"] == "BREACHED"
+    assert row["attempt"]["verdict"] == expected
+    assert row["covered_attempts"] == 0
+    assert row["verdict"] == "BREACHED"
+    assert row["reason"] == "supported_control_breached_attack_incomplete"
+
+
+def test_identical_mesh_is_not_an_observed_attack_even_with_both_controls():
+    mesh = m.grid(2)
+    row = run(attack=mesh, attack_witness=fixture_witness(mesh))
+    assert row["attack_digest"] == row["baseline_digest"]
+    assert row["verdict"] == "NOT_RUN"
+    assert row["reason"] == "mesh_perturbation_not_demonstrated"
+    assert row["calls"] == row["covered_attempts"] == 0
+
+
+def test_numeric_spelling_change_is_not_a_mesh_attack():
+    base = m.grid(2)
+    mesh = m.Mesh(
+        tuple(
+            tuple(int(v) if v == int(v) else v for v in point) for point in base.nodes
+        ),
+        base.cells,
+    )
+    assert mesh.identity != base.identity
+    assert mesh == base
+    row = run(attack=mesh, attack_witness=fixture_witness(mesh))
+    assert row["verdict"] == "NOT_RUN"
+    assert row["calls"] == row["covered_attempts"] == 0
+
+
+@pytest.mark.parametrize(
     "answer",
     [
         True,

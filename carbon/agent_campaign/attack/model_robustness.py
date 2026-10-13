@@ -383,6 +383,8 @@ def probe(
         size = metrics["normalized_max_displacement"]
         if size is None or size < policy.radical_displacement or size == 0:
             return finish("NOT_RUN", "radical_effect_not_demonstrated")
+    elif attack == baseline:
+        return finish("NOT_RUN", "mesh_perturbation_not_demonstrated")
     scope = _scope(attack, metrics, policy)
     report["scope"] = scope
     required = ((baseline, control_witness),)
@@ -416,6 +418,10 @@ def probe(
     report["calls"] = 3
     attempt = report["attempt"]["verdict"]
     if attempt in engine.NO_ANSWER:
+        if report["control"]["verdict"] == engine.BREACHED:
+            return finish(
+                engine.BREACHED, "supported_control_breached_attack_incomplete"
+            )
         return finish(attempt, "model_endpoint_incomplete")
     report["covered_attempts"] = 1
     if attempt == engine.BREACHED:

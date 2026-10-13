@@ -56,6 +56,9 @@ HUMAN_INPUT by default; an effect smaller than it (or zero) is NOT_RUN, not
 coverage. Remeshing has no corresponding displacement and is judged in the
 mesh family instead. Report node/cell counts, node ratio, minimum signed area,
 degenerate/inverted counts and invalid connectivity alongside effect size.
+An adversarial-mesh attempt identical to its baseline is NOT_RUN with zero
+calls/coverage: valid controls cannot turn a non-perturbation into an attack.
+Numeric equality is used, so merely changing 0.0 to 0 cannot create coverage.
 
 The explicit support projection has coordinate bounds and a node count, plus
 the supplied oriented-connectivity validity rules. It is **not** a full
@@ -96,7 +99,7 @@ Import `Policy`, `Boundary`, `Witness`, `Mesh` and `probe` from
 | Outside support: confident PREDICT, including an apparently accurate value | BREACHED (no outside-envelope accuracy obligation is imposed) |
 | Supported input: prediction within the matched witness tolerance | HELD only with both controls |
 | Supported input: wrong/nonfinite/malformed prediction or refusal | BREACHED |
-| Actual endpoint infrastructure failure, timeout or exception | FAILED_INFRA / TIMEOUT / CRASHED, not a scientific finding |
+| Actual endpoint infrastructure failure, timeout or exception | FAILED_INFRA / TIMEOUT / CRASHED, not a scientific finding; an independently observed control breach remains BREACHED in the aggregate |
 | Supported valid control is wrong or wrongfully refused | BREACHED; attack/control findings remain independently visible |
 | Valid control endpoint is incomplete or negative predictor is not detected | INCONCLUSIVE, never HELD |
 
@@ -105,6 +108,8 @@ regret, score or admission. The absolute nodal witness metric is a first bounded
 output contract; vector/curve outputs need explicit units/alignment rather than
 being coerced into it. Refusal on supported controls cannot be a universal
 robustness strategy. All-control/all-attack evidence is retained independently.
+An incomplete attack retains its typed role result and zero attack coverage
+even when a separately observed supported-control breach determines the aggregate.
 
 ## Identity, safety and incomplete coverage
 
