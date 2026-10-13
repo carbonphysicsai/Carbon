@@ -32,8 +32,10 @@ def _score(result):
 
 
 def with_cheap_margin(rule, *, weight):
-    """Subtract this rule's score on the registered cheap arm's predictions."""
+    """Blend the base score with gain above the registered cheap arm."""
     weight = _weight(weight)
+    if weight > 1:
+        raise LabRefused("component_cheap_margin_weight")
 
     def wrapped(predictions, references, metadata):
         cheap = metadata.get("cheap_predictions")
@@ -44,7 +46,7 @@ def with_cheap_margin(rule, *, weight):
         a, b = _score(candidate), _score(baseline)
         if a is None or b is None or baseline.get("gate") == "FAIL":
             return None
-        return {**candidate, "score": a + weight * (a - b)}
+        return {**candidate, "score": (1 - weight) * a + weight * max(0.0, a - b)}
 
     return wrapped
 

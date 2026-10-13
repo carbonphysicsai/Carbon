@@ -45,13 +45,19 @@ def _fixture():
 def test_cheap_relative_margin_and_missing_arm():
     predictions, references, metadata = _fixture()
     result = with_cheap_margin(_rule, weight=0.5)(predictions, references, metadata)
-    assert result["score"] == 5.5
+    assert result["score"] == 3.5
+    worse = {qid: {"a": {"objective": 0.0}} for qid in predictions}
+    assert (
+        with_cheap_margin(_rule, weight=1)(worse, references, metadata)["score"] == 0.0
+    )
     assert (
         with_cheap_margin(_rule, weight=0.5)(
             predictions, references, {**metadata, "cheap_predictions": {}}
         )
         is None
     )
+    with pytest.raises(LabRefused, match="component_cheap_margin_weight"):
+        with_cheap_margin(_rule, weight=1.1)
 
 
 def test_crps_is_proper_and_missing_uncertainty_refuses():
