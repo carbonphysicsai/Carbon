@@ -266,7 +266,7 @@ def test_versioned_artifact_encodes_fail_closed_main_contract() -> None:
     assert pull_request["required_review_thread_resolution"] is False
     status_parameters = rules["required_status_checks"]["parameters"]
     assert status_parameters["do_not_enforce_on_create"] is False
-    assert status_parameters["strict_required_status_checks_policy"] is False
+    assert status_parameters["strict_required_status_checks_policy"] is True
     checks = {
         (item["context"], item["integration_id"])
         for item in status_parameters["required_status_checks"]
@@ -1182,7 +1182,7 @@ def test_artifact_refuses_changed_pull_request_contract(
     ("field", "value", "message"),
     [
         ("do_not_enforce_on_create", True, "branch creation"),
-        ("strict_required_status_checks_policy", True, "non-strict status"),
+        ("strict_required_status_checks_policy", False, "strict status"),
     ],
 )
 def test_artifact_refuses_changed_status_policy(

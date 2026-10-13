@@ -37,7 +37,7 @@ EXPECTED_REQUIRED_CHECKS = (
 )
 EXPECTED_STATUS_CHECK_PARAMETERS = {
     "do_not_enforce_on_create": False,
-    "strict_required_status_checks_policy": False,
+    "strict_required_status_checks_policy": True,
     "required_status_checks": list(EXPECTED_REQUIRED_CHECKS),
 }
 EXPECTED_RULE_TYPES = {
@@ -224,9 +224,9 @@ def load_artifact(path: Path) -> dict[str, Any]:
         raise RulesetError("required_status_checks parameters have unexpected fields")
     if check_parameters.get("do_not_enforce_on_create") is not False:
         raise RulesetError("required checks must be enforced on branch creation")
-    if check_parameters.get("strict_required_status_checks_policy") is not False:
+    if check_parameters.get("strict_required_status_checks_policy") is not True:
         raise RulesetError(
-            "required checks must use the owner-directed non-strict status policy"
+            "required checks must use strict status policy to guard the validated base"
         )
     checks = check_parameters.get("required_status_checks")
     if not isinstance(checks, list) or len(checks) != len(EXPECTED_REQUIRED_CHECKS):

@@ -1103,18 +1103,24 @@ def test_default_workflow_delegates_all_semantics_to_repository_scripts() -> Non
         "merge-gate",
     }
     assert _yaml_scalar(jobs["preflight"], "name") == "Delivery preflight"
-    assert _yaml_scalar(jobs["canonical"], "name") == "Canonical environment"
-    assert _yaml_scalar(jobs["dev-image"], "name") == "Clean dev-container image"
+    assert (
+        _yaml_scalar(jobs["canonical"], "name")
+        == "Canonical environment (${{ matrix.revision }}, ${{ matrix.shard }}) [${{ needs.preflight.outputs.merge_sha }}]"
+    )
+    assert (
+        _yaml_scalar(jobs["dev-image"], "name")
+        == "Clean dev-container image (${{ matrix.revision }}, ${{ matrix.shard }}) [${{ needs.preflight.outputs.merge_sha }}]"
+    )
     assert (
         _yaml_scalar(jobs["c03-worker"], "name")
-        == "C-03/C-04/C-05/C-07/C-08/C-10 isolated service acceptance"
+        == "C-03/C-04/C-05/C-07/C-08/C-10 isolated service acceptance (${{ matrix.revision }}) [${{ needs.preflight.outputs.merge_sha }}]"
     )
     assert _yaml_scalar(jobs["canonical"], "needs") == "preflight"
     assert _yaml_scalar(jobs["dev-image"], "needs") == "preflight"
     assert _yaml_scalar(jobs["c03-worker"], "needs") == "preflight"
     assert (
         _yaml_scalar(jobs["julia-service"], "name")
-        == "Authored-Julia isolated service acceptance"
+        == "Authored-Julia isolated service acceptance (${{ matrix.revision }}) [${{ needs.preflight.outputs.merge_sha }}]"
     )
     assert _yaml_scalar(jobs["julia-service"], "needs") == "preflight"
     # The C-03 controls and the authored-Julia suite run in parallel under one
@@ -1127,7 +1133,7 @@ def test_default_workflow_delegates_all_semantics_to_repository_scripts() -> Non
     assert "julia-service," in jobs["merge-gate"]
     assert (
         _yaml_scalar(jobs["workbench"], "name")
-        == "Workbench release and application acceptance"
+        == "Workbench release and application acceptance (${{ matrix.revision }}) [${{ needs.preflight.outputs.merge_sha }}]"
     )
     assert _yaml_scalar(jobs["workbench"], "needs") == "preflight"
 
@@ -1229,13 +1235,29 @@ def test_default_workflow_delegates_all_semantics_to_repository_scripts() -> Non
     assert workflow.count("name: Merge gate") == 1
     assert "types: [opened, synchronize, reopened, ready_for_review]" in workflow
     assert "pull-requests: read" in workflow
-    assert 'gh api "${endpoint}" --jq .head.sha' in workflow
-    assert 'gh api "${endpoint}" --jq .base.sha' in workflow
+    assert workflow.count('pull="$(gh api "${endpoint}")"') == 1
+    assert 'jq -r .head.sha <<< "${pull}"' in workflow
+    assert 'jq -r .base.sha <<< "${pull}"' in workflow
+    assert 'jq -r .merge_commit_sha <<< "${pull}"' in workflow
+    assert '"${merge_sha}" =~ ^[0-9a-f]{40}$' in workflow
+    for name in (
+        "canonical",
+        "dev-image",
+        "c03-worker",
+        "julia-service",
+        "workbench",
+        "contract-authority",
+        "hub-validation",
+        "derived-documentation",
+    ):
+        assert "revision: [head, merge]" in jobs[name]
+    assert "filter=all&per_page=100" in jobs["merge-gate"]
+    assert "identity_artifact: ${{ steps.binding.outputs.artifact }}" in workflow
     assert '"${candidate_sha}" != "${EVENT_PR_HEAD}"' in workflow
-    assert "ref: ${{ steps.candidate.outputs.candidate_sha }}" in workflow
-    assert workflow.count("ref: ${{ needs.preflight.outputs.candidate_sha }}") == 9
-    assert workflow.count("fetch-depth: 0") == 10
-    assert workflow.count("persist-credentials: false") == 11
+    assert "ref: ${{ steps.candidate.outputs.merge_sha }}" in workflow
+    assert workflow.count("ref: ${{ needs.preflight.outputs.candidate_sha }}") == 1
+    assert workflow.count("fetch-depth: 0") == 11
+    assert workflow.count("persist-credentials: false") == 12
     assert "Install pinned uv" not in jobs["preflight"]
     assert "github.event.pull_request.draft == false" in jobs["preflight"]
     assert "dev_image_required == 'true'" in jobs["dev-image"]
@@ -1424,7 +1446,10 @@ def test_dev_image_job_is_sharded_like_canonical_and_runs_the_same_tests() -> No
     workflow = WORKFLOW_PATH.read_text(encoding="utf-8")
     jobs = _workflow_job_blocks(workflow)
     image, canonical = jobs["dev-image"], jobs["canonical"]
-    assert _yaml_scalar(image, "name") == "Clean dev-container image"
+    assert (
+        _yaml_scalar(image, "name")
+        == "Clean dev-container image (${{ matrix.revision }}, ${{ matrix.shard }}) [${{ needs.preflight.outputs.merge_sha }}]"
+    )
     assert "fail-fast: false" in image
     assert "shard: [0, 1, 2, 3, 4, 5]" in image
     assert "shard: [0, 1, 2, 3, 4, 5]" in canonical

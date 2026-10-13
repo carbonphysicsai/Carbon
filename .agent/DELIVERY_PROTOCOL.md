@@ -219,8 +219,10 @@ or to block implementation; GitHub's pinned environment supplies acceptance.
 Native-host tests are diagnostics, not canonical qualification.
 
 For a ready runtime PR, CI runs the CPU regression suite, invariant tests,
-quality ratchet, and package/import checks, on 6 parallel shards that split the
-CPU suite by test file and run every other lane once (OWNER-WORKFLOW-SPEED-01).
+quality ratchet, and package/import checks on 6 parallel shards per revision:
+the exact head and its exact clean merge with the validated base (PLT-12).
+Each revision splits the CPU suite by test file and runs every other lane once.
+Both results are required; the merge result does not replace head acceptance.
 Unknown paths retain full runtime acceptance. Contract-only and generated-doc changes
 retain their existing lighter classified suites. Test semantics remain intact.
 
@@ -263,10 +265,18 @@ green PR without a real conflict, and the `merge-priority` lane) is governed by
 `docs/development/MERGE_HYGIENE.md` (OWNER-MERGE-HYGIENE-01, amended by
 OWNER-WORKFLOW-SPEED-01).
 
-Do not require a base refresh solely because main advanced. Inspect the
-integration impact; reconcile conflicts or changed dependencies and validate
-those changes. The merge guard prevents merging a different PR revision; it
-does not prove scientific qualification or conflict-free semantic integration.
+PLT-12 prospectively supersedes the earlier head-only base-refresh exemption.
+CI binds the exact head, base, ordered merge parents and clean merge tree, and
+retains both acceptance results in `ci-merge-result-<attempt>`. A conflict has
+no head-only fallback. A changed head or base requires re-validation.
+The intended main rule now uses strict required status checks, retaining the
+same required `Merge gate`, Actions app and empty bypass inventory. This
+server-side rule closes the base race that a client/API comparison alone
+cannot close. PR Head owns any branch synchronization; other executors do
+not merge main into their ticket branches. `merge_on_green.py` refuses a
+green head without a complete current pair receipt and active strict base
+rule. No scientific or security qualification follows from these controls.
+See `docs/development/CI_MERGE_VALIDATION.md` for activation and limitations.
 
 CI obtains revision identities from GitHub/Git. Do not ask a human to copy
 head/tree/base SHAs, review counters, or rerun totals into a PR. The PR needs a
