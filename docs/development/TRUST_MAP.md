@@ -12,7 +12,7 @@ top-level keys are:
 
 ```json
 {
-  "schema": "carbon.trust-map.disclosed-panel.v1",
+  "schema": "carbon.trust-map.disclosed-panel.v2",
   "disclosure": {
     "kind": "PUBLIC",
     "evidence": "public publication or recorded release location",
@@ -20,10 +20,10 @@ top-level keys are:
   },
   "reference_image": "sha256:<64 lowercase hexadecimal characters>",
   "reference_verification": {
-    "state": "PASS",
-    "accepted_development_pass": true,
+    "family": "battery-v3",
+    "criteria_digest": "sha256:<registered criteria digest>",
     "image_digest": "sha256:<the same reference image>",
-    "evidence": "owner-adopted verification evidence location"
+    "evidence": "operator source description; not application acceptance"
   },
   "cases": [],
   "models": {},
@@ -47,11 +47,23 @@ protected store or construct its projection from unretired exam cases. The
 closed shape refuses extra metadata, and output contains only aggregates and
 the allowed provenance, never case identifiers, inputs, predictions or seeds.
 
-An unaccepted verification result (including HUMAN_INPUT) is refused. The
-current committed battery MMS verdict has no accepted development pass, so
-this ticket supplies **no measured battery map or reference acceptance**.
-Owner-adopted verification and a disclosed panel enable a later offline run.
-Verification of code does not imply physical adequacy or real-cell safety.
+Native v2 requires the registered family/image/criteria acceptance link; a
+caller-supplied PASS/Boolean record or unregistered re-pin is refused. The
+separate owner link records bounded particle-diffusion/lumped-heat code
+verification; the earlier MMS machine verdict keeps its original bytes and
+`accepted_development_pass: false`. Neither record accepts DFN/plating use or
+establishes physical adequacy, real-cell safety, current label resolution or a
+measured product map. Operator disclosure/source descriptions remain assertions.
+
+The [2026-10-13 Product audit](../../Business/research/customer-deliverable/EVIDENCE_HONESTY_2026-10-13.md)
+records the `battery-plating-ref-v2` transition under OWNER-PLATING-REFERENCE-01.
+Before required resolved mesh-160 evidence and current-use acceptance, no usable
+near-onset label is established; **SOLVER_NOT_ACCEPTED / GAP** remains. An old
+mesh-20 cell/image match cannot supply v2 accuracy, calibrated uncertainty,
+feasible-pick evidence or TRUST permission. Reference refinement/failure/fallback
+costs are required before a current speed or equal-budget value claim. Historical
+map/EV4/EV5/score-proof values retain their original meaning: annotate, never
+re-score. No new version default, label adapter or runtime capability is added.
 
 Error is RMS across an output's coordinates for each case, in native units;
 the cell reports its median and linearly interpolated p90. Disagreement is
