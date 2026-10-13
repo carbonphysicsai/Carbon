@@ -171,7 +171,8 @@ SERVICE = "battery-intake"
 
 def log(event, *, out=None, **fields):
     """One structured line on stderr: UTC time, service, event, counts and
-    exception types only - never a peer, hotkey, path or request."""
+    exception types and closed condition codes only - never a peer, hotkey,
+    path, request or arbitrary exception content."""
     record = {
         "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "service": SERVICE,
@@ -1140,7 +1141,7 @@ class BatteryIntake:
 # --- the worker -----------------------------------------------------------------
 
 
-def work_once(inbox, target):
+def work_once(inbox, target, *, out=None):
     """Admit every received submission, then advance every admitted one.
 
     Each daemon call holds the deployment's single-writer lock for its own
@@ -1164,9 +1165,16 @@ def work_once(inbox, target):
         DevelopmentCompilerUnavailable,
     )
     from .deployment import processes_here, writer
-    from .pool_store import HotkeyWindowUsed
+    from .pool_store import HotkeyWindowUsed, StateError
 
-    moved = {"admitted": 0, "refused": 0, "processed": 0, "advanced": 0, "left": 0}
+    moved = {
+        "admitted": 0,
+        "refused": 0,
+        "processed": 0,
+        "advanced": 0,
+        "left": 0,
+        "orphaned": 0,
+    }
     for submission_id, submission in inbox.received():
         try:
             with writer(target):
@@ -1229,7 +1237,23 @@ def work_once(inbox, target):
         return moved
     for submission_id in inbox.admitted():
         with writer(target):
-            if target.outcome(submission_id)["state"] not in _TERMINAL:
+            try:
+                outcome = target.outcome(submission_id)
+            except StateError as missing:
+                if missing.code != "unknown_submission":
+                    raise
+                # The inbox survives state transitions independently of the
+                # validator store. Keep the row for Validator recovery policy;
+                # it must not prevent known submissions/pending work advancing.
+                moved["orphaned"] += 1
+                log(
+                    "worker_orphan_skipped",
+                    out=out,
+                    code="unknown_submission",
+                    count=1,
+                )
+                continue
+            if outcome["state"] not in _TERMINAL:
                 target.process(submission_id)
                 moved["processed"] += 1
     with writer(target):
@@ -1241,7 +1265,7 @@ def worker(inbox, target, wake, *, stop, idle_s=30.0, out=None):
     while not stop.is_set():
         wake.clear()
         try:
-            moved = work_once(inbox, target)
+            moved = work_once(inbox, target, out=out)
         except Exception as failure:  # noqa: BLE001
             # Infrastructure: the inbox keeps every submission for the next
             # pass. Only the exception's type is logged, never its content.
