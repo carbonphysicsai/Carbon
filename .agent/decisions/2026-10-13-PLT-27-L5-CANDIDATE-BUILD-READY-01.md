@@ -4,6 +4,20 @@
 
 Reuse the registered development-only Level 1 loss-expression and Level 3 numerics implementations rather than duplicating them. Add only the absent monotone-fade construction as a sidecar next to pinned battery recipe code. Candidate builds stay outside the miner-facing contract and do not imply Level 5 execution, security acceptance, physical validity, scientific qualification, or adoption.
 
+## Placement supersession after the canonical closure failure
+
+The initial battery-package placement made the unregistered sidecar an entry
+in Graphite's `DYNAMIC_PACKAGES` ship. Canonical CI on 4af59e920 measured
+82,067 environment characters, 67 above the unchanged 82,000 CI line.
+Move the identical construction implementation to
+`carbon.development_comparison.monotone_capacity`, the existing DEVELOPMENT
+comparison namespace. Update the prospective imports and CLI command and
+assert that default registered Graphite jobs do not ship the candidate while
+the pinned recipe implementation remains in the closure. A measurement worker
+must deliberately include this candidate when preparing its separate arm;
+it is not registered default runtime code. The cap, reserve, closure algorithm,
+registered modules and existing environment assertion remain unchanged.
+
 ## Candidate boundaries
 
 - Monotone fade uses the existing `[Q1, Q1-Qk]` target layout, converts adjacent positive drops to softplus logits, and cumulatively decodes them. Nonpositive observed drops are refused instead of silently adding a floor.

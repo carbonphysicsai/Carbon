@@ -1,11 +1,12 @@
 import gzip
 import json
+import subprocess
+from pathlib import Path
 
 import numpy as np
 import pytest
-
-from carbon.battery.monotone_capacity import layout_type
 from carbon.battery.recipes import Layout
+from carbon.development_comparison.monotone_capacity import layout_type
 
 
 def _data(capacity):
@@ -42,7 +43,9 @@ def test_monotone_layout_refuses_nonpositive_observed_fade():
 
 
 def test_candidate_builder_rejects_unsupported_construction():
-    from carbon.battery.monotone_capacity import MonotoneCapacityCandidate
+    from carbon.development_comparison.monotone_capacity import (
+        MonotoneCapacityCandidate,
+    )
 
     model = type(
         "Model", (), {"family": "mlp", "settings": {"capacity_fade_head": False}}
@@ -53,7 +56,9 @@ def test_candidate_builder_rejects_unsupported_construction():
 
 def test_layout_binding_is_restored_after_failed_fit():
     from carbon.battery import recipes
-    from carbon.battery.monotone_capacity import MonotoneCapacityCandidate
+    from carbon.development_comparison.monotone_capacity import (
+        MonotoneCapacityCandidate,
+    )
 
     original = recipes.Layout
 
@@ -71,7 +76,7 @@ def test_layout_binding_is_restored_after_failed_fit():
 
 
 def test_public_prediction_precheck_counts_strict_rises():
-    from carbon.battery.monotone_capacity import count_capacity_increases
+    from carbon.development_comparison.monotone_capacity import count_capacity_increases
 
     result = count_capacity_increases(
         {
@@ -98,7 +103,10 @@ def test_public_prediction_precheck_counts_strict_rises():
 def test_public_prediction_precheck_output_has_required_caveat(
     tmp_path, capsys, capacity, disposition
 ):
-    from carbon.battery.monotone_capacity import HUNT_RECOVERY_CAVEAT, main
+    from carbon.development_comparison.monotone_capacity import (
+        HUNT_RECOVERY_CAVEAT,
+        main,
+    )
 
     path = tmp_path / "public-predictions.json.gz"
     with gzip.open(path, "wt", encoding="utf-8") as stream:
@@ -147,7 +155,9 @@ def _model_with_fixed_weights(*, candidate):
 @pytest.mark.parametrize("ensemble", [False, True])
 def test_fitted_baseline_cannot_be_labelled_as_candidate(ensemble):
     from carbon.battery import recipes
-    from carbon.battery.monotone_capacity import MonotoneCapacityCandidate
+    from carbon.development_comparison.monotone_capacity import (
+        MonotoneCapacityCandidate,
+    )
 
     baseline = _model_with_fixed_weights(candidate=False)
     assert np.any(np.diff(baseline.predict(_data([]).x)["q"], axis=1) > 0.0)
@@ -162,7 +172,10 @@ def test_fitted_baseline_cannot_be_labelled_as_candidate(ensemble):
 @pytest.mark.parametrize("ensemble", [False, True])
 def test_candidate_fixed_state_export_import_preserves_predictions(ensemble):
     from carbon.battery import recipes
-    from carbon.battery.monotone_capacity import MonotoneCapacityCandidate, import_state
+    from carbon.development_comparison.monotone_capacity import (
+        MonotoneCapacityCandidate,
+        import_state,
+    )
 
     model = _model_with_fixed_weights(candidate=True)
     if ensemble:
@@ -186,10 +199,29 @@ def test_candidate_fixed_state_export_import_preserves_predictions(ensemble):
     assert recipes.Layout is Layout
 
 
+def test_unregistered_candidate_is_outside_registered_graphite_ship():
+    from carbon.agent_campaign.graphite import pods
+    from carbon.development_comparison import monotone_capacity
+
+    repository = Path(__file__).resolve().parents[2]
+    ref = subprocess.run(
+        ["git", "-C", str(repository), "rev-parse", "HEAD"],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.strip()
+    shipped = pods.ship_list(ref, repository)
+    candidate_path = Path(monotone_capacity.__file__).resolve().relative_to(repository)
+    assert candidate_path.as_posix() not in shipped
+    assert "carbon/battery/recipes.py" in shipped
+
+
 @pytest.mark.parametrize("ensemble", [False, True])
 def test_candidate_rechecks_layout_before_prediction_and_export(ensemble):
     from carbon.battery import recipes
-    from carbon.battery.monotone_capacity import MonotoneCapacityCandidate
+    from carbon.development_comparison.monotone_capacity import (
+        MonotoneCapacityCandidate,
+    )
 
     model = _model_with_fixed_weights(candidate=True)
     member = model
@@ -206,7 +238,9 @@ def test_candidate_rechecks_layout_before_prediction_and_export(ensemble):
 
 def test_fresh_candidate_must_fit_before_export_and_fit_uses_sidecar(monkeypatch):
     from carbon.battery import recipes
-    from carbon.battery.monotone_capacity import MonotoneCapacityCandidate
+    from carbon.development_comparison.monotone_capacity import (
+        MonotoneCapacityCandidate,
+    )
 
     model = recipes.build("mlp", _model_with_fixed_weights(candidate=True).settings)
     wrapped = MonotoneCapacityCandidate(model)
