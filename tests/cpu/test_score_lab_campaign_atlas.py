@@ -23,7 +23,10 @@ def _shard(index, tau):
             {
                 "index": index,
                 "config_sha256": f"toy-{index}",
-                "axes": {"problem.space": "small-grid"},
+                "axes": {
+                    "problem.space": "small-grid" if index == 0 else "continuous",
+                    "neighbourhood.size": 0.1 + index * 0.1,
+                },
                 "rows": [
                     {
                         "candidate": "toy-rule",
@@ -50,6 +53,13 @@ def test_complete_shards_report_worst_case_without_selecting_a_rule():
     assert row["scope_stats"]["neighbourhood_blend"]["worst_tenth_tau"] == -0.4
     assert row["gamer_top_half_profiles"] == 1
     assert row["good_wrongly_excluded_total"] == 1
+    assert row["axis_associations"]["neighbourhood.size"][
+        "high_minus_low"
+    ] == pytest.approx(-1.2)
+    assert row["axis_associations"]["problem.space"]["median_tau_by_value"] == {
+        '"continuous"': -0.4,
+        '"small-grid"': 0.8,
+    }
 
 
 def test_duplicate_missing_or_mixed_shards_refuse():

@@ -6,6 +6,7 @@ No rule is selected from development profiles here.
 
 from __future__ import annotations
 
+import json
 import math
 import statistics
 
@@ -23,6 +24,50 @@ def _worst_tenth(values):
         return None
     n = max(1, math.ceil(len(values) / 10))
     return statistics.fmean(sorted(values)[:n])
+
+
+def _axis_associations(observations, profiles):
+    """Exploratory LHS splits, never variance-based sensitivity indices."""
+    axes = profiles[0]["axes"]
+    if any(set(row["axes"]) != set(axes) for row in profiles):
+        raise LabRefused("atlas_axes_inconsistent")
+    out = {}
+    for axis in sorted(axes):
+        values = [row["axes"][axis] for row in profiles]
+        paired = [
+            (profiles[index]["axes"][axis], outcome["tau"]["neighbourhood_blend"])
+            for index, outcome in observations
+            if outcome["tau"]["neighbourhood_blend"] is not None
+        ]
+        if all(
+            type(value) in (int, float) and math.isfinite(value) for value in values
+        ):
+            midpoint = statistics.median(values)
+            low = [tau for value, tau in paired if value <= midpoint]
+            high = [tau for value, tau in paired if value > midpoint]
+            low_median, high_median = _median(low), _median(high)
+            out[axis] = {
+                "kind": "numeric_median_split",
+                "split": midpoint,
+                "low_median_tau": low_median,
+                "high_median_tau": high_median,
+                "high_minus_low": (
+                    high_median - low_median
+                    if high_median is not None and low_median is not None
+                    else None
+                ),
+            }
+        else:
+            groups = {}
+            for value, tau in paired:
+                groups.setdefault(json.dumps(value, sort_keys=True), []).append(tau)
+            out[axis] = {
+                "kind": "categorical_group_medians",
+                "median_tau_by_value": {
+                    key: _median(group) for key, group in sorted(groups.items())
+                },
+            }
+    return out
 
 
 def aggregate(shards):
@@ -60,6 +105,8 @@ def aggregate(shards):
     if set(by_index) != set(range(first["count"])):
         raise LabRefused("atlas_incomplete")
     rows = [by_index[index] for index in range(first["count"])]
+    if any(not isinstance(profile.get("axes"), dict) for profile in rows):
+        raise LabRefused("atlas_axes_missing")
     candidate_rows = {}
     for profile in rows:
         if not isinstance(profile.get("rows"), list):
@@ -137,6 +184,9 @@ def aggregate(shards):
                 ),
                 "good_wrongly_excluded_total": sum(
                     outcome["good_wrongly_excluded"] for _, outcome in observations
+                ),
+                "axis_associations": (
+                    _axis_associations(observations, rows) if switch == 0 else None
                 ),
             }
         )

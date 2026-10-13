@@ -171,7 +171,9 @@ python -m scripts.dev.score_lab campaign-run \
 
 `campaign-atlas` requires every index exactly once across one or more
 digest-matched result shards. It reports target, shifted, extrapolated and
-neighbourhood-blend summaries per candidate and physics switch. Its worst
+neighbourhood-blend summaries per candidate and physics switch, plus sampled
+axis median splits or category medians for the OFF switch as exploratory
+associations. Its worst
 tenth is a descriptive sample tail; Sobol indices and final rule selection
 remain unset because LHS profiles do not supply a Saltelli design.
 
