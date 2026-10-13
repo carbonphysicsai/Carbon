@@ -1057,6 +1057,7 @@ sum of its grant files' ceilings.
 |---|---|---|---|---|---|---|
 | GRAPHITE-GRANT-STAGE-C-CONSTRUCTOR | 4 | G | Stage C: up to three Level 4 Constructor runs of the ladder wave | OWNER-GRAPHITE-STAGE-C-01 | 44.85 | registered |
 | GRAPHITE-GRANT-L4-G-CONSTRUCTOR-2 | 4 | G | The Level 4 graph-variant (`l4-graph-v3`) valid-graph Constructor run that leads to the live Level 4 submit and smoke practice; no theme | OWNER-TEST-GRANT-01 | 14.94 | registered |
+| GRAPHITE-GRANT-L4-G-CONSTRUCTOR-3 | 4 | G | The lane G Level 4 Constructor run again, after the run under -2 was spent without staging a submission (the stage tool's reads were refused; fixed in #1240); same figures as -2, no theme | OWNER-TEST-GRANT-01 | 14.94 | registered |
 | GRAPHITE-GRANT-HUNT-H4-CONSTRUCTOR | 4 | G | The Level 5 hunt's H4 run, launched with `--theme causal-structure` (the hunt's last share: 71.76 + 14.94 = 86.70 of 86.71) | OWNER-GRAPHITE-OPEN-SAFE-01-GRANTS | 14.94 | registered |
 
 ## The optional pod rate ceiling (GRANT-POD-CEILING-01)
