@@ -326,7 +326,7 @@ def test_uploads_come_only_from_an_allowed_public_root(tmp_path):
     "name",
     [
         "a b.json",
-        "cafÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©.json",
+        "caf\u00e9.json",
         "x%2e.json",
         "ev4/a.json",
         "private/a.json",

@@ -1,0 +1,91 @@
+{
+  "schema": "carbon.value-metric.definition.v1",
+  "id": "VALUE-METRIC-V2",
+  "revision": 2,
+  "state": "REGISTERED_DEFINITION",
+  "maturity": "DEVELOPMENT",
+  "registered": "2026-10-13",
+  "challenge_neutral": true,
+  "estimand": {
+    "per_question": "U = G - kappa * n",
+    "gain": "G = max(0, (objective_ref(fallback) - objective_ref(best_feasible_shortlisted)) / u); 0 when no shortlisted action is reference-FEASIBLE and better than the fallback",
+    "solves": "n = reference condition-solves of every shortlisted action (an action with c conditions costs c), including INFEASIBLE, UNRESOLVED and unavailable",
+    "score": "w-weighted mean of U over the scored bank",
+    "abstention": 0
+  },
+  "selector": {
+    "owner": "validator",
+    "keep": "predicted FEASIBLE and predicted objective better than the fallback's reference objective",
+    "order": [
+      "predicted_objective",
+      "action_id"
+    ],
+    "cap": "k",
+    "miner_supplied_lists": false
+  },
+  "scored_bank": {
+    "admit": [
+      "decision_determined: every action-condition FEASIBLE, INFEASIBLE or UNRESOLVED-in-band (never FAILED_REFERENCE or missing), and every UNRESOLVED action's reference objective known and no better than the best reference-FEASIBLE action",
+      "fallback_reference_feasible"
+    ],
+    "excluded_reported": [
+      "reference_incomplete_or_undetermined",
+      "fallback_infeasible_rescue",
+      "settled_none"
+    ],
+    "population": "P_V2 = P | fallback feasible; w unchanged inside",
+    "unresolved_shortlisted": "charged its solves, earns no gain, counted for the tie-break"
+  },
+  "safety": {
+    "admissibility": [
+      "active registered G-FEAS gate",
+      "every adopted physics gate"
+    ],
+    "priced_into_U": false,
+    "tie_break": [
+      "fewer_reference_infeasible_shortlisted",
+      "fewer_unresolved_shortlisted",
+      "earliest_chain_commitment"
+    ]
+  },
+  "reported_not_scored": [
+    "safety_counts",
+    "missed_opportunity",
+    "ceiling_capture",
+    "coverage",
+    "excluded_class_counts",
+    "reuse_strata",
+    "cheap_arm_margin"
+  ],
+  "lambda_deployed_failure_cost": "UNMEASURED_NOT_IN_U",
+  "reuse_weight_rho": 0,
+  "acceptance": "positive mean net U and positive paired margin over the frozen strongest cheap arm on the sealed half",
+  "takeover": {
+    "relative_margin": null,
+    "absolute_min_gain": "delta_min",
+    "test": "paired one-sided question-block test at false-takeover budget alpha",
+    "ties": "keep_king"
+  },
+  "unit_change_rule": "kappa_new = kappa_old * u_old / u_new",
+  "parameters": {
+    "kappa": "HUMAN_INPUT",
+    "k": "HUMAN_INPUT",
+    "u": "HUMAN_INPUT",
+    "fallback": "HUMAN_INPUT",
+    "P_V2_acceptance": "HUMAN_INPUT",
+    "rescue_benefit_unit": "HUMAN_INPUT",
+    "delta_min": "HUMAN_INPUT",
+    "alpha": "HUMAN_INPUT",
+    "cheap_arm_ceiling_capture_threshold": "HUMAN_INPUT",
+    "cheap_arm_margin_threshold": "HUMAN_INPUT",
+    "payout_requires_beating_cheap_arm": "HUMAN_INPUT",
+    "mainnet": "HUMAN_INPUT"
+  },
+  "bank_spec": "docs/development/value-metric-v2/BANK_SPEC.md",
+  "evidence": [
+    "#1209 RES-07",
+    "#1218 RES-08",
+    "#1241 RES-09"
+  ],
+  "rescores_history": false
+}
