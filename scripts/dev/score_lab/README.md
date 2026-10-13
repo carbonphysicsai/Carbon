@@ -215,6 +215,23 @@ coordinate hill climbing. The reported value gap uses an approximate oracle;
 a signed negative gap means it missed a better point. Every search range and
 effort setting is an explicit toy assumption, not a Challenge rule.
 
+`campaign-feedback` runs a separate toy score-only search. Its callback
+returns only the rounded score of the selected synthetic scoring-question
+grain; buyer value is computed only after each search. `aggregate` uses all
+synthetic scoring questions and `prefix:N` uses the first N. These grains,
+rounding precisions and probe allowances are diagnostic assumptions, not a
+claim about the actual Launchpad disclosure contract. A gated or unscored
+probe leaves that candidate `INSUFFICIENT_EVIDENCE`.
+
+```sh
+python -m scripts.dev.score_lab campaign-feedback \
+  --config scripts/dev/score_lab/physics-example.json \
+  --search scripts/dev/score_lab/feedback-search-example.json \
+  --disclosure scripts/dev/score_lab/feedback-disclosure-example.json \
+  --candidates codex-queue/inputs/score-lab-candidates/candidates.py \
+  --out /tmp/scorelab-feedback-toy.json
+```
+
 ```sh
 python -m scripts.dev.score_lab campaign-goodhart \
   --config scripts/dev/score_lab/physics-example.json \

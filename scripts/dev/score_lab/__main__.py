@@ -14,6 +14,7 @@ from pathlib import Path
 from . import (
     bank,
     campaign_atlas,
+    campaign_feedback,
     campaign_gate,
     campaign_goodhart,
     campaign_stress,
@@ -306,7 +307,59 @@ def main(argv=None):
     goodhart.add_argument("--candidate")
     goodhart.add_argument("--components", type=Path)
     goodhart.add_argument("--out", type=Path, required=True)
+    feedback = commands.add_parser(
+        "campaign-feedback",
+        help="toy score-only feedback gamer; measure value after the search",
+    )
+    feedback.add_argument("--config", type=Path, required=True)
+    feedback.add_argument("--search", type=Path, required=True)
+    feedback.add_argument("--disclosure", type=Path, required=True)
+    feedback.add_argument("--candidates", type=Path, required=True)
+    feedback.add_argument("--candidate")
+    feedback.add_argument("--components", type=Path)
+    feedback.add_argument("--out", type=Path, required=True)
     args = parser.parse_args(argv)
+    if args.command == "campaign-feedback":
+        config = _read_campaign_json(args.config)
+        search_spec = _read_campaign_json(args.search)
+        disclosure_spec = _read_campaign_json(args.disclosure)
+        component_spec = (
+            _read_campaign_json(args.components) if args.components else None
+        )
+        specs, digest = candidates.load(args.candidates)
+        names = [args.candidate] if args.candidate else list(specs)
+        if any(name not in specs for name in names):
+            raise LabRefused("candidate_not_registered")
+        results = {}
+        for name in names:
+            try:
+                results[name] = campaign_feedback.run(
+                    config,
+                    name,
+                    specs[name],
+                    candidates_sha256=digest,
+                    search=search_spec,
+                    disclosure=disclosure_spec,
+                    component_spec=component_spec,
+                )
+            except LabRefused as exc:
+                if exc.code != "feedback_probe_unscored":
+                    raise
+                results[name] = {
+                    "status": "INSUFFICIENT_EVIDENCE",
+                    "reason": exc.code,
+                }
+        report = {
+            "status": "SYNTHETIC_DEVELOPMENT_DIAGNOSTIC",
+            "candidates_sha256": digest,
+            "results": results,
+        }
+        _write(args.out, report)
+        print(
+            f"toy disclosed-score feedback for {len(names)} candidates; "
+            "value checked afterward; no Challenge disclosure claim"
+        )
+        return 0
     if args.command == "campaign-stress":
         base = _read_campaign_json(args.base_config)
         scenarios = _read_campaign_json(args.scenarios)

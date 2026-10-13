@@ -106,69 +106,117 @@ def _search(evaluate, search):
     return {"parameters": best, "rank": best_rank}
 
 
-def run(config, candidate_id, spec, *, candidates_sha256, search, component_spec=None):
-    """Compare the score-optimising member with an independent value oracle."""
-    validate(config, search)
-    if not callable(spec.get("rule")):
-        raise LabRefused("goodhart_candidate_rule")
-    base_id = search["base_member_id"]
-    cache = {}
-    evaluations = {"score": 0, "value": 0}
+class ToyTraitEvaluator:
+    """Keep the toy score callback separate from disjoint buyer-value tasks."""
 
-    def panel_for(parameters):
+    def __init__(
+        self, config, candidate_id, spec, *, candidates_sha256, search, component_spec
+    ):
+        validate(config, search)
+        if not callable(spec.get("rule")):
+            raise LabRefused("goodhart_candidate_rule")
+        self.config = config
+        self.candidate_id = candidate_id
+        self.spec = spec
+        self.candidates_sha256 = candidates_sha256
+        self.search = search
+        self.component_spec = component_spec
+        self.cache = {}
+        self.calls = {"score": 0, "value": 0}
+
+    def panel_for(self, parameters):
         key = tuple(sorted(parameters.items()))
-        if key not in cache:
-            variant = copy.deepcopy(config)
-            member = next(m for m in variant["population"] if m["id"] == base_id)
+        if key not in self.cache:
+            variant = copy.deepcopy(self.config)
+            member = next(
+                m
+                for m in variant["population"]
+                if m["id"] == self.search["base_member_id"]
+            )
             member.update(parameters)
             if "score_path_only" in parameters:
                 member["score_path_only"] = bool(parameters["score_path_only"])
-            cache[key] = physics.build(variant)
-        return cache[key]
+            self.cache[key] = physics.build(variant)
+        return self.cache[key]
 
-    def score(parameters):
-        evaluations["score"] += 1
-        panel = panel_for(parameters)
-        member = next(m for m in panel["members"] if m["id"] == base_id)
-        # Construct the rule without value_questions/value_losses. The
-        # candidate cannot discover the held-out toy answers via its panel.
+    def score(self, parameters, grain="aggregate"):
+        self.calls["score"] += 1
+        panel = self.panel_for(parameters)
+        member = next(
+            m for m in panel["members"] if m["id"] == self.search["base_member_id"]
+        )
+        questions = panel["score_questions"]
+        if grain != "aggregate":
+            if not grain.startswith("prefix:") or not grain[7:].isdigit():
+                raise LabRefused("feedback_grain")
+            count = int(grain[7:])
+            if not 2 <= count <= len(questions):
+                raise LabRefused("feedback_grain")
+            questions = dict(list(questions.items())[:count])
+        ids = set(questions)
+        # The rule receives only the selected score-side questions and
+        # matching toy neighbours. The held-out value side is never passed.
         score_panel = {
             "scope": "SYNTHETIC_DEVELOPMENT",
-            "score_questions": panel["score_questions"],
+            "score_questions": questions,
             "members": [
-                {"id": m["id"], "score_predictions": m["score_predictions"]}
+                {
+                    "id": m["id"],
+                    "score_predictions": {
+                        qid: prediction
+                        for qid, prediction in m["score_predictions"].items()
+                        if qid in ids
+                    },
+                }
                 for m in panel["members"]
                 if m["id"] == "control-bilinear"
             ],
         }
         rule = candidates.rule_from_spec(
-            candidate_id,
-            spec,
-            path_digest=candidates_sha256,
+            self.candidate_id,
+            self.spec,
+            path_digest=self.candidates_sha256,
             panel=score_panel,
-            component_spec=component_spec,
+            component_spec=self.component_spec,
         )
         metadata = {
             **member["score_metadata"],
             "knobs": {
-                "physics": config["physics_sweep"][0],
-                "neighbourhood_weight": config["neighbourhood"]["score_weight"],
+                "physics": self.config["physics_sweep"][0],
+                "neighbourhood_weight": self.config["neighbourhood"]["score_weight"],
             },
         }
-        result = rule(member["score_predictions"], panel["score_questions"], metadata)
+        if grain != "aggregate":
+            metadata["neighbours"] = [
+                {
+                    **neighbour,
+                    "references": dict(list(neighbour["references"].items())[:count]),
+                    "predictions": dict(list(neighbour["predictions"].items())[:count]),
+                }
+                for neighbour in metadata["neighbours"]
+            ]
+        result = rule(
+            {qid: member["score_predictions"][qid] for qid in questions},
+            questions,
+            metadata,
+        )
         if result is None or result["score"] is None or not result["admissible"]:
             return None
         if not _finite(result["score"]):
             raise LabRefused("goodhart_score_nonfinite")
         return (-result.get("tier", 0), result["score"])
 
-    def value_loss(parameters):
-        evaluations["value"] += 1
-        panel = panel_for(parameters)
+    def value_loss(self, parameters):
+        self.calls["value"] += 1
+        panel = self.panel_for(parameters)
         view = physics.value_view(
-            panel, search["value_scope"], config["neighbourhood"]["value_weight"]
+            panel,
+            self.search["value_scope"],
+            self.config["neighbourhood"]["value_weight"],
         )
-        member = next(m for m in view["members"] if m["id"] == base_id)
+        member = next(
+            m for m in view["members"] if m["id"] == self.search["base_member_id"]
+        )
         losses = list(member["value_losses"].values())
         return (
             statistics.fmean(losses)
@@ -176,7 +224,18 @@ def run(config, candidate_id, spec, *, candidates_sha256, search, component_spec
             else None
         )
 
-    score_best = _search(score, search)
+
+def run(config, candidate_id, spec, *, candidates_sha256, search, component_spec=None):
+    """Compare the score-optimising member with an independent value oracle."""
+    experiment = ToyTraitEvaluator(
+        config,
+        candidate_id,
+        spec,
+        candidates_sha256=candidates_sha256,
+        search=search,
+        component_spec=component_spec,
+    )
+    score_best = _search(experiment.score, search)
     if score_best is None:
         return {
             "status": "INSUFFICIENT_EVIDENCE",
@@ -184,12 +243,14 @@ def run(config, candidate_id, spec, *, candidates_sha256, search, component_spec
         }
 
     def oracle_rank(parameters):
-        loss = value_loss(parameters)
+        loss = experiment.value_loss(parameters)
         return (-loss,) if loss is not None else None
 
     oracle_best = _search(oracle_rank, search)
-    score_value = value_loss(score_best["parameters"])
-    oracle_value = value_loss(oracle_best["parameters"]) if oracle_best else None
+    score_value = experiment.value_loss(score_best["parameters"])
+    oracle_value = (
+        experiment.value_loss(oracle_best["parameters"]) if oracle_best else None
+    )
     if score_value is None or oracle_value is None:
         return {"status": "INSUFFICIENT_EVIDENCE", "reason": "value_unresolved"}
     return {
@@ -205,6 +266,6 @@ def run(config, candidate_id, spec, *, candidates_sha256, search, component_spec
         "score_best_value_loss": score_value,
         "value_best_value_loss": oracle_value,
         "sampled_goodhart_gap": score_value - oracle_value,
-        "calls": evaluations,
-        "unique_toy_panels": len(cache),
+        "calls": experiment.calls,
+        "unique_toy_panels": len(experiment.cache),
     }
