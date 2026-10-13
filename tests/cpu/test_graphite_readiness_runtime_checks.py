@@ -228,9 +228,9 @@ def review(ctx, item, *, report=None):
         for role, grant in bound.items()
     }
     if report is not None:
-        for role in roles:
+        for role, accepted in roles.items():
             block = report[role + "_model"]
-            roles[role].update(
+            accepted.update(
                 model=block["model"],
                 max_output_tokens=block["max_output_tokens"],
                 sizing_rule="SYNTHETIC wrapper rule; no production adoption",
