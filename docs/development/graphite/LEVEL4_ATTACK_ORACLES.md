@@ -6,6 +6,11 @@ The inventory still contains thirteen family identities: ten runnable
 fixture families and three NOT_RUN seams. This does not establish ten
 families of actual runtime attack coverage.
 
+Only the original seven graph families are reachable through a session's
+family declaration. The added three require exact engine declarations;
+advertising them as session-reachable would contradict their unavailable
+runtime inputs. The shared reachability test remains unchanged.
+
 ## Reachability and implemented checks
 
 | Family | Executable probe | Valid and known-bad contrasts | Actual-session boundary |

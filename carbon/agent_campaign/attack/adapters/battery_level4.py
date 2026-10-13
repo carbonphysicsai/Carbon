@@ -465,8 +465,9 @@ class BatteryLevel4Adapter(b.BatteryLevel0Adapter):
         """Which Level-4 family a research tool call probes, or None: the
         declared one, else the surface. A graph family judges the document
         the attempt carries (`graph_view`); the slot ablation, its strategy."""
-        names = frozenset(_family_table()) | checks.NAMES
-        return b.door_family(tool, arguments, names, SURFACE)
+        # The added probes take exact engine declarations, not session
+        # inputs. Only the original graph families are session-reachable.
+        return b.door_family(tool, arguments, frozenset(_family_table()), SURFACE)
 
     @property
     def contract_digest(self):

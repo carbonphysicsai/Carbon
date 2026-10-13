@@ -25,6 +25,12 @@ mapping is NA. Add a specific unavailable-evidence reading routed to
 UNDETERMINED, ineligible for agreed-admissible closure; retain the existing
 INCONCLUSIVE and genuine out-of-scope semantics. No prior record is rescored.
 
+Canonical repair: the existing seven-family session-reachability assertion
+caught the probes being advertised as session-reachable. Preserve seven
+reachable graph families; three engine-only probes do not add a session
+surface. Add a focused regression without editing the shared Level-2/3
+test file owned by open PR #1296.
+
 Final reachability priority (refined from the proposed queue order):
 1. G7's case-level finite-output detection on Carbon-generated, validated
    CPU graph fixtures. Admitted graph outputs can reach the staged battery

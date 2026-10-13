@@ -193,6 +193,18 @@ def test_all_thirteen_identities_remain_and_unknown_seams_stay_not_run():
     assert len(l4.ADAPTER.families()) + len(seams) == 13
 
 
+def test_software_only_probes_cannot_be_declared_as_session_reachable_families():
+    from carbon.agent_campaign.attack import analysis
+
+    tool = analysis.PREFIX + "compile_strategy"
+    for name in checks.NAMES:
+        arguments = {"hypothesis": f"probe [family: {name}] here"}
+        assert l4.ADAPTER.family_for(tool, arguments) == l4.SURFACE
+    for name in l4._family_table():
+        arguments = {"hypothesis": f"probe [family: {name}] here"}
+        assert l4.ADAPTER.family_for(tool, arguments) == name
+
+
 @pytest.mark.parametrize(
     "name",
     sorted(checks.NAMES)
