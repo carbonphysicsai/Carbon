@@ -2,7 +2,7 @@
 
 Authority: owner-delegated Test Lead assignment and codex-queue/packets.md,
 2026-10-13. Base: bf2494ef478a96ea6403f86aea8d96e3e345482d.
-Primary map_ref: CHALLENGE-READINESS (mapped implementation detail).
+Primary map_ref: SYSTEM/AGENT-EXECUTION (mapped implementation detail).
 
 ## Bounded contract
 

@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-13-readiness-negative-controls",
+  "recorded_at": "2026-10-13T18:27:38+00:00",
+  "challenge": "challenge-neutral",
+  "stage": "design",
+  "execution": {"kind": "test_run", "ref": "PKT-14 GATE-NEGATIVE-CONTROLS-01", "description": "Native synthetic/public control regressions and three-item P1/P2/A4 registration checks; no host, solver or protected input execution."},
+  "expected": "A live checker must accept a positive witness and refuse its known-bad control for the specific reason. Missing controls and missing numerical noise must not become controlled readiness.",
+  "observed": "154 final native tests passed, 12 Linux-dependent tests deselected; baseline failures from absent temporary parent and Windows fcntl were preserved as diagnostic failures, not science failures. The canonical wrapper refused Windows-managed worktree identity; pinned CI remains required. Public subset controlled PASS counts are battery 3/3, motor 2/3, cooling 2/3; the latter two retain pending operator identity and all partial runs remain unready. Always-pass, always-fail, wrong-reason, malformed-result and raising fixtures earn no controlled pass. Synthetic noise changes alter the controlled count without a qualification claim. A finite-extreme quantile regression prevents overflow in diagnostic interpolation.",
+  "keep": ["Original roster, values, reviews, waivers and historical report interpretation."],
+  "change": ["Report control/specimen/code identities and both signs beside original status; require controlled_ready for CLI success."],
+  "protocol_elements": ["negative-controls", "measurement-noise", "historical-evidence", "fail-closed", "subset-denominator"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
