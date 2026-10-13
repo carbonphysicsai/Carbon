@@ -98,6 +98,11 @@ def _report(rows):
         for knob in knobs
         if any(r.get("assumption") and knob in r["assumption"] for r in measured)
     }
+
+    def median_rank(key):
+        ranks = [r[key] for r in measured if r.get(key) is not None]
+        return statistics.median(ranks) if ranks else None
+
     summary = {
         "status": "DEVELOPMENT_DIAGNOSTIC",
         "verdict": headline,
@@ -111,6 +116,14 @@ def _report(rows):
         ),
         "knob_median_tau": stability,
         "top1_regret_range": [min(regrets), max(regrets)] if regrets else None,
+        "cheap_baseline_median_rank": median_rank("cheap_baseline_rank"),
+        "always_abstain_median_rank": median_rank("always_abstain_rank"),
+        "known_bad_top_half_profiles": sum(
+            bool(r.get("known_bad_in_top_half")) for r in measured
+        ),
+        "adversarial_top_half_profiles": sum(
+            bool(r.get("adversarial_in_top_half")) for r in measured
+        ),
         "concerns": [
             {
                 "assumption": r.get("assumption"),
@@ -133,6 +146,12 @@ def _report(rows):
         f"{summary['positive_ci_profiles']}"
     )
     print(f"top-1 regret range {summary['top1_regret_range']}")
+    print(
+        f"median rank: cheap {summary['cheap_baseline_median_rank']}, "
+        f"always-abstain {summary['always_abstain_median_rank']}; "
+        f"known-bad top-half {summary['known_bad_top_half_profiles']}/{len(measured)}, "
+        f"adversarial top-half {summary['adversarial_top_half_profiles']}/{len(measured)}"
+    )
     if stability:
         weakest = min(
             (

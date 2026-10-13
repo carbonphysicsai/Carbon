@@ -10,6 +10,7 @@ import pytest
 
 from carbon.battery.value import score_tuning as st
 from scripts.dev.score_lab import bank, candidates, public_ev4, synthetic
+from scripts.dev.score_lab.__main__ import _report
 from scripts.dev.score_lab.core import (
     LabRefused,
     analyze,
@@ -62,6 +63,10 @@ def test_rule_receives_scoring_half_only_and_bootstrap_replays():
     assert a["top1_regret"] >= 0
     assert a["always_abstain_rank"] is not None
     assert a["cheap_baseline_rank"] is not None
+    summary = _report([a])
+    assert summary["cheap_baseline_median_rank"] == a["cheap_baseline_rank"]
+    assert summary["always_abstain_median_rank"] == a["always_abstain_rank"]
+    assert "space" in summary["knob_median_tau"]
 
 
 def test_registry_uses_exact_score_tuning_candidate():
