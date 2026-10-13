@@ -22,3 +22,7 @@ A real-receipt negative control failed because reconciliation erased the first
 create diagnostic. Preserve each create's status and validated closed cause
 through that wrapper. Even a definitive second failure must not release the
 first ambiguous create's hold. No reconciliation timing or resend rule changes.
+
+Use short closed reason codes that survive the existing long-token redaction
+bound; keep that privacy filter unchanged. The real-receipt control caught
+longer codes being redacted even though their provider evidence was preserved.

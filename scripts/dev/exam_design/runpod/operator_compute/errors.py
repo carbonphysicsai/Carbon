@@ -15,12 +15,12 @@ __all__ = ["ComputeError", "Execution"]
 
 PROVIDER_REASON_CODES = frozenset(
     {
-        "provider_capacity_unavailable",
-        "provider_quota_exceeded",
-        "provider_rate_limited",
-        "provider_request_invalid",
-        "provider_reason_unrecognized",
-        "provider_reason_unavailable",
+        "provider_capacity",
+        "provider_quota",
+        "provider_rate_limit",
+        "provider_bad_request",
+        "provider_reason_unknown",
+        "provider_reason_missing",
     }
 )
 

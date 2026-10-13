@@ -182,7 +182,7 @@ class ComputeService:
             # fail too. Preserve the create diagnostics in either case; a
             # reconcile refusal must not replace them with a mute generic error.
             def diagnostic(source):
-                reason = source.provider_reason_code or "provider_reason_unavailable"
+                reason = source.provider_reason_code or "provider_reason_missing"
                 status = source.http_status
                 return reason + (
                     " (HTTP unavailable)" if status is None else f" (HTTP {status})"

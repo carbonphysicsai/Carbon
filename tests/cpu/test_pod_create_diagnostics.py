@@ -40,19 +40,19 @@ def adapter(payload, status=503):
 @pytest.mark.parametrize(
     "payload,reason",
     [
-        ({"code": "OUT_OF_STOCK"}, "provider_capacity_unavailable"),
-        ({"error": {"code": "QUOTA_EXCEEDED"}}, "provider_quota_exceeded"),
-        ({"reason": "rate_limit_exceeded"}, "provider_rate_limited"),
-        ({"message": "invalid_request"}, "provider_request_invalid"),
-        ({"error": "insufficient capacity"}, "provider_capacity_unavailable"),
-        ({"reason": MARKER}, "provider_reason_unrecognized"),
-        ({"message": "out_of_stock " + MARKER}, "provider_reason_unrecognized"),
-        ({"account": MARKER}, "provider_reason_unavailable"),
-        (None, "provider_reason_unavailable"),
-        ([{"code": "OUT_OF_STOCK"}], "provider_reason_unavailable"),
+        ({"code": "OUT_OF_STOCK"}, "provider_capacity"),
+        ({"error": {"code": "QUOTA_EXCEEDED"}}, "provider_quota"),
+        ({"reason": "rate_limit_exceeded"}, "provider_rate_limit"),
+        ({"message": "invalid_request"}, "provider_bad_request"),
+        ({"error": "insufficient capacity"}, "provider_capacity"),
+        ({"reason": MARKER}, "provider_reason_unknown"),
+        ({"message": "out_of_stock " + MARKER}, "provider_reason_unknown"),
+        ({"account": MARKER}, "provider_reason_missing"),
+        (None, "provider_reason_missing"),
+        ([{"code": "OUT_OF_STOCK"}], "provider_reason_missing"),
         (
             {"code": "OUT_OF_STOCK", "reason": "QUOTA_EXCEEDED"},
-            "provider_reason_unrecognized",
+            "provider_reason_unknown",
         ),
     ],
 )
@@ -71,8 +71,8 @@ def test_ambiguous_adapter_error_keeps_status_and_cause_without_response_fields(
         provider.create(SPEC, ownership_tag="0" * 24)
     error = refused.value
     assert error.http_status == 503
-    assert error.provider_reason_code == "provider_capacity_unavailable"
-    assert "provider_capacity_unavailable" in error.failed
+    assert error.provider_reason_code == "provider_capacity"
+    assert "provider_capacity" in error.failed
     assert error.execution is Execution.MAY_HAVE_EXECUTED
     assert error.resources_may_remain and not error.retry_safe
     assert "reconcile" in error.next_action
@@ -86,7 +86,7 @@ def test_unrecognized_reason_cannot_be_inferred_from_http_status():
     provider, _calls = adapter({"message": MARKER})
     with pytest.raises(ComputeError) as refused:
         provider.create(SPEC, ownership_tag="0" * 24)
-    assert "provider_reason_unrecognized" in refused.value.failed
+    assert "provider_reason_unknown" in refused.value.failed
     assert "capacity" not in refused.value.failed and MARKER not in str(refused.value)
 
 
@@ -115,7 +115,7 @@ def test_real_job_receipt_projects_create_cause_and_keeps_uncertainty(lifecycle)
     backend.recover = unresolved
     receipt, ledger = go(spec, backend)
     assert "HTTP 503" in receipt["refusal"]
-    assert "provider_capacity_unavailable" in receipt["refusal"]
+    assert "provider_capacity" in receipt["refusal"]
     assert MARKER not in json.dumps(receipt) and MARKER not in json.dumps(ledger)
     assert receipt["teardown"]["terminated"] is None
     assert ledger[-1]["pending_usd"] == receipt["cost"]["reserved_usd"]
@@ -144,9 +144,9 @@ def test_both_create_diagnostics_survive_the_one_resend(lifecycle, second_status
     receipt, ledger = go(spec, backend)
     assert len(creates) == 2
     assert (
-        "first create: provider_capacity_unavailable (HTTP 503)" in receipt["refusal"]
+        "first create: provider_capacity (HTTP 503)" in receipt["refusal"]
     )
-    assert "repeated create: provider_quota_exceeded" in receipt["refusal"]
+    assert "repeated create: provider_quota" in receipt["refusal"]
     assert f"HTTP {second_status}" in receipt["refusal"]
     assert MARKER not in json.dumps(receipt) and MARKER not in json.dumps(ledger)
     # A definitive second refusal cannot settle uncertainty about the first.
@@ -176,7 +176,7 @@ def test_graphite_launch_preserves_ambiguous_http_evidence(status):
     def provision(request, **kwargs):
         raise ComputeError(
             operation="provision",
-            failed="provider did not return a resource id: provider_capacity_unavailable",
+            failed="provider did not return a resource id: provider_capacity",
             execution=Execution.MAY_HAVE_EXECUTED,
             resources_may_remain=True,
             retry_safe=False,
@@ -210,5 +210,5 @@ def test_graphite_launch_preserves_ambiguous_http_evidence(status):
         )
     expected = "HTTP unavailable" if status is None else "HTTP 503"
     assert expected in refused.value.detail
-    assert "provider_capacity_unavailable" in refused.value.detail
+    assert "provider_capacity" in refused.value.detail
     assert refused.value.executed is True

@@ -199,17 +199,17 @@ def ambiguous_create_reason(payload) -> str:
     quota failure. HTTP status alone does not establish either cause.
     """
     reasons = {
-        "out_of_stock": "provider_capacity_unavailable",
-        "insufficient_capacity": "provider_capacity_unavailable",
-        "insufficient capacity": "provider_capacity_unavailable",
-        "quota_exceeded": "provider_quota_exceeded",
-        "quota exceeded": "provider_quota_exceeded",
-        "rate_limit_exceeded": "provider_rate_limited",
-        "too many requests": "provider_rate_limited",
-        "invalid_request": "provider_request_invalid",
+        "out_of_stock": "provider_capacity",
+        "insufficient_capacity": "provider_capacity",
+        "insufficient capacity": "provider_capacity",
+        "quota_exceeded": "provider_quota",
+        "quota exceeded": "provider_quota",
+        "rate_limit_exceeded": "provider_rate_limit",
+        "too many requests": "provider_rate_limit",
+        "invalid_request": "provider_bad_request",
     }
     if type(payload) is not dict:
-        return "provider_reason_unavailable"
+        return "provider_reason_missing"
     fields = [payload]
     if type(payload.get("error")) is dict:
         fields.append(payload["error"])
@@ -227,7 +227,7 @@ def ambiguous_create_reason(payload) -> str:
                     recognized.add(reason)
     if len(recognized) == 1:
         return recognized.pop()
-    return "provider_reason_unrecognized" if present else "provider_reason_unavailable"
+    return "provider_reason_unknown" if present else "provider_reason_missing"
 
 
 class RunPodAdapter:
