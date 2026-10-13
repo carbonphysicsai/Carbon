@@ -147,6 +147,13 @@ def main():
     if args.preview:
         fig.savefig(args.preview, dpi=120)
     plt.close(fig)
+    # Matplotlib path serialization contains trailing blanks; retain geometry
+    # while producing repository-clean, deterministically replayable SVG text.
+    for path in args.output.glob("*.svg"):
+        text = path.read_text(encoding="utf-8")
+        path.write_bytes(
+            ("\n".join(line.rstrip() for line in text.splitlines()) + "\n").encode()
+        )
 
 
 if __name__ == "__main__":

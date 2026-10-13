@@ -20,7 +20,7 @@
   "results_sha256": "9c69df3298b6530b1d52e91c798f66ed33bd07ce1ebd51eec5b0e79fb28ad53e",
   "research_source_sha256": {
     "analyze.py": "60aac00cf8c105c28aa4dfabce7725a3cf1e3fbac08e409088d85c92103c12e5",
-    "plot_curves.py": "5ff8b32317bb1fe8a7dbe9598bb931130e71a8ed2acc19521099fb7244fb55a4",
+    "plot_curves.py": "0e1e952066079d79ffa1606fcd82b7738c75a5c0b9514b959474b4d1a67651a9",
     "test_analysis.py": "64b7f7e03d7cb160b818333a51953d4ea5d8af10f1794f91abe5dee02c88977e"
   }
 }
