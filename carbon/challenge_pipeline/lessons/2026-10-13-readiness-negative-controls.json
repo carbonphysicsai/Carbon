@@ -11,5 +11,6 @@
   "change": ["Report control/specimen/code identities and both signs beside original status; require controlled_ready for CLI success."],
   "protocol_elements": ["negative-controls", "measurement-noise", "historical-evidence", "fail-closed", "subset-denominator"],
   "proposed_revision": null,
-  "status": "RECORDED"
+  "status": "RECORDED",
+  "review_repair": "PKT14-R1/R2 reproduced as two failing native regressions on the reviewed code. Fresh per-sign evidence_paths now prevent a stateful checker faking detection via a shared marker, and specimen_digest binds the pre-invocation known-bad input. The focused post-repair control module passed 52 tests; the earlier 156-test native diagnostic suite was not duplicated. New-head canonical acceptance remains required. Neither reproduction is evidence of a production leak or a changed physical passing count."
 }

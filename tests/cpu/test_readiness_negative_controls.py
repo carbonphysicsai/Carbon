@@ -77,6 +77,40 @@ def test_checker_data_mutation_cannot_escape_control_context():
     assert context.data == before
 
 
+def test_stateful_checker_cannot_fake_detection_through_cross_sign_paths():
+    def stateful_checker(item, actual):
+        # Deliberately ignores the specimen: only a shared dictionary can
+        # manufacture the PASS-then-expected-FAIL pattern.
+        if actual.evidence_paths.get("seen_previous_sign"):
+            return model.Result(model.FAIL, controls.CONTROLS[item["id"]].reason)
+        actual.evidence_paths["seen_previous_sign"] = True
+        return model.Result(model.PASS, "fixture ignored the actual specimen")
+
+    result = controls.evaluate(item("P2"), ctx(), stateful_checker)
+    assert result["status"] == controls.CONTROL_FAILED
+    assert result["negative"]["status"] == model.PASS
+
+
+def test_bad_specimen_pin_is_taken_before_checker_mutation():
+    context = ctx()
+    expected = model.digest({"challenge": context.challenge, "level": 0, "data": {}})
+
+    def mutating_checker(item, actual):
+        actual.data["post_call_only_marker"] = True
+        return discriminating(item, actual)
+
+    result = controls.evaluate(item("P2"), context, mutating_checker)
+    assert result["status"] == controls.CONTROL_OK
+    assert result["specimen_digest"] == expected
+    assert result["specimen_digest"] != model.digest(
+        {
+            "challenge": context.challenge,
+            "level": 0,
+            "data": {"post_call_only_marker": True},
+        }
+    )
+
+
 @pytest.mark.parametrize("function", [accept_all, wrong_refusal, broken])
 @pytest.mark.parametrize("name", list(controls.CONTROLS))
 def test_known_bad_must_fail_for_the_specific_reason(name, function):

@@ -192,7 +192,7 @@ def evaluate(item, ctx, function, measurement=None):
     else:
         return {**base, "status": CONTROL_FAILED, "detail": "control_mutation_unknown"}
     negative_ctx = dataclasses.replace(
-        positive_ctx, challenge=challenge, data=data, cache={}
+        positive_ctx, challenge=challenge, data=data, cache={}, evidence_paths={}
     )
     try:
         source = inspect.getsourcefile(function)
@@ -201,6 +201,7 @@ def evaluate(item, ctx, function, measurement=None):
         pin = file_digest(Path(source))
     except (OSError, TypeError, ValueError):
         return {**base, "status": CONTROL_FAILED, "detail": "checker_source_unpinned"}
+    specimen_pin = digest({"challenge": challenge, "level": ctx.level, "data": data})
     positive = _call(function, item, positive_ctx)
     negative = _call(function, item, negative_ctx)
     detected = negative["status"] == FAIL and spec.reason in negative["detail"]
@@ -217,9 +218,7 @@ def evaluate(item, ctx, function, measurement=None):
         "positive": positive,
         "negative": negative,
         "spec_digest": digest(dataclasses.asdict(spec)),
-        "specimen_digest": digest(
-            {"challenge": challenge, "level": ctx.level, "data": data}
-        ),
+        "specimen_digest": specimen_pin,
         "checker_digest": pin,
         "measurement": (
             measurement_summary(measurement)

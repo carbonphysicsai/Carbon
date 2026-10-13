@@ -23,7 +23,10 @@ rebuild. A4 reads a public designation, never a signer, secret or LOCK ledger.
 
 The checker source, control implementation, spec and bad specimen have hashes
 in the digest-bound report. There is no cached control receipt. The controls
-call the current registry function, so changing it to accept everything must
+pin the known-bad input before either invocation; data, cache and evidence-path
+dictionaries are independently allocated for both signs. A stateful checker
+cannot manufacture the pass/refusal sequence through a cross-sign marker.
+They call the current registry function, so changing it to accept everything must
 produce CONTROL_FAILED. Returning FAIL for an unrelated missing dependency
 or raising an exception is not detection. Rejecting both signs reports
 NO_POSITIVE_WITNESS and earns no controlled pass.
