@@ -2644,15 +2644,33 @@ DRY_RUN_GRANT = {
 class DryRunMiner:
     """Answers every miner tool with a fixed DRY RUN record; runs nothing."""
 
+    def __init__(self, export=None):
+        self.export = export
+
     async def call(self, name, arguments, identity):
+        if self.export is not None and arguments.get("action") == "read_file":
+            import base64
+
+            path, body = self.export
+            requested = json.loads(arguments["arguments_json"])
+            if requested["name"] != path:
+                return {"status": "REFUSED", "dry_run": True}
+            chunk = body[requested["offset"] : requested["offset"] + requested["count"]]
+            return {
+                "result": {
+                    "bytes": len(body),
+                    "content_utf8": None,
+                    "content_base64": base64.b64encode(chunk).decode(),
+                }
+            }
         return {"status": "OK", "dry_run": True, "operation": name, "ran": False}
 
 
-def dry_run_script(baseline, variant, refused):
+def dry_run_script(baseline, variant, refused, *, staged=None):
     from .model import text, tool, tools
 
     prefix = "carbon_research_v2__"
-    return [
+    script = [
         # Live session 1's first turn: three tool calls at once. All three
         # run, in order, each journalled (LP-PROD-A).
         tools(
@@ -2668,6 +2686,18 @@ def dry_run_script(baseline, variant, refused):
                 "expected_effect": "Carbon refuses it, typed",
             },
         ),
+    ]
+    if staged is not None:
+        from .roles import LEVEL4_STAGE
+
+        strategy, task_id = staged
+        script.append(
+            tool(
+                LEVEL4_STAGE,
+                {"strategy_json": json.dumps(strategy), "task_id": task_id},
+            )
+        )
+    script += [
         tool(
             PROPOSE,
             {
@@ -2678,6 +2708,28 @@ def dry_run_script(baseline, variant, refused):
         ),
         text("DRY RUN: the scripted Constructor stops here."),
     ]
+    return script
+
+
+def dry_run_graph(strategy):
+    """Lower Carbon's own benign fixture recipe, never participant model source."""
+    import gzip
+
+    from carbon.battery import level4
+    from carbon.level4 import allowlist, intake, staging, submission
+
+    manifest, files = level4.lower_recipe(
+        strategy, allowlist.load(), max_bytes=intake.BOUNDS["document_bytes"]
+    )
+    envelope = staging.envelope(submission.canonical(manifest), files)
+    graph = json.loads(json.dumps(strategy))
+    graph["parameters"][level4.FIELD] = envelope["submission"]
+    task_id = "rtsk_" + "d" * 64
+    export = (
+        task_id[-20:] + "-" + ex.LEVEL4_ENVELOPE_EXPORT,
+        gzip.compress(json.dumps(envelope).encode(), mtime=0),
+    )
+    return graph, (strategy, task_id), export
 
 
 def score_variant_for(version, scoring, variant=None):
@@ -2720,20 +2772,31 @@ def dry_run(
     baseline = scoring.baseline_strategy()
     variant = scoring.fixture_variant_strategy()
     refused = scoring.fixture_refused_strategy()
+    staged, export = None, None
+    if development_variant is not None and development_variant.level == 4:
+        variant, staged, export = dry_run_graph(variant)
     grant = SpendingGrant.from_document(DRY_RUN_GRANT)
     pods = ScriptedPods(
         steps=[
             Step(outputs=synthetic_outputs(1.0, scoring=scoring), charge="0.20"),
             Step(outputs=synthetic_outputs(0.4, scoring=scoring), charge="0.20"),
             Step(outputs=synthetic_outputs(1.0, scoring=scoring), charge="0.20"),
+            # The graph slot adds a second ablation beside the recipe's change.
+            *(
+                []
+                if staged is None
+                else [
+                    Step(outputs=synthetic_outputs(1.0, scoring=scoring), charge="0.20")
+                ]
+            ),
         ]
     )
     provider = Phase3Provider(
         root=root / "graphite",
         grant=grant,
-        model=ScriptedModel(dry_run_script(baseline, variant, refused)),
+        model=ScriptedModel(dry_run_script(baseline, variant, refused, staged=staged)),
         pods=pods,
-        miner_tools=DryRunMiner(),
+        miner_tools=DryRunMiner(export),
         randomness=lambda n: b"\x00" * n,
         scoring=scoring,
         **({} if literature is None else {"literature_index": literature}),
@@ -2747,6 +2810,7 @@ def dry_run(
             literature=literature,
             scoring=scoring,
             variant=development_variant,
+            level_domain_text=development_variant is not None,
             **(
                 {}
                 if score_variant is None
@@ -2798,6 +2862,9 @@ def dry_run(
     print(json.dumps(result, indent=1, default=str))
     ok = (
         result["provider_state"] == "succeeded"
+        and (result.get("delivery") or {}).get("clean_rebuild", {}).get("status")
+        == "REBUILT"
+        and not result["dry_run"]["pods_alive"]
         and result["dry_run"]["real_pod_path"]["status"] == "OK"
         and result["dry_run"]["pod_failure_path"]["status"] == "OK"
         and result["dry_run"]["carrier_containment"]["status"] == "PASS"

@@ -12,7 +12,9 @@ Carbon's own operator host is the one exception: it installs a resource
 profile (`load_host_profile`; INTERNAL-RESOURCE-PROFILE-01, delivered to every
 process on that host by LANE-RESOURCE-BOUND-01), and its Level 4 hostile-model
 probe and staging sessions refuse to start without one
-(`require_host_profile`). Nothing is installed on a miner's machine.
+(`require_host_profile`). Under that profile the lane is
+`carbon.miner-research.bounded.v1` and its scratch is a tmpfs the kernel caps
+in bytes and inodes. Nothing is installed on a miner's machine.
 
 This is a separate lane from the validator's grading worker in
 `carbon.reconstruction.worker.docker_runtime`, which keeps every one of its
@@ -41,6 +43,10 @@ from carbon.reconstruction.worker.model import (
 )
 
 LANE = "carbon.miner-research.unlimited.v1"
+#: The same lane under Carbon's own host profile (LANE-RESOURCE-BOUND-01):
+#: CPU, memory, process and file bounds, and a kernel-capped tmpfs scratch.
+#: A miner's machine never carries it.
+BOUNDED_LANE = "carbon.miner-research.bounded.v1"
 #: An NVIDIA device UUID, a whole GPU or a MIG instance (`MIG-<uuid>`, as
 #: `nvidia-smi -L` lists it today): the only device a miner-lane container may
 #: hold.
@@ -218,147 +224,138 @@ def require_scratch_floor(path, floor=SCRATCH_HOST_FLOOR_BYTES):
     return free
 
 
-#: LANE-RESOURCE-BOUND-01 (the Test Lead's choice (c), 2026-10-12): on a host
-#: whose resource profile is in force, one run's scratch may hold at most this
-#: many bytes. A named constant, so profile v1 is unchanged; a miner's machine
-#: has no profile and so no watch and no cap.
+#: LANE-RESOURCE-BOUND-01 (the Test Lead's ruling, 2026-10-12, replacing the
+#: polling watchdog of choice (c)): on a host whose resource profile is in
+#: force, a run's scratch is a kernel-capped tmpfs instead of a directory on
+#: the host's disk. These caps are named constants, so profile v1 is
+#: unchanged; a miner's machine has no profile and so no cap. The tmpfs's
+#: pages count against the profile's memory limit.
 SCRATCH_CAP_BYTES = 2 * 1024**3
-#: How often the watchdog measures scratch (the ruling: every 2 s at most).
-SCRATCH_POLL_SECONDS = 1.0
-#: Consecutive failed measurements, while the run lives, after which its
-#: scratch counts as unmeasurable and the run is stopped (fail closed: a run
-#: that exhausts its own process bound must not blind the watch).
-SCRATCH_UNMEASURED_POLLS = 15
-#: The closed refusal a run stopped by the watchdog is typed with.
+SCRATCH_CAP_INODES = 100_000
+#: Exactly what the bounded lane mounts at /scratch, and what its inspection
+#: requires to read back: writable, no set-uid, no devices, nothing executed
+#: from it, and at most `SCRATCH_CAP_BYTES` and `SCRATCH_CAP_INODES`.
+SCRATCH_TMPFS_OPTIONS = (
+    "rw,nosuid,nodev,noexec," f"size={SCRATCH_CAP_BYTES},nr_inodes={SCRATCH_CAP_INODES}"
+)
+#: The closed refusal a bounded run is typed with when its program failed
+#: and its scratch was found full (bytes or inodes), never a score.
 SCRATCH_CAP_EXCEEDED = "scratch_cap_exceeded"
-#: Measured inside the container, as the worker that owns every byte of it:
-#: the host user cannot list a directory the worker made private. `-I`, so
-#: nothing the run wrote under /scratch is imported. Directories it hid from
-#: its own user are reported, never skipped silently.
-SCRATCH_MEASURE = r"""
+#: Free space below this, or no free inode, counts as a full scratch.
+SCRATCH_FULL_BYTES = 1024**2
+#: Measured inside the container, as the worker: the tmpfs is the container's
+#: own, so the host cannot see it.
+SCRATCH_STATVFS = r"""
 import json, os
-total, denied = 0, False
-def refused(error):
-    global denied
-    if isinstance(error, PermissionError):
-        denied = True
-for directory, dirnames, filenames in os.walk("/scratch", onerror=refused):
-    for name in dirnames + filenames:
-        try:
-            total += os.lstat(os.path.join(directory, name)).st_size
-        except FileNotFoundError:
-            pass
-        except PermissionError:
-            denied = True
-print(json.dumps({"bytes": total, "denied": denied}))
+s = os.statvfs("/scratch")
+print(json.dumps({"free_bytes": s.f_bavail * s.f_frsize, "free_inodes": s.f_favail}))
 """
+#: The run's output, written to stdout as one tar stream by the worker inside
+#: the container while it still runs: `docker cp` cannot read a tmpfs. `-I`,
+#: so nothing the run wrote is imported. Links and special files are archived
+#: as what they are, never followed, and refused when unpacked.
+SCRATCH_EXPORT = r"""
+import sys, tarfile
+with tarfile.open(fileobj=sys.stdout.buffer, mode="w|", format=tarfile.PAX_FORMAT) as archive:
+    archive.add("/scratch/output", arcname="output")
+"""
+#: The stream's bound: the scratch cap plus a header block and padding for
+#: every inode the tmpfs can hold.
+SCRATCH_EXPORT_MAX_BYTES = SCRATCH_CAP_BYTES + SCRATCH_CAP_INODES * 4096 + 1024**2
+SCRATCH_EXPORT_SECONDS = 600
 
 
-def measure_scratch(cli, container_name, timeout=10):
-    """`(bytes, denied)` for the running container's scratch, measured inside
-    it; a failed or malformed measurement raises (`WorkerFailure`)."""
-    value = cli.json(
-        [
-            "exec",
-            container_name,
-            "/opt/carbon-worker/bin/python",
-            "-I",
-            "-c",
-            SCRATCH_MEASURE,
-        ],
-        timeout=timeout,
-    )
+def lane_of(launch):
+    """The lane label a run's container carries: bounded under a host profile."""
+    return LANE if launch.resource_profile is None else BOUNDED_LANE
+
+
+def scratch_full(cli, container_name, timeout=10):
+    """Whether the running container's scratch is full, in bytes or inodes.
+    A failed or malformed measurement answers False: the failure then keeps
+    the classification it already had."""
+    try:
+        value = cli.json(
+            [
+                "exec",
+                container_name,
+                "/opt/carbon-worker/bin/python",
+                "-I",
+                "-c",
+                SCRATCH_STATVFS,
+            ],
+            timeout=timeout,
+        )
+    except WorkerFailure:
+        return False
     if (
         type(value) is not dict
-        or set(value) != {"bytes", "denied"}
-        or type(value["bytes"]) is not int
-        or value["bytes"] < 0
-        or type(value["denied"]) is not bool
+        or set(value) != {"free_bytes", "free_inodes"}
+        or any(type(value[key]) is not int or value[key] < 0 for key in value)
     ):
-        raise WorkerFailure(WorkerCode.RUNTIME)
-    return value["bytes"], value["denied"]
-
-
-class ScratchWatchdog:
-    """Stop a run whose scratch passes the cap (LANE-RESOURCE-BOUND-01).
-
-    A thread measures every `interval` seconds while the run executes. It
-    trips, once, when the measured bytes exceed `cap_bytes`, when the run hid
-    part of its scratch from its own user, or after `unmeasured_limit`
-    consecutive failed measurements; it then calls `stop_run` (the carrier
-    kills the container). `tripped` holds the typed record, else None. Used
-    only where a host profile is in force; never on a miner's machine."""
-
-    def __init__(
-        self,
-        measure,
-        stop_run,
-        *,
-        cap_bytes=SCRATCH_CAP_BYTES,
-        interval=SCRATCH_POLL_SECONDS,
-        unmeasured_limit=SCRATCH_UNMEASURED_POLLS,
-    ):
-        import threading
-
-        if (
-            type(cap_bytes) is not int
-            or cap_bytes <= 0
-            or type(unmeasured_limit) is not int
-            or unmeasured_limit <= 0
-            or type(interval) not in (int, float)
-            or not 0 < interval <= 2
-        ):
-            raise WorkerFailure(WorkerCode.INVALID)
-        self.measure, self.stop_run = measure, stop_run
-        self.cap_bytes, self.interval = cap_bytes, interval
-        self.unmeasured_limit = unmeasured_limit
-        self.tripped = None
-        self.polls = 0
-        self._stop = threading.Event()
-        self._thread = threading.Thread(target=self._watch, daemon=True)
-
-    def __enter__(self):
-        self._thread.start()
-        return self
-
-    def __exit__(self, *exc):
-        self._stop.set()
-        self._thread.join(timeout=60)
         return False
+    return value["free_bytes"] < SCRATCH_FULL_BYTES or value["free_inodes"] == 0
 
-    def _trip(self, reason, observed):
-        self.tripped = {
-            "refusal": SCRATCH_CAP_EXCEEDED,
-            "reason": reason,
-            "observed_bytes": observed,
-            "cap_bytes": self.cap_bytes,
-        }
-        try:
-            self.stop_run()
-        except Exception as error:  # noqa: BLE001 - the run may already be gone
-            # Recorded, not raised: the carrier still removes the container
-            # exactly, and the run is typed as stopped by the watchdog.
-            self.tripped["stop_error"] = type(error).__name__
 
-    def _watch(self):
-        misses = 0
-        while not self._stop.wait(self.interval):
-            self.polls += 1
-            try:
-                used, denied = self.measure()
-            except Exception:  # noqa: BLE001 - a miss, counted below
-                misses += 1
-                if misses >= self.unmeasured_limit:
-                    self._trip("unmeasurable", None)
-                    return
-                continue
-            misses = 0
-            if used > self.cap_bytes:
-                self._trip("over_cap", used)
-                return
-            if denied:
-                self._trip("hidden_from_its_own_user", used)
-                return
+def copy_out_scratch(cli, container_name, scratch: Path) -> Path:
+    """Copy a bounded run's output from its tmpfs into `scratch / "output"`
+    on the host, while the container still runs, where `collect_outputs`
+    takes it exactly as from a bind-mounted scratch. A link or special file
+    refuses (`MinerOutputRefused`); the stream is bounded."""
+    archive = scratch.parent / "scratch-output.tar"
+    try:
+        cli.stream_to_file(
+            [
+                "exec",
+                container_name,
+                "/opt/carbon-worker/bin/python",
+                "-I",
+                "-c",
+                SCRATCH_EXPORT,
+            ],
+            archive,
+            maximum=SCRATCH_EXPORT_MAX_BYTES,
+            timeout=SCRATCH_EXPORT_SECONDS,
+        )
+        return unpack_outputs(archive, scratch)
+    finally:
+        archive.unlink(missing_ok=True)
+
+
+def unpack_outputs(archive: Path, scratch: Path) -> Path:
+    """Unpack the export stream into `scratch / "output"`: directories and
+    regular files only, every path inside it."""
+    import tarfile
+    from pathlib import PurePosixPath
+
+    target = scratch / "output"
+    target.mkdir(mode=0o700)
+    with tarfile.open(archive, mode="r|") as stream:
+        for member in stream:
+            parts = PurePosixPath(member.name).parts
+            if (
+                not parts
+                or parts[0] != "output"
+                or member.name.startswith("/")
+                or any(part in ("", ".", "..") for part in parts)
+            ):
+                raise ValueError("research output stream is malformed")
+            if member.issym() or member.islnk():
+                raise MinerOutputRefused("research output may not contain links")
+            destination = target.joinpath(*parts[1:])
+            if member.isdir():
+                destination.mkdir(parents=True, exist_ok=True, mode=0o700)
+            elif member.isfile():
+                destination.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+                reader = stream.extractfile(member)
+                with open(destination, "xb") as writer:
+                    while chunk := reader.read(1024**2):
+                        writer.write(chunk)
+            else:
+                raise MinerOutputRefused(
+                    "research output may contain regular files only"
+                )
+    return target
 
 
 @dataclass(frozen=True)
@@ -431,7 +428,7 @@ def create_arguments(launch: MinerResearchLaunch) -> list[str]:
         "--label",
         f"org.opencontainers.image.carbon.c03.launch={launch.launch_digest}",
         "--label",
-        f"org.opencontainers.image.carbon.lane={LANE}",
+        f"org.opencontainers.image.carbon.lane={lane_of(launch)}",
         # Isolation: every one of these stays.
         "--network",
         "none",
@@ -470,11 +467,7 @@ def create_arguments(launch: MinerResearchLaunch) -> list[str]:
             f"type=bind,source={launch.input_directory},target=/input,"
             "readonly,bind-propagation=rprivate"
         ),
-        "--mount",
-        (
-            f"type=bind,source={launch.scratch_directory},target=/scratch,"
-            "bind-propagation=rprivate"
-        ),
+        *_scratch_arguments(launch),
         "--env",
         "HOME=/scratch/home",
         "--env",
@@ -494,6 +487,32 @@ def create_arguments(launch: MinerResearchLaunch) -> list[str]:
         *_gpu_arguments(launch.gpu_device),
         launch.image_id,
     ]
+
+
+def _scratch_arguments(launch):
+    """Scratch on the miner's own disk; under a host profile, a tmpfs the
+    kernel caps in bytes and inodes instead (LANE-RESOURCE-BOUND-01)."""
+    if launch.resource_profile is not None:
+        return ["--tmpfs", f"/scratch:{SCRATCH_TMPFS_OPTIONS}"]
+    return [
+        "--mount",
+        (
+            f"type=bind,source={launch.scratch_directory},target=/scratch,"
+            "bind-propagation=rprivate"
+        ),
+    ]
+
+
+def _scratch_exactly(launch, host, by_target):
+    """The bind-mounted scratch exactly as before; under a host profile, only
+    /input mounted and /scratch exactly the capped tmpfs."""
+    if launch.resource_profile is None:
+        return set(by_target) == {"/input", "/scratch"} and by_target["/scratch"].get(
+            "Source"
+        ) == str(launch.scratch_directory)
+    return set(by_target) == {"/input"} and host.get("Tmpfs") == {
+        "/scratch": SCRATCH_TMPFS_OPTIONS
+    }
 
 
 def _profile_arguments(profile):
@@ -582,7 +601,8 @@ def inspect_isolation(cli, launch: MinerResearchLaunch) -> dict:
     if (
         value.get("Image") != launch.image_id
         or config.get("User") != f"{WORKER_UID}:{WORKER_GID}"
-        or config.get("Labels", {}).get("org.opencontainers.image.carbon.lane") != LANE
+        or config.get("Labels", {}).get("org.opencontainers.image.carbon.lane")
+        != lane_of(launch)
         or not host.get("ReadonlyRootfs")
         or host.get("Privileged")
         or host.get("NetworkMode") != "none"
@@ -595,14 +615,13 @@ def inspect_isolation(cli, launch: MinerResearchLaunch) -> dict:
         or host.get("PortBindings")
         or host.get("PublishAllPorts")
         or "no-new-privileges=true" not in security
-        or set(by_target) != {"/input", "/scratch"}
+        or not _scratch_exactly(launch, host, by_target)
         or by_target["/input"].get("Source") != str(launch.input_directory)
         or by_target["/input"].get("RW") is not False
-        or by_target["/scratch"].get("Source") != str(launch.scratch_directory)
     ):
         raise WorkerFailure(WorkerCode.POLICY)
     return {
-        "lane": LANE,
+        "lane": lane_of(launch),
         "gpu_device": launch.gpu_device,
         "network": host.get("NetworkMode"),
         "read_only_root": True,
@@ -612,7 +631,10 @@ def inspect_isolation(cli, launch: MinerResearchLaunch) -> dict:
         **(
             {}
             if launch.resource_profile is None
-            else {"resource_profile": launch.resource_profile.digest()}
+            else {
+                "resource_profile": launch.resource_profile.digest(),
+                "scratch_tmpfs": SCRATCH_TMPFS_OPTIONS,
+            }
         ),
     }
 

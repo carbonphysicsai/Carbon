@@ -155,8 +155,12 @@ esac
 script_dir="$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 repo_root="$(CDPATH= cd -- "${script_dir}/../.." && pwd -P)"
 git_root="$(git -C "${repo_root}" rev-parse --show-toplevel 2>/dev/null || true)"
-[[ "${git_root}" == "${repo_root}" ]] \
-  || fail "wrapper must belong to the Carbon repository root."
+if [[ "${git_root}" != "${repo_root}" ]]; then
+  if [[ -f "${repo_root}/.git" ]]; then
+    fail "cannot resolve linked-worktree Git identity in this shell; Windows-managed worktrees require a native-Linux clone/worktree. See docs/development/ENVIRONMENT.md#windows-managed-worktrees."
+  fi
+  fail "wrapper must belong to the Carbon repository root."
+fi
 
 if is_exact_canonical_environment; then
   cd "${repo_root}"

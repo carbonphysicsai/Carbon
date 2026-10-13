@@ -98,6 +98,109 @@ def test_linked_worktree_metadata_and_persistent_volumes_are_mounted() -> None:
     assert "GIT_CONFIG_KEY_0=safe.directory" in process.stdout
 
 
+def test_native_linux_worktree_under_worktrees_has_readonly_git_mounts(
+    tmp_path: Path,
+) -> None:
+    repository = tmp_path / "native-clone"
+    (repository / "scripts/dev").mkdir(parents=True)
+    (repository / ".devcontainer").mkdir()
+    shutil.copy2(WRAPPER, repository / "scripts/dev/canonical.sh")
+    shutil.copy2(DOCKERFILE, repository / ".devcontainer/Dockerfile")
+    subprocess.run(["git", "init", str(repository)], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "add", "scripts/dev/canonical.sh", ".devcontainer/Dockerfile"],
+        cwd=repository,
+        check=True,
+        capture_output=True,
+    )
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "user.name=Carbon Wrapper Fixture",
+            "-c",
+            "user.email=wrapper-fixture@example.invalid",
+            "-c",
+            "commit.gpgsign=false",
+            "commit",
+            "-m",
+            "Create native worktree fixture",
+        ],
+        cwd=repository,
+        check=True,
+        capture_output=True,
+    )
+    linked = repository / ".worktrees" / "canonical candidate"
+    subprocess.run(
+        ["git", "worktree", "add", "--detach", str(linked), "HEAD"],
+        cwd=repository,
+        check=True,
+        capture_output=True,
+    )
+    environment = os.environ.copy()
+    environment.pop("CARBON_CANONICAL_DEV_ENV", None)
+    process = subprocess.run(
+        [str(linked / "scripts/dev/canonical.sh"), "--dry-run", "--full"],
+        cwd=linked,
+        env=environment,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert process.returncode == 0, process.stderr
+    output = _readable_dry_run(process.stdout)
+    assert output.startswith("BUILD ")
+    assert f"source={linked},target=/carbon-source,readonly" in output
+    assert f"source={linked}/.git,target=/workspaces/Carbon/.git,readonly" in output
+    common = repository / ".git"
+    assert f"source={common},target={common},readonly" in output
+    assert "DIRECT_AFTER_BOOTSTRAP_DOCTOR" not in output
+
+
+@pytest.mark.parametrize(
+    "pointer",
+    (
+        "C:/carbon-wrapper-fixture/.git/worktrees/candidate",
+        r"C:\carbon-wrapper-fixture\.git\worktrees\candidate",
+        "/nonexistent-carbon-wrapper-fixture/.git/worktrees/candidate",
+    ),
+)
+def test_unresolvable_worktree_identity_points_to_supported_path(
+    tmp_path: Path, pointer: str
+) -> None:
+    linked = tmp_path / ".worktrees" / "unresolvable"
+    (linked / "scripts/dev").mkdir(parents=True)
+    shutil.copy2(WRAPPER, linked / "scripts/dev/canonical.sh")
+    (linked / ".git").write_text(f"gitdir: {pointer}\n", encoding="utf-8")
+    process = subprocess.run(
+        [str(linked / "scripts/dev/canonical.sh"), "--dry-run", "--full"],
+        cwd=linked,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert process.returncode == 2
+    assert "cannot resolve linked-worktree Git identity" in process.stderr
+    assert "ENVIRONMENT.md#windows-managed-worktrees" in process.stderr
+    assert not process.stdout
+
+
+def test_wrapper_outside_a_git_checkout_still_refuses(tmp_path: Path) -> None:
+    (tmp_path / "scripts/dev").mkdir(parents=True)
+    wrapper = tmp_path / "scripts/dev/canonical.sh"
+    shutil.copy2(WRAPPER, wrapper)
+    process = subprocess.run(
+        [str(wrapper), "--dry-run", "--full"],
+        cwd=tmp_path,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert process.returncode == 2
+    assert "wrapper must belong to the Carbon repository root" in process.stderr
+    assert not process.stdout
+
+
 def test_focused_and_interactive_modes_construct_expected_commands() -> None:
     focused = _dry_run("--focused", "tests/cpu/test_registry.py", "-k", "identity")
     assert focused.returncode == 0, focused.stderr
@@ -445,7 +548,7 @@ def test_docker_backed_linked_worktree_isolated_copy_and_direct_identity(
     tmp_path: Path,
 ) -> None:
     assert DOCKER_AVAILABLE, "CI requires the Docker-backed wrapper tests to run"
-    linked = tmp_path / "linked-carbon"
+    linked = tmp_path / ".worktrees" / "linked-carbon"
     added = subprocess.run(
         ["git", "worktree", "add", "--detach", str(linked), "HEAD"],
         cwd=REPOSITORY_ROOT,
