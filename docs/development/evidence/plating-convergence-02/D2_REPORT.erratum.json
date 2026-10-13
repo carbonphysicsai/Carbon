@@ -1,0 +1,26 @@
+{
+ "corrects": {
+  "field": "d3_cost_check",
+  "file": "docs/development/evidence/plating-convergence-02/D2_REPORT.json",
+  "sha256": "cb4fd05f5127744935a453eb03ba2351839b20d7d16eb4c264ae98d8bc186fe5",
+  "why_not_edited": "the Validator verified that file at this sha (#1280); it is kept byte-for-byte and corrected here"
+ },
+ "counted_d3_set": {
+  "basis": "one 32-vCPU cpu5m pod, 150 min job + 5 min export at the 1.76 USD/h ceiling plus the cleanup reserve (the launch dry run); the Test Lead's 4.3 is the same at about 2 h",
+  "cap_usd": 6,
+  "cases": 669,
+  "cases_file": "docs/development/evidence/plating-rereference-01/cases.json",
+  "cpu_hours": 45,
+  "ev4": 58,
+  "pdd": 611,
+  "record": "OWNER-PLATING-REFERENCE-01 (records both the owner-shown 'about USD 3' and the counted figure)",
+  "window_mv": [
+   -1.97,
+   3.5
+  ],
+  "worst_case_usd_ceiling": 4.81
+ },
+ "date": "2026-10-13",
+ "schema": "carbon.battery.plating-convergence.d2-report-erratum.v1",
+ "scope_of_the_original_field": "a pre-widening estimate: PDD cases with a standard plating margin in [0, 2.82) mV (the worst positive-FEASIBLE mesh-20 bias plus the mesh-80 residual), 315 cases x 237 CPU-s at mesh 160 = ~21 CPU-h, ~USD 3. Its claim 'consistent with the approved figure' held only for that narrower scope and is withdrawn."
+}
