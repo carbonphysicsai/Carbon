@@ -15,10 +15,10 @@ from carbon.challenge_validator import validity
 from carbon.trust_map.acceptance import AcceptanceRefused, load_acceptance
 from carbon.trust_map.core import MAP_SCHEMA
 
-CONTRACT_SCHEMA = "carbon.product.guard-contract.v1"
+CONTRACT_SCHEMA = "carbon.product.guard-contract.v2"
 ENVELOPE_SCHEMA = "carbon.product.guard-envelope.v1"
-POLICY_SCHEMA = "carbon.product.guard-policy.v1"
-REFERENCE_SCHEMA = "carbon.product.guard-reference.v1"
+POLICY_SCHEMA = "carbon.product.guard-policy.v2"
+REFERENCE_SCHEMA = "carbon.product.guard-reference.v2"
 PRIMITIVES = {"bound", "initial_condition", "prefix_invariance"}
 
 
@@ -105,6 +105,15 @@ def freeze(value):
     return value
 
 
+def thaw(value):
+    """Copy validated frozen data for a receipt; never expose configured state."""
+    if isinstance(value, MappingProxyType):
+        return {key: thaw(item) for key, item in value.items()}
+    if type(value) is tuple:
+        return [thaw(item) for item in value]
+    return value
+
+
 def header(value, schema, fields):
     closed(value, {"schema", "scope", "version", *fields})
     require(value["schema"] == schema, "schema_mismatch")
@@ -185,8 +194,13 @@ def declaration_body(value):
 
 def contract(raw, inputs):
     value = snapshot(raw)
-    header(value, CONTRACT_SCHEMA, {"challenge", "reference_image", "outputs", "laws"})
+    header(
+        value,
+        CONTRACT_SCHEMA,
+        {"challenge", "family", "reference_image", "outputs", "laws"},
+    )
     token(value["challenge"])
+    token(value["family"])
     sha(value["reference_image"])
     outputs = value["outputs"]
     require(type(outputs) is dict and 1 <= len(outputs) <= 32, "outputs_required")
@@ -276,7 +290,13 @@ def reference(raw, image):
     header(
         value,
         REFERENCE_SCHEMA,
-        {"image_digest", "code_verification_ref", "owner_acceptance_ref", "status"},
+        {
+            "image_digest",
+            "code_verification_ref",
+            "owner_acceptance_ref",
+            "status",
+            "acceptance_scope",
+        },
     )
     require(sha(value["image_digest"]) == image, "reference_image_mismatch")
     for key in ("code_verification_ref", "owner_acceptance_ref"):
@@ -285,6 +305,28 @@ def reference(raw, image):
         value["status"] in ("READY", "UNRESOLVED", "FAILED_REFERENCE", "FAILED_INFRA"),
         "reference_status_invalid",
     )
+    scope = value["acceptance_scope"]
+    closed(scope, {"family", "observables", "conditions"})
+    token(scope["family"])
+    observables = scope["observables"]
+    require(
+        type(observables) is list
+        and len(observables) <= 32
+        and all(type(name) is str for name in observables)
+        and len(set(observables)) == len(observables),
+        "acceptance_observables_required",
+    )
+    for name in observables:
+        token(name)
+    conditions = scope["conditions"]
+    require(
+        type(conditions) is dict and len(conditions) <= 16,
+        "acceptance_conditions_required",
+    )
+    for name, required_value in conditions.items():
+        token(name)
+        if required_value is not None:
+            conditions[name] = number(required_value)
     return value
 
 
@@ -487,6 +529,7 @@ def policy(raw, pins, inputs, outputs):
             "map_limits",
             "min_cell_count",
             "uncertainty",
+            "laws",
             "latency_target_ms",
         },
     )
@@ -498,6 +541,11 @@ def policy(raw, pins, inputs, outputs):
     if value["authority_ref"] is not None:
         sha(value["authority_ref"])
     require(value["pins"] == pins, "policy_identity_mismatch")
+    closed(value["laws"], {"mode"})
+    require(
+        value["laws"]["mode"] in ("REQUIRED_ADOPTED", "EXPLICIT_NO_LAWS"),
+        "law_policy_required",
+    )
     closed(value["probe_steps"], inputs)
     for name, step in value["probe_steps"].items():
         step = number(step)

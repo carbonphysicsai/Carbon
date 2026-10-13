@@ -21,11 +21,35 @@ units no tighter than its registered reference error. Unadopted laws are listed
 as diagnostics. Unsupported adopted laws refuse construction; missing human
 policy prevents TRUST. Source drafts remain definitions, never adopted gates.
 
+The v2 policy requires `laws.mode`. `REQUIRED_ADOPTED` returns VERIFY with
+`ADOPTED_LAWS_UNAVAILABLE` when no law is adopted. `EXPLICIT_NO_LAWS` records
+`NOT_ASSESSED / GAP_EXPLICIT_NO_LAWS_POLICY`; it is refused when the contract
+contains an ADOPTED law. Thus the explicit gap cannot disable a mandatory law.
+Diagnostic mathematical strings remain metadata and are never executed.
+
 The reference route is separate from the surrogate envelope. VERIFY requests
 independent reference work only inside that route's declared applicability;
 the Guard never invokes it. Unknown or unavailable reference applicability
 gives REFUSE and preserves FAILED_REFERENCE / FAILED_INFRA. Out-of-envelope
 surrogate calls are avoided. No failed reference is charged to the candidate.
+
+The v2 contract declares its physics `family` explicitly. The reference's
+`acceptance_scope` declares family, observable names and conditions; its family
+must match both contract and supplied native map, and it must cover every
+contract output. Any mismatch REFUSEs before model execution with
+`REFERENCE_ACCEPTANCE_SCOPE_MISMATCH`. Empty observable coverage cannot pass.
+Use conditions are explicit exact numeric query requirements. A null value,
+unknown query quantity or mismatch stays unresolved and refuses the query;
+there is no default tolerance, expression evaluation or inferred range.
+Model probes outside the declared reference-use scope remain unresolved too.
+
+Declared reference-use acceptance is distinct from code verification. For f02,
+the public MMS condition `t_end: 0.375` constrains the manufactured test design;
+it does not establish a physical operating-time bound or reference adequacy.
+Receipts expose that native record's scope and conditions separately from the
+host-declared reference-use scope. Neither metadata role authenticates a caller's
+acceptance assertion or qualifies a real product. The current battery-use hold
+and actual Undeclared applicability remain unchanged.
 
 Local query probes are deterministic functions of query, complete policy/version
 and contract using a domain-separated SHA-256 counter. Steps and model-call
@@ -99,12 +123,12 @@ Malformed or incompatible configuration raises a fixed-code
 
 | Input | Development schema and required semantics |
 | --- | --- |
-| Contract | `carbon.product.guard-contract.v1`: version, challenge, reference_image, output names/lengths/units and laws. Each law has id/type/status/spec/adoption_ref/calibration. Bound specs name output/low/high; initial_condition names output/input; prefix_invariance names output/inputs/points. The prefix count excludes later grid points as declared by that contract, never a guessed switch time. |
+| Contract | `carbon.product.guard-contract.v2`: version, challenge, explicit family, reference_image, output names/lengths/units and laws. Each law has id/type/status/spec/adoption_ref/calibration. Bound specs name output/low/high; initial_condition names output/input; prefix_invariance names output/inputs/points. The prefix count excludes later grid points as declared by that contract, never a guessed switch time. |
 | Envelopes | `carbon.product.guard-envelope.v1`: separate surrogate and reference documents, each with version and scalar input low/high/unit. These are support records; physical validity remains separately supplied. |
 | Physical declarations | Native `Declared`, `Undeclared` or `NoPropertyModel` from `carbon.challenge_validator.validity`. Every declared observation must be present in the query. Output-dependent applicability needs a separately accepted observation adapter; it is not inferred from the model. |
-| Reference | `carbon.product.guard-reference.v1`: image_digest, separate code_verification_ref and owner_acceptance_ref, and READY/UNRESOLVED/FAILED_REFERENCE/FAILED_INFRA. It is metadata, not a reference executor. Missing acceptance refs refuse configuration; a missing route or failed route refuses a query. |
+| Reference | `carbon.product.guard-reference.v2`: image_digest, separate code_verification_ref and owner_acceptance_ref, READY/UNRESOLVED/FAILED_REFERENCE/FAILED_INFRA and acceptance_scope with family, observables and conditions. It is metadata, not a reference executor. Missing acceptance refs refuse configuration; a missing route, failed route or incompatible use scope refuses a query. |
 | Map | Native DEVELOPMENT `carbon.trust-map.v2`, PUBLIC/RELEASED source and matching model/reference; complete grid and aggregate denominators, native units and NO_DATA checked. The embedded acceptance receipt must exactly match `load_acceptance(family, reference_image, criteria_digest)`. No legacy v1 map or Boolean verification header is accepted, including fixture policies. Coverage can be smaller than the surrogate envelope; an uncovered query needs verification. No interpolation of empty cells. |
-| Policy | `carbon.product.guard-policy.v1`: version, SYNTHETIC_FIXTURE/REGISTERED_DEVELOPMENT basis, authority_ref, exact pins, probe_steps, max_model_calls, min_cell_count and per-output error/disagreement limits in native units. Every quantitative decision is an explicit input. No policy or null authority_ref yields REFUSE. |
+| Policy | `carbon.product.guard-policy.v2`: version, SYNTHETIC_FIXTURE/REGISTERED_DEVELOPMENT basis, authority_ref, exact pins, required laws.mode, probe_steps, max_model_calls, min_cell_count and per-output error/disagreement limits in native units. Every quantitative decision is an explicit input. No policy or null authority_ref yields REFUSE. |
 | Uncertainty | Explicit EXPLICIT_NO_INTERVALS/REQUIRED policy, nullable image-bound calibration and per-output width limits. Supplied intervals must bound the point prediction; available uncalibrated intervals, missing required intervals or excessive width yield VERIFY. This does not perform an independent calibration study. |
 
 Every projection above has `scope: DEVELOPMENT`; production/LIVE scope is
@@ -114,12 +138,21 @@ Current packet drafts do not match the adopted development projection and are
 not executable Guard contracts. The `demo` module is an explicit fixture
 authoring example; it is not a source of real adoption, calibration or validity.
 
-Receipts contain reasons, check outcomes and evidence basis, all configuration
+The v2 development projections require prospective reauthoring and new content
+pins. V1 contract, policy and reference records are refused; missing family, law
+mode or acceptance scope cannot receive an automatic default. The synthetic demo
+shows the new fields explicitly. Historical receipts and timing records retain
+their original interpretation and replay identities.
+
+`carbon.product.guard-receipt.v2` receipts contain reasons, check outcomes and evidence basis, all configuration
 identities, normalized provisional prediction, model-call/observed-probe counts,
 seed derivation, query/probe digests and `decision_digest`. The latter excludes
 elapsed time and latency reporting so a deterministic adapter can replay the
 same decision. Fixed probes do not qualify the adapter's own reproducibility.
-An interrupted budget or failed model call has visible incomplete evidence.
+They also show the declared reference-use scope and the full validated native
+code-verification scope and conditions as separate records. An interrupted budget
+marks every remaining scheduled axis unresolved; observed violations stay visible.
+A failed model call has visible incomplete evidence.
 No raw query or probe-coordinate list is automatically logged or published.
 
 Run the focused interaction suite with the canonical wrapper when available:
