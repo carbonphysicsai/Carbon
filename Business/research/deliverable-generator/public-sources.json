@@ -27,7 +27,8 @@
         {"id": "P6", "path": ".agent/decisions/2026-10-11-OWNER-CODE-VERIFICATION-ACCEPT-01.md", "role": "immutable owner code-verification decision"},
         {"id": "P7", "path": "docs/development/evidence/battery-feasibility-02/code-verification/pybamm-criteria.json", "role": "historical measured particle MMS criteria identity"},
         {"id": "P3", "path": "docs/development/challenge_pipeline/physics_contracts/battery-v3.json", "role": "optional public battery draft contract; absent means GAP"},
-        {"id": "P4", "path": "docs/development/product-evidence/battery-v3/package-projection.json", "role": "optional reviewed public aggregate package projection; absent means GAP"}
+        {"id": "P4", "path": "docs/development/product-evidence/battery-v3/package-projection.json", "role": "optional reviewed public aggregate package projection; absent means GAP"},
+        {"id": "P8", "path": "docs/development/product-evidence/battery-v3/credibility-context.json", "role": "optional public development use/risk declaration; matched package identity required, not acceptance"}
       ],
       "sources": [
         {
@@ -169,7 +170,8 @@
         {"id": "P6", "path": ".agent/decisions/2026-10-11-OWNER-CODE-VERIFICATION-ACCEPT-01.md", "role": "immutable owner code-verification decision"},
         {"id": "P7", "path": "docs/development/evidence/motor-feasibility-02/code-verification/getdp-criteria.json", "role": "historical measured magnetostatic MMS criteria identity"},
         {"id": "P3", "path": "docs/development/challenge_pipeline/physics_contracts/motor.json", "role": "10p/12s draft law definitions; not adopted gates or measurements"},
-        {"id": "P4", "path": "docs/development/product-evidence/motor/package-projection.json", "role": "optional reviewed public aggregate package projection; absent means GAP"}
+        {"id": "P4", "path": "docs/development/product-evidence/motor/package-projection.json", "role": "optional reviewed public aggregate package projection; absent means GAP"},
+        {"id": "P8", "path": "docs/development/product-evidence/motor/credibility-context.json", "role": "optional public development use/risk declaration; matched package identity required, not acceptance"}
       ],
       "sources": [
         {"id": "C1", "path": "docs/development/challenge_pipeline/COMMON_DESIGN_PACKET_V1.md", "role": "common packet specification"},
@@ -192,7 +194,8 @@
         {"id": "P1", "path": "docs/development/challenge_pipeline/cooling-readiness/verification.json", "role": "public code-verification plan only; SPECIFIED_NOT_RUN is not MMS measurement"},
         {"id": "P2", "path": ".agent/decisions/2026-10-11-OWNER-CODE-VERIFICATION-ACCEPT-01.md", "role": "owner acceptance index; contains no cooling MMS acceptance"},
         {"id": "P3", "path": "docs/development/challenge_pipeline/physics_contracts/cooling-cell.json", "role": "point-C draft law definitions; not central-point-B replacement, gate adoption or measurement"},
-        {"id": "P4", "path": "docs/development/product-evidence/cooling-cell/package-projection.json", "role": "optional reviewed public aggregate package projection; absent means GAP"}
+        {"id": "P4", "path": "docs/development/product-evidence/cooling-cell/package-projection.json", "role": "optional reviewed public aggregate package projection; absent means GAP"},
+        {"id": "P8", "path": "docs/development/product-evidence/cooling-cell/credibility-context.json", "role": "optional public development use/risk declaration; matched package identity required, not acceptance"}
       ],
       "sources": [
         {"id": "C1", "path": "docs/development/challenge_pipeline/COMMON_DESIGN_PACKET_V1.md", "role": "common packet specification"},
@@ -215,6 +218,7 @@
         {"id": "P7", "path": "docs/development/challenge_pipeline/code-verification/acceptance-links/elmer-heat-criteria.json", "role": "owner-accepted heat MMS criteria with t_end 0.375"},
         {"id": "P3", "path": "docs/development/challenge_pipeline/physics_contracts/f02.json", "role": "menu-v2 draft law definitions; not adopted gates or measurements"},
         {"id": "P4", "path": "docs/development/product-evidence/f02/package-projection.json", "role": "optional reviewed public aggregate package projection; absent means GAP"},
+        {"id": "P8", "path": "docs/development/product-evidence/f02/credibility-context.json", "role": "optional public development use/risk declaration; matched package identity required, not acceptance"},
         {"id": "P5", "path": "docs/development/evidence/reference-packages-01/elmer-mms-heat-time-t0375.json", "role": "separate native time-only diagnostic at t_end 0.375; preserves the earlier MMS record"}
       ],
       "sources": [

@@ -115,7 +115,7 @@ attestation or evidence that the exam/reference is scientifically qualified.
   `sample_count`, `statistic`, `measurement_version`, `outcome`. Null/unmeasured
   values remain GAP; FAILED_REFERENCE/FAILED_INFRA retain their classification.
   All floors/acceptance are null / HUMAN_INPUT, independent of the source verdict.
-- `trust_map`: the native `carbon.trust-map.v1` DEVELOPMENT aggregate from
+- `trust_map`: the native `carbon.trust-map.v2` DEVELOPMENT aggregate from
   `carbon.trust_map`, with PUBLIC/RELEASED provenance and matching accepted
   verification/image fields. Copy error/disagreement median/p90, units and cell
   counts; NO_DATA is GAP. Current schema has no law or interval layers. A map
@@ -144,3 +144,85 @@ security audit, legal/export clearance, LIVE or commercial acceptance is issued.
 record source scope and remaining proof. Reviewer route: Carbon Validator and
 Data Collection for reference/data joins. The Product queue stops at the green
 exact-head PR Head handoff; Guard and Assistant implementation are later items.
+
+## PRD-04 — credibility matrix and risk-informed planning
+
+The existing four outputs now include a credibility annex in Markdown and
+`generation-manifest.json` under `credibility_evidence`, schema
+`carbon.customer-deliverable.credibility-evidence.v1`. The common PROPOSAL_V1
+record and schema remain unchanged. Earlier generated examples retain their
+original bytes and source revisions; fresh examples live under `examples/v3/`.
+
+The matrix uses stable `DEVREQ.*` development evidence-obligation IDs. These are
+not customer acceptance criteria or normative standard requirement IDs. Each
+normalized package observation retains its basis, coverage, value, units,
+denominator, measurement version when supplied, exact source revision/blob,
+locator, source outcome and adverse-finding links. A failed measured observation
+can be EVIDENCED. Source PASS never issues requirement acceptance: every
+requirement outcome is NOT_ASSESSED, with null/HUMAN_INPUT criterion and authority.
+Historical observations have no current product-artifact binding; MMS and draft
+definitions stay source-scoped. Only a matching public projection declares
+candidate/contract/reference identities, and its assertions are not attestation.
+
+The plan links all eleven D-section evidence goals to available facts, gaps,
+next proof and responsible owner roles. Model influence, decision consequence,
+required credibility, risk-combination rule and accepted applicability remain
+HUMAN_INPUT unless an explicit public declaration supplies the copyable fields.
+The planning relationship is model influence × decision consequence. The tool
+does not invent a numeric scale, multiply ordinal labels or select risk/credibility
+thresholds. Even a declared credibility goal cannot issue a qualification.
+
+Two additional CLI profiles reuse the same frozen framework crosswalk:
+
+- `--standard asme-vv40`: V&V 40-2018 topic mapping; clause IDs and licensed review
+  remain HUMAN_INPUT. The medical-device standard's risk-informed idea is used
+  as a planning crosswalk; applicability to another industry is not presumed.
+- `--standard dod-vva`: MIL-STD-3022 Change 1 template anchors and DoDI 5000.61
+  (2024) contents-only anchors. Six questions show indexed evidence and customer
+  actions for use, criteria, referent, adverse results, configuration and acceptance.
+  Program tailoring, independent assessment, rights, physical evidence and the
+  designated authority's accreditation decision remain HUMAN_INPUT.
+
+NASA keeps its separate capability and results factors and verified anchor
+subset. Every profile explicitly sets `clause_complete: false`; these outputs
+are crosswalks, never standards-compliance or accreditation determinations.
+The manifest's `mapping_status` distinguishes verified NASA anchor subsets,
+ASME topic-only mappings and MIL template/DoDI contents-only anchors; its
+`acceptance_authority` stays HUMAN_INPUT.
+The ASME scope is described by the [publisher's overview](https://www.asme.org/topics-resources/content/bioengineering-blog-an-emerging-regulatory-framework-for-medical-device-simulation).
+NASA anchors come from [7009B](https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/NASA-STD-7009B-Final-3-5-2024.pdf)
+and the committed framework. Full current DoDI retrieval still returned HTTP
+403 during this ticket; contents anchors cannot establish substantive compliance.
+
+### Optional public risk/context declaration
+
+P8 registers only `docs/development/product-evidence/<family>/credibility-context.json`
+for the four existing families. There is no arbitrary input path or file scan.
+The closed record requires:
+
+```text
+schema: carbon.customer-deliverable.credibility-context.v1
+mode: DEVELOPMENT_SAMPLE
+challenge: exact dossier alias
+disclosure: {kind: PUBLIC|RELEASED, evidence: HTTPS location}
+identity: {model_artifact_hash, reference_image_digest, physics_contract_digest}
+context_of_use: {id: registered token, version: registered token}
+model_influence: {value: token or null, authority_ref: SHA-256 or null}
+decision_consequence: {value: token or null, authority_ref: SHA-256 or null}
+required_credibility: {value: token or null, authority_ref: SHA-256 or null}
+```
+
+Identities must equal the accepted package projection's declared identities,
+and the contract digest must match the registered committed draft's bytes.
+Each supplied value requires its recorded authority reference; unknowns use
+null/null. Values are copied declarations, not authenticated owner approval or
+computed risk ratings. Missing, malformed, private, wrong-family or mismatched
+records produce a non-echoing P8 gap while other evidence and failures survive.
+No real risk declaration is invented for the samples; positive cases exist only
+as explicitly synthetic tests.
+
+PRD-01b's wording is applied prospectively: f02 decision rows say CONDITIONAL,
+t_end 0.375, in MMS test-design scope, beside both original and supplemental
+observations. Norms/absolute errors say manufactured-solution error; convergence
+orders keep observed-order units. Code verification does not establish physical
+validity, full reference adequacy or the real battery comparison's acceptance.
