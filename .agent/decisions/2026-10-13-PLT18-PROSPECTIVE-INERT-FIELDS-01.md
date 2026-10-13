@@ -7,7 +7,7 @@ registered graph reconstruction, recipe compiler and worker unchanged.
 The development registry's registered() searches current versions and named
 arms only. Replacing its level-4 current v3 pointer would make v3 digests
 unavailable to existing submissions even if its document stayed pinned.
-Register v4 as the named arm `inert-fields`; retain v3 as the default.
+Register v4 as the named arm `inert_fields`; retain v3 as the default.
 This is an internal DEVELOPMENT selection, not miner serving or adoption.
 
 The new pure-data leaf builds v4's policy from v3's existing limits plus an
