@@ -30,6 +30,10 @@ T0 = 1_800_000_000.0
 def ledger(tmp_path, monkeypatch):
     directory = tmp_path / "host-ledger"
     monkeypatch.setenv(gr.ENV, str(directory))
+    # These tests pin the raw USD 300 rolling-week mechanics. The held reserves
+    # (`gr.HELD_RESERVES`, which every claim also honours) are tested on their own in
+    # test_grant_runs_pod_jobs.py.
+    monkeypatch.setattr(gr, "HELD_RESERVES", {})
     return directory
 
 

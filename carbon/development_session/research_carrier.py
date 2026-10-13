@@ -794,16 +794,18 @@ def _run_miner_lane(
     raised. Every other failure keeps its infrastructure meaning.
     """
     from .miner_container import (
+        SCRATCH_CAP_BYTES,
         SCRATCH_CAP_EXCEEDED,
+        SCRATCH_CAP_INODES,
         MinerOutputRefused,
         MinerResearchLaunch,
-        ScratchWatchdog,
         collect_outputs,
+        copy_out_scratch,
         create_arguments,
         inspect_isolation,
         load_host_profile,
-        measure_scratch,
         prepare_scratch,
+        scratch_full,
     )
 
     try:
@@ -837,6 +839,7 @@ def _run_miner_lane(
     unbounded = 10 * 365 * 24 * 3600
     create_attempted = False
     failure = None
+    output_refused = None
     lease = ExitStack()
     slot = ExitStack()
     try:
@@ -892,52 +895,46 @@ def _run_miner_lane(
             )
         cli.run(["start", name], timeout=20)
         isolation = inspect_isolation(cli, run)
-        # Carbon's own host bounds scratch too (LANE-RESOURCE-BOUND-01): a
-        # watchdog stops a run whose scratch passes the cap. A miner's
-        # machine has no profile, so no watch, exactly as before.
-        watch = (
-            None
-            if profile is None
-            else ScratchWatchdog(
-                partial(measure_scratch, cli, name),
-                partial(cli.run, ["kill", name], timeout=20),
-            )
-        )
         try:
-            with watch if watch is not None else ExitStack():
-                # The last 64 KiB of stdout and of stderr are kept, whatever
-                # the outcome (RSURF-D21). A Docker double supplies its own.
-                keep = getattr(cli, "stream_kept", None) or partial(stream_kept, cli)
-                keep(
-                    [
-                        "exec",
-                        name,
-                        "/opt/carbon-worker/bin/python",
-                        "-I",
-                        "-c",
-                        bootstrap,
-                    ],
-                    operation,
-                    timeout=unbounded if seconds is None else max(1, seconds),
-                )
+            # The last 64 KiB of stdout and of stderr are kept, whatever the
+            # outcome (RSURF-D21). A Docker double supplies its own.
+            keep = getattr(cli, "stream_kept", None) or partial(stream_kept, cli)
+            keep(
+                [
+                    "exec",
+                    name,
+                    "/opt/carbon-worker/bin/python",
+                    "-I",
+                    "-c",
+                    bootstrap,
+                ],
+                operation,
+                timeout=unbounded if seconds is None else max(1, seconds),
+            )
         except WorkerFailure as error:
             # Classified while the container still exists to be inspected. A
             # requested cancellation is never the miner's failure.
-            if watch is not None and watch.tripped is not None:
-                pass  # typed below: the watchdog stopped the run
-            elif not miner_authored or _cancel_path(ledger, owner, identity).exists():
+            if not miner_authored or _cancel_path(ledger, owner, identity).exists():
                 raise
-            else:
-                failure = _observed_miner_failure(cli, name, error, seconds, started)
-                if failure is None:
-                    raise
-        if watch is not None and watch.tripped is not None:
-            # Typed, never a score or a scientific outcome: the run's own
-            # scratch passed the host's cap, measured inside its container.
-            write_once(operation / "scratch-watch.json", canonical(watch.tripped))
-            if not miner_authored:
-                raise WorkerFailure(WorkerCode.POLICY)
-            failure = (WorkerCode.POLICY, SCRATCH_CAP_EXCEEDED)
+            failure = _observed_miner_failure(cli, name, error, seconds, started)
+            if failure is None:
+                raise
+            if profile is not None and scratch_full(cli, name):
+                # Carbon's own host caps scratch in the kernel
+                # (LANE-RESOURCE-BOUND-01): a program that failed with its
+                # tmpfs full is typed so, never a score or a scientific
+                # outcome. A miner's machine has no cap and no such type.
+                write_once(
+                    operation / "scratch-cap.json",
+                    canonical(
+                        {
+                            "refusal": SCRATCH_CAP_EXCEEDED,
+                            "cap_bytes": SCRATCH_CAP_BYTES,
+                            "cap_inodes": SCRATCH_CAP_INODES,
+                        }
+                    ),
+                )
+                failure = (WorkerCode.POLICY, SCRATCH_CAP_EXCEEDED)
         if failure is None:
             # The worker writes as its fixed non-root uid, so a directory the
             # miner's code creates with default modes is unreadable to the host
@@ -947,6 +944,14 @@ def _run_miner_lane(
             cli.run(
                 ["exec", name, "chmod", "-R", "a+rX", "/scratch/output"], timeout=120
             )
+            if profile is not None:
+                # A tmpfs scratch goes with its container, and `docker cp`
+                # cannot read one: the output is copied out first, through
+                # the same refusals collection applies.
+                try:
+                    copy_out_scratch(cli, name, scratch)
+                except MinerOutputRefused as refusal:
+                    output_refused = refusal
         write_once(operation / "resources.json", canonical({"isolation": isolation}))
     finally:
         try:
@@ -978,6 +983,8 @@ def _run_miner_lane(
     _check_cancel(ledger, owner, identity)
     snapshot = operation / "snapshot"
     try:
+        if output_refused is not None:
+            raise output_refused
         collect_outputs(scratch, snapshot)
     except MinerOutputRefused:
         # A link, FIFO, socket or device in the output is the miner's own

@@ -1,0 +1,643 @@
+"""Offline public research. No Carbon package, solver, model or network imports."""
+from __future__ import annotations
+
+import base64
+import collections
+import copy
+import gzip
+import hashlib
+import importlib.util
+import json
+import math
+import pathlib
+import re
+
+import numpy as np
+from scipy.stats import kendalltau, rankdata, spearmanr
+
+HERE = pathlib.Path(__file__).resolve().parent
+PUBLIC = pathlib.Path('codex-queue/inputs/ev4-public-proof')
+PIN = json.loads((HERE/'source-pin.json').read_text(encoding='utf-8'))
+spec = importlib.util.spec_from_file_location('public_decision_helpers', HERE/'decision.py')
+decision = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(decision)
+CON = json.loads((HERE/'ev4-contract.json').read_text(encoding='utf-8'))
+EV5CON = json.loads((HERE/'ev5-contract.json').read_text(encoding='utf-8'))
+UNIT = CON['minimum_useful_improvement_s']
+LAMBDAS = [0, .1, .3, 1, 3, 10, 30, 100]
+RHOS = [0, .1, .25, .5, 1]
+KAPPAS = [0, .01, .1, 1]
+BUDGETS = [1, 3, 5]
+
+
+def sha(b):
+    return hashlib.sha256(b).hexdigest()
+
+
+def gitblob(b):
+    return hashlib.sha1(b'blob '+str(len(b)).encode()+b'\0'+b).hexdigest()
+
+
+def finite(x):
+    return isinstance(x, (int, float, np.integer, np.floating)) and not isinstance(x, (bool, np.bool_)) and math.isfinite(x)
+
+
+def tau(x, y):
+    r = kendalltau(x, y).statistic
+    return float(r) if math.isfinite(r) else None
+
+
+def numeric_mean(xs):
+    v = [float(x) for x in xs if finite(x)]
+    return float(np.mean(v)) if v else None
+
+
+def quantiles(xs):
+    x = [v for v in xs if finite(v)]
+    return [float(v) for v in np.quantile(x, [0, .25, .5, .75, 1])] if x else None
+
+
+def recipe(name):
+    return re.sub(r'-s\d+$', '', name)
+
+
+def architecture(name):
+    return 'deeponet' if 'deeponet' in name else 'knn' if 'knn' in name else 'mlp' if 'mlp' in name else 'other'
+
+
+def rank_interval(value, population, high=False):
+    v = np.array(population)
+    return {'best': 1+int(np.sum(v > value if high else v < value)),
+            'worst': int(np.sum(v >= value if high else v <= value)), 'of':len(v)}
+
+
+def rank_changes(original, alternative):
+    x = np.asarray(original); y = np.asarray(alternative)
+    pairs = comparable = flipped = new_ties = 0
+    for i in range(len(x)):
+        for j in range(i+1,len(x)):
+            pairs += 1
+            a = np.sign(x[i]-x[j]); b = np.sign(y[i]-y[j])
+            comparable += bool(a)
+            flipped += bool(a*b < 0)
+            new_ties += bool(a and not b)
+    return {'tau_b':tau(x,y),'all_pairs':pairs,'original_strict_pairs':comparable,
+            'strict_reversals':flipped,'strict_reversal_fraction':flipped/comparable if comparable else None,
+            'strict_order_to_tie':new_ties}
+
+
+def historical_parts(o):
+    kind = o['kind']
+    parts = {'failure':0., 'feasible_regret':0., 'missed_opportunity':0., 'correct_abstention':0.}
+    if kind == 'SELECTED_INFEASIBLE': parts['failure']=10.
+    elif kind == 'SELECTED_FEASIBLE': parts['feasible_regret']=o['gap_to_best_in_set_s']/UNIT
+    elif kind == 'MISSED_OPPORTUNITY': parts['missed_opportunity']=1.
+    elif kind == 'CORRECT_ABSTENTION': pass
+    else:
+        assert o['decision_loss'] is None
+        return None
+    assert abs(sum(parts.values())-o['decision_loss']) < 1e-9
+    return parts
+
+
+def component_analysis(data, members, questions):
+    loss=[]; matrix=[]; gain=[]; identity_n=0; kinds=collections.Counter()
+    for m in members:
+        rows=[data['decisions'][m][q]['outcome'] for q in questions]
+        parts=[historical_parts(o) for o in rows]
+        assert all(p is not None for p in parts)
+        loss.append(float(np.mean([o['decision_loss'] for o in rows])))
+        matrix.append([float(np.mean([p[k] for p in parts])) for k in ['failure','feasible_regret','missed_opportunity']])
+        gains=[]
+        for o in rows:
+            kinds[o['kind']] += 1
+            if o['kind']=='SELECTED_FEASIBLE' and o['improvement_vs_baseline_s'] is not None:
+                base=o['verified_objective_s']+o['improvement_vs_baseline_s']
+                assert abs((base-o['best_objective_s'])-o['improvement_vs_baseline_s']-o['gap_to_best_in_set_s'])<1e-8
+                gains.append(o['improvement_vs_baseline_s']/UNIT); identity_n += 1
+        gain.append(numeric_mean(gains))
+    x=np.asarray(matrix); l=np.asarray(loss); total=float(np.var(l))
+    shares={k:float(np.mean(x[:,i]))/float(np.mean(l)) if np.mean(l)>0 else None for i,k in enumerate(['failure','feasible_regret','missed_opportunity'])}
+    variance={k:float(np.cov(x[:,i],l,ddof=0)[0,1])/total if total else None for i,k in enumerate(['failure','feasible_regret','missed_opportunity'])}
+    assert np.max(np.abs(x.sum(axis=1)-l))<1e-9
+    if total: assert abs(sum(variance.values())-1)<1e-8
+    return {'members':len(members),'questions':questions,'question_count':len(questions),'outcome_counts':dict(kinds),
+            'mean_loss':float(np.mean(l)),'loss_magnitude_shares':shares,
+            'variance_accounting_cov_component_with_total_over_var_total':variance,
+            'tau_loss_with_unsafe_pick_rate':tau(l,x[:,0]),
+            'component_only_tau':{k:tau(l,x[:,i]) for i,k in enumerate(['failure','feasible_regret','missed_opportunity'])},
+            'leave_component_out':{k:rank_changes(l,l-x[:,i]) for i,k in enumerate(['failure','feasible_regret','missed_opportunity'])},
+            'verified_gain_vs_registered_default_mean_by_member_quantiles':quantiles(gain),
+            'verified_baseline_gain_identity_checked_rows':identity_n,
+            'per_member':{m:{'loss':loss[i],'failure':matrix[i][0],'feasible_regret':matrix[i][1],'missed_opportunity':matrix[i][2],
+                             'mean_gain_vs_registered_default_when_available':gain[i]} for i,m in enumerate(members)}}
+
+
+def load_historical(name):
+    b=pathlib.Path(f'tmp/res02-public-inputs/{name}.json').read_bytes()
+    assert gitblob(b)==PIN['result_blobs'][name]
+    return json.loads(b)
+
+
+HIST={n:load_historical(n) for n in ['ev4','ev5']}
+
+
+def historical_summary(name):
+    d=HIST[name]; out={}
+    real=sorted(m for m,s in d['summary']['members'].items() if s['kind']=='RECONSTRUCTED' and s['eligible'])
+    for split in ['development','verification']:
+        qs=sorted(q for q,r in d['references'].items() if r['split']==split)
+        common=[q for q in qs if all(finite(d['decisions'][m][q]['outcome']['decision_loss']) for m in real)]
+        rows={}
+        for m in real:
+            ops=[d['decisions'][m][q]['outcome'] for q in qs]
+            resolved=[o for o in ops if finite(o['decision_loss'])]
+            assert abs(np.mean([o['decision_loss'] for o in resolved])-d['summary']['members'][m]['loss_'+split])<1e-9
+            rows[m]={'offered':len(qs),'numeric':len(resolved),'kinds':dict(collections.Counter(o['kind'] for o in ops)),
+                     'mean_loss':float(np.mean([o['decision_loss'] for o in resolved])),
+                     'parts':{k:float(np.mean([historical_parts(o)[k] for o in resolved])) for k in ['failure','feasible_regret','missed_opportunity']}}
+        out[split]={'offered_questions':qs,'common_mask':component_analysis(d,real,common),
+                    'per_member_original_denominator':rows,'numeric_denominator_min_max':[min(r['numeric'] for r in rows.values()),max(r['numeric'] for r in rows.values())],
+                    'default_status_by_question':{q:d['references'][q]['baseline_status'] for q in qs},
+                    'always_abstain_common_loss':float(np.mean([1. if d['references'][q]['best_in_tested_set'] is not None else 0. for q in common]))}
+        ctl=out[split]['always_abstain_common_loss']; pop=[r['loss'] for r in out[split]['common_mask']['per_member'].values()]
+        out[split]['always_abstain_rank_against_real']=rank_interval(ctl,pop+[ctl])
+        assert all(d['references'][q]['best_in_tested_set'] is not None or
+                   d['references'][q]['status_counts']['INFEASIBLE']==35 for q in common)
+        out[split]['original_denominator_tau_loss_with_unsafe_fraction']=tau(
+            [rows[m]['mean_loss'] for m in real],
+            [rows[m]['parts']['failure']/10 for m in real])
+    return out
+
+
+def candidates(contract):
+    return [{'id':f'c1={c1:g},c2={c2:g}','c1':c1,'c2':c2}
+            for c1 in contract['design_variables']['c1']['allowed']
+            for c2 in contract['design_variables']['c2']['allowed']]
+
+
+CAND=candidates(CON); BYID={c['id']:c for c in CAND}; BASE='c1=0.75,c2=0.6'
+
+
+def read_refs():
+    b=(PUBLIC/'ev4-decision-references.jsonl').read_bytes()
+    r=[json.loads(l) for l in b.splitlines() if l.strip()]
+    ids={v['case_id'] for v in r}
+    assert len(r)==840 and len(ids)==840 and all(':D-' in k or ':V-' in k for k in ids)
+    return {v['case_id']:v for v in r},sha(b)
+
+
+REFS,REF_SHA=read_refs()
+REF_INDEX={(r['inputs']['c1'],r['inputs']['c2'],r['inputs']['t_amb_c'],r['inputs']['soc0']):k for k,r in REFS.items()}
+assert len(REF_INDEX)==840
+REFINED_RAW=base64.b64decode((HERE/'refined.b64').read_text())
+assert gitblob(REFINED_RAW)==PIN['refined_blob']
+REFINED={r['case_id']:r for r in (json.loads(l) for l in gzip.decompress(REFINED_RAW).splitlines()) if r['status']=='OK' and r['refined'] is True}
+REFS_SETTLED={**REFS,**REFINED}
+assert all(k in REFS for k in REFINED)
+
+
+def qdef(name,conditions,family,split):
+    return {'id':name,'conditions':conditions,'family':family,'split':split}
+
+
+Q=[]
+for split in ['development','verification']:
+    for s in CON['scenarios'][split]: Q.append(qdef(s['id'],s['conditions'],'single',split))
+for t in [9.,19.,29.,38.]:
+    Q.append(qdef(f'RSOC-T{t:g}',[[t,s] for s in [.06,.22,.40]],'robust_soc','verification'))
+for s in [.06,.22,.40]:
+    Q.append(qdef(f'RTEMP-S{s:g}',[[t,s] for t in [9.,19.,29.,38.]],'robust_temperature','verification'))
+QBYID={q['id']:q for q in Q}
+
+
+def ref_assessment(q,refs):
+    records={}
+    for c in CAND:
+        for i,(t,s) in enumerate(q['conditions']): records[c['id'],i]=refs[REF_INDEX[c['c1'],c['c2'],t,s]]
+    return decision.assess_reference(CON,q,CAND,records)
+
+
+TRUTH={q['id']:ref_assessment(q,REFS) for q in Q}
+SETTLED_TRUTH={q['id']:ref_assessment(q,REFS_SETTLED) for q in Q}
+
+
+def qinfo(q,truth):
+    feasible=[c for c in CAND if truth[c['id']]['status']==decision.FEASIBLE]
+    fallback=min(feasible,key=lambda c:(c['c1'],c['c2']))['id'] if feasible else None
+    best=decision.best_in_set(CAND,truth)
+    statuses=collections.Counter(r['status'] for r in truth.values())
+    known_none=not feasible and all(r['status']==decision.INFEASIBLE for r in truth.values())
+    return {'reference_status_counts':dict(statuses),'best':best,'best_s':truth[best]['objective'] if best else None,
+            'registered_default_status':truth[BASE]['status'],'fallback':fallback,
+            'fallback_s':truth[fallback]['objective'] if fallback else None,
+            'available_gain_units':(truth[fallback]['objective']-truth[best]['objective'])/UNIT if best else None,
+            'settled_none_feasible':known_none,'family':q['family'],'conditions':q['conditions']}
+
+
+QINFO={q['id']:qinfo(q,TRUTH[q['id']]) for q in Q}
+
+
+def prediction_quantities(q,pred):
+    return {(c['id'],i):decision.measure(CON,pred[REF_INDEX[c['c1'],c['c2'],t,s]])
+            for c in CAND for i,(t,s) in enumerate(q['conditions'])}
+
+
+def order_and_outcome(q,pred,truth):
+    assessed=decision.assess_predicted(CON,q,CAND,prediction_quantities(q,pred))
+    order=[c['id'] for c in sorted([c for c in CAND if assessed[c['id']]['feasible'] and assessed[c['id']]['objective'] is not None],
+                                 key=lambda c:(assessed[c['id']]['objective'],c['c1'],c['c2'],c['id']))]
+    pick=decision.select(CAND,assessed)
+    assert pick==(order[0] if order else None)
+    return order,decision.outcome(CON,CAND,pick,truth,BASE)
+
+
+def utility(o,qi,lam,kappa=0):
+    if not finite(o['decision_loss']): return None
+    unsafe=o['kind']=='SELECTED_INFEASIBLE'
+    attempted=o['selected'] is not None
+    if qi['fallback'] is None:
+        if not qi['settled_none_feasible']: return None
+        assert o['kind'] in ('CORRECT_ABSTENTION','SELECTED_INFEASIBLE')
+        return -lam*unsafe-kappa*attempted
+    gain=(qi['fallback_s']-o['verified_objective_s'])/UNIT if o['kind']=='SELECTED_FEASIBLE' else 0.
+    return gain-lam*unsafe-kappa*attempted
+
+
+def verify(order,q,truth,k):
+    attempted=order[:k]
+    assert len(attempted)<=k and len(set(attempted))==len(attempted)
+    feasible=[a for a in attempted if truth[a]['status']==decision.FEASIBLE]
+    chosen=min(feasible,key=lambda a:(truth[a]['objective'],BYID[a]['c1'],BYID[a]['c2'],a)) if feasible else None
+    qi=QINFO[q['id']]
+    gain=max(0.,(qi['fallback_s']-truth[chosen]['objective'])/UNIT) if chosen and qi['fallback'] else 0.
+    best_s=qi['best_s']
+    service_loss=min(1.,(truth[chosen]['objective']-best_s)/UNIT) if chosen and best_s is not None else 1.
+    rejected=sum(truth[a]['status']==decision.INFEASIBLE for a in attempted)
+    unknown=sum(truth[a]['status'] in (decision.UNRESOLVED,decision.UNAVAILABLE) for a in attempted)
+    proxy_seconds=0.; proxy_known=True
+    for a in attempted:
+        for t,s in q['conditions']:
+            r=REFS[REF_INDEX[BYID[a]['c1'],BYID[a]['c2'],t,s]]
+            if not finite(r.get('wall_s')): proxy_known=False
+            else: proxy_seconds+=r['wall_s']
+    if chosen: assert truth[chosen]['status']==decision.FEASIBLE
+    return {'returned':chosen,'new_gain_units':gain,'service_loss':service_loss,'attempts':len(attempted),
+            'complete_case_tokens':len(attempted)*len(q['conditions']),'unsafe_rejections':rejected,'unresolved_or_unavailable_attempts':unknown,
+            'proxy_reference_wall_s':proxy_seconds if proxy_known else None}
+
+
+def controlled_order(q,kind,guard):
+    truth=TRUTH[q['id']]
+    if kind=='always_abstain': return []
+    if kind=='always_default': return [BASE]
+    if kind=='guarded_default':
+        return [BASE] if all(t>=guard['t_min'] and s>=guard['soc_min'] for t,s in q['conditions']) else []
+    if kind=='oracle_filtered_default': return [BASE] if truth[BASE]['status']==decision.FEASIBLE else []
+    if kind=='oracle_slowest_feasible':
+        fs=[c for c in CAND if truth[c['id']]['status']==decision.FEASIBLE]
+        return [max(fs,key=lambda c:(truth[c['id']]['objective'],-c['c1'],-c['c2']))['id']] if fs else []
+    raise ValueError(kind)
+
+
+def fit_guard():
+    opts=[]
+    for t in [5.,14.,24.,34.,41.]:
+        for s in [.12,.33,.48,.51]:
+            chosen=[q for q in Q if q['split']=='development' and all(a>=t and b>=s for a,b in q['conditions'])]
+            if all(TRUTH[q['id']][BASE]['status']==decision.FEASIBLE for q in chosen):
+                opts.append((-len(chosen),t,s))
+    coverage,t,s=min(opts)
+    return {'t_min':t,'soc_min':s,'development_safe_selections':-coverage,'selected_on':'EV4 D only; maximize resolved-safe default coverage, then lower thresholds'}
+
+
+GUARD=fit_guard()
+RES06=json.loads(pathlib.Path('tmp/res06-physics-consistency/measured.json').read_text(encoding='utf-8'))
+assert RES06['reference_sha256']==REF_SHA
+PHYSICS={m['member']:m for m in RES06['members']}
+
+
+def fresh_members():
+    members=[]; manifest=[]; duplicates=[]; seen={}
+    for folder in ['experiment-predictions','proof-predictions','attack-predictions']:
+        for p in sorted((PUBLIC/folder).glob('*.gz')):
+            raw=p.read_bytes(); dig=sha(raw)
+            if p.name in seen:
+                assert dig==seen[p.name]; duplicates.append({'folder':folder,'file':p.name,'sha256':dig}); continue
+            seen[p.name]=dig; doc=json.loads(gzip.decompress(raw)); name=doc['member']
+            pred={k:doc['predictions'][k] for k in REFS if k in doc['predictions']}
+            assert len(pred)==840
+            for o in pred.values():
+                assert set(o)=={'voltage_v','temperature_c','capacity_ah','plating_margin_v'}
+                assert len(o['voltage_v'])==len(o['temperature_c'])==121 and len(o['capacity_ah'])==4
+                assert all(np.isfinite(np.asarray(o[key])).all() for key in o)
+            kind=PHYSICS[name]['kind']; metrics=PHYSICS[name]['metrics']
+            assert PHYSICS[name]['prediction_bundle_sha256']==dig
+            rows={}; settled_rows={}; orders={}
+            for q in Q:
+                order,o=order_and_outcome(q,pred,TRUTH[q['id']]); orders[q['id']]=order
+                rows[q['id']]={'outcome':o,'verify':{str(k):verify(order,q,TRUTH[q['id']],k) for k in BUDGETS}}
+                _,so=order_and_outcome(q,pred,SETTLED_TRUTH[q['id']]); settled_rows[q['id']]=so
+            members.append({'member':name,'kind':kind,'recipe':recipe(name),'recipe_digest':doc.get('recipe_digest'),'architecture':architecture(name),
+                            'prediction_bundle_sha256':dig,'physics':{'rest_voltage_span_v':metrics['rest']['voltage_v']['max_span'],
+                              'rest_temperature_span_c':metrics['rest']['temperature_c']['max_span'],'below_ambient_max_c':metrics['case_maxima']['below_ambient'],
+                              'historical_gate_case_violations':sum(v for key,v in metrics['case_counts'].items() if key!='missing')},
+                            'questions':rows,'refined_sensitivity_outcomes':settled_rows})
+            manifest.append({'file':p.name,'folder':folder,'sha256':dig,'bytes':len(raw),'allowed_EV4_cases_used':840})
+            if len(members)%25==0: print('public arrays analyzed',len(members),flush=True)
+    return members,manifest,duplicates
+
+
+MEMBERS,MANIFEST,DUPLICATES=fresh_members()
+(HERE/'derived-public-outcomes.json').write_text(json.dumps(MEMBERS,allow_nan=False)+'\n',encoding='utf-8')
+
+CONTROLS=[]
+for kind in ['always_abstain','always_default','guarded_default','oracle_filtered_default','oracle_slowest_feasible']:
+    rows={}
+    for q in Q:
+        order=controlled_order(q,kind,GUARD); o=decision.outcome(CON,CAND,order[0] if order else None,TRUTH[q['id']],BASE)
+        rows[q['id']]={'outcome':o,'verify':{str(k):verify(order,q,TRUTH[q['id']],k) for k in BUDGETS}}
+    CONTROLS.append({'member':'control-'+kind,'kind':'CONSTRUCTED_POLICY_CONTROL','recipe':'control-'+kind,'architecture':'control','questions':rows})
+
+
+def question_sets():
+    return {'nominal':[q['id'] for q in Q if q['split']=='development'],
+            'shifted':[q['id'] for q in Q if q['split']=='verification' and q['family']=='single'],
+            'edge':[q['id'] for q in Q if q['split']=='verification' and q['family']=='single' and
+                    any(min((t-5)/35,(40-t)/35,(s-.05)/.45,(.5-s)/.45)<=.1+1e-12 for t,s in q['conditions'])],
+            'robust_soc':[q['id'] for q in Q if q['family']=='robust_soc'],
+            'robust_temperature':[q['id'] for q in Q if q['family']=='robust_temperature']}
+
+
+SETS=question_sets()
+REAL=[m for m in MEMBERS if m['kind']=='EV4_REAL_CPU_REBUILD']
+assert len(REAL)==100
+
+
+def fresh_summary(rows,qs):
+    outcomes=[rows[q]['outcome'] for q in qs]
+    scored=[o for o in outcomes if finite(o['decision_loss'])]
+    parts=[historical_parts(o) for o in scored]
+    gains=[o['improvement_vs_baseline_s']/UNIT for o in outcomes if o['kind']=='SELECTED_FEASIBLE' and o['improvement_vs_baseline_s'] is not None]
+    return {'offered':len(qs),'numeric':len(scored),'kinds':dict(collections.Counter(o['kind'] for o in outcomes)),
+            'loss':numeric_mean([o['decision_loss'] for o in scored]),
+            'parts':{k:numeric_mean([p[k] for p in parts]) for k in ['failure','feasible_regret','missed_opportunity']},
+            'observed_unsafe':sum(o['kind']=='SELECTED_INFEASIBLE' for o in outcomes),
+            'gain_vs_registered_default_when_both_feasible':numeric_mean(gains),
+            'verification':{str(k):{'return_rate':float(np.mean([rows[q]['verify'][str(k)]['returned'] is not None for q in qs])),
+                                  'gain_units':float(np.mean([rows[q]['verify'][str(k)]['new_gain_units'] for q in qs])),
+                                  'attempts':float(np.mean([rows[q]['verify'][str(k)]['attempts'] for q in qs])),
+                                  'service_loss':float(np.mean([rows[q]['verify'][str(k)]['service_loss'] for q in qs])),
+                                  'rejections':sum(rows[q]['verify'][str(k)]['unsafe_rejections'] for q in qs)} for k in BUDGETS}}
+
+
+FRESH_SUMMARY={m['member']:{name:fresh_summary(m['questions'],qs) for name,qs in SETS.items()} for m in MEMBERS+CONTROLS}
+COMMON={name:[q for q in qs if all(finite(m['questions'][q]['outcome']['decision_loss']) for m in REAL)] for name,qs in SETS.items()}
+
+
+def failure_sensitivity():
+    out={}
+    for name in ['nominal','shifted','edge']:
+        qs=COMMON[name]
+        qs=[q for q in qs if QINFO[q]['fallback'] is not None or QINFO[q]['settled_none_feasible']]
+        vals={m['member']:{str(l):numeric_mean([utility(m['questions'][q]['outcome'],QINFO[q],l) for q in qs]) for l in LAMBDAS} for m in REAL+CONTROLS}
+        assert all(finite(utility(m['questions'][q]['outcome'],QINFO[q],l)) for m in REAL+CONTROLS for q in qs for l in LAMBDAS)
+        legacy=[numeric_mean([m['questions'][q]['outcome']['decision_loss'] for q in qs]) for m in REAL]
+        out[name]={'common_priced_questions':qs,'real_members':100,'by_lambda':{str(l):{
+            'tau_vs_negative_registered_loss':tau([-x for x in legacy],[vals[m['member']][str(l)] for m in REAL]),
+            'top_real':max(REAL,key=lambda m:vals[m['member']][str(l)])['member'],
+            'real_utility_quantiles':quantiles([vals[m['member']][str(l)] for m in REAL]),
+            'controls':{m['member']:{'utility':vals[m['member']][str(l)],'rank_vs_real':rank_interval(vals[m['member']][str(l)],[vals[a['member']][str(l)] for a in REAL]+[vals[m['member']][str(l)]],True)} for m in CONTROLS},
+            'rank_changes_vs_lambda_10':rank_changes([vals[m['member']]['10'] for m in REAL],[vals[m['member']][str(l)] for m in REAL])} for l in LAMBDAS},
+            'per_member_utilities':vals}
+    return out
+
+
+def workflow_summary():
+    out={}
+    rng=np.random.default_rng(20261012)
+    fixed_order=[f'c1={c1:g},c2={c2:g}' for c2 in [.6,.4,.8,.2,1.] for c1 in [2.,1.75,1.5,1.25,1.,.75,.5]]
+    random_orders=[list(rng.permutation([c['id'] for c in CAND])) for _ in range(128)]
+    for name,qs_all in SETS.items():
+        qs=[q for q in qs_all if QINFO[q]['fallback'] is not None]
+        if not qs:
+            out[name]={'known_opportunity_questions':[],'status':'NO_PRICED_OPPORTUNITIES'}; continue
+        out[name]={'known_opportunity_questions':qs,'offered_questions':qs_all,'by_budget':{}}
+        for k in BUDGETS:
+            per={m['member']:{'gain':float(np.mean([m['questions'][q]['verify'][str(k)]['new_gain_units'] for q in qs])),
+                              'attempts':float(np.mean([m['questions'][q]['verify'][str(k)]['attempts'] for q in qs])),
+                              'return_rate':float(np.mean([m['questions'][q]['verify'][str(k)]['returned'] is not None for q in qs])),
+                              'mean_proxy_wall_s':numeric_mean([m['questions'][q]['verify'][str(k)]['proxy_reference_wall_s'] for q in qs])} for m in REAL+CONTROLS}
+            fixed=[verify(fixed_order,QBYID[q],TRUTH[q],k) for q in qs]
+            fixed_gain=float(np.mean([v['new_gain_units'] for v in fixed]))
+            random_gains=[float(np.mean([verify(order,QBYID[q],TRUTH[q],k)['new_gain_units'] for q in qs])) for order in random_orders]
+            out[name]['by_budget'][str(k)]={'per_member':per,'fixed_solver_alone':{'gain':fixed_gain,'attempts':k,'return_rate':float(np.mean([v['returned'] is not None for v in fixed]))},
+                'random_solver_alone_research_128_orders_gain_quantiles':quantiles(random_gains),
+                'cheap_public_exact_cache_gain':float(np.mean([QINFO[q]['available_gain_units'] for q in qs])),
+                'by_verification_cost':{str(c):{'top_real':max(REAL,key=lambda m:per[m['member']]['gain']-c*per[m['member']]['attempts'])['member'],
+                    'better_than_fixed_solver_count':sum(per[m['member']]['gain']-c*per[m['member']]['attempts']>fixed_gain-c*k for m in REAL),
+                    'controls':{m['member']:{'net_utility':per[m['member']]['gain']-c*per[m['member']]['attempts'],
+                        'rank_vs_real':rank_interval(per[m['member']]['gain']-c*per[m['member']]['attempts'],
+                            [per[a['member']]['gain']-c*per[a['member']]['attempts'] for a in REAL]+[per[m['member']]['gain']-c*per[m['member']]['attempts']],True)} for m in CONTROLS}} for c in KAPPAS}}
+    return out
+
+
+def partial_rank(x,y,nominal,families=None):
+    z=np.column_stack([np.ones(len(x)),rankdata(nominal)])
+    if families is not None:
+        z=np.column_stack([z]+[(np.asarray(families)==f).astype(float) for f in sorted(set(families))[:-1]])
+    a=rankdata(x);b=rankdata(y)
+    ar=a-z@np.linalg.lstsq(z,a,rcond=None)[0]; br=b-z@np.linalg.lstsq(z,b,rcond=None)[0]
+    if np.std(ar)<1e-10 or np.std(br)<1e-10:return None
+    return float(np.corrcoef(ar,br)[0,1])
+
+
+def physics_associations():
+    rows={}; rng=np.random.default_rng(20261012)
+    clusters=collections.defaultdict(list)
+    for i,m in enumerate(REAL):clusters[m['recipe']].append(i)
+    cluster_keys=sorted(clusters)
+    metrics=list(REAL[0]['physics']); names=[m['member'] for m in REAL]; families=[m['architecture'] for m in REAL]
+    nominal=np.array([numeric_mean([m['questions'][q]['outcome']['decision_loss'] for q in COMMON['nominal']]) for m in REAL])
+    for target in ['shifted','edge','robust_soc']:
+        qs=COMMON[target]
+        if not qs:
+            rows[target]={'status':'NO_COMMON_RESOLVED_QUESTIONS'}; continue
+        lm=np.array([[m['questions'][q]['outcome']['decision_loss'] for q in qs] for m in REAL])
+        loss=lm.mean(axis=1)
+        qs_all=SETS[target]
+        gm=np.array([[m['questions'][q]['verify']['3']['new_gain_units'] for q in qs_all] for m in REAL])
+        gain=gm.mean(axis=1)
+        temperature_blocks=collections.defaultdict(list)
+        for j,q in enumerate(qs):temperature_blocks[tuple(t for t,s in QBYID[q]['conditions'])].append(j)
+        gain_blocks=collections.defaultdict(list)
+        for j,q in enumerate(qs_all):gain_blocks[tuple(t for t,s in QBYID[q]['conditions'])].append(j)
+        rows[target]={'common_questions':qs,'temperature_blocks':len(temperature_blocks),'metrics':{}}
+        for metric in metrics:
+            x=np.array([m['physics'][metric] for m in REAL]); vals=[]; gain_vals=[]
+            tb=list(temperature_blocks); gb=list(gain_blocks)
+            for _ in range(2000):
+                ix=np.concatenate([clusters[cluster_keys[j]] for j in rng.integers(0,len(cluster_keys),len(cluster_keys))])
+                jq=np.concatenate([temperature_blocks[tb[j]] for j in rng.integers(0,len(tb),len(tb))])
+                gq=np.concatenate([gain_blocks[gb[j]] for j in rng.integers(0,len(gb),len(gb))])
+                v=tau(x[ix],lm[ix][:,jq].mean(axis=1)); g=tau(x[ix],-gm[ix][:,gq].mean(axis=1))
+                if v is not None: vals.append(v)
+                if g is not None:gain_vals.append(g)
+            rows[target]['metrics'][metric]={'tau_residual_with_shifted_loss':tau(x,loss),
+                 'tau_residual_with_observed_unsafe_per_offered_question':tau(x,
+                      [FRESH_SUMMARY[m['member']][target]['observed_unsafe']/len(qs_all) for m in REAL]),
+                 'tau_residual_with_negative_verified_return_rate_k3':tau(x,
+                      [-FRESH_SUMMARY[m['member']][target]['verification']['3']['return_rate'] for m in REAL]),
+                 'tau_ci95_recipe_temperature_bootstrap':np.quantile(vals,[.025,.975]).tolist() if vals else None,'defined_replicates':len(vals),
+                 'tau_residual_with_negative_verified_gain_k3':tau(x,-gain),
+                 'gain_tau_ci95':np.quantile(gain_vals,[.025,.975]).tolist() if gain_vals else None,
+                 'partial_rank_correlation_controlling_nominal_loss':partial_rank(x,loss,nominal),
+                 'partial_rank_correlation_controlling_nominal_and_architecture':partial_rank(x,loss,nominal,families),
+                 'architecture_strata_tau':{f:tau(x[np.array(families)==f],loss[np.array(families)==f]) for f in sorted(set(families))},
+                 'residual_quantiles':quantiles(x)}
+    return rows
+
+
+HISTORY={n:historical_summary(n) for n in ['ev4','ev5']}
+FAILURE_SENS=failure_sensitivity()
+WORKFLOW=workflow_summary()
+PHYSICS_ASSOC=physics_associations()
+
+
+def reuse_profiles():
+    qn=WORKFLOW['nominal']['known_opportunity_questions']; qs=WORKFLOW['shifted']['known_opportunity_questions']
+    per={}
+    for m in REAL+CONTROLS:
+        u=[]
+        for qq in [qn,qs]: u.append(float(np.mean([m['questions'][q]['verify']['3']['new_gain_units']-.1*m['questions'][q]['verify']['3']['attempts'] for q in qq])))
+        per[m['member']]={'nominal':u[0],'shifted':u[1]}
+    rows={}
+    for r in RHOS:
+        vals={m:(1-r)*v['nominal']+r*v['shifted'] for m,v in per.items()}
+        top=sorted([m['member'] for m in REAL],key=lambda m:(-vals[m],m))[:10]
+        rows[str(r)]={'top_real_10':top,'tau_vs_nominal_only':tau([per[m['member']]['nominal'] for m in REAL],[vals[m['member']] for m in REAL]),
+                     'controls':{m['member']:{'utility':vals[m['member']],'rank_vs_real':rank_interval(vals[m['member']],[vals[a['member']] for a in REAL]+[vals[m['member']]],True)} for m in CONTROLS},'per_member':vals}
+    return {'assumptions':{'k':3,'verification_token_cost_gain_units':.1,'nominal_shift_family_weighting':'separate equal-question means then convex mix; known-opportunity subset only'},'by_rho':rows,'base_values':per}
+
+
+def refined_sensitivity():
+    out={}
+    for name in ['nominal','shifted']:
+        qs=SETS[name]; common=[q for q in qs if all(finite(m['refined_sensitivity_outcomes'][q]['decision_loss']) for m in REAL)]
+        paired=[q for q in common if all(finite(m['questions'][q]['outcome']['decision_loss']) for m in REAL)]
+        out[name]={'refined_common_questions':common,'paired_original_and_refined_common_questions':paired,
+                   'changed_outcome_rows':sum(m['questions'][q]['outcome']!=m['refined_sensitivity_outcomes'][q] for m in REAL for q in qs),
+                   'tau_original_loss_vs_refined_loss_on_paired_common_mask':tau(
+                      [numeric_mean([m['questions'][q]['outcome']['decision_loss'] for q in paired]) for m in REAL],
+                      [numeric_mean([m['refined_sensitivity_outcomes'][q]['decision_loss'] for q in paired]) for m in REAL])}
+    return out
+
+
+def cached_scalar_order(q, method):
+    """Public D reference-only scalar map, never reads V responses to order."""
+    ts=[5.,14.,24.,34.]; ss=[.12,.33,.48]
+    quantities={}
+    for c in CAND:
+        for i,(t,s) in enumerate(q['conditions']):
+            if method=='nearest_D':
+                td,sd=min(((a,b) for a in ts for b in ss),
+                          key=lambda ab:(((t-ab[0])/35)**2+((s-ab[1])/.45)**2,ab))
+                nodes=[(td,sd,1.)]
+            elif method=='bilinear_D_clamped':
+                tc=min(max(t,ts[0]),ts[-1]); sc=min(max(s,ss[0]),ss[-1])
+                ta,tb=next((a,b) for a,b in zip(ts,ts[1:]) if a<=tc<=b)
+                sa,sb=next((a,b) for a,b in zip(ss,ss[1:]) if a<=sc<=b)
+                wt=(tc-ta)/(tb-ta); ws=(sc-sa)/(sb-sa)
+                nodes=[(ta,sa,(1-wt)*(1-ws)),(tb,sa,wt*(1-ws)),(ta,sb,(1-wt)*ws),(tb,sb,wt*ws)]
+                nodes=[n for n in nodes if n[2]>1e-15]
+            else: raise ValueError(method)
+            records=[(REFS[REF_INDEX[c['c1'],c['c2'],a,b]],w) for a,b,w in nodes]
+            measured=[(decision.measure(CON,r['outputs']),w) for r,w in records if r['status']=='OK']
+            if len(measured)!=len(records) or any(v['time_to_cv_onset_s'] is None for v,w in measured):
+                # Unavailable map prediction is omitted, never extrapolated or fabricated.
+                quantities[c['id'],i]=None
+            else:
+                quantities[c['id'],i]={key:sum(v[key]*w for v,w in measured) for key in measured[0][0]}
+    admissible=[]
+    for c in CAND:
+        per=[quantities[c['id'],i] for i in range(len(q['conditions']))]
+        if any(v is None for v in per): continue
+        checks=[decision.check(CON,v) for v in per]
+        if all(v==decision.PASS for ck in checks for v in ck.values()):
+            admissible.append((max(v['time_to_cv_onset_s'] for v in per),c['c1'],c['c2'],c['id']))
+    return [v[-1] for v in sorted(admissible)]
+
+
+def extra_checks_and_baselines():
+    output={'method_status':'Exploratory added after first replay; not preregistered or a Value-Bar pass',
+            'D_map_source_cases':420,'D_map_ok_cases':sum(r['status']=='OK' for k,r in REFS.items() if ':D-' in k),
+            'D_reference_wall_s':sum(r.get('wall_s',0) for k,r in REFS.items() if ':D-' in k),
+            'D_cache_acquisition_not_matched_to_model_train_budget':True,'by_family':{},'controls_historical_loss':{},
+            'physics_flag_nonzero_real':{key:sum(m['physics'][key]>0 for m in REAL) for key in REAL[0]['physics']}}
+    for name,qs_all in SETS.items():
+        qs=WORKFLOW[name]['known_opportunity_questions']
+        subset=[q for q in qs if TRUTH[q][BASE]['status']==decision.FEASIBLE]
+        family={'opportunities':len(qs),'offered':len(qs_all),
+                'registered_default_feasible_questions':subset,'by_budget':{}}
+        for k in BUDGETS:
+            maps={}
+            for method in ['nearest_D','bilinear_D_clamped']:
+                vv=[verify(cached_scalar_order(QBYID[q],method),QBYID[q],TRUTH[q],k) for q in qs]
+                mean_gain=numeric_mean([v['new_gain_units'] for v in vv]); mean_tokens=numeric_mean([v['attempts'] for v in vv])
+                net=mean_gain-.1*mean_tokens if mean_gain is not None else None
+                model_nets=[WORKFLOW[name]['by_budget'][str(k)]['per_member'][m['member']]['gain']-.1*WORKFLOW[name]['by_budget'][str(k)]['per_member'][m['member']]['attempts'] for m in REAL] if qs else []
+                maps[method]={'gain':mean_gain,'attempts':mean_tokens,'return_rate':numeric_mean([v['returned'] is not None for v in vv]),
+                              'unsafe_rejections':sum(v['unsafe_rejections'] for v in vv),'net_utility_kappa_0.1':net,
+                              'real_strictly_better_count':sum(u>net+1e-12 for u in model_nets) if net is not None else None,
+                              'real_tied_count':sum(abs(u-net)<=1e-12 for u in model_nets) if net is not None else None,
+                              'mean_reference_wall_s':numeric_mean([v['proxy_reference_wall_s'] for v in vv])}
+                # bools intentionally converted here rather than finite().
+                maps[method]['return_rate']=float(np.mean([v['returned'] is not None for v in vv])) if vv else None
+            default_values={}
+            for m in REAL+CONTROLS:
+                vals=[]
+                for q in subset:
+                    v=m['questions'][q]['verify'][str(k)]; selected=v['returned']
+                    gain=max(0,(TRUTH[q][BASE]['objective']-TRUTH[q][selected]['objective'])/UNIT) if selected else 0.
+                    vals.append(gain-.1*v['attempts'])
+                default_values[m['member']]=numeric_mean(vals)
+            family['by_budget'][str(k)]={'cached_D_maps':maps,'registered_default_only_per_member_net_utility':default_values,
+                'registered_default_only_tau_with_lex_fallback_net_utility':tau(
+                    [default_values[m['member']] for m in REAL],
+                    [WORKFLOW[name]['by_budget'][str(k)]['per_member'][m['member']]['gain']-.1*WORKFLOW[name]['by_budget'][str(k)]['per_member'][m['member']]['attempts'] for m in REAL]) if subset else None,
+                'real_proxy_wall_s_quantiles':quantiles([WORKFLOW[name]['by_budget'][str(k)]['per_member'][m['member']]['mean_proxy_wall_s'] for m in REAL]) if qs else None}
+        output['by_family'][name]=family
+        common=COMMON[name]
+        population=[numeric_mean([m['questions'][q]['outcome']['decision_loss'] for q in common]) for m in REAL]
+        output['controls_historical_loss'][name]={}
+        for m in CONTROLS:
+            values=[m['questions'][q]['outcome']['decision_loss'] for q in common]
+            loss=numeric_mean(values)
+            output['controls_historical_loss'][name][m['member']]={'common_mask_numeric':sum(finite(v) for v in values),
+                'common_mask_questions':len(common),'loss':loss,
+                'rank_vs_real':rank_interval(loss,population+[loss]) if all(finite(v) for v in values) else None}
+    return output
+
+
+result={'schema':'carbon.research.value-metric-audit.v1','maturity':'DEVELOPMENT_EXPLORATORY_NOT_QUALIFIED','source_pin':PIN,
+        'number_status':'Exact inputs/counts/arithmetic are measured, low=base=high. Utility/verification/reuse scenarios and bootstrap exchangeability are ASSUMPTION; adoption and buyer inputs are HUMAN_INPUT.',
+        'inventory':{'public_reference_sha256':REF_SHA,'standard_reference_rows':len(REFS),'standard_reference_ok':sum(r['status']=='OK' for r in REFS.values()),
+                     'public_case_ids_used':840,'unique_prediction_bundles':len(MEMBERS),'cpu_real_members':100,'cpu_real_recipe_labels':len({m['recipe'] for m in REAL}),
+                     'cohort_counts':dict(collections.Counter(m['kind'] for m in MEMBERS)), 'bundle_manifest':MANIFEST,'duplicates':DUPLICATES,
+                     'historical_result_git_blobs':PIN['result_blobs'],'refined_cases_used':len(REFINED)},
+        'historical':HISTORY,'public_question_sets':SETS,'public_question_reference_inventory':QINFO,'guarded_default':GUARD,
+        'fresh_member_summary':FRESH_SUMMARY,'fresh_common_resolved_masks':COMMON,'failure_ratio_sensitivity':FAILURE_SENS,
+        'verified_workflow_sensitivity':WORKFLOW,'physics_shift_associations':PHYSICS_ASSOC,'reuse_weight_sensitivity':reuse_profiles(),
+        'refined_reference_sensitivity':refined_sensitivity(),
+        'additional_cached_baselines_and_checks':extra_checks_and_baselines(),
+        'constructed_controls':[{k:m[k] for k in ['member','kind']} for m in CONTROLS],
+        'gaps':['B1-B10 public probe results unavailable (owner confirmed)','beyond-envelope reference/prediction set unavailable (owner confirmed)',
+                'current v3 five-band map measurement contract differs from old single-condition EV4/EV5','customer failure/gain monetary values unmeasured',
+                'measured whole-query model inference latency and per-case future CCX63 core costs unavailable','prospective comparison with strongest industry solver-alone and cheap baseline not performed'],
+        'checks':{'historical_decomposition_exact':True,'baseline_gain_identity_checked':True,'budget_cap_and_unique_attempts':True,'verified_returns_reference_feasible':True,
+                  'no_solver_model_or_Carbon_package_execution':True,'all_raw_inputs_remain_uncommitted':True}}
+(HERE/'results.json').write_text(json.dumps(result,indent=2,allow_nan=False)+'\n',encoding='utf-8')
+print('RESULTS WRITTEN',HERE/'results.json',flush=True)
+print(json.dumps({'inventory':{k:v for k,v in result['inventory'].items() if k not in ['bundle_manifest','duplicates']},'masks':COMMON,'guard':GUARD,
+                  'historical':{n:{s:{k:v for k,v in HISTORY[n][s]['common_mask'].items() if k!='per_member'} for s in ['development','verification']} for n in HISTORY},
+                  'physics':PHYSICS_ASSOC},indent=2,allow_nan=False))
