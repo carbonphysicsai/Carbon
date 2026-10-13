@@ -1,0 +1,3746 @@
+{
+  "status": "DEVELOPMENT_SAMPLE",
+  "challenge": "motor",
+  "profile": "nasa-std-7009b",
+  "standard_rendering": {
+    "profile": "nasa-std-7009b",
+    "edition": "NASA-STD-7009B (2024)",
+    "clause_complete": false,
+    "applicability": "HUMAN_INPUT",
+    "qualification_claim": false,
+    "section_mapping": [
+      {
+        "section": "D01",
+        "anchor": "§4.1.1.1 M&S 40; §4.3.1.1–2 M&S 22–23",
+        "source": "F3"
+      },
+      {
+        "section": "D02",
+        "anchor": "§4.1.1.4–5 M&S 42–43",
+        "source": "F3"
+      },
+      {
+        "section": "D03",
+        "anchor": "§4.2.1.6–7 M&S 13–14; §4.2.3.2 M&S 16; §4.2.5.2 M&S 18; §4.3.1.5 M&S 26",
+        "source": "F3"
+      },
+      {
+        "section": "D04",
+        "anchor": "§4.2.1.1 M&S 10; §4.2.3.1 M&S 15; §4.2.5.1 M&S 17",
+        "source": "F3"
+      },
+      {
+        "section": "D05",
+        "anchor": "§4.2.5.1–2 M&S 17–18; §4.3.6.1 M&S 31",
+        "source": "F3"
+      },
+      {
+        "section": "D06",
+        "anchor": "§4.2.7.1–2 M&S 19,21; §4.3.3.1–2 M&S 28–29; §4.3.5 M&S 30; §4.3.8.2–3 M&S 33–34",
+        "source": "F3"
+      },
+      {
+        "section": "D07",
+        "anchor": "§4.1.1.8 M&S 51; §4.3.5 M&S 30; §4.3.8.1 M&S 32",
+        "source": "F3"
+      },
+      {
+        "section": "D08",
+        "anchor": "§4.2.1.2–3 M&S 45–46; §4.3.1.3–4 M&S 24–25",
+        "source": "F3"
+      },
+      {
+        "section": "D09",
+        "anchor": "§4.3.1.5–6 M&S 26–27; §4.3.6.2 M&S 49",
+        "source": "F3"
+      },
+      {
+        "section": "D10",
+        "anchor": "§4.2.1.4,6 M&S 11,13; §4.3.8.1 M&S 32",
+        "source": "F3"
+      },
+      {
+        "section": "D11",
+        "anchor": "§4.1.1.3,7–8 M&S 41,9,51; §4.3.8.4–9 M&S 50,35–39; Appendix A",
+        "source": "F3"
+      }
+    ],
+    "factors": {
+      "capability": [
+        {
+          "name": "Data pedigree",
+          "anchor": "E.3.2",
+          "standard_source": "https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/NASA-STD-7009B-Final-3-5-2024.pdf",
+          "sections": [
+            "D03",
+            "D04",
+            "D08"
+          ],
+          "coverage": "PARTIAL",
+          "evidence_refs": [
+            "F1"
+          ],
+          "formal_level": "HUMAN_INPUT",
+          "threshold": "HUMAN_INPUT"
+        },
+        {
+          "name": "Verification",
+          "anchor": "E.3.3",
+          "standard_source": "https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/NASA-STD-7009B-Final-3-5-2024.pdf",
+          "sections": [
+            "D04",
+            "D08"
+          ],
+          "coverage": "PARTIAL",
+          "evidence_refs": [
+            "F1",
+            "P1",
+            "P2"
+          ],
+          "formal_level": "HUMAN_INPUT",
+          "threshold": "HUMAN_INPUT"
+        },
+        {
+          "name": "Validation",
+          "anchor": "E.3.4",
+          "standard_source": "https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/NASA-STD-7009B-Final-3-5-2024.pdf",
+          "sections": [
+            "D04",
+            "D05"
+          ],
+          "coverage": "GAP",
+          "evidence_refs": [],
+          "formal_level": "HUMAN_INPUT",
+          "threshold": "HUMAN_INPUT"
+        },
+        {
+          "name": "Development technical review",
+          "anchor": "E.3.5",
+          "standard_source": "https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/NASA-STD-7009B-Final-3-5-2024.pdf",
+          "sections": [
+            "D10",
+            "D11"
+          ],
+          "coverage": "GAP",
+          "evidence_refs": [],
+          "formal_level": "HUMAN_INPUT",
+          "threshold": "HUMAN_INPUT"
+        },
+        {
+          "name": "Development process/product management",
+          "anchor": "E.3.6",
+          "standard_source": "https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/NASA-STD-7009B-Final-3-5-2024.pdf",
+          "sections": [
+            "D08",
+            "D11"
+          ],
+          "coverage": "PARTIAL",
+          "evidence_refs": [
+            "F1"
+          ],
+          "formal_level": "HUMAN_INPUT",
+          "threshold": "HUMAN_INPUT"
+        }
+      ],
+      "results": [
+        {
+          "name": "Use assessment",
+          "anchor": "E.4.2",
+          "standard_source": "https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/NASA-STD-7009B-Final-3-5-2024.pdf",
+          "sections": [
+            "D01",
+            "D03",
+            "D09"
+          ],
+          "coverage": "GAP",
+          "evidence_refs": [],
+          "formal_level": "HUMAN_INPUT",
+          "threshold": "HUMAN_INPUT"
+        },
+        {
+          "name": "Input pedigree",
+          "anchor": "E.4.3",
+          "standard_source": "https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/NASA-STD-7009B-Final-3-5-2024.pdf",
+          "sections": [
+            "D03",
+            "D08"
+          ],
+          "coverage": "PARTIAL",
+          "evidence_refs": [
+            "F1"
+          ],
+          "formal_level": "HUMAN_INPUT",
+          "threshold": "HUMAN_INPUT"
+        },
+        {
+          "name": "Uncertainty characterization",
+          "anchor": "E.4.4",
+          "standard_source": "https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/NASA-STD-7009B-Final-3-5-2024.pdf",
+          "sections": [
+            "D06"
+          ],
+          "coverage": "GAP",
+          "evidence_refs": [],
+          "formal_level": "HUMAN_INPUT",
+          "threshold": "HUMAN_INPUT"
+        },
+        {
+          "name": "Results robustness",
+          "anchor": "E.4.5",
+          "standard_source": "https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/NASA-STD-7009B-Final-3-5-2024.pdf",
+          "sections": [
+            "D05",
+            "D07"
+          ],
+          "coverage": "GAP",
+          "evidence_refs": [],
+          "formal_level": "HUMAN_INPUT",
+          "threshold": "HUMAN_INPUT"
+        },
+        {
+          "name": "Use/analysis technical review",
+          "anchor": "E.4.6",
+          "standard_source": "https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/NASA-STD-7009B-Final-3-5-2024.pdf",
+          "sections": [
+            "D10",
+            "D11"
+          ],
+          "coverage": "GAP",
+          "evidence_refs": [],
+          "formal_level": "HUMAN_INPUT",
+          "threshold": "HUMAN_INPUT"
+        },
+        {
+          "name": "Use process/product management",
+          "anchor": "E.4.7",
+          "standard_source": "https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/NASA-STD-7009B-Final-3-5-2024.pdf",
+          "sections": [
+            "D08",
+            "D11"
+          ],
+          "coverage": "PARTIAL",
+          "evidence_refs": [
+            "F1"
+          ],
+          "formal_level": "HUMAN_INPUT",
+          "threshold": "HUMAN_INPUT"
+        }
+      ]
+    }
+  },
+  "evidence_revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+  "framework_revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+  "membership_basis": "LOCAL_COMMITTED_GIT_OBJECT",
+  "sources": [
+    {
+      "id": "C1",
+      "path": "docs/development/challenge_pipeline/COMMON_DESIGN_PACKET_V1.md",
+      "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+      "git_blob": "c96842b9916ce159860b17e92f1cbd2cee6266e2",
+      "sha256": "d523d71f73053ffb83fa8ba9e5e7f9490db62a84739ed29cabfd838ad66df9c4",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/challenge_pipeline/COMMON_DESIGN_PACKET_V1.md",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED",
+      "role": "common packet specification"
+    },
+    {
+      "id": "C2",
+      "path": "docs/development/challenge_pipeline/round1/motor-precision-joint-v2.md",
+      "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+      "git_blob": "65e65e7da5353bcfc689ebb4355601830dc3bcd6",
+      "sha256": "eb2e8fef4a93df2719dc3e97c0daa68c403acb70a8f3a7c150a690327e9a6bb1",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/challenge_pipeline/round1/motor-precision-joint-v2.md",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED",
+      "role": "current prospective robot-joint buyer packet; not historical runtime qualification"
+    },
+    {
+      "id": "C3",
+      "path": "docs/development/challenge_pipeline/cheap-baselines/motor.md",
+      "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+      "git_blob": "388c8dd5d9954f8f2e7aa39524afbb3ee69627ec",
+      "sha256": "a4cd7ac520efdd14080efeec2b4705ca53b87ee0574f87cb13ac653e33a6fa7c",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/challenge_pipeline/cheap-baselines/motor.md",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED",
+      "role": "strong cheap comparator contract"
+    },
+    {
+      "id": "F1",
+      "path": "Business/research/deliverable-framework/TEMPLATE.md",
+      "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+      "git_blob": "7519d1ca8d101ba2956a7ff88e1af6fe93bf15c3",
+      "sha256": "83959e56d77e51bd382595ab301681e92de2cc481bb61300b221ce05b6dcaf38",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/Business/research/deliverable-framework/TEMPLATE.md",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED",
+      "role": "template"
+    },
+    {
+      "id": "F2",
+      "path": "Business/research/deliverable-framework/deliverable.schema.json",
+      "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+      "git_blob": "e5a9b8f042bd065f5995cdbb870eb6bb094123ed",
+      "sha256": "19aa4ceb442d68373420def20a7dbb1ec2733080f8f1fa083d0c489700a9a08e",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/Business/research/deliverable-framework/deliverable.schema.json",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED",
+      "role": "schema"
+    },
+    {
+      "id": "F3",
+      "path": "Business/research/deliverable-framework/STANDARDS.md",
+      "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+      "git_blob": "2f7db5abbf3e7fc7577e0700e9bddf8f2a2660f7",
+      "sha256": "8239f7a4faea896290e2fefd28af8cc5875149945dc132ce6512b6b245f6e502",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/Business/research/deliverable-framework/STANDARDS.md",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED",
+      "role": "standards crosswalk"
+    },
+    {
+      "id": "P1",
+      "path": "docs/development/evidence/motor-feasibility-02/code-verification/getdp-verdict.json",
+      "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+      "git_blob": "dee865f6a7b63fc00f2b7f3021ae63130065b04d",
+      "sha256": "942ee4536b159884897d3f7eca2e5a95a0adcb032d5d8f129fdfef5a5a264cfd",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/motor-feasibility-02/code-verification/getdp-verdict.json",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED",
+      "role": "public linear magnetostatic MMS machine record; not nonlinear torque/skew or physical validation"
+    },
+    {
+      "id": "P2",
+      "path": "docs/development/challenge_pipeline/code-verification/acceptance-links/getdp.json",
+      "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+      "git_blob": "1ec63fbd739c9db11eb08f59be824b831e09c479",
+      "sha256": "46e236237ce3c911eb6c515e31a0d1f5ee22285ba57c91ae443d8b49c0216cb0",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/challenge_pipeline/code-verification/acceptance-links/getdp.json",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED",
+      "role": "image-and-criteria-bound owner code-verification acceptance link"
+    },
+    {
+      "id": "P3",
+      "path": "docs/development/challenge_pipeline/physics_contracts/motor.json",
+      "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+      "git_blob": "15bae88a63294e5aecda5b0cd3e65c341406d39f",
+      "sha256": "998062d910923be71946b17e77ec9b2aed91867ec28cbf3af224fce2d4436625",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/challenge_pipeline/physics_contracts/motor.json",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED",
+      "role": "10p/12s draft law definitions; not adopted gates or measurements"
+    },
+    {
+      "id": "P6",
+      "path": ".agent/decisions/2026-10-11-OWNER-CODE-VERIFICATION-ACCEPT-01.md",
+      "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+      "git_blob": "6407c9dfa9e57e78679f99b73788ec4fd3b4410e",
+      "sha256": "64b32bf2225465c3b35a60dd2de41023bcce70279e3c0fff50339d6c0ba7fa25",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/.agent/decisions/2026-10-11-OWNER-CODE-VERIFICATION-ACCEPT-01.md",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED",
+      "role": "immutable owner code-verification decision"
+    },
+    {
+      "id": "P7",
+      "path": "docs/development/evidence/motor-feasibility-02/code-verification/getdp-criteria.json",
+      "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+      "git_blob": "55ea4901f54dee0624996176625a88718e76c30f",
+      "sha256": "231430255fcfb19c77150f35e4d6fd693ee24a051f195471a3d0839850469ec2",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/motor-feasibility-02/code-verification/getdp-criteria.json",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED",
+      "role": "historical measured magnetostatic MMS criteria identity"
+    },
+    {
+      "id": "R1",
+      "path": "carbon/challenge_readiness/records/electric-motor-magnetics.v4.json",
+      "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+      "git_blob": "af8deecf3c012d1790a04652ab1e3b9d15425fd2",
+      "sha256": "f300c669ff82f08245e9b2c9d620324c7b73eec8798de21647ec79a0d53c68d2",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/carbon/challenge_readiness/records/electric-motor-magnetics.v4.json",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED",
+      "role": "public legacy runtime readiness/reviews, not new robot-joint qualification"
+    },
+    {
+      "id": "R2",
+      "path": "docs/development/evidence/motor-decision-counted-v2/README.md",
+      "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+      "git_blob": "50ef1031e89762be8789131c0513b418068acdc0",
+      "sha256": "ad36f304e17171ad55e546593d71febd3abd6b353ab88cc8fa3c5bdfd1963922",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/motor-decision-counted-v2/README.md",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED",
+      "role": "historical counted study; not current-packet evidence"
+    },
+    {
+      "id": "R3",
+      "path": "docs/development/evidence/baseline-agreement-01/motor-measurement-v4.json",
+      "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+      "git_blob": "55333ce82c138df7dcebd2019dde56d9cefc0b80",
+      "sha256": "188a4fd077b7a724a8a1bdf0cef4b9662dff1f29dfee85f134464fbac10ab3fc",
+      "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/baseline-agreement-01/motor-measurement-v4.json",
+      "locator": "immutable public file; fact locators in manifest",
+      "access_class": "PUBLIC_COMMITTED",
+      "role": "historical aggregate comparison; held-out arm waiting for geometry/curves"
+    }
+  ],
+  "missing_sources": [],
+  "facts": [
+    {
+      "id": "MOTOR_HELD_OUT",
+      "source": "R3",
+      "locator": "/held_out/status",
+      "label": "Historical motor comparator coverage state (not a current physical verdict)",
+      "value": "HOLD_MISSING_GEOMETRY_AND_FULL_SIGNED_CURVES",
+      "kind": "gap",
+      "basis": "decision-value",
+      "outcome": "NOT_ASSESSED",
+      "quantities": [],
+      "citation": "[R3:/held_out/status](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/baseline-agreement-01/motor-measurement-v4.json)"
+    },
+    {
+      "id": "MOTOR_V4",
+      "source": "R3",
+      "locator": "/v4_disposition",
+      "label": "Historical report V4 disposition; no matched Carbon advantage established",
+      "value": "UNRESOLVED_NO_MATCHED_CARBON_ARM",
+      "kind": "gap",
+      "basis": "decision-value",
+      "outcome": "NOT_ASSESSED",
+      "quantities": [],
+      "citation": "[R3:/v4_disposition](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/baseline-agreement-01/motor-measurement-v4.json)"
+    },
+    {
+      "id": "MOTOR_LOOKUP_RESOLVED",
+      "source": "R3",
+      "locator": "/closed_bank/decision/summary/resolved",
+      "label": "Historical lookup-replay resolved questions, not generalization",
+      "value": "0",
+      "kind": "metadata",
+      "basis": "verification",
+      "outcome": "NOT_ASSESSED",
+      "quantities": [
+        {
+          "low": 0,
+          "base": 0,
+          "high": 0,
+          "basis": "SOURCED"
+        }
+      ],
+      "citation": "[R3:/closed_bank/decision/summary/resolved](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/baseline-agreement-01/motor-measurement-v4.json)"
+    },
+    {
+      "id": "MOTOR_LOOKUP_TOTAL",
+      "source": "R3",
+      "locator": "/closed_bank/decision/summary/total",
+      "label": "Historical lookup-replay total question denominator",
+      "value": "20",
+      "kind": "metadata",
+      "basis": "verification",
+      "outcome": "NOT_ASSESSED",
+      "quantities": [
+        {
+          "low": 20,
+          "base": 20,
+          "high": 20,
+          "basis": "SOURCED"
+        }
+      ],
+      "citation": "[R3:/closed_bank/decision/summary/total](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/baseline-agreement-01/motor-measurement-v4.json)"
+    },
+    {
+      "id": "REVIEW_customer",
+      "source": "R1",
+      "locator": "/reviews/customer/state",
+      "label": "Recorded customer review state",
+      "value": "NOT_STARTED",
+      "kind": "review",
+      "basis": "verification",
+      "outcome": "NOT_ASSESSED",
+      "quantities": [],
+      "citation": "[R1:/reviews/customer/state](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/carbon/challenge_readiness/records/electric-motor-magnetics.v4.json)"
+    },
+    {
+      "id": "REVIEW_launch",
+      "source": "R1",
+      "locator": "/reviews/launch/state",
+      "label": "Recorded launch review state",
+      "value": "NOT_STARTED",
+      "kind": "review",
+      "basis": "verification",
+      "outcome": "NOT_ASSESSED",
+      "quantities": [],
+      "citation": "[R1:/reviews/launch/state](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/carbon/challenge_readiness/records/electric-motor-magnetics.v4.json)"
+    },
+    {
+      "id": "REVIEW_numerical_reference",
+      "source": "R1",
+      "locator": "/reviews/numerical_reference/state",
+      "label": "Recorded numerical_reference review state",
+      "value": "NOT_STARTED",
+      "kind": "review",
+      "basis": "verification",
+      "outcome": "NOT_ASSESSED",
+      "quantities": [],
+      "citation": "[R1:/reviews/numerical_reference/state](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/carbon/challenge_readiness/records/electric-motor-magnetics.v4.json)"
+    },
+    {
+      "id": "REVIEW_scientific",
+      "source": "R1",
+      "locator": "/reviews/scientific/state",
+      "label": "Recorded scientific review state",
+      "value": "NOT_STARTED",
+      "kind": "review",
+      "basis": "verification",
+      "outcome": "NOT_ASSESSED",
+      "quantities": [],
+      "citation": "[R1:/reviews/scientific/state](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/carbon/challenge_readiness/records/electric-motor-magnetics.v4.json)"
+    },
+    {
+      "id": "REVIEW_security",
+      "source": "R1",
+      "locator": "/reviews/security/state",
+      "label": "Recorded security review state",
+      "value": "NOT_STARTED",
+      "kind": "review",
+      "basis": "verification",
+      "outcome": "NOT_ASSESSED",
+      "quantities": [],
+      "citation": "[R1:/reviews/security/state](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/carbon/challenge_readiness/records/electric-motor-magnetics.v4.json)"
+    }
+  ],
+  "extraction_gaps": [],
+  "qualification_claim": false,
+  "package_evidence": {
+    "schema": "carbon.customer-deliverable.package-evidence.v1",
+    "mode": "DEVELOPMENT_SAMPLE",
+    "challenge": "motor",
+    "identity": null,
+    "identity_basis": "DECLARED_IN_PUBLIC_PROJECTION_NOT_INDEPENDENTLY_ATTESTED",
+    "qualification_claim": false,
+    "sections": {
+      "law_checks": {
+        "title": "Physics contract and law-check report",
+        "d_sections": [
+          "D02",
+          "D05",
+          "D07"
+        ],
+        "basis": "reference-relative",
+        "coverage": "GAP",
+        "rows": [
+          {
+            "field": "draft_law_count",
+            "label": "Draft law definitions (not adopted/results)",
+            "coverage": "EVIDENCED",
+            "value": 8,
+            "unit": null,
+            "sample_count": null,
+            "outcome": "NOT_ASSESSED",
+            "reason": null,
+            "measured": false,
+            "measurement_version": null,
+            "evidence_refs": [
+              "P3"
+            ],
+            "locator": "/laws",
+            "citation": "[P3:/laws](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/challenge_pipeline/physics_contracts/motor.json)",
+            "floor": null,
+            "floor_authority": "HUMAN_INPUT"
+          },
+          {
+            "field": "validity_status",
+            "label": "Draft validity declaration status",
+            "coverage": "EVIDENCED",
+            "value": "HUMAN_INPUT_UNDECLARED",
+            "unit": null,
+            "sample_count": null,
+            "outcome": "NOT_ASSESSED",
+            "reason": null,
+            "measured": false,
+            "measurement_version": null,
+            "evidence_refs": [
+              "P3"
+            ],
+            "locator": "/validity/status",
+            "citation": "[P3:/validity/status](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/challenge_pipeline/physics_contracts/motor.json)",
+            "floor": null,
+            "floor_authority": "HUMAN_INPUT"
+          },
+          {
+            "field": "law_results",
+            "label": "Measured law checks / gate outcomes",
+            "coverage": "GAP",
+            "value": null,
+            "unit": null,
+            "sample_count": null,
+            "outcome": "NOT_ASSESSED",
+            "reason": "PLT-01 public aggregate law-check output unavailable",
+            "measured": false,
+            "measurement_version": null,
+            "evidence_refs": [],
+            "locator": "file",
+            "citation": null,
+            "floor": null,
+            "floor_authority": "HUMAN_INPUT"
+          },
+          {
+            "field": "output.signed_torque_curve",
+            "label": "signed_torque_curve output availability (definition only)",
+            "coverage": "EVIDENCED",
+            "value": "MODEL_AVAILABLE",
+            "unit": null,
+            "sample_count": null,
+            "outcome": "NOT_ASSESSED",
+            "reason": null,
+            "measured": false,
+            "measurement_version": null,
+            "evidence_refs": [
+              "P3"
+            ],
+            "locator": "/required_outputs/signed_torque_curve/availability",
+            "citation": "[P3:/required_outputs/signed_torque_curve/availability](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/challenge_pipeline/physics_contracts/motor.json)",
+            "floor": null,
+            "floor_authority": "HUMAN_INPUT"
+          },
+          {
+            "field": "output.signed_cogging_curve",
+            "label": "signed_cogging_curve output availability (definition only)",
+            "coverage": "EVIDENCED",
+            "value": "MODEL_AVAILABLE",
+            "unit": null,
+            "sample_count": null,
+            "outcome": "NOT_ASSESSED",
+            "reason": null,
+            "measured": false,
+            "measurement_version": null,
+            "evidence_refs": [
+              "P3"
+            ],
+            "locator": "/required_outputs/signed_cogging_curve/availability",
+            "citation": "[P3:/required_outputs/signed_cogging_curve/availability](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/challenge_pipeline/physics_contracts/motor.json)",
+            "floor": null,
+            "floor_authority": "HUMAN_INPUT"
+          },
+          {
+            "field": "output.summary_observables",
+            "label": "summary_observables output availability (definition only)",
+            "coverage": "EVIDENCED",
+            "value": "MODEL_DERIVED",
+            "unit": null,
+            "sample_count": null,
+            "outcome": "NOT_ASSESSED",
+            "reason": null,
+            "measured": false,
+            "measurement_version": null,
+            "evidence_refs": [
+              "P3"
+            ],
+            "locator": "/required_outputs/summary_observables/availability",
+            "citation": "[P3:/required_outputs/summary_observables/availability](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/challenge_pipeline/physics_contracts/motor.json)",
+            "floor": null,
+            "floor_authority": "HUMAN_INPUT"
+          },
+          {
+            "field": "output.slice_curves",
+            "label": "slice_curves output availability (definition only)",
+            "coverage": "EVIDENCED",
+            "value": "MISSING_MODEL",
+            "unit": null,
+            "sample_count": null,
+            "outcome": "NOT_ASSESSED",
+            "reason": null,
+            "measured": false,
+            "measurement_version": null,
+            "evidence_refs": [
+              "P3"
+            ],
+            "locator": "/required_outputs/slice_curves/availability",
+            "citation": "[P3:/required_outputs/slice_curves/availability](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/challenge_pipeline/physics_contracts/motor.json)",
+            "floor": null,
+            "floor_authority": "HUMAN_INPUT"
+          },
+          {
+            "field": "output.vector_B_H_J_mesh",
+            "label": "vector_B_H_J_mesh output availability (definition only)",
+            "coverage": "EVIDENCED",
+            "value": "MISSING_MODEL",
+            "unit": null,
+            "sample_count": null,
+            "outcome": "NOT_ASSESSED",
+            "reason": null,
+            "measured": false,
+            "measurement_version": null,
+            "evidence_refs": [
+              "P3"
+            ],
+            "locator": "/required_outputs/vector_B_H_J_mesh/availability",
+            "citation": "[P3:/required_outputs/vector_B_H_J_mesh/availability](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/challenge_pipeline/physics_contracts/motor.json)",
+            "floor": null,
+            "floor_authority": "HUMAN_INPUT"
+          },
+          {
+            "field": "output.airgap_stress_contour",
+            "label": "airgap_stress_contour output availability (definition only)",
+            "coverage": "EVIDENCED",
+            "value": "MISSING",
+            "unit": null,
+            "sample_count": null,
+            "outcome": "NOT_ASSESSED",
+            "reason": null,
+            "measured": false,
+            "measurement_version": null,
+            "evidence_refs": [
+              "P3"
+            ],
+            "locator": "/required_outputs/airgap_stress_contour/availability",
+            "citation": "[P3:/required_outputs/airgap_stress_contour/availability](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/challenge_pipeline/physics_contracts/motor.json)",
+            "floor": null,
+            "floor_authority": "HUMAN_INPUT"
+          },
+          {
+            "field": "output.energy_coenergy_angle",
+            "label": "energy_coenergy_angle output availability (definition only)",
+            "coverage": "EVIDENCED",
+            "value": "MISSING",
+            "unit": null,
+            "sample_count": null,
+            "outcome": "NOT_ASSESSED",
+            "reason": null,
+            "measured": false,
+            "measurement_version": null,
+            "evidence_refs": [
+              "P3"
+            ],
+            "locator": "/required_outputs/energy_coenergy_angle/availability",
+            "citation": "[P3:/required_outputs/energy_coenergy_angle/availability](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/challenge_pipeline/physics_contracts/motor.json)",
+            "floor": null,
+            "floor_authority": "HUMAN_INPUT"
+          },
+          {
+            "field": "output.full_closed_period_curve",
+            "label": "full_closed_period_curve output availability (definition only)",
+            "coverage": "EVIDENCED",
+            "value": "REQUIRES_PERIOD_VERIFICATION",
+            "unit": null,
+            "sample_count": null,
+            "outcome": "NOT_ASSESSED",
+            "reason": null,
+            "measured": false,
+            "measurement_version": null,
+            "evidence_refs": [
+              "P3"
+            ],
+            "locator": "/required_outputs/full_closed_period_curve/availability",
+            "citation": "[P3:/required_outputs/full_closed_period_curve/availability](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/challenge_pipeline/physics_contracts/motor.json)",
+            "floor": null,
+            "floor_authority": "HUMAN_INPUT"
+          }
+        ],
+        "gaps": [
+          "P4: public package projection not present at the evidence revision",
+          "law_results: PLT-01 public aggregate law-check output unavailable"
+        ],
+        "evidence_refs": [
+          "P3"
+        ]
+      },
+      "model_card": {
+        "title": "Model card",
+        "d_sections": [
+          "D05",
+          "D06",
+          "D08"
+        ],
+        "basis": "reference-relative",
+        "coverage": "GAP",
+        "rows": [
+          {
+            "field": "accuracy_overall",
+            "label": "Overall accuracy",
+            "coverage": "GAP",
+            "value": null,
+            "unit": null,
+            "sample_count": null,
+            "outcome": "NOT_ASSESSED",
+            "reason": "Measurement unavailable / not run",
+            "measured": false,
+            "measurement_version": null,
+            "evidence_refs": [],
+            "locator": "file",
+            "citation": null,
+            "floor": null,
+            "floor_authority": "HUMAN_INPUT"
+          },
+          {
+            "field": "accuracy_near_limits",
+            "label": "Accuracy near limits",
+            "coverage": "GAP",
+            "value": null,
+            "unit": null,
+            "sample_count": null,
+            "outcome": "NOT_ASSESSED",
+            "reason": "Measurement unavailable / not run",
+            "measured": false,
+            "measurement_version": null,
+            "evidence_refs": [],
+            "locator": "file",
+            "citation": null,
+            "floor": null,
+            "floor_authority": "HUMAN_INPUT"
+          },
+          {
+            "field": "robustness",
+            "label": "Robustness / local sensitivity",
+            "coverage": "GAP",
+            "value": null,
+            "unit": null,
+            "sample_count": null,
+            "outcome": "NOT_ASSESSED",
+            "reason": "Measurement unavailable / not run",
+            "measured": false,
+            "measurement_version": null,
+            "evidence_refs": [],
+            "locator": "file",
+            "citation": null,
+            "floor": null,
+            "floor_authority": "HUMAN_INPUT"
+          },
+          {
+            "field": "extrapolation",
+            "label": "Stretch-set error growth inside physical validity",
+            "coverage": "GAP",
+            "value": null,
+            "unit": null,
+            "sample_count": null,
+            "outcome": "NOT_ASSESSED",
+            "reason": "Measurement unavailable / not run",
+            "measured": false,
+            "measurement_version": null,
+            "evidence_refs": [],
+            "locator": "file",
+            "citation": null,
+            "floor": null,
+            "floor_authority": "HUMAN_INPUT"
+          },
+          {
+            "field": "uncertainty_calibration",
+            "label": "Reference-relative uncertainty calibration",
+            "coverage": "GAP",
+            "value": null,
+            "unit": null,
+            "sample_count": null,
+            "outcome": "NOT_ASSESSED",
+            "reason": "Measurement unavailable / not run",
+            "measured": false,
+            "measurement_version": null,
+            "evidence_refs": [],
+            "locator": "file",
+            "citation": null,
+            "floor": null,
+            "floor_authority": "HUMAN_INPUT"
+          },
+          {
+            "field": "speedup_equal_accuracy",
+            "label": "Speed-up at equal accuracy",
+            "coverage": "GAP",
+            "value": null,
+            "unit": null,
+            "sample_count": null,
+            "outcome": "NOT_ASSESSED",
+            "reason": "Measurement unavailable / not run",
+            "measured": false,
+            "measurement_version": null,
+            "evidence_refs": [],
+            "locator": "file",
+            "citation": null,
+            "floor": null,
+            "floor_authority": "HUMAN_INPUT"
+          },
+          {
+            "field": "inference_latency",
+            "label": "Inference latency",
+            "coverage": "GAP",
+            "value": null,
+            "unit": null,
+            "sample_count": null,
+            "outcome": "NOT_ASSESSED",
+            "reason": "Measurement unavailable / not run",
+            "measured": false,
+            "measurement_version": null,
+            "evidence_refs": [],
+            "locator": "file",
+            "citation": null,
+            "floor": null,
+            "floor_authority": "HUMAN_INPUT"
+          },
+          {
+            "field": "training_cost",
+            "label": "Controlled rebuild cost",
+            "coverage": "GAP",
+            "value": null,
+            "unit": null,
+            "sample_count": null,
+            "outcome": "NOT_ASSESSED",
+            "reason": "Measurement unavailable / not run",
+            "measured": false,
+            "measurement_version": null,
+            "evidence_refs": [],
+            "locator": "file",
+            "citation": null,
+            "floor": null,
+            "floor_authority": "HUMAN_INPUT"
+          }
+        ],
+        "gaps": [
+          "P4: public package projection not present at the evidence revision",
+          "accuracy_overall: Measurement unavailable / not run",
+          "accuracy_near_limits: Measurement unavailable / not run",
+          "robustness: Measurement unavailable / not run",
+          "extrapolation: Measurement unavailable / not run",
+          "uncertainty_calibration: Measurement unavailable / not run",
+          "speedup_equal_accuracy: Measurement unavailable / not run",
+          "inference_latency: Measurement unavailable / not run",
+          "training_cost: Measurement unavailable / not run"
+        ],
+        "evidence_refs": []
+      },
+      "trust_map": {
+        "title": "Trust map",
+        "d_sections": [
+          "D03",
+          "D05",
+          "D06",
+          "D09"
+        ],
+        "basis": "reference-relative",
+        "coverage": "GAP",
+        "rows": [
+          {
+            "field": "map",
+            "label": "Reference error / top-model disagreement",
+            "coverage": "GAP",
+            "value": null,
+            "unit": null,
+            "sample_count": null,
+            "outcome": "NOT_ASSESSED",
+            "reason": "Public carbon.trust_map aggregate unavailable",
+            "measured": false,
+            "measurement_version": null,
+            "evidence_refs": [],
+            "locator": "file",
+            "citation": null,
+            "floor": null,
+            "floor_authority": "HUMAN_INPUT"
+          }
+        ],
+        "gaps": [
+          "P4: public package projection not present at the evidence revision",
+          "map: Public carbon.trust_map aggregate unavailable"
+        ],
+        "evidence_refs": []
+      },
+      "solver_verification": {
+        "title": "Solver code verification (MMS)",
+        "d_sections": [
+          "D04",
+          "D08"
+        ],
+        "basis": "verification",
+        "coverage": "PARTIAL",
+        "rows": [
+          {
+            "field": "image_digest",
+            "label": "MMS reference image",
+            "coverage": "EVIDENCED",
+            "value": "sha256:599521e79786ee0326a0754ba0545f51ee9665adff73c3515c8d4b8ba24c1c05",
+            "unit": null,
+            "sample_count": null,
+            "outcome": "NOT_ASSESSED",
+            "reason": null,
+            "measured": false,
+            "measurement_version": null,
+            "evidence_refs": [
+              "P1"
+            ],
+            "locator": "/image_digest",
+            "citation": "[P1:/image_digest](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/motor-feasibility-02/code-verification/getdp-verdict.json)",
+            "floor": null,
+            "floor_authority": "HUMAN_INPUT"
+          },
+          {
+            "field": "norm.0.l2",
+            "label": "MMS rung 1 l2 error",
+            "coverage": "EVIDENCED",
+            "value": 0.009544772349706724,
+            "unit": "dimensionless manufactured-solution error",
+            "sample_count": 486,
+            "outcome": "NOT_ASSESSED",
+            "reason": null,
+            "measured": true,
+            "measurement_version": null,
+            "evidence_refs": [
+              "P1"
+            ],
+            "locator": "/norms/0/l2",
+            "citation": "[P1:/norms/0/l2](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/motor-feasibility-02/code-verification/getdp-verdict.json)",
+            "floor": null,
+            "floor_authority": "HUMAN_INPUT"
+          },
+          {
+            "field": "norm.0.linf",
+            "label": "MMS rung 1 linf error",
+            "coverage": "EVIDENCED",
+            "value": 0.01881824615446892,
+            "unit": "dimensionless manufactured-solution error",
+            "sample_count": 486,
+            "outcome": "NOT_ASSESSED",
+            "reason": null,
+            "measured": true,
+            "measurement_version": null,
+            "evidence_refs": [
+              "P1"
+            ],
+            "locator": "/norms/0/linf",
+            "citation": "[P1:/norms/0/linf](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/motor-feasibility-02/code-verification/getdp-verdict.json)",
+            "floor": null,
+            "floor_authority": "HUMAN_INPUT"
+          },
+          {
+            "field": "norm.1.l2",
+            "label": "MMS rung 2 l2 error",
+            "coverage": "EVIDENCED",
+            "value": 0.0024828953829774776,
+            "unit": "dimensionless manufactured-solution error",
+            "sample_count": 1830,
+            "outcome": "NOT_ASSESSED",
+            "reason": null,
+            "measured": true,
+            "measurement_version": null,
+            "evidence_refs": [
+              "P1"
+            ],
+            "locator": "/norms/1/l2",
+            "citation": "[P1:/norms/1/l2](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/motor-feasibility-02/code-verification/getdp-verdict.json)",
+            "floor": null,
+            "floor_authority": "HUMAN_INPUT"
+          },
+          {
+            "field": "norm.1.linf",
+            "label": "MMS rung 2 linf error",
+            "coverage": "EVIDENCED",
+            "value": 0.004807429497188265,
+            "unit": "dimensionless manufactured-solution error",
+            "sample_count": 1830,
+            "outcome": "NOT_ASSESSED",
+            "reason": null,
+            "measured": true,
+            "measurement_version": null,
+            "evidence_refs": [
+              "P1"
+            ],
+            "locator": "/norms/1/linf",
+            "citation": "[P1:/norms/1/linf](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/motor-feasibility-02/code-verification/getdp-verdict.json)",
+            "floor": null,
+            "floor_authority": "HUMAN_INPUT"
+          },
+          {
+            "field": "norm.2.l2",
+            "label": "MMS rung 3 l2 error",
+            "coverage": "EVIDENCED",
+            "value": 0.0006264084501176021,
+            "unit": "dimensionless manufactured-solution error",
+            "sample_count": 7182,
+            "outcome": "NOT_ASSESSED",
+            "reason": null,
+            "measured": true,
+            "measurement_version": null,
+            "evidence_refs": [
+              "P1"
+            ],
+            "locator": "/norms/2/l2",
+            "citation": "[P1:/norms/2/l2](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/motor-feasibility-02/code-verification/getdp-verdict.json)",
+            "floor": null,
+            "floor_authority": "HUMAN_INPUT"
+          },
+          {
+            "field": "norm.2.linf",
+            "label": "MMS rung 3 linf error",
+            "coverage": "EVIDENCED",
+            "value": 0.0012098580886296117,
+            "unit": "dimensionless manufactured-solution error",
+            "sample_count": 7182,
+            "outcome": "NOT_ASSESSED",
+            "reason": null,
+            "measured": true,
+            "measurement_version": null,
+            "evidence_refs": [
+              "P1"
+            ],
+            "locator": "/norms/2/linf",
+            "citation": "[P1:/norms/2/linf](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/motor-feasibility-02/code-verification/getdp-verdict.json)",
+            "floor": null,
+            "floor_authority": "HUMAN_INPUT"
+          },
+          {
+            "field": "l2_order",
+            "label": "MMS l2_order",
+            "coverage": "EVIDENCED",
+            "value": 1.9868478951847124,
+            "unit": "dimensionless observed order",
+            "sample_count": null,
+            "outcome": "NOT_ASSESSED",
+            "reason": null,
+            "measured": true,
+            "measurement_version": null,
+            "evidence_refs": [
+              "P1"
+            ],
+            "locator": "/metrics/l2_order",
+            "citation": "[P1:/metrics/l2_order](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/motor-feasibility-02/code-verification/getdp-verdict.json)",
+            "floor": null,
+            "floor_authority": "HUMAN_INPUT"
+          },
+          {
+            "field": "linf_order",
+            "label": "MMS linf_order",
+            "coverage": "EVIDENCED",
+            "value": 1.990427864802117,
+            "unit": "dimensionless observed order",
+            "sample_count": null,
+            "outcome": "NOT_ASSESSED",
+            "reason": null,
+            "measured": true,
+            "measurement_version": null,
+            "evidence_refs": [
+              "P1"
+            ],
+            "locator": "/metrics/linf_order",
+            "citation": "[P1:/metrics/linf_order](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/motor-feasibility-02/code-verification/getdp-verdict.json)",
+            "floor": null,
+            "floor_authority": "HUMAN_INPUT"
+          },
+          {
+            "field": "machine_verdict",
+            "label": "Recorded MMS machine verdict",
+            "coverage": "EVIDENCED",
+            "value": "HUMAN_INPUT",
+            "unit": null,
+            "sample_count": null,
+            "outcome": "NOT_ASSESSED",
+            "reason": null,
+            "measured": false,
+            "measurement_version": null,
+            "evidence_refs": [
+              "P1"
+            ],
+            "locator": "/state",
+            "citation": "[P1:/state](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/motor-feasibility-02/code-verification/getdp-verdict.json)",
+            "floor": null,
+            "floor_authority": "HUMAN_INPUT"
+          },
+          {
+            "field": "machine_acceptance",
+            "label": "Recorded machine acceptance flag",
+            "coverage": "EVIDENCED",
+            "value": false,
+            "unit": null,
+            "sample_count": null,
+            "outcome": "NOT_ASSESSED",
+            "reason": null,
+            "measured": false,
+            "measurement_version": null,
+            "evidence_refs": [
+              "P1"
+            ],
+            "locator": "/accepted_development_pass",
+            "citation": "[P1:/accepted_development_pass](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/motor-feasibility-02/code-verification/getdp-verdict.json)",
+            "floor": null,
+            "floor_authority": "HUMAN_INPUT"
+          },
+          {
+            "field": "owner_acceptance_link",
+            "label": "Separate owner decision for this exact image",
+            "coverage": "EVIDENCED",
+            "value": "RECORDED_OWNER_DECISION",
+            "unit": null,
+            "sample_count": null,
+            "outcome": "NOT_ASSESSED",
+            "reason": null,
+            "measured": false,
+            "measurement_version": null,
+            "evidence_refs": [
+              "P2"
+            ],
+            "locator": "file",
+            "citation": "[P2:file](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/challenge_pipeline/code-verification/acceptance-links/getdp.json)",
+            "floor": null,
+            "floor_authority": "HUMAN_INPUT"
+          },
+          {
+            "field": "acceptance_conditions",
+            "label": "Owner acceptance conditions",
+            "coverage": "EVIDENCED",
+            "value": {},
+            "unit": null,
+            "sample_count": null,
+            "outcome": "NOT_ASSESSED",
+            "reason": null,
+            "measured": false,
+            "measurement_version": null,
+            "evidence_refs": [
+              "P2"
+            ],
+            "locator": "/conditions",
+            "citation": "[P2:/conditions](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/challenge_pipeline/code-verification/acceptance-links/getdp.json)",
+            "floor": null,
+            "floor_authority": "HUMAN_INPUT"
+          },
+          {
+            "field": "physical_validation",
+            "label": "Physical validation",
+            "coverage": "GAP",
+            "value": null,
+            "unit": null,
+            "sample_count": null,
+            "outcome": "NOT_ASSESSED",
+            "reason": "MMS verifies code against equations; it is not physical validation",
+            "measured": false,
+            "measurement_version": null,
+            "evidence_refs": [],
+            "locator": "file",
+            "citation": null,
+            "floor": null,
+            "floor_authority": "HUMAN_INPUT"
+          }
+        ],
+        "gaps": [
+          "physical_validation: MMS verifies code against equations; it is not physical validation"
+        ],
+        "evidence_refs": [
+          "P1",
+          "P2"
+        ]
+      },
+      "decision_evidence": {
+        "title": "Decision evidence",
+        "d_sections": [
+          "D05",
+          "D07"
+        ],
+        "basis": "decision-value",
+        "coverage": "GAP",
+        "rows": [
+          {
+            "field": "verify_r",
+            "label": "Reference-verified top-k / VERIFY-R",
+            "coverage": "GAP",
+            "value": null,
+            "unit": null,
+            "sample_count": null,
+            "outcome": "NOT_ASSESSED",
+            "reason": "Public VERIFY-R aggregate unavailable or invalid",
+            "measured": false,
+            "measurement_version": null,
+            "evidence_refs": [],
+            "locator": "file",
+            "citation": null,
+            "floor": null,
+            "floor_authority": "HUMAN_INPUT"
+          },
+          {
+            "field": "equal_budget",
+            "label": "Measured equal-budget curves",
+            "coverage": "GAP",
+            "value": null,
+            "unit": null,
+            "sample_count": null,
+            "outcome": "NOT_ASSESSED",
+            "reason": "Public equal-budget aggregate unavailable: missing, unresolved, assumed costs or identity mismatch",
+            "measured": false,
+            "measurement_version": null,
+            "evidence_refs": [],
+            "locator": "file",
+            "citation": null,
+            "floor": null,
+            "floor_authority": "HUMAN_INPUT"
+          },
+          {
+            "field": "false_feasibility",
+            "label": "False feasibility of Assistant-selected picks",
+            "coverage": "GAP",
+            "value": null,
+            "unit": null,
+            "sample_count": null,
+            "outcome": "NOT_ASSESSED",
+            "reason": "Native aggregate does not measure Assistant selection pressure; PB-INV/ADV evidence required",
+            "measured": false,
+            "measurement_version": null,
+            "evidence_refs": [],
+            "locator": "file",
+            "citation": null,
+            "floor": null,
+            "floor_authority": "HUMAN_INPUT"
+          }
+        ],
+        "gaps": [
+          "P4: public package projection not present at the evidence revision",
+          "verify_r: Public VERIFY-R aggregate unavailable or invalid",
+          "equal_budget: Public equal-budget aggregate unavailable: missing, unresolved, assumed costs or identity mismatch",
+          "false_feasibility: Native aggregate does not measure Assistant selection pressure; PB-INV/ADV evidence required"
+        ],
+        "evidence_refs": []
+      }
+    }
+  },
+  "credibility_evidence": {
+    "schema": "carbon.customer-deliverable.credibility-evidence.v1",
+    "mode": "DEVELOPMENT_SAMPLE",
+    "profile": "nasa-std-7009b",
+    "qualification_claim": false,
+    "compliance_claim": false,
+    "accreditation_claim": false,
+    "clause_complete": false,
+    "identity": null,
+    "identity_basis": "DECLARED_IN_PUBLIC_PROJECTION_NOT_INDEPENDENTLY_ATTESTED",
+    "matrix": [
+      {
+        "requirement_id": "DEVREQ.law_checks.draft_law_count",
+        "kind": "DEVELOPMENT_EVIDENCE_OBLIGATION_NOT_CUSTOMER_CRITERION",
+        "description": "Draft law definitions (not adopted/results)",
+        "sections": [
+          "D02",
+          "D05",
+          "D07"
+        ],
+        "basis": "reference-relative",
+        "coverage": "EVIDENCED",
+        "value": 8,
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "SOURCE_SCOPE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [
+          {
+            "id": "P3",
+            "path": "docs/development/challenge_pipeline/physics_contracts/motor.json",
+            "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+            "git_blob": "15bae88a63294e5aecda5b0cd3e65c341406d39f",
+            "sha256": "998062d910923be71946b17e77ec9b2aed91867ec28cbf3af224fce2d4436625",
+            "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/challenge_pipeline/physics_contracts/motor.json",
+            "locator": "immutable public file; fact locators in manifest",
+            "access_class": "PUBLIC_COMMITTED"
+          }
+        ],
+        "measured": false,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [
+          "P3"
+        ],
+        "locator": "/laws",
+        "citation": "[P3:/laws](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/challenge_pipeline/physics_contracts/motor.json)",
+        "gap": null,
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.law_checks.validity_status",
+        "kind": "DEVELOPMENT_EVIDENCE_OBLIGATION_NOT_CUSTOMER_CRITERION",
+        "description": "Draft validity declaration status",
+        "sections": [
+          "D02",
+          "D05",
+          "D07"
+        ],
+        "basis": "reference-relative",
+        "coverage": "EVIDENCED",
+        "value": "HUMAN_INPUT_UNDECLARED",
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "SOURCE_SCOPE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [
+          {
+            "id": "P3",
+            "path": "docs/development/challenge_pipeline/physics_contracts/motor.json",
+            "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+            "git_blob": "15bae88a63294e5aecda5b0cd3e65c341406d39f",
+            "sha256": "998062d910923be71946b17e77ec9b2aed91867ec28cbf3af224fce2d4436625",
+            "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/challenge_pipeline/physics_contracts/motor.json",
+            "locator": "immutable public file; fact locators in manifest",
+            "access_class": "PUBLIC_COMMITTED"
+          }
+        ],
+        "measured": false,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [
+          "P3"
+        ],
+        "locator": "/validity/status",
+        "citation": "[P3:/validity/status](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/challenge_pipeline/physics_contracts/motor.json)",
+        "gap": null,
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.law_checks.law_results",
+        "kind": "DEVELOPMENT_EVIDENCE_OBLIGATION_NOT_CUSTOMER_CRITERION",
+        "description": "Measured law checks / gate outcomes",
+        "sections": [
+          "D02",
+          "D05",
+          "D07"
+        ],
+        "basis": "reference-relative",
+        "coverage": "GAP",
+        "value": null,
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "SOURCE_SCOPE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [],
+        "measured": false,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [],
+        "locator": "file",
+        "citation": null,
+        "gap": "PLT-01 public aggregate law-check output unavailable",
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.law_checks.output.signed_torque_curve",
+        "kind": "DEVELOPMENT_EVIDENCE_OBLIGATION_NOT_CUSTOMER_CRITERION",
+        "description": "signed_torque_curve output availability (definition only)",
+        "sections": [
+          "D02",
+          "D05",
+          "D07"
+        ],
+        "basis": "reference-relative",
+        "coverage": "EVIDENCED",
+        "value": "MODEL_AVAILABLE",
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "SOURCE_SCOPE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [
+          {
+            "id": "P3",
+            "path": "docs/development/challenge_pipeline/physics_contracts/motor.json",
+            "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+            "git_blob": "15bae88a63294e5aecda5b0cd3e65c341406d39f",
+            "sha256": "998062d910923be71946b17e77ec9b2aed91867ec28cbf3af224fce2d4436625",
+            "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/challenge_pipeline/physics_contracts/motor.json",
+            "locator": "immutable public file; fact locators in manifest",
+            "access_class": "PUBLIC_COMMITTED"
+          }
+        ],
+        "measured": false,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [
+          "P3"
+        ],
+        "locator": "/required_outputs/signed_torque_curve/availability",
+        "citation": "[P3:/required_outputs/signed_torque_curve/availability](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/challenge_pipeline/physics_contracts/motor.json)",
+        "gap": null,
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.law_checks.output.signed_cogging_curve",
+        "kind": "DEVELOPMENT_EVIDENCE_OBLIGATION_NOT_CUSTOMER_CRITERION",
+        "description": "signed_cogging_curve output availability (definition only)",
+        "sections": [
+          "D02",
+          "D05",
+          "D07"
+        ],
+        "basis": "reference-relative",
+        "coverage": "EVIDENCED",
+        "value": "MODEL_AVAILABLE",
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "SOURCE_SCOPE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [
+          {
+            "id": "P3",
+            "path": "docs/development/challenge_pipeline/physics_contracts/motor.json",
+            "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+            "git_blob": "15bae88a63294e5aecda5b0cd3e65c341406d39f",
+            "sha256": "998062d910923be71946b17e77ec9b2aed91867ec28cbf3af224fce2d4436625",
+            "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/challenge_pipeline/physics_contracts/motor.json",
+            "locator": "immutable public file; fact locators in manifest",
+            "access_class": "PUBLIC_COMMITTED"
+          }
+        ],
+        "measured": false,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [
+          "P3"
+        ],
+        "locator": "/required_outputs/signed_cogging_curve/availability",
+        "citation": "[P3:/required_outputs/signed_cogging_curve/availability](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/challenge_pipeline/physics_contracts/motor.json)",
+        "gap": null,
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.law_checks.output.summary_observables",
+        "kind": "DEVELOPMENT_EVIDENCE_OBLIGATION_NOT_CUSTOMER_CRITERION",
+        "description": "summary_observables output availability (definition only)",
+        "sections": [
+          "D02",
+          "D05",
+          "D07"
+        ],
+        "basis": "reference-relative",
+        "coverage": "EVIDENCED",
+        "value": "MODEL_DERIVED",
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "SOURCE_SCOPE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [
+          {
+            "id": "P3",
+            "path": "docs/development/challenge_pipeline/physics_contracts/motor.json",
+            "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+            "git_blob": "15bae88a63294e5aecda5b0cd3e65c341406d39f",
+            "sha256": "998062d910923be71946b17e77ec9b2aed91867ec28cbf3af224fce2d4436625",
+            "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/challenge_pipeline/physics_contracts/motor.json",
+            "locator": "immutable public file; fact locators in manifest",
+            "access_class": "PUBLIC_COMMITTED"
+          }
+        ],
+        "measured": false,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [
+          "P3"
+        ],
+        "locator": "/required_outputs/summary_observables/availability",
+        "citation": "[P3:/required_outputs/summary_observables/availability](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/challenge_pipeline/physics_contracts/motor.json)",
+        "gap": null,
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.law_checks.output.slice_curves",
+        "kind": "DEVELOPMENT_EVIDENCE_OBLIGATION_NOT_CUSTOMER_CRITERION",
+        "description": "slice_curves output availability (definition only)",
+        "sections": [
+          "D02",
+          "D05",
+          "D07"
+        ],
+        "basis": "reference-relative",
+        "coverage": "EVIDENCED",
+        "value": "MISSING_MODEL",
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "SOURCE_SCOPE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [
+          {
+            "id": "P3",
+            "path": "docs/development/challenge_pipeline/physics_contracts/motor.json",
+            "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+            "git_blob": "15bae88a63294e5aecda5b0cd3e65c341406d39f",
+            "sha256": "998062d910923be71946b17e77ec9b2aed91867ec28cbf3af224fce2d4436625",
+            "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/challenge_pipeline/physics_contracts/motor.json",
+            "locator": "immutable public file; fact locators in manifest",
+            "access_class": "PUBLIC_COMMITTED"
+          }
+        ],
+        "measured": false,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [
+          "P3"
+        ],
+        "locator": "/required_outputs/slice_curves/availability",
+        "citation": "[P3:/required_outputs/slice_curves/availability](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/challenge_pipeline/physics_contracts/motor.json)",
+        "gap": null,
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.law_checks.output.vector_B_H_J_mesh",
+        "kind": "DEVELOPMENT_EVIDENCE_OBLIGATION_NOT_CUSTOMER_CRITERION",
+        "description": "vector_B_H_J_mesh output availability (definition only)",
+        "sections": [
+          "D02",
+          "D05",
+          "D07"
+        ],
+        "basis": "reference-relative",
+        "coverage": "EVIDENCED",
+        "value": "MISSING_MODEL",
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "SOURCE_SCOPE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [
+          {
+            "id": "P3",
+            "path": "docs/development/challenge_pipeline/physics_contracts/motor.json",
+            "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+            "git_blob": "15bae88a63294e5aecda5b0cd3e65c341406d39f",
+            "sha256": "998062d910923be71946b17e77ec9b2aed91867ec28cbf3af224fce2d4436625",
+            "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/challenge_pipeline/physics_contracts/motor.json",
+            "locator": "immutable public file; fact locators in manifest",
+            "access_class": "PUBLIC_COMMITTED"
+          }
+        ],
+        "measured": false,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [
+          "P3"
+        ],
+        "locator": "/required_outputs/vector_B_H_J_mesh/availability",
+        "citation": "[P3:/required_outputs/vector_B_H_J_mesh/availability](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/challenge_pipeline/physics_contracts/motor.json)",
+        "gap": null,
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.law_checks.output.airgap_stress_contour",
+        "kind": "DEVELOPMENT_EVIDENCE_OBLIGATION_NOT_CUSTOMER_CRITERION",
+        "description": "airgap_stress_contour output availability (definition only)",
+        "sections": [
+          "D02",
+          "D05",
+          "D07"
+        ],
+        "basis": "reference-relative",
+        "coverage": "EVIDENCED",
+        "value": "MISSING",
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "SOURCE_SCOPE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [
+          {
+            "id": "P3",
+            "path": "docs/development/challenge_pipeline/physics_contracts/motor.json",
+            "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+            "git_blob": "15bae88a63294e5aecda5b0cd3e65c341406d39f",
+            "sha256": "998062d910923be71946b17e77ec9b2aed91867ec28cbf3af224fce2d4436625",
+            "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/challenge_pipeline/physics_contracts/motor.json",
+            "locator": "immutable public file; fact locators in manifest",
+            "access_class": "PUBLIC_COMMITTED"
+          }
+        ],
+        "measured": false,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [
+          "P3"
+        ],
+        "locator": "/required_outputs/airgap_stress_contour/availability",
+        "citation": "[P3:/required_outputs/airgap_stress_contour/availability](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/challenge_pipeline/physics_contracts/motor.json)",
+        "gap": null,
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.law_checks.output.energy_coenergy_angle",
+        "kind": "DEVELOPMENT_EVIDENCE_OBLIGATION_NOT_CUSTOMER_CRITERION",
+        "description": "energy_coenergy_angle output availability (definition only)",
+        "sections": [
+          "D02",
+          "D05",
+          "D07"
+        ],
+        "basis": "reference-relative",
+        "coverage": "EVIDENCED",
+        "value": "MISSING",
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "SOURCE_SCOPE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [
+          {
+            "id": "P3",
+            "path": "docs/development/challenge_pipeline/physics_contracts/motor.json",
+            "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+            "git_blob": "15bae88a63294e5aecda5b0cd3e65c341406d39f",
+            "sha256": "998062d910923be71946b17e77ec9b2aed91867ec28cbf3af224fce2d4436625",
+            "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/challenge_pipeline/physics_contracts/motor.json",
+            "locator": "immutable public file; fact locators in manifest",
+            "access_class": "PUBLIC_COMMITTED"
+          }
+        ],
+        "measured": false,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [
+          "P3"
+        ],
+        "locator": "/required_outputs/energy_coenergy_angle/availability",
+        "citation": "[P3:/required_outputs/energy_coenergy_angle/availability](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/challenge_pipeline/physics_contracts/motor.json)",
+        "gap": null,
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.law_checks.output.full_closed_period_curve",
+        "kind": "DEVELOPMENT_EVIDENCE_OBLIGATION_NOT_CUSTOMER_CRITERION",
+        "description": "full_closed_period_curve output availability (definition only)",
+        "sections": [
+          "D02",
+          "D05",
+          "D07"
+        ],
+        "basis": "reference-relative",
+        "coverage": "EVIDENCED",
+        "value": "REQUIRES_PERIOD_VERIFICATION",
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "SOURCE_SCOPE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [
+          {
+            "id": "P3",
+            "path": "docs/development/challenge_pipeline/physics_contracts/motor.json",
+            "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+            "git_blob": "15bae88a63294e5aecda5b0cd3e65c341406d39f",
+            "sha256": "998062d910923be71946b17e77ec9b2aed91867ec28cbf3af224fce2d4436625",
+            "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/challenge_pipeline/physics_contracts/motor.json",
+            "locator": "immutable public file; fact locators in manifest",
+            "access_class": "PUBLIC_COMMITTED"
+          }
+        ],
+        "measured": false,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [
+          "P3"
+        ],
+        "locator": "/required_outputs/full_closed_period_curve/availability",
+        "citation": "[P3:/required_outputs/full_closed_period_curve/availability](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/challenge_pipeline/physics_contracts/motor.json)",
+        "gap": null,
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.model_card.accuracy_overall",
+        "kind": "DEVELOPMENT_EVIDENCE_OBLIGATION_NOT_CUSTOMER_CRITERION",
+        "description": "Overall accuracy",
+        "sections": [
+          "D05",
+          "D06",
+          "D08"
+        ],
+        "basis": "reference-relative",
+        "coverage": "GAP",
+        "value": null,
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "SOURCE_SCOPE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [],
+        "measured": false,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [],
+        "locator": "file",
+        "citation": null,
+        "gap": "Measurement unavailable / not run",
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.model_card.accuracy_near_limits",
+        "kind": "DEVELOPMENT_EVIDENCE_OBLIGATION_NOT_CUSTOMER_CRITERION",
+        "description": "Accuracy near limits",
+        "sections": [
+          "D05",
+          "D06",
+          "D08"
+        ],
+        "basis": "reference-relative",
+        "coverage": "GAP",
+        "value": null,
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "SOURCE_SCOPE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [],
+        "measured": false,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [],
+        "locator": "file",
+        "citation": null,
+        "gap": "Measurement unavailable / not run",
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.model_card.robustness",
+        "kind": "DEVELOPMENT_EVIDENCE_OBLIGATION_NOT_CUSTOMER_CRITERION",
+        "description": "Robustness / local sensitivity",
+        "sections": [
+          "D05",
+          "D06",
+          "D08"
+        ],
+        "basis": "reference-relative",
+        "coverage": "GAP",
+        "value": null,
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "SOURCE_SCOPE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [],
+        "measured": false,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [],
+        "locator": "file",
+        "citation": null,
+        "gap": "Measurement unavailable / not run",
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.model_card.extrapolation",
+        "kind": "DEVELOPMENT_EVIDENCE_OBLIGATION_NOT_CUSTOMER_CRITERION",
+        "description": "Stretch-set error growth inside physical validity",
+        "sections": [
+          "D05",
+          "D06",
+          "D08"
+        ],
+        "basis": "reference-relative",
+        "coverage": "GAP",
+        "value": null,
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "SOURCE_SCOPE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [],
+        "measured": false,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [],
+        "locator": "file",
+        "citation": null,
+        "gap": "Measurement unavailable / not run",
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.model_card.uncertainty_calibration",
+        "kind": "DEVELOPMENT_EVIDENCE_OBLIGATION_NOT_CUSTOMER_CRITERION",
+        "description": "Reference-relative uncertainty calibration",
+        "sections": [
+          "D05",
+          "D06",
+          "D08"
+        ],
+        "basis": "reference-relative",
+        "coverage": "GAP",
+        "value": null,
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "SOURCE_SCOPE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [],
+        "measured": false,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [],
+        "locator": "file",
+        "citation": null,
+        "gap": "Measurement unavailable / not run",
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.model_card.speedup_equal_accuracy",
+        "kind": "DEVELOPMENT_EVIDENCE_OBLIGATION_NOT_CUSTOMER_CRITERION",
+        "description": "Speed-up at equal accuracy",
+        "sections": [
+          "D05",
+          "D06",
+          "D08"
+        ],
+        "basis": "reference-relative",
+        "coverage": "GAP",
+        "value": null,
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "SOURCE_SCOPE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [],
+        "measured": false,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [],
+        "locator": "file",
+        "citation": null,
+        "gap": "Measurement unavailable / not run",
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.model_card.inference_latency",
+        "kind": "DEVELOPMENT_EVIDENCE_OBLIGATION_NOT_CUSTOMER_CRITERION",
+        "description": "Inference latency",
+        "sections": [
+          "D05",
+          "D06",
+          "D08"
+        ],
+        "basis": "reference-relative",
+        "coverage": "GAP",
+        "value": null,
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "SOURCE_SCOPE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [],
+        "measured": false,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [],
+        "locator": "file",
+        "citation": null,
+        "gap": "Measurement unavailable / not run",
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.model_card.training_cost",
+        "kind": "DEVELOPMENT_EVIDENCE_OBLIGATION_NOT_CUSTOMER_CRITERION",
+        "description": "Controlled rebuild cost",
+        "sections": [
+          "D05",
+          "D06",
+          "D08"
+        ],
+        "basis": "reference-relative",
+        "coverage": "GAP",
+        "value": null,
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "SOURCE_SCOPE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [],
+        "measured": false,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [],
+        "locator": "file",
+        "citation": null,
+        "gap": "Measurement unavailable / not run",
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.trust_map.map",
+        "kind": "DEVELOPMENT_EVIDENCE_OBLIGATION_NOT_CUSTOMER_CRITERION",
+        "description": "Reference error / top-model disagreement",
+        "sections": [
+          "D03",
+          "D05",
+          "D06",
+          "D09"
+        ],
+        "basis": "reference-relative",
+        "coverage": "GAP",
+        "value": null,
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "SOURCE_SCOPE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [],
+        "measured": false,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [],
+        "locator": "file",
+        "citation": null,
+        "gap": "Public carbon.trust_map aggregate unavailable",
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.solver_verification.image_digest",
+        "kind": "DEVELOPMENT_EVIDENCE_OBLIGATION_NOT_CUSTOMER_CRITERION",
+        "description": "MMS reference image",
+        "sections": [
+          "D04",
+          "D08"
+        ],
+        "basis": "verification",
+        "coverage": "EVIDENCED",
+        "value": "sha256:599521e79786ee0326a0754ba0545f51ee9665adff73c3515c8d4b8ba24c1c05",
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "SOURCE_SCOPE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [
+          {
+            "id": "P1",
+            "path": "docs/development/evidence/motor-feasibility-02/code-verification/getdp-verdict.json",
+            "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+            "git_blob": "dee865f6a7b63fc00f2b7f3021ae63130065b04d",
+            "sha256": "942ee4536b159884897d3f7eca2e5a95a0adcb032d5d8f129fdfef5a5a264cfd",
+            "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/motor-feasibility-02/code-verification/getdp-verdict.json",
+            "locator": "immutable public file; fact locators in manifest",
+            "access_class": "PUBLIC_COMMITTED"
+          }
+        ],
+        "measured": false,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [
+          "P1"
+        ],
+        "locator": "/image_digest",
+        "citation": "[P1:/image_digest](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/motor-feasibility-02/code-verification/getdp-verdict.json)",
+        "gap": null,
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.solver_verification.norm.0.l2",
+        "kind": "DEVELOPMENT_EVIDENCE_OBLIGATION_NOT_CUSTOMER_CRITERION",
+        "description": "MMS rung 1 l2 error",
+        "sections": [
+          "D04",
+          "D08"
+        ],
+        "basis": "verification",
+        "coverage": "EVIDENCED",
+        "value": 0.009544772349706724,
+        "unit": "dimensionless manufactured-solution error",
+        "sample_count": 486,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "SOURCE_SCOPE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [
+          {
+            "id": "P1",
+            "path": "docs/development/evidence/motor-feasibility-02/code-verification/getdp-verdict.json",
+            "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+            "git_blob": "dee865f6a7b63fc00f2b7f3021ae63130065b04d",
+            "sha256": "942ee4536b159884897d3f7eca2e5a95a0adcb032d5d8f129fdfef5a5a264cfd",
+            "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/motor-feasibility-02/code-verification/getdp-verdict.json",
+            "locator": "immutable public file; fact locators in manifest",
+            "access_class": "PUBLIC_COMMITTED"
+          }
+        ],
+        "measured": true,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [
+          "P1"
+        ],
+        "locator": "/norms/0/l2",
+        "citation": "[P1:/norms/0/l2](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/motor-feasibility-02/code-verification/getdp-verdict.json)",
+        "gap": null,
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.solver_verification.norm.0.linf",
+        "kind": "DEVELOPMENT_EVIDENCE_OBLIGATION_NOT_CUSTOMER_CRITERION",
+        "description": "MMS rung 1 linf error",
+        "sections": [
+          "D04",
+          "D08"
+        ],
+        "basis": "verification",
+        "coverage": "EVIDENCED",
+        "value": 0.01881824615446892,
+        "unit": "dimensionless manufactured-solution error",
+        "sample_count": 486,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "SOURCE_SCOPE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [
+          {
+            "id": "P1",
+            "path": "docs/development/evidence/motor-feasibility-02/code-verification/getdp-verdict.json",
+            "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+            "git_blob": "dee865f6a7b63fc00f2b7f3021ae63130065b04d",
+            "sha256": "942ee4536b159884897d3f7eca2e5a95a0adcb032d5d8f129fdfef5a5a264cfd",
+            "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/motor-feasibility-02/code-verification/getdp-verdict.json",
+            "locator": "immutable public file; fact locators in manifest",
+            "access_class": "PUBLIC_COMMITTED"
+          }
+        ],
+        "measured": true,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [
+          "P1"
+        ],
+        "locator": "/norms/0/linf",
+        "citation": "[P1:/norms/0/linf](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/motor-feasibility-02/code-verification/getdp-verdict.json)",
+        "gap": null,
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.solver_verification.norm.1.l2",
+        "kind": "DEVELOPMENT_EVIDENCE_OBLIGATION_NOT_CUSTOMER_CRITERION",
+        "description": "MMS rung 2 l2 error",
+        "sections": [
+          "D04",
+          "D08"
+        ],
+        "basis": "verification",
+        "coverage": "EVIDENCED",
+        "value": 0.0024828953829774776,
+        "unit": "dimensionless manufactured-solution error",
+        "sample_count": 1830,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "SOURCE_SCOPE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [
+          {
+            "id": "P1",
+            "path": "docs/development/evidence/motor-feasibility-02/code-verification/getdp-verdict.json",
+            "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+            "git_blob": "dee865f6a7b63fc00f2b7f3021ae63130065b04d",
+            "sha256": "942ee4536b159884897d3f7eca2e5a95a0adcb032d5d8f129fdfef5a5a264cfd",
+            "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/motor-feasibility-02/code-verification/getdp-verdict.json",
+            "locator": "immutable public file; fact locators in manifest",
+            "access_class": "PUBLIC_COMMITTED"
+          }
+        ],
+        "measured": true,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [
+          "P1"
+        ],
+        "locator": "/norms/1/l2",
+        "citation": "[P1:/norms/1/l2](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/motor-feasibility-02/code-verification/getdp-verdict.json)",
+        "gap": null,
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.solver_verification.norm.1.linf",
+        "kind": "DEVELOPMENT_EVIDENCE_OBLIGATION_NOT_CUSTOMER_CRITERION",
+        "description": "MMS rung 2 linf error",
+        "sections": [
+          "D04",
+          "D08"
+        ],
+        "basis": "verification",
+        "coverage": "EVIDENCED",
+        "value": 0.004807429497188265,
+        "unit": "dimensionless manufactured-solution error",
+        "sample_count": 1830,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "SOURCE_SCOPE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [
+          {
+            "id": "P1",
+            "path": "docs/development/evidence/motor-feasibility-02/code-verification/getdp-verdict.json",
+            "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+            "git_blob": "dee865f6a7b63fc00f2b7f3021ae63130065b04d",
+            "sha256": "942ee4536b159884897d3f7eca2e5a95a0adcb032d5d8f129fdfef5a5a264cfd",
+            "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/motor-feasibility-02/code-verification/getdp-verdict.json",
+            "locator": "immutable public file; fact locators in manifest",
+            "access_class": "PUBLIC_COMMITTED"
+          }
+        ],
+        "measured": true,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [
+          "P1"
+        ],
+        "locator": "/norms/1/linf",
+        "citation": "[P1:/norms/1/linf](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/motor-feasibility-02/code-verification/getdp-verdict.json)",
+        "gap": null,
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.solver_verification.norm.2.l2",
+        "kind": "DEVELOPMENT_EVIDENCE_OBLIGATION_NOT_CUSTOMER_CRITERION",
+        "description": "MMS rung 3 l2 error",
+        "sections": [
+          "D04",
+          "D08"
+        ],
+        "basis": "verification",
+        "coverage": "EVIDENCED",
+        "value": 0.0006264084501176021,
+        "unit": "dimensionless manufactured-solution error",
+        "sample_count": 7182,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "SOURCE_SCOPE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [
+          {
+            "id": "P1",
+            "path": "docs/development/evidence/motor-feasibility-02/code-verification/getdp-verdict.json",
+            "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+            "git_blob": "dee865f6a7b63fc00f2b7f3021ae63130065b04d",
+            "sha256": "942ee4536b159884897d3f7eca2e5a95a0adcb032d5d8f129fdfef5a5a264cfd",
+            "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/motor-feasibility-02/code-verification/getdp-verdict.json",
+            "locator": "immutable public file; fact locators in manifest",
+            "access_class": "PUBLIC_COMMITTED"
+          }
+        ],
+        "measured": true,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [
+          "P1"
+        ],
+        "locator": "/norms/2/l2",
+        "citation": "[P1:/norms/2/l2](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/motor-feasibility-02/code-verification/getdp-verdict.json)",
+        "gap": null,
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.solver_verification.norm.2.linf",
+        "kind": "DEVELOPMENT_EVIDENCE_OBLIGATION_NOT_CUSTOMER_CRITERION",
+        "description": "MMS rung 3 linf error",
+        "sections": [
+          "D04",
+          "D08"
+        ],
+        "basis": "verification",
+        "coverage": "EVIDENCED",
+        "value": 0.0012098580886296117,
+        "unit": "dimensionless manufactured-solution error",
+        "sample_count": 7182,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "SOURCE_SCOPE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [
+          {
+            "id": "P1",
+            "path": "docs/development/evidence/motor-feasibility-02/code-verification/getdp-verdict.json",
+            "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+            "git_blob": "dee865f6a7b63fc00f2b7f3021ae63130065b04d",
+            "sha256": "942ee4536b159884897d3f7eca2e5a95a0adcb032d5d8f129fdfef5a5a264cfd",
+            "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/motor-feasibility-02/code-verification/getdp-verdict.json",
+            "locator": "immutable public file; fact locators in manifest",
+            "access_class": "PUBLIC_COMMITTED"
+          }
+        ],
+        "measured": true,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [
+          "P1"
+        ],
+        "locator": "/norms/2/linf",
+        "citation": "[P1:/norms/2/linf](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/motor-feasibility-02/code-verification/getdp-verdict.json)",
+        "gap": null,
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.solver_verification.l2_order",
+        "kind": "DEVELOPMENT_EVIDENCE_OBLIGATION_NOT_CUSTOMER_CRITERION",
+        "description": "MMS l2_order",
+        "sections": [
+          "D04",
+          "D08"
+        ],
+        "basis": "verification",
+        "coverage": "EVIDENCED",
+        "value": 1.9868478951847124,
+        "unit": "dimensionless observed order",
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "SOURCE_SCOPE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [
+          {
+            "id": "P1",
+            "path": "docs/development/evidence/motor-feasibility-02/code-verification/getdp-verdict.json",
+            "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+            "git_blob": "dee865f6a7b63fc00f2b7f3021ae63130065b04d",
+            "sha256": "942ee4536b159884897d3f7eca2e5a95a0adcb032d5d8f129fdfef5a5a264cfd",
+            "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/motor-feasibility-02/code-verification/getdp-verdict.json",
+            "locator": "immutable public file; fact locators in manifest",
+            "access_class": "PUBLIC_COMMITTED"
+          }
+        ],
+        "measured": true,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [
+          "P1"
+        ],
+        "locator": "/metrics/l2_order",
+        "citation": "[P1:/metrics/l2_order](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/motor-feasibility-02/code-verification/getdp-verdict.json)",
+        "gap": null,
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.solver_verification.linf_order",
+        "kind": "DEVELOPMENT_EVIDENCE_OBLIGATION_NOT_CUSTOMER_CRITERION",
+        "description": "MMS linf_order",
+        "sections": [
+          "D04",
+          "D08"
+        ],
+        "basis": "verification",
+        "coverage": "EVIDENCED",
+        "value": 1.990427864802117,
+        "unit": "dimensionless observed order",
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "SOURCE_SCOPE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [
+          {
+            "id": "P1",
+            "path": "docs/development/evidence/motor-feasibility-02/code-verification/getdp-verdict.json",
+            "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+            "git_blob": "dee865f6a7b63fc00f2b7f3021ae63130065b04d",
+            "sha256": "942ee4536b159884897d3f7eca2e5a95a0adcb032d5d8f129fdfef5a5a264cfd",
+            "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/motor-feasibility-02/code-verification/getdp-verdict.json",
+            "locator": "immutable public file; fact locators in manifest",
+            "access_class": "PUBLIC_COMMITTED"
+          }
+        ],
+        "measured": true,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [
+          "P1"
+        ],
+        "locator": "/metrics/linf_order",
+        "citation": "[P1:/metrics/linf_order](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/motor-feasibility-02/code-verification/getdp-verdict.json)",
+        "gap": null,
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.solver_verification.machine_verdict",
+        "kind": "DEVELOPMENT_EVIDENCE_OBLIGATION_NOT_CUSTOMER_CRITERION",
+        "description": "Recorded MMS machine verdict",
+        "sections": [
+          "D04",
+          "D08"
+        ],
+        "basis": "verification",
+        "coverage": "EVIDENCED",
+        "value": "HUMAN_INPUT",
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "SOURCE_SCOPE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [
+          {
+            "id": "P1",
+            "path": "docs/development/evidence/motor-feasibility-02/code-verification/getdp-verdict.json",
+            "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+            "git_blob": "dee865f6a7b63fc00f2b7f3021ae63130065b04d",
+            "sha256": "942ee4536b159884897d3f7eca2e5a95a0adcb032d5d8f129fdfef5a5a264cfd",
+            "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/motor-feasibility-02/code-verification/getdp-verdict.json",
+            "locator": "immutable public file; fact locators in manifest",
+            "access_class": "PUBLIC_COMMITTED"
+          }
+        ],
+        "measured": false,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [
+          "P1"
+        ],
+        "locator": "/state",
+        "citation": "[P1:/state](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/motor-feasibility-02/code-verification/getdp-verdict.json)",
+        "gap": null,
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.solver_verification.machine_acceptance",
+        "kind": "DEVELOPMENT_EVIDENCE_OBLIGATION_NOT_CUSTOMER_CRITERION",
+        "description": "Recorded machine acceptance flag",
+        "sections": [
+          "D04",
+          "D08"
+        ],
+        "basis": "verification",
+        "coverage": "EVIDENCED",
+        "value": false,
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "SOURCE_SCOPE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [
+          {
+            "id": "P1",
+            "path": "docs/development/evidence/motor-feasibility-02/code-verification/getdp-verdict.json",
+            "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+            "git_blob": "dee865f6a7b63fc00f2b7f3021ae63130065b04d",
+            "sha256": "942ee4536b159884897d3f7eca2e5a95a0adcb032d5d8f129fdfef5a5a264cfd",
+            "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/motor-feasibility-02/code-verification/getdp-verdict.json",
+            "locator": "immutable public file; fact locators in manifest",
+            "access_class": "PUBLIC_COMMITTED"
+          }
+        ],
+        "measured": false,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [
+          "P1"
+        ],
+        "locator": "/accepted_development_pass",
+        "citation": "[P1:/accepted_development_pass](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/motor-feasibility-02/code-verification/getdp-verdict.json)",
+        "gap": null,
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.solver_verification.owner_acceptance_link",
+        "kind": "DEVELOPMENT_EVIDENCE_OBLIGATION_NOT_CUSTOMER_CRITERION",
+        "description": "Separate owner decision for this exact image",
+        "sections": [
+          "D04",
+          "D08"
+        ],
+        "basis": "verification",
+        "coverage": "EVIDENCED",
+        "value": "RECORDED_OWNER_DECISION",
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "SOURCE_SCOPE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [
+          {
+            "id": "P2",
+            "path": "docs/development/challenge_pipeline/code-verification/acceptance-links/getdp.json",
+            "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+            "git_blob": "1ec63fbd739c9db11eb08f59be824b831e09c479",
+            "sha256": "46e236237ce3c911eb6c515e31a0d1f5ee22285ba57c91ae443d8b49c0216cb0",
+            "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/challenge_pipeline/code-verification/acceptance-links/getdp.json",
+            "locator": "immutable public file; fact locators in manifest",
+            "access_class": "PUBLIC_COMMITTED"
+          }
+        ],
+        "measured": false,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [
+          "P2"
+        ],
+        "locator": "file",
+        "citation": "[P2:file](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/challenge_pipeline/code-verification/acceptance-links/getdp.json)",
+        "gap": null,
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.solver_verification.acceptance_conditions",
+        "kind": "DEVELOPMENT_EVIDENCE_OBLIGATION_NOT_CUSTOMER_CRITERION",
+        "description": "Owner acceptance conditions",
+        "sections": [
+          "D04",
+          "D08"
+        ],
+        "basis": "verification",
+        "coverage": "EVIDENCED",
+        "value": {},
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "SOURCE_SCOPE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [
+          {
+            "id": "P2",
+            "path": "docs/development/challenge_pipeline/code-verification/acceptance-links/getdp.json",
+            "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+            "git_blob": "1ec63fbd739c9db11eb08f59be824b831e09c479",
+            "sha256": "46e236237ce3c911eb6c515e31a0d1f5ee22285ba57c91ae443d8b49c0216cb0",
+            "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/challenge_pipeline/code-verification/acceptance-links/getdp.json",
+            "locator": "immutable public file; fact locators in manifest",
+            "access_class": "PUBLIC_COMMITTED"
+          }
+        ],
+        "measured": false,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [
+          "P2"
+        ],
+        "locator": "/conditions",
+        "citation": "[P2:/conditions](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/challenge_pipeline/code-verification/acceptance-links/getdp.json)",
+        "gap": null,
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.solver_verification.physical_validation",
+        "kind": "DEVELOPMENT_EVIDENCE_OBLIGATION_NOT_CUSTOMER_CRITERION",
+        "description": "Physical validation",
+        "sections": [
+          "D04",
+          "D08"
+        ],
+        "basis": "physical",
+        "coverage": "GAP",
+        "value": null,
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "SOURCE_SCOPE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [],
+        "measured": false,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [],
+        "locator": "file",
+        "citation": null,
+        "gap": "MMS verifies code against equations; it is not physical validation",
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.decision_evidence.verify_r",
+        "kind": "DEVELOPMENT_EVIDENCE_OBLIGATION_NOT_CUSTOMER_CRITERION",
+        "description": "Reference-verified top-k / VERIFY-R",
+        "sections": [
+          "D05",
+          "D07"
+        ],
+        "basis": "decision-value",
+        "coverage": "GAP",
+        "value": null,
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "SOURCE_SCOPE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [],
+        "measured": false,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [],
+        "locator": "file",
+        "citation": null,
+        "gap": "Public VERIFY-R aggregate unavailable or invalid",
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.decision_evidence.equal_budget",
+        "kind": "DEVELOPMENT_EVIDENCE_OBLIGATION_NOT_CUSTOMER_CRITERION",
+        "description": "Measured equal-budget curves",
+        "sections": [
+          "D05",
+          "D07"
+        ],
+        "basis": "decision-value",
+        "coverage": "GAP",
+        "value": null,
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "SOURCE_SCOPE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [],
+        "measured": false,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [],
+        "locator": "file",
+        "citation": null,
+        "gap": "Public equal-budget aggregate unavailable: missing, unresolved, assumed costs or identity mismatch",
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.decision_evidence.false_feasibility",
+        "kind": "DEVELOPMENT_EVIDENCE_OBLIGATION_NOT_CUSTOMER_CRITERION",
+        "description": "False feasibility of Assistant-selected picks",
+        "sections": [
+          "D05",
+          "D07"
+        ],
+        "basis": "decision-value",
+        "coverage": "GAP",
+        "value": null,
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "SOURCE_SCOPE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [],
+        "measured": false,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [],
+        "locator": "file",
+        "citation": null,
+        "gap": "Native aggregate does not measure Assistant selection pressure; PB-INV/ADV evidence required",
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.historical.MOTOR_HELD_OUT",
+        "kind": "HISTORICAL_OBSERVATION_NOT_CURRENT_PRODUCT_ACCEPTANCE",
+        "description": "Historical motor comparator coverage state (not a current physical verdict)",
+        "sections": [
+          "D07",
+          "D10",
+          "D11"
+        ],
+        "basis": "decision-value",
+        "coverage": "EVIDENCED",
+        "value": "HOLD_MISSING_GEOMETRY_AND_FULL_SIGNED_CURVES",
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "HISTORICAL_SOURCE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [
+          {
+            "id": "R3",
+            "path": "docs/development/evidence/baseline-agreement-01/motor-measurement-v4.json",
+            "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+            "git_blob": "55333ce82c138df7dcebd2019dde56d9cefc0b80",
+            "sha256": "188a4fd077b7a724a8a1bdf0cef4b9662dff1f29dfee85f134464fbac10ab3fc",
+            "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/baseline-agreement-01/motor-measurement-v4.json",
+            "locator": "immutable public file; fact locators in manifest",
+            "access_class": "PUBLIC_COMMITTED"
+          }
+        ],
+        "measured": false,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [
+          "R3"
+        ],
+        "locator": "/held_out/status",
+        "citation": "[R3:/held_out/status](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/baseline-agreement-01/motor-measurement-v4.json)",
+        "gap": null,
+        "adverse_links": [
+          "MOTOR_HELD_OUT"
+        ]
+      },
+      {
+        "requirement_id": "DEVREQ.historical.MOTOR_V4",
+        "kind": "HISTORICAL_OBSERVATION_NOT_CURRENT_PRODUCT_ACCEPTANCE",
+        "description": "Historical report V4 disposition; no matched Carbon advantage established",
+        "sections": [
+          "D07",
+          "D10",
+          "D11"
+        ],
+        "basis": "decision-value",
+        "coverage": "EVIDENCED",
+        "value": "UNRESOLVED_NO_MATCHED_CARBON_ARM",
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "HISTORICAL_SOURCE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [
+          {
+            "id": "R3",
+            "path": "docs/development/evidence/baseline-agreement-01/motor-measurement-v4.json",
+            "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+            "git_blob": "55333ce82c138df7dcebd2019dde56d9cefc0b80",
+            "sha256": "188a4fd077b7a724a8a1bdf0cef4b9662dff1f29dfee85f134464fbac10ab3fc",
+            "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/baseline-agreement-01/motor-measurement-v4.json",
+            "locator": "immutable public file; fact locators in manifest",
+            "access_class": "PUBLIC_COMMITTED"
+          }
+        ],
+        "measured": false,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [
+          "R3"
+        ],
+        "locator": "/v4_disposition",
+        "citation": "[R3:/v4_disposition](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/baseline-agreement-01/motor-measurement-v4.json)",
+        "gap": null,
+        "adverse_links": [
+          "MOTOR_V4"
+        ]
+      },
+      {
+        "requirement_id": "DEVREQ.historical.MOTOR_LOOKUP_RESOLVED",
+        "kind": "HISTORICAL_OBSERVATION_NOT_CURRENT_PRODUCT_ACCEPTANCE",
+        "description": "Historical lookup-replay resolved questions, not generalization",
+        "sections": [
+          "D08",
+          "D11"
+        ],
+        "basis": "verification",
+        "coverage": "EVIDENCED",
+        "value": "0",
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "HISTORICAL_SOURCE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [
+          {
+            "id": "R3",
+            "path": "docs/development/evidence/baseline-agreement-01/motor-measurement-v4.json",
+            "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+            "git_blob": "55333ce82c138df7dcebd2019dde56d9cefc0b80",
+            "sha256": "188a4fd077b7a724a8a1bdf0cef4b9662dff1f29dfee85f134464fbac10ab3fc",
+            "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/baseline-agreement-01/motor-measurement-v4.json",
+            "locator": "immutable public file; fact locators in manifest",
+            "access_class": "PUBLIC_COMMITTED"
+          }
+        ],
+        "measured": false,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [
+          "R3"
+        ],
+        "locator": "/closed_bank/decision/summary/resolved",
+        "citation": "[R3:/closed_bank/decision/summary/resolved](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/baseline-agreement-01/motor-measurement-v4.json)",
+        "gap": null,
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.historical.MOTOR_LOOKUP_TOTAL",
+        "kind": "HISTORICAL_OBSERVATION_NOT_CURRENT_PRODUCT_ACCEPTANCE",
+        "description": "Historical lookup-replay total question denominator",
+        "sections": [
+          "D08",
+          "D11"
+        ],
+        "basis": "verification",
+        "coverage": "EVIDENCED",
+        "value": "20",
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "HISTORICAL_SOURCE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [
+          {
+            "id": "R3",
+            "path": "docs/development/evidence/baseline-agreement-01/motor-measurement-v4.json",
+            "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+            "git_blob": "55333ce82c138df7dcebd2019dde56d9cefc0b80",
+            "sha256": "188a4fd077b7a724a8a1bdf0cef4b9662dff1f29dfee85f134464fbac10ab3fc",
+            "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/baseline-agreement-01/motor-measurement-v4.json",
+            "locator": "immutable public file; fact locators in manifest",
+            "access_class": "PUBLIC_COMMITTED"
+          }
+        ],
+        "measured": false,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [
+          "R3"
+        ],
+        "locator": "/closed_bank/decision/summary/total",
+        "citation": "[R3:/closed_bank/decision/summary/total](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/docs/development/evidence/baseline-agreement-01/motor-measurement-v4.json)",
+        "gap": null,
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.historical.REVIEW_customer",
+        "kind": "HISTORICAL_OBSERVATION_NOT_CURRENT_PRODUCT_ACCEPTANCE",
+        "description": "Recorded customer review state",
+        "sections": [
+          "D08",
+          "D11"
+        ],
+        "basis": "verification",
+        "coverage": "EVIDENCED",
+        "value": "NOT_STARTED",
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "HISTORICAL_SOURCE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [
+          {
+            "id": "R1",
+            "path": "carbon/challenge_readiness/records/electric-motor-magnetics.v4.json",
+            "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+            "git_blob": "af8deecf3c012d1790a04652ab1e3b9d15425fd2",
+            "sha256": "f300c669ff82f08245e9b2c9d620324c7b73eec8798de21647ec79a0d53c68d2",
+            "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/carbon/challenge_readiness/records/electric-motor-magnetics.v4.json",
+            "locator": "immutable public file; fact locators in manifest",
+            "access_class": "PUBLIC_COMMITTED"
+          }
+        ],
+        "measured": false,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [
+          "R1"
+        ],
+        "locator": "/reviews/customer/state",
+        "citation": "[R1:/reviews/customer/state](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/carbon/challenge_readiness/records/electric-motor-magnetics.v4.json)",
+        "gap": null,
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.historical.REVIEW_launch",
+        "kind": "HISTORICAL_OBSERVATION_NOT_CURRENT_PRODUCT_ACCEPTANCE",
+        "description": "Recorded launch review state",
+        "sections": [
+          "D08",
+          "D11"
+        ],
+        "basis": "verification",
+        "coverage": "EVIDENCED",
+        "value": "NOT_STARTED",
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "HISTORICAL_SOURCE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [
+          {
+            "id": "R1",
+            "path": "carbon/challenge_readiness/records/electric-motor-magnetics.v4.json",
+            "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+            "git_blob": "af8deecf3c012d1790a04652ab1e3b9d15425fd2",
+            "sha256": "f300c669ff82f08245e9b2c9d620324c7b73eec8798de21647ec79a0d53c68d2",
+            "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/carbon/challenge_readiness/records/electric-motor-magnetics.v4.json",
+            "locator": "immutable public file; fact locators in manifest",
+            "access_class": "PUBLIC_COMMITTED"
+          }
+        ],
+        "measured": false,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [
+          "R1"
+        ],
+        "locator": "/reviews/launch/state",
+        "citation": "[R1:/reviews/launch/state](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/carbon/challenge_readiness/records/electric-motor-magnetics.v4.json)",
+        "gap": null,
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.historical.REVIEW_numerical_reference",
+        "kind": "HISTORICAL_OBSERVATION_NOT_CURRENT_PRODUCT_ACCEPTANCE",
+        "description": "Recorded numerical_reference review state",
+        "sections": [
+          "D08",
+          "D11"
+        ],
+        "basis": "verification",
+        "coverage": "EVIDENCED",
+        "value": "NOT_STARTED",
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "HISTORICAL_SOURCE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [
+          {
+            "id": "R1",
+            "path": "carbon/challenge_readiness/records/electric-motor-magnetics.v4.json",
+            "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+            "git_blob": "af8deecf3c012d1790a04652ab1e3b9d15425fd2",
+            "sha256": "f300c669ff82f08245e9b2c9d620324c7b73eec8798de21647ec79a0d53c68d2",
+            "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/carbon/challenge_readiness/records/electric-motor-magnetics.v4.json",
+            "locator": "immutable public file; fact locators in manifest",
+            "access_class": "PUBLIC_COMMITTED"
+          }
+        ],
+        "measured": false,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [
+          "R1"
+        ],
+        "locator": "/reviews/numerical_reference/state",
+        "citation": "[R1:/reviews/numerical_reference/state](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/carbon/challenge_readiness/records/electric-motor-magnetics.v4.json)",
+        "gap": null,
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.historical.REVIEW_scientific",
+        "kind": "HISTORICAL_OBSERVATION_NOT_CURRENT_PRODUCT_ACCEPTANCE",
+        "description": "Recorded scientific review state",
+        "sections": [
+          "D08",
+          "D11"
+        ],
+        "basis": "verification",
+        "coverage": "EVIDENCED",
+        "value": "NOT_STARTED",
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "HISTORICAL_SOURCE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [
+          {
+            "id": "R1",
+            "path": "carbon/challenge_readiness/records/electric-motor-magnetics.v4.json",
+            "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+            "git_blob": "af8deecf3c012d1790a04652ab1e3b9d15425fd2",
+            "sha256": "f300c669ff82f08245e9b2c9d620324c7b73eec8798de21647ec79a0d53c68d2",
+            "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/carbon/challenge_readiness/records/electric-motor-magnetics.v4.json",
+            "locator": "immutable public file; fact locators in manifest",
+            "access_class": "PUBLIC_COMMITTED"
+          }
+        ],
+        "measured": false,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [
+          "R1"
+        ],
+        "locator": "/reviews/scientific/state",
+        "citation": "[R1:/reviews/scientific/state](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/carbon/challenge_readiness/records/electric-motor-magnetics.v4.json)",
+        "gap": null,
+        "adverse_links": []
+      },
+      {
+        "requirement_id": "DEVREQ.historical.REVIEW_security",
+        "kind": "HISTORICAL_OBSERVATION_NOT_CURRENT_PRODUCT_ACCEPTANCE",
+        "description": "Recorded security review state",
+        "sections": [
+          "D08",
+          "D11"
+        ],
+        "basis": "verification",
+        "coverage": "EVIDENCED",
+        "value": "NOT_STARTED",
+        "unit": null,
+        "sample_count": null,
+        "measurement_version": null,
+        "identity": null,
+        "identity_scope": "HISTORICAL_SOURCE_ONLY_NO_PRODUCT_BINDING",
+        "source_versions": [
+          {
+            "id": "R1",
+            "path": "carbon/challenge_readiness/records/electric-motor-magnetics.v4.json",
+            "revision": "7f9d7a2fc99205b67d6e03393c68e1f85e716e58",
+            "git_blob": "af8deecf3c012d1790a04652ab1e3b9d15425fd2",
+            "sha256": "f300c669ff82f08245e9b2c9d620324c7b73eec8798de21647ec79a0d53c68d2",
+            "url": "https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/carbon/challenge_readiness/records/electric-motor-magnetics.v4.json",
+            "locator": "immutable public file; fact locators in manifest",
+            "access_class": "PUBLIC_COMMITTED"
+          }
+        ],
+        "measured": false,
+        "source_outcome": "NOT_ASSESSED",
+        "requirement_outcome": "NOT_ASSESSED",
+        "criterion": null,
+        "criterion_authority": "HUMAN_INPUT",
+        "evidence_refs": [
+          "R1"
+        ],
+        "locator": "/reviews/security/state",
+        "citation": "[R1:/reviews/security/state](https://github.com/carbonphysicsai/Carbon/blob/7f9d7a2fc99205b67d6e03393c68e1f85e716e58/carbon/challenge_readiness/records/electric-motor-magnetics.v4.json)",
+        "gap": null,
+        "adverse_links": []
+      }
+    ],
+    "risk_informed_plan": {
+      "context_of_use": null,
+      "context_citation": null,
+      "model_influence": {
+        "value": null,
+        "authority_ref": null,
+        "basis": "HUMAN_INPUT",
+        "citation": null
+      },
+      "decision_consequence": {
+        "value": null,
+        "authority_ref": null,
+        "basis": "HUMAN_INPUT",
+        "citation": null
+      },
+      "required_credibility": {
+        "value": null,
+        "authority_ref": null,
+        "basis": "HUMAN_INPUT",
+        "citation": null
+      },
+      "risk_combination": {
+        "form": "model influence × decision consequence",
+        "value": null,
+        "rule": null,
+        "authority": "HUMAN_INPUT"
+      },
+      "goals": [
+        {
+          "id": "DEVREQ.D01",
+          "description": "Intended use and decision consequence",
+          "coverage": "GAP",
+          "supporting_rows": [],
+          "evidence_refs": [],
+          "source_outcomes": [],
+          "criterion": null,
+          "authority": "HUMAN_INPUT",
+          "requirement_outcome": "NOT_ASSESSED",
+          "owner_role": "Customer/program use authority",
+          "next_proof": [
+            "HUMAN_INPUT: section completion and responsible authority"
+          ]
+        },
+        {
+          "id": "DEVREQ.D02",
+          "description": "Requirements, criteria and approving authority",
+          "coverage": "GAP",
+          "supporting_rows": [
+            "DEVREQ.law_checks.draft_law_count",
+            "DEVREQ.law_checks.validity_status",
+            "DEVREQ.law_checks.law_results",
+            "DEVREQ.law_checks.output.signed_torque_curve",
+            "DEVREQ.law_checks.output.signed_cogging_curve",
+            "DEVREQ.law_checks.output.summary_observables",
+            "DEVREQ.law_checks.output.slice_curves",
+            "DEVREQ.law_checks.output.vector_B_H_J_mesh",
+            "DEVREQ.law_checks.output.airgap_stress_contour",
+            "DEVREQ.law_checks.output.energy_coenergy_angle",
+            "DEVREQ.law_checks.output.full_closed_period_curve"
+          ],
+          "evidence_refs": [
+            "P3"
+          ],
+          "source_outcomes": [
+            "NOT_ASSESSED"
+          ],
+          "criterion": null,
+          "authority": "HUMAN_INPUT",
+          "requirement_outcome": "NOT_ASSESSED",
+          "owner_role": "Customer/science authority",
+          "next_proof": [
+            "HUMAN_INPUT: section completion and responsible authority",
+            "P4: public package projection not present at the evidence revision",
+            "law_results: PLT-01 public aggregate law-check output unavailable"
+          ]
+        },
+        {
+          "id": "DEVREQ.D03",
+          "description": "Applicable population, coverage and exclusions",
+          "coverage": "GAP",
+          "supporting_rows": [
+            "DEVREQ.trust_map.map"
+          ],
+          "evidence_refs": [],
+          "source_outcomes": [
+            "NOT_ASSESSED"
+          ],
+          "criterion": null,
+          "authority": "HUMAN_INPUT",
+          "requirement_outcome": "NOT_ASSESSED",
+          "owner_role": "Science/customer authority",
+          "next_proof": [
+            "HUMAN_INPUT: section completion and responsible authority",
+            "P4: public package projection not present at the evidence revision",
+            "map: Public carbon.trust_map aggregate unavailable"
+          ]
+        },
+        {
+          "id": "DEVREQ.D04",
+          "description": "Reference verification and physical adequacy",
+          "coverage": "PARTIAL",
+          "supporting_rows": [
+            "DEVREQ.solver_verification.image_digest",
+            "DEVREQ.solver_verification.norm.0.l2",
+            "DEVREQ.solver_verification.norm.0.linf",
+            "DEVREQ.solver_verification.norm.1.l2",
+            "DEVREQ.solver_verification.norm.1.linf",
+            "DEVREQ.solver_verification.norm.2.l2",
+            "DEVREQ.solver_verification.norm.2.linf",
+            "DEVREQ.solver_verification.l2_order",
+            "DEVREQ.solver_verification.linf_order",
+            "DEVREQ.solver_verification.machine_verdict",
+            "DEVREQ.solver_verification.machine_acceptance",
+            "DEVREQ.solver_verification.owner_acceptance_link",
+            "DEVREQ.solver_verification.acceptance_conditions",
+            "DEVREQ.solver_verification.physical_validation"
+          ],
+          "evidence_refs": [
+            "P1",
+            "P2"
+          ],
+          "source_outcomes": [
+            "NOT_ASSESSED"
+          ],
+          "criterion": null,
+          "authority": "HUMAN_INPUT",
+          "requirement_outcome": "NOT_ASSESSED",
+          "owner_role": "Reference/science authority",
+          "next_proof": [
+            "HUMAN_INPUT: section completion and responsible authority",
+            "physical_validation: MMS verifies code against equations; it is not physical validation"
+          ]
+        },
+        {
+          "id": "DEVREQ.D05",
+          "description": "Artifact-bound requirement evidence",
+          "coverage": "GAP",
+          "supporting_rows": [
+            "DEVREQ.law_checks.draft_law_count",
+            "DEVREQ.law_checks.validity_status",
+            "DEVREQ.law_checks.law_results",
+            "DEVREQ.law_checks.output.signed_torque_curve",
+            "DEVREQ.law_checks.output.signed_cogging_curve",
+            "DEVREQ.law_checks.output.summary_observables",
+            "DEVREQ.law_checks.output.slice_curves",
+            "DEVREQ.law_checks.output.vector_B_H_J_mesh",
+            "DEVREQ.law_checks.output.airgap_stress_contour",
+            "DEVREQ.law_checks.output.energy_coenergy_angle",
+            "DEVREQ.law_checks.output.full_closed_period_curve",
+            "DEVREQ.model_card.accuracy_overall",
+            "DEVREQ.model_card.accuracy_near_limits",
+            "DEVREQ.model_card.robustness",
+            "DEVREQ.model_card.extrapolation",
+            "DEVREQ.model_card.uncertainty_calibration",
+            "DEVREQ.model_card.speedup_equal_accuracy",
+            "DEVREQ.model_card.inference_latency",
+            "DEVREQ.model_card.training_cost",
+            "DEVREQ.trust_map.map",
+            "DEVREQ.decision_evidence.verify_r",
+            "DEVREQ.decision_evidence.equal_budget",
+            "DEVREQ.decision_evidence.false_feasibility"
+          ],
+          "evidence_refs": [
+            "P3"
+          ],
+          "source_outcomes": [
+            "NOT_ASSESSED"
+          ],
+          "criterion": null,
+          "authority": "HUMAN_INPUT",
+          "requirement_outcome": "NOT_ASSESSED",
+          "owner_role": "Science/product authority",
+          "next_proof": [
+            "HUMAN_INPUT: section completion and responsible authority",
+            "P4: public package projection not present at the evidence revision",
+            "law_results: PLT-01 public aggregate law-check output unavailable",
+            "P4: public package projection not present at the evidence revision",
+            "accuracy_overall: Measurement unavailable / not run",
+            "accuracy_near_limits: Measurement unavailable / not run",
+            "robustness: Measurement unavailable / not run",
+            "extrapolation: Measurement unavailable / not run",
+            "uncertainty_calibration: Measurement unavailable / not run",
+            "speedup_equal_accuracy: Measurement unavailable / not run",
+            "inference_latency: Measurement unavailable / not run",
+            "training_cost: Measurement unavailable / not run",
+            "P4: public package projection not present at the evidence revision",
+            "map: Public carbon.trust_map aggregate unavailable",
+            "P4: public package projection not present at the evidence revision",
+            "verify_r: Public VERIFY-R aggregate unavailable or invalid",
+            "equal_budget: Public equal-budget aggregate unavailable: missing, unresolved, assumed costs or identity mismatch",
+            "false_feasibility: Native aggregate does not measure Assistant selection pressure; PB-INV/ADV evidence required"
+          ]
+        },
+        {
+          "id": "DEVREQ.D06",
+          "description": "Uncertainty, sensitivity and applicability",
+          "coverage": "GAP",
+          "supporting_rows": [
+            "DEVREQ.model_card.accuracy_overall",
+            "DEVREQ.model_card.accuracy_near_limits",
+            "DEVREQ.model_card.robustness",
+            "DEVREQ.model_card.extrapolation",
+            "DEVREQ.model_card.uncertainty_calibration",
+            "DEVREQ.model_card.speedup_equal_accuracy",
+            "DEVREQ.model_card.inference_latency",
+            "DEVREQ.model_card.training_cost",
+            "DEVREQ.trust_map.map"
+          ],
+          "evidence_refs": [],
+          "source_outcomes": [
+            "NOT_ASSESSED"
+          ],
+          "criterion": null,
+          "authority": "HUMAN_INPUT",
+          "requirement_outcome": "NOT_ASSESSED",
+          "owner_role": "Science/statistics authority",
+          "next_proof": [
+            "HUMAN_INPUT: section completion and responsible authority",
+            "P4: public package projection not present at the evidence revision",
+            "accuracy_overall: Measurement unavailable / not run",
+            "accuracy_near_limits: Measurement unavailable / not run",
+            "robustness: Measurement unavailable / not run",
+            "extrapolation: Measurement unavailable / not run",
+            "uncertainty_calibration: Measurement unavailable / not run",
+            "speedup_equal_accuracy: Measurement unavailable / not run",
+            "inference_latency: Measurement unavailable / not run",
+            "training_cost: Measurement unavailable / not run",
+            "P4: public package projection not present at the evidence revision",
+            "map: Public carbon.trust_map aggregate unavailable"
+          ]
+        },
+        {
+          "id": "DEVREQ.D07",
+          "description": "Adverse findings, robustness and retest",
+          "coverage": "GAP",
+          "supporting_rows": [
+            "DEVREQ.law_checks.draft_law_count",
+            "DEVREQ.law_checks.validity_status",
+            "DEVREQ.law_checks.law_results",
+            "DEVREQ.law_checks.output.signed_torque_curve",
+            "DEVREQ.law_checks.output.signed_cogging_curve",
+            "DEVREQ.law_checks.output.summary_observables",
+            "DEVREQ.law_checks.output.slice_curves",
+            "DEVREQ.law_checks.output.vector_B_H_J_mesh",
+            "DEVREQ.law_checks.output.airgap_stress_contour",
+            "DEVREQ.law_checks.output.energy_coenergy_angle",
+            "DEVREQ.law_checks.output.full_closed_period_curve",
+            "DEVREQ.decision_evidence.verify_r",
+            "DEVREQ.decision_evidence.equal_budget",
+            "DEVREQ.decision_evidence.false_feasibility",
+            "DEVREQ.historical.MOTOR_HELD_OUT",
+            "DEVREQ.historical.MOTOR_V4"
+          ],
+          "evidence_refs": [
+            "P3",
+            "R3"
+          ],
+          "source_outcomes": [
+            "NOT_ASSESSED"
+          ],
+          "criterion": null,
+          "authority": "HUMAN_INPUT",
+          "requirement_outcome": "NOT_ASSESSED",
+          "owner_role": "Independent assessment authority",
+          "next_proof": [
+            "HUMAN_INPUT: section completion and responsible authority",
+            "P4: public package projection not present at the evidence revision",
+            "law_results: PLT-01 public aggregate law-check output unavailable",
+            "P4: public package projection not present at the evidence revision",
+            "verify_r: Public VERIFY-R aggregate unavailable or invalid",
+            "equal_budget: Public equal-budget aggregate unavailable: missing, unresolved, assumed costs or identity mismatch",
+            "false_feasibility: Native aggregate does not measure Assistant selection pressure; PB-INV/ADV evidence required"
+          ]
+        },
+        {
+          "id": "DEVREQ.D08",
+          "description": "Artifact/runtime provenance and reproducibility",
+          "coverage": "PARTIAL",
+          "supporting_rows": [
+            "DEVREQ.model_card.accuracy_overall",
+            "DEVREQ.model_card.accuracy_near_limits",
+            "DEVREQ.model_card.robustness",
+            "DEVREQ.model_card.extrapolation",
+            "DEVREQ.model_card.uncertainty_calibration",
+            "DEVREQ.model_card.speedup_equal_accuracy",
+            "DEVREQ.model_card.inference_latency",
+            "DEVREQ.model_card.training_cost",
+            "DEVREQ.solver_verification.image_digest",
+            "DEVREQ.solver_verification.norm.0.l2",
+            "DEVREQ.solver_verification.norm.0.linf",
+            "DEVREQ.solver_verification.norm.1.l2",
+            "DEVREQ.solver_verification.norm.1.linf",
+            "DEVREQ.solver_verification.norm.2.l2",
+            "DEVREQ.solver_verification.norm.2.linf",
+            "DEVREQ.solver_verification.l2_order",
+            "DEVREQ.solver_verification.linf_order",
+            "DEVREQ.solver_verification.machine_verdict",
+            "DEVREQ.solver_verification.machine_acceptance",
+            "DEVREQ.solver_verification.owner_acceptance_link",
+            "DEVREQ.solver_verification.acceptance_conditions",
+            "DEVREQ.solver_verification.physical_validation",
+            "DEVREQ.historical.MOTOR_LOOKUP_RESOLVED",
+            "DEVREQ.historical.MOTOR_LOOKUP_TOTAL",
+            "DEVREQ.historical.REVIEW_customer",
+            "DEVREQ.historical.REVIEW_launch",
+            "DEVREQ.historical.REVIEW_numerical_reference",
+            "DEVREQ.historical.REVIEW_scientific",
+            "DEVREQ.historical.REVIEW_security"
+          ],
+          "evidence_refs": [
+            "P1",
+            "P2",
+            "R1",
+            "R3"
+          ],
+          "source_outcomes": [
+            "NOT_ASSESSED"
+          ],
+          "criterion": null,
+          "authority": "HUMAN_INPUT",
+          "requirement_outcome": "NOT_ASSESSED",
+          "owner_role": "Engineering/product authority",
+          "next_proof": [
+            "HUMAN_INPUT: product identity/parity, rights, independent review and qualification authority",
+            "P4: public package projection not present at the evidence revision",
+            "accuracy_overall: Measurement unavailable / not run",
+            "accuracy_near_limits: Measurement unavailable / not run",
+            "robustness: Measurement unavailable / not run",
+            "extrapolation: Measurement unavailable / not run",
+            "uncertainty_calibration: Measurement unavailable / not run",
+            "speedup_equal_accuracy: Measurement unavailable / not run",
+            "inference_latency: Measurement unavailable / not run",
+            "training_cost: Measurement unavailable / not run",
+            "physical_validation: MMS verifies code against equations; it is not physical validation"
+          ]
+        },
+        {
+          "id": "DEVREQ.D09",
+          "description": "Fallback, abstention and unavailable-reference handling",
+          "coverage": "GAP",
+          "supporting_rows": [
+            "DEVREQ.trust_map.map"
+          ],
+          "evidence_refs": [],
+          "source_outcomes": [
+            "NOT_ASSESSED"
+          ],
+          "criterion": null,
+          "authority": "HUMAN_INPUT",
+          "requirement_outcome": "NOT_ASSESSED",
+          "owner_role": "Customer/operations authority",
+          "next_proof": [
+            "HUMAN_INPUT: section completion and responsible authority",
+            "P4: public package projection not present at the evidence revision",
+            "map: Public carbon.trust_map aggregate unavailable"
+          ]
+        },
+        {
+          "id": "DEVREQ.D10",
+          "description": "Limitations, missing proof and change impact",
+          "coverage": "GAP",
+          "supporting_rows": [
+            "DEVREQ.historical.MOTOR_HELD_OUT",
+            "DEVREQ.historical.MOTOR_V4"
+          ],
+          "evidence_refs": [
+            "R3"
+          ],
+          "source_outcomes": [
+            "NOT_ASSESSED"
+          ],
+          "criterion": null,
+          "authority": "HUMAN_INPUT",
+          "requirement_outcome": "NOT_ASSESSED",
+          "owner_role": "Customer/science authority",
+          "next_proof": [
+            "HUMAN_INPUT: section completion and responsible authority"
+          ]
+        },
+        {
+          "id": "DEVREQ.D11",
+          "description": "Audit, review independence, rights and acceptance",
+          "coverage": "PARTIAL",
+          "supporting_rows": [
+            "DEVREQ.historical.MOTOR_HELD_OUT",
+            "DEVREQ.historical.MOTOR_V4",
+            "DEVREQ.historical.MOTOR_LOOKUP_RESOLVED",
+            "DEVREQ.historical.MOTOR_LOOKUP_TOTAL",
+            "DEVREQ.historical.REVIEW_customer",
+            "DEVREQ.historical.REVIEW_launch",
+            "DEVREQ.historical.REVIEW_numerical_reference",
+            "DEVREQ.historical.REVIEW_scientific",
+            "DEVREQ.historical.REVIEW_security"
+          ],
+          "evidence_refs": [
+            "R1",
+            "R3"
+          ],
+          "source_outcomes": [
+            "NOT_ASSESSED"
+          ],
+          "criterion": null,
+          "authority": "HUMAN_INPUT",
+          "requirement_outcome": "NOT_ASSESSED",
+          "owner_role": "Customer/accreditation authority",
+          "next_proof": [
+            "HUMAN_INPUT: product identity/parity, rights, independent review and qualification authority"
+          ]
+        }
+      ],
+      "gaps": [
+        "P8: public risk/context declaration unavailable",
+        "HUMAN_INPUT: accepted use, risk combination rule, credibility criteria and applicability",
+        "HUMAN_INPUT: independent physical evidence, competence/independence, rights and acceptance"
+      ]
+    },
+    "defense_vva": [
+      {
+        "id": "VV&A-USE",
+        "question": "What exact purpose, use and consequences are being assessed?",
+        "sections": [
+          "D01",
+          "D03",
+          "D09"
+        ],
+        "coverage": "GAP",
+        "answer": "Evidence unavailable for this question",
+        "evidence_rows": [
+          "DEVREQ.trust_map.map"
+        ],
+        "anchors": [
+          "A.4/B.4/C.4/D.4 problem statement",
+          "A.4/B.4/C.4/D.4 scope/limitations",
+          "A.4/D.4 risks/impacts"
+        ],
+        "mapping_source": "F3",
+        "accreditation_outcome": "NOT_ASSESSED",
+        "customer_action": [
+          "Intended use and decision consequence: HUMAN_INPUT",
+          "Applicable population, coverage and exclusions: HUMAN_INPUT",
+          "Fallback, abstention and unavailable-reference handling: HUMAN_INPUT"
+        ]
+      },
+      {
+        "id": "VV&A-CRITERIA",
+        "question": "Who approved the criteria and traceability to the intended use?",
+        "sections": [
+          "D02",
+          "D05"
+        ],
+        "coverage": "PARTIAL",
+        "answer": "Indexed development evidence only; customer judgment remains open",
+        "evidence_rows": [
+          "DEVREQ.law_checks.draft_law_count",
+          "DEVREQ.law_checks.validity_status",
+          "DEVREQ.law_checks.law_results",
+          "DEVREQ.law_checks.output.signed_torque_curve",
+          "DEVREQ.law_checks.output.signed_cogging_curve",
+          "DEVREQ.law_checks.output.summary_observables",
+          "DEVREQ.law_checks.output.slice_curves",
+          "DEVREQ.law_checks.output.vector_B_H_J_mesh",
+          "DEVREQ.law_checks.output.airgap_stress_contour",
+          "DEVREQ.law_checks.output.energy_coenergy_angle",
+          "DEVREQ.law_checks.output.full_closed_period_curve",
+          "DEVREQ.model_card.accuracy_overall",
+          "DEVREQ.model_card.accuracy_near_limits",
+          "DEVREQ.model_card.robustness",
+          "DEVREQ.model_card.extrapolation",
+          "DEVREQ.model_card.uncertainty_calibration",
+          "DEVREQ.model_card.speedup_equal_accuracy",
+          "DEVREQ.model_card.inference_latency",
+          "DEVREQ.model_card.training_cost",
+          "DEVREQ.trust_map.map",
+          "DEVREQ.decision_evidence.verify_r",
+          "DEVREQ.decision_evidence.equal_budget",
+          "DEVREQ.decision_evidence.false_feasibility"
+        ],
+        "anchors": [
+          "A.14; C.7",
+          "C.4/C.7; A.14"
+        ],
+        "mapping_source": "F3",
+        "accreditation_outcome": "NOT_ASSESSED",
+        "customer_action": [
+          "Requirements, criteria and approving authority: HUMAN_INPUT",
+          "Artifact-bound requirement evidence: HUMAN_INPUT"
+        ]
+      },
+      {
+        "id": "VV&A-REFERENT",
+        "question": "What supports reference adequacy and physical comparison?",
+        "sections": [
+          "D04",
+          "D05",
+          "D06"
+        ],
+        "coverage": "PARTIAL",
+        "answer": "Indexed development evidence only; customer judgment remains open",
+        "evidence_rows": [
+          "DEVREQ.law_checks.draft_law_count",
+          "DEVREQ.law_checks.validity_status",
+          "DEVREQ.law_checks.law_results",
+          "DEVREQ.law_checks.output.signed_torque_curve",
+          "DEVREQ.law_checks.output.signed_cogging_curve",
+          "DEVREQ.law_checks.output.summary_observables",
+          "DEVREQ.law_checks.output.slice_curves",
+          "DEVREQ.law_checks.output.vector_B_H_J_mesh",
+          "DEVREQ.law_checks.output.airgap_stress_contour",
+          "DEVREQ.law_checks.output.energy_coenergy_angle",
+          "DEVREQ.law_checks.output.full_closed_period_curve",
+          "DEVREQ.model_card.accuracy_overall",
+          "DEVREQ.model_card.accuracy_near_limits",
+          "DEVREQ.model_card.robustness",
+          "DEVREQ.model_card.extrapolation",
+          "DEVREQ.model_card.uncertainty_calibration",
+          "DEVREQ.model_card.speedup_equal_accuracy",
+          "DEVREQ.model_card.inference_latency",
+          "DEVREQ.model_card.training_cost",
+          "DEVREQ.trust_map.map",
+          "DEVREQ.solver_verification.image_digest",
+          "DEVREQ.solver_verification.norm.0.l2",
+          "DEVREQ.solver_verification.norm.0.linf",
+          "DEVREQ.solver_verification.norm.1.l2",
+          "DEVREQ.solver_verification.norm.1.linf",
+          "DEVREQ.solver_verification.norm.2.l2",
+          "DEVREQ.solver_verification.norm.2.linf",
+          "DEVREQ.solver_verification.l2_order",
+          "DEVREQ.solver_verification.linf_order",
+          "DEVREQ.solver_verification.machine_verdict",
+          "DEVREQ.solver_verification.machine_acceptance",
+          "DEVREQ.solver_verification.owner_acceptance_link",
+          "DEVREQ.solver_verification.acceptance_conditions",
+          "DEVREQ.solver_verification.physical_validation",
+          "DEVREQ.decision_evidence.verify_r",
+          "DEVREQ.decision_evidence.equal_budget",
+          "DEVREQ.decision_evidence.false_feasibility"
+        ],
+        "anchors": [
+          "C.16",
+          "C.4/C.7; A.14",
+          "C.16; DoDI §3.3(b) contents anchor"
+        ],
+        "mapping_source": "F3",
+        "accreditation_outcome": "NOT_ASSESSED",
+        "customer_action": [
+          "Reference verification and physical adequacy: HUMAN_INPUT",
+          "Artifact-bound requirement evidence: HUMAN_INPUT",
+          "Uncertainty, sensitivity and applicability: HUMAN_INPUT"
+        ]
+      },
+      {
+        "id": "VV&A-ADVERSE",
+        "question": "Which discrepancies, limits and missing tests remain?",
+        "sections": [
+          "D07",
+          "D10"
+        ],
+        "coverage": "PARTIAL",
+        "answer": "Indexed development evidence only; customer judgment remains open",
+        "evidence_rows": [
+          "DEVREQ.law_checks.draft_law_count",
+          "DEVREQ.law_checks.validity_status",
+          "DEVREQ.law_checks.law_results",
+          "DEVREQ.law_checks.output.signed_torque_curve",
+          "DEVREQ.law_checks.output.signed_cogging_curve",
+          "DEVREQ.law_checks.output.summary_observables",
+          "DEVREQ.law_checks.output.slice_curves",
+          "DEVREQ.law_checks.output.vector_B_H_J_mesh",
+          "DEVREQ.law_checks.output.airgap_stress_contour",
+          "DEVREQ.law_checks.output.energy_coenergy_angle",
+          "DEVREQ.law_checks.output.full_closed_period_curve",
+          "DEVREQ.decision_evidence.verify_r",
+          "DEVREQ.decision_evidence.equal_budget",
+          "DEVREQ.decision_evidence.false_feasibility",
+          "DEVREQ.historical.MOTOR_HELD_OUT",
+          "DEVREQ.historical.MOTOR_V4"
+        ],
+        "anchors": [
+          "C.4/D.4 issues",
+          "A.4/C.4/D.4 limitations/issues"
+        ],
+        "mapping_source": "F3",
+        "accreditation_outcome": "NOT_ASSESSED",
+        "customer_action": [
+          "Adverse findings, robustness and retest: HUMAN_INPUT",
+          "Limitations, missing proof and change impact: HUMAN_INPUT"
+        ]
+      },
+      {
+        "id": "VV&A-CONFIG",
+        "question": "Which exact artifact, runtime and evidence versions were inspected?",
+        "sections": [
+          "D08",
+          "D11"
+        ],
+        "coverage": "PARTIAL",
+        "answer": "Indexed development evidence only; customer judgment remains open",
+        "evidence_rows": [
+          "DEVREQ.model_card.accuracy_overall",
+          "DEVREQ.model_card.accuracy_near_limits",
+          "DEVREQ.model_card.robustness",
+          "DEVREQ.model_card.extrapolation",
+          "DEVREQ.model_card.uncertainty_calibration",
+          "DEVREQ.model_card.speedup_equal_accuracy",
+          "DEVREQ.model_card.inference_latency",
+          "DEVREQ.model_card.training_cost",
+          "DEVREQ.solver_verification.image_digest",
+          "DEVREQ.solver_verification.norm.0.l2",
+          "DEVREQ.solver_verification.norm.0.linf",
+          "DEVREQ.solver_verification.norm.1.l2",
+          "DEVREQ.solver_verification.norm.1.linf",
+          "DEVREQ.solver_verification.norm.2.l2",
+          "DEVREQ.solver_verification.norm.2.linf",
+          "DEVREQ.solver_verification.l2_order",
+          "DEVREQ.solver_verification.linf_order",
+          "DEVREQ.solver_verification.machine_verdict",
+          "DEVREQ.solver_verification.machine_acceptance",
+          "DEVREQ.solver_verification.owner_acceptance_link",
+          "DEVREQ.solver_verification.acceptance_conditions",
+          "DEVREQ.solver_verification.physical_validation",
+          "DEVREQ.historical.MOTOR_HELD_OUT",
+          "DEVREQ.historical.MOTOR_V4",
+          "DEVREQ.historical.MOTOR_LOOKUP_RESOLVED",
+          "DEVREQ.historical.MOTOR_LOOKUP_TOTAL",
+          "DEVREQ.historical.REVIEW_customer",
+          "DEVREQ.historical.REVIEW_launch",
+          "DEVREQ.historical.REVIEW_numerical_reference",
+          "DEVREQ.historical.REVIEW_scientific",
+          "DEVREQ.historical.REVIEW_security"
+        ],
+        "anchors": [
+          "A.2/B.2/C.2/D.2; record-of-changes clauses *.3",
+          "All four templates; A.14; DoDI §§3.1–3.2 contents anchors"
+        ],
+        "mapping_source": "F3",
+        "accreditation_outcome": "NOT_ASSESSED",
+        "customer_action": [
+          "Artifact/runtime provenance and reproducibility: HUMAN_INPUT",
+          "Audit, review independence, rights and acceptance: HUMAN_INPUT"
+        ]
+      },
+      {
+        "id": "VV&A-ACCEPT",
+        "question": "Who tailors the program and independently decides accreditation?",
+        "sections": [
+          "D01",
+          "D11"
+        ],
+        "coverage": "PARTIAL",
+        "answer": "Indexed development evidence only; customer judgment remains open",
+        "evidence_rows": [
+          "DEVREQ.historical.MOTOR_HELD_OUT",
+          "DEVREQ.historical.MOTOR_V4",
+          "DEVREQ.historical.MOTOR_LOOKUP_RESOLVED",
+          "DEVREQ.historical.MOTOR_LOOKUP_TOTAL",
+          "DEVREQ.historical.REVIEW_customer",
+          "DEVREQ.historical.REVIEW_launch",
+          "DEVREQ.historical.REVIEW_numerical_reference",
+          "DEVREQ.historical.REVIEW_scientific",
+          "DEVREQ.historical.REVIEW_security"
+        ],
+        "anchors": [
+          "A.4/B.4/C.4/D.4 problem statement",
+          "All four templates; A.14; DoDI §§3.1–3.2 contents anchors"
+        ],
+        "mapping_source": "F3",
+        "accreditation_outcome": "NOT_ASSESSED",
+        "customer_action": [
+          "Intended use and decision consequence: HUMAN_INPUT",
+          "Audit, review independence, rights and acceptance: HUMAN_INPUT"
+        ]
+      }
+    ],
+    "retained_findings": [
+      {
+        "id": "MOTOR_HELD_OUT",
+        "basis": "decision-value",
+        "outcome": "NOT_ASSESSED",
+        "statement": "Historical motor comparator coverage state (not a current physical verdict): HOLD_MISSING_GEOMETRY_AND_FULL_SIGNED_CURVES",
+        "evidence_refs": [
+          "R3"
+        ],
+        "status": "HISTORICAL_RETAINED"
+      },
+      {
+        "id": "MOTOR_V4",
+        "basis": "decision-value",
+        "outcome": "NOT_ASSESSED",
+        "statement": "Historical report V4 disposition; no matched Carbon advantage established: UNRESOLVED_NO_MATCHED_CARBON_ARM",
+        "evidence_refs": [
+          "R3"
+        ],
+        "status": "HISTORICAL_RETAINED"
+      }
+    ],
+    "limits": [
+      "Development obligation IDs are not customer requirements or normative standard clause IDs",
+      "EVIDENCED coverage can retain FAIL; source PASS cannot issue requirement acceptance",
+      "MMS supports code verification only; reference-relative evidence is not physical validation",
+      "ASME V&V 40 clause IDs and cross-domain applicability remain HUMAN_INPUT",
+      "DoDI mappings are contents-only anchors; tailoring and accreditation remain HUMAN_INPUT"
+    ]
+  },
+  "source_policy_digest": "sha256:e081f9f7833c9a132318ff562dcbcfac9bd8c1cdc3603b04dcbbb6641c3eefbb"
+}

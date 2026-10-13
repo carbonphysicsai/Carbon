@@ -15,10 +15,17 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 
+from .credibility import build_credibility, credibility_markdown
 from .package_sections import build_package_sections, package_markdown
 
 REPOSITORY = "carbonphysicsai/Carbon"
-PROFILES = {"nasa-std-7009b": 1, "asme-vv10": 2}
+PROFILES = {"nasa-std-7009b": 1, "asme-vv10": 2, "asme-vv40": 4, "dod-vva": 5}
+PROFILE_EDITIONS = {
+    "nasa-std-7009b": "NASA-STD-7009B (2024)",
+    "asme-vv10": "ASME V&V 10-2019",
+    "asme-vv40": "ASME V&V 40-2018 (topic mapping only)",
+    "dod-vva": "MIL-STD-3022 Change 1 / DoDI 5000.61 (2024 contents anchors)",
+}
 NASA_STANDARD = (
     "https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/"
     "NASA-STD-7009B-Final-3-5-2024.pdf"
@@ -540,6 +547,9 @@ def render(challenge: str, profile: str, reader, policy: dict) -> dict:
         + config.get("package_sources", [])
     }
     ledgers = [{**sources[key].ledger(), "role": roles[key]} for key in sorted(sources)]
+    credibility = build_credibility(
+        package, sections, facts, findings, sources, crosswalk, profile
+    )
     record = {
         "schema_version": "PROPOSAL_V1",
         "mode": "DEVELOPMENT_SAMPLE",
@@ -611,6 +621,7 @@ def render(challenge: str, profile: str, reader, policy: dict) -> dict:
                 )
         lines.extend(["", "Gaps:", "", *[f"- {gap}" for gap in section["gaps"]], ""])
     lines.extend(package_markdown(package))
+    lines.extend(credibility_markdown(credibility))
     lines.extend(["## Adverse evidence retained", ""])
     for fact in facts:
         if fact["kind"] in {"counts", "verdict", "gap", "violations", "fraction"}:
@@ -644,11 +655,11 @@ def render(challenge: str, profile: str, reader, policy: dict) -> dict:
             "",
         ]
     )
-    if profile == "asme-vv10":
+    if profile in {"asme-vv10", "asme-vv40"}:
         lines.extend(
             [
                 (
-                    "**ASME V&V 10 clause IDs: HUMAN_INPUT.** Topic rendering "
+                    f"**ASME V&V {'10' if profile == 'asme-vv10' else '40'} clause IDs: HUMAN_INPUT.** Topic rendering "
                     "only; licensed clause review remains missing."
                 ),
                 "",
@@ -656,6 +667,8 @@ def render(challenge: str, profile: str, reader, policy: dict) -> dict:
         )
     standard_index = {
         "profile": profile,
+        "edition": PROFILE_EDITIONS[profile],
+        "clause_complete": False,
         "applicability": "HUMAN_INPUT",
         "qualification_claim": False,
         "section_mapping": [
@@ -793,6 +806,7 @@ def render(challenge: str, profile: str, reader, policy: dict) -> dict:
         "extraction_gaps": gaps,
         "qualification_claim": False,
         "package_evidence": package,
+        "credibility_evidence": credibility,
         "source_policy_digest": "sha256:"
         + hashlib.sha256(
             json.dumps(

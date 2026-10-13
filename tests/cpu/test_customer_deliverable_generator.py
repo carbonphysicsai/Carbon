@@ -1054,5 +1054,354 @@ class PackageEvidenceTests(unittest.TestCase):
         )
 
 
+class CredibilityAutofillTests(unittest.TestCase):
+    def setUp(self):
+        self.policy = load_policy()
+        self.texts = package_fixture_texts()
+
+    def outputs(self, profile="nasa-std-7009b"):
+        return render(CHALLENGE, profile, MemoryReader(self.texts), self.policy)
+
+    def annex(self):
+        return json.loads(self.outputs()["generation-manifest.json"])[
+            "credibility_evidence"
+        ]
+
+    def context(self):
+        from scripts.dev.customer_deliverable.credibility import CONTEXT_SCHEMA
+
+        context = {
+            "schema": CONTEXT_SCHEMA,
+            "mode": "DEVELOPMENT_SAMPLE",
+            "challenge": CHALLENGE,
+            "disclosure": {
+                "kind": "PUBLIC",
+                "evidence": "https://example.invalid/synthetic-only",
+            },
+            "identity": json.loads(self.texts["P4"])["identity"],
+            "context_of_use": {
+                "id": "synthetic-screening-only",
+                "version": "fixture-v1",
+            },
+            "model_influence": {
+                "value": "SYNTHETIC_ONE_INPUT_AMONG_OTHERS",
+                "authority_ref": "sha256:" + "9" * 64,
+            },
+            "decision_consequence": {
+                "value": "SYNTHETIC_EXPLORATORY_REWORK",
+                "authority_ref": "sha256:" + "a" * 64,
+            },
+            "required_credibility": {"value": None, "authority_ref": None},
+        }
+        return context
+
+    def test_matrix_retains_failed_observations_without_issuing_acceptance(self):
+        annex = self.annex()
+        matrix = {row["requirement_id"]: row for row in annex["matrix"]}
+        row = matrix["DEVREQ.law_checks.initial-temperature.violation_rate"]
+        self.assertEqual(row["coverage"], "EVIDENCED")
+        self.assertEqual(row["source_outcome"], "FAIL")
+        self.assertEqual(row["value"], 0.25)
+        self.assertEqual(row["unit"], "fraction")
+        self.assertEqual(row["sample_count"], 8)
+        self.assertEqual(row["measurement_version"], "fixture-v1")
+        self.assertEqual(
+            row["adverse_links"],
+            ["PACKAGE_law_checks.initial-temperature.violation_rate"],
+        )
+        self.assertEqual(row["identity"], annex["identity"])
+        self.assertEqual(row["source_versions"][0]["revision"], "a" * 40)
+        self.assertIsNone(matrix["DEVREQ.historical.EV5_ATTACK"]["identity"])
+        self.assertIn(
+            "EV5_ATTACK", matrix["DEVREQ.historical.EV5_ATTACK"]["adverse_links"]
+        )
+        self.assertEqual(len(matrix), len(annex["matrix"]))
+        for row in matrix.values():
+            self.assertEqual(row["requirement_outcome"], "NOT_ASSESSED")
+            self.assertIsNone(row["criterion"])
+            self.assertEqual(row["criterion_authority"], "HUMAN_INPUT")
+        self.assertFalse(annex["qualification_claim"])
+        self.assertFalse(annex["compliance_claim"])
+        self.assertFalse(annex["accreditation_claim"])
+
+    def test_source_pass_and_mms_never_become_physical_or_requirement_pass(self):
+        projection = json.loads(self.texts["P4"])
+        projection["model_card"]["accuracy_overall"]["outcome"] = "PASS"
+        self.texts["P4"] = json.dumps(projection)
+        annex = self.annex()
+        rows = {row["requirement_id"]: row for row in annex["matrix"]}
+        card = rows["DEVREQ.model_card.accuracy_overall"]
+        self.assertEqual(card["source_outcome"], "PASS")
+        self.assertEqual(card["requirement_outcome"], "NOT_ASSESSED")
+        self.assertEqual(card["measurement_version"], "fixture-v1")
+        self.assertEqual(
+            rows["DEVREQ.solver_verification.physical_validation"]["coverage"], "GAP"
+        )
+        self.assertIsNone(rows["DEVREQ.solver_verification.norm.0.l2"]["identity"])
+
+    def test_reference_and_infra_failures_remain_typed_in_matrix_and_findings(self):
+        for outcome in ("FAILED_REFERENCE", "FAILED_INFRA"):
+            with self.subTest(outcome=outcome):
+                projection = json.loads(self.texts["P4"])
+                projection["model_card"]["robustness"].update(
+                    value=None, outcome=outcome
+                )
+                self.texts["P4"] = json.dumps(projection)
+                annex = self.annex()
+                row = next(
+                    row
+                    for row in annex["matrix"]
+                    if row["requirement_id"] == "DEVREQ.model_card.robustness"
+                )
+                self.assertEqual(row["source_outcome"], outcome)
+                self.assertEqual(row["coverage"], "GAP")
+                self.assertTrue(row["adverse_links"])
+
+    def test_risk_unknowns_and_all_eleven_goals_remain_explicit(self):
+        plan = self.annex()["risk_informed_plan"]
+        self.assertIsNone(plan["context_of_use"])
+        for field in (
+            "model_influence",
+            "decision_consequence",
+            "required_credibility",
+        ):
+            self.assertIsNone(plan[field]["value"])
+            self.assertEqual(plan[field]["basis"], "HUMAN_INPUT")
+        self.assertIsNone(plan["risk_combination"]["value"])
+        self.assertIsNone(plan["risk_combination"]["rule"])
+        self.assertEqual(
+            [goal["id"] for goal in plan["goals"]],
+            [f"DEVREQ.D{i:02}" for i in range(1, 12)],
+        )
+        self.assertTrue(
+            all(
+                goal["next_proof"] and goal["authority"] == "HUMAN_INPUT"
+                for goal in plan["goals"]
+            )
+        )
+
+    def test_declared_context_copies_only_matched_public_fields_without_risk_math(self):
+        context = self.context()
+        context["required_credibility"] = {
+            "value": "SYNTHETIC_OWNER_GOAL",
+            "authority_ref": "sha256:" + "b" * 64,
+        }
+        self.texts["P8"] = json.dumps(context)
+        plan = self.annex()["risk_informed_plan"]
+        self.assertEqual(plan["context_of_use"], context["context_of_use"])
+        for field in (
+            "model_influence",
+            "decision_consequence",
+            "required_credibility",
+        ):
+            self.assertEqual(plan[field]["value"], context[field]["value"])
+            self.assertEqual(
+                plan[field]["authority_ref"], context[field]["authority_ref"]
+            )
+            self.assertEqual(
+                plan[field]["basis"], "PUBLIC_DECLARATION_NOT_AUTHENTICATED_ACCEPTANCE"
+            )
+        self.assertIsNone(plan["risk_combination"]["value"])
+        self.assertIsNone(plan["risk_combination"]["rule"])
+
+    def test_context_refusals_do_not_echo_input_or_hide_other_adverse_evidence(self):
+        for kind in (
+            "family",
+            "image",
+            "artifact",
+            "contract",
+            "private",
+            "mode",
+            "schema",
+            "extra",
+            "authority",
+            "numeric",
+            "placeholder",
+            "duplicate",
+            "no_projection",
+            "no_acceptance",
+            "no_contract",
+            "changed_contract",
+            "unnamed_use",
+        ):
+            with self.subTest(kind=kind):
+                self.texts = package_fixture_texts()
+                context = self.context()
+                if kind == "family":
+                    context["challenge"] = "motor"
+                elif kind in {"image", "artifact", "contract"}:
+                    key = {
+                        "image": "reference_image_digest",
+                        "artifact": "model_artifact_hash",
+                        "contract": "physics_contract_digest",
+                    }[kind]
+                    context["identity"][key] = "sha256:" + "f" * 64
+                elif kind == "private":
+                    context["disclosure"]["kind"] = "PRIVATE"
+                elif kind in {"mode", "schema"}:
+                    context[kind] = "SYNTHETIC_CANARY_NOT_FOR_DISCLOSURE"
+                elif kind == "extra":
+                    context["raw_samples"] = "SYNTHETIC_CANARY_NOT_FOR_DISCLOSURE"
+                elif kind == "authority":
+                    context["model_influence"]["authority_ref"] = None
+                elif kind == "numeric":
+                    context["model_influence"]["value"] = 4
+                elif kind == "placeholder":
+                    context["model_influence"]["value"] = "HUMAN_INPUT"
+                elif kind == "no_projection":
+                    del self.texts["P4"]
+                elif kind == "no_acceptance":
+                    del self.texts["P2"]
+                elif kind == "no_contract":
+                    del self.texts["P3"]
+                elif kind == "changed_contract":
+                    self.texts["P3"] += "\n"
+                elif kind == "unnamed_use":
+                    context["context_of_use"]["id"] = "HUMAN_INPUT"
+                self.texts["P8"] = json.dumps(context)
+                if kind == "duplicate":
+                    self.texts["P8"] = self.texts["P8"].replace(
+                        '{"schema":',
+                        '{"schema": "SYNTHETIC_CANARY_NOT_FOR_DISCLOSURE", "schema":',
+                        1,
+                    )
+                output = self.outputs()
+                annex = json.loads(output["generation-manifest.json"])[
+                    "credibility_evidence"
+                ]
+                self.assertIsNone(annex["risk_informed_plan"]["context_of_use"])
+                self.assertTrue(
+                    any(
+                        gap.startswith("P8:")
+                        for gap in annex["risk_informed_plan"]["gaps"]
+                    )
+                )
+                self.assertTrue(
+                    any(
+                        finding["id"] == "EV5_ATTACK" and finding["outcome"] == "FAIL"
+                        for finding in annex["retained_findings"]
+                    )
+                )
+                self.assertNotIn("SYNTHETIC_CANARY", str(output))
+
+    def test_unknown_context_values_are_not_filled_from_map_or_card(self):
+        context = self.context()
+        for field in (
+            "model_influence",
+            "decision_consequence",
+            "required_credibility",
+        ):
+            context[field] = {"value": None, "authority_ref": None}
+        self.texts["P8"] = json.dumps(context)
+        plan = self.annex()["risk_informed_plan"]
+        self.assertIsNotNone(plan["context_of_use"])
+        self.assertTrue(
+            all(
+                plan[field]["value"] is None
+                for field in (
+                    "model_influence",
+                    "decision_consequence",
+                    "required_credibility",
+                )
+            )
+        )
+
+    def test_new_profiles_use_the_frozen_crosswalk_columns_for_all_families(self):
+        for challenge in (CHALLENGE, "f02", "motor", "cooling-cell"):
+            for profile, expected in (("asme-vv40", "topic"), ("dod-vva", "DoD")):
+                with self.subTest(challenge=challenge, profile=profile):
+                    output = render(
+                        challenge, profile, MemoryReader(fixture_texts()), self.policy
+                    )
+                    manifest = json.loads(output["generation-manifest.json"])
+                    standard = manifest["standard_rendering"]
+                    self.assertFalse(standard["clause_complete"])
+                    self.assertEqual(len(standard["section_mapping"]), 11)
+                    self.assertEqual(
+                        {row["anchor"] for row in standard["section_mapping"]},
+                        {expected},
+                    )
+                    self.assertFalse(standard["qualification_claim"])
+                    self.assertEqual(
+                        json.loads(output["sample.json"])["schema_version"],
+                        "PROPOSAL_V1",
+                    )
+                    self.assertIn("not accreditation", output["sample.md"])
+
+    def test_defense_questions_keep_customer_actions_even_when_all_artifacts_exist(
+        self,
+    ):
+        questions = self.annex()["defense_vva"]
+        self.assertEqual(len(questions), 6)
+        self.assertTrue(
+            all(
+                q["coverage"] in {"PARTIAL", "GAP"}
+                and q["customer_action"]
+                and q["accreditation_outcome"] == "NOT_ASSESSED"
+                for q in questions
+            )
+        )
+        self.assertTrue(all(q["mapping_source"] == "F3" for q in questions))
+
+    def test_f02_both_runs_show_conditional_owner_decision_and_original_orders(self):
+        root = Path(__file__).resolve().parents[2]
+        output = render(
+            "f02", "nasa-std-7009b", GitReader(root, "HEAD", "HEAD"), self.policy
+        )
+        manifest = json.loads(output["generation-manifest.json"])
+        rows = {
+            row["field"]: row
+            for row in manifest["package_evidence"]["sections"]["solver_verification"][
+                "rows"
+            ]
+        }
+        self.assertEqual(
+            rows["owner_acceptance_link"]["value"],
+            "CONDITIONAL, t_end 0.375 (MMS test-design scope)",
+        )
+        self.assertEqual(
+            rows["supplement.owner_acceptance_link"]["value"],
+            rows["owner_acceptance_link"]["value"],
+        )
+        self.assertEqual(rows["acceptance_conditions"]["value"], {"t_end": 0.375})
+        self.assertIn("time_orders.0.max", rows)
+        self.assertIn("supplement.time_orders.0.max", rows)
+        original_spec = next(
+            item
+            for item in self.policy["challenges"]["f02"]["package_sources"]
+            if item["id"] == "P1"
+        )
+        original = json.loads(GitReader(root, "HEAD", "HEAD").get(original_spec).text)
+        self.assertEqual(
+            rows["time_orders.0.max"]["value"], original["time_orders"][0]["max"]
+        )
+
+    def test_mms_units_name_manufactured_error_separately_from_observed_order(self):
+        rows = {
+            row["field"]: row
+            for row in json.loads(self.outputs()["generation-manifest.json"])[
+                "package_evidence"
+            ]["sections"]["solver_verification"]["rows"]
+        }
+        self.assertEqual(
+            rows["norm.0.l2"]["unit"], "dimensionless manufactured-solution error"
+        )
+        self.assertEqual(rows["l2_order"]["unit"], "dimensionless observed order")
+        self.assertNotIn("code-verification fixture", str(self.outputs()))
+
+    def test_generation_replays_and_matrix_sources_are_registered(self):
+        self.texts["P8"] = json.dumps(self.context())
+        self.assertEqual(self.outputs(), self.outputs())
+        annex = self.annex()
+        registered = {
+            item["id"]
+            for item in self.policy["challenges"][CHALLENGE]["package_sources"]
+            + self.policy["challenges"][CHALLENGE]["sources"]
+        }
+        self.assertTrue(
+            all(set(row["evidence_refs"]) <= registered for row in annex["matrix"])
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

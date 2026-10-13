@@ -44,3 +44,20 @@ Black/Ruff may be used from an isolated temporary tool directory; no repository
 dependency is added. Native output remains diagnostic; exact-head CI supplies
 acceptance. PR Head/owner owns review handoff and merge, with Carbon Validator
 and Data Collection as the named review routes. Hub remains retired.
+
+## PRD-04 / CREDIBILITY-MATRIX-AUTOFILL-01 (2026-10-12)
+
+Base main `7f9d7a2fc99205b67d6e03393c68e1f85e716e58`; includes the queue-directed
+PRD-01b follow-ups in this generator PR. The durable working decision is
+`.agent/decisions/2026-10-12-PRD04-CREDIBILITY-AUTOFILL-01.md`.
+KEEP common schemas/readers, public source registry and normalized facts;
+WRAP with a versioned credibility annex, D01–D11 proof plan and defense questions.
+New ASME V&V 40 and DoD profiles index existing framework columns only.
+P8 is an optional registered public, closed, identity-bound context declaration.
+No arbitrary customer path, scientific risk rule, requirement criterion,
+qualification object, licensed clause, physical validation or accreditation is
+supplied. Typed adverse outcomes and source-only historical bindings survive.
+Fresh examples preserve previous generations. Hub retired; no maintenance.
+Native baseline 46 tests + 13 subtests passed; exact-head CI remains the required
+engineering acceptance. Named review: Carbon Validator plus Data Collection;
+Product stops at Ready for PR Head, never merges, approves or releases.
