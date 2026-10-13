@@ -409,10 +409,11 @@ def program(recipe, record, g5_result, cases):
     """Host-side metadata validation and arithmetic; no graph execution."""
     from carbon.level4 import compile as g5
     from carbon.level4 import staging
-    from carbon.training_budget.adapter import Program
     from carbon.level4.validate import parameters
-    from . import level3_numerics
+    from carbon.training_budget.adapter import Program
     from carbon.training_budget.cost import CostRefused
+
+    from . import level3_numerics
 
     require_g5(g5_result)
     profile = g5_result.get("composed_profile")

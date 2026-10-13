@@ -14,7 +14,9 @@ pytest.importorskip("jax")
 os.environ.setdefault("JAX_PLATFORMS", "cpu")
 
 from test_battery_composed_graph import BASE, PARTS, ROOT, compiled
-from test_battery_composed_graph import graph_input as graph_input
+from test_battery_composed_graph import (
+    graph_input as graph_input,
+)  # noqa: PLC0414 - pytest fixture registration
 
 from carbon.battery import composed_graph_cost as profile_cost
 from carbon.level4 import compile as g5
