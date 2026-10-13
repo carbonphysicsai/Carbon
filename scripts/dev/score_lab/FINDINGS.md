@@ -18,7 +18,9 @@ no numerical solver supplies truth. Bootstrap resamples recipe clusters and
 value questions (200 replicates in this note). The small member and question
 counts leave broad intervals, so point τ differences are exploratory.
 
-The Validator's read-only `candidates.py` was also run across **all 32** toy
+The Validator's read-only `candidates.py` (SHA-256
+`85c0503dffb2690df810556e117ec04900527358de1c6e2155431ddfa5023b4b`)
+was also run across **all 32** toy
 profiles with the three-verification buyer workflow, benefit unit 1, the two
 assumed verification costs 0.02/0.2, and 100 bootstrap replicates. The
 candidate-file digest is recorded in the JSON output. These are lab proxies,
