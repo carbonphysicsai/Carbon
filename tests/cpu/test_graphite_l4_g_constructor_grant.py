@@ -134,8 +134,9 @@ def test_it_fits_the_weekly_cap_beside_the_owners_other_open_grants():
 
 
 def test_the_rerun_grant_is_the_same_grant_again_and_fits_the_effective_weekly_cap():
-    """-3 is -2 again (the run under -2 was spent without staging): every figure equal, nothing above the 14.94 ceiling,
-    and the owner's other open grants plus both L4-G grants stay under the effective cap (300 less the 40 held).
+    """-3 is -2 again (the run under -2 was spent without staging): every figure equal, nothing above the 14.94 ceiling.
+    The owner's other open grants plus every grant the binding registers under the standing test grant (-2, -3 and the
+    A2 re-run) stay under the effective cap (300 less the held reserves).
     """
     first, again = _grant(), _grant("GRAPHITE-GRANT-L4-G-CONSTRUCTOR-3")
     for name in (
@@ -168,9 +169,17 @@ def test_the_rerun_grant_is_the_same_grant_again_and_fits_the_effective_weekly_c
     held = sum(grant_runs.HELD_RESERVES.values())
     effective = WEEKLY_CAP_USD - held
     assert grant_runs.effective_weekly_cap() == effective
-    assert (
-        OTHER_OPEN_GRANTS + first.monetary_ceiling + again.monetary_ceiling <= effective
-    )
+    standing = [
+        _grant(grant_id)
+        for grant_id, registered in grant_binding.PHASE3_GRANTS.items()
+        if registered.authority == grant_binding.STANDING_TEST_GRANT_AUTHORITY
+    ]
+    assert {g.grant_id for g in standing} >= {
+        first.grant_id,
+        again.grant_id,
+        "GRAPHITE-GRANT-HUNT-A2-RERUN-ATTACKER",
+    }
+    assert OTHER_OPEN_GRANTS + sum(g.monetary_ceiling for g in standing) <= effective
 
 
 def _index_rows():
