@@ -20,16 +20,23 @@ session's claimed timing/GPU evidence as a probe. Only exact engine
 typed NOT_RUN with an explicit unavailable reading, never HELD or invented
 NOT_APPLICABLE. No real host worker, GPU, provider, or attack session runs.
 
-Implementation order, based on reachable code:
-1. G5's registered scope/deadline and fixed Carbon-program dispatch checks.
-   `compile_in_isolation` dispatches through the carrier, but the battery
-   graph adapter does not invoke G5; this checks dispatch guards, not a live
-   compiler exploit. A nonexecuting fixture runner captures the real call.
+Adjustment PKT15-UNAVAILABLE-VERDICT-01: the verifier's ordinary NOT_RUN
+mapping is NA. Add a specific unavailable-evidence reading routed to
+UNDETERMINED, ineligible for agreed-admissible closure; retain the existing
+INCONCLUSIVE and genuine out-of-scope semantics. No prior record is rescored.
+
+Final reachability priority (refined from the proposed queue order):
+1. G7's case-level finite-output detection on Carbon-generated, validated
+   CPU graph fixtures. Admitted graph outputs can reach the staged battery
+   exam path; this probe checks the helper, not that separate exam's gate.
+   No scientific tolerance is needed for NaN/infinity.
 2. R6/R7's already-frozen rule functions (1.5 underprediction ratio and
    three-times prediction safety limit). Fixture observations test rule
    discrimination; they do not establish an actual runtime prediction.
-3. G7's case-level finite-output detection on Carbon-generated, validated
-   CPU graph fixtures. No scientific tolerance is needed for NaN/infinity.
+3. G5's registered scope/deadline and fixed Carbon-program dispatch checks.
+   `compile_in_isolation` dispatches through the carrier, but the battery
+   graph adapter does not invoke G5; this checks dispatch guards, not a live
+   compiler exploit. A nonexecuting fixture runner captures the real call.
 
 Remaining affected scope stays fail closed:
 - fresh_cases_rerun: an authorized fresh Phase 3/Launchpad run is required;
@@ -52,8 +59,10 @@ and run relevant tests plus canonical acceptance. Full PKT-15 is not DONE
 until all six requested families have the required decidable oracle and
 controls and the outstanding actual-evidence/owner conditions are met.
 
-Expected paths: this ticket; its decision; battery_level4.py;
-battery_level4_checks.py; both named L4 adapter/check test files; and
+Expected paths: this ticket; both named decisions; adapter.py; verify.py;
+battery_level4.py;
+battery_level4_checks.py; the new L4 check test file (the original adapter
+test file remains unchanged); and
 docs/development/graphite/LEVEL4_ATTACK_ORACLES.md.
 
 Native diagnostics are noncanonical. Baseline broad checks encountered
