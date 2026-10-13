@@ -3359,16 +3359,24 @@ class RunnerAdapter:
         from carbon.development_session.design_check import check_design
 
         try:
-            from carbon.reconstruction.capability_registry import BATTERY_CHALLENGE
+            from carbon.challenge_registry.campaigns import campaign_for_id
+            from carbon.challenge_registry.registry import ResolutionError
 
+            try:
+                composition = (
+                    campaign_for_id(strategy.get("challenge_id"))
+                    if type(strategy) is dict
+                    else None
+                )
+            except ResolutionError:
+                composition = None  # Existing check-design owns unknown/base inputs.
             if (
-                type(strategy) is dict
-                and strategy.get("challenge_id") == BATTERY_CHALLENGE
+                composition is not None
+                and composition.construction_contract is not None
             ):
-                from carbon.battery.unified_contract import contract
                 from carbon.development_session.unified_construction import classify
 
-                classified = classify(strategy, contract())
+                classified = classify(strategy, composition.construction_contract())
                 # Keep the existing base contract's check-design vocabulary;
                 # the new guard owns construction widening, not a silent
                 # migration of historical/base validation semantics.

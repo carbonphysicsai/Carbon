@@ -95,19 +95,21 @@ def build(contract, served=()):
 
 
 def for_profile(cfg, read=None):
-    """Current registered provider; other Challenges never inherit battery options."""
-    from carbon.battery.intake_client import read_intake
-    from carbon.battery.remote_submission import check_receiver
-    from carbon.battery.unified_contract import contract
+    """Registry-owned public providers; no door names a Challenge implementation."""
+    from carbon.challenge_registry.campaigns import implemented_campaigns
     from carbon.development_session.intake_targets import for_challenge
-    from carbon.reconstruction.capability_registry import BATTERY_CHALLENGE
     from scripts.dev.miner_launchpad.runner import intakes, receivers
 
-    try:
-        registered = contract()
-    except (OSError, ValueError, KeyError, TypeError):
-        return {
-            BATTERY_CHALLENGE: {
+    found = {}
+    for entry, composition in implemented_campaigns():
+        if composition.construction_contract is None:
+            continue
+        try:
+            registered = composition.construction_contract()
+            if registered.document["challenge"] != entry.challenge_id:
+                raise ValueError("registered construction provider differs")
+        except (OSError, ValueError, KeyError, TypeError):
+            found[entry.challenge_id] = {
                 "schema": "carbon.launchpad.construction-options.v1",
                 "status": "PUBLIC_CONTRACT_UNAVAILABLE",
                 "ceiling": None,
@@ -115,27 +117,28 @@ def for_profile(cfg, read=None):
                 "submission_path_available": False,
                 "qualification": False,
             }
-        }
-    served = []
-    if read is None:
-        read = read_intake
-    if read is not None:
-        paired = for_challenge(cfg, BATTERY_CHALLENGE)
+            continue
+        served = []
+        callback = read or composition.intake_check
+        paired = for_challenge(cfg, entry.challenge_id)
         if paired is None:
-            url, pin = intakes(cfg).get(BATTERY_CHALLENGE), receivers(cfg).get(
-                BATTERY_CHALLENGE
+            url, pin = intakes(cfg).get(entry.challenge_id), receivers(cfg).get(
+                entry.challenge_id
             )
             paired = (
                 [{"intake_url": url, "receiver_hotkey": pin}] if url and pin else []
             )
         for target in paired:
             try:
-                served.append(
-                    check_receiver(
-                        read(target["intake_url"]), target["receiver_hotkey"]
-                    )
-                )
+                facts = callback(target["intake_url"]) if callback is not None else None
+                if (
+                    type(facts) is not dict
+                    or facts.get("receiver") != target["receiver_hotkey"]
+                ):
+                    raise ValueError("unbound serving facts")
+                served.append(facts)
             except Exception:  # noqa: BLE001
                 # Unread/unbound facts grant no serving permission.
                 served.append(None)
-    return {BATTERY_CHALLENGE: build(registered, served)}
+        found[entry.challenge_id] = build(registered, served)
+    return found

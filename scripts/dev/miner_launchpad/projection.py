@@ -188,17 +188,24 @@ def _validator_outcome(epoch, path):
 
 def _multi_validator_outcome(epoch, path):
     """Project each independently stored allow-listed result; never aggregate scores."""
-    from carbon.battery import multi_intake
-    from carbon.battery.campaign import intake_code
-    from carbon.development_session.intake_targets import MAX_TARGETS, validate
+    from carbon.challenge_registry.campaigns import campaign_for
+    from carbon.challenge_registry.registry import ResolutionError
+    from carbon.development_session.intake_targets import (
+        MAX_TARGETS,
+        result_path,
+        validate,
+    )
     from scripts.dev.miner_launchpad.supervisor import next_action
 
     try:
         if path.is_symlink() or path.stat().st_size > (MAX_TARGETS + 1) * 65536:
             return None
         document = json.loads(path.read_bytes())
+        composition = campaign_for(document["challenge"])
         if (
-            document.get("schema") != multi_intake.SCHEMA
+            composition.multi_feedback_schema is None
+            or composition.intake_code is None
+            or document.get("schema") != composition.multi_feedback_schema
             or document.get("epoch") != epoch
         ):
             return None
@@ -210,9 +217,7 @@ def _multi_validator_outcome(epoch, path):
         root = path.parent.parent
         for row, target in zip(rows, targets):
             if row["feedback"] is not None:
-                found = _validator_outcome(
-                    epoch, multi_intake._result_path(root, target, epoch)
-                )
+                found = _validator_outcome(epoch, result_path(root, target, epoch))
                 if (
                     found["status"] != "VALIDATOR_OUTCOME"
                     or found["result"]["state"] != row["state"]
@@ -224,7 +229,11 @@ def _multi_validator_outcome(epoch, path):
             else:
                 if row["state"] not in {"REFUSED", "FAILED_INFRA", "QUEUED", "PENDING"}:
                     return None
-                code = None if row["state"] == "PENDING" else intake_code(row["code"])
+                code = (
+                    None
+                    if row["state"] == "PENDING"
+                    else composition.intake_code(row["code"])
+                )
                 projected.append(
                     {
                         **target,
@@ -246,7 +255,7 @@ def _multi_validator_outcome(epoch, path):
             "qualification": False,
             "reward": False,
         }
-    except (OSError, ValueError, KeyError, TypeError, AttributeError):
+    except (OSError, ValueError, KeyError, TypeError, AttributeError, ResolutionError):
         return None
 
 
@@ -576,10 +585,15 @@ def project(row, root):
                 or _validator_outcome(epoch, feedback)
             )
         elif not pointer_exists(directory):
-            from carbon.battery.multi_intake import STATUS_NAME
+            from carbon.challenge_registry.campaigns import campaign_for_manifest
+            from carbon.challenge_registry.registry import ResolutionError
 
-            status = directory / STATUS_NAME
-            if status.is_file():
+            try:
+                status_name = campaign_for_manifest(manifest).multi_feedback_status
+            except ResolutionError:
+                status_name = None  # Retired/unknown history has no new multi hook.
+            status = directory / status_name if status_name is not None else None
+            if status is not None and status.is_file():
                 found = _multi_validator_outcome(epoch, status)
                 if found is not None:
                     value["final_results"].append(found)

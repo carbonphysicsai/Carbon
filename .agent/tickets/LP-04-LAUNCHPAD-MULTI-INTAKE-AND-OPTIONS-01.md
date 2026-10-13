@@ -77,3 +77,11 @@ passed, including 32 new LP-04 tests. Pinned Black 26.5.1/Ruff 0.16.3 passed.
 New fixture failures were repaired to the existing OWNER-prefix and exact
 registration-digest format; no contract guard or pin was relaxed. Dynamic
 exact-head CI and handoff facts belong in the external/local queue report.
+
+CI found three direct Challenge imports in otherwise neutral doors. REPAIR:
+route optional construction-contract, multi-feedback schema/status and refusal
+normalization through ChallengeCampaign; share only generic journal pointers.
+Multi feedback names its public Challenge identity before registry resolution.
+No neutrality assertion changed. Canonical repair acceptance: 533 tests passed
+with two intentional AST-fixture skips; final registry/history/unknown-identity
+checks passed 159 with those same two skips. Retired history has no new hook.

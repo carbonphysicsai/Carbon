@@ -35,3 +35,9 @@ versioned multi feedback history. Supersession must change these named paths.
 OWNER ceiling, per-type security acceptance and deployment remain reserved.
 No external opening or deployment occurs. Primary historical map_ref WAVE-A/A9;
 Hub maintenance is retired under current delivery authority.
+
+CI boundary repair: Challenge-neutral doors obtain optional public-contract,
+multi-feedback schema/status and closed-code callbacks from ChallengeCampaign.
+Journal/result pointers are generic; multi feedback binds the public Challenge
+identity before lookup. A retired/unregistered manifest offers no new hook.
+The existing import guards and historical-readback assertions are unchanged.

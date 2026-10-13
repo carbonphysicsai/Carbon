@@ -9,7 +9,7 @@ import tempfile
 from pathlib import Path
 from types import SimpleNamespace
 
-from carbon.development_session.intake_targets import journal, validate
+from carbon.development_session.intake_targets import journal, result_path, validate
 from carbon.development_session.profile import canonical
 
 SCHEMA = "carbon.battery.permitted-feedback.multi.v1"
@@ -29,7 +29,7 @@ def _write(path, value):
 
 
 def _result_path(root, target, epoch):
-    return journal(root, target) / f"permitted-result-epoch-{epoch}.json"
+    return result_path(root, target, epoch)
 
 
 def _cached(root, target, epoch):
@@ -56,8 +56,11 @@ def _cached(root, target, epoch):
 
 
 def aggregate(root, epoch, rows):
+    from carbon.battery.campaign import CHALLENGE
+
     value = {
         "schema": SCHEMA,
+        "challenge": {"id": CHALLENGE.challenge_id, "version": CHALLENGE.version},
         "epoch": epoch,
         # An execution summary, never SCORED or scientific agreement.
         "outcome": {"state": "MULTI_VALIDATOR"},

@@ -461,3 +461,14 @@ def test_one_commitment_gate_precedes_every_target_send(tmp_path, wire, monkeypa
     context.args.commitment_gate = object()
     asyncio.run(campaign.evaluate_candidate(context, 1, RECORD))
     assert gates == [(RECORD["strategy"], DIGEST)]
+
+
+def test_unknown_challenge_metadata_cannot_relabel_a_cached_validator_result(
+    tmp_path, wire
+):
+    asyncio.run(campaign.evaluate_candidate(prepared(tmp_path), 1, RECORD))
+    path = tmp_path / "epoch-1" / multi_intake.STATUS_NAME
+    doc = json.loads(path.read_bytes())
+    doc["challenge"] = {"id": "fixture-unregistered-challenge", "version": "1.0"}
+    path.write_text(json.dumps(doc), encoding="utf-8")
+    assert projection._multi_validator_outcome(1, path) is None

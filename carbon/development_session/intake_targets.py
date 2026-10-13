@@ -63,3 +63,8 @@ def journal(root, target):
     """Stable private journal identity, independent of list order."""
     identity = json.dumps(target, sort_keys=True, separators=(",", ":")).encode()
     return Path(root) / "intake-targets" / hashlib.sha256(identity).hexdigest()
+
+
+def result_path(root, target, epoch):
+    """A generic per-validator permitted-result pointer, never a raw path."""
+    return journal(root, target) / f"permitted-result-epoch-{epoch}.json"
