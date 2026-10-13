@@ -36,6 +36,8 @@ def adapt_synthetic(panel, member):
     questions = {}
     probes = []
     for qid, question in panel["score_questions"].items():
+        if set(member["score_predictions"][qid]) != set(question["actions"]):
+            raise LabRefused("candidate_prediction_action_coverage")
         references[qid] = {
             aid: {
                 "status": ref["status"],

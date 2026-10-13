@@ -113,6 +113,8 @@ def v2_rule(*, definition, kappa, cap, unit):
                 continue
             base = actions[fallback]["objective"]
             predicted = predictions[qid]
+            if set(predicted) != set(actions):
+                return None  # missing action predictions cannot mimic abstention
             shortlist = sorted(
                 (
                     (p["objective"], aid)

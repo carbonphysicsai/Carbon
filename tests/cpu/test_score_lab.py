@@ -136,6 +136,17 @@ def test_v2_cost_and_missing_gate_are_explicit_assumptions():
     )
     with pytest.raises(LabRefused, match="v2_human_input_required"):
         v2_rule(definition=definition, kappa=None, cap=2, unit=1.0)
+    member = panel["members"][0]
+    qid = next(iter(panel["score_questions"]))
+    member["score_predictions"][qid].pop(next(iter(member["score_predictions"][qid])))
+    assert (
+        rule(
+            member["score_predictions"],
+            panel["score_questions"],
+            {"score_row": member["score_row"], **panel["score_metadata"]},
+        )
+        is None
+    )
 
 
 def test_v2_refuses_ev4_job_and_matched_toy_buyer_runs():

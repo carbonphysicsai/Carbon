@@ -22,6 +22,8 @@ def _interval(values):
 
 def _v2_question(q, prediction, *, cap, kappa, unit):
     actions = q["actions"]
+    if set(prediction) != set(actions):
+        raise LabRefused("bank_predictor_action_coverage")
     base = max(c["objective"] for c in actions[q["fallback_action"]])
     shortlist = sorted(
         (
