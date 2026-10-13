@@ -17,7 +17,7 @@ from .model import FAIL, NOT_BUILT, PASS, REVIEW_REQUIRED, Result, digest, file_
 
 REVIEW_SCHEMA = "carbon.readiness.runtime-review.v1"
 SHA = re.compile(r"sha256:[0-9a-f]{64}\Z")
-ANALYSIS_LANE = "miner-analysis-carrier"
+ANALYSIS_LANE = "carbon.miner-research.unlimited.v1"
 
 
 class Invalid(ValueError):
@@ -240,6 +240,8 @@ def containment(item, ctx):
         probes = report.get("probes")
         if (
             report.get("image_id") != image.image_id
+            or report.get("lane") != ANALYSIS_LANE
+            or report.get("code", "missing") is not None
             or type(probes) is not list
             or any(type(p) is not dict for p in probes)
             or [p.get("probe") for p in probes] != list(carrier.PROBES)

@@ -253,7 +253,7 @@
       }
      },
      "containment_lanes": [
-      "miner-analysis-carrier"
+      "carbon.miner-research.unlimited.v1"
      ]
     },
     "3": {
@@ -270,7 +270,7 @@
       }
      },
      "containment_lanes": [
-      "miner-analysis-carrier"
+      "carbon.miner-research.unlimited.v1"
      ]
     },
     "4": {
@@ -287,7 +287,7 @@
       }
      },
      "containment_lanes": [
-      "miner-analysis-carrier"
+      "carbon.miner-research.unlimited.v1"
      ]
     }
    }

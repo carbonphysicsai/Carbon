@@ -62,6 +62,8 @@ def containment_report():
     return {
         "schema": carrier.SCHEMA,
         "status": model.PASS,
+        "lane": runtime.ANALYSIS_LANE,
+        "code": None,
         "image_id": SHA,
         "create_arguments_digest": SHA,
         "operation": "wrapper-fixture",
@@ -111,6 +113,8 @@ def test_r2_runs_a_probe_and_binds_manifest_bytes(ctx, monkeypatch):
         "isolation",
         "claims",
         "schema",
+        "lane",
+        "code",
     ],
 )
 def test_r2_refuses_contradictory_or_synthetic_probe_evidence(
@@ -133,6 +137,10 @@ def test_r2_refuses_contradictory_or_synthetic_probe_evidence(
         report["isolation"] = None
     elif mutation == "claims":
         report["claims"]["security_acceptance"] = True
+    elif mutation == "lane":
+        report["lane"] = "another-lane"
+    elif mutation == "code":
+        report["code"] = "containment_check_failed"
     else:
         report["schema"] = "old"
     install_probe(ctx, monkeypatch, report)
