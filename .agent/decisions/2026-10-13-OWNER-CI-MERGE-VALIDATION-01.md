@@ -63,9 +63,10 @@ the flip would close is narrow — main moving *after* a green gate but *before*
 the merge.
 
 The recommendation put to him was therefore to adopt 2 and 3 and hold 1, with
-the exact commands he would need if he still wanted 1. **He declined it: "Not
-doing that."** So `strict_required_status_checks_policy` stays `false`, and
-**no repository configuration was changed at any point** in this sequence.
+the exact commands he would need if he still wanted 1. **He declined change 1,
+the flip, in those words: "Not doing that." Changes 2 and 3 stand and are
+adopted.** So `strict_required_status_checks_policy` stays `false`, and **no
+repository configuration was changed at any point** in this sequence.
 
 The approval-then-decline is recorded in full deliberately. The approval was
 obtained on a cost figure that was wrong, and the decline followed a cost that
