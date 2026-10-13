@@ -215,7 +215,12 @@
     return Number.isInteger(error?.status) && error.status >= 400 && error.status < 500 && !OUTCOME_UNKNOWN.has(error.code);
   }
   // An error's code or message, read as words, without a closing stop.
-  function said(error) { return words(error?.message).replace(/\.$/, ""); }
+  function practiceMessage(code) {
+    if (code === "smoke_practice_unavailable") return "This Challenge has no smoke practice";
+    if (code === "practice_time_budget_reached") return "The full practice reached its time budget. Next, run a smoke practice";
+    return null;
+  }
+  function said(error) { return (refused(error) && practiceMessage(error?.code)) || words(error?.message).replace(/\.$/, ""); }
   // Human units for the ledger's resources (LP-PROD-F): what the miner types
   // and reads, and the whole number the ledger counts. A resource without an
   // entry is a count. Conversions are exact decimal arithmetic on the whole
@@ -1665,6 +1670,7 @@
       settleWatches();
       settleHeld();
       quietly(render);
+      focusSmokePractice();
       if (!setupRead) { setupRead = true; readSetup(); }
       else pollSetup();
       setText($("connection-state"), "Connected");
@@ -2045,11 +2051,11 @@
     const box = el("div", undefined, "refusal-note");
     box.setAttribute("role", "status");
     const at = when(refusal.at);
-    box.append(el("p", (REFUSAL_KINDS[refusal.kind] || "Refused") + ": " + words(refusal.code) + (refusal.operation ? " (" + words(refusal.operation) + ")" : "") + (at ? " · " + at : ""), "status-line"));
+    box.append(el("p", (REFUSAL_KINDS[refusal.kind] || "Refused") + ": " + (practiceMessage(refusal.code) || words(refusal.code)) + (refusal.operation ? " (" + words(refusal.operation) + ")" : "") + (at ? " · " + at : ""), "status-line"));
     // A submit through a validator intake that was not a verdict
     // (LAUNCHPAD-ACCEPT-04): queued, the validator's side, or yours to act on.
     if (refusal.intake_outcome) box.append(el("p", "Validator intake: " + INTAKE_OUTCOMES[refusal.intake_outcome], "hint"));
-    if (refusal.next_action) box.append(el("p", (compact ? "" : "What to do: ") + refusal.next_action, compact ? "hint" : "refusal-next"));
+    if (refusal.next_action && !practiceMessage(refusal.code)) box.append(el("p", (compact ? "" : "What to do: ") + refusal.next_action, compact ? "hint" : "refusal-next"));
     const fix = refusalFix(refusal.code);
     if (fix && !compact) box.append(link(fix, "button fix"));
     parent.append(box);
@@ -2395,7 +2401,7 @@
   function tabMetrics(panel, run) {
     if (!run.usage) { missing(panel, "resource metrics appear once the campaign ledger exists."); return; }
     usageTable(panel, run.usage);
-    const scores = (run.experiments || []).map((experiment, index) => "#" + (index + 1) + ": " + (experiment.diagnostics?.descriptive_score ?? experiment.summary?.score ?? "unavailable"));
+    const scores = (run.experiments || []).map((experiment, index) => experiment.outcome === "SMOKE" ? null : "#" + (index + 1) + ": " + (experiment.diagnostics?.descriptive_score ?? experiment.summary?.score ?? "unavailable")).filter(Boolean);
     researchNote(panel, scores.length ? "Descriptive practice scores (not accepted improvements): " + scores.join(" · ") : "No practice score yet.");
   }
   function tabJournal(panel, run) {
@@ -2506,6 +2512,14 @@
   }
   function renderPractice(parent, experiment, index) {
     const section = document.createElement("section"); section.className = "practice-result";
+    if (experiment.outcome === "SMOKE") {
+      section.classList.add("smoke-result");
+      section.append(el("h4", "Smoke practice"));
+      researchNote(section, smokeResultText(experiment), "status-line");
+      researchNote(section, "Build and training check only; no score.", "hint");
+      parent.append(section);
+      return;
+    }
     const heading = document.createElement("h4"); heading.textContent = "Practice experiment " + (index + 1); section.append(heading);
     if (experiment.summary && typeof experiment.summary === "object") { renderChallengePractice(section, experiment); parent.append(section); return; }
     researchNote(section, "Completed updates: " + experiment.completed_steps + " · Worker seconds: " + experiment.worker_seconds);
@@ -2580,6 +2594,27 @@
     }
     return practiced;
   }
+  const practiceIssues = new Map();
+  const smokeUnavailable = new Set();
+  let smokeFocus = null;
+  function rememberPracticeIssue(campaign, code, mode) {
+    if (!practiceMessage(code)) return;
+    practiceIssues.set(campaign, code);
+    if (code === "smoke_practice_unavailable") smokeUnavailable.add(campaign);
+    if (code === "practice_time_budget_reached" && mode !== "smoke") smokeFocus = campaign;
+  }
+  function practiceIssue(run) {
+    const refusal = lastRefusal(run);
+    if (refusalOf("practice", refusal) && refusal.code === "smoke_practice_unavailable") smokeUnavailable.add(run.id);
+    return smokeUnavailable.has(run.id) ? "smoke_practice_unavailable" : practiceIssues.get(run.id) || (refusalOf("practice", refusal) && practiceMessage(refusal.code) ? refusal.code : null);
+  }
+  function focusSmokePractice() {
+    const button = smokeFocus && $("journey-smoke-" + smokeFocus);
+    if (button && !button.disabled && !button.closest("[hidden]")) { button.focus(); smokeFocus = null; }
+  }
+  function smokeResultText(experiment) {
+    return "Smoke: " + (experiment.status === "PASSED" ? "passed" : experiment.status === "FAILED" ? "failed" : "result unavailable");
+  }
   function renderJourneyPractice(parent, run) {
     // A person's own journey, with no Carbon agent: practice, freeze, submit.
     // Each step is an operation from the same table the agent and MCP use.
@@ -2603,7 +2638,17 @@
       try { strategy = JSON.parse(recipe.value); } catch (_) { message("The recipe is not valid JSON.", true); return; }
       operate("practice", {campaign: run.id, strategy, hypothesis: hypothesis.value || "practice"}, "Practice trial started. Its result appears under Experiments when training finishes.");
     });
-    buttons.append(practice); box.append(buttons);
+    const smoke = document.createElement("button"); smoke.type = "button"; smoke.id = "journey-smoke-" + run.id; smoke.textContent = "Run smoke practice";
+    const issue = practiceIssue(run);
+    smoke.disabled = practice.disabled || issue === "smoke_practice_unavailable";
+    smoke.addEventListener("click", () => {
+      let strategy;
+      try { strategy = JSON.parse(recipe.value); } catch (_) { message("The recipe is not valid JSON.", true); return; }
+      operate("practice", {campaign: run.id, strategy, hypothesis: hypothesis.value || "practice", mode: "smoke"}, "Smoke practice started. Its result appears under Experiments when the check finishes.");
+    });
+    buttons.append(practice, smoke); box.append(buttons);
+    researchNote(box, "A short check that the recipe builds and trains, with no score. A passed check lets you freeze that exact recipe.", "hint");
+    if (issue) researchNote(box, practiceMessage(issue) + ".", "reason");
     operationLine(box, run, ["practice"]);
     if (launchOptions) {
       // Each family's true availability now, by its registry verdict.
@@ -3815,12 +3860,18 @@
     busy = true; render();
     try {
       const outcome = await keyedOperation(name, body);
-      if (outcome.ok) { watch(name, body.campaign, outcome.value, outcome); message(started + (outcome.replaced ? " " + REPLACED : "")); }
+      if (outcome.ok) {
+        if (name === "practice") practiceIssues.delete(body.campaign);
+        watch(name, body.campaign, outcome.value, {...outcome, mode: body.mode}); message(started + (outcome.replaced ? " " + REPLACED : ""));
+      }
       // A refusal with the controller's next step, not just its code
       // (LAUNCHPAD-PAGE-USABILITY-01: a submit with no intake said only
       // "evaluation unavailable").
-      else message(notDone(outcome) + (outcome.refused && outcome.error?.nextStep && !SIGNER_HELP[outcome.error.code] ?" Next: " + String(outcome.error.nextStep).replace(/\.$/, "") + "." : ""), true);
-    } finally { busy = false; await refresh(); render(); }
+      else {
+        if (name === "practice" && outcome.refused) rememberPracticeIssue(body.campaign, outcome.error.code, body.mode);
+        message(notDone(outcome) + (outcome.refused && outcome.error?.nextStep && !SIGNER_HELP[outcome.error.code] && !practiceMessage(outcome.error.code) ?" Next: " + String(outcome.error.nextStep).replace(/\.$/, "") + "." : ""), true);
+      }
+    } finally { busy = false; await refresh(); render(); focusSmokePractice(); }
   }
   // ---- What a started operation shows (LP-PROD-F). The controller answers
   // practice, freeze and submit once the work has started, not once it was
@@ -3838,6 +3889,7 @@
     const mark = sent.mark;
     watches.set(campaign, {
       name, since: Date.now(), settled: null, replaced: Boolean(sent.replaced),
+      mode: sent.mode,
       submitted: mark ? mark.submitted : (before.journey?.submitted_epochs || []).length,
       experiments: mark ? mark.experiments : (before.experiments || []).length,
       refusals: mark ? mark.refusals : (before.refusals || []).length,
@@ -3855,17 +3907,18 @@
     // operation's state does, so it never redraws its form.
     const elapsed = "started " + new Date(entry.since).toLocaleTimeString();
     if (WORKING[run.state]) {
-      const doing = {practice: "Practice trial running", freeze_candidate: "Freezing your candidate", submit: "Submitting your frozen candidate: your registration is read, then it is sent for the DEVELOPMENT comparison"}[entry.name];
+      const doing = {practice: entry.mode === "smoke" ? "Smoke practice running" : "Practice trial running", freeze_candidate: "Freezing your candidate", submit: "Submitting your frozen candidate: your registration is read, then it is sent for the DEVELOPMENT comparison"}[entry.name];
       return {kind: "working", text: doing + " · " + elapsed + "." + (entry.replaced ? " " + REPLACED : "")};
     }
     const refusal = lastRefusal(run);
     if (refusal && JSON.stringify(refusal) !== entry.refusal && refusalOf(entry.name, refusal)) {
-      return {kind: "refused", text: "Not done: " + words(refusal.code) + "." + (refusal.next_action ? " " + refusal.next_action : ""), refusal};
+      return {kind: "refused", text: "Not done: " + (practiceMessage(refusal.code) || words(refusal.code)) + "." + (refusal.next_action && !practiceMessage(refusal.code) ? " " + refusal.next_action : ""), refusal};
     }
     const recorded = run.refusals || [];
     if (recorded.length > entry.refusals) {
       const last = recorded[recorded.length - 1] || {};
-      return {kind: "refused", text: "Not done: " + words(last.reason || last.status || "refused") + "." + (last.detail ? " " + last.detail : "")};
+      const code = last.reason || last.status || "refused";
+      return {kind: "refused", text: "Not done: " + (practiceMessage(code) || words(code)) + "." + (last.detail && !practiceMessage(code) ? " " + last.detail : ""), refusal: {code}};
     }
     if (entry.name === "submit" && (run.journey?.submitted_epochs || []).length > entry.submitted) {
       return {kind: "done", text: "Submitted for the DEVELOPMENT comparison. The independent result appears below."};
@@ -3874,6 +3927,9 @@
       return {kind: "done", text: "Candidate frozen for this epoch. Submit it under Submission."};
     }
     if (entry.name === "practice" && (run.experiments || []).length > entry.experiments) {
+      const experiment = run.experiments[entry.experiments];
+      if (experiment.outcome === "SMOKE") return {kind: "done", text: smokeResultText(experiment) + ". No score."};
+      if (entry.mode === "smoke") return {kind: "unclear", text: "Smoke result unavailable; no score or pass inferred."};
       return {kind: "done", text: "Practice trial finished. Its result is under Experiments."};
     }
     if (["INTERRUPTED", "RECONCILIATION_REQUIRED"].includes(run.state)) {
@@ -3891,6 +3947,7 @@
       const status = watchStatus(run);
       if (status && status.kind !== "working") {
         entry.settled = status;
+        if (entry.name === "practice" && status.refusal) rememberPracticeIssue(id, status.refusal.code, entry.mode);
         message(status.text, status.kind === "refused");
       } else if (Date.now() - entry.since > 2 * 3600 * 1000) {
         entry.settled = {kind: "unclear", text: "No change of record two hours after it started: see the campaign's Logs."};
@@ -3987,7 +4044,7 @@
     launch: launchResearch, discardLaunch,
     launchProblem: () => !connected ? "Connect this browser first." : storageError ? "Browser retry storage is unavailable; launch is disabled to preserve duplicate protection." : stepProblem("review"),
     goWizard(step) { if (STEPS.some(([name]) => name === step)) { wizard.step = step; saveWizard(); } location.hash = "#launch"; render(); },
-    researchAction, renderCampaigns, renderJourneyPractice, renderJourneySubmission,
+    researchAction, renderCampaigns, renderJourneyPractice, renderJourneySubmission, renderPractice, practiceIssue,
     evaluationFor, evaluationNote,
     // Live regions, refusals and keyed operations (LP-PROD-F), shared with
     // the research surface and its Tools tab so all three behave alike.
