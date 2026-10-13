@@ -133,6 +133,13 @@ def test_the_starter_call_as_the_page_words_it_passes_the_miner_door(tmp_path):
     for path in ("public_result.task_id", "reply.result.task.task_id.value"):
         assert path in level4_starter.WORKFLOW[1]
         assert "`" + path + "`" in page
+    # The always-present path is named first: public_result is null when the
+    # task fails (FAILED_INFRA included), and an agent codes against the
+    # first path it reads.
+    for text in (level4_starter.WORKFLOW[1], page):
+        assert text.index("reply.result.task.task_id.value") < text.index(
+            "public_result.task_id"
+        )
 
 
 def test_the_starter_lowers_stages_and_reaches_a_proposal(tmp_path):

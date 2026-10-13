@@ -37,9 +37,9 @@ WORKFLOW = (
         "strategy_json=null, action=run_python, arguments_json = that object (it already carries hypothesis and "
         "expected_effect), and hypothesis and expected_effect again at the top level of the call (copy the same "
         "two strings). It writes spec.py, lowers it and packs /scratch/output/level4-envelope.json.gz. The task id "
-        "(rtsk_ and 64 hex digits) is public_result.task_id in the reply (also reply.result.task.task_id.value, "
-        "which is there even while public_result is null: a task not yet finished, or failed); poll "
-        "get_research_result with it until the task has finished."
+        "(rtsk_ and 64 hex digits) is reply.result.task.task_id.value in the reply, always there, even when the "
+        "task has not finished or has failed (also public_result.task_id once the task has succeeded; public_result "
+        "is null otherwise); poll get_research_result with it until the task has finished."
     ),
     (
         "3. Call graphite_level4_stage again with the same recipe and that task_id: the reply is LEVEL4_STAGED and "
