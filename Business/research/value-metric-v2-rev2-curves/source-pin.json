@@ -1,0 +1,26 @@
+{
+  "status": "DEVELOPMENT_NOT_REGISTERED",
+  "main_at_start": "39300a3b3025f5935224091357cf826b399d476d",
+  "res08_head": "aa12491cbfcf67da494378515f1052a6d27a150e",
+  "res08_merge": "b3555047819f01f7268a21f19d3a890a3a0cd46a",
+  "draft_rev1_sha256": "973594923121ad177bbbd764ee94bae1d5b59b50aebe6ed0d67667250b0ffa4c",
+  "draft_rev1_bytes_status": "UNAVAILABLE_ARCHIVE_GAP",
+  "draft_rev2_sha256": "afdc4145e030ec8025d4450401c5baf50fe42a95ee73f7dc76fdc7774148ecd5",
+  "public_measurements_sha256": "f926a10fc15d266cd3c3f204dcb088731eb8565088775309ee9b8b92fb4c4790",
+  "inherited_source_sha256": {
+    "../value-metric-v2-stress/analyze_public.py": "63648ce23581b7f0333a238d74009b36453b23cd426c60f123c6b88b9ca2a1b0",
+    "../value-metric-v2-stress/aggregate.py": "2bc738bb5115c09fd7d9bd421c2aa44c5be161e39108ded3bd703455e09de865"
+  },
+  "res07_source_sha256": "e91f89f9cae53cd7b5e1f252910f197f8a0334adbf47e2bb492d7601dffa91ff",
+  "reference_sha256": "72ea300b42fe1ca4e54b9c6131cb126ca7217ebddd5f1dddca8044a7bcef2dbf",
+  "measurement_helper_git_blob": "b1d899d116317bd190ad6812f0aae5d3e8a16c0c",
+  "ev4_contract_git_blob": "3961b89a98c8877190bc010579852497057d3518",
+  "res06_metadata_sha256": "a320b9c7005b8c6ad21ee22958bc78baf4a20435677826a74ab9795f7c3f3b0e",
+  "res08_results_sha256": "e8a8256365ebddb6d30705f38f2edeefffae811371b49780a3f1fa0bc17521ab",
+  "results_sha256": "9c69df3298b6530b1d52e91c798f66ed33bd07ce1ebd51eec5b0e79fb28ad53e",
+  "research_source_sha256": {
+    "analyze.py": "60aac00cf8c105c28aa4dfabce7725a3cf1e3fbac08e409088d85c92103c12e5",
+    "plot_curves.py": "5ff8b32317bb1fe8a7dbe9598bb931130e71a8ed2acc19521099fb7244fb55a4",
+    "test_analysis.py": "64b7f7e03d7cb160b818333a51953d4ea5d8af10f1794f91abe5dee02c88977e"
+  }
+}
