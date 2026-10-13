@@ -11,6 +11,7 @@ import hashlib
 import json
 import re
 import sqlite3
+from dataclasses import dataclass
 from pathlib import Path
 
 from carbon.agent_campaign.attack import analysis, verify
@@ -25,6 +26,39 @@ class RemintRefused(ValueError):
     def __init__(self, code):
         super().__init__(code)
         self.code = code
+
+
+@dataclass(frozen=True)
+class NonSessionFinding:
+    """A named older finding, never a session verdict or redacted evidence."""
+
+    code: str
+    outcome: str = "EXCLUDED_NON_SESSION_FINDING"
+
+
+def _non_session_finding(evidence):
+    """Recognise the two pre-session-verdict formats by their own fields."""
+    source, role = evidence.get("source"), evidence.get("role")
+    if (
+        source == "family_report"
+        and role in ("trained_control", "held_out_control")
+        and evidence.get("outcome") == "WRONGLY_REFUSED"
+        and isinstance(evidence.get("family"), str)
+        and isinstance(evidence.get("control"), str)
+        and isinstance(evidence.get("control_identity"), str)
+        and _DIGEST.fullmatch(evidence["control_identity"])
+    ):
+        return NonSessionFinding("finding_non_session_control_v1")
+    if (
+        source in ("deterministic_baseline", "copy_probe")
+        and role in ("attack", "control")
+        and isinstance(evidence.get("family"), str)
+        and isinstance(evidence.get("attempt"), str)
+        and isinstance(evidence.get("evidence_digest"), str)
+        and _DIGEST.fullmatch(evidence["evidence_digest"])
+    ):
+        return NonSessionFinding("finding_non_session_engine_v1")
+    return None
 
 
 def _finding_verdict(controller, db, finding_id):
@@ -51,14 +85,22 @@ def _finding_verdict(controller, db, finding_id):
         evidence = json.loads(body)
     except (KeyError, TypeError, ValueError, OSError):
         raise RemintRefused("finding_evidence_unreadable_or_changed") from None
-    if evidence.get("redacted"):
-        return None
-    verdict = evidence.get("verdict")
     if (
-        not isinstance(verdict, dict)
+        not isinstance(evidence, dict)
         or evidence.get("schema") != verify.FINDING_SCHEMA
         or evidence.get("condition") != finding["condition"]
-        or finding["condition"] not in (verdict.get("conditions") or ())
+    ):
+        raise RemintRefused("finding_verdict_malformed")
+    if evidence.get("redacted") == "protected_material":
+        return None
+    if "verdict" not in evidence:
+        older = _non_session_finding(evidence)
+        if older is not None:
+            return older
+        raise RemintRefused("finding_verdict_malformed")
+    verdict = evidence.get("verdict")
+    if not isinstance(verdict, dict) or finding["condition"] not in (
+        verdict.get("conditions") or ()
     ):
         raise RemintRefused("finding_verdict_malformed")
     return verdict
@@ -118,6 +160,8 @@ def _sources(store, attempt_id, expected, session):
                     verdict = _finding_verdict(controller, db, finding_id)
                     if verdict is None:
                         redacted = True
+                        continue
+                    if isinstance(verdict, NonSessionFinding):
                         continue
                     if verdict.get("attempt") != attempt_id:
                         continue

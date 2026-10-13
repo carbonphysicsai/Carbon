@@ -33,6 +33,14 @@ python -m carbon.agent_campaign.graphite.phase4 remint --root DIR \
     --attempt ATTEMPT_ID --specimen SPECIMEN_NAME [--session N]
 ```
 
+`remint` reads an existing session verdict from digest-bound campaign evidence.
+The reader also recognises named older control and deterministic-baseline
+finding formats as `EXCLUDED_NON_SESSION_FINDING`; these are not session
+verdicts and are not redactions. Unknown, mismatched or changed evidence is
+refused. Level 2's `battery-l2.v2` attack oracle requires the declared attack
+shape before an accepted construction can be a breach. Existing `v1` findings
+retain their recorded meaning and are not reinterpreted by this repair.
+
 `--challenge` names any adapter registered at Level 0 in
 `attack.adapter.ADAPTERS` (default: battery).
 

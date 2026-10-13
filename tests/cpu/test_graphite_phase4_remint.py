@@ -6,11 +6,12 @@ import hashlib
 import json
 import sqlite3
 
+import pytest
 from test_attack_analysis import StubAdapter, write_call
 from test_attack_verify import ACCEPTED, COMPILE, GOOD, breaching, dry
 
 from carbon.agent_campaign.attack import analysis, verify
-from carbon.agent_campaign.graphite import phase4
+from carbon.agent_campaign.graphite import phase4, phase4_remint
 from carbon.development_session.profile import canonical
 
 
@@ -157,3 +158,126 @@ def test_remint_refuses_changed_evidence_and_wrong_specimen(
         "finding_evidence_unreadable_or_changed"
     )
     assert not (store / "specimens").exists()
+
+
+def _add_non_session_finding(database, log, evidence_dir, source):
+    common = {"schema": verify.FINDING_SCHEMA, "condition": "FAILING_TRIGGER"}
+    if source == "family_report":
+        content = {
+            "source": "family_report",
+            "role": "held_out_control",
+            "family": "l2_pool_sources_and_weights",
+            "control": "honest_control",
+            "control_identity": "sha256:" + "a" * 64,
+            "outcome": "WRONGLY_REFUSED",
+        }
+    else:
+        content = {
+            "source": "deterministic_baseline",
+            "role": "attack",
+            "family": "l2_pool_sources_and_weights",
+            "attempt": "pool_practice_stratum",
+            "evidence_digest": "sha256:" + "a" * 64,
+        }
+    body = canonical({**common, **content})
+    sha = hashlib.sha256(body).hexdigest()
+    (evidence_dir / (sha + ".bin")).write_bytes(body)
+    finding_id = "attack-failing-trigger-toy-control"
+    with sqlite3.connect(database) as db:
+        db.execute(
+            "INSERT INTO findings VALUES (?,?)",
+            (
+                finding_id,
+                json.dumps(
+                    {
+                        "id": finding_id,
+                        "condition": "FAILING_TRIGGER",
+                        "evidence": {
+                            "path": "evidence/" + sha + ".bin",
+                            "sha256": "sha256:" + sha,
+                        },
+                    }
+                ),
+            ),
+        )
+    entry = json.loads(log.read_text())
+    entry["findings"].insert(0, finding_id)
+    log.write_bytes(canonical(entry) + b"\n")
+    return finding_id
+
+
+@pytest.mark.parametrize(
+    "source,code",
+    [
+        ("family_report", "finding_non_session_control_v1"),
+        ("deterministic_baseline", "finding_non_session_engine_v1"),
+    ],
+)
+def test_remint_skips_named_older_finding_without_claiming_redaction(
+    tmp_path, monkeypatch, capsys, source, code
+):
+    root, store, attempt, expected, (database, log, _evidence) = _fixture(
+        tmp_path, monkeypatch
+    )
+    older_id = _add_non_session_finding(
+        database, log, database.parent / "evidence", source
+    )
+    with sqlite3.connect(database) as db:
+        older = phase4_remint._finding_verdict(database.parent, db, older_id)
+    assert older == phase4_remint.NonSessionFinding(code)
+    assert older.outcome == "EXCLUDED_NON_SESSION_FINDING"
+    assert (
+        phase4.main(
+            [
+                "remint",
+                "--root",
+                str(root),
+                "--attempt",
+                attempt,
+                "--specimen",
+                expected,
+                "--session",
+                "1",
+            ]
+        )
+        == 0
+    )
+    result = json.loads(capsys.readouterr().out)
+    assert result["status"] == "REBUILT"
+    assert (store / "specimens" / expected).is_dir()
+
+
+@pytest.mark.parametrize(
+    "failure", ["schema", "condition", "coverage", "unknown_older"]
+)
+def test_remint_keeps_session_verdict_integrity_checks(tmp_path, monkeypatch, failure):
+    _root, _store, _attempt, _expected, (database, _log, evidence) = _fixture(
+        tmp_path, monkeypatch
+    )
+    body = json.loads(evidence.read_bytes())
+    if failure == "schema":
+        body["schema"] = "wrong.schema"
+    elif failure == "condition":
+        body["condition"] = "OTHER_SIGNAL"
+    elif failure == "coverage":
+        body["verdict"]["conditions"] = []
+    else:
+        body.pop("verdict")
+        body["source"] = "unregistered_source"
+    raw = canonical(body)
+    sha = hashlib.sha256(raw).hexdigest()
+    updated = evidence.parent / (sha + ".bin")
+    updated.write_bytes(raw)
+    with sqlite3.connect(database) as db:
+        finding_id, old = db.execute("SELECT id, body FROM findings").fetchone()
+        row = json.loads(old)
+        row["evidence"] = {
+            "path": "evidence/" + sha + ".bin",
+            "sha256": "sha256:" + sha,
+        }
+        db.execute(
+            "UPDATE findings SET body=? WHERE id=?", (json.dumps(row), finding_id)
+        )
+        with pytest.raises(phase4_remint.RemintRefused) as error:
+            phase4_remint._finding_verdict(database.parent, db, finding_id)
+    assert error.value.code == "finding_verdict_malformed"
