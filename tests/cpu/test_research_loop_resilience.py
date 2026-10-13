@@ -46,6 +46,7 @@ from carbon.development_session.research_agent_policy import (
 from carbon.development_session.research_loop import (
     CALL_TRUNCATED,
     MAX_TRUNCATED_TURNS,
+    OUTPUT_CAP_HIT,
     REPLIES_TRUNCATED,
 )
 
@@ -225,6 +226,56 @@ def test_replies_cut_off_in_a_row_stop_the_epoch(tmp_path, rule, cut):
     assert not (folder(meter) / "epoch-1-provider-001-truncated.json").exists()
     # A resume replays the same outcome and sends nothing.
     assert epoch(meter, sdk, never, rule=rule) == result
+
+
+def test_replies_that_hit_the_output_cap_in_a_row_are_a_named_cause_not_an_agent_decision(
+    tmp_path,
+):
+    """The code `replies_truncated` and `incomplete{reason, cap, tokens}` already existed; the stop now also says
+    why when every cut reply hit the output cap: `turn_hit_output_cap`, `agent_decision` false, and the cap and the
+    tokens each turn used. The cut turns never touch the reminder counters (the first test above: the next
+    text-only reply still gets its own turn)."""
+    meter = ledger(tmp_path)
+    cut = ended([text("Thinking at length")], output_tokens=2048)
+    transport, requests = replies(cut, cut, cut)
+    result = epoch(meter, SDK(meter), transport)
+    assert result["status"] == "STOPPED" and result["code"] == REPLIES_TRUNCATED
+    assert result["cause"] == OUTPUT_CAP_HIT == "turn_hit_output_cap"
+    assert result["agent_decision"] is False
+    assert result["output_cap"] == {
+        "cap": 2048,
+        "turns": [
+            {"turn": "epoch-1-provider-000", "output_tokens": 2048},
+            {"turn": "epoch-1-provider-001", "output_tokens": 2048},
+        ],
+    }
+    assert "hit the output cap of 2048 tokens" in result["reason"]
+    assert len(requests) == MAX_TRUNCATED_TURNS
+
+
+@pytest.mark.parametrize(
+    "first, second",
+    [
+        (("content_filter", 10), ("content_filter", 10)),
+        (("max_output_tokens", 2048), ("content_filter", 10)),
+        (("content_filter", 10), ("max_output_tokens", 2048)),
+    ],
+)
+def test_a_stop_that_is_not_every_turn_hitting_the_cap_names_no_cause(
+    tmp_path, first, second
+):
+    meter = ledger(tmp_path)
+    transport, _ = replies(
+        ended([text("a")], reason=first[0], output_tokens=first[1]),
+        ended([text("b")], reason=second[0], output_tokens=second[1]),
+    )
+    result = epoch(meter, SDK(meter), transport)
+    assert result["status"] == "STOPPED" and result["code"] == REPLIES_TRUNCATED
+    assert (
+        "cause" not in result
+        and "agent_decision" not in result
+        and "output_cap" not in result
+    )
 
 
 def test_a_cut_reply_whose_call_ran_resets_the_count(tmp_path):
