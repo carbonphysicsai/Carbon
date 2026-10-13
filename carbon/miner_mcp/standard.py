@@ -368,22 +368,49 @@ def _no_rule():
     return None
 
 
+def _field_refused(operation, code, field, value=None):
+    """INVALID_ARGUMENT for a top-level argument, naming the declared field to
+    correct and its registered correction (the SDK's `task_correction`), as the
+    object wire's `validation_refusal` already does: a bare refusal left an
+    agent nothing to correct (2026-10-13 L4 dry run, seven of seven top-level
+    violations mute). `field` is only ever one of `FIELDS[operation]`, in the
+    SDK's names; a key the caller invented is never named back (`field` None
+    gives the registered text alone). `value` is only compared with the string
+    "null", never repeated. Nothing was dispatched."""
+    if field is None:
+        record = {"correction_code": code, "correction": TASK_CORRECTIONS[code]}
+    else:
+        record = {
+            "correction_code": code,
+            "field": field,
+            "correction": task_correction(
+                code, field, "null" if value == "null" else None, tool=operation
+            ),
+        }
+    raise AdapterFailure(
+        AdapterCode.INVALID_ARGUMENT, correction=_correction(operation, record)
+    )
+
+
 def _arguments(operation, supplied, rule=_no_rule):
     """The SDK's arguments for one object-valued request. `rule` returns the
     campaign's frozen argument normalisation; it is read only for a practice
     field sent as the string "null"."""
     if type(supplied) is not dict:
         _invalid()
-    expected = {
+    names = {
         (
             "strategy"
             if key == "strategy_json"
             else "arguments" if key == "arguments_json" else key
-        )
+        ): key
         for key in FIELDS[operation]
     }
-    if set(supplied) != expected:
-        _invalid()
+    if set(supplied) != set(names):
+        for key, sdk_field in names.items():  # the schema's order
+            if key not in supplied:
+                _field_refused(operation, "tool_field_missing", sdk_field)
+        _field_refused(operation, "tool_field_unexpected", None)
     args = _snapshot(supplied, limit=_ARGUMENT_BYTES)
     if operation in _STRATEGY_OPERATIONS:
         args["strategy_json"] = _object_json(args.pop("strategy"))
@@ -403,21 +430,34 @@ def _arguments(operation, supplied, rule=_no_rule):
     if operation == "start_research_task":
         for key in ("hypothesis", "expected_effect"):
             if type(args[key]) is not str or not 1 <= len(args[key]) <= 2048:
-                _invalid()
+                _field_refused(operation, "tool_text_bounded", key, args[key])
         if args["kind"] == "practice":
             _check_practice(args, rule)
             args["strategy_json"] = _object_json(args.pop("strategy"))
             args["arguments_json"] = args.pop("arguments")
         elif args["kind"] == "workspace":
-            if args["strategy"] is not None or args["action"] not in (
-                *DEVELOPMENT_WORKSPACE_ACTIONS,
-                "run_julia",
-            ):
-                _invalid()
+            if args["strategy"] is not None:
+                _field_refused(
+                    operation,
+                    "workspace_recipe_forbidden",
+                    "strategy_json",
+                    args["strategy"],
+                )
+            if args["action"] not in (*DEVELOPMENT_WORKSPACE_ACTIONS, "run_julia"):
+                _field_refused(
+                    operation, "workspace_action_unknown", "action", args["action"]
+                )
+            if type(args["arguments"]) is not dict:
+                _field_refused(
+                    operation,
+                    "json_object_required",
+                    "arguments_json",
+                    args["arguments"],
+                )
             args["strategy_json"] = args.pop("strategy")
             args["arguments_json"] = _object_json(args.pop("arguments"))
         else:
-            _invalid()
+            _field_refused(operation, "tool_value_invalid", "kind", args["kind"])
     # Escaping an object into the legacy string fields can increase its size.
     if len(canonical(args)) > _ARGUMENT_BYTES:
         _invalid()
