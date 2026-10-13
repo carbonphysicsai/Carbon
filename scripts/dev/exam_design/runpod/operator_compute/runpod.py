@@ -460,6 +460,7 @@ class RunPodAdapter:
                 else "reconcile by ownership tag; do not resend"
             ),
             http_status=status,
+            provider_reason_code=ambiguous_create_reason(payload),
         )
 
     def observe(self, resource_id: str) -> Observation:

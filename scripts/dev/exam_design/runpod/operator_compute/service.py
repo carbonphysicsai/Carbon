@@ -177,14 +177,35 @@ class ComputeService:
         without that check; every other path fails closed (the error says resources
         may remain). The lag to the first reconcile that shows the pod is recorded."""
 
-        def stop(failed: str) -> ComputeError:
+        def stop(failed: str, repeated: ComputeError | None = None) -> ComputeError:
+            # Reconciliation can stop without a resend, or the one resend can
+            # fail too. Preserve the create diagnostics in either case; a
+            # reconcile refusal must not replace them with a mute generic error.
+            def diagnostic(source):
+                reason = source.provider_reason_code or "provider_reason_unavailable"
+                status = source.http_status
+                return reason + (
+                    " (HTTP unavailable)" if status is None else f" (HTTP {status})"
+                )
+
+            detail = failed + "; first create: " + diagnostic(ambiguous)
+            if repeated is not None:
+                detail += "; repeated create: " + diagnostic(repeated)
             return ComputeError(
                 operation="provision",
-                failed=failed,
+                failed=detail,
                 execution=Execution.MAY_HAVE_EXECUTED,
                 resources_may_remain=True,
                 retry_safe=False,
                 next_action="do not resend; the reconciler adopts and terminates any resource with this tag",
+                http_status=(
+                    ambiguous.http_status if repeated is None else repeated.http_status
+                ),
+                provider_reason_code=(
+                    ambiguous.provider_reason_code
+                    if repeated is None
+                    else repeated.provider_reason_code
+                ),
             )
 
         name = ownership_name(intent.ownership_tag)
@@ -245,8 +266,10 @@ class ComputeService:
             created = self.provider.create(
                 request.spec, ownership_tag=intent.ownership_tag
             )
-        except ComputeError:
-            raise stop("ambiguous create twice; stopped, no third create") from None
+        except ComputeError as repeated:
+            raise stop(
+                "ambiguous create twice; stopped, no third create", repeated
+            ) from None
         return self._bind_created(intent, request, created)
 
     def observe_balance(self, campaign_id: str) -> tuple[float, float]:

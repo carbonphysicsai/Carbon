@@ -23,3 +23,10 @@ Run canonical targeted and related operator/pod regressions plus pinned quality.
 Primary map reference WAVE-C/GRAPHITE-OPERATOR; Hub retired under OWNER-DX-03.
 One PR to main; Root Test Lead owns engineering merge after actual exact-head
 CI/Merge gate. No provider call, account/key access, spend or host qualification.
+
+The planted real-receipt control also exposed service.py's reconciliation
+wrapper dropping the original diagnosis. Repair that wrapper to retain first
+and repeated create status/closed cause, including a definitive second refusal
+while the first remains ambiguous. Fresh open-PR scan found no service.py
+overlap. A validated optional provider_reason_code keeps raw response text out
+of this wrapper without changing older errors' serialized shape.

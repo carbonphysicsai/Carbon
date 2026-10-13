@@ -17,3 +17,8 @@ The reason vocabulary is a bounded engineering classification, not a complete
 RunPod error schema or security acceptance. Future exact provider codes may be
 added deliberately with fixture controls; never replace unknown with a guess.
 Hub is retired. Primary map reference WAVE-C/GRAPHITE-OPERATOR.
+
+A real-receipt negative control failed because reconciliation erased the first
+create diagnostic. Preserve each create's status and validated closed cause
+through that wrapper. Even a definitive second failure must not release the
+first ambiguous create's hold. No reconciliation timing or resend rule changes.

@@ -71,6 +71,7 @@ def test_ambiguous_adapter_error_keeps_status_and_cause_without_response_fields(
         provider.create(SPEC, ownership_tag="0" * 24)
     error = refused.value
     assert error.http_status == 503
+    assert error.provider_reason_code == "provider_capacity_unavailable"
     assert "provider_capacity_unavailable" in error.failed
     assert error.execution is Execution.MAY_HAVE_EXECUTED
     assert error.resources_may_remain and not error.retry_safe
@@ -119,6 +120,51 @@ def test_real_job_receipt_projects_create_cause_and_keeps_uncertainty(lifecycle)
     assert receipt["teardown"]["terminated"] is None
     assert ledger[-1]["pending_usd"] == receipt["cost"]["reserved_usd"]
     assert len(creates) == 1  # No retry inferred from a capacity-shaped reason.
+
+
+@pytest.mark.parametrize("second_status", [503, 400])
+def test_both_create_diagnostics_survive_the_one_resend(lifecycle, second_status):
+    make, go = lifecycle
+    spec, backend, account = make()
+    real_transport = account.transport
+    creates = []
+
+    def transport(method, url, **kwargs):
+        if method == "POST" and url == "https://rest.runpod.io/v1/pods":
+            creates.append(url)
+            code = "OUT_OF_STOCK" if len(creates) == 1 else "QUOTA_EXCEEDED"
+            status = 503 if len(creates) == 1 else second_status
+            return status, json.dumps({"code": code, "account_id": MARKER}).encode()
+        return real_transport(method, url, **kwargs)
+
+    backend.adapter._transport = transport
+    backend.service.resend_gap_s = (
+        0  # Fixture only: two empty reconciles still required.
+    )
+    receipt, ledger = go(spec, backend)
+    assert len(creates) == 2
+    assert (
+        "first create: provider_capacity_unavailable (HTTP 503)" in receipt["refusal"]
+    )
+    assert "repeated create: provider_quota_exceeded" in receipt["refusal"]
+    assert f"HTTP {second_status}" in receipt["refusal"]
+    assert MARKER not in json.dumps(receipt) and MARKER not in json.dumps(ledger)
+    # A definitive second refusal cannot settle uncertainty about the first.
+    assert receipt["teardown"]["terminated"] is None
+    assert ledger[-1]["pending_usd"] == receipt["cost"]["reserved_usd"]
+
+
+def test_provider_reason_field_refuses_unregistered_private_text():
+    with pytest.raises(ValueError, match="unregistered provider reason"):
+        ComputeError(
+            operation="provision",
+            failed="fixture",
+            execution=Execution.MAY_HAVE_EXECUTED,
+            resources_may_remain=True,
+            retry_safe=False,
+            next_action="reconcile",
+            provider_reason_code=MARKER,
+        )
 
 
 @pytest.mark.parametrize("status", [503, None])
