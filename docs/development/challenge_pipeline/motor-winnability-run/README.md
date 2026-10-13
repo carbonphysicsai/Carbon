@@ -65,6 +65,9 @@ Reuse `feasibility02.topology.validity` for the actual geometric predicates.
 TRAIN is still `carbon.motor-10p12s.train-record.v1`, raw signed `t00..t47`.
 The wrapper predicts those raw outputs and derives complete-panel metrics,
 rather than fitting torque averages or a privileged objective label.
+Geometry/command validity is checked separately from model support. The original
+kit's observed TRAIN bounds govern inference; outside-box queries abstain.
+The full grammar is not silently promoted into a registered TRAIN domain.
 
 Each task has one composite condition:
 `holding-J10-g0_peak-J15-g0_cogging-J0`. Its seven hard quantities are holding

@@ -86,5 +86,4 @@ def kit(geometry):
         outputs=mk.OUTPUTS,
         queries=queries,
         reduce=reduce,
-        domain=valid,
     )

@@ -235,6 +235,8 @@ def prepare(docs, pins, *, fixture=False):
         raise PilotHold("FIXTURE_PROMOTION_OR_INVALID_TRAIN")
     training = {}
     for r in train.records:
+        if not pk.valid(r["inputs"]):
+            raise PilotHold("TRAIN_OUTSIDE_REGISTERED_GEOMETRY_OR_COMMANDS")
         key = geometry_key(r["inputs"])
         command = (r["inputs"]["j_a_mm2"], r["inputs"]["gamma_deg"])
         if command in training.setdefault(key, set()):

@@ -199,6 +199,20 @@ def test_a_trainer_stand_in_cannot_claim_a_public_pilot():
         mp.execute(docs, pins, trainer=fixture.stand_in)
 
 
+def test_geometry_validity_does_not_widen_observed_train_support(monkeypatch):
+    docs, pins = fixture.documents()
+    kit, _export, train, *_ = mp.prepare(docs, pins, fixture=True)
+    assert kit.domain is None  # preserve the original slice kit's observed support
+    monkeypatch.setattr(ca.Network, "_fit_jax", lambda *args: [np.zeros(1)])
+    network = ca.Network(kit)
+    network.fit(train, seed=0)
+    extrapolation = {**fixture.geometry(6), "j_a_mm2": 15.0, "gamma_deg": 0.0}
+    assert pk.valid(extrapolation)
+    assert network.supported(extrapolation) is False
+    supported = {**fixture.geometry(1.5), "j_a_mm2": 15.0, "gamma_deg": 0.0}
+    assert network.supported(supported) is True
+
+
 def test_reference_band_overlap_stays_unresolved_without_model_failure():
     docs, _pins = fixture.documents()
     task = docs["export"]["questions"][0]["task"]

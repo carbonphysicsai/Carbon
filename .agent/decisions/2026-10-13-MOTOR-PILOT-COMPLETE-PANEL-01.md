@@ -37,6 +37,9 @@ The worker places both fit and inference on `jax.devices("cpu")[0]` through
 `jax.default_device`, so a local GPU cannot silently escape CPU accounting.
 Public execution cannot inject an alternate trainer; stand-ins belong only
 to the explicitly marked fixture path. The shared recipe itself is unchanged.
+Keep the slice kit's observed TRAIN-coordinate box for inference and abstain
+outside it. Geometry/command validity is checked separately at input preparation;
+it does not supply a registered TRAIN domain or certify coverage of the grammar.
 
 Operational DOCUMENTATION_LAG: PKT-09's conditional USD77.20 scenario exceeds
 the existing shared launcher's USD50 per-run guard. Job-spec generation takes
