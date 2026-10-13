@@ -11,8 +11,10 @@ Never sealed, never a qualification claim; small samples are flagged, not hidden
 
 from __future__ import annotations
 
+import hashlib
 import json
 import random
+import re
 import statistics
 from pathlib import Path
 
@@ -36,6 +38,21 @@ CONTRACT = (
     / "carbon/battery/value/contracts/ev4-dev-proof-l1-v1.json"
 )
 PRIVATE_MARKERS = ("refs-b", "private-role", "battery_refs")
+#: Registered-guard records (OPT-09, #1208): the bundle was rebuilt through `member_bundle` WITH the registered-panel
+#: guard. The registration is the committed bundled contract (`panel` name and `panel_registration.member_sha256`
+#: labels) and `proof-panel-levels-v1.json` (each member's level and `counts_for_level`); a record that disagrees
+#: with either is refused. A record with no `guard` is the older guard-skipped shape and is accepted unchanged.
+GUARD_SKIPPED = "skipped"
+GUARD_REGISTERED = "registered"
+BUNDLED_CONTRACT = (
+    Path(__file__).resolve().parents[3]
+    / "carbon/battery/value/contracts/ev4-dev-proof-bundled-v1.json"
+)
+PROOF_LEVELS = (
+    Path(__file__).resolve().parents[3]
+    / "carbon/battery/value/panels/proof-panel-levels-v1.json"
+)
+_SHA256 = re.compile(r"^sha256:[0-9a-f]{64}$")
 LABEL = (
     "PUBLIC-DEV-MEASURED: the public EV4 development panel and the public decision questions, "
     "against the lane's Level 0 baseline; never sealed data; not a qualification claim"
@@ -73,14 +90,87 @@ def committed_reference_sha(contract=None):
     return value
 
 
-def validate(record, contract=None):
+def file_sha256(path):
+    """`sha256:<hex>` of a file's bytes."""
+    return "sha256:" + hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
+def registered_members(contract=None, levels=None):
+    """`(panel name, {label: (level, counts_for_level)})` from the COMMITTED bundled contract and panel file,
+    or a typed refusal."""
+    try:
+        document = json.loads(Path(contract or BUNDLED_CONTRACT).read_bytes())
+        labels = set(document["panel_registration"]["member_sha256"])
+        name = document["panel"]
+        rows = json.loads(Path(levels or PROOF_LEVELS).read_bytes())["members"]
+    except (OSError, ValueError, KeyError, TypeError, AttributeError) as error:
+        raise ProgressError("public_improvement_registration_unreadable") from error
+    members = {
+        f"{row['label']}-s{seed}": (row["level"], row.get("counts_for_level", True))
+        for row in rows
+        for seed in row.get("seeds", ())
+        if f"{row.get('label')}-s{seed}" in labels
+    }
+    if not (isinstance(name, str) and name) or set(members) != labels:
+        raise ProgressError("public_improvement_registration_incomplete")
+    return name, members
+
+
+def _validate_registered(record, registration):
+    """The extra shape and pins of a registered-guard record."""
+    panel_name, members = registration if registration else registered_members()
+    panel = record.get("panel")
+    if type(panel) is not dict or panel.get("name") != panel_name:
+        raise ProgressError("public_improvement_panel_name_not_registered")
+    member = record.get("member")
+    if member not in members:
+        raise ProgressError("public_improvement_member_not_registered")
+    level, counts = members[member]
+    if record.get("level") != level:
+        raise ProgressError("public_improvement_member_level_differs")
+    if record.get("counts_for_level") is not counts:
+        raise ProgressError("public_improvement_counts_for_level_differs")
+    old = record.get("supersedes")
+    if type(old) is not dict or not (
+        isinstance(old.get("file"), str)
+        and old["file"]
+        and isinstance(old.get("sha256"), str)
+        and _SHA256.match(old["sha256"])
+    ):
+        raise ProgressError("public_improvement_supersedes_malformed")
+    control = (record.get("controls") or {}).get("always_abstain")
+    if type(control) is not dict:
+        raise ProgressError("public_improvement_no_always_abstain_control")
+    loss, rank = control.get("decision_loss"), control.get("rank")
+    if (
+        (loss is not None and (type(loss) not in (int, float) or loss < 0))
+        or (rank is not None and (type(rank) is not int or rank < 1))
+        or any(
+            key in control and (type(control[key]) is not int or control[key] < 0)
+            for key in ("of", "mask")
+        )
+    ):
+        raise ProgressError("public_improvement_bad_always_abstain_control")
+
+
+def validate(record, contract=None, registration=None):
     """The record as a checked dict, or a typed refusal. Its scoring-set digest must equal the
     committed contract's literal."""
     if type(record) is not dict or record.get("schema") != IMPROVEMENT_SCHEMA:
         raise ProgressError("public_improvement_schema")
     if record.get("public_only") is not True:
         raise ProgressError("public_improvement_not_public_only")
-    scoring = (record.get("panel") or {}).get("scoring_set")
+    guard = record.get("guard", GUARD_SKIPPED)
+    if guard not in (GUARD_SKIPPED, GUARD_REGISTERED):
+        raise ProgressError("public_improvement_unknown_guard")
+    if guard == GUARD_SKIPPED and any(
+        key in record for key in ("counts_for_level", "supersedes", "controls")
+    ):
+        raise ProgressError("public_improvement_registered_fields_without_guard")
+    panel = record.get("panel")
+    if panel is not None and type(panel) is not dict:
+        raise ProgressError("public_improvement_panel_not_object")
+    scoring = (panel or {}).get("scoring_set")
     if (
         type(scoring) is not dict
         or scoring.get("function") != PUBLIC_EV4_FUNCTION
@@ -89,6 +179,8 @@ def validate(record, contract=None):
         raise ProgressError("public_improvement_scoring_set_not_public_ev4")
     if any(marker in repr(record).lower() for marker in PRIVATE_MARKERS):
         raise ProgressError("public_improvement_names_a_private_source")
+    if guard == GUARD_REGISTERED:
+        _validate_registered(record, registration)
     for side in ("baseline", "model"):
         row = record.get(side)
         if type(row) is not dict:
@@ -150,14 +242,27 @@ L4_BASE_RECIPE_CAVEAT = (
     "number measures the base recipe, NOT graph lowering or the Level 4 freedoms; not evidence about Level 4"
 )
 
+#: #1209 (RES-07): the public battery value metric ranked an always-abstaining control 2nd of 100 on the historical
+#: EV5 mask. A decision-loss number is read against that control, never alone.
+ABSTAIN_CAVEAT = (
+    "ALWAYS-ABSTAIN CONTROL (#1209): read every decision-loss number against the always-abstain control's loss and rank "
+    "beside it. Under the current value metric, which rewards abstention (RES-07), never deciding can score better than a "
+    "model; that is a property of the metric, not evidence the models are worse"
+)
+
 
 def _caveats(records):
     """Caveats the ledger line must carry for these records (levels above 0 rebuild without the panel guard)."""
     out = []
-    if any((rec.get("level") or 0) > 0 for rec in records):
+    if any(
+        (rec.get("level") or 0) > 0 and rec.get("guard", GUARD_SKIPPED) == GUARD_SKIPPED
+        for rec in records
+    ):
         out.append(LEVEL_REBUILD_CAVEAT)
     if any(rec.get("level") == 4 for rec in records):
         out.append(L4_BASE_RECIPE_CAVEAT)
+    if any(rec.get("controls") for rec in records):
+        out.append(ABSTAIN_CAVEAT)
     return out
 
 
@@ -182,6 +287,28 @@ PANEL_MEMBER_NOTE = (
 )
 
 
+def _control_noise(records):
+    """Reasons a decision-loss column must not be read as better decisions, from the always-abstain control (#1209):
+    a counting model whose own loss is above the control's did worse than never deciding.
+    """
+    worse = []
+    for rec in records:
+        control = ((rec.get("controls") or {}).get("always_abstain") or {}).get(
+            "decision_loss"
+        )
+        mine = (rec.get("model") or {}).get("decision_loss")
+        if control is not None and mine is not None and mine > control:
+            worse.append(rec.get("run_id"))
+    if not worse:
+        return []
+    reason = (
+        f"{len(worse)} of {len(records)} runs score a decision loss above the always-abstain control's: "
+        "under the current value metric, which rewards abstention (RES-07), never deciding scores better than those models; "
+        "not evidence the models are worse"
+    )
+    return [reason]
+
+
 def public_dev_block(records, level=None):
     """`{metric: {value (median), best, ci95, n, small_n, ...}}` over the runs that hold a record. A
     decision-loss column whose masks differ or whose runs disagree in sign is MEASURED_BUT_NOISY: its
@@ -192,6 +319,26 @@ def public_dev_block(records, level=None):
             + (f"; {PANEL_MEMBER_NOTE}" if (level or 0) >= 2 else "")
         )
     out = {}
+    # Where a registered-guard record exists at this level, a guard-skipped record (a bundle the panel did not
+    # register) is shown apart, never counted beside it: the two are not the same measurement.
+    registered_here = any(
+        rec.get("guard", GUARD_SKIPPED) == GUARD_REGISTERED for rec in records
+    )
+    apart = [
+        rec
+        for rec in records
+        if registered_here and rec.get("guard", GUARD_SKIPPED) == GUARD_SKIPPED
+    ]
+    records = [rec for rec in records if rec not in apart]
+    counting = [rec for rec in records if rec.get("counts_for_level", True)]
+    non_counting = [rec for rec in records if not rec.get("counts_for_level", True)]
+    guards = {rec.get("guard", GUARD_SKIPPED) for rec in counting}
+    guard = guards.pop() if len(guards) == 1 else ("mixed" if guards else None)
+    superseded = [
+        {"run": rec.get("run_id"), **rec["supersedes"]}
+        for rec in records
+        if type(rec.get("supersedes")) is dict
+    ]
     for name in METRICS:
         pairs = [
             (
@@ -199,19 +346,49 @@ def public_dev_block(records, level=None):
                 (rec.get("questions") or {}).get("common_mask"),
                 rec.get("run_id"),
             )
-            for rec in records
+            for rec in counting
+            if (r := relative(rec["baseline"].get(name), rec["model"].get(name)))
+            is not None
+        ]
+        skipped_apart = [
+            {"run": rec.get("run_id"), "relative_improvement": round(r, 6)}
+            for rec in apart
+            if (r := relative(rec["baseline"].get(name), rec["model"].get(name)))
+            is not None
+        ]
+        aside = [
+            {"run": rec.get("run_id"), "relative_improvement": round(r, 6)}
+            for rec in non_counting
             if (r := relative(rec["baseline"].get(name), rec["model"].get(name)))
             is not None
         ]
         if not pairs:
-            reasons = _null_reasons(records, name)
-            out[name] = unmeasured(
-                f"no run measured {name} on both sides"
-                + (f" ({'; '.join(reasons)})" if reasons else "")
-            )
+            reasons = _null_reasons(counting, name)
+            why = f"no run measured {name} on both sides"
+            if non_counting and not counting:
+                why = (
+                    "no counting member: the non-counting members (their plain strategies did not exercise the "
+                    "level's freedom) are listed apart, not counted"
+                )
+            out[name] = {
+                **unmeasured(why + (f" ({'; '.join(reasons)})" if reasons else "")),
+                **(
+                    {"non_counting": aside, "caveats": _caveats(non_counting)}
+                    if aside
+                    else {}
+                ),
+            }
             continue
         values = [r for r, _, _ in pairs]
-        reasons = _decision_noise(pairs) if name == "decision_loss" else []
+        reasons = (
+            [
+                *_decision_noise(pairs),
+                *_control_noise(counting),
+                *(["one run only: no spread to read"] if len(pairs) < 2 else []),
+            ]
+            if name == "decision_loss"
+            else []
+        )
         out[name] = {
             **metric(
                 NOISY if reasons else round(statistics.median(values), 6),
@@ -233,6 +410,31 @@ def public_dev_block(records, level=None):
                 )
             ),
             **({"caveats": _caveats(records)} if _caveats(records) else {}),
+            **({"guard": guard} if guard else {}),
+            **({"non_counting": aside} if aside else {}),
+            **(
+                {
+                    "guard_skipped_apart": skipped_apart,
+                    "guard_skipped_apart_caveat": LEVEL_REBUILD_CAVEAT,
+                }
+                if skipped_apart
+                else {}
+            ),
+            **({"superseded": superseded} if superseded else {}),
+            **(
+                {
+                    "always_abstain_control": [
+                        {"run": rec.get("run_id"), **rec["controls"]["always_abstain"]}
+                        for rec in records
+                        if (rec.get("controls") or {}).get("always_abstain")
+                    ]
+                }
+                if name == "decision_loss"
+                and any(
+                    (rec.get("controls") or {}).get("always_abstain") for rec in records
+                )
+                else {}
+            ),
             "interval": f"percentile bootstrap of the median, {BOOTSTRAP_REPS} resamples, seed {BOOTSTRAP_SEED}",
             **(
                 {

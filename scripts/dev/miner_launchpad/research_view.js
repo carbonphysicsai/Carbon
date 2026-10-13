@@ -844,11 +844,11 @@
     const held = CC.heldOperation(run.id, which === "practice" ? ["practice"] : ["freeze_candidate", "submit"]);
     // Whether its Challenge can be evaluated now: the Submission form says so.
     const evaluation = which === "submission" && CC.evaluationFor ? CC.evaluationFor(run) : null;
-    return JSON.stringify([which, run.id, run.state, run.journey || null, (run.experiments || []).map(e => e.recipe || null), Boolean(s.launchOptions), s.connected, s.busy, status ? [status.kind, status.text] : null, held, evaluation]);
+    return JSON.stringify([which, run.id, run.state, run.journey || null, (run.experiments || []).map(e => e.recipe || null), Boolean(s.launchOptions), s.connected, s.busy, status ? [status.kind, status.text] : null, held, evaluation, which === "practice" && CC.practiceIssue ? CC.practiceIssue(run) : null]);
   }
   function tabExperiments(panel, doc, run) {
     if (run && run.selects === "miner" && CC.renderJourneyPractice) part(panel, "journey", journeyKey(run, "practice"), box => CC.renderJourneyPractice(box, run), "rs-journey-part", "div");
-    part(panel, "runs", JSON.stringify([doc.experiments, doc.charts, doc.declaration?.components || null, (doc.toolbox?.runtimes || []).find(r => r.default)?.id || null]), box => drawExperiments(box, doc));
+    part(panel, "runs", JSON.stringify([doc.experiments, doc.charts, run?.experiments, doc.declaration?.components || null, (doc.toolbox?.runtimes || []).find(r => r.default)?.id || null]), box => drawExperiments(box, doc, run));
   }
   function drawGateBreakdown(box, breakdown) {
     head(box, "Practice gate failures", "Local campaign");
@@ -876,10 +876,14 @@
     if (breakdown.unrecognized_gate_names) para(box, breakdown.unrecognized_gate_names + " unrecognized gate name(s) were withheld.", "hint");
     para(box, "Counts use your local public PRACTICE summaries. One trial may fail more than one gate; this does not change a gate or the exam.", "hint");
   }
-  function drawExperiments(box, doc) {
-    const rows = doc.experiments.rows.slice().reverse();
+  function drawExperiments(box, doc, run) {
+    // The existing projection has no mode column. Join its stable trial IDs
+    // to the public campaign record so smoke never becomes a score row.
+    const smoke = new Map((run?.experiments || []).filter(e => e.outcome === "SMOKE").map(e => [e.id, e]));
+    const rows = doc.experiments.rows.slice().reverse().filter(r => !smoke.has(r.id));
     head(box, "Practice runs", doc.experiments.total + " recorded");
-    if (!rows.length) { para(box, "No practice run has completed in this campaign.", "empty-state"); return; }
+    for (const experiment of [...smoke.values()].reverse()) CC.renderPractice(box, experiment, 0);
+    if (!rows.length) { if (!smoke.size) para(box, "No practice run has completed in this campaign.", "empty-state"); return; }
     const keys = Object.keys(rows[0].components || {});
     const labels = Object.fromEntries((doc.declaration?.components || []).map(c => [c.key, c.label]));
     const wrap = el("div", undefined, "table-wrap");
