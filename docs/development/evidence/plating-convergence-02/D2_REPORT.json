@@ -1,0 +1,23 @@
+{
+ "schema": "carbon.battery.plating-convergence.d2-report.v1",
+ "status": "DEVELOPMENT ASSUMPTION inputs for the Validator's band; no threshold set here",
+ "validator_panel": {
+  "cases": 35, "solves_ok": 140, "signed_differences_negative": 0,
+  "positive_feasible_worst_mesh20_minus_mesh160_mv": 2.460,
+  "positive_feasible_max_mesh80_minus_mesh160_mv": 0.359,
+  "positive_feasible_below_zero_at_mesh160": 0,
+  "negative_pairs": "all four plate more at mesh 160 (-3.74 to -4.72 mV); direction confirmed"
+ },
+ "across_box_panel": {
+  "cases": 40, "solves_ok": 160,
+  "negative_mesh20_minus_mesh160": ["D-0013 -1.09 mV at margin -35.6 mV", "D-0147 -0.31 mV at margin -54.0 mV"],
+  "within_15mV_of_onset_all_positive": "+1.2 to +2.5 mV",
+  "mesh80_minus_mesh160_mv": "+0.08 to +0.52, all positive"
+ },
+ "near_onset_share": {
+  "rule": "standard-rung margin in [0, worst positive-FEASIBLE mesh-20 bias 2.46 mV) (and + mesh-80 residual 0.36 mV)",
+  "pdd_public_development": {"cases": 8390, "within_bias": 277, "share": 0.033, "within_bias_plus_residual": 315, "share2": 0.0375},
+  "ev4_public_dev_and_verification": {"cases": 835, "within_bias": 19, "share": 0.0228, "within_bias_plus_residual": 28, "share2": 0.0335}
+ },
+ "d3_cost_check": "PDD ~315 near-onset cases x 237 CPU-s at mesh 160 = ~21 CPU-h (~USD 3), consistent with the approved figure"
+}
