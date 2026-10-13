@@ -2,7 +2,8 @@
 
 READY-TO-RUN-PANELS-01 uses #977's generator, not a second case identity policy.
 No solver runs, spend, hidden/AX42 data or scientific adoption. Starting main
-is 65ef88660; the live dependency is #977 at ff3ec0df9.
+was 65ef88660; #977 (its generator) has since merged. The gap manifests were
+refreshed against main on 2026-10-13 (Data Collection).
 
 **Neither numeric panel is final today.** A source-confirmed expanded tuple is
 ready for DC registration review only after its input return. Current public
@@ -58,19 +59,24 @@ dispatch_authority=false; Data Collection registers after acceptance.
 maps/TIM; the current case-plane 85 C anchor is adopted, but final alternatives
 are not. Supply accepted cell geometry/flow action coordinates, cell-only
 hydraulic allocations/objective, source normalization, exact observer/package
-and rung pins, retained Set A/value/refinement returns and schedule snapshot.
+and rung pins, retained Set A/value/refinement returns and schedule snapshot (the cooling
+readiness build is in `challenge_pipeline/cooling-readiness/`).
 Do not substitute the historical full-plate 50 kPa/2.5 W/3 L/min constraints or
 claim a uniform-only panel covers hotspots. Cost 0.45 CPU-h is a historical
 reported planning context, not a current complete timing receipt.
 
-**f02:** freeze the expanded action set and all 24 matched contexts; the
-16-point seed is still a HUMAN_INPUT proposal in f02-round2.json. The legacy
-nine-action menu cannot deliver five distinct feasible AND five distinct
-infeasible actions in one condition. Supply accepted thermal/energy bands and
-exact standard/refined spatial/time grids and observer pins, plus all retained
-and scheduled tuple receipts. The 2–3 CPU-minute figure is owner-reported, not
-a pinned per-case timing receipt; refinement cost is unmeasured. Do not turn
-the old 50-launch feasibility plan into permission for a 384-solve bank.
+**f02:** since this handoff was first written, the 16-action menu over the 24
+contexts is registered for development (F02-MENU-V2-REGISTRATION, 2026-10-11,
+with EQUAL-BUDGET-V2-F02-MENU; the nine-action V1 row stays as history). Its
+registry pins the Elmer image, grids, refinement rule and bands
+(`evidence/reference-packages-01/f02-menu-v2/`), and the producer stages
+(`evidence-producer-stages.md`) solve it. Still missing: the f02-round2
+question law (variant draw and context mass, HUMAN_INPUT), a public completed
+AND scheduled tuple snapshot, and a pinned per-case timing receipt including
+refinement. Measured so far: about 207 CPU-s per primary solve on a quiet
+pinned host, about 336 CPU-s on the loaded operator PC. A known risk: 3 interior
+calibration contexts were infeasible for every action, so the f02 value check
+on the registered menu is pending before any bank is sized from it.
 
 The shared value return remains per stratum: complete feasible answer,
 >=5 distinct feasible and >=5 distinct infeasible within TWO accepted bands,
