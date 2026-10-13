@@ -15,6 +15,7 @@ from scripts.dev.customer_deliverable.claims import (
     check_package_outputs,
     generated_claims,
     locate,
+    parse_json,
     require_pass,
     sha256,
 )
@@ -416,3 +417,89 @@ def test_actual_host_context_is_indexed_as_not_compared_not_verified():
         ]
         is None
     )
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        '{"version":"fixture-v1","version":"fixture-v2"}',
+        '{"nested":{"value":1,"value":2}}',
+        '{"value":NaN}',
+    ],
+)
+def test_ambiguous_or_nonfinite_json_citations_are_refused(text):
+    with pytest.raises(ValueError, match="duplicate key|nonfinite"):
+        parse_json(text)
+    with pytest.raises(ValueError, match="duplicate key|nonfinite"):
+        locate(text.encode("utf-8"), {"kind": "json-pointer", "value": "/version"})
+
+
+def test_inventory_file_entry_refuses_duplicate_schema_before_checking(
+    monkeypatch, tmp_path
+):
+    from scripts.dev.customer_deliverable import check_claims
+    from scripts.dev.customer_deliverable.generate import Source, git_blob
+
+    inventory, payloads = fixture_inventory()
+
+    class Reader:
+        def get(self, spec):
+            data = payloads[spec["path"]]
+            return Source(
+                "CLAIM", spec["path"], "a" * 40, git_blob(data), data.decode("utf-8")
+            )
+
+    path = tmp_path / "public-inventory.json"
+    monkeypatch.setattr(check_claims, "INVENTORY", path)
+    text = json.dumps(inventory)
+    path.write_text(text, encoding="utf-8", newline="\n")
+    assert check_claims.check_presentations(Reader())["status"] == "PASS"
+    path.write_text(
+        '{"schema":"ambiguous-first",' + text[1:], encoding="utf-8", newline="\n"
+    )
+    with pytest.raises(ValueError, match="duplicate key"):
+        check_claims.check_presentations(Reader())
+
+
+def test_prior_manifest_cli_refuses_duplicate_qualification_entry(
+    monkeypatch, tmp_path, capsys
+):
+    from scripts.dev.customer_deliverable import check_claims
+
+    manifest, _ = snapshot()
+    path = tmp_path / "generation-manifest.json"
+    text = json.dumps(manifest)
+    path.write_text(
+        '{"qualification_claim":true,' + text[1:], encoding="utf-8", newline="\n"
+    )
+    monkeypatch.setattr(check_claims, "GitReader", lambda *_: object())
+    monkeypatch.setattr(
+        check_claims, "check_presentations", lambda *_: {"status": "PASS"}
+    )
+    with pytest.raises(SystemExit) as result:
+        check_claims.main(["--manifest", str(path)])
+    assert result.value.code == 2
+    assert "duplicate key" in capsys.readouterr().err
+
+
+def test_ambiguous_reference_fails_with_matching_last_value_and_artifact_hash():
+    inventory, payloads = fixture_inventory()
+    path = "public/version.json"
+    payloads[path] = b'{"version":"fixture-v1","version":"fixture-v2"}'
+    next(a for a in inventory["artifacts"] if a["path"] == path)["sha256"] = sha256(
+        payloads[path]
+    )
+    claim = inventory["claims"][0]
+    claim["requirement"] = "CURRENT_REFERENCE"
+    claim["reference"] = {
+        "artifact": "reference",
+        "locator": {"kind": "json-pointer", "value": "/version"},
+        "version": "fixture-v2",
+    }
+    report = check_inventory(inventory, payloads.get)
+    assert report["status"] == "FAIL"
+    with pytest.raises(
+        ValueError,
+        match=r"package\.synthetic-observation: public/version.json: duplicate key",
+    ):
+        require_pass(report)

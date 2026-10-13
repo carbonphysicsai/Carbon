@@ -17,6 +17,15 @@ BASIS = {
 }
 
 
+def parse_json(text):
+    """Reuse the public projection's bounded, finite, unique-key parser."""
+    from types import SimpleNamespace
+
+    from .package_sections import _json
+
+    return _json(SimpleNamespace(text=text))
+
+
 def sha256(data):
     return hashlib.sha256(data).hexdigest()
 
@@ -82,7 +91,7 @@ def locate(data, locator):
         pointer = locator["value"]
         if type(pointer) is not str or not pointer.startswith("/"):
             raise ValueError("explicit claim JSON pointer required")
-        value = json.loads(text)
+        value = parse_json(text)
         for part in pointer[1:].split("/"):
             key = part.replace("~1", "/").replace("~0", "~")
             if type(value) is dict and key in value:

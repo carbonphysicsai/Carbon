@@ -117,12 +117,12 @@
     {
       "id": "a.scripts.dev.customer-deliverable.claims.py",
       "path": "scripts/dev/customer_deliverable/claims.py",
-      "sha256": "4c81065ae775fbab21620e8feaad41448a17401d10bc947b74c18f8e1e6e1142"
+      "sha256": "c59a994b3623a0874bd1da430df81a757bc118c467ee95f57523a31709158687"
     },
     {
       "id": "a.scripts.dev.customer-deliverable.check-claims.py",
       "path": "scripts/dev/customer_deliverable/check_claims.py",
-      "sha256": "99a2cc6404224fcd8fd9e18aed8ad9871d3195ee665aaea4e98bf96d5b776bfe"
+      "sha256": "81ce04d2f68059e859be55482b30939fd6b5a20b5e88da21a87f18b5b625e153"
     },
     {
       "id": "a.tests.cpu.test-customer-deliverable-generator.py",
@@ -962,7 +962,7 @@
             "kind": "file",
             "value": "file"
           },
-          "sha256": "4c81065ae775fbab21620e8feaad41448a17401d10bc947b74c18f8e1e6e1142"
+          "sha256": "c59a994b3623a0874bd1da430df81a757bc118c467ee95f57523a31709158687"
         },
         {
           "artifact": "a.scripts.dev.customer-deliverable.check-claims.py",
@@ -970,7 +970,7 @@
             "kind": "file",
             "value": "file"
           },
-          "sha256": "99a2cc6404224fcd8fd9e18aed8ad9871d3195ee665aaea4e98bf96d5b776bfe"
+          "sha256": "81ce04d2f68059e859be55482b30939fd6b5a20b5e88da21a87f18b5b625e153"
         },
         {
           "artifact": "a.tests.cpu.test-customer-deliverable-generator.py",
@@ -1027,7 +1027,7 @@
             "kind": "file",
             "value": "file"
           },
-          "sha256": "4c81065ae775fbab21620e8feaad41448a17401d10bc947b74c18f8e1e6e1142"
+          "sha256": "c59a994b3623a0874bd1da430df81a757bc118c467ee95f57523a31709158687"
         },
         {
           "artifact": "a.scripts.dev.customer-deliverable.check-claims.py",
@@ -1035,7 +1035,7 @@
             "kind": "file",
             "value": "file"
           },
-          "sha256": "99a2cc6404224fcd8fd9e18aed8ad9871d3195ee665aaea4e98bf96d5b776bfe"
+          "sha256": "81ce04d2f68059e859be55482b30939fd6b5a20b5e88da21a87f18b5b625e153"
         },
         {
           "artifact": "a.tests.cpu.test-customer-deliverable-generator.py",
@@ -1092,7 +1092,7 @@
             "kind": "file",
             "value": "file"
           },
-          "sha256": "4c81065ae775fbab21620e8feaad41448a17401d10bc947b74c18f8e1e6e1142"
+          "sha256": "c59a994b3623a0874bd1da430df81a757bc118c467ee95f57523a31709158687"
         },
         {
           "artifact": "a.scripts.dev.customer-deliverable.check-claims.py",
@@ -1100,7 +1100,7 @@
             "kind": "file",
             "value": "file"
           },
-          "sha256": "99a2cc6404224fcd8fd9e18aed8ad9871d3195ee665aaea4e98bf96d5b776bfe"
+          "sha256": "81ce04d2f68059e859be55482b30939fd6b5a20b5e88da21a87f18b5b625e153"
         },
         {
           "artifact": "a.tests.cpu.test-customer-deliverable-generator.py",
@@ -1157,7 +1157,7 @@
             "kind": "file",
             "value": "file"
           },
-          "sha256": "4c81065ae775fbab21620e8feaad41448a17401d10bc947b74c18f8e1e6e1142"
+          "sha256": "c59a994b3623a0874bd1da430df81a757bc118c467ee95f57523a31709158687"
         },
         {
           "artifact": "a.scripts.dev.customer-deliverable.check-claims.py",
@@ -1165,7 +1165,7 @@
             "kind": "file",
             "value": "file"
           },
-          "sha256": "99a2cc6404224fcd8fd9e18aed8ad9871d3195ee665aaea4e98bf96d5b776bfe"
+          "sha256": "81ce04d2f68059e859be55482b30939fd6b5a20b5e88da21a87f18b5b625e153"
         },
         {
           "artifact": "a.tests.cpu.test-customer-deliverable-generator.py",
@@ -1222,7 +1222,7 @@
             "kind": "file",
             "value": "file"
           },
-          "sha256": "4c81065ae775fbab21620e8feaad41448a17401d10bc947b74c18f8e1e6e1142"
+          "sha256": "c59a994b3623a0874bd1da430df81a757bc118c467ee95f57523a31709158687"
         },
         {
           "artifact": "a.scripts.dev.customer-deliverable.check-claims.py",
@@ -1230,7 +1230,7 @@
             "kind": "file",
             "value": "file"
           },
-          "sha256": "99a2cc6404224fcd8fd9e18aed8ad9871d3195ee665aaea4e98bf96d5b776bfe"
+          "sha256": "81ce04d2f68059e859be55482b30939fd6b5a20b5e88da21a87f18b5b625e153"
         },
         {
           "artifact": "a.tests.cpu.test-customer-deliverable-generator.py",
@@ -1287,7 +1287,7 @@
             "kind": "file",
             "value": "file"
           },
-          "sha256": "4c81065ae775fbab21620e8feaad41448a17401d10bc947b74c18f8e1e6e1142"
+          "sha256": "c59a994b3623a0874bd1da430df81a757bc118c467ee95f57523a31709158687"
         },
         {
           "artifact": "a.scripts.dev.customer-deliverable.check-claims.py",
@@ -1295,7 +1295,7 @@
             "kind": "file",
             "value": "file"
           },
-          "sha256": "99a2cc6404224fcd8fd9e18aed8ad9871d3195ee665aaea4e98bf96d5b776bfe"
+          "sha256": "81ce04d2f68059e859be55482b30939fd6b5a20b5e88da21a87f18b5b625e153"
         },
         {
           "artifact": "a.tests.cpu.test-customer-deliverable-generator.py",
@@ -1352,7 +1352,7 @@
             "kind": "file",
             "value": "file"
           },
-          "sha256": "4c81065ae775fbab21620e8feaad41448a17401d10bc947b74c18f8e1e6e1142"
+          "sha256": "c59a994b3623a0874bd1da430df81a757bc118c467ee95f57523a31709158687"
         },
         {
           "artifact": "a.scripts.dev.customer-deliverable.check-claims.py",
@@ -1360,7 +1360,7 @@
             "kind": "file",
             "value": "file"
           },
-          "sha256": "99a2cc6404224fcd8fd9e18aed8ad9871d3195ee665aaea4e98bf96d5b776bfe"
+          "sha256": "81ce04d2f68059e859be55482b30939fd6b5a20b5e88da21a87f18b5b625e153"
         },
         {
           "artifact": "a.tests.cpu.test-customer-deliverable-generator.py",
@@ -1417,7 +1417,7 @@
             "kind": "file",
             "value": "file"
           },
-          "sha256": "4c81065ae775fbab21620e8feaad41448a17401d10bc947b74c18f8e1e6e1142"
+          "sha256": "c59a994b3623a0874bd1da430df81a757bc118c467ee95f57523a31709158687"
         },
         {
           "artifact": "a.scripts.dev.customer-deliverable.check-claims.py",
@@ -1425,7 +1425,7 @@
             "kind": "file",
             "value": "file"
           },
-          "sha256": "99a2cc6404224fcd8fd9e18aed8ad9871d3195ee665aaea4e98bf96d5b776bfe"
+          "sha256": "81ce04d2f68059e859be55482b30939fd6b5a20b5e88da21a87f18b5b625e153"
         },
         {
           "artifact": "a.tests.cpu.test-customer-deliverable-generator.py",
@@ -1482,7 +1482,7 @@
             "kind": "file",
             "value": "file"
           },
-          "sha256": "4c81065ae775fbab21620e8feaad41448a17401d10bc947b74c18f8e1e6e1142"
+          "sha256": "c59a994b3623a0874bd1da430df81a757bc118c467ee95f57523a31709158687"
         },
         {
           "artifact": "a.scripts.dev.customer-deliverable.check-claims.py",
@@ -1490,7 +1490,7 @@
             "kind": "file",
             "value": "file"
           },
-          "sha256": "99a2cc6404224fcd8fd9e18aed8ad9871d3195ee665aaea4e98bf96d5b776bfe"
+          "sha256": "81ce04d2f68059e859be55482b30939fd6b5a20b5e88da21a87f18b5b625e153"
         },
         {
           "artifact": "a.tests.cpu.test-customer-deliverable-generator.py",

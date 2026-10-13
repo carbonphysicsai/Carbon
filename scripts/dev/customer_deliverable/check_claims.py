@@ -6,7 +6,7 @@ import argparse
 import json
 from pathlib import Path
 
-from .claims import check_inventory, check_package_outputs, require_pass
+from .claims import check_inventory, check_package_outputs, parse_json, require_pass
 from .generate import GitReader, load_policy
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -15,7 +15,7 @@ INVENTORY = ROOT / "Business/research/deliverable-generator/claim-inventory.json
 
 def check_presentations(reader, inventory=None):
     if inventory is None:
-        inventory = json.loads(INVENTORY.read_text(encoding="utf-8"))
+        inventory = parse_json(INVENTORY.read_text(encoding="utf-8"))
 
     def read(path):
         source = reader.get({"id": "CLAIM", "path": path})
@@ -47,7 +47,7 @@ def main(argv=None):
                 for parent in [args.manifest, *args.manifest.parents]
             ):
                 raise ValueError("claim manifest must not be a symlink")
-            manifest = json.loads(args.manifest.read_text(encoding="utf-8"))
+            manifest = parse_json(args.manifest.read_text(encoding="utf-8"))
             outputs = {}
             for name in ("sample.md", "sample.json", "deliverable.schema.json"):
                 path = args.manifest.parent / name
