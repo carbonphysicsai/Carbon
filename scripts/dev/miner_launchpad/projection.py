@@ -186,6 +186,66 @@ def _validator_outcome(epoch, path):
     }
 
 
+def _multi_validator_outcome(epoch, path):
+    """Project each independently stored allow-listed result; never aggregate scores."""
+    from carbon.battery import multi_intake
+    from carbon.battery.campaign import intake_code
+    from carbon.development_session.intake_targets import MAX_TARGETS, validate
+    from scripts.dev.miner_launchpad.supervisor import next_action
+
+    try:
+        if path.is_symlink() or path.stat().st_size > (MAX_TARGETS + 1) * 65536:
+            return None
+        document = json.loads(path.read_bytes())
+        if (
+            document.get("schema") != multi_intake.SCHEMA
+            or document.get("epoch") != epoch
+        ):
+            return None
+        rows = document["validators"]
+        targets = validate(
+            [{k: row[k] for k in ("intake_url", "receiver_hotkey")} for row in rows]
+        )
+        projected = []
+        root = path.parent.parent
+        for row, target in zip(rows, targets):
+            if row["feedback"] is not None:
+                found = _validator_outcome(
+                    epoch, multi_intake._result_path(root, target, epoch)
+                )
+                if (
+                    found["status"] != "VALIDATOR_OUTCOME"
+                    or found["result"]["state"] != row["state"]
+                ):
+                    return None
+                projected.append(
+                    {**target, "state": row["state"], "result": found["result"]}
+                )
+            else:
+                if row["state"] not in {"REFUSED", "FAILED_INFRA", "QUEUED"}:
+                    return None
+                code = intake_code(row["code"])
+                projected.append(
+                    {
+                        **target,
+                        "state": row["state"],
+                        "code": code,
+                        "next_step": next_action(code),
+                        "result": None,
+                    }
+                )
+        return {
+            "epoch": epoch,
+            "mode": "DEVELOPMENT_EVALUATION",
+            "status": "MULTI_VALIDATOR_OUTCOME",
+            "validators": projected,
+            "qualification": False,
+            "reward": False,
+        }
+    except (OSError, ValueError, KeyError, TypeError, AttributeError):
+        return None
+
+
 def project(row, root):
     value = {
         "schema": "carbon.launchpad.own-research.v1",
@@ -507,7 +567,18 @@ def project(row, root):
             )
         feedback = directory / "permitted-final-feedback.json"
         if feedback.is_file() and not pointer_exists(directory):
-            value["final_results"].append(_validator_outcome(epoch, feedback))
+            value["final_results"].append(
+                _multi_validator_outcome(epoch, feedback)
+                or _validator_outcome(epoch, feedback)
+            )
+        elif not pointer_exists(directory):
+            from carbon.battery.multi_intake import STATUS_NAME
+
+            status = directory / STATUS_NAME
+            if status.is_file():
+                found = _multi_validator_outcome(epoch, status)
+                if found is not None:
+                    value["final_results"].append(found)
         pointer = directory / "final/comparison-ref.json"
         if pointer.is_file():
             try:

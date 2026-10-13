@@ -2443,6 +2443,14 @@
     if (run.selects === "miner") renderJourneySubmission(panel, run);
     else if (run.selects === "agent") researchNote(panel, "Carbon's agent freezes and submits in this campaign.", "hint");
     for (const result of run.final_results || []) {
+      if (result.status === "MULTI_VALIDATOR_OUTCOME") {
+        for (const validator of result.validators || []) {
+          researchNote(panel, "Validator: " + validator.receiver_hotkey + " · " + validator.intake_url, "development-result");
+          if (validator.result) renderValidatorOutcome(panel, {epoch: result.epoch, result: validator.result});
+          else researchNote(panel, words(validator.state) + ": " + (validator.next_step || words(validator.code)), "development-result");
+        }
+        continue;
+      }
       if (result.status === "VALIDATOR_OUTCOME" && result.result) { renderValidatorOutcome(panel, result); continue; }
       const verified = result.status === "VERIFIED_SOURCE" && result.result;
       researchNote(panel, "DEVELOPMENT evaluation: " + (verified ? (result.result.disposition || "disposition unavailable") + " · Accepted DEVELOPMENT improvement: " + (typeof result.result.accepted_development_improvement === "boolean" ? String(result.result.accepted_development_improvement) : "unavailable") : "Readback unavailable; no disposition inferred."), "development-result");

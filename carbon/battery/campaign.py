@@ -921,6 +921,13 @@ async def evaluate_candidate(prepared, epoch, record):
     if config is None and intake is not None:
         # The validator runs elsewhere: submit through its intake, signed by
         # the miner's own signer (C-MLP-03 slice 6).
+        from carbon.development_session.intake_targets import for_challenge
+
+        targets = for_challenge(vars(prepared.args), CHALLENGE.challenge_id)
+        if targets is not None:
+            from .multi_intake import evaluate as evaluate_many
+
+            return await evaluate_many(prepared, epoch, record, targets)
         return await _evaluate_through_intake(prepared, epoch, record, intake)
     if config is None:
         raise OperationRefused("evaluation_unavailable")
@@ -1278,6 +1285,13 @@ def commitment_due(args, root, epoch):
     prepared = SimpleNamespace(args=args)
     if evaluation_config(prepared) is not None or _intake(prepared) is None:
         return False
+    from carbon.development_session.intake_targets import for_challenge, journal
+
+    targets = for_challenge(vars(args), CHALLENGE.challenge_id)
+    if targets is not None:
+        return not any(
+            rs._record_path(journal(root, target), epoch).exists() for target in targets
+        )
     return not rs._record_path(root, epoch).exists()
 
 
@@ -1355,7 +1369,9 @@ def _carries_level4(url, read=None):
         return False
 
 
-async def _evaluate_through_intake(prepared, epoch, record, url):
+async def _evaluate_through_intake(
+    prepared, epoch, record, url, *, submission_root=None
+):
     """One frozen candidate through the validator's intake; see
     `submit_through_intake`. The epoch is consumed only by a verdict: SCORED,
     or the daemon's INVALID_CONSTRUCTION or RECONSTRUCTION_FAILED. Anything
@@ -1405,7 +1421,7 @@ async def _evaluate_through_intake(prepared, epoch, record, url):
                 submit_through_intake,
                 url,
                 prepared.sdk.connection.miner_key,
-                root=root,
+                root=root if submission_root is None else submission_root,
                 epoch=epoch,
                 strategy=record["strategy"],
                 contract_digest=record.get("contract_digest")
@@ -1524,6 +1540,23 @@ def queued_verdict(
     frozen_level = record.get("construction_level")
     if type(frozen_level) is dict and frozen_level.get("level") == 4:
         return None
+    from carbon.development_session.intake_targets import for_challenge
+
+    targets = for_challenge(vars(args), CHALLENGE.challenge_id)
+    if targets is not None:
+        from .multi_intake import queued
+
+        return queued(
+            args,
+            root,
+            epoch,
+            connect,
+            targets,
+            now=now,
+            read=read,
+            post=post,
+            floor=floor,
+        )
     if not rs.claim_status_read(
         root,
         epoch,
