@@ -1,4 +1,4 @@
-"""What Carbon stages for a composed development rebuild (CONSTRUCTION-CONTRACT-01 S1).
+"""What Carbon stages for a composed development rebuild (CONSTRUCTION-CONTRACT-01 S1/S2).
 
 A development construction whose reconstruction carries parts of two or more
 levels (Level 1's loss expression, Level 2's SpecMuon or pool selection, Level
@@ -17,9 +17,10 @@ Nothing the strategy supplied is executed.
 record, program, files and trainer, byte for byte
 (`development_rebuild`), so composing changes no single-level rebuild.
 
-**Level 4 is S2.** A Level 4 graph beside any other part is refused
-(`construction_rebuild_unavailable`), naming the fields, until the graph is
-trained by the composed trainer.
+**Level 4 combinations use a prospective graph record.** The existing graph
+network, initialization and state wrap the composed trainer. Its workspace
+documents travel with reconstruction. An actual graph loss plus an L1 objective
+refuses with `construction_rebuild_unavailable`, naming both fields.
 
 **CPU only for now** (`CPU_ONLY_DEV`), as SpecMuon and the numerics are, until
 the A40 R1 leg passes them. Any other device is refused as an environment
@@ -34,6 +35,7 @@ from pathlib import Path
 from . import level1_worker, level2_worker, level3_worker, level4_worker
 
 SCHEMA = "carbon.battery.composed.v1"
+GRAPH_SCHEMA = "carbon.battery.composed-graph.v1"
 LANE = "CPU_ONLY_DEV"
 REBUILD_LABEL = "rebuild: CPU-verified only"
 PARTS_FILE = "battery-composed.json"
@@ -95,6 +97,15 @@ model = composed_training.build(
 """
 
 
+_COMPOSED_GRAPH_BUILD = level4_worker._PRELUDE + _COMPOSED_BUILD.replace(
+    'model = composed_training.build(\n    recipe["family"],\n    recipe["settings"],\n',
+    'shutil.copyfile(work / "battery-composed-graph.py", lab / "composed_graph.py")\n'
+    "from carbon_battery_lab import composed_graph, level4_model\n"
+    "model = composed_graph.ComposedGraph(\n"
+    "    level4_model.build_from_work(recipe, work),\n",
+)
+
+
 class RebuildUnavailable(ValueError):
     """A combination Carbon cannot rebuild yet: `code` names the fields."""
 
@@ -126,18 +137,16 @@ def parts(reconstruction):
 
 def composed_record(reconstruction):
     """The composed record of a construction with two or more parts, or None
-    (a single part keeps its own level's record). A graph beside another part
-    is not composed yet: `RebuildUnavailable`, naming the fields."""
+    (a single part keeps its own level's record). Graph combinations use the
+    prospective graph schema, preserving the existing non-graph record."""
     found = parts(reconstruction)
     if len({LEVEL_OF[name] for name in found}) < 2:
         # One level's parts (SpecMuon and a pool selection are both Level 2)
         # keep that level's own record and route.
         return None
-    if "graph" in found:
-        raise RebuildUnavailable(FIELDS[name] for name in found)
     numerics = found.get("numerics")
-    return {
-        "schema": SCHEMA,
+    record = {
+        "schema": GRAPH_SCHEMA if "graph" in found else SCHEMA,
         "expression": found.get("expression"),
         "spectral": found.get("spectral"),
         "pool": found.get("pool"),
@@ -151,10 +160,17 @@ def composed_record(reconstruction):
         ),
         "lane": LANE,
     }
+    if "graph" in found:
+        record["graph"] = found["graph"]
+        if numerics is not None:
+            source = reconstruction.get(level3_worker.QUASI_NEWTON) or {}
+            if "memory_bound_bytes" in source:
+                record["numerics"]["memory_bound_bytes"] = source["memory_bound_bytes"]
+    return record
 
 
 def is_composed(record):
-    return type(record) is dict and record.get("schema") == SCHEMA
+    return type(record) is dict and record.get("schema") in (SCHEMA, GRAPH_SCHEMA)
 
 
 def changes(record):
@@ -186,11 +202,17 @@ def program(base, record):
     for indent in ("    ", ""):
         line = indent + _BUILD
         if base.count(line) == 1:
-            return base.replace(line, textwrap.indent(_COMPOSED_BUILD, indent))
+            body = _COMPOSED_GRAPH_BUILD if record.get("graph") else _COMPOSED_BUILD
+            built = base.replace(line, textwrap.indent(body, indent))
+            if record.get("graph") and level4_worker._STATE in base:
+                built = level4_worker._replace(
+                    built, level4_worker._STATE, level4_worker._LEVEL4_STATE
+                )
+            return built
     raise RuntimeError("the program's build line moved")
 
 
-def build_in_process(recipe, record):
+def build_in_process(recipe, record, workspace=None):
     """The untrained composed model, built in this process as the staged
     program builds it. CPU only, refused as an environment failure."""
     import jax
@@ -210,6 +232,19 @@ def build_in_process(recipe, record):
                 expression["canonical"].encode("utf-8"),
                 expression["operation_set_document"],
             ),
+        )
+    if record.get("graph") is not None:
+        if workspace is None:
+            raise ImportError(level4_worker.BLOCKED)
+        from . import composed_graph
+
+        return composed_graph.build(
+            recipe,
+            record["graph"],
+            workspace,
+            loss=loss,
+            spectral=record["spectral"] is not None,
+            numerics=record["numerics"],
         )
     return composed_training.build(
         recipe.family,
@@ -240,6 +275,11 @@ def staged(record):
     files[PARTS_FILE] = json.dumps(
         _flags(record), sort_keys=True, separators=(",", ":")
     ).encode("utf-8")
+    if record.get("graph") is not None:
+        files.update(level4_worker.staged(record["graph"]))
+        files["battery-composed-graph.py"] = (
+            carbon / "battery" / "composed_graph.py"
+        ).read_bytes()
     if record["expression"] is not None:
         expression_files = level1_worker.staged(record["expression"])
         for name in (level1_worker.EXPRESSION_FILE, level1_worker.OPERATION_SET_FILE):

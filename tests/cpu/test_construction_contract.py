@@ -13,9 +13,9 @@ on our 0-4 plan." Claims tested:
 3. Each field keeps its own containment inside a combination: Level 3 stays a
    menu, Level 2's SpecMuon still needs Muon, and a field's own bounds still
    refuse.
-4. The rebuild is the gate: a combination Carbon cannot rebuild yet (a Level 4
-   graph beside another field, until S2) is refused with
-   `construction_rebuild_unavailable`, naming the fields.
+4. Graph combinations carry a prospective graph record and require a verified
+   workspace for reconstruction. Detailed graph execution, objective conflict,
+   staging and costing controls live in test_battery_composed_graph*.py.
 5. A combination is costed, not refused as uncostable.
 6. The staged worker program and the in-process rebuild train the same
    combination to the same parameters, and a rebuild repeats.
@@ -184,15 +184,15 @@ def test_each_field_keeps_its_own_containment_inside_a_combination(
     assert code in {issue[0] for issue in refused.value.issues}, refused.value.issues
 
 
-def test_a_combination_carbon_cannot_rebuild_yet_is_refused_naming_its_fields():
-    graph = {"composition_graphs": "sha256:" + "0" * 64}
-    with pytest.raises(dv.VariantRefused) as refused:
-        dc.compile(strategy("spectral", **graph))
-    assert refused.value.code == dc.UNAVAILABLE
-    assert set(refused.value.issues) == {
-        (dc.UNAVAILABLE, "/parameters/composition_graphs"),
-        (dc.UNAVAILABLE, "/parameters/muon_spectral"),
-    }
+def test_graph_combination_has_a_record_and_cannot_train_without_documents():
+    found = dc.compile(
+        strategy("spectral", composition_graphs="sha256:" + "0" * 64),
+        check_budget=False,
+    )
+    assert found.record["schema"] == composed_worker.GRAPH_SCHEMA
+    assert development_rebuild.uses_graph(found.record)
+    with pytest.raises(ImportError, match="level4_submission_documents_not_staged"):
+        development_rebuild.build_in_process(found.construction, found.record)
 
 
 def test_a_combination_is_costed_not_refused():
@@ -275,9 +275,10 @@ def test_the_answer_says_accepted_or_names_the_refused_fields(tmp_path):
     assert accepted["status"] == "ACCEPTED" and accepted["rebuild"] == "composed"
     assert accepted["derived"]["level"] == 3
     graph = {"composition_graphs": "sha256:" + "0" * 64}
-    refused = dc.answer(strategy("l3", **graph), check_budget=False)
-    assert refused["status"] == "REFUSED" and refused["code"] == dc.UNAVAILABLE
-    assert [dc.UNAVAILABLE, "/parameters/composition_graphs"] in refused["issues"]
+    described = dc.answer(strategy("l3", **graph), check_budget=False)
+    assert described["status"] == "ACCEPTED" and described["rebuild"] == "composed"
+    # Structural/offline admission is not evidence of available graph documents
+    # or budget acceptance; the missing-document control above remains binding.
     path = tmp_path / "strategy.json"
     path.write_text(json.dumps(strategy("l1", "pool")))
     assert dc.main([str(path), "--no-budget"]) == 0
