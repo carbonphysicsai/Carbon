@@ -34,3 +34,17 @@ def test_unknown_value_definition_refuses():
     config["value_definition"] = "hidden_exam"
     with pytest.raises(LabRefused, match="physics_value_definition"):
         physics.validate_config(config)
+
+
+def test_legacy_one_pick_does_not_gain_extra_verification_slots():
+    config = json.loads(EXAMPLE.read_text(encoding="utf-8"))
+    config["questions_per_side"] = 3
+    config["value_definition"] = "legacy_one_pick"
+    config["decision"]["k"] = 1
+    one = physics.build(config)
+    config["decision"]["k"] = 5
+    five = physics.build(config)
+    assert [m["value_losses"] for m in one["members"]] == [
+        m["value_losses"] for m in five["members"]
+    ]
+    assert one["exact_oracle_losses"] == five["exact_oracle_losses"]
