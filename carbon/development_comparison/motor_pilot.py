@@ -640,7 +640,26 @@ def replay(export, predictions, receipt, policy, costs, indexed, baseline, cheap
     }
 
 
+def cpu_trainer(kit, export, train, *, scope, seed, backend, code):
+    """Place the fixed shared recipe and its query arrays on the CPU explicitly."""
+    import jax
+
+    device = jax.devices("cpu")[0]
+    with jax.default_device(device):
+        return ca.run(
+            kit,
+            export,
+            train,
+            scope=scope,
+            seed=seed,
+            backend=backend,
+            code={**code, "execution_platform": device.platform},
+        )
+
+
 def execute(docs, pins, *, fixture=False, trainer=None):
+    if not fixture and trainer is not None:
+        raise PilotHold("PUBLIC_RUN_REQUIRES_FIXED_CPU_TRAINER")
     kit, export, train, policy, costs, indexed, baseline, cheap = prepare(
         docs, pins, fixture=fixture
     )
@@ -658,7 +677,7 @@ def execute(docs, pins, *, fixture=False, trainer=None):
                 resource.RLIMIT_CPU,
                 (math.ceil(used.ru_utime + used.ru_stime + 14400 - fit_cpu), 56 * 3600),
             )
-        pred, receipt = (trainer or ca.run)(
+        pred, receipt = (trainer or cpu_trainer)(
             kit,
             view,
             train,

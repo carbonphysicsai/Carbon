@@ -23,6 +23,8 @@ The last command is Data Collection's single worker command after packaging
 the seven pinned inputs. It fits the unchanged plain L0 recipe at public seeds
 0/1/2 and invokes OPT-12 for each. It makes **zero reference/provider calls**.
 It masks reference values before handing the query export to the trainer.
+Fit and inference run inside an explicit JAX CPU device context, even on a
+GPU-equipped host. Only fixture execution accepts a trainer stand-in.
 The dry-run uses deterministic synthetic curves and an explicit trainer
 stand-in: it is wiring evidence only, with `real_pilot_executed=false` and
 `scope=SYNTHETIC_FIXTURE`. A deliberately false peak prediction exercises

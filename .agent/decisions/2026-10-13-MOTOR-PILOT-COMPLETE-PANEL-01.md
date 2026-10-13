@@ -33,6 +33,10 @@ Physical geometry identity compares exact numeric coordinates in fixed grammar
 order. JSON integer/float spelling cannot create a distinct geometry or bypass
 TRAIN/heldout separation. No tolerance, rounding or approximate equivalence is
 introduced; this supersedes byte-spelling comparison within the working worker.
+The worker places both fit and inference on `jax.devices("cpu")[0]` through
+`jax.default_device`, so a local GPU cannot silently escape CPU accounting.
+Public execution cannot inject an alternate trainer; stand-ins belong only
+to the explicitly marked fixture path. The shared recipe itself is unchanged.
 
 Operational DOCUMENTATION_LAG: PKT-09's conditional USD77.20 scenario exceeds
 the existing shared launcher's USD50 per-run guard. Job-spec generation takes

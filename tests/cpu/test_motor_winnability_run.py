@@ -193,6 +193,12 @@ def test_fixture_inputs_refused_by_public_path():
         mp.prepare(docs, pins)
 
 
+def test_a_trainer_stand_in_cannot_claim_a_public_pilot():
+    docs, pins = fixture.documents()
+    with pytest.raises(mp.PilotHold, match="FIXED_CPU_TRAINER"):
+        mp.execute(docs, pins, trainer=fixture.stand_in)
+
+
 def test_reference_band_overlap_stays_unresolved_without_model_failure():
     docs, _pins = fixture.documents()
     task = docs["export"]["questions"][0]["task"]
@@ -277,20 +283,30 @@ def test_pod_spec_refuses_fixture_bundle_before_launcher_dispatch(tmp_path):
 
 
 def test_tiny_real_trainer_wiring_uses_only_masked_reference(monkeypatch):
-    pytest.importorskip("jax")
+    jax = pytest.importorskip("jax")
     docs, pins = fixture.documents()
     kit, export, train, *_ = mp.prepare(docs, pins, fixture=True)
     for e in export["questions"]:
         for r in e["reference"]:
             r["values"] = {k: 0.0 for k in pk.OBSERVABLES}
-    pred, receipt = ca.run(
+    original = ca.run
+
+    def tiny(*args, **kwargs):
+        assert jax.config.jax_default_device.platform == "cpu"
+        return original(*args, **kwargs, settings={"steps": 1, "width": 8, "depth": 1})
+
+    monkeypatch.setattr(ca, "run", tiny)
+    pred, receipt = mp.cpu_trainer(
         kit,
         export,
         train,
         scope="SYNTHETIC_FIXTURE",
-        settings={"steps": 1, "width": 8, "depth": 1},
+        seed=0,
+        backend="jax",
+        code={},
     )
     assert receipt["kit"] == kit.kit_id
+    assert receipt["code"]["execution_platform"] == "cpu"
     assert receipt["cost"]["inference"]["model_queries"] == 6 * 7
     assert len(pred["rows"]) == 6
     assert all(set(r["values"]) == set(pk.OBSERVABLES) for r in pred["rows"])
