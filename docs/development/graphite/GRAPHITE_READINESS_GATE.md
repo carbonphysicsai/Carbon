@@ -101,6 +101,9 @@ fails the gate gets no live Graphite run, at any level.
 
 ## D. Decision evidence (Track B)
 
+The D1-D6 automated evidence formats and historical pin interpretation are
+documented in the [study-check contract](../challenge_pipeline/readiness/STUDY_CHECKS.md).
+
 | Item | Check | Kind | Lesson |
 |---|---|---|---|
 | D1 | A frozen decision study exists, with a finite comparator, commitment before reference access, and representative and boundary groups. | [auto] | n/a |
