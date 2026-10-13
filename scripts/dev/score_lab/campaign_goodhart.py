@@ -27,7 +27,9 @@ TRAITS = frozenset(
         "score_path_only",
     }
 )
-VALUE_SCOPES = frozenset({"in_range", "shifted", "extrapolated", "neighbourhood_blend"})
+VALUE_SCOPES = frozenset(
+    {"in_range", "shifted", "extrapolated", "neighbourhood_blend", "robust_worst_case"}
+)
 
 
 def _finite(value):

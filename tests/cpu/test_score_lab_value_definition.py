@@ -48,3 +48,25 @@ def test_legacy_one_pick_does_not_gain_extra_verification_slots():
         m["value_losses"] for m in five["members"]
     ]
     assert one["exact_oracle_losses"] == five["exact_oracle_losses"]
+
+
+def test_robust_worst_case_value_uses_all_near_and_extrapolated_tasks():
+    config = json.loads(EXAMPLE.read_text(encoding="utf-8"))
+    config["questions_per_side"] = 3
+    panel = physics.build(config)
+    robust = physics.value_view(panel, "robust_worst_case")
+    assert set(robust["value_questions"]) == {"V-0", "V-1", "V-2"}
+    assert all(value is None for value in robust["exact_oracle_losses"].values())
+    for old, new in zip(panel["members"], robust["members"], strict=True):
+        for qid, worst in new["value_losses"].items():
+            related = [
+                loss
+                for name, loss in old["value_losses"].items()
+                if name == qid or name.endswith("-" + qid.split("-")[-1])
+            ]
+            assert worst == max(related)
+    # Value scope changes neither the score references nor the score side.
+    assert robust["score_questions"] == panel["score_questions"]
+    assert [m["score_predictions"] for m in robust["members"]] == [
+        m["score_predictions"] for m in panel["members"]
+    ]

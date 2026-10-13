@@ -214,6 +214,10 @@ true buyer value as an offline oracle. Both use fixed random starts plus
 coordinate hill climbing. The reported value gap uses an approximate oracle;
 a signed negative gap means it missed a better point. Every search range and
 effort setting is an explicit toy assumption, not a Challenge rule.
+`goodhart-robust-search-example.json` changes only the buyer-value scope to
+the worst loss across target, neighbour and extrapolated toy tasks at each
+question index. Per-task minima do not establish its exact min-max oracle, so
+this scope is supported by the sampled Goodhart comparison only.
 
 `campaign-feedback` runs a separate toy score-only search. Its callback
 returns only the rounded score of the selected synthetic scoring-question

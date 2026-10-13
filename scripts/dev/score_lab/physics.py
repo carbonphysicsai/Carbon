@@ -474,7 +474,31 @@ def build(config):
 def value_view(panel, stratum, neighbour_weight=0.0):
     """Leave the scoring half untouched; select only a true-value estimand."""
     view = copy.copy(panel)
-    if stratum == "neighbourhood_blend":
+    if stratum == "robust_worst_case":
+        target = [
+            qid for qid, kind in panel["value_strata"].items() if kind == "in_range"
+        ]
+        view["value_questions"] = {qid: panel["value_questions"][qid] for qid in target}
+        view["members"] = []
+        for member in panel["members"]:
+            losses = {}
+            for qid in target:
+                suffix = qid.split("-")[-1]
+                related = [
+                    member["value_losses"][name]
+                    for name in panel["value_questions"]
+                    if name == qid or name.endswith("-" + suffix)
+                ]
+                losses[qid] = (
+                    max(related)
+                    if related and all(loss is not None for loss in related)
+                    else None
+                )
+            view["members"].append({**member, "value_losses": losses})
+        # Per-task minima cannot be combined into the min-max oracle for one
+        # robust decision. Keep that reference explicitly unresolved.
+        view["exact_oracle_losses"] = {qid: None for qid in target}
+    elif stratum == "neighbourhood_blend":
         if not _finite(neighbour_weight, high=1):
             raise LabRefused("physics_neighbourhood_weight")
         target = [
