@@ -198,7 +198,8 @@ neighbourhood-blend summaries per candidate and physics switch, plus sampled
 axis median splits or category medians for the OFF switch as exploratory
 associations. Its worst
 tenth is a descriptive sample tail; Sobol indices and final rule selection
-remain unset because LHS profiles do not supply a Saltelli design.
+remain unset in this LHS atlas because those profiles do not supply a
+pick-and-freeze design.
 The `campaign-run --plan` and `campaign-atlas --result` readers accept plain
 JSON or deterministic `.json.gz` evidence files.
 
@@ -206,6 +207,29 @@ JSON or deterministic `.json.gz` evidence files.
 python -m scripts.dev.score_lab campaign-atlas \
   --result /tmp/scorelab-campaign-results.json \
   --out /tmp/scorelab-atlas.json
+```
+
+For variance-based sensitivity, use the separate `campaign-sobol-*` path.
+It makes independent deterministic LHS A/B matrices and one A/B hybrid per
+axis, then requires all matched rows before computing raw Saltelli first-order
+and Jansen total-order estimators. An unresolved toy tau makes the estimate
+`INSUFFICIENT_EVIDENCE`; small-sample estimates may be negative or above one
+and are never clipped. A complete run costs `(2 + axes) * count` toy profiles.
+
+```sh
+python -m scripts.dev.score_lab campaign-sobol-plan \
+  --base-config scripts/dev/score_lab/physics-error-example.json \
+  --axes scripts/dev/score_lab/campaign-axes-error-example.json \
+  --count 4 --seed 97 --switch-index 0 --scope neighbourhood_blend \
+  --out /tmp/scorelab-sobol-plan.json
+python -m scripts.dev.score_lab campaign-sobol-run \
+  --plan /tmp/scorelab-sobol-plan.json \
+  --candidates codex-queue/inputs/score-lab-candidates/candidates.py \
+  --candidate N1-DECISION-RELEVANCE-ERROR \
+  --out /tmp/scorelab-sobol-results.json
+python -m scripts.dev.score_lab campaign-sobol-atlas \
+  --result /tmp/scorelab-sobol-results.json \
+  --out /tmp/scorelab-sobol-atlas.json
 ```
 
 `campaign-goodhart` searches the analytic toy member-trait grammar twice:

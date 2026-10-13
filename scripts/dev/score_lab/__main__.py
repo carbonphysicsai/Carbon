@@ -17,6 +17,7 @@ from . import (
     campaign_feedback,
     campaign_gate,
     campaign_goodhart,
+    campaign_sobol,
     campaign_stress,
     campaign_sweep,
     candidates,
@@ -318,7 +319,66 @@ def main(argv=None):
     feedback.add_argument("--candidate")
     feedback.add_argument("--components", type=Path)
     feedback.add_argument("--out", type=Path, required=True)
+    sobol_plan = commands.add_parser(
+        "campaign-sobol-plan", help="prepare a deterministic toy pick-and-freeze shard"
+    )
+    sobol_plan.add_argument("--base-config", type=Path, required=True)
+    sobol_plan.add_argument("--axes", type=Path, required=True)
+    sobol_plan.add_argument("--count", type=int, required=True)
+    sobol_plan.add_argument("--seed", type=int, required=True)
+    sobol_plan.add_argument("--switch-index", type=int, required=True)
+    sobol_plan.add_argument("--scope", choices=campaign_sobol.SCOPES, required=True)
+    sobol_plan.add_argument("--shard", type=int, default=0)
+    sobol_plan.add_argument("--shards", type=int, default=1)
+    sobol_plan.add_argument("--out", type=Path, required=True)
+    sobol_run = commands.add_parser(
+        "campaign-sobol-run",
+        help="evaluate one digest-checked toy pick-and-freeze shard",
+    )
+    sobol_run.add_argument("--plan", type=Path, required=True)
+    sobol_run.add_argument("--candidates", type=Path, required=True)
+    sobol_run.add_argument("--candidate", required=True)
+    sobol_run.add_argument("--out", type=Path, required=True)
+    sobol_atlas = commands.add_parser(
+        "campaign-sobol-atlas", help="require complete shards then estimate toy indices"
+    )
+    sobol_atlas.add_argument("--result", type=Path, required=True, action="append")
+    sobol_atlas.add_argument("--out", type=Path, required=True)
     args = parser.parse_args(argv)
+    if args.command == "campaign-sobol-plan":
+        plan = {
+            "schema": campaign_sobol.PLAN_SCHEMA,
+            "seed": args.seed,
+            "count": args.count,
+            "base_config": _read_campaign_json(args.base_config),
+            "axes": _read_campaign_json(args.axes),
+            "switch_index": args.switch_index,
+            "scope": args.scope,
+        }
+        report = campaign_sobol.prepare(plan, shard=args.shard, shards=args.shards)
+        _write(args.out, report)
+        print(f"toy pick-and-freeze plan: {len(report['rows'])} matched base rows")
+        return 0
+    if args.command == "campaign-sobol-run":
+        specs, digest = candidates.load(args.candidates)
+        if args.candidate not in specs:
+            raise LabRefused("candidate_not_registered")
+        report = campaign_sobol.evaluate(
+            _read_campaign_json(args.plan),
+            args.candidate,
+            specs[args.candidate],
+            candidates_sha256=digest,
+        )
+        _write(args.out, report)
+        print(f"toy pick-and-freeze shard: {len(report['rows'])} matched base rows")
+        return 0
+    if args.command == "campaign-sobol-atlas":
+        report = campaign_sobol.aggregate(
+            [_read_campaign_json(path) for path in args.result]
+        )
+        _write(args.out, report)
+        print(f"toy Sobol sensitivity: {report['status']}; no Challenge conclusion")
+        return 0
     if args.command == "campaign-feedback":
         config = _read_campaign_json(args.config)
         search_spec = _read_campaign_json(args.search)

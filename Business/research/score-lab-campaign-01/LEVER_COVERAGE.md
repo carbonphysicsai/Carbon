@@ -12,7 +12,7 @@ fixture exercises it. `PARTIAL` means the setting is narrower than the plan.
 | B: task neighbourhood | Objective, constraint, operating and boundary changes; size, extrapolation distance and value/score weights | IMPLEMENTED as analytic toy assumptions |
 | C: model errors and traits | Error scale, transfer, score-path overfit, law events, drift, robustness, extrapolation; optional toy heteroscedasticity (uniform/boundary/optimum), cross-design correlation, rare tails and sigma scale | PARTIAL: these new knobs are fixture-tested but not yet in a broad result; gradient fidelity and calibrated uncertainty data are missing |
 | D: population and gamers | Several toy model types, cheap map, abstain, bad and path probes; disclosed-score feedback gamer connected to analytic toy candidate rules | PARTIAL: adaptive competition within every sweep profile and copy/fallback strategies missing |
-| E: measurement | Disjoint score/value sets, 3–20 questions, LHS shards, bootstrap, mean/tail descriptive atlas | PARTIAL: 10–4,000 questions, 3–30 blocks, P/Q/w sampling, reference-failure policy, median/quantile aggregation and true Sobol design missing |
+| E: measurement | Disjoint score/value sets, 3–20 questions, LHS shards, bootstrap, mean/tail descriptive atlas, and a separate raw pick-and-freeze Sobol estimator | PARTIAL: only four Sobol pairs smoked; 10–4,000 questions, 3–30 blocks, P/Q/w sampling, reference-failure policy, median/quantile aggregation and stable Sobol estimates remain |
 | F: score components | Ten Validator candidate proxies, optional cheap-relative/CRPS/gradient-sign/CVaR wrappers, physics GATE/FLOOR/BLEND | PARTIAL: full combinatorial component sweep and exact registered Tier-2 replay missing |
 | G: championship | None in Score Lab campaign runner | MISSING: paired crown/tie/margin sweep against true toy value |
 
@@ -23,6 +23,7 @@ its disclosure settings are assumptions rather than Launchpad measurements.
 smoke for the new error knobs, with no sensitivity or rule-selection claim.
 `GOODHART_ROBUST_TOY_READOUT.md` records the separate worst-case value view;
 its value oracle is approximate and it does not pick a winner.
+`SOBOL_SMOKE_4.md` checks estimator wiring only, with no interpretable index.
 The 142-member realism calibration, D3-approved EV4 reference v2, independent
 final holdout, tier-2 replay and one-page owner verdict are still absent.
 The held Test Engineer holdout is never read or queried to fill these gaps.
