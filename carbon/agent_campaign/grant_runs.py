@@ -86,10 +86,13 @@ WEEKLY_CAP_USD = Decimal(300)
 PER_RUN_CAP_USD = Decimal(50)
 #: Weekly budget held back from EVERY claim for named runs launched outside this
 #: ledger (CLOUD-FIRST-COMPUTE-01; the Test Lead, 2026-10-12: one rule everywhere,
-#: enforced in code rather than by launch order): the sealed confirmation run's USD 40,
-#: launched from the RunPod console. Released by removing its entry, in a reviewed
-#: change, once that run has settled. It enforces the owner's existing figures and
-#: changes none of them.
+#: enforced in code rather than by launch order): the Test Lead's USD 40 reserve for
+#: the sealed confirmation run, launched from the RunPod console. The owner's cap for
+#: that run is USD 37 (`.agent/decisions/2026-10-12-OWNER-SCORE-PROOF-CONFIRM-02-GRANT.md`,
+#: amended from 25 on 2026-10-12); the extra 3 is the Test Lead's conservative pad, not
+#: an owner figure. Holding back more than the cap can only refuse a claim the owner's
+#: own figures would allow, never permit one they would not. Released, or reduced to the
+#: cap, by changing this entry in a reviewed change once that run has settled.
 HELD_RESERVES = {"OWNER-SCORE-PROOF-CONFIRM-02-GRANT": Decimal(40)}
 PER_RUN_LIMIT = "per_run_cap_exceeded"
 WEEK_SECONDS = 7 * 24 * 3600
