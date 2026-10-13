@@ -4,6 +4,8 @@ Research pin: Carbon main `1238dd3471f73d3fc0df375de1d63c4663e380b3`. Public dev
 
 ## Carbon evidence
 
+Source-publication follow-up: [RES-07 executable](res07-analyze.py.txt), [source pin](source-pin.json) and [both-study replay instructions](REPLAY.md). The source's SHA-256 is `e91f89f9cae53cd7b5e1f252910f197f8a0334adbf47e2bb492d7601dffa91ff`; its exact 39,511 bytes are preserved. This resolves the Validator's request in #1218 without changing recorded measurements.
+
 | Source at the pin | Git blob / identity | Use and limits |
 | --- | --- | --- |
 | [EV4 registered results](../../../docs/development/evidence/ev4-2026-10-01/results.json) | `67ca13b966a2f6fb4b2e68b084e2909657e7ba7f` | Historical A40-era selections; preserve original outcomes and eligible cohort. |

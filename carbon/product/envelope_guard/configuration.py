@@ -12,6 +12,7 @@ from itertools import pairwise
 from types import MappingProxyType
 
 from carbon.challenge_validator import validity
+from carbon.trust_map.acceptance import AcceptanceRefused, load_acceptance
 from carbon.trust_map.core import MAP_SCHEMA
 
 CONTRACT_SCHEMA = "carbon.product.guard-contract.v1"
@@ -324,18 +325,26 @@ def native_map(raw, model_id, image, inputs, outputs):
     sha("sha256:" + value["source"]["source_sha256"])
     verification = value["reference_verification"]
     closed(
-        verification, {"state", "accepted_development_pass", "image_digest", "evidence"}
-    )
-    require(
-        verification["state"] == "PASS"
-        and verification["accepted_development_pass"] is True,
-        "map_verification_unavailable",
+        verification,
+        {
+            "schema",
+            "scope",
+            "family",
+            "image_digest",
+            "criteria_digest",
+            "link_digest",
+            "decision",
+            "conditions",
+        },
     )
     require(sha(verification["image_digest"]) == image, "map_reference_mismatch")
-    require(
-        type(verification["evidence"]) is str and bool(verification["evidence"]),
-        "map_verification_basis_required",
-    )
+    try:
+        accepted = load_acceptance(
+            verification["family"], image, sha(verification["criteria_digest"])
+        )
+    except AcceptanceRefused:
+        raise GuardConfigurationError("map_verification_unavailable") from None
+    require(verification == accepted, "map_acceptance_receipt_mismatch")
     spec = value["spec"]
     closed(spec, {"axes", "bands", "marginalized", "outputs", "near_limit"})
     require(

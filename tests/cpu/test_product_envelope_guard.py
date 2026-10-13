@@ -333,13 +333,14 @@ def test_same_query_replays_seed_probes_and_decision_independent_of_timing():
         assert replay["probes"] == first["probes"]
         assert replay["decision_digest"] == first["decision_digest"]
         assert replay["verdict"] == first["verdict"]
+    # Prospective v2 fixture identities; historical v1 records are not rescored.
     assert (
         first["probes"]["seed"]
-        == "sha256:8309b263a82d8130b2ca23353ac25d09eda2a8dc5747e78b574d42840a026eca"
+        == "sha256:6b9f59285631794a36183c164e821774ebd724aafb7e8c224de29a9b0a57f46d"
     )
     assert (
         first["probes"]["digest"]
-        == "sha256:2600691632af78e033de09290fc970d01920cf254220df6a4105bb2ed925530d"
+        == "sha256:d38a913bf2b5cb777a7df2adfcc195722db03ff418dd53c6db07568091bba962"
     )
 
 
@@ -486,3 +487,89 @@ def test_query_path_does_not_read_files_start_processes_or_send_network(monkeypa
         receipt = guard.evaluate(QUERY, units=UNITS)
         assert receipt["verdict"] == "TRUST"
         assert receipt["probes"]["model_calls"] == 9
+
+
+def test_native_battery_v2_builder_receipt_is_consumed_by_guard(monkeypatch):
+    from carbon.battery import trust_map as battery_map
+    from carbon.trust_map.acceptance import load_acceptance
+    from carbon.trust_map.core import MAP_SCHEMA, PANEL_SCHEMA
+
+    produce = battery_map.build_battery_maps
+    panels = []
+
+    def capture(panel):
+        panels.append(copy.deepcopy(panel))
+        return produce(panel)
+
+    monkeypatch.setattr(battery_map, "build_battery_maps", capture)
+    materials = fixture_inputs()
+    assert len(panels) == 1
+    assert panels[0]["schema"] == PANEL_SCHEMA
+    assert panels[0]["reference_verification"]["family"] == "battery-v3"
+    assert materials["trust_map"]["schema"] == MAP_SCHEMA
+    verification = materials["trust_map"]["reference_verification"]
+    assert verification == load_acceptance(
+        "battery-v3",
+        materials["contract"]["reference_image"],
+        verification["criteria_digest"],
+    )
+    receipt = result(materials)
+    assert receipt["verdict"] == "TRUST"
+    assert receipt["evidence_basis"] == "SYNTHETIC_FIXTURE"
+    assert receipt["qualification_claim"] is False
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("schema", "legacy"),
+        ("scope", "PRODUCTION"),
+        ("family", "motor"),
+        ("image_digest", "sha256:" + "f" * 64),
+        ("criteria_digest", "sha256:" + "f" * 64),
+        ("link_digest", "sha256:" + "f" * 64),
+        ("decision", {"decision_id": "SYNTHETIC_CANARY_NOT_AN_ACCEPTANCE"}),
+        ("conditions", {"not_registered": True}),
+    ],
+)
+def test_tampered_v2_acceptance_receipt_is_refused_after_repin(field, value):
+    materials = fixture_inputs()
+    materials["trust_map"]["reference_verification"][field] = value
+    with pytest.raises(GuardConfigurationError) as error:
+        build(materials)
+    assert "SYNTHETIC_CANARY" not in str(error.value)
+
+
+def test_missing_acceptance_link_refuses_an_existing_map(tmp_path, monkeypatch):
+    from functools import partial
+
+    from carbon.trust_map.acceptance import load_acceptance
+
+    materials = fixture_inputs()
+    monkeypatch.setattr(
+        "carbon.product.envelope_guard.configuration.load_acceptance",
+        partial(load_acceptance, root=tmp_path),
+    )
+    with pytest.raises(GuardConfigurationError, match="map_verification_unavailable"):
+        build(materials)
+
+
+@pytest.mark.parametrize("basis", ["SYNTHETIC_FIXTURE", "REGISTERED_DEVELOPMENT", None])
+@pytest.mark.parametrize("legacy", ["map_schema", "verification_header"])
+def test_v1_maps_and_boolean_headers_have_no_fixture_exception(basis, legacy):
+    materials = fixture_inputs()
+    if basis is None:
+        materials["policy"] = None
+    else:
+        materials["policy"]["basis"] = basis
+    if legacy == "map_schema":
+        materials["trust_map"]["schema"] = "carbon.trust-map.v1"
+    else:
+        materials["trust_map"]["reference_verification"] = {
+            "state": "PASS",
+            "accepted_development_pass": True,
+            "image_digest": materials["contract"]["reference_image"],
+            "evidence": "SYNTHETIC_CANARY_LEGACY_BOOLEAN",
+        }
+    with pytest.raises(GuardConfigurationError):
+        build(materials)
