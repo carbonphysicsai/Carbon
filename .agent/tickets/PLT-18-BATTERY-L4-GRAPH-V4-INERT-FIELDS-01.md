@@ -15,7 +15,7 @@ KEEP v3, pinned recipes/training and all containment/budget/G0-G7 semantics.
 WRAP only prospective validation in a NumPy-free v4 module and a small generic
 compiler hook. No serving, live migration, host run, spend or qualification.
 
-Reuse the exact regression test from /home/carbon/Carbon branch
+Reuse the exact regression test from the source repository branch
 claude/l4-starter-page-2 at 5e6300b6da18cae4be6a8d8094817c990cd413a2;
 original file blob e4b7a421a15b56aef68379f3deb480505fbc2114. Its legacy width,
 depth, omission and changed-steps controls stay intact. Import formatting or
