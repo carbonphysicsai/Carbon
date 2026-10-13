@@ -1,0 +1,3 @@
+# Exact genuine-text exceptions only; initially empty.
+# Format: text<TAB>repo/path<TAB>complete introduced line<TAB>meaningful reason
+# No fragments, globs, directory exceptions or commit exceptions.
