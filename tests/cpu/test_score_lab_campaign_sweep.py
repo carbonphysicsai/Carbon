@@ -117,3 +117,31 @@ def test_cli_writes_only_the_requested_synthetic_shard(tmp_path):
     assert report["scope"] == "SYNTHETIC_DEVELOPMENT"
     assert [row["index"] for row in report["rows"]] == [1, 3, 5, 7]
     assert all(row["config_sha256"] for row in report["rows"])
+
+
+def test_scored_toy_shards_are_deterministic_and_keep_axis_identity():
+    plan = _plan()
+    plan["count"] = 2
+    plan["base_config"]["questions_per_side"] = 3
+    plan["base_config"]["bootstrap"] = 2
+
+    def score_only(predictions, references, metadata):
+        assert all(qid.startswith("S-") for qid in predictions)
+        assert "value_questions" not in metadata
+        return {"score": 1.0, "gate": "PASS"}
+
+    specs = {"toy-score": {"rule": score_only}}
+    first = campaign_sweep.evaluate(plan, specs, "toy", shard=0, shards=2)
+    second = campaign_sweep.evaluate(plan, specs, "toy", shard=1, shards=2)
+    assert first == campaign_sweep.evaluate(plan, specs, "toy", shard=0, shards=2)
+    assert [row["index"] for row in first["rows"] + second["rows"]] == [0, 1]
+    assert first["scope"] == second["scope"] == "SYNTHETIC_DEVELOPMENT"
+    assert first["plan_sha256"] == second["plan_sha256"]
+    assert all(row["rows"] for row in first["rows"] + second["rows"])
+    assert all(row["axes"] for row in first["rows"] + second["rows"])
+
+    prepared = campaign_sweep.summary(plan, shard=0, shards=2)
+    corrupted = copy.deepcopy(prepared)
+    corrupted["rows"][0]["config"]["population"][0]["noise"] = 0.8
+    with pytest.raises(LabRefused, match="sweep_prepared_replay"):
+        campaign_sweep.evaluate_summary(corrupted, specs, "toy")

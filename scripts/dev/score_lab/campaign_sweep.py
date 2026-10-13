@@ -42,6 +42,11 @@ def _target(config, path):
     raise LabRefused("sweep_axis_path")
 
 
+def _value(config, path):
+    node, key = _target(config, path)
+    return node[key]
+
+
 def validate(plan):
     if (
         not isinstance(plan, dict)
@@ -131,9 +136,90 @@ def summary(plan, *, shard=0, shards=1):
         "schema": SCHEMA,
         "scope": "SYNTHETIC_DEVELOPMENT",
         "plan_sha256": canonical_sha(plan),
+        "plan": plan,
         "seed": plan["seed"],
         "count": plan["count"],
         "shard": shard,
         "shards": shards,
+        "axes": plan["axes"],
+        "rows": rows,
+    }
+
+
+def evaluate(plan, specs, digest, *, shard=0, shards=1, component_spec=None):
+    """Measure a disjoint synthetic shard; no real panel or held-out input."""
+    return evaluate_summary(
+        summary(plan, shard=shard, shards=shards),
+        specs,
+        digest,
+        component_spec=component_spec,
+    )
+
+
+def evaluate_summary(prepared, specs, digest, *, component_spec=None):
+    """Consume only digest-checked prepared toy configs from campaign-plan."""
+    if (
+        not isinstance(prepared, dict)
+        or prepared.get("schema") != SCHEMA
+        or prepared.get("scope") != "SYNTHETIC_DEVELOPMENT"
+        or type(prepared.get("count")) is not int
+        or prepared["count"] < 1
+        or type(prepared.get("shard")) is not int
+        or type(prepared.get("shards")) is not int
+        or prepared["shards"] < 1
+        or not 0 <= prepared["shard"] < prepared["shards"]
+        or not isinstance(prepared.get("plan_sha256"), str)
+        or not isinstance(prepared.get("plan"), dict)
+        or not isinstance(prepared.get("axes"), list)
+        or not isinstance(prepared.get("rows"), list)
+    ):
+        raise LabRefused("sweep_prepared_invalid")
+    if canonical_sha(prepared["plan"]) != prepared["plan_sha256"]:
+        raise LabRefused("sweep_prepared_plan_digest")
+    if prepared["count"] != prepared["plan"].get("count"):
+        raise LabRefused("sweep_prepared_count")
+    if prepared["axes"] != prepared["plan"].get("axes"):
+        raise LabRefused("sweep_prepared_axes")
+    expected = list(range(prepared["shard"], prepared["count"], prepared["shards"]))
+    if any(not isinstance(item, dict) for item in prepared["rows"]):
+        raise LabRefused("sweep_prepared_rows")
+    if [item.get("index") for item in prepared["rows"]] != expected:
+        raise LabRefused("sweep_prepared_indices")
+    if prepared["rows"] != list(
+        sample(
+            prepared["plan"],
+            shard=prepared["shard"],
+            shards=prepared["shards"],
+        )
+    ):
+        raise LabRefused("sweep_prepared_replay")
+    rows = []
+    for item in prepared["rows"]:
+        physics.validate_config(item["config"])
+        outcome = physics.evaluate(
+            item["config"], specs, digest, component_spec=component_spec
+        )
+        rows.append(
+            {
+                "index": item["index"],
+                "config_sha256": item["config_sha256"],
+                "axes": {
+                    axis["path"]: _value(item["config"], axis["path"])
+                    for axis in prepared["axes"]
+                },
+                "measured_rows": outcome["measured_rows"],
+                "rows": outcome["rows"],
+            }
+        )
+    return {
+        "schema": "carbon.dev.score-lab-synthetic-sweep-results.v1",
+        "scope": "SYNTHETIC_DEVELOPMENT",
+        "plan_sha256": prepared["plan_sha256"],
+        "candidates_sha256": digest,
+        "component_spec_sha256": (
+            canonical_sha(component_spec) if component_spec is not None else None
+        ),
+        "shard": prepared["shard"],
+        "shards": prepared["shards"],
         "rows": rows,
     }

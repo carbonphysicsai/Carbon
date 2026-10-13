@@ -483,7 +483,7 @@ def value_view(panel, stratum, neighbour_weight=0.0):
     return view
 
 
-def evaluate(config, specs, digest):
+def evaluate(config, specs, digest, *, component_spec=None):
     """Run every candidate under every physics switch on the same toy panel."""
     panel = build(config)
     views = {
@@ -493,7 +493,11 @@ def evaluate(config, specs, digest):
     results = []
     for candidate_id, spec in specs.items():
         rule = candidates.rule_from_spec(
-            candidate_id, spec, path_digest=digest, panel=panel
+            candidate_id,
+            spec,
+            path_digest=digest,
+            panel=panel,
+            component_spec=component_spec,
         )
         baseline_admissibility = None
         for switch_index, switch in enumerate(config["physics_sweep"]):

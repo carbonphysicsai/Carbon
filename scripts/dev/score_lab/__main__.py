@@ -267,6 +267,14 @@ def main(argv=None):
     sweep.add_argument("--shard", type=int, default=0)
     sweep.add_argument("--shards", type=int, default=1)
     sweep.add_argument("--out", type=Path, required=True)
+    sweep_run = commands.add_parser(
+        "campaign-run", help="evaluate only one deterministic toy sweep shard"
+    )
+    sweep_run.add_argument("--plan", type=Path, required=True)
+    sweep_run.add_argument("--candidates", type=Path, required=True)
+    sweep_run.add_argument("--candidate")
+    sweep_run.add_argument("--components", type=Path)
+    sweep_run.add_argument("--out", type=Path, required=True)
     goodhart = commands.add_parser(
         "campaign-goodhart", help="toy score-only random/hill search then value check"
     )
@@ -277,6 +285,30 @@ def main(argv=None):
     goodhart.add_argument("--components", type=Path)
     goodhart.add_argument("--out", type=Path, required=True)
     args = parser.parse_args(argv)
+    if args.command == "campaign-run":
+        plan = json.loads(args.plan.read_text(encoding="utf-8"))
+        component_spec = (
+            json.loads(args.components.read_text(encoding="utf-8"))
+            if args.components
+            else None
+        )
+        specs, digest = candidates.load(args.candidates)
+        if args.candidate:
+            if args.candidate not in specs:
+                raise LabRefused("candidate_not_registered")
+            specs = {args.candidate: specs[args.candidate]}
+        report = campaign_sweep.evaluate_summary(
+            plan,
+            specs,
+            digest,
+            component_spec=component_spec,
+        )
+        _write(args.out, report)
+        print(
+            f"toy sweep shard {report['shard']}/{report['shards']}: {len(report['rows'])} "
+            "profiles; no held-out or Challenge conclusion"
+        )
+        return 0
     if args.command == "campaign-goodhart":
         config = json.loads(args.config.read_text(encoding="utf-8"))
         search_spec = json.loads(args.search.read_text(encoding="utf-8"))

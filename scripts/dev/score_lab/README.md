@@ -157,6 +157,18 @@ configurations and their digests, and performs no evaluation or holdout read.
 The example axes exercise part of the campaign lever space; they do not stand
 in for the remaining §2 settings or a completed campaign verdict.
 
+`campaign-run` evaluates one such shard on the analytic toy. Its output binds
+each measured row to the plan and candidate digests and records the sampled
+axis values. Rows are diagnostics, not a final score-rule ranking.
+
+```sh
+python -m scripts.dev.score_lab campaign-run \
+  --plan /tmp/scorelab-campaign-plan.json \
+  --candidates codex-queue/inputs/score-lab-candidates/candidates.py \
+  --candidate N1-DECISION-RELEVANCE-ERROR \
+  --out /tmp/scorelab-campaign-results.json
+```
+
 `campaign-goodhart` searches the analytic toy member-trait grammar twice:
 once for a candidate's score on scoring questions only, and separately for
 true buyer value as an offline oracle. Both use fixed random starts plus
