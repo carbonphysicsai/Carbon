@@ -79,7 +79,12 @@ def test_launch_retains_level_fields_until_s3_returns_the_composed_summary():
     assert {"construction_level", "arm"} <= operations.OPERATIONS["launch"].optional
     operations._closed(
         operations.OPERATIONS["launch"],
-        {"profile": "p", "agent": "none", "construction_level": 2},
+        {
+            "profile": "p",
+            "agent": "none",
+            "idempotency_key": "fixture-schema-preservation",
+            "construction_level": 2,
+        },
     )
 
 
