@@ -126,6 +126,7 @@ def fixture_inputs(predict=toy_prediction, *, query=None):
         "scope": "DEVELOPMENT",
         "version": "fixture-v1",
         "challenge": "battery-interface-fixture",
+        "family": "battery-v3",
         "reference_image": image,
         "outputs": outputs,
         "laws": laws,
@@ -138,6 +139,11 @@ def fixture_inputs(predict=toy_prediction, *, query=None):
         "code_verification_ref": digest({"synthetic_code_verification": "not-MMS"}),
         "owner_acceptance_ref": digest({"synthetic_acceptance": "not-an-owner-record"}),
         "status": "READY",
+        "acceptance_scope": {
+            "family": "battery-v3",
+            "observables": list(outputs),
+            "conditions": {},
+        },
     }
     ids = ["synthetic-first", "synthetic-second"]
     observations = {i: toy_prediction(query).outputs for i in ids}
@@ -204,6 +210,7 @@ def fixture_inputs(predict=toy_prediction, *, query=None):
             "calibration": None,
             "max_width": None,
         },
+        "laws": {"mode": "REQUIRED_ADOPTED"},
         "latency_target_ms": None,
     }
     return materials

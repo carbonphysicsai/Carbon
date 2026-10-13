@@ -180,7 +180,8 @@ def test_probe_outside_declared_validity_is_unresolved_not_a_law_failure():
     assert not any(c["outcome"] == "FAIL" for c in receipt["checks"])
 
 
-def test_unadopted_uncalibrated_definitions_never_force_verification_or_execution():
+@pytest.mark.parametrize("mode", ["REQUIRED_ADOPTED", "EXPLICIT_NO_LAWS"])
+def test_diagnostic_definitions_do_not_execute_and_law_mode_controls_gap(mode):
     def only_base(query):
         assert query == QUERY
         return toy_prediction(query)
@@ -195,8 +196,18 @@ def test_unadopted_uncalibrated_definitions_never_force_verification_or_executio
             spec={"expression": "SYNTHETIC_CANARY_NOT_FOR_DISCLOSURE"},
         )
     materials["policy"]["max_model_calls"] = 1
+    materials["policy"]["laws"]["mode"] = mode
     receipt = result(materials)
-    assert receipt["verdict"] == "TRUST"
+    assert receipt["verdict"] == ("VERIFY" if mode == "REQUIRED_ADOPTED" else "TRUST")
+    availability = next(c for c in receipt["checks"] if c["check"] == "law")
+    assert availability["outcome"] == (
+        "UNRESOLVED" if mode == "REQUIRED_ADOPTED" else "NOT_ASSESSED"
+    )
+    assert availability["reason"] == (
+        "ADOPTED_LAWS_UNAVAILABLE"
+        if mode == "REQUIRED_ADOPTED"
+        else "GAP_EXPLICIT_NO_LAWS_POLICY"
+    )
     assert receipt["probes"]["model_calls"] == 1
     assert all(
         c["verdict_input"] is False
@@ -336,11 +347,11 @@ def test_same_query_replays_seed_probes_and_decision_independent_of_timing():
     # Prospective v2 fixture identities; historical v1 records are not rescored.
     assert (
         first["probes"]["seed"]
-        == "sha256:6b9f59285631794a36183c164e821774ebd724aafb7e8c224de29a9b0a57f46d"
+        == "sha256:b4eb30a9eab352308665962b679927e9d95c8c1359a0b9cc257bbd43bfa6dd46"
     )
     assert (
         first["probes"]["digest"]
-        == "sha256:d38a913bf2b5cb777a7df2adfcc195722db03ff418dd53c6db07568091bba962"
+        == "sha256:32212834757a477e3f6dbff644ea047e6dafe59df9093e724fca32cc37088ab5"
     )
 
 
@@ -572,4 +583,213 @@ def test_v1_maps_and_boolean_headers_have_no_fixture_exception(basis, legacy):
             "evidence": "SYNTHETIC_CANARY_LEGACY_BOOLEAN",
         }
     with pytest.raises(GuardConfigurationError):
+        build(materials)
+
+
+@pytest.mark.parametrize("mode", ["REQUIRED_ADOPTED", "EXPLICIT_NO_LAWS"])
+def test_empty_law_contract_has_explicit_policy_gap(mode):
+    materials = fixture_inputs()
+    materials["contract"]["laws"] = []
+    materials["policy"]["laws"]["mode"] = mode
+    receipt = result(materials)
+    assert receipt["verdict"] == ("VERIFY" if mode == "REQUIRED_ADOPTED" else "TRUST")
+    law = next(c for c in receipt["checks"] if c["check"] == "law")
+    assert law["adopted_count"] == law["diagnostic_count"] == 0
+    assert law["verdict_input"] is (mode == "REQUIRED_ADOPTED")
+    assert receipt["law_policy"] == {"mode": mode}
+
+
+def test_explicit_no_laws_cannot_override_an_adopted_law():
+    materials = fixture_inputs()
+    materials["policy"]["laws"]["mode"] = "EXPLICIT_NO_LAWS"
+    with pytest.raises(
+        GuardConfigurationError, match="explicit_no_laws_conflicts_with_adoption"
+    ):
+        build(materials)
+
+
+@pytest.mark.parametrize("kind", ["missing", "unknown", "expression", "extra"])
+def test_law_mode_has_no_permissive_default(kind):
+    materials = fixture_inputs()
+    if kind == "missing":
+        del materials["policy"]["laws"]
+    elif kind == "extra":
+        materials["policy"]["laws"]["skip_adopted"] = True
+    else:
+        materials["policy"]["laws"]["mode"] = (
+            "HUMAN_INPUT" if kind == "unknown" else "SYNTHETIC_CANARY_EXPR"
+        )
+    with pytest.raises(GuardConfigurationError) as error:
+        build(materials)
+    assert "SYNTHETIC_CANARY" not in str(error.value)
+
+
+@pytest.mark.parametrize(
+    "kind",
+    [
+        "empty",
+        "missing_output",
+        "scope_family",
+        "contract_family",
+        "native_map_family",
+        "condition_mismatch",
+        "condition_unknown",
+        "condition_missing_query",
+    ],
+)
+def test_reference_scope_mismatch_refuses_before_model_execution(kind):
+    def forbidden(_query):
+        raise AssertionError("unaccepted model call")
+
+    materials = fixture_inputs(forbidden)
+    scope = materials["reference"]["acceptance_scope"]
+    if kind == "empty":
+        scope["observables"] = []
+    elif kind == "missing_output":
+        scope["observables"].remove("voltage_v")
+    elif kind == "scope_family":
+        scope["family"] = "motor"
+    elif kind == "contract_family":
+        materials["contract"]["family"] = "motor"
+    elif kind == "native_map_family":
+        materials["contract"]["family"] = scope["family"] = "motor"
+    elif kind == "condition_mismatch":
+        scope["conditions"] = {"c1": 0.5}
+    elif kind == "condition_unknown":
+        scope["conditions"] = {"c1": None}
+    else:
+        scope["conditions"] = {"t_end": 0.375}
+    receipt = result(materials)
+    assert receipt["verdict"] == "REFUSE"
+    assert receipt["reasons"] == ["REFERENCE_ACCEPTANCE_SCOPE_MISMATCH"]
+    assert receipt["probes"]["model_calls"] == 0
+    assert receipt["checks"][0]["outcome"] == "UNRESOLVED"
+    assert receipt["checks"][0]["candidate_failure"] is False
+    assert receipt["reference"]["acceptance_scope"] == scope
+
+
+@pytest.mark.parametrize(
+    "kind", ["missing", "extra", "duplicates", "expression", "bool", "nan"]
+)
+def test_reference_scope_closed_shape_and_finite_conditions(kind):
+    materials = fixture_inputs()
+    scope = materials["reference"]["acceptance_scope"]
+    if kind == "missing":
+        del materials["reference"]["acceptance_scope"]
+    elif kind == "extra":
+        scope["qualified"] = True
+    elif kind == "duplicates":
+        scope["observables"] *= 2
+    else:
+        scope["conditions"] = {
+            "c1": (
+                {"expression": "SYNTHETIC_CANARY_EXPR"}
+                if kind == "expression"
+                else True if kind == "bool" else math.nan
+            )
+        }
+    with pytest.raises(GuardConfigurationError) as error:
+        build(materials)
+    assert "SYNTHETIC_CANARY" not in str(error.value)
+
+
+def test_budget_cutoff_marks_all_remaining_axes_and_prevents_partial_law_pass():
+    materials = fixture_inputs()
+    materials["policy"]["max_model_calls"] = 4
+    materials["contract"]["laws"][2]["spec"]["inputs"] = ["c1", "t_amb_c"]
+    receipt = result(materials)
+    prefix = next(
+        c for c in receipt["checks"] if c["check"] == "law.fixture-rest-prefix"
+    )
+    assert receipt["verdict"] == "VERIFY"
+    assert receipt["probes"]["model_calls"] == receipt["probes"]["executed"] == 4
+    assert prefix["observed_probes"] == 2
+    assert prefix["unresolved_axes"] == ["c2", "soc0", "t_amb_c"]
+    assert prefix["outcome"] == "UNRESOLVED"
+    assert prefix["reason"] == "ADOPTED_LAW_PROBES_UNRESOLVED"
+
+
+def test_budget_cutoff_retains_an_observed_law_violation():
+    def bad_neighbor(query):
+        value = toy_prediction(query)
+        if query["c1"] != QUERY["c1"]:
+            value.outputs["temperature_c"][0] += 1.0
+        return value
+
+    materials = fixture_inputs(bad_neighbor)
+    materials["policy"]["max_model_calls"] = 4
+    receipt = result(materials)
+    assert "ADOPTED_LAW_VIOLATION" in receipt["reasons"]
+    assert any(
+        c["outcome"] == "FAIL"
+        for c in receipt["checks"]
+        if c["check"].startswith("law.")
+    )
+
+
+def test_reference_scope_applies_to_cheap_probes_too():
+    materials = fixture_inputs()
+    materials["reference"]["acceptance_scope"]["conditions"] = {"t_amb_c": 25.0}
+    receipt = result(materials)
+    assert receipt["verdict"] == "VERIFY"
+    assert "PROBE_OUTSIDE_REFERENCE_ACCEPTANCE_SCOPE" in receipt["reasons"]
+    assert receipt["probes"]["model_calls"] == 7
+    initial = next(
+        c for c in receipt["checks"] if c["check"] == "law.fixture-initial-temperature"
+    )
+    assert initial["outcome"] == "UNRESOLVED"
+    assert initial["unresolved_axes"] == ["t_amb_c"]
+
+
+def test_f02_mms_condition_and_declared_use_scope_stay_separate_in_receipts():
+    from carbon.trust_map.acceptance import load_acceptance
+
+    image = "sha256:6fab746f31257236da9e91b5be681bfbd2d25bd69f5dcd9a2e350394e8bcb675"
+    criteria = "sha256:ce1cdee81369d5ad21446ec8cfb165ac13f1b8c49aad0d328a0a2fcd2dab77fe"
+    materials = fixture_inputs()
+    # Synthetic interface projection around genuine public MMS metadata only.
+    materials["contract"].update(family="f02", reference_image=image)
+    materials["reference"]["image_digest"] = image
+    scope = materials["reference"]["acceptance_scope"]
+    scope.update(family="f02", conditions={"c1": QUERY["c1"]})
+    for law in materials["contract"]["laws"]:
+        law.update(status="DIAGNOSTIC", adoption_ref=None, calibration=None)
+    materials["policy"]["laws"]["mode"] = "EXPLICIT_NO_LAWS"
+    materials["trust_map"]["reference_verification"] = load_acceptance(
+        "f02", image, criteria
+    )
+    guard = build(materials)
+    accepted = guard.evaluate(QUERY, units=UNITS)
+    assert accepted["verdict"] == "TRUST"
+    assert accepted["evidence_basis"] == "SYNTHETIC_FIXTURE"
+    assert accepted["qualification_claim"] is False
+    assert accepted["reference"]["acceptance_scope"]["conditions"] == {
+        "c1": QUERY["c1"]
+    }
+    assert accepted["code_verification"]["conditions"] == {"t_end": 0.375}
+    assert accepted["code_verification"]["scope"] == "DEVELOPMENT_CODE_VERIFICATION"
+    accepted["reference"]["acceptance_scope"]["conditions"]["c1"] = 0.5
+    accepted["code_verification"]["conditions"]["t_end"] = 0.5
+    replay = guard.evaluate(QUERY, units=UNITS)
+    assert replay["reference"]["acceptance_scope"]["conditions"]["c1"] == QUERY["c1"]
+    assert replay["code_verification"]["conditions"]["t_end"] == 0.375
+    refused = guard.evaluate({**QUERY, "c1": 0.5}, units=UNITS)
+    assert refused["verdict"] == "REFUSE"
+    assert refused["probes"]["model_calls"] == 0
+    assert refused["code_verification"]["conditions"] == {"t_end": 0.375}
+    assert refused["reference"]["acceptance_scope"]["family"] == "f02"
+
+
+@pytest.mark.parametrize(
+    "field,legacy",
+    [
+        ("contract", "carbon.product.guard-contract.v1"),
+        ("policy", "carbon.product.guard-policy.v1"),
+        ("reference", "carbon.product.guard-reference.v1"),
+    ],
+)
+def test_v1_records_are_not_silently_reinterpreted_under_v2(field, legacy):
+    materials = fixture_inputs()
+    materials[field]["schema"] = legacy
+    with pytest.raises(GuardConfigurationError, match="schema_mismatch"):
         build(materials)

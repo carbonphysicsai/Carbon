@@ -11,7 +11,7 @@ from carbon.challenge_validator import validity
 
 from . import configuration as cfg
 
-RECEIPT_SCHEMA = "carbon.product.guard-receipt.v1"
+RECEIPT_SCHEMA = "carbon.product.guard-receipt.v2"
 PROBE_DERIVATION = "carbon.product.guard-local-sha256-counter.v1"
 
 
@@ -131,6 +131,14 @@ class EnvelopeGuard:
                 parsed_contract["outputs"],
             )
             parsed_policy = cfg.policy(policy, pins, names, parsed_contract["outputs"])
+            cfg.require(
+                parsed_policy is None
+                or parsed_policy["laws"]["mode"] != "EXPLICIT_NO_LAWS"
+                or not any(
+                    law["status"] == "ADOPTED" for law in parsed_contract["laws"]
+                ),
+                "explicit_no_laws_conflicts_with_adoption",
+            )
             self._contract = cfg.freeze(parsed_contract)
             self._envelope = cfg.freeze(model_envelope)
             self._reference_envelope = cfg.freeze(solver_envelope)
@@ -200,6 +208,23 @@ class EnvelopeGuard:
             },
             "qualification_claim": False,
             "independent_pick_verification_required": True,
+            "law_policy": (
+                None if self._policy is None else cfg.thaw(self._policy["laws"])
+            ),
+            "reference": (
+                None
+                if self._reference is None
+                else {
+                    "status": self._reference["status"],
+                    "acceptance_scope": cfg.thaw(self._reference["acceptance_scope"]),
+                    "basis": "DECLARED_DEVELOPMENT_USE_NOT_QUALIFICATION",
+                }
+            ),
+            "code_verification": (
+                None
+                if self._map is None
+                else cfg.thaw(self._map["reference_verification"])
+            ),
         }
         result["decision_digest"] = cfg.digest(result)
         result["elapsed_ms"] = (time.perf_counter_ns() - started) / 1_000_000
@@ -236,6 +261,21 @@ class EnvelopeGuard:
                     seen.add(key)
                     points.append((name, point))
         return points
+
+    def _reference_scope_matches(self, query):
+        scope = self._reference["acceptance_scope"]
+        return (
+            scope["family"] == self._contract["family"]
+            and (
+                self._map is None
+                or scope["family"] == self._map["reference_verification"]["family"]
+            )
+            and set(self._contract["outputs"]) <= set(scope["observables"])
+            and all(
+                value is not None and name in query and query[name] == value
+                for name, value in scope["conditions"].items()
+            )
+        )
 
     def _map_checks(self, query):
         if self._map is None:
@@ -351,6 +391,22 @@ class EnvelopeGuard:
 
     def _law_checks(self, predictions, unresolved):
         checks = []
+        if not any(law["status"] == "ADOPTED" for law in self._contract["laws"]):
+            required = self._policy["laws"]["mode"] == "REQUIRED_ADOPTED"
+            checks.append(
+                _check(
+                    "law",
+                    "UNRESOLVED" if required else "NOT_ASSESSED",
+                    (
+                        "ADOPTED_LAWS_UNAVAILABLE"
+                        if required
+                        else "GAP_EXPLICIT_NO_LAWS_POLICY"
+                    ),
+                    verdict_input=required,
+                    adopted_count=0,
+                    diagnostic_count=len(self._contract["laws"]),
+                )
+            )
         for law in self._contract["laws"]:
             if law["status"] != "ADOPTED":
                 checks.append(
@@ -461,6 +517,22 @@ class EnvelopeGuard:
                 checks,
                 query_digest=query_digest,
             )
+        if not self._reference_scope_matches(query):
+            checks.append(
+                _check(
+                    "reference_acceptance_scope",
+                    "UNRESOLVED",
+                    "REFERENCE_ACCEPTANCE_SCOPE_MISMATCH",
+                    candidate_failure=False,
+                )
+            )
+            return self._receipt(
+                started,
+                "REFUSE",
+                ["REFERENCE_ACCEPTANCE_SCOPE_MISMATCH"],
+                checks,
+                query_digest=query_digest,
+            )
         reference_ok = _inside(self._reference_envelope, query) and _applicable(
             self._reference_validity, query
         )
@@ -512,7 +584,7 @@ class EnvelopeGuard:
         probe_digest = cfg.digest([{"axis": axis, "query": q} for axis, q in points])
         predictions, unresolved, calls = [], set(), 0
         base_intervals = None
-        for axis, point in points:
+        for index, (axis, point) in enumerate(points):
             if not _applicable(self._model_validity, point):
                 unresolved.add(axis)
                 checks.append(
@@ -524,8 +596,23 @@ class EnvelopeGuard:
                     )
                 )
                 continue
-            if calls >= self._policy["max_model_calls"]:
+            if not self._reference_scope_matches(point):
                 unresolved.add(axis)
+                checks.append(
+                    _check(
+                        "probe_applicability",
+                        "UNRESOLVED",
+                        "PROBE_OUTSIDE_REFERENCE_ACCEPTANCE_SCOPE",
+                        candidate_failure=False,
+                    )
+                )
+                continue
+            if calls >= self._policy["max_model_calls"]:
+                unresolved.update(
+                    remaining_axis
+                    for remaining_axis, _ in points[index:]
+                    if remaining_axis is not None
+                )
                 checks.append(
                     _check("probe_budget", "UNRESOLVED", "MODEL_CALL_BUDGET_EXHAUSTED")
                 )
