@@ -195,6 +195,12 @@ def _write(out, report):
         )
 
 
+def _read_campaign_json(path):
+    opener = gzip.open if path.suffix == ".gz" else Path.open
+    with opener(path, "rt", encoding="utf-8") as handle:
+        return json.load(handle)
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
@@ -292,7 +298,7 @@ def main(argv=None):
     goodhart.add_argument("--out", type=Path, required=True)
     args = parser.parse_args(argv)
     if args.command == "campaign-atlas":
-        shards = [json.loads(path.read_text(encoding="utf-8")) for path in args.result]
+        shards = [_read_campaign_json(path) for path in args.result]
         report = campaign_atlas.aggregate(shards)
         _write(args.out, report)
         print(
@@ -301,7 +307,7 @@ def main(argv=None):
         )
         return 0
     if args.command == "campaign-run":
-        plan = json.loads(args.plan.read_text(encoding="utf-8"))
+        plan = _read_campaign_json(args.plan)
         component_spec = (
             json.loads(args.components.read_text(encoding="utf-8"))
             if args.components

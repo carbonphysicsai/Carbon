@@ -180,6 +180,8 @@ axis median splits or category medians for the OFF switch as exploratory
 associations. Its worst
 tenth is a descriptive sample tail; Sobol indices and final rule selection
 remain unset because LHS profiles do not supply a Saltelli design.
+The `campaign-run --plan` and `campaign-atlas --result` readers accept plain
+JSON or deterministic `.json.gz` evidence files.
 
 ```sh
 python -m scripts.dev.score_lab campaign-atlas \

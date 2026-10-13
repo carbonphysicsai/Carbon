@@ -25,11 +25,11 @@ a failure-mode demonstration, not a Challenge effect-size estimate. The raw
 result is `GOODHART_TOY_ALL10.json` (SHA-256
 `2ce7628fb15ffeeef36ab115888a94097cb3165c8d86a59ac7aafbe3a418a646`).
 
-The saved artifacts are `SYNTHETIC_PLAN_8.json` (SHA-256
-`454eb4b3efe4c041ca895790c8033977b3dbcd6629937f2e7595f41d59702fd0`),
+The saved artifacts are `SYNTHETIC_PLAN_8.json.gz` (SHA-256
+`2b16364d9720df436ab24961d8021baba639a4ec0c141fc7a2b91f12143c1d29`),
 `SYNTHETIC_SWEEP_8.json.gz` (`24c822b71556cfbd2f5dd217539285a334fd1d0533fc81f9e589ed0fe12cdc34`;
 decompressed JSON SHA-256 `f306e63df7c3f70c9a378b48ef509958968aa1a3007a2cda58dd5e53a4b6ca52`),
-and `SYNTHETIC_ATLAS_8.json` (`de0363cb5204a20c6821830c8f23235aea750d8bc1823ae121fa7532a4f2f3a8`).
+and `SYNTHETIC_ATLAS_8.json.gz` (`384b525b85540ef7431b1c4664f034f072f4b9fdd7abdae7e83855eea39f11b3`).
 The atlas reports target, shifted, extrapolated, and neighbourhood-blend
 descriptives plus exploratory OFF-switch axis associations. Sobol indices and
 rule selection are unset: this eight-profile

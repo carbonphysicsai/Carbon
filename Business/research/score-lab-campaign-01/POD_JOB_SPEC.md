@@ -15,7 +15,10 @@ size estimate from one profile, not a throughput guarantee. A broader eight-
 profile LHS sample took 112.01 CPU-s plus 3.20 system CPU-s (115.35 wall-s),
 or about 14.4 total CPU-s/profile; the sampled grid sizes differ. The 5,000-
 profile tranche therefore spans roughly 20-35 CPU-hours under these two small
-samples, before startup, I/O, and parallelism losses. The owner supplied
+samples, before startup, I/O, and parallelism losses. The later 25-axis,
+16-profile toy stress sample took 236.10 CPU-s, or 14.76
+CPU-s/profile; it supports the lower end of that range but does not qualify a
+5,000-profile runtime estimate. The owner supplied
 a planning price of $1.76/h for a 32-vCPU RunPod CPU host on 2026-10-10; Data
 Collection must verify the actual price and available host before launch.
 

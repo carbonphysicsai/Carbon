@@ -1,10 +1,13 @@
 """Synthetic atlas refuses incomplete or mixed shard evidence."""
 
 import copy
+import gzip
+import json
 
 import pytest
 
 from scripts.dev.score_lab import campaign_atlas
+from scripts.dev.score_lab.__main__ import main
 from scripts.dev.score_lab.core import LabRefused
 
 
@@ -72,3 +75,28 @@ def test_duplicate_missing_or_mixed_shards_refuse():
     mixed["plan_sha256"] = "other-plan"
     with pytest.raises(LabRefused, match="atlas_identity"):
         campaign_atlas.aggregate([first, mixed])
+
+
+def test_cli_accepts_gzip_synthetic_shards(tmp_path):
+    paths = []
+    for index, tau in ((0, 0.8), (1, -0.4)):
+        path = tmp_path / f"shard-{index}.json.gz"
+        with gzip.open(path, "wt", encoding="utf-8") as handle:
+            json.dump(_shard(index, tau), handle)
+        paths.append(path)
+    output = tmp_path / "atlas.json"
+    assert (
+        main(
+            [
+                "campaign-atlas",
+                "--result",
+                str(paths[0]),
+                "--result",
+                str(paths[1]),
+                "--out",
+                str(output),
+            ]
+        )
+        == 0
+    )
+    assert json.loads(output.read_text(encoding="utf-8"))["profiles"] == 2
