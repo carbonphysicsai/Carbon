@@ -11,10 +11,20 @@ import pytest
 from carbon.agent_campaign import pod_jobs
 from carbon.design_search import equal_budget as eb
 from carbon.design_search import solenoid_budget as budget
+from carbon.development_comparison import battery_v3_kit, f02_kit, motor_10p12s_kit
 from carbon.development_comparison import carbon_arm as ca
 from carbon.development_comparison import solenoid_kit as kit
 from carbon.development_comparison import solenoid_pilot as pilot
 from carbon.development_comparison import solenoid_pilot_fixture as fixture
+
+
+def test_existing_family_kit_bindings_survive_additive_registration():
+    registered = ca.kits()
+    # Constant kits use wrapper factories: pin their returned singleton, not
+    # a newly allocated lambda. Material-dependent kits pin the real factory.
+    assert registered[battery_v3_kit.KIT.family](None) is battery_v3_kit.KIT
+    assert registered[f02_kit.KIT.family](None) is f02_kit.KIT
+    assert registered[motor_10p12s_kit.FAMILY] is motor_10p12s_kit.kit_from_bytes
 
 
 def test_real_family_route_is_isolated_representative_proposal():

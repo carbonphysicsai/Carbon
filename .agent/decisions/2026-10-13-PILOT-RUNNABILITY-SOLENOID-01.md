@@ -25,4 +25,7 @@ The additive shared-trainer registry changes carbon_arm.py's byte identity,
 not the existing three kits' semantics. Rebind those three current partial
 readiness source pointers prospectively; keep all missing evidence and UNKNOWN
 states unchanged. The older pilot run-plan snapshot stays historical, while
-its test now asserts the new route is genuinely solenoid-specific.
+its test checks live validator ownership outside the historical snapshot loop.
+The existing battery and f02 singleton kits and motor material factory are
+regression-pinned separately from the new solenoid binding. Updating the three
+partial-readiness source digests does not award new evidence or a new YES.
