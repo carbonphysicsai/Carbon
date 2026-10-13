@@ -39,6 +39,17 @@ check or claiming a session/runtime result. No open PR owns this registry
 path at repair start. Native A2 integration remains unavailable because
 Graphite imports POSIX fcntl; pinned Linux CI must execute the actual gate.
 
+Prospective correction after canonical shard 0 at 9bfb9a149: adding covering
+assertions did not repair the session adapter's executable-family contract.
+Keep diagnostic probes and controls in battery_level4_checks only. The
+session adapter exposes exactly its seven original families/controls and
+all six unavailable seams; even an exact fixture declaration cannot enter
+its oracle. Remove the now-unused readiness mappings. Existing stop-rule
+and readiness assertions remain unchanged. A new red/green boundary test
+proves diagnostic HELD cannot become session evidence; full verifier tests
+retain UNDETERMINED for all six unavailable runtime paths. This supersedes
+the earlier ten-family registration plan, not historical result records.
+
 Final reachability priority (refined from the proposed queue order):
 1. G7's case-level finite-output detection on Carbon-generated, validated
    CPU graph fixtures. Admitted graph outputs can reach the staged battery
@@ -77,8 +88,8 @@ Expected paths: this ticket; both named decisions; adapter.py; verify.py;
 battery_level4.py;
 battery_level4_checks.py; the new L4 check test file (the original adapter
 test file remains unchanged); and
-docs/development/graphite/LEVEL4_ATTACK_ORACLES.md; the three Level-4
-family_covering_tests entries in readiness/challenges.json.
+docs/development/graphite/LEVEL4_ATTACK_ORACLES.md. Readiness/challenges.json
+is restored to the starting main (no final-tree diff).
 
 Native diagnostics are noncanonical. Baseline broad checks encountered
 Windows fcntl absence and Python 3.12 Protocol proxy behavior; those do not

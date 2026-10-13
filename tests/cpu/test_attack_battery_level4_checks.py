@@ -16,15 +16,6 @@ from carbon.agent_campaign.attack.adapters import battery_level4_checks as check
 
 @pytest.mark.parametrize("name", sorted(checks.NAMES))
 def test_fixed_probes_have_bad_attacks_fired_specimens_and_valid_controls(name):
-    from carbon.challenge_pipeline.readiness.checks import load_challenge_data
-
-    covering = load_challenge_data(l4.CHALLENGE_ID)["family_covering_tests"]["4"]
-    assert set(covering) == checks.NAMES
-    assert covering[name] == (
-        "tests/cpu/test_attack_battery_level4_checks.py::"
-        "test_fixed_probes_have_bad_attacks_fired_specimens_and_valid_controls"
-        f"[{name}]"
-    )
     run = engine.run_family(checks.family(name))
     attacks = [r for r in run.records if r["role"] == "attack"]
     specimens = [r for r in run.records if r["role"] == "specimen"]
@@ -174,6 +165,17 @@ def test_unknown_declared_probe_is_not_held_or_not_applicable(name):
     )
 
 
+@pytest.mark.parametrize("name", sorted(checks.NAMES))
+def test_diagnostic_fixture_declarations_never_enter_the_session_adapter(name):
+    case, value = checks.family(name).attacks()[0]
+    attempt = AttackInput(case, value)
+    assert checks.oracle(name, attempt).verdict == engine.HELD
+    result = l4.ADAPTER.oracle(name, attempt)
+    assert result.verdict == NOT_RUN
+    assert result.reading == checks.UNAVAILABLE
+    assert result.specimen is None and result.condition is None
+
+
 def test_extra_fields_and_subclass_do_not_execute_a_probe():
     class Derived(AttackInput):
         pass
@@ -191,13 +193,13 @@ def test_all_thirteen_identities_remain_and_unknown_seams_stay_not_run():
     validate(l4.ADAPTER)
     existing = set(l4._family_table())
     assert len(existing) == 7
-    assert {f.name for f in l4.ADAPTER.families()} == existing | checks.NAMES
+    assert {f.name for f in l4.ADAPTER.families()} == existing
+    for split in ("trained", "held_out"):
+        assert {c.family for c in l4.ADAPTER.controls(split)} == existing
+    assert {f.name for f in checks.families()} == checks.NAMES
     seams = l4.ADAPTER.level_families()
-    assert {s.name for s in seams} == {
-        "l4_fresh_cases_rerun",
-        "l4_procedural_tables",
-        "l4_gpu_nondeterminism",
-    }
+    assert {s.name for s in seams} == {name for name, *_ in l4.SEAMS}
+    assert checks.NAMES <= {s.name for s in seams}
     assert all(s.state == NOT_RUN for s in seams)
     assert len(l4.ADAPTER.families()) + len(seams) == 13
 

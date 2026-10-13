@@ -28,3 +28,18 @@ the D4 rule/criterion, actual GPU evidence, and a released aggregate of the
 two historical L4 INCONCLUSIVE results. Domain Validator owns acceptance
 and comprehensiveness. The queue/report/PR will state these limitations;
 there is no new qualification or host/spend authority.
+
+### Prospective session-inventory correction (after canonical 9bfb9a149)
+
+The three diagnostics are retained with their bad specimens and valid
+controls in battery_level4_checks, but are removed from the actual session
+adapter's executable family/control inventory. That adapter keeps seven
+executable families and six unavailable seams, matching its classifier and
+unchanged stop-rule contract. It never dispatches a fixture declaration to
+a diagnostic oracle. The verifier's six unavailable runtime paths remain
+UNDETERMINED; no fixture HELD, NOT_APPLICABLE or attempt count supplies their
+coverage. Readiness mappings introduced by the intermediate repair are
+removed because diagnostic probes are outside the session inventory. A
+negative boundary control first failed for all three leaked registrations,
+then passes only when exact declarations are refused by the session oracle.
+This supersedes the registration/reversal paragraph above prospectively.

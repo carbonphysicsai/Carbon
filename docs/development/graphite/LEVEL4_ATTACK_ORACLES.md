@@ -1,15 +1,16 @@
 # PKT-15: Level 4 oracle work and remaining evidence
 
 This is DEVELOPMENT software evidence. Adapter/controls v2 retain the
-original seven graph checks and add three fixed declared software probes.
-The inventory still contains thirteen family identities: ten runnable
-fixture families and three NOT_RUN seams. This does not establish ten
-families of actual runtime attack coverage.
+original seven graph checks and all six NOT_RUN seams, thirteen identities
+in total. Three independent fixed diagnostic probes live in
+`battery_level4_checks`; they are not registered as session adapter families
+or controls. This does not add actual runtime attack coverage.
 
 Only the original seven graph families are reachable through a session's
-family declaration. The added three require exact engine declarations;
-advertising them as session-reachable would contradict their unavailable
-runtime inputs. The shared reachability test remains unchanged.
+family declaration. The separate diagnostic module requires exact engine
+declarations; even such declarations return NOT_RUN with unavailable
+evidence when passed to the session adapter. Actual unknown evidence stays
+UNDETERMINED. Shared reachability and stop-rule tests remain unchanged.
 
 ## Reachability and implemented checks
 
@@ -37,10 +38,10 @@ An unknown declaration also remains unavailable (its digest records
 UNDETERMINED with `oracle_evidence_or_inputs_unavailable`, never HELD, NA or
 agreed-admissible closure. The three remaining L4 seams use that same reading.
 Existing INCONCLUSIVE and genuine out-of-scope mappings are retained.
-Readiness A2 names each engine-only probe's existing known-bad/specimen/valid
-control assertion in the Level-4 family_covering_tests mapping. Passing
-those assertions covers the software fixture only; it adds no session route
-and supplies no actual worker, exam or GPU evidence.
+Readiness A2 and the attacker stop rule use the same seven session families.
+The diagnostic module's known-bad/specimen/valid assertions are separate
+software evidence, not counted session attempts or runtime evidence. The
+readiness registry is unchanged from the starting main.
 Actual worker and exam entry points are intercepted in the tests so a
 regression that invokes them fails instead of executing a host workload.
 

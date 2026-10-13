@@ -4,13 +4,6 @@
  "challenges": {
   "battery-fastcharge-ageing-development-v1": {
    "validator_adapter": "carbon.challenge_validator.battery:BatteryAdapter",
-   "family_covering_tests": {
-    "4": {
-     "l4_compile_isolation": "tests/cpu/test_attack_battery_level4_checks.py::test_fixed_probes_have_bad_attacks_fired_specimens_and_valid_controls[l4_compile_isolation]",
-     "l4_compute_under_counting": "tests/cpu/test_attack_battery_level4_checks.py::test_fixed_probes_have_bad_attacks_fired_specimens_and_valid_controls[l4_compute_under_counting]",
-     "l4_nonfinite_outputs": "tests/cpu/test_attack_battery_level4_checks.py::test_fixed_probes_have_bad_attacks_fired_specimens_and_valid_controls[l4_nonfinite_outputs]"
-    }
-   },
    "tests": {
     "P7": [
      "tests/cpu/test_challenge_validator_boundary_consistency.py"

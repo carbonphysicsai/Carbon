@@ -44,7 +44,6 @@ from carbon.agent_campaign.attack.adapter import (
     seam_oracle,
 )
 from carbon.agent_campaign.attack.adapters import battery as b
-from carbon.agent_campaign.attack.adapters import battery_level4_checks as checks
 
 CHALLENGE_ID = b.CHALLENGE_ID
 LEVEL = 4
@@ -506,7 +505,7 @@ class BatteryLevel4Adapter(b.BatteryLevel0Adapter):
                     family=self._engine(name),
                 )
             )
-        return tuple(out) + checks.families()
+        return tuple(out)
 
     def controls(self, split):
         if split not in SPLITS:
@@ -532,11 +531,9 @@ class BatteryLevel4Adapter(b.BatteryLevel0Adapter):
                     input_digest=b._digest(value),
                 )
             )
-        return tuple(out) + checks.controls(split, CONTROLS_VERSION)
+        return tuple(out)
 
     def oracle(self, family, attempt):
-        if family in checks.NAMES:
-            return checks.oracle(family, attempt)
         if family in _family_table():
             view = (
                 graph_view(attempt)
@@ -555,7 +552,6 @@ class BatteryLevel4Adapter(b.BatteryLevel0Adapter):
         return tuple(
             b.SeamFamily(name=name, check=check, level=LEVEL, reason=reason)
             for name, check, reason in SEAMS
-            if name not in checks.NAMES
         )
 
     def rebuild(self, construction):
