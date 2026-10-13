@@ -16,6 +16,7 @@ from . import (
     campaign_atlas,
     campaign_gate,
     campaign_goodhart,
+    campaign_stress,
     campaign_sweep,
     candidates,
     physics,
@@ -287,6 +288,15 @@ def main(argv=None):
     )
     atlas.add_argument("--result", type=Path, required=True, action="append")
     atlas.add_argument("--out", type=Path, required=True)
+    stress = commands.add_parser(
+        "campaign-stress", help="evaluate named analytic toy stress scenarios"
+    )
+    stress.add_argument("--base-config", type=Path, required=True)
+    stress.add_argument("--scenarios", type=Path, required=True)
+    stress.add_argument("--candidates", type=Path, required=True)
+    stress.add_argument("--candidate")
+    stress.add_argument("--components", type=Path)
+    stress.add_argument("--out", type=Path, required=True)
     goodhart = commands.add_parser(
         "campaign-goodhart", help="toy score-only random/hill search then value check"
     )
@@ -297,6 +307,26 @@ def main(argv=None):
     goodhart.add_argument("--components", type=Path)
     goodhart.add_argument("--out", type=Path, required=True)
     args = parser.parse_args(argv)
+    if args.command == "campaign-stress":
+        base = _read_campaign_json(args.base_config)
+        scenarios = _read_campaign_json(args.scenarios)
+        component_spec = (
+            _read_campaign_json(args.components) if args.components else None
+        )
+        specs, digest = candidates.load(args.candidates)
+        if args.candidate:
+            if args.candidate not in specs:
+                raise LabRefused("candidate_not_registered")
+            specs = {args.candidate: specs[args.candidate]}
+        report = campaign_stress.evaluate(
+            base, scenarios, specs, digest, component_spec=component_spec
+        )
+        _write(args.out, report)
+        print(
+            f"named toy stresses: {len(report['rows'])}; "
+            "no held-out or Challenge conclusion"
+        )
+        return 0
     if args.command == "campaign-atlas":
         shards = [_read_campaign_json(path) for path in args.result]
         report = campaign_atlas.aggregate(shards)

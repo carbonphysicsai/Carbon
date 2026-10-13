@@ -161,6 +161,18 @@ including buyer loss, verification cost, neighbourhood, coverage, member
 traits and physics settings. It still omits the §2 dimensions and other task
 families that the present one-dimensional toy does not implement.
 
+`campaign-stress` measures five named, explicitly limited scenarios using the
+same toy panel evaluator. The example names are analogies to a grid, boundary,
+large shift, path gamer and tiny bank; they are not Challenge simulations.
+
+```sh
+python -m scripts.dev.score_lab campaign-stress \
+  --base-config scripts/dev/score_lab/physics-example.json \
+  --scenarios scripts/dev/score_lab/campaign-stress-example.json \
+  --candidates codex-queue/inputs/score-lab-candidates/candidates.py \
+  --out /tmp/scorelab-stress-toy.json
+```
+
 `campaign-run` evaluates one such shard on the analytic toy. Its output binds
 each measured row to the plan and candidate digests and records the sampled
 axis values. Rows are diagnostics, not a final score-rule ranking.
