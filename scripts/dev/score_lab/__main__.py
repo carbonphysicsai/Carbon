@@ -17,6 +17,7 @@ from . import (
     campaign_feedback,
     campaign_gate,
     campaign_goodhart,
+    campaign_robustness,
     campaign_sobol,
     campaign_stress,
     campaign_sweep,
@@ -316,6 +317,22 @@ def main(argv=None):
     goodhart.add_argument("--candidate")
     goodhart.add_argument("--components", type=Path)
     goodhart.add_argument("--out", type=Path, required=True)
+    robust = commands.add_parser(
+        "campaign-robustness",
+        help="equal-proposal synthetic robustness term/gate/abstention comparison",
+    )
+    robust.add_argument("--config", type=Path, required=True)
+    robust.add_argument("--search", type=Path, required=True)
+    robust.add_argument("--levers", type=Path, required=True)
+    robust.add_argument("--candidates", type=Path, required=True)
+    robust.add_argument("--candidate")
+    robust.add_argument(
+        "--uncertainty-abstention-threshold",
+        type=float,
+        required=True,
+        help="explicit toy buyer decline threshold; not a Challenge value",
+    )
+    robust.add_argument("--out", type=Path, required=True)
     feedback = commands.add_parser(
         "campaign-feedback",
         help="toy score-only feedback gamer; measure value after the search",
@@ -512,6 +529,38 @@ def main(argv=None):
         print(
             f"toy Goodhart search for {len(names)} candidates; "
             "approximate oracle, no held-out or Challenge conclusion"
+        )
+        return 0
+    if args.command == "campaign-robustness":
+        config = _read_campaign_json(args.config)
+        config["decision"][
+            "uncertainty_abstention_threshold"
+        ] = args.uncertainty_abstention_threshold
+        search = _read_campaign_json(args.search)
+        levers = _read_campaign_json(args.levers)
+        specs, digest = candidates.load(args.candidates)
+        names = [args.candidate] if args.candidate else list(specs)
+        if any(name not in specs for name in names):
+            raise LabRefused("candidate_not_registered")
+        report = {
+            "status": "SYNTHETIC_DEVELOPMENT_DIAGNOSTIC",
+            "candidates_sha256": digest,
+            "results": {
+                name: campaign_robustness.run(
+                    config,
+                    name,
+                    specs[name],
+                    candidates_sha256=digest,
+                    search=search,
+                    lever=levers,
+                )
+                for name in names
+            },
+        }
+        _write(args.out, report)
+        print(
+            f"toy robustness levers for {len(names)} candidates; "
+            "equal proposal counts; no Challenge threshold or score rule"
         )
         return 0
     if args.command == "campaign-plan":
