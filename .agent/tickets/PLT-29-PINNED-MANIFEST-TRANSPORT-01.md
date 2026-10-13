@@ -35,6 +35,7 @@ before/after fixture size and distinguish local tests from host acceptance.
 Manifest: this ticket; carbon/agent_campaign/graphite/pods.py;
 scripts/dev/exam_design/runpod/{pod_control.py,bootstrap.py};
 tests/cpu/test_graphite_manifest_upload.py;
+tests/cpu/test_graphite_phase3.py (exact create-anchor migration assertion);
 docs/development/graphite/PINNED_MANIFEST_TRANSPORT.md.
 Maturity ceiling: implemented/tested DEVELOPMENT transport. No isolation,
 security, physical validity, deployment or LIVE qualification is earned.
