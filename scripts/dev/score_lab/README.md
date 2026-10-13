@@ -139,6 +139,24 @@ corresponding registry id exists. Other candidate families remain unmeasured
 there because EV4's compact replay does not contain the per-action margin
 contract they require. The candidate file is trusted local developer code.
 
+OPT-15c can compose four optional toy-only score components over a candidate:
+`crps_weight` (Gaussian distribution error), `gradient_weight` (finite-difference
+sign on registered score-side probes), `cvar_tail_fraction` (worst question
+scores) and `cheap_margin_weight` (candidate score above the bilinear arm on
+the same scoring questions). `--components` accepts a JSON object of these
+explicit settings; the example file contains **ASSUMPTION** values only.
+The raw file digest is written to the report. The fixed composition order is
+CRPS, gradient, CVaR, then cheap margin. Missing uncertainty or cheap-arm
+coverage returns an unscored diagnostic. Public EV4 replay refuses these toy
+wrappers; it continues to use exact registered scorers unchanged.
+
+```sh
+python -m scripts.dev.score_lab synthetic \
+  --candidates codex-queue/inputs/score-lab-candidates/candidates.py \
+  --components scripts/dev/score_lab/components-example.json \
+  --quick --out /tmp/scorelab-components-toy.json
+```
+
 The printed verdict says whether the exploratory 95% τ interval is positive
 on every tested profile, or which profiles fail/remain unresolved. The JSON
 contains τ and its crossed member/question bootstrap interval, top-1 regret,

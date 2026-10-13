@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import gzip
+import hashlib
 import importlib.util
 import json
 import math
@@ -57,6 +58,11 @@ def _rule_args(parser):
     )
     rules.add_argument("--function", help="trusted local file.py:function")
     parser.add_argument("--candidate", help="id from --registry")
+    parser.add_argument(
+        "--components",
+        type=Path,
+        help="toy-only JSON of optional component settings; requires --candidates",
+    )
     parser.add_argument("--kappa", type=float, help="V2 ASSUMPTION, no default")
     parser.add_argument("--cap", type=int, help="V2 k ASSUMPTION, no default")
     parser.add_argument("--unit", type=float, help="V2 u ASSUMPTION, no default")
@@ -373,6 +379,10 @@ def main(argv=None):
         print(json.dumps(result, indent=2, sort_keys=True))
         _write(args.out, result)
         return 0
+    component_bytes = args.components.read_bytes() if args.components else None
+    component_spec = json.loads(component_bytes) if component_bytes else None
+    if component_spec is not None and not args.candidates:
+        raise LabRefused("components_require_candidates")
     rule = _load_rule(args)
     if args.command == "synthetic":
         configs = list(synthetic.profiles())
@@ -450,6 +460,7 @@ def main(argv=None):
                     registry_v10=Path(
                         "docs/development/evidence/battery-score-tuning/registry-v10.json"
                     ),
+                    component_spec=component_spec,
                 )
                 rows.append(
                     analyze(panel, rule, bootstrap=args.bootstrap)
@@ -464,6 +475,10 @@ def main(argv=None):
         result = {
             "status": "DEVELOPMENT_DIAGNOSTIC",
             "candidates_sha256": digest,
+            "components_sha256": (
+                hashlib.sha256(component_bytes).hexdigest() if component_bytes else None
+            ),
+            "components": component_spec,
             "candidates": results,
         }
         _write(args.out, result)

@@ -11,6 +11,7 @@ import hashlib
 import importlib.util
 from pathlib import Path
 
+from . import components
 from .core import LabRefused, registry_rule
 
 
@@ -66,6 +67,7 @@ def adapt_synthetic(panel, member):
         predictions[qid] = {
             aid: {
                 "objective": pred["objective"],
+                **({"sigma": pred["sigma"]} if "sigma" in pred else {}),
                 "margins": {
                     "coupled_a": pred["margins"][0],
                     "coupled_b": pred["margins"][1],
@@ -104,9 +106,12 @@ def rule_from_spec(
     registry_v5=None,
     registry_v9=None,
     registry_v10=None,
+    component_spec=None,
 ):
     """Use exact battery registry code on real data; toy proxies otherwise."""
     if panel["scope"] == "PUBLIC_DEVELOPMENT":
+        if component_spec is not None:
+            raise LabRefused("component_requires_synthetic_panel")
         registry = (
             registry_v5
             if candidate_id.startswith("INFORCE-")
@@ -133,12 +138,22 @@ def rule_from_spec(
     candidate = spec.get("rule")
     if not callable(candidate):
         raise LabRefused("candidate_rule_missing")
+    if component_spec is not None:
+        candidate = components.compose(candidate, component_spec)
 
     def score(predictions, references, metadata):
         # analyze passes the scoring references and member predictions only.
         synthetic_panel = {"scope": panel["scope"], "score_questions": references}
         synthetic_member = {"score_predictions": predictions}
         cp, cr, cm = adapt_synthetic(synthetic_panel, synthetic_member)
+        if component_spec is not None and "cheap_margin_weight" in component_spec:
+            cheap = next(
+                (m for m in panel["members"] if m["id"] == "control-bilinear"),
+                None,
+            )
+            if cheap is None:
+                return None
+            cm["cheap_predictions"] = adapt_synthetic(panel, cheap)[0]
         cm["physics"] = metadata.get("physics")
         cm["knobs"].update(metadata.get("knobs", {}))
         cm["neighbours"] = []
@@ -174,5 +189,6 @@ def rule_from_spec(
         "kind": "validator_candidate_toy_proxy",
         "candidate": candidate_id,
         "candidates_sha256": path_digest,
+        "components": component_spec,
     }
     return score
