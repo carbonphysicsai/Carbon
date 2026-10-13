@@ -237,6 +237,59 @@
       ]
      }
     }
+   },
+   "runtime_by_level": {
+    "2": {
+     "challenge": "battery-fastcharge-ageing-development-v1",
+     "level": 2,
+     "roles": {
+      "constructor": {
+       "grant_id": "GRAPHITE-GRANT-STAGE-B-CONSTRUCTOR",
+       "grant_file": "docs/development/graphite/grants/GRAPHITE-GRANT-STAGE-B-CONSTRUCTOR.json"
+      },
+      "attacker": {
+       "grant_id": "GRAPHITE-GRANT-STAGE-B-ATTACKER",
+       "grant_file": "docs/development/graphite/grants/GRAPHITE-GRANT-STAGE-B-ATTACKER.json"
+      }
+     },
+     "containment_lanes": [
+      "carbon.miner-research.unlimited.v1"
+     ]
+    },
+    "3": {
+     "challenge": "battery-fastcharge-ageing-development-v1",
+     "level": 3,
+     "roles": {
+      "constructor": {
+       "grant_id": "GRAPHITE-GRANT-STAGE-B-CONSTRUCTOR",
+       "grant_file": "docs/development/graphite/grants/GRAPHITE-GRANT-STAGE-B-CONSTRUCTOR.json"
+      },
+      "attacker": {
+       "grant_id": "GRAPHITE-GRANT-STAGE-B-ATTACKER",
+       "grant_file": "docs/development/graphite/grants/GRAPHITE-GRANT-STAGE-B-ATTACKER.json"
+      }
+     },
+     "containment_lanes": [
+      "carbon.miner-research.unlimited.v1"
+     ]
+    },
+    "4": {
+     "challenge": "battery-fastcharge-ageing-development-v1",
+     "level": 4,
+     "roles": {
+      "constructor": {
+       "grant_id": "GRAPHITE-GRANT-STAGE-C-CONSTRUCTOR",
+       "grant_file": "docs/development/graphite/grants/GRAPHITE-GRANT-STAGE-C-CONSTRUCTOR.json"
+      },
+      "attacker": {
+       "grant_id": "GRAPHITE-GRANT-STAGE-C-ATTACKER",
+       "grant_file": "docs/development/graphite/grants/GRAPHITE-GRANT-STAGE-C-ATTACKER.json"
+      }
+     },
+     "containment_lanes": [
+      "carbon.miner-research.unlimited.v1"
+     ]
+    }
    }
   },
   "chip-cold-plate": {

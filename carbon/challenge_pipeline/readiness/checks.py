@@ -21,7 +21,7 @@ import xml.etree.ElementTree as ET
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from . import evidence_checks, q1
+from . import evidence_checks, q1, runtime_checks
 from .model import (
     FAIL,
     NOT_BUILT,
@@ -664,11 +664,12 @@ def admission_controller(item, ctx):
 
 
 def grant_binding(item, ctx):
-    """R5: the challenge's phase-4 grant is bound by the runner's registry, is
-    a committed file, and the grant-binding tests pass. Pricing with lost-run
-    headroom is a review of the owner's amounts, not a check this gate can make
-    without inventing a rule, so the item stays NOT_BUILT even when the binding
-    holds (evidence says what was verified)."""
+    """R5: explicit per-level roles use the runtime grant reader. Historical
+    levels without a runtime registration keep the phase-4 binding test and
+    visible gap; no review or grant is inherited by a higher level."""
+    levels = ctx.data.get("runtime_by_level", {})
+    if ctx.level >= 2 or (type(levels) is dict and str(ctx.level) in levels):
+        return runtime_checks.grants(item, ctx)
     grant, refused = _phase4_grant(ctx)
     if refused:
         return Result(FAIL, refused)
@@ -1127,6 +1128,8 @@ def confirmation_role(item, ctx):
 
 
 CHECKS = {
+    "carrier_containment": runtime_checks.containment,
+    "model_settings": runtime_checks.model_settings,
     "gate_margin_study": evidence_checks.gate_margin_study,
     "tuning_overlap": evidence_checks.tuning_overlap,
     "neutral_path": neutral_path,
