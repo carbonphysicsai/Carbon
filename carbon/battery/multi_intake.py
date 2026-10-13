@@ -132,7 +132,10 @@ async def evaluate(prepared, epoch, record, targets):
             campaign.CHALLENGE.challenge_id: target["receiver_hotkey"]
         }
         directory = journal(root, target)
-        directory.mkdir(parents=True, exist_ok=True, mode=0o700)
+        try:
+            directory.mkdir(parents=True, exist_ok=True, mode=0o700)
+        except OSError:
+            return _row(target, code="evaluation_failed_infra")
         try:
             feedback = await campaign._evaluate_through_intake(
                 child, epoch, record, target["intake_url"], submission_root=directory

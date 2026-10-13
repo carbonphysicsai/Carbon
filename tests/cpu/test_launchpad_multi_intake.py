@@ -234,6 +234,38 @@ def test_one_bad_validator_does_not_prevent_the_other_and_nothing_is_signed_to_a
     assert "private exception" not in json.dumps(projected)
 
 
+def test_one_journal_directory_failure_does_not_suppress_its_peer(
+    tmp_path, wire, monkeypatch
+):
+    from pathlib import Path
+
+    blocked = targets.journal(tmp_path, PAIRS[0])
+    mkdir = Path.mkdir
+
+    def refuse_one_directory(path, *args, **kwargs):
+        if path == blocked:
+            raise PermissionError("fixture private filesystem detail")
+        return mkdir(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "mkdir", refuse_one_directory)
+    context = prepared(tmp_path)
+    feedback = asyncio.run(campaign.evaluate_candidate(context, 1, RECORD))
+    first, second = feedback["validators"]
+    assert (
+        first["state"] == "FAILED_INFRA" and first["code"] == "evaluation_failed_infra"
+    )
+    assert second["state"] == "SCORED"
+    assert all(url == PAIRS[1]["intake_url"] for url, _, _ in wire.sent)
+    assert "private filesystem detail" not in json.dumps(feedback)
+    # Recovery attempts only the previously failed peer; the other verdict is cached.
+    sent = len(wire.sent)
+    monkeypatch.setattr(Path, "mkdir", mkdir)
+    again = asyncio.run(campaign.evaluate_candidate(context, 1, RECORD))
+    assert [row["state"] for row in again["validators"]] == ["SCORED", "SCORED"]
+    assert len(wire.sent) > sent
+    assert all(url == PAIRS[0]["intake_url"] for url, _, _ in wire.sent[sent:])
+
+
 def test_queued_target_keeps_the_candidate_and_the_other_verdict_is_visible(
     tmp_path, wire
 ):

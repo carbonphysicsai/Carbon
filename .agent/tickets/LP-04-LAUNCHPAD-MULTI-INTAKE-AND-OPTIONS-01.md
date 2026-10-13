@@ -91,3 +91,9 @@ same public result reaches page and MCP; no admission or frozen binding changes.
 No notice applies without those fields or to v4. V4's typed refusal stays with
 its registered compiler. SHADOW remains OFF. Final exact-head evidence belongs
 in the untracked report; no completion claim precedes the S3 dependency.
+
+Final bounded failure repair: a target-local journal-directory error is
+FAILED_INFRA for that target, so it cannot abort another validator's trip.
+The failure/recovery test checks that no send occurs for the blocked directory,
+the peer scores independently, private exception text is absent and a retry
+attempts only the repaired target while reusing the peer's cached verdict.
