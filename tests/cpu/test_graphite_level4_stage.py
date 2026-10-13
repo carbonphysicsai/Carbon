@@ -76,14 +76,14 @@ TASK = "rtsk_" + "a" * 64
 
 
 def test_the_export_is_read_through_the_door_in_chunks_under_a_bound():
-    body = bytes(range(256)) * 100  # 25,600 bytes: four reads
+    body = bytes(range(256)) * 100  # 25,600 bytes: seven reads at the 4096-byte chunk
     door = Door({TASK[-20:] + "-" + ex.LEVEL4_ENVELOPE_EXPORT: body})
     got = asyncio.run(
         miner_path.read_export(
             door, TASK, ex.LEVEL4_ENVELOPE_EXPORT, "turn-3", max_bytes=1 << 20
         )
     )
-    assert got == body and len(door.calls) == 4
+    assert got == body and len(door.calls) == -(-len(body) // miner_path.READ_CHUNK)
     name, arguments, identity = door.calls[0]
     assert name == PREFIX + "start_research_task"
     assert arguments["kind"] == "workspace" and arguments["action"] == "read_file"
@@ -106,6 +106,65 @@ def test_the_export_is_read_through_the_door_in_chunks_under_a_bound():
     assert passed == refusal
     short = asyncio.run(miner_path.read_export(door, "x", "y", "t", max_bytes=10))
     assert short["reason_code"] == "level4_task_id_required"
+
+
+class CheckedDoor(Door):
+    """The miner door's `read_file`, with the door's own request check run on every read (the same
+    `check_workspace_request` the live door runs), under the research tools rule a campaign froze.
+    """
+
+    def __init__(self, files, ledger=None):
+        super().__init__(files)
+        self.executor = types.SimpleNamespace(ledger=ledger)
+
+    async def call(self, name, arguments, identity):
+        from carbon.development_session.research_tasks import (
+            WorkspaceRequestRefused,
+            check_workspace_request,
+        )
+
+        args = json.loads(arguments["arguments_json"])
+        try:
+            check_workspace_request(
+                self.executor, arguments["action"], args, state=False
+            )
+        except WorkspaceRequestRefused as refused:
+            return {
+                "status": "REJECTED_BEFORE_DISPATCH",
+                "reason_code": refused.code,
+                "field": refused.field,
+            }
+        return await super().call(name, arguments, identity)
+
+
+def test_every_read_passes_the_doors_own_request_check_under_every_frozen_rule():
+    """Lane G (2026-10-12): the chunk was 8192 and a campaign on the v1 tools rule (limit 4096) refused every read with
+    `read_file_range` on `arguments_json.count`, so no Level 4 submission was ever staged.
+    """
+    from carbon.development_session.research_tasks import READ_FILE_MAX_BYTES
+
+    assert miner_path.READ_CHUNK <= min(READ_FILE_MAX_BYTES.values())
+    body = bytes(range(256)) * 100
+    door = CheckedDoor({TASK[-20:] + "-" + ex.LEVEL4_ENVELOPE_EXPORT: body})
+    got = asyncio.run(
+        miner_path.read_export(
+            door, TASK, ex.LEVEL4_ENVELOPE_EXPORT, "turn-4", max_bytes=1 << 20
+        )
+    )
+    assert got == body
+    assert all(json.loads(c[1]["arguments_json"])["count"] <= 4096 for c in door.calls)
+
+
+def test_a_chunk_above_the_frozen_limit_is_what_the_door_refused(monkeypatch):
+    monkeypatch.setattr(miner_path, "READ_CHUNK", 8192)
+    door = CheckedDoor({TASK[-20:] + "-" + ex.LEVEL4_ENVELOPE_EXPORT: b"x" * 9000})
+    got = asyncio.run(
+        miner_path.read_export(
+            door, TASK, ex.LEVEL4_ENVELOPE_EXPORT, "turn-5", max_bytes=1 << 20
+        )
+    )
+    assert got["reason_code"] == "read_file_range"
+    assert got["field"] == "arguments_json.count"
 
 
 # -- the stage, as data ---------------------------------------------------------------------
@@ -188,3 +247,23 @@ def test_the_tool_returns_the_interface_and_refuses_malformed_arguments(
         )
     )
     assert no_door["reason_code"] == "miner_path_not_attached"
+
+
+def test_a_staged_graph_submission_gets_through_the_door_and_is_kept(tmp_path, lowered):
+    """The whole stage call, zero spend: the agent's exported envelope is read through the door's own request check
+    (the v1 rule's 4096-byte limit), admitted, and kept by its submission digest."""
+    strategy, digest, packed = lowered
+    holder = _experiment(tmp_path)
+    holder.level4_stage = lambda s, p: ex.Experiment.level4_stage(holder, s, p)
+    door = CheckedDoor({TASK[-20:] + "-" + ex.LEVEL4_ENVELOPE_EXPORT: packed})
+    tools = phase3.Phase3Tools(experiment=holder, miner=door)
+    reply = asyncio.run(
+        tools.call(
+            LEVEL4_STAGE, {"strategy_json": json.dumps(strategy), "task_id": TASK}, "t4"
+        )
+    )
+    assert reply["status"] == "LEVEL4_STAGED" and reply["submission"] == digest
+    assert door.calls and all(c[1]["action"] == "read_file" for c in door.calls)
+    assert (
+        json.loads(ex.Experiment.level4_staged(holder, digest))["submission"] == digest
+    )
