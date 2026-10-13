@@ -3,8 +3,10 @@
 Date: 2026-10-13
 Status: APPROVED by the owner, confirmed directly in the PR Head session.
 Authority: the owner. Not delegable, for two independent reasons recorded below.
-Scope: `GRAPHITE-GRANT-MODEL-QWEN-CONSTRUCTOR-1` only, and the pod-rate ceiling
-for the `GRAPHITE-GRANT-MODEL-` family only.
+Scope: **`GRAPHITE-GRANT-MODEL-QWEN-CONSTRUCTOR-1` only, including its 0.65/h
+pod ceiling.** This approves no other grant and confers nothing on the
+`GRAPHITE-GRANT-MODEL-` family as a family: a second model-family grant needs
+its own figure and its own ceiling confirmed.
 Maturity: DEVELOPMENT spend authority. No scientific or qualification authority
 is created.
 
@@ -64,9 +66,15 @@ different owner.
 
 ## Not covered by this record
 
-- Any other `GRAPHITE-GRANT-MODEL-` grant. This approves one grant and the
-  family's rate ceiling as applied to it; a second model-family grant needs its
-  own figure confirmed.
+- **Any other `GRAPHITE-GRANT-MODEL-` grant, and the family as a family.** This
+  approves one grant and the 0.65/h ceiling **as applied to that grant**. A
+  second model-family grant needs its own figure and its own ceiling confirmed,
+  for the same reason this one did: a figure confirmed for one scope does not
+  extend itself to the next.
+- Consequently, the enforcement should bind the **named grant file** rather than
+  the `GRAPHITE-GRANT-MODEL-` prefix. A prefix test would grant the ceiling to
+  every future grant whose name happens to start that way, which is precisely
+  the family-wide authority the owner was not asked for.
 - Resolution of #1257's conflict with main in `grant_binding.py`. That conflict
   splits a `Phase3Grant(` entry and is for the lane to resolve, not to be
   reconstructed by the merge manager.
