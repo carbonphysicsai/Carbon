@@ -160,8 +160,10 @@ def ladder(rows, owners, policy, rule):
                 )
             ):
                 continue
+            # The matched entry's registered rule name: `rule_version` is the
+            # exam rule's version (2 for v2- and v3-bank-sched), never a name.
             own, n, m = sg.coldkey_own_se(
-                rule["rule_version"],
+                entry["match"]["rule"],
                 [{"coldkey": coldkey, "errors": errors, "regrets": regrets}],
                 coldkey,
             )

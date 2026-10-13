@@ -472,6 +472,17 @@ def test_the_live_v3_deployment_rule_finds_its_committed_grain():
         v2,
     )
     assert policy is not None and policy[2]["grain"] == 0.035
+    # End to end: the live v3 rule DISPLAYS a score through the ladder (the
+    # own-SE step also read `rule_version`, so nothing could ever display).
+    policy3 = sl.load_grain(
+        repository, {**identities, "rule_digest": daemon.rule_digest(v3)}, v3
+    )
+    noise = {
+        "errors": [0.1, 0.12] * 147,
+        "regrets": [0.2, 0.25] * 12,
+    }  # 294 cases, 24 questions
+    item = shown([row(score=0.8, noise=noise)], policy3, v3)["coldkeys"][0]
+    assert item["displayed_score"] is not None and item["displayed_score"] <= 0.8
     # An unregistered rule body names no rule, so it seals.
     assert sl.rule_name({**v2, "window_cases": -1}) is None
     assert sl.load_grain(repository, identities, {**v2, "window_cases": -1}) is None
