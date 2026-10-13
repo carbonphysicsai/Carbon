@@ -13,6 +13,14 @@ validity declarations and the public battery decision observer. This package
 wraps them rather than rewriting their scientific or budget policies. D01–D11,
 Q0–Q8 and PB-INV/ADV/ESC/ART/LAT remain the governing product boundaries.
 
+The resumed implementation adopts merged PRD-02b/c/d/e: strict native map v2,
+contract v2, reference v3, policy v3 and receipt v4. Legacy Boolean/v1 maps have
+no fixture exception. Guard checks, law/B9 policy, declared reference-use scope
+and registered code-verification metadata remain in each candidate audit. The
+owner's B9 policy routes below-ambient deficit strictly greater than 0.1 C to
+VERIFY; it remains advisory, with no exam gate or candidate scientific failure.
+All Guard files are reused from main without modification.
+
 ## Inputs and API
 
 ```python
@@ -100,7 +108,8 @@ conditional, never a complete-population safety estimate. A Guard TRUST does
 not remove a selected pick from this assessment.
 
 `assess_finite_bank` is separate post-freeze reference work. It rechecks declared
-reference envelope/physical applicability even for unselected bank members and
+reference family, declared observable coverage, application conditions,
+envelope and physical applicability even for unselected bank members and
 charges its own calls. Realized regret is available only when the entire declared
 bank resolves and the delivered choice has a feasible reference value. Its oracle
 is that finite bank, never a global optimum. NONE_FEASIBLE is established only
@@ -110,6 +119,9 @@ An assessment callback cannot remove a reference hold frozen into the searched
 workflow or its Guard record. Changed acceptance requires a new configured run;
 the original result stays attributable to its original authority. Assessment
 receipts also bind the supplied reference's exact image, record and runtime.
+MMS verification conditions describe registered code-verification evidence;
+they do not become query restrictions. Unsupported reference-use scope retains
+UNRESOLVED, no reference call, no candidate failure and no complete-bank claim.
 
 ## Demonstration and the real battery hold
 
@@ -138,7 +150,7 @@ The local queue/input files are not copied or committed.
 
 **Owner clarification in this Product chat, 2026-10-12:** proceed with Assistant
 and synthetic tests; no complete public reference export exists. This image is
-not accepted for the real battery comparison and CPU core-seconds are missing.
+not accepted for the real battery/plating comparison and CPU core-seconds are missing.
 The emitted summary therefore says SOLVER_NOT_ACCEPTED, `accepted: false`, null
 CPU cost and null real regret. Historical manifest/MMS acceptance text cannot
 override that current use-specific hold. Recorded wall_s may support only a

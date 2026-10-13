@@ -173,6 +173,31 @@ comes back to the Test Lead first.
   variant fix. The Attacker reruns that the earlier triage asked for wait for the oracle fixes.
 - **Grants.** The files are authored by the owner's process from #1163 (the Test Engineer binds them); this plan authors
   none. The 86.71 ceiling covers H1 to H4 and A1, A2; the 44.85 Constructor pass is a separate ceiling and is not spent here.
+- **What H1 to H3 showed (2026-10-12, read from the run roots; names and codes only).** The live brief of all three runs carried
+  the WISH syntax (`capability_wish`: `WISH: optimisation=...; needs=...; expected_gain=...; evidence=...`, "one line in a
+  proposal's hypothesis"), and the agents DID file wishes: four, in H1 (2 proposals), H2 (1) and H3 (1), for example a monotone
+  capacity head that needs `physical_structure.structure_layers`, declarative loss expressions rebuilt by Carbon, and a
+  quasi-Newton family and line search that the run itself reports as refused ("unrecognized this session"). **None was
+  captured**: `capability_log.parse_wish` reads `^\s*WISH:` at the START of a line, and the agents wrote the wish at the end of a
+  hypothesis sentence, so the log holds zero hunt wishes. Also: only H3 ran with a theme (`physics-structure`); H1 and H2 were
+  launched without `--theme`, so they never received the theme's report requirement. The hunt bundles (H1 `p-5a050d3509d9`,
+  H2 `p-37985e699fe3`, H3 `p-1585ecbf838a`) are not among the ten OPT-09 registered members (H2's id equals a lane G member's
+  id only because proposal ids hash the strategy; that member is a different run at Level 4), so their IMPROVEMENT is the pod
+  score and the bundle status as the run reported it, with no registered or public-improvement record.
+  Two repairs before H4: (1) `parse_wish` must accept a WISH anywhere in a hypothesis (a test with the inline form), and the four
+  wishes are backfilled into the log; (2) every hunt run is launched with `--theme`.
+- **H4 as revised: Level 4, lane G, after the L4 grant, MUST end with ranked, evidenced WISH lines.** Theme `causal-structure`
+  (the registered theme for levels 3 and 4), runs on its own hunt grant `GRAPHITE-GRANT-HUNT-H4-CONSTRUCTOR`
+  (`OWNER-GRAPHITE-OPEN-SAFE-01-GRANTS`), after the `GRAPHITE-GRANT-L4-G-CONSTRUCTOR-2` run and the Level 4 gate
+  (R1, R8). The final report's required shape is a ranked list, best first, each entry carrying:
+  1. **the blocked op or freedom** (the code-level optimisation and the op, kernel or library it needs);
+  2. **the proof it was blocked**: the refusal code or the failed attempt (proposal id and the typed refusal), not prose;
+  3. **the expected gain**, in the run's own measured units where it has a measurement, else "unmeasured";
+  4. **the containment it would need** (what bound would have to hold if the freedom were opened).
+  Each entry is also filed as a `WISH:` line **on its own line** in a proposal's hypothesis, so the log captures it.
+  **Stop rule:** the run is INCOMPLETE unless the report holds at least three evidenced wishes, each with a refusal code or failed
+  attempt, or an explicit `none found` that lists the attempts made. A wish with no evidence of a block counts as zero. Until a
+  tool enforces this, the Testing Manager checks the report against the shape above; nothing here grants a freedom.
 - **Output.** The refusal and wish rows land in the committed log (a short PR), then one proposal file per candidate as
   section 2 describes, each stating which freedoms would let miners build physics in. No adoption.
 

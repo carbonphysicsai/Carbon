@@ -469,6 +469,12 @@ regret is separate complete finite-bank reference work. Public-record replay
 cannot produce a fresh verified recommendation. The synthetic demonstration
 retains an adverse smallest-budget comparison and earns no physical claim.
 
+The 2026-10-13 resume adopts merged PRD-02b/c/d/e without a Guard diff: strict
+native map v2, contract v2, reference/policy v3 and receipt v4. Independent
+finite-bank assessment honors declared reference-use scope for every action;
+MMS verification conditions remain separate evidence. Candidate audits retain
+native verification/scope metadata and the owner's advisory B9 checks/policy.
+
 The owner expressly permits the real battery comparison to remain GAP for this
 ticket: the named public calibration copy lacks CPU core-seconds and its solver
 is not accepted for that use. Its 800 byte-bound records support only a labelled

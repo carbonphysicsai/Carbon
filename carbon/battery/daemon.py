@@ -352,6 +352,7 @@ class BatteryValidator:
         import_only=False,
         ladder=None,
         reserved_hotkeys=(),
+        physics_contract=None,
     ):
         if type(store) is not PoolStore:
             raise TypeError("a PoolStore is required")
@@ -395,6 +396,14 @@ class BatteryValidator:
         #: point (`carbon.battery.value.registered_score.install`) for a rule
         #: that names one; None otherwise.
         self.registered_score = None
+        # PLT-13: optional adopted component; absence keeps legacy identities
+        # and windows. Presence is pinned by PoolStore.bind, never carryover.
+        if physics_contract is not None:
+            from .physics_gate import BatteryPhysics
+
+            if type(physics_contract) is not BatteryPhysics:
+                raise TypeError("a validated BatteryPhysics component is required")
+        self.physics_contract = physics_contract
         #: The design questions' measures (VALIDATOR-23 slice 3c), injected by
         #: an operator entry point (`challenge_validator.design_scoring.install`):
         #: `inputs(designs)` and `measure(designs, predictions)`. None measures
@@ -421,7 +430,7 @@ class BatteryValidator:
             # The daemon binds only a miner-facing contract, never a
             # development-only variant (OWNER-GRAPHITE-TEST-WAVE-03 §1).
             raise StateError(DEVELOPMENT_VARIANT_NOT_SERVED, registered.digest)
-        return {
+        identities = {
             "schema": "carbon.battery.validator-identities.v1",
             "challenge": {"id": CHALLENGE.challenge_id, "version": CHALLENGE.version},
             "contract_digest": registered.digest,
@@ -435,6 +444,9 @@ class BatteryValidator:
             "envelope": registered.document()["envelope"],
             "seed_pin": self.pin,
         }
+        if self.physics_contract is not None:
+            identities["physics_contract"] = self.physics_contract.identity
+        return identities
 
     def start(self):
         """Bind identities (refused if they changed) and resume recovery."""
@@ -760,6 +772,8 @@ class BatteryValidator:
             "attempt": 0,
             "coverage_rule": dict(COVERAGE_IDENTITY),
         }
+        if self.physics_contract is not None:
+            binding["physics_contract"] = self.physics_contract.identity
         if development is not None:
             # Stamped beside the base fields; a Level-0 binding is unchanged.
             binding["development"] = development
@@ -1122,6 +1136,11 @@ class BatteryValidator:
             "rule_digest": rule_digest(self.rule),
             "coverage_rule": dict(COVERAGE_IDENTITY),
             **agg,
+            # PLT-08: prospective operator-only inputs for the registered
+            # display noise floor. No case identities or new evaluation.
+            "screening_noise": {
+                "errors": [r["error"] for r in _rows if r["state"] == "SCORABLE"]
+            },
         }
         if self.rule.get("score") is not None:
             # A registered score (VALIDATOR-26): its gate decides eligibility
@@ -1133,6 +1152,15 @@ class BatteryValidator:
                 and registered["eligible"]
                 and registered["gate"] in (None, "PASS")
             )
+        if getattr(self, "physics_contract", None) is not None:
+            measured = self._physics(challenger, inputs, preds, tag)
+            record["physics"] = measured
+            if not measured["B15"]["eligible"]:
+                record["eligible"] = False
+                record["gate_failures"] = {
+                    **record["gate_failures"],
+                    "physics_gate_b15": 1,
+                }
         if inc_rec is not None and inc_rec["score"] is None:
             # The rule compares against the incumbent's score; with none on
             # this pool, "better than the incumbent" cannot be shown (M3-D15).
@@ -1152,6 +1180,26 @@ class BatteryValidator:
             "incumbent_score": None if inc_rec is None else inc_rec["score"],
         }
         return record
+
+    def _physics(self, model_id, inputs, preds, tag):
+        """No solves; operator-registered probes stored apart from exam cases.
+
+        Infrastructure propagates to existing FAILED_INFRA/retry handling.
+        A candidate unable to predict the probes cannot pass the gate.
+        """
+        component = self.physics_contract
+        try:
+            probes = self._quiz_predictions(
+                model_id,
+                component.inputs(),
+                "physics-" + tag,
+                namespace=component.namespace,
+            )
+        except WorkerFailure as failure:
+            if not failure.candidate:
+                raise
+            probes = {}
+        return component.measure(probes, [(inputs[c], preds.get(c)) for c in inputs])
 
     def _registered(self, model_id, preds, ids, store, pool, tag):
         """`model_id`'s registered score on this pool (VALIDATOR-26): its
@@ -1173,12 +1221,18 @@ class BatteryValidator:
             f"score-v{pool['version']}{tag}",
             namespace=self.DESIGN_PREDICTIONS,
         )
-        regret, cause = scorer.pooled(
-            scorer.design.measure(designs, q_predictions)["batches"]
-        )
+        measured = scorer.design.measure(designs, q_predictions)["batches"]
+        regret, cause = scorer.pooled(measured)
         if cause == "q_unavailable":
             raise WorkerFailure("registered_score_q_unavailable", candidate=False)
         found = scorer.measure(preds, ids, store, regret)
+        found["screening_noise"] = {
+            "regrets": [
+                q.get("regret")
+                for window in measured.values()
+                for q in window.get("per_question", [])
+            ]
+        }
         if cause == "q_candidate_failed":
             found = {**found, "eligible": False, "cause": cause}
         return found
@@ -1541,7 +1595,7 @@ class BatteryValidator:
         inputs = self.store.case_inputs([fingerprint])
         ids = [c["case_id"] for c in self.store.batch(fingerprint)["document"]["cases"]]
         store = self._case_store([fingerprint])
-        rows, role_preds = {}, {}
+        rows, role_preds, physics = {}, {}, {}
         try:
             for role, model in (
                 ("incumbent", final["incumbent"]),
@@ -1582,6 +1636,10 @@ class BatteryValidator:
                 preds = self._infer(fresh, ids, inputs, f"final-a{attempt}")
                 role_preds[role] = preds
                 rows[role] = exam.evaluate(preds, ids, store)
+                if getattr(self, "physics_contract", None) is not None:
+                    physics[role] = self._physics(
+                        fresh, inputs, preds, f"final-a{attempt}"
+                    )
         except WorkerFailure as failure:
             if failure.candidate:
                 # The challenger's (or incumbent's) own rebuild failed: the
@@ -1615,10 +1673,18 @@ class BatteryValidator:
             errors(chal_rows),
             {c: store.important(c) for c in ids if store.refs[c].get("status") == "OK"},
             rule,
-            chal_eligible=bool(chal_agg["eligible"]),
+            chal_eligible=bool(
+                chal_agg["eligible"]
+                and (not physics or physics["challenger"]["B15"]["eligible"])
+            ),
             inc_components=components(inc_rows),
             chal_components=components(chal_rows),
         )
+        if physics:
+            outcome["physics"] = physics
+            if not physics["challenger"]["B15"]["eligible"]:
+                outcome["physics_gate"] = "physics_gate_b15"
+                outcome["promotable"] = False
         if self.rule.get("score") is not None:
             # OWNER-BATTERY-V3-FINALS-01: the final is v2's accuracy
             # comparison, and the challenger must also pass the registered

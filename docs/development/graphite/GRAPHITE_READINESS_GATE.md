@@ -1,5 +1,8 @@
 # Graphite readiness gate: what a challenge must pass before any live Graphite run
 
+Automated assertions recorded for a development level follow the
+[level-scoped test contract](../challenge_pipeline/readiness/LEVEL_SCOPED_TESTS.md).
+
 **Owner:** Test Lead session. **Why:** the first wave on battery, cooling and
 motor was costly, and its lessons are in `LESSONS_REGISTER.md`. The owner set
 this goal on 2026-10-05: "This should be the messiest run we ever have." This
@@ -68,7 +71,7 @@ fails the gate gets no live Graphite run, at any level.
 | Item | Check | Kind | Lesson |
 |---|---|---|---|
 | R1 | The real-path no-spend gate passes for this challenge: the provider with a fake transport, the controller, ledger, pods and carrier under live threading. | [auto] `phase4 prelive`, `real_path_check` | E1 |
-| R2 | A deterministic containment check with a host canary passes on the lane this challenge uses (pod, CPU carrier or miner lane). | [auto] (containment PR) | A3 |
+| R2 | A deterministic containment check with a host canary passes on the lane this challenge uses (pod, CPU carrier or miner lane). | [auto] real analysis carrier probe; [runtime evidence contract](../challenge_pipeline/readiness/RUNTIME_CHECKS.md) | A3 |
 | R3 | An environment probe and its attribution policy are registered for every compute lane used. | [auto] | E2 |
 | R4 | Model settings: full context for each role's model, an output cap sized from use, and an endpoint that reports charges. | [auto] the prelive `*_model` blocks | E3, E4 |
 | R5 | Grants: a per-challenge grant bound to main's blob, priced with lost-run headroom, tokens-only where no pods run. | [auto] | I2 |
@@ -97,6 +100,9 @@ fails the gate gets no live Graphite run, at any level.
 | S5 | Incomplete prediction sets are refused on every host. | [auto] | G3 |
 
 ## D. Decision evidence (Track B)
+
+The D1-D6 automated evidence formats and historical pin interpretation are
+documented in the [study-check contract](../challenge_pipeline/readiness/STUDY_CHECKS.md).
 
 | Item | Check | Kind | Lesson |
 |---|---|---|---|

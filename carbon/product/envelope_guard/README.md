@@ -21,20 +21,85 @@ units no tighter than its registered reference error. Unadopted laws are listed
 as diagnostics. Unsupported adopted laws refuse construction; missing human
 policy prevents TRUST. Source drafts remain definitions, never adopted gates.
 
+The v3 policy requires `laws.mode`. `REQUIRED_ADOPTED` returns VERIFY with
+`ADOPTED_LAWS_UNAVAILABLE` when no law is adopted. `EXPLICIT_NO_LAWS` records
+`NOT_ASSESSED / GAP_EXPLICIT_NO_LAWS_POLICY`; it is refused when the contract
+contains an ADOPTED law. Thus the explicit gap cannot disable a mandatory law.
+Diagnostic mathematical strings remain metadata and are never executed.
+
+PRD-02e adds the separate B9 policy advisory directed by
+[OWNER-PHYSICS-GATES-01](../../../.agent/decisions/2026-10-13-OWNER-PHYSICS-GATES-01.md).
+Battery-v3 policy must explicitly supply
+`b9: {threshold_c: 0.1, decision_id: "OWNER-PHYSICS-GATES-01"}`. Construction
+requires that recorded value/id, the current battery reference image and Celsius
+`t_amb_c`/`temperature_c` units; there is no missing-policy default, host override
+or inferred unit conversion. Other families explicitly use `b9: null`; the battery
+value cannot be transferred to them. A new image or owner amendment needs prospective
+policy support. Host use acceptance and actual battery applicability remain separate.
+
+For the validated base query prediction, B9 measures the maximum below-ambient
+deficit over every temperature grid point. A deficit **strictly greater than
+0.1 C** requests VERIFY with `B9_BELOW_AMBIENT`; exactly 0.1 C does not trigger.
+Comparison uses exact rational arithmetic over serialized decimal scalar values,
+so 25.0 minus 24.9 is 0.1 without introducing a tolerance. Adjacent representable
+temperatures on either side still differ. A deficit that cannot be represented
+in a finite receipt yields `B9_ARITHMETIC_UNRESOLVED`/VERIFY.
+
+This is a policy check, **not an adopted physics law or exam gate**. B9 remains
+DIAGNOSTIC_ONLY in the native physics contract; its underlying heat-sign proof
+remains HUMAN_INPUT. The receipt reports policy threshold/id, measured deficit,
+observed grid-point count and explicit advisory, exam_gate=false and
+candidate_failure=false basis. It adds no model calls and cannot replace
+independent pick verification. The base finding remains visible if later probes
+fail or exhaust their budget. Reference/policy/applicability holds precede it.
+
 The reference route is separate from the surrogate envelope. VERIFY requests
 independent reference work only inside that route's declared applicability;
 the Guard never invokes it. Unknown or unavailable reference applicability
 gives REFUSE and preserves FAILED_REFERENCE / FAILED_INFRA. Out-of-envelope
 surrogate calls are avoided. No failed reference is charged to the candidate.
 
+The v2 contract declares its physics `family` explicitly. The v3 reference's
+`acceptance_scope` declares family, host-declared observable names,
+`verification_conditions` and `application_conditions`. A READY reference
+loads the registered public PLT-07 acceptance using contract family/image and
+its explicit `criteria_digest`. Family and verification conditions must equal
+that record, and `code_verification_ref` must equal its link digest. Missing or
+conflicting bindings refuse construction, including routes without a map or
+policy. A supplied native map's independently validated acceptance must agree.
+
+Only application conditions are matched against queries and probes. They are
+explicit exact numeric query requirements. A null value, unknown query quantity
+or mismatch stays unresolved and refuses the query; there is no default tolerance,
+expression evaluation or inferred range. Model probes outside the declared
+reference-use scope remain unresolved too. Every contract output must be covered
+by the host-declared observables; missing coverage REFUSEs before execution with
+`REFERENCE_ACCEPTANCE_SCOPE_MISMATCH`. The acceptance-link v1 record has no verified
+observable scope. Receipts therefore label this list
+`HOST_DECLARED_NOT_VERIFIED_COVERAGE`; a host declaration is not verified coverage.
+Binding observables awaits the acceptance-link v2 `verified_scope` owned upstream.
+
+Declared reference-use acceptance is distinct from code verification. For f02,
+the public MMS condition `t_end: 0.375` constrains the manufactured test design;
+it does not establish a physical operating-time bound or reference adequacy.
+Receipts carry the native record even without a map and show its MMS conditions
+in `verification_conditions`, never query-match them. `application_conditions`
+remain separate host-declared use restrictions. The reference's
+`owner_acceptance_ref` remains a host use-acceptance assertion, distinct from
+the registered code-verification decision. Neither role authenticates that host,
+attests its callable or qualifies a real product. An unready/failed reference
+still REFUSEs; its declared verification conditions are labelled unresolved.
+The current battery-use hold and actual Undeclared applicability remain unchanged.
+
 Local query probes are deterministic functions of query, complete policy/version
 and contract using a domain-separated SHA-256 counter. Steps and model-call
 budget are explicit policy inputs. The receipt includes the derivation and
 query/probe/configuration identities. It contains no official entropy and the
-library writes no logs, performs no network or filesystem I/O and sends no
-telemetry. Audit retention and disclosure remain HUMAN_INPUT.
+query path writes no logs, performs no network or filesystem I/O and sends no
+telemetry. Construction revalidates the map's receipt using the closed registry
+of public code-verification files. Audit retention and disclosure remain HUMAN_INPUT.
 
-Native `carbon.trust-map.v1` cells retain their units, empirical pooling and
+Native `carbon.trust-map.v2` cells retain their units, empirical pooling and
 NO_DATA semantics. Cell support/error/disagreement thresholds come from the
 explicit policy, never defaults. Absent or insufficient cell evidence and
 unresolved mandatory probes cannot become TRUST. Calibrated intervals, when
@@ -53,6 +118,15 @@ is trained or solver run, no protected material is read or produced, and no
 scientific value is selected. Public benchmark results will report full-query
 overhead, model calls, host/runtime and limitations.
 
+PRD-02c migrates the fixture through the actual native v2 battery map builder,
+declaring `battery-v3`, the registered code-verification image and criteria.
+The observations, policies and law calibrations remain synthetic. The public
+code-verification receipt covers its registered MMS scope; it does not accept
+the real battery comparison, establish full-model adequacy or remove the
+owner's current-use hold. Legacy v1 inputs have no fixture exception. This
+prospective map/reference identity change changes the fixture replay vectors;
+previous timing records keep their original bytes and historical meaning.
+
 **Production latency target: HUMAN_INPUT (null).** The owner must set the
 accepted PB-LAT use/device target. Toy timing is engineering evidence about
 that adapter, not a production latency promise. Scientific tolerances,
@@ -67,17 +141,6 @@ Reviewer: Carbon Validator, plus Data Collection. Guard code awaits named review
 before merge; PR Head/owner handles that gate. The Product queue stops here.
 
 ## API and records
-
-PRD-03 compatibility note: native maps now use `carbon.trust-map.v2` and carry
-the registered code-verification acceptance-link receipt. Guard construction
-revalidates that receipt against the current registered public source bytes.
-The prior v1 arithmetic fixture is isolated to SYNTHETIC_FIXTURE policy, or a
-missing policy that can only REFUSE; REGISTERED_DEVELOPMENT cannot use it.
-The demo builds plain synthetic cells rather than invoking an accepted-solver
-map producer with a fake image. A historical code-verification link cannot
-override a current product-use solver/applicability hold. The PRD-02 latency
-record preserves its original implementation byte hashes and is historical
-evidence, not a fresh measurement of the PRD-03 composition.
 
 ```python
 from carbon.product.envelope_guard import EnvelopeGuard
@@ -100,12 +163,12 @@ Malformed or incompatible configuration raises a fixed-code
 
 | Input | Development schema and required semantics |
 | --- | --- |
-| Contract | `carbon.product.guard-contract.v1`: version, challenge, reference_image, output names/lengths/units and laws. Each law has id/type/status/spec/adoption_ref/calibration. Bound specs name output/low/high; initial_condition names output/input; prefix_invariance names output/inputs/points. The prefix count excludes later grid points as declared by that contract, never a guessed switch time. |
+| Contract | `carbon.product.guard-contract.v2`: version, challenge, explicit family, reference_image, output names/lengths/units and laws. Each law has id/type/status/spec/adoption_ref/calibration. Bound specs name output/low/high; initial_condition names output/input; prefix_invariance names output/inputs/points. The prefix count excludes later grid points as declared by that contract, never a guessed switch time. |
 | Envelopes | `carbon.product.guard-envelope.v1`: separate surrogate and reference documents, each with version and scalar input low/high/unit. These are support records; physical validity remains separately supplied. |
 | Physical declarations | Native `Declared`, `Undeclared` or `NoPropertyModel` from `carbon.challenge_validator.validity`. Every declared observation must be present in the query. Output-dependent applicability needs a separately accepted observation adapter; it is not inferred from the model. |
-| Reference | `carbon.product.guard-reference.v1`: image_digest, separate code_verification_ref and owner_acceptance_ref, and READY/UNRESOLVED/FAILED_REFERENCE/FAILED_INFRA. It is metadata, not a reference executor. Missing acceptance refs refuse configuration; a missing route or failed route refuses a query. |
-| Map | Native DEVELOPMENT `carbon.trust-map.v1`, PUBLIC/RELEASED source and matching model/reference; complete grid and aggregate denominators, native units and NO_DATA checked. Coverage can be smaller than the surrogate envelope; an uncovered query needs verification. No interpolation of empty cells. |
-| Policy | `carbon.product.guard-policy.v1`: version, SYNTHETIC_FIXTURE/REGISTERED_DEVELOPMENT basis, authority_ref, exact pins, probe_steps, max_model_calls, min_cell_count and per-output error/disagreement limits in native units. Every quantitative decision is an explicit input. No policy or null authority_ref yields REFUSE. |
+| Reference | `carbon.product.guard-reference.v3`: image_digest, criteria_digest, code_verification_ref (registered link digest for READY), separate host owner_acceptance_ref, READY/UNRESOLVED/FAILED_REFERENCE/FAILED_INFRA and acceptance_scope with family, observables, verification_conditions and application_conditions. READY family/verification conditions must match load_acceptance; observables remain host-declared. It is metadata, not a reference executor. Invalid bindings refuse construction; missing/failed routes or incompatible application scope refuse queries. |
+| Map | Native DEVELOPMENT `carbon.trust-map.v2`, PUBLIC/RELEASED source and matching model/reference; complete grid and aggregate denominators, native units and NO_DATA checked. The embedded acceptance receipt must exactly match `load_acceptance(family, reference_image, criteria_digest)`. No legacy v1 map or Boolean verification header is accepted, including fixture policies. Coverage can be smaller than the surrogate envelope; an uncovered query needs verification. No interpolation of empty cells. |
+| Policy | `carbon.product.guard-policy.v3`: version, SYNTHETIC_FIXTURE/REGISTERED_DEVELOPMENT basis, authority_ref, exact pins, laws.mode, explicit b9 (owner threshold_c/decision_id for battery-v3, null for other families), probe_steps, max_model_calls, min_cell_count and per-output error/disagreement limits in native units. Every quantitative decision is an explicit input. No policy or null authority_ref yields REFUSE. |
 | Uncertainty | Explicit EXPLICIT_NO_INTERVALS/REQUIRED policy, nullable image-bound calibration and per-output width limits. Supplied intervals must bound the point prediction; available uncalibrated intervals, missing required intervals or excessive width yield VERIFY. This does not perform an independent calibration study. |
 
 Every projection above has `scope: DEVELOPMENT`; production/LIVE scope is
@@ -115,12 +178,28 @@ Current packet drafts do not match the adopted development projection and are
 not executable Guard contracts. The `demo` module is an explicit fixture
 authoring example; it is not a source of real adoption, calibration or validity.
 
-Receipts contain reasons, check outcomes and evidence basis, all configuration
+The development projections require prospective reauthoring and new content pins.
+Contract remains v2, reference v3, policy is now v3 and receipt v4. V1 contract,
+v1/v2 policy and v1/v2 reference records are refused. The ambiguous old `conditions` block,
+missing split fields or criteria digest receive no automatic default. The
+synthetic demo shows the new fields and genuine registered MMS metadata explicitly;
+its physics/use policy remains synthetic. Historical receipts and timing records
+retain their original interpretation and replay identities.
+
+`carbon.product.guard-receipt.v4` receipts contain reasons, check outcomes and evidence basis, all configuration
 identities, normalized provisional prediction, model-call/observed-probe counts,
 seed derivation, query/probe digests and `decision_digest`. The latter excludes
 elapsed time and latency reporting so a deterministic adapter can replay the
 same decision. Fixed probes do not qualify the adapter's own reproducibility.
-An interrupted budget or failed model call has visible incomplete evidence.
+They also show both condition blocks, their separate bases, host-declared observable
+coverage and the full validated native code-verification record, even without a map
+when READY binding was established. Later probe failures retain any already-observed
+B9 policy finding and reason.
+The receipt's `b9_policy` is a snapshot of the explicit threshold/owner id, or null
+when no policy exists or the family is outside this battery policy's scope. An
+interrupted budget marks every remaining scheduled axis unresolved; observed
+violations stay visible.
+A failed model call has visible incomplete evidence.
 No raw query or probe-coordinate list is automatically logged or published.
 
 Run the focused interaction suite with the canonical wrapper when available:

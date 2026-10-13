@@ -1,0 +1,125 @@
+{
+ "schema": "carbon.battery.score-proof-members.v1",
+ "ticket": "SCORE-PROOF-01",
+ "registered": "2026-10-12T20:40Z, SCORE-PROOF-01 amendment 13: proof-members-v1 plus the always-abstain control as a known-bad member, registered before any v9 public development result is scored (RES-07, #1209). v1 stays as history.",
+ "note": "The member set the score proof ranks. A member's level comes from the first rule whose pattern matches its name. Controls are level-agnostic anchors and join every level's pool. Roles name the registered known-bad, benign, adversarial and unsafe members. `missing` lists what each level lacks; filling it needs each member's sealed tuning-set predictions plus its development decision values, so it is an owner decision (no spend authorized here).",
+ "levels": [
+  {
+   "pattern": "^l4v3-plain-",
+   "level": null,
+   "source": "lane G's runs under battery-l4-graph-v3 without a composition graph: registered (proof-panel-levels-v1.json), not a Level 4 member; excluded from every pool until the level-aware ticket labels them"
+  },
+  {
+   "pattern": "^control-",
+   "level": null,
+   "source": "battery.value.panel controls, derived from the references"
+  },
+  {
+   "pattern": "^attack_",
+   "level": 0,
+   "source": "EV5 adversarial Track A constructions (ev4-dev-tuning attack-predictions)"
+  },
+  {
+   "pattern": "^graphite-run5-",
+   "level": 0,
+   "source": "Graphite phase-3 run 5 (graphite-run5-q1 predictions)"
+  },
+  {
+   "pattern": "^stage-a-",
+   "level": 0,
+   "source": "Graphite stage A Level 0 bundles (not yet run)"
+  },
+  {
+   "pattern": "^miner[HI]-",
+   "level": 0,
+   "source": "Launchpad rehearsal miners H and I"
+  },
+  {
+   "pattern": "^l1-",
+   "level": 1,
+   "source": "dev-ladder Level 1 constructions"
+  },
+  {
+   "pattern": "^l2-",
+   "level": 2,
+   "source": "dev-ladder Level 2 constructions"
+  },
+  {
+   "pattern": "^l3-",
+   "level": 3,
+   "source": "dev-ladder Level 3 constructions"
+  },
+  {
+   "pattern": "^l4-",
+   "level": 4,
+   "source": "dev-ladder Level 4 graph constructions"
+  },
+  {
+   "pattern": "^(mlp|deeponet|knn|fno)",
+   "level": 0,
+   "source": "EV4 exam-design members (srb1-ev4 predictions)"
+  }
+ ],
+ "roles": {
+  "known_bad": [
+   "control-boundary_optimist",
+   "control-localized_sign_error",
+   "control-always_abstain"
+  ],
+  "benign": [
+   "control-oracle",
+   "control-rank_preserving_delay"
+  ],
+  "adversarial": [
+   "attack_rebuild_identity_backbone_a-s0",
+   "attack_rebuild_identity_backbone_b-s0",
+   "attack_rebuild_identity_optimizer_a-s0",
+   "attack_rebuild_identity_steps_a-s0",
+   "attack_rebuild_identity_steps_b-s0",
+   "attack_rebuild_identity_train_fraction_a-s0",
+   "attack_rebuild_identity_width_a-s0",
+   "attack_rebuild_identity_width_b-s0",
+   "mlp_t6000_w256_d3_ens2-s0",
+   "mlp_t6000_w512_d3-s1"
+  ],
+  "unsafe": [
+   "graphite-run5-p-1d4aaff5d292-s3718551111"
+  ]
+ },
+ "missing": {
+  "L0": [
+   {
+    "members": "none open: stage A's 5 bundles and minerH/minerI's 6 submissions are registered in carbon/battery/value/panels/proof-panel-l0-v1.json (before any value)",
+    "fill": "the owner's score_proof_run (free host CPU)"
+   }
+  ],
+  "L1": [
+   {
+    "members": "9 registered (proof-panel-levels-v1.json, lane D)",
+    "why": "their decision values need the level-aware decision experiment",
+    "fill": "the level-aware ticket, then the sealed run"
+   }
+  ],
+  "L2": [
+   {
+    "members": "28 registered (lane E)",
+    "why": "as Level 1",
+    "fill": "as Level 1"
+   }
+  ],
+  "L3": [
+   {
+    "members": "31 registered (lane F)",
+    "why": "as Level 1",
+    "fill": "as Level 1"
+   }
+  ],
+  "L4": [
+   {
+    "members": "none: lane G's 32 bound battery-l4-graph-v3 and built no composition graph, so Level 4's graph freedom was never exercised",
+    "why": "the L4 runs did not build graphs (diagnosis follows separately), and graph compile and training wait for G5",
+    "fill": "a re-run under the ladder's graph-v2 that builds graphs (new grant), after G5"
+   }
+  ]
+ }
+}

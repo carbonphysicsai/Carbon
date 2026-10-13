@@ -109,9 +109,12 @@ class MinerPathTools:
         return payload
 
 
-#: The bytes one `read_file` returns under the v2 research tools rule
-#: (`research_tasks.READ_FILE_MAX_BYTES`); a smaller answer ends the file.
-READ_CHUNK = 8192
+#: The bytes one `read_file` asks for. The door refuses a `count` above the campaign's frozen research tools rule
+#: (`research_tasks.READ_FILE_MAX_BYTES`: 4096 under v1, 8192 under v2), and a campaign created before v2 keeps v1 whatever
+#: the session's tool text says. The smallest limit is used so one read fits every campaign (lane G, 2026-10-12: 8192 was
+#: refused with `read_file_range` on `arguments_json.count` and no Level 4 submission could be staged). A smaller
+#: answer ends the file.
+READ_CHUNK = 4096
 
 
 def _read_answer(payload):

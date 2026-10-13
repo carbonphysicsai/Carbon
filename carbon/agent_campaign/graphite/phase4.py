@@ -246,6 +246,13 @@ PHASE4_STAGE_GRANTS = types.MappingProxyType(
                 grant_file=GRANTS_DIR + "/GRAPHITE-GRANT-HUNT-A2-ATTACKER.json",
                 levels=(3,),
             ),
+            # A2's re-run (the interrupted A2 is terminal): the same Level 3 attack, one run.
+            Phase4Grant(
+                challenge=BATTERY_CHALLENGE,
+                grant_id="GRAPHITE-GRANT-HUNT-A2-RERUN-ATTACKER",
+                grant_file=GRANTS_DIR + "/GRAPHITE-GRANT-HUNT-A2-RERUN-ATTACKER.json",
+                levels=(3,),
+            ),
         )
     }
 )
@@ -2353,6 +2360,20 @@ def command_log(args):
     return 0
 
 
+def command_remint(args):
+    """Recover a specimen from an already recorded campaign finding. Reads
+    only the local campaign and journal; writes only the specimen bundle."""
+    from .phase4_remint import RemintRefused, remint
+
+    try:
+        result = remint(args.root, args.attempt, args.specimen, session=args.session)
+    except RemintRefused as refused:
+        print(json.dumps({"status": "SPECIMEN_REFUSED", "code": refused.code}))
+        return 4
+    print(json.dumps(result, sort_keys=True))
+    return 0 if result["status"] == "REBUILT" else 4
+
+
 # -- the dry run ---------------------------------------------------------------------------
 #: What a dry-run grant changes in the real grant: who and what it names. Its
 #: amounts, runs and runtime are the real grant's.
@@ -2532,6 +2553,11 @@ def main(argv=None):
         command = sub.add_parser(name)
         command.add_argument("--root", required=True)
         command.add_argument("--dry-run", action="store_true")
+    remint = sub.add_parser("remint")
+    remint.add_argument("--root", required=True)
+    remint.add_argument("--attempt", required=True)
+    remint.add_argument("--specimen", required=True)
+    remint.add_argument("--session", type=int)
     prelive = sub.add_parser("prelive")
     prelive.add_argument("--root", required=True)
     prelive.add_argument("--challenge", required=True, help=challenge_help)
@@ -2553,6 +2579,7 @@ def main(argv=None):
         "cancel": command_cancel,
         "status": command_status,
         "log": command_log,
+        "remint": command_remint,
         "prelive": command_prelive,
     }[args.command]
     try:

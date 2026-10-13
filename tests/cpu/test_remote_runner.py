@@ -237,7 +237,8 @@ def test_a_trial_starts_one_container_runs_the_job_and_removes_it(tmp_path):
     assert f" {gpu_worker().image_id} " in start
     assert "--network carbon-job-" in start and "network create --internal" in start
     assert "--read-only" in start and "--cap-drop ALL" in start
-    assert "no-new-privileges" in start and '--gpus "device=$carbon_gpu"' in start
+    assert "no-new-privileges" in start
+    assert '--gpus "driver=nvidia,device=$carbon_gpu"' in start
     assert "-p 127.0.0.1::" not in start and "--gpus all" not in start
     assert f"--entrypoint {START_COMMAND[0]}" in start
     # The Challenge's worker environment travels with the job's own.

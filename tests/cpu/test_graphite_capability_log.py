@@ -12,6 +12,7 @@ import json
 from pathlib import Path
 
 import graphite_phase3_fixtures as p3f
+import pytest
 from graphite_phase3_fixtures import BASELINE, propose, session, steps, text
 
 from carbon.agent_campaign.grant import SpendingGrant
@@ -215,3 +216,120 @@ def test_the_checklist_names_this_log_as_the_only_one():
     assert "REFUSED_CAPABILITY_LOG.md" in checklist
     flat = " ".join(checklist.split())
     assert "there is no second file" in flat
+
+
+# -- the wish may sit anywhere in the text, in common markup ------------------------------------------
+BODY = (
+    "optimisation=a monotone head; needs=structure_layers; expected_gain=monotone capacity; "
+    "evidence=the level refused it"
+)
+FIELDS = {
+    "optimisation": "a monotone head",
+    "needs": "structure_layers",
+    "expected_gain": "monotone capacity",
+    "evidence": "the level refused it",
+}
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        f"WISH: {BODY}",
+        f"A sentence first.\nWISH: {BODY}",
+        f"   WISH: {BODY}",
+        f"Error should drop with averaging. WISH: {BODY}",
+        f"- WISH: {BODY}",
+        f"* WISH: {BODY}",
+        f"> WISH: {BODY}",
+        f"> - WISH: {BODY}",
+        f"`WISH:` {BODY}",
+        f"**WISH:** {BODY}",
+        f"**WISH**: {BODY}",
+        f"Averaging helps (see below) - **WISH:** {BODY}",
+        f"WISH:{BODY}",
+    ],
+)
+def test_a_wish_parses_wherever_it_sits_and_in_common_markup(text):
+    assert cl.parse_wish(text) == FIELDS
+
+
+def test_the_old_line_start_forms_give_the_same_results_as_before():
+    old = (
+        "Try a deeper net.\nWISH: optimisation=fuse the loss and backward; "
+        "needs=a Triton fused op; expected_gain=2x step speed; evidence=profile shows 60% in loss"
+    )
+    assert cl.parse_wish(old) == {
+        "optimisation": "fuse the loss and backward",
+        "needs": "a Triton fused op",
+        "expected_gain": "2x step speed",
+        "evidence": "profile shows 60% in loss",
+    }
+    assert cl.parse_wish("WISH: just words, no fields") == {
+        "raw": "just words, no fields"
+    }
+    assert cl.parse_wish("no wish here") is None
+    assert cl.parse_wish(None) is None
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "I wish this were possible.",
+        "wish: optimisation=x",
+        "SWISH: optimisation=x; needs=y",
+        "a WISHLIST: optimisation=x",
+        "WISHES are welcome",
+    ],
+)
+def test_text_that_is_not_a_wish_line_is_still_none(text):
+    assert cl.parse_wish(text) is None
+
+
+def test_an_inline_malformed_wish_is_kept_as_written_not_dropped():
+    wish = cl.parse_wish("Some reasoning. WISH: I would like a monotone head")
+    assert wish == {"raw": "I would like a monotone head"}
+
+
+def test_an_inline_wish_in_a_hypothesis_is_logged_and_protected_text_is_withheld(
+    tmp_path,
+):
+    entry = cl.wish_entry(
+        challenge="c",
+        level=2,
+        run="r",
+        proposal="p-1",
+        hypothesis=f"Reasoning first. WISH: {BODY}",
+        when="2026-10-12",
+    )
+    assert entry["kind"] == "wish" and entry["needs"] == "structure_layers"
+    log = tmp_path / "log.md"
+    assert cl.append([entry], log) == 1
+    assert "structure_layers" in log.read_text(encoding="utf-8")
+
+
+# -- the four wishes the hunt filed inline -------------------------------------------------------------
+HUNT_WISHES = (
+    REPOSITORY
+    / "docs/development/graphite/level4/refused_capability_backfill_hunt_wishes.json"
+)
+
+
+def test_the_hunt_wishes_are_in_the_committed_log_via_the_fixed_parser():
+    document = json.loads(HUNT_WISHES.read_text(encoding="utf-8"))
+    text_ = LOG.read_bytes().decode("utf-8")
+    assert len(document["rows"]) == 4
+    assert {r["hunt"] for r in document["rows"]} == {"H1", "H2", "H3"}
+    for item in document["rows"]:
+        wish = cl.parse_wish(item["wish"])
+        assert wish and "raw" not in wish and all(wish[k] for k in cl.WISH_KEYS)
+        assert item["proposal"] in text_ and item["run"] in text_
+        assert cl._cell(wish["needs"]) in text_
+    assert text_.count("hunt wish backfill") == 4
+    assert "official_seed" not in text_ and "draw_id" not in text_
+
+
+def test_the_hunt_wish_backfill_is_clean_text_with_one_final_newline():
+    raw = HUNT_WISHES.read_bytes()
+    assert b"\r" not in raw
+    assert raw.endswith(b"}\n") and not raw.endswith(b"\n\n")
+    assert all(line == line.rstrip() for line in raw.decode("utf-8").splitlines())

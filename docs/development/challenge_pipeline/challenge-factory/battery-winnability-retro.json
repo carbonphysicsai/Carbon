@@ -1,0 +1,139 @@
+{
+  "advantage": "INDETERMINATE_UNMATCHED_COMPLETE_COST",
+  "cheap_method_status": "D-only bilinear response map; strongest industry method unproved",
+  "families": {
+    "nominal": {
+      "caps": {
+        "1": {
+          "cheap_bilinear_gain_u": 9.227440388096827,
+          "finite_bank_cache_ceiling_gain_u": 10.112242821275366,
+          "illustrative_fixed_order_solver_gain_u": 0.24319782779718768,
+          "mlp_s0_attempts_mean": 1.0,
+          "plain_mlp_s0_gain_u": 8.007597252239064
+        },
+        "3": {
+          "cheap_bilinear_gain_u": 10.112242821275366,
+          "finite_bank_cache_ceiling_gain_u": 10.112242821275366,
+          "illustrative_fixed_order_solver_gain_u": 1.312705158284131,
+          "mlp_s0_attempts_mean": 3.0,
+          "plain_mlp_s0_gain_u": 10.098597703314264
+        },
+        "5": {
+          "cheap_bilinear_gain_u": 10.112242821275366,
+          "finite_bank_cache_ceiling_gain_u": 10.112242821275366,
+          "illustrative_fixed_order_solver_gain_u": 3.0768345424200167,
+          "mlp_s0_attempts_mean": 4.555555555555555,
+          "plain_mlp_s0_gain_u": 10.112242821275366
+        }
+      },
+      "known_opportunity_questions": 9,
+      "mlp_s0_observed_unsafe_picks": 1,
+      "mlp_s0_outcome_counts": {
+        "ABSTENTION_UNRESOLVED": 1,
+        "CORRECT_ABSTENTION": 1,
+        "SELECTED_FEASIBLE": 7,
+        "SELECTED_INFEASIBLE": 1,
+        "SELECTED_UNRESOLVED": 2
+      },
+      "offered_questions": 12
+    },
+    "robust_soc": {
+      "caps": {
+        "1": {
+          "cheap_bilinear_gain_u": 6.434803917415165,
+          "finite_bank_cache_ceiling_gain_u": 6.434803917415165,
+          "illustrative_fixed_order_solver_gain_u": 0.0,
+          "mlp_s0_attempts_mean": 1.0,
+          "plain_mlp_s0_gain_u": 6.434803917415165
+        },
+        "3": {
+          "cheap_bilinear_gain_u": 6.434803917415165,
+          "finite_bank_cache_ceiling_gain_u": 6.434803917415165,
+          "illustrative_fixed_order_solver_gain_u": 0.0,
+          "mlp_s0_attempts_mean": 3.0,
+          "plain_mlp_s0_gain_u": 6.434803917415165
+        },
+        "5": {
+          "cheap_bilinear_gain_u": 6.434803917415165,
+          "finite_bank_cache_ceiling_gain_u": 6.434803917415165,
+          "illustrative_fixed_order_solver_gain_u": 0.0,
+          "mlp_s0_attempts_mean": 4.0,
+          "plain_mlp_s0_gain_u": 6.434803917415165
+        }
+      },
+      "known_opportunity_questions": 2,
+      "mlp_s0_observed_unsafe_picks": 0,
+      "mlp_s0_outcome_counts": {
+        "CORRECT_ABSTENTION": 2,
+        "SELECTED_FEASIBLE": 2
+      },
+      "offered_questions": 4
+    },
+    "robust_temperature": {
+      "caps": {},
+      "known_opportunity_questions": 0,
+      "mlp_s0_observed_unsafe_picks": 0,
+      "mlp_s0_outcome_counts": {
+        "CORRECT_ABSTENTION": 3
+      },
+      "offered_questions": 3
+    },
+    "shifted": {
+      "caps": {
+        "1": {
+          "cheap_bilinear_gain_u": 7.467689313258019,
+          "finite_bank_cache_ceiling_gain_u": 9.034715507371113,
+          "illustrative_fixed_order_solver_gain_u": 1.2105577526746731,
+          "mlp_s0_attempts_mean": 1.0,
+          "plain_mlp_s0_gain_u": 8.023573953576054
+        },
+        "3": {
+          "cheap_bilinear_gain_u": 7.467689313258019,
+          "finite_bank_cache_ceiling_gain_u": 9.034715507371113,
+          "illustrative_fixed_order_solver_gain_u": 2.003807746985327,
+          "mlp_s0_attempts_mean": 2.7777777777777777,
+          "plain_mlp_s0_gain_u": 8.990496093396903
+        },
+        "5": {
+          "cheap_bilinear_gain_u": 7.467689313258019,
+          "finite_bank_cache_ceiling_gain_u": 9.034715507371113,
+          "illustrative_fixed_order_solver_gain_u": 2.9420127307644446,
+          "mlp_s0_attempts_mean": 4.333333333333333,
+          "plain_mlp_s0_gain_u": 8.990496093396903
+        }
+      },
+      "known_opportunity_questions": 9,
+      "mlp_s0_observed_unsafe_picks": 0,
+      "mlp_s0_outcome_counts": {
+        "CORRECT_ABSTENTION": 3,
+        "SELECTED_FEASIBLE": 8,
+        "SELECTED_UNRESOLVED": 1
+      },
+      "offered_questions": 12
+    }
+  },
+  "headroom": "FINITE_BANK_DIAGNOSTIC_ONLY",
+  "job": "historical battery EV4 CV-onset decision; not battery v3",
+  "learnable": "PARTIAL_PUBLIC_DECISION_EVIDENCE; pointwise buyer-useful accuracy not established",
+  "maturity": "PROPOSED_RETROSPECTIVE_DIAGNOSTIC",
+  "missing_for_matched_pilot": [
+    "independent public held-out buyer-question clusters",
+    "registered strong adaptive solver-alone proposal and complete costs",
+    "full model fitting, cheap-map acquisition, query, refinement, and verification wall/core costs",
+    "buyer thresholds and uncertainty resolution"
+  ],
+  "panel_previously_used_for_development": true,
+  "public_mlp_bundle_sha256": {
+    "mlp-s0.json.gz": "sha256:7c2ddf542abeff71625d21d4c1e3ae9ecb6d94594b86e9f5403f8039ce160c6f",
+    "mlp-s1.json.gz": "sha256:9f07a9b85fe824b529e9c86a36c9667681a4c4fbd004f1ecfff9e04e317b81c5",
+    "mlp-s2.json.gz": "sha256:a86fa082e00602cb1a95bd9e4acba77eb79743942c0478d1e6d75beef4cdb458"
+  },
+  "qualification": "UNDECIDED",
+  "schema": "carbon.design-search.winnability-battery-ev4-retro.v1",
+  "solver_method_status": "illustrative fixed order; adaptive competitor unmeasured",
+  "source_reference_sha256": "sha256:72ea300b42fe1ca4e54b9c6131cb126ca7217ebddd5f1dddca8044a7bcef2dbf",
+  "source_res07_content_digest": "sha256:e0e7982698cbbe03562b99c826571aa08f93377542182ed114e02c31bf370045",
+  "source_res07_schema": "carbon.research.value-metric-audit.v1",
+  "thresholds": "HUMAN_INPUT",
+  "value_unit": "historical 120-second CV-onset gain unit"
+}

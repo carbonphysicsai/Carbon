@@ -1,14 +1,14 @@
 """Public battery-interface SYNTHETIC fixtures; never battery physics evidence.
 
 Run `python -m carbon.product.envelope_guard.demo --iterations 500` for a
-bounded toy full-query timing report. No solver, training, file or network I/O.
+bounded toy full-query timing report. No solver, training or network I/O.
+Fixture authoring/construction reads registered public code-verification links.
 All numerical policies/calibrations/validity here are synthetic test inputs.
 """
 
 from __future__ import annotations
 
 import argparse
-import bisect
 import copy
 import json
 import math
@@ -29,9 +29,17 @@ from carbon.product.envelope_guard import (
     development_pins,
 )
 from carbon.product.envelope_guard.configuration import digest
+from carbon.trust_map.acceptance import load_acceptance
+from carbon.trust_map.core import PANEL_SCHEMA
 
 QUERY = {"c1": 1.0, "c2": 0.5, "t_amb_c": 25.0, "soc0": 0.25}
 UNITS = {"c1": "C-rate", "c2": "C-rate", "t_amb_c": "C", "soc0": "fraction"}
+CODE_VERIFICATION_IMAGE = (
+    "sha256:2d19b261e722fe67f20bee02e115f2277a799c448b90d54d2872361b341bd940"
+)
+CODE_VERIFICATION_CRITERIA = (
+    "sha256:2182e04bce3612f898e00184ce1e491cca8a54334192e35c4f2cd6fc1d1870c5"
+)
 
 
 def toy_prediction(query):
@@ -48,69 +56,15 @@ def toy_prediction(query):
     )
 
 
-def _synthetic_map(panel, spec):
-    """Plain fixture cells, not a call to the accepted-solver map producer.
-
-    Two identical arithmetic observations at one query have zero spread/error.
-    This deliberately preserves the historical fixture bytes and replay vectors.
-    Real maps must be produced by carbon.trust_map with its acceptance links.
-    """
-    query = panel["cases"][0]["inputs"]
-    axes = [*spec["axes"], spec["bands"]]
-    coordinate = [
-        min(bisect.bisect_right(a["edges"], query[a["name"]]) - 1, len(a["edges"]) - 2)
-        for a in axes
-    ]
-    cells = []
-    for band in range(len(spec["bands"]["edges"]) - 1):
-        for y in range(len(spec["axes"][1]["edges"]) - 1):
-            for x in range(len(spec["axes"][0]["edges"]) - 1):
-                observed = [x, y, band] == coordinate
-                layers = {
-                    k: {
-                        "median": 0.0 if observed else None,
-                        "p90": 0.0 if observed else None,
-                    }
-                    for k in spec["outputs"]
-                }
-                cells.append(
-                    {
-                        "band": band,
-                        "y": y,
-                        "x": x,
-                        "count": 2 if observed else 0,
-                        "status": "OBSERVED" if observed else "NO_DATA",
-                        "near_limit_count": 0,
-                        "error": copy.deepcopy(layers),
-                        "disagreement": copy.deepcopy(layers),
-                    }
-                )
-    return {
-        "schema": "carbon.trust-map.v1",
-        "maturity": "DEVELOPMENT",
-        "model": "toy-battery-interface",
-        "spec": spec,
-        "top_models": panel["top_models"],
-        "source": panel["disclosure"],
-        "reference_verification": panel["reference_verification"],
-        "cells": cells,
-        "basis": {"cases": 2, "models": 2, "top_models": 2},
-        "methods": {
-            "error": "per-case RMS in native units; cell median and linear p90",
-            "disagreement": "RMS population standard deviation across named top models; cell median and linear p90",
-            "marginalization": "empirical pooling of all disclosed cases; no population weights",
-        },
-        "scored_case_selection": "FORBIDDEN",
-    }
-
-
 def fixture_inputs(predict=toy_prediction, *, query=None):
     """Synthetic records around public interface constants, not an owner policy."""
     from carbon.battery.domain import INPUT_BOUNDS
-    from carbon.battery.trust_map import battery_spec
+    from carbon.battery.trust_map import battery_spec, build_battery_maps
 
     query = dict(QUERY if query is None else query)
-    image = digest({"kind": "synthetic-reference-image-not-a-solver"})
+    # Use the registered v2 metadata route; observations remain pure arithmetic.
+    # Code-verification identity is not acceptance for the real battery use.
+    image = CODE_VERIFICATION_IMAGE
     model = ModelBinding(
         "toy-battery-interface",
         digest({"kind": "toy-artifact-v1"}),
@@ -173,34 +127,43 @@ def fixture_inputs(predict=toy_prediction, *, query=None):
         "scope": "DEVELOPMENT",
         "version": "fixture-v1",
         "challenge": "battery-interface-fixture",
+        "family": "battery-v3",
         "reference_image": image,
         "outputs": outputs,
         "laws": laws,
     }
+    verification = load_acceptance("battery-v3", image, CODE_VERIFICATION_CRITERIA)
     reference = {
         "schema": REFERENCE_SCHEMA,
         "scope": "DEVELOPMENT",
         "version": "fixture-v1",
         "image_digest": image,
-        "code_verification_ref": digest({"synthetic_code_verification": "not-MMS"}),
+        "criteria_digest": CODE_VERIFICATION_CRITERIA,
+        "code_verification_ref": verification["link_digest"],
         "owner_acceptance_ref": digest({"synthetic_acceptance": "not-an-owner-record"}),
         "status": "READY",
+        "acceptance_scope": {
+            "family": "battery-v3",
+            "observables": list(outputs),
+            "verification_conditions": verification["conditions"],
+            "application_conditions": {},
+        },
     }
     ids = ["synthetic-first", "synthetic-second"]
     observations = {i: toy_prediction(query).outputs for i in ids}
     panel = {
-        "schema": "carbon.trust-map.disclosed-panel.v1",
+        "schema": PANEL_SCHEMA,
         "disclosure": {
             "kind": "PUBLIC",
             "evidence": "SYNTHETIC_FIXTURE_ONLY",
-            "source_sha256": digest({"synthetic_panel": "v1"})[7:],
+            "source_sha256": digest({"synthetic_panel": "v2"})[7:],
         },
         "reference_image": image,
         "reference_verification": {
-            "state": "PASS",
-            "accepted_development_pass": True,
+            "family": "battery-v3",
+            "criteria_digest": CODE_VERIFICATION_CRITERIA,
             "image_digest": image,
-            "evidence": "SYNTHETIC_NOT_MMS_ACCEPTANCE",
+            "evidence": "SYNTHETIC_FIXTURE_ONLY; NOT_REAL_BATTERY_USE_ACCEPTANCE",
         },
         "cases": [
             {"id": i, "inputs": dict(query), "reference": observations[i]} for i in ids
@@ -211,7 +174,7 @@ def fixture_inputs(predict=toy_prediction, *, query=None):
         },
         "top_models": [model.model_id, "toy-second"],
     }
-    trust_map = _synthetic_map(panel, battery_spec())
+    trust_map = build_battery_maps(panel)[model.model_id]
     model_validity = validity.NoPropertyModel(
         "Synthetic arithmetic interface fixture, not a physical model"
     )
@@ -251,6 +214,8 @@ def fixture_inputs(predict=toy_prediction, *, query=None):
             "calibration": None,
             "max_width": None,
         },
+        "laws": {"mode": "REQUIRED_ADOPTED"},
+        "b9": {"threshold_c": 0.1, "decision_id": "OWNER-PHYSICS-GATES-01"},
         "latency_target_ms": None,
     }
     return materials

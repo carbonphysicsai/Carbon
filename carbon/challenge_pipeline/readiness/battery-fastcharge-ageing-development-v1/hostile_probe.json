@@ -1,0 +1,380 @@
+{
+ "additional_probes": {
+  "fork_bomb": {
+   "result_digest": "sha256:624a3a0c72c06733e795c69f7e4d96434d30cc2071328bd2faa81c306f8fb4ef",
+   "status": "PASS"
+  },
+  "network_socket": {
+   "result_digest": "sha256:f95d85e7bc06882776cc9af1aae4e78fbc1e8364dee9c179d02995fecfcea8e8",
+   "status": "PASS"
+  },
+  "outside_scratch": {
+   "result_digest": "sha256:a6e3084324e32c4af6685d924d76ff09739bf65f50201f45627b4fe2dae6747a",
+   "status": "PASS"
+  }
+ },
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "image_id": "sha256:28815c8eb808b93dad1a3dd80a715c4ba0282bf7378932e5b90f61548fedeca5",
+ "record": {
+  "claims": {
+   "note": "DEVELOPMENT evidence from the executor; not a security acceptance or audit",
+   "security_acceptance": false
+  },
+  "create_arguments_digest": "sha256:7e3ad04a89bc0f727a805f5475c9de279d545e449492ff4d5b36fa49a4bdac7f",
+  "host": "carbon-fresh native Docker (lane G's image at e6ce153a2), crash guard live (swap 0, earlyoom)",
+  "isolation": {
+   "CapDrop": [
+    "ALL"
+   ],
+   "Memory": 8589934592,
+   "MemorySwap": 8589934592,
+   "NanoCpus": 4000000000,
+   "NetworkMode": "none",
+   "PidsLimit": 512,
+   "ReadonlyRootfs": true,
+   "Tmpfs": {
+    "/scratch": "rw,nosuid,nodev,noexec,size=2147483648,nr_inodes=100000"
+   }
+  },
+  "lane": "carbon.miner-research.bounded.v1",
+  "note_pids_peak": "pids.peak can read above pids.max (charge-then-check); pids.events max counts the denied forks",
+  "one_container_per_probe": true,
+  "probes": [
+   {
+    "cgroup": {
+     "memory.events": "low 0\nhigh 0\nmax 21\noom 1\noom_kill 1\noom_group_kill 0",
+     "memory.max": "8589934592",
+     "memory.peak": "8589934592",
+     "pids.events": "max 0",
+     "pids.max": "512",
+     "pids.peak": "74",
+     "scratch_statvfs": "{\"free_bytes\": 2147475456, \"free_inodes\": 99990}"
+    },
+    "cleanup": {
+     "container_removed": true,
+     "work_dir_removed": true
+    },
+    "container_id": "5e8eb541d70cbeeda9afbe5e7ea558c4f61c76691f784da98b135743149e8654",
+    "container_name": "carbon-r8-memory-b92d1dddf3d2",
+    "elapsed_s": 7.0,
+    "evidence_file": "r8-probe/memory.json",
+    "exit_code": 137,
+    "expected_outcomes": [
+     "typed_refusal",
+     "bounds_held"
+    ],
+    "finished_at": "2026-10-13T12:34:34Z",
+    "host_after_cleanup": {
+     "containers_all": 0,
+     "disk_used_bytes": 114284322816,
+     "mem_available_kb": 14096248,
+     "responsive": true,
+     "responsive_ms": 1.5,
+     "swap_total_kb": 0
+    },
+    "host_before": {
+     "containers_all": 0,
+     "disk_used_bytes": 114284326912,
+     "mem_available_kb": 14192152,
+     "responsive": true,
+     "responsive_ms": 1.7,
+     "swap_total_kb": 0
+    },
+    "observed": "OOM-killed at the 8 GiB cap, peak equals the cap",
+    "probe": "memory",
+    "source_digest": "sha256:aeaf6c1a039d754682cdbd960ee27e1f50c4ec54c06b517ceed26cb3d4f482dc",
+    "started_at": "2026-10-13T12:34:20Z",
+    "state": {
+     "Dead": false,
+     "ExitCode": 0,
+     "OOMKilled": true,
+     "Running": true
+    },
+    "timed_out": false
+   },
+   {
+    "cgroup": {
+     "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+     "memory.max": "8589934592",
+     "memory.peak": "126574592",
+     "pids.events": "max 0",
+     "pids.max": "512",
+     "pids.peak": "80",
+     "scratch_statvfs": "{\"free_bytes\": 2147475456, \"free_inodes\": 99990}"
+    },
+    "cleanup": {
+     "container_removed": true,
+     "work_dir_removed": true
+    },
+    "container_id": "907c87fb4b39fd7a6f01d774cb435eae50b92002f9d37518d5ade308ced1024e",
+    "container_name": "carbon-r8-time-3ee599da8829",
+    "elapsed_s": 60.1,
+    "evidence_file": "r8-probe/time.json",
+    "exit_code": null,
+    "expected_outcomes": [
+     "timeout"
+    ],
+    "finished_at": "2026-10-13T12:32:11Z",
+    "host_after_cleanup": {
+     "containers_all": 0,
+     "disk_used_bytes": 114284158976,
+     "mem_available_kb": 14180504,
+     "responsive": true,
+     "responsive_ms": 1.8,
+     "swap_total_kb": 0
+    },
+    "host_before": {
+     "containers_all": 0,
+     "disk_used_bytes": 114284179456,
+     "mem_available_kb": 14125988,
+     "responsive": true,
+     "responsive_ms": 1.8,
+     "swap_total_kb": 0
+    },
+    "observed": "supervisor deadline enforced",
+    "probe": "time",
+    "source_digest": "sha256:50127cd7d644569c8c8ed3169bae7d0e5faf8de89cfbb2d8b8ac1c7293c746ae",
+    "started_at": "2026-10-13T12:31:05Z",
+    "state": {
+     "Dead": false,
+     "ExitCode": 0,
+     "OOMKilled": false,
+     "Running": true
+    },
+    "timed_out": true
+   },
+   {
+    "cgroup": {
+     "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+     "memory.max": "8589934592",
+     "memory.peak": "2275536896",
+     "pids.events": "max 0",
+     "pids.max": "512",
+     "pids.peak": "74",
+     "scratch_statvfs": "{\"free_bytes\": 0, \"free_inodes\": 97941}"
+    },
+    "cleanup": {
+     "container_removed": true,
+     "work_dir_removed": true
+    },
+    "container_id": "742291379ad490b490f1fa2d80a47a682a98230b068f62e67d20cdff4a1c9a01",
+    "container_name": "carbon-r8-scratch_flood-1f21761c45c0",
+    "elapsed_s": 3.2,
+    "evidence_file": "r8-probe/scratch_flood.json",
+    "exit_code": 1,
+    "expected_outcomes": [
+     "typed_refusal",
+     "bounds_held"
+    ],
+    "finished_at": "2026-10-13T12:32:21Z",
+    "host_after_cleanup": {
+     "containers_all": 0,
+     "disk_used_bytes": 114284171264,
+     "mem_available_kb": 14009924,
+     "responsive": true,
+     "responsive_ms": 1.4,
+     "swap_total_kb": 0
+    },
+    "host_before": {
+     "containers_all": 0,
+     "disk_used_bytes": 114284171264,
+     "mem_available_kb": 14193032,
+     "responsive": true,
+     "responsive_ms": 1.6,
+     "swap_total_kb": 0
+    },
+    "observed": "tmpfs byte cap reached (ENOSPC), scratch full, host disk unchanged",
+    "probe": "scratch_flood",
+    "source_digest": "sha256:de2f9061a278d21852bd58caf1c071a75bb3881b453079e589a453117f8a8f3f",
+    "started_at": "2026-10-13T12:32:11Z",
+    "state": {
+     "Dead": false,
+     "ExitCode": 0,
+     "OOMKilled": false,
+     "Running": true
+    },
+    "timed_out": false
+   },
+   {
+    "cgroup": {
+     "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+     "memory.max": "8589934592",
+     "memory.peak": "1128796160",
+     "pids.events": "max 446",
+     "pids.max": "512",
+     "pids.peak": "518",
+     "scratch_statvfs": "{\"free_bytes\": 2147475456, \"free_inodes\": 99990}"
+    },
+    "cleanup": {
+     "container_removed": true,
+     "work_dir_removed": true
+    },
+    "container_id": "89f427b624400a7a60a98a61246f305277c3724a8a9f90730b67cb020e23502b",
+    "container_name": "carbon-r8-fork_bomb-75b5f207d126",
+    "elapsed_s": 60.1,
+    "evidence_file": "r8-probe/fork_bomb.json",
+    "exit_code": null,
+    "expected_outcomes": [
+     "timeout",
+     "bounds_held"
+    ],
+    "finished_at": "2026-10-13T12:34:19Z",
+    "host_after_cleanup": {
+     "containers_all": 0,
+     "disk_used_bytes": 114284314624,
+     "mem_available_kb": 14207604,
+     "responsive": true,
+     "responsive_ms": 1.8,
+     "swap_total_kb": 0
+    },
+    "host_before": {
+     "containers_all": 0,
+     "disk_used_bytes": 114284183552,
+     "mem_available_kb": 13993444,
+     "responsive": true,
+     "responsive_ms": 1.7,
+     "swap_total_kb": 0
+    },
+    "observed": "PID limit enforced (fork attempts denied), deadline reached",
+    "probe": "fork_bomb",
+    "source_digest": "sha256:e69d675d1bfef1f4e073b8170e013c5bab37e2aa41f0cc12f641b9502aad8151",
+    "started_at": "2026-10-13T12:32:21Z",
+    "state": {
+     "Dead": false,
+     "ExitCode": 0,
+     "OOMKilled": false,
+     "Running": true
+    },
+    "timed_out": true
+   },
+   {
+    "cgroup": {
+     "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+     "memory.max": "8589934592",
+     "memory.peak": "121982976",
+     "pids.events": "max 0",
+     "pids.max": "512",
+     "pids.peak": "74",
+     "scratch_statvfs": "{\"free_bytes\": 2147475456, \"free_inodes\": 99990}"
+    },
+    "cleanup": {
+     "container_removed": true,
+     "work_dir_removed": true
+    },
+    "container_id": "df4792b0df5f367ae55cfd03e7f891fc413983304ecad2c8963d69ff0965dcfe",
+    "container_name": "carbon-r8-outside_scratch-15100262994f",
+    "elapsed_s": 1.8,
+    "evidence_file": "r8-probe/outside_scratch.json",
+    "exit_code": 1,
+    "expected_outcomes": [
+     "typed_refusal"
+    ],
+    "finished_at": "2026-10-13T12:31:04Z",
+    "host_after_cleanup": {
+     "containers_all": 0,
+     "disk_used_bytes": 114284167168,
+     "mem_available_kb": 14122980,
+     "responsive": true,
+     "responsive_ms": 1.5,
+     "swap_total_kb": 0
+    },
+    "host_before": {
+     "containers_all": 0,
+     "disk_used_bytes": 114284175360,
+     "mem_available_kb": 14128372,
+     "responsive": true,
+     "responsive_ms": 1.6,
+     "swap_total_kb": 0
+    },
+    "observed": "write denied (read-only root), marker absent",
+    "probe": "outside_scratch",
+    "source_digest": "sha256:c254d36c074321f1a6fe85c02139bacfa1b73b97faf2a941a64d0d5d6e9d49ab",
+    "started_at": "2026-10-13T12:30:57Z",
+    "state": {
+     "Dead": false,
+     "ExitCode": 0,
+     "OOMKilled": false,
+     "Running": true
+    },
+    "timed_out": false
+   },
+   {
+    "cgroup": {
+     "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0",
+     "memory.max": "8589934592",
+     "memory.peak": "122753024",
+     "pids.events": "max 0",
+     "pids.max": "512",
+     "pids.peak": "74",
+     "scratch_statvfs": "{\"free_bytes\": 2147475456, \"free_inodes\": 99990}"
+    },
+    "cleanup": {
+     "container_removed": true,
+     "work_dir_removed": true
+    },
+    "container_id": "a4abf2a4d4fac1df9a6ececf2276a5a9a21f198696fe6f7f016bb9b21964c043",
+    "container_name": "carbon-r8-network_socket-db63901cd84a",
+    "elapsed_s": 1.8,
+    "evidence_file": "r8-probe/network_socket.json",
+    "exit_code": 1,
+    "expected_outcomes": [
+     "typed_refusal",
+     "timeout"
+    ],
+    "finished_at": "2026-10-13T12:30:56Z",
+    "host_after_cleanup": {
+     "containers_all": 0,
+     "disk_used_bytes": 114284158976,
+     "mem_available_kb": 14104308,
+     "responsive": true,
+     "responsive_ms": 1.5,
+     "swap_total_kb": 0
+    },
+    "host_before": {
+     "containers_all": 0,
+     "disk_used_bytes": 114284167168,
+     "mem_available_kb": 14142180,
+     "responsive": true,
+     "responsive_ms": 1.9,
+     "swap_total_kb": 0
+    },
+    "observed": "connection denied, network none",
+    "probe": "network_socket",
+    "source_digest": "sha256:ecd4282274a337aada27b5bf7cb6155facb1f358569d7b44adae0d2c8fc2e4c6",
+    "started_at": "2026-10-13T12:30:49Z",
+    "state": {
+     "Dead": false,
+     "ExitCode": 0,
+     "OOMKilled": false,
+     "Running": true
+    },
+    "timed_out": false
+   }
+  ],
+  "profile": {
+   "cpus": 4,
+   "memory_bytes": 8589934592,
+   "nofile": 8192,
+   "pids_limit": 512,
+   "schema": "carbon.miner-research.resource-profile.v1"
+  },
+  "tool": "python -m carbon.level4.tooling lower (real Level 4 lowering tool, inside each probe container)",
+  "wall_seconds_per_probe": 60
+ },
+ "results": {
+  "memory": {
+   "result_digest": "sha256:62e409eb3c887505ff87aec7efa35fe482c005ee27a414b0f09bfe3588e9ecf0",
+   "status": "PASS"
+  },
+  "scratch_flood": {
+   "result_digest": "sha256:513677a7e78cc59930e644f91b5cdea0f331750cb24643f029a095b82c54aece",
+   "status": "PASS"
+  },
+  "time": {
+   "result_digest": "sha256:7818a3dbc82e94453b7bfacfaad90cfe2a684e2b75da1e46fcde2c1e08c5502c",
+   "status": "PASS"
+  }
+ },
+ "runtime_digest": "sha256:ee9bad48b3cc0fd47b47815b52a455c0e67c7847ee0cf9e5988a238537406167",
+ "schema": "carbon.readiness.hostile-lowering-probe.v1"
+}

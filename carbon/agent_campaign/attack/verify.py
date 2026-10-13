@@ -88,6 +88,7 @@ acceptance or a grade.
 
 from __future__ import annotations
 
+import json
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -105,6 +106,7 @@ SCHEMA = "carbon.attack.verdict.v3"
 SCHEMA_V2 = "carbon.attack.verdict.v2"
 SCHEMA_V1 = "carbon.attack.verdict.v1"
 FINDING_SCHEMA = "carbon.attack.finding.v1"
+ATTACK_SPECIMEN_SCHEMA = "carbon.attack.specimen.v1"
 REBUILT, UNREBUILDABLE, NO_CONSTRUCTION = "REBUILT", "UNREBUILDABLE", "NO_CONSTRUCTION"
 HELD, BREACHED, UNDETERMINED = "HELD", "BREACHED", "UNDETERMINED"
 INFRA, NOT_APPLICABLE = "INFRA", "NOT_APPLICABLE"
@@ -896,6 +898,12 @@ def _unrebuildable(verdict, attempt, code, issues, evidence, advisory=False):
 
 
 # -- specimens ------------------------------------------------------------------------------
+def specimen_name(family, artifact):
+    """The stable artifact-keyed folder name for one attack family."""
+    key = digest(canonical({"family": family, "artifact": artifact}))[7:23]
+    return "specimen-" + key
+
+
 def _specimen(adapter, attempt, family, construction, record, directory, *, artifact):
     """Bundle a breached attempt's construction and re-check it from the
     bundle alone. `REBUILD_MISMATCH` is a finding; a bundle Carbon could not
@@ -909,30 +917,60 @@ def _specimen(adapter, attempt, family, construction, record, directory, *, arti
     session) re-checks the bundle already there (`reused`)."""
     from carbon.agent_campaign.attack import knowledge
 
-    key = digest(canonical({"family": family, "artifact": artifact}))[7:23]
-    folder = Path(directory) / ("specimen-" + key)
-    reused = (folder / "manifest.json").is_file()
-    # The store's material rule (registered sealed identities and protected
-    # markers), not the checkout deny list: a breach that names an attack
-    # target such as a `.env` path keeps its specimen, bundled operator-side.
-    if knowledge.sealed(construction) or knowledge.held_out(construction):
-        return {"status": "NOT_BUNDLED", "reason": "protected_material", "folder": None}
+    folder = None
+    reused = False
     try:
+        folder = Path(directory) / specimen_name(family, artifact)
+        if folder.is_symlink():
+            raise ValueError("specimen_folder_is_a_link")
+        reused = (folder / "manifest.json").is_file()
+        # The store's material rule (registered sealed identities and protected
+        # markers), not the checkout deny list: a breach that names an attack
+        # target such as a `.env` path keeps its specimen, bundled operator-side.
+        if knowledge.sealed(construction) or knowledge.held_out(construction):
+            return {
+                "status": "NOT_BUNDLED",
+                "reason": "protected_material",
+                "folder": None,
+                "attempt": attempt.identity,
+                "intent_digest": attempt.intent_digest,
+                "result_digest": attempt.result_digest,
+            }
         bundle = getattr(adapter, "bundle_specimen", None)
         # A reused folder is this artifact's specimen already: re-checked only.
         if not reused and callable(bundle):
             bundle(construction, record, folder)
         elif not reused:
-            bundle_specimen(construction, record, folder, label=attempt.identity)
+            if _graphite_recipe_record(record):
+                bundle_specimen(construction, record, folder, label=attempt.identity)
+            else:
+                bundle_attack_specimen(
+                    adapter,
+                    construction,
+                    record,
+                    folder,
+                    label=attempt.identity,
+                    artifact=artifact,
+                )
         check = getattr(adapter, "clean_rebuild", None)
         if not callable(check):
-            from carbon.agent_campaign.graphite.delivery import clean_rebuild as check
+            manifest = json.loads((folder / "manifest.json").read_bytes())
+            if manifest.get("schema") == ATTACK_SPECIMEN_SCHEMA:
+                check = lambda path: clean_attack_specimen(path, adapter)
+            else:
+                from carbon.agent_campaign.graphite.delivery import (
+                    clean_rebuild as check,
+                )
         result = check(folder)
     except Exception as failed:  # noqa: BLE001 - reported, never a pass
         return {
             "status": "SPECIMEN_CHECK_FAILED",
-            "reason": type(failed).__name__ + ": " + str(failed)[:200],
-            "folder": str(folder),
+            "code": "specimen_mint_or_check_failed",
+            "reason": type(failed).__name__,
+            "folder": str(folder) if folder is not None else None,
+            "attempt": attempt.identity,
+            "intent_digest": attempt.intent_digest,
+            "result_digest": attempt.result_digest,
         }
     return {
         "status": result.get("status"),
@@ -940,6 +978,171 @@ def _specimen(adapter, attempt, family, construction, record, directory, *, arti
         "folder": str(folder),
         "reused": reused,
     }
+
+
+def _graphite_recipe_record(record):
+    """The phase-3 clean-rebuild format, not a level adapter's compact record."""
+    return (
+        isinstance(record, Mapping)
+        and all(
+            key in record
+            for key in ("recipe_digest", "contract_digest", "record_sequence")
+        )
+        and isinstance(record.get("recipe"), Mapping)
+    )
+
+
+def bundle_attack_specimen(adapter, construction, record, folder, *, label, artifact):
+    """Bundle a compact attack-adapter rebuild without pretending it is a
+    phase-3 recipe. The registered adapter is needed to replay this bundle."""
+    folder = Path(folder)
+    if folder.is_symlink():
+        raise ValueError("specimen_folder_is_a_link")
+    bodies = {
+        "construction.json": canonical(construction),
+        "record.json": canonical(record),
+    }
+    manifest = {
+        "schema": ATTACK_SPECIMEN_SCHEMA,
+        "attempt": label,
+        "challenge_id": adapter.challenge_id,
+        "level": adapter.level,
+        "contract_digest": adapter.contract_digest,
+        "artifact": artifact,
+        "files": {name: digest(body) for name, body in bodies.items()},
+        "authority_granted": False,
+        "official_eligible": False,
+    }
+    folder.mkdir(parents=True, exist_ok=True, mode=0o700)
+    for name, body in bodies.items():
+        write_once(folder / name, body)
+    write_once(folder / "manifest.json", canonical(manifest))
+    return folder
+
+
+def clean_attack_specimen(folder, adapter):
+    """Check every byte, then rebuild with the manifest's registered adapter.
+    This is a diagnostic clean rebuild, never an attack verdict or a grade."""
+    folder = Path(folder)
+    differences = []
+    try:
+        if folder.is_symlink():
+            raise ValueError("specimen_folder_is_a_link")
+        manifest_path = folder / "manifest.json"
+        if manifest_path.is_symlink():
+            raise ValueError("manifest_is_a_link")
+        manifest = json.loads(manifest_path.read_bytes())
+        if (
+            type(manifest) is not dict
+            or manifest.get("schema") != ATTACK_SPECIMEN_SCHEMA
+        ):
+            raise ValueError("attack_specimen_manifest_invalid")
+        files = manifest.get("files")
+        if type(files) is not dict or set(files) != {
+            "construction.json",
+            "record.json",
+        }:
+            raise ValueError("attack_specimen_files_invalid")
+        present = {path.name for path in folder.iterdir()}
+        if present != {*files, "manifest.json"}:
+            differences.append("bundle_files_differ_from_manifest")
+        bodies = {}
+        for name, expected in files.items():
+            path = folder / name
+            if path.is_symlink() or not path.is_file():
+                differences.append("missing:" + name)
+            else:
+                bodies[name] = path.read_bytes()
+                if digest(bodies[name]) != expected:
+                    differences.append("digest:" + name)
+        if (
+            manifest.get("challenge_id") != adapter.challenge_id
+            or manifest.get("level") != adapter.level
+            or manifest.get("contract_digest") != adapter.contract_digest
+        ):
+            differences.append("adapter_contract")
+        if (
+            manifest.get("authority_granted") is not False
+            or manifest.get("official_eligible") is not False
+        ):
+            differences.append("specimen_authority")
+        if differences:
+            return {"status": "REBUILD_MISMATCH", "differences": differences}
+        construction = json.loads(bodies["construction.json"])
+        saved = json.loads(bodies["record.json"])
+        rebuilt, record, code, _issues = _rebuild(adapter, construction)
+        if code is not None:
+            differences.append("not_rebuildable:" + code)
+        else:
+            if canonical(saved) != canonical(record):
+                differences.append("rebuilt_record")
+            if identity.artifact_of(adapter, rebuilt, record) != manifest.get(
+                "artifact"
+            ):
+                differences.append("rebuilt_artifact")
+    except Exception as failed:  # noqa: BLE001 - an adapter failure is not a pass
+        differences.append("check_failed:" + type(failed).__name__)
+    return {
+        "status": "REBUILT" if not differences else "REBUILD_MISMATCH",
+        "differences": differences,
+    }
+
+
+def remint_specimen(attempt, adapter, recorded, directory):
+    """Re-mint only an already recorded BREACHED rebuilt attempt. The caller
+    authenticates `recorded` against the campaign finding evidence first. No
+    oracle, miner tool or provider call is made."""
+
+    def refused(code):
+        return {
+            "status": "SPECIMEN_REFUSED",
+            "code": code,
+            "attempt": attempt.identity,
+            "intent_digest": attempt.intent_digest,
+            "result_digest": attempt.result_digest,
+        }
+
+    if (
+        recorded.get("schema") != SCHEMA
+        or recorded.get("outcome") != BREACHED
+        or recorded.get("rebuild") != REBUILT
+        or recorded.get("attempt") != attempt.identity
+    ):
+        return refused("recorded_breach_required")
+    evidence = recorded.get("evidence") or {}
+    if (
+        evidence.get("intent") != attempt.intent_digest
+        or evidence.get("result") != attempt.result_digest
+    ):
+        return refused("journal_digests_changed")
+    if attempt.withheld is not None:
+        return refused("attempt_content_withheld")
+    family = recorded.get("family")
+    try:
+        current_family = analysis.family_of(attempt, adapter)
+        construction = _construction(adapter, attempt)
+    except Exception:  # noqa: BLE001 - never mint on a failed source read
+        return refused("attempt_replay_failed")
+    if family != current_family:
+        return refused("family_changed_since_finding")
+    if construction is None or construction is analysis.UNPARSEABLE:
+        return refused("construction_unavailable")
+    if evidence.get("construction") != _digest_of(construction):
+        return refused("construction_changed_since_finding")
+    try:
+        rebuilt, record, code, _issues = _rebuild(adapter, construction)
+        if code is not None:
+            return refused("construction_now_unrebuildable")
+        artifact = identity.artifact_of(adapter, rebuilt, record)
+    except Exception:  # noqa: BLE001 - a failed rebuild cannot mint evidence
+        return refused("construction_rebuild_failed")
+    if artifact != recorded.get("artifact") or evidence.get("rebuilt") != _digest_of(
+        record
+    ):
+        return refused("rebuilt_artifact_changed_since_finding")
+    return _specimen(
+        adapter, attempt, family, construction, record, directory, artifact=artifact
+    )
 
 
 def bundle_specimen(construction, record, folder, *, label):

@@ -5,8 +5,9 @@ Track A needs a full attempt ledger, unsuccessful attacks included
 adapter sees it is still recorded. Track A family 8 (adaptive exposure) needs
 per-hotkey attempt counts.
 
-The ledger is operator-only. It is never scored, never miner-visible and never
-touches adapter state. It keeps the submission's hash, never its strategy, so
+The ledger is operator-only. It is never scored and never touches adapter state.
+PLT-08 publishes only a closed, count-only projection through public_status_counts.
+It keeps the submission's hash, never its strategy, so
 hostile content is not stored. Over-long identity strings are kept by digest
 only.
 """
@@ -311,3 +312,65 @@ class AttemptLedger:
 
 
 __all__ = ["KINDS", "AttemptLedger", "LedgerUnavailable", "submission_sha256"]
+
+
+def public_status_counts(path, contract_digest, hotkeys):
+    """PLT-08's count-only exception to operator-only records.
+
+    Read an existing ledger, never initialize one for a display. The query
+    selects no receipts, times, hashes, strategies or submission/window ids.
+    Only the served contract and supplied public chain identities count.
+    """
+    from .dispatch import SCREEN_REFUSALS
+
+    codes = {
+        *SCREEN_REFUSALS,
+        "hotkey_window_used",
+        "receipt_block_missing",
+        "level4_envelope_incomplete",
+        "unclassified_refusal",
+    }
+    path = Path(path)
+    try:
+        info, parent = os.lstat(path), os.lstat(path.parent)
+        if (
+            not stat.S_ISREG(info.st_mode)
+            or info.st_mode & 0o077
+            or not stat.S_ISDIR(parent.st_mode)
+            or parent.st_mode & 0o077
+        ):
+            raise LedgerUnavailable("status_ledger_not_owner_only")
+        with contextlib.closing(
+            sqlite3.connect(path.resolve().as_uri() + "?mode=ro", uri=True)
+        ) as db:
+            db.execute("BEGIN")
+            if db.execute("SELECT value FROM meta WHERE key='schema'").fetchone() != (
+                SCHEMA,
+            ):
+                raise LedgerUnavailable("status_ledger_schema")
+            rows = db.execute(
+                "SELECT hotkey, kind, code, COUNT(*) FROM attempts "
+                "WHERE contract_digest=? AND kind IN ('RECEIVED','REFUSED') "
+                "GROUP BY hotkey, kind, code",
+                (contract_digest,),
+            ).fetchall()
+            rows += db.execute(
+                "SELECT hotkey, kind, code, SUM(count) FROM overflow "
+                "WHERE contract_digest=? AND kind='REFUSED' GROUP BY hotkey, kind, code",
+                (contract_digest,),
+            ).fetchall()
+    except (OSError, sqlite3.Error):
+        raise LedgerUnavailable("status_ledger_unavailable") from None
+    found = {
+        hotkey: {"hotkey": hotkey, "received": 0, "refused": {}} for hotkey in hotkeys
+    }
+    for hotkey, kind, code, count in rows:
+        if hotkey not in hotkeys:
+            continue
+        row = found.setdefault(hotkey, {"hotkey": hotkey, "received": 0, "refused": {}})
+        if kind == "RECEIVED":
+            row["received"] += count
+        else:
+            closed = code if code in codes else "unclassified_refusal"
+            row["refused"][closed] = row["refused"].get(closed, 0) + count
+    return found

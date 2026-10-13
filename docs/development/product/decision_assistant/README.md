@@ -11,7 +11,9 @@ Median 35.993 ms, nearest-rank p95 63.045 ms, maximum 98.118 ms; one decision
 digest. Imports and fixture assembly are outside that measurement boundary.
 This is NATIVE_DIAGNOSTIC, not real-model or accepted production latency.
 The timing record is pinned to the first PRD-03 candidate; later assessment-hold
-repairs do not relabel it as a new measurement.
+repairs and the PRD-02b/c/d/e base-sync do not relabel it as a new measurement.
+It is not a measurement of the current native receipt v4 composition. Production
+latency remains HUMAN_INPUT; no timing pass is inferred from that old snapshot.
 
 [Public panel gap](public-panel-gap.json) is an aggregate-only inspection of the
 owner-named read-only calibration copy. The input manifest, whole records file,
@@ -19,7 +21,8 @@ all 800 JSONL line hashes and every image/overlay/version matched. Its recorded
 wall_s median 108.438 s is a **DEVELOPMENT cost estimate only**. It supplies no
 CPU core-seconds. The current owner hold is SOLVER_NOT_ACCEPTED, accepted false,
 and the real comparison/regret remain GAP/null. Earlier manifest or acceptance
-text cannot override that hold. Original inputs are never committed or modified.
+text cannot override that battery/plating use hold. Original inputs are never
+committed or modified.
 
 The runnable synthetic demo deliberately retains two false-feasible selected
 picks, including a TRUST pick. Independent arithmetic reference checks reject

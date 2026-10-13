@@ -53,7 +53,7 @@
    "title": "A fixture dry run of phase 3 for this challenge passes end to end: brief, published material, bundle writeup, clean rebuild.",
    "check": "recorded_tests",
    "pending": {
-    "reason": "no fixture phase-3 dry-run test is recorded for this challenge (VALIDATOR-05, #606, covers cooling's bundle only)",
+    "reason": "no phase-3 fixture dry-run assertion is recorded for this challenge and level",
     "owner": "Carbon Validator",
     "neutral_tests": []
    }
@@ -122,9 +122,9 @@
    "kind": "auto",
    "lesson": "A3",
    "title": "A deterministic containment check with a host canary passes on the lane this challenge uses (pod, CPU carrier or miner lane).",
-   "check": "recorded_tests",
+   "check": "carrier_containment",
    "pending": {
-    "reason": "deterministic containment check with host canary: Test Engineer's containment PR not on main",
+    "reason": "real analysis carrier probe requires Docker and the current host analysis-image manifest; fixture tests cannot earn PASS",
     "owner": "Test Engineer",
     "neutral_tests": []
    }
@@ -146,9 +146,9 @@
    "kind": "auto",
    "lesson": "E3, E4",
    "title": "Model settings: full context for each role's model, an output cap sized from use, and an endpoint that reports charges.",
-   "check": "recorded_tests",
+   "check": "model_settings",
    "pending": {
-    "reason": "prelive reports only attacker_model; per-role *_model blocks and the output cap (lesson E3 OPEN) are not reported",
+    "reason": "frozen per-role model blocks are checked; a context mismatch fails and an absent committed output-sizing rule requires Test Engineer review",
     "owner": "Test Engineer",
     "neutral_tests": []
    }
@@ -174,7 +174,7 @@
    "title": "Agent-facing budget text matches the real ledger; no \"0 of 0\".",
    "check": "recorded_tests",
    "pending": {
-    "reason": "agent-facing budget text test (lesson E9 OPEN, oracle-fix PR) not on main",
+    "reason": "no per-role budget display assertion is recorded for this challenge and level",
     "owner": "Test Engineer",
     "neutral_tests": []
    }
@@ -214,7 +214,7 @@
    "title": "The coverage stop rule is configured: k attempts per family before the finish tool is available.",
    "check": "recorded_tests",
    "pending": {
-    "reason": "coverage stop rule (lesson A2 OPEN) not on main",
+    "reason": "no session stop-rule and finish-withholding assertion is recorded for this challenge and level",
     "owner": "Test Engineer",
     "neutral_tests": []
    }
@@ -252,7 +252,7 @@
    "title": "Gate failures rank last (admissibility before ranking), tested with a known-answer case.",
    "check": "recorded_tests",
    "pending": {
-    "reason": "known-answer test that gate failures rank last (#617 follow-up) is not recorded for the challenge",
+    "reason": "no known-answer admissibility/ranking assertion is recorded for this challenge and level",
     "owner": "Carbon Validator",
     "neutral_tests": []
    }
@@ -288,9 +288,9 @@
    "kind": "auto",
    "lesson": "n/a",
    "title": "A frozen decision study exists, with a finite comparator, commitment before reference access, and representative and boundary groups.",
-   "check": "recorded_tests",
+   "check": "frozen_study",
    "pending": {
-    "reason": "no frozen decision-study check is recorded for the challenge",
+    "reason": "frozen study reader verifies comparator, contract pin, explicit population labels and access timing; absent labels/timing are findings",
     "owner": "Data Collection",
     "neutral_tests": []
    }
@@ -300,9 +300,9 @@
    "kind": "auto",
    "lesson": "n/a",
    "title": "The equal-cost harness adapter is registered, with a B ladder confirmed by the Test Lead.",
-   "check": "recorded_tests",
+   "check": "harness_adapter",
    "pending": {
-    "reason": "no equal-cost harness adapter check is recorded for the challenge",
+    "reason": "registered adapter and equal-budget tests are checked; per-level B ladder digest acceptance requires Test Lead review",
     "owner": "Data Collection",
     "neutral_tests": []
    }
@@ -311,10 +311,10 @@
    "id": "D3",
    "kind": "auto",
    "lesson": "E8",
-   "title": "A timing calibration on the target hardware has run, and counted-plan timeouts are at least 2× p95.",
-   "check": "recorded_tests",
+   "title": "A timing calibration on the target hardware has run, and counted-plan timeouts are at least 2\u00d7 p95.",
+   "check": "counted_timing",
    "pending": {
-    "reason": "no timing calibration check is recorded for the challenge",
+    "reason": "counted plan timing reader requires an authoritative code registry; an earlier no-plan review alone cannot prove absence",
     "owner": "Data Collection",
     "neutral_tests": []
    }
@@ -324,9 +324,9 @@
    "kind": "auto",
    "lesson": "E7",
    "title": "The importer has run on at least one real solver output.",
-   "check": "recorded_tests",
+   "check": "real_import",
    "pending": {
-    "reason": "no real-solver-output importer check is recorded for the challenge",
+    "reason": "real public reference payload digest and retained successful importer output are checked without solving",
     "owner": "Data Collection",
     "neutral_tests": []
    }
@@ -336,9 +336,9 @@
    "kind": "auto+review",
    "lesson": "S4",
    "title": "Reference coverage of the decision set is reported, and the refinement policy for unresolved cases is decided.",
-   "check": "recorded_tests",
+   "check": "reference_coverage",
    "pending": {
-    "reason": "no reference-coverage report is recorded for the challenge",
+    "reason": "reference-only coverage is recomputed and reported; per-level refinement policy acceptance remains Test Lead review",
     "owner": "Data Collection",
     "neutral_tests": []
    }
@@ -348,9 +348,9 @@
    "kind": "auto",
    "lesson": "S5, N3",
    "title": "Any confirmation study's analysis code is built, merged and pinned with every imported module before freeze.",
-   "check": "recorded_tests",
+   "check": "analysis_pins",
    "pending": {
-    "reason": "no pinned analysis-code check is recorded for the challenge",
+    "reason": "analysis import closure and module pins are checked at the historical freeze commit, without opening confirmation references",
     "owner": "Data Collection",
     "neutral_tests": []
    }
@@ -366,7 +366,7 @@
    "id": "V1",
    "kind": "auto+review",
    "lesson": "S1",
-   "title": "A Q1 score-to-value check on the available panel (baselines plus constructed controls): τ/ρ with a band, and divergences listed. A negative or within-noise τ is NOT a blocker, but it is recorded, and the first Graphite runs are then framed as alignment measurements, never as improvement hunting.",
+   "title": "A Q1 score-to-value check on the available panel (baselines plus constructed controls): \u03c4/\u03c1 with a band, and divergences listed. A negative or within-noise \u03c4 is NOT a blocker, but it is recorded, and the first Graphite runs are then framed as alignment measurements, never as improvement hunting.",
    "check": "q1_alignment"
   },
   {

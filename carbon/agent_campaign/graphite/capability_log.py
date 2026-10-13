@@ -7,7 +7,8 @@ level. The rows are the evidence for which capability a later level should build
 Nothing here widens a level: no capability reaches any run, no score or result record
 changes, and a wish is data, never an instruction.
 
-A wish rides in a proposal's `hypothesis` as one line:
+A wish rides in a proposal's `hypothesis` as one line (at the start of a line, or inline after a
+sentence; a bullet, a quote marker, backticks or bold around `WISH:` are tolerated):
 
     WISH: optimisation=<the code-level optimisation>; needs=<the op, kernel or library>;
     expected_gain=<what it would gain>; evidence=<why it believes it>
@@ -33,7 +34,10 @@ from .protected_material import protected
 LOG_ENV = "CARBON_CAPABILITY_LOG"
 DEFAULT_LOG = Path("docs/development/graphite/level4/REFUSED_CAPABILITY_LOG.md")
 WISH_KEYS = ("optimisation", "needs", "expected_gain", "evidence")
-_WISH = re.compile(r"^\s*WISH:\s*(.+)$", re.MULTILINE)
+#: `WISH:` anywhere in the text (not only at the start of a line), with the common markup around it: `- WISH:`,
+#: `> WISH:`, `` `WISH:` ``, `**WISH:**`, `**WISH**:`. Not part of a longer word (`SWISH:`). The first match wins and
+#: the wish runs to the end of its line, as before.
+_WISH = re.compile(r"(?<![A-Za-z0-9_])WISH\**\s*:\s*\**\s*(.+)$", re.MULTILINE)
 _PAIR = re.compile(r"(optimisation|needs|expected_gain|evidence)\s*=\s*")
 MAX_CELL = 200
 WITHHELD = "WITHHELD (protected material)"
@@ -93,7 +97,7 @@ def log_path():
 
 
 def parse_wish(text):
-    """`{optimisation, needs, expected_gain, evidence}` from a `WISH:` line, or None
+    """`{optimisation, needs, expected_gain, evidence}` from a `WISH:` line anywhere in the text, or None
     when the text carries none. A malformed line is returned under `raw` only."""
     if type(text) is not str:
         return None
@@ -105,7 +109,7 @@ def parse_wish(text):
     wish = dict.fromkeys(WISH_KEYS)
     for index, mark in enumerate(marks):
         end = marks[index + 1].start() if index + 1 < len(marks) else len(body)
-        wish[mark.group(1)] = body[mark.end() : end].strip(" ;")
+        wish[mark.group(1)] = body[mark.end() : end].strip(" ;*`")
     if not any(wish.values()):
         return {"raw": body}
     return wish

@@ -78,6 +78,69 @@ that uses a guarded read/write live checkout. If bootstrap, doctor, and
 `ci.sh` pass there, the ordinary Carbon environment and engineering gates are
 valid.
 
+## Windows-managed worktrees
+
+A worktree created by Windows Git (including an editor-managed worktree) can
+contain a `.git` file whose `gitdir:` value is a Windows absolute path. Linux
+Git cannot resolve that identity, even when Bash can read the worktree through
+`/mnt/c/...`. The wrapper refuses before building a container and points here.
+Moving the source into a container does not translate the Git metadata.
+
+Use a separate native-Linux clone and let Linux Git create its worktrees.
+For a committed candidate in a Windows-managed worktree, run the following
+from a **WSL host shell**, with Docker's WSL integration enabled:
+
+```bash
+set -euo pipefail
+# Use the primary checkout, where .git is a directory, as the clone source.
+windows_repository='/mnt/c/Users/<username>/source/Carbon'
+candidate_branch='codex/<ticket-branch>'
+candidate='<full-40-character-commit-sha>'
+linux_clone="$HOME/src/Carbon-canonical-<ticket>"
+
+mkdir -p "$HOME/src"
+# Transfer this branch's history without alternates or Windows hard links.
+test -d "$windows_repository/.git"
+git clone --no-local --no-checkout --single-branch --branch "$candidate_branch" \
+  "$windows_repository" "$linux_clone"
+# Preserve the local comparison ref used by preflight and --full.
+git -C "$linux_clone" fetch --no-tags origin \
+  'refs/remotes/origin/main:refs/remotes/origin/main'
+git -C "$linux_clone" cat-file -e "${candidate}^{commit}"
+git -C "$linux_clone" worktree add --detach \
+  "$linux_clone/.worktrees/<ticket>" "$candidate"
+cd "$linux_clone/.worktrees/<ticket>"
+test "$(git rev-parse HEAD)" = "$candidate"
+git diff --exit-code HEAD
+git diff --cached --exit-code
+./scripts/dev/canonical.sh --dry-run --focused tests/cpu/test_canonical_wrapper.py
+./scripts/dev/canonical.sh --focused tests/cpu/test_canonical_wrapper.py
+```
+
+Obtain `candidate` and `candidate_branch` with `git rev-parse HEAD` and
+`git branch --show-current` in the Windows shell at the authoring worktree.
+The local clone copies committed objects without contacting
+GitHub. Clone from the primary checkout that owns the worktree's shared Git
+directory; cloning the Windows-managed worktree itself hits the same invalid
+pointer. Keep the candidate reachable on its authoring branch. The Linux clone
+is a validation checkout: keep authoring, commits, and pushes in the
+original worktree. Use a fresh destination for each candidate; no shared Git
+metadata or virtual environment needs repair. A `.worktrees/` directory is
+supported when Linux Git created it in a native-Linux clone.
+
+This recipe validates only the named committed revision. Uncommitted edits
+and untracked files in the Windows worktree are not copied; commit the intended
+candidate first, or continue editing in a native-Linux authoring clone and use
+the wrapper there. Run the ticket's focused targets or `--full` as appropriate.
+A dry run checks command construction only; successful bootstrap, doctor, and
+the requested validation in the pinned container provide canonical evidence.
+
+Do not edit `.git` pointers, set `GIT_DIR`/`GIT_WORK_TREE` to bypass the root
+check, or set canonical identity markers on WSL to force direct execution.
+The wrapper still requires the exact container identity and read-only Git
+metadata for noninteractive validation. The supported path preserves those
+checks and the existing Windows-mounted-path restriction.
+
 ## Repository commands
 
 | Command | Role |

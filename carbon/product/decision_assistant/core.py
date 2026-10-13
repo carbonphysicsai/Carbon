@@ -400,11 +400,21 @@ class DecisionAssistant:
             row["guard"] = {
                 k: receipt[k]
                 for k in (
+                    "schema",
+                    "scope",
+                    "evidence_basis",
                     "verdict",
                     "reasons",
+                    "checks",
                     "decision_digest",
                     "probes",
                     "identities",
+                    "law_policy",
+                    "b9_policy",
+                    "reference",
+                    "code_verification",
+                    "qualification_claim",
+                    "independent_pick_verification_required",
                 )
             }
             if receipt["verdict"] != "REFUSE" and receipt["prediction"] is not None:
@@ -605,6 +615,20 @@ def assess_finite_bank(assistant, result, *, reference, budget):
         and b["authority_ref"] is not None
     ):
         for action in q["actions"]:
+            # KEEP the Guard's immutable declared-use predicate. Registered MMS
+            # verification conditions are evidence, not query restrictions.
+            if not assistant._guard._reference_scope_matches(action["query"]):
+                rows.append(
+                    {
+                        "id": action["id"],
+                        "reference": {
+                            "status": "UNRESOLVED",
+                            "reason": "REFERENCE_ACCEPTANCE_SCOPE_MISMATCH",
+                            "candidate_failure": False,
+                        },
+                    }
+                )
+                continue
             declaration = assistant._reference_validity
             supported = all(
                 v["low"] <= action["query"][k] <= v["high"]

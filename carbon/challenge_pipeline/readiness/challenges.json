@@ -1,6 +1,6 @@
 {
  "schema": "carbon.challenge-pipeline.readiness-challenges.v1",
- "rule": "Per-challenge component wiring for the readiness runner. The runner names no challenge; a component a challenge lacks is absent here and its item reports the gap. `tests` maps an item id to repository-relative pytest targets that really cover that item for this challenge. `grants.phase4` names the challenge's OWN committed phase-4 grant; a challenge with none fails R1 (no borrowing another challenge's grant).",
+ "rule": "Per-challenge component wiring for the readiness runner. The runner names no challenge; a component a challenge lacks is absent here and its item reports the gap. `tests` maps an item id to repository-relative pytest targets that really cover that item for this challenge. `grants.phase4` names the challenge's OWN committed phase-4 grant; a challenge with none fails R1 (no borrowing another challenge's grant). tests_by_level maps an item to explicit level keys. Each record names challenge, levels, basis and tests; an absent level never inherits legacy tests. Recorded assertions must execute without skips. P3, R7 and A3 must emit matching READINESS_LEVEL_EVIDENCE summaries.",
  "challenges": {
   "battery-fastcharge-ageing-development-v1": {
    "validator_adapter": "carbon.challenge_validator.battery:BatteryAdapter",
@@ -30,6 +30,547 @@
    },
    "grants": {
     "phase4": "docs/development/graphite/grants/GRAPHITE-GRANT-PHASE4.json"
+   },
+   "tests_by_level": {
+    "P3": {
+     "2": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       2
+      ],
+      "basis": "The parametrized public fixture exercises the named development variant; shared assertions supplement it.",
+      "tests": [
+       "tests/cpu/test_graphite_readiness_level_evidence.py::test_phase3_dry_run_at_the_named_level[2]"
+      ]
+     },
+     "3": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       3
+      ],
+      "basis": "The parametrized public fixture exercises the named development variant; shared assertions supplement it.",
+      "tests": [
+       "tests/cpu/test_graphite_readiness_level_evidence.py::test_phase3_dry_run_at_the_named_level[3]"
+      ]
+     },
+     "4": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       4
+      ],
+      "basis": "The parametrized public fixture exercises the named development variant; shared assertions supplement it.",
+      "tests": [
+       "tests/cpu/test_graphite_readiness_level_evidence.py::test_phase3_dry_run_at_the_named_level[4]"
+      ]
+     }
+    },
+    "R7": {
+     "2": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       2
+      ],
+      "basis": "The parametrized public fixture exercises the named development variant; shared assertions supplement it.",
+      "tests": [
+       "tests/cpu/test_graphite_readiness_level_evidence.py::test_each_roles_turn_text_matches_its_scripted_ledger[constructor-2]",
+       "tests/cpu/test_graphite_readiness_level_evidence.py::test_each_roles_turn_text_matches_its_scripted_ledger[attacker-2]",
+       "tests/cpu/test_agent_door_usability.py::test_a_new_phase3_session_records_v2_and_drops_the_unmetered_trial_line",
+       "tests/cpu/test_agent_door_usability.py::test_metered_trials_are_named_every_turn_under_either_status_rule",
+       "tests/cpu/test_agent_door_usability.py::test_the_v2_agents_turn_status_names_its_trial_slots",
+       "tests/cpu/test_attack_authoritative_boundary.py::test_the_phase4_attacker_opts_out_of_the_unmetered_trial_line"
+      ]
+     },
+     "3": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       3
+      ],
+      "basis": "The parametrized public fixture exercises the named development variant; shared assertions supplement it.",
+      "tests": [
+       "tests/cpu/test_graphite_readiness_level_evidence.py::test_each_roles_turn_text_matches_its_scripted_ledger[constructor-3]",
+       "tests/cpu/test_graphite_readiness_level_evidence.py::test_each_roles_turn_text_matches_its_scripted_ledger[attacker-3]",
+       "tests/cpu/test_agent_door_usability.py::test_a_new_phase3_session_records_v2_and_drops_the_unmetered_trial_line",
+       "tests/cpu/test_agent_door_usability.py::test_metered_trials_are_named_every_turn_under_either_status_rule",
+       "tests/cpu/test_agent_door_usability.py::test_the_v2_agents_turn_status_names_its_trial_slots",
+       "tests/cpu/test_attack_authoritative_boundary.py::test_the_phase4_attacker_opts_out_of_the_unmetered_trial_line"
+      ]
+     },
+     "4": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       4
+      ],
+      "basis": "The parametrized public fixture exercises the named development variant; shared assertions supplement it.",
+      "tests": [
+       "tests/cpu/test_graphite_readiness_level_evidence.py::test_each_roles_turn_text_matches_its_scripted_ledger[constructor-4]",
+       "tests/cpu/test_graphite_readiness_level_evidence.py::test_each_roles_turn_text_matches_its_scripted_ledger[attacker-4]",
+       "tests/cpu/test_agent_door_usability.py::test_a_new_phase3_session_records_v2_and_drops_the_unmetered_trial_line",
+       "tests/cpu/test_agent_door_usability.py::test_metered_trials_are_named_every_turn_under_either_status_rule",
+       "tests/cpu/test_agent_door_usability.py::test_the_v2_agents_turn_status_names_its_trial_slots",
+       "tests/cpu/test_attack_authoritative_boundary.py::test_the_phase4_attacker_opts_out_of_the_unmetered_trial_line"
+      ]
+     }
+    },
+    "A2": {
+     "2": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       2
+      ],
+      "basis": "The parametrized public fixture exercises the named development variant; shared assertions supplement it.",
+      "tests": [
+       "tests/cpu/test_graphite_attacker_stop_rule_v3.py::test_every_reachable_family_is_an_adapter_family_name[2]",
+       "tests/cpu/test_attack_battery_level23_adapters.py::test_registered_valid_and_bound_to_its_variant[2]",
+       "tests/cpu/test_attack_battery_level23_adapters.py::test_every_attack_held_every_specimen_fired[2]"
+      ]
+     },
+     "3": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       3
+      ],
+      "basis": "The parametrized public fixture exercises the named development variant; shared assertions supplement it.",
+      "tests": [
+       "tests/cpu/test_graphite_attacker_stop_rule_v3.py::test_every_reachable_family_is_an_adapter_family_name[3]",
+       "tests/cpu/test_attack_battery_level23_adapters.py::test_registered_valid_and_bound_to_its_variant[3]",
+       "tests/cpu/test_attack_battery_level23_adapters.py::test_every_attack_held_every_specimen_fired[3]"
+      ]
+     },
+     "4": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       4
+      ],
+      "basis": "The parametrized public fixture exercises the named development variant; shared assertions supplement it.",
+      "tests": [
+       "tests/cpu/test_graphite_attacker_stop_rule_v3.py::test_every_reachable_family_is_an_adapter_family_name[4]",
+       "tests/cpu/test_attack_battery_level4_adapter.py::test_registered_valid_and_bound_to_its_variant",
+       "tests/cpu/test_attack_battery_level4_adapter.py::test_every_attack_held_every_specimen_fired"
+      ]
+     }
+    },
+    "A3": {
+     "2": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       2
+      ],
+      "basis": "The parametrized public fixture exercises the named development variant; shared assertions supplement it.",
+      "tests": [
+       "tests/cpu/test_graphite_readiness_level_evidence.py::test_the_level_provider_records_its_rule_and_withholds_finish[2]",
+       "tests/cpu/test_graphite_attacker_stop_rule_v3.py::test_three_attempts_in_every_reachable_family_finish_under_v3"
+      ]
+     },
+     "3": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       3
+      ],
+      "basis": "The parametrized public fixture exercises the named development variant; shared assertions supplement it.",
+      "tests": [
+       "tests/cpu/test_graphite_readiness_level_evidence.py::test_the_level_provider_records_its_rule_and_withholds_finish[3]",
+       "tests/cpu/test_graphite_attacker_stop_rule_v3.py::test_three_attempts_in_every_reachable_family_finish_under_v3"
+      ]
+     },
+     "4": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       4
+      ],
+      "basis": "The parametrized public fixture exercises the named development variant; shared assertions supplement it.",
+      "tests": [
+       "tests/cpu/test_graphite_readiness_level_evidence.py::test_the_level_provider_records_its_rule_and_withholds_finish[4]",
+       "tests/cpu/test_graphite_attacker_stop_rule_v3.py::test_three_attempts_in_every_reachable_family_finish_under_v3"
+      ]
+     }
+    },
+    "S2": {
+     "2": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       2,
+       3,
+       4
+      ],
+      "basis": "The admissibility and ranking functions are level-independent; the Graphite assertion also names the requested variant.",
+      "tests": [
+       "tests/cpu/test_graphite_readiness_level_evidence.py::test_graphite_filters_gate_failures_before_ranking[2]",
+       "tests/cpu/test_battery_ev5_run.py::test_a_gate_failure_ranks_last_even_under_negative_scores",
+       "tests/cpu/test_battery_ev5_run.py::test_ranked_last_never_uses_the_literal_zero",
+       "tests/cpu/test_battery_ev5_run.py::test_a_gate_failing_construction_ranks_strictly_last_among_mixed_verdicts",
+       "tests/cpu/test_battery_admissibility_gate.py::test_a_set_cutoff_fails_at_or_above_it_and_zeroes_the_score",
+       "tests/cpu/test_battery_admissibility_gate.py::test_an_unmeasured_model_fails_a_set_gate"
+      ]
+     },
+     "3": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       2,
+       3,
+       4
+      ],
+      "basis": "The admissibility and ranking functions are level-independent; the Graphite assertion also names the requested variant.",
+      "tests": [
+       "tests/cpu/test_graphite_readiness_level_evidence.py::test_graphite_filters_gate_failures_before_ranking[3]",
+       "tests/cpu/test_battery_ev5_run.py::test_a_gate_failure_ranks_last_even_under_negative_scores",
+       "tests/cpu/test_battery_ev5_run.py::test_ranked_last_never_uses_the_literal_zero",
+       "tests/cpu/test_battery_ev5_run.py::test_a_gate_failing_construction_ranks_strictly_last_among_mixed_verdicts",
+       "tests/cpu/test_battery_admissibility_gate.py::test_a_set_cutoff_fails_at_or_above_it_and_zeroes_the_score",
+       "tests/cpu/test_battery_admissibility_gate.py::test_an_unmeasured_model_fails_a_set_gate"
+      ]
+     },
+     "4": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       2,
+       3,
+       4
+      ],
+      "basis": "The admissibility and ranking functions are level-independent; the Graphite assertion also names the requested variant.",
+      "tests": [
+       "tests/cpu/test_graphite_readiness_level_evidence.py::test_graphite_filters_gate_failures_before_ranking[4]",
+       "tests/cpu/test_battery_ev5_run.py::test_a_gate_failure_ranks_last_even_under_negative_scores",
+       "tests/cpu/test_battery_ev5_run.py::test_ranked_last_never_uses_the_literal_zero",
+       "tests/cpu/test_battery_ev5_run.py::test_a_gate_failing_construction_ranks_strictly_last_among_mixed_verdicts",
+       "tests/cpu/test_battery_admissibility_gate.py::test_a_set_cutoff_fails_at_or_above_it_and_zeroes_the_score",
+       "tests/cpu/test_battery_admissibility_gate.py::test_an_unmeasured_model_fails_a_set_gate"
+      ]
+     }
+    }
+   },
+   "runtime_by_level": {
+    "2": {
+     "challenge": "battery-fastcharge-ageing-development-v1",
+     "level": 2,
+     "roles": {
+      "constructor": {
+       "grant_id": "GRAPHITE-GRANT-STAGE-B-CONSTRUCTOR",
+       "grant_file": "docs/development/graphite/grants/GRAPHITE-GRANT-STAGE-B-CONSTRUCTOR.json"
+      },
+      "attacker": {
+       "grant_id": "GRAPHITE-GRANT-STAGE-B-ATTACKER",
+       "grant_file": "docs/development/graphite/grants/GRAPHITE-GRANT-STAGE-B-ATTACKER.json"
+      }
+     },
+     "containment_lanes": [
+      "carbon.miner-research.unlimited.v1"
+     ]
+    },
+    "3": {
+     "challenge": "battery-fastcharge-ageing-development-v1",
+     "level": 3,
+     "roles": {
+      "constructor": {
+       "grant_id": "GRAPHITE-GRANT-STAGE-B-CONSTRUCTOR",
+       "grant_file": "docs/development/graphite/grants/GRAPHITE-GRANT-STAGE-B-CONSTRUCTOR.json"
+      },
+      "attacker": {
+       "grant_id": "GRAPHITE-GRANT-STAGE-B-ATTACKER",
+       "grant_file": "docs/development/graphite/grants/GRAPHITE-GRANT-STAGE-B-ATTACKER.json"
+      }
+     },
+     "containment_lanes": [
+      "carbon.miner-research.unlimited.v1"
+     ]
+    },
+    "4": {
+     "challenge": "battery-fastcharge-ageing-development-v1",
+     "level": 4,
+     "roles": {
+      "constructor": {
+       "grant_id": "GRAPHITE-GRANT-L4-G-CONSTRUCTOR-3",
+       "grant_file": "docs/development/graphite/grants/GRAPHITE-GRANT-L4-G-CONSTRUCTOR-3.json"
+      }
+     },
+     "containment_lanes": [
+      "carbon.miner-research.unlimited.v1"
+     ],
+     "reviews": {
+      "R4": "carbon/challenge_pipeline/readiness/battery-fastcharge-ageing-development-v1/reviews/R4.L4-G-CONSTRUCTOR-3.json",
+      "R5": "carbon/challenge_pipeline/readiness/battery-fastcharge-ageing-development-v1/reviews/R5.L4-G-CONSTRUCTOR-3.json"
+     }
+    }
+   },
+   "studies_by_level": {
+    "D1": {
+     "2": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       2,
+       3,
+       4
+      ],
+      "basis": "The committed historical public DEVELOPMENT study property is independent of construction level; no study is rescored and no earlier acceptance is inherited.",
+      "manifest": "docs/development/evidence/ev4-2026-10-01/freeze-manifest.json",
+      "contract": "carbon/battery/value/contracts/ev4-charge-protocol-selection.v1.json",
+      "references": "docs/development/evidence/ev4-2026-10-01/decision-references.jsonl.gz",
+      "checksum": "docs/development/evidence/ev4-2026-10-01/references.sha256",
+      "reference_provenance": "EV4_REFERENCE",
+      "reference_access": null
+     },
+     "3": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       2,
+       3,
+       4
+      ],
+      "basis": "The committed historical public DEVELOPMENT study property is independent of construction level; no study is rescored and no earlier acceptance is inherited.",
+      "manifest": "docs/development/evidence/ev4-2026-10-01/freeze-manifest.json",
+      "contract": "carbon/battery/value/contracts/ev4-charge-protocol-selection.v1.json",
+      "references": "docs/development/evidence/ev4-2026-10-01/decision-references.jsonl.gz",
+      "checksum": "docs/development/evidence/ev4-2026-10-01/references.sha256",
+      "reference_provenance": "EV4_REFERENCE",
+      "reference_access": null
+     },
+     "4": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       2,
+       3,
+       4
+      ],
+      "basis": "The committed historical public DEVELOPMENT study property is independent of construction level; no study is rescored and no earlier acceptance is inherited.",
+      "manifest": "docs/development/evidence/ev4-2026-10-01/freeze-manifest.json",
+      "contract": "carbon/battery/value/contracts/ev4-charge-protocol-selection.v1.json",
+      "references": "docs/development/evidence/ev4-2026-10-01/decision-references.jsonl.gz",
+      "checksum": "docs/development/evidence/ev4-2026-10-01/references.sha256",
+      "reference_provenance": "EV4_REFERENCE",
+      "reference_access": null
+     }
+    },
+    "D2": {
+     "2": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       2,
+       3,
+       4
+      ],
+      "basis": "The committed historical public DEVELOPMENT study property is independent of construction level; no study is rescored and no earlier acceptance is inherited.",
+      "adapter": "carbon.battery.value.design_search_adapter:adapter",
+      "tests": [
+       "tests/cpu/test_design_search_track_b.py"
+      ]
+     },
+     "3": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       2,
+       3,
+       4
+      ],
+      "basis": "The committed historical public DEVELOPMENT study property is independent of construction level; no study is rescored and no earlier acceptance is inherited.",
+      "adapter": "carbon.battery.value.design_search_adapter:adapter",
+      "tests": [
+       "tests/cpu/test_design_search_track_b.py"
+      ]
+     },
+     "4": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       2,
+       3,
+       4
+      ],
+      "basis": "The committed historical public DEVELOPMENT study property is independent of construction level; no study is rescored and no earlier acceptance is inherited.",
+      "adapter": "carbon.battery.value.design_search_adapter:adapter",
+      "tests": [
+       "tests/cpu/test_design_search_track_b.py"
+      ]
+     }
+    },
+    "D3": {
+     "2": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       2,
+       3,
+       4
+      ],
+      "basis": "The committed historical public DEVELOPMENT study property is independent of construction level; no study is rescored and no earlier acceptance is inherited.",
+      "registry": null
+     },
+     "3": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       2,
+       3,
+       4
+      ],
+      "basis": "The committed historical public DEVELOPMENT study property is independent of construction level; no study is rescored and no earlier acceptance is inherited.",
+      "registry": null
+     },
+     "4": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       2,
+       3,
+       4
+      ],
+      "basis": "The committed historical public DEVELOPMENT study property is independent of construction level; no study is rescored and no earlier acceptance is inherited.",
+      "registry": null
+     }
+    },
+    "D4": {
+     "2": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       2,
+       3,
+       4
+      ],
+      "basis": "The committed historical public DEVELOPMENT study property is independent of construction level; no study is rescored and no earlier acceptance is inherited.",
+      "manifest": "docs/development/evidence/ev4-2026-10-01/freeze-manifest.json",
+      "contract": "carbon/battery/value/contracts/ev4-charge-protocol-selection.v1.json",
+      "references": "docs/development/evidence/ev4-2026-10-01/decision-references.jsonl.gz",
+      "checksum": "docs/development/evidence/ev4-2026-10-01/references.sha256",
+      "reference_provenance": "EV4_REFERENCE",
+      "importer": "carbon.battery.value.experiment:Experiment"
+     },
+     "3": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       2,
+       3,
+       4
+      ],
+      "basis": "The committed historical public DEVELOPMENT study property is independent of construction level; no study is rescored and no earlier acceptance is inherited.",
+      "manifest": "docs/development/evidence/ev4-2026-10-01/freeze-manifest.json",
+      "contract": "carbon/battery/value/contracts/ev4-charge-protocol-selection.v1.json",
+      "references": "docs/development/evidence/ev4-2026-10-01/decision-references.jsonl.gz",
+      "checksum": "docs/development/evidence/ev4-2026-10-01/references.sha256",
+      "reference_provenance": "EV4_REFERENCE",
+      "importer": "carbon.battery.value.experiment:Experiment"
+     },
+     "4": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       2,
+       3,
+       4
+      ],
+      "basis": "The committed historical public DEVELOPMENT study property is independent of construction level; no study is rescored and no earlier acceptance is inherited.",
+      "manifest": "docs/development/evidence/ev4-2026-10-01/freeze-manifest.json",
+      "contract": "carbon/battery/value/contracts/ev4-charge-protocol-selection.v1.json",
+      "references": "docs/development/evidence/ev4-2026-10-01/decision-references.jsonl.gz",
+      "checksum": "docs/development/evidence/ev4-2026-10-01/references.sha256",
+      "reference_provenance": "EV4_REFERENCE",
+      "importer": "carbon.battery.value.experiment:Experiment"
+     }
+    },
+    "D5": {
+     "2": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       2,
+       3,
+       4
+      ],
+      "basis": "The committed historical public DEVELOPMENT study property is independent of construction level; no study is rescored and no earlier acceptance is inherited.",
+      "manifest": "docs/development/evidence/ev4-2026-10-01/freeze-manifest.json",
+      "contract": "carbon/battery/value/contracts/ev4-charge-protocol-selection.v1.json",
+      "references": "docs/development/evidence/ev4-2026-10-01/decision-references.jsonl.gz",
+      "checksum": "docs/development/evidence/ev4-2026-10-01/references.sha256",
+      "reference_provenance": "EV4_REFERENCE",
+      "contract_adapter": "carbon.battery.value.contract",
+      "decision_adapter": "carbon.battery.value.decision",
+      "split": "development",
+      "legacy_report": "docs/development/evidence/graphite-run5-q1/q1-report.json",
+      "policy_record": ".agent/decisions/2026-10-05-OWNER-GRAPHITE-TEST-WAVE-07.md",
+      "policy_decision": "OWNER-GRAPHITE-TEST-WAVE-07"
+     },
+     "3": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       2,
+       3,
+       4
+      ],
+      "basis": "The committed historical public DEVELOPMENT study property is independent of construction level; no study is rescored and no earlier acceptance is inherited.",
+      "manifest": "docs/development/evidence/ev4-2026-10-01/freeze-manifest.json",
+      "contract": "carbon/battery/value/contracts/ev4-charge-protocol-selection.v1.json",
+      "references": "docs/development/evidence/ev4-2026-10-01/decision-references.jsonl.gz",
+      "checksum": "docs/development/evidence/ev4-2026-10-01/references.sha256",
+      "reference_provenance": "EV4_REFERENCE",
+      "contract_adapter": "carbon.battery.value.contract",
+      "decision_adapter": "carbon.battery.value.decision",
+      "split": "development",
+      "legacy_report": "docs/development/evidence/graphite-run5-q1/q1-report.json",
+      "policy_record": ".agent/decisions/2026-10-05-OWNER-GRAPHITE-TEST-WAVE-07.md",
+      "policy_decision": "OWNER-GRAPHITE-TEST-WAVE-07"
+     },
+     "4": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       2,
+       3,
+       4
+      ],
+      "basis": "The committed historical public DEVELOPMENT study property is independent of construction level; no study is rescored and no earlier acceptance is inherited.",
+      "manifest": "docs/development/evidence/ev4-2026-10-01/freeze-manifest.json",
+      "contract": "carbon/battery/value/contracts/ev4-charge-protocol-selection.v1.json",
+      "references": "docs/development/evidence/ev4-2026-10-01/decision-references.jsonl.gz",
+      "checksum": "docs/development/evidence/ev4-2026-10-01/references.sha256",
+      "reference_provenance": "EV4_REFERENCE",
+      "contract_adapter": "carbon.battery.value.contract",
+      "decision_adapter": "carbon.battery.value.decision",
+      "split": "development",
+      "legacy_report": "docs/development/evidence/graphite-run5-q1/q1-report.json",
+      "policy_record": ".agent/decisions/2026-10-05-OWNER-GRAPHITE-TEST-WAVE-07.md",
+      "policy_decision": "OWNER-GRAPHITE-TEST-WAVE-07"
+     }
+    },
+    "D6": {
+     "2": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       2,
+       3,
+       4
+      ],
+      "basis": "The committed historical public DEVELOPMENT study property is independent of construction level; no study is rescored and no earlier acceptance is inherited.",
+      "run_record": "docs/development/evidence/ev5-2026-10-03/run-record.json",
+      "freeze_commit": "c9c27a639f51fff6e7d428f4b7e46ee0e95fce87",
+      "analysis_entry": "carbon/battery/value/ev5_run.py",
+      "tests": [
+       "tests/cpu/test_battery_ev5_run.py"
+      ],
+      "pin_schema": "carbon.battery.ev5.run-record.v1"
+     },
+     "3": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       2,
+       3,
+       4
+      ],
+      "basis": "The committed historical public DEVELOPMENT study property is independent of construction level; no study is rescored and no earlier acceptance is inherited.",
+      "run_record": "docs/development/evidence/ev5-2026-10-03/run-record.json",
+      "freeze_commit": "c9c27a639f51fff6e7d428f4b7e46ee0e95fce87",
+      "analysis_entry": "carbon/battery/value/ev5_run.py",
+      "tests": [
+       "tests/cpu/test_battery_ev5_run.py"
+      ],
+      "pin_schema": "carbon.battery.ev5.run-record.v1"
+     },
+     "4": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       2,
+       3,
+       4
+      ],
+      "basis": "The committed historical public DEVELOPMENT study property is independent of construction level; no study is rescored and no earlier acceptance is inherited.",
+      "run_record": "docs/development/evidence/ev5-2026-10-03/run-record.json",
+      "freeze_commit": "c9c27a639f51fff6e7d428f4b7e46ee0e95fce87",
+      "analysis_entry": "carbon/battery/value/ev5_run.py",
+      "tests": [
+       "tests/cpu/test_battery_ev5_run.py"
+      ],
+      "pin_schema": "carbon.battery.ev5.run-record.v1"
+     }
+    }
    }
   },
   "chip-cold-plate": {

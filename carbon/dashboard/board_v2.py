@@ -459,6 +459,21 @@ def _coldkeys(board):
     ]
 
 
+def _status_rows(board):
+    rows = board.get("miner_status")
+    if rows is None:
+        return None
+    return [
+        {
+            "hotkey": row["hotkey"],
+            "received": row["received"],
+            "scored": row["scored"],
+            "refused": dict(row["refused"]),
+        }
+        for row in rows
+    ]
+
+
 def _grain_pct(board, gate):
     """The ladder's grain: a rule value, so shown only when the rules are OK;
     null while the grain is HUMAN_INPUT."""
@@ -608,7 +623,9 @@ def project(board, now, rules_card=None):
     every = release.get("rotation_every_blocks")
     rules, gate = _rules(board, rules_card)
     challenge = {k: v for k, v in board["challenge"].items() if k != "rule"}
+    status = _status_rows(board)
     return {
+        **({"miner_status": status} if status is not None else {}),
         **_fields(
             ("generated_at", board["generated_at"], "not_in_feed"),
             ("ranking_section", section, section_reason),

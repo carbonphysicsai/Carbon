@@ -111,7 +111,11 @@ def battery_q3_rule(repository=REPOSITORY):
 
 
 def _public(result):
-    """What a window's report keeps of the bridge's result."""
+    """What an operator-only window report keeps of the bridge's result.
+
+    PLT-08 retains the existing question regret for the own-noise calculation;
+    score_feed projects only pooled rounded values, never these question rows.
+    """
     return {
         "status": result["status"],
         "cause": result.get("cause"),
@@ -124,6 +128,7 @@ def _public(result):
                 "question_id": row["question_id"],
                 "outcome": row["outcome"],
                 "loss": row["loss"],
+                "regret": row.get("regret"),
             }
             for row in result.get("per_question") or []
         ],

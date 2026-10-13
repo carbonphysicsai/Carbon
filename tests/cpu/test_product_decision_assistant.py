@@ -455,11 +455,165 @@ def test_native_v2_map_receipt_is_revalidated_and_cannot_be_tampered():
         EnvelopeGuard(**repin(inputs))
 
 
-def test_legacy_map_fixture_cannot_be_used_as_registered_development_acceptance():
+@pytest.mark.parametrize("basis", ["SYNTHETIC_FIXTURE", "REGISTERED_DEVELOPMENT"])
+def test_legacy_map_fixture_cannot_be_used_as_development_acceptance(basis):
     inputs = fixture_inputs()
-    inputs["policy"]["basis"] = "REGISTERED_DEVELOPMENT"
+    inputs["policy"]["basis"] = basis
+    inputs["trust_map"]["schema"] = "carbon.trust-map.v1"
+    inputs["trust_map"]["reference_verification"] = {
+        "state": "PASS",
+        "accepted_development_pass": True,
+        "image_digest": inputs["contract"]["reference_image"],
+        "evidence": "SYNTHETIC_LEGACY_BOOLEAN_NOT_ACCEPTANCE",
+    }
     with pytest.raises(GuardConfigurationError):
         EnvelopeGuard(**repin(inputs))
+
+
+def repin_assistant(inputs):
+    repin({**inputs["guard_inputs"], "model": inputs["model"]})
+    inputs["reference"] = replace(
+        inputs["reference"], record_digest=digest(inputs["guard_inputs"]["reference"])
+    )
+    return inputs
+
+
+@pytest.mark.parametrize(
+    "conditions,observables,expected_calls",
+    [
+        ({"c1": 1.0}, None, [1.0]),
+        ({"c1": None}, None, []),
+        ({"t_end": 0.375}, None, []),
+        ({}, ["voltage_v"], []),
+    ],
+)
+def test_independent_assessment_enforces_frozen_reference_use_scope(
+    conditions, observables, expected_calls
+):
+    inputs = fixture()
+    scope = inputs["guard_inputs"]["reference"]["acceptance_scope"]
+    scope["application_conditions"] = conditions
+    if observables is not None:
+        scope["observables"] = observables
+    repin_assistant(inputs)
+    calls = []
+    solve = inputs["reference"].solve
+    inputs["reference"] = replace(
+        inputs["reference"], solve=lambda q: (calls.append(q["c1"]), solve(q))[1]
+    )
+    assistant = DecisionAssistant(**inputs)
+    # Mutating caller-owned scope after construction cannot widen assessment.
+    scope["application_conditions"] = {}
+    scope["observables"] = list(inputs["guard_inputs"]["contract"]["outputs"])
+    result = assistant.run()
+    assert calls == expected_calls
+    calls.clear()
+    assessed = assess_finite_bank(
+        assistant, result, reference=inputs["reference"], budget=inputs["budget"]
+    )
+    assert calls == expected_calls
+    assert assessed["spent"]["reference_calls"] == len(expected_calls)
+    assert not assessed["complete"] and not assessed["none_feasible_established"]
+    assert assessed["realized_regret"]["value"] is None
+    unresolved = [
+        r for r in assessed["rows"] if r["reference"]["status"] == "UNRESOLVED"
+    ]
+    assert len(unresolved) == 3 - len(expected_calls)
+    assert all(
+        r["reference"]["reason"] == "REFERENCE_ACCEPTANCE_SCOPE_MISMATCH"
+        and r["reference"]["candidate_failure"] is False
+        for r in unresolved
+    )
+
+
+def test_mms_conditions_are_audited_without_restricting_independent_assessment():
+    from carbon.trust_map.acceptance import load_acceptance
+
+    inputs = fixture()
+    image = "sha256:6fab746f31257236da9e91b5be681bfbd2d25bd69f5dcd9a2e350394e8bcb675"
+    criteria = "sha256:ce1cdee81369d5ad21446ec8cfb165ac13f1b8c49aad0d328a0a2fcd2dab77fe"
+    native = load_acceptance("f02", image, criteria)
+    g = inputs["guard_inputs"]
+    # Battery-shaped arithmetic around genuine public f02 metadata; no f02 solve.
+    g["contract"].update(family="f02", reference_image=image)
+    g["policy"]["b9"] = None
+    for law in g["contract"]["laws"]:
+        law["calibration"]["image_digest"] = image
+    g["reference"].update(
+        image_digest=image,
+        criteria_digest=criteria,
+        code_verification_ref=native["link_digest"],
+    )
+    g["reference"]["acceptance_scope"].update(
+        family="f02", verification_conditions=copy.deepcopy(native["conditions"])
+    )
+    g["trust_map"]["reference_verification"] = native
+    solve = inputs["reference"].solve
+    inputs["reference"] = replace(
+        inputs["reference"],
+        image_digest=image,
+        solve=lambda q: replace(solve(q), image_digest=image),
+    )
+    repin_assistant(inputs)
+    assistant = DecisionAssistant(**inputs)
+    result = assistant.run()
+    guards = [r["guard"] for r in result.to_dict()["candidates"]]
+    assert all(g["code_verification"]["conditions"] == {"t_end": 0.375} for g in guards)
+    assert all(
+        g["reference"]["acceptance_scope"]["application_conditions"] == {}
+        for g in guards
+    )
+    assert all(
+        g["reference"]["observables_basis"] == "HOST_DECLARED_NOT_VERIFIED_COVERAGE"
+        for g in guards
+    )
+    assert all(not g["qualification_claim"] for g in guards)
+    assessed = assess_finite_bank(
+        assistant, result, reference=inputs["reference"], budget=inputs["budget"]
+    )
+    assert assessed["complete"] and assessed["spent"]["reference_calls"] == 3
+
+
+def test_b9_guard_evidence_survives_assistant_audit_and_pick_verification():
+    inputs = fixture()
+    predict = inputs["model"].predict
+
+    def below_ambient(query):
+        prediction = predict(query)
+        outputs = copy.deepcopy(prediction.outputs)
+        outputs["temperature_c"][-1] = query["t_amb_c"] - 0.101
+        return replace(prediction, outputs=outputs)
+
+    inputs["model"] = replace(inputs["model"], predict=below_ambient)
+    repin_assistant(inputs)
+    result = DecisionAssistant(**inputs).run()
+    body = result.to_dict()
+    base = next(row for row in body["candidates"] if row["id"] == "base")
+    guard = base["guard"]
+    assert guard["schema"] == "carbon.product.guard-receipt.v4"
+    assert guard["verdict"] == "VERIFY" and "B9_BELOW_AMBIENT" in guard["reasons"]
+    assert guard["b9_policy"] == {
+        "threshold_c": 0.1,
+        "decision_id": "OWNER-PHYSICS-GATES-01",
+    }
+    check = next(c for c in guard["checks"] if c["check"] == "policy.B9")
+    assert check["max_deficit_c"] == 0.101 and check["threshold_c"] == 0.1
+    assert (
+        check["advisory"] and not check["exam_gate"] and not check["candidate_failure"]
+    )
+    assert (
+        guard["independent_pick_verification_required"]
+        and not guard["qualification_claim"]
+    )
+    assert body["spent"]["reference_calls"] == 3
+    assert base["reference"]["status"] == "INFEASIBLE"
+    guard["b9_policy"]["threshold_c"] = 100.0
+    assert (
+        next(r for r in result.to_dict()["candidates"] if r["id"] == "base")["guard"][
+            "b9_policy"
+        ]["threshold_c"]
+        == 0.1
+    )
 
 
 def public_source():

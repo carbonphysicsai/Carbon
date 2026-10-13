@@ -42,7 +42,9 @@ def test_every_committed_grant_is_unchanged(path):
     # The standing 0.65/h ceiling is on the stage grants and R4 (owner-confirmed:
     # GRANT-POD-CEILING-01, OWNER-GRAPHITE-PHASE3-R4-CEILING-01); the hunt's grants copy it.
     ceiling = (
-        path.name.startswith(("GRAPHITE-GRANT-STAGE-", "GRAPHITE-GRANT-HUNT-"))
+        path.name.startswith(
+            ("GRAPHITE-GRANT-STAGE-", "GRAPHITE-GRANT-HUNT-", "GRAPHITE-GRANT-L4-")
+        )
         or path.name == "GRAPHITE-GRANT-PHASE3-R4.json"
     )
     expected = Decimal("0.65") if ceiling else None

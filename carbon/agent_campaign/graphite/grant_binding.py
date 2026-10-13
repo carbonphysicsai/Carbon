@@ -74,9 +74,19 @@ phase-3 grant: outside its study it is refused `grant_is_bound_to_a_study`.
   the owner's and the security owner's.
 
 - GRAPHITE-GRANT-HUNT-H1/H2/H3-CONSTRUCTOR and GRAPHITE-GRANT-HUNT-A1/A2-ATTACKER are the
-  Level 5 hunt's per-run grants (OWNER-GRAPHITE-OPEN-SAFE-01-GRANTS): one run each, H1, H2
-  and H3 registering `min_level` = `max_level` = 1, 2 and 3, A1 and A2 attacking Level 1 and
+  Level 5 hunt's per-run grants (OWNER-GRAPHITE-OPEN-SAFE-01-GRANTS): one run each, H1, H2,
+  H3 and H4 registering `min_level` = `max_level` = 1, 2, 3 and 4, A1 and A2 attacking Level 1 and
   Level 3 (`Phase4Grant.levels`). They authorize spend, never a Level 5 capability.
+
+- GRAPHITE-GRANT-HUNT-A2-RERUN-ATTACKER is the Level 3 Attacker re-run of the interrupted hunt run A2: one run
+  under the standing weekly test grant (OWNER-TEST-GRANT-01), a copy of A2's figures (13.41 + 0.06 = 13.47), phase 4.
+- GRAPHITE-GRANT-L4-G-CONSTRUCTOR-2 is one lane G Level 4 Constructor run under the standing weekly
+  test grant (OWNER-TEST-GRANT-01): `min_level` = `max_level` = 4, worst case 14.91, ceiling 14.94,
+  kimi-k3. It is its own grant, not the hunt's H4 share. It authorizes spend, never a Level 4 run:
+  the executor launches only after the Level 4 readiness gate (R1, R8) passes.
+- GRAPHITE-GRANT-L4-G-CONSTRUCTOR-3 is the same grant again (same figures, same standing weekly test grant):
+  the lane G run under -2 was spent without staging a submission (the stage tool's reads were refused, fixed in
+  #1240), so one fresh run needs its own grant. It authorizes spend, never a Level 4 run.
 
 A registered grant named for another Challenge is
 `grant_is_for_another_challenge`. A Challenge in `PHASE3_BOUND_CHALLENGES`
@@ -196,6 +206,11 @@ STAGE_C_AUTHORITY = "OWNER-GRAPHITE-STAGE-C-01"
 #: The Level 5 hunt's per-run grants (GRAPHITE-OPEN-SAFE-01 section 2b), approved by the owner in
 #: `.agent/decisions/2026-10-12-OWNER-GRAPHITE-OPEN-SAFE-01-GRANTS.md` (USD 86.71 for the hunt).
 HUNT_AUTHORITY = "OWNER-GRAPHITE-OPEN-SAFE-01-GRANTS"
+#: The standing weekly test grant (USD 300 per rolling seven days, USD 50 per run), merged in
+#: `.agent/decisions/2026-10-11-OWNER-TESTNET-WEEKLY-BUDGET-01.md` ("Amended 2026-10-12 — the standing
+#: test grant (OWNER-TEST-GRANT-01)"). A single run inside it needs no per-run owner approval; a run
+#: above the per-run cap, on mainnet, on LIVE, or carrying sealed or hidden material does.
+STANDING_TEST_GRANT_AUTHORITY = "OWNER-TEST-GRANT-01"
 
 
 @dataclasses.dataclass(frozen=True)
@@ -325,8 +340,44 @@ PHASE3_GRANTS = types.MappingProxyType(
                 authority=STAGE_C_AUTHORITY,
                 runner="phase4",
             ),
+            # PURPOSE: the Level 4 graph-variant (`l4-graph-v3`) valid-graph Constructor run, lane G,
+            # that leads to the live Level 4 submit and smoke practice. No theme. POOL: the standing weekly
+            # test grant (OWNER-TEST-GRANT-01). It is NOT the Level 5 hunt's H4 run (that is
+            # GRAPHITE-GRANT-HUNT-H4-CONSTRUCTOR, theme `causal-structure`, the hunt's own pool). Index:
+            # docs/development/graphite/grants/README.md, "Level 4 Constructor grants".
+            Phase3Grant(
+                grant_id="GRAPHITE-GRANT-L4-G-CONSTRUCTOR-2",
+                challenge=BATTERY_CHALLENGE,
+                grant_file=GRANTS_DIR + "/GRAPHITE-GRANT-L4-G-CONSTRUCTOR-2.json",
+                main_blob=True,
+                min_level=4,
+                max_level=4,
+                start_model="kimi-k3",
+                token_share_usd=STAGE_TOKEN_SHARE,
+                authority=STANDING_TEST_GRANT_AUTHORITY,
+            ),
+            # PURPOSE: the lane G Level 4 Constructor run again, after the run under -2 was spent without
+            # staging a submission (the stage tool's reads were refused; fixed in #1240). Same figures as -2,
+            # POOL: the standing weekly test grant (OWNER-TEST-GRANT-01). Not the hunt's H4 run. Index:
+            # docs/development/graphite/grants/README.md, "Level 4 Constructor grants".
+            Phase3Grant(
+                grant_id="GRAPHITE-GRANT-L4-G-CONSTRUCTOR-3",
+                challenge=BATTERY_CHALLENGE,
+                grant_file=GRANTS_DIR + "/GRAPHITE-GRANT-L4-G-CONSTRUCTOR-3.json",
+                main_blob=True,
+                min_level=4,
+                max_level=4,
+                start_model="kimi-k3",
+                token_share_usd=STAGE_TOKEN_SHARE,
+                authority=STANDING_TEST_GRANT_AUTHORITY,
+            ),
+            # H4 (n = 4) PURPOSE: the Level 5 hunt's own Level 4 Constructor run, lane G, launched with
+            # `--theme causal-structure`. POOL: OWNER-GRAPHITE-OPEN-SAFE-01-GRANTS, the hunt's last share
+            # (71.76 + 14.94 = 86.70 of the owner's 86.71). It is NOT GRAPHITE-GRANT-L4-G-CONSTRUCTOR-2 (the
+            # graph-variant valid-graph run, no theme, funded by the standing weekly test grant). Index:
+            # docs/development/graphite/grants/README.md, "Level 4 Constructor grants".
             # The Level 5 hunt: one run per grant, each at its own level (H1 at L1, H2 at L2,
-            # H3 at L3; H4 is not granted in this batch).
+            # H3 at L3, H4 at L4).
             *(
                 Phase3Grant(
                     grant_id=f"GRAPHITE-GRANT-HUNT-H{n}-CONSTRUCTOR",
@@ -340,7 +391,7 @@ PHASE3_GRANTS = types.MappingProxyType(
                     token_share_usd=STAGE_TOKEN_SHARE,
                     authority=HUNT_AUTHORITY,
                 )
-                for n in (1, 2, 3)
+                for n in (1, 2, 3, 4)
             ),
             *(
                 Phase3Grant(
@@ -354,6 +405,19 @@ PHASE3_GRANTS = types.MappingProxyType(
                     runner="phase4",
                 )
                 for n in (1, 2)
+            ),
+            # A2's re-run: the interrupted A2 stranded in `reconciliation_required` (phase4 cannot
+            # settle an interrupted model call), so its one run is spent. One run at Level 3 under the
+            # standing weekly test grant; not the hunt's money.
+            Phase3Grant(
+                grant_id="GRAPHITE-GRANT-HUNT-A2-RERUN-ATTACKER",
+                challenge=BATTERY_CHALLENGE,
+                grant_file=GRANTS_DIR + "/GRAPHITE-GRANT-HUNT-A2-RERUN-ATTACKER.json",
+                main_blob=True,
+                start_model="kimi-k3",
+                start_roles=("attacker",),
+                authority=STANDING_TEST_GRANT_AUTHORITY,
+                runner="phase4",
             ),
         )
     }

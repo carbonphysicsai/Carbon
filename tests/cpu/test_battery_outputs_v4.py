@@ -257,3 +257,40 @@ def test_v4_schema_identity_and_pinned_training_modules_stay_prospective():
     result["schema"] = "v3"
     with pytest.raises(v4.OutputV4Refused, match="identity"):
         v4.validate(result)
+
+
+def test_v4_records_carry_the_child_core_seconds_and_v3_bytes_do_not(
+    tmp_path, monkeypatch
+):
+    from carbon.battery import truth
+
+    def solver(job):
+        sum(range(10_000))
+        return {"case_id": job["case_id"], "status": "OK"}
+
+    timed = truth_env._stamped(solver, {"fixture": True}, {"case_id": "a"}, timed=True)
+    plain = truth_env._stamped(solver, {"fixture": True}, {"case_id": "a"})
+    assert type(timed["core_s"]) is float and timed["core_s"] >= 0
+    assert plain == {
+        "solver_provenance": {"fixture": True},
+        "case_id": "a",
+        "status": "OK",
+    }
+    # The service's solver is timed on the v4 route only.
+    monkeypatch.setattr(truth_env, "provenance", lambda repo: {"fixture": True})
+    seen = []
+
+    class FixtureService:
+        def __init__(self, path, *, solver, **kwargs):
+            seen.append(solver.keywords["timed"])
+
+        def run(self, jobs):
+            return {"jobs": 0}
+
+    monkeypatch.setattr(truth, "TruthService", FixtureService)
+    truth_env.solve(jobs(tmp_path), tmp_path / "records.v4.jsonl", output_version="v4")
+    v3_jobs = tmp_path / "v3"
+    v3_jobs.mkdir()
+    (v3_jobs / "jobs.json").write_text(json.dumps({"fingerprint": "fp", "jobs": []}))
+    truth_env.solve(v3_jobs / "jobs.json", v3_jobs / "records.jsonl")
+    assert seen == [True, False]

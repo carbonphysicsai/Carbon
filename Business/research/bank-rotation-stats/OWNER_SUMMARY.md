@@ -1,4 +1,4 @@
-# Owner summary â€” bank reuse, information and refill
+# Owner summary — bank reuse, information and refill
 
 **Research recommendation only.** E should follow each Challenge's measured
 cost, information requirement and feedback-release target. Physics class alone
@@ -38,10 +38,10 @@ Case membership stays sealed; aggregate feedback can still enable adaptive
 overfitting. Retire and clear every dependent window before publication,
 and never redraw published cases or claim Merkle integrity proves secrecy.
 
-Recommended cost rule: sum each bank/stratum's draw rate Ã— offered-reference
-CPU cost / (E Ã— valid admission yield), add fresh canaries and overhead;
+Recommended cost rule: sum each bank/stratum's draw rate × offered-reference
+CPU cost / (E × valid admission yield), add fresh canaries and overhead;
 choose E prospectively inside an owner-set refill budget **and** a minimum
 unique-case information rate and maximum release lag. If those bounds
-conflict, slow cadence or increase budget/reserveâ€”do not invent extra power
+conflict, slow cadence or increase budget/reserve—do not invent extra power
 from reuse. [ANALYSIS.md](ANALYSIS.md) supplies formulas, source seams and
 selection criteria; [cost-rule.json](cost-rule.json) is the handoff specification.

@@ -135,6 +135,7 @@ def _row(
     locator="file",
     reason=None,
     measured=True,
+    measurement_version=None,
 ):
     return {
         "field": field,
@@ -146,6 +147,7 @@ def _row(
         "outcome": outcome,
         "reason": reason,
         "measured": measured and reason is None,
+        "measurement_version": measurement_version,
         "evidence_refs": [] if source is None else [source.id],
         "locator": locator,
         "citation": None if source is None else source.cite(locator),
@@ -285,6 +287,7 @@ def _law_rows(projection, source, contract_source, family):
                 outcome=outcome,
                 source=source,
                 locator=f"/law_checks/laws/{i}/violation_rate",
+                measurement_version=report["measurement_version"],
             )
             row["reported_adopted"] = law["adopted"]
             row["gate_authority"] = "HUMAN_INPUT_DRAFT_CONTRACT"
@@ -310,6 +313,7 @@ def _law_rows(projection, source, contract_source, family):
                         outcome=outcome,
                         source=source,
                         locator=f"/law_checks/laws/{i}/residual_median",
+                        measurement_version=report["measurement_version"],
                     )
                 )
         rows.extend(
@@ -366,6 +370,7 @@ def _measurement(field, label, raw, source, locator):
             outcome=outcome,
             source=source,
             locator=locator,
+            measurement_version=raw["measurement_version"],
         )
     except (ValueError, KeyError, TypeError):
         return _gap(
@@ -573,7 +578,7 @@ def _mms_rows(source, acceptance_source, family, acceptance):
                             f"norm.{i}.{name}",
                             f"MMS rung {i + 1} {name} error",
                             _number(norm[name], nonnegative=True),
-                            unit="dimensionless code-verification fixture",
+                            unit="dimensionless manufactured-solution error",
                             count=samples,
                             source=source,
                             locator=f"/norms/{i}/{name}",
@@ -586,7 +591,11 @@ def _mms_rows(source, acceptance_source, family, acceptance):
                             name,
                             "MMS " + name,
                             _number(value),
-                            unit="dimensionless code-verification fixture",
+                            unit=(
+                                "dimensionless observed order"
+                                if name in {"l2_order", "linf_order"}
+                                else "dimensionless manufactured-solution error"
+                            ),
                             source=source,
                             locator="/metrics/" + name,
                         )
@@ -653,7 +662,11 @@ def _mms_rows(source, acceptance_source, family, acceptance):
                 _row(
                     "owner_acceptance_link",
                     "Separate owner decision for this exact image",
-                    "RECORDED_OWNER_DECISION",
+                    (
+                        "CONDITIONAL, t_end 0.375 (MMS test-design scope)"
+                        if family == "f02"
+                        else "RECORDED_OWNER_DECISION"
+                    ),
                     source=acceptance_source,
                     measured=False,
                 )

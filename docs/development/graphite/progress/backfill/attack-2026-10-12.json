@@ -11,6 +11,13 @@
    "chain_label": "att-2-E-s1"
   },
   {
+   "file": "att-2-E-s2.out",
+   "role": "attacker",
+   "level": 2,
+   "chain_log": "lvl-chain-att-2-E-s2.log",
+   "chain_label": "att-2-E-s2"
+  },
+  {
    "file": "att-3-F-s1.out",
    "role": "attacker",
    "level": 3,
@@ -28,10 +35,11 @@
  "excluded": [],
  "refusal_classes": {},
  "triage": {
-  "attack-failing-trigger-1bf5ff17f2d1bd82-e": "ORACLE_GAP"
+  "attack-failing-trigger-1bf5ff17f2d1bd82-e": "ORACLE_GAP",
+  "attack-failing-trigger-afa773b8e8b0324a-0": "ORACLE_GAP"
  },
  "finding_fixes": {
   "attack-failing-trigger-1bf5ff17f2d1bd82-e": "PR 1184"
  },
- "triage_source": "Graphite Testing Manager triage, 2026-10-12: the copy probe's valid control was wrongly refused at L2-L4; fixed in #1184"
+ "triage_source": "Graphite Testing Manager triage, 2026-10-12: the copy probe's valid control was wrongly refused at L2-L4; fixed in #1184. Graphite Testing Manager triage, 2026-10-13 (attack-failing-trigger-afa773b8e8b0324a-0, session 2 of the L2 Attacker run): from the re-minted specimen-199bf9ff4936eaf6, an honest pytorch+muon recipe accepted by both the Level 2 variant gate and the miner contract gate; the oracle judges any accepted compile in the family a breach, so it is an oracle gap, not an escape; the fix is OPT-14 and is not yet recorded"
 }

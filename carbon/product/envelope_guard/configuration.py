@@ -12,12 +12,13 @@ from itertools import pairwise
 from types import MappingProxyType
 
 from carbon.challenge_validator import validity
+from carbon.trust_map.acceptance import AcceptanceRefused, load_acceptance
 from carbon.trust_map.core import MAP_SCHEMA
 
-CONTRACT_SCHEMA = "carbon.product.guard-contract.v1"
+CONTRACT_SCHEMA = "carbon.product.guard-contract.v2"
 ENVELOPE_SCHEMA = "carbon.product.guard-envelope.v1"
-POLICY_SCHEMA = "carbon.product.guard-policy.v1"
-REFERENCE_SCHEMA = "carbon.product.guard-reference.v1"
+POLICY_SCHEMA = "carbon.product.guard-policy.v3"
+REFERENCE_SCHEMA = "carbon.product.guard-reference.v3"
 PRIMITIVES = {"bound", "initial_condition", "prefix_invariance"}
 
 
@@ -104,6 +105,15 @@ def freeze(value):
     return value
 
 
+def thaw(value):
+    """Copy validated frozen data for a receipt; never expose configured state."""
+    if isinstance(value, MappingProxyType):
+        return {key: thaw(item) for key, item in value.items()}
+    if type(value) is tuple:
+        return [thaw(item) for item in value]
+    return value
+
+
 def header(value, schema, fields):
     closed(value, {"schema", "scope", "version", *fields})
     require(value["schema"] == schema, "schema_mismatch")
@@ -184,8 +194,13 @@ def declaration_body(value):
 
 def contract(raw, inputs):
     value = snapshot(raw)
-    header(value, CONTRACT_SCHEMA, {"challenge", "reference_image", "outputs", "laws"})
+    header(
+        value,
+        CONTRACT_SCHEMA,
+        {"challenge", "family", "reference_image", "outputs", "laws"},
+    )
     token(value["challenge"])
+    token(value["family"])
     sha(value["reference_image"])
     outputs = value["outputs"]
     require(type(outputs) is dict and 1 <= len(outputs) <= 32, "outputs_required")
@@ -268,26 +283,78 @@ def contract(raw, inputs):
     return value
 
 
-def reference(raw, image):
+def reference(raw, image, family):
     if raw is None:
-        return None
+        return None, None
     value = snapshot(raw)
     header(
         value,
         REFERENCE_SCHEMA,
-        {"image_digest", "code_verification_ref", "owner_acceptance_ref", "status"},
+        {
+            "image_digest",
+            "criteria_digest",
+            "code_verification_ref",
+            "owner_acceptance_ref",
+            "status",
+            "acceptance_scope",
+        },
     )
     require(sha(value["image_digest"]) == image, "reference_image_mismatch")
+    sha(value["criteria_digest"])
     for key in ("code_verification_ref", "owner_acceptance_ref"):
         sha(value[key])
     require(
         value["status"] in ("READY", "UNRESOLVED", "FAILED_REFERENCE", "FAILED_INFRA"),
         "reference_status_invalid",
     )
-    return value
+    scope = value["acceptance_scope"]
+    closed(
+        scope,
+        {"family", "observables", "verification_conditions", "application_conditions"},
+    )
+    token(scope["family"])
+    observables = scope["observables"]
+    require(
+        type(observables) is list
+        and len(observables) <= 32
+        and all(type(name) is str for name in observables)
+        and len(set(observables)) == len(observables),
+        "acceptance_observables_required",
+    )
+    for name in observables:
+        token(name)
+    for field in ("verification_conditions", "application_conditions"):
+        conditions = scope[field]
+        require(
+            type(conditions) is dict and len(conditions) <= 16,
+            "acceptance_conditions_required",
+        )
+        for name, required_value in conditions.items():
+            token(name)
+            if required_value is not None:
+                conditions[name] = number(required_value)
+    accepted = None
+    if value["status"] == "READY":
+        require(scope["family"] == family, "reference_acceptance_family_mismatch")
+        try:
+            accepted = load_acceptance(family, image, value["criteria_digest"])
+        except AcceptanceRefused:
+            raise GuardConfigurationError(
+                "reference_verification_unavailable"
+            ) from None
+        require(
+            scope["family"] == accepted["family"]
+            and scope["verification_conditions"] == accepted["conditions"],
+            "reference_verification_scope_mismatch",
+        )
+        require(
+            value["code_verification_ref"] == accepted["link_digest"],
+            "reference_verification_link_mismatch",
+        )
+    return value, accepted
 
 
-def native_map(raw, model_id, image, inputs, outputs, *, basis="HUMAN_INPUT"):
+def native_map(raw, model_id, image, inputs, outputs):
     if raw is None:
         return None
     value = snapshot(raw)
@@ -308,14 +375,7 @@ def native_map(raw, model_id, image, inputs, outputs, *, basis="HUMAN_INPUT"):
         },
     )
     require(
-        (
-            value["schema"] == MAP_SCHEMA
-            or (
-                basis in ("SYNTHETIC_FIXTURE", "HUMAN_INPUT")
-                and value["schema"] == "carbon.trust-map.v1"
-            )
-        )
-        and value["maturity"] == "DEVELOPMENT",
+        value["schema"] == MAP_SCHEMA and value["maturity"] == "DEVELOPMENT",
         "native_development_map_required",
     )
     require(
@@ -330,48 +390,27 @@ def native_map(raw, model_id, image, inputs, outputs, *, basis="HUMAN_INPUT"):
     )
     sha("sha256:" + value["source"]["source_sha256"])
     verification = value["reference_verification"]
-    if basis in ("SYNTHETIC_FIXTURE", "HUMAN_INPUT") and set(verification) == {
-        "state",
-        "accepted_development_pass",
-        "image_digest",
-        "evidence",
-    }:
-        # The old arithmetic fixture is deliberately not a solver acceptance.
-        # Registered development maps cannot use this test-only projection.
-        require(
-            verification["state"] == "PASS"
-            and verification["accepted_development_pass"] is True,
-            "map_verification_unavailable",
+    closed(
+        verification,
+        {
+            "schema",
+            "scope",
+            "family",
+            "image_digest",
+            "criteria_digest",
+            "link_digest",
+            "decision",
+            "conditions",
+        },
+    )
+    require(sha(verification["image_digest"]) == image, "map_reference_mismatch")
+    try:
+        accepted = load_acceptance(
+            verification["family"], image, sha(verification["criteria_digest"])
         )
-        require(sha(verification["image_digest"]) == image, "map_reference_mismatch")
-        require(
-            type(verification["evidence"]) is str and bool(verification["evidence"]),
-            "map_verification_basis_required",
-        )
-    else:
-        from carbon.trust_map.acceptance import AcceptanceRefused, load_acceptance
-
-        closed(
-            verification,
-            {
-                "schema",
-                "scope",
-                "family",
-                "image_digest",
-                "criteria_digest",
-                "link_digest",
-                "decision",
-                "conditions",
-            },
-        )
-        require(sha(verification["image_digest"]) == image, "map_reference_mismatch")
-        try:
-            accepted = load_acceptance(
-                verification["family"], image, sha(verification["criteria_digest"])
-            )
-        except AcceptanceRefused:
-            raise GuardConfigurationError("map_verification_unavailable") from None
-        require(verification == accepted, "map_acceptance_receipt_mismatch")
+    except AcceptanceRefused:
+        raise GuardConfigurationError("map_verification_unavailable") from None
+    require(verification == accepted, "map_acceptance_receipt_mismatch")
     spec = value["spec"]
     closed(spec, {"axes", "bands", "marginalized", "outputs", "near_limit"})
     require(
@@ -498,7 +537,7 @@ def native_map(raw, model_id, image, inputs, outputs, *, basis="HUMAN_INPUT"):
     return value
 
 
-def policy(raw, pins, inputs, outputs):
+def policy(raw, pins, inputs, outputs, family):
     if raw is None:
         return None
     value = snapshot(raw)
@@ -514,6 +553,8 @@ def policy(raw, pins, inputs, outputs):
             "map_limits",
             "min_cell_count",
             "uncertainty",
+            "laws",
+            "b9",
             "latency_target_ms",
         },
     )
@@ -525,6 +566,32 @@ def policy(raw, pins, inputs, outputs):
     if value["authority_ref"] is not None:
         sha(value["authority_ref"])
     require(value["pins"] == pins, "policy_identity_mismatch")
+    b9 = value["b9"]
+    if family == "battery-v3":
+        closed(b9, {"threshold_c", "decision_id"})
+        # Validate the recorded owner's policy; never invent or default a value.
+        require(
+            number(b9["threshold_c"], nonnegative=True) == 0.1
+            and b9["decision_id"] == "OWNER-PHYSICS-GATES-01",
+            "b9_owner_policy_mismatch",
+        )
+        require(
+            pins["reference_image"]
+            == "sha256:2d19b261e722fe67f20bee02e115f2277a799c448b90d54d2872361b341bd940",
+            "b9_reference_image_mismatch",
+        )
+        require(
+            inputs.get("t_amb_c", {}).get("unit") == "C"
+            and outputs.get("temperature_c", {}).get("unit") == "C",
+            "b9_temperature_units_required",
+        )
+    else:
+        require(b9 is None, "b9_battery_scope_only")
+    closed(value["laws"], {"mode"})
+    require(
+        value["laws"]["mode"] in ("REQUIRED_ADOPTED", "EXPLICIT_NO_LAWS"),
+        "law_policy_required",
+    )
     closed(value["probe_steps"], inputs)
     for name, step in value["probe_steps"].items():
         step = number(step)

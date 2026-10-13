@@ -35,6 +35,7 @@ import json
 import os
 import stat
 import subprocess
+import time
 import urllib.request
 import zipfile
 from pathlib import Path, PurePosixPath
@@ -284,8 +285,15 @@ def stamp(record, solver_provenance):
     return {PROVENANCE_FIELD: solver_provenance, **record}
 
 
-def _stamped(solver, solver_provenance, job):
-    return stamp(solver(job), solver_provenance)
+def _stamped(solver, solver_provenance, job, timed=False):
+    """Runs in the solve's own child process. A timed (v4) record also gets
+    the child's CPU core-seconds, user plus system over every thread, beside
+    `wall_s`; v3 record bytes stay exactly as they were."""
+    if not timed:
+        return stamp(solver(job), solver_provenance)
+    started = time.process_time()
+    record = {**solver(job), "core_s": time.process_time() - started}
+    return stamp(record, solver_provenance)
 
 
 def _stamp_from(records, offset, solver_provenance, record_schema=None):
@@ -441,7 +449,12 @@ def solve(
     offset = records.stat().st_size
     service = TruthService(
         records,
-        solver=functools.partial(_stamped, reference_solver, solver_provenance),
+        solver=functools.partial(
+            _stamped,
+            reference_solver,
+            solver_provenance,
+            timed=output_version == "v4",
+        ),
         workers=workers,
         timeout_s=timeout_s,
     )

@@ -65,8 +65,8 @@ MOTOR_DIRS = ("motor-ref",)
 REUSE_INPUT = re.compile(r"reuse_records_[0-9]{3}\Z")
 #: every helper file a stage runs or imports, beyond the registered entrypoints
 PINNED = {
-    "carbon/battery/truth_env.py": "5673d992c7b3095f56343c28836560e19a1f5d17776664ac07b90ee9e25e52e2",
-    "scripts/dev/battery/feasibility02.py": "4a009b59bd950ee073f0936aa329a8b5dc587a38b50b64e8419ac3c19d4bb270",
+    "carbon/battery/truth_env.py": "eafadae28c3c0f8b77ffa46189959fce772c151ae193021a8edfa17ff3add551",
+    "scripts/dev/battery/feasibility02.py": "a37d3e6fe1e1c1abc1149c3c9a1568b2774227370d6135b3752d821910f0b192",
     "scripts/dev/battery/feasibility02_tier4.py": "997763fdc78c6b81372fe4109323591a38003af5d12c22142727531793416aa6",
     "scripts/dev/battery/feasibility02_v2.py": "17235eaddf8d505113999b5fd12585d94750e3f3166f1c846e941e6a347ac44c",
     "scripts/dev/battery/middle_bands.py": "de3a1523ea66f8c77c72d5a804bfe61a84225487ca60c0ea4c5296fded8023a3",

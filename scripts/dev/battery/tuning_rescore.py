@@ -98,6 +98,19 @@ def assemble(store, ids, predictions, dev_results, q3_regret=None, verify_r=None
     for kind in pn.CONTROLS:
         members["control-" + kind] = pn.control_predictions(kind, store.refs)
     results = json.loads(Path(dev_results).read_text())
+    # SCORE-PROOF-01 amendment 13: the always-abstain screen control, decided
+    # from the results' own reference summaries (no rebuild).
+    for kind in pn.SCREEN_CONTROLS:
+        name = "control-" + kind
+        members[name] = pn.screen_control_predictions(kind, store.refs)
+        if name not in results["decisions"]:
+            results = {
+                **results,
+                "decisions": {
+                    **results["decisions"],
+                    name: pn.abstain_decisions(contract, results),
+                },
+            }
     decided = set(results["decisions"])
     names = sorted(m for m in members if m in decided)
     q3_regret = q3_regret or {}

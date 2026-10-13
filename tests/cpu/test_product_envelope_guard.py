@@ -180,7 +180,8 @@ def test_probe_outside_declared_validity_is_unresolved_not_a_law_failure():
     assert not any(c["outcome"] == "FAIL" for c in receipt["checks"])
 
 
-def test_unadopted_uncalibrated_definitions_never_force_verification_or_execution():
+@pytest.mark.parametrize("mode", ["REQUIRED_ADOPTED", "EXPLICIT_NO_LAWS"])
+def test_diagnostic_definitions_do_not_execute_and_law_mode_controls_gap(mode):
     def only_base(query):
         assert query == QUERY
         return toy_prediction(query)
@@ -195,8 +196,18 @@ def test_unadopted_uncalibrated_definitions_never_force_verification_or_executio
             spec={"expression": "SYNTHETIC_CANARY_NOT_FOR_DISCLOSURE"},
         )
     materials["policy"]["max_model_calls"] = 1
+    materials["policy"]["laws"]["mode"] = mode
     receipt = result(materials)
-    assert receipt["verdict"] == "TRUST"
+    assert receipt["verdict"] == ("VERIFY" if mode == "REQUIRED_ADOPTED" else "TRUST")
+    availability = next(c for c in receipt["checks"] if c["check"] == "law")
+    assert availability["outcome"] == (
+        "UNRESOLVED" if mode == "REQUIRED_ADOPTED" else "NOT_ASSESSED"
+    )
+    assert availability["reason"] == (
+        "ADOPTED_LAWS_UNAVAILABLE"
+        if mode == "REQUIRED_ADOPTED"
+        else "GAP_EXPLICIT_NO_LAWS_POLICY"
+    )
     assert receipt["probes"]["model_calls"] == 1
     assert all(
         c["verdict_input"] is False
@@ -333,13 +344,14 @@ def test_same_query_replays_seed_probes_and_decision_independent_of_timing():
         assert replay["probes"] == first["probes"]
         assert replay["decision_digest"] == first["decision_digest"]
         assert replay["verdict"] == first["verdict"]
+    # Prospective v3 policy identities; historical records are not rescored.
     assert (
         first["probes"]["seed"]
-        == "sha256:8309b263a82d8130b2ca23353ac25d09eda2a8dc5747e78b574d42840a026eca"
+        == "sha256:78eccd784b26c0626af106e2a8d9611b63e6ff07616e12f754a000101418179b"
     )
     assert (
         first["probes"]["digest"]
-        == "sha256:2600691632af78e033de09290fc970d01920cf254220df6a4105bb2ed925530d"
+        == "sha256:6b1eb6d088ea5dfc2fdb16ae44445e74b8d200d7a217a99017591833992617a6"
     )
 
 
@@ -486,3 +498,738 @@ def test_query_path_does_not_read_files_start_processes_or_send_network(monkeypa
         receipt = guard.evaluate(QUERY, units=UNITS)
         assert receipt["verdict"] == "TRUST"
         assert receipt["probes"]["model_calls"] == 9
+
+
+def test_native_battery_v2_builder_receipt_is_consumed_by_guard(monkeypatch):
+    from carbon.battery import trust_map as battery_map
+    from carbon.trust_map.acceptance import load_acceptance
+    from carbon.trust_map.core import MAP_SCHEMA, PANEL_SCHEMA
+
+    produce = battery_map.build_battery_maps
+    panels = []
+
+    def capture(panel):
+        panels.append(copy.deepcopy(panel))
+        return produce(panel)
+
+    monkeypatch.setattr(battery_map, "build_battery_maps", capture)
+    materials = fixture_inputs()
+    assert len(panels) == 1
+    assert panels[0]["schema"] == PANEL_SCHEMA
+    assert panels[0]["reference_verification"]["family"] == "battery-v3"
+    assert materials["trust_map"]["schema"] == MAP_SCHEMA
+    verification = materials["trust_map"]["reference_verification"]
+    assert verification == load_acceptance(
+        "battery-v3",
+        materials["contract"]["reference_image"],
+        verification["criteria_digest"],
+    )
+    receipt = result(materials)
+    assert receipt["verdict"] == "TRUST"
+    assert receipt["evidence_basis"] == "SYNTHETIC_FIXTURE"
+    assert receipt["qualification_claim"] is False
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("schema", "legacy"),
+        ("scope", "PRODUCTION"),
+        ("family", "motor"),
+        ("image_digest", "sha256:" + "f" * 64),
+        ("criteria_digest", "sha256:" + "f" * 64),
+        ("link_digest", "sha256:" + "f" * 64),
+        ("decision", {"decision_id": "SYNTHETIC_CANARY_NOT_AN_ACCEPTANCE"}),
+        ("conditions", {"not_registered": True}),
+    ],
+)
+def test_tampered_v2_acceptance_receipt_is_refused_after_repin(field, value):
+    materials = fixture_inputs()
+    materials["trust_map"]["reference_verification"][field] = value
+    with pytest.raises(GuardConfigurationError) as error:
+        build(materials)
+    assert "SYNTHETIC_CANARY" not in str(error.value)
+
+
+def test_missing_acceptance_link_refuses_an_existing_map(tmp_path, monkeypatch):
+    from functools import partial
+
+    from carbon.trust_map.acceptance import load_acceptance
+
+    materials = fixture_inputs()
+    monkeypatch.setattr(
+        "carbon.product.envelope_guard.configuration.load_acceptance",
+        partial(load_acceptance, root=tmp_path),
+    )
+    with pytest.raises(
+        GuardConfigurationError, match="reference_verification_unavailable"
+    ):
+        build(materials)
+
+
+@pytest.mark.parametrize("basis", ["SYNTHETIC_FIXTURE", "REGISTERED_DEVELOPMENT", None])
+@pytest.mark.parametrize("legacy", ["map_schema", "verification_header"])
+def test_v1_maps_and_boolean_headers_have_no_fixture_exception(basis, legacy):
+    materials = fixture_inputs()
+    if basis is None:
+        materials["policy"] = None
+    else:
+        materials["policy"]["basis"] = basis
+    if legacy == "map_schema":
+        materials["trust_map"]["schema"] = "carbon.trust-map.v1"
+    else:
+        materials["trust_map"]["reference_verification"] = {
+            "state": "PASS",
+            "accepted_development_pass": True,
+            "image_digest": materials["contract"]["reference_image"],
+            "evidence": "SYNTHETIC_CANARY_LEGACY_BOOLEAN",
+        }
+    with pytest.raises(GuardConfigurationError):
+        build(materials)
+
+
+@pytest.mark.parametrize("mode", ["REQUIRED_ADOPTED", "EXPLICIT_NO_LAWS"])
+def test_empty_law_contract_has_explicit_policy_gap(mode):
+    materials = fixture_inputs()
+    materials["contract"]["laws"] = []
+    materials["policy"]["laws"]["mode"] = mode
+    receipt = result(materials)
+    assert receipt["verdict"] == ("VERIFY" if mode == "REQUIRED_ADOPTED" else "TRUST")
+    law = next(c for c in receipt["checks"] if c["check"] == "law")
+    assert law["adopted_count"] == law["diagnostic_count"] == 0
+    assert law["verdict_input"] is (mode == "REQUIRED_ADOPTED")
+    assert receipt["law_policy"] == {"mode": mode}
+
+
+def test_explicit_no_laws_cannot_override_an_adopted_law():
+    materials = fixture_inputs()
+    materials["policy"]["laws"]["mode"] = "EXPLICIT_NO_LAWS"
+    with pytest.raises(
+        GuardConfigurationError, match="explicit_no_laws_conflicts_with_adoption"
+    ):
+        build(materials)
+
+
+@pytest.mark.parametrize("kind", ["missing", "unknown", "expression", "extra"])
+def test_law_mode_has_no_permissive_default(kind):
+    materials = fixture_inputs()
+    if kind == "missing":
+        del materials["policy"]["laws"]
+    elif kind == "extra":
+        materials["policy"]["laws"]["skip_adopted"] = True
+    else:
+        materials["policy"]["laws"]["mode"] = (
+            "HUMAN_INPUT" if kind == "unknown" else "SYNTHETIC_CANARY_EXPR"
+        )
+    with pytest.raises(GuardConfigurationError) as error:
+        build(materials)
+    assert "SYNTHETIC_CANARY" not in str(error.value)
+
+
+@pytest.mark.parametrize(
+    "kind",
+    [
+        "empty",
+        "missing_output",
+        "contract_family",
+        "native_map_family",
+        "condition_mismatch",
+        "condition_unknown",
+        "condition_missing_query",
+    ],
+)
+def test_reference_scope_mismatch_refuses_before_model_execution(kind):
+    def forbidden(_query):
+        raise AssertionError("unaccepted model call")
+
+    materials = fixture_inputs(forbidden)
+    scope = materials["reference"]["acceptance_scope"]
+    if kind == "empty":
+        scope["observables"] = []
+    elif kind == "missing_output":
+        scope["observables"].remove("voltage_v")
+    elif kind == "contract_family":
+        materials["contract"]["family"] = "motor"
+    elif kind == "native_map_family":
+        materials["contract"]["family"] = scope["family"] = "motor"
+    elif kind == "condition_mismatch":
+        scope["application_conditions"] = {"c1": 0.5}
+    elif kind == "condition_unknown":
+        scope["application_conditions"] = {"c1": None}
+    else:
+        scope["application_conditions"] = {"t_end": 0.375}
+    if kind in ("contract_family", "native_map_family"):
+        with pytest.raises(GuardConfigurationError):
+            build(materials)
+        return
+    receipt = result(materials)
+    assert receipt["verdict"] == "REFUSE"
+    assert receipt["reasons"] == ["REFERENCE_ACCEPTANCE_SCOPE_MISMATCH"]
+    assert receipt["probes"]["model_calls"] == 0
+    assert receipt["checks"][0]["outcome"] == "UNRESOLVED"
+    assert receipt["checks"][0]["candidate_failure"] is False
+    assert receipt["reference"]["acceptance_scope"] == scope
+
+
+@pytest.mark.parametrize(
+    "kind", ["missing", "extra", "duplicates", "expression", "bool", "nan"]
+)
+def test_reference_scope_closed_shape_and_finite_conditions(kind):
+    materials = fixture_inputs()
+    scope = materials["reference"]["acceptance_scope"]
+    if kind == "missing":
+        del materials["reference"]["acceptance_scope"]
+    elif kind == "extra":
+        scope["qualified"] = True
+    elif kind == "duplicates":
+        scope["observables"] *= 2
+    else:
+        scope["application_conditions"] = {
+            "c1": (
+                {"expression": "SYNTHETIC_CANARY_EXPR"}
+                if kind == "expression"
+                else True if kind == "bool" else math.nan
+            )
+        }
+    with pytest.raises(GuardConfigurationError) as error:
+        build(materials)
+    assert "SYNTHETIC_CANARY" not in str(error.value)
+
+
+def test_budget_cutoff_marks_all_remaining_axes_and_prevents_partial_law_pass():
+    materials = fixture_inputs()
+    materials["policy"]["max_model_calls"] = 4
+    materials["contract"]["laws"][2]["spec"]["inputs"] = ["c1", "t_amb_c"]
+    receipt = result(materials)
+    prefix = next(
+        c for c in receipt["checks"] if c["check"] == "law.fixture-rest-prefix"
+    )
+    assert receipt["verdict"] == "VERIFY"
+    assert receipt["probes"]["model_calls"] == receipt["probes"]["executed"] == 4
+    assert prefix["observed_probes"] == 2
+    assert prefix["unresolved_axes"] == ["c2", "soc0", "t_amb_c"]
+    assert prefix["outcome"] == "UNRESOLVED"
+    assert prefix["reason"] == "ADOPTED_LAW_PROBES_UNRESOLVED"
+
+
+def test_budget_cutoff_retains_an_observed_law_violation():
+    def bad_neighbor(query):
+        value = toy_prediction(query)
+        if query["c1"] != QUERY["c1"]:
+            value.outputs["temperature_c"][0] += 1.0
+        return value
+
+    materials = fixture_inputs(bad_neighbor)
+    materials["policy"]["max_model_calls"] = 4
+    receipt = result(materials)
+    assert "ADOPTED_LAW_VIOLATION" in receipt["reasons"]
+    assert any(
+        c["outcome"] == "FAIL"
+        for c in receipt["checks"]
+        if c["check"].startswith("law.")
+    )
+
+
+def test_reference_scope_applies_to_cheap_probes_too():
+    materials = fixture_inputs()
+    materials["reference"]["acceptance_scope"]["application_conditions"] = {
+        "t_amb_c": 25.0
+    }
+    receipt = result(materials)
+    assert receipt["verdict"] == "VERIFY"
+    assert "PROBE_OUTSIDE_REFERENCE_ACCEPTANCE_SCOPE" in receipt["reasons"]
+    assert receipt["probes"]["model_calls"] == 7
+    initial = next(
+        c for c in receipt["checks"] if c["check"] == "law.fixture-initial-temperature"
+    )
+    assert initial["outcome"] == "UNRESOLVED"
+    assert initial["unresolved_axes"] == ["t_amb_c"]
+
+
+def test_f02_mms_condition_and_declared_use_scope_stay_separate_in_receipts():
+    from carbon.trust_map.acceptance import load_acceptance
+
+    image = "sha256:6fab746f31257236da9e91b5be681bfbd2d25bd69f5dcd9a2e350394e8bcb675"
+    criteria = "sha256:ce1cdee81369d5ad21446ec8cfb165ac13f1b8c49aad0d328a0a2fcd2dab77fe"
+    materials = fixture_inputs()
+    # Synthetic interface projection around genuine public MMS metadata only.
+    materials["contract"].update(family="f02", reference_image=image)
+    materials["policy"]["b9"] = None
+    accepted_verification = load_acceptance("f02", image, criteria)
+    materials["reference"].update(
+        image_digest=image,
+        criteria_digest=criteria,
+        code_verification_ref=accepted_verification["link_digest"],
+    )
+    scope = materials["reference"]["acceptance_scope"]
+    scope.update(
+        family="f02",
+        verification_conditions=accepted_verification["conditions"],
+        application_conditions={"c1": QUERY["c1"]},
+    )
+    for law in materials["contract"]["laws"]:
+        law.update(status="DIAGNOSTIC", adoption_ref=None, calibration=None)
+    materials["policy"]["laws"]["mode"] = "EXPLICIT_NO_LAWS"
+    materials["trust_map"]["reference_verification"] = load_acceptance(
+        "f02", image, criteria
+    )
+    guard = build(materials)
+    accepted = guard.evaluate(QUERY, units=UNITS)
+    assert accepted["verdict"] == "TRUST"
+    assert accepted["evidence_basis"] == "SYNTHETIC_FIXTURE"
+    assert accepted["qualification_claim"] is False
+    assert accepted["reference"]["acceptance_scope"]["application_conditions"] == {
+        "c1": QUERY["c1"]
+    }
+    assert accepted["code_verification"]["conditions"] == {"t_end": 0.375}
+    assert accepted["code_verification"]["scope"] == "DEVELOPMENT_CODE_VERIFICATION"
+    accepted["reference"]["acceptance_scope"]["application_conditions"]["c1"] = 0.5
+    accepted["code_verification"]["conditions"]["t_end"] = 0.5
+    replay = guard.evaluate(QUERY, units=UNITS)
+    assert (
+        replay["reference"]["acceptance_scope"]["application_conditions"]["c1"]
+        == QUERY["c1"]
+    )
+    assert replay["code_verification"]["conditions"]["t_end"] == 0.375
+    refused = guard.evaluate({**QUERY, "c1": 0.5}, units=UNITS)
+    assert refused["verdict"] == "REFUSE"
+    assert refused["probes"]["model_calls"] == 0
+    assert refused["code_verification"]["conditions"] == {"t_end": 0.375}
+    assert refused["reference"]["acceptance_scope"]["family"] == "f02"
+
+
+@pytest.mark.parametrize(
+    "field,legacy",
+    [
+        ("contract", "carbon.product.guard-contract.v1"),
+        ("policy", "carbon.product.guard-policy.v1"),
+        ("policy", "carbon.product.guard-policy.v2"),
+        ("reference", "carbon.product.guard-reference.v1"),
+        ("reference", "carbon.product.guard-reference.v2"),
+    ],
+)
+def test_legacy_records_are_not_silently_reinterpreted(field, legacy):
+    materials = fixture_inputs()
+    materials[field]["schema"] = legacy
+    with pytest.raises(GuardConfigurationError, match="schema_mismatch"):
+        build(materials)
+
+
+def f02_metadata_fixture():
+    """Arithmetic battery-shaped fixture, not f02 physics or accepted use."""
+    from carbon.trust_map.acceptance import load_acceptance
+
+    image = "sha256:6fab746f31257236da9e91b5be681bfbd2d25bd69f5dcd9a2e350394e8bcb675"
+    criteria = "sha256:ce1cdee81369d5ad21446ec8cfb165ac13f1b8c49aad0d328a0a2fcd2dab77fe"
+    accepted = load_acceptance("f02", image, criteria)
+    materials = fixture_inputs()
+    materials["contract"].update(family="f02", reference_image=image)
+    materials["policy"]["b9"] = None
+    for law in materials["contract"]["laws"]:
+        law["calibration"]["image_digest"] = image  # Synthetic calibrations only.
+    materials["reference"].update(
+        image_digest=image,
+        criteria_digest=criteria,
+        code_verification_ref=accepted["link_digest"],
+    )
+    materials["reference"]["acceptance_scope"].update(
+        family="f02", verification_conditions=copy.deepcopy(accepted["conditions"])
+    )
+    materials["trust_map"]["reference_verification"] = accepted
+    return materials
+
+
+@pytest.mark.parametrize("with_map", [True, False])
+def test_mms_end_time_is_carried_without_becoming_a_query_or_probe_input(with_map):
+    materials = f02_metadata_fixture()
+    if not with_map:
+        materials["trust_map"] = None
+    guard = build(materials)
+    receipt = guard.evaluate(QUERY, units=UNITS)
+    assert "t_end" not in QUERY
+    assert receipt["schema"] == "carbon.product.guard-receipt.v4"
+    assert receipt["verdict"] == ("TRUST" if with_map else "VERIFY")
+    assert receipt["probes"]["model_calls"] == 9
+    scope = receipt["reference"]["acceptance_scope"]
+    assert scope["verification_conditions"] == {"t_end": 0.375}
+    assert scope["application_conditions"] == {}
+    assert receipt["code_verification"]["conditions"] == {"t_end": 0.375}
+    assert (
+        receipt["reference"]["observables_basis"]
+        == "HOST_DECLARED_NOT_VERIFIED_COVERAGE"
+    )
+    assert (
+        receipt["reference"]["verification_conditions_basis"]
+        == "REGISTERED_DEVELOPMENT_CODE_VERIFICATION"
+    )
+    assert (
+        receipt["reference"]["application_conditions_basis"]
+        == "HOST_DECLARED_USE_RESTRICTION"
+    )
+    assert receipt["qualification_claim"] is False
+    receipt["reference"]["acceptance_scope"]["verification_conditions"]["t_end"] = 0.5
+    receipt["code_verification"]["conditions"]["t_end"] = 0.5
+    replay = guard.evaluate(QUERY, units=UNITS)
+    assert replay["reference"]["acceptance_scope"]["verification_conditions"] == {
+        "t_end": 0.375
+    }
+    assert replay["code_verification"]["conditions"] == {"t_end": 0.375}
+    assert replay["decision_digest"] == receipt["decision_digest"]
+
+
+@pytest.mark.parametrize("with_map", [True, False])
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        lambda m: m["reference"]["acceptance_scope"].update(family="motor"),
+        lambda m: m["reference"]["acceptance_scope"].update(verification_conditions={}),
+        lambda m: m["reference"]["acceptance_scope"].update(
+            verification_conditions={"t_end": 0.5}
+        ),
+        lambda m: m["reference"]["acceptance_scope"].update(
+            verification_conditions={"t_end": None}
+        ),
+        lambda m: m["reference"]["acceptance_scope"].update(
+            verification_conditions={"t_end": 0.375, "c1": 1.0}
+        ),
+        lambda m: m["reference"].update(criteria_digest="sha256:" + "f" * 64),
+        lambda m: m["reference"].update(code_verification_ref="sha256:" + "f" * 64),
+    ],
+)
+def test_ready_reference_cannot_restate_registered_scope_even_after_repin(
+    with_map, mutation
+):
+    materials = f02_metadata_fixture()
+    if not with_map:
+        materials["trust_map"] = None
+    mutation(materials)
+    with pytest.raises(GuardConfigurationError):
+        build(materials)
+
+
+def test_ready_no_map_no_policy_still_requires_a_registered_link(tmp_path, monkeypatch):
+    from functools import partial
+
+    from carbon.trust_map.acceptance import load_acceptance
+
+    materials = f02_metadata_fixture()
+    materials.update(trust_map=None, policy=None)
+    monkeypatch.setattr(
+        "carbon.product.envelope_guard.configuration.load_acceptance",
+        partial(load_acceptance, root=tmp_path),
+    )
+    with pytest.raises(
+        GuardConfigurationError, match="reference_verification_unavailable"
+    ):
+        build(materials)
+
+
+def test_unready_reference_does_not_bypass_native_map_link_validation(
+    tmp_path, monkeypatch
+):
+    from functools import partial
+
+    from carbon.trust_map.acceptance import load_acceptance
+
+    materials = fixture_inputs()
+    materials["reference"]["status"] = "UNRESOLVED"
+    monkeypatch.setattr(
+        "carbon.product.envelope_guard.configuration.load_acceptance",
+        partial(load_acceptance, root=tmp_path),
+    )
+    with pytest.raises(GuardConfigurationError, match="map_verification_unavailable"):
+        build(materials)
+
+
+def test_no_map_application_refusal_still_carries_the_registered_mms_condition():
+    materials = f02_metadata_fixture()
+    materials["trust_map"] = None
+    # An explicit host application restriction still matches queries, even if
+    # its name also occurs in the separate verification-condition block.
+    materials["reference"]["acceptance_scope"]["application_conditions"] = {
+        "t_end": 0.375
+    }
+    receipt = result(materials)
+    assert receipt["verdict"] == "REFUSE"
+    assert receipt["reasons"] == ["REFERENCE_ACCEPTANCE_SCOPE_MISMATCH"]
+    assert receipt["probes"]["model_calls"] == 0
+    assert receipt["checks"][0]["candidate_failure"] is False
+    assert receipt["reference"]["acceptance_scope"]["verification_conditions"] == {
+        "t_end": 0.375
+    }
+    assert receipt["code_verification"]["conditions"] == {"t_end": 0.375}
+
+
+@pytest.mark.parametrize(
+    "field", ["criteria_digest", "verification_conditions", "application_conditions"]
+)
+def test_v3_reference_required_bindings_have_no_default(field):
+    materials = f02_metadata_fixture()
+    if field == "criteria_digest":
+        del materials["reference"][field]
+    else:
+        del materials["reference"]["acceptance_scope"][field]
+    with pytest.raises(GuardConfigurationError, match="closed_shape_required"):
+        build(materials)
+
+
+@pytest.mark.parametrize("status", ["UNRESOLVED", "FAILED_REFERENCE", "FAILED_INFRA"])
+def test_unready_reference_keeps_its_hold_and_does_not_claim_verified_scope(status):
+    materials = f02_metadata_fixture()
+    materials["reference"]["status"] = status
+    materials["reference"]["acceptance_scope"]["verification_conditions"] = {
+        "t_end": None
+    }
+    materials["trust_map"] = None
+    receipt = result(materials)
+    assert receipt["verdict"] == "REFUSE"
+    assert receipt["probes"]["model_calls"] == 0
+    assert receipt["checks"][0]["outcome"] == status
+    assert receipt["checks"][0]["candidate_failure"] is False
+    assert (
+        receipt["reference"]["verification_conditions_basis"]
+        == "UNRESOLVED_HOST_DECLARATION"
+    )
+    assert receipt["code_verification"] is None
+
+
+@pytest.mark.parametrize("field", ["verification_conditions", "application_conditions"])
+@pytest.mark.parametrize("value", [True, {"expression": "SYNTHETIC_CANARY"}, math.inf])
+def test_both_condition_blocks_require_plain_finite_values(field, value):
+    materials = f02_metadata_fixture()
+    materials["reference"]["acceptance_scope"][field] = {"t_end": value}
+    with pytest.raises(GuardConfigurationError) as error:
+        build(materials)
+    assert "SYNTHETIC_CANARY" not in str(error.value)
+
+
+def test_v3_does_not_default_or_reinterpret_an_ambiguous_conditions_block():
+    materials = f02_metadata_fixture()
+    scope = materials["reference"]["acceptance_scope"]
+    scope["conditions"] = scope.pop("verification_conditions")
+    del scope["application_conditions"]
+    with pytest.raises(GuardConfigurationError, match="closed_shape_required"):
+        build(materials)
+
+
+def below_ambient_prediction(deficit, index=-1):
+    """Arithmetic fixtures only; no real model/reference or physical claim."""
+
+    def predict(query):
+        value = toy_prediction(query)
+        value.outputs["temperature_c"][index] = query["t_amb_c"] - deficit
+        return value
+
+    return predict
+
+
+@pytest.mark.parametrize(
+    "deficit,expected",
+    [(0.099, "TRUST"), (0.1, "TRUST"), (0.101, "VERIFY")],
+)
+@pytest.mark.parametrize("ambient", [5.0, 25.0, 40.0])
+def test_b9_owner_threshold_is_strict_and_reports_the_measured_deficit(
+    deficit, expected, ambient
+):
+    query = {**QUERY, "t_amb_c": ambient}
+    materials = fixture_inputs(below_ambient_prediction(deficit), query=query)
+    receipt = result(materials, query)
+    b9 = next(c for c in receipt["checks"] if c["check"] == "policy.B9")
+    assert receipt["verdict"] == expected
+    assert ("B9_BELOW_AMBIENT" in receipt["reasons"]) is (expected == "VERIFY")
+    assert b9["max_deficit_c"] == deficit
+    assert b9["threshold_c"] == 0.1
+    assert b9["decision_id"] == "OWNER-PHYSICS-GATES-01"
+    assert b9["observed_grid_points"] == len(receipt["prediction"]["temperature_c"])
+    assert b9["unit"] == "C"
+    assert b9["advisory"] is True
+    assert b9["exam_gate"] is b9["candidate_failure"] is False
+    assert b9["verdict_input"] is True
+    assert receipt["b9_policy"] == materials["policy"]["b9"]
+    assert receipt["schema"] == "carbon.product.guard-receipt.v4"
+
+
+@pytest.mark.parametrize(
+    "direction,expected", [(math.inf, "TRUST"), (-math.inf, "VERIFY")]
+)
+def test_b9_adjacent_representable_temperatures_do_not_get_an_epsilon(
+    direction, expected
+):
+    def predict(query):
+        value = toy_prediction(query)
+        value.outputs["temperature_c"][-1] = math.nextafter(24.9, direction)
+        return value
+
+    receipt = result(fixture_inputs(predict))
+    assert receipt["verdict"] == expected
+    assert ("B9_BELOW_AMBIENT" in receipt["reasons"]) is (expected == "VERIFY")
+
+
+@pytest.mark.parametrize("index", [0, 1, -1])
+def test_b9_observes_any_temperature_grid_point(index):
+    receipt = result(fixture_inputs(below_ambient_prediction(0.101, index)))
+    assert receipt["verdict"] == "VERIFY"
+    assert "B9_BELOW_AMBIENT" in receipt["reasons"]
+    b9 = next(c for c in receipt["checks"] if c["check"] == "policy.B9")
+    assert b9["max_deficit_c"] == 0.101
+    assert receipt["probes"]["model_calls"] == 9
+
+
+def test_b9_is_a_policy_advisory_while_the_physics_law_stays_diagnostic():
+    from pathlib import Path
+
+    native = json.loads(
+        (
+            Path(__file__).resolve().parents[2]
+            / "carbon/battery/physics_contract.v1.json"
+        ).read_text(encoding="utf-8")
+    )
+    law = next(law for law in native["laws"] if law["id"] == "B9")
+    assert law["role"] == "DIAGNOSTIC_ONLY"
+    assert law["margin_derivation"]["gate_proposal"] is False
+    materials = fixture_inputs(below_ambient_prediction(0.101))
+    materials["contract"]["laws"] = [
+        {
+            "id": "B9",
+            "type": law["type"],
+            "status": "DIAGNOSTIC",
+            "spec": {"output": "temperature_c", "input": "t_amb_c"},
+            "adoption_ref": None,
+            "calibration": None,
+        }
+    ]
+    materials["policy"]["laws"]["mode"] = "EXPLICIT_NO_LAWS"
+    receipt = result(materials)
+    diagnostic = next(c for c in receipt["checks"] if c["check"] == "law.B9")
+    assert diagnostic["outcome"] == "NOT_ASSESSED"
+    assert diagnostic["verdict_input"] is False
+    assert receipt["verdict"] == "VERIFY"
+    assert "B9_BELOW_AMBIENT" in receipt["reasons"]
+    assert receipt["probes"]["model_calls"] == 1
+
+
+@pytest.mark.parametrize("failure", ["infra", "malformed", "budget"])
+def test_a_b9_finding_survives_incomplete_later_probes(failure):
+    base = below_ambient_prediction(0.101)
+
+    def predict(query):
+        if failure != "budget" and query != QUERY:
+            if failure == "infra":
+                raise RuntimeError("SYNTHETIC_CANARY")
+            return Prediction({})
+        return base(query)
+
+    materials = fixture_inputs(predict)
+    if failure == "budget":
+        materials["policy"]["max_model_calls"] = 1
+    receipt = result(materials)
+    assert receipt["verdict"] == "VERIFY"
+    assert "B9_BELOW_AMBIENT" in receipt["reasons"]
+    assert (
+        next(c for c in receipt["checks"] if c["check"] == "policy.B9")["max_deficit_c"]
+        == 0.101
+    )
+    assert "SYNTHETIC_CANARY" not in json.dumps(receipt)
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        lambda m: m["policy"].pop("b9"),
+        lambda m: m["policy"].update(b9=None),
+        lambda m: m["policy"]["b9"].update(threshold_c=0.2),
+        lambda m: m["policy"]["b9"].update(threshold_c=-0.1),
+        lambda m: m["policy"]["b9"].update(threshold_c=True),
+        lambda m: m["policy"]["b9"].update(threshold_c=math.nan),
+        lambda m: m["policy"]["b9"].update(decision_id="HUMAN_INPUT"),
+        lambda m: m["policy"]["b9"].update(disabled=True),
+    ],
+)
+def test_b9_owner_policy_has_no_default_or_host_override_after_repin(mutation):
+    materials = fixture_inputs()
+    mutation(materials)
+    with pytest.raises(GuardConfigurationError):
+        build(materials)
+
+
+def test_b9_policy_does_not_transfer_the_battery_value_to_f02():
+    materials = f02_metadata_fixture()
+    materials["policy"]["b9"] = {
+        "threshold_c": 0.1,
+        "decision_id": "OWNER-PHYSICS-GATES-01",
+    }
+    with pytest.raises(GuardConfigurationError, match="b9_battery_scope_only"):
+        build(materials)
+
+
+def test_b9_policy_receipt_mutation_cannot_change_the_configured_threshold():
+    materials = fixture_inputs(below_ambient_prediction(0.101))
+    guard = build(materials)
+    first = guard.evaluate(QUERY, units=UNITS)
+    first["b9_policy"]["threshold_c"] = 0.2
+    materials["policy"]["b9"]["threshold_c"] = 0.2
+    replay = guard.evaluate(QUERY, units=UNITS)
+    assert replay["b9_policy"]["threshold_c"] == 0.1
+    assert replay["verdict"] == "VERIFY"
+    assert replay["decision_digest"] == first["decision_digest"]
+
+
+def test_b9_does_not_override_reference_or_applicability_holds():
+    def forbidden(_query):
+        raise AssertionError("unsupported model call")
+
+    materials = fixture_inputs(forbidden)
+    materials["reference"]["status"] = "UNRESOLVED"
+    receipt = result(materials)
+    assert receipt["verdict"] == "REFUSE"
+    assert receipt["probes"]["model_calls"] == 0
+    assert not any(c["check"] == "policy.B9" for c in receipt["checks"])
+
+
+def test_b9_requires_the_owner_reference_image_even_without_a_map():
+    materials = fixture_inputs()
+    image = "sha256:" + "f" * 64
+    materials["contract"].update(reference_image=image, laws=[])
+    materials["reference"].update(image_digest=image, status="UNRESOLVED")
+    materials["trust_map"] = None
+    with pytest.raises(GuardConfigurationError, match="b9_reference_image_mismatch"):
+        build(materials)
+
+
+@pytest.mark.parametrize("side", ["input", "output"])
+def test_b9_requires_celsius_without_silent_unit_conversion(side):
+    materials = fixture_inputs()
+    materials["trust_map"] = None
+    materials["contract"]["laws"] = []
+    if side == "input":
+        materials["envelope"]["inputs"]["t_amb_c"]["unit"] = "K"
+        materials["reference_envelope"]["inputs"]["t_amb_c"]["unit"] = "K"
+    else:
+        materials["contract"]["outputs"]["temperature_c"]["unit"] = "K"
+    with pytest.raises(GuardConfigurationError, match="b9_temperature_units_required"):
+        build(materials)
+
+
+def test_b9_nonrepresentable_deficit_is_unresolved_with_a_finite_receipt():
+    def predict(query):
+        value = toy_prediction(QUERY)
+        value.outputs["temperature_c"] = [query["t_amb_c"]] * len(
+            value.outputs["temperature_c"]
+        )
+        value.outputs["temperature_c"][-1] = -1e308
+        return value
+
+    materials = fixture_inputs(predict)
+    materials["trust_map"] = None
+    materials["contract"]["laws"] = []
+    materials["policy"]["laws"]["mode"] = "EXPLICIT_NO_LAWS"
+    for field in ("envelope", "reference_envelope"):
+        materials[field]["inputs"]["t_amb_c"].update(low=0.9e308, high=1.1e308)
+    materials["policy"]["probe_steps"]["t_amb_c"] = 1e306
+    receipt = result(materials, {**QUERY, "t_amb_c": 1e308})
+    b9 = next(c for c in receipt["checks"] if c["check"] == "policy.B9")
+    assert receipt["verdict"] == "VERIFY"
+    assert "B9_ARITHMETIC_UNRESOLVED" in receipt["reasons"]
+    assert b9["outcome"] == "UNRESOLVED"
+    assert b9["max_deficit_c"] is None
+    json.dumps(receipt, allow_nan=False)
