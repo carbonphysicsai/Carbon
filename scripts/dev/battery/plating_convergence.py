@@ -61,6 +61,8 @@ KILLED = "KILLED_BY_HOST"
 #: D2's wider panel (the Validator's PLATING_REFERENCE_DECISION_2026-10-13, sha
 #: 10740f47): the standard rung and the mesh ladder only, plating in cycle 1.
 PANEL = "panel"
+#: D3's re-reference: the one mesh-160 rung (rtol 1e-6), plating in cycle 1.
+RE_REFERENCE = "re-reference"
 #: Workers for the mesh-160 stage (6.3 GB each); a cap, sized to the host.
 MID_WORKERS = 12
 #: D2's strata: ambient bins x rate (c1 >= 1.25 is high), weighted to cold and
@@ -80,6 +82,13 @@ PANEL_SALT = "PLATING-CONVERGENCE-02/D2"
 
 def ladder(cases, kind="study"):
     """Every (case index, rung) solve, coarse first; the finest rung last."""
+    if kind == RE_REFERENCE:
+        # Mesh 160 for every case; 40 and 80 too for its convergence subsample.
+        return [
+            {"case": i, "mesh": mesh, "rtol": 1e-6, "period_s": None, "cycles": 1}
+            for i, case in enumerate(cases)
+            for mesh in ((40, 80, 160) if case.get("convergence_check") else (160,))
+        ]
     if kind == PANEL:
         return [
             {"case": i, "mesh": mesh, "rtol": 1e-5 if mesh == 20 else 1e-6,
