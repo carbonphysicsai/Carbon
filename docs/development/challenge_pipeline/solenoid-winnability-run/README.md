@@ -83,6 +83,48 @@ include the entire acquired set, controls, failed/refined attempts and all
 virtual probes, not a cheap single field state. No strong hot-material model
 is created from a missing B-H(T) table. No permanent magnets are inserted.
 
+## Batch-1 big-machine reference-generation job list (plan only)
+
+These are the **public DEVELOPMENT** jobs behind the pilot, not jobs launched
+by the retained-data worker. Register exact dimensional decks, material/coil,
+extractors and reuse dispositions before scheduling. A job means one complete
+curve, not one stroke/current point. One solver process/thread at a time; the
+GetDP/Gmsh environment is only a candidate until the new A_phi package and
+native checks are pinned. CPU time and RAM below are **UNMEASURED hypotheses**,
+not measured C1 or a host sizing result. Source: the existing pole packet's
+0.01/0.04/0.12 CPU-h and 0.5/2/6 GiB hypotheses; this pilot's conservative
+3x refined-curve factor includes virtual-work states.
+
+| Public job class | Jobs / allowance | Field systems per complete job | CPU-s per complete job, low/base/high | Working RAM hypothesis |
+|---|---:|---:|---|---|
+| TRAIN geometries x all strata | 48 | 27 | 36 / 144 / 432 | 0.5 / 2 / 6 GiB; unmeasured |
+| Held-out public geometries x all strata | 36 | 27 | 36 / 144 / 432 | same coarse hypothesis |
+| Refined plus displaced virtual-work curves | 12 | 39 | 108 / 432 / 1,296 | refinement RAM UNMEASURED; operator must probe; no extrapolated measurement |
+| Conservation/sign/domain/contour controls | 4 complete-case allocations | <=27 each | reserve 36 / 144 / 432, hypothesis | UNMEASURED, included in working-RSS stop |
+| Failed-attempt allowance (never scheduled retries) | 4 | <=27 charged equivalents each | reserve 36 / 144 / 432, hypothesis | retained failure/RSS record required |
+
+Public allocation ceiling: 104 complete-curve attempts, 2,952 field-system
+attempts. Weighted runtime hypothesis is 128 coarse equivalents:
+4,608 / 18,432 / 55,296 CPU-s, plus the 8 CPU-h preparation/verification
+reserve =33,408 / 47,232 / 84,096 CPU-s (9.28 / 13.12 / 23.36 CPU-h).
+Hard proposed total24 CPU-h; working RSS stop16 GiB, no GPU or retries.
+The first timing probe is S01 nominal, one of the36 public held-out primaries,
+not an extra solve: <=30 allocated-to-termination minutes / $1 inclusive.
+Its actual CPU-s, elapsed, peak RSS, mesh/node count, exit and all27 field
+states determine whether the rest is schedulable; failed adequacy or excess
+resources returns HOLD, not an assumed completion. Deduplicate completed and
+scheduled tuples before launch and keep the full origin cost of retained data.
+
+**Sealed half is separate and not specified here.** Authorized sealed jobs
+from this ticket: **zero**. Operator-only future job count, private draw,
+TRAIN/test relation and resource reservation are HUMAN_INPUT under the locked
+law and custody protocol. Do not mirror these public geometries, double the
+public84 count, generate a hidden manifest or infer a sealed-half grant.
+Its per-complete-curve CPU and memory still need the same pinned-route probe,
+not an independent invented measurement; the operator returns aggregate cost
+and job totals without cases, seeds, labels or reconstruction-sensitive IDs.
+No sealed material is read, emitted, shipped or used in these fixtures.
+
 ## Closed public return bundle
 
 `carbon.solenoid-pole.winnability-bundle.v1` = {schema, scope:

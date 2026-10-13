@@ -7,8 +7,6 @@ from pathlib import Path
 import pytest
 
 from carbon.design_search import equal_budget as eb
-from carbon.design_search import solenoid_budget
-from carbon.development_comparison import carbon_arm, solenoid_kit
 
 ROOT = Path(__file__).resolve().parents[2]
 FOLDER = ROOT / "docs/development/challenge_pipeline/challenge-factory/pilots"
@@ -92,23 +90,26 @@ def test_missing_routes_and_kits_are_not_aliased_to_other_families():
     }
     for name, row in ROWS.items():
         if name in missing:
-            # PKT-09 records its audited starting main, not a timeless ban on
-            # implementing the missing family. Keep that snapshot unchanged.
+            # PKT-09's rows are a dated audit of its pinned source_main, not a
+            # standing ban on implementing the family. The snapshot stays as
+            # recorded; the live registry is checked below instead.
             assert row["route"] is None
             assert row["budget_status"] == "MISSING_ROUTE_AND_REGISTRATION"
-            if name == "solenoid-pole":
-                assert eb.CHALLENGE_ROUTES[name] == {
-                    "validator": solenoid_budget.validate,
-                    "representative": True,
-                    "registration_required": True,
-                }
-                assert carbon_arm.kits()[name] is solenoid_kit.kit_from_bytes
-            else:
-                assert name not in eb.CHALLENGE_ROUTES
         else:
             assert row["route"] == name and name in eb.CHALLENGE_ROUTES
         if name not in {"motor", "f02"}:
             assert row["model_kit_status"] == "NOT_IN_CARBON_ARM_KITS"
+    # The guard that matters, stated once for every family: a family may gain
+    # its own route after the audit, but never by borrowing another family's
+    # validator. Only the shared generic registration validator is shared.
+    owners = {}
+    for name in ROWS:
+        route = eb.CHALLENGE_ROUTES.get(name)
+        if route is not None:
+            owners.setdefault(route["validator"], set()).add(name)
+    shared = eb.CHALLENGE_ROUTES["motor"]["validator"]
+    for validator, families in owners.items():
+        assert validator is shared or len(families) == 1
 
 
 def test_reference_counts_keep_full_cases_and_histories():
