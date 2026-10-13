@@ -186,6 +186,9 @@ Two additional CLI profiles reuse the same frozen framework crosswalk:
 NASA keeps its separate capability and results factors and verified anchor
 subset. Every profile explicitly sets `clause_complete: false`; these outputs
 are crosswalks, never standards-compliance or accreditation determinations.
+The manifest's `mapping_status` distinguishes verified NASA anchor subsets,
+ASME topic-only mappings and MIL template/DoDI contents-only anchors; its
+`acceptance_authority` stays HUMAN_INPUT.
 The ASME scope is described by the [publisher's overview](https://www.asme.org/topics-resources/content/bioengineering-blog-an-emerging-regulatory-framework-for-medical-device-simulation).
 NASA anchors come from [7009B](https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/NASA-STD-7009B-Final-3-5-2024.pdf)
 and the committed framework. Full current DoDI retrieval still returned HTTP

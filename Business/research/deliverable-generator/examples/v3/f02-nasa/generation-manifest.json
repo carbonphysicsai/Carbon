@@ -5,8 +5,10 @@
   "standard_rendering": {
     "profile": "nasa-std-7009b",
     "edition": "NASA-STD-7009B (2024)",
+    "mapping_status": "VERIFIED_ANCHOR_SUBSET",
     "clause_complete": false,
     "applicability": "HUMAN_INPUT",
+    "acceptance_authority": "HUMAN_INPUT",
     "qualification_claim": false,
     "section_mapping": [
       {

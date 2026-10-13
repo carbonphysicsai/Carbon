@@ -5,8 +5,10 @@
   "standard_rendering": {
     "profile": "asme-vv40",
     "edition": "ASME V&V 40-2018 (topic mapping only)",
+    "mapping_status": "TOPIC_ONLY_LICENSED_CLAUSES_HUMAN_INPUT",
     "clause_complete": false,
     "applicability": "HUMAN_INPUT",
+    "acceptance_authority": "HUMAN_INPUT",
     "qualification_claim": false,
     "section_mapping": [
       {

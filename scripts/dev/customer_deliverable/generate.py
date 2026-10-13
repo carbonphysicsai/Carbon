@@ -26,6 +26,12 @@ PROFILE_EDITIONS = {
     "asme-vv40": "ASME V&V 40-2018 (topic mapping only)",
     "dod-vva": "MIL-STD-3022 Change 1 / DoDI 5000.61 (2024 contents anchors)",
 }
+PROFILE_MAPPING_STATUS = {
+    "nasa-std-7009b": "VERIFIED_ANCHOR_SUBSET",
+    "asme-vv10": "TOPIC_ONLY_LICENSED_CLAUSES_HUMAN_INPUT",
+    "asme-vv40": "TOPIC_ONLY_LICENSED_CLAUSES_HUMAN_INPUT",
+    "dod-vva": "MIL_TEMPLATE_ANCHORS_DODI_CONTENTS_ONLY",
+}
 NASA_STANDARD = (
     "https://standards.nasa.gov/sites/default/files/standards/NASA/B/1/"
     "NASA-STD-7009B-Final-3-5-2024.pdf"
@@ -668,8 +674,10 @@ def render(challenge: str, profile: str, reader, policy: dict) -> dict:
     standard_index = {
         "profile": profile,
         "edition": PROFILE_EDITIONS[profile],
+        "mapping_status": PROFILE_MAPPING_STATUS[profile],
         "clause_complete": False,
         "applicability": "HUMAN_INPUT",
+        "acceptance_authority": "HUMAN_INPUT",
         "qualification_claim": False,
         "section_mapping": [
             {

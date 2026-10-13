@@ -5,8 +5,10 @@
   "standard_rendering": {
     "profile": "dod-vva",
     "edition": "MIL-STD-3022 Change 1 / DoDI 5000.61 (2024 contents anchors)",
+    "mapping_status": "MIL_TEMPLATE_ANCHORS_DODI_CONTENTS_ONLY",
     "clause_complete": false,
     "applicability": "HUMAN_INPUT",
+    "acceptance_authority": "HUMAN_INPUT",
     "qualification_claim": false,
     "section_mapping": [
       {

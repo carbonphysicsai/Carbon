@@ -1315,6 +1315,15 @@ class CredibilityAutofillTests(unittest.TestCase):
                     )
                     manifest = json.loads(output["generation-manifest.json"])
                     standard = manifest["standard_rendering"]
+                    self.assertEqual(
+                        standard["mapping_status"],
+                        (
+                            "TOPIC_ONLY_LICENSED_CLAUSES_HUMAN_INPUT"
+                            if profile == "asme-vv40"
+                            else "MIL_TEMPLATE_ANCHORS_DODI_CONTENTS_ONLY"
+                        ),
+                    )
+                    self.assertEqual(standard["acceptance_authority"], "HUMAN_INPUT")
                     self.assertFalse(standard["clause_complete"])
                     self.assertEqual(len(standard["section_mapping"]), 11)
                     self.assertEqual(
