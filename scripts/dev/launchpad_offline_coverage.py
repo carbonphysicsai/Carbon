@@ -6,6 +6,7 @@ import argparse
 import hashlib
 import json
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 from types import SimpleNamespace
@@ -132,7 +133,36 @@ def summarize(reply):
 def measure(case, operation):
     strategy = strategies()[case]
     if operation == "construction":
-        return {**dc.answer(strategy), "execution": "STATIC_COMPILE_ONLY"}
+        with tempfile.TemporaryDirectory(
+            prefix="carbon-offline-strategy-"
+        ) as directory:
+            path = Path(directory) / "strategy.json"
+            path.write_text(json.dumps(strategy), encoding="utf-8", newline="\n")
+            done = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "carbon.reconstruction.development_composition",
+                    str(path),
+                ],
+                cwd=ROOT,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            if done.returncode not in {0, 2}:
+                raise RuntimeError(
+                    "construction CLI did not return a typed compile answer"
+                )
+            answer = json.loads(done.stdout)
+            expected = 0 if answer["status"] == "ACCEPTED" else 2
+            if done.returncode != expected:
+                raise RuntimeError("construction CLI exit/status disagree")
+            return {
+                **answer,
+                "cli_exit_code": done.returncode,
+                "execution": "STATIC_COMPILE_ONLY",
+            }
     with tempfile.TemporaryDirectory(prefix="carbon-offline-coverage-") as directory:
         root = Path(directory)
         ledger = CampaignLedger(root / "ledger")
@@ -188,7 +218,7 @@ def report():
                     "command": command(case, operation),
                     "observation": measure(case, operation),
                     "scope": (
-                        "REFUSAL_CONTROL_ONLY"
+                        "UNVERIFIED_GRAPH_METADATA_ONLY"
                         if case in {"C4", "X3"}
                         else "REPRESENTATIVE_OFFLINE_FIXTURE"
                     ),
