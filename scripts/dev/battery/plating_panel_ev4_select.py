@@ -9,8 +9,8 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, sys.argv[1])  # a main checkout
-from carbon.battery.value import contract as ev  # noqa: E402
-from carbon.battery.value import decision as d  # noqa: E402
+from carbon.battery.value import contract as ev
+from carbon.battery.value import decision as d
 
 REF = Path(sys.argv[2])
 REF_SHA = "72ea300b42fe1ca4e54b9c6131cb126ca7217ebddd5f1dddca8044a7bcef2dbf"
@@ -58,16 +58,14 @@ for split in ("development", "verification"):
                 "reference_rung": "standard",
             })  # fmt: skip
 
-order = lambda r: hashlib.sha256(
-    f"{SALT}:{r['case_id']}".encode()
-).hexdigest()  # noqa: E731
-mv = lambda r: r["reference_margin_v"] * 1e3  # noqa: E731
+order = lambda r: hashlib.sha256(f"{SALT}:{r['case_id']}".encode()).hexdigest()
+mv = lambda r: r["reference_margin_v"] * 1e3
 tier1 = [r for r in rows if r["reference_status"] == "FEASIBLE" and 2 < mv(r) <= 4]
 pool = [r for r in rows if r["reference_status"] == "FEASIBLE" and 4 < mv(r) <= 8]
 tier2 = []
 corner = [r for r in pool if r["t_amb_c"] == 9.0 and r["soc0"] == 0.06]
 if corner:
-    tier2.append(sorted(corner, key=order)[0])
+    tier2.append(min(corner, key=order))
 for high in (False, True):
     for cold in (True, False):
         stratum = sorted(
