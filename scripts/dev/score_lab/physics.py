@@ -51,6 +51,11 @@ def validate_config(config):
         or not _finite(problem.get("objective_weight", 0.5), high=1)
         or not _finite(problem.get("roughness", 0), high=0.2)
         or problem.get("optimum_location", "interior") not in ("interior", "boundary")
+        or type(problem.get("dimension", 1)) is not int
+        or not 1 <= problem.get("dimension", 1) <= 8
+        or type(problem.get("action_count", 17)) is not int
+        or not 4 <= problem.get("action_count", 17) <= 256
+        or not _finite(problem.get("constraint_coupling", 0), high=1)
     ):
         raise LabRefused("physics_problem_assumptions")
     if (
@@ -152,8 +157,42 @@ def _hash_fraction(*parts):
     return int(hashlib.sha256(raw).hexdigest()[:15], 16) / float(16**15)
 
 
+def _radical_inverse(index, base):
+    value, factor = 0.0, 1.0 / base
+    while index:
+        value += (index % base) * factor
+        index //= base
+        factor /= base
+    return value
+
+
+def _offered_vectors(problem):
+    """Bounded deterministic offered points, not an exhaustive continuous optimum."""
+    dimension = problem.get("dimension", 1)
+    if dimension == 1:
+        raise LabRefused("physics_vector_dimension")
+    count = problem.get("action_count", 17)
+    primes = (2, 3, 5, 7, 11, 13, 17, 19)
+    fallback = (0.2,) * dimension
+    vectors = [fallback]
+    seen = {fallback}
+    for index in range(1, count * 50 + 1):
+        values = tuple(_radical_inverse(index, base) for base in primes[:dimension])
+        if problem["space"] == "small-grid":
+            values = tuple(round(round(value * 4) / 4, 2) for value in values)
+        else:
+            values = tuple(round(value, 4) for value in values)
+        if values not in seen:
+            seen.add(values)
+            vectors.append(values)
+        if len(vectors) == count:
+            return vectors
+    raise LabRefused("physics_offered_vector_exhausted")
+
+
 def _toy_truth(x, context, problem, direction=None, size=0.0):
-    shifted_x = min(1.0, max(0.0, x + (size if direction == "boundary" else 0)))
+    vector = (x,) if type(x) in (int, float) else tuple(x)
+    shifted_x = min(1.0, max(0.0, vector[0] + (size if direction == "boundary" else 0)))
     shifted_context = context + (size if direction == "operating" else 0)
     row = synthetic.truth(shifted_x, shifted_context, problem)
     count = problem.get("optima_count", 1)
@@ -172,6 +211,10 @@ def _toy_truth(x, context, problem, direction=None, size=0.0):
         primary = min((shifted_x - center) ** 2 for center in centers)
         primary += 0.30 * shifted_context
     primary += problem.get("roughness", 0) * math.sin(12 * math.pi * shifted_x)
+    vector_penalty = sum(
+        (coordinate - min(0.9, 0.2 + 0.1 * index + 0.05 * shifted_context)) ** 2
+        for index, coordinate in enumerate(vector[1:], start=1)
+    ) / len(vector)
     secondary = (shifted_x - (0.25 + 0.05 * shifted_context)) ** 2
     secondary += 0.10 * shifted_context
     kind = problem.get("objective_kind", "single")
@@ -180,8 +223,17 @@ def _toy_truth(x, context, problem, direction=None, size=0.0):
         primary = (1 - weight) * primary + weight * secondary
     elif kind == "robust":
         primary = max(primary, secondary)
-    objective = primary * (1.0 + size * (x - 0.5) if direction == "objective" else 1.0)
+    primary += vector_penalty
+    objective = primary * (
+        1.0 + size * (vector[0] - 0.5) if direction == "objective" else 1.0
+    )
     margins = list(row["margins"])
+    coupled_penalty = (
+        problem.get("constraint_coupling", 0)
+        * sum((coordinate - 0.2) ** 2 for coordinate in vector[1:])
+        / len(vector)
+    )
+    margins = [value - coupled_penalty for value in margins]
     if direction == "constraint":
         margins[0] -= size
     return {
@@ -193,9 +245,30 @@ def _toy_truth(x, context, problem, direction=None, size=0.0):
 
 
 def _question(qid, context, problem, *, direction=None, size=0.0):
-    base = synthetic._question(qid, context, problem)
+    if problem.get("dimension", 1) == 1:
+        base = synthetic._question(qid, context, problem)
+    else:
+        vectors = _offered_vectors(problem)
+        base = {
+            "id": qid,
+            "block": qid,
+            "context": context,
+            "fallback": "x="
+            + ",".join(f"{coordinate:.4f}" for coordinate in vectors[0]),
+            "weight": 1.0,
+            "actions": {
+                "x=" + ",".join(f"{coordinate:.4f}" for coordinate in vector): None
+                for vector in vectors
+            },
+        }
     base["actions"] = {
-        aid: _toy_truth(float(aid[2:]), context, problem, direction, size)
+        aid: _toy_truth(
+            tuple(float(value) for value in aid[2:].split(",")),
+            context,
+            problem,
+            direction,
+            size,
+        )
         for aid in base["actions"]
     }
     feasible = [
@@ -208,7 +281,11 @@ def _question(qid, context, problem, *, direction=None, size=0.0):
     ]
     if safe_ids:
         base["fallback"] = min(
-            safe_ids, key=lambda aid: (abs(float(aid[2:]) - 0.2), aid)
+            safe_ids,
+            key=lambda aid: (
+                sum(abs(float(value) - 0.2) for value in aid[2:].split(",")),
+                aid,
+            ),
         )
     base["exact_best_objective"] = min(feasible) if feasible else None
     return base

@@ -264,6 +264,13 @@ forms, roughness and interior/boundary placement. The exact reference is the
 best offered action; these examples do not establish a multidimensional
 continuous optimum or a real Challenge objective.
 
+`physics-vector-example.json` and `campaign-axes-vector-example.json` add
+two-to-eight dimensional offered sets from bounded deterministic Halton
+coordinates, with a fixed fallback and configurable coupling of the two hard
+margins. A vector `small-grid` is a sampled finite lattice; vector
+`continuous` means sampled continuous-coordinate offers. Both use an exact
+reference on the offered set, not a global continuous optimum.
+
 ```sh
 python -m scripts.dev.score_lab campaign-feedback \
   --config scripts/dev/score_lab/physics-example.json \

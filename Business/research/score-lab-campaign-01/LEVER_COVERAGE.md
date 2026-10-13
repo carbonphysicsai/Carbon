@@ -6,7 +6,7 @@ fixture exercises it. `PARTIAL` means the setting is narrower than the plan.
 
 | Plan group | Current toy coverage | Status / remaining work |
 | --- | --- | --- |
-| A: design dimension, space, shape and optimum | One-dimensional small/dense offered grids; explicit 1/3/10 analytic wells, sinusoidal roughness and interior/boundary placement; loose/tight coupled margins | PARTIAL: dimensions 2–8 and a true multidimensional continuous optimum remain missing; task-shape smoke is one proxy only |
+| A: design dimension, space, shape and optimum | One-dimensional small/dense offered grids and 2–8 dimensional bounded offered sets; explicit 1/3/10 analytic wells, sinusoidal roughness and interior/boundary placement | PARTIAL: high-dimensional grids are sampled, not exhaustive; true global continuous optimum remains missing; small vector smoke is one proxy only |
 | A: constraints and objective | Two coupled hard margins, single/weighted/robust analytic objective forms, variable verification cost | PARTIAL: 0–5 margins, chance objective and reference-noise semantics missing |
 | A: decision forms | Best predicted feasible shortlist with k and abstention/unsafe loss; legacy single-pick value alternative; robust worst-case buyer-value view | PARTIAL: threshold, feasibility-only and sensitivity decisions missing |
 | B: task neighbourhood | Objective, constraint, operating and boundary changes; size, extrapolation distance and value/score weights | IMPLEMENTED as analytic toy assumptions |
@@ -25,6 +25,7 @@ smoke for the new error knobs, with no sensitivity or rule-selection claim.
 its value oracle is approximate and it does not pick a winner.
 `SOBOL_SMOKE_4.md` checks estimator wiring only, with no interpretable index.
 `TASK_SHAPE_READOUT_8.md` checks one-proxy objective-shape plumbing only.
+`VECTOR_READOUT_8.md` checks one-proxy 2–8D offered-action plumbing only.
 The 142-member realism calibration, D3-approved EV4 reference v2, independent
 final holdout, tier-2 replay and one-page owner verdict are still absent.
 The held Test Engineer holdout is never read or queried to fill these gaps.

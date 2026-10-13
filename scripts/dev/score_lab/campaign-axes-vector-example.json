@@ -1,0 +1,6 @@
+[
+  {"path": "problem.dimension", "kind": "choices", "values": [2, 4, 8]},
+  {"path": "problem.space", "kind": "choices", "values": ["small-grid", "continuous"]},
+  {"path": "problem.action_count", "kind": "choices", "values": [9, 13, 17]},
+  {"path": "problem.constraint_coupling", "kind": "linear", "low": 0.0, "high": 1.0}
+]
