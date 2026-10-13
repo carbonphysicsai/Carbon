@@ -39,13 +39,19 @@ WORKFLOW = (
         "two strings). It writes spec.py, lowers it and packs /scratch/output/level4-envelope.json.gz. The task id "
         "(rtsk_ and 64 hex digits) is reply.result.task.task_id.value in the reply, always there, even when the "
         "task has not finished or has failed (also public_result.task_id once the task has succeeded; public_result "
-        "is null otherwise); poll get_research_result with it until the task has finished."
+        "is null otherwise). The call returns once the task has finished: read its state from "
+        "terminal_task.state (reply.result.task is the task as it was queued, at revision 0); "
+        "get_research_result is needed only if terminal_task is null."
     ),
     (
         "3. Call graphite_level4_stage again with the same recipe and that task_id: the reply is LEVEL4_STAGED and "
         "names the submission digest."
     ),
-    "4. Put the digest in the recipe's parameters.composition_graphs and call graphite_run_proposal.",
+    (
+        "4. Put the digest in the recipe's parameters.composition_graphs as the single string "
+        '"sha256:...", not a list, and call graphite_run_proposal with strategy_json (the recipe as a '
+        "JSON string), hypothesis and expected_effect."
+    ),
     (
         "5. To change the model, edit the spec text inside example_run_python (width, layers, activation); keep the "
         "commands as they are."

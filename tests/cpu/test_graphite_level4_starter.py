@@ -140,6 +140,21 @@ def test_the_starter_call_as_the_page_words_it_passes_the_miner_door(tmp_path):
         assert text.index("reply.result.task.task_id.value") < text.index(
             "public_result.task_id"
         )
+    # The call returns finished (the tool's own text); the finished view is
+    # terminal_task, not the queued task in reply.result.
+    assert "nothing to poll" in research_tools.DESCRIPTIONS_V2["start_research_task"]
+    for text in (level4_starter.WORKFLOW[1], page):
+        assert (
+            "terminal_task.state" in text and "until the task has finished" not in text
+        )
+    # Step 4 names the digest's shape and the proposal tool's own arguments.
+    from carbon.agent_campaign.graphite.roles import PROPOSAL_TOOL
+
+    required = PROPOSAL_TOOL["parameters"]["required"]
+    for text in (level4_starter.WORKFLOW[3], page):
+        assert "not a list" in text
+        for name in required:
+            assert name in text
 
 
 def test_the_starter_lowers_stages_and_reaches_a_proposal(tmp_path):
@@ -184,6 +199,14 @@ def test_the_starter_lowers_stages_and_reaches_a_proposal(tmp_path):
     folder.mkdir()
     documents = ex.Experiment._level4_documents(holder, folder, proposal, required=True)
     assert documents is not None
+    # The digest is one string, as the page says; a list (the plural field name
+    # invites it) is refused (2026-10-13 fresh-agent pass).
+    listed = {
+        **proposal,
+        "parameters": {**proposal["parameters"], "composition_graphs": [digest]},
+    }
+    with pytest.raises(ex.Unrebuildable):
+        ex.Experiment._level4_documents(holder, folder, listed, required=True)
     # And without the digest the proposal is refused, as the lane G run was.
     with pytest.raises(ex.Unrebuildable, match="level4_submission_required"):
         ex.Experiment._level4_documents(holder, tmp_path, _strategy(), required=True)
