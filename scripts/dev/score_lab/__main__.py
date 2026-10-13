@@ -236,6 +236,9 @@ def main(argv=None):
         "bank-solved-check", help="aggregate-only V2 solved-bank reconciliation"
     )
     bank_solved.add_argument("--plan", type=Path, required=True)
+    bank_solved.add_argument("--registration", type=Path, required=True)
+    bank_solved.add_argument("--draws", type=Path, required=True)
+    bank_solved.add_argument("--split-seed-file", type=Path, required=True)
     bank_solved.add_argument("--records", type=Path, required=True)
     bank_solved.add_argument("--definition", type=Path, required=True)
     bank_solved.add_argument("--cheap", type=Path)
@@ -250,6 +253,10 @@ def main(argv=None):
         "bank-cost", help="producer-only V2 cost and refinement jobs"
     )
     bank_cost.add_argument("--plan", type=Path, required=True)
+    bank_cost.add_argument("--registration", type=Path, required=True)
+    bank_cost.add_argument("--draws", type=Path, required=True)
+    bank_cost.add_argument("--definition", type=Path, required=True)
+    bank_cost.add_argument("--split-seed-file", type=Path, required=True)
     bank_cost.add_argument("--policy", type=Path, required=True)
     bank_cost.add_argument("--coarse", type=Path)
     bank_cost.add_argument("--jobs-out", type=Path)
@@ -293,7 +300,10 @@ def main(argv=None):
         result = bank_builder.check_solved(
             json.loads(args.plan.read_text(encoding="utf-8")),
             bank.read_records(args.records),
+            registration=json.loads(args.registration.read_text(encoding="utf-8")),
+            draws=json.loads(args.draws.read_text(encoding="utf-8")),
             definition_bytes=args.definition.read_bytes(),
+            split_seed=args.split_seed_file.read_text(encoding="utf-8").strip(),
             cheap=optional(args.cheap),
             reference_model=optional(args.reference_model),
             learnability=optional(args.learnability),
@@ -315,6 +325,10 @@ def main(argv=None):
             json.loads(args.plan.read_text(encoding="utf-8")),
             json.loads(args.policy.read_text(encoding="utf-8")),
             coarse,
+            registration=json.loads(args.registration.read_text(encoding="utf-8")),
+            draws=json.loads(args.draws.read_text(encoding="utf-8")),
+            definition_bytes=args.definition.read_bytes(),
+            split_seed=args.split_seed_file.read_text(encoding="utf-8").strip(),
         )
         jobs = cost.pop("refinement_jobs")
         if args.jobs_out is not None:

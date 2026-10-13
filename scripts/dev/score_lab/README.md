@@ -20,10 +20,15 @@ python -m scripts.dev.score_lab bank-plan \
   --definition docs/development/value-metric-v2/definition.v2.json \
   --split-seed-file PRODUCER_SEED.txt --out PRODUCER_PLAN.json
 python -m scripts.dev.score_lab bank-cost \
-  --plan PRODUCER_PLAN.json --policy REFERENCE_POLICY.json \
+  --plan PRODUCER_PLAN.json --registration REGISTRATION.json \
+  --draws COMMITTED_DRAWS.json --split-seed-file PRODUCER_SEED.txt \
+  --definition docs/development/value-metric-v2/definition.v2.json \
+  --policy REFERENCE_COST_POLICY.json \
   --coarse COARSE_MARGIN_RECORDS.json --jobs-out PRODUCER_REFINEMENT_JOBS.json
 python -m scripts.dev.score_lab bank-solved-check \
-  --plan PRODUCER_PLAN.json --records PRODUCER_SOLVED.jsonl \
+  --plan PRODUCER_PLAN.json --registration REGISTRATION.json \
+  --draws COMMITTED_DRAWS.json --split-seed-file PRODUCER_SEED.txt \
+  --records PRODUCER_SOLVED.jsonl \
   --definition docs/development/value-metric-v2/definition.v2.json
 ```
 
@@ -31,9 +36,14 @@ python -m scripts.dev.score_lab bank-solved-check \
 `UNKNOWN_UNTIL_COARSE` when refinement is required. With complete coarse
 records, it uses the bank's actual in-window action-condition share and the
 registered per-rung CPU/wall costs; `--jobs-out` is producer-only. `bank-solved-check`
+and `bank-cost` first rebuild the plan from the registered producer inputs and
+refuse a serialized plan with changed actions, requirements, jobs or split.
+`bank-solved-check`
 requires every question, action and condition, verifies their planned job IDs,
 image and overlay lock, classifies by reference alone, enforces whole-block
-halves and the alpha block minimum, and prints aggregate counts. Its
+halves and the alpha block minimum, and prints aggregate counts. Exhausted
+reference failures remain reported as INCOMPLETE; they do not by themselves
+invalidate a bank whose registered SCORED-share condition still holds. Its
 development-half diagnostic reuses `bank-check`; owner thresholds remain
 HUMAN_INPUT. Without those inputs the aggregate status is
 `INSUFFICIENT_EVIDENCE`, even if `structural_ready` is true; supplied

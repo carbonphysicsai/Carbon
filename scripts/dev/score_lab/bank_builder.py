@@ -277,14 +277,35 @@ def plan(registration, draws, *, definition_bytes, split_seed):
     }
 
 
-def check_solved(planned, records, *, definition_bytes, **winnability):
+def _require_registered_plan(
+    planned, registration, draws, definition_bytes, split_seed
+):
+    """Replay from registered producer inputs before trusting a serialized plan."""
+    if not isinstance(planned, dict):
+        raise LabRefused("bank_plan_schema")
+    replay = plan(
+        registration, draws, definition_bytes=definition_bytes, split_seed=split_seed
+    )
+    if digest(planned) != digest(replay):
+        raise LabRefused("bank_plan_content_mismatch")
+
+
+def check_solved(
+    planned,
+    records,
+    *,
+    registration,
+    draws,
+    definition_bytes,
+    split_seed,
+    **winnability,
+):
     """Check complete producer records, then evaluate only the public half.
 
     The return value contains aggregate counts, never confirmation cases,
     actions, values or protected IDs. The full `planned` input stays private.
     """
-    if planned.get("schema") != SCHEMA or planned.get("scope") != "PRODUCER_ONLY":
-        raise LabRefused("bank_plan_schema")
+    _require_registered_plan(planned, registration, draws, definition_bytes, split_seed)
     expected = {q["question_id"]: q for q in planned["questions"]}
     expected_jobs = {
         (j["question_id"], j["action_id"], j["condition_id"]): j["job_id"]
@@ -376,15 +397,16 @@ def check_solved(planned, records, *, definition_bytes, **winnability):
         half: counts[half].get("SCORED", 0) / len(rows)
         for half, rows in by_half.items()
     }
+    overall_scored_share = sum(c.get("SCORED", 0) for c in counts.values()) / len(
+        records
+    )
     development = bank.check(
         planned["manifest"],
         by_half["development"],
         definition_bytes=definition_bytes,
         **winnability,
     )
-    structural_ready = all(share >= 0.5 for share in shares.values()) and not any(
-        counts[h].get("INCOMPLETE", 0) for h in counts
-    )
+    structural_ready = overall_scored_share >= 0.5
     measured = development.get("winnability")
     if not structural_ready or measured is None:
         status = "INSUFFICIENT_EVIDENCE"
@@ -407,12 +429,16 @@ def check_solved(planned, records, *, definition_bytes, **winnability):
         "class_counts": counts,
         "decision_determined_with_unresolved_by_class": determined,
         "scored_share": shares,
+        "overall_scored_share": overall_scored_share,
         "development_winnability": development,
     }
 
 
-def reference_cost(planned, policy, coarse=None):
+def reference_cost(
+    planned, policy, coarse=None, *, registration, draws, definition_bytes, split_seed
+):
     """Cost actual planned jobs; refinement depends on this bank's margins."""
+    _require_registered_plan(planned, registration, draws, definition_bytes, split_seed)
     if (
         not isinstance(policy, dict)
         or policy.get("schema") != COST

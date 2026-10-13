@@ -140,6 +140,60 @@ def _solved(planned):
     return records
 
 
+def _check(planned, records, *, definition_bytes, **kwargs):
+    _definition, registration, draws, _policy = _fixture()
+    return bank_builder.check_solved(
+        planned,
+        records,
+        registration=registration,
+        draws=draws,
+        definition_bytes=definition_bytes,
+        split_seed="split",
+        **kwargs,
+    )
+
+
+def _cost(planned, policy, coarse=None):
+    definition, registration, draws, _policy = _fixture()
+    return bank_builder.reference_cost(
+        planned,
+        policy,
+        coarse,
+        registration=registration,
+        draws=draws,
+        definition_bytes=definition,
+        split_seed="split",
+    )
+
+
+def _winnability_inputs(records):
+    predictions = {
+        r["question_id"]: {
+            "a": {"feasible": True, "objective": 0.5},
+            "b": {"feasible": True, "objective": 1.0},
+        }
+        for r in records
+        if r["half"] == "development"
+    }
+    cheap = {
+        qid: {
+            "a": {"feasible": False, "objective": 0.5},
+            "b": {"feasible": True, "objective": 1.0},
+        }
+        for qid in predictions
+    }
+    return {
+        "cheap": cheap,
+        "reference_model": predictions,
+        "cap": 1,
+        "kappa": 0.1,
+        "unit": 1.0,
+        "ceiling_threshold": 0.5,
+        "learnability": {"train_sizes": [10, 20], "accuracies": [0.5, 0.6]},
+        "replicates": 30,
+    }
+
+
 def test_plan_enumerates_every_action_condition_and_splits_whole_blocks():
     definition, registration, draws, _policy = _fixture()
     planned = bank_builder.plan(
@@ -218,7 +272,7 @@ def test_solved_checker_keeps_confirmation_values_out_of_report():
         registration, draws, definition_bytes=definition, split_seed="split"
     )
     records = _solved(planned)
-    report = bank_builder.check_solved(planned, records, definition_bytes=definition)
+    report = _check(planned, records, definition_bytes=definition)
     assert report["status"] == "INSUFFICIENT_EVIDENCE"
     assert report["structural_ready"] is True
     assert report["class_counts"]["confirmation"] == {"SCORED": 4}
@@ -238,16 +292,16 @@ def test_solved_checker_keeps_confirmation_values_out_of_report():
         "half": "confirmation" if broken[0]["half"] == "development" else "development",
     }
     with pytest.raises(LabRefused, match="bank_solved_identity_mismatch"):
-        bank_builder.check_solved(planned, broken, definition_bytes=definition)
+        _check(planned, broken, definition_bytes=definition)
     broken = [dict(r) for r in records]
     broken[0] = {**broken[0], "actions": {"a": broken[0]["actions"]["a"]}}
     with pytest.raises(LabRefused, match="bank_solved_action_coverage"):
-        bank_builder.check_solved(planned, broken, definition_bytes=definition)
+        _check(planned, broken, definition_bytes=definition)
     broken = _solved(planned)
     first = broken[0]["actions"]["a"][0]
     first["job_id"] = _sha("wrong_job")
     with pytest.raises(LabRefused, match="bank_solved_reference_record"):
-        bank_builder.check_solved(planned, broken, definition_bytes=definition)
+        _check(planned, broken, definition_bytes=definition)
     broken = _solved(planned)
     match = next(
         r
@@ -256,20 +310,20 @@ def test_solved_checker_keeps_confirmation_values_out_of_report():
     )
     match["actions"]["a"][0]["record_sha256"] = _sha("different_solve")
     with pytest.raises(LabRefused, match="bank_reused_solve_digest_mismatch"):
-        bank_builder.check_solved(planned, broken, definition_bytes=definition)
+        _check(planned, broken, definition_bytes=definition)
     broken = _solved(planned)
     del broken[0]["actions"]["a"][0]["margins"]
     with pytest.raises(LabRefused, match="bank_solved_reference_record"):
-        bank_builder.check_solved(planned, broken, definition_bytes=definition)
+        _check(planned, broken, definition_bytes=definition)
     broken = _solved(planned)
     broken[0]["actions"]["a"][0]["status"] = "FAILED_REFERENCE"
     broken[0]["class"] = "INCOMPLETE"
     with pytest.raises(LabRefused, match="bank_solved_reference_record"):
-        bank_builder.check_solved(planned, broken, definition_bytes=definition)
+        _check(planned, broken, definition_bytes=definition)
     broken = _solved(planned)
     broken[0]["actions"]["a"][0]["overlay_lock_digest"] = _sha("wrong_overlay")
     with pytest.raises(LabRefused, match="bank_solved_reference_record"):
-        bank_builder.check_solved(planned, broken, definition_bytes=definition)
+        _check(planned, broken, definition_bytes=definition)
 
 
 def test_solved_checker_blocks_below_half_scored_share():
@@ -279,16 +333,42 @@ def test_solved_checker_blocks_below_half_scored_share():
     )
     records = _solved(planned)
     development = [r for r in records if r["half"] == "development"]
-    for row in development[:3]:
+    confirmation = [r for r in records if r["half"] == "confirmation"]
+    for row in [*development[:3], *confirmation[:2]]:
         row["actions"]["a"][0]["status"] = "FAILED_REFERENCE"
         row["actions"]["a"][0]["retry_exhausted"] = True
         row["class"] = "INCOMPLETE"
-    result = bank_builder.check_solved(planned, records, definition_bytes=definition)
+    result = _check(planned, records, definition_bytes=definition)
     assert result["status"] == "INSUFFICIENT_EVIDENCE"
     assert result["scored_share"]["development"] == 0.25
+    assert result["overall_scored_share"] == 0.375
+    assert result["structural_ready"] is False
     assert (
         result["development_winnability"]["size_blocker"] == "scored_share_below_half"
     )
+
+
+def test_exhausted_reference_failure_is_reported_with_sufficient_scored_share():
+    definition, registration, draws, _policy = _fixture()
+    planned = bank_builder.plan(
+        registration, draws, definition_bytes=definition, split_seed="split"
+    )
+    records = _solved(planned)
+    row = next(r for r in records if r["half"] == "development")
+    row["actions"]["a"][0]["status"] = "FAILED_REFERENCE"
+    row["actions"]["a"][0]["retry_exhausted"] = True
+    row["class"] = "INCOMPLETE"
+    result = _check(
+        planned,
+        records,
+        definition_bytes=definition,
+        **_winnability_inputs(records),
+    )
+    assert result["scored_share"] == {"development": 0.75, "confirmation": 1.0}
+    assert result["overall_scored_share"] == 0.875
+    assert result["class_counts"]["development"]["INCOMPLETE"] == 1
+    assert result["structural_ready"] is True
+    assert result["status"] == "DEVELOPMENT_WINNABLE_DIAGNOSTIC"
 
 
 def test_winnability_is_a_development_diagnostic_with_failure_path():
@@ -297,40 +377,14 @@ def test_winnability_is_a_development_diagnostic_with_failure_path():
         registration, draws, definition_bytes=definition, split_seed="split"
     )
     records = _solved(planned)
-    predictions = {
-        r["question_id"]: {
-            "a": {"feasible": True, "objective": 0.5},
-            "b": {"feasible": True, "objective": 1.0},
-        }
-        for r in records
-        if r["half"] == "development"
-    }
-    cheap = {
-        qid: {
-            "a": {"feasible": False, "objective": 0.5},
-            "b": {"feasible": True, "objective": 1.0},
-        }
-        for qid in predictions
-    }
-    inputs = {
-        "cheap": cheap,
-        "reference_model": predictions,
-        "cap": 1,
-        "kappa": 0.1,
-        "unit": 1.0,
-        "ceiling_threshold": 0.5,
-        "learnability": {"train_sizes": [10, 20], "accuracies": [0.5, 0.6]},
-        "replicates": 30,
-    }
-    passing = bank_builder.check_solved(
-        planned, records, definition_bytes=definition, **inputs
-    )
+    inputs = _winnability_inputs(records)
+    passing = _check(planned, records, definition_bytes=definition, **inputs)
     assert passing["status"] == "DEVELOPMENT_WINNABLE_DIAGNOSTIC"
-    failing = bank_builder.check_solved(
+    failing = _check(
         planned,
         records,
         definition_bytes=definition,
-        **{**inputs, "cheap": predictions},
+        **{**inputs, "cheap": inputs["reference_model"]},
     )
     assert failing["status"] == "DEVELOPMENT_NOT_WINNABLE_DIAGNOSTIC"
     assert (
@@ -344,7 +398,7 @@ def test_refinement_cost_uses_this_bank_composition_and_unit():
     planned = bank_builder.plan(
         registration, draws, definition_bytes=definition, split_seed="split"
     )
-    unknown = bank_builder.reference_cost(planned, policy)
+    unknown = _cost(planned, policy)
     assert unknown["refinement_status"] == "UNKNOWN_UNTIL_COARSE"
     assert unknown["total_cpu_hours"] is None
     coarse = {
@@ -359,7 +413,7 @@ def test_refinement_cost_uses_this_bank_composition_and_unit():
         }
         for i, j in enumerate(planned["jobs"])
     }
-    result = bank_builder.reference_cost(planned, policy, coarse)
+    result = _cost(planned, policy, coarse)
     assert result["refinement_status"] == "BANK_COMPOSITION_MEASURED"
     assert result["in_window_share"] == 0.25  # own bank, not PDD's 7.3%
     assert result["fine_jobs"] == 4 and result["trigger_jobs"] == 1
@@ -368,15 +422,60 @@ def test_refinement_cost_uses_this_bank_composition_and_unit():
     first = planned["jobs"][0]["job_id"]
     wrong[first] = {**wrong[first], "margin_unit": "wrong_unit"}
     with pytest.raises(LabRefused, match="bank_coarse_margin_record"):
-        bank_builder.reference_cost(planned, policy, wrong)
+        _cost(planned, policy, wrong)
     with pytest.raises(LabRefused, match="bank_coarse_coverage"):
-        bank_builder.reference_cost(planned, policy, {first: coarse[first]})
+        _cost(planned, policy, {first: coarse[first]})
     mismatched = {**policy, "reference_policy_digest": _sha("wrong-reference")}
     with pytest.raises(LabRefused, match="bank_cost_policy_identity"):
-        bank_builder.reference_cost(
-            {**planned, "cost_policy_digest": bank_builder.digest(mismatched)},
-            mismatched,
-        )
+        _cost(planned, mismatched)
+
+
+def test_consumers_replay_registered_plan_before_using_its_coverage_or_cost():
+    definition, registration, draws, policy = _fixture()
+    planned = bank_builder.plan(
+        registration, draws, definition_bytes=definition, split_seed="split"
+    )
+    records = _solved(planned)
+    reduced = {
+        **planned,
+        "action_ids": ["b"],
+        "requirements": [r for r in planned["requirements"] if r["action_id"] == "b"],
+    }
+    with pytest.raises(LabRefused, match="bank_plan_content_mismatch"):
+        _check(reduced, records, definition_bytes=definition)
+    undercounted = {**planned, "jobs": planned["jobs"][:1]}
+    with pytest.raises(LabRefused, match="bank_plan_content_mismatch"):
+        _cost(undercounted, policy)
+    with pytest.raises(LabRefused, match="bank_plan_content_mismatch"):
+        _check(undercounted, records, definition_bytes=definition)
+    altered_manifest = {
+        **planned,
+        "manifest": {**planned["manifest"], "confirmation_blocks": 1},
+    }
+    with pytest.raises(LabRefused, match="bank_plan_content_mismatch"):
+        _check(altered_manifest, records, definition_bytes=definition)
+    altered_split = {
+        **planned,
+        "questions": [
+            {
+                **planned["questions"][0],
+                "half": (
+                    "development"
+                    if planned["questions"][0]["half"] == "confirmation"
+                    else "confirmation"
+                ),
+            },
+            *planned["questions"][1:],
+        ],
+    }
+    with pytest.raises(LabRefused, match="bank_plan_content_mismatch"):
+        _check(altered_split, records, definition_bytes=definition)
+    duplicated = {
+        **planned,
+        "requirements": [*planned["requirements"], planned["requirements"][0]],
+    }
+    with pytest.raises(LabRefused, match="bank_plan_content_mismatch"):
+        _check(duplicated, records, definition_bytes=definition)
 
 
 def test_producer_cli_writes_jobs_but_prints_only_aggregates(tmp_path, capsys):
@@ -426,6 +525,12 @@ def test_producer_cli_writes_jobs_but_prints_only_aggregates(tmp_path, capsys):
                 "bank-solved-check",
                 "--plan",
                 str(planned),
+                "--registration",
+                str(tmp_path / "registration.json"),
+                "--draws",
+                str(tmp_path / "draws.json"),
+                "--split-seed-file",
+                str(tmp_path / "seed.txt"),
                 "--records",
                 str(records),
                 "--definition",
@@ -441,6 +546,14 @@ def test_producer_cli_writes_jobs_but_prints_only_aggregates(tmp_path, capsys):
                 "bank-cost",
                 "--plan",
                 str(planned),
+                "--registration",
+                str(tmp_path / "registration.json"),
+                "--draws",
+                str(tmp_path / "draws.json"),
+                "--definition",
+                str(tmp_path / "definition.json"),
+                "--split-seed-file",
+                str(tmp_path / "seed.txt"),
                 "--policy",
                 str(tmp_path / "policy.json"),
             ]
