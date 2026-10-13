@@ -70,3 +70,13 @@ This decides whether the Challenge can carry V2 value evidence (DEFINITION §7):
 ## 7. Battery first (Track A)
 
 Battery's v3 design bank already solves every action for its Q3 questions. It becomes a V2 bank if it meets §2.3's SCORED share and §4's winnability check. RES-10 says which battery families could. Otherwise the proof moves to the best Track B pilot, under this same spec.
+
+## 8. Neighbour-task questions (the owner, 2026-10-13)
+
+**Value must count the target task and the task "if it changes a little".** So a V2 bank also carries **neighbour tasks**: the same Challenge with its objective weights, constraint limits or operating conditions nudged.
+
+- **Declared with the question law.** Each neighbour is a registered variant of the question law, with its id, which knob is nudged, by how much, and why a buyer could face it. It is declared **before** the bank is built, never chosen after looking at models.
+- **Solved like the target.** Every action is solved under every condition, it is classified by the reference alone, and it is split into development and sealed halves by block, alongside its target questions. The neighbour must stay inside declared validity.
+- **Cost.** A nudge to objective weights or constraint limits re-uses the target's solves: only the classification and objective are recomputed. A nudge to conditions needs new solves. Prefer the first kind where it is representative.
+- **Use.** The score lab, and later a registered score, may compute value on the target and average it over the neighbours with a neighbourhood weight ρ_n. That weight is HUMAN_INPUT and is read from curves. The definition's reuse rule applies: ρ_n = 0 in any registered score until independent neighbour strata pass their own confirmation.
+- **Records.** Each question record gains `task: "target" | "<neighbour id>"`. The manifest lists the neighbour declarations and their counts per class.
