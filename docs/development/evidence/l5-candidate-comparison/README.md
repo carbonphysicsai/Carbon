@@ -59,12 +59,19 @@ prove execution. This tool does not compile or admit a new construction.
 
 The executor supplies one closed receipt per arm and reconstruction seed, with
 COMPLETE or FAILED_INFRA, all metering events, exact event-derived totals and
-every declared measurement. Every event includes updates, objective evaluations,
+every declared measurement. COMPLETE requires a model-artifact digest. A
+FAILED_INFRA receipt before model creation retains a null model identity; any
+existing non-null identity is still validated, and failed measurements remain
+null. The report preserves those identities without inventing a placeholder.
+Every event includes updates, objective evaluations,
 gradient evaluations, tokens, line-search trials and wall/core seconds. Include
 setup, construction, prediction and verification costs; prediction/verification
 phases must be explicit even when cached and zero-cost. Each line-search trial
 counts its loss AND gradient evaluations; it is never collapsed into one outer
-polish step. QUASI_NEWTON requires an explicit line-search phase in both arms.
+polish step. The QUASI_NEWTON hypothesis compares the existing L-BFGS polish
+with the proposed self-scaled BFGS/Broyden finish; both use line search, so both
+arms require its explicit metering. An unpolished baseline is outside that
+declared comparison and needs its own prospectively reviewed plan.
 Missing counters, unmatched seeds/data/hardware, omitted work, unreconciled
 totals and any actual cap overrun refuse before comparison. PUBLIC_DEVELOPMENT
 cannot relabel the zero-cost stand-in as measured execution.

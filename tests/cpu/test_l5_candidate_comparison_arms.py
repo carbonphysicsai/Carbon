@@ -225,6 +225,43 @@ def test_infrastructure_failure_preserves_nulls(inputs):
     )
 
 
+def test_infra_before_model_creation_keeps_null_identity_without_fabrication(inputs):
+    record = inputs[1][-1]
+    record["completion"] = "FAILED_INFRA"
+    record["model_digest"] = None
+    record["events"] = [
+        {
+            "id": "setup-failed",
+            "phase": "setup",
+            "updates": 0,
+            "objective_evaluations": 0,
+            "gradient_evaluations": 0,
+            "line_search_trials": 0,
+            "tokens": 0,
+            "wall_s": 0.02,
+            "core_s": 0.01,
+        }
+    ]
+    record["totals"] = {
+        key: record["events"][0][key] for key in (*arms.COUNTERS, "wall_s", "core_s")
+    }
+    for item in record["measurements"].values():
+        item["status"] = "FAILED_INFRA"
+        item["values"]["decision_loss"] = None
+    reseal(record)
+    report = run(inputs)
+    assert report["model_artifacts"]["candidate:4"] is None
+    assert report["budget_records"]["candidate:4"]["actual"]["updates"] == 0
+    assert all(
+        metrics["decision_loss"]["point_improvement"] is None
+        for metrics in report["effects"].values()
+    )
+    record["model_digest"] = "invalid-existing-digest"
+    reseal(record)
+    with pytest.raises(arms.ComparisonRefused, match="model artifact"):
+        run(inputs)
+
+
 def test_target_gain_cannot_erase_neighbour_harm_or_adopt(inputs):
     plan, receipts = inputs
     for record in receipts:

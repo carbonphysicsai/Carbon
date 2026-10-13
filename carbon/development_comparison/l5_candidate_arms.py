@@ -304,7 +304,6 @@ def _receipt(plan, raw):
     )
     _bound(raw, "receipt_digest")
     arm, seed = raw["arm"], raw["seed"]
-    _sha(raw["model_digest"], "measured model artifact")
     if (
         raw["schema"] != RECEIPT_SCHEMA
         or raw["evidence_basis"] != plan["evidence_basis"]
@@ -320,6 +319,8 @@ def _receipt(plan, raw):
         raise ComparisonRefused("receipt construction or equal configuration mismatch")
     if raw["completion"] not in ("COMPLETE", "FAILED_INFRA"):
         raise ComparisonRefused("typed complete/infrastructure outcome required")
+    if raw["completion"] == "COMPLETE" or raw["model_digest"] is not None:
+        _sha(raw["model_digest"], "measured model artifact")
     budget = plan["common"]["budget"]
     ledger = BudgetLedger(BudgetCap(1, budget["wall_s"], budget["core_s"]))
     costs = Ledger()
@@ -554,6 +555,10 @@ def compare(plan: PairPlan, receipts):
         "plan_digest": body["plan_digest"],
         "candidate_id": body["candidate_id"],
         "receipt_digests": [pairs[key]["receipt_digest"] for key in sorted(pairs)],
+        "model_artifacts": {
+            f"{arm}:{seed}": pairs[(arm, seed)]["model_digest"]
+            for arm, seed in sorted(pairs)
+        },
         "budget_records": budgets,
         "effects": effects,
         "thresholds": "HUMAN_INPUT",
