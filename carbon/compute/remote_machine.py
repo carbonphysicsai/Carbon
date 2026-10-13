@@ -553,7 +553,7 @@ docker network create --internal {name} >/dev/null 2>&1 || exit {JOB_NETWORK_UNA
 if ! docker run -d --rm --name {name} --network {name} --read-only \\
     --tmpfs /scratch:rw,nosuid,nodev,exec,uid={WORKER_USER},gid={WORKER_USER},mode=0700 \\
     --cap-drop ALL --security-opt no-new-privileges \\
-    --gpus "device=$carbon_gpu" \\
+    --gpus "driver=nvidia,device=$carbon_gpu" \\
     --env-file "$carbon_env" --entrypoint {shlex.quote(entry)} {image} {" ".join(map(shlex.quote, args))} >/dev/null; then
   docker network rm {name} >/dev/null 2>&1 || true
   exit {JOB_CONTAINER_NOT_STARTED}

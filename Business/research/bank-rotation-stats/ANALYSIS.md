@@ -29,21 +29,21 @@ version and Validator-owned contract; not granted by this research.
 For a frozen model and rule, let Y_i be the loss on independent physical
 question i and m_i its appearances. Repeated deterministic evaluation returns
 the same Y_i. The occurrence-weighted mean has variance
-sigmaÂ² Ã— sum(m_iÂ²)/(sum m_i)Â². Thus effective independent cases are
+sigma² × sum(m_i²)/(sum m_i)². Thus effective independent cases are
 
 `N_eff = (sum m_i)^2 / sum(m_i^2)`.
 
 If every case repeats E times, N=nT appearances and N_eff=N/E, exactly.
 Uneven reuse is worse for that occurrence-weighted estimator: e.g.
-m=(1,9) has effective n=100/82â‰ˆ1.22, while (5,5) has 2 (ASSUMPTION toy
+m=(1,9) has effective n=100/82≈1.22, while (5,5) has 2 (ASSUMPTION toy
 counts). Deduplicating gives the actual unique-question estimator; it must
 preserve registered population/stratum weights rather than silently change
 the official score. Hidden duplicates inserted for determinism never add
 independent case count either.
 
 For stochastic repeat measurement, a stand-in model Y_it=mu+u_i+eps_it with
-case variance sigma_cÂ² and independent residual sigma_eÂ² gives
-rho=sigma_cÂ²/(sigma_cÂ²+sigma_eÂ²) and
+case variance sigma_c² and independent residual sigma_e² gives
+rho=sigma_c²/(sigma_c²+sigma_e²) and
 
 `N_eff = N^2 / [rho sum(m_i^2) + (1-rho) N]`;
 balanced repeats have design effect `D=1+(E-1)rho`, hence N_eff=N/D.
@@ -80,7 +80,7 @@ sharing the same bank-to-population uncertainty. A small time-series
 autocorrelation alone therefore cannot establish fresh P coverage.
 
 For nonconcurrent random draws from an unchanging bank, ignoring active
-exclusion and retirement, expected overlap is nÂ²/B and the unconditional
+exclusion and retirement, expected overlap is n²/B and the unconditional
 case-effect correlation contribution is n/B (derived stand-in). Adjacent
 active draws are disjoint under Carbon's invariant, so that approximation
 does not apply to them. Use the real *internal* incidence matrix to measure
@@ -118,11 +118,11 @@ E within one window makes its largest dependency determine lag.
 
 Random reuse has long tails. For E=2, approximate each of n=98 target cases'
 next selection by independent Bernoulli p=98/2000. Then
-`Pr(all repeated by t) â‰ˆ [1-(1-p)^t]^98`.
+`Pr(all repeated by t) ≈ [1-(1-p)^t]^98`.
 Derived median/95th/99th waiting times are 99/151/183 windows; independence,
 constant p, no active exclusion and no turnover are **ASSUMPTION**, not
 actual schedule percentiles. The owner E1 record independently documents
-the earlier ~105-window (~16-day) E2 release estimate. B*E/nâ‰ˆ100 windows
+the earlier ~105-window (~16-day) E2 release estimate. B*E/n≈100 windows
 for each historical class is a *single-case draw-lifetime mean* in this
 simple random model, not the score-release maximum. Scheduling can bound
 this tail but creates predictable reuse timing; no secrecy guarantee follows.
@@ -168,7 +168,7 @@ At steady balanced retirement:
 Startup is `sum_s B_s c_s/y_s`; if c_s is measured per ready-live item,
 do not divide by yield again. E changes steady refill, **not initial B**.
 Finite horizons have integer/burst effects and startup leftovers. Per-solve
-CPU-h = wall_s Ã— actual occupied cores / 3600 summed over jobs, not elapsed
+CPU-h = wall_s × actual occupied cores / 3600 summed over jobs, not elapsed
 batch wall time. Queue/parallelization affect latency and utilization, not
 this accounting identity. GPU work and per-container overhead are separate.
 Failed-reference cost stays in c/y and typed failure counts; not candidate
@@ -183,7 +183,7 @@ At a common illustrative n=100, y=1 (ASSUMPTION reference-ready comparison):
 | CFD, B=5n,E=20 | 2 / 6 / 20 | 1000 / 3000 / 10000 | 10 / 30 / 100 |
 
 Battery base 91 CPU-s is public VALIDATOR-23 planning, with 75/120 CPU-s
-ASSUMPTION endpoints. Motor endpoints are owner's approximate 0.6â€“1
+ASSUMPTION endpoints. Motor endpoints are owner's approximate 0.6–1
 core-h class description; 0.8 is an assumed midpoint. All CFD costs are
 ASSUMPTION illustrations, not estimates measured for f17 or cooling. Actual
 per-Challenge c_s/y_s requires a public rights-clear timing receipt.
@@ -196,8 +196,8 @@ This is sourced planning arithmetic, not an operator utilization audit.
 Q3 costs a whole question, not one reference solve. Public VALIDATOR-23
 planning uses roughly 125 lattice/refinement solves at 91 CPU-s: 3.160
 CPU-h/offered question, and describes 160 live questions needing roughly
-700â€“800 CPU-h. That latter startup estimate includes unresolved planning
-details not specified by the simple 125Ã—91 calculation; preserve the source
+700–800 CPU-h. That latter startup estimate includes unresolved planning
+details not specified by the simple 125×91 calculation; preserve the source
 estimate rather than silently reconcile it. [#1062](https://github.com/carbonphysicsai/Carbon/pull/1062)
 uses owner-planning 0.73 CPU-h/offered question, with ASSUMPTION low/base/high
 0.66/0.73/0.80. They are different question/lattice routes; do not present

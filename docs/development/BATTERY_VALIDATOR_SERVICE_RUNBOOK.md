@@ -116,7 +116,7 @@ directory, outside every checkout.
    | `service` | `service_config_missing`, `_not_regular`, `_not_owner_only`, `_schema`, `_fields`, `service_directory_not_owner_only` | Fix the file or directory named. |
    | `intake` | `intake_config_*`, `intake_exposure_unrecorded`, `intake_exposure_needs_tls` | Fix the intake configuration (§5 for a public bind). |
    | `deployment_config`, `deployment` | `evaluation_*` (the deployment's own codes), `deployment_backend_direct` | The service serves through the isolated carrier only. |
-   | `exposure` | `intake_tls_cert_missing`, `intake_tls_key_missing`, `intake_tls_key_not_regular`, `intake_tls_key_not_owner_only`, `intake_tls_unreadable`, `intake_exposure_needs_carrier` | Only for a non-loopback bind (§5). The key must be a regular owner-only file, not a symlink (§5, TLS). |
+   | `exposure` | `intake_tls_cert_missing`, `intake_tls_key_missing`, `intake_tls_key_not_regular`, `intake_tls_key_not_owner_only`, `intake_tls_unreadable`, `intake_exposure_needs_carrier`, `intake_exposure_needs_commitment` | Public bind or explicit trusted proxy (§5). TLS keys must be regular owner-only files, not symlinks. All exposure requires the isolated carrier and commitment enforcement. |
    | `images` | `image_manifest_unreadable`, `image_not_eligible` (with the doctor's code), `torch_image_not_built_on_worker` | Load or rebuild the pinned image the manifest names; rerun the doctor. `worker.doctor.docker_unavailable` is Docker not answering: start it, or rerun with `--wait-for-host`. |
    | `upgraded` | `deployment_not_upgraded` (with the fields), `deployment_identities_not_carryable` | Run `python -m carbon.battery.operate upgrade --config $C` (OWNER-BATTERY-CARRYOVER-01), then preflight again. A changed rule, material or seed pin needs a new deployment. |
    | `parity` | `practice_image_unnamed`, `practice_manifest_unreadable`, `practice_image_differs` (with the fields, the validator's image as `standard`), `parity_contract_differs` | Stop. Miners practise on the validator's own pinned images and contract (§3.5). |
@@ -264,6 +264,43 @@ same validator hotkey as `receiver`, and the same publisher wallet. Names:
    Pointing it at `C1` now refuses with `WEIGHT_SOURCE_ARCHIVED`.
 
 ## 5. Publishing the endpoint (owner-reserved steps first)
+
+PLT-15 adds a generic trusted TLS proxy mode. It is code support only:
+OWNER-INTAKE-EXPOSURE-02's security acceptance, release, Launchpad's operator
+checks and deployment remain pending. No tunnel is opened by this change.
+After the owner records acceptance for the listener, the intake can carry:
+
+```json
+"exposure": {
+  "via": "trusted_proxy",
+  "header": "CF-Connecting-IP",
+  "record": "<the owner's recorded exposure decision>"
+}
+```
+
+The mode requires a loopback bind, the recorded decision, the isolated
+carrier and `require_commitment: true` (the deployment's default). A public
+deployment cannot opt out of binding; a missing reader refuses admission as
+`commitment_reader_unavailable`, never a score. Private local fixtures retain
+their explicit unbound mode. Receiver-required authentication applies to every
+signed intake tool, including status reads and resends.
+
+The trusted proxy must overwrite its configured header with exactly one
+client IP literal. Only a TCP peer of 127.0.0.1 or ::1 can supply it. IP lists,
+ports, scoped addresses, duplicate/missing headers and malformed values return
+400 `peer_header_invalid` before body reads or authentication. Other header
+names are ignored; direct mode ignores these identity headers entirely. Any
+proxy can use another valid header name, but appending an untrusted forwarding
+chain is insufficient. The intake normalizes IP spellings into one bucket.
+
+Request buckets and the four-connection client cap use the validated IP.
+Before headers exist, sockets from the shared proxy remain under the existing
+64-connection global cap and socket timeout; after headers, per-client slots
+are held until the request connection finishes. Direct sockets retain the
+early per-peer cap. The service's local health probe supplies the configured
+header with loopback identity; public facts add only `exposure.via`.
+The owner's Cloudflare/TLS and outside-network checks belong to Launchpad;
+agents never read tunnel credentials or operate the host under this ticket.
 
 OWNER-INTAKE-EXPOSURE-01 permits a public bind for testnet 567, the
 battery Challenge and today's routes and limits. Exposing a host is still an
