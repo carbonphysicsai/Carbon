@@ -16,9 +16,10 @@ from pathlib import Path
 
 import pytest
 
+from carbon.agent_campaign import grant_runs
 from carbon.agent_campaign.grant import SpendingGrant
 from carbon.agent_campaign.grant_runs import PER_RUN_CAP_USD, WEEKLY_CAP_USD
-from carbon.agent_campaign.graphite import grant_binding
+from carbon.agent_campaign.graphite import grant_binding, score_lab_research
 from carbon.agent_campaign.graphite.roles import RoleName
 from carbon.development_session.model_provider import ENGY_LADDER
 from carbon.reconstruction.capability_registry import (
@@ -83,7 +84,6 @@ def test_it_is_its_own_grant_and_the_hunt_grants_are_unchanged():
     assert grant_binding.PHASE3_GRANTS[
         "GRAPHITE-GRANT-HUNT-H3-CONSTRUCTOR"
     ].authority == (grant_binding.HUNT_AUTHORITY)
-    assert {n for n in grant_binding.PHASE3_GRANTS if "HUNT-H4" in n} == set()
     assert GRANT_ID not in {g for g in grant_binding.PHASE3_GRANTS if "HUNT" in g}
 
 
@@ -133,6 +133,70 @@ def test_it_fits_the_weekly_cap_beside_the_owners_other_open_grants():
     assert OTHER_OPEN_GRANTS + grant.monetary_ceiling <= WEEKLY_CAP_USD
 
 
+@pytest.mark.parametrize(
+    "rerun_id",
+    ["GRAPHITE-GRANT-L4-G-CONSTRUCTOR-3", "GRAPHITE-GRANT-L4-G-CONSTRUCTOR-4"],
+)
+def test_the_rerun_grant_is_the_same_grant_again_and_fits_the_effective_weekly_cap(
+    rerun_id,
+):
+    """-3 is -2 again (the run under -2 was spent without staging): every figure equal, nothing above the 14.94 ceiling.
+    The owner's other open grants plus every grant the binding registers under the standing test grant (-2, -3 and the
+    A2 re-run) stay under the effective cap (300 less the held reserves).
+    """
+    first, again = _grant(), _grant(rerun_id)
+    for name in (
+        "monetary_ceiling",
+        "worst_case_run_cost",
+        "cleanup_allowance",
+        "permitted_runs",
+        "max_concurrency",
+        "max_runtime_s",
+        "max_submissions",
+        "pod_rate_ceiling_usd_per_hr",
+        "currency",
+        "provider",
+    ):
+        assert getattr(again, name) == getattr(first, name), name
+    assert (
+        again.monetary_ceiling == Decimal("14.94") and again.grant_id != first.grant_id
+    )
+    entry, other = (
+        grant_binding.PHASE3_GRANTS[again.grant_id],
+        grant_binding.PHASE3_GRANTS[first.grant_id],
+    )
+    assert (entry.min_level, entry.max_level) == (4, 4)
+    assert (
+        entry.authority
+        == other.authority
+        == grant_binding.STANDING_TEST_GRANT_AUTHORITY
+    )
+    assert entry.start_model == other.start_model == "kimi-k3"
+    held = sum(grant_runs.HELD_RESERVES.values())
+    effective = WEEKLY_CAP_USD - held
+    assert grant_runs.effective_weekly_cap() == effective
+    standing = [
+        _grant(grant_id)
+        for grant_id, registered in grant_binding.PHASE3_GRANTS.items()
+        if registered.authority == grant_binding.STANDING_TEST_GRANT_AUTHORITY
+    ]
+    assert {g.grant_id for g in standing} >= {
+        first.grant_id,
+        again.grant_id,
+        "GRAPHITE-GRANT-HUNT-A2-RERUN-ATTACKER",
+    }
+    # The Score Lab research grant is a closed-task grant under the same standing authority; it is not in the
+    # phase 3 binding, so its ceiling is added from the module's own whitelist.
+    research = [
+        _grant(grant_id) for grant_id in sorted(score_lab_research.RESEARCH_GRANTS)
+    ]
+    assert research and all(g.monetary_ceiling <= Decimal("14.94") for g in research)
+    total = sum(g.monetary_ceiling for g in standing) + sum(
+        g.monetary_ceiling for g in research
+    )
+    assert OTHER_OPEN_GRANTS + total <= effective
+
+
 def _index_rows():
     text = (GRANTS / "README.md").read_text(encoding="utf-8")
     section = text[text.index("## Level 4 Constructor grants (index)") :]
@@ -170,4 +234,5 @@ def test_the_grants_index_lists_every_level_4_constructor_grant_with_its_pool():
         pools[row["authority"]] = (
             pools.get(row["authority"], Decimal(0)) + row["ceiling"]
         )
-    assert pools[grant_binding.STANDING_TEST_GRANT_AUTHORITY] == Decimal("14.94")
+    assert pools[grant_binding.STANDING_TEST_GRANT_AUTHORITY] == Decimal("44.82")
+    assert pools[grant_binding.HUNT_AUTHORITY] == Decimal("14.94")

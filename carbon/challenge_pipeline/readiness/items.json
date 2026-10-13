@@ -238,9 +238,9 @@
    "kind": "auto",
    "lesson": "S6",
    "title": "The promotion rule exists: comparison settings plus an equivalence margin measured from the challenge's noise source.",
-   "check": "recorded_tests",
+   "check": "promotion_margin",
    "pending": {
-    "reason": "no promotion-rule / equivalence-margin evidence is recorded for the challenge",
+    "reason": "active rule structure is checked; committed noise measurement provenance is HUMAN_INPUT",
     "owner": "Carbon Validator",
     "neutral_tests": []
    }
@@ -288,9 +288,9 @@
    "kind": "auto",
    "lesson": "n/a",
    "title": "A frozen decision study exists, with a finite comparator, commitment before reference access, and representative and boundary groups.",
-   "check": "recorded_tests",
+   "check": "frozen_study",
    "pending": {
-    "reason": "no frozen decision-study check is recorded for the challenge",
+    "reason": "frozen study reader verifies comparator, contract pin, explicit population labels and access timing; absent labels/timing are findings",
     "owner": "Data Collection",
     "neutral_tests": []
    }
@@ -300,9 +300,9 @@
    "kind": "auto",
    "lesson": "n/a",
    "title": "The equal-cost harness adapter is registered, with a B ladder confirmed by the Test Lead.",
-   "check": "recorded_tests",
+   "check": "harness_adapter",
    "pending": {
-    "reason": "no equal-cost harness adapter check is recorded for the challenge",
+    "reason": "registered adapter and equal-budget tests are checked; per-level B ladder digest acceptance requires Test Lead review",
     "owner": "Data Collection",
     "neutral_tests": []
    }
@@ -312,9 +312,9 @@
    "kind": "auto",
    "lesson": "E8",
    "title": "A timing calibration on the target hardware has run, and counted-plan timeouts are at least 2\u00d7 p95.",
-   "check": "recorded_tests",
+   "check": "counted_timing",
    "pending": {
-    "reason": "no timing calibration check is recorded for the challenge",
+    "reason": "counted plan timing reader requires an authoritative code registry; an earlier no-plan review alone cannot prove absence",
     "owner": "Data Collection",
     "neutral_tests": []
    }
@@ -324,9 +324,9 @@
    "kind": "auto",
    "lesson": "E7",
    "title": "The importer has run on at least one real solver output.",
-   "check": "recorded_tests",
+   "check": "real_import",
    "pending": {
-    "reason": "no real-solver-output importer check is recorded for the challenge",
+    "reason": "real public reference payload digest and retained successful importer output are checked without solving",
     "owner": "Data Collection",
     "neutral_tests": []
    }
@@ -336,9 +336,9 @@
    "kind": "auto+review",
    "lesson": "S4",
    "title": "Reference coverage of the decision set is reported, and the refinement policy for unresolved cases is decided.",
-   "check": "recorded_tests",
+   "check": "reference_coverage",
    "pending": {
-    "reason": "no reference-coverage report is recorded for the challenge",
+    "reason": "reference-only coverage is recomputed and reported; per-level refinement policy acceptance remains Test Lead review",
     "owner": "Data Collection",
     "neutral_tests": []
    }
@@ -348,9 +348,9 @@
    "kind": "auto",
    "lesson": "S5, N3",
    "title": "Any confirmation study's analysis code is built, merged and pinned with every imported module before freeze.",
-   "check": "recorded_tests",
+   "check": "analysis_pins",
    "pending": {
-    "reason": "no pinned analysis-code check is recorded for the challenge",
+    "reason": "analysis import closure and module pins are checked at the historical freeze commit, without opening confirmation references",
     "owner": "Data Collection",
     "neutral_tests": []
    }
@@ -419,9 +419,9 @@
    "kind": "auto+review",
    "lesson": "S9",
    "title": "Gates are tested on hidden and tuning data, not practice alone.",
-   "check": "recorded_tests",
+   "check": "gate_audit",
    "pending": {
-    "reason": "the gate audit on hidden and tuning predictions does not exist yet (VALIDATOR-09)",
+    "reason": "aggregate panel loader is built; real operator panel and Test Lead framing remain absent",
     "owner": "Carbon Validator",
     "neutral_tests": []
    }

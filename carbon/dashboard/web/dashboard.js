@@ -38,6 +38,28 @@
     NO_IMPROVEMENT_BEYOND_GRAIN: ["no improvement beyond the grain", "chip-muted"],
     SEALED_UNTIL_GRAIN: ["sealed until the grain is posted", "chip-sealed"],
   };
+  const REFUSALS = {
+    malformed_submission: "Malformed submission",
+    contract_digest_malformed: "Malformed contract digest",
+    development_variant_not_served: "Development variant not served",
+    contract_not_served: "Contract not served",
+    challenge_mismatch: "Challenge mismatch",
+    oversized_submission: "Submission too large",
+    strategy_not_utf8: "Strategy is not UTF-8",
+    strategy_bom: "Strategy has a byte-order mark",
+    strategy_nesting_too_deep: "Strategy nesting too deep",
+    strategy_not_json: "Strategy is not JSON",
+    strategy_not_object: "Strategy must be an object",
+    non_finite_value: "Non-finite value",
+    duplicate_key: "Duplicate key",
+    integer_out_of_range: "Integer out of range",
+    hotkey_window_used: "Hotkey already used",
+    receipt_block_missing: "Receipt block missing",
+    level4_envelope_incomplete: "Level 4 submission incomplete",
+    unclassified_refusal: "Other",
+    other: "Other",
+  };
+  const SEALED_GRAIN = "Scores sealed until the screening grain is set";
   const ENTRANT_COLUMNS = [
     ["est_improvement_pct", "Estimate", "%"],
     ["lower_bound_pct", "Lower bound", "%"],
@@ -349,7 +371,7 @@
     return section("scored", {class: "block", "aria-labelledby": "scored-title"},
       h("div", {class: "block-head"}, h("h2", {id: "scored-title"}, "What is scored")),
       h("ul", {class: "scored"}, rows),
-      h("p", {class: "hint"}, "A failed safety gate is never offset by a better score on another section."));
+      rulesOk(board) ? h("p", {class: "hint"}, "A failed safety gate is never offset by a better score on another section.") : null);
   }
 
   // The king card's fields. Crowning and the next halving are given in UTC
@@ -480,19 +502,23 @@
     const label = sectionLabel(board);
     const king = board.king && board.king.hotkey;
     const parts = [];
-    const notes = ["Ranked by " + label + "."];
+    const coldkeys = Array.isArray(lb.coldkeys);
+    const sealed = coldkeys && !isNum(lb.grain_pct) && (lb.coldkeys.some(r => r.status === "SEALED_UNTIL_GRAIN")
+      || lb.reasons && lb.reasons.grain_pct === "grain_human_input");
+    const notes = coldkeys ? [] : ["Ranked by " + label + "."];
     if (rulesOk(board) && lb.release_lag && isNum(lb.release_lag.hours)) notes.push("Scores publish about " + Math.round(lb.release_lag.hours) + " h after a window.");
-    if (isNum(lb.grain_pct)) notes.push("Grain " + fmt(lb.grain_pct) + "%.");
-    parts.push(h("p", {class: "hint"}, notes.join(" ")));
+    if (rulesOk(board) && isNum(lb.grain_pct)) notes.push("Grain " + fmt(lb.grain_pct) + "%.");
+    if (notes.length) parts.push(h("p", {class: "hint"}, notes.join(" ")));
+    if (sealed) parts.push(h("p", {class: "hint grain-sealed"}, SEALED_GRAIN));
     if (Array.isArray(lb.coldkeys) && lb.coldkeys.length) {
       const digits = places(lb.coldkeys.map(r => r.displayed_score));
       const rows = lb.coldkeys.map(r => {
         const status = LADDER[r.status] || [words(r.status), "chip-muted"];
         const hasKing = r.hotkeys.includes(king);
         return h("tr", {"data-find": [r.coldkey].concat(r.hotkeys).join(" ").toLowerCase(), class: hasKing ? "is-king" : null},
-          h("td", {class: "num rank"}, isNum(r.rank) ? r.rank : ""),
+          h("td", {class: "num rank"}, r.status !== "SEALED_UNTIL_GRAIN" && isNum(r.rank) ? r.rank : ""),
           h("td", null, h("span", {class: "key", title: r.coldkey}, shortKey(r.coldkey)), hasKing ? h("span", {class: "crown-tag"}, "king") : null),
-          h("td", {class: "num"}, isNum(r.displayed_score) ? fmt(r.displayed_score, digits) : ""),
+          h("td", {class: "num"}, r.status !== "SEALED_UNTIL_GRAIN" && isNum(r.displayed_score) ? fmt(r.displayed_score, digits) : ""),
           h("td", null, chip(status[0], status[1])),
           h("td", {class: "opt"}, h("details", {class: "hotkeys"}, h("summary", null, r.hotkeys.length + " hotkey" + (r.hotkeys.length === 1 ? "" : "s")),
             h("ul", null, r.hotkeys.map(k => h("li", null, h("a", {href: minerHref(board.slug, k), class: "key", title: k}, shortKey(k)), k === king ? h("span", {class: "crown-tag"}, "king") : null))))));
@@ -500,7 +526,7 @@
       parts.push(finder("ladder"), table(ELIGIBLE + ", per coldkey",
         [["Rank", "num"], ["Coldkey"], ["Displayed", "num"], ["Status"], ["Hotkeys", "opt"]], rows, {id: "ladder"}));
       parts.push(h("p", {class: "hint"}, "One pooled displayed score per coldkey; its hotkeys are listed for information."));
-    } else if (lb.entries.length) {
+    } else if (!coldkeys && lb.entries.length) {
       const digits = places(lb.entries.map(r => r.screening_value));
       const rows = lb.entries.map(r => h("tr", {"data-find": String(r.hotkey).toLowerCase(), class: r.is_king ? "is-king" : null},
         h("td", {class: "num rank"}, r.rank),
@@ -557,6 +583,8 @@
   const ENTRY_FIELDS = ["trigger_bar", "king_screening_display", "coldkeys"];
   function championshipBlock(board) {
     const c = board.championship || {};
+    const ok = rulesOk(board);
+    const columns = ENTRANT_COLUMNS.filter(([key]) => ok || !["guard_bar_pct", "gap_to_win_pct"].includes(key));
     const entry = c.entry || null;
     const head = h("div", {class: "block-head"}, h("h2", {id: "champ-title"}, "Championship"));
     const rounds = (Array.isArray(c.rounds) ? c.rounds : []).slice().sort((a, b) => (b.epoch ?? 0) - (a.epoch ?? 0)).map(r => {
@@ -565,19 +593,19 @@
         isNum(r.chunks_used) ? chip(r.chunks_used + " chunk" + (r.chunks_used === 1 ? "" : "s"), "chip-plain") : null,
         r.stopped ? chip(STOPS[r.stopped] || words(r.stopped), "chip-plain") : null,
         isNum(r.n_solved) ? chip(r.n_solved + " solved", "chip-plain") : null,
-        isNum(r.margin_pct) ? chip("margin " + fmt(r.margin_pct) + "%", "chip-plain") : null);
+        ok && isNum(r.margin_pct) ? chip("margin " + fmt(r.margin_pct) + "%", "chip-plain") : null);
       const body = entrants.length
-        ? table("Entrants, epoch " + r.epoch, [["Entrant"]].concat(ENTRANT_COLUMNS.map(([, name, unit]) => [name, unit ? "num" : null])),
+        ? table("Entrants, epoch " + r.epoch, [["Entrant"]].concat(columns.map(([, name, unit]) => [name, unit ? "num" : null])),
           entrants.map(e => h("tr", null, h("td", {class: "key", title: e.hotkey || e.coldkey || ""}, shortKey(e.hotkey || e.coldkey || "")),
-            ENTRANT_COLUMNS.map(([key, , unit]) => h("td", {class: unit ? "num" : null}, isNum(e[key]) ? fmt(e[key]) + unit : e[key] ? words(e[key]) : "")))))
-        : h("p", {class: "empty-epoch"}, EMPTY_EPOCH);
+            columns.map(([key, , unit]) => h("td", {class: unit ? "num" : null}, isNum(e[key]) ? fmt(e[key]) + unit : e[key] ? words(e[key]) : "")))))
+        : h("p", {class: "empty-epoch"}, ok ? EMPTY_EPOCH : "no contenders");
       return h("article", {class: "card round"},
         h("div", {class: "round-head"}, h("h3", null, isNum(r.epoch) ? "Epoch " + r.epoch : "Round"), facts),
         body,
         r.new_king ? h("p", {class: "hint"}, "New king ", h("span", {class: "key"}, shortKey(r.new_king)), isNum(r.paid_from_epoch) ? ", paid from epoch " + r.paid_from_epoch : "") : null);
     });
     const entryStats = entry ? [
-      plain(entry.trigger_bar) !== null ? stat("Entry trigger bar", plain(entry.trigger_bar)) : null,
+      ok && plain(entry.trigger_bar) !== null ? stat("Entry trigger bar", plain(entry.trigger_bar)) : null,
       plain(entry.king_screening_display) !== null ? stat("King's screening display", plain(entry.king_screening_display)) : null,
       Array.isArray(entry.coldkeys) ? stat("Entered coldkeys", String(entry.coldkeys.filter(x => x && x.entered === true).length)) : null,
     ].filter(Boolean) : [];
@@ -635,15 +663,41 @@
     return h("div", {class: "page"}, out);
   }
 
+  function submissionStatus(board, key) {
+    const record = Array.isArray(board.miner_status) ? board.miner_status.find(r => r.hotkey === key) : null;
+    if (!record || !Number.isSafeInteger(record.received) || record.received < 0
+      || !Number.isSafeInteger(record.scored) || record.scored < 0
+      || !record.refused || typeof record.refused !== "object" || Array.isArray(record.refused)
+      || Object.values(record.refused).some(n => !Number.isSafeInteger(n) || n < 0)) return null;
+    // The reader already closes these codes; keep the DOM closed as well.
+    const counts = Object.entries(record.refused || {}).filter(([, n]) => Number.isSafeInteger(n) && n >= 0);
+    const grouped = new Map();
+    for (const [code, count] of counts) {
+      const label = Object.hasOwn(REFUSALS, code) ? REFUSALS[code] : "Other";
+      grouped.set(label, (grouped.get(label) || 0) + count);
+    }
+    const refused = Array.from(grouped.values()).reduce((sum, n) => sum + n, 0);
+    if (!Number.isSafeInteger(refused)) return null;
+    const rows = Array.from(grouped).filter(([, count]) => count > 0).map(([label, count]) =>
+      h("tr", null, h("td", null, label), h("td", {class: "num"}, String(count))));
+    return section("submission-status", {class: "card", "aria-labelledby": "status-title"},
+      h("h2", {id: "status-title"}, "Submission status"),
+      h("dl", {class: "stats compact"},
+        stat("Received", String(record.received)), stat("Scored", String(record.scored)), stat("Refused", String(refused))),
+      rows.length ? table("Refusals", [["Reason"], ["Count", "num"]], rows) : null);
+  }
+
   function minerPage(board, key, ctx) {
     const lb = board.eligible_leaderboard;
     const entry = lb.entries.find(r => r.hotkey === key) || null;
     const coldkey = Array.isArray(lb.coldkeys) ? lb.coldkeys.find(r => r.hotkeys.includes(key)) || null : null;
     const series = (board.history.points || {})[key] || [];
+    const activity = submissionStatus(board, key);
     const crumbs = h("nav", {class: "crumbs", "aria-label": "Breadcrumb"}, h("a", {href: "#/"}, "Boards"), h("span", {"aria-hidden": "true"}, "/"),
       h("a", {href: boardHref(board.slug)}, board.challenge.id), h("span", {"aria-hidden": "true"}, "/"), h("span", {"aria-current": "page"}, shortKey(key)));
     if (!entry && !coldkey && !series.length) {
       return h("div", {class: "page"}, crumbs, h("h1", {class: "key"}, shortKey(key)),
+        activity,
         h("p", {class: "empty"}, "This hotkey has no released, eligible result on this board yet."), h("a", {class: "btn", href: "#/mine"}, "How to mine"));
     }
     const label = sectionLabel(board);
@@ -652,10 +706,11 @@
     return h("div", {class: "page"}, crumbs, boardBanners(board, ctx || {}),
       eyebrow("Miner"), h("h1", {class: "key"}, shortKey(key)),
       h("p", {class: "king-key"}, h("span", {class: "key full"}, key), copyButton(key, "hotkey")),
+      activity,
       h("dl", {class: "stats"},
         entry ? stat("Rank", String(entry.rank)) : null,
         entry && isNum(entry.screening_value) ? stat(label, fmt(entry.screening_value)) : null,
-        stat("Role", entry && entry.is_king ? "king" : entry && entry.challenger_state ? words(entry.challenger_state) : "eligible"),
+        entry ? stat("Role", entry.is_king ? "king" : entry.challenger_state ? words(entry.challenger_state) : "eligible") : null,
         coldkey ? stat("Coldkey", h("span", {class: "key", title: coldkey.coldkey}, shortKey(coldkey.coldkey)), null) : null,
         status ? stat("Ladder status", chip(status[0], status[1])) : null),
       series.length ? sparkFigure({main: series.map(p => ({x: p.receipt_block, y: p.value})), others: [], title: label + " of this hotkey's released submissions"},
@@ -729,7 +784,7 @@
     return "Verified signed feed" + key + " · last verified " + utc(loadedAt);
   }
 
-  const api = {sparkFigure, sectionShort, SVG_NS, LINKS, ELIGIBLE, RULES_LINE, MORE, EMPTY_EPOCH, LADDER, PHASES,
+  const api = {sparkFigure, sectionShort, SVG_NS, LINKS, ELIGIBLE, RULES_LINE, MORE, EMPTY_EPOCH, LADDER, REFUSALS, SEALED_GRAIN, PHASES,
     KING_FIELDS, TARGET_FIELDS, RELEASE_FIELDS, ENTRY_FIELDS, NETWORK_FIELDS, keyShort, rotationText, kingMissing, guardText, POSTED,
     h, walk, textOf, mount, places, fmt, signed, block, shortKey, shortDigest, utcSeconds, utc, span, countdown, parseRoute, boardHref, minerHref, labelsOf,
     rulesOk, sectionLabel, sparkline, targetCard, historySpec, boardPage, minerPage, homePage, minePage, networkStrip, footerStamp};

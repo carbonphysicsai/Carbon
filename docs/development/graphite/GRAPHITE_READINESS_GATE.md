@@ -91,6 +91,8 @@ fails the gate gets no live Graphite run, at any level.
 
 ## S. Scoring and gates
 
+PLT-09 batch 4's [working contract](../challenge_pipeline/readiness/SCORING_AND_VALIDATOR_CHECKS.md) and [panel formats](../challenge_pipeline/readiness/READINESS_GAPS_01.md) describe the scoped S1/S3/H2/H4 readers. Unset owner values and missing real panels remain explicit gaps.
+
 | Item | Check | Kind | Lesson |
 |---|---|---|---|
 | S1 | The promotion rule exists: comparison settings plus an equivalence margin measured from the challenge's noise source. | [auto] | S6 |
@@ -100,6 +102,9 @@ fails the gate gets no live Graphite run, at any level.
 | S5 | Incomplete prediction sets are refused on every host. | [auto] | G3 |
 
 ## D. Decision evidence (Track B)
+
+The D1-D6 automated evidence formats and historical pin interpretation are
+documented in the [study-check contract](../challenge_pipeline/readiness/STUDY_CHECKS.md).
 
 | Item | Check | Kind | Lesson |
 |---|---|---|---|

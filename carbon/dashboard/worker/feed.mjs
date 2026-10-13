@@ -44,6 +44,14 @@ export const MAX_UTC_MS = 253402300799999;
 const SHARE_DIGITS = 6;
 const COMPARISON_INTS = ["n_min", "n_boot", "important_min"];
 export const COMPARISON_KEYS = ["alpha", ...COMPARISON_INTS];
+// LP-02's count-only public vocabulary, kept in parity with feed.py.
+const STATUS_REFUSALS = new Set([
+  "malformed_submission", "contract_digest_malformed", "development_variant_not_served",
+  "contract_not_served", "challenge_mismatch", "oversized_submission", "strategy_not_utf8",
+  "strategy_bom", "strategy_nesting_too_deep", "strategy_not_json", "strategy_not_object",
+  "non_finite_value", "duplicate_key", "integer_out_of_range", "hotkey_window_used",
+  "receipt_block_missing", "level4_envelope_incomplete", "unclassified_refusal",
+]);
 
 export class FeedRefused extends Error {
   constructor(code, detail = "") {
@@ -129,7 +137,9 @@ export function parse(text) {
       out += c; i += 1;
     }
   }
-  const plain = o => Object.assign({}, o);
+  // Preserve even prototype-like JSON keys as own data properties: the signed
+  // bytes include them, and unknown refusal names must still count as other.
+  const plain = o => ({...o});
   const result = value(); ws();
   if (i !== text.length) fail();
   return result;
@@ -532,6 +542,39 @@ function ladder(raw, digits, pinned) {
   return result;
 }
 
+function statusCount(value) {
+  const count = int(value, "miner_status_invalid");
+  if (!Number.isSafeInteger(count)) throw new FeedRefused("miner_status_invalid");
+  return count;
+}
+function minerStatus(raw, pinned) {
+  if (raw === null) return null;
+  if (!Array.isArray(raw)) throw new FeedRefused("miner_status_invalid");
+  const rows = [], seen = new Set();
+  for (const row of raw) {
+    const rawRefused = get(row, "refused");
+    if (!isDict(row) || !isDict(rawRefused)) throw new FeedRefused("miner_status_invalid");
+    const key = hotkey(get(row, "hotkey"), pinned);
+    if (seen.has(key)) throw new FeedRefused("miner_status_invalid");
+    seen.add(key);
+    const refused = {};
+    let total = 0;
+    for (const [code, rawCount] of Object.entries(rawRefused)) {
+      const count = statusCount(rawCount);
+      const kept = STATUS_REFUSALS.has(code) && code !== "unclassified_refusal" ? code : "other";
+      refused[kept] = (refused[kept] ?? 0) + count;
+      total += count;
+      if (!Number.isSafeInteger(refused[kept]) || !Number.isSafeInteger(total))
+        throw new FeedRefused("miner_status_invalid");
+    }
+    const sortedRefused = {};
+    for (const code of Object.keys(refused).sort(codePointCompare)) sortedRefused[code] = refused[code];
+    rows.push({hotkey: key, received: statusCount(get(row, "received")),
+      scored: statusCount(get(row, "scored")), refused: sortedRefused});
+  }
+  return rows.sort((a, b) => cmp(a.hotkey, b.hotkey));
+}
+
 export function boardSlug(challengeId, deviceClass) {
   return `${challengeId}--${deviceClass}`.toLowerCase().replace(/[^a-z0-9.-]+/g, "-").replace(/^-+|-+$/g, "");
 }
@@ -643,7 +686,9 @@ export async function project(document, pinned) {
   const sortedMiners = {};
   for (const k of Object.keys(miners).sort(codePointCompare)) sortedMiners[k] = miners[k];
   const bytes = canonicalBytes(document);
+  const status = minerStatus(get(document, "miner_status"), pinned);
   return {
+    ...(status === null ? {} : {miner_status: status}),
     schema: BOARD_SCHEMA,
     source_schema: SCHEMA,
     fixture: pinned.fixture,
@@ -984,7 +1029,11 @@ export function projectV2(board, now, rulesCard = null) {
   const [rules, gate] = rulesStatus(board, rulesCard);
   const challenge = {};
   for (const k of Object.keys(board.challenge)) if (k !== "rule") challenge[k] = board.challenge[k];
+  const status = pick(board, "miner_status");
   return {
+    ...(status === null ? {} : {miner_status: status.map(row => ({
+      hotkey: row.hotkey, received: row.received, scored: row.scored, refused: {...row.refused},
+    }))}),
     ...fields(
       ["generated_at", board.generated_at, "not_in_feed"],
       ["ranking_section", section, sectionReason],

@@ -582,7 +582,7 @@ def create_arguments(
             "--runtime",
             "nvidia",
             "--gpus",
-            f"device={device}",
+            f"driver=nvidia,device={device}",
             "--label",
             f"carbon.accelerator.device={device}",
             "--label",

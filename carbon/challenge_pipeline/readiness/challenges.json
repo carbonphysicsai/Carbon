@@ -278,17 +278,500 @@
      "level": 4,
      "roles": {
       "constructor": {
-       "grant_id": "GRAPHITE-GRANT-STAGE-C-CONSTRUCTOR",
-       "grant_file": "docs/development/graphite/grants/GRAPHITE-GRANT-STAGE-C-CONSTRUCTOR.json"
-      },
-      "attacker": {
-       "grant_id": "GRAPHITE-GRANT-STAGE-C-ATTACKER",
-       "grant_file": "docs/development/graphite/grants/GRAPHITE-GRANT-STAGE-C-ATTACKER.json"
+       "grant_id": "GRAPHITE-GRANT-L4-G-CONSTRUCTOR-3",
+       "grant_file": "docs/development/graphite/grants/GRAPHITE-GRANT-L4-G-CONSTRUCTOR-3.json"
       }
      },
      "containment_lanes": [
       "carbon.miner-research.unlimited.v1"
-     ]
+     ],
+     "reviews": {
+      "R4": "carbon/challenge_pipeline/readiness/battery-fastcharge-ageing-development-v1/reviews/R4.L4-G-CONSTRUCTOR-3.json",
+      "R5": "carbon/challenge_pipeline/readiness/battery-fastcharge-ageing-development-v1/reviews/R5.L4-G-CONSTRUCTOR-3.json"
+     }
+    }
+   },
+   "studies_by_level": {
+    "D1": {
+     "2": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       2,
+       3,
+       4
+      ],
+      "basis": "The committed historical public DEVELOPMENT study property is independent of construction level; no study is rescored and no earlier acceptance is inherited.",
+      "manifest": "docs/development/evidence/ev4-2026-10-01/freeze-manifest.json",
+      "contract": "carbon/battery/value/contracts/ev4-charge-protocol-selection.v1.json",
+      "references": "docs/development/evidence/ev4-2026-10-01/decision-references.jsonl.gz",
+      "checksum": "docs/development/evidence/ev4-2026-10-01/references.sha256",
+      "reference_provenance": "EV4_REFERENCE",
+      "reference_access": null
+     },
+     "3": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       2,
+       3,
+       4
+      ],
+      "basis": "The committed historical public DEVELOPMENT study property is independent of construction level; no study is rescored and no earlier acceptance is inherited.",
+      "manifest": "docs/development/evidence/ev4-2026-10-01/freeze-manifest.json",
+      "contract": "carbon/battery/value/contracts/ev4-charge-protocol-selection.v1.json",
+      "references": "docs/development/evidence/ev4-2026-10-01/decision-references.jsonl.gz",
+      "checksum": "docs/development/evidence/ev4-2026-10-01/references.sha256",
+      "reference_provenance": "EV4_REFERENCE",
+      "reference_access": null
+     },
+     "4": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       2,
+       3,
+       4
+      ],
+      "basis": "The committed historical public DEVELOPMENT study property is independent of construction level; no study is rescored and no earlier acceptance is inherited.",
+      "manifest": "docs/development/evidence/ev4-2026-10-01/freeze-manifest.json",
+      "contract": "carbon/battery/value/contracts/ev4-charge-protocol-selection.v1.json",
+      "references": "docs/development/evidence/ev4-2026-10-01/decision-references.jsonl.gz",
+      "checksum": "docs/development/evidence/ev4-2026-10-01/references.sha256",
+      "reference_provenance": "EV4_REFERENCE",
+      "reference_access": null
+     }
+    },
+    "D2": {
+     "2": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       2,
+       3,
+       4
+      ],
+      "basis": "The committed historical public DEVELOPMENT study property is independent of construction level; no study is rescored and no earlier acceptance is inherited.",
+      "adapter": "carbon.battery.value.design_search_adapter:adapter",
+      "tests": [
+       "tests/cpu/test_design_search_track_b.py"
+      ]
+     },
+     "3": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       2,
+       3,
+       4
+      ],
+      "basis": "The committed historical public DEVELOPMENT study property is independent of construction level; no study is rescored and no earlier acceptance is inherited.",
+      "adapter": "carbon.battery.value.design_search_adapter:adapter",
+      "tests": [
+       "tests/cpu/test_design_search_track_b.py"
+      ]
+     },
+     "4": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       2,
+       3,
+       4
+      ],
+      "basis": "The committed historical public DEVELOPMENT study property is independent of construction level; no study is rescored and no earlier acceptance is inherited.",
+      "adapter": "carbon.battery.value.design_search_adapter:adapter",
+      "tests": [
+       "tests/cpu/test_design_search_track_b.py"
+      ]
+     }
+    },
+    "D3": {
+     "2": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       2,
+       3,
+       4
+      ],
+      "basis": "The committed historical public DEVELOPMENT study property is independent of construction level; no study is rescored and no earlier acceptance is inherited.",
+      "registry": null
+     },
+     "3": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       2,
+       3,
+       4
+      ],
+      "basis": "The committed historical public DEVELOPMENT study property is independent of construction level; no study is rescored and no earlier acceptance is inherited.",
+      "registry": null
+     },
+     "4": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       2,
+       3,
+       4
+      ],
+      "basis": "The committed historical public DEVELOPMENT study property is independent of construction level; no study is rescored and no earlier acceptance is inherited.",
+      "registry": null
+     }
+    },
+    "D4": {
+     "2": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       2,
+       3,
+       4
+      ],
+      "basis": "The committed historical public DEVELOPMENT study property is independent of construction level; no study is rescored and no earlier acceptance is inherited.",
+      "manifest": "docs/development/evidence/ev4-2026-10-01/freeze-manifest.json",
+      "contract": "carbon/battery/value/contracts/ev4-charge-protocol-selection.v1.json",
+      "references": "docs/development/evidence/ev4-2026-10-01/decision-references.jsonl.gz",
+      "checksum": "docs/development/evidence/ev4-2026-10-01/references.sha256",
+      "reference_provenance": "EV4_REFERENCE",
+      "importer": "carbon.battery.value.experiment:Experiment"
+     },
+     "3": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       2,
+       3,
+       4
+      ],
+      "basis": "The committed historical public DEVELOPMENT study property is independent of construction level; no study is rescored and no earlier acceptance is inherited.",
+      "manifest": "docs/development/evidence/ev4-2026-10-01/freeze-manifest.json",
+      "contract": "carbon/battery/value/contracts/ev4-charge-protocol-selection.v1.json",
+      "references": "docs/development/evidence/ev4-2026-10-01/decision-references.jsonl.gz",
+      "checksum": "docs/development/evidence/ev4-2026-10-01/references.sha256",
+      "reference_provenance": "EV4_REFERENCE",
+      "importer": "carbon.battery.value.experiment:Experiment"
+     },
+     "4": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       2,
+       3,
+       4
+      ],
+      "basis": "The committed historical public DEVELOPMENT study property is independent of construction level; no study is rescored and no earlier acceptance is inherited.",
+      "manifest": "docs/development/evidence/ev4-2026-10-01/freeze-manifest.json",
+      "contract": "carbon/battery/value/contracts/ev4-charge-protocol-selection.v1.json",
+      "references": "docs/development/evidence/ev4-2026-10-01/decision-references.jsonl.gz",
+      "checksum": "docs/development/evidence/ev4-2026-10-01/references.sha256",
+      "reference_provenance": "EV4_REFERENCE",
+      "importer": "carbon.battery.value.experiment:Experiment"
+     }
+    },
+    "D5": {
+     "2": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       2,
+       3,
+       4
+      ],
+      "basis": "The committed historical public DEVELOPMENT study property is independent of construction level; no study is rescored and no earlier acceptance is inherited.",
+      "manifest": "docs/development/evidence/ev4-2026-10-01/freeze-manifest.json",
+      "contract": "carbon/battery/value/contracts/ev4-charge-protocol-selection.v1.json",
+      "references": "docs/development/evidence/ev4-2026-10-01/decision-references.jsonl.gz",
+      "checksum": "docs/development/evidence/ev4-2026-10-01/references.sha256",
+      "reference_provenance": "EV4_REFERENCE",
+      "contract_adapter": "carbon.battery.value.contract",
+      "decision_adapter": "carbon.battery.value.decision",
+      "split": "development",
+      "legacy_report": "docs/development/evidence/graphite-run5-q1/q1-report.json",
+      "policy_record": ".agent/decisions/2026-10-05-OWNER-GRAPHITE-TEST-WAVE-07.md",
+      "policy_decision": "OWNER-GRAPHITE-TEST-WAVE-07"
+     },
+     "3": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       2,
+       3,
+       4
+      ],
+      "basis": "The committed historical public DEVELOPMENT study property is independent of construction level; no study is rescored and no earlier acceptance is inherited.",
+      "manifest": "docs/development/evidence/ev4-2026-10-01/freeze-manifest.json",
+      "contract": "carbon/battery/value/contracts/ev4-charge-protocol-selection.v1.json",
+      "references": "docs/development/evidence/ev4-2026-10-01/decision-references.jsonl.gz",
+      "checksum": "docs/development/evidence/ev4-2026-10-01/references.sha256",
+      "reference_provenance": "EV4_REFERENCE",
+      "contract_adapter": "carbon.battery.value.contract",
+      "decision_adapter": "carbon.battery.value.decision",
+      "split": "development",
+      "legacy_report": "docs/development/evidence/graphite-run5-q1/q1-report.json",
+      "policy_record": ".agent/decisions/2026-10-05-OWNER-GRAPHITE-TEST-WAVE-07.md",
+      "policy_decision": "OWNER-GRAPHITE-TEST-WAVE-07"
+     },
+     "4": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       2,
+       3,
+       4
+      ],
+      "basis": "The committed historical public DEVELOPMENT study property is independent of construction level; no study is rescored and no earlier acceptance is inherited.",
+      "manifest": "docs/development/evidence/ev4-2026-10-01/freeze-manifest.json",
+      "contract": "carbon/battery/value/contracts/ev4-charge-protocol-selection.v1.json",
+      "references": "docs/development/evidence/ev4-2026-10-01/decision-references.jsonl.gz",
+      "checksum": "docs/development/evidence/ev4-2026-10-01/references.sha256",
+      "reference_provenance": "EV4_REFERENCE",
+      "contract_adapter": "carbon.battery.value.contract",
+      "decision_adapter": "carbon.battery.value.decision",
+      "split": "development",
+      "legacy_report": "docs/development/evidence/graphite-run5-q1/q1-report.json",
+      "policy_record": ".agent/decisions/2026-10-05-OWNER-GRAPHITE-TEST-WAVE-07.md",
+      "policy_decision": "OWNER-GRAPHITE-TEST-WAVE-07"
+     }
+    },
+    "D6": {
+     "2": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       2,
+       3,
+       4
+      ],
+      "basis": "The committed historical public DEVELOPMENT study property is independent of construction level; no study is rescored and no earlier acceptance is inherited.",
+      "run_record": "docs/development/evidence/ev5-2026-10-03/run-record.json",
+      "freeze_commit": "c9c27a639f51fff6e7d428f4b7e46ee0e95fce87",
+      "analysis_entry": "carbon/battery/value/ev5_run.py",
+      "tests": [
+       "tests/cpu/test_battery_ev5_run.py"
+      ],
+      "pin_schema": "carbon.battery.ev5.run-record.v1"
+     },
+     "3": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       2,
+       3,
+       4
+      ],
+      "basis": "The committed historical public DEVELOPMENT study property is independent of construction level; no study is rescored and no earlier acceptance is inherited.",
+      "run_record": "docs/development/evidence/ev5-2026-10-03/run-record.json",
+      "freeze_commit": "c9c27a639f51fff6e7d428f4b7e46ee0e95fce87",
+      "analysis_entry": "carbon/battery/value/ev5_run.py",
+      "tests": [
+       "tests/cpu/test_battery_ev5_run.py"
+      ],
+      "pin_schema": "carbon.battery.ev5.run-record.v1"
+     },
+     "4": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       2,
+       3,
+       4
+      ],
+      "basis": "The committed historical public DEVELOPMENT study property is independent of construction level; no study is rescored and no earlier acceptance is inherited.",
+      "run_record": "docs/development/evidence/ev5-2026-10-03/run-record.json",
+      "freeze_commit": "c9c27a639f51fff6e7d428f4b7e46ee0e95fce87",
+      "analysis_entry": "carbon/battery/value/ev5_run.py",
+      "tests": [
+       "tests/cpu/test_battery_ev5_run.py"
+      ],
+      "pin_schema": "carbon.battery.ev5.run-record.v1"
+     }
+    }
+   },
+   "scoring_by_level": {
+    "S1": {
+     "2": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       2,
+       3,
+       4
+      ],
+      "basis": "PLT-09 batch 4 explicit L2/L3/L4 metadata; no measurement, custody or hidden-host authority granted",
+      "adapter": "carbon.battery.readiness_evidence",
+      "code": [
+       "carbon/battery/exam.py",
+       "carbon/challenge_validator/battery_scoring.py",
+       "carbon/battery/value/admissibility.py",
+       "carbon/battery/physics_gate.py",
+       "carbon/battery/physics_contract.v2.json"
+      ],
+      "measurement": null
+     },
+     "3": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       2,
+       3,
+       4
+      ],
+      "basis": "PLT-09 batch 4 explicit L2/L3/L4 metadata; no measurement, custody or hidden-host authority granted",
+      "adapter": "carbon.battery.readiness_evidence",
+      "code": [
+       "carbon/battery/exam.py",
+       "carbon/challenge_validator/battery_scoring.py",
+       "carbon/battery/value/admissibility.py",
+       "carbon/battery/physics_gate.py",
+       "carbon/battery/physics_contract.v2.json"
+      ],
+      "measurement": null
+     },
+     "4": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       2,
+       3,
+       4
+      ],
+      "basis": "PLT-09 batch 4 explicit L2/L3/L4 metadata; no measurement, custody or hidden-host authority granted",
+      "adapter": "carbon.battery.readiness_evidence",
+      "code": [
+       "carbon/battery/exam.py",
+       "carbon/challenge_validator/battery_scoring.py",
+       "carbon/battery/value/admissibility.py",
+       "carbon/battery/physics_gate.py",
+       "carbon/battery/physics_contract.v2.json"
+      ],
+      "measurement": null
+     }
+    },
+    "S3": {
+     "2": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       2,
+       3,
+       4
+      ],
+      "basis": "PLT-09 batch 4 explicit L2/L3/L4 metadata; no measurement, custody or hidden-host authority granted",
+      "adapter": "carbon.battery.readiness_evidence",
+      "code": [
+       "carbon/battery/exam.py",
+       "carbon/challenge_validator/battery_scoring.py",
+       "carbon/battery/value/admissibility.py",
+       "carbon/battery/physics_gate.py",
+       "carbon/battery/physics_contract.v2.json"
+      ],
+      "registration": "carbon/challenge_pipeline/readiness/battery-fastcharge-ageing-development-v1/gate-margin-registration.json"
+     },
+     "3": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       2,
+       3,
+       4
+      ],
+      "basis": "PLT-09 batch 4 explicit L2/L3/L4 metadata; no measurement, custody or hidden-host authority granted",
+      "adapter": "carbon.battery.readiness_evidence",
+      "code": [
+       "carbon/battery/exam.py",
+       "carbon/challenge_validator/battery_scoring.py",
+       "carbon/battery/value/admissibility.py",
+       "carbon/battery/physics_gate.py",
+       "carbon/battery/physics_contract.v2.json"
+      ],
+      "registration": "carbon/challenge_pipeline/readiness/battery-fastcharge-ageing-development-v1/gate-margin-registration.json"
+     },
+     "4": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       2,
+       3,
+       4
+      ],
+      "basis": "PLT-09 batch 4 explicit L2/L3/L4 metadata; no measurement, custody or hidden-host authority granted",
+      "adapter": "carbon.battery.readiness_evidence",
+      "code": [
+       "carbon/battery/exam.py",
+       "carbon/challenge_validator/battery_scoring.py",
+       "carbon/battery/value/admissibility.py",
+       "carbon/battery/physics_gate.py",
+       "carbon/battery/physics_contract.v2.json"
+      ],
+      "registration": "carbon/challenge_pipeline/readiness/battery-fastcharge-ageing-development-v1/gate-margin-registration.json"
+     }
+    },
+    "H2": {
+     "2": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       2,
+       3,
+       4
+      ],
+      "basis": "PLT-09 batch 4 explicit L2/L3/L4 metadata; no measurement, custody or hidden-host authority granted",
+      "registration": "carbon/challenge_pipeline/readiness/battery-fastcharge-ageing-development-v1/tuning-overlap-registration.json"
+     },
+     "3": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       2,
+       3,
+       4
+      ],
+      "basis": "PLT-09 batch 4 explicit L2/L3/L4 metadata; no measurement, custody or hidden-host authority granted",
+      "registration": "carbon/challenge_pipeline/readiness/battery-fastcharge-ageing-development-v1/tuning-overlap-registration.json"
+     },
+     "4": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       2,
+       3,
+       4
+      ],
+      "basis": "PLT-09 batch 4 explicit L2/L3/L4 metadata; no measurement, custody or hidden-host authority granted",
+      "registration": "carbon/challenge_pipeline/readiness/battery-fastcharge-ageing-development-v1/tuning-overlap-registration.json"
+     }
+    },
+    "H4": {
+     "2": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       2,
+       3,
+       4
+      ],
+      "basis": "PLT-09 batch 4 explicit L2/L3/L4 metadata; no measurement, custody or hidden-host authority granted",
+      "adapter": "carbon.battery.readiness_evidence",
+      "code": [
+       "carbon/battery/exam.py",
+       "carbon/challenge_validator/battery_scoring.py",
+       "carbon/battery/value/admissibility.py",
+       "carbon/battery/physics_gate.py",
+       "carbon/battery/physics_contract.v2.json"
+      ],
+      "registration": "carbon/challenge_pipeline/readiness/battery-fastcharge-ageing-development-v1/gate-audit-registration.json"
+     },
+     "3": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       2,
+       3,
+       4
+      ],
+      "basis": "PLT-09 batch 4 explicit L2/L3/L4 metadata; no measurement, custody or hidden-host authority granted",
+      "adapter": "carbon.battery.readiness_evidence",
+      "code": [
+       "carbon/battery/exam.py",
+       "carbon/challenge_validator/battery_scoring.py",
+       "carbon/battery/value/admissibility.py",
+       "carbon/battery/physics_gate.py",
+       "carbon/battery/physics_contract.v2.json"
+      ],
+      "registration": "carbon/challenge_pipeline/readiness/battery-fastcharge-ageing-development-v1/gate-audit-registration.json"
+     },
+     "4": {
+      "challenge": "battery-fastcharge-ageing-development-v1",
+      "levels": [
+       2,
+       3,
+       4
+      ],
+      "basis": "PLT-09 batch 4 explicit L2/L3/L4 metadata; no measurement, custody or hidden-host authority granted",
+      "adapter": "carbon.battery.readiness_evidence",
+      "code": [
+       "carbon/battery/exam.py",
+       "carbon/challenge_validator/battery_scoring.py",
+       "carbon/battery/value/admissibility.py",
+       "carbon/battery/physics_gate.py",
+       "carbon/battery/physics_contract.v2.json"
+      ],
+      "registration": "carbon/challenge_pipeline/readiness/battery-fastcharge-ageing-development-v1/gate-audit-registration.json"
+     }
     }
    }
   },

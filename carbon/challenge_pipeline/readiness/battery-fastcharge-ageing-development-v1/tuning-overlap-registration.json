@@ -1,0 +1,14 @@
+{
+ "schema": "carbon.readiness.tuning-overlap-registration.v1",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "levels": [
+  2,
+  3,
+  4
+ ],
+ "basis": "PLT-09 batch 4 explicit L2/L3/L4 metadata; no measurement, custody or hidden-host authority granted",
+ "panel_digest": null,
+ "tuning_role": "graphite-tuning-v2",
+ "sealed_roles": "HUMAN_INPUT",
+ "unsealed_roles": "HUMAN_INPUT"
+}

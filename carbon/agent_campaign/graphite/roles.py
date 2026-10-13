@@ -204,7 +204,11 @@ LEVEL4_STAGE_TOOL = {
         "checks it (gates G0, G3 and G4) and keeps it; the reply names the "
         "submission digest. Put that digest in the strategy's "
         "parameters.composition_graphs and propose it with "
-        "graphite_run_proposal. strategy_json is the recipe, as a JSON string."
+        "graphite_run_proposal. The empty-task_id reply also carries the spec "
+        "contract, the steps, a known-good example_spec and a complete "
+        "example_run_python (a run_python arguments object that writes, lowers "
+        "and packs it): run it as it stands, then edit the model. "
+        "strategy_json is the recipe, as a JSON string."
     ),
     "parameters": {
         "type": "object",

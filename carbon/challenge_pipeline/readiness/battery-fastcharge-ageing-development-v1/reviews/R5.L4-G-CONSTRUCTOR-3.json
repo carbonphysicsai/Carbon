@@ -1,0 +1,15 @@
+{
+ "schema": "carbon.readiness.runtime-review.v1",
+ "item": "R5",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "level": 4,
+ "decision": "PASS",
+ "reviewer": "Test Lead",
+ "date": "2026-10-12",
+ "basis": "Test Lead ruling, quoted: \"R5: reviewed by the Test Lead for Level 4 lane G. Arithmetic is correct, there's no pod-allowance issue, and the ceiling is $14.94 within $260.\" Scope: GRAPHITE-GRANT-L4-G-CONSTRUCTOR-3 only (the Constructor role of Level 4 lane G). This record is not named by any level record's `reviews.R5`: the gate's Level 4 record still binds the Stage C grants, so the gate does not read this file until the Test Lead or the Test Engineer binds the lane-G grant there.",
+ "roles": {
+  "constructor": {
+   "grant_digest": "sha256:266ebbeafc4cf0fb6240a95b7834b9918e176fafe3d6e0bfc3c04b320eef5c02"
+  }
+ }
+}

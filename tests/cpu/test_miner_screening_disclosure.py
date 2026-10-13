@@ -6,13 +6,16 @@ from types import SimpleNamespace
 
 import pytest
 
+from carbon.battery import exam
 from carbon.challenge_validator import ledger, score_feed
 from carbon.challenge_validator import screening_ladder as sl
 
 IDENTITIES = {"challenge": {"id": "fixture-battery"},
               "rule_digest": "sha256:" + "a" * 64,
               "contract_digest": "sha256:" + "b" * 64}  # fmt: skip
-RULE = {"rule_version": "v2-bank-sched"}
+# A real rule dict: its `rule_version` is 2, not a name (the r8.5 cutover's
+# sealed ladder came from a fixture that put the name there).
+RULE = exam.RULES["v2-bank-sched"]
 CHAIN = {"participants": {"hk-A": {"coldkey": "ck-A"},
                            "hk-A2": {"coldkey": "ck-A"},
                            "hk-B": {"coldkey": "ck-B"},
@@ -99,7 +102,7 @@ def test_loader_accepts_the_committed_reference_registration():
             "challenge": {"id": doc["challenge"]},
             "rule_digest": match.get("rule_digest", "sha256:" + "d" * 64),
         }
-        rule = {"rule_version": match["rule"]}
+        rule = dict(exam.RULES[match["rule"]])
         if match["score_section"] == "registered":
             rule["score"] = {
                 "candidate": match["score_candidate"],
@@ -143,7 +146,7 @@ def test_reference_grid_noise_floor_and_monotone_replay(
     rule = RULE
     if sense == "higher_is_better":
         rule = {
-            "rule_version": "v3-bank-sched",
+            **exam.RULES["v3-bank-sched"],
             "score": {"candidate": "fixture-term", "registry_sha256": "c" * 64},
         }
         doc["entries"][0].update(
@@ -433,3 +436,53 @@ def test_python_and_worker_read_geometric_ladders_and_refuse_raw_scores(tmp_path
         feed.project(fixtures.sign(body), trust)["ladder"]["display_grid"]
         == "geometric"
     )
+
+
+def test_the_live_v3_deployment_rule_finds_its_committed_grain():
+    """Regression (r8.5 cutover, 2026-10-13): the feed read `rule_version` (2)
+    as the rule's name, so the live v3-bank-sched deployment matched no entry
+    and its ladder stayed sealed. The rule here is built exactly as a
+    deployment builds it (`deployment.rule_for`), with the active candidate."""
+    from pathlib import Path
+
+    from carbon.battery import daemon, deployment
+
+    repository = Path(__file__).resolve().parents[2]
+    term = {
+        "registry": "docs/development/evidence/battery-score-tuning/registry-v5.json",
+        "registry_sha256": "70f2943814db0531429613e6ca5e2bd1c0b656673c6ee74de08e98f540758277",
+        "candidate": "G-FEAS/A-Q>@0.05",
+        "decision": "OWNER-BATTERY-SCORE-CANDIDATE-01",
+    }
+    v3 = deployment.rule_for({"rule": "v3-bank-sched", "score": term})
+    assert v3["rule_version"] == 2  # not a name: the cause of the sealed ladder
+    assert sl.rule_name(v3) == "v3-bank-sched"
+    identities = {
+        "challenge": {"id": "battery-fastcharge-ageing-development-v1"},
+        "rule_digest": daemon.rule_digest(v3),
+    }
+    policy = sl.load_grain(repository, identities, v3)
+    assert policy is not None and policy[2]["grain"] == 0.025
+    # v2-bank-sched, as a deployment builds it, finds its own entry too.
+    v2 = deployment.rule_for({"rule": "v2-bank-sched"})
+    assert sl.rule_name(v2) == "v2-bank-sched"
+    policy = sl.load_grain(
+        repository,
+        {**identities, "rule_digest": daemon.rule_digest(v2)},
+        v2,
+    )
+    assert policy is not None and policy[2]["grain"] == 0.035
+    # End to end: the live v3 rule DISPLAYS a score through the ladder (the
+    # own-SE step also read `rule_version`, so nothing could ever display).
+    policy3 = sl.load_grain(
+        repository, {**identities, "rule_digest": daemon.rule_digest(v3)}, v3
+    )
+    noise = {
+        "errors": [0.1, 0.12] * 147,
+        "regrets": [0.2, 0.25] * 12,
+    }  # 294 cases, 24 questions
+    item = shown([row(score=0.8, noise=noise)], policy3, v3)["coldkeys"][0]
+    assert item["displayed_score"] is not None and item["displayed_score"] <= 0.8
+    # An unregistered rule body names no rule, so it seals.
+    assert sl.rule_name({**v2, "window_cases": -1}) is None
+    assert sl.load_grain(repository, identities, {**v2, "window_cases": -1}) is None

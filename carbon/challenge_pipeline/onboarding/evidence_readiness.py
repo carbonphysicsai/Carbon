@@ -19,6 +19,7 @@ BINDINGS = "docs/development/challenge_pipeline/evidence-readiness/bindings.json
 PUBLIC_REFERENCE_POINTERS = {
     "scripts/dev/reference_packages/elmer/sources.lock.json",
     "scripts/dev/reference_packages/elmer/f13_deck.py",
+    "scripts/dev/reference_packages/calculix/sources.lock.json",
 }
 LABELS = (
     "Registered, deduplicated, reuse-checked panel on main",
@@ -39,6 +40,22 @@ OWNERS = (
     "Optimizer Codex",
 )
 BENCHMARK_ROUTES = {
+    # Representative customer rehearsal, not a published benchmark or result.
+    "bolted-joint": {
+        "kind": "REPRESENTATIVE_REHEARSAL",
+        "pending": "BOLTED-JOINT-REHEARSAL-BUILD-01",
+        "baseline": (
+            "carbon/challenge_pipeline/bolted_rehearsal.py",
+            {"hand_calculation", "compare", "kit_domain"},
+        ),
+        "baseline_ready": False,
+        "baseline_gap": "VDI-style hand arm is implemented but cannot cover opening/slip/stress; strongest contact-aware FE comparator still required",
+        "budget": (
+            "carbon/design_search/bolted_budget.py",
+            "BOLTED-JOINT-REPRESENTATIVE-PROPOSED-V1",
+        ),
+        "budget_state": "PROPOSED",
+    },
     "cooling-cell": {
         "kind": "ROUND_ONE_DEVELOPMENT",
         "pending": "COOLING-CELL-READINESS-BUILD-01",

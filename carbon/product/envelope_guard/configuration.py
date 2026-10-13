@@ -17,8 +17,8 @@ from carbon.trust_map.core import MAP_SCHEMA
 
 CONTRACT_SCHEMA = "carbon.product.guard-contract.v2"
 ENVELOPE_SCHEMA = "carbon.product.guard-envelope.v1"
-POLICY_SCHEMA = "carbon.product.guard-policy.v2"
-REFERENCE_SCHEMA = "carbon.product.guard-reference.v2"
+POLICY_SCHEMA = "carbon.product.guard-policy.v3"
+REFERENCE_SCHEMA = "carbon.product.guard-reference.v3"
 PRIMITIVES = {"bound", "initial_condition", "prefix_invariance"}
 
 
@@ -283,15 +283,16 @@ def contract(raw, inputs):
     return value
 
 
-def reference(raw, image):
+def reference(raw, image, family):
     if raw is None:
-        return None
+        return None, None
     value = snapshot(raw)
     header(
         value,
         REFERENCE_SCHEMA,
         {
             "image_digest",
+            "criteria_digest",
             "code_verification_ref",
             "owner_acceptance_ref",
             "status",
@@ -299,6 +300,7 @@ def reference(raw, image):
         },
     )
     require(sha(value["image_digest"]) == image, "reference_image_mismatch")
+    sha(value["criteria_digest"])
     for key in ("code_verification_ref", "owner_acceptance_ref"):
         sha(value[key])
     require(
@@ -306,7 +308,10 @@ def reference(raw, image):
         "reference_status_invalid",
     )
     scope = value["acceptance_scope"]
-    closed(scope, {"family", "observables", "conditions"})
+    closed(
+        scope,
+        {"family", "observables", "verification_conditions", "application_conditions"},
+    )
     token(scope["family"])
     observables = scope["observables"]
     require(
@@ -318,16 +323,35 @@ def reference(raw, image):
     )
     for name in observables:
         token(name)
-    conditions = scope["conditions"]
-    require(
-        type(conditions) is dict and len(conditions) <= 16,
-        "acceptance_conditions_required",
-    )
-    for name, required_value in conditions.items():
-        token(name)
-        if required_value is not None:
-            conditions[name] = number(required_value)
-    return value
+    for field in ("verification_conditions", "application_conditions"):
+        conditions = scope[field]
+        require(
+            type(conditions) is dict and len(conditions) <= 16,
+            "acceptance_conditions_required",
+        )
+        for name, required_value in conditions.items():
+            token(name)
+            if required_value is not None:
+                conditions[name] = number(required_value)
+    accepted = None
+    if value["status"] == "READY":
+        require(scope["family"] == family, "reference_acceptance_family_mismatch")
+        try:
+            accepted = load_acceptance(family, image, value["criteria_digest"])
+        except AcceptanceRefused:
+            raise GuardConfigurationError(
+                "reference_verification_unavailable"
+            ) from None
+        require(
+            scope["family"] == accepted["family"]
+            and scope["verification_conditions"] == accepted["conditions"],
+            "reference_verification_scope_mismatch",
+        )
+        require(
+            value["code_verification_ref"] == accepted["link_digest"],
+            "reference_verification_link_mismatch",
+        )
+    return value, accepted
 
 
 def native_map(raw, model_id, image, inputs, outputs):
@@ -513,7 +537,7 @@ def native_map(raw, model_id, image, inputs, outputs):
     return value
 
 
-def policy(raw, pins, inputs, outputs):
+def policy(raw, pins, inputs, outputs, family):
     if raw is None:
         return None
     value = snapshot(raw)
@@ -530,6 +554,7 @@ def policy(raw, pins, inputs, outputs):
             "min_cell_count",
             "uncertainty",
             "laws",
+            "b9",
             "latency_target_ms",
         },
     )
@@ -541,6 +566,27 @@ def policy(raw, pins, inputs, outputs):
     if value["authority_ref"] is not None:
         sha(value["authority_ref"])
     require(value["pins"] == pins, "policy_identity_mismatch")
+    b9 = value["b9"]
+    if family == "battery-v3":
+        closed(b9, {"threshold_c", "decision_id"})
+        # Validate the recorded owner's policy; never invent or default a value.
+        require(
+            number(b9["threshold_c"], nonnegative=True) == 0.1
+            and b9["decision_id"] == "OWNER-PHYSICS-GATES-01",
+            "b9_owner_policy_mismatch",
+        )
+        require(
+            pins["reference_image"]
+            == "sha256:2d19b261e722fe67f20bee02e115f2277a799c448b90d54d2872361b341bd940",
+            "b9_reference_image_mismatch",
+        )
+        require(
+            inputs.get("t_amb_c", {}).get("unit") == "C"
+            and outputs.get("temperature_c", {}).get("unit") == "C",
+            "b9_temperature_units_required",
+        )
+    else:
+        require(b9 is None, "b9_battery_scope_only")
     closed(value["laws"], {"mode"})
     require(
         value["laws"]["mode"] in ("REQUIRED_ADOPTED", "EXPLICIT_NO_LAWS"),

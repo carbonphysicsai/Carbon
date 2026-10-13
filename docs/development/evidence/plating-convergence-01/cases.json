@@ -1,0 +1,121 @@
+{
+ "cases": [
+  {
+   "c1": 0.75,
+   "c2": 1.0,
+   "candidate": "c1=0.75,c2=1",
+   "case_id": "ev4:D-0067:c1=0.75,c2=1:0",
+   "question": "D-0067",
+   "reference_margin_v": -8.96080987474986e-06,
+   "reference_rung": "refined",
+   "soc0": 0.06,
+   "t_amb_c": 22.75
+  },
+  {
+   "c1": 1.75,
+   "c2": 1.0,
+   "candidate": "c1=1.75,c2=1",
+   "case_id": "ev4:D-0121:c1=1.75,c2=1:0",
+   "question": "D-0121",
+   "reference_margin_v": -1.1803156042951464e-05,
+   "reference_rung": "refined",
+   "soc0": 0.08,
+   "t_amb_c": 17.25
+  },
+  {
+   "c1": 1.5,
+   "c2": 0.8,
+   "candidate": "c1=1.5,c2=0.8",
+   "case_id": "ev4:D-0091:c1=1.5,c2=0.8:0",
+   "question": "D-0091",
+   "reference_margin_v": -2.152148174935941e-05,
+   "reference_rung": "refined",
+   "soc0": 0.18,
+   "t_amb_c": 16.25
+  },
+  {
+   "c1": 1.0,
+   "c2": 0.6,
+   "candidate": "c1=1,c2=0.6",
+   "case_id": "ev4:D-0155:c1=1,c2=0.6:0",
+   "question": "D-0155",
+   "reference_margin_v": 2.204097043957947e-05,
+   "reference_rung": "refined",
+   "soc0": 0.13,
+   "t_amb_c": 11.75
+  },
+  {
+   "c1": 0.5,
+   "c2": 0.8,
+   "candidate": "c1=0.5,c2=0.8",
+   "case_id": "ev4:D-0239:c1=0.5,c2=0.8:0",
+   "question": "D-0239",
+   "reference_margin_v": -2.4684884287403796e-05,
+   "reference_rung": "refined",
+   "soc0": 0.17,
+   "t_amb_c": 19.75
+  },
+  {
+   "c1": 2.0,
+   "c2": 0.2,
+   "candidate": "c1=2,c2=0.2",
+   "case_id": "ev4:D-0215:c1=2,c2=0.2:0",
+   "question": "D-0215",
+   "reference_margin_v": 3.187004731831054e-05,
+   "reference_rung": "refined",
+   "soc0": 0.46,
+   "t_amb_c": 34.25
+  },
+  {
+   "c1": 0.5,
+   "c2": 0.8,
+   "candidate": "c1=0.5,c2=0.8",
+   "case_id": "ev4:D-0042:c1=0.5,c2=0.8:0",
+   "question": "D-0042",
+   "reference_margin_v": -4.552256228722404e-05,
+   "reference_rung": "refined",
+   "soc0": 0.18,
+   "t_amb_c": 19.75
+  },
+  {
+   "c1": 0.5,
+   "c2": 0.8,
+   "candidate": "c1=0.5,c2=0.8",
+   "case_id": "ev4:D-0199:c1=0.5,c2=0.8:0",
+   "question": "D-0199",
+   "reference_margin_v": 5.11048163305129e-05,
+   "reference_rung": "refined",
+   "soc0": 0.11,
+   "t_amb_c": 19.75
+  },
+  {
+   "c1": 0.5,
+   "c2": 1.0,
+   "candidate": "c1=0.5,c2=1",
+   "case_id": "ev4:D-0235:c1=0.5,c2=1:0",
+   "question": "D-0235",
+   "reference_margin_v": -5.1306692237189106e-05,
+   "reference_rung": "refined",
+   "soc0": 0.37,
+   "t_amb_c": 26.75
+  },
+  {
+   "c1": 1.5,
+   "c2": 0.2,
+   "candidate": "c1=1.5,c2=0.2",
+   "case_id": "ev4:D-0142:c1=1.5,c2=0.2:0",
+   "question": "D-0142",
+   "reference_margin_v": -5.818177070039156e-05,
+   "reference_rung": "refined",
+   "soc0": 0.18,
+   "t_amb_c": 15.75
+  }
+ ],
+ "rule": "the 10 PDD decision cases whose reference plating margin (refined where solved, else standard; OK records only) is closest to the contract's no_plating_onset threshold, at most one per question, ties by case id",
+ "schema": "carbon.battery.plating-convergence-cases.v1",
+ "source": {
+  "contract_sha256": "81ebd7ab097d6d89537440afd1ab3592fb4705455e44478282a8b9064d1b54a6",
+  "records_sha256": "e11bf855e34bb66c2ced8659f13f97574c60594ee7d3fc7db85d89eae678af76"
+ },
+ "threshold_v": 0.0
+}
