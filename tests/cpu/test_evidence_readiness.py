@@ -271,12 +271,27 @@ def test_registered_portfolio_rank_ties_and_attach_source_digests():
 
 
 @pytest.mark.parametrize("family", er.BENCHMARK_ROUTES)
-def test_bound_benchmarks_are_planned_not_unknown_on_available_main(family):
+def test_bound_routes_are_planned_or_cite_explicit_partial_evidence(family):
     result = er.generate(ROOT, family, now=NOW)
     assert len(result["items"]) == 7
-    assert all(
-        r["state"] in {"YES", "NO", "PLANNED", "PROPOSED"} for r in result["items"]
-    )
+    for row in result["items"]:
+        if row["state"] == "UNKNOWN":
+            # A main-bound partial index explains missing full evidence; it
+            # must not turn a generic missing adapter into an accepted state.
+            assert row["item"] <= 5
+            tree = er.MainTree(ROOT, "origin/main")
+            binding = next(
+                b
+                for b in json.loads((ROOT / er.BINDINGS).read_text())["challenges"]
+                if b["challenge"] == family
+            )
+            partial = tree.json(binding["inputs"])["source_evidence"][str(row["item"])]
+            state, reason, pointers = er.inspect_partial(tree, partial)
+            assert state == "UNKNOWN" and "still required:" in reason
+            assert row["basis"] == reason
+            assert set(pointers) <= set(row["pointers"])
+        else:
+            assert row["state"] in {"YES", "NO", "PLANNED", "PROPOSED"}
     assert all(r["pointers"] and r["basis"] for r in result["items"])
     assert not result["spend_authorized"] and not result["qualified"]
 
@@ -350,6 +365,83 @@ def test_warpage_is_a_representative_route_not_a_published_benchmark():
     assert route["kind"] == "REPRESENTATIVE_REHEARSAL"
     assert route["baseline_ready"] is False
     assert "full-history" in route["baseline_gap"]
+
+
+def test_bolted_is_a_partial_representative_route_not_an_earned_baseline():
+    route = er.BENCHMARK_ROUTES["bolted-joint"]
+    assert route["kind"] == "REPRESENTATIVE_REHEARSAL"
+    assert route["baseline_ready"] is False
+    assert "opening/slip/stress" in route["baseline_gap"]
+    assert "contact-aware" in route["baseline_gap"]
+    assert route["budget_state"] == "PROPOSED"
+    assert route["budget"][1] == "BOLTED-JOINT-REPRESENTATIVE-PROPOSED-V1"
+
+
+def test_bolted_retained_implementation_is_inspected_without_execution():
+    paths = {
+        er.BENCHMARK_ROUTES["bolted-joint"]["baseline"][0],
+        er.BENCHMARK_ROUTES["bolted-joint"]["budget"][0],
+        "carbon/design_search/equal_budget.py",
+    }
+    tree = RouteTree(
+        {
+            path: (ROOT / path).read_bytes()
+            + b'\nraise RuntimeError("must not execute")\n'
+            for path in paths
+        }
+    )
+    baseline = er.code_route(tree, "bolted-joint")
+    budget = er.code_route(tree, "bolted-joint", optimizer=True)
+    assert baseline[0] == "PLANNED" and "contact-aware" in baseline[1]
+    assert budget[0] == "PROPOSED"
+    assert "carbon/challenge_pipeline/bolted_rehearsal.py" in baseline[2]
+    assert "carbon/design_search/bolted_budget.py" in budget[2]
+    tree.files["carbon/design_search/equal_budget.py"] = (
+        b'FAMILY="bolted-joint"\ndef _validate(): pass\ndef compare(): pass'
+    )
+    assert er.code_route(tree, "bolted-joint", optimizer=True)[0] == "NO"
+
+
+def test_bolted_public_preparation_index_never_supplies_complete_evidence():
+    path = "docs/development/challenge_pipeline/evidence-readiness/inputs/bolted-joint.json"
+    data = json.loads((ROOT / path).read_text(encoding="utf-8"))
+    assert data["schema"] == "carbon.onboarding.evidence-inputs.v1"
+    assert data["scope"] == "PUBLIC_DEVELOPMENT"
+    assert data["challenge"] == "bolted-joint"
+    assert set(data) == {"schema", "scope", "challenge", "source_evidence"}
+    assert set(data["source_evidence"]) == set("12345")
+    tree = er.MainTree(ROOT, "origin/main")
+    for partial in data["source_evidence"].values():
+        state, reason, pointers = er.inspect_partial(tree, partial)
+        assert state == "UNKNOWN" and "still required:" in reason
+        assert pointers and partial["missing"]
+    partial = copy.deepcopy(data["source_evidence"]["3"])
+    partial["sources"][0]["json_fields"]["status"] = "ACCEPTED_DEVELOPMENT"
+    assert er.inspect_partial(tree, partial)[0] == "NO"
+    partial["sources"][0]["binding"]["sha256"] = "sha256:" + "0" * 64
+    assert er.inspect_partial(tree, partial)[0] == "UNKNOWN"
+
+
+def test_bolted_preparation_pointers_are_real_without_status_overrides():
+    bindings = json.loads((ROOT / er.BINDINGS).read_text(encoding="utf-8"))
+    binding = next(
+        b for b in bindings["challenges"] if b["challenge"] == "bolted-joint"
+    )
+    assert (
+        binding["proposal"]
+        == "docs/development/challenge_pipeline/bolted-rehearsal/README.md"
+    )
+    assert binding["pending"] is None and set(binding["plans"]) == set("1234567")
+    for plan in binding["plans"].values():
+        assert set(plan) == {"basis", "pointers"}
+        assert plan["basis"] and plan["pointers"]
+        assert all((ROOT / er.public_path(p)).is_file() for p in plan["pointers"])
+    assert (
+        "scripts/dev/reference_packages/calculix/sources.lock.json"
+        in er.PUBLIC_REFERENCE_POINTERS
+    )
+    with pytest.raises(packet.DraftError):
+        er.public_path("scripts/dev/reference_packages/calculix/build.sh")
 
 
 def table_route_tree(family, *, module=None, body=None):

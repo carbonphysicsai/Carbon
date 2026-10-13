@@ -43,6 +43,32 @@ def test_json_default_is_v1_and_v2_is_an_explicit_cli_choice(capsys):
     assert modern["yes_count"] == legacy["yes_count"]
 
 
+def test_bolted_cli_preserves_zero_earned_readiness_and_proposed_budget(capsys):
+    args = [
+        "--root",
+        str(ROOT),
+        "readiness",
+        "--challenge",
+        "bolted-joint",
+        "--format",
+        "json",
+    ]
+    assert main(args) == 0
+    legacy = json.loads(capsys.readouterr().out)
+    assert main(args + ["--report-version", "2"]) == 0
+    modern = json.loads(capsys.readouterr().out)
+    assert legacy["items"][5]["state"] == modern["items"][5]["state"] == "PLANNED"
+    assert legacy["items"][6]["state"] == "PLANNED"
+    assert "PROPOSED" in legacy["items"][6]["basis"]
+    assert modern["items"][6]["state"] == "PROPOSED"
+    for result in (legacy, modern):
+        assert result["yes_count"] == 0
+        assert all(row["state"] != "YES" for row in result["items"][:5])
+        assert all(row["pointers"] for row in result["items"])
+        assert not result["all_prerequisites_yes"]
+        assert not result["spend_authorized"] and not result["qualified"]
+
+
 def test_v1_generated_contract_is_accepted_by_unchanged_campaign_reader(tmp_path):
     from carbon.development_comparison.evidence_campaign import _readiness
 

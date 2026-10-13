@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-13-bolted-readiness-wiring",
+  "recorded_at": "2026-10-13T02:21:42Z",
+  "challenge": "bolted-joint",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "BOLTED-JOINT-READINESS-WIRING-01", "description": "125 native readiness, CLI, bolted and equal-budget fixture tests passed; no solver or model was run. Canonical acceptance is separate."},
+  "expected": "Expose merged representative preparation through the central main-only inspector without granting readiness.",
+  "observed": "Real hand-comparator and proposed-budget routes can be inspected without executing their code. Preparation citations explain missing full evidence but cannot create YES; the strongest nonlinear comparator is still absent.",
+  "keep": ["Reuse main-only citation and AST dispatch checks.", "Keep v1 closed-schema compatibility and representative provenance."],
+  "change": ["Wire actual partial components instead of reporting unsupported routes.", "Separate a working hand arm from strongest-baseline readiness."],
+  "protocol_elements": ["reference policy", "evidence plan"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

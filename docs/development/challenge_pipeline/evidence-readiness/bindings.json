@@ -140,8 +140,38 @@
         "bolt"
       ],
       "inputs": "docs/development/challenge_pipeline/evidence-readiness/inputs/bolted-joint.json",
-      "proposal": "docs/development/challenge_pipeline/value-cost/replacements/README.md",
-      "pending": null
+      "proposal": "docs/development/challenge_pipeline/bolted-rehearsal/README.md",
+      "pending": null,
+      "plans": {
+        "1": {
+          "basis": "Exact panel/reuse proposal exists; registration and retained/scheduled inventories are not supplied",
+          "pointers": ["carbon/challenge_pipeline/bolted_rehearsal.py", "docs/development/challenge_pipeline/bolted-rehearsal/measurement-pilot.json"]
+        },
+        "2": {
+          "basis": "CalculiX source lock and representative image pin are recorded; current store presence is unknown",
+          "pointers": ["scripts/dev/reference_packages/calculix/sources.lock.json", "carbon/challenge_pipeline/bolted_rehearsal.py"]
+        },
+        "3": {
+          "basis": "Contact/pretension/history verification is specified, not executed or accepted",
+          "pointers": ["docs/development/challenge_pipeline/bolted-rehearsal/verification.json"]
+        },
+        "4": {
+          "basis": "Representative full-history kit-domain checker exists; no registered kit export is supplied",
+          "pointers": ["carbon/challenge_pipeline/bolted_rehearsal.py", "docs/development/challenge_pipeline/bolted-rehearsal/readiness-binding.json"]
+        },
+        "5": {
+          "basis": "Geometry-disjoint TRAIN proposal exists; no registered solved TRAIN inventory is supplied",
+          "pointers": ["carbon/challenge_pipeline/bolted_rehearsal.py", "docs/development/challenge_pipeline/bolted-rehearsal/readiness-binding.json"]
+        },
+        "6": {
+          "basis": "Partial VDI-style comparator exists; strongest contact-aware FE remains missing",
+          "pointers": ["carbon/challenge_pipeline/bolted_rehearsal.py"]
+        },
+        "7": {
+          "basis": "Shared equal-budget dispatch exists with a PROPOSED ASSUMPTION registration, not adopted readiness",
+          "pointers": ["carbon/design_search/bolted_budget.py", "carbon/design_search/equal_budget.py"]
+        }
+      }
     },
     {
       "challenge": "seal-gland",
