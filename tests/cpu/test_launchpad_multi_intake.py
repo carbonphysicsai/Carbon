@@ -431,6 +431,105 @@ def test_malformed_cached_result_does_not_block_another_validator(tmp_path, wire
     assert again["validators"][1]["state"] == "SCORED"
 
 
+def test_queued_mark_failure_preserves_peer_candidate_floor_and_tempo(
+    tmp_path, wire, monkeypatch
+):
+    for pair in PAIRS:
+        wire.states[pair["intake_url"]] = "ADMITTED"
+    context = prepared(tmp_path)
+    with pytest.raises(OperationRefused, match="evaluation_queued"):
+        asyncio.run(campaign.evaluate_candidate(context, 1, RECORD))
+    sent = len(wire.sent)
+    blocked = targets.journal(tmp_path, PAIRS[0])
+    write_mark = rs._write_mark
+
+    def fail_one_mark(root, epoch, value):
+        if root == blocked:
+            raise OSError("fixture private mark failure")
+        return write_mark(root, epoch, value)
+
+    monkeypatch.setattr(rs, "_write_mark", fail_one_mark)
+    wire.states[PAIRS[1]["intake_url"]] = "SCORED"
+    connect = lambda: "fixture-read-only-signer"
+    assert (
+        multi_intake.queued(
+            context.args,
+            tmp_path,
+            1,
+            connect,
+            PAIRS,
+            now=1000,
+            floor=100,
+            read=wire.read,
+            post=wire.post,
+        )
+        is None
+    )
+    shown = projection._multi_validator_outcome(
+        1, tmp_path / "epoch-1" / multi_intake.STATUS_NAME
+    )
+    assert [row["state"] for row in shown["validators"]] == ["QUEUED", "SCORED"]
+    assert shown["validators"][0]["code"] == "evaluation_failed_infra"
+    assert "private mark failure" not in json.dumps(shown)
+    assert [url for url, _, _ in wire.sent[sent:]] == [PAIRS[1]["intake_url"]]
+    monkeypatch.setattr(rs, "_write_mark", write_mark)
+    assert (
+        multi_intake.queued(
+            context.args,
+            tmp_path,
+            1,
+            connect,
+            PAIRS,
+            now=1050,
+            floor=100,
+            read=wire.read,
+            post=wire.post,
+        )
+        is None
+    )
+    after_read = len(wire.sent)
+    for at in (1060, 1200):
+        assert (
+            multi_intake.queued(
+                context.args,
+                tmp_path,
+                1,
+                connect,
+                PAIRS,
+                now=at,
+                floor=100,
+                read=wire.read,
+                post=wire.post,
+            )
+            is None
+        )
+        assert len(wire.sent) == after_read
+    read = wire.read
+
+    def next_tempo(url):
+        facts = read(url)
+        facts["snapshot"]["finalized_block"] += rs.TEMPO_BLOCKS
+        return facts
+
+    wire.states[PAIRS[0]["intake_url"]] = "SCORED"
+    done = multi_intake.queued(
+        context.args,
+        tmp_path,
+        1,
+        connect,
+        PAIRS,
+        now=1340,
+        floor=100,
+        read=next_tempo,
+        post=wire.post,
+    )
+    assert [row["state"] for row in done["validators"]] == ["SCORED", "SCORED"]
+    assert all(
+        body["call"]["tool"] == "battery_status" for _, body, _ in wire.sent[sent:]
+    )
+    assert all(url == PAIRS[0]["intake_url"] for url, _, _ in wire.sent[sent + 1 :])
+
+
 def test_a_finished_peer_is_visible_while_another_trip_is_waiting(
     tmp_path, monkeypatch
 ):
@@ -438,7 +537,10 @@ def test_a_finished_peer_is_visible_while_another_trip_is_waiting(
         release = asyncio.Event()
         finished = asyncio.Event()
 
-        async def trip(prepared, epoch, record, url, *, submission_root=None):
+        async def trip(
+            prepared, epoch, record, url, *, submission_root=None, stale_recommit=None
+        ):
+            assert stale_recommit is None
             if url == PAIRS[0]["intake_url"]:
                 await release.wait()
             else:
@@ -459,7 +561,7 @@ def test_a_finished_peer_is_visible_while_another_trip_is_waiting(
         task = asyncio.create_task(
             campaign.evaluate_candidate(prepared(tmp_path), 1, RECORD)
         )
-        await finished.wait()
+        await asyncio.wait_for(finished.wait(), 5)
         await asyncio.sleep(0)
         shown = projection._multi_validator_outcome(
             1, tmp_path / "epoch-1" / multi_intake.STATUS_NAME
@@ -467,7 +569,7 @@ def test_a_finished_peer_is_visible_while_another_trip_is_waiting(
         assert [row["state"] for row in shown["validators"]] == ["PENDING", "SCORED"]
         assert not task.done()
         release.set()
-        await task
+        await asyncio.wait_for(task, 5)
 
     asyncio.run(scenario())
 
@@ -493,6 +595,180 @@ def test_one_commitment_gate_precedes_every_target_send(tmp_path, wire, monkeypa
     context.args.commitment_gate = object()
     asyncio.run(campaign.evaluate_candidate(context, 1, RECORD))
     assert gates == [(RECORD["strategy"], DIGEST)]
+
+
+def _paired_stale_fixture(
+    tmp_path,
+    wire,
+    monkeypatch,
+    indexes,
+    *,
+    repeated=False,
+    confirm=True,
+    agent="graphite",
+    state="SCORED",
+):
+    """Real gate decision/client flow; confirmation and remote replies are fixtures."""
+    import threading
+    from collections import Counter
+
+    from carbon.chain import commitment_poster as cp
+    from carbon.reconstruction.capability_registry import contract_digest
+
+    context = prepared(tmp_path)
+    context.agent = agent
+    context.sdk.connection.miner_key = SimpleNamespace(ss58_address="fixture-miner")
+    record = {
+        "strategy": {
+            "schema_version": "1.0",
+            "challenge_id": CHALLENGE,
+            "backbone": "knn",
+            "parameters": {"neighbours": 6},
+        },
+        "contract_digest": contract_digest(CHALLENGE),
+    }
+    context.manifest["contract_digest"] = record["contract_digest"]
+    expected = campaign.frozen_commitment(record, context.manifest)
+    stale_urls = {PAIRS[index]["intake_url"] for index in indexes}
+    first_stale, ready = set(), threading.Event()
+    calls, submits = Counter(), Counter()
+
+    class Gate(cp.CommitmentGate):
+        def __init__(self):
+            self.checked, self.requests, self.refreshed = [], [], False
+
+        def check(self, digest):
+            assert digest == expected
+            self.checked.append(digest)
+
+        def request(self, root, digest, *, epoch=None, recommit=False, by="agent"):
+            assert root == tmp_path and digest == expected and epoch == 1
+            assert recommit and by == "agent"
+            assert ready.wait(
+                5
+            ), "all first stale trips must finish before confirmation"
+            self.requests.append((digest, epoch, recommit))
+            self.refreshed = confirm
+            return {"code": cp.PostCode.COMMITTED if confirm else cp.PostCode.FAILED}
+
+    gate = context.args.commitment_gate = Gate()
+    sid = intake_client.submission_id(
+        context.sdk.connection.miner_key.ss58_address,
+        record["strategy"],
+        record["contract_digest"],
+    )
+    admitted = set()
+    post = wire.post
+
+    def reply(url, body, headers):
+        status, answer = post(url, body, headers)
+        answer = {**answer, "submission_id": sid}
+        tool = json.loads(body)["call"]["tool"]
+        if tool == "battery_submit":
+            submits[url] += 1
+            if submits[url] > 1 and gate.refreshed:
+                admitted.add(url)
+        elif url in stale_urls:
+            if repeated or url not in admitted:
+                answer = {
+                    "submission_id": sid,
+                    "state": "REFUSED",
+                    "failure": {"code": cp.STALE},
+                }
+            else:
+                answer["state"] = state
+        return status, answer
+
+    monkeypatch.setattr(wire, "post", reply)
+    submit = campaign.submit_through_intake
+
+    def checked_submit(url, *args, **kwargs):
+        calls[url] += 1
+        assert kwargs["strategy"] == record["strategy"]
+        assert kwargs["contract_digest"] == record["contract_digest"]
+        result = submit(url, *args, **kwargs)
+        if calls[url] == 1 and result[1].get("state") == "REFUSED":
+            first_stale.add(url)
+            if stale_urls <= first_stale:
+                ready.set()
+        return result
+
+    monkeypatch.setattr(campaign, "submit_through_intake", checked_submit)
+    return context, record, expected, gate, calls, submits, sid
+
+
+@pytest.mark.parametrize("indexes", [[0], [0, 1]])
+@pytest.mark.parametrize("state", ["SCORED", "ADMITTED"])
+def test_graphite_stale_targets_share_one_confirmed_same_digest_recommit(
+    tmp_path, wire, monkeypatch, indexes, state
+):
+    context, record, expected, gate, calls, submits, sid = _paired_stale_fixture(
+        tmp_path, wire, monkeypatch, indexes, state=state
+    )
+    if state == "ADMITTED":
+        with pytest.raises(OperationRefused, match="evaluation_queued"):
+            asyncio.run(campaign.evaluate_candidate(context, 1, record))
+        shown = projection._multi_validator_outcome(
+            1, tmp_path / "epoch-1" / multi_intake.STATUS_NAME
+        )
+    else:
+        shown = asyncio.run(campaign.evaluate_candidate(context, 1, record))
+    assert gate.checked == [expected]
+    assert gate.requests == [(expected, 1, True)]
+    for index, pair in enumerate(PAIRS):
+        url = pair["intake_url"]
+        assert calls[url] == (2 if index in indexes else 1)
+        assert submits[url] <= 4  # Existing client's same-id RECEIVE_AGAIN resends.
+        assert (
+            json.loads(
+                rs._record_path(targets.journal(tmp_path, pair), 1).read_bytes()
+            )["submission_id"]
+            == sid
+        )
+        assert shown["validators"][index]["state"] == (
+            "QUEUED" if state == "ADMITTED" and index in indexes else "SCORED"
+        )
+
+
+def test_repeated_stale_is_bounded_and_never_requests_another_common_recommit(
+    tmp_path, wire, monkeypatch
+):
+    from carbon.chain.commitment_poster import STALE
+
+    context, record, expected, gate, calls, submits, _sid = _paired_stale_fixture(
+        tmp_path, wire, monkeypatch, [0, 1], repeated=True
+    )
+    with pytest.raises(OperationRefused, match=STALE):
+        asyncio.run(campaign.evaluate_candidate(context, 1, record))
+    assert gate.requests == [(expected, 1, True)]
+    assert all(calls[pair["intake_url"]] == 2 for pair in PAIRS)
+    assert all(submits[pair["intake_url"]] <= 4 for pair in PAIRS)
+
+
+def test_own_selection_stale_never_requests_a_commitment(tmp_path, wire, monkeypatch):
+    from carbon.chain.commitment_poster import STALE
+
+    context, record, expected, gate, calls, _submits, _sid = _paired_stale_fixture(
+        tmp_path, wire, monkeypatch, [0], agent="none"
+    )
+    result = asyncio.run(campaign.evaluate_candidate(context, 1, record))
+    assert gate.requests == [] and gate.checked == [expected]
+    assert result["validators"][0]["code"] == STALE
+    assert result["validators"][1]["state"] == "SCORED"
+    assert all(calls[pair["intake_url"]] == 1 for pair in PAIRS)
+
+
+def test_denied_common_recommit_does_not_resubmit_either_target(
+    tmp_path, wire, monkeypatch
+):
+    context, record, expected, gate, calls, _submits, _sid = _paired_stale_fixture(
+        tmp_path, wire, monkeypatch, [0, 1], confirm=False
+    )
+    with pytest.raises(OperationRefused):
+        asyncio.run(campaign.evaluate_candidate(context, 1, record))
+    assert gate.requests == [(expected, 1, True)]
+    assert all(calls[pair["intake_url"]] == 1 for pair in PAIRS)
+    assert not gate.refreshed
 
 
 def test_unknown_challenge_metadata_cannot_relabel_a_cached_validator_result(

@@ -97,3 +97,17 @@ FAILED_INFRA for that target, so it cannot abort another validator's trip.
 The failure/recovery test checks that no send occurs for the blocked directory,
 the peer scores independently, private exception text is absent and a retry
 attempts only the repaired target while reusing the peer's cached verdict.
+
+Review repairs LP04-R1/R2: queued mark/directory failures remain target-local,
+typed infrastructure read errors and keep the pending candidate; due peers
+still progress. Agent trips share one same-model recommit attempt, including
+its refusal, while each target retains the existing single retry bound. Own
+selection never requests a post. Preserve single-target gate behavior.
+
+The S1 base sync also exposed the existing pod-environment headroom regression
+(82,123 versus <82,000 characters). Repair only transport encoding: use
+filtered deflate in the manifest's lossless gzip encoding;
+retain its exact decoded JSON bytes, every shipped path and pinned digest.
+No certificate, environment limit, 8,000-character reserve or trust policy is
+removed/relaxed. The certificate bundle remains unchanged.
+This is a spec-builder/fixture repair, not a pod create or host acceptance.

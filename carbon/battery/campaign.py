@@ -1391,7 +1391,7 @@ def _carries_level4(url, read=None):
 
 
 async def _evaluate_through_intake(
-    prepared, epoch, record, url, *, submission_root=None
+    prepared, epoch, record, url, *, submission_root=None, stale_recommit=None
 ):
     """One frozen candidate through the validator's intake; see
     `submit_through_intake`. The epoch is consumed only by a verdict: SCORED,
@@ -1467,14 +1467,30 @@ async def _evaluate_through_intake(
             break
         # Refused at admission and not received again: never a verdict.
         code = intake_code((answer.get("failure") or {}).get("code"))
-        if code != STALE or gate is None or not asks or recommitted:
+        if (
+            code != STALE
+            or (gate is None and stale_recommit is None)
+            or not asks
+            or recommitted
+        ):
             raise OperationRefused(code)
         # The agent asks for the recommit; the intake then receives the same
         # submission again (`intake.RECEIVED_AGAIN`), never a second one.
         recommitted = True
-        await _committed(
-            gate, root, epoch, record, prepared.manifest, request=True, recommit=True
-        )
+        if stale_recommit is None:
+            await _committed(
+                gate,
+                root,
+                epoch,
+                record,
+                prepared.manifest,
+                request=True,
+                recommit=True,
+            )
+        else:
+            # The multi-target coordinator owns one recovery for this same
+            # frozen model. Every target still retries at most once.
+            await stale_recommit()
     return intake_feedback(epoch, url, status, answer, submission_id)
 
 

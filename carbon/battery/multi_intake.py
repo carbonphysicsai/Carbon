@@ -118,6 +118,26 @@ async def evaluate(prepared, epoch, record, targets):
             gate, root, epoch, record, prepared.manifest, request=asks
         )
 
+    recommit_task = None
+
+    async def stale_recommit():
+        nonlocal recommit_task
+        # No await between checking and assigning: all target trips run on
+        # this event loop. Success or refusal is shared; no duplicate request.
+        if recommit_task is None:
+            recommit_task = asyncio.create_task(
+                campaign._committed(
+                    gate,
+                    root,
+                    epoch,
+                    record,
+                    prepared.manifest,
+                    request=True,
+                    recommit=True,
+                )
+            )
+        await recommit_task
+
     async def one(target):
         try:
             cached = _cached(root, target, epoch)
@@ -138,7 +158,12 @@ async def evaluate(prepared, epoch, record, targets):
             return _row(target, code="evaluation_failed_infra")
         try:
             feedback = await campaign._evaluate_through_intake(
-                child, epoch, record, target["intake_url"], submission_root=directory
+                child,
+                epoch,
+                record,
+                target["intake_url"],
+                submission_root=directory,
+                stale_recommit=stale_recommit if gate is not None else None,
             )
         except OperationRefused as refused:
             return _row(target, code=campaign.intake_code(refused.code))
@@ -188,18 +213,26 @@ def queued(
             rows.append(_row(target, code="intake_answer_unrecognised"))
             continue
         if feedback is None:
-            directory = journal(root, target)
-            record_path = rs._record_path(directory, epoch)
-            if not record_path.exists():
-                rows.append(_row(target, code="evaluation_queued"))
+            try:
+                directory = journal(root, target)
+                record_path = rs._record_path(directory, epoch)
+                if not record_path.exists():
+                    rows.append(_row(target, code="evaluation_queued"))
+                    continue
+                directory.mkdir(parents=True, exist_ok=True, mode=0o700)
+                claimed = rs.claim_status_read(
+                    directory,
+                    epoch,
+                    now=time.time() if now is None else now,
+                    floor=rs.READ_FLOOR_S if floor is None else floor,
+                )
+            except OSError:
+                # The infrastructure read failure cannot consume a queued candidate.
+                rows.append(
+                    {**_row(target, code="evaluation_failed_infra"), "state": "QUEUED"}
+                )
                 continue
-            directory.mkdir(parents=True, exist_ok=True, mode=0o700)
-            if rs.claim_status_read(
-                directory,
-                epoch,
-                now=time.time() if now is None else now,
-                floor=rs.READ_FLOOR_S if floor is None else floor,
-            ):
+            if claimed:
                 try:
                     if signer is None:
                         signer = connect()

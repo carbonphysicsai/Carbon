@@ -49,3 +49,12 @@ fixed public text and the allow-listed field names. The SDK adds it inside the
 existing public validate/compile result consumed by page and MCP. No refusal,
 wire record, variant pin or admission rule changes; v4 is not given the v3
 notice. Missing metadata supplies no new notice or authority. SHADOW stays OFF.
+
+Concrete review repairs R1/R2 preserve pending-read semantics and one shared
+agent recommit through the original gate, with each target's existing retry
+bound. Source controls against the reviewed broken parent must fail these paths.
+The base-sync CI payload failure is repaired with standard filtered gzip of
+the exact original manifest JSON. It changes transport bytes prospectively,
+retains every file/digest and the bootstrap decoder, and leaves immutable
+stored request/spec identity checks in force. No certificate/trust change or
+environment/headroom-limit adjustment is part of the final repair.

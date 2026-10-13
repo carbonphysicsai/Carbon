@@ -61,6 +61,16 @@ is added.
 Completed peers are projected immediately while another trip is still waiting;
 pending states do not claim an admission or a scientific result.
 
+When a queued target's local directory/read-floor mark cannot be written, its
+row stays QUEUED with a typed infrastructure read error. Its candidate remains
+pending while due peers can finish. Recovery reuses cached peer verdicts and
+retains the existing floor and once-per-tempo rules.
+
+For an agent-selected model, a stale commitment can request one shared
+same-digest recommit through the existing miner-confirmed gate. Each target
+keeps the existing one-retry bound; concurrent stale targets share that one
+attempt, including a refusal. Own selection never requests a post.
+
 ## Construction choices
 
 `carbon_options` and the browser read the same `construction_options` document.
