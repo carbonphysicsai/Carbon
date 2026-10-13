@@ -49,6 +49,41 @@ def _v2_question(q, prediction, *, cap, kappa, unit):
     return {"U": gain - kappa * solved, "G": gain, "n": solved}
 
 
+def classify(q):
+    """Reference-only BANK_SPEC class and decision-determined reading.
+
+    An in-band action is harmless only when its known objective cannot beat
+    the best certainly feasible action. A fallback whose feasibility is still
+    in-band cannot define the scored buyer comparison.
+    """
+    actions = q["actions"]
+    if any(
+        c["status"] == "FAILED_REFERENCE"
+        for conditions in actions.values()
+        for c in conditions
+    ):
+        return "INCOMPLETE", False
+    feasible = [
+        max(c["objective"] for c in conditions)
+        for conditions in actions.values()
+        if all(c["status"] == "FEASIBLE" for c in conditions)
+    ]
+    best = min(feasible) if feasible else None
+    if any(c["status"] == "UNRESOLVED" for c in actions[q["fallback_action"]]):
+        return "INCOMPLETE", False
+    has_unresolved = False
+    for conditions in actions.values():
+        states = {c["status"] for c in conditions}
+        if "UNRESOLVED" not in states or "INFEASIBLE" in states:
+            continue
+        has_unresolved = True
+        if best is None or max(c["objective"] for c in conditions) < best:
+            return "INCOMPLETE", False
+    if all(c["status"] == "FEASIBLE" for c in actions[q["fallback_action"]]):
+        return "SCORED", has_unresolved
+    return ("RESCUE" if feasible else "NONE"), has_unresolved
+
+
 def check(
     manifest,
     records,
@@ -116,6 +151,7 @@ def check(
         raise LabRefused("bank_duplicate_question")
     classes = {"SCORED": 0, "RESCUE": 0, "NONE": 0, "INCOMPLETE": 0}
     scored = []
+    determined = 0
     for q in records:
         actions = q.get("actions")
         fallback = q.get("fallback_action")
@@ -134,7 +170,7 @@ def check(
                 c.get("status")
                 not in ("FEASIBLE", "INFEASIBLE", "UNRESOLVED", "FAILED_REFERENCE")
                 or (
-                    c.get("status") == "FEASIBLE"
+                    c.get("status") in ("FEASIBLE", "UNRESOLVED")
                     and (
                         not isinstance(c.get("objective"), (int, float))
                         or not math.isfinite(c["objective"])
@@ -145,23 +181,11 @@ def check(
                 for c in conditions
             ):
                 raise LabRefused("bank_condition_record")
-        complete = all(
-            c["status"] in ("FEASIBLE", "INFEASIBLE")
-            for conditions in actions.values()
-            for c in conditions
-        )
-        fallback_feasible = all(c["status"] == "FEASIBLE" for c in actions[fallback])
-        any_feasible = any(
-            all(c["status"] == "FEASIBLE" for c in cs) for cs in actions.values()
-        )
-        computed = (
-            "INCOMPLETE"
-            if not complete
-            else "SCORED" if fallback_feasible else "RESCUE" if any_feasible else "NONE"
-        )
+        computed, decision_determined = classify(q)
         if q.get("class") != computed:
             raise LabRefused("bank_class_mismatch")
         classes[computed] += 1
+        determined += int(decision_determined)
         if computed == "SCORED":
             scored.append(q)
     result = {
@@ -173,12 +197,17 @@ def check(
         "neighbour_tasks_missing": sorted(tasks - {q["task"] for q in records}),
         "scored_share": len(scored) / len(records),
         "half_or_more_scored": 2 * len(scored) >= len(records),
+        "decision_determined_with_unresolved": determined,
+        "size_blocker": (
+            None if 2 * len(scored) >= len(records) else "scored_share_below_half"
+        ),
         "missing_registration": missing,
         "winnability": None,
     }
     values = (cap, kappa, unit, ceiling_threshold)
     if (
         missing
+        or result["size_blocker"]
         or result["neighbour_tasks_missing"]
         or manifest.get("train_separation") != "PASS"
         or any(v is None for v in values)

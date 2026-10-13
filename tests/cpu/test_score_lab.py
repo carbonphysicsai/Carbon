@@ -335,6 +335,62 @@ def test_bank_missing_registration_is_not_pass():
     assert result["status"] == "INSUFFICIENT_EVIDENCE"
 
 
+def test_bank_decision_determined_unresolved_and_scored_share():
+    definition, manifest, records, cheap, model = _bank_fixture()
+    uncertain = {
+        "status": "UNRESOLVED",
+        "objective": 0.8,
+        "record_sha256": "sha256:uncertain",
+        "image_digest": "sha256:image",
+    }
+    records = [{**q, "actions": {**q["actions"], "c": [uncertain]}} for q in records]
+    cheap = {
+        key: {**pred, "c": {"feasible": False, "objective": 0.8}}
+        for key, pred in cheap.items()
+    }
+    model = {
+        key: {**pred, "c": {"feasible": False, "objective": 0.8}}
+        for key, pred in model.items()
+    }
+    result = bank.check(
+        manifest,
+        records,
+        definition_bytes=definition,
+        cheap=cheap,
+        reference_model=model,
+        cap=1,
+        kappa=0.1,
+        unit=1.0,
+        ceiling_threshold=0.5,
+        learnability={"train_sizes": [10, 20], "accuracies": [0.5, 0.6]},
+        replicates=30,
+    )
+    assert result["classes"]["SCORED"] == 3
+    assert result["decision_determined_with_unresolved"] == 3
+    assert result["status"] == "DEVELOPMENT_DIAGNOSTIC"
+    # One unresolved action could improve on the known best, and another
+    # question lacks a reference: the scored share falls below one half.
+    better = {**uncertain, "objective": 0.1}
+    incomplete = {**uncertain, "status": "FAILED_REFERENCE"}
+    changed = [
+        {
+            **records[0],
+            "actions": {**records[0]["actions"], "c": [better]},
+            "class": "INCOMPLETE",
+        },
+        {
+            **records[1],
+            "actions": {**records[1]["actions"], "c": [incomplete]},
+            "class": "INCOMPLETE",
+        },
+        records[2],
+    ]
+    result = bank.check(manifest, changed, definition_bytes=definition)
+    assert result["classes"] == {"SCORED": 1, "RESCUE": 0, "NONE": 0, "INCOMPLETE": 2}
+    assert result["size_blocker"] == "scored_share_below_half"
+    assert result["status"] == "INSUFFICIENT_EVIDENCE"
+
+
 def test_public_ev4_adapter_rejects_unpinned_reference(tmp_path):
     (tmp_path / "ev4-decision-references.jsonl").write_text("{}\n", encoding="utf-8")
     with pytest.raises(LabRefused, match="ev4_public_reference_digest_mismatch"):

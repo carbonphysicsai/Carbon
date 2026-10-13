@@ -10,7 +10,15 @@ import math
 import statistics
 from pathlib import Path
 
-from . import bank, candidates, physics, public_ev4, public_physics, synthetic
+from . import (
+    bank,
+    bank_builder,
+    candidates,
+    physics,
+    public_ev4,
+    public_physics,
+    synthetic,
+)
 from .core import LabRefused, analyze, registry_rule, v2_rule
 
 
@@ -216,6 +224,29 @@ def main(argv=None):
     check.add_argument("--unit", type=float)
     check.add_argument("--ceiling-threshold", type=float)
     check.add_argument("--out", type=Path)
+    bank_plan = commands.add_parser(
+        "bank-plan", help="producer-only V2 reference-job plan; writes protected output"
+    )
+    bank_plan.add_argument("--registration", type=Path, required=True)
+    bank_plan.add_argument("--draws", type=Path, required=True)
+    bank_plan.add_argument("--definition", type=Path, required=True)
+    bank_plan.add_argument("--split-seed-file", type=Path, required=True)
+    bank_plan.add_argument("--out", type=Path, required=True)
+    bank_solved = commands.add_parser(
+        "bank-solved-check", help="aggregate-only V2 solved-bank reconciliation"
+    )
+    bank_solved.add_argument("--plan", type=Path, required=True)
+    bank_solved.add_argument("--records", type=Path, required=True)
+    bank_solved.add_argument("--definition", type=Path, required=True)
+    bank_solved.add_argument("--out", type=Path)
+    bank_cost = commands.add_parser(
+        "bank-cost", help="producer-only V2 cost and refinement jobs"
+    )
+    bank_cost.add_argument("--plan", type=Path, required=True)
+    bank_cost.add_argument("--policy", type=Path, required=True)
+    bank_cost.add_argument("--coarse", type=Path)
+    bank_cost.add_argument("--jobs-out", type=Path)
+    bank_cost.add_argument("--out", type=Path)
     phys = commands.add_parser(
         "physics", help="OPT-15b analytic physics and neighbour sweep"
     )
@@ -233,6 +264,49 @@ def main(argv=None):
     phys.add_argument("--tier2-candidate", help="id in --tier2-registry")
     phys.add_argument("--out", type=Path)
     args = parser.parse_args(argv)
+    if args.command == "bank-plan":
+        planned = bank_builder.plan(
+            json.loads(args.registration.read_text(encoding="utf-8")),
+            json.loads(args.draws.read_text(encoding="utf-8")),
+            definition_bytes=args.definition.read_bytes(),
+            split_seed=args.split_seed_file.read_text(encoding="utf-8").strip(),
+        )
+        args.out.write_text(
+            json.dumps(planned, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        )
+        print(
+            "PRODUCER ONLY: wrote protected V2 plan; "
+            f"{len(planned['questions'])} questions, {len(planned['jobs'])} reference jobs"
+        )
+        return 0
+    if args.command == "bank-solved-check":
+        result = bank_builder.check_solved(
+            json.loads(args.plan.read_text(encoding="utf-8")),
+            bank.read_records(args.records),
+            definition_bytes=args.definition.read_bytes(),
+        )
+        print(json.dumps(result, indent=2, sort_keys=True))
+        _write(args.out, result)
+        return 0
+    if args.command == "bank-cost":
+        coarse = (
+            None
+            if args.coarse is None
+            else json.loads(args.coarse.read_text(encoding="utf-8"))
+        )
+        cost = bank_builder.reference_cost(
+            json.loads(args.plan.read_text(encoding="utf-8")),
+            json.loads(args.policy.read_text(encoding="utf-8")),
+            coarse,
+        )
+        jobs = cost.pop("refinement_jobs")
+        if args.jobs_out is not None:
+            args.jobs_out.write_text(
+                json.dumps(jobs, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+            )
+        print(json.dumps(cost, indent=2, sort_keys=True))
+        _write(args.out, cost)
+        return 0
     if args.command == "physics":
         config = json.loads(args.config.read_text(encoding="utf-8"))
         specs, digest = candidates.load(args.candidates)

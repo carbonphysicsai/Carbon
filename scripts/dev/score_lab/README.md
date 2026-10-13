@@ -1,5 +1,41 @@
 # Scorelab (OPT-15)
 
+## OPT-16: V2 bank producer workflow
+
+`bank-plan` consumes a registered V2 definition, a digest-bound committed draw
+from the Challenge's P law, and a committed block-split seed. It does not draw
+P, invent a reference policy, or run a solver. Its `--out` file contains the
+full contexts, split and every action-by-condition reference job: keep it on
+the **producer**, never publish it or feed it to a miner. The command prints
+only question and job counts. Data Collection owns the Challenge drawer and
+reference launcher; their outputs are registered inputs, not built here.
+
+```sh
+python -m scripts.dev.score_lab bank-plan \
+  --registration REGISTRATION.json --draws COMMITTED_DRAWS.json \
+  --definition docs/development/value-metric-v2/definition.v2.json \
+  --split-seed-file PRODUCER_SEED.txt --out PRODUCER_PLAN.json
+python -m scripts.dev.score_lab bank-cost \
+  --plan PRODUCER_PLAN.json --policy REFERENCE_POLICY.json \
+  --coarse COARSE_MARGIN_RECORDS.json --jobs-out PRODUCER_REFINEMENT_JOBS.json
+python -m scripts.dev.score_lab bank-solved-check \
+  --plan PRODUCER_PLAN.json --records PRODUCER_SOLVED.jsonl \
+  --definition docs/development/value-metric-v2/definition.v2.json
+```
+
+`bank-cost` without `--coarse` reports the total cost as
+`UNKNOWN_UNTIL_COARSE` when refinement is required. With complete coarse
+records, it uses the bank's actual in-window action-condition share and the
+registered per-rung CPU/wall costs; `--jobs-out` is producer-only. `bank-solved-check`
+requires every question, action and condition, verifies their planned job IDs,
+image and overlay lock, classifies by reference alone, enforces whole-block
+halves and the alpha block minimum, and prints aggregate counts. Its
+development-half diagnostic reuses `bank-check`; owner thresholds remain
+HUMAN_INPUT. A structural result does not qualify the bank or authorize
+opening the confirmation half. The full solved records and confirmation half
+remain in custody. The toy fixture in `test_score_lab_bank_builder.py` exercises
+the commands without Challenge physics or protected material.
+
 An offline **DEVELOPMENT** diagnostic for score/value alignment. It runs
 without a model reconstruction, reference solver, network call, hidden bank or
 AX42 access. Analytic surfaces have exact reference values; their shapes,
