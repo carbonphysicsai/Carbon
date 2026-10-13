@@ -76,6 +76,7 @@ def plan(registration, draws, *, definition_bytes, split_seed):
         "mms_acceptance_digest",
         "validity_envelope_digest",
         "reference_policy_digest",
+        "cost_policy_digest",
         "block_independence_digest",
         "draws_digest",
         "split_seed_commitment",
@@ -241,6 +242,7 @@ def plan(registration, draws, *, definition_bytes, split_seed):
             "overlay_lock_digest",
             "mms_acceptance_digest",
             "validity_envelope_digest",
+            "cost_policy_digest",
             "cheap_arm_registration",
             "objective_aggregation",
             "neighbour_declarations",
@@ -264,6 +266,7 @@ def plan(registration, draws, *, definition_bytes, split_seed):
         "scope": "PRODUCER_ONLY",
         "registration_digest": digest(registration),
         "reference_policy_digest": registration["reference_policy_digest"],
+        "cost_policy_digest": registration["cost_policy_digest"],
         "action_ids": action_ids,
         "manifest": manifest,
         "questions": questions,
@@ -411,9 +414,11 @@ def reference_cost(planned, policy, coarse=None):
     if (
         not isinstance(policy, dict)
         or policy.get("schema") != COST
-        or digest(policy) != planned.get("reference_policy_digest")
+        or digest(policy) != planned.get("cost_policy_digest")
+        or policy.get("reference_policy_digest")
+        != planned.get("reference_policy_digest")
     ):
-        raise LabRefused("bank_reference_policy_digest")
+        raise LabRefused("bank_cost_policy_identity")
     for key in ("coarse_cpu_s", "coarse_wall_s"):
         if not _positive(policy.get(key)):
             raise LabRefused("bank_reference_cost_invalid")
@@ -485,7 +490,8 @@ def reference_cost(planned, policy, coarse=None):
         {
             "source_job_id": job_id,
             "rung": "fine",
-            "reference_policy_digest": digest(policy),
+            "reference_policy_digest": planned["reference_policy_digest"],
+            "cost_policy_digest": digest(policy),
         }
         for job_id in in_window
     ]
@@ -497,7 +503,8 @@ def reference_cost(planned, policy, coarse=None):
         {
             "source_job_id": job_id,
             "rung": "trigger",
-            "reference_policy_digest": digest(policy),
+            "reference_policy_digest": planned["reference_policy_digest"],
+            "cost_policy_digest": digest(policy),
         }
         for job_id in chosen
     ]

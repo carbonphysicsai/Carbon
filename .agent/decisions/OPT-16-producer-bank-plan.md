@@ -20,3 +20,6 @@ confirmation records are never sent to `bank.check`. Actual near-window jobs
 and costs are calculated from this bank's coarse margins, with total cost
 unknown until the complete coarse panel exists. A structural-ready diagnostic
 does not qualify a bank, set a V2 threshold or open its confirmation half.
+The reference-policy digest identifies the physical resolve rule; a separate
+cost-policy digest identifies measured time and refinement accounting. The
+cost file must name the reference policy it prices.

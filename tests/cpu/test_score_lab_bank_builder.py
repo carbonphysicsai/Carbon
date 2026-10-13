@@ -20,6 +20,7 @@ def _fixture():
     definition = json.dumps({"id": "VALUE-METRIC-V2", "revision": 2}).encode()
     policy = {
         "schema": bank_builder.COST,
+        "reference_policy_digest": _sha("reference-policy"),
         "coarse_cpu_s": 10,
         "coarse_wall_s": 5,
         "refinement": {
@@ -72,7 +73,8 @@ def _fixture():
         "overlay_lock_digest": _sha("overlay"),
         "mms_acceptance_digest": _sha("mms"),
         "validity_envelope_digest": _sha("validity"),
-        "reference_policy_digest": bank_builder.digest(policy),
+        "reference_policy_digest": _sha("reference-policy"),
+        "cost_policy_digest": bank_builder.digest(policy),
         "block_independence_digest": _sha("independent_blocks"),
         "draws_digest": bank_builder.digest(draws),
         "split_seed_commitment": _sha("split"),
@@ -361,6 +363,12 @@ def test_refinement_cost_uses_this_bank_composition_and_unit():
         bank_builder.reference_cost(planned, policy, wrong)
     with pytest.raises(LabRefused, match="bank_coarse_coverage"):
         bank_builder.reference_cost(planned, policy, {first: coarse[first]})
+    mismatched = {**policy, "reference_policy_digest": _sha("wrong-reference")}
+    with pytest.raises(LabRefused, match="bank_cost_policy_identity"):
+        bank_builder.reference_cost(
+            {**planned, "cost_policy_digest": bank_builder.digest(mismatched)},
+            mismatched,
+        )
 
 
 def test_producer_cli_writes_jobs_but_prints_only_aggregates(tmp_path, capsys):
