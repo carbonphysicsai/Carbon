@@ -167,6 +167,10 @@ families that the present one-dimensional toy does not implement.
 `campaign-stress` measures five named, explicitly limited scenarios using the
 same toy panel evaluator. The example names are analogies to a grid, boundary,
 large shift, path gamer and tiny bank; they are not Challenge simulations.
+The implementation ledger in
+`Business/research/score-lab-campaign-01/LEVER_COVERAGE.md` names every §2
+group still missing from the toy grammar; no partial sample is a campaign
+verdict.
 
 ```sh
 python -m scripts.dev.score_lab campaign-stress \
