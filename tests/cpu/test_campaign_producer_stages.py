@@ -597,6 +597,7 @@ def test_the_battery_stage_runner_stamps_image_and_lock_on_every_record(
     feasibility02.solve(jobs, records, 1)
     rows = [json.loads(x) for x in records.read_text().splitlines()]
     assert [r["case_id"] for r in rows] == ["a", "b"]
+    assert all(type(r["core_s"]) is float and r["core_s"] >= 0 for r in rows)
     for row in rows:
         assert row[truth_env.PROVENANCE_FIELD] == {
             "schema": "carbon.battery.solver-provenance.v1",
