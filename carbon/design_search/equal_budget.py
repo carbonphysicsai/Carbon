@@ -22,6 +22,7 @@ from . import (
     cooling_budget,
     metagrating_budget,
     micromixer_budget,
+    solenoid_budget,
     structures_budget,
     track_b,
     warpage_budget,
@@ -30,6 +31,11 @@ from . import (
 SCHEMA = "carbon.design-search.equal-budget-panel.v1"
 REPORT_SCHEMA = "carbon.design-search.equal-budget-report.v1"
 CHALLENGE_ROUTES = {
+    "solenoid-pole": {
+        "validator": solenoid_budget.validate,
+        "representative": True,
+        "registration_required": True,
+    },
     "battery-v3": {"validator": budget_registration.validate, "indexed": True},
     "motor": {"validator": budget_registration.validate},
     "f02": {"validator": budget_registration.validate},

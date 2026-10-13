@@ -1,0 +1,13 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-13-solenoid-pilot-runnability",
+  "recorded_at": "2026-10-13T12:57:18+00:00",
+  "challenge": "solenoid-pole", "stage": "design",
+  "execution": {"kind": "test_run", "ref": "PILOT-RUNNABILITY-SOLENOID-01", "description": "Toy full-curve kit and isolated representative route feed all three OPT-12 arms without native reference execution."},
+  "expected": "Reusing a motor environment must not imply actuator formulation, observer or material acceptance.",
+  "observed": "The new route retains all 27 states and mandatory strata per geometry, and explicitly refuses absent absolute-domain/native-reference/strongest-cheap inputs. Stand-in outputs stay fixture-only.",
+  "keep": ["Shared Kit/trainer, generic tasks judge, OPT-12 and pod-job lifecycle."],
+  "change": ["Add only the solenoid-specific proposed route, whole-curve kit, public return contract and exact dimensionless acquisition proposal."],
+  "protocol_elements": ["reference-applicability", "whole-geometry-holdout", "complete-case-cost"],
+  "proposed_revision": null, "status": "RECORDED"
+}
