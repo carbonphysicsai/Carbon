@@ -135,7 +135,11 @@ def test_it_fits_the_weekly_cap_beside_the_owners_other_open_grants():
 
 @pytest.mark.parametrize(
     "rerun_id",
-    ["GRAPHITE-GRANT-L4-G-CONSTRUCTOR-3", "GRAPHITE-GRANT-L4-G-CONSTRUCTOR-4"],
+    [
+        "GRAPHITE-GRANT-L4-G-CONSTRUCTOR-3",
+        "GRAPHITE-GRANT-L4-G-CONSTRUCTOR-4",
+        "GRAPHITE-GRANT-L4-G-CONSTRUCTOR-5",
+    ],
 )
 def test_the_rerun_grant_is_the_same_grant_again_and_fits_the_effective_weekly_cap(
     rerun_id,
@@ -175,16 +179,14 @@ def test_the_rerun_grant_is_the_same_grant_again_and_fits_the_effective_weekly_c
     held = sum(grant_runs.HELD_RESERVES.values())
     effective = WEEKLY_CAP_USD - held
     assert grant_runs.effective_weekly_cap() == effective
-    standing = [
-        _grant(grant_id)
-        for grant_id, registered in grant_binding.PHASE3_GRANTS.items()
-        if registered.authority == grant_binding.STANDING_TEST_GRANT_AUTHORITY
-    ]
+    # -4 is replaced by -5 (below), so the sum counts the pair once: -2, -3, -5 and the A2 re-run.
+    standing = [_grant(grant_id) for grant_id in grant_binding.standing_open()]
     assert {g.grant_id for g in standing} >= {
         first.grant_id,
-        again.grant_id,
         "GRAPHITE-GRANT-HUNT-A2-RERUN-ATTACKER",
     }
+    if grant_binding.PHASE3_GRANTS[again.grant_id].replaced_by is None:
+        assert again.grant_id in {g.grant_id for g in standing}
     # The Score Lab research grant is a closed-task grant under the same standing authority; it is not in the
     # phase 3 binding, so its ceiling is added from the module's own whitelist.
     research = [
@@ -211,6 +213,7 @@ def _index_rows():
                 "purpose": cells[3],
                 "authority": cells[4],
                 "ceiling": Decimal(cells[5]),
+                "state": cells[6],
             }
     return rows
 
@@ -230,9 +233,49 @@ def test_the_grants_index_lists_every_level_4_constructor_grant_with_its_pool():
         assert rows[grant_id]["level"] == "4"
         assert rows[grant_id]["ceiling"] == _grant(grant_id).monetary_ceiling
     pools = {}
-    for row in rows.values():
+    for grant_id, row in rows.items():
+        if grant_binding.PHASE3_GRANTS[grant_id].replaced_by is not None:
+            assert row["state"].startswith("replaced by ")
+            continue
+        assert row["state"] == "registered"
         pools[row["authority"]] = (
             pools.get(row["authority"], Decimal(0)) + row["ceiling"]
         )
+    # -4 is spent and replaced by -5: the pool counts the pair once (-2, -3, -5), as the owner approved.
     assert pools[grant_binding.STANDING_TEST_GRANT_AUTHORITY] == Decimal("44.82")
     assert pools[grant_binding.HUNT_AUTHORITY] == Decimal("14.94")
+
+
+def test_minus_five_replaces_minus_four_and_the_owners_basis_is_unchanged():
+    """The owner approved -5 at -4's exact figures (14.91 worst case, 14.94 ceiling) as REPLACING -4, whose run is spent
+    (the ledger shows it claimed 1 of 1): the static weekly basis stays 242.85. -4 stays registered for its audit trail
+    and is not counted twice; no ceiling, no basis number and no check is changed."""
+    four, five = (
+        "GRAPHITE-GRANT-L4-G-CONSTRUCTOR-4",
+        "GRAPHITE-GRANT-L4-G-CONSTRUCTOR-5",
+    )
+    a, b = _grant(four), _grant(five)
+    for name in (
+        "monetary_ceiling",
+        "worst_case_run_cost",
+        "cleanup_allowance",
+        "permitted_runs",
+        "max_concurrency",
+        "max_runtime_s",
+        "max_submissions",
+        "pod_rate_ceiling_usd_per_hr",
+    ):
+        assert getattr(a, name) == getattr(b, name), name
+    assert (b.worst_case_run_cost, b.monetary_ceiling) == (
+        Decimal("14.91"),
+        Decimal("14.94"),
+    )
+    entries = grant_binding.PHASE3_GRANTS
+    assert entries[four].replaced_by == five and entries[five].replaced_by is None
+    assert entries[four].authority == entries[five].authority
+    assert [g for g, e in entries.items() if e.replaced_by] == [four]
+    open_ids = grant_binding.standing_open()
+    assert four not in open_ids and five in open_ids
+    # 184.56 (the weekly-budget record's other open grants) + A2 re-run 13.47 + -2, -3, -5 at 14.94 = 242.85.
+    basis = OTHER_OPEN_GRANTS + sum(_grant(g).monetary_ceiling for g in open_ids)
+    assert basis == Decimal("242.85")

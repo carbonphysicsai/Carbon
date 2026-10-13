@@ -91,6 +91,12 @@ phase-3 grant: outside its study it is refused `grant_is_bound_to_a_study`.
   without proposing, because its agent used all its calls learning the spec format. One fresh run needs its own
   grant; the Level 4 stage tool's interface reply now carries a known-good starter. It authorizes spend, never a
   Level 4 run.
+- GRAPHITE-GRANT-L4-G-CONSTRUCTOR-5 is the same grant a fourth time (same figures) and REPLACES -4
+  (`replaced_by`): the run under -4 was spent when its agent's two turns hit the 2,048-token output cap on
+  reasoning before writing a call (kimi-k3 now replies with up to 32,768; GRAPHITE-OUTPUT-CAP-KIMI-01). The owner
+  approved -5 as a replacement, so the standing weekly basis stays what it was with -4 (the sum of the open
+  grants); a replaced grant stays registered for its audit trail and is not counted again. It authorizes spend,
+  never a Level 4 run.
 
 A registered grant named for another Challenge is
 `grant_is_for_another_challenge`. A Challenge in `PHASE3_BOUND_CHALLENGES`
@@ -243,6 +249,11 @@ class Phase3Grant:
     #: The runner that spends the grant: "phase3" (Constructor sessions) or
     #: "phase4" (Attacker sessions, `phase4.PHASE4_STAGE_GRANTS`).
     runner: str = "phase3"
+    #: The grant that replaces this one, once this one's run is spent: the owner
+    #: approved the replacement as taking this one's place in the weekly basis,
+    #: so the static weekly sums count it once (`standing_open`). Still registered,
+    #: for the audit trail of the spent run.
+    replaced_by: str | None = None
 
 
 PHASE3_GRANTS = types.MappingProxyType(
@@ -390,6 +401,23 @@ PHASE3_GRANTS = types.MappingProxyType(
                 start_model="kimi-k3",
                 token_share_usd=STAGE_TOKEN_SHARE,
                 authority=STANDING_TEST_GRANT_AUTHORITY,
+                replaced_by="GRAPHITE-GRANT-L4-G-CONSTRUCTOR-5",
+            ),
+            # PURPOSE: the lane G Level 4 Constructor run a fourth time, after the run under -4 was spent when its
+            # agent's two turns hit the 2,048-token output cap on reasoning (kimi-k3 now replies with up to 32,768;
+            # GRAPHITE-OUTPUT-CAP-KIMI-01). It REPLACES -4 in the weekly basis (same figures, USD 14.94), POOL: the
+            # standing weekly test grant (OWNER-TEST-GRANT-01). Not the hunt's H4 run. Index:
+            # docs/development/graphite/grants/README.md, "Level 4 Constructor grants".
+            Phase3Grant(
+                grant_id="GRAPHITE-GRANT-L4-G-CONSTRUCTOR-5",
+                challenge=BATTERY_CHALLENGE,
+                grant_file=GRANTS_DIR + "/GRAPHITE-GRANT-L4-G-CONSTRUCTOR-5.json",
+                main_blob=True,
+                min_level=4,
+                max_level=4,
+                start_model="kimi-k3",
+                token_share_usd=STAGE_TOKEN_SHARE,
+                authority=STANDING_TEST_GRANT_AUTHORITY,
             ),
             # H4 (n = 4) PURPOSE: the Level 5 hunt's own Level 4 Constructor run, lane G, launched with
             # `--theme causal-structure`. POOL: OWNER-GRAPHITE-OPEN-SAFE-01-GRANTS, the hunt's last share
@@ -454,6 +482,19 @@ RUN_CONDITIONS_AUTHORITY = "OWNER-GRAPHITE-PHASE3-R4-01"
 LEVEL_REFUSED = "grant_requires_construction_level_1_or_above"
 LEVEL_RANGE_REFUSED = "grant_level_outside_the_grants_levels"
 START_MODEL_REFUSED = "start_model_below_the_grants_start_rung"
+
+
+def standing_open():
+    """The ids of the grants registered under the standing weekly test grant
+    that still count in its static weekly sum: every one except a grant a later
+    one `replaced_by`. A replaced grant's run is spent; the owner approved its
+    replacement as taking its place, so the basis counts the pair once."""
+    return tuple(
+        grant_id
+        for grant_id, entry in PHASE3_GRANTS.items()
+        if entry.authority == STANDING_TEST_GRANT_AUTHORITY
+        and entry.replaced_by is None
+    )
 
 
 def entry_of(grant):

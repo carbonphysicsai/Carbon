@@ -1080,14 +1080,15 @@ The grant file has no free-text field (the loader requires an exact field set), 
 is recorded here and in the comments beside its binding entry in `grant_binding.py`. Two grants can look alike (one lane G
 Level 4 Constructor run at 14.94); they differ in purpose and in the pool that funds them. A test keeps this table complete:
 every Level 4 Constructor grant in the binding appears once, with a distinct purpose, and each pool's total here equals the
-sum of its grant files' ceilings.
+sum of its grant files' ceilings, not counting a grant its row says is replaced (the owner approved -5 as replacing -4, whose run is spent, so the standing pool counts the pair once).
 
 | Grant | Level | Lane | Purpose | Authority (pool) | Ceiling | State |
 |---|---|---|---|---|---|---|
 | GRAPHITE-GRANT-STAGE-C-CONSTRUCTOR | 4 | G | Stage C: up to three Level 4 Constructor runs of the ladder wave | OWNER-GRAPHITE-STAGE-C-01 | 44.85 | registered |
 | GRAPHITE-GRANT-L4-G-CONSTRUCTOR-2 | 4 | G | The Level 4 graph-variant (`l4-graph-v3`) valid-graph Constructor run that leads to the live Level 4 submit and smoke practice; no theme | OWNER-TEST-GRANT-01 | 14.94 | registered |
 | GRAPHITE-GRANT-L4-G-CONSTRUCTOR-3 | 4 | G | The lane G Level 4 Constructor run again, after the run under -2 was spent without staging a submission (the stage tool's reads were refused; fixed in #1240); same figures as -2, no theme | OWNER-TEST-GRANT-01 | 14.94 | registered |
-| GRAPHITE-GRANT-L4-G-CONSTRUCTOR-4 | 4 | G | The lane G Level 4 Constructor run a third time, after the run under -3 was spent without proposing (its agent used all its calls learning the spec format; the stage tool's interface reply now carries a known-good starter); same figures as -2 and -3, no theme | OWNER-TEST-GRANT-01 | 14.94 | registered |
+| GRAPHITE-GRANT-L4-G-CONSTRUCTOR-4 | 4 | G | The lane G Level 4 Constructor run a third time, after the run under -3 was spent without proposing (its agent used all its calls learning the spec format; the stage tool's interface reply now carries a known-good starter); same figures as -2 and -3, no theme | OWNER-TEST-GRANT-01 | 14.94 | replaced by GRAPHITE-GRANT-L4-G-CONSTRUCTOR-5 (its run is spent) |
+| GRAPHITE-GRANT-L4-G-CONSTRUCTOR-5 | 4 | G | The lane G Level 4 Constructor run a fourth time, after the run under -4 was spent when its agent's two turns hit the 2,048-token output cap on reasoning before writing a call (kimi-k3 now replies with up to 32,768); REPLACES -4 at the same figures (14.91 worst case, 14.94 ceiling), no theme | OWNER-TEST-GRANT-01 | 14.94 | registered |
 | GRAPHITE-GRANT-HUNT-H4-CONSTRUCTOR | 4 | G | The Level 5 hunt's H4 run, launched with `--theme causal-structure` (the hunt's last share: 71.76 + 14.94 = 86.70 of 86.71) | OWNER-GRAPHITE-OPEN-SAFE-01-GRANTS | 14.94 | registered |
 
 ## The optional pod rate ceiling (GRANT-POD-CEILING-01)
