@@ -41,11 +41,14 @@ def test_every_committed_grant_is_unchanged(path):
     grant = SpendingGrant.from_document(document)
     # The standing 0.65/h ceiling is on the stage grants and R4 (owner-confirmed:
     # GRANT-POD-CEILING-01, OWNER-GRAPHITE-PHASE3-R4-CEILING-01); the hunt's grants copy it.
-    # The standing-grant Constructor family (L4- and MODEL-) carries it under the Test Lead's engineering
-    # decision of 2026-10-13: these grants are of the same class, so the owner-confirmed ceiling applies and no
-    # new figure is set (.agent/decisions/2026-10-11-OWNER-TESTNET-WEEKLY-BUDGET-01.md:71, "the 0.65 per hour pod
-    # rate ceiling ... stay"; docs/development/graphite/grants/README.md:1079-1086 on main, the owner's standing
-    # ceiling, "Stages A, B and C (2026-10-10)").
+    # Test Lead engineering decision (lane config): raises the MODEL- family's pod-rate cap from the 0.49 default to
+    # the owner's existing 0.65/h ceiling, matching every other standing-grant Constructor family (L4-G, HUNT) so a
+    # model-comparison run gets the same A40 class as the runs it is compared with; total spend still bound by the
+    # 14.94 grant and the USD 50 per-run cap.
+    # The effect is a raise from 0.49 to 0.65: without the field a grant runs at pod_control.MAX_RATE
+    # (pods.py:127, pod_control.py:310). The two records below are the source of the 0.65 figure only, not authority
+    # for this scope: .agent/decisions/2026-10-11-OWNER-TESTNET-WEEKLY-BUDGET-01.md:71 and
+    # docs/development/graphite/grants/README.md:1079-1086 on main.
     ceiling = (
         path.name.startswith(
             (
