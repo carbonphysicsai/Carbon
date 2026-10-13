@@ -127,3 +127,17 @@ def test_the_committed_study_evidence_matches_its_summary():
         assert mine["extrapolated_margin_v"] == pytest.approx(
             theirs["extrapolated_margin_v"], rel=1e-9
         )
+
+
+def test_the_d2_panel_is_forty_stratified_public_cases_on_the_short_ladder():
+    path = REPOSITORY / "docs/development/evidence/plating-convergence-02/cases.json"
+    document = json.loads(path.read_text(encoding="utf-8"))
+    cases = document["cases"]
+    assert document["schema"] == pc.CASES_SCHEMA and document["ladder"] == pc.PANEL
+    assert len(cases) == sum(n for *_x, n in pc.PANEL_STRATA) == 40
+    assert len({c["question"] for c in cases}) == 40  # one per question
+    jobs = pc.ladder(cases, pc.PANEL)
+    assert len(jobs) == 4 * 40
+    assert sorted({j["mesh"] for j in jobs}) == [20, 40, 80, 160]
+    assert all(j["rtol"] == (1e-5 if j["mesh"] == 20 else 1e-6) for j in jobs)
+    assert all(j["cycles"] == 1 and j["period_s"] is None for j in jobs)

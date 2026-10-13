@@ -58,8 +58,35 @@ PLATING = "Negative electrode lithium plating reaction overpotential [V]"
 KILLED = "KILLED_BY_HOST"
 
 
-def ladder(cases):
+#: D2's wider panel (the Validator's PLATING_REFERENCE_DECISION_2026-10-13, sha
+#: 10740f47): the standard rung and the mesh ladder only, plating in cycle 1.
+PANEL = "panel"
+#: Workers for the mesh-160 stage (6.3 GB each); a cap, sized to the host.
+MID_WORKERS = 12
+#: D2's strata: ambient bins x rate (c1 >= 1.25 is high), weighted to cold and
+#: high rates, 40 cases in all. Drawn from the public PDD decision cases.
+PANEL_STRATA = (
+    ((5.0, 12.5), True, 8),
+    ((12.5, 20.0), True, 8),
+    ((5.0, 12.5), False, 4),
+    ((12.5, 20.0), False, 4),
+    ((20.0, 30.0), True, 5),
+    ((30.0, 40.01), True, 5),
+    ((20.0, 30.0), False, 3),
+    ((30.0, 40.01), False, 3),
+)
+PANEL_SALT = "PLATING-CONVERGENCE-02/D2"
+
+
+def ladder(cases, kind="study"):
     """Every (case index, rung) solve, coarse first; the finest rung last."""
+    if kind == PANEL:
+        return [
+            {"case": i, "mesh": mesh, "rtol": 1e-5 if mesh == 20 else 1e-6,
+             "period_s": None, "cycles": 1}
+            for i in range(len(cases))
+            for mesh in (20, 40, 80, 160)
+        ]  # fmt: skip
     jobs = []
     for i, _case in enumerate(cases):
         jobs.append(
@@ -204,16 +231,47 @@ def summarise(cases, records):
     return out
 
 
-def run(cases_path, out, workers):
+def _stage(jobs, cases, workers, keep):
+    """Run `jobs` in a pool of `workers`; if the host kills a solve and breaks the
+    pool, every unfinished job is retried alone, and a solve killed alone is a
+    `KILLED_BY_HOST` record. Never ends the study."""
+    from concurrent.futures import as_completed
+
+    done = set()
+    try:
+        with ProcessPoolExecutor(
+            max_workers=max(1, workers), max_tasks_per_child=1
+        ) as pool:
+            futures = {
+                pool.submit(_one, (cases[j["case"]], j)): n for n, j in enumerate(jobs)
+            }
+            for future in as_completed(futures):
+                keep(future.result())
+                done.add(futures[future])
+    except BrokenProcessPool:
+        for n, job in enumerate(jobs):
+            if n in done:
+                continue
+            try:
+                with ProcessPoolExecutor(max_workers=1, max_tasks_per_child=1) as pool:
+                    keep(pool.submit(_one, (cases[job["case"]], job)).result())
+            except BrokenProcessPool:
+                keep(
+                    {**job, "case_id": cases[job["case"]]["case_id"], "status": KILLED}
+                )
+
+
+def run(cases_path, out, workers, mid_workers=MID_WORKERS):
     document = json.loads(Path(cases_path).read_text())
     if document.get("schema") != CASES_SCHEMA:
         raise SystemExit("refused: not a plating-convergence case list")
     cases = document["cases"]
     out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
-    jobs = ladder(cases)
-    coarse = [j for j in jobs if j["mesh"] < max(MESHES)]
-    finest = [j for j in jobs if j["mesh"] == max(MESHES)]
+    jobs = ladder(cases, document.get("ladder", "study"))
+    coarse = [j for j in jobs if j["mesh"] < 160]
+    middle = [j for j in jobs if j["mesh"] == 160]
+    finest = [j for j in jobs if j["mesh"] > 160]
     records = []
     with (out / "records.jsonl").open("a") as stream:
 
@@ -222,22 +280,13 @@ def run(cases_path, out, workers):
             stream.write(json.dumps(record, sort_keys=True) + "\n")
             stream.flush()
 
-        with ProcessPoolExecutor(
-            max_workers=max(1, workers), max_tasks_per_child=1
-        ) as pool:
-            for record in pool.map(_one, [(cases[j["case"]], j) for j in coarse]):
-                keep(record)
+        _stage(coarse, cases, workers, keep)
         write_summary(cases_path, cases, records, out)
-        # The finest rung one solve per pool: a solve the host kills (out of
-        # memory, 2026-10-13) is a typed failed rung, never the end of the study.
-        for job in finest:
-            try:
-                with ProcessPoolExecutor(max_workers=1, max_tasks_per_child=1) as pool:
-                    keep(pool.submit(_one, (cases[job["case"]], job)).result())
-            except BrokenProcessPool:
-                keep(
-                    {**job, "case_id": cases[job["case"]]["case_id"], "status": KILLED}
-                )
+        # Mesh 160 at a memory-sized cap; mesh 320 one solve at a time (it ran
+        # the host out of memory on 2026-10-13).
+        _stage(middle, cases, min(workers, mid_workers), keep)
+        write_summary(cases_path, cases, records, out)
+        _stage(finest, cases, 1, keep)
     summary = write_summary(cases_path, cases, records, out)
     return {k: summary[k] for k in ("solves", "failed")}
 
@@ -261,6 +310,128 @@ def write_summary(cases_path, cases, records, out):
     return summary
 
 
+def select_panel(contract_path, records_path):
+    """D2's case list: public PDD decision cases (standard records that solved)
+    drawn per stratum in a fixed hash order, at most one per question."""
+    from carbon.battery.value import contract as ev
+    from carbon.battery.value import decision as d
+
+    contract = json.loads(Path(contract_path).read_text())
+    jobs = {j["case_id"]: j for j in ev.decision_cases(contract)}
+    margins = {}
+    for line in Path(records_path).read_text().splitlines():
+        if not line.strip():
+            continue
+        record = json.loads(line)
+        if (
+            record.get("refined")
+            or record.get("status") != "OK"
+            or record["case_id"] not in jobs
+        ):
+            continue
+        margins[record["case_id"]] = d.measure(contract, record["outputs"])[
+            "plating_margin_v"
+        ]
+
+    def order(case_id):
+        return hashlib.sha256(f"{PANEL_SALT}:{case_id}".encode()).hexdigest()
+
+    chosen, questions = [], set()
+    for (low, high), high_rate, count in PANEL_STRATA:
+        pool = sorted(
+            (c for c in margins
+             if low <= jobs[c]["t_amb_c"] < high and (jobs[c]["c1"] >= 1.25) == high_rate),
+            key=order,
+        )  # fmt: skip
+        taken = 0
+        for case_id in pool:
+            job = jobs[case_id]
+            if taken == count or job["scenario"] in questions:
+                continue
+            questions.add(job["scenario"])
+            taken += 1
+            chosen.append({
+                "case_id": case_id, "question": job["scenario"], "candidate": job["candidate"],
+                "c1": job["c1"], "c2": job["c2"], "t_amb_c": job["t_amb_c"], "soc0": job["soc0"],
+                "reference_margin_v": margins[case_id], "reference_rung": "standard",
+                "stratum": f"t_amb [{low:g},{min(high, 40):g}) {'high' if high_rate else 'low'} rate",
+            })  # fmt: skip
+        if taken < count:
+            raise SystemExit(f"refused: stratum {low}-{high} has only {taken} cases")
+    return {
+        "schema": CASES_SCHEMA,
+        "ladder": PANEL,
+        "rule": "D2: public PDD decision cases with a solved standard record, per stratum "
+        f"{[(b, h, n) for b, h, n in PANEL_STRATA]} (ambient bin, c1 >= 1.25, count), in "
+        f"sha256('{PANEL_SALT}:'+case_id) order, at most one per question",
+        "source": {
+            "contract_sha256": hashlib.sha256(
+                Path(contract_path).read_bytes()
+            ).hexdigest(),
+            "records_sha256": hashlib.sha256(
+                Path(records_path).read_bytes()
+            ).hexdigest(),
+        },
+        "cases": chosen,
+    }
+
+
+def bias_report(summary_path, contract_path, records_path):
+    """D2's two answers: the worst mesh-20 bias over the panel, and the share of
+    public PDD decision cases whose standard plating margin lies within that
+    bias of the limit (labelled safe, but possibly plating). DEVELOPMENT
+    ASSUMPTION for the interim band; no threshold is set here."""
+    from carbon.battery.value import contract as ev
+    from carbon.battery.value import decision as d
+
+    rows = json.loads(Path(summary_path).read_text())["cases"]
+    to_extrapolated = [
+        r["error_v"]["standard_20"] for r in rows if r.get("error_v") and r["error_v"].get("standard_20") is not None
+    ]  # fmt: skip
+    to_160 = [
+        r["standard_rung_v"] - r["mesh_rungs_v"]["160"]
+        for r in rows
+        if r.get("standard_rung_v") is not None and "160" in r.get("mesh_rungs_v", {})
+    ]
+    residual_160 = [
+        r["error_v"]["160"] for r in rows if r.get("error_v") and "160" in r["error_v"]
+    ]
+    contract = json.loads(Path(contract_path).read_text())
+    limit = d._constraint_rules(contract)["no_plating_onset"]["threshold"]
+    jobs = {j["case_id"] for j in ev.decision_cases(contract)}
+    standard = []
+    for line in Path(records_path).read_text().splitlines():
+        if line.strip():
+            record = json.loads(line)
+            if (
+                not record.get("refined")
+                and record.get("status") == "OK"
+                and record["case_id"] in jobs
+            ):
+                standard.append(
+                    d.measure(contract, record["outputs"])["plating_margin_v"]
+                )
+    worst = max(to_extrapolated) if to_extrapolated else None
+    within = (
+        None if worst is None else sum(limit <= m < limit + worst for m in standard)
+    )
+    return {
+        "schema": SCHEMA + ".d2-report",
+        "status": "DEVELOPMENT ASSUMPTION, not a qualified threshold",
+        "panel_cases": len(rows),
+        "richardson_cases": len(to_extrapolated),
+        "worst_mesh20_bias_v": {"to_extrapolated": worst, "to_mesh160": max(to_160) if to_160 else None},
+        "median_mesh20_bias_v": None if not to_extrapolated else sorted(to_extrapolated)[len(to_extrapolated) // 2],
+        "worst_mesh160_residual_v": max(residual_160) if residual_160 else None,
+        "public_decision_cases": len(standard),
+        "near_onset": {
+            "rule": "standard-rung margin in [limit, limit + worst mesh-20 bias): labelled safe by the reference, could plate",
+            "count": within,
+            "share": None if within is None or not standard else within / len(standard),
+        },
+    }  # fmt: skip
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="plating_convergence")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -268,8 +439,22 @@ def main(argv=None):
     command.add_argument("--cases", required=True)
     command.add_argument("--out", required=True)
     command.add_argument("--workers", type=int, default=6)
+    command.add_argument("--mid-workers", type=int, default=MID_WORKERS)
+    select = sub.add_parser("select-panel")
+    select.add_argument("--contract", required=True)
+    select.add_argument("--records", required=True)
+    report = sub.add_parser("bias-report")
+    report.add_argument("--summary", required=True)
+    report.add_argument("--contract", required=True)
+    report.add_argument("--records", required=True)
     args = parser.parse_args(argv)
-    print(json.dumps(run(args.cases, args.out, args.workers)))
+    if args.command == "run":
+        result = run(args.cases, args.out, args.workers, args.mid_workers)
+    elif args.command == "select-panel":
+        result = select_panel(args.contract, args.records)
+    else:
+        result = bias_report(args.summary, args.contract, args.records)
+    print(json.dumps(result, indent=1, sort_keys=True))
     return 0
 
 
