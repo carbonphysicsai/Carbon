@@ -447,6 +447,14 @@ def test_r5_no_role_grant_is_no_grant_for_level(ctx):
     assert result.status == model.FAIL and "NO_GRANT_FOR_LEVEL" in result.detail
 
 
+def test_higher_level_registrations_do_not_bypass_the_legacy_grant_binding(ctx):
+    ctx.level = 0
+    ctx.data["grants"]["phase4"] = "docs/development/graphite/grants/WRONG.json"
+    result = checks.grant_binding({}, ctx)
+    assert result.status == model.FAIL
+    assert "refusing another grant" in result.detail
+
+
 @pytest.mark.parametrize(
     "mutation", ["wrong_stage", "unsafe_path", "symlink", "bad_json"]
 )

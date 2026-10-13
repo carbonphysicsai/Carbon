@@ -667,7 +667,8 @@ def grant_binding(item, ctx):
     """R5: explicit per-level roles use the runtime grant reader. Historical
     levels without a runtime registration keep the phase-4 binding test and
     visible gap; no review or grant is inherited by a higher level."""
-    if ctx.level >= 2 or "runtime_by_level" in ctx.data:
+    levels = ctx.data.get("runtime_by_level", {})
+    if ctx.level >= 2 or (type(levels) is dict and str(ctx.level) in levels):
         return runtime_checks.grants(item, ctx)
     grant, refused = _phase4_grant(ctx)
     if refused:
