@@ -385,6 +385,59 @@ def test_registered_rung_and_band_keep_coarse_in_window_decisions_unresolved():
         _check(planned, broken, definition_bytes=definition)
 
 
+def test_every_settled_label_matches_its_registered_positive_feasible_band():
+    definition, registration, draws, _policy = _fixture()
+    planned = bank_builder.plan(
+        registration, draws, definition_bytes=definition, split_seed="split"
+    )
+
+    def records_with(status, margin, *, rung="toy-coarse"):
+        rows = _solved(planned)
+        for row in rows:
+            for cell in row["actions"]["a"]:
+                cell.update(
+                    status=status,
+                    objective=None if status == "INFEASIBLE" else 2.0,
+                    margins={"toy_margin": margin},
+                    coarse_margin=margin if rung == "toy-coarse" else 0.0,
+                    rung=rung,
+                    band=registration["reference_status_rule"]["bands"][rung],
+                )
+        return rows
+
+    # A positive-feasible alternative cannot be removed, and an out-of-band
+    # unknown cannot be admitted as decision-determined SCORED.
+    for status, margin, rung in (
+        ("UNRESOLVED", 0.1, "toy-coarse"),
+        ("INFEASIBLE", 0.1, "toy-coarse"),
+        ("UNRESOLVED", 0.002, "toy-fine"),
+        ("INFEASIBLE", 0.001, "toy-fine"),
+        ("FEASIBLE", 0.001, "toy-fine"),
+    ):
+        with pytest.raises(LabRefused, match="bank_reference_band_status"):
+            _check(
+                planned,
+                records_with(status, margin, rung=rung),
+                definition_bytes=definition,
+            )
+
+    # The declared edges and both rungs partition the toy margin as recorded.
+    for status, margin, rung in (
+        ("INFEASIBLE", -0.002, "toy-coarse"),
+        ("UNRESOLVED", 0.0, "toy-coarse"),
+        ("FEASIBLE", 0.003, "toy-coarse"),
+        ("INFEASIBLE", 0.0, "toy-fine"),
+        ("UNRESOLVED", 0.001, "toy-fine"),
+        ("FEASIBLE", 0.002, "toy-fine"),
+    ):
+        report = _check(
+            planned,
+            records_with(status, margin, rung=rung),
+            definition_bytes=definition,
+        )
+        assert report["overall_scored_share"] == 1.0
+
+
 def test_solved_checker_blocks_below_half_scored_share():
     definition, registration, draws, _policy = _fixture()
     planned = bank_builder.plan(
