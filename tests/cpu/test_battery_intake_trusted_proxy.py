@@ -213,9 +213,9 @@ def test_proxy_request_buckets_are_per_validated_ip_and_direct_headers_are_ignor
 
 
 @contextmanager
-def proxy_http(intake):
+def proxy_http(intake, host="127.0.0.1"):
     intake.proxy_header = HEADER
-    server = ib.listener(proxy_config(), intake)
+    server = ib.listener(proxy_config(host=host), intake)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     try:
@@ -315,6 +315,16 @@ def test_service_preflight_guards_the_tunnel_even_on_loopback():
         "via": "trusted_proxy",
         "tls": False,
     }
+
+
+def test_ipv6_loopback_proxy_listener_and_health_probe(deployed):
+    intake, _ = deployed
+    with proxy_http(intake, host="::1") as server:
+        assert server.address_family == socket.AF_INET6
+        port = server.server_address[1]
+        found = svc.probe_intake(proxy_config(host="::1", port=port))
+        assert found["listening"] and found["answer"] == "ok"
+        assert intake.limits._buckets.keys() == {"127.0.0.1"}
 
 
 @pytest.mark.parametrize("tool", ["battery_submit", "battery_status", *ib.LEVEL4_TOOLS])

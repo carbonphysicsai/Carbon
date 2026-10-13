@@ -97,6 +97,7 @@ import json
 import os
 import re
 import signal
+import socket
 import sqlite3
 import ssl
 import sys
@@ -1424,6 +1425,11 @@ class _Server(ThreadingHTTPServer):
         self.slots = ConnectionSlots()
         self.service = service
         self.trusted_proxy = trusted_proxy
+        try:
+            if ipaddress.ip_address(address[0]).version == 6:
+                self.address_family = socket.AF_INET6
+        except ValueError:
+            pass  # hostnames retain the existing IPv4 resolution path
         super().__init__(address, handler)
 
     def process_request(self, request, client_address):

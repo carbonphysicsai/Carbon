@@ -33,6 +33,12 @@ the listener starts too; a stale cached private daemon is refused by the same
 closed codes. This is a bounded REPAIR of the exposure guard, with no cache
 rewrite or change to private evaluation. Tests exercise the final serve path.
 
+The design allows the IPv6 local hop too. A final canonical bind check found
+`::1` was accepted by configuration but the shared listener's default IPv4
+socket could not bind it. Select AF_INET6 for IPv6 literals; keep existing
+IPv4/hostname behavior. An actual IPv6 listener/health-probe test guards this
+REPAIR alongside the existing IPv4/TLS/connection regressions.
+
 Every publicly served intake, including the loopback tunnel, requires the
 owner's exposure record, the isolated carrier and commitment enforcement;
 configuration can tighten this policy but cannot disable it. Direct public
