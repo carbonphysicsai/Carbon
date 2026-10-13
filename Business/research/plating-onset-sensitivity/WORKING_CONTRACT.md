@@ -15,6 +15,8 @@ Before calculation, declare absolute reference plating-distance bins in mV:
 [0,0.5], (0.5,1], (1,2], (2,4], (4,infinity). Record sign separately.
 For every SELECTED_INFEASIBLE event, retain the actual failed constraints.
 Equal historical mistake penalties make event shares equal penalty shares.
+Report member-normalized loss contributions separately, retaining each
+member's numeric question denominator rather than weighting events equally.
 Count reference action/condition pairs once for the label inventory; member
 choices are repeated events, never independent physical observations.
 

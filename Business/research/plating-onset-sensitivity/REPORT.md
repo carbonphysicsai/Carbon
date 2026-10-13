@@ -42,6 +42,21 @@ Verification: 69 events / 690 penalty units. Pooled: 197 events / 1970 units. Al
 
 Verification: 72 events / 720 penalty units. Pooled: 201 events / 2010 units. All picks in the 2-4 mV bin fail only plating; every pooled pick within 2 mV independently fails CV reach. Near-onset events in that last category: 50, all on one repeated action/condition pair.
 
+### Member-normalized unsafe penalty shares
+
+The preceding tables sum raw assigned per-event penalties. The recorded member mean instead divides each numeric loss by that member's numeric question count. For each bin we also compute mean_m(sum_bin(10)/n_numeric_m); normalize its share by the sum over bins. This preserves the original member weighting and exposes the denominator distinction. No missing outcome becomes zero.
+
+| Cohort | Split | Mean unsafe loss | 0-0.5 share | 0.5-1 share | 1-2 share | 2-4 share | >4 share |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Original eligible 99 | development | 1.339473 | 0.00% | 0.00% | 39.98% | 11.96% | 48.06% |
+| Original eligible 99 | verification | 0.653454 | 0.00% | 0.00% | 0.00% | 68.75% | 31.25% |
+| Original eligible 99 | pooled | 0.978261 | 0.00% | 0.00% | 25.93% | 32.50% | 41.57% |
+| CPU real 100 | development | 1.337594 | 0.00% | 0.00% | 38.22% | 13.37% | 48.41% |
+| CPU real 100 | verification | 0.675101 | 0.00% | 0.00% | 0.00% | 68.71% | 31.29% |
+| CPU real 100 | pooled | 0.988380 | 0.00% | 0.00% | 24.45% | 33.86% | 41.70% |
+
+Thus the 2-4 mV verification bin carries 68.75% of member-normalized unsafe loss for the original eligible cohort and 68.71% for the CPU cohort. Both measures put the majority just outside 2 mV; neither changes the zero within-2-mV verification finding.
+
 ## Reference-label inventory across every candidate
 
 The inventory is independent of the model cohort. Failed records have no plating distance and appear separately. Sign counts concern margin alone and must not be read as combined feasibility.
@@ -131,6 +146,6 @@ If new evidence changes a band or grading contract, the Validator/owner must reg
 
 ## Validation and limits
 
-The script replays all original available reference status inventories and historical selected outcomes using unchanged RES-07/decision functions. CPU retained selections are exact-hash-bound, replayed against the same reference helper, and cross-checked against committed RES-07 nominal/shifted summaries. All 148 original public bundle identities are checked. No model executes. Eight synthetic structural tests cover inclusive signed bin boundaries, preserved independent failures, null reference outcomes, immutable inputs and rank direction. Aggregate replay is deterministic; pinned Black 26.5.1/Ruff 0.16.3 and explicit manifest checks accompany CI.
+The script replays all original available reference status inventories and historical selected outcomes using unchanged RES-07/decision functions. CPU retained selections are exact-hash-bound, replayed against the same reference helper, and cross-checked against committed RES-07 nominal/shifted summaries. All 148 original public bundle identities are checked. No model executes. Nine synthetic structural tests cover inclusive signed bin boundaries, preserved independent failures, null reference outcomes, immutable inputs, rank direction and unequal member denominators. Aggregate replay is deterministic; pinned Black 26.5.1/Ruff 0.16.3 and explicit manifest checks accompany CI.
 
 These counts are finite-panel observations with shared physical cases and repeated recipe seeds, not independent binomial trials. No confidence interval, causal noise attribution, production safety claim, superiority claim or deployment decision follows. The historical objective remains a cycle-1/CV proxy. Reference adequacy, population transport and buyer value beyond this panel remain gaps. No runtime or historical research files change.

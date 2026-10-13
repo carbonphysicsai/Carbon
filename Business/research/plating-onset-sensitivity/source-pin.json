@@ -10,7 +10,7 @@
     "res07_results_sha256": "a1473c98baaf2352c02db38b1aeef3938c41b2a958fd1f568cff0c5e29e975b0",
     "res07_sha256": "e91f89f9cae53cd7b5e1f252910f197f8a0334adbf47e2bb492d7601dffa91ff"
   },
-  "results_sha256": "f8c32ad779708d133109605e96816608a4457cdf14582cdaa4705586e93ba221",
+  "results_sha256": "e78ef2256717b6eaac8637923d4ceb4c9dc070ff3de146eda60e4c7edb99ae02",
   "scope": "PUBLIC_SYNTHETIC_DEVELOPMENT; original EV4 plus retained RES-07 public CPU selections only",
   "new_solves": 0,
   "historical_files_changed": false

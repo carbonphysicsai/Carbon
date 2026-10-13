@@ -82,6 +82,58 @@ class SensitivityTests(unittest.TestCase):
         self.assertEqual(result["strict_reversals"], 1)
         self.assertEqual(result["excluded_non_numeric"], 1)
 
+    def test_member_denominators_do_not_become_event_weights(self):
+        historical = {
+            "decisions": {
+                "a": {
+                    "q1": {
+                        "outcome": {
+                            "kind": "SELECTED_INFEASIBLE",
+                            "selected": "near",
+                            "decision_loss": 10,
+                        }
+                    },
+                    "q2": {
+                        "outcome": {
+                            "kind": "CORRECT_ABSTENTION",
+                            "selected": None,
+                            "decision_loss": 0,
+                        }
+                    },
+                },
+                "b": {
+                    "q1": {
+                        "outcome": {
+                            "kind": "SELECTED_UNRESOLVED",
+                            "selected": None,
+                            "decision_loss": None,
+                        }
+                    },
+                    "q2": {
+                        "outcome": {
+                            "kind": "SELECTED_INFEASIBLE",
+                            "selected": "far",
+                            "decision_loss": 10,
+                        }
+                    },
+                },
+            }
+        }
+        questions = [
+            {"id": "q1", "split": "development"},
+            {"id": "q2", "split": "development"},
+        ]
+        truth = {"q1": {"near": row(-0.001)}, "q2": {"far": row(-0.003)}}
+        result = analysis.histograms(historical, questions, truth, ["a", "b"])[
+            "development"
+        ]
+        self.assertEqual(result["total_unsafe_penalty_units"], 20)
+        self.assertEqual(result["mean_member_unsafe_loss"], 7.5)
+        self.assertEqual(result["events"]["0.5-1"]["penalty_share"], 0.5)
+        self.assertAlmostEqual(
+            result["events"]["0.5-1"]["member_normalized_penalty_share"], 1 / 3
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -16,8 +16,9 @@ Keep the two model cohorts separate:
 | RES-07/08's 100 public CPU rebuilds | 72 | 0 | 50 (69.4%) | 22 |
 
 These are measured counts, low=base=high, rather than population estimates.
-Each event costs the historical 10 loss units, so the penalty shares are
-identical. All the 2-4 mV events fail only plating. The CPU cohort's 50 such
+Each event costs the historical 10 loss units, so raw penalty shares match
+event shares. The member-normalized 2-4 mV shares are 68.75% / 68.71%.
+All the 2-4 mV events fail only plating. The CPU cohort's 50 such
 events reuse **four physical action/condition pairs**, with 48 events at
 9 C / initial SOC 0.06. Those four pairs are the useful next public reference
 checks, not 50 independent measurements. [REPORT.md](REPORT.md) lists them.

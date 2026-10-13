@@ -44,11 +44,13 @@
           "events": {
             "0-0.5": {
               "event_share": 0.0,
+              "member_normalized_penalty_share": 0.0,
               "penalty_share": 0.0,
               "unique_selected_action_condition_pairs": 0
             },
             "0.5-1": {
               "event_share": 0.0,
+              "member_normalized_penalty_share": 0.0,
               "penalty_share": 0.0,
               "unique_selected_action_condition_pairs": 0
             },
@@ -56,6 +58,8 @@
               "FAIL:reach_cv_in_window": 52,
               "event_share": 0.40310077519379844,
               "events": 52,
+              "member_normalized_loss_contribution": 0.530176767676768,
+              "member_normalized_penalty_share": 0.3964858134885843,
               "other_or_multiple_FAIL": 52,
               "penalty_share": 0.40310077519379844,
               "penalty_units": 520.0,
@@ -65,6 +69,8 @@
               "FAIL:no_plating_onset": 17,
               "event_share": 0.13178294573643412,
               "events": 17,
+              "member_normalized_loss_contribution": 0.16969696969696968,
+              "member_normalized_penalty_share": 0.12690567595347865,
               "penalty_share": 0.13178294573643412,
               "penalty_units": 170.0,
               "plating_only_FAIL": 17,
@@ -76,6 +82,8 @@
               "FAIL:reach_cv_in_window": 2,
               "event_share": 0.46511627906976744,
               "events": 60,
+              "member_normalized_loss_contribution": 0.6373160173160174,
+              "member_normalized_penalty_share": 0.47660851055793707,
               "other_or_multiple_FAIL": 57,
               "penalty_share": 0.46511627906976744,
               "penalty_units": 600.0,
@@ -90,6 +98,7 @@
             "all": 26,
             "unsafe_selected": 52
           },
+          "mean_member_unsafe_loss": 1.337189754689755,
           "members": 100,
           "offered_questions": 12,
           "outcome_counts": {
@@ -172,11 +181,13 @@
           "events": {
             "0-0.5": {
               "event_share": 0.0,
+              "member_normalized_penalty_share": 0.0,
               "penalty_share": 0.0,
               "unique_selected_action_condition_pairs": 0
             },
             "0.5-1": {
               "event_share": 0.0,
+              "member_normalized_penalty_share": 0.0,
               "penalty_share": 0.0,
               "unique_selected_action_condition_pairs": 0
             },
@@ -184,6 +195,8 @@
               "FAIL:reach_cv_in_window": 52,
               "event_share": 0.2613065326633166,
               "events": 52,
+              "member_normalized_loss_contribution": 0.251135794030531,
+              "member_normalized_penalty_share": 0.2565216203852741,
               "other_or_multiple_FAIL": 52,
               "penalty_share": 0.2613065326633166,
               "penalty_units": 520.0,
@@ -193,6 +206,8 @@
               "FAIL:no_plating_onset": 66,
               "event_share": 0.3316582914572864,
               "events": 66,
+              "member_normalized_loss_contribution": 0.32527135575123195,
+              "member_normalized_penalty_share": 0.33224708395043495,
               "penalty_share": 0.3316582914572864,
               "penalty_units": 660.0,
               "plating_only_FAIL": 66,
@@ -204,6 +219,8 @@
               "FAIL:reach_cv_in_window": 9,
               "event_share": 0.40703517587939697,
               "events": 81,
+              "member_normalized_loss_contribution": 0.40259724623501714,
+              "member_normalized_penalty_share": 0.41123129566429106,
               "other_or_multiple_FAIL": 72,
               "penalty_share": 0.40703517587939697,
               "penalty_units": 810.0,
@@ -218,6 +235,7 @@
             "all": 42,
             "unsafe_selected": 52
           },
+          "mean_member_unsafe_loss": 0.97900439601678,
           "members": 100,
           "offered_questions": 24,
           "outcome_counts": {
@@ -326,16 +344,19 @@
           "events": {
             "0-0.5": {
               "event_share": 0.0,
+              "member_normalized_penalty_share": 0.0,
               "penalty_share": 0.0,
               "unique_selected_action_condition_pairs": 0
             },
             "0.5-1": {
               "event_share": 0.0,
+              "member_normalized_penalty_share": 0.0,
               "penalty_share": 0.0,
               "unique_selected_action_condition_pairs": 0
             },
             "1-2": {
               "event_share": 0.0,
+              "member_normalized_penalty_share": 0.0,
               "penalty_share": 0.0,
               "unique_selected_action_condition_pairs": 0
             },
@@ -343,6 +364,8 @@
               "FAIL:no_plating_onset": 49,
               "event_share": 0.7,
               "events": 49,
+              "member_normalized_loss_contribution": 0.454747474747475,
+              "member_normalized_penalty_share": 0.6922426385792266,
               "penalty_share": 0.7,
               "penalty_units": 490.0,
               "plating_only_FAIL": 49,
@@ -354,6 +377,8 @@
               "FAIL:reach_cv_in_window": 7,
               "event_share": 0.3,
               "events": 21,
+              "member_normalized_loss_contribution": 0.2021717171717172,
+              "member_normalized_penalty_share": 0.3077573614207733,
               "other_or_multiple_FAIL": 15,
               "penalty_share": 0.3,
               "penalty_units": 210.0,
@@ -367,6 +392,7 @@
             "UNRESOLVED": 11,
             "all": 16
           },
+          "mean_member_unsafe_loss": 0.6569191919191922,
           "members": 100,
           "offered_questions": 12,
           "outcome_counts": {
@@ -6990,16 +7016,19 @@
           "events": {
             "0-0.5": {
               "event_share": 0.0,
+              "member_normalized_penalty_share": 0.0,
               "penalty_share": 0.0,
               "unique_selected_action_condition_pairs": 0
             },
             "0.5-1": {
               "event_share": 0.0,
+              "member_normalized_penalty_share": 0.0,
               "penalty_share": 0.0,
               "unique_selected_action_condition_pairs": 0
             },
             "1-2": {
               "event_share": 0.0,
+              "member_normalized_penalty_share": 0.0,
               "penalty_share": 0.0,
               "unique_selected_action_condition_pairs": 0
             },
@@ -7007,6 +7036,8 @@
               "FAIL:no_plating_onset": 5,
               "event_share": 0.45454545454545453,
               "events": 5,
+              "member_normalized_loss_contribution": 1.0303030303030305,
+              "member_normalized_penalty_share": 0.4857142857142857,
               "penalty_share": 0.45454545454545453,
               "penalty_units": 50.0,
               "plating_only_FAIL": 5,
@@ -7017,6 +7048,8 @@
               "FAIL:peak_temperature": 2,
               "event_share": 0.5454545454545454,
               "events": 6,
+              "member_normalized_loss_contribution": 1.090909090909091,
+              "member_normalized_penalty_share": 0.5142857142857142,
               "other_or_multiple_FAIL": 2,
               "penalty_share": 0.5454545454545454,
               "penalty_units": 60.0,
@@ -7030,6 +7063,7 @@
             "UNRESOLVED": 16,
             "all": 26
           },
+          "mean_member_unsafe_loss": 2.1212121212121215,
           "members": 5,
           "offered_questions": 12,
           "outcome_counts": {
@@ -7113,16 +7147,19 @@
           "events": {
             "0-0.5": {
               "event_share": 0.0,
+              "member_normalized_penalty_share": 0.0,
               "penalty_share": 0.0,
               "unique_selected_action_condition_pairs": 0
             },
             "0.5-1": {
               "event_share": 0.0,
+              "member_normalized_penalty_share": 0.0,
               "penalty_share": 0.0,
               "unique_selected_action_condition_pairs": 0
             },
             "1-2": {
               "event_share": 0.0,
+              "member_normalized_penalty_share": 0.0,
               "penalty_share": 0.0,
               "unique_selected_action_condition_pairs": 0
             },
@@ -7130,6 +7167,8 @@
               "FAIL:no_plating_onset": 7,
               "event_share": 0.30434782608695654,
               "events": 7,
+              "member_normalized_loss_contribution": 0.7081339712918661,
+              "member_normalized_penalty_share": 0.3231441048034934,
               "penalty_share": 0.30434782608695654,
               "penalty_units": 70.0,
               "plating_only_FAIL": 7,
@@ -7140,6 +7179,8 @@
               "FAIL:peak_temperature": 6,
               "event_share": 0.6956521739130435,
               "events": 16,
+              "member_normalized_loss_contribution": 1.4832535885167464,
+              "member_normalized_penalty_share": 0.6768558951965065,
               "other_or_multiple_FAIL": 6,
               "penalty_share": 0.6956521739130435,
               "penalty_units": 160.0,
@@ -7153,6 +7194,7 @@
             "UNRESOLVED": 27,
             "all": 42
           },
+          "mean_member_unsafe_loss": 2.1913875598086126,
           "members": 5,
           "offered_questions": 24,
           "outcome_counts": {
@@ -7264,16 +7306,19 @@
           "events": {
             "0-0.5": {
               "event_share": 0.0,
+              "member_normalized_penalty_share": 0.0,
               "penalty_share": 0.0,
               "unique_selected_action_condition_pairs": 0
             },
             "0.5-1": {
               "event_share": 0.0,
+              "member_normalized_penalty_share": 0.0,
               "penalty_share": 0.0,
               "unique_selected_action_condition_pairs": 0
             },
             "1-2": {
               "event_share": 0.0,
+              "member_normalized_penalty_share": 0.0,
               "penalty_share": 0.0,
               "unique_selected_action_condition_pairs": 0
             },
@@ -7281,6 +7326,8 @@
               "FAIL:no_plating_onset": 2,
               "event_share": 0.16666666666666666,
               "events": 2,
+              "member_normalized_loss_contribution": 0.4,
+              "member_normalized_penalty_share": 0.17741935483870966,
               "penalty_share": 0.16666666666666666,
               "penalty_units": 20.0,
               "plating_only_FAIL": 2,
@@ -7291,6 +7338,8 @@
               "FAIL:peak_temperature": 4,
               "event_share": 0.8333333333333334,
               "events": 10,
+              "member_normalized_loss_contribution": 1.8545454545454547,
+              "member_normalized_penalty_share": 0.8225806451612903,
               "other_or_multiple_FAIL": 4,
               "penalty_share": 0.8333333333333334,
               "penalty_units": 100.0,
@@ -7304,6 +7353,7 @@
             "UNRESOLVED": 11,
             "all": 16
           },
+          "mean_member_unsafe_loss": 2.254545454545455,
           "members": 5,
           "offered_questions": 12,
           "outcome_counts": {
@@ -8197,11 +8247,13 @@
           "events": {
             "0-0.5": {
               "event_share": 0.0,
+              "member_normalized_penalty_share": 0.0,
               "penalty_share": 0.0,
               "unique_selected_action_condition_pairs": 0
             },
             "0.5-1": {
               "event_share": 0.0,
+              "member_normalized_penalty_share": 0.0,
               "penalty_share": 0.0,
               "unique_selected_action_condition_pairs": 0
             },
@@ -8209,6 +8261,8 @@
               "FAIL:reach_cv_in_window": 52,
               "event_share": 0.40625,
               "events": 52,
+              "member_normalized_loss_contribution": 0.5355320885623918,
+              "member_normalized_penalty_share": 0.39980793766951694,
               "other_or_multiple_FAIL": 52,
               "penalty_share": 0.40625,
               "penalty_units": 520.0,
@@ -8218,6 +8272,8 @@
               "FAIL:no_plating_onset": 16,
               "event_share": 0.125,
               "events": 16,
+              "member_normalized_loss_contribution": 0.16018773594531172,
+              "member_normalized_penalty_share": 0.11959008566632846,
               "penalty_share": 0.125,
               "penalty_units": 160.0,
               "plating_only_FAIL": 16,
@@ -8229,6 +8285,8 @@
               "FAIL:reach_cv_in_window": 2,
               "event_share": 0.46875,
               "events": 60,
+              "member_normalized_loss_contribution": 0.6437535528444616,
+              "member_normalized_penalty_share": 0.4806019766641546,
               "other_or_multiple_FAIL": 57,
               "penalty_share": 0.46875,
               "penalty_units": 600.0,
@@ -8243,6 +8301,7 @@
             "all": 26,
             "unsafe_selected": 52
           },
+          "mean_member_unsafe_loss": 1.339473377352165,
           "members": 99,
           "offered_questions": 12,
           "outcome_counts": {
@@ -8325,11 +8384,13 @@
           "events": {
             "0-0.5": {
               "event_share": 0.0,
+              "member_normalized_penalty_share": 0.0,
               "penalty_share": 0.0,
               "unique_selected_action_condition_pairs": 0
             },
             "0.5-1": {
               "event_share": 0.0,
+              "member_normalized_penalty_share": 0.0,
               "penalty_share": 0.0,
               "unique_selected_action_condition_pairs": 0
             },
@@ -8337,6 +8398,8 @@
               "FAIL:reach_cv_in_window": 52,
               "event_share": 0.2639593908629442,
               "events": 52,
+              "member_normalized_loss_contribution": 0.25367251922275863,
+              "member_normalized_penalty_share": 0.2593097346835029,
               "other_or_multiple_FAIL": 52,
               "penalty_share": 0.2639593908629442,
               "penalty_units": 520.0,
@@ -8346,6 +8409,8 @@
               "FAIL:no_plating_onset": 64,
               "event_share": 0.3248730964467005,
               "events": 64,
+              "member_normalized_loss_contribution": 0.31792428278965484,
+              "member_normalized_penalty_share": 0.3249893274692249,
               "penalty_share": 0.3248730964467005,
               "penalty_units": 640.0,
               "plating_only_FAIL": 64,
@@ -8357,6 +8422,8 @@
               "FAIL:reach_cv_in_window": 9,
               "event_share": 0.41116751269035534,
               "events": 81,
+              "member_normalized_loss_contribution": 0.40666388508587575,
+              "member_normalized_penalty_share": 0.4157009378472722,
               "other_or_multiple_FAIL": 72,
               "penalty_share": 0.41116751269035534,
               "penalty_units": 810.0,
@@ -8371,6 +8438,7 @@
             "all": 42,
             "unsafe_selected": 52
           },
+          "mean_member_unsafe_loss": 0.9782606870982893,
           "members": 99,
           "offered_questions": 24,
           "outcome_counts": {
@@ -8479,16 +8547,19 @@
           "events": {
             "0-0.5": {
               "event_share": 0.0,
+              "member_normalized_penalty_share": 0.0,
               "penalty_share": 0.0,
               "unique_selected_action_condition_pairs": 0
             },
             "0.5-1": {
               "event_share": 0.0,
+              "member_normalized_penalty_share": 0.0,
               "penalty_share": 0.0,
               "unique_selected_action_condition_pairs": 0
             },
             "1-2": {
               "event_share": 0.0,
+              "member_normalized_penalty_share": 0.0,
               "penalty_share": 0.0,
               "unique_selected_action_condition_pairs": 0
             },
@@ -8496,6 +8567,8 @@
               "FAIL:no_plating_onset": 48,
               "event_share": 0.6956521739130435,
               "events": 48,
+              "member_normalized_loss_contribution": 0.449239873482298,
+              "member_normalized_penalty_share": 0.6874853618549458,
               "penalty_share": 0.6956521739130435,
               "penalty_units": 480.0,
               "plating_only_FAIL": 48,
@@ -8507,6 +8580,8 @@
               "FAIL:reach_cv_in_window": 7,
               "event_share": 0.30434782608695654,
               "events": 21,
+              "member_normalized_loss_contribution": 0.20421385572900727,
+              "member_normalized_penalty_share": 0.31251463814505415,
               "other_or_multiple_FAIL": 15,
               "penalty_share": 0.30434782608695654,
               "penalty_units": 210.0,
@@ -8520,6 +8595,7 @@
             "UNRESOLVED": 11,
             "all": 16
           },
+          "mean_member_unsafe_loss": 0.6534537292113053,
           "members": 99,
           "offered_questions": 12,
           "outcome_counts": {
@@ -15055,11 +15131,13 @@
           "events": {
             "0-0.5": {
               "event_share": 0.0,
+              "member_normalized_penalty_share": 0.0,
               "penalty_share": 0.0,
               "unique_selected_action_condition_pairs": 0
             },
             "0.5-1": {
               "event_share": 0.0,
+              "member_normalized_penalty_share": 0.0,
               "penalty_share": 0.0,
               "unique_selected_action_condition_pairs": 0
             },
@@ -15067,6 +15145,8 @@
               "FAIL:reach_cv_in_window": 3,
               "event_share": 0.1875,
               "events": 3,
+              "member_normalized_loss_contribution": 0.2828282828282828,
+              "member_normalized_penalty_share": 0.1827079934747145,
               "other_or_multiple_FAIL": 3,
               "penalty_share": 0.1875,
               "penalty_units": 30.0,
@@ -15076,6 +15156,8 @@
               "FAIL:no_plating_onset": 2,
               "event_share": 0.125,
               "events": 2,
+              "member_normalized_loss_contribution": 0.19191919191919193,
+              "member_normalized_penalty_share": 0.12398042414355628,
               "penalty_share": 0.125,
               "penalty_units": 20.0,
               "plating_only_FAIL": 2,
@@ -15087,6 +15169,8 @@
               "FAIL:reach_cv_in_window": 1,
               "event_share": 0.6875,
               "events": 11,
+              "member_normalized_loss_contribution": 1.0732323232323233,
+              "member_normalized_penalty_share": 0.6933115823817292,
               "other_or_multiple_FAIL": 9,
               "penalty_share": 0.6875,
               "penalty_units": 110.0,
@@ -15101,6 +15185,7 @@
             "all": 26,
             "unsafe_selected": 3
           },
+          "mean_member_unsafe_loss": 1.547979797979798,
           "members": 11,
           "offered_questions": 12,
           "outcome_counts": {
@@ -15178,11 +15263,13 @@
           "events": {
             "0-0.5": {
               "event_share": 0.0,
+              "member_normalized_penalty_share": 0.0,
               "penalty_share": 0.0,
               "unique_selected_action_condition_pairs": 0
             },
             "0.5-1": {
               "event_share": 0.0,
+              "member_normalized_penalty_share": 0.0,
               "penalty_share": 0.0,
               "unique_selected_action_condition_pairs": 0
             },
@@ -15190,6 +15277,8 @@
               "FAIL:reach_cv_in_window": 3,
               "event_share": 0.11538461538461539,
               "events": 3,
+              "member_normalized_loss_contribution": 0.1341991341991342,
+              "member_normalized_penalty_share": 0.11405083791015352,
               "other_or_multiple_FAIL": 3,
               "penalty_share": 0.11538461538461539,
               "penalty_units": 30.0,
@@ -15199,6 +15288,8 @@
               "FAIL:no_plating_onset": 2,
               "event_share": 0.07692307692307693,
               "events": 2,
+              "member_normalized_loss_contribution": 0.09090909090909091,
+              "member_normalized_penalty_share": 0.07726024503591046,
               "penalty_share": 0.07692307692307693,
               "penalty_units": 20.0,
               "plating_only_FAIL": 2,
@@ -15210,6 +15301,8 @@
               "FAIL:reach_cv_in_window": 2,
               "event_share": 0.8076923076923077,
               "events": 21,
+              "member_normalized_loss_contribution": 0.951552434806023,
+              "member_normalized_penalty_share": 0.808688917053936,
               "other_or_multiple_FAIL": 13,
               "penalty_share": 0.8076923076923077,
               "penalty_units": 210.0,
@@ -15224,6 +15317,7 @@
             "all": 42,
             "unsafe_selected": 3
           },
+          "mean_member_unsafe_loss": 1.1766606599142482,
           "members": 11,
           "offered_questions": 24,
           "outcome_counts": {
@@ -15321,21 +15415,25 @@
           "events": {
             "0-0.5": {
               "event_share": 0.0,
+              "member_normalized_penalty_share": 0.0,
               "penalty_share": 0.0,
               "unique_selected_action_condition_pairs": 0
             },
             "0.5-1": {
               "event_share": 0.0,
+              "member_normalized_penalty_share": 0.0,
               "penalty_share": 0.0,
               "unique_selected_action_condition_pairs": 0
             },
             "1-2": {
               "event_share": 0.0,
+              "member_normalized_penalty_share": 0.0,
               "penalty_share": 0.0,
               "unique_selected_action_condition_pairs": 0
             },
             "2-4": {
               "event_share": 0.0,
+              "member_normalized_penalty_share": 0.0,
               "penalty_share": 0.0,
               "unique_selected_action_condition_pairs": 0
             },
@@ -15345,6 +15443,8 @@
               "FAIL:reach_cv_in_window": 1,
               "event_share": 1.0,
               "events": 10,
+              "member_normalized_loss_contribution": 0.8526170798898072,
+              "member_normalized_penalty_share": 1.0,
               "other_or_multiple_FAIL": 4,
               "penalty_share": 1.0,
               "penalty_units": 100.0,
@@ -15358,6 +15458,7 @@
             "UNRESOLVED": 11,
             "all": 16
           },
+          "mean_member_unsafe_loss": 0.8526170798898072,
           "members": 11,
           "offered_questions": 12,
           "outcome_counts": {
@@ -16905,11 +17006,13 @@
           "events": {
             "0-0.5": {
               "event_share": 0.0,
+              "member_normalized_penalty_share": 0.0,
               "penalty_share": 0.0,
               "unique_selected_action_condition_pairs": 0
             },
             "0.5-1": {
               "event_share": 0.0,
+              "member_normalized_penalty_share": 0.0,
               "penalty_share": 0.0,
               "unique_selected_action_condition_pairs": 0
             },
@@ -16917,6 +17020,8 @@
               "FAIL:reach_cv_in_window": 1,
               "event_share": 0.0625,
               "events": 1,
+              "member_normalized_loss_contribution": 0.1,
+              "member_normalized_penalty_share": 0.06184600968296111,
               "other_or_multiple_FAIL": 1,
               "penalty_share": 0.0625,
               "penalty_units": 10.0,
@@ -16926,6 +17031,8 @@
               "FAIL:reach_cv_in_window": 1,
               "event_share": 0.0625,
               "events": 1,
+              "member_normalized_loss_contribution": 0.09090909090909091,
+              "member_normalized_penalty_share": 0.05622364516632828,
               "other_or_multiple_FAIL": 1,
               "penalty_share": 0.0625,
               "penalty_units": 10.0,
@@ -16937,6 +17044,8 @@
               "FAIL:reach_cv_in_window": 4,
               "event_share": 0.875,
               "events": 14,
+              "member_normalized_loss_contribution": 1.4260101010101012,
+              "member_normalized_penalty_share": 0.8819303451507106,
               "other_or_multiple_FAIL": 12,
               "penalty_share": 0.875,
               "penalty_units": 140.0,
@@ -16951,6 +17060,7 @@
             "all": 26,
             "unsafe_selected": 1
           },
+          "mean_member_unsafe_loss": 1.616919191919192,
           "members": 10,
           "offered_questions": 12,
           "outcome_counts": {
@@ -17030,11 +17140,13 @@
           "events": {
             "0-0.5": {
               "event_share": 0.0,
+              "member_normalized_penalty_share": 0.0,
               "penalty_share": 0.0,
               "unique_selected_action_condition_pairs": 0
             },
             "0.5-1": {
               "event_share": 0.0,
+              "member_normalized_penalty_share": 0.0,
               "penalty_share": 0.0,
               "unique_selected_action_condition_pairs": 0
             },
@@ -17042,6 +17154,8 @@
               "FAIL:reach_cv_in_window": 1,
               "event_share": 0.045454545454545456,
               "events": 1,
+              "member_normalized_loss_contribution": 0.047619047619047616,
+              "member_normalized_penalty_share": 0.044609665427509285,
               "other_or_multiple_FAIL": 1,
               "penalty_share": 0.045454545454545456,
               "penalty_units": 10.0,
@@ -17051,6 +17165,8 @@
               "FAIL:reach_cv_in_window": 1,
               "event_share": 0.045454545454545456,
               "events": 1,
+              "member_normalized_loss_contribution": 0.047619047619047616,
+              "member_normalized_penalty_share": 0.044609665427509285,
               "other_or_multiple_FAIL": 1,
               "penalty_share": 0.045454545454545456,
               "penalty_units": 10.0,
@@ -17062,6 +17178,8 @@
               "FAIL:reach_cv_in_window": 9,
               "event_share": 0.9090909090909091,
               "events": 20,
+              "member_normalized_loss_contribution": 0.9722222222222225,
+              "member_normalized_penalty_share": 0.9107806691449816,
               "other_or_multiple_FAIL": 17,
               "penalty_share": 0.9090909090909091,
               "penalty_units": 200.0,
@@ -17076,6 +17194,7 @@
             "all": 42,
             "unsafe_selected": 1
           },
+          "mean_member_unsafe_loss": 1.0674603174603177,
           "members": 10,
           "offered_questions": 24,
           "outcome_counts": {
@@ -17177,21 +17296,25 @@
           "events": {
             "0-0.5": {
               "event_share": 0.0,
+              "member_normalized_penalty_share": 0.0,
               "penalty_share": 0.0,
               "unique_selected_action_condition_pairs": 0
             },
             "0.5-1": {
               "event_share": 0.0,
+              "member_normalized_penalty_share": 0.0,
               "penalty_share": 0.0,
               "unique_selected_action_condition_pairs": 0
             },
             "1-2": {
               "event_share": 0.0,
+              "member_normalized_penalty_share": 0.0,
               "penalty_share": 0.0,
               "unique_selected_action_condition_pairs": 0
             },
             "2-4": {
               "event_share": 0.0,
+              "member_normalized_penalty_share": 0.0,
               "penalty_share": 0.0,
               "unique_selected_action_condition_pairs": 0
             },
@@ -17201,6 +17324,8 @@
               "FAIL:reach_cv_in_window": 5,
               "event_share": 1.0,
               "events": 6,
+              "member_normalized_loss_contribution": 0.6,
+              "member_normalized_penalty_share": 1.0,
               "other_or_multiple_FAIL": 5,
               "penalty_share": 1.0,
               "penalty_units": 60.0,
@@ -17214,6 +17339,7 @@
             "UNRESOLVED": 11,
             "all": 16
           },
+          "mean_member_unsafe_loss": 0.6,
           "members": 10,
           "offered_questions": 12,
           "outcome_counts": {
@@ -18702,11 +18828,13 @@
           "events": {
             "0-0.5": {
               "event_share": 0.0,
+              "member_normalized_penalty_share": 0.0,
               "penalty_share": 0.0,
               "unique_selected_action_condition_pairs": 0
             },
             "0.5-1": {
               "event_share": 0.0,
+              "member_normalized_penalty_share": 0.0,
               "penalty_share": 0.0,
               "unique_selected_action_condition_pairs": 0
             },
@@ -18714,6 +18842,8 @@
               "FAIL:reach_cv_in_window": 50,
               "event_share": 0.3875968992248062,
               "events": 50,
+              "member_normalized_loss_contribution": 0.5112878787878792,
+              "member_normalized_penalty_share": 0.38224450551673383,
               "other_or_multiple_FAIL": 50,
               "penalty_share": 0.3875968992248062,
               "penalty_units": 500.0,
@@ -18723,6 +18853,8 @@
               "FAIL:no_plating_onset": 18,
               "event_share": 0.13953488372093023,
               "events": 18,
+              "member_normalized_loss_contribution": 0.17878787878787877,
+              "member_normalized_penalty_share": 0.13366380693724864,
               "penalty_share": 0.13953488372093023,
               "penalty_units": 180.0,
               "plating_only_FAIL": 18,
@@ -18734,6 +18866,8 @@
               "FAIL:reach_cv_in_window": 2,
               "event_share": 0.4728682170542636,
               "events": 61,
+              "member_normalized_loss_contribution": 0.6475180375180374,
+              "member_normalized_penalty_share": 0.48409168754601756,
               "other_or_multiple_FAIL": 57,
               "penalty_share": 0.4728682170542636,
               "penalty_units": 610.0,
@@ -18748,6 +18882,7 @@
             "all": 26,
             "unsafe_selected": 50
           },
+          "mean_member_unsafe_loss": 1.3375937950937953,
           "members": 100,
           "offered_questions": 12,
           "outcome_counts": {
@@ -18831,11 +18966,13 @@
           "events": {
             "0-0.5": {
               "event_share": 0.0,
+              "member_normalized_penalty_share": 0.0,
               "penalty_share": 0.0,
               "unique_selected_action_condition_pairs": 0
             },
             "0.5-1": {
               "event_share": 0.0,
+              "member_normalized_penalty_share": 0.0,
               "penalty_share": 0.0,
               "unique_selected_action_condition_pairs": 0
             },
@@ -18843,6 +18980,8 @@
               "FAIL:reach_cv_in_window": 50,
               "event_share": 0.24875621890547264,
               "events": 50,
+              "member_normalized_loss_contribution": 0.24161198450672147,
+              "member_normalized_penalty_share": 0.24445249610470432,
               "other_or_multiple_FAIL": 50,
               "penalty_share": 0.24875621890547264,
               "penalty_units": 500.0,
@@ -18852,6 +18991,8 @@
               "FAIL:no_plating_onset": 68,
               "event_share": 0.3383084577114428,
               "events": 68,
+              "member_normalized_loss_contribution": 0.3346254227368779,
+              "member_normalized_penalty_share": 0.3385594469377245,
               "penalty_share": 0.3383084577114428,
               "penalty_units": 680.0,
               "plating_only_FAIL": 68,
@@ -18863,6 +19004,8 @@
               "FAIL:reach_cv_in_window": 9,
               "event_share": 0.4129353233830846,
               "events": 83,
+              "member_normalized_loss_contribution": 0.4121427007804717,
+              "member_normalized_penalty_share": 0.4169880569575712,
               "other_or_multiple_FAIL": 72,
               "penalty_share": 0.4129353233830846,
               "penalty_units": 830.0,
@@ -18877,6 +19020,7 @@
             "all": 42,
             "unsafe_selected": 50
           },
+          "mean_member_unsafe_loss": 0.9883801080240711,
           "members": 100,
           "offered_questions": 24,
           "outcome_counts": {
@@ -18986,16 +19130,19 @@
           "events": {
             "0-0.5": {
               "event_share": 0.0,
+              "member_normalized_penalty_share": 0.0,
               "penalty_share": 0.0,
               "unique_selected_action_condition_pairs": 0
             },
             "0.5-1": {
               "event_share": 0.0,
+              "member_normalized_penalty_share": 0.0,
               "penalty_share": 0.0,
               "unique_selected_action_condition_pairs": 0
             },
             "1-2": {
               "event_share": 0.0,
+              "member_normalized_penalty_share": 0.0,
               "penalty_share": 0.0,
               "unique_selected_action_condition_pairs": 0
             },
@@ -19003,6 +19150,8 @@
               "FAIL:no_plating_onset": 50,
               "event_share": 0.6944444444444444,
               "events": 50,
+              "member_normalized_loss_contribution": 0.4638383838383841,
+              "member_normalized_penalty_share": 0.6870651604698138,
               "penalty_share": 0.6944444444444444,
               "penalty_units": 500.0,
               "plating_only_FAIL": 50,
@@ -19014,6 +19163,8 @@
               "FAIL:reach_cv_in_window": 7,
               "event_share": 0.3055555555555556,
               "events": 22,
+              "member_normalized_loss_contribution": 0.2112626262626263,
+              "member_normalized_penalty_share": 0.3129348395301862,
               "other_or_multiple_FAIL": 15,
               "penalty_share": 0.3055555555555556,
               "penalty_units": 220.0,
@@ -19027,6 +19178,7 @@
             "UNRESOLVED": 11,
             "all": 16
           },
+          "mean_member_unsafe_loss": 0.6751010101010104,
           "members": 100,
           "offered_questions": 12,
           "outcome_counts": {
@@ -25920,11 +26072,13 @@
           "events": {
             "0-0.5": {
               "event_share": 0.0,
+              "member_normalized_penalty_share": 0.0,
               "penalty_share": 0.0,
               "unique_selected_action_condition_pairs": 0
             },
             "0.5-1": {
               "event_share": 0.0,
+              "member_normalized_penalty_share": 0.0,
               "penalty_share": 0.0,
               "unique_selected_action_condition_pairs": 0
             },
@@ -25932,6 +26086,8 @@
               "FAIL:reach_cv_in_window": 5,
               "event_share": 0.16666666666666666,
               "events": 5,
+              "member_normalized_loss_contribution": 0.17976056864945753,
+              "member_normalized_penalty_share": 0.1479632236494809,
               "other_or_multiple_FAIL": 5,
               "penalty_share": 0.16666666666666666,
               "penalty_units": 50.0,
@@ -25939,6 +26095,7 @@
             },
             "2-4": {
               "event_share": 0.0,
+              "member_normalized_penalty_share": 0.0,
               "penalty_share": 0.0,
               "unique_selected_action_condition_pairs": 0
             },
@@ -25947,6 +26104,8 @@
               "FAIL:peak_temperature": 23,
               "event_share": 0.8333333333333334,
               "events": 25,
+              "member_normalized_loss_contribution": 1.0351397573619798,
+              "member_normalized_penalty_share": 0.8520367763505192,
               "other_or_multiple_FAIL": 23,
               "penalty_share": 0.8333333333333334,
               "penalty_units": 250.0,
@@ -25961,6 +26120,7 @@
             "all": 26,
             "unsafe_selected": 5
           },
+          "mean_member_unsafe_loss": 1.2149003260114373,
           "members": 27,
           "offered_questions": 12,
           "outcome_counts": {
@@ -26031,11 +26191,13 @@
           "events": {
             "0-0.5": {
               "event_share": 0.0,
+              "member_normalized_penalty_share": 0.0,
               "penalty_share": 0.0,
               "unique_selected_action_condition_pairs": 0
             },
             "0.5-1": {
               "event_share": 0.0,
+              "member_normalized_penalty_share": 0.0,
               "penalty_share": 0.0,
               "unique_selected_action_condition_pairs": 0
             },
@@ -26043,6 +26205,8 @@
               "FAIL:reach_cv_in_window": 5,
               "event_share": 0.10869565217391304,
               "events": 5,
+              "member_normalized_loss_contribution": 0.08761179775672528,
+              "member_normalized_penalty_share": 0.10280004620704056,
               "other_or_multiple_FAIL": 5,
               "penalty_share": 0.10869565217391304,
               "penalty_units": 50.0,
@@ -26052,6 +26216,8 @@
               "FAIL:no_plating_onset": 13,
               "event_share": 0.2826086956521739,
               "events": 13,
+              "member_normalized_loss_contribution": 0.24339969623468222,
+              "member_normalized_penalty_share": 0.28559509860969906,
               "penalty_share": 0.2826086956521739,
               "penalty_units": 130.0,
               "plating_only_FAIL": 13,
@@ -26062,6 +26228,8 @@
               "FAIL:peak_temperature": 23,
               "event_share": 0.6086956521739131,
               "events": 28,
+              "member_normalized_loss_contribution": 0.5212429649246327,
+              "member_normalized_penalty_share": 0.6116048551832604,
               "other_or_multiple_FAIL": 23,
               "penalty_share": 0.6086956521739131,
               "penalty_units": 280.0,
@@ -26076,6 +26244,7 @@
             "all": 42,
             "unsafe_selected": 5
           },
+          "mean_member_unsafe_loss": 0.8522544589160402,
           "members": 27,
           "offered_questions": 24,
           "outcome_counts": {
@@ -26160,16 +26329,19 @@
           "events": {
             "0-0.5": {
               "event_share": 0.0,
+              "member_normalized_penalty_share": 0.0,
               "penalty_share": 0.0,
               "unique_selected_action_condition_pairs": 0
             },
             "0.5-1": {
               "event_share": 0.0,
+              "member_normalized_penalty_share": 0.0,
               "penalty_share": 0.0,
               "unique_selected_action_condition_pairs": 0
             },
             "1-2": {
               "event_share": 0.0,
+              "member_normalized_penalty_share": 0.0,
               "penalty_share": 0.0,
               "unique_selected_action_condition_pairs": 0
             },
@@ -26177,6 +26349,8 @@
               "FAIL:no_plating_onset": 13,
               "event_share": 0.8125,
               "events": 13,
+              "member_normalized_loss_contribution": 0.4450056116722784,
+              "member_normalized_penalty_share": 0.8100102145045965,
               "penalty_share": 0.8125,
               "penalty_units": 130.0,
               "plating_only_FAIL": 13,
@@ -26186,6 +26360,8 @@
               "FAIL:no_plating_onset": 3,
               "event_share": 0.1875,
               "events": 3,
+              "member_normalized_loss_contribution": 0.10437710437710437,
+              "member_normalized_penalty_share": 0.18998978549540343,
               "penalty_share": 0.1875,
               "penalty_units": 30.0,
               "plating_only_FAIL": 3,
@@ -26198,6 +26374,7 @@
             "UNRESOLVED": 11,
             "all": 16
           },
+          "mean_member_unsafe_loss": 0.5493827160493828,
           "members": 27,
           "offered_questions": 12,
           "outcome_counts": {

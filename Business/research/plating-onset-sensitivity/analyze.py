@@ -181,6 +181,15 @@ def histograms(historical, questions, truth, cohort):
         missing = 0
         kinds = collections.Counter()
         near = collections.Counter()
+        numeric_counts = {
+            member: sum(
+                numeric(
+                    historical["decisions"][member][q["id"]]["outcome"]["decision_loss"]
+                )
+                for q in qs
+            )
+            for member in cohort
+        }
         for q in qs:
             qid = q["id"]
             for row in truth[qid].values():
@@ -210,6 +219,9 @@ def histograms(historical, questions, truth, cohort):
                 unique_events[b].add((qid, outcome["selected"]))
                 event_by_question[qid][b] += 1
                 events[b]["penalty_units"] += outcome["decision_loss"]
+                events[b]["member_normalized_loss_contribution"] += (
+                    outcome["decision_loss"] / numeric_counts[member] / len(cohort)
+                )
                 failures = [k for k, v in row["checks"][0].items() if v == "FAIL"]
                 for failure in failures:
                     events[b][f"FAIL:{failure}"] += 1
@@ -224,12 +236,20 @@ def histograms(historical, questions, truth, cohort):
                     near["unsafe_selected"] += 1
         total = sum(v["events"] for v in events.values())
         penalty = sum(v["penalty_units"] for v in events.values())
+        normalized = sum(
+            v["member_normalized_loss_contribution"] for v in events.values()
+        )
         event_rows = {
             b: {
                 **dict(v),
                 "unique_selected_action_condition_pairs": len(unique_events[b]),
                 "event_share": v["events"] / total if total else None,
                 "penalty_share": v["penalty_units"] / penalty if penalty else None,
+                "member_normalized_penalty_share": (
+                    v["member_normalized_loss_contribution"] / normalized
+                    if normalized
+                    else None
+                ),
             }
             for b, v in events.items()
         }
@@ -241,6 +261,7 @@ def histograms(historical, questions, truth, cohort):
             "events": event_rows,
             "total_unsafe_events": total,
             "total_unsafe_penalty_units": penalty,
+            "mean_member_unsafe_loss": normalized,
             "outcome_counts": dict(kinds),
             "inclusive_within_2mv": dict(near),
             "unsafe_events_by_question": {
