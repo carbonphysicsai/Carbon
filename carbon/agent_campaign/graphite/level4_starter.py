@@ -33,9 +33,12 @@ SPEC_CONTRACT = (
 WORKFLOW = (
     "1. Call graphite_level4_stage with the recipe and task_id empty: you are reading that reply.",
     (
-        "2. Run example_run_python as it stands in a workspace run_python task (kind=workspace, "
-        "action=run_python, arguments_json = that object, including hypothesis and expected_effect inside it). It "
-        "writes spec.py, lowers it and packs /scratch/output/level4-envelope.json.gz. Note the finished task's id."
+        "2. Run example_run_python as it stands in a workspace run_python task: kind=workspace, "
+        "strategy_json=null, action=run_python, arguments_json = that object (it already carries hypothesis and "
+        "expected_effect), and hypothesis and expected_effect again at the top level of the call (copy the same "
+        "two strings). It writes spec.py, lowers it and packs /scratch/output/level4-envelope.json.gz. The task id "
+        "is result.task.task_id.value in the start reply (rtsk_ and 64 hex digits; under the MCP Tasks extension it "
+        "is the task handle's taskId); poll get_research_result with it until the task has finished."
     ),
     (
         "3. Call graphite_level4_stage again with the same recipe and that task_id: the reply is LEVEL4_STAGED and "

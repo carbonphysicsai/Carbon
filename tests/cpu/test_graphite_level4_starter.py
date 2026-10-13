@@ -98,6 +98,41 @@ def test_the_example_object_passes_the_doors_own_request_check(tmp_path):
     )
 
 
+def test_the_starter_call_as_the_page_words_it_passes_the_miner_door(tmp_path):
+    """Regression (2026-10-13 L4 dry run): step 2 put hypothesis and
+    expected_effect only inside arguments_json, and the door refused the call
+    before dispatch. The door takes them at the top level and again inside the
+    run_python object; the call the page spells out must pass the door's own
+    argument check, and the call the old page described must not."""
+    from carbon.miner_mcp import standard
+
+    _unused, reply = _reply(tmp_path)
+    run = reply["example_run_python"]
+    call = {
+        "kind": "workspace",
+        "strategy": None,
+        "action": "run_python",
+        "arguments": run,
+        "hypothesis": run["hypothesis"],
+        "expected_effect": run["expected_effect"],
+    }
+    args = standard._arguments("start_research_task", call)
+    assert json.loads(args["arguments_json"]) == run
+    assert args["hypothesis"] == run["hypothesis"] and args["strategy_json"] is None
+    old = {k: v for k, v in call.items() if k not in ("hypothesis", "expected_effect")}
+    with pytest.raises(standard.AdapterFailure):
+        standard._arguments("start_research_task", old)
+    page = PAGE.read_text(encoding="utf-8")
+    assert "again at the top level of the call" in page
+    assert "inside it)" not in page
+    for step in level4_starter.WORKFLOW:
+        assert "inside it)" not in step
+    # Where the id is (an agent had to scan the reply for "rtsk_"): the start
+    # reply's task view, the same record get_research_result returns.
+    assert "result.task.task_id.value" in level4_starter.WORKFLOW[1]
+    assert "`result.task.task_id.value`" in page
+
+
 def test_the_starter_lowers_stages_and_reaches_a_proposal(tmp_path):
     holder, reply = _reply(tmp_path)
     work = tmp_path / "sandbox"
