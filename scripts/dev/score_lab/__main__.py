@@ -14,6 +14,7 @@ from pathlib import Path
 from . import (
     bank,
     campaign_gate,
+    campaign_sweep,
     candidates,
     physics,
     public_ev4,
@@ -255,7 +256,33 @@ def main(argv=None):
     gate.add_argument("--questions", type=int, required=True)
     gate.add_argument("--cap", type=int, required=True)
     gate.add_argument("--out", type=Path)
+    sweep = commands.add_parser(
+        "campaign-plan", help="generate only a deterministic toy LHS config shard"
+    )
+    sweep.add_argument("--base-config", type=Path, required=True)
+    sweep.add_argument("--axes", type=Path, required=True)
+    sweep.add_argument("--count", type=int, required=True)
+    sweep.add_argument("--seed", type=int, required=True)
+    sweep.add_argument("--shard", type=int, default=0)
+    sweep.add_argument("--shards", type=int, default=1)
+    sweep.add_argument("--out", type=Path, required=True)
     args = parser.parse_args(argv)
+    if args.command == "campaign-plan":
+        plan = {
+            "schema": campaign_sweep.SCHEMA,
+            "seed": args.seed,
+            "count": args.count,
+            "base_config": json.loads(args.base_config.read_text(encoding="utf-8")),
+            "axes": json.loads(args.axes.read_text(encoding="utf-8")),
+        }
+        report = campaign_sweep.summary(plan, shard=args.shard, shards=args.shards)
+        _write(args.out, report)
+        print(
+            f"toy LHS plan {report['plan_sha256']}: "
+            f"{len(report['rows'])}/{report['count']} configs in shard "
+            f"{args.shard}/{args.shards}; no evaluation or holdout access"
+        )
+        return 0
     if args.command == "campaign-gate":
         report = campaign_gate.run(
             audit_path=args.audit,

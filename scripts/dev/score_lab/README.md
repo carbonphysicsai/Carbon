@@ -150,6 +150,21 @@ CRPS, gradient, CVaR, then cheap margin. Missing uncertainty or cheap-arm
 coverage returns an unscored diagnostic. Public EV4 replay refuses these toy
 wrappers; it continues to use exact registered scorers unchanged.
 
+`campaign-plan` creates deterministic Latin-hypercube shards of the existing
+analytic physics configuration. Every axis is an explicit toy assumption;
+choices, linear ranges and log ranges are supported. The command writes
+configurations and their digests, and performs no evaluation or holdout read.
+The example axes exercise part of the campaign lever space; they do not stand
+in for the remaining §2 settings or a completed campaign verdict.
+
+```sh
+python -m scripts.dev.score_lab campaign-plan \
+  --base-config scripts/dev/score_lab/physics-example.json \
+  --axes scripts/dev/score_lab/campaign-axes-example.json \
+  --count 8 --seed 17 --shard 0 --shards 2 \
+  --out /tmp/scorelab-toy-lhs-shard0.json
+```
+
 ```sh
 python -m scripts.dev.score_lab synthetic \
   --candidates codex-queue/inputs/score-lab-candidates/candidates.py \
