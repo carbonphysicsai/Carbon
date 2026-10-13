@@ -1001,20 +1001,29 @@
      "recorded_level": 3,
      "repaired": false,
      "root": "graphite-hunt-a2-root-F",
-     "triage": "UNTRIAGED",
-     "triage_source": null
+     "triage": "ORACLE_GAP",
+     "triage_source": "Graphite Testing Manager triage, 2026-10-13, read-only from the hunt A2 root, confirmed by the Carbon Validator: finding 9b718c64 (family l3_cross_level_fields, attempt epoch-1-tool-004) is a compile_strategy with empty parameters, which compiles to the registered defaults, so it is an L0 construction with no cross-level field for the oracle to find and no admission or scoring advantage: an honest accepted compile of the OPT-14 oracle class, ORACLE_GAP. The record labels it L3 while it is an L0 construction (it inflates the ladder); the interim fix is a derived level label 0, not a refusal. Hunt A1 (Level 1) ran with no finding."
     }
    ],
    "item_id": "l3.numerics",
    "level": 3,
    "level_basis": "descriptive; findings carry a derived level label",
-   "open_finding_count": 1,
-   "record_digest": "sha256:aaebfa68fc45d06ecf38620280dd0268e288dd10cc3b56e78376bc0002cf4c4b",
+   "open_finding_count": 0,
+   "record_digest": "sha256:7e42863c2ece88ec173af9a92df9eaa8aa5c649fd9463613ed3eebc8fa046b48",
    "repair_attestations": [],
    "schema": "carbon.graphite.survived-record.v1",
-   "status": "ATTACKED_OPEN_FINDING",
+   "status": "TESTED_ONLY",
    "status_reason": [
-    "open: attack-failing-trigger-9b718c6438cabfe8-0"
+    "l3_compute_accounting: NOT_RUN",
+    "l3_cross_level_fields: FINDING",
+    "l3_fresh_cases_rerun: NOT_RUN",
+    "l3_instability: NOT_RUN",
+    "l3_no_state_path: NOT_RUN",
+    "l3_off_lane: INCONCLUSIVE",
+    "l3_rebuild_determinism: NOT_RUN",
+    "l3_slot_ablation: INCONCLUSIVE",
+    "l3_unbounded_work: INCONCLUSIVE",
+    "attack-failing-trigger-9b718c6438cabfe8-0: ORACLE_GAP awaiting a re-attack"
    ]
   },
   {
@@ -1060,7 +1069,7 @@
   }
  ],
  "schema": "carbon.graphite.survived-snapshot.v1",
- "snapshot_digest": "sha256:e884b63e87ef90d6d853ec9860890fea7af83d7236d889325827787601606c2d",
+ "snapshot_digest": "sha256:120c83c4cd76955edd11eeb035132379735b7d0adb769c5463688f35b168169d",
  "sources": [
   {
    "digest": "sha256:b259e13bc5d15e5d0b65b8936c39a684cf72ffd970c78270047a756c1d0cfabf",
@@ -1069,6 +1078,10 @@
   {
    "digest": "sha256:bc51fa65223331368f718b029d4e503008a771403bfd6d9f0bfbdbef4bd759aa",
    "manifest": "attack-2026-10-13.json"
+  },
+  {
+   "digest": "sha256:dc50b71f8789f35bf4716032620d76b1e34f5d085d9fa797a321ebd995119ea5",
+   "manifest": "attack-hunt-2026-10-12.json"
   },
   {
    "digest": "sha256:faa1733ba50b6c6b6b263584c48d1ec3996de578a58c1c36279724516065b096",

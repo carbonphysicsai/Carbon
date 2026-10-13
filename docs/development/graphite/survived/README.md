@@ -40,7 +40,7 @@ triaged REAL_ESCAPE in one step); a person decides it.
 ## Gaps today
 
 - Finding `attack-failing-trigger-2a84f968e6ffc6e8-0` (L0, `staged_bytes`) has no triage record; it holds `l0` open.
-- Finding `9b718c64...` (L3) is triaged ORACLE_GAP in an unmerged manifest; regenerate after it merges.
+- Finding `9b718c64...` (recorded L3, derived L0) is triaged ORACLE_GAP in `attack-hunt-2026-10-12.json` (merged in #1292); the snapshot was regenerated after it merged.
 - No repair attestation exists in any controller (`finding_states` is empty), so closing a finding rests on a recorded
   fix plus a named re-attack.
 - Level labels are descriptive at the item level; the ledger records sessions, not which item a scored recipe exercised.
