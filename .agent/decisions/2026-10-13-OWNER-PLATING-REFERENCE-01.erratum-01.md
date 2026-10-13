@@ -45,39 +45,43 @@ record.
 
 ## The weekly envelope: reservations against actuals
 
-**Actual spend has room; the static reservation total is what could not be
-traced.** Data Collection reports that the launcher enforces the live
-`grant_runs` ledger at claim time, and that ledger stands at **USD 56.56 of
-260 used, with D3's cpu3g USD 25 included.** So the rolling week is not over on
-money actually committed, and the pod did not launch outside an enforced limit.
+**Actual spend has room, and the reserved total does trace.** Data Collection
+reports that the launcher enforces the live `grant_runs` ledger at claim time,
+and that ledger stands at **USD 56.56 of 260 used, with D3's cpu3g USD 25
+included.** So the rolling week is not over on money actually committed, and the
+pod did not launch outside an enforced limit.
 
-What remains unreconciled is the **reserved** accounting, which is a different
-quantity: the weekly
-accounting in `tests/cpu/test_graphite_score_lab_research.py` asserts
+The separate **reserved** accounting in
+`tests/cpu/test_graphite_score_lab_research.py` asserts
 `other_open + standing + research + 14.94 <= effective_weekly_cap()`, with
 `other_open` a hard-coded `Decimal("184.56")` and the effective cap 260 after
-the USD 40 held reserve. Its own comment puts the sum at **259.79 of 260** —
-roughly 21 cents of headroom. If D3's USD 6 is inside that 184.56, raising it
-to USD 25 adds USD 19 and the rolling week reaches about USD 278.79 against a
-USD 260 effective cap.
+the USD 40 held reserve; its comment puts the sum at 259.79 of 260.
 
-This could not be settled from the repository: **184.56 appears nowhere in it
-except that test.** The comment refers to "the weekly-budget record's other open
-grants", and no decision record contains the number. Data Collection, who sizes
-these runs, states they do not know its components either and never mapped D3
-into it.
+**That 184.56 is traceable, and an earlier draft of this erratum wrongly said it
+was not.** `2026-10-11-OWNER-TESTNET-WEEKLY-BUDGET-01.md:56` names the four
+grants as **USD 86.71 + 44.85 + 25 + 16 = 172.56**, and `CONFIRM-02` raises that
+25 to 37, which gives **86.71 + 44.85 + 37 + 16 = 184.56** exactly. The earlier
+claim came from grepping for the string `184.56`, which the record does not
+contain because it carries the **components** rather than the sum. A failed
+search is a fact about the search.
 
-So the position is: **the live ledger is authoritative and shows headroom
-(56.56 of 260), while the test's 259.79-of-260 reservation figure is
-unreconciled with it and traceable by nobody.** Two accountings of the same
-weekly cap differ by about USD 203 and neither side can explain the gap. That
-is not a breach, and it is not safe either — a reservation total that cannot be
-audited cannot refuse an addition that should be refused.
+**The 278.79 hypothetical an earlier draft raised does not arise either:** D3 is
+not one of those four grants, so raising its cap adds nothing to the 184.56 and
+the reserved sum is unaffected.
 
-The owner's instruction on being told the headroom was unverified was to
-confirm the USD 25 and **check the week**, and to come back to him before
-anything further launches if the week is over. On the live ledger it is not
-over, so nothing is blocked; the reconciliation is owed regardless.
+**The real residual is narrower and is an accounting question, not a breach.**
+The static sum counts only grants registered in `grant_binding`; D3, as a pod
+job, is counted only in the live ledger. So the two totals are measuring
+different sets rather than disagreeing about one set, and neither is wrong on
+its own terms. **Whether the static weekly sum ought to cover pod jobs like D3
+is the owner's accounting decision** — it determines whether the reserved figure
+is a complete weekly commitment or only the registered-grant part of one. It is
+recorded here as open and is not decided by this erratum.
+
+The owner's instruction on being told the headroom was unverified was to confirm
+the USD 25 and **check the week**, and to come back to him before anything
+further launches if the week is over. It is not over on either accounting, so
+nothing is blocked.
 
 **Also pending with the owner, not covered by this erratum:** replacing D3 with
 six cpu5m shards at up to USD 7.86 worst case over about 1.25 h, which would
