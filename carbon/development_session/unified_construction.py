@@ -314,11 +314,7 @@ class UnifiedContract:
 
 
 def _within(value, field, family):
-    if (
-        field["families"] is not None
-        and family not in field["families"]
-        and (type(value) is not type(field["default"]) or value != field["default"])
-    ):
+    if field["families"] is not None and family not in field["families"]:
         return False
     kind = field["kind"]
     if kind == "bool":

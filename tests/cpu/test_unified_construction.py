@@ -86,7 +86,16 @@ def test_explicit_defaults_are_level_zero(unified, parameters):
     assert u.derive(strategy(unified, **parameters), unified)["change_set"] == []
     value = strategy(unified, **parameters)
     value.update(backbone="fno", parameters=parameters)
-    assert u.derive(value, unified)["change_set"] == []
+    assert u.classify(value, unified)["refusal"] == "construction_unclassified"
+
+
+def test_base_field_default_cannot_bypass_backbone_applicability(unified):
+    # n_modes belongs to FNO, never MLP, even at its registered default.
+    default = unified.document["base_fields"]["n_modes"]["default"]
+    assert (
+        u.classify(strategy(unified, n_modes=default), unified)["refusal"]
+        == "parameter_refused"
+    )
 
 
 @pytest.mark.parametrize(

@@ -16,7 +16,7 @@ battery factory assembles one from the base registry and pinned current variants
 That factory reads public policy/count manifests, never data samples.
 
 An absent field is its Level 0 default. Explicit registered bool/menu defaults
-remain Level 0. A non-default pool selection is L2; a non-default line search is
+remain Level 0 within their registered backbone applicability. A non-default pool selection is L2; a non-default line search is
 L3. L1 uses the first matching arm in canonical registry order; only signed
 expressions require the signed attack arm. Supplied null/unknown/malformed values
 and missing prerequisites refuse. Full budget, material, graph-envelope and
