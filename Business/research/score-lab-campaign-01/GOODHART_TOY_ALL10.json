@@ -1,0 +1,277 @@
+{
+  "candidates_sha256": "157b1db5f091910f5602b15c9f5029f0171e6da7e8b6dbc5ffb5aa5c775bd235",
+  "results": {
+    "INFORCE-G-FEAS/A-Q>@0.05": {
+      "reason": "all_score_proposals_unscored",
+      "status": "INSUFFICIENT_EVIDENCE"
+    },
+    "N1-DECISION-RELEVANCE-ERROR": {
+      "calls": {
+        "score": 84,
+        "value": 54
+      },
+      "candidate": "N1-DECISION-RELEVANCE-ERROR",
+      "candidates_sha256": "157b1db5f091910f5602b15c9f5029f0171e6da7e8b6dbc5ffb5aa5c775bd235",
+      "config_sha256": "6a9566b4771660fa64b2cdfbf371022e499de631c8477b1ac934ac654fb53b1f",
+      "oracle_kind": "RANDOM_PLUS_COORDINATE_HILLCLIMB_ON_ANALYTIC_TOY",
+      "sampled_goodhart_gap": 0.07387125778125,
+      "score_best_parameters": {
+        "extrapolation": 0.16109109912263855,
+        "law_rate": 0.0,
+        "law_size": 0.22048089928990403,
+        "noise": 0.001,
+        "robustness": 0.0,
+        "rollout_drift": 0.0,
+        "score_path_only": 1.0,
+        "transfer": 1.0
+      },
+      "score_best_value_loss": 0.12552540882291668,
+      "search_sha256": "bd590ea7889c8cd46deb9714ed1af7b128f20dc621070f19e36c15d465d52fce",
+      "status": "MEASURED_SYNTHETIC_DEVELOPMENT",
+      "unique_toy_panels": 81,
+      "value_best_parameters": {
+        "extrapolation": 0.19182803953736513,
+        "law_rate": 0.0,
+        "law_size": 0.13751465918455963,
+        "noise": 0.007562077839709906,
+        "robustness": 0.14729424283280249,
+        "rollout_drift": 0.13533989748458228,
+        "score_path_only": 0.0,
+        "transfer": 0.5904925124490397
+      },
+      "value_best_value_loss": 0.05165415104166668,
+      "value_scope": "neighbourhood_blend"
+    },
+    "N2-VERIFIED-REGRET-ON-PICK": {
+      "calls": {
+        "score": 52,
+        "value": 54
+      },
+      "candidate": "N2-VERIFIED-REGRET-ON-PICK",
+      "candidates_sha256": "157b1db5f091910f5602b15c9f5029f0171e6da7e8b6dbc5ffb5aa5c775bd235",
+      "config_sha256": "6a9566b4771660fa64b2cdfbf371022e499de631c8477b1ac934ac654fb53b1f",
+      "oracle_kind": "RANDOM_PLUS_COORDINATE_HILLCLIMB_ON_ANALYTIC_TOY",
+      "sampled_goodhart_gap": 0.0,
+      "score_best_parameters": {
+        "extrapolation": 0.19182803953736513,
+        "law_rate": 0.0,
+        "law_size": 0.13751465918455963,
+        "noise": 0.007562077839709906,
+        "robustness": 0.14729424283280249,
+        "rollout_drift": 0.13533989748458228,
+        "score_path_only": 0.0,
+        "transfer": 0.5904925124490397
+      },
+      "score_best_value_loss": 0.05165415104166668,
+      "search_sha256": "bd590ea7889c8cd46deb9714ed1af7b128f20dc621070f19e36c15d465d52fce",
+      "status": "MEASURED_SYNTHETIC_DEVELOPMENT",
+      "unique_toy_panels": 40,
+      "value_best_parameters": {
+        "extrapolation": 0.19182803953736513,
+        "law_rate": 0.0,
+        "law_size": 0.13751465918455963,
+        "noise": 0.007562077839709906,
+        "robustness": 0.14729424283280249,
+        "rollout_drift": 0.13533989748458228,
+        "score_path_only": 0.0,
+        "transfer": 0.5904925124490397
+      },
+      "value_best_value_loss": 0.05165415104166668,
+      "value_scope": "neighbourhood_blend"
+    },
+    "N3-SAFE-PICK-RATE-x-GAIN": {
+      "calls": {
+        "score": 52,
+        "value": 54
+      },
+      "candidate": "N3-SAFE-PICK-RATE-x-GAIN",
+      "candidates_sha256": "157b1db5f091910f5602b15c9f5029f0171e6da7e8b6dbc5ffb5aa5c775bd235",
+      "config_sha256": "6a9566b4771660fa64b2cdfbf371022e499de631c8477b1ac934ac654fb53b1f",
+      "oracle_kind": "RANDOM_PLUS_COORDINATE_HILLCLIMB_ON_ANALYTIC_TOY",
+      "sampled_goodhart_gap": 0.0,
+      "score_best_parameters": {
+        "extrapolation": 0.19182803953736513,
+        "law_rate": 0.0,
+        "law_size": 0.13751465918455963,
+        "noise": 0.007562077839709906,
+        "robustness": 0.14729424283280249,
+        "rollout_drift": 0.13533989748458228,
+        "score_path_only": 0.0,
+        "transfer": 0.5904925124490397
+      },
+      "score_best_value_loss": 0.05165415104166668,
+      "search_sha256": "bd590ea7889c8cd46deb9714ed1af7b128f20dc621070f19e36c15d465d52fce",
+      "status": "MEASURED_SYNTHETIC_DEVELOPMENT",
+      "unique_toy_panels": 40,
+      "value_best_parameters": {
+        "extrapolation": 0.19182803953736513,
+        "law_rate": 0.0,
+        "law_size": 0.13751465918455963,
+        "noise": 0.007562077839709906,
+        "robustness": 0.14729424283280249,
+        "rollout_drift": 0.13533989748458228,
+        "score_path_only": 0.0,
+        "transfer": 0.5904925124490397
+      },
+      "value_best_value_loss": 0.05165415104166668,
+      "value_scope": "neighbourhood_blend"
+    },
+    "N4-TOP-REGION-RANKING": {
+      "calls": {
+        "score": 68,
+        "value": 54
+      },
+      "candidate": "N4-TOP-REGION-RANKING",
+      "candidates_sha256": "157b1db5f091910f5602b15c9f5029f0171e6da7e8b6dbc5ffb5aa5c775bd235",
+      "config_sha256": "6a9566b4771660fa64b2cdfbf371022e499de631c8477b1ac934ac654fb53b1f",
+      "oracle_kind": "RANDOM_PLUS_COORDINATE_HILLCLIMB_ON_ANALYTIC_TOY",
+      "sampled_goodhart_gap": 0.010654874645833333,
+      "score_best_parameters": {
+        "extrapolation": 0.16109109912263855,
+        "law_rate": 0.0,
+        "law_size": 0.32048089928990403,
+        "noise": 0.001,
+        "robustness": 0.046953050133821,
+        "rollout_drift": 0.0907447412658413,
+        "score_path_only": 1.0,
+        "transfer": 0.9718880988701143
+      },
+      "score_best_value_loss": 0.06230902568750001,
+      "search_sha256": "bd590ea7889c8cd46deb9714ed1af7b128f20dc621070f19e36c15d465d52fce",
+      "status": "MEASURED_SYNTHETIC_DEVELOPMENT",
+      "unique_toy_panels": 69,
+      "value_best_parameters": {
+        "extrapolation": 0.19182803953736513,
+        "law_rate": 0.0,
+        "law_size": 0.13751465918455963,
+        "noise": 0.007562077839709906,
+        "robustness": 0.14729424283280249,
+        "rollout_drift": 0.13533989748458228,
+        "score_path_only": 0.0,
+        "transfer": 0.5904925124490397
+      },
+      "value_best_value_loss": 0.05165415104166668,
+      "value_scope": "neighbourhood_blend"
+    },
+    "V10-SIGN+ENV/ARP-V3S": {
+      "reason": "all_score_proposals_unscored",
+      "status": "INSUFFICIENT_EVIDENCE"
+    },
+    "V2r2@k1,kappa0.05": {
+      "calls": {
+        "score": 52,
+        "value": 54
+      },
+      "candidate": "V2r2@k1,kappa0.05",
+      "candidates_sha256": "157b1db5f091910f5602b15c9f5029f0171e6da7e8b6dbc5ffb5aa5c775bd235",
+      "config_sha256": "6a9566b4771660fa64b2cdfbf371022e499de631c8477b1ac934ac654fb53b1f",
+      "oracle_kind": "RANDOM_PLUS_COORDINATE_HILLCLIMB_ON_ANALYTIC_TOY",
+      "sampled_goodhart_gap": 0.0,
+      "score_best_parameters": {
+        "extrapolation": 0.19182803953736513,
+        "law_rate": 0.0,
+        "law_size": 0.13751465918455963,
+        "noise": 0.007562077839709906,
+        "robustness": 0.10729424283280248,
+        "rollout_drift": 0.09533989748458227,
+        "score_path_only": 0.0,
+        "transfer": 0.5904925124490397
+      },
+      "score_best_value_loss": 0.05165415104166668,
+      "search_sha256": "bd590ea7889c8cd46deb9714ed1af7b128f20dc621070f19e36c15d465d52fce",
+      "status": "MEASURED_SYNTHETIC_DEVELOPMENT",
+      "unique_toy_panels": 53,
+      "value_best_parameters": {
+        "extrapolation": 0.19182803953736513,
+        "law_rate": 0.0,
+        "law_size": 0.13751465918455963,
+        "noise": 0.007562077839709906,
+        "robustness": 0.14729424283280249,
+        "rollout_drift": 0.13533989748458228,
+        "score_path_only": 0.0,
+        "transfer": 0.5904925124490397
+      },
+      "value_best_value_loss": 0.05165415104166668,
+      "value_scope": "neighbourhood_blend"
+    },
+    "V2r2@k3,kappa0.1": {
+      "calls": {
+        "score": 68,
+        "value": 54
+      },
+      "candidate": "V2r2@k3,kappa0.1",
+      "candidates_sha256": "157b1db5f091910f5602b15c9f5029f0171e6da7e8b6dbc5ffb5aa5c775bd235",
+      "config_sha256": "6a9566b4771660fa64b2cdfbf371022e499de631c8477b1ac934ac654fb53b1f",
+      "oracle_kind": "RANDOM_PLUS_COORDINATE_HILLCLIMB_ON_ANALYTIC_TOY",
+      "sampled_goodhart_gap": -0.008333333333333338,
+      "score_best_parameters": {
+        "extrapolation": 0.19182803953736513,
+        "law_rate": 0.0,
+        "law_size": 0.13751465918455963,
+        "noise": 0.001,
+        "robustness": 0.1872942428328025,
+        "rollout_drift": 0.17533989748458229,
+        "score_path_only": 0.0,
+        "transfer": 0.5904925124490397
+      },
+      "score_best_value_loss": 0.04332081770833334,
+      "search_sha256": "bd590ea7889c8cd46deb9714ed1af7b128f20dc621070f19e36c15d465d52fce",
+      "status": "MEASURED_SYNTHETIC_DEVELOPMENT",
+      "unique_toy_panels": 64,
+      "value_best_parameters": {
+        "extrapolation": 0.19182803953736513,
+        "law_rate": 0.0,
+        "law_size": 0.13751465918455963,
+        "noise": 0.007562077839709906,
+        "robustness": 0.14729424283280249,
+        "rollout_drift": 0.13533989748458228,
+        "score_path_only": 0.0,
+        "transfer": 0.5904925124490397
+      },
+      "value_best_value_loss": 0.05165415104166668,
+      "value_scope": "neighbourhood_blend"
+    },
+    "V2r2@k5,kappa0.25": {
+      "calls": {
+        "score": 68,
+        "value": 54
+      },
+      "candidate": "V2r2@k5,kappa0.25",
+      "candidates_sha256": "157b1db5f091910f5602b15c9f5029f0171e6da7e8b6dbc5ffb5aa5c775bd235",
+      "config_sha256": "6a9566b4771660fa64b2cdfbf371022e499de631c8477b1ac934ac654fb53b1f",
+      "oracle_kind": "RANDOM_PLUS_COORDINATE_HILLCLIMB_ON_ANALYTIC_TOY",
+      "sampled_goodhart_gap": -0.008333333333333338,
+      "score_best_parameters": {
+        "extrapolation": 0.19182803953736513,
+        "law_rate": 0.0,
+        "law_size": 0.13751465918455963,
+        "noise": 0.001,
+        "robustness": 0.1872942428328025,
+        "rollout_drift": 0.17533989748458229,
+        "score_path_only": 0.0,
+        "transfer": 0.5904925124490397
+      },
+      "score_best_value_loss": 0.04332081770833334,
+      "search_sha256": "bd590ea7889c8cd46deb9714ed1af7b128f20dc621070f19e36c15d465d52fce",
+      "status": "MEASURED_SYNTHETIC_DEVELOPMENT",
+      "unique_toy_panels": 64,
+      "value_best_parameters": {
+        "extrapolation": 0.19182803953736513,
+        "law_rate": 0.0,
+        "law_size": 0.13751465918455963,
+        "noise": 0.007562077839709906,
+        "robustness": 0.14729424283280249,
+        "rollout_drift": 0.13533989748458228,
+        "score_path_only": 0.0,
+        "transfer": 0.5904925124490397
+      },
+      "value_best_value_loss": 0.05165415104166668,
+      "value_scope": "neighbourhood_blend"
+    },
+    "V9-ENV/ARP-V3": {
+      "reason": "all_score_proposals_unscored",
+      "status": "INSUFFICIENT_EVIDENCE"
+    }
+  },
+  "status": "SYNTHETIC_DEVELOPMENT_DIAGNOSTIC"
+}

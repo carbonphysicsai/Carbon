@@ -15,10 +15,15 @@ with a worst profile of 0.086; N3's median was 0.621 with a worst profile of
 proxy had no estimable τ in these profiles; this summary does not diagnose
 why. These are observations, not winner selection.
 
-The separate score-only Goodhart smoke found a +0.0739 toy buyer-loss gap for
-N1 against an approximate independent value search. This is one configuration
-and one search seed, so it is a failure-mode demonstration, not an effect-size
-estimate for a Challenge.
+The separate score-only Goodhart search covered all ten proxies on one toy
+configuration and seed. N1's score-maximising member had +0.0739 toy buyer
+loss versus the approximate independent value search; N4 had +0.0107. Three
+physics-gated proxies returned `all_score_proposals_unscored`, so they have no
+gap estimate. Negative gaps for two other proxies show the approximate oracle
+can miss a better point; they do not prove those scores improve value. This is
+a failure-mode demonstration, not a Challenge effect-size estimate. The raw
+result is `GOODHART_TOY_ALL10.json` (SHA-256
+`2ce7628fb15ffeeef36ab115888a94097cb3165c8d86a59ac7aafbe3a418a646`).
 
 The saved artifacts are `SYNTHETIC_PLAN_8.json` (SHA-256
 `454eb4b3efe4c041ca895790c8033977b3dbcd6629937f2e7595f41d59702fd0`),
