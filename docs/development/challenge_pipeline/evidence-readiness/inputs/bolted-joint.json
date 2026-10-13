@@ -1,0 +1,69 @@
+{
+  "schema": "carbon.onboarding.evidence-inputs.v1",
+  "scope": "PUBLIC_DEVELOPMENT",
+  "challenge": "bolted-joint",
+  "source_evidence": {
+    "1": {
+      "finding": "Merged REPRESENTATIVE preparation supplies bounded action/condition/rung panel and exact reuse helpers, plus a proposed pilot; neither is an actual panel registration",
+      "sources": [
+        {
+          "binding": {"path": "carbon/challenge_pipeline/bolted_rehearsal.py", "sha256": "sha256:a90d088ccd01e27e7fd79169be52d4925fe04c1b57d14df234bc2c23d00eda0d"},
+          "text_contains": ["def panel(", "PROPOSED_NOT_REGISTERED", "def validate_case("]
+        },
+        {
+          "binding": {"path": "docs/development/challenge_pipeline/bolted-rehearsal/measurement-pilot.json", "sha256": "sha256:593951e2c2d0edf261c65f1c4af0b717dfdfd51c78621e1fe657b7c60100b8fa"},
+          "json_fields": {"schema": "carbon.bolted-rehearsal.pilot.v1", "scope": "REPRESENTATIVE", "status": "PROPOSED_NOT_REGISTERED", "run_authorized": false}
+        }
+      ],
+      "missing": ["Registered main panel with exact physical tuples and all five pins", "Complete public COMPLETED and SCHEDULED reuse inventories with bound receipts"]
+    },
+    "2": {
+      "finding": "The CalculiX source lock and historical image pin used by the representative preparation are on main; modal build reuse is not contact/history verification or current image presence",
+      "sources": [
+        {
+          "binding": {"path": "scripts/dev/reference_packages/calculix/sources.lock.json", "sha256": "sha256:bbf09ba5b672c50b2aac76361220bc8ed6672f34af715d6e4bfd659620b0d332"},
+          "json_fields": {"schema": "carbon.reference-package.sources-lock.v1", "package": "calculix-ccx-2.23 (serves f08-ccx-modal-support)"}
+        },
+        {
+          "binding": {"path": "carbon/challenge_pipeline/bolted_rehearsal.py", "sha256": "sha256:a90d088ccd01e27e7fd79169be52d4925fe04c1b57d14df234bc2c23d00eda0d"},
+          "text_contains": ["sha256:d9ef68d016226a945c7eefcb6b2261c60a11249ee0f93458ae6c3aca956fd6f8", "UNVERIFIED_DECK_DRAFT"]
+        }
+      ],
+      "missing": ["Normalized current package/image binding", "Operator-supplied current store-presence observation; no host or Docker inspection performed"]
+    },
+    "3": {
+      "finding": "Main contains analytic/MMS, convergence, conservation and full-history contact/pretension verification specifications; these are not native measurements or accepted adequacy",
+      "sources": [
+        {
+          "binding": {"path": "docs/development/challenge_pipeline/bolted-rehearsal/verification.json", "sha256": "sha256:21153d509805998ddb272cab14615094a73180cc33f9e12de2b7b394efa751ee"},
+          "json_fields": {"schema": "carbon.bolted-rehearsal.verification.v1", "scope": "REPRESENTATIVE", "status": "SPECIFIED_NOT_RUN", "qualification": false, "run_authorized": false}
+        }
+      ],
+      "missing": ["Exact image/family-bound native convergence, conservation and code-verification results", "Accepted matching criteria and verified assembly-lock-service state and observer mapping; f08 modal evidence cannot substitute"]
+    },
+    "4": {
+      "finding": "The representative preparation implements a kit-domain checker requiring actions, conditions, quantities, observer and complete assembly-lock-service coverage; no actual registered learner kit is inferred",
+      "sources": [
+        {
+          "binding": {"path": "carbon/challenge_pipeline/bolted_rehearsal.py", "sha256": "sha256:a90d088ccd01e27e7fd79169be52d4925fe04c1b57d14df234bc2c23d00eda0d"},
+          "text_contains": ["def kit_domain(", "STEPS = (\"assembly\", \"lock\", \"service\")", "def observe("]
+        },
+        {
+          "binding": {"path": "docs/development/challenge_pipeline/bolted-rehearsal/readiness-binding.json", "sha256": "sha256:058530093ccaabcfdc4f41f76585c14a52feb5ce938cdd3e6edb76d55b09f9a1"},
+          "json_fields": {"schema": "carbon.challenge-preparation.readiness-pointers.v1", "family": "bolted-joint", "scope": "REPRESENTATIVE", "customer_result": false, "dispatchable": false}
+        }
+      ],
+      "missing": ["Exact registered kit/domain export and version binding", "Verified coverage of every registered panel action, condition, observable and full service history"]
+    },
+    "5": {
+      "finding": "Main implements a proposed TRAIN split holding out whole physical actions across condition/rung siblings; it does not supply a registered solved TRAIN set",
+      "sources": [
+        {
+          "binding": {"path": "carbon/challenge_pipeline/bolted_rehearsal.py", "sha256": "sha256:a90d088ccd01e27e7fd79169be52d4925fe04c1b57d14df234bc2c23d00eda0d"},
+          "text_contains": ["def train_plan(", "Hold whole geometry out across all service siblings and mesh/pin changes.", "PROPOSED_NOT_REGISTERED"]
+        }
+      ],
+      "missing": ["Actual public TRAIN inventory and main registration digest", "Recomputed physical separation against the complete registered panel; seed or rung separation alone is insufficient"]
+    }
+  }
+}
