@@ -9,9 +9,9 @@ their results independently. Do not edit the S2 PR's core implementation.
 Use representative public fixtures from the existing construction-contract
 tests and its registered pool/L1 expression. Run the real construction CLI with
 its budget check; run actual local toolbox ServiceCalls with all execution
-callbacks refusing. Empty forecasts remain unresolved, never acceptance.
+callbacks refusing. Uncalibrated zero forecasts remain unresolved, never acceptance.
 
-C4/X3 placeholder digests test named refusal behavior only. They are not verified
+C4/X3 placeholder digests test metadata admission/refusal behavior only. They are not verified
 graphs or proof that valid L4 reconstruction fails. All real-door and live-host
 cells remain HOST_BOUND. B18's deployment state requires host confirmation;
 the static source's base/default route cannot establish what a live intake serves.

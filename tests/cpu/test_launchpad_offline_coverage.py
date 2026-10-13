@@ -18,7 +18,10 @@ def test_current_toolbox_accepts_base_but_names_development_field_refusals():
     loss = audit.measure("C1", "compile_strategy")
     assert loss["status"] == "REFUSED"
     assert loss["issues"]
-    assert any("unknown" in issue["code"] for issue in loss["issues"])
+    assert {issue["code"] for issue in loss["issues"]} == {
+        "strategy.parameter_shape_invalid"
+    }
+    assert loss["issues"][0]["path"] == ["parameters"]
     assert not any(base["execution_allowance_used"].values())
     assert not any(loss["execution_allowance_used"].values())
 
@@ -48,9 +51,11 @@ def test_graph_combination_marker_control_cannot_be_mistaken_for_valid_graph_acc
     assert found["cli_exit_code"] == 2
 
 
-def test_empty_uncalibrated_forecast_is_reported_without_acceptance():
+def test_uncalibrated_zero_forecast_is_reported_without_acceptance():
     found = audit.measure("C0", "forecast_resources")
     assert found["reply_status"] == "OK" and found["status"] == "RETURNED"
     assert "SUPPORT:UNRESOLVED" in found["limitations"]
-    assert found["wall_seconds_band"] == []
+    assert found["wall_seconds_band"] == [0.0, 0.0]
+    assert "ZERO_BAND_IS_UNRESOLVED_PLACEHOLDER" in found["limitations"]
+    assert "NO_RESOURCE_PREDICTION" in found["limitations"]
     assert not any(found["execution_allowance_used"].values())
