@@ -57,7 +57,12 @@ sections were reread. Shared draft SHA256:
 `cff7dd9e5b32993ea4dbaa93731fd9e0776b22fd2d5958320a194b9009dc768b`.
 No overlapping generator PR; #1222 stays held. Hub retired, no maintenance.
 Reviewer: Carbon Validator plus Data Collection for source/identity joins.
-Focused native validation: 58 tests + 40 subtests passed (generator and B-E3).
+The MMS link suite's Product-consumer assertion is migrated to the conditional
+f02 label, checking the supplement too. Original machine verdicts, conditions
+and adverse observations remain asserted; native acceptance/criteria logic is
+untouched. This is consumer-test lag from the authorized wording migration.
+Focused native validation: 61 tests + 40 subtests passed (generator, B-E3 and
+the three-family MMS Product-consumer integration).
 Changed-file Black/Ruff and diff hygiene passed; exact-head CI is the remaining
 engineering acceptance gate. This record does not declare CI/review/merge facts.
 No human-reserved value is selected; external applicability/acceptance and real
