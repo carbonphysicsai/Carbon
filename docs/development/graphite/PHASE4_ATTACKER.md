@@ -131,11 +131,12 @@ original attempt and finding remain untouched. It does not classify the
 breach as a real escape, oracle gap or false positive.
 
 For the recorded Level 2 attempt, the executor runs locally from a checkout
-containing OPT-13 (without giving this root to a coding agent):
+containing OPT-13, setting `ATTACK_ROOT` to the existing campaign root
+(without giving this root to a coding agent):
 
 ```bash
 python -m carbon.agent_campaign.graphite.phase4 remint \
-  --root /home/miner/graphite-att-l2-root-E \
+  --root "$ATTACK_ROOT" \
   --attempt epoch-1-tool-007 \
   --specimen specimen-199bf9ff4936eaf6
 ```
