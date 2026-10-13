@@ -515,3 +515,242 @@ def test_worker_never_serves_a_fixture_v2_board(tmp_path):
     requests = [f"/data/v2/{slug}.json" for slug in slugs]
     for response in _worker(tmp_path, site, env, {}, requests):
         assert response["status"] == 503
+
+
+# --- LP-03: count-only status transport -----------------------------------
+
+
+def _status_row():
+    return {
+        "hotkey": "fixture-miner-0",
+        "received": 12,
+        "scored": 4,
+        "refused": {
+            "malformed_submission": 2,
+            "fixture_unknown_code_canary": 3,
+            "unclassified_refusal": 1,
+            "__proto__": 2,
+            "constructor": 3,
+            "toString": 4,
+        },
+        "name": "fixture_private_name_canary",
+        "score": 918273.125,
+        "case_id": "fixture_case_payload_canary",
+        "window": "fixture_window_payload_canary",
+    }
+
+
+def _status_variants():
+    """Unsigned synthetic status cases and their independently expected code."""
+    out = [("absent", _fixture(), None)]
+
+    def add(name, raw, code=None, body=None):
+        out.append((name, {**(body or _fixture()), "miner_status": raw}, code))
+
+    add("null", None)
+    add("empty", [])
+    add("counts", [_status_row()])
+    add("before_release", [_status_row()], body=fixtures.post_cutover_document())
+    add("sorted", [{**_status_row(), "hotkey": "fixture-miner-99"}, _status_row()])
+    add(
+        "closed_codes",
+        [{**_status_row(), "refused": dict.fromkeys(sorted(feed.STATUS_REFUSALS), 1)}],
+    )
+    add(
+        "maximum",
+        [
+            {
+                **_status_row(),
+                "received": feed.MAX_STATUS_COUNT,
+                "scored": 0,
+                "refused": {"other": feed.MAX_STATUS_COUNT},
+            }
+        ],
+    )
+    for name, raw in (
+        ("mapping", {}),
+        ("text", "counts"),
+        ("null_row", [None]),
+        ("empty_row", [{}]),
+        ("duplicate_hotkey", [_status_row(), _status_row()]),
+        ("refused_list", [{**_status_row(), "refused": []}]),
+        ("refused_null", [{**_status_row(), "refused": None}]),
+        (
+            "folded_overflow",
+            [
+                {
+                    **_status_row(),
+                    "refused": {"other": feed.MAX_STATUS_COUNT, "__proto__": 1},
+                }
+            ],
+        ),
+        (
+            "total_overflow",
+            [
+                {
+                    **_status_row(),
+                    "refused": {
+                        "malformed_submission": feed.MAX_STATUS_COUNT,
+                        "other": 1,
+                    },
+                }
+            ],
+        ),
+    ):
+        add(name, raw, "miner_status_invalid")
+    for field in ("received", "scored", "refused"):
+        for value in (
+            None,
+            True,
+            -1,
+            1.0,
+            0.5,
+            1e20,
+            "2",
+            {},
+            feed.MAX_STATUS_COUNT + 1,
+        ):
+            row = _status_row()
+            row[field] = (
+                {"malformed_submission": value} if field == "refused" else value
+            )
+            add(f"{field}={value!r}", [row], "miner_status_invalid")
+        row = _status_row()
+        del row[field]
+        add(f"missing_{field}", [row], "miner_status_invalid")
+    add("bad_hotkey", [{**_status_row(), "hotkey": "<private>"}], "hotkey_invalid")
+    return out
+
+
+@pytest.mark.parametrize("indent", [None, 1])
+def test_worker_miner_status_matches_python_for_both_boards(tmp_path, indent):
+    trust = fixtures.fixture_trust()
+    items, expected, items_v2, expected_v2 = [], [], [], []
+    for name, body, code in _status_variants():
+        text = json.dumps(fixtures.sign(body), indent=indent)
+        want = _python(text, trust)
+        assert want.get("code") == code, name
+        item = {"text": text, "fixture": True, "keys": sorted(trust.keys)}
+        items.append(item)
+        expected.append((name, want))
+        for card in _cards(body):
+            items_v2.append({**item, "now": fixtures.FIXTURE_NOW, "card": card})
+            expected_v2.append(
+                (name, _python_v2(text, trust, fixtures.FIXTURE_NOW, card))
+            )
+    for mode, cases, wants in (
+        ("project", items, expected),
+        ("project_v2", items_v2, expected_v2),
+    ):
+        got = _node({"mode": mode, "items": cases}, tmp_path)
+        assert len(got) == len(wants)
+        for have, (name, want) in zip(got, wants, strict=True):
+            assert have == want, (mode, name)
+            if "board" not in have:
+                continue
+            board = have["board"]
+            if name in ("absent", "null"):
+                assert "miner_status" not in board
+                continue
+            status = board["miner_status"]
+            if name == "empty":
+                assert status == []
+            elif name in ("counts", "before_release"):
+                assert status == [
+                    {
+                        "hotkey": "fixture-miner-0",
+                        "received": 12,
+                        "scored": 4,
+                        "refused": {"malformed_submission": 2, "other": 13},
+                    }
+                ]
+            dumped = json.dumps(status)
+            for canary in (
+                "canary",
+                '"score"',
+                "918273",
+                "case_id",
+                '"window"',
+                "unclassified_refusal",
+                "__proto__",
+                "constructor",
+                "toString",
+            ):
+                assert canary not in dumped, (mode, name, canary)
+
+
+def test_worker_status_v2_copies_only_allowed_fields(tmp_path):
+    trust = fixtures.fixture_trust()
+    text = json.dumps(fixtures.sign({**_fixture(), "miner_status": [_status_row()]}))
+    (have,) = _node(
+        {
+            "mode": "project_v2",
+            "items": [
+                {
+                    "text": text,
+                    "fixture": True,
+                    "keys": sorted(trust.keys),
+                    "now": fixtures.FIXTURE_NOW,
+                    "checkStatusCopy": True,
+                }
+            ],
+        },
+        tmp_path,
+    )
+    assert have == _python_v2(text, trust, fixtures.FIXTURE_NOW, None)
+    assert have["board"]["miner_status"][0]["received"] == 12
+    assert have["board"]["miner_status"][0]["refused"]["other"] == 13
+
+
+def test_worker_serves_status_counts_and_keeps_them_when_newer_feed_is_refused(
+    tmp_path,
+):
+    key = Ed25519PrivateKey.generate()
+    trust = feed.Trust(keys=frozenset({_public(key)}))
+    built = _production({**_fixture(), "miner_status": [_status_row()]}, key)
+    site = _site(tmp_path, [built], trust)
+    slug = feed.project(built, trust)["slug"]
+    env = {"FEED_URLS": "https://validator.example/feed", "FEED_KEYS": _public(key)}
+    newer = _production(
+        {
+            **_fixture(),
+            "version": 9,
+            "miner_status": [{**_status_row(), "received": 20}],
+        },
+        key,
+    )
+    malformed = _production(
+        {
+            **_fixture(),
+            "version": 10,
+            "miner_status": [{**_status_row(), "received": True}],
+        },
+        key,
+    )
+    tampered = copy.deepcopy(newer)
+    tampered["miner_status"][0]["received"] = 99
+    paths = [f"/data/boards/{slug}.json", f"/data/v2/{slug}.json"]
+    for document, kept, code in (
+        (newer, newer, None),
+        (malformed, built, "miner_status_invalid"),
+        (tampered, built, "signature_invalid"),
+    ):
+        expected = feed.project(kept, trust)
+        pages = _worker(
+            tmp_path, site, env, {env["FEED_URLS"]: json.dumps(document)}, paths
+        )
+        for page in pages:
+            assert page["status"] == 200
+            board = json.loads(page["body"])
+            assert board["version"] == kept["version"]
+            assert board["miner_status"] == expected["miner_status"]
+            assert board["feed_state"] == {
+                "state": "REFUSED" if code else "ACCEPTED",
+                "code": code,
+            }
+            assert set(board["miner_status"][0]) == {
+                "hotkey",
+                "received",
+                "scored",
+                "refused",
+            }

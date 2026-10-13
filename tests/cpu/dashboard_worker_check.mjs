@@ -31,7 +31,15 @@ if (spec.mode === "project") {
   for (const item of spec.items) {
     try {
       const pinned = feed.trust(item.keys, {fixture: item.fixture});
-      out.push({board: feed.projectV2(await feed.project(feed.parse(item.text), pinned), item.now, item.card ?? null)});
+      const source = await feed.project(feed.parse(item.text), pinned);
+      if (item.checkStatusCopy) source.miner_status[0].score = "fixture_scalar_canary";
+      const board = feed.projectV2(source, item.now, item.card ?? null);
+      if (item.checkStatusCopy) {
+        // The v2 count block owns a separate copy and never copies extra fields.
+        source.miner_status[0].received = 999;
+        source.miner_status[0].refused.other = 999;
+      }
+      out.push({board});
     } catch (error) {
       if (!(error instanceof feed.FeedRefused)) throw error;
       out.push({code: error.code});
