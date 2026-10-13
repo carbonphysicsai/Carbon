@@ -143,9 +143,7 @@ def test_both_create_diagnostics_survive_the_one_resend(lifecycle, second_status
     )
     receipt, ledger = go(spec, backend)
     assert len(creates) == 2
-    assert (
-        "first create: provider_capacity (HTTP 503)" in receipt["refusal"]
-    )
+    assert "first create: provider_capacity (HTTP 503)" in receipt["refusal"]
     assert "repeated create: provider_quota" in receipt["refusal"]
     assert f"HTTP {second_status}" in receipt["refusal"]
     assert MARKER not in json.dumps(receipt) and MARKER not in json.dumps(ledger)
