@@ -74,6 +74,29 @@ first:**
 3. it changes **reference data or labels**;
 4. it changes **what miners can see**.
 
+The owner set those four terms. The edges below were drawn by the Carbon
+Validator, who holds the approval, and are recorded so classification is
+checkable rather than a matter of the merge manager's taste:
+
+- **Scoring:** score formulas and aggregation; thresholds and tie-breaks; bank
+  classification and admission into the scored set; selectors; takeover tests;
+  and **any constant they read**.
+- **Gates or safety checks:** admission and refusal rules (variants,
+  compositions, levels, intake); isolation and containment; resource bounds
+  that refuse (environment, budget, runtime); spend guards and ledgers;
+  physics-contract gates; miner-surface import closure.
+- **Reference data or labels:** solver images and their pins; reference policies
+  and bands; bank registrations; label and evidence files; convergence
+  parameters; D4 annotations.
+- **What miners can see:** public card, leaderboard and MCP/Launchpad fields;
+  refusal text; disclosure allow-lists and published endpoints; anything
+  touching hidden or sealed custody (leakage).
+- **Cross-cutting, and these are the ones a diff-reading habit would miss:**
+  - **a test change that removes or loosens an assertion protecting any of the
+    four is itself reserved**, even when nothing else in the PR is;
+  - **so is a decision record that states policy in the four** — including this
+    record and the one authorising it.
+
 **Only PR Head merges.** A lane merging its own PR is out, whatever policy it
 cites — see `2026-10-13-CONSTRUCTION-S1-REPAIR-D1.note-01.md`.
 

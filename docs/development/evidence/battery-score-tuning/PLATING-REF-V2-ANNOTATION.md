@@ -14,16 +14,32 @@ D3 re-solved the near-onset cases at mesh 160. Five PDD development labels were
 **FEASIBLE and are INFEASIBLE under v2** — the one direction that matters most,
 because a false FEASIBLE asserts safety the reference does not support:
 
-| design | conditions | m20 → m160 | extrapolated |
-| --- | --- | --- | --- |
-| `D-0073` | c1 = 1.75; c2 = 0.2, 0.4, 0.6 | 2.243 → **−0.016** | about −0.3 to −0.45 |
-| `D-0109` | c1 = 1.25; c2 = 0.2, 0.4 | 2.316 → **−0.335** | — |
+| design | conditions | m20 → m160 |
+| --- | --- | --- |
+| `D-0073` | c1 = 1.75; c2 = 0.2, 0.4, 0.6 | 2.243 → **−0.016** |
+| `D-0109` | c1 = 1.25; c2 = 0.2, 0.4 | 2.316 → **−0.335** |
 
 Five cases across two designs: **`D-0073` ×3 and `D-0109` ×2.**
 
-Both were labelled from mesh 20, which overstated the margin. At mesh 160 the
-margin is negative in both, and the Richardson extrapolation is more negative
-still.
+Both were labelled from mesh 20, which overstated the margin. **At mesh 160 the
+margin is negative in both**, which is what makes the old labels false-safe.
+
+**Extrapolation is measured for only one of the five.** The Richardson
+extrapolation needs the 40/80/160 rungs, which exist only for D3's 67-case
+subsample:
+
+- **`D-0109` is not in the subsample at all**, so it has **no measured
+  extrapolation**. Its mesh-160 margin of −0.335 is the measurement.
+- **`D-0073` is in the subsample at three conditions** — extrapolated −1.193 at
+  c1 = 1, c2 = 0.8; −0.322 at c1 = 1.75, c2 = 0.8; −0.453 at c1 = 1.75,
+  c2 = 0.4. Of those, only **c1 = 1.75, c2 = 0.4 is one of the five false-safe
+  cases**, with a measured extrapolation of **−0.453**.
+
+So the claim that the truth is more negative than mesh 160 is **measured** for
+one false-safe case and **inferred** for the other four, from the finding that
+mesh 160's error was positive in all 67 subsample cases. That inference is
+sound and it is not a measurement, and the distinction matters to anyone
+auditing how far below zero these cases actually sit.
 
 ## These are PDD development cases, not EV4
 
