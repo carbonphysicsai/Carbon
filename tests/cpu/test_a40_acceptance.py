@@ -1084,17 +1084,21 @@ def test_a_failed_secure_attempt_falls_back_to_community_in_the_same_round(
     fake.fail_creates = 1
     start = runner.clock()
     pod = runner.launch("jax", "A", {"recipes": [], "repeats": 1, "seed": 0}, 600)
-    assert pod.cloud == "COMMUNITY" and runner.clock() == start  # no wait
-    [attempt] = runner.launch_attempts
-    assert attempt["cloud"] == "SECURE" and attempt["status"] == 500
-    assert attempt["capacity"] is True
-    assert "no instances" in attempt["message"]
-    err = capsys.readouterr().err
-    assert "cloud=SECURE" in err and "status=500" in err and "no instances" in err
-    assert MOCK_KEY not in err
-    assert pod.summary()["cloud"] == "COMMUNITY"
-    runner.terminate(pod)
-    runner.close()
+    try:
+        assert pod.cloud == "COMMUNITY" and runner.clock() == start  # no wait
+        [attempt] = runner.launch_attempts
+        assert attempt["cloud"] == "SECURE" and attempt["status"] == 500
+        assert attempt["capacity"] is True
+        assert "provider_capacity" in attempt["message"]
+        assert "no instances" not in attempt["message"]
+        err = capsys.readouterr().err
+        assert "cloud=SECURE" in err and "status=500" in err
+        assert "provider_capacity" in err and "no instances" not in err
+        assert MOCK_KEY not in err
+        assert pod.summary()["cloud"] == "COMMUNITY"
+    finally:
+        runner.terminate(pod)
+        runner.close()
 
 
 def test_a_whole_round_failing_waits_ten_minutes_then_secure_is_tried_again(world):
@@ -1107,6 +1111,50 @@ def test_a_whole_round_failing_waits_ten_minutes_then_secure_is_tried_again(worl
     assert [a_["cloud"] for a_ in runner.launch_attempts] == ["SECURE", "COMMUNITY"]
     runner.terminate(pod)
     runner.close()
+
+
+def test_closed_capacity_reason_drives_fallback_without_raw_text_or_private_fields(
+    world, monkeypatch, capsys
+):
+    runner, fake = _runner_and_clock(world)
+    real_transport = runner.adapter._transport
+    marker = "private-marker"
+    fake.fail_creates = 1
+
+    def transport(method, url, **kwargs):
+        status, payload = real_transport(method, url, **kwargs)
+        if (
+            method == "POST"
+            and url == "https://rest.runpod.io/v1/pods"
+            and status == 500
+        ):
+            # A body-level capacity code with HTTP 200: fallback must use the
+            # closed cause, not a 5xx heuristic or the former raw text.
+            return (
+                200,
+                json.dumps(
+                    {
+                        "error": {"code": "OUT_OF_STOCK", "message": marker},
+                        "account_id": marker,
+                    }
+                ).encode(),
+            )
+        return status, payload
+
+    monkeypatch.setattr(runner.adapter, "_transport", transport)
+    pod = runner.launch("jax", "A", {"recipes": [], "repeats": 1, "seed": 0}, 600)
+    try:
+        assert pod.cloud == "COMMUNITY"
+        [attempt] = runner.launch_attempts
+        assert attempt["status"] == 200 and attempt["capacity"] is True
+        assert "provider_capacity" in attempt["message"]
+        assert marker not in json.dumps(attempt)
+        err = capsys.readouterr().err
+        assert "status=200" in err and "provider_capacity" in err
+        assert marker not in err and MOCK_KEY not in err
+    finally:
+        runner.terminate(pod)
+        runner.close()
 
 
 def test_no_capacity_in_the_window_is_the_named_result_after_every_round(world):

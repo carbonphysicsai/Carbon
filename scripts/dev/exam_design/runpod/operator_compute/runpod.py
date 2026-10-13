@@ -202,6 +202,7 @@ def ambiguous_create_reason(payload) -> str:
         "out_of_stock": "provider_capacity",
         "insufficient_capacity": "provider_capacity",
         "insufficient capacity": "provider_capacity",
+        "there are no instances currently available": "provider_capacity",
         "quota_exceeded": "provider_quota",
         "quota exceeded": "provider_quota",
         "rate_limit_exceeded": "provider_rate_limit",

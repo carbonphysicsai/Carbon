@@ -45,6 +45,7 @@ def adapter(payload, status=503):
         ({"reason": "rate_limit_exceeded"}, "provider_rate_limit"),
         ({"message": "invalid_request"}, "provider_bad_request"),
         ({"error": "insufficient capacity"}, "provider_capacity"),
+        ({"error": "There are no instances currently available"}, "provider_capacity"),
         ({"reason": MARKER}, "provider_reason_unknown"),
         ({"message": "out_of_stock " + MARKER}, "provider_reason_unknown"),
         ({"account": MARKER}, "provider_reason_missing"),
