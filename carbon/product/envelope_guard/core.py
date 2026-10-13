@@ -6,12 +6,13 @@ import bisect
 import hashlib
 import math
 import time
+from fractions import Fraction
 
 from carbon.challenge_validator import validity
 
 from . import configuration as cfg
 
-RECEIPT_SCHEMA = "carbon.product.guard-receipt.v3"
+RECEIPT_SCHEMA = "carbon.product.guard-receipt.v4"
 PROBE_DERIVATION = "carbon.product.guard-local-sha256-counter.v1"
 
 
@@ -55,6 +56,15 @@ def _applicable(declaration, query):
 
 def _check(name, outcome, reason, **basis):
     return {"check": name, "outcome": outcome, "reason": reason, **basis}
+
+
+def _verification_reasons(checks):
+    return [
+        check["reason"]
+        for check in checks
+        if check["outcome"]
+        in ("FAIL", "UNRESOLVED", "FAILED_INFRA", "FAILED_REFERENCE")
+    ]
 
 
 def _vector(value, length):
@@ -136,7 +146,13 @@ class EnvelopeGuard:
                 or parsed_map["reference_verification"] == reference_verification,
                 "reference_map_acceptance_mismatch",
             )
-            parsed_policy = cfg.policy(policy, pins, names, parsed_contract["outputs"])
+            parsed_policy = cfg.policy(
+                policy,
+                pins,
+                names,
+                parsed_contract["outputs"],
+                parsed_contract["family"],
+            )
             cfg.require(
                 parsed_policy is None
                 or parsed_policy["laws"]["mode"] != "EXPLICIT_NO_LAWS"
@@ -217,6 +233,9 @@ class EnvelopeGuard:
             "independent_pick_verification_required": True,
             "law_policy": (
                 None if self._policy is None else cfg.thaw(self._policy["laws"])
+            ),
+            "b9_policy": (
+                None if self._policy is None else cfg.thaw(self._policy["b9"])
             ),
             "reference": (
                 None
@@ -359,6 +378,50 @@ class EnvelopeGuard:
                 )
                 intervals[name] = (low, high)
         return outputs, intervals
+
+    def _b9_checks(self, query, outputs):
+        policy = self._policy["b9"]
+        if policy is None:
+            return []
+        temperatures = outputs["temperature_c"]
+        basis = {
+            "decision_id": policy["decision_id"],
+            "threshold_c": policy["threshold_c"],
+            "unit": "C",
+            "observed_grid_points": len(temperatures),
+            "advisory": True,
+            "exam_gate": False,
+            "candidate_failure": False,
+            "verdict_input": True,
+        }
+        # Compare the serialized decimal values exactly. Binary subtraction at
+        # 25.0 - 24.9 would otherwise falsely exceed the owner's strict 0.1 bar.
+        deficit = max(
+            Fraction(0),
+            Fraction(str(query["t_amb_c"])) - Fraction(str(min(temperatures))),
+        )
+        exceeds = deficit > Fraction(str(policy["threshold_c"]))
+        try:
+            measured = float(deficit)
+        except OverflowError:
+            return [
+                _check(
+                    "policy.B9",
+                    "UNRESOLVED",
+                    "B9_ARITHMETIC_UNRESOLVED",
+                    max_deficit_c=None,
+                    **basis,
+                )
+            ]
+        return [
+            _check(
+                "policy.B9",
+                "FAIL" if exceeds else "PASS",
+                "B9_BELOW_AMBIENT" if exceeds else "B9_DEFICIT_WITHIN_POLICY",
+                max_deficit_c=measured,
+                **basis,
+            )
+        ]
 
     def _uncertainty_checks(self, intervals):
         policy = self._policy["uncertainty"]
@@ -649,7 +712,7 @@ class EnvelopeGuard:
                 return self._receipt(
                     started,
                     "VERIFY",
-                    ["MODEL_OUTPUT_UNAVAILABLE_OR_MALFORMED"],
+                    _verification_reasons(checks),
                     checks,
                     query_digest=query_digest,
                     seed=seed,
@@ -671,7 +734,7 @@ class EnvelopeGuard:
                 return self._receipt(
                     started,
                     "VERIFY",
-                    ["MODEL_EXECUTION_FAILED"],
+                    _verification_reasons(checks),
                     checks,
                     query_digest=query_digest,
                     seed=seed,
@@ -683,15 +746,11 @@ class EnvelopeGuard:
             predictions.append((axis, point, outputs))
             if axis is None:
                 base_intervals = intervals
+                checks.extend(self._b9_checks(point, outputs))
         checks.extend(self._map_checks(query))
         checks.extend(self._uncertainty_checks(base_intervals))
         checks.extend(self._law_checks(predictions, unresolved))
-        reasons = [
-            check["reason"]
-            for check in checks
-            if check["outcome"]
-            in ("FAIL", "UNRESOLVED", "FAILED_INFRA", "FAILED_REFERENCE")
-        ]
+        reasons = _verification_reasons(checks)
         verdict = "VERIFY" if reasons else "TRUST"
         reasons = reasons or ["ALL_DECLARED_DEVELOPMENT_CHECKS_MET"]
         prediction = {name: list(v) for name, v in predictions[0][2].items()}
