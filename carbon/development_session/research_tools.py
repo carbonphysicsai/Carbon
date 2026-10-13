@@ -86,8 +86,11 @@ TASK_CORRECTIONS = {
         "JSON object, list or number."
     ),
     "workspace_field_missing": (
-        "arguments_json for this workspace action is missing a required field; "
-        "the start_research_task description lists each action's fields."
+        "arguments_json for this workspace action is missing a required field, "
+        "named below. Put it inside arguments_json, not beside it; the "
+        "start_research_task description lists each action's fields. For "
+        'run_python, for example: {"source": "print(1)", "files": [], '
+        '"hypothesis": "why I run this", "expected_effect": "what I expect"}.'
     ),
     "workspace_field_unexpected": (
         "arguments_json for this workspace action has a field the action does "

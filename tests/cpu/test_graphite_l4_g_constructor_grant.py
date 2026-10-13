@@ -133,12 +133,18 @@ def test_it_fits_the_weekly_cap_beside_the_owners_other_open_grants():
     assert OTHER_OPEN_GRANTS + grant.monetary_ceiling <= WEEKLY_CAP_USD
 
 
-def test_the_rerun_grant_is_the_same_grant_again_and_fits_the_effective_weekly_cap():
+@pytest.mark.parametrize(
+    "rerun_id",
+    ["GRAPHITE-GRANT-L4-G-CONSTRUCTOR-3", "GRAPHITE-GRANT-L4-G-CONSTRUCTOR-4"],
+)
+def test_the_rerun_grant_is_the_same_grant_again_and_fits_the_effective_weekly_cap(
+    rerun_id,
+):
     """-3 is -2 again (the run under -2 was spent without staging): every figure equal, nothing above the 14.94 ceiling.
     The owner's other open grants plus every grant the binding registers under the standing test grant (-2, -3 and the
     A2 re-run) stay under the effective cap (300 less the held reserves).
     """
-    first, again = _grant(), _grant("GRAPHITE-GRANT-L4-G-CONSTRUCTOR-3")
+    first, again = _grant(), _grant(rerun_id)
     for name in (
         "monetary_ceiling",
         "worst_case_run_cost",
@@ -228,5 +234,5 @@ def test_the_grants_index_lists_every_level_4_constructor_grant_with_its_pool():
         pools[row["authority"]] = (
             pools.get(row["authority"], Decimal(0)) + row["ceiling"]
         )
-    assert pools[grant_binding.STANDING_TEST_GRANT_AUTHORITY] == Decimal("29.88")
+    assert pools[grant_binding.STANDING_TEST_GRANT_AUTHORITY] == Decimal("44.82")
     assert pools[grant_binding.HUNT_AUTHORITY] == Decimal("14.94")
