@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-13-winnability-pilot-run-plans",
+  "recorded_at": "2026-10-13T11:15:55Z",
+  "challenge": "protocol",
+  "stage": "test_iterate",
+  "execution": {"kind": "test_run", "ref": "WINNABILITY-PILOT-RUN-PLANS-01", "description": "The native baseline first refused a missing local pytest temp parent; after creating it, 12 existing toy/document tests passed. Focused plans/harness checks passed 25; final document/arithmetic and existing budget regressions passed 55 with Ruff. No solver, training, model or pilot execution occurred; canonical CI remains separate."},
+  "expected": "Specify eight full-buyer-job pilots with counted acquisition, actual route/kit boundaries and conditional lifecycle costs.",
+  "observed": "OPT-12 replays supplied evidence only. Four candidate routes and six plain-L0 kits are missing. A numeric cap can stop incomplete work but cannot turn unknown materials, peak roles, contact history or 3D applicability into a runnable or qualified task.",
+  "keep": ["Retain full hard limits, reference-failure separation and immutable public source identities", "Reuse first; charge existing acquisition rather than treating caches as free"],
+  "change": ["Report conditional operational plans and explicit release holds instead of inventing executable packages", "Price the whole allocated pod to confirmed termination, and count every complete history/excitation"],
+  "protocol_elements": ["reference_adequacy", "measurement_authority", "evidence_plan"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
