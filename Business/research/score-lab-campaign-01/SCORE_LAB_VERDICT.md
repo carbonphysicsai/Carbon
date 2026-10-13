@@ -1,9 +1,13 @@
 # SCORE_LAB_VERDICT — development campaign, incomplete
 
 **Status: INSUFFICIENT_EVIDENCE. No score rule selected or adopted.** The
-independent final holdout remains sealed, and the near-onset public EV4
-development labels await the approved `battery-plating-ref-v2` registration.
-Neither can be substituted with current labels or inferred from toy results.
+independent final holdout remains sealed. The public `battery-plating-ref-v2`
+development labels are now registered in
+`docs/development/evidence/plating-rereference-01/d3-results/labels-v2-r1.json`
+(sha256 `cac1e23001c227d9221653b2a90cee4755f62ca06fec58305d11cb9cba510069`).
+That file has 669 decided and 103 pending near-onset rows; 19 pending rows
+have `source=ev4`. All case IDs begin `ev4:`, so source must be read from the
+`source` field. No public fitting has been run against those labels here.
 
 ## What the synthetic tranche says
 
@@ -29,9 +33,10 @@ No candidate has cleared the plan's robust worst-case/CVaR comparison, full
 synthetic sweep, realism calibration to 142 public members, independent
 holdout, or Tier-2 top-three replay. A large CPU campaign has an unlaunched
 under-$10 pod spec for Data Collection; no agent rental or spend occurred.
-Only after public v2 labels are approved and registered may the EV4 fitting
-half proceed. The Test Engineer's final holdout is revealed once at the final
-run under the queue custody rule; this page does not request or read it.
+Public EV4 fitting can now be prepared against only decided `-r1` labels;
+pending rows must stay unresolved. The Test Engineer's final holdout is
+revealed once at the final run under the queue custody rule; this page does
+not request or read it.
 
 The precise small-run inputs, outputs, digests and limits are in the adjacent
 `LEVER_COVERAGE.md`, `BROAD_READOUT_16.md`, `FEEDBACK_TOY_READOUT.md`,

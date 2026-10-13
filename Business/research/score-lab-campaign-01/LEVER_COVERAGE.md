@@ -30,6 +30,7 @@ its value oracle is approximate and it does not pick a winner.
 only; it does not select a score rule.
 `GOODHART_CVAR_TOY_READOUT.md` checks a declared toy worst-tail value view
 against one proxy; the value oracle remains approximate.
-The 142-member realism calibration, D3-approved EV4 reference v2, independent
-final holdout, tier-2 replay and one-page owner verdict are still absent.
+The 142-member realism calibration, use of the newly registered D3 EV4
+reference v2 labels in a fitting run, independent final holdout and tier-2
+replay are still absent. The one-page verdict is INSUFFICIENT_EVIDENCE.
 The held Test Engineer holdout is never read or queried to fill these gaps.

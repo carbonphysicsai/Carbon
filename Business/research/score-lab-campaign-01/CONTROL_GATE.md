@@ -13,6 +13,8 @@ and is not reconstructed by this aggregate replay. This gate is a known-flaw
 and arithmetic control, not proof that every historical score or real buyer
 decision was replayed. No score rule or threshold is selected from it.
 
-The synthetic lever campaign may proceed. Public EV4 fitting, realism
-calibration and tier-2 selection remain held for the D3 v2 reference labels;
-the independent Test Engineer holdout remains unopened.
+The synthetic lever campaign may proceed. Since this gate ran, D3's sealed
+`-r1` development labels have landed on main. This gate did not rerun public
+EV4 fitting, realism calibration or tier-2 selection against them; unresolved
+rows remain excluded from decisions. The independent Test Engineer holdout
+remains unopened.
