@@ -501,6 +501,14 @@ a conservative USD 0.078468 per call (30,000 input tokens plus the whole
 **Runs** in a fresh controller root, under the OWNER-GRAPHITE-TEST-WAVE-05 §3
 checklist, and only once OWNER-GRAPHITE-PHASE3-R4-01's entry conditions hold.
 
+### Since 2026-10-13: kimi-k3's output cap is 32,768 (GRAPHITE-OUTPUT-CAP-KIMI-01)
+
+No figure above changes: worst case, ceiling and the 10.99 token share stand. The Constructor's and the Attacker's
+replies on kimi-k3 may now use 32,768 output tokens (`roles.MODEL_OUTPUT_CAPS`; the input window is unchanged), so a
+call's hold is 1,048,576 x 1,950 + 32,768 x 9,750 nanodollars = USD 2.3642112, not 2.0646912. Full holds fit the share
+four times, not five (the 10.99 share, and the Attacker's 11.45). Settled calls free their hold as before, so typical
+spend does not move. Decision: `.agent/decisions/2026-10-13-GRAPHITE-OUTPUT-CAP-KIMI-01.md`.
+
 ## GRAPHITE-GRANT-PLANNER-01 (GRAPHITE-ADMISSION-01: Graphite's level planner)
 
 **Authority: OWNER-GRAPHITE-05** (`.agent/DECISIONS.md`, 2026-10-02). It is
