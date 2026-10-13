@@ -102,3 +102,32 @@ Sources: `score_tuning.py`, `score_proof.py`, `decision.py`, the committed
 RES-07/08/09 public research under `Business/research/value-metric-*`, and
 PR #1253's `definition.v2.json` and `BANK_SPEC.md`. Raw public bundles and
 derived per-member cache remain local and uncommitted.
+
+## OPT-15b physics and neighbourhood diagnostic
+
+The illustrative config in `physics-example.json` ran ten Validator candidate
+functions against eight constructed members (six primary and two probes),
+seven physics settings and 11 one-factor sensitivity settings. The true-value
+views are target in-range, four kinds of changed task, extrapolated context,
+and a target/neighbour blend. This is an analytic toy with no solver run. Its
+candidate ordering changed under task-shift size, neighbourhood weights,
+coverage and verification cost. That sensitivity means the example cannot
+select a rule or a physics threshold. In this constructed population, the N2
+candidate's point tau on extrapolated value rose from -0.309 OFF to 0.690
+under the assumed FLOOR, but it wrongly excluded one of the configured good
+members. Its blended-value intervals are wide and overlap zero.
+
+The Tier 2 adapter verified PLT-01's 142 public B15/B16 paired-reading IDs
+against the separate public B9 measurements, then replayed the 100-member
+digest-checked EV4 subset with the exact registry-v9 `A` scorer. For the
+uncalibrated example limits, point tau was 0.334 OFF, 0.337 with B15 GATE,
+0.229 with B9/B16 FLOOR, and 0.263 with a B15/B9/B16 BLEND. The respective
+exploratory 95% intervals were [0.058, 0.509], [0.059, 0.534], [-0.037,
+0.415], and [-0.001, 0.453]. The remaining ten-candidate public attempts
+that need missing score legs or traits return `INSUFFICIENT_EVIDENCE`.
+Source hashes are in the local JSON report, not copied into this repository.
+
+This Tier 2 replay is retrospective EV4 evidence, not battery-v3 value. Its
+public references do not include shifted or extrapolated decision questions.
+B9 remains diagnostic only; B15/B16 card readings do not select hard gates.
+None of the toy or real switches is adopted, and no owner value is set.
