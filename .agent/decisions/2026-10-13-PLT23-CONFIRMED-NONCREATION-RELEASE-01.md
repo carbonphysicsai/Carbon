@@ -52,7 +52,10 @@ Baseline diagnostics: Linux fcntl available through WSL. Initial collection
 failed on Windows Git-worktree path syntax; explicit Linux Git paths corrected
 that. The wider baseline then passed 19 and failed importing unavailable NumPy
 in a Phase-4 introspection test; that run is not PASS. Dependency-light ledger
-baseline is in progress. Canonical Linux CI supplies complete acceptance.
+baseline passed 7 tests with real Linux locks. Proof/ledger/shared-run diagnostics
+passed 33 tests with that unrelated NumPy-dependent case deselected. The actual
+launcher/service/recovery/finish synthetic transport slice passed 3 tests.
+These are noncanonical diagnostics. Canonical Linux CI supplies full acceptance.
 
 Validation: positive definitive rejection and explicit NOT_EXECUTED; negative
 MAY/NOT_FOUND/no-handle/empty-list/created-then-terminated/duplicate/charge;

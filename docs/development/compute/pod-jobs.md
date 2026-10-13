@@ -73,11 +73,46 @@ count is low. Receipts, logs and ledger lines stay on the host: they are never c
 6. Settles with `settle_pod_job(total, pending)`: zero for a refusal before any provider
    write; else the provider's charge, with each pod or duplicate whose charge is
    unreported, or whose teardown is unconfirmed, kept at its full reservation.
+   The definitive initial-create rejection path below records an audited release.
 7. Always writes `OUT/receipt.json` (`carbon.pod-job.receipt.v1`): spec digest, code
    manifest digest, image, pod, outcome, files with sha256, uploads, errors, teardown,
    duplicates, cost and the week's ledger line. `ok` is true only for a finished job
    whose pods are confirmed gone and whose cost settled; otherwise the receipt names the
    reconcile to run (`operator_compute reconcile`) and the command exits non-zero.
+
+## Definitive non-creation release (PLT-23)
+
+An initial create RPC may execute while the provider definitively rejects it and
+creates nothing. The original typed `ComputeError` must say `EXECUTED` and
+`resources_may_remain=false`; the original request digest must match the durable
+`REJECTED` intent. This is the existing operator contract for an initial provider
+refusal. It does not apply to ambiguous creates or a second create after a resend.
+
+New claims bind the job spec digest, provider and compute-store origin before the
+provider call. `pod_job_noncreation.reconcile_rejection` checks that binding,
+the exact job/request identity, current `REJECTED` state, no resource ever bound
+(including adopted or terminated resources), and no prior resend. The private
+receipt retains the typed failure and `non_creation_reconcile` record, without
+provider payload text or raw host paths.
+
+`grant_runs.release_pod_job_noncreation` takes the existing grant and weekly locks,
+then fences the compute-store state through the append. It refuses a stale or
+copied proof, another job/root, unknown claim provenance or any known charge.
+One distinct `non_creation_release` event carries the reconcile evidence and
+sets only that job's pending reservation to zero. The attempt count stays consumed;
+the job id is terminal and cannot launch again. An identical repeated release is
+idempotent; conflicting evidence or a later nonzero settlement refuses. The
+distinct event also makes older ledger readers refuse rather than silently lose
+the release's meaning.
+
+`MAY_HAVE_EXECUTED`, a timeout, an empty tag listing, elapsed grace, `NOT_FOUND`,
+a missing handle, and current resource absence never prove non-creation. A later
+`NOT_EXECUTED` call cannot clear an earlier ambiguous intent. Those cases retain
+their reservations. Legacy claims without the original origin binding also remain
+held; the launcher refuses reusing them with a new binding. No retrospective
+identity is guessed. Releasing the reported historical ambiguous failures still
+needs an authoritative non-creation fact or a separately authorized owner rule.
+No cap, reserve, rate, slot-refund policy or provider retry rule changes here.
 
 ## The image (item 3)
 

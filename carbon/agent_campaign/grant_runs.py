@@ -68,6 +68,8 @@ import time
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
+from carbon.agent_campaign import pod_job_noncreation as noncreation
+
 REPOSITORY = Path(__file__).resolve().parents[2]
 ENV = "CARBON_GRANT_RUNS_DIR"
 DEFAULT = Path("~/.local/state/carbon/grant-runs")
@@ -224,10 +226,47 @@ def _read_weekly(stream):
             continue
         try:
             row = json.loads(line)
+            if "non_creation_release" in row:
+                identifier = row["non_creation_release"]
+                if (
+                    set(row)
+                    != {"non_creation_release", "cost_usd", "pending_usd", "evidence"}
+                    or identifier not in runs
+                ):
+                    raise ValueError
+                previous = runs[identifier]
+                proof = row["evidence"]
+                binding = previous.get("pod_job_binding")
+                if (
+                    binding is None
+                    or previous["grant"] != POD_JOB_GRANT_ID
+                    or previous.get("release_evidence") is not None
+                ):
+                    raise ValueError
+                noncreation.validate_record(proof, proof["intent"]["job_id"], binding)
+                if (
+                    entry_id(POD_JOB_STORE, proof["intent"]["job_id"]) != identifier
+                    or _cost(row["cost_usd"]) != 0
+                    or _cost(row["pending_usd"]) != 0
+                ):
+                    raise ValueError
+                if previous["settled"] and previous["cost"] != previous["pending"]:
+                    raise ValueError
+                if proof["intent"]["intent_created_at"] < previous["at"]:
+                    raise ValueError
+                previous.update(
+                    cost=Decimal(0),
+                    pending=Decimal(0),
+                    settled=True,
+                    release_evidence=proof,
+                )
+                continue
             if "settle" in row:
                 identifier = row["settle"]
                 cost = _cost(row["cost_usd"])
                 if identifier not in runs:
+                    raise ValueError
+                if runs[identifier].get("release_evidence") is not None:
                     raise ValueError
                 runs[identifier]["cost"] = cost
                 runs[identifier]["pending"] = _cost(row.get("pending_usd", 0))
@@ -238,6 +277,16 @@ def _read_weekly(stream):
             identifier = row["entry"]
             if not _ENTRY.fullmatch(identifier):
                 raise ValueError
+            if identifier in runs and (
+                runs[identifier].get("pod_job_binding") is not None
+                or "pod_job_binding" in row
+                or runs[identifier].get("release_evidence") is not None
+            ):
+                raise ValueError
+            if "pod_job_binding" in row:
+                if row["grant"] != POD_JOB_GRANT_ID:
+                    raise ValueError
+                noncreation.validate_binding(row["pod_job_binding"])
             runs[identifier] = {
                 "at": float(row["at"]),
                 "cost": _cost(row["cost_usd"]),
@@ -245,6 +294,8 @@ def _read_weekly(stream):
                 "pending": Decimal(0),
                 "settled": False,
                 "seeded": row.get("seeded") is True,
+                "pod_job_binding": row.get("pod_job_binding"),
+                "release_evidence": None,
             }
         except SharedRunsError:
             raise
@@ -325,6 +376,7 @@ def claim(
     clock=time.time,
     weekly_cap=None,
     seed_runs=(),
+    pod_job_binding=None,
 ):
     """Claim one run of `grant` for launch `key` in the store `store_id`: against the
     grant's run cap and the host-wide rolling weekly spend cap. Idempotent for a key
@@ -335,6 +387,14 @@ def claim(
     standing cap less the held reserves (`effective_weekly_cap`) unless given."""
     if weekly_cap is None:
         weekly_cap = effective_weekly_cap()
+    if pod_job_binding is not None:
+        if grant.grant_id != POD_JOB_GRANT_ID or store_id != POD_JOB_STORE:
+            raise SharedRunsError(UNAVAILABLE, "pod-job binding used outside its grant")
+        try:
+            noncreation.validate_binding(pod_job_binding)
+            pod_job_binding = dict(pod_job_binding)
+        except noncreation.NonCreationRefused as error:
+            raise SharedRunsError(UNAVAILABLE, str(error)) from None
     if type(store_id) is not str or not _STORE_ID.fullmatch(store_id):
         raise SharedRunsError(UNAVAILABLE, "store id is invalid")
     if grant.currency != "USD":
@@ -373,6 +433,25 @@ def claim(
                     UNAVAILABLE, "this claim was refunded; launch under a new key"
                 )
             if identifier in entries:
+                if grant.grant_id == POD_JOB_GRANT_ID and store_id == POD_JOB_STORE:
+                    previous = spent.get(identifier)
+                    if previous is None or previous.get("release_evidence") is not None:
+                        raise SharedRunsError(
+                            UNAVAILABLE,
+                            "released or incomplete pod-job claim cannot relaunch",
+                        )
+                    if previous.get("pod_job_binding") != pod_job_binding:
+                        raise SharedRunsError(
+                            UNAVAILABLE, "pod-job claim origin differs or is unknown"
+                        )
+                    if (
+                        pod_job_binding is not None
+                        and previous["settled"]
+                        and previous["pending"] == 0
+                    ):
+                        raise SharedRunsError(
+                            UNAVAILABLE, "completed bound pod job needs a new job id"
+                        )
                 return len(entries)
             if len(entries) >= grant.permitted_runs:
                 raise SharedRunsError(
@@ -396,6 +475,11 @@ def claim(
                             "grant": grant.grant_id,
                             "at": now,
                             "cost_usd": str(cost),
+                            **(
+                                {"pod_job_binding": pod_job_binding}
+                                if pod_job_binding is not None
+                                else {}
+                            ),
                         },
                         sort_keys=True,
                         separators=(",", ":"),
@@ -430,6 +514,12 @@ def settle(grant, store_id, key, cost_usd, repository=REPOSITORY, *, pending_usd
             runs = _read_weekly(weekly)
             if identifier not in runs:
                 return False
+            if runs[identifier].get("release_evidence") is not None:
+                if cost == 0 and pending == 0:
+                    return True
+                raise SharedRunsError(
+                    UNAVAILABLE, "non-creation release cannot be overwritten"
+                )
             weekly.seek(0, os.SEEK_END)
             weekly.write(
                 (
@@ -781,7 +871,13 @@ def pod_job_weekly_cap(reserves=None):
 
 
 def claim_pod_job(
-    job_id, cost_cap_usd, repository=REPOSITORY, *, clock=time.time, reserves=None
+    job_id,
+    cost_cap_usd,
+    repository=REPOSITORY,
+    *,
+    clock=time.time,
+    reserves=None,
+    origin=None,
 ):
     """Claim one pod job before any provider call: refused above the per-run cap, or
     when its cost cap would take the rolling week past the cap less the held reserves.
@@ -796,6 +892,7 @@ def claim_pod_job(
         repository=repository,
         clock=clock,
         weekly_cap=pod_job_weekly_cap(reserves),
+        pod_job_binding=origin,
     )
     return grant
 
@@ -806,6 +903,79 @@ def settle_pod_job(job_id, cost_usd, repository=REPOSITORY, *, pending_usd=0):
     return settle(
         None, POD_JOB_STORE, job_id, cost_usd, repository, pending_usd=pending_usd
     )
+
+
+def release_pod_job_noncreation(job_id, evidence, repository=REPOSITORY):
+    """Release only one origin-bound reservation, retaining its attempt claim."""
+    if (
+        type(job_id) is not str
+        or not _SAFE.fullmatch(job_id)
+        or not isinstance(evidence, noncreation.NonCreationEvidence)
+    ):
+        raise SharedRunsError(
+            UNAVAILABLE, "operator-issued exact pod-job proof required"
+        )
+    identifier = entry_id(POD_JOB_STORE, job_id)
+    path = _file(POD_JOB_GRANT_ID, repository)
+    weekly_path = ledger_dir(repository) / WEEKLY_FILE
+    with (
+        os.fdopen(_open(path), "r+b") as stream,
+        os.fdopen(_open(weekly_path), "r+b") as weekly,
+    ):
+        try:
+            fcntl.flock(stream, fcntl.LOCK_EX)
+            fcntl.flock(weekly, fcntl.LOCK_EX)
+            entries, refunded = _read_all(stream)
+            runs = _read_weekly(weekly)
+            entry, row = entries.get(identifier), runs.get(identifier)
+            if (
+                identifier in refunded
+                or entry is None
+                or entry.get("seeded") is not False
+                or row is None
+                or row["seeded"]
+                or row["grant"] != POD_JOB_GRANT_ID
+            ):
+                raise SharedRunsError(
+                    UNAVAILABLE, "unknown/seeded/refunded non-creation claim"
+                )
+            origin = row.get("pod_job_binding")
+            if origin is None:
+                raise SharedRunsError(
+                    UNAVAILABLE, "legacy pod-job origin unknown; keep reservation"
+                )
+            # Verify current operator state while the ledger fences are held.
+            with evidence.fenced(job_id, origin) as proof:
+                previous = row.get("release_evidence")
+                if previous is not None:
+                    if previous["source_id"] == proof["source_id"]:
+                        return True
+                    raise SharedRunsError(UNAVAILABLE, "conflicting non-creation proof")
+                if row["settled"] and row["cost"] != row["pending"]:
+                    raise SharedRunsError(
+                        UNAVAILABLE, "known charges cannot be released"
+                    )
+                if proof["intent"]["intent_created_at"] < row["at"]:
+                    raise SharedRunsError(
+                        UNAVAILABLE, "rejection predates the exact claim"
+                    )
+                release = {
+                    "non_creation_release": identifier,
+                    "cost_usd": "0",
+                    "pending_usd": "0",
+                    "evidence": proof,
+                }
+                weekly.seek(0, os.SEEK_END)
+                weekly.write(
+                    (
+                        json.dumps(release, sort_keys=True, separators=(",", ":")) + NL
+                    ).encode("utf-8")
+                )
+                weekly.flush()
+                os.fsync(weekly.fileno())
+                return True
+        except (noncreation.NonCreationRefused, OSError, sqlite3.Error) as error:
+            raise SharedRunsError(UNAVAILABLE, str(error)) from None
 
 
 def main(argv=None):
