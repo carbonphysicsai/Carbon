@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
+
 import pytest
 
 from scripts.dev import launchpad_offline_coverage as audit
@@ -59,3 +62,36 @@ def test_uncalibrated_zero_forecast_is_reported_without_acceptance():
     assert "ZERO_BAND_IS_UNRESOLVED_PLACEHOLDER" in found["limitations"]
     assert "NO_RESOURCE_PREDICTION" in found["limitations"]
     assert not any(found["execution_allowance_used"].values())
+
+
+def test_committed_measurements_have_current_source_and_complete_explicit_basis():
+    artifact = audit.ROOT / audit.DIRECTORY / "MEASURED.json"
+    value = json.loads(artifact.read_text(encoding="utf-8"))
+    assert value["source_files"] == {
+        name: hashlib.sha256((audit.ROOT / name).read_bytes()).hexdigest()
+        for name in audit.SOURCE_PATHS
+    }
+    expected = {
+        (case, operation)
+        for case in audit.strategies()
+        for operation in ("construction", *audit.OPERATIONS)
+    }
+    rows = value["measurements"]
+    assert len(rows) == len(expected) == value["basis"]["actual_calls"] == 55
+    assert {(row["case"], row["operation"]) for row in rows} == expected
+    assert all(row["ran"] is True for row in rows)
+    assert all(
+        row["command"] == audit.command(row["case"], row["operation"]) for row in rows
+    )
+    assert all(
+        row["scope"] == "UNVERIFIED_GRAPH_METADATA_ONLY"
+        for row in rows
+        if row["case"] in {"C4", "X3"}
+    )
+    unrun = value["unrun_matrix"]
+    assert (
+        len(unrun) == len({(row["change"], row["capability"]) for row in unrun}) == 240
+    )
+    assert all(row["ran"] is False and row["outcome"] == "HOST_BOUND" for row in unrun)
+    assert value["b18"]["live_serving"] == "HOST_BOUND_UNVERIFIED"
+    assert value["basis"]["training_runs"] == value["basis"]["host_runs"] == 0

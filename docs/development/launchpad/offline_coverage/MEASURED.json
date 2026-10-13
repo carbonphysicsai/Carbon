@@ -1,0 +1,3605 @@
+{
+  "b18": {
+    "distinction": "compiled construction capability does not establish deployed intake serving",
+    "live_serving": "HOST_BOUND_UNVERIFIED",
+    "observed_local_service": "base compiler",
+    "variant_door": "requires target served_contracts exact digest"
+  },
+  "basis": {
+    "actual_calls": 55,
+    "declared_strategy_cases": 11,
+    "host_runs": 0,
+    "training_runs": 0
+  },
+  "construction": {
+    "digest": "sha256:0865617e90ecd0ea117c2f12cafb6f519b0c4ed0bc00e7e2483ebe248ba76310",
+    "version": "battery-construction-v1"
+  },
+  "maturity": "DEVELOPMENT_STATIC_ENGINEERING_EVIDENCE_ONLY",
+  "measurements": [
+    {
+      "case": "C0",
+      "command": "python -m scripts.dev.launchpad_offline_coverage --case C0 --operation construction",
+      "observation": {
+        "cli_exit_code": 0,
+        "derived": {
+          "changes": [],
+          "level": 0,
+          "summary": "Level 0: the standard recipe settings."
+        },
+        "development": null,
+        "execution": "STATIC_COMPILE_ONLY",
+        "rebuild": "level0",
+        "status": "ACCEPTED"
+      },
+      "operation": "construction",
+      "ran": true,
+      "scope": "REPRESENTATIVE_OFFLINE_FIXTURE"
+    },
+    {
+      "case": "C0",
+      "command": "python -m scripts.dev.launchpad_offline_coverage --case C0 --operation dry_validate",
+      "observation": {
+        "execution": "LOCAL_SERVICE_CALL_ONLY",
+        "execution_allowance_used": {
+          "epochs": 0,
+          "final_replicas": 0,
+          "numerical_milliseconds": 0,
+          "provider_attempts": 0,
+          "provider_nanodollars": 0,
+          "reference_invocations": 0,
+          "reference_trajectories": 0,
+          "research_trials": 0,
+          "retained_bytes": 0
+        },
+        "issues": [],
+        "reply_status": "OK",
+        "result_type": "DryValidationResult",
+        "status": "ACCEPTED"
+      },
+      "operation": "dry_validate",
+      "ran": true,
+      "scope": "REPRESENTATIVE_OFFLINE_FIXTURE"
+    },
+    {
+      "case": "C0",
+      "command": "python -m scripts.dev.launchpad_offline_coverage --case C0 --operation compile_strategy",
+      "observation": {
+        "execution": "LOCAL_SERVICE_CALL_ONLY",
+        "execution_allowance_used": {
+          "epochs": 0,
+          "final_replicas": 0,
+          "numerical_milliseconds": 0,
+          "provider_attempts": 0,
+          "provider_nanodollars": 0,
+          "reference_invocations": 0,
+          "reference_trajectories": 0,
+          "research_trials": 0,
+          "retained_bytes": 0
+        },
+        "issues": [],
+        "reply_status": "OK",
+        "result_type": "CompileStrategyResult",
+        "status": "ACCEPTED"
+      },
+      "operation": "compile_strategy",
+      "ran": true,
+      "scope": "REPRESENTATIVE_OFFLINE_FIXTURE"
+    },
+    {
+      "case": "C0",
+      "command": "python -m scripts.dev.launchpad_offline_coverage --case C0 --operation inspect_resources",
+      "observation": {
+        "execution": "LOCAL_SERVICE_CALL_ONLY",
+        "execution_allowance_used": {
+          "epochs": 0,
+          "final_replicas": 0,
+          "numerical_milliseconds": 0,
+          "provider_attempts": 0,
+          "provider_nanodollars": 0,
+          "reference_invocations": 0,
+          "reference_trajectories": 0,
+          "research_trials": 0,
+          "retained_bytes": 0
+        },
+        "limitations": [
+          "STATIC_EXACT_PLAN_DERIVED",
+          "ASSESSMENT:ADMISSIBLE",
+          "NOT_FORECAST",
+          "NOT_BINDING_QUOTE_OR_ADMISSION",
+          "NOT_OBSERVED_RESOURCE_RECEIPT",
+          "NOT_SCIENTIFIC_EVIDENCE"
+        ],
+        "line_item_count": 0,
+        "reply_status": "OK",
+        "result_type": "InspectResourcesResult",
+        "status": "RETURNED"
+      },
+      "operation": "inspect_resources",
+      "ran": true,
+      "scope": "REPRESENTATIVE_OFFLINE_FIXTURE"
+    },
+    {
+      "case": "C0",
+      "command": "python -m scripts.dev.launchpad_offline_coverage --case C0 --operation forecast_resources",
+      "observation": {
+        "execution": "LOCAL_SERVICE_CALL_ONLY",
+        "execution_allowance_used": {
+          "epochs": 0,
+          "final_replicas": 0,
+          "numerical_milliseconds": 0,
+          "provider_attempts": 0,
+          "provider_nanodollars": 0,
+          "reference_invocations": 0,
+          "reference_trajectories": 0,
+          "research_trials": 0,
+          "retained_bytes": 0
+        },
+        "limitations": [
+          "SUPPORT:UNRESOLVED",
+          "REASON:CALIBRATION_AUTHORITY_UNAVAILABLE",
+          "NO_RESOURCE_PREDICTION",
+          "ZERO_BAND_IS_UNRESOLVED_PLACEHOLDER",
+          "NON_BINDING_NOT_QUOTE_OR_ADMISSION",
+          "NOT_OBSERVED_RESOURCE_RECEIPT",
+          "NOT_SCIENTIFIC_EVIDENCE"
+        ],
+        "line_item_count": 0,
+        "reply_status": "OK",
+        "result_type": "ResourceForecast",
+        "status": "RETURNED",
+        "wall_seconds_band": [
+          0.0,
+          0.0
+        ]
+      },
+      "operation": "forecast_resources",
+      "ran": true,
+      "scope": "REPRESENTATIVE_OFFLINE_FIXTURE"
+    },
+    {
+      "case": "C1",
+      "command": "python -m scripts.dev.launchpad_offline_coverage --case C1 --operation construction",
+      "observation": {
+        "cli_exit_code": 0,
+        "derived": {
+          "changes": [
+            "its own loss expression"
+          ],
+          "level": 1,
+          "summary": "Level 1 (a bounded loss expression): this recipe changes its own loss expression."
+        },
+        "development": {
+          "changes": [
+            "its own loss expression"
+          ],
+          "composition_digest": "sha256:0865617e90ecd0ea117c2f12cafb6f519b0c4ed0bc00e7e2483ebe248ba76310",
+          "level": 1,
+          "variants": {
+            "1": "sha256:34153f41641e3f45077e2752b1cae6d2e1c0ae4327d2cb780526e084a241c854"
+          },
+          "widened_digest": "sha256:428e5052960f8d9b3a9d61d0ead1b585b3699ec44ea367a7f5c8903a65921d30"
+        },
+        "execution": "STATIC_COMPILE_ONLY",
+        "rebuild": "level1",
+        "status": "ACCEPTED"
+      },
+      "operation": "construction",
+      "ran": true,
+      "scope": "REPRESENTATIVE_OFFLINE_FIXTURE"
+    },
+    {
+      "case": "C1",
+      "command": "python -m scripts.dev.launchpad_offline_coverage --case C1 --operation dry_validate",
+      "observation": {
+        "execution": "LOCAL_SERVICE_CALL_ONLY",
+        "execution_allowance_used": {
+          "epochs": 0,
+          "final_replicas": 0,
+          "numerical_milliseconds": 0,
+          "provider_attempts": 0,
+          "provider_nanodollars": 0,
+          "reference_invocations": 0,
+          "reference_trajectories": 0,
+          "research_trials": 0,
+          "retained_bytes": 0
+        },
+        "issues": [
+          {
+            "code": "parameter.not_rebuildable",
+            "path": [
+              "parameters",
+              "loss_expressions"
+            ]
+          }
+        ],
+        "reply_status": "OK",
+        "result_type": "DryValidationResult",
+        "status": "REFUSED"
+      },
+      "operation": "dry_validate",
+      "ran": true,
+      "scope": "REPRESENTATIVE_OFFLINE_FIXTURE"
+    },
+    {
+      "case": "C1",
+      "command": "python -m scripts.dev.launchpad_offline_coverage --case C1 --operation compile_strategy",
+      "observation": {
+        "execution": "LOCAL_SERVICE_CALL_ONLY",
+        "execution_allowance_used": {
+          "epochs": 0,
+          "final_replicas": 0,
+          "numerical_milliseconds": 0,
+          "provider_attempts": 0,
+          "provider_nanodollars": 0,
+          "reference_invocations": 0,
+          "reference_trajectories": 0,
+          "research_trials": 0,
+          "retained_bytes": 0
+        },
+        "issues": [
+          {
+            "code": "strategy.parameter_shape_invalid",
+            "path": [
+              "parameters"
+            ]
+          }
+        ],
+        "reply_status": "OK",
+        "result_type": "CompileStrategyResult",
+        "status": "REFUSED"
+      },
+      "operation": "compile_strategy",
+      "ran": true,
+      "scope": "REPRESENTATIVE_OFFLINE_FIXTURE"
+    },
+    {
+      "case": "C1",
+      "command": "python -m scripts.dev.launchpad_offline_coverage --case C1 --operation inspect_resources",
+      "observation": {
+        "code": "PROVIDER_UNAVAILABLE",
+        "execution": "LOCAL_SERVICE_CALL_ONLY",
+        "execution_allowance_used": {
+          "epochs": 0,
+          "final_replicas": 0,
+          "numerical_milliseconds": 0,
+          "provider_attempts": 0,
+          "provider_nanodollars": 0,
+          "reference_invocations": 0,
+          "reference_trajectories": 0,
+          "research_trials": 0,
+          "retained_bytes": 0
+        },
+        "reply_status": "ERROR",
+        "result_type": "ResearchServiceError",
+        "status": "ERROR"
+      },
+      "operation": "inspect_resources",
+      "ran": true,
+      "scope": "REPRESENTATIVE_OFFLINE_FIXTURE"
+    },
+    {
+      "case": "C1",
+      "command": "python -m scripts.dev.launchpad_offline_coverage --case C1 --operation forecast_resources",
+      "observation": {
+        "code": "PROVIDER_UNAVAILABLE",
+        "execution": "LOCAL_SERVICE_CALL_ONLY",
+        "execution_allowance_used": {
+          "epochs": 0,
+          "final_replicas": 0,
+          "numerical_milliseconds": 0,
+          "provider_attempts": 0,
+          "provider_nanodollars": 0,
+          "reference_invocations": 0,
+          "reference_trajectories": 0,
+          "research_trials": 0,
+          "retained_bytes": 0
+        },
+        "reply_status": "ERROR",
+        "result_type": "ResearchServiceError",
+        "status": "ERROR"
+      },
+      "operation": "forecast_resources",
+      "ran": true,
+      "scope": "REPRESENTATIVE_OFFLINE_FIXTURE"
+    },
+    {
+      "case": "C2a",
+      "command": "python -m scripts.dev.launchpad_offline_coverage --case C2a --operation construction",
+      "observation": {
+        "cli_exit_code": 0,
+        "derived": {
+          "changes": [
+            "the SpecMuon optimizer"
+          ],
+          "level": 2,
+          "summary": "Level 2 (the optimizer or the training data): this recipe changes the SpecMuon optimizer."
+        },
+        "development": {
+          "changes": [
+            "the SpecMuon optimizer"
+          ],
+          "composition_digest": "sha256:0865617e90ecd0ea117c2f12cafb6f519b0c4ed0bc00e7e2483ebe248ba76310",
+          "level": 2,
+          "variants": {
+            "2": "sha256:7e4c42a18ae5c12535366c75e5e750e19e25c74243fbf61a0bb911a9d2b0c3cc"
+          },
+          "widened_digest": "sha256:ac2592496c45fa035d18afe6915947cfe6a7f1b0cd9b89afec7a479c12a63d6a"
+        },
+        "execution": "STATIC_COMPILE_ONLY",
+        "rebuild": "level2",
+        "status": "ACCEPTED"
+      },
+      "operation": "construction",
+      "ran": true,
+      "scope": "REPRESENTATIVE_OFFLINE_FIXTURE"
+    },
+    {
+      "case": "C2a",
+      "command": "python -m scripts.dev.launchpad_offline_coverage --case C2a --operation dry_validate",
+      "observation": {
+        "execution": "LOCAL_SERVICE_CALL_ONLY",
+        "execution_allowance_used": {
+          "epochs": 0,
+          "final_replicas": 0,
+          "numerical_milliseconds": 0,
+          "provider_attempts": 0,
+          "provider_nanodollars": 0,
+          "reference_invocations": 0,
+          "reference_trajectories": 0,
+          "research_trials": 0,
+          "retained_bytes": 0
+        },
+        "issues": [
+          {
+            "code": "parameter.unknown",
+            "path": [
+              "parameters",
+              "muon_spectral"
+            ]
+          }
+        ],
+        "reply_status": "OK",
+        "result_type": "DryValidationResult",
+        "status": "REFUSED"
+      },
+      "operation": "dry_validate",
+      "ran": true,
+      "scope": "REPRESENTATIVE_OFFLINE_FIXTURE"
+    },
+    {
+      "case": "C2a",
+      "command": "python -m scripts.dev.launchpad_offline_coverage --case C2a --operation compile_strategy",
+      "observation": {
+        "execution": "LOCAL_SERVICE_CALL_ONLY",
+        "execution_allowance_used": {
+          "epochs": 0,
+          "final_replicas": 0,
+          "numerical_milliseconds": 0,
+          "provider_attempts": 0,
+          "provider_nanodollars": 0,
+          "reference_invocations": 0,
+          "reference_trajectories": 0,
+          "research_trials": 0,
+          "retained_bytes": 0
+        },
+        "issues": [
+          {
+            "code": "parameter.unknown",
+            "path": [
+              "parameters"
+            ]
+          }
+        ],
+        "reply_status": "OK",
+        "result_type": "CompileStrategyResult",
+        "status": "REFUSED"
+      },
+      "operation": "compile_strategy",
+      "ran": true,
+      "scope": "REPRESENTATIVE_OFFLINE_FIXTURE"
+    },
+    {
+      "case": "C2a",
+      "command": "python -m scripts.dev.launchpad_offline_coverage --case C2a --operation inspect_resources",
+      "observation": {
+        "code": "PROVIDER_UNAVAILABLE",
+        "execution": "LOCAL_SERVICE_CALL_ONLY",
+        "execution_allowance_used": {
+          "epochs": 0,
+          "final_replicas": 0,
+          "numerical_milliseconds": 0,
+          "provider_attempts": 0,
+          "provider_nanodollars": 0,
+          "reference_invocations": 0,
+          "reference_trajectories": 0,
+          "research_trials": 0,
+          "retained_bytes": 0
+        },
+        "reply_status": "ERROR",
+        "result_type": "ResearchServiceError",
+        "status": "ERROR"
+      },
+      "operation": "inspect_resources",
+      "ran": true,
+      "scope": "REPRESENTATIVE_OFFLINE_FIXTURE"
+    },
+    {
+      "case": "C2a",
+      "command": "python -m scripts.dev.launchpad_offline_coverage --case C2a --operation forecast_resources",
+      "observation": {
+        "code": "PROVIDER_UNAVAILABLE",
+        "execution": "LOCAL_SERVICE_CALL_ONLY",
+        "execution_allowance_used": {
+          "epochs": 0,
+          "final_replicas": 0,
+          "numerical_milliseconds": 0,
+          "provider_attempts": 0,
+          "provider_nanodollars": 0,
+          "reference_invocations": 0,
+          "reference_trajectories": 0,
+          "research_trials": 0,
+          "retained_bytes": 0
+        },
+        "reply_status": "ERROR",
+        "result_type": "ResearchServiceError",
+        "status": "ERROR"
+      },
+      "operation": "forecast_resources",
+      "ran": true,
+      "scope": "REPRESENTATIVE_OFFLINE_FIXTURE"
+    },
+    {
+      "case": "C2b",
+      "command": "python -m scripts.dev.launchpad_offline_coverage --case C2b --operation construction",
+      "observation": {
+        "cli_exit_code": 0,
+        "derived": {
+          "changes": [
+            "a selection from the training-data pool"
+          ],
+          "level": 2,
+          "summary": "Level 2 (the optimizer or the training data): this recipe changes a selection from the training-data pool."
+        },
+        "development": {
+          "changes": [
+            "a selection from the training-data pool"
+          ],
+          "composition_digest": "sha256:0865617e90ecd0ea117c2f12cafb6f519b0c4ed0bc00e7e2483ebe248ba76310",
+          "level": 2,
+          "variants": {
+            "2": "sha256:7e4c42a18ae5c12535366c75e5e750e19e25c74243fbf61a0bb911a9d2b0c3cc"
+          },
+          "widened_digest": "sha256:5c80cfa1bee1c052d04f920c3db76ebe29cedb193ef255b12639e8721101f0be"
+        },
+        "execution": "STATIC_COMPILE_ONLY",
+        "rebuild": "level2",
+        "status": "ACCEPTED"
+      },
+      "operation": "construction",
+      "ran": true,
+      "scope": "REPRESENTATIVE_OFFLINE_FIXTURE"
+    },
+    {
+      "case": "C2b",
+      "command": "python -m scripts.dev.launchpad_offline_coverage --case C2b --operation dry_validate",
+      "observation": {
+        "execution": "LOCAL_SERVICE_CALL_ONLY",
+        "execution_allowance_used": {
+          "epochs": 0,
+          "final_replicas": 0,
+          "numerical_milliseconds": 0,
+          "provider_attempts": 0,
+          "provider_nanodollars": 0,
+          "reference_invocations": 0,
+          "reference_trajectories": 0,
+          "research_trials": 0,
+          "retained_bytes": 0
+        },
+        "issues": [
+          {
+            "code": "parameter.unknown",
+            "path": [
+              "parameters",
+              "pool_selection"
+            ]
+          }
+        ],
+        "reply_status": "OK",
+        "result_type": "DryValidationResult",
+        "status": "REFUSED"
+      },
+      "operation": "dry_validate",
+      "ran": true,
+      "scope": "REPRESENTATIVE_OFFLINE_FIXTURE"
+    },
+    {
+      "case": "C2b",
+      "command": "python -m scripts.dev.launchpad_offline_coverage --case C2b --operation compile_strategy",
+      "observation": {
+        "execution": "LOCAL_SERVICE_CALL_ONLY",
+        "execution_allowance_used": {
+          "epochs": 0,
+          "final_replicas": 0,
+          "numerical_milliseconds": 0,
+          "provider_attempts": 0,
+          "provider_nanodollars": 0,
+          "reference_invocations": 0,
+          "reference_trajectories": 0,
+          "research_trials": 0,
+          "retained_bytes": 0
+        },
+        "issues": [
+          {
+            "code": "strategy.parameter_shape_invalid",
+            "path": [
+              "parameters"
+            ]
+          }
+        ],
+        "reply_status": "OK",
+        "result_type": "CompileStrategyResult",
+        "status": "REFUSED"
+      },
+      "operation": "compile_strategy",
+      "ran": true,
+      "scope": "REPRESENTATIVE_OFFLINE_FIXTURE"
+    },
+    {
+      "case": "C2b",
+      "command": "python -m scripts.dev.launchpad_offline_coverage --case C2b --operation inspect_resources",
+      "observation": {
+        "code": "PROVIDER_UNAVAILABLE",
+        "execution": "LOCAL_SERVICE_CALL_ONLY",
+        "execution_allowance_used": {
+          "epochs": 0,
+          "final_replicas": 0,
+          "numerical_milliseconds": 0,
+          "provider_attempts": 0,
+          "provider_nanodollars": 0,
+          "reference_invocations": 0,
+          "reference_trajectories": 0,
+          "research_trials": 0,
+          "retained_bytes": 0
+        },
+        "reply_status": "ERROR",
+        "result_type": "ResearchServiceError",
+        "status": "ERROR"
+      },
+      "operation": "inspect_resources",
+      "ran": true,
+      "scope": "REPRESENTATIVE_OFFLINE_FIXTURE"
+    },
+    {
+      "case": "C2b",
+      "command": "python -m scripts.dev.launchpad_offline_coverage --case C2b --operation forecast_resources",
+      "observation": {
+        "code": "PROVIDER_UNAVAILABLE",
+        "execution": "LOCAL_SERVICE_CALL_ONLY",
+        "execution_allowance_used": {
+          "epochs": 0,
+          "final_replicas": 0,
+          "numerical_milliseconds": 0,
+          "provider_attempts": 0,
+          "provider_nanodollars": 0,
+          "reference_invocations": 0,
+          "reference_trajectories": 0,
+          "research_trials": 0,
+          "retained_bytes": 0
+        },
+        "reply_status": "ERROR",
+        "result_type": "ResearchServiceError",
+        "status": "ERROR"
+      },
+      "operation": "forecast_resources",
+      "ran": true,
+      "scope": "REPRESENTATIVE_OFFLINE_FIXTURE"
+    },
+    {
+      "case": "C3a",
+      "command": "python -m scripts.dev.launchpad_offline_coverage --case C3a --operation construction",
+      "observation": {
+        "cli_exit_code": 0,
+        "derived": {
+          "changes": [
+            "a quasi-Newton polish routine"
+          ],
+          "level": 3,
+          "summary": "Level 3 (training-time numerics): this recipe changes a quasi-Newton polish routine."
+        },
+        "development": {
+          "changes": [
+            "a quasi-Newton polish routine"
+          ],
+          "composition_digest": "sha256:0865617e90ecd0ea117c2f12cafb6f519b0c4ed0bc00e7e2483ebe248ba76310",
+          "level": 3,
+          "variants": {
+            "3": "sha256:8ed5a886386d6b4529b88881724ed2b1a977fe42d7993e5290b01be800b742b9"
+          },
+          "widened_digest": "sha256:9b5b71828a9dd832cef324828b3c737835234467a271f2bc2345964931af5754"
+        },
+        "execution": "STATIC_COMPILE_ONLY",
+        "rebuild": "level3",
+        "status": "ACCEPTED"
+      },
+      "operation": "construction",
+      "ran": true,
+      "scope": "REPRESENTATIVE_OFFLINE_FIXTURE"
+    },
+    {
+      "case": "C3a",
+      "command": "python -m scripts.dev.launchpad_offline_coverage --case C3a --operation dry_validate",
+      "observation": {
+        "execution": "LOCAL_SERVICE_CALL_ONLY",
+        "execution_allowance_used": {
+          "epochs": 0,
+          "final_replicas": 0,
+          "numerical_milliseconds": 0,
+          "provider_attempts": 0,
+          "provider_nanodollars": 0,
+          "reference_invocations": 0,
+          "reference_trajectories": 0,
+          "research_trials": 0,
+          "retained_bytes": 0
+        },
+        "issues": [
+          {
+            "code": "parameter.unknown",
+            "path": [
+              "parameters",
+              "quasi_newton_family"
+            ]
+          }
+        ],
+        "reply_status": "OK",
+        "result_type": "DryValidationResult",
+        "status": "REFUSED"
+      },
+      "operation": "dry_validate",
+      "ran": true,
+      "scope": "REPRESENTATIVE_OFFLINE_FIXTURE"
+    },
+    {
+      "case": "C3a",
+      "command": "python -m scripts.dev.launchpad_offline_coverage --case C3a --operation compile_strategy",
+      "observation": {
+        "execution": "LOCAL_SERVICE_CALL_ONLY",
+        "execution_allowance_used": {
+          "epochs": 0,
+          "final_replicas": 0,
+          "numerical_milliseconds": 0,
+          "provider_attempts": 0,
+          "provider_nanodollars": 0,
+          "reference_invocations": 0,
+          "reference_trajectories": 0,
+          "research_trials": 0,
+          "retained_bytes": 0
+        },
+        "issues": [
+          {
+            "code": "parameter.unknown",
+            "path": [
+              "parameters"
+            ]
+          }
+        ],
+        "reply_status": "OK",
+        "result_type": "CompileStrategyResult",
+        "status": "REFUSED"
+      },
+      "operation": "compile_strategy",
+      "ran": true,
+      "scope": "REPRESENTATIVE_OFFLINE_FIXTURE"
+    },
+    {
+      "case": "C3a",
+      "command": "python -m scripts.dev.launchpad_offline_coverage --case C3a --operation inspect_resources",
+      "observation": {
+        "code": "PROVIDER_UNAVAILABLE",
+        "execution": "LOCAL_SERVICE_CALL_ONLY",
+        "execution_allowance_used": {
+          "epochs": 0,
+          "final_replicas": 0,
+          "numerical_milliseconds": 0,
+          "provider_attempts": 0,
+          "provider_nanodollars": 0,
+          "reference_invocations": 0,
+          "reference_trajectories": 0,
+          "research_trials": 0,
+          "retained_bytes": 0
+        },
+        "reply_status": "ERROR",
+        "result_type": "ResearchServiceError",
+        "status": "ERROR"
+      },
+      "operation": "inspect_resources",
+      "ran": true,
+      "scope": "REPRESENTATIVE_OFFLINE_FIXTURE"
+    },
+    {
+      "case": "C3a",
+      "command": "python -m scripts.dev.launchpad_offline_coverage --case C3a --operation forecast_resources",
+      "observation": {
+        "code": "PROVIDER_UNAVAILABLE",
+        "execution": "LOCAL_SERVICE_CALL_ONLY",
+        "execution_allowance_used": {
+          "epochs": 0,
+          "final_replicas": 0,
+          "numerical_milliseconds": 0,
+          "provider_attempts": 0,
+          "provider_nanodollars": 0,
+          "reference_invocations": 0,
+          "reference_trajectories": 0,
+          "research_trials": 0,
+          "retained_bytes": 0
+        },
+        "reply_status": "ERROR",
+        "result_type": "ResearchServiceError",
+        "status": "ERROR"
+      },
+      "operation": "forecast_resources",
+      "ran": true,
+      "scope": "REPRESENTATIVE_OFFLINE_FIXTURE"
+    },
+    {
+      "case": "C3b",
+      "command": "python -m scripts.dev.launchpad_offline_coverage --case C3b --operation construction",
+      "observation": {
+        "cli_exit_code": 0,
+        "derived": {
+          "changes": [
+            "a polish line search",
+            "a quasi-Newton polish routine"
+          ],
+          "level": 3,
+          "summary": "Level 3 (training-time numerics): this recipe changes a polish line search, a quasi-Newton polish routine."
+        },
+        "development": {
+          "changes": [
+            "a polish line search",
+            "a quasi-Newton polish routine"
+          ],
+          "composition_digest": "sha256:0865617e90ecd0ea117c2f12cafb6f519b0c4ed0bc00e7e2483ebe248ba76310",
+          "level": 3,
+          "variants": {
+            "3": "sha256:8ed5a886386d6b4529b88881724ed2b1a977fe42d7993e5290b01be800b742b9"
+          },
+          "widened_digest": "sha256:bd37dff3db26af1c86648c480b6d7f739633f932437b308dfc3e8738604b1b0e"
+        },
+        "execution": "STATIC_COMPILE_ONLY",
+        "rebuild": "level3",
+        "status": "ACCEPTED"
+      },
+      "operation": "construction",
+      "ran": true,
+      "scope": "REPRESENTATIVE_OFFLINE_FIXTURE"
+    },
+    {
+      "case": "C3b",
+      "command": "python -m scripts.dev.launchpad_offline_coverage --case C3b --operation dry_validate",
+      "observation": {
+        "execution": "LOCAL_SERVICE_CALL_ONLY",
+        "execution_allowance_used": {
+          "epochs": 0,
+          "final_replicas": 0,
+          "numerical_milliseconds": 0,
+          "provider_attempts": 0,
+          "provider_nanodollars": 0,
+          "reference_invocations": 0,
+          "reference_trajectories": 0,
+          "research_trials": 0,
+          "retained_bytes": 0
+        },
+        "issues": [
+          {
+            "code": "parameter.unknown",
+            "path": [
+              "parameters",
+              "line_search"
+            ]
+          },
+          {
+            "code": "parameter.unknown",
+            "path": [
+              "parameters",
+              "quasi_newton_family"
+            ]
+          }
+        ],
+        "reply_status": "OK",
+        "result_type": "DryValidationResult",
+        "status": "REFUSED"
+      },
+      "operation": "dry_validate",
+      "ran": true,
+      "scope": "REPRESENTATIVE_OFFLINE_FIXTURE"
+    },
+    {
+      "case": "C3b",
+      "command": "python -m scripts.dev.launchpad_offline_coverage --case C3b --operation compile_strategy",
+      "observation": {
+        "execution": "LOCAL_SERVICE_CALL_ONLY",
+        "execution_allowance_used": {
+          "epochs": 0,
+          "final_replicas": 0,
+          "numerical_milliseconds": 0,
+          "provider_attempts": 0,
+          "provider_nanodollars": 0,
+          "reference_invocations": 0,
+          "reference_trajectories": 0,
+          "research_trials": 0,
+          "retained_bytes": 0
+        },
+        "issues": [
+          {
+            "code": "parameter.unknown",
+            "path": [
+              "parameters"
+            ]
+          }
+        ],
+        "reply_status": "OK",
+        "result_type": "CompileStrategyResult",
+        "status": "REFUSED"
+      },
+      "operation": "compile_strategy",
+      "ran": true,
+      "scope": "REPRESENTATIVE_OFFLINE_FIXTURE"
+    },
+    {
+      "case": "C3b",
+      "command": "python -m scripts.dev.launchpad_offline_coverage --case C3b --operation inspect_resources",
+      "observation": {
+        "code": "PROVIDER_UNAVAILABLE",
+        "execution": "LOCAL_SERVICE_CALL_ONLY",
+        "execution_allowance_used": {
+          "epochs": 0,
+          "final_replicas": 0,
+          "numerical_milliseconds": 0,
+          "provider_attempts": 0,
+          "provider_nanodollars": 0,
+          "reference_invocations": 0,
+          "reference_trajectories": 0,
+          "research_trials": 0,
+          "retained_bytes": 0
+        },
+        "reply_status": "ERROR",
+        "result_type": "ResearchServiceError",
+        "status": "ERROR"
+      },
+      "operation": "inspect_resources",
+      "ran": true,
+      "scope": "REPRESENTATIVE_OFFLINE_FIXTURE"
+    },
+    {
+      "case": "C3b",
+      "command": "python -m scripts.dev.launchpad_offline_coverage --case C3b --operation forecast_resources",
+      "observation": {
+        "code": "PROVIDER_UNAVAILABLE",
+        "execution": "LOCAL_SERVICE_CALL_ONLY",
+        "execution_allowance_used": {
+          "epochs": 0,
+          "final_replicas": 0,
+          "numerical_milliseconds": 0,
+          "provider_attempts": 0,
+          "provider_nanodollars": 0,
+          "reference_invocations": 0,
+          "reference_trajectories": 0,
+          "research_trials": 0,
+          "retained_bytes": 0
+        },
+        "reply_status": "ERROR",
+        "result_type": "ResearchServiceError",
+        "status": "ERROR"
+      },
+      "operation": "forecast_resources",
+      "ran": true,
+      "scope": "REPRESENTATIVE_OFFLINE_FIXTURE"
+    },
+    {
+      "case": "C4",
+      "command": "python -m scripts.dev.launchpad_offline_coverage --case C4 --operation construction",
+      "observation": {
+        "cli_exit_code": 0,
+        "derived": {
+          "changes": [
+            "its own model graph"
+          ],
+          "level": 4,
+          "summary": "Level 4 (its own architecture, as a graph): this recipe changes its own model graph."
+        },
+        "development": {
+          "changes": [
+            "its own model graph"
+          ],
+          "composition_digest": "sha256:0865617e90ecd0ea117c2f12cafb6f519b0c4ed0bc00e7e2483ebe248ba76310",
+          "level": 4,
+          "variants": {
+            "4": "sha256:ad15d6a8ef135a961f15dcb4a682e58ccdbdc7c99926de0f1ef6d5da4325cfa2"
+          },
+          "widened_digest": "sha256:89495e27e1c165aad089f23e694e17b5b0f6d45b5695700a170fb887fd928d8b"
+        },
+        "execution": "STATIC_COMPILE_ONLY",
+        "rebuild": "level4",
+        "status": "ACCEPTED"
+      },
+      "operation": "construction",
+      "ran": true,
+      "scope": "UNVERIFIED_GRAPH_METADATA_ONLY"
+    },
+    {
+      "case": "C4",
+      "command": "python -m scripts.dev.launchpad_offline_coverage --case C4 --operation dry_validate",
+      "observation": {
+        "execution": "LOCAL_SERVICE_CALL_ONLY",
+        "execution_allowance_used": {
+          "epochs": 0,
+          "final_replicas": 0,
+          "numerical_milliseconds": 0,
+          "provider_attempts": 0,
+          "provider_nanodollars": 0,
+          "reference_invocations": 0,
+          "reference_trajectories": 0,
+          "research_trials": 0,
+          "retained_bytes": 0
+        },
+        "issues": [
+          {
+            "code": "parameter.not_rebuildable",
+            "path": [
+              "parameters",
+              "composition_graphs"
+            ]
+          }
+        ],
+        "reply_status": "OK",
+        "result_type": "DryValidationResult",
+        "status": "REFUSED"
+      },
+      "operation": "dry_validate",
+      "ran": true,
+      "scope": "UNVERIFIED_GRAPH_METADATA_ONLY"
+    },
+    {
+      "case": "C4",
+      "command": "python -m scripts.dev.launchpad_offline_coverage --case C4 --operation compile_strategy",
+      "observation": {
+        "execution": "LOCAL_SERVICE_CALL_ONLY",
+        "execution_allowance_used": {
+          "epochs": 0,
+          "final_replicas": 0,
+          "numerical_milliseconds": 0,
+          "provider_attempts": 0,
+          "provider_nanodollars": 0,
+          "reference_invocations": 0,
+          "reference_trajectories": 0,
+          "research_trials": 0,
+          "retained_bytes": 0
+        },
+        "issues": [
+          {
+            "code": "parameter.unknown",
+            "path": [
+              "parameters"
+            ]
+          }
+        ],
+        "reply_status": "OK",
+        "result_type": "CompileStrategyResult",
+        "status": "REFUSED"
+      },
+      "operation": "compile_strategy",
+      "ran": true,
+      "scope": "UNVERIFIED_GRAPH_METADATA_ONLY"
+    },
+    {
+      "case": "C4",
+      "command": "python -m scripts.dev.launchpad_offline_coverage --case C4 --operation inspect_resources",
+      "observation": {
+        "code": "PROVIDER_UNAVAILABLE",
+        "execution": "LOCAL_SERVICE_CALL_ONLY",
+        "execution_allowance_used": {
+          "epochs": 0,
+          "final_replicas": 0,
+          "numerical_milliseconds": 0,
+          "provider_attempts": 0,
+          "provider_nanodollars": 0,
+          "reference_invocations": 0,
+          "reference_trajectories": 0,
+          "research_trials": 0,
+          "retained_bytes": 0
+        },
+        "reply_status": "ERROR",
+        "result_type": "ResearchServiceError",
+        "status": "ERROR"
+      },
+      "operation": "inspect_resources",
+      "ran": true,
+      "scope": "UNVERIFIED_GRAPH_METADATA_ONLY"
+    },
+    {
+      "case": "C4",
+      "command": "python -m scripts.dev.launchpad_offline_coverage --case C4 --operation forecast_resources",
+      "observation": {
+        "code": "PROVIDER_UNAVAILABLE",
+        "execution": "LOCAL_SERVICE_CALL_ONLY",
+        "execution_allowance_used": {
+          "epochs": 0,
+          "final_replicas": 0,
+          "numerical_milliseconds": 0,
+          "provider_attempts": 0,
+          "provider_nanodollars": 0,
+          "reference_invocations": 0,
+          "reference_trajectories": 0,
+          "research_trials": 0,
+          "retained_bytes": 0
+        },
+        "reply_status": "ERROR",
+        "result_type": "ResearchServiceError",
+        "status": "ERROR"
+      },
+      "operation": "forecast_resources",
+      "ran": true,
+      "scope": "UNVERIFIED_GRAPH_METADATA_ONLY"
+    },
+    {
+      "case": "X1_pool",
+      "command": "python -m scripts.dev.launchpad_offline_coverage --case X1_pool --operation construction",
+      "observation": {
+        "cli_exit_code": 0,
+        "derived": {
+          "changes": [
+            "the SpecMuon optimizer",
+            "a selection from the training-data pool"
+          ],
+          "level": 2,
+          "summary": "Level 2 (the optimizer or the training data): this recipe changes the SpecMuon optimizer, a selection from the training-data pool."
+        },
+        "development": {
+          "changes": [
+            "the SpecMuon optimizer",
+            "a selection from the training-data pool"
+          ],
+          "composition_digest": "sha256:0865617e90ecd0ea117c2f12cafb6f519b0c4ed0bc00e7e2483ebe248ba76310",
+          "level": 2,
+          "variants": {
+            "2": "sha256:7e4c42a18ae5c12535366c75e5e750e19e25c74243fbf61a0bb911a9d2b0c3cc"
+          },
+          "widened_digest": "sha256:c29a110ea97abc2fbf9a6cf7dfe54a35729eff0998049273c5f3cf20125c432f"
+        },
+        "execution": "STATIC_COMPILE_ONLY",
+        "rebuild": "level2",
+        "status": "ACCEPTED"
+      },
+      "operation": "construction",
+      "ran": true,
+      "scope": "REPRESENTATIVE_OFFLINE_FIXTURE"
+    },
+    {
+      "case": "X1_pool",
+      "command": "python -m scripts.dev.launchpad_offline_coverage --case X1_pool --operation dry_validate",
+      "observation": {
+        "execution": "LOCAL_SERVICE_CALL_ONLY",
+        "execution_allowance_used": {
+          "epochs": 0,
+          "final_replicas": 0,
+          "numerical_milliseconds": 0,
+          "provider_attempts": 0,
+          "provider_nanodollars": 0,
+          "reference_invocations": 0,
+          "reference_trajectories": 0,
+          "research_trials": 0,
+          "retained_bytes": 0
+        },
+        "issues": [
+          {
+            "code": "parameter.unknown",
+            "path": [
+              "parameters",
+              "muon_spectral"
+            ]
+          },
+          {
+            "code": "parameter.unknown",
+            "path": [
+              "parameters",
+              "pool_selection"
+            ]
+          }
+        ],
+        "reply_status": "OK",
+        "result_type": "DryValidationResult",
+        "status": "REFUSED"
+      },
+      "operation": "dry_validate",
+      "ran": true,
+      "scope": "REPRESENTATIVE_OFFLINE_FIXTURE"
+    },
+    {
+      "case": "X1_pool",
+      "command": "python -m scripts.dev.launchpad_offline_coverage --case X1_pool --operation compile_strategy",
+      "observation": {
+        "execution": "LOCAL_SERVICE_CALL_ONLY",
+        "execution_allowance_used": {
+          "epochs": 0,
+          "final_replicas": 0,
+          "numerical_milliseconds": 0,
+          "provider_attempts": 0,
+          "provider_nanodollars": 0,
+          "reference_invocations": 0,
+          "reference_trajectories": 0,
+          "research_trials": 0,
+          "retained_bytes": 0
+        },
+        "issues": [
+          {
+            "code": "strategy.parameter_shape_invalid",
+            "path": [
+              "parameters"
+            ]
+          }
+        ],
+        "reply_status": "OK",
+        "result_type": "CompileStrategyResult",
+        "status": "REFUSED"
+      },
+      "operation": "compile_strategy",
+      "ran": true,
+      "scope": "REPRESENTATIVE_OFFLINE_FIXTURE"
+    },
+    {
+      "case": "X1_pool",
+      "command": "python -m scripts.dev.launchpad_offline_coverage --case X1_pool --operation inspect_resources",
+      "observation": {
+        "code": "PROVIDER_UNAVAILABLE",
+        "execution": "LOCAL_SERVICE_CALL_ONLY",
+        "execution_allowance_used": {
+          "epochs": 0,
+          "final_replicas": 0,
+          "numerical_milliseconds": 0,
+          "provider_attempts": 0,
+          "provider_nanodollars": 0,
+          "reference_invocations": 0,
+          "reference_trajectories": 0,
+          "research_trials": 0,
+          "retained_bytes": 0
+        },
+        "reply_status": "ERROR",
+        "result_type": "ResearchServiceError",
+        "status": "ERROR"
+      },
+      "operation": "inspect_resources",
+      "ran": true,
+      "scope": "REPRESENTATIVE_OFFLINE_FIXTURE"
+    },
+    {
+      "case": "X1_pool",
+      "command": "python -m scripts.dev.launchpad_offline_coverage --case X1_pool --operation forecast_resources",
+      "observation": {
+        "code": "PROVIDER_UNAVAILABLE",
+        "execution": "LOCAL_SERVICE_CALL_ONLY",
+        "execution_allowance_used": {
+          "epochs": 0,
+          "final_replicas": 0,
+          "numerical_milliseconds": 0,
+          "provider_attempts": 0,
+          "provider_nanodollars": 0,
+          "reference_invocations": 0,
+          "reference_trajectories": 0,
+          "research_trials": 0,
+          "retained_bytes": 0
+        },
+        "reply_status": "ERROR",
+        "result_type": "ResearchServiceError",
+        "status": "ERROR"
+      },
+      "operation": "forecast_resources",
+      "ran": true,
+      "scope": "REPRESENTATIVE_OFFLINE_FIXTURE"
+    },
+    {
+      "case": "X1_search",
+      "command": "python -m scripts.dev.launchpad_offline_coverage --case X1_search --operation construction",
+      "observation": {
+        "cli_exit_code": 0,
+        "derived": {
+          "changes": [
+            "a polish line search",
+            "a quasi-Newton polish routine"
+          ],
+          "level": 3,
+          "summary": "Level 3 (training-time numerics): this recipe changes a polish line search, a quasi-Newton polish routine."
+        },
+        "development": {
+          "changes": [
+            "a polish line search",
+            "a quasi-Newton polish routine"
+          ],
+          "composition_digest": "sha256:0865617e90ecd0ea117c2f12cafb6f519b0c4ed0bc00e7e2483ebe248ba76310",
+          "level": 3,
+          "variants": {
+            "3": "sha256:8ed5a886386d6b4529b88881724ed2b1a977fe42d7993e5290b01be800b742b9"
+          },
+          "widened_digest": "sha256:bd37dff3db26af1c86648c480b6d7f739633f932437b308dfc3e8738604b1b0e"
+        },
+        "execution": "STATIC_COMPILE_ONLY",
+        "rebuild": "level3",
+        "status": "ACCEPTED"
+      },
+      "operation": "construction",
+      "ran": true,
+      "scope": "REPRESENTATIVE_OFFLINE_FIXTURE"
+    },
+    {
+      "case": "X1_search",
+      "command": "python -m scripts.dev.launchpad_offline_coverage --case X1_search --operation dry_validate",
+      "observation": {
+        "execution": "LOCAL_SERVICE_CALL_ONLY",
+        "execution_allowance_used": {
+          "epochs": 0,
+          "final_replicas": 0,
+          "numerical_milliseconds": 0,
+          "provider_attempts": 0,
+          "provider_nanodollars": 0,
+          "reference_invocations": 0,
+          "reference_trajectories": 0,
+          "research_trials": 0,
+          "retained_bytes": 0
+        },
+        "issues": [
+          {
+            "code": "parameter.unknown",
+            "path": [
+              "parameters",
+              "line_search"
+            ]
+          },
+          {
+            "code": "parameter.unknown",
+            "path": [
+              "parameters",
+              "quasi_newton_family"
+            ]
+          }
+        ],
+        "reply_status": "OK",
+        "result_type": "DryValidationResult",
+        "status": "REFUSED"
+      },
+      "operation": "dry_validate",
+      "ran": true,
+      "scope": "REPRESENTATIVE_OFFLINE_FIXTURE"
+    },
+    {
+      "case": "X1_search",
+      "command": "python -m scripts.dev.launchpad_offline_coverage --case X1_search --operation compile_strategy",
+      "observation": {
+        "execution": "LOCAL_SERVICE_CALL_ONLY",
+        "execution_allowance_used": {
+          "epochs": 0,
+          "final_replicas": 0,
+          "numerical_milliseconds": 0,
+          "provider_attempts": 0,
+          "provider_nanodollars": 0,
+          "reference_invocations": 0,
+          "reference_trajectories": 0,
+          "research_trials": 0,
+          "retained_bytes": 0
+        },
+        "issues": [
+          {
+            "code": "parameter.unknown",
+            "path": [
+              "parameters"
+            ]
+          }
+        ],
+        "reply_status": "OK",
+        "result_type": "CompileStrategyResult",
+        "status": "REFUSED"
+      },
+      "operation": "compile_strategy",
+      "ran": true,
+      "scope": "REPRESENTATIVE_OFFLINE_FIXTURE"
+    },
+    {
+      "case": "X1_search",
+      "command": "python -m scripts.dev.launchpad_offline_coverage --case X1_search --operation inspect_resources",
+      "observation": {
+        "code": "PROVIDER_UNAVAILABLE",
+        "execution": "LOCAL_SERVICE_CALL_ONLY",
+        "execution_allowance_used": {
+          "epochs": 0,
+          "final_replicas": 0,
+          "numerical_milliseconds": 0,
+          "provider_attempts": 0,
+          "provider_nanodollars": 0,
+          "reference_invocations": 0,
+          "reference_trajectories": 0,
+          "research_trials": 0,
+          "retained_bytes": 0
+        },
+        "reply_status": "ERROR",
+        "result_type": "ResearchServiceError",
+        "status": "ERROR"
+      },
+      "operation": "inspect_resources",
+      "ran": true,
+      "scope": "REPRESENTATIVE_OFFLINE_FIXTURE"
+    },
+    {
+      "case": "X1_search",
+      "command": "python -m scripts.dev.launchpad_offline_coverage --case X1_search --operation forecast_resources",
+      "observation": {
+        "code": "PROVIDER_UNAVAILABLE",
+        "execution": "LOCAL_SERVICE_CALL_ONLY",
+        "execution_allowance_used": {
+          "epochs": 0,
+          "final_replicas": 0,
+          "numerical_milliseconds": 0,
+          "provider_attempts": 0,
+          "provider_nanodollars": 0,
+          "reference_invocations": 0,
+          "reference_trajectories": 0,
+          "research_trials": 0,
+          "retained_bytes": 0
+        },
+        "reply_status": "ERROR",
+        "result_type": "ResearchServiceError",
+        "status": "ERROR"
+      },
+      "operation": "forecast_resources",
+      "ran": true,
+      "scope": "REPRESENTATIVE_OFFLINE_FIXTURE"
+    },
+    {
+      "case": "X2",
+      "command": "python -m scripts.dev.launchpad_offline_coverage --case X2 --operation construction",
+      "observation": {
+        "cli_exit_code": 0,
+        "derived": {
+          "changes": [
+            "its own loss expression",
+            "the SpecMuon optimizer"
+          ],
+          "level": 2,
+          "summary": "Level 2 (the optimizer or the training data): this recipe changes its own loss expression, the SpecMuon optimizer."
+        },
+        "development": {
+          "changes": [
+            "its own loss expression",
+            "the SpecMuon optimizer"
+          ],
+          "composition_digest": "sha256:0865617e90ecd0ea117c2f12cafb6f519b0c4ed0bc00e7e2483ebe248ba76310",
+          "level": 2,
+          "variants": {
+            "1": "sha256:34153f41641e3f45077e2752b1cae6d2e1c0ae4327d2cb780526e084a241c854",
+            "2": "sha256:7e4c42a18ae5c12535366c75e5e750e19e25c74243fbf61a0bb911a9d2b0c3cc"
+          },
+          "widened_digest": "sha256:5e559ad4b0d48c1b3fd22315bb3b37cf81ad86f1dff41142e503c3719ca10f80"
+        },
+        "execution": "STATIC_COMPILE_ONLY",
+        "rebuild": "composed",
+        "status": "ACCEPTED"
+      },
+      "operation": "construction",
+      "ran": true,
+      "scope": "REPRESENTATIVE_OFFLINE_FIXTURE"
+    },
+    {
+      "case": "X2",
+      "command": "python -m scripts.dev.launchpad_offline_coverage --case X2 --operation dry_validate",
+      "observation": {
+        "execution": "LOCAL_SERVICE_CALL_ONLY",
+        "execution_allowance_used": {
+          "epochs": 0,
+          "final_replicas": 0,
+          "numerical_milliseconds": 0,
+          "provider_attempts": 0,
+          "provider_nanodollars": 0,
+          "reference_invocations": 0,
+          "reference_trajectories": 0,
+          "research_trials": 0,
+          "retained_bytes": 0
+        },
+        "issues": [
+          {
+            "code": "parameter.not_rebuildable",
+            "path": [
+              "parameters",
+              "loss_expressions"
+            ]
+          },
+          {
+            "code": "parameter.unknown",
+            "path": [
+              "parameters",
+              "muon_spectral"
+            ]
+          }
+        ],
+        "reply_status": "OK",
+        "result_type": "DryValidationResult",
+        "status": "REFUSED"
+      },
+      "operation": "dry_validate",
+      "ran": true,
+      "scope": "REPRESENTATIVE_OFFLINE_FIXTURE"
+    },
+    {
+      "case": "X2",
+      "command": "python -m scripts.dev.launchpad_offline_coverage --case X2 --operation compile_strategy",
+      "observation": {
+        "execution": "LOCAL_SERVICE_CALL_ONLY",
+        "execution_allowance_used": {
+          "epochs": 0,
+          "final_replicas": 0,
+          "numerical_milliseconds": 0,
+          "provider_attempts": 0,
+          "provider_nanodollars": 0,
+          "reference_invocations": 0,
+          "reference_trajectories": 0,
+          "research_trials": 0,
+          "retained_bytes": 0
+        },
+        "issues": [
+          {
+            "code": "strategy.parameter_shape_invalid",
+            "path": [
+              "parameters"
+            ]
+          }
+        ],
+        "reply_status": "OK",
+        "result_type": "CompileStrategyResult",
+        "status": "REFUSED"
+      },
+      "operation": "compile_strategy",
+      "ran": true,
+      "scope": "REPRESENTATIVE_OFFLINE_FIXTURE"
+    },
+    {
+      "case": "X2",
+      "command": "python -m scripts.dev.launchpad_offline_coverage --case X2 --operation inspect_resources",
+      "observation": {
+        "code": "PROVIDER_UNAVAILABLE",
+        "execution": "LOCAL_SERVICE_CALL_ONLY",
+        "execution_allowance_used": {
+          "epochs": 0,
+          "final_replicas": 0,
+          "numerical_milliseconds": 0,
+          "provider_attempts": 0,
+          "provider_nanodollars": 0,
+          "reference_invocations": 0,
+          "reference_trajectories": 0,
+          "research_trials": 0,
+          "retained_bytes": 0
+        },
+        "reply_status": "ERROR",
+        "result_type": "ResearchServiceError",
+        "status": "ERROR"
+      },
+      "operation": "inspect_resources",
+      "ran": true,
+      "scope": "REPRESENTATIVE_OFFLINE_FIXTURE"
+    },
+    {
+      "case": "X2",
+      "command": "python -m scripts.dev.launchpad_offline_coverage --case X2 --operation forecast_resources",
+      "observation": {
+        "code": "PROVIDER_UNAVAILABLE",
+        "execution": "LOCAL_SERVICE_CALL_ONLY",
+        "execution_allowance_used": {
+          "epochs": 0,
+          "final_replicas": 0,
+          "numerical_milliseconds": 0,
+          "provider_attempts": 0,
+          "provider_nanodollars": 0,
+          "reference_invocations": 0,
+          "reference_trajectories": 0,
+          "research_trials": 0,
+          "retained_bytes": 0
+        },
+        "reply_status": "ERROR",
+        "result_type": "ResearchServiceError",
+        "status": "ERROR"
+      },
+      "operation": "forecast_resources",
+      "ran": true,
+      "scope": "REPRESENTATIVE_OFFLINE_FIXTURE"
+    },
+    {
+      "case": "X3",
+      "command": "python -m scripts.dev.launchpad_offline_coverage --case X3 --operation construction",
+      "observation": {
+        "cli_exit_code": 2,
+        "code": "construction_rebuild_unavailable",
+        "execution": "STATIC_COMPILE_ONLY",
+        "issues": [
+          [
+            "construction_rebuild_unavailable",
+            "/parameters/composition_graphs"
+          ],
+          [
+            "construction_rebuild_unavailable",
+            "/parameters/line_search"
+          ],
+          [
+            "construction_rebuild_unavailable",
+            "/parameters/loss_expressions"
+          ],
+          [
+            "construction_rebuild_unavailable",
+            "/parameters/muon_spectral"
+          ],
+          [
+            "construction_rebuild_unavailable",
+            "/parameters/pool_selection"
+          ],
+          [
+            "construction_rebuild_unavailable",
+            "/parameters/quasi_newton_family"
+          ]
+        ],
+        "status": "REFUSED"
+      },
+      "operation": "construction",
+      "ran": true,
+      "scope": "UNVERIFIED_GRAPH_METADATA_ONLY"
+    },
+    {
+      "case": "X3",
+      "command": "python -m scripts.dev.launchpad_offline_coverage --case X3 --operation dry_validate",
+      "observation": {
+        "execution": "LOCAL_SERVICE_CALL_ONLY",
+        "execution_allowance_used": {
+          "epochs": 0,
+          "final_replicas": 0,
+          "numerical_milliseconds": 0,
+          "provider_attempts": 0,
+          "provider_nanodollars": 0,
+          "reference_invocations": 0,
+          "reference_trajectories": 0,
+          "research_trials": 0,
+          "retained_bytes": 0
+        },
+        "issues": [
+          {
+            "code": "parameter.not_rebuildable",
+            "path": [
+              "parameters",
+              "composition_graphs"
+            ]
+          },
+          {
+            "code": "parameter.unknown",
+            "path": [
+              "parameters",
+              "line_search"
+            ]
+          },
+          {
+            "code": "parameter.not_rebuildable",
+            "path": [
+              "parameters",
+              "loss_expressions"
+            ]
+          },
+          {
+            "code": "parameter.unknown",
+            "path": [
+              "parameters",
+              "muon_spectral"
+            ]
+          },
+          {
+            "code": "parameter.unknown",
+            "path": [
+              "parameters",
+              "pool_selection"
+            ]
+          },
+          {
+            "code": "parameter.unknown",
+            "path": [
+              "parameters",
+              "quasi_newton_family"
+            ]
+          }
+        ],
+        "reply_status": "OK",
+        "result_type": "DryValidationResult",
+        "status": "REFUSED"
+      },
+      "operation": "dry_validate",
+      "ran": true,
+      "scope": "UNVERIFIED_GRAPH_METADATA_ONLY"
+    },
+    {
+      "case": "X3",
+      "command": "python -m scripts.dev.launchpad_offline_coverage --case X3 --operation compile_strategy",
+      "observation": {
+        "execution": "LOCAL_SERVICE_CALL_ONLY",
+        "execution_allowance_used": {
+          "epochs": 0,
+          "final_replicas": 0,
+          "numerical_milliseconds": 0,
+          "provider_attempts": 0,
+          "provider_nanodollars": 0,
+          "reference_invocations": 0,
+          "reference_trajectories": 0,
+          "research_trials": 0,
+          "retained_bytes": 0
+        },
+        "issues": [
+          {
+            "code": "strategy.parameter_shape_invalid",
+            "path": [
+              "parameters"
+            ]
+          }
+        ],
+        "reply_status": "OK",
+        "result_type": "CompileStrategyResult",
+        "status": "REFUSED"
+      },
+      "operation": "compile_strategy",
+      "ran": true,
+      "scope": "UNVERIFIED_GRAPH_METADATA_ONLY"
+    },
+    {
+      "case": "X3",
+      "command": "python -m scripts.dev.launchpad_offline_coverage --case X3 --operation inspect_resources",
+      "observation": {
+        "code": "PROVIDER_UNAVAILABLE",
+        "execution": "LOCAL_SERVICE_CALL_ONLY",
+        "execution_allowance_used": {
+          "epochs": 0,
+          "final_replicas": 0,
+          "numerical_milliseconds": 0,
+          "provider_attempts": 0,
+          "provider_nanodollars": 0,
+          "reference_invocations": 0,
+          "reference_trajectories": 0,
+          "research_trials": 0,
+          "retained_bytes": 0
+        },
+        "reply_status": "ERROR",
+        "result_type": "ResearchServiceError",
+        "status": "ERROR"
+      },
+      "operation": "inspect_resources",
+      "ran": true,
+      "scope": "UNVERIFIED_GRAPH_METADATA_ONLY"
+    },
+    {
+      "case": "X3",
+      "command": "python -m scripts.dev.launchpad_offline_coverage --case X3 --operation forecast_resources",
+      "observation": {
+        "code": "PROVIDER_UNAVAILABLE",
+        "execution": "LOCAL_SERVICE_CALL_ONLY",
+        "execution_allowance_used": {
+          "epochs": 0,
+          "final_replicas": 0,
+          "numerical_milliseconds": 0,
+          "provider_attempts": 0,
+          "provider_nanodollars": 0,
+          "reference_invocations": 0,
+          "reference_trajectories": 0,
+          "research_trials": 0,
+          "retained_bytes": 0
+        },
+        "reply_status": "ERROR",
+        "result_type": "ResearchServiceError",
+        "status": "ERROR"
+      },
+      "operation": "forecast_resources",
+      "ran": true,
+      "scope": "UNVERIFIED_GRAPH_METADATA_ONLY"
+    }
+  ],
+  "schema": "carbon.launchpad.offline-coverage.v1",
+  "source_commit": "31c6fc76a6f2555183d9f9d7915a1f641ea14415",
+  "source_files": {
+    "carbon/battery/compile.py": "9e570a0472955da88de666c16b6f1fa6f63f656814852877e99cd3c1b0086cec",
+    "carbon/battery/contracts.py": "b46c1044fd228f8aa976e0a417d780306b2b974894e30b72252331705b6fb237",
+    "carbon/battery/research.py": "8d2faf291aa77633d722acf9115186164141e992017f9dc69602a2dd2fea9b80",
+    "carbon/development_session/construction_level.py": "9117723ea79c436bbd2122f03597dbdeb7ea5aa0487872bc2ea9d694a80d03d6",
+    "carbon/development_session/research_resources.py": "59b95b990bf6e3beab12fd3c98ae3d5738f763f3cf6b38cce93d45f24c5d4757",
+    "carbon/development_session/research_service.py": "6cd8c1d84fd560d113b03bf6e687c446fa7bd4236b7012a2a00a33c8619e90a1",
+    "carbon/reconstruction/development_composition.py": "2ed205bcb6c8d097d90036f262571e02ad0273619ebb2eb221fe35a1096ab75f",
+    "carbon/reconstruction/development_compositions/battery-construction-v1.json": "1e30eec791558e3d0a914baf0f565b7286c47b57d1fe93bcd788c3cc33f88637",
+    "carbon/reconstruction/development_compositions/registry.json": "442a9febec90362c41496dd0f7f7f31f8144bbb57341ad8e9c141b4e71417ae6",
+    "carbon/reconstruction/development_variant_policies/registry.json": "02de0cbd588d50b324882484f880569a9b268b995846dec3f8c4f08746935014",
+    "carbon/reconstruction/development_variants.py": "0e03c3f4b57b68fe2aeda7f3e9b3c0d23564dd4df07b22b42201a5cb2a83c61c",
+    "carbon/research/model.py": "6d4d49b31c6416bfc212c24044303c9ddd067144e6d12082e0c581aa37948b69",
+    "carbon/research/service.py": "e3bc28df2c4d43d0e574e6c51eeb6a9248308a32c42a74abed526d71873bc370",
+    "scripts/dev/launchpad_offline_coverage.py": "08c6bdfbce6cc3ea055b5d0e08335dd53e72bfdacf8a8a91fa44935829e3a03e"
+  },
+  "strategies": {
+    "C0": {
+      "backbone": "mlp",
+      "challenge_id": "battery-fastcharge-ageing-development-v1",
+      "parameters": {
+        "depth": 1,
+        "optimizer_family": "muon",
+        "polish_steps": 6,
+        "steps": 48,
+        "width": 16
+      },
+      "schema_version": "1.0"
+    },
+    "C1": {
+      "backbone": "mlp",
+      "challenge_id": "battery-fastcharge-ageing-development-v1",
+      "parameters": {
+        "depth": 1,
+        "loss_expressions": {
+          "arg": {
+            "term": "sq_error"
+          },
+          "op": "sqrt"
+        },
+        "optimizer_family": "muon",
+        "polish_steps": 6,
+        "steps": 48,
+        "width": 16
+      },
+      "schema_version": "1.0"
+    },
+    "C2a": {
+      "backbone": "mlp",
+      "challenge_id": "battery-fastcharge-ageing-development-v1",
+      "parameters": {
+        "depth": 1,
+        "muon_spectral": true,
+        "optimizer_family": "muon",
+        "polish_steps": 6,
+        "steps": 48,
+        "width": 16
+      },
+      "schema_version": "1.0"
+    },
+    "C2b": {
+      "backbone": "mlp",
+      "challenge_id": "battery-fastcharge-ageing-development-v1",
+      "parameters": {
+        "depth": 1,
+        "optimizer_family": "muon",
+        "polish_steps": 6,
+        "pool_selection": {
+          "box": {
+            "t_amb_c": [
+              10.0,
+              35.0
+            ]
+          },
+          "cases": 120,
+          "pool_version": "sha256:e3de28b9b5c2f7088ca8abf394ab3365c921acdc4d7f1eac5e4428f381caca9c",
+          "strata": {
+            "train": 1.0
+          }
+        },
+        "steps": 48,
+        "width": 16
+      },
+      "schema_version": "1.0"
+    },
+    "C3a": {
+      "backbone": "mlp",
+      "challenge_id": "battery-fastcharge-ageing-development-v1",
+      "parameters": {
+        "depth": 1,
+        "optimizer_family": "muon",
+        "polish_steps": 6,
+        "quasi_newton_family": "bfgs",
+        "steps": 48,
+        "width": 16
+      },
+      "schema_version": "1.0"
+    },
+    "C3b": {
+      "backbone": "mlp",
+      "challenge_id": "battery-fastcharge-ageing-development-v1",
+      "parameters": {
+        "depth": 1,
+        "line_search": "backtracking",
+        "optimizer_family": "muon",
+        "polish_steps": 6,
+        "quasi_newton_family": "bfgs",
+        "steps": 48,
+        "width": 16
+      },
+      "schema_version": "1.0"
+    },
+    "C4": {
+      "backbone": "mlp",
+      "challenge_id": "battery-fastcharge-ageing-development-v1",
+      "parameters": {
+        "composition_graphs": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+        "depth": 1,
+        "optimizer_family": "muon",
+        "polish_steps": 6,
+        "steps": 48,
+        "width": 16
+      },
+      "schema_version": "1.0"
+    },
+    "X1_pool": {
+      "backbone": "mlp",
+      "challenge_id": "battery-fastcharge-ageing-development-v1",
+      "parameters": {
+        "depth": 1,
+        "muon_spectral": true,
+        "optimizer_family": "muon",
+        "polish_steps": 6,
+        "pool_selection": {
+          "box": {
+            "t_amb_c": [
+              10.0,
+              35.0
+            ]
+          },
+          "cases": 120,
+          "pool_version": "sha256:e3de28b9b5c2f7088ca8abf394ab3365c921acdc4d7f1eac5e4428f381caca9c",
+          "strata": {
+            "train": 1.0
+          }
+        },
+        "steps": 48,
+        "width": 16
+      },
+      "schema_version": "1.0"
+    },
+    "X1_search": {
+      "backbone": "mlp",
+      "challenge_id": "battery-fastcharge-ageing-development-v1",
+      "parameters": {
+        "depth": 1,
+        "line_search": "backtracking",
+        "optimizer_family": "muon",
+        "polish_steps": 6,
+        "quasi_newton_family": "bfgs",
+        "steps": 48,
+        "width": 16
+      },
+      "schema_version": "1.0"
+    },
+    "X2": {
+      "backbone": "mlp",
+      "challenge_id": "battery-fastcharge-ageing-development-v1",
+      "parameters": {
+        "depth": 1,
+        "loss_expressions": {
+          "arg": {
+            "term": "sq_error"
+          },
+          "op": "sqrt"
+        },
+        "muon_spectral": true,
+        "optimizer_family": "muon",
+        "polish_steps": 6,
+        "steps": 48,
+        "width": 16
+      },
+      "schema_version": "1.0"
+    },
+    "X3": {
+      "backbone": "mlp",
+      "challenge_id": "battery-fastcharge-ageing-development-v1",
+      "parameters": {
+        "composition_graphs": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+        "depth": 1,
+        "line_search": "backtracking",
+        "loss_expressions": {
+          "arg": {
+            "term": "sq_error"
+          },
+          "op": "sqrt"
+        },
+        "muon_spectral": true,
+        "optimizer_family": "muon",
+        "polish_steps": 6,
+        "pool_selection": {
+          "box": {
+            "t_amb_c": [
+              10.0,
+              35.0
+            ]
+          },
+          "cases": 120,
+          "pool_version": "sha256:e3de28b9b5c2f7088ca8abf394ab3365c921acdc4d7f1eac5e4428f381caca9c",
+          "strata": {
+            "train": 1.0
+          }
+        },
+        "quasi_newton_family": "bfgs",
+        "steps": 48,
+        "width": 16
+      },
+      "schema_version": "1.0"
+    }
+  },
+  "unrun_matrix": [
+    {
+      "capability": "B1",
+      "change": "C0",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B2",
+      "change": "C0",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B3",
+      "change": "C0",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B4",
+      "change": "C0",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B5",
+      "change": "C0",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B6",
+      "change": "C0",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B7",
+      "change": "C0",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B8",
+      "change": "C0",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B9",
+      "change": "C0",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B10",
+      "change": "C0",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B12",
+      "change": "C0",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B13",
+      "change": "C0",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B14",
+      "change": "C0",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B15",
+      "change": "C0",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B16",
+      "change": "C0",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B17",
+      "change": "C0",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B18",
+      "change": "C0",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B19",
+      "change": "C0",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B20",
+      "change": "C0",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B21",
+      "change": "C0",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B22",
+      "change": "C0",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B23",
+      "change": "C0",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B24",
+      "change": "C0",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B25",
+      "change": "C0",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B1",
+      "change": "C1",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B2",
+      "change": "C1",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B3",
+      "change": "C1",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B4",
+      "change": "C1",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B5",
+      "change": "C1",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B6",
+      "change": "C1",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B7",
+      "change": "C1",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B8",
+      "change": "C1",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B9",
+      "change": "C1",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B10",
+      "change": "C1",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B12",
+      "change": "C1",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B13",
+      "change": "C1",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B14",
+      "change": "C1",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B15",
+      "change": "C1",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B16",
+      "change": "C1",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B17",
+      "change": "C1",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B18",
+      "change": "C1",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B19",
+      "change": "C1",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B20",
+      "change": "C1",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B21",
+      "change": "C1",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B22",
+      "change": "C1",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B23",
+      "change": "C1",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B24",
+      "change": "C1",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B25",
+      "change": "C1",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B1",
+      "change": "C2a",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B2",
+      "change": "C2a",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B3",
+      "change": "C2a",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B4",
+      "change": "C2a",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B5",
+      "change": "C2a",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B6",
+      "change": "C2a",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B7",
+      "change": "C2a",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B8",
+      "change": "C2a",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B9",
+      "change": "C2a",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B10",
+      "change": "C2a",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B12",
+      "change": "C2a",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B13",
+      "change": "C2a",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B14",
+      "change": "C2a",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B15",
+      "change": "C2a",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B16",
+      "change": "C2a",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B17",
+      "change": "C2a",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B18",
+      "change": "C2a",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B19",
+      "change": "C2a",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B20",
+      "change": "C2a",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B21",
+      "change": "C2a",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B22",
+      "change": "C2a",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B23",
+      "change": "C2a",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B24",
+      "change": "C2a",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B25",
+      "change": "C2a",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B1",
+      "change": "C2b",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B2",
+      "change": "C2b",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B3",
+      "change": "C2b",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B4",
+      "change": "C2b",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B5",
+      "change": "C2b",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B6",
+      "change": "C2b",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B7",
+      "change": "C2b",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B8",
+      "change": "C2b",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B9",
+      "change": "C2b",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B10",
+      "change": "C2b",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B12",
+      "change": "C2b",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B13",
+      "change": "C2b",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B14",
+      "change": "C2b",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B15",
+      "change": "C2b",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B16",
+      "change": "C2b",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B17",
+      "change": "C2b",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B18",
+      "change": "C2b",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B19",
+      "change": "C2b",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B20",
+      "change": "C2b",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B21",
+      "change": "C2b",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B22",
+      "change": "C2b",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B23",
+      "change": "C2b",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B24",
+      "change": "C2b",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B25",
+      "change": "C2b",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B1",
+      "change": "C3a",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B2",
+      "change": "C3a",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B3",
+      "change": "C3a",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B4",
+      "change": "C3a",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B5",
+      "change": "C3a",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B6",
+      "change": "C3a",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B7",
+      "change": "C3a",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B8",
+      "change": "C3a",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B9",
+      "change": "C3a",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B10",
+      "change": "C3a",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B12",
+      "change": "C3a",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B13",
+      "change": "C3a",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B14",
+      "change": "C3a",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B15",
+      "change": "C3a",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B16",
+      "change": "C3a",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B17",
+      "change": "C3a",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B18",
+      "change": "C3a",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B19",
+      "change": "C3a",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B20",
+      "change": "C3a",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B21",
+      "change": "C3a",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B22",
+      "change": "C3a",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B23",
+      "change": "C3a",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B24",
+      "change": "C3a",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B25",
+      "change": "C3a",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B1",
+      "change": "C3b",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B2",
+      "change": "C3b",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B3",
+      "change": "C3b",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B4",
+      "change": "C3b",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B5",
+      "change": "C3b",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B6",
+      "change": "C3b",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B7",
+      "change": "C3b",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B8",
+      "change": "C3b",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B9",
+      "change": "C3b",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B10",
+      "change": "C3b",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B12",
+      "change": "C3b",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B13",
+      "change": "C3b",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B14",
+      "change": "C3b",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B15",
+      "change": "C3b",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B16",
+      "change": "C3b",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B17",
+      "change": "C3b",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B18",
+      "change": "C3b",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B19",
+      "change": "C3b",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B20",
+      "change": "C3b",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B21",
+      "change": "C3b",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B22",
+      "change": "C3b",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B23",
+      "change": "C3b",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B24",
+      "change": "C3b",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B25",
+      "change": "C3b",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B1",
+      "change": "C4",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B2",
+      "change": "C4",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B3",
+      "change": "C4",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B4",
+      "change": "C4",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B5",
+      "change": "C4",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B6",
+      "change": "C4",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B7",
+      "change": "C4",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B8",
+      "change": "C4",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B9",
+      "change": "C4",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B10",
+      "change": "C4",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B12",
+      "change": "C4",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B13",
+      "change": "C4",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B14",
+      "change": "C4",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B15",
+      "change": "C4",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B16",
+      "change": "C4",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B17",
+      "change": "C4",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B18",
+      "change": "C4",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B19",
+      "change": "C4",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B20",
+      "change": "C4",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B21",
+      "change": "C4",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B22",
+      "change": "C4",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B23",
+      "change": "C4",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B24",
+      "change": "C4",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B25",
+      "change": "C4",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B1",
+      "change": "X1",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B2",
+      "change": "X1",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B3",
+      "change": "X1",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B4",
+      "change": "X1",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B5",
+      "change": "X1",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B6",
+      "change": "X1",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B7",
+      "change": "X1",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B8",
+      "change": "X1",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B9",
+      "change": "X1",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B10",
+      "change": "X1",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B12",
+      "change": "X1",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B13",
+      "change": "X1",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B14",
+      "change": "X1",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B15",
+      "change": "X1",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B16",
+      "change": "X1",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B17",
+      "change": "X1",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B18",
+      "change": "X1",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B19",
+      "change": "X1",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B20",
+      "change": "X1",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B21",
+      "change": "X1",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B22",
+      "change": "X1",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B23",
+      "change": "X1",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B24",
+      "change": "X1",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B25",
+      "change": "X1",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B1",
+      "change": "X2",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B2",
+      "change": "X2",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B3",
+      "change": "X2",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B4",
+      "change": "X2",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B5",
+      "change": "X2",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B6",
+      "change": "X2",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B7",
+      "change": "X2",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B8",
+      "change": "X2",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B9",
+      "change": "X2",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B10",
+      "change": "X2",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B12",
+      "change": "X2",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B13",
+      "change": "X2",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B14",
+      "change": "X2",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B15",
+      "change": "X2",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B16",
+      "change": "X2",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B17",
+      "change": "X2",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B18",
+      "change": "X2",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B19",
+      "change": "X2",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B20",
+      "change": "X2",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B21",
+      "change": "X2",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B22",
+      "change": "X2",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B23",
+      "change": "X2",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B24",
+      "change": "X2",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B25",
+      "change": "X2",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B1",
+      "change": "X3",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B2",
+      "change": "X3",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B3",
+      "change": "X3",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B4",
+      "change": "X3",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B5",
+      "change": "X3",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B6",
+      "change": "X3",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B7",
+      "change": "X3",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B8",
+      "change": "X3",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B9",
+      "change": "X3",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B10",
+      "change": "X3",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B12",
+      "change": "X3",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B13",
+      "change": "X3",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B14",
+      "change": "X3",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B15",
+      "change": "X3",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B16",
+      "change": "X3",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B17",
+      "change": "X3",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B18",
+      "change": "X3",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B19",
+      "change": "X3",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B20",
+      "change": "X3",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B21",
+      "change": "X3",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B22",
+      "change": "X3",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B23",
+      "change": "X3",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B24",
+      "change": "X3",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    },
+    {
+      "capability": "B25",
+      "change": "X3",
+      "outcome": "HOST_BOUND",
+      "ran": false,
+      "reason": "real Launchpad/host path excluded; local service calls are not door acceptance"
+    }
+  ]
+}
