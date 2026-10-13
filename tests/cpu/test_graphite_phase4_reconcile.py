@@ -155,6 +155,42 @@ def test_crash_after_settlement_file_but_before_booking_reuses_same_record(tmp_p
     assert phase4.reconcile_session(tmp_path / "attacker", 1) == report
 
 
+def test_legacy_full_reservation_journal_survives_opt_in_reconciliation(tmp_path):
+    _provider, _model, _run_id, ledger, identity = _crashed(tmp_path)
+    response = research_agent._call_directory(ledger, OWNER, identity) / "response.json"
+    response.write_text(json.dumps({"x_engy": {"charged_micro": 100}}))
+    fingerprint, legacy = research_agent._settlement(ledger, OWNER, identity)
+    assert fingerprint is not None and "charge_basis" not in legacy
+    journal = (
+        research_agent._call_directory(ledger, OWNER, identity) / "settlement.json"
+    )
+    write_once(journal, canonical(legacy))
+    assert ledger.status(owner=OWNER)["operations"][0]["state"] == "RESERVED"
+    report = phase4.reconcile_session(tmp_path / "attacker", 1)
+    assert report["status"] == "RESUMABLE"
+    assert journal.read_bytes() == canonical(legacy)
+    assert report["settled"][0]["charge_basis"] == "full_reservation"
+    assert report["booked_nanodollars"] == legacy["booked"]["provider_nanodollars"]
+    assert report["booked_nanodollars"] > 100_000
+    assert phase4.reconcile_session(tmp_path / "attacker", 1) == report
+
+
+@pytest.mark.parametrize(
+    "corrupt", [b"{", canonical({"schema": research_agent.PROVIDER_SETTLEMENT})]
+)
+def test_corrupt_or_incompatible_settlement_journal_stays_unresolved(tmp_path, corrupt):
+    _provider, _model, _run_id, ledger, identity = _crashed(tmp_path)
+    journal = (
+        research_agent._call_directory(ledger, OWNER, identity) / "settlement.json"
+    )
+    journal.write_bytes(corrupt)
+    report = phase4.reconcile_session(tmp_path / "attacker", 1)
+    assert report["status"] == "UNRESOLVED"
+    assert report["refused"][0]["code"] == "settlement_journal_invalid"
+    assert research_agent.uncertain_calls(ledger, owner=OWNER)
+    assert journal.read_bytes() == corrupt
+
+
 def test_reconcile_command_names_one_session_and_refuses_unknown(tmp_path, capsys):
     with pytest.raises(phase4.RunnerRefused):
         phase4.reconcile_session(tmp_path / "attacker", 1)

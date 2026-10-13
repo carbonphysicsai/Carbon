@@ -850,6 +850,10 @@ SETTLEMENT_REFUSALS = {
         "the retained provider charge is malformed; check the provider's own "
         "usage record before this campaign makes another call"
     ),
+    "settlement_journal_invalid": (
+        "the immutable settlement journal is corrupt or conflicts with this "
+        "call; keep the campaign stopped and review its retained records"
+    ),
     "request_changed": (
         "the retained request differs from the one reserved; keep the campaign "
         "as it is and report it"
@@ -1084,7 +1088,31 @@ def _settle(ledger, owner, identity, *, charge_from_response=False):
         raise SettlementRefused("control_fenced") from None
     directory = _call_directory(ledger, owner, identity)
     directory.mkdir(mode=0o700, exist_ok=True)
-    write_once(directory / "settlement.json", canonical(settlement))
+    journal = directory / "settlement.json"
+    if journal.exists() or journal.is_symlink():
+        # A crash can leave the old full-reservation journal before the ledger
+        # booking. The current opt-in charge mode must not rewrite that
+        # immutable accounting choice. Recompute both recognized modes from
+        # this fenced call and accept only an exact canonical match.
+        try:
+            recorded = _read_record(journal, PROVIDER_SETTLEMENT)
+            raw_journal = journal.read_bytes() if recorded is not None else None
+        except (OSError, ValueError):
+            raise SettlementRefused("settlement_journal_invalid") from None
+        if recorded is None:
+            raise SettlementRefused("settlement_journal_invalid")
+        legacy_fingerprint, legacy = _settlement(ledger, owner, identity)
+        if (
+            legacy_fingerprint != fingerprint
+            or canonical(recorded) != raw_journal
+            or recorded not in (settlement, legacy)
+        ):
+            raise SettlementRefused("settlement_journal_invalid")
+        settlement = recorded
+    try:
+        write_once(journal, canonical(settlement))
+    except (OSError, ValueError):
+        raise SettlementRefused("settlement_journal_invalid") from None
     try:
         ledger.finish(
             identity,

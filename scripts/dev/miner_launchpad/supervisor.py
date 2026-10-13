@@ -165,6 +165,10 @@ NEXT_ACTIONS = {
         "The retained provider charge is malformed; check the provider's own "
         "usage record before this campaign makes another call."
     ),
+    "settlement_journal_invalid": (
+        "The immutable settlement journal is corrupt or conflicts with this "
+        "call; keep the campaign stopped and review its retained records."
+    ),
     "request_changed": (
         "The retained request differs from the one reserved; keep the campaign "
         "as it is and report it."
