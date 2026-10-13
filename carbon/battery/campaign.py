@@ -1019,6 +1019,27 @@ INTAKE_UNAVAILABLE = frozenset(
 )
 
 
+def construction_notices(strategy, binding):
+    """The owner-authorized v3 notice; v4's field refusals stay its compiler's."""
+    if type(binding) is not dict or binding.get("variant") != "battery-l4-graph-v3":
+        return []
+    parameters = strategy.get("parameters") if type(strategy) is dict else None
+    if type(parameters) is not dict or "composition_graphs" not in parameters:
+        return []
+    fields = [field for field in ("width", "depth") if field in parameters]
+    if not fields:
+        return []
+    return [
+        {
+            "code": "level4_fields_inert_notice",
+            "fields": fields,
+            "text": "width and depth are ignored at Level 4: the graph sets the layers. "
+            "They'll be refused from graph-v4.",
+            "blocking": False,
+        }
+    ]
+
+
 def intake_code(code):
     """The closed code an intake refusal is reported under."""
     from .intake_client import REFUSALS

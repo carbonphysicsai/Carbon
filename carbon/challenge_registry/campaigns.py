@@ -73,6 +73,8 @@ class ChallengeCampaign:
     intake_code: Callable | None = None
     #: () -> validated public unified construction contract, or not offered.
     construction_contract: Callable | None = None
+    #: (strategy, level binding) -> public, non-blocking construction notices.
+    construction_notices: Callable | None = None
     #: (url) -> the validator intake's public facts, checked to serve this
     #: chain and Challenge; raises ValueError or OSError. None: no intake.
     intake_check: Callable | None = None
@@ -226,6 +228,7 @@ def _battery():
         multi_feedback_status=battery_multi.STATUS_NAME,
         intake_code=battery.intake_code,
         construction_contract=battery_unified.contract,
+        construction_notices=battery.construction_notices,
         intake_check=_battery_intake,
         intake_outcome=_battery_intake_outcome,
         gpu_scope=battery_gpu.gpu_scope,

@@ -76,12 +76,23 @@ be displayed as available. This describes registered configuration, not
 scientific or security qualification. Contract failure is explicitly
 PUBLIC_CONTRACT_UNAVAILABLE; an empty catalog is not reported as a pass.
 
-PLT-16's pure classifier is now on main. New launch schemas remove
-`construction_level` and `arm` in both browser and MCP doors; the strategy's
-content determines the change. Battery practice/freeze checks reuse the shared
-classifier for construction widening before the existing base check-design
-path. Above-ceiling or unopened changes are refused locally before signing.
+PLT-16's pure classifier is on main, but the composed door wiring in
+CONSTRUCTION-CONTRACT-01 S3 is still pending. Both browser and MCP launch
+schemas retain `construction_level` and `arm` until S3 supplies the derived
+summary. The options document explicitly reports this level-bound launch mode.
+The shared classifier previews construction widening before the existing base
+check-design path; it does not grant composed admission.
 Historical level-bound campaigns retain their versioned manifests, compile,
 freeze and commitment interpretation. No historical rescore or ladder cutover
 occurs here. Unified intake routing and each type's external security opening
 remain their separately owned work.
+
+For a campaign bound to `battery-l4-graph-v3`, validate and compile return the
+non-blocking notice when `composition_graphs` accompanies `width` or `depth`:
+"width and depth are ignored at Level 4: the graph sets the layers. They'll be
+refused from graph-v4." Both doors read it beside the public tool result; it
+changes no validation verdict, freeze, commitment or submission. The notice is
+absent without the graph or those fields, and is not applied to v4. V4's typed
+field refusal remains the registered compiler's responsibility. After S3 lands,
+this same LP-04 work must consume its derived label/changes before signing and
+remove the manual level fields; that cutover remains a dependency hold.

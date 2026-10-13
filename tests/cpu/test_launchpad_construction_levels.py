@@ -15,8 +15,7 @@ Claims tested:
    `served_contracts` is absent or does not list the variant
    (`level_not_served_by_target`); a listing target is accepted, and the
    send path's `development_variant_not_served` lifts only there.
-5. Both doors share the new level-free launch schema; historical freeze
-   and commitment bindings retain their original meaning (LP-04).
+5. Both doors take the level fields from the one operations table.
 
 Fixture intakes only; nothing here reaches a network or a chain.
 """
@@ -512,14 +511,14 @@ def test_the_ladder_labels_every_level_above_the_targets_own_development():
 # ---- 5. One table, both doors.
 
 
-def test_both_doors_use_level_free_launch_and_retain_historical_freeze_fields():
+def test_both_doors_take_the_level_fields_from_the_one_table():
     launch = operations.OPERATIONS["launch"]
     freeze = operations.OPERATIONS["freeze_candidate"]
-    assert not {"construction_level", "arm"} & launch.optional
+    assert {"construction_level", "arm"} <= launch.optional
     assert "level4_directory" in freeze.optional
     assert operations.FIELDS["construction_level"][0] == "integer"
     described = {d["operation"]: d for d in operations.describe()}
-    assert not {"construction_level", "arm"} & set(described["launch"]["optional"])
+    assert {"construction_level", "arm"} <= set(described["launch"]["optional"])
     pytest.importorskip("mcp")
     from carbon.miner_mcp.mcp_operations import make_operation_tools
 
@@ -531,7 +530,7 @@ def test_both_doors_use_level_free_launch_and_retain_historical_freeze_fields():
     freeze_schema = next(
         v for k, v in schemas.items() if k.endswith("freeze_candidate")
     )
-    assert not {"construction_level", "arm"} & launch_schema
+    assert {"construction_level", "arm"} <= launch_schema
     assert "level4_directory" in freeze_schema
 
 

@@ -599,6 +599,8 @@ OPERATIONS = {
                     "plan",
                     "hunt",
                     "limits",
+                    "construction_level",
+                    "arm",
                 }
             ),
             ("request", "profile", "replay", "registration"),
@@ -609,7 +611,8 @@ OPERATIONS = {
             "selects, each model family's registry verdict, and the research "
             "lanes this host has; construction_options lists every registered "
             "change with Available or Coming soon and a plain reason. "
-            "New launches never pick a construction level. Reads only.",
+            "Launch retains the registered level binding until the composed "
+            "compile supplies its derived summary. Reads only.",
             frozenset(),
             frozenset(),
             ("request", "profile"),

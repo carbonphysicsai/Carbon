@@ -37,13 +37,12 @@ Expose one plain construction-options document through the existing options
 operation, so the page and agent read the same data. Registered public change
 types retain owner ceiling, opening/check status and reasons; an absent public
 contract or undecided ceiling is explicit and closed. Do not infer an approved
-ceiling from hoped-for Level 4. Remove level picking on the unified path only
-when the shared classifier is available, as the queue directs. PLT-16 #1276
-landed during this work and was synced from main for that actual dependency.
-New launch schemas remove construction_level/arm now; changed constructions
-stay closed without the required ceiling/opening/checks/serving facts. The
-initial stricter assumption that UI removal would await a served unified path
-was superseded prospectively by the queue's explicit classifier timing. No
+ceiling from hoped-for Level 4. PLT-16 #1276 landed and was synced from main.
+The later queue amendment and construction plan section 6 supersede the
+classifier-only timing: retain construction_level/arm until S3 supplies the
+composition-derived summary. Its wiring is separate; LP-04's final summary
+display and removal stay blocked on S3. Changed constructions remain closed
+without their required ceiling/opening/checks/serving facts. No
 compiler enters the miner import closure. Historical level-bound
 campaigns keep their interpretation until their registered migration.
 
@@ -67,8 +66,8 @@ The new profile field intake_targets holds closed URL/receiver pairs, bounded
 to 32 validators per Challenge as a configuration resource limit. A prospective
 multi feedback schema reports execution states and individual outcomes, never
 a combined scientific score. The old single-target path remains byte-compatible.
-The schema-parity regression changes its expected launch fields for the owner's
-explicit no-level migration; its parity and historical freeze checks remain.
+The schema-parity regression retains the original launch fields while S3 is
+pending; its parity and historical freeze checks remain.
 
 Final local acceptance: 178 focused construction/setup/transport/history tests
 and 812 broader Launchpad/MCP/intake/invariant tests passed without skips.
@@ -85,3 +84,10 @@ Multi feedback names its public Challenge identity before registry resolution.
 No neutrality assertion changed. Canonical repair acceptance: 533 tests passed
 with two intentional AST-fixture skips; final registry/history/unknown-identity
 checks passed 159 with those same two skips. Retired history has no new hook.
+
+The amended v3 notice is display only: validate/compile add fixed public text
+when composition_graphs accompanies width/depth in a v3-bound campaign. The
+same public result reaches page and MCP; no admission or frozen binding changes.
+No notice applies without those fields or to v4. V4's typed refusal stays with
+its registered compiler. SHADOW remains OFF. Final exact-head evidence belongs
+in the untracked report; no completion claim precedes the S3 dependency.

@@ -87,7 +87,7 @@ def build(contract, served=()):
         "scope": public["scope"],
         "ceiling": public["ceiling"],
         "types": rows,
-        "launch_mode": "content_derived",
+        "launch_mode": "level_bound_until_composed_compile",
         "submission_path_available": serving,
         "qualification": False,
         "basis": "REGISTERED_PUBLIC_CONTRACT_AND_RECEIVER_CHECKED_SERVING_FACTS",

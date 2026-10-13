@@ -30,7 +30,7 @@ def test_all_registered_changes_are_visible_and_unknown_ceiling_keeps_them_close
         for row in shown["types"][1:]
     )
     assert shown["unified_digest"] == registered.digest
-    assert shown["launch_mode"] == "content_derived"
+    assert shown["launch_mode"] == "level_bound_until_composed_compile"
 
 
 def test_raw_contract_and_unregistered_serving_claims_never_create_availability():
@@ -75,13 +75,80 @@ def test_options_operation_exposes_the_same_document_the_page_reads(monkeypatch)
     assert "Coming soon" in str(shown["construction_options"])
 
 
-def test_new_launch_schema_refuses_manual_level_selection():
-    with pytest.raises(Rejected) as refused:
-        operations._closed(
-            operations.OPERATIONS["launch"],
-            {"profile": "p", "agent": "none", "construction_level": 2},
+def test_launch_retains_level_fields_until_s3_returns_the_composed_summary():
+    assert {"construction_level", "arm"} <= operations.OPERATIONS["launch"].optional
+    operations._closed(
+        operations.OPERATIONS["launch"],
+        {"profile": "p", "agent": "none", "construction_level": 2},
+    )
+
+
+@pytest.mark.parametrize("field", ["width", "depth"])
+@pytest.mark.parametrize("operation", ["dry_validate", "compile_strategy"])
+def test_v3_notice_is_added_to_the_shared_public_result_without_changing_admission(
+    tmp_path,
+    operation,
+    field,
+):
+    import json
+
+    from carbon.challenge_registry.campaigns import challenge_ref
+    from carbon.development_session.research_tools import ResearchMinerTools
+
+    manifest = {
+        "challenge": challenge_ref(BATTERY_CHALLENGE),
+        "construction_level": {"variant": "battery-l4-graph-v3"},
+    }
+    (tmp_path / "campaign-manifest.json").write_text(
+        json.dumps(manifest), encoding="utf-8"
+    )
+    sdk = ResearchMinerTools(
+        connection=None,
+        wrapper=None,
+        composition=None,
+        ledger=SimpleNamespace(root=tmp_path),
+        owner="fixture",
+    )
+    strategy = {"parameters": {"composition_graphs": "sha256:" + "1" * 64, field: 16}}
+    args = {"strategy_json": json.dumps(strategy)}
+    original = {"result": {"accepted": True, "issues": []}}
+    answer = sdk._construction_result(operation, args, original)
+    (notice,) = answer["result"]["construction_notices"]
+    assert notice["fields"] == [field]
+    assert notice["blocking"] is False
+    assert notice["text"] == (
+        "width and depth are ignored at Level 4: the graph sets the layers. "
+        "They'll be refused from graph-v4."
+    )
+    assert answer["result"]["accepted"] is True and answer["result"]["issues"] == []
+    assert original == {"result": {"accepted": True, "issues": []}}
+    # Negative controls: no graph, no inert fields, v4 or another operation.
+    assert (
+        sdk._construction_result(
+            operation,
+            {"strategy_json": json.dumps({"parameters": {field: 16}})},
+            original,
         )
-    assert refused.value.code == "closed_request_required"
+        is original
+    )
+    assert (
+        sdk._construction_result(
+            operation,
+            {
+                "strategy_json": json.dumps(
+                    {"parameters": {"composition_graphs": "sha256:" + "1" * 64}}
+                )
+            },
+            original,
+        )
+        is original
+    )
+    assert sdk._construction_result("inspect_resources", args, original) is original
+    manifest["construction_level"]["variant"] = "battery-l4-graph-v4"
+    (tmp_path / "campaign-manifest.json").write_text(
+        json.dumps(manifest), encoding="utf-8"
+    )
+    assert sdk._construction_result(operation, args, original) is original
 
 
 def test_pre_sign_preview_uses_the_same_classifier_and_stops_changed_construction(
@@ -105,6 +172,173 @@ def test_pre_sign_preview_uses_the_same_classifier_and_stops_changed_constructio
     with pytest.raises(Rejected) as refused:
         host._design_refusal(strategy)
     assert refused.value.code == answer["refusal"]
+
+
+def test_sdk_validate_notice_crosses_the_page_and_mcp_doors(tmp_path, monkeypatch):
+    """Real SDK result assembly and both external doors; transport is a fixture."""
+    import asyncio
+    import base64
+    import copy
+    import json
+
+    from carbon import research
+    from carbon.battery.challenge import CHALLENGE
+    from carbon.challenge_registry.campaigns import challenge_ref
+    from carbon.development_session import research_tools
+    from carbon.miner_mcp.standard_server import _create_server
+    from carbon.research.service import dry_validation_result
+    from scripts.dev.miner_launchpad import tool_door
+    from scripts.dev.miner_launchpad.research_fixture import FixtureRunner
+    from scripts.dev.miner_launchpad.tool_fixture import FixtureTools, fixture_adapter
+
+    strategy = {
+        "schema_version": "1.0",
+        "challenge_id": BATTERY_CHALLENGE,
+        "backbone": "mlp",
+        "parameters": {
+            "composition_graphs": "sha256:" + "1" * 64,
+            "width": 16,
+            "depth": 1,
+        },
+    }
+    manifest = {
+        "challenge": challenge_ref(BATTERY_CHALLENGE),
+        "construction_level": {"variant": "battery-l4-graph-v3"},
+    }
+    (tmp_path / "campaign-manifest.json").write_text(
+        json.dumps(manifest), encoding="utf-8"
+    )
+    request = research.DryValidateRequest(CHALLENGE, strategy)
+    reply = research.ServiceReply(
+        research.ReplyStatus.OK, dry_validation_result(request, ())
+    )
+    public = {"result": {"valid": True, "issues": []}}
+
+    class Connection:
+        miner_key, chain_context, publisher = object(), object(), "fixture"
+
+        async def check_registration(self):
+            return SimpleNamespace(snapshot_id="fixture")
+
+    class Wrapper:
+        async def supervised_call(self, *args, **kwargs):
+            return {
+                "protocol_reply_base64": base64.b64encode(
+                    research.canonical_bytes(reply)
+                ),
+                "terminal_observation_base64": None,
+                "public_result": public,
+                "requires_reconciliation": False,
+            }
+
+    sdk = research_tools.ResearchMinerTools(
+        connection=Connection(),
+        wrapper=Wrapper(),
+        composition=SimpleNamespace(challenge=CHALLENGE),
+        ledger=SimpleNamespace(root=tmp_path),
+        owner="fixture",
+    )
+    monkeypatch.setattr(sdk, "_request", lambda *args: request)
+    monkeypatch.setattr(research_tools, "message", lambda *args, **kwargs: {})
+    monkeypatch.setattr(
+        research_tools,
+        "BittensorMessageSigner",
+        lambda key: SimpleNamespace(sign=lambda *args, **kwargs: {}),
+    )
+    output = asyncio.run(
+        sdk._call(
+            research_tools.PREFIX + "dry_validate",
+            {"strategy_json": json.dumps(strategy)},
+            "engineering-notice-01",
+        )
+    )
+    assert output["reply"]["status"] == "OK"
+    (notice,) = output["public_result"]["result"]["construction_notices"]
+    assert notice["fields"] == ["width", "depth"] and not notice["blocking"]
+    assert output["public_result"]["result"]["valid"] is True
+    fixture = FixtureRunner()
+    adapter = fixture_adapter(FixtureTools(fixture), fixture.principal)
+
+    async def call(*args, **kwargs):
+        return copy.deepcopy(output)
+
+    monkeypatch.setattr(adapter._sdk, "call", call)
+    args = {"operation_id": "page-0123456789abcdef01234567", "strategy": strategy}
+    page = asyncio.run(
+        tool_door.ToolDoor(adapter).call(research_tools.PREFIX + "dry_validate", args)
+    )
+    mcp = asyncio.run(
+        _create_server(adapter).call_tool(research_tools.PREFIX + "dry_validate", args)
+    )
+    assert page == {"ok": True, "result": mcp.structured_content}
+    assert page["result"]["payload"]["public_result"]["result"][
+        "construction_notices"
+    ] == [notice]
+
+
+def test_v3_notice_leaves_freeze_and_submit_guards_unchanged(tmp_path, monkeypatch):
+    """Fixture compiler and signer; real freeze pin checks and part transport."""
+    from test_launchpad_level4_parts import (
+        PART_TOOLS,
+        STRATEGY,
+        URL,
+        LadderIntake,
+        _facts,
+        _level,
+        _submit,
+    )
+
+    from carbon.battery import campaign, remote_submission
+    from carbon.development_session import construction_level as cl
+
+    found = cl.with_target(_level(4), URL)
+    assert found["variant"] == "battery-l4-graph-v3"
+    chosen = {**STRATEGY, "parameters": {**STRATEGY["parameters"], "depth": 1}}
+    (notice,) = campaign.construction_notices(chosen, found)
+    assert notice["blocking"] is False and notice["fields"] == ["width", "depth"]
+    monkeypatch.setattr(cl, "READ_TARGET", lambda *args: _facts(found, PART_TOOLS))
+    spawned = []
+
+    def compile_fixture(request):
+        spawned.append(request["op"])
+        return {
+            "ok": True,
+            "variant": found["variant"],
+            "variant_digest": found["digest"],
+            "envelope": "fixture envelope",
+        }
+
+    monkeypatch.setattr(cl, "RUN", compile_fixture)
+    cl._compiled.cache_clear()
+    try:
+        compiled, envelope = cl.check_freeze(found, chosen, "fixture lowered directory")
+        assert compiled["variant_digest"] == found["digest"]
+        assert envelope == "fixture envelope" and spawned == ["compile", "level4"]
+        monkeypatch.setattr(
+            remote_submission,
+            "_signed",
+            lambda signer, facts, body: {"X-Fixture-Signed": signer},
+        )
+        intake = LadderIntake(tmp_path, found)
+        status, answer, submission = _submit(tmp_path, intake, found, strategy=chosen)
+        assert (status, answer["state"], submission) == (200, "SCORED", "sub-1")
+        assert "battery_submit" in intake.tools()
+        # The display notice cannot weaken the existing exact variant pin.
+        cl._compiled.cache_clear()
+        monkeypatch.setattr(
+            cl,
+            "RUN",
+            lambda request: {
+                "ok": True,
+                "variant": found["variant"],
+                "variant_digest": "sha256:" + "0" * 64,
+            },
+        )
+        with pytest.raises(cl.LevelRefused) as refused:
+            cl.check_freeze(found, chosen, "fixture lowered directory")
+        assert refused.value.code == cl.NOT_REGISTERED
+    finally:
+        cl._compiled.cache_clear()
 
 
 def test_registered_ceiling_opening_checks_and_serving_all_constrain_the_display():
