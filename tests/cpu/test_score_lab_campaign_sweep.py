@@ -12,6 +12,9 @@ from scripts.dev.score_lab.core import LabRefused
 
 EXAMPLE = Path(__file__).parents[2] / "scripts/dev/score_lab/physics-example.json"
 AXES = Path(__file__).parents[2] / "scripts/dev/score_lab/campaign-axes-example.json"
+BROAD_AXES = (
+    Path(__file__).parents[2] / "scripts/dev/score_lab/campaign-axes-broad-example.json"
+)
 
 
 def _plan():
@@ -145,3 +148,16 @@ def test_scored_toy_shards_are_deterministic_and_keep_axis_identity():
     corrupted["rows"][0]["config"]["population"][0]["noise"] = 0.8
     with pytest.raises(LabRefused, match="sweep_prepared_replay"):
         campaign_sweep.evaluate_summary(corrupted, specs, "toy")
+
+
+def test_broad_existing_grammar_axes_yield_valid_toy_configs():
+    plan = _plan()
+    plan["count"] = 64
+    plan["axes"] = json.loads(BROAD_AXES.read_text(encoding="utf-8"))
+    sampled = list(campaign_sweep.sample(plan))
+    assert len(sampled) == 64
+    assert len(plan["axes"]) == 25
+    assert {row["config"]["problem"]["space"] for row in sampled} == {
+        "small-grid",
+        "continuous",
+    }

@@ -156,6 +156,10 @@ choices, linear ranges and log ranges are supported. The command writes
 configurations and their digests, and performs no evaluation or holdout read.
 The example axes exercise part of the campaign lever space; they do not stand
 in for the remaining §2 settings or a completed campaign verdict.
+`campaign-axes-broad-example.json` exercises 25 existing toy grammar axes,
+including buyer loss, verification cost, neighbourhood, coverage, member
+traits and physics settings. It still omits the §2 dimensions and other task
+families that the present one-dimensional toy does not implement.
 
 `campaign-run` evaluates one such shard on the analytic toy. Its output binds
 each measured row to the plan and candidate digests and records the sampled
