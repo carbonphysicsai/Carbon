@@ -136,3 +136,98 @@ same record, so earlier levels have points too; until a record exists the column
 It is an improvement against the baseline on public development data. It is not an improvement on the sealed exam, not a
 qualification, not an economic or security claim, and with a handful of runs per level the interval is wide; the `n` beside each
 number is the point.
+
+## Addendum: registered-guard records for Levels 1 to 4 (plan; OPT-09 panel, #1208)
+
+**Status, 2026-10-12: the record shape and the ledger reading below are built (`improvement.validate`, `public_dev_block`, with
+tests); the rebuild is run by the executor under the Test Lead's resource decision (OPT-09 README: the total for these builds is
+UNMEASURED).** It replaces the guard-skipped, accuracy-only
+Level 1 to 4 records. Those stay in the ledger, labelled `guard: skipped`, as history.
+
+### Which bundles
+
+OPT-09 (`carbon/battery/value/contracts/ev4-dev-proof-bundled-v1.json`, panel `ev4-dev-proof-bundled`, merged in #1208 at
+`a4ba57bf0`) registers ten public Graphite bundles as panel members. They are the bundles of the existing records:
+
+| Level | Members (label) | Lane | Counts for the level |
+|---|---|---|---|
+| 1 | `l1-D-913bf188-p-4fd7fb870d2b-s2687932037` | D | yes |
+| 2 | `l2-E-18fc7b1c-p-839de482ac6b-s2360653682`, `l2-E-913bf188-p-fa5c88711f35-s441520862`, `l2-E-d90a8ccf-p-891e0fd1ebdb-s3706087842` | E | yes |
+| 3 | `l3-F-18fc7b1c-p-69268f1b74ec-s280224976`, `l3-F-913bf188-p-50299fa270c6-s4218777628`, `l3-F-d90a8ccf-p-839de482ac6b-s2080028190` | F | yes |
+| 4 | `l4v3-plain-G-18fc7b1c-p-5730cc1c70c2-s3205818801`, `l4v3-plain-G-913bf188-p-e11e2f73879f-s2331991164`, `l4v3-plain-G-d90a8ccf-p-37985e699fe3-s3133732938` | G | **no** (`counts_for_level: false`) |
+
+The Level 1 record of run `18fc7b1c` (member `p-74b8c69ead59`) has no registered counterpart. It stays a guard-skipped record, shown
+apart; the registered Level 1 line therefore rests on one member until more are registered.
+
+### Entry point and guard
+
+The `value_panel` phase of `scripts/dev/exam_design/value_phases.py` (`run_value_panel`), with a `cfg.json` like the Level 1
+panel run: `{"contract": "carbon/battery/value/contracts/ev4-dev-proof-bundled-v1.json", "phase": "value_panel", "shard": 0,
+"shards": 1}`; the plan form is `python -m scripts.dev.exam_design.value_plans panel --study ev4-bundled --shards 1`. It calls
+`experiment.member_bundle(...)` with `level`, `arm`, `level_compiler=level_compile` and `panel_name="ev4-dev-proof-bundled"`, so the
+**registered-panel guard is on**: a changed contract, member, variant or recipe digest is refused, and a level member never falls back
+to the Level 0 base. It checks `public_reference_sha256` against the committed literal (the same pin as the EV4 records). Run it on
+host CPU, in the same way and at the same (no) cost as the Level 1 run; no pod, no network, no hidden material.
+
+### Outputs
+
+For each member the phase writes `predictions/<member>.json.gz`. The executor scores those stored bundles (no second rebuild)
+exactly as the existing public-improvement records do:
+
+- **Accuracy error:** `exam.evaluate` on `public_ev4_scoring_set`, against the run's own Level 0 baseline at its recorded seed.
+- **Decision loss:** `_decide` per development scenario with the bundled contract's candidates, on the common resolved mask,
+  against the baseline's decisions (three baseline rebuilds, one per run, about 10 s each, are needed for the baseline side).
+  This is the EV4-scenario column, so the existing noise rule applies (masks that differ, or runs that disagree in sign, read
+  `MEASURED_BUT_NOISY`); the public-dev VALUE-half column, when built, supersedes it as the headline.
+- **Always-abstain control (#1209, read narrowly).** RES-07 (`Business/research/value-metric-audit/reports/REPORT.md`, section 3)
+  constructs *always abstain* as "not a prediction model: zero unsafe selections and zero new design benefit" and computes its
+  **registered loss** only on the real cohort's common mask; a question with no feasible design is settled NONE, not unresolved.
+  It ranked 2nd of 100 on the historical EV5 verification mask. The executor computes the control the same way: it never selects;
+  its loss on each scenario of the same common mask is the registered decision loss of an ABSTAIN outcome, through the same
+  `carbon.battery.value` loss function as the models (a missed opportunity when the reference has a feasible best design in the
+  tested set, 0 when none does), not a re-derived formula. The record carries `controls.always_abstain` =
+  `{"decision_loss": number or null, "rank": integer or null, "of": integer, "mask": integer}`: its loss, its rank among {panel
+  members, baseline, control} by decision loss (1 = lowest), the size of that field and the common-mask size. A decision-loss
+  improvement that does not beat the control is not evidence of better decisions.
+
+### Record shape the ledger accepts
+
+The schema stays `carbon.graphite.public-improvement.v1`; every addition is optional, so **every existing record is still
+accepted unchanged** (no `guard` field reads as `guard: skipped`). `panel` is always an object. A registered-guard record is a v1
+record with these changes (one file per member, `<run>-<lane>-L<n>-registered-public-improvement.json`):
+
+    "guard": "registered",
+    "panel": {"name": "ev4-dev-proof-bundled",
+              "scoring_set": {"function": "public_ev4_scoring_set", "sha256": "sha256:ff10f9ae...436cb", "cases": 840}},
+    "member": "<registered label, e.g. l2-E-913bf188-p-fa5c88711f35-s441520862>",
+    "level": <the member's level>, "counts_for_level": true | false,
+    "supersedes": {"file": "<guard-skipped record file>", "sha256": "sha256:..."},
+    "controls": {"always_abstain": {"decision_loss": 0.0, "rank": 1, "of": 12, "mask": 7}}
+
+There is no top-level `scoring_set` or `scoring_set_digest` duplicate: the scoring set stays at `panel.scoring_set`, where the
+ledger already reads it, and the same digest pin applies (the committed contract's literal `public_reference_sha256`). The ledger
+refuses a registered record when: `panel.name` is not the committed bundled contract's panel; `member` is not in the contract's
+`panel_registration.member_sha256` (labels with the seed suffix `-s<seed>`); `level` or `counts_for_level` differs from
+`carbon/battery/value/panels/proof-panel-levels-v1.json`; `supersedes` lacks a file and a `sha256:` digest;
+`controls.always_abstain` is missing or malformed; or `counts_for_level`, `supersedes` or `controls` appear without `guard:
+"registered"`.
+
+### Ledger change
+
+- A `guard` flag on every public-dev block (`registered`, `skipped`, or `mixed`). The missing-panel-guard caveat applies to
+  `skipped` records only.
+- For a run that has a registered record, the registered one is used; the old record is listed under `superseded` with its digest
+  and is not counted.
+- **Level 4 lane G is non-counting.** Non-counting records are left out of `n`, the median, the best and the interval. They are
+  listed under `non_counting` with their values, labelled base-recipe-only (the Level 4 caveat: no graph, not evidence about graph
+  lowering or the Level 4 freedoms). With no counting member the Level 4 value reads UNMEASURED with that reason, never a number.
+- Decision loss comes from the registered panel (the EV4-scenario column above, with the always-abstain control beside it).
+
+### Cost, order and limits
+
+- Planning bound **about 0.2 CPU-hours per member rebuild**: 10 members, each rebuilt once and then run once more through the grid
+  pass, so about 4 CPU-hours at the upper end (measured Level 1 builds were 100 to 165 s). The executor measures the first member
+  and stops for the Test Lead if the credible total exceeds the stop rule above (about 6 CPU-hours or 10 GB).
+- Run `nice`d, one process, RSS watchdog at 9.5 GB (the limit of the existing driver), shard 0 of 1, in the order Level 1, 2, 3, 4.
+- Development evidence only: public EV4 panel, own baseline, not sealed, no qualification claim, no mainnet-level claim by
+  itself. With one to three members per level the interval is not meaningful or coarse; the `n` beside each number is the point.
