@@ -181,14 +181,15 @@ def _pool_violation_shape(value):
     params = _parameters(value)
     if "pool_selection" not in params:
         return False
-    from carbon.battery import pools
+    from carbon.battery import challenge, pools
 
     selection = params["pool_selection"]
     try:
-        manifest = pools.check(selection)
+        pools.check(selection)
+        pools.draw(selection, {"train": challenge.PublicMaterial.load().train})
     except pools.PoolRefused:
         return True
-    return selection["cases"] > sum(part["cases"] for part in manifest["parts"])
+    return False
 
 
 def _slot_ablation_shape(value):

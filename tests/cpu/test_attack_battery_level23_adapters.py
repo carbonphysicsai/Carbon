@@ -192,6 +192,23 @@ def test_level_2_pool_violation_accepted_by_weak_gate_is_still_breached(monkeypa
     assert ordinary.verdict == NOT_RUN
 
 
+def test_level_2_draw_shortage_is_a_pool_attack_shape(monkeypatch):
+    from carbon.battery import pools
+
+    family = "l2_pool_sources_and_weights"
+    original = l2._families()
+    weakened = {
+        **original,
+        family: replace(original[family], boundary=d.unchecked_gate),
+    }
+    monkeypatch.setattr(l2.ADAPTER, "_table", lambda: weakened)
+    selection = l2._pool(box={pools.INPUTS[0]: [1e9, 1e9 + 1]})
+    result = l2.ADAPTER.oracle(
+        family, AttackInput("draw_shortage", l2._strategy(pool_selection=selection))
+    )
+    assert result.verdict == engine.BREACHED
+
+
 @pytest.mark.parametrize(
     "family,attack",
     [
