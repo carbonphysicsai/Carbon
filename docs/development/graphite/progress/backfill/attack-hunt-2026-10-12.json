@@ -23,5 +23,5 @@
  "triage": {
   "attack-failing-trigger-9b718c6438cabfe8-0": "ORACLE_GAP"
  },
- "triage_source": "Graphite Testing Manager triage, 2026-10-13, read-only from the hunt A2 root: finding 9b718c64 (family l3_cross_level_fields, attempt epoch-1-tool-004) is a compile_strategy with empty parameters, accepted by the path, the Level 3 and Level 2 variant gates and the miner contract gate, so an honest accepted compile (the OPT-14 oracle class). PENDING VALIDATOR CONFIRMATION: the Carbon Validator owns whether such a compile should be accepted at all (the oracle over-fired, or every gate misses the same check). Hunt A1 (Level 1) ran with no finding."
+ "triage_source": "Graphite Testing Manager triage, 2026-10-13, read-only from the hunt A2 root, confirmed by the Carbon Validator: finding 9b718c64 (family l3_cross_level_fields, attempt epoch-1-tool-004) is a compile_strategy with empty parameters, which compiles to the registered defaults, so it is an L0 construction with no cross-level field for the oracle to find and no admission or scoring advantage: an honest accepted compile of the OPT-14 oracle class, ORACLE_GAP. The record labels it L3 while it is an L0 construction (it inflates the ladder); the interim fix is a derived level label 0, not a refusal. Hunt A1 (Level 1) ran with no finding."
 }
