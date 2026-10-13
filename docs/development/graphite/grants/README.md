@@ -1060,6 +1060,16 @@ sum of its grant files' ceilings.
 | GRAPHITE-GRANT-L4-G-CONSTRUCTOR-3 | 4 | G | The lane G Level 4 Constructor run again, after the run under -2 was spent without staging a submission (the stage tool's reads were refused; fixed in #1240); same figures as -2, no theme | OWNER-TEST-GRANT-01 | 14.94 | registered |
 | GRAPHITE-GRANT-HUNT-H4-CONSTRUCTOR | 4 | G | The Level 5 hunt's H4 run, launched with `--theme causal-structure` (the hunt's last share: 71.76 + 14.94 = 86.70 of 86.71) | OWNER-GRAPHITE-OPEN-SAFE-01-GRANTS | 14.94 | registered |
 
+## Model-family test grants (index)
+
+Coverage grants whose point is the model that drives the Constructor, not a level (gap 5 of the 2026-10-13 coverage
+ledger in `shared/operator/LAUNCHPAD_TEST_MATRIX_01.md`). The grant file has no free-text field, so the purpose is recorded
+here and beside the binding entry.
+
+| Grant | Levels | Lane | Purpose | Authority (pool) | Ceiling | State |
+|---|---|---|---|---|---|---|
+| GRAPHITE-GRANT-MODEL-QWEN-CONSTRUCTOR-1 | 0 to 3 | C or D | One short Constructor session whose ladder opens on qwen3.8-27b (open-weight, Engy ladder, same key as every other run); a floor, not a pin, so escalation can climb a rung; record the model of each call | OWNER-TEST-GRANT-01 | 14.94 | registered, draft PR |
+
 ## The optional pod rate ceiling (GRANT-POD-CEILING-01)
 
 - **The field.** A grant may carry `pod_rate_ceiling_usd_per_hr`, the most a
