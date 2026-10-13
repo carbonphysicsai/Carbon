@@ -14,10 +14,12 @@ import ast
 import subprocess
 from pathlib import Path
 
-#: Conservative bound on a pod environment (names plus values); the
-#: provider's limit lies between 100,000 and 250,000 characters, and an
-#: oversized request fails as an opaque 500.
-ENV_LIMIT_CHARS = 90_000
+#: Bound on a pod environment (names plus values), kept about 10,000 under the
+#: provider's observed failure point (about 118,000 characters; an oversized
+#: request fails as an opaque 500). It was 90,000 until the Level 4 Constructor
+#: run of 2026-10-13, whose code manifest alone reached 91,029 characters and
+#: refused three launches on a bound that sat 27,000 under the real limit.
+ENV_LIMIT_CHARS = 108_000
 
 
 def read_blobs(ref, repository, paths):
