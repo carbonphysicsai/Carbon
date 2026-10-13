@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-13-model-robustness-controls",
+  "recorded_at": "2026-10-13T21:43:54+00:00",
+  "challenge": "protocol",
+  "stage": "design",
+  "execution": {"kind": "test_run", "ref": "PKT-18", "description": "Public synthetic model-input probes; no trained participant or solver execution."},
+  "expected": "Hostile-input verdicts require both a supported control and a known-bad predictor that the detector catches.",
+  "observed": "Existing physics_contract residuals and Envelope Guard probes contradict the blanket zero-matches inventory. Their presence does not establish geometric hostile-input coverage of a rebuilt model. A refusal-only boundary cannot demonstrate useful robustness.",
+  "keep": ["Keep real physics gates separate from model-input probes and scores.", "Retain actual failures and both controls without suppressing observed breaches."],
+  "change": ["Bind matched perturbed-input witnesses and measured effects, rather than naming a perturbation radical or accepting an unperturbed reference."],
+  "protocol_elements": ["evidence basis", "negative control", "reference failure separation", "mock isolation"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}
