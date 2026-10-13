@@ -248,7 +248,7 @@ class EnvelopeGuard:
                     "verification_conditions_basis": (
                         "REGISTERED_DEVELOPMENT_CODE_VERIFICATION"
                         if self._reference_verification is not None
-                        else "UNRESOLVED_HOST_DECLARATION"
+                        else "HOST_DECLARED_NOT_COMPARED"
                     ),
                     "application_conditions_basis": "HOST_DECLARED_USE_RESTRICTION",
                 }

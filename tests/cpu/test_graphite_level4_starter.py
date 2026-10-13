@@ -98,6 +98,65 @@ def test_the_example_object_passes_the_doors_own_request_check(tmp_path):
     )
 
 
+def test_the_starter_call_as_the_page_words_it_passes_the_miner_door(tmp_path):
+    """Regression (2026-10-13 L4 dry run): step 2 put hypothesis and
+    expected_effect only inside arguments_json, and the door refused the call
+    before dispatch. The door takes them at the top level and again inside the
+    run_python object; the call the page spells out must pass the door's own
+    argument check, and the call the old page described must not."""
+    from carbon.miner_mcp import standard
+
+    _unused, reply = _reply(tmp_path)
+    run = reply["example_run_python"]
+    call = {
+        "kind": "workspace",
+        "strategy": None,
+        "action": "run_python",
+        "arguments": run,
+        "hypothesis": run["hypothesis"],
+        "expected_effect": run["expected_effect"],
+    }
+    args = standard._arguments("start_research_task", call)
+    assert json.loads(args["arguments_json"]) == run
+    assert args["hypothesis"] == run["hypothesis"] and args["strategy_json"] is None
+    old = {k: v for k, v in call.items() if k not in ("hypothesis", "expected_effect")}
+    with pytest.raises(standard.AdapterFailure):
+        standard._arguments("start_research_task", old)
+    page = PAGE.read_text(encoding="utf-8")
+    assert "again at the top level of the call" in page
+    assert "inside it)" not in page
+    for step in level4_starter.WORKFLOW:
+        assert "inside it)" not in step
+    # Where the id is (an agent had to scan the reply for "rtsk_"), named from
+    # the payload the agent receives, not the inner result object: the paths
+    # are pinned on a real adapter payload in test_standard_mcp_adapter.py.
+    for path in ("public_result.task_id", "reply.result.task.task_id.value"):
+        assert path in level4_starter.WORKFLOW[1]
+        assert "`" + path + "`" in page
+    # The always-present path is named first: public_result is null when the
+    # task fails (FAILED_INFRA included), and an agent codes against the
+    # first path it reads.
+    for text in (level4_starter.WORKFLOW[1], page):
+        assert text.index("reply.result.task.task_id.value") < text.index(
+            "public_result.task_id"
+        )
+    # The call returns finished (the tool's own text); the finished view is
+    # terminal_task, not the queued task in reply.result.
+    assert "nothing to poll" in research_tools.DESCRIPTIONS_V2["start_research_task"]
+    for text in (level4_starter.WORKFLOW[1], page):
+        assert (
+            "terminal_task.state" in text and "until the task has finished" not in text
+        )
+    # Step 4 names the digest's shape and the proposal tool's own arguments.
+    from carbon.agent_campaign.graphite.roles import PROPOSAL_TOOL
+
+    required = PROPOSAL_TOOL["parameters"]["required"]
+    for text in (level4_starter.WORKFLOW[3], page):
+        assert "not a list" in text
+        for name in required:
+            assert name in text
+
+
 def test_the_starter_lowers_stages_and_reaches_a_proposal(tmp_path):
     holder, reply = _reply(tmp_path)
     work = tmp_path / "sandbox"
@@ -140,6 +199,14 @@ def test_the_starter_lowers_stages_and_reaches_a_proposal(tmp_path):
     folder.mkdir()
     documents = ex.Experiment._level4_documents(holder, folder, proposal, required=True)
     assert documents is not None
+    # The digest is one string, as the page says; a list (the plural field name
+    # invites it) is refused (2026-10-13 fresh-agent pass).
+    listed = {
+        **proposal,
+        "parameters": {**proposal["parameters"], "composition_graphs": [digest]},
+    }
+    with pytest.raises(ex.Unrebuildable):
+        ex.Experiment._level4_documents(holder, folder, listed, required=True)
     # And without the digest the proposal is refused, as the lane G run was.
     with pytest.raises(ex.Unrebuildable, match="level4_submission_required"):
         ex.Experiment._level4_documents(holder, tmp_path, _strategy(), required=True)

@@ -600,11 +600,12 @@ def run(kit, export, train, *, scope, seed=0, backend="jax", code=None, settings
 def kits():
     """The registered kits, by export family: each a function of the kit's
     material bytes (None when it needs none)."""
-    from . import motor_10p12s_kit
+    from . import motor_10p12s_kit, solenoid_kit
     from .battery_v3_kit import KIT as BATTERY_V3
     from .f02_kit import KIT as F02
 
     return {
+        solenoid_kit.FAMILY: solenoid_kit.kit_from_bytes,
         BATTERY_V3.family: lambda material: BATTERY_V3,
         F02.family: lambda material: F02,
         motor_10p12s_kit.FAMILY: motor_10p12s_kit.kit_from_bytes,
@@ -623,6 +624,7 @@ def _code_identity():
         "battery_v3_kit.py": here.with_name("battery_v3_kit.py"),
         "motor_10p12s_kit.py": here.with_name("motor_10p12s_kit.py"),
         "f02_kit.py": here.with_name("f02_kit.py"),
+        "solenoid_kit.py": here.with_name("solenoid_kit.py"),
         "battery/training.py": root / "carbon/battery/training.py",
         "battery/torch_training.py": root / "carbon/battery/torch_training.py",
     }
