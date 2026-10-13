@@ -41,9 +41,19 @@ def test_every_committed_grant_is_unchanged(path):
     grant = SpendingGrant.from_document(document)
     # The standing 0.65/h ceiling is on the stage grants and R4 (owner-confirmed:
     # GRANT-POD-CEILING-01, OWNER-GRAPHITE-PHASE3-R4-CEILING-01); the hunt's grants copy it.
+    # The standing-grant Constructor family (L4- and MODEL-) carries it under the Test Lead's engineering
+    # decision of 2026-10-13: these grants are of the same class, so the owner-confirmed ceiling applies and no
+    # new figure is set (.agent/decisions/2026-10-11-OWNER-TESTNET-WEEKLY-BUDGET-01.md:71, "the 0.65 per hour pod
+    # rate ceiling ... stay"; docs/development/graphite/grants/README.md:1079-1086 on main, the owner's standing
+    # ceiling, "Stages A, B and C (2026-10-10)").
     ceiling = (
         path.name.startswith(
-            ("GRAPHITE-GRANT-STAGE-", "GRAPHITE-GRANT-HUNT-", "GRAPHITE-GRANT-L4-")
+            (
+                "GRAPHITE-GRANT-STAGE-",
+                "GRAPHITE-GRANT-HUNT-",
+                "GRAPHITE-GRANT-L4-",
+                "GRAPHITE-GRANT-MODEL-",
+            )
         )
         or path.name == "GRAPHITE-GRANT-PHASE3-R4.json"
     )
