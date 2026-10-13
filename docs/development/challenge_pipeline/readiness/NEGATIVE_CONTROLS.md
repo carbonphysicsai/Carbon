@@ -2,7 +2,8 @@
 
 DEVELOPMENT engineering evidence only. Validator owns comprehensiveness and
 scientific use; Test Lead reviews framing. No physical, security, host, launch
-or qualification acceptance follows. Delivery/Hub policy is separately held.
+or qualification acceptance follows. The initial delivery/Hub hold was resolved
+by the owner's direct 2026-10-13 instruction; current DELIVERY_PROTOCOL applies.
 
 ## First slice and scope
 

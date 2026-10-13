@@ -190,6 +190,22 @@ def test_cli_cannot_return_success_for_legacy_pass_without_controls(
     assert "legacy pass" in capsys.readouterr().out
 
 
+def test_cli_positive_control_is_not_an_always_refusing_route(monkeypatch):
+    # A synthetic report-factory result tests only CLI routing, never 42-item
+    # coverage. Paired with the legacy-only refusal above, this fails if the
+    # CLI ignores controlled_ready or always returns 1.
+    monkeypatch.setattr(
+        runner,
+        "run_gate",
+        lambda *args, **kwargs: {
+            "launch_ready": True,
+            "controlled_ready": True,
+        },
+    )
+    monkeypatch.setattr(runner, "render_text", lambda report: "synthetic CLI control")
+    assert cli.main(["readiness", "--challenge", "example", "--no-history"]) == 0
+
+
 def test_margins_are_reported_beside_same_unit_noise_not_a_qualification():
     result = controls.measurement_summary(
         {

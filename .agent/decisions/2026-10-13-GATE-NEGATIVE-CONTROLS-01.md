@@ -22,3 +22,11 @@ Reversible: remove the added control annotation/summary; existing checks,
 registered values, review evidence and dated histories remain unchanged.
 Validator owns comprehensiveness and scientific use; Test Lead owns framing.
 The unresolved delivery/Hub policy affects handoff/closeout, not safe code.
+
+## Prospective owner resolution, 2026-10-13
+
+The owner subsequently ruled in Test Lead turn
+01a1368e-0cc2-7d43-9475-0e6102b81e31: "Scrap hub maintenance and human/GPT
+receipts.Follow how Claude was merging." The initial hold above is historical;
+current DELIVERY_PROTOCOL applies, without Hub work or receipt ceremonies.
+Keep canonical checks and real domain constraints; PR Head still owns merging.

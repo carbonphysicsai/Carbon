@@ -32,9 +32,12 @@ including an explicit subset denominator; no partial/full-ready conflation.
 Use canonical wrapper/CI for acceptance; native Windows is diagnostic only.
 No host probes, providers, spend, protected inputs or hidden-panel readers.
 
-Delivery/Hub authority seam is NEW_OWNER_DECISION_REQUIRED, already escalated
-by Test Lead. Safe implementation/testing continues; affected closeout/merge
-and Hub disposition stay held until the owner rules. No DONE or launch claim.
+The initial delivery/Hub seam was resolved by the direct owner instruction
+in Test Lead turn 01a1368e-0cc2-7d43-9475-0e6102b81e31:
+"Scrap hub maintenance and human/GPT receipts.Follow how Claude was merging."
+Follow current DELIVERY_PROTOCOL; no Hub maintenance or receipt ceremony.
+Required canonical acceptance and actual domain/host constraints remain.
+PR Head owns merge. No qualification, launch or run authority is earned.
 
 Expected files: this ticket, one decision, readiness/control module, runner
 report integration, focused tests, readiness docs and an execution lesson.
