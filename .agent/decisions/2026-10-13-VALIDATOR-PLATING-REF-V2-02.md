@@ -69,8 +69,8 @@ Transitions from the old 1.97 mV band to v2 (`-r1`). **This is the one audited p
 | PDD (611) | 105 | **5** | 54 | 407 | 40 |
 
 - **The five known false-safe labels are all PDD development cases, not EV4:**
-  - D-0073 (c1 = 1.75; c2 = 0.2, 0.4, 0.6): m20 2.243 → m160 −0.016, extrapolated about −0.3 to −0.45;
-  - D-0109 (c1 = 1.25; c2 = 0.2, 0.4): m20 2.316 → m160 −0.335.
+  - D-0073 (c1 = 1.75; c2 = 0.2, 0.4, 0.6): m20 2.243 → m160 −0.016. The extrapolation is measured only at c2 = 0.4 (subsample): −0.453. The other two are inferred negative from mesh 160's error being positive in all 67 subsample cases;
+  - D-0109 (c1 = 1.25; c2 = 0.2, 0.4): m20 2.316 → m160 −0.335. Not in the subsample, so there is no measured extrapolation.
 - **None of EV4's 58 re-solved cases is false-safe.** 8 of EV4's old FEASIBLE labels are UNRESOLVED under v2.
 - **The annotations:**
   - every record or result that used a PDD development label for D-0073 or D-0109 (the score-lab and score-proof development inputs) names those five as known false-safe;
