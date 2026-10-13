@@ -32,10 +32,12 @@ def _inverse_softplus(x):
 def count_capacity_increases(predictions):
     """Count strict adjacent capacity rises in a public prediction mapping."""
     if not isinstance(predictions, dict):
-        raise ValueError("monotone_capacity.invalid_prediction_mapping")
+        raise TypeError("monotone_capacity.invalid_prediction_mapping")
     rows = predictions.get("predictions", predictions)
-    if not isinstance(rows, dict) or not rows:
-        raise ValueError("monotone_capacity.invalid_prediction_mapping")
+    if not isinstance(rows, dict):
+        raise TypeError("monotone_capacity.invalid_prediction_mapping")
+    if not rows:
+        raise ValueError("monotone_capacity.empty_prediction_mapping")
     cases = transitions = increasing_cases = increasing_transitions = 0
     for case_id, record in rows.items():
         capacity = record.get("capacity_ah") if isinstance(record, dict) else None
