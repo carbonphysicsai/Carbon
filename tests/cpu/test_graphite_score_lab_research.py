@@ -214,9 +214,15 @@ def test_a_synthesis_must_rank_and_cite_accepted_findings(tmp_path, bad, code):
     [
         ("The run cost $14.94 in total.", "source_names_a_currency_figure"),
         ("About 12 USD per month.", "source_names_a_currency_figure"),
-        ("Kept under /home/miner/private.", "source_names_a_private_path"),
+        # One case per private-path alternative of the brief's check, none shaped like a real workstation path.
+        ("Kept under /home/<user>/private.", "source_names_a_private_path"),
+        ("Kept under /var/lib/carbon/private.", "source_names_a_private_path"),
+        ("Kept under ~/.config/carbon/private.", "source_names_a_private_path"),
+        ("Kept under /mnt/d/scratch/private.", "source_names_a_private_path"),
+        ("Kept under D:\\scratch\\private.", "source_names_a_private_path"),
         (
-            "Account 5D7wmQVrv3LBjh7yVuoyrcennFCenQPDUVLS1p7Gj6KZwhZP signed.",
+            # A synthetic string of the shape the check watches for; not an account.
+            "Account 5" + "Z" * 47 + " signed.",
             "source_names_an_account_like_identifier",
         ),
         ("It reads the official_seed of the exam.", "source_names_protected_material"),
