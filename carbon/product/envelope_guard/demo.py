@@ -29,6 +29,7 @@ from carbon.product.envelope_guard import (
     development_pins,
 )
 from carbon.product.envelope_guard.configuration import digest
+from carbon.trust_map.acceptance import load_acceptance
 from carbon.trust_map.core import PANEL_SCHEMA
 
 QUERY = {"c1": 1.0, "c2": 0.5, "t_amb_c": 25.0, "soc0": 0.25}
@@ -131,18 +132,21 @@ def fixture_inputs(predict=toy_prediction, *, query=None):
         "outputs": outputs,
         "laws": laws,
     }
+    verification = load_acceptance("battery-v3", image, CODE_VERIFICATION_CRITERIA)
     reference = {
         "schema": REFERENCE_SCHEMA,
         "scope": "DEVELOPMENT",
         "version": "fixture-v1",
         "image_digest": image,
-        "code_verification_ref": digest({"synthetic_code_verification": "not-MMS"}),
+        "criteria_digest": CODE_VERIFICATION_CRITERIA,
+        "code_verification_ref": verification["link_digest"],
         "owner_acceptance_ref": digest({"synthetic_acceptance": "not-an-owner-record"}),
         "status": "READY",
         "acceptance_scope": {
             "family": "battery-v3",
             "observables": list(outputs),
-            "conditions": {},
+            "verification_conditions": verification["conditions"],
+            "application_conditions": {},
         },
     }
     ids = ["synthetic-first", "synthetic-second"]

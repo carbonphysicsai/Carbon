@@ -279,6 +279,7 @@ def model_settings(item, ctx):
         grant_binding,
         model_providers,
         readiness_models,
+        roles,
     )
     from carbon.agent_campaign.graphite.roles import RoleName
 
@@ -338,10 +339,21 @@ def model_settings(item, ctx):
                 else adapter.output_maxima.get(name) or adapter.output_maximum
             )
             expected = chosen.context_tokens.get(name)
+            # The input window is the registered selection rule's
+            # (`roles.max_input_tokens`): the recorded context capped at
+            # SELECT_MAX_INPUT_TOKENS. So it is at most the context, never a
+            # default, and never above the cap (Test Lead, 2026-10-13: R4
+            # compares input <= registry context, not equality).
+            expected_input = (
+                None
+                if expected is None
+                else min(expected, roles.SELECT_MAX_INPUT_TOKENS)
+            )
             if (
                 expected is None
                 or type(block.get("max_input_tokens")) is not int
-                or block["max_input_tokens"] != expected
+                or block["max_input_tokens"] != expected_input
+                or block["max_input_tokens"] > expected
                 or block.get("recorded_context_tokens") != expected
                 or block.get("charge_reporting") is not True
                 or adapter is None
@@ -357,7 +369,7 @@ def model_settings(item, ctx):
                 problems.append(
                     (
                         FAIL,
-                        f"{role}: context/charge/output/model mismatch (input {block.get('max_input_tokens')}, recorded context {expected})",
+                        f"{role}: context/charge/output/model mismatch (input {block.get('max_input_tokens')}, expected input {expected_input}, recorded context {expected})",
                     )
                 )
             blocks.append({"role": role, **block})

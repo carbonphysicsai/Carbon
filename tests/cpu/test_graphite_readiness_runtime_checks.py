@@ -44,16 +44,33 @@ def ctx(tmp_path, request):
     git(tmp_path, "init", "-q")
     data = copy.deepcopy(checks.load_challenge_data(CID))
     record = data["runtime_by_level"][str(request.param)]
-    for named in record["roles"].values():
-        target = tmp_path / named["grant_file"]
+    named_files = [named["grant_file"] for named in record["roles"].values()]
+    # A level may bind its owner reviews in the record (Level 4: lane G's R5).
+    named_files += list(record.get("reviews", {}).values())
+    for relative in named_files:
+        target = tmp_path / relative
         target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_bytes((REPO / named["grant_file"]).read_bytes())
+        target.write_bytes((REPO / relative).read_bytes())
     commit(tmp_path)
     return checks.Context(CID, request.param, repository=tmp_path, data=data)
 
 
 def registration(ctx):
     return ctx.data["runtime_by_level"][str(ctx.level)]
+
+
+#: A wrong binding for a single-role level: the Stage C Attacker grant (a
+#: phase-4 grant), so a Constructor bound to it is a role/file mismatch.
+FOREIGN = {
+    "grant_id": "GRAPHITE-GRANT-STAGE-C-ATTACKER",
+    "grant_file": "docs/development/graphite/grants/GRAPHITE-GRANT-STAGE-C-ATTACKER.json",
+}
+
+
+def other_role(record):
+    """A binding of another role than the Constructor: the record's Attacker,
+    else FOREIGN."""
+    return record["roles"].get("attacker", FOREIGN)
 
 
 def containment_report():
@@ -202,7 +219,7 @@ def models(ctx):
 def test_r4_reads_actual_frozen_grant_start_model_without_calling_it(ctx):
     report = models(ctx)
     assert report["worker_ran"] is False
-    for role in ("constructor", "attacker"):
+    for role in registration(ctx)["roles"]:
         block = report[role + "_model"]
         assert block["model"] == "kimi-k3"
         assert block["max_input_tokens"] == 1048576
@@ -211,18 +228,38 @@ def test_r4_reads_actual_frozen_grant_start_model_without_calling_it(ctx):
     for opened in (ctx.repository / "model-fixture").glob("*/runs/*/session-open.json"):
         assert json.loads(opened.read_bytes())["live_inference"] is False
         assert not (opened.parent / "ledger").exists()
+    # kimi-k3's frozen input (1,048,576) is the registered rule's: the recorded
+    # context (1,113,088) capped at SELECT_MAX_INPUT_TOKENS. So the settings pass,
+    # and the item waits for its committed sizing review (Test Lead, 2026-10-13).
     result = runtime.model_settings({}, ctx)
-    assert result.status == model.FAIL and "recorded context 1113088" in result.detail
+    named = registration(ctx).get("reviews", {})
+    # Level 4 names its committed lane-G R4 review; other levels await one.
+    expected = model.PASS if "R4" in named else model.REVIEW_REQUIRED
+    assert result.status == expected, result.detail
+
+
+@pytest.mark.parametrize("given", [1113088, 1048577, 65536])
+def test_r4_refuses_an_input_other_than_the_registered_rule(ctx, monkeypatch, given):
+    """Above the cap, above the context, or a default window: all FAIL."""
+    from carbon.agent_campaign.graphite import readiness_models
+
+    report = models(ctx)
+    report["constructor_model"]["max_input_tokens"] = given
+    monkeypatch.setattr(
+        readiness_models, "produce", lambda *_, **__: copy.deepcopy(report)
+    )
+    result = runtime.model_settings({}, ctx)
+    assert result.status == model.FAIL
+    assert (
+        f"input {given}, expected input 1048576, recorded context 1113088"
+        in result.detail
+    )
 
 
 def valid_blocks(ctx, monkeypatch):
     from carbon.agent_campaign.graphite import readiness_models
 
-    report = models(ctx)
-    for role in ("constructor", "attacker"):
-        report[role + "_model"]["max_input_tokens"] = report[role + "_model"][
-            "recorded_context_tokens"
-        ]
+    report = models(ctx)  # the frozen blocks are valid as they are
     monkeypatch.setattr(
         readiness_models, "produce", lambda *_, **__: copy.deepcopy(report)
     )
@@ -265,6 +302,7 @@ def review(ctx, item, *, report=None):
 
 def test_r4_machine_pass_needs_an_exact_sizing_review(ctx, monkeypatch):
     report = valid_blocks(ctx, monkeypatch)
+    registration(ctx).pop("reviews", None)  # the case without any committed review
     assert runtime.model_settings({}, ctx).status == model.REVIEW_REQUIRED
     review(ctx, "R4", report=report)
     assert runtime.model_settings({}, ctx).status == model.PASS
@@ -311,6 +349,8 @@ def test_r4_mutations_refuse_settings_even_with_a_review(ctx, monkeypatch, mutat
 def test_r4_absent_block_is_not_built_but_does_not_hide_another_failure(
     ctx, monkeypatch
 ):
+    if "attacker" not in registration(ctx)["roles"]:
+        pytest.skip("needs two roles; this level binds the Constructor only")
     report = valid_blocks(ctx, monkeypatch)
     report.pop("attacker_model")
     assert runtime.model_settings({}, ctx).status == model.NOT_BUILT
@@ -332,6 +372,8 @@ def no_pod_attacker(monkeypatch):
 
 
 def test_r5_existing_attacker_pod_allowance_is_a_finding_not_a_pass(ctx):
+    if "attacker" not in registration(ctx)["roles"]:
+        pytest.skip("no Attacker at this level")
     result = checks.grant_binding({}, ctx)
     assert result.status == model.FAIL
     assert "no-pod run carries a pod allowance" in result.detail
@@ -340,8 +382,26 @@ def test_r5_existing_attacker_pod_allowance_is_a_finding_not_a_pass(ctx):
     assert "monetary_ceiling" not in evidence
 
 
+def test_level4_binds_lane_g_and_its_committed_r5_review(ctx):
+    """Level 4 binds lane G's Constructor -3 and names its R5 review, so the gate
+    reads reviews/R5.L4-G-CONSTRUCTOR-3.json (Test Lead, 2026-10-13)."""
+    if ctx.level != 4:
+        pytest.skip("Level 4 only")
+    record = registration(ctx)
+    assert set(record["roles"]) == {"constructor"}
+    assert (
+        record["roles"]["constructor"]["grant_id"]
+        == "GRAPHITE-GRANT-L4-G-CONSTRUCTOR-3"
+    )
+    assert record["reviews"]["R5"].endswith("reviews/R5.L4-G-CONSTRUCTOR-3.json")
+    assert record["reviews"]["R4"].endswith("reviews/R4.L4-G-CONSTRUCTOR-3.json")
+    assert runtime.grants({}, ctx).status == model.PASS
+    assert runtime.model_settings({}, ctx).status == model.PASS
+
+
 def test_r5_machine_pass_without_amount_review_requires_review(ctx, monkeypatch):
     no_pod_attacker(monkeypatch)
+    registration(ctx).pop("reviews", None)  # the case without any committed review
     assert runtime.grants({}, ctx).status == model.REVIEW_REQUIRED
     review(ctx, "R5")
     assert runtime.grants({}, ctx).status == model.PASS
@@ -370,9 +430,9 @@ def test_r5_grant_and_budget_mutations_fail_closed(ctx, monkeypatch, mutation):
     named = record["roles"]["constructor"]
     path = ctx.repository / named["grant_file"]
     if mutation == "grant_binding":
-        named["grant_file"] = record["roles"]["attacker"]["grant_file"]
+        named["grant_file"] = other_role(record)["grant_file"]
     elif mutation == "role":
-        named["grant_id"] = record["roles"]["attacker"]["grant_id"]
+        named["grant_id"] = other_role(record)["grant_id"]
     elif mutation == "level":
         record["level"] = 0
     elif mutation in ("working_copy", "main_blob", "arithmetic"):
@@ -421,11 +481,13 @@ def test_owner_reviews_cannot_be_borrowed_or_stale(ctx, monkeypatch, mutation, i
     elif mutation == "level":
         document["level"] = 1
     elif mutation == "digest":
-        document["roles"]["attacker"]["grant_digest"] = SHA
+        victim = "attacker" if "attacker" in document["roles"] else "constructor"
+        document["roles"][victim]["grant_digest"] = SHA
     elif mutation == "owner":
         document["reviewer"] = "Executor"
     elif mutation == "missing_role":
-        document["roles"].pop("attacker")
+        victim = "attacker" if "attacker" in document["roles"] else "constructor"
+        document["roles"].pop(victim)
     else:
         document["basis"] = "uncommitted change"
     target.write_text(json.dumps(document))
@@ -532,10 +594,20 @@ def test_gate_integration_keeps_runtime_findings_and_authority_flags_false(
         root=ctx.repository / "gate-output",
     )
     rows = {row["id"]: row for row in report["items"]}
-    assert {row["status"] for row in rows.values()} == {model.FAIL}
+    assert rows["R2"]["status"] == model.FAIL
     assert "manifest" in rows["R2"]["detail"]
-    assert "recorded context 1113088" in rows["R4"]["detail"]
-    assert "no-pod run carries a pod allowance" in rows["R5"]["detail"]
+    if "attacker" in registration(ctx)["roles"]:
+        assert rows["R5"]["status"] == model.FAIL
+    else:  # Level 4: lane G's Constructor, with its committed R5 review
+        assert rows["R5"]["status"] == model.PASS
+    # R4's frozen settings now pass; it waits for its committed sizing review,
+    # which Level 4 names (lane G's Constructor -3).
+    named = registration(ctx).get("reviews", {})
+    assert rows["R4"]["status"] == (
+        model.PASS if "R4" in named else model.REVIEW_REQUIRED
+    )
+    if "attacker" in registration(ctx)["roles"]:
+        assert "no-pod run carries a pod allowance" in rows["R5"]["detail"]
     assert report["green"] is False and report["launch_ready"] is False
     assert not any(report["claims"].values())
     assert all(row["evidence_digest"].startswith("sha256:") for row in rows.values())

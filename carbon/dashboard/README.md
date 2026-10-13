@@ -25,6 +25,15 @@ a rule cutover.
 
 ## board.v2
 
+LP-02/LP-03's optional `miner_status` block is carried by both the Python
+builder and the Worker serving path. Each row contains only the public
+hotkey, received/scored counts and refused counts by closed code; unknown or
+unclassified code names become `other`. Absent/null stays absent, and an
+empty block stays empty. Counts may precede a first released score and do
+not create a score or standing. Malformed, duplicate or unsafe-integer rows
+refuse the whole feed, preserving the Worker's existing last-good fallback.
+Deployment of this serving change belongs to Launchpad.
+
 `board_v2.project` reads only the verified board model `feed.py` returns.
 - Every `null` has a reason at `reasons[<key>]` beside it. `not_in_feed` means
   the signed feed does not carry the field yet.
