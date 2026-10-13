@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-13-f02-pilot-runnability",
+  "recorded_at": "2026-10-13T12:36:27+00:00",
+  "challenge": "f02",
+  "stage": "design",
+  "execution": {"kind": "test_run", "ref": "PILOT-RUNNABILITY-F02-01", "description": "Tiny fixture runs through the same candidate-view, cost, judge and OPT-12 pipeline without a real trainer or reference solver."},
+  "expected": "A kit and replay route need role-bound data, a precommitted strongest-cheap screen and complete workflow costs before a real pilot is runnable.",
+  "observed": "The stand-in runs all three seed replays, preserving one correlated package cluster and UNDECIDED qualification. Missing physical data and reference receipts remain typed holds.",
+  "keep": ["Existing f02 kit, TRAIN/menu generation, shared trainer, equal-budget registration and OPT-12."],
+  "change": ["Compose the retained-data worker and launcher spec; keep calibration and reference returns explicit holds and separate the fixture command."],
+  "protocol_elements": ["public-development-pilot", "cost-accounting", "fixture-isolation"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

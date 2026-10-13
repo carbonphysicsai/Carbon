@@ -670,7 +670,7 @@ def test_the_start_script_starts_one_hardened_container_on_its_own_network(machi
         f"run -d --rm --name {NAME} --network {NAME} --read-only "
         "--tmpfs /scratch:rw,nosuid,nodev,exec,uid=65532,gid=65532,mode=0700 "
         "--cap-drop ALL --security-opt no-new-privileges "
-        f"--gpus device={GPU} "
+        f"--gpus driver=nvidia,device={GPU} "
     )
     # Exactly one GPU, the first the driver lists; nothing published on the
     # machine, so no port, and never all GPUs.

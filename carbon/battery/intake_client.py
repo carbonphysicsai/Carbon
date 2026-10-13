@@ -192,6 +192,10 @@ REFUSALS = {
         "then send it again."
     ),
     "headers": "A request header is repeated; send each header once.",
+    "peer_header_invalid": (
+        "The intake's trusted proxy did not supply a valid client address. "
+        "The validator operator must check its proxy configuration."
+    ),
     "not_found": "No submission with that id belongs to your hotkey.",
     "tool": "The intake only accepts battery_submit and battery_status.",
     "submission_fields": "A submission needs exactly strategy_json and contract_digest.",
