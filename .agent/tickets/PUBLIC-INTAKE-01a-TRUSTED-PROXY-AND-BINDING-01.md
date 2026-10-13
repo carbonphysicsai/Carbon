@@ -26,6 +26,13 @@ address or malformed value supplies identity. Canonicalize valid IP literals
 so alternate IPv6 spellings cannot create new buckets. Direct mode ignores
 identity headers and retains its existing behavior.
 
+The deployment cache is keyed by path and mode, so a changed configuration
+does not rebuild an already cached daemon. Check the effective executable
+target's canonical CarrierBackend type and mandatory commitment mode before
+the listener starts too; a stale cached private daemon is refused by the same
+closed codes. This is a bounded REPAIR of the exposure guard, with no cache
+rewrite or change to private evaluation. Tests exercise the final serve path.
+
 Every publicly served intake, including the loopback tunnel, requires the
 owner's exposure record, the isolated carrier and commitment enforcement;
 configuration can tighten this policy but cannot disable it. Direct public
@@ -54,6 +61,21 @@ agent validation: synthetic fixed snapshots/readers and existing test keys only.
    legacy and miner-surface import-closure tests. Preserve existing assertions.
 4. Canonical focused/affected/invariant regression, pinned quality, hygiene
    before each push and exact-head classified CI/Merge gate on the same PR.
+
+Canonical baseline: 147 tests passed. Final local canonical acceptance:
+633 tests passed with no skips, including 33 new proxy/binding/guard tests,
+existing intake and loopback service end-to-end tests, deployment/daemon,
+remote submissions, NET-2/remote transport and all invariants. The HTTP tests
+hold four synthetic client connections and prove a different proxied client
+still receives service; header refusals perform no body read. No existing
+test or assertion was removed or weakened. Pinned Black 26.5.1/Ruff 0.16.3
+and `git diff --check` passed.
+
+Regression command from the isolated native-Linux clone:
+`CARBON_UV_GROUPS="science-jax chain archive mcp" ./scripts/dev/canonical.sh python -m pytest tests/cpu/test_battery_intake_trusted_proxy.py tests/cpu/test_battery_intake.py tests/cpu/test_battery_intake_service_e2e.py tests/cpu/test_battery_validator_deployment.py tests/cpu/test_battery_validator_daemon.py tests/cpu/test_battery_validator_service.py tests/cpu/test_battery_remote_submission.py tests/cpu/test_net2_transport.py tests/cpu/test_remote_transport.py tests/invariants -ra`
+Main advanced to `e6ce153a20394c7803586d350f99a0c858c874f6` during this run;
+the intake, client, deployment and service dependencies did not change.
+No base merge was needed for an unrelated main advance.
 
 Reversible: remove the optional mode to return to the guarded direct listener;
 commitment enforcement for public exposure is intentionally not relaxable.
