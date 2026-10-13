@@ -73,6 +73,27 @@ when the PR Head session stops merging** and **ends when any Claude session
 resumes merging**. Where it is unclear whether the window is open, it is
 **closed** — the authority fails closed, as a lapsed delegation should.
 
+**3. Reserved categories wait.** A PR in any of the four categories of
+`OWNER-MERGE-APPROVAL-01`, with the edges in `PR-HEAD-MERGE-STANDARD-03` §2
+(including a test change that loosens an assertion protecting one of them, or a
+decision record stating policy in one), requires the **Carbon Validator's own**
+receipt: a named domain owner's reservation that this delegation leaves
+unchanged. A receipt from any other reviewer does not satisfy it, so such PRs
+wait for the window to close. Where it is unclear whether a PR is reserved, it
+is.
+
+This is the seam an agent would most likely get wrong, because the record's
+words — "a named non-author reviewer's receipt" — are satisfied by **any**
+reviewer, while the owner's own closing line keeps the reserved categories with
+their domain owner. Gate design and gate comprehensiveness are the Carbon
+Validator's (owner, 2026-10-05). The Validator is a Claude session and so is
+absent for the window, which is why those PRs wait rather than finding another
+receipt.
+
+It is recorded here rather than added later because a later note would itself
+be a reserved decision record — policy in one of the four — with nobody able to
+approve it while the window is open.
+
 ## Why this record could not wait for the agent it authorises
 
 A delegation cannot be merged by its own delegate: until it is on main the
