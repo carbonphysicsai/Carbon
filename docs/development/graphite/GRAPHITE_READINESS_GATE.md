@@ -91,6 +91,8 @@ fails the gate gets no live Graphite run, at any level.
 
 ## S. Scoring and gates
 
+PLT-09 batch 4's [working contract](../challenge_pipeline/readiness/SCORING_AND_VALIDATOR_CHECKS.md) and [panel formats](../challenge_pipeline/readiness/READINESS_GAPS_01.md) describe the scoped S1/S3/H2/H4 readers. Unset owner values and missing real panels remain explicit gaps.
+
 | Item | Check | Kind | Lesson |
 |---|---|---|---|
 | S1 | The promotion rule exists: comparison settings plus an equivalence margin measured from the challenge's noise source. | [auto] | S6 |

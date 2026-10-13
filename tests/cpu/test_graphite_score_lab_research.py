@@ -368,5 +368,7 @@ def test_the_standing_weekly_sum_still_fits_with_the_research_ceiling():
         + _research_grant().monetary_ceiling
     )
     assert total <= effective
-    # Room for the pending open-weight coverage grant (#1257) and the L2 re-attack, at their ceilings.
-    assert total + Decimal("14.94") + Decimal("13.47") <= effective
+    # Room for the pending open-weight coverage grant (#1257) at its ceiling. The L2 re-attack that this line once also
+    # reserved room for has run (under a stage grant already counted), so it is no longer a pending term; with the
+    # third lane G rerun grant (-4) counted, the sum with #1257 is 259.79 of 260.
+    assert total + Decimal("14.94") <= effective

@@ -1140,30 +1140,42 @@ class Experiment:
 
     def level4_interface(self, strategy):
         """What a lowering for `strategy` must target: its interface digest,
-        inputs and training batch, and the two commands."""
+        inputs and training batch, and the two commands - and, so an agent
+        need not learn the spec format by trial, a known-good starter
+        (`level4_starter`)."""
         from carbon.battery import level4 as battery_level4
         from carbon.battery import level4_admission
+
+        from . import level4_starter
 
         interface, batch = level4_admission.interface_and_batch(strategy)
         digest = interface.digest()
         challenge = battery_level4.challenge_id()
+        commands = [
+            (
+                "python -m carbon.level4.tooling lower spec.py lowered "
+                f"--challenge {challenge} --interface {digest} --batch {batch}"
+            ),
+            (
+                "python -m carbon.level4.tooling envelope lowered "
+                "/scratch/output/" + LEVEL4_ENVELOPE_EXPORT
+            ),
+        ]
+        inputs = [list(i) for i in interface.inputs]
+        outputs = [list(o) for o in interface.outputs]
+        spec = level4_starter.example_spec(inputs, outputs)
         return {
             "status": "LEVEL4_INTERFACE",
             "interface": digest,
-            "inputs": [list(i) for i in interface.inputs],
-            "outputs": [list(o) for o in interface.outputs],
+            "inputs": inputs,
+            "outputs": outputs,
             "batch": batch,
             "field": "parameters." + battery_level4.FIELD,
-            "commands": [
-                (
-                    "python -m carbon.level4.tooling lower spec.py lowered "
-                    f"--challenge {challenge} --interface {digest} --batch {batch}"
-                ),
-                (
-                    "python -m carbon.level4.tooling envelope lowered "
-                    "/scratch/output/" + LEVEL4_ENVELOPE_EXPORT
-                ),
-            ],
+            "commands": commands,
+            "spec_contract": level4_starter.SPEC_CONTRACT,
+            "workflow": list(level4_starter.WORKFLOW),
+            "example_spec": spec,
+            "example_run_python": level4_starter.example_run_python(spec, commands),
             "authority_granted": False,
         }
 
