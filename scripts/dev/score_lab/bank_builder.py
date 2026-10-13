@@ -377,13 +377,24 @@ def check_solved(planned, records, *, definition_bytes, **winnability):
         definition_bytes=definition_bytes,
         **winnability,
     )
+    structural_ready = all(share >= 0.5 for share in shares.values()) and not any(
+        counts[h].get("INCOMPLETE", 0) for h in counts
+    )
+    measured = development.get("winnability")
+    if not structural_ready or measured is None:
+        status = "INSUFFICIENT_EVIDENCE"
+    elif (
+        measured["cheap_below_assumed_threshold"]
+        and measured["paired_lower_positive"]
+        and measured["always_abstain_U"] == 0
+        and measured["learnability"]["improves"]
+    ):
+        status = "DEVELOPMENT_WINNABLE_DIAGNOSTIC"
+    else:
+        status = "DEVELOPMENT_NOT_WINNABLE_DIAGNOSTIC"
     return {
-        "status": (
-            "STRUCTURAL_READY_DEVELOPMENT"
-            if all(share >= 0.5 for share in shares.values())
-            and not any(counts[h].get("INCOMPLETE", 0) for h in counts)
-            else "INSUFFICIENT_EVIDENCE"
-        ),
+        "status": status,
+        "structural_ready": structural_ready,
         "scope": "AGGREGATES_ONLY_NO_CONFIRMATION_VALUES",
         "question_count": len(records),
         "job_count": len(planned["jobs"]),
@@ -458,6 +469,9 @@ def reference_cost(planned, policy, coarse=None):
         if (
             not isinstance(row, dict)
             or not _sha(row.get("record_sha256"))
+            or row.get("image_digest") != job["image_digest"]
+            or row.get("overlay_lock_digest") != job["overlay_lock_digest"]
+            or row.get("reference_policy_digest") != job["reference_policy_digest"]
             or row.get("margin_quantity") != refinement["margin_quantity"]
             or row.get("margin_unit") != refinement["margin_unit"]
             or not (

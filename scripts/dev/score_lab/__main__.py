@@ -238,6 +238,13 @@ def main(argv=None):
     bank_solved.add_argument("--plan", type=Path, required=True)
     bank_solved.add_argument("--records", type=Path, required=True)
     bank_solved.add_argument("--definition", type=Path, required=True)
+    bank_solved.add_argument("--cheap", type=Path)
+    bank_solved.add_argument("--reference-model", type=Path)
+    bank_solved.add_argument("--learnability", type=Path)
+    bank_solved.add_argument("--cap", type=int)
+    bank_solved.add_argument("--kappa", type=float)
+    bank_solved.add_argument("--unit", type=float)
+    bank_solved.add_argument("--ceiling-threshold", type=float)
     bank_solved.add_argument("--out", type=Path)
     bank_cost = commands.add_parser(
         "bank-cost", help="producer-only V2 cost and refinement jobs"
@@ -280,10 +287,20 @@ def main(argv=None):
         )
         return 0
     if args.command == "bank-solved-check":
+        optional = lambda path: (
+            None if path is None else json.loads(path.read_text(encoding="utf-8"))
+        )
         result = bank_builder.check_solved(
             json.loads(args.plan.read_text(encoding="utf-8")),
             bank.read_records(args.records),
             definition_bytes=args.definition.read_bytes(),
+            cheap=optional(args.cheap),
+            reference_model=optional(args.reference_model),
+            learnability=optional(args.learnability),
+            cap=args.cap,
+            kappa=args.kappa,
+            unit=args.unit,
+            ceiling_threshold=args.ceiling_threshold,
         )
         print(json.dumps(result, indent=2, sort_keys=True))
         _write(args.out, result)

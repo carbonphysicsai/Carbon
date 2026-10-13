@@ -209,7 +209,8 @@ def test_solved_checker_keeps_confirmation_values_out_of_report():
     )
     records = _solved(planned)
     report = bank_builder.check_solved(planned, records, definition_bytes=definition)
-    assert report["status"] == "STRUCTURAL_READY_DEVELOPMENT"
+    assert report["status"] == "INSUFFICIENT_EVIDENCE"
+    assert report["structural_ready"] is True
     assert report["class_counts"]["confirmation"] == {"SCORED": 4}
     assert report["scored_share"] == {"development": 1.0, "confirmation": 1.0}
     assert report["development_winnability"]["status"] == "INSUFFICIENT_EVIDENCE"
@@ -280,6 +281,54 @@ def test_solved_checker_blocks_below_half_scored_share():
     )
 
 
+def test_winnability_is_a_development_diagnostic_with_failure_path():
+    definition, registration, draws, _policy = _fixture()
+    planned = bank_builder.plan(
+        registration, draws, definition_bytes=definition, split_seed="split"
+    )
+    records = _solved(planned)
+    predictions = {
+        r["question_id"]: {
+            "a": {"feasible": True, "objective": 0.5},
+            "b": {"feasible": True, "objective": 1.0},
+        }
+        for r in records
+        if r["half"] == "development"
+    }
+    cheap = {
+        qid: {
+            "a": {"feasible": False, "objective": 0.5},
+            "b": {"feasible": True, "objective": 1.0},
+        }
+        for qid in predictions
+    }
+    inputs = {
+        "cheap": cheap,
+        "reference_model": predictions,
+        "cap": 1,
+        "kappa": 0.1,
+        "unit": 1.0,
+        "ceiling_threshold": 0.5,
+        "learnability": {"train_sizes": [10, 20], "accuracies": [0.5, 0.6]},
+        "replicates": 30,
+    }
+    passing = bank_builder.check_solved(
+        planned, records, definition_bytes=definition, **inputs
+    )
+    assert passing["status"] == "DEVELOPMENT_WINNABLE_DIAGNOSTIC"
+    failing = bank_builder.check_solved(
+        planned,
+        records,
+        definition_bytes=definition,
+        **{**inputs, "cheap": predictions},
+    )
+    assert failing["status"] == "DEVELOPMENT_NOT_WINNABLE_DIAGNOSTIC"
+    assert (
+        failing["development_winnability"]["winnability"]["paired_lower_positive"]
+        is False
+    )
+
+
 def test_refinement_cost_uses_this_bank_composition_and_unit():
     definition, registration, draws, policy = _fixture()
     planned = bank_builder.plan(
@@ -291,6 +340,9 @@ def test_refinement_cost_uses_this_bank_composition_and_unit():
     coarse = {
         j["job_id"]: {
             "record_sha256": _sha(j["job_id"]),
+            "image_digest": j["image_digest"],
+            "overlay_lock_digest": j["overlay_lock_digest"],
+            "reference_policy_digest": j["reference_policy_digest"],
             "margin_quantity": "toy_margin",
             "margin_unit": "toy_unit",
             "margin": 0.0 if i < 4 else 0.1,

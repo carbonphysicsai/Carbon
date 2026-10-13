@@ -35,7 +35,12 @@ requires every question, action and condition, verifies their planned job IDs,
 image and overlay lock, classifies by reference alone, enforces whole-block
 halves and the alpha block minimum, and prints aggregate counts. Its
 development-half diagnostic reuses `bank-check`; owner thresholds remain
-HUMAN_INPUT. A structural result does not qualify the bank or authorize
+HUMAN_INPUT. Without those inputs the aggregate status is
+`INSUFFICIENT_EVIDENCE`, even if `structural_ready` is true; supplied
+development evidence (`--cheap`, `--reference-model`, `--learnability`,
+`--cap`, `--kappa`, `--unit`, `--ceiling-threshold`) may yield a winnable or
+not-winnable diagnostic. Neither
+result qualifies the bank or authorizes
 opening the confirmation half. The full solved records and confirmation half
 remain in custody. The toy fixture in `test_score_lab_bank_builder.py` exercises
 the commands without Challenge physics or protected material.
