@@ -1,0 +1,41 @@
+{
+  "status": "DEVELOPMENT_NOT_REGISTERED",
+  "main_at_start": "f664977d91cd0b6149dd7db5e3f01cb14eae2448",
+  "res09_head": "773d0c3d3b737b4739e76787e6c53dfb05605722",
+  "res09_merge": "815cf1196bb0f32820ebc4e833410e067b3966ba",
+  "draft_sha256": "afdc4145e030ec8025d4450401c5baf50fe42a95ee73f7dc76fdc7774148ecd5",
+  "reference_sha256": "72ea300b42fe1ca4e54b9c6131cb126ca7217ebddd5f1dddca8044a7bcef2dbf",
+  "measurements_sha256": "906bb01c8a1743e9e36558a42b303fc0c06096c18121cb520a4f24a350357cbb",
+  "inherited_source_sha256": {
+    "../value-metric-v2-rev2-curves/analyze.py": "6b047b27c18baf865bfb86e2ea0706ae2b394e5b9a1072c7d5355ab211b08df1",
+    "../value-metric-v2-stress/analyze_public.py": "63648ce23581b7f0333a238d74009b36453b23cd426c60f123c6b88b9ca2a1b0",
+    "../value-metric-v2-stress/aggregate.py": "2bc738bb5115c09fd7d9bd421c2aa44c5be161e39108ded3bd703455e09de865",
+    "../value-metric-audit/res07-analyze.py.txt": "e91f89f9cae53cd7b5e1f252910f197f8a0334adbf47e2bb492d7601dffa91ff"
+  },
+  "helper_git_blob": "b1d899d116317bd190ad6812f0aae5d3e8a16c0c",
+  "contract_git_blob": "3961b89a98c8877190bc010579852497057d3518",
+  "source_quantities": "Existing public EV4 references/predictions only; no new solves",
+  "literature": [
+    {
+      "url": "https://web.mit.edu/braatzgroup/Attia_Nature_2020.pdf",
+      "role": "richer protocol/lifetime job and adaptive Bayesian comparator; not Carbon validation"
+    },
+    {
+      "url": "https://arxiv.org/abs/2405.01681",
+      "role": "parameter/ambient robust fast-charge motivation; no adoption of its bounds"
+    },
+    {
+      "url": "https://docs.pybamm.org/en/pybamm-v26.9.0.0/source/examples/notebooks/models/thermal-models.html",
+      "role": "open thermal-route possibility, not current input/data coverage"
+    },
+    {
+      "url": "https://github.com/chueh-ermon/battery-fast-charging-optimization",
+      "role": "author code/policy publication; no external execution/data import or rights claim"
+    }
+  ],
+  "results_sha256": "70afff47fbf8fafe0e15ba97397af03a3eeb8e3f1ad9f73fbefcffe35e0c07fa",
+  "research_source_sha256": {
+    "analyze.py": "8dfa5204709e40f6fdd34f996b5e6e2ae074e0c0306d8ca14f639ceb153482de",
+    "test_analysis.py": "85c38e290f224fe72a556f36c41aafb16921101dab34d27ab785c41215415012"
+  }
+}
