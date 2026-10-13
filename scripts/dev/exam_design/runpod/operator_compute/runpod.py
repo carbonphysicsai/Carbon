@@ -192,6 +192,44 @@ def provider_text(payload, limit: int = 200) -> str:
     return _SECRET_SHAPES.sub("[redacted]", text)[:limit]
 
 
+def ambiguous_create_reason(payload) -> str:
+    """Project recognized reasons; never render the provider's response body.
+
+    Unknown text is evidence we cannot classify, not evidence of capacity or
+    quota failure. HTTP status alone does not establish either cause.
+    """
+    reasons = {
+        "out_of_stock": "provider_capacity_unavailable",
+        "insufficient_capacity": "provider_capacity_unavailable",
+        "insufficient capacity": "provider_capacity_unavailable",
+        "quota_exceeded": "provider_quota_exceeded",
+        "quota exceeded": "provider_quota_exceeded",
+        "rate_limit_exceeded": "provider_rate_limited",
+        "too many requests": "provider_rate_limited",
+        "invalid_request": "provider_request_invalid",
+    }
+    if type(payload) is not dict:
+        return "provider_reason_unavailable"
+    fields = [payload]
+    if type(payload.get("error")) is dict:
+        fields.append(payload["error"])
+    recognized = set()
+    present = False
+    for fields_ in fields:
+        for key in ("code", "reason", "message", "error"):
+            value = fields_.get(key)
+            if type(value) is str and value:
+                present = True
+                # Exact matching avoids turning echoed credentials or arbitrary
+                # surrounding text into an apparently recognized diagnosis.
+                reason = reasons.get(value.strip().lower())
+                if reason is not None:
+                    recognized.add(reason)
+    if len(recognized) == 1:
+        return recognized.pop()
+    return "provider_reason_unrecognized" if present else "provider_reason_unavailable"
+
+
 class RunPodAdapter:
     name = "runpod"
 
@@ -405,10 +443,14 @@ class RunPodAdapter:
             rate = payload.get("costPerHr")  # type: ignore[union-attr]
             return CreateResult(pod_id, None if rate is None else float(rate))
         definitive = status in {400, 401, 403, 404, 422}
+        reason = (
+            provider_text(payload, 500)
+            if definitive
+            else ambiguous_create_reason(payload)
+        )
         raise ComputeError(
             operation="provision",
-            failed="provider did not return a resource id: "
-            + provider_text(payload, 500),
+            failed="provider did not return a resource id: " + reason,
             execution=Execution.EXECUTED if definitive else Execution.MAY_HAVE_EXECUTED,
             resources_may_remain=not definitive,
             retry_safe=False,
