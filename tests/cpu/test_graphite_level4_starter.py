@@ -127,10 +127,12 @@ def test_the_starter_call_as_the_page_words_it_passes_the_miner_door(tmp_path):
     assert "inside it)" not in page
     for step in level4_starter.WORKFLOW:
         assert "inside it)" not in step
-    # Where the id is (an agent had to scan the reply for "rtsk_"): the start
-    # reply's task view, the same record get_research_result returns.
-    assert "result.task.task_id.value" in level4_starter.WORKFLOW[1]
-    assert "`result.task.task_id.value`" in page
+    # Where the id is (an agent had to scan the reply for "rtsk_"), named from
+    # the payload the agent receives, not the inner result object: the paths
+    # are pinned on a real adapter payload in test_standard_mcp_adapter.py.
+    for path in ("public_result.task_id", "reply.result.task.task_id.value"):
+        assert path in level4_starter.WORKFLOW[1]
+        assert "`" + path + "`" in page
 
 
 def test_the_starter_lowers_stages_and_reaches_a_proposal(tmp_path):
