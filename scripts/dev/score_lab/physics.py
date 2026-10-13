@@ -40,6 +40,17 @@ def validate_config(config):
         or problem.get("constraint") not in ("loose", "tight")
         or problem.get("shift") not in ("nominal", "shifted")
         or not _finite(problem.get("verification_cost_ASSUMPTION"), low=0)
+        or type(problem.get("optima_count", 1)) is not int
+        or problem.get("optima_count", 1) not in (1, 3, 10)
+        or problem.get("objective_kind", "single")
+        not in (
+            "single",
+            "weighted",
+            "robust",
+        )
+        or not _finite(problem.get("objective_weight", 0.5), high=1)
+        or not _finite(problem.get("roughness", 0), high=0.2)
+        or problem.get("optimum_location", "interior") not in ("interior", "boundary")
     ):
         raise LabRefused("physics_problem_assumptions")
     if (
@@ -145,9 +156,31 @@ def _toy_truth(x, context, problem, direction=None, size=0.0):
     shifted_x = min(1.0, max(0.0, x + (size if direction == "boundary" else 0)))
     shifted_context = context + (size if direction == "operating" else 0)
     row = synthetic.truth(shifted_x, shifted_context, problem)
-    objective = row["objective"] * (
-        1.0 + size * (x - 0.5) if direction == "objective" else 1.0
-    )
+    count = problem.get("optima_count", 1)
+    if problem.get("optimum_location", "interior") == "interior" and (
+        "optima_count" not in problem or (count == 1 and problem["optima"] == "single")
+    ):
+        primary = row["objective"]
+    else:
+        centers = (
+            [0.73 - 0.10 * shifted_context]
+            if count == 1
+            else [i / (count - 1) for i in range(count)]
+        )
+        if problem.get("optimum_location", "interior") == "boundary":
+            centers[0] = 1.0
+        primary = min((shifted_x - center) ** 2 for center in centers)
+        primary += 0.30 * shifted_context
+    primary += problem.get("roughness", 0) * math.sin(12 * math.pi * shifted_x)
+    secondary = (shifted_x - (0.25 + 0.05 * shifted_context)) ** 2
+    secondary += 0.10 * shifted_context
+    kind = problem.get("objective_kind", "single")
+    if kind == "weighted":
+        weight = problem.get("objective_weight", 0.5)
+        primary = (1 - weight) * primary + weight * secondary
+    elif kind == "robust":
+        primary = max(primary, secondary)
+    objective = primary * (1.0 + size * (x - 0.5) if direction == "objective" else 1.0)
     margins = list(row["margins"])
     if direction == "constraint":
         margins[0] -= size

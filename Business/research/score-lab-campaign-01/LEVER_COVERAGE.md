@@ -6,8 +6,8 @@ fixture exercises it. `PARTIAL` means the setting is narrower than the plan.
 
 | Plan group | Current toy coverage | Status / remaining work |
 | --- | --- | --- |
-| A: design dimension, space, shape and optimum | One-dimensional small/dense offered grids; one or two parabolic optima; loose/tight coupled margins | PARTIAL: dimensions 2–8, 3/10 optima, smoothness and optimum-location controls missing |
-| A: constraints and objective | Two coupled hard margins, single objective, variable verification cost | PARTIAL: 0–5 margins, robust/chance/multi-objective and reference-noise semantics missing |
+| A: design dimension, space, shape and optimum | One-dimensional small/dense offered grids; explicit 1/3/10 analytic wells, sinusoidal roughness and interior/boundary placement; loose/tight coupled margins | PARTIAL: dimensions 2–8 and a true multidimensional continuous optimum remain missing; task-shape smoke is one proxy only |
+| A: constraints and objective | Two coupled hard margins, single/weighted/robust analytic objective forms, variable verification cost | PARTIAL: 0–5 margins, chance objective and reference-noise semantics missing |
 | A: decision forms | Best predicted feasible shortlist with k and abstention/unsafe loss; legacy single-pick value alternative; robust worst-case buyer-value view | PARTIAL: threshold, feasibility-only and sensitivity decisions missing |
 | B: task neighbourhood | Objective, constraint, operating and boundary changes; size, extrapolation distance and value/score weights | IMPLEMENTED as analytic toy assumptions |
 | C: model errors and traits | Error scale, transfer, score-path overfit, law events, drift, robustness, extrapolation; optional toy heteroscedasticity (uniform/boundary/optimum), cross-design correlation, rare tails and sigma scale | PARTIAL: these new knobs are fixture-tested but not yet in a broad result; gradient fidelity and calibrated uncertainty data are missing |
@@ -24,6 +24,7 @@ smoke for the new error knobs, with no sensitivity or rule-selection claim.
 `GOODHART_ROBUST_TOY_READOUT.md` records the separate worst-case value view;
 its value oracle is approximate and it does not pick a winner.
 `SOBOL_SMOKE_4.md` checks estimator wiring only, with no interpretable index.
+`TASK_SHAPE_READOUT_8.md` checks one-proxy objective-shape plumbing only.
 The 142-member realism calibration, D3-approved EV4 reference v2, independent
 final holdout, tier-2 replay and one-page owner verdict are still absent.
 The held Test Engineer holdout is never read or queried to fill these gaps.

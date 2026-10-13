@@ -258,6 +258,12 @@ scale. `campaign-axes-error-example.json` varies those knobs. The earlier
 25-axis input is retained unchanged so its saved exploratory results remain
 reproducible. These settings alter synthetic model errors, not analytic truth.
 
+`physics-shape-example.json` and `campaign-axes-shape-example.json` separately
+vary analytic truth: explicit 1/3/10 wells, single/weighted/robust objective
+forms, roughness and interior/boundary placement. The exact reference is the
+best offered action; these examples do not establish a multidimensional
+continuous optimum or a real Challenge objective.
+
 ```sh
 python -m scripts.dev.score_lab campaign-feedback \
   --config scripts/dev/score_lab/physics-example.json \
