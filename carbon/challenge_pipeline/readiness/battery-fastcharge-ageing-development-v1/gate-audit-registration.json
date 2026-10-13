@@ -1,0 +1,58 @@
+{
+ "schema": "carbon.readiness.gate-audit-registration.v1",
+ "challenge": "battery-fastcharge-ageing-development-v1",
+ "levels": [
+  2,
+  3,
+  4
+ ],
+ "basis": "PLT-09 batch 4 explicit L2/L3/L4 metadata; no measurement, custody or hidden-host authority granted",
+ "panel_digest": null,
+ "gates": [
+  {
+   "name": "schema_finite",
+   "unit": null,
+   "scope": "EXAM"
+  },
+  {
+   "name": "paired_repeat",
+   "unit": null,
+   "scope": "EXAM"
+  },
+  {
+   "name": "initial_voltage",
+   "unit": "V",
+   "scope": "EXAM"
+  },
+  {
+   "name": "initial_temperature",
+   "unit": "degC",
+   "scope": "EXAM"
+  },
+  {
+   "name": "voltage_ceiling",
+   "unit": "V",
+   "scope": "EXAM"
+  },
+  {
+   "name": "voltage_floor",
+   "unit": "V",
+   "scope": "EXAM"
+  },
+  {
+   "name": "capacity_bound",
+   "unit": "Ah",
+   "scope": "EXAM"
+  },
+  {
+   "name": "near_optimism_bands",
+   "unit": "bands",
+   "scope": "VALUE_STUDY_ONLY"
+  },
+  {
+   "name": "physics_gate_b15",
+   "unit": "degC",
+   "scope": "OPT_IN_B15"
+  }
+ ]
+}

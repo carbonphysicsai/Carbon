@@ -238,9 +238,9 @@
    "kind": "auto",
    "lesson": "S6",
    "title": "The promotion rule exists: comparison settings plus an equivalence margin measured from the challenge's noise source.",
-   "check": "recorded_tests",
+   "check": "promotion_margin",
    "pending": {
-    "reason": "no promotion-rule / equivalence-margin evidence is recorded for the challenge",
+    "reason": "active rule structure is checked; committed noise measurement provenance is HUMAN_INPUT",
     "owner": "Carbon Validator",
     "neutral_tests": []
    }
@@ -419,9 +419,9 @@
    "kind": "auto+review",
    "lesson": "S9",
    "title": "Gates are tested on hidden and tuning data, not practice alone.",
-   "check": "recorded_tests",
+   "check": "gate_audit",
    "pending": {
-    "reason": "the gate audit on hidden and tuning predictions does not exist yet (VALIDATOR-09)",
+    "reason": "aggregate panel loader is built; real operator panel and Test Lead framing remain absent",
     "owner": "Carbon Validator",
     "neutral_tests": []
    }
