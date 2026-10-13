@@ -357,6 +357,8 @@ def build_credibility(package, sections, facts, findings, sources, crosswalk, pr
                 "Development obligation IDs are not customer requirements or normative standard clause IDs",
                 "EVIDENCED coverage can retain FAIL; source PASS cannot issue requirement acceptance",
                 "MMS supports code verification only; reference-relative evidence is not physical validation",
+                "Host-declared context/use/risk and authority_ref are assertions, not authenticated applicability or acceptance decisions",
+                "Historical source outcomes retain their original reference/contract meaning; annotate, never re-score or infer current eligibility",
                 "ASME V&V 40 clause IDs and cross-domain applicability remain HUMAN_INPUT",
                 "DoDI mappings are contents-only anchors; tailoring and accreditation remain HUMAN_INPUT",
             ],
