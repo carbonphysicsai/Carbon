@@ -185,7 +185,7 @@ def documents():
     return docs, pins
 
 
-def trainer(kit, export, train, *, scope, seed, backend):
+def trainer(kit, export, train, *, scope, seed, backend, code=None):
     assert scope == "SYNTHETIC_FIXTURE" and train.fixture
     assert kit == pilot.KIT and backend == "jax"
     # Assert the worker passed only the candidate view, never reference labels.
@@ -217,6 +217,7 @@ def trainer(kit, export, train, *, scope, seed, backend):
         "model_id": kit.model_id,
         "train": {"fixture": True},
         "seed": seed,
+        "code": code,
         "cost": {
             "fit": {"fit_wall_s": 1, "fit_cpu_s": 1},
             "inference": {

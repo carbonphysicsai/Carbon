@@ -553,7 +553,17 @@ def execute(documents, pins, *, fixture=False, trainer=None):
             )
             resource.setrlimit(resource.RLIMIT_CPU, (min(deadline, 6 * 3600), 6 * 3600))
         predictions, receipt = (trainer or ca.run)(
-            KIT, candidate_view, train, scope=scope, seed=seed, backend="jax"
+            KIT,
+            candidate_view,
+            train,
+            scope=scope,
+            seed=seed,
+            backend="jax",
+            code={
+                **ca._code_identity(),
+                "pilot_module_sha256": ca.sha256(Path(__file__).read_bytes()),
+                "launcher_code_ref": os.environ.get("CODE_REF"),
+            },
         )
         if os.name == "posix" and not fixture:
             resource.setrlimit(resource.RLIMIT_CPU, (6 * 3600, 6 * 3600))
