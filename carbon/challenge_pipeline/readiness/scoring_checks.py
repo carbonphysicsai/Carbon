@@ -29,7 +29,7 @@ def _guard(function):
             return Result(
                 FAIL, f"{item['id']} evidence invalid; scope, shape or binding refused"
             )
-        except (OSError, ValueError, TypeError, KeyError, ImportError):
+        except Exception:  # noqa: BLE001 - close private adapter failures
             return Result(
                 FAIL, f"{item['id']} evidence or adapter unavailable/malformed"
             )
@@ -151,9 +151,10 @@ def promotion_margin(item, ctx):
         or measurement.get("levels") != LEVELS
         or measurement.get("rule_key") != key
         or measurement.get("rule_digest") != digest(rule)
+        or not _finite(measurement.get("equivalence_margin_rel"))
         or measurement.get("equivalence_margin_rel") != rule["equivalence_margin_rel"]
         or type(measurement.get("noise_source")) is not str
-        or measurement["noise_source"] in ("", "HUMAN_INPUT")
+        or measurement["noise_source"].strip() in ("", "HUMAN_INPUT")
     ):
         raise Invalid("margin_measurement_binding_mismatch")
     run, run_sha = _json(ctx, measurement["run"]["path"])
@@ -165,6 +166,7 @@ def promotion_margin(item, ctx):
         or run.get("levels") != LEVELS
         or run.get("noise_source") != measurement["noise_source"]
         or run.get("rule_digest") != digest(rule)
+        or not _finite(run.get("equivalence_margin_rel"))
         or run.get("equivalence_margin_rel") != rule["equivalence_margin_rel"]
         or type(run.get("method")) is not str
         or not run["method"].strip()

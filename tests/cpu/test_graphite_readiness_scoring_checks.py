@@ -647,3 +647,22 @@ def test_owner_input_gap_never_hides_malformed_supplied_panel(ctx, item):
         reg["sealed_roles"] = "HUMAN_INPUT"
     update(ctx, item, reg)
     assert run(ctx, item).status == model.FAIL
+
+
+def test_unexpected_adapter_error_cannot_disclose_private_path(ctx):
+    def fail():
+        raise RuntimeError("secret-never-echo")
+
+    sys.modules[record(ctx, "S1")["adapter"]].promotion_rule = fail
+    result = run(ctx, "S1")
+    assert result.status == model.FAIL
+    assert "secret-never-echo" not in repr(result)
+
+
+def test_s1_boolean_margin_cannot_equal_numeric_zero(ctx):
+    sys.modules[record(ctx, "S1")["adapter"]].rule["equivalence_margin_rel"] = 0
+    measured, _ = measurement(ctx)
+    measured["equivalence_margin_rel"] = False
+    write(ctx, "measurement.json", measured)
+    commit(ctx)
+    assert run(ctx, "S1").status == model.FAIL

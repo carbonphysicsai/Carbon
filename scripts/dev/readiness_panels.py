@@ -209,7 +209,7 @@ def main(argv=None):
     except (ec.EvidenceInvalid, sc.Invalid):
         # A closed error avoids echoing a private path, object or witness.
         print("producer refused: evidence_invalid_or_owner_input_missing")
-    except (OSError, ValueError, TypeError, KeyError, ImportError):
+    except Exception:  # noqa: BLE001 - unexpected private producer errors are closed
         print("producer refused: evidence_unavailable_or_malformed")
     return 2
 
