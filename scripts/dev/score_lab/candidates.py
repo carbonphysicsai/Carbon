@@ -50,16 +50,30 @@ def adapt_synthetic(panel, member):
     predictions = {}
     questions = {}
     probes = []
+    margin_names = ("coupled_a", "coupled_b", "coupled_c", "coupled_d", "coupled_e")
+    counts = {
+        len(ref["margins"])
+        for question in panel["score_questions"].values()
+        for ref in question["actions"].values()
+    }
+    if len(counts) != 1 or next(iter(counts)) > len(margin_names):
+        raise LabRefused("candidate_margin_grammar")
+    margin_count = next(iter(counts))
     for qid, question in panel["score_questions"].items():
         if set(member["score_predictions"][qid]) != set(question["actions"]):
             raise LabRefused("candidate_prediction_action_coverage")
+        if any(
+            len(pred["margins"]) != margin_count
+            for pred in member["score_predictions"][qid].values()
+        ):
+            raise LabRefused("candidate_margin_grammar")
         references[qid] = {
             aid: {
                 "status": ref["status"],
                 "objective": ref["objective"],
                 "margins": {
-                    "coupled_a": ref["margins"][0],
-                    "coupled_b": ref["margins"][1],
+                    margin_names[index]: value
+                    for index, value in enumerate(ref["margins"])
                 },
             }
             for aid, ref in question["actions"].items()
@@ -69,8 +83,8 @@ def adapt_synthetic(panel, member):
                 "objective": pred["objective"],
                 **({"sigma": pred["sigma"]} if "sigma" in pred else {}),
                 "margins": {
-                    "coupled_a": pred["margins"][0],
-                    "coupled_b": pred["margins"][1],
+                    margin_names[index]: value
+                    for index, value in enumerate(pred["margins"])
                 },
             }
             for aid, pred in member["score_predictions"][qid].items()
@@ -89,7 +103,10 @@ def adapt_synthetic(panel, member):
     metadata = {
         "sense": "min",
         "questions": questions,
-        "scale": {"objective": 1.0, "coupled_a": 1.0, "coupled_b": 1.0},
+        "scale": {
+            "objective": 1.0,
+            **{name: 1.0 for name in margin_names[:margin_count]},
+        },
         "near_band": 0.12,
         "probes": probes,
         "knobs": {"optimum_band": 0.12, "miss_penalty": 1.0, "top_fraction": 0.2},

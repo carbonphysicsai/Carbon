@@ -193,9 +193,17 @@ def _report(rows):
 
 def _write(out, report):
     if out is not None:
-        out.write_text(
-            json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8"
-        )
+        payload = (json.dumps(report, indent=2, sort_keys=True) + "\n").encode("utf-8")
+        if out.suffix == ".gz":
+            with (
+                out.open("wb") as handle,
+                gzip.GzipFile(
+                    filename="", mode="wb", fileobj=handle, mtime=0
+                ) as packed,
+            ):
+                packed.write(payload)
+        else:
+            out.write_bytes(payload)
 
 
 def _read_campaign_json(path):

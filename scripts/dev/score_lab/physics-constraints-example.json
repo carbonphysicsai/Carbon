@@ -1,0 +1,223 @@
+{
+  "schema": "carbon.dev.score-lab-physics-config.v1",
+  "label": "ASSUMPTION: illustrative toy settings; no Challenge registration",
+  "problem": {
+    "space": "small-grid",
+    "optima": "multi",
+    "constraint": "tight",
+    "shift": "nominal",
+    "verification_cost_ASSUMPTION": 0.1,
+    "constraint_count": 2,
+    "constraint_offset": 0.0
+  },
+  "questions_per_side": 6,
+  "decision": {
+    "k": 3,
+    "unit": 1.0,
+    "abstention_loss": 0.0,
+    "unsafe_loss": 1.0
+  },
+  "neighbourhood": {
+    "size": 0.08,
+    "score_weight": 0.25,
+    "value_weight": 0.5,
+    "extrapolation_distance": 0.5,
+    "directions": [
+      "objective",
+      "constraint",
+      "operating",
+      "boundary"
+    ]
+  },
+  "coverage": 1.0,
+  "good_fraction": 0.5,
+  "bootstrap": 30,
+  "population": [
+    {
+      "id": "physics-understanding-0",
+      "kind": "MODEL",
+      "noise": 0.015,
+      "transfer": 1.0,
+      "law_rate": 0.0,
+      "law_size": 0.0,
+      "rollout_drift": 0.005,
+      "robustness": 0.005,
+      "extrapolation": 0.005
+    },
+    {
+      "id": "physics-understanding-1",
+      "kind": "MODEL",
+      "noise": 0.025,
+      "transfer": 0.9,
+      "law_rate": 0.0,
+      "law_size": 0.0,
+      "rollout_drift": 0.01,
+      "robustness": 0.01,
+      "extrapolation": 0.01
+    },
+    {
+      "id": "moderate-generalist",
+      "kind": "MODEL",
+      "noise": 0.035,
+      "transfer": 0.7,
+      "law_rate": 0.01,
+      "law_size": 0.03,
+      "rollout_drift": 0.025,
+      "robustness": 0.04,
+      "extrapolation": 0.04
+    },
+    {
+      "id": "target-overfit-0",
+      "kind": "MODEL",
+      "noise": 0.005,
+      "transfer": 0.0,
+      "law_rate": 0.0,
+      "law_size": 0.0,
+      "rollout_drift": 0.0,
+      "robustness": 0.12,
+      "extrapolation": 0.15
+    },
+    {
+      "id": "target-overfit-1",
+      "kind": "MODEL",
+      "noise": 0.008,
+      "transfer": 0.1,
+      "law_rate": 0.0,
+      "law_size": 0.0,
+      "rollout_drift": 0.0,
+      "robustness": 0.08,
+      "extrapolation": 0.12
+    },
+    {
+      "id": "noisy-safe",
+      "kind": "MODEL",
+      "noise": 0.09,
+      "transfer": 0.8,
+      "law_rate": 0.0,
+      "law_size": 0.0,
+      "rollout_drift": 0.02,
+      "robustness": 0.02,
+      "extrapolation": 0.02
+    },
+    {
+      "id": "adversarial-score-path",
+      "kind": "PROBE",
+      "noise": 0.0,
+      "transfer": 0.0,
+      "score_path_only": true,
+      "law_rate": 0.2,
+      "law_size": 0.18,
+      "rollout_drift": 0.06,
+      "robustness": 0.12,
+      "extrapolation": 0.2
+    },
+    {
+      "id": "known-bad-law-breaker",
+      "kind": "PROBE",
+      "noise": 0.02,
+      "transfer": 0.2,
+      "law_rate": 0.4,
+      "law_size": 0.3,
+      "rollout_drift": 0.1,
+      "robustness": 0.1,
+      "extrapolation": 0.2
+    }
+  ],
+  "physics_sweep": [
+    {
+      "mode": "OFF",
+      "limit": {},
+      "weight": {}
+    },
+    {
+      "mode": "GATE",
+      "limit": {
+        "law_violations": 0.01,
+        "b15": 0.01
+      },
+      "weight": {}
+    },
+    {
+      "mode": "FLOOR",
+      "limit": {
+        "rollout_drift": 0.05,
+        "robustness": 0.08,
+        "extrapolation": 0.1,
+        "b9": 0.08,
+        "b16": 0.05
+      },
+      "weight": {}
+    },
+    {
+      "mode": "BLEND",
+      "limit": {
+        "law_violations": 0.01,
+        "rollout_drift": 0.05,
+        "robustness": 0.08,
+        "extrapolation": 0.1
+      },
+      "weight": {
+        "law_violations": 0.4,
+        "rollout_drift": 0.4,
+        "robustness": 0.4,
+        "extrapolation": 0.4
+      }
+    },
+    {
+      "mode": "GATE",
+      "limit": {
+        "b15": 1E-06
+      },
+      "weight": {},
+      "label": "ASSUMPTION: PLT-01 B15 paired residual limit"
+    },
+    {
+      "mode": "FLOOR",
+      "limit": {
+        "b9": 1.0,
+        "b16": 0.02
+      },
+      "weight": {},
+      "label": "ASSUMPTION: public B9 Celsius and PLT-01 B16 residual limits"
+    },
+    {
+      "mode": "BLEND",
+      "limit": {
+        "b15": 1E-06,
+        "b9": 1.0,
+        "b16": 0.02
+      },
+      "weight": {
+        "b15": 0.2,
+        "b9": 0.2,
+        "b16": 0.2
+      },
+      "label": "ASSUMPTION: measured-trait relative weights"
+    }
+  ],
+  "sensitivity": {
+    "neighbourhood.size": [
+      0.02,
+      0.16
+    ],
+    "neighbourhood.value_weight": [
+      0.0,
+      1.0
+    ],
+    "neighbourhood.score_weight": [
+      0.0,
+      0.5
+    ],
+    "decision.k": [
+      1,
+      5
+    ],
+    "problem.verification_cost_ASSUMPTION": [
+      0.02,
+      0.2
+    ],
+    "coverage": [
+      0.75
+    ]
+  }
+}

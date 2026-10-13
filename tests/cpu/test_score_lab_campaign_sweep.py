@@ -1,6 +1,7 @@
 """Toy LHS plan controls; no Challenge labels or held-out generator."""
 
 import copy
+import gzip
 import json
 from pathlib import Path
 
@@ -120,6 +121,29 @@ def test_cli_writes_only_the_requested_synthetic_shard(tmp_path):
     assert report["scope"] == "SYNTHETIC_DEVELOPMENT"
     assert [row["index"] for row in report["rows"]] == [1, 3, 5, 7]
     assert all(row["config_sha256"] for row in report["rows"])
+
+
+def test_cli_gzip_output_is_readable_and_byte_reproducible(tmp_path):
+    output = tmp_path / "plan.json.gz"
+    argv = [
+        "campaign-plan",
+        "--base-config",
+        str(EXAMPLE),
+        "--axes",
+        str(AXES),
+        "--count",
+        "8",
+        "--seed",
+        "17",
+        "--out",
+        str(output),
+    ]
+    assert main(argv) == 0
+    first = output.read_bytes()
+    with gzip.open(output, "rt", encoding="utf-8") as handle:
+        assert json.load(handle)["scope"] == "SYNTHETIC_DEVELOPMENT"
+    assert main(argv) == 0
+    assert output.read_bytes() == first
 
 
 def test_scored_toy_shards_are_deterministic_and_keep_axis_identity():

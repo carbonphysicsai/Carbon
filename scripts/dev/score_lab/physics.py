@@ -56,6 +56,9 @@ def validate_config(config):
         or type(problem.get("action_count", 17)) is not int
         or not 4 <= problem.get("action_count", 17) <= 256
         or not _finite(problem.get("constraint_coupling", 0), high=1)
+        or type(problem.get("constraint_count", 2)) is not int
+        or not 0 <= problem.get("constraint_count", 2) <= 5
+        or not _finite(problem.get("constraint_offset", 0), low=-0.3, high=0.3)
     ):
         raise LabRefused("physics_problem_assumptions")
     if (
@@ -91,6 +94,7 @@ def validate_config(config):
         raise LabRefused("physics_neighbourhood_assumptions")
     if (
         not _finite(config.get("coverage"), high=1)
+        or (problem.get("constraint_count", 2) == 0 and config.get("coverage") != 1)
         or not _finite(config.get("good_fraction"), low=1e-12, high=1)
         or type(config.get("bootstrap")) is not int
         or config["bootstrap"] < 1
@@ -234,12 +238,19 @@ def _toy_truth(x, context, problem, direction=None, size=0.0):
         / len(vector)
     )
     margins = [value - coupled_penalty for value in margins]
-    if direction == "constraint":
+    for index in range(2, problem.get("constraint_count", 2)):
+        coordinate = vector[index % len(vector)]
+        margins.append(
+            0.75 - abs(coordinate - 0.35) - 0.2 * shifted_context - coupled_penalty
+        )
+    margins = [value + problem.get("constraint_offset", 0) for value in margins]
+    margins = margins[: problem.get("constraint_count", 2)]
+    if direction == "constraint" and margins:
         margins[0] -= size
     return {
         "objective": objective,
         "margins": tuple(margins),
-        "status": "FEASIBLE" if min(margins) >= 0 else "INFEASIBLE",
+        "status": "FEASIBLE" if all(value >= 0 for value in margins) else "INFEASIBLE",
         "solves": 1,
     }
 
@@ -303,7 +314,11 @@ def _predict(member, qid, aid, question, *, base_question, horizon, perturbation
     extrapolation = 0.0 if path_only else member["extrapolation"]
     region = member.get("error_region", "uniform")
     if region == "boundary":
-        locality = max(0.0, 1.0 - min(abs(v) for v in reference["margins"]) / 0.15)
+        locality = (
+            max(0.0, 1.0 - min(abs(v) for v in reference["margins"]) / 0.15)
+            if reference["margins"]
+            else 0.0
+        )
     elif region == "optimum":
         best = question["exact_best_objective"]
         locality = (
@@ -337,7 +352,7 @@ def _predict(member, qid, aid, question, *, base_question, horizon, perturbation
         + transfer_gap * (old["margins"][j] - reference["margins"][j])
         + error()
         + robustness * perturbation
-        for j in (0, 1)
+        for j in range(len(reference["margins"]))
     ]
     if not path_only and _hash_fraction(member["id"], qid, aid, "tail") < member.get(
         "tail_rate", 0
@@ -358,7 +373,7 @@ def _predict(member, qid, aid, question, *, base_question, horizon, perturbation
     return {
         "objective": objective,
         "margins": tuple(margins),
-        "feasible": min(margins) >= 0,
+        "feasible": all(value >= 0 for value in margins),
         "sigma": max(local_noise * member.get("sigma_scale", 1), 1e-9),
     }
 
@@ -381,7 +396,11 @@ def _prediction_set(member, questions, bases, problem, coverage, size):
                 perturbation=perturbation,
             )
             if not covered:
-                pred = {**pred, "feasible": False, "margins": (-1.0, -1.0)}
+                pred = {
+                    **pred,
+                    "feasible": False,
+                    "margins": tuple(-1.0 for _ in pred["margins"]),
+                }
             out[qid][aid] = pred
     return out
 
