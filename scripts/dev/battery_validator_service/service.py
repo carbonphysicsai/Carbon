@@ -266,30 +266,38 @@ def _deployment(intake_config):
 
 
 def check_exposure(intake_config, deployment_config):
-    """Loopback needs nothing more. A public bind needs the owner's recorded
-    exposure decision (checked when the intake configuration loads), its TLS
-    certificate and an owner-only key that load, and the isolated carrier."""
+    """Private loopback needs nothing more. Public and tunnel modes need the
+    recorded exposure decision (checked when intake configuration loads),
+    isolated carrier and commitment admission. Direct public TLS material,
+    or optional TLS on the proxy's local hop, retains its file checks."""
     from carbon.battery import intake
 
-    if intake.is_loopback(intake_config["host"]):
+    header = intake.proxy_header(intake_config)
+    if not intake.publicly_exposed(intake_config):
         return {"bind": "loopback", "host": intake_config["host"]}
-    try:
-        info = os.lstat(intake_config["tls_cert"])
-    except OSError:
-        info = None
-    if info is None or not stat.S_ISREG(info.st_mode):
-        raise ServiceRefused("intake_tls_cert_missing")
-    owner_only_file(intake_config["tls_key"], "intake_tls_key")
+    if header is None or "tls_cert" in intake_config:
+        try:
+            info = os.lstat(intake_config["tls_cert"])
+        except OSError:
+            info = None
+        if info is None or not stat.S_ISREG(info.st_mode):
+            raise ServiceRefused("intake_tls_cert_missing")
+        owner_only_file(intake_config["tls_key"], "intake_tls_key")
     try:
         intake.tls_context(intake_config)
         intake.require_isolation(intake_config, deployment_config)
     except intake.IntakeUnavailable as refused:
         raise ServiceRefused(refused.code) from None
     return {
-        "bind": "public",
+        "bind": "loopback" if header is not None else "public",
         "host": intake_config["host"],
-        "exposure_record": intake_config["exposure_record"],
-        "tls": True,
+        "exposure_record": (
+            intake_config["exposure"]["record"]
+            if header is not None
+            else intake_config["exposure_record"]
+        ),
+        "tls": "tls_cert" in intake_config,
+        **({"via": "trusted_proxy"} if header is not None else {}),
     }
 
 
@@ -682,7 +690,7 @@ def probe_intake(intake_config, *, timeout=5.0):
     certificate from the same issuer is `intake_certificate_differs`. Only
     the public facts are read: the probe sends nothing signed.
     """
-    from carbon.battery.intake import INFO_PATH
+    from carbon.battery.intake import INFO_PATH, proxy_header
 
     host = intake_config["host"]
     host = {"0.0.0.0": "127.0.0.1", "::": "::1"}.get(host, host)
@@ -706,7 +714,12 @@ def probe_intake(intake_config, *, timeout=5.0):
                     intake_config["tls_cert"]
                 ):
                     return {"listening": True, "answer": "intake_certificate_differs"}
-            connection.request("GET", INFO_PATH)
+            header = proxy_header(intake_config)
+            connection.request(
+                "GET",
+                INFO_PATH,
+                headers={} if header is None else {header: "127.0.0.1"},
+            )
             response = connection.getresponse()
             status, body = response.status, response.read(65536)
         finally:

@@ -17,7 +17,7 @@ from carbon.trust_map.core import MAP_SCHEMA
 
 CONTRACT_SCHEMA = "carbon.product.guard-contract.v2"
 ENVELOPE_SCHEMA = "carbon.product.guard-envelope.v1"
-POLICY_SCHEMA = "carbon.product.guard-policy.v2"
+POLICY_SCHEMA = "carbon.product.guard-policy.v3"
 REFERENCE_SCHEMA = "carbon.product.guard-reference.v3"
 PRIMITIVES = {"bound", "initial_condition", "prefix_invariance"}
 
@@ -537,7 +537,7 @@ def native_map(raw, model_id, image, inputs, outputs):
     return value
 
 
-def policy(raw, pins, inputs, outputs):
+def policy(raw, pins, inputs, outputs, family):
     if raw is None:
         return None
     value = snapshot(raw)
@@ -554,6 +554,7 @@ def policy(raw, pins, inputs, outputs):
             "min_cell_count",
             "uncertainty",
             "laws",
+            "b9",
             "latency_target_ms",
         },
     )
@@ -565,6 +566,27 @@ def policy(raw, pins, inputs, outputs):
     if value["authority_ref"] is not None:
         sha(value["authority_ref"])
     require(value["pins"] == pins, "policy_identity_mismatch")
+    b9 = value["b9"]
+    if family == "battery-v3":
+        closed(b9, {"threshold_c", "decision_id"})
+        # Validate the recorded owner's policy; never invent or default a value.
+        require(
+            number(b9["threshold_c"], nonnegative=True) == 0.1
+            and b9["decision_id"] == "OWNER-PHYSICS-GATES-01",
+            "b9_owner_policy_mismatch",
+        )
+        require(
+            pins["reference_image"]
+            == "sha256:2d19b261e722fe67f20bee02e115f2277a799c448b90d54d2872361b341bd940",
+            "b9_reference_image_mismatch",
+        )
+        require(
+            inputs.get("t_amb_c", {}).get("unit") == "C"
+            and outputs.get("temperature_c", {}).get("unit") == "C",
+            "b9_temperature_units_required",
+        )
+    else:
+        require(b9 is None, "b9_battery_scope_only")
     closed(value["laws"], {"mode"})
     require(
         value["laws"]["mode"] in ("REQUIRED_ADOPTED", "EXPLICIT_NO_LAWS"),

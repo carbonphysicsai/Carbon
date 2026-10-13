@@ -9,7 +9,14 @@ from pathlib import Path
 import pytest
 
 from carbon.battery.value import score_tuning as st
-from scripts.dev.score_lab import bank, candidates, public_ev4, synthetic
+from scripts.dev.score_lab import (
+    bank,
+    candidates,
+    physics,
+    public_ev4,
+    public_physics,
+    synthetic,
+)
 from scripts.dev.score_lab.__main__ import _report
 from scripts.dev.score_lab.core import (
     LabRefused,
@@ -332,3 +339,202 @@ def test_public_ev4_adapter_rejects_unpinned_reference(tmp_path):
     (tmp_path / "ev4-decision-references.jsonl").write_text("{}\n", encoding="utf-8")
     with pytest.raises(LabRefused, match="ev4_public_reference_digest_mismatch"):
         public_ev4.build(tmp_path, ROOT)
+
+
+def _physics_config():
+    path = ROOT / "scripts/dev/score_lab/physics-example.json"
+    config = json.loads(path.read_text(encoding="utf-8"))
+    config["bootstrap"] = 3
+    return config
+
+
+def test_physics_toy_strata_are_disjoint_and_neighbours_change_true_value():
+    config = _physics_config()
+    panel = physics.build(config)
+    validate_panel(panel)
+    assert set(panel["score_questions"]).isdisjoint(panel["value_questions"])
+    assert set(panel["value_strata"].values()) == {
+        "in_range",
+        "shifted",
+        "extrapolated",
+    }
+    by_id = {m["id"]: m for m in panel["members"]}
+    good = by_id["physics-understanding-0"]
+    overfit = by_id["target-overfit-0"]
+    extrapolated = [q for q, s in panel["value_strata"].items() if s == "extrapolated"]
+    assert sum(good["value_losses"][q] for q in extrapolated) < sum(
+        overfit["value_losses"][q] for q in extrapolated
+    )
+    assert len(good["score_metadata"]["neighbours"]) == 4
+    target = physics.value_view(panel, "in_range")
+    blend = physics.value_view(panel, "neighbourhood_blend", 1.0)
+    assert target["members"][0]["value_losses"] != blend["members"][0]["value_losses"]
+    assert target["score_questions"] is blend["score_questions"]
+
+
+def test_candidate_adapter_passes_score_only_physics_and_preserves_floor_tier():
+    config = _physics_config()
+    panel = physics.build(config)
+    seen = []
+
+    def rule(predictions, references, metadata):
+        assert set(predictions) == set(references) == set(metadata["questions"])
+        assert not set(references) & set(panel["value_questions"])
+        assert len(metadata["neighbours"]) == 4
+        seen.append(metadata["physics"]["extrapolation"])
+        return {
+            "score": 0.9,
+            "gate": "PASS",
+            "tier": int(metadata["physics"]["extrapolation"] > 0.1),
+        }
+
+    proxy = candidates.rule_from_spec(
+        "toy", {"rule": rule}, path_digest="fixture", panel=panel
+    )
+    result = analyze(physics.value_view(panel, "in_range"), proxy, bootstrap=3)
+    assert result["status"] == "MEASURED_DEVELOPMENT"
+    assert len(seen) == len(panel["members"])
+    assert result["physics_tiers"]["target-overfit-0"] == 1
+    assert (
+        result["ranked_scores"]["target-overfit-0"]
+        < result["ranked_scores"]["physics-understanding-0"]
+    )
+
+
+def test_floor_rank_is_lexicographic_and_gate_failures_stay_last():
+    panel = synthetic.build(_config())
+    for i, member in enumerate(panel["members"]):
+        member["score_metadata"] = {
+            "toy_tier": i % 4,
+            "toy_gate": i == 3,
+            "toy_score": 1e100 if i % 4 == 3 else float(i),
+        }
+
+    def rule(_predictions, _references, metadata):
+        return {
+            "score": metadata["toy_score"],
+            "admissible": not metadata["toy_gate"],
+            "tier": metadata["toy_tier"],
+        }
+
+    result = analyze(panel, rule, bootstrap=3)
+    names = [member["id"] for member in panel["members"]]
+    ranks = result["ranked_scores"]
+    assert ranks[names[0]] > ranks[names[1]] > ranks[names[2]]
+    assert ranks[names[2]] > ranks[names[3]]
+    assert result["physics_floor_failures"] > 0
+    for member in panel["members"]:
+        member["score_metadata"]["toy_tier"] += 1
+    assert analyze(panel, rule, bootstrap=3)["top1_member"] is None
+
+
+def test_physics_switches_and_sensitivity_remain_assumptions():
+    config = _physics_config()
+    config["sensitivity"] = {"neighbourhood.size": [0.16]}
+
+    def rule(predictions, references, metadata):
+        score = 1 / (
+            1 + abs(next(iter(next(iter(predictions.values())).values()))["objective"])
+        )
+        mode = metadata["knobs"]["physics"]["mode"]
+        trait = metadata["physics"]["extrapolation"]
+        return {
+            "score": score / (1 + trait) if mode == "BLEND" else score,
+            "gate": "FAIL" if mode == "GATE" and trait > 0.1 else "PASS",
+            "tier": int(mode == "FLOOR" and trait > 0.1),
+        }
+
+    report = physics.sensitivity(config, {"toy": {"rule": rule}}, "fixture")
+    assert len(report["rows"]) == len(config["physics_sweep"])
+    assert len(report["sensitivity"]["table"]) == 1
+    assert report["physics_verdict"]["status"] == "DESCRIPTIVE_ONLY"
+    off = next(row for row in report["rows"] if row["switch"]["mode"] == "OFF")
+    assert off["good_wrongly_excluded"] == 0
+    with pytest.raises(LabRefused, match="physics_blend_denominator"):
+        bad = _physics_config()
+        bad["physics_sweep"][-1]["limit"] = {}
+        physics.build(bad)
+
+
+def test_public_physics_traits_are_read_only_and_missing_b9_refuses(tmp_path):
+    paired = {
+        "schema": "carbon.physics-pair-readings.v2",
+        "scope": "PUBLIC_DEVELOPMENT",
+        "complete": True,
+        "public_members": ["a", "b"],
+        "readings": {
+            "B15": {"a": [0.1, 0.3], "b": [0.0]},
+            "B16": {"a": [0.2], "b": [0.4]},
+        },
+    }
+    b9 = {
+        "schema": "carbon.research.physics-consistency-public.v1",
+        "maturity": "DEVELOPMENT_DESCRIPTIVE_NOT_QUALIFIED",
+        "members": [
+            {"member": "a", "metrics": {"case_maxima": {"below_ambient": 0.5}}},
+            {"member": "b", "metrics": {"case_maxima": {"below_ambient": 0.6}}},
+        ],
+    }
+    p1, p2 = tmp_path / "paired.json", tmp_path / "b9.json"
+    p1.write_text(json.dumps(paired), encoding="utf-8")
+    p2.write_text(json.dumps(b9), encoding="utf-8")
+    traits = public_physics.load_traits(p1, p2, expected_count=2)
+    assert traits["members"]["a"] == {"b15": 0.3, "b16": 0.2, "b9": 0.5}
+    assert len(traits["source_sha256"]["plt01"]) == 64
+    b9["members"].pop()
+    p2.write_text(json.dumps(b9), encoding="utf-8")
+    with pytest.raises(LabRefused, match="physics_public_b9_reading"):
+        public_physics.load_traits(p1, p2, expected_count=2)
+
+
+def test_public_physics_replay_uses_registered_score_and_reports_missing_trait():
+    panel = synthetic.build(_config())
+    panel["scope"] = "PUBLIC_DEVELOPMENT"
+    panel["assumption"]["job"] = "battery-EV4-CV-onset-proxy"
+    panel["provenance"] = {
+        "reference_sha256": public_ev4.PUBLIC_REFERENCE_SHA256,
+        "bundle_sha256": {m["id"]: "fixture" for m in panel["members"]},
+    }
+    traits = {
+        "members": {
+            m["id"]: {"b15": 0.02, "b9": 0.3, "b16": 0.04} for m in panel["members"]
+        },
+        "source_sha256": {"plt01": "a" * 64, "b9": "b" * 64},
+    }
+
+    def exact_rule(_predictions, _references, metadata):
+        return {"score": 1 / (1 + metadata["score_row"]["E"]), "admissible": True}
+
+    exact_rule.rule_identity = {"kind": "fixture_exact_registry"}
+
+    def wrap(rule):
+        def wrapped(predictions, references, metadata):
+            result = rule(predictions, references, metadata)
+            switch = metadata["knobs"]["physics"]
+            if switch["mode"] == "FLOOR":
+                result["tier"] = int(metadata["physics"]["b9"] > switch["limit"]["b9"])
+            return result
+
+        return wrapped
+
+    switches = [
+        {"mode": "OFF", "limit": {}, "weight": {}},
+        {"mode": "FLOOR", "limit": {"b9": 0.2}, "weight": {}},
+        {"mode": "GATE", "limit": {"extrapolation": 0.1}, "weight": {}},
+    ]
+    report = public_physics.replay(
+        panel, traits, exact_rule, switches, bootstrap=3, with_physics=wrap
+    )
+    assert report["replayed_members"] == len(panel["members"])
+    assert [row["status"] for row in report["rows"]] == [
+        "MEASURED_DEVELOPMENT",
+        "MEASURED_DEVELOPMENT",
+        "INSUFFICIENT_EVIDENCE",
+    ]
+    traits["members"].pop(panel["members"][0]["id"])
+    assert (
+        public_physics.replay(
+            panel, traits, exact_rule, switches, bootstrap=3, with_physics=wrap
+        )["reason"]
+        == "public_trait_member_mismatch"
+    )

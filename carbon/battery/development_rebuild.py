@@ -15,19 +15,35 @@ record is Level 0, and nothing here touches it.
   rebuild fails closed as Carbon's environment (G5 is accepted for
   development and testnet, OWNER-L4-G5-COMPILE-ISOLATION-01).
 
+- Composed (CONSTRUCTION-CONTRACT-01): two or more parts of Levels 1-3 in
+  one construction train together (`composed_worker`). A single part keeps its
+  own level's record and route above, byte for byte.
+
 Each level's own module stays the authority for its staging; this module
 only routes.
 """
 
 from __future__ import annotations
 
-from . import level1_worker, level2_worker, level3_worker, level4_worker
+from . import (
+    composed_worker,
+    level1_worker,
+    level2_worker,
+    level3_worker,
+    level4_worker,
+)
 
 LEVEL1, LEVEL2, LEVEL3, LEVEL4 = "level1", "level2", "level3", "level4"
+COMPOSED = "composed"
 
 
 def record(reconstruction):
-    """The development record a construction rebuilds with, or None."""
+    """The development record a construction rebuilds with, or None. Two or
+    more parts give the composed record; a graph beside another part is
+    refused, naming the fields (`composed_worker.RebuildUnavailable`)."""
+    found = composed_worker.composed_record(reconstruction)
+    if found is not None:
+        return found
     found = level4_worker.graph_record(reconstruction)
     if found is None:
         found = level1_worker.expression_record(reconstruction)
@@ -42,6 +58,8 @@ def kind(found):
     """Which level a development record belongs to."""
     if found is None:
         return None
+    if composed_worker.is_composed(found):
+        return COMPOSED
     if level4_worker.is_graph(found):
         return LEVEL4
     if level3_worker.is_numerics(found):
@@ -59,6 +77,12 @@ def stage(found, program, files, *, level1_program):
     level = kind(found)
     if level is None:
         return program, files, None
+    if level == COMPOSED:
+        return (
+            composed_worker.program(program, found),
+            {**files, **composed_worker.staged(found)},
+            COMPOSED,
+        )
     if level == LEVEL4:
         return (
             level4_worker.program(program),
@@ -91,12 +115,15 @@ def rebuild_label(found):
         LEVEL2: level2_worker.REBUILD_LABEL,
         LEVEL3: level3_worker.REBUILD_LABEL,
         LEVEL4: level4_worker.REBUILD_LABEL,
+        COMPOSED: composed_worker.REBUILD_LABEL,
     }[level]
 
 
 def training_data(found, train):
     """The TRAIN a development record trains on (`train`, unless a Level-2
     pool selection restricts it)."""
+    if kind(found) == COMPOSED:
+        return composed_worker.training_data(found, train)
     if kind(found) == LEVEL2:
         return level2_worker.training_data(found, train)
     return train
@@ -106,6 +133,8 @@ def build_in_process(recipe, found, workspace=None):
     """The untrained development model, built in this process. `workspace`
     is a Level 4 submission's staged files; other levels have none."""
     level = kind(found)
+    if level == COMPOSED:
+        return composed_worker.build_in_process(recipe, found)
     if level == LEVEL4:
         return level4_worker.build_in_process(recipe, found, workspace)
     if level == LEVEL3:

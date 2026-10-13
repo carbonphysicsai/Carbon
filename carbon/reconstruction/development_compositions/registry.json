@@ -1,0 +1,9 @@
+{
+ "current": {
+  "battery-fastcharge-ageing-development-v1": "battery-construction-v1"
+ },
+ "schema": "carbon.development-composition-registry.v1",
+ "versions": {
+  "battery-construction-v1": "sha256:0865617e90ecd0ea117c2f12cafb6f519b0c4ed0bc00e7e2483ebe248ba76310"
+ }
+}

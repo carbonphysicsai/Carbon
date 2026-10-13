@@ -1,0 +1,31 @@
+{
+  "schema": "carbon.onboarding.panel-input-gaps.v1",
+  "challenge": "f02",
+  "authority_commit": "1f28ea48463314369ea28a74522134051aecd833",
+  "source": "docs/development/challenge_pipeline/question-laws/f02-round2.json",
+  "registration_status": "HOLD_INPUTS",
+  "adopted": false,
+  "dispatch_authority": false,
+  "case_count": null,
+  "cases": null,
+  "cpu_hours_after_dedup": null,
+  "missing": [
+    "the f02-round2 question law: variant draw and context mass (HUMAN_INPUT)",
+    "public completed AND scheduled tuple snapshot (no producer emits carbon.development.solve-inventory-snapshot.v1 yet)",
+    "a pinned per-case timing receipt including refinement on the registered image"
+  ],
+  "historical_menu_cardinality": 9,
+  "proposed_menu_cardinality_not_adopted": null,
+  "contexts_in_existing_packet": 24,
+  "reported_cost_context": "Owner-reported 2-3 CPU-min standard; Data Collection measured about 207 CPU-s per primary solve on a quiet pinned host and about 336 CPU-s on the loaded operator PC (2026-10-12); refinement not separately timed",
+  "value_check": "NOT_DEMONSTRATED",
+  "registered_since_snapshot": {
+    "note": "registered on main after the 65ef88660 snapshot this manifest was first written against (Data Collection, 2026-10-13)",
+    "menu": "16 actions x 24 contexts, development registration F02-MENU-V2-REGISTRATION (2026-10-11) with EQUAL-BUDGET-V2-F02-MENU; the nine-action V1 row stays as history",
+    "registry": "docs/development/evidence/reference-packages-01/f02-menu-v2/registry.json (Elmer 26.2.1 image sha256:6fab746f..., mesh 1, dt 1; refinement at mesh 2 and dt/2 within 1 C of the 95 C limit, 0.5 C bands)",
+    "decks": "f02-menu-v2/decks-manifest.json (384 primary decks) and train-registry.json / train-decks-manifest.json (960 continuous public TRAIN, disjoint by construction)",
+    "producer": "docs/development/challenge_pipeline/evidence-producer-stages.md: f02 reference and train stages, working decision 1 makes menu v2 the f02 contract"
+  },
+  "registered_menu_cardinality": 16,
+  "known_risk": "f02 feasibility appears only in the cold corner: 3 interior calibration contexts (midpoints of the registered levels) were NONE_FEASIBLE for all 16 actions (2026-10-12); the f02 value check on the registered menu is pending (Test Lead)"
+}
