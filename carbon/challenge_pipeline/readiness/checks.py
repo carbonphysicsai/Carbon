@@ -21,7 +21,7 @@ import xml.etree.ElementTree as ET
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from . import evidence_checks, q1, runtime_checks
+from . import evidence_checks, q1, runtime_checks, study_checks
 from .model import (
     FAIL,
     NOT_BUILT,
@@ -1128,6 +1128,12 @@ def confirmation_role(item, ctx):
 
 
 CHECKS = {
+    "frozen_study": study_checks.frozen_study,
+    "harness_adapter": study_checks.harness_adapter,
+    "counted_timing": study_checks.counted_timing,
+    "real_import": study_checks.real_import,
+    "reference_coverage": study_checks.reference_coverage,
+    "analysis_pins": study_checks.analysis_pins,
     "carrier_containment": runtime_checks.containment,
     "model_settings": runtime_checks.model_settings,
     "gate_margin_study": evidence_checks.gate_margin_study,
