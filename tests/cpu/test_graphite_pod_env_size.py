@@ -204,7 +204,7 @@ def test_an_oversized_environment_is_refused_before_any_provider_call(tmp_path):
 def test_the_guard_counts_names_and_values():
     assert pod_env.env_chars({"AB": "xyz", "C": ""}) == 6
     assert pod_env.largest_variable({"A": "x", "B": "xyz"}) == "B"
-    assert pod_env.ENV_LIMIT_CHARS == 90_000
+    assert pod_env.ENV_LIMIT_CHARS == 108_000
 
 
 def test_the_a40_harness_shares_the_same_closure_and_limit():
