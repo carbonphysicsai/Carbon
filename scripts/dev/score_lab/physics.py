@@ -18,6 +18,7 @@ SCHEMA = "carbon.dev.score-lab-physics-config.v1"
 TRAITS = ("law_violations", "rollout_drift", "robustness", "extrapolation")
 DIRECTIONS = ("objective", "constraint", "operating", "boundary")
 MODES = ("OFF", "GATE", "FLOOR", "BLEND")
+ERROR_REGIONS = ("uniform", "boundary", "optimum")
 
 
 def _finite(value, *, low=0.0, high=None):
@@ -97,6 +98,12 @@ def validate_config(config):
                 _finite(member.get(key))
                 for key in ("law_size", "rollout_drift", "robustness", "extrapolation")
             )
+            or not _finite(member.get("heteroscedasticity", 0), high=5)
+            or member.get("error_region", "uniform") not in ERROR_REGIONS
+            or not _finite(member.get("cross_design_correlation", 0), high=1)
+            or not _finite(member.get("tail_rate", 0), high=1)
+            or not _finite(member.get("tail_size", 0))
+            or not _finite(member.get("sigma_scale", 1), low=1e-12)
         ):
             raise LabRefused("physics_member_traits")
     if sum(m["kind"] == "MODEL" for m in population) < 3:
@@ -184,20 +191,51 @@ def _predict(member, qid, aid, question, *, base_question, horizon, perturbation
     rollout = 0.0 if path_only else member["rollout_drift"]
     robustness = 0.0 if path_only else member["robustness"]
     extrapolation = 0.0 if path_only else member["extrapolation"]
+    region = member.get("error_region", "uniform")
+    if region == "boundary":
+        locality = max(0.0, 1.0 - min(abs(v) for v in reference["margins"]) / 0.15)
+    elif region == "optimum":
+        best = question["exact_best_objective"]
+        locality = (
+            max(0.0, 1.0 - (reference["objective"] - best) / 0.15)
+            if best is not None
+            else 0.0
+        )
+    else:
+        locality = 1.0
+    local_noise = noise * (1 + member.get("heteroscedasticity", 0) * locality)
+    correlation = member.get("cross_design_correlation", 0)
+    shared_rng = synthetic._rng(member["id"], qid, "shared-error")
+
+    def error():
+        independent = rng.gauss(0, local_noise)
+        common = shared_rng.gauss(0, local_noise)
+        return (
+            independent * math.sqrt(1 - correlation * correlation)
+            + common * correlation
+        )
+
     objective = (
         reference["objective"]
         + transfer_gap * (old["objective"] - reference["objective"])
-        + rng.gauss(0, noise)
+        + error()
         + rollout * horizon
         + robustness * perturbation
     )
     margins = [
         reference["margins"][j]
         + transfer_gap * (old["margins"][j] - reference["margins"][j])
-        + rng.gauss(0, noise)
+        + error()
         + robustness * perturbation
         for j in (0, 1)
     ]
+    if not path_only and _hash_fraction(member["id"], qid, aid, "tail") < member.get(
+        "tail_rate", 0
+    ):
+        sign = 1 if _hash_fraction(member["id"], qid, aid, "tail-sign") < 0.5 else -1
+        size = member.get("tail_size", 0)
+        objective -= sign * size
+        margins = [value + sign * size for value in margins]
     if qid.startswith("X-"):
         objective += extrapolation * perturbation
         margins = [v + extrapolation * perturbation for v in margins]
@@ -211,7 +249,7 @@ def _predict(member, qid, aid, question, *, base_question, horizon, perturbation
         "objective": objective,
         "margins": tuple(margins),
         "feasible": min(margins) >= 0,
-        "sigma": max(noise, 1e-9),
+        "sigma": max(local_noise * member.get("sigma_scale", 1), 1e-9),
     }
 
 

@@ -223,6 +223,13 @@ rounding precisions and probe allowances are diagnostic assumptions, not a
 claim about the actual Launchpad disclosure contract. A gated or unscored
 probe leaves that candidate `INSUFFICIENT_EVIDENCE`.
 
+`physics-error-example.json` is a separate explicit-default toy config for
+the optional error-structure knobs: heteroscedasticity and its region,
+cross-design correlation, rare-tail rate and size, and reported uncertainty
+scale. `campaign-axes-error-example.json` varies those knobs. The earlier
+25-axis input is retained unchanged so its saved exploratory results remain
+reproducible. These settings alter synthetic model errors, not analytic truth.
+
 ```sh
 python -m scripts.dev.score_lab campaign-feedback \
   --config scripts/dev/score_lab/physics-example.json \
