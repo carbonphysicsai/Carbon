@@ -40,7 +40,7 @@ def padded_spec(spec, target_chars, *, pattern="ascii"):
         raise ProbeRefused("probe padding already present")
     if type(target_chars) is not int or not 0 < target_chars <= pod_env.ENV_LIMIT_CHARS:
         raise ProbeRefused("target outside the current environment guard")
-    if pattern not in PATTERNS:
+    if type(pattern) is not str or pattern not in PATTERNS:
         raise ProbeRefused("unknown padding pattern")
     length = target_chars - pod_env.env_chars(env) - len(PADDING_KEY)
     if length < 0:

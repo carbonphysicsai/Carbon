@@ -85,7 +85,8 @@ def test_metrics_match_bytes_handed_to_the_actual_adapter_transport():
         seen.append(body)
         return 200, b'{"id":"fixture123"}'
 
-    adapter = RunPodAdapter(SimpleNamespace(load=lambda: "fixture-key"), transport)
+    key = SimpleNamespace(reveal=lambda: "fixture-key")
+    adapter = RunPodAdapter(SimpleNamespace(load=lambda: key), transport)
     adapter.create(spec, ownership_tag=TAG)
     metrics = probe.request_metrics(spec, TAG)
     [wire] = seen
