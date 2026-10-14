@@ -14,6 +14,10 @@
     "changed_specimen_target",
     "missing_worker_evidence",
     "spoofed_worker_or_diagnostic_evidence",
-    "legacy_family_and_failure_semantics"
+    "legacy_family_and_failure_semantics",
+    "unexpected_metadata_failure_is_infra",
+    "declared_family_exposure_and_unassigned_workspace_contrasts",
+    "mixed_legacy_and_two_target_remint_sources",
+    "selected_remint_scope_drift_and_ambiguity"
   ]
 }

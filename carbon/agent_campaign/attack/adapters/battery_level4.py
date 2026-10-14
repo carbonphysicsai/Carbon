@@ -624,6 +624,15 @@ class BatteryLevel4Adapter(b.BatteryLevel0Adapter):
         ]
         return inventory
 
+    def target_submission(self, strategy):
+        """Resolve the Challenge-owned submission field without a rebuild."""
+        from carbon.battery.level4 import FIELD
+
+        if not isinstance(strategy, Mapping):
+            return None
+        parameters = strategy.get("parameters")
+        return parameters.get(FIELD) if isinstance(parameters, Mapping) else None
+
     def rebuild_target(self, construction, target):
         """Metadata-only reconstruction from the operator's captured stage.
 
@@ -641,6 +650,10 @@ class BatteryLevel4Adapter(b.BatteryLevel0Adapter):
         if b._protected(strategy):
             return b.Unrebuildable(
                 code="protected_material", detail="protected_material_named"
+            )
+        if self.target_submission(strategy) != target.record()["submission_digest"]:
+            return b.Unrebuildable(
+                code="unknown_construction", detail="target_submission_substituted"
             )
         try:
             record = experiment.admit(

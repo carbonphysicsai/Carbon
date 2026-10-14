@@ -268,10 +268,9 @@ def load(public_root, name, expected_manifest, adapter, *, repository):
                 raise TargetRefused("target_material_not_public")
         submission, raw_manifest, _ = staging.from_envelope(envelope)
         _submission_scope(raw_manifest, adapter)
-        from carbon.battery.level4 import FIELD
-
         development = recipe.get("development") if type(recipe) is dict else None
         challenge = recipe.get("challenge") if type(recipe) is dict else None
+        submission_of = getattr(adapter, "target_submission", None)
         if (
             type(strategy) is not dict
             or strategy.get("challenge_id") != adapter.challenge_id
@@ -281,7 +280,8 @@ def load(public_root, name, expected_manifest, adapter, *, repository):
             or type(development) is not dict
             or development.get("level") != adapter.level
             or development.get("variant_digest") != adapter.contract_digest
-            or (strategy.get("parameters") or {}).get(FIELD) != submission
+            or not callable(submission_of)
+            or submission_of(strategy) != submission
         ):
             raise TargetRefused("target_construction_binding_mismatch")
         _sha(manifest["contract_digest"])

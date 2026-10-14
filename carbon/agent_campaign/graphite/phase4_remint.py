@@ -141,17 +141,6 @@ def _sources(store, attempt_id, expected, session, target=None):
                 number = entry.get("session")
                 if session is not None and number != session:
                     continue
-                targeted = entry["schema"] == phase4.TARGET_LOG_SCHEMA
-                if targeted or target is not None:
-                    scope = entry.get("verification_scope")
-                    if (
-                        target is None
-                        or not targeted
-                        or type(scope) is not dict
-                        or scope.get("target") != target.record()
-                        or scope.get("target_pin") != target.pin
-                    ):
-                        raise RemintRefused("target_iteration_binding_changed")
                 if type(number) is not int or number < 1:
                     raise RemintRefused("iteration_session_invalid")
                 run_id = entry.get("run_id")
@@ -201,12 +190,41 @@ def _sources(store, attempt_id, expected, session, target=None):
     unique = {}
     for entry, verdict in found:
         key = (entry["run_id"], json.dumps(verdict, sort_keys=True))
+        if key in unique:
+            previous = unique[key][0]
+            if any(
+                previous.get(field) != entry.get(field)
+                for field in (
+                    "schema",
+                    "session",
+                    "challenge",
+                    "construction_level",
+                    "verification_scope",
+                )
+            ):
+                raise RemintRefused("remint_source_context_ambiguous")
         unique[key] = (entry, verdict)
     if not unique and redacted:
         raise RemintRefused("finding_evidence_redacted")
     if len(unique) != 1:
         raise RemintRefused("remint_source_missing_or_ambiguous")
-    return (*next(iter(unique.values())), excluded_non_session, finding_records_seen)
+    entry, verdict = next(iter(unique.values()))
+    targeted = entry["schema"] == phase4.TARGET_LOG_SCHEMA
+    if targeted or target is not None:
+        from carbon.agent_campaign.attack import target_binding
+
+        scope = entry.get("verification_scope")
+        if (
+            target is None
+            or not targeted
+            or type(scope) is not dict
+            or scope.get("target") != target.record()
+            or scope.get("target_pin") != target.pin
+            or scope.get("mode") != target_binding.MODE
+            or scope.get("runtime_verification") != "UNAVAILABLE"
+        ):
+            raise RemintRefused("target_iteration_binding_changed")
+    return entry, verdict, excluded_non_session, finding_records_seen
 
 
 def remint(root, attempt_id, expected, *, session=None, target=None):

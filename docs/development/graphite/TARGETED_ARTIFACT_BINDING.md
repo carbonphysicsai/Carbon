@@ -43,6 +43,10 @@ base construction contract separately from the L4 variant digest, the
 Challenge id/version, submission digest and built-artifact identity. Numeric
 retraining tolerances and scientific adequacy remain unavailable.
 
+The adapter owns the strategy's submission-field resolver. A changed or
+missing submission digest is refused before pairing the strategy with the
+captured workspace. Unexpected metadata rebuild failures remain INFRA.
+
 The same validated TargetBinding reaches the brief, session pin, verifier,
 report, specimen and resume. Returned JSON/workspace views are copies.
 Ordinary mappings and direct stand-in construction do not mint that binding.
@@ -70,6 +74,10 @@ Its target must also match the iteration log, session pin and recorded
 verdict. Remint reconstructs metadata and formats a diagnostic specimen;
 it makes no new oracle, worker or classification decision. This slice cannot
 produce an accepted targeted runtime breach/hold without a real backend.
+Source lookup authenticates and uniquely selects the requested attempt and
+specimen before checking that source's target scope. Unrelated legacy or
+other-target sessions do not replace that source or block its lookup;
+multiple matching authenticated sources remain ambiguous and refuse.
 
 Tests use only the registered TEST_ONLY control inventory and synthetic public
 stage bytes. Actual same-entrypoint miner/carrier/worker/replay/disclosure

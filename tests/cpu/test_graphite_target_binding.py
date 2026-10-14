@@ -5,6 +5,7 @@ from __future__ import annotations
 import dataclasses
 import json
 import os
+import sqlite3
 from decimal import Decimal
 from pathlib import Path
 from types import SimpleNamespace
@@ -102,7 +103,7 @@ def test_the_registered_fixture_is_non_runtime_evidence():
     fixture = json.loads(path.read_bytes())
     assert fixture["evidence_class"] == "TEST_ONLY"
     assert fixture["runtime_authority"] == "UNAVAILABLE"
-    assert len(set(fixture["cases"])) == len(fixture["cases"]) == 12
+    assert len(set(fixture["cases"])) == len(fixture["cases"]) == 16
 
 
 def test_staged_scope_matches_the_existing_submission_contract():
@@ -322,12 +323,20 @@ def test_the_actual_verifier_binds_metadata_but_never_trusts_worker_claims(bound
     )
 
 
-def test_another_construction_cannot_be_counted_as_attacking_the_bound_artifact(bound):
+def test_another_construction_cannot_be_counted_as_attacking_the_bound_artifact(
+    bound, monkeypatch
+):
     from carbon.agent_campaign.attack import verify
+    from carbon.agent_campaign.graphite import experiment
 
     target, _source = bound
     strategy = target.strategy()
     strategy["parameters"]["composition_graphs"] = "sha256:" + "0" * 64
+    monkeypatch.setattr(
+        experiment,
+        "admit",
+        lambda *_a, **_kw: pytest.fail("substituted stage admitted"),
+    )
     verdict = verify.verify(
         attempt_for(target, arguments={"strategy_json": json.dumps(strategy)}),
         l4.ADAPTER,
@@ -338,21 +347,66 @@ def test_another_construction_cannot_be_counted_as_attacking_the_bound_artifact(
     assert verdict.reason == "target_construction_or_stage_substituted"
 
 
-def test_targeting_does_not_hide_an_existing_miner_path_isolation_finding(bound):
+def test_unexpected_target_metadata_failure_remains_infrastructure(bound, monkeypatch):
     from carbon.agent_campaign.attack import verify
+    from carbon.agent_campaign.graphite import experiment
+
+    target, _source = bound
+
+    def unavailable(*_a, **_kw):
+        raise RuntimeError("synthetic unexpected infrastructure fault")
+
+    monkeypatch.setattr(experiment, "admit", unavailable)
+    verdict = verify.verify(attempt_for(target), l4.ADAPTER, target=target)
+    assert verdict.outcome == verify.INFRA and not verdict.scored
+    assert verdict.artifact is None and not verdict.finding
+    assert verdict.reason == "target_metadata_rebuild_failed_infra"
+
+
+def test_targeting_preserves_unassigned_workspace_and_declared_family_exposure(bound):
+    from carbon.agent_campaign.attack import analysis, verify
 
     target, _source = bound
     attempt = attempt_for(
         target,
         tool="start_research_task",
-        arguments={"kind": "workspace", "action": "run_python", "arguments_json": "{}"},
+        arguments={
+            "kind": "workspace",
+            "action": "run_python",
+            "arguments_json": "{}",
+            "hypothesis": "[family: l4_escape_ops] public synthetic probe",
+        },
     )
-    verdict = verify.verify(
-        attempt, l4.ADAPTER, target=target, carrier={"network_attempts": 1}
+    assert analysis.family_of(attempt, l4.ADAPTER) == analysis.UNASSIGNED
+    assert analysis.authority_of(attempt, l4.ADAPTER) == analysis.MINER_LOCAL
+    for context in (None, target):
+        for network in (0, 1):
+            verdict = verify.verify(
+                attempt,
+                l4.ADAPTER,
+                target=context,
+                carrier={"network_attempts": network},
+            )
+            assert verdict.outcome == verify.NOT_APPLICABLE and not verdict.finding
+            assert verdict.reason == "no_family_takes_this_attempt"
+    mapped = attempt_for(
+        target,
+        result={"accepted": False},
+        arguments={
+            "strategy_json": json.dumps(target.strategy()),
+            "hypothesis": "[family: l4_escape_ops] public synthetic probe",
+        },
     )
-    assert verdict.outcome == verify.BREACHED and verdict.finding
-    assert verdict.evidence["verification_scope"] == "research_path"
-    assert not verdict.scored and verdict.artifact is None
+    assert analysis.family_of(mapped, l4.ADAPTER) == "l4_escape_ops"
+    exposed = dataclasses.replace(mapped, withheld=analysis.WITHHELD_JOURNAL)
+    for context in (None, target):
+        benign = verify.verify(mapped, l4.ADAPTER, target=context)
+        assert benign.outcome != verify.BREACHED and not benign.finding
+        verdict = verify.verify(exposed, l4.ADAPTER, target=context)
+        assert verdict.outcome == verify.BREACHED and verdict.finding
+        assert not verdict.scored and verdict.artifact is None
+        if context is not None:
+            assert verdict.evidence["verification_scope"] == "research_path"
 
 
 def test_same_artifact_different_target_cannot_replace_a_resume_or_specimen(
@@ -418,7 +472,7 @@ def test_missing_or_linked_resume_pin_fails_closed(bound, tmp_path):
 
 
 def test_the_actual_cli_loads_the_target_before_delegating_a_dry_run(
-    bound, monkeypatch, tmp_path
+    bound, monkeypatch, tmp_path, capsys
 ):
     from carbon.agent_campaign.graphite import phase4
 
@@ -447,8 +501,14 @@ def test_the_actual_cli_loads_the_target_before_delegating_a_dry_run(
     assert phase4.main(argv) == 0
     assert len(seen) == 1 and seen[0].pin == target.pin
     argv[-1] = "sha256:" + "0" * 64
-    with pytest.raises(phase4.RunnerRefused, match="manifest_digest_mismatch"):
+    capsys.readouterr()
+    with pytest.raises(phase4.RunnerRefused) as refused:
         phase4.main(argv)
+    assert refused.value.code == 2
+    assert json.loads(capsys.readouterr().out) == {
+        "status": "REFUSED",
+        "reason_code": "target_manifest_digest_mismatch",
+    }
     assert len(seen) == 1
 
 
@@ -479,7 +539,10 @@ def test_scripted_session_consumes_the_target_in_its_actual_verifier_and_report(
         target=target,
     )
     assert result == 0
-    shown = json.loads(capsys.readouterr().out)
+    progress, marker, report = capsys.readouterr().out.partition("\n{")
+    assert marker and progress
+    assert all(line.startswith("Research epoch ") for line in progress.splitlines())
+    shown = json.loads("{" + report)
     assert shown["session"]["schema"] == phase4.TARGET_LOG_SCHEMA
     assert shown["session"]["verification_scope"] == targets.scope(target, l4.ADAPTER)
     coverage = shown["coverage"]
@@ -493,14 +556,14 @@ def test_scripted_session_consumes_the_target_in_its_actual_verifier_and_report(
 
 
 def test_session_target_drift_is_refused_before_a_controller_can_launch(
-    bound, tmp_path
+    bound, tmp_path, capsys
 ):
     from carbon.agent_campaign.graphite import phase4
 
     target, _source = bound
     brief = SimpleNamespace(initial_observation={})
     control = SimpleNamespace(grant=SimpleNamespace(permitted_runs=1))
-    with pytest.raises(phase4.RunnerRefused, match="target_brief_binding_changed"):
+    with pytest.raises(phase4.RunnerRefused) as refused:
         phase4.run_session(
             tmp_path,
             control,
@@ -515,3 +578,126 @@ def test_session_target_drift_is_refused_before_a_controller_can_launch(
             variant=l4.variant(),
             target=target,
         )
+    assert refused.value.code == 2
+    assert json.loads(capsys.readouterr().out) == {
+        "status": "REFUSED",
+        "reason_code": "target_brief_binding_changed",
+    }
+
+
+@pytest.mark.parametrize("selected_targeted", [False, True])
+def test_remint_selects_authenticated_source_before_unrelated_target_scopes(
+    bound, tmp_path, monkeypatch, public_template, selected_targeted
+):
+    from test_graphite_phase4_remint import _fixture
+
+    from carbon.agent_campaign.graphite import phase4, phase4_remint
+
+    target, _source = bound
+
+    def change(bodies):
+        manifest = json.loads(bodies["manifest.json"])
+        manifest["run_id"] = "unrelated-public-target"
+        bodies["manifest.json"] = canonical(manifest)
+
+    other = targets.load(
+        *exported(tmp_path / "other", public_template, change=change),
+        l4.ADAPTER,
+        repository=ROOT,
+    )
+    assert other.pin != target.pin
+    _root, store, attempt, expected, (database, log, _evidence) = _fixture(
+        tmp_path / "toy", monkeypatch
+    )
+    entry = json.loads(log.read_bytes())
+    context = target if selected_targeted else None
+    if selected_targeted:
+        entry.update(
+            schema=phase4.TARGET_LOG_SCHEMA,
+            verification_scope=targets.scope(target, l4.ADAPTER),
+        )
+        log.write_bytes(canonical(entry) + b"\n")
+    original = phase4_remint._sources(store, attempt, expected, None, target=context)
+    assert original[0] == entry
+    # Different-target and legacy records with no matching finding cannot
+    # change the uniquely authenticated source. All runs still bind to SQLite.
+    for number, unrelated in enumerate((None, target, other), start=2):
+        run_id = phase4.GraphiteProvider.run_id_for(phase4.session_key(number))
+        with sqlite3.connect(database) as db:
+            db.execute(
+                "INSERT INTO runs VALUES (?,?,?)",
+                (phase4.session_key(number), phase4.CAMPAIGN, run_id),
+            )
+        additional = {
+            **entry,
+            "session": number,
+            "run_id": run_id,
+            "findings": [],
+            "schema": (
+                phase4.LOG_SCHEMA if unrelated is None else phase4.TARGET_LOG_SCHEMA
+            ),
+        }
+        additional.pop("verification_scope", None)
+        if unrelated is not None:
+            additional["verification_scope"] = targets.scope(unrelated, l4.ADAPTER)
+            targets.session_pin(
+                store, number, unrelated, resume=False, adapter=l4.ADAPTER
+            )
+        with log.open("ab") as stream:
+            stream.write(canonical(additional) + b"\n")
+        assert (
+            phase4_remint._sources(store, attempt, expected, None, target=context)
+            == original
+        )
+        assert (
+            phase4_remint._sources(store, attempt, expected, 1, target=context)
+            == original
+        )
+    if selected_targeted:
+        for changed in (
+            {**entry, "verification_scope": targets.scope(other, l4.ADAPTER)},
+            {**entry, "verification_scope": {}},
+            {
+                **entry,
+                "verification_scope": {**entry["verification_scope"], "mode": "legacy"},
+            },
+            {
+                **entry,
+                "verification_scope": {
+                    **entry["verification_scope"],
+                    "runtime_verification": "HELD",
+                },
+            },
+            {**entry, "schema": phase4.LOG_SCHEMA},
+        ):
+            remaining = log.read_bytes().splitlines()[1:]
+            log.write_bytes(b"\n".join([canonical(changed), *remaining]) + b"\n")
+            with pytest.raises(
+                phase4_remint.RemintRefused, match="target_iteration_binding_changed"
+            ):
+                phase4_remint._sources(store, attempt, expected, None, target=context)
+        log.write_bytes(b"\n".join([canonical(entry), *remaining]) + b"\n")
+        with log.open("ab") as stream:
+            stream.write(
+                canonical(
+                    {**entry, "verification_scope": targets.scope(other, l4.ADAPTER)}
+                )
+                + b"\n"
+            )
+        with pytest.raises(
+            phase4_remint.RemintRefused, match="remint_source_context_ambiguous"
+        ):
+            phase4_remint._sources(store, attempt, expected, None, target=context)
+        log.write_bytes(b"\n".join([canonical(entry), *remaining]) + b"\n")
+    # A second authenticated matching source remains ambiguous; unrelated
+    # context is not used to silently choose one candidate over another.
+    additional["findings"] = entry["findings"]
+    with log.open("ab") as stream:
+        stream.write(canonical(additional) + b"\n")
+    with pytest.raises(
+        phase4_remint.RemintRefused, match="remint_source_missing_or_ambiguous"
+    ):
+        phase4_remint._sources(store, attempt, expected, None, target=context)
+    assert (
+        phase4_remint._sources(store, attempt, expected, 1, target=context)[0] == entry
+    )

@@ -43,3 +43,14 @@ selected Challenge/level. Explicitly compare the captured graph manifest's
 existing submission schema, Challenge and level before metadata rebuild.
 A self-consistent foreign-Challenge envelope must refuse even when its
 own digests agree. This is scope identity, not a new scientific gate.
+
+Review repair (2026-10-14): keep the Challenge submission field in an
+adapter-owned resolver. Reject a substituted submission before pairing it
+with the captured workspace; unexpected rebuild errors remain INFRA.
+Authenticate and uniquely select a remint source before validating its
+target context, so unrelated sessions cannot alter historical lookup.
+Controls use structured REFUSED JSON/exit2 and the real progress-plus-JSON
+dry-run output. L4 workspace run_python remains UNASSIGNED; exercise that
+contrast and an actually declared family without widening its mapping.
+Add mixed legacy/target/two-target lookup, selected-source drift, ambiguity,
+and unexpected metadata-failure controls using synthetic public bytes only.
