@@ -1,0 +1,20 @@
+{
+  "schema": "carbon.validator-weights-operator.v1",
+  "context": {
+    "network": "HUMAN_INPUT_REGISTERED_NETWORK",
+    "endpoint": "HUMAN_INPUT_EXACT_ENDPOINT",
+    "chain_id": "HUMAN_INPUT_PROVIDER_LABEL",
+    "genesis_hash": "HUMAN_INPUT_OBSERVED_ADOPTED_GENESIS_HASH",
+    "netuid": null
+  },
+  "expected_runtime_spec": null,
+  "publisher": {
+    "hotkey": "HUMAN_INPUT_OWN_REGISTERED_VALIDATOR_HOTKEY",
+    "coldkey": "HUMAN_INPUT_OWN_PUBLIC_COLDKEY_IDENTITY"
+  },
+  "wallet": {
+    "name": "HUMAN_INPUT_OWN_OPERATOR_WALLET_NAME",
+    "hotkey_name": "HUMAN_INPUT_OWN_OPERATOR_HOTKEY_NAME",
+    "path": "HUMAN_INPUT_ABSOLUTE_EXTERNAL_OPERATOR_WALLET_ROOT"
+  }
+}

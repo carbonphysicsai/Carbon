@@ -18,7 +18,9 @@ def require_sdk():
         raise PublicationFailure("UNSUPPORTED_SDK_VERSION")
 
 
-def open_operator_wallet(name, hotkey_name, expected_hotkey, expected_coldkey):
+def open_operator_wallet(
+    name, hotkey_name, expected_hotkey, expected_coldkey, *, wallet_path=None
+):
     """Open the OPERATOR's own validator wallet (weight publication) and
     identity-check it. Never a miner's key: miners sign through their own
     `carbon-miner-signer` (`carbon.chain.external_signer`)."""
@@ -27,7 +29,8 @@ def open_operator_wallet(name, hotkey_name, expected_hotkey, expected_coldkey):
     try:
         import bittensor as bt
 
-        wallet = bt.Wallet(name=name, hotkey=hotkey_name)
+        options = {} if wallet_path is None else {"path": str(wallet_path)}
+        wallet = bt.Wallet(name=name, hotkey=hotkey_name, **options)
         if (
             wallet.hotkey.ss58_address != expected_hotkey
             or wallet.coldkeypub.ss58_address != expected_coldkey
