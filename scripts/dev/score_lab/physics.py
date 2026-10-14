@@ -415,7 +415,7 @@ def _loss(question, predictions, decision, cost):
         return None
     uncertainty_threshold = decision.get("uncertainty_abstention_threshold")
     if uncertainty_threshold is not None and any(
-        not _finite(pred.get("sigma"), low=1e-12) for pred in predictions.values()
+        not _finite(pred.get("sigma")) for pred in predictions.values()
     ):
         raise LabRefused("physics_uncertainty_prediction")
     shortlist = sorted(

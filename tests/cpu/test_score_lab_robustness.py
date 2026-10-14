@@ -182,9 +182,15 @@ def test_high_uncertainty_declines_useful_toy_action_and_costs_value():
         "uncertainty_abstention_threshold": 0.08,
     }
     confident = {"a": {"objective": 0.0, "feasible": True, "sigma": 0.001}}
+    exact_confident = {"a": {"objective": 0.0, "feasible": True, "sigma": 0.0}}
     overcautious = {"a": {"objective": 0.0, "feasible": True, "sigma": 1.0}}
     assert physics._loss(question, confident, decision, 0.1) == -0.9
+    assert physics._loss(question, exact_confident, decision, 0.1) == -0.9
     assert physics._loss(question, overcautious, decision, 0.1) == 0.4
+    for sigma in (-0.1, None, float("nan")):
+        bad = {"a": {"objective": 0.0, "feasible": True, "sigma": sigma}}
+        with pytest.raises(LabRefused, match="physics_uncertainty_prediction"):
+            physics._loss(question, bad, decision, 0.1)
 
 
 def test_missing_controlled_values_refuse():
