@@ -878,8 +878,8 @@ class JobPods(pods.RunPodPods):
     def launch_job(self, private):
         """Preflight accepted CPU flavors or a priced GPU offer, then create."""
         from scripts.dev.exam_design.runpod.operator_compute import (
-            CPUPlacement,
             ComputeError,
+            CPUPlacement,
             Execution,
             ProvisionRequest,
         )

@@ -10,10 +10,10 @@ from carbon.agent_campaign import grant_runs as gr
 from carbon.agent_campaign import pod_jobs
 from carbon.agent_campaign.graphite.pods import PodFailure
 from scripts.dev.exam_design.runpod.operator_compute import (
-    CPUPlacement,
-    CPUStockObservation,
     ComputeService,
     ComputeStore,
+    CPUPlacement,
+    CPUStockObservation,
     FileCredentialProvider,
     IntentState,
     PodSpec,
@@ -68,6 +68,13 @@ def lane(tmp_path, monkeypatch):
     backend.retry_ambiguous_create = False
     backend._noncreation_evidence, backend._create_failure = None, None
     backend._tokens = {}
+    backend._cpu_stock_preflight = []
+    backend._actual_cpu_flavor_id = None
+    backend._accepted_cpu_flavor_ids = ()
+    backend._launched_resource_id = None
+    backend._operator_start_gate_released = False
+    backend._operator_start_status_polls = 0
+    backend._operator_start_release_attempts = 0
     gr.claim_pod_job("toy-job", "3", clock=clock, origin=backend.claim_origin())
     yield backend, transport, clock, tmp_path
     store.close()
@@ -98,7 +105,9 @@ def test_cpu_preflight_refuses_a_job_spec_without_validated_placement(lane):
         max_rate_usd_per_hr=0.5,
         storage_usd_per_gb_month=0.1,
     )
-    with pytest.raises(PodFailure, match="missing its validated CPU placement") as caught:
+    with pytest.raises(
+        PodFailure, match="missing its validated CPU placement"
+    ) as caught:
         backend.launch_job(root)
     assert caught.value.executed is False
     assert (
