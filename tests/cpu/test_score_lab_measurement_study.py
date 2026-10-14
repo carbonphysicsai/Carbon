@@ -350,3 +350,24 @@ def test_readout_rejects_stopped_run_and_rebound_start(tmp_path):
     _seal_fixture(out, start)
     with pytest.raises(core.LabRefused, match="identity_binding"):
         driver.readout(planpath, out)
+
+
+def test_committed_actual_receipts_reproduce_the_complete_summary():
+    root = Path(__file__).resolve().parents[2]
+    base = root / "Business/research/score-lab-campaign-01/measurement-study"
+    result = driver.readout(base / "REGISTRATION.json", base / "results")
+    assert result == json.loads((base / "SUMMARY.json").read_text(encoding="utf-8"))
+    assert result["run"]["complete_cells"] == 126
+    assert result["run"]["scorer_calls"] == 100
+    assert sum(r["status"] == "MEASURED_DEVELOPMENT" for r in result["rows"]) == 940
+    repeated = {}
+    for row in result["rows"]:
+        if row["study"] == "sample_blocks" and row["dependence"] == "replicated":
+            repeated.setdefault((row["candidate"], row["B"], row["seed"]), []).append(
+                row
+            )
+    assert len(repeated) == 90
+    assert all(
+        len(rows) == 3 and len({json.dumps(r["block"]["tau_ci95"]) for r in rows}) == 1
+        for rows in repeated.values()
+    )

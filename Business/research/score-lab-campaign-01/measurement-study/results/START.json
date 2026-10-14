@@ -1,0 +1,29 @@
+{
+  "candidate_sha256": "157b1db5f091910f5602b15c9f5029f0171e6da7e8b6dbc5ffb5aa5c775bd235",
+  "execution": "actual local synthetic evaluator, no worker substitution",
+  "plan_sha256": "c690920f8c03c2449aa7924d7bc492f8de4e2ab020c5e13925915d27cb106b0a",
+  "schema": "carbon.dev.score-lab-measurement-study.v1",
+  "scope": "SYNTHETIC_DEVELOPMENT",
+  "source_commit": "fef281b496c23d13b1d250e91502ef44153ac8f8",
+  "sources": {
+    "Business/research/value-metric-audit/results.json": "a1473c98baaf2352c02db38b1aeef3938c41b2a958fd1f568cff0c5e29e975b0",
+    "Business/research/value-metric-v2-stress/results.json": "e8a8256365ebddb6d30705f38f2edeefffae811371b49780a3f1fa0bc17521ab",
+    "carbon/battery/value/score_proof.py": "108c8f6ef3e249095509a3cfb0bf9fe57f07942f7813a5e25a8ec01556fcd569",
+    "carbon/battery/value/score_tuning.py": "6043abacfb942acad8d89ae59816bc2ffff0c4905f0ab3cd76e98e74a4121f66",
+    "pyproject.toml": "b5e33d8323b0d5facba70af6431457c3ff082e9d061eaa90e429c41a08c0577d",
+    "scripts/dev/score_lab/campaign-gate-toy.json": "a6a382193577ea43560df6b90ceabd15453beb35dbbeaf6c6a021f99af573ea4",
+    "scripts/dev/score_lab/campaign_blocks.py": "18e032dab2549e52fd43e08324c0d8a6f7623f5209ab9f046d23de00b018de64",
+    "scripts/dev/score_lab/campaign_gate.py": "6af33e197dcd6d71a7f164495e5c5ba45ce0130e05aed28128b7eabd8c072646",
+    "scripts/dev/score_lab/campaign_goodhart.py": "e530322b5fb867fa01a90bd2613d2573f0b313d9a59e0f3eb3e0cc4cc9d387cc",
+    "scripts/dev/score_lab/campaign_measurement.py": "4970c68e0077fba0340db7f04be75b02b353b8ba81020c66b802aa26066bf7a1",
+    "scripts/dev/score_lab/campaign_reference.py": "4372b222ef3c2fc1d9bcf356b2576d33eb2d09a0ee0b13271de2242a2000be1a",
+    "scripts/dev/score_lab/candidates.py": "b691cdf300d3b94e1474c67bf5af892cf1cb74c7baecae7a9d1402487f466be6",
+    "scripts/dev/score_lab/components.py": "0f0dc059a7e915cb3e60e4ac1498ed786f298a6d7995da3e3494fb4a587fdb9d",
+    "scripts/dev/score_lab/core.py": "f3419e9bd413463eeadbc7fb9082caea19ae27edd860501f0729456f8f652810",
+    "scripts/dev/score_lab/measurement_run.py": "aaf5132e8b324073f12f90bbf170c03b7e42b19c982e01f9cb5fd411e189addc",
+    "scripts/dev/score_lab/physics-error-example.json": "39b748642c82b29b795fe1ea51e648b7f9c893ff9af474b04a57e30d89bec2ce",
+    "scripts/dev/score_lab/physics.py": "1e772318df86071406b0441d69cff908b98fafe948d79f0e818093d453c65c6d",
+    "scripts/dev/score_lab/synthetic.py": "f0ee60cd12f9105c36478e48def8a5f076c395f43a81437c46951f0b3160c044",
+    "uv.lock": "5dd9a364333ca3ec56383a36c0b3edefad817be93a2f30c49f775af00cd094a4"
+  }
+}
