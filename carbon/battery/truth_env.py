@@ -59,6 +59,22 @@ def _sha256(body):
     return hashlib.sha256(body).hexdigest()
 
 
+def _job_identity(document):
+    """Return the one explicit identity carried by a supported jobs file."""
+    if type(document) is not dict:
+        raise TruthEnvironmentError("jobs document identity is malformed")
+    fields = [name for name in ("fingerprint", "tranche") if name in document]
+    if len(fields) != 1:
+        raise TruthEnvironmentError(
+            "jobs document must carry exactly one identity field"
+        )
+    name = fields[0]
+    value = document[name]
+    if type(value) is not str or not value.strip():
+        raise TruthEnvironmentError("jobs document identity is malformed")
+    return name, value
+
+
 def load_lock(repository="."):
     path = Path(repository) / LOCK_PATH
     body = path.read_bytes()
@@ -387,6 +403,7 @@ def solve(
         raise TruthEnvironmentError("unknown prospective output version")
     solver_provenance = provenance(repository)
     document = json.loads(Path(jobs_path).read_bytes())
+    identity_name, identity_value = _job_identity(document)
     records = Path(records_path)
     record_schema = None
     binding = records.with_name(records.name + ".output-contract.json")
@@ -462,7 +479,7 @@ def solve(
         summary = service.run(document["jobs"])
     finally:
         _stamp_from(records, offset, solver_provenance, record_schema)
-    return {"fingerprint": document["fingerprint"], **summary}
+    return {identity_name: identity_value, **summary}
 
 
 def main(argv=None):
