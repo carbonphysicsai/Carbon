@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import gzip
+import hashlib
 import importlib.util
 import json
 import math
@@ -13,6 +14,13 @@ from pathlib import Path
 from . import (
     bank,
     bank_builder,
+    campaign_atlas,
+    campaign_feedback,
+    campaign_gate,
+    campaign_goodhart,
+    campaign_sobol,
+    campaign_stress,
+    campaign_sweep,
     candidates,
     physics,
     public_ev4,
@@ -57,6 +65,11 @@ def _rule_args(parser):
     )
     rules.add_argument("--function", help="trusted local file.py:function")
     parser.add_argument("--candidate", help="id from --registry")
+    parser.add_argument(
+        "--components",
+        type=Path,
+        help="toy-only JSON of optional component settings; requires --candidates",
+    )
     parser.add_argument("--kappa", type=float, help="V2 ASSUMPTION, no default")
     parser.add_argument("--cap", type=int, help="V2 k ASSUMPTION, no default")
     parser.add_argument("--unit", type=float, help="V2 u ASSUMPTION, no default")
@@ -181,9 +194,23 @@ def _report(rows):
 
 def _write(out, report):
     if out is not None:
-        out.write_text(
-            json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8"
-        )
+        payload = (json.dumps(report, indent=2, sort_keys=True) + "\n").encode("utf-8")
+        if out.suffix == ".gz":
+            with (
+                out.open("wb") as handle,
+                gzip.GzipFile(
+                    filename="", mode="wb", fileobj=handle, mtime=0
+                ) as packed,
+            ):
+                packed.write(payload)
+        else:
+            out.write_bytes(payload)
+
+
+def _read_campaign_json(path):
+    opener = gzip.open if path.suffix == ".gz" else Path.open
+    with opener(path, "rt", encoding="utf-8") as handle:
+        return json.load(handle)
 
 
 def main(argv=None):
@@ -278,7 +305,304 @@ def main(argv=None):
     )
     phys.add_argument("--tier2-candidate", help="id in --tier2-registry")
     phys.add_argument("--out", type=Path)
+    gate = commands.add_parser(
+        "campaign-gate", help="recompute public and toy controls before any campaign"
+    )
+    gate.add_argument("--audit", type=Path, required=True)
+    gate.add_argument("--stress", type=Path, required=True)
+    gate.add_argument("--toy-problem", type=Path, required=True)
+    gate.add_argument("--questions", type=int, required=True)
+    gate.add_argument("--cap", type=int, required=True)
+    gate.add_argument("--out", type=Path)
+    sweep = commands.add_parser(
+        "campaign-plan", help="generate only a deterministic toy LHS config shard"
+    )
+    sweep.add_argument("--base-config", type=Path, required=True)
+    sweep.add_argument("--axes", type=Path, required=True)
+    sweep.add_argument("--count", type=int, required=True)
+    sweep.add_argument("--seed", type=int, required=True)
+    sweep.add_argument("--shard", type=int, default=0)
+    sweep.add_argument("--shards", type=int, default=1)
+    sweep.add_argument("--out", type=Path, required=True)
+    sweep_run = commands.add_parser(
+        "campaign-run", help="evaluate only one deterministic toy sweep shard"
+    )
+    sweep_run.add_argument("--plan", type=Path, required=True)
+    sweep_run.add_argument("--candidates", type=Path, required=True)
+    sweep_run.add_argument("--candidate")
+    sweep_run.add_argument("--components", type=Path)
+    sweep_run.add_argument("--out", type=Path, required=True)
+    atlas = commands.add_parser(
+        "campaign-atlas", help="aggregate complete synthetic sweep shards"
+    )
+    atlas.add_argument("--result", type=Path, required=True, action="append")
+    atlas.add_argument("--out", type=Path, required=True)
+    stress = commands.add_parser(
+        "campaign-stress", help="evaluate named analytic toy stress scenarios"
+    )
+    stress.add_argument("--base-config", type=Path, required=True)
+    stress.add_argument("--scenarios", type=Path, required=True)
+    stress.add_argument("--candidates", type=Path, required=True)
+    stress.add_argument("--candidate")
+    stress.add_argument("--components", type=Path)
+    stress.add_argument("--out", type=Path, required=True)
+    goodhart = commands.add_parser(
+        "campaign-goodhart", help="toy score-only random/hill search then value check"
+    )
+    goodhart.add_argument("--config", type=Path, required=True)
+    goodhart.add_argument("--search", type=Path, required=True)
+    goodhart.add_argument("--candidates", type=Path, required=True)
+    goodhart.add_argument("--candidate")
+    goodhart.add_argument("--components", type=Path)
+    goodhart.add_argument("--out", type=Path, required=True)
+    feedback = commands.add_parser(
+        "campaign-feedback",
+        help="toy score-only feedback gamer; measure value after the search",
+    )
+    feedback.add_argument("--config", type=Path, required=True)
+    feedback.add_argument("--search", type=Path, required=True)
+    feedback.add_argument("--disclosure", type=Path, required=True)
+    feedback.add_argument("--candidates", type=Path, required=True)
+    feedback.add_argument("--candidate")
+    feedback.add_argument("--components", type=Path)
+    feedback.add_argument("--out", type=Path, required=True)
+    sobol_plan = commands.add_parser(
+        "campaign-sobol-plan", help="prepare a deterministic toy pick-and-freeze shard"
+    )
+    sobol_plan.add_argument("--base-config", type=Path, required=True)
+    sobol_plan.add_argument("--axes", type=Path, required=True)
+    sobol_plan.add_argument("--count", type=int, required=True)
+    sobol_plan.add_argument("--seed", type=int, required=True)
+    sobol_plan.add_argument("--switch-index", type=int, required=True)
+    sobol_plan.add_argument("--scope", choices=campaign_sobol.SCOPES, required=True)
+    sobol_plan.add_argument("--shard", type=int, default=0)
+    sobol_plan.add_argument("--shards", type=int, default=1)
+    sobol_plan.add_argument("--out", type=Path, required=True)
+    sobol_run = commands.add_parser(
+        "campaign-sobol-run",
+        help="evaluate one digest-checked toy pick-and-freeze shard",
+    )
+    sobol_run.add_argument("--plan", type=Path, required=True)
+    sobol_run.add_argument("--candidates", type=Path, required=True)
+    sobol_run.add_argument("--candidate", required=True)
+    sobol_run.add_argument("--out", type=Path, required=True)
+    sobol_atlas = commands.add_parser(
+        "campaign-sobol-atlas", help="require complete shards then estimate toy indices"
+    )
+    sobol_atlas.add_argument("--result", type=Path, required=True, action="append")
+    sobol_atlas.add_argument("--out", type=Path, required=True)
     args = parser.parse_args(argv)
+    if args.command == "campaign-sobol-plan":
+        plan = {
+            "schema": campaign_sobol.PLAN_SCHEMA,
+            "seed": args.seed,
+            "count": args.count,
+            "base_config": _read_campaign_json(args.base_config),
+            "axes": _read_campaign_json(args.axes),
+            "switch_index": args.switch_index,
+            "scope": args.scope,
+        }
+        report = campaign_sobol.prepare(plan, shard=args.shard, shards=args.shards)
+        _write(args.out, report)
+        print(f"toy pick-and-freeze plan: {len(report['rows'])} matched base rows")
+        return 0
+    if args.command == "campaign-sobol-run":
+        specs, digest = candidates.load(args.candidates)
+        if args.candidate not in specs:
+            raise LabRefused("candidate_not_registered")
+        report = campaign_sobol.evaluate(
+            _read_campaign_json(args.plan),
+            args.candidate,
+            specs[args.candidate],
+            candidates_sha256=digest,
+        )
+        _write(args.out, report)
+        print(f"toy pick-and-freeze shard: {len(report['rows'])} matched base rows")
+        return 0
+    if args.command == "campaign-sobol-atlas":
+        report = campaign_sobol.aggregate(
+            [_read_campaign_json(path) for path in args.result]
+        )
+        _write(args.out, report)
+        print(f"toy Sobol sensitivity: {report['status']}; no Challenge conclusion")
+        return 0
+    if args.command == "campaign-feedback":
+        config = _read_campaign_json(args.config)
+        search_spec = _read_campaign_json(args.search)
+        disclosure_spec = _read_campaign_json(args.disclosure)
+        component_spec = (
+            _read_campaign_json(args.components) if args.components else None
+        )
+        specs, digest = candidates.load(args.candidates)
+        names = [args.candidate] if args.candidate else list(specs)
+        if any(name not in specs for name in names):
+            raise LabRefused("candidate_not_registered")
+        results = {}
+        for name in names:
+            try:
+                results[name] = campaign_feedback.run(
+                    config,
+                    name,
+                    specs[name],
+                    candidates_sha256=digest,
+                    search=search_spec,
+                    disclosure=disclosure_spec,
+                    component_spec=component_spec,
+                )
+            except LabRefused as exc:
+                if exc.code != "feedback_probe_unscored":
+                    raise
+                results[name] = {
+                    **campaign_goodhart.receipt_identity(
+                        config,
+                        search_spec,
+                        candidates_sha256=digest,
+                        candidate_ids=[name],
+                        component_spec=component_spec,
+                        disclosure=disclosure_spec,
+                    ),
+                    "status": "INSUFFICIENT_EVIDENCE",
+                    "reason": exc.code,
+                }
+        report = {
+            **campaign_goodhart.receipt_identity(
+                config,
+                search_spec,
+                candidates_sha256=digest,
+                candidate_ids=names,
+                component_spec=component_spec,
+                disclosure=disclosure_spec,
+            ),
+            "status": "SYNTHETIC_DEVELOPMENT_DIAGNOSTIC",
+            "candidates_sha256": digest,
+            "results": results,
+        }
+        _write(args.out, report)
+        print(
+            f"toy disclosed-score feedback for {len(names)} candidates; "
+            "value checked afterward; no Challenge disclosure claim"
+        )
+        return 0
+    if args.command == "campaign-stress":
+        base = _read_campaign_json(args.base_config)
+        scenarios = _read_campaign_json(args.scenarios)
+        component_spec = (
+            _read_campaign_json(args.components) if args.components else None
+        )
+        specs, digest = candidates.load(args.candidates)
+        if args.candidate:
+            if args.candidate not in specs:
+                raise LabRefused("candidate_not_registered")
+            specs = {args.candidate: specs[args.candidate]}
+        report = campaign_stress.evaluate(
+            base, scenarios, specs, digest, component_spec=component_spec
+        )
+        _write(args.out, report)
+        print(
+            f"named toy stresses: {len(report['rows'])}; "
+            "no held-out or Challenge conclusion"
+        )
+        return 0
+    if args.command == "campaign-atlas":
+        shards = [_read_campaign_json(path) for path in args.result]
+        report = campaign_atlas.aggregate(shards)
+        _write(args.out, report)
+        print(
+            f"descriptive toy atlas: {report['profiles']} profiles; "
+            "no Sobol index or final rule selection"
+        )
+        return 0
+    if args.command == "campaign-run":
+        plan = _read_campaign_json(args.plan)
+        component_spec = (
+            json.loads(args.components.read_text(encoding="utf-8"))
+            if args.components
+            else None
+        )
+        specs, digest = candidates.load(args.candidates)
+        if args.candidate:
+            if args.candidate not in specs:
+                raise LabRefused("candidate_not_registered")
+            specs = {args.candidate: specs[args.candidate]}
+        report = campaign_sweep.evaluate_summary(
+            plan,
+            specs,
+            digest,
+            component_spec=component_spec,
+        )
+        _write(args.out, report)
+        print(
+            f"toy sweep shard {report['shard']}/{report['shards']}: {len(report['rows'])} "
+            "profiles; no held-out or Challenge conclusion"
+        )
+        return 0
+    if args.command == "campaign-goodhart":
+        config = json.loads(args.config.read_text(encoding="utf-8"))
+        search_spec = json.loads(args.search.read_text(encoding="utf-8"))
+        component_spec = (
+            json.loads(args.components.read_text(encoding="utf-8"))
+            if args.components
+            else None
+        )
+        specs, digest = candidates.load(args.candidates)
+        names = [args.candidate] if args.candidate else list(specs)
+        if any(name not in specs for name in names):
+            raise LabRefused("candidate_not_registered")
+        report = {
+            **campaign_goodhart.receipt_identity(
+                config,
+                search_spec,
+                candidates_sha256=digest,
+                candidate_ids=names,
+                component_spec=component_spec,
+            ),
+            "status": "SYNTHETIC_DEVELOPMENT_DIAGNOSTIC",
+            "candidates_sha256": digest,
+            "results": {
+                name: campaign_goodhart.run(
+                    config,
+                    name,
+                    specs[name],
+                    candidates_sha256=digest,
+                    search=search_spec,
+                    component_spec=component_spec,
+                )
+                for name in names
+            },
+        }
+        _write(args.out, report)
+        print(
+            f"toy Goodhart search for {len(names)} candidates; "
+            "approximate oracle, no held-out or Challenge conclusion"
+        )
+        return 0
+    if args.command == "campaign-plan":
+        plan = {
+            "schema": campaign_sweep.SCHEMA,
+            "seed": args.seed,
+            "count": args.count,
+            "base_config": json.loads(args.base_config.read_text(encoding="utf-8")),
+            "axes": json.loads(args.axes.read_text(encoding="utf-8")),
+        }
+        report = campaign_sweep.summary(plan, shard=args.shard, shards=args.shards)
+        _write(args.out, report)
+        print(
+            f"toy LHS plan {report['plan_sha256']}: "
+            f"{len(report['rows'])}/{report['count']} configs in shard "
+            f"{args.shard}/{args.shards}; no evaluation or holdout access"
+        )
+        return 0
+    if args.command == "campaign-gate":
+        report = campaign_gate.run(
+            audit_path=args.audit,
+            stress_path=args.stress,
+            problem=json.loads(args.toy_problem.read_text(encoding="utf-8")),
+            questions_per_side=args.questions,
+            cap=args.cap,
+        )
+        print(json.dumps(report, indent=2, sort_keys=True))
+        _write(args.out, report)
+        return 0 if report["status"] == "CONTROL_PASS" else 2
     if args.command == "bank-plan":
         registration = json.loads(args.registration.read_text(encoding="utf-8"))
         draws = json.loads(args.draws.read_text(encoding="utf-8"))
@@ -466,6 +790,10 @@ def main(argv=None):
         print(json.dumps(result, indent=2, sort_keys=True))
         _write(args.out, result)
         return 0
+    component_bytes = args.components.read_bytes() if args.components else None
+    component_spec = json.loads(component_bytes) if component_bytes else None
+    if component_spec is not None and not args.candidates:
+        raise LabRefused("components_require_candidates")
     rule = _load_rule(args)
     if args.command == "synthetic":
         configs = list(synthetic.profiles())
@@ -543,6 +871,7 @@ def main(argv=None):
                     registry_v10=Path(
                         "docs/development/evidence/battery-score-tuning/registry-v10.json"
                     ),
+                    component_spec=component_spec,
                 )
                 rows.append(
                     analyze(panel, rule, bootstrap=args.bootstrap)
@@ -557,6 +886,10 @@ def main(argv=None):
         result = {
             "status": "DEVELOPMENT_DIAGNOSTIC",
             "candidates_sha256": digest,
+            "components_sha256": (
+                hashlib.sha256(component_bytes).hexdigest() if component_bytes else None
+            ),
+            "components": component_spec,
             "candidates": results,
         }
         _write(args.out, result)

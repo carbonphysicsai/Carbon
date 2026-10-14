@@ -1,0 +1,8 @@
+{
+  "space": "small-grid",
+  "optima": "multi",
+  "constraint": "tight",
+  "shift": "nominal",
+  "verification_cost_ASSUMPTION": 0.2,
+  "label": "ASSUMPTION: toy control calibration only; not a battery population or cost"
+}
