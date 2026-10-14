@@ -36,9 +36,9 @@ from . import level2_specmuon, level3_numerics, recipes
 from .training import keep_history, optimizer, polish, recording_history
 
 
-def train(
+def loss_program(
     *,
-    init,
+    jax,
     apply,
     f,
     z,
@@ -46,39 +46,17 @@ def train(
     gw,
     trajectory,
     settings,
-    seed,
     order,
     case_loss=None,
-    spectral=False,
-    numerics=None,
+    objective=None,
 ):
-    """Train from `init(key)`; returns the parameters Carbon predicts from.
-
-    `trajectory(z)` maps network outputs to normalized voltage and temperature
-    trajectories (cases x times) for the trajectory losses. `order` ranks TRAIN
-    cases for the curriculum. All arrays are in the requested precision.
-
-    Composed: `case_loss(zhat, zt, gw)` (Level 1) replaces the objective menu's
-    per-case loss; with `spectral` (Level 2) battery's Muon is wrapped by
-    `level2_specmuon.spectral`; `numerics` (Level 3) runs the polish stage's
-    routine and line search. Everything else is `training.train`, line for line.
-    """
-    import jax
-    import jax.numpy as jnp
-    import optax
-
+    """The composed loop's exact objective, also used by its isolated profiler."""
+    jnp = jax.numpy
     s = settings
-    n = f.shape[0]
-    steps = s["steps"] - s["polish_steps"]
-    batch = min(s["batch_size"], n)
-    micro = s["microbatches"]
-    key = jax.random.PRNGKey(seed)
-    key, params = init(key)
     f, z, sw, gw = (jnp.asarray(a) for a in (f, z, sw, gw))
     rank = jnp.asarray(order)
-    tx = optimizer(jax, optax, s, steps)
-    if spectral:
-        tx = level2_specmuon.spectral(jax, optax, tx)
+    n = f.shape[0]
+    steps = s["steps"] - s["polish_steps"]
     expression = case_loss
 
     def ramp(length):
@@ -136,8 +114,72 @@ def train(
         return w
 
     def loss(p, idx, step):
+        if objective is not None:
+            # The validated graph objective already owns Carbon's per-case mean.
+            # GraphModel enforces neutral case/loss-term settings for this slot.
+            return objective([apply(p, f[idx])], [z[idx]], [f[idx]])
         w = jax.lax.stop_gradient(weights(p, idx, step))
         return jnp.sum(w * case_loss(p, idx)) / (jnp.sum(w) + 1e-12)
+
+    return loss
+
+
+def train(
+    *,
+    init,
+    apply,
+    f,
+    z,
+    sw,
+    gw,
+    trajectory,
+    settings,
+    seed,
+    order,
+    case_loss=None,
+    spectral=False,
+    numerics=None,
+    objective=None,
+):
+    """Train from `init(key)`; returns the parameters Carbon predicts from.
+
+    `trajectory(z)` maps network outputs to normalized voltage and temperature
+    trajectories (cases x times) for the trajectory losses. `order` ranks TRAIN
+    cases for the curriculum. All arrays are in the requested precision.
+
+    Composed: `case_loss(zhat, zt, gw)` (Level 1) replaces the objective menu's
+    per-case loss; with `spectral` (Level 2) battery's Muon is wrapped by
+    `level2_specmuon.spectral`; `numerics` (Level 3) runs the polish stage's
+    routine and line search. Everything else is `training.train`, line for line.
+    """
+    import jax
+    import jax.numpy as jnp
+    import optax
+
+    s = settings
+    n = f.shape[0]
+    steps = s["steps"] - s["polish_steps"]
+    batch = min(s["batch_size"], n)
+    micro = s["microbatches"]
+    key = jax.random.PRNGKey(seed)
+    key, params = init(key)
+    f, z, sw, gw = (jnp.asarray(a) for a in (f, z, sw, gw))
+    tx = optimizer(jax, optax, s, steps)
+    if spectral:
+        tx = level2_specmuon.spectral(jax, optax, tx)
+    loss = loss_program(
+        jax=jax,
+        apply=apply,
+        f=f,
+        z=z,
+        sw=sw,
+        gw=gw,
+        trajectory=trajectory,
+        settings=settings,
+        order=order,
+        case_loss=case_loss,
+        objective=objective,
+    )
 
     def gradient(p, idx, step):
         if micro == 1:
@@ -263,6 +305,9 @@ class ComposedMLP(recipes.MLP):
 
         return NumericsMLP.parameter_count(self, d, structure)
 
+    def _objective(self):
+        return None
+
     def _fit_general(self, d, y, seed):
         """`recipes.MLP._fit_general` with the composed trainer."""
         import jax
@@ -301,10 +346,23 @@ class ComposedMLP(recipes.MLP):
                 ),
                 spectral=self.spectral,
                 numerics=self.numerics,
+                objective=self._objective(),
             )
             leaves = [np.asarray(a) for a in jax.tree_util.tree_leaves(params)]
-            final = float(
-                np.mean((np.asarray(apply(params, f)) - z) ** 2 * gw[None, :]) * gw.size
+            objective = self._objective()
+            final = (
+                float(
+                    np.mean((np.asarray(apply(params, f)) - z) ** 2 * gw[None, :])
+                    * gw.size
+                )
+                if objective is None
+                else float(
+                    objective(
+                        [apply(params, jax.numpy.asarray(f))],
+                        [jax.numpy.asarray(z)],
+                        [jax.numpy.asarray(f)],
+                    )
+                )
             )
         self.params, self._apply = params, apply
         blob = b"".join(a.tobytes() for a in leaves)

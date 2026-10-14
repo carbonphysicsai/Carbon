@@ -129,7 +129,13 @@ def compile_level(request):
 
 def _level4_bounds(found):
     """`(allowlist pin, max_bytes)` from the Level 4 variant's one widening."""
-    (widened,) = found.widened
+    variants = getattr(found, "variants", (found,))
+    widened = next(
+        w
+        for variant in variants
+        for w in variant.widened
+        if w.name == "composition_graphs"
+    )
     bounds = json.loads(widened.bounds_json)
     caps = bounds.get("caps")
     size = caps.get("document_bytes") if type(caps) is dict else None
@@ -148,7 +154,10 @@ def level4(request):
     from carbon.level4 import graph, staging, submission, validate
 
     found = _variant(request)
-    if found.level != 4:
+    variants = getattr(found, "variants", (found,))
+    if not any(
+        w.name == "composition_graphs" for variant in variants for w in variant.widened
+    ):
         raise Refused(NOT_LEVEL4)
     pin, max_bytes, field = _level4_bounds(found)
     strategy = request["strategy"]
@@ -168,10 +177,9 @@ def level4(request):
     if load is None:
         raise Refused(ADAPTER_MISSING)
     adapter = load()
-    base = {
-        **strategy,
-        "parameters": {k: v for k, v in parameters.items() if k != field},
-    }
+    from carbon.battery.level4_admission import _base
+
+    base = _base(strategy)
     interface = adapter.interface(base)
     try:
         _manifest, parsed = submission.verify(
@@ -189,8 +197,31 @@ def level4(request):
         declared = validate.check_interface(parsed["forward"], interface)
     except graph.GraphRefused as refused:
         raise Refused(INTERFACE_MISMATCH, [{"code": refused.code}]) from None
-    if declared != adapter.training_batch(base):
+    if (
+        found.challenge == "battery-fastcharge-ageing-development-v1"
+        and "pool_selection" in parameters
+    ):
+        from carbon.battery.level4_admission import interface_and_batch
+
+        _, expected_batch = interface_and_batch(strategy)
+    else:
+        expected_batch = adapter.training_batch(base)
+    if declared != expected_batch:
         raise Refused(BATCH_MISMATCH)
+    if "loss_expressions" in parameters and "loss" in parsed:
+        raise Refused(
+            "construction_rebuild_unavailable",
+            [
+                {
+                    "code": "construction_rebuild_unavailable",
+                    "path": "/parameters/loss_expressions",
+                },
+                {
+                    "code": "construction_rebuild_unavailable",
+                    "path": "/parameters/composition_graphs",
+                },
+            ],
+        )
     return {
         "ok": True,
         "variant": found.version,

@@ -139,6 +139,7 @@ def test_it_fits_the_weekly_cap_beside_the_owners_other_open_grants():
         "GRAPHITE-GRANT-L4-G-CONSTRUCTOR-3",
         "GRAPHITE-GRANT-L4-G-CONSTRUCTOR-4",
         "GRAPHITE-GRANT-L4-G-CONSTRUCTOR-5",
+        "GRAPHITE-GRANT-L4-G-CONSTRUCTOR-6",
     ],
 )
 def test_the_rerun_grant_is_the_same_grant_again_and_fits_the_effective_weekly_cap(
@@ -179,7 +180,7 @@ def test_the_rerun_grant_is_the_same_grant_again_and_fits_the_effective_weekly_c
     held = sum(grant_runs.HELD_RESERVES.values())
     effective = WEEKLY_CAP_USD - held
     assert grant_runs.effective_weekly_cap() == effective
-    # -4 is replaced by -5 (below), so the sum counts the pair once: -2, -3, -5 and the A2 re-run.
+    # -4 and -5 are replaced (below), so the sum counts the chain once: -2, -3, -6 and the A2 re-run.
     standing = [_grant(grant_id) for grant_id in grant_binding.standing_open()]
     assert {g.grant_id for g in standing} >= {
         first.grant_id,
@@ -241,7 +242,7 @@ def test_the_grants_index_lists_every_level_4_constructor_grant_with_its_pool():
         pools[row["authority"]] = (
             pools.get(row["authority"], Decimal(0)) + row["ceiling"]
         )
-    # -4 is spent and replaced by -5: the pool counts the pair once (-2, -3, -5), as the owner approved.
+    # -4 and -5 are spent and replaced: the pool counts the chain once (-2, -3, -6), as the owner approved.
     assert pools[grant_binding.STANDING_TEST_GRANT_AUTHORITY] == Decimal("44.82")
     assert pools[grant_binding.HUNT_AUTHORITY] == Decimal("14.94")
 
@@ -271,12 +272,16 @@ def test_minus_five_replaces_minus_four_and_the_owners_basis_is_unchanged():
         Decimal("14.94"),
     )
     entries = grant_binding.PHASE3_GRANTS
-    assert entries[four].replaced_by == five and entries[five].replaced_by is None
+    six_id = "GRAPHITE-GRANT-L4-G-CONSTRUCTOR-6"
+    assert entries[four].replaced_by == five
+    assert entries[five].replaced_by == six_id
+    assert entries[six_id].replaced_by is None
     assert entries[four].authority == entries[five].authority
-    assert [g for g, e in entries.items() if e.replaced_by] == [four]
+    assert [g for g, e in entries.items() if e.replaced_by] == [four, five]
     open_ids = grant_binding.standing_open()
-    assert four not in open_ids and five in open_ids
-    # 184.56 (the weekly-budget record's other open grants) + A2 re-run 13.47 + -2, -3, -5 at 14.94 = 242.85.
+    assert four not in open_ids and five not in open_ids
+    assert six_id in open_ids
+    # 184.56 (the weekly-budget record's other open grants) + A2 re-run 13.47 + -2, -3, -6 at 14.94 = 242.85.
     basis = OTHER_OPEN_GRANTS + sum(_grant(g).monetary_ceiling for g in open_ids)
     assert basis == Decimal("242.85")
 
@@ -291,10 +296,7 @@ def test_a_replaced_grant_cannot_be_launched_or_claimed(tmp_path, monkeypatch, c
     """The counting rule (-4 and -5 sum as one) is sound only if -4 cannot be claimed. Two independent stops:
     (1) the phase-3 door refuses it typed before any key, pod, claim or file read; (2) the shared ledger holds a spent grant to
     its run cap (`run_limit_reached`), whatever the door does."""
-    four, five = (
-        "GRAPHITE-GRANT-L4-G-CONSTRUCTOR-4",
-        "GRAPHITE-GRANT-L4-G-CONSTRUCTOR-5",
-    )
+    four = "GRAPHITE-GRANT-L4-G-CONSTRUCTOR-4"
     # (1) The door, at every level, before the committed-blob read (tmp_path is no repository).
     for level in (0, 4):
         code = _refusal_code(
@@ -310,12 +312,13 @@ def test_a_replaced_grant_cannot_be_launched_or_claimed(tmp_path, monkeypatch, c
         assert (
             code == grant_binding.GRANT_REPLACED == "grant_is_replaced_by_a_later_grant"
         )
-    # The replacement is not refused for that reason: it goes on to the committed-blob check.
+    # The open replacement is not refused for that reason: it goes on to the committed-blob check.
+    six = "GRAPHITE-GRANT-L4-G-CONSTRUCTOR-6"
     code = _refusal_code(
         capsys,
         lambda: grant_binding.check_phase3_grant(
-            GRANTS / (five + ".json"),
-            _grant(five),
+            GRANTS / (six + ".json"),
+            _grant(six),
             challenge=BATTERY_CHALLENGE,
             level=4,
             repository=tmp_path,

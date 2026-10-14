@@ -248,6 +248,7 @@ def _bank_fixture():
         "mms_acceptance_digest": "sha256:mms",
         "train_separation": "PASS",
         "objective_aggregation": "worst_case",  # registered toy law
+        "objective_sense": "minimize",
         "neighbour_declarations": [{"id": "slightly-warmer"}],
         "cheap_arm_registration": {
             "status": "FROZEN_BEFORE_DRAW",
@@ -333,6 +334,97 @@ def test_bank_missing_registration_is_not_pass():
     result = bank.check(manifest, records[:2], definition_bytes=definition)
     assert result["neighbour_tasks_missing"] == ["slightly-warmer"]
     assert result["status"] == "INSUFFICIENT_EVIDENCE"
+
+
+def test_bank_decision_determined_unresolved_and_scored_share():
+    definition, manifest, records, cheap, model = _bank_fixture()
+    uncertain = {
+        "status": "UNRESOLVED",
+        "objective": 0.8,
+        "record_sha256": "sha256:uncertain",
+        "image_digest": "sha256:image",
+    }
+    records = [{**q, "actions": {**q["actions"], "c": [uncertain]}} for q in records]
+    cheap = {
+        key: {**pred, "c": {"feasible": False, "objective": 0.8}}
+        for key, pred in cheap.items()
+    }
+    model = {
+        key: {**pred, "c": {"feasible": False, "objective": 0.8}}
+        for key, pred in model.items()
+    }
+    result = bank.check(
+        manifest,
+        records,
+        definition_bytes=definition,
+        cheap=cheap,
+        reference_model=model,
+        cap=1,
+        kappa=0.1,
+        unit=1.0,
+        ceiling_threshold=0.5,
+        learnability={"train_sizes": [10, 20], "accuracies": [0.5, 0.6]},
+        replicates=30,
+    )
+    assert result["classes"]["SCORED"] == 3
+    assert result["decision_determined_with_unresolved"] == 3
+    assert result["status"] == "DEVELOPMENT_DIAGNOSTIC"
+    # One unresolved action could improve on the known best, and another
+    # question lacks a reference: the scored share falls below one half.
+    better = {**uncertain, "objective": 0.1}
+    incomplete = {**uncertain, "status": "FAILED_REFERENCE"}
+    changed = [
+        {
+            **records[0],
+            "actions": {**records[0]["actions"], "c": [better]},
+            "class": "INCOMPLETE",
+        },
+        {
+            **records[1],
+            "actions": {**records[1]["actions"], "c": [incomplete]},
+            "class": "INCOMPLETE",
+        },
+        records[2],
+    ]
+    result = bank.check(manifest, changed, definition_bytes=definition)
+    assert result["classes"] == {"SCORED": 1, "RESCUE": 0, "NONE": 0, "INCOMPLETE": 2}
+    assert result["size_blocker"] == "scored_share_below_half"
+    assert result["status"] == "INSUFFICIENT_EVIDENCE"
+
+
+def test_bank_fallback_with_known_breach_is_rescue_even_if_another_condition_is_in_band():
+    _definition, _manifest, records, _cheap, _model = _bank_fixture()
+    question = records[0]
+    unresolved = {
+        **question["actions"]["b"][0],
+        "status": "UNRESOLVED",
+        "objective": 1.0,
+    }
+    breached = {**unresolved, "status": "INFEASIBLE"}
+    mixed = {
+        **question,
+        "actions": {**question["actions"], "b": [breached, unresolved]},
+    }
+    assert bank.classify(mixed) == ("RESCUE", False)
+
+
+def test_bank_refuses_maximize_law_before_classifying_better_unresolved_action():
+    definition, manifest, records, _cheap, _model = _bank_fixture()
+    uncertain = {
+        **records[0]["actions"]["a"][0],
+        "status": "UNRESOLVED",
+        "objective": 2.0,  # better than fallback for a maximizing buyer
+    }
+    question = {
+        **records[0],
+        "actions": {**records[0]["actions"], "c": [uncertain]},
+    }
+    with pytest.raises(LabRefused, match="bank_objective_sense_unsupported"):
+        bank.check(
+            {**manifest, "objective_sense": "maximize"},
+            [question],
+            definition_bytes=definition,
+        )
 
 
 def test_public_ev4_adapter_rejects_unpinned_reference(tmp_path):
