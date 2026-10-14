@@ -117,8 +117,11 @@ The embedded `reference.uncertainty_record` has schema
 `carbon.motor.reference-uncertainty.v1`, scope, export_digest, domain_digest,
 image_digest, observer and `bounds`. Each of the seven limit quantities has
 `{"value": <absolute uncertainty>, "unit": <the limit's unit>}`. The record
-must bind the same reference/domain/export and all bounds must be finite and
-nonnegative. `uncertainty_receipt` equals `sha256(canonical(record))`.
+must bind the same reference/domain/export and all bounds must be finite.
+PUBLIC_DEVELOPMENT bounds must be strictly positive; zero is allowed only
+for SYNTHETIC_FIXTURE. A public zero produces
+`REFERENCE_UNCERTAINTY_NOT_COVERED`, even when its content hash and band agree.
+`uncertainty_receipt` equals `sha256(canonical(record))`.
 Every question's band must be at least that quantity's bound; equality is
 allowed, and the host can make the band more conservative. Missing record,
 quantity or value produces `REFERENCE_UNCERTAINTY_NOT_COVERED`; changed
@@ -126,6 +129,8 @@ content without the matching receipt produces `REFERENCE_UNCERTAINTY_PIN_MISMATC
 There is no public motor uncertainty record yet. Data Collection must supply
 the actual values; the worker supplies none. The fixture's explicit zero
 bounds are SYNTHETIC_FIXTURE only and do not authorize public uncertainty.
+Positivity is an input guard, not scientific qualification of the stated
+uncertainty. No positive numerical floor or accepted motor receipt is supplied.
 
 Owner law/support/objective/k/P/Q/w adoption and useful-accuracy/pass/park
 thresholds remain HUMAN_INPUT. Missing input produces HOLD with

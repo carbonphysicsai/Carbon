@@ -257,6 +257,7 @@ def _reference_uncertainty(reference, export, domain_digest, scope):
             or type(bound["value"]) not in (int, float)
             or not math.isfinite(bound["value"])
             or bound["value"] < 0
+            or (scope == "PUBLIC_DEVELOPMENT" and bound["value"] == 0)
         ):
             raise PilotHold("REFERENCE_UNCERTAINTY_NOT_COVERED")
     if ca.sha256(ca.canonical(record)) != reference["uncertainty_receipt"]:

@@ -49,3 +49,11 @@ Retain all caps and physical/host holds. Root Test Lead now owns engineering
 merge; the prior PR Head routing and per-item cadence are superseded by the
 owner's current team direction. Existing scientific/security/spend/release
 and deployment authorities remain reserved.
+
+2026-10-14 bounded repair: implement the Validator/PR Head public uncertainty
+rule recorded in MOTOR-PUBLIC-UNCERTAINTY-NONZERO-01. Public zero values HOLD;
+fixture zero remains allowed. Add per-quantity known-bad controls before the
+source repair, public positive/equality and fixture-zero contrasts. No new
+physical floor or qualified record is supplied. Canonical fixture validation
+is now available in an isolated native-Linux clone through canonical.sh;
+the earlier Docker-unavailable statement describes ticket-start evidence.

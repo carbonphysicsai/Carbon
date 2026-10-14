@@ -262,6 +262,73 @@ def test_reference_bands_equal_to_pinned_uncertainty_are_accepted():
     assert mp.prepare(docs, reseal(docs), fixture=True)
 
 
+def public_shaped_uncertainty_control():
+    """Synthetic inputs to the isolated validator only, never public execution."""
+    docs, _ = fixture.documents()
+    reference, export = docs["reference"], docs["export"]
+    reference["scope"] = export["scope"] = "PUBLIC_DEVELOPMENT"
+    record = reference["uncertainty_record"]
+    record["scope"] = "PUBLIC_DEVELOPMENT"
+    for bound in record["bounds"].values():
+        bound["value"] = 0.01  # TEST_ONLY, no physical uncertainty claim
+    for entry in export["questions"]:
+        for limit in entry["task"]["limits"]:
+            limit["band"] = 0.01
+        task_seal(entry["task"])
+    return docs, reseal(docs)
+
+
+@pytest.mark.parametrize("zero", [0, 0.0])
+@pytest.mark.parametrize(
+    "quantity",
+    [
+        "holding_mean_nm",
+        "peak_mean_nm",
+        "holding_pk_pk_nm",
+        "peak_pk_pk_nm",
+        "holding_ripple_fraction",
+        "peak_ripple_fraction",
+        "cogging_nm",
+    ],
+)
+def test_public_zero_uncertainty_is_refused_even_when_content_and_band_agree(
+    quantity, zero
+):
+    docs, _ = public_shaped_uncertainty_control()
+    docs["reference"]["uncertainty_record"]["bounds"][quantity]["value"] = zero
+    for entry in docs["export"]["questions"]:
+        for limit in entry["task"]["limits"]:
+            if limit["quantity"] == quantity:
+                limit["band"] = zero
+        task_seal(entry["task"])
+    pins = reseal(docs)
+    # All byte identities and coverage agree. This must fail on the public
+    # zero value itself, rather than an unrelated fixture-promotion guard.
+    with pytest.raises(mp.PilotHold, match="REFERENCE_UNCERTAINTY_NOT_COVERED"):
+        mp._reference_uncertainty(
+            docs["reference"], docs["export"], pins["domain"], "PUBLIC_DEVELOPMENT"
+        )
+
+
+def test_public_positive_uncertainty_equal_to_bands_passes_the_binding_guard():
+    docs, pins = public_shaped_uncertainty_control()
+    assert (
+        mp._reference_uncertainty(
+            docs["reference"], docs["export"], pins["domain"], "PUBLIC_DEVELOPMENT"
+        )
+        is None
+    )
+
+
+def test_zero_uncertainty_remains_allowed_in_complete_fixture_preparation():
+    docs, pins = fixture.documents()
+    assert all(
+        bound["value"] == 0
+        for bound in docs["reference"]["uncertainty_record"]["bounds"].values()
+    )
+    assert mp.prepare(docs, pins, fixture=True)
+
+
 @pytest.mark.parametrize("missing", ["record", "quantity", "value"])
 def test_missing_reference_uncertainty_is_a_hold(missing):
     docs, _ = fixture.documents()
