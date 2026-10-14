@@ -16,6 +16,7 @@
 - `carbon/rewards/winner_eligibility.py`: prospective identity field and fail-closed comparison.
 - `tests/cpu/test_reward_winner_eligibility.py`: predecessor-disappears same/different coldkey, legacy missing-identity refusal, and append-only checks.
 - `carbon/rewards/testnet_winner_publication.py` and `tests/cpu/test_reward_testnet_winner_publication.py`: carry the bounded identity refusal through preview/issue and prove it stores no intent or signs anything.
+- `.agent/decisions/2026-10-14-IDENTITY-RECOVERY-01.md`: durable prospective schema and legacy refusal decision.
 
 Validation is held under the current OPERATOR gate. Before engineering delivery, run the focused reward tests and applicable canonical scope checks on the unchanged candidate head. No chain execution, signing, payout, clock-policy change, historical record mutation, LIVE claim, or qualification is in scope.
 
