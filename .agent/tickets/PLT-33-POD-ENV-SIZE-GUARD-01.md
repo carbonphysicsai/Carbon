@@ -17,6 +17,10 @@ finding, never grounds for lowering the reserve or weakening the assertion.
 
 Expected manifest: this ticket, D1 and prospective D2, `runpod/environment_guard.py`,
 `test_graphite_environment_guard.py`, and `POD_ENVIRONMENT_GUARD.md`.
+The Root-assigned inherited CI repair also owns the nonempty public-manifest
+fixture in `tests/cpu/test_graphite_env_probe.py`; preserve every no-provider,
+padding, current-bound, serializer and non-disclosure assertion. Export that
+fixture-only patch for other affected PRs rather than duplicating its edits.
 Tests: unit boundary/diagnostic/non-disclosure controls; real current-head
 environment for both JAX and PyTorch with the L4 transport character budget;
 frozen-current-recipe history comparison against #991. Existing environment,
