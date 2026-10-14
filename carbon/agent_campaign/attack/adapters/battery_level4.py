@@ -18,11 +18,14 @@ Lead's; this module supplies the boundaries and the evidence.
   every real cap stays HUMAN_INPUT.
 * **The attacks are generated** from the shipped allowlist (every refused
   op) and the Level 4 specimens, so the families follow what Carbon refuses.
-* **Rebuild** compiles a strategy under the variant to its graph record. No
-  graph is compiled or trained here: G5's profile is accepted for development
-  and testnet (OWNER-L4-G5-COMPILE-ISOLATION-01), but a record names only the
-  submission's digest and no transport stages its documents into the rebuild
-  worker yet; the rebuild label says so.
+* **Declared software probes** check G5 dispatch policy, frozen R6/R7 rules
+  and G7's nonfinite detector using fixed Carbon fixtures. Ordinary session
+  views remain NOT_RUN for these probes: no actual runtime evidence is
+  available to this adapter. Fresh-case, D4 and GPU gaps remain seams.
+* **Rebuild** compiles a strategy under the variant to its graph record. This
+  adapter does not compile or train it. The separate staged worker supports
+  a CPU-verified graph rebuild; its label states the scope. G5's profile is
+  accepted for development and testnet (OWNER-L4-G5-COMPILE-ISOLATION-01).
 
 Nothing here is served to a miner, and nothing runs participant code.
 """
@@ -31,9 +34,11 @@ from __future__ import annotations
 
 import functools
 from collections.abc import Mapping
+from dataclasses import replace
 
 from carbon.agent_campaign.attack import engine
 from carbon.agent_campaign.attack.adapter import (
+    NO_ORACLE_EVIDENCE,
     Control,
     family_oracle,
     seam_oracle,
@@ -46,8 +51,8 @@ LEVEL = 4
 #: level's artifact-and-dependency family, as Level 1's expression surface.
 SURFACE = "l4_constant_smuggling"
 PROFILE = "level-4"
-ADAPTER_VERSION = "carbon.attack.adapter.battery-l4.v1"
-CONTROLS_VERSION = "carbon.attack.controls.battery-l4.v1"
+ADAPTER_VERSION = "carbon.attack.adapter.battery-l4.v2"
+CONTROLS_VERSION = "carbon.attack.controls.battery-l4.v2"
 SPLITS = b.SPLITS
 #: The parser bound of this adapter's own checks; not a G3 limit.
 MAX_BYTES = 1 << 26
@@ -113,8 +118,8 @@ def graph_view(attempt):
     is the document the attempt itself carries (its arguments, or their
     `design`), and an attempt that carries none, such as a strategy naming a
     graph by digest, is a view without a rebuilt construction: NOT_RUN,
-    never a crash (stage-A L4, 2026-10-12: the documents reach no rebuild
-    worker yet, module docstring)."""
+    never a crash. A staged worker and a digest naming its input do not
+    supply this oracle with a graph document."""
     import dataclasses
 
     if hasattr(attempt, "value") or not dataclasses.is_dataclass(attempt):
@@ -459,6 +464,8 @@ class BatteryLevel4Adapter(b.BatteryLevel0Adapter):
         """Which Level-4 family a research tool call probes, or None: the
         declared one, else the surface. A graph family judges the document
         the attempt carries (`graph_view`); the slot ablation, its strategy."""
+        # The added probes take exact engine declarations, not session
+        # inputs. Only the original graph families are session-reachable.
         return b.door_family(tool, arguments, frozenset(_family_table()), SURFACE)
 
     @property
@@ -536,7 +543,9 @@ class BatteryLevel4Adapter(b.BatteryLevel0Adapter):
             return family_oracle(self._engine(family), view)
         for seam in self.level_families():
             if seam.name == family:
-                return seam_oracle(seam, attempt)
+                # These are unavailable owner/runtime inputs, not evidence
+                # that a threat is genuinely outside Level 4's scope.
+                return replace(seam_oracle(seam, attempt), reading=NO_ORACLE_EVIDENCE)
         raise ValueError("oracle_for_an_unknown_family: " + str(family))
 
     def level_families(self):

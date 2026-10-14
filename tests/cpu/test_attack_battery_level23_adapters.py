@@ -28,6 +28,7 @@ Claims tested:
 from __future__ import annotations
 
 import os
+from dataclasses import replace
 
 import pytest
 
@@ -35,7 +36,12 @@ pytest.importorskip("jax")
 os.environ.setdefault("JAX_PLATFORMS", "cpu")
 
 from carbon.agent_campaign.attack import adapters, engine, identity, verify
-from carbon.agent_campaign.attack.adapter import TRACK_A_CHECKS, validate
+from carbon.agent_campaign.attack.adapter import (
+    NOT_RUN,
+    TRACK_A_CHECKS,
+    AttackInput,
+    validate,
+)
 from carbon.agent_campaign.attack.adapters import battery as b
 from carbon.agent_campaign.attack.adapters import battery_declarative as d
 from carbon.agent_campaign.attack.adapters import battery_level2 as l2
@@ -149,6 +155,71 @@ def test_level_2_pool_attacks_are_refused_by_their_pool_codes():
     honest = l2._families()["l2_pool_sources_and_weights"]
     assert d.accepted(d.variant_gate(2)(honest.trained))
     assert d.accepted(d.variant_gate(2)(honest.held_out))
+
+
+def test_level_2_shape_guard_does_not_call_honest_accepted_compile_a_breach():
+    honest = l2._strategy(optimizer_family="muon", backend="pytorch")
+    for family in (
+        "l2_pool_sources_and_weights",
+        "l2_off_family",
+        "l2_cross_level_fields",
+        "l2_slot_ablation",
+    ):
+        value = honest if family == "l2_pool_sources_and_weights" else l2._strategy()
+        result = l2.ADAPTER.oracle(family, AttackInput("honest", value))
+        assert result.verdict == NOT_RUN and result.condition is None, family
+    # A valid pool selection is also not the P1/P2 attack shape.
+    valid = l2._strategy(pool_selection=l2._pool())
+    result = l2.ADAPTER.oracle(
+        "l2_pool_sources_and_weights", AttackInput("valid_pool", valid)
+    )
+    assert result.verdict == NOT_RUN
+
+
+def test_level_2_pool_violation_accepted_by_weak_gate_is_still_breached(monkeypatch):
+    family = "l2_pool_sources_and_weights"
+    original = l2._families()
+    weakened = {
+        **original,
+        family: replace(original[family], boundary=d.unchecked_gate),
+    }
+    monkeypatch.setattr(l2.ADAPTER, "_table", lambda: weakened)
+    invalid = l2._strategy(pool_selection=l2._pool(strata={"practice": 1.0}))
+    result = l2.ADAPTER.oracle(family, AttackInput("invalid_pool", invalid))
+    assert result.verdict == engine.BREACHED
+    assert result.condition == engine.FINDING_CONDITION
+    ordinary = l2.ADAPTER.oracle(family, AttackInput("honest", l2._strategy()))
+    assert ordinary.verdict == NOT_RUN
+
+
+def test_level_2_draw_shortage_is_a_pool_attack_shape(monkeypatch):
+    from carbon.battery import pools
+
+    family = "l2_pool_sources_and_weights"
+    original = l2._families()
+    weakened = {
+        **original,
+        family: replace(original[family], boundary=d.unchecked_gate),
+    }
+    monkeypatch.setattr(l2.ADAPTER, "_table", lambda: weakened)
+    selection = l2._pool(box={pools.INPUTS[0]: [1e9, 1e9 + 1]})
+    result = l2.ADAPTER.oracle(
+        family, AttackInput("draw_shortage", l2._strategy(pool_selection=selection))
+    )
+    assert result.verdict == engine.BREACHED
+
+
+@pytest.mark.parametrize(
+    "family,attack",
+    [
+        ("l2_off_family", l2._off_family_attacks()[0][1]),
+        ("l2_cross_level_fields", l2._cross_level_attacks()[0][1]),
+        ("l2_slot_ablation", l2._ablation_attacks()[0][1]),
+    ],
+)
+def test_other_level_2_shapes_are_held_by_the_real_gate(family, attack):
+    result = l2.ADAPTER.oracle(family, AttackInput("shaped", attack))
+    assert result.verdict == engine.HELD, family
 
 
 def test_seams_say_why_they_are_not_run(level):

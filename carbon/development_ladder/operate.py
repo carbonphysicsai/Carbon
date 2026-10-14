@@ -29,7 +29,7 @@ def compile_variant(strategy, variant_digest, parts=None, held=None):
     from carbon.reconstruction import development_variants as dv
 
     variant = dv.registered(variant_digest)
-    if getattr(variant, "level", None) == 4:
+    if _submission(strategy) is not None:
         admitted = _admit_level4(strategy, variant, parts)
         if held is not None:
             held[_submission(strategy)] = admitted

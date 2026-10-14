@@ -871,7 +871,12 @@ class LaunchFailed(Refused):
             message=failure.failed,
             intent_id=intent_id,
             capacity=status not in DEFINITIVE_STATUSES
-            and (status is None or status >= 500 or "no instances" in text),
+            and (
+                status is None
+                or status >= 500
+                or failure.provider_reason_code == "provider_capacity"
+                or "no instances" in text
+            ),
             cloud=cloud,
             next_action=failure.next_action,
         )

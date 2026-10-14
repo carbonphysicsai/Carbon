@@ -851,9 +851,15 @@ class RunPodPods:
                 retry_ambiguous=self.retry_ambiguous_create,
             )
         except ComputeError as failure:
+            detail = failure.failed
+            if failure.execution is Execution.MAY_HAVE_EXECUTED:
+                status = failure.http_status
+                detail += (
+                    " (HTTP unavailable)" if status is None else f" (HTTP {status})"
+                )
             raise PodFailure(
                 "launch",
-                failure.failed,
+                detail,
                 executed=failure.execution is not Execution.NOT_EXECUTED,
             ) from None
         self._tokens[job.intent_id] = record["token"]
