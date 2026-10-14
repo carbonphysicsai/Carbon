@@ -106,7 +106,14 @@ The result records one submission
 `sha256:20015d9a74083b0d3e8400252a9d51a981b30072dfa39d310d8d4472894332b6`,
 two replicas with the same state digest
 `sha256:a0995d730e11acee2575c1c101a09ff252052003a61d59112ea606440eb4b916`,
-and exact prediction parity on four inference cases. It explicitly records
+and exact prediction parity on four inference cases. Graphite's static source
+inspection identifies these as the **first four PUBLIC TRAIN cases**, not EV4 D
+cases. Query/output bytes are absent from the 18-file public export. The existing
+worker source is `codex-queue/inputs/operator/GRAPHITE_S5_STANDALONE_WORKER.py`
+(SHA-256 `1d43f1a3fc98ef398f094f2b782dc5c9c05d7df44b7fb476dace0fdd904c9994`,
+lines 314-315); its TRAIN source is pinned as
+`3a7c763cca272df729268759e3062abd79e104a5c527c17314aef663944cf0e3`.
+This is attributed source inspection, not newly executed inference. It explicitly records
 `graphite_campaign: false`, `combined_086_proved: false`, and qualification false.
 It is one actual standalone specimen, not two independent models or a completed
 Graphite campaign. No reconstruction or inference has been repeated here.
@@ -175,7 +182,7 @@ without changing the scientific job to match the available data.
 | Baseline | Public member `mlp-s0`; compressed bundle `7c2ddf542abeff71625d21d4c1e3ae9ecb6d94594b86e9f5403f8039ce160c6f`; declared recipe `68928efe9d60e4f1cc65c6008f3cb5df12bde962cd85cc616a09eddc9cedf867` from the existing public crosswalk. Training-cohort/seed-role equivalence is not established |
 | Accuracy metric | Reuse `carbon.battery.exam.case_components` then `case_error`: equal mean of normalized voltage, temperature, plating and capacity components, dimensionless/lower-is-better. Pin public TRAIN-derived scales and source revision; do not fit scales to this comparison or use transformed `1/(1+E)` as the rev-5 error |
 | Reference | Public EV4 trajectory outputs only, with Data Collection's explicit version/applicability receipt, including plating-v2 applicability. A binary v2 plating verdict cannot supply a missing voltage, thermal or capacity trajectory. Never call `value.scoring.scoring_set`, which loads private-role references |
-| Available case definitions | The 12 committed D scenarios: temperatures 5/14/24/34 C crossed with SOC 0.12/0.33/0.48, each with the contract's seven c1 by five c2 actions. These define 420 requested rows, not 420 usable observations or a chosen statistical N. The four standalone inference query definitions/arrays are not included in the inspected 18-file export; overlap is unknown |
+| Available case definitions | The 12 committed D scenarios: temperatures 5/14/24/34 C crossed with SOC 0.12/0.33/0.48, each with the contract's seven c1 by five c2 actions. These define 420 requested rows, not 420 usable observations or a chosen statistical N. The specimen's four parity queries are PUBLIC TRAIN cases, not established EV4 D predictions; its query/output bytes are absent from the export |
 | Role and grouping | Descriptive reuse of public D only; no claim of an untouched set. Retain scenario grouping for any later uncertainty design. Do not label the fixed grid independent uniform case draws or feed it as a current battery rev-5 round |
 | Scientific gates | Validator supplies named settled G-FEAS and important-region receipts on the same contract/rows. Unknown stays unknown; compilation, parity, watchdogs and configuration weights cannot supply PASS |
 | Decision value | Deferred until the full 35-action menu has applicable references on common questions. Current v2 admission has no such common question; no smaller menu or original near-onset label is substituted |
@@ -192,6 +199,13 @@ the existing executor's bounded quote; the two observed training timings alone
 do not justify a new-run estimate. Root alone allocates any part of the shared
 test budget. This document makes no reservation or charge.
 
+Graphite's source inventory confirms the current candidate does **not** already
+have the required EV4 D outputs in this export. The $0 arithmetic cap therefore
+does not cover an executable comparison today. First request any already-existing
+public EV4 inference output by digest; if none exists, an executor must quote
+that missing inference step for Root's separate allocation. Do not turn TRAIN
+parity into EV4 accuracy or rerun reconstruction to recreate an existing state.
+
 **Decision wording:** approve this public archival comparison and existing metric
 as the first receipt to complete, conditional on the listed inputs; otherwise
 name the replacement job/pair. No N, takeover margin, scientific gate threshold
@@ -206,8 +220,8 @@ metadata cannot be used directly by WSL; reuse the established canonical clone.
 No source arrays, model state or external data enter these fixture tests.
 
 ```sh
-CARBON_UV_GROUPS=science-jax timeout 300 ./scripts/dev/canonical.sh \
-  /usr/bin/bash -euc '
+CARBON_UV_GROUPS=science-jax ./scripts/dev/canonical.sh \
+  /usr/bin/timeout --signal=TERM --kill-after=10s 240s /usr/bin/bash -euc '
 export OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1
 .venv/bin/python -m pytest -q tests/cpu/test_score_lab_championship_bridge.py tests/cpu/test_championship_rev5.py
 .venv/bin/python -m black --check scripts/dev/score_lab/championship_bridge.py tests/cpu/test_score_lab_championship_bridge.py
@@ -216,5 +230,12 @@ export OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1
 '
 ```
 
-The exact head and checkout command are delivered in the local lane report once
-the source is committed. This command has been prepared, **not executed**.
+This inner deadline covers validation only, after canonical build/bootstrap. Use
+Root's prepared local host runner to bound startup too: it pins the exact source,
+adds an invocation-specific label/cidfile to canonical's Docker run, and checks
+actual owned-container absence after exit or timeout. Killing a Docker client
+does not prove container cleanup; an engine-query failure remains unknown. The
+canonical wrapper may revalidate/build its image and synchronize dependencies;
+Root must clear that resource use before TEST execution. No shared image or
+volume is removed. The exact head and prepared runner are in the local lane
+report. These commands have been prepared, **not executed**.
