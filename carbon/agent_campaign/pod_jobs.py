@@ -878,6 +878,7 @@ class JobPods(pods.RunPodPods):
     def launch_job(self, private):
         """Preflight accepted CPU flavors or a priced GPU offer, then create."""
         from scripts.dev.exam_design.runpod.operator_compute import (
+            CPUPlacement,
             ComputeError,
             Execution,
             ProvisionRequest,
@@ -896,7 +897,12 @@ class JobPods(pods.RunPodPods):
                 )
             if self.spec.cpu:
                 placement = spec.cpu_placement
-                assert placement is not None
+                if type(placement) is not CPUPlacement:
+                    raise PodFailure(
+                        "launch",
+                        "CPU pod spec is missing its validated CPU placement",
+                        executed=False,
+                    )
                 in_stock = []
                 for flavor_id in placement.flavor_ids:
                     try:
