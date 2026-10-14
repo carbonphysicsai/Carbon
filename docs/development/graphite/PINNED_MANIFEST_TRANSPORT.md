@@ -65,3 +65,23 @@ fixture, since a large code manifest no longer makes the environment large.
 Maturity: DEVELOPMENT implementation/testing only. This is not security
 acceptance, isolation qualification, scientific qualification, deployment or
 LIVE authority. Actual operator/host acceptance remains with the host sessions.
+
+## New launch observations remain separate evidence
+
+The owner-supplied POD_ENV_LIMIT_HANDOFF_01 attributes a successful baseline
+launch to a 78,076-character environment and ambiguous creates to proposals
+at 84,501 and 86,408 characters, plus four further ambiguous proposals. These
+are attributed observations from the handoff; this lane did not inspect host
+proposal directories or execute those launches. No padded probe isolated
+environment size from envelope content or another cause. The 108,000 software
+guard therefore has no demonstrated provider-protection claim from these
+observations. It remains the owner-approved constant pending a measured,
+owner-authorized amendment.
+
+An empty ownership-tag listing does not establish that an ambiguous create
+never executed or cost nothing. The six ambiguous reservations remain held
+until reconciliation evidence resolves them. PLT-36's provider probe and its
+new figure/host execution are separate work; this lane neither duplicates it
+nor changes figures. Any carbon-package image change also requires the host
+team's R8 hostile probes on the new pinned image before a host run. The local
+environment reduction above is software evidence, not that host acceptance.
