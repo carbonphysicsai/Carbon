@@ -42,7 +42,7 @@ def test_real_builder_adds_only_exact_padding_and_never_calls_provider():
         probe.padded_spec(real, target(original))
 
 
-@pytest.mark.parametrize("bad", [None, True, 1.5, -1, 0, 108_001])
+@pytest.mark.parametrize("bad", [None, True, 1.5, -1, 0, pod_env.ENV_LIMIT_CHARS + 1])
 def test_invalid_or_over_guard_targets_refuse(bad):
     with pytest.raises(probe.ProbeRefused, match="target outside"):
         probe.padded_spec(base(), bad)

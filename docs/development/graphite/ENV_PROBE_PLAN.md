@@ -30,6 +30,12 @@ actual adapter transport, change a non-environment field, vary quote/backslash
 and Unicode padding at equal character counts, and lower the guard so padding
 fails even though the base still fits. None is a provider-size measurement.
 
+Offline validation command (no provider or host acceptance):
+
+```sh
+CARBON_UV_GROUPS='science-jax mcp archive' ./scripts/dev/canonical.sh --focused tests/cpu/test_graphite_env_probe.py tests/cpu/test_graphite_pod_env_size.py tests/cpu/test_graphite_launch_preflight.py
+```
+
 The proposed first host tranche is at most **four sequential creates**,
 concurrency one, with no resend or automatic retry. Freeze one pushed source
 revision, immutable image, public minimal probe job/record, GPU/count/cloud,
