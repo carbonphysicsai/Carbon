@@ -1,0 +1,951 @@
+{
+  "schema": "carbon.dev.score-lab-combined-plan.v1",
+  "scope": "SYNTHETIC_DEVELOPMENT",
+  "authority": ".agent/decisions/2026-10-14-OPT15C-FINISH-LINE.md",
+  "profile_selection": "Fixed base example, named tight_boundary_coupled stress, LHS row index 0; no output-based selection",
+  "profiles": [
+    {
+      "id": "nominal_error_example",
+      "config": {
+        "schema": "carbon.dev.score-lab-physics-config.v1",
+        "label": "ASSUMPTION: illustrative toy settings; no Challenge registration",
+        "problem": {
+          "space": "small-grid",
+          "optima": "multi",
+          "constraint": "tight",
+          "shift": "nominal",
+          "verification_cost_ASSUMPTION": 0.1
+        },
+        "questions_per_side": 6,
+        "decision": {
+          "k": 3,
+          "unit": 1.0,
+          "abstention_loss": 0.0,
+          "unsafe_loss": 1.0,
+          "uncertainty_abstention_threshold": 0.08
+        },
+        "neighbourhood": {
+          "size": 0.08,
+          "score_weight": 0.25,
+          "value_weight": 0.5,
+          "extrapolation_distance": 0.5,
+          "directions": [
+            "objective",
+            "constraint",
+            "operating",
+            "boundary"
+          ]
+        },
+        "coverage": 1.0,
+        "good_fraction": 0.5,
+        "bootstrap": 30,
+        "population": [
+          {
+            "id": "physics-understanding-0",
+            "kind": "MODEL",
+            "noise": 0.015,
+            "transfer": 1.0,
+            "law_rate": 0.0,
+            "law_size": 0.0,
+            "rollout_drift": 0.005,
+            "robustness": 0.005,
+            "extrapolation": 0.005,
+            "heteroscedasticity": 0.0,
+            "error_region": "uniform",
+            "cross_design_correlation": 0.0,
+            "tail_rate": 0.0,
+            "tail_size": 0.0,
+            "sigma_scale": 1.0
+          },
+          {
+            "id": "physics-understanding-1",
+            "kind": "MODEL",
+            "noise": 0.025,
+            "transfer": 0.9,
+            "law_rate": 0.0,
+            "law_size": 0.0,
+            "rollout_drift": 0.01,
+            "robustness": 0.01,
+            "extrapolation": 0.01
+          },
+          {
+            "id": "moderate-generalist",
+            "kind": "MODEL",
+            "noise": 0.035,
+            "transfer": 0.7,
+            "law_rate": 0.01,
+            "law_size": 0.03,
+            "rollout_drift": 0.025,
+            "robustness": 0.04,
+            "extrapolation": 0.04
+          },
+          {
+            "id": "target-overfit-0",
+            "kind": "MODEL",
+            "noise": 0.005,
+            "transfer": 0.0,
+            "law_rate": 0.0,
+            "law_size": 0.0,
+            "rollout_drift": 0.0,
+            "robustness": 0.12,
+            "extrapolation": 0.15
+          },
+          {
+            "id": "target-overfit-1",
+            "kind": "MODEL",
+            "noise": 0.008,
+            "transfer": 0.1,
+            "law_rate": 0.0,
+            "law_size": 0.0,
+            "rollout_drift": 0.0,
+            "robustness": 0.08,
+            "extrapolation": 0.12
+          },
+          {
+            "id": "noisy-safe",
+            "kind": "MODEL",
+            "noise": 0.09,
+            "transfer": 0.8,
+            "law_rate": 0.0,
+            "law_size": 0.0,
+            "rollout_drift": 0.02,
+            "robustness": 0.02,
+            "extrapolation": 0.02
+          },
+          {
+            "id": "adversarial-score-path",
+            "kind": "PROBE",
+            "noise": 0.0,
+            "transfer": 0.0,
+            "score_path_only": true,
+            "law_rate": 0.2,
+            "law_size": 0.18,
+            "rollout_drift": 0.06,
+            "robustness": 0.12,
+            "extrapolation": 0.2
+          },
+          {
+            "id": "known-bad-law-breaker",
+            "kind": "PROBE",
+            "noise": 0.02,
+            "transfer": 0.2,
+            "law_rate": 0.4,
+            "law_size": 0.3,
+            "rollout_drift": 0.1,
+            "robustness": 0.1,
+            "extrapolation": 0.2
+          }
+        ],
+        "physics_sweep": [
+          {
+            "mode": "OFF",
+            "limit": {},
+            "weight": {}
+          },
+          {
+            "mode": "GATE",
+            "limit": {
+              "law_violations": 0.01,
+              "b15": 0.01
+            },
+            "weight": {}
+          },
+          {
+            "mode": "FLOOR",
+            "limit": {
+              "rollout_drift": 0.05,
+              "robustness": 0.08,
+              "extrapolation": 0.1,
+              "b9": 0.08,
+              "b16": 0.05
+            },
+            "weight": {}
+          },
+          {
+            "mode": "BLEND",
+            "limit": {
+              "law_violations": 0.01,
+              "rollout_drift": 0.05,
+              "robustness": 0.08,
+              "extrapolation": 0.1
+            },
+            "weight": {
+              "law_violations": 0.4,
+              "rollout_drift": 0.4,
+              "robustness": 0.4,
+              "extrapolation": 0.4
+            }
+          },
+          {
+            "mode": "GATE",
+            "limit": {
+              "b15": 1e-06
+            },
+            "weight": {},
+            "label": "ASSUMPTION: PLT-01 B15 paired residual limit"
+          },
+          {
+            "mode": "FLOOR",
+            "limit": {
+              "b9": 1.0,
+              "b16": 0.02
+            },
+            "weight": {},
+            "label": "ASSUMPTION: public B9 Celsius and PLT-01 B16 residual limits"
+          },
+          {
+            "mode": "BLEND",
+            "limit": {
+              "b15": 1e-06,
+              "b9": 1.0,
+              "b16": 0.02
+            },
+            "weight": {
+              "b15": 0.2,
+              "b9": 0.2,
+              "b16": 0.2
+            },
+            "label": "ASSUMPTION: measured-trait relative weights"
+          }
+        ],
+        "sensitivity": {
+          "neighbourhood.size": [
+            0.02,
+            0.16
+          ],
+          "neighbourhood.value_weight": [
+            0.0,
+            1.0
+          ],
+          "neighbourhood.score_weight": [
+            0.0,
+            0.5
+          ],
+          "decision.k": [
+            1,
+            5
+          ],
+          "problem.verification_cost_ASSUMPTION": [
+            0.02,
+            0.2
+          ],
+          "coverage": [
+            0.75
+          ]
+        }
+      },
+      "config_sha256": "cfce7bf3b90c11e02f4a969c5f01b7543546c1fddaadafcff747b5d608e58bb3"
+    },
+    {
+      "id": "tight_boundary_coupled",
+      "config": {
+        "schema": "carbon.dev.score-lab-physics-config.v1",
+        "label": "ASSUMPTION: illustrative toy settings; no Challenge registration",
+        "problem": {
+          "space": "small-grid",
+          "optima": "single",
+          "constraint": "tight",
+          "shift": "nominal",
+          "verification_cost_ASSUMPTION": 0.1
+        },
+        "questions_per_side": 6,
+        "decision": {
+          "k": 3,
+          "unit": 1.0,
+          "abstention_loss": 0.0,
+          "unsafe_loss": 1.0,
+          "uncertainty_abstention_threshold": 0.08
+        },
+        "neighbourhood": {
+          "size": 0.16,
+          "score_weight": 0.25,
+          "value_weight": 0.5,
+          "extrapolation_distance": 0.5,
+          "directions": [
+            "objective",
+            "constraint",
+            "operating",
+            "boundary"
+          ]
+        },
+        "coverage": 1.0,
+        "good_fraction": 0.5,
+        "bootstrap": 30,
+        "population": [
+          {
+            "id": "physics-understanding-0",
+            "kind": "MODEL",
+            "noise": 0.015,
+            "transfer": 1.0,
+            "law_rate": 0.0,
+            "law_size": 0.0,
+            "rollout_drift": 0.005,
+            "robustness": 0.005,
+            "extrapolation": 0.005,
+            "heteroscedasticity": 0.0,
+            "error_region": "uniform",
+            "cross_design_correlation": 0.0,
+            "tail_rate": 0.0,
+            "tail_size": 0.0,
+            "sigma_scale": 1.0
+          },
+          {
+            "id": "physics-understanding-1",
+            "kind": "MODEL",
+            "noise": 0.025,
+            "transfer": 0.9,
+            "law_rate": 0.0,
+            "law_size": 0.0,
+            "rollout_drift": 0.01,
+            "robustness": 0.01,
+            "extrapolation": 0.01
+          },
+          {
+            "id": "moderate-generalist",
+            "kind": "MODEL",
+            "noise": 0.035,
+            "transfer": 0.7,
+            "law_rate": 0.01,
+            "law_size": 0.03,
+            "rollout_drift": 0.025,
+            "robustness": 0.04,
+            "extrapolation": 0.04
+          },
+          {
+            "id": "target-overfit-0",
+            "kind": "MODEL",
+            "noise": 0.005,
+            "transfer": 0.0,
+            "law_rate": 0.0,
+            "law_size": 0.0,
+            "rollout_drift": 0.0,
+            "robustness": 0.12,
+            "extrapolation": 0.15
+          },
+          {
+            "id": "target-overfit-1",
+            "kind": "MODEL",
+            "noise": 0.008,
+            "transfer": 0.1,
+            "law_rate": 0.0,
+            "law_size": 0.0,
+            "rollout_drift": 0.0,
+            "robustness": 0.08,
+            "extrapolation": 0.12
+          },
+          {
+            "id": "noisy-safe",
+            "kind": "MODEL",
+            "noise": 0.09,
+            "transfer": 0.8,
+            "law_rate": 0.0,
+            "law_size": 0.0,
+            "rollout_drift": 0.02,
+            "robustness": 0.02,
+            "extrapolation": 0.02
+          },
+          {
+            "id": "adversarial-score-path",
+            "kind": "PROBE",
+            "noise": 0.0,
+            "transfer": 0.0,
+            "score_path_only": true,
+            "law_rate": 0.2,
+            "law_size": 0.18,
+            "rollout_drift": 0.06,
+            "robustness": 0.12,
+            "extrapolation": 0.2
+          },
+          {
+            "id": "known-bad-law-breaker",
+            "kind": "PROBE",
+            "noise": 0.02,
+            "transfer": 0.2,
+            "law_rate": 0.4,
+            "law_size": 0.3,
+            "rollout_drift": 0.1,
+            "robustness": 0.1,
+            "extrapolation": 0.2
+          }
+        ],
+        "physics_sweep": [
+          {
+            "mode": "OFF",
+            "limit": {},
+            "weight": {}
+          },
+          {
+            "mode": "GATE",
+            "limit": {
+              "law_violations": 0.01,
+              "b15": 0.01
+            },
+            "weight": {}
+          },
+          {
+            "mode": "FLOOR",
+            "limit": {
+              "rollout_drift": 0.05,
+              "robustness": 0.08,
+              "extrapolation": 0.1,
+              "b9": 0.08,
+              "b16": 0.05
+            },
+            "weight": {}
+          },
+          {
+            "mode": "BLEND",
+            "limit": {
+              "law_violations": 0.01,
+              "rollout_drift": 0.05,
+              "robustness": 0.08,
+              "extrapolation": 0.1
+            },
+            "weight": {
+              "law_violations": 0.4,
+              "rollout_drift": 0.4,
+              "robustness": 0.4,
+              "extrapolation": 0.4
+            }
+          },
+          {
+            "mode": "GATE",
+            "limit": {
+              "b15": 1e-06
+            },
+            "weight": {},
+            "label": "ASSUMPTION: PLT-01 B15 paired residual limit"
+          },
+          {
+            "mode": "FLOOR",
+            "limit": {
+              "b9": 1.0,
+              "b16": 0.02
+            },
+            "weight": {},
+            "label": "ASSUMPTION: public B9 Celsius and PLT-01 B16 residual limits"
+          },
+          {
+            "mode": "BLEND",
+            "limit": {
+              "b15": 1e-06,
+              "b9": 1.0,
+              "b16": 0.02
+            },
+            "weight": {
+              "b15": 0.2,
+              "b9": 0.2,
+              "b16": 0.2
+            },
+            "label": "ASSUMPTION: measured-trait relative weights"
+          }
+        ],
+        "sensitivity": {
+          "neighbourhood.size": [
+            0.02,
+            0.16
+          ],
+          "neighbourhood.value_weight": [
+            0.0,
+            1.0
+          ],
+          "neighbourhood.score_weight": [
+            0.0,
+            0.5
+          ],
+          "decision.k": [
+            1,
+            5
+          ],
+          "problem.verification_cost_ASSUMPTION": [
+            0.02,
+            0.2
+          ],
+          "coverage": [
+            0.75
+          ]
+        }
+      },
+      "config_sha256": "20c38c5be5987696ecc2c8b7c6adbb67aeb7fd0c98e0dc3e8a4993a0374c30f9"
+    },
+    {
+      "id": "registered_error64_row0",
+      "config": {
+        "bootstrap": 30,
+        "coverage": 1.0,
+        "decision": {
+          "abstention_loss": 0.0,
+          "k": 3,
+          "unit": 1.0,
+          "unsafe_loss": 1.0,
+          "uncertainty_abstention_threshold": 0.08
+        },
+        "good_fraction": 0.5,
+        "label": "ASSUMPTION: illustrative toy settings; no Challenge registration",
+        "neighbourhood": {
+          "directions": [
+            "objective",
+            "constraint",
+            "operating",
+            "boundary"
+          ],
+          "extrapolation_distance": 0.5,
+          "score_weight": 0.25,
+          "size": 0.08,
+          "value_weight": 0.5
+        },
+        "physics_sweep": [
+          {
+            "limit": {},
+            "mode": "OFF",
+            "weight": {}
+          },
+          {
+            "limit": {
+              "b15": 0.01,
+              "law_violations": 0.01
+            },
+            "mode": "GATE",
+            "weight": {}
+          },
+          {
+            "limit": {
+              "b16": 0.05,
+              "b9": 0.08,
+              "extrapolation": 0.1,
+              "robustness": 0.08,
+              "rollout_drift": 0.05
+            },
+            "mode": "FLOOR",
+            "weight": {}
+          },
+          {
+            "limit": {
+              "extrapolation": 0.1,
+              "law_violations": 0.01,
+              "robustness": 0.08,
+              "rollout_drift": 0.05
+            },
+            "mode": "BLEND",
+            "weight": {
+              "extrapolation": 0.4,
+              "law_violations": 0.4,
+              "robustness": 0.4,
+              "rollout_drift": 0.4
+            }
+          },
+          {
+            "label": "ASSUMPTION: PLT-01 B15 paired residual limit",
+            "limit": {
+              "b15": 1e-06
+            },
+            "mode": "GATE",
+            "weight": {}
+          },
+          {
+            "label": "ASSUMPTION: public B9 Celsius and PLT-01 B16 residual limits",
+            "limit": {
+              "b16": 0.02,
+              "b9": 1.0
+            },
+            "mode": "FLOOR",
+            "weight": {}
+          },
+          {
+            "label": "ASSUMPTION: measured-trait relative weights",
+            "limit": {
+              "b15": 1e-06,
+              "b16": 0.02,
+              "b9": 1.0
+            },
+            "mode": "BLEND",
+            "weight": {
+              "b15": 0.2,
+              "b16": 0.2,
+              "b9": 0.2
+            }
+          }
+        ],
+        "population": [
+          {
+            "cross_design_correlation": 0.5250064399929188,
+            "error_region": "uniform",
+            "extrapolation": 0.005,
+            "heteroscedasticity": 0.3244416038233312,
+            "id": "physics-understanding-0",
+            "kind": "MODEL",
+            "law_rate": 0.0,
+            "law_size": 0.0,
+            "noise": 0.015,
+            "robustness": 0.005,
+            "rollout_drift": 0.005,
+            "sigma_scale": 1.4823074340197755,
+            "tail_rate": 0.026489888015269025,
+            "tail_size": 0.4357937356069551,
+            "transfer": 1.0
+          },
+          {
+            "extrapolation": 0.01,
+            "id": "physics-understanding-1",
+            "kind": "MODEL",
+            "law_rate": 0.0,
+            "law_size": 0.0,
+            "noise": 0.025,
+            "robustness": 0.01,
+            "rollout_drift": 0.01,
+            "transfer": 0.9
+          },
+          {
+            "extrapolation": 0.04,
+            "id": "moderate-generalist",
+            "kind": "MODEL",
+            "law_rate": 0.01,
+            "law_size": 0.03,
+            "noise": 0.035,
+            "robustness": 0.04,
+            "rollout_drift": 0.025,
+            "transfer": 0.7
+          },
+          {
+            "extrapolation": 0.15,
+            "id": "target-overfit-0",
+            "kind": "MODEL",
+            "law_rate": 0.0,
+            "law_size": 0.0,
+            "noise": 0.005,
+            "robustness": 0.12,
+            "rollout_drift": 0.0,
+            "transfer": 0.0
+          },
+          {
+            "extrapolation": 0.12,
+            "id": "target-overfit-1",
+            "kind": "MODEL",
+            "law_rate": 0.0,
+            "law_size": 0.0,
+            "noise": 0.008,
+            "robustness": 0.08,
+            "rollout_drift": 0.0,
+            "transfer": 0.1
+          },
+          {
+            "extrapolation": 0.02,
+            "id": "noisy-safe",
+            "kind": "MODEL",
+            "law_rate": 0.0,
+            "law_size": 0.0,
+            "noise": 0.09,
+            "robustness": 0.02,
+            "rollout_drift": 0.02,
+            "transfer": 0.8
+          },
+          {
+            "extrapolation": 0.2,
+            "id": "adversarial-score-path",
+            "kind": "PROBE",
+            "law_rate": 0.2,
+            "law_size": 0.18,
+            "noise": 0.0,
+            "robustness": 0.12,
+            "rollout_drift": 0.06,
+            "score_path_only": true,
+            "transfer": 0.0
+          },
+          {
+            "extrapolation": 0.2,
+            "id": "known-bad-law-breaker",
+            "kind": "PROBE",
+            "law_rate": 0.4,
+            "law_size": 0.3,
+            "noise": 0.02,
+            "robustness": 0.1,
+            "rollout_drift": 0.1,
+            "transfer": 0.2
+          }
+        ],
+        "problem": {
+          "constraint": "tight",
+          "optima": "multi",
+          "shift": "nominal",
+          "space": "small-grid",
+          "verification_cost_ASSUMPTION": 0.1
+        },
+        "questions_per_side": 6,
+        "schema": "carbon.dev.score-lab-physics-config.v1",
+        "sensitivity": {
+          "coverage": [
+            0.75
+          ],
+          "decision.k": [
+            1,
+            5
+          ],
+          "neighbourhood.score_weight": [
+            0.0,
+            0.5
+          ],
+          "neighbourhood.size": [
+            0.02,
+            0.16
+          ],
+          "neighbourhood.value_weight": [
+            0.0,
+            1.0
+          ],
+          "problem.verification_cost_ASSUMPTION": [
+            0.02,
+            0.2
+          ]
+        }
+      },
+      "config_sha256": "ffc55e441e79827a49047b96af669dc95d7ba2be6808806b4c97412d17a30529"
+    }
+  ],
+  "components": {
+    "cheap_margin_weight": 0.25,
+    "crps_weight": 0.25,
+    "gradient_weight": 0.25,
+    "cvar_tail_fraction": 0.25,
+    "honest_abstention": {
+      "weight": 0.5,
+      "error_limit": 0.05,
+      "sigma_scale": 0.05,
+      "decline_threshold": 0.08,
+      "outside_weight": 0.5
+    }
+  },
+  "components_sha256": "105824cf07bdc70bfdc08ff4543e26746dc1528c10c02ddb09a4ce755a26fff5",
+  "candidate_ids": [
+    "INFORCE-G-FEAS/A-Q>@0.05",
+    "V9-ENV/ARP-V3",
+    "V10-SIGN+ENV/ARP-V3S",
+    "V2r2@k1,kappa0.05",
+    "V2r2@k3,kappa0.1",
+    "V2r2@k5,kappa0.25",
+    "N1-DECISION-RELEVANCE-ERROR",
+    "N2-VERIFIED-REGRET-ON-PICK",
+    "N3-SAFE-PICK-RATE-x-GAIN",
+    "N4-TOP-REGION-RANKING",
+    "TOY-ABLATION/A/NO-GATE",
+    "TOY-ABLATION/A/G-FEAS",
+    "TOY-ABLATION/Q/NO-GATE",
+    "TOY-ABLATION/Q/G-FEAS",
+    "TOY-ABLATION/A+Q/NO-GATE",
+    "TOY-ABLATION/A+Q/G-FEAS"
+  ],
+  "ablations": [
+    {
+      "id": "TOY-ABLATION/A/NO-GATE",
+      "weights": {
+        "a": 1.0
+      },
+      "gates": [],
+      "literal_source": "registry-v9/A",
+      "gate_source": null
+    },
+    {
+      "id": "TOY-ABLATION/A/G-FEAS",
+      "weights": {
+        "a": 1.0
+      },
+      "gates": [
+        [
+          "feasibility",
+          0.05,
+          "exceeds"
+        ]
+      ],
+      "literal_source": "registry-v9/A",
+      "gate_source": "registry-v5/G-FEAS/A-Q>"
+    },
+    {
+      "id": "TOY-ABLATION/Q/NO-GATE",
+      "weights": {
+        "q": 1.0
+      },
+      "gates": [],
+      "literal_source": "registry-v5/D",
+      "gate_source": null
+    },
+    {
+      "id": "TOY-ABLATION/Q/G-FEAS",
+      "weights": {
+        "q": 1.0
+      },
+      "gates": [
+        [
+          "feasibility",
+          0.05,
+          "exceeds"
+        ]
+      ],
+      "literal_source": "registry-v5/D",
+      "gate_source": "registry-v5/G-FEAS/A-Q>"
+    },
+    {
+      "id": "TOY-ABLATION/A+Q/NO-GATE",
+      "weights": {
+        "a": 0.5,
+        "q": 0.5
+      },
+      "gates": [],
+      "literal_source": "registry-v5/A-Q",
+      "gate_source": null
+    },
+    {
+      "id": "TOY-ABLATION/A+Q/G-FEAS",
+      "weights": {
+        "a": 0.5,
+        "q": 0.5
+      },
+      "gates": [
+        [
+          "feasibility",
+          0.05,
+          "exceeds"
+        ]
+      ],
+      "literal_source": "registry-v5/A-Q",
+      "gate_source": "registry-v5/G-FEAS/A-Q>"
+    }
+  ],
+  "candidates_sha256": "157b1db5f091910f5602b15c9f5029f0171e6da7e8b6dbc5ffb5aa5c775bd235",
+  "physics_indices": [
+    0,
+    1,
+    2,
+    3
+  ],
+  "value_scopes": [
+    "in_range",
+    "shifted",
+    "extrapolated",
+    "neighbourhood_blend"
+  ],
+  "caps": {
+    "total_cpu_seconds": 1200,
+    "total_wall_seconds": 1800,
+    "cell_cpu_seconds": 90,
+    "cell_wall_seconds": 120,
+    "address_space_bytes": 1073741824,
+    "controls_cpu_seconds": 40
+  },
+  "controls": {
+    "audit_path": "Business/research/value-metric-audit/results.json",
+    "stress_path": "Business/research/value-metric-v2-stress/results.json",
+    "problem": {
+      "space": "small-grid",
+      "optima": "multi",
+      "constraint": "tight",
+      "shift": "nominal",
+      "verification_cost_ASSUMPTION": 0.2,
+      "label": "ASSUMPTION: toy control calibration only; not a battery population or cost"
+    },
+    "questions_per_side": 6,
+    "cap": 3
+  },
+  "sources": [
+    {
+      "path": "scripts/dev/score_lab/physics-error-example.json",
+      "sha256": "39b748642c82b29b795fe1ea51e648b7f9c893ff9af474b04a57e30d89bec2ce",
+      "encoding": "LF-normalized UTF-8"
+    },
+    {
+      "path": "scripts/dev/score_lab/campaign-stress-example.json",
+      "sha256": "35d57bd8c459ef03f0536a240104bef39900812cb4d219920070e2182f76f3ae",
+      "encoding": "LF-normalized UTF-8"
+    },
+    {
+      "path": "scripts/dev/score_lab/components-example.json",
+      "sha256": "be97075457e83e3859310f390547dacc60c1258072edfdc004095eeb8d2de88c",
+      "encoding": "LF-normalized UTF-8"
+    },
+    {
+      "path": "scripts/dev/score_lab/robustness-levers-example.json",
+      "sha256": "6e9987a94cf033565ce7d7d1bb0203834117a35f91f8c1a6985d39503b6c4450",
+      "encoding": "LF-normalized UTF-8"
+    },
+    {
+      "path": "scripts/dev/score_lab/campaign-gate-toy.json",
+      "sha256": "a6a382193577ea43560df6b90ceabd15453beb35dbbeaf6c6a021f99af573ea4",
+      "encoding": "LF-normalized UTF-8"
+    },
+    {
+      "path": "scripts/dev/score_lab/campaign_combined.py",
+      "sha256": "9cc75ab5eaeaff53ce1631a3be4fba23062c2a812a26ac7249d85e4f17d583c3",
+      "encoding": "LF-normalized UTF-8"
+    },
+    {
+      "path": "scripts/dev/score_lab/campaign_gate.py",
+      "sha256": "6af33e197dcd6d71a7f164495e5c5ba45ce0130e05aed28128b7eabd8c072646",
+      "encoding": "LF-normalized UTF-8"
+    },
+    {
+      "path": "scripts/dev/score_lab/campaign_goodhart.py",
+      "sha256": "e530322b5fb867fa01a90bd2613d2573f0b313d9a59e0f3eb3e0cc4cc9d387cc",
+      "encoding": "LF-normalized UTF-8"
+    },
+    {
+      "path": "scripts/dev/score_lab/candidates.py",
+      "sha256": "f2ca007d22a8e5e21fe58d42ac5f5e0899edcee76e4c891f7cf0c15c66ead747",
+      "encoding": "LF-normalized UTF-8"
+    },
+    {
+      "path": "scripts/dev/score_lab/components.py",
+      "sha256": "0f0dc059a7e915cb3e60e4ac1498ed786f298a6d7995da3e3494fb4a587fdb9d",
+      "encoding": "LF-normalized UTF-8"
+    },
+    {
+      "path": "scripts/dev/score_lab/core.py",
+      "sha256": "d2ef68eecbe192ab26a927fa52563ede18edaf432921ccb21cffa696b23ec3cc",
+      "encoding": "LF-normalized UTF-8"
+    },
+    {
+      "path": "scripts/dev/score_lab/physics.py",
+      "sha256": "1e772318df86071406b0441d69cff908b98fafe948d79f0e818093d453c65c6d",
+      "encoding": "LF-normalized UTF-8"
+    },
+    {
+      "path": "scripts/dev/score_lab/synthetic.py",
+      "sha256": "f0ee60cd12f9105c36478e48def8a5f076c395f43a81437c46951f0b3160c044",
+      "encoding": "LF-normalized UTF-8"
+    },
+    {
+      "path": "Business/research/score-lab-campaign-01/error-structure-64/PLAN_0.json.gz",
+      "sha256": "222f8ae09414c47f07dddd8d2ef5cd29d2332ceb13e6b0ae1da0fa35d63ce76d",
+      "encoding": "raw bytes"
+    },
+    {
+      "path": "docs/development/evidence/battery-score-tuning/registry-v5.json",
+      "sha256": "70f2943814db0531429613e6ca5e2bd1c0b656673c6ee74de08e98f540758277",
+      "encoding": "LF-normalized UTF-8"
+    },
+    {
+      "path": "docs/development/evidence/battery-score-tuning/registry-v9.json",
+      "sha256": "d616e0ddaadabf8254b170e39ca5116980b4295bbe7baa6dd82542083d4955f5",
+      "encoding": "LF-normalized UTF-8"
+    },
+    {
+      "path": "carbon/battery/value/score_proof.py",
+      "sha256": "108c8f6ef3e249095509a3cfb0bf9fe57f07942f7813a5e25a8ec01556fcd569",
+      "encoding": "LF-normalized UTF-8"
+    },
+    {
+      "path": "carbon/battery/value/score_tuning.py",
+      "sha256": "6043abacfb942acad8d89ae59816bc2ffff0c4905f0ab3cd76e98e74a4121f66",
+      "encoding": "LF-normalized UTF-8"
+    },
+    {
+      "path": "Business/research/value-metric-audit/results.json",
+      "sha256": "a1473c98baaf2352c02db38b1aeef3938c41b2a958fd1f568cff0c5e29e975b0",
+      "encoding": "LF-normalized UTF-8"
+    },
+    {
+      "path": "Business/research/value-metric-v2-stress/results.json",
+      "sha256": "e8a8256365ebddb6d30705f38f2edeefffae811371b49780a3f1fa0bc17521ab",
+      "encoding": "LF-normalized UTF-8"
+    }
+  ],
+  "selection": null,
+  "interpretation": "Fixed toy proxy interactions only; no weight search, real-data fit, policy adoption or scientific qualification"
+}

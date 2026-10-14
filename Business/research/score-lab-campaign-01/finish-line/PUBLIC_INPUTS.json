@@ -1,0 +1,256 @@
+{
+  "schema": "carbon.dev.score-lab-public-input-status.v1",
+  "scope": "PUBLIC_DEVELOPMENT_METADATA_ONLY",
+  "supplier": "Root Test Lead public-data inventory aide",
+  "source_reports": {
+    "SCORELAB_PAIRED_DATA_READINESS.json": "400cea11f3ce764ef95ea6f85f853cfb70354bbedfa8d38dd5752e495dc9eda9",
+    "SCORELAB_PUBLIC_RAW_BUNDLE_CROSSWALK.json": "72b2ccb36d18c848673fe636db2750d548575040e8094e24cdacf04b535e0ff6"
+  },
+  "source_bindings": {
+    "scorelab_replay": {
+      "path": "Business/research/score-lab-public-v2-01/PUBLIC_REPLAY.json.gz",
+      "commit": "0ab1535ef84de6935c620439d5e6c0dd9fdb956b",
+      "git_blob": "dcc4e8cb1f0b92697203592f008dbcf610c93bfc",
+      "artifact_sha256": "5570a305969d3f11dc2061c62640c303deeddfba94b6add4d504d44604faabdb",
+      "identity_map": "identity.bundle_sha256",
+      "identity_map_count": 137,
+      "prediction_manifest_sha256_declared": "b1811937663d1c38d220122335cb5e159c899f6966ac430088ccdaf4c40857cd"
+    },
+    "bundle_manifest": {
+      "path": "Business/research/value-metric-v2-stress/results.json",
+      "commit": "0ab1535ef84de6935c620439d5e6c0dd9fdb956b",
+      "git_blob": "d2f9a5bd7d2329d6fb4d52f1659cc2a9b78b76be",
+      "artifact_sha256": "e8a8256365ebddb6d30705f38f2edeefffae811371b49780a3f1fa0bc17521ab",
+      "manifest_entry_count": 148,
+      "manifest_unique_bundles": 148,
+      "manifest_duplicate_copies_removed": 21
+    },
+    "public_bundle_copy": {
+      "root": "codex-queue/inputs/ev4-public-proof/",
+      "source_provenance": "Owner-provided read-only public development copy identified by pinned value-metric-audit/SOURCES.md; all 137 compressed hashes and byte counts match manifest.",
+      "matched_count": 137,
+      "unmatched_count": 0,
+      "hash_or_byte_mismatches": 0
+    }
+  },
+  "field_coverage": {
+    "member": {
+      "present": 137,
+      "missing": 0
+    },
+    "recipe_digest": {
+      "present": 137,
+      "missing": 0,
+      "distinct_non_null_values": 99
+    },
+    "seed": {
+      "field_present": 137,
+      "field_missing": 0,
+      "distinct_training_or_rebuild_seed_values": null,
+      "status": "UNKNOWN_VALUE_WITHHELD_SEMANTICS_NOT_PROVEN",
+      "note": "A public top-level seed key is present, but no trusted public source proves its role is model training/rebuild seed for all records; values and distinctness withheld."
+    },
+    "fit.params_sha256": {
+      "present": 137,
+      "missing": 0,
+      "distinct_non_null_values": 122,
+      "interpretation": "Recorded fit digest only; type-specific public implementation documents that it is not universally a weight-payload digest (KNN hashes stored training targets)."
+    },
+    "root_field_presence_counts": {
+      "fit": 137,
+      "member": 137,
+      "predictions": 137,
+      "recipe_digest": 137,
+      "reconstruction": 137,
+      "seconds": 137,
+      "seed": 137
+    },
+    "fit_field_presence_counts": {
+      "compile_s": 130,
+      "final_loss": 130,
+      "n_params": 130,
+      "params_sha256": 137,
+      "seconds": 7,
+      "train_s": 130
+    }
+  },
+  "cohort": {
+    "distinct_raw_prediction_bundles": 137,
+    "constructed_controls": 5,
+    "public_physics_cohort_total": 142,
+    "primary_learned_cohort": 100,
+    "primary_cohort_definition": "original EV4-label CPU rebuilds; 100 members",
+    "other_members_detail": "The merged score-lab source says five controls complete the 142-member public physics cohort; the 137 raw bundles are not all the 100-member primary learned cohort.",
+    "bundle_to_recipe_join": "Exact 137 replay identities joined by compressed SHA-256 to pinned manifest and hash/byte-verified public raw copy; declared recipe_digest exported. See SCORELAB_PUBLIC_RAW_BUNDLE_CROSSWALK.json.",
+    "distinct_recipe_count": 99,
+    "architecture_ids": null,
+    "seed_ids": null,
+    "independent_family_count": null,
+    "independence_claim": "NOT_ESTABLISHED",
+    "recipe_digest_missing_count": 0,
+    "fit_params_sha256_distinct_count": 122,
+    "fit_params_sha256_missing_count": 0,
+    "seed_field_present_count": 137,
+    "seed_field_missing_count": 0,
+    "seed_identity_distinct_count": null,
+    "seed_values": "WITHHELD: public top-level seed semantics are not proven as model training/rebuild seed for every bundle.",
+    "training_cohort_per_bundle": "UNKNOWN; no bundle-specific public training cohort binding was established.",
+    "other_members_including_constructed_controls": 42,
+    "other_raw_prediction_bundles": 37
+  },
+  "paired_coverage": [
+    {
+      "input_or_outcome": "Legacy score accuracy legs a/r/g/m/n/p",
+      "availability": "PARTIAL_AVAILABLE",
+      "population": "142 public physics members",
+      "cases": "415 OK original public D scoring cases",
+      "role": "retrospective legacy-score readout",
+      "identity": "separate legacy score reference; not prospective V2 decision reference",
+      "limitation": "Not complete score-v3 coverage; 69 rule profiles incomplete inputs, 79 profiles have score inputs but no common V2 value mask."
+    },
+    {
+      "input_or_outcome": "Quiz Q3 leg",
+      "availability": "MISSING",
+      "population": "all 142",
+      "role": "required score evidence absent",
+      "limitation": "No reconstructable/published Q3 input or digest; do not infer a zero or fail."
+    },
+    {
+      "input_or_outcome": "VERIFY-R leg",
+      "availability": "MISSING",
+      "population": "all 142",
+      "role": "required verification score evidence absent",
+      "limitation": "No reconstructable/published VERIFY-R input or digest; do not infer a zero or fail."
+    },
+    {
+      "input_or_outcome": "Full V3 / per-action margin inputs",
+      "availability": "MISSING_OR_INCOMPLETE",
+      "population": "100 primary EV4 rebuilds; public reader full menu 24 questions x 35 actions",
+      "role": "prospective score/admission input",
+      "identity": "EV4 public v2 replay is CV-onset proxy, not battery-v3 indexed charging-time task",
+      "limitation": "No common admitted mask; no margin/headroom calculation."
+    },
+    {
+      "input_or_outcome": "Prospective V2 decision references",
+      "availability": "INSUFFICIENT",
+      "population": "12 development + 12 verification questions; 35 offered actions each",
+      "role": "reference outcome/admission only",
+      "identity": "battery-plating-ref-v2; EV4 public development only",
+      "limitation": "0/12 D and 0/12 V fully admitted; common masks empty; 0/24 SCORED."
+    },
+    {
+      "input_or_outcome": "Physics consistency probes",
+      "availability": "DIAGNOSTIC_PARTIAL",
+      "population": "separate 148 real bundle cohort + five controls",
+      "role": "public-array descriptive residuals",
+      "identity": "420 public development inputs, 415 OK references; no new queries or solvers",
+      "limitation": "Shared cases/repeated recipes and small common masks; no independent-member CI or confirmation; cannot join to 137 scorelab manifests."
+    },
+    {
+      "input_or_outcome": "Robustness inputs/outcomes",
+      "availability": "DIAGNOSTIC_PARTIAL",
+      "population": "one frozen 30-proposal slate",
+      "role": "synthetic robust/uncertainty diagnostics",
+      "identity": "merged #1344 separate slate",
+      "limitation": "No powered equivalence or defensible gate threshold; robustness gains are not real-data fit evidence."
+    }
+  ],
+  "readiness": {
+    "independent_family_manifest": null,
+    "training_cohort_manifest": null,
+    "rebuild_seed_role_provenance": null,
+    "paired_all_legs": false,
+    "reference_complete": false,
+    "matched_workflow_costs": false,
+    "independent_validation_receipt": null,
+    "actual_job": "public EV4 CV-onset proxy; not battery-v3 indexed charging-time task"
+  },
+  "reference_gaps": {
+    "outside_v2_plating_claim_other_checks_do_not_settle_infeasibility": {
+      "count": 223,
+      "D": 135,
+      "V": 88,
+      "source_class": "PLATING_V2_OUTSIDE_CLAIM",
+      "route": "Validator/owner applicability contract; cannot be locally completed without a reserved applicability/method decision"
+    },
+    "decision_changing_pending_mesh160": {
+      "count": 9,
+      "D": 6,
+      "V": 3,
+      "route": "Data Collection may complete existing mesh160 work under the already registered V2 method; reference provenance/readout still required."
+    },
+    "decision_changing_solved_in_band_unresolved": {
+      "count": 4,
+      "D": 2,
+      "V": 2,
+      "route": "Remain UNRESOLVED unless authorized reference method/applicability ruling supplies the missing evidence; do not set a new band locally."
+    },
+    "original_reference_missing_or_failed": {
+      "count": 5,
+      "D": 5,
+      "V": 0,
+      "route": "Data Collection/reference owner supplies source-complete references or typed FAILED_REFERENCE; never a candidate failure."
+    }
+  },
+  "excluded_claims": [
+    "No family independence from record/recipe/fit-digest counts",
+    "No seed values disclosed",
+    "No fitting or rule selection",
+    "Separate 148-bundle physics study is not joined into this 137-bundle cohort"
+  ],
+  "additional_public_specimens": [
+    {
+      "id": "graphite-s5-standalone-ad15-e0",
+      "source_report": {
+        "path": "codex-queue/reports/GRAPHITE_S5_STANDALONE_ACTUAL_RESULT.json",
+        "sha256": "db6335db1d424cc8c4d288610b4b7575db5bca09b154d819bf5a14c29a954dd7"
+      },
+      "export_manifest": {
+        "path": "codex-queue/inputs/operator/public-standalone-db6335db-20261014/MANIFEST.json",
+        "sha256": "aabdc612d27537e439f55a2e8fdfb4412a95c0e21dc10b8d58791d465eae1862",
+        "file_count": 18
+      },
+      "source": "e0a97dac8da42436a8575cb2f85b3a9026e8ff31",
+      "variant": "sha256:ad15d6a8ef135a961f15dcb4a682e58ccdbdc7c99926de0f1ef6d5da4325cfa2",
+      "submission": "sha256:20015d9a74083b0d3e8400252a9d51a981b30072dfa39d310d8d4472894332b6",
+      "family": "mlp",
+      "settings": {
+        "depth": 3,
+        "width": 128,
+        "activation": "gelu",
+        "batch_size": 400,
+        "steps": 8000
+      },
+      "train_source_sha256": "sha256:3a7c763cca272df729268759e3062abd79e104a5c527c17314aef663944cf0e3",
+      "specimen_count": 1,
+      "replica_count": 2,
+      "n_params": 65269,
+      "state_bytes": 357295,
+      "state_sha256": "sha256:a0995d730e11acee2575c1c101a09ff252052003a61d59112ea606440eb4b916",
+      "fit_params_sha256": "ccbdbf7f1db3b858982483f502cbc9817891f617d3d88714f1096dec0a4fc62d",
+      "replicated_inference_cases": 4,
+      "parity": {
+        "exact_parameter_parity": true,
+        "exact_prediction_parity": true,
+        "exact_state_bytes_equal": true
+      },
+      "measured_cost": {
+        "training_step_flops": 159320576.0,
+        "F0_steps": 8000,
+        "F4_flops": 1274564608000.0,
+        "F1": "HUMAN_INPUT",
+        "F2": "HUMAN_INPUT",
+        "F3_seconds": "HUMAN_INPUT",
+        "F4_seconds": "HUMAN_INPUT",
+        "peak_memory_bytes": null,
+        "replica_train_s": [
+          11.670070572999975,
+          12.605473432000053
+        ]
+      },
+      "paired_design_value_quiz_physics_evidence": false,
+      "fit_eligible": false,
+      "limitation": "One public model specimen reconstructed twice. Not independent families; no score/value fit or scientific qualification. Metadata receipts read and hashed only; model states not loaded or executed."
+    }
+  ]
+}

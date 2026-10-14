@@ -1,0 +1,17 @@
+{
+  "schema": "carbon.dev.score-lab-combined-export-loss.v1",
+  "status": "RUN_SUMMARY_OBSERVED_DETAILED_OUTPUTS_UNAVAILABLE",
+  "source_commit": "6e90df8fc47dad8dbfa663db26579f4c8fb8f2cb",
+  "plan_sha256": "a2374abb8508a2c1caae28850ddd31fe1dd584e4e89d5ddef59f40887b9cd76c",
+  "observed_stdout": {
+    "status": "COMPLETE",
+    "completed_cells": 96,
+    "evaluation_cpu_seconds": 339.4417419999999
+  },
+  "canonical_tests": "213 passed in 25.95s; Black/Ruff/delivery hygiene passed",
+  "output_artifact_hashes": null,
+  "findings_claimed": false,
+  "control_cost": null,
+  "wall_seconds": null,
+  "export_diagnostic": "Generated shell final CR byte was included in the output directory name; exporter used the LF name and emitted no artifacts. Canonical write/export fixture passed with LF. All details from the removed container remain unavailable."
+}

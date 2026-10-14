@@ -1,0 +1,917 @@
+{
+  "schema": "carbon.dev.score-lab-combined-diagnostics.v1",
+  "scope": "SYNTHETIC_DEVELOPMENT",
+  "plan_sha256": "a2374abb8508a2c1caae28850ddd31fe1dd584e4e89d5ddef59f40887b9cd76c",
+  "bootstrap_seed": 20261013,
+  "rows": [
+    {
+      "profile": 0,
+      "scope": "in_range",
+      "features": "A and Q toy scores, existing neighbourhood blend, physics OFF, no gates/components",
+      "measurement_ceiling": {
+        "estimate": {
+          "members": 6,
+          "resolved_questions": 6,
+          "informative_questions": 6,
+          "status": "MEASURED",
+          "per_question_reliability": 0.7029745194996782,
+          "reliability": 0.9342117691947945,
+          "tau_ceiling": 0.834866433878392,
+          "tau_ceiling_ci95": [
+            0.756042635900235,
+            0.8687149981601291
+          ]
+        },
+        "interpretation": "SCORE-CEILING-01 reliability diagnostic with its Spearman-Brown/bivariate-normal assumptions; not a universal mathematical tau bound or score-family capacity proof."
+      },
+      "monotone_a_q_capacity": {
+        "schema": "carbon.dev.score-lab-capacity-witnesses.v1",
+        "members": 6,
+        "feature_count": 2,
+        "exact_feature_aliases": [],
+        "monotone_order_reversals": [
+          {
+            "higher_value_member": "noisy-safe",
+            "lower_value_member": "moderate-generalist",
+            "value_difference": 0.08664163541666668
+          },
+          {
+            "higher_value_member": "moderate-generalist",
+            "lower_value_member": "physics-understanding-0",
+            "value_difference": 0.016666666666666677
+          },
+          {
+            "higher_value_member": "moderate-generalist",
+            "lower_value_member": "physics-understanding-1",
+            "value_difference": 0.03333333333333334
+          },
+          {
+            "higher_value_member": "moderate-generalist",
+            "lower_value_member": "target-overfit-0",
+            "value_difference": 0.08333333333333336
+          },
+          {
+            "higher_value_member": "moderate-generalist",
+            "lower_value_member": "target-overfit-1",
+            "value_difference": 0.10000000000000002
+          },
+          {
+            "higher_value_member": "noisy-safe",
+            "lower_value_member": "physics-understanding-0",
+            "value_difference": 0.10330830208333336
+          },
+          {
+            "higher_value_member": "noisy-safe",
+            "lower_value_member": "physics-understanding-1",
+            "value_difference": 0.11997496875000002
+          },
+          {
+            "higher_value_member": "noisy-safe",
+            "lower_value_member": "target-overfit-0",
+            "value_difference": 0.16997496875000004
+          },
+          {
+            "higher_value_member": "noisy-safe",
+            "lower_value_member": "target-overfit-1",
+            "value_difference": 0.1866416354166667
+          },
+          {
+            "higher_value_member": "physics-understanding-0",
+            "lower_value_member": "target-overfit-0",
+            "value_difference": 0.06666666666666668
+          },
+          {
+            "higher_value_member": "physics-understanding-0",
+            "lower_value_member": "target-overfit-1",
+            "value_difference": 0.08333333333333334
+          },
+          {
+            "higher_value_member": "physics-understanding-1",
+            "lower_value_member": "target-overfit-0",
+            "value_difference": 0.05000000000000002
+          },
+          {
+            "higher_value_member": "physics-understanding-1",
+            "lower_value_member": "target-overfit-1",
+            "value_difference": 0.06666666666666668
+          }
+        ],
+        "fitted": false,
+        "claim": "Witnesses prevent perfect value ordering in this feature-only monotone family; no witnesses does not prove capacity."
+      }
+    },
+    {
+      "profile": 0,
+      "scope": "shifted",
+      "features": "A and Q toy scores, existing neighbourhood blend, physics OFF, no gates/components",
+      "measurement_ceiling": {
+        "estimate": {
+          "members": 6,
+          "resolved_questions": 24,
+          "informative_questions": 24,
+          "status": "MEASURED",
+          "per_question_reliability": 0.4669844705607496,
+          "reliability": 0.9546008223331917,
+          "tau_ceiling": 0.8633069824624893,
+          "tau_ceiling_ci95": [
+            0.8373362449042714,
+            0.8915470947495341
+          ]
+        },
+        "interpretation": "SCORE-CEILING-01 reliability diagnostic with its Spearman-Brown/bivariate-normal assumptions; not a universal mathematical tau bound or score-family capacity proof."
+      },
+      "monotone_a_q_capacity": {
+        "schema": "carbon.dev.score-lab-capacity-witnesses.v1",
+        "members": 6,
+        "feature_count": 2,
+        "exact_feature_aliases": [],
+        "monotone_order_reversals": [
+          {
+            "higher_value_member": "noisy-safe",
+            "lower_value_member": "moderate-generalist",
+            "value_difference": 0.19181656543750003
+          },
+          {
+            "higher_value_member": "moderate-generalist",
+            "lower_value_member": "target-overfit-0",
+            "value_difference": 0.002521273104166638
+          },
+          {
+            "higher_value_member": "noisy-safe",
+            "lower_value_member": "physics-understanding-0",
+            "value_difference": 0.1477425155625
+          },
+          {
+            "higher_value_member": "noisy-safe",
+            "lower_value_member": "physics-understanding-1",
+            "value_difference": 0.14729678675000002
+          },
+          {
+            "higher_value_member": "noisy-safe",
+            "lower_value_member": "target-overfit-0",
+            "value_difference": 0.19433783854166667
+          },
+          {
+            "higher_value_member": "noisy-safe",
+            "lower_value_member": "target-overfit-1",
+            "value_difference": 0.08269647129166668
+          },
+          {
+            "higher_value_member": "physics-understanding-1",
+            "lower_value_member": "physics-understanding-0",
+            "value_difference": 0.0004457288124999903
+          },
+          {
+            "higher_value_member": "physics-understanding-0",
+            "lower_value_member": "target-overfit-0",
+            "value_difference": 0.04659532297916666
+          },
+          {
+            "higher_value_member": "physics-understanding-1",
+            "lower_value_member": "target-overfit-0",
+            "value_difference": 0.04704105179166665
+          },
+          {
+            "higher_value_member": "target-overfit-1",
+            "lower_value_member": "target-overfit-0",
+            "value_difference": 0.11164136724999998
+          }
+        ],
+        "fitted": false,
+        "claim": "Witnesses prevent perfect value ordering in this feature-only monotone family; no witnesses does not prove capacity."
+      }
+    },
+    {
+      "profile": 0,
+      "scope": "extrapolated",
+      "features": "A and Q toy scores, existing neighbourhood blend, physics OFF, no gates/components",
+      "measurement_ceiling": {
+        "estimate": {
+          "members": 6,
+          "resolved_questions": 6,
+          "informative_questions": 6,
+          "status": "MEASURED",
+          "per_question_reliability": 0.9126271505115554,
+          "reliability": 0.9842943164835997,
+          "tau_ceiling": 0.9200070039637203,
+          "tau_ceiling_ci95": [
+            0.9073488685008817,
+            0.9387248627849339
+          ]
+        },
+        "interpretation": "SCORE-CEILING-01 reliability diagnostic with its Spearman-Brown/bivariate-normal assumptions; not a universal mathematical tau bound or score-family capacity proof."
+      },
+      "monotone_a_q_capacity": {
+        "schema": "carbon.dev.score-lab-capacity-witnesses.v1",
+        "members": 6,
+        "feature_count": 2,
+        "exact_feature_aliases": [],
+        "monotone_order_reversals": [
+          {
+            "higher_value_member": "noisy-safe",
+            "lower_value_member": "moderate-generalist",
+            "value_difference": 0.23776435416666666
+          },
+          {
+            "higher_value_member": "moderate-generalist",
+            "lower_value_member": "physics-understanding-1",
+            "value_difference": 0.41666666666666674
+          },
+          {
+            "higher_value_member": "moderate-generalist",
+            "lower_value_member": "target-overfit-0",
+            "value_difference": 1.3666666666666665
+          },
+          {
+            "higher_value_member": "moderate-generalist",
+            "lower_value_member": "target-overfit-1",
+            "value_difference": 1.3666666666666665
+          },
+          {
+            "higher_value_member": "noisy-safe",
+            "lower_value_member": "physics-understanding-0",
+            "value_difference": 0.05443102083333334
+          },
+          {
+            "higher_value_member": "noisy-safe",
+            "lower_value_member": "physics-understanding-1",
+            "value_difference": 0.6544310208333334
+          },
+          {
+            "higher_value_member": "noisy-safe",
+            "lower_value_member": "target-overfit-0",
+            "value_difference": 1.6044310208333332
+          },
+          {
+            "higher_value_member": "noisy-safe",
+            "lower_value_member": "target-overfit-1",
+            "value_difference": 1.6044310208333332
+          },
+          {
+            "higher_value_member": "physics-understanding-0",
+            "lower_value_member": "target-overfit-0",
+            "value_difference": 1.5499999999999998
+          },
+          {
+            "higher_value_member": "physics-understanding-0",
+            "lower_value_member": "target-overfit-1",
+            "value_difference": 1.5499999999999998
+          },
+          {
+            "higher_value_member": "physics-understanding-1",
+            "lower_value_member": "target-overfit-0",
+            "value_difference": 0.9499999999999998
+          },
+          {
+            "higher_value_member": "physics-understanding-1",
+            "lower_value_member": "target-overfit-1",
+            "value_difference": 0.9499999999999998
+          }
+        ],
+        "fitted": false,
+        "claim": "Witnesses prevent perfect value ordering in this feature-only monotone family; no witnesses does not prove capacity."
+      }
+    },
+    {
+      "profile": 0,
+      "scope": "neighbourhood_blend",
+      "features": "A and Q toy scores, existing neighbourhood blend, physics OFF, no gates/components",
+      "measurement_ceiling": {
+        "estimate": {
+          "members": 6,
+          "resolved_questions": 6,
+          "informative_questions": 6,
+          "status": "MEASURED",
+          "per_question_reliability": 0.3561904761904762,
+          "reliability": 0.7684931506849316,
+          "tau_ceiling": 0.6804373223048301,
+          "tau_ceiling_ci95": [
+            0.6366440599323913,
+            0.751368567179284
+          ]
+        },
+        "interpretation": "SCORE-CEILING-01 reliability diagnostic with its Spearman-Brown/bivariate-normal assumptions; not a universal mathematical tau bound or score-family capacity proof."
+      },
+      "monotone_a_q_capacity": {
+        "schema": "carbon.dev.score-lab-capacity-witnesses.v1",
+        "members": 6,
+        "feature_count": 2,
+        "exact_feature_aliases": [],
+        "monotone_order_reversals": [
+          {
+            "higher_value_member": "noisy-safe",
+            "lower_value_member": "moderate-generalist",
+            "value_difference": 0.13922910042708334
+          },
+          {
+            "higher_value_member": "moderate-generalist",
+            "lower_value_member": "target-overfit-0",
+            "value_difference": 0.04292730321874999
+          },
+          {
+            "higher_value_member": "noisy-safe",
+            "lower_value_member": "physics-understanding-0",
+            "value_difference": 0.12552540882291668
+          },
+          {
+            "higher_value_member": "noisy-safe",
+            "lower_value_member": "physics-understanding-1",
+            "value_difference": 0.13363587775000002
+          },
+          {
+            "higher_value_member": "noisy-safe",
+            "lower_value_member": "target-overfit-0",
+            "value_difference": 0.18215640364583333
+          },
+          {
+            "higher_value_member": "noisy-safe",
+            "lower_value_member": "target-overfit-1",
+            "value_difference": 0.1346690533541667
+          },
+          {
+            "higher_value_member": "physics-understanding-0",
+            "lower_value_member": "target-overfit-0",
+            "value_difference": 0.05663099482291664
+          },
+          {
+            "higher_value_member": "physics-understanding-0",
+            "lower_value_member": "target-overfit-1",
+            "value_difference": 0.009143644531250023
+          },
+          {
+            "higher_value_member": "physics-understanding-1",
+            "lower_value_member": "target-overfit-0",
+            "value_difference": 0.048520525895833305
+          },
+          {
+            "higher_value_member": "physics-understanding-1",
+            "lower_value_member": "target-overfit-1",
+            "value_difference": 0.0010331756041666862
+          },
+          {
+            "higher_value_member": "target-overfit-1",
+            "lower_value_member": "target-overfit-0",
+            "value_difference": 0.04748735029166662
+          }
+        ],
+        "fitted": false,
+        "claim": "Witnesses prevent perfect value ordering in this feature-only monotone family; no witnesses does not prove capacity."
+      }
+    },
+    {
+      "profile": 1,
+      "scope": "in_range",
+      "features": "A and Q toy scores, existing neighbourhood blend, physics OFF, no gates/components",
+      "measurement_ceiling": {
+        "estimate": {
+          "members": 6,
+          "resolved_questions": 6,
+          "informative_questions": 6,
+          "status": "MEASURED",
+          "per_question_reliability": 0.1335188763748026,
+          "reliability": 0.4804005500117713,
+          "tau_ceiling": 0.4875194050331973,
+          "tau_ceiling_ci95": [
+            0.0,
+            0.7696524550135366
+          ]
+        },
+        "interpretation": "SCORE-CEILING-01 reliability diagnostic with its Spearman-Brown/bivariate-normal assumptions; not a universal mathematical tau bound or score-family capacity proof."
+      },
+      "monotone_a_q_capacity": {
+        "schema": "carbon.dev.score-lab-capacity-witnesses.v1",
+        "members": 6,
+        "feature_count": 2,
+        "exact_feature_aliases": [],
+        "monotone_order_reversals": [
+          {
+            "higher_value_member": "moderate-generalist",
+            "lower_value_member": "physics-understanding-1",
+            "value_difference": 0.01666666666666667
+          },
+          {
+            "higher_value_member": "moderate-generalist",
+            "lower_value_member": "target-overfit-0",
+            "value_difference": 0.05000000000000001
+          },
+          {
+            "higher_value_member": "moderate-generalist",
+            "lower_value_member": "target-overfit-1",
+            "value_difference": 0.06666666666666668
+          },
+          {
+            "higher_value_member": "target-overfit-0",
+            "lower_value_member": "target-overfit-1",
+            "value_difference": 0.016666666666666673
+          }
+        ],
+        "fitted": false,
+        "claim": "Witnesses prevent perfect value ordering in this feature-only monotone family; no witnesses does not prove capacity."
+      }
+    },
+    {
+      "profile": 1,
+      "scope": "shifted",
+      "features": "A and Q toy scores, existing neighbourhood blend, physics OFF, no gates/components",
+      "measurement_ceiling": {
+        "estimate": {
+          "members": 6,
+          "resolved_questions": 24,
+          "informative_questions": 24,
+          "status": "MEASURED",
+          "per_question_reliability": 0.3175287678894513,
+          "reliability": 0.9178058599920405,
+          "tau_ceiling": 0.8148866026989873,
+          "tau_ceiling_ci95": [
+            0.7157641899353586,
+            0.8653382378767633
+          ]
+        },
+        "interpretation": "SCORE-CEILING-01 reliability diagnostic with its Spearman-Brown/bivariate-normal assumptions; not a universal mathematical tau bound or score-family capacity proof."
+      },
+      "monotone_a_q_capacity": {
+        "schema": "carbon.dev.score-lab-capacity-witnesses.v1",
+        "members": 6,
+        "feature_count": 2,
+        "exact_feature_aliases": [],
+        "monotone_order_reversals": [
+          {
+            "higher_value_member": "moderate-generalist",
+            "lower_value_member": "target-overfit-0",
+            "value_difference": 0.6729325253333335
+          },
+          {
+            "higher_value_member": "noisy-safe",
+            "lower_value_member": "physics-understanding-0",
+            "value_difference": 0.15548170833333336
+          },
+          {
+            "higher_value_member": "noisy-safe",
+            "lower_value_member": "physics-understanding-1",
+            "value_difference": 0.3128400416666667
+          }
+        ],
+        "fitted": false,
+        "claim": "Witnesses prevent perfect value ordering in this feature-only monotone family; no witnesses does not prove capacity."
+      }
+    },
+    {
+      "profile": 1,
+      "scope": "extrapolated",
+      "features": "A and Q toy scores, existing neighbourhood blend, physics OFF, no gates/components",
+      "measurement_ceiling": {
+        "estimate": {
+          "members": 6,
+          "resolved_questions": 6,
+          "informative_questions": 6,
+          "status": "MEASURED",
+          "per_question_reliability": 0.9451037627388422,
+          "reliability": 0.9904120064840486,
+          "tau_ceiling": 0.9375632277257528,
+          "tau_ceiling_ci95": [
+            0.9193433019986789,
+            0.9635320443197083
+          ]
+        },
+        "interpretation": "SCORE-CEILING-01 reliability diagnostic with its Spearman-Brown/bivariate-normal assumptions; not a universal mathematical tau bound or score-family capacity proof."
+      },
+      "monotone_a_q_capacity": {
+        "schema": "carbon.dev.score-lab-capacity-witnesses.v1",
+        "members": 6,
+        "feature_count": 2,
+        "exact_feature_aliases": [],
+        "monotone_order_reversals": [
+          {
+            "higher_value_member": "moderate-generalist",
+            "lower_value_member": "physics-understanding-1",
+            "value_difference": 0.25
+          },
+          {
+            "higher_value_member": "moderate-generalist",
+            "lower_value_member": "target-overfit-0",
+            "value_difference": 1.2833333333333332
+          },
+          {
+            "higher_value_member": "moderate-generalist",
+            "lower_value_member": "target-overfit-1",
+            "value_difference": 1.3666666666666667
+          },
+          {
+            "higher_value_member": "noisy-safe",
+            "lower_value_member": "physics-understanding-0",
+            "value_difference": 0.04060000000000003
+          },
+          {
+            "higher_value_member": "noisy-safe",
+            "lower_value_member": "physics-understanding-1",
+            "value_difference": 0.4572666666666667
+          },
+          {
+            "higher_value_member": "target-overfit-0",
+            "lower_value_member": "target-overfit-1",
+            "value_difference": 0.08333333333333348
+          }
+        ],
+        "fitted": false,
+        "claim": "Witnesses prevent perfect value ordering in this feature-only monotone family; no witnesses does not prove capacity."
+      }
+    },
+    {
+      "profile": 1,
+      "scope": "neighbourhood_blend",
+      "features": "A and Q toy scores, existing neighbourhood blend, physics OFF, no gates/components",
+      "measurement_ceiling": {
+        "estimate": {
+          "members": 6,
+          "resolved_questions": 6,
+          "informative_questions": 6,
+          "status": "MEASURED",
+          "per_question_reliability": 0.8538618909202257,
+          "reliability": 0.972266174469566,
+          "tau_ceiling": 0.8934844080078718,
+          "tau_ceiling_ci95": [
+            0.8422599585818853,
+            0.9378646977680763
+          ]
+        },
+        "interpretation": "SCORE-CEILING-01 reliability diagnostic with its Spearman-Brown/bivariate-normal assumptions; not a universal mathematical tau bound or score-family capacity proof."
+      },
+      "monotone_a_q_capacity": {
+        "schema": "carbon.dev.score-lab-capacity-witnesses.v1",
+        "members": 6,
+        "feature_count": 2,
+        "exact_feature_aliases": [],
+        "monotone_order_reversals": [
+          {
+            "higher_value_member": "moderate-generalist",
+            "lower_value_member": "target-overfit-0",
+            "value_difference": 0.3614662626666667
+          },
+          {
+            "higher_value_member": "noisy-safe",
+            "lower_value_member": "physics-understanding-0",
+            "value_difference": 0.06582418750000002
+          },
+          {
+            "higher_value_member": "noisy-safe",
+            "lower_value_member": "physics-understanding-1",
+            "value_difference": 0.1528366875
+          }
+        ],
+        "fitted": false,
+        "claim": "Witnesses prevent perfect value ordering in this feature-only monotone family; no witnesses does not prove capacity."
+      }
+    },
+    {
+      "profile": 2,
+      "scope": "in_range",
+      "features": "A and Q toy scores, existing neighbourhood blend, physics OFF, no gates/components",
+      "measurement_ceiling": {
+        "estimate": {
+          "members": 6,
+          "resolved_questions": 6,
+          "informative_questions": 6,
+          "status": "MEASURED",
+          "per_question_reliability": 0.6709470603178644,
+          "reliability": 0.9244379010678231,
+          "tau_ceiling": 0.8227200286492489,
+          "tau_ceiling_ci95": [
+            0.7078299110614096,
+            0.8687149981601291
+          ]
+        },
+        "interpretation": "SCORE-CEILING-01 reliability diagnostic with its Spearman-Brown/bivariate-normal assumptions; not a universal mathematical tau bound or score-family capacity proof."
+      },
+      "monotone_a_q_capacity": {
+        "schema": "carbon.dev.score-lab-capacity-witnesses.v1",
+        "members": 6,
+        "feature_count": 2,
+        "exact_feature_aliases": [],
+        "monotone_order_reversals": [
+          {
+            "higher_value_member": "noisy-safe",
+            "lower_value_member": "moderate-generalist",
+            "value_difference": 0.08664163541666668
+          },
+          {
+            "higher_value_member": "moderate-generalist",
+            "lower_value_member": "physics-understanding-0",
+            "value_difference": 0.03333333333333334
+          },
+          {
+            "higher_value_member": "moderate-generalist",
+            "lower_value_member": "physics-understanding-1",
+            "value_difference": 0.03333333333333334
+          },
+          {
+            "higher_value_member": "moderate-generalist",
+            "lower_value_member": "target-overfit-0",
+            "value_difference": 0.08333333333333336
+          },
+          {
+            "higher_value_member": "moderate-generalist",
+            "lower_value_member": "target-overfit-1",
+            "value_difference": 0.10000000000000002
+          },
+          {
+            "higher_value_member": "noisy-safe",
+            "lower_value_member": "physics-understanding-0",
+            "value_difference": 0.11997496875000002
+          },
+          {
+            "higher_value_member": "noisy-safe",
+            "lower_value_member": "physics-understanding-1",
+            "value_difference": 0.11997496875000002
+          },
+          {
+            "higher_value_member": "noisy-safe",
+            "lower_value_member": "target-overfit-0",
+            "value_difference": 0.16997496875000004
+          },
+          {
+            "higher_value_member": "noisy-safe",
+            "lower_value_member": "target-overfit-1",
+            "value_difference": 0.1866416354166667
+          },
+          {
+            "higher_value_member": "physics-understanding-0",
+            "lower_value_member": "target-overfit-0",
+            "value_difference": 0.05000000000000002
+          },
+          {
+            "higher_value_member": "physics-understanding-0",
+            "lower_value_member": "target-overfit-1",
+            "value_difference": 0.06666666666666668
+          },
+          {
+            "higher_value_member": "physics-understanding-1",
+            "lower_value_member": "target-overfit-0",
+            "value_difference": 0.05000000000000002
+          },
+          {
+            "higher_value_member": "physics-understanding-1",
+            "lower_value_member": "target-overfit-1",
+            "value_difference": 0.06666666666666668
+          }
+        ],
+        "fitted": false,
+        "claim": "Witnesses prevent perfect value ordering in this feature-only monotone family; no witnesses does not prove capacity."
+      }
+    },
+    {
+      "profile": 2,
+      "scope": "shifted",
+      "features": "A and Q toy scores, existing neighbourhood blend, physics OFF, no gates/components",
+      "measurement_ceiling": {
+        "estimate": {
+          "members": 6,
+          "resolved_questions": 24,
+          "informative_questions": 24,
+          "status": "MEASURED",
+          "per_question_reliability": 0.4761589969881678,
+          "reliability": 0.9561700100623679,
+          "tau_ceiling": 0.8657264155128005,
+          "tau_ceiling_ci95": [
+            0.8378885191594077,
+            0.8933858786036546
+          ]
+        },
+        "interpretation": "SCORE-CEILING-01 reliability diagnostic with its Spearman-Brown/bivariate-normal assumptions; not a universal mathematical tau bound or score-family capacity proof."
+      },
+      "monotone_a_q_capacity": {
+        "schema": "carbon.dev.score-lab-capacity-witnesses.v1",
+        "members": 6,
+        "feature_count": 2,
+        "exact_feature_aliases": [],
+        "monotone_order_reversals": [
+          {
+            "higher_value_member": "noisy-safe",
+            "lower_value_member": "moderate-generalist",
+            "value_difference": 0.19181656543750003
+          },
+          {
+            "higher_value_member": "moderate-generalist",
+            "lower_value_member": "physics-understanding-0",
+            "value_difference": 0.1017592834583333
+          },
+          {
+            "higher_value_member": "moderate-generalist",
+            "lower_value_member": "target-overfit-0",
+            "value_difference": 0.002521273104166638
+          },
+          {
+            "higher_value_member": "noisy-safe",
+            "lower_value_member": "physics-understanding-0",
+            "value_difference": 0.2935758488958333
+          },
+          {
+            "higher_value_member": "noisy-safe",
+            "lower_value_member": "physics-understanding-1",
+            "value_difference": 0.14729678675000002
+          },
+          {
+            "higher_value_member": "noisy-safe",
+            "lower_value_member": "target-overfit-0",
+            "value_difference": 0.19433783854166667
+          },
+          {
+            "higher_value_member": "noisy-safe",
+            "lower_value_member": "target-overfit-1",
+            "value_difference": 0.08269647129166668
+          },
+          {
+            "higher_value_member": "physics-understanding-1",
+            "lower_value_member": "target-overfit-0",
+            "value_difference": 0.04704105179166665
+          },
+          {
+            "higher_value_member": "target-overfit-1",
+            "lower_value_member": "target-overfit-0",
+            "value_difference": 0.11164136724999998
+          }
+        ],
+        "fitted": false,
+        "claim": "Witnesses prevent perfect value ordering in this feature-only monotone family; no witnesses does not prove capacity."
+      }
+    },
+    {
+      "profile": 2,
+      "scope": "extrapolated",
+      "features": "A and Q toy scores, existing neighbourhood blend, physics OFF, no gates/components",
+      "measurement_ceiling": {
+        "estimate": {
+          "members": 6,
+          "resolved_questions": 6,
+          "informative_questions": 6,
+          "status": "MEASURED",
+          "per_question_reliability": 0.9113969528809478,
+          "reliability": 0.9840555533485356,
+          "tau_ceiling": 0.9193980120098041,
+          "tau_ceiling_ci95": [
+            0.906679664112422,
+            0.938173277280075
+          ]
+        },
+        "interpretation": "SCORE-CEILING-01 reliability diagnostic with its Spearman-Brown/bivariate-normal assumptions; not a universal mathematical tau bound or score-family capacity proof."
+      },
+      "monotone_a_q_capacity": {
+        "schema": "carbon.dev.score-lab-capacity-witnesses.v1",
+        "members": 6,
+        "feature_count": 2,
+        "exact_feature_aliases": [],
+        "monotone_order_reversals": [
+          {
+            "higher_value_member": "noisy-safe",
+            "lower_value_member": "moderate-generalist",
+            "value_difference": 0.23776435416666666
+          },
+          {
+            "higher_value_member": "moderate-generalist",
+            "lower_value_member": "physics-understanding-1",
+            "value_difference": 0.41666666666666674
+          },
+          {
+            "higher_value_member": "moderate-generalist",
+            "lower_value_member": "target-overfit-0",
+            "value_difference": 1.3666666666666665
+          },
+          {
+            "higher_value_member": "moderate-generalist",
+            "lower_value_member": "target-overfit-1",
+            "value_difference": 1.3666666666666665
+          },
+          {
+            "higher_value_member": "noisy-safe",
+            "lower_value_member": "physics-understanding-0",
+            "value_difference": 0.0710976875
+          },
+          {
+            "higher_value_member": "noisy-safe",
+            "lower_value_member": "physics-understanding-1",
+            "value_difference": 0.6544310208333334
+          },
+          {
+            "higher_value_member": "noisy-safe",
+            "lower_value_member": "target-overfit-0",
+            "value_difference": 1.6044310208333332
+          },
+          {
+            "higher_value_member": "noisy-safe",
+            "lower_value_member": "target-overfit-1",
+            "value_difference": 1.6044310208333332
+          },
+          {
+            "higher_value_member": "physics-understanding-0",
+            "lower_value_member": "physics-understanding-1",
+            "value_difference": 0.5833333333333334
+          },
+          {
+            "higher_value_member": "physics-understanding-0",
+            "lower_value_member": "target-overfit-0",
+            "value_difference": 1.5333333333333332
+          },
+          {
+            "higher_value_member": "physics-understanding-0",
+            "lower_value_member": "target-overfit-1",
+            "value_difference": 1.5333333333333332
+          },
+          {
+            "higher_value_member": "physics-understanding-1",
+            "lower_value_member": "target-overfit-0",
+            "value_difference": 0.9499999999999998
+          },
+          {
+            "higher_value_member": "physics-understanding-1",
+            "lower_value_member": "target-overfit-1",
+            "value_difference": 0.9499999999999998
+          }
+        ],
+        "fitted": false,
+        "claim": "Witnesses prevent perfect value ordering in this feature-only monotone family; no witnesses does not prove capacity."
+      }
+    },
+    {
+      "profile": 2,
+      "scope": "neighbourhood_blend",
+      "features": "A and Q toy scores, existing neighbourhood blend, physics OFF, no gates/components",
+      "measurement_ceiling": {
+        "estimate": {
+          "members": 6,
+          "resolved_questions": 6,
+          "informative_questions": 6,
+          "status": "MEASURED",
+          "per_question_reliability": 0.3561904761904763,
+          "reliability": 0.7684931506849317,
+          "tau_ceiling": 0.6804373223048303,
+          "tau_ceiling_ci95": [
+            0.5697275636497451,
+            0.7738265667350207
+          ]
+        },
+        "interpretation": "SCORE-CEILING-01 reliability diagnostic with its Spearman-Brown/bivariate-normal assumptions; not a universal mathematical tau bound or score-family capacity proof."
+      },
+      "monotone_a_q_capacity": {
+        "schema": "carbon.dev.score-lab-capacity-witnesses.v1",
+        "members": 6,
+        "feature_count": 2,
+        "exact_feature_aliases": [],
+        "monotone_order_reversals": [
+          {
+            "higher_value_member": "noisy-safe",
+            "lower_value_member": "moderate-generalist",
+            "value_difference": 0.13922910042708334
+          },
+          {
+            "higher_value_member": "moderate-generalist",
+            "lower_value_member": "physics-understanding-0",
+            "value_difference": 0.06754630839583334
+          },
+          {
+            "higher_value_member": "moderate-generalist",
+            "lower_value_member": "target-overfit-0",
+            "value_difference": 0.04292730321874999
+          },
+          {
+            "higher_value_member": "noisy-safe",
+            "lower_value_member": "physics-understanding-0",
+            "value_difference": 0.20677540882291667
+          },
+          {
+            "higher_value_member": "noisy-safe",
+            "lower_value_member": "physics-understanding-1",
+            "value_difference": 0.13363587775000002
+          },
+          {
+            "higher_value_member": "noisy-safe",
+            "lower_value_member": "target-overfit-0",
+            "value_difference": 0.18215640364583333
+          },
+          {
+            "higher_value_member": "noisy-safe",
+            "lower_value_member": "target-overfit-1",
+            "value_difference": 0.1346690533541667
+          },
+          {
+            "higher_value_member": "physics-understanding-1",
+            "lower_value_member": "target-overfit-0",
+            "value_difference": 0.048520525895833305
+          },
+          {
+            "higher_value_member": "physics-understanding-1",
+            "lower_value_member": "target-overfit-1",
+            "value_difference": 0.0010331756041666862
+          },
+          {
+            "higher_value_member": "target-overfit-1",
+            "lower_value_member": "target-overfit-0",
+            "value_difference": 0.04748735029166662
+          }
+        ],
+        "fitted": false,
+        "claim": "Witnesses prevent perfect value ordering in this feature-only monotone family; no witnesses does not prove capacity."
+      }
+    }
+  ],
+  "selection": null,
+  "direct_v2_utility": "Separate objective family; must match buyer job, cost and abstention/unsafe semantics, not assumed identical here."
+}

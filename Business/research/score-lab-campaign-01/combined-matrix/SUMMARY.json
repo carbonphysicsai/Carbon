@@ -1,0 +1,1354 @@
+{
+  "schema": "carbon.dev.score-lab-combined-summary.v1",
+  "status": "COMPLETE",
+  "scope": "SYNTHETIC_DEVELOPMENT",
+  "source_commit": "6e90df8fc47dad8dbfa663db26579f4c8fb8f2cb",
+  "plan_sha256": "a2374abb8508a2c1caae28850ddd31fe1dd584e4e89d5ddef59f40887b9cd76c",
+  "run_sha256": "7f38dff6adfaa5f6b9570d2e955b5d73fe619e31142fc3992957c1b102a19222",
+  "control_status": "CONTROL_PASS",
+  "profiles": 3,
+  "primary_members_per_profile": 6,
+  "probe_members_per_profile": 2,
+  "completed_cells": 96,
+  "candidate_configuration_rows": 6144,
+  "scoped_outcomes": 24576,
+  "status_counts": {
+    "MEASURED_DEVELOPMENT": 14976,
+    "missing_cheap_physics_measurements": 9216,
+    "unscored_primary_members": 384
+  },
+  "scorer_evaluations": 30720,
+  "component_effect_counts": {
+    "UNSCORED": 11896,
+    "SAME_VALUE": 8812,
+    "LOWER_VALUE": 1451,
+    "HIGHER_VALUE": 1649
+  },
+  "baseline_ablation_outcomes": [
+    {
+      "profile": "nominal_error_example",
+      "candidate": "TOY-ABLATION/A/NO-GATE",
+      "scope": "extrapolated",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": -0.6900655593423543,
+      "tau_ci95": [
+        -1.0,
+        0.0
+      ],
+      "top1_value": -1.6044310208333332,
+      "top1_regret": 1.6044310208333332,
+      "top1_member": "target-overfit-0",
+      "known_bad_in_top_half": [],
+      "adversarial_in_top_half": [
+        "adversarial-score-path"
+      ],
+      "admissibility_failures": 0
+    },
+    {
+      "profile": "nominal_error_example",
+      "candidate": "TOY-ABLATION/A/NO-GATE",
+      "scope": "in_range",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": -0.7333333333333333,
+      "tau_ci95": [
+        -1.0,
+        -0.3333333333333333
+      ],
+      "top1_value": -0.16997496875000004,
+      "top1_regret": 0.16997496875000004,
+      "top1_member": "target-overfit-0",
+      "known_bad_in_top_half": [],
+      "adversarial_in_top_half": [
+        "adversarial-score-path"
+      ],
+      "admissibility_failures": 0
+    },
+    {
+      "profile": "nominal_error_example",
+      "candidate": "TOY-ABLATION/A/NO-GATE",
+      "scope": "neighbourhood_blend",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": -0.4666666666666667,
+      "tau_ci95": [
+        -1.0,
+        0.45454545454545453
+      ],
+      "top1_value": -0.18215640364583333,
+      "top1_regret": 0.18215640364583333,
+      "top1_member": "target-overfit-0",
+      "known_bad_in_top_half": [],
+      "adversarial_in_top_half": [
+        "adversarial-score-path"
+      ],
+      "admissibility_failures": 0
+    },
+    {
+      "profile": "nominal_error_example",
+      "candidate": "TOY-ABLATION/A/NO-GATE",
+      "scope": "shifted",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": -0.3333333333333333,
+      "tau_ci95": [
+        -1.0,
+        1.0
+      ],
+      "top1_value": -0.19433783854166667,
+      "top1_regret": 0.19433783854166667,
+      "top1_member": "target-overfit-0",
+      "known_bad_in_top_half": [],
+      "adversarial_in_top_half": [
+        "adversarial-score-path"
+      ],
+      "admissibility_failures": 0
+    },
+    {
+      "profile": "nominal_error_example",
+      "candidate": "TOY-ABLATION/A/G-FEAS",
+      "scope": "extrapolated",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": null,
+      "tau_ci95": null,
+      "top1_value": null,
+      "top1_regret": null,
+      "top1_member": null,
+      "known_bad_in_top_half": [
+        "known-bad-law-breaker"
+      ],
+      "adversarial_in_top_half": [
+        "adversarial-score-path"
+      ],
+      "admissibility_failures": 8
+    },
+    {
+      "profile": "nominal_error_example",
+      "candidate": "TOY-ABLATION/A/G-FEAS",
+      "scope": "in_range",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": null,
+      "tau_ci95": null,
+      "top1_value": null,
+      "top1_regret": null,
+      "top1_member": null,
+      "known_bad_in_top_half": [
+        "known-bad-law-breaker"
+      ],
+      "adversarial_in_top_half": [
+        "adversarial-score-path"
+      ],
+      "admissibility_failures": 8
+    },
+    {
+      "profile": "nominal_error_example",
+      "candidate": "TOY-ABLATION/A/G-FEAS",
+      "scope": "neighbourhood_blend",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": null,
+      "tau_ci95": null,
+      "top1_value": null,
+      "top1_regret": null,
+      "top1_member": null,
+      "known_bad_in_top_half": [
+        "known-bad-law-breaker"
+      ],
+      "adversarial_in_top_half": [
+        "adversarial-score-path"
+      ],
+      "admissibility_failures": 8
+    },
+    {
+      "profile": "nominal_error_example",
+      "candidate": "TOY-ABLATION/A/G-FEAS",
+      "scope": "shifted",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": null,
+      "tau_ci95": null,
+      "top1_value": null,
+      "top1_regret": null,
+      "top1_member": null,
+      "known_bad_in_top_half": [
+        "known-bad-law-breaker"
+      ],
+      "adversarial_in_top_half": [
+        "adversarial-score-path"
+      ],
+      "admissibility_failures": 8
+    },
+    {
+      "profile": "nominal_error_example",
+      "candidate": "TOY-ABLATION/Q/NO-GATE",
+      "scope": "extrapolated",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": -0.6172133998483676,
+      "tau_ci95": [
+        -1.0,
+        0.28867513459481287
+      ],
+      "top1_value": -0.05443102083333334,
+      "top1_regret": 0.05443102083333334,
+      "top1_member": "physics-understanding-0",
+      "known_bad_in_top_half": [],
+      "adversarial_in_top_half": [],
+      "admissibility_failures": 0
+    },
+    {
+      "profile": "nominal_error_example",
+      "candidate": "TOY-ABLATION/Q/NO-GATE",
+      "scope": "in_range",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": -0.7453559924999299,
+      "tau_ci95": [
+        -1.0,
+        -0.2508726030021272
+      ],
+      "top1_value": -0.10330830208333336,
+      "top1_regret": 0.10330830208333336,
+      "top1_member": "physics-understanding-0",
+      "known_bad_in_top_half": [],
+      "adversarial_in_top_half": [],
+      "admissibility_failures": 0
+    },
+    {
+      "profile": "nominal_error_example",
+      "candidate": "TOY-ABLATION/Q/NO-GATE",
+      "scope": "neighbourhood_blend",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": -0.29814239699997197,
+      "tau_ci95": [
+        -1.0,
+        0.4811252243246881
+      ],
+      "top1_value": -0.12552540882291668,
+      "top1_regret": 0.12552540882291668,
+      "top1_member": "physics-understanding-0",
+      "known_bad_in_top_half": [],
+      "adversarial_in_top_half": [],
+      "admissibility_failures": 0
+    },
+    {
+      "profile": "nominal_error_example",
+      "candidate": "TOY-ABLATION/Q/NO-GATE",
+      "scope": "shifted",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": -0.29814239699997197,
+      "tau_ci95": [
+        -1.0,
+        0.9198662110077999
+      ],
+      "top1_value": -0.1477425155625,
+      "top1_regret": 0.1477425155625,
+      "top1_member": "physics-understanding-0",
+      "known_bad_in_top_half": [],
+      "adversarial_in_top_half": [],
+      "admissibility_failures": 0
+    },
+    {
+      "profile": "nominal_error_example",
+      "candidate": "TOY-ABLATION/Q/G-FEAS",
+      "scope": "extrapolated",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": null,
+      "tau_ci95": null,
+      "top1_value": null,
+      "top1_regret": null,
+      "top1_member": null,
+      "known_bad_in_top_half": [
+        "known-bad-law-breaker"
+      ],
+      "adversarial_in_top_half": [
+        "adversarial-score-path"
+      ],
+      "admissibility_failures": 8
+    },
+    {
+      "profile": "nominal_error_example",
+      "candidate": "TOY-ABLATION/Q/G-FEAS",
+      "scope": "in_range",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": null,
+      "tau_ci95": null,
+      "top1_value": null,
+      "top1_regret": null,
+      "top1_member": null,
+      "known_bad_in_top_half": [
+        "known-bad-law-breaker"
+      ],
+      "adversarial_in_top_half": [
+        "adversarial-score-path"
+      ],
+      "admissibility_failures": 8
+    },
+    {
+      "profile": "nominal_error_example",
+      "candidate": "TOY-ABLATION/Q/G-FEAS",
+      "scope": "neighbourhood_blend",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": null,
+      "tau_ci95": null,
+      "top1_value": null,
+      "top1_regret": null,
+      "top1_member": null,
+      "known_bad_in_top_half": [
+        "known-bad-law-breaker"
+      ],
+      "adversarial_in_top_half": [
+        "adversarial-score-path"
+      ],
+      "admissibility_failures": 8
+    },
+    {
+      "profile": "nominal_error_example",
+      "candidate": "TOY-ABLATION/Q/G-FEAS",
+      "scope": "shifted",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": null,
+      "tau_ci95": null,
+      "top1_value": null,
+      "top1_regret": null,
+      "top1_member": null,
+      "known_bad_in_top_half": [
+        "known-bad-law-breaker"
+      ],
+      "adversarial_in_top_half": [
+        "adversarial-score-path"
+      ],
+      "admissibility_failures": 8
+    },
+    {
+      "profile": "nominal_error_example",
+      "candidate": "TOY-ABLATION/A+Q/NO-GATE",
+      "scope": "extrapolated",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": -0.6900655593423543,
+      "tau_ci95": [
+        -1.0,
+        0.0
+      ],
+      "top1_value": -1.6044310208333332,
+      "top1_regret": 1.6044310208333332,
+      "top1_member": "target-overfit-0",
+      "known_bad_in_top_half": [],
+      "adversarial_in_top_half": [],
+      "admissibility_failures": 0
+    },
+    {
+      "profile": "nominal_error_example",
+      "candidate": "TOY-ABLATION/A+Q/NO-GATE",
+      "scope": "in_range",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": -0.7333333333333333,
+      "tau_ci95": [
+        -1.0,
+        -0.3333333333333333
+      ],
+      "top1_value": -0.16997496875000004,
+      "top1_regret": 0.16997496875000004,
+      "top1_member": "target-overfit-0",
+      "known_bad_in_top_half": [],
+      "adversarial_in_top_half": [],
+      "admissibility_failures": 0
+    },
+    {
+      "profile": "nominal_error_example",
+      "candidate": "TOY-ABLATION/A+Q/NO-GATE",
+      "scope": "neighbourhood_blend",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": -0.4666666666666667,
+      "tau_ci95": [
+        -1.0,
+        0.45454545454545453
+      ],
+      "top1_value": -0.18215640364583333,
+      "top1_regret": 0.18215640364583333,
+      "top1_member": "target-overfit-0",
+      "known_bad_in_top_half": [],
+      "adversarial_in_top_half": [],
+      "admissibility_failures": 0
+    },
+    {
+      "profile": "nominal_error_example",
+      "candidate": "TOY-ABLATION/A+Q/NO-GATE",
+      "scope": "shifted",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": -0.3333333333333333,
+      "tau_ci95": [
+        -1.0,
+        1.0
+      ],
+      "top1_value": -0.19433783854166667,
+      "top1_regret": 0.19433783854166667,
+      "top1_member": "target-overfit-0",
+      "known_bad_in_top_half": [],
+      "adversarial_in_top_half": [],
+      "admissibility_failures": 0
+    },
+    {
+      "profile": "nominal_error_example",
+      "candidate": "TOY-ABLATION/A+Q/G-FEAS",
+      "scope": "extrapolated",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": null,
+      "tau_ci95": null,
+      "top1_value": null,
+      "top1_regret": null,
+      "top1_member": null,
+      "known_bad_in_top_half": [
+        "known-bad-law-breaker"
+      ],
+      "adversarial_in_top_half": [
+        "adversarial-score-path"
+      ],
+      "admissibility_failures": 8
+    },
+    {
+      "profile": "nominal_error_example",
+      "candidate": "TOY-ABLATION/A+Q/G-FEAS",
+      "scope": "in_range",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": null,
+      "tau_ci95": null,
+      "top1_value": null,
+      "top1_regret": null,
+      "top1_member": null,
+      "known_bad_in_top_half": [
+        "known-bad-law-breaker"
+      ],
+      "adversarial_in_top_half": [
+        "adversarial-score-path"
+      ],
+      "admissibility_failures": 8
+    },
+    {
+      "profile": "nominal_error_example",
+      "candidate": "TOY-ABLATION/A+Q/G-FEAS",
+      "scope": "neighbourhood_blend",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": null,
+      "tau_ci95": null,
+      "top1_value": null,
+      "top1_regret": null,
+      "top1_member": null,
+      "known_bad_in_top_half": [
+        "known-bad-law-breaker"
+      ],
+      "adversarial_in_top_half": [
+        "adversarial-score-path"
+      ],
+      "admissibility_failures": 8
+    },
+    {
+      "profile": "nominal_error_example",
+      "candidate": "TOY-ABLATION/A+Q/G-FEAS",
+      "scope": "shifted",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": null,
+      "tau_ci95": null,
+      "top1_value": null,
+      "top1_regret": null,
+      "top1_member": null,
+      "known_bad_in_top_half": [
+        "known-bad-law-breaker"
+      ],
+      "adversarial_in_top_half": [
+        "adversarial-score-path"
+      ],
+      "admissibility_failures": 8
+    },
+    {
+      "profile": "tight_boundary_coupled",
+      "candidate": "TOY-ABLATION/A/NO-GATE",
+      "scope": "extrapolated",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": -0.4666666666666667,
+      "tau_ci95": [
+        -1.0,
+        0.6363636363636364
+      ],
+      "top1_value": -0.04060000000000003,
+      "top1_regret": 0.04060000000000003,
+      "top1_member": "physics-understanding-0",
+      "known_bad_in_top_half": [],
+      "adversarial_in_top_half": [],
+      "admissibility_failures": 0
+    },
+    {
+      "profile": "tight_boundary_coupled",
+      "candidate": "TOY-ABLATION/A/NO-GATE",
+      "scope": "in_range",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": -0.13801311186847084,
+      "tau_ci95": [
+        -1.0,
+        0.6923076923076923
+      ],
+      "top1_value": 0.023833333333333314,
+      "top1_regret": 0.07496666666666668,
+      "top1_member": "physics-understanding-0",
+      "known_bad_in_top_half": [],
+      "adversarial_in_top_half": [],
+      "admissibility_failures": 0
+    },
+    {
+      "profile": "tight_boundary_coupled",
+      "candidate": "TOY-ABLATION/A/NO-GATE",
+      "scope": "neighbourhood_blend",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": -0.06666666666666667,
+      "tau_ci95": [
+        -0.8333333333333334,
+        1.0
+      ],
+      "top1_value": -0.06582418750000002,
+      "top1_regret": 0.13222101883333337,
+      "top1_member": "physics-understanding-0",
+      "known_bad_in_top_half": [],
+      "adversarial_in_top_half": [],
+      "admissibility_failures": 0
+    },
+    {
+      "profile": "tight_boundary_coupled",
+      "candidate": "TOY-ABLATION/A/NO-GATE",
+      "scope": "shifted",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": -0.06666666666666667,
+      "tau_ci95": [
+        -1.0,
+        0.5384615384615384
+      ],
+      "top1_value": -0.15548170833333336,
+      "top1_regret": 0.189475371,
+      "top1_member": "physics-understanding-0",
+      "known_bad_in_top_half": [],
+      "adversarial_in_top_half": [],
+      "admissibility_failures": 0
+    },
+    {
+      "profile": "tight_boundary_coupled",
+      "candidate": "TOY-ABLATION/A/G-FEAS",
+      "scope": "extrapolated",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": null,
+      "tau_ci95": null,
+      "top1_value": null,
+      "top1_regret": null,
+      "top1_member": null,
+      "known_bad_in_top_half": [
+        "known-bad-law-breaker"
+      ],
+      "adversarial_in_top_half": [
+        "adversarial-score-path"
+      ],
+      "admissibility_failures": 8
+    },
+    {
+      "profile": "tight_boundary_coupled",
+      "candidate": "TOY-ABLATION/A/G-FEAS",
+      "scope": "in_range",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": null,
+      "tau_ci95": null,
+      "top1_value": null,
+      "top1_regret": null,
+      "top1_member": null,
+      "known_bad_in_top_half": [
+        "known-bad-law-breaker"
+      ],
+      "adversarial_in_top_half": [
+        "adversarial-score-path"
+      ],
+      "admissibility_failures": 8
+    },
+    {
+      "profile": "tight_boundary_coupled",
+      "candidate": "TOY-ABLATION/A/G-FEAS",
+      "scope": "neighbourhood_blend",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": null,
+      "tau_ci95": null,
+      "top1_value": null,
+      "top1_regret": null,
+      "top1_member": null,
+      "known_bad_in_top_half": [
+        "known-bad-law-breaker"
+      ],
+      "adversarial_in_top_half": [
+        "adversarial-score-path"
+      ],
+      "admissibility_failures": 8
+    },
+    {
+      "profile": "tight_boundary_coupled",
+      "candidate": "TOY-ABLATION/A/G-FEAS",
+      "scope": "shifted",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": null,
+      "tau_ci95": null,
+      "top1_value": null,
+      "top1_regret": null,
+      "top1_member": null,
+      "known_bad_in_top_half": [
+        "known-bad-law-breaker"
+      ],
+      "adversarial_in_top_half": [
+        "adversarial-score-path"
+      ],
+      "admissibility_failures": 8
+    },
+    {
+      "profile": "tight_boundary_coupled",
+      "candidate": "TOY-ABLATION/Q/NO-GATE",
+      "scope": "extrapolated",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": 0.4472135954999579,
+      "tau_ci95": [
+        -0.12909944487358055,
+        1.0
+      ],
+      "top1_value": -0.04060000000000003,
+      "top1_regret": 0.04060000000000003,
+      "top1_member": "physics-understanding-0",
+      "known_bad_in_top_half": [],
+      "adversarial_in_top_half": [],
+      "admissibility_failures": 0
+    },
+    {
+      "profile": "tight_boundary_coupled",
+      "candidate": "TOY-ABLATION/Q/NO-GATE",
+      "scope": "in_range",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": 0.5400617248673216,
+      "tau_ci95": [
+        -0.12909944487358055,
+        0.9198662110077999
+      ],
+      "top1_value": 0.023833333333333314,
+      "top1_regret": 0.07496666666666668,
+      "top1_member": "physics-understanding-0",
+      "known_bad_in_top_half": [],
+      "adversarial_in_top_half": [],
+      "admissibility_failures": 0
+    },
+    {
+      "profile": "tight_boundary_coupled",
+      "candidate": "TOY-ABLATION/Q/NO-GATE",
+      "scope": "neighbourhood_blend",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": 0.5962847939999439,
+      "tau_ci95": [
+        0.07692307692307693,
+        1.0
+      ],
+      "top1_value": -0.06582418750000002,
+      "top1_regret": 0.13222101883333337,
+      "top1_member": "physics-understanding-0",
+      "known_bad_in_top_half": [],
+      "adversarial_in_top_half": [],
+      "admissibility_failures": 0
+    },
+    {
+      "profile": "tight_boundary_coupled",
+      "candidate": "TOY-ABLATION/Q/NO-GATE",
+      "scope": "shifted",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": 0.5962847939999439,
+      "tau_ci95": [
+        -1.0,
+        1.0
+      ],
+      "top1_value": -0.15548170833333336,
+      "top1_regret": 0.189475371,
+      "top1_member": "physics-understanding-0",
+      "known_bad_in_top_half": [],
+      "adversarial_in_top_half": [],
+      "admissibility_failures": 0
+    },
+    {
+      "profile": "tight_boundary_coupled",
+      "candidate": "TOY-ABLATION/Q/G-FEAS",
+      "scope": "extrapolated",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": null,
+      "tau_ci95": null,
+      "top1_value": null,
+      "top1_regret": null,
+      "top1_member": null,
+      "known_bad_in_top_half": [
+        "known-bad-law-breaker"
+      ],
+      "adversarial_in_top_half": [
+        "adversarial-score-path"
+      ],
+      "admissibility_failures": 8
+    },
+    {
+      "profile": "tight_boundary_coupled",
+      "candidate": "TOY-ABLATION/Q/G-FEAS",
+      "scope": "in_range",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": null,
+      "tau_ci95": null,
+      "top1_value": null,
+      "top1_regret": null,
+      "top1_member": null,
+      "known_bad_in_top_half": [
+        "known-bad-law-breaker"
+      ],
+      "adversarial_in_top_half": [
+        "adversarial-score-path"
+      ],
+      "admissibility_failures": 8
+    },
+    {
+      "profile": "tight_boundary_coupled",
+      "candidate": "TOY-ABLATION/Q/G-FEAS",
+      "scope": "neighbourhood_blend",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": null,
+      "tau_ci95": null,
+      "top1_value": null,
+      "top1_regret": null,
+      "top1_member": null,
+      "known_bad_in_top_half": [
+        "known-bad-law-breaker"
+      ],
+      "adversarial_in_top_half": [
+        "adversarial-score-path"
+      ],
+      "admissibility_failures": 8
+    },
+    {
+      "profile": "tight_boundary_coupled",
+      "candidate": "TOY-ABLATION/Q/G-FEAS",
+      "scope": "shifted",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": null,
+      "tau_ci95": null,
+      "top1_value": null,
+      "top1_regret": null,
+      "top1_member": null,
+      "known_bad_in_top_half": [
+        "known-bad-law-breaker"
+      ],
+      "adversarial_in_top_half": [
+        "adversarial-score-path"
+      ],
+      "admissibility_failures": 8
+    },
+    {
+      "profile": "tight_boundary_coupled",
+      "candidate": "TOY-ABLATION/A+Q/NO-GATE",
+      "scope": "extrapolated",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": -0.06666666666666667,
+      "tau_ci95": [
+        -0.8461538461538461,
+        1.0
+      ],
+      "top1_value": -0.04060000000000003,
+      "top1_regret": 0.04060000000000003,
+      "top1_member": "physics-understanding-0",
+      "known_bad_in_top_half": [],
+      "adversarial_in_top_half": [],
+      "admissibility_failures": 0
+    },
+    {
+      "profile": "tight_boundary_coupled",
+      "candidate": "TOY-ABLATION/A+Q/NO-GATE",
+      "scope": "in_range",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": 0.2760262237369417,
+      "tau_ci95": [
+        -0.8461538461538461,
+        1.0
+      ],
+      "top1_value": 0.023833333333333314,
+      "top1_regret": 0.07496666666666668,
+      "top1_member": "physics-understanding-0",
+      "known_bad_in_top_half": [],
+      "adversarial_in_top_half": [],
+      "admissibility_failures": 0
+    },
+    {
+      "profile": "tight_boundary_coupled",
+      "candidate": "TOY-ABLATION/A+Q/NO-GATE",
+      "scope": "neighbourhood_blend",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": 0.06666666666666667,
+      "tau_ci95": [
+        -1.0,
+        1.0
+      ],
+      "top1_value": -0.06582418750000002,
+      "top1_regret": 0.13222101883333337,
+      "top1_member": "physics-understanding-0",
+      "known_bad_in_top_half": [],
+      "adversarial_in_top_half": [],
+      "admissibility_failures": 0
+    },
+    {
+      "profile": "tight_boundary_coupled",
+      "candidate": "TOY-ABLATION/A+Q/NO-GATE",
+      "scope": "shifted",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": 0.06666666666666667,
+      "tau_ci95": [
+        -1.0,
+        1.0
+      ],
+      "top1_value": -0.15548170833333336,
+      "top1_regret": 0.189475371,
+      "top1_member": "physics-understanding-0",
+      "known_bad_in_top_half": [],
+      "adversarial_in_top_half": [],
+      "admissibility_failures": 0
+    },
+    {
+      "profile": "tight_boundary_coupled",
+      "candidate": "TOY-ABLATION/A+Q/G-FEAS",
+      "scope": "extrapolated",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": null,
+      "tau_ci95": null,
+      "top1_value": null,
+      "top1_regret": null,
+      "top1_member": null,
+      "known_bad_in_top_half": [
+        "known-bad-law-breaker"
+      ],
+      "adversarial_in_top_half": [
+        "adversarial-score-path"
+      ],
+      "admissibility_failures": 8
+    },
+    {
+      "profile": "tight_boundary_coupled",
+      "candidate": "TOY-ABLATION/A+Q/G-FEAS",
+      "scope": "in_range",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": null,
+      "tau_ci95": null,
+      "top1_value": null,
+      "top1_regret": null,
+      "top1_member": null,
+      "known_bad_in_top_half": [
+        "known-bad-law-breaker"
+      ],
+      "adversarial_in_top_half": [
+        "adversarial-score-path"
+      ],
+      "admissibility_failures": 8
+    },
+    {
+      "profile": "tight_boundary_coupled",
+      "candidate": "TOY-ABLATION/A+Q/G-FEAS",
+      "scope": "neighbourhood_blend",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": null,
+      "tau_ci95": null,
+      "top1_value": null,
+      "top1_regret": null,
+      "top1_member": null,
+      "known_bad_in_top_half": [
+        "known-bad-law-breaker"
+      ],
+      "adversarial_in_top_half": [
+        "adversarial-score-path"
+      ],
+      "admissibility_failures": 8
+    },
+    {
+      "profile": "tight_boundary_coupled",
+      "candidate": "TOY-ABLATION/A+Q/G-FEAS",
+      "scope": "shifted",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": null,
+      "tau_ci95": null,
+      "top1_value": null,
+      "top1_regret": null,
+      "top1_member": null,
+      "known_bad_in_top_half": [
+        "known-bad-law-breaker"
+      ],
+      "adversarial_in_top_half": [
+        "adversarial-score-path"
+      ],
+      "admissibility_failures": 8
+    },
+    {
+      "profile": "registered_error64_row0",
+      "candidate": "TOY-ABLATION/A/NO-GATE",
+      "scope": "extrapolated",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": -0.8280786712108251,
+      "tau_ci95": [
+        -1.0,
+        -0.5
+      ],
+      "top1_value": -1.6044310208333332,
+      "top1_regret": 1.6044310208333332,
+      "top1_member": "target-overfit-0",
+      "known_bad_in_top_half": [],
+      "adversarial_in_top_half": [
+        "adversarial-score-path"
+      ],
+      "admissibility_failures": 0
+    },
+    {
+      "profile": "registered_error64_row0",
+      "candidate": "TOY-ABLATION/A/NO-GATE",
+      "scope": "in_range",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": -0.8280786712108251,
+      "tau_ci95": [
+        -1.0,
+        -0.3333333333333333
+      ],
+      "top1_value": -0.16997496875000004,
+      "top1_regret": 0.16997496875000004,
+      "top1_member": "target-overfit-0",
+      "known_bad_in_top_half": [],
+      "adversarial_in_top_half": [
+        "adversarial-score-path"
+      ],
+      "admissibility_failures": 0
+    },
+    {
+      "profile": "registered_error64_row0",
+      "candidate": "TOY-ABLATION/A/NO-GATE",
+      "scope": "neighbourhood_blend",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": -0.3333333333333333,
+      "tau_ci95": [
+        -1.0,
+        0.6363636363636364
+      ],
+      "top1_value": -0.18215640364583333,
+      "top1_regret": 0.18215640364583333,
+      "top1_member": "target-overfit-0",
+      "known_bad_in_top_half": [],
+      "adversarial_in_top_half": [
+        "adversarial-score-path"
+      ],
+      "admissibility_failures": 0
+    },
+    {
+      "profile": "registered_error64_row0",
+      "candidate": "TOY-ABLATION/A/NO-GATE",
+      "scope": "shifted",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": -0.2,
+      "tau_ci95": [
+        -1.0,
+        1.0
+      ],
+      "top1_value": -0.19433783854166667,
+      "top1_regret": 0.19433783854166667,
+      "top1_member": "target-overfit-0",
+      "known_bad_in_top_half": [],
+      "adversarial_in_top_half": [
+        "adversarial-score-path"
+      ],
+      "admissibility_failures": 0
+    },
+    {
+      "profile": "registered_error64_row0",
+      "candidate": "TOY-ABLATION/A/G-FEAS",
+      "scope": "extrapolated",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": 0.35856858280031806,
+      "tau_ci95": [
+        0.0,
+        1.0
+      ],
+      "top1_value": -0.0710976875,
+      "top1_regret": 0.0710976875,
+      "top1_member": "physics-understanding-0",
+      "known_bad_in_top_half": [
+        "known-bad-law-breaker"
+      ],
+      "adversarial_in_top_half": [
+        "adversarial-score-path"
+      ],
+      "admissibility_failures": 7
+    },
+    {
+      "profile": "registered_error64_row0",
+      "candidate": "TOY-ABLATION/A/G-FEAS",
+      "scope": "in_range",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": 0.0,
+      "tau_ci95": [
+        -0.40451991747794525,
+        0.9045340337332909
+      ],
+      "top1_value": -0.11997496875000002,
+      "top1_regret": 0.11997496875000002,
+      "top1_member": "physics-understanding-0",
+      "known_bad_in_top_half": [
+        "known-bad-law-breaker"
+      ],
+      "adversarial_in_top_half": [
+        "adversarial-score-path"
+      ],
+      "admissibility_failures": 7
+    },
+    {
+      "profile": "registered_error64_row0",
+      "candidate": "TOY-ABLATION/A/G-FEAS",
+      "scope": "neighbourhood_blend",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": -0.5773502691896257,
+      "tau_ci95": [
+        -0.9045340337332909,
+        0.35856858280031806
+      ],
+      "top1_value": -0.20677540882291667,
+      "top1_regret": 0.20677540882291667,
+      "top1_member": "physics-understanding-0",
+      "known_bad_in_top_half": [
+        "known-bad-law-breaker"
+      ],
+      "adversarial_in_top_half": [
+        "adversarial-score-path"
+      ],
+      "admissibility_failures": 7
+    },
+    {
+      "profile": "registered_error64_row0",
+      "candidate": "TOY-ABLATION/A/G-FEAS",
+      "scope": "shifted",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": -0.5773502691896257,
+      "tau_ci95": [
+        -0.8164965809277261,
+        0.11952286093343936
+      ],
+      "top1_value": -0.2935758488958333,
+      "top1_regret": 0.2935758488958333,
+      "top1_member": "physics-understanding-0",
+      "known_bad_in_top_half": [
+        "known-bad-law-breaker"
+      ],
+      "adversarial_in_top_half": [
+        "adversarial-score-path"
+      ],
+      "admissibility_failures": 7
+    },
+    {
+      "profile": "registered_error64_row0",
+      "candidate": "TOY-ABLATION/Q/NO-GATE",
+      "scope": "extrapolated",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": -0.8571428571428571,
+      "tau_ci95": [
+        -1.0,
+        -0.5
+      ],
+      "top1_value": -1.6044310208333332,
+      "top1_regret": 1.6044310208333332,
+      "top1_member": "target-overfit-0",
+      "known_bad_in_top_half": [],
+      "adversarial_in_top_half": [],
+      "admissibility_failures": 0
+    },
+    {
+      "profile": "registered_error64_row0",
+      "candidate": "TOY-ABLATION/Q/NO-GATE",
+      "scope": "in_range",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": -0.9285714285714286,
+      "tau_ci95": [
+        -1.0,
+        -0.30151134457776363
+      ],
+      "top1_value": -0.16997496875000004,
+      "top1_regret": 0.16997496875000004,
+      "top1_member": "target-overfit-0",
+      "known_bad_in_top_half": [],
+      "adversarial_in_top_half": [],
+      "admissibility_failures": 0
+    },
+    {
+      "profile": "registered_error64_row0",
+      "candidate": "TOY-ABLATION/Q/NO-GATE",
+      "scope": "neighbourhood_blend",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": -0.2760262237369417,
+      "tau_ci95": [
+        -1.0,
+        0.9045340337332909
+      ],
+      "top1_value": -0.18215640364583333,
+      "top1_regret": 0.18215640364583333,
+      "top1_member": "target-overfit-0",
+      "known_bad_in_top_half": [],
+      "adversarial_in_top_half": [],
+      "admissibility_failures": 0
+    },
+    {
+      "profile": "registered_error64_row0",
+      "candidate": "TOY-ABLATION/Q/NO-GATE",
+      "scope": "shifted",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": -0.13801311186847084,
+      "tau_ci95": [
+        -1.0,
+        1.0
+      ],
+      "top1_value": -0.19433783854166667,
+      "top1_regret": 0.19433783854166667,
+      "top1_member": "target-overfit-0",
+      "known_bad_in_top_half": [],
+      "adversarial_in_top_half": [],
+      "admissibility_failures": 0
+    },
+    {
+      "profile": "registered_error64_row0",
+      "candidate": "TOY-ABLATION/Q/G-FEAS",
+      "scope": "extrapolated",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": 0.35856858280031806,
+      "tau_ci95": [
+        0.0,
+        1.0
+      ],
+      "top1_value": -0.0710976875,
+      "top1_regret": 0.0710976875,
+      "top1_member": "physics-understanding-0",
+      "known_bad_in_top_half": [
+        "known-bad-law-breaker"
+      ],
+      "adversarial_in_top_half": [
+        "adversarial-score-path"
+      ],
+      "admissibility_failures": 7
+    },
+    {
+      "profile": "registered_error64_row0",
+      "candidate": "TOY-ABLATION/Q/G-FEAS",
+      "scope": "in_range",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": 0.0,
+      "tau_ci95": [
+        -0.40451991747794525,
+        0.9045340337332909
+      ],
+      "top1_value": -0.11997496875000002,
+      "top1_regret": 0.11997496875000002,
+      "top1_member": "physics-understanding-0",
+      "known_bad_in_top_half": [
+        "known-bad-law-breaker"
+      ],
+      "adversarial_in_top_half": [
+        "adversarial-score-path"
+      ],
+      "admissibility_failures": 7
+    },
+    {
+      "profile": "registered_error64_row0",
+      "candidate": "TOY-ABLATION/Q/G-FEAS",
+      "scope": "neighbourhood_blend",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": -0.5773502691896257,
+      "tau_ci95": [
+        -0.9045340337332909,
+        0.35856858280031806
+      ],
+      "top1_value": -0.20677540882291667,
+      "top1_regret": 0.20677540882291667,
+      "top1_member": "physics-understanding-0",
+      "known_bad_in_top_half": [
+        "known-bad-law-breaker"
+      ],
+      "adversarial_in_top_half": [
+        "adversarial-score-path"
+      ],
+      "admissibility_failures": 7
+    },
+    {
+      "profile": "registered_error64_row0",
+      "candidate": "TOY-ABLATION/Q/G-FEAS",
+      "scope": "shifted",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": -0.5773502691896257,
+      "tau_ci95": [
+        -0.8164965809277261,
+        0.11952286093343936
+      ],
+      "top1_value": -0.2935758488958333,
+      "top1_regret": 0.2935758488958333,
+      "top1_member": "physics-understanding-0",
+      "known_bad_in_top_half": [
+        "known-bad-law-breaker"
+      ],
+      "adversarial_in_top_half": [
+        "adversarial-score-path"
+      ],
+      "admissibility_failures": 7
+    },
+    {
+      "profile": "registered_error64_row0",
+      "candidate": "TOY-ABLATION/A+Q/NO-GATE",
+      "scope": "extrapolated",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": -0.8280786712108251,
+      "tau_ci95": [
+        -1.0,
+        -0.5
+      ],
+      "top1_value": -1.6044310208333332,
+      "top1_regret": 1.6044310208333332,
+      "top1_member": "target-overfit-0",
+      "known_bad_in_top_half": [],
+      "adversarial_in_top_half": [],
+      "admissibility_failures": 0
+    },
+    {
+      "profile": "registered_error64_row0",
+      "candidate": "TOY-ABLATION/A+Q/NO-GATE",
+      "scope": "in_range",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": -0.8280786712108251,
+      "tau_ci95": [
+        -1.0,
+        -0.3333333333333333
+      ],
+      "top1_value": -0.16997496875000004,
+      "top1_regret": 0.16997496875000004,
+      "top1_member": "target-overfit-0",
+      "known_bad_in_top_half": [],
+      "adversarial_in_top_half": [],
+      "admissibility_failures": 0
+    },
+    {
+      "profile": "registered_error64_row0",
+      "candidate": "TOY-ABLATION/A+Q/NO-GATE",
+      "scope": "neighbourhood_blend",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": -0.3333333333333333,
+      "tau_ci95": [
+        -1.0,
+        0.6363636363636364
+      ],
+      "top1_value": -0.18215640364583333,
+      "top1_regret": 0.18215640364583333,
+      "top1_member": "target-overfit-0",
+      "known_bad_in_top_half": [],
+      "adversarial_in_top_half": [],
+      "admissibility_failures": 0
+    },
+    {
+      "profile": "registered_error64_row0",
+      "candidate": "TOY-ABLATION/A+Q/NO-GATE",
+      "scope": "shifted",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": -0.2,
+      "tau_ci95": [
+        -1.0,
+        1.0
+      ],
+      "top1_value": -0.19433783854166667,
+      "top1_regret": 0.19433783854166667,
+      "top1_member": "target-overfit-0",
+      "known_bad_in_top_half": [],
+      "adversarial_in_top_half": [],
+      "admissibility_failures": 0
+    },
+    {
+      "profile": "registered_error64_row0",
+      "candidate": "TOY-ABLATION/A+Q/G-FEAS",
+      "scope": "extrapolated",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": 0.35856858280031806,
+      "tau_ci95": [
+        0.0,
+        1.0
+      ],
+      "top1_value": -0.0710976875,
+      "top1_regret": 0.0710976875,
+      "top1_member": "physics-understanding-0",
+      "known_bad_in_top_half": [
+        "known-bad-law-breaker"
+      ],
+      "adversarial_in_top_half": [
+        "adversarial-score-path"
+      ],
+      "admissibility_failures": 7
+    },
+    {
+      "profile": "registered_error64_row0",
+      "candidate": "TOY-ABLATION/A+Q/G-FEAS",
+      "scope": "in_range",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": 0.0,
+      "tau_ci95": [
+        -0.40451991747794525,
+        0.9045340337332909
+      ],
+      "top1_value": -0.11997496875000002,
+      "top1_regret": 0.11997496875000002,
+      "top1_member": "physics-understanding-0",
+      "known_bad_in_top_half": [
+        "known-bad-law-breaker"
+      ],
+      "adversarial_in_top_half": [
+        "adversarial-score-path"
+      ],
+      "admissibility_failures": 7
+    },
+    {
+      "profile": "registered_error64_row0",
+      "candidate": "TOY-ABLATION/A+Q/G-FEAS",
+      "scope": "neighbourhood_blend",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": -0.5773502691896257,
+      "tau_ci95": [
+        -0.9045340337332909,
+        0.35856858280031806
+      ],
+      "top1_value": -0.20677540882291667,
+      "top1_regret": 0.20677540882291667,
+      "top1_member": "physics-understanding-0",
+      "known_bad_in_top_half": [
+        "known-bad-law-breaker"
+      ],
+      "adversarial_in_top_half": [
+        "adversarial-score-path"
+      ],
+      "admissibility_failures": 7
+    },
+    {
+      "profile": "registered_error64_row0",
+      "candidate": "TOY-ABLATION/A+Q/G-FEAS",
+      "scope": "shifted",
+      "status": "MEASURED_DEVELOPMENT",
+      "tau": -0.5773502691896257,
+      "tau_ci95": [
+        -0.8164965809277261,
+        0.11952286093343936
+      ],
+      "top1_value": -0.2935758488958333,
+      "top1_regret": 0.2935758488958333,
+      "top1_member": "physics-understanding-0",
+      "known_bad_in_top_half": [
+        "known-bad-law-breaker"
+      ],
+      "adversarial_in_top_half": [
+        "adversarial-score-path"
+      ],
+      "admissibility_failures": 7
+    }
+  ],
+  "evaluation_cpu_seconds": 388.32741500000003,
+  "controls_cpu_seconds": 0.5563199999999999,
+  "wall_seconds": 389.8055555640001,
+  "bootstrap_replicates": 30,
+  "weight_search_performed": false,
+  "selection": null,
+  "limitations": [
+    "Three hand-selected illustrative profiles, no calibrated real population",
+    "Six MODEL traits plus two probes, not independent rebuilt families",
+    "Cached cheap anchors uncharged; own physics unavailable",
+    "Per-row crossed exploratory intervals, not CIs on component differences or family-wide tests",
+    "No real fit, policy selection, solver, model inference or hidden holdout"
+  ]
+}

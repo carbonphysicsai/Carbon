@@ -202,6 +202,8 @@ def rule_from_spec(
             panel["scope"], metadata.get("neighbours", [])
         )
         result = candidate(cp, cr, cm)
+        if result is None:
+            return None  # optional component's declared unavailable-input result
         if not isinstance(result, dict) or result.get("gate") not in (
             None,
             "PASS",
