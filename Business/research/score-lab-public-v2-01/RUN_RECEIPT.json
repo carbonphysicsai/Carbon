@@ -1,0 +1,26 @@
+{
+  "address_space_cap_bytes": 1073741824,
+  "artifact_sha256": {
+    "ADMISSION.json": "adb5228e01c5d4a1e87baa7c804a8b56408eb0d408853f90bae52c51e11c8be7",
+    "PUBLIC_REPLAY.json.gz": "a2915bae4c75b74d568e51254a6cc9f48ce661c00872d9c6e49c9eae6d7958c0"
+  },
+  "canonical_actual_run": false,
+  "canonical_wrapper_result": "Refused Windows-managed linked-worktree Git identity; no bypass",
+  "cpu_system_seconds": 6.15,
+  "cpu_user_seconds": 40.63,
+  "environment": "local Ubuntu-24.04 WSL; canonical PR CI remains validation gate",
+  "exit_code": 0,
+  "implementation_commit": "4cb6da7fa1a06e64954f00ef87ad9e27a7b31261",
+  "model_inference_calls": 0,
+  "model_rebuilds": 0,
+  "peak_rss_kib": 207516,
+  "runtime_versions": {
+    "numpy": "2.4.6",
+    "python": "3.11.16",
+    "scipy": "1.17.1"
+  },
+  "schema": "carbon.dev.ev4-public-v2-run-receipt.v1",
+  "solver_calls": 0,
+  "wall_limit_seconds": 1200,
+  "wall_seconds": 111.81
+}
