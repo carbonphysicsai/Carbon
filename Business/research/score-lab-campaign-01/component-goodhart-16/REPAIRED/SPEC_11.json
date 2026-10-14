@@ -1,0 +1,5 @@
+{
+  "cheap_margin_weight": 0.25,
+  "crps_weight": 0.25,
+  "cvar_tail_fraction": 0.25
+}

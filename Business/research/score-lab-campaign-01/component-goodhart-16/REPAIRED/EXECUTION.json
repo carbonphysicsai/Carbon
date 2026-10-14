@@ -1,0 +1,85 @@
+{
+  "analysis_cpu_seconds": 289.945,
+  "analysis_wall_seconds": 290.08,
+  "canonical_driver_sha256": "f5317e7f569d9fb1079c21cb248d5ffa3c7140ccdbf0ca0f846139a94297334a",
+  "canonical_execution": true,
+  "canonical_image": "sha256:088a86c66068f0d17384eef3483e90ebdc4d47debd710f993e2f5633ce1a5cbe",
+  "canonical_regression": "167 passed; Black/Ruff passed on source fe2f33ca; source-bound code tests only",
+  "command_resources": [
+    {
+      "cpu_system_seconds": 0.088,
+      "cpu_user_seconds": 0.95,
+      "stage": "controls",
+      "wall_seconds": 1.039
+    },
+    {
+      "cpu_system_seconds": 0.12,
+      "cpu_user_seconds": 34.153,
+      "stage": "combo01",
+      "wall_seconds": 34.291
+    },
+    {
+      "cpu_system_seconds": 0.06,
+      "cpu_user_seconds": 36.34,
+      "stage": "combo05",
+      "wall_seconds": 36.41
+    },
+    {
+      "cpu_system_seconds": 0.092,
+      "cpu_user_seconds": 33.842,
+      "stage": "combo06",
+      "wall_seconds": 33.942
+    },
+    {
+      "cpu_system_seconds": 0.089,
+      "cpu_user_seconds": 33.379,
+      "stage": "combo07",
+      "wall_seconds": 33.478
+    },
+    {
+      "cpu_system_seconds": 0.1,
+      "cpu_user_seconds": 37.898,
+      "stage": "combo11",
+      "wall_seconds": 38.035
+    },
+    {
+      "cpu_system_seconds": 0.092,
+      "cpu_user_seconds": 39.834,
+      "stage": "combo12",
+      "wall_seconds": 39.952
+    },
+    {
+      "cpu_system_seconds": 0.108,
+      "cpu_user_seconds": 35.626,
+      "stage": "combo13",
+      "wall_seconds": 35.748
+    },
+    {
+      "cpu_system_seconds": 0.061,
+      "cpu_user_seconds": 37.113,
+      "stage": "combo15",
+      "wall_seconds": 37.185
+    }
+  ],
+  "holdout_read": false,
+  "host_runner_sha256": "7a4299d00ca11b06a758b3bc83a23af2d61f3f14a5b6365ef3e0cc8e0a088128",
+  "model_rebuilds": 0,
+  "peak_rss": "NOT_MEASURED",
+  "per_combination_address_space_cap_bytes": 1073741824,
+  "per_combination_cpu_cap_seconds": 160,
+  "per_combination_wall_cap_seconds": 240,
+  "rerun_indices": [
+    1,
+    5,
+    6,
+    7,
+    11,
+    12,
+    13,
+    15
+  ],
+  "resource_scope": "CLI analysis only; image/bootstrap/export and regression tests excluded",
+  "schema": "carbon.dev.component-goodhart-execution.v1",
+  "solver_calls": 0,
+  "source_commit": "fe2f33ca30a71be3797e4ebf2e5e432eeb24757e"
+}

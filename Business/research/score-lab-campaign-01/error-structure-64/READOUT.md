@@ -57,9 +57,10 @@ For example, the k3 and k5 proxies align positively on the target while their
 shifted medians are negative. Their rows change both k and the assumed cost,
 so this table does not identify either knob's isolated causal effect.
 
-The registered gamer-top-half flag is set in 64/64 OFF profiles for eight
+The neighbour-blend gamer-top-half flag is set in 64/64 OFF profiles for eight
 proxies, despite several positive neighbour-blend medians. N2 and V9 have zero
-such flags here. A profile flag means at least one configured gamer/scope flag;
+such flags here. A profile flag means a configured gamer ranks in the neighbour-
+blend view's top half; it is not a union over the other scopes.
 it is not a count of independent miners or proof that a gamer is paid.
 
 ## Physics switches: paired descriptive changes versus OFF

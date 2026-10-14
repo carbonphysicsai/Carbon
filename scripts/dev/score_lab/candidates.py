@@ -114,6 +114,24 @@ def adapt_synthetic(panel, member):
     return predictions, references, metadata
 
 
+def _adapt_neighbours(scope, neighbours):
+    adapted = []
+    for row in neighbours:
+        predictions, references, metadata = adapt_synthetic(
+            {"scope": scope, "score_questions": row["references"]},
+            {"score_predictions": row["predictions"]},
+        )
+        adapted.append(
+            {
+                "id": row["id"],
+                "predictions": predictions,
+                "references": references,
+                "metadata": metadata,
+            }
+        )
+    return adapted
+
+
 def rule_from_spec(
     candidate_id,
     spec,
@@ -171,22 +189,18 @@ def rule_from_spec(
             if cheap is None:
                 return None
             cm["cheap_predictions"] = adapt_synthetic(panel, cheap)[0]
+            cheap_metadata = cheap.get("score_metadata", {})
+            cm["cheap_model_metadata"] = {
+                "physics": cheap_metadata.get("physics"),
+                "neighbours": _adapt_neighbours(
+                    panel["scope"], cheap_metadata.get("neighbours", [])
+                ),
+            }
         cm["physics"] = metadata.get("physics")
         cm["knobs"].update(metadata.get("knobs", {}))
-        cm["neighbours"] = []
-        for neighbour in metadata.get("neighbours", []):
-            np, nr, nm = adapt_synthetic(
-                {"scope": panel["scope"], "score_questions": neighbour["references"]},
-                {"score_predictions": neighbour["predictions"]},
-            )
-            cm["neighbours"].append(
-                {
-                    "id": neighbour["id"],
-                    "predictions": np,
-                    "references": nr,
-                    "metadata": nm,
-                }
-            )
+        cm["neighbours"] = _adapt_neighbours(
+            panel["scope"], metadata.get("neighbours", [])
+        )
         result = candidate(cp, cr, cm)
         if not isinstance(result, dict) or result.get("gate") not in (
             None,

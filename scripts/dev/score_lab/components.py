@@ -48,7 +48,8 @@ def with_cheap_margin(rule, *, weight):
         if not isinstance(cheap, dict) or set(cheap) != set(references):
             return None
         candidate = rule(predictions, references, metadata)
-        baseline = rule(cheap, references, metadata)
+        baseline_metadata = {**metadata, **metadata.get("cheap_model_metadata", {})}
+        baseline = rule(cheap, references, baseline_metadata)
         a, b = _score(candidate), _score(baseline)
         if a is None or b is None or baseline.get("gate") == "FAIL":
             return None

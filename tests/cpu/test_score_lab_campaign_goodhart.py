@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 
 from scripts.dev.score_lab import __main__ as cli
-from scripts.dev.score_lab import campaign_goodhart
+from scripts.dev.score_lab import campaign_goodhart, synthetic
 from scripts.dev.score_lab.core import LabRefused
 
 EXAMPLE = Path(__file__).parents[2] / "scripts/dev/score_lab/physics-example.json"
@@ -61,6 +61,120 @@ def test_score_search_and_value_oracle_are_deterministic_and_separate():
     assert result["sampled_goodhart_gap"] > 0
 
 
+def test_cheap_component_has_independent_legacy_score_control():
+    config, search = _inputs()
+    calls = []
+
+    def observed(predictions, references, metadata):
+        calls.append(copy.deepcopy((predictions, references, metadata)))
+        return _score_only(predictions, references, metadata)
+
+    evaluator = campaign_goodhart.ToyTraitEvaluator(
+        config,
+        "toy",
+        {"rule": observed},
+        candidates_sha256="toy",
+        search=search,
+        component_spec={"cheap_margin_weight": 0.25},
+    )
+    parameters = {"noise": 0.05, "transfer": 0.0, "score_path_only": 0.0}
+    assert evaluator.score(parameters) is not None
+    candidate, cheap = calls
+    assert candidate[0] != cheap[0]
+    assert cheap[2]["physics"] is None  # no invented baseline physics measurement
+    assert all(qid.startswith("S-") for qid in cheap[1])
+    for qid, question in evaluator.panel_for(parameters)["score_questions"].items():
+        for aid in question["actions"]:
+            expected = synthetic._predict(
+                "control-bilinear",
+                qid,
+                float(aid[2:]),
+                question["context"],
+                config["problem"],
+                score_side=True,
+            )
+            assert cheap[0][qid][aid]["objective"] == expected["objective"]
+    assert cheap[2]["neighbours"] != candidate[2]["neighbours"]
+    calls.clear()
+    assert evaluator.score({**parameters, "noise": 0.09, "transfer": 0.9}) is not None
+    assert calls[1] == cheap  # candidate changes cannot alter its comparator metadata
+
+    calls.clear()
+    assert evaluator.score(parameters, grain="prefix:2") is not None
+    for _predictions, references, metadata in calls:
+        assert len(references) == 2
+        assert all(len(row["references"]) == 2 for row in metadata["neighbours"])
+
+
+@pytest.mark.parametrize(
+    "extension",
+    [
+        {"dimension": 2},
+        {"objective_kind": "weighted"},
+        {"objective_kind": "robust"},
+        {"roughness": 0.1},
+        {"optimum_location": "boundary"},
+        {"optima_count": 1},
+        {"constraint_count": 3},
+        {"constraint_offset": 0.1},
+        {"constraint_coupling": 0.1},
+    ],
+)
+def test_legacy_cheap_control_refuses_nonlegacy_physics_shape(extension):
+    config, search = _inputs()
+    config["problem"].update(extension)
+    evaluator = campaign_goodhart.ToyTraitEvaluator(
+        config,
+        "toy",
+        {"rule": _score_only},
+        candidates_sha256="toy",
+        search=search,
+        component_spec={"cheap_margin_weight": 0.25},
+    )
+    assert (
+        evaluator.score({"noise": 0.05, "transfer": 0.0, "score_path_only": 0.0})
+        is None
+    )
+
+
+def test_cheap_cvar_preserves_independent_baseline_and_subset_scope():
+    config, search = _inputs()
+    calls = []
+
+    def observed(predictions, references, metadata):
+        calls.append(copy.deepcopy((predictions, references, metadata)))
+        return _score_only(predictions, references, metadata)
+
+    evaluator = campaign_goodhart.ToyTraitEvaluator(
+        config,
+        "toy",
+        {"rule": observed},
+        candidates_sha256="toy",
+        search=search,
+        component_spec={"cheap_margin_weight": 0.25, "cvar_tail_fraction": 0.25},
+    )
+    parameters = {"noise": 0.05, "transfer": 0.0, "score_path_only": 0.0}
+    assert evaluator.score(parameters, grain="prefix:2") is not None
+    assert len(calls) == 6  # aggregate + two questions, for candidate and comparator
+    baseline = calls[3:]
+    for predictions, references, metadata in baseline:
+        assert set(predictions) == set(references) == set(metadata["cheap_predictions"])
+        assert metadata["physics"] is None
+        assert all(len(row["references"]) == 2 for row in metadata["neighbours"])
+    calls.clear()
+    assert evaluator.score({**parameters, "noise": 0.09}, grain="prefix:2") is not None
+    assert calls[3:] == baseline
+
+
+def test_legacy_cheap_control_never_consumes_value_questions():
+    config, _search = _inputs()
+    panel = campaign_goodhart.physics.build(config)
+    with pytest.raises(LabRefused, match="goodhart_cheap_score_scope"):
+        campaign_goodhart._legacy_cheap_score_control(
+            config, {"score_questions": panel["value_questions"]}, {}
+        )
+
+
 def test_bad_search_grammar_and_all_gated_scores_refuse():
     config, search = _inputs()
     bad = copy.deepcopy(search)
@@ -88,6 +202,7 @@ def test_bad_search_grammar_and_all_gated_scores_refuse():
     )
     assert result["status"] == "INSUFFICIENT_EVIDENCE"
     assert result["reason"] == "all_score_proposals_unscored"
+    assert result["calls"] == {"score": search["random_draws"], "value": 0}
     assert result["component_spec"] is None
     assert result["component_spec_sha256"] is None
 
