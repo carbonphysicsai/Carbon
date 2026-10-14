@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 from dataclasses import replace
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -15,11 +17,18 @@ from scripts.dev.exam_design.runpod import pod_env
 from scripts.dev.exam_design.runpod.operator_compute.runpod import RunPodAdapter
 
 TAG = "a" * 24
+MANIFEST = {
+    "carbon/__init__.py": hashlib.sha256(
+        (Path(__file__).resolve().parents[2] / "carbon/__init__.py").read_bytes()
+    ).hexdigest()
+}
 
 
 def base(service=None):
     # The real launch spec builder, public KNN fixture and synthetic record.
-    return _backend({}, service).pod_spec(_job(), RECORD, start_command=PROBE_COMMAND)
+    return _backend(MANIFEST, service).pod_spec(
+        _job(), RECORD, start_command=PROBE_COMMAND
+    )
 
 
 def target(spec, extra=64):
@@ -28,7 +37,7 @@ def target(spec, extra=64):
 
 def test_real_builder_adds_only_exact_padding_and_never_calls_provider():
     service = NoProvider()
-    backend = _backend({}, service)
+    backend = _backend(MANIFEST, service)
     original = backend.pod_spec(_job(), RECORD, start_command=PROBE_COMMAND)
     result = probe.prepare_probe(backend, _job(), RECORD, target(original))
     assert pod_env.env_chars(result.env) == target(original)
@@ -50,7 +59,7 @@ def test_invalid_or_over_guard_targets_refuse(bad):
 
 def test_padding_rechecks_current_bound_after_the_real_base_guard(monkeypatch):
     service = NoProvider()
-    backend = _backend({}, service)
+    backend = _backend(MANIFEST, service)
     original = base()
     wanted = target(original)
     monkeypatch.setattr(pod_env, "ENV_LIMIT_CHARS", wanted - 1)

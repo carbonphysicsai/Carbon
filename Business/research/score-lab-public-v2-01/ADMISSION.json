@@ -27,7 +27,7 @@
       "scripts/dev/battery/plating_rereference.py": "dc8fe7f3f2cadb1993a9fce125ed44d292583e81576de10863e99bd5137351bc",
       "scripts/dev/score_lab/bank.py": "22f0e5cfa9e0d18974d2dbca9715dade58e13c56a4301f35c5a3d7b654554fa8",
       "scripts/dev/score_lab/public_v2_reference.py": "27e03c8149f80fda263fae7e23e9f71fd148ed7e24c92b90a17ac1822d08e6ad",
-      "scripts/dev/score_lab/public_v2_replay.py": "702460d9bac42a6e7f1adfdf5b0784ef89e4bda0412f0881f7f2cb647254acd5"
+      "scripts/dev/score_lab/public_v2_replay.py": "b748c7263b2e83949005f8d9208d96728bad4da2db7f5520ea74e7acab7c4e46"
     },
     "original_reference_sha256": "72ea300b42fe1ca4e54b9c6131cb126ca7217ebddd5f1dddca8044a7bcef2dbf",
     "v2_label_sha256": "cac1e23001c227d9221653b2a90cee4755f62ca06fec58305d11cb9cba510069"

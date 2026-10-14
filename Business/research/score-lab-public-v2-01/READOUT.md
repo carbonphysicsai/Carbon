@@ -61,6 +61,17 @@ registered legacy registries, 69 rule profiles have incomplete inputs and
 are withheld. The legacy score-reference identity and prospective decision-
 reference identity are kept distinct in [PUBLIC_REPLAY.json.gz](PUBLIC_REPLAY.json.gz).
 
+Replay schema v2 separates missing gate measurements from measured failures.
+Both SIGN-only profiles have **0 measured gate failures and 100 missing sign
+measurements** per split. SIGN+ENV has **55 measured envelope failures**, 45
+otherwise-unknown members, and 100 missing sign measurements. The scorer's
+100 operational fail-closed verdicts in each profile are retained separately;
+they are not evidence of 100 measured scientific failures. Required missing,
+null or non-finite gate measures remain UNMEASURED and cannot yield a tau.
+`ADMISSION.json`'s `decision_determined` field means decision-determined despite
+unresolved candidates, matching the existing bank helper; it is not a flag
+that every fully settled question must set.
+
 This is the old EV4 **CV-onset proxy**, not the battery-v3 indexed charging-time
 job. The future proof-bank population is unregistered; Q is the fixed public
 EV4 grid and w is the uniform diagnostic weight within each split. The cheap
@@ -81,15 +92,17 @@ python -m scripts.dev.score_lab.public_v2_replay \
 
 The cap/cost/unit reproduce the prior public research display anchor as
 explicit **ASSUMPTION** inputs. They do not affect the reference-only admission
-mask and are not adopted rule values. The final local run used 46.78 CPU-s,
-111.81 wall-s and 207,516 KiB peak RSS under a 1 GiB address-space and 20-minute
+mask and are not adopted rule values. The repaired local run used 51.47 CPU-s,
+126.94 wall-s and 208,420 KiB peak RSS under a 1 GiB address-space and 20-minute
 wall cap, with no model rebuild, inference or solver. The environment and
 artifact hashes are in [RUN_RECEIPT.json](RUN_RECEIPT.json).
 
-The actual run is a **noncanonical local diagnostic**. The canonical wrapper
-refused the Windows-managed linked-worktree identity; canonical PR CI validates
-the public-shaped controls and code, and a canonical replay is still required
-before treating these native measurements as canonical evidence. No protected
+The actual run is a **noncanonical local diagnostic**. The initial canonical
+wrapper refused the Windows-managed linked-worktree identity. A native Linux
+clone subsequently allowed canonical focused validation of the public-shaped
+controls and code; full PR CI remains a separate gate. A canonical actual-data
+replay is still required before treating these native measurements as canonical
+evidence. No protected
 bank, holdout, AX42, pod, keys, spend or LIVE path was accessed.
 
 The next evidence decision is a precise full-menu reference-applicability and
