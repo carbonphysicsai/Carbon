@@ -134,6 +134,12 @@ _CODE = re.compile(r"[a-z][a-z0-9_]{0,63}|[A-Z][A-Z0-9_]{0,63}")
 #: Each step is fixed text; it names an MCP tool in parentheses where one
 #: helps, as the Control Center's own steps do.
 NEXT_ACTIONS = {
+    "construction_checks_unavailable": (
+        "A required construction check has no current acceptance evidence. "
+        "This attempt stopped before execution or signing. Use the registered "
+        "base settings or wait for the named check; changing a level label "
+        "does not resolve it."
+    ),
     # The campaign's own lock and state.
     "campaign_busy": (
         "Another session holds this campaign: an attached agent, the "

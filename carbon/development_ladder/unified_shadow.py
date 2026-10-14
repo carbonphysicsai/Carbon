@@ -38,7 +38,26 @@ def compare(
         for arm in row["arms"]
         if arm["digest"] == legacy_variant_digest
     ]
-    if legacy_variant_digest == doc["base_contract_digest"]:
+    from carbon.reconstruction.capability_registry import (
+        development_composition_document,
+    )
+
+    composition = development_composition_document(legacy_variant_digest)
+    if composition is not None:
+        pins = {part["level"]: part["digest"] for part in composition["composes"]}
+        rows = {row["type"]: row for row in doc["types"]}
+        result["derivation_match"] = (
+            composition["challenge"] == doc["challenge"]
+            and composition["base_contract"]["digest"] == doc["base_contract_digest"]
+            and set(binding["change_set"]) == set(binding["arms"])
+            and binding["derived_label"]
+            == max((rows[k]["label"] for k in binding["change_set"]), default=0)
+        )
+        result["route_match"] = result["derivation_match"] and all(
+            selected["variant_digest"] == pins.get(rows[k]["label"])
+            for k, selected in binding["arms"].items()
+        )
+    elif legacy_variant_digest == doc["base_contract_digest"]:
         result["derivation_match"] = result["route_match"] = (
             binding["derived_label"] == 0
         )

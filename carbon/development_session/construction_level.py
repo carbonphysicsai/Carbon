@@ -42,6 +42,7 @@ SCOPE = "DEVELOPMENT"
 #: The levels a launch may name (the ladder's 0-5); 0 binds nothing.
 LEVELS = range(6)
 LEVEL4 = 4
+COMPOSITION = "composition"
 CLI_MODULE = "carbon.reconstruction.development_level_cli"
 #: How long the child process may take (it imports the numerical stack).
 CLI_TIMEOUT_SECONDS = 600
@@ -142,6 +143,43 @@ def resolve(challenge, level, arm=None, *, directory=None):
     }
 
 
+def resolve_composition(challenge, digest=None, *, directory=None):
+    """A new launch's current composition, or an exact immutable frozen one.
+
+    Read only public metadata. Recipes compile in the child process, never here.
+    None means this Challenge has no composition; an invalid frozen identity
+    is refused rather than changed to the current selection.
+    """
+    from carbon.reconstruction.capability_registry import (
+        development_composition_document,
+        development_composition_registry,
+    )
+
+    try:
+        registry = development_composition_registry(directory)
+        selected = digest if digest is not None else registry["current"].get(challenge)
+        if selected is None:
+            return None
+        document = development_composition_document(selected, directory)
+        if document is None or document["challenge"] != challenge:
+            raise LevelRefused(NOT_REGISTERED)
+        name = document["version"]
+        pinned = registry["versions"][name]
+        if digest is not None and digest != pinned:
+            raise LevelRefused(NOT_REGISTERED)
+    except (RuntimeError, KeyError, TypeError):
+        raise LevelRefused(NOT_REGISTERED) from None
+    return {
+        "kind": COMPOSITION,
+        "level": None,
+        "arm": None,
+        "variant": name,
+        "digest": pinned,
+        "scope": SCOPE,
+        "challenge": challenge,
+    }
+
+
 def with_target(found, target_intake):
     """The binding with the target intake its compile is gated on: the
     runner profile's intake for the Challenge at launch, or None (then every
@@ -162,8 +200,12 @@ def binding(manifest):
 def still_registered(found, *, directory=None):
     """`level_not_registered` unless the frozen binding is still its level's
     current registered variant, by name and digest."""
-    current = resolve(
-        found["challenge"], found["level"], found.get("arm"), directory=directory
+    current = (
+        resolve_composition(found["challenge"], found["digest"], directory=directory)
+        if found.get("kind") == COMPOSITION
+        else resolve(
+            found["challenge"], found["level"], found.get("arm"), directory=directory
+        )
     )
     if (current["variant"], current["digest"]) != (found["variant"], found["digest"]):
         raise LevelRefused(NOT_REGISTERED)
@@ -188,7 +230,9 @@ def lists(facts, found):
         if (
             type(entry) is dict
             and entry.get("digest") == found["digest"]
-            and entry.get("level") == found["level"]
+            and (
+                found.get("kind") == COMPOSITION or entry.get("level") == found["level"]
+            )
             and entry.get("variant", found["variant"]) == found["variant"]
         ):
             return True
@@ -198,11 +242,13 @@ def lists(facts, found):
 def lists_digest(facts, digest):
     """Whether the intake's facts list `digest` among the variants it serves
     above level 0 (the send path's check, by the frozen record's digest)."""
+    from carbon.reconstruction.capability_registry import is_development_composition
+
+    composed = is_development_composition(digest)
     for entry in served_contracts(facts) or ():
         if (
             type(entry) is dict
-            and type(entry.get("level")) is int
-            and entry["level"] >= 1
+            and (composed or (type(entry.get("level")) is int and entry["level"] >= 1))
             and type(entry.get("variant")) is str
             and entry.get("digest") == digest
         ):
@@ -329,17 +375,63 @@ def compile_strategy(found, strategy):
             "challenge": found["challenge"],
             "level": found["level"],
             "arm": found.get("arm"),
+            **(
+                {"composition_digest": found["digest"]}
+                if found.get("kind") == COMPOSITION
+                else {}
+            ),
             "strategy": strategy,
         },
         sort_keys=True,
     )
-    value = json.loads(_compiled(key))
+    # Required health is current authority, not immutable recipe metadata.
+    # Composition compilation/checks run on every use before stripping/signing;
+    # a past positive result cannot survive a provider status change.
+    value = (
+        RUN(json.loads(key))
+        if found.get("kind") == COMPOSITION
+        else json.loads(_compiled(key))
+    )
     if (value.get("variant"), value.get("variant_digest")) != (
         found["variant"],
         found["digest"],
     ):
         raise LevelRefused(NOT_REGISTERED)
+    if found.get("kind") == COMPOSITION:
+        derived = value.get("derived")
+        if (
+            type(value.get("development")) is not dict
+            or value["development"].get("composition_digest") != found["digest"]
+            or type(derived) is not dict
+            or type(derived.get("level")) is not int
+            or not 0 <= derived["level"] <= 4
+            or type(derived.get("changes")) is not list
+            or not all(type(v) is str for v in derived["changes"])
+            or type(derived.get("summary")) is not str
+        ):
+            raise LevelRefused(COMPILE_UNAVAILABLE)
     return value
+
+
+def checks_current(found, strategy):
+    """Uncached current health before signing; legacy frozen variants unchanged.
+
+    Receiver/immutable binding checks belong to the calling pre-sign door.
+    The development CLI authenticates the composition and consumes ORIGINAL
+    fields here without repeating a recipe's costly immutable compilation.
+    """
+    if found is None or found.get("kind") != COMPOSITION:
+        return
+    value = RUN(
+        {
+            "op": "checks",
+            "challenge": found["challenge"],
+            "composition_digest": found["digest"],
+            "strategy": strategy,
+        }
+    )
+    if value.get("variant_digest") != found["digest"]:
+        raise LevelRefused(COMPILE_UNAVAILABLE)
 
 
 def base_strategy(strategy, widened_fields):
@@ -368,8 +460,24 @@ def level_compiler(found, base_compiler):
     return compile_at_level
 
 
-def practice_label(found):
+def practice_label(found, compiled=None):
     """What a practice result at a level carries beside its score."""
+    if found.get("kind") == COMPOSITION:
+        derived = (compiled or {}).get("derived") or {
+            "level": None,
+            "changes": [],
+            "summary": "Recipe changes are described when the recipe is compiled.",
+        }
+        return {
+            "kind": COMPOSITION,
+            **derived,
+            "arm": None,
+            "variant": found["variant"],
+            "digest": found["digest"],
+            "scope": SCOPE,
+            "widened_trained": False,
+            "note": PRACTICE_NOTE,
+        }
     return {
         "level": found["level"],
         "arm": found.get("arm"),
@@ -398,6 +506,11 @@ def level4_check(found, strategy, directory):
             "challenge": found["challenge"],
             "level": found["level"],
             "arm": found.get("arm"),
+            **(
+                {"composition_digest": found["digest"]}
+                if found.get("kind") == COMPOSITION
+                else {}
+            ),
             "strategy": strategy,
             "directory": directory,
         },
@@ -442,7 +555,10 @@ def candidate_record(found, strategy, reason, used_feedback, compiled):
         "construction_plan_digest": compiled["construction_plan_digest"],
         "reconstruction_profile_digest": compiled["recipe_digest"],
         "contract_digest": found["digest"],
-        MANIFEST_KEY: {**practice_label(found), "development": compiled["development"]},
+        MANIFEST_KEY: {
+            **practice_label(found, compiled),
+            "development": compiled["development"],
+        },
         "final_evidence": False,
     }
 

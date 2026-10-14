@@ -170,6 +170,31 @@ def load(challenge, version=None, directory=None):
     return composition
 
 
+def registered(value):
+    """Resolve an immutable registered composition name/digest, with full pins.
+
+    Current selection applies to new launches. Historical frozen campaigns may
+    still name their exact registered version, never the latest replacement.
+    """
+    registry = _registry(DIRECTORY)
+    versions = registry["versions"]
+    by_digest = {pinned: name for name, pinned in versions.items()}
+    name = (
+        value
+        if type(value) is str and value in versions
+        else by_digest.get(value) if type(value) is str else None
+    )
+    if name is None:
+        raise dv.VariantRefused(UNREGISTERED, str(value))
+    from .composition_registry import document
+
+    try:
+        metadata = document(name, DIRECTORY)
+    except RuntimeError:
+        raise dv.VariantRefused(UNREGISTERED, name) from None
+    return load(metadata["challenge"], version=name)
+
+
 def describe(levels_used, names):
     """The derived level and the changes, in plain words. Descriptive only."""
     level = max(levels_used, default=0)

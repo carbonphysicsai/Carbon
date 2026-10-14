@@ -203,7 +203,7 @@ def contract(directory=None):
     return UnifiedContract(
         {
             "schema": SCHEMA,
-            "version": "battery-unified-shadow-v1",
+            "version": "battery-unified-shadow-v2",
             "registry_version": digest(registry),
             "challenge": base.token,
             "base_contract_digest": base.digest,

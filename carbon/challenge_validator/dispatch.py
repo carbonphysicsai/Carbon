@@ -214,6 +214,19 @@ class Validator:
                 or adapters.get(served["base"]) is None
             ):
                 raise ValueError("a declared variant must be registered and based")
+            from carbon.reconstruction.capability_registry import (
+                development_composition_document,
+            )
+
+            composition = development_composition_document(digest)
+            if composition is not None and (
+                composition["version"] != served["variant"]
+                or composition["base_contract"]["digest"] != served["base"]
+                or composition["challenge"] != adapters.get(served["base"]).challenge_id
+            ):
+                raise ValueError(
+                    "a composition must bind its registered Challenge and base"
+                )
         self._development = development
 
     def _adapter_for(self, digest):
@@ -232,8 +245,15 @@ class Validator:
         at level 0, and each declared development variant with its level and
         version name. Never a hotkey."""
         found = [{"level": 0, "digest": d} for d in sorted(self._adapters.digests())]
+        from carbon.reconstruction.capability_registry import is_development_composition
+
         found += [
-            {"level": s["level"], "variant": s["variant"], "digest": d}
+            {
+                "level": s["level"],
+                "variant": s["variant"],
+                "digest": d,
+                **({"kind": "composition"} if is_development_composition(d) else {}),
+            }
             for d, s in sorted(self._development.items())
         ]
         return found

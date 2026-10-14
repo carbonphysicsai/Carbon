@@ -71,6 +71,13 @@ def _variant(request):
     from carbon.reconstruction import development_variants as dv
 
     try:
+        if "composition_digest" in request:
+            from carbon.reconstruction import development_composition as dc
+
+            found = dc.registered(request["composition_digest"])
+            if found.challenge != request["challenge"]:
+                raise dv.VariantRefused(dv.WRONG_CHALLENGE)
+            return found
         return dv.variant(request["challenge"], request["level"], request.get("arm"))
     except dv.VariantRefused as refused:
         raise Refused(NOT_REGISTERED, [{"code": refused.code}]) from None
@@ -94,13 +101,44 @@ def _issues(error):
     return out
 
 
+def _required(request, found):
+    if hasattr(found, "variants"):
+        from carbon.development_ladder.required_checks import ChecksUnavailable, check
+
+        try:
+            check(request["strategy"], found)
+        except ChecksUnavailable as unavailable:
+            raise Refused(unavailable.code, unavailable.issues) from None
+        except ValueError as refused:
+            raise Refused(
+                STRATEGY_REFUSED,
+                [{"code": getattr(refused, "code", type(refused).__name__)}],
+            ) from None
+
+
+def checks_level(request):
+    """Current required-check consumption only; never a cached compile receipt."""
+    found = _variant(request)
+    if not hasattr(found, "variants"):
+        raise Refused(NOT_REGISTERED)
+    _required(request, found)
+    return {"ok": True, "variant_digest": found.digest}
+
+
 def compile_level(request):
     """The level's compile of `strategy`, as plain JSON."""
     from carbon.reconstruction import development_variants as dv
 
     found = _variant(request)
+    composed = hasattr(found, "variants")
+    _required(request, found)
     try:
-        compiled = dv.compile_development(request["strategy"], found)
+        if composed:
+            from carbon.reconstruction import development_composition as dc
+
+            compiled = dc.compile(request["strategy"], found)
+        else:
+            compiled = dv.compile_development(request["strategy"], found)
     except dv.VariantRefused as refused:
         raise Refused(STRATEGY_REFUSED, [{"code": refused.code}, *_issues(refused)])
     except ValueError as refused:  # SubmissionRefused, RecipeRejected
@@ -113,7 +151,8 @@ def compile_level(request):
     return {
         "ok": True,
         "challenge": found.challenge,
-        "level": found.level,
+        "level": compiled.level if composed else found.level,
+        **({"derived": compiled.derived} if composed else {}),
         "arm": request.get("arm"),
         "variant": found.version,
         "variant_digest": found.digest,
@@ -154,6 +193,8 @@ def level4(request):
     from carbon.level4 import graph, staging, submission, validate
 
     found = _variant(request)
+    if hasattr(found, "variants"):
+        checks_level(request)
     variants = getattr(found, "variants", (found,))
     if not any(
         w.name == "composition_graphs" for variant in variants for w in variant.widened
@@ -232,7 +273,7 @@ def level4(request):
     }
 
 
-OPERATIONS = {"compile": compile_level, "level4": level4}
+OPERATIONS = {"compile": compile_level, "level4": level4, "checks": checks_level}
 
 
 def answer(request):

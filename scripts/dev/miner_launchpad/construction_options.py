@@ -17,34 +17,79 @@ def build(contract, served=()):
     if type(contract) is not UnifiedContract:
         raise ValueError("a validated public construction contract is required")
     public = contract.facts()
-    serving = any(
-        type(facts) is dict
-        and facts.get("unified_digest") == public["unified_digest"]
-        and facts.get("types") == public["types"]
-        for facts in served
+    from carbon.reconstruction.capability_registry import (
+        development_composition_document,
+        development_composition_registry,
     )
+
+    registry = development_composition_registry()
+    name = registry["current"].get(contract.document["challenge"])
+    composition = development_composition_document(name) if name is not None else None
+    composed_digest = registry["versions"][name] if composition is not None else None
+    if composition is not None:
+        serving = any(
+            type(facts) is dict
+            and type(facts.get("served_contracts")) is list
+            and any(
+                type(entry) is dict
+                and entry.get("digest") == composed_digest
+                and entry.get("variant") == name
+                for entry in facts["served_contracts"]
+            )
+            for facts in served
+        )
+    else:
+        serving = any(
+            type(facts) is dict
+            and facts.get("unified_digest") == public["unified_digest"]
+            and facts.get("types") == public["types"]
+            for facts in served
+        )
+    pins = (
+        {part["digest"] for part in composition["composes"]}
+        if composition is not None
+        else set()
+    )
+    registrations = {row["type"]: row for row in contract.document["types"]}
     rows = [
         {
             "type": "parameters",
             "label": "Adjust existing model settings",
             "derived_label": 0,
-            "availability": "available",
-            "status": "Available",
-            "reason": "Uses the Challenge's existing registered submission path.",
+            "availability": (
+                "available" if composition is None or serving else "coming_soon"
+            ),
+            "status": "Available" if composition is None or serving else "Coming soon",
+            "reason": (
+                "Uses the registered construction contract; its receiving validator must explicitly serve that identity."
+                if composition is not None
+                else "Uses the Challenge's existing registered submission path."
+            ),
         }
     ]
     for change in public["types"]:
         pending = [
             check["id"] for check in change["checks"] if check["status"] != "PASS"
         ]
-        available = not pending and serving
+        registered = composition is not None and any(
+            arm["digest"] in pins for arm in registrations[change["type"]]["arms"]
+        )
+        available = (
+            serving
+            and not pending
+            and (registered if composition is not None else True)
+        )
         label = LABELS.get(change["type"], change["type"].replace("_", " "))
-        if pending:
+        if composition is not None and not registered:
+            reason = (
+                f"{label}: this change is not part of the registered combined contract."
+            )
+        elif pending:
             reason = f"{label}: required checks are not ready: {', '.join(pending)}."
         elif not serving:
             reason = f"{label}: no configured validator reports this registered submission path."
         else:
-            reason = "The registered contract permits this change and a validator reports serving it."
+            reason = "The registered construction path is served. Each recipe still has to pass its reconstruction, bounds and cost checks."
         rows.append(
             {
                 "type": change["type"],
@@ -66,7 +111,12 @@ def build(contract, served=()):
         "scope": public["scope"],
         "ceiling": public["ceiling"],
         "types": rows,
-        "launch_mode": "level_bound_until_composed_compile",
+        "launch_mode": (
+            "composition_bound"
+            if composition is not None
+            else "level_bound_until_composed_compile"
+        ),
+        "construction_digest": composed_digest,
         "submission_path_available": serving,
         "qualification": False,
         "basis": "REGISTERED_PUBLIC_CONTRACT_AND_RECEIVER_CHECKED_SERVING_FACTS",

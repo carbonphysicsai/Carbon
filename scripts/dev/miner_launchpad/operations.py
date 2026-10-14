@@ -266,15 +266,12 @@ FIELDS = {
     "construction_level": (
         "integer",
         (
-            "Launch only, optional: the construction level, 0 to 5, from the "
-            "Challenge's ladder (carbon_ladder). Omitted or 0: Level 0, the "
-            "Challenge's registered contract, as before. N >= 1 binds the "
-            "level's current registered development variant (its name and "
-            "digest, frozen in the campaign manifest) and is refused "
-            "level_not_registered when there is none. It is DEVELOPMENT: "
-            "submit and commit are refused level_not_served_by_target unless "
-            "the target intake's served_contracts lists the variant. Needs "
-            "agent none."
+            "Optional legacy label, 0 to 5. New launches use the Challenge's "
+            "registered combined construction contract where offered; recipe "
+            "changes determine the reported level. You do not select a level "
+            "to gain permission. Historical variant campaigns and explicit "
+            "named arms keep their frozen identities. Compile, commit and "
+            "submit require a receiver explicitly serving that exact contract."
         ),
     ),
     "arm": (
@@ -490,6 +487,7 @@ REFUSAL_FIELDS = {
     "construction_level_needs_own_selection": "agent",
     "construction_level_not_offered_for_challenge": "construction_level",
     "level_strategy_refused": "strategy",
+    "construction_checks_unavailable": "strategy",
     "level4_directory_required": "level4_directory",
     "level4_directory_needs_level4": "level4_directory",
     "level4_size_bound_not_set": "construction_level",

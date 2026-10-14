@@ -21,7 +21,7 @@ def test_all_registered_changes_are_visible_and_missing_checks_keep_them_closed(
     shown = options.build(registered)
     assert shown["ceiling"] is None and not shown["qualification"]
     assert shown["types"][0]["type"] == "parameters"
-    assert shown["types"][0]["availability"] == "available"
+    assert shown["types"][0]["availability"] == "coming_soon"
     assert {row["type"] for row in shown["types"][1:]} == {
         row["type"] for row in registered.facts()["types"]
     }
@@ -30,7 +30,7 @@ def test_all_registered_changes_are_visible_and_missing_checks_keep_them_closed(
         for row in shown["types"][1:]
     )
     assert shown["unified_digest"] == registered.digest
-    assert shown["launch_mode"] == "level_bound_until_composed_compile"
+    assert shown["launch_mode"] == "composition_bound"
 
 
 def test_raw_contract_and_unregistered_serving_claims_never_create_availability():
@@ -373,7 +373,7 @@ def test_served_checked_changes_are_available_without_ceiling_or_external_permis
     assert all(
         row["availability"] == "coming_soon" for row in without_route["types"][1:]
     )
-    serving = options.build(registered, [registered.facts()])
+    serving = options.build(registered, [_composition_facts(registered)])
     assert all(row["availability"] == "available" for row in serving["types"])
     assert all(row["open"] == "INTERNAL" for row in serving["types"][1:])
     assert all(not row["within_ceiling"] for row in serving["types"][1:])
@@ -389,7 +389,7 @@ def test_required_check_refusal_names_the_change_and_check_without_closing_peers
     blocked = document["types"][0]
     blocked["checks"][0]["status"] = status
     registered = UnifiedContract(document)
-    shown = options.build(registered, [registered.facts()])
+    shown = options.build(registered, [_composition_facts(registered)])
     row = shown["types"][1]
     assert row["availability"] == "coming_soon"
     assert row["label"] in row["reason"]
@@ -402,11 +402,11 @@ def test_required_check_refusal_names_the_change_and_check_without_closing_peers
 @pytest.mark.parametrize("mutation", ["digest", "types", "absent"])
 def test_ready_checks_do_not_bypass_missing_or_mismatched_serving_identity(mutation):
     registered = _ready_contract()
-    facts = registered.facts()
+    facts = _composition_facts(registered)
     if mutation == "digest":
-        facts["unified_digest"] = "sha256:" + "0" * 64
+        facts["served_contracts"][0]["digest"] = "sha256:" + "0" * 64
     elif mutation == "types":
-        facts["types"] = facts["types"][:-1]
+        facts["served_contracts"][0]["variant"] = "unregistered-name"
     else:
         facts = None
     shown = options.build(registered, [facts])
@@ -440,7 +440,7 @@ def test_receiver_binding_still_controls_ready_options(monkeypatch):
         shown = options.for_profile(
             cfg,
             lambda url, receiver=found_receiver: {
-                **registered.facts(),
+                **_composition_facts(registered),
                 "receiver": receiver,
             },
         )[BATTERY_CHALLENGE]
@@ -459,3 +459,30 @@ def test_missing_contract_is_explicit_and_never_a_successful_empty_catalog(monke
     assert shown["status"] == "PUBLIC_CONTRACT_UNAVAILABLE"
     assert shown["types"] == [] and shown["ceiling"] is None
     assert "private path" not in str(shown)
+
+
+def _composition_facts(registered):
+    from carbon.reconstruction import development_composition as dc
+
+    found = dc.load(registered.document["challenge"])
+    return {
+        **registered.facts(),
+        "served_contracts": [
+            {
+                "kind": "composition",
+                "level": None,
+                "variant": found.version,
+                "digest": found.digest,
+            }
+        ],
+    }
+
+
+def test_old_shadow_facts_do_not_advertise_the_new_composition_route():
+    registered = _ready_contract()
+    shown = options.build(registered, [registered.facts()])
+    assert not shown["submission_path_available"]
+    assert all(row["availability"] == "coming_soon" for row in shown["types"])
+    shown = options.build(contract(), [_composition_facts(contract())])
+    assert shown["submission_path_available"]
+    assert all(row["availability"] == "coming_soon" for row in shown["types"][1:])

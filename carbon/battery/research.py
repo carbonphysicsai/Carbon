@@ -597,9 +597,13 @@ class BatteryPractice:
         # Level 0 base, which is what practice trains. A level refusal is a
         # `LevelRefused` (a ValueError) by its closed code; the Launchpad's
         # doors ask the same compile before a trial starts.
-        from carbon.development_session.construction_level import level_compiler
+        from carbon.development_session import construction_level as cl
 
-        return level_compiler(self.level, compile_recipe)(strategy)
+        if self.level.get("kind") == cl.COMPOSITION:
+            value = cl.compile_strategy(self.level, strategy)
+            self._construction_compile = value
+            return compile_recipe(cl.base_strategy(strategy, value["widened_fields"]))
+        return cl.level_compiler(self.level, compile_recipe)(strategy)
 
     def backend_refusal(self, strategy):
         """The backends this host serves, when `strategy` names another; None
@@ -761,7 +765,9 @@ class BatteryPractice:
             # What this practice trained at a construction level: the base.
             from carbon.development_session.construction_level import practice_label
 
-            result["construction_level"] = practice_label(self.level)
+            result["construction_level"] = practice_label(
+                self.level, getattr(self, "_construction_compile", None)
+            )
         ResearchWorkspace(self.ledger, self.owner).put(
             "trial-" + digest(identity.encode())[7:23] + "-battery-practice.json",
             canonical(result),

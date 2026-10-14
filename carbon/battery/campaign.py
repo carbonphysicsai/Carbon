@@ -1148,6 +1148,7 @@ def submit_through_intake(
     """
     from carbon.reconstruction.capability_registry import (
         DEVELOPMENT_VARIANT_NOT_SERVED,
+        is_development_composition,
         is_development_variant,
     )
 
@@ -1155,6 +1156,24 @@ def submit_through_intake(
     from . import remote_submission as rs
     from .intake import RECEIVED_AGAIN
 
+    if is_development_composition(contract_digest):
+        from carbon.development_session import construction_level as cl
+
+        try:
+            found = cl.with_target(
+                cl.resolve_composition(strategy["challenge_id"], contract_digest), url
+            )
+            frozen = construction_level if type(construction_level) is dict else {}
+            if (
+                frozen.get("digest") != found["digest"]
+                or frozen.get("kind") != cl.COMPOSITION
+            ):
+                raise rs.IntakeRefusal(DEVELOPMENT_VARIANT_NOT_SERVED)
+            # Original strategy: no required obligation can disappear when
+            # practice or display later projects only the base recipe.
+            cl.compile_strategy(found, strategy)
+        except cl.LevelRefused as refused:
+            raise rs.IntakeRefusal(refused.code) from None
     if is_development_variant(contract_digest):
         # A development-only contract variant is never served to a miner, so
         # the Launchpad sends nothing (OWNER-GRAPHITE-TEST-WAVE-03 §1), except
@@ -1320,8 +1339,13 @@ async def _committed(gate, root, epoch, record, manifest, *, request, recommit=F
     """The commitment gate before a send: `OperationRefused` with its closed
     code unless the frozen candidate's digest reads back as the hotkey's
     commitment at the finalized head (`CommitmentGate.before_submit`)."""
+    from carbon.development_session import construction_level as cl
     from carbon.development_session.research_campaign import OperationRefused
 
+    try:
+        cl.checks_current(cl.binding(manifest), record["strategy"])
+    except cl.LevelRefused as refused:
+        raise OperationRefused(refused.code) from None
     try:
         digest = frozen_commitment(record, manifest)
     except (ValueError, KeyError, TypeError):
@@ -1416,8 +1440,7 @@ async def _evaluate_through_intake(
 
     root = prepared.ledger.root
     _level_record_bound(prepared, record)
-    frozen_level = record.get("construction_level")
-    if type(frozen_level) is dict and frozen_level.get("level") == 4:
+    if "composition_graphs" in (record["strategy"].get("parameters") or {}):
         # A Level 4 candidate travels with its staging envelope beside the
         # signed strategy (LEVEL4_STAGING_CONTRACT §4), read and checked here
         # and sent as frozen, in signed parts ahead of the submission
@@ -1574,8 +1597,16 @@ def queued_verdict(
         _level_record_bound(prepared, record)
     except (OSError, ValueError, OperationRefused):
         return None
-    frozen_level = record.get("construction_level")
-    if type(frozen_level) is dict and frozen_level.get("level") == 4:
+    level = record.get("construction_level")
+    if (
+        type(level) is dict
+        and level.get("kind") != "composition"
+        and level.get("level") == 4
+    ):
+        # Legacy Level-4 records were never sent. A composition label is only
+        # descriptive; its actual graph field is checked independently below.
+        return None
+    if "composition_graphs" in (record["strategy"].get("parameters") or {}):
         return None
     from carbon.development_session.intake_targets import for_challenge
 

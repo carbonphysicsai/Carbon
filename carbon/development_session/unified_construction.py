@@ -14,8 +14,10 @@ import re
 from carbon.challenge_validator.strict_json import MalformedStrategy, parse_strategy
 from carbon.schema.strategy import dry_validate
 
-SCHEMA = "carbon.unified-construction-contract.v1"
-BINDING_SCHEMA = "carbon.unified-construction-binding.v1"
+LEGACY_SCHEMA = "carbon.unified-construction-contract.v1"
+SCHEMA = "carbon.unified-construction-contract.v2"
+LEGACY_BINDING_SCHEMA = "carbon.unified-construction-binding.v1"
+BINDING_SCHEMA = "carbon.unified-construction-binding.v2"
 MAX_BYTES = 2 * 1024 * 1024
 SHA = re.compile(r"sha256:[0-9a-f]{64}\Z")
 FIELDS = {
@@ -160,7 +162,7 @@ class UnifiedContract:
     def _validate(doc):
         if (
             set(doc) != FIELDS
-            or doc["schema"] != SCHEMA
+            or doc["schema"] not in {LEGACY_SCHEMA, SCHEMA}
             or doc["scope"] != "DEVELOPMENT_SHADOW_ONLY"
         ):
             raise UnifiedRefused("construction_unclassified")
@@ -577,10 +579,12 @@ def derive(strategy, unified_contract):
                 "variant": chosen["variant"],
                 "variant_digest": chosen["digest"],
             }
-    if len(used) > 1:
+    if len(used) > 1 and doc["schema"] == LEGACY_SCHEMA:
         raise UnifiedRefused("construction_combination_unregistered")
     return {
-        "schema": BINDING_SCHEMA,
+        "schema": (
+            LEGACY_BINDING_SCHEMA if doc["schema"] == LEGACY_SCHEMA else BINDING_SCHEMA
+        ),
         "unified_digest": unified_contract.digest,
         "registry_version": doc["registry_version"],
         "change_set": [row["type"] for row in used],
@@ -596,8 +600,9 @@ def classify(strategy, unified_contract):
         doc = unified_contract.document
         used = [row for row in doc["types"] if row["type"] in binding["change_set"]]
         checks = doc["common_checks"] + [c["id"] for row in used for c in row["checks"]]
-        refusal, reason = None, None
+        notices = []
         for row in used:
+            refusal, reason = None, None
             if (
                 doc["ceiling"] is None
                 or row["label"] > doc["ceiling"]
@@ -623,14 +628,35 @@ def classify(strategy, unified_contract):
                 refusal = "construction_type_closed:" + row["type"]
                 reason = "A required construction check is unavailable or has failed."
             if refusal:
-                break
+                notices.append({"type": row["type"], "code": refusal, "reason": reason})
+        if doc["schema"] == LEGACY_SCHEMA:
+            return {
+                "change_set": binding["change_set"],
+                "label": binding["derived_label"],
+                "checks": list(dict.fromkeys(checks)),
+                "binding": binding,
+                "refusal": notices[0]["code"] if notices else None,
+                "reason": notices[0]["reason"] if notices else None,
+            }
+        required = next(
+            (row for row in used if any(c["status"] != "PASS" for c in row["checks"])),
+            None,
+        )
         return {
             "change_set": binding["change_set"],
             "label": binding["derived_label"],
             "checks": list(dict.fromkeys(checks)),
             "binding": binding,
-            "refusal": refusal,
-            "reason": reason,
+            "refusal": (
+                "construction_type_closed:" + required["type"] if required else None
+            ),
+            "reason": (
+                "A required construction check is unavailable or has failed."
+                if required
+                else None
+            ),
+            "notices": notices,
+            "authority": "CLASSIFICATION_ONLY_REBUILD_REQUIRED",
         }
     except UnifiedRefused as refused:
         return {

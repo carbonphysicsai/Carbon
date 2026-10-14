@@ -1655,8 +1655,29 @@ def is_development_variant(value, directory=None):
     (VALIDATOR-09). Such a value is never served to a miner."""
     return type(value) is str and (
         value in development_variant_names(directory)
+        or is_development_composition(value)
         or is_development_score_variant(value)
     )
+
+
+def development_composition_registry(directory=None):
+    """Public composition identities, checked as data only."""
+    from .composition_registry import registry
+
+    return registry(directory)
+
+
+def development_composition_document(value, directory=None):
+    """Digest-checked immutable composition metadata, or None if unknown."""
+    from .composition_registry import document
+
+    return document(value, directory)
+
+
+def is_development_composition(value, directory=None):
+    from .composition_registry import names
+
+    return type(value) is str and value in names(directory)
 
 
 # VALIDATOR-09: a development score variant is a development-only scoring rule
