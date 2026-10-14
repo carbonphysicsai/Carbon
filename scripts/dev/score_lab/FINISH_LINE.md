@@ -65,6 +65,10 @@ python -m scripts.dev.score_lab.campaign_combined run \
 ```
 
 Run through `scripts/dev/canonical.sh` on the canonical Linux environment.
+The registration above is the historical experiment's frozen input and binds
+its original producer source. After a producer change, prepare and commit a
+new prospective registration with current source hashes before any new run;
+do not replace that historical registration or imply the old run used new code.
 The source file is the existing Validator-supplied trusted developer input,
 pinned by SHA-256 before import; this does not provide hostile miner-code
 execution. The complete catalogue and source identities are committed before
@@ -72,6 +76,15 @@ the experiment. Existing controls execute first and a failed control stops
 the run. The launcher reserves a whole cell before dispatch, enforces per-cell
 CPU/address-space/wall limits, records failures and stops at the first cap or
 error. A partial run is reported as partial, never a favourable subset.
+
+The committed producer writes `REGISTERED_PLAN.json` and `START.json` before
+the first worker. Workers consume that frozen plan copy. At normal completion
+or a recorded worker/cap stop it writes `IDENTITY.json`, binding the start,
+actual producer/source/candidate digests and all generated artifacts. Fresh
+output can be passed directly to `combined_readout`; no external identity or
+export wrapper is required. Readout refuses an incomplete run or a changed
+start binding. The original 96-cell export and its legacy identity remain
+unchanged; the compatibility reader continues to accept that historical form.
 
 The matrix crosses three deterministically selected existing profiles, all
 32 subsets of five optional wrappers, four existing physics modes, and sixteen

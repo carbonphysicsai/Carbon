@@ -34,6 +34,20 @@ def read_results(directory, plan):
         raw = (directory / name).read_bytes()
         return json.loads(gzip.decompress(raw) if name.endswith(".gz") else raw)
 
+    if identity.get("schema") == "carbon.dev.score-lab-combined-identity.v1":
+        start = read("START.json")
+        if (
+            start
+            != {
+                key: value
+                for key, value in identity.items()
+                if key != "artifacts_sha256"
+            }
+            or read("REGISTERED_PLAN.json") != plan
+            or identity["plan_sha256"] != canonical_sha(plan)
+            or identity["candidate_sha256"] != plan["candidates_sha256"]
+        ):
+            raise LabRefused("combined_readout_start_binding")
     run = read("RUN.json.gz")
     controls = read("CONTROLS.json")
     cells = [read(p.name) for p in sorted(directory.glob("CELL_*.json.gz"))]

@@ -388,9 +388,32 @@ def run(plan_path, candidate_path, output, root):
     import resource
 
     plan = validate_plan(json.loads(Path(plan_path).read_text(encoding="utf-8")))
+    producer_path = "scripts/dev/score_lab/campaign_combined.py"
+    if (Path(root) / producer_path).resolve() != Path(
+        __file__
+    ).resolve() or producer_path not in {item["path"] for item in plan["sources"]}:
+        raise LabRefused("combined_producer_source_unregistered")
     verify_sources(plan, root, candidate_path)
+    # Pin the actual producer/source and plan before any worker runs. The
+    # committed producer owns the receipt; callers need no export wrapper.
+    identity = {
+        "schema": "carbon.dev.score-lab-combined-identity.v1",
+        "scope": "SYNTHETIC_DEVELOPMENT",
+        "source_commit": subprocess.check_output(
+            ["git", "-C", str(root), "rev-parse", "HEAD"], text=True
+        ).strip(),
+        "producer_sha256": source_sha(__file__),
+        "source_files_sha256": {
+            item["path"]: item["sha256"] for item in plan["sources"]
+        },
+        "plan_sha256": canonical_sha(plan),
+        "candidate_sha256": file_sha(candidate_path),
+    }
     output = Path(output)
     output.mkdir(parents=True, exist_ok=False)
+    _dump(output / "REGISTERED_PLAN.json", plan)
+    _dump(output / "START.json", identity)
+    plan_path = (output / "REGISTERED_PLAN.json").resolve()
     wall_start = time.monotonic()
     base_cpu = resource.getrusage(resource.RUSAGE_CHILDREN)
     caps = plan["caps"]
@@ -497,6 +520,17 @@ def run(plan_path, candidate_path, output, root):
         "scope": "SYNTHETIC_DEVELOPMENT",
     }
     _dump(output / "RUN.json.gz", result)
+    _dump(
+        output / "IDENTITY.json",
+        {
+            **identity,
+            "artifacts_sha256": {
+                path.name: file_sha(path)
+                for path in sorted(output.iterdir())
+                if path.is_file() and path.name != "IDENTITY.json"
+            },
+        },
+    )
     return result
 
 
