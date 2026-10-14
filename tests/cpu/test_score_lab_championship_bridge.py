@@ -5,9 +5,14 @@ from dataclasses import asdict, replace
 
 import pytest
 
-from carbon.championship_stats import Rev5Case, Rev5Contender, Rev5Rule, select_rev5_winner
+from carbon.championship_stats import (
+    Rev5Case,
+    Rev5Contender,
+    Rev5Rule,
+    select_rev5_winner,
+)
 from scripts.dev.score_lab import championship_bridge as bridge
-from scripts.dev.score_lab.core import LabRefused, SCHEMA
+from scripts.dev.score_lab.core import SCHEMA, LabRefused
 
 
 def fixture():
@@ -255,9 +260,7 @@ def test_registered_blocks_use_existing_block_means_not_case_count():
     rule = replace(rule, draw_unit="registered_block")
     evidence["case_blocks"] = {q: "A" if i < 6 else "B" for i, q in enumerate(draws)}
     evidence["errors"].pop("known-bad")
-    evidence["errors"]["good"] = {
-        q: 0.5 if i < 6 else 1.2 for i, q in enumerate(draws)
-    }
+    evidence["errors"]["good"] = {q: 0.5 if i < 6 else 1.2 for i, q in enumerate(draws)}
     expected = select_rev5_winner(
         rule,
         (

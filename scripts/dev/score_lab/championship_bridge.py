@@ -11,6 +11,7 @@ import math
 import re
 import statistics
 from dataclasses import asdict
+from itertools import pairwise
 
 from carbon.championship_stats import (
     Rev5Case,
@@ -218,7 +219,9 @@ def value_diagnostic(receipt, panel):
     )
     if not mask:
         return {"status": "INSUFFICIENT_EVIDENCE", "reason": "no_common_value_outcomes"}
-    values = {a: -statistics.fmean(pool[a]["value_losses"][q] for q in mask) for a in ids}
+    values = {
+        a: -statistics.fmean(pool[a]["value_losses"][q] for q in mask) for a in ids
+    }
     best_value = max(values.values())
     winner = receipt["winner_id"]
     return {
@@ -231,7 +234,9 @@ def value_diagnostic(receipt, panel):
         "estimand": "mean_value_on_common_resolved_questions_for_compared_finite_pool",
         "winner_id": winner,
         "winner_value": values[winner],
-        "best_compared_members": sorted(a for a, v in values.items() if v == best_value),
+        "best_compared_members": sorted(
+            a for a, v in values.items() if v == best_value
+        ),
         "crown_is_best_compared_value": values[winner] == best_value,
         "regret_against_best_compared_member": best_value - values[winner],
     }
@@ -244,13 +249,13 @@ def trajectory_diagnostic(receipts, panel):
     for receipt in receipts:
         _commit(receipt)
     if any(r["status"] != "MEASURED_SYNTHETIC_ROUND" for r in receipts):
-        return {"status": "INSUFFICIENT_EVIDENCE", "reason": "round_sequence_incomplete"}
+        return {
+            "status": "INSUFFICIENT_EVIDENCE",
+            "reason": "round_sequence_incomplete",
+        }
     if (
         len({r["rule"]["batch_id"] for r in receipts}) != len(receipts)
-        or any(
-            b["rule"]["king_id"] != a["winner_id"]
-            for a, b in zip(receipts, receipts[1:])
-        )
+        or any(b["rule"]["king_id"] != a["winner_id"] for a, b in pairwise(receipts))
         or any(
             set(r["compared_artifacts"]) != set(receipts[0]["compared_artifacts"])
             for r in receipts
@@ -259,8 +264,13 @@ def trajectory_diagnostic(receipts, panel):
         raise LabRefused("championship_trajectory_identity_or_chain")
     diagnostics = [value_diagnostic(r, panel) for r in receipts]
     if any(d["status"] != "MEASURED_SYNTHETIC_DIAGNOSTIC" for d in diagnostics):
-        return {"status": "INSUFFICIENT_EVIDENCE", "reason": "trajectory_value_unmeasured"}
-    wins = [i + 1 for i, d in enumerate(diagnostics) if d["crown_is_best_compared_value"]]
+        return {
+            "status": "INSUFFICIENT_EVIDENCE",
+            "reason": "trajectory_value_unmeasured",
+        }
+    wins = [
+        i + 1 for i, d in enumerate(diagnostics) if d["crown_is_best_compared_value"]
+    ]
     return {
         "status": "MEASURED_SYNTHETIC_TRAJECTORY",
         "rounds": len(receipts),
