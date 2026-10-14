@@ -169,6 +169,10 @@ def test_generated_credential_bind_reaches_files_socket_and_missing_bind_cannot(
     tmp_path, monkeypatch, fixture_image
 ):
     profile, raw, fetch, _state, intake = materials(tmp_path, monkeypatch)
+    # The native CI runner need not be the image's default ubuntu UID1000.
+    # Keep private permissions; bind every fixture phase to its actual owner.
+    owner = f"{os.getuid()}:{os.getgid()}"
+    raw["user"] = owner
     suffix = "carbon-setup-public-material-" + uuid.uuid4().hex
     host = "/tmp/" + suffix
     names = ("signer.sock", "ca", "tls_cert", "tls_key")
@@ -182,6 +186,8 @@ with socket.socket(socket.AF_UNIX) as s: s.bind(p+'/signer.sock')
     docker(
         "run",
         "--rm",
+        "--user",
+        owner,
         "--network",
         "none",
         "--read-only",
@@ -214,16 +220,27 @@ with socket.socket(socket.AF_UNIX) as s: s.bind(p+'/signer.sock')
         raw["state_mounts"].append(host)
         profile.write_text(json.dumps(raw), encoding="utf-8")
         argv = service_argv(profile)
+        assert argv[argv.index("--user") + 1] == owner
         mount = f"type=bind,source={host},target={host}"
         assert mount in argv
-        probe = f"""import json,stat
+        probe = f"""import json,os,stat
 from pathlib import Path
 p=Path({host!r})
 assert stat.S_ISSOCK((p/'signer.sock').stat().st_mode)
 assert all((p/n).read_bytes()==b'public-synthetic-'+n.encode() for n in ('ca','tls_cert','tls_key'))
-print(json.dumps({{'files':3,'socket_type_verified':True}}))
+print(json.dumps({{'files':3,'socket_type_verified':True,'uid':os.getuid(),'gid':os.getgid()}}))
 """
-        base = ["run", "--rm", "--network", "none", "--read-only", "--cap-drop", "ALL"]
+        base = [
+            "run",
+            "--rm",
+            "--user",
+            owner,
+            "--network",
+            "none",
+            "--read-only",
+            "--cap-drop",
+            "ALL",
+        ]
         observed = docker(
             *base,
             "--mount",
@@ -233,11 +250,32 @@ print(json.dumps({{'files':3,'socket_type_verified':True}}))
             "-c",
             probe,
         )
-        assert json.loads(observed.stdout) == {"files": 3, "socket_type_verified": True}
+        assert json.loads(observed.stdout) == {
+            "files": 3,
+            "socket_type_verified": True,
+            "uid": os.getuid(),
+            "gid": os.getgid(),
+        }
         absent = docker(
             *base, fixture_image, "/usr/local/bin/python3", "-c", probe, check=False
         )
         assert absent.returncode != 0
+        wrong_owner = [*base]
+        wrong_owner[wrong_owner.index("--user") + 1] = (
+            f"{os.getuid() + 1}:{os.getgid()}"
+        )
+        inaccessible = docker(
+            *wrong_owner,
+            "--mount",
+            mount + ",readonly",
+            fixture_image,
+            "/usr/local/bin/python3",
+            "-c",
+            probe,
+            check=False,
+        )
+        assert inaccessible.returncode != 0
+        assert "PermissionError" in inaccessible.stderr
         raw["state_mounts"].remove(host)
         profile.write_text(json.dumps(raw), encoding="utf-8")
         with pytest.raises(
@@ -253,6 +291,8 @@ p.rmdir()
         docker(
             "run",
             "--rm",
+            "--user",
+            owner,
             "--network",
             "none",
             "--read-only",
