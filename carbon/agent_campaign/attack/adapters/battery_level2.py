@@ -32,6 +32,7 @@ the rest are seams, NOT_RUN, each saying why.
 from __future__ import annotations
 
 import functools
+from collections.abc import Mapping
 
 from carbon.agent_campaign.attack.adapters import battery_declarative as d
 
@@ -151,6 +152,50 @@ def _determinism_attacks():
     )
 
 
+def _parameters(value):
+    """Only a declarative strategy can carry a Level 2 attack shape."""
+    if not isinstance(value, Mapping):
+        return {}
+    params = value.get("parameters")
+    return params if isinstance(params, Mapping) else {}
+
+
+def _off_family_shape(value):
+    params = _parameters(value)
+    return params.get("muon_spectral") is True and (
+        params.get("optimizer_family") not in (None, "muon")
+        or params.get("learning_rate_curve") == "train_loss_plateau"
+        or params.get("backend") == "pytorch"
+    )
+
+
+def _cross_level_shape(value):
+    params = _parameters(value)
+    foreign = {key for _name, fields in _other_level_fields() for key in fields}
+    return bool(foreign.intersection(params)) or (
+        "muon_spectral" in params and type(params["muon_spectral"]) is not bool
+    )
+
+
+def _pool_violation_shape(value):
+    params = _parameters(value)
+    if "pool_selection" not in params:
+        return False
+    from carbon.battery import challenge, pools
+
+    selection = params["pool_selection"]
+    try:
+        pools.check(selection)
+        pools.draw(selection, {"train": challenge.PublicMaterial.load().train})
+    except pools.PoolRefused:
+        return True
+    return False
+
+
+def _slot_ablation_shape(value):
+    return bool({"muon_spectral", "pool_selection"}.intersection(_parameters(value)))
+
+
 @functools.lru_cache(maxsize=1)
 def _families():
     gate = d.variant_gate(LEVEL)
@@ -167,6 +212,7 @@ def _families():
             control_ok=d.accepted,
             trained=honest,
             held_out=honest_wider,
+            attack_shape=_off_family_shape,
         ),
         "l2_cross_level_fields": d.FamilyRow(
             check="artifact_and_dependency_attacks",
@@ -178,6 +224,7 @@ def _families():
             control_ok=d.accepted,
             trained=honest,
             held_out=_strategy(muon_spectral=False),
+            attack_shape=_cross_level_shape,
         ),
         "l2_pool_sources_and_weights": d.FamilyRow(
             check="artifact_and_dependency_attacks",
@@ -189,6 +236,7 @@ def _families():
             control_ok=d.accepted,
             trained=_strategy(pool_selection=_pool()),
             held_out=_strategy(pool_selection=_pool(strata={"train": 2.0}, cases=32)),
+            attack_shape=_pool_violation_shape,
         ),
         "l2_slot_ablation": d.FamilyRow(
             check="baseline_and_permission_ablation",
@@ -200,6 +248,7 @@ def _families():
             control_ok=d.accepted,
             trained=_strategy(),
             held_out=_strategy(width=32, depth=2),
+            attack_shape=_slot_ablation_shape,
         ),
         "l2_rebuild_determinism": d.FamilyRow(
             check="reconstruction_and_recipient_rebuild",
@@ -266,7 +315,7 @@ SEAMS = (
 SPEC = d.LevelSpec(
     level=LEVEL,
     version=_version(),
-    adapter_version="carbon.attack.adapter.battery-l2.v1",
+    adapter_version="carbon.attack.adapter.battery-l2.v2",
     controls_version="carbon.attack.controls.battery-l2.v1",
     rebuild_label=_rebuild_label,
     families=_families,
