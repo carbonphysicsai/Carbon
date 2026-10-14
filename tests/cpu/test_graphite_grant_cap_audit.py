@@ -129,27 +129,46 @@ def test_missing_owner_amount_stays_unresolved(tmp_path):
     assert "roles" not in row
 
 
-def test_versioned_snapshot_rebinds_current_grants_without_reinterpreting_v1():
+def _assert_snapshot_matches_current(shown):
+    # Retain the complete current-source regeneration control.
+    assert shown == audit.audit()
+
+
+def test_versioned_snapshot_rebinds_current_sources_without_reinterpreting_v1_v2():
     directory = audit.ROOT / "docs/development/evidence/role-output-cap-audit"
     previous_bytes = (directory / "audit-v1.json").read_bytes()
     previous = json.loads(previous_bytes)
-    current = json.loads((directory / "audit-v2.json").read_bytes())
+    second_bytes = (directory / "audit-v2.json").read_bytes()
+    second = json.loads(second_bytes)
+    current = json.loads((directory / "audit-v3.json").read_bytes())
     assert hashlib.sha256(previous_bytes).hexdigest() == (
         "d799faa3d25b592e1109e62f63835e9e8945716f9d8cc24995051bb459584916"
     )
     assert previous["grant_count"] == 33
-    assert current.pop("snapshot_version") == 2
-    assert current.pop("source_revision") == (
-        "e13f973a0da7b887bcbf28796ca895fc7e697451"
+    assert hashlib.sha256(second_bytes).hexdigest() == (
+        "2de048c86dd2dfb8bb1cfb8c3cd4a33fdfc143fee1a96e66774a77a8a5d3a8cc"
     )
-    assert current.pop("supersedes") == {
+    assert second["snapshot_version"] == 2
+    assert second["source_revision"] == ("e13f973a0da7b887bcbf28796ca895fc7e697451")
+    assert second["supersedes"] == {
         "path": "docs/development/evidence/role-output-cap-audit/audit-v1.json",
         "sha256": hashlib.sha256(previous_bytes).hexdigest(),
         "grant_count": 33,
     }
+    assert current.pop("snapshot_version") == 3
+    assert current.pop("source_revision") == (
+        "b94fb52a08c78055fd2fc0e642d0e883f52b8464"
+    )
+    assert current.pop("supersedes") == {
+        "path": "docs/development/evidence/role-output-cap-audit/audit-v2.json",
+        "sha256": hashlib.sha256(second_bytes).hexdigest(),
+        "grant_count": 34,
+    }
     # Exact equality checks every grant byte hash, source pin and actual selection,
     # so an omitted grant or a stale cost/replacement cannot pass this control.
-    assert current == audit.audit()
+    _assert_snapshot_matches_current(current)
+    assert current["grants"] == second["grants"]
+    assert current["profiles"] == second["profiles"]
     assert current["grant_count"] == 34
     old_id = "GRAPHITE-GRANT-L4-G-CONSTRUCTOR-5"
     new_id = "GRAPHITE-GRANT-L4-G-CONSTRUCTOR-6"
@@ -162,3 +181,12 @@ def test_versioned_snapshot_rebinds_current_grants_without_reinterpreting_v1():
     assert rows[old_id]["replaced_by"] == new_id
     assert rows[new_id]["status"] == "MAPPED"
     assert rows[new_id]["replaced_by"] is None
+
+
+def test_the_unchanged_v2_source_pin_cannot_pass_the_current_regeneration_control():
+    directory = audit.ROOT / "docs/development/evidence/role-output-cap-audit"
+    stale = json.loads((directory / "audit-v2.json").read_bytes())
+    for field in ("snapshot_version", "source_revision", "supersedes"):
+        stale.pop(field)
+    with pytest.raises(AssertionError):
+        _assert_snapshot_matches_current(stale)
