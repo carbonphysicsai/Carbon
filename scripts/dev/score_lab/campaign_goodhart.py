@@ -25,6 +25,7 @@ TRAITS = frozenset(
         "robustness",
         "extrapolation",
         "score_path_only",
+        "sigma_scale",
     }
 )
 VALUE_SCOPES = frozenset(
@@ -78,6 +79,8 @@ def validate(config, search):
         or not isinstance(search.get("parameters"), dict)
         or not search["parameters"]
         or set(search["parameters"]) - TRAITS
+        or type(search.get("physics_mode_index", 0)) is not int
+        or not 0 <= search.get("physics_mode_index", 0) < len(config["physics_sweep"])
     ):
         raise LabRefused("goodhart_search_spec")
     tail_fraction = search.get("tail_fraction")
@@ -100,6 +103,7 @@ def validate(config, search):
             or (name in {"transfer", "law_rate"} and bounds[1] > 1)
             or bounds[2] <= 0
             or (name == "score_path_only" and bounds != [0, 1, 1])
+            or (name == "sigma_scale" and bounds[0] <= 0)
         ):
             raise LabRefused("goodhart_trait_bounds")
     return search
@@ -218,7 +222,9 @@ class ToyTraitEvaluator:
         metadata = {
             **member["score_metadata"],
             "knobs": {
-                "physics": self.config["physics_sweep"][0],
+                "physics": self.config["physics_sweep"][
+                    self.search.get("physics_mode_index", 0)
+                ],
                 "neighbourhood_weight": self.config["neighbourhood"]["score_weight"],
             },
         }
@@ -242,12 +248,12 @@ class ToyTraitEvaluator:
             raise LabRefused("goodhart_score_nonfinite")
         return (-result.get("tier", 0), result["score"])
 
-    def value_loss(self, parameters):
+    def value_loss(self, parameters, scope=None):
         self.calls["value"] += 1
         panel = self.panel_for(parameters)
         view = physics.value_view(
             panel,
-            self.search["value_scope"],
+            scope or self.search["value_scope"],
             self.config["neighbourhood"]["value_weight"],
             tail_fraction=self.search.get("tail_fraction"),
         )

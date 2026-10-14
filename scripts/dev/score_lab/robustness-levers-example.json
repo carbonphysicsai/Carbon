@@ -1,0 +1,13 @@
+{
+  "schema": "carbon.dev.score-lab-robustness-levers.v1",
+  "robustness_scale": 0.08,
+  "blend_weights": [0.2, 1.0],
+  "gate_limits": [0.02, 0.08, 0.16],
+  "honest_abstention": {
+    "weight": 0.5,
+    "error_limit": 0.05,
+    "sigma_scale": 0.05,
+    "decline_threshold": 0.08,
+    "outside_weight": 0.5
+  }
+}

@@ -323,10 +323,16 @@ def test_the_pytorch_gpu_run_binds_and_checks_its_own_pins(
             **call,
         )
     assert requests[-1]["accelerator"]["profile"] == torch_profile.GPU_PROFILE_ID
-    # The miner lane's GPU never takes the PyTorch GPU worker's pins.
+    # Shared miner practice selects this worker's own Torch pins too; the
+    # validator's scored rebuild still requires the separate acceptance above.
     assert research_carrier._gpu_pins(
         torch_gpu_image(), research_carrier.MINER_GPU
     ) == (
+        torch_profile.GPU_PROFILE_ID,
+        torch_profile.GPU_PROFILE_DIGEST,
+        torch_profile.GPU_LOCK_DIGEST,
+    )
+    assert research_carrier._gpu_pins(gpu_image(), research_carrier.MINER_GPU) == (
         GPU_PROFILE.profile_id,
         GPU_PROFILE.digest,
         GPU_PROFILE.environment_lock_digest,
@@ -348,11 +354,14 @@ class Labels:
         return {"Config": {"Labels": self.labels}}
 
 
-def test_the_pytorch_gpu_worker_is_checked_by_its_own_labels():
+@pytest.mark.parametrize(
+    "role", [research_carrier.MINER_GPU, research_carrier.VALIDATOR_GPU]
+)
+def test_the_pytorch_gpu_worker_is_checked_by_its_own_labels(role):
     from carbon.reconstruction.worker import accelerator_runtime
     from carbon.reconstruction.worker.model import WorkerFailure
 
-    pins = research_carrier._gpu_pins(torch_gpu_image(), research_carrier.VALIDATOR_GPU)
+    pins = research_carrier._gpu_pins(torch_gpu_image(), role)
     _, profile, lock = pins
     good = Labels(profile, lock)
     accelerator_runtime.verify_image_and_toolkit(
@@ -369,6 +378,13 @@ def test_the_pytorch_gpu_worker_is_checked_by_its_own_labels():
         )
     with pytest.raises(WorkerFailure):
         accelerator_runtime.verify_image_and_toolkit(cli=good, image=torch_gpu_image())
+    with pytest.raises(WorkerFailure):
+        accelerator_runtime.verify_image_and_toolkit(
+            cli=Labels(profile, GPU_PROFILE.environment_lock_digest),
+            image=torch_gpu_image(),
+            profile_digest=profile,
+            lock_digest=lock,
+        )
 
 
 def test_a_gpu_deployment_may_name_the_pytorch_gpu_worker(tmp_path):

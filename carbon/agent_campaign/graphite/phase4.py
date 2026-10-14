@@ -146,6 +146,7 @@ from carbon.reconstruction.capability_registry import (
 )
 
 from .. import boundaries
+from ..attack import target_binding as targets
 from ..grant import SpendingGrant
 from ..provider import ProviderUnavailable, TaskSpec
 from . import experiment as ex
@@ -304,6 +305,8 @@ LOG_SCHEMA = "carbon.graphite.attacker-iteration-log.v3"
 #: run (OWNER-GRAPHITE-TEST-WAVE-04 §1), its findings under
 #: `findings_by_source["copy_probe"]`. A v6 report keeps its meaning.
 COVERAGE_SCHEMA = "carbon.graphite.attacker-coverage.v7"
+TARGET_COVERAGE_SCHEMA = "carbon.graphite.targeted-attacker-coverage.v1"
+TARGET_LOG_SCHEMA = "carbon.graphite.targeted-attacker-iteration-log.v1"
 #: The eight Track A checks every coverage report accounts for.
 TRACK_A_CHECKS = tuple(sorted(CHECKS[LEDGER_TRACK]))
 PIN_SCHEMA = "carbon.graphite.attacker-store-pin.v1"
@@ -1227,7 +1230,7 @@ def knowledge_brief(view, adapter):
     return {"snapshot": view.digest, "by_family": by_family}
 
 
-def brief_observation(adapter, *, knowledge=None, stop_rule=False):
+def brief_observation(adapter, *, knowledge=None, stop_rule=False, target=None):
     """The Attacker's starting observation: the Challenge's public development
     identity and contract token, the construction level, the adapter's
     families and seams, the attack-knowledge snapshot it runs under, and the
@@ -1256,6 +1259,8 @@ def brief_observation(adapter, *, knowledge=None, stop_rule=False):
             "code_run_seconds_at_most": adapter_code_run_seconds(adapter),
         },
     }
+    if target is not None:
+        observation["verification_scope"] = targets.scope(target, adapter)
     if stop_rule:
         # The stop rule's coverage table at the start: every reachable family
         # at 0 attempts, and every other family with its label. `stop_rule`
@@ -1300,7 +1305,13 @@ def check_attacker_observation(observation, adapter, *, code_run_seconds):
 
 
 def session_brief(
-    adapter, *, checkout_commit, knowledge=None, repository=REPOSITORY, stop_rule=False
+    adapter,
+    *,
+    checkout_commit,
+    knowledge=None,
+    repository=REPOSITORY,
+    stop_rule=False,
+    target=None,
 ):
     from carbon.challenge_validator import scoring as challenge_scoring
 
@@ -1314,7 +1325,10 @@ def session_brief(
     return SessionBrief(
         role=RoleName.ATTACKER,
         initial_observation=brief_observation(
-            adapter, knowledge=knowledge, stop_rule=stop_rule
+            adapter,
+            knowledge=knowledge,
+            stop_rule=stop_rule,
+            **({} if target is None else {"target": target}),
         ),
         checkout_commit=checkout_commit,
         checkout_manifest_digest=boundaries.manifest_digest(manifest),
@@ -1705,6 +1719,7 @@ def carbon_side(
     session=1,
     canaries=(),
     carrier=None,
+    target=None,
 ):
     """Carbon's own side of a finished session, through the engine (module
     docstring). Returns (coverage report, B2, finding ids, store digest).
@@ -1724,6 +1739,10 @@ def carbon_side(
     report, benchmark = atk["report"], atk["benchmark"]
     # The snapshot the brief named, checked against the recorded pin.
     replay_guard(store, session, view, atk)
+    try:
+        targets.session_pin(store, session, target, resume=True, adapter=adapter)
+    except targets.TargetRefused as refused:
+        raise RunnerRefused(refused.code) from None
 
     found = attack_attempts(provider._dir(run_id))
     mapped = analysis.map_to_families(found, adapter)
@@ -1743,6 +1762,7 @@ def carbon_side(
                 specimen_dir=specimen_dir,
                 canaries=canaries,
                 carrier=carrier,
+                **({} if target is None else {"target": target}),
             )
             if is_finding(verdict, verify):
                 findings.extend(verify.record(verdict, control))
@@ -1842,6 +1862,16 @@ def carbon_side(
             ),
             baseline,
         )
+    if target is not None:
+        coverage["schema"] = TARGET_COVERAGE_SCHEMA
+        coverage["verification_scope"] = targets.scope(target, adapter)
+        coverage["target_runtime_verdict"] = verify.UNDETERMINED
+        coverage["targeted_scored_attempts"] = sum(
+            v.scored and v.evidence.get("verification_scope") == targets.MODE
+            for v in verdicts
+        )
+        if coverage["targeted_scored_attempts"]:
+            raise RunnerRefused("target_runtime_authority_unavailable")
     return coverage, b2, findings, after
 
 
@@ -1870,6 +1900,7 @@ def run_session(
     kstore,
     view,
     variant=None,
+    target=None,
 ):
     """Launch (or resume) Attacker session `number`, run it, and do Carbon's
     side through the engine. Returns the iteration-log entry and the coverage
@@ -1881,6 +1912,19 @@ def run_session(
         adapter.contract_digest != variant.digest or adapter.level != variant.level
     ):
         raise ValueError("the adapter does not attack this variant")
+    wanted = None if target is None else targets.scope(target, adapter)
+    if brief.initial_observation.get("verification_scope") != wanted:
+        raise RunnerRefused("target_brief_binding_changed")
+    try:
+        targets.session_pin(
+            store,
+            number,
+            target,
+            resume=provider.find(session_key(number)) is not None,
+            adapter=adapter,
+        )
+    except targets.TargetRefused as refused:
+        raise RunnerRefused(refused.code) from None
     _document, profile = attacker_profile(adapter, variant)
     ensure_campaign(
         control,
@@ -1924,6 +1968,7 @@ def run_session(
             kstore=kstore,
             view=view,
             session=number,
+            **({} if target is None else {"target": target}),
         )
     entry = {
         "schema": LOG_SCHEMA,
@@ -1943,6 +1988,9 @@ def run_session(
         "store_after": coverage["attack_knowledge"]["after"] if coverage else None,
         **control.conditional_tag(),
     }
+    if target is not None:
+        entry["schema"] = TARGET_LOG_SCHEMA
+        entry["verification_scope"] = targets.scope(target, adapter)
     if final in _TERMINAL:
         _log(store, entry)
     return entry, coverage
@@ -2059,6 +2107,22 @@ def _store(root, dry_run):
     return store
 
 
+def target_from_args(args, adapter):
+    values = (
+        getattr(args, "public_target_root", None),
+        getattr(args, "target_bundle", None),
+        getattr(args, "target_manifest_digest", None),
+    )
+    if all(value is None for value in values):
+        return None
+    if any(value is None for value in values):
+        raise RunnerRefused("target_cli_binding_incomplete")
+    try:
+        return targets.load(*values, adapter, repository=REPOSITORY)
+    except targets.TargetRefused as refused:
+        raise RunnerRefused(refused.code) from None
+
+
 def command_run(args):
     if getattr(args, "score_variant", None) is not None:
         # Refused before anything is read or spent (VALIDATOR-09).
@@ -2072,6 +2136,7 @@ def command_run(args):
     adapter, variant = adapter_for(
         atk, challenge, CONSTRUCTION_LEVEL if level is None else level
     )
+    target = target_from_args(args, adapter)
     from carbon.challenge_validator import scoring as challenge_scoring
 
     try:
@@ -2091,6 +2156,7 @@ def command_run(args):
             challenge=challenge,
             scoring=scoring,
             **development,
+            **({} if target is None else {"target": target}),
         )
     missing = [
         name
@@ -2149,6 +2215,7 @@ def command_run(args):
         session=args.session,
         head=head,
         **development,
+        **({} if target is None else {"target": target}),
     )
     print(
         json.dumps({"session": entry, "coverage": coverage}, indent=1, sort_keys=True)
@@ -2273,6 +2340,7 @@ def run_live(
     signals=True,
     variant=None,
     shared_runs=True,
+    target=None,
 ):
     """One live session from its controller to Carbon's side: the
     controller, the attack-knowledge store, the session's pin (reused on a
@@ -2292,6 +2360,7 @@ def run_live(
             checkout_commit=head,
             knowledge=knowledge_brief(view, adapter),
             stop_rule=provider.stop_rule or False,
+            **({} if target is None else {"target": target}),
         )
         if signals:
             _install_cancel(provider, provider.run_id_for(session_key(session)))
@@ -2307,6 +2376,7 @@ def run_live(
             kstore=kstore,
             view=view,
             variant=variant,
+            **({} if target is None else {"target": target}),
         )
     finally:
         control.close()
@@ -2494,8 +2564,26 @@ def command_remint(args):
     only the local campaign and journal; writes only the specimen bundle."""
     from .phase4_remint import RemintRefused, remint
 
+    target = None
+    if any(
+        getattr(args, field, None) is not None
+        for field in ("public_target_root", "target_bundle", "target_manifest_digest")
+    ):
+        if (
+            getattr(args, "challenge", None) is None
+            or getattr(args, "level", None) is None
+        ):
+            raise RunnerRefused("target_remint_challenge_and_level_required")
+        adapter, _variant = adapter_for(attack_modules(), args.challenge, args.level)
+        target = target_from_args(args, adapter)
     try:
-        result = remint(args.root, args.attempt, args.specimen, session=args.session)
+        result = remint(
+            args.root,
+            args.attempt,
+            args.specimen,
+            session=args.session,
+            **({} if target is None else {"target": target}),
+        )
     except RemintRefused as refused:
         print(json.dumps({"status": "SPECIMEN_REFUSED", "code": refused.code}))
         return 4
@@ -2561,7 +2649,15 @@ def dry_run_script(adapter):
 
 
 def dry_run(
-    root, adapter, atk, *, challenge, miner_tools=None, scoring=None, variant=None
+    root,
+    adapter,
+    atk,
+    *,
+    challenge,
+    miner_tools=None,
+    scoring=None,
+    variant=None,
+    target=None,
 ):
     """One scripted session and Carbon's side, sending nothing and spending
     nothing: the scripted model reports a zero charge, the whole run is under
@@ -2601,6 +2697,7 @@ def dry_run(
                 checkout_commit="0" * 40,
                 knowledge=knowledge_brief(view, adapter),
                 stop_rule=STOP_RULE_V2,
+                **({} if target is None else {"target": target}),
             )
             entry, coverage = run_session(
                 store,
@@ -2614,6 +2711,7 @@ def dry_run(
                 kstore=kstore,
                 view=view,
                 variant=variant,
+                **({} if target is None else {"target": target}),
             )
         finally:
             control.close()
@@ -2670,6 +2768,11 @@ def main(argv=None):
     run.add_argument("--miner-profile")
     run.add_argument("--miner-campaign")
     run.add_argument("--session", type=int, default=1)
+    run.add_argument("--public-target-root", help="operator-vetted public export root")
+    run.add_argument("--target-bundle", help="one directory component inside that root")
+    run.add_argument(
+        "--target-manifest-digest", help="independently pinned v3 manifest"
+    )
     run.add_argument(
         "--score-variant",
         metavar="VERSION",
@@ -2690,6 +2793,11 @@ def main(argv=None):
     remint.add_argument("--attempt", required=True)
     remint.add_argument("--specimen", required=True)
     remint.add_argument("--session", type=int)
+    remint.add_argument("--challenge")
+    remint.add_argument("--level", type=int)
+    remint.add_argument("--public-target-root")
+    remint.add_argument("--target-bundle")
+    remint.add_argument("--target-manifest-digest")
     prelive = sub.add_parser("prelive")
     prelive.add_argument("--root", required=True)
     prelive.add_argument("--challenge", required=True, help=challenge_help)

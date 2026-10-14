@@ -388,6 +388,32 @@ contains τ and its crossed member/question bootstrap interval, top-1 regret,
 known-bad/adversarial top-half placement, always-abstain and cheap-baseline
 ranks, and one row per knob profile. It is a diagnostic, not a pass criterion.
 
+## Toy robustness score levers (OPT-20)
+
+`campaign-robustness` compares one baseline with robustness as a weighted
+score term, a sweep of hard gate limits, and a score-side uncertainty-honesty
+term. It freezes one finite proposal slate before evaluating any arm, so each
+arm gets exactly the same candidate score-call budget. The value side is
+measured afterward on target, shifted, extrapolated and blended nearby tasks.
+The finite-slate value oracle is approximate; differing wrapper CPU costs
+are not equalized. `NO_OBSERVED_DIFFERENCE_ON_SLATE` reports an exact tie in
+this toy slate, with no statistical-power claim.
+
+```sh
+python -m scripts.dev.score_lab campaign-robustness \
+  --config scripts/dev/score_lab/physics-shape-example.json \
+  --search scripts/dev/score_lab/robustness-search-example.json \
+  --levers scripts/dev/score_lab/robustness-levers-example.json \
+  --candidates codex-queue/inputs/score-lab-candidates/candidates.py \
+  --uncertainty-abstention-threshold 0.08 \
+  --out /tmp/scorelab-robustness-toy.json.gz
+```
+
+Every numerical input in that command is an `ASSUMPTION` for the analytic
+toy. The candidate file is trusted local Validator input and is not copied
+into the repo. The command reads no real reference, protected bank, or
+independent holdout, and adopts no score rule or gate threshold.
+
 ## Public EV4 replay, no new solves
 
 The owner's explicitly public copy at `codex-queue/inputs/ev4-public-proof/`

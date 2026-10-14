@@ -1201,7 +1201,7 @@ class LiveChecks:
     def gpu(self, gpu_manifest: Path, campaign=None) -> dict:
         """Detect this machine's GPU, install its device record, and verify
         the GPU worker image and container runtime. Nothing leaves the host."""
-        from carbon.development_session.gpu_practice import is_gpu_image
+        from carbon.development_session.gpu_practice import gpu_image_backend
         from carbon.reconstruction import onboarding
         from carbon.reconstruction.host_inventory import (
             HOST_DEVICE_RECORD,
@@ -1222,12 +1222,22 @@ class LiveChecks:
             image = load_image_identity(gpu_manifest)
         except Exception:  # noqa: BLE001 - never echo a local path or error.
             image = None
-        if not is_gpu_image(image):
+        if gpu_image_backend(image) is None:
             raise SetupRefused(
                 "gpu_image_manifest",
                 "gpu_image_unverified",
                 next_step=BUILD_STEPS["gpu_image_manifest"],
             )
+        # Challenge scope is checked before host preparation. Recognising a
+        # sibling worker does not make every Challenge serve its backend.
+        try:
+            scope = None if campaign is None else campaign.gpu_scope(image)
+        except ValueError:
+            raise SetupRefused(
+                "gpu_image_manifest",
+                "gpu_image_unverified",
+                next_step=BUILD_STEPS["gpu_image_manifest"],
+            ) from None
         try:
             observed = onboarding.observe_local_device()
         except WorkerFailure:
@@ -1269,7 +1279,19 @@ class LiveChecks:
                     "gpu", "host_device_record_not_writable", next_step=GPU_RECORD_STEP
                 ) from None
         try:
-            verify_image_and_toolkit(cli=cli, image=image)
+            # The same host/toolkit check, bound to the selected image's exact
+            # profile and lock rather than assuming every GPU worker is JAX.
+            if gpu_image_backend(image) == "pytorch":
+                from carbon.reconstruction import torch_profile
+
+                verify_image_and_toolkit(
+                    cli=cli,
+                    image=image,
+                    profile_digest=torch_profile.GPU_PROFILE_DIGEST,
+                    lock_digest=torch_profile.GPU_LOCK_DIGEST,
+                )
+            else:
+                verify_image_and_toolkit(cli=cli, image=image)
         except WorkerFailure:
             raise SetupRefused(
                 "gpu_image_manifest",
@@ -1285,9 +1307,11 @@ class LiveChecks:
         if blockers:
             raise SetupRefused("gpu", "gpu_host_not_ready:" + ",".join(blockers))
         record = HostDeviceRecord.load(root)
+        if scope is None:
+            raise SetupRefused("challenge", "field_required")
         return {
             # The chosen Challenge's own GPU practice scope (C-MLP-04).
-            "scope": campaign.gpu_scope(image),
+            "scope": scope,
             "device_kind": record.device_kind,
             "record_digest": record.digest,
         }

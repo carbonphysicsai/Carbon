@@ -1,0 +1,82 @@
+{
+  "analysis_cpu_seconds": 266.571,
+  "analysis_wall_seconds": 266.708,
+  "candidate_sha256": "157b1db5f091910f5602b15c9f5029f0171e6da7e8b6dbc5ffb5aa5c775bd235",
+  "canonical_commands_sha256": "9a1ed52bf5d1724b1353362786fb125c3b3f17eacc0f66a60a70a24f46b09c19",
+  "canonical_execution": true,
+  "canonical_image": "sha256:052748799b7323cbdaaf011825f0f13f797eb55ef8aa273636f131f8640c9370",
+  "command_resources": [
+    {
+      "cpu_system_seconds": 0.115,
+      "cpu_user_seconds": 0.826,
+      "stage": "controls",
+      "wall_seconds": 0.949
+    },
+    {
+      "cpu_system_seconds": 0.068,
+      "cpu_user_seconds": 0.444,
+      "stage": "plan0",
+      "wall_seconds": 0.512
+    },
+    {
+      "cpu_system_seconds": 1.272,
+      "cpu_user_seconds": 67.471,
+      "stage": "run0",
+      "wall_seconds": 68.782
+    },
+    {
+      "cpu_system_seconds": 0.048,
+      "cpu_user_seconds": 0.46,
+      "stage": "plan1",
+      "wall_seconds": 0.509
+    },
+    {
+      "cpu_system_seconds": 1.2,
+      "cpu_user_seconds": 65.107,
+      "stage": "run1",
+      "wall_seconds": 66.349
+    },
+    {
+      "cpu_system_seconds": 0.06,
+      "cpu_user_seconds": 0.42,
+      "stage": "plan2",
+      "wall_seconds": 0.48
+    },
+    {
+      "cpu_system_seconds": 1.064,
+      "cpu_user_seconds": 63.539,
+      "stage": "run2",
+      "wall_seconds": 64.628
+    },
+    {
+      "cpu_system_seconds": 0.052,
+      "cpu_user_seconds": 0.446,
+      "stage": "plan3",
+      "wall_seconds": 0.5
+    },
+    {
+      "cpu_system_seconds": 1.12,
+      "cpu_user_seconds": 62.349,
+      "stage": "run3",
+      "wall_seconds": 63.489
+    },
+    {
+      "cpu_system_seconds": 0.045,
+      "cpu_user_seconds": 0.465,
+      "stage": "atlas",
+      "wall_seconds": 0.51
+    }
+  ],
+  "holdout_read": false,
+  "host_runner_sha256": "84cc30e4642686299c7fbd90c799321cfd3fdfad31da7043cf393b502e9787fe",
+  "model_rebuilds": 0,
+  "outer_wrapper_wall_cap_seconds": 3600,
+  "peak_rss": "NOT_MEASURED",
+  "per_command_address_space_cap_bytes": 1073741824,
+  "per_command_cpu_cap_seconds": 800,
+  "per_command_wall_cap_seconds": 900,
+  "resource_scope": "CLI analysis only; image build/bootstrap/export excluded",
+  "schema": "carbon.dev.synthetic-error64-execution.v1",
+  "solver_calls": 0,
+  "source_commit": "69e39b42e5ee06e84d7fa3058fca2e2f530418ec"
+}

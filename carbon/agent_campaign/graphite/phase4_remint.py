@@ -119,7 +119,7 @@ def _entries(store):
     return entries
 
 
-def _sources(store, attempt_id, expected, session):
+def _sources(store, attempt_id, expected, session, target=None):
     from carbon.agent_campaign.graphite import phase4
 
     controller = store / "controller"
@@ -133,9 +133,9 @@ def _sources(store, attempt_id, expected, session):
     try:
         with sqlite3.connect(database.as_uri() + "?mode=ro", uri=True) as db:
             for entry in _entries(store):
-                if (
-                    not isinstance(entry, dict)
-                    or entry.get("schema") != phase4.LOG_SCHEMA
+                if not isinstance(entry, dict) or entry.get("schema") not in (
+                    phase4.LOG_SCHEMA,
+                    phase4.TARGET_LOG_SCHEMA,
                 ):
                     raise RemintRefused("iteration_log_schema_invalid")
                 number = entry.get("session")
@@ -190,19 +190,53 @@ def _sources(store, attempt_id, expected, session):
     unique = {}
     for entry, verdict in found:
         key = (entry["run_id"], json.dumps(verdict, sort_keys=True))
+        if key in unique:
+            previous = unique[key][0]
+            if any(
+                previous.get(field) != entry.get(field)
+                for field in (
+                    "schema",
+                    "session",
+                    "challenge",
+                    "construction_level",
+                    "verification_scope",
+                )
+            ):
+                raise RemintRefused("remint_source_context_ambiguous")
         unique[key] = (entry, verdict)
     if not unique and redacted:
         raise RemintRefused("finding_evidence_redacted")
     if len(unique) != 1:
         raise RemintRefused("remint_source_missing_or_ambiguous")
-    return (*next(iter(unique.values())), excluded_non_session, finding_records_seen)
+    entry, verdict = next(iter(unique.values()))
+    targeted = entry["schema"] == phase4.TARGET_LOG_SCHEMA
+    if targeted or target is not None:
+        from carbon.agent_campaign.attack import target_binding
+
+        scope = entry.get("verification_scope")
+        if (
+            target is None
+            or not targeted
+            or type(scope) is not dict
+            or scope.get("target") != target.record()
+            or scope.get("target_pin") != target.pin
+            or scope.get("mode") != target_binding.MODE
+            or scope.get("runtime_verification") != "UNAVAILABLE"
+        ):
+            raise RemintRefused("target_iteration_binding_changed")
+    return entry, verdict, excluded_non_session, finding_records_seen
 
 
-def remint(root, attempt_id, expected, *, session=None):
+def remint(root, attempt_id, expected, *, session=None, target=None):
     """Rebuild one already recorded specimen from an authenticated local source.
     `expected` binds the operator's requested artifact-keyed folder identity."""
     from carbon.agent_campaign.graphite import phase4
 
+    if target is not None:
+        from carbon.agent_campaign.attack import target_binding
+
+        if type(target) is not target_binding.TargetBinding:
+            raise RemintRefused("target_binding_requires_validated_intake")
     if not isinstance(expected, str) or not _SPECIMEN.fullmatch(expected):
         raise RemintRefused("expected_specimen_name_invalid")
     try:
@@ -216,7 +250,11 @@ def remint(root, attempt_id, expected, *, session=None):
     if specimens.is_symlink():
         raise RemintRefused("specimen_store_is_a_link")
     entry, recorded, excluded_non_session, finding_records_seen = _sources(
-        store, attempt_id, expected, session
+        store,
+        attempt_id,
+        expected,
+        session,
+        **({} if target is None else {"target": target}),
     )
     run_dir = store / "graphite" / "runs" / entry["run_id"]
     if not run_dir.is_dir() or run_dir.is_symlink():
@@ -230,7 +268,23 @@ def remint(root, attempt_id, expected, *, session=None):
     adapter, _variant = phase4.adapter_for(
         phase4.attack_modules(), entry["challenge"], entry["construction_level"]
     )
-    result = verify.remint_specimen(matches[0], adapter, recorded, specimens)
+    if target is not None:
+        from carbon.agent_campaign.attack import target_binding
+
+        try:
+            target_binding.require(target, adapter)
+            target_binding.session_pin(
+                store, entry["session"], target, resume=True, adapter=adapter
+            )
+        except target_binding.TargetRefused as refused:
+            raise RemintRefused(refused.code) from None
+    result = verify.remint_specimen(
+        matches[0],
+        adapter,
+        recorded,
+        specimens,
+        **({} if target is None else {"target": target}),
+    )
     if result.get("folder") and Path(result["folder"]).name != expected:
         raise RemintRefused("reminted_specimen_identity_changed")
     return {
