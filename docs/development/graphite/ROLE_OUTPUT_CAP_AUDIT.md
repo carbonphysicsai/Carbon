@@ -8,9 +8,9 @@ science-jax, chain, archive and mcp groups:
 CARBON_UV_GROUPS="science-jax chain archive mcp" ./scripts/dev/canonical.sh python -m scripts.dev.graphite_grant_cap_audit
 ```
 
-The current public snapshot is
-`docs/development/evidence/role-output-cap-audit/audit-v2.json`. Its basis is
-main `e13f973a0da7b887bcbf28796ca895fc7e697451`: 34 public grant files, each
+The current prospective public snapshot is
+`docs/development/evidence/role-output-cap-audit/audit-v3.json`. Its source
+basis is `b94fb52a08c78055fd2fc0e642d0e883f52b8464`: 34 public grant files, each
 hashed, and 11 hashed selection/role/price/grant/budget source files. It uses
 the real session selector and the phase-3/phase-4 budget calculators. It lists
 every role/model's uncached maximum input and output reservation. Reasoning
@@ -32,6 +32,27 @@ Before v2 merged, argument-event logging changed the pinned `provider.py`
 source. This prospective refresh regenerates v2 at the newer main revision;
 all 34 grant files, other ten source files and every cost/selection row retain
 their prior values. The exact regeneration control stays unchanged.
+
+## Prospective target-binding source refresh (v3)
+
+GRAPHITE-TARGET-BINDING-01 changes phase4's source for public target context,
+without changing the Attacker budget function or any grant/price/selection
+input. V3 retains all 34 grant rows and every role/cost/selection value from
+accepted v2; it rebinds the one changed phase4 file hash and records the
+implementation-source revision. The refresh checks the budget function's AST
+and all unchanged public input hashes. The complete canonical regeneration
+comparison against `audit.audit()` remains required before acceptance; native
+Windows cannot execute that POSIX Graphite audit. This is not evidence that
+targeted runtime verification or mainnet parity exists.
+
+Historical v1 and v2 bytes are preserved. V2 remains bound to main
+`e13f973a0da7b887bcbf28796ca895fc7e697451`, SHA256
+`2de048c86dd2dfb8bb1cfb8c3cd4a33fdfc143fee1a96e66774a77a8a5d3a8cc`.
+V3's supersession metadata identifies that exact v2 and its 34-grant count.
+The negative stale-pin control submits the old v2 basis to the same complete
+current-source equality check and must fail; it is not exempted or repinned
+as historical current evidence. No policy, figure, accounting or historical
+session interpretation changes.
 
 ## What changed at the larger cap
 
