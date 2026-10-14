@@ -60,6 +60,68 @@ def test_a_first_incumbent_is_eligible_while_no_baseline_is_registered(tmp_path)
     )
 
 
+@pytest.mark.parametrize(
+    ("new_hotkey", "coldkeys"),
+    [
+        ("hk-a", {"hk-a": "ck-a"}),
+        ("hk-new", {"hk-new": "ck-a"}),
+    ],
+)
+def test_first_incumbent_after_cutover_keeps_the_same_miners_clock(
+    tmp_path, new_hotkey, coldkeys
+):
+    book = ledger(tmp_path)
+    book.observe(POLICY, BATTERY, first("m1", "hk-a"), {"hk-a": "ck-a"}, T0)
+    record = book.observe(
+        POLICY, BATTERY, first("m2", new_hotkey), coldkeys, T0 + 3 * DAY_MS
+    )
+    assert (record["eligible"], record["reason"], record["clock_ms"]) == (
+        True,
+        "same_miner_no_reset",
+        T0,
+    )
+    paid = wd.epoch_targets(
+        POLICY, {BATTERY: we.payable(record, {new_hotkey})}, T0 + 3 * DAY_MS
+    )
+    assert paid["winners"] == {new_hotkey: (Q12 // 3) // 8}
+
+
+def test_first_incumbent_after_cutover_from_a_distinct_miner_keeps_first_rule(tmp_path):
+    book = ledger(tmp_path)
+    book.observe(POLICY, BATTERY, first("m1", "hk-a"), {"hk-a": "ck-a"}, T0)
+    later = T0 + 3 * DAY_MS
+    record = book.observe(
+        POLICY,
+        BATTERY,
+        first("m2", "hk-new"),
+        {"hk-new": "ck-b"},
+        later,
+    )
+    assert (record["eligible"], record["reason"], record["clock_ms"]) == (
+        True,
+        "first_incumbent_no_baseline",
+        later,
+    )
+
+
+def test_cutover_with_missing_legacy_coldkey_refuses_before_append(tmp_path):
+    book = ledger(tmp_path)
+    old = we.decide(POLICY, BATTERY, first("m1", "hk-a"), None, {}, T0)
+    old["schema"] = we.LEGACY_LEDGER_SCHEMA
+    del old["winner_coldkey"]
+    book._append(old)
+    prior = book.path.read_bytes()
+    with pytest.raises(we.RewardFailure, match="PREDECESSOR_IDENTITY_UNAVAILABLE"):
+        book.observe(
+            POLICY,
+            BATTERY,
+            first("m2", "hk-new"),
+            {"hk-new": "ck-a"},
+            T0 + 3 * DAY_MS,
+        )
+    assert book.path.read_bytes() == prior
+
+
 def test_with_a_registered_baseline_a_first_incumbent_is_not_paid(tmp_path):
     import dataclasses
 

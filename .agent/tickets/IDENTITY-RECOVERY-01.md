@@ -9,12 +9,12 @@
 - KEEP the validator's promotion and existing append-only winner ledger. REPAIR the coldkey comparison where the previous hotkey has disappeared from the current finalized snapshot.
 - New ledger records freeze the winner's coldkey when present in the finalized snapshot. A later promotion may use that recorded identity only for its matching predecessor model. The challenger identity comes from the current finalized snapshot.
 - Existing v1 records remain byte-for-byte historical evidence. A v1 predecessor may use its old hotkey's current snapshot association while that hotkey remains present. A v2 predecessor uses only its frozen coldkey; a v2 record without one cannot later acquire historical identity from a new snapshot. When the applicable predecessor coldkey cannot be established, refuse with a typed identity-unavailable error before appending a record or creating an intent. Do not infer a reset, payment, or burn disposition for that unknown historical identity.
-- Preserve the current same-miner clock, distinct-miner reset, overdue-pool refusal, absent-winner withholding, preview, and once-only observation semantics.
+- Preserve the current same-miner clock, distinct-miner reset, overdue-pool refusal, absent-winner withholding, preview, and once-only observation semantics. A new deployment's `FIRST_INCUMBENT` must also compare against an existing Challenge ledger winner: the same hotkey or frozen coldkey keeps its earlier clock; a distinct miner follows the existing first-incumbent rule; unknown historical identity refuses.
 
 ## Bounded file scope and evidence
 
 - `carbon/rewards/winner_eligibility.py`: prospective identity field and fail-closed comparison.
-- `tests/cpu/test_reward_winner_eligibility.py`: predecessor-disappears same/different coldkey, legacy missing-identity refusal, and append-only checks.
+- `tests/cpu/test_reward_winner_eligibility.py`: predecessor-disappears same/different coldkey, cutover first-incumbent same/different miner, legacy missing-identity refusal, and append-only checks.
 - `carbon/rewards/testnet_winner_publication.py` and `tests/cpu/test_reward_testnet_winner_publication.py`: carry the bounded identity refusal through preview/issue and prove it stores no intent or signs anything.
 - `.agent/decisions/2026-10-14-IDENTITY-RECOVERY-01.md`: durable prospective schema and legacy refusal decision.
 

@@ -130,22 +130,9 @@ def decide(policy, challenge, promotion, previous_record, coldkeys, now_ms):
     def record(eligible, reason, clock_ms=now_ms):
         return {**base, "eligible": eligible, "reason": reason, "clock_ms": clock_ms}
 
-    if promotion["kind"] == FIRST:
-        if policy.baseline(challenge) is not None:
-            return record(False, "baseline_registered_first_incumbent_unchecked")
-        return record(True, "first_incumbent_no_baseline")
-    if promotion["kind"] != FINAL:
-        return record(False, "promotion_kind_unknown")
-    if promotion["nomination_overdue"]:
-        return record(False, "nomination_on_overdue_pool")
-    previous_hotkey = promotion["previous_hotkey"]
-    if previous_record is not None and (
-        previous_record["promotion"]["model_id"] != promotion["previous"]
-        or previous_record["promotion"]["hotkey"] != previous_hotkey
-    ):
-        raise WinnerIdentityFailure("PREDECESSOR_RECORD_MISMATCH")
-    same = promotion["hotkey"] == previous_hotkey
-    if not same:
+    def same_miner(previous_hotkey):
+        if promotion["hotkey"] == previous_hotkey:
+            return True
         if winner_coldkey is None:
             raise WinnerIdentityFailure("WINNER_IDENTITY_UNAVAILABLE")
         if (
@@ -164,18 +151,38 @@ def decide(policy, challenge, promotion, previous_record, coldkeys, now_ms):
             raise WinnerIdentityFailure("PREDECESSOR_IDENTITY_UNAVAILABLE")
         if type(previous_coldkey) is not str or not previous_coldkey:
             raise WinnerIdentityFailure("PREDECESSOR_IDENTITY_UNAVAILABLE")
-        same = winner_coldkey == previous_coldkey
-    if same:
-        # No reset: the same miner keeps its old clock, or, when its earlier
-        # win paid nothing, still earns nothing new. Checking the adopted
-        # factor against a measured gain is not built yet, so even a set
-        # factor resets nothing (fail closed).
+        return winner_coldkey == previous_coldkey
+
+    def no_reset():
+        # A same miner keeps its old clock; an ineligible predecessor cannot
+        # gain eligibility from a new deployment or a self-improvement.
         keep = previous_record is not None and previous_record["eligible"]
         return record(
             keep,
             "same_miner_no_reset",
             previous_record["clock_ms"] if keep else now_ms,
         )
+
+    if promotion["kind"] == FIRST:
+        if policy.baseline(challenge) is not None:
+            return record(False, "baseline_registered_first_incumbent_unchecked")
+        if previous_record is not None and same_miner(
+            previous_record["promotion"]["hotkey"]
+        ):
+            return no_reset()
+        return record(True, "first_incumbent_no_baseline")
+    if promotion["kind"] != FINAL:
+        return record(False, "promotion_kind_unknown")
+    if promotion["nomination_overdue"]:
+        return record(False, "nomination_on_overdue_pool")
+    previous_hotkey = promotion["previous_hotkey"]
+    if previous_record is not None and (
+        previous_record["promotion"]["model_id"] != promotion["previous"]
+        or previous_record["promotion"]["hotkey"] != previous_hotkey
+    ):
+        raise WinnerIdentityFailure("PREDECESSOR_RECORD_MISMATCH")
+    if same_miner(previous_hotkey):
+        return no_reset()
     return record(True, "final_improvement")
 
 
