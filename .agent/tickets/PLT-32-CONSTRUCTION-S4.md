@@ -44,7 +44,8 @@ engineering merge. No intermediate review or repeated clean-pass quota.
 Expected manifest: this ticket; .agent/decisions/2026-10-14-PLT32-S4-EMPTY-PROMOTIONS.md;
 carbon/reconstruction/construction_promotions.py and construction_promotions.json;
 tests/cpu/test_construction_promotions.py;
-docs/development/graphite/level5/PROMOTION_PATH.md. No open PR overlaps these
+docs/development/graphite/level5/PROMOTION_PATH.md; pyproject.toml only to include
+the new registry JSON as package data (no dependency/lock change). No open PR overlaps these
 new paths at start. Hub retired; historical map_ref SYSTEM/DEVELOPMENT-HUB.
 
 Acceptance: empty set preserves base/composition bytes and actual compiled
