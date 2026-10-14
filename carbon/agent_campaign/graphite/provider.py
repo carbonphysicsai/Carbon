@@ -601,6 +601,7 @@ class GraphiteProvider:
         else:
             options = {"max_provider_calls": self.HISTORICAL_SESSION_TURNS}
         policy = opened.get("argument_logging")
+        opening = {}
         if opened.get("run_id") is not None:
             opening = next(
                 (
@@ -613,10 +614,21 @@ class GraphiteProvider:
             if opening.get("argument_logging") != policy:
                 raise SessionMismatch("argument_logging_identity_changed")
         if policy is not None:
-            if policy != argument_events.POLICY or opened.get(
-                "agent_identity"
-            ) != self._agent_identity(opened):
+            identity = self._agent_identity(opened)
+            if (
+                policy != argument_events.POLICY
+                or opening.get("argument_logging") != policy
+                or opened.get("agent_identity") != identity
+                or opening.get("agent_identity") != identity
+            ):
                 raise SessionMismatch("argument_logging_identity_changed")
+            actual_live = getattr(self.model, "live", None)
+            if (
+                type(actual_live) is not bool
+                or type(opened.get("live_inference")) is not bool
+                or actual_live is not opened["live_inference"]
+            ):
+                raise SessionMismatch("agent_model_mode_changed")
             offered = frozenset(
                 (*TOOL_REGISTRY, *self.offered_tools(opened), "graphite_set_budget")
             )

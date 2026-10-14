@@ -31,11 +31,15 @@ def arguments(graphite, run_id):
     ]
 
 
-def test_coherent_identity_edit_cannot_replace_the_original_opening(tmp_path, monkeypatch):
+def test_coherent_identity_edit_cannot_replace_the_original_opening(
+    tmp_path, monkeypatch
+):
     model = ScriptedModel([text("done")])
     graphite, run_id = started(tmp_path, model)
     opened = graphite._opened(run_id)
-    opening = next(e for e in graphite.events(run_id, 0) if e["kind"] == "session_opened")
+    opening = next(
+        e for e in graphite.events(run_id, 0) if e["kind"] == "session_opened"
+    )
     assert opening["agent_identity"]["inference"] == "scripted"
     opened["live_inference"] = True
     opened["agent_identity"]["inference"] = "live"
@@ -47,7 +51,9 @@ def test_coherent_identity_edit_cannot_replace_the_original_opening(tmp_path, mo
     assert model.requests == []
 
 
-def test_resumed_actual_model_mode_must_match_its_pinned_identity(tmp_path, monkeypatch):
+def test_resumed_actual_model_mode_must_match_its_pinned_identity(
+    tmp_path, monkeypatch
+):
     model = ScriptedModel([text("done")])
     graphite, run_id = started(tmp_path, model)
     opened = graphite._opened(run_id)
