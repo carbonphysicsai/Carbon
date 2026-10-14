@@ -60,11 +60,10 @@ python -m carbon.level4.tooling envelope lowered /scratch/output/level4-envelope
    `get_research_result` is needed only if `terminal_task` is null.
 3. `graphite_level4_stage` again with the same recipe and `"task_id": "<that task id>"` returns `LEVEL4_STAGED` and the
    submission digest. Put it in the recipe's `parameters.composition_graphs` as the single string
-   `"sha256:..."`, **not a list**: a list is refused as `level4_submission_not_staged`, which reads like a
-   staging fault but is the shape. Then call `graphite_run_proposal` with `strategy_json` (the recipe, as a JSON
+   `"sha256:..."`, **not a list**: a list is refused as `level4_submission_shape`. Then call `graphite_run_proposal` with `strategy_json` (the recipe, as a JSON
    string), `hypothesis` and `expected_effect`.
 
-Steps, as the reply lists them:
+Workflow, from the reply's `workflow` key:
 - 1. Call graphite_level4_stage with the recipe and task_id empty: you are reading that reply.
 - 2. Run example_run_python as it stands in a workspace run_python task: kind=workspace, strategy_json=null, action=run_python, arguments_json = that object (it already carries hypothesis and expected_effect), and hypothesis and expected_effect again at the top level of the call (copy the same two strings). It writes spec.py, lowers it and packs /scratch/output/level4-envelope.json.gz. The task id (rtsk_ and 64 hex digits) is reply.result.task.task_id.value in the reply, always there, even when the task has not finished or has failed (also public_result.task_id once the task has succeeded; public_result is null otherwise). The call returns once the task has finished: read its state from terminal_task.state (reply.result.task is the task as it was queued, at revision 0); get_research_result is needed only if terminal_task is null.
 - 3. Call graphite_level4_stage again with the same recipe and that task_id: the reply is LEVEL4_STAGED and names the submission digest.
@@ -98,4 +97,13 @@ does not replace that with a larger network. Change the spec's parameter
 shapes and forward operations to change the architecture. Below Level 4,
 applicable catalog architecture fields determine the network Carbon builds
 and trains, so leaving them out still chooses a concrete network. Level 4
-training controls such as steps and optimizer settings remain active.
+training controls such as `steps`, `batch_size`, `precision` and optimizer
+settings remain active. Under graph v3, recipe `width` and `depth`, when
+supplied, are validated but inert: they do not shape the trained graph.
+Omitting them is safe because the compiler fills its existing catalog defaults.
+
+The regression in `tests/cpu/test_battery_level4_recipe_model_fields.py`
+trains the same graph with width 64/depth 3, width 128/depth 4, and both
+fields omitted. All three yield bit-identical `params_sha256`; changing
+`steps` from 16 to 32 changes it. That control distinguishes an inert field
+from a training path that never ran. Change the spec to change the network.
