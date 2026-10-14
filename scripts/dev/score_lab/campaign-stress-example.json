@@ -1,0 +1,30 @@
+{
+  "schema": "carbon.dev.score-lab-stress-scenarios.v1",
+  "scenarios": [
+    {
+      "id": "ev4_like_small_grid",
+      "limit": "One-dimensional toy grid and bilinear comparator; not battery EV4 physics or data.",
+      "edits": {"problem.space": "small-grid", "problem.optima": "multi", "decision.k": 3, "questions_per_side": 6}
+    },
+    {
+      "id": "tight_boundary_coupled",
+      "limit": "Two toy coupled margins; not a 0-to-5 constraint-count sweep.",
+      "edits": {"problem.constraint": "tight", "problem.optima": "single", "neighbourhood.size": 0.16}
+    },
+    {
+      "id": "large_operating_shift",
+      "limit": "Analytic context shift and extrapolation only; no real envelope claim.",
+      "edits": {"problem.shift": "shifted", "neighbourhood.size": 0.2, "neighbourhood.extrapolation_distance": 0.8, "neighbourhood.value_weight": 0.8}
+    },
+    {
+      "id": "heavy_score_path_gamer",
+      "limit": "One fixed score-path probe, not a population of adaptive miners.",
+      "edits": {"population.6.score_path_only": true, "population.6.law_rate": 0.5, "population.6.law_size": 0.5}
+    },
+    {
+      "id": "tiny_question_bank",
+      "limit": "Three score questions per side; not a registered Challenge bank.",
+      "edits": {"questions_per_side": 3, "coverage": 0.7}
+    }
+  ]
+}

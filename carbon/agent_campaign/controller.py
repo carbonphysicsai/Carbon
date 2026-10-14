@@ -1021,6 +1021,17 @@ class CampaignController:
                 body = _canonical(event).encode()
                 ref = self._store_evidence(body)
                 hits = boundaries.exposed(body, campaign["canaries"])
+                inspect = getattr(self.provider, "event_canary_hit", None)
+                if not hits and campaign["canaries"] and inspect is not None:
+                    try:
+                        matched = inspect(run_id, event, campaign["canaries"])
+                    except Exception:  # noqa: BLE001 - never echo private scan failures
+                        raise ControllerError(
+                            "canary_argument_evidence_unavailable"
+                        ) from None
+                    if type(matched) is not bool:
+                        raise ControllerError("canary_argument_evidence_unavailable")
+                    hits = matched
                 self._result_entry(
                     db,
                     row,

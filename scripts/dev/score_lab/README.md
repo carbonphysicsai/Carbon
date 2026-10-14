@@ -1,5 +1,74 @@
 # Scorelab (OPT-15)
 
+## OPT-16: V2 bank producer workflow
+
+`bank-plan` consumes a registered V2 definition, a digest-bound committed draw
+from the Challenge's P law, and a committed block-split seed. It does not draw
+P, invent a reference policy, or run a solver. Its `--out` file contains the
+full contexts, split, every action-by-condition requirement and the distinct
+physical reference jobs: keep it on the **producer**, never publish or upload
+the full plan. `--jobs-out` emits a separate producer-worker projection without
+question IDs or development/confirmation assignment. It is physical work
+input, not a custody authorization: the owner decides whether any confirmation
+contexts may leave the producer. Never feed either output to a miner. A draw
+supplies `physical_context` separately from buyer
+requirements, so objective/limit-only neighbours reuse the same solve.
+Reusing one physical case across blocks is refused, and reused records must
+carry the same solve digest. The command prints
+only question and job counts. Data Collection owns the Challenge drawer and
+reference launcher; their outputs are registered inputs, not built here.
+The registration declares `objective_sense`. This version supports
+`minimize` and refuses `maximize` with `bank_objective_sense_unsupported`;
+it cannot silently apply battery's minimization arithmetic to a maximizing
+Challenge.
+
+```sh
+python -m scripts.dev.score_lab bank-plan \
+  --registration REGISTRATION.json --draws COMMITTED_DRAWS.json \
+  --definition docs/development/value-metric-v2/definition.v2.json \
+  --split-seed-file PRODUCER_SEED.txt --out PRODUCER_PLAN.json \
+  --jobs-out PRODUCER_WORKER_JOBS.json
+python -m scripts.dev.score_lab bank-cost \
+  --plan PRODUCER_PLAN.json --registration REGISTRATION.json \
+  --draws COMMITTED_DRAWS.json --split-seed-file PRODUCER_SEED.txt \
+  --definition docs/development/value-metric-v2/definition.v2.json \
+  --policy REFERENCE_COST_POLICY.json \
+  --coarse COARSE_MARGIN_RECORDS.json --jobs-out PRODUCER_REFINEMENT_JOBS.json
+python -m scripts.dev.score_lab bank-solved-check \
+  --plan PRODUCER_PLAN.json --registration REGISTRATION.json \
+  --draws COMMITTED_DRAWS.json --split-seed-file PRODUCER_SEED.txt \
+  --records PRODUCER_SOLVED.jsonl \
+  --definition docs/development/value-metric-v2/definition.v2.json
+```
+
+`bank-cost` without `--coarse` reports the total cost as
+`UNKNOWN_UNTIL_COARSE` when refinement is required. With complete coarse
+records, it uses the bank's actual in-window action-condition share and the
+registered per-rung CPU/wall costs; `--jobs-out` is producer-only. The
+registered status rule names its reference ID, positive-feasible margin,
+coarse/fine rungs, bands and screening window. A coarse in-window case cannot
+receive a decided label before the fine rung. A different refinement ladder
+needs its own registered cost adapter; it is refused here rather than silently
+priced as a single fine solve. `bank-solved-check`
+and `bank-cost` first rebuild the plan from the registered producer inputs and
+refuse a serialized plan with changed actions, requirements, jobs or split.
+`bank-solved-check`
+requires every question, action and condition, verifies their planned job IDs,
+image and overlay lock, classifies by reference alone, enforces whole-block
+halves and the alpha block minimum, and prints aggregate counts. Exhausted
+reference failures remain reported as INCOMPLETE; they do not by themselves
+invalidate a bank whose registered SCORED-share condition still holds. Its
+development-half diagnostic reuses `bank-check`; owner thresholds remain
+HUMAN_INPUT. Without those inputs the aggregate status is
+`INSUFFICIENT_EVIDENCE`, even if `structural_ready` is true; supplied
+development evidence (`--cheap`, `--reference-model`, `--learnability`,
+`--cap`, `--kappa`, `--unit`, `--ceiling-threshold`) may yield a winnable or
+not-winnable diagnostic. Neither
+result qualifies the bank or authorizes
+opening the confirmation half. The full solved records and confirmation half
+remain in custody. The toy fixture in `test_score_lab_bank_builder.py` exercises
+the commands without Challenge physics or protected material.
+
 An offline **DEVELOPMENT** diagnostic for score/value alignment. It runs
 without a model reconstruction, reference solver, network call, hidden bank or
 AX42 access. Analytic surfaces have exact reference values; their shapes,
@@ -29,6 +98,9 @@ mean(neighbours)` on a matched question index. The "exact oracle" for this
 extension is exact enumeration of the offered actions, including when the
 underlying analytic surface is sampled densely. The Score Lab does not claim
 a continuous-domain optimum from that enumeration.
+The optional `value_definition` lever compares `v2_shortlist` (the default)
+with `legacy_one_pick` on those same scoring questions. It is a toy comparison
+of buyer-loss definitions and never reinterprets historical evidence.
 
 The candidate adapter forwards only scoring-side neighbour questions and
 member physics traits. It preserves the Validator wrapper's GATE/FLOOR/BLEND
@@ -138,6 +210,177 @@ registry families use `score_tuning`'s exact scorer on public EV4 when the
 corresponding registry id exists. Other candidate families remain unmeasured
 there because EV4's compact replay does not contain the per-action margin
 contract they require. The candidate file is trusted local developer code.
+
+OPT-15c can compose four optional toy-only score components over a candidate:
+`crps_weight` (Gaussian distribution error), `gradient_weight` (finite-difference
+sign on registered score-side probes), `cvar_tail_fraction` (worst question
+scores) and `cheap_margin_weight` (candidate score above the bilinear arm on
+the same scoring questions). `--components` accepts a JSON object of these
+explicit settings; the example file contains **ASSUMPTION** values only.
+The raw file digest is written to the report. The fixed composition order is
+CRPS, gradient, CVaR, then cheap margin. Missing uncertainty or cheap-arm
+coverage returns an unscored diagnostic. Public EV4 replay refuses these toy
+wrappers; it continues to use exact registered scorers unchanged.
+CVaR retains the strictest gate and FLOOR tier from the whole-panel rule and
+every question, so a clean tail cannot restore primary eligibility. A missing
+whole-panel or question score refuses the decomposition.
+
+`campaign-plan` creates deterministic Latin-hypercube shards of the existing
+analytic physics configuration. Every axis is an explicit toy assumption;
+choices, linear ranges and log ranges are supported. The command writes
+configurations and their digests, and performs no evaluation or holdout read.
+The example axes exercise part of the campaign lever space; they do not stand
+in for the remaining §2 settings or a completed campaign verdict.
+`campaign-axes-broad-example.json` exercises 25 existing toy grammar axes,
+including buyer loss, verification cost, neighbourhood, coverage, member
+traits and physics settings. It still omits the §2 dimensions and other task
+families that the present one-dimensional toy does not implement.
+
+`campaign-stress` measures five named, explicitly limited scenarios using the
+same toy panel evaluator. The example names are analogies to a grid, boundary,
+large shift, path gamer and tiny bank; they are not Challenge simulations.
+The implementation ledger in
+`Business/research/score-lab-campaign-01/LEVER_COVERAGE.md` names every §2
+group still missing from the toy grammar; no partial sample is a campaign
+verdict.
+
+```sh
+python -m scripts.dev.score_lab campaign-stress \
+  --base-config scripts/dev/score_lab/physics-example.json \
+  --scenarios scripts/dev/score_lab/campaign-stress-example.json \
+  --candidates codex-queue/inputs/score-lab-candidates/candidates.py \
+  --out /tmp/scorelab-stress-toy.json
+```
+
+`campaign-run` evaluates one such shard on the analytic toy. Its output binds
+each measured row to the plan and candidate digests and records the sampled
+axis values. Rows are diagnostics, not a final score-rule ranking.
+
+```sh
+python -m scripts.dev.score_lab campaign-run \
+  --plan /tmp/scorelab-campaign-plan.json \
+  --candidates codex-queue/inputs/score-lab-candidates/candidates.py \
+  --candidate N1-DECISION-RELEVANCE-ERROR \
+  --out /tmp/scorelab-campaign-results.json
+```
+
+`campaign-atlas` requires every index exactly once across one or more
+digest-matched result shards. It reports target, shifted, extrapolated and
+neighbourhood-blend summaries per candidate and physics switch, plus sampled
+axis median splits or category medians for the OFF switch as exploratory
+associations. Its worst
+tenth is a descriptive sample tail; Sobol indices and final rule selection
+remain unset in this LHS atlas because those profiles do not supply a
+pick-and-freeze design.
+The `campaign-run --plan` and `campaign-atlas --result` readers accept plain
+JSON or deterministic `.json.gz` evidence files.
+
+```sh
+python -m scripts.dev.score_lab campaign-atlas \
+  --result /tmp/scorelab-campaign-results.json \
+  --out /tmp/scorelab-atlas.json
+```
+
+For variance-based sensitivity, use the separate `campaign-sobol-*` path.
+It makes independent deterministic LHS A/B matrices and one A/B hybrid per
+axis, then requires all matched rows before computing raw Saltelli first-order
+and Jansen total-order estimators. An unresolved toy tau makes the estimate
+`INSUFFICIENT_EVIDENCE`; small-sample estimates may be negative or above one
+and are never clipped. A complete run costs `(2 + axes) * count` toy profiles.
+
+```sh
+python -m scripts.dev.score_lab campaign-sobol-plan \
+  --base-config scripts/dev/score_lab/physics-error-example.json \
+  --axes scripts/dev/score_lab/campaign-axes-error-example.json \
+  --count 4 --seed 97 --switch-index 0 --scope neighbourhood_blend \
+  --out /tmp/scorelab-sobol-plan.json
+python -m scripts.dev.score_lab campaign-sobol-run \
+  --plan /tmp/scorelab-sobol-plan.json \
+  --candidates codex-queue/inputs/score-lab-candidates/candidates.py \
+  --candidate N1-DECISION-RELEVANCE-ERROR \
+  --out /tmp/scorelab-sobol-results.json
+python -m scripts.dev.score_lab campaign-sobol-atlas \
+  --result /tmp/scorelab-sobol-results.json \
+  --out /tmp/scorelab-sobol-atlas.json
+```
+
+`campaign-goodhart` searches the analytic toy member-trait grammar twice:
+once for a candidate's score on scoring questions only, and separately for
+true buyer value as an offline oracle. Both use fixed random starts plus
+coordinate hill climbing. The reported value gap uses an approximate oracle;
+a signed negative gap means it missed a better point. Every search range and
+effort setting is an explicit toy assumption, not a Challenge rule.
+`goodhart-robust-search-example.json` changes only the buyer-value scope to
+the worst loss across target, neighbour and extrapolated toy tasks at each
+question index. Per-task minima do not establish its exact min-max oracle, so
+this scope is supported by the sampled Goodhart comparison only.
+
+`campaign-feedback` runs a separate toy score-only search. Its callback
+returns only the rounded score of the selected synthetic scoring-question
+grain; buyer value is computed only after each search. `aggregate` uses all
+synthetic scoring questions and `prefix:N` uses the first N. These grains,
+rounding precisions and probe allowances are diagnostic assumptions, not a
+claim about the actual Launchpad disclosure contract. A gated or unscored
+probe leaves that candidate `INSUFFICIENT_EVIDENCE`.
+Goodhart and feedback receipts include `component_spec` and its canonical
+`component_spec_sha256` (both explicit None when absent), plus `recipe_sha256`
+binding configuration, search, candidate-file digest, selected candidate IDs,
+components and feedback disclosure. These fields are present on measured,
+unscored and aggregate receipts. Earlier saved no-component artifacts remain
+historical bytes with their component absence annotated in the readout.
+
+`physics-error-example.json` is a separate explicit-default toy config for
+the optional error-structure knobs: heteroscedasticity and its region,
+cross-design correlation, rare-tail rate and size, and reported uncertainty
+scale. `campaign-axes-error-example.json` varies those knobs. The earlier
+25-axis input is retained unchanged so its saved exploratory results remain
+reproducible. These settings alter synthetic model errors, not analytic truth.
+
+`physics-shape-example.json` and `campaign-axes-shape-example.json` separately
+vary analytic truth: explicit 1/3/10 wells, single/weighted/robust objective
+forms, roughness and interior/boundary placement. The exact reference is the
+best offered action; these examples do not establish a multidimensional
+continuous optimum or a real Challenge objective.
+
+`physics-vector-example.json` and `campaign-axes-vector-example.json` add
+two-to-eight dimensional offered sets from bounded deterministic Halton
+coordinates, with a fixed fallback and configurable coupling of the two hard
+margins. A vector `small-grid` is a sampled finite lattice; vector
+`continuous` means sampled continuous-coordinate offers. Both use an exact
+reference on the offered set, not a global continuous optimum.
+
+```sh
+python -m scripts.dev.score_lab campaign-feedback \
+  --config scripts/dev/score_lab/physics-example.json \
+  --search scripts/dev/score_lab/feedback-search-example.json \
+  --disclosure scripts/dev/score_lab/feedback-disclosure-example.json \
+  --candidates codex-queue/inputs/score-lab-candidates/candidates.py \
+  --out /tmp/scorelab-feedback-toy.json
+```
+
+```sh
+python -m scripts.dev.score_lab campaign-goodhart \
+  --config scripts/dev/score_lab/physics-example.json \
+  --search scripts/dev/score_lab/goodhart-search-example.json \
+  --candidates codex-queue/inputs/score-lab-candidates/candidates.py \
+  --candidate N1-DECISION-RELEVANCE-ERROR \
+  --out /tmp/scorelab-goodhart-toy.json
+```
+
+```sh
+python -m scripts.dev.score_lab campaign-plan \
+  --base-config scripts/dev/score_lab/physics-example.json \
+  --axes scripts/dev/score_lab/campaign-axes-example.json \
+  --count 8 --seed 17 --shard 0 --shards 2 \
+  --out /tmp/scorelab-toy-lhs-shard0.json
+```
+
+```sh
+python -m scripts.dev.score_lab synthetic \
+  --candidates codex-queue/inputs/score-lab-candidates/candidates.py \
+  --components scripts/dev/score_lab/components-example.json \
+  --quick --out /tmp/scorelab-components-toy.json
+```
 
 The printed verdict says whether the exploratory 95% τ interval is positive
 on every tested profile, or which profiles fail/remain unresolved. The JSON

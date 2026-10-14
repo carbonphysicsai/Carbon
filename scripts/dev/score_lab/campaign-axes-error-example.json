@@ -1,0 +1,8 @@
+[
+  {"path": "population.0.heteroscedasticity", "kind": "linear", "low": 0.0, "high": 3.0},
+  {"path": "population.0.error_region", "kind": "choices", "values": ["uniform", "boundary", "optimum"]},
+  {"path": "population.0.cross_design_correlation", "kind": "linear", "low": 0.0, "high": 1.0},
+  {"path": "population.0.tail_rate", "kind": "linear", "low": 0.0, "high": 0.08},
+  {"path": "population.0.tail_size", "kind": "linear", "low": 0.0, "high": 0.5},
+  {"path": "population.0.sigma_scale", "kind": "log", "low": 0.25, "high": 4.0}
+]

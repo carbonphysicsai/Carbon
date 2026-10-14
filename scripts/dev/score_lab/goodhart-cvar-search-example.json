@@ -1,0 +1,50 @@
+{
+  "seed": 42,
+  "random_draws": 20,
+  "hill_epochs": 4,
+  "base_member_id": "physics-understanding-0",
+  "value_scope": "robust_cvar",
+  "parameters": {
+    "noise": [
+      0.001,
+      0.12,
+      0.02
+    ],
+    "transfer": [
+      0.0,
+      1.0,
+      0.25
+    ],
+    "law_rate": [
+      0.0,
+      0.5,
+      0.1
+    ],
+    "law_size": [
+      0.0,
+      0.5,
+      0.1
+    ],
+    "rollout_drift": [
+      0.0,
+      0.2,
+      0.04
+    ],
+    "robustness": [
+      0.0,
+      0.2,
+      0.04
+    ],
+    "extrapolation": [
+      0.0,
+      0.3,
+      0.05
+    ],
+    "score_path_only": [
+      0,
+      1,
+      1
+    ]
+  },
+  "tail_fraction": 0.25
+}

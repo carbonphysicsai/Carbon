@@ -607,6 +607,7 @@ class RunPodPods:
         clock=time.time,
         sleep=time.sleep,
         http=None,
+        http_post=None,
         transport=None,
         balance_floor=operator_balance_floor,
         scoring=None,
@@ -635,6 +636,7 @@ class RunPodPods:
         # unless asked, so every earlier caller behaves exactly as before.
         self.retry_ambiguous_create = retry_ambiguous_create is True
         self.http = http or _https_get
+        self.http_post = http_post or _https_post
         self._record_lock = threading.Lock()
         root = Path(root)
         root.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -675,12 +677,22 @@ class RunPodPods:
         from scripts.dev.exam_design.runpod import pod_control
 
         stop = record["deadline_at"] - EXPORT_MINUTES * 60
+        transport = record.get("manifest_transport", pod_control.MANIFEST_UPLOAD)
+        try:
+            if transport == "legacy-env-v1":
+                manifest = pod_control.manifest_env(self.manifest)
+            elif transport == pod_control.MANIFEST_UPLOAD:
+                manifest = pod_control.manifest_upload_env(self.manifest)
+            else:
+                raise ValueError("code_manifest_transport_unknown")
+        except ValueError as refused:
+            raise PodFailure("ship", str(refused), executed=False) from None
         env = {
             "PROBE_TOKEN": record["token"],
             "PROBE_DEADLINE": str(int(record["deadline_at"] + 60)),
             "PROBE_CA_GZ_B64": _ca_bundle(),
             "CODE_REF": self.code_ref,
-            **pod_control.manifest_env(self.manifest),
+            **manifest,
             "PHASE": PHASE,
             "PHASE_CONFIG": json.dumps(job.config(stop), sort_keys=True),
             # EV4's GPU settings (`--jax-platform cuda,cpu --pinned-xla`). A
@@ -731,6 +743,7 @@ class RunPodPods:
                             "allowed_cuda_versions": list(
                                 self._cuda_versions(job.backend)
                             ),
+                            "manifest_transport": "authenticated-upload-v1",
                         },
                         sort_keys=True,
                     ).encode(),
@@ -738,7 +751,9 @@ class RunPodPods:
             record = json.loads(path.read_bytes())
         if record["intent_id"] != job.intent_id:
             raise PodFailure("launch", "pod job record conflict", executed=False)
-        return record
+        # An old saved create retains its original wire interpretation. This
+        # compatibility label is returned only; the historical file is untouched.
+        return {"manifest_transport": "legacy-env-v1", **record}
 
     def _cuda_versions(self, backend):
         """The host CUDA versions a pod of `backend` may run: JAX's derived at
@@ -836,9 +851,15 @@ class RunPodPods:
                 retry_ambiguous=self.retry_ambiguous_create,
             )
         except ComputeError as failure:
+            detail = failure.failed
+            if failure.execution is Execution.MAY_HAVE_EXECUTED:
+                status = failure.http_status
+                detail += (
+                    " (HTTP unavailable)" if status is None else f" (HTTP {status})"
+                )
             raise PodFailure(
                 "launch",
-                failure.failed,
+                detail,
                 executed=failure.execution is not Execution.NOT_EXECUTED,
             ) from None
         self._tokens[job.intent_id] = record["token"]
@@ -853,6 +874,19 @@ class RunPodPods:
         token = self._token(handle)
         base = self.adapter.connect_url(self._owned(handle), 8000)
         return self.http(base + path, token, timeout)
+
+    def _upload_manifest(self, handle, timeout=60):
+        from scripts.dev.exam_design.runpod import pod_control
+
+        raw = pod_control.manifest_upload_bytes(self.manifest)
+        base = self.adapter.connect_url(self._owned(handle), 8000)
+        post = getattr(self, "http_post", _https_post)
+        code, _body = post(base + "/code-manifest", self._token(handle), raw, timeout)
+        if code not in (0, 200):
+            raise PodFailure(
+                "ship", "code_manifest_anchor_upload_refused", executed=True
+            )
+        return code == 200
 
     def _token(self, handle):
         token = self._tokens.get(handle.intent_id)
@@ -927,6 +961,10 @@ class RunPodPods:
                     status = None
                 # A pod's own answer: an object, else no stage.
                 stage = status.get("stage") if type(status) is dict else None
+                if stage == "waiting_code_manifest":
+                    if at >= deadline:
+                        return "timeout"
+                    self._upload_manifest(handle, timeout=min(60, deadline - at))
                 if stage == "running_phase":
                     seen.setdefault("first_running", at)
                     seen["last_running"] = at
@@ -1079,6 +1117,30 @@ def _https_get(url, token, timeout):
     except urllib.error.HTTPError as refused:
         return refused.code, b""
     except Exception:  # noqa: BLE001 -- an unreachable pod is a typed status
+        return 0, b""
+
+
+def _https_post(url, token, body, timeout):
+    """The same pod/token boundary as reads; public, anchored manifest bytes."""
+    import urllib.error
+    import urllib.request
+
+    request = urllib.request.Request(
+        url,
+        data=body,
+        method="POST",
+        headers={
+            "X-Probe-Token": token,
+            "Content-Type": "application/json",
+            "User-Agent": "carbon-graphite/1",
+        },
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            return response.status, b""
+    except urllib.error.HTTPError as refused:
+        return refused.code, b""
+    except Exception:  # noqa: BLE001 -- unreachable stays within the polling deadline
         return 0, b""
 
 

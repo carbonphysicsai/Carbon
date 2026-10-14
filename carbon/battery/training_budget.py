@@ -84,11 +84,21 @@ class BatteryAdapter:
         from . import development_rebuild
 
         try:
-            if level == development_composition.COMPOSED:
+            if (
+                level == development_composition.COMPOSED
+                or type(level) is development_composition.Composition
+            ):
                 # The whole 0-4 plan in one recipe (CONSTRUCTION-CONTRACT-01):
                 # costed as the composed rebuild trains it, never refused for
                 # being a combination.
-                found = development_composition.compile(strategy, check_budget=False)
+                selected = (
+                    level
+                    if type(level) is development_composition.Composition
+                    else None
+                )
+                found = development_composition.compile(
+                    strategy, selected, check_budget=False
+                )
             else:
                 found = dv.compile_development(
                     strategy, dv.variant(CHALLENGE, level), check_budget=False
@@ -96,10 +106,7 @@ class BatteryAdapter:
         except dv.VariantRefused as refused:
             raise CostRefused("cost_development_refused", refused.code) from None
         record = development_rebuild.record(found.reconstruction)
-        if (
-            development_rebuild.kind(record) == development_rebuild.LEVEL4
-            and graph_compile is None
-        ):
+        if development_rebuild.uses_graph(record) and graph_compile is None:
             # A graph's FLOPs come from its G5 compile (`train_step_flops`),
             # not from a battery training program: TRAINING-BUDGET-02 slice 5.
             raise CostRefused("cost_level4_graph_pending", "no G5 compile result")
@@ -148,8 +155,32 @@ class BatteryAdapter:
 
         if level:
             recipe, record = self._development(strategy, level, graph_compile)
-            if development_rebuild.kind(record) == development_rebuild.LEVEL4:
-                return [self._graph_program(recipe, graph_compile)]
+            if development_rebuild.uses_graph(record):
+                if development_rebuild.kind(record) == development_rebuild.LEVEL4:
+                    return [self._graph_program(recipe, graph_compile)]
+                import math
+
+                from carbon.training_budget.cost import CostRefused
+
+                from . import composed_graph_cost
+
+                flops = (graph_compile or {}).get("train_step_flops")
+                if (
+                    type(flops) not in (int, float)
+                    or not math.isfinite(flops)
+                    or flops <= 0
+                ):
+                    raise CostRefused(
+                        "cost_level4_graph_unmeasured", "composition_graphs"
+                    )
+                cases = (
+                    self.train_cases()
+                    if record["pool"] is None
+                    else record["pool"]["cases"]
+                )
+                return [
+                    composed_graph_cost.program(recipe, record, graph_compile, cases)
+                ]
         else:
             _, recipe = compile_recipe(strategy)
             record = None

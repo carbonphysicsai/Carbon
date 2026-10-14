@@ -12,6 +12,10 @@ live Graphite Constructor or Attacker session spends money.
 **Status:** specification. Every item names its check. Items marked
 **[auto]** have, or must get, a command. Items marked **[review]** are
 recorded Test Lead review steps.
+PKT-14 adds [executable positive/negative controls](../challenge_pipeline/readiness/NEGATIVE_CONTROLS.md).
+The v2 report distinguishes legacy item results from controlled readiness;
+the CLI exits 0 only for a complete controlled roster. Missing controls are
+UNCONTROLLED, not passing. This does not qualify any physical or host gate.
 - **The target command** is `python -m carbon.challenge_pipeline readiness
   --challenge <id> [--level N]`. It prints this checklist with one status
   per item:
@@ -19,7 +23,7 @@ recorded Test Lead review steps.
     review passed (a [review] item).
   - **PASS_BY_REVIEW**: an [auto] item whose automated check is NOT_BUILT,
     accepted by a valid committed PASS review (reviewer, date, evidence). It
-    counts toward the exit code but is shown apart from an automated PASS, so
+    counts toward the legacy launch_ready flag but is shown apart from an automated PASS, so
     the missing automation stays visible. A review can never turn a FAIL into
     a pass, and a missing, malformed or FAIL review leaves the item NOT_BUILT.
   - **WAIVED**: a NOT_BUILT or REVIEW_REQUIRED item covered by an unexpired,
@@ -31,12 +35,15 @@ recorded Test Lead review steps.
     promotion, frontier or improvement claim).
   - **FAIL**, **NOT_BUILT**, **REVIEW_REQUIRED** (a [review] item with no
     valid review): none of these passes.
-  Two flags in the report. `green` is true only when every item is PASS or
+  Two legacy flags in the report. `green` is true only when every item is PASS or
   PASS_BY_REVIEW, so any WAIVED item keeps it false (and the metrics honest).
-  `launch_ready`, which sets the exit code (0 when true), is true when no
+  `launch_ready` retains its historical meaning and is true when no
   FAIL, NOT_BUILT or REVIEW_REQUIRED remains: every non-PASS item is
   PASS_BY_REVIEW or WAIVED under an unexpired waiver. Launch also stays gated
   on the FAIL items (R1, A4), since a FAIL is never covered.
+  The prospective v2 `controlled_ready` additionally requires executable
+  positive/negative controls for all 42 items; it alone sets CLI exit 0.
+  A legacy PASS, review or waiver never substitutes for a missing control.
 - **Until that command exists,** the Test Lead runs the gate by hand and
   records the result in the challenge's wave notes.
 - **Who builds it:** owner to be assigned (see the end of this document).

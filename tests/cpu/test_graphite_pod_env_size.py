@@ -92,6 +92,58 @@ def test_the_ship_is_the_closure_and_the_environment_fits(shipped):
     assert pod_env.env_chars(spec.env) < pod_env.ENV_LIMIT_CHARS - 8_000
 
 
+def _level4_job():
+    """A real Level 4 proposal's job: the starter graph lowered, admitted under
+    the registered development variant with its staged documents, and carrying
+    its envelope, all through the paths a run takes (`experiment.admit`,
+    `pod_phase.level4_transport`), so its configuration is not a stand-in."""
+    from carbon.battery import level4 as battery
+    from carbon.level4 import allowlist as allowlist_module
+    from carbon.level4 import intake, staging, submission
+    from carbon.reconstruction import development_variants as dv
+
+    strategy = json.loads(json.dumps(battery.level0_strategies()["scaffold_mlp"]))
+    manifest, files = battery.lower_recipe(
+        strategy, allowlist_module.load(), max_bytes=intake.BOUNDS["document_bytes"]
+    )
+    raw = submission.canonical(manifest)
+    envelope = staging.envelope(raw, files)
+    strategy["parameters"][battery.FIELD] = envelope["submission"]
+    kept = json.dumps(envelope, sort_keys=True, separators=(",", ":")).encode()
+    variant = dv.variant(BATTERY_CHALLENGE, 4)
+    expected = ex.admit(
+        strategy, 7, variant=variant, workspace=staging.workspace(raw, files)
+    )
+    return pods.PodJob(
+        "graphite-env-size",
+        strategy,
+        expected["contract_digest"],
+        7,
+        {"files": expected["staged"], "program": expected["program"]},
+        30,
+        600,
+        development_variant=variant.digest,
+        level4_envelope=pod_phase.level4_transport(kept),
+    )
+
+
+def test_a_real_level_4_job_environment_keeps_its_headroom(shipped):
+    """The check above builds a Level 0 job, whose configuration is far smaller
+    than a Level 4 one: the Level 4 run of 2026-10-13 had a 91,029-character
+    environment and was refused by the old 90,000 bound, while the Level 0 job
+    here measured about 82,000 and passed that bound's headroom check by nine
+    characters. This one builds the job a Level 4 run builds, so it fails in CI
+    while a real Level 4 environment still has 8,000 characters of room under
+    the bound. The shipped closure grew about 1,300 characters a day between
+    the 2026-10-10 and 2026-10-13 commits: when this fails, trim the closure
+    (`DYNAMIC_PACKAGES`, `ENTRY_MODULES`) before raising the bound again."""
+    manifest = pods.code_manifest(_head(), shipped, REPOSITORY)
+    job = _level4_job()
+    assert job.level4_envelope and job.development_variant
+    spec = _backend(manifest).pod_spec(job, RECORD)
+    assert pod_env.env_chars(spec.env) < pod_env.ENV_LIMIT_CHARS - 8_000
+
+
 def test_manifest_transport_is_lossless_deterministic_and_keeps_the_existing_wire():
     import base64
     import gzip
@@ -213,25 +265,32 @@ class NoProvider:
 
 
 def test_an_oversized_environment_is_refused_before_any_provider_call(tmp_path):
-    # Distinct digests, so the gzip in `manifest_env` cannot shrink them.
-    big = {
-        f"carbon/f{i:05d}.py": hashlib.sha256(str(i).encode()).hexdigest()
-        for i in range(3000)
-    }
+    # The code manifest travels outside the environment. Exercise the actual
+    # remaining size guard with deliberately oversized synthetic phase data.
+    job = dataclasses.replace(
+        _job(),
+        strategy={
+            **KNN,
+            "parameters": {
+                **KNN["parameters"],
+                "synthetic_payload": "x" * pod_env.ENV_LIMIT_CHARS,
+            },
+        },
+    )
     service = NoProvider()
-    backend = _backend(big, service)
+    backend = _backend({"carbon/__init__.py": "0" * 64}, service)
     with pytest.raises(pods.PodFailure) as refused:
-        backend.launch(_job(), tmp_path)
+        backend.launch(job, tmp_path)
     assert refused.value.executed is False
     assert refused.value.detail.startswith(pods.ENV_TOO_LARGE + ":")
-    assert "CODE_MANIFEST_GZ_B64" in refused.value.detail
+    assert "PHASE_CONFIG" in refused.value.detail
     assert service.calls == []
 
 
 def test_the_guard_counts_names_and_values():
     assert pod_env.env_chars({"AB": "xyz", "C": ""}) == 6
     assert pod_env.largest_variable({"A": "x", "B": "xyz"}) == "B"
-    assert pod_env.ENV_LIMIT_CHARS == 90_000
+    assert pod_env.ENV_LIMIT_CHARS == 108_000
 
 
 def test_the_a40_harness_shares_the_same_closure_and_limit():

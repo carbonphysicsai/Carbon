@@ -59,7 +59,7 @@ def _readiness(args):
         with open(args.json, "w", encoding="utf-8", newline=chr(10)) as out:
             json.dump(report, out, indent=1, sort_keys=True)
             out.write(chr(10))
-    return 0 if report["launch_ready"] else 1
+    return 0 if report.get("controlled_ready") is True else 1
 
 
 def main(argv=None):
@@ -81,7 +81,8 @@ def main(argv=None):
     g = sub.add_parser(
         "readiness",
         help="run the Graphite readiness gate for one challenge "
-        "(exit 0 only when launch-ready: no FAIL, NOT_BUILT or REVIEW_REQUIRED left)",
+        "(exit 0 only when every item has a passing executable control; "
+        "legacy readiness alone is insufficient)",
     )
     g.add_argument("--challenge", required=True)
     g.add_argument("--level", type=int, default=0)

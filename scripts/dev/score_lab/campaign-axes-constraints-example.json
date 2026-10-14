@@ -1,0 +1,4 @@
+[
+  {"path": "problem.constraint_count", "kind": "choices", "values": [0, 1, 2, 3, 4, 5]},
+  {"path": "problem.constraint_offset", "kind": "linear", "low": -0.2, "high": 0.2}
+]

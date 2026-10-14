@@ -3,6 +3,12 @@
     python scripts/dev/battery/plating_rereference.py select MAIN_CHECKOUT PDD_DIR EV4_REFERENCES > cases.json
     python -m scripts.dev.battery.plating_convergence run --cases cases.json --out DIR --mid-workers N
     python scripts/dev/battery/plating_rereference.py label MAIN_CHECKOUT cases.json DIR/records.jsonl > labels.json
+    python scripts/dev/battery/plating_rereference.py pending MAIN_CHECKOUT PDD_DIR EV4_REFERENCES > pending-cases.json
+    python scripts/dev/battery/plating_rereference.py relabel labels.json pending-cases.json > labels-v2-r1.json
+
+`v2_label(m20, m160)` is the reader for battery-plating-ref-v2 as re-derived by
+VALIDATOR-PLATING-REF-V2-02 (band 1.0 mV, window upper edge 4.5 mV) after
+D3's stop-before-sealing triggers fired.
 
 The owner approved D3 (2026-10-13, "Yes to both") for the public near-onset set
 inside the standing test grant; the sealed bank is excluded. The Validator set
@@ -24,6 +30,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import sys
 from pathlib import Path
 
@@ -43,7 +50,11 @@ EV4_SHA = "72ea300b42fe1ca4e54b9c6131cb126ca7217ebddd5f1dddca8044a7bcef2dbf"
 EV4_CONTRACT = "carbon/battery/value/contracts/ev4-charge-protocol-selection.v1.json"
 
 
-def _cases(main, name, contract_path, records_path, splits):
+def _in_window(margin):
+    return LOW_V < margin < HIGH_V
+
+
+def _cases(main, name, contract_path, records_path, splits, keep=_in_window):
     sys.path.insert(0, str(main))
     from carbon.battery.value import contract as ev
     from carbon.battery.value import decision as d
@@ -62,7 +73,7 @@ def _cases(main, name, contract_path, records_path, splits):
         ):
             continue
         margin = d.measure(contract, record["outputs"])["plating_margin_v"]
-        if LOW_V < margin < HIGH_V:
+        if keep(margin):
             job = jobs[record["case_id"]]
             out.append({
                 "case_id": record["case_id"], "source": name, "question": job["scenario"],
@@ -93,17 +104,118 @@ def new_label(m20, m160):
     return "UNRESOLVED"
 
 
-def select(main, pdd_dir, ev4_references):
-    main, pdd = Path(main), Path(pdd_dir)
-    ev4 = Path(ev4_references)
+#: VALIDATOR-PLATING-REF-V2-02: D3's stop triggers fired, so the band was
+#: re-derived by the same formula (1.0 mV) and the window's upper edge widened
+#: (4.5 mV). The rule ids carry -r1 so D3's draft 0.6 mV labels (`m160-d3`) are
+#: never read as sealed v2 labels.
+R1_HIGH_V, R1_FEASIBLE_AT_V = 4.5e-3, 1.0e-3
+V2_RULES = (
+    "m20-above-window-r1",
+    "m160-d3-r1",
+    "pending-m160-r1",
+    "m20-below-window",
+)
+
+
+def v2_label(m20, m160=None):
+    """The battery-plating-ref-v2 label of one case and the rule that gave it.
+
+    Margins in volts: `m20` the standard (mesh-20) reference's plating margin,
+    `m160` the mesh-160 re-reference or None where the case was not re-solved.
+    Returns None where v2 makes no claim (|m20| >= 15 mV). A case inside the
+    window without m160 is UNRESOLVED and never usable as FEASIBLE.
+    """
+    if not math.isfinite(m20):
+        raise ValueError("m20 must be finite")
+    if abs(m20) >= CLAIM_V:
+        return None
+    if m20 >= R1_HIGH_V:
+        return {"label": "FEASIBLE", "rule": "m20-above-window-r1"}
+    if m20 <= LOW_V:
+        return {"label": "INFEASIBLE", "rule": "m20-below-window"}
+    if m160 is None:
+        return {"label": "UNRESOLVED", "rule": "pending-m160-r1"}
+    if not math.isfinite(m160):
+        raise ValueError("m160 must be finite or None")
+    if m160 >= R1_FEASIBLE_AT_V:
+        label = "FEASIBLE"
+    elif m160 < 0:
+        label = "INFEASIBLE"
+    else:
+        label = "UNRESOLVED"
+    return {"label": label, "rule": "m160-d3-r1"}
+
+
+def _public(main, pdd, ev4, keep):
     if hashlib.sha256(ev4.read_bytes()).hexdigest() != EV4_SHA:
         raise SystemExit("refused: the public EV4 reference copy changed")
     cases = _cases(
-        main, "pdd", pdd / "contract.json", pdd / "records.jsonl", ["development"]
+        main, "pdd", pdd / "contract.json", pdd / "records.jsonl", ["development"], keep
     )
-    cases += _cases(
-        main, "ev4", main / EV4_CONTRACT, ev4, ["development", "verification"]
+    return cases + _cases(
+        main, "ev4", main / EV4_CONTRACT, ev4, ["development", "verification"], keep
     )
+
+
+def pending(main, pdd_dir, ev4_references):
+    """The public cases V2-02's wider window opened: m20 in [3.5, 4.5) mV. They
+    were never re-solved, so v2 labels them `pending-m160-r1` until they are."""
+    cases = _public(
+        Path(main),
+        Path(pdd_dir),
+        Path(ev4_references),
+        lambda m: HIGH_V <= m < R1_HIGH_V,
+    )
+    return {
+        "schema": "carbon.battery.plating-convergence-cases.v1",
+        "ladder": "re-reference",
+        "rule": "V2-02: every public PDD development and EV4 public case whose standard "
+        f"plating margin is in [{HIGH_V * 1e3:g}, {R1_HIGH_V * 1e3:g}) mV",
+        "counts": {s: sum(c["source"] == s for c in cases) for s in ("pdd", "ev4")},
+        "cases": cases,
+    }
+
+
+def relabel(labels_path, pending_path):
+    """D3's solved cases and the newly pending ones under the sealed-to-be v2
+    rules. Reads D3's labels report (m20, m160 per case); recomputes nothing."""
+    rows = json.loads(Path(labels_path).read_text(encoding="utf-8"))["rows"]
+    opened = json.loads(Path(pending_path).read_text(encoding="utf-8"))["cases"]
+    out = []
+    for r in rows:
+        m160 = None if r["m160_mv"] is None else r["m160_mv"] * 1e-3
+        out.append({"case_id": r["case_id"], "source": r["source"],
+                    "m20_mv": r["m20_mv"], "m160_mv": r["m160_mv"],
+                    "draft_label": r["new_label"],
+                    **v2_label(r["m20_mv"] * 1e-3, m160)})  # fmt: skip
+    for c in opened:
+        out.append({"case_id": c["case_id"], "source": c["source"],
+                    "m20_mv": c["reference_margin_v"] * 1e3, "m160_mv": None,
+                    "draft_label": None, **v2_label(c["reference_margin_v"])})  # fmt: skip
+    if len({r["case_id"] for r in out}) != len(out):
+        raise SystemExit("refused: a case appears twice")
+    counts = {}
+    for r in out:
+        key = f"{r['rule']}:{r['label']}"
+        counts[key] = counts.get(key, 0) + 1
+    return {
+        "schema": "carbon.battery.plating-v2-labels.v1",
+        "version": VERSION,
+        "decision": "VALIDATOR-PLATING-REF-V2-02",
+        "status": "DEVELOPMENT; not sealed (sealing is the Validator's step)",
+        "parameters": {"window_mv": [LOW_V * 1e3, R1_HIGH_V * 1e3],
+                       "feasible_at_mv": R1_FEASIBLE_AT_V * 1e3,
+                       "infeasible_below_mv": 0.0, "claimed_within_mv": CLAIM_V * 1e3},
+        "counts": dict(sorted(counts.items())),
+        "pending_by_source": {s: sum(c["source"] == s for c in opened) for s in ("pdd", "ev4")},
+        "rows": out,
+    }  # fmt: skip
+
+
+def select(main, pdd_dir, ev4_references):
+    main, pdd = Path(main), Path(pdd_dir)
+    ev4 = Path(ev4_references)
+    cases = _public(main, pdd, ev4, _in_window)
     # The 10 % convergence subsample, stratified by source and by where m20
     # sits in the window (below 0, in the old band, above it).
     strata = {}
@@ -222,6 +334,12 @@ if __name__ == "__main__":
     elif command == "label":
         sys.path.insert(0, sys.argv[2])
         result = label(*sys.argv[3:5])
+    elif command == "pending":
+        result = pending(*sys.argv[2:5])
+    elif command == "relabel":
+        result = relabel(*sys.argv[2:4])
     else:
-        raise SystemExit("usage: plating_rereference.py select|label ...")
+        raise SystemExit(
+            "usage: plating_rereference.py select|label|pending|relabel ..."
+        )
     print(json.dumps(result, indent=1, sort_keys=True))

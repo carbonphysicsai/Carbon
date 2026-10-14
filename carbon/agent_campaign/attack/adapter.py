@@ -81,8 +81,11 @@ INCONCLUSIVE = "INCONCLUSIVE"
 #: The generic oracle's reading for a session attempt Carbon rebuilt no
 #: construction for: nothing judged, never scored (`family_oracle`).
 NO_REBUILT_CONSTRUCTION = "NO_REBUILT_CONSTRUCTION"
+#: A declared family lacks the evidence or owner inputs it needs. Unlike a
+#: true out-of-scope seam, verification must remain UNDETERMINED, not NA.
+NO_ORACLE_EVIDENCE = "NO_ORACLE_EVIDENCE"
 #: An oracle's verdicts: the engine's attack verdicts, INCONCLUSIVE for a hold
-#: the detector cannot vouch for, and NOT_RUN for a seam.
+#: the detector cannot vouch for, and NOT_RUN for a seam or unavailable input.
 ORACLE_VERDICTS = frozenset(
     {engine.HELD, engine.BREACHED, *engine.NO_ANSWER, INCONCLUSIVE, NOT_RUN}
 )
