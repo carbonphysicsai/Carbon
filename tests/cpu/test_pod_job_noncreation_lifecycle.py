@@ -123,3 +123,138 @@ def test_current_not_executed_call_cannot_clear_prior_ambiguous_history(lane):
     receipt = finish(backend, root, executed=False)
     assert receipt["cost"]["pending_usd"] == "3"
     assert gr.weekly_report(clock=clock)["spent_usd"] == "3.00"
+
+
+@pytest.mark.parametrize("different_store", [False, True])
+def test_same_job_execution_is_owned_through_zero_settlement_across_processes(
+    lane, monkeypatch, different_store
+):
+    import copy
+    import os
+    import subprocess
+    import sys
+    import threading
+
+    backend, _, clock, root = lane
+    backend.key_file = root / "synthetic-key"
+    backend.spec.document = {"uploads": {}}
+    backend.describe = lambda: {"fixture": True}
+    monkeypatch.setattr(pod_jobs, "require_enabled", lambda _key: [])
+    other = copy.copy(backend)
+    if different_store:
+        other.store = ComputeStore(root / "another-synthetic-store", clock=clock)
+        other.store.start_campaign("pod-jobs")
+    paused, resume, contender_started, dispatched = (
+        threading.Event() for _ in range(4)
+    )
+    receipts, errors = [], []
+    contender_blocked = threading.Event()
+
+    def predispatch_refusal(_private):
+        raise PodFailure("launch", "synthetic predispatch refusal", executed=False)
+
+    def contender_launch(_private):
+        dispatched.set()
+        raise AssertionError("terminal job dispatched again")
+
+    backend.launch_job = predispatch_refusal
+    other.launch_job = contender_launch
+    teardown = pod_jobs._teardown
+
+    def pause_after_history(*args):
+        if threading.current_thread().name == "first-caller":
+            paused.set()
+            assert resume.wait(10)
+        return teardown(*args)
+
+    monkeypatch.setattr(pod_jobs, "_teardown", pause_after_history)
+
+    def caller(which, name):
+        if name == "second":
+            contender_started.set()
+        try:
+            receipts.append(pod_jobs.run(which.spec, root / name, backend=which))
+        except Exception as error:  # noqa: BLE001 -- assert every worker result
+            errors.append(error)
+
+    first = threading.Thread(
+        target=caller, args=(backend, "first"), name="first-caller"
+    )
+    second = threading.Thread(
+        target=caller, args=(other, "second"), name="second-caller"
+    )
+    first.start()
+    try:
+        assert paused.wait(10)  # history read done; zero settlement has not run
+        # An independent process must find the same job's lease busy. This
+        # fails deterministically if run omits the ownership context, even if
+        # a contender thread happens to be scheduled late.
+        lock_path = gr.ledger_dir() / (
+            "pod-job-execution." + gr.entry_id(gr.POD_JOB_STORE, "toy-job") + ".lock"
+        )
+        probe = """
+import fcntl, os, sys
+fd = os.open(sys.argv[1], os.O_RDWR | os.O_CREAT, 0o600)
+try:
+    fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+except BlockingIOError:
+    sys.exit(17)
+"""
+        result = subprocess.run(
+            [sys.executable, "-c", probe, str(lock_path)], check=False
+        )
+        assert result.returncode == 17
+        unrelated = str(lock_path).replace(
+            gr.entry_id(gr.POD_JOB_STORE, "toy-job"),
+            gr.entry_id(gr.POD_JOB_STORE, "other-job"),
+        )
+        result = subprocess.run([sys.executable, "-c", probe, unrelated], check=False)
+        assert result.returncode == 0  # different jobs are not serialized
+        original_flock = gr.fcntl.flock
+        execution_inode = lock_path.stat().st_ino
+
+        def prove_contender_blocks(stream, flags):
+            if (
+                threading.current_thread().name == "second-caller"
+                and os.fstat(stream.fileno()).st_ino == execution_inode
+            ):
+                try:
+                    original_flock(stream, flags | gr.fcntl.LOCK_NB)
+                except BlockingIOError:
+                    contender_blocked.set()
+                else:
+                    raise AssertionError("contender was not blocked before claim")
+            return original_flock(stream, flags)
+
+        monkeypatch.setattr(gr.fcntl, "flock", prove_contender_blocks)
+        second.start()
+        assert contender_started.wait(10)
+        assert contender_blocked.wait(10)  # kernel refused it before claim
+    finally:
+        resume.set()
+        first.join(timeout=10)
+        if second.ident is not None:
+            second.join(timeout=10)
+        if different_store:
+            other.store.close()
+    assert not first.is_alive() and not second.is_alive()
+    assert len(receipts) == 1 and receipts[0]["cost"]["pending_usd"] == "0"
+    assert len(errors) == 1 and isinstance(errors[0], gr.SharedRunsError)
+    assert ("origin differs" if different_store else "needs a new job id") in str(
+        errors[0]
+    )
+    with pytest.raises(gr.SharedRunsError, match="needs a new job id"):
+        gr.claim_pod_job("toy-job", "3", origin=backend.claim_origin(), clock=clock)
+    assert not dispatched.is_set()
+    assert gr.weekly_report(clock=clock)["spent_usd"] == "0.00"
+    assert gr.count(gr.POD_JOB_GRANT_ID) == 1
+    # Normal completion releases the OS lease; it is not a persisted busy bit.
+    result = subprocess.run([sys.executable, "-c", probe, str(lock_path)], check=False)
+    assert result.returncode == 0
+    with (
+        pytest.raises(RuntimeError, match="synthetic exceptional exit"),
+        gr.pod_job_execution("toy-job"),
+    ):
+        raise RuntimeError("synthetic exceptional exit")
+    result = subprocess.run([sys.executable, "-c", probe, str(lock_path)], check=False)
+    assert result.returncode == 0  # exceptional exit also closes the descriptor

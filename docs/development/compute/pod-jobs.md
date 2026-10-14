@@ -114,6 +114,19 @@ identity is guessed. Releasing the reported historical ambiguous failures still
 needs an authoritative non-creation fact or a separately authorized owner rule.
 No cap, reserve, rate, slot-refund policy or provider retry rule changes here.
 
+The automatic `run` lifecycle owns a per-job execution `flock` in the shared
+ledger directory, keyed by the full `POD_JOB_STORE`/job-id entry digest. It starts
+before the claim and lasts through teardown and settlement. A competing caller
+(even with another backend or compute root) waits and then rechecks the claim;
+a zero-settled bound claim is terminal before that caller may dispatch. This
+closes the race between a pre-dispatch history read and ordinary zero settlement.
+Different job ids can run concurrently. The lock file stays in place and the
+descriptor closes on every exit; it is never unlinked or acquired again inside
+finish/settlement. Order is execution lock, grant lock, weekly lock, compute-store
+write fence where needed. Grant/weekly/store locks are not held across provider
+work. The external operator reconcile only observes/adopts/terminates and never
+dispatches a create; the trusted low-level ledger API is not a launch entrypoint.
+
 ## The image (item 3)
 
 No new image. The job runs in the pinned EV4 study image, the one the A40 value_panel

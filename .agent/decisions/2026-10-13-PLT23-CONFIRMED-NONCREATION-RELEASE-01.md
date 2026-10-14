@@ -43,6 +43,21 @@ authoritative vendor non-creation fact or a separately owner-approved rule.
 This is a scoped evidence gap, not permission to infer never-created from empty
 listings, timeout, missing handle, termination or resources_may_remain alone.
 
+Prospective review repair PLT23-ACCOUNTING-01: a second unfinished same-job
+caller could dispatch after the first caller's pre-dispatch history read but
+before its ordinary zero settlement. The automatic run/check lifecycle now
+holds a shared-ledger per-job execution flock before claim through finish.
+The full existing POD_JOB_STORE/job-id digest keys it across backend/store roots.
+Files stay stable, never unlinked; FD close releases all exits; no nested
+acquisition. Waiting callers recheck terminal claims before launch. Different
+jobs remain concurrent. Order: execution, grant, weekly, then SQLite fence;
+grant/weekly/store locks are never held across provider work. External operator
+reconcile never dispatches; no lower-level reentrant adapter is introduced.
+The deterministic actual-run control pauses after history read, proves the
+same lock busy to another process and another job free, then verifies another
+backend/store caller cannot launch after zero settlement. Ambiguous history
+remains held. This is a concurrency repair, not new economic authority.
+
 Expected manifest: this decision, carbon/agent_campaign/{pod_jobs.py,
 grant_runs.py,pod_job_noncreation.py}, focused synthetic receipt/store/ledger
 CPU tests, and docs/development/compute/pod-jobs.md. Fresh open-PR scan found no

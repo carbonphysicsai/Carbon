@@ -823,7 +823,10 @@ def run(spec, out, *, backend, ledger=None, private=None, uploads=None):
     from carbon.agent_campaign import grant_runs
 
     ledger = grant_runs if ledger is None else ledger
-    if not all(hasattr(ledger, f) for f in ("claim_pod_job", "settle_pod_job")):
+    if not all(
+        hasattr(ledger, f)
+        for f in ("claim_pod_job", "settle_pod_job", "pod_job_execution")
+    ):
         raise SpecRefused("pod_job_grant_unavailable", "grant_runs has no pod_job kind")
     # The owner's switch, read again now: off (or gone since the backend was
     # built) refuses before any claim or provider call.
@@ -845,6 +848,14 @@ def run(spec, out, *, backend, ledger=None, private=None, uploads=None):
         "cost": None,
         "ok": False,
     }
+    # An unfinished claim is reusable for recovery. Its prior-history check
+    # and NOT_EXECUTED settlement must not race another same-job dispatcher.
+    # Waiting callers recheck the terminal claim after this lifecycle finishes.
+    with ledger.pod_job_execution(spec.job_id):
+        return _run_claimed(spec, out, backend, ledger, private, files_in, receipt)
+
+
+def _run_claimed(spec, out, backend, ledger, private, files_in, receipt):
     ledger.claim_pod_job(
         spec.job_id, backend.money["cap_usd"], origin=backend.claim_origin()
     )

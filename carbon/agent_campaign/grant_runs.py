@@ -65,6 +65,7 @@ import re
 import sqlite3
 import sys
 import time
+from contextlib import contextmanager
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
@@ -903,6 +904,26 @@ def settle_pod_job(job_id, cost_usd, repository=REPOSITORY, *, pending_usd=0):
     return settle(
         None, POD_JOB_STORE, job_id, cost_usd, repository, pending_usd=pending_usd
     )
+
+
+@contextmanager
+def pod_job_execution(job_id, repository=REPOSITORY):
+    """Serialize a job's claim through final settlement across callers/processes.
+
+    No grant, weekly or compute-store lock is held while provider work runs.
+    Acquire this before those locks; a waiting caller must recheck its claim.
+    """
+    if type(job_id) is not str or not _SAFE.fullmatch(job_id):
+        raise SharedRunsError(UNAVAILABLE, "exact pod-job execution id required")
+    path = ledger_dir(repository) / (
+        "pod-job-execution." + entry_id(POD_JOB_STORE, job_id) + ".lock"
+    )
+    with os.fdopen(_open(path), "r+b") as stream:
+        try:
+            fcntl.flock(stream, fcntl.LOCK_EX)
+        except OSError as error:
+            raise SharedRunsError(UNAVAILABLE, type(error).__name__) from None
+        yield
 
 
 def release_pod_job_noncreation(job_id, evidence, repository=REPOSITORY):
