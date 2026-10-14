@@ -1,0 +1,22 @@
+{
+  "schema": "carbon.validator-runtime-units.v1",
+  "name": "carbon-validator",
+  "bundle": "HUMAN_INPUT_EXACT_ABSOLUTE_PUBLIC_RELEASE_DIRECTORY",
+  "digest": "HUMAN_INPUT_BUNDLE_SHA256",
+  "image": "HUMAN_INPUT_ACCEPTED_PUBLISHED_OPERATOR_IMAGE_AT_DIGEST",
+  "user": "HUMAN_INPUT_OPERATOR_UID_GID",
+  "docker_socket": "HUMAN_INPUT_ABSOLUTE_OPERATOR_DOCKER_SOCKET",
+  "state_mounts": ["HUMAN_INPUT_ABSOLUTE_OPERATOR_CONFIG_STATE_CREDENTIAL_ROOT"],
+  "service_config": "HUMAN_INPUT_ABSOLUTE_SERVICE_CONFIG",
+  "fetch_config": "HUMAN_INPUT_ABSOLUTE_SHARED_ANSWER_KEY_FETCH_CONFIG",
+  "weights": {
+    "config": "HUMAN_INPUT_ABSOLUTE_NEUTRAL_WEIGHTS_OPERATOR_CONFIG",
+    "standing": "HUMAN_INPUT_EXISTING_STANDING_FILE",
+    "journal": "HUMAN_INPUT_EXISTING_PUBLICATION_JOURNAL",
+    "ledger": "HUMAN_INPUT_EXISTING_WINNER_LEDGER",
+    "deployment": "HUMAN_INPUT_ABSOLUTE_SAME_DEPLOYMENT_AS_INTAKE_AND_FETCH",
+    "policy_version": null
+  },
+  "sync_every_s": null,
+  "weights_every_s": null
+}

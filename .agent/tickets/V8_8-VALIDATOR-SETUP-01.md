@@ -83,3 +83,11 @@ artifact, external HTTPS, GPU, live chain/publication/payment, security/science/
 mainnet qualification retain their independent owner receipts. Proposed tag
 word and final release SHA remain Root/owner decisions. Bug fixes alone do not
 make v8.8 ready.
+
+Canonical evidence at implementation slice: existing service/proxy/answer-key
+baseline99 PASS. New interrupted-salt/missing-design controls2 RED on original
+source, then repaired first slice24 PASS; image/lifecycle/entry slice19 PASS.
+Complete focused source/config/image/lease/entry/runtime/units plus answer-key/
+design-window/installed-SDK regressions125 PASS/56.14s. Canonical Black/Ruff17
+changed Python paths PASS after formatting actual source. Actual image build,
+fresh-machine and real HTTPS/chain receipts remain separate NOT_RUN cells.

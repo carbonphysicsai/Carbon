@@ -1,0 +1,105 @@
+"""Public source packaging fixtures; no real image/host/chain acceptance."""
+
+import json
+import subprocess
+
+import pytest
+
+from carbon.validator_setup import bundle as b
+
+
+def command(root, *args):
+    return subprocess.check_output(["git", *args], cwd=root).decode().strip()
+
+
+def source(tmp_path):
+    root = tmp_path / "source"
+    root.mkdir()
+    for path, body in {
+        "pyproject.toml": 'dependencies=["bittensor==11.1.0"]',
+        "uv.lock": "public-fixture-lock",
+        "carbon/validator_setup/__main__.py": "# public fixture entrypoint",
+        "scripts/dev/battery_validator_service/__main__.py": "# public fixture service",
+        ".agent/decisions/fixture.md": "public fixture, no authority",
+        "Business/private.txt": "synthetic-business-marker",
+        "state/history.json": "synthetic-state-marker",
+    }.items():
+        target = root / path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(body, encoding="utf-8")
+    command(root, "init", "-q")
+    command(root, "config", "user.name", "Public Fixture")
+    command(root, "config", "user.email", "fixture@example.invalid")
+    command(root, "add", ".")
+    command(root, "commit", "-qm", "public fixture")
+    return root, command(root, "rev-parse", "HEAD")
+
+
+def test_exact_tracked_blobs_ignore_worktree_edits_untracked_secrets_and_state(
+    tmp_path,
+):
+    root, revision = source(tmp_path)
+    (root / "uv.lock").write_text("modified worktree", encoding="utf-8")
+    (root / "untracked.key").write_text("synthetic-key-marker", encoding="utf-8")
+    built = b.materialize(root, revision, tmp_path / "release")
+    assert (built.root / "uv.lock").read_text() == "public-fixture-lock"
+    assert not (built.root / "Business").exists()
+    assert not (built.root / "state").exists()
+    assert not (built.root / "untracked.key").exists()
+    assert b.verify(built.root, built.digest) == built
+    assert built.manifest["credentials_and_state"] == "EXTERNAL_ONLY"
+    assert "NOT_QUALIFICATION" in built.manifest["scope"]
+
+
+@pytest.mark.parametrize("kind", ["bytes", "extra", "manifest", "symlink"])
+def test_changed_bytes_manifest_file_set_or_symlink_refuse(tmp_path, kind):
+    root, revision = source(tmp_path)
+    built = b.materialize(root, revision, tmp_path / "release")
+    if kind == "bytes":
+        target = built.root / "uv.lock"
+        target.chmod(0o644)
+        target.write_bytes(b"changed")
+        target.chmod(0o444)
+    elif kind == "extra":
+        (built.root / "new.key").write_bytes(b"synthetic-secret-marker")
+    elif kind == "manifest":
+        target = built.root / b.MANIFEST
+        target.chmod(0o644)
+        value = json.loads(target.read_bytes())
+        value["sdk"] = "unreviewed-sdk"
+        target.write_bytes(b.encoded(value))
+    else:
+        (built.root / "outside").symlink_to(root, target_is_directory=True)
+    with pytest.raises(b.SetupRefused):
+        b.verify(built.root, built.digest)
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "../state",
+        "/absolute",
+        "carbon/../private",
+        "carbon\\private",
+        "C:/private",
+        "wallet/key",
+        "carbon//file",
+    ],
+)
+def test_payload_paths_are_closed_and_cannot_escape(path):
+    with pytest.raises(b.SetupRefused):
+        b.safe_path(path)
+
+
+def test_nonempty_target_or_mutable_revision_never_overwrites(tmp_path):
+    root, revision = source(tmp_path)
+    target = tmp_path / "release"
+    target.mkdir()
+    marker = target / "history"
+    marker.write_bytes(b"keep")
+    with pytest.raises(b.SetupRefused):
+        b.materialize(root, revision, target)
+    with pytest.raises(b.SetupRefused, match="EXACT_SOURCE_REVISION_REQUIRED"):
+        b.materialize(root, "main", tmp_path / "another")
+    assert marker.read_bytes() == b"keep"
+    assert not (tmp_path / "another").exists()
