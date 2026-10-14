@@ -41,6 +41,9 @@ legacy sessions or turn ambiguous provider failures into definite non-execution.
 108,000 override landed in PR #1321 and is preserved. Once that PR merged,
 the obsolete oversized-manifest test input was replaced with truly oversized
 synthetic phase data; all runtime-refusal/provider-call assertions remain.
+The shared JAX/PyTorch image-selection fixture supplies a nonempty public
+file/hash pair, as real code shipping requires. Empty manifests remain refused
+before a provider call; image, CUDA and backend-difference assertions remain.
 
 ## Measured software evidence
 

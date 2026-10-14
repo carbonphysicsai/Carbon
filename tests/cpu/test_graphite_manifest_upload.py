@@ -247,6 +247,16 @@ def test_manifest_transport_bound_refuses_before_provider_call(tmp_path):
     assert refused.value.executed is False and service.calls == []
 
 
+def test_empty_manifest_is_refused_before_provider_call(tmp_path):
+    from test_graphite_pod_env_size import NoProvider, _backend, _job
+
+    service = NoProvider()
+    backend = _backend({}, service)
+    with pytest.raises(pods.PodFailure, match="code_manifest_empty") as refused:
+        backend.launch(_job(), tmp_path)
+    assert refused.value.executed is False and service.calls == []
+
+
 def test_legacy_bootstrap_keeps_its_original_manifest_and_no_upload_route(monkeypatch):
     ns = _bootstrap(monkeypatch, legacy=True)
     assert ns["MANIFEST"] == MANIFEST
