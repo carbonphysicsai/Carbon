@@ -129,6 +129,19 @@ def _directory(path, cleanup):
     return current
 
 
+def _submission_scope(raw, adapter):
+    from carbon.level4 import submission
+
+    manifest = _json(raw)
+    if (
+        type(manifest) is not dict
+        or manifest.get("schema") != submission.SCHEMA
+        or manifest.get("challenge") != adapter.challenge_id
+        or manifest.get("level") != adapter.level
+    ):
+        raise TargetRefused("target_submission_scope_mismatch")
+
+
 def _capture(public_root, name, expected_manifest, delivery):
     # The public root is trusted operator configuration, never a miner field.
     # A path/name or a claimed public/executed flag cannot mint runtime evidence.
@@ -253,7 +266,8 @@ def load(public_root, name, expected_manifest, adapter, *, repository):
                 body.decode("utf-8")
             ):
                 raise TargetRefused("target_material_not_public")
-        submission, _, _ = staging.from_envelope(envelope)
+        submission, raw_manifest, _ = staging.from_envelope(envelope)
+        _submission_scope(raw_manifest, adapter)
         from carbon.battery.level4 import FIELD
 
         development = recipe.get("development") if type(recipe) is dict else None

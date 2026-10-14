@@ -105,6 +105,24 @@ def test_the_registered_fixture_is_non_runtime_evidence():
     assert len(set(fixture["cases"])) == len(fixture["cases"]) == 12
 
 
+def test_staged_scope_matches_the_existing_submission_contract():
+    from carbon.level4 import submission
+
+    manifest = {
+        "schema": submission.SCHEMA,
+        "level": 4,
+        "challenge": l4.CHALLENGE_ID,
+    }
+    targets._submission_scope(canonical(manifest), l4.ADAPTER)
+    for field, wrong in (
+        ("schema", "other-schema"),
+        ("level", 3),
+        ("challenge", "another-public-challenge"),
+    ):
+        with pytest.raises(targets.TargetRefused, match="submission_scope_mismatch"):
+            targets._submission_scope(canonical({**manifest, field: wrong}), l4.ADAPTER)
+
+
 def test_unsupported_filesystem_intake_fails_before_opening_a_source(monkeypatch):
     monkeypatch.setattr(targets.os, "supports_dir_fd", frozenset())
     monkeypatch.setattr(targets.os, "open", lambda *_a, **_k: pytest.fail("opened"))
@@ -218,6 +236,50 @@ def test_missing_or_rebound_metadata_is_not_a_target(tmp_path, public_template, 
 
     source = exported(tmp_path, public_template, change=change)
     with pytest.raises(targets.TargetRefused):
+        targets.load(*source, l4.ADAPTER, repository=ROOT)
+
+
+def test_self_consistent_stage_for_another_challenge_is_not_the_selected_target(
+    tmp_path, public_template
+):
+    from carbon.agent_campaign.graphite import delivery, experiment
+    from carbon.battery.level4 import FIELD
+    from carbon.level4 import staging
+    from carbon.reconstruction.artifact_identity import build_identity
+
+    def change(bodies):
+        envelope = json.loads(bodies["level4-envelope.json"])
+        _name, raw_manifest, files = staging.from_envelope(envelope)
+        graph_manifest = json.loads(raw_manifest)
+        graph_manifest["challenge"] = "another-public-challenge"
+        envelope = staging.envelope(canonical(graph_manifest), files)
+        bodies["level4-envelope.json"] = canonical(envelope)
+        strategy = json.loads(bodies["strategy.json"])
+        strategy["parameters"][FIELD] = envelope["submission"]
+        recipe = experiment.admit(
+            strategy,
+            7,
+            variant=l4.variant(),
+            workspace=staging.workspace(canonical(graph_manifest), files),
+        )
+        bodies["strategy.json"] = canonical(strategy)
+        bodies["recipe.json"] = canonical(recipe)
+        bodies["score.json"] = canonical({"recipe_digest": recipe["recipe_digest"]})
+        manifest = json.loads(bodies["manifest.json"])
+        manifest["recipe_digest"] = recipe["recipe_digest"]
+        manifest["artifact"] = build_identity(recipe)
+        manifest["files"] = {
+            name: digest(body)
+            for name, body in bodies.items()
+            if name != "manifest.json"
+        }
+        bodies["manifest.json"] = canonical(manifest)
+
+    source = exported(tmp_path, public_template, change=change)
+    # The old metadata-only reconstruction accepts these consistent bytes.
+    # The selected-scope check must discriminate the foreign graph manifest.
+    assert delivery.clean_rebuild(source[0] / source[1])["status"] == "REBUILT"
+    with pytest.raises(targets.TargetRefused, match="submission_scope_mismatch"):
         targets.load(*source, l4.ADAPTER, repository=ROOT)
 
 

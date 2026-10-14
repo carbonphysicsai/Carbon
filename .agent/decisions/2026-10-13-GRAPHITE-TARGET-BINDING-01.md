@@ -37,3 +37,9 @@ lookup to phase4_remint.py. Add that existing delegate to the manifest before
 editing it; prospective targeted logs must be validated there and pass the
 same context to remint_specimen. Its legacy records/lookup stay unchanged.
 No other open PR owns this delegate or the audit refresh paths at this check.
+
+Focused inspection: staging.from_envelope checks byte identities, not the
+selected Challenge/level. Explicitly compare the captured graph manifest's
+existing submission schema, Challenge and level before metadata rebuild.
+A self-consistent foreign-Challenge envelope must refuse even when its
+own digests agree. This is scope identity, not a new scientific gate.
