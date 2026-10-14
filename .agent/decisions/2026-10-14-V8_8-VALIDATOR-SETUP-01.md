@@ -33,3 +33,15 @@ one complete checkpoint; Platform2 packages it and Validator reviews once.
 Human-reserved gaps: final tag/release identity, actual host/image/exposure and
 runtime acceptance, mainnet registered policy/coldkey custody, security/science/
 payment qualification. No value or authority is inferred from fixture success.
+
+Review repair: require an explicit image-route host-network/listener/local-proxy
+binding for the trusted operator service. Host loopback retains the registered
+proxy peer; a default bridge cannot supply that route. No miner/worker network
+policy changes or implicit exposure. Require the existing fetch signer socket,
+optional fetch CA and intake TLS paths to exist with their expected type under
+declared identical mounts, without symlink traversal. Omitted signer refuses
+instead of falling back to the container home. Rendering connects/signs nothing.
+Keep current exposure records, carrier/commitment checks and peer/header gates.
+The same complete reviewer checks this focused delta; unchanged review/evidence
+is retained with its prior identity. Actual Docker fixtures use only synthetic
+loopback transports/marker files, not a published operator image or host acceptance.

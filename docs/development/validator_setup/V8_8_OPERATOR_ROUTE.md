@@ -130,6 +130,26 @@ fetch/intake/weights must name the same deployment. Sync/weights periods are
 explicit operator inputs, never silently invented. Generation writes five
 owner-only support files to a new directory, installs/starts nothing.
 
+The profile also binds `service_network` to `mode: host`, the intake's exact
+`listener_host`/`listener_port`, and its explicit local `proxy_peer` (127.0.0.1
+or ::1 for trusted-proxy mode, null for direct mode). Only the trusted operator
+service container joins the host network namespace. A host TLS proxy can then
+reach the configured loopback listener and retain its registered loopback peer;
+Docker bridge publication would change that peer and is refused by this route.
+This does not publish a listener, start a proxy, authorize exposure or alter the
+network isolation of reconstruction/miner workers. Existing intake exposure,
+TLS, carrier and commitment checks remain controlling. No blanket forwarded
+header trust is introduced; nonregistered proxy peers still refuse.
+
+The image route requires an explicit `signer_socket` in the existing fetch
+configuration. It refuses the implicit container-home signer fallback. That
+socket, any fetch `ca`, and any intake `tls_cert`/`tls_key` must already exist
+as the expected socket/regular file under declared identical state mounts,
+without symlink traversal. Keep the signer running under its existing authority;
+unit rendering only checks its path/type and does not connect or sign. Prepare
+these files/socket before rendering units; no credentials are copied into the
+public source bundle or image. Existing runtime TLS/key permission checks apply.
+
 ```bash
 python -m carbon.validator_setup runtime-units \
   --profile "$OWNED_RUNTIME_UNITS_PROFILE" --out "$NEW_UNIT_OUTPUT_DIRECTORY"

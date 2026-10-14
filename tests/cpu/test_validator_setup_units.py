@@ -1,6 +1,7 @@
 """Image-backed unit rendering and per-operator identity; no units installed."""
 
 import json
+import socket
 
 import pytest
 from test_validator_setup_bundle import source
@@ -42,11 +43,29 @@ def arrangement(tmp_path, monkeypatch):
             "receiver": "fixture-publisher",
             "deployment": str(deployment),
             "inbox": str(state / "inbox.sqlite3"),
+            "host": "127.0.0.1",
+            "port": 8467,
         },
     )
     fetch = state / "fetch.json"
+    signer = state / "signer.sock"
+    with monkeypatch.context() as local:
+        local.chdir(state)
+        with socket.socket(socket.AF_UNIX) as listener:
+            listener.bind("signer.sock")
     fetch.write_text(
-        json.dumps({"hotkey": "fixture-publisher", "deployment": str(deployment)}),
+        json.dumps(
+            {
+                "schema": "carbon.challenge-validator.answer-key-fetch-config.v1",
+                "url": "https://fixture.invalid",
+                "receiver": "fixture-producer",
+                "producer_public_key": "synthetic-public-key",
+                "challenge_id": "synthetic-challenge",
+                "hotkey": "fixture-publisher",
+                "deployment": str(deployment),
+                "signer_socket": str(signer),
+            }
+        ),
         encoding="utf-8",
     )
     fetch.chmod(0o600)
@@ -58,6 +77,12 @@ def arrangement(tmp_path, monkeypatch):
         "image": "ghcr.io/public-fixture/operator@sha256:" + "a" * 64,
         "user": "1000:1000",
         "docker_socket": str(state / "docker.sock"),
+        "service_network": {
+            "mode": "host",
+            "listener_host": "127.0.0.1",
+            "listener_port": 8467,
+            "proxy_peer": None,
+        },
         "state_mounts": [str(state)],
         "service_config": str(svc),
         "fetch_config": str(fetch),
@@ -92,6 +117,9 @@ def test_all_three_roles_use_same_bound_image_and_operator_route_with_explicit_p
             assert '"--service-config"' in text
         else:
             assert "supervise" in text
+            assert '"--network" "host"' in text
+        if role != "service":
+            assert '"--network" "host"' not in text
         assert "DOCKER_HOST=unix://" + raw["docker_socket"] in text
         assert "private_key" not in text
     result = units.write(profile, tmp_path / "generated")
@@ -122,3 +150,99 @@ def test_substituted_identity_missing_mount_tag_or_unspecified_cadence_refuses_b
     with pytest.raises(SetupRefused):
         units.write(profile, tmp_path / "never-written")
     assert not (tmp_path / "never-written").exists()
+
+
+@pytest.mark.parametrize("bad", ["missing", "bridge", "host", "port", "proxy_peer"])
+def test_unbound_listener_or_proxy_namespace_refuses(tmp_path, monkeypatch, bad):
+    from scripts.dev.battery_validator_service import service
+
+    profile, raw, _fetch, _state = arrangement(tmp_path, monkeypatch)
+    intake = service._intake(None, None)
+    intake["exposure"] = {
+        "via": "trusted_proxy",
+        "header": "CF-Connecting-IP",
+        "record": "OWNER-FIXTURE-INTAKE-EXPOSURE-99",
+    }
+    monkeypatch.setattr(service, "_intake", lambda *_args: intake)
+    raw["service_network"]["proxy_peer"] = "127.0.0.1"
+    if bad == "missing":
+        del raw["service_network"]
+    else:
+        field, value = {
+            "bridge": ("mode", "bridge"),
+            "host": ("listener_host", "0.0.0.0"),
+            "port": ("listener_port", 1),
+            "proxy_peer": ("proxy_peer", "172.17.0.1"),
+        }[bad]
+        raw["service_network"][field] = value
+    profile.write_text(json.dumps(raw), encoding="utf-8")
+    with pytest.raises(SetupRefused):
+        units.write(profile, tmp_path / "refused")
+    assert not (tmp_path / "refused").exists()
+
+
+def materials(tmp_path, monkeypatch):
+    from scripts.dev.battery_validator_service import service
+
+    profile, raw, fetch, state = arrangement(tmp_path, monkeypatch)
+    intake = service._intake(None, None)
+    for field in ("tls_cert", "tls_key"):
+        target = state / field
+        target.write_bytes(b"public-synthetic-material-not-a-real-credential")
+        target.chmod(0o600)
+        intake[field] = str(target)
+    ca = state / "producer-ca.pem"
+    ca.write_bytes(b"public-synthetic-ca")
+    ca.chmod(0o600)
+    body = json.loads(fetch.read_bytes())
+    body["ca"] = str(ca)
+    fetch.write_text(json.dumps(body), encoding="utf-8")
+    monkeypatch.setattr(service, "_intake", lambda *_args: intake)
+    return profile, raw, fetch, state, intake
+
+
+def test_explicit_signer_ca_and_tls_paths_under_identical_mount_are_prepared(
+    tmp_path, monkeypatch
+):
+    profile, _raw, _fetch, _state, _intake = materials(tmp_path, monkeypatch)
+    assert len(units.render(profile)) == 5
+
+
+@pytest.mark.parametrize("field", ["signer_socket", "ca", "tls_cert", "tls_key"])
+@pytest.mark.parametrize("bad", ["outside_mount", "missing", "wrong_type", "symlink"])
+def test_signer_ca_tls_path_requires_real_correct_type_and_identical_mount(
+    tmp_path, monkeypatch, field, bad
+):
+    profile, _raw, fetch, state, intake = materials(tmp_path, monkeypatch)
+    body = json.loads(fetch.read_bytes())
+    target = (
+        tmp_path / "not-mounted" if bad == "outside_mount" else state / "bad-material"
+    )
+    if bad == "wrong_type":
+        if field == "signer_socket":
+            target.write_bytes(b"not-a-socket")
+        else:
+            target.mkdir()
+    elif bad == "symlink":
+        target.symlink_to(state / "producer-ca.pem")
+    if field in ("signer_socket", "ca"):
+        body[field] = str(target)
+        fetch.write_text(json.dumps(body), encoding="utf-8")
+    else:
+        intake[field] = str(target)
+    with pytest.raises(SetupRefused, match="^OPERATOR_CREDENTIAL_"):
+        units.write(profile, tmp_path / "refused")
+    assert not (tmp_path / "refused").exists()
+
+
+@pytest.mark.parametrize("value", [None, "", "relative.sock"])
+def test_signer_home_fallback_is_never_an_image_route(tmp_path, monkeypatch, value):
+    profile, _raw, fetch, _state = arrangement(tmp_path, monkeypatch)
+    body = json.loads(fetch.read_bytes())
+    if value is None:
+        del body["signer_socket"]
+    else:
+        body["signer_socket"] = value
+    fetch.write_text(json.dumps(body), encoding="utf-8")
+    with pytest.raises(SetupRefused):
+        units.render(profile)

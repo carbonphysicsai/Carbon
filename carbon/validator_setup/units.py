@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import re
+import stat
 from pathlib import Path
 
 from .bundle import SetupRefused, verify
@@ -21,6 +22,8 @@ def quoted(argv):
 
 
 def render(profile):
+    from carbon.battery.intake import is_loopback, proxy_header, trusted_proxy_peer
+    from carbon.challenge_validator.answer_key import load_fetch_config
     from scripts.dev.battery_validator_service.service import (
         _intake,
         load_service,
@@ -37,6 +40,7 @@ def render(profile):
         "image",
         "user",
         "docker_socket",
+        "service_network",
         "state_mounts",
         "service_config",
         "fetch_config",
@@ -56,8 +60,26 @@ def render(profile):
     artifact = verify(Path(raw["bundle"]), raw["digest"])
     service = load_service(raw["service_config"])
     intake = _intake(service, artifact.root)
-    owner_only_file(raw["fetch_config"], "fetch_config")
-    fetch = json.loads(Path(raw["fetch_config"]).read_bytes())
+    fetch = load_fetch_config(Path(raw["fetch_config"]))
+    network = raw["service_network"]
+    header = proxy_header(intake)
+    if (
+        type(network) is not dict
+        or set(network) != {"mode", "listener_host", "listener_port", "proxy_peer"}
+        or network["mode"] != "host"
+        or network["listener_host"] != intake["host"]
+        or type(network["listener_port"]) is not int
+        or network["listener_port"] != intake["port"]
+        or (
+            header is not None
+            and (
+                not is_loopback(intake["host"])
+                or not trusted_proxy_peer(network["proxy_peer"])
+            )
+        )
+        or (header is None and network["proxy_peer"] is not None)
+    ):
+        raise SetupRefused("EXPLICIT_HOST_LISTENER_PROXY_BINDING_REQUIRED")
     w = raw["weights"]
     if type(w) is not dict or set(w) != {
         "config",
@@ -107,6 +129,32 @@ def render(profile):
         weights.wallet_path,
         *(Path(w[k]) for k in ("config", "standing", "journal", "ledger")),
     ]
+    signer = fetch.get("signer_socket")
+    if type(signer) is not str or not signer:
+        raise SetupRefused("EXPLICIT_OPERATOR_SIGNER_SOCKET_REQUIRED")
+    material = [(signer, "socket")]
+    if fetch.get("ca") is not None:
+        material.append((fetch["ca"], "file"))
+    for field in ("tls_cert", "tls_key"):
+        if field in intake:
+            material.append((intake[field], "file"))
+    for value, kind in material:
+        if type(value) is not str or not value:
+            raise SetupRefused("EXPLICIT_OPERATOR_CREDENTIAL_PATH_REQUIRED")
+        target = Path(value)
+        if (
+            not target.is_absolute()
+            or target.is_symlink()
+            or any(p.is_symlink() for p in target.parents)
+            or not any(target.is_relative_to(m) for m in mounts)
+        ):
+            raise SetupRefused("OPERATOR_CREDENTIAL_NOT_MOUNTED_IDENTICALLY")
+        try:
+            mode = target.stat().st_mode
+        except OSError:
+            raise SetupRefused("OPERATOR_CREDENTIAL_UNAVAILABLE") from None
+        if not (stat.S_ISSOCK(mode) if kind == "socket" else stat.S_ISREG(mode)):
+            raise SetupRefused("OPERATOR_CREDENTIAL_TYPE_DIFFERS")
     if any(
         not p.is_absolute() or not any(p.is_relative_to(m) for m in mounts)
         for p in required
@@ -173,7 +221,7 @@ def render(profile):
         name = raw["name"] + "-" + role
         kind = "simple" if role == "service" else "oneshot"
         result[name + ".service"] = (
-            f"[Unit]\nDescription=Carbon {role} (operator image; not qualification)\nAfter=docker.service\n\n[Service]\nType={kind}\nExecStart={quoted([*docker, raw['image'], *command])}\n"
+            f"[Unit]\nDescription=Carbon {role} (operator image; not qualification)\nAfter=docker.service\n\n[Service]\nType={kind}\nExecStart={quoted([*docker, *(['--network', network['mode']] if role == 'service' else []), raw['image'], *command])}\n"
             + (
                 "Restart=on-failure\nRestartPreventExitStatus=2\n"
                 if role == "service"

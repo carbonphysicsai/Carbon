@@ -6,6 +6,12 @@
   "image": "HUMAN_INPUT_ACCEPTED_PUBLISHED_OPERATOR_IMAGE_AT_DIGEST",
   "user": "HUMAN_INPUT_OPERATOR_UID_GID",
   "docker_socket": "HUMAN_INPUT_ABSOLUTE_OPERATOR_DOCKER_SOCKET",
+  "service_network": {
+    "mode": "HUMAN_INPUT_EXPLICIT_HOST_NETWORK",
+    "listener_host": "HUMAN_INPUT_SAME_BIND_AS_INTAKE",
+    "listener_port": null,
+    "proxy_peer": null
+  },
   "state_mounts": ["HUMAN_INPUT_ABSOLUTE_OPERATOR_CONFIG_STATE_CREDENTIAL_ROOT"],
   "service_config": "HUMAN_INPUT_ABSOLUTE_SERVICE_CONFIG",
   "fetch_config": "HUMAN_INPUT_ABSOLUTE_SHARED_ANSWER_KEY_FETCH_CONFIG",
