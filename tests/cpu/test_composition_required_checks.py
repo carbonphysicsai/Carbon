@@ -186,9 +186,17 @@ def test_actual_intake_pass_preserves_received_and_continues_peers(
 
     def admit(submission):
         seen.append(submission.receipt["sequence"])
-        # Real ladder/compiler guard, before any store/commitment use.
-        instance.development_compiler(submission.strategy, submission.contract_digest)
+        # Exercise the real daemon admission method as well as inbox routing.
+        # Any attempt to record candidate failure, consume a window or read
+        # commitment/private state before the unavailable guard must fail.
+        return BatteryValidator.admit(instance, submission)
 
+    class NoStoreAccess:
+        def __getattr__(self, name):
+            pytest.fail("unavailable checks touched admission state: " + name)
+
+    instance.reserved_hotkeys = frozenset()
+    instance.store = NoStoreAccess()
     instance.admit = admit
     from carbon.battery import deployment
 
