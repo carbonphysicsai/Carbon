@@ -185,8 +185,18 @@ def _number(result):
     return float(value), admissible, tier
 
 
-def analyze(panel, rule, *, bootstrap=200, seed=20261013):
-    """One rule over one panel. Statistical intervals are exploratory."""
+def analyze(panel, rule, *, bootstrap=200, seed=20261013, value_blocks=None):
+    """One rule over one panel. Statistical intervals are exploratory.
+
+    Synthetic callers may opt into equal-size value blocks; see VALUE_BLOCKS.md.
+    Otherwise the existing per-question analysis is unchanged.
+    """
+    if value_blocks is not None:
+        from . import campaign_blocks
+
+        return campaign_blocks.evaluate(
+            panel, rule, value_blocks, bootstrap=bootstrap, seed=seed
+        )
     validate_panel(panel)
     if (
         getattr(rule, "rule_identity", {}).get("kind") == "VALUE-METRIC-V2-rev2-lab"
