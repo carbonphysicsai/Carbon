@@ -98,6 +98,95 @@ def _cross_level_shape(value):
     )
 
 
+def _parameters(value):
+    from collections.abc import Mapping
+
+    parameters = value.get("parameters") if isinstance(value, Mapping) else None
+    return parameters if isinstance(parameters, Mapping) else {}
+
+
+def _polish_surface():
+    from carbon.reconstruction.capability_registry import contract
+
+    return next(
+        cap.surface
+        for cap in contract(d.CHALLENGE_ID).capabilities
+        if cap.capability_id == "stages.polish_steps"
+    )
+
+
+def _off_lane_shape(value):
+    from carbon.battery import level3
+    from carbon.battery import level3_numerics as numerics
+
+    parameters = _parameters(value)
+    present = [
+        (field, parameters[field], default)
+        for field, menu, default in (
+            ("quasi_newton_family", numerics.ROUTINES, numerics.DEFAULT["routine"]),
+            ("line_search", numerics.SEARCHES, numerics.DEFAULT["line_search"]),
+        )
+        if field in parameters
+        and type(parameters[field]) is str
+        and parameters[field] in menu
+    ]
+    if not present:
+        return False
+    if (
+        value.get("backbone") not in level3.APPLIES_TO
+        or parameters.get("backend", "jax") not in level3.BACKENDS
+    ):
+        return True
+    polish = parameters.get("polish_steps", _polish_surface().default)
+    return (
+        type(polish) is int
+        and polish == 0
+        and any(item != default for _, item, default in present)
+    )
+
+
+def _unbounded_shape(value):
+    from carbon.battery import level3
+    from carbon.battery import level3_numerics as numerics
+    from carbon.battery.compile import compile_recipe
+
+    parameters = _parameters(value)
+    polish = parameters.get("polish_steps")
+    if type(polish) is int and polish > _polish_surface().high:
+        return True
+    if (
+        type(parameters.get("quasi_newton_family")) is not str
+        or parameters["quasi_newton_family"] not in numerics.DENSE
+        or "composition_graphs" in parameters
+    ):
+        return False
+    # Independent measurement of the EXISTING registered memory inequality,
+    # not a generic "compile refused" predicate or a new threshold. Raw graph
+    # identities have no admitted workspace here and are unscored above.
+    widened = d.composition().fields()
+    base = {
+        **value,
+        "parameters": {k: v for k, v in parameters.items() if k not in widened},
+    }
+    try:
+        _, recipe = compile_recipe(base)
+    except ValueError:
+        return False
+    if recipe.family not in level3.APPLIES_TO:
+        return False
+    needed = numerics.hessian_bytes(
+        level3.parameter_count(recipe),
+        8 if recipe.settings.get("precision") == "float64" else 4,
+    )
+    return needed > level3.memory_bound()
+
+
+def _slot_ablation_shape(value):
+    # This family's boundary is specifically the unchanged BASE door. A
+    # construction carrying neither widened slot cannot violate its ablation.
+    return bool({"quasi_newton_family", "line_search"}.intersection(_parameters(value)))
+
+
 def _off_lane_attacks():
     return (
         ("bfgs_on_pytorch", _strategy(quasi_newton_family="bfgs", backend="pytorch")),
@@ -188,6 +277,7 @@ def _families():
             control_ok=d.accepted,
             trained=honest,
             held_out=honest_largest,
+            attack_shape=_unbounded_shape,
         ),
         "l3_off_lane": d.FamilyRow(
             check="construction_evaluation_isolation",
@@ -199,6 +289,7 @@ def _families():
             control_ok=d.accepted,
             trained=honest,
             held_out=_strategy(line_search="backtracking"),
+            attack_shape=_off_lane_shape,
         ),
         "l3_cross_level_fields": d.FamilyRow(
             check="artifact_and_dependency_attacks",
@@ -222,6 +313,7 @@ def _families():
             control_ok=d.accepted,
             trained=_strategy(),
             held_out=_strategy(width=32, depth=2),
+            attack_shape=_slot_ablation_shape,
         ),
         "l3_rebuild_determinism": d.FamilyRow(
             check="reconstruction_and_recipient_rebuild",

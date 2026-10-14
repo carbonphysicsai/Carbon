@@ -132,3 +132,57 @@ def test_adapter_record_stages_the_same_parameters_as_its_executed_composition(
     )
     staged = json.loads((out / "fit.json").read_text(encoding="utf-8"))
     assert staged["params_sha256"] == first[1]["params_sha256"]
+
+
+@pytest.mark.parametrize(
+    "family, attacks",
+    [
+        ("l3_off_lane", l3._off_lane_attacks),
+        ("l3_unbounded_work", l3._unbounded_attacks),
+    ],
+)
+def test_l3_lane_and_work_oracles_require_actual_independent_violations(
+    family, attacks, monkeypatch
+):
+    original = l3._families()
+    row = original[family]
+    assert row.attack_shape is not None
+    for name, honest in l3._combination_controls():
+        assert not row.attack_shape(honest), name
+        verdict = l3.ADAPTER.oracle(family, AttackInput(name, honest))
+        assert verdict.verdict == NOT_RUN and verdict.condition is None
+    for name, attack in attacks():
+        assert row.attack_shape(attack), name
+        assert (
+            l3.ADAPTER.oracle(family, AttackInput(name, attack)).verdict == engine.HELD
+        )
+    weakened = {**original, family: replace(row, boundary=d.unchecked_gate)}
+    monkeypatch.setattr(l3.ADAPTER, "_table", lambda: weakened)
+    for name, attack in attacks():
+        result = l3.ADAPTER.oracle(family, AttackInput(name, attack))
+        assert (
+            result.verdict == engine.BREACHED
+            and result.condition == engine.FINDING_CONDITION
+        )
+    for name, honest in l3._combination_controls():
+        assert l3.ADAPTER.oracle(family, AttackInput(name, honest)).verdict == NOT_RUN
+
+
+def test_l3_base_ablation_cannot_call_an_ordinary_base_compile_a_breach(monkeypatch):
+    family = "l3_slot_ablation"
+    original = l3._families()
+    ordinary = l3._strategy()
+    assert l3.ADAPTER.oracle(family, AttackInput("base", ordinary)).verdict == NOT_RUN
+    weakened = {
+        **original,
+        family: replace(original[family], boundary=d.unchecked_gate),
+    }
+    monkeypatch.setattr(l3.ADAPTER, "_table", lambda: weakened)
+    assert l3.ADAPTER.oracle(family, AttackInput("base", ordinary)).verdict == NOT_RUN
+    attack = l3._ablation_attacks()[0][1]
+    assert (
+        l3.ADAPTER.oracle(family, AttackInput("widened_on_base_door", attack)).verdict
+        == engine.BREACHED
+    )
+    malformed = l3._strategy(quasi_newton_family={"not": "a menu value"})
+    assert not l3._unbounded_shape(malformed)
