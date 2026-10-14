@@ -6,8 +6,6 @@ Synthetic weight rows only: no chain, network or signer. Each verdict of
 
 from __future__ import annotations
 
-from types import SimpleNamespace
-
 from carbon.challenge_validator.canary import CANARY_HOTKEYS
 from scripts.dev.canary import incentive as inc
 
@@ -73,36 +71,25 @@ def test_what_cannot_be_read_is_unverified_never_a_pass():
     assert verify([[0, inc.U16]], incumbent="5Unregistered")["state"] == inc.PASS
 
 
-def test_check_reads_the_public_surfaces_and_refuses_mainnet():
-    config = {
-        "schema": inc.SCHEMA,
-        "validator_hotkey": "5Validator",
-        "intake_url": "http://127.0.0.1:1",
-        "feed_key": "00" * 32,
-        "policy": "testnet-winner-v1",
-    }
+def test_check_reads_bound_public_surfaces_and_refuses_foreign_network(
+    tmp_path, monkeypatch
+):
+    from dataclasses import replace
 
-    async def weights(context, hotkey):
-        assert hotkey == "5Validator"
-        return row(1 / 3), HOTKEYS
+    import test_incentive_observer_bindings as bindings
 
-    testnet = SimpleNamespace(network="testnet")
-    found = inc.check(
-        config,
-        weights_reader=weights,
-        incumbent_reader=lambda url, key: INCUMBENT,
-        context=testnet,
-    )
+    config = bindings.config(tmp_path)
+    found = bindings.current_check(config, monkeypatch)
     assert found["state"] == inc.PASS
-    finney = SimpleNamespace(network="finney")
-    assert inc.check(config, context=finney)["findings"] == [{"code": "testnet_only"}]
+    finney = replace(bindings.CONTEXT, network="finney")
+    assert inc.check(config, context=finney)["findings"] == [
+        {"code": "chain_context_mismatch"}
+    ]
 
-    def unreadable(url, key):
+    def unreadable(url, key, challenge):
         raise inc.Unverified("feed_unavailable")
 
-    found = inc.check(
-        config, weights_reader=weights, incumbent_reader=unreadable, context=testnet
-    )
+    found = inc.check(config, feed_reader=unreadable, context=bindings.CONTEXT)
     assert found == {
         "state": inc.UNVERIFIED,
         "findings": [{"code": "feed_unavailable"}],
@@ -281,28 +268,13 @@ def test_summarize_fills_the_974_sybil_row_observed_half():
     assert inc.summarize([], share)["observed"] is None
 
 
-def test_an_empty_weight_row_with_roles_is_unverified_not_a_crash():
-    config = {
-        "schema": inc.SCHEMA,
-        "validator_hotkey": "5Publisher",
-        "intake_url": "http://127.0.0.1:1",
-        "feed_key": "00" * 32,
-        "policy": "testnet-winner-v1",
-        "roles": True,
-    }
+def test_an_empty_weight_row_with_roles_is_unverified_not_a_crash(
+    tmp_path, monkeypatch
+):
+    import test_incentive_observer_bindings as bindings
 
-    async def weights(context, hotkey):
-        return [], {0: "5Burn"}
-
-    class Testnet:
-        network = "testnet"
-
-    result = inc.check(
-        config,
-        weights_reader=weights,
-        leaderboard_reader=lambda url, key: {},
-        context=Testnet(),
-    )
+    config = {**bindings.config(tmp_path), "roles": True}
+    result = bindings.current_check(config, monkeypatch, row=())
     assert result["state"] == inc.UNVERIFIED
     assert result["findings"][0] == {"level": inc.UNVERIFIED, "code": "no_weights_set"}
 
@@ -357,31 +329,16 @@ def test_a_miner_paid_by_another_validator_is_attention():
     ]
 
 
-def test_check_folds_the_incentive_readback_into_its_state():
-    config = {
-        "schema": inc.SCHEMA,
-        "validator_hotkey": "5Validator",
-        "intake_url": "http://127.0.0.1:1",
-        "feed_key": "00" * 32,
-        "policy": "testnet-winner-v1",
-    }
+def test_check_folds_bound_incentive_readback_into_its_state(tmp_path, monkeypatch):
+    import test_incentive_observer_bindings as bindings
 
-    async def weights(context, hotkey):
-        return (
-            [[0, 65535], [5, 32767]],
-            {0: "5Burn", 5: "5MinerA"},
-            [43690] + [0] * 4 + [21844],
-        )
-
-    class Testnet:
-        network = "testnet"
-
-    result = inc.check(
-        config,
-        weights_reader=weights,
-        incumbent_reader=lambda url, key: None,
-        context=Testnet(),
-    )
+    result = bindings.current_check(bindings.config(tmp_path), monkeypatch)
     codes = [f["code"] for f in result["findings"]]
-    assert "weight_to_unreleased_incumbent" in codes and "weighted_uid_paid" in codes
-    assert result["state"] == inc.UNVERIFIED
+    assert (
+        "registered_aggregate_targets_match" in codes and "weighted_uid_paid" in codes
+    )
+    assert result["state"] == inc.PASS
+    assert (
+        result["observation"]["payment_claim"]
+        == "INCENTIVE_ONLY_NOT_ALPHA_RECEIPT_OR_SETTLEMENT"
+    )
