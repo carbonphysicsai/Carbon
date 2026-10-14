@@ -33,7 +33,7 @@ from . import public_v2_reference as v2
 from .core import LabRefused, canonical_sha
 
 ROOT = Path(__file__).resolve().parents[3]
-SCHEMA = "carbon.dev.ev4-public-v2-replay.v1"
+SCHEMA = "carbon.dev.ev4-public-v2-replay.v2"
 MANIFEST = "docs/development/evidence/ev4-dev-tuning-v1/predictions.sha256"
 MANIFEST_SHA = "b1811937663d1c38d220122335cb5e159c899f6966ac430088ccdaf4c40857cd"
 CHEAP_SOURCES = {
@@ -323,6 +323,46 @@ def _legacy_store(contract, refs):
     return exam.CaseStore(refs, ocv, tol, scales, SHAPES, {}), ids
 
 
+def _gate_evidence(candidate, rows, members):
+    """Separate measured failures from unknown measures and operational refusal."""
+    statuses = {m: [] for m in members}
+    measurements, missing_measures, missing_members = [], set(), set()
+    for gate in candidate.gates:
+        verdicts = {}
+        for member in members:
+            value = rows[member]["gates"].get(gate["measure"])
+            if type(value) not in (int, float) or not math.isfinite(value):
+                verdicts[member] = "UNKNOWN"
+                missing_measures.add(gate["measure"])
+                missing_members.add(member)
+            else:
+                verdicts[member] = st.one_gate_verdict(gate, rows[member])
+            statuses[member].append(verdicts[member])
+        measurements.append(
+            {
+                **gate,
+                "measured_members": sum(v != "UNKNOWN" for v in verdicts.values()),
+                "unmeasured_members": sum(v == "UNKNOWN" for v in verdicts.values()),
+                "measured_failures": sum(v == "FAIL" for v in verdicts.values()),
+                "measured_passes": sum(v == "PASS" for v in verdicts.values()),
+            }
+        )
+    return {
+        "legacy_gate_failures": sum("FAIL" in values for values in statuses.values()),
+        "legacy_gate_unknown_members": sum(
+            "UNKNOWN" in values and "FAIL" not in values for values in statuses.values()
+        ),
+        "missing_required_gate_members": len(missing_members),
+        "missing_required_gate_measures": sorted(missing_measures),
+        "gate_measurements": measurements,
+        "gate_measurement_status": (
+            "UNMEASURED"
+            if missing_members
+            else "MEASURED" if candidate.gates else "NOT_APPLICABLE"
+        ),
+    }
+
+
 def legacy_report(rows, utilities, members, recipe_of, *, replicates, seed, level):
     """Exact registered legacy scorer; missing Q3/VERIFY inputs never supplied."""
     results = {}
@@ -336,6 +376,7 @@ def legacy_report(rows, utilities, members, recipe_of, *, replicates, seed, leve
             scores, verdicts = st.candidate_scores(
                 candidate, {m: rows[m] for m in members}, recipe_of
             )
+            gate_evidence = _gate_evidence(candidate, rows, members)
             missing = [m for m in members if scores[m] is None]
             missing_legs = sorted(
                 {
@@ -353,12 +394,19 @@ def legacy_report(rows, utilities, members, recipe_of, *, replicates, seed, leve
                 "members": len(members),
                 "missing_score_members": len(missing),
                 "missing_required_legs": missing_legs,
-                "legacy_gate_failures": sum(v == "FAIL" for v in verdicts.values()),
+                **gate_evidence,
+                "operational_fail_closed_verdicts": sum(
+                    v == "FAIL" for v in verdicts.values()
+                ),
                 "gate_basis": "legacy reference; not prospective v2 eligibility",
                 "full_v3_measured": False,
                 "Q3": "UNMEASURED_NO_PUBLIC_Q3_JOB",
             }
-            if missing or missing_legs:
+            if (
+                missing
+                or missing_legs
+                or gate_evidence["missing_required_gate_members"]
+            ):
                 report["status"] = "UNMEASURED_INCOMPLETE_RULE_INPUTS"
             elif not utilities or any(
                 utilities.get(m) is None or not utilities[m] for m in members

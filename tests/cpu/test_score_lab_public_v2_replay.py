@@ -189,3 +189,48 @@ def test_absent_q3_and_value_never_become_a_complete_v3_rule():
     assert q_rules and all(
         row["status"] == "UNMEASURED_INCOMPLETE_RULE_INPUTS" for row in q_rules
     )
+
+
+@pytest.mark.parametrize("missing", ["absent", None, float("nan")])
+def test_missing_sign_is_unknown_not_observed_gate_failure(monkeypatch, missing):
+    sign = {"measure": "sign", "cutoff": 0.5}
+    envelope = {"measure": "envelope", "cutoff": 0.5}
+    candidates = {
+        "SIGN": replay.st.Candidate("SIGN", weights={"a": 1.0}, gate=sign),
+        "SIGN+ENV": replay.st.Candidate(
+            "SIGN+ENV", weights={"a": 1.0}, gate=sign, gates=(sign, envelope)
+        ),
+    }
+    monkeypatch.setattr(
+        replay.st, "load_registry", lambda _path: (candidates, {"sha256": "toy"})
+    )
+    rows = {
+        name: {"eligible": True, "legs": {"a": 1.0}, "gates": {"envelope": 0.0}}
+        for name in ("unmeasured", "failed", "passed")
+    }
+    if missing != "absent":
+        rows["unmeasured"]["gates"]["sign"] = missing
+    rows["failed"]["gates"]["sign"] = 1.0
+    rows["passed"]["gates"]["sign"] = 0.0
+    result = replay.legacy_report(
+        rows, {}, list(rows), {m: m for m in rows}, replicates=5, seed=1, level=0.95
+    )
+    for row in result.values():
+        assert row["legacy_gate_failures"] == 1
+        assert row["legacy_gate_unknown_members"] == 1
+        assert row["missing_required_gate_members"] == 1
+        assert row["missing_required_gate_measures"] == ["sign"]
+        assert row["gate_measurement_status"] == "UNMEASURED"
+        assert row["status"] == "UNMEASURED_INCOMPLETE_RULE_INPUTS"
+        assert "tau" not in row
+        measured = row["gate_measurements"][0]
+        assert measured["measured_members"] == 2
+        assert measured["unmeasured_members"] == 1
+        assert measured["measured_failures"] == measured["measured_passes"] == 1
+
+    # A known failure on another gate still counts even with sign unmeasured.
+    rows["unmeasured"]["gates"]["envelope"] = 1.0
+    mixed = replay._gate_evidence(candidates["SIGN+ENV"], rows, list(rows))
+    assert mixed["legacy_gate_failures"] == 2
+    assert mixed["legacy_gate_unknown_members"] == 0
+    assert mixed["missing_required_gate_members"] == 1
