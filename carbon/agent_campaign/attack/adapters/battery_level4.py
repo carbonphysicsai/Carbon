@@ -624,6 +624,46 @@ class BatteryLevel4Adapter(b.BatteryLevel0Adapter):
         ]
         return inventory
 
+    def rebuild_target(self, construction, target):
+        """Metadata-only reconstruction from the operator's captured stage.
+
+        This uses the same normalized built-record contract as the public
+        Constructor. It neither executes a graph nor attests a worker.
+        """
+        from carbon.agent_campaign.attack import target_binding
+        from carbon.agent_campaign.graphite import experiment
+        from carbon.reconstruction.artifact_identity import build_identity
+
+        target_binding.require(target, self)
+        strategy = construction
+        if isinstance(construction, Mapping) and "strategy" in construction:
+            strategy = construction["strategy"]
+        if b._protected(strategy):
+            return b.Unrebuildable(
+                code="protected_material", detail="protected_material_named"
+            )
+        try:
+            record = experiment.admit(
+                strategy,
+                target.recipe()["seed"],
+                variant=variant(),
+                workspace=target.workspace(),
+            )
+            artifact = build_identity(record)
+        except (experiment.Unrebuildable, experiment.NotServed):
+            return b.Unrebuildable(
+                code="unknown_construction", detail="target_metadata_unavailable"
+            )
+        if artifact != target.record()["build_artifact"]:
+            return b.Unrebuildable(
+                code="unknown_construction", detail="target_artifact_substituted"
+            )
+        return b.Rebuilt(
+            construction_digest=b._digest(strategy),
+            rebuilt_digest=artifact,
+            detail={"record": record, "rebuild": "bound_public_metadata_only"},
+        )
+
     def admission_refusals(self, construction):
         made = self.rebuild(construction)
         if isinstance(made, b.Rebuilt):

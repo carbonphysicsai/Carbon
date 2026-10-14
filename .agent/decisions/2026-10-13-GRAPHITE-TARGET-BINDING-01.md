@@ -31,3 +31,9 @@ Root sees this decision with the implementation PR; no additional approval
 checkpoint is introduced. The working contract may evolve prospectively
 with concrete evidence. Reversal removes prospective targeted mode and
 keeps legacy family behavior; full PKT-15 remains incomplete either way.
+
+Implementation trace: command_remint delegates authenticated provenance
+lookup to phase4_remint.py. Add that existing delegate to the manifest before
+editing it; prospective targeted logs must be validated there and pass the
+same context to remint_specimen. Its legacy records/lookup stay unchanged.
+No other open PR owns this delegate or the audit refresh paths at this check.

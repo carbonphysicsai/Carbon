@@ -110,6 +110,7 @@ SCHEMA_V2 = "carbon.attack.verdict.v2"
 SCHEMA_V1 = "carbon.attack.verdict.v1"
 FINDING_SCHEMA = "carbon.attack.finding.v1"
 ATTACK_SPECIMEN_SCHEMA = "carbon.attack.specimen.v1"
+TARGET_SPECIMEN_SCHEMA = "carbon.attack.target-specimen.v1"
 REBUILT, UNREBUILDABLE, NO_CONSTRUCTION = "REBUILT", "UNREBUILDABLE", "NO_CONSTRUCTION"
 HELD, BREACHED, UNDETERMINED = "HELD", "BREACHED", "UNDETERMINED"
 INFRA, NOT_APPLICABLE = "INFRA", "NOT_APPLICABLE"
@@ -651,6 +652,7 @@ def verify(
     specimen_dir=None,
     canaries=(),
     carrier=None,
+    target=None,
 ):
     """Carbon's `Verdict` on one `analysis.Attempt` (module docstring).
 
@@ -685,6 +687,19 @@ def verify(
             artifact=rebuilt_as["artifact"] if rebuild == REBUILT else None,
             **rest,
         )
+
+    if target is not None:
+        from . import target_binding
+
+        try:
+            target_binding.require(target, adapter)
+        except target_binding.TargetRefused as refused:
+            return verdict(UNDETERMINED, reason=refused.code)
+        evidence["target_pin"] = target.pin
+        evidence["target_binding"] = target.record()
+        # The existing early exposure/isolation/refusal paths remain path
+        # evidence. They are never labelled an accepted target-model exam.
+        evidence["verification_scope"] = "research_path"
 
     if attempt.withheld == analysis.WITHHELD_ECHO:
         return verdict(
@@ -741,6 +756,39 @@ def verify(
     advisory = authority == analysis.ADVISORY
     rebuild = NO_CONSTRUCTION
     construction = _construction(adapter, attempt)
+    if target is not None:
+        evidence["verification_scope"] = target_binding.MODE
+        if construction is None:
+            construction = target.strategy()
+        evidence["construction"] = _digest_of(construction)
+        resolver = getattr(adapter, "rebuild_target", None)
+        if not callable(resolver):
+            return verdict(UNDETERMINED, reason="target_rebuild_contract_unavailable")
+        try:
+            rebuilt = resolver(construction, target)
+            if is_unrebuildable(rebuilt):
+                return verdict(
+                    UNDETERMINED, reason="target_construction_or_stage_substituted"
+                )
+            record = record_of(rebuilt)
+            artifact = identity.artifact_of(adapter, rebuilt, record)
+        except Exception:  # noqa: BLE001 - no source exception text or false grade
+            return verdict(INFRA, reason="target_metadata_rebuild_failed_infra")
+        if artifact != target.record()["build_artifact"]:
+            return verdict(UNDETERMINED, reason="target_rebuilt_artifact_substituted")
+        rebuilt_as["artifact"] = artifact
+        evidence["rebuilt"] = _digest_of(record)
+        # There is no trusted target-verification backend in this slice.
+        # Ordinary pod mappings/session receipts cannot grant that capability.
+        return verdict(
+            UNDETERMINED,
+            REBUILT,
+            reason=(
+                target_binding.RUNTIME_UNAVAILABLE
+                if pods is None
+                else "target_worker_evidence_not_authorized"
+            ),
+        )
     if construction is not None:
         # The construction as written: a diagnostic, never a count key (§1).
         evidence["construction"] = _digest_of(construction)
@@ -913,7 +961,9 @@ def specimen_name(family, artifact):
     return "specimen-" + key
 
 
-def _specimen(adapter, attempt, family, construction, record, directory, *, artifact):
+def _specimen(
+    adapter, attempt, family, construction, record, directory, *, artifact, target=None
+):
     """Bundle a breached attempt's construction and re-check it from the
     bundle alone. `REBUILD_MISMATCH` is a finding; a bundle Carbon could not
     write or check is reported, never a pass.
@@ -929,6 +979,11 @@ def _specimen(adapter, attempt, family, construction, record, directory, *, arti
     folder = None
     reused = False
     try:
+        if target is not None:
+            from . import target_binding
+
+            target_binding.require(target, adapter)
+            directory = Path(directory) / "targets" / target.pin.removeprefix("sha256:")
         folder = Path(directory) / specimen_name(family, artifact)
         if folder.is_symlink():
             raise ValueError("specimen_folder_is_a_link")
@@ -947,7 +1002,17 @@ def _specimen(adapter, attempt, family, construction, record, directory, *, arti
             }
         bundle = getattr(adapter, "bundle_specimen", None)
         # A reused folder is this artifact's specimen already: re-checked only.
-        if not reused and callable(bundle):
+        if not reused and target is not None:
+            bundle_attack_specimen(
+                adapter,
+                construction,
+                record,
+                folder,
+                label=attempt.identity,
+                artifact=artifact,
+                target=target,
+            )
+        elif not reused and callable(bundle):
             bundle(construction, record, folder)
         elif not reused:
             if _graphite_recipe_record(record):
@@ -961,10 +1026,17 @@ def _specimen(adapter, attempt, family, construction, record, directory, *, arti
                     label=attempt.identity,
                     artifact=artifact,
                 )
-        check = getattr(adapter, "clean_rebuild", None)
+        check = (
+            (lambda path: clean_attack_specimen(path, adapter, target=target))
+            if target is not None
+            else getattr(adapter, "clean_rebuild", None)
+        )
         if not callable(check):
             manifest = json.loads((folder / "manifest.json").read_bytes())
-            if manifest.get("schema") == ATTACK_SPECIMEN_SCHEMA:
+            if manifest.get("schema") in (
+                ATTACK_SPECIMEN_SCHEMA,
+                TARGET_SPECIMEN_SCHEMA,
+            ):
                 check = lambda path: clean_attack_specimen(path, adapter)
             else:
                 from carbon.agent_campaign.graphite.delivery import (
@@ -1001,7 +1073,9 @@ def _graphite_recipe_record(record):
     )
 
 
-def bundle_attack_specimen(adapter, construction, record, folder, *, label, artifact):
+def bundle_attack_specimen(
+    adapter, construction, record, folder, *, label, artifact, target=None
+):
     """Bundle a compact attack-adapter rebuild without pretending it is a
     phase-3 recipe. The registered adapter is needed to replay this bundle."""
     folder = Path(folder)
@@ -1022,6 +1096,13 @@ def bundle_attack_specimen(adapter, construction, record, folder, *, label, arti
         "authority_granted": False,
         "official_eligible": False,
     }
+    if target is not None:
+        from . import target_binding
+
+        target_binding.require(target, adapter)
+        if artifact != target.record()["build_artifact"]:
+            raise target_binding.TargetRefused("target_specimen_artifact_substituted")
+        manifest.update(schema=TARGET_SPECIMEN_SCHEMA, target=target.record())
     folder.mkdir(parents=True, exist_ok=True, mode=0o700)
     for name, body in bodies.items():
         write_once(folder / name, body)
@@ -1029,7 +1110,7 @@ def bundle_attack_specimen(adapter, construction, record, folder, *, label, arti
     return folder
 
 
-def clean_attack_specimen(folder, adapter):
+def clean_attack_specimen(folder, adapter, *, target=None):
     """Check every byte, then rebuild with the manifest's registered adapter.
     This is a diagnostic clean rebuild, never an attack verdict or a grade."""
     folder = Path(folder)
@@ -1041,11 +1122,21 @@ def clean_attack_specimen(folder, adapter):
         if manifest_path.is_symlink():
             raise ValueError("manifest_is_a_link")
         manifest = json.loads(manifest_path.read_bytes())
-        if (
-            type(manifest) is not dict
-            or manifest.get("schema") != ATTACK_SPECIMEN_SCHEMA
+        if type(manifest) is not dict or manifest.get("schema") not in (
+            ATTACK_SPECIMEN_SCHEMA,
+            TARGET_SPECIMEN_SCHEMA,
         ):
             raise ValueError("attack_specimen_manifest_invalid")
+        targeted = manifest["schema"] == TARGET_SPECIMEN_SCHEMA
+        if targeted or target is not None:
+            from . import target_binding
+
+            target_binding.require(target, adapter)
+            if not targeted or manifest.get("target") != target.record():
+                return {
+                    "status": "REBUILD_MISMATCH",
+                    "differences": ["target_specimen_binding_changed"],
+                }
         files = manifest.get("files")
         if type(files) is not dict or set(files) != {
             "construction.json",
@@ -1079,7 +1170,12 @@ def clean_attack_specimen(folder, adapter):
             return {"status": "REBUILD_MISMATCH", "differences": differences}
         construction = json.loads(bodies["construction.json"])
         saved = json.loads(bodies["record.json"])
-        rebuilt, record, code, _issues = _rebuild(adapter, construction)
+        if targeted:
+            rebuilt = adapter.rebuild_target(construction, target)
+            code = str(rebuilt.code) if is_unrebuildable(rebuilt) else None
+            record = {} if code is not None else record_of(rebuilt)
+        else:
+            rebuilt, record, code, _issues = _rebuild(adapter, construction)
         if code is not None:
             differences.append("not_rebuildable:" + code)
         else:
@@ -1097,7 +1193,7 @@ def clean_attack_specimen(folder, adapter):
     }
 
 
-def remint_specimen(attempt, adapter, recorded, directory):
+def remint_specimen(attempt, adapter, recorded, directory, *, target=None):
     """Re-mint only an already recorded BREACHED rebuilt attempt. The caller
     authenticates `recorded` against the campaign finding evidence first. No
     oracle, miner tool or provider call is made."""
@@ -1119,6 +1215,18 @@ def remint_specimen(attempt, adapter, recorded, directory):
     ):
         return refused("recorded_breach_required")
     evidence = recorded.get("evidence") or {}
+    if "target_pin" in evidence or target is not None:
+        from . import target_binding
+
+        try:
+            target_binding.require(target, adapter)
+        except target_binding.TargetRefused:
+            return refused("target_specimen_context_required")
+        if (
+            evidence.get("target_pin") != target.pin
+            or evidence.get("target_binding") != target.record()
+        ):
+            return refused("target_specimen_context_changed")
     if (
         evidence.get("intent") != attempt.intent_digest
         or evidence.get("result") != attempt.result_digest
@@ -1139,7 +1247,12 @@ def remint_specimen(attempt, adapter, recorded, directory):
     if evidence.get("construction") != _digest_of(construction):
         return refused("construction_changed_since_finding")
     try:
-        rebuilt, record, code, _issues = _rebuild(adapter, construction)
+        if target is not None:
+            rebuilt = adapter.rebuild_target(construction, target)
+            code = str(rebuilt.code) if is_unrebuildable(rebuilt) else None
+            record = {} if code is not None else record_of(rebuilt)
+        else:
+            rebuilt, record, code, _issues = _rebuild(adapter, construction)
         if code is not None:
             return refused("construction_now_unrebuildable")
         artifact = identity.artifact_of(adapter, rebuilt, record)
@@ -1150,7 +1263,14 @@ def remint_specimen(attempt, adapter, recorded, directory):
     ):
         return refused("rebuilt_artifact_changed_since_finding")
     return _specimen(
-        adapter, attempt, family, construction, record, directory, artifact=artifact
+        adapter,
+        attempt,
+        family,
+        construction,
+        record,
+        directory,
+        artifact=artifact,
+        target=target,
     )
 
 

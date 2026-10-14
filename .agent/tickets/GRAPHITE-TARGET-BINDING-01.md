@@ -70,6 +70,8 @@ Expected changed paths:
 - this ticket and .agent/decisions/2026-10-13-GRAPHITE-TARGET-BINDING-01.md;
 - carbon/agent_campaign/attack/target_binding.py (new);
 - carbon/agent_campaign/graphite/phase4.py;
+- carbon/agent_campaign/graphite/phase4_remint.py (actual specimen CLI delegate;
+  added prospectively before editing after tracing command_remint);
 - carbon/agent_campaign/attack/verify.py;
 - carbon/agent_campaign/attack/adapters/battery_level4.py;
 - tests/cpu/test_graphite_target_binding.py (new);
