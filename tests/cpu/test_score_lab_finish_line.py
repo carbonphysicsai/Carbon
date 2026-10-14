@@ -123,6 +123,18 @@ def test_holdout_accepts_only_commitment_no_path(tmp_path):
         fl.assess(manifest, tmp_path)
 
 
+def test_public_receipt_symlink_cannot_read_nonpublic_path_inside_repository(tmp_path):
+    manifest, path = fixture(tmp_path)
+    nonpublic = tmp_path / "nonpublic"
+    nonpublic.mkdir()
+    destination = nonpublic / "toy-receipt.json"
+    path.rename(destination)
+    path.symlink_to(destination)
+    # Bytes/digest are identical, so refusing must depend on the resolved path.
+    with pytest.raises(LabRefused, match="readiness_public_receipt_path"):
+        fl.assess(manifest, tmp_path)
+
+
 def test_omitting_blocked_stage_cannot_manufacture_readiness(tmp_path):
     manifest, _ = fixture(tmp_path)
     manifest["stages"].pop()

@@ -111,7 +111,11 @@ def _artifact(root, spec):
     # Only small JSON receipts are read. Code and raw model/reference bundles,
     # arbitrary external paths, and custody-only holdout content are not inputs.
     path = (root / relative).resolve()
-    if not path.is_relative_to(root) or path.suffix != ".json":
+    if (
+        not path.is_relative_to(root)
+        or not path.relative_to(root).as_posix().startswith(PUBLIC_ROOTS)
+        or path.suffix != ".json"
+    ):
         raise LabRefused("readiness_public_receipt_path")
     if not path.exists():
         return None, "MISSING_ARTIFACT"
