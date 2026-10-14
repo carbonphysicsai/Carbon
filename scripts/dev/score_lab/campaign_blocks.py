@@ -125,6 +125,8 @@ def prepare(panel, spec):
 def evaluate(panel, rule, spec, *, bootstrap=200, seed=20261013):
     """Reuse core analysis: one loss column per complete block, not per case."""
     view, receipt = prepare(panel, spec)
+    if bootstrap < 1:
+        raise LabRefused("bootstrap_count")
     if not callable(rule):
         raise LabRefused("value_blocks_rule_missing")
     if receipt["complete_blocks_available"] < 3 or (

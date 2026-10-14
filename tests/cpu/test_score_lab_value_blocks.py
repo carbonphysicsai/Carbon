@@ -177,6 +177,36 @@ def test_require_complete_refuses_even_when_three_complete_blocks_remain():
     assert result["value_block_measurement"]["scored_questions"] == 0
 
 
+@pytest.mark.parametrize("policy", sorted(blocks.POLICIES))
+@pytest.mark.parametrize("missing_blocks", [0, 1, 2])
+def test_bootstrap_zero_refuses_consistently_before_scoring(policy, missing_blocks):
+    panel, spec = _fixture(policy=policy)
+    for index in range(missing_blocks):
+        panel["members"][0]["value_losses"][f"V-{index:02d}-0"] = None
+
+    def forbidden(*args):
+        pytest.fail("invalid bootstrap count invoked scorer")
+
+    with pytest.raises(core.LabRefused, match="^bootstrap_count$"):
+        core.analyze(panel, forbidden, value_blocks=spec, bootstrap=0)
+    with pytest.raises(core.LabRefused, match="^bootstrap_count$"):
+        core.analyze(panel, forbidden, bootstrap=0)
+
+
+@pytest.mark.parametrize("policy", sorted(blocks.POLICIES))
+def test_valid_bootstrap_keeps_incomplete_measurement_unscored(policy):
+    panel, spec = _fixture(policy=policy)
+    for index in range(2):
+        panel["members"][0]["value_losses"][f"V-{index:02d}-0"] = None
+
+    def forbidden(*args):
+        pytest.fail("valid but unresolved block measurement invoked scorer")
+
+    result = core.analyze(panel, forbidden, value_blocks=spec, bootstrap=1)
+    assert result["status"] == "INSUFFICIENT_EVIDENCE"
+    assert result["value_block_measurement"]["scored_blocks"] == 0
+
+
 @pytest.mark.parametrize("count", [3, 30])
 def test_planned_block_count_endpoints_and_deterministic_replay(count):
     panel, spec = _fixture(count=count, size=2)
