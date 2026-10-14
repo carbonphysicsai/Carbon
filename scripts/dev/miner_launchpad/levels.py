@@ -68,12 +68,11 @@ def _selected_standalone(request, challenge, agent, cfg, *, recorded_target=None
     """Exact registered DEVELOPMENT subject; a level hint grants nothing."""
     cl = _cl()
     from carbon.challenge_registry.campaigns import campaign_for
-    from carbon.reconstruction.capability_registry import BATTERY_CHALLENGE
+    from carbon.reconstruction.capability_registry import development_variant_document
 
     if (
         type(request.get("construction_variant_digest")) is not str
         or request["construction_variant_digest"] != STANDALONE_GRAPH_V3
-        or challenge.get("id") != BATTERY_CHALLENGE
         or agent != "graphite"
         or request.get("arm") is not None
         or request.get("construction_level") not in (None, 4)
@@ -81,6 +80,16 @@ def _selected_standalone(request, challenge, agent, cfg, *, recorded_target=None
             "construction_level" in request
             and type(request["construction_level"]) not in (int, type(None))
         )
+    ):
+        raise Rejected("construction_variant_invalid", 409)
+    try:
+        subject = development_variant_document(STANDALONE_GRAPH_V3)
+    except RuntimeError:
+        raise Rejected("construction_variant_invalid", 409) from None
+    if (
+        type(subject) is not dict
+        or subject.get("challenge") != challenge.get("id")
+        or subject.get("level") != 4
         or not campaign_for(challenge).construction_levels
     ):
         raise Rejected("construction_variant_invalid", 409)
