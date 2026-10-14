@@ -32,6 +32,10 @@ from carbon.chain.external_signer import SignerFailure
 from carbon.development_session.profile import canonical
 from carbon.development_session.research_control import DispatchStopped
 from carbon.development_session.research_ledger import PLAIN_REFUSALS
+from carbon.development_session.research_reply import (
+    campaign_rule as campaign_reply_rule,
+)
+from carbon.development_session.research_reply import validate as validate_reply
 from carbon.development_session.research_tools import (
     FIELDS,
     PREFIX,
@@ -629,7 +633,7 @@ def _truncation(notes):
     }
 
 
-def _result(operation, value):
+def _result(operation, value, *, reply_rule=None):
     try:
         value = _snapshot(value, limit=_RESULT_HARD_BYTES)
         if type(value) is not dict:
@@ -671,14 +675,11 @@ def _result(operation, value):
             ):
                 _invalid()
             return value, False
-        if set(value) != {
-            "protocol",
-            "operation",
-            "reply",
-            "terminal_task",
-            "public_result",
-            "requires_reconciliation",
-        } or (
+        try:
+            validate_reply(value, reply_rule)
+        except (KeyError, TypeError, ValueError):
+            _invalid()
+        if (
             value["protocol"] != research.RESEARCH_NAMESPACE
             or value["operation"] != operation
             or type(value["reply"]) is not dict
@@ -852,7 +853,9 @@ class ResearchToolAdapter:
             # Pre-dispatch only where the raising site proves it; otherwise the
             # controller retains ambiguous reservations and dispatch intents.
             raise _operational(exc) from None
-        payload, reconcile = _result(request.operation, value)
+        payload, reconcile = _result(
+            request.operation, value, reply_rule=campaign_reply_rule(self._sdk.ledger)
+        )
         return ResearchToolResult(
             request.operation, request.operation_id, payload, reconcile
         )
@@ -928,7 +931,11 @@ class ResearchToolAdapter:
                 )
             identity = value.pop("original_operation_id")
             value["operation"] = "start_research_task"
-        payload, reconcile = _result("start_research_task", value)
+        payload, reconcile = _result(
+            "start_research_task",
+            value,
+            reply_rule=campaign_reply_rule(self._sdk.ledger),
+        )
         return ResearchToolResult("start_research_task", identity, payload, reconcile)
 
     async def shutdown_tasks(self):

@@ -53,6 +53,7 @@ from carbon.challenge_registry.agent_plan import (
     CeilingsRequired,
     finite_ceilings,
 )
+from carbon.development_session.research_reply import RULE as RESEARCH_REPLY_RULE
 
 from .challenge import CHALLENGE
 
@@ -87,6 +88,7 @@ def provider_plan(agent, budget, selection=None, graphite=None):
         return {
             "agent": "none",
             "model_calls": 0,
+            "research_reply": RESEARCH_REPLY_RULE,
             "argument_normalisation": ARGUMENT_NORMALISATION_V2,
         }
     if agent == "graphite":
@@ -145,6 +147,7 @@ def provider_plan(agent, budget, selection=None, graphite=None):
         # call's action and arguments_json "null" read as JSON null, as in
         # a Graphite plan. A plan frozen before names no rule and replays
         # unchanged.
+        "research_reply": RESEARCH_REPLY_RULE,
         "argument_normalisation": ARGUMENT_NORMALISATION_V2,
     }
     if not selection.is_historical_default:
@@ -216,6 +219,7 @@ def graphite_plan(budget, selection, graphite):
         # Since AGENT-DOOR-USABILITY-01 every new plan freezes v2. v2 (RESEARCH-TOOL-USABILITY-01) also reads a practice call's action
         # and arguments_json "null" as JSON null; a plan that froze v1 keeps
         # v1.
+        "research_reply": RESEARCH_REPLY_RULE,
         "argument_normalisation": ARGUMENT_NORMALISATION_V2,
         "limits": {
             "plan": edition.limits_rule(

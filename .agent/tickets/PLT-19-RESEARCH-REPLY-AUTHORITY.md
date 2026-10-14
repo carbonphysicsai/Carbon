@@ -37,7 +37,11 @@ delivery hygiene; one final candidate. No host/provider/private/spend/S5 work.
 Expected manifest: ticket and one decision; new pure reply module; research_tools.py;
 miner_mcp/standard.py; battery/campaign.py and challenge_registry/agent_plan.py
 only new provider-plan reply rule; new focused test and integration tests as needed;
-one migration document. Expand manifest prospectively only for necessary consumers.
+one migration document; tests/cpu/test_battery_graphite_plan.py to assert the new
+plan field while retaining historical plan digest comparisons; the existing
+research-tool-usability historical digest assertion likewise excludes only the
+asserted new reply rule before comparing its unchanged historical digest. Expand manifest
+prospectively only for necessary consumers.
 Overlap scan: current open PR files have no overlap with these paths; #1255 only
 touches published_endpoints.json, outside scope. Evidence saved local tmp/plt19-overlap-open-prs.json.
 
