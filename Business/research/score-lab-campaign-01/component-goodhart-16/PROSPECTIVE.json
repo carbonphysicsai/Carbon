@@ -1,0 +1,128 @@
+{
+  "aggregate_evaluation_cpu_cap_seconds": 2560,
+  "candidate_sha256": "157b1db5f091910f5602b15c9f5029f0171e6da7e8b6dbc5ffb5aa5c775bd235",
+  "comparison_order": [
+    {
+      "components": null,
+      "index": 0
+    },
+    {
+      "components": {
+        "cheap_margin_weight": 0.25
+      },
+      "index": 1
+    },
+    {
+      "components": {
+        "crps_weight": 0.25
+      },
+      "index": 2
+    },
+    {
+      "components": {
+        "cvar_tail_fraction": 0.25
+      },
+      "index": 3
+    },
+    {
+      "components": {
+        "gradient_weight": 0.25
+      },
+      "index": 4
+    },
+    {
+      "components": {
+        "cheap_margin_weight": 0.25,
+        "crps_weight": 0.25
+      },
+      "index": 5
+    },
+    {
+      "components": {
+        "cheap_margin_weight": 0.25,
+        "cvar_tail_fraction": 0.25
+      },
+      "index": 6
+    },
+    {
+      "components": {
+        "cheap_margin_weight": 0.25,
+        "gradient_weight": 0.25
+      },
+      "index": 7
+    },
+    {
+      "components": {
+        "crps_weight": 0.25,
+        "cvar_tail_fraction": 0.25
+      },
+      "index": 8
+    },
+    {
+      "components": {
+        "crps_weight": 0.25,
+        "gradient_weight": 0.25
+      },
+      "index": 9
+    },
+    {
+      "components": {
+        "cvar_tail_fraction": 0.25,
+        "gradient_weight": 0.25
+      },
+      "index": 10
+    },
+    {
+      "components": {
+        "cheap_margin_weight": 0.25,
+        "crps_weight": 0.25,
+        "cvar_tail_fraction": 0.25
+      },
+      "index": 11
+    },
+    {
+      "components": {
+        "cheap_margin_weight": 0.25,
+        "crps_weight": 0.25,
+        "gradient_weight": 0.25
+      },
+      "index": 12
+    },
+    {
+      "components": {
+        "cheap_margin_weight": 0.25,
+        "cvar_tail_fraction": 0.25,
+        "gradient_weight": 0.25
+      },
+      "index": 13
+    },
+    {
+      "components": {
+        "crps_weight": 0.25,
+        "cvar_tail_fraction": 0.25,
+        "gradient_weight": 0.25
+      },
+      "index": 14
+    },
+    {
+      "components": {
+        "cheap_margin_weight": 0.25,
+        "crps_weight": 0.25,
+        "cvar_tail_fraction": 0.25,
+        "gradient_weight": 0.25
+      },
+      "index": 15
+    }
+  ],
+  "config": "scripts/dev/score_lab/physics-error-example.json",
+  "config_sha256": "39b748642c82b29b795fe1ea51e648b7f9c893ff9af474b04a57e30d89bec2ce",
+  "holdout_read": false,
+  "per_combination_cpu_cap_seconds": 160,
+  "per_combination_wall_cap_seconds": 240,
+  "schema": "carbon.dev.component-goodhart-tranche.v1",
+  "scope": "SYNTHETIC_DEVELOPMENT",
+  "search": "scripts/dev/score_lab/goodhart-search-example.json",
+  "search_sha256": "36f007d0d8f45497d1dc37fc12ed069393f2110084f9ef54f2b2b35393248646",
+  "selection": null,
+  "source_components_sha256": "be97075457e83e3859310f390547dacc60c1258072edfdc004095eeb8d2de88c"
+}
