@@ -57,6 +57,7 @@ import hashlib
 import json
 import math
 import os
+import re
 import stat
 import sys
 from pathlib import Path
@@ -371,7 +372,32 @@ def target_to_beat(rule):
     }
 
 
-def king_record(store, records, canaries):
+def _public_policy_digest(value):
+    return (
+        value
+        if type(value) is str and re.fullmatch(r"sha256:[0-9a-f]{64}", value)
+        else None
+    )
+
+
+def _public_network(value):
+    if type(value) is not dict:
+        return None
+    from carbon.chain.models import ChainFailure, hash256, uint
+
+    try:
+        if value.get("name") not in ("testnet", "finney"):
+            return None
+        return {
+            "name": value["name"],
+            "netuid": uint(value["netuid"], 65535),
+            "genesis_hash": hash256(value["genesis_hash"]),
+        }
+    except (ChainFailure, KeyError):
+        return None
+
+
+def king_record(store, records, canaries, *, challenge=None):
     """The king and its handovers from the weights publisher's winner ledger
     records for this Challenge (oldest first), or `(None, [])`. A canary
     hotkey is never named (`None` in its place).
@@ -381,6 +407,9 @@ def king_record(store, records, canaries):
     through the deployment's live promotion, so after a cutover to a new
     deployment (no incumbent yet) the old deployment's last winner is not the
     king, and none is shown. Handovers stay the Challenge's whole history."""
+
+    if challenge is not None:
+        records = [r for r in records if r.get("challenge") == challenge]
 
     def named(hotkey):
         return None if hotkey in canaries else hotkey
@@ -416,10 +445,13 @@ def king_record(store, records, canaries):
     king = {
         "hotkey": hotkey,
         "submission_id": model_id,
-        "eligible": bool(current.get("eligible")),
+        "eligible": current.get("eligible") is True,
         "reason": current.get("reason"),
         "crowned_utc_ms": current.get("clock_ms"),
         "challenges_survived": survived,
+        # Public identity of the exact policy already bound by WinnerLedger.
+        # A legacy row without it stays unbound for an incentive observer.
+        "policy_digest": _public_policy_digest(current.get("policy")),
     }
     return king, handovers
 
@@ -431,7 +463,7 @@ def _live(feed, chain, store):
     from carbon.rewards.winner_decay import DAY_MS, Q12, winner_fraction
 
     if chain is None:
-        return {**feed, "as_of_block": None}
+        return {**feed, "as_of_block": None, "network": None}
     block = chain["block"]
     upcoming = [
         w["activate_block"]
@@ -469,6 +501,7 @@ def _live(feed, chain, store):
             "hash": chain["hash"],
             "timestamp_ms": chain["timestamp_ms"],
         },
+        "network": _public_network(chain.get("network")),
         "release": release,
         "king": king,
     }
@@ -484,6 +517,7 @@ def build(
     with_showcase=False,
     chain=None,
     winners=None,
+    weight_policy=None,
     attempt_ledger=None,
     repository=REPOSITORY,
 ):
@@ -639,9 +673,57 @@ def build(
         )
     document["miner_status"] = status
     document["leaderboard"]["ladder"] = screening
-    king, handovers = king_record(store, list(winners or ()), canaries)
+    winner_rows = [
+        r
+        for r in list(winners or ())
+        if r.get("challenge") == identities["challenge"]["id"]
+    ]
+    king, handovers = king_record(store, winner_rows, canaries)
     document["king"] = king
     document["handovers"] = handovers
+    # Absence of a ledger/current match is unknown, not proof of a burn target.
+    # A known no-incumbent source needs an explicitly supplied registered policy.
+    policy_digest = (
+        _public_policy_digest(winner_rows[-1].get("policy")) if winner_rows else None
+    )
+    if weight_policy is not None:
+        from carbon.rewards.winner_decay import WinnerPolicy
+
+        chain_network = (chain or {}).get("network")
+        if (
+            type(weight_policy) is not WinnerPolicy
+            or type(chain_network) is not dict
+            or (weight_policy.network, weight_policy.netuid)
+            != (
+                "finney" if network == "mainnet" else network,
+                chain_network.get("netuid"),
+            )
+            or chain_network.get("name") != weight_policy.network
+            or identities["challenge"]["id"] not in weight_policy.challenges
+        ):
+            raise FeedRefused("winner_policy_context_mismatch")
+        if policy_digest is not None and policy_digest != weight_policy.digest:
+            raise FeedRefused("winner_ledger_policy_mismatch")
+        policy_digest = weight_policy.digest
+    live = store.incumbent()
+    state = "UNAVAILABLE"
+    if winners is not None and live is None and policy_digest is not None:
+        state = "NO_PAYABLE_WINNER"
+    elif king is not None and type(king.get("policy_digest")) is str:
+        state = "CURRENT" if king["eligible"] else "NO_PAYABLE_WINNER"
+    elif (
+        winner_rows
+        and live is not None
+        and winner_rows[-1]["promotion"].get("model_id") == live["model_id"]
+        and winner_rows[-1]["promotion"].get("hotkey") in canaries
+    ):
+        state = "NO_PAYABLE_WINNER"
+    document["winner_observation"] = {
+        "schema": "carbon.validator.winner-observation.v1",
+        "source": "WINNER_LEDGER_AND_LIVE_DEPLOYMENT",
+        "state": state,
+        "policy_digest": policy_digest,
+    }
     if with_showcase:
         # The live incumbent (SHOWCASE["disclosure"]); a canary is never one.
         document["showcase"] = showcase(target, live_incumbent(target))
@@ -765,6 +847,11 @@ def chain_snapshot(context):
         "block": d["finalized_block"],
         "hash": d["block_hash"],
         "timestamp_ms": d["timestamp_ms"],
+        "network": {
+            "name": context.network,
+            "netuid": context.netuid,
+            "genesis_hash": context.genesis_hash,
+        },
         "participants": {
             p["hotkey"]: {"uid": p["uid"], "coldkey": p["coldkey"]}
             for p in d.get("participants") or ()
@@ -818,6 +905,10 @@ def main(argv=None):
         help="the weights publisher's winner ledger (king and handovers)",
     )
     built.add_argument(
+        "--weight-policy",
+        help="explicit registered policy version for no-winner observation binding",
+    )
+    built.add_argument(
         "--attempt-ledger", help="owner-only attempt ledger for public status counts"
     )
     built.add_argument(
@@ -850,6 +941,11 @@ def main(argv=None):
 
             target = deployment.validator(Path(args.deployment), repository=REPOSITORY)
             winners = None
+            weight_policy = None
+            if args.weight_policy:
+                from carbon.rewards.winner_decay import load_policy
+
+                weight_policy = load_policy(args.weight_policy)
             if args.winner_ledger:
                 from carbon.rewards.winner_eligibility import WinnerLedger
 
@@ -872,6 +968,7 @@ def main(argv=None):
                     with_showcase=args.showcase,
                     chain=chain,
                     winners=winners,
+                    weight_policy=weight_policy,
                     attempt_ledger=args.attempt_ledger,
                 )
             if args.out:

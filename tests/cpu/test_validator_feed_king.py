@@ -15,6 +15,7 @@ import pytest
 from test_challenge_validator_battery_bank import adapter, run  # noqa: F401
 from test_challenge_validator_score_feed import validator  # noqa: F401
 
+from carbon.battery.challenge import CHALLENGE
 from carbon.challenge_validator import canary
 from carbon.challenge_validator import score_feed as sf
 from carbon.rewards.winner_decay import DAY_MS
@@ -24,7 +25,8 @@ CROWNED = 1_800_000_000_000
 
 def _record(hotkey, previous, model, *, kind="FINAL", eligible=True, clock=CROWNED):
     return {
-        "challenge": "toy",
+        "challenge": CHALLENGE.challenge_id,
+        "policy": "sha256:" + "a" * 64,
         "promotion": {
             "hotkey": hotkey,
             "previous_hotkey": previous,
@@ -47,6 +49,7 @@ def _chain(store, now, *, block=None):
         "block": min(blocks) - 1 if block is None else block,
         "hash": "0x" + "ab" * 32,
         "timestamp_ms": now,
+        "network": {"name": "testnet", "netuid": 567, "genesis_hash": "0x" + "cd" * 32},
         "participants": {"5King": {"uid": 7, "coldkey": "5Cold"}},
     }
 
@@ -112,6 +115,14 @@ def test_the_king_its_share_and_handovers_come_from_the_ledger_and_the_chain(
     feed = build(chain)
     king = feed["king"]
     assert king["hotkey"] == "5King" and king["submission_id"] == "m2"
+    assert king["policy_digest"] == "sha256:" + "a" * 64
+    assert feed["winner_observation"] == {
+        "schema": "carbon.validator.winner-observation.v1",
+        "source": "WINNER_LEDGER_AND_LIVE_DEPLOYMENT",
+        "state": "CURRENT",
+        "policy_digest": "sha256:" + "a" * 64,
+    }
+    assert feed["network"] == chain["network"]
     assert king["uid"] == 7 and king["coldkey"] == "5Cold"
     assert king["crowned_utc_ms"] == CROWNED
     # Full share for the first 24 h; the first halving at crowned + 24 h.
@@ -188,6 +199,59 @@ def test_after_a_cutover_the_old_deployments_winner_is_not_the_king(
     assert [h["to_hotkey"] for h in feed["handovers"]] == ["5OldKing"]
 
 
+def test_foreign_challenge_ledger_does_not_name_a_current_king(
+    validator, tmp_path, monkeypatch  # noqa: F811
+):
+    store = validator["store"]
+    monkeypatch.setattr(store, "incumbent", lambda: {"model_id": "m1"})
+    wrong = {**_record("5Foreign", None, "m1"), "challenge": "other-challenge"}
+    feed = sf.build(
+        validator["target"],
+        key=sf.FeedKey.create(tmp_path / "feed.key"),
+        hotkey="5Val",
+        network="testnet",
+        winners=[wrong],
+        chain=_chain(store, CROWNED + 1),
+    )
+    assert feed["king"] is None
+    assert feed["winner_observation"]["state"] == "UNAVAILABLE"
+    assert "5Foreign" not in str(feed)
+
+
+def test_missing_ledger_is_distinct_from_bound_read_no_incumbent(
+    validator, tmp_path, monkeypatch  # noqa: F811
+):
+    from carbon.rewards.winner_decay import load_policy
+
+    store = validator["store"]
+    monkeypatch.setattr(store, "incumbent", lambda: None)
+    key = sf.FeedKey.create(tmp_path / "feed.key")
+    common = {
+        "key": key,
+        "hotkey": "5Val",
+        "network": "testnet",
+        "chain": _chain(store, CROWNED + 1),
+    }
+    missing = sf.build(validator["target"], **common)
+    empty_unbound = sf.build(validator["target"], **common, winners=[])
+    known_none = sf.build(
+        validator["target"],
+        **common,
+        winners=[],
+        weight_policy=load_policy("testnet-winner-v1"),
+    )
+    assert (
+        missing["winner_observation"]["state"]
+        == empty_unbound["winner_observation"]["state"]
+        == "UNAVAILABLE"
+    )
+    assert known_none["winner_observation"]["state"] == "NO_PAYABLE_WINNER"
+    assert (
+        known_none["winner_observation"]["policy_digest"]
+        == load_policy("testnet-winner-v1").digest
+    )
+
+
 @pytest.mark.parametrize("registered", [False, True])
 def test_the_target_to_beat_is_rule_tagged_from_the_rule(registered):
     rule = {"equivalence_margin_rel": 0.057, "comparison": {"n_min": 30}}
@@ -208,3 +272,36 @@ def test_the_target_to_beat_is_rule_tagged_from_the_rule(registered):
     else:
         assert found["kind"] == "accuracy_margin_then_final"
         assert found["score"] is None
+
+
+def test_new_public_bindings_do_not_echo_malformed_policy_or_extra_network_data(
+    validator, tmp_path, monkeypatch  # noqa: F811
+):
+    marker = "synthetic-private-ledger-or-endpoint-marker"
+    store = validator["store"]
+    monkeypatch.setattr(store, "incumbent", lambda: {"model_id": "m1"})
+    row = {**_record("5King", None, "m1"), "policy": marker}
+    chain = _chain(store, CROWNED + 1)
+    chain["network"]["endpoint"] = marker
+    feed = sf.build(
+        validator["target"],
+        key=sf.FeedKey.create(tmp_path / "feed.key"),
+        hotkey="5Val",
+        network="testnet",
+        winners=[row],
+        chain=chain,
+    )
+    assert feed["king"]["policy_digest"] is None
+    assert feed["winner_observation"]["state"] == "UNAVAILABLE"
+    assert set(feed["network"]) == {"name", "netuid", "genesis_hash"}
+    assert marker not in str(feed)
+    assert sf.verify_feed(feed)
+
+
+def test_malformed_network_identity_stays_null_not_raw_public_text():
+    marker = "synthetic-private-genesis-marker"
+    assert (
+        sf._public_network({"name": "testnet", "netuid": 567, "genesis_hash": marker})
+        is None
+    )
+    assert sf._public_policy_digest(marker) is None
