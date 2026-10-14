@@ -34,7 +34,9 @@ from dataclasses import dataclass
 
 from carbon.agent_campaign.attack import engine
 from carbon.agent_campaign.attack.adapter import (
+    NOT_RUN,
     Control,
+    OracleResult,
     family_oracle,
     seam_oracle,
 )
@@ -185,6 +187,9 @@ class FamilyRow:
     control_ok: Callable
     trained: Mapping
     held_out: Mapping
+    #: An optional, independent attack-shape test. An accepted ordinary
+    #: construction is not evidence that this family's refusal failed.
+    attack_shape: Callable | None = None
 
 
 @dataclass(frozen=True)
@@ -240,13 +245,29 @@ class BatteryDeclarativeAdapter(b.BatteryLevel0Adapter):
 
     def _engine(self, name):
         row = self._table()[name]
+        boundary, specimen, breached = row.boundary, row.specimen, row.breached
+        if row.attack_shape is not None:
+
+            def with_shape(gate):
+                def check(value):
+                    result = gate(value)
+                    if not isinstance(result, Mapping):
+                        raise TypeError("a_shape_guarded_gate_returns_a_mapping")
+                    return {**result, "attack_shape": bool(row.attack_shape(value))}
+
+                return check
+
+            boundary, specimen = with_shape(boundary), with_shape(specimen)
+            breached = lambda result: bool(result.get("attack_shape")) and row.breached(
+                result
+            )
         return engine.Family(
             name=name,
             check=row.check,
-            boundary=row.boundary,
+            boundary=boundary,
             attacks=row.attacks,
-            specimen=row.specimen,
-            breached=row.breached,
+            specimen=specimen,
+            breached=breached,
             control=lambda: row.control_ok(row.boundary(row.trained)),
             description=row.words,
         )
@@ -284,7 +305,24 @@ class BatteryDeclarativeAdapter(b.BatteryLevel0Adapter):
 
     def oracle(self, family, attempt):
         if family in self._table():
-            return family_oracle(self._engine(family), b.oracle_view(attempt))
+            view = b.oracle_view(attempt)
+            row = self._table()[family]
+            if (
+                row.attack_shape is not None
+                and getattr(view, "rebuilt", None) is not False
+                and hasattr(view, "value")
+                and not row.attack_shape(view.value)
+            ):
+                return OracleResult(
+                    family=family,
+                    attempt=str(view.name),
+                    verdict=NOT_RUN,
+                    evidence_digest=engine.digest(
+                        {"family": family, "attack_shape": "ABSENT"}
+                    ),
+                    reading="ATTACK_SHAPE_ABSENT",
+                )
+            return family_oracle(self._engine(family), view)
         for seam in self.level_families():
             if seam.name == family:
                 return seam_oracle(seam, attempt)
