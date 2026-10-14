@@ -19,14 +19,21 @@ def _interval(values):
     ]
 
 
-def _v2_question(q, prediction, *, cap, kappa, unit):
+def _v2_question(q, prediction, *, cap, kappa, unit, detail=False):
     actions = q["actions"]
     if set(prediction) != set(actions):
         raise LabRefused("bank_predictor_action_coverage")
     if any(
         type(p.get("feasible")) is not bool
-        or not isinstance(p.get("objective"), (int, float))
-        or not math.isfinite(p["objective"])
+        or "objective" not in p
+        or (p.get("objective") is None and p["feasible"])
+        or (
+            p.get("objective") is not None
+            and (
+                type(p["objective"]) not in (int, float)
+                or not math.isfinite(p["objective"])
+            )
+        )
         for p in prediction.values()
     ):
         raise LabRefused("bank_predictor_nonfinite")
@@ -46,7 +53,21 @@ def _v2_question(q, prediction, *, cap, kappa, unit):
         if all(condition["status"] == "FEASIBLE" for condition in actions[aid])
     ]
     gain = max(0.0, (base - min(feasible)) / unit) if feasible else 0.0
-    return {"U": gain - kappa * solved, "G": gain, "n": solved}
+    result = {"U": gain - kappa * solved, "G": gain, "n": solved}
+    if detail:
+        ids = [aid for _, aid in shortlist]
+        result.update(
+            shortlisted_actions=ids,
+            infeasible_attempts=sum(
+                any(c["status"] == "INFEASIBLE" for c in actions[aid]) for aid in ids
+            ),
+            unresolved_attempts=sum(
+                any(c["status"] == "UNRESOLVED" for c in actions[aid])
+                and not any(c["status"] == "INFEASIBLE" for c in actions[aid])
+                for aid in ids
+            ),
+        )
+    return result
 
 
 def classify(q):

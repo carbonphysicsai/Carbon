@@ -23,14 +23,25 @@ bytes and meanings. This follow-up creates a distinct prospective receipt.
 - Reuse the existing decision measurement/constraint checker for unchanged
   quantities; replace only the plating check with the registered v2 verdict.
   Outside the v2 claimed range, the prospective plating reference is unavailable,
-  never assigned a new band. Question admission uses registered `bank.classify`;
+  never assigned a new band. The unchanged constraint-composition rule still
+  settles a design INFEASIBLE when reach-CV or thermal has a known FAIL; its
+  plating verdict remains unavailable and no plating claim is inferred.
+  Question admission uses registered `bank.classify`;
   reference-only masks are identical across every compared model and cheap arm.
 - Reuse the existing D-only scalar/trace cheap-map methods without V fitting.
   Report comparator acquisition/reuse limits and no strongest-industry claim.
+  Freeze the existing D-only clamped trace-bilinear method as the primary
+  comparator before this replay; scalar-bilinear and nearest are diagnostics,
+  never an answer-informed V envelope. Their calibration uses the unchanged
+  historical D numerical outputs, as the existing public models did; v2 labels
+  are the prospective referee, not new fitted training outcomes in this slice.
   Evaluate registered V2 shortlist/verification utility only on admitted questions,
   with explicit cap, cost and unit inputs labelled lab assumptions. No defaults
   may look adopted. Missing predictions make a member unscored on the common
   mask; they never create a model-specific question denominator.
+  Repair the bank diagnostic's input validation to accept a non-reaching
+  prediction (`objective=None`) only when predicted feasibility is false.
+  It remains absent from the shortlist; no fabricated time sentinel is used.
 - Reuse exact registered legacy scorer legs where the public inputs support
   them, and `score_proof` tau/bootstrap logic. Label old-reference accuracy legs
   with their original identity. Q3, full v3, unsupported gates and incomplete
