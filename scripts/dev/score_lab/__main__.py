@@ -18,6 +18,7 @@ from . import (
     campaign_feedback,
     campaign_gate,
     campaign_goodhart,
+    campaign_reference,
     campaign_robustness,
     campaign_sobol,
     campaign_stress,
@@ -214,6 +215,13 @@ def _read_campaign_json(path):
         return json.load(handle)
 
 
+def _analyze(panel, rule, args):
+    spec = getattr(args, "value_reference_spec", None)
+    if spec is not None:
+        return campaign_reference.evaluate(panel, rule, spec, bootstrap=args.bootstrap)
+    return analyze(panel, rule, bootstrap=args.bootstrap)
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
@@ -221,6 +229,11 @@ def main(argv=None):
     _rule_args(synth)
     synth.add_argument("--quick", action="store_true", help="first four profiles")
     synth.add_argument("--questions-per-side", type=int, default=8)
+    synth.add_argument(
+        "--value-reference-failures",
+        type=Path,
+        help="explicit synthetic-only fraction/seed/policy JSON; affects value measurement",
+    )
     synth.add_argument(
         "--value-workflow", choices=("one-pick", "v2-shortlist"), default="one-pick"
     )
@@ -845,6 +858,10 @@ def main(argv=None):
         raise LabRefused("components_require_candidates")
     rule = _load_rule(args)
     if args.command == "synthetic":
+        if args.value_reference_failures is not None:
+            args.value_reference_spec = campaign_reference.validate(
+                _read_campaign_json(args.value_reference_failures)
+            )
         configs = list(synthetic.profiles())
         if args.verification_costs:
             costs = [float(x) for x in args.verification_costs.split(",")]
@@ -923,7 +940,7 @@ def main(argv=None):
                     component_spec=component_spec,
                 )
                 rows.append(
-                    analyze(panel, rule, bootstrap=args.bootstrap)
+                    _analyze(panel, rule, args)
                     if rule
                     else {
                         "status": "INSUFFICIENT_EVIDENCE",
@@ -943,7 +960,7 @@ def main(argv=None):
         }
         _write(args.out, result)
         return 0
-    rows = [analyze(panel, rule, bootstrap=args.bootstrap) for panel in panels]
+    rows = [_analyze(panel, rule, args) for panel in panels]
     result = _report(rows)
     _write(args.out, result)
     return 0

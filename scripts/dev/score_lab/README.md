@@ -465,6 +465,38 @@ For the winnability calculation pass `--cheap`, `--reference-model`,
 confirmation half. The owner/Validator chooses the actual V2 values and
 bank acceptance after separate evidence.
 
+## Synthetic value-reference availability (experiment plan section E)
+
+Only the `synthetic` command accepts `--value-reference-failures <JSON>`.
+The JSON must provide every field below; these are toy ASSUMPTION inputs,
+not a registered production failure policy or adopted rate:
+
+```json
+{"schema":"carbon.dev.score-lab-value-reference-failures.v1","label":"ASSUMPTION: illustrative toy outages only","fraction":0.05,"seed":42,"policy":"EXCLUDE_COMMON"}
+```
+
+Use the option with the existing `synthetic --function ...` or `--candidates ...`
+workflow. `fraction` is within the experiment plan's 0-5% range. A keyed hash
+of the seed and value question ID selects `floor(fraction * offered_questions)`
+whole-question outages before scoring, independently of member predictions,
+losses and order. Small panels can realize zero outages; both requested and
+realized fractions are reported. Score-side reference failures are not modeled.
+
+`REQUIRE_COMPLETE` leaves the entire value measurement unscored on any unresolved
+question and invokes no scorer. `EXCLUDE_COMMON` uses the same common resolved
+mask across every member, including controls, via the unchanged `core.analyze`.
+Its estimand is conditional on that mask, not recovered population value.
+An empty mask also leaves the measurement unscored without invoking the scorer.
+Injected, preexisting, overlapping and total unavailable counts are distinct;
+missing outcomes are neither zero losses nor candidate scientific failures.
+
+`value_reference_measurement` in each output row binds the input panel, spec
+and common-mask digests and reports offered/available/scored counts. It is not
+passed to score callbacks. Scoring references, predictions, metadata, candidate
+gates and the original panel remain unchanged. With no flag the existing CLI
+path is unchanged. Public replay has no such option, and the library refuses
+`PUBLIC_DEVELOPMENT` panels. No real/hidden reference is opened or reinterpreted.
+
 ## Reuse and measurement limits
 
 - Registry candidates use `carbon.battery.value.score_tuning.load_registry`,
