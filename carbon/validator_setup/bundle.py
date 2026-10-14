@@ -21,17 +21,32 @@ ROOTS = (
     "Design_Specs/",
     "schemas/",
 )
-FILES = frozenset(
+# Exact published data consumed by the existing battery runtime. Broader
+# evidence/script directories are deliberately not exported.
+PUBLIC_RUNTIME_MATERIALS = frozenset(
     {
-        "pyproject.toml",
-        "uv.lock",
-        "README.md",
-        "CONSTITUTION.md",
-        "SPEC.md",
-        "scripts/__init__.py",
-        "scripts/dev/__init__.py",
-        ".agent/INVARIANTS.md",
+        "docs/development/evidence/exam-design-2026-09-24/ocv_table.json",
+        "docs/development/evidence/exam-design-2026-09-24/datasets/train-v1.jsonl.gz",
+        "docs/development/evidence/exam-design-2026-09-24/prepare.json",
+        "scripts/dev/exam_design/locks/battery-overlay.lock.json",
+        "docs/development/evidence/exam-design-2026-09-24/datasets/inputs.json",
+        "docs/development/evidence/exam-design-2026-09-24/refs-b/out/battery_refs/records.jsonl",
     }
+)
+FILES = (
+    frozenset(
+        {
+            "pyproject.toml",
+            "uv.lock",
+            "README.md",
+            "CONSTITUTION.md",
+            "SPEC.md",
+            "scripts/__init__.py",
+            "scripts/dev/__init__.py",
+            ".agent/INVARIANTS.md",
+        }
+    )
+    | PUBLIC_RUNTIME_MATERIALS
 )
 
 
@@ -151,6 +166,8 @@ def materialize(repository, revision, destination):
     }
     if not required <= contents.keys():
         raise SetupRefused("COMPLETE_OPERATOR_SOURCE_REQUIRED")
+    if not PUBLIC_RUNTIME_MATERIALS <= contents.keys():
+        raise SetupRefused("COMPLETE_PUBLIC_RUNTIME_MATERIAL_REQUIRED")
     sdk = sorted(
         set(re.findall(r"bittensor==([0-9.]+)", contents["pyproject.toml"].decode()))
     )

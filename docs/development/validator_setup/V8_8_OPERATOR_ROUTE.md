@@ -91,6 +91,17 @@ only public source, no socket/keys/state. This is not worker containment accepta
 
 ## Owned configuration and fresh initialization
 
+New bundles require the exact pinned public OCV table, TRAIN v1, frozen
+calibration, truth-overlay lock, already-published input index and public
+refs-b battery records consumed by the battery runtime. The records preserve
+the refusal of published cases outside that index. Bundles include these six
+data files individually; broader
+evidence and exam-design script directories stay excluded. Missing material
+refuses before the release directory is written. Existing runtime loaders keep
+their digest checks and scientific values. Historical bundle verification still
+checks its original bytes and file set; it does not establish installation
+readiness. Actual fresh-process initialization is a separate acceptance check.
+
 Reuse the current owner-only service/intake/deployment/answer-key schemas and
 their exposure/identity/image checks. Ordinary remote validators use
 `batch_source: answer_key`: no producer/solver/root-sharing/tuning commands.
