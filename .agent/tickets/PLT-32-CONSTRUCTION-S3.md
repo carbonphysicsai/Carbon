@@ -27,3 +27,14 @@ KEEP -> WRAP -> REPAIR; no archive reuse, new platform, kits redesign, source ex
 Conditional closeout: required behavior and discriminating canonical tests, actual exact-head applicable CI/Merge gate, concrete scoped team review with valid findings repaired, then Root guarded normal merge and brief report. Record unresolved host/S4/S5 boundaries. No S4 start in this item.
 
 Canonical baseline at ae42c0f: ladder/registry/L4, Launchpad levels/L4, smoke, unified and both import invariants: 156 passed, 1 skipped in114.78s. First data-only identity/resolver slice plus both import invariants:15 passed in20.12s. Native output is diagnostic only.
+
+Integration at actual main c7f40bedc (normal merge e9cbf107e): shared
+research.py retains PLT-30's selected JAX/Torch program, image backend and
+profile routing alongside original composition checks/base-only practice and
+derived labels. Current graph-v4 is an explicitly selected inert_fields arm;
+PLT-18 deliberately retains graph-v3 as default. Thus PLAN6.6's current-child
+move condition has not occurred: preserve composition-v1 and all its pins.
+The initially proposed new composition version was withdrawn after inspecting
+that exact registry/ticket, before any pin or implementation edit. Focused
+integration controls cover both worker routes, unknown-health predispatch,
+and v3 default/v4 explicit subjects; no backend training or GPU is executed.

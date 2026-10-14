@@ -57,3 +57,11 @@ Evidence is limited to canonical Linux tests and public fixture stand-ins.
 This is not live-door, GPU, sandbox, scientific or security qualification.
 Serving the composition on a registered deployment is S5 and requires owner go;
 S4 promotion is a separately sequenced slice.
+
+PLT-30's local JAX/Torch image selection and worker programs remain unchanged
+through composition practice. Each original recipe is checked before base
+projection; selected worker/backend restrictions still apply. This does not
+enable composed training on GPU. Graph-v4 remains an explicitly selected
+inert_fields variant arm under PLT-18; the default composition-v1 retains its
+immutable graph-v3 pin. A future current-child move requires a new composition
+version, rather than editing v1 or silently selecting the optional arm.
