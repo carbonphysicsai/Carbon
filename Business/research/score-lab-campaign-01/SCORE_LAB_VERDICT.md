@@ -1,46 +1,49 @@
-# SCORE_LAB_VERDICT — development campaign, incomplete
+# SCORE_LAB_VERDICT - development evidence, no rule selected
 
-**Status: INSUFFICIENT_EVIDENCE. No score rule selected or adopted.** The
-independent final holdout remains sealed. The public `battery-plating-ref-v2`
-development labels are now registered in
-`docs/development/evidence/plating-rereference-01/d3-results/labels-v2-r1.json`
-(sha256 `cac1e23001c227d9221653b2a90cee4755f62ca06fec58305d11cb9cba510069`).
-That file has 669 mesh-160-solved rows: 561 decided and 108 UNRESOLVED. Another
-103 rows are pending and UNRESOLVED; 19 pending rows have `source=ev4`. Only
-FEASIBLE and INFEASIBLE rows under the registered `-r1` rules are usable for
-prospective development fitting. All case IDs begin `ev4:`, so source must be
-read from the `source` field. No public fitting has been run here.
+**INSUFFICIENT_EVIDENCE for a top-three shortlist or rule adoption.** Toy
+score/value failures are measured; realistic performance and independent
+confirmation are not. No thresholds, coefficients or qualification are selected.
 
-## What the synthetic tranche says
+## What the completed evidence says
 
-- The public/fixture controls gate passed on separate cohorts: public EV5
-  abstain rank 2/100 and finite-grid bilinear ceiling capture 1.0; toy
-  abstain rank 1/14 and capture 1.0. The toy gate is not a battery claim.
-- Ten candidate proxies across 32 initial toy profiles produced mixed-sign
-  score–value Kendall tau for every proxy. The 16-profile broad-axis tranche
-  also had negative worst-profile OFF-switch tau for every proxy.
-- The disclosed-score feedback gamer scored seven of ten proxies. Some N2
-  and V2 variants gained score while losing toy buyer value. Three proxies
-  were unscored in that diagnostic; no score-only feedback grain is endorsed.
-- In the declared 25% toy worst-tail view, seven proxies were scored;
-  N1's score-maximiser had +0.13650 toy loss against an **approximate**
-  value-search member. This is a Goodhart warning, not an exact regret.
-- Separate eight-profile smokes exercised error structure, objective shape,
-  2–8D offered actions and 0–5 hard limits. The four-pair Sobol smoke tests
-  estimator wiring only. None is powered for sensitivity or rule selection.
+| Evidence | Observed finding | Limit |
+| --- | --- | --- |
+| Controls | Public EV5 abstain rank 2/100, bilinear ceiling capture 1.0; separate toy rank 1/14, capture 1.0 | Distinct cohorts, not the earlier 1/75 observation or exam qualification |
+| [Error64](error-structure-64/READOUT.md), merged #1350 | All 10 proxies have negative OFF-switch median Kendall tau in some value scope; switch effects have both signs | 4,480 rows; six axes vary only member 0. INFORCE tau defined 15/64, others 64/64 |
+| [Components](https://github.com/carbonphysicsai/Carbon/blob/0ab1535ef84de6935c620439d5e6c0dd9fdb956b/Business/research/score-lab-campaign-01/component-goodhart-16/READOUT.md), merged #1353 | N1/N4 positive gaps persist. CRPS worsens k3 buyer loss by 0.008333333 while its signed gap reaches zero. Cheap blending changes none of 56 matched losses | 16 settings, 112 measured / 48 unscored; one task/seed, approximate oracle |
+| [Robustness](../score-lab-robustness-01/READOUT.md), merged #1344 | Stronger blending worsens near value for 6 proxies, improves 2. Honest uncertainty improves near value for 6, ties 4, but worsens extrapolation for 3 | One 30-proposal slate; no powered equivalence or defensible gate threshold |
+| [EV4 v2 replay](../score-lab-public-v2-01/READOUT.md), merged #1345 | Full 35-action grammar: **0/12 D, 0/12 V admitted**. No tau, learned-versus-cheap margin or headroom | 22 INCOMPLETE, 1 RESCUE, 1 NONE; CV-onset job, not battery-v3 charging time |
 
-## Decision gate and next evidence
+The component package preserves original and repaired identities: eight valid
+settings reused, only eight affected settings rerun. Its comparator uses analytic
+anchors x=0, 0.5, 1, uncharged acquisition and nominal neighbour responses;
+no strongest-industry or matched-workflow-cost claim. At weight 0.25 its
+fixed-baseline transformation is monotone and cannot repair base-order inversions.
 
-No candidate has cleared the plan's robust worst-case/CVaR comparison, full
-synthetic sweep, realism calibration to 142 public members, independent
-holdout, or Tier-2 top-three replay. A large CPU campaign has an unlaunched
-under-$10 pod spec for Data Collection; no agent rental or spend occurred.
-Public EV4 fitting can now be prepared against only decided `-r1` labels;
-all 211 UNRESOLVED rows stay excluded. The Test Engineer's final holdout is
-revealed once at the final run under the queue custody rule; this page does
-not request or read it.
+Earlier [Broad16](BROAD_READOUT_16.md), feedback, robust-value and Sobol smokes
+remain separate, not causal sensitivity or independent confirmation.
 
-The precise small-run inputs, outputs, digests and limits are in the adjacent
-`LEVER_COVERAGE.md`, `BROAD_READOUT_16.md`, `FEEDBACK_TOY_READOUT.md`,
-`GOODHART_CVAR_TOY_READOUT.md` and other named readouts. All current figures
-are development diagnostics; scientific qualification is unearned.
+## Exact real-evidence blocker
+
+**V2 labels do not make EV4 fit-ready.** The [admission handoff](../score-lab-public-v2-01/ADMISSION.json)
+lists 223 applicability gaps, 9 decision-changing pending mesh160 cases,
+4 decision-changing in-band UNRESOLVED cases and 5 original missing/failed
+references. Data Collection supplies references; Validator/owner owns
+applicability/method. Completing global pending cases alone is insufficient.
+Missing Q3/VERIFY-R/gate inputs remain unmeasured, not scientific failures or v3.
+
+## Remaining work and custody
+
+The [ledger](LEVER_COVERAGE.md) separates synthetic implementation gaps from
+D3-dependent evidence. Chance/noise, decision forms, measurement design and
+competition remain partial/missing. The [large job](POD_JOB_SPEC.md) needs
+completed grammar and operator-capped execution; it is not launch-ready.
+
+Realism calibration, fitting and Tier-2 top-three replay need applicable
+references/common masks and matching score inputs. No robust winner or
+winner-specific confirmation design exists. The Test Engineer's holdout stays
+closed until its **one final reveal**; no hidden/AX42 material was read.
+
+Error64 plus components cost **963.782 CLI CPU-s (0.268 CPU-h)**, not total
+campaign cost; bootstrap/export/tests excluded, RSS unmeasured. No solver,
+rebuild, spend, chain, LIVE or rule adoption follows.
