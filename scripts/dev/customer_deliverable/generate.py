@@ -416,7 +416,7 @@ def extract_facts(config: dict, sources: dict) -> tuple[list, list]:
     return facts, gaps
 
 
-def render(challenge: str, profile: str, reader, policy: dict) -> dict:
+def _render_core(challenge: str, profile: str, reader, policy: dict) -> dict:
     if challenge not in policy["challenges"] or profile not in PROFILES:
         raise ValueError("Unsupported Challenge or standard profile")
     config = policy["challenges"][challenge]
@@ -831,6 +831,29 @@ def render(challenge: str, profile: str, reader, policy: dict) -> dict:
     }
 
 
+def render(challenge: str, profile: str, reader, policy: dict) -> dict:
+    """The public renderer always checks actual cited artifacts before output."""
+    from .claims import check_generated_manifest, generated_claims, require_pass
+
+    outputs = _render_core(challenge, profile, reader, policy)
+    manifest = json.loads(outputs["generation-manifest.json"])
+    manifest["claim_inventory"] = generated_claims(manifest)
+    manifest["claim_check"] = require_pass(
+        check_generated_manifest(manifest, reader, policy)
+    )
+    outputs["generation-manifest.json"] = (
+        json.dumps(manifest, indent=2, ensure_ascii=False) + "\n"
+    )
+    outputs["sample.md"] += (
+        "\n## Claim citation integrity\n\n"
+        f"Checked {manifest['claim_check']['claims_examined']} sourced claims against "
+        f"{manifest['claim_check']['artifacts_examined']} registered public artifacts. "
+        "PASS means artifact traceability only. Host declarations remain "
+        "HOST_DECLARED_NOT_COMPARED; no scientific acceptance or qualification is established.\n"
+    )
+    return outputs
+
+
 def write_outputs(root: Path, outputs: dict) -> None:
     expected = {
         "sample.md",
@@ -873,6 +896,10 @@ def main(argv: list[str] | None = None) -> int:
             if args.public_export
             else GitReader(args.repo_root, args.ref, args.framework_ref or args.ref)
         )
+        from .check_claims import ROOT, check_presentations
+        from .claims import require_pass
+
+        require_pass(check_presentations(GitReader(ROOT, "HEAD", "HEAD")))
         outputs = render(args.challenge, args.standard, reader, policy)
         write_outputs(args.output_dir, outputs)
     except (ValueError, KeyError, OSError, UnicodeError) as error:

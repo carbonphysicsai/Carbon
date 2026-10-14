@@ -17,12 +17,10 @@ def build(contract, served=()):
     if type(contract) is not UnifiedContract:
         raise ValueError("a validated public construction contract is required")
     public = contract.facts()
-    registrations = {row["type"]: row for row in contract.document["types"]}
     serving = any(
         type(facts) is dict
         and facts.get("unified_digest") == public["unified_digest"]
         and facts.get("types") == public["types"]
-        and facts.get("ceiling") == public["ceiling"]
         for facts in served
     )
     rows = [
@@ -36,40 +34,21 @@ def build(contract, served=()):
         }
     ]
     for change in public["types"]:
-        within = (
-            public["ceiling"] is not None
-            and change["within_ceiling"]
-            and change["label"] <= public["ceiling"]
-        )
-        checks_ready = all(check.get("status") == "PASS" for check in change["checks"])
-        arm_open = any(
-            arm["external_allowed"] for arm in registrations[change["type"]]["arms"]
-        )
-        available = (
-            within
-            and change["open"] == "EXTERNAL"
-            and arm_open
-            and checks_ready
-            and serving
-        )
-        if not within:
-            reason = (
-                "The owner has not approved a construction ceiling yet."
-                if public["ceiling"] is None
-                else "This change is above the owner's approved ceiling."
-            )
-        elif change["open"] != "EXTERNAL" or not arm_open:
-            reason = "This change is not open to external miners yet."
-        elif not checks_ready:
-            reason = "Its registered checks are not ready."
+        pending = [
+            check["id"] for check in change["checks"] if check["status"] != "PASS"
+        ]
+        available = not pending and serving
+        label = LABELS.get(change["type"], change["type"].replace("_", " "))
+        if pending:
+            reason = f"{label}: required checks are not ready: {', '.join(pending)}."
         elif not serving:
-            reason = "No configured validator reports this unified submission path."
+            reason = f"{label}: no configured validator reports this registered submission path."
         else:
             reason = "The registered contract permits this change and a validator reports serving it."
         rows.append(
             {
                 "type": change["type"],
-                "label": LABELS.get(change["type"], change["type"].replace("_", " ")),
+                "label": label,
                 "derived_label": change["label"],
                 "within_ceiling": change["within_ceiling"],
                 "open": change["open"],

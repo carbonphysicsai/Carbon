@@ -68,6 +68,7 @@ from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
+from carbon.agent_campaign import pod_job_noncreation as noncreation
 from carbon.agent_campaign.graphite import pods
 from carbon.agent_campaign.graphite.pods import PodFailure, PodHandle
 
@@ -428,6 +429,8 @@ class JobPods(pods.RunPodPods):
         self.http = http or pods._https_get
         self.post = post or _https_post
         self._record_lock = threading.Lock()
+        self._noncreation_evidence = None
+        self._create_failure = None
         root = pods.private_dir(root)
         self.store = ComputeStore(root / "compute", clock=clock)
         if self.store.campaign_status(self.CAMPAIGN) is None:
@@ -462,6 +465,16 @@ class JobPods(pods.RunPodPods):
         if pinned.split("@")[1] != STUDY_IMAGE.split("@")[1]:
             raise PodFailure("launch", "study image digest changed", executed=False)
         return STUDY_IMAGE
+
+    def claim_origin(self):
+        return noncreation.binding(self.store, self.spec.digest())
+
+    def reconcile_noncreation(self):
+        """An initial typed refusal plus current authoritative state, never absence."""
+        proof = self._noncreation_evidence
+        if proof is not None:
+            proof.verify(self.spec.job_id, self.claim_origin())
+        return proof
 
     def describe(self):
         compute = self.spec.document["compute"]
@@ -628,21 +641,37 @@ class JobPods(pods.RunPodPods):
                         f"{offer.source})",
                         executed=False,
                     )
+            request = ProvisionRequest(
+                tenant="pod-jobs",
+                miner="pod-jobs",
+                campaign_id=self.CAMPAIGN,
+                intent_id=self.spec.job_id,
+                spec=spec,
+                deadline_at=float(record["deadline_at"]),
+            )
             resource = self.service.provision(
-                ProvisionRequest(
-                    tenant="pod-jobs",
-                    miner="pod-jobs",
-                    campaign_id=self.CAMPAIGN,
-                    intent_id=self.spec.job_id,
-                    spec=spec,
-                    deadline_at=float(record["deadline_at"]),
-                ),
+                request,
                 retry_ambiguous=self.retry_ambiguous_create,
             )
         except ComputeError as failure:
             # The provider's own HTTP status travels with the refusal, so an
             # ambiguous create says what the provider answered.
             status = failure.http_status
+            self._create_failure = {
+                "operation": failure.operation,
+                "execution": str(failure.execution),
+                "resources_may_remain": failure.resources_may_remain,
+                "http_status": failure.http_status,
+            }
+            try:
+                if "request" in locals():
+                    self._noncreation_evidence = noncreation.reconcile_rejection(
+                        self.store, request, self.spec.digest(), failure
+                    )
+            except noncreation.NonCreationRefused:
+                # Unknown/MAY/post-create refusal remains reserved. Typed fields
+                # survive separately from the legacy executed Boolean.
+                pass
             raise PodFailure(
                 "launch",
                 failure.failed + ("" if status is None else f" (HTTP {status})"),
@@ -794,7 +823,10 @@ def run(spec, out, *, backend, ledger=None, private=None, uploads=None):
     from carbon.agent_campaign import grant_runs
 
     ledger = grant_runs if ledger is None else ledger
-    if not all(hasattr(ledger, f) for f in ("claim_pod_job", "settle_pod_job")):
+    if not all(
+        hasattr(ledger, f)
+        for f in ("claim_pod_job", "settle_pod_job", "pod_job_execution")
+    ):
         raise SpecRefused("pod_job_grant_unavailable", "grant_runs has no pod_job kind")
     # The owner's switch, read again now: off (or gone since the backend was
     # built) refuses before any claim or provider call.
@@ -816,7 +848,17 @@ def run(spec, out, *, backend, ledger=None, private=None, uploads=None):
         "cost": None,
         "ok": False,
     }
-    ledger.claim_pod_job(spec.job_id, backend.money["cap_usd"])
+    # An unfinished claim is reusable for recovery. Its prior-history check
+    # and NOT_EXECUTED settlement must not race another same-job dispatcher.
+    # Waiting callers recheck the terminal claim after this lifecycle finishes.
+    with ledger.pod_job_execution(spec.job_id):
+        return _run_claimed(spec, out, backend, ledger, private, files_in, receipt)
+
+
+def _run_claimed(spec, out, backend, ledger, private, files_in, receipt):
+    ledger.claim_pod_job(
+        spec.job_id, backend.money["cap_usd"], origin=backend.claim_origin()
+    )
     handle, executed = None, False
     try:
         try:
@@ -863,6 +905,21 @@ def _error(stage, error):
 def _finish(receipt, ledger, spec, backend, handle, executed, private, out):
     """Teardown, duplicates and settlement, each guarded so the receipt is
     always written."""
+    if backend._create_failure is not None:
+        receipt["create_failure"] = dict(backend._create_failure)
+    if not executed:
+        try:
+            intent = backend.store.intent(CAMPAIGN, spec.job_id)
+            if backend.store.resources(CAMPAIGN, spec.job_id) or (
+                intent is not None
+                and str(intent.state) not in ("requested", "cancelled")
+            ):
+                # NOT_EXECUTED describes this call, not an earlier ambiguous
+                # create of the same intent. Preserve that durable history.
+                executed = True
+        except Exception as error:  # noqa: BLE001 -- unknown history stays held
+            executed = True
+            receipt["errors"].append(_error("history", error))
     try:
         receipt["teardown"], handle = _teardown(
             backend, handle, executed, spec, private
@@ -968,6 +1025,24 @@ def _settle(ledger, spec, backend, handle, executed, receipt):
     if not executed:
         ledger.settle_pod_job(spec.job_id, Decimal(0))
         return {"reserved_usd": "0", "charged_usd": "0", "pending_usd": "0"}
+    if (
+        handle is None
+        and (receipt["teardown"] or {}).get("terminated") is True
+        and receipt["duplicates"] == []
+        and not receipt["errors"]
+    ):
+        proof = backend.reconcile_noncreation()
+        if proof is not None:
+            ledger.release_pod_job_noncreation(spec.job_id, proof)
+            receipt["non_creation_reconcile"] = proof.record()
+            return {
+                "reserved_usd": str(backend.money["worst_case_usd"]),
+                "charged_usd": "0",
+                "pending_usd": "0",
+                "total_usd": "0",
+                "basis": "DEFINITIVE_REJECTED",
+                "release_source_id": proof.record()["source_id"],
+            }
     reserved = backend.money["worst_case_usd"]
     charged, pending = Decimal(0), Decimal(0)
     confirmed = (receipt["teardown"] or {}).get("terminated") is True

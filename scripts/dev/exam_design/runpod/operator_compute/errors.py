@@ -13,6 +13,17 @@ from enum import StrEnum
 
 __all__ = ["ComputeError", "Execution"]
 
+PROVIDER_REASON_CODES = frozenset(
+    {
+        "provider_capacity",
+        "provider_quota",
+        "provider_rate_limit",
+        "provider_bad_request",
+        "provider_reason_unknown",
+        "provider_reason_missing",
+    }
+)
+
 
 class Execution(StrEnum):
     """Whether the failed operation reached the provider."""
@@ -35,7 +46,13 @@ class ComputeError(Exception):
         retry_safe: bool,
         next_action: str,
         http_status: int | None = None,
+        provider_reason_code: str | None = None,
     ) -> None:
+        if provider_reason_code is not None and (
+            type(provider_reason_code) is not str
+            or provider_reason_code not in PROVIDER_REASON_CODES
+        ):
+            raise ValueError("unregistered provider reason code")
         self.operation = operation
         self.failed = failed
         self.execution = Execution(execution)
@@ -43,6 +60,7 @@ class ComputeError(Exception):
         self.retry_safe = bool(retry_safe)
         self.next_action = next_action
         self.http_status = http_status
+        self.provider_reason_code = provider_reason_code
         super().__init__(self._message())
 
     def _message(self) -> str:
@@ -54,7 +72,7 @@ class ComputeError(Exception):
         )
 
     def as_dict(self) -> dict[str, object]:
-        return {
+        result = {
             "operation": self.operation,
             "failed": self.failed,
             "execution": str(self.execution),
@@ -63,3 +81,6 @@ class ComputeError(Exception):
             "next_action": self.next_action,
             "http_status": self.http_status,
         }
+        if self.provider_reason_code is not None:
+            result["provider_reason_code"] = self.provider_reason_code
+        return result
