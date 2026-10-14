@@ -117,16 +117,6 @@ def test_the_ladder_admits_its_hotkeys_and_its_levels_variants():
                 "ladder": {
                     "levels": [2],
                     "hotkeys": [MINER_C],
-                    "variants": [fixture_document(1)["version"]],
-                }
-            },
-            "evaluation_config_ladder_variant",
-        ),
-        (
-            {
-                "ladder": {
-                    "levels": [2],
-                    "hotkeys": [MINER_C],
                     "variants": ["unknown-v1"],
                 }
             },
@@ -192,11 +182,11 @@ def test_an_unlisted_hotkey_is_refused_before_anything(ladder_validator):
     assert ladder_validator.store.pool()["admitted"] == before
 
 
-def test_another_levels_variant_is_refused_by_its_own_code(
+def test_an_unlisted_variant_refuses_by_identity_despite_level_labels(
     ladder_validator, monkeypatch
 ):
     assert code(ladder_validator, MINER_C, FIXTURE_DIGESTS[1]) == (
-        "ladder_level_not_accepted"
+        "ladder_variant_not_accepted"
     )
     real = registry.development_variant_document
 
@@ -208,7 +198,7 @@ def test_another_levels_variant_is_refused_by_its_own_code(
 
     monkeypatch.setattr(registry, "development_variant_document", as_level_5)
     assert code(ladder_validator, MINER_C, FIXTURE_DIGESTS[3]) == (
-        "ladder_level_4_not_open"
+        "ladder_variant_not_accepted"
     )
 
 
@@ -351,7 +341,7 @@ def test_one_door_serves_several_levels(tmp_path, refs, backend):  # noqa: F811
     for digest in (FIXTURE_DIGESTS[1], FIXTURE_DIGESTS[2]):
         with pytest.raises(DevelopmentCompilerUnavailable):
             validator.admit(tbd.submission(MINER_C, digest=digest))
-    assert code(validator, MINER_C, FIXTURE_DIGESTS[3]) == "ladder_level_not_accepted"
+    assert code(validator, MINER_C, FIXTURE_DIGESTS[3]) == "ladder_variant_not_accepted"
     served = door(validator, tmp_path).served_contracts()
     assert {(s["level"], s.get("variant")) for s in served} == {
         (0, None),
@@ -476,3 +466,12 @@ def test_the_reserved_hotkeys_are_read_from_the_ladders_own_config(tmp_path):
         with pytest.raises(deployment.EvaluationUnavailable) as raised:
             deployment.reserved_hotkeys(refused)
         assert raised.value.code == "evaluation_config_ladder_deployment"
+
+
+def test_listed_variant_admission_is_not_filtered_by_descriptive_level():
+    name = fixture_document(1)["version"]
+    found = deployment.ladder_for(
+        config(ladder={"levels": [2], "hotkeys": [MINER_C], "variants": [name]})
+    )
+    assert found["variants"] == {FIXTURE_DIGESTS[1]: {"version": name, "level": 1}}
+    assert 1 in found["levels"]

@@ -841,19 +841,7 @@ class BatteryValidator:
         return workspace_for(row["strategy"])
 
     def _ladder_refusal(self, contract_digest):
-        """The ladder's closed code for a variant it does not list, read from
-        the registry as data (the variant module is never imported)."""
-        from carbon.reconstruction.capability_registry import (
-            development_variant_document,
-        )
-
-        document = development_variant_document(contract_digest) or {}
-        level = document.get("level")
-        if type(level) is int and level > 4:
-            # Beyond Level 4: no level above it is open on the ladder.
-            return "ladder_level_4_not_open"
-        if level not in self.ladder["levels"]:
-            return "ladder_level_not_accepted"
+        """An unlisted development contract is refused by identity, not level."""
         return "ladder_variant_not_accepted"
 
     def _development(self, row):
@@ -873,6 +861,15 @@ class BatteryValidator:
             or compiled.construction.recipe_digest != row["binding"]["recipe_digest"]
         ):
             raise StateError("artifact_mismatch", "development recompile differs")
+        if "composition_digest" in compiled.development:
+            expected = {
+                **compiled.development,
+                "variant_contract_digest": bound["variant_contract_digest"],
+            }
+            if compiled.development["composition_digest"] != bound[
+                "variant_contract_digest"
+            ] or _digest(expected) != _digest(bound):
+                raise StateError("artifact_mismatch", "composition binding differs")
         from .development_rebuild import record as development_record
 
         record = development_record(compiled.reconstruction)

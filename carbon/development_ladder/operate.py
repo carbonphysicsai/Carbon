@@ -27,13 +27,21 @@ def compile_variant(strategy, variant_digest, parts=None, held=None):
     the signed parts the intake holds; until those checks exist, it is
     refused. `held` keeps each admitted envelope's `(raw_manifest, files)`."""
     from carbon.reconstruction import development_variants as dv
+    from carbon.reconstruction.capability_registry import is_development_composition
 
-    variant = dv.registered(variant_digest)
+    if is_development_composition(variant_digest):
+        from carbon.reconstruction import development_composition as dc
+
+        variant = dc.registered(variant_digest)
+        compile_registered = dc.compile
+    else:
+        variant = dv.registered(variant_digest)
+        compile_registered = dv.compile_development
     if _submission(strategy) is not None:
         admitted = _admit_level4(strategy, variant, parts)
         if held is not None:
             held[_submission(strategy)] = admitted
-    return dv.compile_development(strategy, variant)
+    return compile_registered(strategy, variant)
 
 
 def _submission(strategy):
@@ -68,7 +76,9 @@ def _admit_level4(strategy, variant, parts):
     # the rebuild record carries).
     overrides = [
         json.loads(widened.bounds_json).get("loss_override")
-        for widened in variant.widened
+        for part in getattr(variant, "variants", (variant,))
+        for widened in part.widened
+        if widened.name == "composition_graphs"
     ]
     loss_override = next((o for o in overrides if o is not None), None)
     return admit_envelope(strategy, envelope, loss_override=loss_override)
