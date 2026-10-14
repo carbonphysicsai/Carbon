@@ -691,7 +691,10 @@ class GraphiteProvider:
         path = self._dir(run_id) / "session-open.json"
         if not path.is_file():
             raise ProviderUnavailable("unknown_run")
-        return json.loads(path.read_bytes())
+        opened = json.loads(path.read_bytes())
+        if type(opened) is not dict or opened.get("run_id") != run_id:
+            raise SessionMismatch("session_run_identity_changed")
+        return opened
 
     def _state(self, run_id):
         path = self._dir(run_id) / "state.json"

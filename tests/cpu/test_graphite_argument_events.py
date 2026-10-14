@@ -64,6 +64,17 @@ def test_resumed_actual_model_mode_must_match_its_pinned_identity(
     assert model.requests == []
 
 
+def test_dropping_recorded_run_id_cannot_bypass_the_original_policy_pin(tmp_path):
+    graphite, run_id = started(tmp_path, ScriptedModel([text("done")]))
+    opened = graphite._opened(run_id)
+    del opened["run_id"]
+    del opened["argument_logging"]
+    path = graphite._dir(run_id) / "session-open.json"
+    path.write_bytes(canonical(opened))
+    with pytest.raises(SessionMismatch, match="session_run_identity_changed"):
+        graphite._opened(run_id)
+
+
 def event_bytes(graphite, run_id):
     return (graphite._dir(run_id) / "events.jsonl").read_bytes()
 
