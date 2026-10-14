@@ -11,8 +11,10 @@ as data (OWNER-GRAPHITE-DEV-LEVELS-01 F2): no participant code runs.
   capped per choice by Carbon's constants, which no recipe can name.
 * **Off lane** (`l3_off_lane`): a numerics choice on PyTorch until backend
   parity, or with no polish stage to apply to, is refused.
-* **N3, cross-level smuggling** (`l3_cross_level_fields`): a Level 1, 2 or
-  4 field inside a Level 3 recipe, or a value off the menu, is refused.
+* **N3, malformed composition fields** (`l3_cross_level_fields`): a value off
+  the numerics menu or a non-boolean SpecMuon switch is refused. Registered
+  combinations are positive rebuild controls; a raw graph identity without
+  admitted documents/workspace remains unknown.
 * **Permission ablation** (`l3_slot_ablation`): every Level 3 field fails
   the miner-facing contract; only the variant admits it.
 * **Determinism** (`l3_rebuild_determinism`): the same recipe and seed
@@ -67,8 +69,12 @@ def _other_level_fields():
 
 def _cross_level_attacks():
     out = [
-        (name, _strategy(quasi_newton_family="bfgs", **fields))
-        for name, fields in _other_level_fields()
+        (
+            "nonboolean_spectral",
+            _strategy(
+                quasi_newton_family="bfgs", optimizer_family="muon", muon_spectral="yes"
+            ),
+        )
     ]
     for field, value in (
         ("quasi_newton_family", "newton"),
@@ -79,6 +85,17 @@ def _cross_level_attacks():
     ):
         out.append((f"off_menu_{field}_{value}", _strategy(**{field: value})))
     return tuple(out)
+
+
+def _cross_level_shape(value):
+    from collections.abc import Mapping
+
+    parameters = value.get("parameters") if isinstance(value, Mapping) else None
+    return d.malformed_numerics(value) or (
+        isinstance(parameters, Mapping)
+        and "muon_spectral" in parameters
+        and type(parameters["muon_spectral"]) is not bool
+    )
 
 
 def _off_lane_attacks():
@@ -116,8 +133,34 @@ def _ablation_attacks():
     )
 
 
-def _determinism_attacks():
+def _combination_controls():
     return (
+        (
+            "combined_optimizer_and_numerics",
+            _strategy(
+                optimizer_family="muon",
+                muon_spectral=True,
+                polish_steps=6,
+                quasi_newton_family="bfgs",
+                line_search="backtracking",
+            ),
+        ),
+    ) + tuple(
+        (
+            name,
+            _strategy(
+                optimizer_family="muon", muon_spectral=True, polish_steps=6, **fields
+            ),
+        )
+        for name, fields in _other_level_fields()
+        if "composition_graphs" not in fields
+        and "muon_spectral" not in fields
+        and "polish_steps" not in fields
+    )
+
+
+def _determinism_attacks():
+    return _combination_controls() + (
         (
             "bfgs_backtracking",
             _strategy(quasi_newton_family="bfgs", line_search="backtracking"),
@@ -131,7 +174,7 @@ def _determinism_attacks():
 
 @functools.lru_cache(maxsize=1)
 def _families():
-    gate = d.variant_gate(LEVEL)
+    gate = d.composition_gate
     honest = _strategy(quasi_newton_family="bfgs")
     honest_largest = _strategy(quasi_newton_family="lbfgs", **LARGEST)
     return {
@@ -159,7 +202,7 @@ def _families():
         ),
         "l3_cross_level_fields": d.FamilyRow(
             check="artifact_and_dependency_attacks",
-            words="a Level 3 recipe carries only Level 0 fields and menu values; another level's field is refused",
+            words="malformed numerics menus or a nonboolean SpecMuon switch are refused; valid combinations are controls",
             attacks=_cross_level_attacks,
             boundary=gate,
             specimen=d.unchecked_gate,
@@ -167,6 +210,7 @@ def _families():
             control_ok=d.accepted,
             trained=honest,
             held_out=_strategy(quasi_newton_family="ssbroyden", line_search="none"),
+            attack_shape=_cross_level_shape,
         ),
         "l3_slot_ablation": d.FamilyRow(
             check="baseline_and_permission_ablation",
@@ -183,8 +227,8 @@ def _families():
             check="reconstruction_and_recipient_rebuild",
             words="the same recipe and seed rebuild bit-identically twice on CPU",
             attacks=_determinism_attacks,
-            boundary=d.rebuilds_identically(LEVEL),
-            specimen=d.unpinned_seed(LEVEL),
+            boundary=d.rebuilds_identically("composition"),
+            specimen=d.unpinned_seed("composition"),
             breached=d.different,
             control_ok=d.same,
             trained=_strategy(),
@@ -224,8 +268,8 @@ SEAMS = (
 SPEC = d.LevelSpec(
     level=LEVEL,
     version=_version(),
-    adapter_version="carbon.attack.adapter.battery-l3.v1",
-    controls_version="carbon.attack.controls.battery-l3.v1",
+    adapter_version="carbon.attack.adapter.battery-l3.composition.v1",
+    controls_version="carbon.attack.controls.battery-l3.composition.v1",
     rebuild_label=_rebuild_label,
     families=_families,
     seams=SEAMS,

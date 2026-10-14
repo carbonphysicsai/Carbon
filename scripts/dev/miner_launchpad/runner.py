@@ -1780,6 +1780,20 @@ class RunnerAdapter:
             # The dispatch queue, what a launch chose, and the last refusal
             # (LP-PROD-C); added in place to an older database.
             supervision.ensure_schema(db)
+            # Pre-S3 rows remain version 0. Every new writer records version 1
+            # and the digest of its captured construction choice separately,
+            # so removing capture cannot impersonate a historical L0 launch.
+            columns = {
+                r[1] for r in db.execute("PRAGMA table_info(launchpad_campaigns)")
+            }
+            if "construction_binding_version" not in columns:
+                db.execute(
+                    "ALTER TABLE launchpad_campaigns ADD COLUMN construction_binding_version INTEGER NOT NULL DEFAULT 0"
+                )
+            if "construction_binding_digest" not in columns:
+                db.execute(
+                    "ALTER TABLE launchpad_campaigns ADD COLUMN construction_binding_digest TEXT"
+                )
         if role == supervision.INLINE:
             # A supervised host recovers when it takes the supervisor lock,
             # the only moment every earlier holder is known to be gone; a
@@ -3047,6 +3061,7 @@ class RunnerAdapter:
         if graphite is not None:
             choice = replace(choice or LaunchChoice(), graphite=graphite)
         level = levels.launch_binding(request, challenge, request["agent"], cfg)
+        construction_capture = levels.capture_binding(level)
         if level is not None:
             choice = replace(choice or LaunchChoice(), construction_level=level)
         run_id, request_digest, config_pin = self._launch_identity(cfg, request)
@@ -3064,7 +3079,7 @@ class RunnerAdapter:
             db.execute("BEGIN IMMEDIATE")
             try:
                 db.execute(
-                    "INSERT INTO launchpad_campaigns (id,request_key,request_digest,profile,principal,config_digest,campaign,state,created,root,admission,budget,research_guidance,launch_request) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                    "INSERT INTO launchpad_campaigns (id,request_key,request_digest,profile,principal,config_digest,campaign,state,created,root,admission,budget,research_guidance,launch_request,construction_binding_version,construction_binding_digest) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                     (
                         run_id,
                         request["idempotency_key"],
@@ -3092,6 +3107,7 @@ class RunnerAdapter:
                                     for k, v in request.items()
                                     if k != "idempotency_key"
                                 },
+                                levels.CONSTRUCTION_ADMISSION: construction_capture,
                                 **(
                                     {
                                         GRAPHITE_ADMISSION: {
@@ -3105,6 +3121,8 @@ class RunnerAdapter:
                                 ),
                             }
                         ),
+                        1,
+                        digest(canonical(construction_capture)),
                     ),
                 )
             except sqlite3.IntegrityError:
@@ -3162,6 +3180,9 @@ class RunnerAdapter:
             # What admission captured is beside the request, never part of
             # its identity (S4).
             captured = recorded.pop(GRAPHITE_ADMISSION, None)
+            construction_capture = levels.checked_capture(
+                row, recorded.pop(levels.CONSTRUCTION_ADMISSION, None)
+            )
             request = {**recorded, "idempotency_key": row["request_key"]}
             run_id, request_digest, config_pin = self._launch_identity(cfg, request)
         except (ValueError, TypeError, KeyError, AttributeError):
@@ -3181,7 +3202,9 @@ class RunnerAdapter:
             choice = replace(choice or LaunchChoice(), graphite=graphite)
         elif captured is not None:
             raise Rejected("launch_record_differs", 409)
-        level = levels.launch_binding(request, challenge, request.get("agent"), cfg)
+        level = levels.replay_binding(
+            request, challenge, request.get("agent"), cfg, construction_capture
+        )
         if level is not None:
             choice = replace(choice or LaunchChoice(), construction_level=level)
         miner = _registered(self, cfg)
@@ -4077,7 +4100,14 @@ class RunnerAdapter:
         if levels.binding(manifest) is None:
             # Level 0: nothing here reads the profile or the target.
             return
-        levels.require_served(admitted.profile, manifest, read=self.read_intake_facts)
+        record = None
+        if levels.binding(manifest).get("kind") == "composition":
+            from scripts.dev.miner_launchpad.commitment import frozen_candidate
+
+            _, record, _ = frozen_candidate(Path(admitted.campaign["root"]))
+        levels.require_served(
+            admitted.profile, manifest, read=self.read_intake_facts, record=record
+        )
 
     def _require_commitment(self, admitted):
         """`commitment_required` now, before anything is signed or sent, when
@@ -4268,6 +4298,9 @@ class RunnerAdapter:
 
         identity = admitted.campaign["id"]
         try:
+            # The queued thread must not reuse admission-time health after
+            # the provider changes while awaiting the signer's terminal.
+            self._require_level_served(admitted)
             poster = self._poster(admitted.profile)
             if poster is None:
                 raise Rejected(cp.UNREADABLE, 503)

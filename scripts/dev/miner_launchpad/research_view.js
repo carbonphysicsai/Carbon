@@ -964,7 +964,7 @@
     fact("Exam rule", [c.exam.rule.status, c.exam.rule.authority].filter(Boolean).map(words).join(" · ") || "unavailable");
     fact("Feedback mode", (c.feedback_mode?.frozen || "FULL") + " · " + (c.feedback_mode?.basis || ""));
     const cl = c.construction_level;
-    fact("Construction level", cl.level === null ? "Not yet defined. " + cl.basis : ["Level " + cl.level, cl.text, cl.state && words(cl.state), cl.audience && words(cl.audience)].filter(Boolean).join(" · ") + ". " + (cl.basis || ""));
+    fact("Construction", cl.kind === "composition" ? cl.basis : (cl.level === null ? "Not yet defined. " + cl.basis : ["Level " + cl.level, cl.text, cl.state && words(cl.state), cl.audience && words(cl.audience)].filter(Boolean).join(" · ") + ". " + (cl.basis || "")));
     top.append(facts);
     const models = section(panel, "Rebuildable models", c.rebuildable_models.length + " families");
     const ml = el("ul", undefined, "rs-list");

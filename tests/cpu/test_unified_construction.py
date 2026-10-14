@@ -55,7 +55,9 @@ def test_derived_labels_and_canonical_arm(unified, parameters, label, arm):
     if label:
         assert next(iter(bound["arms"].values()))["arm"] == arm
         preview = u.classify(value, unified)
-        assert preview["refusal"] == "construction_beyond_ceiling"
+        assert preview["refusal"].startswith("construction_type_closed:")
+        assert preview["authority"] == "CLASSIFICATION_ONLY_REBUILD_REQUIRED"
+        assert preview["notices"]
         assert preview["binding"] == bound
     else:
         assert bound["change_set"] == []
@@ -130,7 +132,7 @@ def test_malformed_or_inapplicable_widenings_refuse(unified, parameters):
     )
 
 
-def test_combinations_are_closed(unified):
+def test_combinations_derive_but_real_required_checks_stay_closed(unified):
     value = strategy(
         unified,
         muon_spectral=True,
@@ -138,8 +140,15 @@ def test_combinations_are_closed(unified):
         line_search="none",
         polish_steps=2,
     )
+    preview = u.classify(value, unified)
+    assert preview["refusal"] == "construction_type_closed:optimizer_and_data"
+    assert preview["binding"]["schema"] == u.BINDING_SCHEMA
+    assert set(preview["binding"]["change_set"]) == {"optimizer_and_data", "numerics"}
+    legacy = unified.document
+    legacy["schema"] = u.LEGACY_SCHEMA
     assert (
-        u.classify(value, unified)["refusal"] == "construction_combination_unregistered"
+        u.classify(value, u.UnifiedContract(legacy))["refusal"]
+        == "construction_combination_unregistered"
     )
 
 
@@ -157,9 +166,7 @@ def test_type_specific_health_opening_and_ceiling_refusals(unified):
     row["within_ceiling"] = True
     internal = u.UnifiedContract(doc)
     value = strategy(unified, line_search="none", polish_steps=2)
-    assert (
-        u.classify(value, internal)["refusal"] == "construction_type_not_open:numerics"
-    )
+    assert u.classify(value, internal)["refusal"] == "construction_type_closed:numerics"
     # Synthetic contract facts only; shipped contract remains INTERNAL.
     row.update(open="EXTERNAL", owner_acceptance="OWNER-FIXTURE-ONLY")
     assert (
@@ -202,8 +209,17 @@ def test_signed_attack_arm_remains_closed_under_type_opening(unified):
     value = strategy(
         unified, loss_expressions={"op": "neg", "arg": {"term": "sq_error"}}
     )
+    # V2 metadata flags are notices; the composition's pinned default L1 arm
+    # remains the real compiler boundary, even when a fixture check says PASS.
+    assert u.classify(value, u.UnifiedContract(doc))["refusal"] is None
+    from carbon.reconstruction import development_composition as dc
+
+    with pytest.raises(ValueError):
+        dc.compile(value)
+    legacy = copy.deepcopy(doc)
+    legacy["schema"] = u.LEGACY_SCHEMA
     assert (
-        u.classify(value, u.UnifiedContract(doc))["refusal"]
+        u.classify(value, u.UnifiedContract(legacy))["refusal"]
         == "construction_type_not_open:loss_expressions"
     )
 
@@ -364,3 +380,46 @@ def test_shadow_agrees_with_existing_child_compiler(
     receipt = compare(value, unified, compiled["variant_digest"])
     assert receipt["derivation_match"] and receipt["route_match"]
     assert receipt["status"] == "INCOMPLETE"
+
+
+def test_historical_v1_binding_and_refusal_meaning_is_preserved(unified):
+    doc = unified.document
+    doc["schema"] = u.LEGACY_SCHEMA
+    historical = u.UnifiedContract(doc)
+    value = strategy(unified, line_search="none", polish_steps=2)
+    bound = u.derive(value, historical)
+    assert bound["schema"] == u.LEGACY_BINDING_SCHEMA
+    preview = u.classify(value, historical)
+    assert preview["refusal"] == "construction_beyond_ceiling"
+    assert "notices" not in preview and "authority" not in preview
+    assert u.derive(value, unified)["schema"] != bound["schema"]
+
+
+def test_composed_shadow_checks_all_actual_child_pins_and_needs_independent_receipts(
+    unified,
+):
+    from carbon.reconstruction import development_composition as dc
+
+    value = strategy(
+        unified,
+        muon_spectral=True,
+        optimizer_family="muon",
+        line_search="none",
+        polish_steps=2,
+    )
+    digest = dc.load(value["challenge_id"]).digest
+    result = compare(value, unified, digest)
+    assert result["status"] == "INCOMPLETE" and result["route_match"]
+    assert result["artifact_match"] is None
+    result = compare(
+        value,
+        unified,
+        digest,
+        legacy_artifact="sha256:" + "1" * 64,
+        unified_artifact="sha256:" + "2" * 64,
+    )
+    assert result["status"] == "MISMATCH" and result["artifact_match"] is False
+    signed = strategy(
+        unified, loss_expressions={"op": "neg", "arg": {"term": "sq_error"}}
+    )
+    assert compare(signed, unified, digest)["status"] == "MISMATCH"

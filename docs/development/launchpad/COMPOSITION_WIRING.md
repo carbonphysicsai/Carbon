@@ -1,0 +1,59 @@
+# Development composition wiring (PLT-32 / S3)
+
+New eligible Launchpad campaigns bind the registered development composition
+by its immutable digest. The optional level is a descriptive hint; Carbon
+reports the actual changes and derived level from the original compiled recipe.
+An explicitly named historical arm follows the existing variant path. Existing
+frozen variant campaigns retain their identity and interpretation.
+
+The launch writer stores a version-1 construction capture and its canonical
+digest separately from the request. Replay authenticates that capture before
+dispatch and resolves its exact historical composition, even when the registry's
+default changes. Version-0 rows are genuine historical records; removing a
+version-1 capture does not turn one into a legacy campaign. Client requests
+cannot supply these internal receipt fields.
+
+Only an operator-configured DEVELOPMENT ladder may list the composition.
+The receiving validator must advertise its exact version and digest. Existing
+hotkey, commitment, testnet, registered-base and development-only restrictions
+remain. No deployed configuration is changed by S3.
+
+Required compiler/security obligations remain authoritative. The shipped source
+still reports UNAVAILABLE. Original changed fields are checked before practice
+projects the base recipe, before freeze, at pre-sign/queued commitment gates,
+before submit, and before ladder compilation. Unknown checks preserve received
+inbox rows or produce a non-candidate infrastructure retry on admitted work.
+Metadata membership never supplies a PASS. Current health is not reused from a
+cached positive compile. The check source's entire expected subject/obligation
+document is authenticated, including JSON numeric types and unused composition
+parts. There is no request, environment switch or public acceptance Boolean
+that opens this path. Positive wiring fixtures substitute a private provider
+inside tests only and do not discharge the activation-mapping hold.
+
+Practice still trains the base recipe and says so. Smoke proof remains bound to
+the exact original combined recipe. Freeze and commitments retain the original
+strategy and full composition binding. Graph transport follows the actual
+frozen composition_graphs field, independent of descriptive level. Its verified
+envelope travels in signed parts before the submission; missing documents,
+mismatched identities, missing part tools, G0-G7/caps and dual graph-loss plus
+expression-loss conflicts remain closed. S2's composed trainer remains JAX and
+CPU development only; GPU/host acceptance is a separate boundary.
+
+The prospective unified contract/binding schemas are v2. Combinations derive
+all parts; ceiling and INTERNAL flags are diagnostics. Real required checks
+still refuse. Historical v1 derivation/refusal behavior is preserved. Shadow
+comparisons cannot report artifact parity without separate rebuild receipts.
+
+L2/L3 attack adapters use prospective composition versions and bind the exact
+composition digest. Foreign field presence is an ordinary positive control;
+malformed types/menu values, off-family settings and pool/draw violations retain
+independent attack predicates and vulnerable specimens. Compile records are
+labelled COMPILED_ONLY. Actual state determinism/field-effect/staged-parity
+controls are distinct. A graph digest without admitted documents/workspace is
+NOT_RUN or unrebuildable, never a finding or successful graph rebuild. Historical
+adapter receipts retain their original versions; this does not rescore them.
+
+Evidence is limited to canonical Linux tests and public fixture stand-ins.
+This is not live-door, GPU, sandbox, scientific or security qualification.
+Serving the composition on a registered deployment is S5 and requires owner go;
+S4 promotion is a separately sequenced slice.

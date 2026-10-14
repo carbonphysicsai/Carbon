@@ -282,12 +282,15 @@ class BackendNotServed(PermissionError):
         self.backend = backend
 
 
-class DevelopmentCompilerUnavailable(RuntimeError):
+class DevelopmentCompilerUnavailable(WorkerFailure):
     """This process can't compile a development variant the ladder serves to
     this listed hotkey: its compiler is installed only by the ladder's own
     entry point, never in the intake's process (whose import closure must not
     reach the variant module). Infrastructure, never the miner's: nothing is
     recorded, and the process that holds the compiler admits it."""
+
+    def __init__(self, code="development_compiler_unavailable"):
+        super().__init__(code, candidate=False)
 
 
 class ContractRevised(ValueError):

@@ -7,6 +7,7 @@ import copy
 import json
 
 import pytest
+from composition_check_fixtures import accepted_fixture_checks
 
 from carbon.battery import deployment
 from carbon.battery.daemon import BatteryValidator
@@ -109,7 +110,9 @@ def test_composition_keeps_deployment_containment(mutation):
         deployment.ladder_for(changed)
 
 
-def test_ladder_compiler_rebuild_record_and_binding_equal_direct_composition():
+def test_ladder_compiler_rebuild_record_and_binding_equal_direct_composition(
+    accepted_fixture_checks,
+):
     composition = dc.load(BATTERY)
     actual = operate.compile_variant(strategy(), composition.digest)
     direct = dc.compile(strategy(), composition)
@@ -119,7 +122,9 @@ def test_ladder_compiler_rebuild_record_and_binding_equal_direct_composition():
     assert actual.derived["level"] == 3 and len(actual.derived["changes"]) == 3
 
 
-def test_composition_recompile_verifies_all_durable_binding_fields(tmp_path):
+def test_composition_recompile_verifies_all_durable_binding_fields(
+    tmp_path, accepted_fixture_checks
+):
     instance = target(tmp_path)
     composition = dc.load(BATTERY)
     compiled = instance.development_compiler(strategy(), composition.digest)
@@ -185,3 +190,6 @@ def test_neutral_door_lists_exact_composition_and_main_stays_closed(tmp_path):
     wrong[composition.digest]["variant"] = "wrong-composition"
     with pytest.raises(ValueError, match="registered Challenge and base"):
         Validator(Adapters([adapter]), ledger, development=wrong)
+
+
+__all__ = ["accepted_fixture_checks"]

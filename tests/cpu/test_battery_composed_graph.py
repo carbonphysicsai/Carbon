@@ -8,6 +8,9 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+from composition_check_fixtures import accepted_fixture_checks
+
+__all__ = ["accepted_fixture_checks"]
 
 pytest.importorskip("jax")
 os.environ.setdefault("JAX_PLATFORMS", "cpu")
@@ -406,7 +409,7 @@ def test_unset_graph_cap_still_blocks_a_combination(monkeypatch, graph_input, ma
 
 
 def test_composition_graph_directory_uses_graph_widening_and_all_base_fields(
-    tmp_path, monkeypatch, graph_input
+    tmp_path, monkeypatch, graph_input, accepted_fixture_checks
 ):
     from carbon.reconstruction import development_level_cli as door
 

@@ -33,6 +33,14 @@ def compile_variant(strategy, variant_digest, parts=None, held=None):
         from carbon.reconstruction import development_composition as dc
 
         variant = dc.registered(variant_digest)
+        from carbon.battery.daemon import DevelopmentCompilerUnavailable
+
+        from .required_checks import ChecksUnavailable, check
+
+        try:
+            check(strategy, variant)
+        except ChecksUnavailable as unavailable:
+            raise DevelopmentCompilerUnavailable(unavailable.code) from None
         compile_registered = dc.compile
     else:
         variant = dv.registered(variant_digest)
