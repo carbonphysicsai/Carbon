@@ -367,4 +367,113 @@ SPEC = d.LevelSpec(
     seams=SEAMS,
     surface="l3_cross_level_fields",
 )
-ADAPTER = d.BatteryDeclarativeAdapter(SPEC)
+COMPOSITION_ADAPTER = d.BatteryDeclarativeAdapter(SPEC)
+
+
+# Existing per-level Graphite sessions retain their exact variant identity and
+# family contract. Composition families are explicitly scoped above.
+def _variant_cross_level_attacks():
+    out = [
+        (name, _strategy(quasi_newton_family="bfgs", **fields))
+        for name, fields in _other_level_fields()
+    ]
+    for field, value in (
+        ("quasi_newton_family", "newton"),
+        ("quasi_newton_family", "lbfgs_b"),
+        ("quasi_newton_family", 3),
+        ("line_search", "exact"),
+        ("line_search", None),
+    ):
+        out.append((f"off_menu_{field}_{value}", _strategy(**{field: value})))
+    return tuple(out)
+
+
+def _variant_determinism_attacks():
+    return (
+        (
+            "bfgs_backtracking",
+            _strategy(quasi_newton_family="bfgs", line_search="backtracking"),
+        ),
+        (
+            "ssbroyden_unit_step",
+            _strategy(quasi_newton_family="ssbroyden", line_search="none"),
+        ),
+    )
+
+
+@functools.lru_cache(maxsize=1)
+def _variant_families():
+    gate = d.variant_gate(LEVEL)
+    honest = _strategy(quasi_newton_family="bfgs")
+    honest_largest = _strategy(quasi_newton_family="lbfgs", **LARGEST)
+    return {
+        "l3_unbounded_work": d.FamilyRow(
+            check="resource_and_failure_accounting",
+            words="dense inverse Hessians within the worker's memory bound; polish within the contract's step bound",
+            attacks=_unbounded_attacks,
+            boundary=gate,
+            specimen=d.unchecked_gate,
+            breached=d.accepted,
+            control_ok=d.accepted,
+            trained=honest,
+            held_out=honest_largest,
+        ),
+        "l3_off_lane": d.FamilyRow(
+            check="construction_evaluation_isolation",
+            words="numerics choices only on JAX until backend parity, and only with a polish stage",
+            attacks=_off_lane_attacks,
+            boundary=gate,
+            specimen=d.unchecked_gate,
+            breached=d.accepted,
+            control_ok=d.accepted,
+            trained=honest,
+            held_out=_strategy(line_search="backtracking"),
+        ),
+        "l3_cross_level_fields": d.FamilyRow(
+            check="artifact_and_dependency_attacks",
+            words="a Level 3 recipe carries only Level 0 fields and menu values; another level's field is refused",
+            attacks=_variant_cross_level_attacks,
+            boundary=gate,
+            specimen=d.unchecked_gate,
+            breached=d.accepted,
+            control_ok=d.accepted,
+            trained=honest,
+            held_out=_strategy(quasi_newton_family="ssbroyden", line_search="none"),
+        ),
+        "l3_slot_ablation": d.FamilyRow(
+            check="baseline_and_permission_ablation",
+            words="the miner-facing contract refuses the Level 3 fields; only the variant admits them",
+            attacks=_ablation_attacks,
+            boundary=d.miner_contract_gate,
+            specimen=d.variant_gate(LEVEL),
+            breached=d.accepted,
+            control_ok=d.accepted,
+            trained=_strategy(),
+            held_out=_strategy(width=32, depth=2),
+        ),
+        "l3_rebuild_determinism": d.FamilyRow(
+            check="reconstruction_and_recipient_rebuild",
+            words="the same recipe and seed rebuild bit-identically twice on CPU",
+            attacks=_variant_determinism_attacks,
+            boundary=d.rebuilds_identically(LEVEL),
+            specimen=d.unpinned_seed(LEVEL),
+            breached=d.different,
+            control_ok=d.same,
+            trained=_strategy(),
+            held_out=_strategy(quasi_newton_family="lbfgs", width=32),
+        ),
+    }
+
+
+VARIANT_SPEC = d.LevelSpec(
+    level=LEVEL,
+    version=_version(),
+    adapter_version="carbon.attack.adapter.battery-l3.v1",
+    controls_version="carbon.attack.controls.battery-l3.v1",
+    rebuild_label=_rebuild_label,
+    families=_variant_families,
+    seams=SEAMS,
+    surface="l3_cross_level_fields",
+    composition=False,
+)
+ADAPTER = d.BatteryDeclarativeAdapter(VARIANT_SPEC)

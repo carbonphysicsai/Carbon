@@ -65,3 +65,13 @@ enable composed training on GPU. Graph-v4 remains an explicitly selected
 inert_fields variant arm under PLT-18; the default composition-v1 retains its
 immutable graph-v3 pin. A future current-child move requires a new composition
 version, rather than editing v1 or silently selecting the optional arm.
+
+CI consumer repair: per-level Graphite sessions retain their registered
+variant adapter identity, rebuild and family table. Explicit
+COMPOSITION_ADAPTER instances carry the prospective composition versions;
+single-variant and combined profiles cannot substitute for each other.
+Phase4's exact variant guard is unchanged. Original variant family helpers
+are preserved from merged main; composition controls exercise only the
+explicit combined instance. Queued status keeps the legacy Level-4 early
+refusal, while composition labels stay descriptive and actual graph fields
+still prevent polling. No signing, scope or check-evidence authority is added.

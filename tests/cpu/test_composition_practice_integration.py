@@ -139,3 +139,46 @@ def test_graph_v4_explicit_arm_does_not_move_the_composition_v1_subject(
     )
     with pytest.raises(dv.VariantRefused, match="level4_field_inert:width"):
         dv.compile_development(requested, prospective, check_budget=False)
+
+
+@pytest.mark.parametrize(
+    "kind,label,graph,reads",
+    [
+        (None, 4, False, False),
+        ("composition", 4, False, True),
+        ("composition", 0, True, False),
+        ("composition", None, True, False),
+    ],
+)
+def test_queued_status_preserves_legacy_level4_and_uses_actual_composition_graph(
+    tmp_path, monkeypatch, kind, label, graph, reads
+):
+    from test_observe_queued_verdict import Intake, _battery_epoch, _recorded, _verdict
+
+    from carbon.battery import remote_submission as rs
+
+    found = {"level": label, "digest": "sha256:" + "d" * 64}
+    if kind is not None:
+        found["kind"] = kind
+    parameters = {"composition_graphs": "sha256:" + "a" * 64} if graph else {}
+    _battery_epoch(
+        tmp_path,
+        record={
+            "strategy": {"parameters": parameters},
+            "contract_digest": found["digest"],
+            "construction_level": found,
+        },
+        manifest={"construction_level": found},
+    )
+    _recorded(tmp_path)
+    reached = []
+
+    def not_due(*_args, **_kwargs):
+        reached.append(True)
+        return False
+
+    monkeypatch.setattr(rs, "claim_status_read", not_due)
+    intake = Intake()
+    assert _verdict(tmp_path, intake, now=1.0) is None
+    assert bool(reached) is reads
+    assert intake.sent == []

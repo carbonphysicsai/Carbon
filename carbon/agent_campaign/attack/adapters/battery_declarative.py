@@ -276,6 +276,8 @@ class LevelSpec:
     #: level's own artifact-and-dependency family, as Level 1's expression
     #: surface.
     surface: str
+    #: Internal compiler scope, never caller-supplied acceptance authority.
+    composition: bool = True
 
 
 class BatteryDeclarativeAdapter(b.BatteryLevel0Adapter):
@@ -296,8 +298,14 @@ class BatteryDeclarativeAdapter(b.BatteryLevel0Adapter):
 
     @property
     def contract_digest(self):
+        from carbon.reconstruction import capability_registry as cr
+
         try:
-            return composition().digest
+            return (
+                composition().digest
+                if self.spec.composition
+                else cr.development_variant_registry()["versions"][self.spec.version]
+            )
         except (RuntimeError, KeyError):
             return "sha256:" + "0" * 64
 
@@ -376,7 +384,11 @@ class BatteryDeclarativeAdapter(b.BatteryLevel0Adapter):
         if family in self._table():
             view = b.oracle_view(attempt)
             row = self._table()[family]
-            if hasattr(view, "value") and _graph_without_workspace(view.value):
+            if (
+                self.spec.composition
+                and hasattr(view, "value")
+                and _graph_without_workspace(view.value)
+            ):
                 return OracleResult(
                     family=family,
                     attempt=str(view.name),
@@ -424,12 +436,16 @@ class BatteryDeclarativeAdapter(b.BatteryLevel0Adapter):
                 code="protected_material", detail="protected_material_named"
             )
         try:
-            if _graph_without_workspace(value):
+            if self.spec.composition and _graph_without_workspace(value):
                 return b.Unrebuildable(
                     code="graph_workspace_unavailable",
                     detail="no_admitted_graph_documents",
                 )
-            found = _compile_composition(value)
+            found = (
+                _compile_composition(value)
+                if self.spec.composition
+                else dv.compile_development(value, variant(self.level))
+            )
         except dv.VariantRefused as refused:
             issues = sorted({str(i[0]) for i in refused.issues})
             core = (
@@ -459,8 +475,11 @@ class BatteryDeclarativeAdapter(b.BatteryLevel0Adapter):
             ),
             detail={
                 "record": found.reconstruction,
-                "development": found.development,
-                "observation": "COMPILED_ONLY",
+                **(
+                    {"development": found.development, "observation": "COMPILED_ONLY"}
+                    if self.spec.composition
+                    else {}
+                ),
                 "served": True,
                 "rebuild": self.spec.rebuild_label(),
             },
@@ -472,7 +491,8 @@ class BatteryDeclarativeAdapter(b.BatteryLevel0Adapter):
         found = variant(self.level)
         inventory["profile"] = self.profile
         inventory["development_variant"] = found.digest
-        inventory["composition_contract"] = self.contract_digest
+        if self.spec.composition:
+            inventory["composition_contract"] = self.contract_digest
         inventory["permitted"] = list(inventory["permitted"]) + [
             {
                 "id": w.capability_id,
@@ -503,8 +523,14 @@ class BatteryDeclarativeAdapter(b.BatteryLevel0Adapter):
             "profile": self.profile,
             "contract_digest": self.contract_digest,
             "variant_version": found.version,
-            "composition_version": composition().version,
-            "observation": "DEVELOPMENT_COMPILER_ONLY",
+            **(
+                {
+                    "composition_version": composition().version,
+                    "observation": "DEVELOPMENT_COMPILER_ONLY",
+                }
+                if self.spec.composition
+                else {}
+            ),
             "permissions": list(found.permissions()),
             "adapter_version": self.version,
             "rebuild": self.spec.rebuild_label(),

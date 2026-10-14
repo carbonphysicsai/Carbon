@@ -1597,6 +1597,15 @@ def queued_verdict(
         _level_record_bound(prepared, record)
     except (OSError, ValueError, OperationRefused):
         return None
+    level = record.get("construction_level")
+    if (
+        type(level) is dict
+        and level.get("kind") != "composition"
+        and level.get("level") == 4
+    ):
+        # Legacy Level-4 records were never sent. A composition label is only
+        # descriptive; its actual graph field is checked independently below.
+        return None
     if "composition_graphs" in (record["strategy"].get("parameters") or {}):
         return None
     from carbon.development_session.intake_targets import for_challenge

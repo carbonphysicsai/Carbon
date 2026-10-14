@@ -352,4 +352,117 @@ SPEC = d.LevelSpec(
     seams=SEAMS,
     surface="l2_pool_sources_and_weights",
 )
-ADAPTER = d.BatteryDeclarativeAdapter(SPEC)
+COMPOSITION_ADAPTER = d.BatteryDeclarativeAdapter(SPEC)
+
+
+# Existing per-level Graphite sessions retain their exact variant identity and
+# family contract. Composition families are explicitly scoped above.
+def _variant_cross_level_attacks():
+    out = [
+        (name, _strategy(muon_spectral=True, **fields))
+        for name, fields in _other_level_fields()
+    ]
+    for label, value in (("string", "yes"), ("integer", 1), ("null", None)):
+        out.append((f"switch_not_boolean_{label}", _strategy(muon_spectral=value)))
+    return tuple(out)
+
+
+def _variant_cross_level_shape(value):
+    params = _parameters(value)
+    foreign = {key for _name, fields in _other_level_fields() for key in fields}
+    return bool(foreign.intersection(params)) or (
+        "muon_spectral" in params and type(params["muon_spectral"]) is not bool
+    )
+
+
+def _variant_determinism_attacks():
+    return (
+        ("muon_spectral_mlp", _strategy(muon_spectral=True)),
+        (
+            "muon_spectral_constant_curve",
+            _strategy(muon_spectral=True, learning_rate_curve="constant"),
+        ),
+        ("pool_selection_draw", _strategy(pool_selection=_pool())),
+    )
+
+
+@functools.lru_cache(maxsize=1)
+def _variant_families():
+    gate = d.variant_gate(LEVEL)
+    honest = _strategy(muon_spectral=True)
+    honest_wider = _strategy(muon_spectral=True, width=32, depth=2)
+    return {
+        "l2_off_family": d.FamilyRow(
+            check="construction_evaluation_isolation",
+            words="SpecMuon only on the Muon family, never with the plateau curve, JAX only until backend parity",
+            attacks=_off_family_attacks,
+            boundary=gate,
+            specimen=d.unchecked_gate,
+            breached=d.accepted,
+            control_ok=d.accepted,
+            trained=honest,
+            held_out=honest_wider,
+            attack_shape=_off_family_shape,
+        ),
+        "l2_cross_level_fields": d.FamilyRow(
+            check="artifact_and_dependency_attacks",
+            words="a Level 2 recipe carries only Level 0 fields and the boolean switch; another level's field is refused",
+            attacks=_variant_cross_level_attacks,
+            boundary=gate,
+            specimen=d.unchecked_gate,
+            breached=d.accepted,
+            control_ok=d.accepted,
+            trained=honest,
+            held_out=_strategy(muon_spectral=False),
+            attack_shape=_variant_cross_level_shape,
+        ),
+        "l2_pool_sources_and_weights": d.FamilyRow(
+            check="artifact_and_dependency_attacks",
+            words="a selection names only a registered pool version and its parts, never PRACTICE or a case, with weights in [0, 2] not all zero, and a draw the pool can fill",
+            attacks=_pool_attacks,
+            boundary=gate,
+            specimen=d.unchecked_gate,
+            breached=d.accepted,
+            control_ok=d.accepted,
+            trained=_strategy(pool_selection=_pool()),
+            held_out=_strategy(pool_selection=_pool(strata={"train": 2.0}, cases=32)),
+            attack_shape=_pool_violation_shape,
+        ),
+        "l2_slot_ablation": d.FamilyRow(
+            check="baseline_and_permission_ablation",
+            words="the miner-facing contract refuses the Level 2 field; only the variant admits it",
+            attacks=_ablation_attacks,
+            boundary=d.miner_contract_gate,
+            specimen=d.variant_gate(LEVEL),
+            breached=d.accepted,
+            control_ok=d.accepted,
+            trained=_strategy(),
+            held_out=_strategy(width=32, depth=2),
+            attack_shape=_slot_ablation_shape,
+        ),
+        "l2_rebuild_determinism": d.FamilyRow(
+            check="reconstruction_and_recipient_rebuild",
+            words="the same recipe and seed rebuild bit-identically twice on CPU",
+            attacks=_variant_determinism_attacks,
+            boundary=d.rebuilds_identically(LEVEL),
+            specimen=d.unpinned_seed(LEVEL),
+            breached=d.different,
+            control_ok=d.same,
+            trained=_strategy(),
+            held_out=_strategy(muon_spectral=False, width=32),
+        ),
+    }
+
+
+VARIANT_SPEC = d.LevelSpec(
+    level=LEVEL,
+    version=_version(),
+    adapter_version="carbon.attack.adapter.battery-l2.v2",
+    controls_version="carbon.attack.controls.battery-l2.v1",
+    rebuild_label=_rebuild_label,
+    families=_variant_families,
+    seams=SEAMS,
+    surface="l2_pool_sources_and_weights",
+    composition=False,
+)
+ADAPTER = d.BatteryDeclarativeAdapter(VARIANT_SPEC)

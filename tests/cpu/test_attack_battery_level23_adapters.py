@@ -61,8 +61,7 @@ def test_registered_valid_and_bound_to_its_variant(level):
     assert (b.CHALLENGE_ID, level) in adapters.registered()
     validate(adapter)
     assert adapter.level == level
-    assert adapter.contract_digest == d.composition().digest
-    assert adapter.version.endswith(".composition.v1")
+    assert adapter.contract_digest == d.variant(level).digest
     checks = {f.check for f in adapter.families()} | {
         s.check for s in adapter.level_families()
     }
