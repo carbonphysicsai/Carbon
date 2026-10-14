@@ -23,6 +23,9 @@ def source(tmp_path):
         ".agent/decisions/fixture.md": "public fixture, no authority",
         "Business/private.txt": "synthetic-business-marker",
         "state/history.json": "synthetic-state-marker",
+        "docs/development/evidence/exam-design-2026-09-24/private.json": "synthetic-excluded-marker",
+        "scripts/dev/exam_design/private.py": "# synthetic excluded script",
+        **{path: "public fixture material" for path in b.PUBLIC_RUNTIME_MATERIALS},
     }.items():
         target = root / path
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -46,6 +49,13 @@ def test_exact_tracked_blobs_ignore_worktree_edits_untracked_secrets_and_state(
     assert not (built.root / "Business").exists()
     assert not (built.root / "state").exists()
     assert not (built.root / "untracked.key").exists()
+    assert not (
+        built.root / "docs/development/evidence/exam-design-2026-09-24/private.json"
+    ).exists()
+    assert not (built.root / "scripts/dev/exam_design/private.py").exists()
+    assert b.PUBLIC_RUNTIME_MATERIALS <= {
+        row["path"] for row in built.manifest["files"]
+    }
     assert b.verify(built.root, built.digest) == built
     assert built.manifest["credentials_and_state"] == "EXTERNAL_ONLY"
     assert "NOT_QUALIFICATION" in built.manifest["scope"]
@@ -103,3 +113,37 @@ def test_nonempty_target_or_mutable_revision_never_overwrites(tmp_path):
         b.materialize(root, "main", tmp_path / "another")
     assert marker.read_bytes() == b"keep"
     assert not (tmp_path / "another").exists()
+
+
+@pytest.mark.parametrize("missing", sorted(b.PUBLIC_RUNTIME_MATERIALS))
+def test_missing_public_material_refuses_before_writing_destination(tmp_path, missing):
+    root, _ = source(tmp_path)
+    command(root, "rm", missing)
+    command(root, "commit", "-qm", "public fixture missing material")
+    destination = tmp_path / "release"
+    with pytest.raises(
+        b.SetupRefused, match="COMPLETE_PUBLIC_RUNTIME_MATERIAL_REQUIRED"
+    ):
+        b.materialize(root, command(root, "rev-parse", "HEAD"), destination)
+    assert not destination.exists()
+
+
+def test_historical_bundle_verification_preserves_original_file_set(tmp_path):
+    root, revision = source(tmp_path)
+    built = b.materialize(root, revision, tmp_path / "release")
+    manifest = dict(built.manifest)
+    manifest["files"] = [
+        row
+        for row in manifest["files"]
+        if row["path"] not in b.PUBLIC_RUNTIME_MATERIALS
+    ]
+    for path in b.PUBLIC_RUNTIME_MATERIALS:
+        target = built.root / path
+        target.chmod(0o644)
+        target.unlink()
+    manifest_path = built.root / b.MANIFEST
+    manifest_path.chmod(0o644)
+    raw = b.encoded(manifest)
+    manifest_path.write_bytes(raw)
+    manifest_path.chmod(0o444)
+    assert b.verify(built.root, b.sha(raw)).manifest == manifest
