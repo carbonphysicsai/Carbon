@@ -70,7 +70,30 @@ def _predicate(actual, check):
             and len(actual) >= expected
         )
     if op == "nonempty":
-        return isinstance(actual, (str, list, dict)) and bool(actual)
+
+        def present(value):
+            if value is None:
+                return False
+            if isinstance(value, str):
+                tag = value.strip().upper().split(":", 1)[0]
+                return bool(value.strip()) and tag not in {
+                    "HUMAN_INPUT",
+                    "UNKNOWN",
+                    "UNMEASURED",
+                    "MISSING",
+                    "TBD",
+                }
+            if isinstance(value, dict):
+                return bool(value) and all(present(v) for v in value.values())
+            if isinstance(value, list):
+                return bool(value) and all(present(v) for v in value)
+            return (
+                type(value) is bool
+                or type(value) in (int, float)
+                and math.isfinite(value)
+            )
+
+        return isinstance(actual, (str, list, dict)) and present(actual)
     if op == "finite":
         return type(actual) in (int, float) and math.isfinite(actual)
     raise LabRefused("readiness_predicate_unknown")

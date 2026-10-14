@@ -147,6 +147,13 @@ def test_types_missing_fields_and_owner_are_checked(tmp_path):
         fl.assess(manifest, tmp_path)
 
 
+@pytest.mark.parametrize(
+    "value", ["HUMAN_INPUT", "UNKNOWN", "TBD", {"law": None}, ["UNMEASURED"]]
+)
+def test_placeholder_is_not_present_evidence(value):
+    assert not fl._predicate(value, {"op": "nonempty"})
+
+
 def test_capacity_alias_and_dominance_are_real_counterexamples():
     result = fl.capacity_witnesses(
         {"good": [1, 1], "alias": [1, 1], "worse": [2, 2]},

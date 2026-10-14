@@ -196,5 +196,60 @@
     "No seed values disclosed",
     "No fitting or rule selection",
     "Separate 148-bundle physics study is not joined into this 137-bundle cohort"
+  ],
+  "additional_public_specimens": [
+    {
+      "id": "graphite-s5-standalone-ad15-e0",
+      "source_report": {
+        "path": "codex-queue/reports/GRAPHITE_S5_STANDALONE_ACTUAL_RESULT.json",
+        "sha256": "db6335db1d424cc8c4d288610b4b7575db5bca09b154d819bf5a14c29a954dd7"
+      },
+      "export_manifest": {
+        "path": "codex-queue/inputs/operator/public-standalone-db6335db-20261014/MANIFEST.json",
+        "sha256": "aabdc612d27537e439f55a2e8fdfb4412a95c0e21dc10b8d58791d465eae1862",
+        "file_count": 18
+      },
+      "source": "e0a97dac8da42436a8575cb2f85b3a9026e8ff31",
+      "variant": "sha256:ad15d6a8ef135a961f15dcb4a682e58ccdbdc7c99926de0f1ef6d5da4325cfa2",
+      "submission": "sha256:20015d9a74083b0d3e8400252a9d51a981b30072dfa39d310d8d4472894332b6",
+      "family": "mlp",
+      "settings": {
+        "depth": 3,
+        "width": 128,
+        "activation": "gelu",
+        "batch_size": 400,
+        "steps": 8000
+      },
+      "train_source_sha256": "sha256:3a7c763cca272df729268759e3062abd79e104a5c527c17314aef663944cf0e3",
+      "specimen_count": 1,
+      "replica_count": 2,
+      "n_params": 65269,
+      "state_bytes": 357295,
+      "state_sha256": "sha256:a0995d730e11acee2575c1c101a09ff252052003a61d59112ea606440eb4b916",
+      "fit_params_sha256": "ccbdbf7f1db3b858982483f502cbc9817891f617d3d88714f1096dec0a4fc62d",
+      "replicated_inference_cases": 4,
+      "parity": {
+        "exact_parameter_parity": true,
+        "exact_prediction_parity": true,
+        "exact_state_bytes_equal": true
+      },
+      "measured_cost": {
+        "training_step_flops": 159320576.0,
+        "F0_steps": 8000,
+        "F4_flops": 1274564608000.0,
+        "F1": "HUMAN_INPUT",
+        "F2": "HUMAN_INPUT",
+        "F3_seconds": "HUMAN_INPUT",
+        "F4_seconds": "HUMAN_INPUT",
+        "peak_memory_bytes": null,
+        "replica_train_s": [
+          11.670070572999975,
+          12.605473432000053
+        ]
+      },
+      "paired_design_value_quiz_physics_evidence": false,
+      "fit_eligible": false,
+      "limitation": "One public model specimen reconstructed twice. Not independent families; no score/value fit or scientific qualification. Metadata receipts read and hashed only; model states not loaded or executed."
+    }
   ]
 }

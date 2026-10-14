@@ -42,6 +42,13 @@ inventory aide's source bindings. The 137 records are not 137 independent
 families, and the five constructed controls do not turn them into 142 trained
 models. The distinct 148-bundle physics study is not silently pooled into it.
 
+The inventory also indexes the supplied public standalone L4 MLP specimen:
+one model, two identical reconstructed states and two four-case inference
+replays. Source, TRAIN digest, model identity and measured operation cost are
+recorded. It adds no paired decision-value, quiz or physics evidence. The two
+reconstructions are not two independent model families; unknown budget fields
+remain HUMAN_INPUT. The inventory reads metadata only, not the model states.
+
 The proposed first real target is the owner's battery-v3 ambient-indexed map,
 with protocol and cooling per 5/15/25/35/40 C band. Its committed round-2 law
 still has `runtime_registration: false` and null P/Q/outer-w. The manifest
@@ -93,6 +100,11 @@ Cached map acquisition is uncharged, so this is not a matched full-workflow
 cost comparison or evidence that Carbon beats an industry baseline.
 
 ## What a score search can and cannot establish
+
+The completed bounded matrix and reproducible summary are in
+`Business/research/score-lab-campaign-01/combined-matrix/READOUT.md`.
+The readiness checker recognizes its source-bound interaction receipt while
+keeping the other real-input and final-search prerequisites separate.
 
 The fixed matrix examines interactions; it does **not** search weights.
 `core.registry_rule` already consumes `score_tuning`'s registered families.

@@ -16,7 +16,7 @@
   "artifacts": {
     "public_inputs": {
       "path": "Business/research/score-lab-campaign-01/finish-line/PUBLIC_INPUTS.json",
-      "sha256": "395d816de367ed9ec6ee037e91fc396effbf63e0fd4faf5de2c08575b97a7885",
+      "sha256": "51a88f48fcff8f6a5bde013bdb71f06e6efe7b04d9a22af24b1d804347f9cfd0",
       "schema": "carbon.dev.score-lab-public-input-status.v1"
     },
     "ev4_admission": {
@@ -38,6 +38,11 @@
       "path": "docs/development/challenge_pipeline/question-laws/battery-v3-round2.json",
       "sha256": "9c98c03ffdd7ebce9817929a7a057187347f68646dc380d70cfc8df13ef536a6",
       "schema": "carbon.battery-ambient-question-law.proposal.round2.v1"
+    },
+    "combined_summary": {
+      "path": "Business/research/score-lab-campaign-01/combined-matrix/SUMMARY.json",
+      "sha256": "60c2718696b424611c10263519c93cfc7826bd1ba440bb7ec2b822614b1ddc61",
+      "schema": "carbon.dev.score-lab-combined-summary.v1"
     }
   },
   "stages": [
@@ -298,18 +303,56 @@
       "source_or_artifact_identity": {
         "path": "Business/research/score-lab-campaign-01/combined-matrix/REGISTRATION.json",
         "sha256": "13ab662a5489d8dc4efe6cce499ab157395446f1b0f53dad593167014f5ef2ae",
-        "schema": "carbon.dev.score-lab-combined-plan.v1"
+        "schema": "carbon.dev.score-lab-combined-plan.v1",
+        "completed_summary": {
+          "path": "Business/research/score-lab-campaign-01/combined-matrix/SUMMARY.json",
+          "sha256": "60c2718696b424611c10263519c93cfc7826bd1ba440bb7ec2b822614b1ddc61",
+          "schema": "carbon.dev.score-lab-combined-summary.v1"
+        }
       },
-      "minimum_action": "Execute the preregistered 3-profile x32-component x4-mode x16-candidate synthetic matrix; retain every unscored/failed cell. Expand only under the separately registered full campaign design after this bounded diagnostic.",
+      "minimum_action": "Bounded registered matrix completed; inspect all retained paired effects and unscored cells. Full-family search and real interaction evidence remain separate later stages.",
       "validation": "Existing controls pass first; inspect source/config hashes, fixed score/value roles, raw scores/gates, common masks and cell costs. All real combined inputs remain gated by paired_score_inputs.",
       "readiness_predicate": "The bounded combined diagnostic has complete source-bound execution or explicit capped partial evidence; fixed settings do not constitute optimized weights.",
       "checks": [
         {
-          "artifact": null,
+          "artifact": "combined_summary",
           "pointer": [
-            "complete_combined_run_receipt"
+            "status"
           ],
-          "op": "nonempty"
+          "op": "equals",
+          "expected": "COMPLETE"
+        },
+        {
+          "artifact": "combined_summary",
+          "pointer": [
+            "control_status"
+          ],
+          "op": "equals",
+          "expected": "CONTROL_PASS"
+        },
+        {
+          "artifact": "combined_summary",
+          "pointer": [
+            "completed_cells"
+          ],
+          "op": "equals",
+          "expected": 96
+        },
+        {
+          "artifact": "combined_summary",
+          "pointer": [
+            "plan_sha256"
+          ],
+          "op": "equals",
+          "expected": "a2374abb8508a2c1caae28850ddd31fe1dd584e4e89d5ddef59f40887b9cd76c"
+        },
+        {
+          "artifact": "combined_summary",
+          "pointer": [
+            "source_commit"
+          ],
+          "op": "equals",
+          "expected": "6e90df8fc47dad8dbfa663db26579f4c8fb8f2cb"
         }
       ],
       "execution": {
