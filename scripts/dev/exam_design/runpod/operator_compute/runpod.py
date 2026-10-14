@@ -105,7 +105,7 @@ _ALLOWED = {
 _GRAPHQL_PREFIX = {
     "offers": "query { gpuTypes(",
     "balance": "query { myself { clientBalance } }",
-    "cpu_stock": "query { cpuFlavors { id specifics(input:{instanceId:\"",
+    "cpu_stock": 'query { cpuFlavors { id specifics(input:{instanceId:"',
 }
 # Not exercised by pod_control.py; see module docstring. The stop path matches
 # the REST v1 spec (read 2026-10-02) but has not been run live.
@@ -569,11 +569,13 @@ class RunPodAdapter:
             payload.get("name"),
             None if rate is None else float(rate),
             now,
-            payload.get("cpuFlavorId")
-            if isinstance(payload.get("cpuFlavorId"), str)
-            and payload.get("cpuFlavorId")
-            in {"cpu3c", "cpu3g", "cpu3m", "cpu5c", "cpu5g", "cpu5m"}
-            else None,
+            (
+                payload.get("cpuFlavorId")
+                if isinstance(payload.get("cpuFlavorId"), str)
+                and payload.get("cpuFlavorId")
+                in {"cpu3c", "cpu3g", "cpu3m", "cpu5c", "cpu5g", "cpu5m"}
+                else None
+            ),
         )
 
     def datacenter(self, resource_id: str) -> str | None:

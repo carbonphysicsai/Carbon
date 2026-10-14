@@ -147,18 +147,21 @@ def test_cpu_stock_query_uses_the_recorded_instance_shape_and_fails_closed(env):
     def stock_transport(method, url, *, body, headers, timeout):
         query = json.loads(body)["query"]
         sent.append((method, url, query))
-        return 200, json.dumps(
-            {
-                "data": {
-                    "cpuFlavors": [
-                        {
-                            "id": "unrelated",
-                            "specifics": {"stockStatus": "High"},
-                        }
-                    ]
+        return (
+            200,
+            json.dumps(
+                {
+                    "data": {
+                        "cpuFlavors": [
+                            {
+                                "id": "unrelated",
+                                "specifics": {"stockStatus": "High"},
+                            }
+                        ]
+                    }
                 }
-            }
-        ).encode()
+            ).encode(),
+        )
 
     adapter._transport = stock_transport
     observation = adapter.cpu_stock("cpu5m", 8)
@@ -181,8 +184,10 @@ def test_cpu_stock_query_uses_the_recorded_instance_shape_and_fails_closed(env):
         adapter.cpu_stock("cpu5m", 8)
     adapter._transport = lambda *args, **kwargs: (
         200,
-        b'{"errors":[{"message":"partial"}],"data":{"cpuFlavors":'
-        b'[{"id":"unrelated","specifics":{"stockStatus":"High"}}]}}',
+        (
+            b'{"errors":[{"message":"partial"}],"data":{"cpuFlavors":'
+            b'[{"id":"unrelated","specifics":{"stockStatus":"High"}}]}}'
+        ),
     )
     with pytest.raises(ComputeError, match="stock observation unknown"):
         adapter.cpu_stock("cpu5m", 8)
@@ -193,7 +198,8 @@ def test_cpu_create_preserves_explicit_fallback_order(env):
     request_spec = spec(gpu_type_id=None, gpu_count=0, cpu_placement=placement)
     adapter = env[3]
     assert adapter.create_body(request_spec, "a" * 24)["cpuFlavorIds"] == [
-        "cpu5c", "cpu3c"
+        "cpu5c",
+        "cpu3c",
     ]
 
 

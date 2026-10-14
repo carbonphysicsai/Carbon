@@ -42,6 +42,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import secrets
 import subprocess
 import threading
@@ -1457,8 +1458,14 @@ class InMemoryRunPod:
     Safe to call from several threads at once, as the check does."""
 
     def __init__(
-        self, *, balance=100.0, rate=0.44, charge=0.07, cpu_stock=None,
-        placed_cpu_flavor=None, omit_cpu_flavor=False,
+        self,
+        *,
+        balance=100.0,
+        rate=0.44,
+        charge=0.07,
+        cpu_stock=None,
+        placed_cpu_flavor=None,
+        omit_cpu_flavor=False,
         cpu_startup_delay_reads=0,
     ):
         self.balance, self.rate, self.charge = balance, rate, charge

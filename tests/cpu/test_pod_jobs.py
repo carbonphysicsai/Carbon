@@ -218,9 +218,7 @@ def test_cpu_stock_preflight_filters_explicit_fallbacks_and_records_actual_flavo
     document = spec_document()
     document["compute"]["fallback_flavors"] = ["cpu3c"]
     spec = pod_jobs.load_spec(document)
-    account = pods.InMemoryRunPod(
-        cpu_stock={"cpu5c-8-16": None, "cpu3c-8-16": "High"}
-    )
+    account = pods.InMemoryRunPod(cpu_stock={"cpu5c-8-16": None, "cpu3c-8-16": "High"})
     _same_spec, backend, _account = make(account, job_spec=spec)
     receipt, _ledger = go(spec, backend)
     assert receipt["ok"] is True
@@ -282,9 +280,7 @@ def test_cpu_jobs_refuse_a_pinned_bootstrap_without_the_start_gate(
 
 def test_cpu_stock_unknown_or_empty_refuses_before_create(lifecycle):
     make, go = lifecycle
-    spec, backend, account = make(
-        pods.InMemoryRunPod(cpu_stock={"cpu5c-8-16": None})
-    )
+    spec, backend, account = make(pods.InMemoryRunPod(cpu_stock={"cpu5c-8-16": None}))
     receipt, ledger = go(spec, backend)
     assert receipt["outcome"].startswith("launch_refused:")
     assert receipt["cpu_stock_preflight"][0]["available"] is False
@@ -666,8 +662,8 @@ def test_cpu_bootstrap_does_not_start_the_phase_before_operator_release(
 ):
     import importlib.util
     import threading
-    import types
     import time as real_time
+    import types
 
     for name in (
         "CODE_MANIFEST_GZ_B64",

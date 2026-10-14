@@ -115,8 +115,7 @@ class CPUPlacement:
             raise ValueError("CPU fallback flavors must be an immutable tuple")
         flavors = (self.flavor_id, *self.fallback_flavor_ids)
         if any(
-            type(flavor) is not str or flavor not in _CPU_FLAVORS
-            for flavor in flavors
+            type(flavor) is not str or flavor not in _CPU_FLAVORS for flavor in flavors
         ):
             raise ValueError("unsupported CPU fallback flavor")
         if len(set(flavors)) != len(flavors):

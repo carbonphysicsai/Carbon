@@ -262,7 +262,9 @@ def _bootstrap_supports_operator_start_gate(source):
     flag_defined = any(operator_flag(node) for node in tree.body)
 
     def waits_for_go_marker(node):
-        condition = node.test.operand if isinstance(node.test, ast.UnaryOp) else node.test
+        condition = (
+            node.test.operand if isinstance(node.test, ast.UnaryOp) else node.test
+        )
         return qualified_call(condition, "os", "path", "isfile") and any(
             isinstance(arg, ast.Name) and arg.id == "GO_FILE" for arg in condition.args
         )
@@ -327,13 +329,10 @@ def _bootstrap_supports_operator_start_gate(source):
         (index for index, node in enumerate(gate_body) if node is wait_loop), None
     )
     release_index = next(
-        (
-            index
-            for index, node in enumerate(gate_body)
-            if node is release_assignment
-        ),
+        (index for index, node in enumerate(gate_body) if node is release_assignment),
         None,
     )
+
     def go_path_check(node):
         return (
             isinstance(node, ast.Compare)
@@ -364,7 +363,9 @@ def _bootstrap_supports_operator_start_gate(source):
         isinstance(node, ast.Call)
         and isinstance(node.func, ast.Attribute)
         and node.func.attr == "compare_digest"
-        and any(isinstance(value, ast.Name) and value.id == "TOKEN" for value in node.args)
+        and any(
+            isinstance(value, ast.Name) and value.id == "TOKEN" for value in node.args
+        )
         for node in ast.walk(post_handler)
     )
     authenticated_go = token_validation and any(
@@ -899,9 +900,7 @@ class JobPods(pods.RunPodPods):
                 in_stock = []
                 for flavor_id in placement.flavor_ids:
                     try:
-                        stock = self.adapter.cpu_stock(
-                            flavor_id, placement.vcpu_count
-                        )
+                        stock = self.adapter.cpu_stock(flavor_id, placement.vcpu_count)
                     except ComputeError:
                         ram_multiplier = {"c": 2, "g": 4, "m": 8}[flavor_id[-1]]
                         self._cpu_stock_preflight.append(
@@ -1114,7 +1113,9 @@ class JobPods(pods.RunPodPods):
                 return
             if code not in (0, 502, 503, 504):
                 raise PodFailure(
-                    "launch", f"CPU start gate release was refused ({code})", executed=True
+                    "launch",
+                    f"CPU start gate release was refused ({code})",
+                    executed=True,
                 )
             self.sleep(min(POLL_SECONDS, max(0.01, deadline - self.clock())))
 

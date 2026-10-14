@@ -35,7 +35,7 @@ from .model import (
     ResourceState,
     UserManagedHost,
 )
-from .provider import BalanceObservation, CPUStockObservation, ComputeProvider
+from .provider import BalanceObservation, ComputeProvider, CPUStockObservation
 from .reconcile import ReconcileReport, reconcile
 from .runpod import RunPodAdapter, UrllibTransport
 from .service import ComputeService
