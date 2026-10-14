@@ -65,3 +65,19 @@ discriminating tests for combinations, absence, scorer isolation, frozen
 replay, limits, manifest tampering and readiness refusal. Run canonical tests,
 Black, Ruff and delivery hygiene for the complete candidate. Bind actual
 results separately from this prospective contract. Deliver one PR to main.
+
+## Result-export recovery
+
+The first canonical run on 6e90df8fc completed all 96 cells at 339.441742
+evaluation CPU-s, but its shell driver's final CR byte became part of the
+output directory name. The exporter looked for the name without that byte;
+the container was removed before its detailed results could be retained.
+Keep the summary and missing-artifact limitation; claim no scientific findings
+from that run. A canonical write/export fixture confirms LF paths work.
+
+Repeat the identical committed registration and implementation after normalizing
+the execution wrapper to LF, with the same per-run hard caps. Record both
+runs' evaluation cost; this transport recovery is no new parameter search or
+outcome-based selection. No extra 213-test rerun is needed for unchanged source.
+The duplicate evaluation worst-case allowance is 1200 CPU-s, so both tranches'
+reserved evaluation allowance remains below the local one-CPU-hour envelope.
