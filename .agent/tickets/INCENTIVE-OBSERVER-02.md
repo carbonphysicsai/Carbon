@@ -88,3 +88,33 @@ Human input: adopted feed freshness bounds and exact authority; actual mainnet
 policy/config and economic parity rulings stay outside this bounded repair.
 Completion: bounded candidate passes applicable automated acceptance and Root
 delivery; owner gaps remain visibly UNVERIFIED, never counted as acceptance.
+
+Prospective Root scope extension: observational aggregate-vector correctness
+under the existing registered policy joins this one observer repair. The old
+verify_epoch compares a shared hotkey's aggregated row with one 1/N share.
+Use existing pure epoch_targets/compile_targets semantics for the expected
+complete vector, retaining Q12 remainder/burn and registered clock/decay. No
+publisher or economic rule changes. Unknown Challenge sources stay UNVERIFIED;
+null king alone does not prove no eligible winner. Actual additional-Challenge
+winner adapters and unregistered mainnet policy remain outside/HOLD. Packets3
+owns only a disjoint new aggregate test aide; Root routes its patch here.
+
+Implemented working decisions: optional expected_targets retains a pure exact-
+vector comparator; operational row/king timing is checked against independently
+read LastUpdate block/hash/time, and missing context stays UNVERIFIED. Current-
+target drift may be publication lag and is ATTENTION, not a declared payment
+defect. Public winner-observation.v1 adds only allowlisted closed source states,
+registered policy identity and chain context. Malformed policy/network values
+are projected to unknown, never raw private text. A complete authenticated
+Challenge roster is required; aggregate sybil attribution cannot silently become
+a primary-Challenge gain. Config v1/legacy scalar readers cannot certify v2.
+The owner-only grouped watermark validates all history under one OS lock; a
+preexisting empty/foreign file is not adopted. Immutable economics remain KEEP.
+
+Evidence before final acceptance: 34 canonical baseline passed; three planted
+signed-feed regressions failed on old source exactly at live/null, schema and
+Challenge bindings. Integrated slice passed 121 canonical controls including
+all31 aggregate cases; final producer allowlist11 and aggregate-sybil1 controls
+passed separately after their changes. Corrected fixture/lint/intermediate
+failures are not counted as clean runs. Full required current-head gates remain
+Root-owned and no operational freshness/production qualification is inferred.
