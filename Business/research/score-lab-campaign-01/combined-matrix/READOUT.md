@@ -68,6 +68,39 @@ They are exploratory and do not adjust for searching thousands of settings.
 No multiple-comparison claim, tuned weight or powered equivalence is made.
 All four scopes and all candidate outcomes remain in the gzip receipts.
 
+## Capacity and measurement reliability are separate
+
+`DIAGNOSTICS.json` derives twelve profile/scope rows from the saved A/Q features
+and the exact same analytic value panels, masks and member losses. It refuses
+a changed saved mask or value. With gates and optional components OFF, all six
+MODEL members share eligibility. Every row has at least one pair in which the
+lower-value model is at least as good on both higher-is-better A and Q features.
+There are 3 to 13 such pairs per row and no exact feature aliases. A score that
+is a coordinatewise nondecreasing function of only these two features cannot
+strictly order those pairs by value. This is a limitation of this feature
+family on these fixed toy inputs; different features, eligibility or
+nonmonotone models are outside the claim. It does not select a replacement.
+
+| Neighbourhood value view | A/Q order-reversal witnesses | Reliability-derived tau estimate [95% interval] |
+| --- | ---: | --- |
+| Nominal error example | 11 | 0.680 [0.637, 0.751] |
+| Tight boundary/coupled | 3 | 0.893 [0.842, 0.938] |
+| Registered error64 row 0 | 10 | 0.680 [0.570, 0.774] |
+
+The reliability diagnostic reuses `score_proof.value_ceiling`, including its
+Spearman-Brown and bivariate-normal assumptions. These estimates are neither
+universal mathematical tau bounds nor proof that the A/Q family can reach
+them. Here the feature-order witnesses show a separate obstacle even when
+the measured value is relatively reliable. Direct V2 utility is another
+family, whose cost, fallback, unsafe-pick and abstention semantics must match
+the actual buyer job before a representational-equivalence claim is made.
+
+The derivation ran canonically on
+`2ccccc21a4ab7138e0770b034a8364037e8ca62f`; `DIAGNOSTIC_RECEIPT.json` binds the
+diagnostic and readiness outputs. It did no candidate import or new score
+search. The receipt checker reports only `interactions` as evidence-present;
+the complete real research path remains `INSUFFICIENT_EVIDENCE`.
+
 ## Cost and reproducibility
 
 The retained run used 388.327415 evaluation CPU-seconds, 0.556320 control

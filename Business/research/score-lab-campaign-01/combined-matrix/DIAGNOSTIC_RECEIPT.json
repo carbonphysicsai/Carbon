@@ -1,0 +1,12 @@
+{
+  "source_commit": "2ccccc21a4ab7138e0770b034a8364037e8ca62f",
+  "canonical_execution": true,
+  "bootstrap_seed": 20261013,
+  "files_sha256": {
+    "combined-diagnostics.json": "f6dfc54da216e8c07f81eb5a1cb1d9cebe8cf208020cf3e5263a324ef9f80fd0",
+    "readiness-status.json": "2b7919421616fcdadcce106ca0884de1cfb317f2b37d9b23a5657870de1829ab"
+  },
+  "scope": "READ_ONLY_SYNTHETIC_DERIVATION_AND_PUBLIC_RECEIPT_CHECK",
+  "fit_or_selection": false,
+  "holdout_read": false
+}
