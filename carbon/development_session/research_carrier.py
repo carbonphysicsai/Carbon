@@ -404,7 +404,7 @@ def _run_locked(
                 # A GPU code cell: the pinned GPU worker and the host's GPU
                 # readiness, checked as GPU practice checks them.
                 checked = doctor(image_id=image.image_id, image_identity=image, cli=cli)
-                _check_gpu_host(cli, image, device)
+                _check_gpu_host(cli, image, device, _gpu_pins(image, accelerator))
             elif type(image) is JuliaResearchImageIdentity:
                 verify_julia_image(image, cli)
                 checked = doctor(image_id=image.image_id, cli=cli)

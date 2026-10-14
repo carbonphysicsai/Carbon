@@ -27,6 +27,51 @@ from carbon.reconstruction.accelerators import GPU_PROFILE
 live = _live
 
 
+def test_torch_code_cell_reaches_the_same_pinned_host_check(tmp_path, monkeypatch):
+    image, record = torch_image(), device()
+    finished = []
+    ledger = SimpleNamespace(
+        root=tmp_path,
+        reserve=lambda *args, **kwargs: {"dispatch": True},
+        finish=lambda *args, **kwargs: finished.append(kwargs),
+    )
+    monkeypatch.setattr(research_carrier, "_gpu_device", lambda: record)
+    monkeypatch.setattr(research_carrier, "DockerCLI", lambda: object())
+    monkeypatch.setattr(
+        research_carrier, "doctor", lambda **kwargs: SimpleNamespace(eligible=True)
+    )
+    checked = []
+
+    def check(cli, selected, selected_device, pins):
+        assert selected is image and selected_device is record
+        assert pins == (
+            torch_profile.GPU_PROFILE_ID,
+            torch_profile.GPU_PROFILE_DIGEST,
+            torch_profile.GPU_LOCK_DIGEST,
+        )
+        checked.append(pins)
+        raise RuntimeError("stop-before-container-command")
+
+    monkeypatch.setattr(research_carrier, "_check_gpu_host", check)
+    with pytest.raises(RuntimeError, match="stop-before-container-command"):
+        research_carrier._run_locked(
+            ledger,
+            owner="fixture",
+            identity="torch-cell",
+            source="print(1)",
+            files={},
+            image=image,
+            seconds=60,
+            provenance="MINER_SELF_REPORTED",
+            extra_resources={},
+            miner_authored=True,
+            accelerator=research_carrier.MINER_GPU,
+        )
+    assert len(checked) == 1
+    assert len(finished) == 1
+    assert finished[0]["result"]["worker_created"] is False
+
+
 def torch_image():
     return gpu_image(lock=torch_profile.GPU_LOCK_DIGEST)
 
