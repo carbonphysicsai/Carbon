@@ -45,6 +45,13 @@ def measurement(env):
         "manifest_compressed_bytes": (
             len(base64.b64decode(carrier, validate=True)) if carrier else None
         ),
+        # Include anchor names/values for upload, while retaining the legacy
+        # payload-only carrier fields above with their original meaning.
+        "manifest_env_chars": sum(
+            len(name) + len(value)
+            for name, value in values.items()
+            if name.startswith("CODE_MANIFEST")
+        ),
         "phase_config_chars": len(values.get("PHASE_CONFIG", "")),
         "status": ("PASS" if total < ENV_LIMIT_CHARS - CI_RESERVE_CHARS else "FAIL"),
     }
@@ -120,12 +127,14 @@ def profiles(ref="HEAD", *, repository=REPOSITORY):
                 pods.PodJob.config,
                 pods._ca_bundle,
                 pod_control.manifest_env,
+                pod_control.manifest_upload_env,
+                pod_control.manifest_upload_bytes,
             )
         ).encode()
         + Path(__file__).read_bytes()
     )
     return {
-        "schema": "carbon.graphite.environment-ci.v1",
+        "schema": "carbon.graphite.environment-ci.v2",
         "source_ref": commit,
         "measurement_recipe": "frozen-current-builder-and-codec",
         "factory_source_sha256": hashlib.sha256(recipe).hexdigest(),
@@ -146,6 +155,7 @@ def profiles(ref="HEAD", *, repository=REPOSITORY):
 def compare(base, head, base_manifest, head_manifest):
     """Aggregate source deltas under one recipe; no paths/digests disclosed."""
     same_fields = (
+        "schema",
         "measurement_recipe",
         "factory_source_sha256",
         "host_system",
@@ -157,7 +167,14 @@ def compare(base, head, base_manifest, head_manifest):
     for old, new in zip(base["profiles"], head["profiles"], strict=True):
         if any(
             old[field] != new[field]
-            for field in ("profile", "backend", "phase_config_chars")
+            for field in (
+                "profile",
+                "backend",
+                "phase_config_chars",
+                "limit_chars",
+                "reserve_chars",
+                "ci_limit_chars",
+            )
         ):
             raise ValueError("pod_environment_comparison_job_differs")
     before, after = set(base_manifest), set(head_manifest)
@@ -185,6 +202,9 @@ def compare(base, head, base_manifest, head_manifest):
                 "total_char_delta": new["total_chars"] - old["total_chars"],
                 "manifest_carrier_char_delta": (
                     new["manifest_carrier_chars"] - old["manifest_carrier_chars"]
+                ),
+                "manifest_env_char_delta": (
+                    new["manifest_env_chars"] - old["manifest_env_chars"]
                 ),
             }
             for old, new in zip(base["profiles"], head["profiles"], strict=True)

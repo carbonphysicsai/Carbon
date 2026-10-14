@@ -1,7 +1,8 @@
 # Graphite environment CI guard (PLT-33)
 
-The small-job environment test preserves 8,000 characters below the 90,000
-runtime cap. It does not exercise the separately declared 60,000-character
+The small-job environment test preserves 8,000 characters below the registered
+runtime cap (currently 108,000 under OWNER-POD-ENV-LIMIT-RAISE-01). It does not
+exercise the separately declared 60,000-character
 L4 submission transport budget. The added guard uses `RunPodPods._env` for
 both JAX and PyTorch with small and full-L4-budget configurations. Its L4
 payload is synthetic sizing material, not a valid submission or execution.
@@ -33,6 +34,19 @@ describe that controlled comparison. They do not reproduce deployed #991
 or L4 incident environments, whose configurations are not established as
 identical. No growth rate or replacement threshold is inferred from the
 unlike incident summaries.
+
+After PLT-29's merged upload transport, report schema
+`carbon.graphite.environment-ci.v2` counts manifest anchor names and values
+in `manifest_env_chars`. The legacy payload-only `manifest_carrier_chars`
+and `manifest_compressed_bytes` retain their original meanings and are zero/
+null when no inline payload exists. Comparison adds `manifest_env_char_delta`;
+the old carrier delta still describes inline payload only. The frozen factory
+fingerprint includes both upload helpers. Comparisons refuse changed schema,
+registered limit, reserve or CI line as well as recipe/job mismatches.
+
+Historical D1's 90,000 cap and 82,000 CI line describe the original base.
+Current boundary tests derive the line from the actual registered cap and
+unchanged reserve; this integration changes no provider or runtime limit.
 
 Platform's PLT-29 owns moving the manifest out of the environment while
 preserving its request anchor and per-file pins. This ticket leaves that
