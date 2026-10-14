@@ -704,6 +704,30 @@ def manifest_env(manifest: dict) -> dict:
     return {"CODE_MANIFEST_GZ_B64": base64.b64encode(packed).decode()}
 
 
+MANIFEST_UPLOAD = "authenticated-upload-v1"
+MANIFEST_UPLOAD_LIMIT = 1 << 20  # the bootstrap's existing generic POST bound
+
+
+def manifest_upload_bytes(manifest: dict) -> bytes:
+    """The exact bytes anchored by a new create; no external artifact hosting."""
+    if type(manifest) is not dict or not manifest:
+        raise ValueError("code_manifest_empty")
+    raw = json.dumps(manifest, sort_keys=True).encode("utf-8")
+    if len(raw) > MANIFEST_UPLOAD_LIMIT:
+        raise ValueError("code_manifest_upload_too_large")
+    return raw
+
+
+def manifest_upload_env(manifest: dict) -> dict:
+    """Fixed-size request anchor; file-count growth travels in the HTTP body."""
+    raw = manifest_upload_bytes(manifest)
+    return {
+        "CODE_MANIFEST_TRANSPORT": MANIFEST_UPLOAD,
+        "CODE_MANIFEST_SHA256": hashlib.sha256(raw).hexdigest(),
+        "CODE_MANIFEST_BYTES": str(len(raw)),
+    }
+
+
 def ref_is_pushed(ref: str) -> bool:
     """The pod reads code from GitHub at `ref`: it must be on a remote branch."""
     out = subprocess.run(
