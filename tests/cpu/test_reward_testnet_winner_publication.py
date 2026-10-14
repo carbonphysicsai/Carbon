@@ -128,21 +128,23 @@ def test_a_malformed_standing_authorization_is_refused(changes):
 
 
 def test_targets_that_changed_since_issue_are_refused(tmp_path):
-    issuer, backend, publisher = composed(tmp_path)
+    current = {"promotion": promotion()}
+    issuer, backend, publisher = composed(tmp_path, source=lambda: current["promotion"])
     state, _ = asyncio.run(backend.observe())
     ref = issuer.issue(state)
     # A new promotion lands before publication: the issued targets are stale.
+    current["promotion"] = {
+        "model_id": "m2",
+        "hotkey": "unregistered",
+        "previous": "m1",
+        "previous_hotkey": "miner-hotkey",
+        "kind": we.FINAL,
+        "nomination_overdue": False,
+    }
     issuer.ledger.observe(
         POLICY,
         BATTERY,
-        {
-            "model_id": "m2",
-            "hotkey": "unregistered",
-            "previous": "m1",
-            "previous_hotkey": "miner-hotkey",
-            "kind": we.FINAL,
-            "nomination_overdue": False,
-        },
+        current["promotion"],
         {},
         state.timestamp_ms,
     )
