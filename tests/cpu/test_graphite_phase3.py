@@ -75,6 +75,7 @@ from carbon.agent_campaign.graphite.roles import (
     CONSTRUCTOR_SESSION_TURNS,
     CONSTRUCTOR_STALL_ATTEMPTS,
     ENGY_CONTEXT_TOKENS,
+    MODEL_OUTPUT_CAPS,
     PARALLEL_RULES,
     PROPOSE,
     ROLES,
@@ -770,7 +771,9 @@ def test_every_rung_opens_with_its_whole_context_a_600_s_timeout_on_engy_chat(
     tmp_path,
 ):
     """Escalation selects again for each rung, so each rung gets its own
-    window. Output stays 2,048 tokens and reasoning `low`."""
+    window. Output stays 2,048 tokens, except where the model has a cap of its
+    own that fits its context (kimi-k3's 32,768, `roles.MODEL_OUTPUT_CAPS`,
+    GRAPHITE-OUTPUT-CAP-KIMI-01), and reasoning `low`."""
     assert tuple(WINDOWS) == ENGY_LADDER
     for model_id, window in WINDOWS.items():
         graphite = _on_rung(provider(tmp_path / model_id, [], ScriptedPods()), model_id)
@@ -780,13 +783,16 @@ def test_every_rung_opens_with_its_whole_context_a_600_s_timeout_on_engy_chat(
         assert opened["model"]["provider_id"] == phase3.ADAPTER == "engy-chat"
         assert opened["model"]["settings"] == {
             "max_input_tokens": window,
-            "max_output_tokens": 2048,
+            "max_output_tokens": MODEL_OUTPUT_CAPS.get(model_id, 2048),
             "reasoning_effort": "low",
             "timeout_seconds": 600,
         }
         # The admission ceiling holds 4,096 tokens back, so a request's input
-        # plus the 2,048 output tokens fits inside the model's max_model_len.
-        assert window - CONTEXT_RESERVE_TOKENS + 2048 < ENGY_CONTEXT_TOKENS[model_id]
+        # plus the output cap fits inside the model's max_model_len.
+        assert (
+            window - CONTEXT_RESERVE_TOKENS + MODEL_OUTPUT_CAPS.get(model_id, 2048)
+            < ENGY_CONTEXT_TOKENS[model_id]
+        )
     # 1,048,576 is the most `select` accepts.
     assert SELECT_MAX_INPUT_TOKENS == 1048576
     with pytest.raises(ModelSelectionRefused, match="max_input_tokens"):
@@ -807,14 +813,15 @@ def test_a_model_with_no_recorded_context_opens_nothing(tmp_path, monkeypatch):
 
 
 def test_a_kimi_k3_session_stops_typed_before_its_first_call(tmp_path):
-    """One kimi-k3 call at its whole window reserves USD 2.0647, more than the
-    run's 1.95 token share, so it is never admitted: the session stops on the
+    """One kimi-k3 call at its whole window and its 32,768-token output cap
+    reserves USD 2.3642 (2.0647 at the old 2,048), more than the run's 1.95
+    token share, so it is never admitted: the session stops on the
     money cap before any call. Nothing is sent and nothing is spent."""
     graphite = _on_rung(
         provider(tmp_path, [text("never sent")], ScriptedPods()), "kimi-k3"
     )
     reservation = graphite._selection("kimi-k3", RoleName.CONSTRUCTOR).reservation_nano
-    assert reservation == 1048576 * 1950 + 2048 * 9750 == 2064691200
+    assert reservation == 1048576 * 1950 + 32768 * 9750 == 2364211200
     assert reservation > ex.usd_to_nano(graphite.budget.token_allowance_usd)
     result = _run(tmp_path, graphite)
     assert result["provider_state"] == "failed"
@@ -848,6 +855,8 @@ def _before_d34(root, model, **kw):
         # Recorded before the budget-status rule (AGENT-DOOR-USABILITY-01):
         # no rule, so its status keeps the v1 bytes.
         patch.setattr(phase3.Phase3Provider, "NEW_SESSION_BUDGET_STATUS", None)
+        # Recorded before PLT-14's prospective argument-logging rule.
+        patch.setattr(gp.GraphiteProvider, "NEW_SESSION_ARGUMENT_LOGGING", None)
         return graphite, _open(graphite, tool_text=TOOL_TEXT_V1)
 
 

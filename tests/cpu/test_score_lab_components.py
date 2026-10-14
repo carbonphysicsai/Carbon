@@ -12,7 +12,7 @@ from scripts.dev.score_lab.components import (
     with_cvar,
     with_gradient_sign,
 )
-from scripts.dev.score_lab.core import LabRefused
+from scripts.dev.score_lab.core import LabRefused, analyze
 
 
 def _rule(predictions, _references, _metadata):
@@ -98,6 +98,77 @@ def test_cvar_uses_worst_question_and_preserves_fail_gate():
     )
     with pytest.raises(LabRefused, match="component_cvar_fraction"):
         with_cvar(_rule, tail_fraction=math.nan)
+
+
+def test_cvar_preserves_full_panel_floor_even_when_tail_is_clean():
+    predictions, references, metadata = _fixture()
+
+    def floored(predictions, references, metadata):
+        return {
+            **_rule(predictions, references, metadata),
+            "tier": 2 if len(references) > 1 else int("q2" in references),
+        }
+
+    result = with_cvar(floored, tail_fraction=0.5)(predictions, references, metadata)
+    assert result["score"] == 1.0  # q1 alone is the clean worst-score tail
+    assert result["tier"] == 2  # full-panel FLOOR still governs admission
+
+
+def test_floor_cvar_candidate_cannot_win_primary_by_a_higher_score():
+    panel = synthetic.build(next(synthetic.profiles()), questions_per_side=3)
+    panel["members"] = [m for m in panel["members"] if m["kind"] == "MODEL"][:2]
+    breached, clean = panel["members"]
+    breached["score_metadata"] = {"physics": {"breach": True}}
+    clean["score_metadata"] = {"physics": {"breach": False}}
+
+    def floored(_predictions, _references, metadata):
+        breach = metadata["physics"]["breach"]
+        return {"score": 100.0 if breach else 1.0, "gate": "PASS", "tier": int(breach)}
+
+    raw = candidates.rule_from_spec(
+        "toy", {"rule": floored}, path_digest="fixture", panel=panel
+    )
+    wrapped = candidates.rule_from_spec(
+        "toy",
+        {"rule": floored},
+        path_digest="fixture",
+        panel=panel,
+        component_spec={"cvar_tail_fraction": 0.5},
+    )
+    for rule in (raw, wrapped):
+        result = analyze(panel, rule, bootstrap=3)
+        assert result["physics_tiers"][breached["id"]] == 1
+        assert (
+            result["ranked_scores"][breached["id"]]
+            < result["ranked_scores"][clean["id"]]
+        )
+        assert result["top1_member"] == clean["id"]
+
+
+@pytest.mark.parametrize("tier", [None, True, -1, 0.5])
+def test_cvar_refuses_malformed_floor_tier(tier):
+    predictions, references, metadata = _fixture()
+
+    def malformed(predictions, references, metadata):
+        return {**_rule(predictions, references, metadata), "tier": tier}
+
+    with pytest.raises(LabRefused, match="component_tier_malformed"):
+        with_cvar(malformed, tail_fraction=0.5)(predictions, references, metadata)
+
+
+@pytest.mark.parametrize("unscored_count", [1, 2])
+def test_cvar_refuses_unscored_full_panel_or_question(unscored_count):
+    predictions, references, metadata = _fixture()
+
+    def undecomposable(predictions, references, metadata):
+        if len(references) == unscored_count:
+            return None
+        return _rule(predictions, references, metadata)
+
+    assert (
+        with_cvar(undecomposable, tail_fraction=0.5)(predictions, references, metadata)
+        is None
+    )
 
 
 def test_components_compose_over_score_side_only():

@@ -37,3 +37,11 @@ Material choices are engineering choices within this ticket; physics limits,
 buyer weights and final scoring stay HUMAN_INPUT. `Business/research/score-lab-
 campaign-01/` is the DEVELOPMENT result location. Completion is conditional
 on focused/canonical checks and exact-head review; PR Head owns merging.
+
+Review repair: CVaR changes the score aggregation only; the strictest full-panel
+or per-question gate and FLOOR tier still govern ranking. A full-panel or
+question-level unscored rule refuses decomposition. Goodhart and feedback
+receipts now bind explicit component settings (including None), their canonical
+digest and the complete recipe identity on measured, unscored and aggregate
+outputs. Saved no-component artifacts retain their bytes/hashes, with annotations
+in their readouts. No score setting or physics threshold is selected by this repair.

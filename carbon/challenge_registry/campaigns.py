@@ -66,6 +66,15 @@ class ChallengeCampaign:
     feedback_modes: tuple = ("FULL",)
     #: The schema of the permitted feedback its validator returns, or None.
     feedback_schema: str | None = None
+    #: Optional prospective multi-validator feedback and partial-status file.
+    multi_feedback_schema: str | None = None
+    multi_feedback_status: str | None = None
+    #: (code) -> closed transport refusal code, owned by this campaign.
+    intake_code: Callable | None = None
+    #: () -> validated public unified construction contract, or not offered.
+    construction_contract: Callable | None = None
+    #: (strategy, level binding) -> public, non-blocking construction notices.
+    construction_notices: Callable | None = None
     #: (url) -> the validator intake's public facts, checked to serve this
     #: chain and Challenge; raises ValueError or OSError. None: no intake.
     intake_check: Callable | None = None
@@ -196,8 +205,10 @@ def _battery_intake_outcome(code):
 def _battery():
     from carbon.battery import campaign as battery
     from carbon.battery import level4_parts as battery_level4
+    from carbon.battery import multi_intake as battery_multi
     from carbon.battery import research_view as battery_view
     from carbon.battery import smoke_practice as battery_smoke
+    from carbon.battery import unified_contract as battery_unified
     from carbon.development_session import battery_gpu
     from carbon.reconstruction.capability_registry import BATTERY_BACKENDS
 
@@ -213,6 +224,11 @@ def _battery():
         # Fail closed: a campaign that declares no modes knows only FULL.
         feedback_modes=tuple(getattr(battery, "FEEDBACK_MODES", ("FULL",))),
         feedback_schema="carbon.battery.permitted-feedback.v1",
+        multi_feedback_schema=battery_multi.SCHEMA,
+        multi_feedback_status=battery_multi.STATUS_NAME,
+        intake_code=battery.intake_code,
+        construction_contract=battery_unified.contract,
+        construction_notices=battery.construction_notices,
         intake_check=_battery_intake,
         intake_outcome=_battery_intake_outcome,
         gpu_scope=battery_gpu.gpu_scope,

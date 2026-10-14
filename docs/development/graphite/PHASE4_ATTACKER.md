@@ -33,6 +33,14 @@ python -m carbon.agent_campaign.graphite.phase4 remint --root DIR \
     --attempt ATTEMPT_ID --specimen SPECIMEN_NAME [--session N]
 ```
 
+`remint` reads an existing session verdict from digest-bound campaign evidence.
+The reader also recognises named older control and deterministic-baseline
+finding formats as `EXCLUDED_NON_SESSION_FINDING`; these are not session
+verdicts and are not redactions. Unknown, mismatched or changed evidence is
+refused. Level 2's `battery-l2.v2` attack oracle requires the declared attack
+shape before an accepted construction can be a breach. Existing `v1` findings
+retain their recorded meaning and are not reinterpreted by this repair.
+
 `--challenge` names any adapter registered at Level 0 in
 `attack.adapter.ADAPTERS` (default: battery).
 
@@ -119,6 +127,10 @@ From the session's journal, never the model's prose:
 Zero findings is reported as attempted coverage, never an exploit-free bound.
 The coverage report claims neither security acceptance nor a grade.
 
+For battery Level 2, the pool family's oracle shares `pools.check` with the
+runtime. It tests admission-versus-runtime disagreement; it cannot detect a
+bug inside `pools.check` that both paths share.
+
 ### Re-mint a recorded breach
 
 `remint` reads the existing `attacker/controller/campaign.sqlite3`, completed
@@ -129,6 +141,13 @@ reference solver, and it writes only under `attacker/specimens/`. A changed,
 missing, protected or ambiguous source is a typed `SPECIMEN_REFUSED`; the
 original attempt and finding remain untouched. It does not classify the
 breach as a real escape, oracle gap or false positive.
+
+Successful output lists older non-session findings under
+`excluded_non_session`, each with a finding id, session and typed code, plus
+`excluded_non_session_count`. `finding_records_seen` reports the corresponding
+session-log finding occurrences examined. They receive no session verdict, so
+the excluded share and its reasons are visible. Other redacted or
+attempt-mismatched verdicts may further reduce the matching numerator.
 
 For the recorded Level 2 attempt, the executor runs locally from a checkout
 containing OPT-13, setting `ATTACK_ROOT` to the existing campaign root

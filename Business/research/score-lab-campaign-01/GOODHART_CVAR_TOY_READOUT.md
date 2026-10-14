@@ -20,3 +20,9 @@ The aggregate artifact is `GOODHART_CVAR_TOY_N1.json.gz`
 The ten-proxy aggregate is `GOODHART_CVAR_TOY_ALL10.json.gz`
 (`sha256:c63a999afed00c271ec27afc96ed36149369a5a9f8dd0bc9bb86498011a494f5`).
 No public battery reference, independent holdout or protected bank was used.
+
+These saved artifacts used **no optional score components** (`component_spec=None`).
+The 0.25 fraction belongs to the buyer-value view, not a CVaR score component.
+The artifacts predate explicit component fields in search receipts and remain
+unchanged at the hashes above. Future receipts bind the component specification
+and canonical digest into a complete recipe digest, even when a search is unscored.

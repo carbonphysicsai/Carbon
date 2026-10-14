@@ -33,7 +33,9 @@ data; Carbon re-checks each one outside the agent:
    (`attempt_input`), `value` (the construction, else the arguments).
    An oracle `EXPOSURE` is `BREACHED` with `OTHER_SIGNAL`; one that did not
    answer (`FAILED_INFRA`, `TIMEOUT`, `CRASHED`) is `INFRA`; `NOT_RUN` (a
-   seam) is `NOT_APPLICABLE`; `INCONCLUSIVE` (a hold the detector cannot
+   seam) is `NOT_APPLICABLE`; missing evidence/owner inputs explicitly read
+   as `NO_ORACLE_EVIDENCE` remain `UNDETERMINED`, without agreement closure.
+   `INCONCLUSIVE` (a hold the detector cannot
    vouch for, or a path answer that is not plain) is `UNDETERMINED`. A
    `HELD` counts only with the family specimen's `FIRED` verdict on the same
    input: an oracle result that says it held without that specimen check
@@ -94,6 +96,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from carbon.agent_campaign.attack import analysis, identity
+from carbon.agent_campaign.attack.adapter import NO_ORACLE_EVIDENCE
 from carbon.challenge_readiness.admission import CONDITIONS
 from carbon.development_session.data import write_once
 from carbon.development_session.profile import canonical, digest
@@ -159,6 +162,7 @@ HOLD_WITHOUT_SPECIMEN_REASON = "oracle_hold_without_specimen"
 #: (`attack.adapter.NO_REBUILT_CONSTRUCTION`), and its verdict's reason.
 ORACLE_NO_REBUILT_CONSTRUCTION = "NO_REBUILT_CONSTRUCTION"
 NO_REBUILT_CONSTRUCTION_REASON = "oracle_needs_a_rebuilt_construction"
+NO_ORACLE_EVIDENCE_REASON = "oracle_evidence_or_inputs_unavailable"
 
 
 def check_conditions(conditions):
@@ -517,6 +521,11 @@ def _oracle(adapter, family, attempt):
         # construction for: no evidence, never scored.
         outcome, condition = UNDETERMINED, None
         reason = NO_REBUILT_CONSTRUCTION_REASON
+    elif outcome == ORACLE_NOT_RUN and reading == NO_ORACLE_EVIDENCE:
+        # Missing runtime/owner evidence is an unknown, never a finding,
+        # a hold, genuine NA, or eligibility for agreed-admissible closure.
+        outcome, condition = UNDETERMINED, None
+        reason = NO_ORACLE_EVIDENCE_REASON
     elif outcome == ORACLE_NOT_RUN:
         reason = (
             PROTECTED_WITHHELD_REASON

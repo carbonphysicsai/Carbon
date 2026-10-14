@@ -92,6 +92,85 @@ def test_the_ship_is_the_closure_and_the_environment_fits(shipped):
     assert pod_env.env_chars(spec.env) < pod_env.ENV_LIMIT_CHARS - 8_000
 
 
+def _level4_job():
+    """A real Level 4 proposal's job: the starter graph lowered, admitted under
+    the registered development variant with its staged documents, and carrying
+    its envelope, all through the paths a run takes (`experiment.admit`,
+    `pod_phase.level4_transport`), so its configuration is not a stand-in."""
+    from carbon.battery import level4 as battery
+    from carbon.level4 import allowlist as allowlist_module
+    from carbon.level4 import intake, staging, submission
+    from carbon.reconstruction import development_variants as dv
+
+    strategy = json.loads(json.dumps(battery.level0_strategies()["scaffold_mlp"]))
+    manifest, files = battery.lower_recipe(
+        strategy, allowlist_module.load(), max_bytes=intake.BOUNDS["document_bytes"]
+    )
+    raw = submission.canonical(manifest)
+    envelope = staging.envelope(raw, files)
+    strategy["parameters"][battery.FIELD] = envelope["submission"]
+    kept = json.dumps(envelope, sort_keys=True, separators=(",", ":")).encode()
+    variant = dv.variant(BATTERY_CHALLENGE, 4)
+    expected = ex.admit(
+        strategy, 7, variant=variant, workspace=staging.workspace(raw, files)
+    )
+    return pods.PodJob(
+        "graphite-env-size",
+        strategy,
+        expected["contract_digest"],
+        7,
+        {"files": expected["staged"], "program": expected["program"]},
+        30,
+        600,
+        development_variant=variant.digest,
+        level4_envelope=pod_phase.level4_transport(kept),
+    )
+
+
+def test_a_real_level_4_job_environment_keeps_its_headroom(shipped):
+    """The check above builds a Level 0 job, whose configuration is far smaller
+    than a Level 4 one: the Level 4 run of 2026-10-13 had a 91,029-character
+    environment and was refused by the old 90,000 bound, while the Level 0 job
+    here measured about 82,000 and passed that bound's headroom check by nine
+    characters. This one builds the job a Level 4 run builds, so it fails in CI
+    while a real Level 4 environment still has 8,000 characters of room under
+    the bound. The shipped closure grew about 1,300 characters a day between
+    the 2026-10-10 and 2026-10-13 commits: when this fails, trim the closure
+    (`DYNAMIC_PACKAGES`, `ENTRY_MODULES`) before raising the bound again."""
+    manifest = pods.code_manifest(_head(), shipped, REPOSITORY)
+    job = _level4_job()
+    assert job.level4_envelope and job.development_variant
+    spec = _backend(manifest).pod_spec(job, RECORD)
+    assert pod_env.env_chars(spec.env) < pod_env.ENV_LIMIT_CHARS - 8_000
+
+
+def test_manifest_transport_is_lossless_deterministic_and_keeps_the_existing_wire():
+    import base64
+    import gzip
+
+    from scripts.dev.exam_design.runpod import pod_control
+
+    small = {"public/a.py": "1" * 64}
+    assert pod_control.manifest_env(small) == {
+        "CODE_MANIFEST": json.dumps(small, separators=(",", ":"), sort_keys=True)
+    }
+    manifest = {
+        f"public/module-{index}.py": hashlib.sha256(str(index).encode()).hexdigest()
+        for index in range(1000)
+    }
+    expected = json.dumps(manifest, separators=(",", ":"), sort_keys=True).encode()
+    encoded = pod_control.manifest_env(manifest)
+    assert set(encoded) == {"CODE_MANIFEST_GZ_B64"}
+    assert encoded == pod_control.manifest_env(manifest)
+    raw = gzip.decompress(base64.b64decode(encoded["CODE_MANIFEST_GZ_B64"]))
+    assert raw == expected
+    assert json.loads(raw) == manifest
+    damaged = bytearray(base64.b64decode(encoded["CODE_MANIFEST_GZ_B64"]))
+    damaged[-8] ^= 1
+    with pytest.raises(gzip.BadGzipFile):
+        gzip.decompress(damaged)
+
+
 def test_the_pod_phase_runs_from_the_shipped_files_alone(shipped, tmp_path):
     """The real entry (`runner graphite_practice`) in a directory holding only
     the shipped files: it rebuilds what Carbon pinned and predicts PRACTICE.
@@ -204,7 +283,7 @@ def test_an_oversized_environment_is_refused_before_any_provider_call(tmp_path):
 def test_the_guard_counts_names_and_values():
     assert pod_env.env_chars({"AB": "xyz", "C": ""}) == 6
     assert pod_env.largest_variable({"A": "x", "B": "xyz"}) == "B"
-    assert pod_env.ENV_LIMIT_CHARS == 90_000
+    assert pod_env.ENV_LIMIT_CHARS == 108_000
 
 
 def test_the_a40_harness_shares_the_same_closure_and_limit():

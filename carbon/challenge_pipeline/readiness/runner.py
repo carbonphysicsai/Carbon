@@ -19,6 +19,7 @@ import subprocess
 from pathlib import Path
 
 from . import checks as check_module
+from . import controls
 from .model import (
     CHALLENGE_TOKEN,
     FAIL,
@@ -36,7 +37,7 @@ from .model import (
     load_items,
 )
 
-REPORT_SCHEMA = "carbon.challenge-pipeline.readiness-report.v1"
+REPORT_SCHEMA = "carbon.challenge-pipeline.readiness-report.v2"
 #: v2 adds PASS_BY_REVIEW; v3 adds WAIVED and `launch_ready`. Older lines are read by
 #: `history_metrics` unchanged.
 RUN_SCHEMA = "carbon.challenge-pipeline.readiness-run.v3"
@@ -265,7 +266,7 @@ def _waiver_for(item, ctx, root):
     return None
 
 
-def evaluate_item(item, ctx, root=PACKAGE):
+def evaluate_item(item, ctx, root=PACKAGE, measurement=None):
     parts = []
     function = check_module.CHECKS.get(item["check"])
     if function is None:
@@ -300,12 +301,15 @@ def evaluate_item(item, ctx, root=PACKAGE):
         p.detail for p in parts
     )
     evidence = [e for p in parts for e in p.evidence]
+    control = controls.evaluate(item, ctx, function, measurement)
     return {
         "id": item["id"],
         "kind": item["kind"],
         "lesson": item["lesson"],
         "title": item["title"],
         "status": status,
+        "controlled_status": controls.controlled_status(status, control),
+        "control": control,
         "detail": detail,
         "evidence": evidence,
         "evidence_digest": digest(evidence),
@@ -342,6 +346,7 @@ def run_gate(
     repository=REPOSITORY,
     root=PACKAGE,
     evidence_paths=None,
+    public_measurements=None,
 ):
     """The report for one challenge at one level. Items run in gate order."""
     check_request(challenge, level)
@@ -358,7 +363,12 @@ def run_gate(
         data=check_module.load_challenge_data(challenge),
         evidence_paths=dict(evidence_paths or {}),
     )
-    rows = [evaluate_item(item, ctx, root) for item in items]
+    measurements = {} if public_measurements is None else public_measurements
+    if type(measurements) is not dict or set(measurements) - {i["id"] for i in items}:
+        raise ReadinessRefused("control_measurement_item_scope_mismatch")
+    rows = [
+        evaluate_item(item, ctx, root, measurements.get(item["id"])) for item in items
+    ]
     counts = {s: sum(1 for r in rows if r["status"] == s) for s in SEVERITY}
     git = git_state(repository)
     report = {
@@ -372,7 +382,7 @@ def run_gate(
         "counts": counts,
         # green: every item passed (automated or by review). A WAIVED item keeps it false.
         "green": counts[PASS] + counts[PASS_BY_REVIEW] == len(rows) and not only,
-        # launch_ready (the exit code): no FAIL, NOT_BUILT or REVIEW_REQUIRED remains; every
+        # Legacy launch_ready: no FAIL, NOT_BUILT or REVIEW_REQUIRED remains; every
         # non-PASS item is PASS_BY_REVIEW or WAIVED under an unexpired waiver.
         "launch_ready": (
             counts[FAIL] + counts[NOT_BUILT] + counts[REVIEW_REQUIRED] == 0 and not only
@@ -380,6 +390,18 @@ def run_gate(
         "waivers": _waiver_summary(rows, root),
         "claims": {"authority_to_run": False, "live_run": False, "spend": False},
     }
+    report["control_summary"] = controls.summary(rows)
+    # Existing status/flags/history retain their old meaning. Controlled
+    # readiness is stricter and never inferred from reviews, waivers or a
+    # partial subset; neither flag grants authority to run.
+    report["controlled_ready"] = (
+        report["green"]
+        and report["control_summary"]["passing_items"] == len(load_items())
+        and not any(
+            r["control"]["measurement"].get("scope") == "SYNTHETIC_FIXTURE"
+            for r in rows
+        )
+    )
     report["report_digest"] = digest(report)
     return report
 
@@ -494,6 +516,15 @@ def render_text(report):
         )
         lines.append(f"      {row['title'][:110]}")
         lines.append(f"      {row['detail'][:300]}")
+        if "control" in row:
+            control = row["control"]
+            m = control["measurement"]
+            lines.append(
+                f"      controlled={row['controlled_status']} "
+                f"control={control['status']} checked={control['checked_count']} "
+                f"min={m['minimum']} p01={m['p01']} {m['unit']} "
+                f"noise={m['noise_estimate']} {m['noise_unit']} ({m['status']})"
+            )
         for entry in row["evidence"][:6]:
             lines.append(f"      evidence: {str(entry)[:160]}")
     c = report["counts"]
@@ -505,4 +536,12 @@ def render_text(report):
         f"launch_ready: {report.get('launch_ready')}  "
         f"digest {report['report_digest']}"
     )
+    if "control_summary" in report:
+        s = report["control_summary"]
+        lines.append(
+            f"CONTROLLED PASS {s['passing_items']}/{s['checked_items']} "
+            f"UNCONTROLLED {s['uncontrolled_items']} "
+            f"CONTROL_FAILED {s['control_failed_items']} "
+            f"controlled_ready: {report['controlled_ready']}"
+        )
     return "\n".join(lines)

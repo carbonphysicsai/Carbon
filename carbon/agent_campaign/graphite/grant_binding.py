@@ -42,7 +42,8 @@ committed blob:
   - `token_share_usd` 10.99 (11.93 until OWNER-GRAPHITE-PHASE3-R4-CEILING-01
     set the 0.65/h ceiling): the run's token share is that amount, and its
     pods get the rest of the run cost (`experiment.phase3_budget`), so a
-    full-window kimi-k3 call (USD 2.0646912 reserved) is admitted.
+    full-window kimi-k3 call (USD 2.0646912 reserved; 2.3642112 since kimi-k3's own 32,768-token
+    output cap, GRAPHITE-OUTPUT-CAP-KIMI-01) is admitted.
   A new session records them as its `run_conditions` (`run_conditions`).
 
 **Studies (OWNER-RATE-STUDY-TOKENS-01).** `STUDY_GRANTS` binds each
@@ -91,6 +92,20 @@ phase-3 grant: outside its study it is refused `grant_is_bound_to_a_study`.
   without proposing, because its agent used all its calls learning the spec format. One fresh run needs its own
   grant; the Level 4 stage tool's interface reply now carries a known-good starter. It authorizes spend, never a
   Level 4 run.
+- GRAPHITE-GRANT-L4-G-CONSTRUCTOR-5 is the same grant a fourth time (same figures) and REPLACES -4
+  (`replaced_by`): the run under -4 was spent when its agent's two turns hit the 2,048-token output cap on
+  reasoning before writing a call (kimi-k3 now replies with up to 32,768; GRAPHITE-OUTPUT-CAP-KIMI-01). The owner
+  approved -5 himself ("Yes — approve USD 14.94", relayed through PR Head, put to him as USD 14.91 worst case,
+  14.94 ceiling, replacing -4, basis unchanged at 242.85), so the standing weekly basis stays what it was with -4
+  (the sum of the open grants). A replaced grant stays registered for its audit trail and is not counted again;
+  it cannot be launched (`GRANT_REPLACED`, typed, at the phase-3 door) and its one run is already claimed
+  (`run_limit_reached` in the shared ledger). -5 authorizes spend, never a Level 4 run.
+- GRAPHITE-GRANT-L4-G-CONSTRUCTOR-6 is the same grant a fifth time (same figures) and REPLACES -5
+  (`replaced_by`): the run under -5 was spent when its code manifest (91,029 characters) was over the 90,000
+  pod-environment bound, which refused all three pod launches (the provider's real limit is about 118,000;
+  the bound is now 108,000). The owner approved a new grant in chat on 2026-10-13 ("I approve new grant"); it
+  carries -5's exact figures (14.91 worst case, 14.94 ceiling), so the standing weekly basis is unchanged. -5 is
+  replaced the way -4 was. -6 authorizes spend, never a Level 4 run.
 
 A registered grant named for another Challenge is
 `grant_is_for_another_challenge`. A Challenge in `PHASE3_BOUND_CHALLENGES`
@@ -243,6 +258,11 @@ class Phase3Grant:
     #: The runner that spends the grant: "phase3" (Constructor sessions) or
     #: "phase4" (Attacker sessions, `phase4.PHASE4_STAGE_GRANTS`).
     runner: str = "phase3"
+    #: The grant that replaces this one, once this one's run is spent: the owner
+    #: approved the replacement as taking this one's place in the weekly basis,
+    #: so the static weekly sums count it once (`standing_open`). Still registered,
+    #: for the audit trail of the spent run.
+    replaced_by: str | None = None
 
 
 PHASE3_GRANTS = types.MappingProxyType(
@@ -390,6 +410,40 @@ PHASE3_GRANTS = types.MappingProxyType(
                 start_model="kimi-k3",
                 token_share_usd=STAGE_TOKEN_SHARE,
                 authority=STANDING_TEST_GRANT_AUTHORITY,
+                replaced_by="GRAPHITE-GRANT-L4-G-CONSTRUCTOR-5",
+            ),
+            # PURPOSE: the lane G Level 4 Constructor run a fourth time, after the run under -4 was spent when its
+            # agent's two turns hit the 2,048-token output cap on reasoning (kimi-k3 now replies with up to 32,768;
+            # GRAPHITE-OUTPUT-CAP-KIMI-01). It REPLACES -4 in the weekly basis (same figures, USD 14.94), POOL: the
+            # standing weekly test grant (OWNER-TEST-GRANT-01). Not the hunt's H4 run. Index:
+            # docs/development/graphite/grants/README.md, "Level 4 Constructor grants".
+            Phase3Grant(
+                grant_id="GRAPHITE-GRANT-L4-G-CONSTRUCTOR-5",
+                challenge=BATTERY_CHALLENGE,
+                grant_file=GRANTS_DIR + "/GRAPHITE-GRANT-L4-G-CONSTRUCTOR-5.json",
+                main_blob=True,
+                min_level=4,
+                max_level=4,
+                start_model="kimi-k3",
+                token_share_usd=STAGE_TOKEN_SHARE,
+                authority=STANDING_TEST_GRANT_AUTHORITY,
+                replaced_by="GRAPHITE-GRANT-L4-G-CONSTRUCTOR-6",
+            ),
+            # PURPOSE: the lane G Level 4 Constructor run a fifth time, after the run under -5 was spent when its
+            # code manifest was over the pod-environment bound (91,029 characters against 90,000; the bound is now
+            # 108,000) and every pod launch was refused. It REPLACES -5 in the weekly basis (same figures, USD
+            # 14.94), POOL: the standing weekly test grant (OWNER-TEST-GRANT-01). Not the hunt's H4 run. Index:
+            # docs/development/graphite/grants/README.md, "Level 4 Constructor grants".
+            Phase3Grant(
+                grant_id="GRAPHITE-GRANT-L4-G-CONSTRUCTOR-6",
+                challenge=BATTERY_CHALLENGE,
+                grant_file=GRANTS_DIR + "/GRAPHITE-GRANT-L4-G-CONSTRUCTOR-6.json",
+                main_blob=True,
+                min_level=4,
+                max_level=4,
+                start_model="kimi-k3",
+                token_share_usd=STAGE_TOKEN_SHARE,
+                authority=STANDING_TEST_GRANT_AUTHORITY,
             ),
             # H4 (n = 4) PURPOSE: the Level 5 hunt's own Level 4 Constructor run, lane G, launched with
             # `--theme causal-structure`. POOL: OWNER-GRAPHITE-OPEN-SAFE-01-GRANTS, the hunt's last share
@@ -451,9 +505,24 @@ START_ROLES = ("constructor", "planner")
 #: The run-conditions record a new session freezes (`run_conditions`).
 RUN_CONDITIONS_SCHEMA = "carbon.graphite.phase3.run-conditions.v1"
 RUN_CONDITIONS_AUTHORITY = "OWNER-GRAPHITE-PHASE3-R4-01"
+#: The typed refusal of a launch under a grant a later grant `replaced_by`.
+GRANT_REPLACED = "grant_is_replaced_by_a_later_grant"
 LEVEL_REFUSED = "grant_requires_construction_level_1_or_above"
 LEVEL_RANGE_REFUSED = "grant_level_outside_the_grants_levels"
 START_MODEL_REFUSED = "start_model_below_the_grants_start_rung"
+
+
+def standing_open():
+    """The ids of the grants registered under the standing weekly test grant
+    that still count in its static weekly sum: every one except a grant a later
+    one `replaced_by`. A replaced grant's run is spent; the owner approved its
+    replacement as taking its place, so the basis counts the pair once."""
+    return tuple(
+        grant_id
+        for grant_id, entry in PHASE3_GRANTS.items()
+        if entry.authority == STANDING_TEST_GRANT_AUTHORITY
+        and entry.replaced_by is None
+    )
 
 
 def entry_of(grant):
@@ -591,6 +660,10 @@ def check_phase3_grant(path, grant, *, challenge, level=0, repository=REPOSITORY
         return None
     if entry.challenge != challenge:
         raise _refused("grant_is_for_another_challenge")
+    if entry.replaced_by is not None:
+        # A replaced grant's run is spent and the weekly basis counts it once with
+        # its replacement (`standing_open`): it must not be launched, claimed or read.
+        raise _refused(GRANT_REPLACED)
     refused = level_refusal(grant, level)
     if refused is not None:
         raise _refused(refused)

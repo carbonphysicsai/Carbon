@@ -1,0 +1,1198 @@
+{
+  "battery": {
+    "actual_registered_judge": {
+      "compliant_fixture": {
+        "gates": {
+          "capacity_bound": "PASS",
+          "initial_temperature": "PASS",
+          "initial_voltage": "PASS",
+          "paired_repeat": "NOT_APPLICABLE",
+          "schema_finite": "PASS",
+          "voltage_ceiling": "PASS",
+          "voltage_floor": "PASS"
+        },
+        "state": "SCORABLE"
+      },
+      "missing_capacity": {
+        "gates": {
+          "schema_finite": "FAIL"
+        },
+        "state": "GATE_FAILED"
+      },
+      "over_inventory": {
+        "gates": {
+          "capacity_bound": "FAIL",
+          "initial_temperature": "PASS",
+          "initial_voltage": "PASS",
+          "paired_repeat": "NOT_APPLICABLE",
+          "schema_finite": "PASS",
+          "voltage_ceiling": "PASS",
+          "voltage_floor": "PASS"
+        },
+        "state": "GATE_FAILED"
+      },
+      "wrong_initial_temperature": {
+        "gates": {
+          "capacity_bound": "PASS",
+          "initial_temperature": "FAIL",
+          "initial_voltage": "PASS",
+          "paired_repeat": "NOT_APPLICABLE",
+          "schema_finite": "PASS",
+          "voltage_ceiling": "PASS",
+          "voltage_floor": "PASS"
+        },
+        "state": "GATE_FAILED"
+      },
+      "zero_capacity": {
+        "gates": {
+          "capacity_bound": "FAIL",
+          "initial_temperature": "PASS",
+          "initial_voltage": "PASS",
+          "paired_repeat": "NOT_APPLICABLE",
+          "schema_finite": "PASS",
+          "voltage_ceiling": "PASS",
+          "voltage_floor": "PASS"
+        },
+        "state": "GATE_FAILED"
+      }
+    },
+    "capacity_inventory_bound": {
+      "bound_semantics": "Derived from the registered parameter set, never fitted to admit models; curve is fixture parameter sensitivity only.",
+      "curve": [
+        {
+          "admitted": [],
+          "adoption": "HUMAN_INPUT",
+          "excluded": [
+            "compliant_fixture",
+            "over_inventory",
+            "wrong_initial_temperature",
+            "zero_capacity"
+          ],
+          "hypothetical_inventory_bound_ah": 0.0,
+          "n_admitted": 0,
+          "n_cases": 5,
+          "n_checked": 4,
+          "n_excluded": 4,
+          "n_unresolved": 1,
+          "unresolved": [
+            "missing_capacity"
+          ]
+        },
+        {
+          "admitted": [],
+          "adoption": "HUMAN_INPUT",
+          "excluded": [
+            "compliant_fixture",
+            "over_inventory",
+            "wrong_initial_temperature",
+            "zero_capacity"
+          ],
+          "hypothetical_inventory_bound_ah": 5e-324,
+          "n_admitted": 0,
+          "n_cases": 5,
+          "n_checked": 4,
+          "n_excluded": 4,
+          "n_unresolved": 1,
+          "unresolved": [
+            "missing_capacity"
+          ]
+        },
+        {
+          "admitted": [],
+          "adoption": "HUMAN_INPUT",
+          "excluded": [
+            "compliant_fixture",
+            "over_inventory",
+            "wrong_initial_temperature",
+            "zero_capacity"
+          ],
+          "hypothetical_inventory_bound_ah": 2.25,
+          "n_admitted": 0,
+          "n_cases": 5,
+          "n_checked": 4,
+          "n_excluded": 4,
+          "n_unresolved": 1,
+          "unresolved": [
+            "missing_capacity"
+          ]
+        },
+        {
+          "admitted": [
+            "compliant_fixture",
+            "wrong_initial_temperature"
+          ],
+          "adoption": "HUMAN_INPUT",
+          "excluded": [
+            "over_inventory",
+            "zero_capacity"
+          ],
+          "hypothetical_inventory_bound_ah": 4.5,
+          "n_admitted": 2,
+          "n_cases": 5,
+          "n_checked": 4,
+          "n_excluded": 2,
+          "n_unresolved": 1,
+          "unresolved": [
+            "missing_capacity"
+          ]
+        },
+        {
+          "admitted": [
+            "compliant_fixture",
+            "wrong_initial_temperature"
+          ],
+          "adoption": "HUMAN_INPUT",
+          "excluded": [
+            "over_inventory",
+            "zero_capacity"
+          ],
+          "hypothetical_inventory_bound_ah": 4.500000000000001,
+          "n_admitted": 2,
+          "n_cases": 5,
+          "n_checked": 4,
+          "n_excluded": 2,
+          "n_unresolved": 1,
+          "unresolved": [
+            "missing_capacity"
+          ]
+        },
+        {
+          "admitted": [
+            "compliant_fixture",
+            "wrong_initial_temperature"
+          ],
+          "adoption": "HUMAN_INPUT",
+          "excluded": [
+            "over_inventory",
+            "zero_capacity"
+          ],
+          "hypothetical_inventory_bound_ah": 5.0,
+          "n_admitted": 2,
+          "n_cases": 5,
+          "n_checked": 4,
+          "n_excluded": 2,
+          "n_unresolved": 1,
+          "unresolved": [
+            "missing_capacity"
+          ]
+        },
+        {
+          "admitted": [
+            "compliant_fixture",
+            "over_inventory",
+            "wrong_initial_temperature"
+          ],
+          "adoption": "HUMAN_INPUT",
+          "excluded": [
+            "zero_capacity"
+          ],
+          "hypothetical_inventory_bound_ah": 5.5,
+          "n_admitted": 3,
+          "n_cases": 5,
+          "n_checked": 4,
+          "n_excluded": 1,
+          "n_unresolved": 1,
+          "unresolved": [
+            "missing_capacity"
+          ]
+        },
+        {
+          "admitted": [
+            "compliant_fixture",
+            "over_inventory",
+            "wrong_initial_temperature"
+          ],
+          "adoption": "HUMAN_INPUT",
+          "excluded": [
+            "zero_capacity"
+          ],
+          "hypothetical_inventory_bound_ah": 5.500000000000001,
+          "n_admitted": 3,
+          "n_cases": 5,
+          "n_checked": 4,
+          "n_excluded": 1,
+          "n_unresolved": 1,
+          "unresolved": [
+            "missing_capacity"
+          ]
+        }
+      ],
+      "definition": "0 < Q_k <= Q_bound",
+      "new_bound_adoption": null,
+      "units": "Ah"
+    },
+    "failure_classification_controls": {
+      "infra_failed": {
+        "gates": {},
+        "state": "FAILED_INFRA"
+      },
+      "reference_invalid": {
+        "gates": {},
+        "state": "REFERENCE_INVALID"
+      }
+    },
+    "fixture": "synthetic 25 C / 3.6 V / 4.5 Ah outputs; 5 Ah fixture inventory bound",
+    "initial_temperature": {
+      "curve": [
+        {
+          "actual_initial_temperature_verdicts": {
+            "compliant_fixture": "PASS",
+            "missing_capacity": "UNRESOLVED",
+            "over_inventory": "PASS",
+            "wrong_initial_temperature": "FAIL",
+            "zero_capacity": "PASS"
+          },
+          "admitted": [
+            "compliant_fixture",
+            "over_inventory",
+            "zero_capacity"
+          ],
+          "adoption": "HUMAN_INPUT",
+          "arithmetic_floor": 0.0,
+          "counterfactual_all_pass": false,
+          "excluded": [
+            "wrong_initial_temperature"
+          ],
+          "n_admitted": 3,
+          "n_cases": 5,
+          "n_checked": 4,
+          "n_excluded": 1,
+          "n_measured": 4,
+          "n_unresolved": 1,
+          "scope": "ONE_LAW_COUNTERFACTUAL_NOT_CANDIDATE_ADMISSION",
+          "state": "UNRESOLVED",
+          "strict": false,
+          "threshold": 0.0,
+          "unresolved": [
+            "missing_capacity"
+          ]
+        },
+        {
+          "actual_initial_temperature_verdicts": {
+            "compliant_fixture": "PASS",
+            "missing_capacity": "UNRESOLVED",
+            "over_inventory": "PASS",
+            "wrong_initial_temperature": "FAIL",
+            "zero_capacity": "PASS"
+          },
+          "admitted": [
+            "compliant_fixture",
+            "over_inventory",
+            "zero_capacity"
+          ],
+          "adoption": "HUMAN_INPUT",
+          "arithmetic_floor": 0.0,
+          "counterfactual_all_pass": false,
+          "excluded": [
+            "wrong_initial_temperature"
+          ],
+          "n_admitted": 3,
+          "n_cases": 5,
+          "n_checked": 4,
+          "n_excluded": 1,
+          "n_measured": 4,
+          "n_unresolved": 1,
+          "scope": "ONE_LAW_COUNTERFACTUAL_NOT_CANDIDATE_ADMISSION",
+          "state": "UNRESOLVED",
+          "strict": false,
+          "threshold": 5e-324,
+          "unresolved": [
+            "missing_capacity"
+          ]
+        },
+        {
+          "actual_initial_temperature_verdicts": {
+            "compliant_fixture": "PASS",
+            "missing_capacity": "UNRESOLVED",
+            "over_inventory": "PASS",
+            "wrong_initial_temperature": "FAIL",
+            "zero_capacity": "PASS"
+          },
+          "admitted": [
+            "compliant_fixture",
+            "over_inventory",
+            "zero_capacity"
+          ],
+          "adoption": "HUMAN_INPUT",
+          "arithmetic_floor": 0.0,
+          "counterfactual_all_pass": false,
+          "excluded": [
+            "wrong_initial_temperature"
+          ],
+          "n_admitted": 3,
+          "n_cases": 5,
+          "n_checked": 4,
+          "n_excluded": 1,
+          "n_measured": 4,
+          "n_unresolved": 1,
+          "scope": "ONE_LAW_COUNTERFACTUAL_NOT_CANDIDATE_ADMISSION",
+          "state": "UNRESOLVED",
+          "strict": false,
+          "threshold": 0.5,
+          "unresolved": [
+            "missing_capacity"
+          ]
+        },
+        {
+          "actual_initial_temperature_verdicts": {
+            "compliant_fixture": "PASS",
+            "missing_capacity": "UNRESOLVED",
+            "over_inventory": "PASS",
+            "wrong_initial_temperature": "PASS",
+            "zero_capacity": "PASS"
+          },
+          "admitted": [
+            "compliant_fixture",
+            "over_inventory",
+            "wrong_initial_temperature",
+            "zero_capacity"
+          ],
+          "adoption": "HUMAN_INPUT",
+          "arithmetic_floor": 0.0,
+          "counterfactual_all_pass": false,
+          "excluded": [],
+          "n_admitted": 4,
+          "n_cases": 5,
+          "n_checked": 4,
+          "n_excluded": 0,
+          "n_measured": 4,
+          "n_unresolved": 1,
+          "scope": "ONE_LAW_COUNTERFACTUAL_NOT_CANDIDATE_ADMISSION",
+          "state": "UNRESOLVED",
+          "strict": false,
+          "threshold": 1.0,
+          "unresolved": [
+            "missing_capacity"
+          ]
+        },
+        {
+          "actual_initial_temperature_verdicts": {
+            "compliant_fixture": "PASS",
+            "missing_capacity": "UNRESOLVED",
+            "over_inventory": "PASS",
+            "wrong_initial_temperature": "PASS",
+            "zero_capacity": "PASS"
+          },
+          "admitted": [
+            "compliant_fixture",
+            "over_inventory",
+            "wrong_initial_temperature",
+            "zero_capacity"
+          ],
+          "adoption": "HUMAN_INPUT",
+          "arithmetic_floor": 0.0,
+          "counterfactual_all_pass": false,
+          "excluded": [],
+          "n_admitted": 4,
+          "n_cases": 5,
+          "n_checked": 4,
+          "n_excluded": 0,
+          "n_measured": 4,
+          "n_unresolved": 1,
+          "scope": "ONE_LAW_COUNTERFACTUAL_NOT_CANDIDATE_ADMISSION",
+          "state": "UNRESOLVED",
+          "strict": false,
+          "threshold": 1.0000000000000002,
+          "unresolved": [
+            "missing_capacity"
+          ]
+        }
+      ],
+      "readings": {
+        "compliant_fixture": 0.0,
+        "missing_capacity": null,
+        "over_inventory": 0.0,
+        "wrong_initial_temperature": 1.0,
+        "zero_capacity": 0.0
+      },
+      "unconfigured": {
+        "admitted": [],
+        "adoption": "HUMAN_INPUT",
+        "arithmetic_floor": 0.0,
+        "counterfactual_all_pass": false,
+        "excluded": [],
+        "n_admitted": 0,
+        "n_cases": 5,
+        "n_checked": 0,
+        "n_excluded": 0,
+        "n_measured": 4,
+        "n_unresolved": 1,
+        "scope": "ONE_LAW_COUNTERFACTUAL_NOT_CANDIDATE_ADMISSION",
+        "state": "HUMAN_INPUT",
+        "strict": false,
+        "threshold": null,
+        "unresolved": [
+          "missing_capacity"
+        ]
+      },
+      "units": "C absolute"
+    },
+    "perfect_error_cannot_compensate": {
+      "components": {
+        "capacity": 0.0,
+        "plating": 0.0,
+        "temperature": 0.0,
+        "voltage": 0.0
+      },
+      "eligible": false,
+      "gate_failures": {
+        "initial_temperature": 1
+      },
+      "important_score": null,
+      "n_cases": 2,
+      "n_failed_infra": 0,
+      "n_gate_failed": 1,
+      "n_important": 0,
+      "n_reference_invalid": 0,
+      "n_scored": 1,
+      "score": 0.0
+    }
+  },
+  "burgers": {
+    "actual_registered_judge": {
+      "exact": {
+        "descriptive_score": 1.0,
+        "failed_mandatory": []
+      },
+      "frozen_initial": {
+        "descriptive_score": 0.6023057150413365,
+        "failed_mandatory": [
+          "EVAL:energy_path_max",
+          "STRESS:energy_path_max"
+        ]
+      },
+      "mean_drift": {
+        "descriptive_score": 0.9876259980901869,
+        "failed_mandatory": [
+          "EVAL:conserved_mean",
+          "STRESS:conserved_mean"
+        ]
+      },
+      "plausible_statistics_wrong_trajectory": {
+        "descriptive_score": 0.9725760355349683,
+        "failed_mandatory": []
+      },
+      "wrong_initial": {
+        "descriptive_score": 0.9683363488634917,
+        "failed_mandatory": [
+          "EVAL:initial_condition",
+          "STRESS:initial_condition"
+        ]
+      }
+    },
+    "blind_spot_control": "frozen_initial preserves initial condition/mean but has wrong dynamics; it is not proof of the PDE",
+    "comparison_basis": "One synthetic control repeated to fill the 2x12x3 API rectangle; not independent cases or replicas.",
+    "fixture": "verification-v2 analytic controls plus structural wrong-initial control",
+    "laws": {
+      "conserved_mean": {
+        "curve": [
+          {
+            "admitted": [],
+            "adoption": "HUMAN_INPUT",
+            "arithmetic_floor": 2.842170943040401e-14,
+            "counterfactual_all_pass": false,
+            "excluded": [
+              "exact",
+              "frozen_initial",
+              "mean_drift",
+              "plausible_statistics_wrong_trajectory",
+              "wrong_initial"
+            ],
+            "n_admitted": 0,
+            "n_cases": 6,
+            "n_checked": 5,
+            "n_excluded": 5,
+            "n_measured": 5,
+            "n_unresolved": 1,
+            "scope": "ONE_LAW_COUNTERFACTUAL_NOT_CANDIDATE_ADMISSION",
+            "state": "UNRESOLVED",
+            "strict": true,
+            "threshold": 0.0,
+            "unresolved": [
+              "missing_observation"
+            ]
+          },
+          {
+            "admitted": [],
+            "adoption": "HUMAN_INPUT",
+            "arithmetic_floor": 2.842170943040401e-14,
+            "counterfactual_all_pass": false,
+            "excluded": [
+              "exact",
+              "frozen_initial",
+              "mean_drift",
+              "plausible_statistics_wrong_trajectory",
+              "wrong_initial"
+            ],
+            "n_admitted": 0,
+            "n_cases": 6,
+            "n_checked": 5,
+            "n_excluded": 5,
+            "n_measured": 5,
+            "n_unresolved": 1,
+            "scope": "ONE_LAW_COUNTERFACTUAL_NOT_CANDIDATE_ADMISSION",
+            "state": "UNRESOLVED",
+            "strict": true,
+            "threshold": 5e-324,
+            "unresolved": [
+              "missing_observation"
+            ]
+          },
+          {
+            "admitted": [],
+            "adoption": "HUMAN_INPUT",
+            "arithmetic_floor": 2.842170943040401e-14,
+            "counterfactual_all_pass": false,
+            "excluded": [
+              "exact",
+              "frozen_initial",
+              "mean_drift",
+              "plausible_statistics_wrong_trajectory",
+              "wrong_initial"
+            ],
+            "n_admitted": 0,
+            "n_cases": 6,
+            "n_checked": 5,
+            "n_excluded": 5,
+            "n_measured": 5,
+            "n_unresolved": 1,
+            "scope": "ONE_LAW_COUNTERFACTUAL_NOT_CANDIDATE_ADMISSION",
+            "state": "UNRESOLVED",
+            "strict": true,
+            "threshold": 1.4210854715202004e-14,
+            "unresolved": [
+              "missing_observation"
+            ]
+          },
+          {
+            "admitted": [],
+            "adoption": "HUMAN_INPUT",
+            "arithmetic_floor": 2.842170943040401e-14,
+            "counterfactual_all_pass": false,
+            "excluded": [
+              "exact",
+              "frozen_initial",
+              "mean_drift",
+              "plausible_statistics_wrong_trajectory",
+              "wrong_initial"
+            ],
+            "n_admitted": 0,
+            "n_cases": 6,
+            "n_checked": 5,
+            "n_excluded": 5,
+            "n_measured": 5,
+            "n_unresolved": 1,
+            "scope": "ONE_LAW_COUNTERFACTUAL_NOT_CANDIDATE_ADMISSION",
+            "state": "UNRESOLVED",
+            "strict": true,
+            "threshold": 2.842170943040401e-14,
+            "unresolved": [
+              "missing_observation"
+            ]
+          },
+          {
+            "admitted": [
+              "frozen_initial"
+            ],
+            "adoption": "HUMAN_INPUT",
+            "arithmetic_floor": 2.842170943040401e-14,
+            "counterfactual_all_pass": false,
+            "excluded": [
+              "exact",
+              "mean_drift",
+              "plausible_statistics_wrong_trajectory",
+              "wrong_initial"
+            ],
+            "n_admitted": 1,
+            "n_cases": 6,
+            "n_checked": 5,
+            "n_excluded": 4,
+            "n_measured": 5,
+            "n_unresolved": 1,
+            "scope": "ONE_LAW_COUNTERFACTUAL_NOT_CANDIDATE_ADMISSION",
+            "state": "UNRESOLVED",
+            "strict": true,
+            "threshold": 2.8421709430404014e-14,
+            "unresolved": [
+              "missing_observation"
+            ]
+          },
+          {
+            "admitted": [
+              "frozen_initial"
+            ],
+            "adoption": "HUMAN_INPUT",
+            "arithmetic_floor": 2.842170943040401e-14,
+            "counterfactual_all_pass": false,
+            "excluded": [
+              "exact",
+              "mean_drift",
+              "plausible_statistics_wrong_trajectory",
+              "wrong_initial"
+            ],
+            "n_admitted": 1,
+            "n_cases": 6,
+            "n_checked": 5,
+            "n_excluded": 4,
+            "n_measured": 5,
+            "n_unresolved": 1,
+            "scope": "ONE_LAW_COUNTERFACTUAL_NOT_CANDIDATE_ADMISSION",
+            "state": "UNRESOLVED",
+            "strict": true,
+            "threshold": 2.8439056665163776e-14,
+            "unresolved": [
+              "missing_observation"
+            ]
+          },
+          {
+            "admitted": [
+              "frozen_initial"
+            ],
+            "adoption": "HUMAN_INPUT",
+            "arithmetic_floor": 2.842170943040401e-14,
+            "counterfactual_all_pass": false,
+            "excluded": [
+              "exact",
+              "mean_drift",
+              "plausible_statistics_wrong_trajectory",
+              "wrong_initial"
+            ],
+            "n_admitted": 1,
+            "n_cases": 6,
+            "n_checked": 5,
+            "n_excluded": 4,
+            "n_measured": 5,
+            "n_unresolved": 1,
+            "scope": "ONE_LAW_COUNTERFACTUAL_NOT_CANDIDATE_ADMISSION",
+            "state": "UNRESOLVED",
+            "strict": true,
+            "threshold": 2.8456403899923544e-14,
+            "unresolved": [
+              "missing_observation"
+            ]
+          },
+          {
+            "admitted": [
+              "frozen_initial",
+              "wrong_initial"
+            ],
+            "adoption": "HUMAN_INPUT",
+            "arithmetic_floor": 2.842170943040401e-14,
+            "counterfactual_all_pass": false,
+            "excluded": [
+              "exact",
+              "mean_drift",
+              "plausible_statistics_wrong_trajectory"
+            ],
+            "n_admitted": 2,
+            "n_cases": 6,
+            "n_checked": 5,
+            "n_excluded": 3,
+            "n_measured": 5,
+            "n_unresolved": 1,
+            "scope": "ONE_LAW_COUNTERFACTUAL_NOT_CANDIDATE_ADMISSION",
+            "state": "UNRESOLVED",
+            "strict": true,
+            "threshold": 2.845640389992355e-14,
+            "unresolved": [
+              "missing_observation"
+            ]
+          },
+          {
+            "admitted": [
+              "frozen_initial",
+              "wrong_initial"
+            ],
+            "adoption": "HUMAN_INPUT",
+            "arithmetic_floor": 2.842170943040401e-14,
+            "counterfactual_all_pass": false,
+            "excluded": [
+              "exact",
+              "mean_drift",
+              "plausible_statistics_wrong_trajectory"
+            ],
+            "n_admitted": 2,
+            "n_cases": 6,
+            "n_checked": 5,
+            "n_excluded": 3,
+            "n_measured": 5,
+            "n_unresolved": 1,
+            "scope": "ONE_LAW_COUNTERFACTUAL_NOT_CANDIDATE_ADMISSION",
+            "state": "UNRESOLVED",
+            "strict": true,
+            "threshold": 2.848315666864249e-14,
+            "unresolved": [
+              "missing_observation"
+            ]
+          },
+          {
+            "admitted": [
+              "frozen_initial",
+              "wrong_initial"
+            ],
+            "adoption": "HUMAN_INPUT",
+            "arithmetic_floor": 2.842170943040401e-14,
+            "counterfactual_all_pass": false,
+            "excluded": [
+              "exact",
+              "mean_drift",
+              "plausible_statistics_wrong_trajectory"
+            ],
+            "n_admitted": 2,
+            "n_cases": 6,
+            "n_checked": 5,
+            "n_excluded": 3,
+            "n_measured": 5,
+            "n_unresolved": 1,
+            "scope": "ONE_LAW_COUNTERFACTUAL_NOT_CANDIDATE_ADMISSION",
+            "state": "UNRESOLVED",
+            "strict": true,
+            "threshold": 2.8509909437361425e-14,
+            "unresolved": [
+              "missing_observation"
+            ]
+          },
+          {
+            "admitted": [
+              "exact",
+              "frozen_initial",
+              "plausible_statistics_wrong_trajectory",
+              "wrong_initial"
+            ],
+            "adoption": "HUMAN_INPUT",
+            "arithmetic_floor": 2.842170943040401e-14,
+            "counterfactual_all_pass": false,
+            "excluded": [
+              "mean_drift"
+            ],
+            "n_admitted": 4,
+            "n_cases": 6,
+            "n_checked": 5,
+            "n_excluded": 1,
+            "n_measured": 5,
+            "n_unresolved": 1,
+            "scope": "ONE_LAW_COUNTERFACTUAL_NOT_CANDIDATE_ADMISSION",
+            "state": "UNRESOLVED",
+            "strict": true,
+            "threshold": 2.850990943736143e-14,
+            "unresolved": [
+              "missing_observation"
+            ]
+          },
+          {
+            "admitted": [
+              "exact",
+              "frozen_initial",
+              "plausible_statistics_wrong_trajectory",
+              "wrong_initial"
+            ],
+            "adoption": "HUMAN_INPUT",
+            "arithmetic_floor": 2.842170943040401e-14,
+            "counterfactual_all_pass": false,
+            "excluded": [
+              "mean_drift"
+            ],
+            "n_admitted": 4,
+            "n_cases": 6,
+            "n_checked": 5,
+            "n_excluded": 1,
+            "n_measured": 5,
+            "n_unresolved": 1,
+            "scope": "ONE_LAW_COUNTERFACTUAL_NOT_CANDIDATE_ADMISSION",
+            "state": "UNRESOLVED",
+            "strict": true,
+            "threshold": 0.01000000000002848,
+            "unresolved": [
+              "missing_observation"
+            ]
+          },
+          {
+            "admitted": [
+              "exact",
+              "frozen_initial",
+              "plausible_statistics_wrong_trajectory",
+              "wrong_initial"
+            ],
+            "adoption": "HUMAN_INPUT",
+            "arithmetic_floor": 2.842170943040401e-14,
+            "counterfactual_all_pass": false,
+            "excluded": [
+              "mean_drift"
+            ],
+            "n_admitted": 4,
+            "n_cases": 6,
+            "n_checked": 5,
+            "n_excluded": 1,
+            "n_measured": 5,
+            "n_unresolved": 1,
+            "scope": "ONE_LAW_COUNTERFACTUAL_NOT_CANDIDATE_ADMISSION",
+            "state": "UNRESOLVED",
+            "strict": true,
+            "threshold": 0.02000000000002845,
+            "unresolved": [
+              "missing_observation"
+            ]
+          },
+          {
+            "admitted": [
+              "exact",
+              "frozen_initial",
+              "mean_drift",
+              "plausible_statistics_wrong_trajectory",
+              "wrong_initial"
+            ],
+            "adoption": "HUMAN_INPUT",
+            "arithmetic_floor": 2.842170943040401e-14,
+            "counterfactual_all_pass": false,
+            "excluded": [],
+            "n_admitted": 5,
+            "n_cases": 6,
+            "n_checked": 5,
+            "n_excluded": 0,
+            "n_measured": 5,
+            "n_unresolved": 1,
+            "scope": "ONE_LAW_COUNTERFACTUAL_NOT_CANDIDATE_ADMISSION",
+            "state": "UNRESOLVED",
+            "strict": true,
+            "threshold": 0.020000000000028453,
+            "unresolved": [
+              "missing_observation"
+            ]
+          }
+        ],
+        "existing_limit": 0.01,
+        "existing_rule": "burgers-development-balanced-v2",
+        "measurement_version": "carbon.c05.burgers-development-derived.v3",
+        "readings": {
+          "exact": 8.820000695741646e-17,
+          "frozen_initial": 0.0,
+          "mean_drift": 0.020000000000000028,
+          "missing_observation": null,
+          "plausible_statistics_wrong_trajectory": 8.820000695741646e-17,
+          "wrong_initial": 3.469446951953614e-17
+        },
+        "unconfigured": {
+          "admitted": [],
+          "adoption": "HUMAN_INPUT",
+          "arithmetic_floor": 2.842170943040401e-14,
+          "counterfactual_all_pass": false,
+          "excluded": [],
+          "n_admitted": 0,
+          "n_cases": 6,
+          "n_checked": 0,
+          "n_excluded": 0,
+          "n_measured": 5,
+          "n_unresolved": 1,
+          "scope": "ONE_LAW_COUNTERFACTUAL_NOT_CANDIDATE_ADMISSION",
+          "state": "HUMAN_INPUT",
+          "strict": true,
+          "threshold": null,
+          "unresolved": [
+            "missing_observation"
+          ]
+        },
+        "units": "initial-amplitude normalized"
+      },
+      "initial_condition": {
+        "curve": [
+          {
+            "admitted": [],
+            "adoption": "HUMAN_INPUT",
+            "arithmetic_floor": 2.842170943040401e-14,
+            "counterfactual_all_pass": false,
+            "excluded": [
+              "exact",
+              "frozen_initial",
+              "mean_drift",
+              "plausible_statistics_wrong_trajectory",
+              "wrong_initial"
+            ],
+            "n_admitted": 0,
+            "n_cases": 6,
+            "n_checked": 5,
+            "n_excluded": 5,
+            "n_measured": 5,
+            "n_unresolved": 1,
+            "scope": "ONE_LAW_COUNTERFACTUAL_NOT_CANDIDATE_ADMISSION",
+            "state": "UNRESOLVED",
+            "strict": true,
+            "threshold": 0.0,
+            "unresolved": [
+              "missing_observation"
+            ]
+          },
+          {
+            "admitted": [],
+            "adoption": "HUMAN_INPUT",
+            "arithmetic_floor": 2.842170943040401e-14,
+            "counterfactual_all_pass": false,
+            "excluded": [
+              "exact",
+              "frozen_initial",
+              "mean_drift",
+              "plausible_statistics_wrong_trajectory",
+              "wrong_initial"
+            ],
+            "n_admitted": 0,
+            "n_cases": 6,
+            "n_checked": 5,
+            "n_excluded": 5,
+            "n_measured": 5,
+            "n_unresolved": 1,
+            "scope": "ONE_LAW_COUNTERFACTUAL_NOT_CANDIDATE_ADMISSION",
+            "state": "UNRESOLVED",
+            "strict": true,
+            "threshold": 5e-324,
+            "unresolved": [
+              "missing_observation"
+            ]
+          },
+          {
+            "admitted": [],
+            "adoption": "HUMAN_INPUT",
+            "arithmetic_floor": 2.842170943040401e-14,
+            "counterfactual_all_pass": false,
+            "excluded": [
+              "exact",
+              "frozen_initial",
+              "mean_drift",
+              "plausible_statistics_wrong_trajectory",
+              "wrong_initial"
+            ],
+            "n_admitted": 0,
+            "n_cases": 6,
+            "n_checked": 5,
+            "n_excluded": 5,
+            "n_measured": 5,
+            "n_unresolved": 1,
+            "scope": "ONE_LAW_COUNTERFACTUAL_NOT_CANDIDATE_ADMISSION",
+            "state": "UNRESOLVED",
+            "strict": true,
+            "threshold": 1.4210854715202004e-14,
+            "unresolved": [
+              "missing_observation"
+            ]
+          },
+          {
+            "admitted": [],
+            "adoption": "HUMAN_INPUT",
+            "arithmetic_floor": 2.842170943040401e-14,
+            "counterfactual_all_pass": false,
+            "excluded": [
+              "exact",
+              "frozen_initial",
+              "mean_drift",
+              "plausible_statistics_wrong_trajectory",
+              "wrong_initial"
+            ],
+            "n_admitted": 0,
+            "n_cases": 6,
+            "n_checked": 5,
+            "n_excluded": 5,
+            "n_measured": 5,
+            "n_unresolved": 1,
+            "scope": "ONE_LAW_COUNTERFACTUAL_NOT_CANDIDATE_ADMISSION",
+            "state": "UNRESOLVED",
+            "strict": true,
+            "threshold": 2.842170943040401e-14,
+            "unresolved": [
+              "missing_observation"
+            ]
+          },
+          {
+            "admitted": [
+              "exact",
+              "frozen_initial",
+              "mean_drift",
+              "plausible_statistics_wrong_trajectory"
+            ],
+            "adoption": "HUMAN_INPUT",
+            "arithmetic_floor": 2.842170943040401e-14,
+            "counterfactual_all_pass": false,
+            "excluded": [
+              "wrong_initial"
+            ],
+            "n_admitted": 4,
+            "n_cases": 6,
+            "n_checked": 5,
+            "n_excluded": 1,
+            "n_measured": 5,
+            "n_unresolved": 1,
+            "scope": "ONE_LAW_COUNTERFACTUAL_NOT_CANDIDATE_ADMISSION",
+            "state": "UNRESOLVED",
+            "strict": true,
+            "threshold": 2.8421709430404014e-14,
+            "unresolved": [
+              "missing_observation"
+            ]
+          },
+          {
+            "admitted": [
+              "exact",
+              "frozen_initial",
+              "mean_drift",
+              "plausible_statistics_wrong_trajectory"
+            ],
+            "adoption": "HUMAN_INPUT",
+            "arithmetic_floor": 2.842170943040401e-14,
+            "counterfactual_all_pass": false,
+            "excluded": [
+              "wrong_initial"
+            ],
+            "n_admitted": 4,
+            "n_cases": 6,
+            "n_checked": 5,
+            "n_excluded": 1,
+            "n_measured": 5,
+            "n_unresolved": 1,
+            "scope": "ONE_LAW_COUNTERFACTUAL_NOT_CANDIDATE_ADMISSION",
+            "state": "UNRESOLVED",
+            "strict": true,
+            "threshold": 0.09801714032958914,
+            "unresolved": [
+              "missing_observation"
+            ]
+          },
+          {
+            "admitted": [
+              "exact",
+              "frozen_initial",
+              "mean_drift",
+              "plausible_statistics_wrong_trajectory"
+            ],
+            "adoption": "HUMAN_INPUT",
+            "arithmetic_floor": 2.842170943040401e-14,
+            "counterfactual_all_pass": false,
+            "excluded": [
+              "wrong_initial"
+            ],
+            "n_admitted": 4,
+            "n_cases": 6,
+            "n_checked": 5,
+            "n_excluded": 1,
+            "n_measured": 5,
+            "n_unresolved": 1,
+            "scope": "ONE_LAW_COUNTERFACTUAL_NOT_CANDIDATE_ADMISSION",
+            "state": "UNRESOLVED",
+            "strict": true,
+            "threshold": 0.19603428065914985,
+            "unresolved": [
+              "missing_observation"
+            ]
+          },
+          {
+            "admitted": [
+              "exact",
+              "frozen_initial",
+              "mean_drift",
+              "plausible_statistics_wrong_trajectory",
+              "wrong_initial"
+            ],
+            "adoption": "HUMAN_INPUT",
+            "arithmetic_floor": 2.842170943040401e-14,
+            "counterfactual_all_pass": false,
+            "excluded": [],
+            "n_admitted": 5,
+            "n_cases": 6,
+            "n_checked": 5,
+            "n_excluded": 0,
+            "n_measured": 5,
+            "n_unresolved": 1,
+            "scope": "ONE_LAW_COUNTERFACTUAL_NOT_CANDIDATE_ADMISSION",
+            "state": "UNRESOLVED",
+            "strict": true,
+            "threshold": 0.19603428065914988,
+            "unresolved": [
+              "missing_observation"
+            ]
+          }
+        ],
+        "existing_limit": 3.814697265625e-06,
+        "existing_rule": "burgers-development-balanced-v2",
+        "measurement_version": "carbon.c05.burgers-development-derived.v3",
+        "readings": {
+          "exact": 0.0,
+          "frozen_initial": 0.0,
+          "mean_drift": 0.0,
+          "missing_observation": null,
+          "plausible_statistics_wrong_trajectory": 0.0,
+          "wrong_initial": 0.19603428065912143
+        },
+        "unconfigured": {
+          "admitted": [],
+          "adoption": "HUMAN_INPUT",
+          "arithmetic_floor": 2.842170943040401e-14,
+          "counterfactual_all_pass": false,
+          "excluded": [],
+          "n_admitted": 0,
+          "n_cases": 6,
+          "n_checked": 0,
+          "n_excluded": 0,
+          "n_measured": 5,
+          "n_unresolved": 1,
+          "scope": "ONE_LAW_COUNTERFACTUAL_NOT_CANDIDATE_ADMISSION",
+          "state": "HUMAN_INPUT",
+          "strict": true,
+          "threshold": null,
+          "unresolved": [
+            "missing_observation"
+          ]
+        },
+        "units": "initial-amplitude normalized"
+      }
+    },
+    "score_cannot_compensate": {
+      "accepted_improvement": false,
+      "baseline_score": 0.9725760355349683,
+      "challenger_score": 0.9876259980901869,
+      "disposition": "REJECTED_MANDATORY"
+    }
+  },
+  "checks": {
+    "battery_initial_condition_caught": true,
+    "battery_inventory_control_caught": true,
+    "battery_missing_capacity_cannot_pass": true,
+    "battery_perfect_error_cannot_compensate": true,
+    "battery_positive_control_scorable": true,
+    "battery_zero_capacity_caught": true,
+    "burgers_better_score_cannot_compensate": true,
+    "burgers_initial_condition_caught": true,
+    "burgers_mean_drift_caught": true,
+    "burgers_positive_control_admissible": true,
+    "infra_failure_not_candidate_breach": true,
+    "reference_failure_not_candidate_breach": true
+  },
+  "classification": "DOCUMENTATION_LAG",
+  "controls_passed": true,
+  "new_gate_effective": false,
+  "new_scientific_scope": {
+    "admissible": false,
+    "adoption": "HUMAN_INPUT",
+    "applicability": null,
+    "challenge": null,
+    "law": null,
+    "observable": null,
+    "tolerance": null
+  },
+  "observability_limits": [
+    "Burgers mean/initial gates already exist; passing them does not establish correct dynamics.",
+    "Fourier periodic closure is a representation identity, not an independently tested spatial boundary.",
+    "Integrated-energy and finite-mode weak-PDE diagnostics stay underresolved diagnostics.",
+    "Battery capacity_bound is an inventory-derived inequality, not a full charge/heat conservation equality.",
+    "Battery V/T/plating-margin/cycle-capacity outputs omit the internal inventories/current/heat fluxes needed for that equality.",
+    "B15 remains adopted; B16/B9 card and B8 diagnostic roles are unchanged."
+  ],
+  "schema": "carbon.physics-law-gate-controls.v1",
+  "scope": "SYNTHETIC_CONTROLS_NOT_QUALIFICATION",
+  "source_sha256": {
+    ".agent/decisions/2026-10-13-OWNER-PHYSICS-GATES-01.md": "3a063759a08cade18d16f0b270135ef48eb00e232d8aeb19e39d51f369057bc2",
+    "carbon/battery/domain.py": "4268c9a222ab9082a15bf9d34202b4db0a6d7eb943c91840543f3317491e9da4",
+    "carbon/battery/exam.py": "c94e52e5e3de53a9a19283551bb09829659dcfe79289c9bfca3c7a12d509363a",
+    "carbon/battery/physics_contract.v2.json": "7b46380e9a30e78107e4f198059f7a9705835b5bc8072117b8b00fd7590a5632",
+    "carbon/challenge_validator/physics_contract.py": "1c6b4406c448bafd6b94a86f752fb09deb09f6e8517befe4572c707d3ee20c5b",
+    "carbon/measurement_runtime/development.py": "bead2aeec331a8463acf65347be59e2a325b2057a2ffd5480cd3fbfaeee70bca",
+    "carbon/measurement_runtime/development_controls.py": "97032c104ff42a2627e950b3facea2b9fec8e8d166ae6de4d0f07fbbb251ce74",
+    "carbon/scoring/development.py": "3261028a5d9c8c711b6c9e53f0a37cdd72a5bed519d1f241cc3a41f1444d03f3",
+    "scripts/dev/physics_law_gates.py": "195e2f7670ff55cb61e38f573f8506e973da2b3dbaa8a878b5e5e0b1cba29366"
+  }
+}

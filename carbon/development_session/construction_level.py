@@ -387,12 +387,12 @@ def practice_label(found):
 def level4_check(found, strategy, directory):
     """A Level 4 submission lowered on the miner's machine, checked against
     the frozen Level 4 variant before freeze; answers its staging envelope."""
-    if found["level"] != LEVEL4:
+    require_compile_served(found)
+    if "composition_graphs" not in strategy.get("parameters", {}):
         raise LevelRefused(LEVEL4_DIRECTORY_NOT_FOR_LEVEL)
     if type(directory) is not str or not directory:
         raise LevelRefused(LEVEL4_DIRECTORY_REQUIRED)
-    value = _spawn(
-        found,
+    value = RUN(
         {
             "op": "level4",
             "challenge": found["challenge"],
@@ -417,7 +417,10 @@ def check_freeze(found, strategy, level4_directory=None):
         return None, None
     value = compile_strategy(found, strategy)
     envelope = None
-    if found["level"] == LEVEL4 or level4_directory is not None:
+    if (
+        "composition_graphs" in strategy.get("parameters", {})
+        or level4_directory is not None
+    ):
         envelope = level4_check(found, strategy, level4_directory)
     return value, envelope
 

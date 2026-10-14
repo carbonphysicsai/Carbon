@@ -2443,6 +2443,14 @@
     if (run.selects === "miner") renderJourneySubmission(panel, run);
     else if (run.selects === "agent") researchNote(panel, "Carbon's agent freezes and submits in this campaign.", "hint");
     for (const result of run.final_results || []) {
+      if (result.status === "MULTI_VALIDATOR_OUTCOME") {
+        for (const validator of result.validators || []) {
+          researchNote(panel, "Validator: " + validator.receiver_hotkey + " · " + validator.intake_url, "development-result");
+          if (validator.result) renderValidatorOutcome(panel, {epoch: result.epoch, result: validator.result});
+          else researchNote(panel, words(validator.state) + ": " + (validator.next_step || words(validator.code)), "development-result");
+        }
+        continue;
+      }
       if (result.status === "VALIDATOR_OUTCOME" && result.result) { renderValidatorOutcome(panel, result); continue; }
       const verified = result.status === "VERIFIED_SOURCE" && result.result;
       researchNote(panel, "DEVELOPMENT evaluation: " + (verified ? (result.result.disposition || "disposition unavailable") + " · Accepted DEVELOPMENT improvement: " + (typeof result.result.accepted_development_improvement === "boolean" ? String(result.result.accepted_development_improvement) : "unavailable") : "Readback unavailable; no disposition inferred."), "development-result");
@@ -3188,7 +3196,28 @@
   $("research-discard").addEventListener("click", discardLaunch);
   $("wizard-back").addEventListener("click", () => { const index = STEPS.findIndex(([name]) => name === wizard.step); if (index > 0) { wizard.step = STEPS[index - 1][0]; saveWizard(); render(); } });
   $("wizard-next").addEventListener("click", () => { const index = STEPS.findIndex(([name]) => name === wizard.step); if (index < STEPS.length - 1 && !stepProblem(wizard.step)) { wizard.step = STEPS[index + 1][0]; saveWizard(); render(); } });
+  function renderConstructionOptions() {
+    const anchor = $("wizard-challenge-description");
+    if (!anchor) return;
+    let box = $("wizard-construction-options");
+    if (!box) {
+      box = el("section"); box.id = "wizard-construction-options";
+      anchor.parentElement.append(box);
+    }
+    const document = launchOptions?.construction_options?.[wizard.challenge];
+    box.hidden = !document;
+    if (!document) return;
+    rebuild(box, JSON.stringify(document), target => {
+      target.append(el("h3", "What you can change"));
+      researchNote(target, "Carbon reads what your model changes. You do not choose a level.", "hint");
+      for (const change of document.types || []) {
+        researchNote(target, change.label + " · " + change.status + ": " + change.reason);
+      }
+      if (document.status === "PUBLIC_CONTRACT_UNAVAILABLE") researchNote(target, "The public construction contract is unavailable. Changed constructions stay closed.", "reason");
+    });
+  }
   function renderWizardChallenges() {
+    renderConstructionOptions();
     const target = $("wizard-challenges");
     if (!caps) { rebuild(target, "none", node => node.append(el("p", "Connect to read the Challenge registry.", "hint"))); $("wizard-challenge-description").replaceChildren(); $("wizard-challenge-description").dataset.key = ""; return; }
     rebuild(target, JSON.stringify([capsVersion, caps.challenges.map(entry => [entry.challenge_id, entry.version, entry.selectable]), connected]), node => {
