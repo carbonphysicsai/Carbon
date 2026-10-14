@@ -100,8 +100,9 @@ def test_the_ceiling_reaches_pod_prices_and_the_run_budget():
     assert ex.phase3_budget(named, _battery()).hourly_usd == raised["hourly_usd"]
 
 
-#: kimi-k3's full-window reservation in USD (GRAPHITE-D35).
-KIMI_FULL_CALL = Decimal("2.0646912")
+#: kimi-k3's reservation per call in USD: its whole window and its own 32,768-token output cap
+#: (GRAPHITE-OUTPUT-CAP-KIMI-01; 2.0646912 at the old 2,048, GRAPHITE-D35).
+KIMI_FULL_CALL = Decimal("2.3642112")
 STAGES = ("A", "B", "C")
 
 
@@ -152,7 +153,9 @@ def test_every_stage_constructor_runs_at_the_standing_ceiling(stage):
     budget = ex.phase3_budget(_stage(f"{stage}-CONSTRUCTOR"), _battery())
     assert budget.hourly_usd == podlib.prices(Decimal("0.65"))["hourly_usd"]
     assert budget.pod_allowance_usd >= budget.pods_need_usd
-    assert budget.token_allowance_usd == Decimal("10.99") >= 5 * KIMI_FULL_CALL
+    # Four full holds fit the 10.99 share now (five at the old 2,048-token cap).
+    assert budget.token_allowance_usd == Decimal("10.99") >= 4 * KIMI_FULL_CALL
+    assert budget.token_allowance_usd < 5 * KIMI_FULL_CALL
     # 10.99 is the largest share that fits: the pods need exactly 3.92.
     assert budget.pods_need_usd == Decimal("3.92") == budget.pod_allowance_usd
 

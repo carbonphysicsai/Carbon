@@ -303,7 +303,12 @@ def cost(
     rows, f0, f1, f2, f4 = [], 0, 0, 0.0, 0.0
     for program in programs:
         if program.measured_step_flops is not None:
-            m = Measured(None, float(program.measured_step_flops), 0.0, None)
+            m = Measured(
+                program.measured_parameters,
+                float(program.measured_step_flops),
+                0.0,
+                None,
+            )
         elif program.backend not in MEASURE:
             raise CostRefused("cost_backend_unsupported", program.backend)
         else:

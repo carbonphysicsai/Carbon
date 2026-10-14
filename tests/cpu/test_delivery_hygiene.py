@@ -8,6 +8,8 @@ import sys
 from pathlib import Path
 from types import ModuleType
 
+import pytest
+
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 CHECKER_PATH = REPOSITORY_ROOT / "scripts/dev/check_delivery_hygiene.py"
 
@@ -314,3 +316,145 @@ def test_commit_allowlist_requires_full_sha_rule_and_reason(tmp_path: Path) -> N
     allowlist = checker.load_allowlist(allowlist_path)
     assert allowlist.allows_commit(commit, "empty")
     assert not allowlist.allows_commit(commit, "message")
+
+
+@pytest.mark.parametrize(
+    "corruption", ["\u00c3\u00a9", "\u00e2\u20ac\u201d", "\u00c2\u00b0", "\u00c2\u0085"]
+)
+@pytest.mark.parametrize("version", ["worktree", "index", "HEAD"])
+def test_introduced_mojibake_is_rejected_in_each_git_version(
+    tmp_path: Path, corruption: str, version: str
+) -> None:
+    repository = tmp_path / "repo"
+    base = _init(repository)
+    (repository / "tracked.txt").write_text(
+        f"clean\ncorrupted {corruption}\n", encoding="utf-8"
+    )
+    if version in {"index", "HEAD"}:
+        assert _git(repository, "add", "tracked.txt").returncode == 0
+    if version == "HEAD":
+        assert _git(repository, "commit", "-m", "Add fixture text").returncode == 0
+    findings = checker.check_delivery_hygiene(repository, base)
+    assert [
+        (item.source, item.line, item.value)
+        for item in findings
+        if item.kind == "mojibake"
+    ] == [(version, 2, f"corrupted {corruption}")]
+
+
+def test_real_utf8_passes_committed_checker_and_cli(tmp_path: Path) -> None:
+    repository = tmp_path / "repo"
+    base = _init(repository)
+    (repository / "tracked.txt").write_text(
+        "clean\ncaf\u00e9 at 23 \u00b0C \u2014 valid UTF-8\n", encoding="utf-8"
+    )
+    assert _git(repository, "add", "tracked.txt").returncode == 0
+    assert _git(repository, "commit", "-m", "Add Unicode fixture").returncode == 0
+    assert checker.check_delivery_hygiene(repository, base) == ()
+    passed = subprocess.run(
+        [
+            sys.executable,
+            str(CHECKER_PATH),
+            "--repository",
+            str(repository),
+            "--base",
+            base,
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert passed.returncode == 0, passed.stderr
+    (repository / "tracked.txt").write_text("bad \u00c3\u00a9\n", encoding="utf-8")
+    refused = subprocess.run(
+        [
+            sys.executable,
+            str(CHECKER_PATH),
+            "--repository",
+            str(repository),
+            "--base",
+            base,
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert refused.returncode == 1
+    assert "mojibake" in refused.stderr
+
+
+@pytest.mark.parametrize("all_tree", [False, True])
+def test_historical_corruption_is_ignored_but_added_copy_is_refused(
+    tmp_path: Path, all_tree: bool
+) -> None:
+    repository = tmp_path / "repo"
+    _init(repository)
+    fixture = repository / "tracked.txt"
+    historical = "old \u00c3\u00a9"
+    fixture.write_text(f"{historical}\n", encoding="utf-8")
+    assert _git(repository, "add", "tracked.txt").returncode == 0
+    assert _git(repository, "commit", "-m", "Historical fixture").returncode == 0
+    base = _git(repository, "rev-parse", "HEAD").stdout.strip()
+    fixture.write_text(f"{historical}\nclean addition\n", encoding="utf-8")
+    assert checker.check_delivery_hygiene(repository, base, all_tree=all_tree) == ()
+    fixture.write_text(
+        f"{historical}\nclean addition\n{historical}\n", encoding="utf-8"
+    )
+    findings = checker.check_delivery_hygiene(repository, base, all_tree=all_tree)
+    assert [(item.kind, item.line) for item in findings] == [("mojibake", 3)]
+
+
+def test_mojibake_allowlist_is_exact_path_and_full_line(tmp_path: Path) -> None:
+    repository = tmp_path / "repo"
+    base = _init(repository)
+    policy = repository / checker.MOJIBAKE_ALLOWLIST
+    policy.parent.mkdir(parents=True)
+    genuine = "Portuguese uppercase \u00c3"
+    policy.write_text(
+        f"text\ttracked.txt\t{genuine}\tGenuine Portuguese uppercase letter\n",
+        encoding="utf-8",
+    )
+    assert _git(repository, "add", str(checker.MOJIBAKE_ALLOWLIST)).returncode == 0
+    fixture = repository / "tracked.txt"
+    fixture.write_text(f"{genuine}\n", encoding="utf-8")
+    assert checker.check_delivery_hygiene(repository, base) == ()
+    fixture.write_text(f"prefix {genuine}\n", encoding="utf-8")
+    assert any(
+        item.kind == "mojibake"
+        for item in checker.check_delivery_hygiene(repository, base)
+    )
+    fixture.write_text("clean\n", encoding="utf-8")
+    (repository / "other.txt").write_text(f"{genuine}\n", encoding="utf-8")
+    assert _git(repository, "add", "other.txt").returncode == 0
+    assert any(
+        item.path == "other.txt" and item.kind == "mojibake"
+        for item in checker.check_delivery_hygiene(repository, base)
+    )
+
+
+def test_mojibake_allowlist_refuses_commit_exceptions(tmp_path: Path) -> None:
+    repository = tmp_path / "repo"
+    base = _init(repository)
+    policy = repository / checker.MOJIBAKE_ALLOWLIST
+    policy.parent.mkdir(parents=True)
+    policy.write_text(
+        f"commit\t{base}\tmessage\tNot an encoding exception\n", encoding="utf-8"
+    )
+    with pytest.raises(
+        checker.DeliveryHygieneConfigurationError, match="only exact text"
+    ):
+        checker.check_delivery_hygiene(repository, base)
+
+
+def test_workstation_policy_does_not_bypass_encoding_check(tmp_path: Path) -> None:
+    repository = tmp_path / "repo"
+    base = _init(repository)
+    policy = repository / checker.DEFAULT_ALLOWLIST
+    policy.parent.mkdir(parents=True)
+    policy.write_text("# corrupted \u00c3\u00a9\n", encoding="utf-8")
+    assert _git(repository, "add", str(checker.DEFAULT_ALLOWLIST)).returncode == 0
+    findings = checker.check_delivery_hygiene(repository, base)
+    assert any(
+        item.path == checker.DEFAULT_ALLOWLIST.as_posix() and item.kind == "mojibake"
+        for item in findings
+    )

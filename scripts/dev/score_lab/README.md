@@ -1,5 +1,74 @@
 # Scorelab (OPT-15)
 
+## OPT-16: V2 bank producer workflow
+
+`bank-plan` consumes a registered V2 definition, a digest-bound committed draw
+from the Challenge's P law, and a committed block-split seed. It does not draw
+P, invent a reference policy, or run a solver. Its `--out` file contains the
+full contexts, split, every action-by-condition requirement and the distinct
+physical reference jobs: keep it on the **producer**, never publish or upload
+the full plan. `--jobs-out` emits a separate producer-worker projection without
+question IDs or development/confirmation assignment. It is physical work
+input, not a custody authorization: the owner decides whether any confirmation
+contexts may leave the producer. Never feed either output to a miner. A draw
+supplies `physical_context` separately from buyer
+requirements, so objective/limit-only neighbours reuse the same solve.
+Reusing one physical case across blocks is refused, and reused records must
+carry the same solve digest. The command prints
+only question and job counts. Data Collection owns the Challenge drawer and
+reference launcher; their outputs are registered inputs, not built here.
+The registration declares `objective_sense`. This version supports
+`minimize` and refuses `maximize` with `bank_objective_sense_unsupported`;
+it cannot silently apply battery's minimization arithmetic to a maximizing
+Challenge.
+
+```sh
+python -m scripts.dev.score_lab bank-plan \
+  --registration REGISTRATION.json --draws COMMITTED_DRAWS.json \
+  --definition docs/development/value-metric-v2/definition.v2.json \
+  --split-seed-file PRODUCER_SEED.txt --out PRODUCER_PLAN.json \
+  --jobs-out PRODUCER_WORKER_JOBS.json
+python -m scripts.dev.score_lab bank-cost \
+  --plan PRODUCER_PLAN.json --registration REGISTRATION.json \
+  --draws COMMITTED_DRAWS.json --split-seed-file PRODUCER_SEED.txt \
+  --definition docs/development/value-metric-v2/definition.v2.json \
+  --policy REFERENCE_COST_POLICY.json \
+  --coarse COARSE_MARGIN_RECORDS.json --jobs-out PRODUCER_REFINEMENT_JOBS.json
+python -m scripts.dev.score_lab bank-solved-check \
+  --plan PRODUCER_PLAN.json --registration REGISTRATION.json \
+  --draws COMMITTED_DRAWS.json --split-seed-file PRODUCER_SEED.txt \
+  --records PRODUCER_SOLVED.jsonl \
+  --definition docs/development/value-metric-v2/definition.v2.json
+```
+
+`bank-cost` without `--coarse` reports the total cost as
+`UNKNOWN_UNTIL_COARSE` when refinement is required. With complete coarse
+records, it uses the bank's actual in-window action-condition share and the
+registered per-rung CPU/wall costs; `--jobs-out` is producer-only. The
+registered status rule names its reference ID, positive-feasible margin,
+coarse/fine rungs, bands and screening window. A coarse in-window case cannot
+receive a decided label before the fine rung. A different refinement ladder
+needs its own registered cost adapter; it is refused here rather than silently
+priced as a single fine solve. `bank-solved-check`
+and `bank-cost` first rebuild the plan from the registered producer inputs and
+refuse a serialized plan with changed actions, requirements, jobs or split.
+`bank-solved-check`
+requires every question, action and condition, verifies their planned job IDs,
+image and overlay lock, classifies by reference alone, enforces whole-block
+halves and the alpha block minimum, and prints aggregate counts. Exhausted
+reference failures remain reported as INCOMPLETE; they do not by themselves
+invalidate a bank whose registered SCORED-share condition still holds. Its
+development-half diagnostic reuses `bank-check`; owner thresholds remain
+HUMAN_INPUT. Without those inputs the aggregate status is
+`INSUFFICIENT_EVIDENCE`, even if `structural_ready` is true; supplied
+development evidence (`--cheap`, `--reference-model`, `--learnability`,
+`--cap`, `--kappa`, `--unit`, `--ceiling-threshold`) may yield a winnable or
+not-winnable diagnostic. Neither
+result qualifies the bank or authorizes
+opening the confirmation half. The full solved records and confirmation half
+remain in custody. The toy fixture in `test_score_lab_bank_builder.py` exercises
+the commands without Challenge physics or protected material.
+
 An offline **DEVELOPMENT** diagnostic for score/value alignment. It runs
 without a model reconstruction, reference solver, network call, hidden bank or
 AX42 access. Analytic surfaces have exact reference values; their shapes,

@@ -88,8 +88,25 @@ remain separate host-declared use restrictions. The reference's
 `owner_acceptance_ref` remains a host use-acceptance assertion, distinct from
 the registered code-verification decision. Neither role authenticates that host,
 attests its callable or qualifies a real product. An unready/failed reference
-still REFUSEs; its declared verification conditions are labelled unresolved.
+still REFUSEs; its declared verification conditions are labelled
+`HOST_DECLARED_NOT_COMPARED`. Its independently validated map receipt may
+still appear in `code_verification`, but the host conditions were not compared
+with that record, even when the two blocks happen to be equal. READY references
+retain the registered-equality check at construction and the existing
+`REGISTERED_DEVELOPMENT_CODE_VERIFICATION` basis. This PRD-02f presentation
+repair changes no verdict, acceptance criterion or scientific scope.
 The current battery-use hold and actual Undeclared applicability remain unchanged.
+
+The [2026-10-13 Product audit](../../../Business/research/customer-deliverable/EVIDENCE_HONESTY_2026-10-13.md)
+records the `battery-plating-ref-v2` near-onset transition. This Guard does not
+resolve mesh-160 labels, verify a plating-reference version or authenticate
+host use acceptance. READY, application conditions and observable coverage are
+host assertions checked structurally; registered MMS equality verifies document
+identity/test conditions only. No usable v2 near-onset label exists before the
+required resolved reference evidence and current-use acceptance. The actual
+battery/plating REFERENCE_ADEQUACY_NOT_ESTABLISHED / Undeclared holds require refusal, not a
+caveated TRUST. An old map/image binding cannot remove them. No new v2 adapter
+or scientific rule is implemented by this wording repair.
 
 Local query probes are deterministic functions of query, complete policy/version
 and contract using a domain-separated SHA-256 counter. Steps and model-call
@@ -126,6 +143,13 @@ the real battery comparison, establish full-model adequacy or remove the
 owner's current-use hold. Legacy v1 inputs have no fixture exception. This
 prospective map/reference identity change changes the fixture replay vectors;
 previous timing records keep their original bytes and historical meaning.
+
+PRD-02f also exercises motor-family integration from the native map builder
+through the Guard using the registered GetDP linear A2D/P1 MMS link. Synthetic
+field-shaped arithmetic covers READY, declared application-scope mismatch and
+non-READY refusal. It performs no GetDP solve and establishes no nonlinear
+material, permanent-magnet, torque, skew, physical or product adequacy. Declared
+observable coverage remains host supplied, with no verified-scope claim.
 
 **Production latency target: HUMAN_INPUT (null).** The owner must set the
 accepted PB-LAT use/device target. Toy timing is engineering evidence about

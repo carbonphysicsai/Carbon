@@ -43,13 +43,59 @@ python -m carbon.level4.tooling envelope lowered /scratch/output/level4-envelope
 1. `graphite_level4_stage` with `{"strategy_json": "<the recipe as a JSON string>", "task_id": ""}` returns the interface, the
    commands, the starter spec and `example_run_python`.
 2. Run `example_run_python` as it stands in a workspace task: `kind` workspace, `strategy_json` null, `action` `run_python`,
-   `arguments_json` that object (with `hypothesis` and `expected_effect` inside it). Note the finished task's id.
+   `arguments_json` that object (it already carries `hypothesis` and `expected_effect`), **and** `hypothesis` and
+   `expected_effect` again at the top level of the call (the same two strings). The door requires both copies; a call
+   without the top-level pair is refused before dispatch. The call, in full:
+   ```json
+   {"kind": "workspace", "strategy_json": null, "action": "run_python",
+    "arguments_json": "<example_run_python, as a JSON string>",
+    "hypothesis": "<example_run_python.hypothesis>", "expected_effect": "<example_run_python.expected_effect>"}
+   ```
+   On a server whose tool takes JSON objects, send `strategy` null and `arguments` as the object itself.
+   The task id (`rtsk_` and 64 hex digits) is `reply.result.task.task_id.value` in the reply you receive. It is
+   always there, even when the task has not finished or has failed (FAILED_INFRA included), so read it from there.
+   `public_result.task_id` carries the same id once the task has succeeded; `public_result` is null otherwise.
+   That id is step 3's `task_id`. The call returns once the task has finished: read its state from
+   `terminal_task.state`, not `reply.result.task.state`, which is the task as it was queued (revision 0).
+   `get_research_result` is needed only if `terminal_task` is null.
 3. `graphite_level4_stage` again with the same recipe and `"task_id": "<that task id>"` returns `LEVEL4_STAGED` and the
-   submission digest. Put it in the recipe's `parameters.composition_graphs` and call `graphite_run_proposal`.
+   submission digest. Put it in the recipe's `parameters.composition_graphs` as the single string
+   `"sha256:..."`, **not a list**: a list is refused as `level4_submission_not_staged`, which reads like a
+   staging fault but is the shape. Then call `graphite_run_proposal` with `strategy_json` (the recipe, as a JSON
+   string), `hypothesis` and `expected_effect`.
 
 Steps, as the reply lists them:
 - 1. Call graphite_level4_stage with the recipe and task_id empty: you are reading that reply.
-- 2. Run example_run_python as it stands in a workspace run_python task (kind=workspace, action=run_python, arguments_json = that object, including hypothesis and expected_effect inside it). It writes spec.py, lowers it and packs /scratch/output/level4-envelope.json.gz. Note the finished task's id.
+- 2. Run example_run_python as it stands in a workspace run_python task: kind=workspace, strategy_json=null, action=run_python, arguments_json = that object (it already carries hypothesis and expected_effect), and hypothesis and expected_effect again at the top level of the call (copy the same two strings). It writes spec.py, lowers it and packs /scratch/output/level4-envelope.json.gz. The task id (rtsk_ and 64 hex digits) is reply.result.task.task_id.value in the reply, always there, even when the task has not finished or has failed (also public_result.task_id once the task has succeeded; public_result is null otherwise). The call returns once the task has finished: read its state from terminal_task.state (reply.result.task is the task as it was queued, at revision 0); get_research_result is needed only if terminal_task is null.
 - 3. Call graphite_level4_stage again with the same recipe and that task_id: the reply is LEVEL4_STAGED and names the submission digest.
-- 4. Put the digest in the recipe's parameters.composition_graphs and call graphite_run_proposal.
+- 4. Put the digest in the recipe's parameters.composition_graphs as the single string "sha256:...", not a list, and call graphite_run_proposal with strategy_json (the recipe as a JSON string), hypothesis and expected_effect.
 - 5. To change the model, edit the spec text inside example_run_python (width, layers, activation); keep the commands as they are.
+
+## Reading the export and counting trials
+
+Workspace `read_file` does **not** consume a research trial. You can read the
+export in successive chunks without rationing those reads against your trial
+count. An executed `run_python` consumes one trial; calls refused before
+dispatch consume none. For the historical tools rule, use chunks of at most
+4096 bytes and decode `content_base64`. Under the v2 rule the maximum is
+8192 bytes and suitable text is returned as `content_utf8`, otherwise base64.
+Follow your campaign's frozen rule and advance `offset` by the bytes returned
+until you have the reported total. This concerns research trials; model calls
+and compute still have their own accounting. Reads access your workspace,
+not protected exam files. See the [miner FAQ](../../MINER_FAQ.md#does-reading-an-export-consume-a-research-trial).
+
+## Omitted recipe fields and the network graph
+
+Battery's compiler fills applicable omitted catalog fields. An MLP recipe
+with no `width` or `depth` compiles to **width 256, depth 3**; specifying only
+width still leaves depth 3. These are existing defaults, not a recommendation.
+The [miner FAQ](../../MINER_FAQ.md#what-happens-when-i-omit-architecture-fields)
+also lists the FNO and DeepONet defaults and how to inspect the resolved design.
+
+For **Level 4**, the staged graph is the network. This starter's spec sets
+`WIDTH = 32` and one hidden layer: the recipe's resolved width 256/depth 3
+does not replace that with a larger network. Change the spec's parameter
+shapes and forward operations to change the architecture. Below Level 4,
+applicable catalog architecture fields determine the network Carbon builds
+and trains, so leaving them out still chooses a concrete network. Level 4
+training controls such as steps and optimizer settings remain active.

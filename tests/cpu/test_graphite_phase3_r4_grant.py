@@ -5,9 +5,11 @@ Claims tested:
 - the grant is the owner's: R3's exact shape with only the approved fields
   changed, and its arithmetic holds (3 × 14.91 + 0.25 = 44.98 ≤ 45.00);
 - a full-window kimi-k3 call at the Constructor's settings reserves exactly
-  USD 2.0646912: five fit the run's USD 10.99 token share (11.93 before the
-  0.65/h ceiling, OWNER-GRAPHITE-PHASE3-R4-CEILING-01), four the approved
-  USD 10 model allowance, none a Level 0 run's USD 1.95;
+  USD 2.3642112 (2.0646912 until kimi-k3's own 32,768-token output cap,
+  GRAPHITE-OUTPUT-CAP-KIMI-01): four fit the run's USD 10.99 token share (five
+  of 2.0646912; 11.93 before the 0.65/h ceiling,
+  OWNER-GRAPHITE-PHASE3-R4-CEILING-01), four the approved USD 10 model
+  allowance, none a Level 0 run's USD 1.95;
 - the run's budget uses the registered USD 10.99 share, and its pods get the
   rest only while that covers them; every other grant's budget is unchanged;
 - a Level 0 run under R4 is refused typed, at the CLI before anything opens
@@ -51,8 +53,11 @@ GRANTS = REPOSITORY / grant_binding.GRANTS_DIR
 R4_ID = "GRAPHITE-GRANT-PHASE3-R4"
 R4_NAME = R4_ID + ".json"
 BATTERY = challenge_scoring.scoring_for(BATTERY_CHALLENGE)
-#: kimi-k3's full-window reservation, nanodollars: 1,048,576 × 1,950 + 2,048 × 9,750.
-KIMI_RESERVATION_NANO = 2064691200
+#: kimi-k3's reservation per call, nanodollars: its whole window and its own
+#: 32,768-token output cap (`roles.MODEL_OUTPUT_CAPS`, OWNER 2026-10-13):
+#: 1,048,576 × 1,950 + 32,768 × 9,750. It was 2,064,691,200 at the 2,048-token cap.
+KIMI_RESERVATION_NANO = 2364211200
+assert KIMI_RESERVATION_NANO == 1048576 * 1950 + 32768 * 9750
 NANO = Decimal(10) ** 9
 
 
@@ -169,12 +174,15 @@ def test_kimi_k3s_full_window_reservation_and_how_many_fit():
         settings=dict(settings),
     )
     assert selection.settings.max_input_tokens == 1048576
-    assert selection.settings.max_output_tokens == 2048
+    assert selection.settings.max_output_tokens == 32768
     assert selection.reservation_nano == KIMI_RESERVATION_NANO
     reservation = Decimal(KIMI_RESERVATION_NANO) / NANO
-    assert reservation == Decimal("2.0646912")
+    assert reservation == Decimal("2.3642112")
+    # Full holds: four now (five at the old 2,048-token cap, 2.0646912).
     assert Decimal("11.93") // reservation == 5
+    assert Decimal("10.99") // reservation == 4
     assert Decimal("10.00") // reservation == 4
+    assert Decimal("10.99") // Decimal("2.0646912") == 5
     # A Level 0 battery run's token share admits none.
     r3 = ex.phase3_budget(_grant("GRAPHITE-GRANT-PHASE3-R3.json"), BATTERY)
     assert r3.token_allowance_usd == Decimal("1.95") < reservation
@@ -413,10 +421,10 @@ def _succeeded(provider, result):
 
 
 def test_23_settled_kimi_k3_calls_are_admitted_under_the_r4_share(tmp_path):
-    """Each call is admitted against the share with its full USD 2.0646912
+    """Each call is admitted against the share with its full USD 2.3642112
     reservation, then settles to its reported charge, which replaces the
     reservation in the research ledger (`CampaignLedger._usage`): run 5's
-    23 calls fit, where full reservations alone would stop after 5."""
+    23 calls fit, where full reservations alone would stop after 4."""
     provider, result = _run(tmp_path, _grant(), model=_run5_model())
     assert result["provider_state"] == "succeeded"
     calls = _succeeded(provider, result)
@@ -429,7 +437,7 @@ def test_23_settled_kimi_k3_calls_are_admitted_under_the_r4_share(tmp_path):
     assert spent + Decimal(KIMI_RESERVATION_NANO) / NANO <= Decimal("10.99")
 
 
-def test_mutation_keeping_each_full_reservation_stops_after_5_calls(
+def test_mutation_keeping_each_full_reservation_stops_after_4_calls(
     tmp_path, monkeypatch
 ):
     from carbon.development_session import research_ledger
@@ -444,7 +452,7 @@ def test_mutation_keeping_each_full_reservation_stops_after_5_calls(
     monkeypatch.setattr(research_ledger.CampaignLedger, "_usage", reserved_only)
     provider, result = _run(tmp_path, _grant(), model=_run5_model())
     assert result["provider_state"] != "succeeded"
-    assert len(_succeeded(provider, result)) == 5
+    assert len(_succeeded(provider, result)) == 4
 
 
 # -- mutations: each guard, disabled, lets the wrong thing through ------------------------------

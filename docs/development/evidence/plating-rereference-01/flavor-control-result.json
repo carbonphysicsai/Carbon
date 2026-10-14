@@ -1,0 +1,312 @@
+{
+ "criterion": "no label change; max per-rung |cpu3m - cpu5m| <= 0.05 mV to go (set before the run)",
+ "pod_jobs": {
+  "cpu3m": "plating-flavor-control-20261013t155456z",
+  "cpu5m": "plating-panel-d2f-20261013t143618z"
+ },
+ "result": {
+  "cases_reaching_mesh160": [
+   "ev4:D-T14-S0.33:c1=1,c2=0.6:0",
+   "ev4:V-T29-S0.22:c1=2,c2=0.6:0",
+   "ev4:D-T34-S0.48:c1=2,c2=0.6:0",
+   "ev4:V-T19-S0.40:c1=1,c2=0.8:0"
+  ],
+  "incomplete": "4 of 8 mesh-160 rungs not reached before the 40-min deadline; not finished (Test Lead: not needed)",
+  "key_cases_reached": {
+   "largest_bias": "ev4:V-T29-S0.22:c1=2,c2=0.6:0",
+   "near_threshold_0.727mV": "ev4:D-T14-S0.33:c1=1,c2=0.6:0"
+  },
+  "label_changes": 0,
+  "max_abs_diff_mv_per_mesh": {
+   "160": 3.5641233822776563e-06,
+   "20": 5.222051131098526e-05,
+   "40": 0.00012545194594520276,
+   "80": 4.945706692576976e-05
+  },
+  "speed": "mean CPU-s per solve, cpu3m vs cpu5m: mesh 80 258 vs 51, mesh 160 1247 vs 237 (about 5x)"
+ },
+ "rows": [
+  {
+   "case_id": "ev4:D-T14-S0.33:c1=1,c2=0.6:0",
+   "cpu3m_cpu_s": 24.91,
+   "cpu3m_mv": 2.7093796250736086,
+   "cpu5m_cpu_s": 10.44,
+   "cpu5m_mv": 2.709379625016011,
+   "diff_mv": 5.759758989198893e-11,
+   "mesh": 20
+  },
+  {
+   "case_id": "ev4:D-T14-S0.33:c1=1,c2=0.6:0",
+   "cpu3m_cpu_s": 61.67,
+   "cpu3m_mv": 1.6043919805528004,
+   "cpu5m_cpu_s": 20.15,
+   "cpu5m_mv": 1.6043921276743502,
+   "diff_mv": -1.4712154996869564e-07,
+   "mesh": 40
+  },
+  {
+   "case_id": "ev4:D-T14-S0.33:c1=1,c2=0.6:0",
+   "cpu3m_cpu_s": 299.19,
+   "cpu3m_mv": 1.0228652764194368,
+   "cpu5m_cpu_s": 60.55,
+   "cpu5m_mv": 1.0229147334863626,
+   "diff_mv": -4.945706692576976e-05,
+   "mesh": 80
+  },
+  {
+   "case_id": "ev4:D-T14-S0.33:c1=1,c2=0.6:0",
+   "cpu3m_cpu_s": 1312.28,
+   "cpu3m_mv": 0.7272382409408847,
+   "cpu5m_cpu_s": 351.14,
+   "cpu5m_mv": 0.7272368307341747,
+   "diff_mv": 1.4102067100868476e-06,
+   "mesh": 160
+  },
+  {
+   "case_id": "ev4:V-T29-S0.22:c1=2,c2=0.6:0",
+   "cpu3m_cpu_s": 20.02,
+   "cpu3m_mv": 3.5586602344662057,
+   "cpu5m_cpu_s": 12.21,
+   "cpu5m_mv": 3.558660231427569,
+   "diff_mv": 3.038636616631285e-09,
+   "mesh": 20
+  },
+  {
+   "case_id": "ev4:V-T29-S0.22:c1=2,c2=0.6:0",
+   "cpu3m_cpu_s": 54.36,
+   "cpu3m_mv": 2.184498210027562,
+   "cpu5m_cpu_s": 23.27,
+   "cpu5m_mv": 2.1846236619735073,
+   "diff_mv": -0.00012545194594520276,
+   "mesh": 40
+  },
+  {
+   "case_id": "ev4:V-T29-S0.22:c1=2,c2=0.6:0",
+   "cpu3m_cpu_s": 298.94,
+   "cpu3m_mv": 1.457888342073813,
+   "cpu5m_cpu_s": 71.41,
+   "cpu5m_mv": 1.457888341176764,
+   "diff_mv": 8.970489281945326e-10,
+   "mesh": 80
+  },
+  {
+   "case_id": "ev4:V-T29-S0.22:c1=2,c2=0.6:0",
+   "cpu3m_cpu_s": 1306.51,
+   "cpu3m_mv": 1.0986014159600714,
+   "cpu5m_cpu_s": 307.65,
+   "cpu5m_mv": 1.0986014561500954,
+   "diff_mv": -4.01900240518116e-08,
+   "mesh": 160
+  },
+  {
+   "case_id": "ev4:D-T34-S0.48:c1=2,c2=0.6:0",
+   "cpu3m_cpu_s": 27.4,
+   "cpu3m_mv": 3.955166934982867,
+   "cpu5m_cpu_s": 9.85,
+   "cpu5m_mv": 3.95516693485189,
+   "diff_mv": 1.3097682660667687e-10,
+   "mesh": 20
+  },
+  {
+   "case_id": "ev4:D-T34-S0.48:c1=2,c2=0.6:0",
+   "cpu3m_cpu_s": 62.28,
+   "cpu3m_mv": 3.903816522077236,
+   "cpu5m_cpu_s": 22.48,
+   "cpu5m_mv": 3.903816521797363,
+   "diff_mv": 2.7987291303932516e-10,
+   "mesh": 40
+  },
+  {
+   "case_id": "ev4:D-T34-S0.48:c1=2,c2=0.6:0",
+   "cpu3m_cpu_s": 180.22,
+   "cpu3m_mv": 3.62772469462426,
+   "cpu5m_cpu_s": 70.17,
+   "cpu5m_mv": 3.627724694666719,
+   "diff_mv": -4.2458658117139336e-11,
+   "mesh": 80
+  },
+  {
+   "case_id": "ev4:D-T34-S0.48:c1=2,c2=0.6:0",
+   "cpu3m_cpu_s": 1095.25,
+   "cpu3m_mv": 3.413974366597793,
+   "cpu5m_cpu_s": 340.41,
+   "cpu5m_mv": 3.4139743677730916,
+   "diff_mv": -1.1752985737412125e-09,
+   "mesh": 160
+  },
+  {
+   "case_id": "ev4:V-T19-S0.40:c1=1,c2=0.8:0",
+   "cpu3m_cpu_s": 20.93,
+   "cpu3m_mv": 2.231077678007166,
+   "cpu5m_cpu_s": 12.03,
+   "cpu5m_mv": 2.2310776690126763,
+   "diff_mv": 8.994489181235465e-09,
+   "mesh": 20
+  },
+  {
+   "case_id": "ev4:V-T19-S0.40:c1=1,c2=0.8:0",
+   "cpu3m_cpu_s": 60.2,
+   "cpu3m_mv": 1.3413798021647463,
+   "cpu5m_cpu_s": 23.18,
+   "cpu5m_mv": 1.3413798110684085,
+   "diff_mv": -8.903662312639837e-09,
+   "mesh": 40
+  },
+  {
+   "case_id": "ev4:V-T19-S0.40:c1=1,c2=0.8:0",
+   "cpu3m_cpu_s": 340.24,
+   "cpu3m_mv": 0.9629794133143723,
+   "cpu5m_cpu_s": 79.85,
+   "cpu5m_mv": 0.9629744551062723,
+   "diff_mv": 4.958208099951553e-06,
+   "mesh": 80
+  },
+  {
+   "case_id": "ev4:V-T19-S0.40:c1=1,c2=0.8:0",
+   "cpu3m_cpu_s": 1275.07,
+   "cpu3m_mv": 0.7905678526116241,
+   "cpu5m_cpu_s": 260.23,
+   "cpu5m_mv": 0.7905642884882419,
+   "diff_mv": 3.5641233822776563e-06,
+   "mesh": 160
+  },
+  {
+   "case_id": "ev4:D-T24-S0.12:c1=0.75,c2=1:0",
+   "cpu3m_cpu_s": 29.91,
+   "cpu3m_mv": 2.445988820253483,
+   "cpu5m_cpu_s": 9.38,
+   "cpu5m_mv": 2.446002740940563,
+   "diff_mv": -1.3920687080056643e-05,
+   "mesh": 20
+  },
+  {
+   "case_id": "ev4:D-T24-S0.12:c1=0.75,c2=1:0",
+   "cpu3m_cpu_s": 60.25,
+   "cpu3m_mv": 1.5682395943485308,
+   "cpu5m_cpu_s": 18.17,
+   "cpu5m_mv": 1.5682489799860437,
+   "diff_mv": -9.385637512841771e-06,
+   "mesh": 40
+  },
+  {
+   "case_id": "ev4:D-T24-S0.12:c1=0.75,c2=1:0",
+   "cpu3m_cpu_s": 283.53,
+   "cpu3m_mv": 1.1819599095550148,
+   "cpu5m_cpu_s": 63.47,
+   "cpu5m_mv": 1.181960167669105,
+   "diff_mv": -2.581140899973744e-07,
+   "mesh": 80
+  },
+  {
+   "case_id": "ev4:D-T24-S0.12:c1=0.75,c2=1:0",
+   "cpu3m_mv": null,
+   "cpu5m_mv": 0.9741385809412879,
+   "mesh": 160,
+   "note": "not reached on cpu3m (deadline)"
+  },
+  {
+   "case_id": "ev4:V-T9-S0.40:c1=0.75,c2=0.4:0",
+   "cpu3m_cpu_s": 20.03,
+   "cpu3m_mv": 6.971010444115484,
+   "cpu5m_cpu_s": 10.03,
+   "cpu5m_mv": 6.971010444033076,
+   "diff_mv": 8.240803872627822e-11,
+   "mesh": 20
+  },
+  {
+   "case_id": "ev4:V-T9-S0.40:c1=0.75,c2=0.4:0",
+   "cpu3m_cpu_s": 69.69,
+   "cpu3m_mv": 5.9890081407709985,
+   "cpu5m_cpu_s": 20.08,
+   "cpu5m_mv": 5.989007836498699,
+   "diff_mv": 3.042723000640235e-07,
+   "mesh": 40
+  },
+  {
+   "case_id": "ev4:V-T9-S0.40:c1=0.75,c2=0.4:0",
+   "cpu3m_cpu_s": 214.84,
+   "cpu3m_mv": 5.479489596803775,
+   "cpu5m_cpu_s": 77.56,
+   "cpu5m_mv": 5.479490295710822,
+   "diff_mv": -6.989070468199632e-07,
+   "mesh": 80
+  },
+  {
+   "case_id": "ev4:V-T9-S0.40:c1=0.75,c2=0.4:0",
+   "cpu3m_mv": null,
+   "cpu5m_mv": 5.221811918931148,
+   "mesh": 160,
+   "note": "not reached on cpu3m (deadline)"
+  },
+  {
+   "case_id": "ev4:D-T24-S0.12:c1=1.75,c2=1:0",
+   "cpu3m_cpu_s": 26.34,
+   "cpu3m_mv": 7.350061596114862,
+   "cpu5m_cpu_s": 9.77,
+   "cpu5m_mv": 7.350009375603551,
+   "diff_mv": 5.222051131098526e-05,
+   "mesh": 20
+  },
+  {
+   "case_id": "ev4:D-T24-S0.12:c1=1.75,c2=1:0",
+   "cpu3m_cpu_s": 49.9,
+   "cpu3m_mv": 6.65808560177206,
+   "cpu5m_cpu_s": 23.57,
+   "cpu5m_mv": 6.658110317671039,
+   "diff_mv": -2.4715898978497353e-05,
+   "mesh": 40
+  },
+  {
+   "case_id": "ev4:D-T24-S0.12:c1=1.75,c2=1:0",
+   "cpu3m_cpu_s": 249.7,
+   "cpu3m_mv": 6.197171417021507,
+   "cpu5m_cpu_s": 72.39,
+   "cpu5m_mv": 6.197155468574856,
+   "diff_mv": 1.5948446650988768e-05,
+   "mesh": 80
+  },
+  {
+   "case_id": "ev4:D-T24-S0.12:c1=1.75,c2=1:0",
+   "cpu3m_mv": null,
+   "cpu5m_mv": 5.975913629698875,
+   "mesh": 160,
+   "note": "not reached on cpu3m (deadline)"
+  },
+  {
+   "case_id": "ev4:V-T9-S0.06:c1=1,c2=0.6:0",
+   "cpu3m_cpu_s": 25.75,
+   "cpu3m_mv": -2.7429730758291737,
+   "cpu5m_cpu_s": 10.16,
+   "cpu5m_mv": -2.742958763590043,
+   "diff_mv": -1.4312239130821747e-05,
+   "mesh": 20
+  },
+  {
+   "case_id": "ev4:V-T9-S0.06:c1=1,c2=0.6:0",
+   "cpu3m_cpu_s": 68.09,
+   "cpu3m_mv": -3.5761034207461315,
+   "cpu5m_cpu_s": 18.05,
+   "cpu5m_mv": -3.576090441769315,
+   "diff_mv": -1.2978976816468285e-05,
+   "mesh": 40
+  },
+  {
+   "case_id": "ev4:V-T9-S0.06:c1=1,c2=0.6:0",
+   "cpu3m_cpu_s": 195.19,
+   "cpu3m_mv": -3.9316284567216355,
+   "cpu5m_cpu_s": 55.1,
+   "cpu5m_mv": -3.931627288147322,
+   "diff_mv": -1.168574313703541e-06,
+   "mesh": 80
+  },
+  {
+   "case_id": "ev4:V-T9-S0.06:c1=1,c2=0.6:0",
+   "cpu3m_mv": null,
+   "cpu5m_mv": -4.117138723158131,
+   "mesh": 160,
+   "note": "not reached on cpu3m (deadline)"
+  }
+ ],
+ "schema": "carbon.battery.plating-flavor-control.v1",
+ "status": "SETTLED (Test Lead, 2026-10-13): cpu3m is numerically interchangeable with cpu5m for this solver and about 5x slower"
+}

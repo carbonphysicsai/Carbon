@@ -43,6 +43,7 @@ from carbon.agent_campaign.graphite.roles import (
     ENGY_CONTEXT_OBSERVED,
     ENGY_CONTEXT_SOURCE,
     ENGY_CONTEXT_TOKENS,
+    MODEL_OUTPUT_CAPS,
     MODEL_SETTINGS,
     ROLES,
     TOOL_REGISTRY,
@@ -443,9 +444,13 @@ def test_a_constructor_opens_with_its_models_whole_context_and_a_reader_does_not
     assert tuple(ENGY_CONTEXT_TOKENS) == ENGY_LADDER
     assert set(MODEL_SETTINGS[RoleName.CONSTRUCTOR]) == set(ENGY_LADDER)
     # The Attacker's table is the Constructor's plus its own output cap
-    # (GRAPHITE-ATTACKER-STOP-RULE-01).
+    # (GRAPHITE-ATTACKER-STOP-RULE-01), except where the model has a cap of its
+    # own that fits (kimi-k3's 32,768, which both roles get).
     assert MODEL_SETTINGS[RoleName.ATTACKER] == {
-        model: {**settings, "max_output_tokens": 4096}
+        model: {
+            **settings,
+            "max_output_tokens": MODEL_OUTPUT_CAPS.get(model, 4096),
+        }
         for model, settings in MODEL_SETTINGS[RoleName.CONSTRUCTOR].items()
     }
     assert (ENGY_CONTEXT_SOURCE, ENGY_CONTEXT_OBSERVED) == (

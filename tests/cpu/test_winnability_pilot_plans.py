@@ -90,12 +90,26 @@ def test_missing_routes_and_kits_are_not_aliased_to_other_families():
     }
     for name, row in ROWS.items():
         if name in missing:
-            assert row["route"] is None and name not in eb.CHALLENGE_ROUTES
+            # PKT-09's rows are a dated audit of its pinned source_main, not a
+            # standing ban on implementing the family. The snapshot stays as
+            # recorded; the live registry is checked below instead.
+            assert row["route"] is None
             assert row["budget_status"] == "MISSING_ROUTE_AND_REGISTRATION"
         else:
             assert row["route"] == name and name in eb.CHALLENGE_ROUTES
         if name not in {"motor", "f02"}:
             assert row["model_kit_status"] == "NOT_IN_CARBON_ARM_KITS"
+    # The guard that matters, stated once for every family: a family may gain
+    # its own route after the audit, but never by borrowing another family's
+    # validator. Only the shared generic registration validator is shared.
+    owners = {}
+    for name in ROWS:
+        route = eb.CHALLENGE_ROUTES.get(name)
+        if route is not None:
+            owners.setdefault(route["validator"], set()).add(name)
+    shared = eb.CHALLENGE_ROUTES["motor"]["validator"]
+    for validator, families in owners.items():
+        assert validator is shared or len(families) == 1
 
 
 def test_reference_counts_keep_full_cases_and_histories():

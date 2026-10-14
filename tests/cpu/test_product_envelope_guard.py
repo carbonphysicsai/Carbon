@@ -1,4 +1,4 @@
-"""Public battery-interface synthetic tests; no solver/hidden/production authority."""
+"""Synthetic public interfaces; no solver/hidden/production authority."""
 
 from __future__ import annotations
 
@@ -988,9 +988,235 @@ def test_unready_reference_keeps_its_hold_and_does_not_claim_verified_scope(stat
     assert receipt["checks"][0]["candidate_failure"] is False
     assert (
         receipt["reference"]["verification_conditions_basis"]
-        == "UNRESOLVED_HOST_DECLARATION"
+        == "HOST_DECLARED_NOT_COMPARED"
     )
     assert receipt["code_verification"] is None
+
+
+@pytest.mark.parametrize("with_map", [True, False])
+@pytest.mark.parametrize("status", ["UNRESOLVED", "FAILED_REFERENCE", "FAILED_INFRA"])
+@pytest.mark.parametrize(
+    "declared", [{"t_end": 0.375}, {"t_end": 0.5}, {"t_end": None}]
+)
+def test_unready_conditions_are_explicitly_not_compared_even_if_equal(
+    with_map, status, declared
+):
+    materials = f02_metadata_fixture()
+    materials["reference"]["status"] = status
+    materials["reference"]["acceptance_scope"]["verification_conditions"] = declared
+    if not with_map:
+        materials["trust_map"] = None
+    receipt = result(materials)
+    assert receipt["verdict"] == "REFUSE" and receipt["probes"]["model_calls"] == 0
+    assert receipt["checks"][0]["outcome"] == status
+    assert receipt["checks"][0]["candidate_failure"] is False
+    assert (
+        receipt["reference"]["acceptance_scope"]["verification_conditions"] == declared
+    )
+    assert (
+        receipt["reference"]["verification_conditions_basis"]
+        == "HOST_DECLARED_NOT_COMPARED"
+    )
+    if with_map:
+        assert receipt["code_verification"]["conditions"] == {"t_end": 0.375}
+    else:
+        assert receipt["code_verification"] is None
+
+
+def motor_linear_field_fixture():
+    """Native GetDP metadata + synthetic field shapes, not motor adequacy."""
+    from carbon.product.envelope_guard import (
+        CONTRACT_SCHEMA,
+        ENVELOPE_SCHEMA,
+        POLICY_SCHEMA,
+        REFERENCE_SCHEMA,
+        ModelBinding,
+    )
+    from carbon.product.envelope_guard.configuration import digest
+    from carbon.trust_map.acceptance import load_acceptance
+    from carbon.trust_map.core import PANEL_SCHEMA, build_maps
+
+    image = "sha256:599521e79786ee0326a0754ba0545f51ee9665adff73c3515c8d4b8ba24c1c05"
+    criteria = "sha256:bb7b8ef213d4069f571b6332be92b1635017c4de0b4b42ee801991ed513809e6"
+    native = load_acceptance("motor", image, criteria)
+    query = {"x_m": 0.5, "y_m": 0.5, "amplitude": 0.5}
+    units = {"x_m": "m", "y_m": "m", "amplitude": "T"}
+    outputs = {
+        "A_z": {"length": 1, "unit": "T*m"},
+        "B_x": {"length": 1, "unit": "T"},
+        "B_y": {"length": 1, "unit": "T"},
+    }
+
+    def predict(q):
+        # Linear field-shaped arithmetic only; no PDE, torque or material law.
+        return Prediction(
+            {
+                "A_z": [q["amplitude"] * (q["x_m"] + q["y_m"])],
+                "B_x": [q["amplitude"]],
+                "B_y": [-q["amplitude"]],
+            }
+        )
+
+    model = ModelBinding(
+        "synthetic-linear-A2D-P1",
+        digest({"toy_field": "v1"}),
+        digest({"toy_runtime": "v1"}),
+        predict,
+    )
+    envelope = {
+        "schema": ENVELOPE_SCHEMA,
+        "scope": "DEVELOPMENT",
+        "version": "synthetic-linear-magnetostatics-v1",
+        "inputs": {k: {"low": 0.0, "high": 1.0, "unit": v} for k, v in units.items()},
+    }
+    contract = {
+        "schema": CONTRACT_SCHEMA,
+        "scope": "DEVELOPMENT",
+        "version": "synthetic-linear-A2D-P1-v1",
+        "challenge": "motor-linear-field-fixture",
+        "family": "motor",
+        "reference_image": image,
+        "outputs": outputs,
+        "laws": [],
+    }
+    reference = {
+        "schema": REFERENCE_SCHEMA,
+        "scope": "DEVELOPMENT",
+        "version": "synthetic-use-not-qualification-v1",
+        "image_digest": image,
+        "criteria_digest": criteria,
+        "code_verification_ref": native["link_digest"],
+        "owner_acceptance_ref": digest({"synthetic_use": "not-owner-acceptance"}),
+        "status": "READY",
+        "acceptance_scope": {
+            "family": "motor",
+            "observables": list(outputs),
+            "verification_conditions": native["conditions"],
+            "application_conditions": {"amplitude": 0.5},
+        },
+    }
+    observations = {
+        name: predict(query).outputs for name in ("synthetic-first", "synthetic-second")
+    }
+    panel = {
+        "schema": PANEL_SCHEMA,
+        "disclosure": {
+            "kind": "PUBLIC",
+            "evidence": "SYNTHETIC_LINEAR_FIELD_ONLY_NOT_MOTOR_PHYSICS",
+            "source_sha256": digest({"toy_panel": "v1"})[7:],
+        },
+        "reference_image": image,
+        "reference_verification": {
+            "family": "motor",
+            "criteria_digest": criteria,
+            "image_digest": image,
+            "evidence": "SYNTHETIC_NOT_REAL_REFERENCE_USE_ACCEPTANCE",
+        },
+        "cases": [
+            {"id": name, "inputs": dict(query), "reference": value}
+            for name, value in observations.items()
+        ],
+        "models": {
+            model.model_id: copy.deepcopy(observations),
+            "synthetic-second-model": copy.deepcopy(observations),
+        },
+        "top_models": [model.model_id, "synthetic-second-model"],
+    }
+    spec = {
+        "axes": [{"name": k, "edges": [0.0, 1.0]} for k in ("x_m", "y_m")],
+        "bands": {"name": "amplitude", "edges": [0.0, 1.0]},
+        "marginalized": [],
+        "outputs": outputs,
+        "near_limit": [
+            {"output": "B_x", "statistic": "max", "operator": "ge", "value": 0.5}
+        ],
+    }
+    materials = {
+        "contract": contract,
+        "envelope": envelope,
+        "reference_envelope": copy.deepcopy(envelope),
+        "trust_map": build_maps(panel, spec)[model.model_id],
+        "reference": reference,
+        "model": model,
+        "model_validity": validity.NoPropertyModel(
+            "Synthetic linear field arithmetic, not material validity"
+        ),
+        "reference_validity": validity.NoPropertyModel(
+            "Synthetic reference shapes, not motor applicability"
+        ),
+    }
+    materials["policy"] = {
+        "schema": POLICY_SCHEMA,
+        "scope": "DEVELOPMENT",
+        "version": "synthetic-linear-field-policy-v1",
+        "basis": "SYNTHETIC_FIXTURE",
+        "authority_ref": digest({"toy_policy": "not-an-owner-record"}),
+        "pins": {},
+        "probe_steps": {k: 0.01 for k in units},
+        "max_model_calls": 1,
+        "min_cell_count": 2,
+        "map_limits": {
+            k: {"unit": v["unit"], "max_error_p90": 0.1, "max_disagreement_p90": 0.1}
+            for k, v in outputs.items()
+        },
+        "uncertainty": {
+            "mode": "EXPLICIT_NO_INTERVALS",
+            "calibration": None,
+            "max_width": None,
+        },
+        "laws": {"mode": "EXPLICIT_NO_LAWS"},
+        "b9": None,
+        "latency_target_ms": None,
+    }
+    return materials, query, units, native
+
+
+def test_motor_native_getdp_map_ready_scope_mismatch_and_nonready_paths():
+    materials, query, units, native = motor_linear_field_fixture()
+    guard = build(materials)
+    ready = guard.evaluate(query, units=units)
+    assert ready["verdict"] == "TRUST" and ready["probes"]["model_calls"] == 1
+    assert ready["code_verification"] == native
+    assert ready["code_verification"]["family"] == "motor"
+    assert (
+        ready["reference"]["verification_conditions_basis"]
+        == "REGISTERED_DEVELOPMENT_CODE_VERIFICATION"
+    )
+    assert (
+        ready["reference"]["observables_basis"] == "HOST_DECLARED_NOT_VERIFIED_COVERAGE"
+    )
+    assert (
+        ready["law_policy"] == {"mode": "EXPLICIT_NO_LAWS"}
+        and ready["b9_policy"] is None
+    )
+    assert (
+        ready["evidence_basis"] == "SYNTHETIC_FIXTURE"
+        and not ready["qualification_claim"]
+    )
+    assert ready["independent_pick_verification_required"]
+    assert any(c["reason"] == "GAP_EXPLICIT_NO_LAWS_POLICY" for c in ready["checks"])
+    refused = guard.evaluate({**query, "amplitude": 0.75}, units=units)
+    assert refused["verdict"] == "REFUSE" and refused["probes"]["model_calls"] == 0
+    assert refused["reasons"] == ["REFERENCE_ACCEPTANCE_SCOPE_MISMATCH"]
+    assert refused["checks"][0]["candidate_failure"] is False
+    assert refused["code_verification"] == native
+    ready["code_verification"]["conditions"]["unexpected"] = 1.0
+    assert guard.evaluate(query, units=units)["code_verification"] == native
+    for status in ("UNRESOLVED", "FAILED_REFERENCE", "FAILED_INFRA"):
+        held = copy.deepcopy(materials)
+        held["reference"]["status"] = status
+        held["reference"]["acceptance_scope"]["verification_conditions"] = {
+            "linear_fixture": None
+        }
+        receipt = build(held).evaluate(query, units=units)
+        assert receipt["verdict"] == "REFUSE" and receipt["probes"]["model_calls"] == 0
+        assert receipt["checks"][0]["outcome"] == status
+        assert receipt["checks"][0]["candidate_failure"] is False
+        assert receipt["code_verification"] == native
+        assert (
+            receipt["reference"]["verification_conditions_basis"]
+            == "HOST_DECLARED_NOT_COMPARED"
+        )
 
 
 @pytest.mark.parametrize("field", ["verification_conditions", "application_conditions"])

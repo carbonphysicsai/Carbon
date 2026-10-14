@@ -10,8 +10,21 @@ relay alone.
 **D3 — the next battery reference version (adopted).** Option A: re-solve the
 near-onset cases at the fine mesh, with the window and band set from D2's panel.
 
-- **Scope: the public near-onset set only**, about **USD 3**, inside the standing
-  weekly test grant (`OWNER-TEST-GRANT-01`).
+- **Scope: the public near-onset set only**, inside the standing weekly test
+  grant (`OWNER-TEST-GRANT-01`).
+  - **The figure the owner approved was "about USD 3".** The counted set is
+    **669 public cases** (611 PDD + 58 EV4) at about 45 CPU-hours: worst case
+    **USD 4.3, cap USD 6** (Test Lead, 2026-10-13). Both figures are recorded
+    because the second is not the one he was shown. It needs no new approval --
+    it is inside the standing grant and below its USD 50 per-run cap -- but the
+    record should not restate his approved figure as double it.
+  - The count doubled because the window widened from [0, 2.82) to
+    (-1.97, +3.5) mV; the extra cases are the in-band UNRESOLVED ones that have
+    no usable label today.
+  - **Launch on the single 32-vCPU pod only.** The four-pod fallback is USD 10
+    for identical compute and is not to be taken; if capacity does not appear,
+    stop and return to the Test Lead. Waiting is free and nothing about D3 is
+    due tonight.
 - **The sealed bank is excluded** and needs the owner's own figure before any
   sealed re-solve.
 
