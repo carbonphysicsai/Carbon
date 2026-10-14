@@ -1,0 +1,1684 @@
+{
+  "bootstrap": 60,
+  "candidate_ids": [
+    "INFORCE-G-FEAS/A-Q>@0.05",
+    "V9-ENV/ARP-V3",
+    "V10-SIGN+ENV/ARP-V3S",
+    "V2r2@k1,kappa0.05",
+    "V2r2@k3,kappa0.1",
+    "V2r2@k5,kappa0.25",
+    "N1-DECISION-RELEVANCE-ERROR",
+    "N2-VERIFIED-REGRET-ON-PICK",
+    "N3-SAFE-PICK-RATE-x-GAIN",
+    "N4-TOP-REGION-RANKING"
+  ],
+  "candidate_sha256": "157b1db5f091910f5602b15c9f5029f0171e6da7e8b6dbc5ffb5aa5c775bd235",
+  "caps": {
+    "address_space_bytes": 2147483648,
+    "complete_cell_reservation_cpu_seconds": 60,
+    "cpu_seconds": 1800,
+    "wall_seconds": 1900
+  },
+  "cells": [
+    {
+      "B": 3,
+      "N": 30,
+      "dependence": "iid",
+      "estimand": "P",
+      "outage": 0.0,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "uniform",
+      "seed": 11,
+      "study": "sample_blocks"
+    },
+    {
+      "B": 3,
+      "N": 30,
+      "dependence": "iid",
+      "estimand": "P",
+      "outage": 0.0,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "uniform",
+      "seed": 22,
+      "study": "sample_blocks"
+    },
+    {
+      "B": 3,
+      "N": 30,
+      "dependence": "iid",
+      "estimand": "P",
+      "outage": 0.0,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "uniform",
+      "seed": 33,
+      "study": "sample_blocks"
+    },
+    {
+      "B": 3,
+      "N": 30,
+      "dependence": "replicated",
+      "estimand": "P",
+      "outage": 0.0,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "uniform",
+      "seed": 11,
+      "study": "sample_blocks"
+    },
+    {
+      "B": 3,
+      "N": 30,
+      "dependence": "replicated",
+      "estimand": "P",
+      "outage": 0.0,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "uniform",
+      "seed": 22,
+      "study": "sample_blocks"
+    },
+    {
+      "B": 3,
+      "N": 30,
+      "dependence": "replicated",
+      "estimand": "P",
+      "outage": 0.0,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "uniform",
+      "seed": 33,
+      "study": "sample_blocks"
+    },
+    {
+      "B": 10,
+      "N": 30,
+      "dependence": "iid",
+      "estimand": "P",
+      "outage": 0.0,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "uniform",
+      "seed": 11,
+      "study": "sample_blocks"
+    },
+    {
+      "B": 10,
+      "N": 30,
+      "dependence": "iid",
+      "estimand": "P",
+      "outage": 0.0,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "uniform",
+      "seed": 22,
+      "study": "sample_blocks"
+    },
+    {
+      "B": 10,
+      "N": 30,
+      "dependence": "iid",
+      "estimand": "P",
+      "outage": 0.0,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "uniform",
+      "seed": 33,
+      "study": "sample_blocks"
+    },
+    {
+      "B": 10,
+      "N": 30,
+      "dependence": "replicated",
+      "estimand": "P",
+      "outage": 0.0,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "uniform",
+      "seed": 11,
+      "study": "sample_blocks"
+    },
+    {
+      "B": 10,
+      "N": 30,
+      "dependence": "replicated",
+      "estimand": "P",
+      "outage": 0.0,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "uniform",
+      "seed": 22,
+      "study": "sample_blocks"
+    },
+    {
+      "B": 10,
+      "N": 30,
+      "dependence": "replicated",
+      "estimand": "P",
+      "outage": 0.0,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "uniform",
+      "seed": 33,
+      "study": "sample_blocks"
+    },
+    {
+      "B": 30,
+      "N": 30,
+      "dependence": "iid",
+      "estimand": "P",
+      "outage": 0.0,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "uniform",
+      "seed": 11,
+      "study": "sample_blocks"
+    },
+    {
+      "B": 30,
+      "N": 30,
+      "dependence": "iid",
+      "estimand": "P",
+      "outage": 0.0,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "uniform",
+      "seed": 22,
+      "study": "sample_blocks"
+    },
+    {
+      "B": 30,
+      "N": 30,
+      "dependence": "iid",
+      "estimand": "P",
+      "outage": 0.0,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "uniform",
+      "seed": 33,
+      "study": "sample_blocks"
+    },
+    {
+      "B": 30,
+      "N": 30,
+      "dependence": "replicated",
+      "estimand": "P",
+      "outage": 0.0,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "uniform",
+      "seed": 11,
+      "study": "sample_blocks"
+    },
+    {
+      "B": 30,
+      "N": 30,
+      "dependence": "replicated",
+      "estimand": "P",
+      "outage": 0.0,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "uniform",
+      "seed": 22,
+      "study": "sample_blocks"
+    },
+    {
+      "B": 30,
+      "N": 30,
+      "dependence": "replicated",
+      "estimand": "P",
+      "outage": 0.0,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "uniform",
+      "seed": 33,
+      "study": "sample_blocks"
+    },
+    {
+      "B": 3,
+      "N": 300,
+      "dependence": "iid",
+      "estimand": "P",
+      "outage": 0.0,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "uniform",
+      "seed": 11,
+      "study": "sample_blocks"
+    },
+    {
+      "B": 3,
+      "N": 300,
+      "dependence": "iid",
+      "estimand": "P",
+      "outage": 0.0,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "uniform",
+      "seed": 22,
+      "study": "sample_blocks"
+    },
+    {
+      "B": 3,
+      "N": 300,
+      "dependence": "iid",
+      "estimand": "P",
+      "outage": 0.0,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "uniform",
+      "seed": 33,
+      "study": "sample_blocks"
+    },
+    {
+      "B": 3,
+      "N": 300,
+      "dependence": "replicated",
+      "estimand": "P",
+      "outage": 0.0,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "uniform",
+      "seed": 11,
+      "study": "sample_blocks"
+    },
+    {
+      "B": 3,
+      "N": 300,
+      "dependence": "replicated",
+      "estimand": "P",
+      "outage": 0.0,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "uniform",
+      "seed": 22,
+      "study": "sample_blocks"
+    },
+    {
+      "B": 3,
+      "N": 300,
+      "dependence": "replicated",
+      "estimand": "P",
+      "outage": 0.0,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "uniform",
+      "seed": 33,
+      "study": "sample_blocks"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "iid",
+      "estimand": "P",
+      "outage": 0.0,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "uniform",
+      "seed": 11,
+      "study": "sample_blocks"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "iid",
+      "estimand": "P",
+      "outage": 0.0,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "uniform",
+      "seed": 22,
+      "study": "sample_blocks"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "iid",
+      "estimand": "P",
+      "outage": 0.0,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "uniform",
+      "seed": 33,
+      "study": "sample_blocks"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "replicated",
+      "estimand": "P",
+      "outage": 0.0,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "uniform",
+      "seed": 11,
+      "study": "sample_blocks"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "replicated",
+      "estimand": "P",
+      "outage": 0.0,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "uniform",
+      "seed": 22,
+      "study": "sample_blocks"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "replicated",
+      "estimand": "P",
+      "outage": 0.0,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "uniform",
+      "seed": 33,
+      "study": "sample_blocks"
+    },
+    {
+      "B": 30,
+      "N": 300,
+      "dependence": "iid",
+      "estimand": "P",
+      "outage": 0.0,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "uniform",
+      "seed": 11,
+      "study": "sample_blocks"
+    },
+    {
+      "B": 30,
+      "N": 300,
+      "dependence": "iid",
+      "estimand": "P",
+      "outage": 0.0,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "uniform",
+      "seed": 22,
+      "study": "sample_blocks"
+    },
+    {
+      "B": 30,
+      "N": 300,
+      "dependence": "iid",
+      "estimand": "P",
+      "outage": 0.0,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "uniform",
+      "seed": 33,
+      "study": "sample_blocks"
+    },
+    {
+      "B": 30,
+      "N": 300,
+      "dependence": "replicated",
+      "estimand": "P",
+      "outage": 0.0,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "uniform",
+      "seed": 11,
+      "study": "sample_blocks"
+    },
+    {
+      "B": 30,
+      "N": 300,
+      "dependence": "replicated",
+      "estimand": "P",
+      "outage": 0.0,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "uniform",
+      "seed": 22,
+      "study": "sample_blocks"
+    },
+    {
+      "B": 30,
+      "N": 300,
+      "dependence": "replicated",
+      "estimand": "P",
+      "outage": 0.0,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "uniform",
+      "seed": 33,
+      "study": "sample_blocks"
+    },
+    {
+      "B": 3,
+      "N": 3000,
+      "dependence": "iid",
+      "estimand": "P",
+      "outage": 0.0,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "uniform",
+      "seed": 11,
+      "study": "sample_blocks"
+    },
+    {
+      "B": 3,
+      "N": 3000,
+      "dependence": "iid",
+      "estimand": "P",
+      "outage": 0.0,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "uniform",
+      "seed": 22,
+      "study": "sample_blocks"
+    },
+    {
+      "B": 3,
+      "N": 3000,
+      "dependence": "iid",
+      "estimand": "P",
+      "outage": 0.0,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "uniform",
+      "seed": 33,
+      "study": "sample_blocks"
+    },
+    {
+      "B": 3,
+      "N": 3000,
+      "dependence": "replicated",
+      "estimand": "P",
+      "outage": 0.0,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "uniform",
+      "seed": 11,
+      "study": "sample_blocks"
+    },
+    {
+      "B": 3,
+      "N": 3000,
+      "dependence": "replicated",
+      "estimand": "P",
+      "outage": 0.0,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "uniform",
+      "seed": 22,
+      "study": "sample_blocks"
+    },
+    {
+      "B": 3,
+      "N": 3000,
+      "dependence": "replicated",
+      "estimand": "P",
+      "outage": 0.0,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "uniform",
+      "seed": 33,
+      "study": "sample_blocks"
+    },
+    {
+      "B": 10,
+      "N": 3000,
+      "dependence": "iid",
+      "estimand": "P",
+      "outage": 0.0,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "uniform",
+      "seed": 11,
+      "study": "sample_blocks"
+    },
+    {
+      "B": 10,
+      "N": 3000,
+      "dependence": "iid",
+      "estimand": "P",
+      "outage": 0.0,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "uniform",
+      "seed": 22,
+      "study": "sample_blocks"
+    },
+    {
+      "B": 10,
+      "N": 3000,
+      "dependence": "iid",
+      "estimand": "P",
+      "outage": 0.0,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "uniform",
+      "seed": 33,
+      "study": "sample_blocks"
+    },
+    {
+      "B": 10,
+      "N": 3000,
+      "dependence": "replicated",
+      "estimand": "P",
+      "outage": 0.0,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "uniform",
+      "seed": 11,
+      "study": "sample_blocks"
+    },
+    {
+      "B": 10,
+      "N": 3000,
+      "dependence": "replicated",
+      "estimand": "P",
+      "outage": 0.0,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "uniform",
+      "seed": 22,
+      "study": "sample_blocks"
+    },
+    {
+      "B": 10,
+      "N": 3000,
+      "dependence": "replicated",
+      "estimand": "P",
+      "outage": 0.0,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "uniform",
+      "seed": 33,
+      "study": "sample_blocks"
+    },
+    {
+      "B": 30,
+      "N": 3000,
+      "dependence": "iid",
+      "estimand": "P",
+      "outage": 0.0,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "uniform",
+      "seed": 11,
+      "study": "sample_blocks"
+    },
+    {
+      "B": 30,
+      "N": 3000,
+      "dependence": "iid",
+      "estimand": "P",
+      "outage": 0.0,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "uniform",
+      "seed": 22,
+      "study": "sample_blocks"
+    },
+    {
+      "B": 30,
+      "N": 3000,
+      "dependence": "iid",
+      "estimand": "P",
+      "outage": 0.0,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "uniform",
+      "seed": 33,
+      "study": "sample_blocks"
+    },
+    {
+      "B": 30,
+      "N": 3000,
+      "dependence": "replicated",
+      "estimand": "P",
+      "outage": 0.0,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "uniform",
+      "seed": 11,
+      "study": "sample_blocks"
+    },
+    {
+      "B": 30,
+      "N": 3000,
+      "dependence": "replicated",
+      "estimand": "P",
+      "outage": 0.0,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "uniform",
+      "seed": 22,
+      "study": "sample_blocks"
+    },
+    {
+      "B": 30,
+      "N": 3000,
+      "dependence": "replicated",
+      "estimand": "P",
+      "outage": 0.0,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "uniform",
+      "seed": 33,
+      "study": "sample_blocks"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "iid",
+      "estimand": "Q",
+      "outage": 0.0,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "half_extrapolated",
+      "seed": 11,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "iid",
+      "estimand": "P",
+      "outage": 0.0,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "half_extrapolated",
+      "seed": 11,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "iid",
+      "estimand": "Q",
+      "outage": 0.0,
+      "policy": "EXCLUDE_COMPLETE_BLOCKS",
+      "proposal": "half_extrapolated",
+      "seed": 11,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "iid",
+      "estimand": "P",
+      "outage": 0.0,
+      "policy": "EXCLUDE_COMPLETE_BLOCKS",
+      "proposal": "half_extrapolated",
+      "seed": 11,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "iid",
+      "estimand": "Q",
+      "outage": 0.01,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "half_extrapolated",
+      "seed": 11,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "iid",
+      "estimand": "P",
+      "outage": 0.01,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "half_extrapolated",
+      "seed": 11,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "iid",
+      "estimand": "Q",
+      "outage": 0.01,
+      "policy": "EXCLUDE_COMPLETE_BLOCKS",
+      "proposal": "half_extrapolated",
+      "seed": 11,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "iid",
+      "estimand": "P",
+      "outage": 0.01,
+      "policy": "EXCLUDE_COMPLETE_BLOCKS",
+      "proposal": "half_extrapolated",
+      "seed": 11,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "iid",
+      "estimand": "Q",
+      "outage": 0.05,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "half_extrapolated",
+      "seed": 11,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "iid",
+      "estimand": "P",
+      "outage": 0.05,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "half_extrapolated",
+      "seed": 11,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "iid",
+      "estimand": "Q",
+      "outage": 0.05,
+      "policy": "EXCLUDE_COMPLETE_BLOCKS",
+      "proposal": "half_extrapolated",
+      "seed": 11,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "iid",
+      "estimand": "P",
+      "outage": 0.05,
+      "policy": "EXCLUDE_COMPLETE_BLOCKS",
+      "proposal": "half_extrapolated",
+      "seed": 11,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "iid",
+      "estimand": "Q",
+      "outage": 0.0,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "half_extrapolated",
+      "seed": 22,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "iid",
+      "estimand": "P",
+      "outage": 0.0,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "half_extrapolated",
+      "seed": 22,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "iid",
+      "estimand": "Q",
+      "outage": 0.0,
+      "policy": "EXCLUDE_COMPLETE_BLOCKS",
+      "proposal": "half_extrapolated",
+      "seed": 22,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "iid",
+      "estimand": "P",
+      "outage": 0.0,
+      "policy": "EXCLUDE_COMPLETE_BLOCKS",
+      "proposal": "half_extrapolated",
+      "seed": 22,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "iid",
+      "estimand": "Q",
+      "outage": 0.01,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "half_extrapolated",
+      "seed": 22,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "iid",
+      "estimand": "P",
+      "outage": 0.01,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "half_extrapolated",
+      "seed": 22,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "iid",
+      "estimand": "Q",
+      "outage": 0.01,
+      "policy": "EXCLUDE_COMPLETE_BLOCKS",
+      "proposal": "half_extrapolated",
+      "seed": 22,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "iid",
+      "estimand": "P",
+      "outage": 0.01,
+      "policy": "EXCLUDE_COMPLETE_BLOCKS",
+      "proposal": "half_extrapolated",
+      "seed": 22,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "iid",
+      "estimand": "Q",
+      "outage": 0.05,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "half_extrapolated",
+      "seed": 22,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "iid",
+      "estimand": "P",
+      "outage": 0.05,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "half_extrapolated",
+      "seed": 22,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "iid",
+      "estimand": "Q",
+      "outage": 0.05,
+      "policy": "EXCLUDE_COMPLETE_BLOCKS",
+      "proposal": "half_extrapolated",
+      "seed": 22,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "iid",
+      "estimand": "P",
+      "outage": 0.05,
+      "policy": "EXCLUDE_COMPLETE_BLOCKS",
+      "proposal": "half_extrapolated",
+      "seed": 22,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "iid",
+      "estimand": "Q",
+      "outage": 0.0,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "half_extrapolated",
+      "seed": 33,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "iid",
+      "estimand": "P",
+      "outage": 0.0,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "half_extrapolated",
+      "seed": 33,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "iid",
+      "estimand": "Q",
+      "outage": 0.0,
+      "policy": "EXCLUDE_COMPLETE_BLOCKS",
+      "proposal": "half_extrapolated",
+      "seed": 33,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "iid",
+      "estimand": "P",
+      "outage": 0.0,
+      "policy": "EXCLUDE_COMPLETE_BLOCKS",
+      "proposal": "half_extrapolated",
+      "seed": 33,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "iid",
+      "estimand": "Q",
+      "outage": 0.01,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "half_extrapolated",
+      "seed": 33,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "iid",
+      "estimand": "P",
+      "outage": 0.01,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "half_extrapolated",
+      "seed": 33,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "iid",
+      "estimand": "Q",
+      "outage": 0.01,
+      "policy": "EXCLUDE_COMPLETE_BLOCKS",
+      "proposal": "half_extrapolated",
+      "seed": 33,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "iid",
+      "estimand": "P",
+      "outage": 0.01,
+      "policy": "EXCLUDE_COMPLETE_BLOCKS",
+      "proposal": "half_extrapolated",
+      "seed": 33,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "iid",
+      "estimand": "Q",
+      "outage": 0.05,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "half_extrapolated",
+      "seed": 33,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "iid",
+      "estimand": "P",
+      "outage": 0.05,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "half_extrapolated",
+      "seed": 33,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "iid",
+      "estimand": "Q",
+      "outage": 0.05,
+      "policy": "EXCLUDE_COMPLETE_BLOCKS",
+      "proposal": "half_extrapolated",
+      "seed": 33,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "iid",
+      "estimand": "P",
+      "outage": 0.05,
+      "policy": "EXCLUDE_COMPLETE_BLOCKS",
+      "proposal": "half_extrapolated",
+      "seed": 33,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "replicated",
+      "estimand": "Q",
+      "outage": 0.0,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "half_extrapolated",
+      "seed": 11,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "replicated",
+      "estimand": "P",
+      "outage": 0.0,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "half_extrapolated",
+      "seed": 11,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "replicated",
+      "estimand": "Q",
+      "outage": 0.0,
+      "policy": "EXCLUDE_COMPLETE_BLOCKS",
+      "proposal": "half_extrapolated",
+      "seed": 11,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "replicated",
+      "estimand": "P",
+      "outage": 0.0,
+      "policy": "EXCLUDE_COMPLETE_BLOCKS",
+      "proposal": "half_extrapolated",
+      "seed": 11,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "replicated",
+      "estimand": "Q",
+      "outage": 0.01,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "half_extrapolated",
+      "seed": 11,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "replicated",
+      "estimand": "P",
+      "outage": 0.01,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "half_extrapolated",
+      "seed": 11,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "replicated",
+      "estimand": "Q",
+      "outage": 0.01,
+      "policy": "EXCLUDE_COMPLETE_BLOCKS",
+      "proposal": "half_extrapolated",
+      "seed": 11,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "replicated",
+      "estimand": "P",
+      "outage": 0.01,
+      "policy": "EXCLUDE_COMPLETE_BLOCKS",
+      "proposal": "half_extrapolated",
+      "seed": 11,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "replicated",
+      "estimand": "Q",
+      "outage": 0.05,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "half_extrapolated",
+      "seed": 11,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "replicated",
+      "estimand": "P",
+      "outage": 0.05,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "half_extrapolated",
+      "seed": 11,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "replicated",
+      "estimand": "Q",
+      "outage": 0.05,
+      "policy": "EXCLUDE_COMPLETE_BLOCKS",
+      "proposal": "half_extrapolated",
+      "seed": 11,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "replicated",
+      "estimand": "P",
+      "outage": 0.05,
+      "policy": "EXCLUDE_COMPLETE_BLOCKS",
+      "proposal": "half_extrapolated",
+      "seed": 11,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "replicated",
+      "estimand": "Q",
+      "outage": 0.0,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "half_extrapolated",
+      "seed": 22,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "replicated",
+      "estimand": "P",
+      "outage": 0.0,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "half_extrapolated",
+      "seed": 22,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "replicated",
+      "estimand": "Q",
+      "outage": 0.0,
+      "policy": "EXCLUDE_COMPLETE_BLOCKS",
+      "proposal": "half_extrapolated",
+      "seed": 22,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "replicated",
+      "estimand": "P",
+      "outage": 0.0,
+      "policy": "EXCLUDE_COMPLETE_BLOCKS",
+      "proposal": "half_extrapolated",
+      "seed": 22,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "replicated",
+      "estimand": "Q",
+      "outage": 0.01,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "half_extrapolated",
+      "seed": 22,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "replicated",
+      "estimand": "P",
+      "outage": 0.01,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "half_extrapolated",
+      "seed": 22,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "replicated",
+      "estimand": "Q",
+      "outage": 0.01,
+      "policy": "EXCLUDE_COMPLETE_BLOCKS",
+      "proposal": "half_extrapolated",
+      "seed": 22,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "replicated",
+      "estimand": "P",
+      "outage": 0.01,
+      "policy": "EXCLUDE_COMPLETE_BLOCKS",
+      "proposal": "half_extrapolated",
+      "seed": 22,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "replicated",
+      "estimand": "Q",
+      "outage": 0.05,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "half_extrapolated",
+      "seed": 22,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "replicated",
+      "estimand": "P",
+      "outage": 0.05,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "half_extrapolated",
+      "seed": 22,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "replicated",
+      "estimand": "Q",
+      "outage": 0.05,
+      "policy": "EXCLUDE_COMPLETE_BLOCKS",
+      "proposal": "half_extrapolated",
+      "seed": 22,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "replicated",
+      "estimand": "P",
+      "outage": 0.05,
+      "policy": "EXCLUDE_COMPLETE_BLOCKS",
+      "proposal": "half_extrapolated",
+      "seed": 22,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "replicated",
+      "estimand": "Q",
+      "outage": 0.0,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "half_extrapolated",
+      "seed": 33,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "replicated",
+      "estimand": "P",
+      "outage": 0.0,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "half_extrapolated",
+      "seed": 33,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "replicated",
+      "estimand": "Q",
+      "outage": 0.0,
+      "policy": "EXCLUDE_COMPLETE_BLOCKS",
+      "proposal": "half_extrapolated",
+      "seed": 33,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "replicated",
+      "estimand": "P",
+      "outage": 0.0,
+      "policy": "EXCLUDE_COMPLETE_BLOCKS",
+      "proposal": "half_extrapolated",
+      "seed": 33,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "replicated",
+      "estimand": "Q",
+      "outage": 0.01,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "half_extrapolated",
+      "seed": 33,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "replicated",
+      "estimand": "P",
+      "outage": 0.01,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "half_extrapolated",
+      "seed": 33,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "replicated",
+      "estimand": "Q",
+      "outage": 0.01,
+      "policy": "EXCLUDE_COMPLETE_BLOCKS",
+      "proposal": "half_extrapolated",
+      "seed": 33,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "replicated",
+      "estimand": "P",
+      "outage": 0.01,
+      "policy": "EXCLUDE_COMPLETE_BLOCKS",
+      "proposal": "half_extrapolated",
+      "seed": 33,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "replicated",
+      "estimand": "Q",
+      "outage": 0.05,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "half_extrapolated",
+      "seed": 33,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "replicated",
+      "estimand": "P",
+      "outage": 0.05,
+      "policy": "REQUIRE_COMPLETE",
+      "proposal": "half_extrapolated",
+      "seed": 33,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "replicated",
+      "estimand": "Q",
+      "outage": 0.05,
+      "policy": "EXCLUDE_COMPLETE_BLOCKS",
+      "proposal": "half_extrapolated",
+      "seed": 33,
+      "study": "proposal_outages"
+    },
+    {
+      "B": 10,
+      "N": 300,
+      "dependence": "replicated",
+      "estimand": "P",
+      "outage": 0.05,
+      "policy": "EXCLUDE_COMPLETE_BLOCKS",
+      "proposal": "half_extrapolated",
+      "seed": 33,
+      "study": "proposal_outages"
+    }
+  ],
+  "config": {
+    "bootstrap": 30,
+    "coverage": 1.0,
+    "decision": {
+      "abstention_loss": 0.0,
+      "k": 3,
+      "unit": 1.0,
+      "unsafe_loss": 1.0
+    },
+    "good_fraction": 0.5,
+    "label": "ASSUMPTION: illustrative toy settings; no Challenge registration",
+    "neighbourhood": {
+      "directions": [
+        "objective",
+        "constraint",
+        "operating",
+        "boundary"
+      ],
+      "extrapolation_distance": 0.5,
+      "score_weight": 0.25,
+      "size": 0.08,
+      "value_weight": 0.5
+    },
+    "physics_sweep": [
+      {
+        "limit": {},
+        "mode": "OFF",
+        "weight": {}
+      },
+      {
+        "limit": {
+          "b15": 0.01,
+          "law_violations": 0.01
+        },
+        "mode": "GATE",
+        "weight": {}
+      },
+      {
+        "limit": {
+          "b16": 0.05,
+          "b9": 0.08,
+          "extrapolation": 0.1,
+          "robustness": 0.08,
+          "rollout_drift": 0.05
+        },
+        "mode": "FLOOR",
+        "weight": {}
+      },
+      {
+        "limit": {
+          "extrapolation": 0.1,
+          "law_violations": 0.01,
+          "robustness": 0.08,
+          "rollout_drift": 0.05
+        },
+        "mode": "BLEND",
+        "weight": {
+          "extrapolation": 0.4,
+          "law_violations": 0.4,
+          "robustness": 0.4,
+          "rollout_drift": 0.4
+        }
+      },
+      {
+        "label": "ASSUMPTION: PLT-01 B15 paired residual limit",
+        "limit": {
+          "b15": 1e-06
+        },
+        "mode": "GATE",
+        "weight": {}
+      },
+      {
+        "label": "ASSUMPTION: public B9 Celsius and PLT-01 B16 residual limits",
+        "limit": {
+          "b16": 0.02,
+          "b9": 1.0
+        },
+        "mode": "FLOOR",
+        "weight": {}
+      },
+      {
+        "label": "ASSUMPTION: measured-trait relative weights",
+        "limit": {
+          "b15": 1e-06,
+          "b16": 0.02,
+          "b9": 1.0
+        },
+        "mode": "BLEND",
+        "weight": {
+          "b15": 0.2,
+          "b16": 0.2,
+          "b9": 0.2
+        }
+      }
+    ],
+    "population": [
+      {
+        "cross_design_correlation": 0.0,
+        "error_region": "uniform",
+        "extrapolation": 0.005,
+        "heteroscedasticity": 0.0,
+        "id": "physics-understanding-0",
+        "kind": "MODEL",
+        "law_rate": 0.0,
+        "law_size": 0.0,
+        "noise": 0.015,
+        "robustness": 0.005,
+        "rollout_drift": 0.005,
+        "sigma_scale": 1.0,
+        "tail_rate": 0.0,
+        "tail_size": 0.0,
+        "transfer": 1.0
+      },
+      {
+        "extrapolation": 0.01,
+        "id": "physics-understanding-1",
+        "kind": "MODEL",
+        "law_rate": 0.0,
+        "law_size": 0.0,
+        "noise": 0.025,
+        "robustness": 0.01,
+        "rollout_drift": 0.01,
+        "transfer": 0.9
+      },
+      {
+        "extrapolation": 0.04,
+        "id": "moderate-generalist",
+        "kind": "MODEL",
+        "law_rate": 0.01,
+        "law_size": 0.03,
+        "noise": 0.035,
+        "robustness": 0.04,
+        "rollout_drift": 0.025,
+        "transfer": 0.7
+      },
+      {
+        "extrapolation": 0.15,
+        "id": "target-overfit-0",
+        "kind": "MODEL",
+        "law_rate": 0.0,
+        "law_size": 0.0,
+        "noise": 0.005,
+        "robustness": 0.12,
+        "rollout_drift": 0.0,
+        "transfer": 0.0
+      },
+      {
+        "extrapolation": 0.12,
+        "id": "target-overfit-1",
+        "kind": "MODEL",
+        "law_rate": 0.0,
+        "law_size": 0.0,
+        "noise": 0.008,
+        "robustness": 0.08,
+        "rollout_drift": 0.0,
+        "transfer": 0.1
+      },
+      {
+        "extrapolation": 0.02,
+        "id": "noisy-safe",
+        "kind": "MODEL",
+        "law_rate": 0.0,
+        "law_size": 0.0,
+        "noise": 0.09,
+        "robustness": 0.02,
+        "rollout_drift": 0.02,
+        "transfer": 0.8
+      },
+      {
+        "extrapolation": 0.2,
+        "id": "adversarial-score-path",
+        "kind": "PROBE",
+        "law_rate": 0.2,
+        "law_size": 0.18,
+        "noise": 0.0,
+        "robustness": 0.12,
+        "rollout_drift": 0.06,
+        "score_path_only": true,
+        "transfer": 0.0
+      },
+      {
+        "extrapolation": 0.2,
+        "id": "known-bad-law-breaker",
+        "kind": "PROBE",
+        "law_rate": 0.4,
+        "law_size": 0.3,
+        "noise": 0.02,
+        "robustness": 0.1,
+        "rollout_drift": 0.1,
+        "transfer": 0.2
+      }
+    ],
+    "problem": {
+      "constraint": "tight",
+      "optima": "multi",
+      "shift": "nominal",
+      "space": "small-grid",
+      "verification_cost_ASSUMPTION": 0.1
+    },
+    "questions_per_side": 6,
+    "schema": "carbon.dev.score-lab-physics-config.v1",
+    "sensitivity": {
+      "coverage": [
+        0.75
+      ],
+      "decision.k": [
+        1,
+        5
+      ],
+      "neighbourhood.score_weight": [
+        0.0,
+        0.5
+      ],
+      "neighbourhood.size": [
+        0.02,
+        0.16
+      ],
+      "neighbourhood.value_weight": [
+        0.0,
+        1.0
+      ],
+      "problem.verification_cost_ASSUMPTION": [
+        0.02,
+        0.2
+      ]
+    }
+  },
+  "controls": {
+    "audit_path": "Business/research/value-metric-audit/results.json",
+    "cap": 3,
+    "problem": {
+      "constraint": "tight",
+      "label": "ASSUMPTION: toy control calibration only; not a battery population or cost",
+      "optima": "multi",
+      "shift": "nominal",
+      "space": "small-grid",
+      "verification_cost_ASSUMPTION": 0.2
+    },
+    "questions_per_side": 6,
+    "stress_path": "Business/research/value-metric-v2-stress/results.json"
+  },
+  "label": "ASSUMPTION: finite toy population, not a Challenge power or sample-size claim",
+  "limits": [
+    "Scores and the six model traits stay fixed; seeds vary draws, not models.",
+    "Cheap map acquisition cost and physical traits are unmeasured; physics OFF.",
+    "Crossed recipe bootstrap is exploratory with six illustrative model traits.",
+    "Three sampling seeds cannot establish frequentist coverage or real power.",
+    "With exclusions, the estimand is conditional on retained draws.",
+    "No holdout, model training, solver or host-side execution."
+  ],
+  "schema": "carbon.dev.score-lab-measurement-study.v1",
+  "scope": "SYNTHETIC_DEVELOPMENT",
+  "selection": null,
+  "sources": {
+    "Business/research/value-metric-audit/results.json": "a1473c98baaf2352c02db38b1aeef3938c41b2a958fd1f568cff0c5e29e975b0",
+    "Business/research/value-metric-v2-stress/results.json": "e8a8256365ebddb6d30705f38f2edeefffae811371b49780a3f1fa0bc17521ab",
+    "carbon/battery/value/score_proof.py": "108c8f6ef3e249095509a3cfb0bf9fe57f07942f7813a5e25a8ec01556fcd569",
+    "carbon/battery/value/score_tuning.py": "6043abacfb942acad8d89ae59816bc2ffff0c4905f0ab3cd76e98e74a4121f66",
+    "pyproject.toml": "b5e33d8323b0d5facba70af6431457c3ff082e9d061eaa90e429c41a08c0577d",
+    "scripts/dev/score_lab/campaign-gate-toy.json": "a6a382193577ea43560df6b90ceabd15453beb35dbbeaf6c6a021f99af573ea4",
+    "scripts/dev/score_lab/campaign_blocks.py": "18e032dab2549e52fd43e08324c0d8a6f7623f5209ab9f046d23de00b018de64",
+    "scripts/dev/score_lab/campaign_gate.py": "6af33e197dcd6d71a7f164495e5c5ba45ce0130e05aed28128b7eabd8c072646",
+    "scripts/dev/score_lab/campaign_goodhart.py": "e530322b5fb867fa01a90bd2613d2573f0b313d9a59e0f3eb3e0cc4cc9d387cc",
+    "scripts/dev/score_lab/campaign_measurement.py": "4970c68e0077fba0340db7f04be75b02b353b8ba81020c66b802aa26066bf7a1",
+    "scripts/dev/score_lab/campaign_reference.py": "4372b222ef3c2fc1d9bcf356b2576d33eb2d09a0ee0b13271de2242a2000be1a",
+    "scripts/dev/score_lab/candidates.py": "b691cdf300d3b94e1474c67bf5af892cf1cb74c7baecae7a9d1402487f466be6",
+    "scripts/dev/score_lab/components.py": "0f0dc059a7e915cb3e60e4ac1498ed786f298a6d7995da3e3494fb4a587fdb9d",
+    "scripts/dev/score_lab/core.py": "f3419e9bd413463eeadbc7fb9082caea19ae27edd860501f0729456f8f652810",
+    "scripts/dev/score_lab/measurement_run.py": "aaf5132e8b324073f12f90bbf170c03b7e42b19c982e01f9cb5fd411e189addc",
+    "scripts/dev/score_lab/physics-error-example.json": "39b748642c82b29b795fe1ea51e648b7f9c893ff9af474b04a57e30d89bec2ce",
+    "scripts/dev/score_lab/physics.py": "1e772318df86071406b0441d69cff908b98fafe948d79f0e818093d453c65c6d",
+    "scripts/dev/score_lab/synthetic.py": "f0ee60cd12f9105c36478e48def8a5f076c395f43a81437c46951f0b3160c044",
+    "uv.lock": "5dd9a364333ca3ec56383a36c0b3edefad817be93a2f30c49f775af00cd094a4"
+  }
+}
