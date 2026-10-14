@@ -9,6 +9,8 @@ from test_lp_prod_research_tools import ledger
 from test_standard_mcp_adapter import make_adapter, reply, workspace
 
 from carbon import research
+from carbon.battery.campaign import provider_plan as battery_plan
+from carbon.challenge_registry.agent_plan import provider_plan as challenge_plan
 from carbon.development_session import research_reply as rr
 from carbon.development_session.research_tools import PREFIX, ResearchMinerTools
 from carbon.miner_mcp.standard import AdapterFailure, _result
@@ -185,14 +187,10 @@ def test_frozen_selection_reopen_historical_and_unknown_rule(tmp_path, monkeypat
     assert "REQUESTER-TEXT-SENTINEL" not in str(error.value)
 
 
-@pytest.mark.parametrize(
-    "module_name", ["carbon.battery.campaign", "carbon.challenge_registry.agent_plan"]
-)
+@pytest.mark.parametrize("provider_plan", [battery_plan, challenge_plan])
 @pytest.mark.parametrize("agent", ["none", "autonomous"])
-def test_new_provider_plans_freeze_reply_rule(module_name, agent):
-    from importlib import import_module
-
-    plan = import_module(module_name).provider_plan(
+def test_new_provider_plans_freeze_reply_rule(provider_plan, agent):
+    plan = provider_plan(
         agent, {"ceilings": {"provider_attempts": 96, "provider_nanodollars": 10**10}}
     )
     assert rr.frozen_rule({"provider": plan}) == rr.RULE
@@ -212,15 +210,9 @@ def test_refusals_and_unavailable_keep_registered_shape():
     assert _result("inspect_prior_alignment", value, reply_rule=rr.RULE)[0] == value
 
 
-@pytest.mark.parametrize(
-    "module_name", ["carbon.battery.campaign", "carbon.challenge_registry.agent_plan"]
-)
-def test_new_graphite_provider_plan_freezes_reply_rule(module_name):
-    from importlib import import_module
-
+@pytest.mark.parametrize("provider_plan", [battery_plan, challenge_plan])
+def test_new_graphite_provider_plan_freezes_reply_rule(provider_plan):
     from test_battery_graphite_plan import BUDGET, block
 
-    plan = import_module(module_name).provider_plan(
-        "graphite", BUDGET, graphite=block()
-    )
+    plan = provider_plan("graphite", BUDGET, graphite=block())
     assert rr.frozen_rule({"provider": plan}) == rr.RULE

@@ -56,3 +56,14 @@ Maturity ceiling: bounded DEVELOPMENT implemented/tested public reply migration,
 never host/scientific/security/production qualification. Hub retired OWNER-DX-03;
 historical map_ref WAVE-B/B-07G. No Hub edits/regeneration. Default-check
 activation, dual-loss and S5 ownership remain untouched.
+
+
+CI repair scope: tests/cpu/test_agent_door_usability.py and
+tests/service/test_battery_mcp_research.py additionally assert the new frozen
+reply rule in agent-less plans; old field comparisons stay exact. The new
+reply-authority tests use static plan-function references, preserving the
+unchanged code-authority unresolved-import guard. No runtime/source protocol
+change is required for these three concrete CI regressions. Final manifest
+also includes tests/cpu/test_lp_prod_wiring.py, whose exact agent-less plan
+assertion has the same independently reproduced omission. Final manifest
+therefore totals15 paths; the three additional test paths have no other open-PR owner.

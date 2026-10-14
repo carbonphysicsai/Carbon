@@ -27,3 +27,11 @@ wrappers; old plans/receipts need no migration. No reserved owner input needed.
 Root receives the complete candidate/decision under existing authorized review
 handoff; no intermediate approval or independent review quota. No disclosure,
 execution, budget, qualification, deployment or settlement authority expands.
+
+
+CI-discovered consumer controls: assert the prospective reply-rule field in
+the three remaining agent-less plan tests rather than omit the new contract or
+change historical expectations. Replace test-local dynamic module selection
+with statically imported plan functions; do not add code-authority exceptions.
+This repairs test/inventory integration only; selected reply schemas, original
+receipt bytes and authority checks remain the candidate's original runtime.

@@ -330,6 +330,7 @@ def test_a_new_battery_plan_freezes_the_tools_rule_and_an_old_one_replays(tmp_pa
 
     from carbon.battery import campaign
     from carbon.development_session.profile import canonical, digest
+    from carbon.development_session.research_reply import RULE as REPLY_RULE
     from carbon.development_session.research_tools import (
         ARGUMENT_NORMALISATION_V2,
         TOOLS,
@@ -346,11 +347,12 @@ def test_a_new_battery_plan_freezes_the_tools_rule_and_an_old_one_replays(tmp_pa
     # A plan frozen before this change: the same plan with no rule.
     old = {key: value for key, value in plan.items() if key != "research_tools"}
     assert frozen_tools_rule({"provider": old}) is None
-    # A miner-driven plan is unchanged: Carbon's agent does not run there.
-    # Since AGENT-DOOR-USABILITY-01 it freezes argument-normalisation.v2.
+    # A miner-driven plan still makes no model calls. Its two prospective
+    # rules are explicit; historical stored plans are not rewritten.
     assert campaign.provider_plan("none", None) == {
         "agent": "none",
         "model_calls": 0,
+        "research_reply": REPLY_RULE,
         "argument_normalisation": ARGUMENT_NORMALISATION_V2,
     }
 
