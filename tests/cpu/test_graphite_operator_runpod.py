@@ -179,6 +179,13 @@ def test_cpu_stock_query_uses_the_recorded_instance_shape_and_fails_closed(env):
     adapter._transport = lambda *args, **kwargs: (200, b'{"data":{"cpuFlavors":[]}}')
     with pytest.raises(ComputeError, match="stock observation unknown"):
         adapter.cpu_stock("cpu5m", 8)
+    adapter._transport = lambda *args, **kwargs: (
+        200,
+        b'{"errors":[{"message":"partial"}],"data":{"cpuFlavors":'
+        b'[{"id":"unrelated","specifics":{"stockStatus":"High"}}]}}',
+    )
+    with pytest.raises(ComputeError, match="stock observation unknown"):
+        adapter.cpu_stock("cpu5m", 8)
 
 
 def test_cpu_create_preserves_explicit_fallback_order(env):

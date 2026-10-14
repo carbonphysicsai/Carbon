@@ -13,7 +13,7 @@ Interpret only the historical operator-recorded results: `High` is in stock and 
 
 `securePrice` is deliberately not read or converted. Historical USD/hour rates are not current quotes and do not establish the raw `securePrice` unit. Retain the existing explicit rate ceiling, deadline, cap, owner switch, and provider-side actual-rate check. A job opting into several flavors is responsible for setting its declared ceiling/deadline to cover the slowest accepted flavor; the implementation invents no performance or price values.
 
-After a successful CPU create, read the actual pod's `cpuFlavorId`, record it in the receipt, and refuse to start the workload if the provider does not report one of the explicitly accepted flavors. Existing teardown and reconciliation retain control of any resource already created.
+After a successful CPU create, read the actual pod's `cpuFlavorId`, record it in the receipt, and refuse to start the workload if the provider does not report one of the stock-accepted flavors. The bootstrap's authenticated `/go` gate must hold the phase even when the job has no uploads; the launcher releases it only after validating the actual flavor. Partial GraphQL data with a non-empty or malformed `errors` field is UNKNOWN. Existing teardown and reconciliation retain control of any resource already created.
 
 ## Validation contract
 

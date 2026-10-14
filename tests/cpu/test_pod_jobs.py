@@ -155,6 +155,7 @@ def test_check_runs_the_real_lifecycle_with_no_network_and_no_spend(tmp_path):
     assert written == json.loads(json.dumps(receipt))
     assert receipt["cpu_stock_preflight"][0]["instance_id"] == "cpu5c-8-16"
     assert receipt["actual_cpu_flavor_id"] == "cpu5c"
+    assert receipt["operator_start_gate"] == {"required": True, "released": True}
 
 
 @pytest.fixture
@@ -176,6 +177,7 @@ def lifecycle(tmp_path, monkeypatch):
             repository=REPOSITORY,
             transport=account.transport,
             http=account.http,
+            post=account.post,
             sleep=lambda _s: None,
             balance_floor=lambda: Decimal(0),
         )
@@ -252,6 +254,7 @@ def test_unaccepted_actual_cpu_flavor_is_recovered_and_torn_down(lifecycle):
     receipt, _ledger = go(spec, backend)
     assert receipt["outcome"].startswith("launch_refused:")
     assert receipt["actual_cpu_flavor_id"] == "cpu5m"
+    assert receipt["operator_start_gate"] == {"required": True, "released": False}
     assert receipt["pod_id"] == receipt["teardown"]["pod"]
     assert receipt["teardown"]["terminated"] is True
     assert account.pods == {}
@@ -263,6 +266,7 @@ def test_missing_actual_cpu_flavor_is_recovered_and_torn_down(lifecycle):
     receipt, _ledger = go(spec, backend)
     assert receipt["outcome"].startswith("launch_refused:")
     assert receipt["actual_cpu_flavor_id"] is None
+    assert receipt["operator_start_gate"] == {"required": True, "released": False}
     assert receipt["teardown"]["terminated"] is True
     assert account.pods == {}
 
@@ -441,6 +445,7 @@ def test_the_create_request_pins_image_cpu_placement_phase_and_deadline(tmp_path
     assert body["imageName"] == pod_jobs.STUDY_IMAGE
     assert body["imageName"].split("@")[1] == pods.pod_image("jax").split("@")[1]
     assert env["PHASE_MODULE"] == pod_jobs.PHASE_MODULE
+    assert env["OPERATOR_START_GATE"] == "1"
     assert json.loads(env["JOB_CONFIG"])["module"] == "scripts.dev.exam_design.runner"
     assert int(env["PROBE_DEADLINE"]) == 1_000_000 + 35 * 60
     assert env["CODE_REF"] == HEAD and env["JAX_PLATFORMS"] == "cpu"
@@ -588,6 +593,97 @@ def test_the_bootstrap_accepts_only_declared_inputs_at_their_digest(
         assert post("/go", "tok-123", b"") == 200
     finally:
         server.shutdown()
+
+
+def test_cpu_bootstrap_does_not_start_the_phase_before_operator_release(
+    tmp_path, monkeypatch
+):
+    import importlib.util
+    import threading
+    import types
+    import time as real_time
+
+    for name in (
+        "CODE_MANIFEST_GZ_B64",
+        "CODE_MANIFEST",
+        "CODE_MANIFEST_TRANSPORT",
+        "INPUTS_MANIFEST_GZ_B64",
+        "OVERLAYS",
+        "PROBE_CA_GZ_B64",
+    ):
+        monkeypatch.delenv(name, raising=False)
+    go_file = tmp_path / "carbon-go"
+    monkeypatch.setenv("OPERATOR_START_GATE", "1")
+    monkeypatch.setenv("GO_FILE", str(go_file))
+    monkeypatch.setenv("PROBE_DEADLINE", "0")
+    spec = importlib.util.spec_from_file_location(
+        "pod_jobs_cpu_start_gate",
+        REPOSITORY / "scripts/dev/exam_design/runpod/bootstrap.py",
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    module.OUT = str(tmp_path / "out")
+    Path(module.OUT).mkdir()
+    phase_started = threading.Event()
+    main_error = []
+
+    class StopMain(Exception):
+        pass
+
+    class FakeServer:
+        def __init__(self, *_args):
+            pass
+
+        def serve_forever(self):
+            return
+
+    def fake_sleep(seconds):
+        if phase_started.is_set():
+            raise StopMain
+        real_time.sleep(min(seconds, 0.01))
+
+    monkeypatch.setattr(module.http.server, "ThreadingHTTPServer", FakeServer)
+    module.time = types.SimpleNamespace(
+        time=real_time.time,
+        strftime=real_time.strftime,
+        gmtime=real_time.gmtime,
+        sleep=fake_sleep,
+    )
+    monkeypatch.setattr(
+        module.subprocess,
+        "run",
+        lambda *_args, **_kwargs: (
+            phase_started.set() or types.SimpleNamespace(returncode=0)
+        ),
+    )
+
+    def run_main():
+        try:
+            module.main()
+        except StopMain:
+            pass
+        except Exception as failure:  # noqa: BLE001 -- surfaced to the test
+            main_error.append(failure)
+
+    worker = threading.Thread(target=run_main, daemon=True)
+    worker.start()
+    until = real_time.monotonic() + 3
+    while (
+        module.STATE["stage"] != "waiting_for_operator"
+        and real_time.monotonic() < until
+    ):
+        real_time.sleep(0.01)
+    assert module.STATE["stage"] == "waiting_for_operator"
+    assert not phase_started.is_set()
+    assert not go_file.exists()
+
+    go_file.write_text("go")
+    worker.join(timeout=3)
+    assert not worker.is_alive()
+    assert not main_error
+    assert phase_started.is_set()
+    assert module.STATE["stage"] == "done"
+    assert module.STATE["operator_start_gate"] == "released"
 
 
 def test_the_phase_collects_declared_paths_from_the_inputs(tmp_path):

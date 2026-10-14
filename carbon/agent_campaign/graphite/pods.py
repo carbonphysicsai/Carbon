@@ -1577,6 +1577,18 @@ class InMemoryRunPod:
         name = urllib.parse.unquote(path.removeprefix("/file/"))
         return (200, self.FILES[name]) if name in self.FILES else (404, b"")
 
+    def post(self, url, token, body, timeout):
+        """Authenticated no-network `/go` for operator start-gate tests."""
+        pod_id = url.split("//", 1)[1].split("-8000.", 1)[0]
+        with self._lock:
+            pod = self.pods.get(pod_id)
+            if pod is None or token != pod["env"]["PROBE_TOKEN"]:
+                return 404
+            if url.endswith("/go"):
+                pod["go"] = True
+                return 200
+        return 404
+
 
 def real_path_check(
     root, *, code_ref=None, repository=REPOSITORY, launches=2, scoring=None

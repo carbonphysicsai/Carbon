@@ -424,6 +424,20 @@ class RunPodAdapter:
         status, payload = self._send(
             "cpu_stock", "POST", GRAPHQL, {"query": query}, mutating=False
         )
+        if (
+            status != 200
+            or not isinstance(payload, dict)
+            or ("errors" in payload and payload["errors"] != [])
+        ):
+            raise ComputeError(
+                operation="cpu_stock",
+                failed="CPU stock observation unknown",
+                execution=Execution.EXECUTED,
+                resources_may_remain=False,
+                retry_safe=True,
+                next_action="retry the read-only stock preflight",
+                http_status=status,
+            )
         try:
             rows = payload["data"]["cpuFlavors"]
             values = [row["specifics"]["stockStatus"] for row in rows]
@@ -449,16 +463,6 @@ class RunPodAdapter:
                 next_action="retry after the RunPod CPU stock response is understood",
                 http_status=status,
             ) from None
-        if status != 200:
-            raise ComputeError(
-                operation="cpu_stock",
-                failed="CPU stock observation unknown",
-                execution=Execution.EXECUTED,
-                resources_may_remain=False,
-                retry_safe=True,
-                next_action="retry the read-only stock preflight",
-                http_status=status,
-            )
         return CPUStockObservation(
             flavor_id,
             vcpu_count,

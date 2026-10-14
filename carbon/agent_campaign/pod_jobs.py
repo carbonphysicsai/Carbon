@@ -444,7 +444,9 @@ class JobPods(pods.RunPodPods):
         self._create_failure = None
         self._cpu_stock_preflight = []
         self._actual_cpu_flavor_id = None
+        self._accepted_cpu_flavor_ids = ()
         self._launched_resource_id = None
+        self._operator_start_gate_released = False
         root = pods.private_dir(root)
         self.store = ComputeStore(root / "compute", clock=clock)
         if self.store.campaign_status(self.CAMPAIGN) is None:
@@ -567,6 +569,7 @@ class JobPods(pods.RunPodPods):
             ).decode()
         if self.spec.cpu:
             env["JAX_PLATFORMS"] = "cpu"
+            env["OPERATOR_START_GATE"] = "1"
         return tuple(sorted(env.items()))
 
     def job_spec(self, record):
@@ -679,6 +682,7 @@ class JobPods(pods.RunPodPods):
                         "no explicitly accepted CPU flavor is in stock",
                         executed=False,
                     )
+                self._accepted_cpu_flavor_ids = tuple(in_stock)
                 from dataclasses import replace
 
                 spec = replace(
@@ -793,6 +797,23 @@ class JobPods(pods.RunPodPods):
             code = self.post(url, self._token(handle), body, 600)
             if code != 200:
                 raise PodFailure("upload", f"{path} refused ({code})", executed=True)
+
+    def release_start(self, handle):
+        """Release a CPU worker only after its actual flavor has been accepted."""
+        if (
+            not self.spec.cpu
+            or handle.pod_id != self._launched_resource_id
+            or self._actual_cpu_flavor_id not in self._accepted_cpu_flavor_ids
+        ):
+            raise PodFailure(
+                "launch", "CPU start gate was not validated", executed=True
+            )
+        url = self.adapter.connect_url(self._owned(handle), 8000) + "/go"
+        if self.post(url, self._token(handle), b"", 60) != 200:
+            raise PodFailure(
+                "launch", "CPU start gate release was refused", executed=True
+            )
+        self._operator_start_gate_released = True
 
 
 def _https_post(url, token, body, timeout):
@@ -928,6 +949,7 @@ def run(spec, out, *, backend, ledger=None, private=None, uploads=None):
         "rate_usd_per_hr": None,
         "cpu_stock_preflight": [],
         "actual_cpu_flavor_id": None,
+        "operator_start_gate": None,
         "files": {},
         "errors": [],
         "teardown": None,
@@ -965,6 +987,8 @@ def _run_claimed(spec, out, backend, ledger, private, files_in, receipt):
                     path: spec.document["uploads"][path]["sha256"]
                     for path in sorted(files_in)
                 }
+            if spec.cpu:
+                backend.release_start(handle)
             state = backend.wait(handle, deadline=deadline, cancelled=lambda: False)
             receipt["outcome"] = state
             if state in ("done", "failed"):
@@ -998,6 +1022,11 @@ def _finish(receipt, ledger, spec, backend, handle, executed, private, out):
         receipt["pod_id"] = backend._launched_resource_id
     receipt["cpu_stock_preflight"] = list(backend._cpu_stock_preflight)
     receipt["actual_cpu_flavor_id"] = backend._actual_cpu_flavor_id
+    receipt["operator_start_gate"] = (
+        {"required": True, "released": backend._operator_start_gate_released}
+        if backend.spec.cpu
+        else None
+    )
     if not executed:
         try:
             intent = backend.store.intent(CAMPAIGN, spec.job_id)
@@ -1180,6 +1209,8 @@ class _MemoryInputs:
         return self.account.http(url, token, timeout)
 
     def post(self, url, token, body, timeout):
+        if url.endswith("/go"):
+            return self.account.post(url, token, body, timeout)
         path = url.split("/input/", 1)[1]
         want = self.declared.get(path)
         if want is None:
