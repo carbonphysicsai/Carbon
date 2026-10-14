@@ -70,9 +70,9 @@ def run_script(
         if type(image) is not ResearchImageIdentity:
             raise ValueError("miner scripts require the separate analysis image")
     else:
-        from .gpu_practice import is_gpu_image
+        from .gpu_practice import gpu_image_backend
 
-        if accelerator != MINER_GPU or not is_gpu_image(image):
+        if accelerator != MINER_GPU or gpu_image_backend(image) is None:
             raise ValueError("a GPU code cell runs the campaign's pinned GPU worker")
     if type(source) is not str or not source:
         raise ValueError("research source required")
@@ -404,7 +404,7 @@ def _run_locked(
                 # A GPU code cell: the pinned GPU worker and the host's GPU
                 # readiness, checked as GPU practice checks them.
                 checked = doctor(image_id=image.image_id, image_identity=image, cli=cli)
-                _check_gpu_host(cli, image, device)
+                _check_gpu_host(cli, image, device, _gpu_pins(image, accelerator))
             elif type(image) is JuliaResearchImageIdentity:
                 verify_julia_image(image, cli)
                 checked = doctor(image_id=image.image_id, cli=cli)
@@ -613,15 +613,15 @@ def _gpu_device():
 
 def _gpu_pins(image, accelerator):
     """`(profile_id, profile_digest, lock_digest)` a GPU run's pinned worker
-    carries: JAX's accelerator worker, or, for the validator's scored rebuild
-    only, the PyTorch GPU worker (VALIDATOR-27 slice 2; TORCH-GPU-01), named
+    carries: JAX's accelerator worker, or the PyTorch GPU worker for miner
+    practice and validator rebuild (TORCH-GPU-01; PLT-30), named
     by its own exact-hashed lock. The image's labels are then checked against
     these pins, so a claimed lock alone admits nothing."""
     from carbon.reconstruction import torch_profile
     from carbon.reconstruction.accelerators import GPU_PROFILE
 
     if (
-        accelerator == VALIDATOR_GPU
+        accelerator in {MINER_GPU, VALIDATOR_GPU}
         and getattr(image, "lock_digest", None) == torch_profile.GPU_LOCK_DIGEST
     ):
         return (

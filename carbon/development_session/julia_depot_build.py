@@ -12,6 +12,7 @@ import hashlib
 import json
 import subprocess
 import tarfile
+import threading
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -47,6 +48,15 @@ class JuliaDepotIdentity:
     tree_digest: str
 
 
+TREE_READ_SECONDS = 600
+
+
+class TreeReadFailure(ValueError):
+    def __init__(self, code):
+        self.code = code
+        super().__init__("Julia depot tree read failed")
+
+
 def tree_digest(cli, image, path):
     """Content digest of one directory tree inside a local image.
 
@@ -63,28 +73,52 @@ def tree_digest(cli, image, path):
             stderr=subprocess.DEVNULL,
             env={"PATH": "/usr/local/bin:/usr/bin:/bin"},
         )
-        entries = []
-        with tarfile.open(fileobj=process.stdout, mode="r|") as archive:
-            for member in archive:
-                name = member.name.split("/", 1)[1] if "/" in member.name else ""
-                content = ""
-                if member.isfile():
-                    hasher = hashlib.sha256()
-                    stream = archive.extractfile(member)
-                    while block := stream.read(1 << 20):
-                        hasher.update(block)
-                    content = hasher.hexdigest()
-                entries.append(
-                    [
-                        name,
-                        member.type.decode("latin-1"),
-                        member.mode & 0o7777,
-                        member.linkname,
-                        content,
-                    ]
-                )
-        if process.wait(timeout=600) != 0 or not entries:
-            raise ValueError("Julia tree could not be read in full")
+        expired = threading.Event()
+
+        def expire():
+            expired.set()
+            if process.poll() is None:
+                process.kill()
+
+        watchdog = threading.Timer(TREE_READ_SECONDS, expire)
+        watchdog.daemon = True
+        watchdog.start()
+        try:
+            entries = []
+            with tarfile.open(fileobj=process.stdout, mode="r|") as archive:
+                for member in archive:
+                    name = member.name.split("/", 1)[1] if "/" in member.name else ""
+                    content = ""
+                    if member.isfile():
+                        hasher = hashlib.sha256()
+                        stream = archive.extractfile(member)
+                        while block := stream.read(1 << 20):
+                            hasher.update(block)
+                        content = hasher.hexdigest()
+                    entries.append(
+                        [
+                            name,
+                            member.type.decode("latin-1"),
+                            member.mode & 0o7777,
+                            member.linkname,
+                            content,
+                        ]
+                    )
+            if expired.is_set():
+                raise TreeReadFailure("tree_read_deadline")
+            if process.wait(timeout=5) != 0 or not entries:
+                raise TreeReadFailure("tree_read_failed")
+        except (tarfile.TarError, OSError, subprocess.SubprocessError):
+            raise TreeReadFailure(
+                "tree_read_deadline" if expired.is_set() else "tree_read_failed"
+            ) from None
+        finally:
+            watchdog.cancel()
+            if process.poll() is None:
+                process.kill()
+            process.wait(timeout=5)
+            if process.stdout is not None:
+                process.stdout.close()
     finally:
         cli.run(["rm", "--force", container], timeout=120)
     entries.sort()
@@ -262,7 +296,7 @@ def read_lock(path=LOCK):
     return value
 
 
-def adopt_depot(root, cli, reference):
+def adopt_depot(root, cli, reference, *, stage=None):
     """Record a pulled depot image for reuse, after checking it from nothing.
 
     The image must carry today's depot digest; its tree digest is computed
@@ -271,21 +305,33 @@ def adopt_depot(root, cli, reference):
     """
     from .data import write_once
 
-    image = cli.json(["image", "inspect", reference, "--format", "{{json .}}"])["Id"]
+    step = stage or (lambda name, operation: operation())
+    image = step(
+        "image_inspect",
+        lambda: cli.json(["image", "inspect", reference, "--format", "{{json .}}"])[
+            "Id"
+        ],
+    )
     depot = JuliaDepotIdentity(
-        image, depot_digest(), tree_digest(cli, image, ANALYSIS_ROOT)
+        image,
+        depot_digest(),
+        step("tree_digest", lambda: tree_digest(cli, image, ANALYSIS_ROOT)),
     )
-    verify_depot(depot, cli)
+    step("binding", lambda: verify_depot(depot, cli))
     manifest = depot_manifest(root)
-    if manifest.exists():
-        manifest.unlink()
-    manifest.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-    write_once(manifest, canonical({"schema": DEPOT_SCHEMA, **depot.__dict__}))
-    _record(
-        root,
-        depot_digest=depot.depot_digest,
-        how="adopted",
-        image=image,
-        reference=reference,
-    )
+
+    def record():
+        if manifest.exists():
+            manifest.unlink()
+        manifest.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+        write_once(manifest, canonical({"schema": DEPOT_SCHEMA, **depot.__dict__}))
+        _record(
+            root,
+            depot_digest=depot.depot_digest,
+            how="adopted",
+            image=image,
+            reference=reference,
+        )
+
+    step("record", record)
     return depot

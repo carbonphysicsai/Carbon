@@ -22,10 +22,11 @@ from __future__ import annotations
 from dataclasses import asdict
 
 from carbon.battery.practice import PROGRAM
-from carbon.development_session.gpu_practice import SPEED_ONLY, is_gpu_image
+from carbon.development_session.gpu_practice import SPEED_ONLY, gpu_image_backend
 from carbon.development_session.profile import canonical, digest
 
 SCOPE_SCHEMA = "carbon.battery.gpu-practice.scope.v1"
+TORCH_SCOPE_SCHEMA = "carbon.battery.gpu-practice.scope.v2-torch"
 #: The operator-installed record naming the GPU worker image; the runner
 #: installs it from the miner's profile (`gpu_image`).
 GPU_IMAGE_RECORD = "gpu-worker-image.json"
@@ -33,6 +34,19 @@ GPU_IMAGE_RECORD = "gpu-worker-image.json"
 #: and no PyTorch, so a PyTorch recipe practises on the CPU PyTorch worker.
 BACKENDS = ("jax",)
 JAX_PLATFORMS = "cuda"
+
+
+def is_gpu_image(image):
+    """Battery serves either pinned GPU worker, never a CPU/unknown image."""
+    return gpu_image_backend(image) is not None
+
+
+def image_backends(image):
+    backend = gpu_image_backend(image)
+    if backend is None:
+        raise ValueError("exact pinned GPU worker image required")
+    return (backend,)
+
 
 #: The practice program with one addition: the worker records what JAX
 #: actually ran on, so the feedback states the backend observed, not assumed.
@@ -167,6 +181,23 @@ def gpu_scope(image):
 
     if not is_gpu_image(image):
         raise ValueError("exact pinned GPU worker image required")
+    if gpu_image_backend(image) == "pytorch":
+        from carbon.reconstruction import torch_profile
+
+        return {
+            "schema": TORCH_SCOPE_SCHEMA,
+            "challenge": BATTERY_CHALLENGE,
+            "profile_digest": torch_profile.GPU_PROFILE_DIGEST,
+            "image": image.image_id,
+            "image_manifest_digest": digest(canonical(asdict(image))),
+            "program": digest(TORCH_GPU_PROGRAM.encode()),
+            "role": AcceleratorRole.MINER_RESEARCH.value,
+            "backends": ["pytorch"],
+            "jax_platforms": JAX_PLATFORMS,
+            "purpose": "speed_only",
+            "score": None,
+            "official_eligible": False,
+        }
     return {
         "schema": SCOPE_SCHEMA,
         "challenge": BATTERY_CHALLENGE,
@@ -194,7 +225,7 @@ def declared_scope(runtime):
         type(scopes) is not list
         or len(scopes) != 1
         or type(scopes[0]) is not dict
-        or scopes[0].get("schema") != SCOPE_SCHEMA
+        or scopes[0].get("schema") not in {SCOPE_SCHEMA, TORCH_SCOPE_SCHEMA}
         or scopes[0].get("purpose") != "speed_only"
         or scopes[0].get("official_eligible") is not False
         or scopes[0].get("score") is not None
@@ -225,14 +256,21 @@ def registered_gpu_image(root, declared):
     return image
 
 
-def backend_record(device, observed):
+def backend_record(device, observed, *, backend="jax"):
     """What the feedback records about a GPU practice run."""
     from carbon.reconstruction.accelerators import GPU_PROFILE, miner_lane_assurance
 
+    if backend not in {"jax", "pytorch"}:
+        raise ValueError("unknown GPU practice backend")
+    profile = GPU_PROFILE.profile_id
+    if backend == "pytorch":
+        from carbon.reconstruction.torch_profile import GPU_PROFILE_ID
+
+        profile = GPU_PROFILE_ID
     return {
         "kind": "ISOLATED_CARRIER_GPU",
         "carrier": "carbon.development_session.research_carrier",
-        "profile": GPU_PROFILE.profile_id,
+        "profile": profile,
         "jax_platforms": JAX_PLATFORMS,
         "device_record_digest": device.digest,
         "device_kind": device.device_kind,
@@ -250,7 +288,7 @@ def remote_worker(image):
     neutral `carbon.compute.remote_route`."""
     from carbon.compute.remote_runner import RemoteWorker
 
-    if not is_gpu_image(image):
+    if gpu_image_backend(image) != "jax":
         raise ValueError("exact pinned GPU worker image required")
     return RemoteWorker(image=image, environment=(("JAX_PLATFORMS", JAX_PLATFORMS),))
 
