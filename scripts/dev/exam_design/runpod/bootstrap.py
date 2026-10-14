@@ -11,7 +11,8 @@
 #    /file/<path> serves one of them, so a large result can be fetched file by file.
 #    It holds campaign records only - no credential, environment or filesystem path
 #    outside it is served. The only writes over HTTP, both with the token, are
-#    POST /go (a marker file) and, for a job that declares inputs, POST
+#    POST /go (the A40 barrier and CPU operator-start gate) and, for a job that
+#    declares inputs, POST
 #    /input/<path>: one declared input file, whose size and sha256 are pinned in
 #    INPUTS_MANIFEST_GZ_B64, written under INPUT_DIR. Anything else is refused.
 # 2. Fetches the Carbon files named in CODE_MANIFEST (or CODE_MANIFEST_GZ_B64, the
@@ -42,6 +43,7 @@ from pathlib import Path
 
 TOKEN = os.environ.pop("PROBE_TOKEN", "")
 DEADLINE = float(os.environ.pop("PROBE_DEADLINE", "0"))
+OPERATOR_START_GATE = os.environ.pop("OPERATOR_START_GATE", "") == "1"
 CA = (
     gzip.decompress(base64.b64decode(os.environ.pop("PROBE_CA_GZ_B64", ""))).decode()
     if os.environ.get("PROBE_CA_GZ_B64")
@@ -381,6 +383,19 @@ def wait_for_inputs():
     STATE["inputs"]["received"] = len(RECEIVED)
 
 
+def wait_for_operator_start():
+    """Hold the job phase until the operator explicitly releases its gate."""
+    if not OPERATOR_START_GATE:
+        return
+    STATE["stage"] = "waiting_for_operator"
+    STATE["operator_start_gate"] = "waiting"
+    while not os.path.isfile(GO_FILE):
+        if DEADLINE and time.time() >= DEADLINE:
+            raise RuntimeError("operator start gate was not released before deadline")
+        time.sleep(2)
+    STATE["operator_start_gate"] = "released"
+
+
 def install_overlay(lock_path, target):
     lock = json.loads(Path(lock_path).read_text())
     os.makedirs(target, exist_ok=True)
@@ -452,6 +467,7 @@ def main():
             ) | {"seconds": round(time.time() - t, 1)}
         if INPUTS:
             wait_for_inputs()
+        wait_for_operator_start()
         STATE["stage"] = "running_phase"
         env = {
             k: v

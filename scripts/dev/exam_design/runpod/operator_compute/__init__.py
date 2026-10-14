@@ -35,7 +35,7 @@ from .model import (
     ResourceState,
     UserManagedHost,
 )
-from .provider import BalanceObservation, ComputeProvider
+from .provider import BalanceObservation, ComputeProvider, CPUStockObservation
 from .reconcile import ReconcileReport, reconcile
 from .runpod import RunPodAdapter, UrllibTransport
 from .service import ComputeService
@@ -44,6 +44,7 @@ from .store import ComputeStore
 __all__ = [
     "BalanceObservation",
     "CPUPlacement",
+    "CPUStockObservation",
     "CarbonOwnedResource",
     "ComputeError",
     "ComputeProvider",

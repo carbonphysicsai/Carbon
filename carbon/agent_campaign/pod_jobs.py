@@ -21,9 +21,12 @@ Carbon's own code at a pushed commit. The spec (`carbon.pod-job.spec.v1`) names:
   the results after the job.
 - `image` (`study`: the pinned EV4 study image, CPU or JAX GPU; `pytorch`: the
   released torch-gpu worker image), `overlays` (name to lock path), and
-  `compute` (`{"kind": "cpu", "flavor", "vcpus"}` or
+  `compute` (`{"kind": "cpu", "flavor", "vcpus"}` with optional ordered
+  `fallback_flavors`, or
   `{"kind": "gpu", "type", "count"}`).
-- `minutes`, `rate_ceiling_usd_per_hr` and `cap_usd`. The pod's worst case
+- `minutes`, `rate_ceiling_usd_per_hr` and `cap_usd`. A CPU fallback list's
+  ceiling and deadline must cover the slowest explicitly accepted flavor. The
+  pod's worst case
   (`minutes` at the ceiling, plus disk and pod_control's cleanup reserve) must
   fit under `cap_usd`, and `cap_usd` under OWNER-TEST-GRANT-01's per-run cap.
 
@@ -55,6 +58,7 @@ Sealed or hidden material stays on the AX42 under its custody records.
 from __future__ import annotations
 
 import argparse
+import ast
 import base64
 import gzip
 import hashlib
@@ -158,6 +162,255 @@ def _decimal(value, label):
     return number
 
 
+def _bootstrap_supports_operator_start_gate(source):
+    """Check the pinned bootstrap's executable gate structure, not a marker.
+
+    CPU preflight is safe only when this exact immutable bootstrap waits for
+    the authenticated operator gate before transitioning into the phase.
+    Older pinned bootstraps remain usable for GPU jobs, but CPU jobs fail
+    closed rather than silently upgrading their code pin.
+    """
+    try:
+        tree = ast.parse(source)
+    except (SyntaxError, TypeError):
+        return False
+
+    def call(node, root, attribute):
+        return (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr == attribute
+            and isinstance(node.func.value, ast.Name)
+            and node.func.value.id == root
+        )
+
+    def qualified_call(node, root, namespace, attribute):
+        return (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr == attribute
+            and isinstance(node.func.value, ast.Attribute)
+            and node.func.value.attr == namespace
+            and isinstance(node.func.value.value, ast.Name)
+            and node.func.value.value.id == root
+        )
+
+    def stage_assignment(node, value):
+        return (
+            isinstance(node, ast.Assign)
+            and any(
+                isinstance(target, ast.Subscript)
+                and isinstance(target.value, ast.Name)
+                and target.value.id == "STATE"
+                and isinstance(target.slice, ast.Constant)
+                and target.slice.value == "stage"
+                for target in node.targets
+            )
+            and isinstance(node.value, ast.Constant)
+            and node.value.value == value
+        )
+
+    functions = {
+        node.name: node
+        for node in tree.body
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+    }
+    gate = functions.get("wait_for_operator_start")
+    main = functions.get("main")
+    handler = next(
+        (
+            node
+            for node in ast.walk(tree)
+            if isinstance(node, ast.ClassDef) and node.name == "H"
+        ),
+        None,
+    )
+    post_handler = next(
+        (
+            node
+            for node in (handler.body if handler is not None else ())
+            if isinstance(node, ast.FunctionDef) and node.name == "do_POST"
+        ),
+        None,
+    )
+    if gate is None or main is None or post_handler is None:
+        return False
+
+    def operator_flag(node):
+        return (
+            isinstance(node, ast.Assign)
+            and any(
+                isinstance(target, ast.Name) and target.id == "OPERATOR_START_GATE"
+                for target in node.targets
+            )
+            and isinstance(node.value, ast.Compare)
+            and isinstance(node.value.left, ast.Call)
+            and isinstance(node.value.left.func, ast.Attribute)
+            and node.value.left.func.attr == "pop"
+            and isinstance(node.value.left.func.value, ast.Attribute)
+            and node.value.left.func.value.attr == "environ"
+            and isinstance(node.value.left.func.value.value, ast.Name)
+            and node.value.left.func.value.value.id == "os"
+            and len(node.value.left.args) >= 2
+            and isinstance(node.value.left.args[0], ast.Constant)
+            and node.value.left.args[0].value == "OPERATOR_START_GATE"
+            and len(node.value.comparators) == 1
+            and isinstance(node.value.comparators[0], ast.Constant)
+            and node.value.comparators[0].value == "1"
+        )
+
+    flag_defined = any(operator_flag(node) for node in tree.body)
+
+    def waits_for_go_marker(node):
+        condition = (
+            node.test.operand if isinstance(node.test, ast.UnaryOp) else node.test
+        )
+        return qualified_call(condition, "os", "path", "isfile") and any(
+            isinstance(arg, ast.Name) and arg.id == "GO_FILE" for arg in condition.args
+        )
+
+    gate_body = gate.body
+    guarded = any(
+        isinstance(node, ast.If)
+        and isinstance(node.test, ast.UnaryOp)
+        and isinstance(node.test.op, ast.Not)
+        and isinstance(node.test.operand, ast.Name)
+        and node.test.operand.id == "OPERATOR_START_GATE"
+        and any(isinstance(child, ast.Return) for child in node.body)
+        for node in gate_body
+    )
+    wait_loop = next(
+        (
+            node
+            for node in gate_body
+            if isinstance(node, ast.While) and waits_for_go_marker(node)
+        ),
+        None,
+    )
+    bounded_wait = wait_loop is not None and any(
+        isinstance(node, ast.If)
+        and any(
+            isinstance(child, ast.Name) and child.id == "DEADLINE"
+            for child in ast.walk(node.test)
+        )
+        and any(isinstance(child, ast.Raise) for child in ast.walk(node))
+        for node in ast.walk(wait_loop)
+    )
+    release_assignment = next(
+        (
+            node
+            for node in gate_body
+            if isinstance(node, ast.Assign)
+            and any(
+                isinstance(target, ast.Subscript)
+                and isinstance(target.value, ast.Name)
+                and target.value.id == "STATE"
+                and isinstance(target.slice, ast.Constant)
+                and target.slice.value == "operator_start_gate"
+                for target in node.targets
+            )
+            and isinstance(node.value, ast.Constant)
+            and node.value.value == "released"
+        ),
+        None,
+    )
+    records_release = release_assignment is not None
+    gate_statements = [
+        (index, node)
+        for index, node in enumerate(gate_body)
+        if isinstance(node, ast.If)
+        and isinstance(node.test, ast.UnaryOp)
+        and isinstance(node.test.op, ast.Not)
+        and isinstance(node.test.operand, ast.Name)
+        and node.test.operand.id == "OPERATOR_START_GATE"
+        and any(isinstance(child, ast.Return) for child in node.body)
+    ]
+    wait_index = next(
+        (index for index, node in enumerate(gate_body) if node is wait_loop), None
+    )
+    release_index = next(
+        (index for index, node in enumerate(gate_body) if node is release_assignment),
+        None,
+    )
+
+    def go_path_check(node):
+        return (
+            isinstance(node, ast.Compare)
+            and isinstance(node.left, ast.Attribute)
+            and node.left.attr == "path"
+            and isinstance(node.left.value, ast.Name)
+            and node.left.value.id == "self"
+            and any(
+                isinstance(value, ast.Constant) and value.value == "/go"
+                for value in node.comparators
+            )
+        )
+
+    def writes_go_marker(node):
+        return (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr == "write_text"
+            and isinstance(node.func.value, ast.Call)
+            and isinstance(node.func.value.func, ast.Name)
+            and node.func.value.func.id == "Path"
+            and node.func.value.args
+            and isinstance(node.func.value.args[0], ast.Name)
+            and node.func.value.args[0].id == "GO_FILE"
+        )
+
+    token_validation = any(
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr == "compare_digest"
+        and any(
+            isinstance(value, ast.Name) and value.id == "TOKEN" for value in node.args
+        )
+        for node in ast.walk(post_handler)
+    )
+    authenticated_go = token_validation and any(
+        isinstance(node, ast.If)
+        and any(go_path_check(child) for child in ast.walk(node.test))
+        and any(
+            isinstance(child, ast.Name) and child.id == "token"
+            for child in ast.walk(node.test)
+        )
+        and any(writes_go_marker(child) for child in ast.walk(node))
+        for node in ast.walk(post_handler)
+    )
+    main_nodes = list(ast.walk(main))
+    gate_lines = [
+        node.lineno
+        for node in main_nodes
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "wait_for_operator_start"
+    ]
+    running_lines = [
+        node.lineno for node in main_nodes if stage_assignment(node, "running_phase")
+    ]
+    phase_lines = [
+        node.lineno
+        for node in main_nodes
+        if call(node, "subprocess", "run") or call(node, "subprocess", "Popen")
+    ]
+    return (
+        guarded
+        and flag_defined
+        and bounded_wait
+        and records_release
+        and gate_statements
+        and wait_index is not None
+        and release_index is not None
+        and min(index for index, _node in gate_statements) < wait_index < release_index
+        and authenticated_go
+        and gate_lines
+        and running_lines
+        and phase_lines
+        and min(gate_lines) < min(running_lines) < min(phase_lines)
+    )
+
+
 @dataclass(frozen=True)
 class JobSpec:
     """A validated `carbon.pod-job.spec.v1` (`load_spec`)."""
@@ -249,12 +502,20 @@ def load_spec(document):
     if type(compute) is not dict:
         raise SpecRefused("spec_compute")
     if compute.get("kind") == "cpu":
-        if set(compute) != {"kind", "flavor", "vcpus"}:
+        if set(compute) not in (
+            {"kind", "flavor", "vcpus"},
+            {"kind", "flavor", "vcpus", "fallback_flavors"},
+        ):
             raise SpecRefused("spec_compute")
         from scripts.dev.exam_design.runpod.operator_compute import CPUPlacement
 
+        fallbacks = compute.get("fallback_flavors", [])
+        if type(fallbacks) is not list:
+            raise SpecRefused(
+                "spec_compute", "fallback_flavors must be an ordered list"
+            )
         try:
-            CPUPlacement(compute["flavor"], compute["vcpus"])
+            CPUPlacement(compute["flavor"], compute["vcpus"], tuple(fallbacks))
         except ValueError as refused:
             raise SpecRefused("spec_compute", str(refused)) from None
         if document["image"] != "study":
@@ -431,6 +692,13 @@ class JobPods(pods.RunPodPods):
         self._record_lock = threading.Lock()
         self._noncreation_evidence = None
         self._create_failure = None
+        self._cpu_stock_preflight = []
+        self._actual_cpu_flavor_id = None
+        self._accepted_cpu_flavor_ids = ()
+        self._launched_resource_id = None
+        self._operator_start_gate_released = False
+        self._operator_start_status_polls = 0
+        self._operator_start_release_attempts = 0
         root = pods.private_dir(root)
         self.store = ComputeStore(root / "compute", clock=clock)
         if self.store.campaign_status(self.CAMPAIGN) is None:
@@ -456,6 +724,11 @@ class JobPods(pods.RunPodPods):
 
         boot = read_blobs(self.code_ref, self.repository, [BOOTSTRAP])
         self.boot = boot[BOOTSTRAP].decode()
+        if self.spec.cpu and not _bootstrap_supports_operator_start_gate(self.boot):
+            raise SpecRefused(
+                "spec_cpu_bootstrap_start_gate_unsupported",
+                "the immutable code_ref bootstrap does not hold the phase behind the operator gate",
+            )
 
     def image(self):
         if self.spec.document["image"] == "pytorch":
@@ -553,6 +826,7 @@ class JobPods(pods.RunPodPods):
             ).decode()
         if self.spec.cpu:
             env["JAX_PLATFORMS"] = "cpu"
+            env["OPERATOR_START_GATE"] = "1"
         return tuple(sorted(env.items()))
 
     def job_spec(self, record):
@@ -586,7 +860,11 @@ class JobPods(pods.RunPodPods):
             return PodSpec(
                 gpu_type_id=None,
                 gpu_count=0,
-                cpu_placement=CPUPlacement(compute["flavor"], compute["vcpus"]),
+                cpu_placement=CPUPlacement(
+                    compute["flavor"],
+                    compute["vcpus"],
+                    tuple(compute.get("fallback_flavors", [])),
+                ),
                 **common,
             )
         backend = "pytorch" if self.spec.document["image"] == "pytorch" else "jax"
@@ -598,11 +876,10 @@ class JobPods(pods.RunPodPods):
         )
 
     def launch_job(self, private):
-        """Create the job's pod: the balance floor first, then (GPU) a priced
-        offer at or below the ceiling; the operator layer checks the created
-        pod's rate against the ceiling and refuses it otherwise."""
+        """Preflight accepted CPU flavors or a priced GPU offer, then create."""
         from scripts.dev.exam_design.runpod.operator_compute import (
             ComputeError,
+            CPUPlacement,
             Execution,
             ProvisionRequest,
         )
@@ -618,7 +895,64 @@ class JobPods(pods.RunPodPods):
                 raise PodFailure(
                     "launch", "balance would fall below the floor", executed=False
                 )
-            if not self.spec.cpu:
+            if self.spec.cpu:
+                placement = spec.cpu_placement
+                if type(placement) is not CPUPlacement:
+                    raise PodFailure(
+                        "launch",
+                        "CPU pod spec is missing its validated CPU placement",
+                        executed=False,
+                    )
+                in_stock = []
+                for flavor_id in placement.flavor_ids:
+                    try:
+                        stock = self.adapter.cpu_stock(flavor_id, placement.vcpu_count)
+                    except ComputeError:
+                        ram_multiplier = {"c": 2, "g": 4, "m": 8}[flavor_id[-1]]
+                        self._cpu_stock_preflight.append(
+                            {
+                                "flavor_id": flavor_id,
+                                "vcpu_count": placement.vcpu_count,
+                                "instance_id": (
+                                    f"{flavor_id}-{placement.vcpu_count}-"
+                                    f"{placement.vcpu_count * ram_multiplier}"
+                                ),
+                                "available": None,
+                                "observed_at": self.clock(),
+                                "source": (
+                                    "runpod.graphql.cpuFlavors.specifics.stockStatus"
+                                ),
+                            }
+                        )
+                        raise
+                    self._cpu_stock_preflight.append(
+                        {
+                            "flavor_id": stock.flavor_id,
+                            "vcpu_count": stock.vcpu_count,
+                            "instance_id": stock.instance_id,
+                            "available": stock.available,
+                            "observed_at": stock.observed_at,
+                            "source": stock.source,
+                        }
+                    )
+                    if stock.available:
+                        in_stock.append(flavor_id)
+                if not in_stock:
+                    raise PodFailure(
+                        "launch",
+                        "no explicitly accepted CPU flavor is in stock",
+                        executed=False,
+                    )
+                self._accepted_cpu_flavor_ids = tuple(in_stock)
+                from dataclasses import replace
+
+                spec = replace(
+                    spec,
+                    cpu_placement=type(placement)(
+                        in_stock[0], placement.vcpu_count, tuple(in_stock[1:])
+                    ),
+                )
+            else:
                 compute = self.spec.document["compute"]
                 offers = self.adapter.offers(
                     [compute["type"]], gpu_count=compute["count"]
@@ -657,12 +991,13 @@ class JobPods(pods.RunPodPods):
             # The provider's own HTTP status travels with the refusal, so an
             # ambiguous create says what the provider answered.
             status = failure.http_status
-            self._create_failure = {
-                "operation": failure.operation,
-                "execution": str(failure.execution),
-                "resources_may_remain": failure.resources_may_remain,
-                "http_status": failure.http_status,
-            }
+            if failure.operation != "cpu_stock":
+                self._create_failure = {
+                    "operation": failure.operation,
+                    "execution": str(failure.execution),
+                    "resources_may_remain": failure.resources_may_remain,
+                    "http_status": failure.http_status,
+                }
             try:
                 if "request" in locals():
                     self._noncreation_evidence = noncreation.reconcile_rejection(
@@ -675,8 +1010,23 @@ class JobPods(pods.RunPodPods):
             raise PodFailure(
                 "launch",
                 failure.failed + ("" if status is None else f" (HTTP {status})"),
-                executed=failure.execution is not Execution.NOT_EXECUTED,
+                executed=(
+                    failure.operation != "cpu_stock"
+                    and failure.execution is not Execution.NOT_EXECUTED
+                ),
             ) from None
+        self._launched_resource_id = resource.resource_id
+        if self.spec.cpu:
+            observed = self.adapter.observe(resource.resource_id)
+            self._actual_cpu_flavor_id = observed.cpu_flavor_id
+            accepted = set(spec.cpu_placement.flavor_ids)
+            if self._actual_cpu_flavor_id not in accepted:
+                raise PodFailure(
+                    "launch",
+                    "provider did not report an accepted actual CPU flavor; "
+                    "pod will be recovered and terminated",
+                    executed=True,
+                )
         self._tokens[self.spec.job_id] = record["token"]
         return PodHandle(
             self.spec.job_id, resource.resource_id, pods._rate(resource.rate_usd_per_hr)
@@ -708,6 +1058,72 @@ class JobPods(pods.RunPodPods):
             code = self.post(url, self._token(handle), body, 600)
             if code != 200:
                 raise PodFailure("upload", f"{path} refused ({code})", executed=True)
+
+    def release_start(self, handle, *, deadline):
+        """Release a validated CPU worker after its pinned bootstrap is ready."""
+        if (
+            not self.spec.cpu
+            or handle.pod_id != self._launched_resource_id
+            or self._actual_cpu_flavor_id not in self._accepted_cpu_flavor_ids
+        ):
+            raise PodFailure(
+                "launch", "CPU start gate was not validated", executed=True
+            )
+        while True:
+            if self.clock() >= deadline:
+                raise PodFailure(
+                    "launch", "CPU bootstrap readiness deadline expired", executed=True
+                )
+            self._operator_start_status_polls += 1
+            code, body = self._get(handle, "/status")
+            stage = None
+            if code == 200:
+                try:
+                    stage = json.loads(body).get("stage")
+                except (ValueError, AttributeError):
+                    stage = None
+                if stage == "waiting_for_operator":
+                    break
+                if stage in (
+                    "running_phase",
+                    "done",
+                    "phase_failed",
+                    "bootstrap_failed",
+                ):
+                    raise PodFailure(
+                        "launch",
+                        f"CPU bootstrap passed the operator gate ({stage})",
+                        executed=True,
+                    )
+            elif code not in (0, 502, 503, 504):
+                raise PodFailure(
+                    "launch", f"CPU bootstrap status refused ({code})", executed=True
+                )
+            self.sleep(min(POLL_SECONDS, max(0.01, deadline - self.clock())))
+
+        url = self.adapter.connect_url(self._owned(handle), 8000) + "/go"
+        while True:
+            if self.clock() >= deadline:
+                raise PodFailure(
+                    "launch", "CPU start gate release deadline expired", executed=True
+                )
+            self._operator_start_release_attempts += 1
+            code = self.post(
+                url,
+                self._token(handle),
+                b"",
+                min(60, max(1, deadline - self.clock())),
+            )
+            if code == 200:
+                self._operator_start_gate_released = True
+                return
+            if code not in (0, 502, 503, 504):
+                raise PodFailure(
+                    "launch",
+                    f"CPU start gate release was refused ({code})",
+                    executed=True,
+                )
+            self.sleep(min(POLL_SECONDS, max(0.01, deadline - self.clock())))
 
 
 def _https_post(url, token, body, timeout):
@@ -841,6 +1257,9 @@ def run(spec, out, *, backend, ledger=None, private=None, uploads=None):
         "outcome": None,
         "pod_id": None,
         "rate_usd_per_hr": None,
+        "cpu_stock_preflight": [],
+        "actual_cpu_flavor_id": None,
+        "operator_start_gate": None,
         "files": {},
         "errors": [],
         "teardown": None,
@@ -878,6 +1297,8 @@ def _run_claimed(spec, out, backend, ledger, private, files_in, receipt):
                     path: spec.document["uploads"][path]["sha256"]
                     for path in sorted(files_in)
                 }
+            if spec.cpu:
+                backend.release_start(handle, deadline=deadline)
             state = backend.wait(handle, deadline=deadline, cancelled=lambda: False)
             receipt["outcome"] = state
             if state in ("done", "failed"):
@@ -907,6 +1328,20 @@ def _finish(receipt, ledger, spec, backend, handle, executed, private, out):
     always written."""
     if backend._create_failure is not None:
         receipt["create_failure"] = dict(backend._create_failure)
+    if receipt["pod_id"] is None and backend._launched_resource_id is not None:
+        receipt["pod_id"] = backend._launched_resource_id
+    receipt["cpu_stock_preflight"] = list(backend._cpu_stock_preflight)
+    receipt["actual_cpu_flavor_id"] = backend._actual_cpu_flavor_id
+    receipt["operator_start_gate"] = (
+        {
+            "required": True,
+            "released": backend._operator_start_gate_released,
+            "status_polls": backend._operator_start_status_polls,
+            "release_attempts": backend._operator_start_release_attempts,
+        }
+        if backend.spec.cpu
+        else None
+    )
     if not executed:
         try:
             intent = backend.store.intent(CAMPAIGN, spec.job_id)
@@ -1089,6 +1524,8 @@ class _MemoryInputs:
         return self.account.http(url, token, timeout)
 
     def post(self, url, token, body, timeout):
+        if url.endswith("/go"):
+            return self.account.post(url, token, body, timeout)
         path = url.split("/input/", 1)[1]
         want = self.declared.get(path)
         if want is None:

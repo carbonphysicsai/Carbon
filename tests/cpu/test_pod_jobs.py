@@ -60,6 +60,17 @@ def test_a_valid_spec_loads_with_its_worst_case_under_its_cap():
     assert spec.digest().startswith("sha256:")
 
 
+def test_cpu_fallbacks_are_explicit_ordered_and_same_memory_class():
+    document = spec_document()
+    document["compute"]["fallback_flavors"] = ["cpu3c"]
+    loaded = pod_jobs.load_spec(document)
+    placement = loaded.document["compute"]
+    assert placement["fallback_flavors"] == ["cpu3c"]
+    document["compute"]["fallback_flavors"] = ["cpu3m"]
+    with pytest.raises(pod_jobs.SpecRefused, match="same memory class"):
+        pod_jobs.load_spec(document)
+
+
 @pytest.mark.parametrize(
     ("changes", "code"),
     [
@@ -142,6 +153,14 @@ def test_check_runs_the_real_lifecycle_with_no_network_and_no_spend(tmp_path):
     assert receipt["cost"]["charged_usd"] == "0.07"
     written = json.loads((tmp_path / "check" / "out" / "receipt.json").read_text())
     assert written == json.loads(json.dumps(receipt))
+    assert receipt["cpu_stock_preflight"][0]["instance_id"] == "cpu5c-8-16"
+    assert receipt["actual_cpu_flavor_id"] == "cpu5c"
+    assert receipt["operator_start_gate"] == {
+        "required": True,
+        "released": True,
+        "status_polls": 1,
+        "release_attempts": 1,
+    }
 
 
 @pytest.fixture
@@ -153,9 +172,9 @@ def lifecycle(tmp_path, monkeypatch):
     key.chmod(0o600)
     enable(key)
 
-    def make(account=None, **changes):
+    def make(account=None, job_spec=None, **changes):
         account = account or pods.InMemoryRunPod()
-        spec = pod_jobs.load_spec(spec_document())
+        spec = job_spec or pod_jobs.load_spec(spec_document())
         backend = pod_jobs.JobPods(
             spec,
             root=tmp_path / "pods",
@@ -163,6 +182,7 @@ def lifecycle(tmp_path, monkeypatch):
             repository=REPOSITORY,
             transport=account.transport,
             http=account.http,
+            post=account.post,
             sleep=lambda _s: None,
             balance_floor=lambda: Decimal(0),
         )
@@ -189,6 +209,128 @@ def test_a_launch_refused_before_any_create_settles_at_zero(lifecycle):
     assert account.creates == [] and receipt["pod_id"] is None
     assert ledger[-1]["cost_usd"] == "0" and ledger[-1]["pending_usd"] == "0"
     assert receipt["teardown"]["terminated"] is True
+
+
+def test_cpu_stock_preflight_filters_explicit_fallbacks_and_records_actual_flavor(
+    lifecycle,
+):
+    make, go = lifecycle
+    document = spec_document()
+    document["compute"]["fallback_flavors"] = ["cpu3c"]
+    spec = pod_jobs.load_spec(document)
+    account = pods.InMemoryRunPod(cpu_stock={"cpu5c-8-16": None, "cpu3c-8-16": "High"})
+    _same_spec, backend, _account = make(account, job_spec=spec)
+    receipt, _ledger = go(spec, backend)
+    assert receipt["ok"] is True
+    assert [row["available"] for row in receipt["cpu_stock_preflight"]] == [False, True]
+    assert receipt["actual_cpu_flavor_id"] == "cpu3c"
+    assert account.creates and account.pods == {}
+
+
+def test_cpu_start_gate_waits_for_bootstrap_and_retries_transport_failure(lifecycle):
+    make, go = lifecycle
+    account = pods.InMemoryRunPod(cpu_startup_delay_reads=2)
+    spec, backend, _account = make(account)
+    real_post = account.post
+    posts = 0
+
+    def delayed_post(url, token, body, timeout):
+        nonlocal posts
+        if url.endswith("/go"):
+            posts += 1
+            if posts == 1:
+                return 0  # the authenticated marker write may have an unknown ack
+        return real_post(url, token, body, timeout)
+
+    backend.post = delayed_post
+    receipt, _ledger = go(spec, backend)
+    assert receipt["ok"] is True
+    assert receipt["operator_start_gate"] == {
+        "required": True,
+        "released": True,
+        "status_polls": 3,
+        "release_attempts": 2,
+    }
+
+
+def test_cpu_jobs_refuse_a_pinned_bootstrap_without_the_start_gate(
+    lifecycle, monkeypatch
+):
+    from scripts.dev.exam_design.runpod import a40_acceptance
+
+    make, _go = lifecycle
+    spec = pod_jobs.load_spec(spec_document())
+    assert pod_jobs._bootstrap_supports_operator_start_gate(
+        (REPOSITORY / pod_jobs.BOOTSTRAP).read_text()
+    )
+    account = pods.InMemoryRunPod()
+    read_blobs = a40_acceptance.read_blobs
+
+    def legacy_bootstrap(ref, repository, paths):
+        if paths == [pod_jobs.BOOTSTRAP]:
+            return {pod_jobs.BOOTSTRAP: b"def main():\n    run_phase()\n"}
+        return read_blobs(ref, repository, paths)
+
+    monkeypatch.setattr(a40_acceptance, "read_blobs", legacy_bootstrap)
+    with pytest.raises(pod_jobs.SpecRefused) as refused:
+        make(account, job_spec=spec)
+    assert refused.value.code == "spec_cpu_bootstrap_start_gate_unsupported"
+    assert account.creates == []
+
+
+def test_cpu_stock_unknown_or_empty_refuses_before_create(lifecycle):
+    make, go = lifecycle
+    spec, backend, account = make(pods.InMemoryRunPod(cpu_stock={"cpu5c-8-16": None}))
+    receipt, ledger = go(spec, backend)
+    assert receipt["outcome"].startswith("launch_refused:")
+    assert receipt["cpu_stock_preflight"][0]["available"] is False
+    assert account.creates == []
+    assert receipt["teardown"]["terminated"] is True
+    assert ledger[-1]["cost_usd"] == "0"
+
+
+def test_cpu_stock_unrecognized_status_refuses_before_create(lifecycle):
+    make, go = lifecycle
+    spec, backend, account = make(
+        pods.InMemoryRunPod(cpu_stock={"cpu5c-8-16": "Medium"})
+    )
+    receipt, _ledger = go(spec, backend)
+    assert receipt["outcome"].startswith("launch_refused:")
+    assert receipt["cpu_stock_preflight"][0]["available"] is None
+    assert account.creates == []
+
+
+def test_unaccepted_actual_cpu_flavor_is_recovered_and_torn_down(lifecycle):
+    make, go = lifecycle
+    spec, backend, account = make(pods.InMemoryRunPod(placed_cpu_flavor="cpu5m"))
+    receipt, _ledger = go(spec, backend)
+    assert receipt["outcome"].startswith("launch_refused:")
+    assert receipt["actual_cpu_flavor_id"] == "cpu5m"
+    assert receipt["operator_start_gate"] == {
+        "required": True,
+        "released": False,
+        "status_polls": 0,
+        "release_attempts": 0,
+    }
+    assert receipt["pod_id"] == receipt["teardown"]["pod"]
+    assert receipt["teardown"]["terminated"] is True
+    assert account.pods == {}
+
+
+def test_missing_actual_cpu_flavor_is_recovered_and_torn_down(lifecycle):
+    make, go = lifecycle
+    spec, backend, account = make(pods.InMemoryRunPod(omit_cpu_flavor=True))
+    receipt, _ledger = go(spec, backend)
+    assert receipt["outcome"].startswith("launch_refused:")
+    assert receipt["actual_cpu_flavor_id"] is None
+    assert receipt["operator_start_gate"] == {
+        "required": True,
+        "released": False,
+        "status_polls": 0,
+        "release_attempts": 0,
+    }
+    assert receipt["teardown"]["terminated"] is True
+    assert account.pods == {}
 
 
 def test_an_unreported_charge_stays_at_the_full_reservation(lifecycle):
@@ -365,6 +507,7 @@ def test_the_create_request_pins_image_cpu_placement_phase_and_deadline(tmp_path
     assert body["imageName"] == pod_jobs.STUDY_IMAGE
     assert body["imageName"].split("@")[1] == pods.pod_image("jax").split("@")[1]
     assert env["PHASE_MODULE"] == pod_jobs.PHASE_MODULE
+    assert env["OPERATOR_START_GATE"] == "1"
     assert json.loads(env["JOB_CONFIG"])["module"] == "scripts.dev.exam_design.runner"
     assert int(env["PROBE_DEADLINE"]) == 1_000_000 + 35 * 60
     assert env["CODE_REF"] == HEAD and env["JAX_PLATFORMS"] == "cpu"
@@ -512,6 +655,97 @@ def test_the_bootstrap_accepts_only_declared_inputs_at_their_digest(
         assert post("/go", "tok-123", b"") == 200
     finally:
         server.shutdown()
+
+
+def test_cpu_bootstrap_does_not_start_the_phase_before_operator_release(
+    tmp_path, monkeypatch
+):
+    import importlib.util
+    import threading
+    import time as real_time
+    import types
+
+    for name in (
+        "CODE_MANIFEST_GZ_B64",
+        "CODE_MANIFEST",
+        "CODE_MANIFEST_TRANSPORT",
+        "INPUTS_MANIFEST_GZ_B64",
+        "OVERLAYS",
+        "PROBE_CA_GZ_B64",
+    ):
+        monkeypatch.delenv(name, raising=False)
+    go_file = tmp_path / "carbon-go"
+    monkeypatch.setenv("OPERATOR_START_GATE", "1")
+    monkeypatch.setenv("GO_FILE", str(go_file))
+    monkeypatch.setenv("PROBE_DEADLINE", "0")
+    spec = importlib.util.spec_from_file_location(
+        "pod_jobs_cpu_start_gate",
+        REPOSITORY / "scripts/dev/exam_design/runpod/bootstrap.py",
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    module.OUT = str(tmp_path / "out")
+    Path(module.OUT).mkdir()
+    phase_started = threading.Event()
+    main_error = []
+
+    class StopMain(Exception):
+        pass
+
+    class FakeServer:
+        def __init__(self, *_args):
+            pass
+
+        def serve_forever(self):
+            return
+
+    def fake_sleep(seconds):
+        if phase_started.is_set():
+            raise StopMain
+        real_time.sleep(min(seconds, 0.01))
+
+    monkeypatch.setattr(module.http.server, "ThreadingHTTPServer", FakeServer)
+    module.time = types.SimpleNamespace(
+        time=real_time.time,
+        strftime=real_time.strftime,
+        gmtime=real_time.gmtime,
+        sleep=fake_sleep,
+    )
+    monkeypatch.setattr(
+        module.subprocess,
+        "run",
+        lambda *_args, **_kwargs: (
+            phase_started.set() or types.SimpleNamespace(returncode=0)
+        ),
+    )
+
+    def run_main():
+        try:
+            module.main()
+        except StopMain:
+            pass
+        except Exception as failure:  # noqa: BLE001 -- surfaced to the test
+            main_error.append(failure)
+
+    worker = threading.Thread(target=run_main, daemon=True)
+    worker.start()
+    until = real_time.monotonic() + 3
+    while (
+        module.STATE["stage"] != "waiting_for_operator"
+        and real_time.monotonic() < until
+    ):
+        real_time.sleep(0.01)
+    assert module.STATE["stage"] == "waiting_for_operator"
+    assert not phase_started.is_set()
+    assert not go_file.exists()
+
+    go_file.write_text("go")
+    worker.join(timeout=3)
+    assert not worker.is_alive()
+    assert not main_error
+    assert phase_started.is_set()
+    assert module.STATE["stage"] == "done"
+    assert module.STATE["operator_start_gate"] == "released"
 
 
 def test_the_phase_collects_declared_paths_from_the_inputs(tmp_path):

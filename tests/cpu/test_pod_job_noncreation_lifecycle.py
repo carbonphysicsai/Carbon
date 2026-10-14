@@ -12,6 +12,8 @@ from carbon.agent_campaign.graphite.pods import PodFailure
 from scripts.dev.exam_design.runpod.operator_compute import (
     ComputeService,
     ComputeStore,
+    CPUPlacement,
+    CPUStockObservation,
     FileCredentialProvider,
     IntentState,
     PodSpec,
@@ -48,15 +50,31 @@ def lane(tmp_path, monkeypatch):
     }
     backend.job_spec = lambda record: PodSpec(
         image="example.invalid/mock@sha256:" + "0" * 64,
-        gpu_type_id="NVIDIA A40",
-        gpu_count=1,
+        gpu_type_id=None,
+        gpu_count=0,
+        cpu_placement=CPUPlacement("cpu5c", 8),
         container_disk_gb=20,
         max_rate_usd_per_hr=0.5,
         storage_usd_per_gb_month=0.1,
     )
+    backend.adapter.cpu_stock = lambda flavor_id, vcpu_count: CPUStockObservation(
+        flavor_id,
+        vcpu_count,
+        f"{flavor_id}-{vcpu_count}-16",
+        True,
+        clock(),
+        "fixture.runpod.cpu_stock",
+    )
     backend.retry_ambiguous_create = False
     backend._noncreation_evidence, backend._create_failure = None, None
     backend._tokens = {}
+    backend._cpu_stock_preflight = []
+    backend._actual_cpu_flavor_id = None
+    backend._accepted_cpu_flavor_ids = ()
+    backend._launched_resource_id = None
+    backend._operator_start_gate_released = False
+    backend._operator_start_status_polls = 0
+    backend._operator_start_release_attempts = 0
     gr.claim_pod_job("toy-job", "3", clock=clock, origin=backend.claim_origin())
     yield backend, transport, clock, tmp_path
     store.close()
@@ -75,6 +93,27 @@ def finish(backend, root, executed=True):
     }
     pod_jobs._finish(receipt, gr, backend.spec, backend, None, executed, root, out)
     return receipt
+
+
+def test_cpu_preflight_refuses_a_job_spec_without_validated_placement(lane):
+    backend, transport, _clock, root = lane
+    backend.job_spec = lambda record: PodSpec(
+        image="example.invalid/mock@sha256:" + "0" * 64,
+        gpu_type_id="NVIDIA A40",
+        gpu_count=1,
+        container_disk_gb=20,
+        max_rate_usd_per_hr=0.5,
+        storage_usd_per_gb_month=0.1,
+    )
+    with pytest.raises(
+        PodFailure, match="missing its validated CPU placement"
+    ) as caught:
+        backend.launch_job(root)
+    assert caught.value.executed is False
+    assert (
+        "POST",
+        "https://rest.runpod.io/v1/pods",
+    ) not in transport.calls
 
 
 def test_definitive_initial_provider_refusal_releases_with_reconcile_evidence(lane):
