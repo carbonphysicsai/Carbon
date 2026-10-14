@@ -65,7 +65,7 @@ def prepare(panel, spec):
     for member in masked["members"]:
         for q in injected:
             member["value_losses"][q] = None
-    if "exact_oracle_losses" in masked:
+    if masked.get("exact_oracle_losses") is not None:
         for q in injected:
             masked["exact_oracle_losses"][q] = None
     receipt = {

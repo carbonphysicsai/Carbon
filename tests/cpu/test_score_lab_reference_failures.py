@@ -200,6 +200,15 @@ def test_small_fraction_rounding_is_disclosed_not_forced_to_one_outage():
     assert receipt["realized_injected_fraction"] == 0
 
 
+def test_absent_optional_oracle_remains_best_member_regret_not_zero_imputation():
+    panel = _panel()
+    panel["exact_oracle_losses"] = None
+    result = reference.evaluate(panel, _score, _spec(), bootstrap=10)
+    assert result["status"] == "MEASURED_DEVELOPMENT"
+    assert result["top1_regret_reference"] == "BEST_MEMBER_IN_POOL"
+    assert panel["exact_oracle_losses"] is None
+
+
 @pytest.mark.parametrize(
     "change",
     [
