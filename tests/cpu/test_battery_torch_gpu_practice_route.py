@@ -6,7 +6,14 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
-from test_battery_gpu_practice import device, gpu_image, practice
+from test_battery_gpu_practice import (
+    battery_campaign,
+    device,
+    gpu_image,
+    live as _live,
+    practice,
+    record_bytes,
+)
 from test_battery_validator_daemon import submission
 
 from carbon.development_session import battery_gpu as gpu
@@ -14,6 +21,8 @@ from carbon.development_session import gpu_practice, research_carrier
 from carbon.development_session.profile import digest
 from carbon.reconstruction import torch_profile
 from carbon.reconstruction.accelerators import GPU_PROFILE
+
+live = _live
 
 
 def torch_image():
@@ -121,3 +130,41 @@ def test_miner_and_validator_use_the_same_exact_torch_image_pins():
 def test_remote_torch_route_is_not_silently_enabled():
     with pytest.raises(ValueError, match="GPU worker"):
         gpu.remote_worker(torch_image())
+
+
+def test_local_setup_verifies_the_selected_torch_profile_and_lock(live, monkeypatch):
+    from carbon.reconstruction.worker import accelerator_runtime
+
+    image = torch_image()
+    live.manifest.write_bytes(record_bytes(image))
+    seen = []
+    monkeypatch.setattr(
+        accelerator_runtime,
+        "verify_image_and_toolkit",
+        lambda **kwargs: seen.append(kwargs),
+    )
+    found = live.checks.gpu(live.manifest, campaign=battery_campaign())
+    assert found["scope"] == gpu.gpu_scope(image)
+    assert len(seen) == 1
+    assert seen[0]["image"] == image
+    assert seen[0]["profile_digest"] == torch_profile.GPU_PROFILE_DIGEST
+    assert seen[0]["lock_digest"] == torch_profile.GPU_LOCK_DIGEST
+
+
+def test_unsupported_challenge_refuses_torch_before_host_preparation(live, monkeypatch):
+    from carbon.reconstruction import onboarding
+
+    live.manifest.write_bytes(record_bytes(torch_image()))
+
+    def no_host(**kwargs):
+        pytest.fail("unsupported scope must refuse before host preparation")
+
+    monkeypatch.setattr(onboarding, "observe_local_device", no_host)
+
+    def no_scope(image):
+        raise ValueError("unsupported GPU worker")
+
+    from scripts.dev.miner_launchpad.environment_setup import SetupRefused
+
+    with pytest.raises(SetupRefused, match="gpu_image_unverified"):
+        live.checks.gpu(live.manifest, campaign=SimpleNamespace(gpu_scope=no_scope))

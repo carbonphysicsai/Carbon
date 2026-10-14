@@ -613,8 +613,8 @@ def _gpu_device():
 
 def _gpu_pins(image, accelerator):
     """`(profile_id, profile_digest, lock_digest)` a GPU run's pinned worker
-    carries: JAX's accelerator worker, or, for the validator's scored rebuild
-    only, the PyTorch GPU worker (VALIDATOR-27 slice 2; TORCH-GPU-01), named
+    carries: JAX's accelerator worker, or the PyTorch GPU worker for miner
+    practice and validator rebuild (TORCH-GPU-01; PLT-30), named
     by its own exact-hashed lock. The image's labels are then checked against
     these pins, so a claimed lock alone admits nothing."""
     from carbon.reconstruction import torch_profile

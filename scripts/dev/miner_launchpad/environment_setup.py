@@ -1231,7 +1231,7 @@ class LiveChecks:
         # Challenge scope is checked before host preparation. Recognising a
         # sibling worker does not make every Challenge serve its backend.
         try:
-            scope = campaign.gpu_scope(image)
+            scope = None if campaign is None else campaign.gpu_scope(image)
         except ValueError:
             raise SetupRefused(
                 "gpu_image_manifest",
@@ -1307,6 +1307,8 @@ class LiveChecks:
         if blockers:
             raise SetupRefused("gpu", "gpu_host_not_ready:" + ",".join(blockers))
         record = HostDeviceRecord.load(root)
+        if scope is None:
+            raise SetupRefused("challenge", "field_required")
         return {
             # The chosen Challenge's own GPU practice scope (C-MLP-04).
             "scope": scope,
