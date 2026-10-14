@@ -333,7 +333,10 @@ def test_every_record_a_solve_writes_names_its_image_and_overlay_lock(
     earlier = json.dumps({"case_id": "earlier", "status": "OK"}, sort_keys=True) + "\n"
     records.write_text(earlier)
     records.chmod(0o600)
-    truth_env.solve(jobs, records, repository=REPOSITORY, workers=3, timeout_s=2.0)
+    result = truth_env.solve(
+        jobs, records, repository=REPOSITORY, workers=3, timeout_s=2.0
+    )
+    assert result["fingerprint"] == "fp"
     lines = records.read_text().splitlines()
     assert lines[0] + "\n" == earlier
     written = {r["case_id"]: r for r in map(json.loads, lines[1:])}
@@ -358,3 +361,105 @@ def test_every_record_a_solve_writes_names_its_image_and_overlay_lock(
     assert not any("core_s" in record for record in written.values())
     assert records.stat().st_mode & 0o077 == 0
     assert not list(tmp_path.glob("*.stamping"))
+
+
+def test_a_design_bank_tranche_identity_survives_the_truth_worker_and_resume(
+    tmp_path, monkeypatch
+):
+    import sys
+
+    from carbon.battery import truth
+    from carbon.challenge_validator import design_bank
+
+    lock, _ = truth_env.load_lock(REPOSITORY)
+    monkeypatch.setitem(
+        sys.modules,
+        "pybamm",
+        types.SimpleNamespace(__version__=truth_env.pinned_version(lock)),
+    )
+    monkeypatch.setattr(truth, "reference_solver", _fake_reference)
+    work = tmp_path / "bank-design:toy-T1"
+    work.mkdir(mode=0o700)
+    jobs = [
+        {
+            "case_id": "public-q1",
+            "c1": 1.0,
+            "c2": 0.5,
+            "t_amb_c": 25.0,
+            "soc0": 0.1,
+        }
+    ]
+    tranche = "bank-design:toy-T1"
+    design_bank._write_jobs(work, tranche, jobs)
+    job_document = json.loads((work / "jobs.json").read_bytes())
+    assert job_document == {"tranche": tranche, "jobs": jobs}
+
+    runs = []
+    real_run = truth.TruthService.run
+
+    def fail_after_first_completed_run(service, jobs):
+        summary = real_run(service, jobs)
+        runs.append(summary)
+        if len(runs) == 1:
+            raise RuntimeError("simulated post-solve failure")
+        return summary
+
+    monkeypatch.setattr(truth.TruthService, "run", fail_after_first_completed_run)
+
+    with pytest.raises(RuntimeError, match="post-solve"):
+        truth_env.solve(
+            work / "jobs.json", work / "records.jsonl", repository=REPOSITORY
+        )
+    record = json.loads((work / "records.jsonl").read_text().splitlines()[0])
+    assert record[truth_env.PROVENANCE_FIELD]["schema"] == truth_env.PROVENANCE
+
+    resumed = truth_env.solve(
+        work / "jobs.json", work / "records.jsonl", repository=REPOSITORY
+    )
+    assert resumed["tranche"] == tranche
+    assert "fingerprint" not in resumed
+    assert resumed["skipped_completed"] == 1
+    assert resumed["counts"][truth.OK] == 0
+    assert len((work / "records.jsonl").read_text().splitlines()) == 1
+    assert len(runs) == 2
+
+
+@pytest.mark.parametrize(
+    "identity_fields",
+    [
+        {},
+        {"fingerprint": "fp", "tranche": "bank-design:toy-T1"},
+        {"fingerprint": ""},
+        {"tranche": None},
+    ],
+)
+def test_malformed_job_identity_refuses_before_creating_records_or_solving(
+    tmp_path, monkeypatch, identity_fields
+):
+    import sys
+
+    from carbon.battery import truth
+
+    lock, _ = truth_env.load_lock(REPOSITORY)
+    monkeypatch.setitem(
+        sys.modules,
+        "pybamm",
+        types.SimpleNamespace(__version__=truth_env.pinned_version(lock)),
+    )
+    calls = []
+    real_run = truth.TruthService.run
+
+    def observed_run(service, jobs):
+        calls.append(jobs)
+        return real_run(service, jobs)
+
+    monkeypatch.setattr(truth.TruthService, "run", observed_run)
+    jobs = tmp_path / "jobs.json"
+    jobs.write_text(json.dumps({**identity_fields, "jobs": []}))
+    records = tmp_path / "records.jsonl"
+
+    with pytest.raises(truth_env.TruthEnvironmentError, match="identity"):
+        truth_env.solve(jobs, records, repository=REPOSITORY)
+
+    assert calls == []
+    assert not records.exists()
