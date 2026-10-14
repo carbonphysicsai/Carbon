@@ -830,6 +830,10 @@ def compile_development(strategy, variant_, *, without=(), check_budget=True):
         raise VariantRefused(PARAMETER_REFUSED, "strategy is an object")
     if strategy.get("challenge_id") != variant_.challenge:
         raise VariantRefused(WRONG_CHALLENGE)
+    if variant_.version == "battery-l4-graph-v4":
+        from carbon.battery.level4_v4 import check_strategy
+
+        check_strategy(strategy, granted)
     missing = [
         w.capability_id
         for w in variant_.widened
