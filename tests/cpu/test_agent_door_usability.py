@@ -89,12 +89,17 @@ def test_every_new_plan_freezes_v2_and_an_older_plan_reads_as_none(module, agent
 
 def test_the_agentless_plan_is_the_old_plan_plus_the_rule():
     from carbon.challenge_registry.agent_plan import provider_plan
+    from carbon.development_session.research_reply import RULE as REPLY_RULE
 
     plan = provider_plan("none", None)
-    assert {k: v for k, v in plan.items() if k != "argument_normalisation"} == {
-        "agent": "none",
-        "model_calls": 0,
-    }
+    assert plan["research_reply"] == REPLY_RULE
+    assert plan["argument_normalisation"] == ARGUMENT_NORMALISATION_V2
+    # Both new rules are explicit; the historical plan's fields stay exact.
+    assert {
+        k: v
+        for k, v in plan.items()
+        if k not in ("argument_normalisation", "research_reply")
+    } == {"agent": "none", "model_calls": 0}
 
 
 # ---- A2. The MCP door agrees with the SDK under the frozen rule.

@@ -41,6 +41,7 @@ from carbon.development_session.research_agent_policy import (
     PARALLEL_CALLS_V2,
 )
 from carbon.development_session.research_ledger import CampaignLedger
+from carbon.development_session.research_reply import RULE as RESEARCH_REPLY_RULE
 from carbon.development_session.research_tools import (
     ARGUMENT_NORMALISATION_V2,
     TOOLS_RULE,
@@ -121,6 +122,7 @@ def test_a_graphite_plan_freezes_the_block_and_the_engine_rules():
         "parallel_calls",
         "miner_guidance",
         "research_tools",
+        "research_reply",
         "argument_normalisation",
         "limits",
         "compaction",
@@ -135,6 +137,7 @@ def test_a_graphite_plan_freezes_the_block_and_the_engine_rules():
     assert plan["parallel_calls"] == PARALLEL_CALLS_V2
     assert plan["miner_guidance"] == miner_guidance.RULE
     assert plan["research_tools"] == TOOLS_RULE
+    assert plan["research_reply"] == RESEARCH_REPLY_RULE
     # LP-PROD-FIX-01: a new Graphite plan freezes the argument normalisation;
     # RESEARCH-TOOL-USABILITY-01: from now on its v2.
     assert plan["argument_normalisation"] == ARGUMENT_NORMALISATION_V2
@@ -259,7 +262,7 @@ def test_a_full_plan_whose_share_pays_for_no_research_call_is_refused():
         assert frozen["graphite"]["mode"] == mode
 
 
-def test_the_autonomous_and_agentless_plans_are_unchanged():
+def test_new_reply_rule_preserves_the_historical_autonomous_and_agentless_plan_fields():
     plan = battery.provider_plan("autonomous", BUDGET)
     assert plan["agent"] == "autonomous"
     assert plan["max_provider_calls_per_epoch"] == 48
@@ -268,11 +271,17 @@ def test_the_autonomous_and_agentless_plans_are_unchanged():
     # AGENT-DOOR-USABILITY-01 A1: a new plan freezes v2; without it, it is
     # byte for byte the plan frozen before (pinned).
     assert plan["argument_normalisation"] == ARGUMENT_NORMALISATION_V2
-    old = {k: v for k, v in plan.items() if k != "argument_normalisation"}
+    assert plan["research_reply"] == RESEARCH_REPLY_RULE
+    old = {
+        k: v
+        for k, v in plan.items()
+        if k not in ("argument_normalisation", "research_reply")
+    }
     assert digest(canonical(old)) == AUTONOMOUS_PLAN_DIGEST
     assert battery.provider_plan("none", None) == {
         "agent": "none",
         "model_calls": 0,
+        "research_reply": RESEARCH_REPLY_RULE,
         "argument_normalisation": ARGUMENT_NORMALISATION_V2,
     }
 
@@ -521,10 +530,11 @@ def test_an_autonomous_campaign_prepares_as_it_did(host):
     # Apart from it and the argument normalisation every new plan freezes
     # since AGENT-DOOR-USABILITY-01 (v2), the base commit's plan.
     assert frozen["provider"]["argument_normalisation"] == ARGUMENT_NORMALISATION_V2
+    assert frozen["provider"]["research_reply"] == RESEARCH_REPLY_RULE
     rest = {
         k: v
         for k, v in frozen["provider"].items()
-        if k not in ("model_selection", "argument_normalisation")
+        if k not in ("model_selection", "argument_normalisation", "research_reply")
     }
     assert digest(canonical(rest)) == AUTONOMOUS_PLAN_DIGEST
     assert frozen["provider"].get("model_selection") == (

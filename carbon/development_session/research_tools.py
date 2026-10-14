@@ -21,6 +21,8 @@ from carbon.research.model import DEVELOPMENT_WORKSPACE_ACTIONS
 from carbon.transport.models import message
 
 from .profile import canonical, digest
+from .research_reply import campaign_rule as campaign_reply_rule
+from .research_reply import project as project_reply
 from .research_workspace import CAPABILITY_FIELDS, CAPABILITY_REASONS, CAPABILITY_TEXT
 
 PREFIX = "carbon_research_v2__"
@@ -1090,6 +1092,9 @@ class ResearchMinerTools:
                 ),
             )
 
+        # Frozen reply selection is checked before reservation/signing/dispatch.
+        reply_rule = campaign_reply_rule(self.ledger)
+
         if name == PREFIX + "start_research_task" and (
             getattr(getattr(self.composition, "executor", None), "cleanup_only", False)
             or getattr(self.wrapper, "_closing", False)
@@ -1156,9 +1161,10 @@ class ResearchMinerTools:
                     actual={},
                     result={"status": "REQUEST_BOUND", "trial_charged": False},
                 )
-        return await self._call(
+        value = await self._call(
             name, args, identity, transport_request_id=transport_request_id
         )
+        return project_reply(value, reply_rule)
 
     def _journal(self, kind, body):
         """Record against the campaign journal, when there is a campaign.
