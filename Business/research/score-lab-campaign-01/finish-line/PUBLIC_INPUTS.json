@@ -80,7 +80,6 @@
     "public_physics_cohort_total": 142,
     "primary_learned_cohort": 100,
     "primary_cohort_definition": "original EV4-label CPU rebuilds; 100 members",
-    "other_public_real_members": 42,
     "other_members_detail": "The merged score-lab source says five controls complete the 142-member public physics cohort; the 137 raw bundles are not all the 100-member primary learned cohort.",
     "bundle_to_recipe_join": "Exact 137 replay identities joined by compressed SHA-256 to pinned manifest and hash/byte-verified public raw copy; declared recipe_digest exported. See SCORELAB_PUBLIC_RAW_BUNDLE_CROSSWALK.json.",
     "distinct_recipe_count": 99,
@@ -95,7 +94,9 @@
     "seed_field_missing_count": 0,
     "seed_identity_distinct_count": null,
     "seed_values": "WITHHELD: public top-level seed semantics are not proven as model training/rebuild seed for every bundle.",
-    "training_cohort_per_bundle": "UNKNOWN; no bundle-specific public training cohort binding was established."
+    "training_cohort_per_bundle": "UNKNOWN; no bundle-specific public training cohort binding was established.",
+    "other_members_including_constructed_controls": 42,
+    "other_raw_prediction_bundles": 37
   },
   "paired_coverage": [
     {

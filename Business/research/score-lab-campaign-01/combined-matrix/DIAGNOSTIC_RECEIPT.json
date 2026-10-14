@@ -3,10 +3,16 @@
   "canonical_execution": true,
   "bootstrap_seed": 20261013,
   "files_sha256": {
-    "combined-diagnostics.json": "f6dfc54da216e8c07f81eb5a1cb1d9cebe8cf208020cf3e5263a324ef9f80fd0",
-    "readiness-status.json": "2b7919421616fcdadcce106ca0884de1cfb317f2b37d9b23a5657870de1829ab"
+    "combined-diagnostics.json": "f6dfc54da216e8c07f81eb5a1cb1d9cebe8cf208020cf3e5263a324ef9f80fd0"
   },
   "scope": "READ_ONLY_SYNTHETIC_DERIVATION_AND_PUBLIC_RECEIPT_CHECK",
   "fit_or_selection": false,
-  "holdout_read": false
+  "holdout_read": false,
+  "initial_readiness_status_sha256": "2b7919421616fcdadcce106ca0884de1cfb317f2b37d9b23a5657870de1829ab",
+  "current_readiness": {
+    "code_source_commit": "3b630ed15fc332c3f74adf528056e8976bcf1490",
+    "manifest_file_sha256": "35e4d29a83553bbf546702c4bd7b85e542499ce55ec6607da6d864fb2f78951b",
+    "status_file_sha256": "371f0cbfd213a8aea9e7dca332f1a7e2a3eb33aa64efacfc88bfcb3f87e41f11",
+    "change": "Inventory label correction only: 42 other records include 37 raw bundles plus five constructed controls. Actual evidence/readiness predicates unchanged. Reproduction verified separately at final head."
+  }
 }

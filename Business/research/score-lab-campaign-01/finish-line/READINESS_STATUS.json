@@ -1,6 +1,6 @@
 {
   "schema": "carbon.dev.score-lab-finish-line-status.v1",
-  "manifest_sha256": "539f75c24fb0aefd07e7c72040c8bed6837ad010d0fb1e50bec2aeb5edf6a034",
+  "manifest_sha256": "ce19b0d5f5b65f035fdc27047b69262ab8953fcbe3240a43b757e29dadcb2a92",
   "stages": {
     "job_contract": {
       "ready": false,

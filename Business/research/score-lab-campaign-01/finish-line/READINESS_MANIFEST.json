@@ -16,7 +16,7 @@
   "artifacts": {
     "public_inputs": {
       "path": "Business/research/score-lab-campaign-01/finish-line/PUBLIC_INPUTS.json",
-      "sha256": "51a88f48fcff8f6a5bde013bdb71f06e6efe7b04d9a22af24b1d804347f9cfd0",
+      "sha256": "d942fcb2b41f0b99a6dc875ccf45ceb08df36e9bf4829c7d429d291b5e2ab428",
       "schema": "carbon.dev.score-lab-public-input-status.v1"
     },
     "ev4_admission": {
