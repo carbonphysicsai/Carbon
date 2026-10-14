@@ -10,9 +10,11 @@ from test_battery_gpu_practice import (
     battery_campaign,
     device,
     gpu_image,
-    live as _live,
     practice,
     record_bytes,
+)
+from test_battery_gpu_practice import (
+    live as _live,
 )
 from test_battery_validator_daemon import submission
 
