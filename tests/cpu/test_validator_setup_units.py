@@ -2,9 +2,9 @@
 
 import json
 import os
-from pathlib import Path
 import shlex
 import socket
+from pathlib import Path
 
 import pytest
 from test_validator_setup_bundle import source

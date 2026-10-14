@@ -113,7 +113,7 @@ s.close()
                     )
                     assert connection.recv(4) == b"ping"
                     connection.sendall(marker.encode("ascii"))
-            except Exception as error:
+            except (OSError, AssertionError, struct.error) as error:
                 errors.append(type(error).__name__)
 
         worker = threading.Thread(target=serve, daemon=True)
