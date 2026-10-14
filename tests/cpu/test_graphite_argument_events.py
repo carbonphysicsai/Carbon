@@ -31,6 +31,33 @@ def arguments(graphite, run_id):
     ]
 
 
+def test_coherent_identity_edit_cannot_replace_the_original_opening(tmp_path, monkeypatch):
+    model = ScriptedModel([text("done")])
+    graphite, run_id = started(tmp_path, model)
+    opened = graphite._opened(run_id)
+    opening = next(e for e in graphite.events(run_id, 0) if e["kind"] == "session_opened")
+    assert opening["agent_identity"]["inference"] == "scripted"
+    opened["live_inference"] = True
+    opened["agent_identity"]["inference"] = "live"
+    # Matching the actual object's mode as well cannot replace the original pin.
+    # This stays a ScriptedModel; only synthetic metadata is changed.
+    monkeypatch.setattr(model, "live", True)
+    with pytest.raises(SessionMismatch, match="argument_logging_identity_changed"):
+        graphite._loop_limits(opened)
+    assert model.requests == []
+
+
+def test_resumed_actual_model_mode_must_match_its_pinned_identity(tmp_path, monkeypatch):
+    model = ScriptedModel([text("done")])
+    graphite, run_id = started(tmp_path, model)
+    opened = graphite._opened(run_id)
+    assert callable(graphite._loop_limits(opened)["tool_observer"])
+    monkeypatch.setattr(model, "live", True)
+    with pytest.raises(SessionMismatch, match="agent_model_mode_changed"):
+        graphite._loop_limits(opened)
+    assert model.requests == []
+
+
 def event_bytes(graphite, run_id):
     return (graphite._dir(run_id) / "events.jsonl").read_bytes()
 
