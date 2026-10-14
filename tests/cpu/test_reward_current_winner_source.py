@@ -21,12 +21,12 @@ def stored(issuer, ref):
         ).fetchone()
 
 
-def record(issuer, state, value=None):
+def record(issuer, state, value=None, *, coldkeys=None):
     return issuer.ledger.observe(
         POLICY,
         BATTERY,
         promotion() if value is None else value,
-        {"miner-hotkey": "miner-coldkey"},
+        {"miner-hotkey": "miner-coldkey"} if coldkeys is None else coldkeys,
         state.timestamp_ms,
     )
 
@@ -75,7 +75,17 @@ def test_current_model_selects_matching_older_record_and_original_clock(tmp_path
     state = backend.state
     original = record(issuer, state)
     later = dataclasses.replace(state, timestamp_ms=state.timestamp_ms + 1000)
-    record(issuer, later, promotion("unregistered", "unrelated-later-model"))
+    # The unrelated miner had a known identity when its historical record was
+    # observed; it is absent from the current publication snapshot.
+    record(
+        issuer,
+        later,
+        promotion("unregistered", "unrelated-later-model"),
+        coldkeys={
+            "miner-hotkey": "miner-coldkey",
+            "unregistered": "unrelated-coldkey",
+        },
+    )
     before = issuer.ledger.path.read_bytes()
     ref = issuer.issue(later)
     result = issuer.resolve(ref, later)
