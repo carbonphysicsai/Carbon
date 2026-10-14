@@ -45,3 +45,14 @@ audit as snapshot version 2, bind all 34 current files and current source hashes
 and record v1's immutable hash as the superseded snapshot. An exact regeneration
 control checks the whole new snapshot and the prospective replacement relation.
 No amount, cap, provider, spending authority or historical session changes.
+
+Second prospective integration refresh: Root reassigned Product exclusive
+snapshot/test/doc rebinding after main's #1324 changes pinned provider.py.
+Platform handed off the clean branch at 373363c19936d8a0abeb552a5ebbb89dabb19c2e.
+Integrate actual main e13f973a0da7b887bcbf28796ca895fc7e697451 normally and
+regenerate the still-unmerged v2 snapshot from its real audit. Bind that main
+revision and exact current source pins; preserve v1 SHA and all 34 grants,
+role/model/cost rows and the full current==audit.audit() control. No PLT-29,
+selector, cap, grant or spending edits. Reuse the existing canonical route;
+no new runtime, provider request, credential or hidden-material access.
+Root owns current-head acceptance and expected-head guarded merge.

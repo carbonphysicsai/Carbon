@@ -2877,7 +2877,7 @@
   "schema": "carbon.graphite.role-grant-cap-audit.v1",
   "scope": "DEVELOPMENT_READ_ONLY_NO_SPEND_AUTHORITY",
   "snapshot_version": 2,
-  "source_revision": "7f90cf3d01e674d46239db0693a71f375c1aaa6f",
+  "source_revision": "e13f973a0da7b887bcbf28796ca895fc7e697451",
   "source_sha256": {
     "carbon/agent_campaign/graphite/experiment.py": "12700f1c9ac3ee96423b4183f07dff86dbba81d8dac78156efc94bdb1feb9c4b",
     "carbon/agent_campaign/graphite/grant_binding.py": "10d6cd6ae21d53de2d5e6ff5ca2482400a87524a3fc98fc2b545d7b5df0eaf50",
@@ -2885,7 +2885,7 @@
     "carbon/agent_campaign/graphite/model_providers.py": "7ca0d82ea950919461a582daf2cda1527759cdeac4dd73277aec5db19eea7d73",
     "carbon/agent_campaign/graphite/phase3.py": "ce6ed0ed6976bea9fb52a88b10bcb7e6a5fe716f9ab21b6f203d4b85cec330db",
     "carbon/agent_campaign/graphite/phase4.py": "e61d428ab0af71bb7606dfdc213055c7ba258d7f2c2cd3dc5cd0d310042f0cc2",
-    "carbon/agent_campaign/graphite/provider.py": "f35d21a12a5f7cd373bdda40416dcc2765c4b41fe63ef21fe5d9a257b092dc3c",
+    "carbon/agent_campaign/graphite/provider.py": "8cfec4b4bbf16f1d812433d9e8987b5eac261c1c0dfad3ffc77e66ab447625ed",
     "carbon/agent_campaign/graphite/roles.py": "8a72e3d9d8d292ffcabd3812b8cf1bd6607ff4f03ddb6aa3f9443713bd3078ee",
     "carbon/agent_campaign/graphite/score_lab_research.py": "0e055610810e3a27eb93faac6fea5c475a836f58c11f3987bb06086a8e3576e2",
     "carbon/agent_campaign/graphite/triage.py": "00d950e2daba6e3dc3a38bf562603d5ba78ecfa4c7876e745bbe2ed844a474cf",

@@ -10,7 +10,7 @@ CARBON_UV_GROUPS="science-jax chain archive mcp" ./scripts/dev/canonical.sh pyth
 
 The current public snapshot is
 `docs/development/evidence/role-output-cap-audit/audit-v2.json`. Its basis is
-main `7f90cf3d01e674d46239db0693a71f375c1aaa6f`: 34 public grant files, each
+main `e13f973a0da7b887bcbf28796ca895fc7e697451`: 34 public grant files, each
 hashed, and 11 hashed selection/role/price/grant/budget source files. It uses
 the real session selector and the phase-3/phase-4 budget calculators. It lists
 every role/model's uncached maximum input and output reservation. Reasoning
@@ -27,6 +27,11 @@ replacement. It does not reinterpret v1 or historical sessions. Grant -6's
 owner-approved USD 14.94 ceiling, USD 14.91 run cap, USD 0.03 cleanup allowance,
 one permitted run and 39,600-second runtime are read from its public file;
 the registered USD 10.99 token share still fits four full Kimi reservations.
+
+Before v2 merged, argument-event logging changed the pinned `provider.py`
+source. This prospective refresh regenerates v2 at the newer main revision;
+all 34 grant files, other ten source files and every cost/selection row retain
+their prior values. The exact regeneration control stays unchanged.
 
 ## What changed at the larger cap
 

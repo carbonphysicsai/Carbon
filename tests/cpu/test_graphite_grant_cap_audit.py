@@ -140,7 +140,7 @@ def test_versioned_snapshot_rebinds_current_grants_without_reinterpreting_v1():
     assert previous["grant_count"] == 33
     assert current.pop("snapshot_version") == 2
     assert current.pop("source_revision") == (
-        "7f90cf3d01e674d46239db0693a71f375c1aaa6f"
+        "e13f973a0da7b887bcbf28796ca895fc7e697451"
     )
     assert current.pop("supersedes") == {
         "path": "docs/development/evidence/role-output-cap-audit/audit-v1.json",
