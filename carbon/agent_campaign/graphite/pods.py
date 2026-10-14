@@ -1456,8 +1456,14 @@ class InMemoryRunPod:
     the `http` `RunPodPods` reads pods with. No network, no account, no spend.
     Safe to call from several threads at once, as the check does."""
 
-    def __init__(self, *, balance=100.0, rate=0.44, charge=0.07):
+    def __init__(
+        self, *, balance=100.0, rate=0.44, charge=0.07, cpu_stock=None,
+        placed_cpu_flavor=None, omit_cpu_flavor=False,
+    ):
         self.balance, self.rate, self.charge = balance, rate, charge
+        self.cpu_stock = dict(cpu_stock or {})
+        self.placed_cpu_flavor = placed_cpu_flavor
+        self.omit_cpu_flavor = omit_cpu_flavor
         self.pods, self.creates, self.threads = {}, [], set()
         #: Each create request's `allowedCudaVersions`, in create order.
         self.cuda = []
@@ -1472,7 +1478,11 @@ class InMemoryRunPod:
         return status, json.dumps(payload).encode()
 
     def _view(self, pod):
-        return {key: pod[key] for key in ("id", "name", "desiredStatus", "costPerHr")}
+        return {
+            key: pod[key]
+            for key in ("id", "name", "desiredStatus", "costPerHr", "cpuFlavorId")
+            if key in pod
+        }
 
     def _answer(self, method, url, body):
         # The endpoints as the operator adapter names them, so this answers
@@ -1482,8 +1492,30 @@ class InMemoryRunPod:
 
         rest_pods, billing = runpod.REST + "/pods", runpod.REST + "/billing/pods?"
         if url == runpod.GRAPHQL:
-            if "clientBalance" in json.loads(body)["query"]:
+            query = json.loads(body)["query"]
+            if "clientBalance" in query:
                 return 200, {"data": {"myself": {"clientBalance": self.balance}}}
+            if "cpuFlavors" in query:
+                match = re.search(r'instanceId:"([A-Za-z0-9-]+)"', query)
+                if match is None:
+                    raise AssertionError("in-memory RunPod: malformed CPU stock query")
+                instance_id = match.group(1)
+                # The deliberately unrelated id proves the adapter joins the
+                # observation to the requested instance identity.
+                return 200, {
+                    "data": {
+                        "cpuFlavors": [
+                            {
+                                "id": "ignored-catalog-id",
+                                "specifics": {
+                                    "stockStatus": self.cpu_stock.get(
+                                        instance_id, "High"
+                                    )
+                                },
+                            }
+                        ]
+                    }
+                }
             price = {"uninterruptablePrice": self.rate, "stockStatus": "High"}
             return 200, {"data": {"gpuTypes": [{"lowestPrice": price}]}}
         if url == rest_pods and method == "POST":
@@ -1491,13 +1523,20 @@ class InMemoryRunPod:
             pod_id = f"inmemory{len(self.creates):04d}"
             self.creates.append(pod_id)
             self.cuda.append(request.get("allowedCudaVersions"))
-            self.pods[pod_id] = {
+            pod = {
                 "id": pod_id,
                 "name": request["name"],
                 "desiredStatus": "RUNNING",
                 "costPerHr": self.rate,
                 "env": request["env"],
             }
+            if request["computeType"] == "CPU" and not self.omit_cpu_flavor:
+                pod["cpuFlavorId"] = (
+                    self.placed_cpu_flavor
+                    if self.placed_cpu_flavor is not None
+                    else request.get("cpuFlavorIds", [None])[0]
+                )
+            self.pods[pod_id] = pod
             return 200, self._view(self.pods[pod_id])
         if url == rest_pods and method == "GET":
             return 200, [self._view(pod) for pod in self.pods.values()]

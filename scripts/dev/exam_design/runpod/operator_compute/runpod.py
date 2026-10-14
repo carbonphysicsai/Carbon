@@ -14,6 +14,10 @@ places the value only in the ``Authorization`` header handed to the transport.
 Provider bodies and transport exception text are never copied into errors or
 logs, because either can echo the request.
 
+CPU stock is a read-only historical GraphQL shape from Data Collection's
+operator handoff. It reads only ``stockStatus``; the raw ``securePrice`` unit
+and current quotes are not established by that history.
+
 Key scope. Every request passes through one allow-list,
 :data:`ALLOWED_OPERATIONS`, and anything else is refused before the credential
 is loaded. The adapter therefore needs exactly:
@@ -22,12 +26,13 @@ is loaded. The adapter therefore needs exactly:
   ``DELETE /v1/pods/{id}`` (terminate);
 * pod reads: ``GET /v1/pods``, ``GET /v1/pods/{id}``;
 * account/catalog reads over GraphQL: ``myself { clientBalance }`` (the
-  spending cap is the balance) and ``gpuTypes { lowestPrice }`` (price/stock);
+  spending cap is the balance), ``gpuTypes { lowestPrice }`` (GPU price/stock),
+  and the historical ``cpuFlavors { specifics }`` stock read;
 * optionally ``GET /v1/billing/pods`` (charges; refusal leaves them unresolved).
 
 No template, network-volume, endpoint, secret, registry, SSH-key or billing
 *write* is ever issued. Whether a RunPod API key can be restricted to exactly
-this set is not verified here: the balance and price reads go through GraphQL,
+this set is not verified here: the balance and catalog reads go through GraphQL,
 and if RunPod's key scoping cannot grant those reads alongside pod lifecycle,
 the operator must either grant the broader read scope or supply balance and
 price observations some other way - the provision gate only requires that a
@@ -58,6 +63,7 @@ from .model import (
 )
 from .provider import (
     BalanceObservation,
+    CPUStockObservation,
     CreateResult,
     ListedResource,
     Observation,
@@ -81,6 +87,7 @@ ALLOWED_OPERATIONS: tuple[tuple[str, str, str], ...] = (
     ("terminate", "DELETE", r"https://rest\.runpod\.io" + _POD_PATH),
     ("offers", "POST", r"https://api\.runpod\.io/graphql"),
     ("balance", "POST", r"https://api\.runpod\.io/graphql"),
+    ("cpu_stock", "POST", r"https://api\.runpod\.io/graphql"),
     (
         "charges",
         "GET",
@@ -94,10 +101,11 @@ _ALLOWED = {
     (operation, method): re.compile(pattern)
     for operation, method, pattern in ALLOWED_OPERATIONS
 }
-# GraphQL bodies are fixed shapes: only these two query roots are ever sent.
+# GraphQL bodies are fixed shapes: only these query roots are ever sent.
 _GRAPHQL_PREFIX = {
     "offers": "query { gpuTypes(",
     "balance": "query { myself { clientBalance } }",
+    "cpu_stock": "query { cpuFlavors { id specifics(input:{instanceId:\"",
 }
 # Not exercised by pod_control.py; see module docstring. The stop path matches
 # the REST v1 spec (read 2026-10-02) but has not been run live.
@@ -278,8 +286,8 @@ class RunPodAdapter:
                 execution=Execution.NOT_EXECUTED,
                 resources_may_remain=False,
                 retry_safe=False,
-                next_action="this adapter issues pod lifecycle, balance and price "
-                "requests only",
+                next_action="this adapter issues pod lifecycle, balance, price and "
+                "CPU stock requests only",
             )
         try:
             key = self._credentials.load()
@@ -396,6 +404,70 @@ class RunPodAdapter:
             )
         return BalanceObservation(float(value), observed, "runpod.graphql.myself")
 
+    def cpu_stock(self, flavor_id: str, vcpu_count: int) -> CPUStockObservation:
+        """Read only the historical CPU stock field; never infer a quote.
+
+        `null` is the recorded unavailable value and `High` is the recorded
+        available value. Anything else is unknown and fails closed.
+        """
+        if flavor_id not in {"cpu3c", "cpu3g", "cpu3m", "cpu5c", "cpu5g", "cpu5m"}:
+            raise ValueError("unsupported CPU flavor")
+        if type(vcpu_count) is not int or vcpu_count <= 0:
+            raise ValueError("CPU vCPU count must be a positive integer")
+        ram_multiplier = {"c": 2, "g": 4, "m": 8}[flavor_id[-1]]
+        instance_id = f"{flavor_id}-{vcpu_count}-{vcpu_count * ram_multiplier}"
+        query = (
+            'query { cpuFlavors { id specifics(input:{instanceId:"'
+            + instance_id
+            + '"}) { stockStatus } } }'
+        )
+        status, payload = self._send(
+            "cpu_stock", "POST", GRAPHQL, {"query": query}, mutating=False
+        )
+        try:
+            rows = payload["data"]["cpuFlavors"]
+            values = [row["specifics"]["stockStatus"] for row in rows]
+            # The historical query may return a catalog row whose id is not
+            # the requested instance. The request identity is authoritative;
+            # duplicate/conflicting specifics are ambiguous.
+            if not values or len(set(values)) != 1:
+                raise ValueError
+            value = values[0]
+            if value is None:
+                available = False
+            elif value == "High":
+                available = True
+            else:
+                raise ValueError
+        except (TypeError, KeyError, IndexError, ValueError):
+            raise ComputeError(
+                operation="cpu_stock",
+                failed="CPU stock observation unknown",
+                execution=Execution.EXECUTED,
+                resources_may_remain=False,
+                retry_safe=True,
+                next_action="retry after the RunPod CPU stock response is understood",
+                http_status=status,
+            ) from None
+        if status != 200:
+            raise ComputeError(
+                operation="cpu_stock",
+                failed="CPU stock observation unknown",
+                execution=Execution.EXECUTED,
+                resources_may_remain=False,
+                retry_safe=True,
+                next_action="retry the read-only stock preflight",
+                http_status=status,
+            )
+        return CPUStockObservation(
+            flavor_id,
+            vcpu_count,
+            instance_id,
+            available,
+            self._clock(),
+            "runpod.graphql.cpuFlavors.specifics.stockStatus",
+        )
+
     def create_body(self, spec: PodSpec, ownership_tag: str) -> dict[str, object]:
         env = dict(spec.env)
         env["CARBON_OWNERSHIP_TAG"] = ownership_tag
@@ -416,7 +488,7 @@ class RunPodAdapter:
         else:
             placement = spec.cpu_placement
             assert placement is not None  # PodSpec construction enforces this.
-            body["cpuFlavorIds"] = [placement.flavor_id]
+            body["cpuFlavorIds"] = list(placement.flavor_ids)
             body["cpuFlavorPriority"] = "custom"
             body["vcpuCount"] = placement.vcpu_count
         if spec.allowed_cuda_versions:
@@ -493,6 +565,11 @@ class RunPodAdapter:
             payload.get("name"),
             None if rate is None else float(rate),
             now,
+            payload.get("cpuFlavorId")
+            if isinstance(payload.get("cpuFlavorId"), str)
+            and payload.get("cpuFlavorId")
+            in {"cpu3c", "cpu3g", "cpu3m", "cpu5c", "cpu5g", "cpu5m"}
+            else None,
         )
 
     def datacenter(self, resource_id: str) -> str | None:

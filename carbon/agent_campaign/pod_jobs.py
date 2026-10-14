@@ -21,9 +21,12 @@ Carbon's own code at a pushed commit. The spec (`carbon.pod-job.spec.v1`) names:
   the results after the job.
 - `image` (`study`: the pinned EV4 study image, CPU or JAX GPU; `pytorch`: the
   released torch-gpu worker image), `overlays` (name to lock path), and
-  `compute` (`{"kind": "cpu", "flavor", "vcpus"}` or
+  `compute` (`{"kind": "cpu", "flavor", "vcpus"}` with optional ordered
+  `fallback_flavors`, or
   `{"kind": "gpu", "type", "count"}`).
-- `minutes`, `rate_ceiling_usd_per_hr` and `cap_usd`. The pod's worst case
+- `minutes`, `rate_ceiling_usd_per_hr` and `cap_usd`. A CPU fallback list's
+  ceiling and deadline must cover the slowest explicitly accepted flavor. The
+  pod's worst case
   (`minutes` at the ceiling, plus disk and pod_control's cleanup reserve) must
   fit under `cap_usd`, and `cap_usd` under OWNER-TEST-GRANT-01's per-run cap.
 
@@ -249,12 +252,20 @@ def load_spec(document):
     if type(compute) is not dict:
         raise SpecRefused("spec_compute")
     if compute.get("kind") == "cpu":
-        if set(compute) != {"kind", "flavor", "vcpus"}:
+        if set(compute) not in (
+            {"kind", "flavor", "vcpus"},
+            {"kind", "flavor", "vcpus", "fallback_flavors"},
+        ):
             raise SpecRefused("spec_compute")
         from scripts.dev.exam_design.runpod.operator_compute import CPUPlacement
 
+        fallbacks = compute.get("fallback_flavors", [])
+        if type(fallbacks) is not list:
+            raise SpecRefused(
+                "spec_compute", "fallback_flavors must be an ordered list"
+            )
         try:
-            CPUPlacement(compute["flavor"], compute["vcpus"])
+            CPUPlacement(compute["flavor"], compute["vcpus"], tuple(fallbacks))
         except ValueError as refused:
             raise SpecRefused("spec_compute", str(refused)) from None
         if document["image"] != "study":
@@ -431,6 +442,9 @@ class JobPods(pods.RunPodPods):
         self._record_lock = threading.Lock()
         self._noncreation_evidence = None
         self._create_failure = None
+        self._cpu_stock_preflight = []
+        self._actual_cpu_flavor_id = None
+        self._launched_resource_id = None
         root = pods.private_dir(root)
         self.store = ComputeStore(root / "compute", clock=clock)
         if self.store.campaign_status(self.CAMPAIGN) is None:
@@ -586,7 +600,11 @@ class JobPods(pods.RunPodPods):
             return PodSpec(
                 gpu_type_id=None,
                 gpu_count=0,
-                cpu_placement=CPUPlacement(compute["flavor"], compute["vcpus"]),
+                cpu_placement=CPUPlacement(
+                    compute["flavor"],
+                    compute["vcpus"],
+                    tuple(compute.get("fallback_flavors", [])),
+                ),
                 **common,
             )
         backend = "pytorch" if self.spec.document["image"] == "pytorch" else "jax"
@@ -598,9 +616,7 @@ class JobPods(pods.RunPodPods):
         )
 
     def launch_job(self, private):
-        """Create the job's pod: the balance floor first, then (GPU) a priced
-        offer at or below the ceiling; the operator layer checks the created
-        pod's rate against the ceiling and refuses it otherwise."""
+        """Preflight accepted CPU flavors or a priced GPU offer, then create."""
         from scripts.dev.exam_design.runpod.operator_compute import (
             ComputeError,
             Execution,
@@ -618,7 +634,60 @@ class JobPods(pods.RunPodPods):
                 raise PodFailure(
                     "launch", "balance would fall below the floor", executed=False
                 )
-            if not self.spec.cpu:
+            if self.spec.cpu:
+                placement = spec.cpu_placement
+                assert placement is not None
+                in_stock = []
+                for flavor_id in placement.flavor_ids:
+                    try:
+                        stock = self.adapter.cpu_stock(
+                            flavor_id, placement.vcpu_count
+                        )
+                    except ComputeError:
+                        ram_multiplier = {"c": 2, "g": 4, "m": 8}[flavor_id[-1]]
+                        self._cpu_stock_preflight.append(
+                            {
+                                "flavor_id": flavor_id,
+                                "vcpu_count": placement.vcpu_count,
+                                "instance_id": (
+                                    f"{flavor_id}-{placement.vcpu_count}-"
+                                    f"{placement.vcpu_count * ram_multiplier}"
+                                ),
+                                "available": None,
+                                "observed_at": self.clock(),
+                                "source": (
+                                    "runpod.graphql.cpuFlavors.specifics.stockStatus"
+                                ),
+                            }
+                        )
+                        raise
+                    self._cpu_stock_preflight.append(
+                        {
+                            "flavor_id": stock.flavor_id,
+                            "vcpu_count": stock.vcpu_count,
+                            "instance_id": stock.instance_id,
+                            "available": stock.available,
+                            "observed_at": stock.observed_at,
+                            "source": stock.source,
+                        }
+                    )
+                    if stock.available:
+                        in_stock.append(flavor_id)
+                if not in_stock:
+                    raise PodFailure(
+                        "launch",
+                        "no explicitly accepted CPU flavor is in stock",
+                        executed=False,
+                    )
+                from dataclasses import replace
+
+                spec = replace(
+                    spec,
+                    cpu_placement=type(placement)(
+                        in_stock[0], placement.vcpu_count, tuple(in_stock[1:])
+                    ),
+                )
+            else:
                 compute = self.spec.document["compute"]
                 offers = self.adapter.offers(
                     [compute["type"]], gpu_count=compute["count"]
@@ -657,12 +726,13 @@ class JobPods(pods.RunPodPods):
             # The provider's own HTTP status travels with the refusal, so an
             # ambiguous create says what the provider answered.
             status = failure.http_status
-            self._create_failure = {
-                "operation": failure.operation,
-                "execution": str(failure.execution),
-                "resources_may_remain": failure.resources_may_remain,
-                "http_status": failure.http_status,
-            }
+            if failure.operation != "cpu_stock":
+                self._create_failure = {
+                    "operation": failure.operation,
+                    "execution": str(failure.execution),
+                    "resources_may_remain": failure.resources_may_remain,
+                    "http_status": failure.http_status,
+                }
             try:
                 if "request" in locals():
                     self._noncreation_evidence = noncreation.reconcile_rejection(
@@ -675,8 +745,23 @@ class JobPods(pods.RunPodPods):
             raise PodFailure(
                 "launch",
                 failure.failed + ("" if status is None else f" (HTTP {status})"),
-                executed=failure.execution is not Execution.NOT_EXECUTED,
+                executed=(
+                    failure.operation != "cpu_stock"
+                    and failure.execution is not Execution.NOT_EXECUTED
+                ),
             ) from None
+        self._launched_resource_id = resource.resource_id
+        if self.spec.cpu:
+            observed = self.adapter.observe(resource.resource_id)
+            self._actual_cpu_flavor_id = observed.cpu_flavor_id
+            accepted = set(spec.cpu_placement.flavor_ids)
+            if self._actual_cpu_flavor_id not in accepted:
+                raise PodFailure(
+                    "launch",
+                    "provider did not report an accepted actual CPU flavor; "
+                    "pod will be recovered and terminated",
+                    executed=True,
+                )
         self._tokens[self.spec.job_id] = record["token"]
         return PodHandle(
             self.spec.job_id, resource.resource_id, pods._rate(resource.rate_usd_per_hr)
@@ -841,6 +926,8 @@ def run(spec, out, *, backend, ledger=None, private=None, uploads=None):
         "outcome": None,
         "pod_id": None,
         "rate_usd_per_hr": None,
+        "cpu_stock_preflight": [],
+        "actual_cpu_flavor_id": None,
         "files": {},
         "errors": [],
         "teardown": None,
@@ -907,6 +994,10 @@ def _finish(receipt, ledger, spec, backend, handle, executed, private, out):
     always written."""
     if backend._create_failure is not None:
         receipt["create_failure"] = dict(backend._create_failure)
+    if receipt["pod_id"] is None and backend._launched_resource_id is not None:
+        receipt["pod_id"] = backend._launched_resource_id
+    receipt["cpu_stock_preflight"] = list(backend._cpu_stock_preflight)
+    receipt["actual_cpu_flavor_id"] = backend._actual_cpu_flavor_id
     if not executed:
         try:
             intent = backend.store.intent(CAMPAIGN, spec.job_id)

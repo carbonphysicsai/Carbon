@@ -140,6 +140,56 @@ def test_cpu_request_pins_one_flavor_and_vcpu_count_without_fallback(env, monkey
     assert sent[0]["vcpuCount"] == 16
 
 
+def test_cpu_stock_query_uses_the_recorded_instance_shape_and_fails_closed(env):
+    _clock, _fake, _store, adapter, _service, _root = env
+    sent = []
+
+    def stock_transport(method, url, *, body, headers, timeout):
+        query = json.loads(body)["query"]
+        sent.append((method, url, query))
+        return 200, json.dumps(
+            {
+                "data": {
+                    "cpuFlavors": [
+                        {
+                            "id": "unrelated",
+                            "specifics": {"stockStatus": "High"},
+                        }
+                    ]
+                }
+            }
+        ).encode()
+
+    adapter._transport = stock_transport
+    observation = adapter.cpu_stock("cpu5m", 8)
+    assert observation.instance_id == "cpu5m-8-64"
+    assert observation.available is True
+    assert sent[0][0:2] == ("POST", "https://api.runpod.io/graphql")
+    assert 'instanceId:"cpu5m-8-64"' in sent[0][2]
+    assert "securePrice" not in sent[0][2]
+
+    adapter._transport = lambda *args, **kwargs: (
+        200,
+        (
+            b'{"data":{"cpuFlavors":[{"id":"unrelated",'
+            b'"specifics":{"stockStatus":null}}]}}'
+        ),
+    )
+    assert adapter.cpu_stock("cpu5m", 8).available is False
+    adapter._transport = lambda *args, **kwargs: (200, b'{"data":{"cpuFlavors":[]}}')
+    with pytest.raises(ComputeError, match="stock observation unknown"):
+        adapter.cpu_stock("cpu5m", 8)
+
+
+def test_cpu_create_preserves_explicit_fallback_order(env):
+    placement = CPUPlacement("cpu5c", 8, ("cpu3c",))
+    request_spec = spec(gpu_type_id=None, gpu_count=0, cpu_placement=placement)
+    adapter = env[3]
+    assert adapter.create_body(request_spec, "a" * 24)["cpuFlavorIds"] == [
+        "cpu5c", "cpu3c"
+    ]
+
+
 @pytest.mark.parametrize("count", [0, -1, True, 16.0, "16", None])
 def test_cpu_placement_refuses_invalid_allocation(count):
     with pytest.raises(ValueError, match="positive integer"):

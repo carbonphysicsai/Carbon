@@ -60,6 +60,17 @@ def test_a_valid_spec_loads_with_its_worst_case_under_its_cap():
     assert spec.digest().startswith("sha256:")
 
 
+def test_cpu_fallbacks_are_explicit_ordered_and_same_memory_class():
+    document = spec_document()
+    document["compute"]["fallback_flavors"] = ["cpu3c"]
+    loaded = pod_jobs.load_spec(document)
+    placement = loaded.document["compute"]
+    assert placement["fallback_flavors"] == ["cpu3c"]
+    document["compute"]["fallback_flavors"] = ["cpu3m"]
+    with pytest.raises(pod_jobs.SpecRefused, match="same memory class"):
+        pod_jobs.load_spec(document)
+
+
 @pytest.mark.parametrize(
     ("changes", "code"),
     [
@@ -142,6 +153,8 @@ def test_check_runs_the_real_lifecycle_with_no_network_and_no_spend(tmp_path):
     assert receipt["cost"]["charged_usd"] == "0.07"
     written = json.loads((tmp_path / "check" / "out" / "receipt.json").read_text())
     assert written == json.loads(json.dumps(receipt))
+    assert receipt["cpu_stock_preflight"][0]["instance_id"] == "cpu5c-8-16"
+    assert receipt["actual_cpu_flavor_id"] == "cpu5c"
 
 
 @pytest.fixture
@@ -153,9 +166,9 @@ def lifecycle(tmp_path, monkeypatch):
     key.chmod(0o600)
     enable(key)
 
-    def make(account=None, **changes):
+    def make(account=None, job_spec=None, **changes):
         account = account or pods.InMemoryRunPod()
-        spec = pod_jobs.load_spec(spec_document())
+        spec = job_spec or pod_jobs.load_spec(spec_document())
         backend = pod_jobs.JobPods(
             spec,
             root=tmp_path / "pods",
@@ -189,6 +202,69 @@ def test_a_launch_refused_before_any_create_settles_at_zero(lifecycle):
     assert account.creates == [] and receipt["pod_id"] is None
     assert ledger[-1]["cost_usd"] == "0" and ledger[-1]["pending_usd"] == "0"
     assert receipt["teardown"]["terminated"] is True
+
+
+def test_cpu_stock_preflight_filters_explicit_fallbacks_and_records_actual_flavor(
+    lifecycle,
+):
+    make, go = lifecycle
+    document = spec_document()
+    document["compute"]["fallback_flavors"] = ["cpu3c"]
+    spec = pod_jobs.load_spec(document)
+    account = pods.InMemoryRunPod(
+        cpu_stock={"cpu5c-8-16": None, "cpu3c-8-16": "High"}
+    )
+    _same_spec, backend, _account = make(account, job_spec=spec)
+    receipt, _ledger = go(spec, backend)
+    assert receipt["ok"] is True
+    assert [row["available"] for row in receipt["cpu_stock_preflight"]] == [False, True]
+    assert receipt["actual_cpu_flavor_id"] == "cpu3c"
+    assert account.creates and account.pods == {}
+
+
+def test_cpu_stock_unknown_or_empty_refuses_before_create(lifecycle):
+    make, go = lifecycle
+    spec, backend, account = make(
+        pods.InMemoryRunPod(cpu_stock={"cpu5c-8-16": None})
+    )
+    receipt, ledger = go(spec, backend)
+    assert receipt["outcome"].startswith("launch_refused:")
+    assert receipt["cpu_stock_preflight"][0]["available"] is False
+    assert account.creates == []
+    assert receipt["teardown"]["terminated"] is True
+    assert ledger[-1]["cost_usd"] == "0"
+
+
+def test_cpu_stock_unrecognized_status_refuses_before_create(lifecycle):
+    make, go = lifecycle
+    spec, backend, account = make(
+        pods.InMemoryRunPod(cpu_stock={"cpu5c-8-16": "Medium"})
+    )
+    receipt, _ledger = go(spec, backend)
+    assert receipt["outcome"].startswith("launch_refused:")
+    assert receipt["cpu_stock_preflight"][0]["available"] is None
+    assert account.creates == []
+
+
+def test_unaccepted_actual_cpu_flavor_is_recovered_and_torn_down(lifecycle):
+    make, go = lifecycle
+    spec, backend, account = make(pods.InMemoryRunPod(placed_cpu_flavor="cpu5m"))
+    receipt, _ledger = go(spec, backend)
+    assert receipt["outcome"].startswith("launch_refused:")
+    assert receipt["actual_cpu_flavor_id"] == "cpu5m"
+    assert receipt["pod_id"] == receipt["teardown"]["pod"]
+    assert receipt["teardown"]["terminated"] is True
+    assert account.pods == {}
+
+
+def test_missing_actual_cpu_flavor_is_recovered_and_torn_down(lifecycle):
+    make, go = lifecycle
+    spec, backend, account = make(pods.InMemoryRunPod(omit_cpu_flavor=True))
+    receipt, _ledger = go(spec, backend)
+    assert receipt["outcome"].startswith("launch_refused:")
+    assert receipt["actual_cpu_flavor_id"] is None
+    assert receipt["teardown"]["terminated"] is True
+    assert account.pods == {}
 
 
 def test_an_unreported_charge_stays_at_the_full_reservation(lifecycle):

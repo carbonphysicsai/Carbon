@@ -96,19 +96,37 @@ def _checked_id(value: str, what: str) -> str:
 
 @dataclass(frozen=True)
 class CPUPlacement:
-    """One explicit CPU flavor and allocation; no availability fallback.
+    """An ordered, explicitly accepted set of CPU flavors and allocation.
 
-    This pins the request, not observed hardware or a spend authorization.
+    The first flavor is the preference. Additional flavors are opt-in and do
+    not imply performance equivalence or spend authorization.
     """
 
     flavor_id: str
     vcpu_count: int
+    fallback_flavor_ids: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         if not isinstance(self.flavor_id, str) or self.flavor_id not in _CPU_FLAVORS:
             raise ValueError("unsupported CPU flavor")
         if type(self.vcpu_count) is not int or self.vcpu_count <= 0:
             raise ValueError("CPU vCPU count must be a positive integer")
+        if type(self.fallback_flavor_ids) is not tuple:
+            raise ValueError("CPU fallback flavors must be an immutable tuple")
+        flavors = (self.flavor_id, *self.fallback_flavor_ids)
+        if any(
+            type(flavor) is not str or flavor not in _CPU_FLAVORS
+            for flavor in flavors
+        ):
+            raise ValueError("unsupported CPU fallback flavor")
+        if len(set(flavors)) != len(flavors):
+            raise ValueError("CPU flavors must be unique")
+        if any(flavor[-1] != self.flavor_id[-1] for flavor in flavors):
+            raise ValueError("CPU fallback flavors must use the same memory class")
+
+    @property
+    def flavor_ids(self) -> tuple[str, ...]:
+        return (self.flavor_id, *self.fallback_flavor_ids)
 
 
 @dataclass(frozen=True)
@@ -174,6 +192,12 @@ class PodSpec:
         # No new null field in historical GPU intent identities.
         placement = value.pop("cpu_placement")
         if placement is not None:
+            if not placement.get("fallback_flavor_ids"):
+                placement.pop("fallback_flavor_ids", None)
+            else:
+                placement["fallback_flavor_ids"] = list(
+                    placement["fallback_flavor_ids"]
+                )
             value["cpu_placement"] = placement
         return value
 
