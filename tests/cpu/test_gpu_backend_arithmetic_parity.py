@@ -6,7 +6,6 @@ training tolerance is selected. CUDA runs select one framework per pinned image.
 
 from __future__ import annotations
 
-import importlib
 import os
 
 import numpy as np
@@ -23,9 +22,15 @@ EXPECTED = X @ W + B
 
 def result(framework):
     package = "torch" if framework == "pytorch" else "jax"
-    module = (
-        importlib.import_module(package) if REQUIRED else pytest.importorskip(package)
-    )
+    if REQUIRED:
+        # Literal imports preserve the authority audit's closed import inventory.
+        # Required CUDA still fails on a missing framework; it never skips.
+        if framework == "pytorch":
+            import torch as module
+        else:
+            import jax as module
+    else:
+        module = pytest.importorskip(package)
     if framework == "pytorch":
         import contextlib
 
