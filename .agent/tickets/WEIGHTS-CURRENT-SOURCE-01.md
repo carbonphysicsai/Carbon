@@ -44,3 +44,14 @@ history; bounded operator explanation. Fresh open-PR scan found no overlap.
 Completion conditional on focused canonical controls and actual exact-head
 gates/Root integration. Maturity DEVELOPMENT software tested only, never
 security/scientific/mainnet/payment acceptance.
+
+Canonical evidence (Ubuntu24.04/amd64, Python3.11.16): existing publication,
+eligibility and decay baseline 56 passed. New source controls against old
+runtime: 19 genuine discriminating failures plus one fixture property error;
+the corrected halving control passed on old runtime before applying the repair.
+Repaired four-file suite: 76 passed. Final exception-chain privacy assertion
+and later-block halving fixture: 13 passed, 7 deselected. Canonical Black and
+Ruff passed on all three changed Python files. Commands: canonical.sh python
+-m pytest tests/cpu/test_reward_{current_winner_source,testnet_winner_publication,
+winner_eligibility,winner_decay}.py -q -x; final focused selection -k
+"unavailable or halving" -q. Validation uses synthetic scripted counters only.
