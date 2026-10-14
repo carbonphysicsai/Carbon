@@ -2,7 +2,8 @@
 
 This replaces the handoff survey's predictions for the bounded offline probes
 below. [MEASURED.json](MEASURED.json) records the actual 55 observations, their
-commands, 11 declared public strategy fixtures, source commit and file hashes.
+recorded inner runner commands, documented canonical reproducers, 11 declared
+public strategy fixtures, source commit and file hashes.
 The source snapshot is `31c6fc76a6f2555183d9f9d7915a1f641ea14415`, based on main
 `679b37a05b3120e627a92c4db4d7811ada43ce5d`. No training, reference solve, model,
 provider, signer, submit or live-host trial ran. All execution callbacks refuse,
@@ -49,7 +50,16 @@ The C0 forecast's `[0, 0]` seconds is explicitly
 budget admission, a quote or observed resource evidence. Resource failures for
 other strategies remain errors; no rejected strategy receives a runtime claim.
 
-Each individual observation has an executable command, for example:
+Each individual observation retains its original `command` text and adds a
+`documented_canonical_reproducer` with the wrapper and dependency groups below.
+The artifact's `command_record` labels the distinction: the original field is
+recorded inner runner-command text, not a per-row record of the outer wrapper
+or environment actually executed. The added field is documentation, not a
+claim that a new measurement or that exact shell command ran. Observations,
+source snapshot/hashes, and the original command strings are unchanged.
+Use the recorded source snapshot when reproducing these bounded observations;
+the annotated fields do not rebind them to a newer implementation.
+For example:
 
 ```bash
 CARBON_UV_GROUPS='science-jax mcp archive' ./scripts/dev/canonical.sh python -m scripts.dev.launchpad_offline_coverage --case X2 --operation construction

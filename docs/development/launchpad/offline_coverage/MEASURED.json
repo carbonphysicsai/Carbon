@@ -11,6 +11,14 @@
     "host_runs": 0,
     "training_runs": 0
   },
+  "command_record": {
+    "documented_field": "documented_canonical_reproducer",
+    "documented_field_basis": "DOCUMENTED_REPRODUCER_NOT_NEW_EXECUTION",
+    "per_row_wrapper_execution_history": "NOT_RECORDED",
+    "recorded_field": "command",
+    "recorded_field_basis": "RECORDED_INNER_RUNNER_COMMAND_TEXT",
+    "source_snapshot": "31c6fc76a6f2555183d9f9d7915a1f641ea14415"
+  },
   "construction": {
     "digest": "sha256:0865617e90ecd0ea117c2f12cafb6f519b0c4ed0bc00e7e2483ebe248ba76310",
     "version": "battery-construction-v1"
@@ -20,6 +28,7 @@
     {
       "case": "C0",
       "command": "python -m scripts.dev.launchpad_offline_coverage --case C0 --operation construction",
+      "documented_canonical_reproducer": "CARBON_UV_GROUPS='science-jax mcp archive' ./scripts/dev/canonical.sh python -m scripts.dev.launchpad_offline_coverage --case C0 --operation construction",
       "observation": {
         "cli_exit_code": 0,
         "derived": {
@@ -39,6 +48,7 @@
     {
       "case": "C0",
       "command": "python -m scripts.dev.launchpad_offline_coverage --case C0 --operation dry_validate",
+      "documented_canonical_reproducer": "CARBON_UV_GROUPS='science-jax mcp archive' ./scripts/dev/canonical.sh python -m scripts.dev.launchpad_offline_coverage --case C0 --operation dry_validate",
       "observation": {
         "execution": "LOCAL_SERVICE_CALL_ONLY",
         "execution_allowance_used": {
@@ -64,6 +74,7 @@
     {
       "case": "C0",
       "command": "python -m scripts.dev.launchpad_offline_coverage --case C0 --operation compile_strategy",
+      "documented_canonical_reproducer": "CARBON_UV_GROUPS='science-jax mcp archive' ./scripts/dev/canonical.sh python -m scripts.dev.launchpad_offline_coverage --case C0 --operation compile_strategy",
       "observation": {
         "execution": "LOCAL_SERVICE_CALL_ONLY",
         "execution_allowance_used": {
@@ -89,6 +100,7 @@
     {
       "case": "C0",
       "command": "python -m scripts.dev.launchpad_offline_coverage --case C0 --operation inspect_resources",
+      "documented_canonical_reproducer": "CARBON_UV_GROUPS='science-jax mcp archive' ./scripts/dev/canonical.sh python -m scripts.dev.launchpad_offline_coverage --case C0 --operation inspect_resources",
       "observation": {
         "execution": "LOCAL_SERVICE_CALL_ONLY",
         "execution_allowance_used": {
@@ -122,6 +134,7 @@
     {
       "case": "C0",
       "command": "python -m scripts.dev.launchpad_offline_coverage --case C0 --operation forecast_resources",
+      "documented_canonical_reproducer": "CARBON_UV_GROUPS='science-jax mcp archive' ./scripts/dev/canonical.sh python -m scripts.dev.launchpad_offline_coverage --case C0 --operation forecast_resources",
       "observation": {
         "execution": "LOCAL_SERVICE_CALL_ONLY",
         "execution_allowance_used": {
@@ -160,6 +173,7 @@
     {
       "case": "C1",
       "command": "python -m scripts.dev.launchpad_offline_coverage --case C1 --operation construction",
+      "documented_canonical_reproducer": "CARBON_UV_GROUPS='science-jax mcp archive' ./scripts/dev/canonical.sh python -m scripts.dev.launchpad_offline_coverage --case C1 --operation construction",
       "observation": {
         "cli_exit_code": 0,
         "derived": {
@@ -191,6 +205,7 @@
     {
       "case": "C1",
       "command": "python -m scripts.dev.launchpad_offline_coverage --case C1 --operation dry_validate",
+      "documented_canonical_reproducer": "CARBON_UV_GROUPS='science-jax mcp archive' ./scripts/dev/canonical.sh python -m scripts.dev.launchpad_offline_coverage --case C1 --operation dry_validate",
       "observation": {
         "execution": "LOCAL_SERVICE_CALL_ONLY",
         "execution_allowance_used": {
@@ -224,6 +239,7 @@
     {
       "case": "C1",
       "command": "python -m scripts.dev.launchpad_offline_coverage --case C1 --operation compile_strategy",
+      "documented_canonical_reproducer": "CARBON_UV_GROUPS='science-jax mcp archive' ./scripts/dev/canonical.sh python -m scripts.dev.launchpad_offline_coverage --case C1 --operation compile_strategy",
       "observation": {
         "execution": "LOCAL_SERVICE_CALL_ONLY",
         "execution_allowance_used": {
@@ -256,6 +272,7 @@
     {
       "case": "C1",
       "command": "python -m scripts.dev.launchpad_offline_coverage --case C1 --operation inspect_resources",
+      "documented_canonical_reproducer": "CARBON_UV_GROUPS='science-jax mcp archive' ./scripts/dev/canonical.sh python -m scripts.dev.launchpad_offline_coverage --case C1 --operation inspect_resources",
       "observation": {
         "code": "PROVIDER_UNAVAILABLE",
         "execution": "LOCAL_SERVICE_CALL_ONLY",
@@ -281,6 +298,7 @@
     {
       "case": "C1",
       "command": "python -m scripts.dev.launchpad_offline_coverage --case C1 --operation forecast_resources",
+      "documented_canonical_reproducer": "CARBON_UV_GROUPS='science-jax mcp archive' ./scripts/dev/canonical.sh python -m scripts.dev.launchpad_offline_coverage --case C1 --operation forecast_resources",
       "observation": {
         "code": "PROVIDER_UNAVAILABLE",
         "execution": "LOCAL_SERVICE_CALL_ONLY",
@@ -306,6 +324,7 @@
     {
       "case": "C2a",
       "command": "python -m scripts.dev.launchpad_offline_coverage --case C2a --operation construction",
+      "documented_canonical_reproducer": "CARBON_UV_GROUPS='science-jax mcp archive' ./scripts/dev/canonical.sh python -m scripts.dev.launchpad_offline_coverage --case C2a --operation construction",
       "observation": {
         "cli_exit_code": 0,
         "derived": {
@@ -337,6 +356,7 @@
     {
       "case": "C2a",
       "command": "python -m scripts.dev.launchpad_offline_coverage --case C2a --operation dry_validate",
+      "documented_canonical_reproducer": "CARBON_UV_GROUPS='science-jax mcp archive' ./scripts/dev/canonical.sh python -m scripts.dev.launchpad_offline_coverage --case C2a --operation dry_validate",
       "observation": {
         "execution": "LOCAL_SERVICE_CALL_ONLY",
         "execution_allowance_used": {
@@ -370,6 +390,7 @@
     {
       "case": "C2a",
       "command": "python -m scripts.dev.launchpad_offline_coverage --case C2a --operation compile_strategy",
+      "documented_canonical_reproducer": "CARBON_UV_GROUPS='science-jax mcp archive' ./scripts/dev/canonical.sh python -m scripts.dev.launchpad_offline_coverage --case C2a --operation compile_strategy",
       "observation": {
         "execution": "LOCAL_SERVICE_CALL_ONLY",
         "execution_allowance_used": {
@@ -402,6 +423,7 @@
     {
       "case": "C2a",
       "command": "python -m scripts.dev.launchpad_offline_coverage --case C2a --operation inspect_resources",
+      "documented_canonical_reproducer": "CARBON_UV_GROUPS='science-jax mcp archive' ./scripts/dev/canonical.sh python -m scripts.dev.launchpad_offline_coverage --case C2a --operation inspect_resources",
       "observation": {
         "code": "PROVIDER_UNAVAILABLE",
         "execution": "LOCAL_SERVICE_CALL_ONLY",
@@ -427,6 +449,7 @@
     {
       "case": "C2a",
       "command": "python -m scripts.dev.launchpad_offline_coverage --case C2a --operation forecast_resources",
+      "documented_canonical_reproducer": "CARBON_UV_GROUPS='science-jax mcp archive' ./scripts/dev/canonical.sh python -m scripts.dev.launchpad_offline_coverage --case C2a --operation forecast_resources",
       "observation": {
         "code": "PROVIDER_UNAVAILABLE",
         "execution": "LOCAL_SERVICE_CALL_ONLY",
@@ -452,6 +475,7 @@
     {
       "case": "C2b",
       "command": "python -m scripts.dev.launchpad_offline_coverage --case C2b --operation construction",
+      "documented_canonical_reproducer": "CARBON_UV_GROUPS='science-jax mcp archive' ./scripts/dev/canonical.sh python -m scripts.dev.launchpad_offline_coverage --case C2b --operation construction",
       "observation": {
         "cli_exit_code": 0,
         "derived": {
@@ -483,6 +507,7 @@
     {
       "case": "C2b",
       "command": "python -m scripts.dev.launchpad_offline_coverage --case C2b --operation dry_validate",
+      "documented_canonical_reproducer": "CARBON_UV_GROUPS='science-jax mcp archive' ./scripts/dev/canonical.sh python -m scripts.dev.launchpad_offline_coverage --case C2b --operation dry_validate",
       "observation": {
         "execution": "LOCAL_SERVICE_CALL_ONLY",
         "execution_allowance_used": {
@@ -516,6 +541,7 @@
     {
       "case": "C2b",
       "command": "python -m scripts.dev.launchpad_offline_coverage --case C2b --operation compile_strategy",
+      "documented_canonical_reproducer": "CARBON_UV_GROUPS='science-jax mcp archive' ./scripts/dev/canonical.sh python -m scripts.dev.launchpad_offline_coverage --case C2b --operation compile_strategy",
       "observation": {
         "execution": "LOCAL_SERVICE_CALL_ONLY",
         "execution_allowance_used": {
@@ -548,6 +574,7 @@
     {
       "case": "C2b",
       "command": "python -m scripts.dev.launchpad_offline_coverage --case C2b --operation inspect_resources",
+      "documented_canonical_reproducer": "CARBON_UV_GROUPS='science-jax mcp archive' ./scripts/dev/canonical.sh python -m scripts.dev.launchpad_offline_coverage --case C2b --operation inspect_resources",
       "observation": {
         "code": "PROVIDER_UNAVAILABLE",
         "execution": "LOCAL_SERVICE_CALL_ONLY",
@@ -573,6 +600,7 @@
     {
       "case": "C2b",
       "command": "python -m scripts.dev.launchpad_offline_coverage --case C2b --operation forecast_resources",
+      "documented_canonical_reproducer": "CARBON_UV_GROUPS='science-jax mcp archive' ./scripts/dev/canonical.sh python -m scripts.dev.launchpad_offline_coverage --case C2b --operation forecast_resources",
       "observation": {
         "code": "PROVIDER_UNAVAILABLE",
         "execution": "LOCAL_SERVICE_CALL_ONLY",
@@ -598,6 +626,7 @@
     {
       "case": "C3a",
       "command": "python -m scripts.dev.launchpad_offline_coverage --case C3a --operation construction",
+      "documented_canonical_reproducer": "CARBON_UV_GROUPS='science-jax mcp archive' ./scripts/dev/canonical.sh python -m scripts.dev.launchpad_offline_coverage --case C3a --operation construction",
       "observation": {
         "cli_exit_code": 0,
         "derived": {
@@ -629,6 +658,7 @@
     {
       "case": "C3a",
       "command": "python -m scripts.dev.launchpad_offline_coverage --case C3a --operation dry_validate",
+      "documented_canonical_reproducer": "CARBON_UV_GROUPS='science-jax mcp archive' ./scripts/dev/canonical.sh python -m scripts.dev.launchpad_offline_coverage --case C3a --operation dry_validate",
       "observation": {
         "execution": "LOCAL_SERVICE_CALL_ONLY",
         "execution_allowance_used": {
@@ -662,6 +692,7 @@
     {
       "case": "C3a",
       "command": "python -m scripts.dev.launchpad_offline_coverage --case C3a --operation compile_strategy",
+      "documented_canonical_reproducer": "CARBON_UV_GROUPS='science-jax mcp archive' ./scripts/dev/canonical.sh python -m scripts.dev.launchpad_offline_coverage --case C3a --operation compile_strategy",
       "observation": {
         "execution": "LOCAL_SERVICE_CALL_ONLY",
         "execution_allowance_used": {
@@ -694,6 +725,7 @@
     {
       "case": "C3a",
       "command": "python -m scripts.dev.launchpad_offline_coverage --case C3a --operation inspect_resources",
+      "documented_canonical_reproducer": "CARBON_UV_GROUPS='science-jax mcp archive' ./scripts/dev/canonical.sh python -m scripts.dev.launchpad_offline_coverage --case C3a --operation inspect_resources",
       "observation": {
         "code": "PROVIDER_UNAVAILABLE",
         "execution": "LOCAL_SERVICE_CALL_ONLY",
@@ -719,6 +751,7 @@
     {
       "case": "C3a",
       "command": "python -m scripts.dev.launchpad_offline_coverage --case C3a --operation forecast_resources",
+      "documented_canonical_reproducer": "CARBON_UV_GROUPS='science-jax mcp archive' ./scripts/dev/canonical.sh python -m scripts.dev.launchpad_offline_coverage --case C3a --operation forecast_resources",
       "observation": {
         "code": "PROVIDER_UNAVAILABLE",
         "execution": "LOCAL_SERVICE_CALL_ONLY",
@@ -744,6 +777,7 @@
     {
       "case": "C3b",
       "command": "python -m scripts.dev.launchpad_offline_coverage --case C3b --operation construction",
+      "documented_canonical_reproducer": "CARBON_UV_GROUPS='science-jax mcp archive' ./scripts/dev/canonical.sh python -m scripts.dev.launchpad_offline_coverage --case C3b --operation construction",
       "observation": {
         "cli_exit_code": 0,
         "derived": {
@@ -777,6 +811,7 @@
     {
       "case": "C3b",
       "command": "python -m scripts.dev.launchpad_offline_coverage --case C3b --operation dry_validate",
+      "documented_canonical_reproducer": "CARBON_UV_GROUPS='science-jax mcp archive' ./scripts/dev/canonical.sh python -m scripts.dev.launchpad_offline_coverage --case C3b --operation dry_validate",
       "observation": {
         "execution": "LOCAL_SERVICE_CALL_ONLY",
         "execution_allowance_used": {
@@ -817,6 +852,7 @@
     {
       "case": "C3b",
       "command": "python -m scripts.dev.launchpad_offline_coverage --case C3b --operation compile_strategy",
+      "documented_canonical_reproducer": "CARBON_UV_GROUPS='science-jax mcp archive' ./scripts/dev/canonical.sh python -m scripts.dev.launchpad_offline_coverage --case C3b --operation compile_strategy",
       "observation": {
         "execution": "LOCAL_SERVICE_CALL_ONLY",
         "execution_allowance_used": {
@@ -849,6 +885,7 @@
     {
       "case": "C3b",
       "command": "python -m scripts.dev.launchpad_offline_coverage --case C3b --operation inspect_resources",
+      "documented_canonical_reproducer": "CARBON_UV_GROUPS='science-jax mcp archive' ./scripts/dev/canonical.sh python -m scripts.dev.launchpad_offline_coverage --case C3b --operation inspect_resources",
       "observation": {
         "code": "PROVIDER_UNAVAILABLE",
         "execution": "LOCAL_SERVICE_CALL_ONLY",
@@ -874,6 +911,7 @@
     {
       "case": "C3b",
       "command": "python -m scripts.dev.launchpad_offline_coverage --case C3b --operation forecast_resources",
+      "documented_canonical_reproducer": "CARBON_UV_GROUPS='science-jax mcp archive' ./scripts/dev/canonical.sh python -m scripts.dev.launchpad_offline_coverage --case C3b --operation forecast_resources",
       "observation": {
         "code": "PROVIDER_UNAVAILABLE",
         "execution": "LOCAL_SERVICE_CALL_ONLY",
@@ -899,6 +937,7 @@
     {
       "case": "C4",
       "command": "python -m scripts.dev.launchpad_offline_coverage --case C4 --operation construction",
+      "documented_canonical_reproducer": "CARBON_UV_GROUPS='science-jax mcp archive' ./scripts/dev/canonical.sh python -m scripts.dev.launchpad_offline_coverage --case C4 --operation construction",
       "observation": {
         "cli_exit_code": 0,
         "derived": {
@@ -930,6 +969,7 @@
     {
       "case": "C4",
       "command": "python -m scripts.dev.launchpad_offline_coverage --case C4 --operation dry_validate",
+      "documented_canonical_reproducer": "CARBON_UV_GROUPS='science-jax mcp archive' ./scripts/dev/canonical.sh python -m scripts.dev.launchpad_offline_coverage --case C4 --operation dry_validate",
       "observation": {
         "execution": "LOCAL_SERVICE_CALL_ONLY",
         "execution_allowance_used": {
@@ -963,6 +1003,7 @@
     {
       "case": "C4",
       "command": "python -m scripts.dev.launchpad_offline_coverage --case C4 --operation compile_strategy",
+      "documented_canonical_reproducer": "CARBON_UV_GROUPS='science-jax mcp archive' ./scripts/dev/canonical.sh python -m scripts.dev.launchpad_offline_coverage --case C4 --operation compile_strategy",
       "observation": {
         "execution": "LOCAL_SERVICE_CALL_ONLY",
         "execution_allowance_used": {
@@ -995,6 +1036,7 @@
     {
       "case": "C4",
       "command": "python -m scripts.dev.launchpad_offline_coverage --case C4 --operation inspect_resources",
+      "documented_canonical_reproducer": "CARBON_UV_GROUPS='science-jax mcp archive' ./scripts/dev/canonical.sh python -m scripts.dev.launchpad_offline_coverage --case C4 --operation inspect_resources",
       "observation": {
         "code": "PROVIDER_UNAVAILABLE",
         "execution": "LOCAL_SERVICE_CALL_ONLY",
@@ -1020,6 +1062,7 @@
     {
       "case": "C4",
       "command": "python -m scripts.dev.launchpad_offline_coverage --case C4 --operation forecast_resources",
+      "documented_canonical_reproducer": "CARBON_UV_GROUPS='science-jax mcp archive' ./scripts/dev/canonical.sh python -m scripts.dev.launchpad_offline_coverage --case C4 --operation forecast_resources",
       "observation": {
         "code": "PROVIDER_UNAVAILABLE",
         "execution": "LOCAL_SERVICE_CALL_ONLY",
@@ -1045,6 +1088,7 @@
     {
       "case": "X1_pool",
       "command": "python -m scripts.dev.launchpad_offline_coverage --case X1_pool --operation construction",
+      "documented_canonical_reproducer": "CARBON_UV_GROUPS='science-jax mcp archive' ./scripts/dev/canonical.sh python -m scripts.dev.launchpad_offline_coverage --case X1_pool --operation construction",
       "observation": {
         "cli_exit_code": 0,
         "derived": {
@@ -1078,6 +1122,7 @@
     {
       "case": "X1_pool",
       "command": "python -m scripts.dev.launchpad_offline_coverage --case X1_pool --operation dry_validate",
+      "documented_canonical_reproducer": "CARBON_UV_GROUPS='science-jax mcp archive' ./scripts/dev/canonical.sh python -m scripts.dev.launchpad_offline_coverage --case X1_pool --operation dry_validate",
       "observation": {
         "execution": "LOCAL_SERVICE_CALL_ONLY",
         "execution_allowance_used": {
@@ -1118,6 +1163,7 @@
     {
       "case": "X1_pool",
       "command": "python -m scripts.dev.launchpad_offline_coverage --case X1_pool --operation compile_strategy",
+      "documented_canonical_reproducer": "CARBON_UV_GROUPS='science-jax mcp archive' ./scripts/dev/canonical.sh python -m scripts.dev.launchpad_offline_coverage --case X1_pool --operation compile_strategy",
       "observation": {
         "execution": "LOCAL_SERVICE_CALL_ONLY",
         "execution_allowance_used": {
@@ -1150,6 +1196,7 @@
     {
       "case": "X1_pool",
       "command": "python -m scripts.dev.launchpad_offline_coverage --case X1_pool --operation inspect_resources",
+      "documented_canonical_reproducer": "CARBON_UV_GROUPS='science-jax mcp archive' ./scripts/dev/canonical.sh python -m scripts.dev.launchpad_offline_coverage --case X1_pool --operation inspect_resources",
       "observation": {
         "code": "PROVIDER_UNAVAILABLE",
         "execution": "LOCAL_SERVICE_CALL_ONLY",
@@ -1175,6 +1222,7 @@
     {
       "case": "X1_pool",
       "command": "python -m scripts.dev.launchpad_offline_coverage --case X1_pool --operation forecast_resources",
+      "documented_canonical_reproducer": "CARBON_UV_GROUPS='science-jax mcp archive' ./scripts/dev/canonical.sh python -m scripts.dev.launchpad_offline_coverage --case X1_pool --operation forecast_resources",
       "observation": {
         "code": "PROVIDER_UNAVAILABLE",
         "execution": "LOCAL_SERVICE_CALL_ONLY",
@@ -1200,6 +1248,7 @@
     {
       "case": "X1_search",
       "command": "python -m scripts.dev.launchpad_offline_coverage --case X1_search --operation construction",
+      "documented_canonical_reproducer": "CARBON_UV_GROUPS='science-jax mcp archive' ./scripts/dev/canonical.sh python -m scripts.dev.launchpad_offline_coverage --case X1_search --operation construction",
       "observation": {
         "cli_exit_code": 0,
         "derived": {
@@ -1233,6 +1282,7 @@
     {
       "case": "X1_search",
       "command": "python -m scripts.dev.launchpad_offline_coverage --case X1_search --operation dry_validate",
+      "documented_canonical_reproducer": "CARBON_UV_GROUPS='science-jax mcp archive' ./scripts/dev/canonical.sh python -m scripts.dev.launchpad_offline_coverage --case X1_search --operation dry_validate",
       "observation": {
         "execution": "LOCAL_SERVICE_CALL_ONLY",
         "execution_allowance_used": {
@@ -1273,6 +1323,7 @@
     {
       "case": "X1_search",
       "command": "python -m scripts.dev.launchpad_offline_coverage --case X1_search --operation compile_strategy",
+      "documented_canonical_reproducer": "CARBON_UV_GROUPS='science-jax mcp archive' ./scripts/dev/canonical.sh python -m scripts.dev.launchpad_offline_coverage --case X1_search --operation compile_strategy",
       "observation": {
         "execution": "LOCAL_SERVICE_CALL_ONLY",
         "execution_allowance_used": {
@@ -1305,6 +1356,7 @@
     {
       "case": "X1_search",
       "command": "python -m scripts.dev.launchpad_offline_coverage --case X1_search --operation inspect_resources",
+      "documented_canonical_reproducer": "CARBON_UV_GROUPS='science-jax mcp archive' ./scripts/dev/canonical.sh python -m scripts.dev.launchpad_offline_coverage --case X1_search --operation inspect_resources",
       "observation": {
         "code": "PROVIDER_UNAVAILABLE",
         "execution": "LOCAL_SERVICE_CALL_ONLY",
@@ -1330,6 +1382,7 @@
     {
       "case": "X1_search",
       "command": "python -m scripts.dev.launchpad_offline_coverage --case X1_search --operation forecast_resources",
+      "documented_canonical_reproducer": "CARBON_UV_GROUPS='science-jax mcp archive' ./scripts/dev/canonical.sh python -m scripts.dev.launchpad_offline_coverage --case X1_search --operation forecast_resources",
       "observation": {
         "code": "PROVIDER_UNAVAILABLE",
         "execution": "LOCAL_SERVICE_CALL_ONLY",
@@ -1355,6 +1408,7 @@
     {
       "case": "X2",
       "command": "python -m scripts.dev.launchpad_offline_coverage --case X2 --operation construction",
+      "documented_canonical_reproducer": "CARBON_UV_GROUPS='science-jax mcp archive' ./scripts/dev/canonical.sh python -m scripts.dev.launchpad_offline_coverage --case X2 --operation construction",
       "observation": {
         "cli_exit_code": 0,
         "derived": {
@@ -1389,6 +1443,7 @@
     {
       "case": "X2",
       "command": "python -m scripts.dev.launchpad_offline_coverage --case X2 --operation dry_validate",
+      "documented_canonical_reproducer": "CARBON_UV_GROUPS='science-jax mcp archive' ./scripts/dev/canonical.sh python -m scripts.dev.launchpad_offline_coverage --case X2 --operation dry_validate",
       "observation": {
         "execution": "LOCAL_SERVICE_CALL_ONLY",
         "execution_allowance_used": {
@@ -1429,6 +1484,7 @@
     {
       "case": "X2",
       "command": "python -m scripts.dev.launchpad_offline_coverage --case X2 --operation compile_strategy",
+      "documented_canonical_reproducer": "CARBON_UV_GROUPS='science-jax mcp archive' ./scripts/dev/canonical.sh python -m scripts.dev.launchpad_offline_coverage --case X2 --operation compile_strategy",
       "observation": {
         "execution": "LOCAL_SERVICE_CALL_ONLY",
         "execution_allowance_used": {
@@ -1461,6 +1517,7 @@
     {
       "case": "X2",
       "command": "python -m scripts.dev.launchpad_offline_coverage --case X2 --operation inspect_resources",
+      "documented_canonical_reproducer": "CARBON_UV_GROUPS='science-jax mcp archive' ./scripts/dev/canonical.sh python -m scripts.dev.launchpad_offline_coverage --case X2 --operation inspect_resources",
       "observation": {
         "code": "PROVIDER_UNAVAILABLE",
         "execution": "LOCAL_SERVICE_CALL_ONLY",
@@ -1486,6 +1543,7 @@
     {
       "case": "X2",
       "command": "python -m scripts.dev.launchpad_offline_coverage --case X2 --operation forecast_resources",
+      "documented_canonical_reproducer": "CARBON_UV_GROUPS='science-jax mcp archive' ./scripts/dev/canonical.sh python -m scripts.dev.launchpad_offline_coverage --case X2 --operation forecast_resources",
       "observation": {
         "code": "PROVIDER_UNAVAILABLE",
         "execution": "LOCAL_SERVICE_CALL_ONLY",
@@ -1511,6 +1569,7 @@
     {
       "case": "X3",
       "command": "python -m scripts.dev.launchpad_offline_coverage --case X3 --operation construction",
+      "documented_canonical_reproducer": "CARBON_UV_GROUPS='science-jax mcp archive' ./scripts/dev/canonical.sh python -m scripts.dev.launchpad_offline_coverage --case X3 --operation construction",
       "observation": {
         "cli_exit_code": 2,
         "code": "construction_rebuild_unavailable",
@@ -1550,6 +1609,7 @@
     {
       "case": "X3",
       "command": "python -m scripts.dev.launchpad_offline_coverage --case X3 --operation dry_validate",
+      "documented_canonical_reproducer": "CARBON_UV_GROUPS='science-jax mcp archive' ./scripts/dev/canonical.sh python -m scripts.dev.launchpad_offline_coverage --case X3 --operation dry_validate",
       "observation": {
         "execution": "LOCAL_SERVICE_CALL_ONLY",
         "execution_allowance_used": {
@@ -1618,6 +1678,7 @@
     {
       "case": "X3",
       "command": "python -m scripts.dev.launchpad_offline_coverage --case X3 --operation compile_strategy",
+      "documented_canonical_reproducer": "CARBON_UV_GROUPS='science-jax mcp archive' ./scripts/dev/canonical.sh python -m scripts.dev.launchpad_offline_coverage --case X3 --operation compile_strategy",
       "observation": {
         "execution": "LOCAL_SERVICE_CALL_ONLY",
         "execution_allowance_used": {
@@ -1650,6 +1711,7 @@
     {
       "case": "X3",
       "command": "python -m scripts.dev.launchpad_offline_coverage --case X3 --operation inspect_resources",
+      "documented_canonical_reproducer": "CARBON_UV_GROUPS='science-jax mcp archive' ./scripts/dev/canonical.sh python -m scripts.dev.launchpad_offline_coverage --case X3 --operation inspect_resources",
       "observation": {
         "code": "PROVIDER_UNAVAILABLE",
         "execution": "LOCAL_SERVICE_CALL_ONLY",
@@ -1675,6 +1737,7 @@
     {
       "case": "X3",
       "command": "python -m scripts.dev.launchpad_offline_coverage --case X3 --operation forecast_resources",
+      "documented_canonical_reproducer": "CARBON_UV_GROUPS='science-jax mcp archive' ./scripts/dev/canonical.sh python -m scripts.dev.launchpad_offline_coverage --case X3 --operation forecast_resources",
       "observation": {
         "code": "PROVIDER_UNAVAILABLE",
         "execution": "LOCAL_SERVICE_CALL_ONLY",
