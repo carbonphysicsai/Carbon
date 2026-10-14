@@ -453,10 +453,26 @@ def main(argv=None):
                 if exc.code != "feedback_probe_unscored":
                     raise
                 results[name] = {
+                    **campaign_goodhart.receipt_identity(
+                        config,
+                        search_spec,
+                        candidates_sha256=digest,
+                        candidate_ids=[name],
+                        component_spec=component_spec,
+                        disclosure=disclosure_spec,
+                    ),
                     "status": "INSUFFICIENT_EVIDENCE",
                     "reason": exc.code,
                 }
         report = {
+            **campaign_goodhart.receipt_identity(
+                config,
+                search_spec,
+                candidates_sha256=digest,
+                candidate_ids=names,
+                component_spec=component_spec,
+                disclosure=disclosure_spec,
+            ),
             "status": "SYNTHETIC_DEVELOPMENT_DIAGNOSTIC",
             "candidates_sha256": digest,
             "results": results,
@@ -533,6 +549,13 @@ def main(argv=None):
         if any(name not in specs for name in names):
             raise LabRefused("candidate_not_registered")
         report = {
+            **campaign_goodhart.receipt_identity(
+                config,
+                search_spec,
+                candidates_sha256=digest,
+                candidate_ids=names,
+                component_spec=component_spec,
+            ),
             "status": "SYNTHETIC_DEVELOPMENT_DIAGNOSTIC",
             "candidates_sha256": digest,
             "results": {

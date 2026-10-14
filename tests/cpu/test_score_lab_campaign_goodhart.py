@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 
+from scripts.dev.score_lab import __main__ as cli
 from scripts.dev.score_lab import campaign_goodhart
 from scripts.dev.score_lab.core import LabRefused
 
@@ -85,10 +86,43 @@ def test_bad_search_grammar_and_all_gated_scores_refuse():
         candidates_sha256="toy",
         search=search,
     )
-    assert result == {
-        "status": "INSUFFICIENT_EVIDENCE",
-        "reason": "all_score_proposals_unscored",
-    }
+    assert result["status"] == "INSUFFICIENT_EVIDENCE"
+    assert result["reason"] == "all_score_proposals_unscored"
+    assert result["component_spec"] is None
+    assert result["component_spec_sha256"] is None
+
+
+@pytest.mark.parametrize("unscored", [False, True])
+def test_goodhart_receipt_identity_changes_when_only_components_change(unscored):
+    config, search = _inputs()
+
+    def rule(predictions, references, metadata):
+        result = _score_only(predictions, references, metadata)
+        if unscored:
+            result["gate"] = "FAIL"
+        return result
+
+    results = [
+        campaign_goodhart.run(
+            config,
+            "toy",
+            {"rule": rule},
+            candidates_sha256="toy",
+            search=search,
+            component_spec=component,
+        )
+        for component in (
+            None,
+            {"cvar_tail_fraction": 0.5},
+            {"cvar_tail_fraction": 1.0},
+        )
+    ]
+    assert len({result["recipe_sha256"] for result in results}) == 3
+    assert len({result["component_spec_sha256"] for result in results}) == 3
+    assert len({result["config_sha256"] for result in results}) == 1
+    assert len({result["search_sha256"] for result in results}) == 1
+    assert results[0]["component_spec"] is None
+    assert results[1]["component_spec"] == {"cvar_tail_fraction": 0.5}
 
 
 def test_cvar_goodhart_requires_explicit_tail_fraction():
@@ -105,3 +139,51 @@ def test_cvar_goodhart_requires_explicit_tail_fraction():
     search["tail_fraction"] = 0
     with pytest.raises(LabRefused, match="goodhart_cvar_tail_fraction"):
         campaign_goodhart.validate(config, search)
+
+
+def test_goodhart_cli_aggregate_and_unscored_receipts_bind_components(
+    tmp_path, monkeypatch
+):
+    config, search = _inputs()
+    paths = {}
+    for name, data in (("config", config), ("search", search)):
+        paths[name] = tmp_path / f"{name}.json"
+        paths[name].write_text(json.dumps(data), encoding="utf-8")
+
+    def gated(_predictions, _references, _metadata):
+        return {"score": 1.0, "gate": "FAIL"}
+
+    monkeypatch.setattr(
+        cli.candidates, "load", lambda _p: ({"toy": {"rule": gated}}, "toy-digest")
+    )
+    reports = []
+    for component in (None, {"cvar_tail_fraction": 0.5}):
+        out = tmp_path / "result.json"
+        argv = [
+            "campaign-goodhart",
+            "--config",
+            str(paths["config"]),
+            "--search",
+            str(paths["search"]),
+            "--candidates",
+            str(tmp_path / "unused.py"),
+            "--out",
+            str(out),
+        ]
+        if component is not None:
+            path = tmp_path / "components.json"
+            path.write_text(json.dumps(component), encoding="utf-8")
+            argv.extend(["--components", str(path)])
+        assert cli.main(argv) == 0
+        reports.append(json.loads(out.read_text(encoding="utf-8")))
+    for report, component in zip(
+        reports, (None, {"cvar_tail_fraction": 0.5}), strict=True
+    ):
+        assert report["component_spec"] == component
+        assert report["results"]["toy"]["component_spec"] == component
+        assert report["results"]["toy"]["status"] == "INSUFFICIENT_EVIDENCE"
+    assert reports[0]["recipe_sha256"] != reports[1]["recipe_sha256"]
+    assert (
+        reports[0]["results"]["toy"]["recipe_sha256"]
+        != reports[1]["results"]["toy"]["recipe_sha256"]
+    )

@@ -43,6 +43,26 @@ def _finite(value):
     return type(value) in (int, float) and math.isfinite(value)
 
 
+def receipt_identity(
+    config, search, *, candidates_sha256, candidate_ids, component_spec, disclosure=None
+):
+    """Bind the effective recipe, including explicit absent component settings."""
+    identity = {
+        "config_sha256": canonical_sha(config),
+        "search_sha256": canonical_sha(search),
+        "candidates_sha256": candidates_sha256,
+        "candidate_ids": sorted(candidate_ids),
+        "component_spec": copy.deepcopy(component_spec),
+        "component_spec_sha256": (
+            canonical_sha(component_spec) if component_spec is not None else None
+        ),
+        "disclosure_sha256": (
+            canonical_sha(disclosure) if disclosure is not None else None
+        ),
+    }
+    return {**identity, "recipe_sha256": canonical_sha(identity)}
+
+
 def validate(config, search):
     physics.validate_config(config)
     if (
@@ -252,9 +272,17 @@ def run(config, candidate_id, spec, *, candidates_sha256, search, component_spec
         search=search,
         component_spec=component_spec,
     )
+    identity = receipt_identity(
+        config,
+        search,
+        candidates_sha256=candidates_sha256,
+        candidate_ids=[candidate_id],
+        component_spec=component_spec,
+    )
     score_best = _search(experiment.score, search)
     if score_best is None:
         return {
+            **identity,
             "status": "INSUFFICIENT_EVIDENCE",
             "reason": "all_score_proposals_unscored",
         }
@@ -269,12 +297,14 @@ def run(config, candidate_id, spec, *, candidates_sha256, search, component_spec
         experiment.value_loss(oracle_best["parameters"]) if oracle_best else None
     )
     if score_value is None or oracle_value is None:
-        return {"status": "INSUFFICIENT_EVIDENCE", "reason": "value_unresolved"}
+        return {
+            **identity,
+            "status": "INSUFFICIENT_EVIDENCE",
+            "reason": "value_unresolved",
+        }
     return {
+        **identity,
         "status": "MEASURED_SYNTHETIC_DEVELOPMENT",
-        "config_sha256": canonical_sha(config),
-        "search_sha256": canonical_sha(search),
-        "candidates_sha256": candidates_sha256,
         "candidate": candidate_id,
         "value_scope": search["value_scope"],
         "oracle_kind": "RANDOM_PLUS_COORDINATE_HILLCLIMB_ON_ANALYTIC_TOY",

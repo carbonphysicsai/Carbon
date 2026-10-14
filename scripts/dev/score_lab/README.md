@@ -221,6 +221,9 @@ The raw file digest is written to the report. The fixed composition order is
 CRPS, gradient, CVaR, then cheap margin. Missing uncertainty or cheap-arm
 coverage returns an unscored diagnostic. Public EV4 replay refuses these toy
 wrappers; it continues to use exact registered scorers unchanged.
+CVaR retains the strictest gate and FLOOR tier from the whole-panel rule and
+every question, so a clean tail cannot restore primary eligibility. A missing
+whole-panel or question score refuses the decomposition.
 
 `campaign-plan` creates deterministic Latin-hypercube shards of the existing
 analytic physics configuration. Every axis is an explicit toy assumption;
@@ -319,6 +322,12 @@ synthetic scoring questions and `prefix:N` uses the first N. These grains,
 rounding precisions and probe allowances are diagnostic assumptions, not a
 claim about the actual Launchpad disclosure contract. A gated or unscored
 probe leaves that candidate `INSUFFICIENT_EVIDENCE`.
+Goodhart and feedback receipts include `component_spec` and its canonical
+`component_spec_sha256` (both explicit None when absent), plus `recipe_sha256`
+binding configuration, search, candidate-file digest, selected candidate IDs,
+components and feedback disclosure. These fields are present on measured,
+unscored and aggregate receipts. Earlier saved no-component artifacts remain
+historical bytes with their component absence annotated in the readout.
 
 `physics-error-example.json` is a separate explicit-default toy config for
 the optional error-structure knobs: heteroscedasticity and its region,

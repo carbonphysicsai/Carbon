@@ -133,7 +133,12 @@ def with_gradient_sign(rule, *, weight):
 
 
 def with_cvar(rule, *, tail_fraction):
-    """Aggregate worst per-question rule scores; refuse nondecomposable rules."""
+    """Aggregate per-question scores while retaining the strictest admission.
+
+    The whole-panel rule must be scored, and its gate/FLOOR tier still govern
+    after tail aggregation. A rule that cannot score a question refuses the
+    decomposition instead of turning missing evidence into a tail score.
+    """
     if (
         type(tail_fraction) not in (int, float)
         or not math.isfinite(tail_fraction)
@@ -142,8 +147,23 @@ def with_cvar(rule, *, tail_fraction):
         raise LabRefused("component_cvar_fraction")
 
     def wrapped(predictions, references, metadata):
+        aggregate = rule(predictions, references, metadata)
+        if _score(aggregate) is None:
+            return None
         scores = []
         gates = []
+        tiers = []
+
+        def retain_admission(result):
+            gate, tier = result.get("gate"), result.get("tier", 0)
+            if gate not in (None, "PASS", "FAIL"):
+                raise LabRefused("component_gate_malformed")
+            if type(tier) is not int or tier < 0:
+                raise LabRefused("component_tier_malformed")
+            gates.append(gate)
+            tiers.append(tier)
+
+        retain_admission(aggregate)
         for qid, row in references.items():
             if qid not in predictions:
                 return None
@@ -160,14 +180,20 @@ def with_cvar(rule, *, tail_fraction):
             if value is None:
                 return None
             scores.append(value)
-            gates.append(result.get("gate"))
+            retain_admission(result)
         if not scores:
             return None
         tail = max(1, math.ceil(tail_fraction * len(scores)))
         return {
+            **aggregate,
             "score": statistics.fmean(sorted(scores)[:tail]),
             "gate": "FAIL" if "FAIL" in gates else "PASS",
-            "detail": {"tail_questions": tail, "total_questions": len(scores)},
+            "tier": max(tiers),
+            "detail": {
+                **aggregate.get("detail", {}),
+                "tail_questions": tail,
+                "total_questions": len(scores),
+            },
         }
 
     return wrapped

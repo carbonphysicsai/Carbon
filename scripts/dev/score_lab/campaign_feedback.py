@@ -7,7 +7,7 @@ actual feedback or a Challenge's registered question law.
 from __future__ import annotations
 
 from . import campaign_goodhart, feedback
-from .core import LabRefused, canonical_sha
+from .core import LabRefused
 
 
 def run(
@@ -71,11 +71,15 @@ def run(
         epochs=disclosure.get("epochs"),
     )
     return {
+        **campaign_goodhart.receipt_identity(
+            config,
+            search,
+            candidates_sha256=candidates_sha256,
+            candidate_ids=[candidate_id],
+            component_spec=component_spec,
+            disclosure=disclosure,
+        ),
         "status": "MEASURED_SYNTHETIC_DEVELOPMENT",
-        "config_sha256": canonical_sha(config),
-        "search_sha256": canonical_sha(search),
-        "disclosure_sha256": canonical_sha(disclosure),
-        "candidates_sha256": candidates_sha256,
         "candidate": candidate_id,
         "value_scope": search["value_scope"],
         "disclosure_kind": "TOY_AGGREGATE_OR_SCORE_QUESTION_PREFIX",

@@ -20,3 +20,8 @@ unscored/gated probe, so their feedback outcome is `INSUFFICIENT_EVIDENCE`.
 This is a search-path counterexample, not a rule ranking or evidence about
 Launchpad's actual disclosure. The toy candidate functions are proxies, the
 trait space is narrow, and the value side is a small synthetic sample.
+
+The saved artifact above used **no optional score components** (`component_spec=None`).
+It predates explicit component fields in search receipts; its bytes and hash are
+retained as historical evidence. Future receipts record the component specification,
+its canonical digest and a complete recipe digest, including unscored candidates.
