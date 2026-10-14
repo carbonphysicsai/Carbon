@@ -15,6 +15,8 @@ Interpret only the historical operator-recorded results: `High` is in stock and 
 
 After a successful CPU create, read the actual pod's `cpuFlavorId`, record it in the receipt, and refuse to start the workload if the provider does not report one of the stock-accepted flavors. The bootstrap's authenticated `/go` gate must hold the phase even when the job has no uploads; the launcher releases it only after validating the actual flavor. Partial GraphQL data with a non-empty or malformed `errors` field is UNKNOWN. Existing teardown and reconciliation retain control of any resource already created.
 
+The code pin is immutable. Before any provider create, structurally inspect the selected bootstrap and refuse CPU jobs whose pinned code does not implement the authenticated, deadline-bounded gate before phase execution; do not replace or upgrade that pin. After create, wait within the same job deadline until `/status` reports `waiting_for_operator`. Retry `/go` only for transport-unavailable responses because the authenticated marker write is idempotent. Record status-poll and release-attempt counts in the private receipt. These checks do not claim the provider or arbitrary workloads are secure.
+
 ## Validation contract
 
 Tests use only deterministic fixture transport and `InMemoryRunPod`; they prove GraphQL request allow-listing/redaction, identifier construction, `High`/`null` handling, unknown-response refusal, order-preserving filtering, pre-create refusal, actual flavor receipt, and teardown on a mismatch. Run the focused pod-jobs and operator RunPod suites plus the repository's required canonical checks. No test accesses a key, account, provider, pod, hidden evidence, or live ledger.

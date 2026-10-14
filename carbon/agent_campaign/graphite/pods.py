@@ -1459,11 +1459,13 @@ class InMemoryRunPod:
     def __init__(
         self, *, balance=100.0, rate=0.44, charge=0.07, cpu_stock=None,
         placed_cpu_flavor=None, omit_cpu_flavor=False,
+        cpu_startup_delay_reads=0,
     ):
         self.balance, self.rate, self.charge = balance, rate, charge
         self.cpu_stock = dict(cpu_stock or {})
         self.placed_cpu_flavor = placed_cpu_flavor
         self.omit_cpu_flavor = omit_cpu_flavor
+        self.cpu_startup_delay_reads = cpu_startup_delay_reads
         self.pods, self.creates, self.threads = {}, [], set()
         #: Each create request's `allowedCudaVersions`, in create order.
         self.cuda = []
@@ -1529,6 +1531,7 @@ class InMemoryRunPod:
                 "desiredStatus": "RUNNING",
                 "costPerHr": self.rate,
                 "env": request["env"],
+                "startup_delay_reads": self.cpu_startup_delay_reads,
             }
             if request["computeType"] == "CPU" and not self.omit_cpu_flavor:
                 pod["cpuFlavorId"] = (
@@ -1567,6 +1570,13 @@ class InMemoryRunPod:
                 return 403, b""
         path = url.split(".proxy.runpod.net", 1)[1]
         if path == "/status":
+            if pod["env"].get("OPERATOR_START_GATE") == "1":
+                if pod["startup_delay_reads"]:
+                    pod["startup_delay_reads"] -= 1
+                    return 200, b'{"stage": "starting"}'
+                if not pod.get("go"):
+                    return 200, b'{"stage": "waiting_for_operator"}'
+                return 200, b'{"stage": "done"}'
             return 200, b'{"stage": "done"}'
         if path == "/files":
             listing = [

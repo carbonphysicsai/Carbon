@@ -155,7 +155,12 @@ def test_check_runs_the_real_lifecycle_with_no_network_and_no_spend(tmp_path):
     assert written == json.loads(json.dumps(receipt))
     assert receipt["cpu_stock_preflight"][0]["instance_id"] == "cpu5c-8-16"
     assert receipt["actual_cpu_flavor_id"] == "cpu5c"
-    assert receipt["operator_start_gate"] == {"required": True, "released": True}
+    assert receipt["operator_start_gate"] == {
+        "required": True,
+        "released": True,
+        "status_polls": 1,
+        "release_attempts": 1,
+    }
 
 
 @pytest.fixture
@@ -224,6 +229,57 @@ def test_cpu_stock_preflight_filters_explicit_fallbacks_and_records_actual_flavo
     assert account.creates and account.pods == {}
 
 
+def test_cpu_start_gate_waits_for_bootstrap_and_retries_transport_failure(lifecycle):
+    make, go = lifecycle
+    account = pods.InMemoryRunPod(cpu_startup_delay_reads=2)
+    spec, backend, _account = make(account)
+    real_post = account.post
+    posts = 0
+
+    def delayed_post(url, token, body, timeout):
+        nonlocal posts
+        if url.endswith("/go"):
+            posts += 1
+            if posts == 1:
+                return 0  # the authenticated marker write may have an unknown ack
+        return real_post(url, token, body, timeout)
+
+    backend.post = delayed_post
+    receipt, _ledger = go(spec, backend)
+    assert receipt["ok"] is True
+    assert receipt["operator_start_gate"] == {
+        "required": True,
+        "released": True,
+        "status_polls": 3,
+        "release_attempts": 2,
+    }
+
+
+def test_cpu_jobs_refuse_a_pinned_bootstrap_without_the_start_gate(
+    lifecycle, monkeypatch
+):
+    from scripts.dev.exam_design.runpod import a40_acceptance
+
+    make, _go = lifecycle
+    spec = pod_jobs.load_spec(spec_document())
+    assert pod_jobs._bootstrap_supports_operator_start_gate(
+        (REPOSITORY / pod_jobs.BOOTSTRAP).read_text()
+    )
+    account = pods.InMemoryRunPod()
+    read_blobs = a40_acceptance.read_blobs
+
+    def legacy_bootstrap(ref, repository, paths):
+        if paths == [pod_jobs.BOOTSTRAP]:
+            return {pod_jobs.BOOTSTRAP: b"def main():\n    run_phase()\n"}
+        return read_blobs(ref, repository, paths)
+
+    monkeypatch.setattr(a40_acceptance, "read_blobs", legacy_bootstrap)
+    with pytest.raises(pod_jobs.SpecRefused) as refused:
+        make(account, job_spec=spec)
+    assert refused.value.code == "spec_cpu_bootstrap_start_gate_unsupported"
+    assert account.creates == []
+
+
 def test_cpu_stock_unknown_or_empty_refuses_before_create(lifecycle):
     make, go = lifecycle
     spec, backend, account = make(
@@ -254,7 +310,12 @@ def test_unaccepted_actual_cpu_flavor_is_recovered_and_torn_down(lifecycle):
     receipt, _ledger = go(spec, backend)
     assert receipt["outcome"].startswith("launch_refused:")
     assert receipt["actual_cpu_flavor_id"] == "cpu5m"
-    assert receipt["operator_start_gate"] == {"required": True, "released": False}
+    assert receipt["operator_start_gate"] == {
+        "required": True,
+        "released": False,
+        "status_polls": 0,
+        "release_attempts": 0,
+    }
     assert receipt["pod_id"] == receipt["teardown"]["pod"]
     assert receipt["teardown"]["terminated"] is True
     assert account.pods == {}
@@ -266,7 +327,12 @@ def test_missing_actual_cpu_flavor_is_recovered_and_torn_down(lifecycle):
     receipt, _ledger = go(spec, backend)
     assert receipt["outcome"].startswith("launch_refused:")
     assert receipt["actual_cpu_flavor_id"] is None
-    assert receipt["operator_start_gate"] == {"required": True, "released": False}
+    assert receipt["operator_start_gate"] == {
+        "required": True,
+        "released": False,
+        "status_polls": 0,
+        "release_attempts": 0,
+    }
     assert receipt["teardown"]["terminated"] is True
     assert account.pods == {}
 
