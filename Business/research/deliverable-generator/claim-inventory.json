@@ -1,0 +1,1922 @@
+{
+  "schema": "carbon.customer-deliverable.claim-inventory.v1",
+  "surfaces": [
+    {
+      "id": "package",
+      "artifact": "a.Business.research.customer-deliverable.PRODUCT-SPEC-V2.md",
+      "claims": [
+        "package.s00.carbon-model-package-product-specification-v2",
+        "package.s01.1-authority-reuse-and-evidence-meaning",
+        "package.s02.2-one-package-mapped-to-existing-homes",
+        "package.s03.3-cmp-01-exact-executable-artifact",
+        "package.s04.4-cmp-02-physics-contract-and-law-check-report",
+        "package.s05.5-cmp-03-model-card-and-floors",
+        "package.s06.6-cmp-04-trust-map",
+        "package.s07.7-cmp-05-decision-evidence",
+        "package.s08.8-cmp-06-risk-informed-credibility-dossier",
+        "package.s09.9-cmp-07-provenance-and-audit",
+        "package.s10.10-cmp-08-envelope-guard-new-runtime-design",
+        "package.s11.11-cmp-09-decision-assistant-new-workflow-design",
+        "package.s12.12-cmp-10-lifecycle-and-change-handling",
+        "package.s13.13-cmp-11-high-rigour-and-defense-deployment",
+        "package.s14.14-gap-and-maturity-table",
+        "package.s15.15-minimum-viable-first-pilot-package",
+        "package.s16.16-human-input-decisions-for-the-owner"
+      ]
+    },
+    {
+      "id": "package-renderer",
+      "artifact": "a.Business.research.deliverable-generator.README.md",
+      "claims": [
+        "package-renderer.s00.deliverable-generator-01-development-evidence-automation",
+        "package-renderer.s01.run-from-committed-git",
+        "package-renderer.s02.offline-committed-public-export",
+        "package-renderer.s03.what-gets-filled",
+        "package-renderer.s04.evidence-and-tests",
+        "package-renderer.s05.limits-and-next-work",
+        "package-renderer.s06.prd-01-carbon-model-package-development-sections",
+        "package-renderer.s07.prd-04-credibility-matrix-and-risk-informed-planning",
+        "package-renderer.s08.2026-10-13-evidence-honesty-presentation-repair"
+      ]
+    },
+    {
+      "id": "guard",
+      "artifact": "a.carbon.product.envelope-guard.README.md",
+      "claims": [
+        "guard.s00.envelope-guard-prd-02-development-contract",
+        "guard.s01.api-and-records"
+      ]
+    },
+    {
+      "id": "trust-map",
+      "artifact": "a.docs.development.TRUST-MAP.md",
+      "claims": [
+        "trust-map.s00.development-trust-maps-plt-05",
+        "trust-map.disclosed-panel-version"
+      ]
+    },
+    {
+      "id": "credibility",
+      "artifact": "a.Business.research.deliverable-framework.STANDARDS.md",
+      "claims": [
+        "credibility.s00.standards-crosswalk-proposed-evidence-indexing",
+        "credibility.s01.rendering-and-review-contract"
+      ]
+    },
+    {
+      "id": "reference-note",
+      "artifact": "a.Business.research.customer-deliverable.EVIDENCE-HONESTY-2026-10-13.md",
+      "claims": [
+        "reference-note.s00.carbon-model-package-evidence-honesty-audit-2026-10-13",
+        "reference-note.s01.reference-transition-and-the-current-hold",
+        "reference-note.s02.five-surface-audit-and-prospective-repairs"
+      ]
+    }
+  ],
+  "artifacts": [
+    {
+      "id": "a.Business.research.customer-deliverable.PRODUCT-SPEC-V2.md",
+      "path": "Business/research/customer-deliverable/PRODUCT_SPEC_V2.md",
+      "sha256": "785f2f3ac6ff835a72503ada7a05099236c53d0a50e3387bae4b59e9d5602d4b"
+    },
+    {
+      "id": "a.Business.Business-Canon.md",
+      "path": "Business/Business_Canon.md",
+      "sha256": "1f416bdcb212bce3ca63211f5c1bef88d4878ab49da29361743b37060b3d0e91"
+    },
+    {
+      "id": "a.Design-Specs.Build-Out-Product-Qualification-Extension.md",
+      "path": "Design_Specs/Build_Out_Product_Qualification_Extension.md",
+      "sha256": "d1a6dbb9980a9c9a7bac5374d4a21f44f66daa2e881dfada6331b31ab3164a27"
+    },
+    {
+      "id": "a.Design-Specs.Product-Qualification-Evidence.md",
+      "path": "Design_Specs/Product_Qualification_Evidence.md",
+      "sha256": "7f14c881b9e875b3639d865b87edc29bce1a1f7bd93c748741fa8e651322e0fc"
+    },
+    {
+      "id": "a.Business.research.deliverable-generator.README.md",
+      "path": "Business/research/deliverable-generator/README.md",
+      "sha256": "374a1e753ed5a896826d9028e2f35da120761ff18e53d04e35fecafb12fa3794"
+    },
+    {
+      "id": "a.scripts.dev.customer-deliverable.generate.py",
+      "path": "scripts/dev/customer_deliverable/generate.py",
+      "sha256": "d223eaea59e5fc87fcb239d1c3400c7c1fd1d2d4ebc578962d7594001963755d"
+    },
+    {
+      "id": "a.scripts.dev.customer-deliverable.package-sections.py",
+      "path": "scripts/dev/customer_deliverable/package_sections.py",
+      "sha256": "d44acf496bfb636dea409184befd2e8968ecb172104ecabdc3b202a1ca285891"
+    },
+    {
+      "id": "a.scripts.dev.customer-deliverable.credibility.py",
+      "path": "scripts/dev/customer_deliverable/credibility.py",
+      "sha256": "9895e34b531e217ef432abbcfe1f0c91f181e23b8a0aee5e804f7bdad8f8c9da"
+    },
+    {
+      "id": "a.scripts.dev.customer-deliverable.claims.py",
+      "path": "scripts/dev/customer_deliverable/claims.py",
+      "sha256": "c59a994b3623a0874bd1da430df81a757bc118c467ee95f57523a31709158687"
+    },
+    {
+      "id": "a.scripts.dev.customer-deliverable.check-claims.py",
+      "path": "scripts/dev/customer_deliverable/check_claims.py",
+      "sha256": "81ce04d2f68059e859be55482b30939fd6b5a20b5e88da21a87f18b5b625e153"
+    },
+    {
+      "id": "a.tests.cpu.test-customer-deliverable-generator.py",
+      "path": "tests/cpu/test_customer_deliverable_generator.py",
+      "sha256": "91d2bba29facd2b116c66e6f97542781bddd10fa4dd869ea2932991319bfce9d"
+    },
+    {
+      "id": "a.carbon.product.envelope-guard.README.md",
+      "path": "carbon/product/envelope_guard/README.md",
+      "sha256": "bea74436bb139c977ff6a0e66c689a7a82ebcc0cb95077d84d9052bec78e4250"
+    },
+    {
+      "id": "a.carbon.product.envelope-guard.core.py",
+      "path": "carbon/product/envelope_guard/core.py",
+      "sha256": "f772c5d0814df5b0f45f8db526e0e8f23cc736c5d967ed9d964a51093f6571cf"
+    },
+    {
+      "id": "a.carbon.product.envelope-guard.configuration.py",
+      "path": "carbon/product/envelope_guard/configuration.py",
+      "sha256": "19d3e558453813faf603b712e9908f814ee2ec40f39a8ba46118412c44255221"
+    },
+    {
+      "id": "a.tests.cpu.test-product-envelope-guard.py",
+      "path": "tests/cpu/test_product_envelope_guard.py",
+      "sha256": "bc1af7f5d52feb9814a98a9a1b1892c518f916c20918db3b0da544ff0bd5e465"
+    },
+    {
+      "id": "a..agent.decisions.2026-10-13-OWNER-PHYSICS-GATES-01.md",
+      "path": ".agent/decisions/2026-10-13-OWNER-PHYSICS-GATES-01.md",
+      "sha256": "3a063759a08cade18d16f0b270135ef48eb00e232d8aeb19e39d51f369057bc2"
+    },
+    {
+      "id": "a.docs.development.TRUST-MAP.md",
+      "path": "docs/development/TRUST_MAP.md",
+      "sha256": "11595f08ef09568e2908b93fdb8e71b45f2f73d7516cd5ff55e6e822a29b266e"
+    },
+    {
+      "id": "a.carbon.trust-map.core.py",
+      "path": "carbon/trust_map/core.py",
+      "sha256": "4acde3469ce64393d3299e85bed47b3d2bb5874f3652e64d3fe2df3b4d42da17"
+    },
+    {
+      "id": "a.carbon.battery.trust-map.py",
+      "path": "carbon/battery/trust_map.py",
+      "sha256": "21f8ec770d3d57080bed118d5fdedee504d2295aa8195ec311daedefb198959b"
+    },
+    {
+      "id": "a.carbon.trust-map.acceptance.py",
+      "path": "carbon/trust_map/acceptance.py",
+      "sha256": "78cac728c3384e9a9d12b430caa377ac4bc8a410e93cb48a5d4c4e8ed8e6b385"
+    },
+    {
+      "id": "a.tests.cpu.test-trust-map.py",
+      "path": "tests/cpu/test_trust_map.py",
+      "sha256": "4fcd359a14fd27fd60bc926f6325ec243ece630d3cce460ae4609aa1423656a4"
+    },
+    {
+      "id": "a.Business.research.deliverable-framework.STANDARDS.md",
+      "path": "Business/research/deliverable-framework/STANDARDS.md",
+      "sha256": "8239f7a4faea896290e2fefd28af8cc5875149945dc132ce6512b6b245f6e502"
+    },
+    {
+      "id": "a.Business.research.deliverable-framework.FRAMEWORK.md",
+      "path": "Business/research/deliverable-framework/FRAMEWORK.md",
+      "sha256": "e2d4779fd90b2ca898516d6f8bee13340b86f9ff14bba139fa0cf92c5b2457cb"
+    },
+    {
+      "id": "a.Business.research.deliverable-framework.TEMPLATE.md",
+      "path": "Business/research/deliverable-framework/TEMPLATE.md",
+      "sha256": "83959e56d77e51bd382595ab301681e92de2cc481bb61300b221ce05b6dcaf38"
+    },
+    {
+      "id": "a.Business.research.customer-deliverable.EVIDENCE-HONESTY-2026-10-13.md",
+      "path": "Business/research/customer-deliverable/EVIDENCE_HONESTY_2026-10-13.md",
+      "sha256": "c4cd71b9140c41082c187c2283c1d024042a3e619a0f60eadb9fa9f53150e2e1"
+    },
+    {
+      "id": "a..agent.decisions.2026-10-13-OWNER-PLATING-REFERENCE-01.md",
+      "path": ".agent/decisions/2026-10-13-OWNER-PLATING-REFERENCE-01.md",
+      "sha256": "3c71241a4727d78018c3eff7268d727ab35f3d28c443bf4481bd1629cbc76ea4"
+    },
+    {
+      "id": "a..agent.decisions.2026-10-13-VALIDATOR-PLATING-REF-V2-01.md",
+      "path": ".agent/decisions/2026-10-13-VALIDATOR-PLATING-REF-V2-01.md",
+      "sha256": "72d814b11a69159a412e25e38b8bed803b18cd08c2004420a8a4e6df0cbb82a8"
+    },
+    {
+      "id": "a.docs.development.evidence.plating-convergence-01.summary.json",
+      "path": "docs/development/evidence/plating-convergence-01/summary.json",
+      "sha256": "43117f8632c4cd82849c0e40d7c995f08d3efc8a6f40a6ab1368624f6c3af4fe"
+    },
+    {
+      "id": "a.scripts.dev.battery.plating-rereference.py",
+      "path": "scripts/dev/battery/plating_rereference.py",
+      "sha256": "dc8fe7f3f2cadb1993a9fce125ed44d292583e81576de10863e99bd5137351bc"
+    }
+  ],
+  "claims": [
+    {
+      "id": "package.s00.carbon-model-package-product-specification-v2",
+      "surface": "package",
+      "statement": {
+        "artifact": "a.Business.research.customer-deliverable.PRODUCT-SPEC-V2.md",
+        "locator": {
+          "kind": "lines",
+          "value": "L1-L26"
+        },
+        "sha256": "eb926ac423b0969a224d9da7425204029c3899da39252303dc185b22d22deb19"
+      },
+      "basis": "SPECIFICATION",
+      "requirement": "ARTIFACT_TRACEABILITY",
+      "citations": [
+        {
+          "artifact": "a.Business.Business-Canon.md",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "1f416bdcb212bce3ca63211f5c1bef88d4878ab49da29361743b37060b3d0e91"
+        },
+        {
+          "artifact": "a.Design-Specs.Build-Out-Product-Qualification-Extension.md",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "d1a6dbb9980a9c9a7bac5374d4a21f44f66daa2e881dfada6331b31ab3164a27"
+        },
+        {
+          "artifact": "a.Design-Specs.Product-Qualification-Evidence.md",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "7f14c881b9e875b3639d865b87edc29bce1a1f7bd93c748741fa8e651322e0fc"
+        }
+      ],
+      "reference": null
+    },
+    {
+      "id": "package.s01.1-authority-reuse-and-evidence-meaning",
+      "surface": "package",
+      "statement": {
+        "artifact": "a.Business.research.customer-deliverable.PRODUCT-SPEC-V2.md",
+        "locator": {
+          "kind": "lines",
+          "value": "L27-L92"
+        },
+        "sha256": "90dd1f6ae59de993e71b5e682a159be3ec332cca858ac5b93304f27d1def8415"
+      },
+      "basis": "SPECIFICATION",
+      "requirement": "ARTIFACT_TRACEABILITY",
+      "citations": [
+        {
+          "artifact": "a.Business.Business-Canon.md",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "1f416bdcb212bce3ca63211f5c1bef88d4878ab49da29361743b37060b3d0e91"
+        },
+        {
+          "artifact": "a.Design-Specs.Build-Out-Product-Qualification-Extension.md",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "d1a6dbb9980a9c9a7bac5374d4a21f44f66daa2e881dfada6331b31ab3164a27"
+        },
+        {
+          "artifact": "a.Design-Specs.Product-Qualification-Evidence.md",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "7f14c881b9e875b3639d865b87edc29bce1a1f7bd93c748741fa8e651322e0fc"
+        }
+      ],
+      "reference": null
+    },
+    {
+      "id": "package.s02.2-one-package-mapped-to-existing-homes",
+      "surface": "package",
+      "statement": {
+        "artifact": "a.Business.research.customer-deliverable.PRODUCT-SPEC-V2.md",
+        "locator": {
+          "kind": "lines",
+          "value": "L93-L119"
+        },
+        "sha256": "9f228855a1afbe7e45b1afd8c25928c07da67ab57eae1b6b921fc801106bc8ce"
+      },
+      "basis": "SPECIFICATION",
+      "requirement": "ARTIFACT_TRACEABILITY",
+      "citations": [
+        {
+          "artifact": "a.Business.Business-Canon.md",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "1f416bdcb212bce3ca63211f5c1bef88d4878ab49da29361743b37060b3d0e91"
+        },
+        {
+          "artifact": "a.Design-Specs.Build-Out-Product-Qualification-Extension.md",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "d1a6dbb9980a9c9a7bac5374d4a21f44f66daa2e881dfada6331b31ab3164a27"
+        },
+        {
+          "artifact": "a.Design-Specs.Product-Qualification-Evidence.md",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "7f14c881b9e875b3639d865b87edc29bce1a1f7bd93c748741fa8e651322e0fc"
+        }
+      ],
+      "reference": null
+    },
+    {
+      "id": "package.s03.3-cmp-01-exact-executable-artifact",
+      "surface": "package",
+      "statement": {
+        "artifact": "a.Business.research.customer-deliverable.PRODUCT-SPEC-V2.md",
+        "locator": {
+          "kind": "lines",
+          "value": "L120-L144"
+        },
+        "sha256": "7cca0649a8c6b90f7fdd28205d57c7f70fcc005d4e664691a76123e201156841"
+      },
+      "basis": "SPECIFICATION",
+      "requirement": "ARTIFACT_TRACEABILITY",
+      "citations": [
+        {
+          "artifact": "a.Business.Business-Canon.md",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "1f416bdcb212bce3ca63211f5c1bef88d4878ab49da29361743b37060b3d0e91"
+        },
+        {
+          "artifact": "a.Design-Specs.Build-Out-Product-Qualification-Extension.md",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "d1a6dbb9980a9c9a7bac5374d4a21f44f66daa2e881dfada6331b31ab3164a27"
+        },
+        {
+          "artifact": "a.Design-Specs.Product-Qualification-Evidence.md",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "7f14c881b9e875b3639d865b87edc29bce1a1f7bd93c748741fa8e651322e0fc"
+        }
+      ],
+      "reference": null
+    },
+    {
+      "id": "package.s04.4-cmp-02-physics-contract-and-law-check-report",
+      "surface": "package",
+      "statement": {
+        "artifact": "a.Business.research.customer-deliverable.PRODUCT-SPEC-V2.md",
+        "locator": {
+          "kind": "lines",
+          "value": "L145-L186"
+        },
+        "sha256": "1d2ea9a29cd22c166c4ffb487c3b40f58432e88b580e6b6c8bd271ad62a40071"
+      },
+      "basis": "SPECIFICATION",
+      "requirement": "ARTIFACT_TRACEABILITY",
+      "citations": [
+        {
+          "artifact": "a.Business.Business-Canon.md",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "1f416bdcb212bce3ca63211f5c1bef88d4878ab49da29361743b37060b3d0e91"
+        },
+        {
+          "artifact": "a.Design-Specs.Build-Out-Product-Qualification-Extension.md",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "d1a6dbb9980a9c9a7bac5374d4a21f44f66daa2e881dfada6331b31ab3164a27"
+        },
+        {
+          "artifact": "a.Design-Specs.Product-Qualification-Evidence.md",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "7f14c881b9e875b3639d865b87edc29bce1a1f7bd93c748741fa8e651322e0fc"
+        }
+      ],
+      "reference": null
+    },
+    {
+      "id": "package.s05.5-cmp-03-model-card-and-floors",
+      "surface": "package",
+      "statement": {
+        "artifact": "a.Business.research.customer-deliverable.PRODUCT-SPEC-V2.md",
+        "locator": {
+          "kind": "lines",
+          "value": "L187-L219"
+        },
+        "sha256": "cead61af740f142840d4c346142a219cf7acaa7a939bfce672233fbd945b5e3a"
+      },
+      "basis": "SPECIFICATION",
+      "requirement": "ARTIFACT_TRACEABILITY",
+      "citations": [
+        {
+          "artifact": "a.Business.Business-Canon.md",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "1f416bdcb212bce3ca63211f5c1bef88d4878ab49da29361743b37060b3d0e91"
+        },
+        {
+          "artifact": "a.Design-Specs.Build-Out-Product-Qualification-Extension.md",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "d1a6dbb9980a9c9a7bac5374d4a21f44f66daa2e881dfada6331b31ab3164a27"
+        },
+        {
+          "artifact": "a.Design-Specs.Product-Qualification-Evidence.md",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "7f14c881b9e875b3639d865b87edc29bce1a1f7bd93c748741fa8e651322e0fc"
+        }
+      ],
+      "reference": null
+    },
+    {
+      "id": "package.s06.6-cmp-04-trust-map",
+      "surface": "package",
+      "statement": {
+        "artifact": "a.Business.research.customer-deliverable.PRODUCT-SPEC-V2.md",
+        "locator": {
+          "kind": "lines",
+          "value": "L220-L248"
+        },
+        "sha256": "3ec7ecd19561eb6c6ca6cd87db522671814b4e02959a3e5f312b73070d93aa9f"
+      },
+      "basis": "SPECIFICATION",
+      "requirement": "ARTIFACT_TRACEABILITY",
+      "citations": [
+        {
+          "artifact": "a.Business.Business-Canon.md",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "1f416bdcb212bce3ca63211f5c1bef88d4878ab49da29361743b37060b3d0e91"
+        },
+        {
+          "artifact": "a.Design-Specs.Build-Out-Product-Qualification-Extension.md",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "d1a6dbb9980a9c9a7bac5374d4a21f44f66daa2e881dfada6331b31ab3164a27"
+        },
+        {
+          "artifact": "a.Design-Specs.Product-Qualification-Evidence.md",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "7f14c881b9e875b3639d865b87edc29bce1a1f7bd93c748741fa8e651322e0fc"
+        }
+      ],
+      "reference": null
+    },
+    {
+      "id": "package.s07.7-cmp-05-decision-evidence",
+      "surface": "package",
+      "statement": {
+        "artifact": "a.Business.research.customer-deliverable.PRODUCT-SPEC-V2.md",
+        "locator": {
+          "kind": "lines",
+          "value": "L249-L279"
+        },
+        "sha256": "fd5478e91b2d056aedf1cb7bb574f822dba35a3de485ad38384d756948136db8"
+      },
+      "basis": "SPECIFICATION",
+      "requirement": "ARTIFACT_TRACEABILITY",
+      "citations": [
+        {
+          "artifact": "a.Business.Business-Canon.md",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "1f416bdcb212bce3ca63211f5c1bef88d4878ab49da29361743b37060b3d0e91"
+        },
+        {
+          "artifact": "a.Design-Specs.Build-Out-Product-Qualification-Extension.md",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "d1a6dbb9980a9c9a7bac5374d4a21f44f66daa2e881dfada6331b31ab3164a27"
+        },
+        {
+          "artifact": "a.Design-Specs.Product-Qualification-Evidence.md",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "7f14c881b9e875b3639d865b87edc29bce1a1f7bd93c748741fa8e651322e0fc"
+        }
+      ],
+      "reference": null
+    },
+    {
+      "id": "package.s08.8-cmp-06-risk-informed-credibility-dossier",
+      "surface": "package",
+      "statement": {
+        "artifact": "a.Business.research.customer-deliverable.PRODUCT-SPEC-V2.md",
+        "locator": {
+          "kind": "lines",
+          "value": "L280-L343"
+        },
+        "sha256": "8845f36198534dfca8ebedd476c085ae826f3ae4c3770cc4f41a5dc9448c9230"
+      },
+      "basis": "SPECIFICATION",
+      "requirement": "ARTIFACT_TRACEABILITY",
+      "citations": [
+        {
+          "artifact": "a.Business.Business-Canon.md",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "1f416bdcb212bce3ca63211f5c1bef88d4878ab49da29361743b37060b3d0e91"
+        },
+        {
+          "artifact": "a.Design-Specs.Build-Out-Product-Qualification-Extension.md",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "d1a6dbb9980a9c9a7bac5374d4a21f44f66daa2e881dfada6331b31ab3164a27"
+        },
+        {
+          "artifact": "a.Design-Specs.Product-Qualification-Evidence.md",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "7f14c881b9e875b3639d865b87edc29bce1a1f7bd93c748741fa8e651322e0fc"
+        }
+      ],
+      "reference": null
+    },
+    {
+      "id": "package.s09.9-cmp-07-provenance-and-audit",
+      "surface": "package",
+      "statement": {
+        "artifact": "a.Business.research.customer-deliverable.PRODUCT-SPEC-V2.md",
+        "locator": {
+          "kind": "lines",
+          "value": "L344-L369"
+        },
+        "sha256": "577e27b6ab4499173dfbeb98a7fb8abb14366011ebcc10cbdc288e494bf69a1b"
+      },
+      "basis": "SPECIFICATION",
+      "requirement": "ARTIFACT_TRACEABILITY",
+      "citations": [
+        {
+          "artifact": "a.Business.Business-Canon.md",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "1f416bdcb212bce3ca63211f5c1bef88d4878ab49da29361743b37060b3d0e91"
+        },
+        {
+          "artifact": "a.Design-Specs.Build-Out-Product-Qualification-Extension.md",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "d1a6dbb9980a9c9a7bac5374d4a21f44f66daa2e881dfada6331b31ab3164a27"
+        },
+        {
+          "artifact": "a.Design-Specs.Product-Qualification-Evidence.md",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "7f14c881b9e875b3639d865b87edc29bce1a1f7bd93c748741fa8e651322e0fc"
+        }
+      ],
+      "reference": null
+    },
+    {
+      "id": "package.s10.10-cmp-08-envelope-guard-new-runtime-design",
+      "surface": "package",
+      "statement": {
+        "artifact": "a.Business.research.customer-deliverable.PRODUCT-SPEC-V2.md",
+        "locator": {
+          "kind": "lines",
+          "value": "L370-L437"
+        },
+        "sha256": "70cba07886b36b6ce8a7f1afe96011695206a8a68de91e94184e31cf795a9e82"
+      },
+      "basis": "SPECIFICATION",
+      "requirement": "ARTIFACT_TRACEABILITY",
+      "citations": [
+        {
+          "artifact": "a.Business.Business-Canon.md",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "1f416bdcb212bce3ca63211f5c1bef88d4878ab49da29361743b37060b3d0e91"
+        },
+        {
+          "artifact": "a.Design-Specs.Build-Out-Product-Qualification-Extension.md",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "d1a6dbb9980a9c9a7bac5374d4a21f44f66daa2e881dfada6331b31ab3164a27"
+        },
+        {
+          "artifact": "a.Design-Specs.Product-Qualification-Evidence.md",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "7f14c881b9e875b3639d865b87edc29bce1a1f7bd93c748741fa8e651322e0fc"
+        }
+      ],
+      "reference": null
+    },
+    {
+      "id": "package.s11.11-cmp-09-decision-assistant-new-workflow-design",
+      "surface": "package",
+      "statement": {
+        "artifact": "a.Business.research.customer-deliverable.PRODUCT-SPEC-V2.md",
+        "locator": {
+          "kind": "lines",
+          "value": "L438-L483"
+        },
+        "sha256": "8dca6284f690ac2ac3c260e1e31ac53411cc1b0c80834d176c5eaecf83af4dbe"
+      },
+      "basis": "SPECIFICATION",
+      "requirement": "ARTIFACT_TRACEABILITY",
+      "citations": [
+        {
+          "artifact": "a.Business.Business-Canon.md",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "1f416bdcb212bce3ca63211f5c1bef88d4878ab49da29361743b37060b3d0e91"
+        },
+        {
+          "artifact": "a.Design-Specs.Build-Out-Product-Qualification-Extension.md",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "d1a6dbb9980a9c9a7bac5374d4a21f44f66daa2e881dfada6331b31ab3164a27"
+        },
+        {
+          "artifact": "a.Design-Specs.Product-Qualification-Evidence.md",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "7f14c881b9e875b3639d865b87edc29bce1a1f7bd93c748741fa8e651322e0fc"
+        }
+      ],
+      "reference": null
+    },
+    {
+      "id": "package.s12.12-cmp-10-lifecycle-and-change-handling",
+      "surface": "package",
+      "statement": {
+        "artifact": "a.Business.research.customer-deliverable.PRODUCT-SPEC-V2.md",
+        "locator": {
+          "kind": "lines",
+          "value": "L484-L504"
+        },
+        "sha256": "1c6db382ad41ac1b5838750ad169584133dc349608f9df5a3194f370ef21362f"
+      },
+      "basis": "SPECIFICATION",
+      "requirement": "ARTIFACT_TRACEABILITY",
+      "citations": [
+        {
+          "artifact": "a.Business.Business-Canon.md",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "1f416bdcb212bce3ca63211f5c1bef88d4878ab49da29361743b37060b3d0e91"
+        },
+        {
+          "artifact": "a.Design-Specs.Build-Out-Product-Qualification-Extension.md",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "d1a6dbb9980a9c9a7bac5374d4a21f44f66daa2e881dfada6331b31ab3164a27"
+        },
+        {
+          "artifact": "a.Design-Specs.Product-Qualification-Evidence.md",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "7f14c881b9e875b3639d865b87edc29bce1a1f7bd93c748741fa8e651322e0fc"
+        }
+      ],
+      "reference": null
+    },
+    {
+      "id": "package.s13.13-cmp-11-high-rigour-and-defense-deployment",
+      "surface": "package",
+      "statement": {
+        "artifact": "a.Business.research.customer-deliverable.PRODUCT-SPEC-V2.md",
+        "locator": {
+          "kind": "lines",
+          "value": "L505-L537"
+        },
+        "sha256": "6e5c0ebfba1c1ebbea54bbd78d5f6345a8397121b84b9784435516e76442392b"
+      },
+      "basis": "SPECIFICATION",
+      "requirement": "ARTIFACT_TRACEABILITY",
+      "citations": [
+        {
+          "artifact": "a.Business.Business-Canon.md",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "1f416bdcb212bce3ca63211f5c1bef88d4878ab49da29361743b37060b3d0e91"
+        },
+        {
+          "artifact": "a.Design-Specs.Build-Out-Product-Qualification-Extension.md",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "d1a6dbb9980a9c9a7bac5374d4a21f44f66daa2e881dfada6331b31ab3164a27"
+        },
+        {
+          "artifact": "a.Design-Specs.Product-Qualification-Evidence.md",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "7f14c881b9e875b3639d865b87edc29bce1a1f7bd93c748741fa8e651322e0fc"
+        }
+      ],
+      "reference": null
+    },
+    {
+      "id": "package.s14.14-gap-and-maturity-table",
+      "surface": "package",
+      "statement": {
+        "artifact": "a.Business.research.customer-deliverable.PRODUCT-SPEC-V2.md",
+        "locator": {
+          "kind": "lines",
+          "value": "L538-L560"
+        },
+        "sha256": "b911ecb934b0bf032ba658a22c43c6d758ee03779db71d7561612d9cf18adceb"
+      },
+      "basis": "SPECIFICATION",
+      "requirement": "ARTIFACT_TRACEABILITY",
+      "citations": [
+        {
+          "artifact": "a.Business.Business-Canon.md",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "1f416bdcb212bce3ca63211f5c1bef88d4878ab49da29361743b37060b3d0e91"
+        },
+        {
+          "artifact": "a.Design-Specs.Build-Out-Product-Qualification-Extension.md",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "d1a6dbb9980a9c9a7bac5374d4a21f44f66daa2e881dfada6331b31ab3164a27"
+        },
+        {
+          "artifact": "a.Design-Specs.Product-Qualification-Evidence.md",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "7f14c881b9e875b3639d865b87edc29bce1a1f7bd93c748741fa8e651322e0fc"
+        }
+      ],
+      "reference": null
+    },
+    {
+      "id": "package.s15.15-minimum-viable-first-pilot-package",
+      "surface": "package",
+      "statement": {
+        "artifact": "a.Business.research.customer-deliverable.PRODUCT-SPEC-V2.md",
+        "locator": {
+          "kind": "lines",
+          "value": "L561-L587"
+        },
+        "sha256": "9e3e23f2bdcc7a37ce67ba3c50001e9c7cf2c6153940f7119151d57ba6425ec1"
+      },
+      "basis": "SPECIFICATION",
+      "requirement": "ARTIFACT_TRACEABILITY",
+      "citations": [
+        {
+          "artifact": "a.Business.Business-Canon.md",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "1f416bdcb212bce3ca63211f5c1bef88d4878ab49da29361743b37060b3d0e91"
+        },
+        {
+          "artifact": "a.Design-Specs.Build-Out-Product-Qualification-Extension.md",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "d1a6dbb9980a9c9a7bac5374d4a21f44f66daa2e881dfada6331b31ab3164a27"
+        },
+        {
+          "artifact": "a.Design-Specs.Product-Qualification-Evidence.md",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "7f14c881b9e875b3639d865b87edc29bce1a1f7bd93c748741fa8e651322e0fc"
+        }
+      ],
+      "reference": null
+    },
+    {
+      "id": "package.s16.16-human-input-decisions-for-the-owner",
+      "surface": "package",
+      "statement": {
+        "artifact": "a.Business.research.customer-deliverable.PRODUCT-SPEC-V2.md",
+        "locator": {
+          "kind": "lines",
+          "value": "L588-L608"
+        },
+        "sha256": "996ea0a990ca1b7f0338b31e29a62d5ae75ffb3aa9bf73d8f5b394c974ed9abd"
+      },
+      "basis": "SPECIFICATION",
+      "requirement": "ARTIFACT_TRACEABILITY",
+      "citations": [
+        {
+          "artifact": "a.Business.Business-Canon.md",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "1f416bdcb212bce3ca63211f5c1bef88d4878ab49da29361743b37060b3d0e91"
+        },
+        {
+          "artifact": "a.Design-Specs.Build-Out-Product-Qualification-Extension.md",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "d1a6dbb9980a9c9a7bac5374d4a21f44f66daa2e881dfada6331b31ab3164a27"
+        },
+        {
+          "artifact": "a.Design-Specs.Product-Qualification-Evidence.md",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "7f14c881b9e875b3639d865b87edc29bce1a1f7bd93c748741fa8e651322e0fc"
+        }
+      ],
+      "reference": null
+    },
+    {
+      "id": "package-renderer.s00.deliverable-generator-01-development-evidence-automation",
+      "surface": "package-renderer",
+      "statement": {
+        "artifact": "a.Business.research.deliverable-generator.README.md",
+        "locator": {
+          "kind": "lines",
+          "value": "L1-L6"
+        },
+        "sha256": "8447e15f36871a49e7cbbc16b0d7b3316fa5ef1dbffd23e09a120d19f5ce0550"
+      },
+      "basis": "IMPLEMENTATION",
+      "requirement": "ARTIFACT_TRACEABILITY",
+      "citations": [
+        {
+          "artifact": "a.scripts.dev.customer-deliverable.generate.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "d223eaea59e5fc87fcb239d1c3400c7c1fd1d2d4ebc578962d7594001963755d"
+        },
+        {
+          "artifact": "a.scripts.dev.customer-deliverable.package-sections.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "d44acf496bfb636dea409184befd2e8968ecb172104ecabdc3b202a1ca285891"
+        },
+        {
+          "artifact": "a.scripts.dev.customer-deliverable.credibility.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "9895e34b531e217ef432abbcfe1f0c91f181e23b8a0aee5e804f7bdad8f8c9da"
+        },
+        {
+          "artifact": "a.scripts.dev.customer-deliverable.claims.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "c59a994b3623a0874bd1da430df81a757bc118c467ee95f57523a31709158687"
+        },
+        {
+          "artifact": "a.scripts.dev.customer-deliverable.check-claims.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "81ce04d2f68059e859be55482b30939fd6b5a20b5e88da21a87f18b5b625e153"
+        },
+        {
+          "artifact": "a.tests.cpu.test-customer-deliverable-generator.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "91d2bba29facd2b116c66e6f97542781bddd10fa4dd869ea2932991319bfce9d"
+        }
+      ],
+      "reference": null
+    },
+    {
+      "id": "package-renderer.s01.run-from-committed-git",
+      "surface": "package-renderer",
+      "statement": {
+        "artifact": "a.Business.research.deliverable-generator.README.md",
+        "locator": {
+          "kind": "lines",
+          "value": "L7-L18"
+        },
+        "sha256": "ba67056f2b3f57f0dc12260768514c116aa46a7dd064a157c9a9eaffb5929dcc"
+      },
+      "basis": "IMPLEMENTATION",
+      "requirement": "ARTIFACT_TRACEABILITY",
+      "citations": [
+        {
+          "artifact": "a.scripts.dev.customer-deliverable.generate.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "d223eaea59e5fc87fcb239d1c3400c7c1fd1d2d4ebc578962d7594001963755d"
+        },
+        {
+          "artifact": "a.scripts.dev.customer-deliverable.package-sections.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "d44acf496bfb636dea409184befd2e8968ecb172104ecabdc3b202a1ca285891"
+        },
+        {
+          "artifact": "a.scripts.dev.customer-deliverable.credibility.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "9895e34b531e217ef432abbcfe1f0c91f181e23b8a0aee5e804f7bdad8f8c9da"
+        },
+        {
+          "artifact": "a.scripts.dev.customer-deliverable.claims.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "c59a994b3623a0874bd1da430df81a757bc118c467ee95f57523a31709158687"
+        },
+        {
+          "artifact": "a.scripts.dev.customer-deliverable.check-claims.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "81ce04d2f68059e859be55482b30939fd6b5a20b5e88da21a87f18b5b625e153"
+        },
+        {
+          "artifact": "a.tests.cpu.test-customer-deliverable-generator.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "91d2bba29facd2b116c66e6f97542781bddd10fa4dd869ea2932991319bfce9d"
+        }
+      ],
+      "reference": null
+    },
+    {
+      "id": "package-renderer.s02.offline-committed-public-export",
+      "surface": "package-renderer",
+      "statement": {
+        "artifact": "a.Business.research.deliverable-generator.README.md",
+        "locator": {
+          "kind": "lines",
+          "value": "L19-L30"
+        },
+        "sha256": "27cf295a53828e118e5840eb870783110a862e2bf65809c397b94be04458e381"
+      },
+      "basis": "IMPLEMENTATION",
+      "requirement": "ARTIFACT_TRACEABILITY",
+      "citations": [
+        {
+          "artifact": "a.scripts.dev.customer-deliverable.generate.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "d223eaea59e5fc87fcb239d1c3400c7c1fd1d2d4ebc578962d7594001963755d"
+        },
+        {
+          "artifact": "a.scripts.dev.customer-deliverable.package-sections.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "d44acf496bfb636dea409184befd2e8968ecb172104ecabdc3b202a1ca285891"
+        },
+        {
+          "artifact": "a.scripts.dev.customer-deliverable.credibility.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "9895e34b531e217ef432abbcfe1f0c91f181e23b8a0aee5e804f7bdad8f8c9da"
+        },
+        {
+          "artifact": "a.scripts.dev.customer-deliverable.claims.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "c59a994b3623a0874bd1da430df81a757bc118c467ee95f57523a31709158687"
+        },
+        {
+          "artifact": "a.scripts.dev.customer-deliverable.check-claims.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "81ce04d2f68059e859be55482b30939fd6b5a20b5e88da21a87f18b5b625e153"
+        },
+        {
+          "artifact": "a.tests.cpu.test-customer-deliverable-generator.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "91d2bba29facd2b116c66e6f97542781bddd10fa4dd869ea2932991319bfce9d"
+        }
+      ],
+      "reference": null
+    },
+    {
+      "id": "package-renderer.s03.what-gets-filled",
+      "surface": "package-renderer",
+      "statement": {
+        "artifact": "a.Business.research.deliverable-generator.README.md",
+        "locator": {
+          "kind": "lines",
+          "value": "L31-L39"
+        },
+        "sha256": "49b0f2692e10cf75558d6baf4382ef92dde7d4be7894e43a47801a9d3940c7cd"
+      },
+      "basis": "IMPLEMENTATION",
+      "requirement": "ARTIFACT_TRACEABILITY",
+      "citations": [
+        {
+          "artifact": "a.scripts.dev.customer-deliverable.generate.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "d223eaea59e5fc87fcb239d1c3400c7c1fd1d2d4ebc578962d7594001963755d"
+        },
+        {
+          "artifact": "a.scripts.dev.customer-deliverable.package-sections.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "d44acf496bfb636dea409184befd2e8968ecb172104ecabdc3b202a1ca285891"
+        },
+        {
+          "artifact": "a.scripts.dev.customer-deliverable.credibility.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "9895e34b531e217ef432abbcfe1f0c91f181e23b8a0aee5e804f7bdad8f8c9da"
+        },
+        {
+          "artifact": "a.scripts.dev.customer-deliverable.claims.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "c59a994b3623a0874bd1da430df81a757bc118c467ee95f57523a31709158687"
+        },
+        {
+          "artifact": "a.scripts.dev.customer-deliverable.check-claims.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "81ce04d2f68059e859be55482b30939fd6b5a20b5e88da21a87f18b5b625e153"
+        },
+        {
+          "artifact": "a.tests.cpu.test-customer-deliverable-generator.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "91d2bba29facd2b116c66e6f97542781bddd10fa4dd869ea2932991319bfce9d"
+        }
+      ],
+      "reference": null
+    },
+    {
+      "id": "package-renderer.s04.evidence-and-tests",
+      "surface": "package-renderer",
+      "statement": {
+        "artifact": "a.Business.research.deliverable-generator.README.md",
+        "locator": {
+          "kind": "lines",
+          "value": "L40-L51"
+        },
+        "sha256": "73894b25033757f67978824c506654147d1a52f7a3a1f0a1c585ab79e428053c"
+      },
+      "basis": "IMPLEMENTATION",
+      "requirement": "ARTIFACT_TRACEABILITY",
+      "citations": [
+        {
+          "artifact": "a.scripts.dev.customer-deliverable.generate.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "d223eaea59e5fc87fcb239d1c3400c7c1fd1d2d4ebc578962d7594001963755d"
+        },
+        {
+          "artifact": "a.scripts.dev.customer-deliverable.package-sections.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "d44acf496bfb636dea409184befd2e8968ecb172104ecabdc3b202a1ca285891"
+        },
+        {
+          "artifact": "a.scripts.dev.customer-deliverable.credibility.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "9895e34b531e217ef432abbcfe1f0c91f181e23b8a0aee5e804f7bdad8f8c9da"
+        },
+        {
+          "artifact": "a.scripts.dev.customer-deliverable.claims.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "c59a994b3623a0874bd1da430df81a757bc118c467ee95f57523a31709158687"
+        },
+        {
+          "artifact": "a.scripts.dev.customer-deliverable.check-claims.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "81ce04d2f68059e859be55482b30939fd6b5a20b5e88da21a87f18b5b625e153"
+        },
+        {
+          "artifact": "a.tests.cpu.test-customer-deliverable-generator.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "91d2bba29facd2b116c66e6f97542781bddd10fa4dd869ea2932991319bfce9d"
+        }
+      ],
+      "reference": null
+    },
+    {
+      "id": "package-renderer.s05.limits-and-next-work",
+      "surface": "package-renderer",
+      "statement": {
+        "artifact": "a.Business.research.deliverable-generator.README.md",
+        "locator": {
+          "kind": "lines",
+          "value": "L52-L57"
+        },
+        "sha256": "10db30326455eb0fb405e789a67c733134ad0a64b4956a3fba3fc0e64215433d"
+      },
+      "basis": "IMPLEMENTATION",
+      "requirement": "ARTIFACT_TRACEABILITY",
+      "citations": [
+        {
+          "artifact": "a.scripts.dev.customer-deliverable.generate.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "d223eaea59e5fc87fcb239d1c3400c7c1fd1d2d4ebc578962d7594001963755d"
+        },
+        {
+          "artifact": "a.scripts.dev.customer-deliverable.package-sections.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "d44acf496bfb636dea409184befd2e8968ecb172104ecabdc3b202a1ca285891"
+        },
+        {
+          "artifact": "a.scripts.dev.customer-deliverable.credibility.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "9895e34b531e217ef432abbcfe1f0c91f181e23b8a0aee5e804f7bdad8f8c9da"
+        },
+        {
+          "artifact": "a.scripts.dev.customer-deliverable.claims.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "c59a994b3623a0874bd1da430df81a757bc118c467ee95f57523a31709158687"
+        },
+        {
+          "artifact": "a.scripts.dev.customer-deliverable.check-claims.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "81ce04d2f68059e859be55482b30939fd6b5a20b5e88da21a87f18b5b625e153"
+        },
+        {
+          "artifact": "a.tests.cpu.test-customer-deliverable-generator.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "91d2bba29facd2b116c66e6f97542781bddd10fa4dd869ea2932991319bfce9d"
+        }
+      ],
+      "reference": null
+    },
+    {
+      "id": "package-renderer.s06.prd-01-carbon-model-package-development-sections",
+      "surface": "package-renderer",
+      "statement": {
+        "artifact": "a.Business.research.deliverable-generator.README.md",
+        "locator": {
+          "kind": "lines",
+          "value": "L58-L147"
+        },
+        "sha256": "c10292c7c85133ad7e17c539b28364400667ffd6a55996ffb703cb20e82687c3"
+      },
+      "basis": "IMPLEMENTATION",
+      "requirement": "ARTIFACT_TRACEABILITY",
+      "citations": [
+        {
+          "artifact": "a.scripts.dev.customer-deliverable.generate.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "d223eaea59e5fc87fcb239d1c3400c7c1fd1d2d4ebc578962d7594001963755d"
+        },
+        {
+          "artifact": "a.scripts.dev.customer-deliverable.package-sections.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "d44acf496bfb636dea409184befd2e8968ecb172104ecabdc3b202a1ca285891"
+        },
+        {
+          "artifact": "a.scripts.dev.customer-deliverable.credibility.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "9895e34b531e217ef432abbcfe1f0c91f181e23b8a0aee5e804f7bdad8f8c9da"
+        },
+        {
+          "artifact": "a.scripts.dev.customer-deliverable.claims.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "c59a994b3623a0874bd1da430df81a757bc118c467ee95f57523a31709158687"
+        },
+        {
+          "artifact": "a.scripts.dev.customer-deliverable.check-claims.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "81ce04d2f68059e859be55482b30939fd6b5a20b5e88da21a87f18b5b625e153"
+        },
+        {
+          "artifact": "a.tests.cpu.test-customer-deliverable-generator.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "91d2bba29facd2b116c66e6f97542781bddd10fa4dd869ea2932991319bfce9d"
+        }
+      ],
+      "reference": null
+    },
+    {
+      "id": "package-renderer.s07.prd-04-credibility-matrix-and-risk-informed-planning",
+      "surface": "package-renderer",
+      "statement": {
+        "artifact": "a.Business.research.deliverable-generator.README.md",
+        "locator": {
+          "kind": "lines",
+          "value": "L148-L229"
+        },
+        "sha256": "ecb78afc50ce4f92a8824e35f3105709b98a07559d9a110618eb4a5935ffb49c"
+      },
+      "basis": "IMPLEMENTATION",
+      "requirement": "ARTIFACT_TRACEABILITY",
+      "citations": [
+        {
+          "artifact": "a.scripts.dev.customer-deliverable.generate.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "d223eaea59e5fc87fcb239d1c3400c7c1fd1d2d4ebc578962d7594001963755d"
+        },
+        {
+          "artifact": "a.scripts.dev.customer-deliverable.package-sections.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "d44acf496bfb636dea409184befd2e8968ecb172104ecabdc3b202a1ca285891"
+        },
+        {
+          "artifact": "a.scripts.dev.customer-deliverable.credibility.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "9895e34b531e217ef432abbcfe1f0c91f181e23b8a0aee5e804f7bdad8f8c9da"
+        },
+        {
+          "artifact": "a.scripts.dev.customer-deliverable.claims.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "c59a994b3623a0874bd1da430df81a757bc118c467ee95f57523a31709158687"
+        },
+        {
+          "artifact": "a.scripts.dev.customer-deliverable.check-claims.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "81ce04d2f68059e859be55482b30939fd6b5a20b5e88da21a87f18b5b625e153"
+        },
+        {
+          "artifact": "a.tests.cpu.test-customer-deliverable-generator.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "91d2bba29facd2b116c66e6f97542781bddd10fa4dd869ea2932991319bfce9d"
+        }
+      ],
+      "reference": null
+    },
+    {
+      "id": "package-renderer.s08.2026-10-13-evidence-honesty-presentation-repair",
+      "surface": "package-renderer",
+      "statement": {
+        "artifact": "a.Business.research.deliverable-generator.README.md",
+        "locator": {
+          "kind": "lines",
+          "value": "L230-L248"
+        },
+        "sha256": "680e9a6fec70fc8b4e2c7f82a993066e3d0aed28f44339d9d14792ee99279ad1"
+      },
+      "basis": "IMPLEMENTATION",
+      "requirement": "ARTIFACT_TRACEABILITY",
+      "citations": [
+        {
+          "artifact": "a.scripts.dev.customer-deliverable.generate.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "d223eaea59e5fc87fcb239d1c3400c7c1fd1d2d4ebc578962d7594001963755d"
+        },
+        {
+          "artifact": "a.scripts.dev.customer-deliverable.package-sections.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "d44acf496bfb636dea409184befd2e8968ecb172104ecabdc3b202a1ca285891"
+        },
+        {
+          "artifact": "a.scripts.dev.customer-deliverable.credibility.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "9895e34b531e217ef432abbcfe1f0c91f181e23b8a0aee5e804f7bdad8f8c9da"
+        },
+        {
+          "artifact": "a.scripts.dev.customer-deliverable.claims.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "c59a994b3623a0874bd1da430df81a757bc118c467ee95f57523a31709158687"
+        },
+        {
+          "artifact": "a.scripts.dev.customer-deliverable.check-claims.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "81ce04d2f68059e859be55482b30939fd6b5a20b5e88da21a87f18b5b625e153"
+        },
+        {
+          "artifact": "a.tests.cpu.test-customer-deliverable-generator.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "91d2bba29facd2b116c66e6f97542781bddd10fa4dd869ea2932991319bfce9d"
+        }
+      ],
+      "reference": null
+    },
+    {
+      "id": "guard.s00.envelope-guard-prd-02-development-contract",
+      "surface": "guard",
+      "statement": {
+        "artifact": "a.carbon.product.envelope-guard.README.md",
+        "locator": {
+          "kind": "lines",
+          "value": "L1-L166"
+        },
+        "sha256": "b0b707ca9e871422e03a9961bab358de2bb4daf39dc42d4e2fb2db6d18111aef"
+      },
+      "basis": "IMPLEMENTATION",
+      "requirement": "ARTIFACT_TRACEABILITY",
+      "citations": [
+        {
+          "artifact": "a.carbon.product.envelope-guard.core.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "f772c5d0814df5b0f45f8db526e0e8f23cc736c5d967ed9d964a51093f6571cf"
+        },
+        {
+          "artifact": "a.carbon.product.envelope-guard.configuration.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "19d3e558453813faf603b712e9908f814ee2ec40f39a8ba46118412c44255221"
+        },
+        {
+          "artifact": "a.tests.cpu.test-product-envelope-guard.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "bc1af7f5d52feb9814a98a9a1b1892c518f916c20918db3b0da544ff0bd5e465"
+        },
+        {
+          "artifact": "a..agent.decisions.2026-10-13-OWNER-PHYSICS-GATES-01.md",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "3a063759a08cade18d16f0b270135ef48eb00e232d8aeb19e39d51f369057bc2"
+        }
+      ],
+      "reference": null
+    },
+    {
+      "id": "guard.s01.api-and-records",
+      "surface": "guard",
+      "statement": {
+        "artifact": "a.carbon.product.envelope-guard.README.md",
+        "locator": {
+          "kind": "lines",
+          "value": "L167-L242"
+        },
+        "sha256": "306b9eef58d8b2f45f36a6e5855db7a005714c128751b777acc521f81faecd1b"
+      },
+      "basis": "IMPLEMENTATION",
+      "requirement": "ARTIFACT_TRACEABILITY",
+      "citations": [
+        {
+          "artifact": "a.carbon.product.envelope-guard.core.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "f772c5d0814df5b0f45f8db526e0e8f23cc736c5d967ed9d964a51093f6571cf"
+        },
+        {
+          "artifact": "a.carbon.product.envelope-guard.configuration.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "19d3e558453813faf603b712e9908f814ee2ec40f39a8ba46118412c44255221"
+        },
+        {
+          "artifact": "a.tests.cpu.test-product-envelope-guard.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "bc1af7f5d52feb9814a98a9a1b1892c518f916c20918db3b0da544ff0bd5e465"
+        },
+        {
+          "artifact": "a..agent.decisions.2026-10-13-OWNER-PHYSICS-GATES-01.md",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "3a063759a08cade18d16f0b270135ef48eb00e232d8aeb19e39d51f369057bc2"
+        }
+      ],
+      "reference": null
+    },
+    {
+      "id": "trust-map.s00.development-trust-maps-plt-05",
+      "surface": "trust-map",
+      "statement": {
+        "artifact": "a.docs.development.TRUST-MAP.md",
+        "locator": {
+          "kind": "lines",
+          "value": "L1-L85"
+        },
+        "sha256": "11595f08ef09568e2908b93fdb8e71b45f2f73d7516cd5ff55e6e822a29b266e"
+      },
+      "basis": "IMPLEMENTATION",
+      "requirement": "ARTIFACT_TRACEABILITY",
+      "citations": [
+        {
+          "artifact": "a.carbon.trust-map.core.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "4acde3469ce64393d3299e85bed47b3d2bb5874f3652e64d3fe2df3b4d42da17"
+        },
+        {
+          "artifact": "a.carbon.battery.trust-map.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "21f8ec770d3d57080bed118d5fdedee504d2295aa8195ec311daedefb198959b"
+        },
+        {
+          "artifact": "a.carbon.trust-map.acceptance.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "78cac728c3384e9a9d12b430caa377ac4bc8a410e93cb48a5d4c4e8ed8e6b385"
+        },
+        {
+          "artifact": "a.tests.cpu.test-trust-map.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "4fcd359a14fd27fd60bc926f6325ec243ece630d3cce460ae4609aa1423656a4"
+        }
+      ],
+      "reference": null
+    },
+    {
+      "id": "credibility.s00.standards-crosswalk-proposed-evidence-indexing",
+      "surface": "credibility",
+      "statement": {
+        "artifact": "a.Business.research.deliverable-framework.STANDARDS.md",
+        "locator": {
+          "kind": "lines",
+          "value": "L1-L26"
+        },
+        "sha256": "a06f11d35b4961dde9030bd05bd530e44553353afc7d7cfcf3fab6ccb1230fb4"
+      },
+      "basis": "SOURCE_OBSERVATION",
+      "requirement": "ARTIFACT_TRACEABILITY",
+      "citations": [
+        {
+          "artifact": "a.Business.research.deliverable-framework.FRAMEWORK.md",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "e2d4779fd90b2ca898516d6f8bee13340b86f9ff14bba139fa0cf92c5b2457cb"
+        },
+        {
+          "artifact": "a.Business.research.deliverable-framework.TEMPLATE.md",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "83959e56d77e51bd382595ab301681e92de2cc481bb61300b221ce05b6dcaf38"
+        },
+        {
+          "artifact": "a.scripts.dev.customer-deliverable.credibility.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "9895e34b531e217ef432abbcfe1f0c91f181e23b8a0aee5e804f7bdad8f8c9da"
+        }
+      ],
+      "reference": null
+    },
+    {
+      "id": "credibility.s01.rendering-and-review-contract",
+      "surface": "credibility",
+      "statement": {
+        "artifact": "a.Business.research.deliverable-framework.STANDARDS.md",
+        "locator": {
+          "kind": "lines",
+          "value": "L27-L33"
+        },
+        "sha256": "3c37ffcc4eef28fe78689cb4bb693998dba648ef467c71a266b01e1679e20997"
+      },
+      "basis": "SOURCE_OBSERVATION",
+      "requirement": "ARTIFACT_TRACEABILITY",
+      "citations": [
+        {
+          "artifact": "a.Business.research.deliverable-framework.FRAMEWORK.md",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "e2d4779fd90b2ca898516d6f8bee13340b86f9ff14bba139fa0cf92c5b2457cb"
+        },
+        {
+          "artifact": "a.Business.research.deliverable-framework.TEMPLATE.md",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "83959e56d77e51bd382595ab301681e92de2cc481bb61300b221ce05b6dcaf38"
+        },
+        {
+          "artifact": "a.scripts.dev.customer-deliverable.credibility.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "9895e34b531e217ef432abbcfe1f0c91f181e23b8a0aee5e804f7bdad8f8c9da"
+        }
+      ],
+      "reference": null
+    },
+    {
+      "id": "reference-note.s00.carbon-model-package-evidence-honesty-audit-2026-10-13",
+      "surface": "reference-note",
+      "statement": {
+        "artifact": "a.Business.research.customer-deliverable.EVIDENCE-HONESTY-2026-10-13.md",
+        "locator": {
+          "kind": "lines",
+          "value": "L1-L6"
+        },
+        "sha256": "1e10437352cbbe4f3d77cf56f48d97b0d27f04aaf604116a0f8694962bf7b7f2"
+      },
+      "basis": "SOURCE_OBSERVATION",
+      "requirement": "ARTIFACT_TRACEABILITY",
+      "citations": [
+        {
+          "artifact": "a..agent.decisions.2026-10-13-OWNER-PLATING-REFERENCE-01.md",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "3c71241a4727d78018c3eff7268d727ab35f3d28c443bf4481bd1629cbc76ea4"
+        },
+        {
+          "artifact": "a..agent.decisions.2026-10-13-VALIDATOR-PLATING-REF-V2-01.md",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "72d814b11a69159a412e25e38b8bed803b18cd08c2004420a8a4e6df0cbb82a8"
+        },
+        {
+          "artifact": "a.docs.development.evidence.plating-convergence-01.summary.json",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "43117f8632c4cd82849c0e40d7c995f08d3efc8a6f40a6ab1368624f6c3af4fe"
+        },
+        {
+          "artifact": "a.scripts.dev.battery.plating-rereference.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "dc8fe7f3f2cadb1993a9fce125ed44d292583e81576de10863e99bd5137351bc"
+        }
+      ],
+      "reference": {
+        "artifact": "a.scripts.dev.battery.plating-rereference.py",
+        "locator": {
+          "kind": "python-constant",
+          "value": "VERSION"
+        },
+        "version": "battery-plating-ref-v2"
+      }
+    },
+    {
+      "id": "reference-note.s01.reference-transition-and-the-current-hold",
+      "surface": "reference-note",
+      "statement": {
+        "artifact": "a.Business.research.customer-deliverable.EVIDENCE-HONESTY-2026-10-13.md",
+        "locator": {
+          "kind": "lines",
+          "value": "L7-L37"
+        },
+        "sha256": "cbf221efd8228922a4b5c01105bb3d207ad8429e91afe6d985d55f8080c7bf34"
+      },
+      "basis": "SOURCE_OBSERVATION",
+      "requirement": "ARTIFACT_TRACEABILITY",
+      "citations": [
+        {
+          "artifact": "a..agent.decisions.2026-10-13-OWNER-PLATING-REFERENCE-01.md",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "3c71241a4727d78018c3eff7268d727ab35f3d28c443bf4481bd1629cbc76ea4"
+        },
+        {
+          "artifact": "a..agent.decisions.2026-10-13-VALIDATOR-PLATING-REF-V2-01.md",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "72d814b11a69159a412e25e38b8bed803b18cd08c2004420a8a4e6df0cbb82a8"
+        },
+        {
+          "artifact": "a.docs.development.evidence.plating-convergence-01.summary.json",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "43117f8632c4cd82849c0e40d7c995f08d3efc8a6f40a6ab1368624f6c3af4fe"
+        },
+        {
+          "artifact": "a.scripts.dev.battery.plating-rereference.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "dc8fe7f3f2cadb1993a9fce125ed44d292583e81576de10863e99bd5137351bc"
+        }
+      ],
+      "reference": null
+    },
+    {
+      "id": "reference-note.s02.five-surface-audit-and-prospective-repairs",
+      "surface": "reference-note",
+      "statement": {
+        "artifact": "a.Business.research.customer-deliverable.EVIDENCE-HONESTY-2026-10-13.md",
+        "locator": {
+          "kind": "lines",
+          "value": "L38-L60"
+        },
+        "sha256": "04965ca440b6e94131b71c09ae985cc04164d902f8ca536e921ebf245c363500"
+      },
+      "basis": "SOURCE_OBSERVATION",
+      "requirement": "ARTIFACT_TRACEABILITY",
+      "citations": [
+        {
+          "artifact": "a..agent.decisions.2026-10-13-OWNER-PLATING-REFERENCE-01.md",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "3c71241a4727d78018c3eff7268d727ab35f3d28c443bf4481bd1629cbc76ea4"
+        },
+        {
+          "artifact": "a..agent.decisions.2026-10-13-VALIDATOR-PLATING-REF-V2-01.md",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "72d814b11a69159a412e25e38b8bed803b18cd08c2004420a8a4e6df0cbb82a8"
+        },
+        {
+          "artifact": "a.docs.development.evidence.plating-convergence-01.summary.json",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "43117f8632c4cd82849c0e40d7c995f08d3efc8a6f40a6ab1368624f6c3af4fe"
+        },
+        {
+          "artifact": "a.scripts.dev.battery.plating-rereference.py",
+          "locator": {
+            "kind": "file",
+            "value": "file"
+          },
+          "sha256": "dc8fe7f3f2cadb1993a9fce125ed44d292583e81576de10863e99bd5137351bc"
+        }
+      ],
+      "reference": null
+    },
+    {
+      "id": "trust-map.disclosed-panel-version",
+      "surface": "trust-map",
+      "statement": {
+        "artifact": "a.docs.development.TRUST-MAP.md",
+        "locator": {
+          "kind": "text",
+          "value": "carbon.trust-map.disclosed-panel.v2"
+        },
+        "sha256": "3a28ac063cfea0ded86a9387ff829159628b754efaab24b6dcc9a5a4204845f2"
+      },
+      "basis": "IMPLEMENTATION",
+      "requirement": "CURRENT_REFERENCE",
+      "citations": [
+        {
+          "artifact": "a.carbon.trust-map.core.py",
+          "locator": {
+            "kind": "python-constant",
+            "value": "PANEL_SCHEMA"
+          },
+          "sha256": "3a28ac063cfea0ded86a9387ff829159628b754efaab24b6dcc9a5a4204845f2"
+        }
+      ],
+      "reference": {
+        "artifact": "a.carbon.trust-map.core.py",
+        "locator": {
+          "kind": "python-constant",
+          "value": "PANEL_SCHEMA"
+        },
+        "version": "carbon.trust-map.disclosed-panel.v2"
+      }
+    }
+  ]
+}
