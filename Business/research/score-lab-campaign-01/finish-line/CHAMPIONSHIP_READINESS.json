@@ -1,0 +1,37 @@
+{
+  "schema": "carbon.dev.score-lab-championship-readiness.v1",
+  "scope": "SYNTHETIC_DEVELOPMENT",
+  "authority": ".agent/decisions/2026-10-14-OPT15C-ACCURACY-BRIDGE.md",
+  "stage": "championship",
+  "overall_status": "INSUFFICIENT_EVIDENCE",
+  "accuracy_bridge": {
+    "status": "IMPLEMENTED_UNTESTED",
+    "implementation": "scripts/dev/score_lab/championship_bridge.py",
+    "reused_selector": "carbon/championship_stats/rev5.py",
+    "inputs": "nonnegative per-case accuracy errors, explicit Rev5Rule and named settled guards",
+    "validation_hold": "Root operator window; no new local execution until explicit TEST-mode release"
+  },
+  "full_ten_proxy_study": {
+    "status": "NEW_OWNER_DECISION_REQUIRED",
+    "reason": "No registered per-case comparator, resampling unit or relative-margin scale for signed/nonlinear whole-panel scores",
+    "governing_existing_record": ".agent/decisions/2026-10-11-CHAMPIONSHIP-REV5-RULE-01.md",
+    "method_proposal": "scripts/dev/score_lab/CHAMPIONSHIP_BRIDGE.md",
+    "unresolved_values": ["estimand and contribution definition", "resampling unit", "practical-margin scale and baseline", "fresh-batch sizing"]
+  },
+  "campaign_executed": false,
+  "public_measurement_proposal": {
+    "status": "PROPOSED_NOT_REGISTERED_NOT_EXECUTED",
+    "decision": "Public archival EV4 normalized-error comparison: standalone L4 specimen versus mlp-s0; not a fresh championship",
+    "details": "scripts/dev/score_lab/CHAMPIONSHIP_BRIDGE.md",
+    "source_result_sha256": "db6335db1d424cc8c4d288610b4b7575db5bca09b154d819bf5a14c29a954dd7",
+    "available_evidence": "One actual specimen, two replicas, four-query parity; no paired scientific errors, guards or value outcomes",
+    "required_inputs": ["same-case prediction arrays", "applicable public reference and TRAIN-scale receipts", "named scientific guard receipts"],
+    "proposed_arithmetic_cap_ASSUMPTION": {"cpu_seconds": 60, "wall_seconds": 120, "memory_gib": 2, "provider_dollars": 0},
+    "additional_training_inference_or_solver_cost": null,
+    "additional_execution": "BLOCKED_REQUIRES_EXECUTOR_QUOTE_AND_ROOT_ALLOCATION"
+  },
+  "real_qualification": false,
+  "rule_selected": null,
+  "holdout_read": false,
+  "interpretation": "Supplement to finish-line readiness, not a replacement or a promotion of its overall state"
+}
