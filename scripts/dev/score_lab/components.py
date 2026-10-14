@@ -12,7 +12,13 @@ import statistics
 from .core import LabRefused
 
 COMPONENT_KEYS = frozenset(
-    ("crps_weight", "gradient_weight", "cvar_tail_fraction", "cheap_margin_weight")
+    (
+        "crps_weight",
+        "gradient_weight",
+        "cvar_tail_fraction",
+        "cheap_margin_weight",
+        "honest_abstention",
+    )
 )
 
 
@@ -199,6 +205,97 @@ def with_cvar(rule, *, tail_fraction):
     return wrapped
 
 
+def with_honest_abstention(rule, *, spec):
+    """Toy uncertainty honesty on score-side target and near-variant cells.
+
+    The uncertainty-to-risk mapping and error boundary are declared toy
+    assumptions. Neither the model nor this wrapper sees buyer-value cells.
+    """
+    if not isinstance(spec, dict) or set(spec) != {
+        "weight",
+        "error_limit",
+        "sigma_scale",
+        "decline_threshold",
+        "outside_weight",
+    }:
+        raise LabRefused("component_abstention_spec")
+    weight = _weight(spec["weight"])
+    error_limit = _weight(spec["error_limit"])
+    sigma_scale = _weight(spec["sigma_scale"])
+    decline_threshold = _weight(spec["decline_threshold"])
+    outside_weight = _weight(spec["outside_weight"])
+    if sigma_scale <= 0 or decline_threshold <= 0 or outside_weight > 1:
+        raise LabRefused("component_abstention_spec")
+
+    def quality(predicted, reference):
+        values = []
+        correct_declines = over_declines = confident_wrong = 0
+        if set(predicted) != set(reference):
+            return None
+        for qid, actions in reference.items():
+            if set(predicted[qid]) != set(actions):
+                return None
+            for aid, ref in actions.items():
+                if ref["status"] not in ("FEASIBLE", "INFEASIBLE"):
+                    continue
+                pred = predicted[qid][aid]
+                sigma = pred.get("sigma")
+                objective = pred.get("objective")
+                if (
+                    type(sigma) not in (int, float)
+                    or not math.isfinite(sigma)
+                    or sigma < 0
+                    or type(objective) not in (int, float)
+                    or not math.isfinite(objective)
+                ):
+                    return None
+                bad = abs(objective - ref["objective"]) > error_limit or all(
+                    v >= 0 for v in pred["margins"].values()
+                ) != (ref["status"] == "FEASIBLE")
+                risk = sigma / (sigma + sigma_scale)
+                values.append(1 - (risk - int(bad)) ** 2)
+                declined = sigma >= decline_threshold
+                correct_declines += declined and bad
+                over_declines += declined and not bad
+                confident_wrong += not declined and bad
+        return (
+            (statistics.fmean(values), correct_declines, over_declines, confident_wrong)
+            if values
+            else None
+        )
+
+    def wrapped(predictions, references, metadata):
+        result = rule(predictions, references, metadata)
+        base = _score(result)
+        if base is None:
+            return None
+        inside = quality(predictions, references)
+        neighbours = metadata.get("neighbours")
+        if inside is None or not isinstance(neighbours, list) or not neighbours:
+            return None
+        outside = [quality(row["predictions"], row["references"]) for row in neighbours]
+        if any(row is None for row in outside):
+            return None
+        outside_quality = statistics.fmean(row[0] for row in outside)
+        honesty = (1 - outside_weight) * inside[0] + outside_weight * outside_quality
+        return {
+            **result,
+            "score": base + weight * (honesty - 0.5),
+            "detail": {
+                **result.get("detail", {}),
+                "toy_honesty": {
+                    "inside_quality": inside[0],
+                    "outside_quality": outside_quality,
+                    "correct_declines": inside[1] + sum(row[1] for row in outside),
+                    "over_declines": inside[2] + sum(row[2] for row in outside),
+                    "confident_wrong": inside[3] + sum(row[3] for row in outside),
+                },
+            },
+        }
+
+    return wrapped
+
+
 def compose(rule, spec):
     """Compose toy-only levers in a fixed order, with every setting explicit."""
     if not isinstance(spec, dict) or not spec or set(spec) - COMPONENT_KEYS:
@@ -211,4 +308,6 @@ def compose(rule, spec):
         rule = with_cvar(rule, tail_fraction=spec["cvar_tail_fraction"])
     if "cheap_margin_weight" in spec:
         rule = with_cheap_margin(rule, weight=spec["cheap_margin_weight"])
+    if "honest_abstention" in spec:
+        rule = with_honest_abstention(rule, spec=spec["honest_abstention"])
     return rule

@@ -78,6 +78,10 @@ def validate_config(config):
         or not _finite(decision.get("unit"), low=1e-12)
         or not _finite(decision.get("abstention_loss"))
         or not _finite(decision.get("unsafe_loss"))
+        or (
+            "uncertainty_abstention_threshold" in decision
+            and not _finite(decision["uncertainty_abstention_threshold"], low=1e-12)
+        )
     ):
         raise LabRefused("physics_decision_assumptions")
     hood = config.get("neighbourhood", {})
@@ -409,11 +413,18 @@ def _loss(question, predictions, decision, cost):
     fallback = question["actions"][question["fallback"]]
     if fallback["status"] != "FEASIBLE":
         return None
+    uncertainty_threshold = decision.get("uncertainty_abstention_threshold")
+    if uncertainty_threshold is not None and any(
+        not _finite(pred.get("sigma")) for pred in predictions.values()
+    ):
+        raise LabRefused("physics_uncertainty_prediction")
     shortlist = sorted(
         (
             (pred["objective"], aid)
             for aid, pred in predictions.items()
-            if pred["feasible"] and pred["objective"] < fallback["objective"]
+            if pred["feasible"]
+            and pred["objective"] < fallback["objective"]
+            and (uncertainty_threshold is None or pred["sigma"] < uncertainty_threshold)
         ),
         key=lambda row: (row[0], row[1]),
     )[: decision["k"]]
