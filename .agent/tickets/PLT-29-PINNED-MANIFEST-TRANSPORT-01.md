@@ -5,8 +5,12 @@ main `29fa548c45ad7fe7cf71d871c0c1bddc400497e8`. One PR to main; no builder
 merge, release, deployment, provider request, host acceptance or spend.
 Initial open-PR scan: no overlap on proposed code paths. After #1321 merged as
 704f0fc1880e131e499aa96ce7ffd1e1b1fa4d4f, its size-test fixture was free to
-repair. Late open #1334 overlaps pods.py and #1324 overlaps phase3's test;
-those publication seams remain held for Test Lead serialization.
+repair. Late #1334 and #1324 initially held the shared publication seams.
+Both merged before the normal integration of main
+70961bad1c55be09005137685196821273754a3e. Preserve their closed HTTP-cause
+projection and versioned argument-event/session-history behavior. Validate
+their focused controls with the manifest and actual phase-3 integration;
+previous broad acceptance remains evidence for the unchanged transport scope.
 
 Authority: current constitution/invariants/WAVE, delivery/delegated protocol,
 Build Out/overlay, Code Authority, Graphite grant/transport and shared bootstrap

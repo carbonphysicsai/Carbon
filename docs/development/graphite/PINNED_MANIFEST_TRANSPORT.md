@@ -32,6 +32,11 @@ also retain that encoding and the existing bootstrap path. The new anchors
 are kept out of the phase's child environment. Model inputs, code/image/overlay
 pins, ownership, create identity, cancellation and rate/budget bounds remain.
 
+Integration with main `70961bad1c55be09005137685196821273754a3e` retains
+the merged closed HTTP-status/cause projection for ambiguous creates and the
+argument-event identity/history policy. Manifest delivery does not reinterpret
+legacy sessions or turn ambiguous provider failures into definite non-execution.
+
 `ENV_LIMIT_CHARS` and the 8,000-character reserve are untouched. The owner's
 108,000 override landed in PR #1321 and is preserved. Once that PR merged,
 the obsolete oversized-manifest test input was replaced with truly oversized
