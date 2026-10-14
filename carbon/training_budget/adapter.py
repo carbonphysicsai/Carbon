@@ -85,6 +85,9 @@ class Program:
     #: `train_step_flops` (TRAINING-BUDGET-02 slice 5). Set, the calculator
     #: captures nothing; `fit` and `parameters` are then unused.
     measured_step_flops: float | None = None
+    #: Actual graph parameter count supplied by a bound isolated profile.
+    #: None preserves the standalone G5 contract, which supplies no count.
+    measured_parameters: int | None = None
 
 
 @runtime_checkable
