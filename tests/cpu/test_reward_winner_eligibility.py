@@ -136,6 +136,47 @@ def test_with_a_registered_baseline_a_first_incumbent_is_not_paid(tmp_path):
     assert record["eligible"] is False
 
 
+@pytest.mark.parametrize(
+    ("new_hotkey", "new_coldkey"),
+    [
+        ("hk-a", "ck-a"),
+        ("hk-new", "ck-a"),
+        ("hk-new", "ck-b"),
+    ],
+)
+def test_registered_baseline_cutover_with_existing_winner_refuses_without_record(
+    tmp_path, new_hotkey, new_coldkey
+):
+    import dataclasses
+
+    policy = dataclasses.replace(
+        POLICY,
+        baselines=tuple(
+            (c, "sha256:" + "c" * 64 if c == BATTERY else None)
+            for c in POLICY.challenges
+        ),
+    )
+    book = ledger(tmp_path)
+    old = book.observe(
+        policy,
+        BATTERY,
+        final("m1", "hk-a", "m0", "hk-0"),
+        {"hk-a": "ck-a", "hk-0": "ck-0"},
+        T0,
+    )
+    assert old["eligible"] is True
+    prior = book.path.read_bytes()
+    with pytest.raises(we.WinnerCutoverFailure, match="BASELINE_CUTOVER_UNRESOLVED"):
+        book.observe(
+            policy,
+            BATTERY,
+            first("m2", new_hotkey),
+            {new_hotkey: new_coldkey},
+            T0 + DAY_MS,
+        )
+    assert book.path.read_bytes() == prior
+
+
 def test_an_improvement_final_by_another_miner_restarts_the_clock(tmp_path):
     book = ledger(tmp_path)
     book.observe(POLICY, BATTERY, first("m1", "hk-a"), {"hk-a": "ck-a"}, T0)

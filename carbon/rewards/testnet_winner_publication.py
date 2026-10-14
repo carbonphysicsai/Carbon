@@ -75,6 +75,7 @@ from .winner_decay import (
 from .winner_eligibility import (
     FINAL,
     FIRST,
+    WinnerCutoverFailure,
     WinnerIdentityFailure,
     WinnerLedger,
     payable,
@@ -273,7 +274,7 @@ class TestnetWinnerIntentIssuer:
                             )
                         else:
                             _refuse("TARGETS_CHANGED_REISSUE_NEXT_EPOCH")
-                    except WinnerIdentityFailure as failure:
+                    except (WinnerIdentityFailure, WinnerCutoverFailure) as failure:
                         _refuse(str(failure))
         return found
 

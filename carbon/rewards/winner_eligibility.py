@@ -49,6 +49,10 @@ class WinnerIdentityFailure(RewardFailure):
     """The snapshot and ledger cannot establish a promotion's miner identity."""
 
 
+class WinnerCutoverFailure(RewardFailure):
+    """An existing winner meets an unchecked first incumbent under a baseline."""
+
+
 def battery_promotion(target):
     """The current incumbent's promotion in a battery validator, or None.
 
@@ -165,6 +169,11 @@ def decide(policy, challenge, promotion, previous_record, coldkeys, now_ms):
 
     if promotion["kind"] == FIRST:
         if policy.baseline(challenge) is not None:
+            if previous_record is not None:
+                # The candidate has not beaten the registered baseline, and
+                # authority does not define what happens to the old winner
+                # across this deployment cutover. Leave the ledger unchanged.
+                raise WinnerCutoverFailure("BASELINE_CUTOVER_UNRESOLVED")
             return record(False, "baseline_registered_first_incumbent_unchecked")
         if previous_record is not None and same_miner(
             previous_record["promotion"]["hotkey"]
