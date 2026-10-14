@@ -3061,7 +3061,9 @@ class RunnerAdapter:
         if graphite is not None:
             choice = replace(choice or LaunchChoice(), graphite=graphite)
         level = levels.launch_binding(request, challenge, request["agent"], cfg)
-        construction_capture = levels.capture_binding(level)
+        construction_capture = levels.capture_binding(
+            level, selector=request.get("construction_variant_digest")
+        )
         if level is not None:
             choice = replace(choice or LaunchChoice(), construction_level=level)
         run_id, request_digest, config_pin = self._launch_identity(cfg, request)
@@ -3121,7 +3123,7 @@ class RunnerAdapter:
                                 ),
                             }
                         ),
-                        1,
+                        2 if "construction_variant_digest" in request else 1,
                         digest(canonical(construction_capture)),
                     ),
                 )
