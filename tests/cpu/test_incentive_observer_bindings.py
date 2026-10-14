@@ -165,7 +165,7 @@ def reading(snapshot=SNAPSHOT, *, row=((0, 43690), (1, 21845))):
     return obs.WeightObservation(
         snapshot,
         row,
-        (43690, 21845, 0),
+        (43690, 21845, 0) + (0,) * (len(snapshot.participants) - 3),
         publication={
             "number": snapshot.finalized_block,
             "hash": snapshot.block_hash,
@@ -617,3 +617,171 @@ def test_sybil_pair_winning_distinct_challenges_is_not_false_primary_split(
     assert not any(f["code"] == "sybil_split" for f in result["findings"])
     assert "shares" not in result
     assert inc.summarize([result], 1 / 3)["observed"] is None
+
+
+@pytest.mark.parametrize("publication", [None, "before-winner", "before-observation"])
+@pytest.mark.parametrize("canary", [False, True])
+def test_sybil_diagnostics_require_publication_attribution(
+    tmp_path, monkeypatch, publication, canary
+):
+    from carbon.challenge_validator.canary import CANARY_HOTKEYS
+
+    monkeypatch.setattr(obs, "FRESHNESS", FRESH)
+    monkeypatch.setattr(
+        inc,
+        "_sybil_scenarios",
+        lambda: {"fixture-sybil": {"of": "5CurrentWinner", "hotkey": "5Other"}},
+    )
+    participants = (*SNAPSHOT.participants, Participant(3, "5Other", "5OtherCold", 3))
+    if canary:
+        participants += (Participant(4, min(CANARY_HOTKEYS), "5CanaryCold", 4),)
+    snapshot = replace(SNAPSHOT, participants=participants)
+    stamp = None
+    if publication is not None:
+        stamp = {
+            "number": 8,
+            "hash": "0x" + "8" * 64,
+            "timestamp_ms": NOW - (2000 if publication == "before-winner" else 500),
+        }
+    row = ((0, 65535), (1, 65535), (3, 65535))
+    if canary:
+        row += ((4, 1),)
+
+    async def weights(*_args, **_kwargs):
+        return obs.WeightObservation(
+            snapshot, row, (0,) * len(participants), publication=stamp
+        )
+
+    result = inc.check(
+        {**config(tmp_path), "sybil": "fixture-sybil"},
+        context=CONTEXT,
+        weights_reader=weights,
+        feed_reader=lambda _url, _key, c: bound_feed(
+            c, winner=c == inc.BATTERY, snapshot=snapshot
+        ),
+        clock=lambda: NOW / 1000,
+    )
+    assert result["state"] == (inc.BLOCKER if canary else inc.UNVERIFIED), result
+    assert any(
+        f["code"] == "sybil_row_not_challenge_specific" for f in result["findings"]
+    )
+    assert not any(f["code"] == "sybil_split" for f in result["findings"])
+    assert "shares" not in result
+    assert inc.summarize([result], 1 / 3)["observed"] is None
+    assert any(f["code"] == "canary_weighted" for f in result["findings"]) == canary
+
+
+@pytest.mark.parametrize("split", [False, True])
+def test_current_sybil_attribution_retains_positive_split_controls(
+    tmp_path, monkeypatch, split
+):
+    monkeypatch.setattr(
+        inc,
+        "_sybil_scenarios",
+        lambda: {"fixture-sybil": {"of": "5CurrentWinner", "hotkey": "5Other"}},
+    )
+    snapshot = replace(
+        SNAPSHOT,
+        participants=(
+            *SNAPSHOT.participants,
+            Participant(3, "5Other", "5OtherCold", 3),
+        ),
+    )
+    row = ((0, 43690), (1, 21845)) + (((3, 21845),) if split else ())
+    result = current_check(
+        {**config(tmp_path), "sybil": "fixture-sybil"},
+        monkeypatch,
+        snapshot=snapshot,
+        row=row,
+    )
+    codes = {f["code"] for f in result["findings"]}
+    assert ("sybil_split" in codes) == split
+    assert ("sybil_not_split" in codes) == (not split)
+    assert "shares" in result
+    assert result["shares"]["sybil"] > 0 if split else result["shares"]["sybil"] == 0
+    assert result["state"] == (inc.BLOCKER if split else inc.PASS)
+
+
+@pytest.mark.parametrize(
+    "leaderboard",
+    [
+        None,
+        "synthetic-private-marker",
+        {"standing": ["synthetic-private-marker"]},
+        {"standing": {}},
+        {"standing": [{"hotkey": []}]},
+        {"standing": [{"hotkey": "5Role", "rank": "synthetic-private-marker"}]},
+        {"standing": [{"hotkey": "5Role", "rank": True}]},
+        {"standing": [{"hotkey": "5Role"}, {"hotkey": "5Role"}]},
+    ],
+)
+def test_signed_role_display_malformed_data_is_closed_unverified(
+    tmp_path, monkeypatch, leaderboard
+):
+    feeds = {c: bound_feed(c, winner=c == inc.BATTERY) for c in POLICY.challenges}
+    feeds[inc.BATTERY]["leaderboard"] = leaderboard
+    feeds[inc.BATTERY] = sign_body(feeds[inc.BATTERY])
+    result = current_check(
+        {**config(tmp_path), "roles": True}, monkeypatch, feeds=feeds
+    )
+    assert result["state"] == inc.UNVERIFIED, result
+    assert {"level": inc.UNVERIFIED, "code": "roles_display_malformed"} in result[
+        "findings"
+    ]
+    assert "synthetic-private-marker" not in json.dumps(result)
+    assert not any("type" in f for f in result["findings"])
+
+
+@pytest.mark.parametrize("inverted", [False, True])
+def test_valid_role_display_retains_order_diagnostics(tmp_path, monkeypatch, inverted):
+    from scripts.dev.canary import roles
+
+    monkeypatch.setattr(
+        roles,
+        "ROLES",
+        {"5CurrentWinner": {"role": "strong"}, "5Other": {"role": "degraded"}},
+    )
+    feeds = {c: bound_feed(c, winner=c == inc.BATTERY) for c in POLICY.challenges}
+    feeds[inc.BATTERY]["leaderboard"] = {
+        "standing": [
+            {"hotkey": "5CurrentWinner", "rank": 2 if inverted else 1},
+            {"hotkey": "5Other", "rank": 1 if inverted else 2},
+        ]
+    }
+    feeds[inc.BATTERY] = sign_body(feeds[inc.BATTERY])
+    result = current_check(
+        {**config(tmp_path), "roles": True}, monkeypatch, feeds=feeds
+    )
+    code = "role_order_inverted" if inverted else "role_order_held"
+    assert any(f["code"] == code for f in result["findings"])
+    assert result["state"] == (inc.ATTENTION if inverted else inc.PASS)
+
+
+@pytest.mark.parametrize("advance", [False, True])
+def test_unterminated_cursor_refuses_without_mutating_history(tmp_path, advance):
+    path = tmp_path / "cursor.jsonl"
+    first = validate(bound_feed())
+    obs.record_observation(path, scope(), first)
+    original = path.read_bytes()
+    path.write_bytes(original[:-1])
+    before = path.read_bytes()
+    later = replace(
+        SNAPSHOT,
+        finalized_block=11,
+        block_hash="0x" + "3" * 64,
+        timestamp_ms=NOW + 1000,
+    )
+    next_value = validate(
+        bound_feed(snapshot=later), view=reading(later), now=NOW + 1000
+    )
+    with pytest.raises(obs.Unverified, match="cursor_unterminated"):
+        obs.record_observation(path, scope(), next_value if advance else first)
+    assert path.read_bytes() == before
+    # Only the synthetic fixture restores its delimiter; runtime never repairs
+    # or reinterprets an existing observation file silently.
+    path.write_bytes(original)
+    obs.record_observation(path, scope(), next_value)
+    after = path.read_bytes()
+    obs.record_observation(path, scope(), next_value)
+    assert path.read_bytes() == after
+    assert len([json.loads(line) for line in after.splitlines()]) == 2

@@ -118,3 +118,18 @@ all31 aggregate cases; final producer allowlist11 and aggregate-sybil1 controls
 passed separately after their changes. Corrected fixture/lint/intermediate
 failures are not counted as clean runs. Full required current-head gates remain
 Root-owned and no operational freshness/production qualification is inferred.
+
+Focused review repair R1-R3: optional sybil evidence now requires the complete
+registered roster at the exact finalized publication anchor, with clocks not
+after publication. Unknown/older/cross-Challenge attribution emits no shares
+or split blocker; independently known canary blockers remain. Signed role
+display data is shape-checked and malformed values become a closed UNVERIFIED
+finding without payloads/types. Under the existing cursor lock, an existing
+unterminated JSONL record refuses before any mutation, including replay; no
+history repair or delimiter adoption is implicit. Fixture-only delimiter
+restoration demonstrates that valid history can still append/replay.
+
+New canonical discriminators on the reviewed implementation:16 failed/4 passed;
+after repair20 passed. The affected six-file observer/feed slice144 passed,
+including all31 existing aggregate controls and positive role/sybil contrasts.
+Prior66 paying/isolation regressions remain reusable; no paying path changed.

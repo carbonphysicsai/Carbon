@@ -415,9 +415,12 @@ def record_observations(path, scopes, observations):
             if stat.S_IMODE(os.fstat(stream.fileno()).st_mode) & 0o077:
                 raise Unverified("observer_cursor_not_owner_only")
             fcntl.flock(stream, fcntl.LOCK_EX)
+            raw = stream.read()
+            if raw and not raw.endswith(b"\n"):
+                raise Unverified("observer_cursor_unterminated")
             rows = [
                 json.loads(line, object_pairs_hook=unique_object)
-                for line in stream.read().splitlines()
+                for line in raw.splitlines()
             ]
             if not created and not rows:
                 raise Unverified("observer_cursor_unavailable")

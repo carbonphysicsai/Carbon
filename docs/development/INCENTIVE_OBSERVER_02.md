@@ -67,6 +67,12 @@ winner conflict and same-hotkey registration change remain `UNVERIFIED`.
 Equal feed versions with newer chain fields are allowed because feed versioning
 deliberately excludes those live fields.
 
+An existing journal must end in its JSONL newline delimiter. Missing final
+newline refuses `observer_cursor_unterminated` under the lock before replay
+or append and leaves bytes unchanged. The observer does not silently repair
+or adopt truncated history; any operator recovery is separate and preserves
+the existing scoped observations.
+
 ## Freshness and remaining owner gates
 
 No feed freshness limit is adopted. `incentive_observation.FRESHNESS` contains
@@ -91,6 +97,14 @@ vector; operational current-target drift is ATTENTION. Known canary violations
 are retained. A sybil pair also winning other Challenges is not a primary-
 Challenge split measurement; its aggregate attribution stays UNVERIFIED and
 does not enter the per-Challenge sybil summary.
+Even when current other Challenges have no winner, an older aggregate row
+cannot be attributed from those current sources. Operational sybil shares and
+split classification require every source at the publication's exact finalized
+anchor with a compatible winner clock. Missing/older attribution stays
+UNVERIFIED without shares; independently observed canary weighting remains a
+blocker. Malformed signed role-display rows produce a closed
+`roles_display_malformed` UNVERIFIED finding, without echoing source values or
+exception details; valid order diagnostics retain their existing meanings.
 The pure diagnostic `verify_epoch` accepts optional `expected_targets` for
 this vector. A shared holder without bound aggregate targets stays UNVERIFIED;
 the observer does not guess mixed clocks from counts or normalize earned shares.

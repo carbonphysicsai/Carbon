@@ -272,13 +272,40 @@ def verify_roles(leaderboard, roles):
     """Findings on the incentive roles from the feed's leaderboard:
     `role_order_inverted` (ATTENTION) when the degraded role ranks above the
     strong role, or holds the incumbency while strong is ranked above it."""
+    malformed = [{"level": UNVERIFIED, "code": "roles_display_malformed"}]
+    if type(leaderboard) is not dict:
+        return malformed
+    standing = leaderboard.get("standing")
+    if standing is None:
+        standing = []
+    if type(standing) is not list:
+        return malformed
+    ranks = {}
+    for index, entry in enumerate(standing, start=1):
+        if type(entry) is not dict:
+            return malformed
+        hotkey, rank = entry.get("hotkey"), entry.get("rank", index)
+        if (
+            type(hotkey) is not str
+            or not hotkey
+            or hotkey in ranks
+            or type(rank) is not int
+            or rank < 1
+        ):
+            return malformed
+        ranks[hotkey] = rank
+    incumbent = leaderboard.get("incumbent")
+    if incumbent is not None and (
+        type(incumbent) is not dict
+        or (
+            incumbent.get("hotkey") is not None
+            and (type(incumbent["hotkey"]) is not str or not incumbent["hotkey"])
+        )
+    ):
+        return malformed
+    incumbent = (incumbent or {}).get("hotkey")
     by_role = {entry["role"]: hotkey for hotkey, entry in roles.items()}
     strong, degraded = by_role.get("strong"), by_role.get("degraded")
-    ranks = {
-        e["hotkey"]: e.get("rank", i + 1)
-        for i, e in enumerate(leaderboard.get("standing") or [])
-    }
-    incumbent = (leaderboard.get("incumbent") or {}).get("hotkey")
     findings = []
     if strong in ranks and degraded in ranks:
         if ranks[degraded] < ranks[strong] or incumbent == degraded:
@@ -682,13 +709,18 @@ def check(
                 ):
                     finding["level"] = UNVERIFIED
                     finding["code"] = "weight_row_predates_winner_observation"
-    if leaderboard is not None:
+    if config.get("roles"):
         from scripts.dev.canary.roles import ROLES
 
         # Standing remains released display evidence; current holder comes only
         # from the authenticated king, never its lagged incumbent slot.
         result["findings"] += verify_roles(
-            {**leaderboard, "incumbent": {"hotkey": incumbent}}, ROLES
+            (
+                {**leaderboard, "incumbent": {"hotkey": incumbent}}
+                if type(leaderboard) is dict
+                else leaderboard
+            ),
+            ROLES,
         )
     if config.get("sybil"):
         scenario = _sybil_scenarios()[config["sybil"]]
@@ -697,7 +729,22 @@ def check(
             for c, v in evidence.items()
             if c != primary and v["winner"] is not None
         }
-        if missing or foreign & {scenario["of"], scenario["hotkey"]}:
+        # Current sources cannot attribute an older aggregate publication to
+        # this Challenge. Require every source at the publication's exact
+        # finalized anchor before emitting primary-Challenge shares/blockers.
+        attributable = read.publication is not None and all(
+            value["block"] == read.publication
+            and (
+                value["winner"] is None
+                or value["winner"]["crowned_utc_ms"] <= read.publication["timestamp_ms"]
+            )
+            for value in evidence.values()
+        )
+        if (
+            missing
+            or not attributable
+            or foreign & {scenario["of"], scenario["hotkey"]}
+        ):
             result["findings"].append(
                 {"level": UNVERIFIED, "code": "sybil_row_not_challenge_specific"}
             )
