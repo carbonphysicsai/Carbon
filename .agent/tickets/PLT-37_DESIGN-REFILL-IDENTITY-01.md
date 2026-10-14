@@ -2,7 +2,7 @@
 
 **Status:** IN_PROGRESS, 2026-10-14. Assigned by Test Lead/Root as a bounded
 repair after the r8.7 owner-side design-refill failure. Starting main:
-`c7f40bedc`.
+`c7f40bedc33e5ddda4bcf6920e54cc7cc9ef6dfa`.
 
 ## Problem and scope
 
@@ -51,3 +51,12 @@ old source; repaired focused suite: 37 passed. Canonical Black and Ruff checks
 passed for both changed Python files. The candidate was then fast-forwarded
 to current main; both affected Python files were unchanged by that base sync.
 Final exact-head CI and Merge gate remain external delivery predicates.
+
+## Exact consumer binding
+
+The existing producer-helper digest test demonstrably refuses the repaired
+truth worker while its former digest remains registered. Re-pin that one
+helper to the repaired file's exact SHA256; keep the digest-validation guard
+and every other helper registration unchanged. This is a prospective binding
+update, not permission to bypass an identity check or reinterpret old results.
+Validation: `./scripts/dev/canonical.sh python -m pytest tests/cpu/test_campaign_producer_stages.py -q`.
