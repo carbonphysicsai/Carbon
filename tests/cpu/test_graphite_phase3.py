@@ -32,6 +32,7 @@ scientific, security or production qualification.
 
 from __future__ import annotations
 
+import hashlib
 import io
 import json
 import os
@@ -1612,7 +1613,17 @@ def test_the_live_runpod_backend_drives_the_compute_layer(tmp_path):
     assert request["env"]["CODE_REF"] == _head()
     assert request["env"]["PHASE"] == "graphite_practice"
     assert json.loads(request["env"]["PHASE_CONFIG"])["strategy"] == KNN
-    assert "CODE_MANIFEST_GZ_B64" in request["env"]
+    from scripts.dev.exam_design.runpod import pod_control
+
+    raw_manifest = pod_control.manifest_upload_bytes(backend.manifest)
+    assert request["env"]["CODE_MANIFEST_TRANSPORT"] == pod_control.MANIFEST_UPLOAD
+    assert (
+        request["env"]["CODE_MANIFEST_SHA256"]
+        == hashlib.sha256(raw_manifest).hexdigest()
+    )
+    assert int(request["env"]["CODE_MANIFEST_BYTES"]) == len(raw_manifest)
+    assert "CODE_MANIFEST" not in request["env"]
+    assert "CODE_MANIFEST_GZ_B64" not in request["env"]
     assert request["name"].startswith("carbon-")  # the compute layer's ownership tag
     assert "fixture-runpod-key" not in json.dumps(request)
     assert (

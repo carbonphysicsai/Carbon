@@ -369,9 +369,17 @@ def advanced_registries(tmp_path, monkeypatch):
     )
     registry = json.loads((policies / "registry.json").read_text(encoding="utf-8"))
     registry["versions"][graph["version"]] = next_digest
+    named_arms = [dict(entry) for entry in registry["current"] if entry.get("arm")]
     for entry in registry["current"]:
-        if entry["challenge"] == BATTERY and entry["level"] == 4:
+        if (
+            entry["challenge"] == BATTERY
+            and entry["level"] == 4
+            and entry.get("arm") is None
+        ):
             entry["version"] = graph["version"]
+    # This fixture advances the default graph; independently registered arms
+    # retain their own versions and cannot be collapsed into the same name.
+    assert [entry for entry in registry["current"] if entry.get("arm")] == named_arms
     (policies / "registry.json").write_text(
         json.dumps(registry), encoding="utf-8", newline="\n"
     )
