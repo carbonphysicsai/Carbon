@@ -21,6 +21,24 @@ def quoted(argv):
     )
 
 
+def _socket_group(socket, user):
+    """Bind the mounted endpoint's group without changing primary identity."""
+    try:
+        info = socket.lstat()
+    except OSError:
+        raise SetupRefused("DOCKER_SOCKET_METADATA_UNAVAILABLE") from None
+    if not stat.S_ISSOCK(info.st_mode):
+        raise SetupRefused("DOCKER_SOCKET_REQUIRED")
+    if type(info.st_gid) is not int or info.st_gid < 0:
+        raise SetupRefused("DOCKER_SOCKET_GROUP_UNAVAILABLE")
+    # Unix-socket connect needs write permission. When the configured UID owns
+    # the socket, the owner class takes precedence over supplementary groups.
+    writable = stat.S_IWUSR if int(user.split(":")[0]) == info.st_uid else stat.S_IWGRP
+    if not info.st_mode & writable:
+        raise SetupRefused("DOCKER_SOCKET_IDENTITY_NOT_WRITABLE")
+    return str(info.st_gid)
+
+
 def render(profile):
     from carbon.battery.intake import is_loopback, proxy_header, trusted_proxy_peer
     from carbon.challenge_validator.answer_key import load_fetch_config
@@ -104,7 +122,6 @@ def render(profile):
     socket = Path(raw["docker_socket"])
     if (
         not socket.is_absolute()
-        or socket.is_symlink()
         or "," in str(socket)
         or "," in str(artifact.root)
         or any(
@@ -118,6 +135,7 @@ def render(profile):
         )
     ):
         raise SetupRefused("EXPLICIT_SEPARATE_OPERATOR_MOUNTS_REQUIRED")
+    socket_group = _socket_group(socket, raw["user"])
     required = [
         Path(raw["service_config"]),
         Path(raw["fetch_config"]),
@@ -174,6 +192,8 @@ def render(profile):
         "--read-only",
         "--user",
         raw["user"],
+        "--group-add",
+        socket_group,
         "--workdir",
         str(artifact.root),
         "--env",
