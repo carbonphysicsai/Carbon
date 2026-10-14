@@ -1589,6 +1589,7 @@ async def run_epoch(
     compaction=None,
     omit_unmetered_trials=False,
     continue_reminder=None,
+    tool_observer=None,
 ):
     """Run once or resume completed provider/tool observations without resends.
 
@@ -1955,6 +1956,20 @@ async def run_epoch(
                 raise
             raise reached from None
 
+    def observe(call, identity):
+        # A trusted optional observer receives immutable primitives, never
+        # the mutable call/argument objects used for validation and dispatch.
+        if tool_observer is None:
+            return
+        raw = call.get("arguments")
+        if raw is not None and type(raw) is not str:
+            try:
+                raw = canonical(raw).decode("utf-8")
+            except (TypeError, ValueError):
+                raw = '"UNREPRESENTABLE"'
+        name = call.get("name")
+        tool_observer(identity, name if type(name) is str else None, raw)
+
     async def dispatch(name, arguments, identity):
         """One call that leaves this epoch's folder, after its intent."""
         if (
@@ -2235,6 +2250,9 @@ async def run_epoch(
                 for item in output
                 if type(item) is dict and item.get("type") == "function_call"
             ]
+            if tool_observer is not None:
+                for position, call in enumerate(calls):
+                    observe(call, identity + f"-observed-{position:02d}")
             incomplete = incomplete_reply(response, provider.settings.max_output_tokens)
             cut = (
                 [calls[p].get("call_id") for p in cut_calls(output, calls)]
@@ -2463,6 +2481,9 @@ async def run_epoch(
             for item in output
             if type(item) is dict and item.get("type") == "function_call"
         ]
+        if tool_observer is not None:
+            for position, call in enumerate(calls):
+                observe(call, tool_identity(epoch, index, position, stage))
         incomplete = incomplete_reply(response, provider.settings.max_output_tokens)
         cut = cut_calls(output, calls) if incomplete is not None else []
         if len(calls) > 1 and parallel_calls is None:

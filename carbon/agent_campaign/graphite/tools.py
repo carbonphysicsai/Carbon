@@ -36,7 +36,7 @@ from __future__ import annotations
 
 from carbon.development_session.profile import canonical, digest
 
-from . import literature
+from . import argument_events, literature
 
 # The protected-material check lives in a leaf module, because `literature`
 # runs it when it builds its fixture index at import and this module imports
@@ -89,17 +89,24 @@ class GraphiteToolbox:
         self.next_level = next_level
 
     def _refuse(self, identity, name, arguments, result):
+        # A public tool outside this role still has a public name. No name
+        # from arbitrary model output is retained merely for being a string.
+        from .roles import TOOL_REGISTRY
+
         self.emit(
             "tool-" + identity,
             {
                 "kind": "tool_refused",
-                "tool": name,
+                "tool": argument_events.tool_name(
+                    name, set(TOOL_REGISTRY) | {"graphite_set_budget"}
+                ),
                 "identity": identity,
                 "status": result["status"],
                 "reason_code": result["reason_code"],
-                "arguments_digest": digest(canonical(arguments)),
-                # Recorded as data so the controller's canary scan sees it.
-                "arguments": arguments,
+                "arguments_digest": digest(
+                    canonical(argument_events.snapshot(arguments))
+                ),
+                "arguments": argument_events.snapshot(arguments),
             },
         )
         return result
@@ -161,8 +168,12 @@ class GraphiteToolbox:
                 "kind": "tool_answered",
                 "tool": name,
                 "identity": identity,
-                "status": result.get("status"),
+                "status": argument_events.status(result.get("status")),
                 "result_digest": digest(canonical(result)),
+                "arguments": argument_events.snapshot(arguments),
+                "arguments_digest": digest(
+                    canonical(argument_events.snapshot(arguments))
+                ),
             },
         )
         return result

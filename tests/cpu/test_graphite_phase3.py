@@ -855,6 +855,8 @@ def _before_d34(root, model, **kw):
         # Recorded before the budget-status rule (AGENT-DOOR-USABILITY-01):
         # no rule, so its status keeps the v1 bytes.
         patch.setattr(phase3.Phase3Provider, "NEW_SESSION_BUDGET_STATUS", None)
+        # Recorded before PLT-14's prospective argument-logging rule.
+        patch.setattr(gp.GraphiteProvider, "NEW_SESSION_ARGUMENT_LOGGING", None)
         return graphite, _open(graphite, tool_text=TOOL_TEXT_V1)
 
 
