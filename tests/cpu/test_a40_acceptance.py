@@ -1364,7 +1364,7 @@ def test_an_oversized_environment_is_refused_before_any_create(world):
         f"carbon/f{i}.py": hashlib.sha256(str(i).encode()).hexdigest()
         for i in range(6000)
     }
-    with pytest.raises(a40.Refused, match="over the 90000 limit"):
+    with pytest.raises(a40.Refused, match=f"over the {a40.ENV_LIMIT_CHARS} limit"):
         runner.launch("jax", "A", {"recipes": [], "repeats": 1, "seed": 0}, 600)
     runner.close()
     assert fake.creates() == 0

@@ -1,0 +1,15 @@
+{
+  "schema": "carbon.challenge-pipeline.lesson.v1",
+  "lesson_id": "2026-10-13-validator-inbox-orphan-condition",
+  "recorded_at": "2026-10-13T22:34:01+00:00",
+  "challenge": "battery-v3",
+  "stage": "design",
+  "execution": {"kind": "test_run", "ref": "PLT-35a", "description": "Public synthetic inbox rows and private-sentinel unit controls; no host, live submissions or bank accessed."},
+  "expected": "An orphan is a typed visible condition, not a whole-pass outage or a recovery decision.",
+  "observed": "Five initial controls failed before repair: three orphan positions aborted the pass, and two diagnostics lacked a typed code. Missing-code logger and nonstring typed-code equality-spoof regressions also failed before their fixes. The skip now requires an exact string code; focused native fixtures pass without file-lock/deployment/canonical acceptance claims.",
+  "keep": ["Keep orphan rows and IDs unchanged for the Validator's disposition.", "Preserve other state/infrastructure failures and the existing retry path."],
+  "change": ["Report closed typed reasons and counts, not private exception strings or raw args.", "Exercise a real planted-orphan negative control before reporting pass survival."],
+  "protocol_elements": ["typed conditions", "private disclosure", "infra versus science", "negative controls"],
+  "proposed_revision": null,
+  "status": "RECORDED"
+}

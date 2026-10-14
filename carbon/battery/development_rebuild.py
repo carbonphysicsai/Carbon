@@ -69,6 +69,14 @@ def kind(found):
     return LEVEL1
 
 
+def uses_graph(found):
+    """Graph documents are required for standalone and composed graph records."""
+    level = kind(found)
+    return level == LEVEL4 or (
+        level == COMPOSED and level4_worker.is_graph(found.get("graph"))
+    )
+
+
 def stage(found, program, files, *, level1_program):
     """`(program, files, trainer)` for a development record staged on a
     Level-0 `program` and `files`. Level 1 has its own program
@@ -134,7 +142,7 @@ def build_in_process(recipe, found, workspace=None):
     is a Level 4 submission's staged files; other levels have none."""
     level = kind(found)
     if level == COMPOSED:
-        return composed_worker.build_in_process(recipe, found)
+        return composed_worker.build_in_process(recipe, found, workspace)
     if level == LEVEL4:
         return level4_worker.build_in_process(recipe, found, workspace)
     if level == LEVEL3:
