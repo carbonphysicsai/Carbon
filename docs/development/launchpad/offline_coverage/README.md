@@ -94,3 +94,23 @@ integration gap, not evidence that S1 cannot compile those combinations.
 Maturity is DEVELOPMENT static engineering evidence only. Live page/MCP,
 practice/smoke, GPU, signer, chain, submit, outcome and external-path acceptance,
 scientific/security qualification and deployment remain with their owners.
+
+
+## Snapshot validation and current probe boundary
+
+The table and all 55 stored observations above describe the pinned `31c6fc76`
+snapshot, not the behavior of a later checkout. Its 14 recorded source hashes
+are checked against that exact Git commit; the whole committed artifact is
+byte-pinned. Advancing main does not regenerate, reinterpret or rebind the old
+measurements, graph scopes or 240 host-bound cells.
+
+After the composed graph arm landed, the current construction CLI can return
+`ACCEPTED` for the C4/X3 placeholder digest as static record metadata. That
+answer does not authenticate graph documents or establish a successful graph
+rebuild. The prospective regression checks the actual boundary for both cases:
+the placeholder fails to build with no documents and with a workspace bound
+to a different digest; the latter remains an infrastructure staging failure.
+A public lowered graph with its matching digest builds an untrained model in
+the same path, so the negative control does not pass merely because every
+graph is refused. These are current code controls, not replacements for the
+historical measurements or evidence of training, scoring or host readiness.
