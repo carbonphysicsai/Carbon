@@ -1,12 +1,13 @@
 """Product observer aide: registered multi-Challenge targets, synthetic only.
 
 Real ledger/projector/compiler arithmetic; no backend, provider, key, signer,
-network or payment. The pure observer has no clocks: accepting a compatible
-aggregate cannot verify its actual ages, eligibility or complete source set.
+network or payment. Complete expectations are bound to the SAME synthetic
+projection/snapshot, not inferred from a later live king clock. Without that
+publication basis, a live mismatch is unverified/attention, not payment proof.
 """
 
 from copy import deepcopy
-from dataclasses import replace
+from dataclasses import asdict, replace
 
 import pytest
 
@@ -129,6 +130,28 @@ def observe(state, row, winners, hotkeys=None, *, expected_targets=None):
     )
 
 
+def expected_fixture_vector(state, resolved, winners):
+    """Bind the pure expectation to the exact fixture's resolved projection.
+
+    This basis exists only inside these fixtures. A signed current king alone
+    does not establish when a stored row was computed, published or finalized.
+    """
+    intent, projection = resolved["intent"], resolved["projection"]
+    assert intent["policy_digest"] == POLICY.digest
+    assert intent["context"] == asdict(state.context)
+    assert intent["epoch"] == state.finalized_block // POLICY.cadence_blocks
+    assert intent["targets"] == projection["targets"]
+    targets = projection["targets"]
+    assert len(targets["challenges"]) == len(POLICY.challenges)
+    expected = decay.epoch_targets(POLICY, winners, state.timestamp_ms)
+    assert expected == {
+        "winners": {holder["hotkey"]: amount for holder, amount in targets["winners"]},
+        "burn": targets["burn"],
+    }
+    assert sum(expected["winners"].values()) + expected["burn"] == Q12
+    return expected
+
+
 def test_full_plus_half_same_hotkey_has_exact_complete_q12_and_u16_vector(tmp_path):
     _, state, capabilities, resolved, winners = fixture_projection(tmp_path)
     assert POLICY.challenges == (
@@ -184,7 +207,7 @@ def test_complete_expected_vector_accepts_registered_shared_hotkey_aggregate(
 ):
     _, state, capabilities, resolved, winners = fixture_projection(tmp_path, ages)
     plan = compile_fixture(state, capabilities, resolved)
-    expected = decay.epoch_targets(POLICY, winners, NOW)
+    expected = expected_fixture_vector(state, resolved, winners)
     assert sum(expected["winners"].values()) + expected["burn"] == Q12
     result = observe(state, list(plan.integers), winners, expected_targets=expected)
     assert result["state"] == observer.PASS, result
@@ -204,9 +227,12 @@ def test_complete_expected_vector_accepts_registered_shared_hotkey_aggregate(
 def test_complete_vector_rejects_wrong_aggregate_or_burn_even_if_a_decay_level(
     tmp_path, row
 ):
-    _, state, _, _, winners = fixture_projection(tmp_path)
+    _, state, _, resolved, winners = fixture_projection(tmp_path)
     result = observe(
-        state, row, winners, expected_targets=decay.epoch_targets(POLICY, winners, NOW)
+        state,
+        row,
+        winners,
+        expected_targets=expected_fixture_vector(state, resolved, winners),
     )
     assert result["state"] == observer.BLOCKER, result
 
@@ -215,7 +241,7 @@ def test_complete_vector_rejects_wrong_aggregate_or_burn_even_if_a_decay_level(
 def test_incomplete_or_conflicting_expected_evidence_is_unverified(tmp_path, defect):
     _, state, capabilities, resolved, winners = fixture_projection(tmp_path)
     plan = compile_fixture(state, capabilities, resolved)
-    expected = decay.epoch_targets(POLICY, winners, NOW)
+    expected = expected_fixture_vector(state, resolved, winners)
     if defect == "missing_burn":
         del expected["burn"]
     elif defect == "not_conserved":
@@ -240,7 +266,26 @@ def test_no_source_and_missing_winners_burn_without_earned_only_normalization(
     assert dict(plan.q12).get(1, 0) == expected_paid
     assert dict(plan.q12)[0] == Q12 - expected_paid
     assert sum(dict(plan.q12).values()) == Q12
-    assert observe(state, list(plan.integers), winners)["state"] == observer.PASS
+    result = observe(
+        state,
+        list(plan.integers),
+        winners,
+        expected_targets=expected_fixture_vector(state, resolved, winners),
+    )
+    assert result["state"] == observer.PASS, result
+
+
+def test_later_clock_does_not_rewrite_original_publication_fixture_basis(tmp_path):
+    _, state, capabilities, resolved, winners = fixture_projection(tmp_path)
+    plan = compile_fixture(state, capabilities, resolved)
+    original = expected_fixture_vector(state, resolved, winners)
+    later = decay.epoch_targets(POLICY, winners, state.timestamp_ms + DAY_MS)
+    assert later == {"winners": {SHARED: 249999999999}, "burn": 750000000001}
+    assert original != later
+    # The old row belongs to the old fixture projection. A later current king
+    # clock is not evidence of a new 360-block publication/finalized receipt.
+    result = observe(state, list(plan.integers), winners, expected_targets=original)
+    assert result["state"] == observer.PASS, result
 
 
 def test_compiler_refuses_single_challenge_amount_mislabeled_as_shared_total(tmp_path):
@@ -285,11 +330,12 @@ def test_compiler_refuses_recycled_uid_or_changed_holder_identity(tmp_path, chan
         compile_fixture(changed, capabilities, resolved)
 
 
-def test_observer_rejects_fraction_that_is_not_a_sum_of_two_decay_levels(tmp_path):
+def test_without_bound_targets_observer_does_not_guess_decay_from_a_fraction(tmp_path):
     _, state, _, _, winners = fixture_projection(tmp_path)
-    # 1/5 of the whole epoch is 0.6 Challenge shares; not a sum of two powers of 1/2.
+    # Unknown publication/clock basis: do not infer a payment defect by guessing
+    # a sum of binary decay levels from just this observed aggregate fraction.
     result = observe(state, [[0, 52428], [1, 13107]], winners)
-    assert result["state"] == observer.BLOCKER, result
+    assert result["state"] == observer.UNVERIFIED, result
 
 
 @pytest.mark.parametrize("recipient", [OTHER, CANARY_HOTKEYS[0]])

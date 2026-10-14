@@ -36,12 +36,26 @@ Root relayed Product's optional `expected_targets` keyword: the complete
 checks use that projection, including burn. Without clocks/complete evidence,
 a shared-hotkey observation must be UNVERIFIED rather than guessed or falsely
 blocked. Malformed/nonconserved/conflicting expected evidence is UNVERIFIED;
-a valid complete expectation with the wrong observed row is a BLOCKER.
+a valid complete expectation bound to the SAME resolved fixture projection,
+policy, network context and epoch with the wrong actual row is a BLOCKER.
+The fixture explicitly checks this basis before invoking the pure diagnostic.
+This does not make a caller-supplied vector a production receipt.
 
-The observer interface contains no per-Challenge promotion clocks, eligibility
-records or policy digest: a valid sum of registered decay levels is only a
-compatibility diagnostic, not proof of a particular age, complete source
-coverage, mainnet readiness, incentive, Alpha credit or scientific winner.
+The legacy observer interface contains no per-Challenge promotion clocks,
+eligibility records or policy digest. Never guess a sum of binary decay
+levels to force a shared-hotkey verdict. Missing clocks/complete evidence is
+UNVERIFIED. Known canary/nonwinner findings retain their existing meaning.
+Neither the optional vector nor a verdict proves mainnet readiness, incentive,
+Alpha credit or a scientific winner.
+
+LIVE `check` has a separate observation problem: a current king clock and a
+stored validator row can differ legitimately at a 24-hour halving or takeover
+before the next 360-block publication. Without publication-epoch and finalized
+receipt binding, that difference stays UNVERIFIED/ATTENTION, not a payment
+defect. Product owns this operational classification and implementation.
+The aide tests only exact pure fixture comparisons and demonstrates that a
+later recomputation does not rewrite the original projection/row basis.
+It does not simulate or claim a live publication/finality receipt.
 An absent Challenge in this synthetic issuer is known no-source/no-winner;
 missing public observation is distinct and must remain UNVERIFIED.
 
