@@ -41,3 +41,25 @@ AX42, chain, LIVE, threshold selection, qualification or deployment is permitted
 Old numerical artifacts remain immutable. Correct the already identified
 error64 readout metadata phrase to specify neighbour-blend gamer flags, without
 changing its counts, code or source identities. Root owns review and merge.
+
+## Prospective repair after the first source-bound tranche
+
+The source-9311 tranche completed at 407.266 CPU-s, with all cheap-containing
+settings unscored because the physics population has no `control-bilinear`.
+This is an absent comparison input, not a negative scientific result. Preserve
+those receipts under PRE_REPAIR and retain the valid eight non-cheap settings.
+
+Repair the scoring-only adapter by reusing `synthetic._predict`'s existing
+bilinear control for the exact legacy one-dimensional problem grammar. Refuse
+unsupported shapes; do not insert an oracle or impute physics traits. Supply
+the comparator's own cached neighbour predictions, not the searched member's
+metadata. No scorer formula, threshold or numeric assumption changes.
+
+Discriminating controls must show that this control is present, matches the
+existing method, stays independent of candidate parameters, receives no value
+questions and refuses nonlegacy/vector tasks. Run canonical focused tests,
+then rerun only the eight affected settings in their original catalogue order
+under the same caps. The extra worst-case allowance is 1280 CPU-s; with the
+first tranche and error64 it remains below one CPU-hour. Stop on a cap/error.
+Bind the repaired source and partial-source reuse explicitly; never overwrite
+or silently reinterpret the source-9311 results.

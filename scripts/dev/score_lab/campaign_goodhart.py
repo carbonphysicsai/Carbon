@@ -12,7 +12,7 @@ import math
 import random
 import statistics
 
-from . import candidates, physics
+from . import candidates, physics, synthetic
 from .core import LabRefused, canonical_sha
 
 TRAITS = frozenset(
@@ -146,6 +146,56 @@ def _search(evaluate, search):
     return {"parameters": best, "rank": best_rank}
 
 
+def _legacy_cheap_score_control(config, panel, metadata):
+    """Reuse the existing cached toy map only on its legacy scalar grammar."""
+    problem = config["problem"]
+    if set(problem) - {
+        "space",
+        "optima",
+        "constraint",
+        "shift",
+        "verification_cost_ASSUMPTION",
+        "label",
+    }:
+        return None
+
+    def predictions(questions):
+        out = {}
+        for qid, question in questions.items():
+            if not qid.startswith(("S-", "N-S-")):
+                raise LabRefused("goodhart_cheap_score_scope")
+            out[qid] = {}
+            for aid, reference in question["actions"].items():
+                if "," in aid or len(reference["margins"]) != 2:
+                    return None
+                out[qid][aid] = synthetic._predict(
+                    "control-bilinear",
+                    qid,
+                    float(aid[2:]),
+                    question["context"],
+                    problem,
+                    score_side=True,
+                )
+        return out
+
+    primary = predictions(panel["score_questions"])
+    neighbours = [
+        {
+            "id": row["id"],
+            "references": row["references"],
+            "predictions": predictions(row["references"]),
+        }
+        for row in metadata.get("neighbours", [])
+    ]
+    if primary is None or any(row["predictions"] is None for row in neighbours):
+        return None
+    return {
+        "id": "control-bilinear",
+        "score_predictions": primary,
+        "score_metadata": {"neighbours": neighbours},
+    }
+
+
 class ToyTraitEvaluator:
     """Keep the toy score callback separate from disjoint buyer-value tasks."""
 
@@ -212,13 +262,6 @@ class ToyTraitEvaluator:
                 if m["id"] == "control-bilinear"
             ],
         }
-        rule = candidates.rule_from_spec(
-            self.candidate_id,
-            self.spec,
-            path_digest=self.candidates_sha256,
-            panel=score_panel,
-            component_spec=self.component_spec,
-        )
         metadata = {
             **member["score_metadata"],
             "knobs": {
@@ -237,6 +280,21 @@ class ToyTraitEvaluator:
                 }
                 for neighbour in metadata["neighbours"]
             ]
+        if (
+            self.component_spec
+            and "cheap_margin_weight" in self.component_spec
+            and not score_panel["members"]
+        ):
+            cheap = _legacy_cheap_score_control(self.config, score_panel, metadata)
+            if cheap is not None:
+                score_panel["members"] = [cheap]
+        rule = candidates.rule_from_spec(
+            self.candidate_id,
+            self.spec,
+            path_digest=self.candidates_sha256,
+            panel=score_panel,
+            component_spec=self.component_spec,
+        )
         result = rule(
             {qid: member["score_predictions"][qid] for qid in questions},
             questions,
@@ -291,6 +349,8 @@ def run(config, candidate_id, spec, *, candidates_sha256, search, component_spec
             **identity,
             "status": "INSUFFICIENT_EVIDENCE",
             "reason": "all_score_proposals_unscored",
+            "calls": dict(experiment.calls),
+            "unique_toy_panels": len(experiment.cache),
         }
 
     def oracle_rank(parameters):
