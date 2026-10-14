@@ -1370,6 +1370,12 @@ NEXT_ACTIONS = {
         "Send arm as one of the arm names carbon_ladder lists for the level, "
         "or omit it for the level's own variant."
     ),
+    "construction_variant_invalid": (
+        "For the DEVELOPMENT Graphite standalone graph-v3 test, send the exact "
+        "registered battery variant digest with agent graphite. Omit arm and "
+        "any conflicting level hint. Omit construction_variant_digest to use "
+        "the registered combined construction default."
+    ),
     "construction_level_needs_own_selection": (
         "A campaign at a construction level is driven by you or your own MCP "
         "agent: launch it with agent none."

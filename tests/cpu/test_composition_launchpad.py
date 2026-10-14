@@ -65,6 +65,164 @@ def test_new_launch_uses_composition_without_a_level_or_agent_permission():
     assert levels.launch_binding({}, CHALLENGE, "none", CFG, legacy=True) is None
 
 
+def standalone():
+    return cl.with_target(cl.resolve(BATTERY, 4), URL)
+
+
+def selected_request(**changes):
+    return {"construction_variant_digest": levels.STANDALONE_GRAPH_V3, **changes}
+
+
+def test_explicit_development_subject_binds_registered_standalone_graph():
+    found = standalone()
+    assert found["digest"] == levels.STANDALONE_GRAPH_V3
+    assert found["level"] == 4 and found["scope"] == "DEVELOPMENT"
+    for hint in ({}, {"construction_level": 4}):
+        assert (
+            levels.launch_binding(selected_request(**hint), CHALLENGE, "graphite", CFG)
+            == found
+        )
+    assert (
+        levels.launch_binding({"construction_level": 4}, CHALLENGE, "graphite", CFG)
+        == bound()
+    )
+
+
+def test_selected_subject_cannot_compile_without_exact_target_service(monkeypatch):
+    calls = []
+    monkeypatch.setattr(cl, "READ_TARGET", lambda *args: {"served_contracts": []})
+    monkeypatch.setattr(cl, "RUN", lambda request: calls.append(request))
+    with pytest.raises(cl.LevelRefused, match="level_compile_not_served_by_target"):
+        cl.compile_strategy(standalone(), strategy())
+    assert calls == []
+
+
+@pytest.mark.parametrize(
+    "launch_request,challenge,agent",
+    [
+        (
+            selected_request(construction_variant_digest="sha256:" + "0" * 64),
+            CHALLENGE,
+            "graphite",
+        ),
+        (selected_request(construction_variant_digest=4), CHALLENGE, "graphite"),
+        (selected_request(construction_variant_digest=None), CHALLENGE, "graphite"),
+        (
+            selected_request(),
+            {"id": cr.BURGERS_CHALLENGE, "version": "1.0"},
+            "graphite",
+        ),
+        (selected_request(), CHALLENGE, "none"),
+        (selected_request(arm="inert_fields"), CHALLENGE, "graphite"),
+        (selected_request(construction_level=3), CHALLENGE, "graphite"),
+        (selected_request(construction_level=True), CHALLENGE, "graphite"),
+    ],
+)
+def test_explicit_subject_refuses_wrong_scope_before_dispatch(
+    launch_request, challenge, agent
+):
+    with pytest.raises(Rejected, match="construction_variant_invalid"):
+        levels.launch_binding(launch_request, challenge, agent, CFG)
+
+
+def test_selected_capture_is_versioned_and_replay_cannot_change_subject():
+    found = standalone()
+    request = selected_request(construction_level=4)
+    captured = levels.capture_binding(found, selector=levels.STANDALONE_GRAPH_V3)
+    row = {
+        "construction_binding_version": 2,
+        "construction_binding_digest": digest(canonical(captured)),
+    }
+    assert levels.checked_capture(row, captured) == captured
+    assert levels.replay_binding(request, CHALLENGE, "graphite", CFG, captured) == found
+    for changed in (
+        {"construction_level": 4},
+        selected_request(construction_level=3),
+        selected_request(construction_variant_digest="sha256:" + "0" * 64),
+    ):
+        with pytest.raises(Rejected, match="launch_record_differs"):
+            levels.replay_binding(changed, CHALLENGE, "graphite", CFG, captured)
+    wrong_binding = copy.deepcopy(captured)
+    wrong_binding["binding"]["digest"] = "sha256:" + "0" * 64
+    with pytest.raises(Rejected, match="launch_record_differs"):
+        levels.checked_capture(row, wrong_binding)
+    old = levels.capture_binding(bound())
+    assert levels.replay_binding({}, CHALLENGE, "graphite", CFG, old) == bound()
+    with pytest.raises(Rejected, match="launch_record_differs"):
+        levels.replay_binding(request, CHALLENGE, "graphite", CFG, old)
+
+
+def test_selected_launch_writer_persists_subject_and_replays_before_dispatch(
+    tmp_path, monkeypatch
+):
+    cfg = runner_fixture.configured(tmp_path)
+    cfg.update(CFG)
+    host = RunnerAdapter(tmp_path / "launch.sqlite3", principal="alice")
+    dispatches = []
+    monkeypatch.setattr(host, "_dispatch_run", lambda *args: dispatches.append(args))
+    monkeypatch.setattr(
+        host,
+        "_graphite_choice",
+        lambda *args, **kwargs: {
+            "mode": "FULL",
+            "research_share": 0.1,
+            "plan": None,
+            "hunt": None,
+            "limits": {},
+            "curation_digest": "sha256:" + "1" * 64,
+        },
+    )
+    monkeypatch.setattr(
+        operations, "_registered", lambda *args: runner_fixture.registered()
+    )
+    monkeypatch.setattr(operations, "_signer_reachable", lambda *args: None)
+    request = {
+        "challenge": BATTERY,
+        "challenge_version": "1.0",
+        "agent": "graphite",
+        "idempotency_key": "standalone-graph-v3-fixture",
+        **selected_request(),
+    }
+    try:
+        admitted = SimpleNamespace(profile=cfg, miner=runner_fixture.registered())
+        answer = host.launch_admitted(admitted, request)
+        with host.db() as db:
+            row = dict(
+                db.execute(
+                    "SELECT * FROM launchpad_campaigns WHERE id=?", (answer["id"],)
+                ).fetchone()
+            )
+        captured = json.loads(row["launch_request"])[levels.CONSTRUCTION_ADMISSION]
+        assert row["construction_binding_version"] == 2
+        assert captured == levels.capture_binding(
+            standalone(), selector=levels.STANDALONE_GRAPH_V3
+        )
+        assert row["construction_binding_digest"] == digest(canonical(captured))
+        assert len(dispatches) == 1
+        assert levels.campaign_binding(row, cfg) == standalone()
+        assert levels.campaign_binding(row) == standalone()
+        assert (
+            levels.campaign_slot(standalone(), {})["variant"]["digest"]
+            == levels.STANDALONE_GRAPH_V3
+        )
+        assert host.replayed(cfg, request)["id"] == answer["id"]
+        with pytest.raises(Rejected, match="research_launch_replay_conflict"):
+            host.replayed(
+                cfg, {**request, "construction_variant_digest": "sha256:" + "0" * 64}
+            )
+        _, choice = host._recorded_launch(row, cfg)
+        assert choice.construction_level == standalone()
+        changed = copy.deepcopy(row)
+        recorded = json.loads(changed["launch_request"])
+        recorded["construction_variant_digest"] = "sha256:" + "0" * 64
+        changed["launch_request"] = canonical(recorded)
+        with pytest.raises(Rejected, match="launch_record_differs"):
+            host._recorded_launch(changed, cfg)
+        assert len(dispatches) == 1
+    finally:
+        host.close()
+
+
 def test_fixture_check_compile_returns_all_parts_and_the_actual_derived_summary(
     monkeypatch,
     accepted_fixture_checks,

@@ -3,6 +3,18 @@
 New eligible Launchpad campaigns bind the registered development composition
 by its immutable digest. The optional level is a descriptive hint; Carbon
 reports the actual changes and derived level from the original compiled recipe.
+
+For the bounded L4 DEVELOPMENT test, a fresh Graphite launch may explicitly
+send `construction_variant_digest` equal to the registered standalone battery
+graph-v3 digest `sha256:ad15d6a8ef135a961f15dcb4a682e58ccdbdc7c99926de0f1ef6d5da4325cfa2`.
+This exact-subject opt-in selects that registered variant; a level number alone
+still selects the combined composition. Other agents, Challenges, subjects,
+arms and conflicting level hints are refused before dispatch. The target must
+still serve the exact variant digest, and the existing compiler, G0-G5,
+resource, grant and security constraints remain. The new selection uses a v2
+writer capture while v0/v1 historical replay retains its original meaning.
+This route does not activate the combined composition's unavailable required
+checks or grant a production miner admission.
 An explicitly named historical arm follows the existing variant path. Existing
 frozen variant campaigns retain their identity and interpretation.
 

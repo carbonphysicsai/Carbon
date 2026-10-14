@@ -274,6 +274,15 @@ FIELDS = {
             "submit require a receiver explicitly serving that exact contract."
         ),
     ),
+    "construction_variant_digest": (
+        "string",
+        (
+            "Explicit DEVELOPMENT Graphite test subject: the exact registered "
+            "battery standalone graph-v3 digest. Omit for the combined default. "
+            "A level label does not authorize a subject; the receiving target "
+            "must separately serve the selected digest."
+        ),
+    ),
     "arm": (
         "string",
         (
@@ -486,6 +495,7 @@ REFUSAL_FIELDS = {
     "construction_level_arm_invalid": "arm",
     "construction_level_needs_own_selection": "agent",
     "construction_level_not_offered_for_challenge": "construction_level",
+    "construction_variant_invalid": "construction_variant_digest",
     "level_strategy_refused": "strategy",
     "construction_checks_unavailable": "strategy",
     "level4_directory_required": "level4_directory",
@@ -598,6 +608,7 @@ OPERATIONS = {
                     "hunt",
                     "limits",
                     "construction_level",
+                    "construction_variant_digest",
                     "arm",
                 }
             ),
@@ -965,7 +976,7 @@ def without_level_zero(request):
         drop.add("arm")
     level = request.get("construction_level", "absent")
     if (level is None or (type(level) is int and level == 0)) and (
-        request.get("arm") is None
+        request.get("arm") is None and "construction_variant_digest" not in request
     ):
         drop.add("construction_level")
     drop &= set(request)

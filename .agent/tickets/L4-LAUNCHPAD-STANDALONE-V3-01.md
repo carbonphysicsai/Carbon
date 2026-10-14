@@ -14,7 +14,7 @@ Version only new explicit-selection captures (v2), retaining v0/v1 readers and b
 
 Plan: baseline current Launchpad/variant tests; commit this contract first; implement the schema, resolver/capture and writer path in one coherent slice; add positive Graphite start/status, default-composition, wrong/cross-Challenge/unknown/arm/level refusal, exact identity, duplicate/replay/missing-capture controls. Run focused canonical tests, relevant import/invariant and scope-required acceptance; perform one final complete-diff review and repair concrete findings. Root owns CI and guarded merge.
 
-Expected changed paths: this ticket; scripts/dev/miner_launchpad/{operations,levels,runner}.py; focused tests/cpu/test_composition_launchpad.py or a sibling; a short Launchpad Development route note. No variant registry, compiler, graph gate, worker image, Product or Graphite runner edits. No archive reuse. KEEP -> WRAP.
+Expected changed paths: this ticket and its decision record; scripts/dev/miner_launchpad/{operations,levels,runner,supervisor}.py; focused tests/cpu/test_composition_launchpad.py or a sibling; a short Launchpad Development route note. No variant registry, compiler, graph gate, worker image, Product or Graphite runner edits. No archive reuse. KEEP -> WRAP. Historical map_ref: SYSTEM/DEVELOPMENT-HUB; current delivery policy retires Hub updates.
 
 Maturity ceiling: implemented/tested DEVELOPMENT selector with public fixtures. Actual G5/training, image import, host admission, grant execution, combined S5 serving, scientific/security/production qualification remain unearned and owner-controlled. Existing default-composition health UNAVAILABLE remains fail closed.
 
