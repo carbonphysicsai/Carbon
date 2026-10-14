@@ -76,12 +76,141 @@ def test_with_a_registered_baseline_a_first_incumbent_is_not_paid(tmp_path):
 
 def test_an_improvement_final_by_another_miner_restarts_the_clock(tmp_path):
     book = ledger(tmp_path)
-    book.observe(POLICY, BATTERY, first("m1", "hk-a"), {}, T0)
+    book.observe(POLICY, BATTERY, first("m1", "hk-a"), {"hk-a": "ck-a"}, T0)
     later = T0 + 3 * DAY_MS
     record = book.observe(
         POLICY, BATTERY, final("m2", "hk-b", "m1", "hk-a"), {"hk-b": "ck-b"}, later
     )
     assert (record["eligible"], record["clock_ms"]) == (True, later)
+
+
+@pytest.mark.parametrize(
+    ("challenger_coldkey", "reason", "clock"),
+    [
+        ("ck-a", "same_miner_no_reset", T0),
+        ("ck-b", "final_improvement", T0 + 3 * DAY_MS),
+    ],
+)
+def test_predecessor_disappears_but_its_frozen_identity_controls_the_clock(
+    tmp_path, challenger_coldkey, reason, clock
+):
+    book = ledger(tmp_path)
+    old = book.observe(POLICY, BATTERY, first("m1", "hk-a"), {"hk-a": "ck-a"}, T0)
+    assert old["winner_coldkey"] == "ck-a"
+    later = T0 + 3 * DAY_MS
+    # hk-a has deregistered; the finalized snapshot only contains hk-new.
+    new = book.observe(
+        POLICY,
+        BATTERY,
+        final("m2", "hk-new", "m1", "hk-a"),
+        {"hk-new": challenger_coldkey},
+        later,
+    )
+    assert (new["reason"], new["clock_ms"], new["winner_coldkey"]) == (
+        reason,
+        clock,
+        challenger_coldkey,
+    )
+    assert we.payable(old, {"hk-new"}) is None
+    assert we.payable(new, {"hk-new"}) == wd.Winner("hk-new", clock)
+
+
+def test_frozen_identity_outweighs_later_snapshot_association(tmp_path):
+    book = ledger(tmp_path)
+    book.observe(POLICY, BATTERY, first("m1", "hk-a"), {"hk-a": "ck-a"}, T0)
+    record = book.observe(
+        POLICY,
+        BATTERY,
+        final("m2", "hk-new", "m1", "hk-a"),
+        {"hk-a": "ck-other", "hk-new": "ck-a"},
+        T0 + DAY_MS,
+    )
+    assert (record["reason"], record["clock_ms"]) == ("same_miner_no_reset", T0)
+
+
+def test_legacy_predecessor_uses_a_still_present_snapshot_identity(tmp_path):
+    book = ledger(tmp_path)
+    old = we.decide(POLICY, BATTERY, first("m1", "hk-a"), None, {}, T0)
+    old["schema"] = we.LEGACY_LEDGER_SCHEMA
+    del old["winner_coldkey"]
+    book._append(old)
+    record = book.observe(
+        POLICY,
+        BATTERY,
+        final("m2", "hk-new", "m1", "hk-a"),
+        {"hk-a": "ck-a", "hk-new": "ck-a"},
+        T0 + DAY_MS,
+    )
+    assert (record["reason"], record["clock_ms"]) == ("same_miner_no_reset", T0)
+    assert book.records()[0] == old
+
+
+def test_legacy_predecessor_without_snapshot_identity_refuses_before_append(tmp_path):
+    book = ledger(tmp_path)
+    old = we.decide(POLICY, BATTERY, first("m1", "hk-a"), None, {}, T0)
+    old["schema"] = we.LEGACY_LEDGER_SCHEMA
+    del old["winner_coldkey"]
+    book._append(old)
+    before = book.path.read_bytes()
+    with pytest.raises(we.RewardFailure, match="PREDECESSOR_IDENTITY_UNAVAILABLE"):
+        book.observe(
+            POLICY,
+            BATTERY,
+            final("m2", "hk-new", "m1", "hk-a"),
+            {"hk-new": "ck-a"},
+            T0 + DAY_MS,
+        )
+    assert book.path.read_bytes() == before
+
+
+@pytest.mark.parametrize("bad_coldkey", [None, "", 12, ["ck-a"]])
+def test_missing_or_malformed_frozen_identity_does_not_infer_a_reset(
+    tmp_path, bad_coldkey
+):
+    book = ledger(tmp_path)
+    old = we.decide(POLICY, BATTERY, first("m1", "hk-a"), None, {}, T0)
+    old["winner_coldkey"] = bad_coldkey
+    book._append(old)
+    with pytest.raises(we.RewardFailure, match="PREDECESSOR_IDENTITY_UNAVAILABLE"):
+        book.observe(
+            POLICY,
+            BATTERY,
+            final("m2", "hk-new", "m1", "hk-a"),
+            {"hk-new": "ck-b", "hk-a": "ck-a"},
+            T0 + DAY_MS,
+        )
+    assert len(book.records()) == 1
+
+
+@pytest.mark.parametrize("challenger_coldkey", [None, "", 12])
+def test_unavailable_challenger_identity_does_not_infer_a_takeover(
+    tmp_path, challenger_coldkey
+):
+    book = ledger(tmp_path)
+    book.observe(POLICY, BATTERY, first("m1", "hk-a"), {"hk-a": "ck-a"}, T0)
+    with pytest.raises(we.RewardFailure, match="WINNER_IDENTITY_UNAVAILABLE"):
+        book.observe(
+            POLICY,
+            BATTERY,
+            final("m2", "hk-new", "m1", "hk-a"),
+            {"hk-new": challenger_coldkey},
+            T0 + DAY_MS,
+        )
+    assert len(book.records()) == 1
+
+
+def test_frozen_identity_cannot_be_used_for_a_different_predecessor(tmp_path):
+    book = ledger(tmp_path)
+    book.observe(POLICY, BATTERY, first("m1", "hk-a"), {"hk-a": "ck-a"}, T0)
+    with pytest.raises(we.RewardFailure, match="PREDECESSOR_RECORD_MISMATCH"):
+        book.observe(
+            POLICY,
+            BATTERY,
+            final("m3", "hk-new", "m2", "hk-a"),
+            {"hk-new": "ck-a"},
+            T0 + DAY_MS,
+        )
+    assert len(book.records()) == 1
 
 
 def test_a_promotion_nominated_on_an_overdue_pool_pays_nobody(tmp_path):

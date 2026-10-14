@@ -39,9 +39,14 @@ from pathlib import Path
 from .core import RewardFailure
 from .winner_decay import Winner
 
-LEDGER_SCHEMA = "carbon.rewards.testnet-winner-ledger.v1"
+LEDGER_SCHEMA = "carbon.rewards.testnet-winner-ledger.v2"
+LEGACY_LEDGER_SCHEMA = "carbon.rewards.testnet-winner-ledger.v1"
 FINAL = "FINAL_IMPROVEMENT"
 FIRST = "FIRST_INCUMBENT"
+
+
+class WinnerIdentityFailure(RewardFailure):
+    """The snapshot and ledger cannot establish a promotion's miner identity."""
 
 
 def battery_promotion(target):
@@ -106,13 +111,20 @@ def decide(policy, challenge, promotion, previous_record, coldkeys, now_ms):
     """The ledger record for a newly observed `promotion`: its eligibility,
     the reason, and the clock it pays from. `coldkeys` maps hotkeys to
     coldkeys (from the snapshot); `previous_record` is the Challenge's last
-    ledger record, or None."""
+    ledger record, or None. V2 freezes the observed winner coldkey so later
+    comparisons do not depend on the predecessor remaining registered."""
+    winner_coldkey = coldkeys.get(promotion["hotkey"])
+    if winner_coldkey is not None and (
+        type(winner_coldkey) is not str or not winner_coldkey
+    ):
+        raise WinnerIdentityFailure("WINNER_IDENTITY_UNAVAILABLE")
     base = {
         "schema": LEDGER_SCHEMA,
         "challenge": challenge,
         "policy": policy.digest,
         "promotion": promotion,
         "observed_ms": now_ms,
+        "winner_coldkey": winner_coldkey,
     }
 
     def record(eligible, reason, clock_ms=now_ms):
@@ -127,11 +139,32 @@ def decide(policy, challenge, promotion, previous_record, coldkeys, now_ms):
     if promotion["nomination_overdue"]:
         return record(False, "nomination_on_overdue_pool")
     previous_hotkey = promotion["previous_hotkey"]
-    same = promotion["hotkey"] == previous_hotkey or (
-        previous_hotkey is not None
-        and coldkeys.get(promotion["hotkey"]) is not None
-        and coldkeys.get(promotion["hotkey"]) == coldkeys.get(previous_hotkey)
-    )
+    if previous_record is not None and (
+        previous_record["promotion"]["model_id"] != promotion["previous"]
+        or previous_record["promotion"]["hotkey"] != previous_hotkey
+    ):
+        raise WinnerIdentityFailure("PREDECESSOR_RECORD_MISMATCH")
+    same = promotion["hotkey"] == previous_hotkey
+    if not same:
+        if winner_coldkey is None:
+            raise WinnerIdentityFailure("WINNER_IDENTITY_UNAVAILABLE")
+        if (
+            previous_record is not None
+            and previous_record.get("schema") == LEDGER_SCHEMA
+        ):
+            previous_coldkey = previous_record.get("winner_coldkey")
+        elif (
+            previous_record is None
+            or previous_record.get("schema") == LEGACY_LEDGER_SCHEMA
+        ):
+            # v1 did not freeze this association; only a still-present old
+            # hotkey can supply it. Historical records are not rewritten.
+            previous_coldkey = coldkeys.get(previous_hotkey)
+        else:
+            raise WinnerIdentityFailure("PREDECESSOR_IDENTITY_UNAVAILABLE")
+        if type(previous_coldkey) is not str or not previous_coldkey:
+            raise WinnerIdentityFailure("PREDECESSOR_IDENTITY_UNAVAILABLE")
+        same = winner_coldkey == previous_coldkey
     if same:
         # No reset: the same miner keeps its old clock, or, when its earlier
         # win paid nothing, still earns nothing new. Checking the adopted
