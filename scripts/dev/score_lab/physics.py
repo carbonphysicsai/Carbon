@@ -18,6 +18,7 @@ SCHEMA = "carbon.dev.score-lab-physics-config.v1"
 TRAITS = ("law_violations", "rollout_drift", "robustness", "extrapolation")
 DIRECTIONS = ("objective", "constraint", "operating", "boundary")
 MODES = ("OFF", "GATE", "FLOOR", "BLEND")
+ERROR_REGIONS = ("uniform", "boundary", "optimum")
 
 
 def _finite(value, *, low=0.0, high=None):
@@ -39,6 +40,25 @@ def validate_config(config):
         or problem.get("constraint") not in ("loose", "tight")
         or problem.get("shift") not in ("nominal", "shifted")
         or not _finite(problem.get("verification_cost_ASSUMPTION"), low=0)
+        or type(problem.get("optima_count", 1)) is not int
+        or problem.get("optima_count", 1) not in (1, 3, 10)
+        or problem.get("objective_kind", "single")
+        not in (
+            "single",
+            "weighted",
+            "robust",
+        )
+        or not _finite(problem.get("objective_weight", 0.5), high=1)
+        or not _finite(problem.get("roughness", 0), high=0.2)
+        or problem.get("optimum_location", "interior") not in ("interior", "boundary")
+        or type(problem.get("dimension", 1)) is not int
+        or not 1 <= problem.get("dimension", 1) <= 8
+        or type(problem.get("action_count", 17)) is not int
+        or not 4 <= problem.get("action_count", 17) <= 256
+        or not _finite(problem.get("constraint_coupling", 0), high=1)
+        or type(problem.get("constraint_count", 2)) is not int
+        or not 0 <= problem.get("constraint_count", 2) <= 5
+        or not _finite(problem.get("constraint_offset", 0), low=-0.3, high=0.3)
     ):
         raise LabRefused("physics_problem_assumptions")
     if (
@@ -47,12 +67,21 @@ def validate_config(config):
     ):
         raise LabRefused("physics_question_count")
     decision = config.get("decision", {})
+    if config.get("value_definition", "v2_shortlist") not in (
+        "v2_shortlist",
+        "legacy_one_pick",
+    ):
+        raise LabRefused("physics_value_definition")
     if (
         type(decision.get("k")) is not int
         or decision["k"] < 1
         or not _finite(decision.get("unit"), low=1e-12)
         or not _finite(decision.get("abstention_loss"))
         or not _finite(decision.get("unsafe_loss"))
+        or (
+            "uncertainty_abstention_threshold" in decision
+            and not _finite(decision["uncertainty_abstention_threshold"], low=1e-12)
+        )
     ):
         raise LabRefused("physics_decision_assumptions")
     hood = config.get("neighbourhood", {})
@@ -69,6 +98,7 @@ def validate_config(config):
         raise LabRefused("physics_neighbourhood_assumptions")
     if (
         not _finite(config.get("coverage"), high=1)
+        or (problem.get("constraint_count", 2) == 0 and config.get("coverage") != 1)
         or not _finite(config.get("good_fraction"), low=1e-12, high=1)
         or type(config.get("bootstrap")) is not int
         or config["bootstrap"] < 1
@@ -92,6 +122,12 @@ def validate_config(config):
                 _finite(member.get(key))
                 for key in ("law_size", "rollout_drift", "robustness", "extrapolation")
             )
+            or not _finite(member.get("heteroscedasticity", 0), high=5)
+            or member.get("error_region", "uniform") not in ERROR_REGIONS
+            or not _finite(member.get("cross_design_correlation", 0), high=1)
+            or not _finite(member.get("tail_rate", 0), high=1)
+            or not _finite(member.get("tail_size", 0))
+            or not _finite(member.get("sigma_scale", 1), low=1e-12)
         ):
             raise LabRefused("physics_member_traits")
     if sum(m["kind"] == "MODEL" for m in population) < 3:
@@ -129,28 +165,125 @@ def _hash_fraction(*parts):
     return int(hashlib.sha256(raw).hexdigest()[:15], 16) / float(16**15)
 
 
+def _radical_inverse(index, base):
+    value, factor = 0.0, 1.0 / base
+    while index:
+        value += (index % base) * factor
+        index //= base
+        factor /= base
+    return value
+
+
+def _offered_vectors(problem):
+    """Bounded deterministic offered points, not an exhaustive continuous optimum."""
+    dimension = problem.get("dimension", 1)
+    if dimension == 1:
+        raise LabRefused("physics_vector_dimension")
+    count = problem.get("action_count", 17)
+    primes = (2, 3, 5, 7, 11, 13, 17, 19)
+    fallback = (0.2,) * dimension
+    vectors = [fallback]
+    seen = {fallback}
+    for index in range(1, count * 50 + 1):
+        values = tuple(_radical_inverse(index, base) for base in primes[:dimension])
+        if problem["space"] == "small-grid":
+            values = tuple(round(round(value * 4) / 4, 2) for value in values)
+        else:
+            values = tuple(round(value, 4) for value in values)
+        if values not in seen:
+            seen.add(values)
+            vectors.append(values)
+        if len(vectors) == count:
+            return vectors
+    raise LabRefused("physics_offered_vector_exhausted")
+
+
 def _toy_truth(x, context, problem, direction=None, size=0.0):
-    shifted_x = min(1.0, max(0.0, x + (size if direction == "boundary" else 0)))
+    vector = (x,) if type(x) in (int, float) else tuple(x)
+    shifted_x = min(1.0, max(0.0, vector[0] + (size if direction == "boundary" else 0)))
     shifted_context = context + (size if direction == "operating" else 0)
     row = synthetic.truth(shifted_x, shifted_context, problem)
-    objective = row["objective"] * (
-        1.0 + size * (x - 0.5) if direction == "objective" else 1.0
+    count = problem.get("optima_count", 1)
+    if problem.get("optimum_location", "interior") == "interior" and (
+        "optima_count" not in problem or (count == 1 and problem["optima"] == "single")
+    ):
+        primary = row["objective"]
+    else:
+        centers = (
+            [0.73 - 0.10 * shifted_context]
+            if count == 1
+            else [i / (count - 1) for i in range(count)]
+        )
+        if problem.get("optimum_location", "interior") == "boundary":
+            centers[0] = 1.0
+        primary = min((shifted_x - center) ** 2 for center in centers)
+        primary += 0.30 * shifted_context
+    primary += problem.get("roughness", 0) * math.sin(12 * math.pi * shifted_x)
+    vector_penalty = sum(
+        (coordinate - min(0.9, 0.2 + 0.1 * index + 0.05 * shifted_context)) ** 2
+        for index, coordinate in enumerate(vector[1:], start=1)
+    ) / len(vector)
+    secondary = (shifted_x - (0.25 + 0.05 * shifted_context)) ** 2
+    secondary += 0.10 * shifted_context
+    kind = problem.get("objective_kind", "single")
+    if kind == "weighted":
+        weight = problem.get("objective_weight", 0.5)
+        primary = (1 - weight) * primary + weight * secondary
+    elif kind == "robust":
+        primary = max(primary, secondary)
+    primary += vector_penalty
+    objective = primary * (
+        1.0 + size * (vector[0] - 0.5) if direction == "objective" else 1.0
     )
     margins = list(row["margins"])
-    if direction == "constraint":
+    coupled_penalty = (
+        problem.get("constraint_coupling", 0)
+        * sum((coordinate - 0.2) ** 2 for coordinate in vector[1:])
+        / len(vector)
+    )
+    margins = [value - coupled_penalty for value in margins]
+    for index in range(2, problem.get("constraint_count", 2)):
+        coordinate = vector[index % len(vector)]
+        margins.append(
+            0.75 - abs(coordinate - 0.35) - 0.2 * shifted_context - coupled_penalty
+        )
+    margins = [value + problem.get("constraint_offset", 0) for value in margins]
+    margins = margins[: problem.get("constraint_count", 2)]
+    if direction == "constraint" and margins:
         margins[0] -= size
     return {
         "objective": objective,
         "margins": tuple(margins),
-        "status": "FEASIBLE" if min(margins) >= 0 else "INFEASIBLE",
+        "status": "FEASIBLE" if all(value >= 0 for value in margins) else "INFEASIBLE",
         "solves": 1,
     }
 
 
 def _question(qid, context, problem, *, direction=None, size=0.0):
-    base = synthetic._question(qid, context, problem)
+    if problem.get("dimension", 1) == 1:
+        base = synthetic._question(qid, context, problem)
+    else:
+        vectors = _offered_vectors(problem)
+        base = {
+            "id": qid,
+            "block": qid,
+            "context": context,
+            "fallback": "x="
+            + ",".join(f"{coordinate:.4f}" for coordinate in vectors[0]),
+            "weight": 1.0,
+            "actions": {
+                "x=" + ",".join(f"{coordinate:.4f}" for coordinate in vector): None
+                for vector in vectors
+            },
+        }
     base["actions"] = {
-        aid: _toy_truth(float(aid[2:]), context, problem, direction, size)
+        aid: _toy_truth(
+            tuple(float(value) for value in aid[2:].split(",")),
+            context,
+            problem,
+            direction,
+            size,
+        )
         for aid in base["actions"]
     }
     feasible = [
@@ -163,7 +296,11 @@ def _question(qid, context, problem, *, direction=None, size=0.0):
     ]
     if safe_ids:
         base["fallback"] = min(
-            safe_ids, key=lambda aid: (abs(float(aid[2:]) - 0.2), aid)
+            safe_ids,
+            key=lambda aid: (
+                sum(abs(float(value) - 0.2) for value in aid[2:].split(",")),
+                aid,
+            ),
         )
     base["exact_best_objective"] = min(feasible) if feasible else None
     return base
@@ -179,20 +316,55 @@ def _predict(member, qid, aid, question, *, base_question, horizon, perturbation
     rollout = 0.0 if path_only else member["rollout_drift"]
     robustness = 0.0 if path_only else member["robustness"]
     extrapolation = 0.0 if path_only else member["extrapolation"]
+    region = member.get("error_region", "uniform")
+    if region == "boundary":
+        locality = (
+            max(0.0, 1.0 - min(abs(v) for v in reference["margins"]) / 0.15)
+            if reference["margins"]
+            else 0.0
+        )
+    elif region == "optimum":
+        best = question["exact_best_objective"]
+        locality = (
+            max(0.0, 1.0 - (reference["objective"] - best) / 0.15)
+            if best is not None
+            else 0.0
+        )
+    else:
+        locality = 1.0
+    local_noise = noise * (1 + member.get("heteroscedasticity", 0) * locality)
+    correlation = member.get("cross_design_correlation", 0)
+    shared_rng = synthetic._rng(member["id"], qid, "shared-error")
+
+    def error():
+        independent = rng.gauss(0, local_noise)
+        common = shared_rng.gauss(0, local_noise)
+        return (
+            independent * math.sqrt(1 - correlation * correlation)
+            + common * correlation
+        )
+
     objective = (
         reference["objective"]
         + transfer_gap * (old["objective"] - reference["objective"])
-        + rng.gauss(0, noise)
+        + error()
         + rollout * horizon
         + robustness * perturbation
     )
     margins = [
         reference["margins"][j]
         + transfer_gap * (old["margins"][j] - reference["margins"][j])
-        + rng.gauss(0, noise)
+        + error()
         + robustness * perturbation
-        for j in (0, 1)
+        for j in range(len(reference["margins"]))
     ]
+    if not path_only and _hash_fraction(member["id"], qid, aid, "tail") < member.get(
+        "tail_rate", 0
+    ):
+        sign = 1 if _hash_fraction(member["id"], qid, aid, "tail-sign") < 0.5 else -1
+        size = member.get("tail_size", 0)
+        objective -= sign * size
+        margins = [value + sign * size for value in margins]
     if qid.startswith("X-"):
         objective += extrapolation * perturbation
         margins = [v + extrapolation * perturbation for v in margins]
@@ -205,8 +377,8 @@ def _predict(member, qid, aid, question, *, base_question, horizon, perturbation
     return {
         "objective": objective,
         "margins": tuple(margins),
-        "feasible": min(margins) >= 0,
-        "sigma": max(noise, 1e-9),
+        "feasible": all(value >= 0 for value in margins),
+        "sigma": max(local_noise * member.get("sigma_scale", 1), 1e-9),
     }
 
 
@@ -228,7 +400,11 @@ def _prediction_set(member, questions, bases, problem, coverage, size):
                 perturbation=perturbation,
             )
             if not covered:
-                pred = {**pred, "feasible": False, "margins": (-1.0, -1.0)}
+                pred = {
+                    **pred,
+                    "feasible": False,
+                    "margins": tuple(-1.0 for _ in pred["margins"]),
+                }
             out[qid][aid] = pred
     return out
 
@@ -237,11 +413,18 @@ def _loss(question, predictions, decision, cost):
     fallback = question["actions"][question["fallback"]]
     if fallback["status"] != "FEASIBLE":
         return None
+    uncertainty_threshold = decision.get("uncertainty_abstention_threshold")
+    if uncertainty_threshold is not None and any(
+        not _finite(pred.get("sigma")) for pred in predictions.values()
+    ):
+        raise LabRefused("physics_uncertainty_prediction")
     shortlist = sorted(
         (
             (pred["objective"], aid)
             for aid, pred in predictions.items()
-            if pred["feasible"] and pred["objective"] < fallback["objective"]
+            if pred["feasible"]
+            and pred["objective"] < fallback["objective"]
+            and (uncertainty_threshold is None or pred["sigma"] < uncertainty_threshold)
         ),
         key=lambda row: (row[0], row[1]),
     )[: decision["k"]]
@@ -378,11 +561,20 @@ def build(config):
                 "score_row": synthetic._row(score, sp, problem),
                 "score_metadata": {"physics": physics, "neighbours": neighbours},
                 "value_losses": {
-                    qid: _loss(
-                        q,
-                        vp[qid],
-                        config["decision"],
-                        problem["verification_cost_ASSUMPTION"],
+                    qid: (
+                        _loss(
+                            q,
+                            vp[qid],
+                            config["decision"],
+                            problem["verification_cost_ASSUMPTION"],
+                        )
+                        if config.get("value_definition", "v2_shortlist")
+                        == "v2_shortlist"
+                        else synthetic._decision_loss(
+                            q,
+                            vp[qid],
+                            problem["verification_cost_ASSUMPTION"],
+                        )
                     )
                     for qid, q in value.items()
                 },
@@ -400,8 +592,16 @@ def build(config):
         "value_strata": strata,
         "oracle_kind": "EXACT_ENUMERATED_OFFERED_ACTIONS",
         "exact_oracle_losses": {
-            qid: _oracle_loss(
-                q, config["decision"], problem["verification_cost_ASSUMPTION"]
+            qid: (
+                _oracle_loss(
+                    q, config["decision"], problem["verification_cost_ASSUMPTION"]
+                )
+                if config.get("value_definition", "v2_shortlist") == "v2_shortlist"
+                else _oracle_loss(
+                    q,
+                    {**config["decision"], "abstention_loss": 0.0, "unit": 1.0},
+                    problem["verification_cost_ASSUMPTION"],
+                )
             )
             for qid, q in value.items()
         },
@@ -411,10 +611,41 @@ def build(config):
     return panel
 
 
-def value_view(panel, stratum, neighbour_weight=0.0):
+def value_view(panel, stratum, neighbour_weight=0.0, *, tail_fraction=None):
     """Leave the scoring half untouched; select only a true-value estimand."""
     view = copy.copy(panel)
-    if stratum == "neighbourhood_blend":
+    if stratum in ("robust_worst_case", "robust_cvar"):
+        if stratum == "robust_cvar" and (not _finite(tail_fraction, low=1e-12, high=1)):
+            raise LabRefused("physics_cvar_tail_fraction")
+        target = [
+            qid for qid, kind in panel["value_strata"].items() if kind == "in_range"
+        ]
+        view["value_questions"] = {qid: panel["value_questions"][qid] for qid in target}
+        view["members"] = []
+        for member in panel["members"]:
+            losses = {}
+            for qid in target:
+                suffix = qid.split("-")[-1]
+                related = [
+                    member["value_losses"][name]
+                    for name in panel["value_questions"]
+                    if name == qid or name.endswith("-" + suffix)
+                ]
+                if related and all(loss is not None for loss in related):
+                    if stratum == "robust_worst_case":
+                        losses[qid] = max(related)
+                    else:
+                        tail_count = max(1, math.ceil(len(related) * tail_fraction))
+                        losses[qid] = statistics.fmean(
+                            sorted(related, reverse=True)[:tail_count]
+                        )
+                else:
+                    losses[qid] = None
+            view["members"].append({**member, "value_losses": losses})
+        # Per-task minima cannot be combined into a robust decision oracle.
+        # Keep that reference explicitly unresolved for worst-case and CVaR.
+        view["exact_oracle_losses"] = {qid: None for qid in target}
+    elif stratum == "neighbourhood_blend":
         if not _finite(neighbour_weight, high=1):
             raise LabRefused("physics_neighbourhood_weight")
         target = [
@@ -483,7 +714,7 @@ def value_view(panel, stratum, neighbour_weight=0.0):
     return view
 
 
-def evaluate(config, specs, digest):
+def evaluate(config, specs, digest, *, component_spec=None):
     """Run every candidate under every physics switch on the same toy panel."""
     panel = build(config)
     views = {
@@ -493,7 +724,11 @@ def evaluate(config, specs, digest):
     results = []
     for candidate_id, spec in specs.items():
         rule = candidates.rule_from_spec(
-            candidate_id, spec, path_digest=digest, panel=panel
+            candidate_id,
+            spec,
+            path_digest=digest,
+            panel=panel,
+            component_spec=component_spec,
         )
         baseline_admissibility = None
         for switch_index, switch in enumerate(config["physics_sweep"]):

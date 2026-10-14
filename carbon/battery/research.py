@@ -549,7 +549,10 @@ class BatteryPractice:
         remote=None,
         level=None,
     ):
-        from carbon.development_session.battery_gpu import BACKENDS, is_gpu_image
+        from carbon.development_session.battery_gpu import (
+            image_backends as gpu_image_backends,
+        )
+        from carbon.development_session.battery_gpu import is_gpu_image
         from carbon.development_session.research_carrier import _run
 
         from .challenge import PublicMaterial
@@ -569,7 +572,9 @@ class BatteryPractice:
             raise ValueError("remote GPU practice runs the pinned GPU worker")
         self.remote = remote
         self.backends = (
-            BACKENDS if gpu_image is not None else image_backends(image, self.root)
+            gpu_image_backends(gpu_image)
+            if gpu_image is not None
+            else image_backends(image, self.root)
         )
         self.runner = remote or (_run if runner is None else runner)
         self.backend = backend or {
@@ -643,14 +648,14 @@ class BatteryPractice:
         if backend not in self.backends:
             # Refused before any run: this host's worker image cannot rebuild
             # the recipe's backend, and saying so is not a practice result.
+            if self.gpu_image is not None:
+                served = "JAX" if self.backends == ("jax",) else "PyTorch"
+                raise ValueError(
+                    f"backend_not_served: GPU practice serves {served} recipes only"
+                )
             raise ValueError(
                 f"backend_not_served: {backend} recipes practise in the PyTorch "
                 "worker image (scripts/dev/torch_worker_image.sh)"
-                + (
-                    "; GPU practice serves JAX recipes only"
-                    if self.gpu_image is not None
-                    else ""
-                )
             )
         seed = self._seed(identity)
         # PRACTICE-SAFETY-01 B4: the public practice decision set, verified
@@ -662,11 +667,14 @@ class BatteryPractice:
             "image": self.image,
         }
         if self.gpu_image is not None:
-            from carbon.development_session.battery_gpu import GPU_PROGRAM
+            from carbon.development_session.battery_gpu import (
+                GPU_PROGRAM,
+                TORCH_GPU_PROGRAM,
+            )
             from carbon.development_session.research_carrier import MINER_GPU
 
             run = {
-                "source": GPU_PROGRAM,
+                "source": TORCH_GPU_PROGRAM if backend == "pytorch" else GPU_PROGRAM,
                 "image": self.gpu_image,
                 "accelerator": MINER_GPU,
             }
@@ -729,7 +737,7 @@ class BatteryPractice:
                 **(
                     remote_backend_record(worker["remote"], observed)
                     if self.remote
-                    else backend_record(device, observed)
+                    else backend_record(device, observed, backend=backend)
                 ),
                 "image": self.gpu_image.image_id,
             }

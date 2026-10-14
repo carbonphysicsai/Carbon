@@ -104,7 +104,7 @@ from ..provider import (
     digest_text,
     identifier,
 )
-from . import model_providers, next_level
+from . import argument_events, model_providers, next_level
 from . import tools as toolbox
 from .grant_binding import model_provider_refusal
 from .ladder import Ladder, LadderError
@@ -120,6 +120,7 @@ from .roles import (
     MODEL_SETTINGS,
     PARALLEL_RULES,
     ROLES,  # noqa: F401 - re-exported: tests patch the shared role table here
+    TOOL_REGISTRY,
     TOOL_TEXT_V1,
     TOOL_TEXT_V2,
     TOOL_TEXTS,
@@ -354,6 +355,10 @@ def _replace(path, payload):
 
 
 class GraphiteProvider:
+    # Prospective opening rule: historical records have no telemetry block.
+    # Historical-opening fixtures can reproduce that earlier writer explicitly.
+    NEW_SESSION_ARGUMENT_LOGGING = argument_events.POLICY
+
     #: The call cap a v1 session passes to the loop as `max_provider_calls`,
     #: and its ledger's `provider_attempts` when no operator cap is set. None
     #: here: a v1 harness session kept the loop's shared `MAX_PROVIDER_CALLS`.
@@ -587,10 +592,75 @@ class GraphiteProvider:
         exactly as it was passed (none for a harness session)."""
         if self.rule_of(opened) == SESSION_LIMITS_V2:
             block = opened["session_limits"]
-            return {"limits": block["loop_limits"], "compaction": block["compaction"]}
-        if self.HISTORICAL_SESSION_TURNS is None:
-            return {}
-        return {"max_provider_calls": self.HISTORICAL_SESSION_TURNS}
+            options = {
+                "limits": block["loop_limits"],
+                "compaction": block["compaction"],
+            }
+        elif self.HISTORICAL_SESSION_TURNS is None:
+            options = {}
+        else:
+            options = {"max_provider_calls": self.HISTORICAL_SESSION_TURNS}
+        policy = opened.get("argument_logging")
+        opening = {}
+        if opened.get("run_id") is not None:
+            opening = next(
+                (
+                    event
+                    for event in self.events(opened["run_id"], 0)
+                    if event.get("kind") == "session_opened"
+                ),
+                {},
+            )
+            if opening.get("argument_logging") != policy:
+                raise SessionMismatch("argument_logging_identity_changed")
+        if policy is not None:
+            identity = self._agent_identity(opened)
+            if (
+                policy != argument_events.POLICY
+                or opening.get("argument_logging") != policy
+                or opened.get("agent_identity") != identity
+                or opening.get("agent_identity") != identity
+            ):
+                raise SessionMismatch("argument_logging_identity_changed")
+            actual_live = getattr(self.model, "live", None)
+            if (
+                type(actual_live) is not bool
+                or type(opened.get("live_inference")) is not bool
+                or actual_live is not opened["live_inference"]
+            ):
+                raise SessionMismatch("agent_model_mode_changed")
+            offered = frozenset(
+                (*TOOL_REGISTRY, *self.offered_tools(opened), "graphite_set_budget")
+            )
+
+            def observed(identity, name, raw):
+                arguments = argument_events.snapshot(raw)
+                self._emit(
+                    opened["run_id"],
+                    "arguments-" + identity,
+                    {
+                        "kind": "call_arguments",
+                        "identity": identity,
+                        "tool": argument_events.tool_name(name, offered),
+                        "arguments": arguments,
+                        "arguments_digest": digest(canonical(arguments)),
+                    },
+                )
+
+            options["tool_observer"] = observed
+        return options
+
+    @staticmethod
+    def _agent_identity(opened):
+        return {
+            "implementation": PROVIDER,
+            "role": opened["role"]["name"],
+            "model_provider": opened.get("model_provider", {}).get(
+                "provider", DEFAULT_MODEL_PROVIDER
+            ),
+            "model": opened["role"]["model"],
+            "inference": "live" if opened["live_inference"] else "scripted",
+        }
 
     def register_brief(self, brief):
         if type(brief) is not SessionBrief:
@@ -621,7 +691,10 @@ class GraphiteProvider:
         path = self._dir(run_id) / "session-open.json"
         if not path.is_file():
             raise ProviderUnavailable("unknown_run")
-        return json.loads(path.read_bytes())
+        opened = json.loads(path.read_bytes())
+        if type(opened) is not dict or opened.get("run_id") != run_id:
+            raise SessionMismatch("session_run_identity_changed")
+        return opened
 
     def _state(self, run_id):
         path = self._dir(run_id) / "state.json"
@@ -637,10 +710,27 @@ class GraphiteProvider:
 
     def _emit(self, run_id, event_id, body):
         """Append one event once; replays never duplicate it."""
+        if (
+            type(body.get("arguments")) is dict
+            and body["arguments"].get("schema") == argument_events.POLICY
+        ):
+            body = {**body, "run_id": run_id}
         path = self._dir(run_id) / "events.jsonl"
         existing = path.read_bytes().splitlines() if path.exists() else []
-        if any(json.loads(line)["event_id"] == event_id for line in existing):
-            return
+        for prior in existing:
+            saved = json.loads(prior)
+            if saved["event_id"] == event_id:
+                if (
+                    body.get("kind") == "call_arguments"
+                    and {
+                        key: value
+                        for key, value in saved.items()
+                        if key not in ("event_id", "sequence")
+                    }
+                    != body
+                ):
+                    raise SessionMismatch("argument_event_replay_conflict")
+                return
         line = canonical({"event_id": event_id, "sequence": len(existing), **body})
         with path.open("ab") as stream:
             stream.write(line + b"\n")
@@ -841,6 +931,15 @@ class GraphiteProvider:
             # (`spur:glm-5.2`). Engy, the default, records no block, so an
             # Engy session's bytes are exactly as before.
             opened["model_provider"] = model_provider
+        logging_record = {}
+        if self.NEW_SESSION_ARGUMENT_LOGGING is not None:
+            if self.NEW_SESSION_ARGUMENT_LOGGING != argument_events.POLICY:
+                raise SessionMismatch("argument_logging_identity_changed")
+            logging_record = {
+                "argument_logging": self.NEW_SESSION_ARGUMENT_LOGGING,
+                "agent_identity": self._agent_identity(opened),
+            }
+            opened.update(logging_record)
         # The rules a later phase records with a new session only (none here),
         # so a session opened before records none and resumes as it was.
         opened.update(self.opening_rules())
@@ -858,6 +957,7 @@ class GraphiteProvider:
                 "session_open_digest": digest(canonical(opened)),
                 "role": role.name.value,
                 "model": model_id,
+                **logging_record,
             },
         )
         self._crash("after_open")
@@ -898,6 +998,63 @@ class GraphiteProvider:
         if not path.exists():
             return []
         return [json.loads(line) for line in path.read_bytes().splitlines()[after:]]
+
+    def event_canary_hit(self, run_id, event, canaries):
+        """Exact configured-canary scan, without raw arguments in events.
+
+        Inspect only the refused call's already-retained private intent. No
+        new archive, token, hash, path or scan result is emitted. Other events
+        retain their original controller scan; missing intent is not 'safe'.
+        """
+        if (
+            event.get("kind") != "tool_refused"
+            or event.get("arguments", {}).get("schema") != argument_events.POLICY
+        ):
+            return False
+        if event.get("run_id") != run_id:
+            raise ProviderUnavailable("canary_argument_evidence_unavailable")
+        identity = event.get("identity")
+        if type(identity) is not str or not re.fullmatch(
+            r"epoch-[0-9]+(?:-[a-z0-9_-]+)?-tool-[0-9]+(?:-[0-9]+)?", identity
+        ):
+            raise ProviderUnavailable("canary_argument_evidence_unavailable")
+        root = self._dir(run_id) / "ledger" / f"epoch-{EPOCH}"
+        paths = list(root.rglob(identity + "-intent.json"))
+        if (
+            len(paths) != 1
+            or paths[0].is_symlink()
+            or root.resolve() not in paths[0].resolve().parents
+        ):
+            raise ProviderUnavailable("canary_argument_evidence_unavailable")
+        try:
+            intent = json.loads(
+                paths[0].read_bytes(), object_pairs_hook=argument_events._object
+            )
+            if (
+                type(intent) is not dict
+                or set(intent)
+                != {
+                    "name",
+                    "arguments",
+                    "call_id",
+                }
+                or type(intent["name"]) is not str
+                or type(intent["arguments"]) is not dict
+                or type(intent["call_id"]) is not str
+            ):
+                raise ValueError("intent shape")
+            from ..boundaries import exposed
+
+            return bool(
+                exposed(
+                    canonical(
+                        {"tool": intent["name"], "arguments": intent["arguments"]}
+                    ),
+                    canaries,
+                )
+            )
+        except (OSError, ValueError, TypeError, RecursionError):
+            raise ProviderUnavailable("canary_argument_evidence_unavailable") from None
 
     def artifacts(self, run_id):
         path = self._dir(run_id) / "graphite-session.json"

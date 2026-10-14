@@ -265,18 +265,25 @@ class NoProvider:
 
 
 def test_an_oversized_environment_is_refused_before_any_provider_call(tmp_path):
-    # Distinct digests, so the gzip in `manifest_env` cannot shrink them.
-    big = {
-        f"carbon/f{i:05d}.py": hashlib.sha256(str(i).encode()).hexdigest()
-        for i in range(3000)
-    }
+    # The code manifest travels outside the environment. Exercise the actual
+    # remaining size guard with deliberately oversized synthetic phase data.
+    job = dataclasses.replace(
+        _job(),
+        strategy={
+            **KNN,
+            "parameters": {
+                **KNN["parameters"],
+                "synthetic_payload": "x" * pod_env.ENV_LIMIT_CHARS,
+            },
+        },
+    )
     service = NoProvider()
-    backend = _backend(big, service)
+    backend = _backend({"carbon/__init__.py": "0" * 64}, service)
     with pytest.raises(pods.PodFailure) as refused:
-        backend.launch(_job(), tmp_path)
+        backend.launch(job, tmp_path)
     assert refused.value.executed is False
     assert refused.value.detail.startswith(pods.ENV_TOO_LARGE + ":")
-    assert "CODE_MANIFEST_GZ_B64" in refused.value.detail
+    assert "PHASE_CONFIG" in refused.value.detail
     assert service.calls == []
 
 

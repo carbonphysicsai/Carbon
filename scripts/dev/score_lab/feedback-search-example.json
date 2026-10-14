@@ -1,0 +1,12 @@
+{
+  "seed": 42,
+  "random_draws": 4,
+  "hill_epochs": 1,
+  "base_member_id": "physics-understanding-0",
+  "value_scope": "neighbourhood_blend",
+  "parameters": {
+    "noise": [0.001, 0.12, 0.02],
+    "transfer": [0.0, 1.0, 0.25],
+    "score_path_only": [0, 1, 1]
+  }
+}

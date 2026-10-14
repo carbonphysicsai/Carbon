@@ -211,7 +211,7 @@ def _row(questions, predictions, config):
                 abs(p - r) for p, r in zip(pred["margins"], ref["margins"], strict=True)
             )
             errors.append(err)
-            if abs(min(ref["margins"])) < 0.12:
+            if ref["margins"] and abs(min(ref["margins"])) < 0.12:
                 boundary.append(err)
                 optimism.append(
                     float(pred["feasible"] and ref["status"] == "INFEASIBLE")

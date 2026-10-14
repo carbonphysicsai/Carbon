@@ -1,0 +1,11 @@
+{
+  "initial": {
+    "noise": 0.05,
+    "transfer": 0.5,
+    "score_path_only": 0
+  },
+  "grains": ["aggregate", "prefix:3"],
+  "roundings": [2, 4],
+  "probe_allowances": [2, 6],
+  "epochs": 4
+}

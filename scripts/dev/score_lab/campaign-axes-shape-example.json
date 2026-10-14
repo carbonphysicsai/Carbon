@@ -1,0 +1,7 @@
+[
+  {"path": "problem.optima_count", "kind": "choices", "values": [1, 3, 10]},
+  {"path": "problem.objective_kind", "kind": "choices", "values": ["single", "weighted", "robust"]},
+  {"path": "problem.objective_weight", "kind": "linear", "low": 0.0, "high": 1.0},
+  {"path": "problem.roughness", "kind": "linear", "low": 0.0, "high": 0.15},
+  {"path": "problem.optimum_location", "kind": "choices", "values": ["interior", "boundary"]}
+]
