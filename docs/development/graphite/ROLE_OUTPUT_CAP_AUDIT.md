@@ -8,14 +8,25 @@ science-jax, chain, archive and mcp groups:
 CARBON_UV_GROUPS="science-jax chain archive mcp" ./scripts/dev/canonical.sh python -m scripts.dev.graphite_grant_cap_audit
 ```
 
-The public snapshot is
-`docs/development/evidence/role-output-cap-audit/audit-v1.json`. Its basis is
-main `07314d0bde9138c55452aec06e5448816b2a7b63`: 33 public grant files, each
+The current public snapshot is
+`docs/development/evidence/role-output-cap-audit/audit-v2.json`. Its basis is
+main `7f90cf3d01e674d46239db0693a71f375c1aaa6f`: 34 public grant files, each
 hashed, and 11 hashed selection/role/price/grant/budget source files. It uses
 the real session selector and the phase-3/phase-4 budget calculators. It lists
 every role/model's uncached maximum input and output reservation. Reasoning
 tokens are included in the registered output cap and charged at that output
 price. No current provider price or context is guessed from an outside source.
+
+The original `audit-v1.json` remains byte-identical, with SHA256
+`d799faa3d25b592e1109e62f63835e9e8945716f9d8cc24995051bb459584916`.
+Its 33-grant basis is main `07314d0bde9138c55452aec06e5448816b2a7b63`.
+Snapshot version 2 keeps the same data-format schema and records its source
+revision and the superseded snapshot's path, hash and count. It prospectively
+adds Constructor grant -6 and records the current registered -5 to -6
+replacement. It does not reinterpret v1 or historical sessions. Grant -6's
+owner-approved USD 14.94 ceiling, USD 14.91 run cap, USD 0.03 cleanup allowance,
+one permitted run and 39,600-second runtime are read from its public file;
+the registered USD 10.99 token share still fits four full Kimi reservations.
 
 ## What changed at the larger cap
 
@@ -39,7 +50,7 @@ money gate may stop a dearer rung before all of those calls.
 
 ## Coverage and named limitations
 
-All 33 files were examined: 28 mapped workloads, one replaced grant evaluated
+All 34 current files were examined: 28 mapped workloads, two replaced grants evaluated
 as a current-settings scenario, three zero-spend admission grants, and one
 unmapped historical grant. Planner-01 is deliberately not accepted by today's
 `level_planner.PLANNER_GRANTS`; its old settings are not reconstructed or
@@ -71,5 +82,9 @@ the refusal test fail because a request is dispatched; the guard can detect
 the claimed defect.
 Additional controls count/hash every public grant, reject empty inventories,
 keep new unmapped workloads unknown and missing owner amounts unresolved.
+The versioned snapshot control compares the entire current snapshot against
+actual regeneration, including every file hash, source pin, selection and
+replacement relation. An omitted grant or stale pin fails that equality;
+the separate immutable v1 hash guards its historical interpretation.
 Historical session records and recorded selections retain their original
 meaning; the snapshot describes new-session settings only.

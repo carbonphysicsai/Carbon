@@ -33,6 +33,15 @@ formatting/encoding/hygiene and exact-head CI; report/handoff.
 Manifest: this ticket; scripts/dev/graphite_grant_cap_audit.py;
 tests/cpu/test_graphite_grant_cap_audit.py;
 docs/development/graphite/ROLE_OUTPUT_CAP_AUDIT.md;
-docs/development/evidence/role-output-cap-audit/audit-v1.json.
+docs/development/evidence/role-output-cap-audit/audit-v1.json;
+docs/development/evidence/role-output-cap-audit/audit-v2.json.
 Completion is a green exact-head engineering handoff, not owner grant approval
 or a claim that every role can run every rung under every grant.
+
+Prospective integration repair: main 7f90cf3d01e674d46239db0693a71f375c1aaa6f
+adds public Constructor grant -6 and registers -5 as replaced. Preserve v1's
+exact bytes and 33-grant historical interpretation. Re-run the actual read-only
+audit as snapshot version 2, bind all 34 current files and current source hashes,
+and record v1's immutable hash as the superseded snapshot. An exact regeneration
+control checks the whole new snapshot and the prospective replacement relation.
+No amount, cap, provider, spending authority or historical session changes.

@@ -127,3 +127,38 @@ def test_missing_owner_amount_stays_unresolved(tmp_path):
     row = audit.audit(tmp_path)["grants"][0]
     assert row["status"] == "UNRESOLVED" and row["reason"] == "grant_value_missing"
     assert "roles" not in row
+
+
+def test_versioned_snapshot_rebinds_current_grants_without_reinterpreting_v1():
+    directory = audit.ROOT / "docs/development/evidence/role-output-cap-audit"
+    previous_bytes = (directory / "audit-v1.json").read_bytes()
+    previous = json.loads(previous_bytes)
+    current = json.loads((directory / "audit-v2.json").read_bytes())
+    assert hashlib.sha256(previous_bytes).hexdigest() == (
+        "d799faa3d25b592e1109e62f63835e9e8945716f9d8cc24995051bb459584916"
+    )
+    assert previous["grant_count"] == 33
+    assert current.pop("snapshot_version") == 2
+    assert current.pop("source_revision") == (
+        "7f90cf3d01e674d46239db0693a71f375c1aaa6f"
+    )
+    assert current.pop("supersedes") == {
+        "path": "docs/development/evidence/role-output-cap-audit/audit-v1.json",
+        "sha256": hashlib.sha256(previous_bytes).hexdigest(),
+        "grant_count": 33,
+    }
+    # Exact equality checks every grant byte hash, source pin and actual selection,
+    # so an omitted grant or a stale cost/replacement cannot pass this control.
+    assert current == audit.audit()
+    assert current["grant_count"] == 34
+    old_id = "GRAPHITE-GRANT-L4-G-CONSTRUCTOR-5"
+    new_id = "GRAPHITE-GRANT-L4-G-CONSTRUCTOR-6"
+    historical_rows = {row["grant_id"]: row for row in previous["grants"]}
+    rows = {row["grant_id"]: row for row in current["grants"]}
+    assert historical_rows[old_id]["status"] == "MAPPED"
+    assert historical_rows[old_id]["replaced_by"] is None
+    assert new_id not in historical_rows
+    assert rows[old_id]["status"] == "REPLACED"
+    assert rows[old_id]["replaced_by"] == new_id
+    assert rows[new_id]["status"] == "MAPPED"
+    assert rows[new_id]["replaced_by"] is None
