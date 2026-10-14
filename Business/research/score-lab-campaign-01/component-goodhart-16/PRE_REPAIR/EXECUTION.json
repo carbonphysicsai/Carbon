@@ -1,0 +1,125 @@
+{
+  "analysis_cpu_seconds": 407.266,
+  "analysis_wall_seconds": 407.506,
+  "candidate_sha256": "157b1db5f091910f5602b15c9f5029f0171e6da7e8b6dbc5ffb5aa5c775bd235",
+  "canonical_driver_sha256": "d689293b472dcf42270080fc39f7ce1a2551caf553c7ced0914b2ea792f07433",
+  "canonical_execution": true,
+  "canonical_image": "sha256:7d640c0e5a7d77e85e4da8a98b025e73a2edec37ea56bef71e4e8f424c1b6dc5",
+  "command_resources": [
+    {
+      "cpu_system_seconds": 0.12,
+      "cpu_user_seconds": 0.725,
+      "stage": "controls",
+      "wall_seconds": 0.856
+    },
+    {
+      "cpu_system_seconds": 0.08,
+      "cpu_user_seconds": 33.243,
+      "stage": "combo00",
+      "wall_seconds": 33.36
+    },
+    {
+      "cpu_system_seconds": 0.064,
+      "cpu_user_seconds": 14.541,
+      "stage": "combo01",
+      "wall_seconds": 14.606
+    },
+    {
+      "cpu_system_seconds": 0.092,
+      "cpu_user_seconds": 38.57,
+      "stage": "combo02",
+      "wall_seconds": 38.672
+    },
+    {
+      "cpu_system_seconds": 0.084,
+      "cpu_user_seconds": 36.785,
+      "stage": "combo03",
+      "wall_seconds": 36.882
+    },
+    {
+      "cpu_system_seconds": 0.077,
+      "cpu_user_seconds": 36.31,
+      "stage": "combo04",
+      "wall_seconds": 36.393
+    },
+    {
+      "cpu_system_seconds": 0.056,
+      "cpu_user_seconds": 14.516,
+      "stage": "combo05",
+      "wall_seconds": 14.598
+    },
+    {
+      "cpu_system_seconds": 0.044,
+      "cpu_user_seconds": 13.659,
+      "stage": "combo06",
+      "wall_seconds": 13.711
+    },
+    {
+      "cpu_system_seconds": 0.032,
+      "cpu_user_seconds": 14.878,
+      "stage": "combo07",
+      "wall_seconds": 14.92
+    },
+    {
+      "cpu_system_seconds": 0.117,
+      "cpu_user_seconds": 37.277,
+      "stage": "combo08",
+      "wall_seconds": 37.438
+    },
+    {
+      "cpu_system_seconds": 0.14,
+      "cpu_user_seconds": 36.983,
+      "stage": "combo09",
+      "wall_seconds": 37.141
+    },
+    {
+      "cpu_system_seconds": 0.104,
+      "cpu_user_seconds": 34.994,
+      "stage": "combo10",
+      "wall_seconds": 35.13
+    },
+    {
+      "cpu_system_seconds": 0.044,
+      "cpu_user_seconds": 14.588,
+      "stage": "combo11",
+      "wall_seconds": 14.639
+    },
+    {
+      "cpu_system_seconds": 0.036,
+      "cpu_user_seconds": 14.487,
+      "stage": "combo12",
+      "wall_seconds": 14.526
+    },
+    {
+      "cpu_system_seconds": 0.028,
+      "cpu_user_seconds": 14.367,
+      "stage": "combo13",
+      "wall_seconds": 14.399
+    },
+    {
+      "cpu_system_seconds": 0.108,
+      "cpu_user_seconds": 35.498,
+      "stage": "combo14",
+      "wall_seconds": 35.613
+    },
+    {
+      "cpu_system_seconds": 0.056,
+      "cpu_user_seconds": 14.563,
+      "stage": "combo15",
+      "wall_seconds": 14.622
+    }
+  ],
+  "holdout_read": false,
+  "host_runner_sha256": "1de278cf50d87e5ff425f9f5d0ce0ca73ab9e9553b45bbd09c0abab5a8870bf8",
+  "model_rebuilds": 0,
+  "outer_wrapper_wall_cap_seconds": 3100,
+  "peak_rss": "NOT_MEASURED",
+  "per_combination_address_space_cap_bytes": 1073741824,
+  "per_combination_cpu_cap_seconds": 160,
+  "per_combination_wall_cap_seconds": 240,
+  "prior_error64_cpu_seconds": 266.571,
+  "resource_scope": "CLI analysis only; image/bootstrap/export excluded",
+  "schema": "carbon.dev.component-goodhart-execution.v1",
+  "solver_calls": 0,
+  "source_commit": "9311c584adaddb061e688cc3e0777c59bc2ade7e"
+}

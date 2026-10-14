@@ -1,0 +1,171 @@
+{
+  "measured_rows": 112,
+  "pre_repair_source": "9311c584adaddb061e688cc3e0777c59bc2ade7e",
+  "repair_source": "fe2f33ca30a71be3797e4ebf2e5e432eeb24757e",
+  "reuse": "Eight noncheap settings retain original files; only eight cheap settings rerun",
+  "rows": [
+    {
+      "component_spec": null,
+      "index": 0,
+      "result_path": "PRE_REPAIR/RESULTS_00.json.gz",
+      "result_sha256": "6f0ece3be0a71d5b145a51929e485af9391d09ca44eea24cc1665389bb1b6b79",
+      "source_commit": "9311c584adaddb061e688cc3e0777c59bc2ade7e"
+    },
+    {
+      "component_spec": {
+        "cheap_margin_weight": 0.25
+      },
+      "index": 1,
+      "result_path": "REPAIRED/RESULTS_01.json.gz",
+      "result_sha256": "99258c88c964e9d2e179781767c8c9540ded0c59fddf319fe33a731d535e724f",
+      "source_commit": "fe2f33ca30a71be3797e4ebf2e5e432eeb24757e"
+    },
+    {
+      "component_spec": {
+        "crps_weight": 0.25
+      },
+      "index": 2,
+      "result_path": "PRE_REPAIR/RESULTS_02.json.gz",
+      "result_sha256": "56df55528c2f146a2d7abd659797255aaba6b55df2e3922db4754cb092fb2883",
+      "source_commit": "9311c584adaddb061e688cc3e0777c59bc2ade7e"
+    },
+    {
+      "component_spec": {
+        "cvar_tail_fraction": 0.25
+      },
+      "index": 3,
+      "result_path": "PRE_REPAIR/RESULTS_03.json.gz",
+      "result_sha256": "2d82918cccde2075b6a482ec85c786c54956463baf74be3e258a598d2b02aea5",
+      "source_commit": "9311c584adaddb061e688cc3e0777c59bc2ade7e"
+    },
+    {
+      "component_spec": {
+        "gradient_weight": 0.25
+      },
+      "index": 4,
+      "result_path": "PRE_REPAIR/RESULTS_04.json.gz",
+      "result_sha256": "4cfe322138b78a09e9aee388fd47ad38a1c044d7911b1069cabe0e4d24b17870",
+      "source_commit": "9311c584adaddb061e688cc3e0777c59bc2ade7e"
+    },
+    {
+      "component_spec": {
+        "cheap_margin_weight": 0.25,
+        "crps_weight": 0.25
+      },
+      "index": 5,
+      "result_path": "REPAIRED/RESULTS_05.json.gz",
+      "result_sha256": "461a9d1d90fa7958102d8844d071f8fcf81d6ce19ba70157a6b13c7a1f392d7f",
+      "source_commit": "fe2f33ca30a71be3797e4ebf2e5e432eeb24757e"
+    },
+    {
+      "component_spec": {
+        "cheap_margin_weight": 0.25,
+        "cvar_tail_fraction": 0.25
+      },
+      "index": 6,
+      "result_path": "REPAIRED/RESULTS_06.json.gz",
+      "result_sha256": "e8f90022cd3ba24bbac39e9862bce1ebe9a6bc9fd0ae17f1445ce7a634358184",
+      "source_commit": "fe2f33ca30a71be3797e4ebf2e5e432eeb24757e"
+    },
+    {
+      "component_spec": {
+        "cheap_margin_weight": 0.25,
+        "gradient_weight": 0.25
+      },
+      "index": 7,
+      "result_path": "REPAIRED/RESULTS_07.json.gz",
+      "result_sha256": "99c317589798f8f50f6733cd18680bbfb8bfc26a40302419164626a1d3837e95",
+      "source_commit": "fe2f33ca30a71be3797e4ebf2e5e432eeb24757e"
+    },
+    {
+      "component_spec": {
+        "crps_weight": 0.25,
+        "cvar_tail_fraction": 0.25
+      },
+      "index": 8,
+      "result_path": "PRE_REPAIR/RESULTS_08.json.gz",
+      "result_sha256": "f7d661d379f428380f37a0dfec1cfdef92e300bd8d549c7400385a3361db3dda",
+      "source_commit": "9311c584adaddb061e688cc3e0777c59bc2ade7e"
+    },
+    {
+      "component_spec": {
+        "crps_weight": 0.25,
+        "gradient_weight": 0.25
+      },
+      "index": 9,
+      "result_path": "PRE_REPAIR/RESULTS_09.json.gz",
+      "result_sha256": "39ff36d2eda6eb232c985c9d067b1fea510dbcc8d84bc2174ec49694438f56de",
+      "source_commit": "9311c584adaddb061e688cc3e0777c59bc2ade7e"
+    },
+    {
+      "component_spec": {
+        "cvar_tail_fraction": 0.25,
+        "gradient_weight": 0.25
+      },
+      "index": 10,
+      "result_path": "PRE_REPAIR/RESULTS_10.json.gz",
+      "result_sha256": "b304f3f25bacbdfabecc97e96946285cdadafea7be11fd8c0c238a6380bc727d",
+      "source_commit": "9311c584adaddb061e688cc3e0777c59bc2ade7e"
+    },
+    {
+      "component_spec": {
+        "cheap_margin_weight": 0.25,
+        "crps_weight": 0.25,
+        "cvar_tail_fraction": 0.25
+      },
+      "index": 11,
+      "result_path": "REPAIRED/RESULTS_11.json.gz",
+      "result_sha256": "88a2ab4a2ceb0a460bb072dd03dba0d5245bcac962f5b17f2497be3132e1709b",
+      "source_commit": "fe2f33ca30a71be3797e4ebf2e5e432eeb24757e"
+    },
+    {
+      "component_spec": {
+        "cheap_margin_weight": 0.25,
+        "crps_weight": 0.25,
+        "gradient_weight": 0.25
+      },
+      "index": 12,
+      "result_path": "REPAIRED/RESULTS_12.json.gz",
+      "result_sha256": "64c4cd4583a1be3e9cc605a202686112fa2adfcb69b4a534e9dd19314ecd361f",
+      "source_commit": "fe2f33ca30a71be3797e4ebf2e5e432eeb24757e"
+    },
+    {
+      "component_spec": {
+        "cheap_margin_weight": 0.25,
+        "cvar_tail_fraction": 0.25,
+        "gradient_weight": 0.25
+      },
+      "index": 13,
+      "result_path": "REPAIRED/RESULTS_13.json.gz",
+      "result_sha256": "e01b9c4ac4cd146c03b17441757f8a99408a8628807163fd4cc174c517474cbc",
+      "source_commit": "fe2f33ca30a71be3797e4ebf2e5e432eeb24757e"
+    },
+    {
+      "component_spec": {
+        "crps_weight": 0.25,
+        "cvar_tail_fraction": 0.25,
+        "gradient_weight": 0.25
+      },
+      "index": 14,
+      "result_path": "PRE_REPAIR/RESULTS_14.json.gz",
+      "result_sha256": "880295f0102771603292c2202136bf38ed8fd4129d4a12b596a954b1baa7d4cf",
+      "source_commit": "9311c584adaddb061e688cc3e0777c59bc2ade7e"
+    },
+    {
+      "component_spec": {
+        "cheap_margin_weight": 0.25,
+        "crps_weight": 0.25,
+        "cvar_tail_fraction": 0.25,
+        "gradient_weight": 0.25
+      },
+      "index": 15,
+      "result_path": "REPAIRED/RESULTS_15.json.gz",
+      "result_sha256": "2e210624c63e1f2f256839ccc7e1deb5bf08bb6912bbb172b95f9accd82dd3a1",
+      "source_commit": "fe2f33ca30a71be3797e4ebf2e5e432eeb24757e"
+    }
+  ],
+  "schema": "carbon.dev.component-goodhart-mixed-source.v1",
+  "scope": "SYNTHETIC_DEVELOPMENT",
+  "selection": null,
+  "unscored_rows": 48
+}
