@@ -39,9 +39,18 @@ from pathlib import Path
 from .core import RewardFailure
 from .winner_decay import Winner
 
-LEDGER_SCHEMA = "carbon.rewards.testnet-winner-ledger.v1"
+LEDGER_SCHEMA = "carbon.rewards.testnet-winner-ledger.v2"
+LEGACY_LEDGER_SCHEMA = "carbon.rewards.testnet-winner-ledger.v1"
 FINAL = "FINAL_IMPROVEMENT"
 FIRST = "FIRST_INCUMBENT"
+
+
+class WinnerIdentityFailure(RewardFailure):
+    """The snapshot and ledger cannot establish a promotion's miner identity."""
+
+
+class WinnerCutoverFailure(RewardFailure):
+    """An existing winner meets an unchecked first incumbent under a baseline."""
 
 
 def battery_promotion(target):
@@ -106,43 +115,83 @@ def decide(policy, challenge, promotion, previous_record, coldkeys, now_ms):
     """The ledger record for a newly observed `promotion`: its eligibility,
     the reason, and the clock it pays from. `coldkeys` maps hotkeys to
     coldkeys (from the snapshot); `previous_record` is the Challenge's last
-    ledger record, or None."""
+    ledger record, or None. V2 freezes the observed winner coldkey so later
+    comparisons do not depend on the predecessor remaining registered."""
+    winner_coldkey = coldkeys.get(promotion["hotkey"])
+    if winner_coldkey is not None and (
+        type(winner_coldkey) is not str or not winner_coldkey
+    ):
+        raise WinnerIdentityFailure("WINNER_IDENTITY_UNAVAILABLE")
     base = {
         "schema": LEDGER_SCHEMA,
         "challenge": challenge,
         "policy": policy.digest,
         "promotion": promotion,
         "observed_ms": now_ms,
+        "winner_coldkey": winner_coldkey,
     }
 
     def record(eligible, reason, clock_ms=now_ms):
         return {**base, "eligible": eligible, "reason": reason, "clock_ms": clock_ms}
 
-    if promotion["kind"] == FIRST:
-        if policy.baseline(challenge) is not None:
-            return record(False, "baseline_registered_first_incumbent_unchecked")
-        return record(True, "first_incumbent_no_baseline")
-    if promotion["kind"] != FINAL:
-        return record(False, "promotion_kind_unknown")
-    if promotion["nomination_overdue"]:
-        return record(False, "nomination_on_overdue_pool")
-    previous_hotkey = promotion["previous_hotkey"]
-    same = promotion["hotkey"] == previous_hotkey or (
-        previous_hotkey is not None
-        and coldkeys.get(promotion["hotkey"]) is not None
-        and coldkeys.get(promotion["hotkey"]) == coldkeys.get(previous_hotkey)
-    )
-    if same:
-        # No reset: the same miner keeps its old clock, or, when its earlier
-        # win paid nothing, still earns nothing new. Checking the adopted
-        # factor against a measured gain is not built yet, so even a set
-        # factor resets nothing (fail closed).
+    def same_miner(previous_hotkey):
+        if promotion["hotkey"] == previous_hotkey:
+            return True
+        if winner_coldkey is None:
+            raise WinnerIdentityFailure("WINNER_IDENTITY_UNAVAILABLE")
+        if (
+            previous_record is not None
+            and previous_record.get("schema") == LEDGER_SCHEMA
+        ):
+            previous_coldkey = previous_record.get("winner_coldkey")
+        elif (
+            previous_record is None
+            or previous_record.get("schema") == LEGACY_LEDGER_SCHEMA
+        ):
+            # v1 did not freeze this association; only a still-present old
+            # hotkey can supply it. Historical records are not rewritten.
+            previous_coldkey = coldkeys.get(previous_hotkey)
+        else:
+            raise WinnerIdentityFailure("PREDECESSOR_IDENTITY_UNAVAILABLE")
+        if type(previous_coldkey) is not str or not previous_coldkey:
+            raise WinnerIdentityFailure("PREDECESSOR_IDENTITY_UNAVAILABLE")
+        return winner_coldkey == previous_coldkey
+
+    def no_reset():
+        # A same miner keeps its old clock; an ineligible predecessor cannot
+        # gain eligibility from a new deployment or a self-improvement.
         keep = previous_record is not None and previous_record["eligible"]
         return record(
             keep,
             "same_miner_no_reset",
             previous_record["clock_ms"] if keep else now_ms,
         )
+
+    if promotion["kind"] == FIRST:
+        if policy.baseline(challenge) is not None:
+            if previous_record is not None:
+                # The candidate has not beaten the registered baseline, and
+                # authority does not define what happens to the old winner
+                # across this deployment cutover. Leave the ledger unchanged.
+                raise WinnerCutoverFailure("BASELINE_CUTOVER_UNRESOLVED")
+            return record(False, "baseline_registered_first_incumbent_unchecked")
+        if previous_record is not None and same_miner(
+            previous_record["promotion"]["hotkey"]
+        ):
+            return no_reset()
+        return record(True, "first_incumbent_no_baseline")
+    if promotion["kind"] != FINAL:
+        return record(False, "promotion_kind_unknown")
+    if promotion["nomination_overdue"]:
+        return record(False, "nomination_on_overdue_pool")
+    previous_hotkey = promotion["previous_hotkey"]
+    if previous_record is not None and (
+        previous_record["promotion"]["model_id"] != promotion["previous"]
+        or previous_record["promotion"]["hotkey"] != previous_hotkey
+    ):
+        raise WinnerIdentityFailure("PREDECESSOR_RECORD_MISMATCH")
+    if same_miner(previous_hotkey):
+        return no_reset()
     return record(True, "final_improvement")
 
 

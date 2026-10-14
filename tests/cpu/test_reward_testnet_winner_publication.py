@@ -87,6 +87,89 @@ def test_a_winner_not_in_the_snapshot_is_not_paid(tmp_path):
     assert publish(issuer, backend, publisher)["document"]["plan"]["q12"] == [[0, Q12]]
 
 
+def test_missing_legacy_predecessor_identity_refuses_preview_and_issue(tmp_path):
+    base = snapshot(chain(), block=925)
+    replacement = type(base.participants[1])(
+        1, "replacement-hotkey", "miner-coldkey", 3
+    )
+    state = dataclasses.replace(base, participants=(base.participants[0], replacement))
+    final = {
+        "model_id": "m2",
+        "hotkey": "replacement-hotkey",
+        "previous": "m1",
+        "previous_hotkey": "miner-hotkey",
+        "kind": we.FINAL,
+        "nomination_overdue": False,
+    }
+    issuer, backend, _ = composed(tmp_path, source=lambda: final, state=state)
+    old = we.decide(
+        POLICY,
+        BATTERY,
+        promotion(),
+        None,
+        {"miner-hotkey": "miner-coldkey"},
+        state.timestamp_ms - 1,
+    )
+    old["schema"] = we.LEGACY_LEDGER_SCHEMA
+    del old["winner_coldkey"]
+    issuer.ledger._append(old)
+    prior = issuer.ledger.path.read_bytes()
+    for action in (lambda: twp.preview(issuer, state), lambda: issuer.issue(state)):
+        with pytest.raises(
+            twp.WinnerPublicationRefused,
+            match="PREDECESSOR_IDENTITY_UNAVAILABLE",
+        ):
+            action()
+    assert issuer.ledger.path.read_bytes() == prior
+    with issuer.receipts.transaction() as db:
+        assert db.execute(
+            "SELECT count(*) FROM testnet_winner_intent_v1"
+        ).fetchone() == (0,)
+    assert backend.executions == backend.signed == 0
+
+
+def test_registered_baseline_cutover_refuses_before_intent_or_signing(tmp_path):
+    policy = dataclasses.replace(
+        POLICY,
+        baselines=tuple(
+            (c, "sha256:" + "c" * 64 if c == BATTERY else None)
+            for c in POLICY.challenges
+        ),
+    )
+    issuer, backend, _ = composed(tmp_path, policy=policy)
+    state, _ = asyncio.run(backend.observe())
+    old = we.decide(
+        policy,
+        BATTERY,
+        {
+            "model_id": "old-final",
+            "hotkey": "miner-hotkey",
+            "previous": "earlier-model",
+            "previous_hotkey": "earlier-hotkey",
+            "kind": we.FINAL,
+            "nomination_overdue": False,
+        },
+        None,
+        {"miner-hotkey": "miner-coldkey", "earlier-hotkey": "other-coldkey"},
+        state.timestamp_ms - 1,
+    )
+    assert old["eligible"] is True
+    issuer.ledger._append(old)
+    prior = issuer.ledger.path.read_bytes()
+    for action in (lambda: twp.preview(issuer, state), lambda: issuer.issue(state)):
+        with pytest.raises(
+            twp.WinnerPublicationRefused,
+            match="BASELINE_CUTOVER_UNRESOLVED",
+        ):
+            action()
+    assert issuer.ledger.path.read_bytes() == prior
+    with issuer.receipts.transaction() as db:
+        assert db.execute(
+            "SELECT count(*) FROM testnet_winner_intent_v1"
+        ).fetchone() == (0,)
+    assert backend.executions == backend.signed == 0
+
+
 def test_an_owner_associated_winner_is_refused_by_the_shared_compiler(tmp_path):
     issuer, backend, publisher = composed(
         tmp_path, source=lambda: promotion("owner-hotkey")
@@ -145,7 +228,7 @@ def test_targets_that_changed_since_issue_are_refused(tmp_path):
         POLICY,
         BATTERY,
         current["promotion"],
-        {},
+        {"unregistered": "other-coldkey"},
         state.timestamp_ms,
     )
     with pytest.raises(twp.WinnerPublicationRefused) as refused:

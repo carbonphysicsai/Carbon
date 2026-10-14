@@ -72,7 +72,14 @@ from .winner_decay import (
     network_authorized,
     winner_fraction,
 )
-from .winner_eligibility import FINAL, FIRST, WinnerLedger, payable
+from .winner_eligibility import (
+    FINAL,
+    FIRST,
+    WinnerCutoverFailure,
+    WinnerIdentityFailure,
+    WinnerLedger,
+    payable,
+)
 
 INTENT_SCHEMA = "carbon.rewards.testnet-winner-intent.v1"
 AUTHORITY = "OWNER-TESTNET-WEIGHTS-01"
@@ -246,25 +253,29 @@ class TestnetWinnerIntentIssuer:
                     if known[0]["promotion"] != promotion:
                         _refuse("TARGETS_CHANGED_REISSUE_NEXT_EPOCH")
                     found[challenge] = known[0]
-                elif observe:
-                    found[challenge] = self.ledger.observe(
-                        self.policy,
-                        challenge,
-                        promotion,
-                        coldkeys,
-                        snapshot.timestamp_ms,
-                    )
-                elif preview:
-                    found[challenge] = decide(
-                        self.policy,
-                        challenge,
-                        promotion,
-                        mine[-1] if mine else None,
-                        coldkeys,
-                        snapshot.timestamp_ms,
-                    )
                 else:
-                    _refuse("TARGETS_CHANGED_REISSUE_NEXT_EPOCH")
+                    try:
+                        if observe:
+                            found[challenge] = self.ledger.observe(
+                                self.policy,
+                                challenge,
+                                promotion,
+                                coldkeys,
+                                snapshot.timestamp_ms,
+                            )
+                        elif preview:
+                            found[challenge] = decide(
+                                self.policy,
+                                challenge,
+                                promotion,
+                                mine[-1] if mine else None,
+                                coldkeys,
+                                snapshot.timestamp_ms,
+                            )
+                        else:
+                            _refuse("TARGETS_CHANGED_REISSUE_NEXT_EPOCH")
+                    except (WinnerIdentityFailure, WinnerCutoverFailure) as failure:
+                        _refuse(str(failure))
         return found
 
     def _targets(self, snapshot, records):
