@@ -166,6 +166,27 @@ def test_honest_uncertainty_rewards_warning_and_penalises_overwarning():
         components.with_honest_abstention(constant, spec={**spec, "sigma_scale": 0})
 
 
+def test_honesty_counts_correct_inside_decline_with_accurate_outside():
+    _, _, levers = _inputs()
+
+    def constant(_predictions, _references, _metadata):
+        return {"score": 0.0, "gate": "PASS"}
+
+    wrapped = components.with_honest_abstention(
+        constant, spec=levers["honest_abstention"]
+    )
+    ref = {"q": {"a": {"status": "FEASIBLE", "objective": 1.0}}}
+    wrong_warned = {"q": {"a": {"objective": 0.0, "margins": {"m": 0.1}, "sigma": 1.0}}}
+    accurate_outside = {
+        "q": {"a": {"objective": 1.0, "margins": {"m": 0.1}, "sigma": 0.0}}
+    }
+    metadata = {"neighbours": [{"predictions": accurate_outside, "references": ref}]}
+    detail = wrapped(wrong_warned, ref, metadata)["detail"]["toy_honesty"]
+    assert detail["correct_declines"] == 1
+    assert detail["over_declines"] == 0
+    assert detail["confident_wrong"] == 0
+
+
 def test_high_uncertainty_declines_useful_toy_action_and_costs_value():
     question = {
         "fallback": "f",

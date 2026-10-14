@@ -286,7 +286,7 @@ def with_honest_abstention(rule, *, spec):
                 "toy_honesty": {
                     "inside_quality": inside[0],
                     "outside_quality": outside_quality,
-                    "correct_declines": sum(row[1] for row in outside),
+                    "correct_declines": inside[1] + sum(row[1] for row in outside),
                     "over_declines": inside[2] + sum(row[2] for row in outside),
                     "confident_wrong": inside[3] + sum(row[3] for row in outside),
                 },
