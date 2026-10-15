@@ -16,3 +16,16 @@ the existing build sequence; it is not scientific or deployment acceptance.
 D5 level deferral and D1 bootstrap-security hold remain explicit UNTESTED /
 BLOCKED metadata, separate from unrelated launch readiness. The T07 lane owns
 the owner record and historical backfill. No fixture pass substitutes for them.
+
+Independent review corrections: preserve the original unrecorded revision of
+the F01 failed attempt as a nonpassing record, rather than inventing a SHA or
+invalidating unrelated historical evidence. Resolve local compute labels by
+their actual lane; explicit Torch and remote/provider variants do not borrow
+CPU/JAX evidence. Catalog views carry the same label as setup and the wizard.
+
+The rehearsal must consume actual emitted HTTP/MCP documents captured by the
+existing journey/setup fixtures, bound to the exact checkout revision. The
+read-only release command requires that capture and validates it without
+restamping labels. Its negative controls corrupt actual emitted labels and
+must fail through the release entry point. The temporary capture is engineering
+test output, not a real acceptance cell; no new application harness is created.

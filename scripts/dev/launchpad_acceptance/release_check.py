@@ -7,6 +7,7 @@ The future T05 writer/matrix may reuse this reader; it owns no writing policy.
 
 from __future__ import annotations
 
+import argparse
 import copy
 import json
 import re
@@ -93,7 +94,7 @@ def _nonfinite(_value):
 @dataclass(frozen=True)
 class _Cell:
     cell: str
-    revision: str
+    revision: str | None
     result: str
     order: tuple[str, int]
     reference: str
@@ -106,8 +107,6 @@ def _cell(document, reference):
         or document["schema"] != SCHEMA
         or type(document["cell"]) is not str
         or not _CELL.fullmatch(document["cell"])
-        or type(document["revision"]) is not str
-        or not _REVISION.fullmatch(document["revision"])
         or document["result"] not in ("PASS", "FAIL", "BLOCKED")
         or type(document["within_cap"]) is not bool
         or type(document["evidence"]) is not dict
@@ -120,11 +119,19 @@ def _cell(document, reference):
         or document.get("attempt", 0) < 0
     ):
         raise ValueError("malformed acceptance cell")
+    revision = document["revision"]
+    recorded = type(revision) is str and _REVISION.fullmatch(revision)
+    unrecorded = document["result"] in ("FAIL", "BLOCKED") and revision in (
+        None,
+        "UNRECORDED_BEFORE_LA-F1_FIX",
+    )
+    if not recorded and not unrecorded:
+        raise ValueError("unrecorded acceptance PASS revision")
     if date.fromisoformat(document["date"]).isoformat() != document["date"]:
         raise ValueError("malformed acceptance date")
     return _Cell(
         document["cell"],
-        document["revision"],
+        revision if recorded else None,
         document["result"],
         (document["date"], document.get("attempt", 0)),
         reference,
@@ -194,8 +201,12 @@ def load_cells(repository=ROOT):
     return Cells(records)
 
 
-def choice(kind, identity, *, cells=None, transport=None):
+def choice(kind, identity, *, cells=None, transport=None, lane=None, backend=None):
     cells = load_cells() if cells is None else cells
+    transport = transport if type(transport) is str else None
+    lane = lane if type(lane) is str else None
+    if type(backend) is not str and backend is not None:
+        backend = "UNRECOGNIZED"
     if kind == "construction" and identity != "parameters":
         return {
             **cells.status(),
@@ -215,8 +226,39 @@ def choice(kind, identity, *, cells=None, transport=None):
             "reason": "LA_F17_REQUIRES_SEPARATE_SECURITY_ACCEPTANCE",
         }
     cell = _BINDINGS.get(kind, {}).get(identity)
-    if kind == "remote" and identity == "vast" and transport == "ssh-container":
-        cell = "C6"
+    if kind == "compute":
+        if identity in ("local-isolated-worker", "this-machine"):
+            cell = {"cpu": "C1", "gpu": "C2"}.get(lane)
+        if backend == "pytorch":
+            local = identity in (
+                "this-machine",
+                "local-isolated-worker",
+                "this-machine-cpu",
+                "this-machine-gpu",
+                "CPU",
+                "ISOLATED_CARRIER_GPU",
+            )
+            gpu = local and (
+                lane == "gpu"
+                or identity
+                in (
+                    "this-machine-gpu",
+                    "ISOLATED_CARRIER_GPU",
+                )
+            )
+            cell = "C10" if gpu else None
+        elif backend not in (None, "jax"):
+            cell = None
+    if kind == "remote":
+        cell = {
+            ("own-server", "ssh-docker"): "C3",
+            ("runpod", "ssh-container"): "C4",
+            ("vast", "ssh-docker"): "C5",
+            ("vast", "ssh-container"): "C6",
+            ("lambda", "ssh-docker"): "C7",
+            ("lium", "ssh-container"): "C8",
+            ("targon", "ssh-docker"): "C9",
+        }.get((identity, transport))
     return cells.status(cell)
 
 
@@ -250,11 +292,21 @@ def project(payload, name=None, *, cells=None):
             if type(identity) not in (str, int):
                 identity = None
             row["acceptance"] = choice(
-                kind, identity, cells=cells, transport=row.get("transport")
+                kind,
+                identity,
+                cells=cells,
+                transport=row.get("transport"),
+                lane=row.get("lane"),
+                backend=row.get("backend", row.get("framework")),
             )
             key = kind + "/" + str(identity)
             if kind == "remote":
                 key += "/" + str(row.get("transport"))
+            elif kind == "compute" and identity in (
+                "local-isolated-worker",
+                "this-machine",
+            ):
+                key += "/" + str(row.get("lane"))
             result["acceptance_choices"][key] = row["acceptance"]["status"]
             if kind == "compute":
                 guides = row.get("guides")
@@ -278,6 +330,8 @@ def project(payload, name=None, *, cells=None):
     ):
         if type(result.get(key)) is dict:
             rows(result[key].get(group), kind)
+    if type(result.get("compute")) is dict:
+        rows(result["compute"].get("routes"), "compute")
     rows(result.get("clients"), "client")
     rows(result.get("types"), "construction")
     rows(result.get("levels"), "level")
@@ -334,22 +388,69 @@ def check_labels(document, *, cells=None, name=None):
     compare(expected, document)
 
 
-def main():
-    """Check the actual shared public choice providers before release rehearsal."""
-    from scripts.dev.miner_launchpad.construction_options import for_profile
-    from scripts.dev.miner_launchpad.environment_setup import choices
+_SURFACES = {
+    "HTTP:/api/v1/capabilities": None,
+    "HTTP:/api/v1/control-center/capabilities": None,
+    "HTTP:/api/v1/setup": None,
+    "HTTP:/api/v1/setup/status": None,
+    "HTTP:/api/v1/operations/options": "options",
+    "MCP:carbon_options": "options",
+    "MCP:carbon_setup_begin": "begin",
+    "MCP:carbon_setup_status": None,
+}
 
+
+def check_capture(capture, revision, *, cells=None):
+    """Validate actual emitted documents without restamping their labels.
+
+    The existing door fixtures capture these surfaces at the candidate revision.
+    This reader never starts a server or manufactures a fresh projected answer.
+    """
+    if (
+        type(capture) is not dict
+        or capture.get("schema") != "carbon.launchpad.door-label-capture.v1"
+        or type(revision) is not str
+        or not _REVISION.fullmatch(revision)
+        or capture.get("source_revision") != revision
+        or type(capture.get("surfaces")) is not dict
+        or set(capture["surfaces"]) != set(_SURFACES)
+    ):
+        raise ValueError("exact revision-bound emitted door capture required")
+    cells = load_cells() if cells is None else cells
+    for key, name in _SURFACES.items():
+        document = capture["surfaces"][key]
+        if type(document) is not dict:
+            raise ValueError("emitted door document missing")
+        if key.startswith("MCP:"):
+            payload = document.get("payload")
+            if type(payload) is not dict or any(
+                document.get(field) != payload.get(field)
+                for field in ("acceptance_status", "acceptance_choices")
+            ):
+                raise ValueError("closed MCP acceptance fields disagree")
+        else:
+            payload = document
+        check_labels(payload, cells=cells, name=name)
+
+
+def main(argv=None):
+    """Read the actual door capture produced by the existing fixture tests."""
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--emitted", type=Path, required=True)
+    parser.add_argument("--revision", required=True)
+    args = parser.parse_args(argv)
+    capture = json.loads(
+        args.emitted.read_bytes(), object_pairs_hook=_unique, parse_constant=_nonfinite
+    )
     cells = load_cells()
-    offered = choices()
-    offered["construction_options"] = for_profile({})
-    labelled = project(offered, cells=cells)
-    check_labels(labelled, cells=cells)
+    check_capture(capture, args.revision, cells=cells)
     # Historical F01/F03 stay visible as named records, never current-release PASS.
     print(
         json.dumps(
             {
                 "schema": "carbon.launchpad.release-label-check.v1",
                 "status": "TRUTHFUL_LABELS",
+                "checked_revision": args.revision,
                 "acceptance": cells.status(),
                 "historical_cells": {key: cells.status(key) for key in ("F01", "F03")},
                 "qualification": False,

@@ -119,6 +119,19 @@ scenario("acceptance labels name a revision and never follow availability", asyn
   clean(page);
 });
 
+scenario("acceptance defaults label offered Agents Compute and Connections catalogs", async () => {
+  const state = launchable(world());
+  for (const provider of state.caps.model.providers) provider.availability = "available";
+  const page = await open(state);
+  for (const [route, id] of [["agents", "agent-catalog"], ["compute", "compute-catalog"], ["connections", "connection-catalog"]]) {
+    page.go("#" + route);
+    await page.advance(0);
+    assert.ok(page.text(id).includes("Untested"), id + " labels the offered choice");
+    assert.ok(!page.text(id).includes("Tested at"), id + " does not infer a PASS");
+  }
+  clean(page);
+});
+
 // ---- 1. Redraw only on change; never under a hand. ----
 scenario("a refresh with nothing new replaces no element of the launch wizard", async () => {
   const state = launchable(world());

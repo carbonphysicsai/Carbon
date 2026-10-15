@@ -3,11 +3,16 @@
 import asyncio
 import copy
 import json
+import os
+import subprocess
 import threading
 from pathlib import Path
 
 import pytest
 import yaml
+from test_control_center_live_page import (
+    journey,
+)  # noqa: F401 - existing pytest fixture
 from test_miner_launchpad import auth, request
 from test_miner_operations_doors import SpyHost
 
@@ -121,6 +126,171 @@ def test_actual_nonpass_record_keeps_its_result_when_outside_cap(tmp_path):
     record(tmp_path, result="FAIL", within_cap=False)
     status = acceptance.load_cells(tmp_path).status("I1")
     assert status["result"] == "FAIL" and status["status"] == "UNTESTED"
+
+
+def test_real_backfill_unknown_failure_does_not_poison_later_passes(tmp_path):
+    # The actual PR1375 F01 run-1 format, without inventing its missing SHA.
+    record(tmp_path, "F01", "FAIL", attempt=1, revision="UNRECORDED_BEFORE_LA-F1_FIX")
+    record(tmp_path, "F03", "PASS")
+    cells = acceptance.load_cells(tmp_path)
+    assert cells.status("F01")["result"] == "FAIL"
+    assert cells.status("F01")["revision"] is None
+    assert cells.status("F03")["status"] == "TESTED"
+    record(tmp_path, "F01", "PASS", attempt=2)
+    cells = acceptance.load_cells(tmp_path)
+    assert cells.status("F01")["status"] == cells.status("F03")["status"] == "TESTED"
+    assert cells.status("F01")["revision"] == REVISION
+
+
+@pytest.mark.parametrize(
+    "lane,cell,setup_id",
+    [
+        ("cpu", "C1", "this-machine-cpu"),
+        ("gpu", "C2", "this-machine-gpu"),
+    ],
+)
+def test_actual_compute_capability_and_setup_share_named_cell(
+    tmp_path, lane, cell, setup_id
+):
+    from types import SimpleNamespace
+
+    from scripts.dev.miner_launchpad.capabilities import _compute
+
+    record(tmp_path, cell)
+    cells = acceptance.load_cells(tmp_path)
+    runtime = {"gpu_research": {}} if lane == "gpu" else {}
+    emitted = _compute(
+        {"runtime": runtime}, None, {}, SimpleNamespace(facts=frozenset({"docker_cli"}))
+    )
+    shown = acceptance.project({"compute": emitted}, cells=cells)
+    expected = acceptance.choice("compute", setup_id, cells=cells)
+    assert shown["compute"]["choices"][0]["acceptance"] == expected
+    assert shown["compute"]["routes"][0]["acceptance"] == expected
+    other = "this-machine-gpu" if lane == "cpu" else "this-machine-cpu"
+    assert acceptance.choice("compute", other, cells=cells)["status"] == "UNTESTED"
+    assert (
+        acceptance.choice(
+            "compute",
+            "local-isolated-worker",
+            cells=cells,
+            lane="gpu",
+            backend="pytorch",
+        )["status"]
+        == "UNTESTED"
+    )
+    assert (
+        acceptance.choice("compute", "remote-machine", cells=cells, lane="gpu")[
+            "status"
+        ]
+        == "UNTESTED"
+    )
+    assert (
+        acceptance.choice("remote", "runpod", cells=cells, transport="ssh-docker")[
+            "status"
+        ]
+        == "UNTESTED"
+    )
+
+
+def test_torch_gpu_never_borrows_jax_gpu_acceptance(tmp_path):
+    record(tmp_path, "C2")
+    cells = acceptance.load_cells(tmp_path)
+    assert (
+        acceptance.choice(
+            "compute", "this-machine-gpu", cells=cells, backend="pytorch"
+        )["status"]
+        == "UNTESTED"
+    )
+    record(tmp_path, "C10")
+    cells = acceptance.load_cells(tmp_path)
+    assert (
+        acceptance.choice(
+            "compute", "this-machine-gpu", cells=cells, backend="pytorch"
+        )["cell"]
+        == "C10"
+    )
+
+
+def test_capture_release_door_surfaces(tmp_path, monkeypatch, journey):
+    """Use existing journey/setup/door fixtures, never a new service harness."""
+    from test_miner_launchpad_environment_setup import HOTKEY
+    from test_miner_setup_agent_first import Chain, Signer, made
+
+    from scripts.dev.miner_launchpad.setup_operations import OPEN
+
+    server = controller.Server(
+        controller.Controller(tmp_path / "release-capture.sqlite3"),
+        "x" * 40,
+        port=0,
+        research_runner=journey,
+        onboarding=Chain(registered=True),
+        state_dir=made(tmp_path),
+        setup_checks=Signer(),
+    )
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        begin = {
+            tool.name: tool
+            for tool in mcp_setup.make_setup_tools(server.setup, tier=OPEN)
+        }["carbon_setup_begin"]
+        began = asyncio.run(begin.fn(address=HOTKEY)).model_dump(mode="json")
+        status = mcp_setup.make_status_tool(server.setup)
+        state = asyncio.run(status.fn()).model_dump(mode="json")
+        options = {
+            tool.name: tool for tool in mcp_operations.make_operation_tools(journey)
+        }["carbon_options"]
+        offered = asyncio.run(options.fn()).model_dump(mode="json")
+        surfaces = {
+            "MCP:carbon_options": offered,
+            "MCP:carbon_setup_begin": began,
+            "MCP:carbon_setup_status": state,
+        }
+        for path in (
+            "/api/v1/capabilities",
+            "/api/v1/control-center/capabilities",
+            "/api/v1/setup",
+            "/api/v1/setup/status",
+            "/api/v1/operations/options",
+        ):
+            post = path.endswith("/operations/options")
+            code, _, raw = request(
+                server, path, "POST" if post else "GET", {} if post else None, auth()
+            )
+            assert code == 200
+            surfaces["HTTP:" + path] = json.loads(raw)
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
+    revision = subprocess.check_output(
+        ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True
+    ).strip()
+    capture = {
+        "schema": "carbon.launchpad.door-label-capture.v1",
+        "source_revision": revision,
+        "surfaces": surfaces,
+    }
+    path = tmp_path / "actual-door-capture.json"
+    path.write_text(json.dumps(capture))
+    args = ["--emitted", str(path), "--revision", revision]
+    assert acceptance.main(args) == 0
+    # The release entrypoint consumes the actual emission and never restamps it.
+    for kind in ("missing", "lying"):
+        broken = copy.deepcopy(capture)
+        emitted = broken["surfaces"]["HTTP:/api/v1/control-center/capabilities"]
+        if kind == "missing":
+            del emitted["compute"]["routes"][0]["acceptance"]
+        else:
+            emitted["acceptance_status"] = "TESTED"
+        path.write_text(json.dumps(broken))
+        with pytest.raises(ValueError):
+            acceptance.main(args)
+    path.write_text(json.dumps(capture))
+    if os.environ.get("CARBON_LAUNCHPAD_DOOR_CAPTURE"):
+        destination = Path(os.environ["CARBON_LAUNCHPAD_DOOR_CAPTURE"])
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_text(json.dumps(capture))
 
 
 def test_duplicate_json_fields_and_symlinks_are_refused(tmp_path):

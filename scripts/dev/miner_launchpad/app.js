@@ -2179,6 +2179,7 @@
       const box = card(target, choice.label, ...readiness(choice));
       box.dataset.agent = choice.id;
       box.append(el("p", choice.summary, "hint"));
+      researchNote(box, acceptanceText(choice), "hint");
       if (choice.command && choice.availability === "available") copyRow(box, "Connect your client with:", choice.command);
       if (choice.launch_agent === GRAPHITE) {
         box.append(el("p", "Modes: Research, Build or Full. It reads the shared card pack and your own Library, and can hunt arXiv for more, on your model and budget.", "hint"));
@@ -2199,7 +2200,7 @@
     const rows = el("ul", undefined, "checklist");
     for (const provider of caps.model.providers) {
       const entry = el("li", undefined, provider.availability === "available" ? "ok" : "missing");
-      entry.append(pill(...readiness(provider)), el("span", provider.provider));
+      entry.append(pill(...readiness(provider)), el("span", provider.provider), el("span", acceptanceText(provider), "hint"));
       if (provider.availability !== "available") {
         entry.append(el("span", provider.plain?.sentence || words(provider.reason) + ".", "next"));
         if (provider.plain?.next) entry.append(link(provider.plain.next));
@@ -2225,6 +2226,7 @@
       if (route.id === "this-machine") {
         const [tag, kind] = route.availability === "available" ? [route.in_use ? "In use" : "Ready", "pill-done"] : ["Needs setup", "pill-need"];
         const box = card(target, route.label, tag, kind);
+        researchNote(box, acceptanceText(route), "hint");
         const facts = choice ? [
           "Lanes: " + Object.entries(choice.lanes).map(([lane, state]) => lane + " " + state.availability + (state.reason ? " (" + words(state.reason) + ")" : "")).join(" · "),
           caps.compute.selection,
@@ -2238,6 +2240,7 @@
       }
       const set = route.availability === "configured";
       const box = card(target, route.label, set ? "In use" : "Not set up", set ? "pill-done" : "pill-wait");
+      researchNote(box, acceptanceText(route), "hint");
       if (set) box.append(el("p", "In your profile: " + route.transport + ", over your own SSH.", "status-line"));
       else if (checked?.checked && checked.remote_machine) box.append(el("p", "Checked over your SSH: " + checked.remote_machine.destination + " (" + checked.remote_machine.transport + "). Write your profile to use it.", "status-line"));
       else box.append(el("p", "Use a GPU you run anywhere: RunPod, Lium, Targon, Vast.ai, Lambda or your own server, reached with your own SSH.", "status-line"));
@@ -2252,6 +2255,7 @@
     const mcp = agentEntry("external_mcp");
     if (mcp) {
       const box = card(target, "Your own MCP client · stdio", ...readiness(mcp));
+      researchNote(box, acceptanceText(mcp), "hint");
       box.append(el("p", "Run on this machine with your runner profile. Every operation - launch, observe, practice, freeze, submit, halt, resume - is the same one this page calls, over the same records. Nothing is issued by Carbon.", "hint"));
       copyRow(box, "Connect your client with:", mcp.command, "connection-mcp-copy");
       // The command names this controller's own runner profile when it has

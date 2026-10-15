@@ -54,6 +54,11 @@ rehearsal check and scope-required Merge gate results. No unrun pass is claimed.
 Tests must cover defaults, latest PASS, FAIL/BLOCKED, malformed/conflicting data,
 historical revision limits, disclosure, nonmutation, both door closed fields,
 browser labels and rejecting unsupported TESTED claims in release rehearsal.
+The existing fixture test captures actual emitted door JSON; the release command
+requires `--emitted <capture> --revision <exact-checkout-sha>` and refuses missing,
+stale or unsupported labels. It does not create and validate its own projection.
+The real F01 unrecorded-revision failure remains a nonpassing historical record;
+known compute lanes, catalog surfaces and Torch/provider separation are covered.
 Root alone merges the exact tested head. Reviewer: Launchpad owner Platform2,
 or Root's assigned independent reviewer. Completion earns bounded engineering
 implementation/test evidence only; no actual owner block, security/science,

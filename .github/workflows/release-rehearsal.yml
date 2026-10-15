@@ -80,8 +80,13 @@ jobs:
         env:
           CARBON_UV_GROUPS: "chain archive science-jax mcp"
         run: ./scripts/dev/bootstrap.sh
-      - name: Check truthful Launchpad acceptance labels
-        run: ./.venv/bin/python -m scripts.dev.launchpad_acceptance.release_check
+      - name: Capture and check actual Launchpad door labels
+        env:
+          CARBON_LAUNCHPAD_DOOR_CAPTURE: .carbon-artifacts/launchpad-doors.json
+        run: |
+          ./.venv/bin/python -m pytest tests/cpu/test_launchpad_acceptance.py::test_capture_release_door_surfaces -q
+          ./.venv/bin/python -m scripts.dev.launchpad_acceptance.release_check \
+            --emitted .carbon-artifacts/launchpad-doors.json --revision "$(git rev-parse HEAD)"
       - name: Start a throwaway local registry
         # registry 2.8.3, pinned by its index digest.
         run: docker run --detach --name rehearsal-registry --publish 127.0.0.1:5000:5000 docker.io/library/registry@sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373
