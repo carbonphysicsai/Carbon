@@ -1,0 +1,19 @@
+{
+  "schema": "carbon.reference-package.image-lock.v1",
+  "package": "openfoam-v2506 (serves f17-openfoam-grooved-transport)",
+  "ticket": "REFERENCE-PACKAGES-01",
+  "decision": ".agent/decisions/2026-10-15-F17-OPENFOAM-PACKAGE-01.md",
+  "upstream": "OpenCFD OpenFOAM v2506, upstream commit 615aae61d7e95e110ca842ca105c799d10f59178 (image META-INFO build=_615aae61-20250627, api=2506, patch=0)",
+  "registry_repository": "docker.io/opencfd/openfoam-default",
+  "tag_at_acquisition": "2506",
+  "index_digest": "sha256:1578f5ded8bcbc68aa6a98dedd0693c3990bbab3bd6f1c01984e911c681f4e63",
+  "platform": "linux/amd64",
+  "manifest_digest": "sha256:020e00e512c3e0f50dd9904137bb64bdfe4b55b1fae6b9d6a566e4895d2d6e4a",
+  "config_digest": "sha256:5cef45e8d6aaaf58cb5fe4accaef11228c13dff292722143b9f61a4b3fc68d9c",
+  "run_reference": "opencfd/openfoam-default@sha256:020e00e512c3e0f50dd9904137bb64bdfe4b55b1fae6b9d6a566e4895d2d6e4a",
+  "mirror_reference": "mirror.gcr.io/opencfd/openfoam-default@sha256:020e00e512c3e0f50dd9904137bb64bdfe4b55b1fae6b9d6a566e4895d2d6e4a",
+  "acquired": "2026-10-15",
+  "build": "none: upstream binary image pinned by digest; no Carbon layer (the container needs no extra tool: decks, meshes' STL and observers are produced and read by host Python)",
+  "platform_build": "linux64GccDPInt32Opt (double precision, 32-bit labels, optimised)",
+  "licence": "OpenFOAM GPL-3.0-or-later; Ubuntu 24.04 base packages under their own licences"
+}
