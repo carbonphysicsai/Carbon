@@ -301,6 +301,23 @@ def check_exposure(intake_config, deployment_config):
     }
 
 
+def check_registered_score(deployment_config, repository):
+    """Load only the active score's public metadata, never measure a model."""
+    term = deployment_config.get("score")
+    if term is None:
+        return {"status": "not_applicable"}
+    from carbon.battery.value.registered_score import (
+        RegisteredScore,
+        RegisteredScoreRefused,
+    )
+
+    try:
+        RegisteredScore(term, repository)
+    except RegisteredScoreRefused as refused:
+        raise ServiceRefused(refused.code) from None
+    return {"status": "metadata_verified", "evidence": "DEVELOPMENT"}
+
+
 def check_deployment(service, intake_config, deployment_config, repository):
     """The deployment builds read-only (its root, journal and work directory
     are owner-only, its rule matches its seed pin), and a `direct` one is
@@ -587,8 +604,13 @@ def preflight(path, *, repository=REPOSITORY, doctor=None):
             lambda v: check_exposure(v["intake"], v["deployment_config"]),
         ),
         (
-            "deployment",
+            "registered_score",
             ("deployment_config",),
+            lambda v: check_registered_score(v["deployment_config"], repository),
+        ),
+        (
+            "deployment",
+            ("deployment_config", "registered_score"),
             lambda v: check_deployment(
                 loaded(v), v["intake"], v["deployment_config"], repository
             ),
