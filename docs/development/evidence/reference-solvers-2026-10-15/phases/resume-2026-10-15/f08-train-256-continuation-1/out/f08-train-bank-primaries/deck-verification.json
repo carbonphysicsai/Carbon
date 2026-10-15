@@ -1,0 +1,2313 @@
+{
+ "manifest": "docs/development/evidence/reference-solvers-2026-10-15/pins/f08-train-256-h3-manifest.json",
+ "decks": "regenerated on the pod",
+ "cases": [
+  {
+   "family": "f08",
+   "case": "train-0000",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0001",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0002",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0003",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0004",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0005",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0006",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0007",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0008",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0009",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0010",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0011",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0012",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0013",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0014",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0015",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0016",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0017",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0018",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0019",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0020",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0021",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0022",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0023",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0024",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0025",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0026",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0027",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0028",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0029",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0030",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0031",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0032",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0033",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0034",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0035",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0036",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0037",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0038",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0039",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0040",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0041",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0042",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0043",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0044",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0045",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0046",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0047",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0048",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0049",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0050",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0051",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0052",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0053",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0054",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0055",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0056",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0057",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0058",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0059",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0060",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0061",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0062",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0063",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0064",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0065",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0066",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0067",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0068",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0069",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0070",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0071",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0072",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0073",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0074",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0075",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0076",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0077",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0078",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0079",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0080",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0081",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0082",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0083",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0084",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0085",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0086",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0087",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0088",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0089",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0090",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0091",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0092",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0093",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0094",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0095",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0096",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0097",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0098",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0099",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0100",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0101",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0102",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0103",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0104",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0105",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0106",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0107",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0108",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0109",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0110",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0111",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0112",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0113",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0114",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0115",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0116",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0117",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0118",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0119",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0120",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0121",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0122",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0123",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0124",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0125",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0126",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0127",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0128",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0129",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0130",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0131",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0132",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0133",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0134",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0135",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0136",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0137",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0138",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0139",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0140",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0141",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0142",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0143",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0144",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0145",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0146",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0147",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0148",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0149",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0150",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0151",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0152",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0153",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0154",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0155",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0156",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0157",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0158",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0159",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0160",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0161",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0162",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0163",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0164",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0165",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0166",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0167",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0168",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0169",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0170",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0171",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0172",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0173",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0174",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0175",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0176",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0177",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0178",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0179",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0180",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0181",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0182",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0183",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0184",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0185",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0186",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0187",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0188",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0189",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0190",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0191",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0192",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0193",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0194",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0195",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0196",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0197",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0198",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0199",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0200",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0201",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0202",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0203",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0204",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0205",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0206",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0207",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0208",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0209",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0210",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0211",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0212",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0213",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0214",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0215",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0216",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0217",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0218",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0219",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0220",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0221",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0222",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0223",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0224",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0225",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0226",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0227",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0228",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0229",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0230",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0231",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0232",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0233",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0234",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0235",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0236",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0237",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0238",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0239",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0240",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0241",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0242",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0243",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0244",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0245",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0246",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0247",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0248",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0249",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0250",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0251",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0252",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0253",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0254",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "train-0255",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  }
+ ],
+ "selected": 256,
+ "selected_refused": [],
+ "all_cases_matching": 256
+}

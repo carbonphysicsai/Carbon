@@ -1,0 +1,18 @@
+{
+ "pod_id": "7xv102utf1bz73",
+ "files": 323,
+ "bytes_written": 48011227,
+ "listing_sha256": "28104cea3a3aba9e4a12375171f25f33acffa052b7b9b63e90bc51754677389e",
+ "stage": "phase_failed",
+ "deleted": true,
+ "schema": "carbon.reference-solvers.collection-receipt.v1",
+ "provider_observed_absent_utc": "2026-10-15T19:26:28.708441+00:00",
+ "termination_event": "terminated_verified",
+ "actual_settled_charge": "UNKNOWN",
+ "phase": "resume-2026-10-15",
+ "no_duplicate_launch": true,
+ "remaining_live_ids": [
+  "5dpmqtthhwmegy",
+  "dr6la1yigkr5uo"
+ ]
+}

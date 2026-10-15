@@ -34,3 +34,9 @@
 {"utc": "2026-10-15T19:05:50Z", "event": "exported", "pod_id": "0fz1cxqtslbo15", "dest": "docs/development/evidence/reference-solvers-2026-10-15/phases/resume-2026-10-15/f17-witness-triage-1", "files": 559, "bytes_written": 11129323, "listing_sha256": "7097ac00ae9fa49cea81d2a5cc48963ef418c5b7640a4fea8c34d3d572e459fd"}
 {"utc": "2026-10-15T19:05:50Z", "event": "terminate_requested", "pod_id": "0fz1cxqtslbo15"}
 {"utc": "2026-10-15T19:05:51Z", "event": "terminated_verified", "pod_id": "0fz1cxqtslbo15", "verified_epoch": 1792091151.2156155}
+{"utc": "2026-10-15T19:24:11Z", "event": "exported", "pod_id": "7xv102utf1bz73", "dest": "docs/development/evidence/reference-solvers-2026-10-15/phases/resume-2026-10-15/f02-verification-1", "files": 323, "bytes_written": 48011227, "listing_sha256": "28104cea3a3aba9e4a12375171f25f33acffa052b7b9b63e90bc51754677389e"}
+{"utc": "2026-10-15T19:24:11Z", "event": "terminate_requested", "pod_id": "7xv102utf1bz73"}
+{"utc": "2026-10-15T19:24:14Z", "event": "terminated_verified", "pod_id": "7xv102utf1bz73", "verified_epoch": 1792092254.4424345}
+{"utc": "2026-10-15T19:40:38Z", "event": "exported", "pod_id": "5dpmqtthhwmegy", "dest": "docs/development/evidence/reference-solvers-2026-10-15/phases/resume-2026-10-15/f08-train-256-continuation-1", "files": 2069, "bytes_written": 384994554, "listing_sha256": "53cfd52e1f0cb2847601c80bed5b5952bed027cdbeb6979c45b1d8bb9c15557f"}
+{"utc": "2026-10-15T19:40:38Z", "event": "terminate_requested", "pod_id": "5dpmqtthhwmegy"}
+{"utc": "2026-10-15T19:40:39Z", "event": "terminated_verified", "pod_id": "5dpmqtthhwmegy", "verified_epoch": 1792093239.9784358}

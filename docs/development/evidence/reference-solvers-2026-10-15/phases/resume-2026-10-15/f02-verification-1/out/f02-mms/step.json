@@ -1,0 +1,19 @@
+{
+ "name": "f02-mms",
+ "type": "script",
+ "status": "PASS",
+ "wall_s": 913.470022757072,
+ "exit": 0,
+ "signal": null,
+ "stop_reason": "exit",
+ "rusage_user_s": 876.17,
+ "rusage_sys_s": 28.992,
+ "rusage_cpu_s": 905.162,
+ "rusage_maxrss_bytes": 72863744,
+ "sampled_group_rss_peak_bytes": 99045376,
+ "rlimit_as_bytes": null,
+ "kept": {
+  "copied": 7,
+  "not_copied": 49
+ }
+}

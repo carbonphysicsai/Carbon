@@ -1,0 +1,28 @@
+{
+ "name": "f02-verification",
+ "type": "bulk",
+ "status": "PASS",
+ "wall_s": 4331.1,
+ "manifest": "docs/development/evidence/reference-solvers-2026-10-15/pins/f02-verification-decks-manifest.json",
+ "manifest_sha256": "70ec70326aa870769f09db028a5292ce44f9ac3ef70a34f6afb0ff803e978989",
+ "freeze": {
+  "exit": 0,
+  "stop_reason": "exit",
+  "wall_s": 2.703970936127007,
+  "rusage_cpu_s": 2.686
+ },
+ "verification": {
+  "selected": 36,
+  "selected_refused": [],
+  "all_cases_matching": 40
+ },
+ "bulk_exit": 0,
+ "outcomes": {
+  "f02": {
+   "COMPLETED": 36
+  }
+ },
+ "not_launched": {
+  "f02": {}
+ }
+}

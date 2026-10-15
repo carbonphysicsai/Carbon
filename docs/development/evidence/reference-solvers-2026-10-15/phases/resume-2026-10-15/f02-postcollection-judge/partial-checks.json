@@ -1,0 +1,148 @@
+{
+ "schema": "carbon.f02.postcollection-partial.v1",
+ "scope": "PUBLIC_DEVELOPMENT",
+ "observed_utc": "2026-10-15T19:25:31.932954+00:00",
+ "source_sha256": "4a850c7872eb1ad020c244e5f4137e6714f318304c25bab6664cb72a315e235c",
+ "checks": {
+  "cool-rect-low": {
+   "mesh2": {
+    "B1": true,
+    "B2": true,
+    "B3": true,
+    "B4": true,
+    "B5": "MISSING_FINAL_VTU"
+   },
+   "dt0.5": {
+    "B1": true,
+    "B2": true,
+    "B3": true,
+    "B4": true,
+    "B5": "MISSING_FINAL_VTU"
+   }
+  },
+  "cool-rect-middle": {
+   "mesh2": {
+    "B1": true,
+    "B2": true,
+    "B3": true,
+    "B4": true,
+    "B5": "MISSING_FINAL_VTU"
+   },
+   "dt0.5": {
+    "B1": true,
+    "B2": true,
+    "B3": true,
+    "B4": true,
+    "B5": "MISSING_FINAL_VTU"
+   }
+  },
+  "cool-rect-short-high": {
+   "mesh2": {
+    "B1": true,
+    "B2": true,
+    "B3": true,
+    "B4": true,
+    "B5": "MISSING_FINAL_VTU"
+   },
+   "dt0.5": {
+    "B1": true,
+    "B2": true,
+    "B3": true,
+    "B4": true,
+    "B5": "MISSING_FINAL_VTU"
+   }
+  },
+  "cool-rect-long-high": {
+   "mesh2": {
+    "B1": true,
+    "B2": true,
+    "B3": true,
+    "B4": true,
+    "B5": "MISSING_FINAL_VTU"
+   },
+   "dt0.5": {
+    "B1": true,
+    "B2": true,
+    "B3": true,
+    "B4": true,
+    "B5": "MISSING_FINAL_VTU"
+   }
+  },
+  "warm-ramp-low": {
+   "mesh2": {
+    "B1": true,
+    "B2": true,
+    "B3": true,
+    "B4": true,
+    "B5": "MISSING_FINAL_VTU"
+   },
+   "dt0.5": {
+    "B1": true,
+    "B2": true,
+    "B3": true,
+    "B4": true,
+    "B5": "MISSING_FINAL_VTU"
+   }
+  },
+  "warm-ramp-high": {
+   "mesh2": {
+    "B1": true,
+    "B2": true,
+    "B3": true,
+    "B4": true,
+    "B5": "MISSING_FINAL_VTU"
+   },
+   "dt0.5": {
+    "B1": true,
+    "B2": true,
+    "B3": true,
+    "B4": true,
+    "B5": "MISSING_FINAL_VTU"
+   }
+  },
+  "warm-two-short": {
+   "mesh2": {
+    "B1": true,
+    "B2": true,
+    "B3": true,
+    "B4": true,
+    "B5": "MISSING_FINAL_VTU"
+   },
+   "dt0.5": {
+    "B1": true,
+    "B2": true,
+    "B3": true,
+    "B4": true,
+    "B5": "MISSING_FINAL_VTU"
+   }
+  },
+  "warm-two-long": {
+   "mesh2": {
+    "B1": true,
+    "B2": true,
+    "B3": true,
+    "B4": true,
+    "B5": "MISSING_FINAL_VTU"
+   },
+   "dt0.5": {
+    "B1": true,
+    "B2": true,
+    "B3": true,
+    "B4": true,
+    "B5": "MISSING_FINAL_VTU"
+   }
+  }
+ },
+ "family_acceptance": {
+  "rule": "B10: every primary passes B1-B5 at both rungs; every B6/B7 check passes",
+  "primaries_passing": 0,
+  "primaries": 8,
+  "baseline_checks_passing": 12,
+  "baseline_checks": 12,
+  "baseline_checks_expected": 12,
+  "status": "NOT_ACCEPTED"
+ },
+ "retained_vtu_files": 0,
+ "cost_basis": "Original native bulk ledger retained separately; no isolated cgroup cost is invented",
+ "qualified": false
+}

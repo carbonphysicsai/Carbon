@@ -1,0 +1,41 @@
+{
+ "schema": "carbon.reference-bulk.run-plan.v1",
+ "plan_id": "f08-train-bank-primaries",
+ "authority": "OWNER-RUNPOD-SOLVER-READINESS-01",
+ "host_profile": "runpod-cpu-pod-native",
+ "machine": {
+  "reserve_cpus": 0,
+  "reserve_memory_gib": 1,
+  "margin_minutes": 0,
+  "starvation_s": 900,
+  "min_case_window_s": 300,
+  "cpus": 16,
+  "memory_gib": 29.802,
+  "node_hours": 1.7915638768672943,
+  "clock_start": 1792089960.612148
+ },
+ "families": [
+  {
+   "family": "f08",
+   "manifest_dir": "/tmp/work/f08-train-bank-primaries/decks",
+   "image": "sha256:16869c9cb7f14994f3bed3152809efdec14c5b3ec1849730d7b6c8f689d9642b",
+   "priority": 10,
+   "case_limits": {
+    "cpus": 1,
+    "memory_gib": 2.5,
+    "pids": 64,
+    "wall_timeout_s": 1800
+   },
+   "ceilings": {
+    "launches": 256,
+    "cpu_hours": 12
+   },
+   "shell": "sh",
+   "env": {},
+   "native": {
+    "version_command": "ccx -v",
+    "version_expect": "This is Version 2.23"
+   }
+  }
+ ]
+}

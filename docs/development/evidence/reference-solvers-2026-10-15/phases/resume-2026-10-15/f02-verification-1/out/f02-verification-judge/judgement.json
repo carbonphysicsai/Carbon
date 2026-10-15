@@ -1,0 +1,140 @@
+{
+ "bands": "F02-SCIENCE-VALUES-01",
+ "baseline_checks": [],
+ "cost": null,
+ "family_acceptance": {
+  "baseline_checks": 0,
+  "baseline_checks_expected": 12,
+  "baseline_checks_passing": 0,
+  "primaries": 8,
+  "primaries_passing": 0,
+  "rule": "B10: every primary passes B1-B5 at both rungs; every B6/B7 check passes",
+  "status": "NOT_ACCEPTED"
+ },
+ "image": "sha256:61be1cb77c51fcdd822250e372754a9ce728a5bb42f39b7ba03cdf5e70901add",
+ "observables": {
+  "c30-i40-s0.5-baseline": {
+   "status": "NOT_SOLVED"
+  },
+  "c30-i40-s0.8-baseline": {
+   "status": "NOT_SOLVED"
+  },
+  "c30-i55-s0.5-baseline": {
+   "status": "NOT_SOLVED"
+  },
+  "c30-i55-s0.8-baseline": {
+   "status": "NOT_SOLVED"
+  },
+  "c40-i40-s0.5-baseline": {
+   "status": "NOT_SOLVED"
+  },
+  "c40-i40-s0.8-baseline": {
+   "status": "NOT_SOLVED"
+  },
+  "c40-i55-s0.5-baseline": {
+   "status": "NOT_SOLVED"
+  },
+  "c40-i55-s0.8-baseline": {
+   "status": "NOT_SOLVED"
+  },
+  "control-energy": {
+   "status": "NOT_SOLVED"
+  },
+  "control-equilibrium": {
+   "status": "NOT_SOLVED"
+  },
+  "control-slab_pulse": {
+   "status": "NOT_SOLVED"
+  },
+  "control-slab_step": {
+   "status": "NOT_SOLVED"
+  },
+  "cool-rect-long-high-dt0.5": {
+   "status": "NOT_SOLVED"
+  },
+  "cool-rect-long-high-mesh2": {
+   "status": "NOT_SOLVED"
+  },
+  "cool-rect-long-high-primary": {
+   "status": "NOT_SOLVED"
+  },
+  "cool-rect-low-dt0.5": {
+   "status": "NOT_SOLVED"
+  },
+  "cool-rect-low-mesh2": {
+   "status": "NOT_SOLVED"
+  },
+  "cool-rect-low-primary": {
+   "status": "NOT_SOLVED"
+  },
+  "cool-rect-middle-dt0.5": {
+   "status": "NOT_SOLVED"
+  },
+  "cool-rect-middle-mesh2": {
+   "status": "NOT_SOLVED"
+  },
+  "cool-rect-middle-primary": {
+   "status": "NOT_SOLVED"
+  },
+  "cool-rect-short-high-dt0.5": {
+   "status": "NOT_SOLVED"
+  },
+  "cool-rect-short-high-mesh2": {
+   "status": "NOT_SOLVED"
+  },
+  "cool-rect-short-high-primary": {
+   "status": "NOT_SOLVED"
+  },
+  "steady-30C-2500-0.5": {
+   "status": "NOT_SOLVED"
+  },
+  "steady-30C-2500-0.8": {
+   "status": "NOT_SOLVED"
+  },
+  "steady-40C-1500-0.5": {
+   "status": "NOT_SOLVED"
+  },
+  "steady-40C-1500-0.8": {
+   "status": "NOT_SOLVED"
+  },
+  "warm-ramp-high-dt0.5": {
+   "status": "NOT_SOLVED"
+  },
+  "warm-ramp-high-mesh2": {
+   "status": "NOT_SOLVED"
+  },
+  "warm-ramp-high-primary": {
+   "status": "NOT_SOLVED"
+  },
+  "warm-ramp-low-dt0.5": {
+   "status": "NOT_SOLVED"
+  },
+  "warm-ramp-low-mesh2": {
+   "status": "NOT_SOLVED"
+  },
+  "warm-ramp-low-primary": {
+   "status": "NOT_SOLVED"
+  },
+  "warm-two-long-dt0.5": {
+   "status": "NOT_SOLVED"
+  },
+  "warm-two-long-mesh2": {
+   "status": "NOT_SOLVED"
+  },
+  "warm-two-long-primary": {
+   "status": "NOT_SOLVED"
+  },
+  "warm-two-short-dt0.5": {
+   "status": "NOT_SOLVED"
+  },
+  "warm-two-short-mesh2": {
+   "status": "NOT_SOLVED"
+  },
+  "warm-two-short-primary": {
+   "status": "NOT_SOLVED"
+  }
+ },
+ "rung_comparisons": {},
+ "schema": "carbon.f02-readiness.judgement.v1",
+ "set": "convergence"
+}

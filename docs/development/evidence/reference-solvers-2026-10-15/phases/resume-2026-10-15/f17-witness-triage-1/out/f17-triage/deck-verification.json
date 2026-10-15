@@ -1,0 +1,166 @@
+{
+ "manifest": "docs/development/evidence/reference-packages-01/triage-f17-decks-manifest.json",
+ "decks": "regenerated on the pod",
+ "cases": [
+  {
+   "family": "f17",
+   "case": "shallow-dense-primary",
+   "selected": true,
+   "files": 78,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f17",
+   "case": "deep-sparse-primary",
+   "selected": true,
+   "files": 83,
+   "files_differing": [
+    "mesh/constant/triSurface/bottom.stl"
+   ],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false,
+   "host_regenerated": {
+    "mesh/constant/triSurface/bottom.stl": {
+     "pinned": "bd4838481c925949335740ea45c918e3e2a9cef05cabaafb17f7a91614bd9cff",
+     "solved": "fe9e2d85d6893acedb6efe25342be0cf3ecbcefcfaf902b79ce8e80f455d602c"
+    }
+   }
+  },
+  {
+   "family": "f17",
+   "case": "nominal-primary",
+   "selected": true,
+   "files": 78,
+   "files_differing": [
+    "mesh/constant/triSurface/bottom.stl"
+   ],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false,
+   "host_regenerated": {
+    "mesh/constant/triSurface/bottom.stl": {
+     "pinned": "82668441fc4ade151660d2aff4344b202d5f8525c3ba9d4f5b9a70b02601891f",
+     "solved": "bd8d9d55aef4b2ae61bb44bd6e842ce26688d43f0bddc5a064bbb6cd88f268b4"
+    }
+   }
+  },
+  {
+   "family": "f17",
+   "case": "deep-dense-primary",
+   "selected": true,
+   "files": 83,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f17",
+   "case": "shallow-sparse-primary",
+   "selected": true,
+   "files": 78,
+   "files_differing": [
+    "mesh/constant/triSurface/bottom.stl"
+   ],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false,
+   "host_regenerated": {
+    "mesh/constant/triSurface/bottom.stl": {
+     "pinned": "ea92697f5e836fd7a5371ee79a94043367d98863c1181f94468fa842001ff91f",
+     "solved": "01d20b4fcdab0e3442d01b381ab24a980a12883ff0a92b3d55771445d0a14536"
+    }
+   }
+  },
+  {
+   "family": "f17",
+   "case": "shallow-long-half-primary",
+   "selected": true,
+   "files": 78,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f17",
+   "case": "deep-short-half-primary",
+   "selected": true,
+   "files": 78,
+   "files_differing": [
+    "mesh/constant/triSurface/bottom.stl"
+   ],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false,
+   "host_regenerated": {
+    "mesh/constant/triSurface/bottom.stl": {
+     "pinned": "af84fa47391cd26a8970b7413d19ec4fb3b59903996c5464fbb7890d953991f1",
+     "solved": "f20fead65448f6c9bec4ad9b5a5875e37a45c3c161845fd315391b696541f468"
+    }
+   }
+  },
+  {
+   "family": "f17",
+   "case": "middle-dense-primary",
+   "selected": true,
+   "files": 78,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f17",
+   "case": "deep-sparse-h7.071",
+   "selected": true,
+   "files": 83,
+   "files_differing": [
+    "mesh/constant/triSurface/bottom.stl"
+   ],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false,
+   "host_regenerated": {
+    "mesh/constant/triSurface/bottom.stl": {
+     "pinned": "bd4838481c925949335740ea45c918e3e2a9cef05cabaafb17f7a91614bd9cff",
+     "solved": "fe9e2d85d6893acedb6efe25342be0cf3ecbcefcfaf902b79ce8e80f455d602c"
+    }
+   }
+  },
+  {
+   "family": "f17",
+   "case": "deep-dense-h7.071",
+   "selected": true,
+   "files": 83,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f17",
+   "case": "smooth-controls-h10",
+   "selected": true,
+   "files": 43,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f17",
+   "case": "smooth-poiseuille-h7.071",
+   "selected": true,
+   "files": 16,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f17",
+   "case": "deep-dense-fresh-pair",
+   "selected": true,
+   "files": 24,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  }
+ ],
+ "selected": 13,
+ "selected_refused": [],
+ "all_cases_matching": 8
+}

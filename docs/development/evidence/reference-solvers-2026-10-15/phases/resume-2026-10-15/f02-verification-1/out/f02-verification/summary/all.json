@@ -1,0 +1,38 @@
+{
+ "schema": "carbon.reference-bulk.summary.v1",
+ "plan_id": "f02-verification",
+ "plan_digest": "sha256:0fa751315e2d7b99848961cf347d10164dea9b799ec00ca1827cc00fa3880ad1",
+ "authority": "OWNER-RUNPOD-SOLVER-READINESS-01",
+ "host_profile": "runpod-cpu-pod-native",
+ "machine": {
+  "cpus": 8,
+  "memory_gib": 14.901,
+  "node_hours": 2.2686472202009624,
+  "billing_quantum_s": 3600,
+  "reserve_cpus": 0,
+  "reserve_memory_gib": 1,
+  "margin_minutes": 0,
+  "starvation_s": 900,
+  "min_case_window_s": 300,
+  "eur_cap": null,
+  "eur_per_hour": null,
+  "clock_start": 1792086837.7612145
+ },
+ "stop_reason": null,
+ "clock_start_unix": 1792086837.7612145,
+ "deadline_unix": 1792095004.8912072,
+ "elapsed_node_hours": 1.2023,
+ "eur_estimate_billed_quanta": null,
+ "ledger_corrupt_lines": 0,
+ "launches": 36,
+ "allocated_cpu_hours": 4.8151,
+ "families": {
+  "f02": {
+   "launches": 36,
+   "outcomes": {
+    "COMPLETED": 36
+   },
+   "not_launched": {}
+  }
+ }
+}

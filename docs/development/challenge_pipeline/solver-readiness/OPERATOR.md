@@ -6,8 +6,11 @@ what is left: [REPORT-2026-10-15.md](REPORT-2026-10-15.md). Authority and caps:
 USD 15 balance floor, CPU pods only, ≤4 live, public material only).
 
 ## 1. Machine
-Any Linux box (Ubuntu 22.04/24.04 tested) with git, python3 ≥3.11 and curl. It does
-not run solvers: pods build and run them natively. Docker is only for local checks.
+A Linux box with git, python3 ≥3.11 and curl. The existing Ubuntu 24.04 operator
+environment was exercised with `--no-docker`; a fresh-host installation and
+Ubuntu 22.04 were not verified in this resume. Pods build and run solvers natively.
+Docker is only for local checks; setup preserves an existing daemon configuration
+and adds the Google mirror only when creating a new configuration file.
 Keep it powered while a pod runs: the collector must fetch results before the pod's
 deadline, or they are lost when the pod deletes itself.
 
@@ -109,8 +112,15 @@ outcome, CPU-s, peak memory) · family verdict files · `setup.log` (`SETUP FAIL
 | `N selected case(s) differ from the manifest`, `command_matches_freeze: false` | family changed its case command | re-freeze (e.g. `f08_freeze.py --out DIR`), pin the new manifest, point the plan at it |
 | same, only mesh files differ | Gmsh output differs on AMD | add them to the step's `host_regenerated_files` |
 | `fetch failed ... pod-phase.json` | phase still writing | rerun `collect --wait` |
+| a later judge cannot find a sibling `bulk` directory, or reports zero input coverage | step scratch is deleted after export | use the repaired plan's inline `observe`; it runs before cleanup and persists its report. Do not repeat completed solves automatically. |
 | no stock | RunPod Secure CPU stock is intermittent | retry each minute |
 | Docker Hub 429 (local only) | anonymous rate limit | `registry-mirrors: mirror.gcr.io` (setup does this) |
 
 Never run hidden/sealed material (EVAL, STRESS, quiz, tuning, seeds) on RunPod; those
 roles are generated on the custody host.
+
+Solver completion alone is not numerical acceptance. If a failed judge's raw
+mesh/fields or final VTU were omitted from the retained set, keep the judgement
+unresolved; solver logs cannot reconstruct those measurements. The current
+f02/f17 lifetime failure and the future-plan repair are recorded in
+`SOLVER-JUDGE-LIFETIME-01` and [RESUME-2026-10-15.md](RESUME-2026-10-15.md).

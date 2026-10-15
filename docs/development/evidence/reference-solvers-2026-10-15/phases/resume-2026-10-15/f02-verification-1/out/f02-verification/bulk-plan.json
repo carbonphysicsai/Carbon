@@ -1,0 +1,41 @@
+{
+ "schema": "carbon.reference-bulk.run-plan.v1",
+ "plan_id": "f02-verification",
+ "authority": "OWNER-RUNPOD-SOLVER-READINESS-01",
+ "host_profile": "runpod-cpu-pod-native",
+ "machine": {
+  "reserve_cpus": 0,
+  "reserve_memory_gib": 1,
+  "margin_minutes": 0,
+  "starvation_s": 900,
+  "min_case_window_s": 300,
+  "cpus": 8,
+  "memory_gib": 14.901,
+  "node_hours": 2.2686472202009624,
+  "clock_start": 1792086837.7612145
+ },
+ "families": [
+  {
+   "family": "f02",
+   "manifest_dir": "/tmp/work/f02-verification/decks",
+   "image": "sha256:61be1cb77c51fcdd822250e372754a9ce728a5bb42f39b7ba03cdf5e70901add",
+   "priority": 10,
+   "case_limits": {
+    "cpus": 1,
+    "memory_gib": 2,
+    "pids": 64,
+    "wall_timeout_s": 5400
+   },
+   "ceilings": {
+    "launches": 40,
+    "cpu_hours": 10
+   },
+   "shell": "sh",
+   "env": {},
+   "native": {
+    "version_command": "ElmerSolver -v | head -1",
+    "version_expect": "ELMER SOLVER (v 26.2)"
+   }
+  }
+ ]
+}
