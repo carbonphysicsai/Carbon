@@ -1,7 +1,9 @@
 # Reference-solvers operator environment
 
-For the operator who runs the reference-solver pods on RunPod. Status, findings and
-what is left: [REPORT-2026-10-15.md](REPORT-2026-10-15.md). Authority and caps:
+For the operator who runs the reference-solver pods on RunPod. Current execution,
+collection receipts and remaining gaps: [RESUME-2026-10-15.md](RESUME-2026-10-15.md).
+The stopped-operator handoff is [REPORT-2026-10-15.md](REPORT-2026-10-15.md).
+Authority and caps:
 `.agent/decisions/2026-10-15-OWNER-RUNPOD-SOLVER-READINESS-01.md` (USD 25 phase cap,
 USD 15 balance floor, CPU pods only, ≤4 live, public material only).
 

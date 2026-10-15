@@ -40,3 +40,6 @@
 {"utc": "2026-10-15T19:40:38Z", "event": "exported", "pod_id": "5dpmqtthhwmegy", "dest": "docs/development/evidence/reference-solvers-2026-10-15/phases/resume-2026-10-15/f08-train-256-continuation-1", "files": 2069, "bytes_written": 384994554, "listing_sha256": "53cfd52e1f0cb2847601c80bed5b5952bed027cdbeb6979c45b1d8bb9c15557f"}
 {"utc": "2026-10-15T19:40:38Z", "event": "terminate_requested", "pod_id": "5dpmqtthhwmegy"}
 {"utc": "2026-10-15T19:40:39Z", "event": "terminated_verified", "pod_id": "5dpmqtthhwmegy", "verified_epoch": 1792093239.9784358}
+{"utc": "2026-10-15T20:58:59Z", "event": "exported", "pod_id": "dr6la1yigkr5uo", "dest": "docs/development/evidence/reference-solvers-2026-10-15/phases/resume-2026-10-15/f13-coaxial-4mm-dense-1", "files": 40, "bytes_written": 710645, "listing_sha256": "7f1eae834cb8131b2ddd98597aaa850c453fa0e47ee6fe44b955723b12906a7b"}
+{"utc": "2026-10-15T20:58:59Z", "event": "terminate_requested", "pod_id": "dr6la1yigkr5uo"}
+{"utc": "2026-10-15T20:59:00Z", "event": "terminated_verified", "pod_id": "dr6la1yigkr5uo", "verified_epoch": 1792097940.5112848}

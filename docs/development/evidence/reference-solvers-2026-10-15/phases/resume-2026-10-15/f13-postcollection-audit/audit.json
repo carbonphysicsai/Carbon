@@ -1,0 +1,89 @@
+{
+ "schema": "carbon.f13.dense-acquisition-audit.v1",
+ "scope": "PUBLIC_DEVELOPMENT",
+ "source_ref": "6d88efb5f44defee4c4958388575aebb7b176b23",
+ "proof_sha256": "c29aed956f97bbfa6bd6af4be36a8b969ac28aee353be754f4635c8e6eba1c23",
+ "registered_group_status": "NOT_RUN",
+ "expected_cases": 4,
+ "complete_cases": 2,
+ "case_outcomes": [
+  {
+   "case": "mm",
+   "outcome": "COMPLETED"
+  },
+  {
+   "case": "coax4dense/small-coaxial",
+   "outcome": "COMPLETED"
+  },
+  {
+   "case": "coax4dense/short-neck-wide",
+   "outcome": "CENSORED_TIMEOUT"
+  },
+  {
+   "case": "coax4dense/long-neck-small",
+   "outcome": "COMPLETED"
+  },
+  {
+   "case": "coax4dense/control-chamber",
+   "outcome": "NOT_ADMITTED"
+  },
+  {
+   "check": "B1_mms",
+   "status": "NOT_RUN"
+  },
+  {
+   "check": "B2_straight_duct",
+   "status": "NOT_RUN"
+  },
+  {
+   "check": "B3_coaxial_mode_matching",
+   "status": "NOT_RUN"
+  },
+  {
+   "check": "B3_coaxial_mode_matching_4mm_dense",
+   "status": "NOT_RUN"
+  },
+  {
+   "check": "C_power_passivity",
+   "status": "NOT_RUN"
+  },
+  {
+   "check": "D4_scan_parity",
+   "status": "NOT_RUN"
+  },
+  {
+   "check": "D5_solver_parity",
+   "status": "NOT_RUN"
+  },
+  {
+   "check": "D2_lead_60_vs_100mm",
+   "status": "NOT_RUN"
+  },
+  {
+   "check": "D1_mesh_8_vs_4mm",
+   "status": "NOT_RUN"
+  },
+  {
+   "check": "D3_frequency_10_vs_5hz",
+   "status": "DEFERRED_TO_POD"
+  }
+ ],
+ "timeout_cleanup_findings": [
+  {
+   "utc": 1792095697.219758,
+   "event": "refused",
+   "argv": [
+    "kill",
+    "f13-solve-short-neck-wide"
+   ],
+   "why": "unsupported docker command 'kill f13-solve-short-neck-wide'"
+  }
+ ],
+ "targeted_child_cleanup": "UNVERIFIED",
+ "whole_pod_cleanup": "VERIFIED_DELETED",
+ "missing_or_censored_cases_are_physical_failures": false,
+ "aggregate_complete_acquisition_cost": "UNKNOWN",
+ "cost_note": "Completed case native-times CPU receipts are retained. The censored attempt lacks a complete per-case CPU receipt; provider settled charges remain UNKNOWN. Do not sum whole-pod cgroups or infer missing cost.",
+ "paid_retry": false,
+ "qualified": false
+}

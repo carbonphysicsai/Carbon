@@ -1,0 +1,21 @@
+{
+ "schema": "carbon.reference-solvers.pod-phase.v1",
+ "plan_id": "f13-coaxial-4mm-dense-2026-10-15",
+ "pod_plan": "docs/development/evidence/reference-solvers-2026-10-15/plans/f13-coaxial-4mm-dense.json",
+ "pod_plan_sha256": "07e2749e0587f4332132ef5992706bdaaec6b8a78df7ae79a5d4320e4f0803ff",
+ "kind": "elmer",
+ "steps": [
+  {
+   "name": "harness-numpy",
+   "status": "PASS",
+   "wall_s": 5.207796109840274
+  },
+  {
+   "name": "f13-coaxial-4mm-dense",
+   "status": "FAIL",
+   "wall_s": 9420.055428842083
+  }
+ ],
+ "all_passed": false,
+ "maturity": "DEVELOPMENT engineering run on public decks; no adequacy, qualification or LIVE claim"
+}
