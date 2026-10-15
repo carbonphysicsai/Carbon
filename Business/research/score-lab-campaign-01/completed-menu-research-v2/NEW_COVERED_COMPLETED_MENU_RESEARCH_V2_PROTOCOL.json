@@ -1,0 +1,391 @@
+{
+  "schema": "carbon.scorelab.complete-covered-menu.research-protocol.v2",
+  "id": "public-ev4-completed-reref-menus-RESEARCH_V2-20261015",
+  "status": "PROSPECTIVE_FROZEN_PROPOSAL_REQUIRES_ROOT_SCOPE_ACCEPTANCE_AND_MAIN_REGISTRATION_BEFORE_RUN",
+  "authority": "Ryan2026-10-14 provisional research delegation + Root2026-10-15 explicit new complete conditional-family scope; no production scientific values",
+  "scope": "NEW_CONDITIONAL_PUBLIC_D_DIAGNOSTIC_NOT_FULL_BUYER_JOB",
+  "first_line": "value conditional on the new completed-reref menus and the shared resolved-reference, reference-FEASIBLE fixed-anchor SCORED stratum",
+  "distinct_from": [
+    "PUBLIC_EV4_D11_FULL35_RESEARCH_V1",
+    "battery-v3-job-dev-v1",
+    "sealed finalholdout",
+    "ownerD3old14completionroute"
+  ],
+  "supersedes_unregistered_proposal": {
+    "path": "NEW_COVERED_LOCAL_MENU_RESEARCH_V2_DISPOSITION.json",
+    "sha256": "a7a01b1eaaa13dd250ef7dc7b80e76a254b175f6601c074fe9001589ba8a576a",
+    "reason": "9menu proposal lacked compatible globalfallback. This variant fixes complete ex-ante per-menu anchor with existing V2 workflow; excludes all uncompleted sources by library definition, never feasibilitylabels."
+  },
+  "source_binding": {
+    "metadata_witness_path": "STATIC_COVERED_NEARONSET_MENU_WITNESSES.json",
+    "metadata_witness_sha256": "48765bd3963bc94c47e657a6127a9439cd9afd9ff9eac0f57ba9937a6b01f57a",
+    "sealed_v2_path": "docs/development/evidence/plating-rereference-01/d3-results/labels-v2-r1.json",
+    "sealed_v2_sha256": "cac1e23001c227d9221653b2a90cee4755f62ca06fec58305d11cb9cba510069",
+    "membership_fields": [
+      "source",
+      "case_id",
+      "rule"
+    ],
+    "source_required": "ev4",
+    "rule_required": "m160-d3-r1",
+    "label_or_numeric_outcome_selection": false,
+    "completed_claim_is_only_sealed_rule_metadata_not_fresh_execution_attestation": true
+  },
+  "native_physics_contract": "carbon/battery/value/contracts/ev4-dev-proof-v1.json, exact original programme/observer/limits/uncertainty/4-input actions; no v3programme projection",
+  "questions": [
+    {
+      "question_id": "covered-completed-v2:D-T14-S0.12",
+      "native_context_id": "D-T14-S0.12",
+      "case_ids": [
+        "ev4:D-T14-S0.12:c1=0.5,c2=0.6:0",
+        "ev4:D-T14-S0.12:c1=1.25,c2=0.8:0",
+        "ev4:D-T14-S0.12:c1=1.5,c2=0.8:0"
+      ],
+      "fallback_case_id": "ev4:D-T14-S0.12:c1=0.5,c2=0.6:0",
+      "fallback_basis": "lowest c1, then c2, then case ID in this completed-reref library, frozen before numeric references/predictions; NOT claimed safe",
+      "conditions_per_action": 1
+    },
+    {
+      "question_id": "covered-completed-v2:D-T14-S0.33",
+      "native_context_id": "D-T14-S0.33",
+      "case_ids": [
+        "ev4:D-T14-S0.33:c1=0.5,c2=0.6:0",
+        "ev4:D-T14-S0.33:c1=1,c2=0.2:0",
+        "ev4:D-T14-S0.33:c1=1,c2=0.4:0",
+        "ev4:D-T14-S0.33:c1=1,c2=0.6:0"
+      ],
+      "fallback_case_id": "ev4:D-T14-S0.33:c1=0.5,c2=0.6:0",
+      "fallback_basis": "lowest c1, then c2, then case ID in this completed-reref library, frozen before numeric references/predictions; NOT claimed safe",
+      "conditions_per_action": 1
+    },
+    {
+      "question_id": "covered-completed-v2:D-T14-S0.48",
+      "native_context_id": "D-T14-S0.48",
+      "case_ids": [
+        "ev4:D-T14-S0.48:c1=0.5,c2=0.6:0",
+        "ev4:D-T14-S0.48:c1=0.75,c2=0.6:0",
+        "ev4:D-T14-S0.48:c1=1,c2=0.2:0",
+        "ev4:D-T14-S0.48:c1=1,c2=0.4:0",
+        "ev4:D-T14-S0.48:c1=1,c2=0.6:0"
+      ],
+      "fallback_case_id": "ev4:D-T14-S0.48:c1=0.5,c2=0.6:0",
+      "fallback_basis": "lowest c1, then c2, then case ID in this completed-reref library, frozen before numeric references/predictions; NOT claimed safe",
+      "conditions_per_action": 1
+    },
+    {
+      "question_id": "covered-completed-v2:D-T24-S0.33",
+      "native_context_id": "D-T24-S0.33",
+      "case_ids": [
+        "ev4:D-T24-S0.33:c1=0.75,c2=1:0",
+        "ev4:D-T24-S0.33:c1=1,c2=1:0"
+      ],
+      "fallback_case_id": "ev4:D-T24-S0.33:c1=0.75,c2=1:0",
+      "fallback_basis": "lowest c1, then c2, then case ID in this completed-reref library, frozen before numeric references/predictions; NOT claimed safe",
+      "conditions_per_action": 1
+    },
+    {
+      "question_id": "covered-completed-v2:D-T24-S0.48",
+      "native_context_id": "D-T24-S0.48",
+      "case_ids": [
+        "ev4:D-T24-S0.48:c1=0.75,c2=1:0",
+        "ev4:D-T24-S0.48:c1=1,c2=1:0",
+        "ev4:D-T24-S0.48:c1=1.25,c2=1:0",
+        "ev4:D-T24-S0.48:c1=1.5,c2=0.2:0",
+        "ev4:D-T24-S0.48:c1=1.5,c2=0.4:0",
+        "ev4:D-T24-S0.48:c1=1.5,c2=0.6:0",
+        "ev4:D-T24-S0.48:c1=1.5,c2=0.8:0",
+        "ev4:D-T24-S0.48:c1=1.5,c2=1:0"
+      ],
+      "fallback_case_id": "ev4:D-T24-S0.48:c1=0.75,c2=1:0",
+      "fallback_basis": "lowest c1, then c2, then case ID in this completed-reref library, frozen before numeric references/predictions; NOT claimed safe",
+      "conditions_per_action": 1
+    },
+    {
+      "question_id": "covered-completed-v2:D-T34-S0.33",
+      "native_context_id": "D-T34-S0.33",
+      "case_ids": [
+        "ev4:D-T34-S0.33:c1=2,c2=0.2:0",
+        "ev4:D-T34-S0.33:c1=2,c2=0.4:0",
+        "ev4:D-T34-S0.33:c1=2,c2=0.6:0",
+        "ev4:D-T34-S0.33:c1=2,c2=0.8:0",
+        "ev4:D-T34-S0.33:c1=2,c2=1:0"
+      ],
+      "fallback_case_id": "ev4:D-T34-S0.33:c1=2,c2=0.2:0",
+      "fallback_basis": "lowest c1, then c2, then case ID in this completed-reref library, frozen before numeric references/predictions; NOT claimed safe",
+      "conditions_per_action": 1
+    },
+    {
+      "question_id": "covered-completed-v2:D-T5-S0.12",
+      "native_context_id": "D-T5-S0.12",
+      "case_ids": [
+        "ev4:D-T5-S0.12:c1=0.5,c2=0.4:0",
+        "ev4:D-T5-S0.12:c1=0.75,c2=0.4:0",
+        "ev4:D-T5-S0.12:c1=1,c2=0.4:0"
+      ],
+      "fallback_case_id": "ev4:D-T5-S0.12:c1=0.5,c2=0.4:0",
+      "fallback_basis": "lowest c1, then c2, then case ID in this completed-reref library, frozen before numeric references/predictions; NOT claimed safe",
+      "conditions_per_action": 1
+    },
+    {
+      "question_id": "covered-completed-v2:D-T5-S0.33",
+      "native_context_id": "D-T5-S0.33",
+      "case_ids": [
+        "ev4:D-T5-S0.33:c1=0.5,c2=0.4:0",
+        "ev4:D-T5-S0.33:c1=0.75,c2=0.2:0",
+        "ev4:D-T5-S0.33:c1=0.75,c2=0.4:0"
+      ],
+      "fallback_case_id": "ev4:D-T5-S0.33:c1=0.5,c2=0.4:0",
+      "fallback_basis": "lowest c1, then c2, then case ID in this completed-reref library, frozen before numeric references/predictions; NOT claimed safe",
+      "conditions_per_action": 1
+    }
+  ],
+  "P": {
+    "kind": "uniform empirical on these8 context-menu pairs",
+    "mass_each": "1/8",
+    "support_frozen": [
+      "covered-completed-v2:D-T14-S0.12",
+      "covered-completed-v2:D-T14-S0.33",
+      "covered-completed-v2:D-T14-S0.48",
+      "covered-completed-v2:D-T24-S0.33",
+      "covered-completed-v2:D-T24-S0.48",
+      "covered-completed-v2:D-T34-S0.33",
+      "covered-completed-v2:D-T5-S0.12",
+      "covered-completed-v2:D-T5-S0.33"
+    ],
+    "not_fleet_or_old_full35_population": true,
+    "structural_rule": "all m160-d3-r1 source=ev4 witnessed IDs at an original D11 context; >=2 completed-library alternatives defines a decision",
+    "NONE_FEASIBLE": "RETAIN",
+    "redraws": 0
+  },
+  "Q": {
+    "kind": "NOT_USED",
+    "reported_separately": true
+  },
+  "w": {
+    "outer": 1,
+    "bank_clusters": "one existing EV4 corpus; retain recipe/fit dependence map, do not claim independent banks/families"
+  },
+  "folds": {
+    "A": [
+      "covered-completed-v2:D-T14-S0.12",
+      "covered-completed-v2:D-T14-S0.33",
+      "covered-completed-v2:D-T14-S0.48",
+      "covered-completed-v2:D-T24-S0.33"
+    ],
+    "B": [
+      "covered-completed-v2:D-T24-S0.48",
+      "covered-completed-v2:D-T34-S0.33",
+      "covered-completed-v2:D-T5-S0.12",
+      "covered-completed-v2:D-T5-S0.33"
+    ],
+    "selection": "lexical native-context order, fixed4/4 before numerical outcomes/model analysis",
+    "public_V_used": false
+  },
+  "value_workflow": {
+    "implementation": [
+      "scripts.dev.score_lab.bank.classify",
+      "scripts.dev.score_lab.bank._v2_question",
+      "scripts.dev.score_lab.public_v2_replay.outcomes"
+    ],
+    "mode": "existing verified-shortlist + explicit fixed per-question fallback; no new unsafe or abstention penalty",
+    "shortlist_cap": 3,
+    "kappa": 0.1,
+    "benefit_unit_seconds": 120,
+    "cost_values_role": "unchanged RESEARCH_V1 diagnostic assumptions, not adopted production workflow cost",
+    "fallback_rule": "first case in each frozen orderedmenu; scalar objective/feasibility observed ONLY atRootTEST; no replacement if unsafe/unresolved",
+    "admit_scored_question": "whole registered newmenu resolved under sealedv2 and every other nativehardlimit, and fixed fallback FEASIBLE through existingbank.classify",
+    "failed_fallback": "RESCUE/NONE/INCOMPLETE reported; no scalar scored value imputed, no redraw/replacement",
+    "regret": "registered fallback objective -120*G - referencebest feasible objective, seconds then /60; report verification charge separately via U",
+    "abstention": "existing workflow uses same verified fallback, gain0, not a new arbitraryminute penalty",
+    "unknown_attempt": "whole VALUE vector withheld, not control/candidate failure"
+  },
+  "reference_gate": {
+    "claim": "unchanged abs(m20)<15mV v2-r1",
+    "stop_rules": "unchanged",
+    "unknown": "whole question EXCLUDE_COMMON all models and controls, no action removal after registration",
+    "no_new_solver_or_method": true
+  },
+  "prediction_gate": {
+    "source": "same137 savedbundles/5 constructedcontrols, exactoriginalinventory; no training/inference",
+    "required_case_ids": [
+      "ev4:D-T14-S0.12:c1=0.5,c2=0.6:0",
+      "ev4:D-T14-S0.12:c1=1.25,c2=0.8:0",
+      "ev4:D-T14-S0.12:c1=1.5,c2=0.8:0",
+      "ev4:D-T14-S0.33:c1=0.5,c2=0.6:0",
+      "ev4:D-T14-S0.33:c1=1,c2=0.2:0",
+      "ev4:D-T14-S0.33:c1=1,c2=0.4:0",
+      "ev4:D-T14-S0.33:c1=1,c2=0.6:0",
+      "ev4:D-T14-S0.48:c1=0.5,c2=0.6:0",
+      "ev4:D-T14-S0.48:c1=0.75,c2=0.6:0",
+      "ev4:D-T14-S0.48:c1=1,c2=0.2:0",
+      "ev4:D-T14-S0.48:c1=1,c2=0.4:0",
+      "ev4:D-T14-S0.48:c1=1,c2=0.6:0",
+      "ev4:D-T24-S0.33:c1=0.75,c2=1:0",
+      "ev4:D-T24-S0.33:c1=1,c2=1:0",
+      "ev4:D-T24-S0.48:c1=0.75,c2=1:0",
+      "ev4:D-T24-S0.48:c1=1,c2=1:0",
+      "ev4:D-T24-S0.48:c1=1.25,c2=1:0",
+      "ev4:D-T24-S0.48:c1=1.5,c2=0.2:0",
+      "ev4:D-T24-S0.48:c1=1.5,c2=0.4:0",
+      "ev4:D-T24-S0.48:c1=1.5,c2=0.6:0",
+      "ev4:D-T24-S0.48:c1=1.5,c2=0.8:0",
+      "ev4:D-T24-S0.48:c1=1.5,c2=1:0",
+      "ev4:D-T34-S0.33:c1=2,c2=0.2:0",
+      "ev4:D-T34-S0.33:c1=2,c2=0.4:0",
+      "ev4:D-T34-S0.33:c1=2,c2=0.6:0",
+      "ev4:D-T34-S0.33:c1=2,c2=0.8:0",
+      "ev4:D-T34-S0.33:c1=2,c2=1:0",
+      "ev4:D-T5-S0.12:c1=0.5,c2=0.4:0",
+      "ev4:D-T5-S0.12:c1=0.75,c2=0.4:0",
+      "ev4:D-T5-S0.12:c1=1,c2=0.4:0",
+      "ev4:D-T5-S0.33:c1=0.5,c2=0.4:0",
+      "ev4:D-T5-S0.33:c1=0.75,c2=0.2:0",
+      "ev4:D-T5-S0.33:c1=0.75,c2=0.4:0"
+    ],
+    "coverage_check": "exact finite originaloutputs on all33 IDs for fixedcomparedcohort atRootTEST; no favourable candidate-specificmask"
+  },
+  "candidate_policy": "exact157b10 fixedproxies diagnosticonly; source-boundeligiblefullpercaseform absent, no aggregateadapter; no officialruleadoption",
+  "expected_cost": "no new solver/model/inference required for preflight or existing-corpus diagnostic; RootexistingTESTlease only; runtimeCPU unmeasured",
+  "spend_release": false,
+  "new_grant_figure": null,
+  "must_not_claim": [
+    "oldD11recovered",
+    "EV4full35/fleet/battery-v3 adequacy",
+    "independent validation or sixfamilies",
+    "matched cheap acquisition/workflow cost",
+    "known feasiblefallback frommetadata",
+    "tau or nonempty commonmask beforeTEST",
+    "any newv3candidateadopted"
+  ],
+  "failure_finish": "if mask/guards/valueworkflow insufficient, retain null evidence and KEEP_V2_QUIZ_SHADOW for currenttranche; no solve expansion or method extension to force result",
+  "execution_gates": [
+    "Root scope acceptance of this NEWresearchpopulation after independent challenge",
+    "mainprospective question/procedure registration",
+    "RootactualOPERATORclosure/TESTlease",
+    "reference-only/commonfallbackpreflight first; no model-valueinspection to altermenus",
+    "source/provenance and cachedprediction completecoverage",
+    "actual full-ruleeligibility required separately for anyadoption"
+  ],
+  "qualification": false,
+  "focused_review_amendment": {
+    "prior_protocol_sha256": "de52381d06773ba70c6411ba236475da579862b75f53ddd1004b493fcf962ab0",
+    "findings": [
+      "H1 explicit sharedresolved+anchorFEASIBLE SCORED-stratum estimand",
+      "H2 exact source/reference/prediction/LEG bindings; no reuse oldD11/122 entrypoint"
+    ],
+    "no_menu_anchor_fold_knob_or_population_change": true
+  },
+  "measure_reporting": {
+    "P_total_questions": 8,
+    "P_question_and_mass_counts_separate": [
+      "SCORED",
+      "RESCUE",
+      "NONE",
+      "INCOMPLETE"
+    ],
+    "SCORED_conditional_mean_only": true,
+    "no_full_P8_mean_claim_when_excluded": true,
+    "fixed_anchor_must_be_reference_FEASIBLE": true,
+    "strict_all_case_resolved_precheck_before_bank_classify": true,
+    "even_dominated_unknown_excludes_whole_question": true,
+    "no_redraw_or_rebalancing": true
+  },
+  "binding_closure": {
+    "native_contract": {
+      "path": "carbon/battery/value/contracts/ev4-dev-proof-v1.json",
+      "sha256": "0f0ecbb4801b4d000356c6b702e4cce7bab7c5470f3b1ed57638a17c7fc360d5"
+    },
+    "original_public_reference": {
+      "path": "codex-queue/inputs/ev4-public-proof/ev4-decision-references.jsonl",
+      "sha256": "72ea300b42fe1ca4e54b9c6131cb126ca7217ebddd5f1dddca8044a7bcef2dbf",
+      "reader": "retained replay_public_d11.reference_rows, wanted=exact33caseIDs only; oldlexicalreader helper alone, NEVER main()"
+    },
+    "sealed_v2": {
+      "path": "docs/development/evidence/plating-rereference-01/d3-results/labels-v2-r1.json",
+      "sha256": "cac1e23001c227d9221653b2a90cee4755f62ca06fec58305d11cb9cba510069",
+      "reader": "retained replay_public_d11.v2_rows wanted=exact33; followed by exactregistered source/rule/join checks"
+    },
+    "source_modules": {
+      "path": "NEW_COVERED_COMPLETED_MENU_RESEARCH_V2_SOURCE_BINDINGS.json",
+      "sha256": "c6249c49f12360f10322aec6246b2991591e1e725bb33b7521772e02d8b1e532"
+    },
+    "packet_files_sha256": {
+      "CAMPAIGN_CONTRACT.json": "bdd2d8de46ef7e3755e26d224e6998c34140e5cbc756c265992fa4870aea18ad",
+      "MODEL_INVENTORY.json": "4c06ff8990de62cf46d2b36a1080b6e6a37c90d00ca5d0c65defdb8a2455cac5",
+      "ANALYSIS_COHORTS_RESEARCH_V1.json": "882071d0c141efd5cdca9a83aa736b03c4b0e550a62916874f66d4bf37579261",
+      "replay_public_d11.py": "4d0c046ec6be2cef6f82f21711ddf45d6f8cb18270d2f0f4ee0af0ff3cc44f58",
+      "analysis_finish_metrics.py": "d4d02d59ae53f271b4b3675c8b5a624453b77d8d60887ff6a82a4a0842cae637",
+      "PROSPECTIVE_ANALYSIS_OUTPUT_AMENDMENT_C1.json": "35a9551b44ee5ceae5a1b24a1304b8361c39f4fc5a04716f1b3742efbddd1579"
+    },
+    "prediction_bundle_identity": "MODEL_INVENTORY.records compressed_sha256+public_source_file/manifest_folder; every actualpayload verified beforedecode viaexisting lexical predictions reader and64MiBperfile cap",
+    "full_bundle_membership_and_case_payload_coverage": "RootTEST mustprove33exactfinitecases, metadata alone cannot",
+    "new_native_bijection": {
+      "covered-completed-v2:D-T14-S0.12": "D-T14-S0.12",
+      "covered-completed-v2:D-T14-S0.33": "D-T14-S0.33",
+      "covered-completed-v2:D-T14-S0.48": "D-T14-S0.48",
+      "covered-completed-v2:D-T24-S0.33": "D-T24-S0.33",
+      "covered-completed-v2:D-T24-S0.48": "D-T24-S0.48",
+      "covered-completed-v2:D-T34-S0.33": "D-T34-S0.33",
+      "covered-completed-v2:D-T5-S0.12": "D-T5-S0.12",
+      "covered-completed-v2:D-T5-S0.33": "D-T5-S0.33"
+    },
+    "no_public_V_outcome_or_final_holdout_read": true
+  },
+  "score_value_scope": {
+    "orientation_pairs": [
+      [
+        "A",
+        "B"
+      ],
+      [
+        "B",
+        "A"
+      ]
+    ],
+    "LEG_inputs": "only cases of designated LEG newquestions, predictions/references/knownanchor metadata; eachscorecallback excludesallVALUEquestions",
+    "VALUE_inputs": "only oppositefoldcases after LEGselectioncommit; no scoringcallback/valuefit or model-selection tie-break on VALUE",
+    "native_case_overlap_across_folds": "NONE; exact33 IDs partitioned bynativecontext, physicaldata reused from oldcorpus but no crossfoldrow reuse",
+    "LEG_question_aggregation": "native original-reference accuracy error averagedwithin eachnewquestion first, then unit-weight mean acrossLEGquestions; not menu-sizeweighting",
+    "fixed_common_reference_mask": "strictlyallregisteredcaseconditionsresolved + nativeotherlimits + fixedanchorFEASIBLE; exactsamequestionmask allmodels/control comparisons",
+    "missing_value_vector": "withholdwholemembercompletevector withreason, no candidate-specificquestiondrop/zero",
+    "common_model_set": "registered rawcohort and candidateinvalid finitecoverage accounting; reportexactcommoncomparedIDs/all exclusions peranalysis; no silentcohort differences",
+    "baseline_label": "recomputed native original-reference accuracy diagnostic, NOT literalrecordedv2 orfullv3",
+    "known_runtime_guards": "UNMEASURED unless actualsource-boundreceipts; neverinferPASS"
+  },
+  "cohorts": {
+    "real_raw": "137 MODEL_INVENTORY records, exactsourcebindings; primary100 andother37 fromANALYSIS_COHORTS_RESEARCH_V1",
+    "controls": "exactpinnedpanel.CONTROLS tuple, constructedafterpredictioncommit fromPUBLICreference only; separatefrom learnedtau/modelcount",
+    "clustering": "existing dependence_group_RESEARCH_V1 perrawrecord, no independentfamilyclaim",
+    "no_real_member_count_from_controls": true
+  },
+  "analysis_knobs": {
+    "source": "unchanged frozenCAMPAIGN_CONTRACT + C1 source code",
+    "predeclared_active_diagnostics": [
+      "N2-VERIFIED-REGRET-ON-PICK",
+      "V2r2@k3,kappa0.1",
+      "N4-TOP-REGION-RANKING"
+    ],
+    "full_frozen_family": "all10 exact157b remain reproducible; unmeasured exactregistry candidates stayUNMEASURED, nottoyproxy officialscores",
+    "u_seconds": 120,
+    "kappa": 0.1,
+    "verification_cap": 3,
+    "miss_penalty": 1,
+    "top_fraction": 0.3,
+    "new_physics_neighbour_wrapper_weights": "OFF/0 unchanged",
+    "bootstrap_replicates": 2000,
+    "bootstrap_seed": 20261014,
+    "bootstrap_level": 0.95,
+    "implementation": "existing score_proof.bootstrap/tau functions; pairedVALUEquestion effect via existingfinishoutputs helpers wherecompatible, fixedLEG top3 owner_v1; no newstatistics/harness",
+    "undefined_tau": "null plusundefinedfraction, never0",
+    "empty_LEG_or_VALUE": "INSUFFICIENT_EVIDENCE withnullstatistics; neverrebalancefolds orreplacequestions",
+    "unknown_guard_or_fullruleinputs": "UNMEASURED notcandidatePASS orimplicitproductionqualification"
+  },
+  "consumer_readiness": {
+    "existing_generic_components": "pinnedbank.classify/_v2_question, public_v2_replay.outcomes, native decision/exam/calibration, score_proof, owner_v1 selection, lexicalmetadata/predictionreaders",
+    "old_D11_main_entrypoint_compatible": false,
+    "old_122_interval_evidence_entrypoint_compatible": false,
+    "minimal_glue_status": "NOT_IMPLEMENTED_NOT_RUN: require explicit newquestion/nativecontext mapping andfixed33menus; useexistingcomponents, no newexperimentharness/scientificmethod",
+    "scope_acceptance_not_execution_acceptance": true,
+    "cannot_execute_oldmainbyrelabellingcfg": true
+  }
+}
