@@ -259,9 +259,12 @@ def _evidence(value, key="evidence", depth=0, count=None):
                 raise ValueError("INVALID_EVIDENCE_FIELD")
             digest_field = name.endswith(("_digest", "_digests", "_hash", "_hashes"))
             if set(name.split("_")) & _FORBIDDEN and not (
-                name in ("profile_digest", "profile_hash")
-                and type(child) is str
-                and _DIGEST.fullmatch(child)
+                (
+                    name in ("profile_digest", "profile_hash")
+                    and type(child) is str
+                    and _DIGEST.fullmatch(child)
+                )
+                or (name == "profile_loaded" and type(child) is bool)
             ):
                 raise ValueError("FORBIDDEN_EVIDENCE_FIELD")
             if digest_field and type(child) not in (str, list):
