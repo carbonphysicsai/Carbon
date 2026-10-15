@@ -1,0 +1,19 @@
+{
+ "name": "f02-lineage",
+ "type": "script",
+ "status": "FAIL",
+ "wall_s": 0.10077359201386571,
+ "exit": 1,
+ "signal": null,
+ "stop_reason": "exit",
+ "rusage_user_s": 0.033,
+ "rusage_sys_s": 0.009,
+ "rusage_cpu_s": 0.042,
+ "rusage_maxrss_bytes": 25395200,
+ "sampled_group_rss_peak_bytes": 0,
+ "rlimit_as_bytes": null,
+ "kept": {
+  "copied": 0,
+  "not_copied": 0
+ }
+}

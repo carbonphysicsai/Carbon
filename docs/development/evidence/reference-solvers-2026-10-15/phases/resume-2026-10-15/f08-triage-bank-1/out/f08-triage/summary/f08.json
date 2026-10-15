@@ -1,0 +1,40 @@
+{
+ "schema": "carbon.reference-bulk.summary.v1",
+ "plan_id": "f08-triage",
+ "family": "f08",
+ "image_ref": "sha256:16869c9cb7f14994f3bed3152809efdec14c5b3ec1849730d7b6c8f689d9642b",
+ "image_pin": "sha256:16869c9cb7f14994f3bed3152809efdec14c5b3ec1849730d7b6c8f689d9642b",
+ "manifest_sha256": "sha256:5c11df8f72b45089b5b9d2dc03d64c4a32e9c05d642b435ef64a86c12001aea9",
+ "cases_in_manifest": 17,
+ "launches": 17,
+ "outcomes": {
+  "COMPLETED": 17
+ },
+ "refused": 0,
+ "not_launched": {},
+ "acceptance": null,
+ "ceilings": {
+  "launches": 17,
+  "cpu_hours": 4.0
+ },
+ "allocated_cpu_hours": 1.337,
+ "cgroup_cpu_hours": 0.0,
+ "measured_cpu_hours": 1.3365,
+ "executors": [
+  "native"
+ ],
+ "wall_s": {
+  "total": 4813.0,
+  "p50": 128.406,
+  "p95": 1421.418,
+  "max": 1421.418
+ },
+ "memory_peak_mib": {
+  "p50": 1032.5,
+  "p95": 5999.6,
+  "max": 5999.6,
+  "cases_with_peak": 17,
+  "limit": 9216.0
+ },
+ "maturity": "DEVELOPMENT cost measurement; no qualification or adequacy claim"
+}

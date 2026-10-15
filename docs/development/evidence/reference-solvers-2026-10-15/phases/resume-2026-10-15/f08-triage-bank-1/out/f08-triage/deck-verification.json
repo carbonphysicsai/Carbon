@@ -1,0 +1,162 @@
+{
+ "manifest": "docs/development/evidence/reference-solvers-2026-10-15/pins/triage-f08-decks-manifest.local-regen-v2.json",
+ "decks": "regenerated on the pod",
+ "cases": [
+  {
+   "family": "f08",
+   "case": "small-light-primary",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "large-stiff-primary",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "nominal-primary",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "long-flexible-primary",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "short-wide-primary",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "thin-high-ribs-primary",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "thick-low-ribs-primary",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "relieved-tall-primary",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "control-oscillators",
+   "selected": true,
+   "files": 2,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "long-flexible-h2.25",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "long-flexible-h1.7",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "relieved-tall-h2.25",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "relieved-tall-h1.7",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "nominal-h2.25",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "nominal-h1.7",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "control-beam",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "small-light-cold-repeat",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  }
+ ],
+ "selected": 17,
+ "selected_refused": [],
+ "all_cases_matching": 17
+}

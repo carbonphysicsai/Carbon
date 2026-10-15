@@ -1,0 +1,24 @@
+{
+ "schema": "carbon.f08.train-acquisition-audit.v1",
+ "scope": "PUBLIC_DEVELOPMENT",
+ "observed_utc": "2026-10-15T19:34:29.750114+00:00",
+ "source_ref": "3c32979c32c63886af09ce0f8685b598de61033d",
+ "observed_sha256": "bb2d030d486b313efe2c0ebf57151bb4a34727d6e307892a87e1d8a9211ccc45",
+ "required_rows": 256,
+ "attempted_rows": 256,
+ "mode_ladder_pass_rows": 255,
+ "missing_or_invalid_rows": [
+  "train-0016"
+ ],
+ "reference_failure": {
+  "case": "train-0016",
+  "outcome": "FAILED",
+  "solver_error": "nonpositive jacobian determinant in element 23785",
+  "rusage_cpu_s": 1.792,
+  "wall_s": 1.805
+ },
+ "dataset_readiness": "INCOMPLETE_REFERENCE_ROW",
+ "baseline_winnability_run": "NOT_EXECUTED",
+ "claim_boundary": "255 observed rows retained; no silent reduction of the registered 256-row rung, no physical infeasibility label for the mesh failure, no qualification or population/winnability conclusion. No paid retry.",
+ "cost_basis": "Original full native ledger and lifecycle receipts, including failed attempt; family cgroup values are whole-pod and must not be summed as isolated case CPU."
+}

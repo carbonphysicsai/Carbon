@@ -1,0 +1,48 @@
+{
+ "schema": "carbon.reference-bulk.run-plan.v1",
+ "plan_id": "f17-triage",
+ "authority": "OWNER-RUNPOD-SOLVER-READINESS-01",
+ "host_profile": "runpod-cpu-pod-native",
+ "machine": {
+  "reserve_cpus": 0,
+  "reserve_memory_gib": 1,
+  "margin_minutes": 0,
+  "starvation_s": 900,
+  "min_case_window_s": 300,
+  "cpus": 8,
+  "memory_gib": 14.901,
+  "node_hours": 2.2782239662276376,
+  "clock_start": 1792087377.3986208
+ },
+ "families": [
+  {
+   "family": "f17",
+   "manifest_dir": "/tmp/work/f17-triage/decks",
+   "image": "sha256:020e00e512c3e0f50dd9904137bb64bdfe4b55b1fae6b9d6a566e4895d2d6e4a",
+   "priority": 10,
+   "case_limits": {
+    "cpus": 1,
+    "memory_gib": 4,
+    "pids": 64,
+    "wall_timeout_s": 7200
+   },
+   "ceilings": {
+    "launches": 15,
+    "cpu_hours": 8
+   },
+   "shell": "sh",
+   "env": {},
+   "native": {
+    "version_command": "echo WM_PROJECT_VERSION=$WM_PROJECT_VERSION; simpleFoam -help > /dev/null",
+    "version_expect": "WM_PROJECT_VERSION=v2506",
+    "memory_cap": "rss"
+   },
+   "reservation_order": [
+    "witness_studies",
+    "primary",
+    "controls",
+    "cold_repeat"
+   ]
+  }
+ ]
+}

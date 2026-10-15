@@ -17,7 +17,7 @@
   {
    "name": "f02-verification",
    "type": "bulk",
-   "judges": "runs only; the next step judges. Deck identity for A5: deck-verification.json must show every selected case matching the pinned manifest (host_regenerated rows break A5 deck identity for that case)",
+   "judges": "Run the registered B1-B7/B10 judge via observe before scratch cleanup. The judgement is persisted in the served step output; downstream lineage reads that JSON.",
    "manifest": "docs/development/evidence/reference-solvers-2026-10-15/pins/f02-verification-decks-manifest.json",
    "freeze": {
     "argv": [
@@ -68,27 +68,18 @@
     "mesh/mesh.elements",
     "mesh/mesh.boundary",
     "mesh/mesh.header"
-   ]
-  },
-  {
-   "name": "f02-verification-judge",
-   "type": "script",
-   "judges": "B1 |d peak| <= 0.5 C, B2 |d first-95C crossing| <= 0.5 s (one-rung-only -> UNRESOLVED), B3 |d recovery| <= 0.5 s, B4 max |d T_topmax(t)| at 0.5 s <= 0.5 C, B5 |energy residual| <= 1 % (every primary and rung), B6 steady Robin balance <= 1e-3, B7 |T_topmax(120 s) of the 20 W transient - steady| <= 0.5 C; B10: PASS iff all 8 primaries pass at both rungs and all 12 baseline checks pass (bands.json, F02-SCIENCE-VALUES-01 B). Exit 0 iff ACCEPTED_FOR_DEVELOPMENT_BANK",
-   "argv": [
-    "python3",
-    "scripts/dev/reference_packages/elmer/f02_readiness.py",
-    "judge",
-    "{work}/../f02-verification/bulk",
-    "{out}/judgement.json",
-    "--manifest",
-    "docs/development/evidence/reference-solvers-2026-10-15/pins/f02-verification-decks-manifest.json"
    ],
-   "timeout_s": 900,
-   "keep": {
-    "patterns": [
-     "*.json"
+   "observe": {
+    "argv": [
+     "python3",
+     "scripts/dev/reference_packages/elmer/f02_readiness.py",
+     "judge",
+     "{bulk}",
+     "{out}/judgement.json",
+     "--manifest",
+     "docs/development/evidence/reference-solvers-2026-10-15/pins/f02-verification-decks-manifest.json"
     ],
-    "max_file_bytes": 2000000
+    "timeout_s": 900
    }
   },
   {
@@ -100,7 +91,7 @@
     "scripts/dev/reference_packages/elmer/f02_readiness.py",
     "lineage",
     "docs/development/evidence/reference-packages-01/f02-readiness/local-convergence-judgement.json",
-    "{out}/../f02-verification-judge/judgement.json",
+    "{out}/../f02-verification/judgement.json",
     "{out}/lineage.json"
    ],
    "timeout_s": 300,

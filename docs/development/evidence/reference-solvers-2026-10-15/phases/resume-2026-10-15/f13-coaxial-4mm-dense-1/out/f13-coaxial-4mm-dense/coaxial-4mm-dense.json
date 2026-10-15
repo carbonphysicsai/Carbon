@@ -1,0 +1,136 @@
+{
+ "schema": "carbon.reference-package.f13-feature-proof.v2",
+ "decision": "F13-SCIENCE-VALUES-01",
+ "scope": "PUBLIC_DEVELOPMENT engineering evidence; no qualification, Tier 2 or LIVE claim",
+ "image": "sha256:61be1cb77c51fcdd822250e372754a9ce728a5bb42f39b7ba03cdf5e70901add",
+ "mesh_image": "ghcr.io/carbonphysicsai/carbon-motor-reference@sha256:599521e79786ee0326a0754ba0545f51ee9665adff73c3515c8d4b8ba24c1c05",
+ "deck_version": "f13-deck.v2",
+ "deck_sha256": "sha256:696d81d7275d349c441edcd80b209032a6abf0c69cfe4113878f576fb84890fb",
+ "observer": "f13-panel-planes.v1",
+ "linear_solver": "bicgstabl4-ilu2-1e-10",
+ "host_profile": "local-dev-4vcpu-15g-contended",
+ "checks": {
+  "B1_mms": "NOT_RUN",
+  "B2_straight_duct": "NOT_RUN",
+  "B3_coaxial_mode_matching": "NOT_RUN",
+  "B3_coaxial_mode_matching_4mm_dense": "NOT_RUN",
+  "C_power_passivity": "NOT_RUN",
+  "D4_scan_parity": "NOT_RUN",
+  "D5_solver_parity": "NOT_RUN",
+  "D2_lead_60_vs_100mm": "NOT_RUN",
+  "D1_mesh_8_vs_4mm": "NOT_RUN",
+  "D3_frequency_10_vs_5hz": "DEFERRED_TO_POD"
+ },
+ "coaxial_mode_matching": {
+  "control-chamber": "DEFERRED_TO_POD",
+  "small-coaxial": "DEFERRED_TO_POD",
+  "short-neck-wide": "DEFERRED_TO_POD",
+  "long-neck-small": "DEFERRED_TO_POD"
+ },
+ "coaxial_mode_matching_4mm_dense": {
+  "status": "NOT_RUN",
+  "expected_cases": 4,
+  "complete_cases": 2,
+  "expected_frequencies_per_case": 201,
+  "cases": {
+   "control-chamber": {
+    "status": "NOT_RUN",
+    "reason": "missing solved or mode-matching evidence"
+   },
+   "small-coaxial": {
+    "status": "PASS",
+    "common_frequencies": 201,
+    "max_abs_dtl_db_resolved": 0.1529182304061001,
+    "at_hz": 980.0,
+    "max_abs_dpt_w_notch": 0.0003094743844171931,
+    "notch_at_hz": 1400.0,
+    "pointwise_band_db": 0.5,
+    "pointwise_fail_hz": [],
+    "dp10_db": 0.04291213488258894,
+    "dmean_db": -0.1462545612528494,
+    "extrema": [],
+    "extrema_counts": [
+     0,
+     0
+    ],
+    "max_extremum_shift_hz": 0.0,
+    "pass": true,
+    "mode_matching_n20_n40_max_resolved_db": 0.0005954587406584722,
+    "cost": {
+     "nodes": 112359,
+     "frequency_systems": 201,
+     "solve_cpu_s": 3369.57,
+     "solve_wall_s": 3369.74,
+     "peak_mib": null,
+     "mesh_cpu_s": 3.44,
+     "mesh_wall_s": 3.46,
+     "cpu_s_per_frequency": 16.76,
+     "outcome": "COMPLETED"
+    }
+   },
+   "short-neck-wide": {
+    "status": "NOT_RUN",
+    "reason": "missing solved or mode-matching evidence"
+   },
+   "long-neck-small": {
+    "status": "PASS",
+    "common_frequencies": 201,
+    "max_abs_dtl_db_resolved": 0.13321215043718615,
+    "at_hz": 2030.0,
+    "max_abs_dpt_w_notch": 6.794582454655064e-05,
+    "notch_at_hz": 770.0,
+    "pointwise_band_db": 0.5,
+    "pointwise_fail_hz": [],
+    "dp10_db": 0.05008455845141346,
+    "dmean_db": -0.009277290715031583,
+    "extrema": [
+     {
+      "kind": "max",
+      "f_hz": 1246.0281854892535,
+      "shift_hz": 0.40774679963169547
+     }
+    ],
+    "extrema_counts": [
+     1,
+     1
+    ],
+    "max_extremum_shift_hz": 0.40774679963169547,
+    "pass": true,
+    "mode_matching_n20_n40_max_resolved_db": 0.0002881003734285237,
+    "cost": {
+     "nodes": 183780,
+     "frequency_systems": 201,
+     "solve_cpu_s": 6043.59,
+     "solve_wall_s": 6043.66,
+     "peak_mib": null,
+     "mesh_cpu_s": 2.79,
+     "mesh_wall_s": 2.81,
+     "cpu_s_per_frequency": 30.07,
+     "outcome": "COMPLETED"
+    }
+   }
+  },
+  "scope": "B3 4 mm coaxial controls only; other family verification remains separate"
+ },
+ "power_passivity": {
+  "bands": {
+   "plane": 0.0018,
+   "integral": 0.01
+  },
+  "cases": {}
+ },
+ "D2_lead_60_vs_100mm": {
+  "nominal": "NOT_RUN",
+  "large-offset": "NOT_RUN",
+  "clearance-boundary": "NOT_RUN"
+ },
+ "D1_mesh_8_vs_4mm": {
+  "nominal": "NOT_RUN",
+  "large-offset": "NOT_RUN",
+  "clearance-boundary": "NOT_RUN"
+ },
+ "primaries": {},
+ "costs": {},
+ "all_pass": false,
+ "assembler_sha256": "99513a612bb77011ed4db22db75f2dd2ebe6ff3a91ecca605ffa83bbafdfd860"
+}

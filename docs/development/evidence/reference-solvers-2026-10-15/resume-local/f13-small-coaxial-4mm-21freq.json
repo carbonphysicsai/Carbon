@@ -1,0 +1,96 @@
+{
+  "schema": "carbon.f13.local-refinement-diagnostic.v1",
+  "scope": "PUBLIC_DEVELOPMENT_DIAGNOSTIC",
+  "code_ref": "a8ebab8d480bf21fe482d9c5f4f65baf4d59aa54",
+  "modified_sources": [
+    " M scripts/dev/reference_packages/elmer/f13_proof.py",
+    " M tests/cpu/test_reference_solvers_pods.py",
+    "?? .agent/tickets/F13-LOCAL-THREAD-BOUNDARY-01.md"
+  ],
+  "source_sha256": {
+    "scripts/dev/reference_packages/elmer/f13_deck.py": "696d81d7275d349c441edcd80b209032a6abf0c69cfe4113878f576fb84890fb",
+    "scripts/dev/reference_packages/elmer/f13_proof.py": "7ea48984797ddbc71b7ff6f1fde4881bbdebea4bc868b5eb27c8f1f2ed653c4e",
+    "carbon/challenge_pipeline/silencer_readiness.py": "de19e4a635a29c11a51ecf3cbeea625ff5642e69435a2155ca4f325cffbc6749"
+  },
+  "decision": "F13-SCIENCE-VALUES-01",
+  "case": "small-coaxial",
+  "mesh_mm": 4.0,
+  "frequency_step_hz": 100.0,
+  "image": "sha256:6fab746f31257236da9e91b5be681bfbd2d25bd69f5dcd9a2e350394e8bcb675",
+  "mesh_image": "ghcr.io/carbonphysicsai/carbon-motor-reference@sha256:599521e79786ee0326a0754ba0545f51ee9665adff73c3515c8d4b8ba24c1c05",
+  "host_profile": "windows-wsl2-ubuntu24.04-local-development",
+  "limits": {
+    "solver_cpus": 1,
+    "solver_memory_gib": 3,
+    "mesh_memory_gib": 3,
+    "timeout_s_per_phase": 900,
+    "network": "none",
+    "retries": 0
+  },
+  "inputs": {
+    "case.sif": "29ec1dd574b0c27b37b3276b1381d6c28c23c3f92de467e572f6166ba787dbe8",
+    "deck.json": "38d733c94a89cf13fdffd1f564117293756e9c762cab0d04411a78fedc1927ff",
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "make_mesh.py": "114ab89f60c022fb3a0fd41f9381818f48140613f6b627ea303da4cf323ae32d"
+  },
+  "status": "COMPLETED",
+  "claim_boundary": "21-point refinement diagnostic only; not the full 201-point B3 acceptance, native-pod lineage, qualification or LIVE evidence",
+  "cost": {
+    "host_profile": "windows-wsl2-ubuntu24.04-local-development",
+    "nproc": 20,
+    "cpu_model": "12th Gen Intel(R) Core(TM) i7-12700H",
+    "image": "sha256:6fab746f31257236da9e91b5be681bfbd2d25bd69f5dcd9a2e350394e8bcb675",
+    "mesh_image": "ghcr.io/carbonphysicsai/carbon-motor-reference@sha256:599521e79786ee0326a0754ba0545f51ee9665adff73c3515c8d4b8ba24c1c05",
+    "mesh": {
+      "exit": 0,
+      "outcome": "COMPLETED",
+      "wall_s": 20.35,
+      "cpu_s": 3.87,
+      "peak_mib": 174.1,
+      "cpus": 1,
+      "memory_limit": "3g",
+      "accounting": "container-cgroup"
+    },
+    "nodes": 112359,
+    "solve": {
+      "exit": 0,
+      "outcome": "COMPLETED",
+      "wall_s": 372.51,
+      "cpu_s": 341.47,
+      "peak_mib": 620.4,
+      "cpus": 1,
+      "memory_limit": "3g",
+      "accounting": "container-cgroup"
+    },
+    "frequency_systems": 21,
+    "cpu_s_per_frequency": 16.26
+  },
+  "summary": {
+    "frequencies": 21,
+    "max_abs_plane_residual": 5.053286052898036e-06,
+    "max_abs_integral_residual": 1.9819590206629788e-10,
+    "minimum_tl_db": 0.15173542783702917,
+    "maximum_tl_db": 43.89452288092307,
+    "p10_tl_db": 0.5246588525501421,
+    "mean_tl_db": 20.682936063424403
+  },
+  "observer_findings": false,
+  "comparison_on_common_21_frequencies": {
+    "common_frequencies": 21,
+    "max_abs_dtl_db_resolved": 0.15233151415277124,
+    "at_hz": 1000.0,
+    "max_abs_dpt_w_notch": 0.0003094743829206714,
+    "notch_at_hz": 1400.0,
+    "pointwise_band_db": 0.5,
+    "pointwise_fail_hz": [],
+    "dp10_db": 0.04092743018939515,
+    "dmean_db": -0.1466024241547501,
+    "extrema": [],
+    "extrema_counts": [
+      0,
+      0
+    ],
+    "max_extremum_shift_hz": 0.0,
+    "pass": true
+  }
+}

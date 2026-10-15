@@ -1,0 +1,58 @@
+{
+ "case.12d": {
+  "bytes": 0,
+  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+ },
+ "case.cvg": {
+  "bytes": 274,
+  "sha256": "65086dedb4572132b815ace04b294909c7f6f337111f9704fc310b02320f67f7"
+ },
+ "case.dat": {
+  "bytes": 1767048,
+  "sha256": "b14dfe52e8e6cccb66e794b988b542991748ef75943cb75fe5e0492c6cb3c49a"
+ },
+ "case.eig": {
+  "bytes": 240498712,
+  "sha256": "f5ebdff64b6a4349c5492c32a988f1b9dc05cdb2da1d08b53c7bab390cdc741e"
+ },
+ "case.frd": {
+  "bytes": 10303890,
+  "sha256": "7bd49cd9ae37c37f9c3989b8269a0e854728dafc087cb5aedf5f82273331dfd1"
+ },
+ "case.inp": {
+  "bytes": 4929,
+  "sha256": "175eb66b6eaf0b354af9c9387ce00858db368723abf473d638d71740ddddc0b7"
+ },
+ "case.sta": {
+  "bytes": 170,
+  "sha256": "12b124d8bfcdf56b2f2c54ea990894cb35321f38cec97cd2ab5ddf2ac96bcaa4"
+ },
+ "ccx.log": {
+  "bytes": 7955,
+  "sha256": "d9e9d01285bd023dd2ace3c7506523725ce87584457ea4d550384d5551719a73"
+ },
+ "cgroup.txt": {
+  "bytes": 109,
+  "sha256": "5073c900e0b8e408cc6cd0a86c93444f7445b8bfbb815d14bf0c1347022d4c88"
+ },
+ "deck.json": {
+  "bytes": 1897,
+  "sha256": "a563d47492d4f8379bcf28915c22d1af5a17af6a161ce4cf16142689357a7767"
+ },
+ "make_mesh.py": {
+  "bytes": 4246,
+  "sha256": "d122c677245d47fe3397745e7d25dac918ee4fde873283855a58f8377760e71b"
+ },
+ "mesh.inp": {
+  "bytes": 6393760,
+  "sha256": "88e010ca486fc10dc6ed86af6ad640269d4b686c6d9575525ffbd157662498d1"
+ },
+ "mesh.json": {
+  "bytes": 4551,
+  "sha256": "b6787cb56881ee469827fbe4faa3a6e0ab49de953c177c0e47e5f15e78e864d8"
+ },
+ "spooles.out": {
+  "bytes": 0,
+  "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+ }
+}

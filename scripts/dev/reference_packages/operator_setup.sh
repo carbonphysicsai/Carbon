@@ -9,17 +9,21 @@
 # ~/.runpod/{api_key,campaigns.json} (mode 600), the reference-solvers campaign,
 # a clean Python for ship checks (~/.carbon-cleanpy), then runs read-only checks.
 set -euo pipefail
-CAP=25; FLOOR=15; DOCKER=1
+CAP=25; FLOOR=15; DOCKER=1; PHASE_ARGS=()
 while [ $# -gt 0 ]; do case "$1" in
   --cap-usd) CAP=$2; shift 2;; --floor-usd) FLOOR=$2; shift 2;; --no-docker) DOCKER=0; shift;;
+  --operator-phase) PHASE_ARGS=(--operator-phase "$2"); shift 2;;
   *) echo "unknown argument $1"; exit 2;; esac; done
 ROOT=$(cd "$(dirname "$0")/../../.." && pwd); cd "$ROOT"
 say() { printf '\n== %s\n' "$*"; }
 
 say "1/6 tools"
 for t in git python3 curl; do command -v $t >/dev/null || { echo "missing $t"; exit 1; }; done
-command -v uvx >/dev/null || python3 -m pip install --user -q uv
 export PATH="$HOME/.local/bin:$PATH"
+if ! command -v uvx >/dev/null; then
+  curl --fail --location --silent --show-error https://astral.sh/uv/0.12.7/install.sh \
+    | env UV_INSTALL_DIR="$HOME/.local/bin" UV_NO_MODIFY_PATH=1 sh
+fi
 
 say "2/6 python environment"
 uvx --from 'uv==0.12.7' uv sync --frozen --group dev --group science-jax
@@ -47,8 +51,21 @@ say "4/6 RunPod operator config (~/.runpod, mode 600)"
 mkdir -p "$HOME/.runpod"; chmod 700 "$HOME/.runpod"
 ( umask 077
   [ -n "${RUNPOD_API_KEY:-}" ] && printf '%s' "$RUNPOD_API_KEY" > "$HOME/.runpod/api_key"
-  printf '{"ceilings_usd": {"reference-solvers": %s}, "balance_floor_usd": %s}\n' "$CAP" "$FLOOR" > "$HOME/.runpod/campaigns.json" )
-.venv/bin/python -m scripts.dev.exam_design.runpod.pod_control --campaign reference-solvers start --cap-usd "$CAP" | tail -1
+  chmod 600 "$HOME/.runpod/api_key"
+  python3 - "$CAP" "$FLOOR" <<'PY'
+import json, pathlib, sys
+p = pathlib.Path.home() / ".runpod/campaigns.json"
+d = json.loads(p.read_text()) if p.exists() else {}
+d.setdefault("ceilings_usd", {})["reference-solvers"] = float(sys.argv[1])
+d["balance_floor_usd"] = max(float(d.get("balance_floor_usd", 0)), float(sys.argv[2]))
+p.write_text(json.dumps(d) + "\n")
+p.chmod(0o600)
+PY
+)
+if ! .venv/bin/python -m scripts.dev.exam_design.runpod.pod_control --campaign reference-solvers "${PHASE_ARGS[@]}" start --cap-usd "$CAP"; then
+  # An existing phase is resumed only if its complete accounting still validates.
+  .venv/bin/python -m scripts.dev.exam_design.runpod.pod_control --campaign reference-solvers "${PHASE_ARGS[@]}" status
+fi
 
 say "5/6 clean python for ship checks (~/.carbon-cleanpy)"
 [ -x "$HOME/.carbon-cleanpy/bin/python" ] || { python3 -m venv "$HOME/.carbon-cleanpy" && "$HOME/.carbon-cleanpy/bin/pip" install -q numpy scipy; }

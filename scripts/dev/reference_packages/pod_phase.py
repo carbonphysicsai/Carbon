@@ -218,6 +218,11 @@ def load_plan(path, kind):
         problems.append("steps must be a non-empty list with unique names")
     for step in doc.get("steps") or []:
         name = step.get("name", "")
+        if "{work}/.." in json.dumps(step).replace("\\\\", "/"):
+            problems.append(
+                f"{name}: step scratch cannot reference parent paths; "
+                "use {bulk} inside observe or persisted {out} results"
+            )
         if not isinstance(name, str) or not br.NAME.match(name):
             problems.append(f"step name {name!r} must match [A-Za-z0-9._-]")
         if step.get("type") == "script":

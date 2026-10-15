@@ -1,0 +1,41 @@
+{
+ "schema": "carbon.reference-bulk.summary.v1",
+ "plan_id": "f08-train-bank-primaries",
+ "family": "f08",
+ "image_ref": "sha256:16869c9cb7f14994f3bed3152809efdec14c5b3ec1849730d7b6c8f689d9642b",
+ "image_pin": "sha256:16869c9cb7f14994f3bed3152809efdec14c5b3ec1849730d7b6c8f689d9642b",
+ "manifest_sha256": "sha256:ecad1a1205448aedccb4feb037f55663bc6dd96c9aae7f75b3c1251c193fa80c",
+ "cases_in_manifest": 256,
+ "launches": 256,
+ "outcomes": {
+  "COMPLETED": 255,
+  "FAILED": 1
+ },
+ "refused": 0,
+ "not_launched": {},
+ "acceptance": null,
+ "ceilings": {
+  "launches": 256,
+  "cpu_hours": 12.0
+ },
+ "allocated_cpu_hours": 7.0765,
+ "cgroup_cpu_hours": 0.0,
+ "measured_cpu_hours": 7.0693,
+ "executors": [
+  "native"
+ ],
+ "wall_s": {
+  "total": 25475.5,
+  "p50": 90.71,
+  "p95": 176.949,
+  "max": 243.75
+ },
+ "memory_peak_mib": {
+  "p50": 816.3,
+  "p95": 1329.2,
+  "max": 1523.1,
+  "cases_with_peak": 256,
+  "limit": 2560.0
+ },
+ "maturity": "DEVELOPMENT cost measurement; no qualification or adequacy claim"
+}

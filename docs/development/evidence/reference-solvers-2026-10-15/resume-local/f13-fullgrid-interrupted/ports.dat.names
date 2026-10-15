@@ -1,0 +1,15 @@
+Metadata for SaveScalars file: ./ports.dat
+Elmer version: 26.2
+Elmer compilation date: 2026-10-10
+Solver input file: case.sif
+File started at: 2026/10/15 18:05:18
+ 
+Variables in columns of matrix: 
+   1: value: scan scalar variable
+   2: boundary int: pressure 1 over bc 1
+   3: boundary int:  over bc 2
+   4: boundary int: pressure 2 over bc 1
+   5: boundary int:  over bc 2
+   6: boundary int: pabs2 over bc 1
+   7: boundary int:  over bc 2
+   8: res: frequency

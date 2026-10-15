@@ -1,0 +1,19 @@
+{
+ "name": "f13-coaxial-4mm-dense",
+ "type": "script",
+ "status": "FAIL",
+ "wall_s": 9420.055428842083,
+ "exit": 1,
+ "signal": null,
+ "stop_reason": "exit",
+ "rusage_user_s": 9292.703,
+ "rusage_sys_s": 147.507,
+ "rusage_cpu_s": 9440.21,
+ "rusage_maxrss_bytes": 1010651136,
+ "sampled_group_rss_peak_bytes": 2574958592,
+ "rlimit_as_bytes": null,
+ "kept": {
+  "copied": 22,
+  "not_copied": 34
+ }
+}

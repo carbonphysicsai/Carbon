@@ -1,0 +1,19 @@
+{
+ "name": "f17-judge",
+ "type": "script",
+ "status": "FAIL",
+ "wall_s": 26.574860816821456,
+ "exit": 1,
+ "signal": null,
+ "stop_reason": "exit",
+ "rusage_user_s": 7.263,
+ "rusage_sys_s": 2.417,
+ "rusage_cpu_s": 9.679,
+ "rusage_maxrss_bytes": 97595392,
+ "sampled_group_rss_peak_bytes": 171216896,
+ "rlimit_as_bytes": null,
+ "kept": {
+  "copied": 0,
+  "not_copied": 0
+ }
+}

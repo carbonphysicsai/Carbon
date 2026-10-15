@@ -1,0 +1,12 @@
+{
+ "family_acceptance": {
+  "rule": "B10: every primary passes B1-B5 at both rungs; every B6/B7 check passes",
+  "primaries_passing": 0,
+  "primaries": 8,
+  "baseline_checks_passing": 0,
+  "baseline_checks": 0,
+  "baseline_checks_expected": 12,
+  "status": "NOT_ACCEPTED"
+ },
+ "cost": null
+}

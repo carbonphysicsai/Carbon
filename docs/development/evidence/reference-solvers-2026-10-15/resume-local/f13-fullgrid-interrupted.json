@@ -1,0 +1,40 @@
+{
+ "schema": "carbon.f13.local-dense-refinement.v1",
+ "scope": "PUBLIC_DEVELOPMENT",
+ "decision": "F13-SCIENCE-VALUES-01 B3/D1",
+ "code_base": "b4f8b39501984ff78cd3bbf405a2f1bcacea6226",
+ "source_sha256": {
+  "scripts/dev/reference_packages/elmer/f13_deck.py": "696d81d7275d349c441edcd80b209032a6abf0c69cfe4113878f576fb84890fb",
+  "scripts/dev/reference_packages/elmer/f13_proof.py": "7ea48984797ddbc71b7ff6f1fde4881bbdebea4bc868b5eb27c8f1f2ed653c4e",
+  "scripts/dev/reference_packages/elmer/f13_mode_matching.py": "83059d3e5dd5fdf00d379b3d3e4d4e9fb342b5cd29d7140af9d0dcad8f221a68",
+  "carbon/challenge_pipeline/silencer_readiness.py": "de19e4a635a29c11a51ecf3cbeea625ff5642e69435a2155ca4f325cffbc6749"
+ },
+ "case": "small-coaxial",
+ "mesh_mm": 4.0,
+ "frequencies": 201,
+ "image": "sha256:6fab746f31257236da9e91b5be681bfbd2d25bd69f5dcd9a2e350394e8bcb675",
+ "mesh_image": "ghcr.io/carbonphysicsai/carbon-motor-reference@sha256:599521e79786ee0326a0754ba0545f51ee9665adff73c3515c8d4b8ba24c1c05",
+ "limits": {
+  "cpus": 1,
+  "memory_gib": 3,
+  "timeout_s_per_phase": 7200,
+  "network": "none",
+  "retries": 0
+ },
+ "status": "INTERRUPTED_INFRA_HOST_RESTART",
+ "family_acceptance": "NOT_ASSESSED",
+ "claim_boundary": "One coaxial control on this immutable local image; no native-pod lineage, full-family acceptance, qualification or LIVE claim",
+ "interruption_observed_utc": "2026-10-15T19:04:43.230327+00:00",
+ "completed_frequency_rows_retained": 167,
+ "last_retained_frequency_hz": 2160.0,
+ "expected_frequency_rows": 201,
+ "solve_exit_code": null,
+ "complete_solve_cost": null,
+ "interruption_evidence": "WSL restarted; original exec session, solver process and local f13 container absent. Partial curve retained; no acceptance comparison and no automatic retry.",
+ "partial_sha256": {
+  "ports.dat": "dbf76ec901e8edbddffa644deddcecd18a9e617f7f5a0952a776772a9ca9b6df",
+  "ports.dat.names": "4f8481a4cded033561ce463f0f8e9f00dad6957849fb8ca72129dfcf9bbc7946",
+  "deck.json": "9a12ffe8ea671fb37605cbcaf8549d0a93801ad01842438318f07ddc9f6a5b64",
+  "solver.log": "21d0d3f5437df1f07450de1e8acd3d2bf1b5194f7be24016774a6f0a9723329a"
+ }
+}

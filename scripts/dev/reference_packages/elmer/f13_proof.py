@@ -72,7 +72,8 @@ def _container(image, case_dir, command, cpus, memory, name, timeout):
         "docker", "run", "--rm", "--name", name, "--network", "none", "--read-only",
         "--tmpfs", "/tmp", "--cpus", str(cpus), "--memory", memory, "--memory-swap", memory,
         "--pids-limit", "16", "--user", f"{os.getuid()}:{os.getgid()}",
-        "-e", "HOME=/tmp", "-v", f"{case_dir}:/case", "-w", "/case", image,
+        "-e", "HOME=/tmp", "-e", "OPENBLAS_NUM_THREADS=1", "-e", "OMP_NUM_THREADS=1",
+        "-v", f"{case_dir}:/case", "-w", "/case", image,
         "bash", "-c", f"{command}; {ACCOUNT}",
     ]  # fmt: skip
     t0 = time.monotonic()

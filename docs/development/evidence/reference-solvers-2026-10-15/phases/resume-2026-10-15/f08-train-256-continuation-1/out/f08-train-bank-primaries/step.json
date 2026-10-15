@@ -1,0 +1,30 @@
+{
+ "name": "f08-train-bank-primaries",
+ "type": "bulk",
+ "status": "FAIL",
+ "wall_s": 2507.8,
+ "manifest": "docs/development/evidence/reference-solvers-2026-10-15/pins/f08-train-256-h3-manifest.json",
+ "manifest_sha256": "ecad1a1205448aedccb4feb037f55663bc6dd96c9aae7f75b3c1251c193fa80c",
+ "freeze": {
+  "exit": 0,
+  "stop_reason": "exit",
+  "wall_s": 42.89326127246022,
+  "rusage_cpu_s": 322.878
+ },
+ "verification": {
+  "selected": 256,
+  "selected_refused": [],
+  "all_cases_matching": 256
+ },
+ "bulk_exit": 0,
+ "observe_exit": 0,
+ "outcomes": {
+  "f08": {
+   "COMPLETED": 255,
+   "FAILED": 1
+  }
+ },
+ "not_launched": {
+  "f08": {}
+ }
+}

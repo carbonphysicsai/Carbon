@@ -31,6 +31,34 @@ SHIM = REPOSITORY / "scripts/dev/reference_packages/docker_shim.py"
 PLANS = REPOSITORY / "docs/development/evidence/reference-solvers-2026-10-15/plans"
 
 
+@pytest.mark.parametrize("exit_code", [0, 130])
+def test_f13_container_bounds_library_threads_and_retains_exit_outcome(
+    tmp_path, monkeypatch, exit_code
+):
+    from scripts.dev.reference_packages.elmer import f13_proof
+
+    calls = []
+
+    def run(argv, **kwargs):
+        calls.append(argv)
+        return SimpleNamespace(returncode=exit_code)
+
+    monkeypatch.setattr(f13_proof.subprocess, "run", run)
+    result = f13_proof._container(
+        "pinned-mesher", tmp_path, "python3 make_mesh.py", 1, "3g", "mesher", 60
+    )
+    (argv,) = calls
+    environment = dict(
+        argv[i + 1].split("=", 1) for i, value in enumerate(argv) if value == "-e"
+    )
+    assert environment["OPENBLAS_NUM_THREADS"] == environment["OMP_NUM_THREADS"] == "1"
+    assert argv[argv.index("--pids-limit") + 1] == "16"
+    assert argv[argv.index("--cpus") + 1] == "1"
+    assert argv[argv.index("--network") + 1] == "none"
+    assert result["exit"] == exit_code
+    assert result["outcome"] == ("COMPLETED" if exit_code == 0 else "FAILED")
+
+
 def _load_pod_control(name):
     spec = importlib.util.spec_from_file_location(
         name, REPOSITORY / "scripts/dev/exam_design/runpod/pod_control.py"
@@ -38,6 +66,54 @@ def _load_pod_control(name):
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+def test_funded_operator_phase_keeps_historical_accounting_separate(
+    tmp_path, monkeypatch
+):
+    pc = _load_pod_control("phase_accounting")
+    monkeypatch.setattr(pc, "REPO", str(tmp_path / "repo"))
+    monkeypatch.setattr(pc, "STATE_DIR", str(tmp_path / "operator"))
+    config = tmp_path / "operator/campaigns.json"
+    config.parent.mkdir()
+    config.write_text(
+        json.dumps({"ceilings_usd": {"reference-solvers": 25}, "balance_floor_usd": 15})
+    )
+    monkeypatch.setattr(pc, "account", lambda: {"clientBalance": 50})
+    pc.use_campaign("reference-solvers", "resume-fixture")
+    phase_ledger = Path(pc.PRIVATE_LEDGER)
+    assert "phases/resume-fixture" in Path(pc.LEDGER).as_posix()
+    assert pc.ACTIVE.endswith("-resume-fixture")
+    pc.cmd_start(SimpleNamespace(cap_usd=25))
+    assert pc.campaign_cap() == 25 and pc.committed_spend() == 0
+    with pytest.raises(SystemExit, match="already started"):
+        pc.cmd_start(SimpleNamespace(cap_usd=25))
+    pc.use_campaign("reference-solvers")
+    assert Path(pc.PRIVATE_LEDGER) != phase_ledger
+    assert pc.OPERATOR_PHASE is None
+    historical = Path(pc.LEDGER)
+    historical.parent.mkdir(parents=True, exist_ok=True)
+    historical.write_text(
+        json.dumps({"utc": "fixture", "event": "campaign_start"}) + "\n"
+    )
+    with pytest.raises(SystemExit, match="lacks"):
+        pc.ledger_rows()
+    assert phase_ledger.exists()
+
+
+@pytest.mark.parametrize(
+    "name,phase",
+    [
+        ("reference-solvers", "../escape"),
+        ("reference-solvers", ""),
+        ("reference-solvers", "a/b"),
+        ("ev4", "resume-fixture"),
+    ],
+)
+def test_operator_phase_rejects_path_escape_and_other_campaigns(name, phase):
+    pc = _load_pod_control("invalid_phase")
+    with pytest.raises(SystemExit, match="operator phase"):
+        pc.use_campaign(name, phase)
 
 
 # ------------------------------------------------------------ docker shim
@@ -221,6 +297,57 @@ def config(plan):
     }
 
 
+def test_observe_consumes_raw_outputs_before_cleanup_and_persists_report(
+    fake_repo, tmp_path
+):
+    step = bulk_step("bulk", "clean", {"families": ["fx"], "cases": ["ok-a"]})
+    step["keep"] = {"patterns": ["solver.log"], "max_file_bytes": 1000}
+    step["observe"] = {
+        "argv": [
+            "python3",
+            "-c",
+            (
+                "from pathlib import Path; import json; "
+                "raw=Path('{bulk}/cases/fx/ok-a/work/out.txt').read_text(); "
+                "Path('{out}/observed.json').write_text(json.dumps(dict(value=raw)))"
+            ),
+        ]
+    }
+    followup = {
+        "name": "lineage",
+        "type": "script",
+        "argv": [
+            "python3",
+            "-c",
+            (
+                "from pathlib import Path; import json; "
+                "assert json.loads(Path('{out}/../bulk/observed.json').read_text())"
+                "['value']=='a\\n'"
+            ),
+        ],
+    }
+    plan = write_plan(fake_repo, [step, followup])
+    out, scratch = tmp_path / "out", tmp_path / "scratch"
+    assert pp.run("fake", out, config(plan), scratch) == 0
+    assert not (scratch / "bulk").exists()
+    assert not (out / "bulk/cases/fx/ok-a/work/out.txt").exists()
+    assert json.loads((out / "bulk/observed.json").read_text())["value"] == "a\n"
+
+
+def test_deleted_sibling_scratch_is_refused_before_any_pod_launch(fake_repo):
+    bad = {
+        "name": "judge",
+        "type": "script",
+        "argv": ["python3", "judge.py", "{work}/../bulk/cases"],
+    }
+    plan = write_plan(fake_repo, [bad])
+    with pytest.raises(SystemExit, match="scratch cannot reference parent"):
+        pp.load_plan(fake_repo / plan, "fake")
+    pc = _load_pod_control("deleted_scratch_preflight")
+    with pytest.raises(SystemExit, match="scratch cannot reference parent"):
+        pc.public_pod_plan(json.loads((fake_repo / plan).read_text()))
+
+
 def test_the_pod_phase_runs_scripts_and_verified_bulk_steps(fake_repo, tmp_path):
     script = (
         "mkdir -p {work}/c && docker run --rm --network none -v {work}/c:/case native"
@@ -341,6 +468,29 @@ def test_committed_pod_plans_are_valid_public_and_reference_tracked_files():
                         spec["case_limits"]
                     )
                     assert fam in {c["family"] for c in picked}
+
+
+def test_f08_continuation_ships_its_gate_and_registration_runtime_inputs(tmp_path):
+    """The bank freeze previously failed after imports passed: JSON was absent."""
+    import shlex
+
+    from scripts.dev.reference_packages.calculix import f08_bank
+
+    doc = json.loads((PLANS / "f08-train-256-continuation.json").read_text())
+    assert [step["name"] for step in doc["steps"]] == ["f08-train-bank-primaries"]
+    command = shlex.split(doc["steps"][0]["freeze"]["argv"][-1])
+    inputs = {flag: command[command.index(flag) + 1]
+              for flag in ("--observed", "--registration")}  # fmt: skip
+    for rel in inputs.values():
+        assert rel in doc["ship"]
+        target = tmp_path / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(REPOSITORY / rel, target)
+    assert f08_bank.gate(tmp_path / inputs["--observed"], 3.0) == 0
+    reg = json.loads((tmp_path / inputs["--registration"]).read_text())
+    f08_bank.s.validate(reg)
+    assert reg["pins"] == f08_bank.registration(reg["scope"])["pins"]
+    assert f08_bank.gate(tmp_path / "missing-observation.json", 3.0) == 1
 
 
 def test_each_solver_kind_replays_its_locked_dockerfile():
@@ -567,6 +717,23 @@ def test_memory_need_selects_a_memory_flavor(operator):
     dispatch(operator, "--minutes", "30", "--memory-gib", "100")
     (pod,) = operator.rp.pods.values()
     assert pod["cpuFlavorId"] == "cpu3m"
+
+
+def test_phase_watchdog_keeps_termination_in_its_funded_namespace(operator):
+    pc = operator.pc
+    args = ["--campaign", "reference-solvers", "--operator-phase", "resume-fixture"]
+    pc.main([*args, "start", "--cap-usd", "25"])
+    pc.main([*args, "dispatch-solver", "elmer", "--pod-plan", "plans/smoke.json",
+             "--vcpu", "16", "--minutes", "60"])  # fmt: skip
+    (watchdog,) = operator.watchdogs
+    assert watchdog[watchdog.index("--operator-phase") + 1] == "resume-fixture"
+    pc.main([*watchdog[3:-1], str(int(time.time()) - 1)])
+    assert not operator.rp.pods and not pc.active_pods()
+    rows = pc.ledger_rows()
+    assert any(r["event"] == "terminated_verified" for r in rows)
+    assert "resume-fixture" in pc.PRIVATE_LEDGER
+    pc.use_campaign("reference-solvers")
+    assert [r["event"] for r in pc.ledger_rows()] == ["campaign_start"]
 
 
 def test_budget_refusal_counts_each_pod_at_its_worst_case(operator):

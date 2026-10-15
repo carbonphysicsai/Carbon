@@ -52,6 +52,7 @@ import io
 import json
 import math
 import os
+import re
 import secrets
 import subprocess
 import sys
@@ -144,6 +145,7 @@ CAMPAIGNS = {
 #: ``{"balance_floor_usd": F, "ceilings_usd": {"<campaign>": C, ...}}``.
 OPERATOR_CONFIG = "campaigns.json"
 CAMPAIGN = "exam-design"
+OPERATOR_PHASE = None
 EVID = os.path.join(REPO, CAMPAIGNS[CAMPAIGN]["evidence"])
 LEDGER = os.path.join(EVID, "accounting/ledger.jsonl")
 #: The full ledger, beside the API key and never in the repository.
@@ -204,16 +206,31 @@ PUBLIC_FIELDS = {
 }
 
 
-def use_campaign(name: str) -> None:
+def use_campaign(name: str, operator_phase: str | None = None) -> None:
     """Point the ledger and local state at one campaign."""
-    global CAMPAIGN, EVID, LEDGER, PRIVATE_LEDGER, ACTIVE, TOKEN_FILE
+    global CAMPAIGN, OPERATOR_PHASE, EVID, LEDGER, PRIVATE_LEDGER, ACTIVE, TOKEN_FILE
+    if operator_phase is not None and (
+        name != "reference-solvers"
+        or re.fullmatch(r"[a-z0-9][a-z0-9-]{0,63}", operator_phase) is None
+    ):
+        raise SystemExit(
+            "operator phase requires reference-solvers and a lowercase alphanumeric/hyphen id"
+        )
     spec = CAMPAIGNS[name]
     CAMPAIGN = name
+    OPERATOR_PHASE = operator_phase
     EVID = os.path.join(REPO, spec["evidence"])
     LEDGER = os.path.join(EVID, "accounting/ledger.jsonl")
     PRIVATE_LEDGER = os.path.join(STATE_DIR, "accounting", f"{name}.jsonl")
     ACTIVE = os.path.join(STATE_DIR, spec["active"])
     TOKEN_FILE = os.path.join(STATE_DIR, spec["token"]) if spec["token"] else None
+    if operator_phase is not None:
+        EVID = os.path.join(EVID, "phases", operator_phase)
+        LEDGER = os.path.join(EVID, "accounting/ledger.jsonl")
+        PRIVATE_LEDGER = os.path.join(
+            STATE_DIR, "accounting", f"{name}-{operator_phase}.jsonl"
+        )
+        ACTIVE = os.path.join(STATE_DIR, f"{spec['active']}-{operator_phase}")
 
 
 class Limits:
@@ -984,6 +1001,7 @@ def cmd_dispatch(a) -> None:
             "scripts.dev.exam_design.runpod.pod_control",
             "--campaign",
             CAMPAIGN,
+            *(["--operator-phase", OPERATOR_PHASE] if OPERATOR_PHASE else []),
             "watchdog",
             pod_id,
             str(int(deadline)),
@@ -1483,6 +1501,7 @@ def _create_cpu_pod(body, phase, token, created_req, deadline, ref, manifest, ma
             "scripts.dev.exam_design.runpod.pod_control",
             "--campaign",
             CAMPAIGN,
+            *(["--operator-phase", OPERATOR_PHASE] if OPERATOR_PHASE else []),
             "watchdog",
             pod_id,
             str(int(deadline)),
@@ -1540,6 +1559,11 @@ def public_pod_plan(doc) -> None:
             yield o
 
     for text in strings(doc):
+        if "{work}/.." in text.replace("\\", "/"):
+            raise SystemExit(
+                "refusing: step scratch cannot reference parent paths; "
+                "use {bulk} inside observe or persisted {out} results"
+            )
         low = text.lower()
         parts = set(
             low.replace("_", "/").replace("-", "/").replace(".", "/").split("/")
@@ -1925,6 +1949,10 @@ def main(argv=None) -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--campaign", choices=sorted(CAMPAIGNS), default="exam-design")
     ap.add_argument(
+        "--operator-phase",
+        help="separate reference-solvers accounting for an explicitly owner-funded phase; never a budget grant",
+    )
+    ap.add_argument(
         "--show-accounting",
         action="store_true",
         help="print balances, committed spend and the cap (operator terminal only)",
@@ -2018,7 +2046,7 @@ def main(argv=None) -> None:
     amend.add_argument("--cap-usd", type=float, required=True)
     amend.add_argument("--decision", required=True, help="the owner decision id")
     a = ap.parse_args(argv)
-    use_campaign(a.campaign)
+    use_campaign(a.campaign, a.operator_phase)
     SHOW_ACCOUNTING = a.show_accounting
     {
         "start": cmd_start,

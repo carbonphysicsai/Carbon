@@ -1,0 +1,16 @@
+{
+ "schema": "carbon.reference-solvers.pod-phase.v1",
+ "plan_id": "f08-train-256-continuation-2026-10-15",
+ "pod_plan": "docs/development/evidence/reference-solvers-2026-10-15/plans/f08-train-256-continuation.json",
+ "pod_plan_sha256": "50e3993b863889b2550238a374d09118ec6e3ac7d2f8bcb0a90713383af81a38",
+ "kind": "calculix",
+ "steps": [
+  {
+   "name": "f08-train-bank-primaries",
+   "status": "FAIL",
+   "wall_s": 2507.8
+  }
+ ],
+ "all_passed": false,
+ "maturity": "DEVELOPMENT engineering run on public decks; no adequacy, qualification or LIVE claim"
+}

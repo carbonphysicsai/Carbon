@@ -1,0 +1,21 @@
+{
+ "schema": "carbon.reference-solvers.pod-phase.v1",
+ "plan_id": "f17-witness-triage-2026-10-15",
+ "pod_plan": "docs/development/evidence/reference-solvers-2026-10-15/plans/f17-witness-triage.json",
+ "pod_plan_sha256": "5ce1ef7eeb86bd6df690d9fa3108d7a8b1b9e1b10d1a120736dddd132d72fe16",
+ "kind": "openfoam2506",
+ "steps": [
+  {
+   "name": "f17-triage",
+   "status": "PASS",
+   "wall_s": 3440.8
+  },
+  {
+   "name": "f17-judge",
+   "status": "FAIL",
+   "wall_s": 26.574860816821456
+  }
+ ],
+ "all_passed": false,
+ "maturity": "DEVELOPMENT engineering run on public decks; no adequacy, qualification or LIVE claim"
+}

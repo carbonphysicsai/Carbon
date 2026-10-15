@@ -1,0 +1,10 @@
+{
+ "cases_compared": 0,
+ "decision": "F02-SCIENCE-VALUES-01 A5",
+ "deck_identity": "case.sif and mesh files byte-identical to the earlier solved deck (check the bulk step's deck-verification.json)",
+ "earlier": "docs/development/evidence/reference-packages-01/f02-readiness/local-convergence-judgement.json",
+ "later": "/tmp/out/f02-lineage/../f02-verification-judge/judgement.json",
+ "pass": false,
+ "rows": [],
+ "schema": "carbon.f02-readiness.lineage.v1"
+}
