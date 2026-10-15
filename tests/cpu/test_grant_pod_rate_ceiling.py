@@ -44,19 +44,15 @@ def test_every_committed_grant_is_unchanged(path):
     # OWNER-MODEL-QWEN-GRANT-01 approves 0.65/h for the named Qwen grant only.
     # Another MODEL- grant needs its own owner-approved figure and ceiling;
     # a shared prefix must not extend this approval to that future grant.
-    ceiling = (
-        path.name.startswith(
-            (
-                "GRAPHITE-GRANT-STAGE-",
-                "GRAPHITE-GRANT-HUNT-",
-                "GRAPHITE-GRANT-L4-",
-            )
+    ceiling = path.name.startswith(
+        (
+            "GRAPHITE-GRANT-STAGE-",
+            "GRAPHITE-GRANT-HUNT-",
+            "GRAPHITE-GRANT-L4-",
         )
-        or path.name
-        in (
-            "GRAPHITE-GRANT-PHASE3-R4.json",
-            "GRAPHITE-GRANT-MODEL-QWEN-CONSTRUCTOR-1.json",
-        )
+    ) or path.name in (
+        "GRAPHITE-GRANT-PHASE3-R4.json",
+        "GRAPHITE-GRANT-MODEL-QWEN-CONSTRUCTOR-1.json",
     )
     expected = Decimal("0.65") if ceiling else None
     assert grant.pod_rate_ceiling_usd_per_hr == expected

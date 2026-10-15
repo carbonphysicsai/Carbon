@@ -250,7 +250,8 @@ def test_the_grants_index_lists_every_level_4_constructor_grant_with_its_pool():
 def test_minus_five_replaces_minus_four_and_the_owners_basis_is_unchanged():
     """The owner approved -5 at -4's exact figures (14.91 worst case, 14.94 ceiling) as REPLACING -4, whose run is spent
     (the ledger shows it claimed 1 of 1): the original static weekly basis stays 242.85. -4 stays registered for its
-    audit trail and is not counted twice. The separately approved Qwen grant adds its own ceiling to that basis."""
+    audit trail and is not counted twice. The separately approved Qwen grant adds its own ceiling to that basis.
+    """
     four, five = (
         "GRAPHITE-GRANT-L4-G-CONSTRUCTOR-4",
         "GRAPHITE-GRANT-L4-G-CONSTRUCTOR-5",
