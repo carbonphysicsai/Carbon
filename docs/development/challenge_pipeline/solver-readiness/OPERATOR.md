@@ -71,7 +71,15 @@ REF=$(git rev-parse --short HEAD)
 | f02-verification.json | elmer | 8 | 150 maximum | $0.60 estimate |
 | f08-triage-bank.json | calculix | 16 | 120 | $1.12 |
 | f13-verification.json | elmer | 16 | 450 | $4.20 |
-| f17-witness-triage.json | openfoam2506 | 8 | 90 | $0.60 |
+| f13-coaxial-4mm-dense.json | elmer | 8, 64 GiB | 240 | $1.76 estimate |
+| f17-witness-triage.json | openfoam2506 | 8 | 150 | $0.60 estimate |
+
+The optional f13 dense plan checks all four coaxial B3 controls at 4 mm on
+the complete 201-frequency grid. It retains the original bands, requires
+independent N20/N40 convergence, and exits nonzero unless all four pass.
+It does not replace the historical 8 mm finding or complete the other f13
+verification requirements. Always use the live provider reservation check;
+the table's costs are planning estimates, not current offers.
 
 `collect` deletes the pod after fetching. Then commit `DEST/` and the public ledger.
 
