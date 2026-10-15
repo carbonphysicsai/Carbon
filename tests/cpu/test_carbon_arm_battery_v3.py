@@ -4,6 +4,7 @@ Carbon hop (`evidence_pipeline._predictions`); no solve, no panel truth read."""
 
 from __future__ import annotations
 
+import copy
 import dataclasses
 import json
 import math
@@ -66,6 +67,63 @@ def train_bytes(kit=FIXTURE_KIT, *, c1=(1, 1.25, 1.5, 1.75, 2), fixture=True, ex
 
 def load(data, kit=FIXTURE_KIT):
     return arm.load_train(kit, data, arm.sha256(data))
+
+
+def metadata_view():
+    export = fixture_export()
+    entries = [
+        {k: copy.deepcopy(entry[k]) for k in ("case", "task", "reference")}
+        for entry in export["questions"]
+    ]
+    for entry in entries:
+        for _band, task, panel in cb._panels(entry):
+            names = {(r["candidate"], r["condition"]): list(r["values"]) for r in panel}
+            panel[:] = [
+                {
+                    "candidate": c,
+                    "condition": cond["id"],
+                    "observables": names[c, cond["id"]],
+                }
+                for c in task["candidates"]
+                for cond in task["conditions"]
+            ]
+    body = {
+        "schema": arm.CANDIDATE_VIEW,
+        "scope": "SYNTHETIC_FIXTURE",
+        "family": "battery-v3",
+        "questions": entries,
+    }
+    return {**body, "export_digest": arm.sha256(arm.canonical(body))}
+
+
+def test_candidate_view_never_invokes_numeric_reference_reader(monkeypatch):
+    view = metadata_view()
+
+    def forbidden(_export):
+        raise AssertionError("numeric truth reader called")
+
+    monkeypatch.setattr(cb, "_physical_rows", forbidden)
+    rows = arm._physical_rows(FIXTURE_KIT, view)
+    assert rows and all("values" not in r for r in rows)
+    assert all(set(r["observables"]) == set(FIXTURE_KIT.observables) for r in rows)
+    assert (
+        sum(len(indices) for _, indices in arm._decision_query_indices(view, rows)) > 0
+    )
+
+
+def test_candidate_view_rejects_truth_fields_and_missing_offered_rows():
+    for defect in ("truth", "missing"):
+        view = metadata_view()
+        panel = cb._panels(view["questions"][0])[0][2]
+        if defect == "truth":
+            panel[0]["values"] = {"hidden-looking-marker": 42}
+        else:
+            panel.pop()
+        view["export_digest"] = arm.sha256(
+            arm.canonical({k: v for k, v in view.items() if k != "export_digest"})
+        )
+        with pytest.raises(arm.ArmRefused, match="CANDIDATE_VIEW"):
+            arm._physical_rows(FIXTURE_KIT, view)
 
 
 def test_predictions_pass_the_pipelines_carbon_hop():

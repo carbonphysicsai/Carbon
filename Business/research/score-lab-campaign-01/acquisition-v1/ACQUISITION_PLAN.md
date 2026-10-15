@@ -91,6 +91,27 @@ Root independently established public provenance and owns actual execution.
 
 ### A01: exact reuse test, not a directory-exists test
 
+**Actual committed construction data found:** `v2-rescore.json` contains402
+published derived coarse cells with all five target fields (SHA-256
+`c6c23a5211af1e16b6decb6e702448d77471a7343fb05ff78e697bce2fa807b7`).
+After input-only removal of15 exact calibration and6 evaluation overlaps,
+381 remain before quality checks. `coarse-construction-source.json` pins this
+prospective CONSTRUCTION/DISCOVERY role and both supporting registries.
+`owner_v3_train.prepare` copies the five target fields unchanged, retains nulls
+for the existing trainer's exclusion ledger, binds the source bytes and refuses
+fixture-to-public promotion. It executes only through Root's actual TEST route.
+
+These published labels can start construction without waiting for an unknown
+operator run folder. They are **not** raw-rung reference evidence or completed
+rows of the separate4,000-TRAIN plan, which excluded old study tuples. Their
+minimum c1=1.25 and c2=.4 leave the .5/.75 and .25 evaluation support uncovered;
+freeze the missing input-only anchors from the registered SOC.1 TRAIN plan.
+Use the381 plus those anchors as a first construction curriculum, with the
+registered nested TRAIN expansions only when support/validation calls for them.
+Do not fabricate voltage for other published boundary rows that omit it, carry
+old verdicts/voltage allowances into evaluation, or claim prior acquisition was
+free because incremental reuse needs no new solves.
+
 Registered labels: bfeas, bfeas-t2, bfeas-t2r, bfeas-t3, bfeas-t3r, bfeas-t4a,
 bfeas-t4b, bfeas-t4r, bfeas-t5r, bfeas-t6r3, bmid-a, bmid-r2, bmid-r3.
 Match c1/c2/switch/cooling/ambient/SOC, fresh initialization, full 30-cycle
@@ -235,6 +256,13 @@ as the kit's default. Bind TRAIN digest, recipe/seed/settings, source, environme
 params digest, fit cost and all-row predictions before evaluation truth is
 joined. Retain raw invalid/nonfinite/abstained outputs and a typed eligibility
 record. Model failure and reference failure are distinct.
+The new metadata-only candidate-view schema supplies action/condition rows and
+observable **names**, with no numerical reference values or dummy truth. The
+existing arm has a separate parser for this schema; the historical cheap
+baseline physical-row reader converts truth numbers and cannot be used for
+this boundary. Bind the candidate-view digest to the producer's final bank
+receipt, and commit model predictions before the truth-judging call. Failed
+reference rows remain offered model inputs; they are not silently removed.
 
 Cheap arm: independently constructed lookup/response surface with documented
 support, using public TRAIN/calibration only for unseen evaluation tuples;
@@ -253,6 +281,12 @@ only if the reference bank and cohort are adequate and own-top-three paired
 regret remains unresolved, not to make a tau CI exclude zero. All draws share
 one physical bank. Conditional question-resampling intervals do not estimate
 generalization to new physical banks. A fresh final holdout remains separate.
+`owner_v3.population_tasks` materializes the frozen fallback-bank P stream
+without any outcomes: CPython Random.gammavariate Dirichlet construction,
+public seed20261015, exact unit-sum weights via1e-12 largest-remainder
+quantization (per-band error<1e-12), uniform margins and fixed32/32 roles.
+The extension preserves the entire first64 draws. Q is not silently generated
+from this P function; its separate discovery support is still required.
 
 Discovery-only Q bins: safety edge within .5K or .5mV of a drawn limit;
 pick edge two discovery-feasible actions within .1min of the .5min equivalence
@@ -271,6 +305,13 @@ assumptions, not accepted safety margins. Include all quantities the behavior
 controls; no omitted-quantity fallback. Always-decline, known-good reference,
 and frozen cheap comparator are separate controls. Control-derived predictions
 are marked as such and excluded from learned-model tau.
+Audit control identifiability before using a gamer veto: a lattice-aware model
+that is exact on every action in this finite bank cannot be distinguished
+there from a good model. Report UNIDENTIFIABLE_ON_THIS_SUPPORT, not a passed
+attack test or an invented bad-model failure. Outside-support error is not
+evidence about conditional bank value. Fresh within-job held-out actions and
+the custodian's confirmation are the relevant extra evidence for a broader
+claim; the finite diagnostic alone cannot earn it.
 
 For each model/question retain: prediction commitment, task/law/source identity,
 P or Q and role, all five choices, required limits and mix, every band's truth
@@ -341,13 +382,21 @@ score improvement, and do not force a holdout reveal if none survives.
 Only a future authorized rule/Validator change can promote the selected minute
 primitive into championship scoring with an appropriately registered comparison
 unit and margin. Acquisition and real alignment measurement proceed now.
+Before any reveal, request a custodian-only compatibility receipt naming the
+holdout's job/observer/output contract, never its cases or numerical content.
+The unchanged old commitment must not be renamed as a full30-cycle v3 holdout.
+If it is EV4-only, it cannot confirm the new6-input/five-output job; record the
+need for a prospective matching confirmation tranche and route that to the
+custodian/owner. Do not replace or reveal D7's existing commitment silently.
+This metadata check runs in parallel with acquisition, before spending the
+whole reference budget, and never grants this lane holdout access.
 
 ### Explicit remaining producer integration, parallel with raw acquisition
 
-The present pure projection is tested on synthetic tasks and deliberately
-refuses `PUBLIC_DEVELOPMENT` execution until the numerical-evidence producer
-bridge is registered. This is an implementation task, not a request for new
-owner numbers. DC/Optimizer bind the revised solved-panel export to the full
+The pure projection refuses `PUBLIC_DEVELOPMENT` without the validated
+numerical-evidence producer bridge and independent prebound registration.
+This is an implementation task, not a request for new owner numbers.
+DC/Optimizer bind the revised solved-panel export to the full
 registered task/limits, source references, per-candidate all-quantity enclosures,
 method ID/policy, actual rungs, observer/clock and authenticated producer source
 receipts. A cal-compatible Boolean alone is insufficient; each evaluation tuple
@@ -356,3 +405,11 @@ identity. The historical `.005C`/objective-filtering export remains history.
 Implement this binding while the raw pilot and input inventory proceed; do not
 hold source-valid reference acquisition behind the dashboard or championship
 adapter. Only then enable the public primitive route with contract tests.
+
+Chronology: freeze input jobs, roles, methods, cohort and question generation
+before new performance. Returned raw-chunk hashes can only be sealed after
+reference acquisition. Root independently pins that actual bank manifest before
+model/value selection, and model predictions/picks commit before truth judging.
+No output digest is required before its reference solve exists. Keep the
+complete attempt/cost ledger even when an allowed infrastructure retry supplies
+the terminal record; never select the numerically most favorable attempt.

@@ -57,6 +57,15 @@ def pair_enclosures(previous, finest, *, expected_policy_digest):
         point = finest[quantity]
         radius = max(floor, 2 * abs(point - previous[quantity]))
         bounds[quantity] = [point - radius, point + radius]
+        if not math.isfinite(radius) or not all(
+            math.isfinite(x) for x in bounds[quantity]
+        ):
+            return {
+                **body,
+                "status": "REFERENCE_UNRESOLVED",
+                "intervals": None,
+                "reason": "NONFINITE_INTERVAL_ARITHMETIC",
+            }
     # Boundary convention is a two-observed-rung numerical check, NOT a
     # certified enclosure or a relaxed physical voltage limit.
     a, b = previous["v_max_v"], finest["v_max_v"]
@@ -109,6 +118,10 @@ def calibration_report(triples, *, expected_cases, expected_policy_digest):
         finest_pair = pair_enclosures(
             triple["40"], triple["80"], expected_policy_digest=expected_policy_digest
         )
+        if pair["intervals"] is None or finest_pair["intervals"] is None:
+            missing.append(case)
+            rows[case] = {"compatible": False, "pair": pair, "finest_pair": finest_pair}
+            continue
         outside = [
             q
             for q in POLICY["floors"]

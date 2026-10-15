@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import copy
 import json
+from decimal import Decimal
 from pathlib import Path
 
 import pytest
@@ -398,3 +399,52 @@ def test_numerical_null_or_voltage_breach_cannot_be_repaired_or_softened():
     assert result["status"] == "REFERENCE_UNRESOLVED"
     with pytest.raises(tasks.TaskError, match="numerical policy"):
         numerics.pair_enclosures(values, values, expected_policy_digest="wrong")
+
+
+def test_finite_inputs_cannot_produce_unbounded_calibration_pass():
+    values = {
+        "charging_t_max_c": 42,
+        "plating_min_v": 0.003,
+        "minutes": 15,
+        "q30_over_q1": 0.995,
+        "v_max_v": 4.2,
+    }
+    previous = {**values, "charging_t_max_c": 1e308}
+    finest = {**values, "charging_t_max_c": -1e308}
+    digest = tasks.digest(numerics.POLICY)
+    pair = numerics.pair_enclosures(previous, finest, expected_policy_digest=digest)
+    assert pair["status"] == "REFERENCE_UNRESOLVED"
+    assert pair["intervals"] is None
+    report = numerics.calibration_report(
+        {"toy": {"20": previous, "40": finest, "80": values}},
+        expected_cases=["toy"],
+        expected_policy_digest=digest,
+    )
+    assert report["status"] == "INCOMPLETE_REFERENCE"
+
+
+def test_public_P_stream_is_input_only_registered_and_replays_exactly():
+    path = (
+        Path(__file__).resolve().parents[2]
+        / "Business/research/score-lab-campaign-01/acquisition-v1/acquisition.json"
+    )
+    plan = json.loads(path.read_text(encoding="utf-8"))
+    digest = tasks.digest(plan)
+    first = owner.population_tasks(plan, expected_plan_digest=digest, count=64)
+    expanded = owner.population_tasks(plan, expected_plan_digest=digest, count=128)
+    assert first == expanded[:64]
+    assert len({q["task"]["task_digest"] for q in expanded}) == 128
+    assert {q["population"] for q in expanded} == {"P"}
+    assert [q["role"] for q in first] == ["LEG"] * 32 + ["VALUE"] * 32
+    assert {q["bank_cluster"] for q in expanded} == {digest}
+    for q in first:
+        task = q["task"]
+        assert tuple(r["index_value"] for r in task["indices"]) == owner.BANDS
+        assert task["identity"]["query_budget"] == 60
+        assert sum(Decimal(str(r["buyer_weight"])) for r in task["indices"]) == 1
+        assert all(
+            {a["cooling"] for a in r["task"]["actions"].values()} == {1, 2, 4}
+            for r in task["indices"]
+        )
+    with pytest.raises(tasks.TaskError, match="P count"):
+        owner.population_tasks(plan, expected_plan_digest=digest, count=129)

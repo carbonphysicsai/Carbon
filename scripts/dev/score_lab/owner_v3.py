@@ -9,6 +9,7 @@ Historical indexed reductions and their results remain unchanged.
 from __future__ import annotations
 
 import math
+import random
 from collections import Counter
 from decimal import Decimal
 
@@ -211,7 +212,16 @@ def reference_mask(registered, references, intervals):
     return {**body, "mask_digest": tasks.digest(body)}
 
 
-def judge(registered, commitment, references, intervals, *, scope):
+def judge(
+    registered,
+    commitment,
+    references,
+    intervals,
+    *,
+    scope,
+    producer_evidence=None,
+    producer_binding=None,
+):
     """Reuse the canonical judge; reduce its band regrets with owner-D2 order.
 
     Unsafe/abstaining/unknown outcomes have NO finite minute penalty invented
@@ -219,10 +229,31 @@ def judge(registered, commitment, references, intervals, *, scope):
     """
     if scope not in ("SYNTHETIC_FIXTURE", "PUBLIC_DEVELOPMENT"):
         raise tasks.TaskError("development-only projection")
-    if scope == "PUBLIC_DEVELOPMENT":
+    producer_proof = None
+    if scope == "PUBLIC_DEVELOPMENT" and (
+        producer_evidence is None or producer_binding is None
+    ):
         raise tasks.TaskError(
-            "PUBLIC projection requires the registered producer numerical-evidence bridge; not yet implemented"
+            "PUBLIC projection requires the registered producer numerical-evidence bridge"
         )
+    if producer_evidence is not None:
+        from .owner_v3_panel_export import validate_for
+
+        receipt = validate_for(
+            producer_evidence, registered, references, intervals, scope=scope
+        )
+        if (
+            type(producer_binding) is not dict
+            or set(producer_binding)
+            != {"plan_digest", "source_pins_digest", "manifest_digest"}
+            or any(producer_binding[k] != receipt.get(k) for k in producer_binding)
+            or receipt.get("scope") != scope
+        ):
+            raise tasks.TaskError("prebound producer registration or scope differs")
+        producer_proof = {
+            "registration": dict(producer_binding),
+            "receipt_digest": tasks.digest(receipt),
+        }
     mask = reference_mask(registered, references, intervals)
     body = {k: v for k, v in commitment.items() if k != "commitment_digest"}
     if (
@@ -234,6 +265,7 @@ def judge(registered, commitment, references, intervals, *, scope):
         result = {
             "schema": PROJECTION,
             "scope": scope,
+            "producer": producer_proof,
             "job": JOB,
             "task_digest": registered["task_digest"],
             "commitment_digest": commitment["commitment_digest"],
@@ -276,6 +308,7 @@ def judge(registered, commitment, references, intervals, *, scope):
     result = {
         "schema": PROJECTION,
         "scope": scope,
+        "producer": producer_proof,
         "job": JOB,
         "task_digest": registered["task_digest"],
         "commitment_digest": commitment["commitment_digest"],
@@ -453,3 +486,126 @@ def acquisition_inputs(plan, *, expected_digest, stage):
                         }
                     )
     return {"batch": f"scorelab-v3-{stage}-dev-v1", "jobs": jobs}
+
+
+def population_tasks(plan, *, expected_plan_digest, count):
+    """Input-only P tasks for the frozen fallback bank; no truth or models.
+
+    Dirichlet draws use registered CPython Random.gammavariate. Largest-
+    remainder quantization to 1e-12 gives exact unit-sum buyer weights and
+    error below 1e-12 per band. Q requires its separate discovery support.
+    """
+    from .owner_v3_panel_export import OBSERVER
+
+    jobs = acquisition_inputs(
+        plan, expected_digest=expected_plan_digest, stage="evaluation"
+    )["jobs"]
+    initial, maximum = plan["questions"]["initial_P"], plan["questions"]["max_P"]
+    if type(count) is not int or not 0 < count <= maximum:
+        raise tasks.TaskError("bounded registered public P count required")
+    actions = {}
+    for row in jobs:
+        action = {
+            "c1": row["c1"],
+            "c2": row["c2"],
+            "switch_v": row["switch_voltage_v"],
+            "cooling": row["h_multiplier"],
+        }
+        actions.setdefault(tasks.digest(action), action)
+    grammar = {
+        "schema": tasks.GRAMMAR_SCHEMA,
+        "version": f"{JOB}.fallback60.actions.v1",
+        "variables": [
+            {"name": "c1", "type": "number", "min": 0.25, "max": 2, "step": 0.01},
+            {"name": "c2", "type": "number", "min": 0.25, "max": 2, "step": 0.01},
+            {"name": "switch_v", "type": "number", "min": 4, "max": 4.15, "step": 0.05},
+            {"name": "cooling", "type": "integer", "min": 1, "max": 4, "step": 1},
+        ],
+        "rules": [
+            {
+                "kind": "linear",
+                "coefficients": {"c2": 1, "c1": -1},
+                "op": "<=",
+                "value": 0,
+            }
+        ],
+    }
+    rng = random.Random(plan["questions"]["seed"])
+    result = []
+    for i in range(count):
+        gamma = [Decimal(str(rng.gammavariate(a, 1))) for a in (2, 3, 8, 5, 2)]
+        exact = [g / sum(gamma) * 10**12 for g in gamma]
+        units = [int(v) for v in exact]
+        remainder_order = sorted(range(5), key=lambda b: (-(exact[b] - units[b]), b))
+        for b in remainder_order[: 10**12 - sum(units)]:
+            units[b] += 1
+        thermal_margin, plating_margin = rng.uniform(0, 2.5), rng.uniform(0, 0.002)
+        indices = []
+        qid = f"public-battery-v3-P{i:03d}"
+        for band, weight in zip(BANDS, units):
+            condition = f"T{band}"
+            subtask = tasks.task(
+                f"{qid}-{condition}",
+                identity={
+                    "challenge": "battery-fastcharge-ageing-development-v1",
+                    "contract_version": JOB,
+                    "action_grammar": grammar,
+                    "optimizer": {"class": "exhaustive", "version": "v1"},
+                    "query_budget": len(actions),
+                    "seed": plan["questions"]["seed"],
+                    "observer_version": OBSERVER,
+                    "reference_bank": expected_plan_digest,
+                },
+                conditions=[{"id": condition, "stratum": "fresh-state"}],
+                strata={"fresh-state": {"p": 1, "q": 1, "w": 1}},
+                candidates=list(actions),
+                actions=actions,
+                objective={
+                    "quantity": "minutes",
+                    "unit": "min",
+                    "sense": "min",
+                    "aggregate": "worst",
+                },
+                limits=[
+                    {
+                        "quantity": "charging_t_max_c",
+                        "unit": "C",
+                        "op": "<=",
+                        "value": 45 - thermal_margin,
+                    },
+                    {
+                        "quantity": "plating_min_v",
+                        "unit": "V",
+                        "op": ">=",
+                        "value": plating_margin,
+                    },
+                    {"quantity": "v_max_v", "unit": "V", "op": "<=", "value": 4.2},
+                    {"quantity": "q30_over_q1", "unit": "1", "op": ">=", "value": 0.99},
+                ],
+            )
+            indices.append(
+                {"index_value": band, "buyer_weight": weight / 10**12, "task": subtask}
+            )
+        registered = indexed.indexed_task(
+            qid,
+            index_axis="ambient_c",
+            indices=indices,
+            query_budget=5 * len(actions),
+            value_equivalence={
+                "quantity": "minutes",
+                "unit": "min",
+                "tolerance": 0.5,
+                "rule": indexed.EQUIVALENCE_RULE,
+            },
+        )
+        result.append(
+            {
+                "population": "P",
+                "role": "LEG" if i % initial < initial // 2 else "VALUE",
+                "outer_weight": 1,
+                "bank_cluster": expected_plan_digest,
+                "buyer_mix_quantization_error_bound": 1e-12,
+                "task": registered,
+            }
+        )
+    return result
