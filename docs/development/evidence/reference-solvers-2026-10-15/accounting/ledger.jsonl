@@ -47,3 +47,11 @@
 {"utc": "2026-10-15T17:02:51Z", "event": "exported", "pod_id": "o61v6pz5teuqge", "dest": "docs/development/evidence/reference-solvers-2026-10-15/f08-triage-bank", "files": 16, "bytes_written": 338826, "listing_sha256": "9c6d2097ef154c3d92a84572b60b167c4c295cef138971a5441f7e5f7c313bc3"}
 {"utc": "2026-10-15T17:02:51Z", "event": "terminate_requested", "pod_id": "o61v6pz5teuqge"}
 {"utc": "2026-10-15T17:02:53Z", "event": "terminated_verified", "pod_id": "o61v6pz5teuqge", "verified_epoch": 1792083773.0096686}
+{"utc": "2026-10-15T17:06:56Z", "event": "dispatch_requested", "campaign": "reference-solvers", "max_pods": 4, "phase": "calculix", "plan": "docs/development/evidence/reference-solvers-2026-10-15/plans/f08-triage-bank.json", "ref": "7337067e0", "minutes": 120.0, "vcpu": 16, "cpu_flavors": ["cpu3c", "cpu3g"]}
+{"utc": "2026-10-15T17:06:58Z", "event": "created", "pod_id": "vwszvu9tn1a4lp", "phase": "calculix", "created_epoch": 1792084016.640291, "deadline_epoch": 1792091216.640291, "image": "debian:trixie-20261005-slim@sha256:a29215f6a35e51e22adffa17f89e9d2ef06214e64a2bad10d765c46aea49f11f", "cpu_flavor": "cpu3c", "ref": "7337067e0", "code_manifest_sha256": "e76d5d96c165d932608641c14a851655c629dfd590a542388b7ca71938c593a5"}
+{"utc": "2026-10-15T17:07:19Z", "event": "terminate_requested", "pod_id": "sf3j4e4p55wfh4"}
+{"utc": "2026-10-15T17:07:20Z", "event": "terminated_verified", "pod_id": "sf3j4e4p55wfh4", "verified_epoch": 1792084040.7297828}
+{"utc": "2026-10-15T17:07:21Z", "event": "terminate_requested", "pod_id": "vwszvu9tn1a4lp"}
+{"utc": "2026-10-15T17:07:22Z", "event": "terminated_verified", "pod_id": "vwszvu9tn1a4lp", "verified_epoch": 1792084042.9492044}
+{"utc": "2026-10-15T17:07:23Z", "event": "terminate_requested", "pod_id": "wneep4zciv4jvq"}
+{"utc": "2026-10-15T17:07:25Z", "event": "terminated_verified", "pod_id": "wneep4zciv4jvq", "verified_epoch": 1792084045.0038998}
