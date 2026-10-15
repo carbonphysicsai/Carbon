@@ -35,12 +35,14 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import os
 import re
 import subprocess
 import sys
 import time
 from concurrent.futures import ProcessPoolExecutor, as_completed
+from itertools import pairwise
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -159,6 +161,133 @@ def _simulation(job):
     }
 
 
+def _time_observations(times):
+    """Inventory recorded points, never solver-internal steps or adequacy."""
+    result = {
+        "schema": "carbon.battery.observed-time-vector.v1",
+        "observation_sample_count": len(times),
+        "max_observed_time_gap_s": None,
+        "duplicate_time_count": None,
+        "status": "EMPTY_TIME_VECTOR",
+    }
+    if not len(times):
+        return result
+    try:
+        values = [float(t) for t in times]
+    except (TypeError, ValueError, OverflowError):
+        return {**result, "status": "INVALID_TIME_VECTOR"}
+    if not all(math.isfinite(t) for t in values):
+        return {**result, "status": "NONFINITE_TIME_VECTOR"}
+    if len(values) == 1:
+        return {**result, "status": "SINGLE_TIME_POINT"}
+    gaps = [b - a for a, b in pairwise(values)]
+    if not all(math.isfinite(gap) for gap in gaps):
+        return {**result, "status": "NONFINITE_TIME_DIFFERENCE"}
+    if any(gap < 0 for gap in gaps):
+        return {**result, "status": "BACKWARDS_TIME_VECTOR"}
+    return {
+        **result,
+        "status": "OBSERVED_NONDECREASING",
+        "max_observed_time_gap_s": max(gaps),
+        "duplicate_time_count": sum(gap == 0 for gap in gaps),
+    }
+
+
+def _soc80_observation(times, socs, *, crossing=None, fraction=None, unavailable=None):
+    """Retain the original first crossing's bracket; do not recompute a clock."""
+    time_observations = _time_observations(times)
+    result = {
+        "schema": "carbon.battery.observed-soc80-bracket.v1",
+        "time_observations": time_observations,
+        "status": unavailable,
+        "time_endpoints_s": None,
+        "soc_endpoints": None,
+        "interpolation_fraction": None,
+        "observed_bracket_width_s": None,
+        "exact_upper_sample_hit": None,
+    }
+    if unavailable is not None:
+        return result
+    if time_observations["status"] != "OBSERVED_NONDECREASING":
+        return {**result, "status": "INVALID_TIME_VECTOR"}
+    try:
+        soc_values = [float(soc) for soc in socs]
+        if len(soc_values) != len(times) or not all(
+            math.isfinite(soc) for soc in soc_values
+        ):
+            return {**result, "status": "NONFINITE_OR_MISMATCHED_SOC_VECTOR"}
+        if type(crossing) is not int or not 0 < crossing < len(times):
+            return {**result, "status": "INVALID_CROSSING_INDEX"}
+        lower, upper = crossing - 1, crossing
+        t0, t1 = float(times[lower]), float(times[upper])
+        s0, s1 = soc_values[lower], soc_values[upper]
+        result.update(time_endpoints_s=[t0, t1], soc_endpoints=[s0, s1])
+        width, delta_soc, offset = t1 - t0, s1 - s0, 0.80 - s0
+        if not all(math.isfinite(v) for v in (width, delta_soc, offset)):
+            return {**result, "status": "NONFINITE_BRACKET_ARITHMETIC"}
+        f = float(fraction)
+        if not (s0 < 0.80 <= s1) or delta_soc <= 0:
+            return {**result, "status": "INVALID_SOC_CROSSING"}
+        if not math.isfinite(f) or not 0 <= f <= 1:
+            return {**result, "status": "INVALID_INTERPOLATION_FRACTION"}
+    except (TypeError, ValueError, OverflowError):
+        return {**result, "status": "INVALID_BRACKET_VALUE"}
+    return {
+        **result,
+        "status": "OBSERVED_BRACKET",
+        "interpolation_fraction": f,
+        "observed_bracket_width_s": width,
+        "exact_upper_sample_hit": s1 == 0.80,
+    }
+
+
+def _observation_source_metadata(sim):
+    """Hash readable module-file bytes now, not loaded code or wheel identity."""
+    import inspect
+
+    import pybamm
+
+    sources = {}
+    for role, obj in (
+        ("simulation", type(sim)),
+        ("solver", type(getattr(sim, "solver", None))),
+        ("base_solver", getattr(pybamm, "BaseSolver", None)),
+        ("solution", getattr(pybamm, "Solution", None)),
+        ("experiment", getattr(pybamm, "Experiment", None)),
+    ):
+        entry = {
+            "module": getattr(obj, "__module__", None),
+            "sha256": None,
+            "status": "INSTALLED_PYTHON_SOURCE_UNAVAILABLE",
+        }
+        try:
+            source = inspect.getsourcefile(obj)
+            if source is not None and source.endswith(".py"):
+                entry.update(
+                    sha256=hashlib.sha256(Path(source).read_bytes()).hexdigest(),
+                    status="ACTUAL_INSTALLED_PYTHON_BYTES_HASHED",
+                )
+        except (OSError, TypeError, ValueError):
+            pass
+        sources[role] = entry
+    return {
+        "schema": "carbon.battery.observation-source-inventory.v1",
+        "installed_python_sources": sources,
+        "inventory_scope": "NAMED_MODULE_SUBSET_READABLE_FILE_BYTES_AT_CAPTURE_TIME",
+        "loaded_code_attestation": "NOT_PERFORMED",
+        "transitive_dependency_attestation": "NOT_PERFORMED",
+        "wheel_authenticity_verification": "NOT_PERFORMED_BY_THIS_DIAGNOSTIC",
+        "native_solver_source_verification": "NOT_PERFORMED",
+        "expected_environment_identity": "SEPARATE_SOLVER_PROVENANCE_AND_OVERLAY_LOCK",
+        "output_time_configuration": {
+            "experiment_period_argument": "OMITTED",
+            "solve_t_interp_argument": "OMITTED",
+            "fixed_output_period_s": None,
+            "basis": "ACTUAL_RECORDED_POINTS_LIBRARY_DEFAULTS_NOT_A_FIXED_PERIOD_CLAIM",
+        },
+    }
+
+
 def _step_summary(step, cooling):
     import numpy as np
 
@@ -184,6 +313,7 @@ def _step_summary(step, cooling):
         "cooling_peak_w": float(np.max(removal)),
         "cooling_energy_j": float(np.trapezoid(removal, t)),
         "heating_energy_j": float(np.trapezoid(heating, t)),
+        "time_observations": _time_observations(t),
     }
 
 
@@ -216,10 +346,19 @@ def _soc_clock(cycle1, soc0, capacity):
             "status": "NOT_REACHED",
             "horizon_s": float(times[-1]),
             "soc_end": float(socs[-1]),
+            "soc80_observation": _soc80_observation(
+                times, socs, unavailable="UNAVAILABLE_NOT_REACHED"
+            ),
         }
     k = int(above[0])
     if k == 0:
-        return {"status": "AT_START", "time_s": float(times[0])}
+        return {
+            "status": "AT_START",
+            "time_s": float(times[0]),
+            "soc80_observation": _soc80_observation(
+                times, socs, unavailable="UNAVAILABLE_AT_START"
+            ),
+        }
     f = (0.80 - socs[k - 1]) / (socs[k] - socs[k - 1])
     t80 = times[k - 1] + f * (times[k] - times[k - 1])
     return {
@@ -227,6 +366,7 @@ def _soc_clock(cycle1, soc0, capacity):
         "time_s": float(t80),
         "minutes": float(t80 / 60.0),
         "soc10_time_s": t10,
+        "soc80_observation": _soc80_observation(times, socs, crossing=k, fraction=f),
     }
 
 
@@ -243,6 +383,7 @@ def solve_one(job):
         return {**record, "status": "REFERENCE_SOLVER_FAILED", "error": repr(exc)[:300],
                 "wall_s": time.perf_counter() - started}  # fmt: skip
     record["cooling"] = cooling
+    record["observation_provenance"] = _observation_source_metadata(sim)
     cycles = list(sol.cycles)
     if len(cycles) < N_CYCLES or any(c is None for c in cycles):
         return {**record, "status": "REFERENCE_SOLVER_FAILED",
