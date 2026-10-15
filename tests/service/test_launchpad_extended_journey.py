@@ -363,9 +363,20 @@ def test_12_new_level_hints_do_not_downgrade_the_current_composition(battery, do
                     "SELECT * FROM launchpad_campaigns WHERE id=?", (result["id"],)
                 ).fetchone()
             )
-        captured = levels.campaign_binding(row, battery.cfg)
-        assert captured["kind"] == cl.COMPOSITION
-        assert captured["digest"] == expected["digest"]
+        # This fixture's preparation omits the manifest's level argument.
+        # Inspect the writer-owned admission directly, authenticating both
+        # the saved request and its version/digest rather than a substitute.
+        recorded = json.loads(row["launch_request"])
+        captured = levels.checked_capture(row, recorded[levels.CONSTRUCTION_ADMISSION])
+        found = levels.replay_binding(
+            recorded,
+            {"id": recorded["challenge"], "version": recorded["challenge_version"]},
+            recorded["agent"],
+            battery.cfg,
+            captured,
+        )
+        assert found["kind"] == cl.COMPOSITION
+        assert found["digest"] == expected["digest"]
 
 
 @pytest.mark.parametrize("level", [1, 2, 3, 4])
