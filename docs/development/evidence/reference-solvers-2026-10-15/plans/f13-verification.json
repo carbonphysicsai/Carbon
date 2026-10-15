@@ -1,0 +1,54 @@
+{
+ "schema": "carbon.reference-solvers.pod-plan.v1",
+ "plan_id": "f13-verification-2026-10-15",
+ "kind": "elmer",
+ "authority": "OWNER-RUNPOD-SOLVER-READINESS-01",
+ "purpose": "f13 (compressor silencer, Elmer Helmholtz) checks too heavy for the shared dev box: the full-curve public triage panel incl. large-offset (timing calibration on the reference hardware), then the remaining F13-SCIENCE-VALUES-01 checks B1 MMS h 0.025 rung (IDR(s); UMFPACK's workspace fails there), B3 panel coaxials vs mode matching, D1 8 vs 4 mm (large-offset, clearance-boundary), D3 10 vs 5 Hz, and a cold repeat of B2/C/D2/D4/D5 on the pod build. Public panel and controls only; DEVELOPMENT engineering, no adequacy, qualification or LIVE claim.",
+ "recommended": {
+  "machine": "runpod-cpu5c-16vcpu (the D3 reference hardware), 16 vCPU, >= 32 GiB",
+  "estimated_cpu_hours": {"f13-triage-panel": 10.5, "f13-verification-checks": 14.7, "basis": "f13_proof.estimate (8.3 CPU-s per frequency system at 32,566 nodes, x (nodes/32,566)^1.29, x1.5 safety) from the local cgroup runs; the h 0.025 MMS rung is unmeasured and booked at its 2 h case timeout"},
+  "estimated_wall_minutes": {"setup_build": 30, "f13-triage-panel": 110, "f13-verification-checks": 120, "total": 260},
+  "worst_case_minutes": 450,
+  "worst_case_usd": 4.20,
+  "worst_case_basis": "16 vCPU x 7.5 h (setup 0.5 h + step timeouts 3 h + 4 h) x USD 0.035/vCPU-h"
+ },
+ "steps": [
+  {
+   "name": "harness-numpy",
+   "type": "script",
+   "judges": "nothing: installs python3-numpy and python3-scipy from the pod's own pinned Debian snapshot (sources.list written by the elmer setup) for the MMS quadrature and the mode-matching control; dpkg-query records the versions",
+   "argv": ["bash", "-c", "DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends python3-numpy python3-scipy > {work}/apt.log 2>&1 && dpkg-query -W -f '${{Package}}=${{Version}}\\n' python3-numpy python3-scipy | tee {out}/harness-packages.txt"],
+   "timeout_s": 900,
+   "keep": {"patterns": ["*.log"], "max_file_bytes": 2000000}
+  },
+  {
+   "name": "f13-triage-panel",
+   "type": "bulk",
+   "judges": "bar item 4: measured per-case CPU-s / wall-s / peak memory for every f13 case kind on the reference hardware (D3 counted-plan timeouts >= 2 x p95); the full 201-point curves of all 8 public panel geometries incl. large-offset, both controls, the 5 Hz and 4 mm witnesses, the cold repeat and the separate single-frequency solves. Every case must COMPLETE; curve acceptance is judged by the next step's assembler with the registered bands",
+   "manifest": "docs/development/evidence/reference-solvers-2026-10-15/pins/triage-f13-decks-manifest.local-regen.json",
+   "freeze": {
+    "argv": ["python3", "-m", "scripts.dev.reference_packages.elmer.f13_triage_freeze", "--out", "{decks}"],
+    "timeout_s": 1800
+   },
+   "select": {"families": ["f13"]},
+   "families": {
+    "f13": {
+     "case_limits": {"cpus": 1, "memory_gib": 5, "pids": 64, "wall_timeout_s": 10800},
+     "ceilings": {"launches": 16, "cpu_hours": 16}
+    }
+   },
+   "keep": {"patterns": ["*.json", "*.log", "ports.dat", "ports.dat.names", "times.txt"], "max_file_bytes": 2000000},
+   "host_regenerated_files": ["mesh.msh", "groups.json"]
+  },
+  {
+   "name": "f13-verification-checks",
+   "type": "script",
+   "judges": "F13-SCIENCE-VALUES-01, bands fixed before the runs: B1 MMS (4 rungs h 0.2-0.025, monotone, finest-pair order L2 in [2.5, 3.5], H1 in [1.5, 2.5], real and imaginary); B2 straight duct (|TL| <= 0.25 dB, |t - exact| <= 0.03, |r| <= 0.03); B3 coaxial vs mode matching (pointwise <= 0.5 dB at TL <= 20 dB, C4 notch floor 1e-3 W, extrema <= 10 Hz, p10 and mean <= 0.25 dB; mode matching N vs 2N <= 0.05 dB); C1 plane residual <= 0.0018, C2 integral residual <= 0.01, C3 passivity; D1 8 vs 4 mm on nominal/large-offset/clearance-boundary (pointwise <= 0.5 dB, extrema <= 10 Hz, p10 and mean <= 0.25 dB); D2 60 vs 100 mm leads (pointwise <= 0.25 dB, |dt| <= 0.03, p10 and mean <= 0.25 dB); D3 10 vs 5 Hz on clearance-boundary (p10 and mean <= 0.25 dB, minima within 10 Hz); D4 scan vs separate and D5 iterative vs direct (|dTL| <= 0.01 dB, |dt| <= 1e-4). Plus a B3 diagnostic (not a check): the three panel coaxials on the 4 mm mesh vs mode matching. Prints one JSON line per check; FAIL stays a finding (the step passes on exit 0)",
+   "argv": ["python3", "-m", "scripts.dev.reference_packages.elmer.f13_pod_checks", "all", "--work", "{work}", "--out", "{out}/f13-proof-v2-pod.json", "--jobs", "16", "--budget-s", "7200"],
+   "docker_images": ["sha256:61be1cb77c51fcdd822250e372754a9ce728a5bb42f39b7ba03cdf5e70901add"],
+   "env": {"OPENBLAS_NUM_THREADS": "1", "OMP_NUM_THREADS": "1"},
+   "timeout_s": 14400,
+   "keep": {"patterns": ["cost.json", "deck.json", "groups.json", "ports.dat", "ports.dat.names", "times.txt", "mms.json", "solver.log"], "max_file_bytes": 2000000}
+  }
+ ]
+}

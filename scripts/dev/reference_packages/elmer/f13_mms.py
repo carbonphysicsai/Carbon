@@ -231,7 +231,7 @@ def errors(pts, tets, values, scale):
     return math.sqrt(l2), math.sqrt(h1)
 
 
-def run(work, out, image=proof.IMAGE):
+def run(work, out, image=proof.IMAGE, lock=BIG_LOCK, iterative_below=None):
     work = Path(work)
     rows = []
     src = 3 * math.pi**2 - K**2
@@ -246,7 +246,12 @@ def run(work, out, image=proof.IMAGE):
         attempts = []
         # UMFPACK first (the iterative solvers stagnated on this all-Dirichlet
         # indefinite case at h 0.2); IDR(s) only if the direct solve fails.
-        for solver in ("direct", "idrs"):
+        # On a pod, rungs finer than `iterative_below` skip UMFPACK (its
+        # 32-bit workspace fails at h 0.025: umf4num -1 at 3.1 GiB).
+        order = (
+            ("idrs",) if iterative_below and h < iterative_below else ("direct", "idrs")
+        )
+        for solver in order:
             (d / "case.sif").write_text(
                 SIF.format(a=src, b=IMAG * src, f=K / (2 * math.pi),
                            solver=deck.SOLVERS[solver].replace("1e-10", "1e-12"))
@@ -254,7 +259,7 @@ def run(work, out, image=proof.IMAGE):
             memory = "3g" if h >= 0.05 else "12g"
             cost = proof.run(d, image, cpus=1, memory=memory, timeout=7200,
                              tag=f"mms-{h:g}-{solver}",
-                             lock=BIG_LOCK if memory != "3g" else None)  # fmt: skip
+                             lock=lock if memory != "3g" else None)  # fmt: skip
             attempts.append({"solver": solver, **cost.get("solve", {})})
             if cost.get("solve", {}).get("exit") == 0:
                 break
@@ -298,7 +303,8 @@ def run(work, out, image=proof.IMAGE):
         "scope": "PUBLIC_DEVELOPMENT code verification; not port, lead or Tier 2 evidence",
         "image": image, "mesh_image": deck.MESH_IMAGE, "k": K, "imag_scale": IMAG,
         "element": "Gmsh second-order tetrahedra (Elmer 510)",
-        "solver": "UMFPACK per rung, IDR(6)+ILU2 (residual 1e-12) only where the direct solve fails; see rows[].attempts",
+        "solver": "UMFPACK per rung, IDR(6)+ILU2 (residual 1e-12) where the direct solve fails or the rung is finer than iterative_below; see rows[].attempts",
+        "iterative_below": iterative_below,
         "adapter_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         "rows": rows, "observed_orders": orders, "finest_pair": fin,
         "bands": BANDS, "monotone": monotone, "pass": ok,
@@ -313,8 +319,15 @@ def main(argv=None):
     parser.add_argument("--work", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--image", default=proof.IMAGE)
+    parser.add_argument(
+        "--no-lock", action="store_true", help="single-tenant pod: no big-run lock"
+    )
+    parser.add_argument(
+        "--iterative-below", type=float, help="IDR(s) only for h below this"
+    )
     args = parser.parse_args(argv)
-    doc = run(args.work, args.out, args.image)
+    doc = run(args.work, args.out, args.image, None if args.no_lock else BIG_LOCK,
+              args.iterative_below)  # fmt: skip
     print(json.dumps({"finest_pair": doc["finest_pair"], "pass": doc["pass"]}))
     return 0
 
