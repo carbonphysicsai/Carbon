@@ -1,0 +1,338 @@
+{
+  "schema": "carbon.scorelab.acquisition-plan.v1",
+  "id": "SCORELAB-V3-ACQUISITION-01",
+  "scope": "DEVELOPMENT_ONLY",
+  "status": "PROSPECTIVE_NOT_AN_EXECUTION_RECEIPT",
+  "job": "battery-v3-job-dev-v1",
+  "clock": "10% session start to 80% including registered 120-second initial rest",
+  "authority": "OWNER-SCORELAB-FINISH-LINE-01 D1-D8 and owner SOC clarification; existing provisional research delegation",
+  "owner_delegation_does_not_authorize_this_lane_to_dispatch": true,
+  "actuator": "ROOT",
+  "shared_grant": {
+    "currency": "USD",
+    "total_ceiling": 100,
+    "remaining": "ROOT_ACTUAL_LEDGER_BINDING",
+    "new_grant": false
+  },
+  "image_digest": "sha256:2d19b261e722fe67f20bee02e115f2277a799c448b90d54d2872361b341bd940",
+  "overlay_sha256": "6267e033b30728b200d9e0c2aa6b55a9117cd67e03c6f89c9a17294d12e594ee",
+  "previous_plans": {
+    "panel_a": {
+      "path": "docs/development/evidence/battery-feasibility-02/plans/middle-bands-stage-a-plan.json",
+      "sha256": "779076c69a1a22d04d73c1a7c08d9fadddea9c69453ae5daf69fa1e33f275c3c",
+      "planned_jobs": 284
+    },
+    "train": {
+      "path": "docs/development/evidence/battery-feasibility-02/plans/v3-train-plan.json",
+      "sha256": "b42b41f149e317832c5b41d0c533b046ad16962f47416c553c63be8b7bcf60df",
+      "planned_jobs": 4000,
+      "soc_0_1_input_count": 1370
+    },
+    "completion_claimed": false
+  },
+  "bands_c": [
+    5,
+    15,
+    25,
+    35,
+    40
+  ],
+  "cooling": [
+    1,
+    2,
+    4
+  ],
+  "soc0": 0.1,
+  "cycles": 30,
+  "calibration": {
+    "profiles": [
+      [
+        1.25,
+        0.4,
+        4.0
+      ]
+    ],
+    "cross_with": "all five bands x all three cooling levels",
+    "rungs": [
+      20,
+      40,
+      80
+    ],
+    "max_original_attempts": 45,
+    "first_wave_t_h": [
+      [
+        5,
+        1
+      ],
+      [
+        15,
+        1
+      ],
+      [
+        25,
+        1
+      ],
+      [
+        35,
+        1
+      ],
+      [
+        40,
+        1
+      ],
+      [
+        40,
+        4
+      ]
+    ],
+    "first_wave_attempts": 18,
+    "pilot_reservation_proposal": {
+      "shared_USD_ceiling": 2,
+      "workers": 2,
+      "aggregate_CPUs": 2,
+      "memory_GiB": 32,
+      "wall_seconds": 10800,
+      "CPU_hours_bound_from_allocation_and_deadline": 6,
+      "requires_actual_Root_binding": true,
+      "not_a_new_grant": true
+    }
+  },
+  "fallback_evaluation": {
+    "profiles": [
+      [
+        0.5,
+        0.25,
+        4.0
+      ],
+      [
+        0.75,
+        0.4,
+        4.05
+      ],
+      [
+        1.25,
+        0.7,
+        4.1
+      ],
+      [
+        1.75,
+        1.0,
+        4.15
+      ]
+    ],
+    "cross_with": "all five bands x all three cooling levels",
+    "tuples": 60,
+    "mandatory_rungs": [
+      20,
+      40
+    ],
+    "decision_critical_rung": 80,
+    "max_original_attempts": 180,
+    "full_lattice_optimality_claim": false,
+    "switch_effect_identifiable": false
+  },
+  "TRAIN": {
+    "reuse_first": true,
+    "nested_prefixes": [
+      128,
+      512,
+      "ALL_ELIGIBLE_SOC_0_1"
+    ],
+    "input_only_coverage_anchors": true,
+    "exact_calibration_evaluation_exclusion": true,
+    "expansion": "support missing or >=5% relative TRAIN-only validation MAE improvement 128 to512; no EVAL use",
+    "max_before_exclusions": 1370
+  },
+  "questions": {
+    "seed": 20261015,
+    "seed_role": "PUBLIC_DEVELOPMENT_ONLY",
+    "initial_P": 64,
+    "initial_Q": 32,
+    "max_P": 128,
+    "max_Q": 64,
+    "LEG_fraction": 0.5,
+    "VALUE_fraction": 0.5,
+    "physical_bank_clusters": 1,
+    "P_Q_separate": true,
+    "redraws": 0,
+    "expand_for_tau_significance": false
+  },
+  "cohort_file": "cohort.json",
+  "cohort_digest": "sha256:555bc1d176efd2c673026d0b538eeff5095a6b6754bec47868720346264ab1fe",
+  "original_attempts_max": 1595,
+  "one_extra_infra_retry_max": 3190,
+  "numerical_nonconvergence_retry": false,
+  "new_spend_authorized": false,
+  "live_effects": false,
+  "qualification": false,
+  "holdout": "TEST_ENGINEER_RECEIPT_AND_AGGREGATE_ONLY",
+  "jobs": [
+    {
+      "id": "A00",
+      "supplier": "ROOT",
+      "state": "READY_MERGED_TOOLING",
+      "reuse_entrypoint": "completed_menu_replay preflight then replay",
+      "output": "actual public mask and report",
+      "depends_on": []
+    },
+    {
+      "id": "A01",
+      "supplier": "DATA_COLLECTION_AND_ROOT",
+      "state": "REQUESTED_ACTUAL_INVENTORY",
+      "reuse_entrypoint": "registered run roots, metadata then compatible public chunks",
+      "output": "reuse inventory and artifact descriptors",
+      "depends_on": []
+    },
+    {
+      "id": "A02",
+      "supplier": "OPTIMIZER",
+      "state": "IMPLEMENTING",
+      "reuse_entrypoint": "prospective source/role/menu/cohort binding",
+      "output": "registered acquisition manifests",
+      "depends_on": [
+        "A01"
+      ]
+    },
+    {
+      "id": "A03",
+      "supplier": "ROOT_WITH_DATA_COLLECTION",
+      "state": "AWAITING_RUNTIME_RESERVATION",
+      "reuse_entrypoint": "existing feasibility02 run over registered missing calibration rungs",
+      "output": "raw references and actual resource ledger",
+      "depends_on": [
+        "A01",
+        "A02"
+      ]
+    },
+    {
+      "id": "A04",
+      "supplier": "ROOT_WITH_DATA_COLLECTION",
+      "state": "REUSE_AUDIT_FIRST",
+      "reuse_entrypoint": "existing registered TRAIN worker; scoped prefix needs prospective plan",
+      "output": "public TRAIN and failed/excluded/support ledger",
+      "depends_on": [
+        "A01",
+        "A02",
+        "A03"
+      ]
+    },
+    {
+      "id": "A05",
+      "supplier": "ROOT_WITH_DATA_COLLECTION",
+      "state": "REUSE_AUDIT_FIRST",
+      "reuse_entrypoint": "existing feasibility02, only missing evaluation tuples/rungs",
+      "output": "all-row solved reference bank and uncertainty policy receipt",
+      "depends_on": [
+        "A01",
+        "A02",
+        "A03"
+      ]
+    },
+    {
+      "id": "A06",
+      "supplier": "ROOT",
+      "state": "FIXED_COHORT_REGISTERED_IN_THIS_CHANGE",
+      "reuse_entrypoint": "carbon_arm.run with battery_v3_kit, settings and seeds",
+      "output": "18 new artifact/prediction/cost receipts",
+      "depends_on": [
+        "A04"
+      ]
+    },
+    {
+      "id": "A07",
+      "supplier": "ROOT",
+      "state": "EXISTING_LIBRARY_BINDING_REQUIRED",
+      "reuse_entrypoint": "cheap_baselines plus cached-table information-regime control",
+      "output": "comparator predictions support and complete cost",
+      "depends_on": [
+        "A04"
+      ]
+    },
+    {
+      "id": "A08",
+      "supplier": "OPTIMIZER_AND_ROOT",
+      "state": "DRAW_STREAM_PREREGISTRATION_REQUIRED",
+      "reuse_entrypoint": "owner P, discovery-bound Q; fixed LEG/VALUE streams",
+      "output": "draw law support role and weighting receipt",
+      "depends_on": [
+        "A02",
+        "A03"
+      ]
+    },
+    {
+      "id": "A09",
+      "supplier": "OPTIMIZER_AND_ROOT",
+      "state": "IMPLEMENTING_OWNER_D2_PROJECTION",
+      "reuse_entrypoint": "owner_v3 plus canonical indexed/search and native score helpers",
+      "output": "genuine per-question terms and candidate parity",
+      "depends_on": [
+        "A05",
+        "A06",
+        "A07",
+        "A08"
+      ]
+    },
+    {
+      "id": "A10",
+      "supplier": "OPTIMIZER_AND_ROOT",
+      "state": "EXISTING_CONTROLS_BINDING_REQUIRED",
+      "reuse_entrypoint": "four neutral behavior controls plus decline/good/cheap",
+      "output": "control predictions and separate diagnostics",
+      "depends_on": [
+        "A03",
+        "A08"
+      ]
+    },
+    {
+      "id": "A11",
+      "supplier": "ROOT_AND_OPTIMIZER",
+      "state": "AWAITING_DATA",
+      "reuse_entrypoint": "existing score_proof and owner top-three helpers",
+      "output": "paired regret and tau/rho aggregate report",
+      "depends_on": [
+        "A09",
+        "A10"
+      ]
+    },
+    {
+      "id": "A12",
+      "supplier": "TEST_ENGINEER",
+      "state": "SEALED_CUSTODY_DO_NOT_READ",
+      "reuse_entrypoint": "one final confirmation only after nonempty eligible selection",
+      "output": "receipt and authorized aggregate result only",
+      "depends_on": [
+        "A11"
+      ]
+    },
+    {
+      "id": "A13",
+      "supplier": "OWNER",
+      "state": "RESERVED_ADOPTION",
+      "reuse_entrypoint": "versioned rule decision or keep-v2/quiz-shadow",
+      "output": "closed owner decision and actual cost",
+      "depends_on": [
+        "A11"
+      ]
+    }
+  ],
+  "execution_record_required": [
+    "exact_main_and_code_digests",
+    "input_role_and_bytes",
+    "public_classification",
+    "actual_remaining_reservation",
+    "provider_price_and_host_limits",
+    "CPU_wall_memory_deadlines",
+    "attempt_ledger",
+    "output_digests",
+    "actual_charged_pending_released",
+    "termination_and_cleanup"
+  ],
+  "final_states": [
+    "SUPPORTED_CANDIDATE_FOR_ONE_HOLDOUT",
+    "KEEP_V2_QUIZ_SHADOW",
+    "REFERENCE_INADEQUATE",
+    "BANK_INADEQUATE",
+    "CONSTRUCTION_INADEQUATE",
+    "BUDGET_STOPPED"
+  ]
+}

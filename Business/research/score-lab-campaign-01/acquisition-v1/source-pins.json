@@ -1,0 +1,19 @@
+{
+  "schema": "carbon.scorelab.acquisition-source-pins.v1",
+  "scope": "DEVELOPMENT_ONLY",
+  "base_commit": "9f04664edc4e81bf9fb37fa6ae0eda1498c75263",
+  "rule": "bind final merged commit and require these file bytes before dispatch; this is not a run receipt",
+  "files": {
+    "scripts/dev/battery/feasibility02.py": "a37d3e6fe1e1c1abc1149c3c9a1568b2774227370d6135b3752d821910f0b192",
+    "scripts/dev/battery/feasibility02_v2.py": "17235eaddf8d505113999b5fd12585d94750e3f3166f1c846e941e6a347ac44c",
+    "scripts/dev/evidence_runs/battery_v3.py": "d820eca1278bdda7c5c9918d26c960c53cf1315bb0fc2ecfb161f2dd28592d12",
+    "carbon/battery/reference.py": "5d37d4ca9ffaa1b70c39cef5266d2deb5fb5d70c9ace7e5b22b27a2e02cf7791",
+    "carbon/battery/truth_env.py": "fee4a30b260d518d8bf4056e3f662f56a2747b4b3b3149c441eacb45c216bd8a",
+    "carbon/development_comparison/carbon_arm.py": "7b848707ea37a1e18de6fcea2faa260f836439ab46ed071cf1e3ee541521aa78",
+    "carbon/development_comparison/battery_v3_kit.py": "8b8c942ebe57b1ed63f92e6dcd056222b5ed913ddc24924e275951632af2a7b4",
+    "carbon/development_comparison/cheap_baselines.py": "a3075f089e29d1caca199708846d6ecd6d9180394f72e155746d050b40bd2694",
+    "carbon/design_search/tasks.py": "2122194173ddaf39a8164b153cacb45ee2387373b6a8e710ef9b9474b247081a",
+    "carbon/design_search/indexed.py": "b13c69b5a86fd87feaf6be3e1b690e865af7a5e13622725eef6d3efc4409411e",
+    "scripts/dev/score_lab/owner_v3.py": "e2b4b2b8a0bfadd23a801e11eeca6e4b1ad8d6f636a4cdf1eef89352914fbf45"
+  }
+}

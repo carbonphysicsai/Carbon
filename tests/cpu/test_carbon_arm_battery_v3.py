@@ -81,6 +81,11 @@ def test_predictions_pass_the_pipelines_carbon_hop():
     assert len(accepted) == len(cb._physical_rows(export)) == len(predictions["rows"])
     assert predictions["source_receipt_digest"] == arm.sha256(arm.canonical(receipt))
     assert receipt["abstained"] == 0
+    assert "caller-supplied trainer settings" in receipt["selection"]
+    assert "kit's registered default" not in receipt["selection"]
+    assert all(
+        receipt["recipe"]["settings"][key] == value for key, value in QUICK.items()
+    )
     cost = receipt["cost"]
     assert cost["fit"]["fit_wall_s"] > 0 and cost["inference"]["wall_s"] >= 0
     assert cost["inference"]["rows"] == len(predictions["rows"])

@@ -1,0 +1,380 @@
+"""Owner-D2 DEVELOPMENT projection of authentic indexed decision primitives.
+
+This is not a championship adapter or a solver. Input provenance/role and
+commit-before-reference chronology belong to the producer. The interval input
+is a registered numerical enclosure, never a physical confidence interval.
+Historical indexed reductions and their results remain unchanged.
+"""
+
+from __future__ import annotations
+
+import math
+from collections import Counter
+from decimal import Decimal
+
+from carbon.design_search import indexed, tasks
+
+PROJECTION = "carbon.scorelab.battery-v3.band-deadzone-projection.v1"
+JOB = "battery-v3-job-dev-v1"
+BANDS = (5, 15, 25, 35, 40)
+TOLERANCE = Decimal("0.5")
+
+
+def _number(value):
+    if type(value) not in (float, int) or not math.isfinite(value):
+        raise tasks.TaskError("finite objective enclosure required")
+    return Decimal(str(value))
+
+
+def _validate(registered):
+    indexed.validate_indexed(registered)
+    identity = registered["identity"]
+    if (
+        tuple(row["index_value"] for row in registered["indices"]) != BANDS
+        or identity["contract_version"] != JOB
+        or identity["objective"]["quantity"] != "minutes"
+        or identity["objective"]["unit"] != "min"
+        or identity["objective"]["sense"] != "min"
+        or identity["index_axis"] != "ambient_c"
+        or any(row["task"]["secondary"] is not None for row in registered["indices"])
+        or _number(identity["value_equivalence"]["tolerance"]) != TOLERANCE
+    ):
+        raise tasks.TaskError("owner-v3 job, five bands and minute tolerance required")
+
+
+def reference_mask(registered, references, intervals):
+    """Freeze all-action coverage and winner/deadzone resolution without a model.
+
+    `references` has the existing judge's ordered {index_value, values} shape.
+    `intervals` is an equally ordered list of {index_value, candidates}, mapping
+    every feasible candidate to [lower_minutes, upper_minutes]. A missing or
+    undecided reference excludes the WHOLE question, including zero-weight bands.
+    No member's abstention or unsafe pick can change this mask.
+    """
+    _validate(registered)
+    if (
+        type(references) is not list
+        or type(intervals) is not list
+        or len(references) != len(BANDS)
+        or len(intervals) != len(BANDS)
+    ):
+        raise tasks.TaskError(
+            "one reference/enclosure panel per mandatory band required"
+        )
+    reasons, per_index = [], []
+    for row, panel, enclosure in zip(registered["indices"], references, intervals):
+        band, subtask = row["index_value"], row["task"]
+        if (
+            type(panel) is not dict
+            or set(panel) != {"index_value", "values"}
+            or panel["index_value"] != band
+            or type(enclosure) is not dict
+            or set(enclosure) != {"index_value", "candidates"}
+            or enclosure["index_value"] != band
+            or type(panel["values"]) is not dict
+            or type(enclosure["candidates"]) is not dict
+        ):
+            raise tasks.TaskError("reference/enclosure band order differs")
+        quantities = {subtask["objective"]["quantity"]} | {
+            limit["quantity"] for limit in subtask["limits"]
+        }
+        complete_rows = {}
+        for candidate in subtask["candidates"]:
+            for condition in subtask["conditions"]:
+                key = (candidate, condition["id"])
+                values = panel["values"].get(key)
+                if type(values) is dict and all(
+                    type(values.get(q)) in (int, float) and math.isfinite(values[q])
+                    for q in quantities
+                ):
+                    complete_rows[key] = values
+                else:
+                    reasons.append(
+                        [band, candidate, "MISSING_OR_INVALID_REFERENCE_ROW"]
+                    )
+        # Incomplete records are UNKNOWN, not fabricated complete quantities.
+        truth = tasks.assess(subtask, complete_rows, reference=True)
+        unknown = [c for c, value in truth.items() if value["feasible"] is None]
+        feasible = [c for c, value in truth.items() if value["feasible"] is True]
+        if set(enclosure["candidates"]) - set(subtask["candidates"]):
+            raise tasks.TaskError("enclosure candidate outside registered bank")
+        bounds = {}
+        for candidate in feasible:
+            interval = enclosure["candidates"].get(candidate)
+            if type(interval) is not list or len(interval) != 2:
+                reasons.append([band, candidate, "MISSING_OBJECTIVE_ENCLOSURE"])
+                continue
+            low, high = map(_number, interval)
+            point = _number(truth[candidate]["objective"])
+            if low > point or point > high:
+                raise tasks.TaskError("objective point outside its enclosure")
+            bounds[candidate] = (low, high)
+        if unknown:
+            reasons.extend([band, c, "UNRESOLVED_REFERENCE"] for c in unknown)
+        best = tasks.select(subtask, truth)
+        if best is not None and best in bounds and len(bounds) == len(feasible):
+            best_low, best_high = bounds[best]
+            best_order = subtask["candidates"].index(best)
+            for candidate in feasible:
+                if candidate == best:
+                    continue
+                low, high = bounds[candidate]
+                if best_high > low or (
+                    best_high == low
+                    and best_order > subtask["candidates"].index(candidate)
+                ):
+                    reasons.append([band, candidate, "WINNER_INTERVAL_AMBIGUOUS"])
+                delta_low = max(Decimal(0), low - best_high)
+                delta_high = max(Decimal(0), high - best_low)
+                if delta_low <= TOLERANCE < delta_high:
+                    reasons.append([band, candidate, "DEADZONE_INTERVAL_AMBIGUOUS"])
+        per_index.append(
+            {
+                "index_value": band,
+                "reference_best": best,
+                "feasible_candidates": len(feasible),
+                "reference_state": (
+                    "UNRESOLVED"
+                    if unknown
+                    else "FEASIBLE_EXISTS" if feasible else "NONE_FEASIBLE"
+                ),
+            }
+        )
+    # Native reference dictionaries have tuple keys, so pin their ordered rows.
+    reference_rows = [
+        {
+            "index_value": p["index_value"],
+            "rows": [[*key, value] for key, value in sorted(p["values"].items())],
+        }
+        for p in references
+    ]
+    body = {
+        "projection": PROJECTION,
+        "task_digest": registered["task_digest"],
+        "reference_digest": tasks.digest(reference_rows),
+        "enclosure_digest": tasks.digest(intervals),
+        "included": not reasons,
+        "reference_state": (
+            "UNRESOLVED"
+            if reasons
+            else (
+                "NONE_FEASIBLE"
+                if any(r["reference_state"] == "NONE_FEASIBLE" for r in per_index)
+                else "FEASIBLE_EXISTS"
+            )
+        ),
+        "reasons": reasons,
+        "per_index": per_index,
+    }
+    return {**body, "mask_digest": tasks.digest(body)}
+
+
+def judge(registered, commitment, references, intervals, *, scope):
+    """Reuse the canonical judge; reduce its band regrets with owner-D2 order.
+
+    Unsafe/abstaining/unknown outcomes have NO finite minute penalty invented
+    here. They remain typed and cannot qualify for a regret-only ranking.
+    """
+    if scope not in ("SYNTHETIC_FIXTURE", "PUBLIC_DEVELOPMENT"):
+        raise tasks.TaskError("development-only projection")
+    mask = reference_mask(registered, references, intervals)
+    body = {k: v for k, v in commitment.items() if k != "commitment_digest"}
+    if (
+        tasks.digest(body) != commitment.get("commitment_digest")
+        or commitment.get("task_digest") != registered["task_digest"]
+    ):
+        raise tasks.TaskError("altered or foreign indexed commitment")
+    if not mask["included"]:
+        result = {
+            "schema": PROJECTION,
+            "scope": scope,
+            "job": JOB,
+            "task_digest": registered["task_digest"],
+            "commitment_digest": commitment["commitment_digest"],
+            "reference_mask": mask,
+            "kind": "REFERENCE_UNRESOLVED",
+            "per_index": mask["per_index"],
+            "regret_min": None,
+            "regret_ranking_eligible": False,
+            "historical_aggregate_regret_unchanged": None,
+            "qualification": False,
+        }
+        return {**result, "primitive_digest": tasks.digest(result)}
+    base = tasks.judge_indexed(registered, commitment, references)
+    per_index = base["per_index"]
+    unavailable = any(
+        commitment["execution"][key] > 0
+        for key in ("model_failures", "invalid_queries")
+    )
+    comparable = base["kind"] == "SELECTED_FEASIBLE" and not unavailable
+    weighted = []
+    for row in per_index:
+        regret = row["outcome"]["regret"]
+        weighted.append(
+            None
+            if not comparable
+            else float(_number(row["buyer_weight"]) * _number(regret))
+        )
+    regret = (
+        float(sum((Decimal(str(x)) for x in weighted), Decimal(0)))
+        if comparable
+        else None
+    )
+    result = {
+        "schema": PROJECTION,
+        "scope": scope,
+        "job": JOB,
+        "task_digest": registered["task_digest"],
+        "commitment_digest": commitment["commitment_digest"],
+        "reference_mask": mask,
+        "kind": "CANDIDATE_UNAVAILABLE" if unavailable else base["kind"],
+        "per_index": [
+            {**row, "weighted_regret_min": contribution}
+            for row, contribution in zip(per_index, weighted)
+        ],
+        "regret_min": regret,
+        "regret_ranking_eligible": comparable,
+        "historical_aggregate_regret_unchanged": base["regret"],
+        "qualification": False,
+    }
+    return {**result, "primitive_digest": tasks.digest(result)}
+
+
+def model_summary(outcomes):
+    """Price a fixed reference-only F stratum, retaining all offered outcomes.
+
+    Correct NONE abstention is not missing truth. Within the common reference
+    FEASIBLE_EXISTS stratum, any unsafe/missed/unavailable pick withholds the
+    whole member's mean. This is NOT a complete-P scalar or a new gate value.
+    """
+    rows = list(outcomes)
+    if len({r["task_digest"] for r in rows}) != len(rows):
+        raise tasks.TaskError("duplicate offered question")
+    n = len(rows)
+    priced = [
+        r for r in rows if r["reference_mask"]["reference_state"] == "FEASIBLE_EXISTS"
+    ]
+    eligible = bool(priced) and all(r["regret_ranking_eligible"] for r in priced)
+    return {
+        "offered_questions": n,
+        "kind_counts": dict(sorted(Counter(r["kind"] for r in rows).items())),
+        "reference_FEASIBLE_EXISTS_questions": len(priced),
+        "regret_estimand": "E[L | FEASIBLE_EXISTS, reference adequate, frozen bank]",
+        "full_population_scalar_available": False,
+        "regret_ranking_eligible": eligible,
+        "mean_regret_min": (
+            sum(r["regret_min"] for r in priced) / len(priced) if eligible else None
+        ),
+        "infeasible_pick_count": sum(r["kind"] == "SELECTED_INFEASIBLE" for r in rows),
+        "missed_opportunity_count": sum(
+            r["kind"] == "MISSED_OPPORTUNITY" for r in rows
+        ),
+        "correct_abstention_count": sum(
+            r["kind"] == "CORRECT_ABSTENTION" for r in rows
+        ),
+        "unresolved_reference_count": sum(
+            not r["reference_mask"]["included"] for r in rows
+        ),
+    }
+
+
+def cohort_member(cohort, *, expected_digest, recipe_id, seed):
+    """Arguments for the EXISTING arm, never a trainer or an execution route.
+
+    The caller binds the registered digest and chronology before execution.
+    Each recipe/seed has a distinct model ID. The same settings under a new
+    kit/TRAIN are a new artifact, not a relabelled historical EV4 model.
+    """
+    from dataclasses import replace
+
+    from carbon.development_comparison import battery_v3_kit, carbon_arm
+
+    if (
+        tasks.digest(cohort) != expected_digest
+        or cohort.get("schema") != "carbon.scorelab.battery-v3.cohort.v1"
+        or cohort.get("scope") != "PUBLIC_DEVELOPMENT"
+        or cohort.get("base_settings") != carbon_arm.TRAINER_DEFAULTS
+        or tasks.digest(cohort["base_settings"]) != cohort.get("base_settings_digest")
+        or cohort.get("kit") != battery_v3_kit.KIT.kit_id
+        or cohort.get("trainer") != carbon_arm.TRAINER
+        or cohort.get("backend") not in ("jax", "pytorch")
+    ):
+        raise tasks.TaskError("registered cohort, trainer and base settings required")
+    recipes = {row["id"]: row["overrides"] for row in cohort["recipes"]}
+    if len(recipes) != len(cohort["recipes"]) or recipe_id not in recipes:
+        raise tasks.TaskError("recipe outside registered cohort")
+    if type(seed) is not int or seed not in cohort["seeds"]:
+        raise tasks.TaskError("seed outside registered cohort")
+    overrides = recipes[recipe_id]
+    if set(overrides) - set(carbon_arm.TRAINER_DEFAULTS):
+        raise tasks.TaskError("unknown trainer setting")
+    settings = {**cohort["base_settings"], **overrides}
+    model_id = f"{cohort['id']}:{recipe_id}:seed{seed}"
+    return {
+        "kit": replace(battery_v3_kit.KIT, model_id=model_id),
+        "settings": settings,
+        "seed": seed,
+        "backend": cohort["backend"],
+        "code": {
+            "cohort_digest": expected_digest,
+            "recipe_id": recipe_id,
+            "recipe_settings_digest": tasks.digest(settings),
+            "selection": "prospectively fixed cohort; producer binds merge chronology",
+        },
+    }
+
+
+def acquisition_inputs(plan, *, expected_digest, stage):
+    """Materialize registered inputs for feasibility02, never run the worker.
+
+    Root may subtract only authenticated exact reuse and must retain the
+    offered input manifest. Refinement is a separate conditional plan, not
+    permission to launch it for every tuple.
+    """
+    if (
+        tasks.digest(plan) != expected_digest
+        or plan.get("schema") != "carbon.scorelab.acquisition-plan.v1"
+        or plan.get("job") != JOB
+        or plan.get("scope") != "DEVELOPMENT_ONLY"
+        or plan.get("bands_c") != list(BANDS)
+        or plan.get("cooling") != [1, 2, 4]
+        or plan.get("soc0") != 0.1
+        or plan.get("cycles") != 30
+    ):
+        raise tasks.TaskError("registered acquisition plan required")
+    if stage not in (
+        "calibration-pilot",
+        "calibration-rest",
+        "evaluation",
+        "refinement",
+    ):
+        raise tasks.TaskError("unknown acquisition input stage")
+    calibration = stage.startswith("calibration")
+    profiles = plan["calibration" if calibration else "fallback_evaluation"]["profiles"]
+    pilot = {tuple(pair) for pair in plan["calibration"]["first_wave_t_h"]}
+    meshes = (
+        (20, 40, 80) if calibration else (80,) if stage == "refinement" else (20, 40)
+    )
+    jobs = []
+    for c1, c2, switch in profiles:
+        for band in BANDS:
+            for cooling in plan["cooling"]:
+                if calibration and ((band, cooling) in pilot) != (
+                    stage == "calibration-pilot"
+                ):
+                    continue
+                for mesh in meshes:
+                    jobs.append(
+                        {
+                            "case_id": f"scorelab-v3:{'cal' if calibration else 'eval'}:c1={c1:.2f}:c2={c2:.2f}:sv={switch:.2f}:T{band}:h{cooling}:mesh{mesh}",
+                            "c1": c1,
+                            "c2": c2,
+                            "switch_voltage_v": switch,
+                            "h_multiplier": cooling,
+                            "t_amb_c": band,
+                            "soc0": 0.1,
+                            "refined": mesh != 20,
+                            "rung": {20: 1, 40: 2, 80: 3}[mesh],
+                        }
+                    )
+    return {"batch": f"scorelab-v3-{stage}-dev-v1", "jobs": jobs}

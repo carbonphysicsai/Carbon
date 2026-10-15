@@ -554,8 +554,13 @@ def run(kit, export, train, *, scope, seed=0, backend="jax", code=None, settings
         "kit": kit.kit_id,
         "model_id": kit.model_id,
         "export_digest": export["export_digest"],
-        "selection": "the kit's registered default recipe, fixed before the "
-        "panel was inspected; no recipe was chosen on panel results",
+        "selection": (
+            "the kit's registered default recipe, fixed before the "
+            "panel was inspected; no recipe was chosen on panel results"
+            if network.settings == TRAINER_DEFAULTS
+            else "caller-supplied trainer settings; this receipt does not attest "
+            "prospective registration or selection chronology"
+        ),
         "train": {
             "sha256": train.sha256,
             "records": len(train.records),
