@@ -129,3 +129,90 @@ def test_wallet_helper_preserves_old_callers_and_uses_explicit_owned_path(
             **({"path": str(tmp_path / "owned-wallets")} if explicit else {}),
         }
     ]
+
+
+@pytest.mark.parametrize("refused", [False, True])
+def test_preview_uses_private_mounted_journal_parent_and_cleans_on_failure(
+    tmp_path, monkeypatch, refused
+):
+    import stat
+    from pathlib import Path
+    from types import SimpleNamespace
+
+    from carbon.chain import sdk, sdk_weights
+    from carbon.rewards import testnet_winner_publication as publication
+
+    path, _raw = config(tmp_path)
+    parent = tmp_path / "mounted-journals"
+    parent.mkdir(mode=0o700)
+    journal = parent / "existing.sqlite3"
+    journal.write_bytes(b"existing-history-unchanged")
+    scratch_paths = []
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("preview must not use default tmp or open a wallet")
+
+    monkeypatch.setattr(weights.tempfile, "gettempdir", forbidden)
+    monkeypatch.setattr(sdk_weights, "open_operator_wallet", forbidden)
+
+    def issuer(_args, _config, preview_journal):
+        directory = preview_journal.parent
+        scratch_paths.append(directory)
+        assert directory.parent == parent
+        assert stat.S_IMODE(directory.stat().st_mode) == 0o700
+        preview_journal.write_bytes(b"synthetic-preview-only")
+        if refused:
+            raise ValueError("synthetic-issuer-refusal")
+        return "fixture-issuer"
+
+    class Reader:
+        async def capture(self, _context):
+            return "fixture-snapshot"
+
+    monkeypatch.setattr(publication, "_issuer", issuer)
+    monkeypatch.setattr(sdk, "BittensorReader", Reader)
+    monkeypatch.setattr(
+        publication, "preview", lambda issuer, snapshot: (issuer, snapshot)
+    )
+    args = SimpleNamespace(config=path, action="preview", journal=journal)
+    if refused:
+        with pytest.raises(ValueError, match="synthetic-issuer-refusal"):
+            asyncio.run(weights.execute(args))
+    else:
+        assert asyncio.run(weights.execute(args)) == (
+            "fixture-issuer",
+            "fixture-snapshot",
+        )
+    assert len(scratch_paths) == 1
+    assert not Path(scratch_paths[0]).exists()
+    assert journal.read_bytes() == b"existing-history-unchanged"
+    assert list(parent.iterdir()) == [journal]
+
+
+@pytest.mark.parametrize("bad", ["missing", "public", "symlink", "file"])
+def test_preview_refuses_unavailable_or_nonprivate_parent_before_issuer(
+    tmp_path, monkeypatch, bad
+):
+    from types import SimpleNamespace
+    from carbon.rewards import testnet_winner_publication as publication
+
+    path, _raw = config(tmp_path)
+    parent = tmp_path / "journal-parent"
+    if bad == "public":
+        parent.mkdir(mode=0o755)
+    elif bad == "symlink":
+        parent.symlink_to(tmp_path, target_is_directory=True)
+    elif bad == "file":
+        parent.write_bytes(b"not-a-directory")
+
+    def forbidden(*args):
+        raise AssertionError("invalid scratch parent must refuse before issuer")
+
+    monkeypatch.setattr(publication, "_issuer", forbidden)
+    args = SimpleNamespace(
+        config=path, action="preview", journal=parent / "state.sqlite3"
+    )
+    with pytest.raises(
+        SetupRefused, match="OWNER_ONLY_PREVIEW_JOURNAL_PARENT_REQUIRED"
+    ):
+        asyncio.run(weights.execute(args))

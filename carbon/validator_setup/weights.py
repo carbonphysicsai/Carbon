@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import os
 import stat
 import tempfile
 from dataclasses import dataclass
@@ -109,7 +110,25 @@ async def execute(args):
 
     config = load_config(Path(args.config).absolute())
     if args.action == "preview":
-        with tempfile.TemporaryDirectory() as scratch:
+        # The operator image has a read-only root and no implicit writable /tmp.
+        # This explicit journal parent is already a required state mount; each
+        # preview gets a private 0700 directory removed even on refusal/failure.
+        parent = Path(args.journal).parent
+        try:
+            info = parent.lstat()
+            if (
+                not parent.is_absolute()
+                or not stat.S_ISDIR(info.st_mode)
+                or info.st_uid != os.geteuid()
+                or info.st_mode & 0o077
+                or any(p.is_symlink() for p in parent.parents)
+            ):
+                raise ValueError
+        except (OSError, ValueError):
+            raise SetupRefused("OWNER_ONLY_PREVIEW_JOURNAL_PARENT_REQUIRED") from None
+        with tempfile.TemporaryDirectory(
+            prefix="carbon-weights-preview-", dir=parent
+        ) as scratch:
             issuer = publication._issuer(
                 args, config, Path(scratch) / "preview.sqlite3"
             )

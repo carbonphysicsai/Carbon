@@ -11,6 +11,38 @@ from .bundle import SetupRefused, verify
 from .weights import load_config as load_weights
 
 SCHEMA = "carbon.validator-runtime-units.v1"
+PASSWD = Path("/etc/passwd")
+
+
+def _account_map(deployment, user):
+    """Use the host's public identity map; never trust an environment name."""
+    try:
+        info = PASSWD.lstat()
+        if (
+            not stat.S_ISREG(info.st_mode)
+            or info.st_uid != 0
+            or info.st_mode & 0o022
+            or info.st_size > 1024 * 1024
+        ):
+            raise ValueError
+        uid = int(user.split(":")[0])
+        if uid == 0:
+            raise ValueError
+        entries = [
+            line.split(":") for line in PASSWD.read_text(encoding="utf-8").splitlines()
+        ]
+        matches = [row for row in entries if len(row) == 7 and row[2] == str(uid)]
+        if len(matches) != 1:
+            raise ValueError
+        account = matches[0]
+        expected = deployment.get("service_account")
+        if expected is not None and expected != account[0]:
+            raise ValueError
+        if not Path(account[5]).is_absolute():
+            raise ValueError
+        return account[5]
+    except (OSError, ValueError, UnicodeError):
+        raise SetupRefused("OPERATOR_HOST_ACCOUNT_MAP_REQUIRED") from None
 
 
 def quoted(argv):
@@ -78,6 +110,27 @@ def render(profile):
     artifact = verify(Path(raw["bundle"]), raw["digest"])
     service = load_service(raw["service_config"])
     intake = _intake(service, artifact.root)
+    # load_config also enforces the *current process* account. Rendering may be
+    # performed by root for a different numeric operator, so read path references
+    # only here; runtime preflight retains the full deployment/account checks.
+    owner_only_file(intake["deployment"], "runtime_units_deployment")
+    try:
+        deployment = json.loads(Path(intake["deployment"]).read_bytes())
+        if type(deployment) is not dict:
+            raise ValueError
+        deployment_paths = [
+            deployment[k] for k in ("state", "journal", "work", "private_root")
+        ]
+        deployment_paths += [
+            deployment[k]
+            for k in ("image_manifest", "torch_image_manifest", "service_key")
+            if deployment.get(k) is not None
+        ]
+        if any(type(p) is not str or not p for p in deployment_paths):
+            raise ValueError
+    except (OSError, ValueError, KeyError, TypeError):
+        raise SetupRefused("OPERATOR_DEPLOYMENT_PATHS_REQUIRED") from None
+    home = _account_map(deployment, raw["user"])
     fetch = load_fetch_config(Path(raw["fetch_config"]))
     network = raw["service_network"]
     header = proxy_header(intake)
@@ -144,6 +197,10 @@ def render(profile):
         Path(service.intake_path),
         Path(intake["deployment"]),
         Path(intake["inbox"]),
+        Path(intake["transport_journal"]),
+        *(Path(p) for p in deployment_paths),
+        Path(str(deployment["state"]) + ".lock").parent,
+        *(Path(p) for p in service.config.get("practice_images", {}).values()),
         weights.wallet_path,
         *(Path(w[k]) for k in ("config", "standing", "journal", "ledger")),
     ]
@@ -198,6 +255,10 @@ def render(profile):
         str(artifact.root),
         "--env",
         "DOCKER_HOST=unix://" + str(socket),
+        "--env",
+        "HOME=" + home,
+        "--mount",
+        f"type=bind,source={PASSWD},target=/etc/passwd,readonly",
         "--mount",
         f"type=bind,source={artifact.root},target={artifact.root},readonly",
         "--mount",
@@ -251,9 +312,9 @@ def render(profile):
         )
         if role != "service":
             period = raw[role + "_every_s"]
-            result[name + ".timer"] = (
-                f"[Unit]\nDescription=Carbon {role} operator cadence\n\n[Timer]\nOnActiveSec={period}s\nOnUnitInactiveSec={period}s\nUnit={name}.service\n\n[Install]\nWantedBy=timers.target\n"
-            )
+            result[
+                name + ".timer"
+            ] = f"[Unit]\nDescription=Carbon {role} operator cadence\n\n[Timer]\nOnActiveSec={period}s\nOnUnitInactiveSec={period}s\nUnit={name}.service\n\n[Install]\nWantedBy=timers.target\n"
     return result
 
 
