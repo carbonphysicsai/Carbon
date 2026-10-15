@@ -6,6 +6,7 @@ import copy
 import json
 
 import pytest
+
 from carbon.design_search import tasks
 from carbon.development_comparison import battery_v3_kit, carbon_arm
 from scripts.dev.score_lab import owner_v3_panel_export as producer
