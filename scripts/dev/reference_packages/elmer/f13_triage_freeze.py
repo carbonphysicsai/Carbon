@@ -82,6 +82,14 @@ def _digest(case_dir):
 
 
 def _mesh(case_dir):
+    """Mesh in the pinned Gmsh image, or natively (CARBON_F13_NATIVE_GMSH=1,
+    a python3 with Gmsh 4.15's module on a pod without Docker). The mesh
+    file's sha256 is frozen in the manifest either way."""
+    if os.environ.get("CARBON_F13_NATIVE_GMSH") == "1":
+        subprocess.run(
+            ["python3", "make_mesh.py"], cwd=case_dir, check=True, capture_output=True
+        )
+        return
     cmd = ["docker", "run", "--rm", "--network", "none", "--cpus", "1", "--memory", "3g",
            "--user", f"{os.getuid()}:{os.getgid()}", "-e", "HOME=/tmp",
            "-v", f"{Path(case_dir).resolve()}:/w", "-w", "/w", f13.MESH_IMAGE,

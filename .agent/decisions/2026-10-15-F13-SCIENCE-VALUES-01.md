@@ -90,3 +90,17 @@ already existed, the table says so. No value was loosened after a result.
 
 **HUMAN_INPUT left:** money (any bulk-run host, grant or spend), the producer
 seed and hidden-bank custody, Tier 2 buyer-tool runs, and qualification.
+
+### G. Data-acquisition role sizes (set after the local cost runs, before any role is generated)
+
+Set on 2026-10-15 after the local v2 cost measurements (≈ 0.5 CPU-h per
+8 mm curve); no role has been generated, so no size was fitted to a result.
+
+| Value | Slot | Chosen | Basis |
+|---|---|---|---|
+| G1 TRAIN | `data-acquisition/f13.json:roles[train]` | nested ladder 64/128/256/512/1,024/2,048, base D = 256; generate 1,024 now, extend to 2,048 only if Phase G finds no plateau at 4× | training budget study Phase G (1/4–8× of D); 256 curves = 51,456 frequency samples over a 6-parameter geometry, 16× the legacy M = 16 bank |
+| G2 PRACTICE | `roles[practice]` | 32 curves from P | intentionally incomplete practice signal (invariant 12); ½ of a decision-study representative half |
+| G3 decision study | `roles[decision_study]` | 64 representative (P) + 32 boundary (Q2 frontier, w = P/Q) + F5 refinements | D1 representative and boundary groups; 32 boundary designs give T2(a)'s 5 + 5 near designs at both floors with margin |
+| G4 timing calibration | `roles[timing_calibration]` | the 16-launch v2 triage manifest on runpod-cpu5c-16vcpu | D3: p95 from every case kind, including the 4 mm and 5 Hz witnesses |
+| G5 H1 | `roles[hidden_pool]` | active bank = F7 (64 + 32), standby 64, one window/day, no rotation in month one | F6: B = 80, n = 8, E = 10 → 100 windows before exposure retires a question |
+| G6 H2 / D7 | `roles[tuning]`, `roles[confirmation]` | tuning 32 (P); confirmation 64 + 32 as the decision study | H2 disjointness; D7 mirrors D1's strata |
