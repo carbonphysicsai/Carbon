@@ -1,0 +1,32 @@
+{
+  "schema": "carbon.reference-image-presence.v1",
+  "scope": "PUBLIC_DEVELOPMENT_OPERATOR_OBSERVATION",
+  "observed_utc": "2026-10-15T21:07:45.778695+00:00",
+  "method": "read-only docker image inspect; no container or solver started",
+  "host_profile": "operator-local-wsl-ubuntu-24.04",
+  "images": [
+    {
+      "family": "motor",
+      "id": "sha256:599521e79786ee0326a0754ba0545f51ee9665adff73c3515c8d4b8ba24c1c05",
+      "repo_digests": [
+        "carbon-motor-reference@sha256:599521e79786ee0326a0754ba0545f51ee9665adff73c3515c8d4b8ba24c1c05",
+        "ghcr.io/carbonphysicsai/carbon-motor-reference@sha256:599521e79786ee0326a0754ba0545f51ee9665adff73c3515c8d4b8ba24c1c05"
+      ],
+      "os": "linux",
+      "architecture": "amd64",
+      "acceptance_scope": "Existing owner-accepted linear MMS only; no new task qualification"
+    },
+    {
+      "family": "cooling",
+      "id": "sha256:33fb575aa9980d2bc42fd58c75ae698c489293ba30c991380fe3f899c622f319",
+      "repo_digests": [
+        "opencfd/openfoam-default@sha256:33fb575aa9980d2bc42fd58c75ae698c489293ba30c991380fe3f899c622f319"
+      ],
+      "os": "linux",
+      "architecture": "amd64",
+      "acceptance_scope": "Presence only; manufactured-source/current-map/TIM2 verification still missing"
+    }
+  ],
+  "qualification_changed": false,
+  "private_billing_or_credentials_exported": false
+}
