@@ -26,7 +26,6 @@ SCORE_ROOTS = (
 FORBIDDEN = ("carbon.chain", "carbon.rewards", "bittensor")
 PROVEN_SCORE_ROOTS = (
     "carbon.scoring.engine",
-    "carbon.battery.value.scoring",
     "carbon.design_search.score_bridge",
 )
 

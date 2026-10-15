@@ -11,7 +11,7 @@ The Development Hub is retired under `.agent/DELIVERY_PROTOCOL.md`; this
 audit changes no Hub selection, status, authority or navigation meaning.
 
 **Result: PARTIAL PROOF, with an explicit unknown.** The static import guard
-proves a narrow source boundary for three pure score kernels. It does not
+proves a narrow source boundary for two pure score kernels. It does not
 prove that every validator caller or the weight publisher is incapable of
 reading chain state before a score. Transitive source reachability crosses
 those layers today. No LIVE/security qualification follows from this audit.
@@ -21,7 +21,7 @@ those layers today. No LIVE/security qualification follows from this audit.
 | Scoring entry | Inputs that can change its result | Origin and boundary found |
 | --- | --- | --- |
 | `carbon.scoring.engine.ScoreEngine.score` | Exact `ScoreInput` pin, numeric gate and component actuals, Boolean gate actuals; exact `LoadedScorePack` thresholds, weights and transforms | Validator-authorized closed scalar input and loaded pinned pack per `Design_Specs/Scoring.md` §§3–4. Its static local-import closure has no chain/reward module or dynamic import. Fixture-only A5; no LIVE origin is proved. |
-| `carbon.battery.value.scoring.components`, `decision_agreement`, `rule_scores` | `predictions`, `case_ids`, reference `store`, optional/frozen `contract`, and computed component vector | Its static local-import closure has no chain/reward module or dynamic import. Caller provenance and a real exam remain outside this proof. |
+| `carbon.battery.value.scoring.components`, `decision_agreement`, `rule_scores` | `predictions`, `case_ids`, reference `store`, optional/frozen `contract`, and computed component vector | **UNPROVED transitive import closure.** Importing `challenge` imports `carbon.reconstruction.capability_registry`, which also executes its ancestor package initializer. That initializer imports reconstruction orchestration; the resulting source closure reaches chain/reward modules. This is not evidence that the numeric function reads chain state. |
 | `carbon.design_search.score_bridge.evaluate_design_score` | `sealed_bank` (question/reference outcomes), `committed_predictions`, `registered_rule` (objective, equivalence, losses, kind costs and aggregate) | The pure library's static local-import closure has no chain/reward module or dynamic import. Bank custody and caller provenance are outside this proof. |
 | `carbon.battery.value.score_tuning.score_member` | Candidate rule and each member's scored leg row; related scoring functions consume registered limits and references | **UNPROVED end-to-end.** The module's transitive import closure reaches `carbon.chain` via `false_acceptance → panel → track_a → worker → level1_worker → development_session.battery_gpu → research_campaign → service`. Reachability is not evidence of a chain read, but prevents a blanket no-chain assertion. |
 | `carbon.challenge_validator.*_scoring` practice rules | Submitted predictions, public PRACTICE references/material, frozen Challenge rule and comparison inputs | **UNPROVED end-to-end.** Their transitive imports reach `carbon.chain` through development-session modules. Practice is intentionally incomplete and is not the hidden exam. |
@@ -62,13 +62,20 @@ initializer add no source. Calls through named or aliased
 `from importlib import import_module` bindings are conservatively reported as
 dynamic and unproved, even if another statement might shadow the binding.
 `tests/invariants/test_score_offchain_boundary.py` requires the
-three clean kernels to remain chain/reward-free and injects a fake direct
+two clean kernels to remain chain/reward-free and injects a fake direct
 `carbon.chain` import into `ScoreEngine` source as a negative control. The
 guard catches that injection. The same test preserves the publisher's
 transitive scorer reachability as a visible **unknown**. Additional negative
 controls inject a chain import into each of `carbon` and `carbon.scoring`'s
 initializers and call direct, aliased and attribute-based dynamic loaders.
 These controls do not execute the imported code or access a chain.
+
+The initial three-kernel clean claim omitted implicit ancestor initializers.
+The corrected traversal exposed the battery value scorer's wider closure in
+canonical CI. A positive reachability regression now keeps that root visibly
+**UNPROVED**; it is not exempted from the audit and its forbidden imports are
+not suppressed. This is a correction to the audit's evidence claim, with no
+change to scorer code or historical scores.
 
 Closing the unknown needs a function-level call and data-origin proof at the
 validator and publication callers, or a bounded import-boundary refactor,

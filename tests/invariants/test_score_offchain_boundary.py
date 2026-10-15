@@ -81,3 +81,12 @@ def test_tuning_transitive_chain_reachability_is_reported_as_unknown():
         "carbon.battery.value.score_tuning"
     )
     assert "carbon.chain" in evidence["forbidden_reachable"]
+
+
+def test_battery_value_package_initializer_reachability_is_unproved():
+    module = "carbon.battery.value.scoring"
+    evidence = audit(ROOT, roots=(module,))
+    assert module not in PROVEN_SCORE_ROOTS
+    assert "carbon.reconstruction" in evidence["local_modules"]
+    assert "carbon.chain" in evidence["forbidden_reachable"]
+    assert evidence["first_forbidden_paths"]["carbon.chain"][0] == module
