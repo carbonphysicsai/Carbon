@@ -6,6 +6,26 @@ repair ownership on 2026-10-15 following Ryan's reference-method pivot;
 Packets hands over source evidence, Research independently reviews the method,
 and Root owns actual tests, merge, registration, compute and MAIN checkpoint.
 
+Prospective owner adoption: direct answer "Approve this guarded DEVELOPMENT
+protocol" in Test Lead, receipt SHA256
+e4a7dd4d8f51e3aaac38d75d5e763dfbc6061cc59715d65a3bdad94e3c8c4696,
+approves the exact d208997dc method document fc731a4a: CC2/CV4.19V, strict
+raw4.2V, explicit1e-6V tracking, same first T5/h1 meshes20/40/80 only, maximum
+45minutes/USD2 from the existing shared grant after checks and Root dispatch.
+This supersedes pending-adoption wording below prospectively; old failures,
+390TRAIN rows and18fits retain their original protocol and interpretation.
+
+Implementation slice: opt-in guarded job/protocol/observer/data/binding IDs;
+reuse existing durable solve_calibration execution with a pure conjunctive
+guarded reducer, not a second solver runner. Add guarded_reference.py and its
+exclusive CPU test under Root's reserved paths. Keep legacy defaults and
+legacy numerical policy/export/task sources unchanged. Actual tracking refusal
+must catch wrong CV below4.2, interior overshoot, missing/wrong control/event,
+source/scaling mismatch, incomplete phases, nonfinite evidence and bad rungs.
+Only the first new guarded triple is constructible by this execution binding;
+no full-calibration/EVAL/N1 release. Root authenticates commit/delivery/resource
+bindings and runs all application tests; author formatting/AST/lint/hash only.
+
 ## Working contract
 
 KEEP the pinned DFN/OKane2022 equations, existing programme, meshes20/40/80,

@@ -1,5 +1,54 @@
 # Battery A03 reference-method repair, 15 October 2026
 
+## Approved implementation update
+
+Ryan approved the complete guarded DEVELOPMENT protocol in Test Lead. The
+direct-human approval receipt SHA256 is
+`e4a7dd4d8f51e3aaac38d75d5e763dfbc6061cc59715d65a3bdad94e3c8c4696`.
+It binds the reviewed document at immutable commit `d208997dc`, SHA256
+`fc731a4ad5f5a700d0855f5763dce9f73b09fe2646f92fdc6988c0711b16e123`.
+The historical proposal below retains its original pending-status wording;
+this update prospectively supersedes that status only. The original failed
+A03, old390TRAIN rows and18fits remain unchanged.
+
+Implementation in `scripts/dev/battery/guarded_reference.py` provides a new
+protocol ID `carbon.scorelab.battery-v3.guarded419-protocol.v1`, observer ID
+`carbon.scorelab.battery-v3.guarded419-full30-observer.v1`, dataset ID
+`carbon.scorelab.battery-v3.guarded419-first-T5-h1.v1` and guarded binding/receipt
+schemas. Legacy jobs still command4.2V. Only the exact three new T5/h1 jobs
+opt into4.19V; the pinned release's existing legacy experiment-model mode is
+made explicit on that path. Old source/task/numerical-policy/export semantics
+are not silently migrated.
+
+The prospective N1 context is
+`carbon.scorelab.battery-v3.guarded419-n1-context.v1`, explicitly UNBOUND until
+matching-protocol data and a separate consumer binding exist. The first-triple
+binding cannot make old TRAIN rows/fits compatible or produce an N1/EVAL release.
+
+The existing `feasibility02 solve --calibration-binding ...` durable collector
+handles both versioned paths. The new schema requires all nine source hashes,
+new observer/method/data identity and exactly the first triple before workers
+start. Each returned row is preserved before the real tracking checks and
+unchanged five-quantity numerical checks are conjoined. A raw OK solve can
+therefore yield REFERENCE_UNRESOLVED. Only a compatible guarded first-triple
+receipt is possible; full-calibration/EVAL/N1 release flags remain false.
+
+Root materializes `guarded_reference.inputs()` and
+`guarded_reference.execution_binding(source_commit=EXACT_PUSHED_COMMIT,
+source_files=ACTUAL_NINE_FILE_SHA256_MAPPING)`, records the exact binding byte
+SHA256, and uses that same binding/command path. Source hashes are the exact
+`REQUIRED_SOURCES` set, including the new helper. This builder performs no
+dispatch. Include `scripts.dev.battery.guarded_reference` in the pod's shipped
+modules and re-freeze any changed payload manifest. Root independently checks
+actual clean source/commit, image/overlay, mode/lease, two aggregate CPUs,
+45-minute deadline and USD2 reservation from the existing shared grant.
+
+Root owns all application tests, actual source interoperability, paid dispatch
+and merge. Author-side evidence here is source/static only until actual CI
+returns. First paid validation remains only the approved new T5/h1 triple.
+
+## Historical reviewed proposal at d208997dc
+
 Engineering: additive diagnostic source and synthetic controls prepared, not
 tested. Science: original A03 remains NUMERICAL_CALIBRATION_INADEQUATE /
 REFERENCE_UNRESOLVED. The recommendation below is not adopted and changes no

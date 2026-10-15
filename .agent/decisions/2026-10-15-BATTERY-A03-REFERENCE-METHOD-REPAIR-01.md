@@ -45,3 +45,14 @@ series-cell evidence and exact expected event/control identities. Both numeric
 choices require owner adoption; neither becomes runtime acceptance here. The
 engineering follow-up records actual series count (unknown never assumes1)
 and adds a synthetic4.199V wrong-hold control. Original strict4.2 is unchanged.
+
+Owner adoption and implementation slice: direct human approval receipt
+e4a7dd4d8f51e3aaac38d75d5e763dfbc6061cc59715d65a3bdad94e3c8c4696
+adopts the exact d208 method document fc731a4a. Implement opt-in guarded419
+identities, explicit legacy experiment-model mode (the pinned existing default),
+and pure tracking checks conjoined with the unchanged numerical reduction.
+Use the existing durable solve loop for only the first new T5/h1 triple.
+Missing or invalid evidence is REFERENCE_UNRESOLVED; solver/infra failures
+remain raw typed records, never candidate failures. New source/observer/data
+bindings refuse old rows and cannot authorize N1/EVAL or later cases. Source
+preparation remains distinct from Root's actual tests, dispatch and results.

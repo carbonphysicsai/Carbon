@@ -101,11 +101,17 @@ def plan(out):
 
 
 def _simulation(job):
+    guarded = job.get("reference_method") is not None
+    if guarded:
+        from scripts.dev.battery import guarded_reference
+
+        guarded_reference.validate_job(job)
     import pybamm
 
     from carbon.battery import reference as ref
 
     spec = ref.SPEC
+    control_voltage = guarded_reference.CONTROL_V if guarded else spec["v_max"]
     model = pybamm.lithium_ion.DFN(dict(spec["options"]))
     params = pybamm.ParameterValues(spec["parameter_set"])
     t_k = 273.15 + job["t_amb_c"]
@@ -137,8 +143,8 @@ def _simulation(job):
     )
     body = (
         f"Charge at {job['c1']}C until {job['switch_voltage_v']} V",
-        f"Charge at {job['c2']}C until {spec['v_max']} V",
-        f"Hold at {spec['v_max']} V until {spec['cv_cutoff']}",
+        f"Charge at {job['c2']}C until {control_voltage} V",
+        f"Hold at {control_voltage} V until {spec['cv_cutoff']}",
         "Rest for 10 minutes",
         f"Discharge at {spec['discharge_rate']} until {spec['v_min']} V",
         "Rest for 10 minutes",
@@ -151,6 +157,7 @@ def _simulation(job):
         experiment=experiment,
         var_pts=var_pts,
         solver=solver,
+        **({"experiment_model_mode": "legacy"} if guarded else {}),
     )
     return sim, {
         "h0_w_m2k": float(h0),
@@ -385,6 +392,7 @@ def _voltage_contact_observation(step, descriptor):
                 "direction": descriptor.direction,
                 "control_kind": getattr(kind, "value", kind),
                 "value": _finite_scalar(descriptor.value),
+                "duration_s": getattr(descriptor, "duration", None),
                 "terminations": terminations,
             }
         times = [float(t) for t in step["Time [s]"].entries]
@@ -495,11 +503,24 @@ def _voltage_contact_observation(step, descriptor):
         for variable, expression in getattr(model, "algebraic", {}).items():
             if variable.name == "Current variable [A]":
                 equation = str(expression)
+                identity = "NOT_A_VERIFIED_VOLTAGE_RELATION"
+                if (
+                    result["descriptor"]
+                    and result["descriptor"]["control_kind"] == "voltage"
+                ):
+                    try:
+                        voltage = model.get_processed_variable_or_event("Voltage [V]")
+                        expected = voltage - result["descriptor"]["value"]
+                        if expression == expected:
+                            identity = "PROCESSED_VOLTAGE_MINUS_ACTUAL_TARGET"
+                    except (AttributeError, TypeError, ValueError):
+                        identity = "VOLTAGE_RELATION_IDENTITY_UNAVAILABLE"
                 terminal["current_control_equations"].append(
                     {
                         "variable": variable.name,
                         "expression": equation[:2048],
                         "expression_truncated": len(equation) > 2048,
+                        "identity": identity,
                         "expression_utf8_sha256": hashlib.sha256(
                             equation.encode("utf-8")
                         ).hexdigest(),
@@ -509,8 +530,15 @@ def _voltage_contact_observation(step, descriptor):
                     }
                 )
         for key in ("Voltage [V]", "Battery voltage [V]"):
+            # Delayed variable processing in the pinned release requires this
+            # public accessor; the raw variables mapping may be unprocessed.
+            variable = (
+                model.get_processed_variable_or_event(key)
+                if hasattr(model, "get_processed_variable_or_event")
+                else model.variables[key]
+            )
             terminal[key] = _finite_scalar(
-                model.variables[key].evaluate(t=event_time, y=state, inputs=inputs)
+                variable.evaluate(t=event_time, y=state, inputs=inputs)
             )
         result["terminal_state"] = terminal
     except Exception as exc:  # noqa: BLE001 -- unavailable evidence remains explicit
@@ -614,7 +642,14 @@ def solve_one(job):
     import pybamm
 
     pybamm.set_logging_level("ERROR")
-    record = {**job, "schema": "carbon.battery.feasibility02-record.v1"}
+    record = {
+        **job,
+        "schema": (
+            "carbon.battery.guarded419-feasibility-record.v1"
+            if job.get("reference_method") is not None
+            else "carbon.battery.feasibility02-record.v1"
+        ),
+    }
     started = time.perf_counter()
     try:
         sim, cooling = _simulation(job)
@@ -623,6 +658,10 @@ def solve_one(job):
         return {**record, "status": "REFERENCE_SOLVER_FAILED", "error": repr(exc)[:300],
                 "wall_s": time.perf_counter() - started}  # fmt: skip
     record["cooling"] = cooling
+    if job.get("reference_method") is not None:
+        from scripts.dev.battery import guarded_reference
+
+        record["reference_identity"] = guarded_reference.observer({})
     record["observation_provenance"] = _observation_source_metadata(sim)
     cycles = list(sol.cycles)
     if len(cycles) < N_CYCLES or any(c is None for c in cycles):
@@ -707,6 +746,10 @@ def solve(jobs_path, records_path, workers):
 
     solver_provenance = truth_env.provenance(".")
     jobs = json.loads(Path(jobs_path).read_text())["jobs"]
+    if any("reference_method" in job for job in jobs):
+        raise ValueError(
+            "guarded reference jobs require the prospectively bound calibration path"
+        )
     records = Path(records_path)
     done = set()
     if records.exists():
@@ -740,6 +783,12 @@ def _calibration_contract(jobs_path, binding_path, expected_sha256):
     if hashlib.sha256(raw).hexdigest() != expected_sha256:
         raise tasks.TaskError("calibration binding bytes differ")
     binding = json.loads(raw)
+    if binding.get("schema") == "carbon.scorelab.guarded419-calibration-execution.v1":
+        from scripts.dev.battery import guarded_reference
+
+        return guarded_reference.validate_binding(
+            binding, json.loads(Path(jobs_path).read_text(encoding="utf-8")), root=ROOT
+        )
     producer._fields(
         binding,
         (
@@ -850,6 +899,10 @@ def solve_calibration(jobs_path, records_path, workers, binding_path, expected_s
     if type(workers) is not int or not 1 <= workers <= 2:
         raise tasks.TaskError("calibration requires one or two workers")
     binding, groups = _calibration_contract(jobs_path, binding_path, expected_sha256)
+    guarded = binding["schema"] == "carbon.scorelab.guarded419-calibration-execution.v1"
+    if guarded:
+        from scripts.dev.battery import guarded_reference
+    guarded_records = []
     provenance = truth_env.provenance(".")
     plan = binding["plan"]
     if (
@@ -869,7 +922,11 @@ def solve_calibration(jobs_path, records_path, workers, binding_path, expected_s
     triples = {}
     states = {j["case_id"]: "NOT_DISPATCHED" for g in groups for j in g}
     receipt = {
-        "schema": "carbon.scorelab.calibration-execution-receipt.v1",
+        "schema": (
+            "carbon.scorelab.guarded419-calibration-execution-receipt.v1"
+            if guarded
+            else "carbon.scorelab.calibration-execution-receipt.v1"
+        ),
         "scope": binding["scope"],
         "binding_sha256": expected_sha256,
         "execution_source": binding["execution_source"],
@@ -885,10 +942,14 @@ def solve_calibration(jobs_path, records_path, workers, binding_path, expected_s
     }
 
     def save():
-        receipt["calibration"] = numerics.calibration_report(
-            triples,
-            expected_cases=cases,
-            expected_policy_digest=binding["policy_digest"],
+        receipt["calibration"] = (
+            guarded_reference.calibration_report(binding, guarded_records)
+            if guarded
+            else numerics.calibration_report(
+                triples,
+                expected_cases=cases,
+                expected_policy_digest=binding["policy_digest"],
+            )
         )
         receipt["records_sha256"] = hashlib.sha256(records.read_bytes()).hexdigest()
         temporary = receipt_path.with_name(receipt_path.name + ".tmp")
@@ -918,7 +979,11 @@ def solve_calibration(jobs_path, records_path, workers, binding_path, expected_s
                         # Preserve worker infrastructure failure, not science failure.
                         record = {
                             **job,
-                            "schema": "carbon.battery.feasibility02-record.v1",
+                            "schema": (
+                                "carbon.battery.guarded419-feasibility-record.v1"
+                                if guarded
+                                else "carbon.battery.feasibility02-record.v1"
+                            ),
                             "status": "FAILED_INFRA",
                             "error": repr(exc)[:300],
                         }
@@ -928,16 +993,23 @@ def solve_calibration(jobs_path, records_path, workers, binding_path, expected_s
                         handle.flush()
                         os.fsync(handle.fileno())
                     rows.append(record)
+                    if guarded:
+                        guarded_records.append(record)
                     states[job["case_id"]] = record.get("status", "MALFORMED_RECORD")
                     save()
                 # Assessment occurs only after the current triple is durable;
                 # no futures for a later physical tuple exist yet.
-                triples[case] = _calibration_rows(binding, group, rows)
-                current = numerics.calibration_report(
-                    {case: triples[case]},
-                    expected_cases=[case],
-                    expected_policy_digest=binding["policy_digest"],
-                )
+                if guarded:
+                    current = guarded_reference.calibration_report(
+                        binding, guarded_records
+                    )
+                else:
+                    triples[case] = _calibration_rows(binding, group, rows)
+                    current = numerics.calibration_report(
+                        {case: triples[case]},
+                        expected_cases=[case],
+                        expected_policy_digest=binding["policy_digest"],
+                    )
                 receipt["per_completed_triple"].append(current)
                 if current["status"] != "COMPATIBLE_FOR_REGISTERED_CALIBRATION_CASES":
                     receipt["status"] = current["status"]
@@ -948,7 +1020,9 @@ def solve_calibration(jobs_path, records_path, workers, binding_path, expected_s
         receipt["status"] = "INTERRUPTED_OR_INVALID_REFERENCE"
         save()
         raise
-    receipt["status"] = "COMPATIBLE_PILOT_ONLY"
+    receipt["status"] = (
+        "COMPATIBLE_GUARDED_FIRST_TRIPLE_ONLY" if guarded else "COMPATIBLE_PILOT_ONLY"
+    )
     save()
     return 0
 
