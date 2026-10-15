@@ -136,7 +136,17 @@ def test_all_offered_rows_retained_with_missing_failed_nonfinite_or_bad_guard(
 
 
 @pytest.mark.parametrize(
-    "kind", ["wrong_job", "duplicate", "role", "source", "unmapped", "raw_drift"]
+    "kind",
+    [
+        "wrong_job",
+        "duplicate",
+        "role",
+        "source",
+        "unmapped",
+        "raw_drift",
+        "old_schema",
+        "old_context",
+    ],
 )
 def test_rehashed_wrong_delivery_or_unbound_bytes_are_refused(tmp_path, kind):
     delivery = fixture.make_delivery(tmp_path)
@@ -147,6 +157,10 @@ def test_rehashed_wrong_delivery_or_unbound_bytes_are_refused(tmp_path, kind):
         rows[0]["reference_role"] = "PUBLIC_EVALUATION"
     if kind == "duplicate":
         rows[1] = copy.deepcopy(rows[0])
+    if kind == "old_schema":
+        rows[0]["schema"] = guard.RECORD
+    if kind == "old_context":
+        rows[0]["reference_identity"] = guard.observer({})
     fixture.refresh_delivery(delivery, rows)
     if kind == "source":
         delivery["manifest"]["chunks"][0]["source_commit"] = "f" * 40
@@ -271,6 +285,11 @@ def test_existing_worker_adapter_durable_partial_outputs_no_next_stage(
         assert len(submitted) == 9
     if failure == "infra":
         assert list(receipt["per_job"].values()).count("FAILED_INFRA") == 1
+        first = t9.jobs()[0]["case_id"]
+        assert receipt["evidence"]["per_job"][first]["raw_status"] == "FAILED_INFRA"
+        assert (
+            receipt["evidence"]["tracking"][first]["status"] == "REFERENCE_UNRESOLVED"
+        )
     if failure == "none":
         assert len(output.read_bytes().splitlines()) == 9
 
@@ -289,6 +308,24 @@ def test_bad_g0_refuses_before_output_or_pool(tmp_path, monkeypatch):
     with pytest.raises(tasks.TaskError):
         t9.run(delivery["binding"], **args, records_path=output, root=tmp_path)
     assert not output.exists()
+
+
+def test_t9_solver_failure_retains_requested_context_without_acceptance(monkeypatch):
+    import sys
+    from types import SimpleNamespace
+
+    monkeypatch.setitem(
+        sys.modules, "pybamm", SimpleNamespace(set_logging_level=lambda _: None)
+    )
+
+    def fail(_):
+        raise RuntimeError("synthetic pre-solve failure")
+
+    monkeypatch.setattr(worker, "_simulation", fail)
+    row = worker.solve_one(t9.jobs()[0])
+    assert row["status"] == "REFERENCE_SOLVER_FAILED"
+    assert row["reference_identity"] == t9.observer()
+    assert t9.tracking_report(row)["status"] == "REFERENCE_UNRESOLVED"
 
 
 @pytest.mark.parametrize("suffix", ["", ".t9.json", ".t9.json.tmp"])

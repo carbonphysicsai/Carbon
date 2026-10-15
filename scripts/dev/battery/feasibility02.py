@@ -664,6 +664,12 @@ def solve_one(job):
             )
         ),
     }
+    if job.get("reference_admission") == "carbon.scorelab.guarded419.t9-admission.v1":
+        from scripts.dev.score_lab import guarded419_t9
+
+        # Requested T9 context also identifies typed failures before a solve;
+        # it is not evidence that the reference executed or passed tracking.
+        record["reference_identity"] = guarded419_t9.observer()
     started = time.perf_counter()
     try:
         sim, cooling = _simulation(job)

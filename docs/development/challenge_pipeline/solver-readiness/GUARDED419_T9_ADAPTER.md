@@ -62,6 +62,12 @@ scope)` refuses raw dictionaries and foreign/context-mismatched evidence and
 returns a fresh snapshot. This is internal provenance typing, not a security
 guarantee against arbitrary hostile Python.
 
+A foreign raw schema or contradictory observer is a contract refusal before
+evidence is issued, even when its chunk has been rehashed. A typed pre-solve
+or infrastructure failure records the requested T9 context without claiming
+execution or tracking success. Correct-context bad telemetry remains retained
+and unadmitted; foreign raw bytes remain retained with INVALID_DELIVERY.
+
 The snapshot contains scope, binding/manifest digests, protocol/method/observer/
 dataset IDs, exact source commit/files, canonical G0 receipt digest, nine jobs,
 returned records, source-row byte/line proofs, tracking reports and every-job

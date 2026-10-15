@@ -318,6 +318,10 @@ def validate_delivery(
                 raise tasks.TaskError("T9 raw job types differ")
             if binding["scope"] == "PUBLIC_DEVELOPMENT" and row.get("fixture"):
                 raise tasks.TaskError("fixture row cannot be public T9 evidence")
+            if row.get("schema") != RECORD or tasks.digest(
+                row.get("reference_identity")
+            ) != tasks.digest(observer()):
+                raise tasks.TaskError("foreign T9 record schema or observer context")
             records[jid] = _json_safe(row)
             tracking[jid] = tracking_report(row)
             extraction = producer._extract(row)
@@ -511,6 +515,7 @@ def run(
                     row = {
                         **job,
                         "schema": RECORD,
+                        "reference_identity": observer(),
                         "status": "FAILED_INFRA",
                         "error_type": type(exc).__name__,
                     }
@@ -518,6 +523,7 @@ def run(
                     row = {
                         **job,
                         "schema": RECORD,
+                        "reference_identity": observer(),
                         "status": "MALFORMED_RECORD",
                         "raw_return_type": type(row).__name__,
                     }

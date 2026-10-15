@@ -40,3 +40,11 @@ raw-byte/line/source proofs. Nonfinite output numbers become null only in that
 JSON-safe snapshot, after original-raw checks, never in retained raw evidence
 or as repaired eligible values. Construction statistics/kit/support stay with
 Optimizer. Shared tests use synthetic-only fixtures through the real validator.
+
+Review correction T9-R1: a foreign raw-record schema or contradictory observer
+identity is a contract refusal before nominal evidence is issued, not a typed
+measurement failure inside otherwise valid evidence. Rehashed old-schema and
+old-G0-context controls pin this boundary. Correct-context failed, missing,
+nonfinite or fidelity-unresolved rows remain retained and unadmitted; no
+candidate failure or repaired label is invented. The collector still retains
+foreign raw bytes with INVALID_DELIVERY rather than granting consumer evidence.
