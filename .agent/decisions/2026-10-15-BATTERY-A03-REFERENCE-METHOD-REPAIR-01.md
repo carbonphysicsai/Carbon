@@ -36,3 +36,12 @@ choice. No public output schema, policy, task, N1 or continuation is modified.
 Human-reserved input remains only for adoption of the concrete prospective
 scientific repair. Existing strict4.2 path stays fail closed while unresolved.
 No delivery receipt ceremony or Hub changes are added; no maturity promoted.
+
+Research's independent proposal critique found that a consistently wrong CV
+voltage below4.2 could pass the old raw maximum/cross-rung checks. The same
+prospective guarded4.19 recommendation now explicitly proposes1e-6V target
+fidelity for CC2 terminal/interior and CV samples/equation, with actual single
+series-cell evidence and exact expected event/control identities. Both numeric
+choices require owner adoption; neither becomes runtime acceptance here. The
+engineering follow-up records actual series count (unknown never assumes1)
+and adds a synthetic4.199V wrong-hold control. Original strict4.2 is unchanged.

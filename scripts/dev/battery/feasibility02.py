@@ -284,6 +284,22 @@ def _observation_source_metadata(sim):
         except (OSError, TypeError, ValueError):
             pass
         sources[role] = entry
+    voltage_scale = {
+        "status": "PARAMETER_VALUE_UNAVAILABLE",
+        "series_cells": None,
+        "basis": "ACTUAL_SIMULATION_PARAMETER_VALUE_NOT_A_BOUND_CERTIFICATE",
+    }
+    try:
+        voltage_scale.update(
+            series_cells=_finite_scalar(
+                sim.parameter_values[
+                    "Number of cells connected in series to make a battery"
+                ]
+            ),
+            status="OBSERVED_PARAMETER_VALUE",
+        )
+    except (AttributeError, KeyError, TypeError, ValueError, OverflowError):
+        pass
     return {
         "schema": "carbon.battery.observation-source-inventory.v1",
         "installed_python_sources": sources,
@@ -293,6 +309,7 @@ def _observation_source_metadata(sim):
         "wheel_authenticity_verification": "NOT_PERFORMED_BY_THIS_DIAGNOSTIC",
         "native_solver_source_verification": "NOT_PERFORMED",
         "expected_environment_identity": "SEPARATE_SOLVER_PROVENANCE_AND_OVERLAY_LOCK",
+        "runtime_voltage_scale": voltage_scale,
         "output_time_configuration": {
             "experiment_period_argument": "OMITTED",
             "solve_t_interp_argument": "OMITTED",

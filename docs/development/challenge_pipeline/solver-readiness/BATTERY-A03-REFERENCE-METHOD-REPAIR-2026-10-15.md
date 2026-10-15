@@ -63,7 +63,8 @@ calibration reduction. Each of181actual steps, including initial rest, gets:
   expression reevaluated at that state, cell and battery terminal voltage,
   actual circuit class/control and terminal current-control equation/residual.
 - Explicit unavailable/malformed/nonfinite states and selected installed
-  event/control source hashes. No acceptance flag or replacement Vmax.
+  event/control source hashes. Record actual runtime series-cell count; never
+  assume Battery voltage equals cell voltage. No acceptance flag or replacement Vmax.
 
 Synthetic controls cover terminal roundoff; large interior overshoot with
 zero terminal residual; gross CV error; wrong target/direction/event; final-time
@@ -90,6 +91,43 @@ physical fact or claim of optimal/sufficient headroom. Only actual prospective
 results may satisfy the existing numerical checks. They still do not establish
 hardware safety or a continuous physical bound.
 
+The same prospective recommendation includes an explicit **target-fidelity
+criterion of1e-6V**, separately registered with the programme. This is a proposed
+DEVELOPMENT numerical criterion on the existing voltage-pair reporting scale,
+not a source-derived error certificate, hardware tolerance or allowance above
+the hard4.2V maximum. Its numeric value requires owner/domain adoption too.
+Before a new guarded-protocol triple can count as compatible, every cycle must
+satisfy all of the following in addition to unchanged calibration checks:
+
+1. Exact source/control/target/termination identities, all30cycles and every
+   phase, ordered finite nonduplicate samples, actual terminal-state evidence
+   and actual runtime series-cell count1. Missing/different/ambiguous evidence
+   means REFERENCE_UNRESOLVED. Source bytes alone are not a state certificate.
+2. Each CC2 ends at the expected charge voltage event with target4.19V; its
+   signed event residual has absolute value<=1e-6V, the last sampled time equals
+   the terminal-state time, and independent terminal Voltage and Battery voltage
+   evaluations agree with the sampled terminal voltage within1e-6V.
+3. Every CC2 strict-interior voltage and its first sample are <=4.19+1e-6V.
+   A spike at4.195V followed by a perfect4.19V endpoint fails target fidelity
+   even though it is below the physical4.2V maximum. Do not discard that sample.
+4. Each CV uses the authenticated algebraic voltage-control relation with
+   target4.19V and expected current-cutoff termination. Over every recorded CV
+   sample, max(abs(Voltage-4.19))<=1e-6V. Its actual terminal current-control
+   equation must be the selected voltage relation and its signed residual
+   <=1e-6V in absolute value. Wrong mode/target/event is unresolved, never
+   inferred from the phase label or a small residual of another equation.
+5. The original unmodified whole-programme maximum, including all endpoints,
+   CV samples, rests and discharges, must still be <=4.2V exactly. Keep the
+   original pair-change1e-6V and four-quantity adequacy rules too. There is no
+   added epsilon on that physical guard and no reinterpretation of the old run.
+
+A consistently wrong4.199V CV trajectory at command4.19V must therefore fail:
+its9mV target residual is above the proposed1microV fidelity criterion despite
+raw Vmax<4.2V and perfect cross-rung agreement. The prepared diagnostics expose
+this negative control; no target-fidelity acceptance code is enabled here.
+This finite-sample criterion still does not certify unobserved interior peaks
+or continuous physical compliance; it is a bounded operational model study.
+
 Do not silently adopt an event-defined setpoint as the old measured Vmax.
 The API provides no one-sided certificate, and finite residual alone could
 accept a grossly incorrect CV solution. Do not clip/drop samples, add a posthoc
@@ -108,9 +146,10 @@ TRAIN evidence; additional compatible data or an explicitly identified transfer
 study may be needed. No change to the
 hard4.2V threshold is recommended. Current code has no4.19behavior.
 
-Smallest owner decision: adopt or reject that exact4.19V commanded programme
-for a newly identified PUBLIC_DEVELOPMENT reference, with unchanged4.2V raw
-guard and all stated limits. Rejection leaves the scientific path unresolved;
+Smallest owner decision: adopt or reject the complete4.19V commanded programme
+and explicit1e-6V target-fidelity criterion for a newly identified
+PUBLIC_DEVELOPMENT reference, with unchanged4.2V raw guard and all stated
+identity/coverage limits. Rejection leaves the scientific path unresolved;
 additive diagnostic engineering can still ship. Research independent critique
 and adoption are pending, not implied by software tests, assignment or silence.
 

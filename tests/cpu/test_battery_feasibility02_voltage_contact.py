@@ -328,3 +328,58 @@ def test_all_thirty_cycles_keep_phase_mapping_raw_maxima_and_legacy_calibration(
     )
     assert receipt["status"] == "REFERENCE_UNRESOLVED"
     assert receipt["intervals"]["v_max_v"] == [4.2000000000003, 4.2000000000003]
+
+
+def test_wrong_cv_hold_below_physical_limit_still_exposes_target_error():
+    result = observe(
+        step(volts=(4.199, 4.199, 4.199)),
+        descriptor(voltage=True, target=4.19),
+    )
+    assert result["samples"]["all"]["maximum"]["value_v"] < 4.2
+    assert (
+        result["cv_voltage_minus_target"]["extrema"]["maximum"]["value_v"]
+        == 4.199 - 4.19
+    )
+    assert result["cv_voltage_minus_target"]["positive_count"] == 3
+
+
+@pytest.mark.parametrize("series_cells", [1.0, 2.0])
+def test_runtime_cell_scale_witness_records_actual_value_without_acceptance(
+    series_cells, monkeypatch
+):
+    import inspect
+    import sys
+
+    monkeypatch.setitem(sys.modules, "pybamm", SimpleNamespace())
+    monkeypatch.setattr(inspect, "getsourcefile", lambda _: None)
+    sim = SimpleNamespace(
+        parameter_values={
+            "Number of cells connected in series to make a battery": series_cells
+        }
+    )
+    metadata = worker._observation_source_metadata(sim)
+    witness = metadata["runtime_voltage_scale"]
+    assert witness["status"] == "OBSERVED_PARAMETER_VALUE"
+    assert witness["series_cells"] == series_cells
+    assert "accepted" not in witness
+    json.dumps(metadata, allow_nan=False)
+
+
+@pytest.mark.parametrize(
+    "parameters",
+    [{}, {"Number of cells connected in series to make a battery": float("nan")}],
+)
+def test_missing_or_nonfinite_cell_scale_is_never_assumed_to_be_one(
+    parameters, monkeypatch
+):
+    import inspect
+    import sys
+
+    monkeypatch.setitem(sys.modules, "pybamm", SimpleNamespace())
+    monkeypatch.setattr(inspect, "getsourcefile", lambda _: None)
+    witness = worker._observation_source_metadata(
+        SimpleNamespace(parameter_values=parameters)
+    )["runtime_voltage_scale"]
+    assert witness["status"] == "PARAMETER_VALUE_UNAVAILABLE"
+    assert witness["series_cells"] is None
+    json.dumps(witness, allow_nan=False)
