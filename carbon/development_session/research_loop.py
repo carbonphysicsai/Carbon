@@ -528,7 +528,7 @@ def tool_arguments(call, schemas):
         return None, rejected_call(ARGUMENTS_INVALID, "arguments", reason, fix)
 
 
-def selection_result(arguments, *, check=None):
+def selection_result(arguments, *, check=None, candidate_factory=None):
     """The selection tool's result, computed before anything is journalled:
     the frozen-candidate record, or a typed rejection naming the field.
 
@@ -571,7 +571,9 @@ def selection_result(arguments, *, check=None):
         problem, fix = argument_problem(arguments["strategy_json"], "strategy_json")
         return rejected_call(CANDIDATE_INVALID, "strategy_json", problem, fix)
     try:
-        record = candidate_record(strategy, reason, arguments["used_feedback"])
+        record = (candidate_factory or candidate_record)(
+            strategy, reason, arguments["used_feedback"]
+        )
     except CandidateChallengeRequired:
         return rejected_call(
             CANDIDATE_INVALID,
@@ -580,6 +582,18 @@ def selection_result(arguments, *, check=None):
             "name the Challenge's challenge_id in the recipe",
         )
     except (ValueError, TypeError, KeyError) as error:
+        from .construction_level import LevelRefused
+
+        if isinstance(error, LevelRefused):
+            return rejected_call(
+                CANDIDATE_INVALID,
+                "strategy_json",
+                "The recipe could not be frozen under the campaign's contract.",
+                "Check the recipe and its graph workspace documents against "
+                "the immutable construction contract, then select again.",
+                issues=list(error.issues),
+                construction_code=error.code,
+            )
         rejected = getattr(error, "rejected", None)
         issues = getattr(rejected, "issues", None) or getattr(error, "issues", ())
         return rejected_call(
@@ -1700,6 +1714,14 @@ async def run_epoch(
     always has.
     """
     check_parallel_rule(parallel_calls)
+    from . import construction_selection
+
+    construction = construction_selection.campaign_binding(ledger, owner)
+    if construction is not None:
+        initial_observation = {
+            **initial_observation,
+            "construction_contract": construction_selection.observation(construction),
+        }
     every_call = parallel_calls == PARALLEL_CALLS_V2
     miner = agent_policy == GRAPHITE_MINER
     if miner_guidance is not None and miner_guidance not in guidance.RULES:
@@ -2034,12 +2056,31 @@ async def run_epoch(
         local = rejection is not None or stop or select or finishing or compacting
         if intent_file.exists() and not local:
             raise ValueError("tool dispatch incomplete; reconcile without duplication")
+        selected_envelope = None
+
+        def contract_candidate(strategy, reason, used_feedback):
+            nonlocal selected_envelope
+            # Re-read immutable ownership/binding at selection, not only at
+            # the first provider call. A model cannot supply or replace it.
+            if construction_selection.campaign_binding(ledger, owner) != construction:
+                raise ValueError("agent selection construction binding changed")
+            record, selected_envelope = construction_selection.candidate(
+                ledger, owner, construction, strategy, reason, used_feedback
+            )
+            return record
+
         if rejection is not None:
             result = rejection
         elif stop:
             result = stop_result(arguments)
         elif select:
-            result = selection_result(arguments, check=select_check)
+            result = selection_result(
+                arguments,
+                check=select_check,
+                candidate_factory=(
+                    contract_candidate if construction is not None else None
+                ),
+            )
         elif finishing:
             result = finish_result(
                 finish_validate, finish_status, call["name"], arguments
@@ -2057,6 +2098,10 @@ async def run_epoch(
         if not local:
             result = await dispatch(call["name"], arguments, identity)
         elif result.get("status") == "SELECTED":
+            if selected_envelope is not None:
+                from .construction_level import write_envelope
+
+                write_envelope(root, selected_envelope)
             write_once(root / "selected-recipe.json", canonical(result))
         write_once(result_file, canonical(result))
         return result
