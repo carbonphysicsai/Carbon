@@ -132,7 +132,7 @@ def test_9_commitment_order_digest_and_same_tempo_through_doors(wired, tmp_path,
             {
                 "campaign": identity,
                 "recommit": True,
-                "idempotency_key": "t04-same-tempo",
+                "idempotency_key": "t04-same-tempo-commit",
             },
         )
         join(host)
