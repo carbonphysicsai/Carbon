@@ -75,3 +75,24 @@ offline; C4 and C2 are closed-form substitutes and are labelled so).
 
 **Reversibility.** Each value is prospective and versioned; a later decision may
 change it. A failing result stays a finding; bands are not loosened.
+
+## Addendum (same day): data-role sizes for the f08 data acquisition plan
+
+Set for `docs/development/challenge_pipeline/data-acquisition/f08.{md,json}`
+before any of these sets is generated. Unit: one geometry = one ccx launch
+(static, 48-mode eigen, three damping sweeps) at the V9 bank mesh. All public
+roles use Q1 (uniform lattice) with public seeds; sealed roles use the same
+recipe with owner-held seeds on the custody host and are only specified.
+
+| # | Value | Slot | Chosen value | Derivation basis | Observed? |
+|---|---|---|---|---|---|
+| R1 | TRAIN base size D | `data-acquisition/f08.json:roles.train` | 256 geometries | equals the bank B, ~43 samples per lattice dimension-pair for a smooth 6-D geometry-to-response map; the study moves it (R9) | No |
+| R2 | TRAIN study ladder | same | nested 64, 128, 256, 512, 1024, 2048 (1/4–8×, study row G) | CHALLENGE_TRAINING_BUDGET_STUDY row G; one 2048 draw, prefixes nested | No |
+| R3 | PRACTICE | `roles.practice` | 64 geometries, references public | one quarter of D; practice stays incomplete (invariant 12): no hidden geometry, no refinement witnesses | No |
+| R4 | Decision study (D1) | `roles.decision_study` | 128 geometries: 64 representative (P) + 64 boundary (Q_boundary: beam/low-mode screen predicts a binding margin within ±20 % of a limit for some grid cell; w = P/Q recorded); finite comparator = the registered cheap baselines + always-decline + random-feasible | two groups of 64 give ≥ 5 feasible and ≥ 5 infeasible per mandatory stratum if the boundary rate is ≥ 10 %; comparator set committed before references are read | No |
+| R5 | D5 refinement | same | h 1.7 for every decision-study geometry within ±2u of a limit; expected ≤ 20 % (26) | Q13 rule applied to D1 | No |
+| R6 | Timing calibration (D3) | `roles.timing_calibration` | the 8 triage primaries, both controls, nominal and relieved-tall h 1.7, cold repeat (13 launches) on runpod-cpu5c-16vcpu | spans the panel node range and the largest refinement kind | No |
+| R7 | H1 hidden pool | `roles.sealed.hidden_pool` | 2 sealed banks of B = 256 (active + standby) for the first month; batches of n = 8 questions daily; one rotation (standby becomes active) in month one | B and n from Q7/Q8; daily cadence gives 240 questions/month against 6,912 (bank × grid) question slots; exposure E stays owner-held | No |
+| R8 | Tuning set (H2) | `roles.sealed.tuning` | 64 geometries, P law, representative only | one quarter of a bank; tunes gates, not answers | No |
+| R9 | Confirmation set (D7) | `roles.sealed.confirmation` | 128 geometries, same strata as D1 (64 representative + 64 boundary) | mirrors D1 so confirmation measures the same estimand | No |
+| R10 | Disjointness | every role | whole-geometry disjoint by action digest across all roles (`f08_bank.py --exclude`); H2 overlap check on the custody host | whole-geometry holdout (structures_readiness.physical) | No |
