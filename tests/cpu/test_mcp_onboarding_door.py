@@ -226,26 +226,34 @@ def test_every_onboarding_read_refuses_with_the_same_action(
     assert reader.calls == (2 if scenario == "chain_unavailable" else 0)
 
 
-@pytest.mark.parametrize(
-    ("operation", "registered", "reason"),
-    [("prepare", True, "ALREADY_REGISTERED"), ("confirm", False, "NOT_REGISTERED")],
-)
-def test_onboarding_registration_refusals_keep_the_same_next_action(
-    browser_server, operation, registered, reason
-):
-    participants = (
-        (Participant(uid=0, hotkey=HOTKEY, coldkey=COLDKEY, registered_at=42),)
-        if registered
-        else ()
-    )
+def test_preparing_an_already_registered_hotkey_has_the_same_refusal(browser_server):
+    participants = (Participant(uid=0, hotkey=HOTKEY, coldkey=COLDKEY, registered_at=42),)
     browser_server.onboarding.reader = _Reader(participants)
     status, browser = browser_call(
-        browser_server, "/api/v1/onboarding/" + operation, {"address": HOTKEY}
+        browser_server, "/api/v1/onboarding/prepare", {"address": HOTKEY}
     )
     with pytest.raises(ToolError) as raised:
-        _call(_door(participants), operation, address=HOTKEY)
+        _call(_door(participants), "prepare", address=HOTKEY)
     code, separator, action = str(raised.value).partition("; next_action=")
     assert status == 409
-    assert separator and browser["reason"] == code == reason
+    assert separator and browser["reason"] == code == "ALREADY_REGISTERED"
     assert browser["next_action"] == action and action
+    assert browser_server.controller.recent() == []
+
+
+def test_unregistered_confirmation_is_the_same_successful_observation(browser_server):
+    browser_server.onboarding.reader = _Reader()
+    status, browser = browser_call(
+        browser_server, "/api/v1/onboarding/confirm", {"address": HOTKEY}
+    )
+    result = _call(_door(), "confirm", address=HOTKEY)
+    assert status == 200
+    assert result.payload == browser
+    assert browser["registered"] is False and browser["confirmed"] is False
+    assert browser["next_action"] == (
+        "No registration is visible for this hotkey yet. If you have "
+        "just executed it, the chain may not have finalised the block; "
+        "retry shortly. Nothing here retries or submits for you."
+    )
+    assert result.official_eligible is False
     assert browser_server.controller.recent() == []

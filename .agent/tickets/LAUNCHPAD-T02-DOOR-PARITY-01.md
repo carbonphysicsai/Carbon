@@ -56,3 +56,9 @@ The generated MCP callbacks exercise the shared closed-body/refusal contract;
 existing setup SDK schema tests retain transport-level rejection checks.
 Onboarding compares its established reason/next_action representation with
 MCP's ToolError representation without changing either wire interface.
+
+Independent review found that an unregistered `confirm` is a successful
+observation with `confirmed=false`, not a NOT_REGISTERED refusal. The repair
+keeps the registered-prepare refusal and separately asserts HTTP200/equal MCP
+payload, false registration/confirmation and the exact next action. Runtime
+semantics remain unchanged; the repaired head requires fresh remote CI.
