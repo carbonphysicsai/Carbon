@@ -6,6 +6,12 @@ DEVELOPMENT.
     (inside the truth image) python -m scripts.dev.battery.feasibility02 solve \
         --jobs JOBS --records RECORDS --workers N
 
+Optional guarded v3 pilot: solve --workers 2 --calibration-binding BINDING
+--calibration-binding-sha256 HEX (plus --jobs/--records). BINDING has exact
+schema/scope/execution_source/source_files/plan/plan_digest/policy_digest/
+observer fields; see SCORELAB-V3-CALIBRATION-STOP-01. Source/observer hashes
+are prospectively bound by Root, never rewritten into historical receipts.
+
 The registered battery reference's model, parameters, protocol and solver
 (`carbon.battery.reference`, PyBaMM 26.8.0.0 from the pinned overlay), with
 two prospective changes for this study only:
@@ -27,12 +33,14 @@ two prospective changes for this study only:
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
 import time
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -325,6 +333,234 @@ def solve(jobs_path, records_path, workers):
                   flush=True)  # fmt: skip
 
 
+def _calibration_contract(jobs_path, binding_path, expected_sha256):
+    """Prospective input/source binding, before any worker or output is opened.
+
+    Root authenticates the execution commit and binding delivery externally.
+    File hashes below check the shipped implementation, not a Git signature.
+    """
+    from carbon.design_search import tasks
+    from scripts.dev.score_lab import owner_v3
+    from scripts.dev.score_lab import owner_v3_numerics as numerics
+    from scripts.dev.score_lab import owner_v3_panel_export as producer
+
+    raw = Path(binding_path).read_bytes()
+    if hashlib.sha256(raw).hexdigest() != expected_sha256:
+        raise tasks.TaskError("calibration binding bytes differ")
+    binding = json.loads(raw)
+    producer._fields(
+        binding,
+        (
+            "schema",
+            "scope",
+            "execution_source",
+            "source_files",
+            "plan",
+            "plan_digest",
+            "policy_digest",
+            "observer",
+        ),
+        "calibration binding",
+    )
+    if (
+        binding["schema"] != "carbon.scorelab.calibration-execution.v1"
+        or binding["scope"] not in ("PUBLIC_DEVELOPMENT", "SYNTHETIC_FIXTURE")
+        or not isinstance(binding["execution_source"], str)
+        or not re.fullmatch(r"[0-9a-f]{40}", binding["execution_source"])
+        or binding["policy_digest"] != tasks.digest(numerics.POLICY)
+    ):
+        raise tasks.TaskError("registered calibration execution required")
+    files = binding["source_files"]
+    required = {
+        *producer.SOURCES,
+        producer.EXPORTER,
+        producer.NUMERICS,
+        "scripts/dev/score_lab/owner_v3.py",
+        "carbon/design_search/tasks.py",
+    }
+    producer._fields(files, required, "calibration source files")
+    if any(
+        hashlib.sha256((ROOT / p).read_bytes()).hexdigest() != files[p]
+        for p in required
+    ):
+        raise tasks.TaskError("shipped calibration implementation differs")
+    plan = binding["plan"]
+    expected = owner_v3.acquisition_inputs(
+        plan, expected_digest=binding["plan_digest"], stage="calibration-pilot"
+    )
+    if (
+        json.loads(Path(jobs_path).read_text(encoding="utf-8")) != expected
+        or binding["observer"] != producer._observer(plan, {"files": files})
+        or plan["numerical_policy_digest"] != binding["policy_digest"]
+    ):
+        raise tasks.TaskError("complete pilot inputs, observer and policy required")
+    jobs = expected["jobs"]
+    # Freeze complete ordered triples; never infer missing rungs from outcomes.
+    groups = [jobs[i : i + 3] for i in range(0, len(jobs), 3)]
+    if not groups or any(
+        len(g) != 3
+        or [j["rung"] for j in g] != [1, 2, 3]
+        or len({j["case_id"].rsplit(":mesh", 1)[0] for j in g}) != 1
+        for g in groups
+    ):
+        raise tasks.TaskError("complete registered calibration triples required")
+    return binding, groups
+
+
+def _calibration_rows(binding, group, rows):
+    """Reuse exact producer authentication/extraction and numerical policy."""
+    from scripts.dev.score_lab import owner_v3_panel_export as producer
+
+    lines = [json.dumps(row, sort_keys=True) for row in rows]
+    raw = ("\n".join(lines) + "\n").encode()
+    jobs = {job["case_id"]: job for job in group}
+    manifest = {
+        "scope": binding["scope"],
+        "chunks": [
+            {
+                "id": "completed-triple",
+                "sha256": producer._hash(raw),
+                "role": "PUBLIC_CALIBRATION",
+                "source_commit": binding["execution_source"],
+                "source_files": binding["source_files"],
+                "rows": [
+                    {"line": i, "job_id": row["case_id"], "case_id": row["case_id"]}
+                    for i, row in enumerate(rows, 1)
+                ],
+            }
+        ],
+    }
+    found, _ = producer._raw_rows(
+        manifest,
+        {"completed-triple": raw},
+        jobs,
+        binding["source_files"],
+        binding["plan"],
+    )
+    return {
+        str({1: 20, 2: 40, 3: 80}[job["rung"]]): producer._extract(
+            found.get(job["case_id"])
+        )["values"]
+        for job in group
+    }
+
+
+def solve_calibration(jobs_path, records_path, workers, binding_path, expected_sha256):
+    """Within-pilot stop: no next tuple is submitted before this one passes.
+
+    All returned rows survive even a failed extraction. Ordinary solve/resume
+    is unchanged. The six-tuple result cannot release full calibration.
+    """
+    from carbon.battery import truth_env
+    from carbon.design_search import tasks
+    from scripts.dev.score_lab import owner_v3_numerics as numerics
+
+    if type(workers) is not int or not 1 <= workers <= 2:
+        raise tasks.TaskError("calibration requires one or two workers")
+    binding, groups = _calibration_contract(jobs_path, binding_path, expected_sha256)
+    provenance = truth_env.provenance(".")
+    plan = binding["plan"]
+    if (
+        provenance.get("schema") != "carbon.battery.solver-provenance.v1"
+        or provenance.get("solver_image", "").split("@")[-1] != plan["image_digest"]
+        or provenance.get("overlay_lock_sha256") != "sha256:" + plan["overlay_sha256"]
+        or provenance.get("overlay_lock")
+        != "scripts/dev/exam_design/locks/battery-overlay.lock.json"
+        or provenance.get("pybamm") != "26.8.0.0"
+    ):
+        raise tasks.TaskError("calibration truth runtime differs")
+    records = Path(records_path)
+    receipt_path = records.with_name(records.name + ".calibration.json")
+    if records.exists() or receipt_path.exists():
+        raise tasks.TaskError("calibration requires fresh records and receipt")
+    cases = [g[0]["case_id"].rsplit(":mesh", 1)[0] for g in groups]
+    triples = {}
+    states = {j["case_id"]: "NOT_DISPATCHED" for g in groups for j in g}
+    receipt = {
+        "schema": "carbon.scorelab.calibration-execution-receipt.v1",
+        "scope": binding["scope"],
+        "binding_sha256": expected_sha256,
+        "execution_source": binding["execution_source"],
+        "source_files": binding["source_files"],
+        "observer": binding["observer"],
+        "plan_digest": binding["plan_digest"],
+        "offered_jobs_digest": tasks.digest([j for g in groups for j in g]),
+        "status": "INCOMPLETE_REFERENCE",
+        "per_job": states,
+        "per_completed_triple": [],
+        "full_calibration_release": False,
+        "qualification": False,
+    }
+
+    def save():
+        receipt["calibration"] = numerics.calibration_report(
+            triples,
+            expected_cases=cases,
+            expected_policy_digest=binding["policy_digest"],
+        )
+        receipt["records_sha256"] = hashlib.sha256(records.read_bytes()).hexdigest()
+        temporary = receipt_path.with_name(receipt_path.name + ".tmp")
+        temporary.write_text(
+            json.dumps(receipt, sort_keys=True) + "\n", encoding="utf-8"
+        )
+        temporary.replace(receipt_path)
+
+    with records.open("x", encoding="utf-8"):
+        pass
+    save()
+    try:
+        with ProcessPoolExecutor(workers) as pool:
+            for case, group in zip(cases, groups):
+                futures = {}
+                for job in group:
+                    future = pool.submit(_timed, job)
+                    futures[future] = job
+                    states[job["case_id"]] = "SUBMITTED"
+                    save()
+                rows = []
+                for future in as_completed(futures):
+                    job = futures[future]
+                    try:
+                        record = future.result()
+                    except Exception as exc:  # noqa: BLE001
+                        # Preserve worker infrastructure failure, not science failure.
+                        record = {
+                            **job,
+                            "schema": "carbon.battery.feasibility02-record.v1",
+                            "status": "FAILED_INFRA",
+                            "error": repr(exc)[:300],
+                        }
+                    record = truth_env.stamp(record, provenance)
+                    with records.open("a", encoding="utf-8") as handle:
+                        handle.write(json.dumps(record, sort_keys=True) + "\n")
+                        handle.flush()
+                        os.fsync(handle.fileno())
+                    rows.append(record)
+                    states[job["case_id"]] = record.get("status", "MALFORMED_RECORD")
+                    save()
+                # Assessment occurs only after the current triple is durable;
+                # no futures for a later physical tuple exist yet.
+                triples[case] = _calibration_rows(binding, group, rows)
+                current = numerics.calibration_report(
+                    {case: triples[case]},
+                    expected_cases=[case],
+                    expected_policy_digest=binding["policy_digest"],
+                )
+                receipt["per_completed_triple"].append(current)
+                if current["status"] != "COMPATIBLE_FOR_REGISTERED_CALIBRATION_CASES":
+                    receipt["status"] = current["status"]
+                    save()
+                    return 2
+                save()
+    except BaseException:
+        receipt["status"] = "INTERRUPTED_OR_INVALID_REFERENCE"
+        save()
+        raise
+    receipt["status"] = "COMPATIBLE_PILOT_ONLY"
+    save()
+    return 0
+
+
 def run(plan_path, overlay, out, workers, cpus, cpu_shares=None):
     from carbon.battery import truth_env
 
@@ -365,10 +601,24 @@ def main(argv=None):
     parser.add_argument("--workers", type=int, default=4)
     parser.add_argument("--cpus", type=int, default=4)
     parser.add_argument("--cpu-shares", type=int)
+    parser.add_argument("--calibration-binding", type=Path)
+    parser.add_argument("--calibration-binding-sha256")
     args = parser.parse_args(argv)
+    if bool(args.calibration_binding) != bool(args.calibration_binding_sha256):
+        parser.error("calibration binding and SHA256 are required together")
+    if args.calibration_binding and args.command != "solve":
+        parser.error("calibration binding is only supported by in-image solve")
     if args.command == "plan":
         print(plan(args.out))
     elif args.command == "solve":
+        if args.calibration_binding:
+            return solve_calibration(
+                args.jobs,
+                args.records,
+                args.workers,
+                args.calibration_binding,
+                args.calibration_binding_sha256,
+            )
         solve(args.jobs, args.records, args.workers)
     else:
         return run(
