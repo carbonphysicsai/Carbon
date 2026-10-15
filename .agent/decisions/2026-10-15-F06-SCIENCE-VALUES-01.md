@@ -44,6 +44,7 @@ grid 0.005/0.0025, PML 0.002/0.001, padding 0.002/0.001, duration
 | 3D grid confirmation | `.grid_3d_confirmation` | registered refinement witnesses nominal-narrow and nominal-wide, all 45 rows, at h_ref and next finer rung (30→20, 20→15): \|ΔC\| ≤ e_C, \|ΔR\| ≤ e_R and identical resolved verdicts at 0.30/0.10, before bank dispatch | 2D captures the etch/period discretisation; 3D adds lateral/taper edges | no |
 | Spatial rungs | `.spatial_rungs_nm` | 2D 40/30/20/15/10; 3D h_ref + one finer rung on witnesses; no 10-nm 3D (forecast ≫ available memory) | memory forecast | no |
 | Slab TE0 n_eff error | `.slab_neff_abs` | ≤ 0.003 at h_ref (220/150/90 nm Si) | n_eff error δ shifts the peak by Λ·δ; 2-nm Tier-2 peak budget / 0.63 µm | no |
+| Code-verification order band (vacuum Bloch mode, h 0.05/0.025/0.0125) | code-verification criteria `status`/`order_band` for `meep-bloch-mode` | ACCEPTED_DEVELOPMENT, [1.7, 2.3] (spec recommendation) | Yee scheme is second order in vacuum | no |
 | Courant | `.courant` | 0.5 (Meep default) | stable in 3D (< 1/√3) | no |
 | Subpixel averaging | `.subpixel` | on, tol 1e-4, maxeval 1e5 (Meep defaults), analytic geometry | f06-resolution-cost README | no |
 
