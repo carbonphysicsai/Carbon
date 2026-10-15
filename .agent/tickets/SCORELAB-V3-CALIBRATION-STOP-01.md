@@ -24,8 +24,13 @@ execution bindings; never rewrite A01 or prior acquisition receipts.
 
 ## Manifest and validation
 
-Only `scripts/dev/battery/feasibility02.py`, exclusive new CPU tests, this ticket
+`scripts/dev/battery/feasibility02.py`, exclusive new CPU tests, this ticket
 and `.agent/decisions/2026-10-15-SCORELAB-V3-CALIBRATION-STOP-01.md`.
+Root authorized the concrete CI integration repair: update only the active
+`campaign_adapters/producer.py` helper pin for this changed worker. Its existing
+pin-matches-files regression and context refusal tests remain unchanged.
+Historical acquisition source pins and actual A01/A04 receipts retain their
+original worker identity; this refresh authorizes only prospective adapter use.
 No owner_v3, historical source-pins, provider driver, credentials or switches.
 Baseline: read source and #1381 canonical pass; local application/test execution
 is not authorized. Static AST/JSON/diff only; Root runs canonical focused tests

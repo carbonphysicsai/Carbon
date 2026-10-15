@@ -28,3 +28,11 @@ touches this decision, worker and exclusive tests only. Root/Research must bind
 the new execution-source hash prospectively; historical source identities stay
 unchanged. Scientific thresholds, roles, source authentication by Root and full
 release criteria remain unchanged. No new human-reserved value is needed.
+
+## Active adapter integration repair
+
+Canonical CI identified the unchanged campaign adapter's active worker hash
+as stale. Root authorized a one-line prospective `producer.PINNED` refresh;
+Optimizer confirmed no file-ownership collision. This restores current context
+loading without weakening its hash check or editing historical acquisitions.
+The original A01/A04 records still bind the original c2b/a37d worker source.
