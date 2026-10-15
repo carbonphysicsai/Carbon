@@ -22,7 +22,7 @@
    "name": "f08-triage",
    "type": "bulk",
    "judges": "17 launches (8 primaries h=3, 6 witnesses h=2.25/1.7 on long-flexible, relieved-tall and nominal, 2 controls, 1 cold repeat) by f08_freeze --observe on the pod: C1 oscillator control (<= 1e-6 rel, <= 0.01 deg, unretained <= 1e-12), C2 Euler-Bernoulli beam control (static <= 2 %, f1 and second z-bending <= 1 %, crest <= 3 %, location <= min(2 Hz, 1 %)), M2 mode-ladder per primary, V1-V8 per witness ladder against h=1.7 (eigen <= 1 %, peak <= 5 %, location <= min(2 Hz, 1 %), phase <= 5 deg, curve floor, static <= 2 %, mass <= 0.5 %, asymptotic), V9 bank mesh pick, the cold repeat's worst-band tip compliance against its primary (reported), and per-launch pod CPU-s / wall-s / peak memory (D3, R6). Already observed locally on the Docker image: 16 of 17 PASS, long-flexible and nominal ladders PASS at h=3; relieved-tall-h1.7 (241,756 nodes) never finished locally and decides V9",
-   "manifest": "docs/development/evidence/reference-solvers-2026-10-15/pins/triage-f08-decks-manifest.main-regen.json",
+   "manifest": "docs/development/evidence/reference-solvers-2026-10-15/pins/triage-f08-decks-manifest.local-regen-v2.json",
    "freeze": {
     "argv": [
      "python3",
