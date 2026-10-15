@@ -1,6 +1,7 @@
 """Synthetic fixtures and analytic fields; no CFD or protected inputs."""
 
 import copy
+import itertools
 import json
 import math
 from pathlib import Path
@@ -26,7 +27,12 @@ def test_actions_full_finite_grammar_and_condition_counts():
     geometry = m.geometry_recipe(panel["designs"][4])
     assert geometry["base_box_um"] == [10000, 300, 100]
     assert not geometry["periodic_scalar_reset_allowed"]
-    assert "DRAFT" in geometry["status"]
+    assert geometry["status"] == "FROZEN_DEVELOPMENT_CONVENTION"
+    assert geometry["decision"] == m.SCIENCE_VALUES
+    # G2: pitch inside a half-cycle, pitch + 100 um across a reversal
+    stations = m.geometry_recipe(m.action(40, 100, 6))["groove_stations_um"]
+    gaps = [round(b - a, 6) for a, b in itertools.pairwise(stations)]
+    assert gaps[:6] == [100.0] * 5 + [200.0] and len(stations) == 80
 
 
 @pytest.mark.parametrize(
@@ -109,7 +115,8 @@ def test_flow_cache_binds_all_identities_and_refuses_phi_fallback():
 def test_dictionary_drafts_units_and_distinct_zero_D_control():
     a, c = m.action(30, 175, 8), m.condition(5, 0.5e-10)
     deck = m.deck_draft(a, c)
-    assert deck["solver"]["image_digest"] is None and "HOLD" in deck["status"]
+    assert deck["solver"]["image_digest"] == m.IMAGE_DIGEST
+    assert deck["status"] == "SUPERSEDED_BY_EXECUTABLE_DECK"
     assert deck["volume_flow_m3_s"] == pytest.approx(5e-9 / 60)
     assert "[0 2 -2 0 0 0 0]" in deck["files"]["0/p"]
     assert "[0 0 0 0 0 0 0]" in deck["files"]["0/T"]
@@ -139,6 +146,16 @@ def test_solute_balance_includes_diffusion_not_the_mixing_weight():
     assert b["solute_residual_fraction"] == pytest.approx(0)
     with pytest.raises(ValueError):
         m.balances([-1, 1], [0, 0], [0, 0], incoming_volume=1, incoming_solute=0)
+    # B2 floor: a zero-solute control normalises by the registered floor
+    floored = m.balances(
+        [-1, 1],
+        [0, 1e-9],
+        [0, 0],
+        incoming_volume=1,
+        incoming_solute=0,
+        solute_floor=1e-6,
+    )
+    assert floored["solute_residual_fraction"] == pytest.approx(1e-3)
 
 
 def test_analytic_rectangular_pressure_scales_with_flow():
@@ -179,8 +196,9 @@ def test_scalar_MMS_source_is_advection_minus_diffusion():
     for i in range(3):
         shift = np.zeros_like(x)
         shift[:, i] = h
-        plus, minus = m.scalar_mms(x + shift, 0.1, 0.01), m.scalar_mms(
-            x - shift, 0.1, 0.01
+        plus, minus = (
+            m.scalar_mms(x + shift, 0.1, 0.01),
+            m.scalar_mms(x - shift, 0.1, 0.01),
         )
         lap += (
             plus["concentration"] - 2 * f["concentration"] + minus["concentration"]

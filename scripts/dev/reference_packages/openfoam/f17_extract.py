@@ -25,9 +25,9 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(HERE.parents[3]))
 
-import f17_foam as foam  # noqa: E402
+from carbon.challenge_pipeline import micromixer_readiness as mm
 
-from carbon.challenge_pipeline import micromixer_readiness as mm  # noqa: E402
+import f17_foam as foam
 
 RHO = 998.0
 BANDS = {
@@ -112,17 +112,22 @@ class Case:
         p = foam.read_field(d / t / "p", ["inlet0", "inlet1"])
         phi = foam.read_field(d / t / "phi", self.patches)["patch"]
         p_internal = p["internal"]
-        areas = {n: np.linalg.norm(self.geom[n][0], axis=1) for n in ("inlet0", "inlet1")}
+        areas = {
+            n: np.linalg.norm(self.geom[n][0], axis=1) for n in ("inlet0", "inlet1")
+        }
         # zero-gradient inlets: face p is the owner cell p
         p_face = {n: p_internal[self.owner(n)] for n in ("inlet0", "inlet1")}
         a = np.concatenate([areas["inlet0"], areas["inlet1"]])
         pf = np.concatenate([p_face["inlet0"], p_face["inlet1"]])
         f = np.concatenate([-phi["inlet0"], -phi["inlet1"]])
         all_phi = np.concatenate(
-            [np.atleast_1d(np.asarray(phi[n], dtype=float)) * np.ones(
-                self.mesh.boundary[n]["nFaces"]) for n in self.patches
-             if self.mesh.boundary[n]["nFaces"]]
-        )  # fmt: skip
+            [
+                np.atleast_1d(np.asarray(phi[n], dtype=float))
+                * np.ones(self.mesh.boundary[n]["nFaces"])
+                for n in self.patches
+                if self.mesh.boundary[n]["nFaces"]
+            ]
+        )
         inflow = float(f.sum())
         out_phi = np.asarray(phi["outlet"], dtype=float)
         hist = _history(d / "postProcessing/inletP/0/surfaceFieldValue.dat")
@@ -132,7 +137,9 @@ class Case:
             stationary = abs(hist[-1][1] - hist[-11][1]) / abs(hist[-1][1])
         log = (d / "log.simpleFoam").read_text()
         converged = "SIMPLE solution converged" in log
-        receipt = (d / "receipt.txt").read_text() if (d / "receipt.txt").exists() else ""
+        receipt = (
+            (d / "receipt.txt").read_text() if (d / "receipt.txt").exists() else ""
+        )
         return {
             "flow": name,
             "time": t,
@@ -147,10 +154,15 @@ class Case:
             "delta_p_pa": RHO * float((a * pf).sum() / a.sum()),
             "delta_p_flux_weighted_pa": RHO * float((f * pf).sum() / f.sum()),
             "delta_p_infunction_pa": (
-                RHO * (hist[-1][1] * areas["inlet1"].sum() + hist0[-1][1]
-                       * areas["inlet0"].sum()) / a.sum()
-                if hist and hist0 else None
-            ),  # fmt: skip
+                RHO
+                * (
+                    hist[-1][1] * areas["inlet1"].sum()
+                    + hist0[-1][1] * areas["inlet0"].sum()
+                )
+                / a.sum()
+                if hist and hist0
+                else None
+            ),
             "inflow_m3_s": inflow,
             "mass_residual_fraction": abs(float(all_phi.sum())) / inflow,
             "outlet_backflow_faces": int((out_phi < 0).sum()),
@@ -196,10 +208,13 @@ class Case:
         adv, dif, flux = map(np.concatenate, (adv, dif, flux))
         inflow = float(-flux[flux < 0].sum())
         bal = mm.balances(
-            flux, adv, dif, incoming_volume=inflow,
+            flux,
+            adv,
+            dif,
+            incoming_volume=inflow,
             incoming_solute=max(incoming_solute, 0.0),
             solute_floor=BANDS["solute_floor_fraction"] * q_m3_s,
-        )  # fmt: skip
+        )
         own = self.owner("outlet")
         out_c, out_phi = c[own], np.asarray(phi["outlet"], dtype=float)
         try:
