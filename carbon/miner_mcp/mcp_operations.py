@@ -31,12 +31,11 @@ and their own registered hotkey are the whole of it.
 
 from __future__ import annotations
 
-from typing import Literal
-
 import asyncio
 import contextlib
 import json
 import secrets
+from typing import Literal
 
 PREFIX = "carbon_"
 DETACH = PREFIX + "detach_campaign"
@@ -301,15 +300,12 @@ def make_operation_tools(host, *, guard=None):
             from scripts.dev.launchpad_acceptance.release_check import project
 
             payload = project(payload, op.name)
+            metadata = payload if type(payload) is dict else {}
             return OperationResult(
                 operation=op.name,
                 payload=payload,
-                acceptance_status=payload.get("acceptance_status", "UNTESTED")
-                if type(payload) is dict
-                else "UNTESTED",
-                acceptance_choices=payload.get("acceptance_choices", {})
-                if type(payload) is dict
-                else {},
+                acceptance_status=metadata.get("acceptance_status", "UNTESTED"),
+                acceptance_choices=metadata.get("acceptance_choices", {}),
                 idempotency_key=request.get("idempotency_key"),
             )
 

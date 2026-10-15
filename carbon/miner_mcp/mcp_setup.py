@@ -174,16 +174,13 @@ def make_setup_tools(setup, *, tier, guard=None, after=None):
             from scripts.dev.launchpad_acceptance.release_check import project
 
             payload = project(payload, op.name)
+            metadata = payload if type(payload) is dict else {}
             return result_model(
                 operation=op.name,
                 payload=payload,
                 tools_added=added,
-                acceptance_status=payload.get("acceptance_status", "UNTESTED")
-                if type(payload) is dict
-                else "UNTESTED",
-                acceptance_choices=payload.get("acceptance_choices", {})
-                if type(payload) is dict
-                else {},
+                acceptance_status=metadata.get("acceptance_status", "UNTESTED"),
+                acceptance_choices=metadata.get("acceptance_choices", {}),
             )
 
         return Tool(
