@@ -16,6 +16,7 @@ import argparse
 import hashlib
 import json
 import math
+import re
 import sys
 from pathlib import Path
 
@@ -229,7 +230,7 @@ class Case:
             ms = [1 - math.sqrt(max(r[2] - r[1] ** 2, 0) / 0.25) for r in hist[-10:]]
             span = max(ms) - min(ms)
         ceiling = int(
-            (d / "system/controlDict").read_text().split("endTime")[1].split(";")[0]
+            re.search(r"endTime (\d+);", (d / "system/controlDict").read_text())[1]
         )
         lo, hi = BANDS["c_bounds"]
         return {

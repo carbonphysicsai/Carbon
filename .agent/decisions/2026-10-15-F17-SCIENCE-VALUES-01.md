@@ -98,3 +98,21 @@ showed. No value was set or loosened to pass a result.
 **HUMAN_INPUT left:** money (any bulk-run host, grant or spend), the producer
 seed and hidden-bank custody, Tier 2 buyer-tool runs (COMSOL licence and
 benchmark decks), and qualification.
+
+### P. Data roles (added 2026-10-15 for the data acquisition plan; `challenge_pipeline/data-acquisition/f17.{md,json}`)
+
+| Value | Chosen | Basis |
+|---|---|---|
+| P1 TRAIN | nested 16/32/64/128 designs (D0 = 64; ladder 1/4, 1/2, 1×, 2×), nine conditions, primary rung, public seed | R9 needs nested sizes around a plateau guess; a 3-parameter geometry × 2 condition axes surrogate saturates well below 128 whole-geometry panels; 2× brackets it |
+| P2 PRACTICE | 16 designs, primary rung, no question answers or refinement | intentionally incomplete practice signal (invariant 12) |
+| P3 D1 decision study | 24 representative (P) + 16 boundary (within 0.04 worst-M of 0.80/0.85 or 0.2 s of a residence cap), refined rung for every near-floor design (planned 12); comparator = fixed-RBF whole-geometry holdout and smooth-channel ROM | F8 needs ≥ 5 + 5 near designs per floor; 16 boundary designs cover two floors with margin |
+| P4 Q1 panel | the D1 cases and references (no new solves) | V1/V2 need references on the registered job |
+| P5 timing calibration | the 13-case triage manifest on runpod-cpu5c-16vcpu; counted-plan timeout ≥ 2 × p95 per case kind | D3 |
+| P6 hidden pool (sealed) | 45 + ≤ 15 frontier designs (F7); B = 80 questions, n = 8 per batch, one batch per day in the first month (240 exposures ≤ B × E) | F6/F7 |
+| P7 tuning (sealed) | 16 designs (12 representative + 4 boundary), disjoint by physical key from every role | H2 |
+| P8 confirmation (sealed) | 24 designs (16 representative + 8 boundary), fresh seed after D6 pins, disjoint from every role | D7 |
+
+**Lead directive (2026-10-15, local box at load ~14).** The refined-rung
+(h = 7.071 µm) D1/D2 witnesses are specified in the triage manifest
+(`witness_studies`, with the D = 0 diagnostic) and run at the pod stage;
+the values above are unchanged.
