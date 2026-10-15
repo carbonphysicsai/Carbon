@@ -95,6 +95,12 @@ def _container(image, case_dir, command, cpus, memory, name, timeout):
 
     cpu_ns = read("cpu.ns")
     peak = read("memory.peak")
+    accounting = "container-cgroup"
+    if os.environ.get("CARBON_DOCKER_SHIM"):
+        # Native pod (docker_shim.py): the cgroup files are the whole pod's,
+        # so a concurrent case would be charged its neighbours' CPU. Use the
+        # shell's `times` children user+sys instead; peak memory is unknown.
+        cpu_ns, peak, accounting = _times_children_ns(case_dir), None, "native-times"
     return {
         "exit": code,
         "outcome": outcome,
@@ -103,7 +109,21 @@ def _container(image, case_dir, command, cpus, memory, name, timeout):
         "peak_mib": round(int(peak) / 2**20, 1) if peak else None,
         "cpus": cpus,
         "memory_limit": memory,
+        "accounting": accounting,
     }
+
+
+def _times_children_ns(case_dir):
+    """Children user+sys CPU from bash `times` (second line) in ns, or None."""
+    p = Path(case_dir) / "times.txt"
+    lines = p.read_text().split("\n") if p.exists() else []
+    if len(lines) < 2 or len(lines[1].split()) != 2:
+        return None
+    total = 0.0
+    for field in lines[1].split():
+        m, _, sec = field.rstrip("s").partition("m")
+        total += float(m) * 60 + float(sec)
+    return str(int(total * 1e9))
 
 
 def run(case_dir, image=IMAGE, cpus=1, memory="3g", timeout=7200, tag=None, lock=None):

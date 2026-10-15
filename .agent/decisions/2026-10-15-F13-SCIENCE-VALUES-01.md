@@ -104,3 +104,23 @@ Set on 2026-10-15 after the local v2 cost measurements (≈ 0.5 CPU-h per
 | G4 timing calibration | `roles[timing_calibration]` | the 16-launch v2 triage manifest on runpod-cpu5c-16vcpu | D3: p95 from every case kind, including the 4 mm and 5 Hz witnesses |
 | G5 H1 | `roles[hidden_pool]` | active bank = F7 (64 + 32), standby 64, one window/day, no rotation in month one | F6: B = 80, n = 8, E = 10 → 100 windows before exposure retires a question |
 | G6 H2 / D7 | `roles[tuning]`, `roles[confirmation]` | tuning 32 (P); confirmation 64 + 32 as the decision study | H2 disjointness; D7 mirrors D1's strata |
+
+### H. Results against the bands and the pod plan (2026-10-15, after the runs; no value changed)
+
+Local image 61be1cb7, evidence `evidence/reference-packages-01/f13-proof-v2.json`.
+PASS: B2, C1–C3, D2 (3 offsets), D4, D5. **B3 FAIL, kept as a finding:**
+small-coaxial at 8 mm vs converged mode matching (N 20 vs 40 ≤ 0.0006 dB):
+interval-weighted mean ΔTL 0.347 dB > 0.25 (p10 0.020, pointwise ≤ 0.355 at
+resolved f). The 4 mm curve gives 0.146 dB, i.e. order ≈ 1.2 near the
+re-entrant neck edges, so D1's 8-vs-4 mm self-difference understates the 8 mm
+error by ≈ 2×. Consequence: the 8 mm deck is not accepted for mean TL (F4
+tie-break) until an edge-graded or finer mesh passes B3 and D1; bank roles stay
+NEEDS_VERIFICATION. B1: three of four rungs ran (finest available orders L2
+3.31, H1 2.17); the h 0.025 rung failed in UMFPACK's workspace (umf4num −1 at
+3.1 GiB), so the pod runs it with IDR(s)+ILU2 only. D1 offsets, D3 and B3 for
+short-neck-wide/long-neck-small are deferred to
+`evidence/reference-solvers-2026-10-15/plans/f13-verification.json` (16 vCPU,
+worst case 7.5 h, USD 4.20; the lead launches). Engineering choices: the pod
+installs python3-numpy/scipy from its own pinned Debian snapshot (MMS
+quadrature, mode matching); on a native pod f13 case CPU is read from bash
+`times` (children), since the cgroup files are the whole pod's.

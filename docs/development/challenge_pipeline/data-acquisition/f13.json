@@ -38,7 +38,7 @@
    "estimate_cpu_h": 782.4,
    "estimate_peak_mem_mib": 318.8,
    "estimate_usd_runpod": 34.23,
-   "status": "READY_TO_GENERATE (needs the f13 construction contract before use)",
+   "status": "NEEDS_VERIFICATION: pod plan plans/f13-verification.json (B1, B3, D1, D3) and a deck decision on the B3 8 mm mean-TL finding; then the f13 construction contract",
    "size_decision": "F13-SCIENCE-VALUES-01 G",
    "ladder": [
     64,
@@ -64,7 +64,7 @@
    "estimate_cpu_h": 24.5,
    "estimate_peak_mem_mib": 318.8,
    "estimate_usd_runpod": 1.07,
-   "status": "READY_TO_GENERATE",
+   "status": "NEEDS_VERIFICATION: pod plan plans/f13-verification.json (B1, B3, D1, D3) and a deck decision on the B3 8 mm mean-TL finding",
    "size_decision": "F13-SCIENCE-VALUES-01 G"
   },
   {
@@ -79,7 +79,7 @@
    "estimate_cpu_h": 327.0,
    "estimate_peak_mem_mib": 1993.5,
    "estimate_usd_runpod": 14.31,
-   "status": "representative READY_TO_GENERATE; boundary after the representative solve",
+   "status": "NEEDS_VERIFICATION: pod plan plans/f13-verification.json (B1, B3, D1, D3) and a deck decision on the B3 8 mm mean-TL finding; boundary after the representative solve",
    "size_decision": "F13-SCIENCE-VALUES-01 G",
    "refinement_policy": "F5: every design within 0.5 dB of a floor in [5,7] dB gets the 4 mm and 5 Hz rungs; ~25 % expected (assumption)"
   },
@@ -92,10 +92,10 @@
    "custody": "public",
    "where": "RunPod (public)",
    "generator": "python -m scripts.dev.reference_packages.elmer.f13_triage_freeze --out <DIR> --proof f13-proof-v2.json",
-   "estimate_cpu_h": 10.0,
+   "estimate_cpu_h": 10.5,
    "estimate_peak_mem_mib": 318.8,
-   "estimate_usd_runpod": 0.44,
-   "status": "READY after a native/pod Elmer build passes the f13 smoke + lineage",
+   "estimate_usd_runpod": 0.46,
+   "status": "PLANNED: step f13-triage-panel of plans/f13-verification.json (pins/triage-f13-decks-manifest.local-regen.json, 16 launches); the Elmer pod build passed elmer-smoke-2",
    "size_decision": "F13-SCIENCE-VALUES-01 G"
   },
   {
@@ -107,10 +107,10 @@
    "custody": "public",
    "where": "local (done) / repeat on a native build",
    "generator": "f13_mms.py, f13_proof.py, f13_assemble.py",
-   "estimate_cpu_h": 6.0,
+   "estimate_cpu_h": 14.7,
    "estimate_peak_mem_mib": 318.8,
-   "estimate_usd_runpod": 0.26,
-   "status": "DONE locally on 61be1cb7 (see f13-proof-v2.json); repeat once on the pod build",
+   "estimate_usd_runpod": 0.64,
+   "status": "PARTIAL locally on 61be1cb7 (evidence/reference-packages-01/f13-proof-v2.json): B2, C, D2, D4, D5 PASS; B3 FAIL (small-coaxial 8 mm interval mean TL 0.347 dB from mode matching > 0.25 band; p10 0.020 dB; 4 mm 0.146 dB); B1 three of four rungs (finest available orders L2 3.31, H1 2.17, in band); D1 nominal only (PASS); D3 not run. Remainder and a full pod repeat: plans/f13-verification.json",
    "size_decision": "F13-SCIENCE-VALUES-01 G"
   },
   {

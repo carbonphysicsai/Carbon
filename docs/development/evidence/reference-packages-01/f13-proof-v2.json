@@ -1,0 +1,684 @@
+{
+ "schema": "carbon.reference-package.f13-feature-proof.v2",
+ "decision": "F13-SCIENCE-VALUES-01",
+ "scope": "PUBLIC_DEVELOPMENT engineering evidence; no qualification, Tier 2 or LIVE claim",
+ "image": "sha256:61be1cb77c51fcdd822250e372754a9ce728a5bb42f39b7ba03cdf5e70901add",
+ "mesh_image": "ghcr.io/carbonphysicsai/carbon-motor-reference@sha256:599521e79786ee0326a0754ba0545f51ee9665adff73c3515c8d4b8ba24c1c05",
+ "deck_version": "f13-deck.v2",
+ "deck_sha256": "sha256:696d81d7275d349c441edcd80b209032a6abf0c69cfe4113878f576fb84890fb",
+ "observer": "f13-panel-planes.v1",
+ "linear_solver": "bicgstabl4-ilu2-1e-10",
+ "host_profile": "local-dev-4vcpu-15g-contended",
+ "checks": {
+  "B1_mms": "DEFERRED_TO_POD",
+  "B2_straight_duct": "PASS",
+  "B3_coaxial_mode_matching": "FAIL",
+  "C_power_passivity": "PASS",
+  "D4_scan_parity": "PASS",
+  "D5_solver_parity": "PASS",
+  "D2_lead_60_vs_100mm": "PASS",
+  "D1_mesh_8_vs_4mm": "DEFERRED_TO_POD",
+  "D3_frequency_10_vs_5hz": "DEFERRED_TO_POD"
+ },
+ "mms_partial": {
+  "rows": [
+   {
+    "h": 0.2,
+    "nodes": 2091,
+    "heff": 0.07820154302801097,
+    "l2_real": 0.002100480460110323,
+    "h1_real": 0.07738057184365377,
+    "l2_imag": 0.0010502402072419318,
+    "h1_imag": 0.038690286019605356
+   },
+   {
+    "h": 0.1,
+    "nodes": 8115,
+    "heff": 0.049762687306707944,
+    "l2_real": 0.0004159332173882518,
+    "h1_real": 0.027260645299912917,
+    "l2_imag": 0.00020796658847727743,
+    "h1_imag": 0.01363032263713374
+   },
+   {
+    "h": 0.05,
+    "nodes": 54946,
+    "heff": 0.026303970334290976,
+    "l2_real": 5.0329124277080765e-05,
+    "h1_real": 0.006853896038689374,
+    "l2_imag": 2.516456635399703e-05,
+    "h1_imag": 0.0034269480244501025
+   }
+  ],
+  "observed_orders": [
+   {
+    "pair": [
+     0.2,
+     0.1
+    ],
+    "l2_real": 3.582546364619964,
+    "h1_real": 2.3080451704779215,
+    "l2_imag": 3.582546531624578,
+    "h1_imag": 2.3080451781499915
+   },
+   {
+    "pair": [
+     0.1,
+     0.05
+    ],
+    "l2_real": 3.3126115521130792,
+    "h1_real": 2.1655343971635865,
+    "l2_imag": 3.3126111368838056,
+    "h1_imag": 2.165534393351256
+   }
+  ],
+  "bands": {
+   "l2": [
+    2.5,
+    3.5
+   ],
+   "h1": [
+    1.5,
+    2.5
+   ]
+  },
+  "missing_rung": {
+   "h": 0.025,
+   "nodes": 404918,
+   "local_outcome": "UMFPACK umf4num -1 (workspace) at 3.1 GiB; IDR(s) attempt interrupted by the host restart",
+   "solve": {
+    "exit": 1,
+    "outcome": "FAILED",
+    "wall_s": 707.32,
+    "cpu_s": 216.93,
+    "peak_mib": 3109.0,
+    "cpus": 1,
+    "memory_limit": "12g"
+   }
+  },
+  "note": "three of four registered rungs; B1 needs the h 0.025 rung (pod plan f13-verification)"
+ },
+ "straight_duct": {
+  "frequencies": 201,
+  "max_abs_tl_db": 0.00017611138029615162,
+  "max_abs_t_minus_exact": 0.00017134125017675565,
+  "max_abs_r": 3.7652685869613184e-05,
+  "max_abs_plane_residual": 4.054941652986698e-05,
+  "max_abs_integral_residual": 2.2791576403946574e-09,
+  "bands": {
+   "tl_db": 0.25,
+   "t": 0.03,
+   "r": 0.03
+  },
+  "pass": true
+ },
+ "coaxial_mode_matching": {
+  "control-chamber": {
+   "common_frequencies": 201,
+   "max_abs_dtl_db_resolved": 0.09700124782156738,
+   "at_hz": 2080.0,
+   "max_abs_dpt_w_notch": 0.0,
+   "notch_at_hz": null,
+   "pointwise_band_db": 0.5,
+   "pointwise_fail_hz": [],
+   "dp10_db": -0.04881659847523401,
+   "dmean_db": -0.04215414624999081,
+   "extrema": [
+    {
+     "kind": "max",
+     "f_hz": 1279.643486241509,
+     "shift_hz": 5.665989108123767
+    }
+   ],
+   "extrema_counts": [
+    1,
+    1
+   ],
+   "max_extremum_shift_hz": 5.665989108123767,
+   "pass": true,
+   "mode_matching_convergence_n20_vs_n40_db": 0.0001541360072758735,
+   "mode_matching_converged": true,
+   "fem_p10_db": 0.9201860282609033
+  },
+  "small-coaxial": {
+   "common_frequencies": 201,
+   "max_abs_dtl_db_resolved": 0.3548225200234425,
+   "at_hz": 980.0,
+   "max_abs_dpt_w_notch": 0.000744757569740153,
+   "notch_at_hz": 1400.0,
+   "pointwise_band_db": 0.5,
+   "pointwise_fail_hz": [],
+   "dp10_db": -0.019790149949218794,
+   "dmean_db": -0.3467123509940926,
+   "extrema": [],
+   "extrema_counts": [
+    0,
+    0
+   ],
+   "max_extremum_shift_hz": 0.0,
+   "pass": false,
+   "mode_matching_convergence_n20_vs_n40_db": 0.0005954587406584722,
+   "mode_matching_converged": true,
+   "fem_p10_db": 1.087149122817314
+  },
+  "short-neck-wide": "DEFERRED_TO_POD",
+  "long-neck-small": "DEFERRED_TO_POD"
+ },
+ "coaxial_mode_matching_4mm_diagnostic": {
+  "small-coaxial": {
+   "common_frequencies": 41,
+   "max_abs_dtl_db_resolved": 0.1523315128109637,
+   "dp10_db": 0.0429121354339872,
+   "dmean_db": -0.1463454968647433,
+   "pass": true,
+   "cost": {
+    "nodes": 112359,
+    "frequency_systems": 41,
+    "solve_cpu_s": 1263.25,
+    "solve_wall_s": 1956.31,
+    "peak_mib": 576.4,
+    "mesh_cpu_s": 4.28,
+    "mesh_wall_s": 15.26,
+    "cpu_s_per_frequency": 30.81,
+    "outcome": "COMPLETED"
+   }
+  }
+ },
+ "transfer_matrix_diagnostic": {
+  "role": "DIAGNOSTIC (B4): no in-band acceptance; mode matching (B3) is the acceptance control",
+  "fem_minus_tmm_db_every_250hz": {
+   "500": -0.14241803848405254,
+   "750": 0.04760333627834079,
+   "1000": 0.36008654906455106,
+   "1250": 0.7911601052896877,
+   "1500": 1.351224945875277,
+   "1750": 2.0507643486104605,
+   "2000": 2.780040610886588,
+   "2250": 1.7798650772355642,
+   "2500": -1.394075618393421
+  }
+ },
+ "power_passivity": {
+  "bands": {
+   "plane": 0.0018,
+   "integral": 0.01
+  },
+  "cases": {
+   "clearance-boundary-sub50": {
+    "max_abs_plane_residual": 0.00023679862769409357,
+    "max_abs_integral_residual": 4.341723486202958e-08,
+    "finding": false
+   },
+   "control-chamber": {
+    "max_abs_plane_residual": 7.921621332954153e-05,
+    "max_abs_integral_residual": 5.346492804036983e-09,
+    "finding": false
+   },
+   "control-duct": {
+    "max_abs_plane_residual": 4.054941652986698e-05,
+    "max_abs_integral_residual": 2.2791576403946574e-09,
+    "finding": false
+   },
+   "large-offset-sub50": {
+    "max_abs_plane_residual": 0.00041162414028306216,
+    "max_abs_integral_residual": 9.277242252192505e-08,
+    "finding": false
+   },
+   "nominal-primary": {
+    "max_abs_plane_residual": 0.0002907359772219286,
+    "max_abs_integral_residual": 5.170599840648159e-08,
+    "finding": false
+   },
+   "nominal-single-1500": {
+    "max_abs_plane_residual": 6.695375359975585e-05,
+    "max_abs_integral_residual": 6.279203134014476e-11,
+    "finding": false
+   },
+   "nominal-single-2500": {
+    "max_abs_plane_residual": 1.6430816308726778e-05,
+    "max_abs_integral_residual": 4.467220426906947e-09,
+    "finding": false
+   },
+   "nominal-single-500": {
+    "max_abs_plane_residual": 7.906039522359574e-06,
+    "max_abs_integral_residual": 4.5100254086882775e-10,
+    "finding": false
+   },
+   "small-coaxial-primary": {
+    "max_abs_plane_residual": 8.070501858409294e-05,
+    "max_abs_integral_residual": 9.54639197016095e-09,
+    "finding": false
+   }
+  }
+ },
+ "scan_parity": {
+  "case": "nominal v2",
+  "500": {
+   "scan_tl_db": 8.908311684559557,
+   "separate_tl_db": 8.908311684559557,
+   "abs_dtl_db": 0.0,
+   "abs_dt": 0.0
+  },
+  "1500": {
+   "scan_tl_db": 30.618413636199815,
+   "separate_tl_db": 30.61841362612777,
+   "abs_dtl_db": 1.0072046308096105e-08,
+   "abs_dt": 3.5884219009290985e-11
+  },
+  "2500": {
+   "scan_tl_db": 7.335592755041695,
+   "separate_tl_db": 7.335592755967754,
+   "abs_dtl_db": 9.260592293003356e-10,
+   "abs_dt": 1.414243973152213e-10
+  },
+  "bands": {
+   "tl_db": 0.01,
+   "t": 0.0001
+  },
+  "pass": true
+ },
+ "solver_parity": {
+  "case": "nominal v2, 500/1500/2500 Hz, same mesh",
+  "500": {
+   "abs_dtl_db": 7.755291520084029e-09,
+   "abs_dt": 4.264293063073522e-10
+  },
+  "1500": {
+   "abs_dtl_db": 5.625544474696653e-10,
+   "abs_dt": 2.2489858831632174e-12
+  },
+  "2500": {
+   "abs_dtl_db": 3.3396636567317728e-09,
+   "abs_dt": 1.683621838785593e-10
+  },
+  "cost_direct": {
+   "nodes": 32566,
+   "frequency_systems": 3,
+   "solve_cpu_s": 115.44,
+   "solve_wall_s": 288.23,
+   "peak_mib": 875.1,
+   "mesh_cpu_s": null,
+   "mesh_wall_s": null,
+   "cpu_s_per_frequency": 38.48,
+   "outcome": "COMPLETED"
+  },
+  "cost_iterative": {
+   "nodes": 32566,
+   "frequency_systems": 3,
+   "solve_cpu_s": 24.82,
+   "solve_wall_s": 60.48,
+   "peak_mib": 157.0,
+   "mesh_cpu_s": null,
+   "mesh_wall_s": null,
+   "cpu_s_per_frequency": 8.27,
+   "outcome": "COMPLETED"
+  },
+  "pass": true
+ },
+ "D2_lead_60_vs_100mm": {
+  "nominal": {
+   "common_frequencies": 41,
+   "max_abs_dtl_db_resolved": 0.006043405527780266,
+   "at_hz": 500.0,
+   "max_abs_dpt_w_notch": 5.940372544022826e-06,
+   "notch_at_hz": 750.0,
+   "pointwise_band_db": 0.25,
+   "pointwise_fail_hz": [],
+   "max_abs_dt": 0.0007884967807188745,
+   "complex_band": 0.03,
+   "dp10_db": 0.0022801950677944216,
+   "dmean_db": -0.0003160645916437943,
+   "extrema": [
+    {
+     "kind": "max",
+     "f_hz": 1644.3874391724983,
+     "shift_hz": 0.050490780050722606
+    },
+    {
+     "kind": "min",
+     "f_hz": 2328.400226293667,
+     "shift_hz": 0.016638552655422245
+    }
+   ],
+   "extrema_counts": [
+    2,
+    2
+   ],
+   "max_extremum_shift_hz": 0.050490780050722606,
+   "pass": true,
+   "other_finding": false,
+   "other_cost": {
+    "nodes": 35162,
+    "frequency_systems": 41,
+    "solve_cpu_s": 339.48,
+    "solve_wall_s": 1174.77,
+    "peak_mib": 168.5,
+    "mesh_cpu_s": 1.14,
+    "mesh_wall_s": 3.29,
+    "cpu_s_per_frequency": 8.28,
+    "outcome": "COMPLETED"
+   }
+  },
+  "large-offset": {
+   "common_frequencies": 41,
+   "max_abs_dtl_db_resolved": 0.0827744858844599,
+   "at_hz": 2500.0,
+   "max_abs_dpt_w_notch": 1.0522700383858337e-05,
+   "notch_at_hz": 2000.0,
+   "pointwise_band_db": 0.25,
+   "pointwise_fail_hz": [],
+   "max_abs_dt": 0.008381042744641964,
+   "complex_band": 0.03,
+   "dp10_db": -0.0037572154534064595,
+   "dmean_db": -0.0003905978863656401,
+   "extrema": [
+    {
+     "kind": "max",
+     "f_hz": 898.8667058967955,
+     "shift_hz": 0.0017595415794176006
+    },
+    {
+     "kind": "min",
+     "f_hz": 1382.0303641001462,
+     "shift_hz": 0.0072268946839813
+    },
+    {
+     "kind": "max",
+     "f_hz": 1447.0598527505404,
+     "shift_hz": 0.00031050400548338075
+    },
+    {
+     "kind": "min",
+     "f_hz": 1577.3968542207663,
+     "shift_hz": 0.009530753097124034
+    },
+    {
+     "kind": "max",
+     "f_hz": 1941.7558455656113,
+     "shift_hz": 0.06894081560858467
+    },
+    {
+     "kind": "min",
+     "f_hz": 2041.4133093250434,
+     "shift_hz": 0.019375770355509303
+    },
+    {
+     "kind": "max",
+     "f_hz": 2151.6704451801934,
+     "shift_hz": 0.03280723742045666
+    },
+    {
+     "kind": "min",
+     "f_hz": 2344.0916600394257,
+     "shift_hz": 0.015109847721305414
+    },
+    {
+     "kind": "max",
+     "f_hz": 2403.227038136767,
+     "shift_hz": 0.0045486250519388705
+    }
+   ],
+   "extrema_counts": [
+    9,
+    9
+   ],
+   "max_extremum_shift_hz": 0.06894081560858467,
+   "pass": true,
+   "other_finding": false,
+   "other_cost": {
+    "nodes": 55986,
+    "frequency_systems": 41,
+    "solve_cpu_s": 674.91,
+    "solve_wall_s": 1884.24,
+    "peak_mib": 278.4,
+    "mesh_cpu_s": 1.76,
+    "mesh_wall_s": 7.08,
+    "cpu_s_per_frequency": 16.46,
+    "outcome": "COMPLETED"
+   }
+  },
+  "clearance-boundary": {
+   "common_frequencies": 41,
+   "max_abs_dtl_db_resolved": 0.0174408661884371,
+   "at_hz": 1800.0,
+   "max_abs_dpt_w_notch": 1.807261947077074e-05,
+   "notch_at_hz": 850.0,
+   "pointwise_band_db": 0.25,
+   "pointwise_fail_hz": [],
+   "max_abs_dt": 0.0011681719428150964,
+   "complex_band": 0.03,
+   "dp10_db": 0.001847001806143167,
+   "dmean_db": -0.005297708035691073,
+   "extrema": [
+    {
+     "kind": "max",
+     "f_hz": 1368.2395906866554,
+     "shift_hz": 0.1344450429551216
+    },
+    {
+     "kind": "min",
+     "f_hz": 1784.9579771160193,
+     "shift_hz": 0.01994584027647761
+    },
+    {
+     "kind": "max",
+     "f_hz": 1856.0042710473997,
+     "shift_hz": 0.019775358588276504
+    },
+    {
+     "kind": "min",
+     "f_hz": 2342.2729444894485,
+     "shift_hz": 0.048855122132408724
+    }
+   ],
+   "extrema_counts": [
+    4,
+    4
+   ],
+   "max_extremum_shift_hz": 0.1344450429551216,
+   "pass": true,
+   "other_finding": false,
+   "other_cost": {
+    "nodes": 29153,
+    "frequency_systems": 41,
+    "solve_cpu_s": 273.54,
+    "solve_wall_s": 904.19,
+    "peak_mib": 138.6,
+    "mesh_cpu_s": 0.97,
+    "mesh_wall_s": 3.6,
+    "cpu_s_per_frequency": 6.67,
+    "outcome": "COMPLETED"
+   }
+  }
+ },
+ "D1_mesh_8_vs_4mm": {
+  "nominal": {
+   "common_frequencies": 21,
+   "max_abs_dtl_db_resolved": 0.11371612553288912,
+   "at_hz": 500.0,
+   "max_abs_dpt_w_notch": 0.0001825208893217068,
+   "notch_at_hz": 700.0,
+   "pointwise_band_db": 0.5,
+   "pointwise_fail_hz": [],
+   "dp10_db": 0.02601167789507297,
+   "dmean_db": -0.05722188165520947,
+   "extrema": [
+    {
+     "kind": "max",
+     "f_hz": 1386.2994675128496,
+     "shift_hz": 0.015028928676429132
+    },
+    {
+     "kind": "min",
+     "f_hz": 2335.6141071919515,
+     "shift_hz": 0.0674822642381514
+    }
+   ],
+   "extrema_counts": [
+    2,
+    2
+   ],
+   "max_extremum_shift_hz": 0.0674822642381514,
+   "pass": true,
+   "other_finding": false,
+   "other_cost": {
+    "nodes": 222455,
+    "frequency_systems": 21,
+    "solve_cpu_s": 1539.93,
+    "solve_wall_s": 1691.95,
+    "peak_mib": 1189.3,
+    "mesh_cpu_s": 7.98,
+    "mesh_wall_s": 11.84,
+    "cpu_s_per_frequency": 73.33,
+    "outcome": "COMPLETED"
+   }
+  },
+  "large-offset": "NOT_RUN",
+  "clearance-boundary": "NOT_RUN"
+ },
+ "primaries": {
+  "nominal": {
+   "frequencies": 201,
+   "max_abs_plane_residual": 0.0002907359772219286,
+   "max_abs_integral_residual": 5.170599840648159e-08,
+   "minimum_tl_db": 0.11213569194689937,
+   "maximum_tl_db": 52.40085306148146,
+   "p10_tl_db": 2.608747164253971,
+   "mean_tl_db": 20.98197714912967,
+   "cost": {
+    "nodes": 32566,
+    "frequency_systems": 201,
+    "solve_cpu_s": 1420.72,
+    "solve_wall_s": 2767.79,
+    "peak_mib": 157.0,
+    "mesh_cpu_s": 1.04,
+    "mesh_wall_s": 4.07,
+    "cpu_s_per_frequency": 7.07,
+    "outcome": "COMPLETED"
+   }
+  },
+  "small-coaxial": {
+   "frequencies": 201,
+   "max_abs_plane_residual": 8.070501858409294e-05,
+   "max_abs_integral_residual": 9.54639197016095e-09,
+   "minimum_tl_db": 0.00289526253948343,
+   "maximum_tl_db": 43.383657929344544,
+   "p10_tl_db": 1.087149122817314,
+   "mean_tl_db": 20.46853095521877,
+   "cost": {
+    "nodes": 17121,
+    "frequency_systems": 201,
+    "solve_cpu_s": 672.58,
+    "solve_wall_s": 2338.75,
+    "peak_mib": 78.9,
+    "mesh_cpu_s": 0.57,
+    "mesh_wall_s": 2.42,
+    "cpu_s_per_frequency": 3.35,
+    "outcome": "COMPLETED"
+   }
+  }
+ },
+ "costs": {
+  "clearance-boundary-sub50": {
+   "nodes": 26517,
+   "frequency_systems": 41,
+   "solve_cpu_s": 244.21,
+   "solve_wall_s": 643.68,
+   "peak_mib": 127.1,
+   "mesh_cpu_s": 0.83,
+   "mesh_wall_s": 3.36,
+   "cpu_s_per_frequency": 5.96,
+   "outcome": "COMPLETED"
+  },
+  "control-chamber": {
+   "nodes": 18354,
+   "frequency_systems": 201,
+   "solve_cpu_s": 748.57,
+   "solve_wall_s": 2601.24,
+   "peak_mib": 89.1,
+   "mesh_cpu_s": 0.63,
+   "mesh_wall_s": 2.48,
+   "cpu_s_per_frequency": 3.72,
+   "outcome": "COMPLETED"
+  },
+  "control-duct": {
+   "nodes": 7398,
+   "frequency_systems": 201,
+   "solve_cpu_s": 246.78,
+   "solve_wall_s": 924.45,
+   "peak_mib": 35.8,
+   "mesh_cpu_s": 0.33,
+   "mesh_wall_s": 1.51,
+   "cpu_s_per_frequency": 1.23,
+   "outcome": "COMPLETED"
+  },
+  "large-offset-sub50": {
+   "nodes": 53090,
+   "frequency_systems": 41,
+   "solve_cpu_s": 615.82,
+   "solve_wall_s": 843.9,
+   "peak_mib": 265.9,
+   "mesh_cpu_s": 1.6,
+   "mesh_wall_s": 3.46,
+   "cpu_s_per_frequency": 15.02,
+   "outcome": "COMPLETED"
+  },
+  "nominal-primary": {
+   "nodes": 32566,
+   "frequency_systems": 201,
+   "solve_cpu_s": 1420.72,
+   "solve_wall_s": 2767.79,
+   "peak_mib": 157.0,
+   "mesh_cpu_s": 1.04,
+   "mesh_wall_s": 4.07,
+   "cpu_s_per_frequency": 7.07,
+   "outcome": "COMPLETED"
+  },
+  "nominal-single-1500": {
+   "nodes": 32566,
+   "frequency_systems": 1,
+   "solve_cpu_s": 9.06,
+   "solve_wall_s": 31.73,
+   "peak_mib": 156.5,
+   "mesh_cpu_s": 1.03,
+   "mesh_wall_s": 3.87,
+   "cpu_s_per_frequency": 9.06,
+   "outcome": "COMPLETED"
+  },
+  "nominal-single-2500": {
+   "nodes": 32566,
+   "frequency_systems": 1,
+   "solve_cpu_s": 10.0,
+   "solve_wall_s": 39.93,
+   "peak_mib": 156.7,
+   "mesh_cpu_s": 1.0,
+   "mesh_wall_s": 4.99,
+   "cpu_s_per_frequency": 10.0,
+   "outcome": "COMPLETED"
+  },
+  "nominal-single-500": {
+   "nodes": 32566,
+   "frequency_systems": 1,
+   "solve_cpu_s": 8.66,
+   "solve_wall_s": 28.62,
+   "peak_mib": 156.7,
+   "mesh_cpu_s": 1.09,
+   "mesh_wall_s": 3.95,
+   "cpu_s_per_frequency": 8.66,
+   "outcome": "COMPLETED"
+  },
+  "small-coaxial-primary": {
+   "nodes": 17121,
+   "frequency_systems": 201,
+   "solve_cpu_s": 672.58,
+   "solve_wall_s": 2338.75,
+   "peak_mib": 78.9,
+   "mesh_cpu_s": 0.57,
+   "mesh_wall_s": 2.42,
+   "cpu_s_per_frequency": 3.35,
+   "outcome": "COMPLETED"
+  }
+ },
+ "all_pass": false,
+ "assembler_sha256": "78b85e55757c90161d720c4370e9892a46add75a8c5d5044f2d04dfd9169d394"
+}

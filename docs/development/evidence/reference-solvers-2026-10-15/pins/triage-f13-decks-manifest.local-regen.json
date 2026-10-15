@@ -1,0 +1,378 @@
+{
+ "schema": "carbon.reference-triage.frozen-decks.v1",
+ "ticket": "REFERENCE-PACKAGES-01",
+ "decision": "F13-SCIENCE-VALUES-01",
+ "grant": "OWNER-REFERENCE-ROUTE-TRIAGE-GRANT-01",
+ "image": "sha256:61be1cb77c51fcdd822250e372754a9ce728a5bb42f39b7ba03cdf5e70901add",
+ "mesh_image_f13": "ghcr.io/carbonphysicsai/carbon-motor-reference@sha256:599521e79786ee0326a0754ba0545f51ee9665adff73c3515c8d4b8ba24c1c05",
+ "deck_version": "f13-deck.v2",
+ "deck_sha256": "sha256:696d81d7275d349c441edcd80b209032a6abf0c69cfe4113878f576fb84890fb",
+ "observer": "f13-panel-planes.v1",
+ "cases": [
+  {
+   "family": "f13",
+   "case": "small-coaxial-primary",
+   "reservation": "primary_sweeps",
+   "command": "export OPENBLAS_NUM_THREADS=1; ElmerGrid 14 2 mesh.msh -autoclean -out mesh > grid.log 2>&1 && ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "5dd582c99eace17515f976266bc0f0a3df22f5f2fa29e803b32980846c9cfb05",
+    "deck.json": "824a289a2f4864486472cbbeb99a792748de04c480eddfd70d969ddb2386c275",
+    "groups.json": "0fe360aed3dfabe2a5a0df4875d64d3831f9dd02828935f1b9ac9d15736933b5",
+    "make_mesh.py": "8319cd81a1f818d6ed5e8275ea0d7a6d2bd91ccb6763c282ddb0f7b4b774c5a3",
+    "mesh.msh": "5a3c7e5ecd8d96558ef4da9fbc6293f7aec71ec234c725adde2f7c1138536909"
+   },
+   "mesh": {
+    "nodes": 17121,
+    "h_mm": 8.0
+   },
+   "frequency_systems": 201,
+   "estimate_cpu_s": 1096.3,
+   "estimate_wall_s": 1206.0,
+   "estimate_mem_mib": 171.2
+  },
+  {
+   "family": "f13",
+   "case": "large-offset-primary",
+   "reservation": "primary_sweeps",
+   "command": "export OPENBLAS_NUM_THREADS=1; ElmerGrid 14 2 mesh.msh -autoclean -out mesh > grid.log 2>&1 && ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "5dd582c99eace17515f976266bc0f0a3df22f5f2fa29e803b32980846c9cfb05",
+    "deck.json": "5c384a0eb88af8ad22f95bc47c9181bff16c7cfd2414ad0f48162522be488e80",
+    "groups.json": "36897085416bf4568f0d26f56942574c60d8ceb9c23704914e95eedd8c3e4860",
+    "make_mesh.py": "e31ed1d1274b64bc1361b8d941b64defa4f0b5de2d5037402c2c79e70dd95c40",
+    "mesh.msh": "1d8b7c836494fff74bf0c2d18ddd46c2be40b0d3f93ee8e140c887773d3ed0fa"
+   },
+   "mesh": {
+    "nodes": 53090,
+    "h_mm": 8.0
+   },
+   "frequency_systems": 201,
+   "estimate_cpu_s": 4705.2,
+   "estimate_wall_s": 5175.8,
+   "estimate_mem_mib": 468.0
+  },
+  {
+   "family": "f13",
+   "case": "nominal-primary",
+   "reservation": "primary_sweeps",
+   "command": "export OPENBLAS_NUM_THREADS=1; ElmerGrid 14 2 mesh.msh -autoclean -out mesh > grid.log 2>&1 && ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "5dd582c99eace17515f976266bc0f0a3df22f5f2fa29e803b32980846c9cfb05",
+    "deck.json": "7769c8518ae82b055da6022dcf2662665ac85214c14ff0e88b602bba1386b8b8",
+    "groups.json": "375bba9fdc5187083b554c35081a61812ffca249272023ba75842e1ee721dc8f",
+    "make_mesh.py": "c4666e3d8b5f71d98c7ef2954d812866c89987b02dc26c3c4233efbf4036afd3",
+    "mesh.msh": "73acc804674dc6ebe1be8c8895551a8e72a8166cc71d9fbf1fc0eb233a707222"
+   },
+   "mesh": {
+    "nodes": 32566,
+    "h_mm": 8.0
+   },
+   "frequency_systems": 201,
+   "estimate_cpu_s": 2507.0,
+   "estimate_wall_s": 2757.6,
+   "estimate_mem_mib": 298.7
+  },
+  {
+   "family": "f13",
+   "case": "clearance-boundary-primary",
+   "reservation": "primary_sweeps",
+   "command": "export OPENBLAS_NUM_THREADS=1; ElmerGrid 14 2 mesh.msh -autoclean -out mesh > grid.log 2>&1 && ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "5dd582c99eace17515f976266bc0f0a3df22f5f2fa29e803b32980846c9cfb05",
+    "deck.json": "dcaec853e7e075754eefc34a5709c5cdc12f44c54886f342d90708dad2a2fb70",
+    "groups.json": "4b1680aab95babb20705556bf108f57c7bf86568f564234c09179aa65378f799",
+    "make_mesh.py": "ffe8728f45a1097213060ff17ab73acb91f12cf24339e5c5db0e17b05e227b85",
+    "mesh.msh": "1c3758470eb12b0225bdcd1e0c2b348464930e92c2aaf3ec813dfcb67aeaee4c"
+   },
+   "mesh": {
+    "nodes": 26517,
+    "h_mm": 8.0
+   },
+   "frequency_systems": 201,
+   "estimate_cpu_s": 1924.3,
+   "estimate_wall_s": 2116.7,
+   "estimate_mem_mib": 248.8
+  },
+  {
+   "family": "f13",
+   "case": "unequal-chambers-primary",
+   "reservation": "primary_sweeps",
+   "command": "export OPENBLAS_NUM_THREADS=1; ElmerGrid 14 2 mesh.msh -autoclean -out mesh > grid.log 2>&1 && ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "5dd582c99eace17515f976266bc0f0a3df22f5f2fa29e803b32980846c9cfb05",
+    "deck.json": "aaee99a3548bc32b78a2f987b90a63e05443e91a0db30e433f779e5adaf77b52",
+    "groups.json": "0a03011ad4933988174123e38a75bf6a1cdae3cc96c8ec1180af6b23b5a9cf04",
+    "make_mesh.py": "f8eebae9d079dab0150f7985f54cc4629e8f9eed5f740352ab015f7fef57cbce",
+    "mesh.msh": "159d1058f901904d005cee660b3b55374761c1a7d42b0e1c10b2ea063323ff17"
+   },
+   "mesh": {
+    "nodes": 35027,
+    "h_mm": 8.0
+   },
+   "frequency_systems": 201,
+   "estimate_cpu_s": 2753.5,
+   "estimate_wall_s": 3028.9,
+   "estimate_mem_mib": 319.0
+  },
+  {
+   "family": "f13",
+   "case": "reverse-unequal-primary",
+   "reservation": "primary_sweeps",
+   "command": "export OPENBLAS_NUM_THREADS=1; ElmerGrid 14 2 mesh.msh -autoclean -out mesh > grid.log 2>&1 && ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "5dd582c99eace17515f976266bc0f0a3df22f5f2fa29e803b32980846c9cfb05",
+    "deck.json": "9ccde8e2bcd23b18d5d423910c3c697a55052ed5e2868725643e31d06ca390f9",
+    "groups.json": "614976cfd4595302139924028846c929f63433cb8a3d73f0689516128bc68b25",
+    "make_mesh.py": "5406116896d1447503d0e7e3c9c25519c98976f8406b126f4c550dcb6b5d8ef0",
+    "mesh.msh": "c9abbd862ab31b011661ac5429e691da1149839d71740d1f44d353901801b732"
+   },
+   "mesh": {
+    "nodes": 35049,
+    "h_mm": 8.0
+   },
+   "frequency_systems": 201,
+   "estimate_cpu_s": 2755.8,
+   "estimate_wall_s": 3031.3,
+   "estimate_mem_mib": 319.2
+  },
+  {
+   "family": "f13",
+   "case": "short-neck-wide-primary",
+   "reservation": "primary_sweeps",
+   "command": "export OPENBLAS_NUM_THREADS=1; ElmerGrid 14 2 mesh.msh -autoclean -out mesh > grid.log 2>&1 && ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "5dd582c99eace17515f976266bc0f0a3df22f5f2fa29e803b32980846c9cfb05",
+    "deck.json": "83fa8b9f1363b9b021959144317e52b715f038a9cf8a8a4ae70cf82447459e51",
+    "groups.json": "67837b2c4892d84ee03d5cdbe61978687f25eb0ac28864e8c528e98043421e23",
+    "make_mesh.py": "cc2592a461822af7d0d429fa44eb4b010270bbb7b7471d6fc6cbb7c7e9a0b9fc",
+    "mesh.msh": "057c33c3bcb00779c9248034c782bd5b4486d026a5190fe481f7c33ff197497d"
+   },
+   "mesh": {
+    "nodes": 38380,
+    "h_mm": 8.0
+   },
+   "frequency_systems": 201,
+   "estimate_cpu_s": 3097.6,
+   "estimate_wall_s": 3407.4,
+   "estimate_mem_mib": 346.6
+  },
+  {
+   "family": "f13",
+   "case": "long-neck-small-primary",
+   "reservation": "primary_sweeps",
+   "command": "export OPENBLAS_NUM_THREADS=1; ElmerGrid 14 2 mesh.msh -autoclean -out mesh > grid.log 2>&1 && ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "5dd582c99eace17515f976266bc0f0a3df22f5f2fa29e803b32980846c9cfb05",
+    "deck.json": "831bb652654325b49dd0a946399fd2a1bea4e075c38c0edce9a1b13d9009f451",
+    "groups.json": "c2b2cdca23487b62769766c336005d6d4204cfc66673a4f96dff3f6816f13e08",
+    "make_mesh.py": "67b2833efbd67055427065f494b33046a307c5c0c27d6e3c9269d1516026c516",
+    "mesh.msh": "9e9db0701f3230e7f5287a612062642c31869bc8d8cfcb3fac0098d31930904c"
+   },
+   "mesh": {
+    "nodes": 26828,
+    "h_mm": 8.0
+   },
+   "frequency_systems": 201,
+   "estimate_cpu_s": 1953.3,
+   "estimate_wall_s": 2148.7,
+   "estimate_mem_mib": 251.3
+  },
+  {
+   "family": "f13",
+   "case": "control-duct",
+   "reservation": "controls",
+   "command": "export OPENBLAS_NUM_THREADS=1; ElmerGrid 14 2 mesh.msh -autoclean -out mesh > grid.log 2>&1 && ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "5dd582c99eace17515f976266bc0f0a3df22f5f2fa29e803b32980846c9cfb05",
+    "deck.json": "ee0f299098c1d0a223983d9ad70aa82adeb4bf1a8fa94f85679e434e0966541f",
+    "groups.json": "b18bcb43d572e8f5146ccf46933b0555e89e0aceac58a3d5ba90c7bf3bf72291",
+    "make_mesh.py": "7f69e4dbab12365a7726a2cd2900d19a5673a0041693a9685aaeff550bc0c69e",
+    "mesh.msh": "b9273d74d0052ba326aa4ec5c7434e3d4fe99103355fd005cc3de96832431c2e"
+   },
+   "mesh": {
+    "nodes": 7398,
+    "h_mm": 8.0
+   },
+   "frequency_systems": 201,
+   "estimate_cpu_s": 374.4,
+   "estimate_wall_s": 411.8,
+   "estimate_mem_mib": 91.0
+  },
+  {
+   "family": "f13",
+   "case": "control-chamber",
+   "reservation": "controls",
+   "command": "export OPENBLAS_NUM_THREADS=1; ElmerGrid 14 2 mesh.msh -autoclean -out mesh > grid.log 2>&1 && ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "5dd582c99eace17515f976266bc0f0a3df22f5f2fa29e803b32980846c9cfb05",
+    "deck.json": "713751ad016ab19e1dfb24bbb886f2670b801e0c521ca91ea3ed9221dc8832db",
+    "groups.json": "fd0c6b5dad99c4a83a827aee8e04b89e9f00a74176bcf0586ebf9da0b8aff199",
+    "make_mesh.py": "f50b8f6ba41913dfe61ce573d5ba617a15bcf8d5199e63dc724ccec2a5c7ce9a",
+    "mesh.msh": "e6f5e7bce77de9df48c35b4a7685db74789b4889f96c1035555b19c471ecd10a"
+   },
+   "mesh": {
+    "nodes": 18354,
+    "h_mm": 8.0
+   },
+   "frequency_systems": 201,
+   "estimate_cpu_s": 1198.8,
+   "estimate_wall_s": 1318.7,
+   "estimate_mem_mib": 181.4
+  },
+  {
+   "family": "f13",
+   "case": "nominal-single-500",
+   "reservation": "separate_frequency_smoke",
+   "command": "export OPENBLAS_NUM_THREADS=1; ElmerGrid 14 2 mesh.msh -autoclean -out mesh > grid.log 2>&1 && ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "9a3f1ae59a65571b61f4821c67e09393652112fb12a948b33c0794483bc1cea9",
+    "deck.json": "b7917683962a11ae801c0d283d595f5289cfc555b34021df56108e3b588e7714",
+    "groups.json": "375bba9fdc5187083b554c35081a61812ffca249272023ba75842e1ee721dc8f",
+    "make_mesh.py": "c4666e3d8b5f71d98c7ef2954d812866c89987b02dc26c3c4233efbf4036afd3",
+    "mesh.msh": "73acc804674dc6ebe1be8c8895551a8e72a8166cc71d9fbf1fc0eb233a707222"
+   },
+   "mesh": {
+    "nodes": 32566,
+    "h_mm": 8.0
+   },
+   "frequency_systems": 1,
+   "estimate_cpu_s": 17.0,
+   "estimate_wall_s": 18.6,
+   "estimate_mem_mib": 298.7
+  },
+  {
+   "family": "f13",
+   "case": "nominal-single-1500",
+   "reservation": "separate_frequency_smoke",
+   "command": "export OPENBLAS_NUM_THREADS=1; ElmerGrid 14 2 mesh.msh -autoclean -out mesh > grid.log 2>&1 && ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "7306e197f3f8db90f2b5d8325eb5f020feddf404fad66970bfa23db4955dfaee",
+    "deck.json": "2369258eec7c70e0564fa43321923449d433b5cfe0805d20582f73a5303a8670",
+    "groups.json": "375bba9fdc5187083b554c35081a61812ffca249272023ba75842e1ee721dc8f",
+    "make_mesh.py": "c4666e3d8b5f71d98c7ef2954d812866c89987b02dc26c3c4233efbf4036afd3",
+    "mesh.msh": "73acc804674dc6ebe1be8c8895551a8e72a8166cc71d9fbf1fc0eb233a707222"
+   },
+   "mesh": {
+    "nodes": 32566,
+    "h_mm": 8.0
+   },
+   "frequency_systems": 1,
+   "estimate_cpu_s": 17.0,
+   "estimate_wall_s": 18.6,
+   "estimate_mem_mib": 298.7
+  },
+  {
+   "family": "f13",
+   "case": "nominal-single-2500",
+   "reservation": "separate_frequency_smoke",
+   "command": "export OPENBLAS_NUM_THREADS=1; ElmerGrid 14 2 mesh.msh -autoclean -out mesh > grid.log 2>&1 && ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "f42b1123c186ca329427d3e1daff15c31bd90d0d2a15f487073657e73485c384",
+    "deck.json": "45c40c5b32eb0a6b1fab5a048d38099018e275f2846b37dc2d431a1f3de4ca97",
+    "groups.json": "375bba9fdc5187083b554c35081a61812ffca249272023ba75842e1ee721dc8f",
+    "make_mesh.py": "c4666e3d8b5f71d98c7ef2954d812866c89987b02dc26c3c4233efbf4036afd3",
+    "mesh.msh": "73acc804674dc6ebe1be8c8895551a8e72a8166cc71d9fbf1fc0eb233a707222"
+   },
+   "mesh": {
+    "nodes": 32566,
+    "h_mm": 8.0
+   },
+   "frequency_systems": 1,
+   "estimate_cpu_s": 17.0,
+   "estimate_wall_s": 18.6,
+   "estimate_mem_mib": 298.7
+  },
+  {
+   "family": "f13",
+   "case": "clearance-boundary-freq5hz",
+   "reservation": "fine_sweeps",
+   "command": "export OPENBLAS_NUM_THREADS=1; ElmerGrid 14 2 mesh.msh -autoclean -out mesh > grid.log 2>&1 && ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "d90187b66b3ea69ac78845ca67c4731b312da8b9ba574911e52364437b0b760c",
+    "deck.json": "46f9777ff8d16315e43011e2d507ce7926ede417bbd2d4691928efdad6e4d9be",
+    "groups.json": "4b1680aab95babb20705556bf108f57c7bf86568f564234c09179aa65378f799",
+    "make_mesh.py": "ffe8728f45a1097213060ff17ab73acb91f12cf24339e5c5db0e17b05e227b85",
+    "mesh.msh": "1c3758470eb12b0225bdcd1e0c2b348464930e92c2aaf3ec813dfcb67aeaee4c"
+   },
+   "mesh": {
+    "nodes": 26517,
+    "h_mm": 8.0
+   },
+   "frequency_systems": 401,
+   "estimate_cpu_s": 3834.5,
+   "estimate_wall_s": 4217.9,
+   "estimate_mem_mib": 248.8
+  },
+  {
+   "family": "f13",
+   "case": "large-offset-mesh4mm",
+   "reservation": "fine_sweeps",
+   "command": "export OPENBLAS_NUM_THREADS=1; ElmerGrid 14 2 mesh.msh -autoclean -out mesh > grid.log 2>&1 && ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "29ec1dd574b0c27b37b3276b1381d6c28c23c3f92de467e572f6166ba787dbe8",
+    "deck.json": "145df1d81c530c9a70b3925f6a185b575d0568e57f1527f1f3d9603302fc3be1",
+    "groups.json": "63cb9af3287031522eff9c93cbd861d544282f2cfad0945a39d6e2a553ec18e4",
+    "make_mesh.py": "c558ca3910d9e2d8ffc5a656d8bb62f47216f476b06ef1cec8fd7c43a91e1d08",
+    "mesh.msh": "dfb2dcebe94684a5218264fcea1a1ce49c5139aba7b33422041f1f64aa426214"
+   },
+   "mesh": {
+    "nodes": 374578,
+    "h_mm": 4.0
+   },
+   "frequency_systems": 21,
+   "estimate_cpu_s": 6111.0,
+   "estimate_wall_s": 6722.1,
+   "estimate_mem_mib": 3120.3
+  },
+  {
+   "family": "f13",
+   "case": "small-coaxial-cold-repeat",
+   "reservation": "cold_repeat",
+   "command": "export OPENBLAS_NUM_THREADS=1; ElmerGrid 14 2 mesh.msh -autoclean -out mesh > grid.log 2>&1 && ElmerSolver case.sif > solver.log 2>&1",
+   "files": {
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "case.sif": "5dd582c99eace17515f976266bc0f0a3df22f5f2fa29e803b32980846c9cfb05",
+    "deck.json": "824a289a2f4864486472cbbeb99a792748de04c480eddfd70d969ddb2386c275",
+    "groups.json": "0fe360aed3dfabe2a5a0df4875d64d3831f9dd02828935f1b9ac9d15736933b5",
+    "make_mesh.py": "8319cd81a1f818d6ed5e8275ea0d7a6d2bd91ccb6763c282ddb0f7b4b774c5a3",
+    "mesh.msh": "5a3c7e5ecd8d96558ef4da9fbc6293f7aec71ec234c725adde2f7c1138536909"
+   },
+   "mesh": {
+    "nodes": 17121,
+    "h_mm": 8.0
+   },
+   "frequency_systems": 201,
+   "estimate_cpu_s": 1096.3,
+   "estimate_wall_s": 1206.0,
+   "estimate_mem_mib": 171.2
+  }
+ ],
+ "counts": {
+  "f13": {
+   "cold_repeat": 1,
+   "controls": 2,
+   "fine_sweeps": 2,
+   "primary_sweeps": 8,
+   "separate_frequency_smoke": 3
+  }
+ },
+ "frequency_systems": 2636,
+ "dispatchable": false,
+ "dispatchable_basis": "no proof file supplied",
+ "scope": "PUBLIC_DEVELOPMENT recipe panel; no hidden material"
+}

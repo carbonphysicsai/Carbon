@@ -81,6 +81,9 @@ def assemble(work, out):
                       "rows": [{k: r.get(k) for k in ("h_nominal", "nodes", "l2_real", "h1_real", "l2_imag", "h1_imag", "solver")}
                                for r in m["rows"]], "pass": m["pass"]}  # fmt: skip
         checks["B1_mms"] = _status(m["pass"])
+    elif (work / "mms-partial.json").exists():
+        doc["mms_partial"] = json.loads((work / "mms-partial.json").read_text())
+        checks["B1_mms"] = "DEFERRED_TO_POD"
     else:
         checks["B1_mms"] = "NOT_RUN"
 
@@ -116,8 +119,7 @@ def assemble(work, out):
         case_dir = v2 / (name if name.startswith("control") else f"{name}-primary")
         got = _rows(case_dir)
         if not got or name not in mm:
-            all_ok = False
-            doc["coaxial_mode_matching"][name] = "NOT_RUN"
+            doc["coaxial_mode_matching"][name] = "DEFERRED_TO_POD"
             continue
         ran += 1
         rows, _ = got
@@ -136,6 +138,17 @@ def assemble(work, out):
         if ran == len(COAXIAL)
         else ("FAIL" if not all_ok and ran else "NOT_RUN")
     )
+    # B3 diagnostic (not a registered check): panel coaxials on the 4 mm mesh
+    diag = {}
+    for name in COAXIAL[1:]:
+        got = _rows(work / "coax4" / name)
+        if got and name in mm:
+            c = p.compare(got[0], mm[name]["n40"], p.MESH_TL_DB)
+            diag[name] = {k: c[k] for k in ("common_frequencies", "max_abs_dtl_db_resolved",
+                                            "dp10_db", "dmean_db", "pass")}  # fmt: skip
+            diag[name]["cost"] = _cost(work / "coax4" / name)
+    if diag:
+        doc["coaxial_mode_matching_4mm_diagnostic"] = diag
     got = _rows(v2 / "control-chamber")
     if got:
         rows, _ = got
@@ -214,7 +227,10 @@ def assemble(work, out):
                                   ("D1_mesh_8_vs_4mm", "mesh4", p.MESH_TL_DB, None)):  # fmt: skip
         res, ok, ran = {}, True, 0
         for label in OFFSET:
-            base, other = _rows(v2 / f"{label}-primary"), _rows(work / sub / label)
+            base_dir = v2 / f"{label}-primary"
+            if not (base_dir / "cost.json").exists():
+                base_dir = v2 / f"{label}-sub50"
+            base, other = _rows(base_dir), _rows(work / sub / label)
             if not base or not other:
                 res[label] = "NOT_RUN"
                 ok = False
@@ -234,7 +250,7 @@ def assemble(work, out):
                 if ran
                 and not ok
                 and any(isinstance(v, dict) and not v["pass"] for v in res.values())
-                else "NOT_RUN"
+                else ("DEFERRED_TO_POD" if ran else "NOT_RUN")
             )
         )
 
@@ -248,7 +264,7 @@ def assemble(work, out):
         doc["D3_frequency_10_vs_5hz"] = {"case": "clearance-boundary", **c}
         checks["D3_frequency_10_vs_5hz"] = _status(c["pass"])
     else:
-        checks["D3_frequency_10_vs_5hz"] = "NOT_RUN"
+        checks["D3_frequency_10_vs_5hz"] = "DEFERRED_TO_POD"
 
     # primaries: curve summaries and cost
     doc["primaries"] = {}
