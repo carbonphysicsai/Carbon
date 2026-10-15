@@ -1,0 +1,48 @@
+==================================================================
+ElmerGrid mesh conversion and manipulation utility, Welcome!
+Version: 26.2 (Rev: NA, Compiled: NA)
+This program is free software licensed under GPL
+==================================================================
+Elmergrid reading in-line arguments
+Output will be saved to file angle.
+
+Elmergrid loading data:
+-----------------------
+Loading the geometry from file 'angle.grd'.
+Loading ElmerGrid file version: 210903
+Defining the coordinate system (2-DIM).
+Loading 3 subcell limits in X-direction
+Loading 3 subcell limits in Y-direction
+Loading material structure
+LoadElmergrid: materials interval is [0,1]
+Loading boundary conditions
+Found 1 boundaries
+Reached the end of command file
+Found 1 divisions for grid
+
+Loading ElmerGrid commands from file 'angle.grd'.
+Reached the end of command file
+Read commands from a file
+
+Elmergrid creating and manipulating meshes:
+-------------------------------------------
+3 cells were created.
+Numbered 341 knots in 300 4-node elements.
+Numbering order was <x><y> and max levelwidth 23.
+80 element sides between materials 0 and 1 were located to type 1.
+Coordinates defined in 2 dimensions
+Bounding box of all nodes in mesh:
+X:[0,2] Y:[0,2] Z:[0,0]
+Calculate Mesh Pieces in mesh:
+There is a single piece in the mesh, so the mesh is conforming.
+
+Elmergrid saving data with method 2:
+-------------------------------------
+Saving mesh in ElmerSolver format to directory angle.
+Saving 341 coordinates to mesh.nodes.
+Saving 300 element topologies to mesh.elements.
+Saving boundary elements to mesh.boundary.
+Saving header info to mesh.header.
+
+Thank you for using Elmergrid!
+Send bug reports and feature wishes to elmeradm@csc.fi

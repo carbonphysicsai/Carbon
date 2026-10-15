@@ -1,0 +1,26 @@
+{
+ "schema": "carbon.reference-solvers.pod-phase.v1",
+ "plan_id": "elmer-smoke-2026-10-15",
+ "pod_plan": "docs/development/evidence/reference-solvers-2026-10-15/plans/elmer-smoke.json",
+ "pod_plan_sha256": "43dba4516922a57e30f02bf5e547a8feb2fccc55b989501aa21a8b7a5ab34162",
+ "kind": "elmer",
+ "steps": [
+  {
+   "name": "elmer-upstream-smoke",
+   "status": "PASS",
+   "wall_s": 5.813046897761524
+  },
+  {
+   "name": "f02-controls",
+   "status": "PASS",
+   "wall_s": 276.95905908197165
+  },
+  {
+   "name": "f02-triage-controls",
+   "status": "PASS",
+   "wall_s": 165.6
+  }
+ ],
+ "all_passed": true,
+ "maturity": "DEVELOPMENT engineering run on public decks; no adequacy, qualification or LIVE claim"
+}

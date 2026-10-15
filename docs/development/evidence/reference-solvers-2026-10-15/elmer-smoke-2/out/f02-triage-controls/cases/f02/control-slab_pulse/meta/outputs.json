@@ -1,0 +1,46 @@
+{
+ "ELMERSOLVER_STARTINFO": {
+  "bytes": 11,
+  "sha256": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654"
+ },
+ "case.sif": {
+  "bytes": 2431,
+  "sha256": "6e744d669b67fee10611f89959b2afc36c7e42aa3d54a3b61b2519e066d508ec"
+ },
+ "deck.json": {
+  "bytes": 569,
+  "sha256": "0f12902b89c4576cfa3e9712bd7a58126bdbcf26d51e67439029a817400ec2f3"
+ },
+ "mesh/final_t0001.vtu": {
+  "bytes": 27630,
+  "sha256": "f5c78380771bda3d8a98020f74594be8367f3ac427b634314793873ea99e7f5b"
+ },
+ "mesh/mesh.boundary": {
+  "bytes": 872,
+  "sha256": "2fc7c80ab330b8f51acfbc99ca59d7c2c3f9b0bda04bea657fa3de7a8363d46a"
+ },
+ "mesh/mesh.elements": {
+  "bytes": 7488,
+  "sha256": "ca36161d79204c614977c21f3b5a219042955a2fc8a4d253549a391f81a29134"
+ },
+ "mesh/mesh.header": {
+  "bytes": 28,
+  "sha256": "6092f781b98ae7c59e7b4abaebdce107d6a40b16401722a0c5579c1915ee6711"
+ },
+ "mesh/mesh.nodes": {
+  "bytes": 12677,
+  "sha256": "0b195160334a7afc454fd20d5db94e66643959ed58bb6ee27f8e3e8960063f52"
+ },
+ "scalars.dat": {
+  "bytes": 318954,
+  "sha256": "e56cbed19100a541feae555c71389077791a4e340ffe9621626bf95ffcadce2a"
+ },
+ "scalars.dat.names": {
+  "bytes": 511,
+  "sha256": "2d163f0cea81a276e47ff0ac63d5fe067c923fc0ea44aa821ab28ac0df92715c"
+ },
+ "solver.log": {
+  "bytes": 463573,
+  "sha256": "cfca0766c12f256b989ad4ea95fe1c70101898f9596b16ab112c0ddf7adf7446"
+ }
+}

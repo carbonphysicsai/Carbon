@@ -1,0 +1,33 @@
+{
+ "schema": "carbon.reference-solvers.pod-environment.v1",
+ "kind": "elmer",
+ "environment": "runpod-cpu-pod:debian:trixie-20261005-slim@sha256:a29215f6a35e51e22adffa17f89e9d2ef06214e64a2bad10d765c46aea49f11f + scripts/dev/reference_packages/elmer/Dockerfile steps natively (Debian snapshot 20261001T000000Z; Elmer 26.2.1 source SHA-256 checked; serial; single stage) + Gmsh 4.15.2 SDK (SHA-256 checked; the carbon-motor-reference mesh image's Gmsh, 4.15.2 = 4.15.2) + harness python3 ca-certificates curl bc",
+ "code_ref": "e0de2463d",
+ "python": "3.13.5",
+ "host": {
+  "nproc": 192,
+  "mem_total_bytes": 810862534656,
+  "cpu_model": "AMD EPYC 9654 96-Core Processor",
+  "boot_unix": 1788337269,
+  "host_cgroup_version": 2
+ },
+ "affinity_cores": 8,
+ "cgroup_cpu_max": "max 100000",
+ "cgroup_memory_max": "16000000000",
+ "usable_cpus": 8,
+ "usable_memory_bytes": 16000000000,
+ "solvers": {
+  "ElmerSolver": {
+   "path": "/opt/elmer/bin/ElmerSolver",
+   "sha256": "7e9a38778472b9a925b115f0b215237f84bd58ef3824a3485aabd3394f2af9f0"
+  },
+  "ElmerGrid": {
+   "path": "/opt/elmer/bin/ElmerGrid",
+   "sha256": "0ea037dd92a90d390c1ee96d7ac103515a520ec992fb438beb7dd29982ec1bc7"
+  },
+  "gmsh": {
+   "path": "/opt/gmsh/bin/gmsh",
+   "sha256": "aebfb5b25decf2260acbce3c3de592a7e1231ee2089b8432f13e2fa10e05a9e5"
+  }
+ }
+}

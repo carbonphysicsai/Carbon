@@ -1,0 +1,73 @@
+ELMER SOLVER (v 26.2) STARTED AT: 2026/10/15 14:46:41
+ParCommInit: Initialize #PEs: 1
+MAIN: 
+MAIN: =============================================================
+MAIN: ElmerSolver finite element software, Welcome!
+MAIN: This program is free software licensed under (L)GPL
+MAIN: Copyright 1st April 1995 - , CSC - IT Center for Science Ltd.
+MAIN: Webpage http://www.csc.fi/elmer, Email elmeradm@csc.fi
+MAIN: Version: 26.2-unknown (Rev: unknown, Compiled: 2026-10-15)
+MAIN:  Running one task without MPI parallelization.
+MAIN:  Running with just one thread per task.
+MAIN: =============================================================
+MAIN: 
+MAIN: 
+MAIN: -------------------------------------
+MAIN: Reading Model: case.sif
+LoadInputFile: Scanning input file: case.sif
+LoadInputFile: Scanning only size info
+LoadInputFile: First time visiting
+LoadInputFile: Reading base load of sif file
+CheckKeyword: Found keyword type assuming suffix 1 for: operator 2
+CheckKeyword: Found keyword type assuming suffix 1 for: operator 2
+LoadInputFile: Loading input file: case.sif
+LoadInputFile: Reading base load of sif file
+CheckKeyword:  Unlisted keyword: [ptot] in section: [body force 1]
+CheckKeyword: Found keyword type assuming suffix 1 for: operator 2
+CheckKeyword: Found keyword type assuming suffix 1 for: operator 2
+LoadInputFile: Number of BCs: 4
+LoadInputFile: Number of Body Forces: 1
+LoadInputFile: Number of Initial Conditions: 0
+LoadInputFile: Number of Materials: 1
+LoadInputFile: Number of Equations: 1
+LoadInputFile: Number of Solvers: 3
+LoadInputFile: Number of Bodies: 1
+ElmerMeshReader: Base mesh name: ./rect
+LoadMesh: Elapsed REAL time:     0.0031 (s)
+MAIN: -------------------------------------
+OptimizeBandwidth: Initial bandwidth for helmholtz: 305
+OptimizeBandwidth: Optimized bandwidth for helmholtz: 65
+MAIN: Number of timesteps to be saved: 1
+MAIN: 
+MAIN: -------------------------------------
+MAIN:  Steady state iteration:            1
+MAIN: -------------------------------------
+MAIN: 
+HelmholtzSolve: 
+HelmholtzSolve: -------------------------------------
+HelmholtzSolve:  Helmholtz iteration           1
+HelmholtzSolve:  Frequency (Hz):    5000.0000000000000
+HelmholtzSolve: -------------------------------------
+HelmholtzSolve: 
+HelmholtzSolve: Starting Assembly
+HelmholtzSolve: Assembly:
+HelmholtzSolve: Assembly done
+ComputeChange: NS (ITER=1) (NRM,RELC): ( 0.70719760      2.0000000     ) :: helmholtz
+HelmholtzSolve: iter:    1 Assembly: (s)    0.01    0.01
+HelmholtzSolve: iter:    1 Solve:    (s)    0.08    0.08
+ComputeChange: SS (ITER=1) (NRM,RELC): ( 0.70719760      2.0000000     ) :: helmholtz
+SaveScalars: -----------------------------------------
+SaveScalars: Saving scalar values of various kinds
+SaveScalars: Showing computed results:
+SaveScalars:    1: min: pressure   9.996700116143E-001
+SaveScalars:    2: max: pressure   1.000497882122E+000
+SaveScalars:    3: res: frequency   5.000000000000E+003
+ComputeChange: SS (ITER=1) (NRM,RELC): ( 0.99967001      0.0000000     ) :: savescalars
+ComputeChange: SS (ITER=1) (NRM,RELC): ( 0.99967001      2.0000000     ) :: savescalars
+CompareToReferenceSolution: Solver 2 PASSED:  Norm = 9.99670012E-01  RefNorm = 9.99670010E-01
+CompareToReferenceSolution: Relative Error to reference norm: 1.614861E-09
+CompareToReferenceSolution: PASSED all 1 tests!
+MAIN: *** Elmer Solver: ALL DONE ***
+MAIN: The end
+SOLVER TOTAL TIME(CPU,REAL):         0.18        0.21
+ELMER SOLVER FINISHED AT: 2026/10/15 14:46:41

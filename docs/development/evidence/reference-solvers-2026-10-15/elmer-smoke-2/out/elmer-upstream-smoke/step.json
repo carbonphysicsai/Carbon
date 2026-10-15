@@ -1,0 +1,20 @@
+{
+ "name": "elmer-upstream-smoke",
+ "type": "script",
+ "status": "PASS",
+ "wall_s": 5.813046897761524,
+ "exit": 0,
+ "signal": null,
+ "stop_reason": "exit",
+ "rusage_user_s": 5.348,
+ "rusage_sys_s": 0.963,
+ "rusage_cpu_s": 6.312,
+ "rusage_maxrss_bytes": 28536832,
+ "sampled_group_rss_peak_bytes": 4734976,
+ "rlimit_as_bytes": null,
+ "jsonl_rows": 3,
+ "kept": {
+  "copied": 12,
+  "not_copied": 27
+ }
+}

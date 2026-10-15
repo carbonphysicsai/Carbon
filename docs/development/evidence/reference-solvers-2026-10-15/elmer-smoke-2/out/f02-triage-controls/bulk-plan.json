@@ -1,0 +1,41 @@
+{
+ "schema": "carbon.reference-bulk.run-plan.v1",
+ "plan_id": "f02-triage-controls",
+ "authority": "OWNER-RUNPOD-SOLVER-READINESS-01",
+ "host_profile": "runpod-cpu-pod-native",
+ "machine": {
+  "reserve_cpus": 0,
+  "reserve_memory_gib": 1,
+  "margin_minutes": 0,
+  "starvation_s": 900,
+  "min_case_window_s": 300,
+  "cpus": 8,
+  "memory_gib": 14.901,
+  "node_hours": 1.0108325639035967,
+  "clock_start": 1792075905.2253988
+ },
+ "families": [
+  {
+   "family": "f02",
+   "manifest_dir": "/tmp/work/f02-triage-controls/decks",
+   "image": "sha256:8bcd864dd60be0a80be9769c1a95c67db76eca9e718212f63dd0460cf3a08fc6",
+   "priority": 10,
+   "case_limits": {
+    "cpus": 1,
+    "memory_gib": 2,
+    "pids": 64,
+    "wall_timeout_s": 1800
+   },
+   "ceilings": {
+    "launches": 4,
+    "cpu_hours": 2
+   },
+   "shell": "sh",
+   "env": {},
+   "native": {
+    "version_command": "ElmerSolver -v | head -1",
+    "version_expect": "ELMER SOLVER (v 26.2)"
+   }
+  }
+ ]
+}

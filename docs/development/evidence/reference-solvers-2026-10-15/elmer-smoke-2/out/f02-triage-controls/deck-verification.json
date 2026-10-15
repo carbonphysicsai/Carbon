@@ -1,0 +1,464 @@
+{
+ "manifest": "docs/development/evidence/reference-solvers-2026-10-15/pins/triage-decks-manifest.main-regen.json",
+ "decks": "regenerated on the pod",
+ "cases": [
+  {
+   "family": "f02",
+   "case": "cool-rect-low-primary",
+   "selected": false,
+   "files": 7,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f02",
+   "case": "cool-rect-low-mesh2",
+   "selected": false,
+   "files": 7,
+   "files_differing": [
+    "mesh/mesh.nodes"
+   ],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f02",
+   "case": "cool-rect-low-dt0.5",
+   "selected": false,
+   "files": 7,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f02",
+   "case": "cool-rect-middle-primary",
+   "selected": false,
+   "files": 7,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f02",
+   "case": "cool-rect-middle-mesh2",
+   "selected": false,
+   "files": 7,
+   "files_differing": [
+    "mesh/mesh.nodes"
+   ],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f02",
+   "case": "cool-rect-middle-dt0.5",
+   "selected": false,
+   "files": 7,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f02",
+   "case": "cool-rect-short-high-primary",
+   "selected": false,
+   "files": 7,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f02",
+   "case": "cool-rect-short-high-mesh2",
+   "selected": false,
+   "files": 7,
+   "files_differing": [
+    "mesh/mesh.nodes"
+   ],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f02",
+   "case": "cool-rect-short-high-dt0.5",
+   "selected": false,
+   "files": 7,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f02",
+   "case": "cool-rect-long-high-primary",
+   "selected": false,
+   "files": 7,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f02",
+   "case": "cool-rect-long-high-mesh2",
+   "selected": false,
+   "files": 7,
+   "files_differing": [
+    "mesh/mesh.nodes"
+   ],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f02",
+   "case": "cool-rect-long-high-dt0.5",
+   "selected": false,
+   "files": 7,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f02",
+   "case": "warm-ramp-low-primary",
+   "selected": false,
+   "files": 7,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f02",
+   "case": "warm-ramp-low-mesh2",
+   "selected": false,
+   "files": 7,
+   "files_differing": [
+    "mesh/mesh.nodes"
+   ],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f02",
+   "case": "warm-ramp-low-dt0.5",
+   "selected": false,
+   "files": 7,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f02",
+   "case": "warm-ramp-high-primary",
+   "selected": false,
+   "files": 7,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f02",
+   "case": "warm-ramp-high-mesh2",
+   "selected": false,
+   "files": 7,
+   "files_differing": [
+    "mesh/mesh.nodes"
+   ],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f02",
+   "case": "warm-ramp-high-dt0.5",
+   "selected": false,
+   "files": 7,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f02",
+   "case": "warm-two-short-primary",
+   "selected": false,
+   "files": 7,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f02",
+   "case": "warm-two-short-mesh2",
+   "selected": false,
+   "files": 7,
+   "files_differing": [
+    "mesh/mesh.nodes"
+   ],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f02",
+   "case": "warm-two-short-dt0.5",
+   "selected": false,
+   "files": 7,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f02",
+   "case": "warm-two-long-primary",
+   "selected": false,
+   "files": 7,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f02",
+   "case": "warm-two-long-mesh2",
+   "selected": false,
+   "files": 7,
+   "files_differing": [
+    "mesh/mesh.nodes"
+   ],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f02",
+   "case": "warm-two-long-dt0.5",
+   "selected": false,
+   "files": 7,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f02",
+   "case": "control-equilibrium",
+   "selected": true,
+   "files": 7,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f02",
+   "case": "control-slab_step",
+   "selected": true,
+   "files": 7,
+   "files_differing": [
+    "mesh/mesh.nodes"
+   ],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false,
+   "host_regenerated": {
+    "mesh/mesh.nodes": {
+     "pinned": "43d913d29af2ba7a39e20d66aabc20c1b50b76f5db4a27eb40fcf87a5eb74b1a",
+     "solved": "0b195160334a7afc454fd20d5db94e66643959ed58bb6ee27f8e3e8960063f52"
+    }
+   }
+  },
+  {
+   "family": "f02",
+   "case": "control-slab_pulse",
+   "selected": true,
+   "files": 7,
+   "files_differing": [
+    "mesh/mesh.nodes"
+   ],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false,
+   "host_regenerated": {
+    "mesh/mesh.nodes": {
+     "pinned": "43d913d29af2ba7a39e20d66aabc20c1b50b76f5db4a27eb40fcf87a5eb74b1a",
+     "solved": "0b195160334a7afc454fd20d5db94e66643959ed58bb6ee27f8e3e8960063f52"
+    }
+   }
+  },
+  {
+   "family": "f02",
+   "case": "control-energy",
+   "selected": true,
+   "files": 7,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f02",
+   "case": "steady-30C-2500-0.5",
+   "selected": false,
+   "files": 7,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f02",
+   "case": "steady-40C-1500-0.8",
+   "selected": false,
+   "files": 7,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f02",
+   "case": "cool-rect-low-cold-repeat",
+   "selected": false,
+   "files": 7,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f13",
+   "case": "small-coaxial-primary",
+   "selected": false,
+   "files": 6,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f13",
+   "case": "large-offset-primary",
+   "selected": false,
+   "files": 6,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f13",
+   "case": "nominal-primary",
+   "selected": false,
+   "files": 6,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f13",
+   "case": "clearance-boundary-primary",
+   "selected": false,
+   "files": 6,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f13",
+   "case": "unequal-chambers-primary",
+   "selected": false,
+   "files": 6,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f13",
+   "case": "reverse-unequal-primary",
+   "selected": false,
+   "files": 6,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f13",
+   "case": "short-neck-wide-primary",
+   "selected": false,
+   "files": 6,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f13",
+   "case": "long-neck-small-primary",
+   "selected": false,
+   "files": 6,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f13",
+   "case": "clearance-boundary-freq5hz",
+   "selected": false,
+   "files": 6,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f13",
+   "case": "large-offset-mesh4mm",
+   "selected": false,
+   "files": 6,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f13",
+   "case": "small-coaxial-cold-repeat",
+   "selected": false,
+   "files": 6,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f13",
+   "case": "small-coaxial-single-1000",
+   "selected": false,
+   "files": 6,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f13",
+   "case": "small-coaxial-single-1500",
+   "selected": false,
+   "files": 6,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f13",
+   "case": "small-coaxial-single-2000",
+   "selected": false,
+   "files": 6,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f13",
+   "case": "control-duct",
+   "selected": false,
+   "files": 6,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f13",
+   "case": "control-chamber",
+   "selected": false,
+   "files": 6,
+   "files_differing": [],
+   "command_matches_freeze": true,
+   "command_uses_container_path": false
+  }
+ ],
+ "selected": 4,
+ "selected_refused": [],
+ "all_cases_matching": 37
+}
