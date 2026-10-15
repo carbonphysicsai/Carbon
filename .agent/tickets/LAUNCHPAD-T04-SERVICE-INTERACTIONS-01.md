@@ -52,3 +52,15 @@ separate. T04 automated levels do not run or approve deferred real level cells.
 Baseline runtime execution is not yet dispatched; current Root TEST selection
 is not a worker-owned test lease. Remote canonical CI will supply exact-head
 validation without duplicate host dispatch.
+
+## Current semantic reconciliation
+
+DOCUMENTATION_LAG: the original handoff predates new-launch composition.
+Bare construction_level1-3 hints currently bind the registered composition;
+they must not regain legacy downgrade semantics. Stage12 therefore checks
+current hints against the actual writer capture and separately drives explicit
+historical variant-admission fixtures through served/parts pre-sign gates.
+No production admission code is monkeypatched outside test fixtures, and no
+real ladder acceptance is claimed. Root was notified before this adaptation.
+The existing preparation fixture is reused with its manifest argument adapted
+only inside each historical test; no sharedfixture source edit is required.
