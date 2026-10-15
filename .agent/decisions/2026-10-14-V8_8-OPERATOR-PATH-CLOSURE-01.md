@@ -22,3 +22,10 @@ Alternatives rejected: run-as-root, removing service_account enforcement, broad
 writable source/tmpfs and baked machine identity. Changes are reversible; no
 existing config/schema migration. Root notified directly before implementation.
 Canonical CI and actual Root image/host evidence remain separate maturity gates.
+
+Review finding V88-PATH-001 requires real containment, not lexical prefixes.
+Reject parent traversal and symlinks in the complete declared mount and required
+path ancestry, including state-derived lock parent, using metadata only. Negative
+controls cover obvious outside paths, lexical traversal and symlink ancestors,
+with no private payload reads or unit output on refusal. Root notified; no
+runtime account, credential or mount boundary is weakened by this repair.

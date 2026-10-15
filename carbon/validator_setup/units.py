@@ -179,7 +179,9 @@ def render(profile):
         or "," in str(artifact.root)
         or any(
             not p.is_absolute()
+            or ".." in p.parts
             or p.is_symlink()
+            or any(parent.is_symlink() for parent in p.parents)
             or not p.is_dir()
             or artifact.root.is_relative_to(p)
             or p.is_relative_to(artifact.root)
@@ -231,7 +233,11 @@ def render(profile):
         if not (stat.S_ISSOCK(mode) if kind == "socket" else stat.S_ISREG(mode)):
             raise SetupRefused("OPERATOR_CREDENTIAL_TYPE_DIFFERS")
     if any(
-        not p.is_absolute() or not any(p.is_relative_to(m) for m in mounts)
+        not p.is_absolute()
+        or ".." in p.parts
+        or p.is_symlink()
+        or any(parent.is_symlink() for parent in p.parents)
+        or not any(p.is_relative_to(m) for m in mounts)
         for p in required
     ):
         raise SetupRefused("OPERATOR_PATH_NOT_MOUNTED_IDENTICALLY")

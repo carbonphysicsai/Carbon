@@ -373,13 +373,20 @@ def test_signer_home_fallback_is_never_an_image_route(tmp_path, monkeypatch, val
         "service_key",
     ],
 )
+@pytest.mark.parametrize("escape", ["outside", "traversal", "symlink"])
 def test_deployment_paths_outside_mount_refuse_without_opening_payloads(
-    tmp_path, monkeypatch, field
+    tmp_path, monkeypatch, field, escape
 ):
     profile, raw, _fetch, _state = arrangement(tmp_path, monkeypatch)
     path = Path(raw["weights"]["deployment"])
     deployment = json.loads(path.read_bytes())
     private = tmp_path / "unmounted-private-payload"
+    if escape == "traversal":
+        private = path.parent / ".." / "unmounted-private-payload"
+    elif escape == "symlink":
+        link = path.parent / "outside-link"
+        link.symlink_to(tmp_path, target_is_directory=True)
+        private = link / "unmounted-private-payload"
     deployment[field] = str(private)
     path.write_text(json.dumps(deployment), encoding="utf-8")
     original = Path.read_bytes
@@ -417,6 +424,26 @@ def test_transport_and_practice_manifest_paths_require_identical_mounts(
     config_path.write_text(json.dumps(value), encoding="utf-8")
     with pytest.raises(SetupRefused, match="OPERATOR_PATH_NOT_MOUNTED_IDENTICALLY"):
         units.render(profile)
+
+
+@pytest.mark.parametrize("escape", ["traversal", "symlink_ancestor"])
+def test_mount_paths_reject_lexical_aliases_before_unit_output(
+    tmp_path, monkeypatch, escape
+):
+    profile, raw, _fetch, state = arrangement(tmp_path, monkeypatch)
+    if escape == "traversal":
+        mount = state / ".." / state.name
+    else:
+        alias = tmp_path / "alias"
+        alias.symlink_to(tmp_path, target_is_directory=True)
+        mount = alias / state.name
+    raw["state_mounts"] = [str(mount)]
+    profile.write_text(json.dumps(raw), encoding="utf-8")
+    with pytest.raises(
+        SetupRefused, match="EXPLICIT_SEPARATE_OPERATOR_MOUNTS_REQUIRED"
+    ):
+        units.write(profile, tmp_path / "refused")
+    assert not (tmp_path / "refused").exists()
 
 
 def test_every_role_binds_public_account_map_readonly_with_verified_home(
