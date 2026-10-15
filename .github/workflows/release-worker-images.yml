@@ -33,6 +33,7 @@ jobs:
       torch_record: ${{ steps.records.outputs.torch_record }}
       torch_gpu_record: ${{ steps.records.outputs.torch_gpu_record }}
       analysis_record: ${{ steps.records.outputs.analysis_record }}
+      torch_analysis_record: ${{ steps.records.outputs.torch_analysis_record }}
     steps:
       - name: Require a worker-images release tag
         env:
@@ -114,7 +115,7 @@ jobs:
         id: records
         run: |
           set -euo pipefail
-          for kind in c03 accelerator torch torch-gpu analysis; do
+          for kind in c03 accelerator torch torch-gpu analysis torch-analysis; do
             printf '%s_record=%s\n' "${kind//-/_}" "$(cat "${RUNNER_TEMP}/release/${kind}-worker-image.release.json")" >> "${GITHUB_OUTPUT}"
           done
       - name: Upload the manifests and release records
@@ -186,6 +187,7 @@ jobs:
           TORCH_RECORD: ${{ needs.build.outputs.torch_record }}
           TORCH_GPU_RECORD: ${{ needs.build.outputs.torch_gpu_record }}
           ANALYSIS_RECORD: ${{ needs.build.outputs.analysis_record }}
+          TORCH_ANALYSIS_RECORD: ${{ needs.build.outputs.torch_analysis_record }}
         run: |
           set -euo pipefail
           records="${RUNNER_TEMP}/records"
@@ -195,7 +197,8 @@ jobs:
           printf '%s\n' "${TORCH_RECORD}" > "${records}/torch-worker-image.release.json"
           printf '%s\n' "${TORCH_GPU_RECORD}" > "${records}/torch-gpu-worker-image.release.json"
           printf '%s\n' "${ANALYSIS_RECORD}" > "${records}/analysis-worker-image.release.json"
-          for kind in c03 accelerator torch torch-gpu analysis; do
+          printf '%s\n' "${TORCH_ANALYSIS_RECORD}" > "${records}/torch-analysis-worker-image.release.json"
+          for kind in c03 accelerator torch torch-gpu analysis torch-analysis; do
             .venv/bin/python scripts/dev/worker_image_release.py pull \
               --record "${records}/${kind}-worker-image.release.json" \
               --out "${RUNNER_TEMP}/manifests/${kind}-worker-image.json"
@@ -239,6 +242,7 @@ jobs:
           TORCH_RECORD: ${{ needs.build.outputs.torch_record }}
           TORCH_GPU_RECORD: ${{ needs.build.outputs.torch_gpu_record }}
           ANALYSIS_RECORD: ${{ needs.build.outputs.analysis_record }}
+          TORCH_ANALYSIS_RECORD: ${{ needs.build.outputs.torch_analysis_record }}
           REPORT: ${{ needs.capability.outputs.report }}
         run: |
           set -euo pipefail
@@ -249,8 +253,9 @@ jobs:
           printf '%s\n' "${TORCH_RECORD}" > "${assets}/torch-worker-image.release.json"
           printf '%s\n' "${TORCH_GPU_RECORD}" > "${assets}/torch-gpu-worker-image.release.json"
           printf '%s\n' "${ANALYSIS_RECORD}" > "${assets}/analysis-worker-image.release.json"
+          printf '%s\n' "${TORCH_ANALYSIS_RECORD}" > "${assets}/torch-analysis-worker-image.release.json"
           printf '%s\n' "${REPORT}" > "${assets}/capability-report.json"
-          for kind in c03 accelerator torch torch-gpu analysis; do
+          for kind in c03 accelerator torch torch-gpu analysis torch-analysis; do
             python3 -c 'import json,sys; m=json.load(open(sys.argv[1]))["manifest"]; open(sys.argv[2],"w").write(json.dumps(m, sort_keys=True, separators=(",", ":")) + "\n")' \
               "${assets}/${kind}-worker-image.release.json" "${assets}/${kind}-worker-image.json"
           done

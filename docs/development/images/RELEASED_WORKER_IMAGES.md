@@ -13,6 +13,13 @@ deleted image is re-pulled, never rebuilt.**
 | `torch` | `ghcr.io/carbonphysicsai/carbon-torch-worker` | `scripts/dev/torch_worker_image.sh` | PyTorch CPU, on `c03` |
 | `torch-gpu` | `ghcr.io/carbonphysicsai/carbon-torch-gpu-worker` | `scripts/dev/torch_gpu_worker_image.sh` | PyTorch GPU (CUDA 13), on `c03`, its own environment |
 | `analysis` | `ghcr.io/carbonphysicsai/carbon-miner-analysis` | `python -m carbon.development_session.research_image` (as `install_miner.sh`) | the Launchpad's miner analysis image (`analysis_image_manifest`), on `c03` |
+| `torch-analysis` | `ghcr.io/carbonphysicsai/carbon-torch-miner-analysis` | the same analysis builder, after pushing the Torch parent | the Launchpad's miner analysis image, on the exact CPU `torch` worker |
+
+CPU PyTorch practice selects the complete Torch/analysis pair with
+`install_miner.sh --pytorch`. See [PyTorch practice adoption](PYTORCH_PRACTICE_ADOPTION.md)
+for source identity, publication dependencies and separate JAX/PyTorch GPU tests.
+Existing v4 publishes only the C03 analysis companion; this added pair requires
+a subsequent matching release. Default C03 installs remain unchanged.
 
 The PyTorch GPU worker (TORCH-GPU-01) installs the exact-hashed
 `.devcontainer/torch/torch-cu130-py311.txt` (torch 2.13.0+cu130) on the C-03
@@ -56,13 +63,16 @@ manual dispatch only, with the release tag as input.
 (`.github/workflows/release-rehearsal.yml`) must have passed on the exact
 commit the release tag points to. Run it with `workflow_dispatch` on that
 commit if no pull-request run covers it. The rehearsal pushes the C-03 worker
-to a throwaway local registry and builds a child and the analysis image FROM
-the served digest. It is not in the Merge gate; this step is what requires it.
+to a throwaway local registry, builds the Torch worker and C03 analysis child
+FROM the served digest, then pushes that Torch worker and builds its own analysis
+child. Both analysis parent layer chains are checked. It is not in the Merge
+gate; this step is what requires it.
 
 The release attaches these assets to the tag's GitHub release:
 
 - `<kind>-worker-image.json`: the build's exact `carbon.c03.worker-image.v1`
-  manifest;
+  worker manifest, or the closed `carbon.autoresearch.analysis-image.v1`
+  manifest for `analysis` and `torch-analysis`;
 - `<kind>-worker-image.release.json`: the release record
   (`carbon.worker-image-release.v1`). It holds the registry reference, the
   expected identity labels and the manifest;
