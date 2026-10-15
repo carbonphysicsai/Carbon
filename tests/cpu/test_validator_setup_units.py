@@ -1,7 +1,10 @@
 """Image-backed unit rendering and per-operator identity; no units installed."""
 
 import json
+import os
+import shlex
 import socket
+from pathlib import Path
 
 import pytest
 from test_validator_setup_bundle import source
@@ -100,7 +103,100 @@ def arrangement(tmp_path, monkeypatch):
     profile = state / "units.json"
     profile.write_text(json.dumps(value), encoding="utf-8")
     profile.chmod(0o600)
+    with monkeypatch.context() as local:
+        local.chdir(state)
+        with socket.socket(socket.AF_UNIX) as docker_socket:
+            docker_socket.bind("docker.sock")
+    (state / "docker.sock").chmod(0o660)
     return profile, value, fetch, state
+
+
+@pytest.mark.parametrize("gid", [413, 23456])
+def test_observed_socket_group_reaches_every_role_without_changing_primary_identity(
+    tmp_path, monkeypatch, gid
+):
+    profile, raw, _fetch, _state = arrangement(tmp_path, monkeypatch)
+    endpoint = Path(raw["docker_socket"])
+    original = Path.lstat
+    info = list(original(endpoint))
+    info[5] = gid
+    observed = os.stat_result(info)
+    monkeypatch.setattr(
+        Path,
+        "lstat",
+        lambda path, *a, **kw: (
+            observed if path == endpoint else original(path, *a, **kw)
+        ),
+    )
+    rendered = units.render(profile)
+    for role in ("service", "sync", "weights"):
+        start = next(
+            line.removeprefix("ExecStart=")
+            for line in rendered[f"fixture-validator-{role}.service"].splitlines()
+            if line.startswith("ExecStart=")
+        )
+        argv = shlex.split(start)
+        assert argv[argv.index("--user") + 1] == raw["user"]
+        assert argv.count("--group-add") == 1
+        assert argv[argv.index("--group-add") + 1] == str(gid)
+        assert "--privileged" not in argv
+        assert raw["image"] in argv
+
+
+@pytest.mark.parametrize("bad", ["missing", "file", "directory", "symlink", "denied"])
+def test_invalid_socket_metadata_refuses_before_any_units_are_written(
+    tmp_path, monkeypatch, bad
+):
+    profile, raw, _fetch, state = arrangement(tmp_path, monkeypatch)
+    endpoint = Path(raw["docker_socket"])
+    if bad == "denied":
+        original = Path.lstat
+
+        def denied(path, *a, **kw):
+            if path == endpoint:
+                raise PermissionError("private-marker-not-for-output")
+            return original(path, *a, **kw)
+
+        monkeypatch.setattr(Path, "lstat", denied)
+    else:
+        endpoint.unlink()
+        if bad == "file":
+            endpoint.write_bytes(b"not-a-socket")
+        elif bad == "directory":
+            endpoint.mkdir()
+        elif bad == "symlink":
+            endpoint.symlink_to(state / "signer.sock")
+    with pytest.raises(SetupRefused, match="^DOCKER_SOCKET_") as refused:
+        units.write(profile, tmp_path / "not-written")
+    assert "private-marker" not in str(refused.value)
+    assert not (tmp_path / "not-written").exists()
+
+
+@pytest.mark.parametrize("owner", [True, False])
+def test_socket_write_permission_matches_configured_uid_not_rendering_process(
+    tmp_path, monkeypatch, owner
+):
+    profile, raw, _fetch, _state = arrangement(tmp_path, monkeypatch)
+    endpoint = Path(raw["docker_socket"])
+    uid = endpoint.stat().st_uid + (0 if owner else 1)
+    raw["user"] = f"{uid}:23457"
+    profile.write_text(json.dumps(raw), encoding="utf-8")
+    endpoint.chmod(0o460 if owner else 0o640)
+    with pytest.raises(SetupRefused, match="DOCKER_SOCKET_IDENTITY_NOT_WRITABLE"):
+        units.write(profile, tmp_path / "not-written")
+    assert not (tmp_path / "not-written").exists()
+    endpoint.chmod(0o600 if owner else 0o660)
+    assert len(units.render(profile)) == 5
+
+
+def test_public_profile_permissions_refuse_before_unit_output(tmp_path, monkeypatch):
+    from scripts.dev.battery_validator_service.service import ServiceRefused
+
+    profile, _raw, _fetch, _state = arrangement(tmp_path, monkeypatch)
+    profile.chmod(0o644)
+    with pytest.raises(ServiceRefused, match="runtime_units_profile_not_owner_only"):
+        units.write(profile, tmp_path / "not-written")
+    assert not (tmp_path / "not-written").exists()
 
 
 def test_all_three_roles_use_same_bound_image_and_operator_route_with_explicit_paths(

@@ -10,7 +10,9 @@ import json
 import os
 import shlex
 import socket
+import struct
 import subprocess
+import threading
 import time
 import uuid
 from pathlib import Path
@@ -56,6 +58,124 @@ def service_argv(profile):
             if s.startswith("ExecStart=")
         )
     )
+
+
+def test_generated_identity_connects_only_with_observed_supplementary_socket_group(
+    tmp_path, monkeypatch, fixture_image
+):
+    profile, raw, _fetch, _state = arrangement(tmp_path, monkeypatch)
+    endpoint = Path(raw["docker_socket"])
+    info = endpoint.stat()
+    uid = 65532 if info.st_uid != 65532 else 65531
+    gid = 65532 if info.st_gid != 65532 else 65531
+    raw["user"] = f"{uid}:{gid}"
+    profile.write_text(json.dumps(raw), encoding="utf-8")
+    argv = service_argv(profile)
+    identity = argv[argv.index("--user") + 1]
+    supplementary = argv[argv.index("--group-add") + 1]
+    assert identity == raw["user"] and supplementary == str(info.st_gid)
+    marker = uuid.uuid4().hex
+    names = ["carbon-setup-socket-" + marker + suffix for suffix in ("-yes", "-no")]
+    peers, errors = [], []
+    code = """import json,os,socket
+s=socket.socket(socket.AF_UNIX)
+try:
+ s.connect('/operator.sock')
+except PermissionError:
+ print(json.dumps({'refused':'permission'}));raise SystemExit(77)
+s.sendall(b'ping')
+echo=s.recv(256).decode('ascii')
+print(json.dumps({'uid':os.getuid(),'gid':os.getgid(),'groups':os.getgroups(),'echo':echo}))
+s.close()
+"""
+    # This is a synthetic endpoint, never the real Docker socket or operator state.
+    endpoint.unlink()
+    with socket.socket(socket.AF_UNIX) as listener:
+        with monkeypatch.context() as local:
+            local.chdir(endpoint.parent)
+            listener.bind(endpoint.name)
+        endpoint.chmod(0o660)
+        listener.listen(1)
+        listener.settimeout(60)
+
+        def serve():
+            try:
+                connection, _ = listener.accept()
+                with connection:
+                    connection.settimeout(10)
+                    peers.append(
+                        struct.unpack(
+                            "3i",
+                            connection.getsockopt(
+                                socket.SOL_SOCKET, socket.SO_PEERCRED, 12
+                            ),
+                        )[1:]
+                    )
+                    assert connection.recv(4) == b"ping"
+                    connection.sendall(marker.encode("ascii"))
+            except (OSError, AssertionError, struct.error) as error:
+                errors.append(type(error).__name__)
+
+        worker = threading.Thread(target=serve, daemon=True)
+        worker.start()
+        try:
+            common = [
+                "run",
+                "--rm",
+                "--read-only",
+                "--network",
+                "none",
+                "--cap-drop",
+                "ALL",
+                "--security-opt",
+                "no-new-privileges",
+                "--user",
+                identity,
+                "--mount",
+                f"type=bind,source={endpoint},target=/operator.sock",
+            ]
+            positive = docker(
+                *common,
+                "--name",
+                names[0],
+                "--group-add",
+                supplementary,
+                fixture_image,
+                "/usr/local/bin/python3",
+                "-c",
+                code,
+            )
+            actual = json.loads(positive.stdout)
+            worker.join(timeout=10)
+            assert not worker.is_alive() and not errors
+            assert peers == [(uid, gid)] and uid != 0
+            assert (actual["uid"], actual["gid"], actual["echo"]) == (uid, gid, marker)
+            assert int(supplementary) in actual["groups"]
+            negative = docker(
+                *common,
+                "--name",
+                names[1],
+                fixture_image,
+                "/usr/local/bin/python3",
+                "-c",
+                code,
+                check=False,
+            )
+            assert negative.returncode == 77
+            assert json.loads(negative.stdout) == {"refused": "permission"}
+            assert peers == [(uid, gid)]
+        finally:
+            for name in names:
+                docker("rm", "--force", name, check=False)
+                assert not docker(
+                    "container",
+                    "ls",
+                    "-a",
+                    "--filter",
+                    "name=^" + name + "$",
+                    "--format",
+                    "{{.ID}}",
+                ).stdout.strip()
 
 
 def test_generated_host_namespace_reaches_loopback_and_rejects_wrong_proxy_peer(

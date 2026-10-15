@@ -208,6 +208,28 @@ Actual finney/testnet feature/hyperparameter differences and current official
 compatibility require Data Collector's dated public receipt. Do not equate chains
 by SDK version or infer deployed rules from upcoming release notes.
 
+## Docker socket supplementary group
+
+At unit generation, the configured Docker endpoint must be a real socket with
+readable metadata and write permission for the configured identity class.
+The renderer adds the observed socket GID as Docker `--group-add` to service,
+sync and weights. The profile's UID and primary GID stay unchanged; no group
+number is a default or copied from another machine. A missing, symlinked,
+non-socket, unreadable or non-writable endpoint refuses before unit output.
+The socket is not connected or changed by rendering. Normal parent aliases
+such as `/var/run` remain usable; the endpoint itself must not be a symlink.
+
+Root's installation comparison must check each ExecStart's unchanged `--user`
+and supplementary group against the actual mounted socket. If its path/GID
+changes, regenerate units before starting; a prior rendering is not runtime
+availability or security acceptance. Do not change socket modes, primary GID,
+UID, privilege flags or state ownership to work around a refused endpoint.
+
+This renderer is baked controller content. A renderer repair requires a new
+matched source bundle and image before cutover. Existing source/image receipts
+remain historical and immutable; do not relabel an older published digest or
+execute repaired host source against that older image's bundle identity.
+
 ## Update and rollback
 
 Prepare and verify a new immutable source/image pair first. Stop the managed
