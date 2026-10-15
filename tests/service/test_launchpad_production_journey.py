@@ -43,11 +43,8 @@ production work (LP-PROD-A to G), each through the doors a miner uses:
 
 Stages 4 and 5 run Carbon's autonomous agent as campaigns launched before
 Graphite replaced it still run it: from their record (`recorded_launch`).
-Stage 8 needs Graphite's miner edition (S1 to S3); it is skipped until that
-is present. Run over S1 to S3's heads of 2026-10-03, 8d passes as it is;
-8a, 8b, 8c and 8e also need the S2/S3 seams the S4 report names (the hunt's
-id, the Reader's prompt, `record_outcome`'s Challenge, and the miner's
-ceiling as a typed stop).
+Stage 8 requires Graphite's merged miner edition. A missing capability fails
+this required CI journey rather than skipping its stages (T01).
 
 No paid call is made. Real here: the MCP SDK client and the stdio servers
 (`standard_cli`), the campaign host (`RunnerAdapter`, the operations table and
@@ -2219,7 +2216,7 @@ class GraphiteLaunchpad(BatteryLaunchpad):
     own parameters (nothing else of the driver is replaced)."""
 
     def __init__(self, tmp_path, monkeypatch, *, miner_key=None):
-        driver = pytest.importorskip("carbon.agent_campaign.graphite.miner.driver")
+        from carbon.agent_campaign.graphite.miner import driver
         from carbon.development_session import product_campaign
 
         assert "graphite" in product_campaign.AGENTS
@@ -2292,12 +2289,10 @@ def graphite_call_reservation():
 
 
 def shared_pack():
-    """The card pack Carbon ships (S2's `pack.load_shared_pack`). Read by
-    module path rather than by an import statement, so the import order this
-    file is checked against is the same with or without S2's package."""
-    return pytest.importorskip(
-        "carbon.agent_campaign.graphite.miner.pack"
-    ).load_shared_pack()
+    """The card pack Carbon ships; absence is a required-capability failure."""
+    from carbon.agent_campaign.graphite.miner.pack import load_shared_pack
+
+    return load_shared_pack()
 
 
 @pytest.fixture
