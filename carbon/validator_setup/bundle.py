@@ -43,6 +43,7 @@ FILES = (
             "SPEC.md",
             "scripts/__init__.py",
             "scripts/dev/__init__.py",
+            ".agent/DECISIONS.md",
             ".agent/INVARIANTS.md",
         }
     )
@@ -161,6 +162,7 @@ def materialize(repository, revision, destination):
     required = {
         "pyproject.toml",
         "uv.lock",
+        ".agent/DECISIONS.md",
         "carbon/validator_setup/__main__.py",
         "scripts/dev/battery_validator_service/__main__.py",
     }
