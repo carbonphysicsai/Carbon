@@ -309,9 +309,11 @@ def tracking_report(record):
             record["reference_identity"] == observer({}), "WRONG_REFERENCE_IDENTITY"
         )
         provenance = record["observation_provenance"]
+        scale = provenance["runtime_voltage_scale"]
         _require(
-            _finite(provenance["runtime_voltage_scale"].get("series_cells"))
-            and provenance["runtime_voltage_scale"]
+            type(scale) is dict
+            and _finite(scale.get("series_cells"))
+            and scale
             == {
                 "status": "OBSERVED_PARAMETER_VALUE",
                 "series_cells": 1.0,
@@ -423,14 +425,14 @@ def tracking_report(record):
                     and max(abs(lo), abs(hi)) <= TRACKING_V,
                     "CV_SAMPLE_TRACKING",
                 )
-                _require(
-                    terminal["external_circuit_class"] == "VoltageFunctionControl"
-                    and terminal["external_circuit_control"] == "algebraic",
-                    "WRONG_CV_MODE",
-                )
+                # Legacy PyBaMM merges the actual CV equation without updating
+                # the original submodels dict. Its class/control is diagnostic
+                # only. The operative mode is the actual algebraic collection
+                # AND exact processed voltage relation, not that stale dict.
                 equations = terminal["current_control_equations"]
                 _require(
                     len(equations) == 1
+                    and equations[0]["collection"] == "model.algebraic"
                     and equations[0]["identity"]
                     == "PROCESSED_VOLTAGE_MINUS_ACTUAL_TARGET"
                     and _finite(equations[0]["signed_residual"])

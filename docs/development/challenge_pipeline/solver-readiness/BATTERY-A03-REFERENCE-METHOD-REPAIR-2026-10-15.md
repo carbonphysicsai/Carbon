@@ -25,6 +25,14 @@ The prospective N1 context is
 matching-protocol data and a separate consumer binding exist. The first-triple
 binding cannot make old TRAIN rows/fits compatible or produce an N1/EVAL release.
 
+The active CV-mode witness is the actual Current-variable equation in
+`model.algebraic`, structurally matching processed Voltage minus the actual
+target, plus its measured residual. The pinned legacy setup merges equations
+without updating the original `model.submodels` circuit object; that object's
+class/control is retained only as a diagnostic. Positive and negative tests
+exercise the actual extraction function with that stale dictionary, an RHS-only
+equation and a different equation whose residual happens to be zero.
+
 The existing `feasibility02 solve --calibration-binding ...` durable collector
 handles both versioned paths. The new schema requires all nine source hashes,
 new observer/method/data identity and exactly the first triple before workers

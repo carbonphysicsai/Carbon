@@ -56,3 +56,16 @@ Missing or invalid evidence is REFERENCE_UNRESOLVED; solver/infra failures
 remain raw typed records, never candidate failures. New source/observer/data
 bindings refuse old rows and cannot authorize N1/EVAL or later cases. Source
 preparation remains distinct from Root's actual tests, dispatch and results.
+
+Independent implementation review at5f948 found two valid defects. First,
+pinned BaseStepImplicit merges CV algebraic equations but leaves the original
+model.submodels dictionary unchanged; that dictionary cannot establish the
+active mode. The repair uses actual Current-variable equation membership in
+model.algebraic plus processed Voltage-minus-target identity and residual.
+Original submodel class/control stays diagnostic only. Extraction-path controls
+exercise a stale ExplicitCurrentControl dictionary with valid CV algebraic
+equation, RHS-only mode, and a wrong equation with zero residual. Second, a
+present-null/list/scalar runtime scale witness now fails a shape check before
+.get, preserving REFERENCE_UNRESOLVED and the final receipt. Direct and actual
+fake-pool collector controls retain all three raw rows for that malformed case.
+No scientific target, threshold, raw maximum or legacy protocol was changed.

@@ -518,6 +518,7 @@ def _voltage_contact_observation(step, descriptor):
                 terminal["current_control_equations"].append(
                     {
                         "variable": variable.name,
+                        "collection": "model.algebraic",
                         "expression": equation[:2048],
                         "expression_truncated": len(equation) > 2048,
                         "identity": identity,

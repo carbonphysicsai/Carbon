@@ -122,6 +122,7 @@ def _phase(name, start):
                 [
                     {
                         "identity": "PROCESSED_VOLTAGE_MINUS_ACTUAL_TARGET",
+                        "collection": "model.algebraic",
                         "signed_residual": 0.0,
                     }
                 ]
@@ -293,9 +294,12 @@ def test_converged_but_wrong_tracking_and_strict_physical_excess_are_refused(
         lambda r: _observation(r)["descriptor"].update(value=4.2),
         lambda r: _observation(r)["descriptor"].update(control_kind="current"),
         lambda r: _observation(r)["descriptor"]["terminations"][0].update(value=0.1),
-        lambda r: _observation(r)["terminal_state"].update(
-            external_circuit_control="differential"
-        ),
+        lambda r: _observation(r)["terminal_state"]["current_control_equations"][
+            0
+        ].update(collection="model.rhs"),
+        lambda r: r["observation_provenance"].update(runtime_voltage_scale=None),
+        lambda r: r["observation_provenance"].update(runtime_voltage_scale=[]),
+        lambda r: r["observation_provenance"].update(runtime_voltage_scale=1),
         lambda r: r["observation_provenance"]["runtime_voltage_scale"].update(
             series_cells=2
         ),
@@ -417,9 +421,9 @@ def test_unbound_solve_refuses_guarded_jobs_before_pool_or_solver(
         worker.solve(jobs, tmp_path / "records", 2)
 
 
-@pytest.mark.parametrize("wrong_hold", [False, True])
+@pytest.mark.parametrize("failure", ["none", "wrong_hold", "null_scale"])
 def test_real_guarded_collector_path_persists_all_rows_and_checks_tracking(
-    tmp_path, monkeypatch, wrong_hold
+    tmp_path, monkeypatch, failure
 ):
     from carbon.battery import truth_env
 
@@ -432,8 +436,10 @@ def test_real_guarded_collector_path_persists_all_rows_and_checks_tracking(
 
         def result(self):
             row = _record(self.job["rung"])
-            if wrong_hold:
+            if failure == "wrong_hold":
                 _set_voltage(row, "cv", [4.199] * 3)
+            elif failure == "null_scale":
+                row["observation_provenance"]["runtime_voltage_scale"] = None
             return row
 
     class Pool:
@@ -476,7 +482,7 @@ def test_real_guarded_collector_path_persists_all_rows_and_checks_tracking(
     )
     assert receipt["records_sha256"] == hashlib.sha256(output.read_bytes()).hexdigest()
     assert receipt["full_calibration_release"] is False
-    if wrong_hold:
+    if failure != "none":
         assert result == 2
         assert receipt["status"] == "REFERENCE_UNRESOLVED"
         assert all(row["whole_programme"]["v_max_v"] < 4.2 for row in rows)
@@ -498,3 +504,120 @@ def test_numeric_failure_cannot_be_compensated_by_tracking():
     )
     assert report["status"] == "REFERENCE_UNRESOLVED"
     assert report["numerical"]["status"] == "NUMERICAL_CALIBRATION_INADEQUATE"
+
+
+@pytest.mark.parametrize(
+    "collection,correct_relation,stale_class,compatible",
+    [
+        ("algebraic", True, "ExplicitCurrentControl", True),
+        ("rhs", True, "ExplicitCurrentControl", False),
+        ("algebraic", False, "ExplicitCurrentControl", False),
+        ("rhs", True, "VoltageFunctionControl", False),
+    ],
+)
+def test_cv_extraction_uses_actual_processed_algebraic_equation_not_stale_submodel(
+    collection, correct_relation, stale_class, compatible
+):
+    class Symbol:
+        def __init__(self, code, function):
+            self.code, self.function = code, function
+
+        def __sub__(self, target):
+            return Symbol(
+                ("subtract", self.code, target), lambda y: self.function(y) - target
+            )
+
+        def __eq__(self, other):
+            return isinstance(other, Symbol) and self.code == other.code
+
+        def __str__(self):
+            return repr(self.code)
+
+        def evaluate(self, *, t, y, inputs):
+            return self.function(y)
+
+    class Unprocessed:
+        def evaluate(self, **_):
+            pytest.fail("must use the pinned public processed-variable accessor")
+
+    class Variable:
+        name = "Current variable [A]"
+
+    class Step(dict):
+        pass
+
+    record = _record()
+    phase = record["per_cycle"][0]["phases"]["cv"]
+    start, end = phase["t_start_s"], phase["t_end_s"]
+    sample = Step(
+        {
+            "Time [s]": SimpleNamespace(entries=[start, (start + end) / 2, end]),
+            "Voltage [V]": SimpleNamespace(entries=[guarded.CONTROL_V] * 3),
+        }
+    )
+    sample.termination = "event: C-rate cut-off [experiment]"
+    sample.closest_event_idx = 0
+    sample.t_event, sample.y_event = [end], [[guarded.CONTROL_V]]
+    voltage = Symbol("processed_voltage", lambda y: float(y[0, 0]))
+    equation = (
+        voltage - guarded.CONTROL_V
+        if correct_relation
+        else Symbol("wrong_zero_equation", lambda y: 0.0)
+    )
+    actual = {Variable(): equation}
+    circuit = type(
+        stale_class,
+        (),
+        {"control": "algebraic" if stale_class == "VoltageFunctionControl" else None},
+    )()
+    model = SimpleNamespace(
+        algebraic=actual if collection == "algebraic" else {},
+        rhs=actual if collection == "rhs" else {},
+        submodels={"external circuit": circuit},
+        variables={"Voltage [V]": Unprocessed(), "Battery voltage [V]": Unprocessed()},
+        get_processed_variable_or_event=lambda _: voltage,
+        events=[
+            SimpleNamespace(
+                name="C-rate cut-off [experiment]",
+                event_type=SimpleNamespace(name="TERMINATION"),
+                expression=Symbol("cutoff_residual", lambda y: 0.0),
+            )
+        ],
+    )
+    sample.all_models, sample.all_inputs = [model], [{}]
+    termination = type(
+        "CRateTermination",
+        (),
+        {
+            "__module__": "pybamm.experiment.step.step_termination",
+            "value": 0.05,
+            "operator": None,
+            "get_event_name": lambda *_: "C-rate cut-off [experiment]",
+        },
+    )()
+    definition = type(
+        "Voltage",
+        (),
+        {
+            "__module__": "pybamm.experiment.step.steps",
+            "value": guarded.CONTROL_V,
+            "description": "synthetic actual CV descriptor",
+            "direction": None,
+            "duration": 86400,
+            "control_kind": SimpleNamespace(value="voltage"),
+            "termination": [termination],
+        },
+    )()
+    observation = worker._voltage_contact_observation(sample, definition)
+    phase["voltage_contact_observation"] = observation
+    terminal = observation["terminal_state"]
+    assert terminal["status"] == "OBSERVED"
+    assert terminal["external_circuit_class"] == stale_class
+    equations = terminal["current_control_equations"]
+    if collection == "algebraic":
+        assert equations[0]["collection"] == "model.algebraic"
+        assert equations[0]["signed_residual"] == 0
+    report = guarded.tracking_report(record)
+    assert (report["status"] == "TRACKING_COMPATIBLE") is compatible
+    if not compatible:
+        assert "CV_EQUATION_TRACKING" in report["reasons"]
