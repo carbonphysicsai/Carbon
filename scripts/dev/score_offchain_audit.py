@@ -33,7 +33,7 @@ PROVEN_SCORE_ROOTS = (
 
 def _path(root: Path, module: str) -> Path | None:
     stem = root.joinpath(*module.split("."))
-    for candidate in (stem.with_suffix(".py"), stem / "__init__.py"):
+    for candidate in (stem / "__init__.py", stem.with_suffix(".py")):
         if candidate.is_file():
             return candidate
     return None
@@ -46,6 +46,18 @@ def _imports(
     dependencies: set[str] = set()
     dynamic: list[str] = []
     context = module if package else module.rpartition(".")[0]
+    # Conservatively retain loader bindings even if another statement shadows
+    # them: this source audit cannot prove which runtime branch assigns a name.
+    loader_names = {"__import__"}
+    loader_names.update(
+        alias.asname or alias.name
+        for node in ast.walk(tree)
+        if isinstance(node, ast.ImportFrom)
+        and node.level == 0
+        and node.module == "importlib"
+        for alias in node.names
+        if alias.name == "import_module"
+    )
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
             dependencies.update(alias.name for alias in node.names)
@@ -66,7 +78,7 @@ def _imports(
             )
         elif isinstance(node, ast.Call) and (
             isinstance(node.func, ast.Name)
-            and node.func.id == "__import__"
+            and node.func.id in loader_names
             or isinstance(node.func, ast.Attribute)
             and node.func.attr == "import_module"
         ):
@@ -87,8 +99,16 @@ def audit(root: Path, roots=SCORE_ROOTS, *, overrides=None) -> dict:
         if module in seen:
             continue
         seen.add(module)
-        if not module.startswith("carbon."):
+        if module != "carbon" and not module.startswith("carbon."):
             continue
+        # Python executes existing package initializers before importing a
+        # descendant, including carbon itself. Namespace ancestors have none.
+        parts = module.split(".")
+        for count in range(1, len(parts)):
+            ancestor = ".".join(parts[:count])
+            if root.joinpath(*parts[:count], "__init__.py").is_file():
+                parent.setdefault(ancestor, module)
+                pending.append(ancestor)
         path = _path(root, module)
         if path is None:
             missing.add(module)
@@ -135,8 +155,10 @@ def audit(root: Path, roots=SCORE_ROOTS, *, overrides=None) -> dict:
         },
         "missing_local_modules": sorted(missing),
         "dynamic_import_calls": sorted(dynamic),
-        "local_modules": sorted(name for name in seen if name.startswith("carbon.")),
+        "local_modules": sorted(
+            name for name in seen if name == "carbon" or name.startswith("carbon.")
+        ),
         "local_modules_seen": len(
-            [name for name in seen if name.startswith("carbon.")]
+            [name for name in seen if name == "carbon" or name.startswith("carbon.")]
         ),
     }

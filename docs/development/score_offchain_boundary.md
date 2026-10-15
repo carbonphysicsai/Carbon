@@ -56,11 +56,19 @@ deployed caller preserves that distinction.
 
 `scripts/dev/score_offchain_audit.py` resolves local imports from named score
 roots and reports forbidden reachability, dynamic import calls and shortest
-source paths. `tests/invariants/test_score_offchain_boundary.py` requires the
+source paths. Traversal includes existing implicit ancestor package
+initializers, including `carbon/__init__.py`; namespace packages without an
+initializer add no source. Calls through named or aliased
+`from importlib import import_module` bindings are conservatively reported as
+dynamic and unproved, even if another statement might shadow the binding.
+`tests/invariants/test_score_offchain_boundary.py` requires the
 three clean kernels to remain chain/reward-free and injects a fake direct
 `carbon.chain` import into `ScoreEngine` source as a negative control. The
 guard catches that injection. The same test preserves the publisher's
-transitive scorer reachability as a visible **unknown**.
+transitive scorer reachability as a visible **unknown**. Additional negative
+controls inject a chain import into each of `carbon` and `carbon.scoring`'s
+initializers and call direct, aliased and attribute-based dynamic loaders.
+These controls do not execute the imported code or access a chain.
 
 Closing the unknown needs a function-level call and data-origin proof at the
 validator and publication callers, or a bounded import-boundary refactor,
