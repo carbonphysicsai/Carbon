@@ -109,6 +109,8 @@ def test_writer_preserves_validated_bytes_and_refuses_replacement(tmp_path):
         {"profile_digest": "not a digest"},
         {"profile_loaded": {"contents": "not public"}},
         {"profile_loaded": "ghp_" + "a" * 36},
+        {"stale_profile_present": {"contents": "not public"}},
+        {"stale_profile_present": "ghp_" + "a" * 36},
         {"result_code": "sk-proj-SECRET_FIXTURE"},
         {"result_code": "A" * 64},
         {"backend": "203.0.113.7"},

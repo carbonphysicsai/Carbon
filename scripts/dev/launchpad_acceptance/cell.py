@@ -264,7 +264,10 @@ def _evidence(value, key="evidence", depth=0, count=None):
                     and type(child) is str
                     and _DIGEST.fullmatch(child)
                 )
-                or (name == "profile_loaded" and type(child) is bool)
+                or (
+                    name in ("profile_loaded", "stale_profile_present")
+                    and type(child) is bool
+                )
             ):
                 raise ValueError("FORBIDDEN_EVIDENCE_FIELD")
             if digest_field and type(child) not in (str, list):
