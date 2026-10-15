@@ -80,6 +80,8 @@ KINDS = {
     # worker. Its manifest is the analysis schema and its identity labels the
     # `d4` pair (`research_image.verify_image`), not the C-03 set.
     "analysis": ("analysis-image.json", ()),
+    # Same closed analysis schema, with the CPU Torch worker as its parent.
+    "torch-analysis": ("torch-analysis-image.json", ()),
     # Labelled as the JAX accelerator worker is: profile and environment.
     "torch-gpu": (
         "torch-gpu-worker-image.json",
@@ -144,7 +146,7 @@ def canonical(value):
     return json.dumps(value, sort_keys=True, separators=(",", ":")) + "\n"
 
 
-ANALYSIS = "analysis"
+ANALYSIS_KINDS = frozenset({"analysis", "torch-analysis"})
 ANALYSIS_SCHEMA = "carbon.autoresearch.analysis-image.v1"
 ANALYSIS_FIELDS = ("image_id", "parent_image", "runtime_digest")
 
@@ -153,7 +155,7 @@ def check_manifest(value, kind="c03"):
     """An exact manifest of `kind`, as its reader loads it: the analysis
     schema (`research_image.load_analysis_image`) for the analysis image, the
     `carbon.c03.worker-image.v1` schema (the validator's) for every worker."""
-    if kind == ANALYSIS:
+    if kind in ANALYSIS_KINDS:
         if (
             type(value) is not dict
             or value.get("schema") != ANALYSIS_SCHEMA
@@ -181,7 +183,7 @@ def check_manifest(value, kind="c03"):
 def identity_labels(manifest, kind="c03"):
     """The identity labels a released image carries, from its manifest: the
     C-03 set the worker doctor checks, or the analysis image's `d4` pair."""
-    if kind == ANALYSIS:
+    if kind in ANALYSIS_KINDS:
         return {
             LABEL + "d4.runtime": manifest["runtime_digest"],
             LABEL + "d4.parent": manifest["parent_image"],

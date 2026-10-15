@@ -137,6 +137,7 @@ def test_every_released_kind_flows_through_every_job():
         "torch",
         "torch-gpu",
         "analysis",
+        "torch-analysis",
     }
     workflow = load()
     outputs = workflow["jobs"]["build"]["outputs"]
@@ -145,7 +146,12 @@ def test_every_released_kind_flows_through_every_job():
         key = kind.replace("-", "_") + "_record"
         assert key in outputs, key
         assert text.count(f"{kind}-worker-image.release.json") >= 2, kind
-    assert text.count("for kind in c03 accelerator torch torch-gpu analysis; do") == 3
+    assert (
+        text.count(
+            "for kind in c03 accelerator torch torch-gpu analysis torch-analysis; do"
+        )
+        == 3
+    )
     script = SCRIPT.read_text()
     assert "torch-gpu:carbon-torch-gpu-worker" in script
     assert "torch-gpu-parent" in script

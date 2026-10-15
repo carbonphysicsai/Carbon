@@ -57,6 +57,7 @@ STATE_DIR="${CARBON_STATE_DIR:-${DEFAULT_STATE_DIR}}"
 PORT="${CARBON_PORT:-8788}"
 PORT_GIVEN=$([[ -n "${CARBON_PORT:-}" ]] && echo 1 || echo 0)
 GPU=0
+PYTORCH=0
 START=1
 UPDATE=0
 SERVICE=0
@@ -84,7 +85,7 @@ UNITS="${XDG_CONFIG_HOME:-${HOME}/.config}/systemd/user"
 
 usage() {
   cat <<'EOF'
-usage: scripts/install_miner.sh [--update] [--gpu] [--ref REF | --release TAG]
+usage: scripts/install_miner.sh [--update] [--gpu] [--pytorch] [--ref REF | --release TAG]
                                 [--no-start] [--service] [--port PORT]
 
   --update     update an installed checkout: move it to REF (default: the
@@ -93,6 +94,10 @@ usage: scripts/install_miner.sh [--update] [--gpu] [--ref REF | --release TAG]
                and rewrite your runner profile, then say what changed
   --gpu        also build the GPU worker (needs an NVIDIA GPU and the
                NVIDIA Container Toolkit)
+  --pytorch    select the CPU Torch worker and its matching analysis image
+               for JAX/PyTorch practice; repeat this option on updates.
+               With --release, the release must publish torch-analysis.
+               --gpu still selects the separate JAX GPU worker
   --ref REF    the Carbon ref to install, a branch, tag or commit in main
                (default: main, or $CARBON_REF)
   --release TAG
@@ -116,6 +121,7 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --update) UPDATE=1 ;;
     --gpu) GPU=1 ;;
+    --pytorch) PYTORCH=1 ;;
     --ref) REF="${2:?--ref needs a value}"; REF_GIVEN=1; shift ;;
     --release) RELEASE="${2:?--release needs a value}"; shift ;;
     --no-start) START=0 ;;
@@ -126,6 +132,15 @@ while [[ $# -gt 0 ]]; do
   esac
   shift
 done
+
+# Keep the existing primary/analysis fields: choose a complete matched pair.
+worker_kind=c03
+analysis_kind=analysis
+if [[ "${PYTORCH}" == 1 ]]; then
+  worker_kind=torch
+  analysis_kind=torch-analysis
+  RELEASE_KINDS=(torch torch-analysis accelerator)
+fi
 
 step() { printf '\n== %s\n' "$*"; }
 fail() { printf 'Carbon install stopped: %s\n' "$*" >&2; exit 2; }
@@ -189,14 +204,15 @@ release_dir="${artifacts}/releases/${RELEASE}"
 #: at COMMIT. The release workflow publishes them as canonical JSON; the pull
 #: (worker_image_release.py) checks every field again before it trusts one.
 fetch_release_records() {
-  local commit="$1" kind file field
+  local commit="$1" kind file field rebuild="${self} --ref ${RELEASE}"
+  [[ "${PYTORCH}" == 0 ]] || rebuild+=" --pytorch"
   mkdir -p "${release_dir}"
   for kind in "${RELEASE_KINDS[@]}"; do
     file="${release_dir}/${kind}-worker-image.release.json"
     rm -f "${file}.part"
     curl --fail --silent --show-error --location --proto '=https' \
       --output "${file}.part" "${RELEASE_URL}/${RELEASE}/${kind}-worker-image.release.json" \
-      || fail "could not download the ${kind} release record of ${RELEASE} from ${RELEASE_URL}/${RELEASE}/ (above): its images are not published there. Nothing was pulled or built. To build the images on this machine instead, run without --release: ${self} --ref ${RELEASE}"
+      || fail "could not download the ${kind} release record of ${RELEASE} from ${RELEASE_URL}/${RELEASE}/ (above): its images are not published there. Nothing was pulled or built. To build the images on this machine instead, run without --release: ${rebuild}"
     for field in "\"kind\":\"${kind}\"" "\"release_tag\":\"${RELEASE}\"" \
       "\"source_commit\":\"${commit}\""; do
       grep -qF -- "${field}" "${file}.part" \
@@ -349,6 +365,12 @@ then run this again. git -C ${repo_root} stash pop brings them back."
   fi
   git merge-base --is-ancestor "${target}" refs/remotes/origin/main \
     || fail "--ref ${REF} (${target:0:12}) is not in Carbon's main, and setup accepts only a revision in main (clean_accepted_checkout_required). Use --ref main, or a commit or tag on main."
+  if [[ "${PYTORCH}" == 1 ]]; then
+    target_installer="$(git show "${target}:scripts/install_miner.sh" 2>/dev/null || true)"
+    pytorch_label="--pytorch"
+    [[ "${target_installer}" == *"${pytorch_label})"* ]] \
+      || fail "the installer at ${target:0:12} has no --pytorch selection. Nothing was changed. Choose a newer revision with a matching Torch analysis image."
+  fi
   if [[ "${UPDATE}" == 1 ]]; then
     # The installer at the target carries on with these options; one from
     # before --update existed would refuse it after the checkout had moved.
@@ -422,7 +444,7 @@ if [[ "${GPU}" == 0 ]] \
   gpu_build=1
 fi
 
-worker_manifest="${artifacts}/c03-worker-image.json"
+worker_manifest="${artifacts}/${worker_kind}-worker-image.json"
 gpu_manifest=""
 gpu_release_record=""
 if [[ -n "${RELEASE}" ]]; then
@@ -430,8 +452,9 @@ if [[ -n "${RELEASE}" ]]; then
   # Fetched again at the revision this installer runs at: a carried-on
   # installer did not run step 2 itself.
   fetch_release_records "$(git rev-parse HEAD)"
-  kinds=(c03 analysis)
+  kinds=("${worker_kind}" "${analysis_kind}")
   rebuild="${self} --ref ${RELEASE}"
+  [[ "${PYTORCH}" == 0 ]] || rebuild+=" --pytorch"
   if [[ "${gpu_build}" == 1 ]]; then
     kinds+=(accelerator)
     rebuild+=" --gpu"
@@ -443,8 +466,8 @@ if [[ -n "${RELEASE}" ]]; then
       || fail "could not pull or verify the released ${kind} image of ${RELEASE} (above). Nothing was built, and nothing was recorded for setup. To build the images on this machine instead, run without --release: ${rebuild}"
   done
   echo "Pulled and verified ${kinds[*]} of ${RELEASE}; nothing was built."
-  worker_manifest="${release_dir}/c03-worker-image.json"
-  analysis="${release_dir}/analysis-worker-image.json"
+  worker_manifest="${release_dir}/${worker_kind}-worker-image.json"
+  analysis="${release_dir}/${analysis_kind}-worker-image.json"
   if [[ "${gpu_build}" == 1 ]]; then
     gpu_manifest="${release_dir}/accelerator-worker-image.json"
   fi
@@ -457,14 +480,18 @@ else
   # image and compute check would no longer match. So a worker whose
   # manifest names this exact source tree, and whose image Docker still
   # holds, is used again; the analysis image built on it then is too.
-  if current_image "${artifacts}/c03-worker-image.json"; then
+  if current_image "${worker_manifest}"; then
     echo "The worker image built here from this exact source tree is still present; using it again."
   else
-    ./scripts/dev/c03_worker_image.sh "${artifacts}/c03-worker-image.json"
+    if [[ "${PYTORCH}" == 1 ]]; then
+      ./scripts/dev/torch_worker_image.sh "${worker_manifest}"
+    else
+      ./scripts/dev/c03_worker_image.sh "${worker_manifest}"
+    fi
   fi
   analysis="$(
     "${python}" -m carbon.development_session.research_image \
-      --parent-manifest "${artifacts}/c03-worker-image.json" \
+      --parent-manifest "${worker_manifest}" \
       --root "${artifacts}/research-images" \
     | "${python}" -c 'import json, sys; print(json.load(sys.stdin)["manifest"])'
   )"
