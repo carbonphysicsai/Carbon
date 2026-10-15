@@ -1,0 +1,31 @@
+{
+ "schema": "carbon.f02-readiness.bands.v1",
+ "decision": "F02-SCIENCE-VALUES-01",
+ "authority": "OWNER-SOLVER-READINESS-SCIENCE-DELEGATION-01",
+ "maturity": "DEVELOPMENT; registered before the local-image runs they judge",
+ "rebuild": {
+  "A1_provenance": "build.sh from sources.lock.json (archive sha256 verified); repo Dockerfile byte-identical; runtime package list identical to the recorded list; build package count identical",
+  "A2_smoke": "all three smoke.sh tests exit 0 with TEST.PASSED = 1",
+  "A3_mms_order_band": [1.7, 2.3],
+  "A3_mms_note": "mms_heat.py, t_end 0.375; finest pair, max and RMS, space and time (owner-accepted band, OWNER-CODE-VERIFICATION-ACCEPT-01)",
+  "A4_controls": {"equilibrium_drift_c": 0.05, "slab_error": "max(0.25 C, 1 % of rise)", "energy_residual_rel": 0.01},
+  "A5_lineage": {"peak_c": 0.01, "crossing_s": 0.01, "control_error_c": 0.01, "energy_residual_abs": 0.0001, "deck_identity": "case.sif and mesh files byte-identical to the earlier solved deck"}
+ },
+ "B1_peak_c": 0.5,
+ "B2_crossing_s": 0.5,
+ "B3_recovery_s": 0.5,
+ "B4_curve_c": 0.5,
+ "B5_energy_residual_rel": 0.01,
+ "B6_steady_balance_rel": 0.001,
+ "B6_steady_solver": "direct (UMFPACK)",
+ "B7_baseline_consistency_c": 0.5,
+ "B8_ceiling_support_c": [90.0, 95.0],
+ "B8_refine_window_c": [89.0, 96.0],
+ "B8_rule": "primary peak in the window -> mesh 2 and dt/2 both required; at ceiling c PASS iff every rung <= c, FAIL iff every rung > c, else UNRESOLVED; a missing or out-of-band rung -> UNRESOLVED",
+ "B9_audit": "one primary per context, random.Random(20261015).choice over the context's sorted case names, both rungs",
+ "B10_family_acceptance": "all 8 triage primaries pass B1-B5 at both rungs and all 4 steady baselines pass B6-B7",
+ "one_rung_only_event": "UNRESOLVED",
+ "cross_tool": {"curve_and_peak_c": 0.5, "crossing_and_recovery_s": 0.5, "energy_imbalance_rel": 0.01, "decision_agreement": "100 % of verdicts resolved outside the 1 C band; identical argmax-J pick; J-regret 0", "one_tool_only_event": "UNRESOLVED"},
+ "t2a": {"thermal_truth_band_c": 0.5, "near_window_c": 1.0, "minimum_each_side": 5, "energy_band_j": 0, "spread_j": 100, "expected_distinct_winners_min": 3},
+ "tie_rule": "max J, then lower resolved peak, then fixed bank order"
+}
