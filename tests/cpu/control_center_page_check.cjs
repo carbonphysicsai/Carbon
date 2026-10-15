@@ -100,6 +100,25 @@ function lastPost(state, url) { return [...state.posted].reverse().find(entry =>
 const scenarios = [];
 const scenario = (name, run) => scenarios.push([name, run]);
 
+scenario("acceptance labels name a revision and never follow availability", async () => {
+  const state = launchable(world());
+  const agent = state.caps.agents.choices.find(row => row.id === "manual");
+  agent.acceptance = {status: "TESTED", result: "PASS", cell: "A3", revision: "a".repeat(40), scope: "NAMED_CELL_REVISION_ONLY", evidence: "fixture-only-no-real-acceptance"};
+  const page = await open(state);
+  await wizardTo(page, "agent");
+  assert.ok(page.text("research-selects").includes("Tested at aaaaaaaaaaaa · A3 only"));
+  assert.ok(page.text("launchpad-strip").includes("Tested at aaaaaaaaaaaa · A3 only"));
+  assert.ok(page.text("launchpad-strip").includes("Untested"));
+  const offered = byValue(page, "#research-selects input", "manual");
+  assert.equal(offered.disabled, false);
+  agent.acceptance = {...agent.acceptance, result: "FAIL"};
+  await refresh(page);
+  assert.ok(!page.text("research-selects").includes("Tested at"));
+  assert.ok(!page.text("launchpad-strip").includes("Tested at"));
+  assert.equal(byValue(page, "#research-selects input", "manual").disabled, false);
+  clean(page);
+});
+
 // ---- 1. Redraw only on change; never under a hand. ----
 scenario("a refresh with nothing new replaces no element of the launch wizard", async () => {
   const state = launchable(world());

@@ -275,7 +275,8 @@ class Controller:
         self.clock = clock
         self.lock = threading.RLock()
         with self.connection() as db:
-            db.executescript("""
+            db.executescript(
+                """
                 CREATE TABLE IF NOT EXISTS runs (
                     id TEXT PRIMARY KEY, request_key TEXT UNIQUE NOT NULL,
                     spec TEXT NOT NULL, state TEXT NOT NULL,
@@ -287,7 +288,8 @@ class Controller:
                     run_id TEXT NOT NULL REFERENCES runs(id),
                     at REAL NOT NULL, kind TEXT NOT NULL
                 );
-            """)
+            """
+            )
 
     @contextlib.contextmanager
     def connection(self):
@@ -767,6 +769,33 @@ class Handler(BaseHTTPRequestHandler):
         """Do not log headers, tokens, payloads or browser-supplied paths."""
 
     def reply(self, status: int, value, content_type="application/json") -> None:
+        # Acceptance is read-only metadata, separate from operation outcomes
+        # and every existing permission gate. Both doors use this projection.
+        if (
+            status == 200
+            and type(value) is dict
+            and (
+                self.path
+                in (
+                    "/api/v1/setup",
+                    "/api/v1/setup/status",
+                    "/api/v1/capabilities",
+                    "/api/v1/control-center/capabilities",
+                )
+                or self.path.startswith(
+                    (
+                        "/api/v1/setup/",
+                        "/api/v1/operations/",
+                        "/api/v1/library/",
+                        "/api/v1/plans/",
+                    )
+                )
+            )
+        ):
+            from scripts.dev.launchpad_acceptance.release_check import project
+
+            name = self.path.rsplit("/", 1)[-1]
+            value = project(value, name)
         body = value if isinstance(value, bytes) else json.dumps(value).encode()
         self.send_response(status)
         self.send_header("Content-Type", content_type)

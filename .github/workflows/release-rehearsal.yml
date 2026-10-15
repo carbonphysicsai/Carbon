@@ -23,6 +23,8 @@ on:
       - "scripts/dev/torch_gpu_worker_image.sh"
       - "scripts/dev/accelerator_worker_image.sh"
       - "carbon/development_session/research_image.py"
+      - "scripts/dev/launchpad_acceptance/**"
+      - "docs/development/evidence/launchpad-acceptance-*/cells/**"
       - ".devcontainer/Dockerfile.reconstruction-worker"
       - ".devcontainer/torch/**"
       - ".devcontainer/accelerators/**"
@@ -78,6 +80,8 @@ jobs:
         env:
           CARBON_UV_GROUPS: "chain archive science-jax mcp"
         run: ./scripts/dev/bootstrap.sh
+      - name: Check truthful Launchpad acceptance labels
+        run: ./.venv/bin/python -m scripts.dev.launchpad_acceptance.release_check
       - name: Start a throwaway local registry
         # registry 2.8.3, pinned by its index digest.
         run: docker run --detach --name rehearsal-registry --publish 127.0.0.1:5000:5000 docker.io/library/registry@sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373

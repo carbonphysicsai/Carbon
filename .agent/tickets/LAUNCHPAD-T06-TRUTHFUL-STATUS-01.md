@@ -40,7 +40,8 @@ Expected manifest: this ticket and one engineering decision;
 `scripts/dev/miner_launchpad/{construction_options.py,controller.py,app.js,research_view.js}`;
 `carbon/miner_mcp/{mcp_operations.py,mcp_setup.py}`;
 `.github/workflows/release-rehearsal.yml`;
-`tests/cpu/test_launchpad_acceptance.py`, plus existing focused test expectations
+`tests/cpu/test_launchpad_acceptance.py`, the existing
+`tests/cpu/control_center_page_check.cjs` scenario runner, plus focused expectations
 only if the explicit additive metadata contract requires them.
 
 ## Validation and completion
