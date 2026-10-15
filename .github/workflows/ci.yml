@@ -207,6 +207,9 @@ jobs:
           CARBON_REQUIRE_TORCH: "1"
           CARBON_REQUIRE_CHAIN_SDK: "1"
           CARBON_REQUIRE_TYPESCRIPT_INTEROP: "1"
+          # T01 / OWNER-LAUNCHPAD-E2E-SUITE-01 R3: shard 4 must execute
+          # the real-browser fixture journey; missing capability fails CI.
+          CARBON_LAUNCHPAD_SMOKE: "1"
           QUALITY_BASE_SHA: ${{ needs.preflight.outputs.base_sha }}
           CARBON_ARTIFACT_DIR: .carbon-artifacts
           # Ubuntu runners provide Docker; make wrapper integration fail instead
