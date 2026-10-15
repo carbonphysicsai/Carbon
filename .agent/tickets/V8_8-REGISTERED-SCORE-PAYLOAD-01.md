@@ -72,3 +72,10 @@ and emits it in both units, with malformed-pin refusal before config access.
 The fresh-process regression checks both generated pins, exercises the actual
 later preflight command using only that binding, and contrasts refusal without
 the pin. No systemd installation/start or local test is performed.
+
+Canonical run 38720661842 at c0f3538fa passed five shards; shard 2 reported
+3828 passed and one new fixture failure before metadata initialization:
+REGULAR_OPERATOR_LOCK_REQUIRED. The fresh CLI fixture omitted the prepared
+service-state directory required by the unchanged runtime lease. The focused
+repair creates that directory with mode 0700; no production blob, lock guard
+or intended metadata/host-unit assertion changes. New-head CI remains required.

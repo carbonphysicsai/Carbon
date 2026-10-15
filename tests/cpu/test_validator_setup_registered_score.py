@@ -225,6 +225,9 @@ def test_fresh_operator_process_binds_registered_preflight_and_host_units(
         tmp_path / "public-fixture-state",
         deployment_changes={"rule": "v3-bank-sched", "score": TERM},
     )
+    # The operator prepares this owner-only directory before acquiring the
+    # runtime lease; direct service.preflight fixtures do not need the lease.
+    svc.load_service(made.service).state_dir.mkdir(mode=0o700)
     env = {
         **os.environ,
         "PYTHONPATH": str(release.root),
