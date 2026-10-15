@@ -69,8 +69,10 @@ def test_exact_tracked_blobs_ignore_worktree_edits_untracked_secrets_and_state(
 def test_materialized_bundle_retains_exposure_decision_lookup(tmp_path, decision):
     root, _ = source(tmp_path)
     record = "OWNER-FIXTURE-INTAKE-EXPOSURE-01"
-    authority = root / ".agent" / (
-        "DECISIONS.md" if decision == "legacy" else "decisions/fixture.md"
+    authority = (
+        root
+        / ".agent"
+        / ("DECISIONS.md" if decision == "legacy" else "decisions/fixture.md")
     )
     if decision == "missing":
         authority.unlink()
@@ -83,7 +85,9 @@ def test_materialized_bundle_retains_exposure_decision_lookup(tmp_path, decision
         )
     command(root, "add", "-A")
     command(root, "commit", "-qm", "public fixture exposure record")
-    built = b.materialize(root, command(root, "rev-parse", "HEAD"), tmp_path / "release")
+    built = b.materialize(
+        root, command(root, "rev-parse", "HEAD"), tmp_path / "release"
+    )
     assert b.verify(built.root, built.digest) == built
     config = {
         "host": "127.0.0.1",
@@ -101,9 +105,7 @@ def test_materialized_bundle_retains_exposure_decision_lookup(tmp_path, decision
         ):
             intake.require_exposure(config, repository=built.root)
     config["exposure"]["record"] = "OWNER-FIXTURE-INTAKE-EXPOSURE-99"
-    with pytest.raises(
-        intake.IntakeUnavailable, match="^intake_exposure_unrecorded$"
-    ):
+    with pytest.raises(intake.IntakeUnavailable, match="^intake_exposure_unrecorded$"):
         intake.require_exposure(config, repository=built.root)
 
 
@@ -190,9 +192,7 @@ def test_historical_bundle_verification_preserves_original_file_set(tmp_path):
     manifest = dict(built.manifest)
     historical_omissions = b.PUBLIC_RUNTIME_MATERIALS | {".agent/DECISIONS.md"}
     manifest["files"] = [
-        row
-        for row in manifest["files"]
-        if row["path"] not in historical_omissions
+        row for row in manifest["files"] if row["path"] not in historical_omissions
     ]
     for path in historical_omissions:
         target = built.root / path
