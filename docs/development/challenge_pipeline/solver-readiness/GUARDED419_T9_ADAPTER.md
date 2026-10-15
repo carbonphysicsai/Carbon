@@ -3,6 +3,9 @@
 DEVELOPMENT source implementation; no actual T9 results or training claim.
 This ticket depends on PR1392 reaching main. Local integration of immutable
 7df15d86 is a development dependency, not a stacked PR or execution grant.
+Root subsequently merged1392 as45fb4b74; this branch integrated that main and
+updated its transferred active helper pins. No actual G0/T9 evidence or paid
+execution follows from satisfying the source dependency.
 
 ## Inputs and authority
 

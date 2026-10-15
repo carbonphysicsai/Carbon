@@ -6,6 +6,13 @@ codex/scorelab-guarded419-t9; one PR, explicitly dependent on PR1392 merge
 and a separately assigned shared admission/tracking extension. Do not copy,
 stack, monkeypatch or relax the first-triple binder to bypass that dependency.
 
+Upstream integration update: Root merged1392 as
+45fb4b7409165445d7e11509ca26588c9ae19b12 and explicitly transferred the T9
+producer-pin delta. This branch normally integrates that actual main, retains
+its fixture repair and updates only the two changed helper pins plus new T9
+helper. Delivery dependency is now satisfied; actual G0/T9 results remain
+unperformed in this lane and runtime prerequisites remain enforced.
+
 ## Working contract
 
 KEEP the existing physics worker and approved guarded419 programme, strict
