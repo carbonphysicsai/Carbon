@@ -1,0 +1,133 @@
+{
+ "schema": "carbon.reference-solvers.pod-plan.v1",
+ "plan_id": "f02-verification-2026-10-15",
+ "kind": "elmer",
+ "authority": "OWNER-RUNPOD-SOLVER-READINESS-01",
+ "purpose": "f02 convergence witnesses (F02-SCIENCE-VALUES-01 B1-B7, B10) on the native pod build, its A3 code verification, and A5 lineage against the local-image results. DEVELOPMENT engineering only; public decks; no qualification, Tier 2 or LIVE.",
+ "recommendation": {
+  "pod": "cpu3c 8 vCPU, 16 GiB",
+  "vcpu": 8,
+  "minutes": 100,
+  "worst_case_minutes": 150,
+  "worst_case_usd": 0.6,
+  "basis": "local-dev-4vcpu-15g-contended cgroup CPU-s: primary 211-353, dt/2 430, 20 W baseline 186-189, steady 1.2-1.4; mesh 2 not measured locally, estimated 2018 CPU-s (1.12 CPU-s/step x 1802 steps). 32 cases, about 5.9 CPU-h local (the pod solved control-equilibrium about 1.25x faster: elmer-smoke-2). On 8 vCPU the bulk step is about 45-55 min (critical path one mesh-2 case, about 30 min), plus the native Elmer build, judge (< 2 min), MMS (est. 10-25 CPU-min) and lineage (< 1 min). Worst case 150 min x $0.24/h = $0.60.",
+  "already_done_elsewhere": "A2 upstream smoke and A4 analytic controls PASS on the native pod build (elmer-smoke-2); this plan does not repeat them"
+ },
+ "steps": [
+  {
+   "name": "f02-verification",
+   "type": "bulk",
+   "judges": "runs only; the next step judges. Deck identity for A5: deck-verification.json must show every selected case matching the pinned manifest (host_regenerated rows break A5 deck identity for that case)",
+   "manifest": "docs/development/evidence/reference-solvers-2026-10-15/pins/f02-verification-decks-manifest.json",
+   "freeze": {
+    "argv": [
+     "python3",
+     "scripts/dev/reference_packages/elmer/f02_readiness.py",
+     "freeze",
+     "convergence",
+     "{decks}"
+    ],
+    "timeout_s": 900
+   },
+   "select": {
+    "families": [
+     "f02"
+    ],
+    "reservations": [
+     "primary",
+     "mesh_and_time",
+     "steady_baselines",
+     "transient_baselines"
+    ]
+   },
+   "families": {
+    "f02": {
+     "case_limits": {
+      "cpus": 1,
+      "memory_gib": 2,
+      "pids": 64,
+      "wall_timeout_s": 5400
+     },
+     "ceilings": {
+      "launches": 40,
+      "cpu_hours": 10
+     }
+    }
+   },
+   "keep": {
+    "patterns": [
+     "*.dat",
+     "*.names",
+     "deck.json",
+     "*.log"
+    ],
+    "max_file_bytes": 2000000
+   },
+   "host_regenerated_files": [
+    "mesh/mesh.nodes",
+    "mesh/mesh.elements",
+    "mesh/mesh.boundary",
+    "mesh/mesh.header"
+   ]
+  },
+  {
+   "name": "f02-verification-judge",
+   "type": "script",
+   "judges": "B1 |d peak| <= 0.5 C, B2 |d first-95C crossing| <= 0.5 s (one-rung-only -> UNRESOLVED), B3 |d recovery| <= 0.5 s, B4 max |d T_topmax(t)| at 0.5 s <= 0.5 C, B5 |energy residual| <= 1 % (every primary and rung), B6 steady Robin balance <= 1e-3, B7 |T_topmax(120 s) of the 20 W transient - steady| <= 0.5 C; B10: PASS iff all 8 primaries pass at both rungs and all 12 baseline checks pass (bands.json, F02-SCIENCE-VALUES-01 B). Exit 0 iff ACCEPTED_FOR_DEVELOPMENT_BANK",
+   "argv": [
+    "python3",
+    "scripts/dev/reference_packages/elmer/f02_readiness.py",
+    "judge",
+    "{work}/../f02-verification/bulk",
+    "{out}/judgement.json",
+    "--manifest",
+    "docs/development/evidence/reference-solvers-2026-10-15/pins/f02-verification-decks-manifest.json"
+   ],
+   "timeout_s": 900,
+   "keep": {
+    "patterns": [
+     "*.json"
+    ],
+    "max_file_bytes": 2000000
+   }
+  },
+  {
+   "name": "f02-lineage",
+   "type": "script",
+   "judges": "A5 lineage, native pod build vs local image sha256:61be1cb7 on byte-identical decks: |d peak| <= 0.01 C, |d first-95C crossing| <= 0.01 s, |d energy residual| <= 1e-4, steady top max <= 0.01 C. PASS -> EQUIVALENT_TO_PRIOR_LINEAGE for the compared cases",
+   "argv": [
+    "python3",
+    "scripts/dev/reference_packages/elmer/f02_readiness.py",
+    "lineage",
+    "docs/development/evidence/reference-packages-01/f02-readiness/local-convergence-judgement.json",
+    "{out}/../f02-verification-judge/judgement.json",
+    "{out}/lineage.json"
+   ],
+   "timeout_s": 300,
+   "keep": {
+    "patterns": [
+     "*.json"
+    ],
+    "max_file_bytes": 2000000
+   }
+  },
+  {
+   "name": "f02-mms",
+   "type": "script",
+   "judges": "A3 code verification of the native pod build: mms_heat.py (t_end 0.375), finest-pair observed order, max and RMS, space and time, each in [1.7, 2.3] (OWNER-CODE-VERIFICATION-ACCEPT-01 band)",
+   "argv": [
+    "bash",
+    "-c",
+    "python3 scripts/dev/reference_packages/elmer/mms_heat.py native {work}/mms {out}/mms-evidence.json && python3 -c \"import json, sys; sys.exit(0 if json.load(open('{out}/mms-evidence.json'))['pass'] else 1)\""
+   ],
+   "timeout_s": 3600,
+   "keep": {
+    "patterns": [
+     "*.log",
+     "*.json"
+    ],
+    "max_file_bytes": 2000000
+   }
+  }
+ ]
+}

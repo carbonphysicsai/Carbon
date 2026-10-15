@@ -562,7 +562,9 @@ def lineage(earlier, later, out):
     a = json.loads(Path(earlier).read_text())["observables"]
     b = json.loads(Path(later).read_text())["observables"]
     rows, ok = [], True
-    for case in sorted(set(a) & set(b)):
+    solved = [c for c in sorted(set(a) & set(b))
+              if "NOT_SOLVED" not in (a[c].get("status"), b[c].get("status"))]  # fmt: skip
+    for case in solved:
         for path, key in LINEAGE_FIELDS:
             va, vb = a[case], b[case]
             for k in path:
@@ -573,8 +575,10 @@ def lineage(earlier, later, out):
             if isinstance(va, (int, float)) and isinstance(vb, (int, float)):
                 diff = abs(va - vb)
                 passed = diff <= band[key]
+            elif va == vb:
+                diff, passed = 0.0, True  # the same flag on both (e.g. NOT_REACHED)
             else:
-                diff, passed = None, False  # present on one build only
+                diff, passed = None, False  # a value or flag on one build only
             ok &= passed
             rows.append({"case": case, "field": ".".join(path), "earlier": va,
                          "later": vb, "abs_diff": diff, "band": band[key], "pass": passed})  # fmt: skip
