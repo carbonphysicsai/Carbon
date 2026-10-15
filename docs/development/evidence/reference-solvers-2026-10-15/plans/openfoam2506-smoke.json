@@ -1,0 +1,24 @@
+{
+ "schema": "carbon.reference-solvers.pod-plan.v1",
+ "plan_id": "openfoam2506-smoke-2026-10-15",
+ "kind": "openfoam2506",
+ "authority": "OWNER-RUNPOD-SOLVER-READINESS-01",
+ "steps": [
+  {
+   "name": "pitzdaily-simplefoam",
+   "type": "script",
+   "argv": [
+    "bash",
+    "-c",
+    "cp -r $FOAM_TUTORIALS/incompressible/simpleFoam/pitzDaily {work}/pitzDaily && cd {work}/pitzDaily && blockMesh > log.blockMesh 2>&1 && simpleFoam > log.simpleFoam 2>&1 && grep -q '^End' log.simpleFoam"
+   ],
+   "timeout_s": 1200,
+   "keep": {
+    "patterns": [
+     "log.*"
+    ],
+    "max_file_bytes": 2000000
+   }
+  }
+ ]
+}

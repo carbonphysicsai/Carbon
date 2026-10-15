@@ -1,0 +1,79 @@
+{
+ "schema": "carbon.reference-solvers.pod-plan.v1",
+ "plan_id": "calculix-smoke-2026-10-15",
+ "kind": "calculix",
+ "authority": "OWNER-RUNPOD-SOLVER-READINESS-01",
+ "steps": [
+  {
+   "name": "ccx-upstream-smoke",
+   "type": "script",
+   "argv": [
+    "python3",
+    "scripts/dev/reference_packages/calculix/smoke.py",
+    "native",
+    "{src}/ccx_2.23.test.tar.bz2",
+    "{work}/smoke"
+   ],
+   "timeout_s": 900,
+   "jsonl_all": {
+    "pass": true
+   },
+   "keep": {
+    "patterns": [
+     "*.log",
+     "*.json",
+     "*.dat",
+     "TEST.PASSED",
+     "*.txt"
+    ],
+    "max_file_bytes": 2000000
+   }
+  },
+  {
+   "name": "f08-triage-controls",
+   "type": "bulk",
+   "manifest": "docs/development/evidence/reference-solvers-2026-10-15/pins/triage-f08-decks-manifest.main-regen.json",
+   "freeze": {
+    "argv": [
+     "python3",
+     "scripts/dev/reference_packages/calculix/f08_freeze.py",
+     "--out",
+     "{decks}"
+    ],
+    "timeout_s": 2400
+   },
+   "select": {
+    "families": [
+     "f08"
+    ],
+    "reservations": [
+     "controls"
+    ]
+   },
+   "families": {
+    "f08": {
+     "case_limits": {
+      "cpus": 1,
+      "memory_gib": 6,
+      "pids": 64,
+      "wall_timeout_s": 1800
+     },
+     "ceilings": {
+      "launches": 2,
+      "cpu_hours": 2
+     }
+    }
+   },
+   "keep": {
+    "patterns": [
+     "*.log",
+     "*.json",
+     "*.dat",
+     "TEST.PASSED",
+     "*.txt"
+    ],
+    "max_file_bytes": 2000000
+   }
+  }
+ ]
+}

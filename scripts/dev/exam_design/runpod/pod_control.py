@@ -122,6 +122,23 @@ CAMPAIGNS = {
         "cpu_flavors": ["cpu5c"],
         "max_cpu_rate": 1.0,
     },
+    # Solver-readiness verification and the reference pilot on CPU pods
+    # (OWNER-RUNPOD-SOLVER-READINESS-01, 2026-10-15): public decks and
+    # recipe panels only; at most 2 pods; Secure, on-demand; each pod
+    # rebuilds its solver natively as the locked Dockerfile does
+    # (SOLVER_KINDS) and runs scripts.dev.reference_packages.pod_phase.
+    # Flavors in the order tried; a dispatch narrows them to those whose
+    # memory fits and that are in stock, cheapest first.
+    "reference-solvers": {
+        "evidence": "docs/development/evidence/reference-solvers-2026-10-15",
+        "active": "reference_solvers_active_pods",
+        "token": None,
+        "max_pods": 2,
+        "name": "carbon-reference-solvers",
+        "cpu_flavors": ["cpu3c", "cpu5c", "cpu3g", "cpu5g", "cpu3m", "cpu5m"],
+        "max_cpu_rate": 1.5,
+        "solver_kinds": ["elmer", "calculix", "openfoam2506"],
+    },
 }
 #: The operator's limits in STATE_DIR, never committed:
 #: ``{"balance_floor_usd": F, "ceilings_usd": {"<campaign>": C, ...}}``.
@@ -158,6 +175,7 @@ PUBLIC_FIELDS = {
         "vcpu",
         "cuda",
         "gpus",
+        "cpu_flavors",
     },
     "created": {
         "pod_id",
@@ -165,6 +183,7 @@ PUBLIC_FIELDS = {
         "created_epoch",
         "deadline_epoch",
         "image",
+        "cpu_flavor",
         "ref",
         "code_manifest_sha256",
     },
@@ -998,6 +1017,17 @@ def print_created(pod_id: str, rate: float, deadline: float, ref: str, files: in
 #: terminated at once, and the budget check charges every pod at this rate.
 MAX_CPU_RATE = 2.0
 CPU_FLAVORS = ["cpu5c", "cpu3c"]  # compute-optimized, newest first
+#: Every RunPod CPU flavor a campaign may name, with its memory per vCPU
+#: (GiB; the provider's instance id is ``<flavor>-<vcpu>-<vcpu * this>``).
+#: A campaign that names none rents CPU_FLAVORS.
+CPU_FLAVOR_GIB_PER_VCPU = {
+    "cpu3c": 2,
+    "cpu5c": 2,
+    "cpu3g": 4,
+    "cpu5g": 4,
+    "cpu3m": 8,
+    "cpu5m": 8,
+}
 
 
 def cpu_policy() -> tuple[list[str], float]:
@@ -1008,7 +1038,7 @@ def cpu_policy() -> tuple[list[str], float]:
     rate = spec.get("max_cpu_rate", MAX_CPU_RATE)
     if (
         not flavors
-        or not set(flavors) <= set(CPU_FLAVORS)
+        or not set(flavors) <= set(CPU_FLAVOR_GIB_PER_VCPU)
         or not 0 < rate <= MAX_CPU_RATE
     ):
         raise SystemExit(f"refusing: campaign {CAMPAIGN} has an invalid CPU policy")
@@ -1085,6 +1115,239 @@ CPU_SHIP = [
     "scripts/dev/challenge_pools/pod_phase.py",
     "scripts/dev/exam_design/runpod/bootstrap.py",
 ]
+
+
+#: The reference-solvers campaign's pods (OWNER-RUNPOD-SOLVER-READINESS-01).
+#: RunPod runs no Docker inside a pod and Carbon has no registry to push a
+#: built image to, so each pod starts from the locked Dockerfile's pinned
+#: base and replays its steps natively: the same dated package snapshot, the
+#: same SHA-256-checked sources, the same configure and make lines. Single
+#: stage: the build packages stay installed at run time. RunPod did not start
+#: a pod named by digest alone, so every image carries its tag beside the
+#: digest (the digest wins).
+DEBIAN_IMAGE = (
+    "debian:trixie-20261005-slim@sha256:"
+    "a29215f6a35e51e22adffa17f89e9d2ef06214e64a2bad10d765c46aea49f11f"
+)
+DEBIAN_SNAPSHOT = "http://snapshot.debian.org/archive/debian/20261001T000000Z"
+#: f17's pinned OpenFOAM (opencfd/openfoam-default:2506, by repo digest).
+OPENFOAM2506_IMAGE = (
+    "opencfd/openfoam-default:2506@sha256:"
+    "1578f5ded8bcbc68aa6a98dedd0693c3990bbab3bd6f1c01984e911c681f4e63"
+)
+UBUNTU_SNAPSHOT = "20260930T000000Z"
+#: The motor reference image's Gmsh (scripts/dev/motor/reference/Dockerfile),
+#: which is the mesh image f08 and f13 decks are frozen with.
+GMSH_URL = "https://gmsh.info/bin/Linux/gmsh-4.15.2-Linux64-sdk.tgz"
+GMSH_SHA256 = "2dbd68d033f99b05789554bf4db6d47f4108dd36b0b36d4a50935df0ceb9e772"
+ELMER_URL = (
+    "https://github.com/ElmerCSC/elmerfem/releases/download/release-26.2.1/"
+    "elmerfem-release-26.2.1.tar.gz"
+)
+ELMER_SHA256 = "729809851d07b0ee8d7aff636bc21745d65b35c94d90027f39958fb759ec1d31"
+CCX_SOURCES = (
+    (
+        "ccx_2.23.src.tar.bz2",
+        "https://www.dhondt.de/ccx_2.23.src.tar.bz2",
+        "9c88385c10fb04f5dc6c4e98027a51bebdd8aee3920e05190d6c1dd08357d6e7",
+    ),
+    (
+        "ccx_2.23.test.tar.bz2",
+        "https://www.dhondt.de/ccx_2.23.test.tar.bz2",
+        "be2259fd9a7b990d0453b30708e1b05f2cd4b6df4a90fa96f0e4abd1ae7beaa0",
+    ),
+    (
+        "spooles.2.2.tgz",
+        "https://www.netlib.org/linalg/spooles/spooles.2.2.tgz",
+        "a84559a0e987a1e423055ef4fdf3035d55b65bbe4bf915efaa1a35bef7f8c5dd",
+    ),
+)
+#: Gmsh SDK's shared-library needs (the motor Dockerfile's list), and the
+#: harness: the bootstrap's python3, curl for the checked downloads, bc for
+#: elmer/smoke.sh.
+GMSH_PACKAGES = "libgl1 libglu1-mesa libxft2 libgomp1 libxcursor1 libxinerama1"
+HARNESS_PACKAGES = "python3 ca-certificates curl bc"
+ENV_DIR = "/tmp/out/environment"
+#: make's job count: the pod's vCPUs (RunPod may show the host's cores).
+MAKE_JOBS = '-j"${CARBON_VCPU:-$(nproc)}"'
+
+
+def _debian_apt(packages: str) -> str:
+    return (
+        "export DEBIAN_FRONTEND=noninteractive"
+        f" && mkdir -p {ENV_DIR} /opt/src /src"
+        " && rm -f /etc/apt/sources.list.d/*"
+        f' && echo "deb [check-valid-until=no] {DEBIAN_SNAPSHOT} trixie main"'
+        " > /etc/apt/sources.list"
+        " && apt-get -o Acquire::Check-Valid-Until=false -o Acquire::Retries=5"
+        " update -qq"
+        f" && apt-get install -y -qq --no-install-recommends {packages}"
+        " && dpkg-query -W -f '${Package}=${Version}\\n' | sort"
+        f" > {ENV_DIR}/packages.txt"
+    )
+
+
+def _download(name: str, url: str, sha256: str) -> str:
+    return (
+        f" && curl -sSfL --retry 5 -o /opt/src/{name} {url}"
+        f" && echo '{sha256}  /opt/src/{name}' | sha256sum -c -"
+    )
+
+
+def _host_record() -> str:
+    return (
+        f" && {{ grep -m1 'model name' /proc/cpuinfo; nproc;"
+        " cat /sys/fs/cgroup/cpu.max /sys/fs/cgroup/memory.max 2>/dev/null;"
+        f" grep MemTotal /proc/meminfo; }} > {ENV_DIR}/host.txt"
+    )
+
+
+GMSH_STEPS = (
+    _download("gmsh-4.15.2-Linux64-sdk.tgz", GMSH_URL, GMSH_SHA256)
+    + " && mkdir -p /opt/gmsh"
+    " && tar xzf /opt/src/gmsh-4.15.2-Linux64-sdk.tgz -C /opt/gmsh --strip-components 1"
+    " && export PATH=/opt/gmsh/bin:$PATH PYTHONPATH=/opt/gmsh/lib"
+    " && gmsh --version"
+    " && python3 -c 'import gmsh; gmsh.initialize();"
+    ' print("gmsh api", gmsh.option.getString("General.Version")); gmsh.finalize()\''
+)
+#: elmer/Dockerfile, natively: cmake options and make line as there.
+ELMER_STEPS = (
+    _download("elmerfem-release-26.2.1.tar.gz", ELMER_URL, ELMER_SHA256)
+    + " && cp /opt/src/elmerfem-release-26.2.1.tar.gz /src/"
+    " && cd /src && tar xzf elmerfem-release-26.2.1.tar.gz && mkdir build && cd build"
+    " && cmake ../elmerfem-release-26.2.1 -DCMAKE_BUILD_TYPE=Release -DWITH_MPI=FALSE"
+    " -DWITH_OpenMP=FALSE -DWITH_ELMERGUI=FALSE -DWITH_ElmerIce=FALSE -DWITH_LUA=FALSE"
+    f" -DCMAKE_INSTALL_PREFIX=/opt/elmer > {ENV_DIR}/elmer-cmake.log 2>&1"
+    f" && make {MAKE_JOBS} install > {ENV_DIR}/elmer-build.log 2>&1"
+    f" && gzip -9 {ENV_DIR}/elmer-build.log"
+    " && cd / && rm -rf /src/build /src/elmerfem-release-26.2.1"
+    " && export PATH=/opt/elmer/bin:$PATH"
+    " LD_LIBRARY_PATH=/opt/elmer/lib/elmersolver:/opt/elmer/lib ELMER_HOME=/opt/elmer"
+    " OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1"
+    " && sha256sum /opt/elmer/bin/* /opt/elmer/lib/elmersolver/*.so"
+    f" > {ENV_DIR}/elmer-binaries.sha256"
+    " && ElmerSolver -v | head -1"
+)
+#: calculix/Dockerfile, natively: its RELAX flags and both sed edits verbatim.
+CCX_RELAX = (
+    "-Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types"
+    " -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch"
+    " -std=gnu17"
+)
+CCX_SPOOLES_SED = (
+    r'sed -i "s|^  CC = /usr/lang-4.0/bin/cc|  CC = gcc|; s|^  CC = .*|  CC = gcc|;'
+    r" s|^  OPTLEVEL = .*|  OPTLEVEL = -O2|; s|^  CFLAGS = .*|  CFLAGS = \$(OPTLEVEL)"
+    r' $RELAX|" Make.inc'
+)
+CCX_MAKEFILE_SED = (
+    r'sed -i "s|^CFLAGS = -Wall -O2|CFLAGS = -O2 $RELAX|; s|^FFLAGS = -Wall -O2 -cpp|'
+    r"FFLAGS = -O2 -cpp -fallow-argument-mismatch|; s|^DIR=.*|DIR=/src/SPOOLES.2.2|;"
+    r" s|-I ../../../SPOOLES.2.2|-I /src/SPOOLES.2.2|;"
+    r' s|\.\./\.\./\.\./ARPACK/libarpack_INTEL.a|-larpack -llapack -lopenblas|" Makefile'
+)
+CCX_STEPS = (
+    "".join(_download(*source) for source in CCX_SOURCES)
+    + " && cp /opt/src/ccx_2.23.src.tar.bz2 /opt/src/spooles.2.2.tgz /src/"
+    f' && export RELAX="{CCX_RELAX}"'
+    " && mkdir -p /src/SPOOLES.2.2 && cd /src/SPOOLES.2.2 && tar xzf ../spooles.2.2.tgz"
+    f" && {CCX_SPOOLES_SED}"
+    f" && make lib > {ENV_DIR}/spooles-build.log 2>&1"
+    " && cd /src && tar xjf ccx_2.23.src.tar.bz2 && cd CalculiX/ccx_2.23/src"
+    f" && {CCX_MAKEFILE_SED}"
+    f" && make {MAKE_JOBS} > {ENV_DIR}/ccx-build.log 2>&1"
+    " && install -D ccx_2.23 /opt/calculix/bin/ccx"
+    " && cd /"
+    " && export PATH=/opt/calculix/bin:$PATH OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1"
+    " CCX_NPROC_EQUATION_SOLVER=1"
+    f" && sha256sum /opt/calculix/bin/ccx > {ENV_DIR}/ccx-binaries.sha256"
+    " && ccx -v"
+)
+_GMSH_NOTE = (
+    "Gmsh 4.15.2 SDK (SHA-256 checked; the carbon-motor-reference mesh image's"
+    " Gmsh, 4.15.2 = 4.15.2)"
+)
+SOLVER_KINDS = {
+    "elmer": {
+        "image": DEBIAN_IMAGE,
+        "setup": _debian_apt(
+            "build-essential gfortran cmake libopenblas-dev liblapack-dev "
+            f"{GMSH_PACKAGES} {HARNESS_PACKAGES}"
+        )
+        + _host_record()
+        + ELMER_STEPS
+        + GMSH_STEPS,
+        "environment": (
+            f"runpod-cpu-pod:{DEBIAN_IMAGE} + scripts/dev/reference_packages/elmer/"
+            "Dockerfile steps natively (Debian snapshot 20261001T000000Z; Elmer"
+            " 26.2.1 source SHA-256 checked; serial; single stage) + "
+            f"{_GMSH_NOTE} + harness {HARNESS_PACKAGES}"
+        ),
+    },
+    "calculix": {
+        "image": DEBIAN_IMAGE,
+        "setup": _debian_apt(
+            "build-essential gfortran perl bzip2 libarpack2-dev libopenblas-dev"
+            f" liblapack-dev {GMSH_PACKAGES} {HARNESS_PACKAGES}"
+        )
+        + _host_record()
+        + CCX_STEPS
+        + GMSH_STEPS,
+        "environment": (
+            f"runpod-cpu-pod:{DEBIAN_IMAGE} + scripts/dev/reference_packages/calculix/"
+            "Dockerfile steps natively (Debian snapshot 20261001T000000Z; ccx 2.23,"
+            " SPOOLES 2.2 source SHA-256 checked; Debian ARPACK; single stage) + "
+            f"{_GMSH_NOTE} + harness {HARNESS_PACKAGES}"
+        ),
+    },
+    "openfoam2506": {
+        "image": OPENFOAM2506_IMAGE,
+        "setup": (
+            f"export DEBIAN_FRONTEND=noninteractive SNAP={UBUNTU_SNAPSHOT}"
+            f" && mkdir -p {ENV_DIR} /opt/src"
+            ' && apt-get update -qq --snapshot "$SNAP"'
+            ' && apt-get install -y -qq --no-install-recommends --snapshot "$SNAP"'
+            " python3"
+            " && dpkg-query -W -f '${Package}=${Version}\\n' | sort"
+            f" > {ENV_DIR}/packages.txt"
+            + _host_record()
+            + " && . /usr/lib/openfoam/openfoam2506/etc/bashrc --"
+            " && export OMP_NUM_THREADS=1"
+            " && simpleFoam -help > /dev/null"
+            " && echo WM_PROJECT_VERSION=$WM_PROJECT_VERSION"
+        ),
+        "environment": (
+            f"runpod-cpu-pod:{OPENFOAM2506_IMAGE} (the pinned image itself, its"
+            f" etc/bashrc sourced) + python3 from Ubuntu snapshot {UBUNTU_SNAPSHOT}"
+        ),
+    },
+    # TODO(f06): a `meep` kind once the f06 track's package recipe
+    # (scripts/dev/reference_packages/meep) settles: its pinned base, snapshot
+    # and checked sources replayed here as for elmer and calculix, plus its
+    # version check in reference_packages.pod_phase.KINDS.
+}
+#: What every reference-solvers pod ships besides its pod plan and the
+#: tracked paths the plan names: the reference packages, their decks' panel
+#: inputs, and the bootstrap.
+SOLVER_SHIP = [
+    "scripts/dev/reference_packages",
+    "scripts/dev/exam_design/runpod/bootstrap.py",
+    "docs/development/challenge_pipeline/round1/reference-route-panels.json",
+]
+SOLVER_PHASE_MODULE = "scripts.dev.reference_packages.pod_phase"
+#: The longest deadline a reference-solvers pod may be given.
+SOLVER_MAX_MINUTES = 600
+#: Path-like strings a public pod plan may not contain: hidden evaluation
+#: material never leaves the owner's host (invariant 1).
+NON_PUBLIC = (
+    "private",
+    "sealed",
+    "hidden",
+    "quiz",
+    "tuning",
+    "stress",
+    "root_commitment",
+)
 
 
 def cpu_start_command(setup: str) -> str:
@@ -1177,6 +1440,12 @@ def cmd_dispatch_cpu(a) -> None:
         balance_usd=acct["clientBalance"],
         committed_before_usd=round(spent, 4),
     )
+    _create_cpu_pod(body, a.kind, token, created_req, deadline, ref, manifest, max_rate)
+
+
+def _create_cpu_pod(body, phase, token, created_req, deadline, ref, manifest, max_rate):
+    """Create the pod, record it at once, start the operator-side deadline
+    watchdog, and delete it at once if its rate is above the guard."""
     code, resp = rest("POST", "/pods", body)
     pod_id = resp.get("id") if isinstance(resp, dict) else None
     if not pod_id:
@@ -1195,12 +1464,13 @@ def cmd_dispatch_cpu(a) -> None:
     ledger(
         "created",
         pod_id=pod_id,
-        phase=a.kind,
+        phase=phase,
         rate=rate_actual,
         created_epoch=created_req,
         deadline_epoch=deadline,
         machine_id=resp.get("machineId"),
         image=resp.get("imageName"),
+        cpu_flavor=resp.get("cpuFlavorId"),
         ref=ref,
         code_manifest_sha256=hashlib.sha256(
             json.dumps(manifest, sort_keys=True).encode()
@@ -1226,8 +1496,208 @@ def cmd_dispatch_cpu(a) -> None:
     if rate_actual > max_rate:
         print("rate above the maximum: terminating immediately")
         _terminate(pod_id)
-        return
+        return None
     print_created(pod_id, rate_actual, deadline, ref, len(manifest))
+    return pod_id
+
+
+def cpu_offers(flavors, vcpu: int, memory_gib: float | None) -> list:
+    """``[(rate, flavor)]`` for every flavor whose memory at ``vcpu`` fits
+    ``memory_gib`` and that RunPod reports in stock with a Secure price,
+    cheapest first (the campaign's order breaks ties). Read-only."""
+    offers = []
+    for index, flavor in enumerate(flavors):
+        gib = CPU_FLAVOR_GIB_PER_VCPU[flavor] * vcpu
+        if memory_gib and gib < memory_gib:
+            continue
+        instance = f"{flavor}-{vcpu}-{gib}"
+        doc = gql(
+            'query { cpuFlavors { id specifics(input:{instanceId:"'
+            + instance
+            + '"}) { stockStatus securePrice } } }'
+        )
+        rows = (doc.get("data") or {}).get("cpuFlavors") or []
+        row = next((r for r in rows if r.get("id") == flavor), rows[0] if rows else {})
+        spec = row.get("specifics") or {}
+        price = spec.get("securePrice")
+        if spec.get("stockStatus") and isinstance(price, (int, float)) and price > 0:
+            offers.append((float(price), index, flavor))
+    return [(price, flavor) for price, _index, flavor in sorted(offers)]
+
+
+def public_pod_plan(doc) -> None:
+    """Refuse a pod plan that names anything but public material."""
+
+    def strings(o):
+        if isinstance(o, dict):
+            for k, v in o.items():
+                yield str(k)
+                yield from strings(v)
+        elif isinstance(o, list):
+            for v in o:
+                yield from strings(v)
+        elif isinstance(o, str):
+            yield o
+
+    for text in strings(doc):
+        low = text.lower()
+        parts = set(
+            low.replace("_", "/").replace("-", "/").replace(".", "/").split("/")
+        )
+        if any(t in low for t in NON_PUBLIC) or "eval" in parts:
+            raise SystemExit(
+                f"refusing: the pod plan names non-public material ({text[:80]!r});"
+                " hidden evaluation material never runs on rented compute"
+            )
+
+
+def plan_paths(doc, tracked: set) -> list:
+    """Every tracked repository path a plan names anywhere in its values."""
+
+    def walk(o):
+        if isinstance(o, dict):
+            for v in o.values():
+                yield from walk(v)
+        elif isinstance(o, list):
+            for v in o:
+                yield from walk(v)
+        elif isinstance(o, str) and "/" in o and not o.startswith("/"):
+            yield o
+
+    return sorted({p for p in walk(doc) if p in tracked})
+
+
+def cmd_dispatch_solver(a) -> None:
+    """One reference-solvers CPU pod: the kind's solver built natively, then
+    the pod plan's steps (pod_phase.py), with a deadline at which the pod
+    deletes itself."""
+    spec = CAMPAIGNS[CAMPAIGN]
+    if a.kind not in spec.get("solver_kinds", ()):
+        raise SystemExit(f"refusing: campaign {CAMPAIGN} runs no {a.kind} pods")
+    kind = SOLVER_KINDS[a.kind]
+    flavors, max_rate = cpu_policy()
+    if a.flavors:
+        wanted = [f.strip() for f in a.flavors.split(",") if f.strip()]
+        if not wanted or not set(wanted) <= set(flavors):
+            raise SystemExit(f"refusing: flavors {wanted} are not all in {flavors}")
+        flavors = wanted
+    minutes = float(a.minutes)
+    if not 0 < minutes <= SOLVER_MAX_MINUTES:
+        raise SystemExit(
+            f"refusing: every pod needs a deadline of 1..{SOLVER_MAX_MINUTES} minutes"
+        )
+    plan_doc = json.loads(Path(os.path.join(REPO, a.pod_plan)).read_text())
+    if plan_doc.get("kind") != a.kind:
+        raise SystemExit(
+            f"refusing: {a.pod_plan} is a {plan_doc.get('kind')!r} plan, not {a.kind}"
+        )
+    public_pod_plan(plan_doc)
+    limits = operator_limits()
+    allowed = allowed_pods(a.max_pods)
+    check_pod_allowance(active_pods(), pods(), allowed)
+    offers = [o for o in cpu_offers(flavors, a.vcpu, a.memory_gib) if o[0] <= max_rate]
+    if not offers:
+        raise SystemExit(
+            f"refusing: no {'/'.join(flavors)} Secure CPU pod with {a.vcpu} vCPU"
+            f"{f' and >= {a.memory_gib:g} GiB' if a.memory_gib else ''} in stock"
+            " under the campaign's rate guard right now"
+        )
+    # RunPod may place any listed flavor: charge the budget the dearest.
+    worst = max(rate for rate, _flavor in offers)
+    order = [flavor for _rate, flavor in offers]
+    acct = account()
+    pod_cost = pod_cost_usd(minutes, worst)
+    spent = committed_spend()
+    cap = campaign_cap()
+    check_budget(spent, pod_cost, cap)
+    if acct["clientBalance"] - pod_cost < limits.balance_floor_usd:
+        raise SystemExit("refusing: balance would fall below the floor")
+    ref = (
+        a.ref
+        or subprocess.run(
+            ["git", "-C", REPO, "rev-parse", "HEAD"],
+            capture_output=True,
+            text=True,
+            check=False,
+        ).stdout.strip()
+    )
+    if not ref_is_pushed(ref):
+        raise SystemExit(
+            f"refusing: {ref} is on no remote branch; push it first (the pod fetches it)"
+        )
+    tracked = set(
+        subprocess.run(
+            ["git", "-C", REPO, "ls-tree", "-r", "--name-only", ref],
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout.split()
+    )
+    if a.pod_plan not in tracked:
+        raise SystemExit(f"refusing: {a.pod_plan} is not tracked at {ref}")
+    paths = ship_paths(ref, [*SOLVER_SHIP, *plan_doc.get("ship", [])])
+    paths = list(dict.fromkeys([*paths, a.pod_plan, *plan_paths(plan_doc, tracked)]))
+    manifest = code_manifest(ref, paths)
+    token = secrets.token_urlsafe(24)
+    created_req = time.time()
+    deadline = created_req + minutes * 60
+    phase_cfg = {
+        "pod_plan": a.pod_plan,
+        "vcpu": a.vcpu,
+        "memory_gib": min(CPU_FLAVOR_GIB_PER_VCPU[f] for f in order) * a.vcpu,
+        "deadline_epoch": deadline,
+        "stop_admitting_epoch": deadline - a.export_minutes * 60,
+    }
+    boot = Path(os.path.join(os.path.dirname(__file__), "bootstrap.py")).read_text()
+    env = {
+        "PROBE_TOKEN": token,
+        # The operator watchdog deletes the pod at its deadline; the
+        # bootstrap deletes it itself a minute later (RunPod's pod key).
+        "PROBE_DEADLINE": str(int(deadline + 60)),
+        "PROBE_CA_GZ_B64": ca_bundle_gz_b64(),
+        "CODE_REF": ref,
+        **manifest_env(manifest),
+        "PHASE_MODULE": SOLVER_PHASE_MODULE,
+        "PHASE": a.kind,
+        "PHASE_CONFIG": json.dumps(phase_cfg),
+        "CARBON_REFERENCE_ENV": kind["environment"],
+        "CARBON_VCPU": str(a.vcpu),
+        "CARBON_BOOT": boot,
+    }
+    body = {
+        "name": f"{spec['name']}-{a.kind}",
+        "imageName": kind["image"],
+        "computeType": "CPU",
+        "cloudType": "SECURE",
+        "interruptible": False,
+        "cpuFlavorIds": order,
+        "cpuFlavorPriority": "custom",
+        "vcpuCount": a.vcpu,
+        "containerDiskInGb": DISK_GB,
+        "volumeInGb": 0,
+        "ports": ["8000/http"],
+        "dockerEntrypoint": ["bash", "-c"],
+        "dockerStartCmd": [cpu_start_command(kind["setup"])],
+        "env": env,
+    }
+    ledger(
+        "dispatch_requested",
+        campaign=CAMPAIGN,
+        max_pods=allowed,
+        phase=a.kind,
+        plan=a.pod_plan,
+        ref=ref,
+        minutes=minutes,
+        vcpu=a.vcpu,
+        cpu_flavors=order,
+        offers=offers,  # rates: private ledger only
+        worst_rate=worst,
+        balance_usd=acct["clientBalance"],
+        committed_before_usd=round(spent, 4),
+    )
+    if SHOW_ACCOUNTING:
+        print(json.dumps({"offers": offers, "worst_case_usd": round(pod_cost, 4)}))
+    _create_cpu_pod(body, a.kind, token, created_req, deadline, ref, manifest, max_rate)
 
 
 def _proxy(path: str, timeout=60, pod: str | None = None):
@@ -1292,19 +1762,66 @@ def fetch_files(listing: list, get, dest: str) -> dict:
     }
 
 
+def _fetch_files(pod: str, dest: str) -> dict:
+    """File by file: a large result never travels as one long response."""
+    code, body = _proxy("/files", pod=pod)
+    if code != 200:
+        raise SystemExit(f"listing failed: {code}")
+    summary = fetch_files(
+        json.loads(body),
+        lambda rel: _proxy("/file/" + urllib.parse.quote(rel), 600, pod),
+        os.path.join(dest, "out"),
+    )
+    ledger("exported", pod_id=pod, dest=os.path.relpath(dest, REPO), **summary)
+    return summary
+
+
+#: Bootstrap stages after which a pod does no more work.
+FINAL_STAGES = ("done", "phase_failed", "bootstrap_failed")
+
+
+def _deadline_of(pod: str) -> float | None:
+    for r in reversed(ledger_rows()):
+        if r["event"] == "created" and r.get("pod_id") == pod:
+            return r["deadline_epoch"]
+    return None
+
+
+def cmd_collect(a) -> None:
+    """Wait (``--wait``) until the pod's phase has finished, fetch its
+    results file by file, then delete the pod: a pod is paid for only while
+    it works. A failed fetch leaves the pod to its deadline (retry collect)."""
+    pod = pick_pod(a.pod)
+    deadline = _deadline_of(pod)
+    stage = None
+    while a.wait:
+        code, body = _proxy("/status", pod=pod)
+        try:
+            stage = json.loads(body).get("stage") if code == 200 else None
+        except ValueError:
+            stage = None
+        if stage in FINAL_STAGES:
+            break
+        if pod not in active_pods():
+            raise SystemExit(f"{pod} ended before it was collected")
+        if deadline is not None and time.time() > deadline + 120:
+            raise SystemExit(f"{pod} passed its deadline unfinished (stage {stage})")
+        time.sleep(a.poll_s)
+    summary = _fetch_files(pod, a.dest)
+    ok = _terminate(pod)
+    print(
+        json.dumps(
+            summary | {"dest": a.dest, "stage": stage, "pod_id": pod, "deleted": ok}
+        )
+    )
+    if not ok:
+        raise SystemExit(f"{pod}: deletion not verified; run terminate --pod {pod}")
+
+
 def cmd_fetch(a) -> None:
     pod = pick_pod(a.pod)
     if not a.tar:
-        # File by file: a large result never travels as one long response.
-        code, body = _proxy("/files", pod=pod)
-        if code != 200:
-            raise SystemExit(f"listing failed: {code}")
-        summary = fetch_files(
-            json.loads(body),
-            lambda rel: _proxy("/file/" + urllib.parse.quote(rel), 600, pod),
-            os.path.join(a.dest, "out"),
-        )
-        ledger("exported", pod_id=pod, dest=os.path.relpath(a.dest, REPO), **summary)
+        summary = _fetch_files(pod, a.dest)
         print(json.dumps(summary | {"dest": a.dest}))
         return
     code, body = _proxy("/out.tar.gz", timeout=600, pod=pod)
@@ -1459,6 +1976,31 @@ def main(argv=None) -> None:
     c.add_argument("--max-workers", type=int)
     c.add_argument("--ref")
     c.add_argument("--max-pods", type=int, default=2)
+    sv = sub.add_parser(
+        "dispatch-solver",
+        help="reference-solvers: one CPU pod that builds KIND natively and runs a pod plan",
+    )
+    sv.add_argument("kind", choices=sorted(SOLVER_KINDS))
+    sv.add_argument(
+        "--pod-plan", required=True, help="a public pod plan tracked at --ref"
+    )
+    sv.add_argument("--minutes", required=True, help="the pod's deadline")
+    sv.add_argument("--vcpu", type=int, required=True)
+    sv.add_argument("--memory-gib", type=float, help="flavors with less are skipped")
+    sv.add_argument("--flavors", help="comma list, narrowing the campaign's flavors")
+    sv.add_argument(
+        "--export-minutes",
+        type=float,
+        default=10,
+        help="no new step or case starts in the last N minutes",
+    )
+    sv.add_argument("--ref")
+    sv.add_argument("--max-pods", type=int, default=2)
+    k = sub.add_parser("collect", help="fetch a pod's results, then delete it")
+    k.add_argument("dest")
+    k.add_argument("--pod")
+    k.add_argument("--wait", action="store_true", help="until its phase finishes")
+    k.add_argument("--poll-s", type=float, default=60)
     p = sub.add_parser("poll")
     p.add_argument("--pod")
     f = sub.add_parser("fetch")
@@ -1483,6 +2025,8 @@ def main(argv=None) -> None:
         "status": cmd_status,
         "dispatch": cmd_dispatch,
         "dispatch-cpu": cmd_dispatch_cpu,
+        "dispatch-solver": cmd_dispatch_solver,
+        "collect": cmd_collect,
         "poll": cmd_poll,
         "fetch": cmd_fetch,
         "terminate": cmd_terminate,

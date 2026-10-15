@@ -62,6 +62,28 @@ Rules (from the triage grant, kept for every bulk run):
 - Output: ``OUT/ledger.jsonl``, ``OUT/cases/<family>/<case>/{work,meta}``,
   ``OUT/summary/<family>.json`` and ``OUT/summary/all.json``.
 
+``--executor native`` (for a host without Docker, such as a RunPod CPU pod
+built as the pinned image is, ``scripts/dev/reference_packages/pod_phase.py``)
+runs each case's command directly, with the same ledger, ceilings, scheduler
+and no-retry rules. What changes:
+
+- the image check becomes an environment check: every family needs
+  ``native {version_command, version_expect}`` and the command's output must
+  contain the expected solver version string before any launch;
+- the case runs in its own session (process group) as ``shell -c command`` in
+  its fresh work dir, pinned to ``ceil(cpus)`` free cores when enough are
+  free, under ``RLIMIT_AS`` = the memory limit (``native.memory_cap``
+  ``rlimit_as``, the default; ``rss`` drops it) and a sampled whole-group RSS
+  watchdog that kills the group past the limit (exit 137, ``oom_suspected``);
+  no network or filesystem isolation and no PID limit (the host is a
+  single-tenant pod);
+- timeout and cancel SIGTERM the group ``grace`` s before the limit and then
+  SIGKILL it; leftovers in the group are killed when the shell exits;
+- cost is ``os.wait4`` rusage (user + system CPU of the shell and every
+  descendant it reaped, ``ru_maxrss`` = the largest single process) plus the
+  sampled group RSS peak; ledger rows carry ``executor: native`` and the
+  environment description instead of cgroup figures.
+
 Engineering tooling only: it runs public decks under enforced caps and records
 cost. It decides nothing about reference adequacy, qualification or spend.
 """
@@ -75,6 +97,7 @@ import heapq
 import json
 import math
 import os
+import platform
 import queue
 import re
 import shutil
@@ -205,6 +228,7 @@ class Family:
     shell: str
     env: dict
     order: tuple
+    native: dict | None = None
     manifest_image: str = ""
     manifest_sha256: str = ""
     cases: list = field(default_factory=list)
@@ -398,6 +422,7 @@ def _family(entry, where, base, machine, problems):
         "shell",
         "env",
         "reservation_order",
+        "native",
     }
     if not _keys(entry, allowed, where, problems):
         return None
@@ -469,6 +494,20 @@ def _family(entry, where, base, machine, problems):
     order = entry.get("reservation_order", list(PRIORITY))
     if not isinstance(order, list) or not all(isinstance(x, str) for x in order):
         problems.append(f"{where}.reservation_order must be a list of strings")
+    native = entry.get("native")
+    if native is not None and _keys(
+        native,
+        {"version_command", "version_expect", "timeout_s", "memory_cap"},
+        f"{where}.native",
+        problems,
+    ):
+        for key in ("version_command", "version_expect"):
+            if not isinstance(native.get(key), str) or not native[key].strip():
+                problems.append(f"{where}.native.{key} is required")
+        if "timeout_s" in native:
+            _num(native, "timeout_s", f"{where}.native", problems)
+        if native.get("memory_cap", "rlimit_as") not in ("rlimit_as", "rss"):
+            problems.append(f"{where}.native.memory_cap must be rlimit_as or rss")
     if len(problems) > n0:
         return None
     return Family(
@@ -484,6 +523,7 @@ def _family(entry, where, base, machine, problems):
         shell=shell,
         env=dict(env),
         order=tuple(order),
+        native=dict(native) if native is not None else None,
     )
 
 
@@ -909,6 +949,319 @@ class DockerCli:
             return proc.wait(timeout=120)
 
 
+# ------------------------------------------------------------------- native
+
+#: Environment a native case never inherits: provider keys, the pod
+#: bootstrap's token and code manifest, any credential-looking name.
+NATIVE_ENV_DROP = re.compile(
+    r"KEY|TOKEN|SECRET|PASSWORD|CREDENTIAL|^CODE_MANIFEST|^PROBE_|^CARBON_BOOT$",
+    re.IGNORECASE,
+)
+#: Sets the address-space limit and CPU affinity, then becomes the case
+#: (``exec``): no ``preexec_fn`` in a threaded runner, and no window in which
+#: the case runs unlimited. argv: memory bytes (0 = none), CPU list ("" = all),
+#: then the command.
+TRAMPOLINE = (
+    "import os,resource,sys\n"
+    "m=int(sys.argv[1])\n"
+    "if m: resource.setrlimit(resource.RLIMIT_AS,(m,m))\n"
+    "resource.setrlimit(resource.RLIMIT_CORE,(0,0))\n"
+    "c=sys.argv[2]\n"
+    "if c: os.sched_setaffinity(0,{int(x) for x in c.split(',')})\n"
+    "os.execvp(sys.argv[3],sys.argv[3:])\n"
+)
+#: Ledger fields a native result adds to its FINISHED row.
+NATIVE_FIELDS = (
+    "executor",
+    "environment",
+    "signal",
+    "rusage_cpu_s",
+    "rusage_user_s",
+    "rusage_sys_s",
+    "rusage_maxrss_bytes",
+    "sampled_group_rss_peak_bytes",
+    "rlimit_as_bytes",
+    "cpu_affinity",
+)
+
+
+def _group_rss(pgid):
+    """Resident bytes of every live process in process group ``pgid``."""
+    total, page = 0, os.sysconf("SC_PAGE_SIZE")
+    try:
+        entries = os.listdir("/proc")
+    except OSError:
+        return 0
+    for name in entries:
+        if not name.isdigit():
+            continue
+        try:
+            stat = Path("/proc", name, "stat").read_text()
+        except OSError:
+            continue
+        fields = stat.rsplit(")", 1)[-1].split()
+        # fields[0] is the state (stat field 3): pgrp is field 5, rss field 24.
+        if len(fields) > 21 and fields[2] == str(pgid):
+            total += int(fields[21]) * page
+    return total
+
+
+def _killpg(pgid, sig):
+    try:
+        os.killpg(pgid, sig)
+    except (ProcessLookupError, PermissionError):
+        pass
+
+
+def run_native(
+    argv,
+    cwd,
+    env,
+    timeout_s,
+    cancel,
+    *,
+    memory_bytes=None,
+    rss_limit_bytes=None,
+    cpus=None,
+    stdout=None,
+    stderr=None,
+    pgid_file=None,
+    poll_s=0.1,
+    sample_s=1.0,
+):
+    """Run ``argv`` natively in its own session and measure it.
+
+    ``memory_bytes`` becomes ``RLIMIT_AS``; ``rss_limit_bytes`` kills the
+    whole group once its sampled resident memory passes it; ``cpus`` is a
+    set of cores to pin to. At ``timeout_s - grace`` (or on ``cancel``) the
+    group gets SIGTERM, then SIGKILL after ``grace``. Returns ``exit``
+    (128 + signal for a signalled shell), ``signal``, ``stop_reason``
+    (exit/timeout/cancel/memory), ``wall_s`` and the rusage figures."""
+    grace = min(STOP_GRACE_S, timeout_s / 4)
+    cores = ",".join(str(c) for c in sorted(cpus)) if cpus else ""
+    full = [
+        sys.executable,
+        "-I",
+        "-S",
+        "-c",
+        TRAMPOLINE,
+        str(int(memory_bytes or 0)),
+        cores,
+        *argv,
+    ]
+    t0 = time.monotonic()
+    proc = subprocess.Popen(
+        full,
+        cwd=cwd,
+        env=env,
+        stdin=subprocess.DEVNULL,
+        stdout=stdout,
+        stderr=stderr,
+        start_new_session=True,
+    )
+    if pgid_file is not None:
+        Path(pgid_file).write_text(f"{proc.pid}\n")
+    reason, term_at, peak, next_sample = "exit", None, 0, 0.0
+    while True:
+        pid, status, usage = os.wait4(proc.pid, os.WNOHANG)
+        if pid:
+            break
+        now = time.monotonic()
+        if now >= next_sample:
+            peak = max(peak, _group_rss(proc.pid))
+            next_sample = now + sample_s
+        if term_at is None:
+            if cancel.is_set():
+                reason = "cancel"
+            elif now - t0 >= timeout_s - grace:
+                reason = "timeout"
+            elif rss_limit_bytes and peak > rss_limit_bytes:
+                reason = "memory"
+                _killpg(proc.pid, signal.SIGKILL)
+            if reason in ("cancel", "timeout"):
+                _killpg(proc.pid, signal.SIGTERM)
+            if reason != "exit":
+                term_at = now
+        elif now - term_at >= grace:
+            _killpg(proc.pid, signal.SIGKILL)
+        time.sleep(poll_s)
+    wall = time.monotonic() - t0
+    proc.returncode = os.waitstatus_to_exitcode(status)
+    _killpg(proc.pid, signal.SIGKILL)  # nothing of the case outlives it
+    sig = -proc.returncode if proc.returncode < 0 else None
+    return {
+        "exit": 128 + sig if sig else proc.returncode,
+        "signal": sig,
+        "stop_reason": reason,
+        "wall_s": wall,
+        "rusage_user_s": round(usage.ru_utime, 3),
+        "rusage_sys_s": round(usage.ru_stime, 3),
+        "rusage_cpu_s": round(usage.ru_utime + usage.ru_stime, 3),
+        "rusage_maxrss_bytes": usage.ru_maxrss * 1024,  # Linux reports KiB
+        "sampled_group_rss_peak_bytes": peak,
+        "rlimit_as_bytes": int(memory_bytes) if memory_bytes else None,
+    }
+
+
+def native_env(extra, home):
+    """This host's environment for a native case: credentials dropped, HOME
+    and the temporary directories inside the case's own scratch dir."""
+    env = {k: v for k, v in os.environ.items() if not NATIVE_ENV_DROP.search(k)}
+    env.update(extra)
+    for key in ("HOME", "TMPDIR", "TMP", "TEMP"):
+        env[key] = str(home)
+    return env
+
+
+class NativeExecutor:
+    """Runs cases directly on this host, as ``DockerCli`` runs them in
+    containers; BulkRun drives either through the same methods."""
+
+    name = "native"
+
+    def __init__(self, out=None, environment=None, cores=None):
+        self.out = Path(out) if out is not None else None
+        self.environment = environment or os.environ.get(
+            "CARBON_REFERENCE_ENV", "native (undescribed)"
+        )
+        self._free = set(cores if cores is not None else os.sched_getaffinity(0))
+        self._lock = threading.Lock()
+        self.checks = {}
+
+    def info(self):
+        return {
+            "executor": "native",
+            "environment": self.environment,
+            "python": platform.python_version(),
+            "affinity_cores": len(self._free),
+            "environment_checks": self.checks,
+        }
+
+    def check_environment(self, fam):
+        """Run the family's version command; its output must contain the
+        expected version string. Returns the check's record."""
+        spec = fam.native or {}
+        record = {
+            "command": spec.get("version_command"),
+            "expect": spec.get("version_expect"),
+        }
+        if not spec:
+            return record | {"ok": False, "why": "family has no native block"}
+        try:
+            done = subprocess.run(
+                [fam.shell, "-c", spec["version_command"]],
+                capture_output=True,
+                text=True,
+                timeout=float(spec.get("timeout_s", 120)),
+                env=native_env(fam.env, "/tmp"),
+                check=False,
+            )
+            text = (done.stdout or "") + (done.stderr or "")
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            return record | {"ok": False, "why": repr(exc)[:300]}
+        line = next(
+            (x.strip() for x in text.splitlines() if spec["version_expect"] in x), None
+        )
+        record |= {
+            "ok": line is not None,
+            "line": line,
+            "exit": done.returncode,
+            "output_sha256": hashlib.sha256(text.encode()).hexdigest(),
+        }
+        self.checks[fam.name] = record
+        return record
+
+    def kill_stale(self, plan_id):
+        """Process groups a crashed runner of this plan left behind."""
+        killed = []
+        if self.out is None:
+            return killed
+        for path in sorted(self.out.glob("cases/*/*/meta/native.pgid")):
+            try:
+                pgid = int(path.read_text().split()[0])
+                environ = Path(f"/proc/{pgid}/environ").read_bytes()
+            except (OSError, ValueError, IndexError):
+                continue
+            if f"CARBON_BULK_PLAN={plan_id}".encode() in environ.split(b"\0"):
+                _killpg(pgid, signal.SIGKILL)
+                killed.append(pgid)
+        return killed
+
+    def _take(self, cpus):
+        need = math.ceil(cpus)
+        with self._lock:
+            if need > len(self._free):
+                return set()  # not enough whole cores free: no pinning
+            cores = set(sorted(self._free)[:need])
+            self._free -= cores
+            return cores
+
+    def _give(self, cores):
+        with self._lock:
+            self._free |= cores
+
+    def run(self, spec, timeout_s, cancel):
+        work, meta = Path(spec["work_dir"]), Path(spec["meta_dir"])
+        scratch = work.parent / "tmp"
+        scratch.mkdir(exist_ok=True)
+        env = native_env(
+            {
+                "CARBON_BULK_PLAN": spec["plan_id"],
+                "CARBON_CMD": spec["command"],
+                "CARBON_SHELL": spec["shell"],
+                "CARBON_CPUS": f"{spec['cpus']:g}",
+                "CARBON_MEMORY_BYTES": str(spec["memory_bytes"]),
+                **spec["env"],
+            },
+            scratch,
+        )
+        cap = spec.get("memory_cap", "rlimit_as")
+        cores = self._take(spec["cpus"])
+        try:
+            with (
+                open(meta / "native.stdout", "wb") as out,
+                open(meta / "native.stderr", "wb") as err,
+            ):
+                result = run_native(
+                    [spec["shell"], "-c", spec["command"]],
+                    work,
+                    env,
+                    timeout_s,
+                    cancel,
+                    memory_bytes=spec["memory_bytes"] if cap == "rlimit_as" else None,
+                    rss_limit_bytes=spec["memory_bytes"],
+                    cpus=cores,
+                    stdout=out,
+                    stderr=err,
+                    pgid_file=meta / "native.pgid",
+                )
+        finally:
+            self._give(cores)
+            shutil.rmtree(scratch, ignore_errors=True)
+        result["executor"] = "native"
+        result["environment"] = self.environment
+        result["cpu_affinity"] = len(cores) or None
+        return result
+
+
+def check_native(plan, executor):
+    """Before any launch: every family's environment reports its expected
+    solver version (the native counterpart of the image check)."""
+    problems, checks = [], {}
+    for fam in plan.families:
+        record = executor.check_environment(fam)
+        checks[fam.name] = record
+        if not record.get("ok"):
+            problems.append(
+                f"{fam.name}: environment check failed: expected "
+                f"{record.get('expect')!r} from {record.get('command')!r}"
+                + (f" ({record['why']})" if record.get("why") else "")
+            )
+    if problems:
+        raise PlanError(problems)
+    return checks
+
+
 def host_info():
     info = {"nproc": os.cpu_count(), "mem_total_bytes": None, "cpu_model": None}
     try:
@@ -1094,6 +1447,7 @@ class BulkRun:
             "pids": fam.limits.pids,
             "work_dir": str(work.resolve()),
             "meta_dir": str(meta.resolve()),
+            "memory_cap": (fam.native or {}).get("memory_cap", "rlimit_as"),
         }
 
     def _fresh_dirs(self, family, name):
@@ -1290,23 +1644,29 @@ class BulkRun:
         book.launches += 1
         book.reserved[case.key] = reserved
         job = Job(case, timeout, clip, reserved, self.clock(), work, meta)
-        self.ledger.append(
-            {
-                "event": "STARTED",
-                "family": case.family,
-                "case": case.name,
-                "reservation": case.reservation,
-                "started_unix": job.started_unix,
-                "timeout_s": round(timeout, 3),
-                "timeout_clip": clip,
-                "cpus": fam.limits.cpus,
-                "memory_limit_bytes": fam.limits.memory_bytes,
-                "pids_limit": fam.limits.pids,
-                "reserved_cpu_s": reserved,
-                "image_ref": fam.image,
-                "image_pin": fam.manifest_image,
+        started = {
+            "event": "STARTED",
+            "family": case.family,
+            "case": case.name,
+            "reservation": case.reservation,
+            "started_unix": job.started_unix,
+            "timeout_s": round(timeout, 3),
+            "timeout_clip": clip,
+            "cpus": fam.limits.cpus,
+            "memory_limit_bytes": fam.limits.memory_bytes,
+            "pids_limit": fam.limits.pids,
+            "reserved_cpu_s": reserved,
+            "image_ref": fam.image,
+            "image_pin": fam.manifest_image,
+        }
+        if getattr(self.docker, "name", None) == "native":
+            # The image is the manifest's pin, never run: name what ran.
+            started |= {
+                "executor": "native",
+                "environment": self.docker.environment,
+                "pids_limit": None,
             }
-        )
+        self.ledger.append(started)
         spec = self._spec(
             fam,
             case.name,
@@ -1347,8 +1707,10 @@ class BulkRun:
         book.booked_cpu_s += allocated
         outcome = classify(result, job.clip)
         peak = result.get("cgroup_memory_peak_bytes")
+        native = {k: result[k] for k in NATIVE_FIELDS if k in result}
         row = self.ledger.append(
             {
+                **native,
                 "event": "FINISHED",
                 "family": case.family,
                 "case": case.name,
@@ -1378,7 +1740,7 @@ class BulkRun:
         )
         self.log(
             f"{case.family}/{case.name}: {outcome} wall={row['wall_s']}s "
-            f"cpu={row['cgroup_cpu_s']}s peak={peak}"
+            f"cpu={_row_cpu_s(row)}s peak={_row_peak_bytes(row)}"
         )
 
     def write_summaries(self):
@@ -1408,9 +1770,29 @@ def classify(result, clip):
         }[clip]
     if result.get("exit") == 0:
         return "COMPLETED"
-    if result.get("exit") == 125:  # docker could not create the container
-        return "FAILED_INFRA"
+    if result.get("exit") == 125 and result.get("executor") != "native":
+        return "FAILED_INFRA"  # docker could not create the container
     return "FAILED"
+
+
+def _row_cpu_s(row):
+    """A case's measured CPU-s: the container cgroup's, else native rusage."""
+    value = row.get("cgroup_cpu_s")
+    return value if value is not None else row.get("rusage_cpu_s")
+
+
+def _row_peak_bytes(row):
+    """A case's measured memory peak: the cgroup's, else the larger of the
+    native rusage peak (largest process) and the sampled group RSS peak."""
+    value = row.get("cgroup_memory_peak_bytes")
+    if value is not None:
+        return value
+    native = [
+        row.get(k)
+        for k in ("rusage_maxrss_bytes", "sampled_group_rss_peak_bytes")
+        if row.get(k) is not None
+    ]
+    return max(native) if native else None
 
 
 def _output_manifest(work, meta):
@@ -1442,8 +1824,11 @@ def family_summary(plan, fam, rows, not_launched):
     reasons = Counter(not_launched.get(c.key, "NOT_LAUNCHED") for c in pending)
     allocated = sum(r.get("allocated_cpu_s") or 0.0 for r in closed + acceptance)
     walls = [r.get("wall_s") for r in closed if r.get("event") == "FINISHED"]
-    peaks = [r.get("cgroup_memory_peak_bytes") for r in closed]
-    cpu = [r.get("cgroup_cpu_s") for r in closed if r.get("cgroup_cpu_s") is not None]
+    peaks = [_row_peak_bytes(r) for r in closed]
+    cpu = [_row_cpu_s(r) for r in closed if _row_cpu_s(r) is not None]
+    executors = sorted(
+        {r.get("executor", "docker") for r in closed if r.get("event") == "FINISHED"}
+    )
     return {
         "schema": SUMMARY_SCHEMA,
         "plan_id": plan.plan_id,
@@ -1466,7 +1851,12 @@ def family_summary(plan, fam, rows, not_launched):
         ),
         "ceilings": {"launches": fam.max_launches, "cpu_hours": fam.cpu_hours},
         "allocated_cpu_hours": round(allocated / 3600, 4),
-        "cgroup_cpu_hours": round(sum(cpu) / 3600, 4),
+        "cgroup_cpu_hours": round(
+            sum(r.get("cgroup_cpu_s") or 0.0 for r in closed) / 3600, 4
+        ),
+        # The cgroup's CPU for Docker rows, os.wait4 rusage for native rows.
+        "measured_cpu_hours": round(sum(cpu) / 3600, 4),
+        "executors": executors,
         "wall_s": {
             "total": round(sum(w for w in walls if w is not None), 1),
             "p50": _percentile(walls, 50),
@@ -1596,7 +1986,9 @@ def simulate(plan, cases, available_s):
 
 
 def dry_run(plan, out, docker, host, check_images=True, now=None):
-    images = preflight(plan, docker, check_images=check_images)
+    native = getattr(docker, "name", None) == "native"
+    images = preflight(plan, docker, check_images=check_images and not native)
+    environment = check_native(plan, docker) if native and check_images else None
     ledger = Ledger(Path(out) / "ledger.jsonl")
     done = {
         (r.get("family"), r.get("case"))
@@ -1634,8 +2026,10 @@ def dry_run(plan, out, docker, host, check_images=True, now=None):
         "plan_digest": plan.digest,
         "usable_cpus": plan.usable_cpus,
         "usable_memory_gib": round(plan.usable_memory_bytes / GIB, 2),
-        "images_checked": check_images,
+        "executor": "native" if native else "docker",
+        "images_checked": check_images and not native,
         "image_identities": images,
+        "environment_checks": environment,
         "families": {
             f.name: {
                 "cases": len(f.cases),
@@ -1668,14 +2062,24 @@ def main(argv=None, docker=None):
     parser.add_argument(
         "--skip-image-check",
         action="store_true",
-        help="dry-run only: planning off-host",
+        help="dry-run only: planning off-host (native: skips the environment check)",
+    )
+    parser.add_argument(
+        "--executor",
+        choices=("docker", "native"),
+        default="docker",
+        help="native: run each case directly on this host (no Docker)",
     )
     parser.add_argument("--accept-plan-change", action="store_true")
     parser.add_argument("--poll-s", type=float, default=2.0)
     args = parser.parse_args(argv)
     if args.skip_image_check and not args.dry_run:
         parser.error("--skip-image-check is for --dry-run only")
-    docker = docker or DockerCli()
+    if docker is None:
+        docker = (
+            NativeExecutor(out=args.out) if args.executor == "native" else DockerCli()
+        )
+    native = getattr(docker, "name", None) == "native"
     try:
         plan = load_plan(args.plan)
         if args.summarize:
@@ -1690,7 +2094,9 @@ def main(argv=None, docker=None):
             )
             print(json.dumps(report, indent=1))
             return 0
-        preflight(plan, docker)
+        preflight(plan, docker, check_images=not native)
+        if native:
+            check_native(plan, docker)
         args.out.mkdir(parents=True, exist_ok=True)
         with open(args.out / ".lock", "w") as lock:
             try:

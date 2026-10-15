@@ -1,0 +1,106 @@
+{
+ "schema": "carbon.reference-solvers.pod-plan.v1",
+ "plan_id": "elmer-smoke-2026-10-15",
+ "kind": "elmer",
+ "authority": "OWNER-RUNPOD-SOLVER-READINESS-01",
+ "steps": [
+  {
+   "name": "elmer-upstream-smoke",
+   "type": "script",
+   "argv": [
+    "bash",
+    "scripts/dev/reference_packages/elmer/smoke.sh",
+    "native",
+    "{src}",
+    "{work}/smoke"
+   ],
+   "timeout_s": 900,
+   "jsonl_all": {
+    "exit": 0,
+    "test_passed": "1"
+   },
+   "keep": {
+    "patterns": [
+     "*.log",
+     "*.json",
+     "*.dat",
+     "TEST.PASSED",
+     "*.txt"
+    ],
+    "max_file_bytes": 2000000
+   }
+  },
+  {
+   "name": "f02-controls",
+   "type": "script",
+   "argv": [
+    "python3",
+    "-m",
+    "scripts.dev.reference_packages.elmer.f02_controls",
+    "run",
+    "--image",
+    "native",
+    "--out",
+    "{work}/controls"
+   ],
+   "timeout_s": 2400,
+   "keep": {
+    "patterns": [
+     "*.log",
+     "*.json",
+     "*.dat",
+     "TEST.PASSED",
+     "*.txt"
+    ],
+    "max_file_bytes": 2000000
+   }
+  },
+  {
+   "name": "f02-triage-controls",
+   "type": "bulk",
+   "manifest": "docs/development/evidence/reference-solvers-2026-10-15/pins/triage-decks-manifest.main-regen.json",
+   "freeze": {
+    "argv": [
+     "python3",
+     "-m",
+     "scripts.dev.reference_packages.elmer.triage_freeze",
+     "--out",
+     "{decks}"
+    ],
+    "timeout_s": 1800
+   },
+   "select": {
+    "families": [
+     "f02"
+    ],
+    "reservations": [
+     "controls"
+    ]
+   },
+   "families": {
+    "f02": {
+     "case_limits": {
+      "cpus": 1,
+      "memory_gib": 2,
+      "pids": 64,
+      "wall_timeout_s": 1800
+     },
+     "ceilings": {
+      "launches": 4,
+      "cpu_hours": 2
+     }
+    }
+   },
+   "keep": {
+    "patterns": [
+     "*.log",
+     "*.json",
+     "*.dat",
+     "TEST.PASSED",
+     "*.txt"
+    ],
+    "max_file_bytes": 2000000
+   }
+  }
+ ]
+}
