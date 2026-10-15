@@ -421,8 +421,8 @@ def _physical_rows(kit, export):
     Preserve the legacy solved-export path. The new schema cannot be passed to
     that parser, which converts numeric truth while collecting physical rows.
     """
-    from carbon.development_comparison import cheap_baselines as cb
     from carbon.design_search import indexed, tasks
+    from carbon.development_comparison import cheap_baselines as cb
 
     if export.get("schema") != CANDIDATE_VIEW:
         return cb._physical_rows(export)

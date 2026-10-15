@@ -9,7 +9,7 @@
     "scripts/dev/evidence_runs/battery_v3.py": "d820eca1278bdda7c5c9918d26c960c53cf1315bb0fc2ecfb161f2dd28592d12",
     "carbon/battery/reference.py": "5d37d4ca9ffaa1b70c39cef5266d2deb5fb5d70c9ace7e5b22b27a2e02cf7791",
     "carbon/battery/truth_env.py": "fee4a30b260d518d8bf4056e3f662f56a2747b4b3b3149c441eacb45c216bd8a",
-    "carbon/development_comparison/carbon_arm.py": "592698f91f6e18cb3b9c10e0de311a4da28c0f547aab4b6e68ae6f45322657ad",
+    "carbon/development_comparison/carbon_arm.py": "0697f60e6def49c4de027d0f62f22db404e052457b56e0748ad18844e2d2f8b5",
     "carbon/development_comparison/battery_v3_kit.py": "8b8c942ebe57b1ed63f92e6dcd056222b5ed913ddc24924e275951632af2a7b4",
     "carbon/development_comparison/cheap_baselines.py": "a3075f089e29d1caca199708846d6ecd6d9180394f72e155746d050b40bd2694",
     "carbon/design_search/tasks.py": "2122194173ddaf39a8164b153cacb45ee2387373b6a8e710ef9b9474b247081a",

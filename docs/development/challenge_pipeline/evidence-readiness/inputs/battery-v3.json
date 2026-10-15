@@ -104,7 +104,7 @@
         },
         {
           "binding": {
-            "sha256": "sha256:592698f91f6e18cb3b9c10e0de311a4da28c0f547aab4b6e68ae6f45322657ad",
+            "sha256": "sha256:0697f60e6def49c4de027d0f62f22db404e052457b56e0748ad18844e2d2f8b5",
             "path": "carbon/development_comparison/carbon_arm.py"
           },
           "text_contains": [
