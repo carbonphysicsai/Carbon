@@ -7,12 +7,14 @@ the historical v2 rule or unlock the final holdout.
 
 ## Registered inputs
 
-The byte-identical `APPROVED_PROPOSAL.md`, `OWNER_APPROVAL.json` and
-`TRAIN_SCALE_RECEIPT.json` preserve the exact approved scope and public
-construction-only statistics. `registration.json` fixes the input mapping,
+The byte-identical `APPROVED_PROPOSAL.md` and `TRAIN_SCALE_RECEIPT.json`, plus
+`OWNER_APPROVAL.json` with only CRLF-to-LF normalization, preserve the exact
+approved scope and public construction-only statistics. The approval's original
+raw digest and normalized-copy digest are both registered; its JSON document
+is unchanged. `registration.json` fixes the input mapping,
 scale literals and algorithm, voltage floor, relevance bands, inactive original
 wrappers and restrictions. The adapter pins its raw SHA256:
-`40f2bb984dc1a9921c05a2c7b0d75fdaab587b0ddec7f5fbd4c4a4c731c836a1`.
+`c3997852ea0ca66e392ebc4849c76f34b7e3d929bf35eb9a5c2f605e114b8c4e`.
 
 The frozen ten-family source remains byte-identical at SHA256
 `157b1db5f091910f5602b15c9f5029f0171e6da7e8b6dbc5ffb5aa5c775bd235`.
@@ -108,6 +110,9 @@ by the registered VALUE objective.
   `admitted_count` and `admitted` describe only this mechanical diagnostic pool;
   they do not establish scientific admission. A selected unsafe/missed member
   makes the top-three VALUE comparison unavailable, with no replacement.
+  With no registered gamer members, the explicit adversarial screen is
+  UNMEASURED with no pass flag; the reused selector's vacuous boolean is not
+  evidence of attack coverage. No gamer cohort is invented.
 - Tau/rho are conditional on the explicitly listed members with complete safe
   VALUE vectors over the common reference-adequate FEASIBLE_EXISTS stratum.
   Every offered member's typed outcome counts remain reported. This is not a

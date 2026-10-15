@@ -24,8 +24,10 @@ report grouped reduction residuals as arithmetic checks, not physical tolerances
 
 ## Plan and expected manifest
 
-1. Preserve approved proposal, owner approval and Root's public TRAIN scale
-   receipt byte-for-byte in `Business/research/score-lab-campaign-01/n1-diagnostic-v1/`.
+1. Preserve approved proposal and Root's public TRAIN scale receipt byte-for-byte
+   in `Business/research/score-lab-campaign-01/n1-diagnostic-v1/`. Preserve the
+   owner approval's exact JSON with LF line endings and both raw-source and
+   normalized-copy digests (the original CRLF fails repository diff hygiene).
    Add a prospective machine registration and API/use-limit README there.
 2. Implement `scripts/dev/score_lab/owner_v3_n1.py`, reusing the pinned source
    loader, authenticated producer bridge, `owner_v3` mask/judge, existing

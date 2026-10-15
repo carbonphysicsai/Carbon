@@ -6,7 +6,9 @@ Root verified proposal SHA256
 `9080e7601070ca7e54082275654d410ecb91fbbcf4602017d1f55e51989038b4`;
 its approval receipt SHA256 is
 `91b83fe90c726de265d5ff58cc295d1ada0b339ae6383b9b42ccda2ad1c18623`.
-Byte-identical public copies accompany the registration under
+The proposal and TRAIN receipt have byte-identical public copies; the approval
+receipt copy changes CRLF to LF only (same parsed JSON), with both original and
+normalized digests retained. These accompany the registration under
 `Business/research/score-lab-campaign-01/n1-diagnostic-v1/`.
 
 The approved change is the full original N1 input binding, algebraically
