@@ -312,9 +312,9 @@ def render(profile):
         )
         if role != "service":
             period = raw[role + "_every_s"]
-            result[
-                name + ".timer"
-            ] = f"[Unit]\nDescription=Carbon {role} operator cadence\n\n[Timer]\nOnActiveSec={period}s\nOnUnitInactiveSec={period}s\nUnit={name}.service\n\n[Install]\nWantedBy=timers.target\n"
+            result[name + ".timer"] = (
+                f"[Unit]\nDescription=Carbon {role} operator cadence\n\n[Timer]\nOnActiveSec={period}s\nOnUnitInactiveSec={period}s\nUnit={name}.service\n\n[Install]\nWantedBy=timers.target\n"
+            )
     return result
 
 

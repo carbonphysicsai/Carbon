@@ -493,7 +493,9 @@ def test_host_account_map_matches_numeric_uid_and_deployment_without_environment
             row + row.replace("fixture-validator", "other"), encoding="utf-8"
         )
     elif bad == "home":
-        passwd.write_text(row.replace("/operator/fixture-home", "relative"), encoding="utf-8")
+        passwd.write_text(
+            row.replace("/operator/fixture-home", "relative"), encoding="utf-8"
+        )
     if bad is None:
         assert ACCOUNT_MAP(deployment, user) == "/operator/fixture-home"
     else:

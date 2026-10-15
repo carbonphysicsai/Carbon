@@ -194,6 +194,7 @@ def test_preview_refuses_unavailable_or_nonprivate_parent_before_issuer(
     tmp_path, monkeypatch, bad
 ):
     from types import SimpleNamespace
+
     from carbon.rewards import testnet_winner_publication as publication
 
     path, _raw = config(tmp_path)
