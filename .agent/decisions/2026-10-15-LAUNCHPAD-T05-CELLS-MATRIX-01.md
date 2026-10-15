@@ -38,3 +38,18 @@ Reversible by changing the new cell/matrix/status modules and focused test.
 Superseding T06 reader semantics requires its owning review, not a fallback
 inside T05. Notification goes directly to Platform2 and Root. OWNER-DX-03
 retires Hub maintenance and mandatory historical receipt ceremony.
+
+For history inventory and selected refusal enrichment, call the same pinned
+T06 structural/duplicate-key/nonfinite validators after load_cells succeeds;
+never implement a second latest-record selector or fallback on reader failure.
+Expose history-inventory failure separately, without claiming no failures exist.
+
+Optional completion-evidence JSON binds the exact source revision. Key-block
+allowances require the selected cell's OWNER_KEY_UNAVAILABLE refusal plus an
+explicit owner-acknowledgment reference/hash. Findings dispositions are explicit
+FIXED or OWNER_ACCEPTED declarations bound to public source hashes and exact
+finding identities; owner acceptance references must be decision records.
+These are recorded declarations and source-integrity checks, not independent
+authentication/qualification of their content. Unknown or stale declarations
+stay unmet. The CLI never emits launch authorization, even if all seven
+recorded predicates are satisfied. No proposed proof rewrites a source record.

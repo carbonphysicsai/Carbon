@@ -1,0 +1,445 @@
+"""Temporary public-fixture evidence only; never writes repository cells."""
+
+from __future__ import annotations
+
+import copy
+import hashlib
+import io
+import json
+from types import SimpleNamespace
+
+import pytest
+
+from scripts.dev.launchpad_acceptance import __main__ as cli
+from scripts.dev.launchpad_acceptance import cell, matrix, release_check, status
+
+REVISION = "a" * 40
+DIGEST = "sha256:" + "b" * 64
+FOLDER = "docs/development/evidence/launchpad-acceptance-2026-01-01"
+
+
+def document(identity="F08", result="PASS", **changes):
+    return {
+        "schema": release_check.SCHEMA,
+        "cell": identity,
+        "result": result,
+        "date": "2026-01-01",
+        "revision": REVISION,
+        "machine_kind": "TEMPORARY_UNIT_FIXTURE",
+        "actor": "UNIT_FIXTURE_ONLY",
+        "within_cap": True,
+        "refusal_code": None,
+        "evidence": {"backend": "CPU", "feedback_digest": DIGEST},
+        **changes,
+    }
+
+
+def raw_record(repository, identity, result="PASS", **changes):
+    value = document(identity, result, **changes)
+    path = (
+        repository
+        / FOLDER
+        / "cells"
+        / (
+            identity
+            + "-"
+            + str(value.get("attempt", 0))
+            + "-"
+            + value["date"]
+            + ".json"
+        )
+    )
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(value), encoding="utf-8", newline="\n")
+    return path
+
+
+def test_covering_design_is_explicit_and_deferred_scope_is_separate():
+    assert len(matrix.MATRIX) == len(matrix.BY_CELL) == 43
+    assert {entry.family for entry in matrix.MATRIX} == {
+        "flow",
+        "compute",
+        "inference",
+        "agent",
+        "level",
+        "security",
+    }
+    assert all(
+        entry.pass_means and entry.required_evidence_fields for entry in matrix.MATRIX
+    )
+    assert matrix.BY_CELL["F15"].base_required
+    assert not matrix.BY_CELL["C10"].base_required
+    assert "Torch" in matrix.BY_CELL["C10"].pass_means
+    assert "driver" in matrix.BY_CELL["C11"].option
+    assert "practice_result_required" in matrix.BY_CELL["F13"].refusal_codes
+    assert all(
+        entry.blocked_reason == matrix.D5 and not entry.base_required
+        for entry in matrix.LEVELS
+    )
+    assert matrix.BY_CELL["LA-F17"].blocked_reason == matrix.D1
+
+
+def test_writer_preserves_validated_bytes_and_refuses_replacement(tmp_path):
+    original = document()
+    checked = cell.validate_cell(original)
+    checked["evidence"]["backend"] = "CHANGED"
+    assert original["evidence"]["backend"] == "CPU"
+    reference = cell.write_cell(original, tmp_path)
+    path = tmp_path / reference
+    before = path.read_bytes()
+    assert release_check.load_cells(tmp_path).status("F08")["revision"] == REVISION
+    with pytest.raises(ValueError, match="ALREADY_RECORDED"):
+        cell.write_cell(
+            document(evidence={"backend": "OTHER", "feedback_digest": DIGEST}), tmp_path
+        )
+    assert path.read_bytes() == before
+    assert not list(path.parent.glob("*.pending"))
+
+
+@pytest.mark.parametrize(
+    "evidence",
+    [
+        {"nested": [{"secret_key": "not public"}]},
+        {"nested": {"remote_address": "203.0.113.7"}},
+        {"nested": [{"balance": 10}]},
+        {"profile": {"anything": True}},
+        {"profile_digest": "not a digest"},
+        {"result_code": "sk-proj-SECRET_FIXTURE"},
+        {"result_code": "A" * 64},
+        {"backend": "203.0.113.7"},
+        {"backend": "ssh://fixture.example"},
+        {"message": "arbitrary provider output with a credential"},
+        {"source": "docs/development/evidence/protected-pool/anything.json"},
+        {
+            "source": "docs/development/evidence/launchpad-acceptance-2026-01-01/../private.json"
+        },
+        {"cost": 0},
+        {"score": 0.5},
+    ],
+)
+def test_nested_nonpublic_evidence_is_refused_before_any_write(tmp_path, evidence):
+    with pytest.raises(ValueError):
+        cell.write_cell(document("F08", "FAIL", evidence=evidence), tmp_path)
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_profile_digest_is_allowed_but_contents_are_not():
+    accepted = document(
+        "F05",
+        evidence={
+            "image_digests": [DIGEST],
+            "profile_digest": DIGEST,
+            "profile_loaded": True,
+        },
+    )
+    assert cell.validate_cell(accepted) == accepted
+    accepted["evidence"]["nested"] = {"profile_contents": {"anything": True}}
+    with pytest.raises(ValueError):
+        cell.validate_cell(accepted)
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {"revision": None},
+        {"revision": "short"},
+        {"within_cap": False},
+        {"within_cap": "true"},
+        {"cell": "UNKNOWN"},
+        {"cell": "L1"},
+        {"cell": "LA-F17"},
+        {"date": "2026-01-01/../other"},
+        {"attempt": True},
+        {"extra": True},
+        {"refusal_code": {"anything": True}},
+        {"evidence": {"backend": "CPU"}},
+    ],
+)
+def test_invalid_or_deferred_pass_is_not_constructible(changes):
+    with pytest.raises(ValueError):
+        cell.validate_cell(document(**changes))
+
+
+def test_duplicate_and_nonfinite_json_are_not_accepted():
+    for raw in ('{"cell":"F08","cell":"F01"}', '{"evidence":NaN}'):
+        with pytest.raises(ValueError):
+            cell.decode_cell(raw)
+
+
+def test_partial_publication_leaves_no_json_or_pending_file(tmp_path, monkeypatch):
+    def fail(*_args, **_kwargs):
+        raise OSError("synthetic publication failure")
+
+    monkeypatch.setattr(cell.os, "link", fail)
+    with pytest.raises(OSError):
+        cell.write_cell(document(), tmp_path)
+    assert not list(tmp_path.rglob("*.json"))
+    assert not list(tmp_path.rglob("*.pending"))
+
+
+def test_symlink_directory_never_reaches_its_target(tmp_path):
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    try:
+        (tmp_path / "docs").symlink_to(outside, target_is_directory=True)
+    except OSError:
+        pytest.skip("symlink capability is not available on this host")
+    with pytest.raises(ValueError, match="UNSAFE_CELL_DIRECTORY"):
+        cell.write_cell(document(), tmp_path)
+    assert list(outside.iterdir()) == []
+
+
+def test_history_reuses_shared_validator_and_keeps_original_failure(tmp_path):
+    raw_record(tmp_path, "F01", "FAIL", revision=None, attempt=1)
+    raw_record(tmp_path, "F01", "PASS", attempt=2)
+    raw_record(tmp_path, "F03")
+    raw_record(tmp_path, "F07", "FAIL", evidence={"secret": "NEVER_DISCLOSE"})
+    report = status.scoreboard(tmp_path)
+    rows = {row["cell"]: row for row in report["cells"]}
+    assert (rows["F01"]["result"], rows["F03"]["result"], rows["F07"]["result"]) == (
+        "PASS",
+        "PASS",
+        "FAIL",
+    )
+    assert rows["F01"]["revision"] == REVISION
+    assert len(report["history"]) == 4 and report["history_usable"]
+    assert any(
+        row["cell"] == "F01" and row["result"] == "FAIL" and row["revision"] is None
+        for row in report["history"]
+    )
+    assert "NEVER_DISCLOSE" not in json.dumps(report)
+    assert report["recorded_predicate"] == "UNMET"
+    assert not report["qualification"] and not report["launch_authorized"]
+
+
+def test_conflicting_history_and_forged_level_pass_do_not_become_ready(tmp_path):
+    raw_record(tmp_path, "L1")
+    raw_record(tmp_path, "F08")
+    other = tmp_path / FOLDER / "cells" / "F08-conflict.json"
+    other.write_text(
+        json.dumps(document("F08", "FAIL")), encoding="utf-8", newline="\n"
+    )
+    report = status.scoreboard(tmp_path)
+    assert not report["evidence_usable"] and not report["history_usable"]
+    assert report["recorded_predicate"] == "UNMET"
+    level = next(row for row in report["cells"] if row["cell"] == "L1")
+    assert level["result"] == "BLOCKED" and level["status"] == "UNTESTED"
+
+
+@pytest.fixture
+def complete_recorded_fixture(tmp_path):
+    for definition in matrix.MATRIX:
+        if definition.family not in ("level", "security"):
+            raw_record(tmp_path, definition.cell)
+    register = tmp_path / FOLDER / "FINDINGS.md"
+    register.write_text(
+        "## LA-F1: fixture finding\nFixture disposition only.\n## LA-F17: separate security path\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+    proof = {
+        "reference": register.relative_to(tmp_path).as_posix(),
+        "sha256": hashlib.sha256(register.read_bytes()).hexdigest(),
+    }
+    evidence = {
+        "schema": "carbon.launchpad.completion-evidence.v1",
+        "source_revision": REVISION,
+        "findings": {"LA-F1": {"disposition": "FIXED", "proof": proof}},
+    }
+    clients = [
+        {
+            "id": name,
+            "verified": "UNIT_FIXTURE_ONLY",
+            "snippets": [{"text": "fixture command"}],
+            "unverified": [],
+        }
+        for name in ("claude-code", "codex", "hermes")
+    ]
+    cells = release_check.load_cells(tmp_path)
+    surfaces = {}
+    for surface, name in release_check._SURFACES.items():
+        payload = release_check.project({"clients": clients}, name, cells=cells)
+        surfaces[surface] = (
+            {
+                "payload": payload,
+                "acceptance_status": payload["acceptance_status"],
+                "acceptance_choices": payload["acceptance_choices"],
+            }
+            if surface.startswith("MCP:")
+            else payload
+        )
+    capture = {
+        "schema": "carbon.launchpad.door-label-capture.v1",
+        "source_revision": REVISION,
+        "surfaces": surfaces,
+    }
+    return tmp_path, capture, evidence
+
+
+def test_seven_recorded_predicates_have_basis_without_granting_authority(
+    complete_recorded_fixture,
+):
+    root, capture, evidence = complete_recorded_fixture
+    report = status.scoreboard(
+        root, revision=REVISION, door_capture=capture, completion_evidence=evidence
+    )
+    assert len(report["completion"]) == 7
+    assert all(
+        row["result"] == "PASS" and row["examined"] and row["owner"]
+        for row in report["completion"]
+    )
+    assert report["recorded_predicate"] == "PASS"
+    assert not report["qualification"] and not report["launch_authorized"]
+    assert (
+        next(row for row in report["cells"] if row["cell"] == "LA-F17")["result"]
+        == "BLOCKED"
+    )
+
+
+@pytest.mark.parametrize(
+    ("identity", "line"), [("F15", 1), ("C3", 2), ("I2", 3), ("A4", 4)]
+)
+def test_each_required_cell_predicate_has_a_failure_control(
+    complete_recorded_fixture, identity, line
+):
+    root, capture, evidence = complete_recorded_fixture
+    raw_record(root, identity, "FAIL", date="2026-01-02")
+    report = status.scoreboard(
+        root, revision=REVISION, door_capture=capture, completion_evidence=evidence
+    )
+    assert report["completion"][line - 1]["result"] == "UNMET"
+    assert identity in report["completion"][line - 1]["missing"]
+    assert report["recorded_predicate"] == "UNMET"
+
+
+def test_snippets_dispositions_and_revision_capture_cannot_be_success_flags(
+    complete_recorded_fixture,
+):
+    root, capture, evidence = complete_recorded_fixture
+    changed = copy.deepcopy(capture)
+    changed["surfaces"]["HTTP:/api/v1/setup"]["clients"][0]["unverified"] = [
+        "UNVERIFIED: fixture long call"
+    ]
+    report = status.scoreboard(
+        root, revision=REVISION, door_capture=changed, completion_evidence=evidence
+    )
+    assert report["completion"][4]["result"] == "UNMET"
+    assert (
+        status.scoreboard(
+            root,
+            revision=REVISION,
+            door_capture=capture,
+            completion_evidence={"passed": True},
+        )["completion"][5]["result"]
+        == "UNKNOWN"
+    )
+    changed = copy.deepcopy(evidence)
+    changed["findings"]["LA-F1"]["proof"]["sha256"] = "0" * 64
+    assert (
+        status.scoreboard(
+            root, revision=REVISION, door_capture=capture, completion_evidence=changed
+        )["completion"][5]["result"]
+        == "UNMET"
+    )
+    changed = copy.deepcopy(capture)
+    changed["source_revision"] = "c" * 40
+    assert (
+        status.scoreboard(
+            root, revision=REVISION, door_capture=changed, completion_evidence=evidence
+        )["completion"][6]["result"]
+        == "UNMET"
+    )
+
+
+def test_key_block_requires_actual_named_owner_acknowledgment(
+    complete_recorded_fixture,
+):
+    root, _capture, evidence = complete_recorded_fixture
+    raw_record(
+        root, "I3", "BLOCKED", date="2026-01-02", refusal_code="OWNER_KEY_UNAVAILABLE"
+    )
+    ack = root / ".agent/decisions/OWNER-FIXTURE.md"
+    ack.parent.mkdir(parents=True)
+    ack.write_text(
+        "UNIT FIXTURE ONLY: I3 owner key unavailable acknowledgment.\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+    evidence["key_blocks"] = {
+        "I3": {
+            "reason": "OWNER_KEY_UNAVAILABLE",
+            "owner_acknowledgment": {
+                "reference": ".agent/decisions/OWNER-FIXTURE.md",
+                "sha256": hashlib.sha256(ack.read_bytes()).hexdigest(),
+            },
+        }
+    }
+    report = status.scoreboard(root, revision=REVISION, completion_evidence=evidence)
+    assert report["completion"][2]["result"] == "PASS"
+    ack.write_text(
+        "UNIT FIXTURE ONLY: I30 is a different identity.\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+    evidence["key_blocks"]["I3"]["owner_acknowledgment"]["sha256"] = hashlib.sha256(
+        ack.read_bytes()
+    ).hexdigest()
+    assert (
+        status.scoreboard(root, revision=REVISION, completion_evidence=evidence)[
+            "completion"
+        ][2]["result"]
+        == "UNMET"
+    )
+
+
+def test_cli_prints_full_matrix_and_seven_unmet_lines(tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr(
+        cli, "scoreboard", lambda **kwargs: status.scoreboard(tmp_path, **kwargs)
+    )
+    assert cli.main(["status"]) == 0
+    printed = capsys.readouterr().out
+    assert all(
+        name in printed
+        for name in ("F15", "C10", "C11", "LA-F17", "Plan 3.6", "qualification=false")
+    )
+    assert all(f"  {number}." in printed for number in range(1, 8))
+    assert cli.main(["status", "--json"]) == 0
+    report = json.loads(capsys.readouterr().out)
+    assert len(report["cells"]) == 43 and report["recorded_predicate"] == "UNMET"
+    assert cli.main(["status", "--revision", "sk-proj-DO_NOT_ECHO"]) == 2
+    assert "DO_NOT_ECHO" not in capsys.readouterr().err
+
+
+def test_public_inputs_cannot_follow_arbitrary_or_protected_paths(tmp_path):
+    for path in (
+        "../outside.json",
+        "C:/fixture/private.json",
+        "docs/development/evidence/protected-pool/data.json",
+    ):
+        with pytest.raises(ValueError):
+            status.read_public_json(path, tmp_path)
+
+
+def test_stdin_commands_validate_before_writing_and_never_echo_rejection(
+    tmp_path, monkeypatch, capsys
+):
+    def stdin(value):
+        monkeypatch.setattr(
+            cli.sys,
+            "stdin",
+            SimpleNamespace(buffer=io.BytesIO(json.dumps(value).encode())),
+        )
+
+    stdin(document())
+    assert cli.main(["validate"]) == 0
+    assert json.loads(capsys.readouterr().out)["status"] == "VALID_PUBLIC_CELL"
+    monkeypatch.setattr(
+        cli, "write_cell", lambda value: cell.write_cell(value, tmp_path)
+    )
+    stdin(document())
+    assert cli.main(["write"]) == 0
+    assert json.loads(capsys.readouterr().out)["status"] == "RECORDED"
+    stdin(document(evidence={"secret_key": "NEVER_ECHO_THIS_SECRET"}))
+    assert cli.main(["write"]) == 2
+    output = capsys.readouterr()
+    assert not output.out and "NEVER_ECHO_THIS_SECRET" not in output.err
