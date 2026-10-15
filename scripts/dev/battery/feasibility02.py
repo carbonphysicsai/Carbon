@@ -254,6 +254,20 @@ def _observation_source_metadata(sim):
         ("base_solver", getattr(pybamm, "BaseSolver", None)),
         ("solution", getattr(pybamm, "Solution", None)),
         ("experiment", getattr(pybamm, "Experiment", None)),
+        (
+            "voltage_termination",
+            getattr(getattr(pybamm, "step", None), "VoltageTermination", None),
+        ),
+        ("voltage_step", getattr(getattr(pybamm, "step", None), "Voltage", None)),
+        ("base_step", getattr(getattr(pybamm, "step", None), "BaseStep", None)),
+        (
+            "voltage_control",
+            getattr(
+                getattr(pybamm, "external_circuit", None),
+                "VoltageFunctionControl",
+                None,
+            ),
+        ),
     ):
         entry = {
             "module": getattr(obj, "__module__", None),
@@ -286,6 +300,215 @@ def _observation_source_metadata(sim):
             "basis": "ACTUAL_RECORDED_POINTS_LIBRARY_DEFAULTS_NOT_A_FIXED_PERIOD_CLAIM",
         },
     }
+
+
+def _finite_scalar(value):
+    import numpy as np
+
+    values = np.asarray(value, dtype=float).reshape(-1)
+    if len(values) != 1 or not math.isfinite(float(values[0])):
+        raise ValueError("one finite scalar required")
+    return float(values[0])
+
+
+def _voltage_extrema(times, values, *, start_index=0):
+    """Summarize actual points in order; do not interpolate or certify a bound."""
+    points = [
+        {"index": k, "time_s": t, "value_v": v}
+        for k, (t, v) in enumerate(zip(times, values, strict=True), start=start_index)
+    ]
+    if not points:
+        return None
+    return {
+        "count": len(points),
+        "minimum": min(points, key=lambda p: p["value_v"]),
+        "maximum": max(points, key=lambda p: p["value_v"]),
+    }
+
+
+def _voltage_contact_observation(step, descriptor):
+    """Add evidence only. Missing evidence cannot change legacy solve/reduction.
+
+    Per-step `t_event` is also populated on final-time returns by pinned IDAKLU;
+    its presence alone never means a voltage event fired. `closest_event_idx`
+    is a library nearest-residual guess, not an independent root certificate.
+    """
+    import numpy as np
+
+    result = {
+        "schema": "carbon.battery.voltage-contact-observation.v1",
+        "status": "UNAVAILABLE",
+        "termination": getattr(step, "termination", None),
+        "closest_event_idx": getattr(step, "closest_event_idx", None),
+        "descriptor": None,
+        "samples": None,
+        "cv_voltage_minus_target": None,
+        "terminal_state": {"status": "UNAVAILABLE"},
+        "continuous_voltage_bound": "NOT_ESTABLISHED",
+        "acceptance_effect": "NONE_DIAGNOSTIC_ONLY",
+    }
+    try:
+        if descriptor is not None:
+            terminations = []
+            for term in descriptor.termination:
+                terminations.append(
+                    {
+                        "class": type(term).__name__,
+                        "module": type(term).__module__,
+                        "value": _finite_scalar(term.value),
+                        "operator": term.operator,
+                        "event_name": term.get_event_name(descriptor),
+                    }
+                )
+            kind = getattr(descriptor, "control_kind", None)
+            result["descriptor"] = {
+                "class": type(descriptor).__name__,
+                "module": type(descriptor).__module__,
+                "description": descriptor.description,
+                "direction": descriptor.direction,
+                "control_kind": getattr(kind, "value", kind),
+                "value": _finite_scalar(descriptor.value),
+                "terminations": terminations,
+            }
+        times = [float(t) for t in step["Time [s]"].entries]
+        volts = [float(v) for v in step["Voltage [V]"].entries]
+        if len(times) != len(volts) or not times:
+            raise ValueError("missing or mismatched voltage/time samples")
+        if not all(math.isfinite(v) for v in times + volts):
+            raise ValueError("nonfinite voltage/time samples")
+        if any(b <= a for a, b in pairwise(times)):
+            raise ValueError("voltage times must be strictly increasing")
+        # Hash the actual paired arrays, including endpoints and original order.
+        # This inventory is not a stored full trajectory or loaded-code attestation.
+        paired = np.asarray(list(zip(times, volts)), dtype="<f8")
+        interior = [(t, v) for t, v in zip(times, volts) if times[0] < t < times[-1]]
+        result["samples"] = {
+            "all": _voltage_extrema(times, volts),
+            "strict_interior": _voltage_extrema(
+                [p[0] for p in interior], [p[1] for p in interior], start_index=1
+            ),
+            "first": {"time_s": times[0], "voltage_v": volts[0]},
+            "terminal": {"time_s": times[-1], "voltage_v": volts[-1]},
+            "penultimate": (
+                {"time_s": times[-2], "voltage_v": volts[-2]}
+                if len(times) > 1
+                else None
+            ),
+            "paired_float64_le_sha256": hashlib.sha256(paired.tobytes()).hexdigest(),
+            "full_trajectory_retained_by_this_diagnostic": False,
+        }
+        definition = result["descriptor"]
+        if definition is not None and definition["control_kind"] == "voltage":
+            target = definition["value"]
+            residuals = [v - target for v in volts]
+            if not all(math.isfinite(v) for v in residuals):
+                raise ValueError("nonfinite voltage residual arithmetic")
+            result["cv_voltage_minus_target"] = {
+                "definition": "observed Voltage [V] minus actual experiment step.value",
+                "target_v": target,
+                "extrema": _voltage_extrema(times, residuals),
+                "positive_count": sum(v > 0 for v in residuals),
+                "negative_count": sum(v < 0 for v in residuals),
+                "zero_count": sum(v == 0 for v in residuals),
+                "full_dae_residual": "NOT_ESTABLISHED_BY_SAMPLE_SUBTRACTION",
+            }
+        result["status"] = (
+            "OBSERVED" if definition is not None else "DESCRIPTOR_UNAVAILABLE"
+        )
+    except Exception as exc:  # noqa: BLE001 -- optional evidence, never reference PASS
+        result.update(
+            status="INVALID_OR_UNAVAILABLE_OBSERVATION", error_type=type(exc).__name__
+        )
+
+    try:
+        event_time = _finite_scalar(step.t_event)
+        state = np.asarray(step.y_event, dtype="<f8")
+        if (
+            state.ndim != 2
+            or state.shape[1] != 1
+            or not state.size
+            or not np.isfinite(state).all()
+        ):
+            raise ValueError("one finite terminal state vector required")
+        model = step.all_models[-1]
+        inputs = step.all_inputs[-1]
+        events = []
+        for event in model.events:
+            if getattr(event.event_type, "name", None) == "TERMINATION":
+                events.append(
+                    {
+                        "name": event.name,
+                        "signed_residual": _finite_scalar(
+                            event.expression.evaluate(
+                                t=event_time, y=state, inputs=inputs
+                            )
+                        ),
+                    }
+                )
+        index = result["closest_event_idx"]
+        if index is not None:
+            index = int(index)
+            result["closest_event_idx"] = index
+        circuit = getattr(model, "submodels", {}).get("external circuit")
+        terminal = {
+            "status": "OBSERVED",
+            "time_s": event_time,
+            "state_count": int(state.size),
+            "state_float64_le_sha256": hashlib.sha256(state.tobytes()).hexdigest(),
+            "full_state_retained_by_this_diagnostic": False,
+            "matches_last_observed_time": (
+                event_time == result["samples"]["terminal"]["time_s"]
+                if result["samples"] is not None
+                else None
+            ),
+            "termination_events": events,
+            "library_closest_event_name": (
+                events[index]["name"]
+                if index is not None and 0 <= index < len(events)
+                else None
+            ),
+            "event_identity_basis": "LIBRARY_NEAREST_RESIDUAL_NOT_ROOT_CERTIFICATION",
+            "model_class": type(model).__name__,
+            "external_circuit_class": (
+                type(circuit).__name__ if circuit is not None else None
+            ),
+            "external_circuit_control": getattr(circuit, "control", None),
+            "current_control_equations": [],
+        }
+        for variable, expression in getattr(model, "algebraic", {}).items():
+            if variable.name == "Current variable [A]":
+                equation = str(expression)
+                terminal["current_control_equations"].append(
+                    {
+                        "variable": variable.name,
+                        "expression": equation[:2048],
+                        "expression_truncated": len(equation) > 2048,
+                        "expression_utf8_sha256": hashlib.sha256(
+                            equation.encode("utf-8")
+                        ).hexdigest(),
+                        "signed_residual": _finite_scalar(
+                            expression.evaluate(t=event_time, y=state, inputs=inputs)
+                        ),
+                    }
+                )
+        for key in ("Voltage [V]", "Battery voltage [V]"):
+            terminal[key] = _finite_scalar(
+                model.variables[key].evaluate(t=event_time, y=state, inputs=inputs)
+            )
+        result["terminal_state"] = terminal
+    except Exception as exc:  # noqa: BLE001 -- unavailable evidence remains explicit
+        result["terminal_state"] = {
+            "status": "UNAVAILABLE",
+            "error_type": type(exc).__name__,
+        }
+    return result
+
+
+def _experiment_descriptor(sim, index):
+    try:
+        return sim.experiment.steps[index]
+    except (AttributeError, IndexError, TypeError):
+        return None
 
 
 def _step_summary(step, cooling):
@@ -391,6 +614,7 @@ def solve_one(job):
                 "wall_s": time.perf_counter() - started}  # fmt: skip
     try:
         per_cycle, capacity = [], {}
+        descriptor_index = 1  # flattened Experiment.steps starts with initial rest
         for k, cycle in enumerate(cycles, start=1):
             steps = list(cycle.steps)
             if k == 1:
@@ -398,9 +622,19 @@ def solve_one(job):
             if len(steps) != len(PHASES):
                 raise ValueError(f"cycle {k} has {len(steps)} steps")
             phases = {name: _step_summary(s, cooling) for name, s in zip(PHASES, steps)}
+            for offset, (name, step) in enumerate(zip(PHASES, steps)):
+                phases[name]["voltage_contact_observation"] = (
+                    _voltage_contact_observation(
+                        step, _experiment_descriptor(sim, descriptor_index + offset)
+                    )
+                )
+            descriptor_index += len(steps)
             capacity[k] = -phases["discharge"]["charge_ah"]
             per_cycle.append({"cycle": k, "phases": phases})
         initial_rest = _step_summary(cycles[0].steps[0], cooling)
+        initial_rest["voltage_contact_observation"] = _voltage_contact_observation(
+            cycles[0].steps[0], _experiment_descriptor(sim, 0)
+        )
         flat = [("initial_rest", 1, initial_rest)] + [
             (name, c["cycle"], p) for c in per_cycle for name, p in c["phases"].items()
         ]
