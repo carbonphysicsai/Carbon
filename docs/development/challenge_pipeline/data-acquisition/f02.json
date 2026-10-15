@@ -1,0 +1,138 @@
+{
+ "schema": "carbon.data-acquisition-plan.v1",
+ "family": "f02",
+ "scope": "DEVELOPMENT",
+ "decision": ".agent/decisions/2026-10-15-F02-SCIENCE-VALUES-01.md (sections B, E)",
+ "case_unit": "one ElmerSolver run of one deck (120 s transient, mesh 1 dt 1 unless a rung)",
+ "cost_basis": {
+  "primary_cpu_s": 269,
+  "primary_basis": "measured mean of 8 triage primaries, local image, cgroup CPU-s, local-dev-4vcpu-15g-contended (range 211-353); peak 21 MiB",
+  "dt_half_cpu_s": 450,
+  "dt_half_basis": "measured 430 (1 case)",
+  "mesh2_cpu_s": 2018,
+  "mesh2_basis": "EXTRAPOLATED 1.12 CPU-s/step x 1802 steps; memory est. 200 MiB; measured by plans/f02-verification.json",
+  "baseline_cpu_s": 161,
+  "steady_cpu_s": 1.3,
+  "usd_per_vcpu_h": 0.035,
+  "note": "no pod speed-up applied (the pod ran control-equilibrium ~1.25x faster)"
+ },
+ "roles": [
+  {
+   "role": "VERIFICATION",
+   "custody": "public",
+   "purpose": "convergence/verification witnesses B1-B7, B10; A3 MMS and A5 lineage of the pod build",
+   "size": "8 triage primaries x (mesh 2, dt/2) + 8 transient + 4 steady 20 W baselines (+ MMS)",
+   "law_strata": "purposive: both cooling pairs, both initial states, both splits, all three waveforms",
+   "generator": "f02_readiness.py freeze convergence (pins/f02-verification-decks-manifest.json)",
+   "pod_plan": "plans/f02-verification.json",
+   "cases": 32,
+   "cpu_h": 5.9,
+   "where": "RunPod",
+   "status": "READY_TO_GENERATE (local image: primaries, baselines B5-B7 and 1 dt/2 rung PASS; 15 rungs pending the pod)",
+   "usd_runpod": 0.21
+  },
+  {
+   "role": "DECISION_STUDY_D1",
+   "custody": "public",
+   "purpose": "D1 decision study (representative = menu v2 + low seed; boundary = bracket pairs at every ceiling, finite comparator = full bank), D5 coverage/refinement, V1/V2 and ScoreLab paired_score_inputs/value_traces/matched_controls references",
+   "size": "1436 primaries (24 contexts x ~60), 864 bracket contenders + 24 audit at both rungs, 8+4 baselines, 4 step responses; plus a second freeze for seed actions solved inside [89, 96] C",
+   "law_strata": "P = uniform over 24 contexts x ceiling {90, 92.5, 95} x floor U[300, 900]; Q = P; w = 1; boundary group = brackets",
+   "generator": "f02_bank.py freeze REGISTRY OUT --role decision; then f02_readiness.py freeze-contenders",
+   "pod_plan": "plans/f02-decision-primaries.json, plans/f02-decision-rungs.json",
+   "cases": 3228,
+   "cpu_h": 738.0,
+   "where": "RunPod",
+   "status": "READY_TO_GENERATE (rung cost is extrapolated until the verification pod measures mesh 2)",
+   "usd_runpod": 25.83
+  },
+  {
+   "role": "TRAIN",
+   "custody": "public",
+   "purpose": "training budget study R9 ladder (OWNER-TRAINING-BUDGET-STUDY-02); TRAIN labels = T_topmax(t) curves",
+   "size": "nested 240/480/960/1920/3840/7680 (1/4 ... 8 x D0 = 960); generate 4x first, 8x only if the curve has not flattened",
+   "law_strata": "peak U[30,140] W at 1 W, on-time U[5,20] s at 0.1 s, round-robin over 24 contexts; disjoint from decision and PRACTICE tuples",
+   "generator": "f02_bank.py freeze REGISTRY OUT --role train --train-multiple 4 (or 8)",
+   "cases": 3840,
+   "cpu_h": 287.0,
+   "cpu_h_8x": 574.0,
+   "where": "RunPod",
+   "status": "READY_TO_GENERATE (manifest frozen at pod time; mesh 1 decks are Python-version stable)",
+   "usd_runpod": 10.05
+  },
+  {
+   "role": "PRACTICE",
+   "custody": "public",
+   "purpose": "miner practice/research loop; intentionally incomplete (no rungs, no question answers)",
+   "size": "96 (4 per context)",
+   "law_strata": "as TRAIN, separate public seed, disjoint",
+   "generator": "f02_bank.py freeze ... --role practice",
+   "cases": 96,
+   "cpu_h": 7.2,
+   "where": "RunPod",
+   "status": "READY_TO_GENERATE",
+   "usd_runpod": 0.25
+  },
+  {
+   "role": "TIMING_D3",
+   "custody": "public",
+   "purpose": "D3 counted-plan timeouts >= 2 x p95 per case kind on runpod-cpu5c-16vcpu",
+   "size": "21 cases: 2 contexts x {primary, dt/2, mesh 2} x 3 repeats + 3 steady",
+   "law_strata": "shortest and longest case kinds",
+   "generator": "f02_bank.py freeze ... --role timing",
+   "cases": 21,
+   "cpu_h": 4.6,
+   "where": "RunPod cpu5c-16vcpu",
+   "status": "READY_TO_GENERATE",
+   "usd_runpod": 0.16
+  },
+  {
+   "role": "Q1_SCORE_TUNING_PUBLIC",
+   "custody": "public",
+   "purpose": "ScoreLab public panel inputs",
+   "size": "none extra: the f02 law has no public quiz; ScoreLab reuses DECISION_STUDY_D1 references on its registered job",
+   "cases": 0,
+   "cpu_h": 0,
+   "where": "-",
+   "status": "COVERED_BY_D1",
+   "usd_runpod": null
+  },
+  {
+   "role": "RESEARCH_ENVIRONMENT",
+   "custody": "public",
+   "purpose": "OWNER-RESEARCH-ENVIRONMENT-01",
+   "size": "provided: deck/mesher/observer (f02_deck.py), public generators (f02_bank.py roles with miners' own seeds), the locked Elmer package (elmer/Dockerfile, build.sh, sources.lock.json), predictor f02_superpose.py (planning only)",
+   "cases": 0,
+   "cpu_h": 0,
+   "where": "miner machine",
+   "status": "PROVIDED",
+   "usd_runpod": null
+  },
+  {
+   "role": "H1_ROTATING_POOL",
+   "custody": "custody host only, never RunPod",
+   "purpose": "H1 rotating question pool",
+   "size": "one bank per rotation in the decision-study recipe with custody seeds (jittered menu and bracket offsets, tuples disjoint from all public sets); B = 160 questions, k = n = 8, E = 5; rotate when exposure is spent or monthly; first month 2 banks",
+   "cases": 6424,
+   "cpu_h": 1476,
+   "where": "custody host",
+   "status": "SPECIFIED_NOT_GENERATED",
+   "usd_runpod": null
+  },
+  {
+   "role": "H2_D7_TUNING_AND_CONFIRMATION",
+   "custody": "custody host only, never RunPod",
+   "purpose": "H2/D7 tuning and confirmation",
+   "size": "48 questions each (2 per context), each on its own bank in the same recipe, separate custody seeds, disjoint from each other and all public tuples",
+   "cases": 6424,
+   "cpu_h": 1476,
+   "where": "custody host",
+   "status": "SPECIFIED_NOT_GENERATED",
+   "usd_runpod": null
+  }
+ ],
+ "bill_public": {
+  "cpu_h": 1042.7,
+  "usd": 36.5
+ },
+ "bill_custody_cpu_h": 2952
+}
