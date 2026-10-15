@@ -122,7 +122,8 @@ def test_9_commitment_order_digest_and_same_tempo_through_doors(wired, tmp_path,
         admitted = call(
             "commit", {"campaign": identity, "idempotency_key": "t04-first-commit"}
         )
-        assert admitted["commitment"]["plan"]["digest"] == expected
+        assert admitted["commitment"]["digest"] == expected
+        assert admitted["commitment"]["plan"]["needed"] is True
         join(host)
         first = observed(call, identity)
         assert first["commitment"]["state"] == "COMMITTED"
@@ -270,8 +271,13 @@ def test_11_two_paired_loopback_targets_keep_refusal_and_verdict_independent(
     assert directories[0] != directories[1] and all(
         path.is_dir() for path in directories
     )
-    assert not rs._record_path(directories[0], 1).exists()
-    assert rs._record_path(directories[1], 1).is_file()
+    # Both transports return202 and retain their own submission identity.
+    # The worker subsequently refuses one at admission;202 is not a verdict.
+    for directory, pair in zip(directories, pairs):
+        record = json.loads(rs._record_path(directory, 1).read_bytes())
+        assert record["url"] == pair["intake_url"]
+        assert record["epoch"] == 1 and record["submission_id"]
+    assert rs._record_path(directories[0], 1) != rs._record_path(directories[1], 1)
     saved = json.loads((root / "epoch-1" / multi_intake.STATUS_NAME).read_bytes())
     assert saved["outcome"] == {"state": "MULTI_VALIDATOR"}
     assert [row["state"] for row in saved["validators"]] == ["REFUSED", "SCORED"]
