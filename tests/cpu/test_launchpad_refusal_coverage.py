@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast
 import builtins
 import json
 import os
@@ -69,7 +70,7 @@ def test_new_unreached_code_refuses_in_each_inventory_source(site):
     if site == "catalog":
         files[CATALOG] += "NEXT_ACTIONS = {'new_gap': 'Next step'}\n"
     elif site == "raise":
-        files[DOOR] = "raise SetupRefused('new_gap')\n"
+        files[DOOR] = "raise SetupRefused('consent', 'new_gap')\n"
     else:
         files[DOOR] = "answer = {'refused': 'new_gap'}\n"
     result = coverage.regressions(coverage.inventory(files), before)
@@ -103,6 +104,47 @@ def test_catalog_extension_and_new_typed_constructor_do_not_escape_check(stateme
         coverage.inventory(files), coverage.inventory(sample())
     )
     assert result["new_unreached"] == ["new_gap"]
+
+
+@pytest.mark.parametrize(
+    "call",
+    [
+        "SetupRefused('consent', 'new_gap')",
+        "SetupRefused('consent', code='new_gap')",
+        "SetupRefused(field='consent', code='new_gap')",
+        "environment_setup.SetupRefused(code='new_gap', field='consent')",
+        "Rejected(code='new_gap')",
+        "AttachRefused(code='new_gap', message='fixed')",
+    ],
+)
+def test_real_code_argument_position_and_keywords_refuse_unreferenced_code(call):
+    files = sample()
+    # Existing test references to a field must never hide a new setup refusal.
+    files[TEST] = "expected_field = 'consent'\n"
+    before = coverage.inventory(files)
+    files[DOOR] = f"raise {call}\n"
+    after = coverage.inventory(files)
+    assert "consent" not in after["codes"]
+    assert coverage.regressions(after, before)["new_unreached"] == ["new_gap"]
+    files[TEST] += "expected_code = 'new_gap'\n"
+    assert not any(coverage.regressions(coverage.inventory(files), before).values())
+
+
+def test_setup_argument_rule_matches_actual_public_constructor_signature():
+    source = coverage.ROOT / "scripts/dev/miner_launchpad/environment_setup.py"
+    tree = ast.parse(source.read_text(encoding="utf-8"))
+    setup = next(
+        node
+        for node in tree.body
+        if isinstance(node, ast.ClassDef) and node.name == "SetupRefused"
+    )
+    init = next(
+        node
+        for node in setup.body
+        if isinstance(node, ast.FunctionDef) and node.name == "__init__"
+    )
+    arguments = [arg.arg for arg in init.args.args[1:]]
+    assert arguments.index("code") == coverage.CODE_ARGUMENTS["SetupRefused"]
 
 
 def test_removing_an_existing_test_reference_refuses():

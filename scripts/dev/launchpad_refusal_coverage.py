@@ -43,6 +43,9 @@ REFUSALS = frozenset(
     }
 )
 TABLES = frozenset({"NEXT_ACTIONS", "REFUSAL_FIELDS", "LIBRARY_REFUSALS"})
+# environment_setup.SetupRefused(field, code, status=409, next_step=None).
+# Code-first calls use argument zero; an explicit code keyword is also recognized.
+CODE_ARGUMENTS = {"SetupRefused": 1}
 
 
 def closed(value):
@@ -51,6 +54,13 @@ def closed(value):
 
 def literal(node):
     return node.value if isinstance(node, ast.Constant) else None
+
+
+def code_argument(call, name):
+    index = CODE_ARGUMENTS.get(name, 0)
+    if len(call.args) > index:
+        return call.args[index]
+    return next((item.value for item in call.keywords if item.arg == "code"), None)
 
 
 def production(path):
@@ -181,13 +191,12 @@ def inventory(files):
             if isinstance(node, ast.Raise) and isinstance(node.exc, ast.Call):
                 call = node.exc
                 name = ast.unparse(call.func).rsplit(".", 1)[-1]
-                if (
-                    name in REFUSALS or name.endswith(("Refused", "Refusal", "Failure"))
-                ) and call.args:
-                    code = literal(call.args[0])
+                if name in REFUSALS or name.endswith(("Refused", "Refusal", "Failure")):
+                    argument = code_argument(call, name)
+                    code = literal(argument)
                     if closed(code):
                         add(code, path, node, "raise")
-                    elif not isinstance(call.args[0], ast.Constant):
+                    elif not isinstance(argument, ast.Constant):
                         dynamic.append(
                             {"path": path, "line": node.lineno, "constructor": name}
                         )

@@ -24,3 +24,9 @@ runtime schema, scientific rule, gate threshold, scoring, dispatch, signing,
 provider, private state or real acceptance cell changes. OWNER-DX-03 controls
 delivery and retires Hub work/receipt ceremonies; Root retains test dispatch,
 review coordination and merge actuation. No owner-reserved input is requested.
+
+Constructor argument semantics are explicit: SetupRefused takes field first and
+code second, while code-first constructors use argument zero. A code keyword
+is recognized for both forms. A static signature control binds the SetupRefused
+rule to the actual public constructor; field names are never a substitute for
+the refusal code. Baseline and report are derived with this same rule.
