@@ -1,0 +1,206 @@
+{
+ "schema": "carbon.data-acquisition-plan.v1",
+ "family": "f17",
+ "scope": "DEVELOPMENT",
+ "decision": ".agent/decisions/2026-10-15-F17-SCIENCE-VALUES-01.md (section P)",
+ "case_unit": "one design = mesh + 3 flows + 9 scalars (12 solver starts), one container launch",
+ "cost_basis": {
+  "primary_cpu_h_per_design": 0.18,
+  "primary_basis": "measured locally (deep-dense, 3.7e5 cells): mesh 95 CPU-s, flow ~120 CPU-s each (115 iterations), scalar ~15-20 CPU-s each; peak 0.5 GiB; host local-dev-4vcpu-15g-contended",
+  "refined_cpu_h_per_design": 0.68,
+  "refined_basis": "EXTRAPOLATED: cells x2.83 and iterations x1.4 at h 7.071 um; peak ~1.5 GiB; measure at the pod stage",
+  "contingency": "x1.5 recommended for failures, setup and idle"
+ },
+ "roles": [
+  {
+   "role": "TRAIN",
+   "custody": "public",
+   "purpose": "R9 data-size ladder for the training budget study (OWNER-TRAINING-BUDGET-STUDY-02); Level-0 ROM/surrogate fitting",
+   "size": "nested 16/32/64/128 designs (1/4, 1/2, 1x, 2x of D0 = 64), nine conditions each, primary rung",
+   "law_strata": "packet action law (depth U[20,40], pitch U[100,250], reversal U{6..10}), public TRAIN seed; Q = P; unit w; physical-key disjoint from every other role",
+   "designs_primary": 128,
+   "refined_panels": 0,
+   "cpu_h": 23.0,
+   "peak_mem_gib": {
+    "primary": 0.5,
+    "refined": 1.5
+   },
+   "generator": "f17_freeze.py bank --seed-file <public TRAIN seed> --count 128",
+   "status": "READY_TO_GENERATE",
+   "usd_runpod": 0.81
+  },
+  {
+   "role": "PRACTICE",
+   "custody": "public",
+   "purpose": "miner practice/research loop; intentionally incomplete signal (no question answers or near-floor refinement)",
+   "size": "16 designs, nine conditions, primary rung",
+   "law_strata": "same action law, separate public seed; disjoint by physical key",
+   "designs_primary": 16,
+   "refined_panels": 0,
+   "cpu_h": 2.9,
+   "peak_mem_gib": {
+    "primary": 0.5,
+    "refined": 1.5
+   },
+   "generator": "f17_freeze.py bank --seed-file <public PRACTICE seed> --count 16",
+   "status": "READY_TO_GENERATE",
+   "usd_runpod": 0.1
+  },
+  {
+   "role": "DECISION_STUDY_D1",
+   "custody": "public",
+   "purpose": "D1 frozen decision study (representative + boundary groups, finite comparator = fixed-RBF whole-geometry holdout and smooth-channel ROM); D5 coverage; V1/V2 and ScoreLab paired_score_inputs/value_traces/matched_controls reuse these references",
+   "size": "40 designs: 24 representative (P) + 16 boundary (Q2: within 0.04 worst-M of floors 0.80/0.85 or 0.2 s of residence caps); refined rung for designs within 0.04 of a floor (planned 12)",
+   "law_strata": "representative = P; boundary chosen from a public frontier search after the representative solves; commitment before reference access",
+   "designs_primary": 40,
+   "refined_panels": 12,
+   "cpu_h": 15.4,
+   "peak_mem_gib": {
+    "primary": 0.5,
+    "refined": 1.5
+   },
+   "generator": "f17_freeze.py bank (representative) + frontier manifest (boundary), then refined-rung cases",
+   "status": "NEEDS_BOUNDARY_SELECTION_AFTER_REPRESENTATIVE_SOLVES",
+   "usd_runpod": 0.54
+  },
+  {
+   "role": "Q1_PANEL",
+   "custody": "public",
+   "purpose": "V1/V2 Q1 panel; ScoreLab references on a registered job",
+   "size": "no new solves: the D1 cases and references",
+   "law_strata": "as D1",
+   "designs_primary": 0,
+   "refined_panels": 0,
+   "cpu_h": 0.0,
+   "peak_mem_gib": {
+    "primary": 0.5,
+    "refined": 1.5
+   },
+   "generator": "reuses D1",
+   "status": "READY_AFTER_D1",
+   "usd_runpod": 0.0
+  },
+  {
+   "role": "TIMING_CALIBRATION_D3",
+   "custody": "public",
+   "purpose": "D3 counted-plan timing on runpod-cpu5c-16vcpu; timeouts >= 2x p95",
+   "size": "the 13-case triage manifest (8 primary, 2 refined panels, 2 controls, 1 fresh pair)",
+   "law_strata": "#787 public triage panel",
+   "designs_primary": 10,
+   "refined_panels": 2,
+   "cpu_h": 3.2,
+   "peak_mem_gib": {
+    "primary": 0.5,
+    "refined": 1.5
+   },
+   "generator": "docs/development/evidence/reference-packages-01/triage-f17-decks-manifest.json (f17_freeze.py triage)",
+   "status": "READY_TO_GENERATE",
+   "usd_runpod": 0.11
+  },
+  {
+   "role": "VERIFICATION_WITNESSES",
+   "custody": "public",
+   "purpose": "D1/D2 numerical adequacy: two-mesh (h 10 vs 7.071) and max-Pe zero-D witness on deep-dense and deep-sparse, controls, reuse parity",
+   "size": "inside the triage manifest (witness_studies, controls, cold_repeat)",
+   "law_strata": "fixed witness labels",
+   "designs_primary": 0,
+   "refined_panels": 0,
+   "cpu_h": 0.0,
+   "peak_mem_gib": {
+    "primary": 0.5,
+    "refined": 1.5
+   },
+   "generator": "triage manifest",
+   "status": "READY_TO_GENERATE (pod stage)",
+   "usd_runpod": 0.0
+  },
+  {
+   "role": "RESEARCH_ENVIRONMENT",
+   "custody": "public",
+   "purpose": "OWNER-RESEARCH-ENVIRONMENT-01: own-seed generator + reference solver for miners",
+   "size": "provided: pinned image, f17_geometry/f17_deck/f17_freeze (own seed), f17_extract observers, f17_controls; gap: miner needs Docker and ~0.2 CPU-h per design",
+   "law_strata": "miner's own seed",
+   "designs_primary": 0,
+   "refined_panels": 0,
+   "cpu_h": 0.0,
+   "peak_mem_gib": {
+    "primary": 0.5,
+    "refined": 1.5
+   },
+   "generator": "f17_freeze.py bank --seed-file <miner seed>",
+   "status": "PROVIDED",
+   "usd_runpod": 0.0
+  },
+  {
+   "role": "HIDDEN_POOL_H1",
+   "custody": "sealed",
+   "purpose": "H1 rotating hidden pool scored through the real validator",
+   "size": "bank 45 + <=15 frontier designs (F7), refined rung near floors (planned 18); questions B = 80 requirement vectors from P, n = 8 per batch, one batch per day for the first month (30 batches = 240 exposures <= B x E = 800)",
+   "law_strata": "F1 P, Q3 = P, unit w; separate sealed seed",
+   "designs_primary": 60,
+   "refined_panels": 18,
+   "cpu_h": 23.0,
+   "peak_mem_gib": {
+    "primary": 0.5,
+    "refined": 1.5
+   },
+   "generator": "custody host: f17_freeze.py bank with the operator seed",
+   "status": "SPECIFIED_NOT_GENERATED",
+   "usd_runpod": null
+  },
+  {
+   "role": "TUNING_H2",
+   "custody": "sealed",
+   "purpose": "H2 gate/score tuning set",
+   "size": "16 designs (12 representative + 4 boundary), refined near floors (planned 5)",
+   "law_strata": "P plus boundary stratum; sealed seed; disjoint (physical key) from pool, TRAIN, PRACTICE, D1",
+   "designs_primary": 16,
+   "refined_panels": 5,
+   "cpu_h": 6.3,
+   "peak_mem_gib": {
+    "primary": 0.5,
+    "refined": 1.5
+   },
+   "generator": "custody host",
+   "status": "SPECIFIED_NOT_GENERATED",
+   "usd_runpod": null
+  },
+  {
+   "role": "CONFIRMATION_D7",
+   "custody": "sealed",
+   "purpose": "D7 fresh confirmation-set role (VALIDATOR-03)",
+   "size": "24 designs (16 representative + 8 boundary), refined near floors (planned 7)",
+   "law_strata": "P plus boundary stratum; fresh sealed seed drawn after D6 pins; disjoint from all roles",
+   "designs_primary": 24,
+   "refined_panels": 7,
+   "cpu_h": 9.1,
+   "peak_mem_gib": {
+    "primary": 0.5,
+    "refined": 1.5
+   },
+   "generator": "custody host",
+   "status": "SPECIFIED_NOT_GENERATED",
+   "usd_runpod": null
+  },
+  {
+   "role": "QUIZ",
+   "custody": "sealed",
+   "purpose": "quiz / score-tuning sealed sets",
+   "size": "not used by f17 (no quiz legs registered)",
+   "law_strata": "-",
+   "designs_primary": 0,
+   "refined_panels": 0,
+   "cpu_h": 0.0,
+   "peak_mem_gib": {
+    "primary": 0.5,
+    "refined": 1.5
+   },
+   "generator": "-",
+   "status": "NOT_USED",
+   "usd_runpod": null
+  }
+ ],
+ "public_cpu_h": 44.5,
+ "public_usd_at_0.035_per_vcpu_h": 1.56,
+ "sealed_rule": "sealed roles run only on the custody host, never RunPod; no sealed seed is written anywhere"
+}

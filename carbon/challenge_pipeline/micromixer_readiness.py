@@ -63,26 +63,84 @@ def physical_key(case):
     )
 
 
+SCIENCE_VALUES = ".agent/decisions/2026-10-15-F17-SCIENCE-VALUES-01.md"
+IMAGE_DIGEST = "sha256:020e00e512c3e0f50dd9904137bb64bdfe4b55b1fae6b9d6a566e4895d2d6e4a"
+#: F17-SCIENCE-VALUES-01 registered DEVELOPMENT values (not qualification).
+REGISTERED = {
+    "decision": SCIENCE_VALUES,
+    "mass_balance_fraction": 0.005,
+    "solute_balance_fraction": 0.005,
+    "solute_floor_fraction_of_Q": 1e-6,
+    "raw_c_bounds": [-0.001, 1.001],
+    "mesh_volume_rel": 0.005,
+    "mesh_rungs_um": [10.0, 10 / 2**0.5],
+    "mesh_delta_M": 0.02,
+    "mesh_delta_p_fraction": 0.05,
+    "high_pe_min_M_gain_over_zero_D": 0.02,
+    "scalar_scheme": "bounded Gauss linearUpwind grad(T)",
+    "reuse_parity_delta_M": 1e-4,
+    "poiseuille_rel_error": {"h10": 0.03, "h7.071": 0.015, "order": [1.5, 2.5]},
+    "split_tracer_delta_M": 0.01,
+    "zero_D_smooth_M": 1e-3,
+    "question_law": {
+        "P": {
+            "mixing_floor": [0.80, 0.85],
+            "residence_cap_s": [19.0, 20.0],
+            "pressure_cap_pa": 250,
+        },
+        "Q": "Q3=P",
+        "w": "unit outer; nine conditions are hard gates",
+        "value_equivalent_M": 0.02,
+        "near_M": 0.04,
+        "tie": ["lower max pressure", "lower residence", "bank order"],
+        "k": 8,
+        "n": 8,
+        "B": 80,
+        "E": 10,
+        "bank_M": {"tranche1": 45, "max": 60},
+    },
+    "tier2_cross_tool": {
+        "M": 0.02,
+        "pressure_fraction": 0.05,
+        "pressure_floor_pa": 0.5,
+        "residence_fraction": 0.05,
+        "residence_floor_s": 0.1,
+    },
+}
+
+
 def geometry_recipe(design):
+    """Frozen groove convention G1-G6 (F17-SCIENCE-VALUES-01); the executable
+    mesher is scripts/dev/reference_packages/openfoam/f17_geometry.py."""
     design = action(**design)
-    n = int((10000 - 500) // design["pitch_um"]) + 1
+    half = 25 * math.sqrt(2)
+    stations, cycles, x, i = [], [], 250 + half, 0
+    while True:
+        if i:
+            x += design["pitch_um"] + (100 if i % design["reversal"] == 0 else 0)
+        if x + half + 190 > 9750 + 1e-9:
+            break
+        stations.append(round(x, 6))
+        cycles.append(i // design["reversal"] % 2)
+        i += 1
     return {
         "action": design,
         "base_box_um": [10000, 300, 100],
         "groove_width_um": 50,
+        "groove_width_measured": "normal to the arm",
         "angle_deg": 45,
         "corner_y_um": 100,
+        "mirrored_corner_y_um": 200,
+        "apex": "upstream; arms run downstream to the clearance lines",
         "wall_clearance_um": 10,
-        "groove_stations_um": [250 + i * design["pitch_um"] for i in range(n)],
-        "half_cycles": [i // design["reversal"] % 2 for i in range(n)],
-        "status": "DRAFT_NOT_CAD_VERIFIED",
-        "required": [
-            "freeze half-cycle orientation/endpoint convention",
-            "recess Boolean union clipped to finite floor",
-            "reject overlaps/intersections and clipped-width defects",
-            "volume includes grooves",
-            "two equal-flow inlet patches and true outlet",
-        ],
+        "lead_um": 250,
+        "groove_stations_um": stations,
+        "station_meaning": "apex x; spacing pitch in a half-cycle, pitch+100 across a reversal",
+        "half_cycles": cycles,
+        "min_web_um": 20,
+        "status": "FROZEN_DEVELOPMENT_CONVENTION",
+        "decision": SCIENCE_VALUES,
+        "mesher": "scripts/dev/reference_packages/openfoam/f17_geometry.py",
         "periodic_scalar_reset_allowed": False,
     }
 
@@ -120,7 +178,7 @@ def proposed_panel():
         "w_dev": {"service_weight_each": 1 / 9},
         "question_P_Q_w": None,
         "accepted_manifest_digest": None,
-        "image_digest": None,
+        "image_digest": IMAGE_DIGEST,
         "reuse": "UNKNOWN_COMPLETED_AND_SCHEDULED_INDEX_REQUIRED",
         "boundary": "Register >=5 feasible and >=5 infeasible within TWO accepted bands per stratum after first truth; these five seed actions do not satisfy that check",
         "C1": "UNMEASURED",
@@ -219,22 +277,23 @@ def deck_draft(design, service, mesh_um=10, *, zero_diffusion_control=False):
     q = service["flow_ul_min"] * 1e-9 / 60
     speed = q / (300e-6 * 100e-6)
     nu = 0.001 / 998
-    header = (
-        lambda cls, obj: f"FoamFile {{ version 2.0; format ascii; class {cls}; object {obj}; }}\n"
+    header = lambda cls, obj: (
+        f"FoamFile {{ version 2.0; format ascii; class {cls}; object {obj}; }}\n"
     )
     return {
         "challenge": FAMILY,
         "scope": (
             "NUMERICAL_DIFFUSION_CONTROL_NOT_P" if zero_diffusion_control else SCOPE
         ),
-        "status": "HOLD_CAD_IMAGE_AND_STEADY_CONFIGURATION",
+        "status": "SUPERSEDED_BY_EXECUTABLE_DECK",
+        "executable_deck": "scripts/dev/reference_packages/openfoam/f17_deck.py",
         "solver": {
             "fork": "OpenCFD",
             "release": "v2506",
             "commit": SOLVER_COMMIT,
-            "archive_digest": None,
-            "dependency_lock": None,
-            "image_digest": None,
+            "archive_digest": "not applicable: upstream image pinned by digest",
+            "dependency_lock": "scripts/dev/reference_packages/openfoam/image.lock.json",
+            "image_digest": IMAGE_DIGEST,
         },
         "geometry": geometry_recipe(design),
         "condition": service,
@@ -314,7 +373,16 @@ def balances(
     incoming_volume,
     incoming_solute,
     storage_rate=0,
+    solute_floor=None,
 ):
+    """Boundary mass and solute residuals, outward signs, every boundary face.
+
+    The solute residual is normalised by the incoming solute flux; with an
+    explicit ``solute_floor`` (F17-SCIENCE-VALUES-01 B2: 1e-6 x Q in
+    concentration units) a zero-solute control is normalised by that floor
+    instead of a tiny incoming flux. Without a floor zero incoming solute is
+    refused.
+    """
     arrays = [
         np.asarray(v, dtype=float)
         for v in (
@@ -331,6 +399,8 @@ def balances(
             "same complete boundary-face support with outward signs required"
         )
     q, solute = finite(incoming_volume), finite(incoming_solute)
+    if solute_floor is not None and finite(solute_floor) > 0:
+        solute = max(solute, float(solute_floor))
     if q <= 0 or solute <= 0:
         raise ValueError(
             "nonzero incoming normalization; zero-solute controls need approved absolute floor"
@@ -628,8 +698,9 @@ def decision_report(report, registered):
         registered, pred, model_id="f17-rbf-whole-geometry-holdout"
     )
     judged = tasks.judge(registered, commitment, ref)
-    truth, predicted = tasks.assess(registered, ref, reference=True), tasks.assess(
-        registered, pred
+    truth, predicted = (
+        tasks.assess(registered, ref, reference=True),
+        tasks.assess(registered, pred),
     )
     resolved = [
         c
