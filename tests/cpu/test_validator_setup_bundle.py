@@ -1,6 +1,8 @@
 """Public source packaging fixtures; no real image/host/chain acceptance."""
 
 import json
+import os
+import stat
 import subprocess
 
 import pytest
@@ -117,6 +119,40 @@ def test_missing_exposure_history_refuses_before_writing_destination(tmp_path):
     with pytest.raises(b.SetupRefused, match="COMPLETE_OPERATOR_SOURCE_REQUIRED"):
         b.materialize(root, command(root, "rev-parse", "HEAD"), destination)
     assert not destination.exists()
+
+
+def test_private_umask_keeps_public_bundle_traversable_and_private_work_private(
+    tmp_path,
+):
+    root, _ = source(tmp_path)
+    command(root, "update-index", "--chmod=+x", "carbon/validator_setup/__main__.py")
+    command(root, "commit", "-qm", "public fixture executable mode")
+    revision = command(root, "rev-parse", "HEAD")
+    work = tmp_path / "private-build"
+    cache, secrets = work / "cache", work / "secrets"
+    previous = os.umask(0o077)
+    try:
+        work.mkdir(mode=0o700)
+        cache.mkdir(mode=0o700)
+        secrets.mkdir(mode=0o700)
+        cached = cache / "fixture-cache"
+        cached.write_bytes(b"synthetic private cache")
+        built = b.materialize(root, revision, work / "release")
+        secret = secrets / "fixture-after-materialization"
+        secret.write_bytes(b"synthetic private marker")
+    finally:
+        os.umask(previous)
+    directories = [built.root, *(p for p in built.root.rglob("*") if p.is_dir())]
+    assert all(stat.S_IMODE(path.stat().st_mode) == 0o755 for path in directories)
+    for path in (work, cache, secrets):
+        assert stat.S_IMODE(path.stat().st_mode) == 0o700
+    for path in (cached, secret):
+        assert stat.S_IMODE(path.stat().st_mode) == 0o600
+    for row in built.manifest["files"]:
+        expected = 0o555 if row["executable"] else 0o444
+        assert stat.S_IMODE((built.root / row["path"]).stat().st_mode) == expected
+    assert stat.S_IMODE((built.root / b.MANIFEST).stat().st_mode) == 0o444
+    assert b.verify(built.root, built.digest) == built
 
 
 @pytest.mark.parametrize("kind", ["bytes", "extra", "manifest", "symlink"])

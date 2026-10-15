@@ -190,14 +190,20 @@ def materialize(repository, revision, destination):
     raw_manifest = encoded(manifest)
     # All validation precedes writes. Refuse concurrent/nonempty destinations.
     destination.mkdir(mode=0o755)
+    public_directories = {destination}
     for row in rows:
         target = destination / row["path"]
         target.parent.mkdir(parents=True, exist_ok=True)
+        public_directories.update(
+            destination / parent for parent in Path(row["path"]).parents
+        )
         with target.open("xb") as stream:
             stream.write(contents[row["path"]])
         target.chmod(0o555 if row["executable"] else 0o444)
     (destination / MANIFEST).write_bytes(raw_manifest)
     (destination / MANIFEST).chmod(0o444)
+    for directory in public_directories:
+        directory.chmod(0o755)
     return verify(destination, sha(raw_manifest))
 
 
