@@ -225,7 +225,13 @@ def test_finite_raw_values_with_overflow_are_not_measured(leg):
 def test_leg_and_value_never_pool_or_read_value_labels(leg):
     value_row = {"draw": {**leg["draw"], "role": "VALUE"}, "evidence": object()}
     with pytest.raises(tasks.TaskError, match="one population and one role"):
-        score([value_row], {})
+        n1.score_leg(
+            [value_row],
+            {},
+            producer_bindings=bindings([leg]),
+            expected_registration_digest=n1.REGISTRATION_SHA256,
+            scope="SYNTHETIC_FIXTURE",
+        )
 
 
 def test_p_and_q_never_pool(leg):
@@ -297,7 +303,7 @@ def test_whole_question_common_mask_and_offered_prediction_coverage(leg):
         "unresolved",
         omit=lambda j: ":eval:" in j["case_id"]
         and j["t_amb_c"] == 5
-        and j["mesh"] == 40,
+        and producer._rung(j)[0] == 2,
     )
     offered = [leg, unresolved]
     a = score(offered, predictions(offered, error=1))
