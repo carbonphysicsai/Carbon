@@ -34,9 +34,13 @@ until Data Collection supplies durable main manifests and kit/TRAIN receipts.
 ## Real reference reuse, not a second solver
 
 KEEP main's `scripts/dev/reference_packages/calculix/{sources.lock.json,
-f08_deck.py,f08_proof.py,f08_freeze.py}`. ccx2.23 image
+f08_deck.py,f08_proof.py,f08_freeze.py}`. The ccx2.23 pin is now the
+2026-10-15 local rebuild of the same lock,
+`sha256:16869c9cb7f14994f3bed3152809efdec14c5b3ec1849730d7b6c8f689d9642b`,
+after smoke, feature proof, MMS, closed-form rod and the 17-launch triage ran
+on it (F08-SCIENCE-VALUES-01; the original
 `sha256:d9ef68d016226a945c7eefcb6b2261c60a11249ee0f93458ae6c3aca956fd6f8`
-is an inspected source pin, **not a current operator-store observation**.
+build was not present on that host). DEVELOPMENT evidence, not qualification.
 The wrapper calls only pure Gmsh-text/control helpers. It never calls
 `write_case`, Docker, meshing, solver, host/store enumeration or a subprocess.
 

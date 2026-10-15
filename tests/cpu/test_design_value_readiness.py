@@ -52,6 +52,9 @@ def test_four_checks_have_per_stratum_and_joint_semantics():
         assert numeric[field] is None
 
 
+DELEGATED_SPREADS = {"resonance-structure": ("F08-SCIENCE-VALUES-01", 0.03)}
+
+
 @pytest.mark.parametrize("row", SHEET["challenges"], ids=lambda row: row["challenge"])
 def test_every_current_packet_has_readiness_and_unadopted_buyer_units(row):
     text = (PACKETS / row["packet"]).read_text(encoding="utf-8")
@@ -61,8 +64,16 @@ def test_every_current_packet_has_readiness_and_unadopted_buyer_units(row):
     assert "value-check-v1.md" in readiness
     assert "HUMAN_INPUT" in readiness
     assert "NOT_DEMONSTRATED" in readiness
-    assert row["numeric_status"] == "HUMAN_INPUT"
-    assert row["registered_spread"] is row["accepted_value_receipt"] is None
+    assert row["accepted_value_receipt"] is None
+    if row["challenge"] in DELEGATED_SPREADS:
+        # OWNER-SOLVER-READINESS-SCIENCE-DELEGATION-01: DEVELOPMENT value, no receipt.
+        decision, spread = DELEGATED_SPREADS[row["challenge"]]
+        assert row["numeric_status"] == "REGISTERED_DEVELOPMENT"
+        assert row["registered_decision"] == decision
+        assert row["registered_spread"] == spread == row["spread_recommendation"]
+    else:
+        assert row["numeric_status"] == "HUMAN_INPUT"
+        assert row["registered_spread"] is None
     assert row["readiness"] == "NOT_DEMONSTRATED"
     assert row["spread_recommendation"] > 0
     assert row["value_unit"]
