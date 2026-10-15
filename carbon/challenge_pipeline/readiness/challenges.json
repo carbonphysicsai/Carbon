@@ -794,6 +794,96 @@
    },
    "grants": {
     "phase4": "docs/development/graphite/grants/GRAPHITE-GRANT-PHASE4-COOLING.json"
+   },
+   "tests_by_level": {
+    "P3": {
+     "0": {
+      "challenge": "chip-cold-plate",
+      "levels": [
+       0
+      ],
+      "basis": "Level 0 is the recorded miner-facing contract: the public fixture runs this Challenge's own scoring and attack adapter with no development variant.",
+      "tests": [
+       "tests/cpu/test_graphite_readiness_level0_evidence.py::test_phase3_dry_run_at_level_zero[chip-cold-plate]",
+       "tests/cpu/test_graphite_named_challenge.py::test_a_cooling_bundle_reads_as_cooling"
+      ]
+     }
+    },
+    "R7": {
+     "0": {
+      "challenge": "chip-cold-plate",
+      "levels": [
+       0
+      ],
+      "basis": "Level 0 is the recorded miner-facing contract: the public fixture runs this Challenge's own scoring and attack adapter with no development variant. The turn-status tests are Challenge-neutral and supplement it.",
+      "tests": [
+       "tests/cpu/test_graphite_readiness_level0_evidence.py::test_each_roles_turn_text_matches_its_scripted_ledger_at_level_zero[chip-cold-plate-constructor]",
+       "tests/cpu/test_graphite_readiness_level0_evidence.py::test_each_roles_turn_text_matches_its_scripted_ledger_at_level_zero[chip-cold-plate-attacker]",
+       "tests/cpu/test_agent_door_usability.py::test_a_new_phase3_session_records_v2_and_drops_the_unmetered_trial_line",
+       "tests/cpu/test_agent_door_usability.py::test_metered_trials_are_named_every_turn_under_either_status_rule",
+       "tests/cpu/test_agent_door_usability.py::test_the_v2_agents_turn_status_names_its_trial_slots",
+       "tests/cpu/test_attack_authoritative_boundary.py::test_the_phase4_attacker_opts_out_of_the_unmetered_trial_line"
+      ]
+     }
+    },
+    "A2": {
+     "0": {
+      "challenge": "chip-cold-plate",
+      "levels": [
+       0
+      ],
+      "basis": "Level 0 is the recorded miner-facing contract: the public fixture runs this Challenge's own scoring and attack adapter with no development variant.",
+      "tests": [
+       "tests/cpu/test_graphite_readiness_level0_evidence.py::test_every_reachable_family_is_an_adapter_family_at_level_zero[chip-cold-plate]",
+       "tests/cpu/test_attack_cooling_adapter.py::test_each_family_has_both_control_splits",
+       "tests/cpu/test_attack_cooling_adapter.py::test_the_engine_runs_every_family_with_trained_controls",
+       "tests/cpu/test_attack_cooling_adapter.py::test_every_check_names_an_attack_and_a_control"
+      ]
+     }
+    },
+    "A3": {
+     "0": {
+      "challenge": "chip-cold-plate",
+      "levels": [
+       0
+      ],
+      "basis": "Level 0 is the recorded miner-facing contract: the public fixture runs this Challenge's own scoring and attack adapter with no development variant.",
+      "tests": [
+       "tests/cpu/test_graphite_readiness_level0_evidence.py::test_the_level_zero_provider_records_its_rule_and_withholds_finish[chip-cold-plate]",
+       "tests/cpu/test_graphite_attacker_stop_rule_v3.py::test_three_attempts_in_every_reachable_family_finish_under_v3"
+      ]
+     }
+    },
+    "S2": {
+     "0": {
+      "challenge": "chip-cold-plate",
+      "levels": [
+       0
+      ],
+      "basis": "This Challenge's admissibility functions are its frozen Level-0 rule; the Graphite assertion resolves the same named scoring.",
+      "tests": [
+       "tests/cpu/test_graphite_readiness_level0_evidence.py::test_graphite_filters_gate_failures_before_ranking_at_level_zero[chip-cold-plate]",
+       "tests/cpu/test_cold_plate.py::test_one_failed_gate_makes_a_submission_ineligible_whatever_its_score",
+       "tests/cpu/test_cold_plate_score_variant_candidate.py::test_complete_confirmed_gate_failure_is_inadmissible_not_compensated",
+       "tests/cpu/test_cold_plate_scoring.py::test_cooling_testing_comparison_preserves_ineligibility"
+      ]
+     }
+    }
+   },
+   "family_covering_tests": {
+    "0": {
+     "cooling_optimism": "tests/cpu/test_attack_cooling_adapter.py::test_every_attack_is_held_and_every_specimen_fires[cooling_optimism]",
+     "flow_imbalance_masking": "tests/cpu/test_attack_cooling_adapter.py::test_every_attack_is_held_and_every_specimen_fires[flow_imbalance_masking]",
+     "group_sacrifice": "tests/cpu/test_attack_cooling_adapter.py::test_every_attack_is_held_and_every_specimen_fires[group_sacrifice]",
+     "mandatory_failure": "tests/cpu/test_attack_cooling_adapter.py::test_every_attack_is_held_and_every_specimen_fires[mandatory_failure]",
+     "package_integrity": "tests/cpu/test_attack_cooling_adapter.py::test_every_attack_is_held_and_every_specimen_fires[package_integrity]",
+     "pressure_underprediction": "tests/cpu/test_attack_cooling_adapter.py::test_every_attack_is_held_and_every_specimen_fires[pressure_underprediction]",
+     "rebuild_identity": "tests/cpu/test_attack_cooling_adapter.py::test_every_attack_is_held_and_every_specimen_fires[rebuild_identity]",
+     "rebuild_report": "tests/cpu/test_attack_cooling_adapter.py::test_every_attack_is_held_and_every_specimen_fires[rebuild_report]",
+     "recipe_forgery": "tests/cpu/test_attack_cooling_adapter.py::test_every_attack_is_held_and_every_specimen_fires[recipe_forgery]",
+     "regime_screen": "tests/cpu/test_attack_cooling_adapter.py::test_every_attack_is_held_and_every_specimen_fires[regime_screen]",
+     "selective_fault": "tests/cpu/test_attack_cooling_adapter.py::test_every_attack_is_held_and_every_specimen_fires[selective_fault]"
+    }
    }
   },
   "electric-motor-magnetics": {
@@ -804,9 +894,99 @@
     ],
     "S5": [
      "tests/cpu/test_graphite_coverage_parity.py::test_cooling_and_motor_frozen_rules_charge_a_missing_case[motor]"
+    ],
+    "P7": [
+     "tests/cpu/test_challenge_validator_boundary_consistency_motor.py"
     ]
    },
-   "validator_adapter": "carbon.challenge_validator.motor:MotorAdapter"
+   "validator_adapter": "carbon.challenge_validator.motor:MotorAdapter",
+   "tests_by_level": {
+    "P3": {
+     "0": {
+      "challenge": "electric-motor-magnetics",
+      "levels": [
+       0
+      ],
+      "basis": "Level 0 is the recorded miner-facing contract: the public fixture runs this Challenge's own scoring and attack adapter with no development variant.",
+      "tests": [
+       "tests/cpu/test_graphite_readiness_level0_evidence.py::test_phase3_dry_run_at_level_zero[electric-motor-magnetics]"
+      ]
+     }
+    },
+    "R7": {
+     "0": {
+      "challenge": "electric-motor-magnetics",
+      "levels": [
+       0
+      ],
+      "basis": "Level 0 is the recorded miner-facing contract: the public fixture runs this Challenge's own scoring and attack adapter with no development variant. The turn-status tests are Challenge-neutral and supplement it.",
+      "tests": [
+       "tests/cpu/test_graphite_readiness_level0_evidence.py::test_each_roles_turn_text_matches_its_scripted_ledger_at_level_zero[electric-motor-magnetics-constructor]",
+       "tests/cpu/test_graphite_readiness_level0_evidence.py::test_each_roles_turn_text_matches_its_scripted_ledger_at_level_zero[electric-motor-magnetics-attacker]",
+       "tests/cpu/test_agent_door_usability.py::test_a_new_phase3_session_records_v2_and_drops_the_unmetered_trial_line",
+       "tests/cpu/test_agent_door_usability.py::test_metered_trials_are_named_every_turn_under_either_status_rule",
+       "tests/cpu/test_agent_door_usability.py::test_the_v2_agents_turn_status_names_its_trial_slots",
+       "tests/cpu/test_attack_authoritative_boundary.py::test_the_phase4_attacker_opts_out_of_the_unmetered_trial_line"
+      ]
+     }
+    },
+    "A2": {
+     "0": {
+      "challenge": "electric-motor-magnetics",
+      "levels": [
+       0
+      ],
+      "basis": "Level 0 is the recorded miner-facing contract: the public fixture runs this Challenge's own scoring and attack adapter with no development variant.",
+      "tests": [
+       "tests/cpu/test_graphite_readiness_level0_evidence.py::test_every_reachable_family_is_an_adapter_family_at_level_zero[electric-motor-magnetics]",
+       "tests/cpu/test_attack_motor_adapter.py::test_each_family_has_both_control_splits",
+       "tests/cpu/test_attack_motor_adapter.py::test_the_engine_runs_every_family_with_trained_controls",
+       "tests/cpu/test_attack_motor_adapter.py::test_every_check_names_an_attack_and_a_control"
+      ]
+     }
+    },
+    "A3": {
+     "0": {
+      "challenge": "electric-motor-magnetics",
+      "levels": [
+       0
+      ],
+      "basis": "Level 0 is the recorded miner-facing contract: the public fixture runs this Challenge's own scoring and attack adapter with no development variant.",
+      "tests": [
+       "tests/cpu/test_graphite_readiness_level0_evidence.py::test_the_level_zero_provider_records_its_rule_and_withholds_finish[electric-motor-magnetics]",
+       "tests/cpu/test_graphite_attacker_stop_rule_v3.py::test_three_attempts_in_every_reachable_family_finish_under_v3"
+      ]
+     }
+    },
+    "S2": {
+     "0": {
+      "challenge": "electric-motor-magnetics",
+      "levels": [
+       0
+      ],
+      "basis": "This Challenge's admissibility functions are its frozen Level-0 rule; the Graphite assertion resolves the same named scoring.",
+      "tests": [
+       "tests/cpu/test_graphite_readiness_level0_evidence.py::test_graphite_filters_gate_failures_before_ranking_at_level_zero[electric-motor-magnetics]",
+       "tests/cpu/test_motor.py::test_each_motor_gate_fails_what_it_should",
+       "tests/cpu/test_motor_score_variant_candidate.py::test_complete_gate_failure_zero_but_not_authoritative"
+      ]
+     }
+    }
+   },
+   "family_covering_tests": {
+    "0": {
+     "mandatory_failure": "tests/cpu/test_attack_motor_adapter.py::test_every_attack_is_held_and_every_specimen_fires[mandatory_failure]",
+     "package_integrity": "tests/cpu/test_attack_motor_adapter.py::test_every_attack_is_held_and_every_specimen_fires[package_integrity]",
+     "population_screen": "tests/cpu/test_attack_motor_adapter.py::test_every_attack_is_held_and_every_specimen_fires[population_screen]",
+     "rebuild_identity": "tests/cpu/test_attack_motor_adapter.py::test_every_attack_is_held_and_every_specimen_fires[rebuild_identity]",
+     "rebuild_report": "tests/cpu/test_attack_motor_adapter.py::test_every_attack_is_held_and_every_specimen_fires[rebuild_report]",
+     "recipe_forgery": "tests/cpu/test_attack_motor_adapter.py::test_every_attack_is_held_and_every_specimen_fires[recipe_forgery]",
+     "ripple_omission": "tests/cpu/test_attack_motor_adapter.py::test_every_attack_is_held_and_every_specimen_fires[ripple_omission]",
+     "ripple_phase": "tests/cpu/test_attack_motor_adapter.py::test_every_attack_is_held_and_every_specimen_fires[ripple_phase]",
+     "ripple_scaling": "tests/cpu/test_attack_motor_adapter.py::test_every_attack_is_held_and_every_specimen_fires[ripple_scaling]",
+     "saturation_optimism": "tests/cpu/test_attack_motor_adapter.py::test_every_attack_is_held_and_every_specimen_fires[saturation_optimism]"
+    }
+   }
   }
  }
 }
