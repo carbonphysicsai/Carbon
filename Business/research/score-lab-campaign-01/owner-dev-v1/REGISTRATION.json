@@ -3,7 +3,7 @@
   "id": "OWNER-SCORELAB-FINISH-LINE-01-DEVELOPMENT-V1",
   "authority": {
     "path": ".agent/decisions/2026-10-15-OWNER-SCORELAB-FINISH-LINE-01.md",
-    "sha256": "8d20994cd0d80f6b1a376443f99adba767a039848e3276c4c4164a290b0d37d2",
+    "sha256": "1ec37ebd23f3afd5bee4832a58c65c68e3a1ea4714375f554e051814b1dbf6df",
     "date": "2026-10-15",
     "owner": "Ryan"
   },
@@ -188,7 +188,38 @@
     "criterion": "pick regret and no gamer in top half; tau significance is not a selection gate",
     "registration_before_stage": 5,
     "registration_on_main_required": true,
-    "main_registration_receipt": null
+    "main_registration_receipt": null,
+    "procedure_source": {
+      "commit": "57c3e019f7f7de6deb274ffd5283395c91dfaa50",
+      "path": "docs/development/SCORELAB_FINISH_LINE_HANDOFF.md",
+      "sha256": "9fb2df6cb58760873c55220b20e69a79dee00a8f09e9d77407e5dd1e8553edf1",
+      "section": "4; adopted by owner D5; owner answers govern conflicts"
+    },
+    "Stage_A": "Keep in-force hard admission/gates; missing evidence is not PASS",
+    "Stage_B": [
+      "tau with cluster bootstrap reported, not gated",
+      "top-1 and top-3 pick regret minutes on common mask",
+      "known-bad/control placement",
+      "wrongful exclusions: admitted-good members demoted below a probe"
+    ],
+    "Stage_C": {
+      "survives_iff": [
+        "existing registered per-case full-rule form",
+        "no gamer in top half",
+        "top-3 regret <= in-force top-3 regret on same panel",
+        "wrongful exclusions <= in-force wrongful exclusions"
+      ],
+      "among_survivors": "minimum top-3 regret; tie -> higher tau point estimate; tie -> fewer legs",
+      "no_survivor": "KEEP_V2_QUIZ_SHADOW",
+      "further_exact_tie": "UNRESOLVED_OWNER_SELECTION_NO_VALUE_REFIT"
+    },
+    "Stage_D": {
+      "run": "shortlist winner and in-force once, Test Engineer custody",
+      "criterion": "winner top-3 regret <= in-force top-3 regret on holdout",
+      "otherwise": "KEEP_V2_QUIZ_SHADOW",
+      "no_candidate": "do not reveal holdout merely to exercise an empty shortlist"
+    },
+    "Stage_E": "Prospective owner adoption record only; no historical rescore or runtime/LIVE activation by this library"
   },
   "holdout": {
     "reveals": 1,
