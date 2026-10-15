@@ -7,7 +7,11 @@
  "recommended": {
   "vcpu": 8,
   "memory_gib": 16,
-  "cpu_flavors": ["cpu3c", "cpu3g", "cpu3m"],
+  "cpu_flavors": [
+   "cpu3c",
+   "cpu3g",
+   "cpu3m"
+  ],
   "minutes": 150,
   "expected_minutes": 75,
   "worst_case_usd": 0.6,
@@ -26,7 +30,7 @@
   {
    "name": "f17-triage",
    "type": "bulk",
-   "judges": "nothing by itself: runs the 13 frozen cases (8 primary h10 designs, 2 refined h7.071 witnesses deep-dense 40/100/6 and deep-sparse 40/250/10, 2 smooth-duct controls, 1 deep-dense cold repeat) and records per-case CPU-s, wall-s and peak memory",
+   "judges": "D1 two-mesh on both witnesses (h10 vs h7.071 at Q 5 uL/min, D 0.5e-10: |dM| <= 0.02, |dp|/dp <= 5 %, volumes within B5); D2 maximum-Pe scalar layer on both rungs (M(D 0.5e-10) - M(D 0) >= 0.02; verdict PRIMARY_ADEQUATE / REFINED_RUNG_REQUIRED / HIGH_PE_UNRESOLVED); D3 limitedLinear01 diagnostic (reported only); D5 cross-hardware parity of the cold repeat vs the panel (bitwise, else <= 1e-4 flagged NONDETERMINISTIC); C1-C4 controls on pod hardware (C1 Poiseuille <= 3.0 % at h10, <= 1.5 % at h7.071, order in [1.5, 2.5]; C2 max |c - 1| <= 1e-6; C3 |M - M_ref| <= 0.01; C4 M <= 1e-3) with C5 from the committed periodic result; triage answer inputs per design (worst-M over nine conditions, max dp vs 250 Pa, residence at 1 uL/min) and F9 value check B (worst-M spread >= 0.05 among admissible designs per floor 0.80/0.85). All bands: .agent/decisions/2026-10-15-F17-SCIENCE-VALUES-01.md Observer runs before scratch cleanup; raw fields are not inferred from retained logs.",
    "manifest": "docs/development/evidence/reference-packages-01/triage-f17-decks-manifest.json",
    "freeze": {
     "argv": [
@@ -39,7 +43,9 @@
     "timeout_s": 600
    },
    "select": {
-    "families": ["f17"]
+    "families": [
+     "f17"
+    ]
    },
    "families": {
     "f17": {
@@ -53,7 +59,12 @@
       "launches": 15,
       "cpu_hours": 8
      },
-     "reservation_order": ["witness_studies", "primary", "controls", "cold_repeat"]
+     "reservation_order": [
+      "witness_studies",
+      "primary",
+      "controls",
+      "cold_repeat"
+     ]
     }
    },
    "keep": {
@@ -73,21 +84,14 @@
     "mesh/constant/triSurface/bottom.eMesh",
     "mesh/system/blockMeshDict",
     "mesh/system/snappyHexMeshDict"
-   ]
-  },
-  {
-   "name": "f17-judge",
-   "type": "script",
-   "judges": "D1 two-mesh on both witnesses (h10 vs h7.071 at Q 5 uL/min, D 0.5e-10: |dM| <= 0.02, |dp|/dp <= 5 %, volumes within B5); D2 maximum-Pe scalar layer on both rungs (M(D 0.5e-10) - M(D 0) >= 0.02; verdict PRIMARY_ADEQUATE / REFINED_RUNG_REQUIRED / HIGH_PE_UNRESOLVED); D3 limitedLinear01 diagnostic (reported only); D5 cross-hardware parity of the cold repeat vs the panel (bitwise, else <= 1e-4 flagged NONDETERMINISTIC); C1-C4 controls on pod hardware (C1 Poiseuille <= 3.0 % at h10, <= 1.5 % at h7.071, order in [1.5, 2.5]; C2 max |c - 1| <= 1e-6; C3 |M - M_ref| <= 0.01; C4 M <= 1e-3) with C5 from the committed periodic result; triage answer inputs per design (worst-M over nine conditions, max dp vs 250 Pa, residence at 1 uL/min) and F9 value check B (worst-M spread >= 0.05 among admissible designs per floor 0.80/0.85). All bands: .agent/decisions/2026-10-15-F17-SCIENCE-VALUES-01.md",
-   "argv": [
-    "bash",
-    "-c",
-    "apt-get install -y -qq --no-install-recommends --snapshot 20260930T000000Z python3-numpy python3-scipy > {out}/apt.log 2>&1 && dpkg-query -W python3-numpy python3-scipy > {out}/judge-packages.txt && PYTHONPATH={root} python3 scripts/dev/reference_packages/openfoam/f17_pod_judge.py --cases {work}/../f17-triage/bulk/cases/f17 --out {out} --periodic docs/development/evidence/reference-packages-01/f17-c5-periodic-result.json"
    ],
-   "timeout_s": 1200,
-   "keep": {
-    "patterns": ["*.json", "*.txt", "*.log"],
-    "max_file_bytes": 2000000
+   "observe": {
+    "argv": [
+     "bash",
+     "-c",
+     "apt-get install -y -qq --no-install-recommends --snapshot 20260930T000000Z python3-numpy python3-scipy > {out}/apt.log 2>&1 && dpkg-query -W python3-numpy python3-scipy > {out}/judge-packages.txt && PYTHONPATH={root} python3 scripts/dev/reference_packages/openfoam/f17_pod_judge.py --cases {bulk}/cases/f17 --out {out} --periodic docs/development/evidence/reference-packages-01/f17-c5-periodic-result.json"
+    ],
+    "timeout_s": 1200
    }
   }
  ]

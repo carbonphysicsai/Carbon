@@ -1,0 +1,16 @@
+Traceback (most recent call last):
+  File "/tmp/carbon/scripts/dev/reference_packages/openfoam/f17_pod_judge.py", line 135, in <module>
+    main()
+  File "/tmp/carbon/scripts/dev/reference_packages/openfoam/f17_pod_judge.py", line 129, in main
+    r = judge(args.cases, args.out, args.periodic)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/carbon/scripts/dev/reference_packages/openfoam/f17_pod_judge.py", line 63, in judge
+    for case in sorted(p for p in cases_dir.iterdir() if (p / "work").is_dir()):
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/carbon/scripts/dev/reference_packages/openfoam/f17_pod_judge.py", line 63, in <genexpr>
+    for case in sorted(p for p in cases_dir.iterdir() if (p / "work").is_dir()):
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/pathlib.py", line 1058, in iterdir
+    for name in os.listdir(self):
+                ^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/tmp/work/f17-judge/../f17-triage/bulk/cases/f17'

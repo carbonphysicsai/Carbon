@@ -1559,6 +1559,11 @@ def public_pod_plan(doc) -> None:
             yield o
 
     for text in strings(doc):
+        if "{work}/.." in text.replace("\\", "/"):
+            raise SystemExit(
+                "refusing: step scratch cannot reference parent paths; "
+                "use {bulk} inside observe or persisted {out} results"
+            )
         low = text.lower()
         parts = set(
             low.replace("_", "/").replace("-", "/").replace(".", "/").split("/")

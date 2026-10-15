@@ -297,6 +297,57 @@ def config(plan):
     }
 
 
+def test_observe_consumes_raw_outputs_before_cleanup_and_persists_report(
+    fake_repo, tmp_path
+):
+    step = bulk_step("bulk", "clean", {"families": ["fx"], "cases": ["ok-a"]})
+    step["keep"] = {"patterns": ["solver.log"], "max_file_bytes": 1000}
+    step["observe"] = {
+        "argv": [
+            "python3",
+            "-c",
+            (
+                "from pathlib import Path; import json; "
+                "raw=Path('{bulk}/cases/fx/ok-a/work/out.txt').read_text(); "
+                "Path('{out}/observed.json').write_text(json.dumps(dict(value=raw)))"
+            ),
+        ]
+    }
+    followup = {
+        "name": "lineage",
+        "type": "script",
+        "argv": [
+            "python3",
+            "-c",
+            (
+                "from pathlib import Path; import json; "
+                "assert json.loads(Path('{out}/../bulk/observed.json').read_text())"
+                "['value']=='a\\n'"
+            ),
+        ],
+    }
+    plan = write_plan(fake_repo, [step, followup])
+    out, scratch = tmp_path / "out", tmp_path / "scratch"
+    assert pp.run("fake", out, config(plan), scratch) == 0
+    assert not (scratch / "bulk").exists()
+    assert not (out / "bulk/cases/fx/ok-a/work/out.txt").exists()
+    assert json.loads((out / "bulk/observed.json").read_text())["value"] == "a\n"
+
+
+def test_deleted_sibling_scratch_is_refused_before_any_pod_launch(fake_repo):
+    bad = {
+        "name": "judge",
+        "type": "script",
+        "argv": ["python3", "judge.py", "{work}/../bulk/cases"],
+    }
+    plan = write_plan(fake_repo, [bad])
+    with pytest.raises(SystemExit, match="scratch cannot reference parent"):
+        pp.load_plan(fake_repo / plan, "fake")
+    pc = _load_pod_control("deleted_scratch_preflight")
+    with pytest.raises(SystemExit, match="scratch cannot reference parent"):
+        pc.public_pod_plan(json.loads((fake_repo / plan).read_text()))
+
+
 def test_the_pod_phase_runs_scripts_and_verified_bulk_steps(fake_repo, tmp_path):
     script = (
         "mkdir -p {work}/c && docker run --rm --network none -v {work}/c:/case native"
