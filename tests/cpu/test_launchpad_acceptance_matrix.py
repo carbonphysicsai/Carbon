@@ -160,6 +160,89 @@ def test_invalid_or_deferred_pass_is_not_constructible(changes):
         cell.validate_cell(document(**changes))
 
 
+@pytest.mark.parametrize(
+    "before,after", [(REVISION, "c" * 40), ("git:" + REVISION, "git:" + "c" * 40)]
+)
+def test_f02_records_real_revision_strings(before, after):
+    value = document(
+        "F02",
+        evidence={
+            "before_revision": before,
+            "after_revision": after,
+            "image_digests": [DIGEST],
+            "stale_profile_present": True,
+            "refusal_code": "REFUSED",
+        },
+    )
+    assert cell.validate_cell(value) == value
+
+
+@pytest.mark.parametrize("bad", [1, True, None, [], {}, "short", "ghp_" + "a" * 36])
+def test_revision_fields_do_not_accept_typed_observations_or_credentials(bad):
+    with pytest.raises(ValueError, match="INVALID_EVIDENCE_REVISION"):
+        cell.validate_cell(document("F08", "FAIL", evidence={"before_revision": bad}))
+
+
+def f15():
+    return document(
+        "F15",
+        evidence={
+            "target_count": 2,
+            "receiver_pairs_match": True,
+            "admitted_journal_digest": DIGEST,
+            "refused_journal_digest": "sha256:" + "c" * 64,
+            "admit_code": "ADMITTED",
+            "refusal_code": "commitment_required",
+            "verdicts_averaged": False,
+        },
+    )
+
+
+def test_f15_pass_records_two_paired_targets_separate_journals_and_no_averaging():
+    value = f15()
+    assert cell.validate_cell(value) == value
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        {"target_count": 1},
+        {"target_count": True},
+        {"target_count": 2.0},
+        {"receiver_pairs_match": False},
+        {"receiver_pairs_match": 1},
+        {"verdicts_averaged": True},
+        {"verdicts_averaged": 0},
+        {"refused_journal_digest": DIGEST},
+        {"admit_code": "REFUSED"},
+        {"refusal_code": "ADMITTED"},
+        {"refusal_code": "evaluation_failed_infra"},
+    ],
+)
+def test_f15_pass_cannot_contradict_owner_d6(change):
+    value = f15()
+    value["evidence"].update(change)
+    with pytest.raises(ValueError):
+        cell.validate_cell(value)
+
+
+@pytest.mark.parametrize(
+    "token", ["ghp_" + "a" * 36, "github_pat_" + "b" * 40, "otherprovider_" + "c" * 32]
+)
+def test_non_openai_credentials_have_no_code_or_metadata_escape(token):
+    for evidence in (
+        {"backend": token, "feedback_digest": DIGEST},
+        {"nested": {"result_code": token}},
+        {"nested": [{"check_code": token}]},
+        {"backend": {"nested_code": token}},
+    ):
+        with pytest.raises(ValueError):
+            cell.validate_cell(document("F08", "FAIL", evidence=evidence))
+    for field in ("actor", "machine_kind"):
+        with pytest.raises(ValueError, match="INVALID_PUBLIC_METADATA"):
+            cell.validate_cell(document(**{field: token}))
+
+
 def test_duplicate_and_nonfinite_json_are_not_accepted():
     for raw in ('{"cell":"F08","cell":"F01"}', '{"evidence":NaN}'):
         with pytest.raises(ValueError):

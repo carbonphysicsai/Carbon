@@ -58,3 +58,20 @@ Named digest forms are sha256:<64 hex>, git:<40 hex>, or chain:<64 hex> for
 already-recorded public chain hashes. The chain form labels its provenance
 without inventing a SHA-256 algorithm for an extrinsic. Untyped key-shaped
 hexadecimal strings remain refused.
+
+Review repairs: before_revision/after_revision have explicit 40-hex or git:40
+shape checks before generic observations, including wrong-type refusals. F15
+PASS must record exactly two matched receiver pairs, distinct admit/refuse
+journal digests, an admitted state, a named admission-policy refusal and false
+verdict averaging; contradictory typed observations cannot construct a PASS.
+These fixed non-scientific D6 conditions do not authenticate an actual run.
+
+Credential-shaped strings cannot escape through generic code fields or actor /
+machine metadata. Known backend/transport/framework/state values are closed;
+remaining code text must be an explicit observation/version/finding code or a
+member of T03's public literal vocabulary (baseline blob
+6948ae235ed8a0b83af3de7d87189dc62b89302d). That catalog is vocabulary only,
+not evidence a refusal ran. Prospective actors are public roles and machines
+are public kinds listed in cell.py, not free text. Historical records remain
+read unchanged through the pinned T06 reader. New kinds/codes require an
+explicit prospective vocabulary update; no raw-text fallback exists.

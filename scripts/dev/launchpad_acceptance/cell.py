@@ -11,6 +11,7 @@ import json
 import os
 import re
 import tempfile
+from functools import lru_cache
 from pathlib import Path
 
 from .matrix import BY_CELL
@@ -69,6 +70,116 @@ _SENSITIVE = re.compile(
 )
 _CODE_FIELDS = {"backend", "transport", "final_state", "findings", "outcome", "result"}
 _REFERENCE_FIELDS = {"source", "reference", "references", "finding_register"}
+_ACTORS = {
+    "OWNER",
+    "AGENT",
+    "ROOT",
+    "PLATFORM2",
+    "PLATFORM3",
+    "GRAPHITE",
+    "owner",
+    "agent",
+    "UNIT_FIXTURE_ONLY",
+}
+_MACHINE_KINDS = {
+    "carbon-fresh WSL2 Ubuntu24.04 x86_64",
+    "CARBON_FRESH_WSL2",
+    "CLEAN_CLOUD_VM",
+    "LOCAL_CPU",
+    "LOCAL_GPU",
+    "OWN_SERVER",
+    "RUNPOD_POD",
+    "VAST_VM",
+    "VAST_CONTAINER",
+    "LAMBDA_VM",
+    "LIUM_POD",
+    "TARGON_VM",
+    "TEMPORARY_UNIT_FIXTURE",
+}
+_CLOSED_VALUES = {
+    "backend": {"CPU", "ISOLATED_CARRIER_GPU", "REMOTE_GPU"},
+    "transport": {"ssh-docker", "ssh-container"},
+    "framework_code": {"jax", "pytorch", "JAX", "PYTORCH"},
+    "final_state": {"COMPLETED", "PAUSED"},
+    "result": {"PASS", "FAIL", "BLOCKED"},
+}
+_OBSERVATION_CODES = {
+    "ACCEPTED",
+    "ADMITTED",
+    "RECEIVED",
+    "SCORED",
+    "REFUSED",
+    "REJECTED",
+    "FAILED",
+    "FAILED_INFRA",
+    "COMPLETED",
+    "PAUSED",
+    "READY",
+    "CHECKED",
+    "VERIFIED",
+    "REGISTERED",
+    "SETTLED",
+    "TRAIN",
+    "CPU",
+    "GPU",
+    "JAX",
+    "PYTORCH",
+    "DEVELOPMENT",
+    "SEALED",
+    "SEALED_DEVELOPMENT",
+    "OWNER_KEY_UNAVAILABLE",
+    "NONE",
+    "UNRUN",
+    "PASS",
+    "FAIL",
+    "BLOCKED",
+}
+_F15_ADMITTED = {"RECEIVED", "ADMITTED", "SCORED"}
+_F15_REFUSED = {
+    "commitment_required",
+    "hotkey_window_used",
+    "challenge_mismatch",
+    "contract_mismatch",
+    "development_variant_not_served",
+    "ladder_hotkey_not_listed",
+    "ladder_variant_not_accepted",
+    "ladder_level_not_accepted",
+    "level4_not_served",
+}
+
+
+@lru_cache(maxsize=1)
+def _registered_codes():
+    """T03's public literal vocabulary only; not executed-refusal evidence."""
+    path = ROOT / "docs/development/launchpad/refusal_coverage_baseline.json"
+    if path.is_symlink():
+        raise ValueError("PUBLIC_CODE_CATALOG_UNAVAILABLE")
+    document = json.loads(
+        path.read_bytes(), object_pairs_hook=_unique, parse_constant=_nonfinite
+    )
+    if (
+        type(document) is not dict
+        or document.get("schema") != "carbon.launchpad.refusal-reference-baseline.v1"
+        or type(document.get("codes")) is not list
+        or any(
+            type(code) is not str or not _CODE.fullmatch(code)
+            for code in document["codes"]
+        )
+    ):
+        raise ValueError("PUBLIC_CODE_CATALOG_UNAVAILABLE")
+    return frozenset(document["codes"])
+
+
+def _public_code(value):
+    return type(value) is str and (
+        value in _OBSERVATION_CODES
+        or re.fullmatch(r"LA-F[1-9][0-9]{0,2}", value) is not None
+        or re.fullmatch(
+            r"(?:CLAUDE_CODE|CODEX|HERMES)_[0-9]{1,4}(?:_[0-9]{1,4}){1,3}", value
+        )
+        is not None
+        or value in _registered_codes()
+    )
 
 
 def public_reference(value):
@@ -95,6 +206,43 @@ def _evidence(value, key="evidence", depth=0, count=None):
     count[0] += 1
     if depth > 8 or count[0] > 512:
         raise ValueError("EVIDENCE_TOO_LARGE")
+    if key == "revision" or key.endswith("_revision"):
+        if (
+            type(value) is not str
+            or re.fullmatch(r"(?:git:)?[0-9a-f]{40}", value) is None
+        ):
+            raise ValueError("INVALID_EVIDENCE_REVISION")
+        return
+    if key in _CLOSED_VALUES:
+        if type(value) is not str or value not in _CLOSED_VALUES[key]:
+            raise ValueError("INVALID_PUBLIC_ENUM")
+        return
+    if key.endswith(("_digest", "_hash")):
+        if type(value) is not str or not _DIGEST.fullmatch(value):
+            raise ValueError("INVALID_EVIDENCE_DIGEST")
+        return
+    if key.endswith(("_digests", "_hashes")):
+        if (
+            type(value) is not list
+            or not value
+            or any(
+                type(item) is not str or not _DIGEST.fullmatch(item) for item in value
+            )
+        ):
+            raise ValueError("INVALID_EVIDENCE_DIGEST")
+        return
+    if key.endswith("_code") or key in _CODE_FIELDS - {"findings"}:
+        if not _public_code(value):
+            raise ValueError("INVALID_PUBLIC_CODE")
+        return
+    if key.endswith("_codes") or key == "findings":
+        if (
+            type(value) is not list
+            or not value
+            or any(not _public_code(item) for item in value)
+        ):
+            raise ValueError("INVALID_PUBLIC_CODE")
+        return
     if type(value) is dict:
         for name, child in value.items():
             if type(name) is not str or not _FIELD.fullmatch(name):
@@ -127,9 +275,9 @@ def _evidence(value, key="evidence", depth=0, count=None):
     if type(value) is bool or (type(value) is int and 0 <= value <= 2**63 - 1):
         return
     if type(value) is str and not _SENSITIVE.search(value):
-        if (
-            key in _CODE_FIELDS or key.endswith(("_code", "_codes"))
-        ) and _CODE.fullmatch(value):
+        if (key in _CODE_FIELDS or key.endswith(("_code", "_codes"))) and _public_code(
+            value
+        ):
             return
         if key == "campaign_id" and re.fullmatch(r"[0-9a-f]{32}", value):
             return
@@ -154,17 +302,15 @@ def validate_cell(document):
         refusal = document["refusal_code"]
         if refusal is not None and (
             type(refusal) is not str
-            or not _CODE.fullmatch(refusal)
+            or not _public_code(refusal)
             or _SENSITIVE.search(refusal)
         ):
             raise ValueError("INVALID_REFUSAL_CODE")
-        for field in ("actor", "machine_kind"):
-            if (
-                len(document[field]) > 160
-                or _SENSITIVE.search(document[field])
-                or "\n" in document[field]
-            ):
-                raise ValueError("INVALID_PUBLIC_METADATA")
+        if (
+            document["actor"] not in _ACTORS
+            or document["machine_kind"] not in _MACHINE_KINDS
+        ):
+            raise ValueError("INVALID_PUBLIC_METADATA")
         _evidence(document["evidence"])
         if document["result"] == "PASS":
             if definition.blocked_reason:
@@ -176,6 +322,19 @@ def validate_cell(document):
                 for name in definition.required_evidence_fields
             ):
                 raise ValueError("MISSING_PASS_EVIDENCE")
+            if document["cell"] == "F15":
+                observed = document["evidence"]
+                if (
+                    type(observed["target_count"]) is not int
+                    or observed["target_count"] != 2
+                    or observed["receiver_pairs_match"] is not True
+                    or observed["verdicts_averaged"] is not False
+                    or observed["admitted_journal_digest"]
+                    == observed["refused_journal_digest"]
+                    or observed["admit_code"] not in _F15_ADMITTED
+                    or observed["refusal_code"] not in _F15_REFUSED
+                ):
+                    raise ValueError("F15_PASS_CONTRADICTS_D6")
         return json.loads(json.dumps(document, allow_nan=False))
     except (KeyError, TypeError, RecursionError) as failure:
         raise ValueError("MALFORMED_ACCEPTANCE_CELL") from failure

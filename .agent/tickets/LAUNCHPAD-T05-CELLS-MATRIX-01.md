@@ -32,6 +32,14 @@ credentials, identifiers, addresses, balances/spend and profile contents even
 when nested. Retain profile digests. Validate before opening a destination;
 fixed public date/cell paths, no symlinks, append-only exclusive create.
 
+Prospective actor roles and machine kinds are the closed public values in
+cell.py. Backend/transport/framework/state are closed enums; other code fields
+use the existing T03 public reference-code vocabulary plus explicit observation,
+version and finding codes. This is no executed-refusal or credential-ownership
+claim. F02 revisions are typed 40-hex/git:40 strings; F15 PASS enforces D6's
+two matched targets, separate admit/refuse journals, closed outcome codes and
+no verdict averaging. Legacy backfill stays readable without new-writer changes.
+
 Print every defined cell with latest recorded result and original revision.
 Evaluate each of the seven section-3.6 predicates separately, identify its
 owner and unmet/missing evidence. Add F15 to base flow coverage under D6; include
