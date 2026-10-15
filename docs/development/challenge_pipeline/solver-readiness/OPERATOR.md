@@ -14,9 +14,10 @@ deadline, or they are lost when the pod deletes itself.
 ## 2. Set up (once)
 ```bash
 git clone https://github.com/carbonphysicsai/Carbon && cd Carbon
-git checkout claude/compassionate-curie-yt9dxx
+git checkout codex/solver-readiness-execution
 export RUNPOD_API_KEY=...        # your key; never commit, paste or print it
-bash scripts/dev/reference_packages/operator_setup.sh     # --cap-usd/--floor-usd/--no-docker
+bash scripts/dev/reference_packages/operator_setup.sh --operator-phase resume-2026-10-15
+# Other setup flags: --cap-usd/--floor-usd/--no-docker
 ```
 For a separately owner-funded operator phase whose historical private billing
 ledger is on another machine, use `--operator-phase resume-2026-10-15` with setup
@@ -25,12 +26,17 @@ uses separate public/private ledgers and active-pod state. The phase identifier
 does not grant money or renew a budget. Reuse the same identifier on restart;
 never create another phase to evade a consumed cap. See
 `SOLVER-READINESS-RESUME-PHASE-01` for this phase's USD25 authorization.
+The branch above contains the resumed operator repairs; the original stopped
+handoff remains on `claude/compassionate-curie-yt9dxx`. This phase has already
+started on the current operator host. Preserve its private accounting when
+moving hosts; a fresh key alone cannot reconstruct already incurred spend.
 It installs the Python env, writes `~/.runpod/api_key` and `~/.runpod/campaigns.json`
 (mode 600), starts the `reference-solvers` campaign, builds a clean Python for ship
 checks, and prints the RunPod balance. Existing campaign entries and any higher
 account balance floor are preserved. Rates, billing figures and host machine
 identities stay in `~/.runpod`; only
-public events go to `docs/development/evidence/reference-solvers-2026-10-15/accounting/ledger.jsonl`.
+public events go to `docs/development/evidence/reference-solvers-2026-10-15/phases/resume-2026-10-15/accounting/ledger.jsonl`
+for this named phase.
 
 ## 3. Before every launch: ship check
 Pods receive only files the plan names. Check the plan's pod scripts import cleanly:
@@ -57,19 +63,23 @@ f17 `scripts.dev.reference_packages.openfoam.f17_pod_judge` (if the plan names i
 ```bash
 REF=$(git rev-parse --short HEAD)
 .venv/bin/python -m scripts.dev.exam_design.runpod.pod_control --campaign reference-solvers \
+  --operator-phase resume-2026-10-15 \
   dispatch-solver KIND --pod-plan docs/development/evidence/reference-solvers-2026-10-15/plans/PLAN.json \
   --vcpu 16 --minutes 120 --memory-gib 32 --flavors cpu5c,cpu3c,cpu3g,cpu5g --ref $REF --max-pods 4
 # "not in stock": retry each minute.  On success note pod_id, then (keep running):
 .venv/bin/python -m scripts.dev.exam_design.runpod.pod_control --campaign reference-solvers \
+  --operator-phase resume-2026-10-15 \
   collect docs/development/evidence/reference-solvers-2026-10-15/DEST --pod POD_ID --wait --poll-s 120
 # stop a pod now:
-.venv/bin/python -m scripts.dev.exam_design.runpod.pod_control --campaign reference-solvers terminate --pod POD_ID
+.venv/bin/python -m scripts.dev.exam_design.runpod.pod_control --campaign reference-solvers \
+  --operator-phase resume-2026-10-15 terminate --pod POD_ID
 ```
 
 | Plan | KIND | vCPU | Minutes | Worst case |
 |---|---|---|---|---|
 | f02-verification.json | elmer | 8 | 150 maximum | $0.60 estimate |
 | f08-triage-bank.json | calculix | 16 | 120 | $1.12 |
+| f08-train-256-continuation.json | calculix | 16, 32 GiB | 120 | $1.12 estimate |
 | f13-verification.json | elmer | 16 | 450 | $4.20 |
 | f13-coaxial-4mm-dense.json | elmer | 8, 64 GiB | 240 | $1.76 estimate |
 | f17-witness-triage.json | openfoam2506 | 8 | 150 | $0.60 estimate |
@@ -81,7 +91,11 @@ It does not replace the historical 8 mm finding or complete the other f13
 verification requirements. Always use the live provider reservation check;
 the table's costs are planning estimates, not current offers.
 
-`collect` deletes the pod after fetching. Then commit `DEST/` and the public ledger.
+`collect` deletes the pod after fetching. Retain the complete collection locally.
+Commit the small public judgements, receipts and public event ledger. Bulk
+training reference files remain retained data artifacts with hashes in their
+receipts; do not commit hundreds of MB of `case.dat` or other training labels.
+Raw host environment and private billing stay operator-local.
 
 ## 5. Read results
 `DEST/out/<step>/step.json` (`status`, `why`) · `deck-verification.json` (digests;

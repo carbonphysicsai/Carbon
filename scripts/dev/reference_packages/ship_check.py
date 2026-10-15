@@ -105,7 +105,9 @@ def main(argv=None):
                         "plan_source": "working-tree proposal" if a.write else "commit",
                         "modules_checked": a.modules.split(","),
                         "coverage": "top-level imports only; lazy imports and runtime resources are not checked",
-                        "requires_commit": bool(a.write and (extra or uncommitted_plan)),
+                        "requires_commit": bool(
+                            a.write and (extra or uncommitted_plan)
+                        ),
                     },
                     indent=1,
                 )
