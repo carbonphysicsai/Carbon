@@ -15,9 +15,9 @@ Unknown dynamic expressions are outside literal completeness, stated explicitly.
 The baseline is an engineering backlog, not authority to weaken a refusal. Each
 initial gap has a child ticket ID and owner in the published report. CI forbids
 new gaps and loss of previously referenced codes; deleting one gap cannot pay
-for a different new gap. The candidate cannot expand the allowance relative
-to the base's baseline. Initial introduction must name the exact comparison
-base; future deliberate rebaselining requires its own reviewed authority.
+for a different new gap. The check compares actual source/test inventories against the resolved Git
+base, never against a candidate-editable allowance. A separate test verifies
+the frozen backlog against its exact recorded public revision.
 
 This is reversible tooling: remove the six files to undo the change. No public
 runtime schema, scientific rule, gate threshold, scoring, dispatch, signing,

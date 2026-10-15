@@ -24,8 +24,8 @@ owner, source and priority (direct production refusal site before catalog-only
 entries). Those child tickets remain open; this ticket does not implement them.
 The report publishes every row and how to regenerate it. No new unreached code,
 formerly referenced code losing its reference, or larger unreached set passes.
-Compare baseline changes against the actual Git comparison base so editing the
-candidate's allowance list cannot silently admit new backlog.
+Compare actual code/test inventories against the Git comparison base; the
+baseline is never an allowance source, so editing it cannot hide a new gap.
 
 The new CPU test integrates the check into the existing canonical collection.
 Do not edit ci.sh, workflows, T02/T04/T05/T06 or PR1376 files. Platform2 owns
