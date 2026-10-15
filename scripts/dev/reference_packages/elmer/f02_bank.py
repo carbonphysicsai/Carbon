@@ -35,6 +35,7 @@ import argparse
 import itertools
 import json
 import math
+import shutil
 import sys
 from pathlib import Path
 
@@ -194,8 +195,9 @@ def case_name(ctx, p, d, tag):
 ROLES = ("decision", "train", "practice", "timing", "verification")
 
 
-def freeze(registry, out, role, train_multiple=1):
-    """Write one role's decks and OUT/manifest.json."""
+def freeze(registry, out, role, train_multiple=1, hash_only=False):
+    """Write one role's decks and OUT/manifest.json (hash_only: write each deck,
+    record its digests, then delete it: pins a manifest without the disk)."""
     reg = json.loads(Path(registry).read_text())
     out, ctxs, entries = Path(out), dict(menu.contexts()), []
     menu_files = readiness._registered(readiness.MENU_MANIFEST)
@@ -209,6 +211,8 @@ def freeze(registry, out, role, train_multiple=1):
                 f"{name}: regenerated deck differs from its registered manifest"
             )
         entries.append(readiness.entry_for(name, reservation, files, meta))
+        if hash_only:
+            shutil.rmtree(d)
 
     if role == "decision":
         primaries = {}
@@ -293,12 +297,15 @@ def main(argv=None):
     f.add_argument("out", type=Path)
     f.add_argument("--role", choices=ROLES, required=True)
     f.add_argument("--train-multiple", type=int, default=1, choices=TRAIN_LADDER)
+    f.add_argument("--hash-only", action="store_true")
     args = parser.parse_args(argv)
     if args.command == "design":
         doc = design(args.steps, args.baselines, args.out)
         print(json.dumps(doc["counts"], indent=1))
     else:
-        counts = freeze(args.registry, args.out, args.role, args.train_multiple)
+        counts = freeze(
+            args.registry, args.out, args.role, args.train_multiple, args.hash_only
+        )
         print(json.dumps(counts, indent=1))
     return 0
 

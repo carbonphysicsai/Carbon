@@ -129,5 +129,13 @@
     "max_file_bytes": 2000000
    }
   }
- ]
+ ],
+ "ship": [
+  "docs/development/evidence/reference-packages-01/f02-readiness/bands.json",
+  "docs/development/evidence/reference-packages-01/f02-readiness/local-convergence-judgement.json",
+  "docs/development/evidence/reference-packages-01/f02-menu-v2/baseline-decks-manifest.json",
+  "docs/development/evidence/reference-packages-01/f02-menu-v2/decks-manifest.json",
+  "docs/development/evidence/reference-solvers-2026-10-15/pins/f02-verification-decks-manifest.json"
+ ],
+ "ship_note": "no carbon/ module is imported: f02_readiness, f02_deck, f02_controls, f02_baselines, f02_menu and mms_heat are stdlib-only (checked with /tmp/claude-0/cleanpy, Python 3.13, on the shipped set). The pinned manifest was frozen under Python 3.13 (the pod's 3.13.5): Python >= 3.12 sum() rounds mesh-2 node coordinates differently from 3.11 in the last ulp, so mesh/mesh.nodes is also host-regenerable"
 }

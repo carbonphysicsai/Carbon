@@ -70,7 +70,9 @@ def predict(case, steps, bases):
     ctx = f"c{case['coolant_c']:g}-i{case['initial_c']:g}-s{case['left_source_fraction']:g}"
     s = steps[(case["h_w_m2_k"], case["left_source_fraction"])]
     dp = np.diff(excess(case), prepend=0.0)
-    theta = np.convolve(dp, s)[: len(GRID)]
+    # Linear convolution by FFT (equal to np.convolve to rounding; O(n log n)).
+    n = 2 * len(GRID)
+    theta = np.fft.irfft(np.fft.rfft(dp, n) * np.fft.rfft(s, n), n)[: len(GRID)]
     return bases[ctx] + theta
 
 
