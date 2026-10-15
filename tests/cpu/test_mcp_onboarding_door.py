@@ -227,7 +227,9 @@ def test_every_onboarding_read_refuses_with_the_same_action(
 
 
 def test_preparing_an_already_registered_hotkey_has_the_same_refusal(browser_server):
-    participants = (Participant(uid=0, hotkey=HOTKEY, coldkey=COLDKEY, registered_at=42),)
+    participants = (
+        Participant(uid=0, hotkey=HOTKEY, coldkey=COLDKEY, registered_at=42),
+    )
     browser_server.onboarding.reader = _Reader(participants)
     status, browser = browser_call(
         browser_server, "/api/v1/onboarding/prepare", {"address": HOTKEY}
