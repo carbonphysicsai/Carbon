@@ -1,0 +1,19 @@
+{
+ "name": "harness-numpy",
+ "type": "script",
+ "status": "PASS",
+ "wall_s": 7.0122544420009945,
+ "exit": 0,
+ "signal": null,
+ "stop_reason": "exit",
+ "rusage_user_s": 5.09,
+ "rusage_sys_s": 1.352,
+ "rusage_cpu_s": 6.442,
+ "rusage_maxrss_bytes": 110358528,
+ "sampled_group_rss_peak_bytes": 85082112,
+ "rlimit_as_bytes": null,
+ "kept": {
+  "copied": 1,
+  "not_copied": 0
+ }
+}

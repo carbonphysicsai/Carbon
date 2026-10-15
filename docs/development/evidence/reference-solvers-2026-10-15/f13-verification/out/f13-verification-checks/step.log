@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/tmp/carbon/scripts/dev/reference_packages/elmer/f13_pod_checks.py", line 35, in <module>
+    from scripts.dev.reference_packages.elmer import f13_assemble as assemble
+  File "/tmp/carbon/scripts/dev/reference_packages/elmer/f13_assemble.py", line 27, in <module>
+    from carbon.challenge_pipeline import silencer_readiness as sr
+ModuleNotFoundError: No module named 'carbon'

@@ -1,0 +1,6 @@
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/tmp/carbon/scripts/dev/reference_packages/elmer/f13_triage_freeze.py", line 38, in <module>
+    from carbon.challenge_pipeline import silencer_readiness as sr
+ModuleNotFoundError: No module named 'carbon'
