@@ -112,7 +112,16 @@ scenario("acceptance labels name a revision and never follow availability", asyn
   const offered = byValue(page, "#research-selects input", "manual");
   assert.equal(offered.disabled, false);
   agent.acceptance = {...agent.acceptance, result: "FAIL"};
-  await refresh(page);
+  // Capability responses are snapshots, reread on connect or this action;
+  // ordinary campaign polling does not fetch changed capability evidence.
+  const reads = () => page.requests.filter(request => request.path === "/api/v1/control-center/capabilities").length;
+  const before = reads();
+  page.go("#settings");
+  await page.advance(0);
+  await page.press(page.$("settings-recheck"));
+  assert.equal(reads(), before + 1, "the changed evidence reached the page");
+  page.go("#launch");
+  await page.advance(0);
   assert.ok(!page.text("research-selects").includes("Tested at"));
   assert.ok(!page.text("launchpad-strip").includes("Tested at"));
   assert.equal(byValue(page, "#research-selects input", "manual").disabled, false);
