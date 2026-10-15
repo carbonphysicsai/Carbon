@@ -146,7 +146,9 @@ def test_actual_agent_select_keeps_contract_for_plain_recipe(
         assert result[cl.MANIFEST_KEY]["level"] == 0
         assert result[cl.MANIFEST_KEY]["changes"] == []
     folder = value.root / "epoch-1"
-    assert json.loads((folder / "selected-recipe.json").read_bytes()) == result
+    selected = json.loads((folder / "selected-recipe.json").read_bytes())
+    assert {key: result[key] for key in selected} == selected
+    assert result["schema"] == "carbon.autoresearch.epoch-outcome.v1"
     assert not (folder / cl.LEVEL4_ENVELOPE).exists()
     campaign._level_record_bound(SimpleNamespace(manifest=manifest), result)
     # Commitment still recomputes the compiled contract; no signer is involved.
@@ -172,7 +174,13 @@ def test_unbound_base_agent_selection_is_unchanged(tmp_path):
     value, _ = meter(tmp_path)
     practiced(value, RECIPE)
     result = run_selection(value, RECIPE, [])
-    assert result == loop.candidate_record(RECIPE, "fixture comparison", True)
+    expected = loop.candidate_record(RECIPE, "fixture comparison", True)
+    selected = json.loads(
+        (value.root / "epoch-1" / "selected-recipe.json").read_bytes()
+    )
+    assert selected == expected
+    assert {key: result[key] for key in expected} == expected
+    assert result["schema"] == "carbon.autoresearch.epoch-outcome.v1"
     plan = json.loads((value.root / "epoch-1" / "plan.json").read_bytes())
     assert plan["initial_observation"] == {"fixture": True}
 
