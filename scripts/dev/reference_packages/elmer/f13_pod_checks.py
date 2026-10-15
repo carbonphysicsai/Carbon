@@ -9,8 +9,8 @@ B1-B3, C1-C4, D1-D5), solves them N at a time (longest first, one serial
 ElmerSolver per vCPU), stops admitting new cases after --budget-s, then
 assembles PROOF.json from whatever finished (missing runs stay NOT_RUN /
 DEFERRED, never PASS) and prints one JSON line per registered check. The
-mode-matching control (`mm`) is pure Python; `all` copies the committed
-`f13-mode-matching.json` instead of recomputing it unless --recompute-mm.
+mode-matching control (`mm`, numpy/scipy, ~20 CPU-min) runs as one pool task
+unless a committed `f13-mode-matching.json` exists (then it is copied).
 
 `coax4` (the three panel coaxials on the 4 mm mesh, 21 points) is a B3
 DIAGNOSTIC, not a registered check: the 8 mm small-coaxial curve misses the
@@ -100,12 +100,12 @@ def mode_matching(out, n_low=20, n_high=40):
 def run_all(work, out, jobs, budget_s, groups, image, recompute_mm=False):
     work = Path(work)
     work.mkdir(parents=True, exist_ok=True)
-    if recompute_mm or not MM_EVIDENCE.exists():
-        mode_matching(work / "mm.json")
-    else:
-        shutil.copyfile(MM_EVIDENCE, work / "mm.json")
     start = time.monotonic()
     tasks = []
+    if recompute_mm or not MM_EVIDENCE.exists():
+        tasks.append((5_000, "mm"))  # ~20 CPU-min, runs beside the solves
+    else:
+        shutil.copyfile(MM_EVIDENCE, work / "mm.json")
     for group, rel, geo, kwargs, weight in plan():
         if group in groups:
             deck.write_case(geo, work / rel, **kwargs)
@@ -117,6 +117,9 @@ def run_all(work, out, jobs, budget_s, groups, image, recompute_mm=False):
     def one(rel):
         if time.monotonic() - start > budget_s:
             return rel, "NOT_ADMITTED"
+        if rel == "mm":
+            mode_matching(work / "mm.json")
+            return rel, "COMPLETED"
         if rel == "mms":
             from scripts.dev.reference_packages.elmer import f13_mms as mms  # numpy
 
