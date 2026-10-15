@@ -61,6 +61,10 @@ COMMAND = (
     " /sys/fs/cgroup/cpuacct/cpuacct.usage /sys/fs/cgroup/memory/memory.max_usage_in_bytes"
     " > cgroup.txt 2>/dev/null; (exit $rc)"
 )
+#: Bank launches: the same solve, then the ~150 MB eigen basis (case.eig) is
+#: dropped; the observer reads case.dat only, and a 256-case bank must fit a
+#: 20 GB pod disk.
+BANK_COMMAND = COMMAND.replace("; (exit $rc)", "; rm -f case.eig; (exit $rc)")
 DECISION = "F08-SCIENCE-VALUES-01"
 #: DEVELOPMENT bands, .agent/decisions/2026-10-15-F08-SCIENCE-VALUES-01.md (set before the triage ran).
 BANDS = {

@@ -114,3 +114,22 @@ anchor cell. No reference or hidden material was used; no band changes.
 | Q2′ | Bank and sealed-bank geometry law (supersedes Q2 for bank-type roles: H1, decision-study representative half stays P) | `structures-readiness/question-law.json:Q_geometry`; `f08_bank.py freeze --enrich 0.5` | Q = 0.5 P + 0.5 P conditioned on the screen answer region (some grid cell's binding ratio ≤ 1.2); w = P/Q per geometry recorded in the manifest | the common Q recommendation (0.5 P + 0.5 near-limit) applied to geometries; gives ~16 feasible designs for the anchor cell and ~80 for the 0.20 mm/N cells in a 256 bank | Yes: screen feasibility rates above (not reference results); this is a sampling law, not an acceptance band |
 | F-1 | Finding for the owner (not changed here) | — | the 0.10 mm/N dynamic level is empty over the whole envelope (nine NONE_FEASIBLE cells) and the static axis never binds (static ≤ 2ζ × dynamic cap), so the 27-cell grid has at most 6 answer-distinct cells | changing buyer limits reopens the owner-selected anchors | — |
 | F-2 | Finding for V4 / value | — | the cost-rank-1 beam/low-mode screen already reproduces the reference decision quantities within a few percent on this envelope | packet §9: “if modal reduction already solves this job cheaply, park it” | — |
+
+## Results against the registered bands (same day, after the values above)
+
+Judged by `f08_freeze.py --observe` with the bands unchanged. DEVELOPMENT
+engineering evidence; nothing here is qualification.
+
+| Check | Band | Result | Evidence |
+|---|---|---|---|
+| C1 oscillator control, local Docker | ≤ 1e-6 rel, ≤ 0.01°, unretained ≤ 1e-12 | PASS | `reference-packages-01/triage-f08-observed.json` |
+| C1 oscillator control, RunPod native build | same | PASS: 4.9e-7 rel, 1.6e-5°, 6.5e-18 | `reference-solvers-2026-10-15/calculix-smoke-3/f08-controls-observed.json` |
+| C2 beam control, local Docker | static 2 %, f1 / f2 1 %, crest 3 %, location | PASS: static 0.81 %, f1 0.51 %, f2 0.16 %, crest 0.82 % at each ζ | triage-f08-observed.json |
+| C2 beam control, RunPod native | same | NOT JUDGED: launch COMPLETED (56.5 CPU-s) but its 2.19 MB case.dat exceeded the 2 MB keep limit; the pod plan now observes on the pod | smoke-3 |
+| M2 mode ladder, F2 sampling | as registered | PASS on all 15 solved geometry launches | triage-f08-observed.json |
+| V1–V8 long-flexible ladder | as registered | PASS at h 3 and 2.25 vs 1.7 (eigen 0.54 % / 0.25 %, worst ζ peak ≤ 0.05 %, static 0.05 %, mass < 0.01 %); asymptotic | triage-f08-observed.json |
+| V1–V8 nominal ladder | as registered | PASS at h 3 and 2.25 (eigen 0.29 % / 0.14 %, static 0.06 %); asymptotic | triage-f08-observed.json |
+| V1–V8 relieved-tall ladder | as registered | INCOMPLETE: h 1.7 (241,756 nodes) was cut by the host restart; heavy, so it moves to the pod | — |
+| V7 mesh vs CAD mass | ≤ 0.5 % | PASS, worst 0.013 % | triage-f08-observed.json |
+| V9 bank mesh | coarsest passing rung on all 3 witnesses | UNRESOLVED (relieved-tall); 2 of 3 witnesses pass at h 3 | — |
+| Cold repeat | — | identical worst-band compliance to its primary | triage-f08-observed.json |

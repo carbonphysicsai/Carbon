@@ -45,7 +45,7 @@
    "estimate_cpu_h": 100.98,
    "estimate_peak_mem_mib": 1338,
    "estimate_usd_runpod": 4.42,
-   "status": "READY_TO_GENERATE (needs registration.json committed; bank mesh V9 result)",
+   "status": "READY_TO_GENERATE (1x rung: public seed 20261015, pinned manifest pins/f08-train-256-h3-manifest.json, pod plan plans/f08-triage-bank.json step 2, gated on V9 = h 3)",
    "ladder": [
     64,
     128,
@@ -104,7 +104,7 @@
    "estimate_cpu_h": 1.38,
    "estimate_peak_mem_mib": 6102,
    "estimate_usd_runpod": 0.06,
-   "status": "READY_TO_GENERATE (needs the native ccx build on the pod verified first)"
+   "status": "PLANNED (plans/f08-triage-bank.json step 1 on runpod-cpu5c-16vcpu; native build verified by calculix-smoke-3)"
   },
   {
    "role": "verification",
@@ -120,7 +120,7 @@
    "estimate_cpu_h": 2.52,
    "estimate_peak_mem_mib": 6102,
    "estimate_usd_runpod": 0.11,
-   "status": "DONE_LOCALLY on the Docker image; NEEDS_NATIVE_REPEAT for a pod build"
+   "status": "LOCAL_16_OF_17_PASS (relieved-tall-h1.7 unfinished); NATIVE oscillator control PASS (calculix-smoke-3); native repeat planned in plans/f08-triage-bank.json step 1"
   },
   {
    "role": "research_environment",
