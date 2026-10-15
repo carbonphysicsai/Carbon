@@ -35,3 +35,11 @@ temporary creation on every save, then fsync/atomic replace. Controls cover all
 three dangling paths and a temporary-link race; no writes outside the owned
 output are permitted. This strengthens the new wrapper only; the eight frozen
 pilot sources remain unchanged. This is not hostile-filesystem qualification.
+
+CI fixture repair CONTINUE-R2: a finite numerical-mismatch control must retain
+the producer's seconds/minutes identity. Change its toy 100-minute clock to
+6000 seconds too, and assert successful extraction before the cross-rung
+comparison. Keep a separate malformed-clock control expecting incomplete
+reference and no later dispatch. The previous fixture reached the correct
+incomplete-data refusal instead of testing numerical inadequacy. No runtime
+implementation, source pin, scientific policy or assertion is weakened.

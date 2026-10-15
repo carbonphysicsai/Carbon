@@ -248,8 +248,11 @@ def test_failed_triple_prevents_later_submissions(setup, monkeypatch, failure_gr
         row = _record(job)
         if job["case_id"] == bad_id:
             row["soc_clock"]["minutes"] = 100.0
+            row["soc_clock"]["time_s"] = 6000.0
         return row
 
+    # Reach the numerical comparison, not the malformed-clock refusal path.
+    assert producer._extract(bad(rest[failure_group * 3 + 2]))["state"] == "EXTRACTED"
     monkeypatch.setattr(worker, "_timed", bad)
     assert setup["run"]() == 2
     receipt = setup["receipt"]()
@@ -262,7 +265,9 @@ def test_failed_triple_prevents_later_submissions(setup, monkeypatch, failure_gr
     )
 
 
-@pytest.mark.parametrize("failure", ["infra", "not_reached", "identity", "interrupt"])
+@pytest.mark.parametrize(
+    "failure", ["infra", "not_reached", "clock_mismatch", "identity", "interrupt"]
+)
 def test_incomplete_malformed_and_interrupted_rows_never_advance(
     setup, monkeypatch, failure
 ):
@@ -274,6 +279,8 @@ def test_incomplete_malformed_and_interrupted_rows_never_advance(
         row = _record(job)
         if failure == "identity":
             row["soc0"] = 0.2
+        elif failure == "clock_mismatch":
+            row["soc_clock"]["minutes"] = 100.0
         else:
             row["soc_clock"] = {"status": "NOT_REACHED"}
         return row
@@ -291,6 +298,9 @@ def test_incomplete_malformed_and_interrupted_rows_never_advance(
     assert receipt["records_sha256"] == _sha(setup["paths"]["records"])
     if failure == "infra":
         assert list(receipt["per_job"].values()).count("FAILED_INFRA") == 3
+    elif failure == "clock_mismatch":
+        assert receipt["status"] == "INCOMPLETE_REFERENCE"
+        assert receipt["per_completed_triple"][0]["status"] == "INCOMPLETE_REFERENCE"
 
 
 @pytest.mark.parametrize(
