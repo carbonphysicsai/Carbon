@@ -21,7 +21,7 @@ effective".
 |---|---|
 | Campaign cap | USD 25 all-in for this phase, counted at each pod's worst case before create |
 | Balance floor | the account never goes below USD 15 |
-| Pods | CPU only, Secure cloud, on-demand; at most 2 live at once |
+| Pods | CPU only, Secure cloud, on-demand; at most 4 live at once (raised from 2 on the owner's 2026-10-15 instruction "raise the limit to whatever you need") |
 | Per pod | a deadline at create; the pod ends itself at the deadline; deleted, not stopped, when done |
 | Rate | the cheapest CPU flavor whose vCPU and memory fit the job; no GPU |
 

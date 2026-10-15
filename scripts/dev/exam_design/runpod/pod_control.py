@@ -133,7 +133,7 @@ CAMPAIGNS = {
         "evidence": "docs/development/evidence/reference-solvers-2026-10-15",
         "active": "reference_solvers_active_pods",
         "token": None,
-        "max_pods": 2,
+        "max_pods": 4,
         "name": "carbon-reference-solvers",
         "cpu_flavors": ["cpu3c", "cpu5c", "cpu3g", "cpu5g", "cpu3m", "cpu5m"],
         "max_cpu_rate": 1.5,
