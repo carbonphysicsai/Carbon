@@ -27,10 +27,14 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
+sys.path.insert(0, str(HERE.parents[3]))
 
 import f13_deck as deck
 
-ELMER = "sha256:8bcd864dd60be0a80be9769c1a95c67db76eca9e718212f63dd0460cf3a08fc6"
+from carbon.challenge_pipeline.silencer_readiness import IMAGE as ELMER
+
+# The committed f13-power-probe.json ran on the earlier pin 8bcd864d (its
+# own "image" field); a re-run binds the current pin.
 LABELS = ("nominal", "large-offset", "clearance-boundary", "small-coaxial")
 STUBS = (10.0, 60.0)
 SOLVE = (

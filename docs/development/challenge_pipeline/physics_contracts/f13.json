@@ -16,15 +16,11 @@
     "validity": "carbon/challenge_validator/validity.py"
   },
   "validity": {
-    "status": "HUMAN_INPUT_NO_REGISTERED_DECLARATION",
-    "implementation_support": {
-      "geometry": "Two chamber radii 55-70 mm and lengths 40-110 mm, neck 10-50 mm, offset 0-25 mm, 30 mm clearance and package <=300 mm including physical leads",
-      "leads": "10 mm physical leads but 60 mm numerical stubs; observer de-embeds the extra 50 mm",
-      "medium": "rho=1.2 kg/m3, c=343 m/s, no flow, absorption, liner, thermal or nonlinear acoustic claim",
-      "frequency": "500-2500 Hz, 201 rung-1 or 401 rung-2 points; narrow resonances need refined support",
-      "modes": "Port-only single propagating mode must be verified on the exact port cross-section; chambers can have higher modes and evanescent fields"
-    },
-    "decision_needed": "Science declares acoustic amplitude, port mode/frequency, medium/material and source-model applicability; no existing f13 validity registry entry is inferred",
+    "status": "REGISTERED_DEVELOPMENT",
+    "decision": "F13-SCIENCE-VALUES-01 E1-E4",
+    "implementation_support": {"geometry": "Two chamber radii 55-70 mm and lengths 40-110 mm, neck 10-50 mm, offset 0-25 mm, 30 mm clearance and package <=300 mm including physical leads", "leads": "10 mm physical leads but 60 mm numerical stubs; observer de-embeds the extra 50 mm", "medium": "rho=1.2 kg/m3, c=343 m/s, no flow, absorption, liner, thermal or nonlinear acoustic claim", "frequency": "500-2500 Hz, 201 rung-1 or 401 rung-2 points; narrow resonances need refined support", "modes": "Port-only single propagating mode must be verified on the exact port cross-section; chambers can have higher modes and evanescent fields"},
+    "declaration": {"medium_amplitude": "Linear lossless quiescent air, rho 1.2 kg/m3, c 343 m/s; valid while pressure amplitude/(rho c^2) <= 0.01 (about 1.4 kPa). Normalised R, T and TL are amplitude-invariant there; the unit-power source (647.5 Pa, acoustic Mach 0.0046) is inside it", "ports": "50 mm ports are single-mode below 1.84118 c/(2 pi 0.025 m) = 4020 Hz, so 500-2500 Hz is single-mode; evanescent (1,1) content is removed by the 60 mm numerical leads, evidenced by the 60 vs 100 mm lead check", "frequency": "500-2500 Hz", "geometry": "packet envelope enforced by silencer_readiness.geometry: radii 55-70 mm, lengths 40-110 mm, neck r 20 mm / length 10-50 mm / offset 0-25 mm, 10 mm wall clearance, package <= 300 mm with two 10 mm stubs", "outside": "flow, heat, liners, shell vibration, nonlinear amplitude, other ports or media"},
+    "decision_needed": "Registered for DEVELOPMENT by F13-SCIENCE-VALUES-01; qualification remains with the owner",
     "outside_or_unknown": "UNRESOLVED_NOT_CANDIDATE_FAILURE",
     "sources": ["packet", "readiness", "deck", "validity"]
   },
@@ -55,8 +51,8 @@
   "tolerances": {"status": "HUMAN_INPUT", "calibration_status": "NOT_RUN", "quantile": null, "multiplier": null, "absolute_floors": null, "sampling_uncertainty": null, "recipe": "Common README plan; calibrate complex amplitude and absolute power before derived dB and near-zero bounds"},
   "calibration": {
     "status": "NOT_RUN",
-    "image_digest": "sha256:8bcd864dd60be0a80be9769c1a95c67db76eca9e718212f63dd0460cf3a08fc6",
-    "image_basis": "Elmer image recorded in the silencer verification proposal, SPECIFIED_NOT_RUN; accepted f02 heat MMS is not Helmholtz/port/P2-tet acceptance",
+    "image_digest": "sha256:61be1cb77c51fcdd822250e372754a9ce728a5bb42f39b7ba03cdf5e70901add",
+    "image_basis": "Local 2026-10-15 rebuild (f13-rebuild.json), bit-identical lineage to 8bcd864d on a v1 deck; Helmholtz MMS and v2 controls are in f13-proof-v2.json; this contract calibration itself is NOT_RUN",
     "verification_sources": ["verification"],
     "holds": ["Exact-image Helmholtz/port code-verification acceptance", "Registered acoustic validity", "Prospective model output contract", "Single-mode port proof and saved-integral closure", "Matched mesh/frequency/refined-edge calibration"],
     "recalibrate_on": ["image rebuild or re-pin", "element/mesh", "port/reference plane", "medium", "observer", "frequency scope"]
