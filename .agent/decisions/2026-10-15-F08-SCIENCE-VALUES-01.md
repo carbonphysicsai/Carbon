@@ -35,7 +35,7 @@ or physical uncertainty.
 | V2 | Mesh peak band | same `.peak_change_percent` | ≤ 5 % worst-band tip peak per ζ, h = 3 vs 1.7 | Packet adopted; equals total decision budget | No |
 | V3 | Peak location band | same `.peak_location` | ≤ min(2 Hz, 1 % of peak f) | Packet adopted; = one ζ = 0.005 bandwidth | No |
 | V4 | Peak phase band | same `.phase_deg` | ≤ 5° wrapped, each rung at its own resolved peak, only where \|u\| ≥ 0.015 mm/N | Packet 5° adopted; floor = 10 % of the 0.15 cap (phase is meaningless near zero response) | No |
-| V5 | Absolute floor away from peaks (packet HUMAN_INPUT) | same `.curve_floor` | \|Δu\| ≤ 0.05·\|u_ref\| + 0.0015 mm/N on the common grid | 0.0015 = 1 % of the dynamic cap: below any decision-relevant motion | No |
+| V5 | Absolute floor away from peaks (packet HUMAN_INPUT) | same `.curve_floor` | \|Δu\| ≤ 0.05·\|u_ref\| + 0.0015 mm/N on the reference grid, away from peaks: outside f_j·(1 ± 3·2ζ) of every in-band mode of either rung (inside those windows V2–V4 govern; a 1 % frequency shift legitimately moves a ζ = 0.005 curve by far more than 5 % at fixed frequency) | 0.0015 = 1 % of the dynamic cap: below any decision-relevant motion | No |
 | V6 | Static mesh band | same `.static_change_percent` | ≤ 2 % | Packet's static cross-tool 2 % adopted as the mesh band | No |
 | V7 | Mass band | same `.mass_change_percent` | mesh vs CAD volume ≤ 0.5 % | Packet adopted (0.5 % of 0.45 kg = 2.25 g) | No |
 | V8 | Asymptotic check | same `.asymptotic` | \|Δ(2.25→1.7)\| ≤ \|Δ(3→2.25)\| for f1 and each ζ peak, else NOT_ASYMPTOTIC → UNRESOLVED (finding, no band change) | Three-rung practice; a non-monotone ladder cannot bound error | No |
