@@ -1,0 +1,589 @@
+{
+  "schema": "carbon.dev.score-lab-finish-line.v1",
+  "scope": "PUBLIC_AND_SYNTHETIC_DEVELOPMENT",
+  "authority": ".agent/decisions/2026-10-14-OPT15C-FINISH-LINE.md",
+  "first_real_job": {
+    "status": "OWNER_REGISTRATION_REQUIRED",
+    "proposal": "battery-v3 ambient-indexed charge map: protocol plus cooling at 5/15/25/35/40 C; time minimized with registered per-band hard limits",
+    "current_diagnostic": "public EV4 CV-onset proxy; never treated as this proposed job",
+    "unresolved": [
+      "complete workflow/version and reference applicability",
+      "role population P / proposal Q / buyer weights w",
+      "cost, fallback and abstention utility semantics",
+      "independent family/seed/sample coverage and validation design"
+    ]
+  },
+  "artifacts": {
+    "public_inputs": {
+      "path": "Business/research/score-lab-campaign-01/finish-line/PUBLIC_INPUTS.json",
+      "sha256": "d942fcb2b41f0b99a6dc875ccf45ceb08df36e9bf4829c7d429d291b5e2ab428",
+      "schema": "carbon.dev.score-lab-public-input-status.v1"
+    },
+    "ev4_admission": {
+      "path": "Business/research/score-lab-public-v2-01/ADMISSION.json",
+      "sha256": "be3af8d6875529324bef8560d397dfe3a5d9b2d69dd0a77fed8823adbcd54da0",
+      "schema": "carbon.dev.ev4-public-v2-admission.v1"
+    },
+    "combined_registration": {
+      "path": "Business/research/score-lab-campaign-01/combined-matrix/REGISTRATION.json",
+      "sha256": "13ab662a5489d8dc4efe6cce499ab157395446f1b0f53dad593167014f5ef2ae",
+      "schema": "carbon.dev.score-lab-combined-plan.v1"
+    },
+    "public_crosswalk": {
+      "path": "Business/research/score-lab-campaign-01/finish-line/PUBLIC_BUNDLE_CROSSWALK.json",
+      "sha256": "433cc7dc0f590d4a3e17dec71efa8f2468c86cbff5548e421e0a2b920dd315e7",
+      "schema": "carbon.scorelab.public-raw-bundle-crosswalk.v1"
+    },
+    "battery_question_law": {
+      "path": "docs/development/challenge_pipeline/question-laws/battery-v3-round2.json",
+      "sha256": "9c98c03ffdd7ebce9817929a7a057187347f68646dc380d70cfc8df13ef536a6",
+      "schema": "carbon.battery-ambient-question-law.proposal.round2.v1"
+    },
+    "combined_summary": {
+      "path": "Business/research/score-lab-campaign-01/combined-matrix/SUMMARY.json",
+      "sha256": "60c2718696b424611c10263519c93cfc7826bd1ba440bb7ec2b822614b1ddc61",
+      "schema": "carbon.dev.score-lab-combined-summary.v1"
+    }
+  },
+  "stages": [
+    {
+      "id": "job_contract",
+      "owner": "Owner / Test Lead / Validator",
+      "owner_ticket": "OPT-15c + owner battery-v3 value framing",
+      "depends_on": [],
+      "source_or_artifact_identity": {
+        "owner_approved_job": "docs/development/challenge_pipeline/round1/battery-ambient-map-v3.md",
+        "law": {
+          "path": "docs/development/challenge_pipeline/question-laws/battery-v3-round2.json",
+          "sha256": "9c98c03ffdd7ebce9817929a7a057187347f68646dc380d70cfc8df13ef536a6",
+          "schema": "carbon.battery-ambient-question-law.proposal.round2.v1"
+        },
+        "utility": "docs/development/value-metric-v2/definition.v2.json"
+      },
+      "minimum_action": "Register the first real experiment job and role contract: battery-v3 ambient-indexed charging-time map is proposed. Bind action/condition/index grammar, hard limits, objective units, buyer mix, fallback, utility/cost and abstention treatment, P/Q/w, reference version and per-role laws. EV4 CV-onset remains a separate diagnostic.",
+      "validation": "Existing design_search task/law/bank parsers plus value-metric definition; check exact contract digests across all receipts.",
+      "readiness_predicate": "A domain-owned registered complete job and disjoint role law exists; no HUMAN_INPUT values on the intended real execution path.",
+      "checks": [
+        {
+          "artifact": "battery_question_law",
+          "pointer": [
+            "runtime_registration"
+          ],
+          "op": "equals",
+          "expected": true
+        },
+        {
+          "artifact": "battery_question_law",
+          "pointer": [
+            "registered_P"
+          ],
+          "op": "nonempty"
+        },
+        {
+          "artifact": "battery_question_law",
+          "pointer": [
+            "registered_Q"
+          ],
+          "op": "nonempty"
+        },
+        {
+          "artifact": "battery_question_law",
+          "pointer": [
+            "registered_outer_w"
+          ],
+          "op": "nonempty"
+        },
+        {
+          "artifact": null,
+          "pointer": [
+            "registered_job_contract"
+          ],
+          "op": "nonempty"
+        }
+      ],
+      "execution": {
+        "kind": "OWNER_REGISTRATION",
+        "command": null
+      }
+    },
+    {
+      "id": "cohort",
+      "owner": "Data Collection / Graphite Testing Manager",
+      "owner_ticket": "OPT-15c paired cohort receipt",
+      "depends_on": [
+        "job_contract"
+      ],
+      "source_or_artifact_identity": "PUBLIC_INPUTS.json: 137 bundles, 99 declared recipes, 122 fit digests; no independence claim",
+      "minimum_action": "Export authoritative per-bundle recipe, declared architecture, rebuild seed role and training-data cohort identity. Supply independent recipe/family/seed coverage required by a prospectively registered experiment design; do not derive independence from hashes. Existing 137-record join needs no rebuild.",
+      "validation": "Verify compressed bundle digests; join on exact member/recipe identity; group shared recipes/seeds/train sources before resampling. Coverage target remains a Test Lead design input.",
+      "readiness_predicate": "Complete source-backed family/seed/train bindings and registered coverage predicate, with repetitions retained as clusters.",
+      "checks": [
+        {
+          "artifact": "public_crosswalk",
+          "pointer": [
+            "public_source_bindings",
+            "public_bundle_copy",
+            "hash_or_byte_mismatches"
+          ],
+          "op": "equals",
+          "expected": 0
+        },
+        {
+          "artifact": "public_inputs",
+          "pointer": [
+            "readiness",
+            "independent_family_manifest"
+          ],
+          "op": "nonempty"
+        },
+        {
+          "artifact": "public_inputs",
+          "pointer": [
+            "readiness",
+            "training_cohort_manifest"
+          ],
+          "op": "nonempty"
+        },
+        {
+          "artifact": "public_inputs",
+          "pointer": [
+            "readiness",
+            "rebuild_seed_role_provenance"
+          ],
+          "op": "nonempty"
+        }
+      ],
+      "execution": {
+        "kind": "SUPPLIER_PUBLIC_EXPORT",
+        "command": null
+      }
+    },
+    {
+      "id": "paired_score_inputs",
+      "owner": "Data Collection / Validator / Graphite executor",
+      "owner_ticket": "V3-SCORE-INPUTS-01 + OPT-15c",
+      "depends_on": [
+        "job_contract",
+        "cohort"
+      ],
+      "source_or_artifact_identity": "Legacy a/r/g/m/n/p on 415 original D cases; Q3/VERIFY-R absent, separate physics study partial",
+      "minimum_action": "Produce public-development predictions and reference-bound accuracy, Q3/VERIFY-R, margin/gate, uncertainty, neighbour and physics inputs for the SAME member/recipe/seed/task rows; missing arrays require registered development inference, not guesses or hidden quiz exports.",
+      "validation": "Reuse score_tuning/score_proof and V3 collector; exact contract and member joins, complete per-action coverage, role separation, units and common availability mask. Synthetic aliases are never treated as measured B9/B15/B16.",
+      "readiness_predicate": "Every registered score leg required by the frozen family is observed on matched public-development roles; absent optional family inputs remain unscored.",
+      "checks": [
+        {
+          "artifact": "public_inputs",
+          "pointer": [
+            "readiness",
+            "paired_all_legs"
+          ],
+          "op": "equals",
+          "expected": true
+        }
+      ],
+      "execution": {
+        "kind": "SUPPLIER_REGISTERED_DEVELOPMENT_EXECUTION",
+        "command": "python -m scripts.dev.score_lab replay --help"
+      }
+    },
+    {
+      "id": "references",
+      "owner": "Data Collection + Validator/owner",
+      "owner_ticket": "OPT-21 reference applicability; public EV4 admission",
+      "depends_on": [
+        "job_contract"
+      ],
+      "source_or_artifact_identity": {
+        "path": "Business/research/score-lab-public-v2-01/ADMISSION.json",
+        "sha256": "be3af8d6875529324bef8560d397dfe3a5d9b2d69dd0a77fed8823adbcd54da0",
+        "schema": "carbon.dev.ev4-public-v2-admission.v1"
+      },
+      "minimum_action": "For EV4 diagnostic only: complete 9 existing mesh160 pending and 5 missing/failed references; separately resolve applicability for 223 cases and method for 4 in-band unresolved cases through the owner. For proposed battery-v3 job, publish its own complete registered references and roles. Do not shrink the 35-action menu.",
+      "validation": "Reuse public_v2_reference admission / design_search bank checks; preserve every original action, unresolved status, source version and common mask.",
+      "readiness_predicate": "The intended job has complete applicable reference outcomes and a nonempty preregistered comparison mask. Current EV4 full35 mask is 0/12 D and 0/12 V.",
+      "checks": [
+        {
+          "artifact": "ev4_admission",
+          "pointer": [
+            "common_mask_by_split",
+            "development"
+          ],
+          "op": "length_at_least",
+          "expected": 1
+        },
+        {
+          "artifact": "ev4_admission",
+          "pointer": [
+            "common_mask_by_split",
+            "verification"
+          ],
+          "op": "length_at_least",
+          "expected": 1
+        },
+        {
+          "artifact": null,
+          "pointer": [
+            "intended_job_reference_receipt"
+          ],
+          "op": "nonempty"
+        }
+      ],
+      "execution": {
+        "kind": "OWNER_METHOD_THEN_SUPPLIER_COLLECTION",
+        "command": "python -m scripts.dev.score_lab.public_v2_replay --help"
+      }
+    },
+    {
+      "id": "value_traces",
+      "owner": "Optimizer + Data Collection",
+      "owner_ticket": "OPT-15c value workflow",
+      "depends_on": [
+        "job_contract",
+        "cohort",
+        "references"
+      ],
+      "source_or_artifact_identity": "scripts/dev/score_lab/public_v2_replay.py; carbon/design_search/equal_budget.py",
+      "minimum_action": "Run committed predictions through the exact registered shortlist/verification workflow; export per-question verified picks, feasibility/missed opportunity, regret in buyer units, attempted verification counts and complete costs. Produce common masks including all controls.",
+      "validation": "Use design_search tasks/equal_budget and score_proof common-mask analysis. Assert commit-before-reference and no score callback can see value-side material.",
+      "readiness_predicate": "Complete paired reference-verified value and cost for each compared member/control on the intended role; zero missing treated as zero loss.",
+      "checks": [
+        {
+          "artifact": null,
+          "pointer": [
+            "paired_value_trace_receipt"
+          ],
+          "op": "nonempty"
+        }
+      ],
+      "execution": {
+        "kind": "PUBLIC_ARITHMETIC_AFTER_INPUTS",
+        "command": "python -m scripts.dev.score_lab.public_v2_replay --help"
+      }
+    },
+    {
+      "id": "matched_controls",
+      "owner": "Data Collection + Optimizer",
+      "owner_ticket": "CHALLENGE-CHEAP-BASELINES-01 / ADAPTIVE-SOLVER-ARM-01",
+      "depends_on": [
+        "job_contract",
+        "value_traces"
+      ],
+      "source_or_artifact_identity": "carbon/design_search/cheap_baselines.py; carbon/design_search/adaptive_arms.py; component-goodhart-16/READOUT.md",
+      "minimum_action": "Bind the strongest registered cheap method plus always-decline/random-feasible/known-bad/path gamers to the same task, admissibility and shared budget. Include training/reference acquisition, construction, screening, verification CPU/wall cost; no free cache acquisition.",
+      "validation": "Reuse cheap_baselines/adaptive_arms/equal_budget ledger. Compare all offered controls and keep null or adverse outcomes.",
+      "readiness_predicate": "Meaningful registered controls have complete matched workflow cost and paired outcome receipts; current scalar cheap map is an illustrative control only.",
+      "checks": [
+        {
+          "artifact": "public_inputs",
+          "pointer": [
+            "readiness",
+            "matched_workflow_costs"
+          ],
+          "op": "equals",
+          "expected": true
+        },
+        {
+          "artifact": null,
+          "pointer": [
+            "matched_control_receipt"
+          ],
+          "op": "nonempty"
+        }
+      ],
+      "execution": {
+        "kind": "SUPPLIER_COST_THEN_REPLAY",
+        "command": null
+      }
+    },
+    {
+      "id": "interactions",
+      "owner": "Optimizer",
+      "owner_ticket": "OPT-15c combined matrix",
+      "depends_on": [],
+      "source_or_artifact_identity": {
+        "path": "Business/research/score-lab-campaign-01/combined-matrix/REGISTRATION.json",
+        "sha256": "13ab662a5489d8dc4efe6cce499ab157395446f1b0f53dad593167014f5ef2ae",
+        "schema": "carbon.dev.score-lab-combined-plan.v1",
+        "completed_summary": {
+          "path": "Business/research/score-lab-campaign-01/combined-matrix/SUMMARY.json",
+          "sha256": "60c2718696b424611c10263519c93cfc7826bd1ba440bb7ec2b822614b1ddc61",
+          "schema": "carbon.dev.score-lab-combined-summary.v1"
+        }
+      },
+      "minimum_action": "Bounded registered matrix completed; inspect all retained paired effects and unscored cells. Full-family search and real interaction evidence remain separate later stages.",
+      "validation": "Existing controls pass first; inspect source/config hashes, fixed score/value roles, raw scores/gates, common masks and cell costs. All real combined inputs remain gated by paired_score_inputs.",
+      "readiness_predicate": "The bounded combined diagnostic has complete source-bound execution or explicit capped partial evidence; fixed settings do not constitute optimized weights.",
+      "checks": [
+        {
+          "artifact": "combined_summary",
+          "pointer": [
+            "status"
+          ],
+          "op": "equals",
+          "expected": "COMPLETE"
+        },
+        {
+          "artifact": "combined_summary",
+          "pointer": [
+            "control_status"
+          ],
+          "op": "equals",
+          "expected": "CONTROL_PASS"
+        },
+        {
+          "artifact": "combined_summary",
+          "pointer": [
+            "completed_cells"
+          ],
+          "op": "equals",
+          "expected": 96
+        },
+        {
+          "artifact": "combined_summary",
+          "pointer": [
+            "plan_sha256"
+          ],
+          "op": "equals",
+          "expected": "a2374abb8508a2c1caae28850ddd31fe1dd584e4e89d5ddef59f40887b9cd76c"
+        },
+        {
+          "artifact": "combined_summary",
+          "pointer": [
+            "source_commit"
+          ],
+          "op": "equals",
+          "expected": "6e90df8fc47dad8dbfa663db26579f4c8fb8f2cb"
+        }
+      ],
+      "execution": {
+        "kind": "BOUNDED_LOCAL_SYNTHETIC",
+        "command": "python -m scripts.dev.score_lab.campaign_combined run Business/research/score-lab-campaign-01/combined-matrix/REGISTRATION.json <pinned-candidates.py> <new-output-dir>"
+      }
+    },
+    {
+      "id": "weight_search",
+      "owner": "Optimizer + Test Lead / Validator",
+      "owner_ticket": "OPT-15c score family capacity",
+      "depends_on": [
+        "job_contract",
+        "paired_score_inputs",
+        "value_traces",
+        "matched_controls",
+        "interactions"
+      ],
+      "source_or_artifact_identity": "scripts/dev/score_lab/core.py:registry_rule; carbon/battery/value/score_tuning.py; finish_line.py:capacity_witnesses",
+      "minimum_action": "Prospectively register a finite grid/family over existing leg weights, gates and interactions, search budget and selection objective on DEVELOPMENT only. Compare direct V2 utility separately. Use score_tuning grid support; add no production coefficients. Check aliases/dominance and report no-capacity evidence rather than endlessly tune weights.",
+      "validation": "core.registry_rule reuses exact scorer; capacity_witnesses identifies necessary failures for monotone feature-only families. Search logs include all tried rules and held-out split identities. Frozen illustrative proxies are not a weight search.",
+      "readiness_predicate": "Registered family and search design, complete development evidence, full attempted-rule log and untouched validation evaluation exist.",
+      "checks": [
+        {
+          "artifact": null,
+          "pointer": [
+            "registered_search_family_and_result"
+          ],
+          "op": "nonempty"
+        }
+      ],
+      "execution": {
+        "kind": "REGISTERED_PUBLIC_SEARCH_AFTER_GATES",
+        "command": null
+      }
+    },
+    {
+      "id": "measurement",
+      "owner": "Optimizer + Test Engineer",
+      "owner_ticket": "OPT-15c section E / SCORE-CEILING-01",
+      "depends_on": [],
+      "source_or_artifact_identity": "merged #1358 306dcbc reference adapter; #1359 495133c6 value-block adapter; carbon/battery/value/score_proof.py:value_ceiling",
+      "minimum_action": "Register and execute synthetic question/block/weight/reference-failure designs using existing reference and block adapters, then apply the same explicit design to complete real inputs. Keep score-side outage, P/Q/w and dependent question-group scope explicit.",
+      "validation": "Reuse score_proof.value_ceiling and joint bootstrap; optional campaign_blocks and campaign_reference preserve common masks. Compute the ceiling only on complete losses and retain its distributional assumptions.",
+      "readiness_predicate": "Source-bound measurement sensitivity/uncertainty receipts cover the intended sampling design; a reliability estimate is not a universal tau ceiling or family-capacity certificate.",
+      "checks": [
+        {
+          "artifact": null,
+          "pointer": [
+            "measurement_design_run_receipt"
+          ],
+          "op": "nonempty"
+        }
+      ],
+      "execution": {
+        "kind": "BOUNDED_SYNTHETIC_THEN_PUBLIC",
+        "command": null
+      }
+    },
+    {
+      "id": "goodhart",
+      "owner": "Optimizer",
+      "owner_ticket": "OPT-15c sections 3/6",
+      "depends_on": [
+        "interactions",
+        "weight_search"
+      ],
+      "source_or_artifact_identity": "component-goodhart-16 and score-lab-robustness-01 are measured limited precursors, not final-family evidence",
+      "minimum_action": "Run the frozen full-system candidates under the existing bounded trait and disclosed-score feedback searches with equal attempted-query accounting. Include copy/fallback/uncertainty strategies; measure value on target and near variants on common masks.",
+      "validation": "Reuse campaign_goodhart/campaign_feedback; searches see scoring material only. Oracle is approximate, signed gaps retained, no maximization across hidden validation.",
+      "readiness_predicate": "Complete registered matched-search receipts for the final candidate family, including negative/null results and all capped/unscored arms.",
+      "checks": [
+        {
+          "artifact": null,
+          "pointer": [
+            "final_family_goodhart_receipt"
+          ],
+          "op": "nonempty"
+        }
+      ],
+      "execution": {
+        "kind": "BOUNDED_LOCAL_SYNTHETIC_OR_OWNER_CAPPED_JOB",
+        "command": "python -m scripts.dev.score_lab campaign-goodhart --help"
+      }
+    },
+    {
+      "id": "competition",
+      "owner": "Optimizer + Validator",
+      "owner_ticket": "OPT-15c section G",
+      "depends_on": [
+        "interactions"
+      ],
+      "source_or_artifact_identity": "carbon/championship_stats/rev5.py; existing incentive simulations remain separate",
+      "minimum_action": "Connect frozen paired score/value panels to championship_stats.rev5 with caller-supplied development margin/N/K and independent batch/block design. Test ties to incumbent, true best selection and takeover delay; no payout or live policy.",
+      "validation": "Reuse championship_stats primitives, calibrate null/identical/tie and genuinely-better controls; compare crown outcome to analytic true value. No independent window claim from repeated same questions.",
+      "readiness_predicate": "Registered synthetic competition simulation and source-bound results exist for the intended family; existing championship library alone is insufficient.",
+      "checks": [
+        {
+          "artifact": null,
+          "pointer": [
+            "competition_design_and_run"
+          ],
+          "op": "nonempty"
+        }
+      ],
+      "execution": {
+        "kind": "LOCAL_ENGINEERING_AND_SYNTHETIC",
+        "command": null
+      }
+    },
+    {
+      "id": "budget",
+      "owner": "Optimizer + Data Collection / owner",
+      "owner_ticket": "OPT-15c registered compute cap",
+      "depends_on": [],
+      "source_or_artifact_identity": "combined-matrix/REGISTRATION.json; POD_JOB_SPEC.md is not launch ready",
+      "minimum_action": "Use the frozen local 1200-CPU-second matrix ledger now. Before the large 5000-20000-profile campaign, bind completed grammar, exact design/candidates, host price, pilot and cap to the launcher; owner alone authorizes spend/launch.",
+      "validation": "Reserve complete cells before dispatch; RLIMIT_CPU/address space and wall timeout; retain charged failures and excluded overhead. Pilot-based total estimate includes startup/teardown and all arms.",
+      "readiness_predicate": "Local run is capped; the full campaign has a registered cap/host binding and measured pilot. No extrapolation from a partial CLI cost claims launch readiness.",
+      "checks": [
+        {
+          "artifact": "combined_registration",
+          "pointer": [
+            "caps",
+            "total_cpu_seconds"
+          ],
+          "op": "equals",
+          "expected": 1200
+        },
+        {
+          "artifact": null,
+          "pointer": [
+            "full_campaign_cap_and_pilot"
+          ],
+          "op": "nonempty"
+        }
+      ],
+      "execution": {
+        "kind": "LOCAL_CAP_PLUS_OWNER_HOST_AUTHORIZATION",
+        "command": null
+      }
+    },
+    {
+      "id": "independent_validation",
+      "owner": "Test Engineer / data custodian",
+      "owner_ticket": "OPT-15c independent development validation",
+      "depends_on": [
+        "job_contract",
+        "cohort"
+      ],
+      "source_or_artifact_identity": "Current public EV4 D/V are diagnostic roles, not a fresh unseen confirmation",
+      "minimum_action": "Commit a previously uninspected, development-only validation role by whole recipe/family and task group as registered; bind data/reference/score versions before search. Public EV4 V already inspected is not untouched validation.",
+      "validation": "Role-overlap checks against training/practice/search/rotating/sealed roles by custodian; recipe/family/task overlap plus custody timestamps. Optimizer sees only allowed public development evidence after freeze.",
+      "readiness_predicate": "Independent untouched validation receipt under the registered design, with no rescore or reuse of selection cases.",
+      "checks": [
+        {
+          "artifact": "public_inputs",
+          "pointer": [
+            "readiness",
+            "independent_validation_receipt"
+          ],
+          "op": "nonempty"
+        }
+      ],
+      "execution": {
+        "kind": "CUSTODIAN_REGISTRATION",
+        "command": null
+      }
+    },
+    {
+      "id": "final_holdout",
+      "owner": "Test Engineer / owner",
+      "owner_ticket": "SCORE-LAB-EXPERIMENT-PLAN-01 section 6.2",
+      "depends_on": [
+        "weight_search",
+        "measurement",
+        "goodhart",
+        "competition",
+        "independent_validation",
+        "budget"
+      ],
+      "source_or_artifact_identity": "sha256:e24780aa066f9ed362322a4c0c224bd5c4dc9e9389b968d016ed250022b2b210",
+      "minimum_action": "Freeze the final rule list, metrics and stopping/selection procedure; custodian executes the committed holdout once at the final stage and returns an allowed aggregate receipt. Never send generator content to this readiness command.",
+      "validation": "Check final rule-list freeze predates custodian run and returned receipt binds the existing commitment. No adapting after reveal.",
+      "readiness_predicate": "Custodian final-only result and frozen candidate list are present; digest alone proves custody commitment, not outcome readiness.",
+      "checks": [
+        {
+          "artifact": null,
+          "pointer": [
+            "final_custodian_aggregate_receipt"
+          ],
+          "op": "nonempty"
+        }
+      ],
+      "execution": {
+        "kind": "CUSTODIAN_FINAL_ONLY",
+        "command": null
+      }
+    },
+    {
+      "id": "real_replay",
+      "owner": "Optimizer + owner",
+      "owner_ticket": "OPT-15c final top-three confirmation",
+      "depends_on": [
+        "final_holdout",
+        "value_traces",
+        "matched_controls"
+      ],
+      "source_or_artifact_identity": "Existing public_v2_replay and score_tuning readers; no real fit authorized by this manifest",
+      "minimum_action": "Replay only the prospectively selected frozen rules on complete applicable real development evidence; report worst-case/CVaR failure regions, bootstrap uncertainty, Goodhart/control and competition results. Request owner adoption separately.",
+      "validation": "Exact rule/input versions and disjoint roles; common masks and excluded counts; reference failure never candidate failure. No PASS/selection if inputs incomplete.",
+      "readiness_predicate": "Complete final research evidence under all registered contracts, with no scientific/adoption authority implied.",
+      "checks": [
+        {
+          "artifact": null,
+          "pointer": [
+            "final_real_replay_receipt"
+          ],
+          "op": "nonempty"
+        }
+      ],
+      "execution": {
+        "kind": "PUBLIC_ARITHMETIC_AFTER_FINAL_RECEIPT",
+        "command": null
+      }
+    }
+  ],
+  "final_holdout": {
+    "custodian": "Test Engineer",
+    "commitment_sha256": "e24780aa066f9ed362322a4c0c224bd5c4dc9e9389b968d016ed250022b2b210",
+    "reveal_policy": "Final-only custodian execution after frozen rule list; this command never receives content"
+  },
+  "policy": "No scientific threshold, coefficient, qualification, selection, spending or LIVE authority. A ready receipt only establishes the registered engineering predicates."
+}

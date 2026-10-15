@@ -10,6 +10,7 @@ from .model import CarbonOwnedResource, Offer, PodSpec, ResourceState
 
 __all__ = [
     "BalanceObservation",
+    "CPUStockObservation",
     "ComputeProvider",
     "CreateResult",
     "ListedResource",
@@ -32,6 +33,19 @@ class Observation:
     name: str | None
     rate_usd_per_hr: float | None
     observed_at: float
+    cpu_flavor_id: str | None = None
+
+
+@dataclass(frozen=True)
+class CPUStockObservation:
+    """A RunPod CPU stock read joined to the requested instance identity."""
+
+    flavor_id: str
+    vcpu_count: int
+    instance_id: str
+    available: bool
+    observed_at: float
+    source: str
 
 
 @dataclass(frozen=True)

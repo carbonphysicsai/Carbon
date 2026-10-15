@@ -1,0 +1,636 @@
+{
+  "schema": "carbon.dev.score-lab-finish-line-status.v1",
+  "manifest_sha256": "ce19b0d5f5b65f035fdc27047b69262ab8953fcbe3240a43b757e29dadcb2a92",
+  "stages": {
+    "job_contract": {
+      "ready": false,
+      "status": "BLOCKED",
+      "owner": "Owner / Test Lead / Validator",
+      "owner_ticket": "OPT-15c + owner battery-v3 value framing",
+      "minimum_action": "Register the first real experiment job and role contract: battery-v3 ambient-indexed charging-time map is proposed. Bind action/condition/index grammar, hard limits, objective units, buyer mix, fallback, utility/cost and abstention treatment, P/Q/w, reference version and per-role laws. EV4 CV-onset remains a separate diagnostic.",
+      "checks": [
+        {
+          "artifact": "battery_question_law",
+          "pointer": [
+            "runtime_registration"
+          ],
+          "observed": false,
+          "predicate": {
+            "op": "equals",
+            "expected": true
+          },
+          "reason": "EVIDENCE_PREDICATE_NOT_MET"
+        },
+        {
+          "artifact": "battery_question_law",
+          "pointer": [
+            "registered_P"
+          ],
+          "observed": null,
+          "predicate": {
+            "op": "nonempty"
+          },
+          "reason": "EVIDENCE_PREDICATE_NOT_MET"
+        },
+        {
+          "artifact": "battery_question_law",
+          "pointer": [
+            "registered_Q"
+          ],
+          "observed": null,
+          "predicate": {
+            "op": "nonempty"
+          },
+          "reason": "EVIDENCE_PREDICATE_NOT_MET"
+        },
+        {
+          "artifact": "battery_question_law",
+          "pointer": [
+            "registered_outer_w"
+          ],
+          "observed": null,
+          "predicate": {
+            "op": "nonempty"
+          },
+          "reason": "EVIDENCE_PREDICATE_NOT_MET"
+        },
+        {
+          "artifact": null,
+          "pointer": [
+            "registered_job_contract"
+          ],
+          "observed": null,
+          "predicate": {
+            "op": "nonempty"
+          },
+          "reason": "HUMAN_INPUT_OR_SUPPLIER_ARTIFACT_REQUIRED"
+        }
+      ],
+      "blockers": [
+        "EVIDENCE_PREDICATE_NOT_MET",
+        "EVIDENCE_PREDICATE_NOT_MET",
+        "EVIDENCE_PREDICATE_NOT_MET",
+        "EVIDENCE_PREDICATE_NOT_MET",
+        "HUMAN_INPUT_OR_SUPPLIER_ARTIFACT_REQUIRED"
+      ],
+      "execution": {
+        "kind": "OWNER_REGISTRATION",
+        "command": null
+      }
+    },
+    "cohort": {
+      "ready": false,
+      "status": "BLOCKED",
+      "owner": "Data Collection / Graphite Testing Manager",
+      "owner_ticket": "OPT-15c paired cohort receipt",
+      "minimum_action": "Export authoritative per-bundle recipe, declared architecture, rebuild seed role and training-data cohort identity. Supply independent recipe/family/seed coverage required by a prospectively registered experiment design; do not derive independence from hashes. Existing 137-record join needs no rebuild.",
+      "checks": [
+        {
+          "artifact": "public_crosswalk",
+          "pointer": [
+            "public_source_bindings",
+            "public_bundle_copy",
+            "hash_or_byte_mismatches"
+          ],
+          "observed": 0,
+          "predicate": {
+            "op": "equals",
+            "expected": 0
+          },
+          "reason": null
+        },
+        {
+          "artifact": "public_inputs",
+          "pointer": [
+            "readiness",
+            "independent_family_manifest"
+          ],
+          "observed": null,
+          "predicate": {
+            "op": "nonempty"
+          },
+          "reason": "EVIDENCE_PREDICATE_NOT_MET"
+        },
+        {
+          "artifact": "public_inputs",
+          "pointer": [
+            "readiness",
+            "training_cohort_manifest"
+          ],
+          "observed": null,
+          "predicate": {
+            "op": "nonempty"
+          },
+          "reason": "EVIDENCE_PREDICATE_NOT_MET"
+        },
+        {
+          "artifact": "public_inputs",
+          "pointer": [
+            "readiness",
+            "rebuild_seed_role_provenance"
+          ],
+          "observed": null,
+          "predicate": {
+            "op": "nonempty"
+          },
+          "reason": "EVIDENCE_PREDICATE_NOT_MET"
+        }
+      ],
+      "blockers": [
+        "dependency:job_contract",
+        "EVIDENCE_PREDICATE_NOT_MET",
+        "EVIDENCE_PREDICATE_NOT_MET",
+        "EVIDENCE_PREDICATE_NOT_MET"
+      ],
+      "execution": {
+        "kind": "SUPPLIER_PUBLIC_EXPORT",
+        "command": null
+      }
+    },
+    "paired_score_inputs": {
+      "ready": false,
+      "status": "BLOCKED",
+      "owner": "Data Collection / Validator / Graphite executor",
+      "owner_ticket": "V3-SCORE-INPUTS-01 + OPT-15c",
+      "minimum_action": "Produce public-development predictions and reference-bound accuracy, Q3/VERIFY-R, margin/gate, uncertainty, neighbour and physics inputs for the SAME member/recipe/seed/task rows; missing arrays require registered development inference, not guesses or hidden quiz exports.",
+      "checks": [
+        {
+          "artifact": "public_inputs",
+          "pointer": [
+            "readiness",
+            "paired_all_legs"
+          ],
+          "observed": false,
+          "predicate": {
+            "op": "equals",
+            "expected": true
+          },
+          "reason": "EVIDENCE_PREDICATE_NOT_MET"
+        }
+      ],
+      "blockers": [
+        "dependency:job_contract",
+        "dependency:cohort",
+        "EVIDENCE_PREDICATE_NOT_MET"
+      ],
+      "execution": {
+        "kind": "SUPPLIER_REGISTERED_DEVELOPMENT_EXECUTION",
+        "command": "python -m scripts.dev.score_lab replay --help"
+      }
+    },
+    "references": {
+      "ready": false,
+      "status": "BLOCKED",
+      "owner": "Data Collection + Validator/owner",
+      "owner_ticket": "OPT-21 reference applicability; public EV4 admission",
+      "minimum_action": "For EV4 diagnostic only: complete 9 existing mesh160 pending and 5 missing/failed references; separately resolve applicability for 223 cases and method for 4 in-band unresolved cases through the owner. For proposed battery-v3 job, publish its own complete registered references and roles. Do not shrink the 35-action menu.",
+      "checks": [
+        {
+          "artifact": "ev4_admission",
+          "pointer": [
+            "common_mask_by_split",
+            "development"
+          ],
+          "observed": [],
+          "predicate": {
+            "op": "length_at_least",
+            "expected": 1
+          },
+          "reason": "EVIDENCE_PREDICATE_NOT_MET"
+        },
+        {
+          "artifact": "ev4_admission",
+          "pointer": [
+            "common_mask_by_split",
+            "verification"
+          ],
+          "observed": [],
+          "predicate": {
+            "op": "length_at_least",
+            "expected": 1
+          },
+          "reason": "EVIDENCE_PREDICATE_NOT_MET"
+        },
+        {
+          "artifact": null,
+          "pointer": [
+            "intended_job_reference_receipt"
+          ],
+          "observed": null,
+          "predicate": {
+            "op": "nonempty"
+          },
+          "reason": "HUMAN_INPUT_OR_SUPPLIER_ARTIFACT_REQUIRED"
+        }
+      ],
+      "blockers": [
+        "dependency:job_contract",
+        "EVIDENCE_PREDICATE_NOT_MET",
+        "EVIDENCE_PREDICATE_NOT_MET",
+        "HUMAN_INPUT_OR_SUPPLIER_ARTIFACT_REQUIRED"
+      ],
+      "execution": {
+        "kind": "OWNER_METHOD_THEN_SUPPLIER_COLLECTION",
+        "command": "python -m scripts.dev.score_lab.public_v2_replay --help"
+      }
+    },
+    "value_traces": {
+      "ready": false,
+      "status": "BLOCKED",
+      "owner": "Optimizer + Data Collection",
+      "owner_ticket": "OPT-15c value workflow",
+      "minimum_action": "Run committed predictions through the exact registered shortlist/verification workflow; export per-question verified picks, feasibility/missed opportunity, regret in buyer units, attempted verification counts and complete costs. Produce common masks including all controls.",
+      "checks": [
+        {
+          "artifact": null,
+          "pointer": [
+            "paired_value_trace_receipt"
+          ],
+          "observed": null,
+          "predicate": {
+            "op": "nonempty"
+          },
+          "reason": "HUMAN_INPUT_OR_SUPPLIER_ARTIFACT_REQUIRED"
+        }
+      ],
+      "blockers": [
+        "dependency:job_contract",
+        "dependency:cohort",
+        "dependency:references",
+        "HUMAN_INPUT_OR_SUPPLIER_ARTIFACT_REQUIRED"
+      ],
+      "execution": {
+        "kind": "PUBLIC_ARITHMETIC_AFTER_INPUTS",
+        "command": "python -m scripts.dev.score_lab.public_v2_replay --help"
+      }
+    },
+    "matched_controls": {
+      "ready": false,
+      "status": "BLOCKED",
+      "owner": "Data Collection + Optimizer",
+      "owner_ticket": "CHALLENGE-CHEAP-BASELINES-01 / ADAPTIVE-SOLVER-ARM-01",
+      "minimum_action": "Bind the strongest registered cheap method plus always-decline/random-feasible/known-bad/path gamers to the same task, admissibility and shared budget. Include training/reference acquisition, construction, screening, verification CPU/wall cost; no free cache acquisition.",
+      "checks": [
+        {
+          "artifact": "public_inputs",
+          "pointer": [
+            "readiness",
+            "matched_workflow_costs"
+          ],
+          "observed": false,
+          "predicate": {
+            "op": "equals",
+            "expected": true
+          },
+          "reason": "EVIDENCE_PREDICATE_NOT_MET"
+        },
+        {
+          "artifact": null,
+          "pointer": [
+            "matched_control_receipt"
+          ],
+          "observed": null,
+          "predicate": {
+            "op": "nonempty"
+          },
+          "reason": "HUMAN_INPUT_OR_SUPPLIER_ARTIFACT_REQUIRED"
+        }
+      ],
+      "blockers": [
+        "dependency:job_contract",
+        "dependency:value_traces",
+        "EVIDENCE_PREDICATE_NOT_MET",
+        "HUMAN_INPUT_OR_SUPPLIER_ARTIFACT_REQUIRED"
+      ],
+      "execution": {
+        "kind": "SUPPLIER_COST_THEN_REPLAY",
+        "command": null
+      }
+    },
+    "interactions": {
+      "ready": true,
+      "status": "EVIDENCE_PRESENT",
+      "owner": "Optimizer",
+      "owner_ticket": "OPT-15c combined matrix",
+      "minimum_action": "Bounded registered matrix completed; inspect all retained paired effects and unscored cells. Full-family search and real interaction evidence remain separate later stages.",
+      "checks": [
+        {
+          "artifact": "combined_summary",
+          "pointer": [
+            "status"
+          ],
+          "observed": "COMPLETE",
+          "predicate": {
+            "op": "equals",
+            "expected": "COMPLETE"
+          },
+          "reason": null
+        },
+        {
+          "artifact": "combined_summary",
+          "pointer": [
+            "control_status"
+          ],
+          "observed": "CONTROL_PASS",
+          "predicate": {
+            "op": "equals",
+            "expected": "CONTROL_PASS"
+          },
+          "reason": null
+        },
+        {
+          "artifact": "combined_summary",
+          "pointer": [
+            "completed_cells"
+          ],
+          "observed": 96,
+          "predicate": {
+            "op": "equals",
+            "expected": 96
+          },
+          "reason": null
+        },
+        {
+          "artifact": "combined_summary",
+          "pointer": [
+            "plan_sha256"
+          ],
+          "observed": "a2374abb8508a2c1caae28850ddd31fe1dd584e4e89d5ddef59f40887b9cd76c",
+          "predicate": {
+            "op": "equals",
+            "expected": "a2374abb8508a2c1caae28850ddd31fe1dd584e4e89d5ddef59f40887b9cd76c"
+          },
+          "reason": null
+        },
+        {
+          "artifact": "combined_summary",
+          "pointer": [
+            "source_commit"
+          ],
+          "observed": "6e90df8fc47dad8dbfa663db26579f4c8fb8f2cb",
+          "predicate": {
+            "op": "equals",
+            "expected": "6e90df8fc47dad8dbfa663db26579f4c8fb8f2cb"
+          },
+          "reason": null
+        }
+      ],
+      "blockers": [],
+      "execution": {
+        "kind": "BOUNDED_LOCAL_SYNTHETIC",
+        "command": "python -m scripts.dev.score_lab.campaign_combined run Business/research/score-lab-campaign-01/combined-matrix/REGISTRATION.json <pinned-candidates.py> <new-output-dir>"
+      }
+    },
+    "weight_search": {
+      "ready": false,
+      "status": "BLOCKED",
+      "owner": "Optimizer + Test Lead / Validator",
+      "owner_ticket": "OPT-15c score family capacity",
+      "minimum_action": "Prospectively register a finite grid/family over existing leg weights, gates and interactions, search budget and selection objective on DEVELOPMENT only. Compare direct V2 utility separately. Use score_tuning grid support; add no production coefficients. Check aliases/dominance and report no-capacity evidence rather than endlessly tune weights.",
+      "checks": [
+        {
+          "artifact": null,
+          "pointer": [
+            "registered_search_family_and_result"
+          ],
+          "observed": null,
+          "predicate": {
+            "op": "nonempty"
+          },
+          "reason": "HUMAN_INPUT_OR_SUPPLIER_ARTIFACT_REQUIRED"
+        }
+      ],
+      "blockers": [
+        "dependency:job_contract",
+        "dependency:paired_score_inputs",
+        "dependency:value_traces",
+        "dependency:matched_controls",
+        "HUMAN_INPUT_OR_SUPPLIER_ARTIFACT_REQUIRED"
+      ],
+      "execution": {
+        "kind": "REGISTERED_PUBLIC_SEARCH_AFTER_GATES",
+        "command": null
+      }
+    },
+    "measurement": {
+      "ready": false,
+      "status": "BLOCKED",
+      "owner": "Optimizer + Test Engineer",
+      "owner_ticket": "OPT-15c section E / SCORE-CEILING-01",
+      "minimum_action": "Register and execute synthetic question/block/weight/reference-failure designs using existing reference and block adapters, then apply the same explicit design to complete real inputs. Keep score-side outage, P/Q/w and dependent question-group scope explicit.",
+      "checks": [
+        {
+          "artifact": null,
+          "pointer": [
+            "measurement_design_run_receipt"
+          ],
+          "observed": null,
+          "predicate": {
+            "op": "nonempty"
+          },
+          "reason": "HUMAN_INPUT_OR_SUPPLIER_ARTIFACT_REQUIRED"
+        }
+      ],
+      "blockers": [
+        "HUMAN_INPUT_OR_SUPPLIER_ARTIFACT_REQUIRED"
+      ],
+      "execution": {
+        "kind": "BOUNDED_SYNTHETIC_THEN_PUBLIC",
+        "command": null
+      }
+    },
+    "goodhart": {
+      "ready": false,
+      "status": "BLOCKED",
+      "owner": "Optimizer",
+      "owner_ticket": "OPT-15c sections 3/6",
+      "minimum_action": "Run the frozen full-system candidates under the existing bounded trait and disclosed-score feedback searches with equal attempted-query accounting. Include copy/fallback/uncertainty strategies; measure value on target and near variants on common masks.",
+      "checks": [
+        {
+          "artifact": null,
+          "pointer": [
+            "final_family_goodhart_receipt"
+          ],
+          "observed": null,
+          "predicate": {
+            "op": "nonempty"
+          },
+          "reason": "HUMAN_INPUT_OR_SUPPLIER_ARTIFACT_REQUIRED"
+        }
+      ],
+      "blockers": [
+        "dependency:weight_search",
+        "HUMAN_INPUT_OR_SUPPLIER_ARTIFACT_REQUIRED"
+      ],
+      "execution": {
+        "kind": "BOUNDED_LOCAL_SYNTHETIC_OR_OWNER_CAPPED_JOB",
+        "command": "python -m scripts.dev.score_lab campaign-goodhart --help"
+      }
+    },
+    "competition": {
+      "ready": false,
+      "status": "BLOCKED",
+      "owner": "Optimizer + Validator",
+      "owner_ticket": "OPT-15c section G",
+      "minimum_action": "Connect frozen paired score/value panels to championship_stats.rev5 with caller-supplied development margin/N/K and independent batch/block design. Test ties to incumbent, true best selection and takeover delay; no payout or live policy.",
+      "checks": [
+        {
+          "artifact": null,
+          "pointer": [
+            "competition_design_and_run"
+          ],
+          "observed": null,
+          "predicate": {
+            "op": "nonempty"
+          },
+          "reason": "HUMAN_INPUT_OR_SUPPLIER_ARTIFACT_REQUIRED"
+        }
+      ],
+      "blockers": [
+        "HUMAN_INPUT_OR_SUPPLIER_ARTIFACT_REQUIRED"
+      ],
+      "execution": {
+        "kind": "LOCAL_ENGINEERING_AND_SYNTHETIC",
+        "command": null
+      }
+    },
+    "budget": {
+      "ready": false,
+      "status": "BLOCKED",
+      "owner": "Optimizer + Data Collection / owner",
+      "owner_ticket": "OPT-15c registered compute cap",
+      "minimum_action": "Use the frozen local 1200-CPU-second matrix ledger now. Before the large 5000-20000-profile campaign, bind completed grammar, exact design/candidates, host price, pilot and cap to the launcher; owner alone authorizes spend/launch.",
+      "checks": [
+        {
+          "artifact": "combined_registration",
+          "pointer": [
+            "caps",
+            "total_cpu_seconds"
+          ],
+          "observed": 1200,
+          "predicate": {
+            "op": "equals",
+            "expected": 1200
+          },
+          "reason": null
+        },
+        {
+          "artifact": null,
+          "pointer": [
+            "full_campaign_cap_and_pilot"
+          ],
+          "observed": null,
+          "predicate": {
+            "op": "nonempty"
+          },
+          "reason": "HUMAN_INPUT_OR_SUPPLIER_ARTIFACT_REQUIRED"
+        }
+      ],
+      "blockers": [
+        "HUMAN_INPUT_OR_SUPPLIER_ARTIFACT_REQUIRED"
+      ],
+      "execution": {
+        "kind": "LOCAL_CAP_PLUS_OWNER_HOST_AUTHORIZATION",
+        "command": null
+      }
+    },
+    "independent_validation": {
+      "ready": false,
+      "status": "BLOCKED",
+      "owner": "Test Engineer / data custodian",
+      "owner_ticket": "OPT-15c independent development validation",
+      "minimum_action": "Commit a previously uninspected, development-only validation role by whole recipe/family and task group as registered; bind data/reference/score versions before search. Public EV4 V already inspected is not untouched validation.",
+      "checks": [
+        {
+          "artifact": "public_inputs",
+          "pointer": [
+            "readiness",
+            "independent_validation_receipt"
+          ],
+          "observed": null,
+          "predicate": {
+            "op": "nonempty"
+          },
+          "reason": "EVIDENCE_PREDICATE_NOT_MET"
+        }
+      ],
+      "blockers": [
+        "dependency:job_contract",
+        "dependency:cohort",
+        "EVIDENCE_PREDICATE_NOT_MET"
+      ],
+      "execution": {
+        "kind": "CUSTODIAN_REGISTRATION",
+        "command": null
+      }
+    },
+    "final_holdout": {
+      "ready": false,
+      "status": "BLOCKED",
+      "owner": "Test Engineer / owner",
+      "owner_ticket": "SCORE-LAB-EXPERIMENT-PLAN-01 section 6.2",
+      "minimum_action": "Freeze the final rule list, metrics and stopping/selection procedure; custodian executes the committed holdout once at the final stage and returns an allowed aggregate receipt. Never send generator content to this readiness command.",
+      "checks": [
+        {
+          "artifact": null,
+          "pointer": [
+            "final_custodian_aggregate_receipt"
+          ],
+          "observed": null,
+          "predicate": {
+            "op": "nonempty"
+          },
+          "reason": "HUMAN_INPUT_OR_SUPPLIER_ARTIFACT_REQUIRED"
+        }
+      ],
+      "blockers": [
+        "dependency:weight_search",
+        "dependency:measurement",
+        "dependency:goodhart",
+        "dependency:competition",
+        "dependency:independent_validation",
+        "dependency:budget",
+        "HUMAN_INPUT_OR_SUPPLIER_ARTIFACT_REQUIRED"
+      ],
+      "execution": {
+        "kind": "CUSTODIAN_FINAL_ONLY",
+        "command": null
+      }
+    },
+    "real_replay": {
+      "ready": false,
+      "status": "BLOCKED",
+      "owner": "Optimizer + owner",
+      "owner_ticket": "OPT-15c final top-three confirmation",
+      "minimum_action": "Replay only the prospectively selected frozen rules on complete applicable real development evidence; report worst-case/CVaR failure regions, bootstrap uncertainty, Goodhart/control and competition results. Request owner adoption separately.",
+      "checks": [
+        {
+          "artifact": null,
+          "pointer": [
+            "final_real_replay_receipt"
+          ],
+          "observed": null,
+          "predicate": {
+            "op": "nonempty"
+          },
+          "reason": "HUMAN_INPUT_OR_SUPPLIER_ARTIFACT_REQUIRED"
+        }
+      ],
+      "blockers": [
+        "dependency:final_holdout",
+        "dependency:value_traces",
+        "dependency:matched_controls",
+        "HUMAN_INPUT_OR_SUPPLIER_ARTIFACT_REQUIRED"
+      ],
+      "execution": {
+        "kind": "PUBLIC_ARITHMETIC_AFTER_FINAL_RECEIPT",
+        "command": null
+      }
+    }
+  },
+  "status": "INSUFFICIENT_EVIDENCE",
+  "scientific_qualification": false,
+  "rule_selection": null,
+  "final_holdout_content_read": false,
+  "interpretation": "Receipt predicates only; scientific adequacy and owner-reserved adoption are not conferred."
+}

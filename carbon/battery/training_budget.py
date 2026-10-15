@@ -77,22 +77,36 @@ class BatteryAdapter:
         """`(recipe, record)` of `strategy` under `level`'s current development
         variant, compiled as the development rebuild compiles it, with no budget
         check of its own (the calculator is the budget check)."""
+        from carbon.reconstruction import development_composition
         from carbon.reconstruction import development_variants as dv
         from carbon.training_budget.cost import CostRefused
 
         from . import development_rebuild
 
         try:
-            found = dv.compile_development(
-                strategy, dv.variant(CHALLENGE, level), check_budget=False
-            )
+            if (
+                level == development_composition.COMPOSED
+                or type(level) is development_composition.Composition
+            ):
+                # The whole 0-4 plan in one recipe (CONSTRUCTION-CONTRACT-01):
+                # costed as the composed rebuild trains it, never refused for
+                # being a combination.
+                selected = (
+                    level
+                    if type(level) is development_composition.Composition
+                    else None
+                )
+                found = development_composition.compile(
+                    strategy, selected, check_budget=False
+                )
+            else:
+                found = dv.compile_development(
+                    strategy, dv.variant(CHALLENGE, level), check_budget=False
+                )
         except dv.VariantRefused as refused:
             raise CostRefused("cost_development_refused", refused.code) from None
         record = development_rebuild.record(found.reconstruction)
-        if (
-            development_rebuild.kind(record) == development_rebuild.LEVEL4
-            and graph_compile is None
-        ):
+        if development_rebuild.uses_graph(record) and graph_compile is None:
             # A graph's FLOPs come from its G5 compile (`train_step_flops`),
             # not from a battery training program: TRAINING-BUDGET-02 slice 5.
             raise CostRefused("cost_level4_graph_pending", "no G5 compile result")
@@ -141,8 +155,32 @@ class BatteryAdapter:
 
         if level:
             recipe, record = self._development(strategy, level, graph_compile)
-            if development_rebuild.kind(record) == development_rebuild.LEVEL4:
-                return [self._graph_program(recipe, graph_compile)]
+            if development_rebuild.uses_graph(record):
+                if development_rebuild.kind(record) == development_rebuild.LEVEL4:
+                    return [self._graph_program(recipe, graph_compile)]
+                import math
+
+                from carbon.training_budget.cost import CostRefused
+
+                from . import composed_graph_cost
+
+                flops = (graph_compile or {}).get("train_step_flops")
+                if (
+                    type(flops) not in (int, float)
+                    or not math.isfinite(flops)
+                    or flops <= 0
+                ):
+                    raise CostRefused(
+                        "cost_level4_graph_unmeasured", "composition_graphs"
+                    )
+                cases = (
+                    self.train_cases()
+                    if record["pool"] is None
+                    else record["pool"]["cases"]
+                )
+                return [
+                    composed_graph_cost.program(recipe, record, graph_compile, cases)
+                ]
         else:
             _, recipe = compile_recipe(strategy)
             record = None
@@ -177,15 +215,21 @@ class BatteryAdapter:
             return model.fit(train, structure, seed=0)
 
         polish_factor, dense = None, 0
+        numerics = None
         if record is not None and record.get("schema") == level3_numerics_schema():
+            numerics = record
+        elif development_rebuild.kind(record) == development_rebuild.COMPOSED:
+            # A composed record's Level 3 part is priced as Level 3's own.
+            numerics = record.get("numerics")
+        if numerics is not None:
             # Level 3's polish, at its worst case: every evaluation of a step
             # is a full-batch loss and gradient (`used` cases), counted in
             # minibatch steps; a dense routine also updates its p x p inverse
             # Hessian (a rank-two update: about 4 p^2 FLOPs).
-            evaluations = level3_numerics.evaluations_per_step(record["line_search"])
+            evaluations = level3_numerics.evaluations_per_step(numerics["line_search"])
             cases = min(settings["batch_size"], used)
             polish_factor = evaluations * used / cases
-            dense = 0 if record["routine"] == "lbfgs" else 4
+            dense = 0 if numerics["routine"] == "lbfgs" else 4
 
         return [
             Program(

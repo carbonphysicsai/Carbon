@@ -293,6 +293,8 @@ def ladder_for(config):
     from carbon.chain.models import CARBON_NETUID, CARBON_NETWORK
     from carbon.reconstruction.capability_registry import (
         contract,
+        development_composition_document,
+        development_composition_registry,
         development_variant_document,
         development_variant_registry,
     )
@@ -300,7 +302,7 @@ def ladder_for(config):
     reader = config.get("commitment_reader")
     if (
         type(spec) is not dict
-        or set(spec) != LADDER_FIELDS
+        or set(spec) not in (LADDER_FIELDS, LADDER_FIELDS - {"levels"})
         or config.get("development_only") is not True
         or config.get("batch_source") != "answer_key"
         or config.get("require_commitment", True) is not True
@@ -310,15 +312,18 @@ def ladder_for(config):
     if (reader.get("network"), reader.get("netuid")) != (CARBON_NETWORK, CARBON_NETUID):
         # Never mainnet until the owner locks a level.
         raise EvaluationUnavailable("evaluation_config_ladder_testnet_only")
-    levels, hotkeys, variants = spec["levels"], spec["hotkeys"], spec["variants"]
+    levels, hotkeys, variants = (
+        spec.get("levels", []),
+        spec["hotkeys"],
+        spec["variants"],
+    )
     if (
         type(levels) is not list
-        or not levels
         or len(set(levels)) != len(levels)
         or not all(type(level) is int and level >= 1 for level in levels)
     ):
         raise EvaluationUnavailable("evaluation_config_ladder")
-    if max(levels) > LADDER_TOP:
+    if levels and max(levels) > LADDER_TOP:
         raise EvaluationUnavailable("evaluation_config_ladder_level_4_not_open")
     if (
         type(hotkeys) is not list
@@ -327,27 +332,40 @@ def ladder_for(config):
         or not all(type(h) is str and _SS58.fullmatch(h) for h in hotkeys)
         or type(variants) is not list
         or not variants
+        or not all(type(name) is str for name in variants)
         or len(set(variants)) != len(variants)
     ):
         raise EvaluationUnavailable("evaluation_config_ladder")
     from .challenge import CHALLENGE
 
     versions = development_variant_registry()["versions"]
+    compositions = development_composition_registry()["versions"]
     accepted = {}
+    labels = set(levels)
     for name in variants:
-        document = development_variant_document(name) if name in versions else None
+        composed = name in compositions
+        document = (
+            development_composition_document(name)
+            if composed
+            else development_variant_document(name) if name in versions else None
+        )
         base = (document or {}).get("base_contract")
         if (
             document is None
-            or document.get("level") not in levels
             or document.get("challenge") != CHALLENGE.challenge_id
             or type(base) is not dict
             or base.get("digest") != contract(CHALLENGE.challenge_id).digest
         ):
             raise EvaluationUnavailable("evaluation_config_ladder_variant")
-        accepted[versions[name]] = {"version": name, "level": document["level"]}
+        digest = (compositions if composed else versions)[name]
+        if composed:
+            labels.update(part["level"] for part in document["composes"])
+            accepted[digest] = {"version": name, "level": None, "kind": "composition"}
+        else:
+            labels.add(document["level"])
+            accepted[digest] = {"version": name, "level": document["level"]}
     return {
-        "levels": frozenset(levels),
+        "levels": frozenset(labels),
         "hotkeys": frozenset(hotkeys),
         "variants": accepted,
     }

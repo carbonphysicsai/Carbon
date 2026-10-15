@@ -42,6 +42,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import secrets
 import subprocess
 import threading
@@ -607,6 +608,7 @@ class RunPodPods:
         clock=time.time,
         sleep=time.sleep,
         http=None,
+        http_post=None,
         transport=None,
         balance_floor=operator_balance_floor,
         scoring=None,
@@ -635,6 +637,7 @@ class RunPodPods:
         # unless asked, so every earlier caller behaves exactly as before.
         self.retry_ambiguous_create = retry_ambiguous_create is True
         self.http = http or _https_get
+        self.http_post = http_post or _https_post
         self._record_lock = threading.Lock()
         root = Path(root)
         root.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -675,12 +678,22 @@ class RunPodPods:
         from scripts.dev.exam_design.runpod import pod_control
 
         stop = record["deadline_at"] - EXPORT_MINUTES * 60
+        transport = record.get("manifest_transport", pod_control.MANIFEST_UPLOAD)
+        try:
+            if transport == "legacy-env-v1":
+                manifest = pod_control.manifest_env(self.manifest)
+            elif transport == pod_control.MANIFEST_UPLOAD:
+                manifest = pod_control.manifest_upload_env(self.manifest)
+            else:
+                raise ValueError("code_manifest_transport_unknown")
+        except ValueError as refused:
+            raise PodFailure("ship", str(refused), executed=False) from None
         env = {
             "PROBE_TOKEN": record["token"],
             "PROBE_DEADLINE": str(int(record["deadline_at"] + 60)),
             "PROBE_CA_GZ_B64": _ca_bundle(),
             "CODE_REF": self.code_ref,
-            **pod_control.manifest_env(self.manifest),
+            **manifest,
             "PHASE": PHASE,
             "PHASE_CONFIG": json.dumps(job.config(stop), sort_keys=True),
             # EV4's GPU settings (`--jax-platform cuda,cpu --pinned-xla`). A
@@ -731,6 +744,7 @@ class RunPodPods:
                             "allowed_cuda_versions": list(
                                 self._cuda_versions(job.backend)
                             ),
+                            "manifest_transport": "authenticated-upload-v1",
                         },
                         sort_keys=True,
                     ).encode(),
@@ -738,7 +752,9 @@ class RunPodPods:
             record = json.loads(path.read_bytes())
         if record["intent_id"] != job.intent_id:
             raise PodFailure("launch", "pod job record conflict", executed=False)
-        return record
+        # An old saved create retains its original wire interpretation. This
+        # compatibility label is returned only; the historical file is untouched.
+        return {"manifest_transport": "legacy-env-v1", **record}
 
     def _cuda_versions(self, backend):
         """The host CUDA versions a pod of `backend` may run: JAX's derived at
@@ -836,9 +852,15 @@ class RunPodPods:
                 retry_ambiguous=self.retry_ambiguous_create,
             )
         except ComputeError as failure:
+            detail = failure.failed
+            if failure.execution is Execution.MAY_HAVE_EXECUTED:
+                status = failure.http_status
+                detail += (
+                    " (HTTP unavailable)" if status is None else f" (HTTP {status})"
+                )
             raise PodFailure(
                 "launch",
-                failure.failed,
+                detail,
                 executed=failure.execution is not Execution.NOT_EXECUTED,
             ) from None
         self._tokens[job.intent_id] = record["token"]
@@ -853,6 +875,19 @@ class RunPodPods:
         token = self._token(handle)
         base = self.adapter.connect_url(self._owned(handle), 8000)
         return self.http(base + path, token, timeout)
+
+    def _upload_manifest(self, handle, timeout=60):
+        from scripts.dev.exam_design.runpod import pod_control
+
+        raw = pod_control.manifest_upload_bytes(self.manifest)
+        base = self.adapter.connect_url(self._owned(handle), 8000)
+        post = getattr(self, "http_post", _https_post)
+        code, _body = post(base + "/code-manifest", self._token(handle), raw, timeout)
+        if code not in (0, 200):
+            raise PodFailure(
+                "ship", "code_manifest_anchor_upload_refused", executed=True
+            )
+        return code == 200
 
     def _token(self, handle):
         token = self._tokens.get(handle.intent_id)
@@ -927,6 +962,10 @@ class RunPodPods:
                     status = None
                 # A pod's own answer: an object, else no stage.
                 stage = status.get("stage") if type(status) is dict else None
+                if stage == "waiting_code_manifest":
+                    if at >= deadline:
+                        return "timeout"
+                    self._upload_manifest(handle, timeout=min(60, deadline - at))
                 if stage == "running_phase":
                     seen.setdefault("first_running", at)
                     seen["last_running"] = at
@@ -1079,6 +1118,30 @@ def _https_get(url, token, timeout):
     except urllib.error.HTTPError as refused:
         return refused.code, b""
     except Exception:  # noqa: BLE001 -- an unreachable pod is a typed status
+        return 0, b""
+
+
+def _https_post(url, token, body, timeout):
+    """The same pod/token boundary as reads; public, anchored manifest bytes."""
+    import urllib.error
+    import urllib.request
+
+    request = urllib.request.Request(
+        url,
+        data=body,
+        method="POST",
+        headers={
+            "X-Probe-Token": token,
+            "Content-Type": "application/json",
+            "User-Agent": "carbon-graphite/1",
+        },
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            return response.status, b""
+    except urllib.error.HTTPError as refused:
+        return refused.code, b""
+    except Exception:  # noqa: BLE001 -- unreachable stays within the polling deadline
         return 0, b""
 
 
@@ -1394,8 +1457,22 @@ class InMemoryRunPod:
     the `http` `RunPodPods` reads pods with. No network, no account, no spend.
     Safe to call from several threads at once, as the check does."""
 
-    def __init__(self, *, balance=100.0, rate=0.44, charge=0.07):
+    def __init__(
+        self,
+        *,
+        balance=100.0,
+        rate=0.44,
+        charge=0.07,
+        cpu_stock=None,
+        placed_cpu_flavor=None,
+        omit_cpu_flavor=False,
+        cpu_startup_delay_reads=0,
+    ):
         self.balance, self.rate, self.charge = balance, rate, charge
+        self.cpu_stock = dict(cpu_stock or {})
+        self.placed_cpu_flavor = placed_cpu_flavor
+        self.omit_cpu_flavor = omit_cpu_flavor
+        self.cpu_startup_delay_reads = cpu_startup_delay_reads
         self.pods, self.creates, self.threads = {}, [], set()
         #: Each create request's `allowedCudaVersions`, in create order.
         self.cuda = []
@@ -1410,7 +1487,11 @@ class InMemoryRunPod:
         return status, json.dumps(payload).encode()
 
     def _view(self, pod):
-        return {key: pod[key] for key in ("id", "name", "desiredStatus", "costPerHr")}
+        return {
+            key: pod[key]
+            for key in ("id", "name", "desiredStatus", "costPerHr", "cpuFlavorId")
+            if key in pod
+        }
 
     def _answer(self, method, url, body):
         # The endpoints as the operator adapter names them, so this answers
@@ -1420,8 +1501,30 @@ class InMemoryRunPod:
 
         rest_pods, billing = runpod.REST + "/pods", runpod.REST + "/billing/pods?"
         if url == runpod.GRAPHQL:
-            if "clientBalance" in json.loads(body)["query"]:
+            query = json.loads(body)["query"]
+            if "clientBalance" in query:
                 return 200, {"data": {"myself": {"clientBalance": self.balance}}}
+            if "cpuFlavors" in query:
+                match = re.search(r'instanceId:"([A-Za-z0-9-]+)"', query)
+                if match is None:
+                    raise AssertionError("in-memory RunPod: malformed CPU stock query")
+                instance_id = match.group(1)
+                # The deliberately unrelated id proves the adapter joins the
+                # observation to the requested instance identity.
+                return 200, {
+                    "data": {
+                        "cpuFlavors": [
+                            {
+                                "id": "ignored-catalog-id",
+                                "specifics": {
+                                    "stockStatus": self.cpu_stock.get(
+                                        instance_id, "High"
+                                    )
+                                },
+                            }
+                        ]
+                    }
+                }
             price = {"uninterruptablePrice": self.rate, "stockStatus": "High"}
             return 200, {"data": {"gpuTypes": [{"lowestPrice": price}]}}
         if url == rest_pods and method == "POST":
@@ -1429,13 +1532,21 @@ class InMemoryRunPod:
             pod_id = f"inmemory{len(self.creates):04d}"
             self.creates.append(pod_id)
             self.cuda.append(request.get("allowedCudaVersions"))
-            self.pods[pod_id] = {
+            pod = {
                 "id": pod_id,
                 "name": request["name"],
                 "desiredStatus": "RUNNING",
                 "costPerHr": self.rate,
                 "env": request["env"],
+                "startup_delay_reads": self.cpu_startup_delay_reads,
             }
+            if request["computeType"] == "CPU" and not self.omit_cpu_flavor:
+                pod["cpuFlavorId"] = (
+                    self.placed_cpu_flavor
+                    if self.placed_cpu_flavor is not None
+                    else request.get("cpuFlavorIds", [None])[0]
+                )
+            self.pods[pod_id] = pod
             return 200, self._view(self.pods[pod_id])
         if url == rest_pods and method == "GET":
             return 200, [self._view(pod) for pod in self.pods.values()]
@@ -1466,6 +1577,13 @@ class InMemoryRunPod:
                 return 403, b""
         path = url.split(".proxy.runpod.net", 1)[1]
         if path == "/status":
+            if pod["env"].get("OPERATOR_START_GATE") == "1":
+                if pod["startup_delay_reads"]:
+                    pod["startup_delay_reads"] -= 1
+                    return 200, b'{"stage": "starting"}'
+                if not pod.get("go"):
+                    return 200, b'{"stage": "waiting_for_operator"}'
+                return 200, b'{"stage": "done"}'
             return 200, b'{"stage": "done"}'
         if path == "/files":
             listing = [
@@ -1475,6 +1593,18 @@ class InMemoryRunPod:
             return 200, json.dumps(listing).encode()
         name = urllib.parse.unquote(path.removeprefix("/file/"))
         return (200, self.FILES[name]) if name in self.FILES else (404, b"")
+
+    def post(self, url, token, body, timeout):
+        """Authenticated no-network `/go` for operator start-gate tests."""
+        pod_id = url.split("//", 1)[1].split("-8000.", 1)[0]
+        with self._lock:
+            pod = self.pods.get(pod_id)
+            if pod is None or token != pod["env"]["PROBE_TOKEN"]:
+                return 404
+            if url.endswith("/go"):
+                pod["go"] = True
+                return 200
+        return 404
 
 
 def real_path_check(

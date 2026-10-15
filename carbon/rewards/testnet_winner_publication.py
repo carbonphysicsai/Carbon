@@ -72,7 +72,14 @@ from .winner_decay import (
     network_authorized,
     winner_fraction,
 )
-from .winner_eligibility import WinnerLedger, payable
+from .winner_eligibility import (
+    FINAL,
+    FIRST,
+    WinnerCutoverFailure,
+    WinnerIdentityFailure,
+    WinnerLedger,
+    payable,
+)
 
 INTENT_SCHEMA = "carbon.rewards.testnet-winner-intent.v1"
 AUTHORITY = "OWNER-TESTNET-WEIGHTS-01"
@@ -208,18 +215,67 @@ class TestnetWinnerIntentIssuer:
     def _identity(self, snapshot):
         return f"{self.prefix}-{self.policy.version}-e{self.epoch(snapshot)}"
 
-    def _records(self, snapshot, *, observe):
+    def _promotion(self, challenge):
+        if challenge not in self.sources:
+            return None
+        try:
+            promotion = self.sources[challenge]()
+            if promotion is not None and (
+                type(promotion) is not dict
+                or any(
+                    type(promotion.get(key)) is not str or not promotion[key]
+                    for key in ("model_id", "hotkey")
+                )
+                or promotion.get("kind") not in (FIRST, FINAL)
+            ):
+                _refuse("WINNER_SOURCE_UNAVAILABLE")
+            return promotion
+        except Exception:  # noqa: BLE001 - closed source failure, no stale fallback
+            raise WinnerPublicationRefused("WINNER_SOURCE_UNAVAILABLE") from None
+
+    def _records(self, snapshot, *, observe, preview=False):
+        from .winner_eligibility import decide
+
         coldkeys = {p.hotkey: p.coldkey for p in snapshot.participants}
         found = {}
         for challenge in self.policy.challenges:
-            if observe and challenge in self.sources:
-                promotion = self.sources[challenge]()
-                found[challenge] = self.ledger.observe(
-                    self.policy, challenge, promotion, coldkeys, snapshot.timestamp_ms
-                )
+            promotion = self._promotion(challenge)
+            if promotion is None:
+                found[challenge] = None
             else:
                 mine = self.ledger.records(challenge)
-                found[challenge] = mine[-1] if mine else None
+                known = [
+                    r
+                    for r in mine
+                    if r["promotion"]["model_id"] == promotion["model_id"]
+                ]
+                if known:
+                    if known[0]["promotion"] != promotion:
+                        _refuse("TARGETS_CHANGED_REISSUE_NEXT_EPOCH")
+                    found[challenge] = known[0]
+                else:
+                    try:
+                        if observe:
+                            found[challenge] = self.ledger.observe(
+                                self.policy,
+                                challenge,
+                                promotion,
+                                coldkeys,
+                                snapshot.timestamp_ms,
+                            )
+                        elif preview:
+                            found[challenge] = decide(
+                                self.policy,
+                                challenge,
+                                promotion,
+                                mine[-1] if mine else None,
+                                coldkeys,
+                                snapshot.timestamp_ms,
+                            )
+                        else:
+                            _refuse("TARGETS_CHANGED_REISSUE_NEXT_EPOCH")
+                    except (WinnerIdentityFailure, WinnerCutoverFailure) as failure:
+                        _refuse(str(failure))
         return found
 
     def _targets(self, snapshot, records):
@@ -342,7 +398,10 @@ class TestnetWinnerIntentIssuer:
         ):
             _refuse("INTENT_NOT_FOR_THIS_EPOCH")
         records = self._records(snapshot, observe=False)
-        if self._targets(snapshot, records) != body["targets"]:
+        if self._targets(snapshot, records) != body["targets"] or any(
+            (None if r is None else digest(encode(r).encode())) != body["ledger"][c]
+            for c, r in records.items()
+        ):
             _refuse("TARGETS_CHANGED_REISSUE_NEXT_EPOCH")
         projection = {
             "schema": "carbon.rewards.testnet-winner-projection.v1",
@@ -425,32 +484,7 @@ def preview(issuer, snapshot):
     recording a promotion in the ledger or storing an intent; it opens no
     wallet and signs nothing. For the operator's look before the first
     publication, and for each epoch's journal line."""
-    from .winner_eligibility import decide
-
-    coldkeys = {p.hotkey: p.coldkey for p in snapshot.participants}
-    records = {}
-    for challenge in issuer.policy.challenges:
-        mine = issuer.ledger.records(challenge)
-        if challenge not in issuer.sources:
-            records[challenge] = mine[-1] if mine else None
-            continue
-        promotion = issuer.sources[challenge]()
-        if promotion is None:
-            records[challenge] = None
-            continue
-        known = [r for r in mine if r["promotion"]["model_id"] == promotion["model_id"]]
-        records[challenge] = (
-            known[0]
-            if known
-            else decide(
-                issuer.policy,
-                challenge,
-                promotion,
-                mine[-1] if mine else None,
-                coldkeys,
-                snapshot.timestamp_ms,
-            )
-        )
+    records = issuer._records(snapshot, observe=False, preview=True)
     return {
         "schema": "carbon.rewards.testnet-winner-preview.v1",
         "identity": issuer._identity(snapshot),

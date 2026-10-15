@@ -6,7 +6,7 @@ Claims tested:
 - the binding registers it for battery at Levels 0 to 3 only, under the standing test grant, on the Engy provider, with
   qwen3.8-27b as the start model (a floor: a session may not open below it);
 - qwen3.8-27b is on the Engy ladder with a recorded rate and context, so no new key or provider registration is needed;
-- the README index lists it with a distinct purpose, and every grant the binding registers under the standing test grant
+- the README index lists it with a distinct purpose, and every open grant under the standing test grant
   still fits the effective weekly cap beside the owner's other open grants, without touching the ledger.
 """
 
@@ -115,11 +115,9 @@ def test_the_readme_index_lists_it_with_a_distinct_purpose():
 
 
 def test_every_standing_grant_still_fits_the_effective_weekly_cap():
-    standing = [
-        _grant(grant_id)
-        for grant_id, registered in grant_binding.PHASE3_GRANTS.items()
-        if registered.authority == grant_binding.STANDING_TEST_GRANT_AUTHORITY
-    ]
+    # Use the current binding's open-grant basis: replaced grants stay registered
+    # for their audit trail and are refused at the launch door, not counted twice.
+    standing = [_grant(grant_id) for grant_id in grant_binding.standing_open()]
     assert GRANT_ID in {g.grant_id for g in standing}
     effective = WEEKLY_CAP_USD - sum(grant_runs.HELD_RESERVES.values())
     assert grant_runs.effective_weekly_cap() == effective

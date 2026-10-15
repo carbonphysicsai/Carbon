@@ -11,7 +11,12 @@ is served to a miner.
 `LevelSpec`: their families (the Test Lead's L2/L3 attack design,
 2026-10-08) and their seams. This module supplies what both share:
 
-* **The real boundaries** are Carbon's own: the registered variant's compile
+Prospective composition adapter versions bind the registered composition,
+while legacy variant_gate remains available for historical per-document tests.
+Compile-only artifacts are labelled; only executed-state tests claim rebuild
+parity/effects. No adapter observation grants required-check or security acceptance.
+
+* **The real boundaries** are Carbon's own: the registered composition's compile
   (`development_variants.compile_development`), the miner-facing contract
   (`compile_submission`, which every development field must fail), and the
   rebuild (`battery.worker.DirectBackend.reconstruct` through the shared
@@ -34,7 +39,9 @@ from dataclasses import dataclass
 
 from carbon.agent_campaign.attack import engine
 from carbon.agent_campaign.attack.adapter import (
+    NOT_RUN,
     Control,
+    OracleResult,
     family_oracle,
     seam_oracle,
 )
@@ -94,6 +101,68 @@ def variant_gate(level):
     return gate
 
 
+def composition():
+    from carbon.reconstruction import development_composition as dc
+
+    return dc.load(CHALLENGE_ID)
+
+
+def _compile_composition(value):
+    from carbon.reconstruction import development_composition as dc
+
+    return dc.compile(value, composition())
+
+
+def _graph_without_workspace(value):
+    parameters = value.get("parameters") if isinstance(value, Mapping) else None
+    return isinstance(parameters, Mapping) and "composition_graphs" in parameters
+
+
+def composition_gate(value):
+    """Prospective compiler observation, never admission/security acceptance.
+
+    A raw graph identity supplies no admitted documents/workspace; it cannot
+    become a successful rebuild or a failing-trigger finding here.
+    """
+    if _graph_without_workspace(value):
+        return {"status": "UNAVAILABLE", "code": "graph_workspace_unavailable"}
+    try:
+        found = _compile_composition(value)
+    except _dv().VariantRefused as refused:
+        return {
+            "status": "REFUSED",
+            "code": refused.code,
+            "issues": sorted({str(i[0]) for i in refused.issues}),
+        }
+    except Exception as error:
+        typed = b._challenge_scoring().refusal(error)
+        if typed is None:
+            raise
+        return {"status": "REFUSED", "code": typed[0]}
+    return {
+        "status": "OK",
+        "composition_digest": found.development["composition_digest"],
+        "recipe_digest": found.construction.recipe_digest,
+        "observation": "COMPILED_ONLY",
+    }
+
+
+def malformed_numerics(value):
+    from carbon.battery import level3_numerics as numerics
+
+    parameters = value.get("parameters") if isinstance(value, Mapping) else None
+    if not isinstance(parameters, Mapping):
+        return False
+    return any(
+        field in parameters
+        and (type(parameters[field]) is not str or parameters[field] not in menu)
+        for field, menu in (
+            ("quasi_newton_family", numerics.ROUTINES),
+            ("line_search", numerics.SEARCHES),
+        )
+    )
+
+
 def miner_contract_gate(value):
     """The miner-facing Level 0 contract, which signs on the Launchpad and
     admits on the validator: every development field must fail it."""
@@ -130,7 +199,11 @@ def _backend():
 def _state_digest(value, level, seed):
     from carbon.battery import development_rebuild
 
-    found = _dv().compile_development(value, variant(level))
+    found = (
+        _compile_composition(value)
+        if level == "composition"
+        else _dv().compile_development(value, variant(level))
+    )
     record = development_rebuild.record(found.reconstruction)
     state, _stats = _backend().reconstruct(None, found.construction, seed, record)
     return hashlib.sha256(state).hexdigest()
@@ -185,6 +258,9 @@ class FamilyRow:
     control_ok: Callable
     trained: Mapping
     held_out: Mapping
+    #: An optional, independent attack-shape test. An accepted ordinary
+    #: construction is not evidence that this family's refusal failed.
+    attack_shape: Callable | None = None
 
 
 @dataclass(frozen=True)
@@ -200,6 +276,8 @@ class LevelSpec:
     #: level's own artifact-and-dependency family, as Level 1's expression
     #: surface.
     surface: str
+    #: Internal compiler scope, never caller-supplied acceptance authority.
+    composition: bool = True
 
 
 class BatteryDeclarativeAdapter(b.BatteryLevel0Adapter):
@@ -223,7 +301,11 @@ class BatteryDeclarativeAdapter(b.BatteryLevel0Adapter):
         from carbon.reconstruction import capability_registry as cr
 
         try:
-            return cr.development_variant_registry()["versions"][self.spec.version]
+            return (
+                composition().digest
+                if self.spec.composition
+                else cr.development_variant_registry()["versions"][self.spec.version]
+            )
         except (RuntimeError, KeyError):
             return "sha256:" + "0" * 64
 
@@ -240,13 +322,29 @@ class BatteryDeclarativeAdapter(b.BatteryLevel0Adapter):
 
     def _engine(self, name):
         row = self._table()[name]
+        boundary, specimen, breached = row.boundary, row.specimen, row.breached
+        if row.attack_shape is not None:
+
+            def with_shape(gate):
+                def check(value):
+                    result = gate(value)
+                    if not isinstance(result, Mapping):
+                        raise TypeError("a_shape_guarded_gate_returns_a_mapping")
+                    return {**result, "attack_shape": bool(row.attack_shape(value))}
+
+                return check
+
+            boundary, specimen = with_shape(boundary), with_shape(specimen)
+            breached = lambda result: bool(result.get("attack_shape")) and row.breached(
+                result
+            )
         return engine.Family(
             name=name,
             check=row.check,
-            boundary=row.boundary,
+            boundary=boundary,
             attacks=row.attacks,
-            specimen=row.specimen,
-            breached=row.breached,
+            specimen=specimen,
+            breached=breached,
             control=lambda: row.control_ok(row.boundary(row.trained)),
             description=row.words,
         )
@@ -284,7 +382,36 @@ class BatteryDeclarativeAdapter(b.BatteryLevel0Adapter):
 
     def oracle(self, family, attempt):
         if family in self._table():
-            return family_oracle(self._engine(family), b.oracle_view(attempt))
+            view = b.oracle_view(attempt)
+            row = self._table()[family]
+            if (
+                self.spec.composition
+                and hasattr(view, "value")
+                and _graph_without_workspace(view.value)
+            ):
+                return OracleResult(
+                    family=family,
+                    attempt=str(view.name),
+                    verdict=NOT_RUN,
+                    evidence_digest=engine.digest({"graph_workspace": "UNAVAILABLE"}),
+                    reading="GRAPH_WORKSPACE_UNAVAILABLE",
+                )
+            if (
+                row.attack_shape is not None
+                and getattr(view, "rebuilt", None) is not False
+                and hasattr(view, "value")
+                and not row.attack_shape(view.value)
+            ):
+                return OracleResult(
+                    family=family,
+                    attempt=str(view.name),
+                    verdict=NOT_RUN,
+                    evidence_digest=engine.digest(
+                        {"family": family, "attack_shape": "ABSENT"}
+                    ),
+                    reading="ATTACK_SHAPE_ABSENT",
+                )
+            return family_oracle(self._engine(family), view)
         for seam in self.level_families():
             if seam.name == family:
                 return seam_oracle(seam, attempt)
@@ -309,7 +436,16 @@ class BatteryDeclarativeAdapter(b.BatteryLevel0Adapter):
                 code="protected_material", detail="protected_material_named"
             )
         try:
-            found = dv.compile_development(value, variant(self.level))
+            if self.spec.composition and _graph_without_workspace(value):
+                return b.Unrebuildable(
+                    code="graph_workspace_unavailable",
+                    detail="no_admitted_graph_documents",
+                )
+            found = (
+                _compile_composition(value)
+                if self.spec.composition
+                else dv.compile_development(value, variant(self.level))
+            )
         except dv.VariantRefused as refused:
             issues = sorted({str(i[0]) for i in refused.issues})
             core = (
@@ -339,6 +475,11 @@ class BatteryDeclarativeAdapter(b.BatteryLevel0Adapter):
             ),
             detail={
                 "record": found.reconstruction,
+                **(
+                    {"development": found.development, "observation": "COMPILED_ONLY"}
+                    if self.spec.composition
+                    else {}
+                ),
                 "served": True,
                 "rebuild": self.spec.rebuild_label(),
             },
@@ -350,6 +491,8 @@ class BatteryDeclarativeAdapter(b.BatteryLevel0Adapter):
         found = variant(self.level)
         inventory["profile"] = self.profile
         inventory["development_variant"] = found.digest
+        if self.spec.composition:
+            inventory["composition_contract"] = self.contract_digest
         inventory["permitted"] = list(inventory["permitted"]) + [
             {
                 "id": w.capability_id,
@@ -380,6 +523,14 @@ class BatteryDeclarativeAdapter(b.BatteryLevel0Adapter):
             "profile": self.profile,
             "contract_digest": self.contract_digest,
             "variant_version": found.version,
+            **(
+                {
+                    "composition_version": composition().version,
+                    "observation": "DEVELOPMENT_COMPILER_ONLY",
+                }
+                if self.spec.composition
+                else {}
+            ),
             "permissions": list(found.permissions()),
             "adapter_version": self.version,
             "rebuild": self.spec.rebuild_label(),

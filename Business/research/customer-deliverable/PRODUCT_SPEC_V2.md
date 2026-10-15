@@ -80,6 +80,16 @@ still has `accepted_development_pass: false`. Retain both identities and show
 the discrepancy. Do not rewrite the old verdict or bypass a consumer's required
 accepted input. Data Collection owns a prospective reconciliation.
 
+**2026-10-13 evidence-honesty amendment:** the
+[dated audit](EVIDENCE_HONESTY_2026-10-13.md) records the near-onset plating
+optimism and the `battery-plating-ref-v2` transition under
+[OWNER-PLATING-REFERENCE-01](../../../.agent/decisions/2026-10-13-OWNER-PLATING-REFERENCE-01.md).
+The v2 route has no usable near-onset label before required resolved mesh-160
+evidence and current-use acceptance. REFERENCE_ADEQUACY_NOT_ESTABLISHED / GAP stays a hold.
+An MMS link or host declaration cannot close it. EV4, EV5, score proofs and
+old card/map/timing observations keep their original reference/version meaning:
+additive annotation, never re-scoring or a current v2 eligibility inference.
+
 ## 2. One package, mapped to existing homes
 
 The following IDs are document requirement IDs, not new runtime enums or
@@ -141,7 +151,8 @@ vocabulary; descriptive mathematics is data, never customer-supplied executable
 code. A missing model output is a GAP even if the reference computes it.
 An algebraic output derived from inputs is not independent conservation evidence.
 
-The pinned, verified reference is the comparison yardstick. Calibration records
+An applicable, observable/version-bound reference with resolved evidence is
+the comparison yardstick; a code-verified image alone does not supply it. Calibration records
 must bind image, solver/deck, equation/discretisation route, materials, observer,
 units and mesh/time/frequency refinement. MMS or analytic code verification
 checks implementation against equations. Application solution convergence and
@@ -178,7 +189,10 @@ map or output contract by relabeling.
 Reuse the canonical Model Card with explicit product-candidate role and
 lineage. Each row carries artifact, evidence domain, observer, reference/image,
 denominator, source, uncertainty and measured/not-run state. Comparison is to
-the pinned verified solver, with its applicability and uncertainty stated.
+the exact source reference, with its applicability and uncertainty stated.
+An old near-onset measurement is a historical observation, not current
+`battery-plating-ref-v2` accuracy or uncertainty calibration. Without matched
+resolved reference labels, current near-limit adequacy is unestablished.
 
 | Deliverable | Measurement and evidence basis | Required floor record; all values HUMAN_INPUT |
 | --- | --- | --- |
@@ -219,6 +233,11 @@ not implement law, interval or TRUST layers, and its provenance is an operator
 assertion rather than cryptographic attestation. A cell is a pooled observation,
 not a guarantee about every query. Guard use requires an accepted map policy,
 coverage adequacy, marginalized-context applicability and exact identity join.
+
+Those checks do not qualify plating labels. Old mesh-20 cells keep their
+historical meaning; an image match does not turn them into a v2 map or current
+TRUST permission. Current-use claims need the resolved reference version and
+measurement evidence, not host-declared coverage or pooled agreement.
 
 Use public/released data only for this lane. Future buyer projections of richer
 evidence require Q4 authorization and rights; buyer status alone grants no
@@ -366,6 +385,11 @@ Only adopted laws with registered, image-bound tolerances are Guard verdict
 inputs. Unadopted or uncalibrated laws remain separately labelled diagnostics;
 they do not force every query into VERIFY. Their proposed thresholds cannot
 become production policy through a document or source-projection flag.
+
+The following are specified product requirements, not earned current-use
+acceptance. The DEVELOPMENT Guard checks declared documents, not the host's
+authority or a v2 plating label. Host assertions cannot satisfy these scientific
+prerequisites; the actual battery/plating hold remains REFUSE.
 
 | Verdict | Required meaning | Buyer workflow |
 | --- | --- | --- |

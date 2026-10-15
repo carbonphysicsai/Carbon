@@ -10,6 +10,7 @@
     python -m carbon.agent_campaign.graphite.phase4 prelive --root DIR \
         --challenge TOKEN [--grant PATH]
     python -m carbon.agent_campaign.graphite.phase4 cancel --root DIR --session N
+    python -m carbon.agent_campaign.graphite.phase4 reconcile --root DIR --session N
     python -m carbon.agent_campaign.graphite.phase4 status --root DIR [--dry-run]
     python -m carbon.agent_campaign.graphite.phase4 log --root DIR [--dry-run]
 
@@ -84,6 +85,13 @@ under `DIR/attacker-dry-run`, with a synthetic copy of the grant and no miner
 path, then Carbon's side with the same engine, producing the coverage report
 and B2. It sends nothing and spends nothing.
 
+**`reconcile`** is an operator-only recovery for a crashed session with an
+uncertain model call. It makes no model or pod request. A still-running session
+becomes resumable under its original session number after the call is booked;
+an already terminal `reconciliation_required` export is kept as history and
+gets a separate typed `FAILED_INFRA` closure. This does not reclaim a grant
+slot or revise a weekly settlement already finalized by the controller.
+
 **Grant.** Each Challenge has its own phase-4 grant (`PHASE4_GRANTS`):
 battery runs under `GRAPHITE-GRANT-PHASE4` (OWNER-GRAPHITE-ATTACKER-01 §5) and
 cooling under `GRAPHITE-GRANT-PHASE4-COOLING` (OWNER-GRAPHITE-TEST-WAVE-05 §2).
@@ -122,7 +130,9 @@ from pathlib import Path
 from carbon.challenge_readiness.admission import CHECKS, LEDGER_TRACK
 from carbon.development_session.data import write_once
 from carbon.development_session.profile import canonical, digest
+from carbon.development_session.research_agent import settle_uncertain_calls
 from carbon.development_session.research_agent_policy import FINISH_NOTICE_CALLS
+from carbon.development_session.research_ledger import CampaignLedger
 from carbon.development_session.research_loop import (
     CONTINUE_REMINDER_SCHEMA,
     REFUSAL_CODES,
@@ -136,6 +146,7 @@ from carbon.reconstruction.capability_registry import (
 )
 
 from .. import boundaries
+from ..attack import target_binding as targets
 from ..grant import SpendingGrant
 from ..provider import ProviderUnavailable, TaskSpec
 from . import experiment as ex
@@ -294,6 +305,8 @@ LOG_SCHEMA = "carbon.graphite.attacker-iteration-log.v3"
 #: run (OWNER-GRAPHITE-TEST-WAVE-04 §1), its findings under
 #: `findings_by_source["copy_probe"]`. A v6 report keeps its meaning.
 COVERAGE_SCHEMA = "carbon.graphite.attacker-coverage.v7"
+TARGET_COVERAGE_SCHEMA = "carbon.graphite.targeted-attacker-coverage.v1"
+TARGET_LOG_SCHEMA = "carbon.graphite.targeted-attacker-iteration-log.v1"
 #: The eight Track A checks every coverage report accounts for.
 TRACK_A_CHECKS = tuple(sorted(CHECKS[LEDGER_TRACK]))
 PIN_SCHEMA = "carbon.graphite.attacker-store-pin.v1"
@@ -1217,7 +1230,7 @@ def knowledge_brief(view, adapter):
     return {"snapshot": view.digest, "by_family": by_family}
 
 
-def brief_observation(adapter, *, knowledge=None, stop_rule=False):
+def brief_observation(adapter, *, knowledge=None, stop_rule=False, target=None):
     """The Attacker's starting observation: the Challenge's public development
     identity and contract token, the construction level, the adapter's
     families and seams, the attack-knowledge snapshot it runs under, and the
@@ -1246,6 +1259,8 @@ def brief_observation(adapter, *, knowledge=None, stop_rule=False):
             "code_run_seconds_at_most": adapter_code_run_seconds(adapter),
         },
     }
+    if target is not None:
+        observation["verification_scope"] = targets.scope(target, adapter)
     if stop_rule:
         # The stop rule's coverage table at the start: every reachable family
         # at 0 attempts, and every other family with its label. `stop_rule`
@@ -1290,7 +1305,13 @@ def check_attacker_observation(observation, adapter, *, code_run_seconds):
 
 
 def session_brief(
-    adapter, *, checkout_commit, knowledge=None, repository=REPOSITORY, stop_rule=False
+    adapter,
+    *,
+    checkout_commit,
+    knowledge=None,
+    repository=REPOSITORY,
+    stop_rule=False,
+    target=None,
 ):
     from carbon.challenge_validator import scoring as challenge_scoring
 
@@ -1304,7 +1325,10 @@ def session_brief(
     return SessionBrief(
         role=RoleName.ATTACKER,
         initial_observation=brief_observation(
-            adapter, knowledge=knowledge, stop_rule=stop_rule
+            adapter,
+            knowledge=knowledge,
+            stop_rule=stop_rule,
+            **({} if target is None else {"target": target}),
         ),
         checkout_commit=checkout_commit,
         checkout_manifest_digest=boundaries.manifest_digest(manifest),
@@ -1695,6 +1719,7 @@ def carbon_side(
     session=1,
     canaries=(),
     carrier=None,
+    target=None,
 ):
     """Carbon's own side of a finished session, through the engine (module
     docstring). Returns (coverage report, B2, finding ids, store digest).
@@ -1714,6 +1739,10 @@ def carbon_side(
     report, benchmark = atk["report"], atk["benchmark"]
     # The snapshot the brief named, checked against the recorded pin.
     replay_guard(store, session, view, atk)
+    try:
+        targets.session_pin(store, session, target, resume=True, adapter=adapter)
+    except targets.TargetRefused as refused:
+        raise RunnerRefused(refused.code) from None
 
     found = attack_attempts(provider._dir(run_id))
     mapped = analysis.map_to_families(found, adapter)
@@ -1733,6 +1762,7 @@ def carbon_side(
                 specimen_dir=specimen_dir,
                 canaries=canaries,
                 carrier=carrier,
+                **({} if target is None else {"target": target}),
             )
             if is_finding(verdict, verify):
                 findings.extend(verify.record(verdict, control))
@@ -1832,6 +1862,16 @@ def carbon_side(
             ),
             baseline,
         )
+    if target is not None:
+        coverage["schema"] = TARGET_COVERAGE_SCHEMA
+        coverage["verification_scope"] = targets.scope(target, adapter)
+        coverage["target_runtime_verdict"] = verify.UNDETERMINED
+        coverage["targeted_scored_attempts"] = sum(
+            v.scored and v.evidence.get("verification_scope") == targets.MODE
+            for v in verdicts
+        )
+        if coverage["targeted_scored_attempts"]:
+            raise RunnerRefused("target_runtime_authority_unavailable")
     return coverage, b2, findings, after
 
 
@@ -1860,6 +1900,7 @@ def run_session(
     kstore,
     view,
     variant=None,
+    target=None,
 ):
     """Launch (or resume) Attacker session `number`, run it, and do Carbon's
     side through the engine. Returns the iteration-log entry and the coverage
@@ -1871,6 +1912,19 @@ def run_session(
         adapter.contract_digest != variant.digest or adapter.level != variant.level
     ):
         raise ValueError("the adapter does not attack this variant")
+    wanted = None if target is None else targets.scope(target, adapter)
+    if brief.initial_observation.get("verification_scope") != wanted:
+        raise RunnerRefused("target_brief_binding_changed")
+    try:
+        targets.session_pin(
+            store,
+            number,
+            target,
+            resume=provider.find(session_key(number)) is not None,
+            adapter=adapter,
+        )
+    except targets.TargetRefused as refused:
+        raise RunnerRefused(refused.code) from None
     _document, profile = attacker_profile(adapter, variant)
     ensure_campaign(
         control,
@@ -1914,6 +1968,7 @@ def run_session(
             kstore=kstore,
             view=view,
             session=number,
+            **({} if target is None else {"target": target}),
         )
     entry = {
         "schema": LOG_SCHEMA,
@@ -1933,6 +1988,9 @@ def run_session(
         "store_after": coverage["attack_knowledge"]["after"] if coverage else None,
         **control.conditional_tag(),
     }
+    if target is not None:
+        entry["schema"] = TARGET_LOG_SCHEMA
+        entry["verification_scope"] = targets.scope(target, adapter)
     if final in _TERMINAL:
         _log(store, entry)
     return entry, coverage
@@ -2049,6 +2107,22 @@ def _store(root, dry_run):
     return store
 
 
+def target_from_args(args, adapter):
+    values = (
+        getattr(args, "public_target_root", None),
+        getattr(args, "target_bundle", None),
+        getattr(args, "target_manifest_digest", None),
+    )
+    if all(value is None for value in values):
+        return None
+    if any(value is None for value in values):
+        raise RunnerRefused("target_cli_binding_incomplete")
+    try:
+        return targets.load(*values, adapter, repository=REPOSITORY)
+    except targets.TargetRefused as refused:
+        raise RunnerRefused(refused.code) from None
+
+
 def command_run(args):
     if getattr(args, "score_variant", None) is not None:
         # Refused before anything is read or spent (VALIDATOR-09).
@@ -2062,6 +2136,7 @@ def command_run(args):
     adapter, variant = adapter_for(
         atk, challenge, CONSTRUCTION_LEVEL if level is None else level
     )
+    target = target_from_args(args, adapter)
     from carbon.challenge_validator import scoring as challenge_scoring
 
     try:
@@ -2081,6 +2156,7 @@ def command_run(args):
             challenge=challenge,
             scoring=scoring,
             **development,
+            **({} if target is None else {"target": target}),
         )
     missing = [
         name
@@ -2139,6 +2215,7 @@ def command_run(args):
         session=args.session,
         head=head,
         **development,
+        **({} if target is None else {"target": target}),
     )
     print(
         json.dumps({"session": entry, "coverage": coverage}, indent=1, sort_keys=True)
@@ -2263,6 +2340,7 @@ def run_live(
     signals=True,
     variant=None,
     shared_runs=True,
+    target=None,
 ):
     """One live session from its controller to Carbon's side: the
     controller, the attack-knowledge store, the session's pin (reused on a
@@ -2282,6 +2360,7 @@ def run_live(
             checkout_commit=head,
             knowledge=knowledge_brief(view, adapter),
             stop_rule=provider.stop_rule or False,
+            **({} if target is None else {"target": target}),
         )
         if signals:
             _install_cancel(provider, provider.run_id_for(session_key(session)))
@@ -2297,6 +2376,7 @@ def run_live(
             kstore=kstore,
             view=view,
             variant=variant,
+            **({} if target is None else {"target": target}),
         )
     finally:
         control.close()
@@ -2332,6 +2412,125 @@ def command_cancel(args):
     return 0
 
 
+RECONCILIATION_SCHEMA = "carbon.graphite.phase4-reconciliation.v1"
+
+
+def reconcile_session(store, session):
+    """Settle a crashed Attacker's model calls without sending another request.
+
+    A run still open can then resume through its original controller/session.
+    A run previously terminalized keeps its original export as history; this
+    supplementary record makes its resolved accounting and FAILED_INFRA end
+    explicit. The controller's existing claim and weekly settlement are not
+    repeated here.
+    """
+    if type(session) is not int or session < 1:
+        raise RunnerRefused("session_number_invalid")
+    run_id = GraphiteProvider.run_id_for(session_key(session))
+    directory = Path(store) / "graphite" / "runs" / run_id
+    if directory.is_symlink() or not (directory / "session-open.json").is_file():
+        raise RunnerRefused("unknown_session")
+    receipt = directory / "reconciliation.json"
+    try:
+        opened = json.loads((directory / "session-open.json").read_bytes())
+        state = json.loads((directory / "state.json").read_bytes())
+    except (OSError, ValueError):
+        raise RunnerRefused("session_record_invalid") from None
+    if type(opened) is not dict or type(state) is not dict:
+        raise RunnerRefused("session_record_invalid")
+    role = opened.get("role")
+    failure = state.get("failure")
+    if (
+        opened.get("run_id") != run_id
+        or opened.get("idempotency_key") != session_key(session)
+        or type(role) is not dict
+        or role.get("name") != RoleName.ATTACKER.value
+    ):
+        raise RunnerRefused("session_identity_mismatch")
+    terminal = (
+        state.get("state") == "failed"
+        and type(failure) is dict
+        and failure.get("code") == "reconciliation_required"
+    )
+    if not terminal and state.get("state") != "running":
+        raise RunnerRefused("session_not_reconciliation_required")
+    if receipt.is_symlink() or (not terminal and receipt.exists()):
+        raise RunnerRefused("reconciliation_receipt_invalid")
+    if not terminal:
+        from . import heartbeat
+
+        heartbeat_file = directory / heartbeat.NAME
+        if (
+            heartbeat_file.is_file()
+            and heartbeat.read(heartbeat_file)["status"] == heartbeat.ALIVE
+        ):
+            raise RunnerRefused("session_still_active")
+    ledger_dir = directory / "ledger"
+    if not (ledger_dir / "campaign.sqlite3").is_file():
+        raise RunnerRefused("model_ledger_missing")
+    ledger = CampaignLedger(ledger_dir)
+    result = settle_uncertain_calls(ledger, owner=OWNER, charge_from_response=True)
+    # Read back every journalled settlement, including one booked by a prior
+    # invocation that crashed or was only partially successful. The receipt is
+    # a view of durable ledger facts, not a count of this invocation's writes.
+    settled = [
+        op["result"]["provider_settlement"]
+        for op in ledger.status(owner=OWNER)["operations"]
+        if isinstance(op.get("result"), dict)
+        and isinstance(op["result"].get("provider_settlement"), dict)
+    ]
+    rows = [
+        {
+            "identity": row["identity"],
+            "charge_basis": row.get("charge_basis", "full_reservation"),
+            "booked_nanodollars": row["booked"].get("provider_nanodollars"),
+            "reason": row["reason"],
+            "accounting": row["accounting"],
+            "caveat": row.get("caveat"),
+        }
+        for row in settled
+    ]
+    if not rows and not result["refused"]:
+        raise RunnerRefused("no_model_call_to_reconcile")
+    if result["refused"]:
+        return {
+            "schema": RECONCILIATION_SCHEMA,
+            "session": session,
+            "status": "UNRESOLVED",
+            "settled": rows,
+            "refused": result["refused"],
+        }
+    report = {
+        "schema": RECONCILIATION_SCHEMA,
+        "session": session,
+        "status": "FAILED_INFRA_CLOSED" if terminal else "RESUMABLE",
+        "failure": (
+            {"code": "FAILED_INFRA", "cause": "reconciliation_required"}
+            if terminal
+            else None
+        ),
+        "candidate_charged": False,
+        "booked_nanodollars": sum(row["booked_nanodollars"] or 0 for row in rows),
+        "settled": rows,
+        "refused": [],
+    }
+    # A resumable session may crash again. Its ledger, not a frozen receipt,
+    # remains authoritative for every later reconciliation.
+    if terminal:
+        try:
+            write_once(receipt, canonical(report))
+        except (OSError, ValueError):
+            raise RunnerRefused("reconciliation_receipt_invalid") from None
+    return report
+
+
+def command_reconcile(args):
+    store, _runs = _runs_dir(args)
+    report = reconcile_session(store, args.session)
+    print(json.dumps(report, sort_keys=True))
+    return 4 if report["status"] == "UNRESOLVED" else 0
+
+
 def command_status(args):
     store, runs = _runs_dir(args)
     out = {}
@@ -2365,8 +2564,26 @@ def command_remint(args):
     only the local campaign and journal; writes only the specimen bundle."""
     from .phase4_remint import RemintRefused, remint
 
+    target = None
+    if any(
+        getattr(args, field, None) is not None
+        for field in ("public_target_root", "target_bundle", "target_manifest_digest")
+    ):
+        if (
+            getattr(args, "challenge", None) is None
+            or getattr(args, "level", None) is None
+        ):
+            raise RunnerRefused("target_remint_challenge_and_level_required")
+        adapter, _variant = adapter_for(attack_modules(), args.challenge, args.level)
+        target = target_from_args(args, adapter)
     try:
-        result = remint(args.root, args.attempt, args.specimen, session=args.session)
+        result = remint(
+            args.root,
+            args.attempt,
+            args.specimen,
+            session=args.session,
+            **({} if target is None else {"target": target}),
+        )
     except RemintRefused as refused:
         print(json.dumps({"status": "SPECIMEN_REFUSED", "code": refused.code}))
         return 4
@@ -2432,7 +2649,15 @@ def dry_run_script(adapter):
 
 
 def dry_run(
-    root, adapter, atk, *, challenge, miner_tools=None, scoring=None, variant=None
+    root,
+    adapter,
+    atk,
+    *,
+    challenge,
+    miner_tools=None,
+    scoring=None,
+    variant=None,
+    target=None,
 ):
     """One scripted session and Carbon's side, sending nothing and spending
     nothing: the scripted model reports a zero charge, the whole run is under
@@ -2472,6 +2697,7 @@ def dry_run(
                 checkout_commit="0" * 40,
                 knowledge=knowledge_brief(view, adapter),
                 stop_rule=STOP_RULE_V2,
+                **({} if target is None else {"target": target}),
             )
             entry, coverage = run_session(
                 store,
@@ -2485,6 +2711,7 @@ def dry_run(
                 kstore=kstore,
                 view=view,
                 variant=variant,
+                **({} if target is None else {"target": target}),
             )
         finally:
             control.close()
@@ -2541,6 +2768,11 @@ def main(argv=None):
     run.add_argument("--miner-profile")
     run.add_argument("--miner-campaign")
     run.add_argument("--session", type=int, default=1)
+    run.add_argument("--public-target-root", help="operator-vetted public export root")
+    run.add_argument("--target-bundle", help="one directory component inside that root")
+    run.add_argument(
+        "--target-manifest-digest", help="independently pinned v3 manifest"
+    )
     run.add_argument(
         "--score-variant",
         metavar="VERSION",
@@ -2549,6 +2781,9 @@ def main(argv=None):
     cancel = sub.add_parser("cancel")
     cancel.add_argument("--root", required=True)
     cancel.add_argument("--session", type=int, required=True)
+    reconcile = sub.add_parser("reconcile")
+    reconcile.add_argument("--root", required=True)
+    reconcile.add_argument("--session", type=int, required=True)
     for name in ("status", "log"):
         command = sub.add_parser(name)
         command.add_argument("--root", required=True)
@@ -2558,6 +2793,11 @@ def main(argv=None):
     remint.add_argument("--attempt", required=True)
     remint.add_argument("--specimen", required=True)
     remint.add_argument("--session", type=int)
+    remint.add_argument("--challenge")
+    remint.add_argument("--level", type=int)
+    remint.add_argument("--public-target-root")
+    remint.add_argument("--target-bundle")
+    remint.add_argument("--target-manifest-digest")
     prelive = sub.add_parser("prelive")
     prelive.add_argument("--root", required=True)
     prelive.add_argument("--challenge", required=True, help=challenge_help)
@@ -2577,6 +2817,7 @@ def main(argv=None):
     command = {
         "run": command_run,
         "cancel": command_cancel,
+        "reconcile": command_reconcile,
         "status": command_status,
         "log": command_log,
         "remint": command_remint,

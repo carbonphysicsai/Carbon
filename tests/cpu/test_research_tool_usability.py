@@ -719,9 +719,16 @@ def test_the_tasks_start_names_the_refused_practice_field(monkeypatch):
 
 def test_a_refusal_without_a_correction_names_no_field():
     assert AdapterFailure(AdapterCode.INVALID_ARGUMENT).field is None
+    # A request that is not an object has no declared field to name.
     with pytest.raises(AdapterFailure) as raised:
+        standard._arguments("start_research_task", ["not", "an", "object"])
+    assert raised.value.correction is None and raised.value.field is None
+    # A bad top-level value is now named with its registered correction
+    # (the 2026-10-13 L4 dry run: seven of seven top-level refusals were mute).
+    with pytest.raises(AdapterFailure) as named:
         standard._arguments("start_research_task", {**door_practice(), "kind": "x"})
-    assert raised.value.correction is None
+    assert named.value.field == "kind"
+    assert named.value.correction["correction_code"] == "tool_value_invalid"
 
 
 # ---- 4. Frozen plans and tool surfaces replay byte for byte.
@@ -755,10 +762,15 @@ def test_frozen_plans_and_tool_surfaces_replay_unchanged(tmp_path):
         battery_campaign.provider_plan("graphite", plans.BUDGET, None, graphite=frozen),
         agent_plan.graphite_plan(plans.BUDGET, None, frozen),
     ):
-        # A new plan freezes v2; with v1 in its place it is byte for byte the
-        # plan the base commit froze: v2 is the only prospective change.
+        # New plans additionally freeze PLT-19's reply wrapper. Removing that
+        # field and restoring v1 argument normalization reproduces the exact
+        # historical plan digest; neither historical contract is rewritten.
+        from carbon.development_session.research_reply import RULE as REPLY_RULE
+
+        assert new["research_reply"] == REPLY_RULE
         assert new["argument_normalisation"] == ARGUMENT_NORMALISATION_V2
-        old = {**new, "argument_normalisation": ARGUMENT_NORMALISATION}
+        old = {k: v for k, v in new.items() if k != "research_reply"}
+        old["argument_normalisation"] = ARGUMENT_NORMALISATION
         assert digest(canonical(old)) == GRAPHITE_PLAN_V1_DIGEST
     # A manifest frozen with v1, or with no rule, reads as it was frozen:
     # v1 stays registered, so its campaigns replay and continue under v1.

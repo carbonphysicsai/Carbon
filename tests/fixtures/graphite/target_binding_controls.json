@@ -1,0 +1,23 @@
+{
+  "schema": "carbon.graphite.target-binding-controls.v1",
+  "evidence_class": "TEST_ONLY",
+  "runtime_authority": "UNAVAILABLE",
+  "cases": [
+    "same_public_bundle",
+    "changed_graph_byte",
+    "substituted_target_same_recipe",
+    "wrong_challenge_variant_or_contract",
+    "missing_staged_envelope",
+    "path_traversal_or_absolute",
+    "symlink_ancestor_or_file",
+    "changed_resume_target",
+    "changed_specimen_target",
+    "missing_worker_evidence",
+    "spoofed_worker_or_diagnostic_evidence",
+    "legacy_family_and_failure_semantics",
+    "unexpected_metadata_failure_is_infra",
+    "declared_family_exposure_and_unassigned_workspace_contrasts",
+    "mixed_legacy_and_two_target_remint_sources",
+    "selected_remint_scope_drift_and_ambiguity"
+  ]
+}

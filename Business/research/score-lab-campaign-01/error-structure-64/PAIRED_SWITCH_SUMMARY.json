@@ -1,0 +1,67 @@
+{
+  "comparison": "same profile and candidate, neighbourhood_blend tau versus OFF; undefined pairs remain explicit",
+  "rows": [
+    {
+      "equal_delta": 591,
+      "median_delta": 0.0,
+      "negative_delta": 0,
+      "paired_defined": 591,
+      "positive_delta": 0,
+      "switch_index": 1,
+      "toy_good_exclusion_events": 0,
+      "undefined_pairs": 49
+    },
+    {
+      "equal_delta": 17,
+      "median_delta": 0.061986888131529166,
+      "negative_delta": 243,
+      "paired_defined": 591,
+      "positive_delta": 331,
+      "switch_index": 2,
+      "toy_good_exclusion_events": 576,
+      "undefined_pairs": 49
+    },
+    {
+      "equal_delta": 80,
+      "median_delta": 0.057307109596391625,
+      "negative_delta": 194,
+      "paired_defined": 591,
+      "positive_delta": 317,
+      "switch_index": 3,
+      "toy_good_exclusion_events": 0,
+      "undefined_pairs": 49
+    },
+    {
+      "equal_delta": 143,
+      "median_delta": -0.13333333333333336,
+      "negative_delta": 428,
+      "paired_defined": 591,
+      "positive_delta": 20,
+      "switch_index": 4,
+      "toy_good_exclusion_events": 432,
+      "undefined_pairs": 49
+    },
+    {
+      "equal_delta": 205,
+      "median_delta": -0.13333333333333336,
+      "negative_delta": 366,
+      "paired_defined": 591,
+      "positive_delta": 20,
+      "switch_index": 5,
+      "toy_good_exclusion_events": 432,
+      "undefined_pairs": 49
+    },
+    {
+      "equal_delta": 95,
+      "median_delta": 0.1333333333333333,
+      "negative_delta": 198,
+      "paired_defined": 591,
+      "positive_delta": 298,
+      "switch_index": 6,
+      "toy_good_exclusion_events": 0,
+      "undefined_pairs": 49
+    }
+  ],
+  "scope": "SYNTHETIC_DEVELOPMENT_DESCRIPTIVE",
+  "selection": null
+}

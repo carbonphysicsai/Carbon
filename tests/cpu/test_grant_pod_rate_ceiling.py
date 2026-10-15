@@ -41,24 +41,22 @@ def test_every_committed_grant_is_unchanged(path):
     grant = SpendingGrant.from_document(document)
     # The standing 0.65/h ceiling is on the stage grants and R4 (owner-confirmed:
     # GRANT-POD-CEILING-01, OWNER-GRAPHITE-PHASE3-R4-CEILING-01); the hunt's grants copy it.
-    # Test Lead engineering decision (lane config): raises the MODEL- family's pod-rate cap from the 0.49 default to
-    # the owner's existing 0.65/h ceiling, matching every other standing-grant Constructor family (L4-G, HUNT) so a
-    # model-comparison run gets the same A40 class as the runs it is compared with; total spend still bound by the
-    # 14.94 grant and the USD 50 per-run cap.
-    # The effect is a raise from 0.49 to 0.65: without the field a grant runs at pod_control.MAX_RATE
-    # (pods.py:127, pod_control.py:310). The two records below are the source of the 0.65 figure only, not authority
-    # for this scope: .agent/decisions/2026-10-11-OWNER-TESTNET-WEEKLY-BUDGET-01.md:71 and
-    # docs/development/graphite/grants/README.md:1079-1086 on main.
+    # OWNER-MODEL-QWEN-GRANT-01 approves 0.65/h for the named Qwen grant only.
+    # Another MODEL- grant needs its own owner-approved figure and ceiling;
+    # a shared prefix must not extend this approval to that future grant.
     ceiling = (
         path.name.startswith(
             (
                 "GRAPHITE-GRANT-STAGE-",
                 "GRAPHITE-GRANT-HUNT-",
                 "GRAPHITE-GRANT-L4-",
-                "GRAPHITE-GRANT-MODEL-",
             )
         )
-        or path.name == "GRAPHITE-GRANT-PHASE3-R4.json"
+        or path.name
+        in (
+            "GRAPHITE-GRANT-PHASE3-R4.json",
+            "GRAPHITE-GRANT-MODEL-QWEN-CONSTRUCTOR-1.json",
+        )
     )
     expected = Decimal("0.65") if ceiling else None
     assert grant.pod_rate_ceiling_usd_per_hr == expected
@@ -113,8 +111,9 @@ def test_the_ceiling_reaches_pod_prices_and_the_run_budget():
     assert ex.phase3_budget(named, _battery()).hourly_usd == raised["hourly_usd"]
 
 
-#: kimi-k3's full-window reservation in USD (GRAPHITE-D35).
-KIMI_FULL_CALL = Decimal("2.0646912")
+#: kimi-k3's reservation per call in USD: its whole window and its own 32,768-token output cap
+#: (GRAPHITE-OUTPUT-CAP-KIMI-01; 2.0646912 at the old 2,048, GRAPHITE-D35).
+KIMI_FULL_CALL = Decimal("2.3642112")
 STAGES = ("A", "B", "C")
 
 
@@ -165,7 +164,9 @@ def test_every_stage_constructor_runs_at_the_standing_ceiling(stage):
     budget = ex.phase3_budget(_stage(f"{stage}-CONSTRUCTOR"), _battery())
     assert budget.hourly_usd == podlib.prices(Decimal("0.65"))["hourly_usd"]
     assert budget.pod_allowance_usd >= budget.pods_need_usd
-    assert budget.token_allowance_usd == Decimal("10.99") >= 5 * KIMI_FULL_CALL
+    # Four full holds fit the 10.99 share now (five at the old 2,048-token cap).
+    assert budget.token_allowance_usd == Decimal("10.99") >= 4 * KIMI_FULL_CALL
+    assert budget.token_allowance_usd < 5 * KIMI_FULL_CALL
     # 10.99 is the largest share that fits: the pods need exactly 3.92.
     assert budget.pods_need_usd == Decimal("3.92") == budget.pod_allowance_usd
 

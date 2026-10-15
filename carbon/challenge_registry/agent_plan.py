@@ -6,6 +6,8 @@ construction vocabularies, reference material and scoring never enter it.
 
 from __future__ import annotations
 
+from carbon.development_session.research_reply import RULE as RESEARCH_REPLY_RULE
+
 AGENT_BUDGET_KEYS = ("provider_attempts", "provider_nanodollars")
 #: The closed code for a Graphite campaign whose budget does not cap both
 #: `AGENT_BUDGET_KEYS` with whole numbers (LA-F4): the launch doors refuse it
@@ -43,6 +45,7 @@ def provider_plan(agent, budget, selection=None, graphite=None):
         return {
             "agent": "none",
             "model_calls": 0,
+            "research_reply": RESEARCH_REPLY_RULE,
             "argument_normalisation": ARGUMENT_NORMALISATION_V2,
         }
     if agent == "graphite":
@@ -86,6 +89,7 @@ def provider_plan(agent, budget, selection=None, graphite=None):
         "research_tools": TOOLS_RULE,
         # AGENT-DOOR-USABILITY-01 A1: every new plan freezes v2; a plan
         # frozen before names no rule and replays unchanged.
+        "research_reply": RESEARCH_REPLY_RULE,
         "argument_normalisation": ARGUMENT_NORMALISATION_V2,
     }
     if not selection.is_historical_default:
@@ -134,6 +138,7 @@ def graphite_plan(budget, selection, graphite):
         "research_tools": TOOLS_RULE,
         # RESEARCH-TOOL-USABILITY-01: new plans freeze v2; a plan that froze
         # v1 (or no rule) keeps it.
+        "research_reply": RESEARCH_REPLY_RULE,
         "argument_normalisation": ARGUMENT_NORMALISATION_V2,
         "limits": {
             "plan": edition.limits_rule(

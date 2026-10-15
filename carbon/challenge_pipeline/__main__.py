@@ -25,10 +25,11 @@ def _readiness(args):
     from carbon.challenge_pipeline.readiness import runner
     from carbon.challenge_pipeline.readiness.model import REPOSITORY
 
-    if (args.margin_panel or args.overlap_panel) and not args.no_history:
+    producer = args.margin_panel or args.overlap_panel or args.audit_panel
+    if producer and not args.no_history:
         print("readiness refused: producer evidence requires --no-history")
         return 2
-    if (args.margin_panel or args.overlap_panel) and args.json:
+    if producer and args.json:
         output = Path(args.json).resolve()
         repository = REPOSITORY.resolve()
         if output == repository or repository in output.parents:
@@ -40,7 +41,11 @@ def _readiness(args):
             args.challenge,
             args.level,
             only=only,
-            evidence_paths={"S3": args.margin_panel, "H2": args.overlap_panel},
+            evidence_paths={
+                "S3": args.margin_panel,
+                "H2": args.overlap_panel,
+                "H4": args.audit_panel,
+            },
         )
     except runner.ReadinessRefused as refused:
         print(f"readiness refused: {refused}")
@@ -54,7 +59,7 @@ def _readiness(args):
         with open(args.json, "w", encoding="utf-8", newline=chr(10)) as out:
             json.dump(report, out, indent=1, sort_keys=True)
             out.write(chr(10))
-    return 0 if report["launch_ready"] else 1
+    return 0 if report.get("controlled_ready") is True else 1
 
 
 def main(argv=None):
@@ -76,7 +81,8 @@ def main(argv=None):
     g = sub.add_parser(
         "readiness",
         help="run the Graphite readiness gate for one challenge "
-        "(exit 0 only when launch-ready: no FAIL, NOT_BUILT or REVIEW_REQUIRED left)",
+        "(exit 0 only when every item has a passing executable control; "
+        "legacy readiness alone is insufficient)",
     )
     g.add_argument("--challenge", required=True)
     g.add_argument("--level", type=int, default=0)
@@ -98,6 +104,11 @@ def main(argv=None):
         "--overlap-panel",
         metavar="PATH",
         help="producer-only H2 case-overlap panel pinned by registration digest",
+    )
+    g.add_argument(
+        "--audit-panel",
+        metavar="PATH",
+        help="producer-only H4 gate rows; aggregate-only output, no history",
     )
     r = sub.add_parser("render", help="write docs/development/CHALLENGE_PIPELINE.md")
     r.add_argument("--check", action="store_true", help="fail if the view is stale")

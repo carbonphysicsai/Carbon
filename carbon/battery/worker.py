@@ -523,7 +523,7 @@ class CarrierBackend:
         program, files, trainer = development_rebuild.stage(
             development, program, files, level1_program=level1_reconstruct_program
         )
-        if trainer == development_rebuild.LEVEL4 and workspace:
+        if development_rebuild.uses_graph(development) and workspace:
             # The submission's documents, staged by the validator beside the
             # record (`carbon.level4.staging.workspace`). Without them the
             # Level 4 program fails closed as Carbon's environment.

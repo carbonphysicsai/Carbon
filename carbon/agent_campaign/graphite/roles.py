@@ -204,7 +204,11 @@ LEVEL4_STAGE_TOOL = {
         "checks it (gates G0, G3 and G4) and keeps it; the reply names the "
         "submission digest. Put that digest in the strategy's "
         "parameters.composition_graphs and propose it with "
-        "graphite_run_proposal. strategy_json is the recipe, as a JSON string."
+        "graphite_run_proposal. The empty-task_id reply also carries the spec "
+        "contract, the steps, a known-good example_spec and a complete "
+        "example_run_python (a run_python arguments object that writes, lowers "
+        "and packs it): run it as it stands, then edit the model. "
+        "strategy_json is the recipe, as a JSON string."
     ),
     "parameters": {
         "type": "object",
@@ -297,7 +301,9 @@ def _whole_context(model_id, context_tokens=ENGY_CONTEXT_TOKENS):
     published context, up to what `select` accepts, and the 600 s timeout.
     Output (2,048 tokens by default) and reasoning effort stay `DEFAULT_SETTINGS`',
     unless the role's own extra settings raise the output (the Attacker's
-    `ATTACKER_MAX_OUTPUT_TOKENS`, at most `CONTEXT_RESERVE_TOKENS`).
+    `ATTACKER_MAX_OUTPUT_TOKENS`, at most `CONTEXT_RESERVE_TOKENS`) or the
+    model has a larger cap of its own that fits its context
+    (`MODEL_OUTPUT_CAPS`: kimi-k3's 32,768).
 
     The loop admits a request only under `max_input_tokens` minus
     `CONTEXT_RESERVE_TOKENS` (4,096), by a bound that never undercounts
@@ -334,6 +340,45 @@ WHOLE_CONTEXT_ROLES = (RoleName.CONSTRUCTOR, RoleName.ATTACKER)
 ATTACKER_MAX_OUTPUT_TOKENS = CONTEXT_RESERVE_TOKENS
 #: Each role's extra settings on top of its whole context.
 _ROLE_EXTRA = {RoleName.ATTACKER: {"max_output_tokens": ATTACKER_MAX_OUTPUT_TOKENS}}
+#: A model's own larger output cap for a whole-context role, where its context
+#: leaves the room (OWNER 2026-10-13: "Max out the available tokens like the
+#: rest of them that is an insane limitation"; the Test Lead read "like the
+#: rest of them" as 32,768, the value the level planner and the Score Lab
+#: session use, and chose per model, not per role). kimi-k3 only: the Level 4
+#: Constructor's run under GRAPHITE-GRANT-L4-G-CONSTRUCTOR-4 spent two turns'
+#: whole 2,048 tokens on reasoning and wrote no tool call. A cap is listed here
+#: only for a model whose published context holds the window the loop admits
+#: (`max_input_tokens` less `CONTEXT_RESERVE_TOKENS`) plus the cap
+#: (`output_cap_fits`); kimi-k3's context 1,113,088 holds 1,044,480 + 32,768
+#: with 36,000 tokens to spare. deepseek-v4-flash-0731, qwen3.8-27b and the two
+#: glm models open on their whole context, so a reply beyond the 4,096-token
+#: reserve could overflow it (the invalid request GRAPHITE-ATTACKER-STOP-RULE-01
+#: was written to avoid, and which stops a campaign): they keep their roles'
+#: caps, and `model_settings_for` refuses a table row that does not fit.
+#: The owner can raise a model's cap with one line, once it fits.
+MODEL_OUTPUT_CAPS = {"kimi-k3": 32768}
+
+
+def output_cap_fits(model_id, context_tokens, cap):
+    """True when a request the loop admits at this model's window (the whole
+    context, at most `SELECT_MAX_INPUT_TOKENS`, less `CONTEXT_RESERVE_TOKENS`)
+    plus a reply of `cap` tokens stays inside the model's context. Only a
+    request that fills the window to within the difference can overflow."""
+    context = context_tokens[model_id]
+    window = min(context, SELECT_MAX_INPUT_TOKENS)
+    return window - CONTEXT_RESERVE_TOKENS + cap <= context
+
+
+def _model_extra(role, model_id, context_tokens):
+    """The model's own output cap for `role` when `MODEL_OUTPUT_CAPS` lists it
+    and it fits this provider's recorded context; a listed cap that does not
+    fit raises, never silently applies or drops."""
+    cap = MODEL_OUTPUT_CAPS.get(model_id)
+    if cap is None:
+        return {}
+    if not output_cap_fits(model_id, context_tokens, cap):
+        raise ValueError(f"output_cap_does_not_fit_context:{model_id}")
+    return {"max_output_tokens": cap}
 
 
 def model_settings_for(context_tokens):
@@ -346,6 +391,7 @@ def model_settings_for(context_tokens):
             model: {
                 **_whole_context(model, context_tokens),
                 **_ROLE_EXTRA.get(role, {}),
+                **_model_extra(role, model, context_tokens),
             }
             for model in context_tokens
         }

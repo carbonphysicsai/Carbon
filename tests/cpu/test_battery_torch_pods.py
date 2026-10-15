@@ -98,7 +98,11 @@ def test_a_jax_build_keeps_its_program_and_job(battery):
 # -- the pod: image, CUDA versions, platform and probe by backend --------------------------
 def _backend():
     backend = object.__new__(pods.RunPodPods)
-    backend.code_ref, backend.manifest = "0" * 40, {}
+    backend.code_ref = "0" * 40
+    # Both backends require a nonempty anchored public code manifest.
+    backend.manifest = {
+        "carbon/__init__.py": digest((REPOSITORY / "carbon/__init__.py").read_bytes())
+    }
     backend.economics = pods.prices()
     backend.cuda_versions = ("13.0",)
     backend.boot = "pass"

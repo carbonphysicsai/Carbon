@@ -315,6 +315,30 @@ class BatteryAdapter(ChallengeAdapter):
             row = self.target.store.batch(commitment["fingerprint"])
         except StateError:
             return False
+        fingerprint = commitment["fingerprint"]
+        if len(self.target.store.salts([fingerprint])) != 1:
+            return False
+        design = commitment.get("design")
+        if design is not None:
+            from .bank_proof import selection_digest
+
+            held = self.target.store.design(fingerprint)
+            try:
+                if (
+                    held is None
+                    or held["bank"] != design["bank"]
+                    or len(held["questions"]) != design["k"]
+                    or selection_digest(sorted(held["questions"]))
+                    != design["selection_digest"]
+                ):
+                    return False
+            except (KeyError, TypeError, ValueError):
+                return False
+        elif (
+            self.target.rule.get("design") is not None
+            and commitment["kind"] == "screening"
+        ):
+            return False
         quiz = self.target.store.quiz(commitment["fingerprint"])
         return (
             row["references_state"] == "COMPLETE"

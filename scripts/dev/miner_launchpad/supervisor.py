@@ -134,6 +134,12 @@ _CODE = re.compile(r"[a-z][a-z0-9_]{0,63}|[A-Z][A-Z0-9_]{0,63}")
 #: Each step is fixed text; it names an MCP tool in parentheses where one
 #: helps, as the Control Center's own steps do.
 NEXT_ACTIONS = {
+    "construction_checks_unavailable": (
+        "A required construction check has no current acceptance evidence. "
+        "This attempt stopped before execution or signing. Use the registered "
+        "base settings or wait for the named check; changing a level label "
+        "does not resolve it."
+    ),
     # The campaign's own lock and state.
     "campaign_busy": (
         "Another session holds this campaign: an attached agent, the "
@@ -161,6 +167,14 @@ NEXT_ACTIONS = {
         "This operation is not a model call; reconcile it through its own path."
     ),
     "not_uncertain": "This call's outcome is known; there is nothing to settle.",
+    "provider_charge_invalid": (
+        "The retained provider charge is malformed; check the provider's own "
+        "usage record before this campaign makes another call."
+    ),
+    "settlement_journal_invalid": (
+        "The immutable settlement journal is corrupt or conflicts with this "
+        "call; keep the campaign stopped and review its retained records."
+    ),
     "request_changed": (
         "The retained request differs from the one reserved; keep the campaign "
         "as it is and report it."
@@ -478,6 +492,9 @@ NEXT_ACTIONS = {
         "The submission's body did not reach the intake in time, so nothing "
         "was evaluated; the frozen candidate is kept. Check your connection, "
         "then submit again."
+    ),
+    "peer_header_invalid": (
+        "Contact the validator's operator to fix its proxy connection, then retry."
     ),
     "headers": (
         "The intake refused the request's headers (one was repeated), so "
@@ -1352,6 +1369,12 @@ NEXT_ACTIONS = {
     "construction_level_arm_invalid": (
         "Send arm as one of the arm names carbon_ladder lists for the level, "
         "or omit it for the level's own variant."
+    ),
+    "construction_variant_invalid": (
+        "For the DEVELOPMENT Graphite standalone graph-v3 test, send the exact "
+        "registered battery variant digest with agent graphite. Omit arm and "
+        "any conflicting level hint. Omit construction_variant_digest to use "
+        "the registered combined construction default."
     ),
     "construction_level_needs_own_selection": (
         "A campaign at a construction level is driven by you or your own MCP "

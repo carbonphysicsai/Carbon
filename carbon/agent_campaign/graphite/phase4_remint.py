@@ -11,6 +11,7 @@ import hashlib
 import json
 import re
 import sqlite3
+from dataclasses import dataclass
 from pathlib import Path
 
 from carbon.agent_campaign.attack import analysis, verify
@@ -25,6 +26,39 @@ class RemintRefused(ValueError):
     def __init__(self, code):
         super().__init__(code)
         self.code = code
+
+
+@dataclass(frozen=True)
+class NonSessionFinding:
+    """A named older finding, never a session verdict or redacted evidence."""
+
+    code: str
+    outcome: str = "EXCLUDED_NON_SESSION_FINDING"
+
+
+def _non_session_finding(evidence):
+    """Recognise the two pre-session-verdict formats by their own fields."""
+    source, role = evidence.get("source"), evidence.get("role")
+    if (
+        source == "family_report"
+        and role in ("trained_control", "held_out_control")
+        and evidence.get("outcome") == "WRONGLY_REFUSED"
+        and isinstance(evidence.get("family"), str)
+        and isinstance(evidence.get("control"), str)
+        and isinstance(evidence.get("control_identity"), str)
+        and _DIGEST.fullmatch(evidence["control_identity"])
+    ):
+        return NonSessionFinding("finding_non_session_control_v1")
+    if (
+        source in ("deterministic_baseline", "copy_probe")
+        and role in ("attack", "control")
+        and isinstance(evidence.get("family"), str)
+        and isinstance(evidence.get("attempt"), str)
+        and isinstance(evidence.get("evidence_digest"), str)
+        and _DIGEST.fullmatch(evidence["evidence_digest"])
+    ):
+        return NonSessionFinding("finding_non_session_engine_v1")
+    return None
 
 
 def _finding_verdict(controller, db, finding_id):
@@ -51,14 +85,22 @@ def _finding_verdict(controller, db, finding_id):
         evidence = json.loads(body)
     except (KeyError, TypeError, ValueError, OSError):
         raise RemintRefused("finding_evidence_unreadable_or_changed") from None
-    if evidence.get("redacted"):
-        return None
-    verdict = evidence.get("verdict")
     if (
-        not isinstance(verdict, dict)
+        not isinstance(evidence, dict)
         or evidence.get("schema") != verify.FINDING_SCHEMA
         or evidence.get("condition") != finding["condition"]
-        or finding["condition"] not in (verdict.get("conditions") or ())
+    ):
+        raise RemintRefused("finding_verdict_malformed")
+    if evidence.get("redacted") == "protected_material":
+        return None
+    if "verdict" not in evidence:
+        older = _non_session_finding(evidence)
+        if older is not None:
+            return older
+        raise RemintRefused("finding_verdict_malformed")
+    verdict = evidence.get("verdict")
+    if not isinstance(verdict, dict) or finding["condition"] not in (
+        verdict.get("conditions") or ()
     ):
         raise RemintRefused("finding_verdict_malformed")
     return verdict
@@ -77,7 +119,7 @@ def _entries(store):
     return entries
 
 
-def _sources(store, attempt_id, expected, session):
+def _sources(store, attempt_id, expected, session, target=None):
     from carbon.agent_campaign.graphite import phase4
 
     controller = store / "controller"
@@ -86,12 +128,14 @@ def _sources(store, attempt_id, expected, session):
         raise RemintRefused("campaign_database_missing")
     found = []
     redacted = False
+    excluded_non_session = []
+    finding_records_seen = 0
     try:
         with sqlite3.connect(database.as_uri() + "?mode=ro", uri=True) as db:
             for entry in _entries(store):
-                if (
-                    not isinstance(entry, dict)
-                    or entry.get("schema") != phase4.LOG_SCHEMA
+                if not isinstance(entry, dict) or entry.get("schema") not in (
+                    phase4.LOG_SCHEMA,
+                    phase4.TARGET_LOG_SCHEMA,
                 ):
                     raise RemintRefused("iteration_log_schema_invalid")
                 number = entry.get("session")
@@ -115,9 +159,19 @@ def _sources(store, attempt_id, expected, session):
                 for finding_id in entry.get("findings") or ():
                     if not isinstance(finding_id, str):
                         raise RemintRefused("finding_id_invalid")
+                    finding_records_seen += 1
                     verdict = _finding_verdict(controller, db, finding_id)
                     if verdict is None:
                         redacted = True
+                        continue
+                    if isinstance(verdict, NonSessionFinding):
+                        excluded_non_session.append(
+                            {
+                                "session": number,
+                                "finding_id": finding_id,
+                                "code": verdict.code,
+                            }
+                        )
                         continue
                     if verdict.get("attempt") != attempt_id:
                         continue
@@ -136,19 +190,53 @@ def _sources(store, attempt_id, expected, session):
     unique = {}
     for entry, verdict in found:
         key = (entry["run_id"], json.dumps(verdict, sort_keys=True))
+        if key in unique:
+            previous = unique[key][0]
+            if any(
+                previous.get(field) != entry.get(field)
+                for field in (
+                    "schema",
+                    "session",
+                    "challenge",
+                    "construction_level",
+                    "verification_scope",
+                )
+            ):
+                raise RemintRefused("remint_source_context_ambiguous")
         unique[key] = (entry, verdict)
     if not unique and redacted:
         raise RemintRefused("finding_evidence_redacted")
     if len(unique) != 1:
         raise RemintRefused("remint_source_missing_or_ambiguous")
-    return next(iter(unique.values()))
+    entry, verdict = next(iter(unique.values()))
+    targeted = entry["schema"] == phase4.TARGET_LOG_SCHEMA
+    if targeted or target is not None:
+        from carbon.agent_campaign.attack import target_binding
+
+        scope = entry.get("verification_scope")
+        if (
+            target is None
+            or not targeted
+            or type(scope) is not dict
+            or scope.get("target") != target.record()
+            or scope.get("target_pin") != target.pin
+            or scope.get("mode") != target_binding.MODE
+            or scope.get("runtime_verification") != "UNAVAILABLE"
+        ):
+            raise RemintRefused("target_iteration_binding_changed")
+    return entry, verdict, excluded_non_session, finding_records_seen
 
 
-def remint(root, attempt_id, expected, *, session=None):
+def remint(root, attempt_id, expected, *, session=None, target=None):
     """Rebuild one already recorded specimen from an authenticated local source.
     `expected` binds the operator's requested artifact-keyed folder identity."""
     from carbon.agent_campaign.graphite import phase4
 
+    if target is not None:
+        from carbon.agent_campaign.attack import target_binding
+
+        if type(target) is not target_binding.TargetBinding:
+            raise RemintRefused("target_binding_requires_validated_intake")
     if not isinstance(expected, str) or not _SPECIMEN.fullmatch(expected):
         raise RemintRefused("expected_specimen_name_invalid")
     try:
@@ -161,7 +249,13 @@ def remint(root, attempt_id, expected, *, session=None):
     specimens = store / "specimens"
     if specimens.is_symlink():
         raise RemintRefused("specimen_store_is_a_link")
-    entry, recorded = _sources(store, attempt_id, expected, session)
+    entry, recorded, excluded_non_session, finding_records_seen = _sources(
+        store,
+        attempt_id,
+        expected,
+        session,
+        **({} if target is None else {"target": target}),
+    )
     run_dir = store / "graphite" / "runs" / entry["run_id"]
     if not run_dir.is_dir() or run_dir.is_symlink():
         raise RemintRefused("attempt_run_directory_missing")
@@ -174,7 +268,30 @@ def remint(root, attempt_id, expected, *, session=None):
     adapter, _variant = phase4.adapter_for(
         phase4.attack_modules(), entry["challenge"], entry["construction_level"]
     )
-    result = verify.remint_specimen(matches[0], adapter, recorded, specimens)
+    if target is not None:
+        from carbon.agent_campaign.attack import target_binding
+
+        try:
+            target_binding.require(target, adapter)
+            target_binding.session_pin(
+                store, entry["session"], target, resume=True, adapter=adapter
+            )
+        except target_binding.TargetRefused as refused:
+            raise RemintRefused(refused.code) from None
+    result = verify.remint_specimen(
+        matches[0],
+        adapter,
+        recorded,
+        specimens,
+        **({} if target is None else {"target": target}),
+    )
     if result.get("folder") and Path(result["folder"]).name != expected:
         raise RemintRefused("reminted_specimen_identity_changed")
-    return {"session": entry["session"], "run_id": entry["run_id"], **result}
+    return {
+        "session": entry["session"],
+        "run_id": entry["run_id"],
+        "excluded_non_session": excluded_non_session,
+        "excluded_non_session_count": len(excluded_non_session),
+        "finding_records_seen": finding_records_seen,
+        **result,
+    }

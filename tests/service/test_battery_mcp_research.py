@@ -712,11 +712,13 @@ def test_a_battery_agent_needs_a_finite_budget_and_the_autonomous_policy():
         LEGACY,
         prompt_for,
     )
+    from carbon.development_session.research_reply import RULE as REPLY_RULE
     from carbon.development_session.research_tools import ARGUMENT_NORMALISATION_V2
 
     assert provider_plan("none", None) == {
         "agent": "none",
         "model_calls": 0,
+        "research_reply": REPLY_RULE,
         "argument_normalisation": ARGUMENT_NORMALISATION_V2,
     }
     for budget in (None, {}, {"ceilings": {"provider_attempts": 3}}):

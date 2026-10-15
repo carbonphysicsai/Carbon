@@ -1,0 +1,16 @@
+{
+  "schema": "carbon.onboarding.panel-input-gaps.v1",
+  "challenge": "cooling-cell",
+  "authority_commit": "65ef88660fe02018c26f54d14655fe7b66354aa8",
+  "source": "docs/development/challenge_pipeline/round1/cooling-cell-v3.md",
+  "registration_status": "HOLD_INPUTS",
+  "adopted": false,
+  "dispatch_authority": false,
+  "case_count": null,
+  "cases": null,
+  "cpu_hours_after_dedup": null,
+  "missing": ["owner-selected inlet/lid/map/TIM set", "accepted geometry/flow actions and cell hydraulic objective/limits", "exact physical/package/observer/refinement pins", "public completed AND scheduled tuple snapshot with DC reuse receipts"],
+  "already_adopted": "85 C at lid-side TIM2 interface, cell-only and conditional on value",
+  "reported_cost_context": "Historical about 0.45 CPU-h; not a current complete timing receipt",
+  "value_check": "NOT_DEMONSTRATED"
+}

@@ -1,0 +1,6 @@
+{
+  "schema": "carbon.construction-promotions.v1",
+  "scope": "DEVELOPMENT",
+  "promotion_bar": null,
+  "promotions": []
+}

@@ -21,6 +21,8 @@ from carbon.research.model import DEVELOPMENT_WORKSPACE_ACTIONS
 from carbon.transport.models import message
 
 from .profile import canonical, digest
+from .research_reply import campaign_rule as campaign_reply_rule
+from .research_reply import project as project_reply
 from .research_workspace import CAPABILITY_FIELDS, CAPABILITY_REASONS, CAPABILITY_TEXT
 
 PREFIX = "carbon_research_v2__"
@@ -86,8 +88,11 @@ TASK_CORRECTIONS = {
         "JSON object, list or number."
     ),
     "workspace_field_missing": (
-        "arguments_json for this workspace action is missing a required field; "
-        "the start_research_task description lists each action's fields."
+        "arguments_json for this workspace action is missing a required field, "
+        "named below. Put it inside arguments_json, not beside it; the "
+        "start_research_task description lists each action's fields. For "
+        'run_python, for example: {"source": "print(1)", "files": [], '
+        '"hypothesis": "why I run this", "expected_effect": "what I expect"}.'
     ),
     "workspace_field_unexpected": (
         "arguments_json for this workspace action has a field the action does "
@@ -1087,6 +1092,9 @@ class ResearchMinerTools:
                 ),
             )
 
+        # Frozen reply selection is checked before reservation/signing/dispatch.
+        reply_rule = campaign_reply_rule(self.ledger)
+
         if name == PREFIX + "start_research_task" and (
             getattr(getattr(self.composition, "executor", None), "cleanup_only", False)
             or getattr(self.wrapper, "_closing", False)
@@ -1153,9 +1161,10 @@ class ResearchMinerTools:
                     actual={},
                     result={"status": "REQUEST_BOUND", "trial_charged": False},
                 )
-        return await self._call(
+        value = await self._call(
             name, args, identity, transport_request_id=transport_request_id
         )
+        return project_reply(value, reply_rule)
 
     def _journal(self, kind, body):
         """Record against the campaign journal, when there is a campaign.
@@ -1171,6 +1180,39 @@ class ResearchMinerTools:
         """
         if self.ledger is not None:
             self.ledger.note(owner=self.owner, kind=kind, body=body)
+
+    def _construction_result(self, operation, args, public_result):
+        """Append registered display notices to the public result, never admission."""
+        if operation not in {"dry_validate", "compile_strategy"} or self.ledger is None:
+            return public_result
+        if (
+            type(public_result) is not dict
+            or type(public_result.get("result")) is not dict
+        ):
+            return public_result
+        from carbon.challenge_registry.campaigns import campaign_for_manifest
+
+        from .construction_level import binding
+
+        try:
+            manifest = json.loads(
+                (self.ledger.root / "campaign-manifest.json").read_bytes()
+            )
+            hook = campaign_for_manifest(manifest).construction_notices
+            notices = (
+                []
+                if hook is None
+                else hook(_object(args, "strategy_json"), binding(manifest))
+            )
+        except (OSError, ValueError, TypeError, LookupError):
+            # Missing historical metadata offers no new notice or authority.
+            return public_result
+        if not notices:
+            return public_result
+        return {
+            **public_result,
+            "result": {**public_result["result"], "construction_notices": notices},
+        }
 
     def rejected(
         self,
@@ -1380,7 +1422,9 @@ class ResearchMinerTools:
                 if result["terminal_observation_base64"]
                 else None
             ),
-            "public_result": result["public_result"],
+            "public_result": self._construction_result(
+                operation, args, result["public_result"]
+            ),
             "requires_reconciliation": result["requires_reconciliation"],
             **(
                 {"original_operation_id": result["original_operation_id"]}

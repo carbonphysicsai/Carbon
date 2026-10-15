@@ -39,10 +39,24 @@ FIELD = "composition_graphs"
 CHALLENGE = "battery-fastcharge-ageing-development-v1"
 
 
+def widened_fields(challenge=CHALLENGE):
+    """All registered battery widenings, from digest-checked public metadata.
+    Never import the executable development-variant mechanism here."""
+    from carbon.reconstruction import capability_registry as registry
+
+    names = set()
+    for version in registry.development_variant_registry()["versions"]:
+        document = registry.development_variant_document(version)
+        if document["challenge"] == challenge:
+            names.update(w["id"].partition(".")[2] for w in document["widened"])
+    return frozenset(names)
+
+
 def _base(strategy):
     """The strategy without its Level 4 field: the recipe the graph replaces
     the network of."""
-    parameters = {k: v for k, v in strategy["parameters"].items() if k != FIELD}
+    fields = widened_fields(strategy["challenge_id"])
+    parameters = {k: v for k, v in strategy["parameters"].items() if k not in fields}
     return {**strategy, "parameters": parameters}
 
 
@@ -77,6 +91,19 @@ def interface_and_batch(strategy, *, root=None):
     n_in, n_out = dims(model)
     dtype = "float64" if recipe.settings["precision"] == "float64" else "float32"
     cases = len(train.case_ids)
+    selection = strategy["parameters"].get("pool_selection")
+    if selection is not None:
+        from . import pools
+
+        try:
+            pools.check(selection)
+        except pools.PoolRefused:
+            from carbon.level4 import graph
+
+            raise graph.GraphRefused(
+                "pool_selection_refused", "pool_selection"
+            ) from None
+        cases = selection["cases"]
     fraction = recipe.settings["train_fraction"]
     used = cases if fraction >= 1.0 else int(cases * fraction)
     batch = min(recipe.settings["batch_size"], used)
@@ -124,4 +151,8 @@ def admit_envelope(strategy, envelope_bytes, *, loss_override, root=None):
     )
     if verdict["status"] != "admitted":
         raise intake.IntakeBlocked(CAPS_UNSET)
+    if "loss_expressions" in parameters and "loss" in parsed:
+        raise graph.GraphRefused(
+            "construction_rebuild_unavailable", "loss_expressions+composition_graphs"
+        )
     return raw_manifest, files

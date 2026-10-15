@@ -47,19 +47,30 @@ cap and a body limit apply before any signature is checked, and the envelope's
 snapshot must be one this intake already observed: **no request causes a chain
 read.** One refresher thread reads the metagraph on a fixed period.
 
-**Exposure.** The listener binds loopback unless the configuration names an
+**Exposure.** The listener defaults to private loopback. A public bind names an
 exposure record that exists as a decision heading in `.agent/DECISIONS.md` or
 `.agent/decisions/*.md` (one file per decision from 2026-10-03) - the owner's §4 security
 review decision for this intake, an id of the form
 `OWNER-…INTAKE-EXPOSURE-NN` - and terminates TLS itself (`tls_cert`,
 `tls_key`). The owner recorded OWNER-INTAKE-EXPOSURE-01 on 2026-10-02 for
 testnet 567 and the routes above; exposing a host stays an operator action.
-A public bind also needs the deployment's isolated carrier: a deployment
+A public bind or an explicitly configured trusted TLS proxy also needs the
+deployment's isolated carrier and mandatory commitment admission: a deployment
 that rebuilds recipes in this process (`backend: direct`) is never exposed
 (`intake_exposure_needs_carrier`, LP-PROD-G). The TLS handshake runs in the
 connection's own thread under its socket timeout, never in the accept loop.
 Tests are not a security audit; this module is security-sensitive (AGENTS
 §13).
+
+PLT-15's generic `exposure: {via: trusted_proxy, header, record}` keeps the
+loopback bind but runs the same exposure/carrier/commitment guards. Only a
+TCP peer of 127.0.0.1 or ::1 supplies the configured header, containing exactly
+one IP literal; the proxy must overwrite it. Missing, duplicate or malformed
+identity fails closed before body reads or authentication. Other headers never
+supply identity. Without the mode, identity headers are ignored. Client request
+and connection limits use this validated IP. Before headers arrive, proxy
+sockets still use the global cap and timeout; direct sockets retain their early
+per-peer cap. The owner's tunnel acceptance and deployment remain separate.
 
 **As a service** (`scripts/dev/battery_validator_service`, LP-PROD-G) the
 intake logs one JSON line per event to stderr - start, stop, worker passes
@@ -86,6 +97,7 @@ import json
 import os
 import re
 import signal
+import socket
 import sqlite3
 import ssl
 import sys
@@ -122,6 +134,7 @@ OPTIONAL = {
     "tls_key",
     "attempt_ledger",
     "feed",
+    "exposure",
 }
 #: The attempt ledger beside the inbox when the configuration names none.
 ATTEMPT_LEDGER_SUFFIX = ".attempts.sqlite3"
@@ -151,12 +164,15 @@ STOP_GRACE_S = 30.0
 HOST_RETRY_MIN_S, HOST_RETRY_MAX_S = 1.0, 60.0
 SERVE_LOCK_SUFFIX = ".serve.lock"
 EXPOSURE_RECORD = r"OWNER-[A-Z0-9-]*INTAKE-EXPOSURE-[0-9]{2}"
+PROXY_FIELDS = {"via", "header", "record"}
+HEADER_NAME = r"[!#$%&'*+.^_`|~0-9A-Za-z-]{1,128}"
 SERVICE = "battery-intake"
 
 
 def log(event, *, out=None, **fields):
     """One structured line on stderr: UTC time, service, event, counts and
-    exception types only - never a peer, hotkey, path or request."""
+    exception types and closed condition codes only - never a peer, hotkey,
+    path, request or arbitrary exception content."""
     record = {
         "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "service": SERVICE,
@@ -219,8 +235,30 @@ def load_config(path, *, repository):
     return config
 
 
+def proxy_header(config):
+    """The optional, closed trusted-proxy configuration; never inferred from a header."""
+    exposure = config.get("exposure")
+    if exposure is None:
+        return None
+    if (
+        type(exposure) is not dict
+        or set(exposure) != PROXY_FIELDS
+        or exposure.get("via") != "trusted_proxy"
+        or type(exposure.get("header")) is not str
+        or not re.fullmatch(HEADER_NAME, exposure["header"])
+        or config.get("exposure_record") not in (None, exposure.get("record"))
+    ):
+        raise IntakeUnavailable("intake_config_exposure")
+    return exposure["header"]
+
+
+def publicly_exposed(config):
+    """A TLS proxy exposes a loopback listener just as a public bind does."""
+    return proxy_header(config) is not None or not is_loopback(config["host"])
+
+
 def require_exposure(config, *, repository):
-    """A non-loopback bind needs the owner's recorded exposure decision.
+    """A public bind or explicit tunnel needs the recorded exposure decision.
 
     Only the owner's §4 security review decision may make this host reachable
     from outside, so a public bind names that record and the record must be a
@@ -228,11 +266,19 @@ def require_exposure(config, *, repository):
     one of the one-per-decision files under `.agent/decisions/` that replaced
     appending to it. A public bind also terminates TLS here:
     the miner client refuses plain HTTP beyond loopback, and behind a TLS
-    proxy every request would share one peer's limits. Loopback needs neither.
+    proxy, explicit trusted-proxy mode separates clients by its IP header.
+    Private loopback needs neither; tunnel loopback still needs the record.
     """
-    if is_loopback(config["host"]):
+    header = proxy_header(config)
+    if header is not None and not is_loopback(config["host"]):
+        raise IntakeUnavailable("intake_proxy_needs_loopback")
+    if not publicly_exposed(config):
         return
-    record = config.get("exposure_record")
+    record = (
+        config["exposure"]["record"]
+        if header is not None
+        else config.get("exposure_record")
+    )
     # Only a record made for this purpose counts: any other owner decision,
     # including the one that chose the intake, never exposes it.
     if type(record) is not str or not re.fullmatch(EXPOSURE_RECORD, record):
@@ -243,7 +289,7 @@ def require_exposure(config, *, repository):
     heading = re.compile(rf"^## .*\b{re.escape(record)}\b", re.MULTILINE)
     if not any(heading.search(text) for text in texts):
         raise IntakeUnavailable("intake_exposure_unrecorded")
-    if not ("tls_cert" in config and "tls_key" in config):
+    if header is None and not ("tls_cert" in config and "tls_key" in config):
         raise IntakeUnavailable("intake_exposure_needs_tls")
 
 
@@ -256,15 +302,66 @@ def is_loopback(host):
 
 
 def require_isolation(config, deployment_config):
-    """A public bind needs the deployment's isolated carrier (LP-PROD-G).
+    """Every exposed listener needs the isolated carrier and commitment binding.
 
     A `direct` deployment rebuilds and runs recipes in the validator's own
     process (`DIRECT_TRUSTED_PROCESS`): local development only. Miner input
     from beyond this host is untrusted (AGENTS §6.6), so such a deployment is
     never exposed, whatever exposure record the configuration names.
     """
-    if not is_loopback(config["host"]) and deployment_config["backend"] != "carrier":
+    if publicly_exposed(config):
+        if deployment_config["backend"] != "carrier":
+            raise IntakeUnavailable("intake_exposure_needs_carrier")
+        if deployment_config.get("require_commitment", True) is not True:
+            raise IntakeUnavailable("intake_exposure_needs_commitment")
+
+
+def trusted_proxy_peer(peer):
+    """Only the registered local proxy hop can supply a client identity."""
+    return peer in ("127.0.0.1", "::1")
+
+
+def require_public_target(config, target):
+    """Check the effective daemon too: deployment.validator caches by path/mode.
+
+    Editing an owner configuration must not expose a cached private daemon
+    still using direct execution or optional commitment admission.
+    """
+    if not publicly_exposed(config):
+        return
+    from .worker import CarrierBackend
+
+    if type(target.backend) is not CarrierBackend:
         raise IntakeUnavailable("intake_exposure_needs_carrier")
+    if target.require_commitment is not True:
+        raise IntakeUnavailable("intake_exposure_needs_commitment")
+
+
+def peer_identity(headers, peer, header):
+    """One validated IP literal, or None; direct mode ignores identity headers."""
+    if header is None:
+        return peer
+    if not trusted_proxy_peer(peer) or not hasattr(headers, "items"):
+        return None
+    values = [
+        value
+        for name, value in headers.items()
+        if type(name) is str and name.lower() == header.lower()
+    ]
+    if (
+        len(values) != 1
+        or type(values[0]) is not str
+        or not 1 <= len(values[0]) <= 45
+        or "%" in values[0]
+    ):
+        return None
+    try:
+        address = ipaddress.ip_address(values[0])
+    except ValueError:
+        return None
+    if isinstance(address, ipaddress.IPv6Address) and address.ipv4_mapped is not None:
+        address = address.ipv4_mapped
+    return str(address)
 
 
 def tls_context(config):
@@ -681,6 +778,7 @@ class BatteryIntake:
         commitment=None,
         feed=None,
         level4_parts=None,
+        proxy_header=None,
     ):
         from carbon.challenge_validator import Validator
 
@@ -694,6 +792,12 @@ class BatteryIntake:
         #: The development ladder's Level 4 envelope parts (VALIDATOR-25 slice
         #: 4; `level4_parts.Level4Parts`), on a ladder serving Level 4 only.
         self.level4_parts = level4_parts
+        if proxy_header is not None and (
+            type(proxy_header) is not str or not re.fullmatch(HEADER_NAME, proxy_header)
+        ):
+            raise IntakeUnavailable("intake_config_exposure")
+        self.proxy_header = proxy_header
+        self.client_connections = ConnectionSlots()
         self.context = context
         self.challenge = CHALLENGE
         self.receiver = receiver
@@ -736,6 +840,11 @@ class BatteryIntake:
             200,
             {
                 "schema": PUBLIC_SCHEMA,
+                **(
+                    {"exposure": {"via": "trusted_proxy"}}
+                    if self.proxy_header is not None
+                    else {}
+                ),
                 "network": self.context.network,
                 "genesis": self.context.genesis_hash,
                 "netuid": self.context.netuid,
@@ -785,6 +894,9 @@ class BatteryIntake:
 
     def handle(self, method, path, headers, body, peer):
         """One request in, one `Answer` out. Never raises for a miner input."""
+        peer = peer_identity(headers, peer, self.proxy_header)
+        if peer is None:
+            return _refused(400, "peer_header_invalid")
         return self.limited(peer, lambda: self.route(method, path, headers, body))
 
     def limited(self, peer, then):
@@ -1029,7 +1141,7 @@ class BatteryIntake:
 # --- the worker -----------------------------------------------------------------
 
 
-def work_once(inbox, target):
+def work_once(inbox, target, *, out=None):
     """Admit every received submission, then advance every admitted one.
 
     Each daemon call holds the deployment's single-writer lock for its own
@@ -1053,9 +1165,16 @@ def work_once(inbox, target):
         DevelopmentCompilerUnavailable,
     )
     from .deployment import processes_here, writer
-    from .pool_store import HotkeyWindowUsed
+    from .pool_store import HotkeyWindowUsed, StateError
 
-    moved = {"admitted": 0, "refused": 0, "processed": 0, "advanced": 0, "left": 0}
+    moved = {
+        "admitted": 0,
+        "refused": 0,
+        "processed": 0,
+        "advanced": 0,
+        "left": 0,
+        "orphaned": 0,
+    }
     for submission_id, submission in inbox.received():
         try:
             with writer(target):
@@ -1118,7 +1237,24 @@ def work_once(inbox, target):
         return moved
     for submission_id in inbox.admitted():
         with writer(target):
-            if target.outcome(submission_id)["state"] not in _TERMINAL:
+            try:
+                outcome = target.outcome(submission_id)
+            except StateError as missing:
+                code = missing.__dict__.get("code")
+                if type(code) is not str or code != "unknown_submission":
+                    raise
+                # The inbox survives state transitions independently of the
+                # validator store. Keep the row for Validator recovery policy;
+                # it must not prevent known submissions/pending work advancing.
+                moved["orphaned"] += 1
+                log(
+                    "worker_orphan_skipped",
+                    out=out,
+                    code="unknown_submission",
+                    count=1,
+                )
+                continue
+            if outcome["state"] not in _TERMINAL:
                 target.process(submission_id)
                 moved["processed"] += 1
     with writer(target):
@@ -1130,7 +1266,7 @@ def worker(inbox, target, wake, *, stop, idle_s=30.0, out=None):
     while not stop.is_set():
         wake.clear()
         try:
-            moved = work_once(inbox, target)
+            moved = work_once(inbox, target, out=out)
         except Exception as failure:  # noqa: BLE001
             # Infrastructure: the inbox keeps every submission for the next
             # pass. Only the exception's type is logged, never its content.
@@ -1149,7 +1285,19 @@ def _handler(intake):
         server_version = "carbon-battery-intake"
         sys_version = ""
 
+        def setup(self):
+            self._client_slot = None
+            super().setup()
+
+        def finish(self):
+            try:
+                super().finish()
+            finally:
+                if self._client_slot is not None:
+                    intake.client_connections.release(self._client_slot)
+
         def _answer(self, answer):
+            self.close_connection = True
             payload = json.dumps(answer.body, sort_keys=True).encode()
             self.send_response(answer.status)
             self.send_header("Content-Type", "application/json")
@@ -1163,6 +1311,14 @@ def _handler(intake):
             # before a single body byte is read. The body must then arrive
             # whole within BODY_DEADLINE_S, and only then does the request
             # take an in-flight slot: a trickled body holds no slot.
+            peer = peer_identity(
+                self.headers, self.client_address[0], intake.proxy_header
+            )
+            if peer is None:
+                return self._answer(_refused(400, "peer_header_invalid"))
+            headers = {k: v for k, v in self.headers.items()}
+            if len(headers) != len(self.headers.items()):
+                return self._answer(_refused(400, "headers"))
             length = 0
             if method == "POST":
                 declared = self.headers.get("Content-Length")
@@ -1173,15 +1329,16 @@ def _handler(intake):
                 ):
                     return self._answer(_refused(413, "body"))
                 length = int(declared)
-            if not intake.limits.allow(self.client_address[0]):
+            if intake.proxy_header is not None:
+                if not intake.client_connections.acquire(peer):
+                    return self._answer(_refused(503, "capacity"))
+                self._client_slot = peer
+            if not intake.limits.allow(peer):
                 return self._answer(_refused(429, "rate"))
             try:
                 body = read_body(self.connection, self.rfile, length, BODY_DEADLINE_S)
             except (TimeoutError, ConnectionError, OSError):
                 return self._answer(_refused(408, "body_timeout"))
-            headers = {k: v for k, v in self.headers.items()}
-            if len(headers) != len(self.headers.items()):
-                return self._answer(_refused(400, "headers"))
             with intake.limits.in_flight() as admitted:
                 if not admitted:
                     return self._answer(_refused(503, "capacity"))
@@ -1228,18 +1385,20 @@ def read_body(connection, rfile, length, deadline_s, *, clock=time.monotonic):
 class ConnectionSlots:
     """At most `total` open connections, and at most `per_peer` from one
     address. A connection over either cap is closed before any byte of it is
-    read (VALIDATOR-01 security review, finding 2)."""
+    read (VALIDATOR-01 security review, finding 2). A trusted proxy's unparsed
+    sockets use the global cap; the handler enforces per-client slots after
+    validating headers, before body reads. Other sockets keep the early cap."""
 
     def __init__(self, total=MAX_CONNECTIONS, per_peer=MAX_CONNECTIONS_PER_PEER):
         self.total, self.per_peer = total, per_peer
         self._lock = threading.Lock()
         self._open = {}
 
-    def acquire(self, peer):
+    def acquire(self, peer, *, shared_proxy=False):
         with self._lock:
             if sum(self._open.values()) >= self.total:
                 return False
-            if self._open.get(peer, 0) >= self.per_peer:
+            if not shared_proxy and self._open.get(peer, 0) >= self.per_peer:
                 return False
             self._open[peer] = self._open.get(peer, 0) + 1
             return True
@@ -1287,13 +1446,22 @@ class _Server(ThreadingHTTPServer):
     daemon_threads = True
     request_queue_size = LISTEN_BACKLOG
 
-    def __init__(self, address, handler, *, service=SERVICE):
+    def __init__(self, address, handler, *, service=SERVICE, trusted_proxy=False):
         self.slots = ConnectionSlots()
         self.service = service
+        self.trusted_proxy = trusted_proxy
+        try:
+            if ipaddress.ip_address(address[0]).version == 6:
+                self.address_family = socket.AF_INET6
+        except ValueError:
+            pass  # hostnames retain the existing IPv4 resolution path
         super().__init__(address, handler)
 
     def process_request(self, request, client_address):
-        if not self.slots.acquire(client_address[0]):
+        if not self.slots.acquire(
+            client_address[0],
+            shared_proxy=self.trusted_proxy and trusted_proxy_peer(client_address[0]),
+        ):
             log("connection_refused", service=self.service, reason="busy")
             self.shutdown_request(request)
             return
@@ -1317,7 +1485,7 @@ class _Server(ThreadingHTTPServer):
         )
 
 
-def hardened_listener(config, handler, *, service=SERVICE):
+def hardened_listener(config, handler, *, service=SERVICE, trusted_proxy=False):
     """Bind the configured address for `handler` (a `LoggedHandler`); with
     TLS, wrap it so each connection's handshake runs in that connection's own
     thread, under its socket timeout.
@@ -1331,7 +1499,12 @@ def hardened_listener(config, handler, *, service=SERVICE):
     if not issubclass(handler, LoggedHandler):
         raise TypeError("a public door's handler is a LoggedHandler")
     tls = tls_context(config)
-    httpd = _Server((config["host"], config["port"]), handler, service=service)
+    httpd = _Server(
+        (config["host"], config["port"]),
+        handler,
+        service=service,
+        trusted_proxy=trusted_proxy,
+    )
     if tls is not None:
         httpd.socket = tls.wrap_socket(
             httpd.socket, server_side=True, do_handshake_on_connect=False
@@ -1341,7 +1514,11 @@ def hardened_listener(config, handler, *, service=SERVICE):
 
 def listener(config, intake):
     """The intake's listener (`hardened_listener`)."""
-    return hardened_listener(config, _handler(intake))
+    if intake.proxy_header != proxy_header(config):
+        raise IntakeUnavailable("intake_proxy_mismatch")
+    return hardened_listener(
+        config, _handler(intake), trusted_proxy=intake.proxy_header is not None
+    )
 
 
 def serve_lock_path(config):
@@ -1428,6 +1605,7 @@ def serve(
     try:
         target = _when_host_ready(config, repository, stop)
         if target is not None:
+            require_public_target(config, target)
             _serve(config, target, repository, stop, reader, verifier, ready)
     finally:
         os.close(lock)
@@ -1489,6 +1667,7 @@ def _serve(config, target, repository, stop, reader, verifier, ready):
         commitment=commitment_fact(target),
         feed=_feed_reader(config),
         level4_parts=level4_parts_for(config["deployment"], target),
+        proxy_header=proxy_header(config),
     )
     httpd = listener(config, intake)
     threads = [

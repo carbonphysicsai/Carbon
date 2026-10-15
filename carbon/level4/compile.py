@@ -151,6 +151,22 @@ def staged_files(parsed, allowlist, *, max_bytes):
     return files
 
 
+def input_digest(parsed, allowlist):
+    """Identity of the canonical documents G5 compiles; metadata only."""
+    from . import graph
+
+    documents = {
+        slot: hashlib.sha256(graph.dumps(doc)).hexdigest()
+        for slot, doc in parsed.items()
+    }
+    body = json.dumps(
+        {"allowlist": allowlist.digest, "documents": documents},
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return "sha256:" + hashlib.sha256(body).hexdigest()
+
+
 def compile_in_isolation(
     parsed,
     allowlist,
@@ -211,4 +227,6 @@ def compile_in_isolation(
         "profile_decision": PROFILE_DECISION,
         "scope": scope,
         "identity": identity,
+        "input_digest": input_digest(parsed, allowlist),
+        "image": image,
     }

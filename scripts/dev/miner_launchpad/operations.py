@@ -266,15 +266,21 @@ FIELDS = {
     "construction_level": (
         "integer",
         (
-            "Launch only, optional: the construction level, 0 to 5, from the "
-            "Challenge's ladder (carbon_ladder). Omitted or 0: Level 0, the "
-            "Challenge's registered contract, as before. N >= 1 binds the "
-            "level's current registered development variant (its name and "
-            "digest, frozen in the campaign manifest) and is refused "
-            "level_not_registered when there is none. It is DEVELOPMENT: "
-            "submit and commit are refused level_not_served_by_target unless "
-            "the target intake's served_contracts lists the variant. Needs "
-            "agent none."
+            "Optional legacy label, 0 to 5. New launches use the Challenge's "
+            "registered combined construction contract where offered; recipe "
+            "changes determine the reported level. You do not select a level "
+            "to gain permission. Historical variant campaigns and explicit "
+            "named arms keep their frozen identities. Compile, commit and "
+            "submit require a receiver explicitly serving that exact contract."
+        ),
+    ),
+    "construction_variant_digest": (
+        "string",
+        (
+            "Explicit DEVELOPMENT Graphite test subject: the exact registered "
+            "battery standalone graph-v3 digest. Omit for the combined default. "
+            "A level label does not authorize a subject; the receiving target "
+            "must separately serve the selected digest."
         ),
     ),
     "arm": (
@@ -489,7 +495,9 @@ REFUSAL_FIELDS = {
     "construction_level_arm_invalid": "arm",
     "construction_level_needs_own_selection": "agent",
     "construction_level_not_offered_for_challenge": "construction_level",
+    "construction_variant_invalid": "construction_variant_digest",
     "level_strategy_refused": "strategy",
+    "construction_checks_unavailable": "strategy",
     "level4_directory_required": "level4_directory",
     "level4_directory_needs_level4": "level4_directory",
     "level4_size_bound_not_set": "construction_level",
@@ -600,6 +608,7 @@ OPERATIONS = {
                     "hunt",
                     "limits",
                     "construction_level",
+                    "construction_variant_digest",
                     "arm",
                 }
             ),
@@ -609,7 +618,10 @@ OPERATIONS = {
             "options",
             "Every launch-time choice with its true availability now: who "
             "selects, each model family's registry verdict, and the research "
-            "lanes this host has. Reads only.",
+            "lanes this host has; construction_options lists every registered "
+            "change with Available or Coming soon and a plain reason. "
+            "Launch retains the registered level binding until the composed "
+            "compile supplies its derived summary. Reads only.",
             frozenset(),
             frozenset(),
             ("request", "profile"),
@@ -964,7 +976,7 @@ def without_level_zero(request):
         drop.add("arm")
     level = request.get("construction_level", "absent")
     if (level is None or (type(level) is int and level == 0)) and (
-        request.get("arm") is None
+        request.get("arm") is None and "construction_variant_digest" not in request
     ):
         drop.add("construction_level")
     drop &= set(request)

@@ -301,8 +301,12 @@ def test_the_engine_tool_is_offered_under_v2_only_and_reaches_no_role_tool(tmp_p
     )
     assert COMPACTION_NOT_REQUESTED in json.dumps(refused)
     # The toolbox answered the search only; the compaction call never reached it.
-    tools_seen = [e["tool"] for e in graphite.events(run, 0) if "tool" in e]
+    events = graphite.events(run, 0)
+    tools_seen = [e["tool"] for e in events if e.get("kind") == "tool_answered"]
     assert tools_seen == ["lit_search"]
+    # Observing an engine-local call is distinct from dispatch to the toolbox.
+    observed = [e["tool"] for e in events if e.get("kind") == "call_arguments"]
+    assert observed == [COMPACT, "lit_search"]
     old = ScriptedModel([script[1], script[2]])
     historical, old_run = started(
         tmp_path / "v1", old, session_limits=gp.SESSION_LIMITS_V1

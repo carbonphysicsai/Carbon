@@ -12,7 +12,8 @@ export CARBON_AUTHORED_JULIA_IMAGE_ROOT="${CARBON_AUTHORED_JULIA_IMAGE_ROOT:-${r
 # identity is Julia inputs only (julia_depot.depot_digest), so it survives
 # commits that do not touch them. A read token, when given, reaches docker over
 # stdin only. No lock for these inputs, a failed sign-in, a failed pull or a
-# failed check records nothing, and the suite then builds the depot cold.
+# failed check records no adopted depot. Service acceptance requires the
+# published depot; operator cold builds remain an explicit separate command.
 # The sign-in lasts only as long as the adopt: it is removed right after, and
 # by the trap if adopt itself fails, so the service tests never run with it.
 if [[ -n "${GHCR_READ_TOKEN:-}" ]]; then
@@ -21,7 +22,7 @@ if [[ -n "${GHCR_READ_TOKEN:-}" ]]; then
     || echo 'Julia depot registry sign-in failed; the depot will be built if it cannot be pulled.'
 fi
 "${repo_root}/.venv/bin/python" "${repo_root}/scripts/dev/julia_depot.py" adopt \
-  --root "${CARBON_AUTHORED_JULIA_IMAGE_ROOT}/depot"
+  --root "${CARBON_AUTHORED_JULIA_IMAGE_ROOT}/depot" --require-published
 if [[ -n "${GHCR_READ_TOKEN:-}" ]]; then
   docker logout ghcr.io >/dev/null 2>&1 || true
   trap - EXIT

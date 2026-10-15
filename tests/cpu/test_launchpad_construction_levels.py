@@ -142,24 +142,28 @@ def test_a_level_with_no_registered_variant_is_refused_from_registry_data(tmp_pa
     assert refused.value.code == "level_not_registered"
 
 
-def test_launch_binding_refuses_by_closed_code_before_anything_is_created():
-    found = levels.launch_binding({"construction_level": 2}, challenge(), "none")
-    assert found == cl.with_target(cl.resolve(BATTERY, 2), None)
-    with_profile = levels.launch_binding(
-        {"construction_level": 2}, challenge(), "none", CFG
+def test_launch_binding_uses_the_registered_composition_and_validates_hints():
+    expected = cl.with_target(cl.resolve_composition(BATTERY), None)
+    assert (
+        levels.launch_binding({"construction_level": 2}, challenge(), "none")
+        == expected
     )
-    assert with_profile == bound(2) and with_profile["target_intake"] == URL
-    assert levels.launch_binding({}, challenge(), "graphite") is None
-    with pytest.raises(Rejected) as refused:
-        levels.launch_binding({"construction_level": 5}, challenge(), "none")
-    assert refused.value.code == "level_not_registered"
-    assert operations.refusal(refused.value.code)["field"] == "construction_level"
-    with pytest.raises(Rejected) as refused:
-        levels.launch_binding({"construction_level": 1}, challenge(), "graphite")
-    assert refused.value.code == "construction_level_needs_own_selection"
+    assert levels.launch_binding({}, challenge(), "graphite", CFG) == cl.with_target(
+        expected, URL
+    )
+    for invalid in (True, "2", -1, 6):
+        with pytest.raises(Rejected) as refused:
+            levels.launch_binding({"construction_level": invalid}, challenge(), "none")
+        assert refused.value.code == "construction_level_invalid"
     with pytest.raises(Rejected) as refused:
         levels.launch_binding({"arm": "signed"}, challenge(), "none")
     assert refused.value.code == "construction_level_invalid"
+    # Explicit signed arms are still the separately bounded legacy mechanism.
+    with pytest.raises(Rejected) as refused:
+        levels.launch_binding(
+            {"construction_level": 1, "arm": "signed"}, challenge(), "graphite"
+        )
+    assert refused.value.code == "construction_level_needs_own_selection"
 
 
 def test_level_0_is_the_launch_it_always_was():

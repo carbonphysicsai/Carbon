@@ -1,0 +1,26 @@
+{
+  "address_space_cap_bytes": 1073741824,
+  "artifact_sha256": {
+    "ADMISSION.json": "be3af8d6875529324bef8560d397dfe3a5d9b2d69dd0a77fed8823adbcd54da0",
+    "PUBLIC_REPLAY.json.gz": "5570a305969d3f11dc2061c62640c303deeddfba94b6add4d504d44604faabdb"
+  },
+  "canonical_actual_run": false,
+  "canonical_wrapper_result": "Initial Windows-managed identity refused; native-Linux clone later permits focused canonical validation; actual replay remains a WSL diagnostic",
+  "cpu_system_seconds": 6.98,
+  "cpu_user_seconds": 44.49,
+  "environment": "local Ubuntu-24.04 WSL; canonical PR CI remains validation gate",
+  "exit_code": 0,
+  "implementation_commit": "2f06efae664d5bd79fb2dcd1b48edbfa2923aecb",
+  "model_inference_calls": 0,
+  "model_rebuilds": 0,
+  "peak_rss_kib": 208420,
+  "runtime_versions": {
+    "numpy": "2.4.6",
+    "python": "3.11.16",
+    "scipy": "1.17.1"
+  },
+  "schema": "carbon.dev.ev4-public-v2-run-receipt.v1",
+  "solver_calls": 0,
+  "wall_limit_seconds": 1200,
+  "wall_seconds": 126.94
+}

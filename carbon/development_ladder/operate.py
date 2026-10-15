@@ -27,13 +27,29 @@ def compile_variant(strategy, variant_digest, parts=None, held=None):
     the signed parts the intake holds; until those checks exist, it is
     refused. `held` keeps each admitted envelope's `(raw_manifest, files)`."""
     from carbon.reconstruction import development_variants as dv
+    from carbon.reconstruction.capability_registry import is_development_composition
 
-    variant = dv.registered(variant_digest)
-    if getattr(variant, "level", None) == 4:
+    if is_development_composition(variant_digest):
+        from carbon.reconstruction import development_composition as dc
+
+        variant = dc.registered(variant_digest)
+        from carbon.battery.daemon import DevelopmentCompilerUnavailable
+
+        from .required_checks import ChecksUnavailable, check
+
+        try:
+            check(strategy, variant)
+        except ChecksUnavailable as unavailable:
+            raise DevelopmentCompilerUnavailable(unavailable.code) from None
+        compile_registered = dc.compile
+    else:
+        variant = dv.registered(variant_digest)
+        compile_registered = dv.compile_development
+    if _submission(strategy) is not None:
         admitted = _admit_level4(strategy, variant, parts)
         if held is not None:
             held[_submission(strategy)] = admitted
-    return dv.compile_development(strategy, variant)
+    return compile_registered(strategy, variant)
 
 
 def _submission(strategy):
@@ -68,16 +84,20 @@ def _admit_level4(strategy, variant, parts):
     # the rebuild record carries).
     overrides = [
         json.loads(widened.bounds_json).get("loss_override")
-        for widened in variant.widened
+        for part in getattr(variant, "variants", (variant,))
+        for widened in part.widened
+        if widened.name == "composition_graphs"
     ]
     loss_override = next((o for o in overrides if o is not None), None)
     return admit_envelope(strategy, envelope, loss_override=loss_override)
 
 
-def setup(target, config=None):
+def setup(target, config=None, *, shadow=None):
     """Supply the compiler to one development-ladder deployment, with its
     Level 4 envelope parts when it serves Level 4, and the staged workspace a
-    Level 4 rebuild needs (`workspace_for`)."""
+    Level 4 rebuild needs (`workspace_for`). An optional operator-only shadow
+    observer runs after a successful compile. Its diagnostics and failures
+    cannot change admission, compilation, evaluation or scoring."""
     if getattr(target, "ladder", None) is None:
         raise ValueError("not a development-ladder deployment")
     parts = None
@@ -92,7 +112,16 @@ def setup(target, config=None):
     held = {}
 
     def compile_listed(strategy, variant_digest):
-        return compile_variant(strategy, variant_digest, parts, held)
+        compiled = compile_variant(strategy, variant_digest, parts, held)
+        if shadow is not None:
+            try:
+                from copy import deepcopy
+
+                shadow(deepcopy(strategy), variant_digest)
+            except Exception:  # noqa: BLE001
+                # Observational failure is not a candidate/infra verdict.
+                compile_listed.shadow_failures += 1
+        return compiled
 
     def workspace_for(strategy):
         submission = _submission(strategy)
@@ -109,6 +138,7 @@ def setup(target, config=None):
         return staging.workspace(raw_manifest, files)
 
     compile_listed.parts = parts
+    compile_listed.shadow_failures = 0
     compile_listed.workspace_for = workspace_for
     target.development_compiler = compile_listed
 

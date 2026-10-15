@@ -1,0 +1,40 @@
+# PLT-32 / CONSTRUCTION-CONTRACT-01 S3 - ladder and Launchpad wiring
+
+Status: IN_PROGRESS; Platform3; S3 only, one PR against main. Base ae42c0f0416560ca7e2a12e7f4256ff976213a80 (verified #1329 normal merge, second parent c9c4620f6898c0fc7909992832e74f1f565ae117; all 21 reviewed S2 blobs preserved). S4 remains sequenced separately; S5 requires owner deployment go.
+
+Authority: OWNER-CONSTRUCTION-ANYTHING-01; canonical queue PLT-32; CONSTRUCTION_CONTRACT_PLAN_01 sections 3/6.3-6.7; LAUNCHPAD_CONTRACT_COVERAGE_01; Constitution/invariants/current delivery/delegated decision protocols. Ryan's direct Test Lead instruction: "Keep using them to stay optimal. Need to move down the Slices". Test Lead explicitly advanced one bounded S3 item after S2 actual required checks and merge. No second acceptance/receipt wait; Hub retired. Root/Test Lead owns engineering merge.
+
+## Working contract and plan
+
+1. KEEP authenticated historical variant/composition versions, per-field bounds, actual rebuild/cost, graph G0-G7, transport, import closure, hotkey/commitment/testnet and development-only controls. Add digest-checked metadata recognition for compositions without importing executable composition/variant code into protected miner/validator surfaces. Add a registered composition resolver for the development compiler.
+2. WRAP the existing ladder compiler, daemon binding/recompile and neutral dispatch with exact registered composition identity. The operator may configure a stand-in development ladder to list it; no checked-in deployment config, live service or registered deployment is changed. Level metadata does not filter composition admission. Unlisted contracts/hotkeys, malformed/cross-Challenge or stale identities still fail closed.
+3. New eligible Launchpad launches bind the registered composition without requiring a level selection. Preserve historical frozen variant campaigns. Return actual derived level/changes/plain-language summary from compilation, carry exact composition identity through practice/smoke/freeze/commit/submit, and retain target-served-digest and signed graph-envelope checks. A smoke pass remains bound to its exact practiced recipe and does not prove full composed training; no timeout widening or live smoke run.
+4. REPAIR unified shadow combination derivation and compare to carry all registered parts; old INTERNAL/ceiling metadata is report-only; actual required checks remain fail closed, while malformed/unrebuildable/out-of-bounds/unpriced actual inputs remain refused by the real compiler. Shadow stays observational, never a score/admission/security authority. Actual graph-loss plus L1 expression remains the S2 named refusal.
+5. Add discriminating metadata/identity, stand-in daemon/dispatch, composition launch/compile, smoke/freeze/commit/envelope and shadow controls. Preserve single-level parity and negative controls. Run canonical relevant baseline before runtime edits, focused tests per slice, import/privacy/invariant checks and actual scope-required CI; no repeated clean-pass quota.
+
+## Manifest and seams
+
+Expected runtime: carbon/reconstruction/{composition_registry,capability_registry,development_composition,development_level_cli}.py; carbon/battery/{daemon,deployment,intake,research,campaign,unified_contract}.py; carbon/challenge_validator/dispatch.py; carbon/development_ladder/{operate,unified_shadow}.py; carbon/development_session/{construction_level,unified_construction}.py; scripts/dev/miner_launchpad/{levels,operations,ladder_view,campaign_view,runner}.py and research_view.js only where actual request/display binding needs it. Add bounded S3 docs/tests beside existing suites; update existing obsolete expectation tests only to assert their intended remaining invariant. Existing pinned implementation modules, RECONSTRUCT_PROGRAM text, contract/variant/composition documents and registry pins are untouched.
+
+Overlap resolution: #1296 was normally merged as f13411398278093e117437d57684e57760addb18 and integrated in 296c49e9d; its typed off-family/pool/draw and weak-gate controls are retained. S3 prospectively changes battery_declarative.py, battery_level2.py and battery_level3.py plus tests to bind the composition, separate valid combinations from malformed shapes, and leave raw graph identities without a workspace unscored. Versions change prospectively. Real rebuild/field-effect and staged parity remain separate evidence from COMPILED_ONLY observations.
+
+New overlap #1341 owns carbon/battery/research.py: Test Lead ordered it to land first. Hold further edits only to that shared path, preserve the existing S3 diff, then integrate the actual dependency normally and retain its backend/program routing. Other S3 files are disjoint. Added S3 documentation: docs/development/launchpad/COMPOSITION_WIRING.md.
+
+The original-strategy required-check consumer authenticates the complete expected obligation document and exact composition descriptor with canonical type-sensitive comparison. Unknown remains unavailable. Each composition use rechecks current health; a separate checks-only CLI operation guards queued commitment signing without repeating costly immutable compilation. Default source activation/evidence mapping is still held by Test Lead; this ticket does not invent PASS evidence.
+
+KEEP -> WRAP -> REPAIR; no archive reuse, new platform, kits redesign, source execution widening or new science/economic value. Primary historical map_ref SYSTEM/DEVELOPMENT-HUB; no Hub maintenance under owner retirement. Maturity ceiling: IMPLEMENTED/TESTED DEVELOPMENT software and public-fixture stand-ins, never live-door/host/GPU/security/scientific qualification. Independent real Launchpad matrix cells remain host-owned evidence.
+
+Conditional closeout: required behavior and discriminating canonical tests, actual exact-head applicable CI/Merge gate, concrete scoped team review with valid findings repaired, then Root guarded normal merge and brief report. Record unresolved host/S4/S5 boundaries. No S4 start in this item.
+
+Canonical baseline at ae42c0f: ladder/registry/L4, Launchpad levels/L4, smoke, unified and both import invariants: 156 passed, 1 skipped in114.78s. First data-only identity/resolver slice plus both import invariants:15 passed in20.12s. Native output is diagnostic only.
+
+Integration at actual main c7f40bedc (normal merge e9cbf107e): shared
+research.py retains PLT-30's selected JAX/Torch program, image backend and
+profile routing alongside original composition checks/base-only practice and
+derived labels. Current graph-v4 is an explicitly selected inert_fields arm;
+PLT-18 deliberately retains graph-v3 as default. Thus PLAN6.6's current-child
+move condition has not occurred: preserve composition-v1 and all its pins.
+The initially proposed new composition version was withdrawn after inspecting
+that exact registry/ticket, before any pin or implementation edit. Focused
+integration controls cover both worker routes, unknown-health predispatch,
+and v3 default/v4 explicit subjects; no backend training or GPU is executed.

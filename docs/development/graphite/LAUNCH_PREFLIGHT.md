@@ -70,7 +70,7 @@ ships only the import closure of what it runs (`pods.ship_list`:
 `ENTRY_MODULES`, `DYNAMIC_PACKAGES`, the non-code files beside them, and the
 scoring's data, never the lessons register, a `private` directory or a path
 the guard names). Each shipped file is still sha-pinned. `pod_spec` refuses
-an environment over 90,000 characters (`pod_env.ENV_LIMIT_CHARS`) with
+an environment over 108,000 characters (`pod_env.ENV_LIMIT_CHARS`) with
 `pod_env_too_large`, before any provider call.
 
 ## 2. While a run is live: the heartbeat

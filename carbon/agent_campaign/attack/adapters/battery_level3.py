@@ -11,8 +11,10 @@ as data (OWNER-GRAPHITE-DEV-LEVELS-01 F2): no participant code runs.
   capped per choice by Carbon's constants, which no recipe can name.
 * **Off lane** (`l3_off_lane`): a numerics choice on PyTorch until backend
   parity, or with no polish stage to apply to, is refused.
-* **N3, cross-level smuggling** (`l3_cross_level_fields`): a Level 1, 2 or
-  4 field inside a Level 3 recipe, or a value off the menu, is refused.
+* **N3, malformed composition fields** (`l3_cross_level_fields`): a value off
+  the numerics menu or a non-boolean SpecMuon switch is refused. Registered
+  combinations are positive rebuild controls; a raw graph identity without
+  admitted documents/workspace remains unknown.
 * **Permission ablation** (`l3_slot_ablation`): every Level 3 field fails
   the miner-facing contract; only the variant admits it.
 * **Determinism** (`l3_rebuild_determinism`): the same recipe and seed
@@ -67,8 +69,12 @@ def _other_level_fields():
 
 def _cross_level_attacks():
     out = [
-        (name, _strategy(quasi_newton_family="bfgs", **fields))
-        for name, fields in _other_level_fields()
+        (
+            "nonboolean_spectral",
+            _strategy(
+                quasi_newton_family="bfgs", optimizer_family="muon", muon_spectral="yes"
+            ),
+        )
     ]
     for field, value in (
         ("quasi_newton_family", "newton"),
@@ -79,6 +85,106 @@ def _cross_level_attacks():
     ):
         out.append((f"off_menu_{field}_{value}", _strategy(**{field: value})))
     return tuple(out)
+
+
+def _cross_level_shape(value):
+    from collections.abc import Mapping
+
+    parameters = value.get("parameters") if isinstance(value, Mapping) else None
+    return d.malformed_numerics(value) or (
+        isinstance(parameters, Mapping)
+        and "muon_spectral" in parameters
+        and type(parameters["muon_spectral"]) is not bool
+    )
+
+
+def _parameters(value):
+    from collections.abc import Mapping
+
+    parameters = value.get("parameters") if isinstance(value, Mapping) else None
+    return parameters if isinstance(parameters, Mapping) else {}
+
+
+def _polish_surface():
+    from carbon.reconstruction.capability_registry import contract
+
+    return next(
+        cap.surface
+        for cap in contract(d.CHALLENGE_ID).capabilities
+        if cap.capability_id == "stages.polish_steps"
+    )
+
+
+def _off_lane_shape(value):
+    from carbon.battery import level3
+    from carbon.battery import level3_numerics as numerics
+
+    parameters = _parameters(value)
+    present = [
+        (field, parameters[field], default)
+        for field, menu, default in (
+            ("quasi_newton_family", numerics.ROUTINES, numerics.DEFAULT["routine"]),
+            ("line_search", numerics.SEARCHES, numerics.DEFAULT["line_search"]),
+        )
+        if field in parameters
+        and type(parameters[field]) is str
+        and parameters[field] in menu
+    ]
+    if not present:
+        return False
+    if (
+        value.get("backbone") not in level3.APPLIES_TO
+        or parameters.get("backend", "jax") not in level3.BACKENDS
+    ):
+        return True
+    polish = parameters.get("polish_steps", _polish_surface().default)
+    return (
+        type(polish) is int
+        and polish == 0
+        and any(item != default for _, item, default in present)
+    )
+
+
+def _unbounded_shape(value):
+    from carbon.battery import level3
+    from carbon.battery import level3_numerics as numerics
+    from carbon.battery.compile import compile_recipe
+
+    parameters = _parameters(value)
+    polish = parameters.get("polish_steps")
+    if type(polish) is int and polish > _polish_surface().high:
+        return True
+    if (
+        type(parameters.get("quasi_newton_family")) is not str
+        or parameters["quasi_newton_family"] not in numerics.DENSE
+        or "composition_graphs" in parameters
+    ):
+        return False
+    # Independent measurement of the EXISTING registered memory inequality,
+    # not a generic "compile refused" predicate or a new threshold. Raw graph
+    # identities have no admitted workspace here and are unscored above.
+    widened = d.composition().fields()
+    base = {
+        **value,
+        "parameters": {k: v for k, v in parameters.items() if k not in widened},
+    }
+    try:
+        _, recipe = compile_recipe(base)
+    except ValueError:
+        return False
+    if recipe.family not in level3.APPLIES_TO:
+        return False
+    needed = numerics.hessian_bytes(
+        level3.parameter_count(recipe),
+        8 if recipe.settings.get("precision") == "float64" else 4,
+    )
+    return needed > level3.memory_bound()
+
+
+def _slot_ablation_shape(value):
+    # This family's boundary is specifically the unchanged BASE door. A
+    # construction carrying neither widened slot cannot violate its ablation.
+    return bool({"quasi_newton_family", "line_search"}.intersection(_parameters(value)))
 
 
 def _off_lane_attacks():
@@ -116,8 +222,34 @@ def _ablation_attacks():
     )
 
 
-def _determinism_attacks():
+def _combination_controls():
     return (
+        (
+            "combined_optimizer_and_numerics",
+            _strategy(
+                optimizer_family="muon",
+                muon_spectral=True,
+                polish_steps=6,
+                quasi_newton_family="bfgs",
+                line_search="backtracking",
+            ),
+        ),
+    ) + tuple(
+        (
+            name,
+            _strategy(
+                optimizer_family="muon", muon_spectral=True, polish_steps=6, **fields
+            ),
+        )
+        for name, fields in _other_level_fields()
+        if "composition_graphs" not in fields
+        and "muon_spectral" not in fields
+        and "polish_steps" not in fields
+    )
+
+
+def _determinism_attacks():
+    return _combination_controls() + (
         (
             "bfgs_backtracking",
             _strategy(quasi_newton_family="bfgs", line_search="backtracking"),
@@ -131,7 +263,7 @@ def _determinism_attacks():
 
 @functools.lru_cache(maxsize=1)
 def _families():
-    gate = d.variant_gate(LEVEL)
+    gate = d.composition_gate
     honest = _strategy(quasi_newton_family="bfgs")
     honest_largest = _strategy(quasi_newton_family="lbfgs", **LARGEST)
     return {
@@ -145,6 +277,7 @@ def _families():
             control_ok=d.accepted,
             trained=honest,
             held_out=honest_largest,
+            attack_shape=_unbounded_shape,
         ),
         "l3_off_lane": d.FamilyRow(
             check="construction_evaluation_isolation",
@@ -156,10 +289,11 @@ def _families():
             control_ok=d.accepted,
             trained=honest,
             held_out=_strategy(line_search="backtracking"),
+            attack_shape=_off_lane_shape,
         ),
         "l3_cross_level_fields": d.FamilyRow(
             check="artifact_and_dependency_attacks",
-            words="a Level 3 recipe carries only Level 0 fields and menu values; another level's field is refused",
+            words="malformed numerics menus or a nonboolean SpecMuon switch are refused; valid combinations are controls",
             attacks=_cross_level_attacks,
             boundary=gate,
             specimen=d.unchecked_gate,
@@ -167,6 +301,7 @@ def _families():
             control_ok=d.accepted,
             trained=honest,
             held_out=_strategy(quasi_newton_family="ssbroyden", line_search="none"),
+            attack_shape=_cross_level_shape,
         ),
         "l3_slot_ablation": d.FamilyRow(
             check="baseline_and_permission_ablation",
@@ -178,13 +313,14 @@ def _families():
             control_ok=d.accepted,
             trained=_strategy(),
             held_out=_strategy(width=32, depth=2),
+            attack_shape=_slot_ablation_shape,
         ),
         "l3_rebuild_determinism": d.FamilyRow(
             check="reconstruction_and_recipient_rebuild",
             words="the same recipe and seed rebuild bit-identically twice on CPU",
             attacks=_determinism_attacks,
-            boundary=d.rebuilds_identically(LEVEL),
-            specimen=d.unpinned_seed(LEVEL),
+            boundary=d.rebuilds_identically("composition"),
+            specimen=d.unpinned_seed("composition"),
             breached=d.different,
             control_ok=d.same,
             trained=_strategy(),
@@ -224,11 +360,120 @@ SEAMS = (
 SPEC = d.LevelSpec(
     level=LEVEL,
     version=_version(),
-    adapter_version="carbon.attack.adapter.battery-l3.v1",
-    controls_version="carbon.attack.controls.battery-l3.v1",
+    adapter_version="carbon.attack.adapter.battery-l3.composition.v1",
+    controls_version="carbon.attack.controls.battery-l3.composition.v1",
     rebuild_label=_rebuild_label,
     families=_families,
     seams=SEAMS,
     surface="l3_cross_level_fields",
 )
-ADAPTER = d.BatteryDeclarativeAdapter(SPEC)
+COMPOSITION_ADAPTER = d.BatteryDeclarativeAdapter(SPEC)
+
+
+# Existing per-level Graphite sessions retain their exact variant identity and
+# family contract. Composition families are explicitly scoped above.
+def _variant_cross_level_attacks():
+    out = [
+        (name, _strategy(quasi_newton_family="bfgs", **fields))
+        for name, fields in _other_level_fields()
+    ]
+    for field, value in (
+        ("quasi_newton_family", "newton"),
+        ("quasi_newton_family", "lbfgs_b"),
+        ("quasi_newton_family", 3),
+        ("line_search", "exact"),
+        ("line_search", None),
+    ):
+        out.append((f"off_menu_{field}_{value}", _strategy(**{field: value})))
+    return tuple(out)
+
+
+def _variant_determinism_attacks():
+    return (
+        (
+            "bfgs_backtracking",
+            _strategy(quasi_newton_family="bfgs", line_search="backtracking"),
+        ),
+        (
+            "ssbroyden_unit_step",
+            _strategy(quasi_newton_family="ssbroyden", line_search="none"),
+        ),
+    )
+
+
+@functools.lru_cache(maxsize=1)
+def _variant_families():
+    gate = d.variant_gate(LEVEL)
+    honest = _strategy(quasi_newton_family="bfgs")
+    honest_largest = _strategy(quasi_newton_family="lbfgs", **LARGEST)
+    return {
+        "l3_unbounded_work": d.FamilyRow(
+            check="resource_and_failure_accounting",
+            words="dense inverse Hessians within the worker's memory bound; polish within the contract's step bound",
+            attacks=_unbounded_attacks,
+            boundary=gate,
+            specimen=d.unchecked_gate,
+            breached=d.accepted,
+            control_ok=d.accepted,
+            trained=honest,
+            held_out=honest_largest,
+        ),
+        "l3_off_lane": d.FamilyRow(
+            check="construction_evaluation_isolation",
+            words="numerics choices only on JAX until backend parity, and only with a polish stage",
+            attacks=_off_lane_attacks,
+            boundary=gate,
+            specimen=d.unchecked_gate,
+            breached=d.accepted,
+            control_ok=d.accepted,
+            trained=honest,
+            held_out=_strategy(line_search="backtracking"),
+        ),
+        "l3_cross_level_fields": d.FamilyRow(
+            check="artifact_and_dependency_attacks",
+            words="a Level 3 recipe carries only Level 0 fields and menu values; another level's field is refused",
+            attacks=_variant_cross_level_attacks,
+            boundary=gate,
+            specimen=d.unchecked_gate,
+            breached=d.accepted,
+            control_ok=d.accepted,
+            trained=honest,
+            held_out=_strategy(quasi_newton_family="ssbroyden", line_search="none"),
+        ),
+        "l3_slot_ablation": d.FamilyRow(
+            check="baseline_and_permission_ablation",
+            words="the miner-facing contract refuses the Level 3 fields; only the variant admits them",
+            attacks=_ablation_attacks,
+            boundary=d.miner_contract_gate,
+            specimen=d.variant_gate(LEVEL),
+            breached=d.accepted,
+            control_ok=d.accepted,
+            trained=_strategy(),
+            held_out=_strategy(width=32, depth=2),
+        ),
+        "l3_rebuild_determinism": d.FamilyRow(
+            check="reconstruction_and_recipient_rebuild",
+            words="the same recipe and seed rebuild bit-identically twice on CPU",
+            attacks=_variant_determinism_attacks,
+            boundary=d.rebuilds_identically(LEVEL),
+            specimen=d.unpinned_seed(LEVEL),
+            breached=d.different,
+            control_ok=d.same,
+            trained=_strategy(),
+            held_out=_strategy(quasi_newton_family="lbfgs", width=32),
+        ),
+    }
+
+
+VARIANT_SPEC = d.LevelSpec(
+    level=LEVEL,
+    version=_version(),
+    adapter_version="carbon.attack.adapter.battery-l3.v1",
+    controls_version="carbon.attack.controls.battery-l3.v1",
+    rebuild_label=_rebuild_label,
+    families=_variant_families,
+    seams=SEAMS,
+    surface="l3_cross_level_fields",
+    composition=False,
+)
+ADAPTER = d.BatteryDeclarativeAdapter(VARIANT_SPEC)

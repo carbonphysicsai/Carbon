@@ -53,6 +53,7 @@ from carbon.challenge_registry.agent_plan import (
     CeilingsRequired,
     finite_ceilings,
 )
+from carbon.development_session.research_reply import RULE as RESEARCH_REPLY_RULE
 
 from .challenge import CHALLENGE
 
@@ -87,6 +88,7 @@ def provider_plan(agent, budget, selection=None, graphite=None):
         return {
             "agent": "none",
             "model_calls": 0,
+            "research_reply": RESEARCH_REPLY_RULE,
             "argument_normalisation": ARGUMENT_NORMALISATION_V2,
         }
     if agent == "graphite":
@@ -145,6 +147,7 @@ def provider_plan(agent, budget, selection=None, graphite=None):
         # call's action and arguments_json "null" read as JSON null, as in
         # a Graphite plan. A plan frozen before names no rule and replays
         # unchanged.
+        "research_reply": RESEARCH_REPLY_RULE,
         "argument_normalisation": ARGUMENT_NORMALISATION_V2,
     }
     if not selection.is_historical_default:
@@ -216,6 +219,7 @@ def graphite_plan(budget, selection, graphite):
         # Since AGENT-DOOR-USABILITY-01 every new plan freezes v2. v2 (RESEARCH-TOOL-USABILITY-01) also reads a practice call's action
         # and arguments_json "null" as JSON null; a plan that froze v1 keeps
         # v1.
+        "research_reply": RESEARCH_REPLY_RULE,
         "argument_normalisation": ARGUMENT_NORMALISATION_V2,
         "limits": {
             "plan": edition.limits_rule(
@@ -921,6 +925,13 @@ async def evaluate_candidate(prepared, epoch, record):
     if config is None and intake is not None:
         # The validator runs elsewhere: submit through its intake, signed by
         # the miner's own signer (C-MLP-03 slice 6).
+        from carbon.development_session.intake_targets import for_challenge
+
+        targets = for_challenge(vars(prepared.args), CHALLENGE.challenge_id)
+        if targets is not None:
+            from .multi_intake import evaluate as evaluate_many
+
+            return await evaluate_many(prepared, epoch, record, targets)
         return await _evaluate_through_intake(prepared, epoch, record, intake)
     if config is None:
         raise OperationRefused("evaluation_unavailable")
@@ -1010,6 +1021,27 @@ INTAKE_UNAVAILABLE = frozenset(
         "AUTH_UNAVAILABLE",
     }
 )
+
+
+def construction_notices(strategy, binding):
+    """The owner-authorized v3 notice; v4's field refusals stay its compiler's."""
+    if type(binding) is not dict or binding.get("variant") != "battery-l4-graph-v3":
+        return []
+    parameters = strategy.get("parameters") if type(strategy) is dict else None
+    if type(parameters) is not dict or "composition_graphs" not in parameters:
+        return []
+    fields = [field for field in ("width", "depth") if field in parameters]
+    if not fields:
+        return []
+    return [
+        {
+            "code": "level4_fields_inert_notice",
+            "fields": fields,
+            "text": "width and depth are ignored at Level 4: the graph sets the layers. "
+            "They'll be refused from graph-v4.",
+            "blocking": False,
+        }
+    ]
 
 
 def intake_code(code):
@@ -1120,6 +1152,7 @@ def submit_through_intake(
     """
     from carbon.reconstruction.capability_registry import (
         DEVELOPMENT_VARIANT_NOT_SERVED,
+        is_development_composition,
         is_development_variant,
     )
 
@@ -1127,6 +1160,24 @@ def submit_through_intake(
     from . import remote_submission as rs
     from .intake import RECEIVED_AGAIN
 
+    if is_development_composition(contract_digest):
+        from carbon.development_session import construction_level as cl
+
+        try:
+            found = cl.with_target(
+                cl.resolve_composition(strategy["challenge_id"], contract_digest), url
+            )
+            frozen = construction_level if type(construction_level) is dict else {}
+            if (
+                frozen.get("digest") != found["digest"]
+                or frozen.get("kind") != cl.COMPOSITION
+            ):
+                raise rs.IntakeRefusal(DEVELOPMENT_VARIANT_NOT_SERVED)
+            # Original strategy: no required obligation can disappear when
+            # practice or display later projects only the base recipe.
+            cl.compile_strategy(found, strategy)
+        except cl.LevelRefused as refused:
+            raise rs.IntakeRefusal(refused.code) from None
     if is_development_variant(contract_digest):
         # A development-only contract variant is never served to a miner, so
         # the Launchpad sends nothing (OWNER-GRAPHITE-TEST-WAVE-03 §1), except
@@ -1278,6 +1329,13 @@ def commitment_due(args, root, epoch):
     prepared = SimpleNamespace(args=args)
     if evaluation_config(prepared) is not None or _intake(prepared) is None:
         return False
+    from carbon.development_session.intake_targets import for_challenge, journal
+
+    targets = for_challenge(vars(args), CHALLENGE.challenge_id)
+    if targets is not None:
+        return not any(
+            rs._record_path(journal(root, target), epoch).exists() for target in targets
+        )
     return not rs._record_path(root, epoch).exists()
 
 
@@ -1285,8 +1343,13 @@ async def _committed(gate, root, epoch, record, manifest, *, request, recommit=F
     """The commitment gate before a send: `OperationRefused` with its closed
     code unless the frozen candidate's digest reads back as the hotkey's
     commitment at the finalized head (`CommitmentGate.before_submit`)."""
+    from carbon.development_session import construction_level as cl
     from carbon.development_session.research_campaign import OperationRefused
 
+    try:
+        cl.checks_current(cl.binding(manifest), record["strategy"])
+    except cl.LevelRefused as refused:
+        raise OperationRefused(refused.code) from None
     try:
         digest = frozen_commitment(record, manifest)
     except (ValueError, KeyError, TypeError):
@@ -1355,7 +1418,9 @@ def _carries_level4(url, read=None):
         return False
 
 
-async def _evaluate_through_intake(prepared, epoch, record, url):
+async def _evaluate_through_intake(
+    prepared, epoch, record, url, *, submission_root=None, stale_recommit=None
+):
     """One frozen candidate through the validator's intake; see
     `submit_through_intake`. The epoch is consumed only by a verdict: SCORED,
     or the daemon's INVALID_CONSTRUCTION or RECONSTRUCTION_FAILED. Anything
@@ -1379,8 +1444,7 @@ async def _evaluate_through_intake(prepared, epoch, record, url):
 
     root = prepared.ledger.root
     _level_record_bound(prepared, record)
-    frozen_level = record.get("construction_level")
-    if type(frozen_level) is dict and frozen_level.get("level") == 4:
+    if "composition_graphs" in (record["strategy"].get("parameters") or {}):
         # A Level 4 candidate travels with its staging envelope beside the
         # signed strategy (LEVEL4_STAGING_CONTRACT §4), read and checked here
         # and sent as frozen, in signed parts ahead of the submission
@@ -1405,7 +1469,7 @@ async def _evaluate_through_intake(prepared, epoch, record, url):
                 submit_through_intake,
                 url,
                 prepared.sdk.connection.miner_key,
-                root=root,
+                root=root if submission_root is None else submission_root,
                 epoch=epoch,
                 strategy=record["strategy"],
                 contract_digest=record.get("contract_digest")
@@ -1430,14 +1494,30 @@ async def _evaluate_through_intake(prepared, epoch, record, url):
             break
         # Refused at admission and not received again: never a verdict.
         code = intake_code((answer.get("failure") or {}).get("code"))
-        if code != STALE or gate is None or not asks or recommitted:
+        if (
+            code != STALE
+            or (gate is None and stale_recommit is None)
+            or not asks
+            or recommitted
+        ):
             raise OperationRefused(code)
         # The agent asks for the recommit; the intake then receives the same
         # submission again (`intake.RECEIVED_AGAIN`), never a second one.
         recommitted = True
-        await _committed(
-            gate, root, epoch, record, prepared.manifest, request=True, recommit=True
-        )
+        if stale_recommit is None:
+            await _committed(
+                gate,
+                root,
+                epoch,
+                record,
+                prepared.manifest,
+                request=True,
+                recommit=True,
+            )
+        else:
+            # The multi-target coordinator owns one recovery for this same
+            # frozen model. Every target still retries at most once.
+            await stale_recommit()
     return intake_feedback(epoch, url, status, answer, submission_id)
 
 
@@ -1521,9 +1601,34 @@ def queued_verdict(
         _level_record_bound(prepared, record)
     except (OSError, ValueError, OperationRefused):
         return None
-    frozen_level = record.get("construction_level")
-    if type(frozen_level) is dict and frozen_level.get("level") == 4:
+    level = record.get("construction_level")
+    if (
+        type(level) is dict
+        and level.get("kind") != "composition"
+        and level.get("level") == 4
+    ):
+        # Legacy Level-4 records were never sent. A composition label is only
+        # descriptive; its actual graph field is checked independently below.
         return None
+    if "composition_graphs" in (record["strategy"].get("parameters") or {}):
+        return None
+    from carbon.development_session.intake_targets import for_challenge
+
+    targets = for_challenge(vars(args), CHALLENGE.challenge_id)
+    if targets is not None:
+        from .multi_intake import queued
+
+        return queued(
+            args,
+            root,
+            epoch,
+            connect,
+            targets,
+            now=now,
+            read=read,
+            post=post,
+            floor=floor,
+        )
     if not rs.claim_status_read(
         root,
         epoch,

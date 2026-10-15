@@ -158,7 +158,11 @@ def test_every_rung_gives_the_attacker_its_own_whole_window(tmp_path):
     for model_id, window in WINDOWS.items():
         settings = provider._selection(model_id, RoleName.ATTACKER).settings
         assert (settings.max_input_tokens, settings.timeout_seconds) == (window, 600)
-        assert settings.max_output_tokens == roles.ATTACKER_MAX_OUTPUT_TOKENS
+        # 4,096 (GRAPHITE-ATTACKER-STOP-RULE-01) unless the model has a cap of
+        # its own that fits its context (kimi-k3's 32,768).
+        assert settings.max_output_tokens == roles.MODEL_OUTPUT_CAPS.get(
+            model_id, roles.ATTACKER_MAX_OUTPUT_TOKENS
+        )
         assert roles.ATTACKER_MAX_OUTPUT_TOKENS == CONTEXT_RESERVE_TOKENS
         assert window - CONTEXT_RESERVE_TOKENS + settings.max_output_tokens <= (
             roles.ENGY_CONTEXT_TOKENS[model_id]
@@ -183,7 +187,15 @@ def test_every_other_role_keeps_default_settings(tmp_path):
     selection is exactly `DEFAULT_SETTINGS` on every rung."""
     assert set(gp.MODEL_SETTINGS) == {RoleName.CONSTRUCTOR, RoleName.ATTACKER}
     assert gp.MODEL_SETTINGS[RoleName.CONSTRUCTOR] == {
-        model: {"max_input_tokens": window, "timeout_seconds": 600}
+        model: {
+            "max_input_tokens": window,
+            "timeout_seconds": 600,
+            **(
+                {"max_output_tokens": roles.MODEL_OUTPUT_CAPS[model]}
+                if model in roles.MODEL_OUTPUT_CAPS
+                else {}
+            ),
+        }
         for model, window in WINDOWS.items()
     }
     provider = _provider(tmp_path, ScriptedModel([]))
@@ -285,13 +297,14 @@ def test_the_token_allowance_still_binds_at_the_whole_window(tmp_path):
 
 
 def test_a_kimi_k3_attacker_session_stops_typed_before_its_first_call(tmp_path):
-    """One kimi-k3 call at its whole window reserves USD 2.0647, more than
-    the Attacker's 1.93 token allowance: never admitted. Nothing is sent and
+    """One kimi-k3 call at its whole window and its 32,768-token output cap
+    reserves USD 2.3642 (2.0847 at the old 4,096), more than the Attacker's
+    1.93 token allowance: never admitted. Nothing is sent and
     nothing is spent; no grant amount is raised."""
     model = ScriptedModel([text("never sent")])
     provider = _on_rung(_provider(tmp_path, model), "kimi-k3")
     reservation = provider._selection("kimi-k3", RoleName.ATTACKER).reservation_nano
-    assert reservation == 1048576 * 1950 + 4096 * 9750 == 2084659200
+    assert reservation == 1048576 * 1950 + 32768 * 9750 == 2364211200
     assert reservation > 1930000000 == provider.caps()["provider_nanodollars"]
     run_id = _open(provider)
     assert provider.run(run_id) == "failed"
