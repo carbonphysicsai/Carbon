@@ -124,6 +124,9 @@ def test_writer_preserves_validated_bytes_and_refuses_replacement(tmp_path):
         {"fee_total": 123},
         {"nested": {"total_rao": 123}},
         {"nested": [{"unregistered_flag": True}]},
+        {"ghp_" + "a" * 36: {}},
+        {"ghp_" + "a" * 36: {"backend": "CPU"}},
+        {"source": {"backend": "CPU"}},
         {"score": 0.5},
     ],
 )

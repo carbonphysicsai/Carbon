@@ -113,3 +113,10 @@ example fee_total or total_rao) cannot use the generic observation branch to
 disclose spend totals. This is a disclosure-shape constraint, not a new
 acceptance criterion. The 78 required names remain covered; historical evidence
 still uses the unchanged read-only T06 contract.
+
+The same allowlist covers container names as well as primitive leaves, so a
+credential cannot hide in an unregistered dictionary key with empty/public
+children. Reference fields enforce their actual string/list shapes before
+container traversal. All declared evidence fields have explicit typed handlers;
+the generic primitive/list fallback is removed. Only the root evidence object
+can introduce structure; historical reading remains unchanged.

@@ -266,7 +266,9 @@ def _evidence(value, key="evidence", depth=0, count=None):
     count[0] += 1
     if depth > 8 or count[0] > 512:
         raise ValueError("EVIDENCE_TOO_LARGE")
-    if type(value) is not dict and key not in _PUBLIC_EVIDENCE_FIELDS:
+    if key not in _PUBLIC_EVIDENCE_FIELDS and not (
+        depth == 0 and key == "evidence" and type(value) is dict
+    ):
         raise ValueError("UNREGISTERED_PUBLIC_EVIDENCE_FIELD")
     if key in _BOOLEAN_FIELDS:
         if type(value) is not bool:
@@ -323,6 +325,13 @@ def _evidence(value, key="evidence", depth=0, count=None):
         ):
             raise ValueError("INVALID_PUBLIC_CODE")
         return
+    if key in _REFERENCE_FIELDS or key.endswith("_reference"):
+        references = value if key == "references" and type(value) is list else [value]
+        if not references or any(
+            not public_reference(reference) for reference in references
+        ):
+            raise ValueError("INVALID_PUBLIC_REFERENCE")
+        return
     if type(value) is dict:
         for name, child in value.items():
             if type(name) is not str or not _FIELD.fullmatch(name):
@@ -344,31 +353,6 @@ def _evidence(value, key="evidence", depth=0, count=None):
                 raise ValueError("INVALID_EVIDENCE_DIGEST")
             _evidence(child, name, depth + 1, count)
         return
-    if type(value) is list:
-        if not value:
-            raise ValueError("EMPTY_EVIDENCE_LIST")
-        for child in value:
-            _evidence(child, key, depth + 1, count)
-        return
-    if key.endswith(("_digest", "_digests", "_hash", "_hashes")):
-        if type(value) is not str or not _DIGEST.fullmatch(value):
-            raise ValueError("INVALID_EVIDENCE_DIGEST")
-        return
-    if key in _REFERENCE_FIELDS or key.endswith("_reference"):
-        if not public_reference(value):
-            raise ValueError("INVALID_PUBLIC_REFERENCE")
-        return
-    if type(value) is bool or (type(value) is int and 0 <= value <= 2**63 - 1):
-        return
-    if type(value) is str and not _SENSITIVE.search(value):
-        if (key in _CODE_FIELDS or key.endswith(("_code", "_codes"))) and _public_code(
-            value
-        ):
-            return
-        if key == "campaign_id" and re.fullmatch(r"[0-9a-f]{32}", value):
-            return
-        if key == "submission_id" and re.fullmatch(r"bsub-[0-9a-f]{16,64}", value):
-            return
     raise ValueError("UNSUPPORTED_PUBLIC_EVIDENCE_VALUE")
 
 
