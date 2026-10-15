@@ -3261,7 +3261,7 @@
     const box = $("research-selects");
     const notes = $("wizard-agent-notes");
     const entry = challengeEntry(wizard.challenge);
-    const choices = caps ? agentChoices().map(choice => [choice.id, choice.label, choice.availability, choice.reason ?? null, graphiteOffered(choice, entry)]) : null;
+    const choices = caps ? agentChoices().map(choice => [choice.id, choice.label, choice.availability, choice.reason ?? null, graphiteOffered(choice, entry), choice.acceptance]) : null;
     rebuild(box, JSON.stringify([capsVersion, choices, entry ? entry.title : null]), node => {
       node.append(el("legend", "Who selects and submits"));
       if (!caps) return;
