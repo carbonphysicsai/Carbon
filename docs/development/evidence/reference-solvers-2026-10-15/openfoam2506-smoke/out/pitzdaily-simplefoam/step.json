@@ -1,0 +1,19 @@
+{
+ "name": "pitzdaily-simplefoam",
+ "type": "script",
+ "status": "PASS",
+ "wall_s": 7.01453260332346,
+ "exit": 0,
+ "signal": null,
+ "stop_reason": "exit",
+ "rusage_user_s": 6.241,
+ "rusage_sys_s": 0.699,
+ "rusage_cpu_s": 6.94,
+ "rusage_maxrss_bytes": 101171200,
+ "sampled_group_rss_peak_bytes": 92930048,
+ "rlimit_as_bytes": null,
+ "kept": {
+  "copied": 2,
+  "not_copied": 49
+ }
+}

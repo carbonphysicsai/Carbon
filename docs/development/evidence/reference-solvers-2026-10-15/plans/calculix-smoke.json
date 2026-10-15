@@ -73,7 +73,13 @@
      "*.txt"
     ],
     "max_file_bytes": 2000000
-   }
+   },
+   "host_regenerated_files": [
+    "mesh.inp",
+    "mesh.json",
+    "case.inp",
+    "deck.json"
+   ]
   }
  ]
 }

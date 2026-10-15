@@ -419,6 +419,41 @@ def run_bulk(step, values, env, config, kind):
     else:
         shutil.copytree(ROOT / step["decks"], decks)
     cases, refused = verify_decks(pinned, decks, step.get("select"))
+    # REFERENCE-SOLVERS-HOST-MESH-01: Gmsh output can differ between CPU
+    # vendors for the same binary and script. A plan may name the files the
+    # host regenerates (e.g. mesh.inp); a selected case differing only in
+    # those, with a matching command, runs on the regenerated files, both
+    # digests are recorded before any solve, and the solved files are kept.
+    host_files = set(step.get("host_regenerated_files", []))
+    if refused and host_files and "freeze" in step:
+        by_name = {f"{c['family']}/{c['case']}": c for c in cases}
+        for entry in pinned["cases"]:
+            name = f"{entry['family']}/{entry['case']}"
+            row = by_name[name]
+            differing = set(row["files_differing"])
+            if (
+                name not in refused
+                or not differing
+                or not differing <= host_files
+                or not row["command_matches_freeze"]
+                or row["command_uses_container_path"]
+            ):
+                continue
+            case_dir = decks / entry["family"] / entry["case"]
+            if not all((case_dir / rel).is_file() for rel in differing):
+                continue
+            kept = out / "decks-solved" / entry["family"] / entry["case"]
+            kept.mkdir(parents=True, exist_ok=True)
+            row["host_regenerated"] = {}
+            for rel in sorted(differing):
+                solved = br._sha_file(case_dir / rel)
+                row["host_regenerated"][rel] = {
+                    "pinned": entry["files"][rel],
+                    "solved": solved,
+                }
+                entry["files"][rel] = solved
+                shutil.copy2(case_dir / rel, kept / Path(rel).name)
+            refused.remove(name)
     verification = {
         "manifest": step["manifest"],
         "decks": "regenerated on the pod" if "freeze" in step else step["decks"],

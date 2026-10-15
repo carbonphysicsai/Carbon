@@ -1,0 +1,3 @@
+{"test": "heateq_bdf2", "exit": 0, "test_passed": "1", "wall_s": 0.24, "last_norm_line": "ComputeChange: NS (ITER=2) (NRM,RELC): ( 0.52142253E-01  0.0000000     ) :: heat"}
+{"test": "HelmholtzPlaneWaves", "exit": 0, "test_passed": "1", "wall_s": 0.39, "last_norm_line": "ComputeChange: SS (ITER=1) (NRM,RELC): ( 0.99967001      2.0000000     ) :: savescalars"}
+{"test": "HelmholtzPlaneWavesScan", "exit": 0, "test_passed": "1", "wall_s": 1.19, "last_norm_line": "ComputeChange: SS (ITER=1) (NRM,RELC): ( 0.70719760      2.0000000     ) :: helmholtz"}

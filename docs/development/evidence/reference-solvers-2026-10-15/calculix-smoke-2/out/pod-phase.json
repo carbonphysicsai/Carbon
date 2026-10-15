@@ -1,0 +1,21 @@
+{
+ "schema": "carbon.reference-solvers.pod-phase.v1",
+ "plan_id": "calculix-smoke-2026-10-15",
+ "pod_plan": "docs/development/evidence/reference-solvers-2026-10-15/plans/calculix-smoke.json",
+ "pod_plan_sha256": "e7779b2e2a98689cf970f6d090276aa1dd0524e26d279f26cf03aa7961a4ad69",
+ "kind": "calculix",
+ "steps": [
+  {
+   "name": "ccx-upstream-smoke",
+   "status": "PASS",
+   "wall_s": 5.612241353839636
+  },
+  {
+   "name": "f08-triage-controls",
+   "status": "REFUSED",
+   "wall_s": 49.0
+  }
+ ],
+ "all_passed": false,
+ "maturity": "DEVELOPMENT engineering run on public decks; no adequacy, qualification or LIVE claim"
+}

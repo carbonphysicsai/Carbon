@@ -1,0 +1,3 @@
+model name	: AMD EPYC 9754 128-Core Processor
+8
+MemTotal:       791850204 kB

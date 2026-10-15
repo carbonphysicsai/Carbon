@@ -1,0 +1,7 @@
+{
+ "name": "f08-triage-controls",
+ "type": "bulk",
+ "status": "REFUSED",
+ "wall_s": 49.0,
+ "why": "1 selected case(s) differ from the manifest: ['f08/control-beam']"
+}

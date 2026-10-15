@@ -10,3 +10,9 @@
 {"utc": "2026-10-15T14:14:46Z", "event": "terminated_verified", "pod_id": "gcqwb227kvruf0", "verified_epoch": 1792073686.8137815}
 {"utc": "2026-10-15T14:17:55Z", "event": "dispatch_requested", "campaign": "reference-solvers", "max_pods": 4, "phase": "calculix", "plan": "docs/development/evidence/reference-solvers-2026-10-15/plans/calculix-smoke.json", "ref": "03bb06999", "minutes": 60.0, "vcpu": 8, "cpu_flavors": ["cpu3c", "cpu3g", "cpu3m"]}
 {"utc": "2026-10-15T14:17:56Z", "event": "created", "pod_id": "t0pcovlbrjliqa", "phase": "calculix", "created_epoch": 1792073875.0726597, "deadline_epoch": 1792077475.0726597, "image": "debian:trixie-20261005-slim@sha256:a29215f6a35e51e22adffa17f89e9d2ef06214e64a2bad10d765c46aea49f11f", "cpu_flavor": "cpu3c", "ref": "03bb06999", "code_manifest_sha256": "9bf864b2eaf0b3db5859d2cdf59035cf4f0a39dcf3fdf664c333115cc5f36ed2"}
+{"utc": "2026-10-15T14:23:07Z", "event": "exported", "pod_id": "t0pcovlbrjliqa", "dest": "docs/development/evidence/reference-solvers-2026-10-15/calculix-smoke-2", "files": 23, "bytes_written": 379920, "listing_sha256": "f5babb67edcf553b23d9ee2f6062ce0b409f2a4a4799735b5760a89ffafe359d"}
+{"utc": "2026-10-15T14:23:07Z", "event": "terminate_requested", "pod_id": "t0pcovlbrjliqa"}
+{"utc": "2026-10-15T14:23:08Z", "event": "terminated_verified", "pod_id": "t0pcovlbrjliqa", "verified_epoch": 1792074188.6827528}
+{"utc": "2026-10-15T14:24:55Z", "event": "exported", "pod_id": "g0cwvoedxd9o9e", "dest": "docs/development/evidence/reference-solvers-2026-10-15/openfoam2506-smoke", "files": 11, "bytes_written": 212615, "listing_sha256": "0b7dbcc4df2870a98ee1b46faa2f86005dfd8e5bf121c4d69872d66769357b84"}
+{"utc": "2026-10-15T14:24:55Z", "event": "terminate_requested", "pod_id": "g0cwvoedxd9o9e"}
+{"utc": "2026-10-15T14:24:56Z", "event": "terminated_verified", "pod_id": "g0cwvoedxd9o9e", "verified_epoch": 1792074296.7213697}

@@ -1,0 +1,19 @@
+{
+ "name": "f02-controls",
+ "type": "script",
+ "status": "PASS",
+ "wall_s": 489.3482258170843,
+ "exit": 0,
+ "signal": null,
+ "stop_reason": "exit",
+ "rusage_user_s": 488.464,
+ "rusage_sys_s": 0.819,
+ "rusage_cpu_s": 489.282,
+ "rusage_maxrss_bytes": 29540352,
+ "sampled_group_rss_peak_bytes": 52019200,
+ "rlimit_as_bytes": null,
+ "kept": {
+  "copied": 13,
+  "not_copied": 32
+ }
+}

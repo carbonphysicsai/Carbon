@@ -1,0 +1,326 @@
+ELMER SOLVER (v 26.2) STARTED AT: 2026/10/15 14:15:45
+ParCommInit: Initialize #PEs: 1
+MAIN: 
+MAIN: =============================================================
+MAIN: ElmerSolver finite element software, Welcome!
+MAIN: This program is free software licensed under (L)GPL
+MAIN: Copyright 1st April 1995 - , CSC - IT Center for Science Ltd.
+MAIN: Webpage http://www.csc.fi/elmer, Email elmeradm@csc.fi
+MAIN: Version: 26.2-unknown (Rev: unknown, Compiled: 2026-10-15)
+MAIN:  Running one task without MPI parallelization.
+MAIN:  Running with just one thread per task.
+MAIN: =============================================================
+MAIN: 
+MAIN: 
+MAIN: -------------------------------------
+MAIN: Reading Model: TempDist.sif
+LoadInputFile: Scanning input file: TempDist.sif
+LoadInputFile: Scanning only size info
+LoadInputFile: First time visiting
+LoadInputFile: Reading base load of sif file
+CheckKeyword: Found keyword type assuming suffix 1 for: variable 2
+CheckKeyword: Found keyword type assuming suffix 1 for: variable 2
+CheckKeyword: Found keyword type assuming suffix 1 for: operator 2
+CheckKeyword: Found keyword type assuming suffix 1 for: operator 2
+CheckKeyword: Found keyword type assuming suffix 1 for: variable 3
+CheckKeyword: Found keyword type assuming suffix 1 for: variable 3
+LoadInputFile: Loading input file: TempDist.sif
+LoadInputFile: Reading base load of sif file
+CheckKeyword: Found keyword type assuming suffix 1 for: variable 2
+CheckKeyword: Found keyword type assuming suffix 1 for: variable 2
+CheckKeyword: Found keyword type assuming suffix 1 for: operator 2
+CheckKeyword: Found keyword type assuming suffix 1 for: operator 2
+CheckKeyword: Found keyword type assuming suffix 1 for: variable 3
+CheckKeyword: Found keyword type assuming suffix 1 for: variable 3
+CheckKeyword:  Unlisted keyword: [temp] in section: [boundary condition 1]
+LoadInputFile: Number of BCs: 1
+LoadInputFile: Number of Body Forces: 1
+LoadInputFile: Number of Initial Conditions: 0
+LoadInputFile: Number of Materials: 1
+LoadInputFile: Number of Equations: 1
+LoadInputFile: Number of Solvers: 2
+LoadInputFile: Number of Bodies: 1
+ElmerMeshReader: Base mesh name: ./angle
+LoadMesh: Elapsed REAL time:     0.0010 (s)
+MAIN: -------------------------------------
+OptimizeBandwidth: Initial bandwidth for heat: 23
+MAIN: Number of timesteps to be saved: 8
+MAIN: 
+MAIN: -------------------------------------
+MAIN: Time: 1/8:   1.000E-01
+MAIN: -------------------------------------
+MAIN: 
+HeatSolver: Solving the energy equation for temperature
+HeatSolve: 
+HeatSolve: 
+HeatSolve: -------------------------------------
+HeatSolve:  TEMPERATURE ITERATION           1
+HeatSolve: -------------------------------------
+HeatSolve: 
+HeatSolve: Starting Assembly...
+HeatSolve: Assembly:
+HeatSolve: Assembly done
+ComputeChange: NS (ITER=1) (NRM,RELC): ( 0.75696824E-02  2.0000000     ) :: heat
+HeatSolve: iter:    1 Assembly: (s)    0.00    0.00
+HeatSolve: iter:    1 Solve:    (s)    0.00    0.00
+HeatSolve:  Result Norm   :    7.5696823750941696E-003
+HeatSolve:  Relative Change :    2.0000000000000000
+HeatSolve: 
+HeatSolve: 
+HeatSolve: -------------------------------------
+HeatSolve:  TEMPERATURE ITERATION           2
+HeatSolve: -------------------------------------
+HeatSolve: 
+HeatSolve: Starting Assembly...
+HeatSolve: Assembly:
+HeatSolve: Assembly done
+ComputeChange: NS (ITER=2) (NRM,RELC): ( 0.75696824E-02  0.0000000     ) :: heat
+HeatSolve: iter:    2 Assembly: (s)    0.00    0.01
+HeatSolve: iter:    2 Solve:    (s)    0.00    0.00
+HeatSolve:  Result Norm   :    7.5696823750941696E-003
+HeatSolve:  Relative Change :    0.0000000000000000
+MAIN: 
+MAIN: -------------------------------------
+MAIN: Time: 2/8:   2.000E-01
+MAIN: -------------------------------------
+MAIN: 
+HeatSolver: Solving the energy equation for temperature
+HeatSolve: 
+HeatSolve: 
+HeatSolve: -------------------------------------
+HeatSolve:  TEMPERATURE ITERATION           1
+HeatSolve: -------------------------------------
+HeatSolve: 
+HeatSolve: Starting Assembly...
+HeatSolve: Assembly:
+HeatSolve: Assembly done
+ComputeChange: NS (ITER=1) (NRM,RELC): ( 0.14447068E-01 0.62474118     ) :: heat
+HeatSolve: iter:    1 Assembly: (s)    0.00    0.00
+HeatSolve: iter:    1 Solve:    (s)    0.00    0.00
+HeatSolve:  Result Norm   :    1.4447067563534255E-002
+HeatSolve:  Relative Change :   0.62474118183753380
+HeatSolve: 
+HeatSolve: 
+HeatSolve: -------------------------------------
+HeatSolve:  TEMPERATURE ITERATION           2
+HeatSolve: -------------------------------------
+HeatSolve: 
+HeatSolve: Starting Assembly...
+HeatSolve: Assembly:
+HeatSolve: Assembly done
+ComputeChange: NS (ITER=2) (NRM,RELC): ( 0.14447068E-01  0.0000000     ) :: heat
+HeatSolve: iter:    2 Assembly: (s)    0.00    0.00
+HeatSolve: iter:    2 Solve:    (s)    0.00    0.00
+HeatSolve:  Result Norm   :    1.4447067563534255E-002
+HeatSolve:  Relative Change :    0.0000000000000000
+MAIN: 
+MAIN: -------------------------------------
+MAIN: Time: 3/8:   3.000E-01
+MAIN: -------------------------------------
+MAIN: 
+HeatSolver: Solving the energy equation for temperature
+HeatSolve: 
+HeatSolve: 
+HeatSolve: -------------------------------------
+HeatSolve:  TEMPERATURE ITERATION           1
+HeatSolve: -------------------------------------
+HeatSolve: 
+HeatSolve: Starting Assembly...
+HeatSolve: Assembly:
+HeatSolve: Assembly done
+ComputeChange: NS (ITER=1) (NRM,RELC): ( 0.20597343E-01 0.35099896     ) :: heat
+HeatSolve: iter:    1 Assembly: (s)    0.00    0.00
+HeatSolve: iter:    1 Solve:    (s)    0.00    0.00
+HeatSolve:  Result Norm   :    2.0597343383852086E-002
+HeatSolve:  Relative Change :   0.35099895555679339
+HeatSolve: 
+HeatSolve: 
+HeatSolve: -------------------------------------
+HeatSolve:  TEMPERATURE ITERATION           2
+HeatSolve: -------------------------------------
+HeatSolve: 
+HeatSolve: Starting Assembly...
+HeatSolve: Assembly:
+HeatSolve: Assembly done
+ComputeChange: NS (ITER=2) (NRM,RELC): ( 0.20597343E-01  0.0000000     ) :: heat
+HeatSolve: iter:    2 Assembly: (s)    0.00    0.00
+HeatSolve: iter:    2 Solve:    (s)    0.00    0.00
+HeatSolve:  Result Norm   :    2.0597343383852086E-002
+HeatSolve:  Relative Change :    0.0000000000000000
+MAIN: 
+MAIN: -------------------------------------
+MAIN: Time: 4/8:   4.000E-01
+MAIN: -------------------------------------
+MAIN: 
+HeatSolver: Solving the energy equation for temperature
+HeatSolve: 
+HeatSolve: 
+HeatSolve: -------------------------------------
+HeatSolve:  TEMPERATURE ITERATION           1
+HeatSolve: -------------------------------------
+HeatSolve: 
+HeatSolve: Starting Assembly...
+HeatSolve: Assembly:
+HeatSolve: Assembly done
+ComputeChange: NS (ITER=1) (NRM,RELC): ( 0.26101850E-01 0.23574313     ) :: heat
+HeatSolve: iter:    1 Assembly: (s)    0.00    0.00
+HeatSolve: iter:    1 Solve:    (s)    0.00    0.00
+HeatSolve:  Result Norm   :    2.6101850386678102E-002
+HeatSolve:  Relative Change :   0.23574312780961409
+HeatSolve: 
+HeatSolve: 
+HeatSolve: -------------------------------------
+HeatSolve:  TEMPERATURE ITERATION           2
+HeatSolve: -------------------------------------
+HeatSolve: 
+HeatSolve: Starting Assembly...
+HeatSolve: Assembly:
+HeatSolve: Assembly done
+ComputeChange: NS (ITER=2) (NRM,RELC): ( 0.26101850E-01  0.0000000     ) :: heat
+HeatSolve: iter:    2 Assembly: (s)    0.00    0.00
+HeatSolve: iter:    2 Solve:    (s)    0.00    0.00
+HeatSolve:  Result Norm   :    2.6101850386678102E-002
+HeatSolve:  Relative Change :    0.0000000000000000
+MAIN: 
+MAIN: -------------------------------------
+MAIN: Time: 5/8:   5.000E-01
+MAIN: -------------------------------------
+MAIN: 
+HeatSolver: Solving the energy equation for temperature
+HeatSolve: 
+HeatSolve: 
+HeatSolve: -------------------------------------
+HeatSolve:  TEMPERATURE ITERATION           1
+HeatSolve: -------------------------------------
+HeatSolve: 
+HeatSolve: Starting Assembly...
+HeatSolve: Assembly:
+HeatSolve: Assembly done
+ComputeChange: NS (ITER=1) (NRM,RELC): ( 0.31042888E-01 0.17293062     ) :: heat
+HeatSolve: iter:    1 Assembly: (s)    0.00    0.00
+HeatSolve: iter:    1 Solve:    (s)    0.00    0.00
+HeatSolve:  Result Norm   :    3.1042887936319558E-002
+HeatSolve:  Relative Change :   0.17293062124856931
+HeatSolve: 
+HeatSolve: 
+HeatSolve: -------------------------------------
+HeatSolve:  TEMPERATURE ITERATION           2
+HeatSolve: -------------------------------------
+HeatSolve: 
+HeatSolve: Starting Assembly...
+HeatSolve: Assembly:
+HeatSolve: Assembly done
+ComputeChange: NS (ITER=2) (NRM,RELC): ( 0.31042888E-01  0.0000000     ) :: heat
+HeatSolve: iter:    2 Assembly: (s)    0.00    0.00
+HeatSolve: iter:    2 Solve:    (s)    0.00    0.00
+HeatSolve:  Result Norm   :    3.1042887936319558E-002
+HeatSolve:  Relative Change :    0.0000000000000000
+MAIN: 
+MAIN: -------------------------------------
+MAIN: Time: 6/8:   7.000E-01
+MAIN: -------------------------------------
+MAIN: 
+HeatSolver: Solving the energy equation for temperature
+HeatSolve: 
+HeatSolve: 
+HeatSolve: -------------------------------------
+HeatSolve:  TEMPERATURE ITERATION           1
+HeatSolve: -------------------------------------
+HeatSolve: 
+HeatSolve: Starting Assembly...
+HeatSolve: Assembly:
+HeatSolve: Assembly done
+ComputeChange: NS (ITER=1) (NRM,RELC): ( 0.39535361E-01 0.24065411     ) :: heat
+HeatSolve: iter:    1 Assembly: (s)    0.00    0.00
+HeatSolve: iter:    1 Solve:    (s)    0.00    0.00
+HeatSolve:  Result Norm   :    3.9535360766077672E-002
+HeatSolve:  Relative Change :   0.24065411046306287
+HeatSolve: 
+HeatSolve: 
+HeatSolve: -------------------------------------
+HeatSolve:  TEMPERATURE ITERATION           2
+HeatSolve: -------------------------------------
+HeatSolve: 
+HeatSolve: Starting Assembly...
+HeatSolve: Assembly:
+HeatSolve: Assembly done
+ComputeChange: NS (ITER=2) (NRM,RELC): ( 0.39535361E-01  0.0000000     ) :: heat
+HeatSolve: iter:    2 Assembly: (s)    0.00    0.00
+HeatSolve: iter:    2 Solve:    (s)    0.00    0.00
+HeatSolve:  Result Norm   :    3.9535360766077672E-002
+HeatSolve:  Relative Change :    0.0000000000000000
+MAIN: 
+MAIN: -------------------------------------
+MAIN: Time: 7/8:   9.000E-01
+MAIN: -------------------------------------
+MAIN: 
+HeatSolver: Solving the energy equation for temperature
+HeatSolve: 
+HeatSolve: 
+HeatSolve: -------------------------------------
+HeatSolve:  TEMPERATURE ITERATION           1
+HeatSolve: -------------------------------------
+HeatSolve: 
+HeatSolve: Starting Assembly...
+HeatSolve: Assembly:
+HeatSolve: Assembly done
+ComputeChange: NS (ITER=1) (NRM,RELC): ( 0.46474557E-01 0.16135804     ) :: heat
+HeatSolve: iter:    1 Assembly: (s)    0.00    0.00
+HeatSolve: iter:    1 Solve:    (s)    0.00    0.00
+HeatSolve:  Result Norm   :    4.6474556791469120E-002
+HeatSolve:  Relative Change :   0.16135804387322261
+HeatSolve: 
+HeatSolve: 
+HeatSolve: -------------------------------------
+HeatSolve:  TEMPERATURE ITERATION           2
+HeatSolve: -------------------------------------
+HeatSolve: 
+HeatSolve: Starting Assembly...
+HeatSolve: Assembly:
+HeatSolve: Assembly done
+ComputeChange: NS (ITER=2) (NRM,RELC): ( 0.46474557E-01  0.0000000     ) :: heat
+HeatSolve: iter:    2 Assembly: (s)    0.00    0.00
+HeatSolve: iter:    2 Solve:    (s)    0.00    0.00
+HeatSolve:  Result Norm   :    4.6474556791469120E-002
+HeatSolve:  Relative Change :    0.0000000000000000
+MAIN: 
+MAIN: -------------------------------------
+MAIN: Time: 8/8:   1.100E+00
+MAIN: -------------------------------------
+MAIN: 
+HeatSolver: Solving the energy equation for temperature
+HeatSolve: 
+HeatSolve: 
+HeatSolve: -------------------------------------
+HeatSolve:  TEMPERATURE ITERATION           1
+HeatSolve: -------------------------------------
+HeatSolve: 
+HeatSolve: Starting Assembly...
+HeatSolve: Assembly:
+HeatSolve: Assembly done
+ComputeChange: NS (ITER=1) (NRM,RELC): ( 0.52142253E-01 0.11494382     ) :: heat
+HeatSolve: iter:    1 Assembly: (s)    0.00    0.00
+HeatSolve: iter:    1 Solve:    (s)    0.00    0.00
+HeatSolve:  Result Norm   :    5.2142253201361469E-002
+HeatSolve:  Relative Change :   0.11494381962475543
+HeatSolve: 
+HeatSolve: 
+HeatSolve: -------------------------------------
+HeatSolve:  TEMPERATURE ITERATION           2
+HeatSolve: -------------------------------------
+HeatSolve: 
+HeatSolve: Starting Assembly...
+HeatSolve: Assembly:
+HeatSolve: Assembly done
+ComputeChange: NS (ITER=2) (NRM,RELC): ( 0.52142253E-01  0.0000000     ) :: heat
+HeatSolve: iter:    2 Assembly: (s)    0.00    0.00
+HeatSolve: iter:    2 Solve:    (s)    0.00    0.00
+HeatSolve:  Result Norm   :    5.2142253201361469E-002
+HeatSolve:  Relative Change :    0.0000000000000000
+CompareToReferenceSolution: Solver 1 PASSED:  Norm = 5.21422532E-02  RefNorm = 5.21422532E-02
+CompareToReferenceSolution: Relative Error to reference norm: 3.992287E-16
+CompareToReferenceSolution: PASSED all 1 tests!
+MAIN: *** Elmer Solver: ALL DONE ***
+MAIN: The end
+SOLVER TOTAL TIME(CPU,REAL):         0.18        0.18
+ELMER SOLVER FINISHED AT: 2026/10/15 14:15:45

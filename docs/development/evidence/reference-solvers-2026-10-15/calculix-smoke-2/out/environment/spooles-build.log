@@ -1,0 +1,1321 @@
+cd A2               ; make lib
+make[1]: Entering directory '/src/SPOOLES.2.2/A2'
+cd src ; make makeLib
+make[2]: Entering directory '/src/SPOOLES.2.2/A2/src'
+perl ../../makeLib > makeG
+make -f makeG
+make[3]: Entering directory '/src/SPOOLES.2.2/A2/src'
+makeG:21: warning: overriding recipe for target '.c.o'
+../../Make.inc:90: warning: ignoring old recipe for target '.c.o'
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 basics.c -o A2_basics.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 copyEntriesToVector.c -o A2_copyEntriesToVector.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 init.c -o A2_init.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 instance.c -o A2_instance.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 IO.c -o A2_IO.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 makeStaircase.c -o A2_makeStaircase.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 norms.c -o A2_norms.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 QRreduce.c -o A2_QRreduce.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 sort.c -o A2_sort.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 util.c -o A2_util.o
+ar rv ../../spooles.a A2_*.o
+ar: creating ../../spooles.a
+a - A2_IO.o
+a - A2_QRreduce.o
+a - A2_basics.o
+a - A2_copyEntriesToVector.o
+a - A2_init.o
+a - A2_instance.o
+a - A2_makeStaircase.o
+a - A2_norms.o
+a - A2_sort.o
+a - A2_util.o
+rm -f A2_*.o
+echo ../../spooles.a
+../../spooles.a
+make[3]: Leaving directory '/src/SPOOLES.2.2/A2/src'
+rm -f makeG
+make[2]: Leaving directory '/src/SPOOLES.2.2/A2/src'
+make[1]: Leaving directory '/src/SPOOLES.2.2/A2'
+cd BKL              ; make lib
+make[1]: Entering directory '/src/SPOOLES.2.2/BKL'
+cd src ; make makeLib
+make[2]: Entering directory '/src/SPOOLES.2.2/BKL/src'
+perl ../../makeLib > makeG
+make -f makeG
+make[3]: Entering directory '/src/SPOOLES.2.2/BKL/src'
+makeG:17: warning: overriding recipe for target '.c.o'
+../../Make.inc:90: warning: ignoring old recipe for target '.c.o'
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 basics.c -o BKL_basics.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 evalfcn.c -o BKL_evalfcn.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 exhSearch.c -o BKL_exhSearch.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 fidmat.c -o BKL_fidmat.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 init.c -o BKL_init.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 util.c -o BKL_util.o
+ar rv ../../spooles.a BKL_*.o
+a - BKL_basics.o
+a - BKL_evalfcn.o
+a - BKL_exhSearch.o
+a - BKL_fidmat.o
+a - BKL_init.o
+a - BKL_util.o
+rm -f BKL_*.o
+echo ../../spooles.a
+../../spooles.a
+make[3]: Leaving directory '/src/SPOOLES.2.2/BKL/src'
+rm -f makeG
+make[2]: Leaving directory '/src/SPOOLES.2.2/BKL/src'
+make[1]: Leaving directory '/src/SPOOLES.2.2/BKL'
+cd BPG              ; make lib
+make[1]: Entering directory '/src/SPOOLES.2.2/BPG'
+cd src ; make makeLib
+make[2]: Entering directory '/src/SPOOLES.2.2/BPG/src'
+perl ../../makeLib > makeG
+make -f makeG
+make[3]: Entering directory '/src/SPOOLES.2.2/BPG/src'
+makeG:18: warning: overriding recipe for target '.c.o'
+../../Make.inc:90: warning: ignoring old recipe for target '.c.o'
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 basics.c -o BPG_basics.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 DM.c -o BPG_DM.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 init.c -o BPG_init.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 IO.c -o BPG_IO.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 makeGraphs.c -o BPG_makeGraphs.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 maxFlow.c -o BPG_maxFlow.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 pseudo.c -o BPG_pseudo.o
+ar rv ../../spooles.a BPG_*.o
+a - BPG_DM.o
+a - BPG_IO.o
+a - BPG_basics.o
+a - BPG_init.o
+a - BPG_makeGraphs.o
+a - BPG_maxFlow.o
+a - BPG_pseudo.o
+rm -f BPG_*.o
+echo ../../spooles.a
+../../spooles.a
+make[3]: Leaving directory '/src/SPOOLES.2.2/BPG/src'
+rm -f makeG
+make[2]: Leaving directory '/src/SPOOLES.2.2/BPG/src'
+make[1]: Leaving directory '/src/SPOOLES.2.2/BPG'
+cd Chv              ; make lib
+make[1]: Entering directory '/src/SPOOLES.2.2/Chv'
+cd src ; make makeLib
+make[2]: Entering directory '/src/SPOOLES.2.2/Chv/src'
+perl ../../makeLib > makeG
+make -f makeG
+make[3]: Entering directory '/src/SPOOLES.2.2/Chv/src'
+makeG:23: warning: overriding recipe for target '.c.o'
+../../Make.inc:90: warning: ignoring old recipe for target '.c.o'
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 assemble.c -o Chv_assemble.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 basics.c -o Chv_basics.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 copy.c -o Chv_copy.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 factor.c -o Chv_factor.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 findPivot.c -o Chv_findPivot.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 init.c -o Chv_init.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 instance.c -o Chv_instance.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 IO.c -o Chv_IO.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 search.c -o Chv_search.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 swap.c -o Chv_swap.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 update.c -o Chv_update.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 util.c -o Chv_util.o
+ar rv ../../spooles.a Chv_*.o
+a - Chv_IO.o
+a - Chv_assemble.o
+a - Chv_basics.o
+a - Chv_copy.o
+a - Chv_factor.o
+a - Chv_findPivot.o
+a - Chv_init.o
+a - Chv_instance.o
+a - Chv_search.o
+a - Chv_swap.o
+a - Chv_update.o
+a - Chv_util.o
+rm -f Chv_*.o
+echo ../../spooles.a
+../../spooles.a
+make[3]: Leaving directory '/src/SPOOLES.2.2/Chv/src'
+rm -f makeG
+make[2]: Leaving directory '/src/SPOOLES.2.2/Chv/src'
+make[1]: Leaving directory '/src/SPOOLES.2.2/Chv'
+cd ChvList          ; make lib
+make[1]: Entering directory '/src/SPOOLES.2.2/ChvList'
+cd src ; make makeLib
+make[2]: Entering directory '/src/SPOOLES.2.2/ChvList/src'
+perl ../../makeLib > makeG
+make -f makeG
+make[3]: Entering directory '/src/SPOOLES.2.2/ChvList/src'
+makeG:15: warning: overriding recipe for target '.c.o'
+../../Make.inc:90: warning: ignoring old recipe for target '.c.o'
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 basics.c -o ChvList_basics.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 init.c -o ChvList_init.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 IO.c -o ChvList_IO.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 util.c -o ChvList_util.o
+ar rv ../../spooles.a ChvList_*.o
+a - ChvList_IO.o
+a - ChvList_basics.o
+a - ChvList_init.o
+a - ChvList_util.o
+rm -f ChvList_*.o
+echo ../../spooles.a
+../../spooles.a
+make[3]: Leaving directory '/src/SPOOLES.2.2/ChvList/src'
+rm -f makeG
+make[2]: Leaving directory '/src/SPOOLES.2.2/ChvList/src'
+make[1]: Leaving directory '/src/SPOOLES.2.2/ChvList'
+cd ChvManager       ; make lib
+make[1]: Entering directory '/src/SPOOLES.2.2/ChvManager'
+cd src ; make makeLib
+make[2]: Entering directory '/src/SPOOLES.2.2/ChvManager/src'
+perl ../../makeLib > makeG
+make -f makeG
+make[3]: Entering directory '/src/SPOOLES.2.2/ChvManager/src'
+makeG:15: warning: overriding recipe for target '.c.o'
+../../Make.inc:90: warning: ignoring old recipe for target '.c.o'
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 basics.c -o ChvManager_basics.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 init.c -o ChvManager_init.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 IO.c -o ChvManager_IO.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 util.c -o ChvManager_util.o
+ar rv ../../spooles.a ChvManager_*.o
+a - ChvManager_IO.o
+a - ChvManager_basics.o
+a - ChvManager_init.o
+a - ChvManager_util.o
+rm -f ChvManager_*.o
+echo ../../spooles.a
+../../spooles.a
+make[3]: Leaving directory '/src/SPOOLES.2.2/ChvManager/src'
+rm -f makeG
+make[2]: Leaving directory '/src/SPOOLES.2.2/ChvManager/src'
+make[1]: Leaving directory '/src/SPOOLES.2.2/ChvManager'
+cd Coords           ; make lib
+make[1]: Entering directory '/src/SPOOLES.2.2/Coords'
+cd src ; make makeLib
+make[2]: Entering directory '/src/SPOOLES.2.2/Coords/src'
+perl ../../makeLib > makeG
+make -f makeG
+make[3]: Entering directory '/src/SPOOLES.2.2/Coords/src'
+makeG:15: warning: overriding recipe for target '.c.o'
+../../Make.inc:90: warning: ignoring old recipe for target '.c.o'
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 basics.c -o Coords_basics.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 init.c -o Coords_init.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 IO.c -o Coords_IO.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 util.c -o Coords_util.o
+ar rv ../../spooles.a Coords_*.o
+a - Coords_IO.o
+a - Coords_basics.o
+a - Coords_init.o
+a - Coords_util.o
+rm -f Coords_*.o
+echo ../../spooles.a
+../../spooles.a
+make[3]: Leaving directory '/src/SPOOLES.2.2/Coords/src'
+rm -f makeG
+make[2]: Leaving directory '/src/SPOOLES.2.2/Coords/src'
+make[1]: Leaving directory '/src/SPOOLES.2.2/Coords'
+cd DSTree           ; make lib
+make[1]: Entering directory '/src/SPOOLES.2.2/DSTree'
+cd src ; make makeLib
+make[2]: Entering directory '/src/SPOOLES.2.2/DSTree/src'
+perl ../../makeLib > makeG
+make -f makeG
+make[3]: Entering directory '/src/SPOOLES.2.2/DSTree/src'
+makeG:17: warning: overriding recipe for target '.c.o'
+../../Make.inc:90: warning: ignoring old recipe for target '.c.o'
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 basics.c -o DSTree_basics.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 init.c -o DSTree_init.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 instance.c -o DSTree_instance.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 IO.c -o DSTree_IO.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 stages.c -o DSTree_stages.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 util.c -o DSTree_util.o
+ar rv ../../spooles.a DSTree_*.o
+a - DSTree_IO.o
+a - DSTree_basics.o
+a - DSTree_init.o
+a - DSTree_instance.o
+a - DSTree_stages.o
+a - DSTree_util.o
+rm -f DSTree_*.o
+echo ../../spooles.a
+../../spooles.a
+make[3]: Leaving directory '/src/SPOOLES.2.2/DSTree/src'
+rm -f makeG
+make[2]: Leaving directory '/src/SPOOLES.2.2/DSTree/src'
+make[1]: Leaving directory '/src/SPOOLES.2.2/DSTree'
+cd DV               ; make lib
+make[1]: Entering directory '/src/SPOOLES.2.2/DV'
+cd src ; make makeLib
+make[2]: Entering directory '/src/SPOOLES.2.2/DV/src'
+perl ../../makeLib > makeG
+make -f makeG
+make[3]: Entering directory '/src/SPOOLES.2.2/DV/src'
+makeG:17: warning: overriding recipe for target '.c.o'
+../../Make.inc:90: warning: ignoring old recipe for target '.c.o'
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 basics.c -o DV_basics.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 init.c -o DV_init.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 instance.c -o DV_instance.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 IO.c -o DV_IO.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 profile.c -o DV_profile.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 util.c -o DV_util.o
+ar rv ../../spooles.a DV_*.o
+a - DV_IO.o
+a - DV_basics.o
+a - DV_init.o
+a - DV_instance.o
+a - DV_profile.o
+a - DV_util.o
+rm -f DV_*.o
+echo ../../spooles.a
+../../spooles.a
+make[3]: Leaving directory '/src/SPOOLES.2.2/DV/src'
+rm -f makeG
+make[2]: Leaving directory '/src/SPOOLES.2.2/DV/src'
+make[1]: Leaving directory '/src/SPOOLES.2.2/DV'
+cd DenseMtx         ; make lib
+make[1]: Entering directory '/src/SPOOLES.2.2/DenseMtx'
+cd src ; make makeLib
+make[2]: Entering directory '/src/SPOOLES.2.2/DenseMtx/src'
+perl ../../makeLib > makeG
+make -f makeG
+make[3]: Entering directory '/src/SPOOLES.2.2/DenseMtx/src'
+makeG:19: warning: overriding recipe for target '.c.o'
+../../Make.inc:90: warning: ignoring old recipe for target '.c.o'
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 basics.c -o DenseMtx_basics.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 init.c -o DenseMtx_init.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 initAsSubmtx.c -o DenseMtx_initAsSubmtx.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 instance.c -o DenseMtx_instance.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 IO.c -o DenseMtx_IO.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 permute.c -o DenseMtx_permute.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 scale.c -o DenseMtx_scale.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 util.c -o DenseMtx_util.o
+ar rv ../../spooles.a DenseMtx_*.o
+a - DenseMtx_IO.o
+a - DenseMtx_basics.o
+a - DenseMtx_init.o
+a - DenseMtx_initAsSubmtx.o
+a - DenseMtx_instance.o
+a - DenseMtx_permute.o
+a - DenseMtx_scale.o
+a - DenseMtx_util.o
+rm -f DenseMtx_*.o
+echo ../../spooles.a
+../../spooles.a
+make[3]: Leaving directory '/src/SPOOLES.2.2/DenseMtx/src'
+rm -f makeG
+make[2]: Leaving directory '/src/SPOOLES.2.2/DenseMtx/src'
+make[1]: Leaving directory '/src/SPOOLES.2.2/DenseMtx'
+cd Drand            ; make lib
+make[1]: Entering directory '/src/SPOOLES.2.2/Drand'
+cd src ; make makeLib
+make[2]: Entering directory '/src/SPOOLES.2.2/Drand/src'
+perl ../../makeLib > makeG
+make -f makeG
+make[3]: Entering directory '/src/SPOOLES.2.2/Drand/src'
+makeG:14: warning: overriding recipe for target '.c.o'
+../../Make.inc:90: warning: ignoring old recipe for target '.c.o'
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 basics.c -o Drand_basics.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 init.c -o Drand_init.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 util.c -o Drand_util.o
+ar rv ../../spooles.a Drand_*.o
+a - Drand_basics.o
+a - Drand_init.o
+a - Drand_util.o
+rm -f Drand_*.o
+echo ../../spooles.a
+../../spooles.a
+make[3]: Leaving directory '/src/SPOOLES.2.2/Drand/src'
+rm -f makeG
+make[2]: Leaving directory '/src/SPOOLES.2.2/Drand/src'
+make[1]: Leaving directory '/src/SPOOLES.2.2/Drand'
+cd EGraph           ; make lib
+make[1]: Entering directory '/src/SPOOLES.2.2/EGraph'
+cd src ; make makeLib
+make[2]: Entering directory '/src/SPOOLES.2.2/EGraph/src'
+perl ../../makeLib > makeG
+make -f makeG
+make[3]: Entering directory '/src/SPOOLES.2.2/EGraph/src'
+makeG:16: warning: overriding recipe for target '.c.o'
+../../Make.inc:90: warning: ignoring old recipe for target '.c.o'
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 basics.c -o EGraph_basics.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 init.c -o EGraph_init.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 IO.c -o EGraph_IO.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 mkAdjGraph.c -o EGraph_mkAdjGraph.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 misc.c -o EGraph_misc.o
+ar rv ../../spooles.a EGraph_*.o
+a - EGraph_IO.o
+a - EGraph_basics.o
+a - EGraph_init.o
+a - EGraph_misc.o
+a - EGraph_mkAdjGraph.o
+rm -f EGraph_*.o
+echo ../../spooles.a
+../../spooles.a
+make[3]: Leaving directory '/src/SPOOLES.2.2/EGraph/src'
+rm -f makeG
+make[2]: Leaving directory '/src/SPOOLES.2.2/EGraph/src'
+make[1]: Leaving directory '/src/SPOOLES.2.2/EGraph'
+cd ETree            ; make lib
+make[1]: Entering directory '/src/SPOOLES.2.2/ETree'
+cd src ; make makeLib
+make[2]: Entering directory '/src/SPOOLES.2.2/ETree/src'
+perl ../../makeLib > makeG
+make -f makeG
+make[3]: Entering directory '/src/SPOOLES.2.2/ETree/src'
+makeG:26: warning: overriding recipe for target '.c.o'
+../../Make.inc:90: warning: ignoring old recipe for target '.c.o'
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 IO.c -o ETree_IO.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 basics.c -o ETree_basics.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 compress.c -o ETree_compress.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 init.c -o ETree_init.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 initFromSubtree.c -o ETree_initFromSubtree.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 instance.c -o ETree_instance.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 justify.c -o ETree_justify.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 maps.c -o ETree_maps.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 metrics.c -o ETree_metrics.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 ms.c -o ETree_ms.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 permute.c -o ETree_permute.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 semi.c -o ETree_semi.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 storage.c -o ETree_storage.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 transform.c -o ETree_transform.o
+transform.c: In function 'ETree_mergeFrontsOne':
+transform.c:294:23: warning: passing argument 2 of 'IVinit' makes integer from pointer without a cast [-Wint-conversion]
+  294 | temp = IVinit(nfront, NULL) ;
+      |                       ^~~~
+      |                       |
+      |                       void *
+In file included from ../../Utilities/Utilities.h:37,
+                 from ../../cfiles.h:3,
+                 from ../ETree.h:4,
+                 from transform.c:3:
+../../Utilities/IV.h:139:10: note: expected 'int' but argument is of type 'void *'
+  139 |    int   ival
+      |    ~~~~~~^~~~
+transform.c: In function 'ETree_mergeFrontsAll':
+transform.c:456:23: warning: passing argument 2 of 'IVinit' makes integer from pointer without a cast [-Wint-conversion]
+  456 | temp = IVinit(nfront, NULL) ;
+      |                       ^~~~
+      |                       |
+      |                       void *
+../../Utilities/IV.h:139:10: note: expected 'int' but argument is of type 'void *'
+  139 |    int   ival
+      |    ~~~~~~^~~~
+transform.c: In function 'ETree_mergeFrontsAny':
+transform.c:617:23: warning: passing argument 2 of 'IVinit' makes integer from pointer without a cast [-Wint-conversion]
+  617 | temp = IVinit(nfront, NULL) ;
+      |                       ^~~~
+      |                       |
+      |                       void *
+../../Utilities/IV.h:139:10: note: expected 'int' but argument is of type 'void *'
+  139 |    int   ival
+      |    ~~~~~~^~~~
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 util.c -o ETree_util.o
+ar rv ../../spooles.a ETree_*.o
+a - ETree_IO.o
+a - ETree_basics.o
+a - ETree_compress.o
+a - ETree_init.o
+a - ETree_initFromSubtree.o
+a - ETree_instance.o
+a - ETree_justify.o
+a - ETree_maps.o
+a - ETree_metrics.o
+a - ETree_ms.o
+a - ETree_permute.o
+a - ETree_semi.o
+a - ETree_storage.o
+a - ETree_transform.o
+a - ETree_util.o
+rm -f ETree_*.o
+echo ../../spooles.a
+../../spooles.a
+make[3]: Leaving directory '/src/SPOOLES.2.2/ETree/src'
+rm -f makeG
+make[2]: Leaving directory '/src/SPOOLES.2.2/ETree/src'
+make[1]: Leaving directory '/src/SPOOLES.2.2/ETree'
+cd FrontMtx         ; make lib
+make[1]: Entering directory '/src/SPOOLES.2.2/FrontMtx'
+cd src ; make makeLib
+make[2]: Entering directory '/src/SPOOLES.2.2/FrontMtx/src'
+perl ../../makeLib > makeG
+make -f makeG
+make[3]: Entering directory '/src/SPOOLES.2.2/FrontMtx/src'
+makeG:30: warning: overriding recipe for target '.c.o'
+../../Make.inc:90: warning: ignoring old recipe for target '.c.o'
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 basics.c -o FrontMtx_basics.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 factor.c -o FrontMtx_factor.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 factorUtil.c -o FrontMtx_factorUtil.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 init.c -o FrontMtx_init.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 instance.c -o FrontMtx_instance.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 IO.c -o FrontMtx_IO.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 loadEntries.c -o FrontMtx_loadEntries.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 permute.c -o FrontMtx_permute.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 postponed.c -o FrontMtx_postponed.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 postProcess.c -o FrontMtx_postProcess.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 QRfactor.c -o FrontMtx_QRfactor.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 QRsolve.c -o FrontMtx_QRsolve.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 QRutil.c -o FrontMtx_QRutil.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 solve.c -o FrontMtx_solve.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 solveUtil.c -o FrontMtx_solveUtil.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 split.c -o FrontMtx_split.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 storeFront.c -o FrontMtx_storeFront.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 update.c -o FrontMtx_update.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 util.c -o FrontMtx_util.o
+ar rv ../../spooles.a FrontMtx_*.o
+a - FrontMtx_IO.o
+a - FrontMtx_QRfactor.o
+a - FrontMtx_QRsolve.o
+a - FrontMtx_QRutil.o
+a - FrontMtx_basics.o
+a - FrontMtx_factor.o
+a - FrontMtx_factorUtil.o
+a - FrontMtx_init.o
+a - FrontMtx_instance.o
+a - FrontMtx_loadEntries.o
+a - FrontMtx_permute.o
+a - FrontMtx_postProcess.o
+a - FrontMtx_postponed.o
+a - FrontMtx_solve.o
+a - FrontMtx_solveUtil.o
+a - FrontMtx_split.o
+a - FrontMtx_storeFront.o
+a - FrontMtx_update.o
+a - FrontMtx_util.o
+rm -f FrontMtx_*.o
+echo ../../spooles.a
+../../spooles.a
+make[3]: Leaving directory '/src/SPOOLES.2.2/FrontMtx/src'
+rm -f makeG
+make[2]: Leaving directory '/src/SPOOLES.2.2/FrontMtx/src'
+make[1]: Leaving directory '/src/SPOOLES.2.2/FrontMtx'
+cd GPart            ; make lib
+make[1]: Entering directory '/src/SPOOLES.2.2/GPart'
+cd src ; make makeLib
+make[2]: Entering directory '/src/SPOOLES.2.2/GPart/src'
+perl ../../makeLib > makeG
+make -f makeG
+make[3]: Entering directory '/src/SPOOLES.2.2/GPart/src'
+makeG:26: warning: overriding recipe for target '.c.o'
+../../Make.inc:90: warning: ignoring old recipe for target '.c.o'
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 DDviaFishnet.c -o GPart_DDviaFishnet.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 DDviaProjection.c -o GPart_DDviaProjection.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 DDsepInfo.c -o GPart_DDsepInfo.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 RBviaDDsep.c -o GPart_RBviaDDsep.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 TwoSetViaBKL.c -o GPart_TwoSetViaBKL.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 basics.c -o GPart_basics.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 domSegMap.c -o GPart_domSegMap.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 identifyWideSep.c -o GPart_identifyWideSep.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 init.c -o GPart_init.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 makeYCmap.c -o GPart_makeYCmap.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 smoothBisector.c -o GPart_smoothBisector.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 smoothBy2layers.c -o GPart_smoothBy2layers.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 smoothYSep.c -o GPart_smoothYSep.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 split.c -o GPart_split.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 util.c -o GPart_util.o
+ar rv ../../spooles.a GPart_*.o
+a - GPart_DDsepInfo.o
+a - GPart_DDviaFishnet.o
+a - GPart_DDviaProjection.o
+a - GPart_RBviaDDsep.o
+a - GPart_TwoSetViaBKL.o
+a - GPart_basics.o
+a - GPart_domSegMap.o
+a - GPart_identifyWideSep.o
+a - GPart_init.o
+a - GPart_makeYCmap.o
+a - GPart_smoothBisector.o
+a - GPart_smoothBy2layers.o
+a - GPart_smoothYSep.o
+a - GPart_split.o
+a - GPart_util.o
+rm -f GPart_*.o
+echo ../../spooles.a
+../../spooles.a
+make[3]: Leaving directory '/src/SPOOLES.2.2/GPart/src'
+rm -f makeG
+make[2]: Leaving directory '/src/SPOOLES.2.2/GPart/src'
+make[1]: Leaving directory '/src/SPOOLES.2.2/GPart'
+cd Graph            ; make lib
+make[1]: Entering directory '/src/SPOOLES.2.2/Graph'
+cd src ; make makeLib
+make[2]: Entering directory '/src/SPOOLES.2.2/Graph/src'
+perl ../../makeLib > makeG
+make -f makeG
+make[3]: Entering directory '/src/SPOOLES.2.2/Graph/src'
+makeG:21: warning: overriding recipe for target '.c.o'
+../../Make.inc:90: warning: ignoring old recipe for target '.c.o'
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 IO.c -o Graph_IO.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 basics.c -o Graph_basics.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 compress.c -o Graph_compress.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 equivMap.c -o Graph_equivMap.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 expand.c -o Graph_expand.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 fillFromOffsets.c -o Graph_fillFromOffsets.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 init.c -o Graph_init.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 setListsFromOffsets.c -o Graph_setListsFromOffsets.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 util.c -o Graph_util.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 wirebasket.c -o Graph_wirebasket.o
+ar rv ../../spooles.a Graph_*.o
+a - Graph_IO.o
+a - Graph_basics.o
+a - Graph_compress.o
+a - Graph_equivMap.o
+a - Graph_expand.o
+a - Graph_fillFromOffsets.o
+a - Graph_init.o
+a - Graph_setListsFromOffsets.o
+a - Graph_util.o
+a - Graph_wirebasket.o
+rm -f Graph_*.o
+echo ../../spooles.a
+../../spooles.a
+make[3]: Leaving directory '/src/SPOOLES.2.2/Graph/src'
+rm -f makeG
+make[2]: Leaving directory '/src/SPOOLES.2.2/Graph/src'
+make[1]: Leaving directory '/src/SPOOLES.2.2/Graph'
+cd I2Ohash          ; make lib
+make[1]: Entering directory '/src/SPOOLES.2.2/I2Ohash'
+cd src ; make makeLib
+make[2]: Entering directory '/src/SPOOLES.2.2/I2Ohash/src'
+perl ../../makeLib > makeG
+make -f makeG
+make[3]: Entering directory '/src/SPOOLES.2.2/I2Ohash/src'
+makeG:15: warning: overriding recipe for target '.c.o'
+../../Make.inc:90: warning: ignoring old recipe for target '.c.o'
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 basics.c -o I2Ohash_basics.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 init.c -o I2Ohash_init.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 IO.c -o I2Ohash_IO.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 util.c -o I2Ohash_util.o
+ar rv ../../spooles.a I2Ohash_*.o
+a - I2Ohash_IO.o
+a - I2Ohash_basics.o
+a - I2Ohash_init.o
+a - I2Ohash_util.o
+rm -f I2Ohash_*.o
+echo ../../spooles.a
+../../spooles.a
+make[3]: Leaving directory '/src/SPOOLES.2.2/I2Ohash/src'
+rm -f makeG
+make[2]: Leaving directory '/src/SPOOLES.2.2/I2Ohash/src'
+make[1]: Leaving directory '/src/SPOOLES.2.2/I2Ohash'
+cd IIheap           ; make lib
+make[1]: Entering directory '/src/SPOOLES.2.2/IIheap'
+cd src ; make makeLib
+make[2]: Entering directory '/src/SPOOLES.2.2/IIheap/src'
+perl ../../makeLib > makeG
+make -f makeG
+make[3]: Entering directory '/src/SPOOLES.2.2/IIheap/src'
+makeG:12: warning: overriding recipe for target '.c.o'
+../../Make.inc:90: warning: ignoring old recipe for target '.c.o'
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 basics.c -o IIheap_basics.o
+ar rv ../../spooles.a IIheap_*.o
+a - IIheap_basics.o
+rm -f IIheap_*.o
+echo ../../spooles.a
+../../spooles.a
+make[3]: Leaving directory '/src/SPOOLES.2.2/IIheap/src'
+rm -f makeG
+make[2]: Leaving directory '/src/SPOOLES.2.2/IIheap/src'
+make[1]: Leaving directory '/src/SPOOLES.2.2/IIheap'
+cd IV               ; make lib
+make[1]: Entering directory '/src/SPOOLES.2.2/IV'
+cd src ; make makeLib
+make[2]: Entering directory '/src/SPOOLES.2.2/IV/src'
+perl ../../makeLib > makeG
+make -f makeG
+make[3]: Entering directory '/src/SPOOLES.2.2/IV/src'
+makeG:16: warning: overriding recipe for target '.c.o'
+../../Make.inc:90: warning: ignoring old recipe for target '.c.o'
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 IO.c -o IV_IO.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 basics.c -o IV_basics.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 init.c -o IV_init.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 instance.c -o IV_instance.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 util.c -o IV_util.o
+ar rv ../../spooles.a IV_*.o
+a - IV_IO.o
+a - IV_basics.o
+a - IV_init.o
+a - IV_instance.o
+a - IV_util.o
+rm -f IV_*.o
+echo ../../spooles.a
+../../spooles.a
+make[3]: Leaving directory '/src/SPOOLES.2.2/IV/src'
+rm -f makeG
+make[2]: Leaving directory '/src/SPOOLES.2.2/IV/src'
+make[1]: Leaving directory '/src/SPOOLES.2.2/IV'
+cd IVL              ; make lib
+make[1]: Entering directory '/src/SPOOLES.2.2/IVL'
+cd src ; make makeLib
+make[2]: Entering directory '/src/SPOOLES.2.2/IVL/src'
+perl ../../makeLib > makeG
+make -f makeG
+make[3]: Entering directory '/src/SPOOLES.2.2/IVL/src'
+makeG:19: warning: overriding recipe for target '.c.o'
+../../Make.inc:90: warning: ignoring old recipe for target '.c.o'
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 IO.c -o IVL_IO.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 basics.c -o IVL_basics.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 init.c -o IVL_init.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 instance.c -o IVL_instance.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 listmanip.c -o IVL_listmanip.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 misc.c -o IVL_misc.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 subIVL.c -o IVL_subIVL.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 util.c -o IVL_util.o
+ar rv ../../spooles.a IVL_*.o
+a - IVL_IO.o
+a - IVL_basics.o
+a - IVL_init.o
+a - IVL_instance.o
+a - IVL_listmanip.o
+a - IVL_misc.o
+a - IVL_subIVL.o
+a - IVL_util.o
+rm -f IVL_*.o
+echo ../../spooles.a
+../../spooles.a
+make[3]: Leaving directory '/src/SPOOLES.2.2/IVL/src'
+rm -f makeG
+make[2]: Leaving directory '/src/SPOOLES.2.2/IVL/src'
+make[1]: Leaving directory '/src/SPOOLES.2.2/IVL'
+cd Ideq             ; make lib
+make[1]: Entering directory '/src/SPOOLES.2.2/Ideq'
+cd src ; make makeLib
+make[2]: Entering directory '/src/SPOOLES.2.2/Ideq/src'
+perl ../../makeLib > makeG
+make -f makeG
+make[3]: Entering directory '/src/SPOOLES.2.2/Ideq/src'
+makeG:15: warning: overriding recipe for target '.c.o'
+../../Make.inc:90: warning: ignoring old recipe for target '.c.o'
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 basics.c -o Ideq_basics.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 IO.c -o Ideq_IO.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 resize.c -o Ideq_resize.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 util.c -o Ideq_util.o
+ar rv ../../spooles.a Ideq_*.o
+a - Ideq_IO.o
+a - Ideq_basics.o
+a - Ideq_resize.o
+a - Ideq_util.o
+rm -f Ideq_*.o
+echo ../../spooles.a
+../../spooles.a
+make[3]: Leaving directory '/src/SPOOLES.2.2/Ideq/src'
+rm -f makeG
+make[2]: Leaving directory '/src/SPOOLES.2.2/Ideq/src'
+make[1]: Leaving directory '/src/SPOOLES.2.2/Ideq'
+cd InpMtx           ; make lib
+make[1]: Entering directory '/src/SPOOLES.2.2/InpMtx'
+cd src ; make makeLib
+make[2]: Entering directory '/src/SPOOLES.2.2/InpMtx/src'
+perl ../../makeLib > makeG
+make -f makeG
+make[3]: Entering directory '/src/SPOOLES.2.2/InpMtx/src'
+makeG:28: warning: overriding recipe for target '.c.o'
+../../Make.inc:90: warning: ignoring old recipe for target '.c.o'
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 adjForATA.c -o InpMtx_adjForATA.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 basics.c -o InpMtx_basics.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 extract.c -o InpMtx_extract.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 fullAdj.c -o InpMtx_fullAdj.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 gmmm.c -o InpMtx_gmmm.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 gmvm.c -o InpMtx_gmvm.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 init.c -o InpMtx_init.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 input.c -o InpMtx_input.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 instance.c -o InpMtx_instance.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 IO.c -o InpMtx_IO.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 map.c -o InpMtx_map.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 mvm.c -o InpMtx_mvm.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 mvmVector.c -o InpMtx_mvmVector.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 permute.c -o InpMtx_permute.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 profile.c -o InpMtx_profile.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 support.c -o InpMtx_support.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 util.c -o InpMtx_util.o
+ar rv ../../spooles.a InpMtx_*.o
+a - InpMtx_IO.o
+a - InpMtx_adjForATA.o
+a - InpMtx_basics.o
+a - InpMtx_extract.o
+a - InpMtx_fullAdj.o
+a - InpMtx_gmmm.o
+a - InpMtx_gmvm.o
+a - InpMtx_init.o
+a - InpMtx_input.o
+a - InpMtx_instance.o
+a - InpMtx_map.o
+a - InpMtx_mvm.o
+a - InpMtx_mvmVector.o
+a - InpMtx_permute.o
+a - InpMtx_profile.o
+a - InpMtx_support.o
+a - InpMtx_util.o
+rm -f InpMtx_*.o
+echo ../../spooles.a
+../../spooles.a
+make[3]: Leaving directory '/src/SPOOLES.2.2/InpMtx/src'
+rm -f makeG
+make[2]: Leaving directory '/src/SPOOLES.2.2/InpMtx/src'
+make[1]: Leaving directory '/src/SPOOLES.2.2/InpMtx'
+cd Lock             ; make lib
+make[1]: Entering directory '/src/SPOOLES.2.2/Lock'
+cd src ; make makeLib
+make[2]: Entering directory '/src/SPOOLES.2.2/Lock/src'
+perl ../../makeLib > makeG
+make -f makeG
+make[3]: Entering directory '/src/SPOOLES.2.2/Lock/src'
+makeG:14: warning: overriding recipe for target '.c.o'
+../../Make.inc:90: warning: ignoring old recipe for target '.c.o'
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 basics.c -o Lock_basics.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 init.c -o Lock_init.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 util.c -o Lock_util.o
+ar rv ../../spooles.a Lock_*.o
+a - Lock_basics.o
+a - Lock_init.o
+a - Lock_util.o
+rm -f Lock_*.o
+echo ../../spooles.a
+../../spooles.a
+make[3]: Leaving directory '/src/SPOOLES.2.2/Lock/src'
+rm -f makeG
+make[2]: Leaving directory '/src/SPOOLES.2.2/Lock/src'
+make[1]: Leaving directory '/src/SPOOLES.2.2/Lock'
+cd MSMD             ; make lib
+make[1]: Entering directory '/src/SPOOLES.2.2/MSMD'
+cd src ; make makeLib
+make[2]: Entering directory '/src/SPOOLES.2.2/MSMD/src'
+perl ../../makeLib > makeG
+make -f makeG
+make[3]: Entering directory '/src/SPOOLES.2.2/MSMD/src'
+makeG:23: warning: overriding recipe for target '.c.o'
+../../Make.inc:90: warning: ignoring old recipe for target '.c.o'
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 basics.c -o MSMD_basics.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 cleanReachSet.c -o MSMD_cleanReachSet.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 eliminate.c -o MSMD_eliminate.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 fillPerms.c -o MSMD_fillPerms.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 findInodes.c -o MSMD_findInodes.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 frontETree.c -o MSMD_frontETree.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 init.c -o MSMD_init.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 makeSchurComplement.c -o MSMD_makeSchurComplement.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 MSMDinfo.c -o MSMD_MSMDinfo.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 MSMDvtx.c -o MSMD_MSMDvtx.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 order.c -o MSMD_order.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 update.c -o MSMD_update.o
+ar rv ../../spooles.a MSMD_*.o
+a - MSMD_MSMDinfo.o
+a - MSMD_MSMDvtx.o
+a - MSMD_basics.o
+a - MSMD_cleanReachSet.o
+a - MSMD_eliminate.o
+a - MSMD_fillPerms.o
+a - MSMD_findInodes.o
+a - MSMD_frontETree.o
+a - MSMD_init.o
+a - MSMD_makeSchurComplement.o
+a - MSMD_order.o
+a - MSMD_update.o
+rm -f MSMD_*.o
+echo ../../spooles.a
+../../spooles.a
+make[3]: Leaving directory '/src/SPOOLES.2.2/MSMD/src'
+rm -f makeG
+make[2]: Leaving directory '/src/SPOOLES.2.2/MSMD/src'
+make[1]: Leaving directory '/src/SPOOLES.2.2/MSMD'
+cd Network          ; make lib
+make[1]: Entering directory '/src/SPOOLES.2.2/Network'
+cd src ; make makeLib
+make[2]: Entering directory '/src/SPOOLES.2.2/Network/src'
+perl ../../makeLib > makeG
+make -f makeG
+make[3]: Entering directory '/src/SPOOLES.2.2/Network/src'
+makeG:19: warning: overriding recipe for target '.c.o'
+../../Make.inc:90: warning: ignoring old recipe for target '.c.o'
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 addArc.c -o Network_addArc.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 augmentPath.c -o Network_augmentPath.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 basics.c -o Network_basics.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 findAugmentingPath.c -o Network_findAugmentingPath.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 findMaxFlow.c -o Network_findMaxFlow.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 findMincut.c -o Network_findMincut.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 init.c -o Network_init.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 IO.c -o Network_IO.o
+ar rv ../../spooles.a Network_*.o
+a - Network_IO.o
+a - Network_addArc.o
+a - Network_augmentPath.o
+a - Network_basics.o
+a - Network_findAugmentingPath.o
+a - Network_findMaxFlow.o
+a - Network_findMincut.o
+a - Network_init.o
+rm -f Network_*.o
+echo ../../spooles.a
+../../spooles.a
+make[3]: Leaving directory '/src/SPOOLES.2.2/Network/src'
+rm -f makeG
+make[2]: Leaving directory '/src/SPOOLES.2.2/Network/src'
+make[1]: Leaving directory '/src/SPOOLES.2.2/Network'
+cd PatchAndGoInfo   ; make lib
+make[1]: Entering directory '/src/SPOOLES.2.2/PatchAndGoInfo'
+cd src ; make makeLib
+make[2]: Entering directory '/src/SPOOLES.2.2/PatchAndGoInfo/src'
+perl ../../makeLib > makeG
+make -f makeG
+make[3]: Entering directory '/src/SPOOLES.2.2/PatchAndGoInfo/src'
+makeG:13: warning: overriding recipe for target '.c.o'
+../../Make.inc:90: warning: ignoring old recipe for target '.c.o'
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 basics.c -o PatchAndGoInfo_basics.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 init.c -o PatchAndGoInfo_init.o
+ar rv ../../spooles.a PatchAndGoInfo_*.o
+a - PatchAndGoInfo_basics.o
+a - PatchAndGoInfo_init.o
+rm -f PatchAndGoInfo_*.o
+echo ../../spooles.a
+../../spooles.a
+make[3]: Leaving directory '/src/SPOOLES.2.2/PatchAndGoInfo/src'
+rm -f makeG
+make[2]: Leaving directory '/src/SPOOLES.2.2/PatchAndGoInfo/src'
+make[1]: Leaving directory '/src/SPOOLES.2.2/PatchAndGoInfo'
+cd Pencil           ; make lib
+make[1]: Entering directory '/src/SPOOLES.2.2/Pencil'
+cd src ; make makeLib
+make[2]: Entering directory '/src/SPOOLES.2.2/Pencil/src'
+perl ../../makeLib > makeG
+make -f makeG
+make[3]: Entering directory '/src/SPOOLES.2.2/Pencil/src'
+makeG:18: warning: overriding recipe for target '.c.o'
+../../Make.inc:90: warning: ignoring old recipe for target '.c.o'
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 basics.c -o Pencil_basics.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 init.c -o Pencil_init.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 IO.c -o Pencil_IO.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 mmm.c -o Pencil_mmm.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 permute.c -o Pencil_permute.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 setup.c -o Pencil_setup.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 util.c -o Pencil_util.o
+ar rv ../../spooles.a Pencil_*.o
+a - Pencil_IO.o
+a - Pencil_basics.o
+a - Pencil_init.o
+a - Pencil_mmm.o
+a - Pencil_permute.o
+a - Pencil_setup.o
+a - Pencil_util.o
+rm -f Pencil_*.o
+echo ../../spooles.a
+../../spooles.a
+make[3]: Leaving directory '/src/SPOOLES.2.2/Pencil/src'
+rm -f makeG
+make[2]: Leaving directory '/src/SPOOLES.2.2/Pencil/src'
+make[1]: Leaving directory '/src/SPOOLES.2.2/Pencil'
+cd Perm             ; make lib
+make[1]: Entering directory '/src/SPOOLES.2.2/Perm'
+cd src ; make makeLib
+make[2]: Entering directory '/src/SPOOLES.2.2/Perm/src'
+perl ../../makeLib > makeG
+make -f makeG
+make[3]: Entering directory '/src/SPOOLES.2.2/Perm/src'
+makeG:16: warning: overriding recipe for target '.c.o'
+../../Make.inc:90: warning: ignoring old recipe for target '.c.o'
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 basics.c -o Perm_basics.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 compress.c -o Perm_compress.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 init.c -o Perm_init.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 IO.c -o Perm_IO.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 util.c -o Perm_util.o
+ar rv ../../spooles.a Perm_*.o
+a - Perm_IO.o
+a - Perm_basics.o
+a - Perm_compress.o
+a - Perm_init.o
+a - Perm_util.o
+rm -f Perm_*.o
+echo ../../spooles.a
+../../spooles.a
+make[3]: Leaving directory '/src/SPOOLES.2.2/Perm/src'
+rm -f makeG
+make[2]: Leaving directory '/src/SPOOLES.2.2/Perm/src'
+make[1]: Leaving directory '/src/SPOOLES.2.2/Perm'
+cd SemiImplMtx      ; make lib
+make[1]: Entering directory '/src/SPOOLES.2.2/SemiImplMtx'
+cd src ; make makeLib
+make[2]: Entering directory '/src/SPOOLES.2.2/SemiImplMtx/src'
+perl ../../makeLib > makeG
+make -f makeG
+make[3]: Entering directory '/src/SPOOLES.2.2/SemiImplMtx/src'
+makeG:16: warning: overriding recipe for target '.c.o'
+../../Make.inc:90: warning: ignoring old recipe for target '.c.o'
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 basics.c -o SemiImplMtx_basics.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 init.c -o SemiImplMtx_init.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 IO.c -o SemiImplMtx_IO.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 solve.c -o SemiImplMtx_solve.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 util.c -o SemiImplMtx_util.o
+ar rv ../../spooles.a SemiImplMtx_*.o
+a - SemiImplMtx_IO.o
+a - SemiImplMtx_basics.o
+a - SemiImplMtx_init.o
+a - SemiImplMtx_solve.o
+a - SemiImplMtx_util.o
+rm -f SemiImplMtx_*.o
+echo ../../spooles.a
+../../spooles.a
+make[3]: Leaving directory '/src/SPOOLES.2.2/SemiImplMtx/src'
+rm -f makeG
+make[2]: Leaving directory '/src/SPOOLES.2.2/SemiImplMtx/src'
+make[1]: Leaving directory '/src/SPOOLES.2.2/SemiImplMtx'
+cd SolveMap         ; make lib
+make[1]: Entering directory '/src/SPOOLES.2.2/SolveMap'
+cd src ; make makeLib
+make[2]: Entering directory '/src/SPOOLES.2.2/SolveMap/src'
+perl ../../makeLib > makeG
+make -f makeG
+make[3]: Entering directory '/src/SPOOLES.2.2/SolveMap/src'
+makeG:18: warning: overriding recipe for target '.c.o'
+../../Make.inc:90: warning: ignoring old recipe for target '.c.o'
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 basics.c -o SolveMap_basics.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 init.c -o SolveMap_init.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 instance.c -o SolveMap_instance.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 IO.c -o SolveMap_IO.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 maps.c -o SolveMap_maps.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 setup.c -o SolveMap_setup.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 util.c -o SolveMap_util.o
+ar rv ../../spooles.a SolveMap_*.o
+a - SolveMap_IO.o
+a - SolveMap_basics.o
+a - SolveMap_init.o
+a - SolveMap_instance.o
+a - SolveMap_maps.o
+a - SolveMap_setup.o
+a - SolveMap_util.o
+rm -f SolveMap_*.o
+echo ../../spooles.a
+../../spooles.a
+make[3]: Leaving directory '/src/SPOOLES.2.2/SolveMap/src'
+rm -f makeG
+make[2]: Leaving directory '/src/SPOOLES.2.2/SolveMap/src'
+make[1]: Leaving directory '/src/SPOOLES.2.2/SolveMap'
+cd SubMtx           ; make lib
+make[1]: Entering directory '/src/SPOOLES.2.2/SubMtx'
+cd src ; make makeLib
+make[2]: Entering directory '/src/SPOOLES.2.2/SubMtx/src'
+perl ../../makeLib > makeG
+make -f makeG
+make[3]: Entering directory '/src/SPOOLES.2.2/SubMtx/src'
+makeG:25: warning: overriding recipe for target '.c.o'
+../../Make.inc:90: warning: ignoring old recipe for target '.c.o'
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 basics.c -o SubMtx_basics.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 init.c -o SubMtx_init.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 initRandom.c -o SubMtx_initRandom.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 instance.c -o SubMtx_instance.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 IO.c -o SubMtx_IO.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 scalevec.c -o SubMtx_scalevec.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 solve.c -o SubMtx_solve.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 solveH.c -o SubMtx_solveH.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 solveT.c -o SubMtx_solveT.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 solveupd.c -o SubMtx_solveupd.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 solveupdH.c -o SubMtx_solveupdH.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 solveupdT.c -o SubMtx_solveupdT.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 sort.c -o SubMtx_sort.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 util.c -o SubMtx_util.o
+ar rv ../../spooles.a SubMtx_*.o
+a - SubMtx_IO.o
+a - SubMtx_basics.o
+a - SubMtx_init.o
+a - SubMtx_initRandom.o
+a - SubMtx_instance.o
+a - SubMtx_scalevec.o
+a - SubMtx_solve.o
+a - SubMtx_solveH.o
+a - SubMtx_solveT.o
+a - SubMtx_solveupd.o
+a - SubMtx_solveupdH.o
+a - SubMtx_solveupdT.o
+a - SubMtx_sort.o
+a - SubMtx_util.o
+rm -f SubMtx_*.o
+echo ../../spooles.a
+../../spooles.a
+make[3]: Leaving directory '/src/SPOOLES.2.2/SubMtx/src'
+rm -f makeG
+make[2]: Leaving directory '/src/SPOOLES.2.2/SubMtx/src'
+make[1]: Leaving directory '/src/SPOOLES.2.2/SubMtx'
+cd SubMtxList       ; make lib
+make[1]: Entering directory '/src/SPOOLES.2.2/SubMtxList'
+cd src ; make makeLib
+make[2]: Entering directory '/src/SPOOLES.2.2/SubMtxList/src'
+perl ../../makeLib > makeG
+make -f makeG
+make[3]: Entering directory '/src/SPOOLES.2.2/SubMtxList/src'
+makeG:15: warning: overriding recipe for target '.c.o'
+../../Make.inc:90: warning: ignoring old recipe for target '.c.o'
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 basics.c -o SubMtxList_basics.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 init.c -o SubMtxList_init.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 IO.c -o SubMtxList_IO.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 util.c -o SubMtxList_util.o
+ar rv ../../spooles.a SubMtxList_*.o
+a - SubMtxList_IO.o
+a - SubMtxList_basics.o
+a - SubMtxList_init.o
+a - SubMtxList_util.o
+rm -f SubMtxList_*.o
+echo ../../spooles.a
+../../spooles.a
+make[3]: Leaving directory '/src/SPOOLES.2.2/SubMtxList/src'
+rm -f makeG
+make[2]: Leaving directory '/src/SPOOLES.2.2/SubMtxList/src'
+make[1]: Leaving directory '/src/SPOOLES.2.2/SubMtxList'
+cd SubMtxManager    ; make lib
+make[1]: Entering directory '/src/SPOOLES.2.2/SubMtxManager'
+cd src ; make makeLib
+make[2]: Entering directory '/src/SPOOLES.2.2/SubMtxManager/src'
+perl ../../makeLib > makeG
+make -f makeG
+make[3]: Entering directory '/src/SPOOLES.2.2/SubMtxManager/src'
+makeG:15: warning: overriding recipe for target '.c.o'
+../../Make.inc:90: warning: ignoring old recipe for target '.c.o'
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 basics.c -o SubMtxManager_basics.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 init.c -o SubMtxManager_init.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 IO.c -o SubMtxManager_IO.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 util.c -o SubMtxManager_util.o
+ar rv ../../spooles.a SubMtxManager_*.o
+a - SubMtxManager_IO.o
+a - SubMtxManager_basics.o
+a - SubMtxManager_init.o
+a - SubMtxManager_util.o
+rm -f SubMtxManager_*.o
+echo ../../spooles.a
+../../spooles.a
+make[3]: Leaving directory '/src/SPOOLES.2.2/SubMtxManager/src'
+rm -f makeG
+make[2]: Leaving directory '/src/SPOOLES.2.2/SubMtxManager/src'
+make[1]: Leaving directory '/src/SPOOLES.2.2/SubMtxManager'
+cd SymbFac          ; make lib
+make[1]: Entering directory '/src/SPOOLES.2.2/SymbFac'
+cd src ; make makeLib
+make[2]: Entering directory '/src/SPOOLES.2.2/SymbFac/src'
+perl ../../makeLib > makeG
+make -f makeG
+make[3]: Entering directory '/src/SPOOLES.2.2/SymbFac/src'
+makeG:12: warning: overriding recipe for target '.c.o'
+../../Make.inc:90: warning: ignoring old recipe for target '.c.o'
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 symbfac.c -o SymbFac_symbfac.o
+ar rv ../../spooles.a SymbFac_*.o
+a - SymbFac_symbfac.o
+rm -f SymbFac_*.o
+echo ../../spooles.a
+../../spooles.a
+make[3]: Leaving directory '/src/SPOOLES.2.2/SymbFac/src'
+rm -f makeG
+make[2]: Leaving directory '/src/SPOOLES.2.2/SymbFac/src'
+make[1]: Leaving directory '/src/SPOOLES.2.2/SymbFac'
+cd Tree             ; make lib
+make[1]: Entering directory '/src/SPOOLES.2.2/Tree'
+cd src ; make makeLib
+make[2]: Entering directory '/src/SPOOLES.2.2/Tree/src'
+perl ../../makeLib > makeG
+make -f makeG
+make[3]: Entering directory '/src/SPOOLES.2.2/Tree/src'
+makeG:25: warning: overriding recipe for target '.c.o'
+../../Make.inc:90: warning: ignoring old recipe for target '.c.o'
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 basics.c -o Tree_basics.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 compress.c -o Tree_compress.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 draw.c -o Tree_draw.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 getCoords.c -o Tree_getCoords.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 init.c -o Tree_init.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 instance.c -o Tree_instance.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 IO.c -o Tree_IO.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 justify.c -o Tree_justify.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 maximizeGain.c -o Tree_maximizeGain.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 metrics.c -o Tree_metrics.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 perms.c -o Tree_perms.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 permute.c -o Tree_permute.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 subtree.c -o Tree_subtree.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 util.c -o Tree_util.o
+ar rv ../../spooles.a Tree_*.o
+a - Tree_IO.o
+a - Tree_basics.o
+a - Tree_compress.o
+a - Tree_draw.o
+a - Tree_getCoords.o
+a - Tree_init.o
+a - Tree_instance.o
+a - Tree_justify.o
+a - Tree_maximizeGain.o
+a - Tree_metrics.o
+a - Tree_perms.o
+a - Tree_permute.o
+a - Tree_subtree.o
+a - Tree_util.o
+rm -f Tree_*.o
+echo ../../spooles.a
+../../spooles.a
+make[3]: Leaving directory '/src/SPOOLES.2.2/Tree/src'
+rm -f makeG
+make[2]: Leaving directory '/src/SPOOLES.2.2/Tree/src'
+make[1]: Leaving directory '/src/SPOOLES.2.2/Tree'
+cd Utilities        ; make lib
+make[1]: Entering directory '/src/SPOOLES.2.2/Utilities'
+cd src ; make makeLib
+make[2]: Entering directory '/src/SPOOLES.2.2/Utilities/src'
+perl ../../makeLib > makeG
+make -f makeG
+make[3]: Entering directory '/src/SPOOLES.2.2/Utilities/src'
+makeG:26: warning: overriding recipe for target '.c.o'
+../../Make.inc:90: warning: ignoring old recipe for target '.c.o'
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 axpy.c -o Utilities_axpy.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 CV.c -o Utilities_CV.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 DV.c -o Utilities_DV.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 FV.c -o Utilities_FV.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 IV.c -o Utilities_IV.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 PCV.c -o Utilities_PCV.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 PDV.c -o Utilities_PDV.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 PFV.c -o Utilities_PFV.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 PIV.c -o Utilities_PIV.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 IP.c -o Utilities_IP.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 I2OP.c -o Utilities_I2OP.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 iohb.c -o Utilities_iohb.o
+iohb.c: In function 'readHB_info':
+iohb.c:269:18: warning: cast from pointer to integer of different size [-Wpointer-to-int-cast]
+  269 |     *(*Type+3) = (char) NULL;
+      |                  ^
+iohb.c: In function 'readHB_header':
+iohb.c:311:16: warning: cast from pointer to integer of different size [-Wpointer-to-int-cast]
+  311 |     *(Key+8) = (char) NULL;
+      |                ^
+iohb.c:312:19: warning: cast from pointer to integer of different size [-Wpointer-to-int-cast]
+  312 |     *(Title+72) = (char) NULL;
+      |                   ^
+iohb.c:347:20: warning: cast from pointer to integer of different size [-Wpointer-to-int-cast]
+  347 |     *(Ptrfmt+16) = (char) NULL;
+      |                    ^
+iohb.c:348:20: warning: cast from pointer to integer of different size [-Wpointer-to-int-cast]
+  348 |     *(Indfmt+16) = (char) NULL;
+      |                    ^
+iohb.c:349:20: warning: cast from pointer to integer of different size [-Wpointer-to-int-cast]
+  349 |     *(Valfmt+20) = (char) NULL;
+      |                    ^
+iohb.c:350:20: warning: cast from pointer to integer of different size [-Wpointer-to-int-cast]
+  350 |     *(Rhsfmt+20) = (char) NULL;
+      |                    ^
+iohb.c: In function 'readHB_mat_double':
+iohb.c:457:31: warning: cast from pointer to integer of different size [-Wpointer-to-int-cast]
+  457 |     *(ThisElement+Ptrwidth) = (char) NULL;
+      |                               ^
+iohb.c:480:31: warning: cast from pointer to integer of different size [-Wpointer-to-int-cast]
+  480 |     *(ThisElement+Indwidth) = (char) NULL;
+      |                               ^
+iohb.c:508:31: warning: cast from pointer to integer of different size [-Wpointer-to-int-cast]
+  508 |     *(ThisElement+Valwidth) = (char) NULL;
+      |                               ^
+iohb.c: In function 'readHB_aux_double':
+iohb.c:708:29: warning: cast from pointer to integer of different size [-Wpointer-to-int-cast]
+  708 |   *(ThisElement+Rhswidth) = (char) NULL;
+      |                             ^
+iohb.c: In function 'readHB_mat_char':
+iohb.c:1021:31: warning: cast from pointer to integer of different size [-Wpointer-to-int-cast]
+ 1021 |     *(ThisElement+Ptrwidth) = (char) NULL;
+      |                               ^
+iohb.c:1044:31: warning: cast from pointer to integer of different size [-Wpointer-to-int-cast]
+ 1044 |     *(ThisElement+Indwidth) = (char) NULL;
+      |                               ^
+iohb.c:1072:31: warning: cast from pointer to integer of different size [-Wpointer-to-int-cast]
+ 1072 |     *(ThisElement+Valwidth) = (char) NULL;
+      |                               ^
+iohb.c: In function 'ParseRfmt':
+iohb.c:1632:20: warning: cast from pointer to integer of different size [-Wpointer-to-int-cast]
+ 1632 |        *(tmp2+1) = (int) NULL;
+      |                    ^
+iohb.c:1642:32: warning: cast from pointer to integer of different size [-Wpointer-to-int-cast]
+ 1642 |         while ( *(tmp2+len) != (int) NULL ) {
+      |                                ^
+iohb.c:1646:32: warning: cast from pointer to integer of different size [-Wpointer-to-int-cast]
+ 1646 |         *(strchr(fmt,')')+1) = (int) NULL;
+      |                                ^
+iohb.c: In function 'substr':
+iohb.c:1709:17: warning: cast from pointer to integer of different size [-Wpointer-to-int-cast]
+ 1709 |     SubS[len] = (char) NULL;
+      |                 ^
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 newsort.c -o Utilities_newsort.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 sortAndCompress.c -o Utilities_sortAndCompress.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 ZV.c -o Utilities_ZV.o
+ar rv ../../spooles.a Utilities_*.o
+a - Utilities_CV.o
+a - Utilities_DV.o
+a - Utilities_FV.o
+a - Utilities_I2OP.o
+a - Utilities_IP.o
+a - Utilities_IV.o
+a - Utilities_PCV.o
+a - Utilities_PDV.o
+a - Utilities_PFV.o
+a - Utilities_PIV.o
+a - Utilities_ZV.o
+a - Utilities_axpy.o
+a - Utilities_iohb.o
+a - Utilities_newsort.o
+a - Utilities_sortAndCompress.o
+rm -f Utilities_*.o
+echo ../../spooles.a
+../../spooles.a
+make[3]: Leaving directory '/src/SPOOLES.2.2/Utilities/src'
+rm -f makeG
+make[2]: Leaving directory '/src/SPOOLES.2.2/Utilities/src'
+make[1]: Leaving directory '/src/SPOOLES.2.2/Utilities'
+cd ZV               ; make lib
+make[1]: Entering directory '/src/SPOOLES.2.2/ZV'
+cd src ; make makeLib
+make[2]: Entering directory '/src/SPOOLES.2.2/ZV/src'
+perl ../../makeLib > makeG
+make -f makeG
+make[3]: Entering directory '/src/SPOOLES.2.2/ZV/src'
+makeG:17: warning: overriding recipe for target '.c.o'
+../../Make.inc:90: warning: ignoring old recipe for target '.c.o'
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 basics.c -o ZV_basics.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 init.c -o ZV_init.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 instance.c -o ZV_instance.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 IO.c -o ZV_IO.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 profile.c -o ZV_profile.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 util.c -o ZV_util.o
+ar rv ../../spooles.a ZV_*.o
+a - ZV_IO.o
+a - ZV_basics.o
+a - ZV_init.o
+a - ZV_instance.o
+a - ZV_profile.o
+a - ZV_util.o
+rm -f ZV_*.o
+echo ../../spooles.a
+../../spooles.a
+make[3]: Leaving directory '/src/SPOOLES.2.2/ZV/src'
+rm -f makeG
+make[2]: Leaving directory '/src/SPOOLES.2.2/ZV/src'
+make[1]: Leaving directory '/src/SPOOLES.2.2/ZV'
+cd misc             ; make lib
+make[1]: Entering directory '/src/SPOOLES.2.2/misc'
+cd src ; make makeLib
+make[2]: Entering directory '/src/SPOOLES.2.2/misc/src'
+perl ../../makeLib > makeG
+make -f makeG
+make[3]: Entering directory '/src/SPOOLES.2.2/misc/src'
+makeG:22: warning: overriding recipe for target '.c.o'
+../../Make.inc:90: warning: ignoring old recipe for target '.c.o'
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 drawGraphEPS.c -o misc_drawGraphEPS.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 fpgrids.c -o misc_fpgrids.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 localND.c -o misc_localND.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 ND.c -o misc_ND.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 ND2.c -o misc_ND2.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 mkNDlinsys.c -o misc_mkNDlinsys.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 mkNDlinsysQR.c -o misc_mkNDlinsysQR.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 orderViaBestOfNDandMS.c -o misc_orderViaBestOfNDandMS.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 orderViaMMD.c -o misc_orderViaMMD.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 orderViaMS.c -o misc_orderViaMS.o
+gcc -c -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17 orderViaND.c -o misc_orderViaND.o
+ar rv ../../spooles.a misc_*.o
+a - misc_ND.o
+a - misc_ND2.o
+a - misc_drawGraphEPS.o
+a - misc_fpgrids.o
+a - misc_localND.o
+a - misc_mkNDlinsys.o
+a - misc_mkNDlinsysQR.o
+a - misc_orderViaBestOfNDandMS.o
+a - misc_orderViaMMD.o
+a - misc_orderViaMS.o
+a - misc_orderViaND.o
+rm -f misc_*.o
+echo ../../spooles.a
+../../spooles.a
+make[3]: Leaving directory '/src/SPOOLES.2.2/misc/src'
+rm -f makeG
+make[2]: Leaving directory '/src/SPOOLES.2.2/misc/src'
+make[1]: Leaving directory '/src/SPOOLES.2.2/misc'

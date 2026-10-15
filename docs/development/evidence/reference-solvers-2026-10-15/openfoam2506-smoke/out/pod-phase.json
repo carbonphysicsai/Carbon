@@ -1,0 +1,16 @@
+{
+ "schema": "carbon.reference-solvers.pod-phase.v1",
+ "plan_id": "openfoam2506-smoke-2026-10-15",
+ "pod_plan": "docs/development/evidence/reference-solvers-2026-10-15/plans/openfoam2506-smoke.json",
+ "pod_plan_sha256": "fc6b22c5eb47fe7ce0f04d37514cf3241c1d6f795965f65a04e07e7180c14e4d",
+ "kind": "openfoam2506",
+ "steps": [
+  {
+   "name": "pitzdaily-simplefoam",
+   "status": "PASS",
+   "wall_s": 7.01453260332346
+  }
+ ],
+ "all_passed": true,
+ "maturity": "DEVELOPMENT engineering run on public decks; no adequacy, qualification or LIVE claim"
+}
