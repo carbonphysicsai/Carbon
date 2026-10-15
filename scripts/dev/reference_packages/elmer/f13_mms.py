@@ -40,6 +40,8 @@ K = 10.0
 LADDER = (0.2, 0.1, 0.05, 0.025)
 BANDS = {"l2": (2.5, 3.5), "h1": (1.5, 2.5)}  # B1
 IMAG = 0.5
+#: The shared development host's lock for runs above 3 GiB (one at a time).
+BIG_LOCK = "/tmp/claude-0/refpkg/locks/big.lock"
 
 MESH = """
 import json, gmsh
@@ -251,7 +253,8 @@ def run(work, out, image=proof.IMAGE):
             )  # fmt: skip
             memory = "3g" if h >= 0.05 else "12g"
             cost = proof.run(d, image, cpus=1, memory=memory, timeout=7200,
-                             tag=f"mms-{h:g}-{solver}")  # fmt: skip
+                             tag=f"mms-{h:g}-{solver}",
+                             lock=BIG_LOCK if memory != "3g" else None)  # fmt: skip
             attempts.append({"solver": solver, **cost.get("solve", {})})
             if cost.get("solve", {}).get("exit") == 0:
                 break

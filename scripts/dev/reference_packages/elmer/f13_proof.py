@@ -19,7 +19,9 @@ freeze and the bank path share one implementation.
 from __future__ import annotations
 
 import argparse
+import fcntl
 import hashlib
+import itertools
 import json
 import os
 import subprocess
@@ -104,8 +106,11 @@ def _container(image, case_dir, command, cpus, memory, name, timeout):
     }
 
 
-def run(case_dir, image=IMAGE, cpus=1, memory="3g", timeout=7200, tag=None):
-    """Mesh (if needed) and solve one case directory; write cost.json."""
+def run(case_dir, image=IMAGE, cpus=1, memory="3g", timeout=7200, tag=None, lock=None):
+    """Mesh (if needed) and solve one case directory; write cost.json.
+
+    With `lock` (the shared host's big-run lock file), the solve waits for an
+    exclusive flock first; the recorded wall time excludes the wait."""
     case_dir = Path(case_dir)
     tag = tag or case_dir.name
     cost = {"host_profile": HOST_PROFILE, "nproc": os.cpu_count(), "cpu_model": _cpu_model(),
@@ -119,8 +124,11 @@ def run(case_dir, image=IMAGE, cpus=1, memory="3g", timeout=7200, tag=None):
     groups = case_dir / "groups.json"
     if groups.exists():
         cost["nodes"] = json.loads(groups.read_text())["nodes"]
-    cost["solve"] = _container(image, case_dir, SOLVE, cpus, memory,
-                               f"f13-solve-{tag}"[:60], timeout)  # fmt: skip
+    with open(lock or os.devnull, "a") as held:
+        if lock:
+            fcntl.flock(held, fcntl.LOCK_EX)
+        cost["solve"] = _container(image, case_dir, SOLVE, cpus, memory,
+                                   f"f13-solve-{tag}"[:60], timeout)  # fmt: skip
     meta = json.loads((case_dir / "deck.json").read_text())
     cost["frequency_systems"] = len(meta["frequencies_hz"])
     if cost["solve"]["cpu_s"]:
@@ -278,11 +286,19 @@ def main(argv=None):
     parser.add_argument("--memory", default="3g")
     parser.add_argument("--timeout", type=float, default=7200)
     parser.add_argument("--lead-mm", type=float)
+    parser.add_argument("--lock", help="flock this file around the solve")
     args = parser.parse_args(argv)
     if args.command == "run":
         print(
             json.dumps(
-                run(args.case_dir, args.image, args.cpus, args.memory, args.timeout)
+                run(
+                    args.case_dir,
+                    args.image,
+                    args.cpus,
+                    args.memory,
+                    args.timeout,
+                    lock=args.lock,
+                )
             )
         )
     else:
@@ -340,6 +356,71 @@ def saved_integral_check(case_dir, revision, image=IMAGE):
     return sic.check_saved(
         data.read_bytes(), names.read_bytes(), meta.read_bytes(), raw
     )
+
+
+def adaptive_emulation(
+    dense_rows, start_hz=40.0, floor_hz=10.0, tol_db=0.25, low_margin_db=2.0
+):
+    """Emulate reference-routes.md rank 3 on a solved dense 10 Hz curve.
+
+    Start on a start_hz grid, probe every interval midpoint (mandatory),
+    and keep splitting down to floor_hz wherever the midpoint departs from
+    the chord by more than tol_db or the interval touches the low-TL region
+    (TL <= running p10 + low_margin_db). Sampling a node returns the dense
+    curve's value at that node, which D4 (scan vs separate parity) makes
+    equivalent to solving it. Returns the sampled grid and its p10/mean/
+    minima against the dense curve (D7 judges adoption)."""
+    tl = {r["frequency_hz"]: r["tl_db"] for r in dense_rows}
+    f0, f1 = min(tl), max(tl)
+    grid = {f0 + i * start_hz for i in range(round((f1 - f0) / start_hz) + 1)}
+    width = start_hz
+    while width > floor_hz:
+        fs = sorted(grid)
+        p10 = interval_p10(fs, [tl[f] for f in fs])
+        new = set()
+        for a, b in itertools.pairwise(fs):
+            if b - a <= floor_hz + 1e-9:
+                continue
+            mid = (a + b) / 2
+            if mid not in tl:
+                continue
+            chord = (tl[a] + tl[b]) / 2
+            if (
+                width == start_hz
+                or abs(tl[mid] - chord) > tol_db
+                or min(tl[a], tl[b], tl[mid]) <= p10 + low_margin_db
+            ):
+                new.add(mid)
+        if not new:
+            break
+        grid |= new
+        width /= 2
+    fs = sorted(grid)
+    rows = [r for r in dense_rows if r["frequency_hz"] in grid]
+    out = frequency_refinement(rows, dense_rows)
+    out["points"] = len(fs)
+    out["dense_points"] = len(dense_rows)
+    return out
+
+
+#: Cost model fitted to this host's measured v2 runs (f13-bulk-sizing.md):
+#: solve CPU per frequency system = PER_FREQ_S * (nodes / NODES_REF)^EXP for
+#: BiCGStabl+ILU2 on second-order tetrahedra, plus SETUP_S (ElmerGrid and
+#: assembly); peak memory = MIB_PER_NODE * nodes + BASE_MIB. Local timings
+#: are a contended development profile, so the estimates carry SAFETY.
+PER_FREQ_S, NODES_REF, EXP, SETUP_S = 8.3, 32566, 1.29, 3.0
+MIB_PER_NODE, BASE_MIB, SAFETY = 0.0055, 20.0, 1.5
+
+
+def estimate(nodes, frequency_systems):
+    """{estimate_cpu_s, estimate_wall_s, estimate_mem_mib} for one curve on
+    one dedicated CPU (the bulk runner's manifest fields)."""
+    cpu = SETUP_S + frequency_systems * PER_FREQ_S * (nodes / NODES_REF) ** EXP
+    return {
+        "estimate_cpu_s": round(SAFETY * cpu, 1),
+        "estimate_wall_s": round(SAFETY * cpu * 1.1, 1),
+        "estimate_mem_mib": round(SAFETY * (MIB_PER_NODE * nodes + BASE_MIB), 1),
+    }
 
 
 if __name__ == "__main__":

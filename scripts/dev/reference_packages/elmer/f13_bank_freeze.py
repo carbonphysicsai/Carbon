@@ -36,6 +36,7 @@ if str(ROOT) not in sys.path:
 
 from carbon.challenge_pipeline import silencer_readiness as sr
 from scripts.dev.reference_packages.elmer import f13_deck as f13
+from scripts.dev.reference_packages.elmer import f13_proof
 from scripts.dev.reference_packages.elmer import f13_triage_freeze as tf
 
 FLOORS = (5.0, 7.0)  # P support ends (F1)
@@ -80,6 +81,9 @@ def _write(out, designs, tranche, scope, commitment, mesh=True):
                 "h_mm": 8.0,
             }
         entries.append(entry)
+    for e in entries:
+        if "mesh" in e:
+            e.update(f13_proof.estimate(e["mesh"]["nodes"], e["frequency_systems"]))
     path = out / f"manifest-{tranche}.json"
     manifest = {
         "schema": "carbon.reference-triage.frozen-decks.v1",
@@ -149,6 +153,8 @@ def refine(args):
                             "command": tf.SOLVE, "files": tf._digest(d),
                             "frequency_systems": len(json.loads((d / "deck.json").read_text())["frequencies_hz"]),
                             "mesh": {"nodes": json.loads((d / "groups.json").read_text())["nodes"], "h_mm": kwargs.get("h_mm", 8.0)}})  # fmt: skip
+    for e in entries:
+        e.update(f13_proof.estimate(e["mesh"]["nodes"], e["frequency_systems"]))
     doc = {**{k: manifest[k] for k in manifest if k not in ("cases", "counts", "frequency_systems")},
            "cases": entries, "counts": {"f13": {"bank_refined": len(entries)}},
            "frequency_systems": sum(e["frequency_systems"] for e in entries)}  # fmt: skip
