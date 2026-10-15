@@ -138,5 +138,12 @@
     "deck.json"
    ]
   }
+ ],
+ "ship": [
+  "carbon/__init__.py",
+  "carbon/challenge_pipeline/__init__.py",
+  "carbon/challenge_pipeline/structures_readiness.py",
+  "carbon/design_search/__init__.py",
+  "carbon/design_search/tasks.py"
  ]
 }
