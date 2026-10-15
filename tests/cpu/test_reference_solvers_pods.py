@@ -582,14 +582,14 @@ def test_balance_floor_refuses(operator):
     assert operator.rp.pods == {}
 
 
-def test_at_most_two_pods_and_a_deadline_is_required(operator):
-    dispatch(operator, "--minutes", "20")
-    dispatch(operator, "--minutes", "20")
-    with pytest.raises(SystemExit, match="allowance 2"):
+def test_at_most_four_pods_and_a_deadline_is_required(operator):
+    for _ in range(4):
+        dispatch(operator, "--minutes", "20", "--max-pods", "4")
+    with pytest.raises(SystemExit, match="allowance 4"):
         dispatch(operator, "--minutes", "20", "--max-pods", "5")
     with pytest.raises(SystemExit, match="deadline"):
         dispatch(operator, "--minutes", "0")
-    assert len(operator.rp.pods) == 2
+    assert len(operator.rp.pods) == 4
 
 
 def test_rate_guard_and_flavor_policy(operator):

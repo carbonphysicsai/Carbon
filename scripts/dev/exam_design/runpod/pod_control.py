@@ -1261,7 +1261,7 @@ CCX_STEPS = (
     " && export PATH=/opt/calculix/bin:$PATH OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1"
     " CCX_NPROC_EQUATION_SOLVER=1"
     f" && sha256sum /opt/calculix/bin/ccx > {ENV_DIR}/ccx-binaries.sha256"
-    " && ccx -v"
+    " && { ccx -v || true; } | grep 'Version 2.23'"
 )
 _GMSH_NOTE = (
     "Gmsh 4.15.2 SDK (SHA-256 checked; the carbon-motor-reference mesh image's"

@@ -1,0 +1,24 @@
+Traceback (most recent call last):
+  File "/tmp/carbon/scripts/dev/reference_packages/calculix/f08_freeze.py", line 150, in <module>
+    sys.exit(main())
+             ~~~~^^
+  File "/tmp/carbon/scripts/dev/reference_packages/calculix/f08_freeze.py", line 145, in main
+    print(json.dumps(freeze(args.out), indent=1))
+                     ~~~~~~^^^^^^^^^^
+  File "/tmp/carbon/scripts/dev/reference_packages/calculix/f08_freeze.py", line 70, in freeze
+    size = deck.write_case(case, d, h, MODES)
+  File "/tmp/carbon/scripts/dev/reference_packages/calculix/f08_deck.py", line 183, in write_case
+    subprocess.run(
+    ~~~~~~~~~~~~~~^
+        ["docker", "run", "--rm", "--network", "none", "--user", f"{os.getuid()}:{os.getgid()}",
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+         "-v", f"{out.resolve()}:/w", "-w", "/w", MESH_IMAGE, "python3", "make_mesh.py"],
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        check=True, capture_output=True,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )  # fmt: skip
+    ^
+  File "/usr/lib/python3.13/subprocess.py", line 577, in run
+    raise CalledProcessError(retcode, process.args,
+                             output=stdout, stderr=stderr)
+subprocess.CalledProcessError: Command '['docker', 'run', '--rm', '--network', 'none', '--user', '0:0', '-v', '/tmp/work/f08-triage-controls/decks/f08/small-light-primary:/w', '-w', '/w', 'ghcr.io/carbonphysicsai/carbon-motor-reference@sha256:599521e79786ee0326a0754ba0545f51ee9665adff73c3515c8d4b8ba24c1c05', 'python3', 'make_mesh.py']' returned non-zero exit status 1.

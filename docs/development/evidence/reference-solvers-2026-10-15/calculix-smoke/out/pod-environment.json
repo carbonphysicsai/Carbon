@@ -1,0 +1,26 @@
+{
+ "schema": "carbon.reference-solvers.pod-environment.v1",
+ "kind": "calculix",
+ "environment": "runpod-cpu-pod:debian:trixie-20261005-slim@sha256:a29215f6a35e51e22adffa17f89e9d2ef06214e64a2bad10d765c46aea49f11f + scripts/dev/reference_packages/calculix/Dockerfile steps natively (Debian snapshot 20261001T000000Z; ccx 2.23, SPOOLES 2.2 source SHA-256 checked; Debian ARPACK; single stage) + Gmsh 4.15.2 SDK (SHA-256 checked; the carbon-motor-reference mesh image's Gmsh, 4.15.2 = 4.15.2) + harness python3 ca-certificates curl bc",
+ "code_ref": "cf3932705",
+ "python": "3.13.5",
+ "host": {
+  "nproc": 256,
+  "mem_total_bytes": 810848755712,
+  "cpu_model": "AMD EPYC 9754 128-Core Processor",
+  "boot_unix": 1740716902,
+  "host_cgroup_version": 1
+ },
+ "affinity_cores": 8,
+ "cgroup_cpu_max": null,
+ "cgroup_memory_max": null,
+ "usable_cpus": 8,
+ "usable_memory_bytes": 17179869184,
+ "solvers": {
+  "ccx": {
+   "path": "/opt/calculix/bin/ccx",
+   "sha256": "408913bd66cb487a966642e126e977f27bc301fadaebf3dcca1002870c1891f9"
+  },
+  "gmsh": null
+ }
+}

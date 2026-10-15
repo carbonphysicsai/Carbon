@@ -1,0 +1,20 @@
+{
+ "name": "ccx-upstream-smoke",
+ "type": "script",
+ "status": "PASS",
+ "wall_s": 7.014412894845009,
+ "exit": 0,
+ "signal": null,
+ "stop_reason": "exit",
+ "rusage_user_s": 6.694,
+ "rusage_sys_s": 0.24,
+ "rusage_cpu_s": 6.934,
+ "rusage_maxrss_bytes": 26877952,
+ "sampled_group_rss_peak_bytes": 18497536,
+ "rlimit_as_bytes": null,
+ "jsonl_rows": 3,
+ "kept": {
+  "copied": 6,
+  "not_copied": 23
+ }
+}
