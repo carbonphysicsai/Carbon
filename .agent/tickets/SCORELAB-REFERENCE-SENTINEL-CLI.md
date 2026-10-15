@@ -54,3 +54,33 @@ No numerical/reference/security/production qualification or execution granted.
 Primary map_ref: SYSTEM/DEVELOPMENT-HUB; current OWNER-DX-03 explicitly suspends
 Hub work and receipt ceremony; existing scientific boundaries remain binding.
 Root owns review/merge, actual provider/host execution and TEST transition.
+
+## Prospective extension: frozen one-command pilot
+
+Root explicitly authorized this same-PR extension after Data Collector identified
+the existing one-module/one-provider-create constraint. Research and Data
+Collector agreed the existing frozen order: two new triples first, then nine
+serial probes. `run-pilot --cases PATH --jobs PATH --out NEW_DIR` pins both
+complete input byte strings before any solve and reserves a new owner-only
+output directory. Workers and mid-workers are fixed at four. The pilot cases
+manifest SHA256 is
+`90441fae89461a1efdbe141fdb415eb37d83a58493857ba61f8b4541ad3998e1`.
+
+Snapshot inputs inside the new output root before calling existing run once;
+this prevents a caller-path change between validation and run's second read.
+Run only the cold and warm registered 40/80/160 triples (six nominal rungs);
+require six compatible finite OK terminal records before any sentinel. Then
+call existing run_probe for indices 0..8 serially and stop on first non-OK or
+invalid result. Retain the existing single-probe interface unchanged. Output:
+study/records.jsonl, study/summary.json, sentinels/probe-N.jsonl, input snapshots
+and pilot.json lifecycle receipt. No adequacy flag or remaining batch dispatch.
+
+Exactly 15 nominal solves; maximum 21 attempts only through existing documented
+fallback on the six triple rungs. Sentinel calls have zero retries. Root's
+external executor owns actual CPU/wall/cost enforcement; four workers and a
+90-minute wall cap alone do not enforce the three CPU-hour research ceiling.
+The saved third sentinel baseline is reused downstream, never recomputed here.
+Add the frozen public pilot-cases fixture to the expected manifest and cover
+pre-solve validation, fixed worker binding/order, complete/missing/failed/
+nonfinite triples, exclusive output, snapshots and sentinel early stop.
+This is reversible orchestration within the same module; science is unchanged.

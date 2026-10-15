@@ -60,6 +60,7 @@ KILLED = "KILLED_BY_HOST"
 # Frozen public research panel; a different panel requires prospective review.
 SENTINEL_SCHEMA = "carbon.research.plating-sentinel-jobs.v1"
 SENTINEL_SHA256 = "2dd3884d1b9428997ef080415265182f5dd1d8723ddc8088069b53ad1107aa7f"
+PILOT_SHA256 = "90441fae89461a1efdbe141fdb415eb37d83a58493857ba61f8b4541ad3998e1"
 
 
 #: D2's wider panel (the Validator's PLATING_REFERENCE_DECISION_2026-10-13, sha
@@ -206,7 +207,9 @@ def run_probe(jobs_path, probe_index, out):
         raise ValueError("probe index must be an integer in 0..8")
     raw = Path(jobs_path).read_bytes()
     if hashlib.sha256(raw).hexdigest() != SENTINEL_SHA256:
-        raise ValueError("sentinel manifest does not match the frozen RESEARCH_V1 panel")
+        raise ValueError(
+            "sentinel manifest does not match the frozen RESEARCH_V1 panel"
+        )
     document = json.loads(raw)
     if document.get("schema") != SENTINEL_SCHEMA or len(document["probes"]) != 9:
         raise ValueError("invalid sentinel manifest schema or probe count")
@@ -222,6 +225,120 @@ def run_probe(jobs_path, probe_index, out):
         )
         stream.write(json.dumps(record, sort_keys=True, allow_nan=False) + "\n")
     return record
+
+
+def _pilot_triples_complete(cases, records_path):
+    """Structural completeness only; numerical adequacy belongs downstream."""
+    keys = ("case_id", "mesh", "rtol", "period_s", "cycles")
+    expected = {
+        (
+            cases[j["case"]]["case_id"],
+            j["mesh"],
+            j["rtol"],
+            j["period_s"],
+            j["cycles"],
+        ): j["case"]
+        for j in ladder(cases, RE_REFERENCE)
+    }
+    rows = [
+        json.loads(line)
+        for line in records_path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    if len(rows) != 6:
+        return False
+    seen = set()
+    for row in rows:
+        if not isinstance(row, dict):
+            return False
+        key = tuple(row.get(k) for k in keys)
+        margin = row.get("plating_margin_v")
+        if (
+            key not in expected
+            or key in seen
+            or row.get("case") != expected[key]
+            or row.get("status") != "OK"
+            or isinstance(margin, bool)
+            or not isinstance(margin, (int, float))
+            or not math.isfinite(margin)
+        ):
+            return False
+        seen.add(key)
+    return True
+
+
+def run_pilot(cases_path, jobs_path, out):
+    """Frozen six-rung pilot then nine probes; one invocation, no new retries."""
+    snapshots = []
+    for path, expected in ((cases_path, PILOT_SHA256), (jobs_path, SENTINEL_SHA256)):
+        raw = Path(path).read_bytes()
+        if hashlib.sha256(raw).hexdigest() != expected:
+            raise ValueError("input does not match the frozen RESEARCH_V1 pilot")
+        snapshots.append(raw)
+    cases_document, probes_document = (json.loads(raw) for raw in snapshots)
+    cases, probes = cases_document["cases"], probes_document["probes"]
+    if (
+        cases_document.get("schema") != CASES_SCHEMA
+        or cases_document.get("ladder") != RE_REFERENCE
+        or len(cases) != 2
+        or not all(case.get("convergence_check") is True for case in cases)
+        or probes_document.get("schema") != SENTINEL_SCHEMA
+        or len(probes) != 9
+    ):
+        raise ValueError("invalid frozen pilot method or scope")
+    out = Path(out)
+    # No parents=True/exist_ok: the caller supplies an existing parent and a new
+    # root. All derived paths are fixed inside this exclusively reserved root.
+    out.mkdir(mode=0o700)
+    inputs, study, sentinels = (out / name for name in ("inputs", "study", "sentinels"))
+    for directory in (inputs, study, sentinels):
+        directory.mkdir(mode=0o700)
+    cases_copy, jobs_copy = inputs / "pilot-cases.json", inputs / "sentinel-jobs.json"
+    for path, raw in zip((cases_copy, jobs_copy), snapshots):
+        with path.open("xb") as stream:
+            stream.write(raw)
+    result = {
+        "schema": "carbon.battery.plating-pilot-run.v1",
+        "status": "INCOMPLETE",
+        "completed_probes": 0,
+        "pilot_cases_sha256": PILOT_SHA256,
+        "sentinel_manifest_sha256": SENTINEL_SHA256,
+        "numerical_source_commit": cases_document["source_commit"],
+        "adapter_module_sha256": hashlib.sha256(
+            Path(__file__).read_bytes()
+        ).hexdigest(),
+        "reason": "INTERRUPTED",
+    }
+    with (out / "pilot.json").open("x", encoding="utf-8", newline="\n") as receipt:
+        try:
+            result["study"] = run(cases_copy, study, workers=4, mid_workers=4)
+            if result["study"] != {
+                "solves": 6,
+                "failed": 0,
+            } or not _pilot_triples_complete(cases, study / "records.jsonl"):
+                result["reason"] = "FAILED_OR_INVALID_TRIPLES"
+                return result
+            for index, probe in enumerate(probes):
+                record = run_probe(jobs_copy, index, sentinels / f"probe-{index}.jsonl")
+                margin = record.get("plating_margin_v")
+                if (
+                    record.get("status") != "OK"
+                    or any(record.get(k) != v for k, v in probe["job"].items())
+                    or record.get("case_id") != probe["case"]["case_id"]
+                    or isinstance(margin, bool)
+                    or not isinstance(margin, (int, float))
+                    or not math.isfinite(margin)
+                ):
+                    result["reason"] = "FAILED_OR_INVALID_SENTINEL"
+                    return result
+                result["completed_probes"] += 1
+            result.update(status="COMPLETED", reason="LIFECYCLE_ONLY_NOT_ADEQUACY")
+            return result
+        except (OSError, ValueError, TypeError) as exc:
+            result.update(reason="INVALID_OR_UNAVAILABLE_RESULT", error=str(exc))
+            return result
+        finally:
+            receipt.write(json.dumps(result, sort_keys=True, allow_nan=False) + "\n")
 
 
 def summarise(cases, records):
@@ -486,6 +603,10 @@ def main(argv=None):
     probe.add_argument("--jobs", required=True)
     probe.add_argument("--probe-index", type=int, required=True)
     probe.add_argument("--out", required=True)
+    pilot = sub.add_parser("run-pilot")
+    pilot.add_argument("--cases", required=True)
+    pilot.add_argument("--jobs", required=True)
+    pilot.add_argument("--out", required=True)
     select = sub.add_parser("select-panel")
     select.add_argument("--contract", required=True)
     select.add_argument("--records", required=True)
@@ -503,6 +624,12 @@ def main(argv=None):
             parser.error(f"refused: {exc}")
         # Exit zero is driver completion only; comparison/adequacy is downstream.
         return 0 if result.get("status") == "OK" else 1
+    elif args.command == "run-pilot":
+        try:
+            result = run_pilot(args.cases, args.jobs, args.out)
+        except (OSError, ValueError) as exc:
+            parser.error(f"refused: {exc}")
+        return 0 if result["status"] == "COMPLETED" else 1
     elif args.command == "select-panel":
         result = select_panel(args.contract, args.records)
     else:
