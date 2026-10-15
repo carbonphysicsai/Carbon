@@ -119,6 +119,32 @@ def test_known_thermal_failure_resolves_design_without_claiming_plating(fixture)
     assert "PLATING_V2_OUTSIDE_CLAIM" not in receipt["public_missing_case_handoff"]
 
 
+def test_owner_covered_admission_preserves_full_menu_and_legacy_reader(fixture):
+    contract, refs = fixture
+    original = v2.admission(contract, refs, {}, label_counts={})
+    questions, receipt = v2.covered_admission(contract, refs, {}, label_counts={})
+    assert receipt["common_mask_by_split"] == original[1]["common_mask_by_split"]
+    assert receipt["first_line"] == "value conditional on the covered region"
+    assert receipt["pruned_actions"] == 0
+    assert all(len(q["actions"]) == 35 for q in questions.values())
+    assert v2.admission(contract, refs, {}, label_counts={}) == original
+
+
+def test_owner_excludes_dominated_uncovered_action_even_when_thermal_fails(fixture):
+    contract, refs = fixture
+    cid = next(iter(refs))
+    refs[cid]["outputs"]["plating_margin_v"] = 0.020
+    refs[cid]["outputs"]["temperature_c"] = [60.0] * 121
+    _, legacy = v2.admission(contract, refs, {}, label_counts={})
+    questions, receipt = v2.covered_admission(contract, refs, {}, label_counts={})
+    assert "D-toy" in legacy["common_mask_by_split"]["development"]
+    assert receipt["common_mask_by_split"]["development"] == []
+    assert receipt["common_mask_by_split"]["verification"] == ["V-toy"]
+    assert questions["D-toy"]["class"] == "INCOMPLETE"
+    assert receipt["reference_coverage"]["plating_status_by_case"][cid] == "UNRESOLVED"
+    assert len(questions["D-toy"]["actions"]) == 35
+
+
 def test_prefix_does_not_override_pdd_source_and_wrong_join_refuses(fixture):
     _, refs = fixture
     index, counts = v2.label_index(

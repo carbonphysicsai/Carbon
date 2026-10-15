@@ -1,0 +1,258 @@
+{
+  "schema": "carbon.scorelab.owner-development-registration.v1",
+  "id": "OWNER-SCORELAB-FINISH-LINE-01-DEVELOPMENT-V1",
+  "authority": {
+    "path": ".agent/decisions/2026-10-15-OWNER-SCORELAB-FINISH-LINE-01.md",
+    "sha256": "1ec37ebd23f3afd5bee4832a58c65c68e3a1ea4714375f554e051814b1dbf6df",
+    "date": "2026-10-15",
+    "owner": "Ryan"
+  },
+  "scope": "DEVELOPMENT_ONLY",
+  "qualification": false,
+  "live_effects": false,
+  "job": {
+    "id": "battery-v3-job-dev-v1",
+    "kind": "ambient_indexed_charging_time_map",
+    "start_soc": 0.1,
+    "initial_state": "identified_fresh",
+    "cycles": 30,
+    "lattice_step_C": 0.01,
+    "cooling_multipliers": [
+      1,
+      2,
+      4
+    ],
+    "mandatory_bands_c": [
+      5,
+      15,
+      25,
+      35,
+      40
+    ],
+    "zero_weight_bands_mandatory": true,
+    "expanded_soc_support": "HOLD",
+    "objective_owner_text": "minutes 0->80% SOC, no 30-min cap",
+    "objective_unit": "min",
+    "time_cap_min": null,
+    "observer_binding": null,
+    "runtime_status": "BLOCKED_OBSERVER_START_SOC_CONFLICT_AND_COMPATIBLE_EVIDENCE",
+    "c_rate_bounds": null,
+    "switch_voltage_menu": null,
+    "action_menu_receipt": null,
+    "model_observer_environment_receipt": null
+  },
+  "P": {
+    "buyer_mix": {
+      "law": "Dirichlet",
+      "alpha": [
+        2,
+        3,
+        8,
+        5,
+        2
+      ]
+    },
+    "thermal_margin": {
+      "law": "Uniform",
+      "low": 0,
+      "high": 2.5,
+      "unit": "K"
+    },
+    "plating_margin": {
+      "law": "Uniform",
+      "low": 0,
+      "high": 2,
+      "unit": "mV"
+    },
+    "fresh_state": "point_mass",
+    "hard_limits": {
+      "charge_temperature_c": "<=45-mT_K",
+      "plating_margin_v": ">=mEta_mV/1000",
+      "voltage_v": "<=4.2",
+      "capacity_Q30_over_Q1": ">=0.99"
+    },
+    "NONE_FEASIBLE": "RETAIN",
+    "redraws": 0
+  },
+  "Q": {
+    "strata": {
+      "interior": 0.2,
+      "safety_edge": 0.5,
+      "pick_edge": 0.3
+    },
+    "bands": null,
+    "bands_owner": "Test Lead, public or retired diagnostics",
+    "reported_separately_from_P": true
+  },
+  "w": {
+    "outer_weight": 1,
+    "clustering": "bank",
+    "buyer_mix_use": "objective_only"
+  },
+  "value": {
+    "per_band_tolerance_min": 0.5,
+    "per_band_regret": "0 if d_b <= 0.5 else d_b",
+    "aggregate": "sum(mix_b * r_b)",
+    "compensate_hard_breach": false
+  },
+  "covered_diagnostic": {
+    "id": "public-ev4-covered-plating-v2-dev-v1",
+    "distinct_from_job": "battery-v3-job-dev-v1",
+    "estimand_first_line": "value conditional on the covered region",
+    "mesh20_abs_margin_strictly_below_mv": 15,
+    "reference": "battery-plating-ref-v2",
+    "rule_reader": "scripts.dev.battery.plating_rereference.v2_label",
+    "outside_claim": "UNRESOLVED",
+    "pending": "UNRESOLVED_UNTIL_COMPLETED",
+    "missing_or_failed": "UNRESOLVED_REFERENCE",
+    "mask": "EXCLUDE_COMMON_WHOLE_QUESTION_ALL_REGISTERED_ACTION_CONDITIONS",
+    "action_pruning": false,
+    "candidate_dependent_mask": false,
+    "completion_owner": "Data Collection / Root actuator",
+    "requested_pending_mesh160": 9,
+    "requested_missing_or_failed": 5,
+    "completion_manifest_sha256": null,
+    "budget": "existing D3 grant pattern; no new grant figure",
+    "stop_triggers": "existing v2",
+    "option_B": "PARKED_SEPARATE_TICKET_AFTER_STAGE_9"
+  },
+  "candidates": {
+    "path": "Business/research/score-lab-campaign-01/owner-dev-v1/candidates-v1.py.txt",
+    "sha256": "157b1db5f091910f5602b15c9f5029f0171e6da7e8b6dbc5ffb5aa5c775bd235",
+    "count": 10,
+    "private_uncommittable": "EXCLUDED",
+    "new_wrappers": false,
+    "shortlist_requires": "existing source-bound per-case form; aggregate-only gain/rank/product EXCLUDED",
+    "proxy_scope": "synthetic only where marked TIER2_REGISTRY_ID; real battery uses exact score_tuning registry code",
+    "per_case_forms": {
+      "INFORCE-G-FEAS/A-Q>@0.05": {
+        "status": "BASELINE_CONTROL_ONLY",
+        "reason": "Exact registered baseline stays separate from its aggregate proxy.",
+        "evidence": "candidates-v1.py.txt RULES and referenced functions; scripts/dev/score_lab/championship_bridge.py:_evidence"
+      },
+      "V9-ENV/ARP-V3": {
+        "status": "EXCLUDED_AGGREGATE_ONLY_CURRENT_FRAME",
+        "reason": "Full composite returns an aggregate gain/rank/product/utility; no existing registered case-error form for the championship frame.",
+        "evidence": "candidates-v1.py.txt RULES and referenced functions; scripts/dev/score_lab/championship_bridge.py:_evidence"
+      },
+      "V10-SIGN+ENV/ARP-V3S": {
+        "status": "EXCLUDED_AGGREGATE_ONLY_CURRENT_FRAME",
+        "reason": "Full composite returns an aggregate gain/rank/product/utility; no existing registered case-error form for the championship frame.",
+        "evidence": "candidates-v1.py.txt RULES and referenced functions; scripts/dev/score_lab/championship_bridge.py:_evidence"
+      },
+      "V2r2@k1,kappa0.05": {
+        "status": "EXCLUDED_AGGREGATE_ONLY_CURRENT_FRAME",
+        "reason": "Full composite returns an aggregate gain/rank/product/utility; no existing registered case-error form for the championship frame.",
+        "evidence": "candidates-v1.py.txt RULES and referenced functions; scripts/dev/score_lab/championship_bridge.py:_evidence"
+      },
+      "V2r2@k3,kappa0.1": {
+        "status": "EXCLUDED_AGGREGATE_ONLY_CURRENT_FRAME",
+        "reason": "Full composite returns an aggregate gain/rank/product/utility; no existing registered case-error form for the championship frame.",
+        "evidence": "candidates-v1.py.txt RULES and referenced functions; scripts/dev/score_lab/championship_bridge.py:_evidence"
+      },
+      "V2r2@k5,kappa0.25": {
+        "status": "EXCLUDED_AGGREGATE_ONLY_CURRENT_FRAME",
+        "reason": "Full composite returns an aggregate gain/rank/product/utility; no existing registered case-error form for the championship frame.",
+        "evidence": "candidates-v1.py.txt RULES and referenced functions; scripts/dev/score_lab/championship_bridge.py:_evidence"
+      },
+      "N1-DECISION-RELEVANCE-ERROR": {
+        "status": "DEFERRED_NO_REGISTERED_FULL_PER_CASE_FORM",
+        "reason": "Pointwise _case_error exists, but no registered full-rule case-error metric/reduction/bridge binding.",
+        "evidence": "candidates-v1.py.txt RULES and referenced functions; scripts/dev/score_lab/championship_bridge.py:_evidence"
+      },
+      "N2-VERIFIED-REGRET-ON-PICK": {
+        "status": "EXCLUDED_AGGREGATE_ONLY_CURRENT_FRAME",
+        "reason": "Full composite returns an aggregate gain/rank/product/utility; no existing registered case-error form for the championship frame.",
+        "evidence": "candidates-v1.py.txt RULES and referenced functions; scripts/dev/score_lab/championship_bridge.py:_evidence"
+      },
+      "N3-SAFE-PICK-RATE-x-GAIN": {
+        "status": "EXCLUDED_AGGREGATE_ONLY_CURRENT_FRAME",
+        "reason": "Full composite returns an aggregate gain/rank/product/utility; no existing registered case-error form for the championship frame.",
+        "evidence": "candidates-v1.py.txt RULES and referenced functions; scripts/dev/score_lab/championship_bridge.py:_evidence"
+      },
+      "N4-TOP-REGION-RANKING": {
+        "status": "EXCLUDED_AGGREGATE_ONLY_CURRENT_FRAME",
+        "reason": "Full composite returns an aggregate gain/rank/product/utility; no existing registered case-error form for the championship frame.",
+        "evidence": "candidates-v1.py.txt RULES and referenced functions; scripts/dev/score_lab/championship_bridge.py:_evidence"
+      }
+    },
+    "evidenced_eligible_new_v3_count": 0,
+    "deferred_not_impossible": true
+  },
+  "selection": {
+    "k": 3,
+    "top_half": "rank <= floor(n/2) of admitted members",
+    "rank_ties": "competition rank: 1 + count(strictly higher scores); pessimistic for gamer screening",
+    "pick_ties": "descending LEG score then lexical member ID; never VALUE",
+    "top3_regret_report": "per-selected-member complete VALUE vector in minutes plus equal-weight mean; selection conditional on fixed LEG scores",
+    "criterion": "pick regret and no gamer in top half; tau significance is not a selection gate",
+    "registration_before_stage": 5,
+    "registration_on_main_required": true,
+    "main_registration_receipt": null,
+    "procedure_source": {
+      "commit": "57c3e019f7f7de6deb274ffd5283395c91dfaa50",
+      "path": "docs/development/SCORELAB_FINISH_LINE_HANDOFF.md",
+      "sha256": "9fb2df6cb58760873c55220b20e69a79dee00a8f09e9d77407e5dd1e8553edf1",
+      "section": "4; adopted by owner D5; owner answers govern conflicts"
+    },
+    "Stage_A": "Keep in-force hard admission/gates; missing evidence is not PASS",
+    "Stage_B": [
+      "tau with cluster bootstrap reported, not gated",
+      "top-1 and top-3 pick regret minutes on common mask",
+      "known-bad/control placement",
+      "wrongful exclusions: admitted-good members demoted below a probe"
+    ],
+    "Stage_C": {
+      "survives_iff": [
+        "existing registered per-case full-rule form",
+        "no gamer in top half",
+        "top-3 regret <= in-force top-3 regret on same panel",
+        "wrongful exclusions <= in-force wrongful exclusions"
+      ],
+      "among_survivors": "minimum top-3 regret; tie -> higher tau point estimate; tie -> fewer legs",
+      "no_survivor": "KEEP_V2_QUIZ_SHADOW",
+      "further_exact_tie": "UNRESOLVED_OWNER_SELECTION_NO_VALUE_REFIT"
+    },
+    "Stage_D": {
+      "run": "shortlist winner and in-force once, Test Engineer custody",
+      "criterion": "winner top-3 regret <= in-force top-3 regret on holdout",
+      "otherwise": "KEEP_V2_QUIZ_SHADOW",
+      "no_candidate": "do not reveal holdout merely to exercise an empty shortlist"
+    },
+    "Stage_E": "Prospective owner adoption record only; no historical rescore or runtime/LIVE activation by this library"
+  },
+  "holdout": {
+    "reveals": 1,
+    "when": "final run",
+    "custodian": "Test Engineer",
+    "interface": "receipt_and_digest_only",
+    "unchanged_commitment_sha256": "e24780aa066f9ed362322a4c0c224bd5c4dc9e9389b968d016ed250022b2b210"
+  },
+  "parked_until_stage_9": [
+    "5000-20000_profile_sweep",
+    "section_G_competition_dynamics",
+    "Sobol_beyond_four_pair_smoke",
+    "further_error_axes",
+    "further_robustness_arms"
+  ],
+  "allowed_finish": {
+    "no_candidate_survives_Stage_C": "KEEP_V2_QUIZ_SHADOW",
+    "no_candidate_beats_v2_on_final_holdout": "KEEP_V2_QUIZ_SHADOW",
+    "next_tranche_question": "which leg is missing"
+  },
+  "preserved_history": [
+    "original RESEARCH_V1 campaign and C1 analysis outputs",
+    "historical v2 results",
+    "battery Phase A all-burn path"
+  ],
+  "execution_gaps": [
+    "SOC observer clarification",
+    "compatible battery-v3 programme references/predictions",
+    "Test Lead Q band registration",
+    "exact 9+5 public completion manifest and receipts",
+    "source-bound per-case candidate eligibility",
+    "main registration receipt before stage 5",
+    "Root TEST release",
+    "prospective action bounds/switch menu and model/observer/environment receipts"
+  ]
+}
