@@ -14,6 +14,14 @@
   "basis": "13 cases, 1 vCPU each; summed estimate 11 550 CPU-s (8 x 650 primary, 2 x 2450 refined, 2 x 400 controls, 650 cold repeat) = 3.2 CPU-h; with refined witnesses started first (reservation_order) the two ~55-min refined cases bound the wall and the other 11 cases fill the remaining 6 cores in about two waves; peak concurrent memory about 2 x 2.6 + 6 x 0.9 = 10.6 GiB. Worst case = 150-min deadline x $0.24/h (cpu3c 8 vCPU). Primary and control estimates are measured on local-dev-4vcpu-15g-contended (f17-local-costs.json); the refined estimate is EXTRAPOLATED and this pod measures it.",
   "timing_calibration_note": "cpu3c timings are not the D3 timing-calibration set (reference hardware runpod-cpu5c-16vcpu). Running this same plan on cpu5c 16 vCPU would also serve D3 for these 13 case kinds; worst case 150 min x 16 vCPU x $0.035 = $1.40."
  },
+ "ship": [
+  "carbon/__init__.py",
+  "carbon/challenge_pipeline/__init__.py",
+  "carbon/challenge_pipeline/micromixer_readiness.py",
+  "carbon/design_search/__init__.py",
+  "carbon/design_search/tasks.py",
+  "docs/development/evidence/reference-packages-01/f17-c5-periodic-result.json"
+ ],
  "steps": [
   {
    "name": "f17-triage",
