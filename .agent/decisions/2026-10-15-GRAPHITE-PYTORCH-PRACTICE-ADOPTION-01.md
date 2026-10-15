@@ -25,7 +25,7 @@ means v4 workers cannot simply be reused with a later checkout. A Torch analysis
 child necessarily has its own parent-bound runtime digest and released identity.
 
 GPU hardware testing is requested by the owner (RTX 3060 or RunPod 4090); the
-existing independent GPU practice scope remains the route. Driver compatibility,
+existing independent JAX and PyTorch GPU practice scopes remain the routes. Driver compatibility,
 actual CUDA execution and measured performance remain unverified until Root's
 hardware evidence. No human-reserved engineering value remains in this repair;
 no scientific/security/production acceptance is claimed or selected.

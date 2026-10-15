@@ -274,9 +274,24 @@ def release_parent_reference(parent, repository):
     A release builds on the C-03 worker it has just pushed, by registry
     digest, because the runner's builder cannot see the local image store.
     The helper refuses a tagged, foreign or malformed repository."""
+    from carbon.reconstruction import torch_profile
+
+    root = Path(__file__).resolve().parents[2]
+    kind = (
+        "torch"
+        if getattr(parent, "lock_digest", None)
+        == torch_profile.requirements_digest(root)
+        else "c03"
+    )
     environment = {**os.environ, "CARBON_WORKER_PARENT_REPOSITORY": repository}
     done = subprocess.run(
-        ["bash", str(PARENT_REF_HELPER), parent.image_id, parent.source_tree_digest],
+        [
+            "bash",
+            str(PARENT_REF_HELPER),
+            parent.image_id,
+            parent.source_tree_digest,
+            kind,
+        ],
         capture_output=True,
         text=True,
         check=False,
@@ -307,7 +322,7 @@ def local_tag(cli, image_id, repository):
 
 
 def build_analysis_image(parent_manifest, root, *, parent_repository=None):
-    """Build the analysis image on the pinned C-03 parent.
+    """Build the analysis image on the pinned CPU worker parent.
 
     A miner host (`install_miner.sh`) names the parent by a local tag it
     checks first. Only a release passes `parent_repository`: the image is

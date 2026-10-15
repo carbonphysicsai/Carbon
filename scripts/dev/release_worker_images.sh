@@ -12,7 +12,7 @@ set -euo pipefail
 #   - torch_gpu_worker_image.sh    the PyTorch GPU (CUDA 13) worker on it, in
 #                                  its own environment (TORCH-GPU-01);
 #   - research_image (python -m)   the Launchpad's miner analysis image on
-#                                  it, exactly as install_miner.sh builds it.
+#                                  each CPU primary, as install_miner.sh does.
 # The C-03 worker is pushed first; the accelerator and PyTorch scripts take
 # its manifest (worker_parent_manifest.sh, no rebuild) and build FROM the
 # digest the registry serves for it (worker_parent_ref.sh). The parent they
@@ -82,6 +82,38 @@ export CARBON_WORKER_PARENT_MANIFEST="${artifacts}/c03-worker-image.json"
 bash "${script_dir}/accelerator_worker_image.sh" "${artifacts}/accelerator-worker-image.json"
 bash "${script_dir}/torch_worker_image.sh" "${artifacts}/torch-worker-image.json"
 bash "${script_dir}/torch_gpu_worker_image.sh" "${artifacts}/torch-gpu-worker-image.json"
+
+field() {
+  python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))[sys.argv[2]])' "$1" "$2"
+}
+
+publish_image() {
+  local kind="$1" repository="${registry}/$2" manifest image
+  manifest="${artifacts}/${kind}-worker-image.json"
+  image="$(field "${manifest}" image_id)"
+  docker tag "${image}" "${repository}:${tag}"
+  docker push --quiet "${repository}:${tag}" >/dev/null || fail "the push of ${kind} failed"
+  python3 "${script_dir}/worker_image_release.py" record \
+    --kind "${kind}" --manifest "${manifest}" --repository "${repository}" \
+    --tag "${tag}" --commit "${commit}" \
+    --out "${out}/${kind}-worker-image.release.json"
+  cp -- "${manifest}" "${out}/${kind}-worker-image.json"
+}
+
+# The Torch analysis builder must pull its exact parent from the registry.
+# Check the worker chain before publishing that parent; no C-03 rebuild.
+c03="$(field "${artifacts}/c03-worker-image.json" image_id)"
+for parent in accelerator-parent torch-parent torch-gpu-parent; do
+  [[ "$(field "${artifacts}/${parent}-worker-image.json" image_id)" == "${c03}" ]] \
+    || fail "the ${parent} C-03 image is not the released C-03 worker ${c03}"
+done
+for kind in accelerator torch torch-gpu; do
+  [[ "$(field "${artifacts}/${kind}-worker-image.json" base_image_digest)" == "${c03}" ]] \
+    || fail "the ${kind} worker is not built on the released C-03 worker"
+done
+publish_image torch carbon-torch-worker
+torch_repository="${registry}/carbon-torch-worker"
+
 # The analysis image, on the released C-03 worker, as install_miner.sh builds
 # it (the repository's environment from bootstrap.sh).
 analysis_built="$("${repo_root}/.venv/bin/python" -m carbon.development_session.research_image \
@@ -90,37 +122,21 @@ analysis_built="$("${repo_root}/.venv/bin/python" -m carbon.development_session.
   --root "${artifacts}/research-images")"
 analysis_manifest="$(python3 -c 'import json,sys; print(json.loads(sys.argv[1])["manifest"])' "${analysis_built}")"
 cp -- "${analysis_manifest}" "${artifacts}/analysis-worker-image.json"
-
-field() {
-  python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))[sys.argv[2]])' "$1" "$2"
-}
-c03="$(field "${artifacts}/c03-worker-image.json" image_id)"
-for parent in accelerator-parent torch-parent torch-gpu-parent; do
-  [[ "$(field "${artifacts}/${parent}-worker-image.json" image_id)" == "${c03}" ]] \
-    || fail "the ${parent} C-03 image is not the released C-03 worker ${c03}"
-done
+torch_analysis_built="$("${repo_root}/.venv/bin/python" -m carbon.development_session.research_image \
+  --parent-manifest "${artifacts}/torch-worker-image.json" \
+  --parent-repository "${torch_repository}" \
+  --root "${artifacts}/research-images")"
+torch_analysis_manifest="$(python3 -c 'import json,sys; print(json.loads(sys.argv[1])["manifest"])' "${torch_analysis_built}")"
+cp -- "${torch_analysis_manifest}" "${artifacts}/torch-analysis-worker-image.json"
 [[ "$(field "${artifacts}/analysis-worker-image.json" parent_image)" == "${c03}" ]] \
   || fail "the analysis image is not built on the released C-03 worker"
-for kind in accelerator torch torch-gpu; do
-  [[ "$(field "${artifacts}/${kind}-worker-image.json" base_image_digest)" == "${c03}" ]] \
-    || fail "the ${kind} worker is not built on the released C-03 worker"
-done
+[[ "$(field "${artifacts}/torch-analysis-worker-image.json" parent_image)" == "$(field "${artifacts}/torch-worker-image.json" image_id)" ]] \
+  || fail "the Torch analysis image is not built on the released Torch worker"
 
-for pair in c03:carbon-c03-worker accelerator:carbon-accelerator-worker torch:carbon-torch-worker \
-  torch-gpu:carbon-torch-gpu-worker analysis:carbon-miner-analysis; do
+for pair in c03:carbon-c03-worker accelerator:carbon-accelerator-worker \
+  torch-gpu:carbon-torch-gpu-worker analysis:carbon-miner-analysis \
+  torch-analysis:carbon-torch-miner-analysis; do
   kind="${pair%%:*}"
-  repository="${registry}/${pair#*:}"
-  manifest="${artifacts}/${kind}-worker-image.json"
-  image="$(field "${manifest}" image_id)"
-  docker tag "${image}" "${repository}:${tag}"
-  docker push --quiet "${repository}:${tag}" >/dev/null || fail "the push of ${kind} failed"
-  python3 "${script_dir}/worker_image_release.py" record \
-    --kind "${kind}" \
-    --manifest "${manifest}" \
-    --repository "${repository}" \
-    --tag "${tag}" \
-    --commit "${commit}" \
-    --out "${out}/${kind}-worker-image.release.json"
-  cp -- "${manifest}" "${out}/${kind}-worker-image.json"
+  publish_image "${kind}" "${pair#*:}"
 done
 echo "Released worker images recorded in ${out}."

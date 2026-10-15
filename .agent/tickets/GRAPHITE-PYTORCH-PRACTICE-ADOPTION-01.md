@@ -32,9 +32,11 @@ Existing v4 artifacts/history remain immutable; v4 has no Torch analysis pair.
 
 Expected paths: this ticket and its dated decision; scripts/install_miner.sh;
 scripts/dev/{release_worker_images.sh,worker_image_release.py,worker_parent_ref.sh};
+scripts/dev/release_parent_rehearsal.sh;
 carbon/development_session/research_image.py;
 .github/workflows/release-worker-images.yml; exclusive focused CPU test;
-existing release-workflow test expectation; dedicated adoption instructions.
+existing release-workflow test expectation; dedicated adoption instructions and
+their link in docs/development/images/RELEASED_WORKER_IMAGES.md.
 
 ## Validation and completion predicate
 
@@ -54,8 +56,8 @@ qualification, security acceptance, deployment or provider spend is authorized.
 No local host/container/model/solver execution or image build in this lane.
 Root must adopt matching accepted source and freshly published matching images
 after final merged source is selected. Do not mix new source with v4 by relabeling.
-GPU coverage uses the existing independent Torch CUDA worker path: owner offers
-RTX 3060 first or RunPod 4090. Root verifies driver/device/actual CUDA fit and
+GPU coverage uses both existing independent JAX and Torch CUDA worker paths:
+owner offers RTX 3060 first or RunPod 4090. Root verifies driver/device/actual CUDA fit and
 cleanup; do not retry the six rejected R8 probes. No new GPU routing in this PR.
 
 ## Reuse and ownership
