@@ -57,6 +57,10 @@ PLATING = "Negative electrode lithium plating reaction overpotential [V]"
 #: A finest-rung solve the host killed (out of memory): not a solver result.
 KILLED = "KILLED_BY_HOST"
 
+# Frozen public research panel; a different panel requires prospective review.
+SENTINEL_SCHEMA = "carbon.research.plating-sentinel-jobs.v1"
+SENTINEL_SHA256 = "2dd3884d1b9428997ef080415265182f5dd1d8723ddc8088069b53ad1107aa7f"
+
 
 #: D2's wider panel (the Validator's PLATING_REFERENCE_DECISION_2026-10-13, sha
 #: 10740f47): the standard rung and the mesh ladder only, plating in cycle 1.
@@ -189,6 +193,35 @@ def solve(case, job):
 
 def _one(args):
     return solve(*args)
+
+
+def run_probe(jobs_path, probe_index, out):
+    """One frozen public research probe, with no retries or study fallback.
+
+    The full byte binding rejects changed scope, methods, tuples, duplicate or
+    extra fields before any solver import. The catalogue job.case is metadata;
+    it is not an index into this nine-probe manifest.
+    """
+    if type(probe_index) is not int or not 0 <= probe_index < 9:
+        raise ValueError("probe index must be an integer in 0..8")
+    raw = Path(jobs_path).read_bytes()
+    if hashlib.sha256(raw).hexdigest() != SENTINEL_SHA256:
+        raise ValueError("sentinel manifest does not match the frozen RESEARCH_V1 panel")
+    document = json.loads(raw)
+    if document.get("schema") != SENTINEL_SCHEMA or len(document["probes"]) != 9:
+        raise ValueError("invalid sentinel manifest schema or probe count")
+    probe = document["probes"][probe_index]
+    # Reserve a new output before doing expensive work. Never append, overwrite,
+    # retry or enter run/_stage on this route. Interrupted output is not evidence.
+    with Path(out).open("x", encoding="utf-8", newline="\n") as stream:
+        record = solve(probe["case"], probe["job"])
+        record.update(
+            probe_id=probe["probe_id"],
+            probe_index=probe_index,
+            manifest_sha256=SENTINEL_SHA256,
+        )
+        stream.write(json.dumps(record, sort_keys=True, allow_nan=False) + "\n")
+    return record
 
 
 def summarise(cases, records):
@@ -449,6 +482,10 @@ def main(argv=None):
     command.add_argument("--out", required=True)
     command.add_argument("--workers", type=int, default=6)
     command.add_argument("--mid-workers", type=int, default=MID_WORKERS)
+    probe = sub.add_parser("run-probe")
+    probe.add_argument("--jobs", required=True)
+    probe.add_argument("--probe-index", type=int, required=True)
+    probe.add_argument("--out", required=True)
     select = sub.add_parser("select-panel")
     select.add_argument("--contract", required=True)
     select.add_argument("--records", required=True)
@@ -459,6 +496,13 @@ def main(argv=None):
     args = parser.parse_args(argv)
     if args.command == "run":
         result = run(args.cases, args.out, args.workers, args.mid_workers)
+    elif args.command == "run-probe":
+        try:
+            result = run_probe(args.jobs, args.probe_index, args.out)
+        except (OSError, ValueError) as exc:
+            parser.error(f"refused: {exc}")
+        # Exit zero is driver completion only; comparison/adequacy is downstream.
+        return 0 if result.get("status") == "OK" else 1
     elif args.command == "select-panel":
         result = select_panel(args.contract, args.records)
     else:
