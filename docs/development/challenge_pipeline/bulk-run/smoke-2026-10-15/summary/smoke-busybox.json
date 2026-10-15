@@ -1,0 +1,40 @@
+{
+ "schema": "carbon.reference-bulk.summary.v1",
+ "plan_id": "bulk-smoke",
+ "family": "smoke-busybox",
+ "image_ref": "mirror.gcr.io/library/busybox@sha256:73aaf090f3d85aa34ee199857f03fa3a95c8ede2ffd4cc2cdb5b94e566b11662",
+ "image_pin": "sha256:b116e155074440ffd9e449559433feb4cd2341eb3554b1da1c638c976e56451d",
+ "manifest_sha256": "sha256:b6ee7e85d656b6798cf6556a7be7e46264d6f2ae76053f49d9cf15414d4a7a43",
+ "cases_in_manifest": 4,
+ "launches": 4,
+ "outcomes": {
+  "COMPLETED": 3,
+  "FAILED": 1
+ },
+ "refused": 0,
+ "not_launched": {},
+ "acceptance": {
+  "passed": true,
+  "exit": 0
+ },
+ "ceilings": {
+  "launches": 10,
+  "cpu_hours": 1.0
+ },
+ "allocated_cpu_hours": 0.0014,
+ "cgroup_cpu_hours": 0.0003,
+ "wall_s": {
+  "total": 9.0,
+  "p50": 0.874,
+  "p95": 5.723,
+  "max": 5.723
+ },
+ "memory_peak_mib": {
+  "p50": 4.7,
+  "p95": 202.4,
+  "max": 202.4,
+  "cases_with_peak": 4,
+  "limit": 512.0
+ },
+ "maturity": "DEVELOPMENT cost measurement; no qualification or adequacy claim"
+}

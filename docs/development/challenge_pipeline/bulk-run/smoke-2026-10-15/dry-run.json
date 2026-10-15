@@ -1,0 +1,55 @@
+{
+ "plan_id": "bulk-smoke",
+ "plan_digest": "sha256:b46a079f5808055040f580ab06f85ad0ac5212aa93cbfac0f81a6499fd103f37",
+ "usable_cpus": 1,
+ "usable_memory_gib": 1.0,
+ "images_checked": true,
+ "image_identities": {
+  "smoke-busybox": [
+   "sha256:73aaf090f3d85aa34ee199857f03fa3a95c8ede2ffd4cc2cdb5b94e566b11662",
+   "sha256:b116e155074440ffd9e449559433feb4cd2341eb3554b1da1c638c976e56451d",
+   "sha256:b7f3d86d6e84fc17718c48bcde1450807faa2d56704205c697b4bd5df7b9e29f"
+  ],
+  "smoke-debian": [
+   "sha256:918311b7b6c4c6f68b232ba516584925f6c78ad82b6fd534b98979df6438e483",
+   "sha256:a29215f6a35e51e22adffa17f89e9d2ef06214e64a2bad10d765c46aea49f11f"
+  ]
+ },
+ "families": {
+  "smoke-busybox": {
+   "cases": 4,
+   "pending": 4,
+   "image": "mirror.gcr.io/library/busybox@sha256:73aaf090f3d85aa34ee199857f03fa3a95c8ede2ffd4cc2cdb5b94e566b11662",
+   "image_pin": "sha256:b116e155074440ffd9e449559433feb4cd2341eb3554b1da1c638c976e56451d",
+   "manifest_sha256": "sha256:b6ee7e85d656b6798cf6556a7be7e46264d6f2ae76053f49d9cf15414d4a7a43"
+  },
+  "smoke-debian": {
+   "cases": 2,
+   "pending": 2,
+   "image": "sha256:a29215f6a35e51e22adffa17f89e9d2ef06214e64a2bad10d765c46aea49f11f",
+   "image_pin": "sha256:a29215f6a35e51e22adffa17f89e9d2ef06214e64a2bad10d765c46aea49f11f",
+   "manifest_sha256": "sha256:5921fd51272daa019809166711249d0c696e02b013e8d343993ccf8e1782be32"
+  }
+ },
+ "estimate": {
+  "makespan_s": 15.0,
+  "makespan_node_hours": 0.004,
+  "available_node_hours": 0.5,
+  "fits_machine_cap": true,
+  "families": {
+   "smoke-busybox": {
+    "launches": 4,
+    "allocated_cpu_hours": 0.003,
+    "cases_without_estimate_at_timeout": 0,
+    "dropped": {}
+   },
+   "smoke-debian": {
+    "launches": 2,
+    "allocated_cpu_hours": 0.001,
+    "cases_without_estimate_at_timeout": 0,
+    "dropped": {}
+   }
+  }
+ },
+ "warnings": []
+}

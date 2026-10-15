@@ -1,0 +1,130 @@
+{
+ "schema": "carbon.reference-bulk.run-plan.v1",
+ "plan_id": "bulk-YYYYMMDD-a",
+ "authority": "HUMAN_INPUT: the owner decision that grants this machine and spend",
+ "host_profile": "hetzner-ccx63-48vcpu-192g",
+ "machine": {
+  "cpus": 48,
+  "memory_gib": 186,
+  "node_hours": "HUMAN_INPUT",
+  "eur_cap": "HUMAN_INPUT",
+  "eur_per_hour": "HUMAN_INPUT",
+  "billing_quantum_s": 3600,
+  "reserve_cpus": 2,
+  "reserve_memory_gib": 8,
+  "margin_minutes": 20,
+  "clock_start": "boot",
+  "starvation_s": 900,
+  "min_case_window_s": 600
+ },
+ "families": [
+  {
+   "family": "f02",
+   "manifest_dir": "decks/f02",
+   "image": "FILL_IMAGE_ID_OR_REPO_AT_DIGEST",
+   "priority": 10,
+   "case_limits": {
+    "cpus": 1,
+    "memory_gib": 4,
+    "pids": 16,
+    "wall_timeout_s": 7200
+   },
+   "ceilings": {
+    "launches": "HUMAN_INPUT",
+    "cpu_hours": "HUMAN_INPUT"
+   },
+   "acceptance": {
+    "command": "ElmerSolver -v",
+    "timeout_s": 120
+   }
+  },
+  {
+   "family": "f08",
+   "manifest_dir": "decks/f08",
+   "image": "FILL_IMAGE_ID_OR_REPO_AT_DIGEST",
+   "priority": 10,
+   "case_limits": {
+    "cpus": 1,
+    "memory_gib": 12,
+    "pids": 16,
+    "wall_timeout_s": 7200
+   },
+   "ceilings": {
+    "launches": "HUMAN_INPUT",
+    "cpu_hours": "HUMAN_INPUT"
+   },
+   "acceptance": {
+    "command": "ccx -v",
+    "timeout_s": 120
+   }
+  },
+  {
+   "family": "f13",
+   "manifest_dir": "decks/f13",
+   "image": "FILL_IMAGE_ID_OR_REPO_AT_DIGEST",
+   "priority": 20,
+   "case_limits": {
+    "cpus": 8,
+    "memory_gib": 24,
+    "pids": 16,
+    "wall_timeout_s": 7200
+   },
+   "ceilings": {
+    "launches": "HUMAN_INPUT",
+    "cpu_hours": "HUMAN_INPUT"
+   },
+   "acceptance": {
+    "command": "ElmerSolver -v",
+    "timeout_s": 120
+   }
+  },
+  {
+   "family": "f17",
+   "manifest_dir": "decks/f17",
+   "image": "FILL_IMAGE_ID_OR_REPO_AT_DIGEST",
+   "priority": 20,
+   "case_limits": {
+    "cpus": "FILL_FROM_FAMILY_MEASUREMENT",
+    "memory_gib": "FILL_FROM_FAMILY_MEASUREMENT",
+    "pids": 256,
+    "wall_timeout_s": 7200
+   },
+   "ceilings": {
+    "launches": "HUMAN_INPUT",
+    "cpu_hours": "HUMAN_INPUT"
+   },
+   "acceptance": {
+    "command": "simpleFoam -help",
+    "timeout_s": 120
+   },
+   "entrypoint": "image",
+   "shell": "bash",
+   "env": {
+    "OMP_NUM_THREADS": "1"
+   }
+  },
+  {
+   "family": "f06",
+   "manifest_dir": "decks/f06",
+   "image": "FILL_IMAGE_ID_OR_REPO_AT_DIGEST",
+   "priority": 30,
+   "case_limits": {
+    "cpus": "FILL_FROM_FAMILY_MEASUREMENT",
+    "memory_gib": "FILL_FROM_FAMILY_MEASUREMENT",
+    "pids": 64,
+    "wall_timeout_s": 7200
+   },
+   "ceilings": {
+    "launches": "HUMAN_INPUT",
+    "cpu_hours": "HUMAN_INPUT"
+   },
+   "acceptance": {
+    "command": "python3 -c 'import meep'",
+    "timeout_s": 120
+   },
+   "env": {
+    "OMP_NUM_THREADS": "1"
+   }
+  }
+ ]
+}

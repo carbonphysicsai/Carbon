@@ -1,0 +1,56 @@
+{
+ "schema": "carbon.reference-bulk.run-plan.v1",
+ "plan_id": "bulk-smoke",
+ "authority": "local runner rehearsal; no spend",
+ "host_profile": "local-dev-4vcpu-15g-contended",
+ "machine": {
+  "cpus": 1,
+  "memory_gib": 1,
+  "node_hours": 0.5,
+  "clock_start": "first_run",
+  "margin_minutes": 0,
+  "min_case_window_s": 30
+ },
+ "families": [
+  {
+   "family": "smoke-busybox",
+   "manifest_dir": "smoke-busybox",
+   "image": "mirror.gcr.io/library/busybox@sha256:73aaf090f3d85aa34ee199857f03fa3a95c8ede2ffd4cc2cdb5b94e566b11662",
+   "priority": 10,
+   "case_limits": {
+    "cpus": 0.5,
+    "memory_gib": 0.5,
+    "pids": 32,
+    "wall_timeout_s": 120
+   },
+   "ceilings": {
+    "launches": 10,
+    "cpu_hours": 1
+   },
+   "acceptance": {
+    "command": "true",
+    "timeout_s": 60
+   }
+  },
+  {
+   "family": "smoke-debian",
+   "manifest_dir": "smoke-debian",
+   "image": "sha256:a29215f6a35e51e22adffa17f89e9d2ef06214e64a2bad10d765c46aea49f11f",
+   "priority": 10,
+   "case_limits": {
+    "cpus": 0.5,
+    "memory_gib": 0.5,
+    "pids": 32,
+    "wall_timeout_s": 8
+   },
+   "ceilings": {
+    "launches": 10,
+    "cpu_hours": 1
+   },
+   "acceptance": {
+    "command": "true",
+    "timeout_s": 60
+   }
+  }
+ ]
+}

@@ -1,0 +1,47 @@
+{
+ "schema": "carbon.reference-bulk.summary.v1",
+ "plan_id": "bulk-smoke",
+ "plan_digest": "sha256:b46a079f5808055040f580ab06f85ad0ac5212aa93cbfac0f81a6499fd103f37",
+ "authority": "local runner rehearsal; no spend",
+ "host_profile": "local-dev-4vcpu-15g-contended",
+ "machine": {
+  "cpus": 1,
+  "memory_gib": 1,
+  "node_hours": 0.5,
+  "billing_quantum_s": 3600,
+  "reserve_cpus": 0,
+  "reserve_memory_gib": 0,
+  "margin_minutes": 0,
+  "starvation_s": 900,
+  "min_case_window_s": 30,
+  "eur_cap": null,
+  "eur_per_hour": null,
+  "clock_start": "first_run"
+ },
+ "stop_reason": null,
+ "clock_start_unix": 1792069761.8742185,
+ "deadline_unix": 1792071561.8742185,
+ "elapsed_node_hours": 0.0028,
+ "eur_estimate_billed_quanta": null,
+ "ledger_corrupt_lines": 0,
+ "launches": 6,
+ "allocated_cpu_hours": 0.0025,
+ "families": {
+  "smoke-busybox": {
+   "launches": 4,
+   "outcomes": {
+    "COMPLETED": 3,
+    "FAILED": 1
+   },
+   "not_launched": {}
+  },
+  "smoke-debian": {
+   "launches": 2,
+   "outcomes": {
+    "COMPLETED": 1,
+    "CENSORED_CASE_TIMEOUT": 1
+   },
+   "not_launched": {}
+  }
+ }
+}

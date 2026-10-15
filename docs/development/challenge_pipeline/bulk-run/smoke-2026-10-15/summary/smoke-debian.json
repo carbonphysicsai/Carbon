@@ -1,0 +1,40 @@
+{
+ "schema": "carbon.reference-bulk.summary.v1",
+ "plan_id": "bulk-smoke",
+ "family": "smoke-debian",
+ "image_ref": "sha256:a29215f6a35e51e22adffa17f89e9d2ef06214e64a2bad10d765c46aea49f11f",
+ "image_pin": "sha256:a29215f6a35e51e22adffa17f89e9d2ef06214e64a2bad10d765c46aea49f11f",
+ "manifest_sha256": "sha256:5921fd51272daa019809166711249d0c696e02b013e8d343993ccf8e1782be32",
+ "cases_in_manifest": 2,
+ "launches": 2,
+ "outcomes": {
+  "COMPLETED": 1,
+  "CENSORED_CASE_TIMEOUT": 1
+ },
+ "refused": 0,
+ "not_launched": {},
+ "acceptance": {
+  "passed": true,
+  "exit": 0
+ },
+ "ceilings": {
+  "launches": 10,
+  "cpu_hours": 1.0
+ },
+ "allocated_cpu_hours": 0.0011,
+ "cgroup_cpu_hours": 0.0,
+ "wall_s": {
+  "total": 7.3,
+  "p50": 0.566,
+  "p95": 6.713,
+  "max": 6.713
+ },
+ "memory_peak_mib": {
+  "p50": 4.6,
+  "p95": 4.9,
+  "max": 4.9,
+  "cases_with_peak": 2,
+  "limit": 512.0
+ },
+ "maturity": "DEVELOPMENT cost measurement; no qualification or adequacy claim"
+}
