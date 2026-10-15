@@ -100,6 +100,47 @@ function lastPost(state, url) { return [...state.posted].reverse().find(entry =>
 const scenarios = [];
 const scenario = (name, run) => scenarios.push([name, run]);
 
+scenario("acceptance labels name a revision and never follow availability", async () => {
+  const state = launchable(world());
+  const agent = state.caps.agents.choices.find(row => row.id === "manual");
+  agent.acceptance = {status: "TESTED", result: "PASS", cell: "A3", revision: "a".repeat(40), scope: "NAMED_CELL_REVISION_ONLY", evidence: "fixture-only-no-real-acceptance"};
+  const page = await open(state);
+  await wizardTo(page, "agent");
+  assert.ok(page.text("research-selects").includes("Tested at aaaaaaaaaaaa · A3 only"));
+  assert.ok(page.text("launchpad-strip").includes("Tested at aaaaaaaaaaaa · A3 only"));
+  assert.ok(page.text("launchpad-strip").includes("Untested"));
+  const offered = byValue(page, "#research-selects input", "manual");
+  assert.equal(offered.disabled, false);
+  agent.acceptance = {...agent.acceptance, result: "FAIL"};
+  // Capability responses are snapshots, reread on connect or this action;
+  // ordinary campaign polling does not fetch changed capability evidence.
+  const reads = () => page.requests.filter(request => request.path === "/api/v1/control-center/capabilities").length;
+  const before = reads();
+  page.go("#settings");
+  await page.advance(0);
+  await page.press(page.$("settings-recheck"));
+  assert.equal(reads(), before + 1, "the changed evidence reached the page");
+  page.go("#launch");
+  await page.advance(0);
+  assert.ok(!page.text("research-selects").includes("Tested at"));
+  assert.ok(!page.text("launchpad-strip").includes("Tested at"));
+  assert.equal(byValue(page, "#research-selects input", "manual").disabled, false);
+  clean(page);
+});
+
+scenario("acceptance defaults label offered Agents Compute and Connections catalogs", async () => {
+  const state = launchable(world());
+  for (const provider of state.caps.model.providers) provider.availability = "available";
+  const page = await open(state);
+  for (const [route, id] of [["agents", "agent-catalog"], ["compute", "compute-catalog"], ["connections", "connection-catalog"]]) {
+    page.go("#" + route);
+    await page.advance(0);
+    assert.ok(page.text(id).includes("Untested"), id + " labels the offered choice");
+    assert.ok(!page.text(id).includes("Tested at"), id + " does not infer a PASS");
+  }
+  clean(page);
+});
+
 // ---- 1. Redraw only on change; never under a hand. ----
 scenario("a refresh with nothing new replaces no element of the launch wizard", async () => {
   const state = launchable(world());

@@ -34,6 +34,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+from typing import Literal
 
 PREFIX = "carbon_setup_"
 STATUS = PREFIX + "status"
@@ -98,6 +99,8 @@ def _models():
         operation: str
         payload: JsonValue
         tools_added: list[str] = []
+        acceptance_status: Literal["UNTESTED", "TESTED"] = "UNTESTED"
+        acceptance_choices: dict[str, Literal["UNTESTED", "TESTED"]] = {}
 
     return StrictArguments, ExactMetadata, SetupResult
 
@@ -168,7 +171,17 @@ def make_setup_tools(setup, *, tier, guard=None, after=None):
             if added:
                 # The SDK announces nothing when a registry grows; this does.
                 await announce(ctx, tools=True)
-            return result_model(operation=op.name, payload=payload, tools_added=added)
+            from scripts.dev.launchpad_acceptance.release_check import project
+
+            payload = project(payload, op.name)
+            metadata = payload if type(payload) is dict else {}
+            return result_model(
+                operation=op.name,
+                payload=payload,
+                tools_added=added,
+                acceptance_status=metadata.get("acceptance_status", "UNTESTED"),
+                acceptance_choices=metadata.get("acceptance_choices", {}),
+            )
 
         return Tool(
             fn=invoke,
@@ -202,6 +215,8 @@ def make_status_tool(
     class StatusResult(BaseModel):
         model_config = ConfigDict(strict=True, extra="forbid")
         payload: JsonValue
+        acceptance_status: Literal["UNTESTED", "TESTED"] = "UNTESTED"
+        acceptance_choices: dict[str, Literal["UNTESTED", "TESTED"]] = {}
 
     model = create_model("setup_status", __base__=strict)
 
@@ -211,8 +226,10 @@ def make_status_tool(
         count = campaigns() if campaigns is not None else None
         launch = launch_available() if launch_available is not None else None
         unusable = bool(profile_unusable()) if profile_unusable is not None else False
-        return StatusResult(
-            payload=await asyncio.to_thread(
+        from scripts.dev.launchpad_acceptance.release_check import project
+
+        payload = project(
+            await asyncio.to_thread(
                 status,
                 setup,
                 door=MCP,
@@ -220,6 +237,11 @@ def make_status_tool(
                 launch_available=launch,
                 profile_unusable=unusable,
             )
+        )
+        return StatusResult(
+            payload=payload,
+            acceptance_status=payload["acceptance_status"],
+            acceptance_choices=payload["acceptance_choices"],
         )
 
     return Tool(

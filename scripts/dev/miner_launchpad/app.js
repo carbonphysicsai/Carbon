@@ -104,6 +104,13 @@
   function researchNote(parent, text, className = "") {
     const note = document.createElement("p"); note.textContent = text; note.className = className; parent.append(note);
   }
+  function acceptanceText(item) {
+    const value = item?.acceptance;
+    if (value?.status === "TESTED" && value.result === "PASS" && value.scope === "NAMED_CELL_REVISION_ONLY" && /^[0-9a-f]{40}$/.test(value.revision || "") && value.cell && value.evidence) {
+      return "Tested at " + value.revision.slice(0, 12) + " · " + value.cell + " only";
+    }
+    return "Untested";
+  }
   // An unavailable thing, shown as such (LINKONLY-D10): one plain sentence,
   // one link to the place that fixes it, and its code and full next action
   // behind Details.
@@ -1114,7 +1121,7 @@
       inferencePanel.prepend(skip);
     }
     const inference = stepForm(inferencePanel, "inference");
-    const provider = setupSelect(inference, "provider_id", "Provider", offered.inference.map(c => [c.id, c.display_name]));
+    const provider = setupSelect(inference, "provider_id", "Provider", offered.inference.map(c => [c.id, c.display_name + " · " + acceptanceText(c)]));
     const model = setupField(inference, "model_id", "Model id");
     // A generic adapter has no endpoint of its own: the miner names it here,
     // with an optional declared price (nanodollars per token). Without one the
@@ -1235,7 +1242,7 @@
     const missing = el("div"); compute.append(missing);
     // Everything setup fills in for you, or a miner changes on purpose.
     const more = advanced(compute, "Advanced: images and transport");
-    const computeChoice = setupSelect(more, "choice", "Where research runs (set by the cards above)", offered.compute.map(c => [c.id, c.display_name]));
+    const computeChoice = setupSelect(more, "choice", "Where research runs (set by the cards above)", offered.compute.map(c => [c.id, c.display_name + " · " + acceptanceText(c)]));
     const transportBox = el("div"); transportBox.dataset.step = "compute"; more.append(transportBox);
     const transport = setupSelect(transportBox, "transport", "How Carbon reaches it (set by your card)", []);
     const transportNote = el("div"); transportBox.append(transportNote);
@@ -1310,8 +1317,8 @@
     // The cards: this machine, then each setup the wiring guide covers.
     const local = offered.compute.filter(c => !c.needs_remote);
     const cards = [
-      ...local.map(c => ({id: c.id, title: "This machine", sub: c.needs_gpu_image ? "My GPU" : "CPU · the default", choice: c.id})),
-      ...(remoteChoice ? guides.cards.map(g => ({id: g.id, title: g.display_name, sub: g.transport === "ssh-container" ? "Container · SSH" : "Machine with Docker · SSH", choice: remoteChoice.id, transport: g.transport, guide: g})) : []),
+      ...local.map(c => ({id: c.id, title: "This machine · " + acceptanceText(c), sub: c.needs_gpu_image ? "My GPU" : "CPU · the default", choice: c.id})),
+      ...(remoteChoice ? guides.cards.map(g => ({id: g.id, title: g.display_name + " · " + acceptanceText(g), sub: g.transport === "ssh-container" ? "Container · SSH" : "Machine with Docker · SSH", choice: remoteChoice.id, transport: g.transport, guide: g})) : []),
     ];
     const aboutRemote = (parent, choice) => details(parent, "About remote practice", ["Cost: " + choice.cost_basis, "Live check: " + choice.live_check, choice.note, "Wiring guide: " + choice.guide]);
     const showWhere = card => {
@@ -1334,7 +1341,7 @@
         return;
       }
       const g = card.guide;
-      const head = el("div", undefined, "card-head"); head.append(el("h3", g.display_name), pill(g.transport, "pill-dev"));
+      const head = el("div", undefined, "card-head"); head.append(el("h3", g.display_name), pill(g.transport, "pill-dev"), pill(acceptanceText(g), "pill-wait"));
       wherePanel.append(head);
       wherePanel.append(el("p", "You start, stop and pay for it" + (g.id === "own-server" ? "" : " at " + g.display_name) + ". Carbon reaches it with your own SSH and never starts, stops or bills it."));
       wherePanel.append(el("p", "Your steps, from the guide", "eyebrow"));
@@ -1443,7 +1450,7 @@
     // ready-made profile.
     const agentPanel = stepPanel(body, "agent", steps.agent?.checked ? "Checked: " + checkedText("agent", steps) + ", and your signer answered." : null);
     const agent = stepForm(agentPanel, "agent");
-    const agentChoice = setupSelect(agent, "choice", "Who researches", offered.agent.map(c => [c.id, c.display_name]));
+    const agentChoice = setupSelect(agent, "choice", "Who researches", offered.agent.map(c => [c.id, c.display_name + " · " + acceptanceText(c)]));
     const agentCost = el("div"); agent.append(agentCost);
     // Your own agent: the one command, and each client's snippet to copy.
     const connectBox = el("div", undefined, "guide-panel"); connectBox.id = "setup-agent-connect"; agent.append(connectBox);
@@ -1457,7 +1464,7 @@
       // One disclosure per client: its snippets, its source and what Carbon
       // has not verified.
       for (const client of connect.clients) {
-        const body = details(connectBox, client.name, []).querySelector(".detail-body");
+        const body = details(connectBox, client.name + " · " + acceptanceText(client), []).querySelector(".detail-body");
         body.append(el("p", "From " + client.source + ".", "hint"));
         client.snippets.forEach((snippet, index) => copyRow(body, snippet.label, snippet.text, "setup-agent-" + client.id + "-" + index));
         for (const note of client.unverified) {
@@ -2172,6 +2179,7 @@
       const box = card(target, choice.label, ...readiness(choice));
       box.dataset.agent = choice.id;
       box.append(el("p", choice.summary, "hint"));
+      researchNote(box, acceptanceText(choice), "hint");
       if (choice.command && choice.availability === "available") copyRow(box, "Connect your client with:", choice.command);
       if (choice.launch_agent === GRAPHITE) {
         box.append(el("p", "Modes: Research, Build or Full. It reads the shared card pack and your own Library, and can hunt arXiv for more, on your model and budget.", "hint"));
@@ -2192,7 +2200,7 @@
     const rows = el("ul", undefined, "checklist");
     for (const provider of caps.model.providers) {
       const entry = el("li", undefined, provider.availability === "available" ? "ok" : "missing");
-      entry.append(pill(...readiness(provider)), el("span", provider.provider));
+      entry.append(pill(...readiness(provider)), el("span", provider.provider), el("span", acceptanceText(provider), "hint"));
       if (provider.availability !== "available") {
         entry.append(el("span", provider.plain?.sentence || words(provider.reason) + ".", "next"));
         if (provider.plain?.next) entry.append(link(provider.plain.next));
@@ -2218,6 +2226,7 @@
       if (route.id === "this-machine") {
         const [tag, kind] = route.availability === "available" ? [route.in_use ? "In use" : "Ready", "pill-done"] : ["Needs setup", "pill-need"];
         const box = card(target, route.label, tag, kind);
+        researchNote(box, acceptanceText(route), "hint");
         const facts = choice ? [
           "Lanes: " + Object.entries(choice.lanes).map(([lane, state]) => lane + " " + state.availability + (state.reason ? " (" + words(state.reason) + ")" : "")).join(" · "),
           caps.compute.selection,
@@ -2231,6 +2240,7 @@
       }
       const set = route.availability === "configured";
       const box = card(target, route.label, set ? "In use" : "Not set up", set ? "pill-done" : "pill-wait");
+      researchNote(box, acceptanceText(route), "hint");
       if (set) box.append(el("p", "In your profile: " + route.transport + ", over your own SSH.", "status-line"));
       else if (checked?.checked && checked.remote_machine) box.append(el("p", "Checked over your SSH: " + checked.remote_machine.destination + " (" + checked.remote_machine.transport + "). Write your profile to use it.", "status-line"));
       else box.append(el("p", "Use a GPU you run anywhere: RunPod, Lium, Targon, Vast.ai, Lambda or your own server, reached with your own SSH.", "status-line"));
@@ -2245,6 +2255,7 @@
     const mcp = agentEntry("external_mcp");
     if (mcp) {
       const box = card(target, "Your own MCP client · stdio", ...readiness(mcp));
+      researchNote(box, acceptanceText(mcp), "hint");
       box.append(el("p", "Run on this machine with your runner profile. Every operation - launch, observe, practice, freeze, submit, halt, resume - is the same one this page calls, over the same records. Nothing is issued by Carbon.", "hint"));
       copyRow(box, "Connect your client with:", mcp.command, "connection-mcp-copy");
       // The command names this controller's own runner profile when it has
@@ -3211,7 +3222,7 @@
       target.append(el("h3", "What you can change"));
       researchNote(target, "Carbon reads what your model changes. You do not choose a level.", "hint");
       for (const change of document.types || []) {
-        researchNote(target, change.label + " · " + change.status + ": " + change.reason);
+        researchNote(target, change.label + " · " + change.status + " · " + acceptanceText(change) + ": " + change.reason);
       }
       if (document.status === "PUBLIC_CONTRACT_UNAVAILABLE") researchNote(target, "The public construction contract is unavailable. Changed constructions stay closed.", "reason");
     });
@@ -3229,7 +3240,7 @@
         input.disabled = !entry.implemented;
         input.addEventListener("change", () => selectChallenge(entry));
         const text = el("span");
-        text.append(el("strong", entry.title), el("span", " " + challengeStatus(entry) + (entry.version ? " · v" + entry.version : ""), "small-tag"));
+        text.append(el("strong", entry.title), el("span", " " + challengeStatus(entry) + (entry.version ? " · v" + entry.version : "") + " · " + acceptanceText(entry), "small-tag"));
         if (!entry.selectable) text.append(el("span", "Unavailable: " + words(entry.reason) + " · Next: " + entry.next_action, "reason"));
         label.append(input, text); node.append(label);
       }
@@ -3250,7 +3261,7 @@
     const box = $("research-selects");
     const notes = $("wizard-agent-notes");
     const entry = challengeEntry(wizard.challenge);
-    const choices = caps ? agentChoices().map(choice => [choice.id, choice.label, choice.availability, choice.reason ?? null, graphiteOffered(choice, entry)]) : null;
+    const choices = caps ? agentChoices().map(choice => [choice.id, choice.label, choice.availability, choice.reason ?? null, graphiteOffered(choice, entry), choice.acceptance]) : null;
     rebuild(box, JSON.stringify([capsVersion, choices, entry ? entry.title : null]), node => {
       node.append(el("legend", "Who selects and submits"));
       if (!caps) return;
@@ -3261,7 +3272,7 @@
         input.disabled = choice.availability !== "available" || !here;
         input.addEventListener("change", () => { wizard.agentChoice = choice.id; composition = {...composition, agent: choice.launch_agent}; saveWizard(); render(); });
         const text = el("span");
-        text.append(el("strong", choice.label), el("span", " " + choice.summary, "hint"));
+        text.append(el("strong", choice.label), el("span", " " + choice.summary + " · " + acceptanceText(choice), "hint"));
         if (choice.availability !== "available") text.append(el("span", "Unavailable: " + words(choice.reason) + " · Next: " + choice.next_action, "reason"));
         else if (!here) text.append(el("span", "Not offered for " + entry.title + ": graphite not offered for challenge · Next: choose a Challenge with a registered Graphite campaign.", "reason"));
         label.append(input, text); node.append(label);
@@ -3420,7 +3431,7 @@
       if (setup) researchNote(node, "Your setup chose " + setup.model_id + " (" + ((caps.model.providers.find(row => row.id === setup.provider_id) || {}).provider || setup.provider_id) + "). It is selected below; a launch with nothing chosen here runs with it too.", "status-line");
       for (const provider of caps.model.providers) {
         const group = el("fieldset", undefined, "selects");
-        group.append(el("legend", provider.provider));
+        group.append(el("legend", provider.provider + " · " + acceptanceText(provider)));
         for (const model of provider.models) {
           const label = el("label", undefined, "choice" + (provider.availability === "available" ? "" : " unavailable"));
           const input = el("input"); input.type = "radio"; input.name = "wizard-model"; input.value = provider.id + "/" + model.id;
@@ -3464,6 +3475,7 @@
       researchNote(target, caps.compute.selection, "hint");
       for (const choice of caps.compute.choices) {
         const box = card(target, choice.label, ...readiness(choice));
+        researchNote(box, acceptanceText(choice), "hint");
         researchNote(box, "Lane: " + choice.lane + " · " + Object.entries(choice.lanes).map(([lane, state]) => lane + " " + state.availability + (state.reason ? " (" + words(state.reason) + ")" : "")).join(" · "));
         if (choice.availability !== "available") unavailableNote(box, choice);
       }
@@ -4062,7 +4074,7 @@
   // The research surface (research_view.js) reads this page's state and
   // calls its operations through this one bridge; it holds none of its own.
   window.CarbonControlCenter = {
-    api, el, pill, details, link, message, when,
+    api, el, pill, details, link, message, when, acceptanceText,
     state: () => ({connected, busy, caps, research, setupState, wizard, composition, launchOptions, pendingResearch, operations: operationsListed}),
     // A redraw the page did not ask for (a read that finished): drawn under
     // the live-region rules, so nothing under a person's hand is replaced.

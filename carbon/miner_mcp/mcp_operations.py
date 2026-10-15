@@ -35,6 +35,7 @@ import asyncio
 import contextlib
 import json
 import secrets
+from typing import Literal
 
 PREFIX = "carbon_"
 DETACH = PREFIX + "detach_campaign"
@@ -233,6 +234,8 @@ def make_operation_tools(host, *, guard=None):
         operation: str
         payload: JsonValue
         official_eligible: bool = False
+        acceptance_status: Literal["UNTESTED", "TESTED"] = "UNTESTED"
+        acceptance_choices: dict[str, Literal["UNTESTED", "TESTED"]] = {}
         #: The key this call ran under: the client's, or the one generated.
         idempotency_key: str | None = None
 
@@ -294,9 +297,15 @@ def make_operation_tools(host, *, guard=None):
                         )
                     )
                 ) from None
+            from scripts.dev.launchpad_acceptance.release_check import project
+
+            payload = project(payload, op.name)
+            metadata = payload if type(payload) is dict else {}
             return OperationResult(
                 operation=op.name,
                 payload=payload,
+                acceptance_status=metadata.get("acceptance_status", "UNTESTED"),
+                acceptance_choices=metadata.get("acceptance_choices", {}),
                 idempotency_key=request.get("idempotency_key"),
             )
 

@@ -104,23 +104,27 @@ def build(contract, served=()):
                 "reason": reason,
             }
         )
-    return {
-        "schema": "carbon.launchpad.construction-options.v1",
-        "challenge": contract.document["challenge"],
-        "unified_digest": contract.digest,
-        "scope": public["scope"],
-        "ceiling": public["ceiling"],
-        "types": rows,
-        "launch_mode": (
-            "composition_bound"
-            if composition is not None
-            else "level_bound_until_composed_compile"
-        ),
-        "construction_digest": composed_digest,
-        "submission_path_available": serving,
-        "qualification": False,
-        "basis": "REGISTERED_PUBLIC_CONTRACT_AND_RECEIVER_CHECKED_SERVING_FACTS",
-    }
+    from scripts.dev.launchpad_acceptance.release_check import project
+
+    return project(
+        {
+            "schema": "carbon.launchpad.construction-options.v1",
+            "challenge": contract.document["challenge"],
+            "unified_digest": contract.digest,
+            "scope": public["scope"],
+            "ceiling": public["ceiling"],
+            "types": rows,
+            "launch_mode": (
+                "composition_bound"
+                if composition is not None
+                else "level_bound_until_composed_compile"
+            ),
+            "construction_digest": composed_digest,
+            "submission_path_available": serving,
+            "qualification": False,
+            "basis": "REGISTERED_PUBLIC_CONTRACT_AND_RECEIVER_CHECKED_SERVING_FACTS",
+        }
+    )
 
 
 def for_profile(cfg, read=None):

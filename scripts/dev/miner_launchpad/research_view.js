@@ -1202,7 +1202,7 @@
       {id: "limits", title: "Limits", value: parts.length ? parts.join(", ") : "None set", note: "Your own campaign ledger. Carbon caps and bills nothing.", go: () => CC.goWizard("limits")},
       {id: "review", title: "Review", value: problem ? "Not ready" : "Ready", note: problem || "Every step can pass.", href: "#setup/review"},
     );
-    const key = JSON.stringify([cards.map(c => [c.value, c.note]), problem, s.busy, s.pendingResearch ? 1 : 0]);
+    const key = JSON.stringify([cards.map(c => [c.value, c.note]), setup.choices, s.caps.agents?.choices?.map(row => row.acceptance), s.caps.compute?.choices?.map(row => row.acceptance), problem, s.busy, s.pendingResearch ? 1 : 0]);
     CC.rebuild(target, key, node => drawStrip(node, cards, problem, s));
   }
   function drawStrip(target, cards, problem, s) {
@@ -1214,7 +1214,14 @@
     cards.forEach((card, index) => {
       const item = el("li", undefined, "rs-card" + (card.id === "review" && !problem ? " is-ready" : ""));
       item.dataset.card = card.id;
+      const setup = s.setupState || {};
+      const group = card.id === "inference" ? "inference" : card.id;
+      const steps = setup.steps || {};
+      const identity = group === "inference" ? steps.inference?.provider_id : steps[group]?.choice;
+      const choice = (setup.choices?.[group] || []).find(row => row.id === identity);
+      const acceptance = choice || (card.id === "agent" ? CC.agentEntry(s.wizard.agentChoice) : card.id === "compute" ? s.caps.compute?.choices?.[0] : null);
       item.append(el("span", String(index + 1).padStart(2, "0"), "rs-card-num"), el("p", card.title, "eyebrow"), el("strong", card.value), el("span", card.note, "hint"));
+      item.append(el("span", CC.acceptanceText(acceptance), "hint"));
       // A setup step is the setup wizard's own page; the Challenge and limits
       // are the launch wizard's steps.
       const change = card.href ? anchor("Change", card.href, "rs-change") : button("Change", "rs-change", card.go);
