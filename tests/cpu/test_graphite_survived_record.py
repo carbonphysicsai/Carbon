@@ -35,7 +35,9 @@ def _row(status, attempts=3, held=0, **extra):
     }
 
 
-def _store(tmp_path, name, level, rows, findings=(), repairs=(), stop="DONE"):
+def _store(
+    tmp_path, name, level, rows, findings=(), repairs=(), stop="DONE", states=()
+):
     store = tmp_path / name / "attacker"
     report = store / "reports" / "r1"
     report.mkdir(parents=True)
@@ -56,6 +58,7 @@ def _store(tmp_path, name, level, rows, findings=(), repairs=(), stop="DONE"):
     db.execute(
         "CREATE TABLE finding_states(finding TEXT, seq INTEGER, state TEXT, body TEXT)"
     )
+    evidence_refs = {}
     for number, (fid, family, attempt) in enumerate(findings):
         verdict = {
             "family": family,
@@ -64,23 +67,31 @@ def _store(tmp_path, name, level, rows, findings=(), repairs=(), stop="DONE"):
             "conditions": ["FAILING_TRIGGER"],
             "outcome": "BREACHED",
         }
-        (controller / "evidence" / f"{number}.bin").write_text(
-            json.dumps({"verdict": verdict})
-        )
+        path = controller / "evidence" / f"{number}.bin"
+        path.write_text(json.dumps({"verdict": verdict}), encoding="utf-8")
+        evidence_refs[fid] = {
+            "path": f"evidence/{number}.bin",
+            "sha256": sv.file_digest(path),
+        }
         db.execute(
             "INSERT INTO findings VALUES(?,?,?)",
-            (fid, json.dumps({"evidence": {"path": f"evidence/{number}.bin"}}), number),
+            (fid, json.dumps({"evidence": evidence_refs[fid]}), number),
         )
-    for number, fid in enumerate(repairs):
+    for number, (fid, state) in enumerate(
+        [(fid, "REPAIRED") for fid in repairs] + list(states)
+    ):
+        body = (
+            {"repair_id": "repair-1", "rerun": ["a"], "code_ref": "c" * 40}
+            if state == "REPAIRED"
+            else {"evidence": evidence_refs[fid]}
+        )
         db.execute(
             "INSERT INTO finding_states VALUES(?,?,?,?)",
             (
                 fid,
                 number,
-                "REPAIRED",
-                json.dumps(
-                    {"repair_id": "repair-1", "rerun": ["a"], "code_ref": "c" * 40}
-                ),
+                state,
+                json.dumps(body),
             ),
         )
     db.commit()
@@ -169,6 +180,18 @@ def _record(tmp_path):
     return json.loads((tmp_path / "snapshot.json").read_text())["records"][0]
 
 
+def _reattack(store, fix="PR 1", family="fam_a"):
+    root = sv.read_attack_root(store)
+    report = root["reports"][0]
+    return {
+        "fix_ref": fix,
+        "finding_evidence_digest": root["findings"][0]["evidence_digest"],
+        "family": family,
+        "report_ref": report["ref"],
+        "report_digest": report["digest"],
+    }
+
+
 #: A plain base-recipe construction: the unified classifier derives Level 0 from it, whatever session recorded it.
 LEVEL_ZERO_STRATEGY = {
     "schema_version": "1.0",
@@ -246,15 +269,16 @@ def test_oracle_gap_and_false_positive_never_open_an_item_and_never_make_it_held
     assert record["status"] == sv.TESTED_ONLY and record["open_finding_count"] == 0
     assert any("ORACLE_GAP awaiting a re-attack" in r for r in record["status_reason"])
     # Once a fix is recorded and a clean re-attack named, only then the family is judged again.
+    clean = _store(tmp_path, "r2", 2, HELD_ROWS, findings=[("f1", "fam_a", "t-1")])
     backfill = _manifest(
         tmp_path,
         triage={"f1": "ORACLE_GAP", "f2": "FALSE_POSITIVE"},
         fixes={"f1": "PR 1"},
-        reattack={"f1": "report-2"},
+        reattack={"f1": _reattack(clean)},
     )
     _run(
         tmp_path,
-        _store(tmp_path, "r2", 2, HELD_ROWS, findings=[("f1", "fam_a", "t-1")]),
+        clean,
         backfill,
     )
     assert _record(tmp_path)["status"] == sv.HELD
@@ -270,15 +294,201 @@ def test_an_untriaged_or_unfixed_real_escape_finding_is_open(tmp_path, triage):
     assert record["findings"][0]["triage"] == (triage or sv.UNTRIAGED)
 
 
-def test_a_repair_attestation_or_a_fix_with_a_re_attack_closes_a_real_escape(tmp_path):
+@pytest.mark.parametrize("closure", ["attestation", "linked_reattack"])
+def test_a_current_repair_or_a_bound_clean_reattack_closes_a_real_escape(
+    tmp_path, closure
+):
     store = _store(
-        tmp_path, "r", 2, HELD_ROWS, findings=[("f1", "fam_a", "t-1")], repairs=["f1"]
+        tmp_path,
+        "r",
+        2,
+        HELD_ROWS,
+        findings=[("f1", "fam_a", "t-1")],
+        repairs=["f1"] if closure == "attestation" else [],
     )
+    backfill = _manifest(
+        tmp_path,
+        triage={"f1": "REAL_ESCAPE"},
+        fixes={"f1": "PR 1"} if closure == "linked_reattack" else {},
+        reattack={"f1": _reattack(store)} if closure == "linked_reattack" else {},
+    )
+    _run(tmp_path, store, backfill)
+    record = _record(tmp_path)
+    assert record["status"] == sv.HELD and record["open_finding_count"] == 0
+    assert record["finding_lifecycle_policy"] == sv.LIFECYCLE_POLICY
+    assert sv.propose_removal("f1", [record], proposed_by="x", now=NOW) == (
+        None,
+        "finding_resolved",
+    )
+    if closure == "attestation":
+        assert record["repair_attestations"][0]["repair_id"] == "repair-1"
+
+
+@pytest.mark.parametrize("repaired_again", [False, True])
+def test_recurrence_reopens_a_repaired_finding_despite_old_backfill_links(
+    tmp_path, repaired_again
+):
+    states = [("f1", "REPAIRED"), ("f1", "RECURRED")]
+    if repaired_again:
+        states.append(("f1", "REPAIRED"))
+    store = _store(
+        tmp_path, "r", 2, HELD_ROWS, findings=[("f1", "fam_a", "t-1")], states=states
+    )
+    _run(
+        tmp_path,
+        store,
+        _manifest(
+            tmp_path,
+            triage={"f1": "REAL_ESCAPE"},
+            fixes={"f1": "PR 1"},
+            reattack={"f1": _reattack(store)},
+        ),
+    )
+    record = _record(tmp_path)
+    assert record["status"] == (sv.HELD if repaired_again else sv.OPEN_FINDING)
+    assert record["open_finding_count"] == (0 if repaired_again else 1)
+    assert len(record["repair_attestations"]) == (2 if repaired_again else 1)
+    finding = record["findings"][0]
+    assert finding["controller_state_seq"] == len(states) - 1
+    assert finding["repaired"] is repaired_again
+    removal, refusal = sv.propose_removal("f1", [record], proposed_by="x", now=NOW)
+    if repaired_again:
+        assert removal is None and refusal == "finding_resolved"
+    else:
+        assert refusal is None and removal["reason_code"] == "ESCAPE_RECURS_AFTER_FIX"
+        assert finding["clean_reattack"] is False
+
+
+def test_one_roots_repair_cannot_close_another_roots_registered_finding(tmp_path):
+    repaired = _store(
+        tmp_path, "r1", 2, HELD_ROWS, findings=[("f1", "fam_a", "t-1")], repairs=["f1"]
+    )
+    open_store = _store(tmp_path, "r2", 2, HELD_ROWS, findings=[("f1", "fam_a", "t-1")])
+    _, args = _run(
+        tmp_path, repaired, _manifest(tmp_path, triage={"f1": "REAL_ESCAPE"})
+    )
+    args.attacker_store.append(str(open_store))
+    sv.generate(args, strategy_of=lambda finding: None, now=NOW)
+    record = _record(tmp_path)
+    assert record["status"] == sv.OPEN_FINDING and record["open_finding_count"] == 1
+    assert {(f["root"], f["repaired"]) for f in record["findings"]} == {
+        ("r1", True),
+        ("r2", False),
+    }
+
+
+@pytest.mark.parametrize(
+    "fault", ["missing", "tampered", "no_digest", "no_family", "json"]
+)
+def test_unavailable_registered_evidence_refuses_before_changing_outputs(
+    tmp_path, fault
+):
+    store = _store(tmp_path, "r", 2, HELD_ROWS, findings=[("f1", "fam_a", "t-1")])
+    path = store / "controller" / "evidence" / "0.bin"
+    if fault == "missing":
+        path.unlink()
+    elif fault == "tampered":
+        path.write_bytes(path.read_bytes() + b" ")
+    elif fault in ("no_family", "json"):
+        path.write_bytes(
+            b'{"verdict":{"family":null}}' if fault == "no_family" else b"{"
+        )
+    if fault in ("no_digest", "no_family", "json"):
+        with sqlite3.connect(store / "controller" / "campaign.sqlite3") as db:
+            body = json.loads(db.execute("SELECT body FROM findings").fetchone()[0])
+            body["evidence"]["sha256"] = (
+                None if fault == "no_digest" else sv.file_digest(path)
+            )
+            db.execute("UPDATE findings SET body=?", (json.dumps(body),))
+    outputs = [tmp_path / "survived-record.jsonl", tmp_path / "snapshot.json"]
+    for out in outputs:
+        out.write_bytes(b"prior output must survive\n")
+    with pytest.raises(ValueError, match="finding_evidence_unavailable_or_invalid:f1"):
+        _run(tmp_path, store, _manifest(tmp_path, triage={"f1": "REAL_ESCAPE"}))
+    assert all(out.read_bytes() == b"prior output must survive\n" for out in outputs)
+
+
+@pytest.mark.parametrize(
+    "fault",
+    [
+        "no_fix",
+        "plain_ref",
+        "fix_ref",
+        "family",
+        "report_ref",
+        "report_digest",
+        "finding_evidence_digest",
+        "stale_report",
+        "breached_report",
+    ],
+)
+def test_oracle_gap_requires_a_fix_and_this_familys_clean_report_version(
+    tmp_path, fault
+):
+    store = _store(tmp_path, "r", 2, HELD_ROWS, findings=[("f1", "fam_a", "t-1")])
+    link = _reattack(store)
+    if fault == "plain_ref":
+        link = link["report_ref"]
+    elif fault in ("stale_report", "breached_report"):
+        path = store / "reports" / "r1" / "coverage.json"
+        report = json.loads(path.read_text(encoding="utf-8"))
+        family = report["families"]["families"]["fam_a"]
+        family["budget_used" if fault == "stale_report" else "verified"] += 1
+        path.write_text(json.dumps(report), encoding="utf-8", newline="\n")
+        if fault == "breached_report":
+            link = _reattack(store)
+    elif fault != "no_fix":
+        link[fault] = "unrelated-or-stale"
+    _run(
+        tmp_path,
+        store,
+        _manifest(
+            tmp_path,
+            triage={"f1": "ORACLE_GAP"},
+            fixes={} if fault == "no_fix" else {"f1": "PR 1"},
+            reattack={"f1": link},
+        ),
+    )
+    record = _record(tmp_path)
+    assert record["status"] == sv.TESTED_ONLY and record["open_finding_count"] == 0
+    assert record["findings"][0]["clean_reattack"] is False
+
+
+@pytest.mark.parametrize("recurred_without_repair", [False, True])
+def test_a_fix_without_clean_reattack_is_not_a_recorded_post_fix_recurrence(
+    tmp_path, recurred_without_repair
+):
+    store = _store(
+        tmp_path,
+        "r",
+        2,
+        HELD_ROWS,
+        findings=[("f1", "fam_a", "t-1")],
+        states=[("f1", "RECURRED")] if recurred_without_repair else [],
+    )
+    _run(
+        tmp_path,
+        store,
+        _manifest(tmp_path, triage={"f1": "REAL_ESCAPE"}, fixes={"f1": "PR 1"}),
+    )
+    record = _record(tmp_path)
+    assert record["status"] == sv.OPEN_FINDING
+    assert sv.propose_removal("f1", [record], proposed_by="x", now=NOW) == (
+        None,
+        "fix_awaiting_clean_reattack",
+    )
+
+
+def test_a_historical_record_cannot_be_reinterpreted_as_current_removal_evidence(
+    tmp_path,
+):
+    store = _store(tmp_path, "r", 2, HELD_ROWS, findings=[("f1", "fam_a", "t-1")])
     _run(tmp_path, store, _manifest(tmp_path, triage={"f1": "REAL_ESCAPE"}))
     record = _record(tmp_path)
-    assert (
-        record["open_finding_count"] == 0
-        and record["repair_attestations"][0]["repair_id"] == "repair-1"
+    del record["finding_lifecycle_policy"]
+    assert sv.propose_removal("f1", [record], proposed_by="x", now=NOW) == (
+        None,
+        "finding_lifecycle_unverified",
     )
 
 

@@ -29,6 +29,7 @@ from pathlib import Path
 RECORD_SCHEMA = "carbon.graphite.survived-record.v1"
 REMOVAL_SCHEMA = "carbon.graphite.scope-removal.v1"
 SNAPSHOT_SCHEMA = "carbon.graphite.survived-snapshot.v1"
+LIFECYCLE_POLICY = "carbon.graphite.finding-lifecycle.v2"
 CLAIMS = {
     "security_acceptance": False,
     "qualified": False,
@@ -108,6 +109,35 @@ def _connect(path):
     return sqlite3.connect(Path(path).as_uri() + "?mode=ro", uri=True)
 
 
+def _finding_verdict(controller, reference, finding_id):
+    """Read registered evidence or refuse before any record can be emitted."""
+    try:
+        relative = reference["path"]
+        if (
+            not isinstance(relative, str)
+            or "\\" in relative
+            or Path(relative).is_absolute()
+            or ".." in Path(relative).parts
+        ):
+            raise ValueError
+        path = controller / relative
+        if not path.resolve().is_relative_to(controller.resolve()):
+            raise ValueError
+        raw = path.read_bytes()
+        if reference["sha256"] != "sha256:" + hashlib.sha256(raw).hexdigest():
+            raise ValueError
+        verdict = json.loads(raw)["verdict"]
+        if not isinstance(verdict, dict) or not isinstance(verdict.get("family"), str):
+            raise TypeError
+        if not verdict["family"].strip():
+            raise ValueError
+    except (OSError, KeyError, TypeError, ValueError):
+        raise ValueError(
+            "finding_evidence_unavailable_or_invalid:" + finding_id
+        ) from None
+    return verdict
+
+
 def read_attack_root(store):
     """One attacker store read-only: `{reports, findings, repairs}`. Never writes."""
     store = Path(store)
@@ -130,14 +160,8 @@ def read_attack_root(store):
                 "SELECT id, body FROM findings ORDER BY ordinal"
             ):
                 row = json.loads(body)
-                evidence_path = controller / (row.get("evidence") or {}).get(
-                    "path", "missing"
-                )
-                verdict = {}
-                if evidence_path.is_file():
-                    verdict = (
-                        json.loads(evidence_path.read_bytes()).get("verdict") or {}
-                    )
+                evidence = row.get("evidence") or {}
+                verdict = _finding_verdict(controller, evidence, finding_id)
                 findings.append(
                     {
                         "finding_id": finding_id,
@@ -147,20 +171,50 @@ def read_attack_root(store):
                         "conditions": list(verdict.get("conditions") or []),
                         "outcome": verdict.get("outcome"),
                         "root": store.parent.name,
+                        "evidence_digest": evidence["sha256"],
                     }
                 )
-            for finding_id, state, body in db.execute(
-                "SELECT finding, state, body FROM finding_states ORDER BY seq"
+            latest, repaired_once = {}, set()
+            for seq, finding_id, state, body in db.execute(
+                "SELECT seq, finding, state, body FROM finding_states ORDER BY seq"
             ):
+                detail = json.loads(body)
+                current = {
+                    "controller_state": state,
+                    "controller_state_seq": seq,
+                    "recurred_after_repair": False,
+                }
                 if state == "REPAIRED":
-                    detail = json.loads(body)
+                    repaired_once.add(finding_id)
                     repairs.append(
                         {
                             "finding_id": finding_id,
+                            "root": store.parent.name,
+                            "state_seq": seq,
                             "repair_id": detail.get("repair_id"),
                             "rerun": list(detail.get("rerun") or []),
                             "code_ref": detail.get("code_ref"),
                         }
+                    )
+                elif state == "RECURRED":
+                    evidence = detail.get("evidence") or {}
+                    verdict = _finding_verdict(controller, evidence, finding_id)
+                    current.update(
+                        recurred_after_repair=finding_id in repaired_once,
+                        recurrence_family=verdict["family"],
+                        recurrence_evidence_digest=evidence["sha256"],
+                    )
+                else:
+                    raise ValueError("finding_state_invalid:" + finding_id)
+                latest[finding_id] = current
+            for finding in findings:
+                finding.update(latest.get(finding["finding_id"], {}))
+                if (
+                    finding.get("controller_state") == "RECURRED"
+                    and finding["recurrence_family"] != finding["family"]
+                ):
+                    raise ValueError(
+                        "finding_recurrence_family_mismatch:" + finding["finding_id"]
                     )
     return {"reports": reports, "findings": findings, "repairs": repairs}
 
@@ -241,6 +295,34 @@ def _scored(item, ledger):
     return (refs if scored else None), bool(scored)
 
 
+def _held(row):
+    return (
+        row["status"] == ATTEMPTED
+        and (row["k"] is not None and row["attempts"] >= row["k"])
+        and row["held"] >= 1
+        and row["stop"] == "DONE"
+    )
+
+
+def _clean_reattack(finding, fix, reattack, family):
+    """An explicit post-fix linkage to this finding and this clean report version."""
+    return bool(
+        isinstance(fix, str)
+        and fix.strip()
+        and isinstance(reattack, dict)
+        and reattack.get("fix_ref") == fix
+        and reattack.get("family") == finding["family"]
+        and finding.get("evidence_digest")
+        and reattack.get("finding_evidence_digest") == finding["evidence_digest"]
+        and family["report_ref"]
+        and reattack.get("report_ref") == family["report_ref"]
+        and reattack.get("report_digest") == family["report_digest"]
+        and finding.get("controller_state") != "RECURRED"
+        and family["verified"] == 0
+        and _held(family)
+    )
+
+
 def build_item(
     item,
     *,
@@ -272,7 +354,6 @@ def build_item(
             "report_ref": None,
             "report_digest": None,
         }
-    repaired = {r["finding_id"] for r in repairs}
     mine = []
     for finding in findings:
         if finding["family"] not in item["families"]:
@@ -280,6 +361,8 @@ def build_item(
         verdict = (triage.get(finding["finding_id"]) or {}).get("verdict", UNTRIAGED)
         strategy = strategy_of(finding)
         label = derived_label(strategy)
+        fix = fixes.get(finding["finding_id"])
+        re_attack = reattack.get(finding["finding_id"])
         mine.append(
             {
                 **finding,
@@ -287,9 +370,12 @@ def build_item(
                 "triage_source": (triage.get(finding["finding_id"]) or {}).get(
                     "source"
                 ),
-                "fix_ref": fixes.get(finding["finding_id"]),
-                "re_attack_ref": reattack.get(finding["finding_id"]),
-                "repaired": finding["finding_id"] in repaired,
+                "fix_ref": fix,
+                "re_attack_ref": re_attack,
+                "clean_reattack": _clean_reattack(
+                    finding, fix, re_attack, families[finding["family"]]
+                ),
+                "repaired": finding.get("controller_state") == "REPAIRED",
                 "recorded_level": level,
                 "derived_level": label,
                 "level_label_mismatch": label is not None and label != level,
@@ -298,15 +384,10 @@ def build_item(
     open_findings = [
         f
         for f in mine
-        if f["triage"] in OPEN_VERDICTS
-        and not (f["repaired"] or (f["fix_ref"] and f["re_attack_ref"]))
+        if f["triage"] in OPEN_VERDICTS and not (f["repaired"] or f["clean_reattack"])
     ]
     awaiting_reattack = [
-        f
-        for f in mine
-        if f["triage"] not in OPEN_VERDICTS
-        and not f["re_attack_ref"]
-        and f["triage"] == "ORACLE_GAP"
+        f for f in mine if f["triage"] == "ORACLE_GAP" and not f["clean_reattack"]
     ]
     reasons = []
     if open_findings:
@@ -321,13 +402,7 @@ def build_item(
     else:
         blockers = []
         for name, row in families.items():
-            held = (
-                row["status"] == ATTEMPTED
-                and (row["k"] is not None and row["attempts"] >= row["k"])
-                and row["held"] >= 1
-                and row["stop"] == "DONE"
-            )
-            if not held:
+            if not _held(row):
                 blockers.append(f"{name}: {row['status']}")
         if awaiting_reattack:
             blockers.extend(
@@ -339,6 +414,7 @@ def build_item(
     stops = sorted({row["k"] for row in families.values() if row["k"] is not None})
     record = {
         "schema": RECORD_SCHEMA,
+        "finding_lifecycle_policy": LIFECYCLE_POLICY,
         "item_id": item["item_id"],
         "level": level,
         "level_basis": "descriptive; findings carry a derived level label",
@@ -430,12 +506,17 @@ def propose_removal(finding_id, records, *, proposed_by, now):
             reason = REMOVAL_REASONS.get(finding["triage"])
             if reason is None:
                 return None, "not_a_removal_reason:" + str(finding["triage"])
-            if finding["repaired"] or finding["fix_ref"]:
-                reason = (
-                    "ESCAPE_RECURS_AFTER_FIX"
-                    if finding["re_attack_ref"] is None and finding["fix_ref"]
-                    else reason
-                )
+            if record.get("finding_lifecycle_policy") != LIFECYCLE_POLICY:
+                return None, "finding_lifecycle_unverified"
+            if finding["repaired"] or finding["clean_reattack"]:
+                return None, "finding_resolved"
+            if (
+                finding.get("controller_state") == "RECURRED"
+                and finding.get("recurred_after_repair") is True
+            ):
+                reason = "ESCAPE_RECURS_AFTER_FIX"
+            elif finding["fix_ref"]:
+                return None, "fix_awaiting_clean_reattack"
             removal = {
                 "schema": REMOVAL_SCHEMA,
                 "removal_id": "removal-"
