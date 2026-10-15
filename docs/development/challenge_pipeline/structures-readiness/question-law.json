@@ -1,0 +1,63 @@
+{
+ "schema": "carbon.f08-question-law.v1",
+ "family": "f08",
+ "status": "REGISTERED_DEVELOPMENT",
+ "decision": "F08-SCIENCE-VALUES-01",
+ "authority": "OWNER-SOLVER-READINESS-SCIENCE-DELEGATION-01; DEVELOPMENT values, no qualification, LIVE, reward or spend",
+ "supersedes_human_input_in": [
+  "question-laws/proposals.json f08 row (content-pinned historical proposal, left unchanged)",
+  "onboarding-runs/generated/f08/law.json and panel.json (digest-bound generated drafts, left unchanged)",
+  "round1/f08-resonance-structure.md sections 3, 5 and 10 (digest-bound source text, left unchanged)"
+ ],
+ "registration": "structures-readiness/registration.json",
+ "variant": "grid",
+ "P_geometry": {
+  "law": "independent uniform on the lattice, conditioned on structures_readiness.action validity",
+  "lattice_mm": {
+   "length_mm": [180, 260, 5],
+   "width_mm": [60, 100, 5],
+   "thickness_mm": [4, 8, 0.5],
+   "rib_height_mm": [8, 16, 1],
+   "rib_thickness_mm": [3, 5, 0.5],
+   "relief_length_mm": [20, 60, 5]
+  }
+ },
+ "Q_geometry": "P_geometry for bank v1; a T2a shortfall gets a second prospectively registered enrichment bank, never a redraw",
+ "w_geometry": 1,
+ "damping": {
+  "solved": [0.005, 0.01, 0.02],
+  "mandatory": "every ratio must be FEASIBLE for the geometry to be FEASIBLE",
+  "P_dev": {"0.005": 0.3333333333333333, "0.01": 0.3333333333333333, "0.02": 0.3333333333333333},
+  "use": "population-mean diagnostics only"
+ },
+ "P_job": {
+  "law": "uniform over the 27-cell grid",
+  "axes": [
+   {"quantity": "dynamic_compliance_max", "unit": "mm/N", "op": "<=", "values": [0.10, 0.15, 0.20], "observable": "worst-band TIP compliance over 80-600 Hz at every damping"},
+   {"quantity": "static_compliance_max", "unit": "mm/N", "op": "<=", "values": [0.02, 0.03, 0.04], "observable": "static tip compliance"},
+   {"quantity": "mass_max", "unit": "kg", "op": "<=", "values": [0.35, 0.45, 0.55], "observable": "mesh mass"}
+  ]
+ },
+ "Q_job": "0.5 P_job + 0.5 uniform over near-limit cells (reference best answer's binding margin within 2u of a limit, or its pick changes under u); if none, Q_job = P_job and the shortfall is reported",
+ "w_job": "P_job/Q_job for population-mean diagnostics only; never a score weight",
+ "answer": {
+  "objective": "minimize worst-band TIP dynamic compliance over all three damping ratios, then mass",
+  "tie_rule": "among FEASIBLE designs, candidates are those within 0.0075 mm/N of the minimum worst-band tip compliance; pick the least mass; masses within 0.00225 kg are equivalent; then the frozen bank order",
+  "equivalent_answers": "every candidate whose mass is within 0.00225 kg of the least candidate mass",
+  "regret_allowance_mm_per_n": 0.0075
+ },
+ "verdict_uncertainty": {
+  "u_default_fraction": {"dynamic": 0.05, "static": 0.02, "mass": 0.005},
+  "refined": "1.25 x |h3 - h1.7| from a case-specific refinement, dynamic floored at 1 %",
+  "rule": "FEASIBLE if every margin > u; INFEASIBLE if any margin < -u; otherwise UNRESOLVED"
+ },
+ "near_limit_bands": {"unresolved_zone": "+-u", "near_limit_region": "+-2u"},
+ "B": 256,
+ "n": 8,
+ "k": 8,
+ "minimum_distinct_resolved_picks_per_batch": 2,
+ "none_feasible": "a question whose bank is fully settled with no FEASIBLE design is VALID_FORWARD_NO_REDRAW with answer NONE_FEASIBLE; if any design is UNRESOLVED, refine it (h 1.7, then more modes) within the refinement allowance; else the question stays UNRESOLVED, is excluded from scoring and counted in the residual-unresolved rate; no redraw, no outcome quota",
+ "refinement_allowance": "h 1.7 refinement of every candidate-answer geometry within +-2u of a limit, plus 13 (5 %) random audit refinements",
+ "value_check_spread_mm_per_n": 0.03,
+ "not_decided": ["exposure E", "hidden n", "protected Q_job", "money and paid hosts", "Tier 2 buyer-tool runs"]
+}

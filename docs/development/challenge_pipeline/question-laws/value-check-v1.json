@@ -194,8 +194,9 @@
       "packet": "f08-resonance-structure.md",
       "value_unit": "mm_per_N",
       "spread_recommendation": 0.03,
-      "numeric_status": "HUMAN_INPUT",
-      "registered_spread": null,
+      "numeric_status": "REGISTERED_DEVELOPMENT",
+      "registered_spread": 0.03,
+      "registered_decision": "F08-SCIENCE-VALUES-01",
       "accepted_value_receipt": null,
       "readiness": "NOT_DEMONSTRATED"
     },
