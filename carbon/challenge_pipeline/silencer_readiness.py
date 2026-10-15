@@ -26,8 +26,11 @@ FIELDS = (
     "neck_offset_mm",
 )
 BOUNDS = ((55, 70), (55, 70), (40, 110), (40, 110), (10, 50), (0, 25))
-IMAGE = "sha256:8bcd864dd60be0a80be9769c1a95c67db76eca9e718212f63dd0460cf3a08fc6"
-DECK_SHA = "sha256:0ae664e21f5e7121a33c6adbc30e8bd4bcf079a230ff4e4c66541aca4a0888e1"
+#: The one f13 Elmer image pin (local 2026-10-15 rebuild, f13-rebuild.json).
+#: f13_deck/f13_proof/f13_power_probe/f13_triage_freeze read it from here,
+#: so a later accepted pin is this one line plus a re-run.
+IMAGE = "sha256:61be1cb77c51fcdd822250e372754a9ce728a5bb42f39b7ba03cdf5e70901add"
+DECK_SHA = "sha256:696d81d7275d349c441edcd80b209032a6abf0c69cfe4113878f576fb84890fb"
 PINS = {
     "image": IMAGE,
     "mesh_image": MESH_IMAGE,
@@ -35,6 +38,7 @@ PINS = {
     "deck_version": "f13-deck.v2",
     "observer": "f13-panel-planes.v1",
     "phasor": "exp(+i*omega*t)",
+    "linear_solver": "bicgstabl4-ilu2-1e-10",
 }
 OBSERVABLES = ("p10_tl_db", "minimum_tl_db", "power_residual", "complex_r", "complex_t")
 
@@ -76,7 +80,9 @@ def _count(count, seed):
 
 
 def actions(count, seed):
-    """Independent public continuous proposal; not an adopted P/action law."""
+    """The registered geometry law (F13-SCIENCE-VALUES-01 F7): uniform
+    independent parameters conditioned on clearance/packaging; refuse, never
+    clip. A public seed gives public designs; a bank uses the operator seed."""
     _count(count, seed)
     rng, out, seen = random.Random(seed), [], set()
     for _ in range(count * 20):
@@ -97,7 +103,10 @@ def actions(count, seed):
 
 
 def questions(count, seed):
-    """HUMAN_INPUT recommended requirement P; Q and w are not selected."""
+    """Public draws from the registered DEVELOPMENT requirement law P
+    (F13-SCIENCE-VALUES-01 F1-F3): independent uniform p10 floor [5, 7] dB,
+    length cap [240, 300] mm, diameter cap [120, 140] mm; Q3 = P; unit outer
+    weight. A public seed gives public practice draws, never a hidden bank."""
     _count(count, seed)
     rng = random.Random(seed)
     return [
@@ -105,9 +114,10 @@ def questions(count, seed):
             "p10_floor_db": rng.uniform(5, 7),
             "package_length_cap_mm": rng.uniform(240, 300),
             "package_diameter_cap_mm": rng.uniform(120, 140),
-            "P": "HUMAN_INPUT_CONTINUOUS_RECOMMENDATION",
-            "Q": None,
-            "w": None,
+            "P": "REGISTERED_DEVELOPMENT_UNIFORM",
+            "Q": "Q3=P",
+            "w": 1.0,
+            "decision": VALUES_DECISION,
             "none_feasible": "RETAIN_NO_REDRAW",
         }
         for _ in range(count)
@@ -226,37 +236,45 @@ def digest_bytes(raw):
     return "sha256:" + hashlib.sha256(raw).hexdigest()
 
 
-def deembed(frequency, reflection, transmission):
-    """Both equal leads d=50 mm, p+ travels exp(-ikz), exp(+iwt)."""
-    phase = cmath.exp(2j * (2 * math.pi * number(frequency) / C) * 0.05)
+#: F13-SCIENCE-VALUES-01 C1/C2: signed plane power residual band (derived
+#: from the 0.25 dB p10 band at TL 15 dB) and the packet's 1 % outer gate,
+#: applied to the saved |p|^2 integral (Robin) residual.
+POWER_PLANE_BAND = 0.0018
+POWER_INTEGRAL_BAND = 0.01
+VALUES_DECISION = "F13-SCIENCE-VALUES-01"
+#: Numerical lead added to each 10 mm panel stub by the v2 deck (60 mm).
+LEAD_M = 0.05
+
+
+def deembed(frequency, reflection, transmission, lead_m=LEAD_M):
+    """Both equal leads d=lead_m, p+ travels exp(-ikz), exp(+iwt)."""
+    phase = cmath.exp(2j * (2 * math.pi * number(frequency) / C) * number(lead_m))
     return reflection * phase, transmission * phase
 
 
-def observe(row, integrals, *, uncertainty_db=None):
-    """Explicit mapped mean-pressure port integrals; no column-order guesses.
+INTEGRAL_KEYS = {
+    "f_hz",
+    "in_real",
+    "in_imag",
+    "out_real",
+    "out_imag",
+    "in_abs2",
+    "out_abs2",
+}
 
-    raw row: f_hz, in_real/in_imag/out_real/out_imag, in_abs2/out_abs2.
-    H=integral(|p|^2), I=integral(p), SI units, exact equal port area.
-    Uncertainty is a supplied refinement estimate, not an accepted tolerance.
+
+def observe_rows(frequencies, integrals, *, lead_m=LEAD_M):
+    """Per-frequency de-embedded observer for any ordered frequency list.
+
+    Returns (rows, finding). Raw values are never clipped or normalised.
     """
-    validate_case(row)
-    if not isinstance(integrals, list) or len(integrals) != len(row["frequencies_hz"]):
+    if not isinstance(integrals, list) or len(integrals) != len(frequencies):
         raise ValueError("complete ordered frequency coverage required")
-    if uncertainty_db is not None and number(uncertainty_db) < 0:
-        raise ValueError("nonnegative uncertainty required")
     s, z, a = S_PORT, RHO * C, AMPLITUDE
     pin = a * a * s / (2 * z)
     out, finding = [], False
-    for f, raw in zip(row["frequencies_hz"], integrals):
-        if set(raw) != {
-            "f_hz",
-            "in_real",
-            "in_imag",
-            "out_real",
-            "out_imag",
-            "in_abs2",
-            "out_abs2",
-        }:
+    for f, raw in zip(frequencies, integrals):
+        if set(raw) != INTEGRAL_KEYS:
             raise ValueError("closed mapped port integral row required")
         values = {k: number(v) for k, v in raw.items()}
         if values["f_hz"] != f:
@@ -268,12 +286,17 @@ def observe(row, integrals, *, uncertainty_db=None):
         eps = 64 * math.ulp(1.0) * max(hin, hout, abs(ii) ** 2 / s, abs(io) ** 2 / s)
         if min(hin, hout) < 0 or min(vin, vout) < -eps:
             finding = True
-        r, t = deembed(f, (ii / s - a) / a, io / s / a)
+        r, t = deembed(f, (ii / s - a) / a, io / s / a, lead_m)
         pr, pt = abs(r) ** 2 * pin, abs(t) ** 2 * pin
         residual = (pin - pr - pt) / pin
         robin = (hin - 2 * a * ii.real + a * a * s) / (2 * z)
         residual_integral = (pin - robin - hout / (2 * z)) / pin
-        if max(abs(residual), abs(residual_integral)) > 0.01 or pt <= 0:
+        if (
+            abs(residual) > POWER_PLANE_BAND
+            or abs(residual_integral) > POWER_INTEGRAL_BAND
+            or pt <= 0
+            or max(pr, pt) > pin * (1 + POWER_PLANE_BAND)
+        ):
             finding = True
         tl = -10 * math.log10(pt / pin) if pt > 0 else None
         out.append(
@@ -291,6 +314,30 @@ def observe(row, integrals, *, uncertainty_db=None):
                 "out_variance_pa2_m2": vout,
             }
         )
+    return out, finding
+
+
+def interval_mean(frequencies, values):
+    """Trapezoidal frequency-interval-weighted mean (same weights as p10)."""
+    total = weight = 0.0
+    for i in range(len(frequencies) - 1):
+        df = frequencies[i + 1] - frequencies[i]
+        total += df * (values[i] + values[i + 1]) / 2
+        weight += df
+    return total / weight if weight else values[0]
+
+
+def observe(row, integrals, *, uncertainty_db=None):
+    """Explicit mapped mean-pressure port integrals; no column-order guesses.
+
+    raw row: f_hz, in_real/in_imag/out_real/out_imag, in_abs2/out_abs2.
+    H=integral(|p|^2), I=integral(p), SI units, exact equal port area.
+    Uncertainty is a supplied refinement estimate, not an accepted tolerance.
+    """
+    validate_case(row)
+    if uncertainty_db is not None and number(uncertainty_db) < 0:
+        raise ValueError("nonnegative uncertainty required")
+    out, finding = observe_rows(row["frequencies_hz"], integrals)
     curve = [v["tl_db"] for v in out]
     from carbon.development_comparison.portfolio_baselines import interval_p10
 
@@ -305,12 +352,20 @@ def observe(row, integrals, *, uncertainty_db=None):
         "observer": PINS["observer"],
         "rows": out,
         "p10_tl_db": p10,
+        "mean_tl_db": (
+            None if p10 is None else interval_mean(row["frequencies_hz"], curve)
+        ),
         "minimum_tl_db": min(curve) if p10 is not None else None,
         "p10_interval_db": (
             None
             if p10 is None or uncertainty_db is None
             else [p10 - uncertainty_db, p10 + uncertainty_db]
         ),
+        "power_bands": {
+            "plane": POWER_PLANE_BAND,
+            "integral": POWER_INTEGRAL_BAND,
+            "decision": VALUES_DECISION,
+        },
         "buyer_verdict": "UNRESOLVED",
         "full_band_refinement": "ACCEPTANCE_REQUIRED",
         "frequency_systems": len(out),

@@ -125,7 +125,41 @@ def frequencies(step_hz, band=(500.0, 2500.0)):
     return [band[0] + i * step_hz for i in range(n + 1)]
 
 
-def sif(freqs):
+#: Linear solvers. v1 and the first v2 probes used UMFPACK ("direct"). Since
+#: 2026-10-15 the default is BiCGStabl(4) + ILU2 to residual 1e-10: on the
+#: nominal 8 mm deck it reproduces UMFPACK's TL to 1e-6 dB at 4.6x less CPU
+#: and 5.6x less memory (f13-proof-v2.json solver_parity), and it is the
+#: only route that fits the 4 mm mesh on a 15 GB host. A non-converged
+#: system aborts the run (no silent partial curve).
+SOLVERS = {
+    "direct": """  Linear System Solver = Direct
+  Linear System Direct Method = Umfpack""",
+    "iterative": """  Linear System Solver = Iterative
+  Linear System Iterative Method = BiCGStabl
+  BiCGStabl Polynomial Degree = 4
+  Linear System Preconditioning = ILU2
+  Linear System Convergence Tolerance = 1e-10
+  Linear System Max Iterations = 4000
+  Linear System Abort Not Converged = True""",
+    "iterative_complex": """  Linear System Solver = Iterative
+  Linear System Iterative Method = BiCGStabl
+  BiCGStabl Polynomial Degree = 4
+  Linear System Preconditioning = ILU2
+  Linear System Complex = Logical True
+  Linear System Convergence Tolerance = 1e-10
+  Linear System Max Iterations = 4000
+  Linear System Abort Not Converged = True""",
+    "idrs": """  Linear System Solver = Iterative
+  Linear System Iterative Method = IDRS
+  Idrs Parameter = 6
+  Linear System Preconditioning = ILU2
+  Linear System Convergence Tolerance = 1e-10
+  Linear System Max Iterations = 4000
+  Linear System Abort Not Converged = True""",
+}
+
+
+def sif(freqs, solver="iterative"):
     table = "\n".join(f"      {i + 1} {f!r}" for i, f in enumerate(freqs))
     flux = "\n".join(
         f"      {i + 1} {2 * (2 * math.pi * f / C) * AMPLITUDE!r}"
@@ -168,8 +202,7 @@ Solver 1
     Real
 {table}
     End
-  Linear System Solver = Direct
-  Linear System Direct Method = Umfpack
+{SOLVERS[solver]}
   Nonlinear System Max Iterations = 1
   Steady State Convergence Tolerance = 1e-9
   Nonlinear Update Exported Variables = Logical True
@@ -211,17 +244,71 @@ End
 """
 
 
-def write_case(case, out, h_mm=8.0, step_hz=10.0, freqs=None, stub_mm=STUB):
+def write_case(
+    case, out, h_mm=8.0, step_hz=10.0, freqs=None, stub_mm=STUB, solver="iterative"
+):
     out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
     (out / "make_mesh.py").write_text(gmsh_script(case, h_mm, stub_mm))
     freqs = freqs or frequencies(step_hz)
-    (out / "case.sif").write_text(sif(freqs))
+    (out / "case.sif").write_text(sif(freqs, solver))
     (out / "ELMERSOLVER_STARTINFO").write_text("case.sif\n1\n")
     meta = {"case": case, "h_mm": h_mm, "frequencies_hz": freqs, "amplitude_pa": AMPLITUDE,
-            "port_area_m2": S_PORT, "stub_mm": stub_mm, "deck_version": DECK_VERSION, "rho": RHO, "c": C, "mesh_image": MESH_IMAGE}  # fmt: skip
+            "port_area_m2": S_PORT, "stub_mm": stub_mm, "solver": solver, "deck_version": DECK_VERSION, "rho": RHO, "c": C, "mesh_image": MESH_IMAGE}  # fmt: skip
     (out / "deck.json").write_text(json.dumps(meta, indent=1) + "\n")
     return meta
+
+
+#: The observer's explicit column map (f13-panel-planes.v1): SaveScalars
+#: names one "boundary int" column per variable and saved BC, inlet (bc 1)
+#: then outlet (bc 2), the variable named on the inlet column only.
+COLUMNS = {
+    "frequency": "res: frequency",
+    "in_real": "boundary int: pressure 1 over bc 1",
+    "out_real": "boundary int:  over bc 2",
+    "in_imag": "boundary int: pressure 2 over bc 1",
+    "out_imag": "boundary int:  over bc 2",
+    "in_abs2": "boundary int: pabs2 over bc 1",
+    "out_abs2": "boundary int:  over bc 2",
+}
+
+
+def column_map(names_text):
+    """{quantity: (1-based index, exact name)} from ports.dat.names, by order:
+    each outlet column must directly follow its inlet column."""
+    entries = {}
+    for line in names_text.splitlines():
+        m = re.match(r"^\s*(\d+):\s*(.*?)\s*$", line)
+        if m:
+            entries[int(m[1])] = m[2]
+    out = {}
+    for key, inlet in (("real", COLUMNS["in_real"]), ("imag", COLUMNS["in_imag"]),
+                       ("abs2", COLUMNS["in_abs2"])):  # fmt: skip
+        hits = [i for i, n in entries.items() if n == inlet]
+        if len(hits) != 1 or entries.get(hits[0] + 1) != COLUMNS["out_real"]:
+            raise ValueError(f"port integral columns not found: {key}")
+        out[f"in_{key}"] = (hits[0], entries[hits[0]])
+        out[f"out_{key}"] = (hits[0] + 1, entries[hits[0] + 1])
+    hits = [i for i, n in entries.items() if n == COLUMNS["frequency"]]
+    if len(hits) != 1:
+        raise ValueError("frequency column not found")
+    out["frequency"] = (hits[0], COLUMNS["frequency"])
+    return out
+
+
+def port_integrals(case_dir):
+    """Rows {f_hz, in_real, in_imag, out_real, out_imag, in_abs2, out_abs2}
+    (SI integrals over the port planes) in solve order, by the explicit map."""
+    cols = column_map(Path(case_dir, "ports.dat.names").read_text())
+    rows = []
+    for line in Path(case_dir, "ports.dat").read_text().splitlines():
+        if not line.strip():
+            continue
+        v = [float(x) for x in line.split()]
+        row = {k: v[i - 1] for k, (i, _) in cols.items()}
+        row["f_hz"] = row.pop("frequency")
+        rows.append(row)
+    return rows
 
 
 def observe(case_dir):

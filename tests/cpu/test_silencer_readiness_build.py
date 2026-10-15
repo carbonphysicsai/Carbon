@@ -35,13 +35,19 @@ def integrals(row, r=0j, t=1 + 0j):
     return output
 
 
-def test_generators_are_deterministic_bounded_and_law_is_not_adopted():
+def test_generators_are_deterministic_bounded_and_law_is_registered_development():
     assert s.actions(12, 9) == s.actions(12, 9)
     assert all(s.geometry(a) == a for a in s.actions(12, 9))
     q = s.questions(12, 10)
     assert q == s.questions(12, 10)
     assert all(
-        5 <= r["p10_floor_db"] <= 7 and r["Q"] is None and r["w"] is None for r in q
+        5 <= r["p10_floor_db"] <= 7
+        and 240 <= r["package_length_cap_mm"] <= 300
+        and 120 <= r["package_diameter_cap_mm"] <= 140
+        and r["Q"] == "Q3=P"
+        and r["w"] == 1.0
+        and r["decision"] == "F13-SCIENCE-VALUES-01"
+        for r in q
     )
 
 

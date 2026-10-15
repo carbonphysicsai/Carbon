@@ -10,6 +10,7 @@ from carbon.challenge_pipeline.onboarding import law, packet
 ROOT = Path(__file__).resolve().parents[2]
 DIR = ROOT / "docs/development/challenge_pipeline/question-laws/remaining"
 DATA = json.loads((DIR / "laws.json").read_text(encoding="utf-8"))
+REGISTERED = {"f13": "F13-SCIENCE-VALUES-01"}
 
 
 def test_exact_merged_generator_output_is_retained():
@@ -35,6 +36,12 @@ def test_laws_are_unregistered_no_runs_and_two_sided_two_bands():
     assert all(DATA["exposure"][key] is None for key in ("B", "n", "E"))
     for family in DATA["families"]:
         for key in ("P", "Q", "w", "action_set", "k"):
+            if family["family"] in REGISTERED:
+                # F13-SCIENCE-VALUES-01 registers f13's DEVELOPMENT values.
+                assert family[key]["decision"] == REGISTERED[family["family"]]
+                assert family[key]["status"] == "REGISTERED_DEVELOPMENT"
+                assert family[key]["registered"] is not None
+                continue
             assert family[key]["registered"] is None
             assert family[key]["status"] == "HUMAN_INPUT"
         assert family["diversity"]["expected_distinct_winners_P"] is None
@@ -49,7 +56,11 @@ def test_primary_intervals_do_not_relax_packet_anchors():
         )
         for axis in family["axes"]:
             low, high = axis["primary_continuous"]
-            assert low <= high and axis["registered"] is None
+            assert low <= high
+            if family["family"] in REGISTERED:
+                assert axis["registered"]["uniform"] == [low, high]
+            else:
+                assert axis["registered"] is None
             if axis["op"] == ">=":
                 assert low >= axis["packet_anchor"]
             else:
@@ -76,3 +87,16 @@ def test_local_document_links_resolve():
         for target in re.findall(r"\]\(([^)]+)\)", path.read_text(encoding="utf-8")):
             if "://" not in target:
                 assert (path.parent / target.split("#")[0]).is_file(), (path, target)
+
+
+def test_f13_registered_development_law_values():
+    f13 = next(f for f in DATA["families"] if f["family"] == "f13")
+    assert f13["k"]["registered"] == 8
+    exposure = f13["exposure"]
+    assert (exposure["n"], exposure["B"], exposure["E"]) == (8, 80, 10)
+    assert f13["t2a"]["near_db"] == 2 * f13["t2a"]["band_db"] == 0.5
+    assert f13["t2a"]["minimum_each_side"] == 5
+    assert f13["action_set"]["registered"]["M_max"] == 96
+    assert "no redraw" in f13["question"]["registered"]["none_feasible"]
+    # global (unregistered) slots stay null for the other families
+    assert all(DATA["exposure"][key] is None for key in ("B", "n", "E"))
