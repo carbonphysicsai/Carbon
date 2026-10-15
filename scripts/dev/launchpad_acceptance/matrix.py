@@ -307,7 +307,7 @@ AGENTS = (
         "A5",
         "agent",
         "hermes-snippet",
-        "Standalone mcp_servers config works; hermes mcp add capability is settled and snippet updated or marked unsupported.",
+        "The standalone mcp_servers block works. Optional hermes mcp add support is settled either way and its command snippet updated accordingly; an unsupported or broken standalone block is nonpassing.",
         "client_version_code snippet_digest connect_code",
     ),
 )

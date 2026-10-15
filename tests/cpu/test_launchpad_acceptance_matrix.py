@@ -348,7 +348,7 @@ def test_existing_lifecycle_states_can_be_observed_without_becoming_f07_pass():
         cell.validate_cell(launch)
 
 
-def test_a5_can_record_a_settled_unsupported_snippet_outcome():
+def test_a5_requires_working_block_independently_of_optional_command_support():
     value = document(
         "A5",
         evidence={
@@ -357,7 +357,28 @@ def test_a5_can_record_a_settled_unsupported_snippet_outcome():
             "connect_code": "UNSUPPORTED",
         },
     )
+    with pytest.raises(ValueError, match="PASS_REQUIRES_WORKING_HERMES_BLOCK"):
+        cell.validate_cell(value)
+    value["result"] = "BLOCKED"
     assert cell.validate_cell(value) == value
+    value["result"] = "PASS"
+    value["evidence"]["connect_code"] = "VERIFIED"
+    value["evidence"]["optional_command_code"] = "UNSUPPORTED"
+    assert cell.validate_cell(value) == value
+
+
+@pytest.mark.parametrize("code", ["REFUSED", "REJECTED", "SUPPORTED", "ACCEPTED"])
+def test_a5_capability_or_nonworking_block_does_not_become_a_pass(code):
+    value = document(
+        "A5",
+        evidence={
+            "client_version_code": "HERMES_0_1_0",
+            "snippet_digest": DIGEST,
+            "connect_code": code,
+        },
+    )
+    with pytest.raises(ValueError, match="PASS_REQUIRES_WORKING_HERMES_BLOCK"):
+        cell.validate_cell(value)
 
 
 @pytest.mark.parametrize(

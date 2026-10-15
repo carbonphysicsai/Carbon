@@ -98,3 +98,10 @@ No new capability, production criterion, arbitrary-code fallback, or host action
 is introduced. Tests cover actual public C3/C4/C11 shapes, lifecycle observations
 and Boolean/count interchange failures. Unavailable scientific/owner facts still
 remain unknown; this audit establishes source compatibility, not a real run.
+
+Plan 3.5 A5 distinguishes the required working standalone mcp_servers block
+from optional hermes mcp add support. connect_code describes the block and must
+be VERIFIED for PASS; UNSUPPORTED/REFUSED or capability-only support cannot
+produce a tested label. An optional_command_code may separately be UNSUPPORTED
+after the block works. Nonpassing observations remain recordable. This corrects
+the prior ambiguous matrix text; no real client acceptance is inferred.

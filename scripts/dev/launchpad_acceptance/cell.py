@@ -411,6 +411,11 @@ def validate_cell(document):
                 "final_state"
             ] not in {"COMPLETED", "PAUSED"}:
                 raise ValueError("PASS_CONTRADICTS_OBSERVATION")
+            if (
+                document["cell"] == "A5"
+                and document["evidence"]["connect_code"] != "VERIFIED"
+            ):
+                raise ValueError("PASS_REQUIRES_WORKING_HERMES_BLOCK")
             if document["cell"] == "F15":
                 observed = document["evidence"]
                 if (
