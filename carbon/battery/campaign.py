@@ -513,9 +513,12 @@ async def prepare_battery(args, *, ledger=None, campaign):
         if hasattr(args, "research_guidance") and task != frozen_task:
             raise ValueError("frozen research guidance differs")
         task = frozen_task
-        if task is not None and frozen["agent"] != "none":
-            if frozen.get("agent_policy") != research_task_policy(frozen):
-                raise ValueError("guided campaign policy differs")
+        if (
+            task is not None
+            and frozen["agent"] != "none"
+            and frozen.get("agent_policy") != research_task_policy(frozen)
+        ):
+            raise ValueError("guided campaign policy differs")
     product = getattr(args, "product", None)
     if frozen is None and product is None:
         raise ValueError("a battery campaign is a product campaign")
