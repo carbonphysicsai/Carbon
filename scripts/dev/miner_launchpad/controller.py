@@ -275,8 +275,7 @@ class Controller:
         self.clock = clock
         self.lock = threading.RLock()
         with self.connection() as db:
-            db.executescript(
-                """
+            db.executescript("""
                 CREATE TABLE IF NOT EXISTS runs (
                     id TEXT PRIMARY KEY, request_key TEXT UNIQUE NOT NULL,
                     spec TEXT NOT NULL, state TEXT NOT NULL,
@@ -288,8 +287,7 @@ class Controller:
                     run_id TEXT NOT NULL REFERENCES runs(id),
                     at REAL NOT NULL, kind TEXT NOT NULL
                 );
-            """
-            )
+            """)
 
     @contextlib.contextmanager
     def connection(self):

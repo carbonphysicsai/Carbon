@@ -10,9 +10,7 @@ from pathlib import Path
 
 import pytest
 import yaml
-from test_control_center_live_page import (
-    journey,
-)  # noqa: F401 - existing pytest fixture
+from test_control_center_live_page import journey as _page_journey
 from test_miner_launchpad import auth, request
 from test_miner_operations_doors import SpyHost
 
@@ -22,6 +20,8 @@ from scripts.dev.miner_launchpad import controller
 
 ROOT = Path(__file__).resolve().parents[2]
 REVISION = "a" * 40
+# Reuse the existing fixture object without an unused-import/shadowing exception.
+journey = _page_journey
 
 
 def record(root, cell="I1", result="PASS", **changes):
