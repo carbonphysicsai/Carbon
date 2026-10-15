@@ -436,6 +436,41 @@ def manifest_document(
     return document
 
 
+def research_task_policy(manifest):
+    """Expected Constructor policy from frozen campaign/edition authority.
+
+    The own projection verifies guided epoch input against this manifest
+    binding. Never take the expected policy from a mutable epoch plan.
+    """
+    from carbon.development_session import research_agent_policy as policy
+
+    provider = manifest["provider"]
+    if manifest["agent"] != "graphite":
+        return policy.binding(
+            provider["policy"], CHALLENGE, provider.get("parallel_calls")
+        )
+    from carbon.agent_campaign.graphite.miner import edition
+
+    block = edition.check_block(provider["graphite"])
+    role = edition.resolve(block["edition"], block["edition_digest"]).role(
+        "constructor"
+    )
+    ways = {
+        "select": edition.SELECT in role.tools,
+        "stop": edition.STOP in role.tools,
+        "finish": None,
+    }
+    prompt = policy.graphite_miner_prompt(
+        role.prompt,
+        limits=provider["limits"]["build"],
+        compaction=provider["compaction"],
+        **ways,
+    )
+    return policy.graphite_miner_binding(
+        prompt, role.prompt, policy.graphite_miner_reminder(**ways), CHALLENGE
+    )
+
+
 async def prepare_battery(args, *, ledger=None, campaign):
     from carbon.chain.external_signer import miner_signer
     from carbon.chain.models import CARBON_NETUID
@@ -478,6 +513,9 @@ async def prepare_battery(args, *, ledger=None, campaign):
         if hasattr(args, "research_guidance") and task != frozen_task:
             raise ValueError("frozen research guidance differs")
         task = frozen_task
+        if task is not None and frozen["agent"] != "none":
+            if frozen.get("agent_policy") != research_task_policy(frozen):
+                raise ValueError("guided campaign policy differs")
     product = getattr(args, "product", None)
     if frozen is None and product is None:
         raise ValueError("a battery campaign is a product campaign")
@@ -615,6 +653,8 @@ async def prepare_battery(args, *, ledger=None, campaign):
         )
         if task is not None:
             manifest["research_guidance"] = task
+            if agent != "none":
+                manifest["agent_policy"] = research_task_policy(manifest)
         write_once(manifest_path, canonical(manifest))
     else:
         manifest = frozen

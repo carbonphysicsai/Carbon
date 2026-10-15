@@ -47,3 +47,15 @@ only, no Julia execution or scientific/security/production qualification.
 Current frozen f080 Julia trial uses existing owner Conversation. This repair
 is prospective and is not a rebuild prerequisite for that trial. No host, model,
 provider, solver, credential, hidden input, spend, contract or score work here.
+
+## Review repair GUIDANCE-R1
+
+Product found owner projection would select LEGACY when Battery omitted the
+manifest agent_policy, then reject the actual guided Constructor epoch plan.
+Freeze its expected policy prospectively from the frozen campaign's registered
+edition, Constructor role, build limits/compaction and existing policy builders;
+autonomous uses its frozen policy/Challenge/parallel rule. Resume re-derives and
+checks it before external work. The real own projection/history verifier is
+unchanged; tests call it after the real driver and reject altered plan policy,
+prompt and effective digest. No mutable epoch plan supplies expected authority.
+Four-file ownership is retained; no shared projection/guidance edits.
