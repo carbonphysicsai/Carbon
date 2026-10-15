@@ -100,6 +100,7 @@ def plan(out):
 
 def _simulation(job):
     import pybamm
+
     from carbon.battery import reference as ref
 
     spec = ref.SPEC
@@ -521,9 +522,8 @@ def solve_calibration(jobs_path, records_path, workers, binding_path, expected_s
                     job = futures[future]
                     try:
                         record = future.result()
-                    except (
-                        Exception
-                    ) as exc:  # noqa: BLE001 -- retain worker infrastructure failure
+                    except Exception as exc:  # noqa: BLE001
+                        # Preserve worker infrastructure failure, not science failure.
                         record = {
                             **job,
                             "schema": "carbon.battery.feasibility02-record.v1",

@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 
 import pytest
+
 from carbon.battery import truth_env
 from carbon.design_search import tasks
 from scripts.dev.battery import feasibility02 as worker
