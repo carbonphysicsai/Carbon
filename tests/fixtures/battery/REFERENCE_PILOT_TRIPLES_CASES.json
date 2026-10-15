@@ -1,0 +1,35 @@
+{
+  "cases": [
+    {
+      "c1": 2.0,
+      "c2": 0.6,
+      "candidate": "c1=2,c2=0.6",
+      "case_id": "ev4:D-T5-S0.12:c1=2,c2=0.6:0",
+      "convergence_check": true,
+      "question": "D-T5-S0.12",
+      "reference_margin_v": -0.06759182213495515,
+      "reference_rung": "standard",
+      "soc0": 0.12,
+      "source": "ev4",
+      "split": "development",
+      "t_amb_c": 5.0
+    },
+    {
+      "c1": 0.75,
+      "c2": 0.4,
+      "candidate": "c1=0.75,c2=0.4",
+      "case_id": "ev4:D-T34-S0.48:c1=0.75,c2=0.4:0",
+      "convergence_check": true,
+      "question": "D-T34-S0.48",
+      "reference_margin_v": 0.04326904477988721,
+      "reference_rung": "standard",
+      "soc0": 0.48,
+      "source": "ev4",
+      "split": "development",
+      "t_amb_c": 34.0
+    }
+  ],
+  "ladder": "re-reference",
+  "schema": "carbon.battery.plating-convergence-cases.v1",
+  "source_commit": "bc465b1d1807eb4b0cdeb299ceb7d70da784e52b"
+}
