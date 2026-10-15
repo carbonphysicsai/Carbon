@@ -282,6 +282,125 @@ def test_f15_pass_records_two_paired_targets_separate_journals_and_no_averaging(
     assert cell.validate_cell(value) == value
 
 
+@pytest.mark.parametrize("identity", ["C3", "C4"])
+def test_remote_records_keep_actual_public_identity_and_refusal_codes(identity):
+    container = identity == "C4"
+    evidence = {
+        "transport": "ssh-container" if container else "ssh-docker",
+        "verification_code": "build-identity" if container else "image-id",
+        "practice_count": 2,
+        "backend": "REMOTE_GPU",
+        "cleanup_confirmed": True,
+        "unreachable_refusal_code": "ssh_unreachable",
+        "missing_worker_refusal_code": (
+            "no_worker_runtime" if container else "no_worker_image"
+        ),
+    }
+    if container:
+        evidence.update(machine_code="RUNPOD_POD", build_digest=DIGEST)
+    value = document(identity, evidence=evidence)
+    assert cell.validate_cell(value) == value
+
+
+def test_c11_records_actual_device_request_vocabulary_without_raw_device_identity():
+    value = document(
+        "C11",
+        evidence={
+            "requested_device_code": "gpu",
+            "observed_device_code": "gpu",
+            "driver_code": "nvidia",
+            "cleanup_confirmed": True,
+        },
+    )
+    assert cell.validate_cell(value) == value
+    for field in ("requested_device_code", "observed_device_code", "driver_code"):
+        bad = copy.deepcopy(value)
+        bad["evidence"][field] = "ghp_" + "a" * 36
+        with pytest.raises(ValueError):
+            cell.validate_cell(bad)
+
+
+def test_existing_lifecycle_states_can_be_observed_without_becoming_f07_pass():
+    flow = document(
+        "F14",
+        evidence={
+            "transition_codes": ["RUNNING", "PAUSED", "RUNNING"],
+            "journal_digest": DIGEST,
+            "paid_call_repeated": False,
+        },
+    )
+    assert cell.validate_cell(flow) == flow
+    launch = document("F07", "FAIL", evidence={"final_state": "STOPPED"})
+    assert cell.validate_cell(launch) == launch
+    launch = document(
+        "F07",
+        evidence={
+            "campaign_id": "c" * 32,
+            "final_state": "COMPLETED",
+            "first_turn_calls": 3,
+            "journal_digest": DIGEST,
+            "settlement_code": "SETTLED",
+        },
+    )
+    assert cell.validate_cell(launch) == launch
+    launch["evidence"]["final_state"] = "STOPPED"
+    with pytest.raises(ValueError, match="PASS_CONTRADICTS_OBSERVATION"):
+        cell.validate_cell(launch)
+
+
+def test_a5_can_record_a_settled_unsupported_snippet_outcome():
+    value = document(
+        "A5",
+        evidence={
+            "client_version_code": "HERMES_0_1_0",
+            "snippet_digest": DIGEST,
+            "connect_code": "UNSUPPORTED",
+        },
+    )
+    assert cell.validate_cell(value) == value
+
+
+@pytest.mark.parametrize(
+    "field",
+    [
+        "controller_started",
+        "stale_profile_present",
+        "profile_loaded",
+        "next_steps_present",
+        "tty_confirmed",
+        "finalized",
+        "receiver_pair_matches",
+        "sealed",
+        "paid_call_repeated",
+        "receiver_pairs_match",
+        "cleanup_confirmed",
+        "verdicts_averaged",
+    ],
+)
+def test_declared_boolean_observations_reject_integer_or_text_substitutes(field):
+    assert (
+        cell.validate_cell(document("F08", "FAIL", evidence={field: False}))["result"]
+        == "FAIL"
+    )
+    for wrong in (0, 1, "true", []):
+        with pytest.raises(ValueError):
+            cell.validate_cell(document("F08", "FAIL", evidence={field: wrong}))
+
+
+@pytest.mark.parametrize(
+    "field",
+    ["first_turn_calls", "block", "target_count", "practice_count", "tool_count"],
+)
+def test_declared_counts_reject_boolean_or_text_substitutes(field):
+    assert (
+        cell.validate_cell(document("F08", "FAIL", evidence={field: 2}))["result"]
+        == "FAIL"
+    )
+    for wrong in (True, False, -1, "2", []):
+        with pytest.raises(ValueError, match="INVALID_PUBLIC_COUNT"):
+            cell.validate_cell(document("F08", "FAIL", evidence={field: wrong}))
+
+
 @pytest.mark.parametrize(
     "change",
     [

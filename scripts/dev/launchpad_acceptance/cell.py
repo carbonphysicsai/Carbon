@@ -96,11 +96,49 @@ _MACHINE_KINDS = {
     "TARGON_VM",
     "TEMPORARY_UNIT_FIXTURE",
 }
+_CAMPAIGN_STATES = {
+    "QUEUED",
+    "RUNNING",
+    "READY",
+    "PAUSED",
+    "INTERRUPTED",
+    "STOPPED",
+    "COMPLETED",
+    "RECONCILIATION_REQUIRED",
+    "FAILED",
+    "FAILED_INFRA",
+}
+_BOOLEAN_FIELDS = {
+    "controller_started",
+    "stale_profile_present",
+    "profile_loaded",
+    "next_steps_present",
+    "tty_confirmed",
+    "finalized",
+    "receiver_pair_matches",
+    "sealed",
+    "paid_call_repeated",
+    "receiver_pairs_match",
+    "cleanup_confirmed",
+    "verdicts_averaged",
+}
+_COUNT_FIELDS = {
+    "first_turn_calls",
+    "block",
+    "target_count",
+    "practice_count",
+    "tool_count",
+}
 _CLOSED_VALUES = {
     "backend": {"CPU", "ISOLATED_CARRIER_GPU", "REMOTE_GPU"},
     "transport": {"ssh-docker", "ssh-container"},
     "framework_code": {"jax", "pytorch", "JAX", "PYTORCH"},
-    "final_state": {"COMPLETED", "PAUSED"},
+    "final_state": _CAMPAIGN_STATES,
+    "machine_code": _MACHINE_KINDS,
+    "requested_device_code": {"cpu", "gpu", "CPU", "GPU"},
+    "observed_device_code": {"cpu", "gpu", "CPU", "GPU"},
+    "driver_code": {"nvidia"},
+    "verification_code": {"image-id", "build-identity"},
     "result": {"PASS", "FAIL", "BLOCKED"},
 }
 _OBSERVATION_CODES = {
@@ -133,6 +171,19 @@ _OBSERVATION_CODES = {
     "PASS",
     "FAIL",
     "BLOCKED",
+    "SUPPORTED",
+    "UNSUPPORTED",
+    "RUNNING",
+    "QUEUED",
+    "STOPPED",
+    "INTERRUPTED",
+    "RECONCILIATION_REQUIRED",
+    # Existing remote-machine refusal vocabulary, not arbitrary code text.
+    "ssh_unreachable",
+    "ssh_timed_out",
+    "no_worker_image",
+    "no_worker_runtime",
+    "worker_identity_mismatch",
 }
 _F15_ADMITTED = {"RECEIVED", "ADMITTED", "SCORED"}
 _F15_REFUSED = {
@@ -206,6 +257,14 @@ def _evidence(value, key="evidence", depth=0, count=None):
     count[0] += 1
     if depth > 8 or count[0] > 512:
         raise ValueError("EVIDENCE_TOO_LARGE")
+    if key in _BOOLEAN_FIELDS:
+        if type(value) is not bool:
+            raise ValueError("INVALID_PUBLIC_BOOLEAN")
+        return
+    if key in _COUNT_FIELDS:
+        if type(value) is not int or not 0 <= value <= 2**63 - 1:
+            raise ValueError("INVALID_PUBLIC_COUNT")
+        return
     if key in ("installer_exit_code", "response_code"):
         low, high = (0, 255) if key == "installer_exit_code" else (100, 599)
         if type(value) is not int or not low <= value <= high:
@@ -347,6 +406,10 @@ def validate_cell(document):
                 document["evidence"]["response_code"] != 202
                 or document["evidence"]["receiver_pair_matches"] is not True
             ):
+                raise ValueError("PASS_CONTRADICTS_OBSERVATION")
+            if document["cell"] == "F07" and document["evidence"][
+                "final_state"
+            ] not in {"COMPLETED", "PAUSED"}:
                 raise ValueError("PASS_CONTRADICTS_OBSERVATION")
             if document["cell"] == "F15":
                 observed = document["evidence"]

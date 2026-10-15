@@ -83,3 +83,18 @@ F01 PASS requires exit 0; F11 PASS requires HTTP 202 and matched receiver pairin
 Public campaign/submission IDs also have explicit contextual formats, so opaque
 credential guards do not reject a legitimate bsub-prefixed public identity.
 This does not loosen arbitrary code text, role metadata or secret grammar.
+
+The finite static branch audit covers all 78 distinct required evidence names
+across 43 cells. Twelve declared Booleans and five counts have explicit disjoint
+type branches. Remote verification uses image-id/build-identity from
+carbon/compute/remote_transport.py; SSH/missing-worker codes come from
+carbon/compute/remote_machine.py FAILURES and environment_setup.py REMOTE_FIELDS.
+C4 machine_code reuses the existing closed public machine kinds, including
+RUNPOD_POD. C11 uses the existing device_request Driver nvidia and gpu capability
+in carbon/reconstruction/worker/accelerator_runtime.py, without a raw device ID.
+Existing campaign states (research_control.py/supervisor.py/runner.py) remain
+recordable on failures/transitions; F07 PASS stays COMPLETED or PAUSED only.
+No new capability, production criterion, arbitrary-code fallback, or host action
+is introduced. Tests cover actual public C3/C4/C11 shapes, lifecycle observations
+and Boolean/count interchange failures. Unavailable scientific/owner facts still
+remain unknown; this audit establishes source compatibility, not a real run.

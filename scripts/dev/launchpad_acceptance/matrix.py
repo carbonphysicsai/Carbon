@@ -236,7 +236,7 @@ COMPUTE = (
         "C11",
         "compute",
         "device-request-driver",
-        "The real device-request driver follows the requested device or emits its typed refusal; retain requested/observed device codes and cleanup evidence.",
+        "The real device request names Driver nvidia and gpu capability; retain requested/observed public device codes and cleanup evidence, with selected identity recorded only by digest. Typed failures are nonpassing; no containment or scientific qualification is inferred.",
         "requested_device_code observed_device_code driver_code cleanup_confirmed",
     ),
 )
