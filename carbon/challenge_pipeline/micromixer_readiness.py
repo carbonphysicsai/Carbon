@@ -314,7 +314,16 @@ def balances(
     incoming_volume,
     incoming_solute,
     storage_rate=0,
+    solute_floor=None,
 ):
+    """Boundary mass and solute residuals, outward signs, every boundary face.
+
+    The solute residual is normalised by the incoming solute flux; with an
+    explicit ``solute_floor`` (F17-SCIENCE-VALUES-01 B2: 1e-6 x Q in
+    concentration units) a zero-solute control is normalised by that floor
+    instead of a tiny incoming flux. Without a floor zero incoming solute is
+    refused.
+    """
     arrays = [
         np.asarray(v, dtype=float)
         for v in (
@@ -331,6 +340,8 @@ def balances(
             "same complete boundary-face support with outward signs required"
         )
     q, solute = finite(incoming_volume), finite(incoming_solute)
+    if solute_floor is not None and finite(solute_floor) > 0:
+        solute = max(solute, float(solute_floor))
     if q <= 0 or solute <= 0:
         raise ValueError(
             "nonzero incoming normalization; zero-solute controls need approved absolute floor"

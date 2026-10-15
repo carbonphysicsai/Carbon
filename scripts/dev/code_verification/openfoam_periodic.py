@@ -19,7 +19,9 @@ def header(name, kind="dictionary"):
 def dictionaries(n):
     if n not in (16, 32, 64):
         raise ValueError("registered scalar ladder required")
-    mesh = header("blockMeshDict") + """scale 1;
+    mesh = (
+        header("blockMeshDict")
+        + """scale 1;
 vertices ((0 0 0)(1 0 0)(1 .1 0)(0 .1 0)(0 0 .1)(1 0 .1)(1 .1 .1)(0 .1 .1));
 blocks (hex (0 1 2 3 4 5 6 7) (N 1 1) simpleGrading (1 1 1));
 edges ();
@@ -31,6 +33,7 @@ boundary (
 );
 mergePatchPairs ();
 """.replace("(N 1 1)", f"({n} 1 1)")
+    )
     bc = """boundaryField {
  left {type cyclic;} right {type cyclic;}
  walls {type zeroGradient;} frontBack {type empty;}
@@ -95,6 +98,11 @@ def main():
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--image-digest", required=True)
     parser.add_argument("--spec-digest", required=True)
+    parser.add_argument(
+        "--docker-ref",
+        help="run each OpenFOAM command in this pinned image (no network, 1 CPU) "
+        "instead of on the host, e.g. the f17 package run reference",
+    )
     args = parser.parse_args()
     args.work.mkdir(exist_ok=False)
     rows, raw = [], []
@@ -106,10 +114,17 @@ def main():
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(contents)
         for command in (["blockMesh"], ["scalarTransportFoam"]):
+            if args.docker_ref:
+                # the image entrypoint starts in $HOME: cd explicitly
+                command = [
+                    "docker", "run", "--rm", "--network", "none", "--cpus", "1",
+                    "--memory", "1g", "-v", f"{directory.resolve()}:/case",
+                    args.docker_ref, "bash", "-c", f"cd /case && {command[0]}",
+                ]  # fmt: skip
             result = subprocess.run(
-                command, cwd=directory, capture_output=True, timeout=180, check=False
+                command, cwd=directory, capture_output=True, timeout=600, check=False
             )
-            (directory / (command[0] + ".log")).write_bytes(
+            (directory / (command[-1].split()[-1] + ".log")).write_bytes(
                 result.stdout + result.stderr
             )
             if result.returncode:

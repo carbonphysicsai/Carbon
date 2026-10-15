@@ -168,8 +168,63 @@ mergeTolerance 1e-6;
     )
 
 
+def smooth_block_mesh(h_um):
+    """Smooth-duct control: the channel block only, z = 0 is the 'bottom' wall."""
+    nx, ny, nz = (
+        round(geo.L_UM / h_um),
+        round(geo.W_UM / 2 / h_um),
+        round(geo.H_UM / h_um),
+    )
+    xs, ys, zs = (0.0, geo.L_UM), (0.0, geo.W_UM / 2, geo.W_UM), (0.0, geo.H_UM)
+    verts, index = [], {}
+    for k, z in enumerate(zs):
+        for j, y in enumerate(ys):
+            for i, x in enumerate(xs):
+                index[i, j, k] = len(verts)
+                verts.append(f"({fmt(x)} {fmt(y)} {fmt(z)})")
+    blocks, patches = (
+        [],
+        {n: [] for n in ("inlet0", "inlet1", "outlet", "sides", "top", "bottom")},
+    )
+    for j in range(2):
+        v = [index[0, j, 0], index[1, j, 0], index[1, j + 1, 0], index[0, j + 1, 0],
+             index[0, j, 1], index[1, j, 1], index[1, j + 1, 1], index[0, j + 1, 1]]  # fmt: skip
+        blocks.append(
+            f"hex ({' '.join(map(str, v))}) ({nx} {ny} {nz}) simpleGrading (1 1 1)"
+        )
+        patches[f"inlet{j}"].append((v[0], v[4], v[7], v[3]))
+        patches["outlet"].append((v[1], v[2], v[6], v[5]))
+        patches["sides"].append(
+            (v[0], v[1], v[5], v[4]) if j == 0 else (v[3], v[7], v[6], v[2])
+        )
+        patches["bottom"].append((v[0], v[3], v[2], v[1]))
+        patches["top"].append((v[4], v[5], v[6], v[7]))
+    body = header("dictionary", "blockMeshDict") + "scale 1;\nvertices\n(\n"
+    body += "\n".join(verts) + "\n);\nblocks\n(\n" + "\n".join(blocks) + "\n);\n"
+    body += "edges ();\nboundary\n(\n"
+    for name, faces in patches.items():
+        kind = "wall" if name in ("sides", "top", "bottom") else "patch"
+        body += f"{name} {{ type {kind}; faces ("
+        body += " ".join("(" + " ".join(map(str, f)) + ")" for f in faces) + "); }\n"
+    return body + ");\nmergePatchPairs ();\n"
+
+
 def mesh_files(design, h_um):
     common = "writeFormat binary; writeCompression off; writePrecision 17; "
+    if design is None:
+        return {
+            "mesh/system/controlDict": header("dictionary", "controlDict")
+            + "application blockMesh; startFrom startTime; startTime 0; "
+            "stopAt endTime; endTime 0; deltaT 1; writeControl timeStep; "
+            f"writeInterval 1; {common}runTimeModifiable false;\n",
+            "mesh/system/fvSchemes": header("dictionary", "fvSchemes")
+            + "ddtSchemes { default steadyState; } gradSchemes { default Gauss linear; }"
+            " divSchemes { default none; } laplacianSchemes { default Gauss linear corrected; }"
+            " interpolationSchemes { default linear; } snGradSchemes { default corrected; }\n",
+            "mesh/system/fvSolution": header("dictionary", "fvSolution")
+            + "solvers { }\n",
+            "mesh/system/blockMeshDict": smooth_block_mesh(h_um),
+        }
     return {
         "mesh/system/controlDict": header("dictionary", "controlDict")
         + "application snappyHexMesh; startFrom startTime; startTime 0; "
@@ -192,7 +247,7 @@ MESH_SCRIPT = """#!/bin/bash
 set -e
 cd mesh
 blockMesh > log.blockMesh 2>&1
-snappyHexMesh -overwrite > log.snappyHexMesh 2>&1
+[ -f system/snappyHexMeshDict ] && snappyHexMesh -overwrite > log.snappyHexMesh 2>&1
 transformPoints -scale 1e-6 > log.transformPoints 2>&1
 checkMesh -constant > log.checkMesh 2>&1 || true
 grep -q "Mesh OK" log.checkMesh
@@ -374,13 +429,16 @@ def write_case(out, design, h_um, flows=FLOWS, diffusivities=DIFFUSIVITIES,
     scalar_specs: optional list of (q, D, scheme) overriding flows x diffusivities.
     """
     out = Path(out)
-    report = geo.check(design)
+    smooth = design is None  # smooth-duct control
+    report = None if smooth else geo.check(design)
     files = mesh_files(design, h_um)
     for q in flows:
         files.update(flow_files(q))
-    specs = scalar_specs or [
-        (q, d, PRIMARY_SCHEME) for q in flows for d in diffusivities
-    ]
+    specs = (
+        scalar_specs
+        if scalar_specs is not None
+        else [(q, d, PRIMARY_SCHEME) for q in flows for d in diffusivities]
+    )
     specs = [tuple(sp) + ((0, 1),) * (4 - len(sp)) for sp in specs]
     for q, d, scheme, inlet in specs:
         files.update(scalar_files(q, d, scheme, inlet=inlet))
@@ -394,9 +452,13 @@ def write_case(out, design, h_um, flows=FLOWS, diffusivities=DIFFUSIVITIES,
         "label": label,
         "design": design,
         "mesh_h_um": h_um,
-        "block_counts": counts(design, h_um),
+        "block_counts": None if smooth else counts(design, h_um),
         "geometry": report,
-        "surface": geo.surface_check(design),
+        "analytic_volume_m3": (
+            geo.L_UM * geo.W_UM * geo.H_UM if smooth else report["fluid_volume_um3"]
+        )
+        * 1e-18,
+        "surface": None if smooth else geo.surface_check(design),
         "flows_ul_min": list(flows),
         "scalars": [
             {
