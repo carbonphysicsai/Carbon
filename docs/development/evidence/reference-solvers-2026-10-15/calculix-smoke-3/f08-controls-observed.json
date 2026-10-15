@@ -1,0 +1,132 @@
+{
+ "bands": {
+  "beam_freq_rel": 0.01,
+  "beam_peak_rel": 0.03,
+  "beam_static_rel": 0.02,
+  "curve_abs_mm_per_n": 0.0015,
+  "curve_rel": 0.05,
+  "eigen_rel": 0.01,
+  "grid_bandwidth_fraction": 0.1,
+  "ladder_rel": 0.01,
+  "location_hz": 2.0,
+  "location_rel": 0.01,
+  "mass_rel": 0.005,
+  "mode_cutoff_hz": 900.0,
+  "off_peak_bandwidths": 3.0,
+  "oscillator_phase_deg": 0.01,
+  "oscillator_rel": 1e-06,
+  "peak_rel": 0.05,
+  "phase_deg": 5.0,
+  "phase_floor_mm_per_n": 0.015,
+  "sampling_loss_rel": 0.005,
+  "static_rel": 0.02,
+  "truncation_rel": 0.01
+ },
+ "bands_decision": "F08-SCIENCE-VALUES-01",
+ "bank_mesh": {
+  "h_mm": null,
+  "status": "UNRESOLVED_INCOMPLETE_WITNESSES"
+ },
+ "cases": {
+  "control-beam": {
+   "cost": {
+    "cgroup_cpu_s": null,
+    "cgroup_memory_peak_mib": 598.1328125,
+    "children_cpu": null,
+    "host_profile": "runpod-cpu-pod-native",
+    "outcome": "COMPLETED",
+    "rusage_cpu_s": 56.525,
+    "wall_s": 56.621
+   },
+   "status": "NOT_RUN_OR_NO_OUTPUT"
+  },
+  "control-oscillators": {
+   "bands_decision": "F08-SCIENCE-VALUES-01",
+   "cost": {
+    "cgroup_cpu_s": null,
+    "cgroup_memory_peak_mib": 3.01171875,
+    "children_cpu": null,
+    "host_profile": "runpod-cpu-pod-native",
+    "outcome": "COMPLETED",
+    "rusage_cpu_s": 0.107,
+    "wall_s": 0.202
+   },
+   "damping": {
+    "zeta_0.005": {
+     "frequencies": 134,
+     "max_phase_err_deg": 1.2827223068589954e-05,
+     "max_rel_err_vs_analytic": 4.846888698698812e-07,
+     "unretained_max_abs": 6.493026862596769e-18
+    },
+    "zeta_0.01": {
+     "frequencies": 134,
+     "max_phase_err_deg": 1.649684706619149e-05,
+     "max_rel_err_vs_analytic": 4.879269503466389e-07,
+     "unretained_max_abs": 3.246240562753844e-18
+    },
+    "zeta_0.02": {
+     "frequencies": 134,
+     "max_phase_err_deg": 1.5724768384667397e-05,
+     "max_rel_err_vs_analytic": 4.879386253947497e-07,
+     "unretained_max_abs": 1.6225748338033428e-18
+    }
+   },
+   "modes": [
+    {
+     "hz_rel_err": 0.0,
+     "mode": 1,
+     "off_node_max": 1.776357e-15,
+     "oscillator": 0,
+     "phi_sqrt_m_minus_1": 1.074641942100385e-07
+    },
+    {
+     "hz_rel_err": 0.0,
+     "mode": 2,
+     "off_node_max": 3.552714e-15,
+     "oscillator": 1,
+     "phi_sqrt_m_minus_1": 4.410443854574453e-08
+    },
+    {
+     "hz_rel_err": 1.4500872158369393e-16,
+     "mode": 3,
+     "off_node_max": 8.850305e-15,
+     "oscillator": 2,
+     "phi_sqrt_m_minus_1": 3.9709074250993126e-08
+    },
+    {
+     "hz_rel_err": 2.0715531654813423e-16,
+     "mode": 4,
+     "off_node_max": 1.97103e-14,
+     "oscillator": 3,
+     "phi_sqrt_m_minus_1": 9.147571666812127e-08
+    },
+    {
+     "hz_rel_err": 2.959361664973346e-16,
+     "mode": 5,
+     "off_node_max": 1.365574e-14,
+     "oscillator": 4,
+     "phi_sqrt_m_minus_1": 1.0062399802279742e-08
+    },
+    {
+     "hz_rel_err": 2.1138297606952472e-16,
+     "mode": 6,
+     "off_node_max": 1.831927e-14,
+     "oscillator": 5,
+     "phi_sqrt_m_minus_1": 5.0649688776438495e-08
+    }
+   ],
+   "verdict": "PASS"
+  }
+ },
+ "convergence": {
+  "long-flexible": {
+   "status": "INCOMPLETE_LADDER"
+  },
+  "nominal": {
+   "status": "INCOMPLETE_LADDER"
+  },
+  "relieved-tall": {
+   "status": "INCOMPLETE_LADDER"
+  }
+ }
+}

@@ -1,0 +1,19 @@
+{
+ "name": "f13-verification-checks",
+ "type": "script",
+ "status": "FAIL",
+ "wall_s": 0.1011072600085754,
+ "exit": 1,
+ "signal": null,
+ "stop_reason": "exit",
+ "rusage_user_s": 0.044,
+ "rusage_sys_s": 0.012,
+ "rusage_cpu_s": 0.056,
+ "rusage_maxrss_bytes": 23592960,
+ "sampled_group_rss_peak_bytes": 0,
+ "rlimit_as_bytes": null,
+ "kept": {
+  "copied": 0,
+  "not_copied": 0
+ }
+}

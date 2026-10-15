@@ -93,7 +93,7 @@
     "primary": 0.5,
     "refined": 1.5
    },
-   "generator": "docs/development/evidence/reference-packages-01/triage-f17-decks-manifest.json (f17_freeze.py triage)",
+   "generator": "docs/development/evidence/reference-packages-01/triage-f17-decks-manifest.json (f17_freeze.py triage); same pod plan docs/development/evidence/reference-solvers-2026-10-15/plans/f17-witness-triage.json on cpu5c 16 vCPU",
    "status": "READY_TO_GENERATE",
    "usd_runpod": 0.11
   },
@@ -110,7 +110,7 @@
     "primary": 0.5,
     "refined": 1.5
    },
-   "generator": "triage manifest",
+   "generator": "pod plan docs/development/evidence/reference-solvers-2026-10-15/plans/f17-witness-triage.json (bulk run + in-place judge f17_pod_judge.py)",
    "status": "READY_TO_GENERATE (pod stage)",
    "usd_runpod": 0.0
   },
@@ -202,5 +202,6 @@
  ],
  "public_cpu_h": 44.5,
  "public_usd_at_0.035_per_vcpu_h": 1.56,
- "sealed_rule": "sealed roles run only on the custody host, never RunPod; no sealed seed is written anywhere"
+ "sealed_rule": "sealed roles run only on the custody host, never RunPod; no sealed seed is written anywhere",
+ "bank_gate": "run the witness pod plan first; D2 REFINED_RUNG_REQUIRED moves every bank role to the refined rung (~3.8x CPU-h, re-bill); HIGH_PE_UNRESOLVED escalates to the owner before bank generation"
 }

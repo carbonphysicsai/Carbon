@@ -95,7 +95,8 @@ def test_triage_manifest_is_runner_schema(tmp_path):
                                   "cold_repeat": 1}  # fmt: skip
     assert manifest["image"] == m.IMAGE_DIGEST
     for case in manifest["cases"]:
-        assert case["command"].startswith("bash /case/Allrun")
+        assert case["command"] == "bash Allrun > Allrun.log 2>&1"
+        assert "/case" not in case["command"]  # pod_phase refuses container paths
         root = tmp_path / "f17" / case["case"]
         assert _hashes(root) == case["files"]
 

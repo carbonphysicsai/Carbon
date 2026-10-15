@@ -16,7 +16,7 @@ bank: the registered design bank (F7) drawn from the packet action law with the
 OPERATOR's producer seed (read from a file that is never written here); every
 design gets the primary nine-condition panel.
 
-One case = one container launch: `bash /case/Allrun` meshes in the case
+One case = one container launch: `bash Allrun` meshes in the case
 (snappyHexMesh is deterministic: the proof records equal mesh hashes from two
 independent generations), then flows, then scalars on the retained phi.
 Every input file is hashed into the manifest; nothing else is generated on the
@@ -44,7 +44,7 @@ PANELS = (
 LOCK = json.loads((HERE / "image.lock.json").read_text())
 H_PRIMARY, H_REFINED = 10.0, 10 / 2**0.5
 WITNESSES = ("deep-dense", "deep-sparse")
-COMMAND = "bash /case/Allrun > /case/Allrun.log 2>&1"
+COMMAND = "bash Allrun > Allrun.log 2>&1"
 NINE = [(q, d, deck.PRIMARY_SCHEME) for q in deck.FLOWS for d in deck.DIFFUSIVITIES]
 ZERO_D = [(5, 0.0, deck.PRIMARY_SCHEME)]
 
@@ -192,9 +192,9 @@ def triage(out, estimates=None):
         "authority": "#787 f17 public triage panel; F17-SCIENCE-VALUES-01; no spend",
         "image": LOCK["manifest_digest"],
         "image_run_ref": LOCK["run_reference"],
-        "image_note": "upstream image: entrypoint /openfoam/run starts in $HOME, so the "
-        "command uses absolute /case paths; Allrun sources etc/bashrc if the "
-        "entrypoint is overridden",
+        "image_note": "the command is relative to the case dir (bulk_run sets -w /case "
+        "in Docker and the case dir as cwd natively; pod_phase refuses /case paths); "
+        "Allrun cds to its own dir and sources etc/bashrc when simpleFoam is not on PATH",
         "case_limits_recommended": {
             "cpus": 1,
             "memory_gib_primary": 2,

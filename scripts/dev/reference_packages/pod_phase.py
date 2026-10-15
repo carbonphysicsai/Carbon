@@ -29,7 +29,11 @@ material only and lists steps, run in order until the admission deadline:
   every case either way). The selected cases then run through
   ``bulk_run.py --executor native`` on a plan sized to the pod (its vCPUs,
   its memory less a reserve, its admission deadline); the ledger, summaries,
-  each case's meta and the ``keep`` files of its work dir are served.
+  each case's meta and the ``keep`` files of its work dir are served. An
+  optional ``observe`` (``argv``, ``timeout_s``) then runs from the repository
+  root over the complete bulk output (``{bulk}``: ledger, summary and every
+  case's full work dir, before ``keep`` filtering) and writes its judgement
+  under ``{out}``; the step passes only if it exits 0.
 
 Writes ``OUT/pod-environment.json`` first and ``OUT/pod-phase.json`` last.
 Exits non-zero when any step did not pass. DEVELOPMENT engineering only: it
@@ -226,6 +230,13 @@ def load_plan(path, kind):
                 problems.append(f"{name}: exactly one of freeze or decks")
             if not isinstance(step.get("families"), dict) or not step["families"]:
                 problems.append(f"{name}: families is required")
+            observe = step.get("observe")
+            if observe is not None and (
+                not isinstance(observe, dict)
+                or not isinstance(observe.get("argv"), list)
+                or not observe["argv"]
+            ):
+                problems.append(f"{name}: observe needs a non-empty argv")
         else:
             problems.append(f"{name}: type must be script or bulk")
     if problems:
@@ -513,6 +524,20 @@ def run_bulk(step, values, env, config, kind):
         )
         if (case_dir / "work").is_dir():
             keep_files(case_dir / "work", out / rel / "work", step.get("keep"))
+    observed = True
+    if step.get("observe"):
+        observe = step["observe"]
+        argv = expand(observe["argv"], {**values, "bulk": str(bulk_out)})
+        with open(out / "observe.log", "wb") as log:
+            try:
+                ran = subprocess.run(
+                    argv, cwd=ROOT, env=env, stdout=log, stderr=subprocess.STDOUT,
+                    timeout=float(observe.get("timeout_s", 1800)), check=False,
+                )  # fmt: skip
+                record["observe_exit"] = ran.returncode
+            except subprocess.TimeoutExpired:
+                record["observe_exit"] = "TIMEOUT"
+        observed = record["observe_exit"] == 0
     summary_path = bulk_out / "summary" / "all.json"
     summary = json.loads(summary_path.read_text()) if summary_path.exists() else {}
     record["outcomes"] = {
@@ -523,7 +548,8 @@ def run_bulk(step, values, env, config, kind):
     }
     launched_all = all(not v for v in record["not_launched"].values())
     completed = all(set(o or {}) <= {"COMPLETED"} for o in record["outcomes"].values())
-    return done.returncode == 0 and bool(summary) and launched_all and completed, record
+    passed = done.returncode == 0 and bool(summary) and launched_all and completed
+    return passed and observed, record
 
 
 # ----------------------------------------------------------------- main

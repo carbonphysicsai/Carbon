@@ -35,10 +35,10 @@ ROOT = HERE.parents[3]
 sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(ROOT))
 
-from carbon.challenge_pipeline import structures_readiness as s
-
 import f08_deck as deck
 import f08_freeze as freeze_mod
+
+from carbon.challenge_pipeline import structures_readiness as s
 
 STEPS = (5, 5, 0.5, 1, 0.5, 5)  # Q1 lattice steps, packet field order
 MODES = 48
@@ -252,7 +252,7 @@ def freeze(
         name = f"{role}-{i:04d}"
         d = out / "f08" / name
         size = deck.write_case(row, d, h_mm, MODES)
-        return {"family": "f08", "case": name, "reservation": role, "command": deck.COMMAND,
+        return {"family": "f08", "case": name, "reservation": role, "command": deck.BANK_COMMAND,
                 "mesh": size, **deck.estimate(size["nodes"]), "action": row, "action_digest": s.tasks.digest(row),
                 "files": freeze_mod._digest(d)}  # fmt: skip
 
@@ -286,6 +286,15 @@ def freeze(
     }
     (out / "manifest.json").write_text(json.dumps(manifest, indent=1) + "\n")
     return manifest
+
+
+def gate(observed, h_mm):
+    """0 iff the triage observation's V9 bank mesh is `h_mm` (bank decks frozen at it)."""
+    path = Path(observed)
+    pick = json.loads(path.read_text()).get("bank_mesh", {}) if path.exists() else {}
+    ok = pick.get("status") == "PASS" and pick.get("h_mm") == h_mm
+    print(json.dumps({"gate": "PASS" if ok else "REFUSED", "v9": pick, "h_mm": h_mm}))
+    return 0 if ok else 1
 
 
 def main(argv=None):
@@ -331,7 +340,12 @@ def main(argv=None):
     b.add_argument("--exclude", type=Path, nargs="*")
     b.add_argument("--kind", choices=sorted(SCREENS), default="boundary")
     b.add_argument("--out", type=Path, required=True)
+    g = sub.add_parser("gate", help="exit 1 unless V9 picked this bank mesh")
+    g.add_argument("--observed", type=Path, required=True)
+    g.add_argument("--h", type=float, required=True)
     args = p.parse_args(argv)
+    if args.cmd == "gate":
+        return gate(args.observed, args.h)
     if args.cmd == "register":
         args.out.write_text(json.dumps(registration(), indent=1, sort_keys=True) + "\n")
         print(json.loads(args.out.read_text())["registration_digest"])

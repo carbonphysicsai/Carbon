@@ -1,0 +1,7 @@
+{
+ "name": "f13-triage-panel",
+ "type": "bulk",
+ "status": "REFUSED",
+ "wall_s": 0.1,
+ "why": "freeze failed (exit 1, exit)"
+}

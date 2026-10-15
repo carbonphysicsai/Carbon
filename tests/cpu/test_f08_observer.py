@@ -203,3 +203,43 @@ def test_beam_screen_and_answer_region_enrichment():
     assert 0 < p_region < 1 and len(weights) == 64
     assert sum(bank.answer_region(r) for r in rows) >= 32
     assert all(w > 0 for w in weights)
+
+
+POD_CONTROLS = (
+    ROOT / "docs/development/evidence/reference-solvers-2026-10-15"
+    / "calculix-smoke-3/out/f08-triage-controls"
+)  # fmt: skip
+
+
+def test_observer_judges_a_native_pod_bulk_output_from_its_ledger(tmp_path):
+    import json
+    import shutil
+
+    freeze = _load("f08_freeze")
+    shutil.copytree(POD_CONTROLS, tmp_path / "bulk")
+    summary = freeze.observe_all(tmp_path / "bulk", tmp_path / "observed.json")
+    osc = summary["cases"]["control-oscillators"]
+    assert osc["verdict"] == "PASS"  # C1 on the RunPod native build
+    assert osc["cost"]["host_profile"] == "runpod-cpu-pod-native"
+    assert osc["cost"]["rusage_cpu_s"] > 0
+    # The pod kept no case.dat for the beam (2.19 MB > the 2 MB keep limit).
+    beam = summary["cases"]["control-beam"]
+    assert beam["status"] == "NOT_RUN_OR_NO_OUTPUT"
+    assert beam["cost"]["outcome"] == "COMPLETED"
+    assert summary["bank_mesh"]["status"] == "UNRESOLVED_INCOMPLETE_WITNESSES"
+    assert json.loads((tmp_path / "observed.json").read_text())["cases"]
+
+
+def test_bank_gate_follows_the_v9_pick_and_bank_launches_drop_the_eigen_basis(
+    tmp_path,
+):
+    import json
+
+    bank, deck = _load("f08_bank"), _load("f08_deck")
+    obs = tmp_path / "observed.json"
+    assert bank.main(["gate", "--observed", str(obs), "--h", "3"]) == 1
+    obs.write_text(json.dumps({"bank_mesh": {"h_mm": 3.0, "status": "PASS"}}))
+    assert bank.main(["gate", "--observed", str(obs), "--h", "3"]) == 0
+    assert bank.main(["gate", "--observed", str(obs), "--h", "2.25"]) == 1
+    assert deck.BANK_COMMAND.startswith(deck.COMMAND.split("; (exit")[0])
+    assert "rm -f case.eig; (exit $rc)" in deck.BANK_COMMAND

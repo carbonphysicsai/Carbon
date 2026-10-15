@@ -1,0 +1,289 @@
+{
+ "schema": "carbon.f17.feature-proof.v1",
+ "scope": "PUBLIC_DEVELOPMENT",
+ "decision": ".agent/decisions/2026-10-15-F17-SCIENCE-VALUES-01.md",
+ "image": "opencfd/openfoam-default@sha256:020e00e512c3e0f50dd9904137bb64bdfe4b55b1fae6b9d6a566e4895d2d6e4a",
+ "host_profile": "local-dev-4vcpu-15g-contended",
+ "summary": {
+  "C1_poiseuille": "PASS",
+  "C2_uniform": "FAIL (finding: max |c-1| 1.32e-6 > 1e-6)",
+  "C3_split": "PASS",
+  "C4_zeroD": "PASS",
+  "C5_periodic": "PASS",
+  "D1_two_mesh": "PENDING_POD (plans/f17-witness-triage.json)",
+  "D2_high_pe_primary_deep_dense": "PASS (0.0310 >= 0.02)",
+  "D2_refined_and_deep_sparse": "PENDING_POD",
+  "D3_scheme_diagnostic": "DIAGNOSTIC (limitedLinear01 M = 1.0000 after 13 iterations: anomaly, escalated)",
+  "D4_one_way": "PASS",
+  "D5_parity": "PASS (bitwise)",
+  "D6_refusal": "PASS (4/4 refused before solver start; altered/missing phi caught)",
+  "D7_flow_reuse": "ACCEPTED"
+ },
+ "findings": [
+  "C2: uniform-tracer deviation 1.32e-6 exceeds the registered 1e-6 band (solute residual 1.8e-9, M = 1 - 7e-9); band not loosened. Likely iterative error at scalar relTol 1e-3; cannot move any M verdict (6 orders below the 0.02 band).",
+  "D2 context: on deep-dense h10, M(D = 0) = 0.904, i.e. numerical mixing alone exceeds both mixing floors (0.80, 0.85). D2 passes as registered, but the refined witness is decisive for whether floor verdicts are numerically controlled.",
+  "D3: limitedLinear01 converged to M = 1.0000 in 13 iterations at max Pe, unlike linearUpwind 0.935: treated as a scheme anomaly, reported only."
+ ],
+ "controls": {
+  "poiseuille": {
+   "exact_gradient_pa_m": 4219.6721148302195,
+   "h10": {
+    "gradient_pa_m": 4125.216792241906,
+    "rel_error": -0.02238451709466871,
+    "cells": 180000,
+    "flow": {
+     "flow": "flow_q5",
+     "time": "92",
+     "iterations": 92,
+     "solver_converged": true,
+     "p_stationary_rel_last10": 4.021686862939895e-10,
+     "converged": true,
+     "delta_p_pa": 41.41585391987504,
+     "delta_p_flux_weighted_pa": 41.41585391987504,
+     "delta_p_infunction_pa": 41.41585391987514,
+     "inflow_m3_s": 8.333333333333332e-11,
+     "mass_residual_fraction": 3.5530560935237904e-11,
+     "outlet_backflow_faces": 0,
+     "receipt": "flow_key c818720d168dac8f30831f794bcce3c2bb519bbb7491e132596a9b3e93743c0b",
+     "phi_data_sha256": "72f917b64c833979067ace8102e4d292011eea96de34209078cc096147c0bcf5"
+    }
+   },
+   "h7.071": {
+    "gradient_pa_m": 4170.822959168541,
+    "rel_error": -0.011576528775777528,
+    "cells": 498624,
+    "flow": {
+     "flow": "flow_q5",
+     "time": "104",
+     "iterations": 104,
+     "solver_converged": true,
+     "p_stationary_rel_last10": 2.4700005432321354e-07,
+     "converged": true,
+     "delta_p_pa": 41.925719751029426,
+     "delta_p_flux_weighted_pa": 41.925719751029426,
+     "delta_p_infunction_pa": 41.9257197510296,
+     "inflow_m3_s": 8.333333333333332e-11,
+     "mass_residual_fraction": 1.9021824686754113e-10,
+     "outlet_backflow_faces": 0,
+     "receipt": "flow_key 4f93a1da2fd1f49f3ca529e5c257e03c4ce3971916a4ec7643acddbaa911793c",
+     "phi_data_sha256": "50f7b6a467458c35948004e2d8da3e3e01912f25e89e4ccb1f47c6c2cfca5a0e"
+    }
+   },
+   "observed_order": 1.9025969384903854,
+   "band": {
+    "h10": 0.03,
+    "h7.071": 0.015,
+    "order": [
+     1.5,
+     2.5
+    ]
+   },
+   "pass": true
+  },
+  "uniform": {
+   "max_abs_c_minus_1": 1.321825869982085e-06,
+   "solute_residual_fraction": 1.7549086582668187e-09,
+   "mixing": 0.9999999929673415,
+   "band": {
+    "max_abs_c_minus_1": 1e-06,
+    "solute": 0.005
+   },
+   "pass": false
+  },
+  "split": {
+   "scalar_q1_d2": {
+    "M_openfoam": 0.44016885970163944,
+    "M_ref": 0.44195493214753534,
+    "M_ref_coarse": 0.44192363136247925,
+    "self_delta": 3.130078505608758e-05,
+    "delta_M": -0.0017860724458959032,
+    "mean_c": 0.4999999998874965,
+    "solute_residual_fraction": 1.9574179311738803e-10,
+    "bounds": [
+     -6.937398465401249e-07,
+     1.0000006937398447
+    ],
+    "converged": true,
+    "pass": true
+   },
+   "scalar_q5_d0.5": {
+    "M_openfoam": 0.07935145153801315,
+    "M_ref": 0.08142370454900805,
+    "M_ref_coarse": 0.08136464817881794,
+    "self_delta": 5.905637019010257e-05,
+    "delta_M": -0.0020722530109948956,
+    "mean_c": 0.49999999972668324,
+    "solute_residual_fraction": 5.110907090369353e-10,
+    "bounds": [
+     -0.00022040166227341905,
+     1.000220401707576
+    ],
+    "converged": true,
+    "pass": true
+   }
+  },
+  "zeroD": {
+   "M": 1.6004864100693794e-11,
+   "band": 0.001,
+   "bounds": [
+    -4.935538943235331e-07,
+    1.0000004949878076
+   ],
+   "solute_residual_fraction": 3.2853396052588857e-10,
+   "pass": true
+  },
+  "periodic_scalar": {
+   "orders": {
+    "l2_order": 1.99783228693882,
+    "linf_order": 1.9946103550938816
+   },
+   "band": [
+    1.7,
+    2.3
+   ],
+   "state": "PASS",
+   "pass": true
+  },
+  "pass": false,
+  "decision": ".agent/decisions/2026-10-15-F17-SCIENCE-VALUES-01.md"
+ },
+ "cache": {
+  "one_way": {
+   "scalar_phi_unchanged_all": true,
+   "flow_solver_reads_c": false,
+   "basis": "simpleFoam has no T field; scalarTransportFoam reads U, phi and never writes a changed phi (data hash equal to the flow receipt)",
+   "pass": true
+  },
+  "parity": {
+   "flow_phi_bitwise_equal": true,
+   "T_bitwise_equal": true,
+   "delta_M": 0.0,
+   "delta_p_rel": 0.0,
+   "fresh_flow_iterations": 115,
+   "pass": true,
+   "flag": null
+  },
+  "refusal": {
+   "refuse_wrong_q": {
+    "status": "REFUSED flow key mismatch",
+    "solver_started": false,
+    "pass": true
+   },
+   "refuse_wrong_mesh": {
+    "status": "REFUSED flow key mismatch",
+    "solver_started": false,
+    "pass": true
+   },
+   "refuse_no_phi": {
+    "status": "REFUSED phi hash mismatch",
+    "solver_started": false,
+    "pass": true
+   },
+   "refuse_altered_phi": {
+    "status": "REFUSED phi hash mismatch",
+    "solver_started": false,
+    "pass": true
+   }
+  },
+  "fallback_detection": {
+   "phi_recomputed_from_U": true,
+   "would_be_caught_by_phi_check": true,
+   "solver_log_says": true
+  },
+  "refusal_launch": {
+   "wall_s": 23.34,
+   "cgroup_cpu_s": 9.72,
+   "exit": 0
+  },
+  "pass": true,
+  "flow_reuse_accepted": true,
+  "decision": ".agent/decisions/2026-10-15-F17-SCIENCE-VALUES-01.md",
+  "foreign_case_note": "FOREIGN = the smooth-duct control flow_q5 (another mesh); the deep-sparse h10 witness did not finish locally"
+ },
+ "primary_rung_witness": {
+  "design": {
+   "depth_um": 40,
+   "pitch_um": 100,
+   "reversal": 6
+  },
+  "label": "deep-dense",
+  "rung": "h10",
+  "high_pe_primary": {
+   "M_D0": 0.9041129425457202,
+   "M_Dmin": 0.935090780514659,
+   "difference": 0.030977837968938826,
+   "band": 0.02,
+   "pass": true
+  },
+  "scheme_diagnostic": {
+   "mixing": 0.9999999999999994,
+   "iterations": 13,
+   "converged": true,
+   "M_span_last10": 1.4901161193847656e-08
+  },
+  "panel": {
+   "scalar_q1_d0.5": {
+    "M": 0.9674667616888899,
+    "converged": true
+   },
+   "scalar_q1_d1": {
+    "M": 0.9694194419947649,
+    "converged": true
+   },
+   "scalar_q1_d2": {
+    "M": 0.9551041731413462,
+    "converged": true
+   },
+   "scalar_q3_d0.5": {
+    "M": 0.9444681089150908,
+    "converged": true
+   },
+   "scalar_q3_d1": {
+    "M": 0.9592689366133524,
+    "converged": true
+   },
+   "scalar_q3_d2": {
+    "M": 0.9713157029665769,
+    "converged": true
+   },
+   "scalar_q5_d0.5": {
+    "M": 0.935090780514659,
+    "converged": true
+   },
+   "scalar_q5_d1": {
+    "M": 0.9484424912838504,
+    "converged": true
+   },
+   "scalar_q5_d2": {
+    "M": 0.9633481869804643,
+    "converged": true
+   },
+   "scalar_q5_d0": {
+    "M": 0.9041129425457202,
+    "converged": true
+   },
+   "scalar_q5_d0.5_limitedLinear01": {
+    "M": 0.9999999999999994,
+    "converged": true
+   }
+  },
+  "flows": {
+   "flow_q1": {
+    "delta_p_pa": 7.184324750559124,
+    "iterations": 115
+   },
+   "flow_q3": {
+    "delta_p_pa": 21.554285484949364,
+    "iterations": 115
+   },
+   "flow_q5": {
+    "delta_p_pa": 35.92604694402702,
+    "iterations": 115
+   }
+  },
+  "mesh": {
+   "volume_rel_error": -5.9555896730567603e-05,
+   "volume_ok": true
+  }
+ }
+}

@@ -232,7 +232,8 @@ def test_the_pod_phase_runs_scripts_and_verified_bulk_steps(fake_repo, tmp_path)
         [
             {"name": "smoke", "type": "script", "argv": ["sh", "-c", script],
              "timeout_s": 60, "jsonl_all": {"pass": True}},
-            bulk_step("decks-ok", "clean", {"reservations": ["primary"]}),
+            {**bulk_step("decks-ok", "clean", {"reservations": ["primary"]}),
+             "observe": {"argv": ["sh", "-c", "cat {bulk}/cases/fx/*/work/out.txt > {out}/observed.txt"]}},
             bulk_step("decks-drift", "drift"),
             {"name": "fails", "type": "script", "argv": ["sh", "-c", "exit 4"]},
         ],
@@ -268,6 +269,9 @@ def test_the_pod_phase_runs_scripts_and_verified_bulk_steps(fake_repo, tmp_path)
     assert {r["executor"] for r in finished} == {"native"}
     assert (out / "decks-ok/cases/fx/ok-a/work/out.txt").read_text() == "a\n"
     assert (out / "decks-ok/cases/fx/ok-a/meta/outputs.json").exists()
+    # The observe command saw the full bulk output before the work dir went.
+    assert (out / "decks-ok/observed.txt").read_text().split() == ["a", "b"]
+    assert json.loads((out / "decks-ok/step.json").read_text())["observe_exit"] == 0
     plan_doc = json.loads((out / "decks-ok/bulk-plan.json").read_text())
     assert plan_doc["machine"]["cpus"] <= 2 and plan_doc["machine"]["memory_gib"] <= 3
     assert plan_doc["families"][0]["native"]["version_expect"] == "FAKESOLVER 1.0"
