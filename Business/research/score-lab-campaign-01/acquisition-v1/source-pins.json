@@ -14,6 +14,7 @@
     "carbon/development_comparison/cheap_baselines.py": "a3075f089e29d1caca199708846d6ecd6d9180394f72e155746d050b40bd2694",
     "carbon/design_search/tasks.py": "2122194173ddaf39a8164b153cacb45ee2387373b6a8e710ef9b9474b247081a",
     "carbon/design_search/indexed.py": "b13c69b5a86fd87feaf6be3e1b690e865af7a5e13622725eef6d3efc4409411e",
-    "scripts/dev/score_lab/owner_v3.py": "e2b4b2b8a0bfadd23a801e11eeca6e4b1ad8d6f636a4cdf1eef89352914fbf45"
+    "scripts/dev/score_lab/owner_v3.py": "f0f372ab9b8869ac5aa823a2588730daab7ccdcd6665a52e2bde8be6804655d8",
+    "scripts/dev/score_lab/owner_v3_numerics.py": "31f2f96185bf8619616763a210380803d01a4bd0e52fc4bd4690d9ec2483a7dd"
   }
 }

@@ -162,6 +162,13 @@ and their difference<=1e-6 for this model-relative diagnostic; retain boundary
 contact flags. A failure of this measurement convention is UNRESOLVED, not
 permission to round into a pass. Bind the method ID and full rule in the export
 digest. A successful study is not empirical validation of the DFN model.
+`owner_v3_numerics.calibration_report` is the pure reduction for these exact
+registered cases/three rungs; `pair_enclosures` applies the frozen policy in
+`numerical-policy.json`. Inputs are five-quantity extractions from existing
+`feasibility02_v2.measures`, with actual case/rung/source receipts bound by the
+producer. Check each completed triple for early failure; a partial expected
+stage never releases evaluation. Generic historical settlement and the old
+EV4 plating-only C1 checker cannot substitute for this method.
 Bind the installed PyBaMM source's output-time behavior too: record phase
 point counts, maximum recorded gap and SOC80 interpolation bracket width from
 existing extraction. Do not assert an unmeasured fixed sampling interval or
@@ -334,3 +341,18 @@ score improvement, and do not force a holdout reveal if none survives.
 Only a future authorized rule/Validator change can promote the selected minute
 primitive into championship scoring with an appropriately registered comparison
 unit and margin. Acquisition and real alignment measurement proceed now.
+
+### Explicit remaining producer integration, parallel with raw acquisition
+
+The present pure projection is tested on synthetic tasks and deliberately
+refuses `PUBLIC_DEVELOPMENT` execution until the numerical-evidence producer
+bridge is registered. This is an implementation task, not a request for new
+owner numbers. DC/Optimizer bind the revised solved-panel export to the full
+registered task/limits, source references, per-candidate all-quantity enclosures,
+method ID/policy, actual rungs, observer/clock and authenticated producer source
+receipts. A cal-compatible Boolean alone is insufficient; each evaluation tuple
+needs its own evidence. Preserve failed/NOT_REACHED action rows and the .01C
+identity. The historical `.005C`/objective-filtering export remains history.
+Implement this binding while the raw pilot and input inventory proceed; do not
+hold source-valid reference acquisition behind the dashboard or championship
+adapter. Only then enable the public primitive route with contract tests.

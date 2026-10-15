@@ -12,7 +12,7 @@ import math
 from collections import Counter
 from decimal import Decimal
 
-from carbon.design_search import indexed, tasks
+from carbon.design_search import indexed, reference_resolution, tasks
 
 PROJECTION = "carbon.scorelab.battery-v3.band-deadzone-projection.v1"
 JOB = "battery-v3-job-dev-v1"
@@ -47,7 +47,8 @@ def reference_mask(registered, references, intervals):
 
     `references` has the existing judge's ordered {index_value, values} shape.
     `intervals` is an equally ordered list of {index_value, candidates}, mapping
-    every feasible candidate to [lower_minutes, upper_minutes]. A missing or
+    every candidate to {quantity: [lower, upper]} for all required quantities.
+    The producer supplies method-bound enclosures, not raw point labels. A missing or
     undecided reference excludes the WHOLE question, including zero-weight bands.
     No member's abstention or unsafe pick can change this mask.
     """
@@ -94,25 +95,61 @@ def reference_mask(registered, references, intervals):
                     )
         # Incomplete records are UNKNOWN, not fabricated complete quantities.
         truth = tasks.assess(subtask, complete_rows, reference=True)
-        unknown = [c for c, value in truth.items() if value["feasible"] is None]
-        feasible = [c for c, value in truth.items() if value["feasible"] is True]
         if set(enclosure["candidates"]) - set(subtask["candidates"]):
             raise tasks.TaskError("enclosure candidate outside registered bank")
         bounds = {}
-        for candidate in feasible:
-            interval = enclosure["candidates"].get(candidate)
-            if type(interval) is not list or len(interval) != 2:
+        for candidate in subtask["candidates"]:
+            quantity_intervals = enclosure["candidates"].get(candidate)
+            if type(quantity_intervals) is not dict or not quantities <= set(
+                quantity_intervals
+            ):
                 reasons.append([band, candidate, "MISSING_OBJECTIVE_ENCLOSURE"])
+                truth[candidate]["feasible"] = None
                 continue
-            low, high = map(_number, interval)
-            point = _number(truth[candidate]["objective"])
-            if low > point or point > high:
-                raise tasks.TaskError("objective point outside its enclosure")
-            bounds[candidate] = (low, high)
+            checked = {}
+            for quantity in quantities:
+                interval = quantity_intervals[quantity]
+                if type(interval) is not list or len(interval) != 2:
+                    raise tasks.TaskError("quantity enclosure needs two endpoints")
+                low, high = map(_number, interval)
+                for condition in subtask["conditions"]:
+                    values = complete_rows.get((candidate, condition["id"]))
+                    if (
+                        values is not None
+                        and not low <= _number(values[quantity]) <= high
+                    ):
+                        raise tasks.TaskError("reference point outside its enclosure")
+                checked[quantity] = (low, high)
+            bounds[candidate] = checked[subtask["objective"]["quantity"]]
+            if all(
+                (candidate, cond["id"]) in complete_rows
+                for cond in subtask["conditions"]
+            ):
+                verdicts = []
+                for limit in subtask["limits"]:
+                    low, high = checked[limit["quantity"]]
+                    threshold = _number(limit["value"])
+                    if limit["op"] == "<=":
+                        verdicts.append(
+                            True
+                            if high <= threshold
+                            else False if low > threshold else None
+                        )
+                    else:
+                        verdicts.append(
+                            True
+                            if low >= threshold
+                            else False if high < threshold else None
+                        )
+                truth[candidate]["feasible"] = (
+                    False if False in verdicts else None if None in verdicts else True
+                )
+        unknown = [c for c, value in truth.items() if value["feasible"] is None]
+        feasible = [c for c, value in truth.items() if value["feasible"] is True]
         if unknown:
             reasons.extend([band, c, "UNRESOLVED_REFERENCE"] for c in unknown)
         best = tasks.select(subtask, truth)
-        if best is not None and best in bounds and len(bounds) == len(feasible):
+        if best is not None and best in bounds and all(c in bounds for c in feasible):
             best_low, best_high = bounds[best]
             best_order = subtask["candidates"].index(best)
             for candidate in feasible:
@@ -133,6 +170,11 @@ def reference_mask(registered, references, intervals):
                 "index_value": band,
                 "reference_best": best,
                 "feasible_candidates": len(feasible),
+                "verdicts": [
+                    {"candidate": c, "feasible": value["feasible"]}
+                    for c, value in truth.items()
+                    if value["feasible"] is not None
+                ],
                 "reference_state": (
                     "UNRESOLVED"
                     if unknown
@@ -177,6 +219,10 @@ def judge(registered, commitment, references, intervals, *, scope):
     """
     if scope not in ("SYNTHETIC_FIXTURE", "PUBLIC_DEVELOPMENT"):
         raise tasks.TaskError("development-only projection")
+    if scope == "PUBLIC_DEVELOPMENT":
+        raise tasks.TaskError(
+            "PUBLIC projection requires the registered producer numerical-evidence bridge; not yet implemented"
+        )
     mask = reference_mask(registered, references, intervals)
     body = {k: v for k, v in commitment.items() if k != "commitment_digest"}
     if (
@@ -200,7 +246,14 @@ def judge(registered, commitment, references, intervals, *, scope):
             "qualification": False,
         }
         return {**result, "primitive_digest": tasks.digest(result)}
-    base = tasks.judge_indexed(registered, commitment, references)
+    historical = tasks.judge_indexed(registered, commitment, references)
+    settled = [
+        {"index_value": r["index_value"], "verdicts": r["verdicts"]}
+        for r in mask["per_index"]
+    ]
+    base = reference_resolution.judge_indexed(
+        registered, commitment, references, settled
+    )
     per_index = base["per_index"]
     unavailable = any(
         commitment["execution"][key] > 0
@@ -234,13 +287,13 @@ def judge(registered, commitment, references, intervals, *, scope):
         ],
         "regret_min": regret,
         "regret_ranking_eligible": comparable,
-        "historical_aggregate_regret_unchanged": base["regret"],
+        "historical_aggregate_regret_unchanged": historical["regret"],
         "qualification": False,
     }
     return {**result, "primitive_digest": tasks.digest(result)}
 
 
-def model_summary(outcomes):
+def model_summary(outcomes, *, expected_masks):
     """Price a fixed reference-only F stratum, retaining all offered outcomes.
 
     Correct NONE abstention is not missing truth. Within the common reference
@@ -250,6 +303,17 @@ def model_summary(outcomes):
     rows = list(outcomes)
     if len({r["task_digest"] for r in rows}) != len(rows):
         raise tasks.TaskError("duplicate offered question")
+    if set(expected_masks) != {r["task_digest"] for r in rows}:
+        raise tasks.TaskError("missing or foreign offered question")
+    for row in rows:
+        expected = expected_masks[row["task_digest"]]
+        body = {k: v for k, v in expected.items() if k != "mask_digest"}
+        if (
+            expected.get("task_digest") != row["task_digest"]
+            or tasks.digest(body) != expected.get("mask_digest")
+            or row["reference_mask"] != expected
+        ):
+            raise tasks.TaskError("offered reference mask differs")
     n = len(rows)
     priced = [
         r for r in rows if r["reference_mask"]["reference_state"] == "FEASIBLE_EXISTS"
@@ -265,9 +329,20 @@ def model_summary(outcomes):
         "mean_regret_min": (
             sum(r["regret_min"] for r in priced) / len(priced) if eligible else None
         ),
-        "infeasible_pick_count": sum(r["kind"] == "SELECTED_INFEASIBLE" for r in rows),
+        "infeasible_pick_count": sum(
+            any(
+                b.get("outcome", {}).get("kind") == "SELECTED_INFEASIBLE"
+                for b in r["per_index"]
+            )
+            for r in rows
+        ),
         "missed_opportunity_count": sum(
-            r["kind"] == "MISSED_OPPORTUNITY" for r in rows
+            r["reference_mask"]["reference_state"] == "FEASIBLE_EXISTS"
+            and any(
+                b.get("outcome", {}).get("kind") == "MISSED_OPPORTUNITY"
+                for b in r["per_index"]
+            )
+            for r in rows
         ),
         "correct_abstention_count": sum(
             r["kind"] == "CORRECT_ABSTENTION" for r in rows

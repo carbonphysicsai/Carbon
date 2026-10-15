@@ -95,7 +95,9 @@
       "CPU_hours_bound_from_allocation_and_deadline": 6,
       "requires_actual_Root_binding": true,
       "not_a_new_grant": true
-    }
+    },
+    "pure_reducer": "scripts.dev.score_lab.owner_v3_numerics.calibration_report",
+    "release": "full frozen expected stage; any completed-triple failure stops; incomplete cannot release"
   },
   "fallback_evaluation": {
     "profiles": [
@@ -334,5 +336,8 @@
     "BANK_INADEQUATE",
     "CONSTRUCTION_INADEQUATE",
     "BUDGET_STOPPED"
-  ]
+  ],
+  "numerical_policy_file": "numerical-policy.json",
+  "numerical_policy_digest": "sha256:fb1e2e2db435e6bfb8231c9417e12d48ed351e263b9cc8683d69d78a0dc41c44",
+  "public_projection_bridge": "DATA_COLLECTION_EXPORT_BINDING_REQUIRED; current projection refuses PUBLIC until implemented"
 }
