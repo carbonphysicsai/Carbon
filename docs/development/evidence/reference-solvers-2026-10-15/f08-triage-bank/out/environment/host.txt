@@ -1,0 +1,5 @@
+model name	: AMD EPYC 9965 192-Core Processor
+16
+max 100000
+32000000000
+MemTotal:       791531564 kB

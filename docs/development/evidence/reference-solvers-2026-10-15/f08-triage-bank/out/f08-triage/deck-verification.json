@@ -1,0 +1,210 @@
+{
+ "manifest": "docs/development/evidence/reference-solvers-2026-10-15/pins/triage-f08-decks-manifest.main-regen.json",
+ "decks": "regenerated on the pod",
+ "cases": [
+  {
+   "family": "f08",
+   "case": "small-light-primary",
+   "selected": true,
+   "files": 5,
+   "files_differing": [
+    "deck.json"
+   ],
+   "command_matches_freeze": false,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "large-stiff-primary",
+   "selected": true,
+   "files": 5,
+   "files_differing": [
+    "deck.json"
+   ],
+   "command_matches_freeze": false,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "nominal-primary",
+   "selected": true,
+   "files": 5,
+   "files_differing": [
+    "deck.json"
+   ],
+   "command_matches_freeze": false,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "long-flexible-primary",
+   "selected": true,
+   "files": 5,
+   "files_differing": [
+    "deck.json"
+   ],
+   "command_matches_freeze": false,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "short-wide-primary",
+   "selected": true,
+   "files": 5,
+   "files_differing": [
+    "deck.json"
+   ],
+   "command_matches_freeze": false,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "thin-high-ribs-primary",
+   "selected": true,
+   "files": 5,
+   "files_differing": [
+    "deck.json"
+   ],
+   "command_matches_freeze": false,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "thick-low-ribs-primary",
+   "selected": true,
+   "files": 5,
+   "files_differing": [
+    "deck.json"
+   ],
+   "command_matches_freeze": false,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "relieved-tall-primary",
+   "selected": true,
+   "files": 5,
+   "files_differing": [
+    "deck.json"
+   ],
+   "command_matches_freeze": false,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "control-oscillators",
+   "selected": true,
+   "files": 2,
+   "files_differing": [],
+   "command_matches_freeze": false,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "long-flexible-h2.25",
+   "selected": true,
+   "files": 5,
+   "files_differing": [],
+   "command_matches_freeze": false,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "long-flexible-h1.7",
+   "selected": true,
+   "files": 5,
+   "files_differing": [
+    "deck.json"
+   ],
+   "command_matches_freeze": false,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "relieved-tall-h2.25",
+   "selected": true,
+   "files": 5,
+   "files_differing": [
+    "deck.json"
+   ],
+   "command_matches_freeze": false,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "relieved-tall-h1.7",
+   "selected": true,
+   "files": 5,
+   "files_differing": [
+    "deck.json"
+   ],
+   "command_matches_freeze": false,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "nominal-h2.25",
+   "selected": true,
+   "files": 5,
+   "files_differing": [
+    "deck.json"
+   ],
+   "command_matches_freeze": false,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "nominal-h1.7",
+   "selected": true,
+   "files": 5,
+   "files_differing": [
+    "deck.json"
+   ],
+   "command_matches_freeze": false,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "control-beam",
+   "selected": true,
+   "files": 5,
+   "files_differing": [
+    "deck.json"
+   ],
+   "command_matches_freeze": false,
+   "command_uses_container_path": false
+  },
+  {
+   "family": "f08",
+   "case": "small-light-cold-repeat",
+   "selected": true,
+   "files": 5,
+   "files_differing": [
+    "deck.json"
+   ],
+   "command_matches_freeze": false,
+   "command_uses_container_path": false
+  }
+ ],
+ "selected": 17,
+ "selected_refused": [
+  "f08/small-light-primary",
+  "f08/large-stiff-primary",
+  "f08/nominal-primary",
+  "f08/long-flexible-primary",
+  "f08/short-wide-primary",
+  "f08/thin-high-ribs-primary",
+  "f08/thick-low-ribs-primary",
+  "f08/relieved-tall-primary",
+  "f08/control-oscillators",
+  "f08/long-flexible-h2.25",
+  "f08/long-flexible-h1.7",
+  "f08/relieved-tall-h2.25",
+  "f08/relieved-tall-h1.7",
+  "f08/nominal-h2.25",
+  "f08/nominal-h1.7",
+  "f08/control-beam",
+  "f08/small-light-cold-repeat"
+ ],
+ "all_cases_matching": 0
+}

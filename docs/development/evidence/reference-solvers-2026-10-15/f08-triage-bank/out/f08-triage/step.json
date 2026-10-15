@@ -1,0 +1,7 @@
+{
+ "name": "f08-triage",
+ "type": "bulk",
+ "status": "REFUSED",
+ "wall_s": 32.7,
+ "why": "17 selected case(s) differ from the manifest: ['f08/small-light-primary', 'f08/large-stiff-primary', 'f08/nominal-primary', 'f08/long-flexible-primary', 'f08/short-wide-primary']"
+}
