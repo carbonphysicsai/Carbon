@@ -79,15 +79,15 @@
    "cases": 128,
    "refinement_launches_h1_7": 26,
    "size_decision": "F08-SCIENCE-VALUES-01 R4/R5",
-   "law": "64 representative from P; 64 boundary from Q_boundary (beam/low-mode screen predicts a binding margin within +-20 % of a limit for some grid cell), w = P/Q recorded; comparator = registered cheap baselines (Euler-Bernoulli beam, 6/12-mode reduction, reused factorization) + always-decline + random-feasible, committed before references are read",
+   "law": "64 representative from P; 64 boundary from Q_boundary (beam/low-mode screen predicts a binding margin within +-20 % of a limit for some grid cell), w = P/Q recorded; comparator = registered cheap baselines (Euler-Bernoulli beam, 6/12-mode reduction, reused factorization) + always-decline + random-feasible, committed before references are read ; screen boundary fraction under P is about 7.8 %, so a 1,024 pool yields ~80 flagged for the 64 needed",
    "custody": "public development set (not hidden)",
    "where": "RunPod (public)",
-   "generator": "python3 scripts/dev/reference_packages/calculix/f08_bank.py freeze --registration docs/development/challenge_pipeline/structures-readiness/registration.json --seed <PUBLIC_SEED> --count 128 --role decision-study --out <DIR> --jobs <N> --public-seed --exclude <TRAIN_MANIFEST> <PRACTICE_MANIFEST> (boundary group: screen a 512-geometry public pool, then freeze the selected 64 with their action list)",
+   "generator": "representative: f08_bank.py freeze --registration docs/development/challenge_pipeline/structures-readiness/registration.json --seed <PUBLIC_SEED> --count 64 --role decision-rep --public-seed --exclude <TRAIN> <PRACTICE> --out <DIR>; boundary: f08_bank.py screen --kind boundary --pool 1024 --count 64 --registration docs/development/challenge_pipeline/structures-readiness/registration.json --seed <PUBLIC_SEED_2> --exclude <TRAIN> <PRACTICE> <DECISION_REP> --out boundary.json, then f08_bank.py freeze --actions boundary.json --role decision-boundary --public-seed --out <DIR2>",
    "run": "python3 scripts/dev/reference_packages/triage_run.py --decks <DIR> --family f08 --ledger <LEDGER> (or the bulk runner on the same manifest); then f08_freeze.py --observe <DIR> --ledger <LEDGER> --out <OBSERVED>",
    "estimate_cpu_h": 17.24,
    "estimate_peak_mem_mib": 6102,
    "estimate_usd_runpod": 0.75,
-   "status": "NEEDS_BOUNDARY_SCREEN_SCRIPT (representative half READY_TO_GENERATE)",
+   "status": "READY_TO_GENERATE",
    "scorelab": "paired_score_inputs, value_traces and matched_controls use these 128 references x the 27-cell question grid; no extra solves (controls are cheap methods)"
   },
   {
@@ -145,11 +145,11 @@
    "purpose": "H1 rotating hidden pool scored through the real validator",
    "cases": 512,
    "refinement_launches_h1_7": 78,
-   "size_decision": "F08-SCIENCE-VALUES-01 Q7/Q8/R7",
-   "law": "two sealed banks of B = 256 (active + standby), P_geometry; questions drawn from P_job/Q_job, n = 8 per daily batch; one rotation in month one",
+   "size_decision": "F08-SCIENCE-VALUES-01 Q7/Q8/R7 + Q2'",
+   "law": "two sealed banks of B = 256 with Q2' = 0.5 P + 0.5 P | screen answer region (w = P/Q per geometry); questions from P_job/Q_job, n = 8 per daily batch; one rotation in month one",
    "custody": "SEALED: owner-held seeds; never RunPod, never committed",
    "where": "custody host only",
-   "generator": "f08_bank.py freeze --role hidden-pool --seed <OWNER_HELD> --exclude <every public manifest> (no --public-seed)",
+   "generator": "f08_bank.py freeze --role hidden-pool --enrich 0.5 --seed <OWNER_HELD> --exclude <every public manifest> (no --public-seed)",
    "run": "python3 scripts/dev/reference_packages/triage_run.py --decks <DIR> --family f08 --ledger <LEDGER> (or the bulk runner on the same manifest); then f08_freeze.py --observe <DIR> --ledger <LEDGER> --out <OBSERVED>",
    "estimate_cpu_h": 58.03,
    "estimate_peak_mem_mib": 6102,
@@ -185,7 +185,7 @@
    "law": "64 representative (P) + 64 boundary (Q_boundary), as D1",
    "custody": "SEALED",
    "where": "custody host only",
-   "generator": "f08_bank.py freeze --role confirmation --seed <OWNER_HELD> --exclude <all other manifests>",
+   "generator": "as the decision study (freeze 64 from P; screen --kind boundary then freeze --actions for 64) with <OWNER_HELD> seeds and --exclude <all other manifests>",
    "run": "python3 scripts/dev/reference_packages/triage_run.py --decks <DIR> --family f08 --ledger <LEDGER> (or the bulk runner on the same manifest); then f08_freeze.py --observe <DIR> --ledger <LEDGER> --out <OBSERVED>",
    "estimate_cpu_h": 17.24,
    "estimate_peak_mem_mib": 6102,
@@ -197,5 +197,10 @@
   "public_cpu_h": 125.28,
   "public_usd_runpod": 5.48,
   "sealed_cpu_h": 83.89
- }
+ },
+ "findings": [
+  "Euler-Bernoulli screen within 1-2 % of the eight measured primaries for mass, f1 and worst-band tip compliance (F-2: the cheap incumbent may already solve the job, V4)",
+  "every lattice geometry resonates in band at zeta 0.005; under P 0 / 0.2-0.7 / 1.9-3.7 % are feasible at 0.10 / 0.15 / 0.20 mm/N; the static axis never binds (F-1)",
+  "bank-type roles therefore use Q2' answer-region enrichment (F08-SCIENCE-VALUES-01 amendment)"
+ ]
 }

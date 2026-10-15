@@ -14,28 +14,97 @@
  "P_geometry": {
   "law": "independent uniform on the lattice, conditioned on structures_readiness.action validity",
   "lattice_mm": {
-   "length_mm": [180, 260, 5],
-   "width_mm": [60, 100, 5],
-   "thickness_mm": [4, 8, 0.5],
-   "rib_height_mm": [8, 16, 1],
-   "rib_thickness_mm": [3, 5, 0.5],
-   "relief_length_mm": [20, 60, 5]
+   "length_mm": [
+    180,
+    260,
+    5
+   ],
+   "width_mm": [
+    60,
+    100,
+    5
+   ],
+   "thickness_mm": [
+    4,
+    8,
+    0.5
+   ],
+   "rib_height_mm": [
+    8,
+    16,
+    1
+   ],
+   "rib_thickness_mm": [
+    3,
+    5,
+    0.5
+   ],
+   "relief_length_mm": [
+    20,
+    60,
+    5
+   ]
   }
  },
- "Q_geometry": "P_geometry for bank v1; a T2a shortfall gets a second prospectively registered enrichment bank, never a redraw",
- "w_geometry": 1,
+ "Q_geometry": {
+  "amendment": "F08-SCIENCE-VALUES-01 Q2'",
+  "bank_roles": "0.5 P + 0.5 P | screen answer region (some 27-grid cell binding ratio <= 1.2 under f08_bank.beam_screen); f08_bank.py freeze --enrich 0.5",
+  "w": "P/Q per geometry, recorded as w_P_over_Q in the manifest; population-mean diagnostics only",
+  "train_and_practice": "P",
+  "decision_study": "64 representative from P + 64 boundary from P | screen boundary (ratio in [0.8, 1.2])",
+  "superseded": "Q = P for bank v1 (Q2)"
+ },
+ "w_geometry": "P/Q per geometry (see Q_geometry)",
  "damping": {
-  "solved": [0.005, 0.01, 0.02],
+  "solved": [
+   0.005,
+   0.01,
+   0.02
+  ],
   "mandatory": "every ratio must be FEASIBLE for the geometry to be FEASIBLE",
-  "P_dev": {"0.005": 0.3333333333333333, "0.01": 0.3333333333333333, "0.02": 0.3333333333333333},
+  "P_dev": {
+   "0.005": 0.3333333333333333,
+   "0.01": 0.3333333333333333,
+   "0.02": 0.3333333333333333
+  },
   "use": "population-mean diagnostics only"
  },
  "P_job": {
   "law": "uniform over the 27-cell grid",
   "axes": [
-   {"quantity": "dynamic_compliance_max", "unit": "mm/N", "op": "<=", "values": [0.10, 0.15, 0.20], "observable": "worst-band TIP compliance over 80-600 Hz at every damping"},
-   {"quantity": "static_compliance_max", "unit": "mm/N", "op": "<=", "values": [0.02, 0.03, 0.04], "observable": "static tip compliance"},
-   {"quantity": "mass_max", "unit": "kg", "op": "<=", "values": [0.35, 0.45, 0.55], "observable": "mesh mass"}
+   {
+    "quantity": "dynamic_compliance_max",
+    "unit": "mm/N",
+    "op": "<=",
+    "values": [
+     0.1,
+     0.15,
+     0.2
+    ],
+    "observable": "worst-band TIP compliance over 80-600 Hz at every damping"
+   },
+   {
+    "quantity": "static_compliance_max",
+    "unit": "mm/N",
+    "op": "<=",
+    "values": [
+     0.02,
+     0.03,
+     0.04
+    ],
+    "observable": "static tip compliance"
+   },
+   {
+    "quantity": "mass_max",
+    "unit": "kg",
+    "op": "<=",
+    "values": [
+     0.35,
+     0.45,
+     0.55
+    ],
+    "observable": "mesh mass"
+   }
   ]
  },
  "Q_job": "0.5 P_job + 0.5 uniform over near-limit cells (reference best answer's binding margin within 2u of a limit, or its pick changes under u); if none, Q_job = P_job and the shortfall is reported",
@@ -47,11 +116,18 @@
   "regret_allowance_mm_per_n": 0.0075
  },
  "verdict_uncertainty": {
-  "u_default_fraction": {"dynamic": 0.05, "static": 0.02, "mass": 0.005},
+  "u_default_fraction": {
+   "dynamic": 0.05,
+   "static": 0.02,
+   "mass": 0.005
+  },
   "refined": "1.25 x |h3 - h1.7| from a case-specific refinement, dynamic floored at 1 %",
   "rule": "FEASIBLE if every margin > u; INFEASIBLE if any margin < -u; otherwise UNRESOLVED"
  },
- "near_limit_bands": {"unresolved_zone": "+-u", "near_limit_region": "+-2u"},
+ "near_limit_bands": {
+  "unresolved_zone": "+-u",
+  "near_limit_region": "+-2u"
+ },
  "B": 256,
  "n": 8,
  "k": 8,
@@ -59,5 +135,15 @@
  "none_feasible": "a question whose bank is fully settled with no FEASIBLE design is VALID_FORWARD_NO_REDRAW with answer NONE_FEASIBLE; if any design is UNRESOLVED, refine it (h 1.7, then more modes) within the refinement allowance; else the question stays UNRESOLVED, is excluded from scoring and counted in the residual-unresolved rate; no redraw, no outcome quota",
  "refinement_allowance": "h 1.7 refinement of every candidate-answer geometry within +-2u of a limit, plus 13 (5 %) random audit refinements",
  "value_check_spread_mm_per_n": 0.03,
- "not_decided": ["exposure E", "hidden n", "protected Q_job", "money and paid hosts", "Tier 2 buyer-tool runs"]
+ "not_decided": [
+  "exposure E",
+  "hidden n",
+  "protected Q_job",
+  "money and paid hosts",
+  "Tier 2 buyer-tool runs"
+ ],
+ "findings": [
+  "the 0.10 mm/N level is empty over the envelope (nine NONE_FEASIBLE cells); the static axis never binds; at most 6 answer-distinct cells (F-1)",
+  "the Euler-Bernoulli screen reproduces the reference decision quantities within a few percent (F-2, V4)"
+ ]
 }

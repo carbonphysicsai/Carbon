@@ -96,3 +96,21 @@ recipe with owner-held seeds on the custody host and are only specified.
 | R8 | Tuning set (H2) | `roles.sealed.tuning` | 64 geometries, P law, representative only | one quarter of a bank; tunes gates, not answers | No |
 | R9 | Confirmation set (D7) | `roles.sealed.confirmation` | 128 geometries, same strata as D1 (64 representative + 64 boundary) | mirrors D1 so confirmation measures the same estimand | No |
 | R10 | Disjointness | every role | whole-geometry disjoint by action digest across all roles (`f08_bank.py --exclude`); H2 overlap check on the custody host | whole-geometry holdout (structures_readiness.physical) | No |
+
+## Amendment (same day): bank geometry law Q2 after the public screen
+
+**What was observed.** The Euler–Bernoulli screen (`f08_bank.beam_screen`,
+SCREENING_ONLY) matches the eight measured triage primaries within 1–2 % for
+mass, f1 and worst-band tip compliance (10 % for static on short-wide). On
+2,000 public P draws it finds every lattice geometry with f1 inside
+80–600 Hz, so the worst-band tip compliance is about static/(2ζ) at
+ζ = 0.005. Under P only 0 % (0.10 mm/N), 0.2–0.7 % (0.15 mm/N) and
+1.9–3.7 % (0.20 mm/N) of geometries are feasible, and the static axis never
+binds. A uniform B = 256 bank would hold about one feasible design for the
+anchor cell. No reference or hidden material was used; no band changes.
+
+| # | Value | Slot | Chosen value | Basis | Observed? |
+|---|---|---|---|---|---|
+| Q2′ | Bank and sealed-bank geometry law (supersedes Q2 for bank-type roles: H1, decision-study representative half stays P) | `structures-readiness/question-law.json:Q_geometry`; `f08_bank.py freeze --enrich 0.5` | Q = 0.5 P + 0.5 P conditioned on the screen answer region (some grid cell's binding ratio ≤ 1.2); w = P/Q per geometry recorded in the manifest | the common Q recommendation (0.5 P + 0.5 near-limit) applied to geometries; gives ~16 feasible designs for the anchor cell and ~80 for the 0.20 mm/N cells in a 256 bank | Yes: screen feasibility rates above (not reference results); this is a sampling law, not an acceptance band |
+| F-1 | Finding for the owner (not changed here) | — | the 0.10 mm/N dynamic level is empty over the whole envelope (nine NONE_FEASIBLE cells) and the static axis never binds (static ≤ 2ζ × dynamic cap), so the 27-cell grid has at most 6 answer-distinct cells | changing buyer limits reopens the owner-selected anchors | — |
+| F-2 | Finding for V4 / value | — | the cost-rank-1 beam/low-mode screen already reproduces the reference decision quantities within a few percent on this envelope | packet §9: “if modal reduction already solves this job cheaply, park it” | — |

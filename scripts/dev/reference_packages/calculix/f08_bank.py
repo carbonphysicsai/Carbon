@@ -25,12 +25,13 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-ROOT = HERE.parents[2]
+ROOT = HERE.parents[3]
 sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(ROOT))
 
@@ -99,6 +100,113 @@ def draw(reg, seed, count, exclude=frozenset()):
     return rows
 
 
+def beam_screen(c):
+    """SCREENING_ONLY Euler-Bernoulli estimate of a ribbed cantilever (relief mass only).
+
+    Returns mass kg, static tip mm/N, f1 Hz and the worst 80-600 Hz single-mode
+    tip compliance at zeta 0.005. Within 2-10 % of the eight measured triage
+    primaries (triage-f08-observed.json); never a reference value.
+    """
+    L, W, t, hr, tr, lr = (c[k] for k in s.FIELDS)
+    area = W * t + 2 * tr * hr
+    zbar = (W * t * t / 2 + 2 * tr * hr * (t + hr / 2)) / area
+    inertia = (
+        W * t**3 / 12
+        + W * t * (t / 2 - zbar) ** 2
+        + 2 * (tr * hr**3 / 12 + tr * hr * (t + hr / 2 - zbar) ** 2)
+    )
+    mass = deck.RHO * (area * L - 20 * lr * t) * 1000
+    static = (L - deck.PAD_X / 2) ** 3 / (3 * deck.E * inertia)
+    f1 = (
+        1.8751040687**2
+        / (2 * math.pi)
+        * math.sqrt(deck.E * inertia / (deck.RHO * area * L**4))
+    )
+    worst = 0.0
+    for f in [80 + 0.5 * k for k in range(1041)] + [f1]:
+        if 80 <= f <= 600:
+            r = f / f1
+            worst = max(
+                worst, static / math.sqrt((1 - r * r) ** 2 + (2 * 0.005 * r) ** 2)
+            )
+    return {
+        "mass_kg": mass,
+        "static_mm_per_n": static,
+        "f1_hz": f1,
+        "worst_mm_per_n": worst,
+    }
+
+
+#: The 27-cell P_job grid (question-law.json) used to flag boundary geometries.
+GRID = [
+    (dyn, st, m)
+    for dyn in (0.10, 0.15, 0.20)
+    for st in (0.02, 0.03, 0.04)
+    for m in (0.35, 0.45, 0.55)
+]
+
+
+def boundary(c, band=0.2):
+    """Q_boundary membership (R4): some grid cell's binding ratio lies in [1 - band, 1 + band]."""
+    e = beam_screen(c)
+    return any(
+        1 - band
+        <= max(e["worst_mm_per_n"] / dyn, e["static_mm_per_n"] / st, e["mass_kg"] / m)
+        <= 1 + band
+        for dyn, st, m in GRID
+    )
+
+
+def answer_region(c, band=0.2):
+    """Q2 enrichment membership: feasible or within +band of feasible for some grid cell."""
+    e = beam_screen(c)
+    return any(
+        max(e["worst_mm_per_n"] / dyn, e["static_mm_per_n"] / st, e["mass_kg"] / m)
+        <= 1 + band
+        for dyn, st, m in GRID
+    )
+
+
+SCREENS = {"boundary": boundary, "answer-region": answer_region}
+
+
+def screen(reg, seed, pool, count, exclude=frozenset(), kind="boundary"):
+    """The first `count` screen-flagged geometries of a `pool` draw; flagged fraction gives w."""
+    rows = draw(reg, seed, pool, exclude)
+    flagged = [r for r in rows if SCREENS[kind](r)]
+    return {
+        "screen": kind,
+        "pool": pool,
+        "flagged": len(flagged),
+        "flagged_fraction": len(flagged) / pool,
+        "actions": flagged[:count],
+    }
+
+
+def enriched(reg, seed, count, exclude=frozenset(), fraction=0.5):
+    """Q2 amendment: (1 - fraction) of the set from P, the rest from P | answer region.
+
+    Returns the actions and, per action, w = P/Q for population-mean diagnostics.
+    """
+    n_p = count - round(fraction * count)
+    base = draw(reg, seed, n_p, exclude)
+    taken = frozenset(exclude) | {s.tasks.digest(r) for r in base}
+    sub = int(hashlib.sha256(f"f08-enrich:{seed}".encode()).hexdigest()[:15], 16)
+    pool = 16 * (count - n_p)
+    extra = screen(reg, sub, pool, count - n_p, taken, "answer-region")
+    if len(extra["actions"]) < count - n_p:
+        raise SystemExit(
+            "answer-region pool too small; raise the pool, never shrink the set silently"
+        )
+    p_region = extra["flagged_fraction"]
+    rows = base + extra["actions"]
+    q = [
+        (1 - fraction) + (fraction / p_region if answer_region(r) else 0.0)
+        for r in rows
+    ]
+    return rows, [1 / x for x in q], p_region
+
+
 def _excluded(paths):
     keys = set()
     for path in paths or ():
@@ -120,13 +228,23 @@ def freeze(
     public_seed=False,
     role="bank",
     exclude=None,
+    actions=None,
+    enrich=0.0,
 ):
     s.validate(reg)
     if reg["pins"] != registration(reg["scope"])["pins"]:
         raise SystemExit(
             "current sources differ from the registration pins; re-register"
         )
-    rows = draw(reg, seed, count, _excluded(exclude))
+    weights, p_region = None, None
+    if actions is not None:
+        rows = actions
+    elif enrich:
+        rows, weights, p_region = enriched(reg, seed, count, _excluded(exclude), enrich)
+    else:
+        rows = draw(reg, seed, count, _excluded(exclude))
+    rows = [s.action(reg, r) for r in rows]
+    count = len(rows)
     out = Path(out)
 
     def one(item):
@@ -140,6 +258,8 @@ def freeze(
 
     with ThreadPoolExecutor(max(1, jobs)) as pool:
         cases = list(pool.map(one, enumerate(rows)))
+    for case, w in zip(cases, weights or ()):
+        case["w_P_over_Q"] = w
     manifest = {
         "schema": "carbon.reference-triage.frozen-decks.v1",
         "ticket": "F08-SCIENCE-VALUES-01 bank freeze",
@@ -154,6 +274,11 @@ def freeze(
             "modes": MODES,
             "seed": seed if public_seed else "WITHHELD",
             "role": role,
+            "Q_geometry": (
+                f"{1 - enrich:g} P + {enrich:g} P | screen answer region (flagged fraction {p_region:.4f})"
+                if enrich
+                else ("explicit action list" if actions is not None else "P")
+            ),
             "excluded_manifests": [str(p) for p in exclude or ()],
         },
         "cases": cases,
@@ -187,14 +312,55 @@ def main(argv=None):
         nargs="*",
         help="manifests whose actions this role must not reuse",
     )
+    f.add_argument(
+        "--actions",
+        type=Path,
+        help="freeze this `screen` action list instead of drawing",
+    )
+    f.add_argument(
+        "--enrich",
+        type=float,
+        default=0.0,
+        help="Q2 answer-region fraction (bank roles: 0.5)",
+    )
+    b = sub.add_parser("screen")
+    b.add_argument("--registration", type=Path, required=True)
+    b.add_argument("--seed", type=int, required=True)
+    b.add_argument("--pool", type=int, default=1024)
+    b.add_argument("--count", type=int, default=64)
+    b.add_argument("--exclude", type=Path, nargs="*")
+    b.add_argument("--kind", choices=sorted(SCREENS), default="boundary")
+    b.add_argument("--out", type=Path, required=True)
     args = p.parse_args(argv)
     if args.cmd == "register":
         args.out.write_text(json.dumps(registration(), indent=1, sort_keys=True) + "\n")
         print(json.loads(args.out.read_text())["registration_digest"])
+    elif args.cmd == "screen":
+        reg = json.loads(args.registration.read_text())
+        doc = screen(
+            reg, args.seed, args.pool, args.count, _excluded(args.exclude), args.kind
+        )
+        args.out.write_text(json.dumps(doc, indent=1) + "\n")
+        print(
+            json.dumps(
+                {k: doc[k] for k in ("screen", "pool", "flagged", "flagged_fraction")}
+            )
+        )
     else:
         reg = json.loads(args.registration.read_text())
+        acts = json.loads(args.actions.read_text())["actions"] if args.actions else None
         doc = freeze(
-            reg, args.seed, args.out, args.count, args.h, args.jobs, args.public_seed
+            reg,
+            args.seed,
+            args.out,
+            args.count,
+            args.h,
+            args.jobs,
+            args.public_seed,
+            args.role,
+            args.exclude,
+            acts,
+            args.enrich,
         )
         print(
             json.dumps(

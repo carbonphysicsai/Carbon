@@ -187,3 +187,19 @@ def test_bank_draws_are_nested_disjoint_and_beyond_one_actions_call():
     assert bank.draw(reg, 7, 64) == big[:64]  # nested TRAIN ladder prefixes
     other = bank.draw(reg, 8, 64, frozenset(digests[:500]))
     assert not {bank.s.tasks.digest(r) for r in other} & set(digests[:500])
+
+
+def test_beam_screen_and_answer_region_enrichment():
+    bank = _load("f08_bank")
+    nominal = dict(zip(bank.s.FIELDS, (220.0, 80.0, 6.0, 12.0, 4.0, 40.0)))
+    e = bank.beam_screen(nominal)
+    # measured nominal primary: 0.329 kg, 0.0055 mm/N, 234 Hz, 0.534 mm/N (triage-f08-observed.json)
+    assert e["mass_kg"] == pytest.approx(0.329, rel=0.01)
+    assert e["static_mm_per_n"] == pytest.approx(0.0055, rel=0.05)
+    assert e["f1_hz"] == pytest.approx(234, rel=0.02)
+    assert e["worst_mm_per_n"] == pytest.approx(0.534, rel=0.03)
+    rows, weights, p_region = bank.enriched(bank.registration(), 3, 64)
+    assert len({bank.s.tasks.digest(r) for r in rows}) == 64
+    assert 0 < p_region < 1 and len(weights) == 64
+    assert sum(bank.answer_region(r) for r in rows) >= 32
+    assert all(w > 0 for w in weights)
