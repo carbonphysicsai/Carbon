@@ -1,0 +1,43 @@
+{
+  "schema": "carbon.code-verification.result.v1",
+  "kind": "code_verification",
+  "family": "f06",
+  "image_digest": "sha256:7d53e4b0937c7baf08008c4200734342f3474e3ca6a68f4c5c705d2c32ca93a9",
+  "source_digest": "sha256:1d68ebd02863b5b00cef96ce6fd7133cc91f7733d679ba0bb18ece013a69766c",
+  "criteria_digest": "sha256:1b301a80819c8e0bf8bf865656a978b3bf3bce942ec648174449c772b55230a8",
+  "norms": [
+    {
+      "l2": 2.4675533323442744e-05,
+      "linf": 2.4675533323442744e-05,
+      "samples": 1
+    },
+    {
+      "l2": 6.168597292799394e-06,
+      "linf": 6.168597292799394e-06,
+      "samples": 1
+    },
+    {
+      "l2": 1.5421309745300427e-06,
+      "linf": 1.5421309745300427e-06,
+      "samples": 1
+    }
+  ],
+  "orders": {
+    "l2": [
+      2.000066896265971,
+      2.0000171654534484
+    ],
+    "linf": [
+      2.000066896265971,
+      2.0000171654534484
+    ]
+  },
+  "metrics": {
+    "l2_order": 2.0000171654534484,
+    "linf_order": 2.0000171654534484
+  },
+  "recommendation_agrees": true,
+  "accepted_development_pass": true,
+  "state": "PASS",
+  "qualified": false
+}

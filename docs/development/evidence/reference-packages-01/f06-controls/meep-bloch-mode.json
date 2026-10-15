@@ -1,0 +1,61 @@
+{
+  "schema": "carbon.code-verification.fields.v1",
+  "scope": "PUBLIC_DEVELOPMENT",
+  "kind": "meep-bloch-mode",
+  "family": "f06",
+  "image_digest": "sha256:7d53e4b0937c7baf08008c4200734342f3474e3ca6a68f4c5c705d2c32ca93a9",
+  "spec_digest": "sha256:cc79e68a8d85020a866e4ed02237fc3d87a06cd844d5ab77e2a17965d635a971",
+  "adapter_digest": "sha256:db43bef7ee424c8330ba3682707e5c40c62d7fc74e8e27f4b969c20bfd50e160",
+  "rows": [
+    {
+      "h": 0.05,
+      "t": 0,
+      "points": [
+        [
+          0.2
+        ]
+      ],
+      "values": [
+        0.19997532446667657
+      ],
+      "weights": [
+        1
+      ]
+    },
+    {
+      "h": 0.025,
+      "t": 0,
+      "points": [
+        [
+          0.2
+        ]
+      ],
+      "values": [
+        0.1999938314027072
+      ],
+      "weights": [
+        1
+      ]
+    },
+    {
+      "h": 0.0125,
+      "t": 0,
+      "points": [
+        [
+          0.2
+        ]
+      ],
+      "values": [
+        0.19999845786902548
+      ],
+      "weights": [
+        1
+      ]
+    }
+  ],
+  "raw_outputs": [
+    "sha256:1fb831158ecfe423625752140c49105b546286dfae9b04661d7e829aa87f0ea3",
+    "sha256:0bfdb31b74ae247d08100ba083e84a2e6fab3bf314898b36c9ef64d2265e8093",
+    "sha256:a574f7b263f42af8ea47d625bb841fc7f58f7ccd8e3dc997ea7bd2f57409edf5"
+  ]
+}

@@ -1,0 +1,48 @@
+{
+ "schema": "carbon.reference-package.sources-lock.v1",
+ "package": "meep-1.32.0 (serves f06-meep-grating-3d)",
+ "ticket": "REFERENCE-PACKAGES-01",
+ "base_image": "debian@sha256:a29215f6a35e51e22adffa17f89e9d2ef06214e64a2bad10d765c46aea49f11f",
+ "debian_snapshot": "http://snapshot.debian.org/archive/debian/20261001T000000Z trixie main + http://snapshot.debian.org/archive/debian-security/20261001T000000Z trixie-security main (Debian 13.7; the security line is needed because the pinned base already carries the security-updated libssl3t64 that libhdf5-dev -> libssl-dev requires)",
+ "sources": [
+  {
+   "name": "meep-1.32.0.tar.gz",
+   "url": "https://github.com/NanoComp/meep/releases/download/v1.32.0/meep-1.32.0.tar.gz",
+   "sha256": "446c589a1b4bc979d0b09f94817298fe0b39f8a0c9f8850ce1f39e1b0c51675b",
+   "size": 26088667,
+   "checksum_source": "recorded at acquisition 2026-10-15 (GitHub release asset; upstream publishes no separate checksum file)",
+   "upstream_tag": "v1.32.0",
+   "upstream_commit": "95d41251ddacfb6d63b9efecd8ba2814af141e2d",
+   "release_to_commit": "verified 2026-10-15: every file present in both the release archive and a git checkout of tag v1.32.0 (commit 95d41251) is byte-identical; the archive only adds autotools/SWIG-generated files (configure, Makefile.in, meep-python.cxx, mpb-python.cxx, meep.py, mpb.py) plus test .trs/.pyc leftovers"
+  },
+  {
+   "name": "mpb-1.11.1.tar.gz",
+   "url": "https://github.com/NanoComp/mpb/releases/download/v1.11.1/mpb-1.11.1.tar.gz",
+   "sha256": "dc55b081c56079727dac92d309f8e4ea84ca6eea9122ec24b7955f8c258608e1",
+   "size": 636154,
+   "checksum_source": "recorded at acquisition 2026-10-15 (GitHub release asset; no upstream checksum file)",
+   "upstream_tag": "v1.11.1",
+   "upstream_commit": "6a4fc163dd08eb7431c7f8f44a90bde3d856f131",
+   "release_to_commit": "verified 2026-10-15: every file present in both the archive and a git checkout of tag v1.11.1 is byte-identical; the archive adds 28 autotools-generated files",
+   "why_from_source": "Debian trixie mpb-dev 1.11.1-6+b2 ships headers only (no libmpb), so Meep's configure disables MPB; MPB's library is built with --with-hermitian-eps --without-libctl --without-mpi as Meep's build guide requires"
+  }
+ ],
+ "debian_dependencies": {
+  "libctl-dev": "4.5.1-3",
+  "libharminv-dev": "1.4.2-1",
+  "libfftw3-dev": "3.3.10-2+b1",
+  "libhdf5-dev": "1.14.5+repack-3 (serial)",
+  "libgsl-dev": "2.8+dfsg-5",
+  "python3-dev": "3.13.5-1",
+  "python3-numpy": "1:2.2.4+ds-1",
+  "python3-scipy": "1.15.3-1",
+  "python3-matplotlib": "imported unconditionally by meep.simulation; version recorded in the runtime package list",
+  "gfortran": "14.2.0-19 (BLAS/LAPACK name mangling for MPB)",
+  "python3-h5py": "3.13.0-1 (runtime; imported by meep.mpb.solver)"
+ },
+ "configure": "MPB: --prefix=/opt/meep --enable-shared --disable-static --with-hermitian-eps --without-libctl --without-mpi; Meep: --prefix=/opt/meep --enable-shared --disable-static --without-mpi --without-scheme --with-python --enable-portable-binary; CFLAGS=CXXFLAGS=-O3 -mtune=generic",
+ "precision": "double (default; --enable-single not used)",
+ "mpi": "none (serial first, per f06-meep.md section 1)",
+ "openmp": "none",
+ "licence": "Meep GPL-2.0-or-later; libctl/MPB/Harminv GPL-2.0-or-later; FFTW GPL-2.0-or-later; HDF5 BSD-3-Clause-like; GSL GPL-3.0-or-later"
+}

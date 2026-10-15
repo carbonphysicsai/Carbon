@@ -1,0 +1,20 @@
+[
+  {
+    "frequency": 0.19997532446667657,
+    "fit_error": 4.1031716199215663e-13,
+    "resolution": 20,
+    "sampling_after_source": 200
+  },
+  {
+    "frequency": 0.1999938314027072,
+    "fit_error": 2.4993651636571126e-13,
+    "resolution": 40,
+    "sampling_after_source": 200
+  },
+  {
+    "frequency": 0.19999845786902548,
+    "fit_error": 1.3514178396222936e-13,
+    "resolution": 80,
+    "sampling_after_source": 200
+  }
+]

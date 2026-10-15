@@ -1,0 +1,132 @@
+{
+ "schema": "carbon.data-acquisition-plan.v1",
+ "family": "f06",
+ "decision": "F06-SCIENCE-VALUES-01",
+ "maturity": "SPECIFIED; nothing generated",
+ "blocker": "c1 slab TE0 control fails its registered 0.003 band at every grid (finding); no grating/3D data may be generated until diagnosed",
+ "cost_basis": "ASSUMPTION 60 CPU-h per complete 30-nm 3D design (norm + 5 geometry runs, serial Meep, ~28-48M mirror-halved cells, ~20k steps, 50-100 ns/cell-step); replaces the 4 CPU-h hypothesis only after a probe; not measured",
+ "witness_3d_runpod": {
+  "pod": "RunPod cpu3m 16 vCPU / 128 GB ($0.88/h)",
+  "deck": "f06_controls.py job c9 equivalent at 30 nm: short-narrow (12 periods, 580 nm, duty 0.5, 70 nm etch, 8 um), normalization + 5 geometry runs, mirror-Y, all 45 rows; plus a 300-step probe first",
+  "cells": "5.18M (normalization) / 27.82M (device, mirror-halved)",
+  "memory_forecast_gib": "2.6-4.1 field (96-150 B/cell) + 0.3 DFT planes; x1.25 headroom -> <= 5.5 GiB per process",
+  "cpu_forecast_h": "~60 serial (ASSUMPTION); run the 5 geometry runs as 5 parallel processes (16 vCPU) -> ~14 h wall, ~$12"
+ },
+ "roles": [
+  {
+   "role": "TRAIN ladder",
+   "custody": "public (RunPod allowed)",
+   "purpose_size_basis": "training budget study (TRAINING-BUDGET-01) sizes 16/32/64/128 designs (1/4,1/2,1,2 x 64)",
+   "designs": 128,
+   "law": "P_design uniform, strata width<10/>=10",
+   "cpu_h_assumed": 7680,
+   "usd_runpod": 268.8,
+   "generator": "python3 scripts/dev/reference_packages/meep/f06_freeze.py triage --out DIR --grid-nm 30",
+   "status": "NEEDS_SLAB_CONTROL_FIX_AND_MEASURED_3D_COST"
+  },
+  {
+   "role": "PRACTICE",
+   "custody": "public (RunPod allowed)",
+   "purpose_size_basis": "miner practice panel",
+   "designs": 16,
+   "law": "P_design",
+   "cpu_h_assumed": 960,
+   "usd_runpod": 33.6,
+   "generator": "python3 scripts/dev/reference_packages/meep/f06_freeze.py triage --out DIR --grid-nm 30",
+   "status": "NEEDS_SLAB_CONTROL_FIX_AND_MEASURED_3D_COST"
+  },
+  {
+   "role": "D1 decision-study set + D5 references",
+   "custody": "public (RunPod allowed)",
+   "purpose_size_basis": "8 representative (route-panel public cases) + 8 boundary (near 0.30/0.10 from the 2D screen as proposal only, 3D truth)",
+   "designs": 16,
+   "law": "representative + near-limit groups",
+   "cpu_h_assumed": 960,
+   "usd_runpod": 33.6,
+   "generator": "python3 scripts/dev/reference_packages/meep/f06_freeze.py triage --out DIR --grid-nm 30",
+   "status": "NEEDS_SLAB_CONTROL_FIX_AND_MEASURED_3D_COST"
+  },
+  {
+   "role": "Q1 / ScoreLab public panel inputs",
+   "custody": "public (RunPod allowed)",
+   "purpose_size_basis": "paired_score_inputs/value_traces/matched_controls on the 8 route-panel designs (same runs as D1 representative)",
+   "designs": 0,
+   "law": "shared with D1",
+   "cpu_h_assumed": 0,
+   "usd_runpod": 0.0,
+   "generator": "python3 scripts/dev/reference_packages/meep/f06_freeze.py triage --out DIR --grid-nm 30",
+   "status": "NEEDS_SLAB_CONTROL_FIX_AND_MEASURED_3D_COST"
+  },
+  {
+   "role": "D3 timing calibration",
+   "custody": "public (RunPod allowed)",
+   "purpose_size_basis": "short-narrow, nominal, long-wide x 3 repeats on runpod-cpu5c-16vcpu; counted-plan timeout >= 2 x p95",
+   "designs": 9,
+   "law": "fixed",
+   "cpu_h_assumed": 540,
+   "usd_runpod": 18.9,
+   "generator": "python3 scripts/dev/reference_packages/meep/f06_freeze.py triage --out DIR --grid-nm 30",
+   "status": "NEEDS_SLAB_CONTROL_FIX_AND_MEASURED_3D_COST"
+  },
+  {
+   "role": "Verification witnesses",
+   "custody": "public (RunPod allowed)",
+   "purpose_size_basis": "3D 30-nm witness (short-narrow, below); nominal-narrow/nominal-wide at 30 and 20 nm; PML/pad/time doubling on short-narrow",
+   "designs": 7,
+   "law": "registered",
+   "cpu_h_assumed": 420,
+   "usd_runpod": 14.7,
+   "generator": "python3 scripts/dev/reference_packages/meep/f06_freeze.py triage --out DIR --grid-nm 30",
+   "status": "NEEDS_SLAB_CONTROL_FIX_AND_MEASURED_3D_COST"
+  },
+  {
+   "role": "Research environment",
+   "custody": "public (RunPod allowed)",
+   "purpose_size_basis": "generator (f06_deck.py/f06_freeze.py) + reference solver image recipe (meep/Dockerfile, native install steps) + f06_run.py observer; miners run their own seeds",
+   "designs": 0,
+   "law": "n/a",
+   "cpu_h_assumed": 0,
+   "usd_runpod": 0.0,
+   "generator": "python3 scripts/dev/reference_packages/meep/f06_freeze.py triage --out DIR --grid-nm 30",
+   "status": "NEEDS_SLAB_CONTROL_FIX_AND_MEASURED_3D_COST"
+  },
+  {
+   "role": "Hidden pool H1",
+   "custody": "SEALED custody host only, never RunPod, no seeds recorded",
+   "purpose_size_basis": "B=64 designs, batches of n=8 questions, weekly rotation, 4 rotations in month 1 (questions re-drawn from P_job over the same bank, exposure ledger kept)",
+   "designs": 64,
+   "law": "P_design; questions P_job/Q_job",
+   "cpu_h_assumed": 3840,
+   "usd_runpod": null,
+   "generator": "python3 scripts/dev/reference_packages/meep/f06_freeze.py bank --seed-file <custody seed> --count N --out <custody dir>",
+   "status": "NEEDS_SLAB_CONTROL_FIX_AND_MEASURED_3D_COST"
+  },
+  {
+   "role": "Tuning set H2/D7",
+   "custody": "SEALED custody host only, never RunPod, no seeds recorded",
+   "purpose_size_basis": "16 designs, disjoint from hidden pool and confirmation by design hash",
+   "designs": 16,
+   "law": "P_design",
+   "cpu_h_assumed": 960,
+   "usd_runpod": null,
+   "generator": "python3 scripts/dev/reference_packages/meep/f06_freeze.py bank --seed-file <custody seed> --count N --out <custody dir>",
+   "status": "NEEDS_SLAB_CONTROL_FIX_AND_MEASURED_3D_COST"
+  },
+  {
+   "role": "Confirmation set H2/D7",
+   "custody": "SEALED custody host only, never RunPod, no seeds recorded",
+   "purpose_size_basis": "16 designs, disjoint",
+   "designs": 16,
+   "law": "P_design",
+   "cpu_h_assumed": 960,
+   "usd_runpod": null,
+   "generator": "python3 scripts/dev/reference_packages/meep/f06_freeze.py bank --seed-file <custody seed> --count N --out <custody dir>",
+   "status": "NEEDS_SLAB_CONTROL_FIX_AND_MEASURED_3D_COST"
+  }
+ ],
+ "bill": {
+  "public_cpu_h": 10560,
+  "public_usd_at_0.035": 369.6,
+  "sealed_cpu_h_custody": 5760
+ }
+}

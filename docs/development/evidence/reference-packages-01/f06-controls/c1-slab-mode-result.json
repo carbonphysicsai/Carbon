@@ -1,0 +1,402 @@
+{
+ "schema": "carbon.f06.meep-result.v1",
+ "meep_version": "1.32.0",
+ "case_schema": "carbon.f06.meep-case.v1",
+ "results": [
+  {
+   "kind": "slab_mode",
+   "rows": [
+    {
+     "wavelength_um": 1.53,
+     "neff": 2.7174349423190236
+    },
+    {
+     "wavelength_um": 1.54,
+     "neff": 2.712009952608445
+    },
+    {
+     "wavelength_um": 1.55,
+     "neff": 2.7066011607503015
+    },
+    {
+     "wavelength_um": 1.56,
+     "neff": 2.7012086643895623
+    },
+    {
+     "wavelength_um": 1.57,
+     "neff": 2.6958325575643305
+    }
+   ],
+   "label": "slab-40nm-t220"
+  },
+  {
+   "kind": "slab_mode",
+   "rows": [
+    {
+     "wavelength_um": 1.53,
+     "neff": 2.2308760116674917
+    },
+    {
+     "wavelength_um": 1.54,
+     "neff": 2.224887515798518
+    },
+    {
+     "wavelength_um": 1.55,
+     "neff": 2.2189429606999522
+    },
+    {
+     "wavelength_um": 1.56,
+     "neff": 2.2130420824362744
+    },
+    {
+     "wavelength_um": 1.57,
+     "neff": 2.2071846160810016
+    }
+   ],
+   "label": "slab-40nm-t150"
+  },
+  {
+   "kind": "slab_mode",
+   "rows": [
+    {
+     "wavelength_um": 1.53,
+     "neff": 1.5655553600254764
+    },
+    {
+     "wavelength_um": 1.54,
+     "neff": 1.562982816170708
+    },
+    {
+     "wavelength_um": 1.55,
+     "neff": 1.5604527945187479
+    },
+    {
+     "wavelength_um": 1.56,
+     "neff": 1.557964615594589
+    },
+    {
+     "wavelength_um": 1.57,
+     "neff": 1.5555176091212495
+    }
+   ],
+   "label": "slab-40nm-t90"
+  },
+  {
+   "kind": "slab_mode",
+   "rows": [
+    {
+     "wavelength_um": 1.53,
+     "neff": 2.67871514412289
+    },
+    {
+     "wavelength_um": 1.54,
+     "neff": 2.6732612081170446
+    },
+    {
+     "wavelength_um": 1.55,
+     "neff": 2.66782497697214
+    },
+    {
+     "wavelength_um": 1.56,
+     "neff": 2.6624065296086794
+    },
+    {
+     "wavelength_um": 1.57,
+     "neff": 2.657005941539026
+    }
+   ],
+   "label": "slab-30nm-t220"
+  },
+  {
+   "kind": "slab_mode",
+   "rows": [
+    {
+     "wavelength_um": 1.53,
+     "neff": 2.2282642191799504
+    },
+    {
+     "wavelength_um": 1.54,
+     "neff": 2.222336196731505
+    },
+    {
+     "wavelength_um": 1.55,
+     "neff": 2.2164511297214315
+    },
+    {
+     "wavelength_um": 1.56,
+     "neff": 2.210608768141343
+    },
+    {
+     "wavelength_um": 1.57,
+     "neff": 2.204808860876457
+    }
+   ],
+   "label": "slab-30nm-t150"
+  },
+  {
+   "kind": "slab_mode",
+   "rows": [
+    {
+     "wavelength_um": 1.53,
+     "neff": 1.6349274468637895
+    },
+    {
+     "wavelength_um": 1.54,
+     "neff": 1.6316254713907452
+    },
+    {
+     "wavelength_um": 1.55,
+     "neff": 1.6283724638192585
+    },
+    {
+     "wavelength_um": 1.56,
+     "neff": 1.6251677065475392
+    },
+    {
+     "wavelength_um": 1.57,
+     "neff": 1.6220104945622535
+    }
+   ],
+   "label": "slab-30nm-t90"
+  },
+  {
+   "kind": "slab_mode",
+   "rows": [
+    {
+     "wavelength_um": 1.53,
+     "neff": 2.75974837231193
+    },
+    {
+     "wavelength_um": 1.54,
+     "neff": 2.754472495474749
+    },
+    {
+     "wavelength_um": 1.55,
+     "neff": 2.7492103343663286
+    },
+    {
+     "wavelength_um": 1.56,
+     "neff": 2.74396200273525
+    },
+    {
+     "wavelength_um": 1.57,
+     "neff": 2.738727610836575
+    }
+   ],
+   "label": "slab-20nm-t220"
+  },
+  {
+   "kind": "slab_mode",
+   "rows": [
+    {
+     "wavelength_um": 1.53,
+     "neff": 2.416082665449087
+    },
+    {
+     "wavelength_um": 1.54,
+     "neff": 2.4099743715382664
+    },
+    {
+     "wavelength_um": 1.55,
+     "neff": 2.4039007028251573
+    },
+    {
+     "wavelength_um": 1.56,
+     "neff": 2.397861581068946
+    },
+    {
+     "wavelength_um": 1.57,
+     "neff": 2.3918569243730623
+    }
+   ],
+   "label": "slab-20nm-t150"
+  },
+  {
+   "kind": "slab_mode",
+   "rows": [
+    {
+     "wavelength_um": 1.53,
+     "neff": 1.8829368490872074
+    },
+    {
+     "wavelength_um": 1.54,
+     "neff": 1.877830726613204
+    },
+    {
+     "wavelength_um": 1.55,
+     "neff": 1.8727820988322645
+    },
+    {
+     "wavelength_um": 1.56,
+     "neff": 1.8677902892778226
+    },
+    {
+     "wavelength_um": 1.57,
+     "neff": 1.8628546294329291
+    }
+   ],
+   "label": "slab-20nm-t90"
+  },
+  {
+   "kind": "slab_mode",
+   "rows": [
+    {
+     "wavelength_um": 1.53,
+     "neff": 2.7784358260414557
+    },
+    {
+     "wavelength_um": 1.54,
+     "neff": 2.7732253528936406
+    },
+    {
+     "wavelength_um": 1.55,
+     "neff": 2.768027574616204
+    },
+    {
+     "wavelength_um": 1.56,
+     "neff": 2.7628426109851536
+    },
+    {
+     "wavelength_um": 1.57,
+     "neff": 2.7576705783312465
+    }
+   ],
+   "label": "slab-15nm-t220"
+  },
+  {
+   "kind": "slab_mode",
+   "rows": [
+    {
+     "wavelength_um": 1.53,
+     "neff": 2.3854838545723145
+    },
+    {
+     "wavelength_um": 1.54,
+     "neff": 2.3793845121379125
+    },
+    {
+     "wavelength_um": 1.55,
+     "neff": 2.373321264536924
+    },
+    {
+     "wavelength_um": 1.56,
+     "neff": 2.36729400825192
+    },
+    {
+     "wavelength_um": 1.57,
+     "neff": 2.3613026363972094
+    }
+   ],
+   "label": "slab-15nm-t150"
+  },
+  {
+   "kind": "slab_mode",
+   "rows": [
+    {
+     "wavelength_um": 1.53,
+     "neff": 1.8393062706522325
+    },
+    {
+     "wavelength_um": 1.54,
+     "neff": 1.8344563785118337
+    },
+    {
+     "wavelength_um": 1.55,
+     "neff": 1.829663417010067
+    },
+    {
+     "wavelength_um": 1.56,
+     "neff": 1.8249266850954287
+    },
+    {
+     "wavelength_um": 1.57,
+     "neff": 1.8202454909484203
+    }
+   ],
+   "label": "slab-15nm-t90"
+  },
+  {
+   "kind": "slab_mode",
+   "rows": [
+    {
+     "wavelength_um": 1.53,
+     "neff": 2.8048684837314153
+    },
+    {
+     "wavelength_um": 1.54,
+     "neff": 2.7997560178253735
+    },
+    {
+     "wavelength_um": 1.55,
+     "neff": 2.7946548496606165
+    },
+    {
+     "wavelength_um": 1.56,
+     "neff": 2.7895651058764375
+    },
+    {
+     "wavelength_um": 1.57,
+     "neff": 2.7844869097591505
+    }
+   ],
+   "label": "slab-10nm-t220"
+  },
+  {
+   "kind": "slab_mode",
+   "rows": [
+    {
+     "wavelength_um": 1.53,
+     "neff": 2.4494191610009493
+    },
+    {
+     "wavelength_um": 1.54,
+     "neff": 2.4433369007862358
+    },
+    {
+     "wavelength_um": 1.55,
+     "neff": 2.4372872630095266
+    },
+    {
+     "wavelength_um": 1.56,
+     "neff": 2.431270198258036
+    },
+    {
+     "wavelength_um": 1.57,
+     "neff": 2.425285653240761
+    }
+   ],
+   "label": "slab-10nm-t150"
+  },
+  {
+   "kind": "slab_mode",
+   "rows": [
+    {
+     "wavelength_um": 1.53,
+     "neff": 1.933858895505515
+    },
+    {
+     "wavelength_um": 1.54,
+     "neff": 1.9285134895324625
+    },
+    {
+     "wavelength_um": 1.55,
+     "neff": 1.9232249723394812
+    },
+    {
+     "wavelength_um": 1.56,
+     "neff": 1.917992721491198
+    },
+    {
+     "wavelength_um": 1.57,
+     "neff": 1.9128161206252523
+    }
+   ],
+   "label": "slab-10nm-t90"
+  }
+ ],
+ "process": {
+  "wall_s": 32.48696160316467,
+  "cpu_s": 9.958412,
+  "maxrss_mib": 139.76953125
+ }
+}
