@@ -1,0 +1,92 @@
+{
+  "schema": "carbon.scorelab.battery-v3.cohort.v1",
+  "id": "battery-v3-scorelab-cohort-dev-v1",
+  "scope": "PUBLIC_DEVELOPMENT",
+  "status": "PROSPECTIVE_NOT_EXECUTED",
+  "kit": "carbon.battery-v3.kit.v1",
+  "trainer": "carbon.development-carbon-arm.trainer.v1",
+  "backend": "jax",
+  "base_settings": {
+    "activation": "gelu",
+    "adam_epsilon": 1e-08,
+    "beta1": 0.9,
+    "beta2": 0.999,
+    "clip_norm": 0.0,
+    "curriculum": "none",
+    "depth": 3,
+    "ema_decay": 0.99,
+    "ensemble_members": 1,
+    "h1_weight": 0.0,
+    "h2_weight": 0.0,
+    "hard_example_weight": 0.0,
+    "inference_weights": "params",
+    "initialization": "he_normal",
+    "learning_rate": 0.002,
+    "learning_rate_curve": "cosine",
+    "microbatches": 1,
+    "min_learning_rate_ratio": 0.0,
+    "normalization": "none",
+    "optimizer_family": "adam",
+    "polish_steps": 0,
+    "precision": "float64",
+    "relative_loss": false,
+    "spectral_weight": 0.0,
+    "steps": 6000,
+    "tail_averaging": 0.0,
+    "time_weighting": "uniform",
+    "warmup_steps": 0,
+    "weight_decay": 0.0,
+    "weight_decay_mask": "all",
+    "width": 256
+  },
+  "base_settings_digest": "sha256:36915a399e68a69991f06767b268b6fb0ec9b6da85b1b060f2447944525420ff",
+  "seeds": [
+    11,
+    29,
+    47
+  ],
+  "recipes": [
+    {
+      "id": "default",
+      "overrides": {}
+    },
+    {
+      "id": "small",
+      "overrides": {
+        "width": 64,
+        "depth": 2
+      }
+    },
+    {
+      "id": "wide",
+      "overrides": {
+        "width": 512
+      }
+    },
+    {
+      "id": "deep",
+      "overrides": {
+        "width": 128,
+        "depth": 5
+      }
+    },
+    {
+      "id": "short",
+      "overrides": {
+        "steps": 1500
+      }
+    },
+    {
+      "id": "lower-lr",
+      "overrides": {
+        "learning_rate": 0.0005
+      }
+    }
+  ],
+  "artifact_count": 18,
+  "recipe_cluster_count": 6,
+  "independent_architecture_families": false,
+  "selection": "fixed settings before evaluation; no performance-based member replacement",
+  "first_fit": "default/seed11; measure cost then reserve the fixed remainder",
+  "qualification": false
+}

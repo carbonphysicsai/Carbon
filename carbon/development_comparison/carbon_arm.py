@@ -49,6 +49,7 @@ import numpy as np
 
 PREDICTIONS = "carbon.development-prediction-input.v1"
 RECEIPT = "carbon.development-carbon-arm-receipt.v1"
+CANDIDATE_VIEW = "carbon.development-carbon-arm.candidate-view.v1"
 SCOPES = ("PUBLIC_DEVELOPMENT", "SYNTHETIC_FIXTURE")
 TRAINER = "carbon.development-carbon-arm.trainer.v1"
 
@@ -408,12 +409,77 @@ def domain_gaps(kit, export):
     """The export's physical rows the kit's registered TRAIN domain does not
     cover (empty: the plan covers every panel row). Reads actions, bands and
     conditions only, never reference values."""
-    from carbon.development_comparison import cheap_baselines as cb
-
     if kit.domain is None:
         raise ArmRefused("KIT_HAS_NO_REGISTERED_DOMAIN")
-    physical = cb._physical_rows(export)
+    physical = _physical_rows(kit, export)
     return _gaps(kit, physical, [kit.row_queries(row) for row in physical])
+
+
+def _physical_rows(kit, export):
+    """A candidate view contains names/actions only, never reference numbers.
+
+    Preserve the legacy solved-export path. The new schema cannot be passed to
+    that parser, which converts numeric truth while collecting physical rows.
+    """
+    from carbon.design_search import indexed, tasks
+    from carbon.development_comparison import cheap_baselines as cb
+
+    if export.get("schema") != CANDIDATE_VIEW:
+        return cb._physical_rows(export)
+    body = {k: v for k, v in export.items() if k != "export_digest"}
+    if (
+        set(export) != {"schema", "scope", "family", "questions", "export_digest"}
+        or export["scope"] not in SCOPES
+        or export["family"] != kit.family
+        or tasks.digest(body) != export["export_digest"]
+    ):
+        raise ArmRefused("CANDIDATE_VIEW_IDENTITY")
+    rows = {}
+    for entry in export["questions"]:
+        if set(entry) != {"case", "task", "reference"}:
+            raise ArmRefused("CANDIDATE_VIEW_FIELDS")
+        task = entry["task"]
+        if task["schema"] == tasks.INDEXED_SCHEMA:
+            indexed.validate_indexed(task)
+            if len(entry["reference"]) != len(task["indices"]):
+                raise ArmRefused("CANDIDATE_VIEW_BAND_INVENTORY")
+            if any(
+                set(r) != {"index_value", "panel"}
+                or r["index_value"] != b["index_value"]
+                for r, b in zip(entry["reference"], task["indices"])
+            ):
+                raise ArmRefused("CANDIDATE_VIEW_BAND_INVENTORY")
+        else:
+            tasks._verify_task_digest(task)
+        for band, subtask, panel in cb._panels(entry):
+            expected = [
+                (c, cond["id"])
+                for c in subtask["candidates"]
+                for cond in subtask["conditions"]
+            ]
+            if any(set(r) != {"candidate", "condition", "observables"} for r in panel):
+                raise ArmRefused("CANDIDATE_VIEW_FIELDS")
+            if [(r["candidate"], r["condition"]) for r in panel] != expected:
+                raise ArmRefused("CANDIDATE_VIEW_ROW_INVENTORY")
+            for row in panel:
+                if (
+                    type(row["observables"]) is not list
+                    or len(row["observables"]) != len(kit.observables)
+                    or set(row["observables"]) != set(kit.observables)
+                ):
+                    raise ArmRefused("OBSERVABLE_INVENTORY_MISMATCH")
+                key = (band, row["candidate"], row["condition"])
+                physical = {
+                    "band": band,
+                    "candidate": row["candidate"],
+                    "condition": row["condition"],
+                    "action": dict(subtask["actions"][row["candidate"]]),
+                    "observables": list(row["observables"]),
+                }
+                if key in rows and rows[key] != physical:
+                    raise ArmRefused("CANDIDATE_VIEW_CHANGED_ACTION")
+                rows[key] = physical
+    return list(rows.values())
 
 
 def _environment():
@@ -460,19 +526,22 @@ def _decision_query_indices(export, physical):
 
 def run(kit, export, train, *, scope, seed=0, backend="jax", code=None, settings=None):
     """`(predictions, receipt)` for every physical row of `export`."""
-    from carbon.development_comparison import cheap_baselines as cb
-
     if scope not in SCOPES:
         raise ArmRefused("SCOPE_UNKNOWN")
     if train.fixture and scope != "SYNTHETIC_FIXTURE":
         raise ArmRefused("FIXTURE_TRAIN_CANNOT_BE_PUBLIC")
     if export.get("family") != kit.family:
         raise ArmRefused("EXPORT_FAMILY_MISMATCH")
+    if export.get("schema") == CANDIDATE_VIEW and export.get("scope") != scope:
+        raise ArmRefused("CANDIDATE_VIEW_SCOPE_MISMATCH")
+    physical = _physical_rows(kit, export)
+    if any(
+        set(row.get("observables", row.get("values", ()))) != set(kit.observables)
+        for row in physical
+    ):
+        raise ArmRefused("OBSERVABLE_INVENTORY_MISMATCH")
     network = Network(kit, backend=backend, settings=settings)
     fit = network.fit(train, seed)
-    physical = cb._physical_rows(export)
-    if any(set(row["values"]) != set(kit.observables) for row in physical):
-        raise ArmRefused("OBSERVABLE_INVENTORY_MISMATCH")
     per_row = [kit.row_queries(row) for row in physical]
     if kit.domain is not None and _gaps(kit, physical, per_row):
         raise ArmRefused("PANEL_OUTSIDE_TRAIN_DOMAIN")
@@ -554,8 +623,13 @@ def run(kit, export, train, *, scope, seed=0, backend="jax", code=None, settings
         "kit": kit.kit_id,
         "model_id": kit.model_id,
         "export_digest": export["export_digest"],
-        "selection": "the kit's registered default recipe, fixed before the "
-        "panel was inspected; no recipe was chosen on panel results",
+        "selection": (
+            "the kit's registered default recipe, fixed before the "
+            "panel was inspected; no recipe was chosen on panel results"
+            if network.settings == TRAINER_DEFAULTS
+            else "caller-supplied trainer settings; this receipt does not attest "
+            "prospective registration or selection chronology"
+        ),
         "train": {
             "sha256": train.sha256,
             "records": len(train.records),

@@ -1,0 +1,55 @@
+{
+  "schema": "carbon.scorelab.coarse-construction-source.v1",
+  "scope": "DEVELOPMENT_ONLY",
+  "role": "PROSPECTIVE_COARSE_CONSTRUCTION_DISCOVERY_ONLY",
+  "data": {
+    "path": "docs/development/evidence/battery-feasibility-02/v2-rescore.json",
+    "sha256": "c6c23a5211af1e16b6decb6e702448d77471a7343fb05ff78e697bce2fa807b7",
+    "input_rows": 402
+  },
+  "rescore_registry": {
+    "path": "docs/development/evidence/battery-feasibility-02/v2-rescore-registry.json",
+    "sha256": "b3007401e8a24aa4761d87f07832a0acfb4cd1e3230983bede5dd66ba8eaa4ba"
+  },
+  "base_registry": {
+    "path": "docs/development/evidence/battery-feasibility-02/registry.json",
+    "sha256": "ce0ee4dd838fe78e1c902a883c3d4791705ae0efac20553fdb422bf2e320e632"
+  },
+  "prospective_exclusions": {
+    "calibration": 15,
+    "evaluation": 6,
+    "remaining_input_disjoint_before_quality_checks": 381
+  },
+  "inputs": {
+    "soc0": 0.1,
+    "minimum_c1": 1.25,
+    "minimum_c2": 0.4,
+    "cooling": [
+      1,
+      2,
+      4
+    ],
+    "switch_v": [
+      4,
+      4.05,
+      4.1,
+      4.15
+    ],
+    "bands_c": [
+      5,
+      15,
+      25,
+      35,
+      40
+    ]
+  },
+  "not_completed_original_TRAIN_rows": true,
+  "raw_rung_provenance_proven": false,
+  "numerical_evaluation_reference": false,
+  "old_verdicts_or_voltage_tolerance_carried": false,
+  "fill_missing_observables": false,
+  "prior_acquisition_cost": "UNKNOWN_NOT_ZERO",
+  "new_reference_solves_for_source_reuse": 0,
+  "next": "register source-input-only lower-current anchors from separate SOC.1 TRAIN plan; keep original TRAIN completion ledger separate",
+  "qualification": false
+}

@@ -1,0 +1,25 @@
+{
+  "schema": "carbon.scorelab.acquisition-source-pins.v1",
+  "scope": "DEVELOPMENT_ONLY",
+  "base_commit": "9f04664edc4e81bf9fb37fa6ae0eda1498c75263",
+  "rule": "bind final merged commit and require these file bytes before dispatch; this is not a run receipt",
+  "files": {
+    "scripts/dev/battery/feasibility02.py": "a37d3e6fe1e1c1abc1149c3c9a1568b2774227370d6135b3752d821910f0b192",
+    "scripts/dev/battery/feasibility02_v2.py": "17235eaddf8d505113999b5fd12585d94750e3f3166f1c846e941e6a347ac44c",
+    "scripts/dev/evidence_runs/battery_v3.py": "d820eca1278bdda7c5c9918d26c960c53cf1315bb0fc2ecfb161f2dd28592d12",
+    "carbon/battery/reference.py": "5d37d4ca9ffaa1b70c39cef5266d2deb5fb5d70c9ace7e5b22b27a2e02cf7791",
+    "carbon/battery/truth_env.py": "fee4a30b260d518d8bf4056e3f662f56a2747b4b3b3149c441eacb45c216bd8a",
+    "carbon/development_comparison/carbon_arm.py": "0697f60e6def49c4de027d0f62f22db404e052457b56e0748ad18844e2d2f8b5",
+    "carbon/development_comparison/battery_v3_kit.py": "8b8c942ebe57b1ed63f92e6dcd056222b5ed913ddc24924e275951632af2a7b4",
+    "carbon/development_comparison/cheap_baselines.py": "a3075f089e29d1caca199708846d6ecd6d9180394f72e155746d050b40bd2694",
+    "carbon/design_search/tasks.py": "2122194173ddaf39a8164b153cacb45ee2387373b6a8e710ef9b9474b247081a",
+    "carbon/design_search/indexed.py": "b13c69b5a86fd87feaf6be3e1b690e865af7a5e13622725eef6d3efc4409411e",
+    "scripts/dev/score_lab/owner_v3.py": "9cef7ffb12dd0893787541f0bacec4e6d6aca34cd6eacb41b54b1379f7d8b224",
+    "scripts/dev/score_lab/owner_v3_numerics.py": "9b42b9e296127cef743507a04ecc0ae27cdceafb76110e500934106348abd208",
+    "scripts/dev/score_lab/owner_v3_panel_export.py": "1a42ad91d5832f85c956719df6d3099e460041b31123dfc84ff13a9001e4b86d",
+    "scripts/dev/score_lab/owner_v3_train.py": "99997f0b79e4fd5418802d25e08aa6750ce43a7bbc735db45ba01363ff1bd11c",
+    "docs/development/evidence/battery-feasibility-02/v2-rescore.json": "c6c23a5211af1e16b6decb6e702448d77471a7343fb05ff78e697bce2fa807b7",
+    "docs/development/evidence/battery-feasibility-02/v2-rescore-registry.json": "b3007401e8a24aa4761d87f07832a0acfb4cd1e3230983bede5dd66ba8eaa4ba",
+    "docs/development/evidence/battery-feasibility-02/registry.json": "ce0ee4dd838fe78e1c902a883c3d4791705ae0efac20553fdb422bf2e320e632"
+  }
+}

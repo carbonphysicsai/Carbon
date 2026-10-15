@@ -1,0 +1,23 @@
+{
+  "id": "carbon.scorelab.battery-v3.operational-enclosure.v1",
+  "scope": "DEVELOPMENT_ONLY",
+  "floors": {
+    "charging_t_max_c": 0.05,
+    "plating_min_v": 5e-05,
+    "minutes": 0.05,
+    "q30_over_q1": 0.0001
+  },
+  "radius": "max(floor, 2 * abs(finest - previous))",
+  "voltage": {
+    "upper_v": 4.2,
+    "max_pair_change_v": 1e-06
+  },
+  "units": {
+    "charging_t_max_c": "C",
+    "plating_min_v": "V",
+    "minutes": "min",
+    "q30_over_q1": "1",
+    "v_max_v": "V"
+  },
+  "physical_confidence_interval": false
+}
