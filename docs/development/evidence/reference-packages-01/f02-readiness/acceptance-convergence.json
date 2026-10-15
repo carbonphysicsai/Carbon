@@ -1,0 +1,42 @@
+{
+ "schema": "carbon.f02-readiness.acceptance.v1",
+ "kind": "convergence",
+ "family": "f02",
+ "status": "ACCEPTED_DEVELOPMENT",
+ "decision": "F02-SCIENCE-VALUES-01",
+ "authority": "OWNER-SOLVER-READINESS-SCIENCE-DELEGATION-01",
+ "bands": "f02-readiness/bands.json",
+ "scope": "DEVELOPMENT engineering acceptance; not qualification, Tier 2 or LIVE",
+ "registered": "before the local-image results it judges",
+ "metrics": {
+  "max_abs_peak_shift_mesh2_c": [
+   0.0,
+   0.5
+  ],
+  "max_abs_peak_shift_dt_half_c": [
+   0.0,
+   0.5
+  ],
+  "max_abs_crossing_shift_s": [
+   0.0,
+   0.5
+  ],
+  "max_abs_recovery_shift_s": [
+   0.0,
+   0.5
+  ],
+  "max_curve_diff_c": [
+   0.0,
+   0.5
+  ],
+  "one_rung_only_events": [
+   0,
+   0
+  ],
+  "cases_with_both_rungs": [
+   8,
+   8
+  ]
+ },
+ "case_family": "the 8 triage primaries (reference-route-panels.json f02) at mesh 2 and dt/2"
+}

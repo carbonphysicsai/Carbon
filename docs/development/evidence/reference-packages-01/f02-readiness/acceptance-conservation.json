@@ -1,0 +1,42 @@
+{
+ "schema": "carbon.f02-readiness.acceptance.v1",
+ "kind": "conservation",
+ "family": "f02",
+ "status": "ACCEPTED_DEVELOPMENT",
+ "decision": "F02-SCIENCE-VALUES-01",
+ "authority": "OWNER-SOLVER-READINESS-SCIENCE-DELEGATION-01",
+ "bands": "f02-readiness/bands.json",
+ "scope": "DEVELOPMENT engineering acceptance; not qualification, Tier 2 or LIVE",
+ "registered": "before the local-image results it judges",
+ "metrics": {
+  "max_abs_energy_residual_rel": [
+   0.0,
+   0.01
+  ],
+  "max_abs_steady_balance_rel": [
+   0.0,
+   0.001
+  ],
+  "max_abs_baseline_end_minus_steady_c": [
+   0.0,
+   0.5
+  ],
+  "equilibrium_drift_c": [
+   0.0,
+   0.05
+  ],
+  "slab_step_error_over_tolerance": [
+   0.0,
+   1.0
+  ],
+  "slab_pulse_error_over_tolerance": [
+   0.0,
+   1.0
+  ],
+  "control_energy_residual_abs": [
+   0.0,
+   0.01
+  ]
+ },
+ "case_family": "every primary and rung of the convergence panel, the 4 steady and 8 transient 20 W baselines, and the packet's 4 controls"
+}

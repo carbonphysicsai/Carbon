@@ -1,0 +1,67 @@
+{
+ "manifests": {
+  "environment": {
+   "command": "ElmerSolver case.sif > solver.log 2>&1",
+   "isolation": "docker --network none --read-only --tmpfs /tmp --cpus 1, non-root",
+   "runtime_packages_sha256": "344f3ec885feed3222374224046a1a8b8aac6a8a4e2f2c8c9293eb264613f3fd",
+   "threads": {
+    "OMP_NUM_THREADS": 1,
+    "OPENBLAS_NUM_THREADS": 1
+   }
+  },
+  "geometry_grammar": {
+   "burst_start_s": 20.0,
+   "patch_half_mm": 4.0,
+   "patch_x_mm": 5.0,
+   "source_sha256": "e83609a42efcd24e881a86e472532ced4247ab3fe675fa5005da60d27929be27"
+  },
+  "materials": {
+   "contact": "perfect",
+   "cooling": "Robin on the whole copper underside",
+   "layers": {
+    "copper": {
+     "cp": 385.0,
+     "half_side_mm": 15.0,
+     "k": 390.0,
+     "rho": 8960.0,
+     "thickness_mm": 2.0
+    },
+    "die": {
+     "cp": 700.0,
+     "half_side_mm": 10.0,
+     "k": 130.0,
+     "rho": 2330.0,
+     "thickness_mm": 0.5
+    },
+    "tim": {
+     "cp": 1000.0,
+     "half_side_mm": 10.0,
+     "k": 5.0,
+     "rho": 2500.0,
+     "thickness_mm": 0.2
+    }
+   }
+  },
+  "observer": {
+   "base_w": 20.0,
+   "horizon_s": 120.0,
+   "limit_c": 95.0,
+   "source_sha256": "bd5826ec74addf7516d3d4d14ae0de60d9a73cb2d957932e14ee6d2661e95a3c"
+  },
+  "solver": {
+   "heat_solver": "HeatSolve, hex808, BDF2",
+   "image_id": "sha256:61be1cb77c51fcdd822250e372754a9ce728a5bb42f39b7ba03cdf5e70901add",
+   "package": "elmer-26.2.1",
+   "solver_banner": "ELMER SOLVER (v 26.2)",
+   "sources_lock_sha256": "0ae1508c55bcd003e2662944dc8788b54fed0a97dbab975f160ba8e54eee89b6"
+  }
+ },
+ "pins": {
+  "environment": "sha256:45f9db60880c910ac380a7caaf53ec7217187b56da4479ead1e55a038d022c80",
+  "geometry_grammar": "sha256:0b0ac529bdb7520409529e5eff3e152ad2de57f0d6aadc340d3fe0b17553984f",
+  "materials": "sha256:35fe8ff0a9bf0bd94adfe3ecfedd7b0b24abea11ede318f9656eaa13e78a93d8",
+  "observer": "sha256:0eedf36b0bce8a00eeeecab997bacff684c1e6498d1dd9c5f885d9aeaff3e864",
+  "solver": "sha256:234c616da7e2fc9a6b8e6017da1876da13df1d8f71c9eef68521735a24cb2b60"
+ },
+ "schema": "carbon.f02-readiness.pins.v1"
+}

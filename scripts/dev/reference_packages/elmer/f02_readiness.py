@@ -89,6 +89,21 @@ def steady_regimes():
             "peak_w": deck.BASE_W, "on_time_s": 0.0}  # fmt: skip
 
 
+STEP_W = 100.0
+
+
+def step_regimes():
+    """(name, case) for the 4 unit-step responses: STEP_W switched on at t = 0
+    from the coolant temperature, per cooling pair x split. The stack is
+    linear (constant properties, Robin), so the die-top response to any
+    schedule in a context is its 20 W baseline plus superposed steps."""
+    for (coolant, h), split in itertools.product(menu.COOLING, menu.SPLITS):
+        yield f"step-{coolant:g}C-{h:g}-{split:g}", {
+            "coolant_c": coolant, "h_w_m2_k": h, "initial_c": coolant,
+            "left_source_fraction": split, "waveform": "constant",
+            "peak_w": STEP_W, "on_time_s": 0.0}  # fmt: skip
+
+
 def steady_name(case):
     return f"steady-{case['coolant_c']:g}C-{case['h_w_m2_k']:g}-{case['left_source_fraction']:g}"
 
@@ -150,6 +165,9 @@ def freeze(kind, out, labels=None):
         for name in labels:
             entry = registered[name]
             add(name, "primary", _menu_case(entry, ctx), check=entry["files"])
+    elif kind == "steps":
+        for name, case in step_regimes():
+            add(name, "step_responses", case)
     elif kind == "bank":
         return _freeze_bank(out)
     else:
@@ -224,16 +242,21 @@ def freeze_contenders(bank_dir, out):
     bank_dir, out = Path(bank_dir), Path(out)
     bands = json.loads(BANDS.read_text())
     lo, hi = bands["B8_refine_window_c"]
-    ctx, entries = dict(menu.contexts()), []
-    primaries = _registered(MENU_MANIFEST)
-    for name, entry in primaries.items():
+    manifest = json.loads((bank_dir / "manifest.json").read_text())
+    have = {e["case"] for e in manifest["cases"]}
+    entries = []
+    for entry in manifest["cases"]:
+        name = entry["case"]
         d = bank_dir / "f02" / name
-        if not (d / "scalars.dat").exists():
+        if entry["reservation"] != "primary" or not (d / "scalars.dat").exists():
+            continue
+        stem = name[: -len("-primary")]
+        if f"{stem}-mesh2" in have:  # already frozen with the bank
             continue
         peak = deck.observe(d)["peak_top_c"]
         if not lo <= peak <= hi:
             continue
-        case, stem = _menu_case(entry, ctx), name[: -len("-primary")]
+        case = json.loads((d / "deck.json").read_text())["case"]
         for tag, level, dt in (("mesh2", 2, 1.0), ("dt0.5", 1, 0.5)):
             c = out / "f02" / f"{stem}-{tag}"
             meta = deck.write_case(case, c, level, dt)
@@ -490,7 +513,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser(prog="f02_readiness")
     sub = parser.add_subparsers(dest="command", required=True)
     f = sub.add_parser("freeze")
-    f.add_argument("set", choices=("convergence", "sample", "bank"))
+    f.add_argument("set", choices=("convergence", "sample", "steps", "bank"))
     f.add_argument("out", type=Path)
     f.add_argument("--labels", default="")
     c = sub.add_parser("freeze-contenders")
