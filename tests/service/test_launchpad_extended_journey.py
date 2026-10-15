@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+from pathlib import Path
 
 import pytest
 import test_launchpad_production_journey as production
@@ -259,6 +260,11 @@ def test_11_two_paired_loopback_targets_keep_refusal_and_verdict_independent(
         assert view["last_refusal"] is None, view["last_refusal"]
         assert intake.Inbox(first.config["inbox"]).counts()["REFUSED"] == 1
         assert intake.Inbox(second.config["inbox"]).counts()["ADMITTED"] == 1
+        # Both actual intake transport journals survive, including the
+        # refusing target; a refusal is not a fabricated admission record.
+        for live in (first, second):
+            assert Path(live.config["transport_journal"]).is_file()
+            assert Path(live.config["inbox"]).is_file()
     root = battery.campaign_root(identity)
     directories = [intake_targets.journal(root, pair) for pair in pairs]
     assert directories[0] != directories[1] and all(
@@ -277,6 +283,9 @@ def test_11_two_paired_loopback_targets_keep_refusal_and_verdict_independent(
     assert shown["validators"][0]["code"] == "commitment_required"
     assert "score" not in shown and shown["reward"] is False
     assert not shown["qualification"]
+    public = json.dumps(shown)
+    for hidden in ("important_score", '"score"', "seed", "pool_version"):
+        assert hidden not in public, hidden
     assert shown["validators"][1]["result"]["sealed"] is True
     assert (
         "screening" not in shown["validators"][1]["result"]
