@@ -169,3 +169,10 @@ def test_cgroup_counters_parse_v1_and_v2():
         "cgroup_cpu_s": None,
         "cgroup_memory_peak_mib": None,
     }
+
+
+def test_manifest_cost_estimates_grow_with_mesh_and_carry_bulk_runner_fields():
+    small, large = deck.estimate(25_000), deck.estimate(240_000)
+    assert set(small) == {"estimate_cpu_s", "estimate_wall_s", "estimate_mem_mib"}
+    assert all(0 < small[k] < large[k] for k in small)
+    assert large["estimate_wall_s"] >= large["estimate_cpu_s"]

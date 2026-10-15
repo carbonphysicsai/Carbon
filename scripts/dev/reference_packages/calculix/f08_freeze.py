@@ -74,13 +74,14 @@ def freeze(out, image=IMAGE):
         case = deck.BEAM_CONTROL if label == "control-beam" else deck.panel_case(label)
         size = deck.write_case(case, d, h, MODES)
         entries.append({"family": "f08", "case": d.name, "reservation": reservation, "command": deck.COMMAND,
-                        "mesh": size, "files": _digest(d)})  # fmt: skip
+                        "mesh": size, **deck.estimate(size["nodes"]), "files": _digest(d)})  # fmt: skip
     d = out / "f08" / "control-oscillators"
     d.mkdir(parents=True, exist_ok=True)
     (d / "case.inp").write_text(proof.oscillator_deck()[0])
     (d / "deck.json").write_text(json.dumps({"control": "oscillators"}) + "\n")
     entries.insert(len(labels), {"family": "f08", "case": d.name, "reservation": "controls",
-                                 "command": deck.COMMAND, "files": _digest(d)})  # fmt: skip
+                                 "command": deck.COMMAND, "estimate_cpu_s": 1.0, "estimate_wall_s": 5.0,
+                                 "estimate_mem_mib": 64, "files": _digest(d)})  # fmt: skip
     manifest = {
         "schema": "carbon.reference-triage.frozen-decks.v1",
         "ticket": "REFERENCE-PACKAGES-01",
@@ -123,6 +124,11 @@ def _cost(case_dir, ledger_rows):
     return cost
 
 
+def _finished(case_dir):
+    """ccx wrote its output and the case command recorded its cgroup counters."""
+    return (case_dir / "case.dat").exists() and (case_dir / "cgroup.txt").exists()
+
+
 def observe_all(decks, out, ledger=None):
     decks = Path(decks)
     ledger_rows = {}
@@ -132,7 +138,7 @@ def observe_all(decks, out, ledger=None):
             ledger_rows[row["case"]] = row
     rows = {}
     for d in sorted((decks / "f08").iterdir()):
-        if not (d / "case.dat").exists():
+        if not _finished(d):
             rows[d.name] = {
                 "status": "NOT_RUN_OR_NO_OUTPUT",
                 "cost": _cost(d, ledger_rows),
@@ -166,7 +172,7 @@ def observe_all(decks, out, ledger=None):
             H_PRIMARY: f"{label}-primary",
             **{h: f"{label}-h{h:g}" for h in H_WITNESS},
         }
-        if all((decks / "f08" / n / "case.dat").exists() for n in names.values()):
+        if all(_finished(decks / "f08" / n) for n in names.values()):
             rungs = {h: deck.observe(decks / "f08" / n) for h, n in names.items()}
             summary["convergence"][label] = deck.convergence(rungs)
         else:

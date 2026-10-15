@@ -33,10 +33,10 @@ ROOT = HERE.parents[2]
 sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(ROOT))
 
+from carbon.challenge_pipeline import structures_readiness as s
+
 import f08_deck as deck
 import f08_freeze as freeze_mod
-
-from carbon.challenge_pipeline import structures_readiness as s
 
 STEPS = (5, 5, 0.5, 1, 0.5, 5)  # Q1 lattice steps, packet field order
 MODES = 48
@@ -87,7 +87,7 @@ def freeze(reg, seed, out, count=256, h_mm=3.0, jobs=1, public_seed=False):
         d = out / "f08" / name
         size = deck.write_case(row, d, h_mm, MODES)
         return {"family": "f08", "case": name, "reservation": "bank", "command": deck.COMMAND,
-                "mesh": size, "action": row, "action_digest": s.tasks.digest(row),
+                "mesh": size, **deck.estimate(size["nodes"]), "action": row, "action_digest": s.tasks.digest(row),
                 "files": freeze_mod._digest(d)}  # fmt: skip
 
     with ThreadPoolExecutor(max(1, jobs)) as pool:

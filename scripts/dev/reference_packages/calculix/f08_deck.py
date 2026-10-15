@@ -74,6 +74,32 @@ BANDS = {
 }  # fmt: skip
 
 
+#: Measured cost model for one f08 launch (static + 48-mode eigen + three damping
+#: sweeps), fitted to the 2026-10-15 local runs (cgroup CPU and memory peak vs mesh
+#: nodes, 25k-137k nodes; triage-f08-observed.json). Host profile
+#: local-dev-4vcpu-15g-contended: CPU-s are comparable, local wall-s are not.
+COST_MODEL = {
+    "cpu_s": (9.912e-06, 1.5187),
+    "mem_mib": (6.571e-03, 1.1026),
+    "cpu_margin": 1.2,
+    "mem_margin": 1.2,
+    "wall_per_cpu_uncontended": 1.25,
+    "basis": "power-law fit to 12 local f08 launches; margins cover the worst observed/fit ratio (1.15 CPU, 1.08 memory)",
+}
+
+
+def estimate(nodes):
+    """estimate_cpu_s / estimate_wall_s / estimate_mem_mib for one launch (bulk runner fields)."""
+    a, b = COST_MODEL["cpu_s"]
+    c, d = COST_MODEL["mem_mib"]
+    cpu = COST_MODEL["cpu_margin"] * a * nodes**b
+    return {
+        "estimate_cpu_s": round(cpu, 1),
+        "estimate_wall_s": round(cpu * COST_MODEL["wall_per_cpu_uncontended"], 1),
+        "estimate_mem_mib": round(COST_MODEL["mem_margin"] * c * nodes**d + 64),
+    }
+
+
 def panel_case(label):
     family = json.loads(PANELS.read_text())["families"]["f08"]
     row = next(c for c in family["public_cases"] if c["label"] == label)
