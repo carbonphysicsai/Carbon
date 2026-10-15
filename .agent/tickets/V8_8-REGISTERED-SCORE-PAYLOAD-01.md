@@ -51,3 +51,16 @@ Current authority: CONSTITUTION, INVARIANTS, WAVE and domain scoring/owner
 adoption records; OWNER-DX-03 retires Hub/receipt ceremony. Hub impact: none.
 Maturity ceiling: DEVELOPMENT packaging and metadata readiness; no scientific,
 security, network, LIVE, release or installed-artifact qualification earned.
+
+## Candidate validation
+
+Local static AST parsing of all five Python files passed. Repository-pinned
+Black 26.5.1/py310 and Ruff 0.16.3 passed on those files; delivery hygiene
+against the starting main and diff whitespace checks passed. No local tests
+or runtime were executed under OPERATOR. Canonical test evidence remains
+pending the new PR's CI; earlier R5 checks do not validate this repair.
+
+Focused regression scope for canonical CI: test_validator_setup_registered_score,
+test_validator_setup_bundle, test_validator_setup_entrypoint,
+test_validator_registered_score and test_battery_validator_service. The default
+canonical CPU suite also discovers these paths; no workflow/check weakening.

@@ -14,6 +14,7 @@ from pathlib import Path, PurePosixPath
 
 SCHEMA = "carbon.validator-operator-bundle.v1"
 MANIFEST = "validator-bundle.json"
+RUNTIME_DIGEST_ENV = "CARBON_VALIDATOR_BUNDLE_DIGEST"
 ROOTS = (
     "carbon/",
     "scripts/dev/battery_validator_service/",
@@ -31,6 +32,7 @@ PUBLIC_RUNTIME_MATERIALS = frozenset(
         "scripts/dev/exam_design/locks/battery-overlay.lock.json",
         "docs/development/evidence/exam-design-2026-09-24/datasets/inputs.json",
         "docs/development/evidence/exam-design-2026-09-24/refs-b/out/battery_refs/records.jsonl",
+        "docs/development/evidence/battery-score-tuning/registry-v5.json",
     }
 )
 FILES = (
@@ -119,6 +121,26 @@ class VerifiedBundle:
     root: Path
     digest: str
     manifest: dict
+
+
+@contextmanager
+def runtime_identity(bundle):
+    """Pass the operator's externally verified pin to supervised children.
+
+    The child verifies the actual release again; the manifest never supplies
+    its own trust anchor. This context does not grant execution authority.
+    """
+    previous = os.environ.get(RUNTIME_DIGEST_ENV)
+    if previous is not None and previous != bundle.digest:
+        raise SetupRefused("EXECUTION_BUNDLE_DIGEST_DIFFERS")
+    os.environ[RUNTIME_DIGEST_ENV] = bundle.digest
+    try:
+        yield
+    finally:
+        if previous is None:
+            os.environ.pop(RUNTIME_DIGEST_ENV, None)
+        else:
+            os.environ[RUNTIME_DIGEST_ENV] = previous
 
 
 def materialize(repository, revision, destination):

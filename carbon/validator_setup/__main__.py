@@ -7,7 +7,14 @@ import json
 import os
 from pathlib import Path
 
-from .bundle import SetupRefused, materialize, runtime_lease, select_release, verify
+from .bundle import (
+    SetupRefused,
+    materialize,
+    runtime_identity,
+    runtime_lease,
+    select_release,
+    verify,
+)
 
 
 def bound(args):
@@ -196,8 +203,13 @@ def main(argv=None):
 
                 result = check_host_mirror(args.image, bundle)
             else:
-                with runtime_lease(
-                    args.config if args.command == "service" else args.service_config
+                with (
+                    runtime_identity(bundle),
+                    runtime_lease(
+                        args.config
+                        if args.command == "service"
+                        else args.service_config
+                    ),
                 ):
                     code, result = delegate(args, bundle)
                 if result is None:
