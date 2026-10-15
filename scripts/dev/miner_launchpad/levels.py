@@ -106,6 +106,7 @@ def _selected_standalone(request, challenge, agent, cfg, *, recorded_target=None
 
 def _base_selected(request, challenge):
     """An explicit registered base subject; never an implicit level downgrade."""
+    from carbon.challenge_registry import ResolutionError
     from carbon.challenge_registry.campaigns import campaign_for
     from carbon.reconstruction.capability_registry import contract
 
@@ -118,7 +119,7 @@ def _base_selected(request, challenge):
             or selector != contract(challenge["id"]).digest
         ):
             return False
-    except (KeyError, RuntimeError, ValueError):
+    except (KeyError, RuntimeError, ValueError, ResolutionError):
         return False
     level = request.get("construction_level")
     if request.get("arm") is not None or (
