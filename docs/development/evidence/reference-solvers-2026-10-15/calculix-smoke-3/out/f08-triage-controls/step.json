@@ -1,0 +1,28 @@
+{
+ "name": "f08-triage-controls",
+ "type": "bulk",
+ "status": "PASS",
+ "wall_s": 95.3,
+ "manifest": "docs/development/evidence/reference-solvers-2026-10-15/pins/triage-f08-decks-manifest.main-regen.json",
+ "manifest_sha256": "5b33d8a2ecf32392045e82ada3ff4ce2bac7d7b3f5ed0d4b72f868ed018d5af5",
+ "freeze": {
+  "exit": 0,
+  "stop_reason": "exit",
+  "wall_s": 38.37143449601717,
+  "rusage_cpu_s": 38.339
+ },
+ "verification": {
+  "selected": 2,
+  "selected_refused": [],
+  "all_cases_matching": 2
+ },
+ "bulk_exit": 0,
+ "outcomes": {
+  "f08": {
+   "COMPLETED": 2
+  }
+ },
+ "not_launched": {
+  "f08": {}
+ }
+}

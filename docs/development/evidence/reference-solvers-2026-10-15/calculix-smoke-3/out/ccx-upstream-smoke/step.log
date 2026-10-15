@@ -1,0 +1,3 @@
+{"test": "beamf", "exit": 0, "wall_s": 0.09, "pass": true, "max_rel_diff": 1.0956157773745907e-23, "numbers": 178}
+{"test": "beamdy8", "exit": 0, "wall_s": 0.09, "pass": true, "max_rel_diff": 7.283577496853801e-21, "numbers": 529}
+{"test": "beamdy9", "exit": 0, "wall_s": 0.1, "pass": true, "max_rel_diff": 5.161519468838849e-22, "numbers": 529}

@@ -1,0 +1,3008 @@
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c ccx_2.23.c
+gfortran -O2 -cpp -fallow-argument-mismatch  -c absolute_relative.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c acctube.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c acctube_one.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c actideacti.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c actideactistr.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c add_bo_st.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c addimd.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c addimdnodecload.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c addimdnodedload.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c addimdnodedof.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c addizdofcload.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c addizdofdload.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c add_sm_ei.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c add_sm_fl.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c add_sm_st_as.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c add_sm_st_corio.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c add_sm_st.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c adjacentbounodes.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c adjustcontactnodes.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c addshell.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c advecforc.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c advecstiff.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c air_valve.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c allocation.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c allocation_rfn.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c allocont.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c amplitudes.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c angsum.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c anisomaxwavspd.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c anisonl.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c anisotropic.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c applybounfem.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c applybounp.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c approxplane.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c assigndomtonodes.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c attach_1d.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c attach_1d_cracklength.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c attach_2d.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c attach_3d.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c attachline.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c autocovmatrix.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c basemotions.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c basis.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c beamextscheme.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c beamgeneralsections.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c beamintscheme.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c beammpc.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c beamsections.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c biotsavart.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c bodyadd.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c bodyforce.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c bounadd.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c bounaddf.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c boundaryfs.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c boundarymesh.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c boundarys.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c bsort.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c buckles.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c calcdamage.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c calcdatarget.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c calcdev.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c calcdhds.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c calceigenvalues.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c calcenergy.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c calcexternalwork.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c calcfeasibledirection_gd.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c calcfeasibledirection_gp.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c calcgeomelemnet.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c calch0interface.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c calcheatnet.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c calc_ider_cross_split.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c calc_ider_tee.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c calc_ider_wye.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c calcmac.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c calcmach.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c calcmass.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c calcmechstrain.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c calcnormal.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c calc_residual_cross_split.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c calc_residual_tee.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c calc_residual_wye.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c calcspringforc.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c calcstabletimeinccont.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c calcstabletimeincvol.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c calcstress.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c calcstressheatfluxfem.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c calcsurf.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c calctotstrain.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c calculated.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c calculateh.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c calculatehmid.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c calcview.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c calcvol.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c calinput.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c calinput_rfn.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c carbon_seal.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c catedges_crackprop.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c catedges_refine.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c catnodes.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c cattet.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c cattri.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c cavity_refine.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c cavityext_refine.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c cd_bleedtapping.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c cd_bragg.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c cd_chamfer.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c cd_lab_1spike.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c cd_lab_correction.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c cd_lab_honeycomb.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c cd_lab_radius.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c cd_lab_straight.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c cd_lichtarowicz.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c cd_Mcgreehan_Schotsch.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c cd_ms_ms.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c cd_own_albers.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c cd_pk_albers.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c cd_pk_ms.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c cd_preswirlnozzle.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c cfdconv.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c cfds.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c cflux.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c cfluxs.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c changecontacttypes.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c changedepterm.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c changefrictions.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c changekon.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c changematerials.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c changeplastics.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c changesolidsections.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c changesurfacebehaviors.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c channeljointback.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c channeljointfront.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c characteristic.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c characteristiclength.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c checkconstraint.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c checkcrosssections.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c checkdispoutonly.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c checkexiedge.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c checkforhomnet.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c checkimpacts.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c checkinputvaluesnet.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c checkintegrity.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c checkjac.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c checkprojectgrad.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c checksharp.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c checktemp.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c checktempload.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c checktime.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c checktruecontact.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c checkvol.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c chksurf.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c cident80.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c cident81.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c cident.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c clearances.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c cload.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c cloaddistributing.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c cloads.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c clonesensitivities.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c closefile.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c closefilefluid.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c cmatrix.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c combilcfhcf.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c compdt.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c complexfrequencys.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c con2phys.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c condrandomfield.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c conductivitys.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c constassembly.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c constraints.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c contactdampings.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c contactpairs.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c contactprints.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c contingentsurf.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c contraction.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c controlss.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c copysens.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c coriolissolve.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c correctem.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c correlationlengths.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c couplings.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c couptempdisps.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c cp_corrected.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c cracklength.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c cracklength_smoothing.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c crackprop.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c crackpropagations.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c crackrate.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c crackshape.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c create_contactdofs.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c create_t.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c create_tinv.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c createbd.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c createblock_struct.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c createelemneigh.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c createfint.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c createialnk.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c createinterfacempcs.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c createinum.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c createlocalsys.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c createmddof.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c createmdelem.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c createnodeneigh.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c createtet.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c createtiedsurfs.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c creep.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c creeps.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c cross_split.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c cubic.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c cubtri.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c cyclichardenings.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c cyclicsymmetrymodels.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c damageinitiations.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c dampings.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c dashdamp.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c dashpots.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c dattime.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c ddeabm.f
+ddeabm.f:969:72:
+
+  969 |   215    YPOUT(L) = YP(L)
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 215 at (1)
+ddeabm.f:981:72:
+
+  981 |   230   YY(L) = Y(L)
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 230 at (1)
+ddeabm.f:1015:72:
+
+ 1015 |   270   Y(L) = YY(L) + DT*YP(L)
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 270 at (1)
+ddeabm.f:1029:72:
+
+ 1029 |   290   YPOUT(L) = YP(L)
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 290 at (1)
+ddeabm.f:1053:72:
+
+ 1053 |   320   YPOUT(L) = YP(L)
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 320 at (1)
+ddeabm.f:1081:72:
+
+ 1081 |   370   YPOUT(L) = YP(L)
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 370 at (1)
+ddeabm.f:1103:72:
+
+ 1103 |   390   ATOL(L) = EPS*ATOL(L)
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 390 at (1)
+ddeabm.f:1106:72:
+
+ 1106 |   410   YPOUT(L) = YP(L)
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 410 at (1)
+ddeabm.f:1200:72:
+
+ 1200 |  10     W(IQ) = XIQ/TEMP1
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 10 at (1)
+ddeabm.f:1214:72:
+
+ 1214 |  40     GDI = OW(KP2-I) - ALPHA(I)*GDI
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 40 at (1)
+ddeabm.f:1230:72:
+
+ 1230 |  70       W(JQ) = GAMMA*W(JQ) - ALP*W(JQ+1)
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 70 at (1)
+ddeabm.f:1232:72:
+
+ 1232 |  80     C(I+1) = GAMMA*C(I)
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 80 at (1)
+ddeabm.f:1245:72:
+
+ 1245 |  100    YPOUT(L) = 0.0D0
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 100 at (1)
+ddeabm.f:1253:72:
+
+ 1253 |  110      YPOUT(L) = YPOUT(L) + TEMP3*PHI(L,I)
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 110 at (1)
+ddeabm.f:1259:72:
+
+ 1259 |      1                (YPOUT(L) + (C(1) + RMU*OG(1))*PHI(L,1))
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 130 at (1)
+gfortran -O2 -cpp -fallow-argument-mismatch  -c ddebdf.f
+ddeabm.f:2792:72:
+
+ 2792 |  10     ROUND = ROUND + (Y(L)/WT(L))**2
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 10 at (1)
+ddeabm.f:2809:72:
+
+ 2809 |    20   PHI(L,2) = 0.0D0
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 20 at (1)
+ddeabm.f:2831:72:
+
+ 2831 |  25     PHI(L,15) = 0.0D0
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 25 at (1)
+ddeabm.f:2870:72:
+
+ 2870 |  105    SIG(I+1) = REALI*ALPHA(I)*SIG(I)
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 105 at (1)
+ddeabm.f:2881:72:
+
+ 2881 |  115    W(IQ) = V(IQ)
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 115 at (1)
+ddeabm.f:2908:72:
+
+ 2908 |  125    W(I) = V(I)
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 125 at (1)
+ddeabm.f:2919:72:
+
+ 2919 |  135    W(IQ) = V(IQ)
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 135 at (1)
+ddeabm.f:2938:72:
+
+ 2938 |  145      W(IQ) = W(IQ) - TEMP6*W(IQ+1)
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 145 at (1)
+ddeabm.f:2939:72:
+
+ 2939 |  150    G(I) = W(1)
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 150 at (1)
+ddeabm.f:2959:72:
+
+ 2959 |  205      PHI(L,I) = TEMP1*PHI(L,I)
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 205 at (1)
+ddeabm.f:2967:72:
+
+ 2967 |  220    P(L) = 0.0D0
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 220 at (1)
+ddeabm.f:2974:72:
+
+ 2974 |  225      PHI(L,I) = PHI(L,I) + PHI(L,IP1)
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 225 at (1)
+ddeabm.f:2980:72:
+
+ 2980 |  235    PHI(L,16) = (P(L) - Y(L)) - TAU
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 235 at (1)
+ddeabm.f:2983:72:
+
+ 2983 |  245    P(L) = Y(L) + H*P(L)
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 245 at (1)
+ddeabm.f:2997:72:
+
+ 2997 |         IF(KM2)265,260,255
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: Arithmetic IF statement at (1)
+ddeabm.f:3000:72:
+
+ 3000 |  265    ERK = ERK + (TEMP4*TEMP3)**2
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 265 at (1)
+ddeabm.f:3001:72:
+
+ 3001 |       IF(KM2)280,275,270
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: Arithmetic IF statement at (1)
+ddeabm.f:3011:72:
+
+ 3011 |       IF(KM2)299,290,285
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: Arithmetic IF statement at (1)
+ddeabm.f:3037:72:
+
+ 3037 |  305      PHI(L,I) = TEMP1*(PHI(L,I) - PHI(L,IP1))
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 305 at (1)
+ddeabm.f:3041:72:
+
+ 3041 |  315    PSI(I-1) = PSI(I) - H
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 315 at (1)
+ddeabm.f:3048:72:
+
+ 3048 |       IF(IFAIL - 3) 335,330,325
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: Arithmetic IF statement at (1)
+ddeabm.f:3079:72:
+
+ 3079 |  405    P(L) = TEMP3
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 405 at (1)
+gfortran -O2 -cpp -fallow-argument-mismatch  -c deformationplasticitys.f
+ddeabm.f:3084:72:
+
+ 3084 |  415    P(L) = TEMP3
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 415 at (1)
+ddeabm.f:3091:72:
+
+ 3091 |  425    PHI(L,KP2) = PHI(L,KP1) - PHI(L,KP2)
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 425 at (1)
+ddeabm.f:3094:72:
+
+ 3094 |  430      PHI(L,I) = PHI(L,I) + PHI(L,KP1)
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 430 at (1)
+ddeabm.f:3108:72:
+
+ 3108 |  440    ERKP1 = ERKP1 + (PHI(L,KP2)/WT(L))**2
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 440 at (1)
+gfortran -O2 -cpp -fallow-argument-mismatch  -c defplas.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c delaun.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c deltri.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c densitys.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c depvars.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c designresponses.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c designvariabless.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c desiperelem.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c detectactivecont.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c determineextern.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c dflux.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c dfluxs.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c dgesv.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c dgmres1.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c dgmres.f
+dgmres.f:644:72:
+
+  644 |    10 ASSIGN 30 TO NEXT
+      |                                                                        1
+Warning: Deleted feature: ASSIGN statement at (1)
+dgmres.f:651:20:
+
+  651 |    20    GO TO NEXT,(30, 50, 70, 110)
+      |                    1
+Warning: Deleted feature: Assigned GOTO statement at (1)
+dgmres.f:653:72:
+
+  653 |       ASSIGN 50 TO NEXT
+      |                                                                        1
+Warning: Deleted feature: ASSIGN statement at (1)
+dgmres.f:663:72:
+
+  663 |       ASSIGN 70 TO NEXT
+      |                                                                        1
+Warning: Deleted feature: ASSIGN statement at (1)
+dgmres.f:669:72:
+
+  669 |       ASSIGN 110 TO NEXT
+      |                                                                        1
+Warning: Deleted feature: ASSIGN statement at (1)
+dgmres.f:703:72:
+
+  703 |    95    SUM = SUM + DX(J)**2
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 95 at (1)
+dgmres.f:1325:72:
+
+ 1325 |       IF (INCX .EQ. INCY) IF (INCX-1) 5,20,60
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: Arithmetic IF statement at (1)
+dgmres.f:1416:72:
+
+ 1416 |       IF (INCX .EQ. INCY) IF (INCX-1) 5,20,60
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: Arithmetic IF statement at (1)
+dgmres.f:2499:72:
+
+ 2499 |       IF (INCX .EQ. INCY) IF (INCX-1) 5,20,60
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: Arithmetic IF statement at (1)
+gfortran -O2 -cpp -fallow-argument-mismatch  -c discontinuousslope.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c disp_sen_dv.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c distattach_1d.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c distattach_1d_cracklength.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c distattach_2d.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c distattach_3d.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c distattachline.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c distributingcouplings.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c distributions.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c dKdm.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c dKdp.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c dKdt.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c dKdX.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c dload.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c dloads.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c dlz.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c dmatrix.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c dqag.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c drfftf.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c dsort.f
+drfftf.f:129:72:
+
+  129 |       IF (IDO-2) 107,105,102
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: Arithmetic IF statement at (1)
+drfftf.f:198:72:
+
+  198 |       IF (IDO-2) 107,105,102
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: Arithmetic IF statement at (1)
+drfftf.f:548:72:
+
+  548 |       IF (J-4) 102,102,103
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: Arithmetic IF statement at (1)
+drfftf.f:554:72:
+
+  554 |       IF (NR) 101,105,101
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: Arithmetic IF statement at (1)
+drfftf.f:134:43:
+
+  132 |          DO 103 I=3,IDO,2
+      |                                                                        2
+  133 |             IC = IDP2-I
+  134 |             TR2 = WA1(I-2)*CC(I-1,K,2)+WA1(I-1)*CC(I,K,2)
+      |                                           1
+Warning: Array reference at (1) out of bounds (2 > 1) in loop beginning at (2)
+drfftf.f:135:41:
+
+  132 |          DO 103 I=3,IDO,2
+      |                                                                        2
+......
+  135 |             TI2 = WA1(I-2)*CC(I,K,2)-WA1(I-1)*CC(I-1,K,2)
+      |                                         1
+Warning: Array reference at (1) out of bounds (2 > 1) in loop beginning at (2)
+drfftf.f:165:43:
+
+  163 |          DO 102 I=3,IDO,2
+      |                                                                        2
+  164 |             IC = IDP2-I
+  165 |             DR2 = WA1(I-2)*CC(I-1,K,2)+WA1(I-1)*CC(I,K,2)
+      |                                           1
+Warning: Array reference at (1) out of bounds (2 > 1) in loop beginning at (2)
+drfftf.f:166:41:
+
+  163 |          DO 102 I=3,IDO,2
+      |                                                                        2
+......
+  166 |             DI2 = WA1(I-2)*CC(I,K,2)-WA1(I-1)*CC(I-1,K,2)
+      |                                         1
+Warning: Array reference at (1) out of bounds (2 > 1) in loop beginning at (2)
+drfftf.f:167:43:
+
+  163 |          DO 102 I=3,IDO,2
+      |                                                                        2
+......
+  167 |             DR3 = WA2(I-2)*CC(I-1,K,3)+WA2(I-1)*CC(I,K,3)
+      |                                           1
+Warning: Array reference at (1) out of bounds (2 > 1) in loop beginning at (2)
+drfftf.f:168:41:
+
+  163 |          DO 102 I=3,IDO,2
+      |                                                                        2
+......
+  168 |             DI3 = WA2(I-2)*CC(I,K,3)-WA2(I-1)*CC(I-1,K,3)
+      |                                         1
+Warning: Array reference at (1) out of bounds (2 > 1) in loop beginning at (2)
+drfftf.f:203:43:
+
+  201 |          DO 103 I=3,IDO,2
+      |                                                                        2
+  202 |             IC = IDP2-I
+  203 |             CR2 = WA1(I-2)*CC(I-1,K,2)+WA1(I-1)*CC(I,K,2)
+      |                                           1
+Warning: Array reference at (1) out of bounds (2 > 1) in loop beginning at (2)
+drfftf.f:204:41:
+
+  201 |          DO 103 I=3,IDO,2
+      |                                                                        2
+......
+  204 |             CI2 = WA1(I-2)*CC(I,K,2)-WA1(I-1)*CC(I-1,K,2)
+      |                                         1
+Warning: Array reference at (1) out of bounds (2 > 1) in loop beginning at (2)
+drfftf.f:205:43:
+
+  201 |          DO 103 I=3,IDO,2
+      |                                                                        2
+......
+  205 |             CR3 = WA2(I-2)*CC(I-1,K,3)+WA2(I-1)*CC(I,K,3)
+      |                                           1
+Warning: Array reference at (1) out of bounds (2 > 1) in loop beginning at (2)
+drfftf.f:206:41:
+
+  201 |          DO 103 I=3,IDO,2
+      |                                                                        2
+......
+  206 |             CI3 = WA2(I-2)*CC(I,K,3)-WA2(I-1)*CC(I-1,K,3)
+      |                                         1
+Warning: Array reference at (1) out of bounds (2 > 1) in loop beginning at (2)
+drfftf.f:207:43:
+
+  201 |          DO 103 I=3,IDO,2
+      |                                                                        2
+......
+  207 |             CR4 = WA3(I-2)*CC(I-1,K,4)+WA3(I-1)*CC(I,K,4)
+      |                                           1
+Warning: Array reference at (1) out of bounds (2 > 1) in loop beginning at (2)
+drfftf.f:208:41:
+
+  201 |          DO 103 I=3,IDO,2
+      |                                                                        2
+......
+  208 |             CI4 = WA3(I-2)*CC(I,K,4)-WA3(I-1)*CC(I-1,K,4)
+      |                                         1
+Warning: Array reference at (1) out of bounds (2 > 1) in loop beginning at (2)
+drfftf.f:261:43:
+
+  259 |          DO 102 I=3,IDO,2
+      |                                                                        2
+  260 |             IC = IDP2-I
+  261 |             DR2 = WA1(I-2)*CC(I-1,K,2)+WA1(I-1)*CC(I,K,2)
+      |                                           1
+Warning: Array reference at (1) out of bounds (2 > 1) in loop beginning at (2)
+drfftf.f:262:41:
+
+  259 |          DO 102 I=3,IDO,2
+      |                                                                        2
+......
+  262 |             DI2 = WA1(I-2)*CC(I,K,2)-WA1(I-1)*CC(I-1,K,2)
+      |                                         1
+Warning: Array reference at (1) out of bounds (2 > 1) in loop beginning at (2)
+drfftf.f:263:43:
+
+  259 |          DO 102 I=3,IDO,2
+      |                                                                        2
+......
+  263 |             DR3 = WA2(I-2)*CC(I-1,K,3)+WA2(I-1)*CC(I,K,3)
+      |                                           1
+Warning: Array reference at (1) out of bounds (2 > 1) in loop beginning at (2)
+drfftf.f:264:41:
+
+  259 |          DO 102 I=3,IDO,2
+      |                                                                        2
+......
+  264 |             DI3 = WA2(I-2)*CC(I,K,3)-WA2(I-1)*CC(I-1,K,3)
+      |                                         1
+Warning: Array reference at (1) out of bounds (2 > 1) in loop beginning at (2)
+drfftf.f:265:43:
+
+  259 |          DO 102 I=3,IDO,2
+      |                                                                        2
+......
+  265 |             DR4 = WA3(I-2)*CC(I-1,K,4)+WA3(I-1)*CC(I,K,4)
+      |                                           1
+Warning: Array reference at (1) out of bounds (2 > 1) in loop beginning at (2)
+drfftf.f:266:41:
+
+  259 |          DO 102 I=3,IDO,2
+      |                                                                        2
+......
+  266 |             DI4 = WA3(I-2)*CC(I,K,4)-WA3(I-1)*CC(I-1,K,4)
+      |                                         1
+Warning: Array reference at (1) out of bounds (2 > 1) in loop beginning at (2)
+drfftf.f:267:43:
+
+  259 |          DO 102 I=3,IDO,2
+      |                                                                        2
+......
+  267 |             DR5 = WA4(I-2)*CC(I-1,K,5)+WA4(I-1)*CC(I,K,5)
+      |                                           1
+Warning: Array reference at (1) out of bounds (2 > 1) in loop beginning at (2)
+drfftf.f:268:41:
+
+  259 |          DO 102 I=3,IDO,2
+      |                                                                        2
+......
+  268 |             DI5 = WA4(I-2)*CC(I,K,5)-WA4(I-1)*CC(I-1,K,5)
+      |                                         1
+Warning: Array reference at (1) out of bounds (2 > 1) in loop beginning at (2)
+gfortran -O2 -cpp -fallow-argument-mismatch  -c dsptrf.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c dsptri.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c dualshape3tri.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c dualshape4q.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c dualshape6tritilde.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c dualshape6tritilde_lin.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c dualshape8qtilde.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c dualshape8qtilde_lin.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c dynamics.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c dynresults.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c e_c3d_cs_se.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c e_c3d_duds.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c e_c3d_em.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c e_c3d.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c e_c3d_plhs.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c e_c3d_prhs.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c e_c3d_rhs.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c e_c3d_rhs_th.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c e_c3d_se.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c e_c3d_th.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c e_c3d_u1.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c e_c3d_us3.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c e_c3d_us45.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c e_c3d_u.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c e_c3d_vlhs.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c e_c3d_v1rhs.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c e_c3d_v2rhs.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c e_corio.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c e_damp.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c edgedivide.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c edg.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c effectivemodalmass.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c elastics.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c electricalconductivitys.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c electromagneticss.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c elementpernode.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c elementpernodef.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c elements.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c elemperdesi.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c elemperorien.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c elprints.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c envtemp.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c eplane.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c eqspacednodes.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c equationcheck.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c equations.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c errorestimator.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c evalshapefunc.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c expand_auw.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c expansions.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c extendmesh.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c extern_crackprop.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c extfacepernode.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c extract_matrices.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c extrapol2dto3d.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c extrapolatecontact.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c extrapolate.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c extrapolatefem.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c extrapolateshell.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c extrapolateshell_us3.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c extrapolateshell_us45.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c extrapolate_se.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c extrapolate_u.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c extrapolate_u1.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c extrapolate_us3.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c extrapolate_us45.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c extsurface.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c faceinfo.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c fcrit.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c feasibledirections.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c fillknotmpc.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c film.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c films.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c filterbackward_exp.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c filterbackward_imp.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c filterforward_exp.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c filterforward_imp.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c filters.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c findextsurface.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c findslavcfd.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c findsurface.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c fixnode.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c flowbc.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c flowoutput.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c fluidconstantss.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c fluidsections.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c flux.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c fminsirefine.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c forcadd.f
+fminsirefine.f:244:72:
+
+  244 | 320   XST(J) = X(J)
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 320 at (1)
+fminsirefine.f:278:72:
+
+  278 | 333     XAV(I)= X(I)
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 333 at (1)
+fminsirefine.f:346:72:
+
+  346 | 340   XSTST(I) = XSTST(I) * HG
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 340 at (1)
+fminsirefine.f:366:72:
+
+  366 | 360   X(I) = X(I) + START * XSTST(I)
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 360 at (1)
+fminsirefine.f:390:72:
+
+  390 | 380   X(I) = X(I) - START * XSTST(I)
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 380 at (1)
+fminsirefine.f:410:72:
+
+  410 | 25    SIM(J,I) = X(J)
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 25 at (1)
+fminsirefine.f:418:72:
+
+  418 |      &     ipoeled,ieled,iedgmid,iedtet )
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 30 at (1)
+fminsirefine.f:447:72:
+
+  447 | 34      X(I) = SIM(I,1)
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 34 at (1)
+fminsirefine.f:476:72:
+
+  476 | 55      X(I) = SIM(I,ILO)
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 55 at (1)
+fminsirefine.f:567:72:
+
+  567 | 72    X(I) = SIM(I,1)
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 72 at (1)
+fminsirefine.f:584:72:
+
+  584 | 85      H = H + SIM(I,J)
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 85 at (1)
+fminsirefine.f:595:72:
+
+  595 | 90    XST(I) = ( ONE + ALPHA ) * XAV(I) - ALPHA * SIM(I,NP)
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 90 at (1)
+fminsirefine.f:612:72:
+
+  612 | 120   XSTST(I) = ( ONE - GAMMD ) * XAV(I) + GAMMD * XST(I)
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 120 at (1)
+fminsirefine.f:657:72:
+
+  657 | 150   SIM(I,NP) = XSTST(I)
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 150 at (1)
+fminsirefine.f:688:72:
+
+  688 | 220   SIM(I,NP) = XST(I)
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 220 at (1)
+fminsirefine.f:708:72:
+
+  708 | 173     SIM(I,NP) = XST(I)
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 173 at (1)
+fminsirefine.f:719:72:
+
+  719 | 180   XSTST(I) = BETA * SIM(I,NP) + ( ONE - BETA ) * XAV(I)
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 180 at (1)
+fminsirefine.f:756:72:
+
+  756 | 200   SIM(J,I) = HALF * ( SIM(J,I) + SIM(J,IMIN) )
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 200 at (1)
+gfortran -O2 -cpp -fallow-argument-mismatch  -c forcesolve.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c frdfluidfem.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c frditeration.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c frdnet.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c free_convection.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c free_disc_pumping.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c frequencys.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c fricheat.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c friction_coefficient.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c frictionheating.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c frictions.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c fsub.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c fsuper.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c fumid.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c fuvertex.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c gapconductances.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c gapcon.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c gapheatgenerations.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c gaps.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c gasmechbc.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c gaspipe_fanno.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c gaspipe_rot.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c gen3dboun.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c gen3dchanoutput.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c gen3dconnect.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c gen3delem.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c gen3dforc.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c gen3dfrom1d.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c gen3dfrom2d.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c gen3dmembrane.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c gen3dmpc.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c gen3dnor.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c gen3dsurf.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c gen3dtemp.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c gen3dtruss.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c genadvecelem.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c gencontelem_f2f.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c gencontelem_n2f.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c gendualcoeffs.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c generatecycmpcs.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c generateeminterfaces.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c generatetet_refine2.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c generatetet_refine.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c genfirstactif.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c genislavactdof.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c genislavquadel.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c genmidnodes.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c genmodes.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c genmpc.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c gennactdofinv.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c gennactdofinv3d.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c genratio.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c gentiedmpc.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c geometricconstraints.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c geometrictolerances.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c geomview.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c getcontactparams.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c getdesiinfo2d.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c getdesiinfo3d.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c getdesiinfo3d_robust.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c getdesiinfobou.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c getlocno.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c getnewline.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c getnodel.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c getnodesinitetmesh.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c getnumberofnodes.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c getversion.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c globalcrackresults.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c greens.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c hcfs.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c hcrit.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c headings.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c heattransfers.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c henergy.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c hgforce.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c hgstiffness.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c hnorm.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c hns.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c hybsvd.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c hyperelastics.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c hyperfoams.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c ident2.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c identamta.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c ident.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c identdesifaces.f
+hybsvd.f:417:12:
+
+  412 |       DO 310 I=2,N
+      |                                                                        2
+......
+  417 |         U(I,I) = W(I)
+      |            1
+Warning: Array reference at (1) out of bounds (2 > 1) in loop beginning at (2)
+hybsvd.f:417:19:
+
+  412 |       DO 310 I=2,N
+      |                                                                        2
+......
+  417 |         U(I,I) = W(I)
+      |                   1
+Warning: Array reference at (1) out of bounds (2 > 1) in loop beginning at (2)
+gfortran -O2 -cpp -fallow-argument-mismatch  -c identifytiedface.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c identifytransform.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c includefilename.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c inclusion.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c incplas.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c incplas_lin.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c init_submodel.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c initialcfdfem.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c initialchannel.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c initialconditionss.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c initialmeshs.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c initialnet.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c initialstrainincreases.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c inputerror.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c inputinfo.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c inputwarning.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c insertsortd.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c insertsorti.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c interpol_alfa2.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c interpolateinface.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c interpolatestate.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c interpolextnodes.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c interpolextnodesf.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c interpolsubmodel.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c interpoltet.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c intersectionpoint.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c inversewavspd.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c inviscidpre.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c islavactive.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c isortic.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c isortiddc.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c isortid.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c isorti.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c isortii.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c isortiiddc.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c isortiid.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c isortiii.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c jouleheating.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c keystart.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c knotmpc.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c lab_straight_ppkrit.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c labyrinth.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c limit_case_calc.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c linel.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c linkdissimilar.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c linscal10.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c linscal.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c lintemp.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c lintemp_th0.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c lintemp_th1.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c lintemp_th.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c linvec10.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c linvec.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c liquidpipe.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c liquidpump.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c loadadd.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c loadaddp.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c loadaddt.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c localaxescs.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c localaxes.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c lump.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c machpi.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c mafillcorio.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c mafilldm.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c mafilldmss.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c mafillem.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c mafillfilter.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c mafillfreq_em.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c mafillmm.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c mafillnet.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c mafillpbc.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c mafillplhs.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c mafillprhs.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c mafillsm.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c mafillsmas.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c mafillsmcsas.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c mafillsmcs.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c mafillsmcsmatrix.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c mafillsmcsse.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c mafillsmduds.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c mafillsmforc.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c mafillsmmatrix.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c mafillsmse.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c mafillv1rhs.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c mafillv2rhs.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c mafillvlhs.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c magneticpermeabilitys.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c map3dto1d2d.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c map3dto1d2d_v.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c map3dtolayer.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c massflow_percent.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c massflows.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c masss.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c materialdata_cond.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c materialdata_cp.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c materialdata_cp_sec.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c materialdata_crack.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c materialdata_dvi.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c materialdata_dvifem.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c materialdata_em.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c materialdata_me.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c materialdata_rho.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c materialdata_sp.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c materialdata_tg.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c materialdata_th.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c materials.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c matrix2userelem.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c matrixassembles.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c matvec.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c matvec_struct.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c maxdesvardisp.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c mechmodel.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c membranesections.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c merge_ikactmech1.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c meshquality.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c meshqualitycavity.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c midexternaledges.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c midexternalfaces.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c modaldampings.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c modaldynamics.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c modelchanges.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c modf.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c modifympc.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c modifystressstiff.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c moehring.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c mohrcoulomb.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c mohrcoulombhardenings.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c mohrcoulombs.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c move.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c mpcadd.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c mpcrem.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c mpcs.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c msolve.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c msolve_struct.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c mulmatvec_asym.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c mult.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c multistages.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c multvec.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c near2d.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c near3d.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c near3d_se.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c neartriangle.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c negativepressure.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c networkelementpernode.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c networkextrapolate.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c networkforc.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c networkinum.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c networkmpc_lhs.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c networkmpc_rhs.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c networkmpcs.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c networkneighbor.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c networkstiff.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c newnodes.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c newton.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c nident2.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c nident.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c nidentk.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c nidentll.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c nmatrix.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c noanalysiss.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c nodalthicknesss.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c nodebelongstoel.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c nodeprints.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c nodes.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c nodestiedface.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c noelfiles.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c noelsets.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c nonlinmpc.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c normals.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c normalsoninterface.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c normalsonsurface_robust.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c normalsonsurface_se.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c normmpc.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c norshell3.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c norshell4.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c norshell6.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c norshell8.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c nortanslav.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c objective_disp.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c objective_disp_tot.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c objective_freq_cs.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c objective_freq.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c objective_mass_dx.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c objective_modalstress.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c objective_peeq.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c objective_peeq_se.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c objective_shapeener_dx.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c objective_shapeener_tot.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c objective_stress_dx_dy.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c objective_stress.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c objective_stress_se.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c objective_stress_tot.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c objectives.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c onedint.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c opas.f
+onedint.f:93:72:
+
+   93 |    20 IF ((XE(L+1)-XE(L)) .LE. 0) GO TO 900
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 20 at (1)
+gfortran -O2 -cpp -fallow-argument-mismatch  -c op_corio.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c openfile.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c openfilefluidfem.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c op.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c opfortran.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c opnonsym.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c opnonsymt.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c orientations.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c orifice.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c ortho_plas.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c orthonl.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c orthotropic.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c outputs.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c packaging.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c patch.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c phys2con.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c physicalconstantss.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c pk_cdc_cl1.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c pk_cdc_cl3a.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c pk_cdc_cl3b.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c pk_cdc_cl3d.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c pk_cdc_cl3.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c pk_cdi_noz.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c pk_cdi_r.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c pk_cdi_rl.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c pk_cdi_se.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c pk_y0_yg.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c plane3.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c plane4.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c plane_eq.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c planeeq.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c planempc.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c plastics.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c plcopy.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c plinterpol.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c plmix.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c pop.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c postinitialnet.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c postprojectgrad.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c postview.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c precfdcyc.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c preconditioning.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c precondrandomfield.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c predgmres_struct.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c prefilter.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c preinitialnet.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c prepackaging.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c preprojectgrad.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c presgradient.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c pretensionsections.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c prethickness.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c pretransition.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c printoutcontact.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c printoutebhe.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c printoutelem.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c printout.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c printoutface.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c printoutfacefem.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c printoutfluidfem.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c printoutint.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c printoutintfluidfem.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c printoutnode.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c printoutnodefluid.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c printoutnodefluidfem.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c projectgrad.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c projectmidnodes.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c projectvertexnodes.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c propertynet.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c pt2_lim_calc.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c pt2zpt1_crit.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c pt2zpt1_rot.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c push.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c qsorti.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c quadmeshquality.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c quadraticsens.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c radiate.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c radiates.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c radmatrix.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c radresult.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c randomfields.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c randomval.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c ranstarefine.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c ranuwh.f
+ranstarefine.f:108:72:
+
+  108 | 40      X(K) = XS(K)
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 40 at (1)
+ranstarefine.f:118:72:
+
+  118 | 50      RS(K) = RS(K) + RS(K)
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 50 at (1)
+gfortran -O2 -cpp -fallow-argument-mismatch  -c ratedependents.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c rcavi2.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c rcavi_cp_lt.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c rcavi_cp_nt.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c rcavi.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c readforce.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c readsen.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c readview.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c rearrange.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c rearrangecfd.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c rectcylexp.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c rectcyl.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c rectcylvi.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c rectcylvold.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c reducematrix.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c refinemeshs.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c regularization_gn_c.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c regularization_gt_c.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c regularization_slip_lin.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c reinit_refine.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c relaxval_al.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c relaxval_alfull.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c remlagrangemult.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c removeface.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c removesliver.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c removetet_refine.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c removetet_sliver.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c reorderampl.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c reservoir.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c restartread.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c restarts.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c restartshort.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c restartwrite.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c restrictor.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c resultnet.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c resultsem.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c resultsforc_em.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c resultsforc_se.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c resultsini_em.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c resultsini_mortar.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c resultsk.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c resultsmech.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c resultsmech_matrix.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c resultsmech_se.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c resultsmech_u1.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c resultsmech_us3.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c resultsmech_us45.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c resultsmech_u.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c resultsnoddir.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c resultsp.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c resultsprint.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c resultst.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c resultstherm.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c resultsv1.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c resultsv2.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c retainednodaldofss.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c rhs.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c rhsnodef.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c rigidbodys.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c rigidmpc.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c rimseal_calc.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c rimseal.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c robustdesigns.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c rotationvector.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c rotationvectorinv.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c rs.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c rubber.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c scalesen.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c scavenge_pump.f
+rs.f:138:72:
+
+  138 |   100 e(i-1) = e(i)
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 100 at (1)
+rs.f:172:72:
+
+  172 |   140    d(i) = d(i) - h
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 140 at (1)
+gfortran -O2 -cpp -fallow-argument-mismatch  -c sdvini.f
+rs.f:291:72:
+
+  291 |   100 e(i-1) = e(i)
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 100 at (1)
+rs.f:325:72:
+
+  325 |   140    d(i) = d(i) - h
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 140 at (1)
+rs.f:456:72:
+
+  456 |   120    scale = scale + dabs(d(k))
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 120 at (1)
+rs.f:484:72:
+
+  484 |   170    e(j) = 0.0d0
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 170 at (1)
+rs.f:510:72:
+
+  510 |   250    e(j) = e(j) - h * d(j)
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 250 at (1)
+rs.f:517:72:
+
+  517 |   260       a(k,j) = a(k,j) - f * e(k) - g * d(k)
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 260 at (1)
+rs.f:581:72:
+
+  581 |    80    z(j,i) = a(j,i)
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 80 at (1)
+rs.f:596:72:
+
+  596 |   120    scale = scale + dabs(d(k))
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 120 at (1)
+rs.f:621:72:
+
+  621 |   170    e(j) = 0.0d0
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 170 at (1)
+rs.f:648:72:
+
+  648 |   250    e(j) = e(j) - hh * d(j)
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 250 at (1)
+rs.f:655:72:
+
+  655 |   260       z(k,j) = z(k,j) - f * e(k) - g * d(k)
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 260 at (1)
+rs.f:672:72:
+
+  672 |   330    d(k) = z(k,i) / h
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 330 at (1)
+rs.f:678:72:
+
+  678 |   340       g = g + z(k,i) * z(k,j)
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 340 at (1)
+rs.f:680:72:
+
+  680 |             do 360 k = 1, l
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: Shared DO termination label 360 at (1)
+rs.f:685:72:
+
+  685 |   400    z(k,i) = 0.0d0
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 400 at (1)
+gfortran -O2 -cpp -fallow-argument-mismatch  -c searchmidneigh.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c sectionprints.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c selectcyclicsymmetrymodess.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c sensitivitys.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c shape10tet.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c shape15w.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c shape20h_ax.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c shape20h.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c shape20h_pl.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c shape2l.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c shape3l.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c shape3tri.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c shape4q.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c shape4tet.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c shape6tri.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c shape6tritilde.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c shape6tritilde_lin.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c shape6w.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c shape8h.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c shape8hr.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c shape8hu.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c shape8humass.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c shape8q.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c shape8qtilde.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c shape8qtilde_lin.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c shellsections.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c sigini.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c skip.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c slavintmortar.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c slavintpoints.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c sluicegate.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c smalldist.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c smoothbadmid.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c smoothbadvertex.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c smoothingmidnodes.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c smoothingvertexnodes.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c smoothshock.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c smoothshockappend.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c solidsections.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c sortev.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c spcmatch.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c spcmpcmortar.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c specificgasconstants.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c specificheats.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c splitline.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c spooles_read.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c spooles_write.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c springdamp_f2f.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c springdamp_n2f.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c springforc_f2f.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c springforc_f2f_th.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c springforc_n2f.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c springforc_n2f_th.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c springs.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c springstiff_f2f.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c springstiff_f2f_th.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c springstiff_n2f.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c springstiff_n2f_th.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c statics.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c steadystatedynamicss.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c steps.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c stiff2mat.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c stop.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c stopwithout201.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c storecontactprop.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c storeresidual.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c str2mat.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c straightchannel.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c straighteq2d.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c straighteq3d.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c straighteq3dpen.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c straightmpc.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c stressintensity.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c stressintensity_smoothing.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c submodels.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c subspace.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c substructuregenerates.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c substructurematrixoutputs.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c subtracthmatrix.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c surfacebehaviors.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c surfaceinteractions.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c surfaces.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c sutherland_hodgman.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c swap.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c tee.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c temperatures.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c temploaddiff.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c tempload_em.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c tempload.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c temploadfem.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c temploadmodal.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c thermmodel.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c thickness.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c tiefaccont.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c ties.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c timepointss.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c topocfdfem.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c totalcontact.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c transformatrix.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c transformfs.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c transforms.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c transition.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c treatmasterface.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c treatmasterface_mortar.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c trianeighbor.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c triangucont.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c triangulate.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c triloc.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c ts_calc.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c tt_calc.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c turningdirection.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c twodint.f
+twodint.f:105:72:
+
+  105 |    20 IF ((T(L,1)-T(L-1,1)) .LE. 0) GO TO 900
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 20 at (1)
+twodint.f:114:72:
+
+  114 |    50 IF ((T(1,L)-T(1,L-1)) .LE. 0) GO TO 900
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 50 at (1)
+twodint.f:148:72:
+
+  148 |   230 IF (YA(L) .LT. T(1,LY)) GO TO 235
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 230 at (1)
+twodint.f:182:72:
+
+  182 |   260 Z2(IDY) = T(LX,LL)
+      |                                                                        1
+Warning: Fortran 2018 deleted feature: DO termination statement which is not END DO or CONTINUE with label 260 at (1)
+gfortran -O2 -cpp -fallow-argument-mismatch  -c two_phase_flow.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c uamplitude.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c uboun.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c ufaceload.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c uhardening.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c umat.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c umat_abaqus.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c umat_abaqusnl.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c umat_abaqusnl_total.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c umat_aniso_creep.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c umat_ciarlet_el.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c umat_compression_only.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c umat_def_plas.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c umat_elastic_fiber.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c umat_ideal_gas.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c umat_johnson_cook.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c umat_lin_el_corot.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c umat_lin_iso_el.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c umat_main.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c umat_single_crystal_creep.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c umat_single_crystal.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c umat_tension_only.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c umat_undo_nlgeom_lin_el.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c umat_undo_nlgeom_lin_iso_el.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c umat_user.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c umatht.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c umpc_dist.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c umpc_mean_rot.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c umpc_user.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c uncouptempdisps.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c updatecon.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c updatecont2d.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c updatecont.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c updatecontpen.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c updategeodata.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c us3_sub.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c us4_sub.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c userefinedmeshs.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c userelements.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c usermaterials.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c usermpc.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c usersections.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c user_network_element.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c user_network_element_p0.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c user_network_element_p1.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c utemp_ccxlib.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c utemp.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c valuesatinfinitys.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c varsmooth.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c velinireltoabs.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c viewfactors.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c viscos.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c vortex.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c wcoef.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c wpi.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c writeboun.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c writebv.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c writecvg.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c writedeigdx.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c writedesi.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c writeelem.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c writeevcomplex.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c writeevcscomplex.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c writeevcs.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c writeev.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c writehe.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c writeim.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c writeinput.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c writeinputdeck.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c writeinputdeck2.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c writelm.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c writemaccs.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c writemac.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c writematrix.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c writemeshinp.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c writempc.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c writeobj.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c writepf.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c writerandomfield.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c writere.f
+writeobj.f:58:26:
+
+   58 |          dd=dd+dgdxglob(1,inode,i)**2
+      |                          1
+Warning: Legacy Extension: REAL array index at (1)
+gfortran -O2 -cpp -fallow-argument-mismatch  -c writerefinemesh.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c writesen.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c writestadiv.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c writesta.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c writesubmatrix.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c writetetmesh.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c writetrilinos.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c writeturdircs.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c writeturdir.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c writevector.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c writevfa.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c writeview.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c wye.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c zeta_calc.f
+gfortran -O2 -cpp -fallow-argument-mismatch  -c zienzhu.f
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c add_rect.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c arpack.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c arpackbu.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c arpackcs.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c bdfill.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c biosav.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c buildtquad.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c calcresidual.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c calcresidual_em.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c calcshapef.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c ccx_2.23step.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c call_external_umat.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c call_external_umat_user.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c cascade.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c checkconvergence.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c checkconvnet.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c checkdivergence.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c checkinclength.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c compare.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c compfluidfem.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c complexfreq.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c contact.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c contactmortar.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c convert2rowbyrow.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c cpypardou.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c cpyparitg.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c crackfrd.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c crackpropagation.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c crackpropdata.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c dam1parll.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c dam2parll.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c dealloc_cal.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c decascade_mortar.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c dfdbj.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c dgmresmain.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c divparll.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c dudsmain.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c dyna.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c dynboun.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c electromagnetics.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c elementcpuload.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c expand.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c external.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c feasibledirection.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c filterbackwardmain.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c filterforwardmain.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c forparll.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c frd.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c frdcyc.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c frdgeneralvector.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c frdheader.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c frdselect.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c frd_sen.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c frdset.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c frdvector.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c frecord.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c genrandmain.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c getglobalresults.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c getlocalresults.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c getSystemCPUs.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c getuncrackedresults.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c gradientprojection.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c ini_cal.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c inicont.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c inimortar.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c iniparll.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c insert_cmatrix.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c insertas.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c insertas_ws.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c insert.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c insertcbs.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c insertfreq.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c insertrad.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c interpolatestatemain.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c interpoltetmain.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c linstatic.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c mafilldmssmain.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c mafillsmasmain.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c mafillsmmain.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c mafillsmmain_se.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c massless.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c mastruct.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c mastructcmatrix.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c mastructcs.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c mastructdmatrix.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c mastructem.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c mastructffem.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c mastructfilter.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c mastructmatrix.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c mastructmatrixcs.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c mastructmm.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c mastructnmatrix.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c mastructrad.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c mastructrand.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c mastructread.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c mastructreadcs.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c mastructse.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c matrixsort.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c matrixstorage.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c mortar_postfrd.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c mortar_prefrd.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c mulmatvec_asymmain.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c multimortar.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c multi_rect.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c multi_rectv.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c multi_scal.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c nonlingeo.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c objectivemain_se.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c opmain.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c packagingmain.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c pardiso.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c pardiso_cp.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c pastix.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c pcgsolver.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c peeq_sen_dv.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c peeq_sen_dx.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c precontact.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c premortar.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c predgmres_struct_mt.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c prediction.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c prediction_em.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c preiter.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c preparll.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c printenergy.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c radcyc.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c radflowload.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c randomfieldmain.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c readfrd.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c readinput.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c readnewmesh.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c refinemesh.c
+readnewmesh.c: In function 'readnewmesh':
+readnewmesh.c:468:10: warning: 'return' with a value, in function returning void [-Wreturn-mismatch]
+  468 |   return NULL;
+      |          ^~~~
+readnewmesh.c:37:6: note: declared here
+   37 | void readnewmesh(char *jobnamec,ITG *nboun,ITG *nodeboun,ITG *iamboun,
+      |      ^~~~~~~~~~~
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c remastructar.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c remastruct.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c remastructem.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c res1parll.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c res2parll.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c res3parll.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c res4parll.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c resforccont.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c results.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c resultsforc.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c resultsinduction.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c resultsini.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c results_se.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c resultsstr.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c rhsmain.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c robustdesign.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c sensi_coor.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c sensi_orien.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c sensitivity_out.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c setpardou.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c setparitg.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c sgi.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c solveeq.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c spooles.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c steadystate.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c stof.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c stoi.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c storecontactdof.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c stos.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c strcmp1.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c strcmp2.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c strcpy1.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c strcpy2.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c stress_sen_dv.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c stress_sen_dx.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c stressmortar.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c strsplt.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c tau.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c thicknessmain.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c tiedcontact.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c trafontmortar2.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c trafontspcmpc.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c transitionmain.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c transpose.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c u_calloc.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c u_free.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c u_malloc.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c u_realloc.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c utempread.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c worparll.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c writeheading.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c writenewmesh.c
+cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c writeoldmesh.c
+ar vr ccx_2.23.a absolute_relative.o acctube.o acctube_one.o actideacti.o actideactistr.o add_bo_st.o addimd.o addimdnodecload.o addimdnodedload.o addimdnodedof.o addizdofcload.o addizdofdload.o add_sm_ei.o add_sm_fl.o add_sm_st_as.o add_sm_st_corio.o add_sm_st.o adjacentbounodes.o adjustcontactnodes.o addshell.o advecforc.o advecstiff.o air_valve.o allocation.o allocation_rfn.o allocont.o amplitudes.o angsum.o anisomaxwavspd.o anisonl.o anisotropic.o applybounfem.o applybounp.o approxplane.o assigndomtonodes.o attach_1d.o attach_1d_cracklength.o attach_2d.o attach_3d.o attachline.o autocovmatrix.o basemotions.o basis.o beamextscheme.o beamgeneralsections.o beamintscheme.o beammpc.o beamsections.o biotsavart.o bodyadd.o bodyforce.o bounadd.o bounaddf.o boundaryfs.o boundarymesh.o boundarys.o bsort.o buckles.o calcdamage.o calcdatarget.o calcdev.o calcdhds.o calceigenvalues.o calcenergy.o calcexternalwork.o calcfeasibledirection_gd.o calcfeasibledirection_gp.o calcgeomelemnet.o calch0interface.o calcheatnet.o calc_ider_cross_split.o calc_ider_tee.o calc_ider_wye.o calcmac.o calcmach.o calcmass.o calcmechstrain.o calcnormal.o calc_residual_cross_split.o calc_residual_tee.o calc_residual_wye.o calcspringforc.o calcstabletimeinccont.o calcstabletimeincvol.o calcstress.o calcstressheatfluxfem.o calcsurf.o calctotstrain.o calculated.o calculateh.o calculatehmid.o calcview.o calcvol.o calinput.o calinput_rfn.o carbon_seal.o catedges_crackprop.o catedges_refine.o catnodes.o cattet.o cattri.o cavity_refine.o cavityext_refine.o cd_bleedtapping.o cd_bragg.o cd_chamfer.o cd_lab_1spike.o cd_lab_correction.o cd_lab_honeycomb.o cd_lab_radius.o cd_lab_straight.o cd_lichtarowicz.o cd_Mcgreehan_Schotsch.o cd_ms_ms.o cd_own_albers.o cd_pk_albers.o cd_pk_ms.o cd_preswirlnozzle.o cfdconv.o cfds.o cflux.o cfluxs.o changecontacttypes.o changedepterm.o changefrictions.o changekon.o changematerials.o changeplastics.o changesolidsections.o changesurfacebehaviors.o channeljointback.o channeljointfront.o characteristic.o characteristiclength.o checkconstraint.o checkcrosssections.o checkdispoutonly.o checkexiedge.o checkforhomnet.o checkimpacts.o checkinputvaluesnet.o checkintegrity.o checkjac.o checkprojectgrad.o checksharp.o checktemp.o checktempload.o checktime.o checktruecontact.o checkvol.o chksurf.o cident80.o cident81.o cident.o clearances.o cload.o cloaddistributing.o cloads.o clonesensitivities.o closefile.o closefilefluid.o cmatrix.o combilcfhcf.o compdt.o complexfrequencys.o con2phys.o condrandomfield.o conductivitys.o constassembly.o constraints.o contactdampings.o contactpairs.o contactprints.o contingentsurf.o contraction.o controlss.o copysens.o coriolissolve.o correctem.o correlationlengths.o couplings.o couptempdisps.o cp_corrected.o cracklength.o cracklength_smoothing.o crackprop.o crackpropagations.o crackrate.o crackshape.o create_contactdofs.o create_t.o create_tinv.o createbd.o createblock_struct.o createelemneigh.o createfint.o createialnk.o createinterfacempcs.o createinum.o createlocalsys.o createmddof.o createmdelem.o createnodeneigh.o createtet.o createtiedsurfs.o creep.o creeps.o cross_split.o cubic.o cubtri.o cyclichardenings.o cyclicsymmetrymodels.o damageinitiations.o dampings.o dashdamp.o dashpots.o dattime.o ddeabm.o ddebdf.o deformationplasticitys.o defplas.o delaun.o deltri.o densitys.o depvars.o designresponses.o designvariabless.o desiperelem.o detectactivecont.o determineextern.o dflux.o dfluxs.o dgesv.o dgmres1.o dgmres.o discontinuousslope.o disp_sen_dv.o distattach_1d.o distattach_1d_cracklength.o distattach_2d.o distattach_3d.o distattachline.o distributingcouplings.o distributions.o dKdm.o dKdp.o dKdt.o dKdX.o dload.o dloads.o dlz.o dmatrix.o dqag.o drfftf.o dsort.o dsptrf.o dsptri.o dualshape3tri.o dualshape4q.o dualshape6tritilde.o dualshape6tritilde_lin.o dualshape8qtilde.o dualshape8qtilde_lin.o dynamics.o dynresults.o e_c3d_cs_se.o e_c3d_duds.o e_c3d_em.o e_c3d.o e_c3d_plhs.o e_c3d_prhs.o e_c3d_rhs.o e_c3d_rhs_th.o e_c3d_se.o e_c3d_th.o e_c3d_u1.o e_c3d_us3.o e_c3d_us45.o e_c3d_u.o e_c3d_vlhs.o e_c3d_v1rhs.o e_c3d_v2rhs.o e_corio.o e_damp.o edgedivide.o edg.o effectivemodalmass.o elastics.o electricalconductivitys.o electromagneticss.o elementpernode.o elementpernodef.o elements.o elemperdesi.o elemperorien.o elprints.o envtemp.o eplane.o eqspacednodes.o equationcheck.o equations.o errorestimator.o evalshapefunc.o expand_auw.o expansions.o extendmesh.o extern_crackprop.o extfacepernode.o extract_matrices.o extrapol2dto3d.o extrapolatecontact.o extrapolate.o extrapolatefem.o extrapolateshell.o extrapolateshell_us3.o extrapolateshell_us45.o extrapolate_se.o extrapolate_u.o extrapolate_u1.o extrapolate_us3.o extrapolate_us45.o extsurface.o faceinfo.o fcrit.o feasibledirections.o fillknotmpc.o film.o films.o filterbackward_exp.o filterbackward_imp.o filterforward_exp.o filterforward_imp.o filters.o findextsurface.o findslavcfd.o findsurface.o fixnode.o flowbc.o flowoutput.o fluidconstantss.o fluidsections.o flux.o fminsirefine.o forcadd.o forcesolve.o frdfluidfem.o frditeration.o frdnet.o free_convection.o free_disc_pumping.o frequencys.o fricheat.o friction_coefficient.o frictionheating.o frictions.o fsub.o fsuper.o fumid.o fuvertex.o gapconductances.o gapcon.o gapheatgenerations.o gaps.o gasmechbc.o gaspipe_fanno.o gaspipe_rot.o gen3dboun.o gen3dchanoutput.o gen3dconnect.o gen3delem.o gen3dforc.o gen3dfrom1d.o gen3dfrom2d.o gen3dmembrane.o gen3dmpc.o gen3dnor.o gen3dsurf.o gen3dtemp.o gen3dtruss.o genadvecelem.o gencontelem_f2f.o gencontelem_n2f.o gendualcoeffs.o generatecycmpcs.o generateeminterfaces.o generatetet_refine2.o generatetet_refine.o genfirstactif.o genislavactdof.o genislavquadel.o genmidnodes.o genmodes.o genmpc.o gennactdofinv.o gennactdofinv3d.o genratio.o gentiedmpc.o geometricconstraints.o geometrictolerances.o geomview.o getcontactparams.o getdesiinfo2d.o getdesiinfo3d.o getdesiinfo3d_robust.o getdesiinfobou.o getlocno.o getnewline.o getnodel.o getnodesinitetmesh.o getnumberofnodes.o getversion.o globalcrackresults.o greens.o hcfs.o hcrit.o headings.o heattransfers.o henergy.o hgforce.o hgstiffness.o hnorm.o hns.o hybsvd.o hyperelastics.o hyperfoams.o ident2.o identamta.o ident.o identdesifaces.o identifytiedface.o identifytransform.o includefilename.o inclusion.o incplas.o incplas_lin.o init_submodel.o initialcfdfem.o initialchannel.o initialconditionss.o initialmeshs.o initialnet.o initialstrainincreases.o inputerror.o inputinfo.o inputwarning.o insertsortd.o insertsorti.o interpol_alfa2.o interpolateinface.o interpolatestate.o interpolextnodes.o interpolextnodesf.o interpolsubmodel.o interpoltet.o intersectionpoint.o inversewavspd.o inviscidpre.o islavactive.o isortic.o isortiddc.o isortid.o isorti.o isortii.o isortiiddc.o isortiid.o isortiii.o jouleheating.o keystart.o knotmpc.o lab_straight_ppkrit.o labyrinth.o limit_case_calc.o linel.o linkdissimilar.o linscal10.o linscal.o lintemp.o lintemp_th0.o lintemp_th1.o lintemp_th.o linvec10.o linvec.o liquidpipe.o liquidpump.o loadadd.o loadaddp.o loadaddt.o localaxescs.o localaxes.o lump.o machpi.o mafillcorio.o mafilldm.o mafilldmss.o mafillem.o mafillfilter.o mafillfreq_em.o mafillmm.o mafillnet.o mafillpbc.o mafillplhs.o mafillprhs.o mafillsm.o mafillsmas.o mafillsmcsas.o mafillsmcs.o mafillsmcsmatrix.o mafillsmcsse.o mafillsmduds.o mafillsmforc.o mafillsmmatrix.o mafillsmse.o mafillv1rhs.o mafillv2rhs.o mafillvlhs.o magneticpermeabilitys.o map3dto1d2d.o map3dto1d2d_v.o map3dtolayer.o massflow_percent.o massflows.o masss.o materialdata_cond.o materialdata_cp.o materialdata_cp_sec.o materialdata_crack.o materialdata_dvi.o materialdata_dvifem.o materialdata_em.o materialdata_me.o materialdata_rho.o materialdata_sp.o materialdata_tg.o materialdata_th.o materials.o matrix2userelem.o matrixassembles.o matvec.o matvec_struct.o maxdesvardisp.o mechmodel.o membranesections.o merge_ikactmech1.o meshquality.o meshqualitycavity.o midexternaledges.o midexternalfaces.o modaldampings.o modaldynamics.o modelchanges.o modf.o modifympc.o modifystressstiff.o moehring.o mohrcoulomb.o mohrcoulombhardenings.o mohrcoulombs.o move.o mpcadd.o mpcrem.o mpcs.o msolve.o msolve_struct.o mulmatvec_asym.o mult.o multistages.o multvec.o near2d.o near3d.o near3d_se.o neartriangle.o negativepressure.o networkelementpernode.o networkextrapolate.o networkforc.o networkinum.o networkmpc_lhs.o networkmpc_rhs.o networkmpcs.o networkneighbor.o networkstiff.o newnodes.o newton.o nident2.o nident.o nidentk.o nidentll.o nmatrix.o noanalysiss.o nodalthicknesss.o nodebelongstoel.o nodeprints.o nodes.o nodestiedface.o noelfiles.o noelsets.o nonlinmpc.o normals.o normalsoninterface.o normalsonsurface_robust.o normalsonsurface_se.o normmpc.o norshell3.o norshell4.o norshell6.o norshell8.o nortanslav.o objective_disp.o objective_disp_tot.o objective_freq_cs.o objective_freq.o objective_mass_dx.o objective_modalstress.o objective_peeq.o objective_peeq_se.o objective_shapeener_dx.o objective_shapeener_tot.o objective_stress_dx_dy.o objective_stress.o objective_stress_se.o objective_stress_tot.o objectives.o onedint.o opas.o op_corio.o openfile.o openfilefluidfem.o op.o opfortran.o opnonsym.o opnonsymt.o orientations.o orifice.o ortho_plas.o orthonl.o orthotropic.o outputs.o packaging.o patch.o phys2con.o physicalconstantss.o pk_cdc_cl1.o pk_cdc_cl3a.o pk_cdc_cl3b.o pk_cdc_cl3d.o pk_cdc_cl3.o pk_cdi_noz.o pk_cdi_r.o pk_cdi_rl.o pk_cdi_se.o pk_y0_yg.o plane3.o plane4.o plane_eq.o planeeq.o planempc.o plastics.o plcopy.o plinterpol.o plmix.o pop.o postinitialnet.o postprojectgrad.o postview.o precfdcyc.o preconditioning.o precondrandomfield.o predgmres_struct.o prefilter.o preinitialnet.o prepackaging.o preprojectgrad.o presgradient.o pretensionsections.o prethickness.o pretransition.o printoutcontact.o printoutebhe.o printoutelem.o printout.o printoutface.o printoutfacefem.o printoutfluidfem.o printoutint.o printoutintfluidfem.o printoutnode.o printoutnodefluid.o printoutnodefluidfem.o projectgrad.o projectmidnodes.o projectvertexnodes.o propertynet.o pt2_lim_calc.o pt2zpt1_crit.o pt2zpt1_rot.o push.o qsorti.o quadmeshquality.o quadraticsens.o radiate.o radiates.o radmatrix.o radresult.o randomfields.o randomval.o ranstarefine.o ranuwh.o ratedependents.o rcavi2.o rcavi_cp_lt.o rcavi_cp_nt.o rcavi.o readforce.o readsen.o readview.o rearrange.o rearrangecfd.o rectcylexp.o rectcyl.o rectcylvi.o rectcylvold.o reducematrix.o refinemeshs.o regularization_gn_c.o regularization_gt_c.o regularization_slip_lin.o reinit_refine.o relaxval_al.o relaxval_alfull.o remlagrangemult.o removeface.o removesliver.o removetet_refine.o removetet_sliver.o reorderampl.o reservoir.o restartread.o restarts.o restartshort.o restartwrite.o restrictor.o resultnet.o resultsem.o resultsforc_em.o resultsforc_se.o resultsini_em.o resultsini_mortar.o resultsk.o resultsmech.o resultsmech_matrix.o resultsmech_se.o resultsmech_u1.o resultsmech_us3.o resultsmech_us45.o resultsmech_u.o resultsnoddir.o resultsp.o resultsprint.o resultst.o resultstherm.o resultsv1.o resultsv2.o retainednodaldofss.o rhs.o rhsnodef.o rigidbodys.o rigidmpc.o rimseal_calc.o rimseal.o robustdesigns.o rotationvector.o rotationvectorinv.o rs.o rubber.o scalesen.o scavenge_pump.o sdvini.o searchmidneigh.o sectionprints.o selectcyclicsymmetrymodess.o sensitivitys.o shape10tet.o shape15w.o shape20h_ax.o shape20h.o shape20h_pl.o shape2l.o shape3l.o shape3tri.o shape4q.o shape4tet.o shape6tri.o shape6tritilde.o shape6tritilde_lin.o shape6w.o shape8h.o shape8hr.o shape8hu.o shape8humass.o shape8q.o shape8qtilde.o shape8qtilde_lin.o shellsections.o sigini.o skip.o slavintmortar.o slavintpoints.o sluicegate.o smalldist.o smoothbadmid.o smoothbadvertex.o smoothingmidnodes.o smoothingvertexnodes.o smoothshock.o smoothshockappend.o solidsections.o sortev.o spcmatch.o spcmpcmortar.o specificgasconstants.o specificheats.o splitline.o spooles_read.o spooles_write.o springdamp_f2f.o springdamp_n2f.o springforc_f2f.o springforc_f2f_th.o springforc_n2f.o springforc_n2f_th.o springs.o springstiff_f2f.o springstiff_f2f_th.o springstiff_n2f.o springstiff_n2f_th.o statics.o steadystatedynamicss.o steps.o stiff2mat.o stop.o stopwithout201.o storecontactprop.o storeresidual.o str2mat.o straightchannel.o straighteq2d.o straighteq3d.o straighteq3dpen.o straightmpc.o stressintensity.o stressintensity_smoothing.o submodels.o subspace.o substructuregenerates.o substructurematrixoutputs.o subtracthmatrix.o surfacebehaviors.o surfaceinteractions.o surfaces.o sutherland_hodgman.o swap.o tee.o temperatures.o temploaddiff.o tempload_em.o tempload.o temploadfem.o temploadmodal.o thermmodel.o thickness.o tiefaccont.o ties.o timepointss.o topocfdfem.o totalcontact.o transformatrix.o transformfs.o transforms.o transition.o treatmasterface.o treatmasterface_mortar.o trianeighbor.o triangucont.o triangulate.o triloc.o ts_calc.o tt_calc.o turningdirection.o twodint.o two_phase_flow.o uamplitude.o uboun.o ufaceload.o uhardening.o umat.o umat_abaqus.o umat_abaqusnl.o umat_abaqusnl_total.o umat_aniso_creep.o umat_ciarlet_el.o umat_compression_only.o umat_def_plas.o umat_elastic_fiber.o umat_ideal_gas.o umat_johnson_cook.o umat_lin_el_corot.o umat_lin_iso_el.o umat_main.o umat_single_crystal_creep.o umat_single_crystal.o umat_tension_only.o umat_undo_nlgeom_lin_el.o umat_undo_nlgeom_lin_iso_el.o umat_user.o umatht.o umpc_dist.o umpc_mean_rot.o umpc_user.o uncouptempdisps.o updatecon.o updatecont2d.o updatecont.o updatecontpen.o updategeodata.o us3_sub.o us4_sub.o userefinedmeshs.o userelements.o usermaterials.o usermpc.o usersections.o user_network_element.o user_network_element_p0.o user_network_element_p1.o utemp_ccxlib.o utemp.o valuesatinfinitys.o varsmooth.o velinireltoabs.o viewfactors.o viscos.o vortex.o wcoef.o wpi.o writeboun.o writebv.o writecvg.o writedeigdx.o writedesi.o writeelem.o writeevcomplex.o writeevcscomplex.o writeevcs.o writeev.o writehe.o writeim.o writeinput.o writeinputdeck.o writeinputdeck2.o writelm.o writemaccs.o writemac.o writematrix.o writemeshinp.o writempc.o writeobj.o writepf.o writerandomfield.o writere.o writerefinemesh.o writesen.o writestadiv.o writesta.o writesubmatrix.o writetetmesh.o writetrilinos.o writeturdircs.o writeturdir.o writevector.o writevfa.o writeview.o wye.o zeta_calc.o zienzhu.o add_rect.o arpack.o arpackbu.o arpackcs.o bdfill.o biosav.o buildtquad.o calcresidual.o calcresidual_em.o calcshapef.o ccx_2.23step.o call_external_umat.o call_external_umat_user.o cascade.o checkconvergence.o checkconvnet.o checkdivergence.o checkinclength.o compare.o compfluidfem.o complexfreq.o contact.o contactmortar.o convert2rowbyrow.o cpypardou.o cpyparitg.o crackfrd.o crackpropagation.o crackpropdata.o dam1parll.o dam2parll.o dealloc_cal.o decascade_mortar.o dfdbj.o dgmresmain.o divparll.o dudsmain.o dyna.o dynboun.o electromagnetics.o elementcpuload.o expand.o external.o feasibledirection.o filterbackwardmain.o filterforwardmain.o forparll.o frd.o frdcyc.o frdgeneralvector.o frdheader.o frdselect.o frd_sen.o frdset.o frdvector.o frecord.o genrandmain.o getglobalresults.o getlocalresults.o getSystemCPUs.o getuncrackedresults.o gradientprojection.o ini_cal.o inicont.o inimortar.o iniparll.o insert_cmatrix.o insertas.o insertas_ws.o insert.o insertcbs.o insertfreq.o insertrad.o interpolatestatemain.o interpoltetmain.o linstatic.o mafilldmssmain.o mafillsmasmain.o mafillsmmain.o mafillsmmain_se.o massless.o mastruct.o mastructcmatrix.o mastructcs.o mastructdmatrix.o mastructem.o mastructffem.o mastructfilter.o mastructmatrix.o mastructmatrixcs.o mastructmm.o mastructnmatrix.o mastructrad.o mastructrand.o mastructread.o mastructreadcs.o mastructse.o matrixsort.o matrixstorage.o mortar_postfrd.o mortar_prefrd.o mulmatvec_asymmain.o multimortar.o multi_rect.o multi_rectv.o multi_scal.o nonlingeo.o objectivemain_se.o opmain.o packagingmain.o pardiso.o pardiso_cp.o pastix.o pcgsolver.o peeq_sen_dv.o peeq_sen_dx.o precontact.o premortar.o predgmres_struct_mt.o prediction.o prediction_em.o preiter.o preparll.o printenergy.o radcyc.o radflowload.o randomfieldmain.o readfrd.o readinput.o readnewmesh.o refinemesh.o remastructar.o remastruct.o remastructem.o res1parll.o res2parll.o res3parll.o res4parll.o resforccont.o results.o resultsforc.o resultsinduction.o resultsini.o results_se.o resultsstr.o rhsmain.o robustdesign.o sensi_coor.o sensi_orien.o sensitivity_out.o setpardou.o setparitg.o sgi.o solveeq.o spooles.o steadystate.o stof.o stoi.o storecontactdof.o stos.o strcmp1.o strcmp2.o strcpy1.o strcpy2.o stress_sen_dv.o stress_sen_dx.o stressmortar.o strsplt.o tau.o thicknessmain.o tiedcontact.o trafontmortar2.o trafontspcmpc.o transitionmain.o transpose.o u_calloc.o u_free.o u_malloc.o u_realloc.o utempread.o worparll.o writeheading.o writenewmesh.o writeoldmesh.o
+ar: creating ccx_2.23.a
+a - absolute_relative.o
+a - acctube.o
+a - acctube_one.o
+a - actideacti.o
+a - actideactistr.o
+a - add_bo_st.o
+a - addimd.o
+a - addimdnodecload.o
+a - addimdnodedload.o
+a - addimdnodedof.o
+a - addizdofcload.o
+a - addizdofdload.o
+a - add_sm_ei.o
+a - add_sm_fl.o
+a - add_sm_st_as.o
+a - add_sm_st_corio.o
+a - add_sm_st.o
+a - adjacentbounodes.o
+a - adjustcontactnodes.o
+a - addshell.o
+a - advecforc.o
+a - advecstiff.o
+a - air_valve.o
+a - allocation.o
+a - allocation_rfn.o
+a - allocont.o
+a - amplitudes.o
+a - angsum.o
+a - anisomaxwavspd.o
+a - anisonl.o
+a - anisotropic.o
+a - applybounfem.o
+a - applybounp.o
+a - approxplane.o
+a - assigndomtonodes.o
+a - attach_1d.o
+a - attach_1d_cracklength.o
+a - attach_2d.o
+a - attach_3d.o
+a - attachline.o
+a - autocovmatrix.o
+a - basemotions.o
+a - basis.o
+a - beamextscheme.o
+a - beamgeneralsections.o
+a - beamintscheme.o
+a - beammpc.o
+a - beamsections.o
+a - biotsavart.o
+a - bodyadd.o
+a - bodyforce.o
+a - bounadd.o
+a - bounaddf.o
+a - boundaryfs.o
+a - boundarymesh.o
+a - boundarys.o
+a - bsort.o
+a - buckles.o
+a - calcdamage.o
+a - calcdatarget.o
+a - calcdev.o
+a - calcdhds.o
+a - calceigenvalues.o
+a - calcenergy.o
+a - calcexternalwork.o
+a - calcfeasibledirection_gd.o
+a - calcfeasibledirection_gp.o
+a - calcgeomelemnet.o
+a - calch0interface.o
+a - calcheatnet.o
+a - calc_ider_cross_split.o
+a - calc_ider_tee.o
+a - calc_ider_wye.o
+a - calcmac.o
+a - calcmach.o
+a - calcmass.o
+a - calcmechstrain.o
+a - calcnormal.o
+a - calc_residual_cross_split.o
+a - calc_residual_tee.o
+a - calc_residual_wye.o
+a - calcspringforc.o
+a - calcstabletimeinccont.o
+a - calcstabletimeincvol.o
+a - calcstress.o
+a - calcstressheatfluxfem.o
+a - calcsurf.o
+a - calctotstrain.o
+a - calculated.o
+a - calculateh.o
+a - calculatehmid.o
+a - calcview.o
+a - calcvol.o
+a - calinput.o
+a - calinput_rfn.o
+a - carbon_seal.o
+a - catedges_crackprop.o
+a - catedges_refine.o
+a - catnodes.o
+a - cattet.o
+a - cattri.o
+a - cavity_refine.o
+a - cavityext_refine.o
+a - cd_bleedtapping.o
+a - cd_bragg.o
+a - cd_chamfer.o
+a - cd_lab_1spike.o
+a - cd_lab_correction.o
+a - cd_lab_honeycomb.o
+a - cd_lab_radius.o
+a - cd_lab_straight.o
+a - cd_lichtarowicz.o
+a - cd_Mcgreehan_Schotsch.o
+a - cd_ms_ms.o
+a - cd_own_albers.o
+a - cd_pk_albers.o
+a - cd_pk_ms.o
+a - cd_preswirlnozzle.o
+a - cfdconv.o
+a - cfds.o
+a - cflux.o
+a - cfluxs.o
+a - changecontacttypes.o
+a - changedepterm.o
+a - changefrictions.o
+a - changekon.o
+a - changematerials.o
+a - changeplastics.o
+a - changesolidsections.o
+a - changesurfacebehaviors.o
+a - channeljointback.o
+a - channeljointfront.o
+a - characteristic.o
+a - characteristiclength.o
+a - checkconstraint.o
+a - checkcrosssections.o
+a - checkdispoutonly.o
+a - checkexiedge.o
+a - checkforhomnet.o
+a - checkimpacts.o
+a - checkinputvaluesnet.o
+a - checkintegrity.o
+a - checkjac.o
+a - checkprojectgrad.o
+a - checksharp.o
+a - checktemp.o
+a - checktempload.o
+a - checktime.o
+a - checktruecontact.o
+a - checkvol.o
+a - chksurf.o
+a - cident80.o
+a - cident81.o
+a - cident.o
+a - clearances.o
+a - cload.o
+a - cloaddistributing.o
+a - cloads.o
+a - clonesensitivities.o
+a - closefile.o
+a - closefilefluid.o
+a - cmatrix.o
+a - combilcfhcf.o
+a - compdt.o
+a - complexfrequencys.o
+a - con2phys.o
+a - condrandomfield.o
+a - conductivitys.o
+a - constassembly.o
+a - constraints.o
+a - contactdampings.o
+a - contactpairs.o
+a - contactprints.o
+a - contingentsurf.o
+a - contraction.o
+a - controlss.o
+a - copysens.o
+a - coriolissolve.o
+a - correctem.o
+a - correlationlengths.o
+a - couplings.o
+a - couptempdisps.o
+a - cp_corrected.o
+a - cracklength.o
+a - cracklength_smoothing.o
+a - crackprop.o
+a - crackpropagations.o
+a - crackrate.o
+a - crackshape.o
+a - create_contactdofs.o
+a - create_t.o
+a - create_tinv.o
+a - createbd.o
+a - createblock_struct.o
+a - createelemneigh.o
+a - createfint.o
+a - createialnk.o
+a - createinterfacempcs.o
+a - createinum.o
+a - createlocalsys.o
+a - createmddof.o
+a - createmdelem.o
+a - createnodeneigh.o
+a - createtet.o
+a - createtiedsurfs.o
+a - creep.o
+a - creeps.o
+a - cross_split.o
+a - cubic.o
+a - cubtri.o
+a - cyclichardenings.o
+a - cyclicsymmetrymodels.o
+a - damageinitiations.o
+a - dampings.o
+a - dashdamp.o
+a - dashpots.o
+a - dattime.o
+a - ddeabm.o
+a - ddebdf.o
+a - deformationplasticitys.o
+a - defplas.o
+a - delaun.o
+a - deltri.o
+a - densitys.o
+a - depvars.o
+a - designresponses.o
+a - designvariabless.o
+a - desiperelem.o
+a - detectactivecont.o
+a - determineextern.o
+a - dflux.o
+a - dfluxs.o
+a - dgesv.o
+a - dgmres1.o
+a - dgmres.o
+a - discontinuousslope.o
+a - disp_sen_dv.o
+a - distattach_1d.o
+a - distattach_1d_cracklength.o
+a - distattach_2d.o
+a - distattach_3d.o
+a - distattachline.o
+a - distributingcouplings.o
+a - distributions.o
+a - dKdm.o
+a - dKdp.o
+a - dKdt.o
+a - dKdX.o
+a - dload.o
+a - dloads.o
+a - dlz.o
+a - dmatrix.o
+a - dqag.o
+a - drfftf.o
+a - dsort.o
+a - dsptrf.o
+a - dsptri.o
+a - dualshape3tri.o
+a - dualshape4q.o
+a - dualshape6tritilde.o
+a - dualshape6tritilde_lin.o
+a - dualshape8qtilde.o
+a - dualshape8qtilde_lin.o
+a - dynamics.o
+a - dynresults.o
+a - e_c3d_cs_se.o
+a - e_c3d_duds.o
+a - e_c3d_em.o
+a - e_c3d.o
+a - e_c3d_plhs.o
+a - e_c3d_prhs.o
+a - e_c3d_rhs.o
+a - e_c3d_rhs_th.o
+a - e_c3d_se.o
+a - e_c3d_th.o
+a - e_c3d_u1.o
+a - e_c3d_us3.o
+a - e_c3d_us45.o
+a - e_c3d_u.o
+a - e_c3d_vlhs.o
+a - e_c3d_v1rhs.o
+a - e_c3d_v2rhs.o
+a - e_corio.o
+a - e_damp.o
+a - edgedivide.o
+a - edg.o
+a - effectivemodalmass.o
+a - elastics.o
+a - electricalconductivitys.o
+a - electromagneticss.o
+a - elementpernode.o
+a - elementpernodef.o
+a - elements.o
+a - elemperdesi.o
+a - elemperorien.o
+a - elprints.o
+a - envtemp.o
+a - eplane.o
+a - eqspacednodes.o
+a - equationcheck.o
+a - equations.o
+a - errorestimator.o
+a - evalshapefunc.o
+a - expand_auw.o
+a - expansions.o
+a - extendmesh.o
+a - extern_crackprop.o
+a - extfacepernode.o
+a - extract_matrices.o
+a - extrapol2dto3d.o
+a - extrapolatecontact.o
+a - extrapolate.o
+a - extrapolatefem.o
+a - extrapolateshell.o
+a - extrapolateshell_us3.o
+a - extrapolateshell_us45.o
+a - extrapolate_se.o
+a - extrapolate_u.o
+a - extrapolate_u1.o
+a - extrapolate_us3.o
+a - extrapolate_us45.o
+a - extsurface.o
+a - faceinfo.o
+a - fcrit.o
+a - feasibledirections.o
+a - fillknotmpc.o
+a - film.o
+a - films.o
+a - filterbackward_exp.o
+a - filterbackward_imp.o
+a - filterforward_exp.o
+a - filterforward_imp.o
+a - filters.o
+a - findextsurface.o
+a - findslavcfd.o
+a - findsurface.o
+a - fixnode.o
+a - flowbc.o
+a - flowoutput.o
+a - fluidconstantss.o
+a - fluidsections.o
+a - flux.o
+a - fminsirefine.o
+a - forcadd.o
+a - forcesolve.o
+a - frdfluidfem.o
+a - frditeration.o
+a - frdnet.o
+a - free_convection.o
+a - free_disc_pumping.o
+a - frequencys.o
+a - fricheat.o
+a - friction_coefficient.o
+a - frictionheating.o
+a - frictions.o
+a - fsub.o
+a - fsuper.o
+a - fumid.o
+a - fuvertex.o
+a - gapconductances.o
+a - gapcon.o
+a - gapheatgenerations.o
+a - gaps.o
+a - gasmechbc.o
+a - gaspipe_fanno.o
+a - gaspipe_rot.o
+a - gen3dboun.o
+a - gen3dchanoutput.o
+a - gen3dconnect.o
+a - gen3delem.o
+a - gen3dforc.o
+a - gen3dfrom1d.o
+a - gen3dfrom2d.o
+a - gen3dmembrane.o
+a - gen3dmpc.o
+a - gen3dnor.o
+a - gen3dsurf.o
+a - gen3dtemp.o
+a - gen3dtruss.o
+a - genadvecelem.o
+a - gencontelem_f2f.o
+a - gencontelem_n2f.o
+a - gendualcoeffs.o
+a - generatecycmpcs.o
+a - generateeminterfaces.o
+a - generatetet_refine2.o
+a - generatetet_refine.o
+a - genfirstactif.o
+a - genislavactdof.o
+a - genislavquadel.o
+a - genmidnodes.o
+a - genmodes.o
+a - genmpc.o
+a - gennactdofinv.o
+a - gennactdofinv3d.o
+a - genratio.o
+a - gentiedmpc.o
+a - geometricconstraints.o
+a - geometrictolerances.o
+a - geomview.o
+a - getcontactparams.o
+a - getdesiinfo2d.o
+a - getdesiinfo3d.o
+a - getdesiinfo3d_robust.o
+a - getdesiinfobou.o
+a - getlocno.o
+a - getnewline.o
+a - getnodel.o
+a - getnodesinitetmesh.o
+a - getnumberofnodes.o
+a - getversion.o
+a - globalcrackresults.o
+a - greens.o
+a - hcfs.o
+a - hcrit.o
+a - headings.o
+a - heattransfers.o
+a - henergy.o
+a - hgforce.o
+a - hgstiffness.o
+a - hnorm.o
+a - hns.o
+a - hybsvd.o
+a - hyperelastics.o
+a - hyperfoams.o
+a - ident2.o
+a - identamta.o
+a - ident.o
+a - identdesifaces.o
+a - identifytiedface.o
+a - identifytransform.o
+a - includefilename.o
+a - inclusion.o
+a - incplas.o
+a - incplas_lin.o
+a - init_submodel.o
+a - initialcfdfem.o
+a - initialchannel.o
+a - initialconditionss.o
+a - initialmeshs.o
+a - initialnet.o
+a - initialstrainincreases.o
+a - inputerror.o
+a - inputinfo.o
+a - inputwarning.o
+a - insertsortd.o
+a - insertsorti.o
+a - interpol_alfa2.o
+a - interpolateinface.o
+a - interpolatestate.o
+a - interpolextnodes.o
+a - interpolextnodesf.o
+a - interpolsubmodel.o
+a - interpoltet.o
+a - intersectionpoint.o
+a - inversewavspd.o
+a - inviscidpre.o
+a - islavactive.o
+a - isortic.o
+a - isortiddc.o
+a - isortid.o
+a - isorti.o
+a - isortii.o
+a - isortiiddc.o
+a - isortiid.o
+a - isortiii.o
+a - jouleheating.o
+a - keystart.o
+a - knotmpc.o
+a - lab_straight_ppkrit.o
+a - labyrinth.o
+a - limit_case_calc.o
+a - linel.o
+a - linkdissimilar.o
+a - linscal10.o
+a - linscal.o
+a - lintemp.o
+a - lintemp_th0.o
+a - lintemp_th1.o
+a - lintemp_th.o
+a - linvec10.o
+a - linvec.o
+a - liquidpipe.o
+a - liquidpump.o
+a - loadadd.o
+a - loadaddp.o
+a - loadaddt.o
+a - localaxescs.o
+a - localaxes.o
+a - lump.o
+a - machpi.o
+a - mafillcorio.o
+a - mafilldm.o
+a - mafilldmss.o
+a - mafillem.o
+a - mafillfilter.o
+a - mafillfreq_em.o
+a - mafillmm.o
+a - mafillnet.o
+a - mafillpbc.o
+a - mafillplhs.o
+a - mafillprhs.o
+a - mafillsm.o
+a - mafillsmas.o
+a - mafillsmcsas.o
+a - mafillsmcs.o
+a - mafillsmcsmatrix.o
+a - mafillsmcsse.o
+a - mafillsmduds.o
+a - mafillsmforc.o
+a - mafillsmmatrix.o
+a - mafillsmse.o
+a - mafillv1rhs.o
+a - mafillv2rhs.o
+a - mafillvlhs.o
+a - magneticpermeabilitys.o
+a - map3dto1d2d.o
+a - map3dto1d2d_v.o
+a - map3dtolayer.o
+a - massflow_percent.o
+a - massflows.o
+a - masss.o
+a - materialdata_cond.o
+a - materialdata_cp.o
+a - materialdata_cp_sec.o
+a - materialdata_crack.o
+a - materialdata_dvi.o
+a - materialdata_dvifem.o
+a - materialdata_em.o
+a - materialdata_me.o
+a - materialdata_rho.o
+a - materialdata_sp.o
+a - materialdata_tg.o
+a - materialdata_th.o
+a - materials.o
+a - matrix2userelem.o
+a - matrixassembles.o
+a - matvec.o
+a - matvec_struct.o
+a - maxdesvardisp.o
+a - mechmodel.o
+a - membranesections.o
+a - merge_ikactmech1.o
+a - meshquality.o
+a - meshqualitycavity.o
+a - midexternaledges.o
+a - midexternalfaces.o
+a - modaldampings.o
+a - modaldynamics.o
+a - modelchanges.o
+a - modf.o
+a - modifympc.o
+a - modifystressstiff.o
+a - moehring.o
+a - mohrcoulomb.o
+a - mohrcoulombhardenings.o
+a - mohrcoulombs.o
+a - move.o
+a - mpcadd.o
+a - mpcrem.o
+a - mpcs.o
+a - msolve.o
+a - msolve_struct.o
+a - mulmatvec_asym.o
+a - mult.o
+a - multistages.o
+a - multvec.o
+a - near2d.o
+a - near3d.o
+a - near3d_se.o
+a - neartriangle.o
+a - negativepressure.o
+a - networkelementpernode.o
+a - networkextrapolate.o
+a - networkforc.o
+a - networkinum.o
+a - networkmpc_lhs.o
+a - networkmpc_rhs.o
+a - networkmpcs.o
+a - networkneighbor.o
+a - networkstiff.o
+a - newnodes.o
+a - newton.o
+a - nident2.o
+a - nident.o
+a - nidentk.o
+a - nidentll.o
+a - nmatrix.o
+a - noanalysiss.o
+a - nodalthicknesss.o
+a - nodebelongstoel.o
+a - nodeprints.o
+a - nodes.o
+a - nodestiedface.o
+a - noelfiles.o
+a - noelsets.o
+a - nonlinmpc.o
+a - normals.o
+a - normalsoninterface.o
+a - normalsonsurface_robust.o
+a - normalsonsurface_se.o
+a - normmpc.o
+a - norshell3.o
+a - norshell4.o
+a - norshell6.o
+a - norshell8.o
+a - nortanslav.o
+a - objective_disp.o
+a - objective_disp_tot.o
+a - objective_freq_cs.o
+a - objective_freq.o
+a - objective_mass_dx.o
+a - objective_modalstress.o
+a - objective_peeq.o
+a - objective_peeq_se.o
+a - objective_shapeener_dx.o
+a - objective_shapeener_tot.o
+a - objective_stress_dx_dy.o
+a - objective_stress.o
+a - objective_stress_se.o
+a - objective_stress_tot.o
+a - objectives.o
+a - onedint.o
+a - opas.o
+a - op_corio.o
+a - openfile.o
+a - openfilefluidfem.o
+a - op.o
+a - opfortran.o
+a - opnonsym.o
+a - opnonsymt.o
+a - orientations.o
+a - orifice.o
+a - ortho_plas.o
+a - orthonl.o
+a - orthotropic.o
+a - outputs.o
+a - packaging.o
+a - patch.o
+a - phys2con.o
+a - physicalconstantss.o
+a - pk_cdc_cl1.o
+a - pk_cdc_cl3a.o
+a - pk_cdc_cl3b.o
+a - pk_cdc_cl3d.o
+a - pk_cdc_cl3.o
+a - pk_cdi_noz.o
+a - pk_cdi_r.o
+a - pk_cdi_rl.o
+a - pk_cdi_se.o
+a - pk_y0_yg.o
+a - plane3.o
+a - plane4.o
+a - plane_eq.o
+a - planeeq.o
+a - planempc.o
+a - plastics.o
+a - plcopy.o
+a - plinterpol.o
+a - plmix.o
+a - pop.o
+a - postinitialnet.o
+a - postprojectgrad.o
+a - postview.o
+a - precfdcyc.o
+a - preconditioning.o
+a - precondrandomfield.o
+a - predgmres_struct.o
+a - prefilter.o
+a - preinitialnet.o
+a - prepackaging.o
+a - preprojectgrad.o
+a - presgradient.o
+a - pretensionsections.o
+a - prethickness.o
+a - pretransition.o
+a - printoutcontact.o
+a - printoutebhe.o
+a - printoutelem.o
+a - printout.o
+a - printoutface.o
+a - printoutfacefem.o
+a - printoutfluidfem.o
+a - printoutint.o
+a - printoutintfluidfem.o
+a - printoutnode.o
+a - printoutnodefluid.o
+a - printoutnodefluidfem.o
+a - projectgrad.o
+a - projectmidnodes.o
+a - projectvertexnodes.o
+a - propertynet.o
+a - pt2_lim_calc.o
+a - pt2zpt1_crit.o
+a - pt2zpt1_rot.o
+a - push.o
+a - qsorti.o
+a - quadmeshquality.o
+a - quadraticsens.o
+a - radiate.o
+a - radiates.o
+a - radmatrix.o
+a - radresult.o
+a - randomfields.o
+a - randomval.o
+a - ranstarefine.o
+a - ranuwh.o
+a - ratedependents.o
+a - rcavi2.o
+a - rcavi_cp_lt.o
+a - rcavi_cp_nt.o
+a - rcavi.o
+a - readforce.o
+a - readsen.o
+a - readview.o
+a - rearrange.o
+a - rearrangecfd.o
+a - rectcylexp.o
+a - rectcyl.o
+a - rectcylvi.o
+a - rectcylvold.o
+a - reducematrix.o
+a - refinemeshs.o
+a - regularization_gn_c.o
+a - regularization_gt_c.o
+a - regularization_slip_lin.o
+a - reinit_refine.o
+a - relaxval_al.o
+a - relaxval_alfull.o
+a - remlagrangemult.o
+a - removeface.o
+a - removesliver.o
+a - removetet_refine.o
+a - removetet_sliver.o
+a - reorderampl.o
+a - reservoir.o
+a - restartread.o
+a - restarts.o
+a - restartshort.o
+a - restartwrite.o
+a - restrictor.o
+a - resultnet.o
+a - resultsem.o
+a - resultsforc_em.o
+a - resultsforc_se.o
+a - resultsini_em.o
+a - resultsini_mortar.o
+a - resultsk.o
+a - resultsmech.o
+a - resultsmech_matrix.o
+a - resultsmech_se.o
+a - resultsmech_u1.o
+a - resultsmech_us3.o
+a - resultsmech_us45.o
+a - resultsmech_u.o
+a - resultsnoddir.o
+a - resultsp.o
+a - resultsprint.o
+a - resultst.o
+a - resultstherm.o
+a - resultsv1.o
+a - resultsv2.o
+a - retainednodaldofss.o
+a - rhs.o
+a - rhsnodef.o
+a - rigidbodys.o
+a - rigidmpc.o
+a - rimseal_calc.o
+a - rimseal.o
+a - robustdesigns.o
+a - rotationvector.o
+a - rotationvectorinv.o
+a - rs.o
+a - rubber.o
+a - scalesen.o
+a - scavenge_pump.o
+a - sdvini.o
+a - searchmidneigh.o
+a - sectionprints.o
+a - selectcyclicsymmetrymodess.o
+a - sensitivitys.o
+a - shape10tet.o
+a - shape15w.o
+a - shape20h_ax.o
+a - shape20h.o
+a - shape20h_pl.o
+a - shape2l.o
+a - shape3l.o
+a - shape3tri.o
+a - shape4q.o
+a - shape4tet.o
+a - shape6tri.o
+a - shape6tritilde.o
+a - shape6tritilde_lin.o
+a - shape6w.o
+a - shape8h.o
+a - shape8hr.o
+a - shape8hu.o
+a - shape8humass.o
+a - shape8q.o
+a - shape8qtilde.o
+a - shape8qtilde_lin.o
+a - shellsections.o
+a - sigini.o
+a - skip.o
+a - slavintmortar.o
+a - slavintpoints.o
+a - sluicegate.o
+a - smalldist.o
+a - smoothbadmid.o
+a - smoothbadvertex.o
+a - smoothingmidnodes.o
+a - smoothingvertexnodes.o
+a - smoothshock.o
+a - smoothshockappend.o
+a - solidsections.o
+a - sortev.o
+a - spcmatch.o
+a - spcmpcmortar.o
+a - specificgasconstants.o
+a - specificheats.o
+a - splitline.o
+a - spooles_read.o
+a - spooles_write.o
+a - springdamp_f2f.o
+a - springdamp_n2f.o
+a - springforc_f2f.o
+a - springforc_f2f_th.o
+a - springforc_n2f.o
+a - springforc_n2f_th.o
+a - springs.o
+a - springstiff_f2f.o
+a - springstiff_f2f_th.o
+a - springstiff_n2f.o
+a - springstiff_n2f_th.o
+a - statics.o
+a - steadystatedynamicss.o
+a - steps.o
+a - stiff2mat.o
+a - stop.o
+a - stopwithout201.o
+a - storecontactprop.o
+a - storeresidual.o
+a - str2mat.o
+a - straightchannel.o
+a - straighteq2d.o
+a - straighteq3d.o
+a - straighteq3dpen.o
+a - straightmpc.o
+a - stressintensity.o
+a - stressintensity_smoothing.o
+a - submodels.o
+a - subspace.o
+a - substructuregenerates.o
+a - substructurematrixoutputs.o
+a - subtracthmatrix.o
+a - surfacebehaviors.o
+a - surfaceinteractions.o
+a - surfaces.o
+a - sutherland_hodgman.o
+a - swap.o
+a - tee.o
+a - temperatures.o
+a - temploaddiff.o
+a - tempload_em.o
+a - tempload.o
+a - temploadfem.o
+a - temploadmodal.o
+a - thermmodel.o
+a - thickness.o
+a - tiefaccont.o
+a - ties.o
+a - timepointss.o
+a - topocfdfem.o
+a - totalcontact.o
+a - transformatrix.o
+a - transformfs.o
+a - transforms.o
+a - transition.o
+a - treatmasterface.o
+a - treatmasterface_mortar.o
+a - trianeighbor.o
+a - triangucont.o
+a - triangulate.o
+a - triloc.o
+a - ts_calc.o
+a - tt_calc.o
+a - turningdirection.o
+a - twodint.o
+a - two_phase_flow.o
+a - uamplitude.o
+a - uboun.o
+a - ufaceload.o
+a - uhardening.o
+a - umat.o
+a - umat_abaqus.o
+a - umat_abaqusnl.o
+a - umat_abaqusnl_total.o
+a - umat_aniso_creep.o
+a - umat_ciarlet_el.o
+a - umat_compression_only.o
+a - umat_def_plas.o
+a - umat_elastic_fiber.o
+a - umat_ideal_gas.o
+a - umat_johnson_cook.o
+a - umat_lin_el_corot.o
+a - umat_lin_iso_el.o
+a - umat_main.o
+a - umat_single_crystal_creep.o
+a - umat_single_crystal.o
+a - umat_tension_only.o
+a - umat_undo_nlgeom_lin_el.o
+a - umat_undo_nlgeom_lin_iso_el.o
+a - umat_user.o
+a - umatht.o
+a - umpc_dist.o
+a - umpc_mean_rot.o
+a - umpc_user.o
+a - uncouptempdisps.o
+a - updatecon.o
+a - updatecont2d.o
+a - updatecont.o
+a - updatecontpen.o
+a - updategeodata.o
+a - us3_sub.o
+a - us4_sub.o
+a - userefinedmeshs.o
+a - userelements.o
+a - usermaterials.o
+a - usermpc.o
+a - usersections.o
+a - user_network_element.o
+a - user_network_element_p0.o
+a - user_network_element_p1.o
+a - utemp_ccxlib.o
+a - utemp.o
+a - valuesatinfinitys.o
+a - varsmooth.o
+a - velinireltoabs.o
+a - viewfactors.o
+a - viscos.o
+a - vortex.o
+a - wcoef.o
+a - wpi.o
+a - writeboun.o
+a - writebv.o
+a - writecvg.o
+a - writedeigdx.o
+a - writedesi.o
+a - writeelem.o
+a - writeevcomplex.o
+a - writeevcscomplex.o
+a - writeevcs.o
+a - writeev.o
+a - writehe.o
+a - writeim.o
+a - writeinput.o
+a - writeinputdeck.o
+a - writeinputdeck2.o
+a - writelm.o
+a - writemaccs.o
+a - writemac.o
+a - writematrix.o
+a - writemeshinp.o
+a - writempc.o
+a - writeobj.o
+a - writepf.o
+a - writerandomfield.o
+a - writere.o
+a - writerefinemesh.o
+a - writesen.o
+a - writestadiv.o
+a - writesta.o
+a - writesubmatrix.o
+a - writetetmesh.o
+a - writetrilinos.o
+a - writeturdircs.o
+a - writeturdir.o
+a - writevector.o
+a - writevfa.o
+a - writeview.o
+a - wye.o
+a - zeta_calc.o
+a - zienzhu.o
+a - add_rect.o
+a - arpack.o
+a - arpackbu.o
+a - arpackcs.o
+a - bdfill.o
+a - biosav.o
+a - buildtquad.o
+a - calcresidual.o
+a - calcresidual_em.o
+a - calcshapef.o
+a - ccx_2.23step.o
+a - call_external_umat.o
+a - call_external_umat_user.o
+a - cascade.o
+a - checkconvergence.o
+a - checkconvnet.o
+a - checkdivergence.o
+a - checkinclength.o
+a - compare.o
+a - compfluidfem.o
+a - complexfreq.o
+a - contact.o
+a - contactmortar.o
+a - convert2rowbyrow.o
+a - cpypardou.o
+a - cpyparitg.o
+a - crackfrd.o
+a - crackpropagation.o
+a - crackpropdata.o
+a - dam1parll.o
+a - dam2parll.o
+a - dealloc_cal.o
+a - decascade_mortar.o
+a - dfdbj.o
+a - dgmresmain.o
+a - divparll.o
+a - dudsmain.o
+a - dyna.o
+a - dynboun.o
+a - electromagnetics.o
+a - elementcpuload.o
+a - expand.o
+a - external.o
+a - feasibledirection.o
+a - filterbackwardmain.o
+a - filterforwardmain.o
+a - forparll.o
+a - frd.o
+a - frdcyc.o
+a - frdgeneralvector.o
+a - frdheader.o
+a - frdselect.o
+a - frd_sen.o
+a - frdset.o
+a - frdvector.o
+a - frecord.o
+a - genrandmain.o
+a - getglobalresults.o
+a - getlocalresults.o
+a - getSystemCPUs.o
+a - getuncrackedresults.o
+a - gradientprojection.o
+a - ini_cal.o
+a - inicont.o
+a - inimortar.o
+a - iniparll.o
+a - insert_cmatrix.o
+a - insertas.o
+a - insertas_ws.o
+a - insert.o
+a - insertcbs.o
+a - insertfreq.o
+a - insertrad.o
+a - interpolatestatemain.o
+a - interpoltetmain.o
+a - linstatic.o
+a - mafilldmssmain.o
+a - mafillsmasmain.o
+a - mafillsmmain.o
+a - mafillsmmain_se.o
+a - massless.o
+a - mastruct.o
+a - mastructcmatrix.o
+a - mastructcs.o
+a - mastructdmatrix.o
+a - mastructem.o
+a - mastructffem.o
+a - mastructfilter.o
+a - mastructmatrix.o
+a - mastructmatrixcs.o
+a - mastructmm.o
+a - mastructnmatrix.o
+a - mastructrad.o
+a - mastructrand.o
+a - mastructread.o
+a - mastructreadcs.o
+a - mastructse.o
+a - matrixsort.o
+a - matrixstorage.o
+a - mortar_postfrd.o
+a - mortar_prefrd.o
+a - mulmatvec_asymmain.o
+a - multimortar.o
+a - multi_rect.o
+a - multi_rectv.o
+a - multi_scal.o
+a - nonlingeo.o
+a - objectivemain_se.o
+a - opmain.o
+a - packagingmain.o
+a - pardiso.o
+a - pardiso_cp.o
+a - pastix.o
+a - pcgsolver.o
+a - peeq_sen_dv.o
+a - peeq_sen_dx.o
+a - precontact.o
+a - premortar.o
+a - predgmres_struct_mt.o
+a - prediction.o
+a - prediction_em.o
+a - preiter.o
+a - preparll.o
+a - printenergy.o
+a - radcyc.o
+a - radflowload.o
+a - randomfieldmain.o
+a - readfrd.o
+a - readinput.o
+a - readnewmesh.o
+a - refinemesh.o
+a - remastructar.o
+a - remastruct.o
+a - remastructem.o
+a - res1parll.o
+a - res2parll.o
+a - res3parll.o
+a - res4parll.o
+a - resforccont.o
+a - results.o
+a - resultsforc.o
+a - resultsinduction.o
+a - resultsini.o
+a - results_se.o
+a - resultsstr.o
+a - rhsmain.o
+a - robustdesign.o
+a - sensi_coor.o
+a - sensi_orien.o
+a - sensitivity_out.o
+a - setpardou.o
+a - setparitg.o
+a - sgi.o
+a - solveeq.o
+a - spooles.o
+a - steadystate.o
+a - stof.o
+a - stoi.o
+a - storecontactdof.o
+a - stos.o
+a - strcmp1.o
+a - strcmp2.o
+a - strcpy1.o
+a - strcpy2.o
+a - stress_sen_dv.o
+a - stress_sen_dx.o
+a - stressmortar.o
+a - strsplt.o
+a - tau.o
+a - thicknessmain.o
+a - tiedcontact.o
+a - trafontmortar2.o
+a - trafontspcmpc.o
+a - transitionmain.o
+a - transpose.o
+a - u_calloc.o
+a - u_free.o
+a - u_malloc.o
+a - u_realloc.o
+a - utempread.o
+a - worparll.o
+a - writeheading.o
+a - writenewmesh.o
+a - writeoldmesh.o
+./date.pl; cc -O2 -Wno-error=implicit-function-declaration -Wno-error=incompatible-pointer-types -Wno-error=int-conversion -Wno-error=implicit-int -Wno-error=return-mismatch -std=gnu17  -I /src/SPOOLES.2.2 -DARCH="Linux" -DSPOOLES -DARPACK -DMATRIXSTORAGE -DNETWORKOUT -c ccx_2.23.c; gfortran  -Wall -O2 -o ccx_2.23 ccx_2.23.o ccx_2.23.a /src/SPOOLES.2.2/spooles.a -larpack -llapack -lopenblas -lpthread -lm -lc -fopenmp

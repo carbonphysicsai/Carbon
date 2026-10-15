@@ -23,3 +23,8 @@
 {"utc": "2026-10-15T14:26:42Z", "event": "created", "pod_id": "ghmpm1xp5bp231", "phase": "calculix", "created_epoch": 1792074401.1447659, "deadline_epoch": 1792078001.1447659, "image": "debian:trixie-20261005-slim@sha256:a29215f6a35e51e22adffa17f89e9d2ef06214e64a2bad10d765c46aea49f11f", "cpu_flavor": "cpu3c", "ref": "d658035bd", "code_manifest_sha256": "7c4624c6637b3872f3f213b70cbde6b444c484a9e1001d06eec478e650182701"}
 {"utc": "2026-10-15T14:28:05Z", "event": "dispatch_requested", "campaign": "reference-solvers", "max_pods": 4, "phase": "elmer", "plan": "docs/development/evidence/reference-solvers-2026-10-15/plans/elmer-smoke.json", "ref": "e0de2463d", "minutes": 90.0, "vcpu": 8, "cpu_flavors": ["cpu3c", "cpu3g"]}
 {"utc": "2026-10-15T14:28:07Z", "event": "create_failed", "http": 500, "pods_after": ["ghmpm1xp5bp231"]}
+{"utc": "2026-10-15T14:30:15Z", "event": "dispatch_requested", "campaign": "reference-solvers", "max_pods": 4, "phase": "elmer", "plan": "docs/development/evidence/reference-solvers-2026-10-15/plans/elmer-smoke.json", "ref": "e0de2463d", "minutes": 90.0, "vcpu": 8, "cpu_flavors": ["cpu3c", "cpu3g", "cpu3m"]}
+{"utc": "2026-10-15T14:30:17Z", "event": "create_failed", "http": 500, "pods_after": ["ghmpm1xp5bp231"]}
+{"utc": "2026-10-15T14:31:20Z", "event": "exported", "pod_id": "ghmpm1xp5bp231", "dest": "docs/development/evidence/reference-solvers-2026-10-15/calculix-smoke-3", "files": 43, "bytes_written": 1123688, "listing_sha256": "f779bb34b0f1ab275ad723541d895c16bf85cb0c300301b20f9e371f2997f537"}
+{"utc": "2026-10-15T14:31:20Z", "event": "terminate_requested", "pod_id": "ghmpm1xp5bp231"}
+{"utc": "2026-10-15T14:31:21Z", "event": "terminated_verified", "pod_id": "ghmpm1xp5bp231", "verified_epoch": 1792074681.6629114}

@@ -1,0 +1,41 @@
+{
+ "schema": "carbon.reference-bulk.run-plan.v1",
+ "plan_id": "f08-triage-controls",
+ "authority": "OWNER-RUNPOD-SOLVER-READINESS-01",
+ "host_profile": "runpod-cpu-pod-native",
+ "machine": {
+  "reserve_cpus": 0,
+  "reserve_memory_gib": 1,
+  "margin_minutes": 0,
+  "starvation_s": 900,
+  "min_case_window_s": 300,
+  "cpus": 8,
+  "memory_gib": 14.901,
+  "node_hours": 0.7842656351460351,
+  "clock_start": 1792074577.7884793
+ },
+ "families": [
+  {
+   "family": "f08",
+   "manifest_dir": "/tmp/work/f08-triage-controls/decks",
+   "image": "sha256:d9ef68d016226a945c7eefcb6b2261c60a11249ee0f93458ae6c3aca956fd6f8",
+   "priority": 10,
+   "case_limits": {
+    "cpus": 1,
+    "memory_gib": 6,
+    "pids": 64,
+    "wall_timeout_s": 1800
+   },
+   "ceilings": {
+    "launches": 2,
+    "cpu_hours": 2
+   },
+   "shell": "sh",
+   "env": {},
+   "native": {
+    "version_command": "ccx -v",
+    "version_expect": "This is Version 2.23"
+   }
+  }
+ ]
+}
