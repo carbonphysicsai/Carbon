@@ -1,0 +1,585 @@
+"""Score Lab candidate rules (Carbon Validator, 2026-10-13). DEVELOPMENT only.
+
+For OPT-15 (SCORE-LAB-01). No rule here is adopted; the owner picks from the
+lab verdict. Plain Python, standard library only.
+
+Data contract (Challenge-neutral; OPT-15 adapts its synthetic and Tier-2
+replay data to it):
+
+    predictions[qid][aid] = {"objective": float, "margins": {constraint: float}}
+        The member's prediction for action `aid` on question `qid`. An action
+        is predicted feasible when every margin is >= 0.
+    references[qid][aid] = {"status": "FEASIBLE"|"INFEASIBLE"|"UNRESOLVED",
+                            "objective": float|None, "margins": {...}}
+        The verified reference.
+    metadata = {
+        "sense": "min" | "max",        # objective direction (default "min")
+        "questions": {qid: {"fallback": aid, "conditions": int, "u": float,
+                            "actions": [aid, ...]}},
+        "scale": {"objective": float, "<constraint>": float},  # error scales
+        "near_band": float,            # |reference margin| below this, in scale units, is near-limit
+        "probes": [(qid, aid_lo, aid_hi, expected_sign), ...] | None,
+        "knobs": {...},                # per-rule knobs (kappa, k, ...)
+    }
+
+Each rule returns {"score": float|None, "gate": "PASS"|"FAIL"|None,
+"detail": {...}}. Higher is better. The lab ranks gate FAIL strictly below
+every PASS, and treats None as withheld, never as zero.
+
+Rules marked TIER2_REGISTRY_ID are lab PROXIES of registered battery rules.
+On real battery data, run the exact rule by that id through
+carbon/battery/value/score_tuning.py, not through these proxies.
+"""
+
+from __future__ import annotations
+
+import math
+
+FEASIBLE, INFEASIBLE, UNRESOLVED = "FEASIBLE", "INFEASIBLE", "UNRESOLVED"
+
+
+# --- shared helpers ------------------------------------------------------------
+
+
+def _sign(metadata):
+    return 1.0 if metadata.get("sense", "min") == "min" else -1.0
+
+
+def _better(metadata, x, y):
+    """True when objective x is strictly better than y."""
+    return _sign(metadata) * (x - y) < 0
+
+
+def _gain(metadata, worse, better, u):
+    """A non-negative improvement from `worse` to `better`, in benefit units u."""
+    return max(0.0, _sign(metadata) * (worse - better) / u)
+
+
+def _pred_feasible(p):
+    return all(m >= 0 for m in p["margins"].values())
+
+
+def _cases(predictions, references):
+    """Every (question, action) pair with a resolved reference and a prediction."""
+    for qid, acts in references.items():
+        for aid, ref in acts.items():
+            if ref["status"] in (FEASIBLE, INFEASIBLE) and aid in predictions.get(qid, {}):
+                yield qid, aid, predictions[qid][aid], ref
+
+
+def _case_error(p, ref, scale):
+    """The mean scaled absolute error over the objective and every margin."""
+    errs = []
+    if ref.get("objective") is not None:
+        errs.append(abs(p["objective"] - ref["objective"]) / scale["objective"])
+    for c, m in ref["margins"].items():
+        errs.append(abs(p["margins"][c] - m) / scale[c])
+    return sum(errs) / len(errs) if errs else 0.0
+
+
+def _near(ref, metadata):
+    band, scale = metadata["near_band"], metadata["scale"]
+    return any(abs(m) / scale[c] < band for c, m in ref["margins"].items())
+
+
+def _best_feasible(references, qid, metadata):
+    best = None
+    for aid, r in references[qid].items():
+        if r["status"] == FEASIBLE and (best is None or _better(metadata, r["objective"], best[1])):
+            best = (aid, r["objective"])
+    return best
+
+
+def _pick(predictions, qid, metadata):
+    """The member's single pick: the best predicted objective among its predicted-feasible actions."""
+    best = None
+    for aid in sorted(predictions.get(qid, {})):
+        p = predictions[qid][aid]
+        if _pred_feasible(p) and (best is None or _better(metadata, p["objective"], best[1])):
+            best = (aid, p["objective"])
+    return None if best is None else best[0]
+
+
+def _geometric(legs, weights):
+    num = den = 0.0
+    for k, w in weights.items():
+        v = legs.get(k)
+        if w == 0:
+            continue
+        if v is None or v <= 0:
+            return None
+        num += w * math.log(v)
+        den += w
+    return math.exp(num / den) if den else None
+
+
+# --- registry-leg proxies --------------------------------------------------------
+
+
+def legs(predictions, references, metadata):
+    """Lab proxies of the battery legs a, r, p, q and v3, plus the gate measures."""
+    scale = metadata["scale"]
+    cases = list(_cases(predictions, references))
+    err_all = [_case_error(p, r, scale) for _, _, p, r in cases]
+    near = [(p, r) for _, _, p, r in cases if _near(r, metadata)]
+    err_near = [_case_error(p, r, scale) for p, r in near]
+    a = 1.0 / (1.0 + sum(err_all) / len(err_all)) if err_all else None
+    rr = 1.0 / (1.0 + sum(err_near) / len(err_near)) if err_near else None
+    # p: proximity-weighted optimism (predicting more margin than the reference has).
+    band = metadata["near_band"]
+    opt = []
+    for _, _, p, r in cases:
+        for c, m in r["margins"].items():
+            w = math.exp(-abs(m) / scale[c] / band)
+            opt.append(w * max(0.0, (p["margins"][c] - m) / scale[c]))
+    pp = 1.0 / (1.0 + sum(opt) / len(opt)) if opt else None
+    # q: decision regret on the single pick; an infeasible pick costs the full fallback-to-best gap plus one u.
+    regrets = []
+    for qid, q in metadata["questions"].items():
+        best = _best_feasible(references, qid, metadata)
+        if best is None:
+            continue
+        pick = _pick(predictions, qid, metadata)
+        u = q["u"]
+        if pick is not None and references[qid][pick]["status"] == FEASIBLE:
+            regrets.append(_gain(metadata, references[qid][pick]["objective"], best[1], u))
+        else:
+            regrets.append(1.0 + _fallback_gap(references, qid, metadata, best, u))
+    q = 1.0 / (1.0 + sum(regrets) / len(regrets)) if regrets else None
+    v3 = _verified_leg(predictions, references, metadata, k=3)
+    # Gate measures.
+    infeasible = [(p, r) for _, _, p, r in cases if r["status"] == INFEASIBLE]
+    feas_rate = (
+        sum(1 for p, _ in infeasible if _pred_feasible(p)) / len(infeasible)
+        if infeasible else 0.0
+    )
+    near_opt = [
+        max(0.0, max((p["margins"][c] - m) / scale[c] for c, m in r["margins"].items()))
+        for p, r in near
+    ]
+    envelope = max(near_opt) / band if near_opt else 0.0
+    sign = None
+    if metadata.get("probes"):
+        bad = 0
+        for qid, lo, hi, expected in metadata["probes"]:
+            d = predictions[qid][hi]["objective"] - predictions[qid][lo]["objective"]
+            bad += (math.copysign(1, d) != expected) if d != 0 else 1
+        sign = bad / len(metadata["probes"])
+    return (
+        {"a": a, "r": rr, "p": pp, "q": q, "v3": v3, "v3s": v3},
+        {"feasibility": feas_rate, "envelope": envelope, "sign": sign},
+    )
+
+
+def _fallback_gap(references, qid, metadata, best, u):
+    fb = metadata["questions"][qid].get("fallback")
+    r = references[qid].get(fb) if fb else None
+    if r and r["status"] == FEASIBLE:
+        return _gain(metadata, r["objective"], best[1], u)
+    return 0.0
+
+
+def _verified_leg(predictions, references, metadata, k):
+    """VERIFY-R proxy: verify the top-k predicted-feasible actions and keep the best verified."""
+    regrets = []
+    for qid, q in metadata["questions"].items():
+        best = _best_feasible(references, qid, metadata)
+        if best is None:
+            continue
+        short = _shortlist(predictions, references, qid, metadata, k, beat_fallback=False)
+        got = [references[qid][a]["objective"] for a in short if references[qid][a]["status"] == FEASIBLE]
+        if got:
+            pick = min(got, key=lambda x: _sign(metadata) * x)
+            regrets.append(_gain(metadata, pick, best[1], q["u"]))
+        else:
+            regrets.append(1.0 + _fallback_gap(references, qid, metadata, best, q["u"]))
+    return 1.0 / (1.0 + sum(regrets) / len(regrets)) if regrets else None
+
+
+def _registry_rule(weights, gates):
+    """A registered geometric weighting with gates, as a lab rule."""
+
+    def rule(predictions, references, metadata):
+        lg, measures = legs(predictions, references, metadata)
+        verdict = None
+        for measure, cutoff, comparison in gates:
+            m = measures.get(measure)
+            if m is None:
+                return {"score": None, "gate": None, "detail": {"withheld": measure}}
+            fail = m > cutoff if comparison == "exceeds" else m >= cutoff
+            verdict = "FAIL" if fail or verdict == "FAIL" else "PASS"
+        return {"score": _geometric(lg, weights), "gate": verdict,
+                "detail": {"legs": lg, "measures": measures}}
+
+    return rule
+
+
+# --- VALUE-METRIC-V2 rev 2 ------------------------------------------------------------
+
+
+def _shortlist(predictions, references, qid, metadata, k, *, beat_fallback=True):
+    q = metadata["questions"][qid]
+    fb_ref = references[qid].get(q.get("fallback"), {}).get("objective")
+    keep = []
+    for aid in sorted(predictions.get(qid, {})):
+        p = predictions[qid][aid]
+        if not _pred_feasible(p):
+            continue
+        if beat_fallback and fb_ref is not None and not _better(metadata, p["objective"], fb_ref):
+            continue
+        keep.append(aid)
+    keep.sort(key=lambda a: (_sign(metadata) * predictions[qid][a]["objective"], a))
+    return keep[:k]
+
+
+def v2(predictions, references, metadata):
+    """VALUE-METRIC-V2 rev 2 (definition.v2.json): U = G - kappa*n over the scored bank."""
+    kappa, k = metadata["knobs"]["kappa"], metadata["knobs"]["k"]
+    us, unsafe, unresolved, excluded = [], 0, 0, {"incomplete": 0, "rescue": 0, "none": 0}
+    for qid, q in metadata["questions"].items():
+        refs = references[qid]
+        if set(refs) != set(q["actions"]) or any(
+            r["status"] not in (FEASIBLE, INFEASIBLE, UNRESOLVED) for r in refs.values()
+        ):
+            excluded["incomplete"] += 1  # failed or missing: never admitted
+            continue
+        best = _best_feasible(references, qid, metadata)
+        if best is None:
+            excluded["none"] += 1
+            continue
+        # Decision-determined (#1253 rev 2): no in-band UNRESOLVED action could beat the best.
+        if any(r["status"] == UNRESOLVED and (r.get("objective") is None
+               or _better(metadata, r["objective"], best[1])) for r in refs.values()):
+            excluded["incomplete"] += 1
+            continue
+        fb = refs.get(q["fallback"])
+        if fb is None or fb["status"] != FEASIBLE:
+            excluded["rescue"] += 1
+            continue
+        short = _shortlist(predictions, references, qid, metadata, k)
+        n = len(short) * q["conditions"]
+        feas = [refs[a]["objective"] for a in short if refs[a]["status"] == FEASIBLE]
+        unsafe += sum(1 for a in short if refs[a]["status"] == INFEASIBLE)
+        unresolved += sum(1 for a in short if refs[a]["status"] == UNRESOLVED)  # charged, no gain
+        g = max((_gain(metadata, fb["objective"], x, q["u"]) for x in feas), default=0.0)
+        us.append(g - kappa * n)
+    score = sum(us) / len(us) if us else None
+    # The tie-break (fewer unsafe, then unresolved) is applied by the lab on exact score ties.
+    return {"score": score, "gate": None,
+            "detail": {"scored_questions": len(us), "unsafe_shortlisted": unsafe,
+                       "unresolved_shortlisted": unresolved, "excluded": excluded}}
+
+
+def _v2_at(kappa, k):
+    def rule(predictions, references, metadata):
+        md = {**metadata, "knobs": {**metadata.get("knobs", {}), "kappa": kappa, "k": k}}
+        return v2(predictions, references, md)
+    return rule
+
+
+# --- New value-first families ------------------------------------------------------
+
+
+def decision_relevance_error(predictions, references, metadata):
+    """N1: accuracy weighted by decision relevance (near a constraint boundary or near the question's optimum)."""
+    scale, band = metadata["scale"], metadata["near_band"]
+    s_opt = metadata["knobs"].get("optimum_band", band)
+    num = den = 0.0
+    for qid, aid, p, r in _cases(predictions, references):
+        boundary = max(math.exp(-abs(m) / scale[c] / band) for c, m in r["margins"].items()) if r["margins"] else 0.0
+        best = _best_feasible(references, qid, metadata)
+        optimum = 0.0
+        if best is not None and r["status"] == FEASIBLE:
+            gap = abs(r["objective"] - best[1]) / scale["objective"]
+            optimum = math.exp(-gap / s_opt)
+        w = max(boundary, optimum)
+        num += w * _case_error(p, r, scale)
+        den += w
+    if not den:
+        return {"score": None, "gate": None, "detail": {}}
+    return {"score": 1.0 / (1.0 + num / den), "gate": None, "detail": {"weighted_error": num / den}}
+
+
+def verified_regret_on_pick(predictions, references, metadata):
+    """N2: one pick per question, verified. Regret vs the best feasible action. An infeasible pick costs `miss_penalty` u. Needs no fallback."""
+    penalty = metadata["knobs"].get("miss_penalty", 1.0)
+    regrets, unsafe = [], 0
+    for qid, q in metadata["questions"].items():
+        best = _best_feasible(references, qid, metadata)
+        if best is None:
+            continue
+        pick = _pick(predictions, qid, metadata)
+        if pick is None:
+            regrets.append(penalty)  # abstaining forgoes the decision
+            continue
+        r = references[qid][pick]
+        if r["status"] == FEASIBLE:
+            regrets.append(_gain(metadata, r["objective"], best[1], q["u"]))
+        else:
+            unsafe += r["status"] == INFEASIBLE
+            regrets.append(penalty + (r["status"] == INFEASIBLE))
+    if not regrets:
+        return {"score": None, "gate": None, "detail": {}}
+    return {"score": -sum(regrets) / len(regrets), "gate": None,
+            "detail": {"unsafe_picks": unsafe, "questions": len(regrets)}}
+
+
+def safe_pick_gain(predictions, references, metadata):
+    """N3: safe-pick rate x captured gain. Both safety and upside must be high, and abstention scores 0."""
+    picks = safe = 0
+    captured = []
+    for qid, q in metadata["questions"].items():
+        refs = references[qid]
+        fb = refs.get(q.get("fallback"))
+        best = _best_feasible(references, qid, metadata)
+        if best is None or fb is None or fb["status"] != FEASIBLE:
+            continue
+        ceiling = _gain(metadata, fb["objective"], best[1], q["u"])
+        pick = _pick(predictions, qid, metadata)
+        if pick is None:
+            captured.append(0.0)
+            continue
+        picks += 1
+        if refs[pick]["status"] == FEASIBLE:
+            safe += 1
+            g = _gain(metadata, fb["objective"], refs[pick]["objective"], q["u"])
+            captured.append(g / ceiling if ceiling > 0 else 1.0)
+        else:
+            captured.append(0.0)
+    if not captured:
+        return {"score": None, "gate": None, "detail": {}}
+    rate = safe / picks if picks else 0.0
+    return {"score": rate * (sum(captured) / len(captured)), "gate": None,
+            "detail": {"safe_pick_rate": rate, "capture": sum(captured) / len(captured)}}
+
+
+def top_region_ranking(predictions, references, metadata):
+    """N4: within each question, ranking fidelity in the decision-relevant top region, with feasibility classification. Insensitive to a constant bias."""
+    top = metadata["knobs"].get("top_fraction", 0.3)
+    scores = []
+    for qid in metadata["questions"]:
+        refs = references[qid]
+        res = [a for a, r in refs.items() if r["status"] in (FEASIBLE, INFEASIBLE) and a in predictions.get(qid, {})]
+        if len(res) < 3:
+            continue
+        cls = sum((refs[a]["status"] == FEASIBLE) == _pred_feasible(predictions[qid][a]) for a in res) / len(res)
+        feas = sorted((a for a in res if refs[a]["status"] == FEASIBLE),
+                      key=lambda a: _sign(metadata) * refs[a]["objective"])
+        region = feas[: max(3, math.ceil(top * len(feas)))]
+        conc = disc = 0
+        for i in range(len(region)):
+            for j in range(i + 1, len(region)):
+                a, b = region[i], region[j]
+                dr = refs[a]["objective"] - refs[b]["objective"]
+                dp = predictions[qid][a]["objective"] - predictions[qid][b]["objective"]
+                if dr == 0 or dp == 0:
+                    continue
+                conc += (dr > 0) == (dp > 0)
+                disc += (dr > 0) != (dp > 0)
+        tau = (conc - disc) / (conc + disc) if conc + disc else 0.0
+        scores.append(0.5 * cls + 0.5 * (tau + 1) / 2)
+    if not scores:
+        return {"score": None, "gate": None, "detail": {}}
+    return {"score": sum(scores) / len(scores), "gate": None, "detail": {"questions": len(scores)}}
+
+
+# --- Physics switches (OPT-15b): one wrapper for every rule ------------------------------
+#
+# metadata["physics"] is the member's measured physics traits. Every value is
+# "badness": 0 is ideal and higher is worse. None means unmeasured.
+#     {"law_violations": float,  # share of probe readings breaking an adopted or proposed law
+#      "rollout_drift": float,   # error growth over an autoregressive rollout
+#      "robustness": float,      # local sensitivity / the reference's (pairs)
+#      "extrapolation": float,   # stretch-set error / in-range error
+#      "b15": float|None, "b9": float|None, "b16": float|None}  # where measured (°C, °C, mV)
+# metadata["knobs"]["physics"] = {"mode": "OFF"|"GATE"|"FLOOR"|"BLEND",
+#                                 "limit": {trait: value}, "weight": {trait: value}}
+#   GATE:  any trait above its limit gives gate FAIL (ranked below every PASS, unordered).
+#   FLOOR: tier = the number of traits above their limit. The lab ranks by
+#          (tier ascending, score descending): a floor breach ranks below every
+#          member that meets the floors, but stays ordered.
+#   BLEND: score is multiplied by the product of 1/(1 + w * trait/limit). A soft
+#          penalty that keeps the value ordering among clean members.
+# An unmeasured trait (None) that has a limit counts as above the limit in
+# GATE and FLOOR (fail closed), and as no penalty in BLEND (reported). No
+# limit or weight is chosen here: they are lab knobs.
+
+PHYSICS_TRAITS = ("law_violations", "rollout_drift", "robustness", "extrapolation", "b15", "b9", "b16")
+PHYSICS_MODES = ("OFF", "GATE", "FLOOR", "BLEND")
+
+
+def with_physics(rule):
+    def wrapped(predictions, references, metadata):
+        out = dict(rule(predictions, references, metadata))
+        cfg = metadata.get("knobs", {}).get("physics") or {"mode": "OFF"}
+        mode = cfg.get("mode", "OFF")
+        if mode not in PHYSICS_MODES:
+            raise ValueError("physics_mode_unknown")
+        traits = metadata.get("physics") or {}
+        limit, weight = cfg.get("limit", {}), cfg.get("weight", {})
+        out["tier"] = 0
+        if mode == "OFF" or out.get("score") is None:
+            return out
+        over = [t for t, lim in limit.items() if traits.get(t) is None or traits[t] > lim]
+        if mode == "GATE":
+            out["gate"] = "FAIL" if over or out.get("gate") == "FAIL" else "PASS"
+        elif mode == "FLOOR":
+            out["tier"] = len(over)
+        else:  # BLEND
+            factor = 1.0
+            for t, w in weight.items():
+                v, lim = traits.get(t), limit.get(t)
+                if v is not None and lim:
+                    factor /= 1.0 + w * v / lim
+            s = out["score"]
+            # Multiplicative on positive scores. On signed scores (V2, N2), subtract the penalty share of |s|.
+            out["score"] = s * factor if s >= 0 else s - abs(s) * (1.0 - factor)
+        out.setdefault("detail", {})["physics"] = {"mode": mode, "over_limit": over}
+        return out
+
+    return wrapped
+
+
+# --- The candidate list -------------------------------------------------------------------
+
+RULES = {
+    "INFORCE-G-FEAS/A-Q>@0.05": {
+        "rule": _registry_rule({"a": 0.5, "q": 0.5}, [("feasibility", 0.05, "exceeds")]),
+        "tier2_registry_id": "G-FEAS/A-Q>@0.05 (registry v5)",
+        "rationale": "The in-force rule (OWNER-BATTERY-SCORE-CANDIDATE-01): accuracy and pick regret, gated on the false-feasible rate. The baseline every candidate must beat.",
+    },
+    "V9-ENV/ARP-V3": {
+        "rule": _registry_rule({"a": 0.25, "r": 0.25, "p": 0.25, "v3": 0.25}, [("envelope", 1.0, "at_or_above")]),
+        "tier2_registry_id": "ENV/ARP-V3 (registry v9)",
+        "rationale": "v9's broadest rule: accuracy, important-region accuracy, optimism and top-3 verified regret, under the envelope gate. Replace it with tonight's v9 winner when known.",
+    },
+    "V10-SIGN+ENV/ARP-V3S": {
+        "rule": _registry_rule({"a": 0.25, "r": 0.25, "p": 0.25, "v3s": 0.25},
+                               [("envelope", 1.0, "at_or_above"), ("sign", 0.0, "exceeds")]),
+        "tier2_registry_id": "SIGN+ENV/ARP-V3S (registry v10)",
+        "rationale": "v10's fullest rule: adds the sign-consistency gate on calibration pairs. The lab proxies v3s with v3; use Tier 2 for the exact leg. Replace it with tonight's v10 winner when known.",
+    },
+    "V2r2@k1,kappa0.05": {
+        "rule": _v2_at(0.05, 1),
+        "tier2_registry_id": None,
+        "rationale": "VALUE-METRIC-V2 rev 2, single-pick buyer: verified gain over the fallback minus a cheap solve charge.",
+    },
+    "V2r2@k3,kappa0.1": {
+        "rule": _v2_at(0.1, 3),
+        "tier2_registry_id": None,
+        "rationale": "VALUE-METRIC-V2 rev 2 at the RES-08 display anchor: three verifications at a moderate charge.",
+    },
+    "V2r2@k5,kappa0.25": {
+        "rule": _v2_at(0.25, 5),
+        "tier2_registry_id": None,
+        "rationale": "VALUE-METRIC-V2 rev 2, broad search with expensive solves: rewards short, accurate shortlists.",
+    },
+    "N1-DECISION-RELEVANCE-ERROR": {
+        "rule": decision_relevance_error,
+        "tier2_registry_id": None,
+        "rationale": "Accuracy counted only where it changes decisions (near constraint boundaries and near the optimum). Catches 'right on average, wrong where it matters' gamers.",
+    },
+    "N2-VERIFIED-REGRET-ON-PICK": {
+        "rule": verified_regret_on_pick,
+        "tier2_registry_id": None,
+        "rationale": "The buyer's one-shot decision: regret of the single verified pick against the best feasible action. Needs no fallback, so it also scores rescue questions.",
+    },
+    "N3-SAFE-PICK-RATE-x-GAIN": {
+        "rule": safe_pick_gain,
+        "tier2_registry_id": None,
+        "rationale": "The safe-pick rate times the share of the possible gain captured: a model must be both safe and useful, and abstention scores 0.",
+    },
+    "N4-TOP-REGION-RANKING": {
+        "rule": top_region_ranking,
+        "tier2_registry_id": None,
+        "rationale": "Does the model order the best designs correctly and classify feasibility? Value for screening, insensitive to constant bias.",
+    },
+}
+
+
+# --- Value over the task neighbourhood (OPT-15b): "the task, and the task if it changes a little" ---
+#
+# metadata["neighbours"] = [{"id": str, "predictions": ..., "references": ...,
+#                            "metadata": ...}, ...]
+#   Each neighbour is the same Challenge with objective weights, constraints or
+#   conditions nudged. The lab builds them per member, because a nudged
+#   condition needs the member's own predictions there.
+# metadata["knobs"]["neighbourhood_weight"] = rho_n in [0, 1] (default 0, the target only).
+#   score = (1 - rho_n) * target + rho_n * mean(neighbour scores)
+#   gate:  FAIL if the target or any neighbour FAILs (a gate holds on every task).
+# With rho_n > 0, a neighbour whose score is None withholds the member's score
+# (fail closed, never imputed as 0). Units: each neighbour scores in its own
+# question law's units. Keep nudges within one unit system.
+
+
+def with_neighbourhood(rule):
+    def wrapped(predictions, references, metadata):
+        out = dict(rule(predictions, references, metadata))
+        rho = metadata.get("knobs", {}).get("neighbourhood_weight", 0.0)
+        if not 0.0 <= rho <= 1.0:
+            raise ValueError("neighbourhood_weight_out_of_range")
+        nbs = metadata.get("neighbours") or []
+        if rho == 0.0 or out.get("score") is None:
+            return out
+        if not nbs:
+            return {**out, "score": None, "detail": {**out.get("detail", {}), "withheld": "no_neighbours"}}
+        scores, gates = [], [out.get("gate")]
+        for nb in nbs:
+            md = {**nb["metadata"], "knobs": {**nb["metadata"].get("knobs", {}),
+                                              **{k: v for k, v in metadata.get("knobs", {}).items()
+                                                 if k not in ("neighbourhood_weight", "physics")}}}
+            r = rule(nb["predictions"], nb["references"], md)
+            if r.get("score") is None:
+                return {**out, "score": None,
+                        "detail": {**out.get("detail", {}), "withheld": "neighbour:" + nb["id"]}}
+            scores.append(r["score"])
+            gates.append(r.get("gate"))
+        out["score"] = (1.0 - rho) * out["score"] + rho * sum(scores) / len(scores)
+        out["gate"] = "FAIL" if "FAIL" in gates else ("PASS" if "PASS" in gates else None)
+        out.setdefault("detail", {})["neighbourhood"] = {"rho": rho, "neighbour_scores": scores}
+        return out
+
+    return wrapped
+
+
+for _spec in RULES.values():
+    _spec["rule"] = with_physics(with_neighbourhood(_spec["rule"]))
+
+
+# --- Self-check on a toy bank (python candidates.py) -------------------------------------------
+
+
+def _toy():
+    md = {"sense": "min", "near_band": 0.1, "scale": {"objective": 10.0, "t": 5.0},
+          "questions": {"q1": {"fallback": "a0", "conditions": 1, "u": 1.0, "actions": ["a0", "a1", "a2", "a3"]}},
+          "probes": [("q1", "a0", "a3", 1)], "knobs": {}}
+    ref = {"q1": {"a0": {"status": FEASIBLE, "objective": 10.0, "margins": {"t": 2.0}},
+                  "a1": {"status": FEASIBLE, "objective": 7.0, "margins": {"t": 0.3}},
+                  "a2": {"status": INFEASIBLE, "objective": 5.0, "margins": {"t": -1.0}},
+                  "a3": {"status": FEASIBLE, "objective": 12.0, "margins": {"t": 3.0}}}}
+    good = {"q1": {a: {"objective": r["objective"] + 0.1, "margins": dict(r["margins"])} for a, r in ref["q1"].items()}}
+    gamer = {"q1": {**good["q1"], "a2": {"objective": 5.0, "margins": {"t": 0.2}}}}
+    abstain = {"q1": {a: {"objective": 99.0, "margins": {"t": -1.0}} for a in ref["q1"]}}
+    for name, spec in RULES.items():
+        out = [spec["rule"](m, ref, md)["score"] for m in (good, gamer, abstain)]
+        print(f"{name:32s} good={out[0]} gamer={out[1]} abstain={out[2]}")
+    # The physics switches, on the good member with one breached trait.
+    phys = {"law_violations": 0.2, "rollout_drift": 0.0, "robustness": 0.0, "extrapolation": 0.0,
+            "b15": None, "b9": None, "b16": None}
+    for mode in PHYSICS_MODES:
+        m2 = {**md, "physics": phys,
+              "knobs": {"physics": {"mode": mode, "limit": {"law_violations": 0.1}, "weight": {"law_violations": 1.0}}}}
+        o = RULES["N3-SAFE-PICK-RATE-x-GAIN"]["rule"](good, ref, m2)
+        print(f"physics {mode:5s}: score={o['score']} gate={o['gate']} tier={o['tier']}")
+    # The neighbourhood: tighten the constraint so the target's best design (a1, margin 0.3) becomes infeasible.
+    nref = {"q1": {**ref["q1"], "a1": {**ref["q1"]["a1"], "status": INFEASIBLE, "margins": {"t": -0.2}}}}
+    ngood = {"q1": {**good["q1"], "a1": {"objective": 7.1, "margins": {"t": -0.1}}}}
+    nb = {"id": "tight-t", "predictions": ngood, "references": nref, "metadata": md}
+    for rho in (0.0, 0.5):
+        m3 = {**md, "neighbours": [nb], "knobs": {"neighbourhood_weight": rho}}
+        o = RULES["V2r2@k1,kappa0.05"]["rule"](good, ref, m3)
+        print(f"neighbourhood rho={rho}: V2 score={o['score']}")
+
+
+if __name__ == "__main__":
+    _toy()
