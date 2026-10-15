@@ -54,7 +54,7 @@ security, network, LIVE, release or installed-artifact qualification earned.
 
 ## Candidate validation
 
-Local static AST parsing of all five Python files passed. Repository-pinned
+Local static AST parsing of all six Python files passed. Repository-pinned
 Black 26.5.1/py310 and Ruff 0.16.3 passed on those files; delivery hygiene
 against the starting main and diff whitespace checks passed. No local tests
 or runtime were executed under OPERATOR. Canonical test evidence remains
@@ -64,3 +64,11 @@ Focused regression scope for canonical CI: test_validator_setup_registered_score
 test_validator_setup_bundle, test_validator_setup_entrypoint,
 test_validator_registered_score and test_battery_validator_service. The default
 canonical CPU suite also discovers these paths; no workflow/check weakening.
+
+Packets2's complete-diff review of 84b84e411 found one compatibility defect:
+host-style generated systemd units lost the transient external bundle pin.
+The bounded repair passes the verified digest explicitly to unit generation
+and emits it in both units, with malformed-pin refusal before config access.
+The fresh-process regression checks both generated pins, exercises the actual
+later preflight command using only that binding, and contrasts refusal without
+the pin. No systemd installation/start or local test is performed.

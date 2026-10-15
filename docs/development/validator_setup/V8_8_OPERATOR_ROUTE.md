@@ -160,7 +160,10 @@ a shared operator runtime lease; release selection takes it and all existing
 child locks exclusively. The HTTP routes remain the registered intake routes.
 
 `service units` retains the existing host-style intake/daemon units for
-compatibility. For the intended image-backed route use `runtime-units` and the
+compatibility. Their generated `Environment` explicitly retains the externally
+verified bundle pin for later preflight/intake/daemon processes; it does not
+depend on the unit generator's transient environment. For the intended
+image-backed route use `runtime-units` and the
 adjacent closed template: all three operator roles use the same digest-pinned
 image/bundle, explicit UID/GID/socket and identical source/state path bindings.
 Its own intake receiver, answer-key hotkey and weights publisher must agree;

@@ -2,6 +2,7 @@
 
 import json
 import os
+import shlex
 import subprocess
 import sys
 from pathlib import Path
@@ -16,6 +17,7 @@ from carbon.battery.value import registered_score as rs
 from carbon.battery.value import score_tuning as st
 from carbon.validator_setup import bundle as b
 from scripts.dev.battery_validator_service import service as svc
+from scripts.dev.battery_validator_service import supervisor as sup
 
 REPOSITORY = Path(__file__).resolve().parents[2]
 REGISTRY = "docs/development/evidence/battery-score-tuning/registry-v5.json"
@@ -206,7 +208,15 @@ def test_preflight_without_a_registered_term_is_explicitly_not_applicable():
     assert svc.check_registered_score({}, REPOSITORY) == {"status": "not_applicable"}
 
 
-def test_fresh_operator_process_preflights_registered_score_from_actual_bundle(
+def test_invalid_unit_bundle_pin_refuses_before_config_or_output_access(tmp_path):
+    with pytest.raises(svc.ServiceRefused, match="bundle_digest_malformed"):
+        sup.units(
+            tmp_path / "absent-config", tmp_path / "units", bundle_digest="bad\npin"
+        )
+    assert not (tmp_path / "units").exists()
+
+
+def test_fresh_operator_process_binds_registered_preflight_and_host_units(
     tmp_path,
 ):
     revision = command(REPOSITORY, "rev-parse", "HEAD")
@@ -247,3 +257,74 @@ def test_fresh_operator_process_preflights_registered_score_from_actual_bundle(
     report = json.loads(result.stdout)
     assert report["ready"] is True
     assert checks(report)["registered_score"]["detail"]["status"] == "metadata_verified"
+    unit_result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "carbon.validator_setup",
+            "service",
+            "units",
+            "--bundle",
+            str(release.root),
+            "--digest",
+            release.digest,
+            "--config",
+            str(made.service),
+            "--out",
+            str(tmp_path / "units"),
+        ],
+        cwd=release.root,
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=300,
+        check=False,
+    )
+    assert unit_result.returncode == 0, unit_result.stdout + unit_result.stderr
+    written = json.loads(unit_result.stdout)["units"]
+    assert len(written) == 2
+    for path in written:
+        lines = Path(path).read_text(encoding="utf-8").splitlines()
+        bindings = [
+            line.removeprefix("Environment=")
+            for line in lines
+            if line.startswith("Environment=" + b.RUNTIME_DIGEST_ENV + "=")
+        ]
+        assert bindings == [b.RUNTIME_DIGEST_ENV + "=" + release.digest]
+    preflight = shlex.split(
+        next(
+            line.removeprefix("ExecStartPre=")
+            for line in lines
+            if line.startswith("ExecStartPre=")
+        )
+    )
+    # Reproduce a later systemd process using only the generated pin; no
+    # inheritance from the unit generator or operator wrapper is available.
+    later = subprocess.run(
+        preflight,
+        cwd=release.root,
+        env={**env, b.RUNTIME_DIGEST_ENV: bindings[0].split("=", 1)[1]},
+        capture_output=True,
+        text=True,
+        timeout=300,
+        check=False,
+    )
+    assert later.returncode == 0, later.stdout + later.stderr
+    assert (
+        checks(json.loads(later.stdout))["registered_score"]["detail"]["status"]
+        == "metadata_verified"
+    )
+    missing_pin = subprocess.run(
+        preflight,
+        cwd=release.root,
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=300,
+        check=False,
+    )
+    assert missing_pin.returncode == 2, missing_pin.stdout + missing_pin.stderr
+    assert (
+        checks(json.loads(missing_pin.stdout))["registered_score"]["refused"]
+        == "registered_score_bundle_unbound"
+    )
