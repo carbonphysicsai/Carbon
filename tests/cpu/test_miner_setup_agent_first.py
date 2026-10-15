@@ -37,6 +37,7 @@ from scripts.dev.miner_launchpad.environment_setup import (
     SetupRefused,
 )
 from scripts.dev.miner_launchpad.setup_operations import (
+    FIELDS,
     HTTP,
     MCP,
     ORDER,
@@ -242,6 +243,71 @@ def test_both_doors_refuse_alike_and_see_each_others_progress(page):
     assert [(r["id"], r["state"]) for r in page_view["steps"]] == [
         (r["id"], r["state"]) for r in agent_view["steps"]
     ]
+
+
+def setup_sample(name):
+    samples = {"string": "fixture-value", "boolean": True, "object": {}}
+    return {
+        field: HOTKEY if field == "address" else samples[FIELDS[field][0]]
+        for field in SETUP_OPERATIONS[name].required
+    }
+
+
+def setup_tool(setup, name):
+    from carbon.miner_mcp.mcp_setup import PREFIX, make_setup_tools
+
+    return next(
+        tool
+        for tool in make_setup_tools(setup, tier=SETUP_OPERATIONS[name].tier)
+        if tool.name == PREFIX + name
+    )
+
+
+@pytest.mark.parametrize("name", list(SETUP_OPERATIONS))
+def test_every_setup_adapter_refuses_the_same_closed_request(page, name):
+    """Exercise the generated callbacks; SDK schema validation is tested above."""
+    served, state, checks = page
+    _, setup, _ = door(state, checks, Chain(registered=True))
+    arguments = {**setup_sample(name), "unexpected": True}
+    status, browser = http_call(served, "POST", "/api/v1/setup/" + name, arguments)
+    with pytest.raises(ToolError) as raised:
+        asyncio.run(setup_tool(setup, name).fn(**arguments))
+    message = str(raised.value)
+    mcp = json.loads(message[message.index("{") :])
+    assert status == 409
+    assert browser == mcp
+    assert browser == {
+        "error": "unknown_field",
+        "field": "unexpected",
+        "next_step": "send only the fields in the step's arguments schema",
+    }
+
+
+@pytest.mark.parametrize("name", list(SETUP_OPERATIONS))
+def test_every_setup_step_preserves_its_actionable_refusal(page, monkeypatch, name):
+    served, state, checks = page
+    _, setup, _ = door(state, checks, Chain(registered=True))
+    calls = []
+
+    def refuse(request):
+        calls.append(dict(request))
+        raise SetupRefused("register", "step_not_checked")
+
+    monkeypatch.setattr(served.setup, name, refuse)
+    monkeypatch.setattr(setup, name, refuse)
+    arguments = setup_sample(name)
+    status, browser = http_call(served, "POST", "/api/v1/setup/" + name, arguments)
+    with pytest.raises(ToolError) as raised:
+        asyncio.run(setup_tool(setup, name).fn(**arguments))
+    message = str(raised.value)
+    assert status == 409
+    assert browser == json.loads(message[message.index("{") :])
+    assert browser == {
+        "error": "step_not_checked",
+        "field": "register",
+        "next_step": "take the step named in field first; carbon_setup_status",
+    }
+    assert calls == [arguments, arguments]
 
 
 # --- the order, and Inference skipped for your own agent ------------------------------

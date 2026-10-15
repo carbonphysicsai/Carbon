@@ -44,3 +44,15 @@ review closure and Root's merge gate. Tests present or statically parsed are
 not tests passed. Maturity ceiling: DEVELOPMENT parity regression coverage;
 no real acceptance cell, spend, installed behavior, security acceptance or
 scientific/production qualification is earned. Hub impact: none, retired.
+
+## Candidate validation
+
+Static AST parsing, repository-pinned Black 26.5.1/py310 and Ruff 0.16.3
+passed for the three changed test modules. No application test or local
+baseline ran. The exact-head canonical CPU suite must execute the new
+parameter cases; canonical CI and independent review remain pending.
+
+The generated MCP callbacks exercise the shared closed-body/refusal contract;
+existing setup SDK schema tests retain transport-level rejection checks.
+Onboarding compares its established reason/next_action representation with
+MCP's ToolError representation without changing either wire interface.
