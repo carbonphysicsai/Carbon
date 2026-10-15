@@ -18,13 +18,16 @@ constant-modal-damping steady-state steps (zeta 0.005, 0.01, 0.02 over
 The observer recomputes every curve from ccx's mass-normalised modes
 (f08_proof's projection), searches each damping curve on a grid no coarser
 than a tenth of every in-band half-power bandwidth, and evaluates the
-12/24/48 truncations of the same basis. Verdict values are diagnostics; the
-f08 acceptance tolerances are HUMAN_INPUT.
+12/24/48 truncations of the same basis; every near-top crest is refined by
+golden section. The buyer objective is worst-band TIP compliance; the probe
+is a diagnostic (F08-READINESS-REUSE-01). Bands are the DEVELOPMENT values of
+F08-SCIENCE-VALUES-01; verdicts are engineering evidence, not qualification.
 """
 
 from __future__ import annotations
 
 import argparse
+import cmath
 import json
 import math
 import os
@@ -51,7 +54,24 @@ LIMITS = {
     "dynamic_mm_per_n": 0.15,
 }  # packet buyer anchors
 RELIEF_W, RELIEF_R, PAD_X, PAD_Y, PROBE = 20.0, 3.0, 5.0, 10.0, 2.0
-COMMAND = "ccx -i case > ccx.log 2>&1"
+#: ccx, then the container's own cgroup CPU and memory counters (v2 or v1) for the
+#: ledger; the subshell keeps ccx's exit code for the runner.
+COMMAND = (
+    "ccx -i case > ccx.log 2>&1; rc=$?; grep -H . /sys/fs/cgroup/cpu.stat /sys/fs/cgroup/memory.peak"
+    " /sys/fs/cgroup/cpuacct/cpuacct.usage /sys/fs/cgroup/memory/memory.max_usage_in_bytes"
+    " > cgroup.txt 2>/dev/null; (exit $rc)"
+)
+DECISION = "F08-SCIENCE-VALUES-01"
+#: DEVELOPMENT bands, .agent/decisions/2026-10-15-F08-SCIENCE-VALUES-01.md (set before the triage ran).
+BANDS = {
+    "eigen_rel": 0.01, "peak_rel": 0.05, "location_hz": 2.0, "location_rel": 0.01,
+    "phase_deg": 5.0, "phase_floor_mm_per_n": 0.015, "curve_rel": 0.05,
+    "curve_abs_mm_per_n": 0.0015, "off_peak_bandwidths": 3.0, "static_rel": 0.02,
+    "mass_rel": 0.005, "grid_bandwidth_fraction": 0.1, "sampling_loss_rel": 0.005,
+    "mode_cutoff_hz": 900.0, "truncation_rel": 0.01, "ladder_rel": 0.01,
+    "oscillator_rel": 1e-6, "oscillator_phase_deg": 0.01,
+    "beam_static_rel": 0.02, "beam_freq_rel": 0.01, "beam_peak_rel": 0.03,
+}  # fmt: skip
 
 
 def panel_case(label):
@@ -181,13 +201,13 @@ def write_case(case, out, h_mm=3.0, modes=48):
     out.mkdir(parents=True, exist_ok=True)
     (out / "make_mesh.py").write_text(gmsh_script(case, h_mm))
     subprocess.run(
-        ["docker", "run", "--rm", "--network", "none", "--user", f"{os.getuid()}:{os.getgid()}",
-         "-v", f"{out.resolve()}:/w", "-w", "/w", MESH_IMAGE, "python3", "make_mesh.py"],
+        ["docker", "run", "--rm", "--network", "none", "--cpus", "1", "--memory", "4g",
+         "--user", f"{os.getuid()}:{os.getgid()}", "-v", f"{out.resolve()}:/w", "-w", "/w", MESH_IMAGE, "python3", "make_mesh.py"],
         check=True, capture_output=True,
     )  # fmt: skip
     meta = json.loads((out / "mesh.json").read_text())
     pad = face_weights(meta["pad_tri6"], meta["coords"])
-    total = sum(pad.values())
+    total = math.fsum(pad.values())  # correctly rounded: same digest on any Python
     loads = {n: w / total for n, w in pad.items()}  # 1 N resultant
     obs = sorted(
         set(loads)
@@ -219,104 +239,366 @@ def _probe_mean(u_by_node, weights):
 
 
 def dense_grid(omegas_hz, zeta):
+    """F1: <= 0.1 half-power bandwidth within 5 bandwidths of each mode, 0.5 Hz elsewhere."""
     lo, hi = BAND_HZ
     grid = {lo + k * 0.5 for k in range(int((hi - lo) / 0.5) + 1)}
     for f in omegas_hz:
         bw = 2 * zeta * f
         if lo - 5 * bw <= f <= hi + 5 * bw:
-            step = bw / 10.0
+            step = bw * BANDS["grid_bandwidth_fraction"]
             grid |= {f + k * step for k in range(-50, 51) if lo <= f + k * step <= hi}
     return sorted(grid)
 
 
-def observe(case_dir):
-    case_dir = Path(case_dir)
-    deck = json.loads((case_dir / "deck.json").read_text())
-    meta = json.loads((case_dir / "mesh.json").read_text())
-    steps = proof.parse_dat((case_dir / "case.dat").read_text(errors="replace"))
-    eig, shapes = steps[0]["eigen"], proof.mode_shapes(steps[0])
-    omegas = [m["rad"] for m in eig]
-    hz = [m["hz"] for m in eig]
-    loads = {int(n): f for n, f in deck["loads"].items()}
-    tip = meta["tip_node"]
-    probe_w = face_weights(meta["probe_tri6"], meta["coords"])
-    static = steps[4]["events"][0][1]
-    mass_kg = RHO * meta["mesh_volume_mm3"] * 1000.0
-    out = {"case": deck["case"], "h_mm": deck["h_mm"], "modes": deck["modes"],
-           "mesh": {"nodes": meta["nodes"], "elements": meta["elements"]},
-           "mass_kg": mass_kg, "cad_mass_kg": RHO * meta["cad_volume_mm3"] * 1000.0,
-           "static_tip_mm_per_n": static[tip][2],
-           "static_probe_mm_per_n": _probe_mean({n: v[2] for n, v in static.items()}, probe_w),
-           "eigen_hz": hz, "in_band_modes_hz": [f for f in hz if BAND_HZ[0] <= f <= BAND_HZ[1]]}  # fmt: skip
-    out["modal_static_tip_over_static"] = (
-        sum(
-            phi[tip] * sum(phi[n] * f for n, f in loads.items()) / w**2
-            for phi, w in zip(shapes, omegas)
-        )
-        / static[tip][2]
-    )
-    damping = {}
-    for zeta, step in zip(ZETAS, steps[1:4]):
-        rows = proof.harmonic(step)
-        ccx_tip = [(f, uz[tip]) for f, _, uz in rows]
-        ccx_probe = [(f, _probe_mean(uz, probe_w)) for f, _, uz in rows]
-        scale = max(abs(u) for _, u in ccx_tip)
-        err = (
-            max(
-                abs(
-                    u
-                    - proof.project(shapes, omegas, loads, tip, 2 * math.pi * f, zeta)[
-                        0
-                    ]
-                )
-                for f, u in ccx_tip
-            )
-            / scale
-        )
-        ladder = {}
-        for n in sorted({12, 24, 48, len(shapes)} & set(range(1, len(shapes) + 1))):
-            curve_tip, curve_probe = [], []
-            for f in dense_grid(hz[:n], zeta):
-                w = 2 * math.pi * f
-                curve_tip.append(
-                    (f, proof.project(shapes[:n], omegas[:n], loads, tip, w, zeta)[0])
-                )
-                probe = sum(
-                    proof.project(shapes[:n], omegas[:n], loads, p, w, zeta)[0] * wt
-                    for p, wt in probe_w.items()
-                )
-                curve_probe.append((f, probe / sum(probe_w.values())))
-            ladder[f"modes_{n}"] = {"tip": proof.peak(curve_tip), "probe": proof.peak(curve_probe),
-                                    "grid_points": len(curve_tip)}  # fmt: skip
-        damping[f"zeta_{zeta}"] = {
-            "ccx_points": len(rows), "ccx_tip_peak": proof.peak(ccx_tip), "ccx_probe_peak": proof.peak(ccx_probe),
-            "ccx_vs_projection_max_err_over_peak": err, "dense": ladder,
-            "worst_mm_per_n": max(ladder[f"modes_{len(shapes)}"]["tip"]["mm_per_n"],
-                                  ladder[f"modes_{len(shapes)}"]["probe"]["mm_per_n"]),
-        }  # fmt: skip
-    out["damping"] = damping
-    worst = max(v["worst_mm_per_n"] for v in damping.values())
-    out["diagnostic_margins"] = {
-        "mass_kg": LIMITS["mass_kg"] - mass_kg,
-        "static_mm_per_n": LIMITS["static_mm_per_n"] - out["static_tip_mm_per_n"],
-        "dynamic_mm_per_n": LIMITS["dynamic_mm_per_n"] - worst,
+def modal_data(eig, shapes, loads, tip, probe_w):
+    """Per-mode omega, load participation phi.f, tip and probe-mean phi."""
+    total = sum(probe_w.values())
+    return [
+        {
+            "omega": m["rad"],
+            "hz": m["hz"],
+            "pf": sum(phi[n] * f for n, f in loads.items()),
+            "tip": phi[tip],
+            "probe": sum(phi[n] * w for n, w in probe_w.items()) / total,
+        }
+        for m, phi in zip(eig, shapes)
+    ]
+
+
+def response(modal, f_hz, zeta, key="tip", n=None):
+    """Mass-normalised modal superposition, exp(+i omega t), constant zeta."""
+    w = 2 * math.pi * f_hz
+    total = 0j
+    for m in modal[:n]:
+        wj = m["omega"]
+        total += m[key] * m["pf"] / (wj * wj - w * w + 2j * zeta * wj * w)
+    return total
+
+
+def _golden(fun, a, b, rel=1e-6):
+    g = (math.sqrt(5) - 1) / 2
+    c, d = b - g * (b - a), a + g * (b - a)
+    fc, fd = fun(c), fun(d)
+    while b - a > rel * max(abs(b), 1.0):
+        if fc >= fd:
+            b, d, fd = d, c, fc
+            c = b - g * (b - a)
+            fc = fun(c)
+        else:
+            a, c, fc = c, d, fd
+            d = a + g * (b - a)
+            fd = fun(d)
+    return (a + b) / 2
+
+
+def resolved_peak(curve_fn, grid):
+    """F1/F2: grid crest, then golden-section refinement of every near-top crest."""
+    vals = [abs(curve_fn(f)) for f in grid]
+    top = max(vals)
+    best_f, best_u = grid[vals.index(top)], curve_fn(grid[vals.index(top)])
+    for i, v in enumerate(vals):
+        left = vals[i - 1] if i > 0 else -1.0
+        right = vals[i + 1] if i + 1 < len(vals) else -1.0
+        if v < 0.99 * top or v < left or v < right:
+            continue
+        a, b = grid[max(i - 1, 0)], grid[min(i + 1, len(grid) - 1)]
+        f = _golden(lambda x: abs(curve_fn(x)), a, b)
+        u = curve_fn(f)
+        if abs(u) > abs(best_u):
+            best_f, best_u = f, u
+    return {
+        "hz": best_f,
+        "mm_per_n": abs(best_u),
+        "phase_deg": math.degrees(cmath.phase(best_u)),
+        "grid_mm_per_n": top,
+        "sampling_loss_rel": (abs(best_u) - top) / abs(best_u),
     }
-    out["worst_dynamic_mm_per_n"] = worst
-    out["phase_convention"] = "exp(+i omega t); peak phases near -90 deg at resonance"
+
+
+def location_ok(f, f_ref):
+    return abs(f - f_ref) <= min(BANDS["location_hz"], BANDS["location_rel"] * f_ref)
+
+
+def wrapped_deg(a, b):
+    return abs((a - b + 180.0) % 360.0 - 180.0)
+
+
+def observe(case_dir):
+    """Tip is the buyer objective (F08-READINESS-REUSE-01); the probe is diagnostic."""
+    case_dir = Path(case_dir)
+    out = observe_data(
+        json.loads((case_dir / "deck.json").read_text()),
+        json.loads((case_dir / "mesh.json").read_text()),
+        proof.parse_dat((case_dir / "case.dat").read_text(errors="replace")),
+    )
     (case_dir / "observed.json").write_text(
         json.dumps(out, indent=1, sort_keys=True) + "\n"
     )
     return out
 
 
+def observe_data(deck, meta, steps):
+    """observe() on parsed inputs: deck.json, mesh.json and ccx's parsed steps."""
+    eig, shapes = steps[0]["eigen"], proof.mode_shapes(steps[0])
+    hz = [m["hz"] for m in eig]
+    loads = {int(n): f for n, f in deck["loads"].items()}
+    tip = meta["tip_node"]
+    probe_w = {
+        int(n): w for n, w in face_weights(meta["probe_tri6"], meta["coords"]).items()
+    }
+    modal = modal_data(eig, shapes, loads, tip, probe_w)
+    static = steps[4]["events"][0][1]
+    static_tip = static[tip][2]
+    mass_kg = RHO * meta["mesh_volume_mm3"] * 1000.0
+    cad_mass_kg = RHO * meta["cad_volume_mm3"] * 1000.0
+    modal_static = sum(m["tip"] * m["pf"] / m["omega"] ** 2 for m in modal)
+    out = {"case": deck["case"], "h_mm": deck["h_mm"], "modes": deck["modes"],
+           "mesh": {"nodes": meta["nodes"], "elements": meta["elements"]},
+           "mass_kg": mass_kg, "cad_mass_kg": cad_mass_kg,
+           "mass_mesh_vs_cad_rel": abs(mass_kg - cad_mass_kg) / cad_mass_kg,
+           "static_tip_mm_per_n": static_tip,
+           "static_probe_mm_per_n": _probe_mean({n: v[2] for n, v in static.items()}, probe_w),
+           "eigen_hz": hz, "in_band_modes_hz": [f for f in hz if BAND_HZ[0] <= f <= BAND_HZ[1]],
+           "modal_static_tip_over_static": modal_static / static_tip,
+           "modal": modal}  # fmt: skip
+    residual = abs(static_tip - modal_static)
+    cutoff = hz[-1]
+    damping = {}
+    for zeta, step in zip(ZETAS, steps[1:4]):
+        rows = proof.harmonic(step)
+        ccx_tip = [(f, uz[tip]) for f, _, uz in rows]
+        ccx_probe = [(f, _probe_mean(uz, probe_w)) for f, _, uz in rows]
+        scale = max(abs(u) for _, u in ccx_tip)
+        err = max(abs(u - response(modal, f, zeta)) for f, u in ccx_tip) / scale
+        ladder = {}
+        for n in sorted({12, 24, 48, len(modal)} & set(range(1, len(modal) + 1))):
+            grid = dense_grid(hz[:n], zeta)
+            ladder[f"modes_{n}"] = {
+                "tip": resolved_peak(lambda f, n=n, z=zeta: response(modal, f, z, "tip", n), grid),
+                "probe": resolved_peak(lambda f, n=n, z=zeta: response(modal, f, z, "probe", n), grid),
+                "grid_points": len(grid),
+            }  # fmt: skip
+        full = ladder[f"modes_{len(modal)}"]["tip"]
+        row = {
+            "ccx_points": len(rows), "ccx_tip_peak": proof.peak(ccx_tip), "ccx_probe_peak": proof.peak(ccx_probe),
+            "ccx_vs_projection_max_err_over_peak": err, "dense": ladder,
+            "worst_mm_per_n": full["mm_per_n"], "worst_hz": full["hz"],
+            "probe_diagnostic_mm_per_n": ladder[f"modes_{len(modal)}"]["probe"]["mm_per_n"],
+            "truncation_bound_rel": (residual / (1 - (BAND_HZ[1] / cutoff) ** 2) / full["mm_per_n"]
+                                     if cutoff > BAND_HZ[1] else None),
+        }  # fmt: skip
+        if "modes_24" in ladder and len(modal) >= 48:
+            half = ladder["modes_24"]["tip"]
+            row["ladder_24_vs_48"] = {
+                "peak_rel": abs(half["mm_per_n"] - full["mm_per_n"]) / full["mm_per_n"],
+                "location_ok": location_ok(half["hz"], full["hz"]),
+            }
+        damping[f"zeta_{zeta}"] = row
+    out["damping"] = damping
+    out["mode_ladder"] = mode_ladder_verdict(out)
+    worst = max(v["worst_mm_per_n"] for v in damping.values())
+    out["diagnostic_margins"] = {
+        "mass_kg": LIMITS["mass_kg"] - mass_kg,
+        "static_mm_per_n": LIMITS["static_mm_per_n"] - static_tip,
+        "dynamic_mm_per_n": LIMITS["dynamic_mm_per_n"] - worst,
+    }
+    out["worst_dynamic_mm_per_n"] = worst
+    out["probe_diagnostic_worst_mm_per_n"] = max(
+        v["probe_diagnostic_mm_per_n"] for v in damping.values()
+    )
+    out["objective"] = (
+        "worst-band TIP dynamic compliance over all damping; probe is diagnostic only"
+    )
+    out["bands_decision"] = DECISION
+    out["phase_convention"] = "exp(+i omega t); peak phases near -90 deg at resonance"
+    return out
+
+
+def mode_ladder_verdict(obs):
+    """M2: cutoff, residual-flexibility truncation bound and 24->48 stability."""
+    rows = obs["damping"].values()
+    checks = {
+        "cutoff_hz": obs["eigen_hz"][-1],
+        "cutoff_ok": obs["eigen_hz"][-1] >= BANDS["mode_cutoff_hz"],
+        "truncation_ok": all(
+            r["truncation_bound_rel"] is not None
+            and r["truncation_bound_rel"] <= BANDS["truncation_rel"]
+            for r in rows
+        ),
+        "ladder_ok": all(
+            "ladder_24_vs_48" in r
+            and r["ladder_24_vs_48"]["peak_rel"] <= BANDS["ladder_rel"]
+            and r["ladder_24_vs_48"]["location_ok"]
+            for r in rows
+        ),
+        "sampling_ok": all(
+            r["dense"][f"modes_{len(obs['eigen_hz'])}"]["tip"]["sampling_loss_rel"]
+            <= BANDS["sampling_loss_rel"]
+            for r in rows
+        ),
+        "mass_ok": obs["mass_mesh_vs_cad_rel"] <= BANDS["mass_rel"],
+    }
+    keys = ("cutoff_ok", "truncation_ok", "ladder_ok", "sampling_ok", "mass_ok")
+    checks["verdict"] = "PASS" if all(checks[k] for k in keys) else "UNRESOLVED_MODES"
+    return checks
+
+
+def _rel(a, b):
+    return abs(a - b) / abs(b)
+
+
+def compare_rungs(coarse, fine):
+    """V1-V7: one geometry at a coarser mesh against its finest rung."""
+    hz_c, hz_f = coarse["eigen_hz"], fine["eigen_hz"]
+    upto = next((i for i, f in enumerate(hz_f) if f > BAND_HZ[1]), len(hz_f) - 1)
+    eigen = [_rel(a, b) for a, b in zip(hz_c[: upto + 1], hz_f[: upto + 1])]
+    out = {
+        "eigen_max_rel": max(eigen),
+        "eigen_ok": max(eigen) <= BANDS["eigen_rel"],
+        "static_rel": _rel(coarse["static_tip_mm_per_n"], fine["static_tip_mm_per_n"]),
+        "mass_rel": _rel(coarse["mass_kg"], fine["mass_kg"]),
+        "damping": {},
+    }
+    out["static_ok"] = out["static_rel"] <= BANDS["static_rel"]
+    out["mass_ok"] = out["mass_rel"] <= BANDS["mass_rel"]
+    ok = out["eigen_ok"] and out["static_ok"] and out["mass_ok"]
+    for (key, c), f in zip(coarse["damping"].items(), fine["damping"].values()):
+        zeta = float(key.split("_")[1])
+        pc = c["dense"][f"modes_{len(coarse['eigen_hz'])}"]["tip"]
+        pf = f["dense"][f"modes_{len(fine['eigen_hz'])}"]["tip"]
+        row = {
+            "peak_rel": _rel(pc["mm_per_n"], pf["mm_per_n"]),
+            "location_hz": abs(pc["hz"] - pf["hz"]),
+            "location_ok": location_ok(pc["hz"], pf["hz"]),
+            "phase_deg": wrapped_deg(pc["phase_deg"], pf["phase_deg"]),
+        }
+        row["peak_ok"] = row["peak_rel"] <= BANDS["peak_rel"]
+        row["phase_ok"] = (
+            pf["mm_per_n"] < BANDS["phase_floor_mm_per_n"]
+            or row["phase_deg"] <= BANDS["phase_deg"]
+        )
+        row["curve_worst_excess_mm_per_n"] = _curve_excess(coarse, fine, zeta)
+        row["curve_ok"] = row["curve_worst_excess_mm_per_n"] <= 0.0
+        ok &= all(row[k] for k in ("peak_ok", "location_ok", "phase_ok", "curve_ok"))
+        out["damping"][key] = row
+    out["verdict"] = "PASS" if ok else "FAIL"
+    return out
+
+
+def _curve_excess(coarse, fine, zeta):
+    """V5 off-peak: max(|du| - (0.05|u_ref| + 0.0015)) outside the peak windows."""
+    half = BANDS["off_peak_bandwidths"] * 2 * zeta
+    centres = [m["hz"] for m in coarse["modal"] + fine["modal"]]
+    worst = -math.inf
+    for f in dense_grid([m["hz"] for m in fine["modal"]], zeta):
+        if any(abs(f - c) <= half * c for c in centres):
+            continue
+        ref = response(fine["modal"], f, zeta)
+        got = response(coarse["modal"], f, zeta)
+        allowed = BANDS["curve_rel"] * abs(ref) + BANDS["curve_abs_mm_per_n"]
+        worst = max(worst, abs(got - ref) - allowed)
+    return worst
+
+
+def convergence(rungs):
+    """V1-V9 over a geometry's {h: observed} ladder; finest rung is the reference."""
+    hs = sorted(rungs, reverse=True)
+    fine = rungs[hs[-1]]
+    out = {"reference_h_mm": hs[-1], "rungs": {}}
+    for h in hs[:-1]:
+        out["rungs"][f"h{h:g}"] = compare_rungs(rungs[h], fine)
+    if len(hs) == 3:
+        a, b, c = (rungs[h] for h in hs)
+        series = {"f1_hz": [r["eigen_hz"][0] for r in (a, b, c)]}
+        for key in a["damping"]:
+            series[f"peak_{key}"] = [
+                r["damping"][key]["worst_mm_per_n"] for r in (a, b, c)
+            ]
+        out["asymptotic"] = {
+            k: abs(v[1] - v[2]) <= abs(v[0] - v[1]) for k, v in series.items()
+        }
+        out["asymptotic_ok"] = all(out["asymptotic"].values())
+    return out
+
+
+BETA_L = (
+    1.8751040687,
+    4.6940911330,
+    7.8547574382,
+    10.9955407349,
+    14.1371683910,
+    17.2787595321,
+)
+
+
 def beam_theory(case=BEAM_CONTROL, x_load=None):
-    """Euler-Bernoulli tip compliance at the pad centroid and first frequency."""
+    """Euler-Bernoulli cantilever at the pad centroid: static, modes and modal FRF."""
     L, W, t = case["length_mm"], case["width_mm"], case["thickness_mm"]
     a = x_load or L - PAD_X / 2
     inertia = W * t**3 / 12.0
+    mass = RHO * W * t * L
     static = a**3 / (3 * E * inertia)  # load and observer both at a
-    f1 = 1.8751041**2 / (2 * math.pi) * math.sqrt(E * inertia / (RHO * W * t * L**4))
-    return {"static_mm_per_n": static, "f1_hz": f1}
+    modes = []
+    for bl in BETA_L:
+        b = bl / L
+        sigma = (math.cosh(bl) + math.cos(bl)) / (math.sinh(bl) + math.sin(bl))
+        shape = (
+            math.cosh(b * a)
+            - math.cos(b * a)
+            - sigma * (math.sinh(b * a) - math.sin(b * a))
+        )
+        omega = bl**2 * math.sqrt(E * inertia / (RHO * W * t * L**4))
+        modes.append({"omega": omega, "hz": omega / (2 * math.pi), "pf": shape / math.sqrt(mass),
+                      "tip": shape / math.sqrt(mass), "probe": 0.0})  # fmt: skip
+    return {"static_mm_per_n": static, "f1_hz": modes[0]["hz"], "f2_hz": modes[1]["hz"],
+            "modal_static_over_static": sum(m["pf"] * m["tip"] / m["omega"] ** 2 for m in modes) / static,
+            "modal": modes}  # fmt: skip
+
+
+def beam_control(obs, theory=None):
+    """C2: 3D unribbed beam against Euler-Bernoulli (model discrepancy, not mesh error)."""
+    theory = theory or beam_theory()
+    share = [
+        m["tip"] * m["pf"] / m["omega"] ** 2 / obs["static_tip_mm_per_n"]
+        for m in obs["modal"]
+    ]
+    bending = [m["hz"] for m, s in zip(obs["modal"], share) if s >= 0.005]
+    out = {
+        "static_rel": _rel(obs["static_tip_mm_per_n"], theory["static_mm_per_n"]),
+        "f1_rel": _rel(bending[0], theory["f1_hz"]),
+        "f2_rel": _rel(bending[1], theory["f2_hz"]) if len(bending) > 1 else None,
+        "z_bending_hz": bending[:3],
+        "damping": {},
+    }
+    ok = (out["static_rel"] <= BANDS["beam_static_rel"] and out["f1_rel"] <= BANDS["beam_freq_rel"]
+          and out["f2_rel"] is not None and out["f2_rel"] <= BANDS["beam_freq_rel"])  # fmt: skip
+    for key, row in obs["damping"].items():
+        zeta = float(key.split("_")[1])
+        ref = resolved_peak(
+            lambda f, z=zeta: response(theory["modal"], f, z),
+            dense_grid([m["hz"] for m in theory["modal"]], zeta),
+        )
+        got = row["dense"][f"modes_{len(obs['eigen_hz'])}"]["tip"]
+        r = {"eb_peak_mm_per_n": ref["mm_per_n"], "eb_peak_hz": ref["hz"],
+             "peak_rel": _rel(got["mm_per_n"], ref["mm_per_n"]), "location_ok": location_ok(got["hz"], ref["hz"])}  # fmt: skip
+        ok &= r["peak_rel"] <= BANDS["beam_peak_rel"] and r["location_ok"]
+        out["damping"][key] = r
+    out["verdict"] = "PASS" if ok else "FAIL"
+    return out
+
+
+def oscillator_control(check):
+    """C1 on f08_proof.oscillator_check output."""
+    rows = check["damping"].values()
+    ok = all(
+        r["max_rel_err_vs_analytic"] <= BANDS["oscillator_rel"]
+        and r["max_phase_err_deg"] <= BANDS["oscillator_phase_deg"]
+        and r["unretained_max_abs"] <= 1e-12
+        for r in rows
+    ) and all(
+        m["phi_sqrt_m_minus_1"] <= BANDS["oscillator_rel"] for m in check["modes"]
+    )
+    return {**check, "verdict": "PASS" if ok else "FAIL", "bands_decision": DECISION}
 
 
 def main(argv=None):

@@ -56,7 +56,7 @@ def main(image, archive, out):
                 (case / f"{name}{suffix}").write_bytes(tar.extractfile(member).read())
             start = time.monotonic()
             done = subprocess.run(
-                ["docker", "run", "--rm", "--network", "none", "--read-only", "--tmpfs", "/tmp", "--cpus", "1",
+                ["docker", "run", "--rm", "--network", "none", "--read-only", "--tmpfs", "/tmp", "--cpus", "1", "--memory", "2g",
                  "--user", f"{os.getuid()}:{os.getgid()}", "-v", f"{case.resolve()}:/case", image,
                  "bash", "-c", f"ccx -i {name} > ccx.log 2>&1"],
                 capture_output=True, text=True, check=False,

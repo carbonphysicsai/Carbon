@@ -36,7 +36,12 @@ sys.path.insert(0, str(HERE))
 import f08_deck as deck
 import f08_proof as proof
 
-IMAGE = "sha256:d9ef68d016226a945c7eefcb6b2261c60a11249ee0f93458ae6c3aca956fd6f8"
+#: Local rebuild of sources.lock.json (2026-10-15, OCI index digest; numerically
+#: identical smoke/proof to the original d9ef68... build, calculix.json).
+IMAGE = "sha256:16869c9cb7f14994f3bed3152809efdec14c5b3ec1849730d7b6c8f689d9642b"
+ORIGINAL_IMAGE = (
+    "sha256:d9ef68d016226a945c7eefcb6b2261c60a11249ee0f93458ae6c3aca956fd6f8"
+)
 H_PRIMARY, H_WITNESS, MODES = 3.0, (2.25, 1.7), 48
 WITNESS_LABELS = ("long-flexible", "relieved-tall", "nominal")
 
@@ -49,7 +54,7 @@ def _digest(case_dir):
     }
 
 
-def freeze(out):
+def freeze(out, image=IMAGE):
     out = Path(out)
     labels = [
         c["label"]
@@ -80,7 +85,7 @@ def freeze(out):
         "schema": "carbon.reference-triage.frozen-decks.v1",
         "ticket": "REFERENCE-PACKAGES-01",
         "authority": "Test Lead 2026-10-08: #787 f08 triage on local free CPU, no spend",
-        "image": IMAGE,
+        "image": image,
         "mesh_image_f08": deck.MESH_IMAGE,
         "cases": entries,
         "counts": {
@@ -92,28 +97,56 @@ def freeze(out):
     return manifest["counts"]
 
 
-def observe_all(decks, out):
+def cgroup_counters(text):
+    """Parse the case's `grep -H` of its cgroup files (v2 cpu.stat/memory.peak or v1)."""
+    cpu_s = peak = None
+    for line in text.splitlines():
+        path, _, value = line.partition(":")
+        name = path.rsplit("/sys/fs/cgroup/", 1)[-1]
+        if name == "cpu.stat" and value.startswith("usage_usec "):
+            cpu_s = int(value.split()[1]) / 1e6
+        elif name == "cpuacct/cpuacct.usage" and cpu_s is None:
+            cpu_s = int(value) / 1e9
+        elif name in ("memory.peak", "memory/memory.max_usage_in_bytes"):
+            peak = int(value) / 2**20
+    return {"cgroup_cpu_s": cpu_s, "cgroup_memory_peak_mib": peak}
+
+
+def _cost(case_dir, ledger_rows):
+    """Measured cost of one launch: ledger wall plus the container's cgroup counters."""
+    row = ledger_rows.get(case_dir.name, {})
+    cost = {
+        k: row.get(k) for k in ("wall_s", "outcome", "children_cpu", "host_profile")
+    }
+    path = case_dir / "cgroup.txt"
+    cost.update(cgroup_counters(path.read_text() if path.exists() else ""))
+    return cost
+
+
+def observe_all(decks, out, ledger=None):
     decks = Path(decks)
+    ledger_rows = {}
+    if ledger and Path(ledger).exists():
+        for line in Path(ledger).read_text().splitlines():
+            row = json.loads(line)
+            ledger_rows[row["case"]] = row
     rows = {}
     for d in sorted((decks / "f08").iterdir()):
         if not (d / "case.dat").exists():
-            rows[d.name] = {"status": "NOT_RUN_OR_NO_OUTPUT"}
+            rows[d.name] = {
+                "status": "NOT_RUN_OR_NO_OUTPUT",
+                "cost": _cost(d, ledger_rows),
+            }
             continue
         try:
             if d.name == "control-oscillators":
                 steps = proof.parse_dat((d / "case.dat").read_text(errors="replace"))
-                rows[d.name] = proof.oscillator_check(steps)
+                rows[d.name] = deck.oscillator_control(proof.oscillator_check(steps))
             else:
                 obs = deck.observe(d)
+                obs.pop("modal")  # recomputable from case.dat; keeps the summary small
                 if d.name == "control-beam":
-                    obs["beam_theory"] = deck.beam_theory()
-                    obs["static_over_beam_theory"] = (
-                        obs["static_tip_mm_per_n"]
-                        / obs["beam_theory"]["static_mm_per_n"]
-                    )
-                    obs["f1_over_beam_theory"] = (
-                        obs["eigen_hz"][0] / obs["beam_theory"]["f1_hz"]
-                    )
+                    obs["beam_control"] = deck.beam_control(deck.observe(d))
                 rows[d.name] = obs
         except (
             KeyError,
@@ -121,28 +154,70 @@ def observe_all(decks, out):
             ValueError,
         ) as error:  # malformed output is a reference failure
             rows[d.name] = {"status": "OBSERVER_FAILED", "why": repr(error)}
-    Path(out).write_text(json.dumps(rows, indent=1, sort_keys=True) + "\n")
-    return rows
+        rows[d.name]["cost"] = _cost(d, ledger_rows)
+    summary = {
+        "cases": rows,
+        "convergence": {},
+        "bands_decision": deck.DECISION,
+        "bands": deck.BANDS,
+    }
+    for label in WITNESS_LABELS:
+        names = {
+            H_PRIMARY: f"{label}-primary",
+            **{h: f"{label}-h{h:g}" for h in H_WITNESS},
+        }
+        if all((decks / "f08" / n / "case.dat").exists() for n in names.values()):
+            rungs = {h: deck.observe(decks / "f08" / n) for h, n in names.items()}
+            summary["convergence"][label] = deck.convergence(rungs)
+        else:
+            summary["convergence"][label] = {"status": "INCOMPLETE_LADDER"}
+    summary["bank_mesh"] = bank_mesh(summary["convergence"])
+    Path(out).write_text(json.dumps(summary, indent=1, sort_keys=True) + "\n")
+    return summary
+
+
+def bank_mesh(convergence):
+    """V9: coarsest rung passing V1-V7 against h 1.7 on every witness geometry."""
+    if any("rungs" not in c for c in convergence.values()):
+        return {"h_mm": None, "status": "UNRESOLVED_INCOMPLETE_WITNESSES"}
+    for h in (H_PRIMARY, *H_WITNESS[:-1]):
+        if all(
+            c["rungs"][f"h{h:g}"]["verdict"] == "PASS" for c in convergence.values()
+        ):
+            return {"h_mm": h, "status": "PASS"}
+    return {
+        "h_mm": H_WITNESS[-1],
+        "status": "NO_COARSER_RUNG_PASSED_FINEST_USED_GAP_REPORTED",
+    }
 
 
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="f08_freeze")
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--observe", type=Path)
+    parser.add_argument(
+        "--ledger", type=Path, help="triage_run ledger for measured costs"
+    )
+    parser.add_argument(
+        "--image", default=IMAGE, help="image id recorded in the manifest"
+    )
     args = parser.parse_args(argv)
     if args.observe:
-        rows = observe_all(args.observe, args.out)
+        summary = observe_all(args.observe, args.out, args.ledger)
         print(
             json.dumps(
                 {
-                    k: v.get("worst_dynamic_mm_per_n", v.get("status"))
-                    for k, v in rows.items()
+                    k: v.get(
+                        "worst_dynamic_mm_per_n", v.get("verdict", v.get("status"))
+                    )
+                    for k, v in summary["cases"].items()
                 },
                 indent=1,
             )
         )
+        print(json.dumps(summary["bank_mesh"]))
     else:
-        print(json.dumps(freeze(args.out), indent=1))
+        print(json.dumps(freeze(args.out, args.image), indent=1))
     return 0
 
 
