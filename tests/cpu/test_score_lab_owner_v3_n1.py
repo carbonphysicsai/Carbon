@@ -10,7 +10,8 @@ import random
 import pytest
 
 from carbon.design_search import tasks
-from scripts.dev.score_lab import candidates, owner_v3_n1 as n1
+from scripts.dev.score_lab import candidates
+from scripts.dev.score_lab import owner_v3_n1 as n1
 from scripts.dev.score_lab import owner_v3_panel_export as producer
 from tests.cpu.test_score_lab_owner_v3_panel_export import fixture as producer_fixture
 

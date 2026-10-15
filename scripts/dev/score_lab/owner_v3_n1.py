@@ -465,9 +465,7 @@ def alignment(legs, values, *, recipe_of, gamers, bootstrap, seed):
     if (
         any(r.get("role") != "LEG" for r in legs.values())
         or any(r.get("role") != "VALUE" for r in values.values())
-        or any(
-            r.get("job") != owner_v3.JOB for r in (*legs.values(), *values.values())
-        )
+        or any(r.get("job") != owner_v3.JOB for r in (*legs.values(), *values.values()))
         or any(
             r["registration_sha256"] != REGISTRATION_SHA256
             for r in (*legs.values(), *values.values())
@@ -520,7 +518,7 @@ def alignment(legs, values, *, recipe_of, gamers, bootstrap, seed):
         )
         excluded_reasons[member] = sorted(set(reasons))
     rules = {}
-    for rule in scores:
+    for rule, rule_scores in scores.items():
         selection = selections[rule]
         picked = selection["selected"]
         complete = len(picked) == 3 and all(
@@ -548,17 +546,17 @@ def alignment(legs, values, *, recipe_of, gamers, bootstrap, seed):
                 if complete
                 else "INSUFFICIENT_EVIDENCE"
             ),
-            "tau": score_proof._tau(scores[rule], means, usable),
+            "tau": score_proof._tau(rule_scores, means, usable),
             "rho": (
                 score_value.spearman_rho(
-                    [scores[rule][m] for m in usable], [-means[m] for m in usable]
+                    [rule_scores[m] for m in usable], [-means[m] for m in usable]
                 )
                 if len(usable) >= 2
                 else None
             ),
             "bootstrap": (
                 score_proof.bootstrap(
-                    scores[rule],
+                    rule_scores,
                     scores[CONTROL],
                     losses,
                     recipe_of,
