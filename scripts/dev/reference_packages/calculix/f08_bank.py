@@ -2,7 +2,8 @@
 
     python3 f08_bank.py register --out REGISTRATION.json
     python3 f08_bank.py freeze --registration REGISTRATION.json --seed SEED \
-        --out DIR [--count 256] [--h 3] [--jobs 4] [--public-seed]
+        --out DIR [--count 256] [--h 3] [--jobs 4] [--public-seed] \
+        [--role train] [--exclude OTHER_MANIFEST.json ...]
 
 `register` seals a `carbon.f08-preparation.v1` registration from the current
 sources: the Q1 lattice (length 180:5:260, width 60:5:100, thickness 4:0.5:8,
@@ -72,21 +73,68 @@ def registration(scope="PUBLIC_DEVELOPMENT"):
     )
 
 
-def freeze(reg, seed, out, count=256, h_mm=3.0, jobs=1, public_seed=False):
+def draw(reg, seed, count, exclude=frozenset()):
+    """`count` distinct valid lattice actions in a deterministic order.
+
+    structures_readiness.actions draws at most 1000 per call, so larger sets
+    (the 8x TRAIN rung) chain sub-seeds derived from `seed`; prefixes of one
+    draw are the nested smaller sets. Actions whose digest is in `exclude`
+    (another role's manifest) are skipped, which keeps roles disjoint.
+    """
+    rows, seen, chunk = [], set(exclude), 0
+    while len(rows) < count:
+        sub = int(
+            hashlib.sha256(f"f08-draw:{seed}:{chunk}".encode()).hexdigest()[:15], 16
+        )
+        for row in s.actions(
+            reg, seed=sub if chunk else seed, count=min(1000, max(count, 1))
+        ):
+            key = s.tasks.digest(row)
+            if key not in seen:
+                seen.add(key)
+                rows.append(row)
+                if len(rows) == count:
+                    break
+        chunk += 1
+    return rows
+
+
+def _excluded(paths):
+    keys = set()
+    for path in paths or ():
+        keys |= {
+            c["action_digest"]
+            for c in json.loads(Path(path).read_text())["cases"]
+            if "action_digest" in c
+        }
+    return frozenset(keys)
+
+
+def freeze(
+    reg,
+    seed,
+    out,
+    count=256,
+    h_mm=3.0,
+    jobs=1,
+    public_seed=False,
+    role="bank",
+    exclude=None,
+):
     s.validate(reg)
     if reg["pins"] != registration(reg["scope"])["pins"]:
         raise SystemExit(
             "current sources differ from the registration pins; re-register"
         )
-    rows = s.actions(reg, seed=seed, count=count)
+    rows = draw(reg, seed, count, _excluded(exclude))
     out = Path(out)
 
     def one(item):
         i, row = item
-        name = f"bank-{i:04d}"
+        name = f"{role}-{i:04d}"
         d = out / "f08" / name
         size = deck.write_case(row, d, h_mm, MODES)
-        return {"family": "f08", "case": name, "reservation": "bank", "command": deck.COMMAND,
+        return {"family": "f08", "case": name, "reservation": role, "command": deck.COMMAND,
                 "mesh": size, **deck.estimate(size["nodes"]), "action": row, "action_digest": s.tasks.digest(row),
                 "files": freeze_mod._digest(d)}  # fmt: skip
 
@@ -105,9 +153,11 @@ def freeze(reg, seed, out, count=256, h_mm=3.0, jobs=1, public_seed=False):
             "h_mm": h_mm,
             "modes": MODES,
             "seed": seed if public_seed else "WITHHELD",
+            "role": role,
+            "excluded_manifests": [str(p) for p in exclude or ()],
         },
         "cases": cases,
-        "counts": {"bank": len(cases)},
+        "counts": {role: len(cases)},
     }
     (out / "manifest.json").write_text(json.dumps(manifest, indent=1) + "\n")
     return manifest
@@ -126,6 +176,17 @@ def main(argv=None):
     f.add_argument("--h", type=float, default=3.0)
     f.add_argument("--jobs", type=int, default=1)
     f.add_argument("--public-seed", action="store_true")
+    f.add_argument(
+        "--role",
+        default="bank",
+        help="data role, e.g. train, practice, decision-study, bank",
+    )
+    f.add_argument(
+        "--exclude",
+        type=Path,
+        nargs="*",
+        help="manifests whose actions this role must not reuse",
+    )
     args = p.parse_args(argv)
     if args.cmd == "register":
         args.out.write_text(json.dumps(registration(), indent=1, sort_keys=True) + "\n")

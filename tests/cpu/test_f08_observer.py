@@ -176,3 +176,14 @@ def test_manifest_cost_estimates_grow_with_mesh_and_carry_bulk_runner_fields():
     assert set(small) == {"estimate_cpu_s", "estimate_wall_s", "estimate_mem_mib"}
     assert all(0 < small[k] < large[k] for k in small)
     assert large["estimate_wall_s"] >= large["estimate_cpu_s"]
+
+
+def test_bank_draws_are_nested_disjoint_and_beyond_one_actions_call():
+    bank = _load("f08_bank")
+    reg = bank.registration()
+    big = bank.draw(reg, 7, 1200)
+    digests = [bank.s.tasks.digest(r) for r in big]
+    assert len(set(digests)) == 1200
+    assert bank.draw(reg, 7, 64) == big[:64]  # nested TRAIN ladder prefixes
+    other = bank.draw(reg, 8, 64, frozenset(digests[:500]))
+    assert not {bank.s.tasks.digest(r) for r in other} & set(digests[:500])

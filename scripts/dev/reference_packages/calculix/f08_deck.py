@@ -222,15 +222,37 @@ def face_weights(tris, coords):
     return weights
 
 
+#: Gmsh inside MESH_IMAGE. A host without Docker (a native pod) sets
+#: CARBON_F08_NATIVE_GMSH=1 and must provide this exact Gmsh on python3's path;
+#: the frozen digests are only reproducible with it.
+GMSH_VERSION = "4.15.2"
+
+
+def mesh(out):
+    """Run make_mesh.py in the case directory, in MESH_IMAGE or natively."""
+    if os.environ.get("CARBON_F08_NATIVE_GMSH") == "1":
+        found = subprocess.run(
+            ["python3", "-c", "import gmsh; print(gmsh.__version__)"],
+            capture_output=True, text=True, check=True,
+        ).stdout.strip()  # fmt: skip
+        if found != GMSH_VERSION:
+            raise SystemExit(f"native Gmsh {found} differs from pinned {GMSH_VERSION}")
+        subprocess.run(
+            ["python3", "make_mesh.py"], cwd=out, check=True, capture_output=True
+        )
+        return
+    subprocess.run(
+        ["docker", "run", "--rm", "--network", "none", "--cpus", "1", "--memory", "4g",
+         "--user", f"{os.getuid()}:{os.getgid()}", "-v", f"{Path(out).resolve()}:/w", "-w", "/w", MESH_IMAGE, "python3", "make_mesh.py"],
+        check=True, capture_output=True,
+    )  # fmt: skip
+
+
 def write_case(case, out, h_mm=3.0, modes=48):
     out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
     (out / "make_mesh.py").write_text(gmsh_script(case, h_mm))
-    subprocess.run(
-        ["docker", "run", "--rm", "--network", "none", "--cpus", "1", "--memory", "4g",
-         "--user", f"{os.getuid()}:{os.getgid()}", "-v", f"{out.resolve()}:/w", "-w", "/w", MESH_IMAGE, "python3", "make_mesh.py"],
-        check=True, capture_output=True,
-    )  # fmt: skip
+    mesh(out)
     meta = json.loads((out / "mesh.json").read_text())
     pad = face_weights(meta["pad_tri6"], meta["coords"])
     total = math.fsum(pad.values())  # correctly rounded: same digest on any Python
