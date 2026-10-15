@@ -1,0 +1,5712 @@
+{
+ "bands": {
+  "beam_freq_rel": 0.01,
+  "beam_peak_rel": 0.03,
+  "beam_static_rel": 0.02,
+  "curve_abs_mm_per_n": 0.0015,
+  "curve_rel": 0.05,
+  "eigen_rel": 0.01,
+  "grid_bandwidth_fraction": 0.1,
+  "ladder_rel": 0.01,
+  "location_hz": 2.0,
+  "location_rel": 0.01,
+  "mass_rel": 0.005,
+  "mode_cutoff_hz": 900.0,
+  "off_peak_bandwidths": 3.0,
+  "oscillator_phase_deg": 0.01,
+  "oscillator_rel": 1e-06,
+  "peak_rel": 0.05,
+  "phase_deg": 5.0,
+  "phase_floor_mm_per_n": 0.015,
+  "sampling_loss_rel": 0.005,
+  "static_rel": 0.02,
+  "truncation_rel": 0.01
+ },
+ "bands_decision": "F08-SCIENCE-VALUES-01",
+ "bank_mesh": {
+  "h_mm": 3.0,
+  "status": "PASS"
+ },
+ "cases": {
+  "control-beam": {
+   "bands_decision": "F08-SCIENCE-VALUES-01",
+   "beam_control": {
+    "damping": {
+     "zeta_0.005": {
+      "eb_peak_hz": 101.96281320406531,
+      "eb_peak_mm_per_n": 13.24763331898283,
+      "location_ok": true,
+      "peak_rel": 0.00823325536885833
+     },
+     "zeta_0.01": {
+      "eb_peak_hz": 101.95474809939405,
+      "eb_peak_mm_per_n": 6.624102539317027,
+      "location_ok": true,
+      "peak_rel": 0.008233213796702261
+     },
+     "zeta_0.02": {
+      "eb_peak_hz": 101.9224397306988,
+      "eb_peak_mm_per_n": 3.312623163259403,
+      "location_ok": true,
+      "peak_rel": 0.008233048904680004
+     }
+    },
+    "f1_rel": 0.005134009758597518,
+    "f2_rel": 0.0015896048049381542,
+    "static_rel": 0.008125171183730486,
+    "verdict": "PASS",
+    "z_bending_hz": [
+     102.489,
+     640.0227
+    ]
+   },
+   "cad_mass_kg": 0.07128,
+   "case": {
+    "length_mm": 220.0,
+    "relief_length_mm": 0.0,
+    "rib_height_mm": 0.0,
+    "rib_thickness_mm": 0.0,
+    "thickness_mm": 6.0,
+    "width_mm": 20.0
+   },
+   "cost": {
+    "cgroup_cpu_s": 1279.25697151,
+    "cgroup_memory_peak_mib": 4286.16796875,
+    "children_cpu": null,
+    "host_profile": "runpod-cpu-pod-native",
+    "outcome": "COMPLETED",
+    "rusage_cpu_s": 59.846,
+    "wall_s": 59.94
+   },
+   "damping": {
+    "zeta_0.005": {
+     "ccx_points": 58,
+     "ccx_probe_peak": {
+      "hz": 102.4889789043,
+      "mm_per_n": 4.515402680913759,
+      "phase_deg": -90.02947729131509
+     },
+     "ccx_tip_peak": {
+      "hz": 102.4889789043,
+      "mm_per_n": 13.138380518301089,
+      "phase_deg": -89.98390623059863
+     },
+     "ccx_vs_projection_max_err_over_peak": 1.4411957433569533e-05,
+     "dense": {
+      "modes_12": {
+       "grid_points": 1243,
+       "probe": {
+        "grid_mm_per_n": 4.515402351275823,
+        "hz": 102.48668764368523,
+        "mm_per_n": 4.515448897963557,
+        "phase_deg": -89.77414612159953,
+        "sampling_loss_rel": 1.0308319014616227e-05
+       },
+       "tip": {
+        "grid_mm_per_n": 13.138375091640912,
+        "hz": 102.48625198694086,
+        "mm_per_n": 13.138562090517276,
+        "phase_deg": -89.67990025571656,
+        "sampling_loss_rel": 1.4232826627127802e-05
+       }
+      },
+      "modes_24": {
+       "grid_points": 1243,
+       "probe": {
+        "grid_mm_per_n": 4.515402350373795,
+        "hz": 102.48668764368523,
+        "mm_per_n": 4.515448905369985,
+        "phase_deg": -89.77412275859253,
+        "sampling_loss_rel": 1.0310159004387254e-05
+       },
+       "tip": {
+        "grid_mm_per_n": 13.138375095226507,
+        "hz": 102.48625198694086,
+        "mm_per_n": 13.138562158547405,
+        "phase_deg": -89.67984784934967,
+        "sampling_loss_rel": 1.4237731544745625e-05
+       }
+      },
+      "modes_48": {
+       "grid_points": 1243,
+       "probe": {
+        "grid_mm_per_n": 4.515402350177685,
+        "hz": 102.48668764368523,
+        "mm_per_n": 4.515448906812739,
+        "phase_deg": -89.77411815018384,
+        "sampling_loss_rel": 1.0310521946904403e-05
+       },
+       "tip": {
+        "grid_mm_per_n": 13.138375095780876,
+        "hz": 102.48625198694086,
+        "mm_per_n": 13.138562170834648,
+        "phase_deg": -89.67983830816353,
+        "sampling_loss_rel": 1.4238624541949788e-05
+       }
+      }
+     },
+     "ladder_24_vs_48": {
+      "location_ok": true,
+      "peak_rel": 9.352045576312423e-10
+     },
+     "probe_diagnostic_mm_per_n": 4.515448906812739,
+     "truncation_bound_rel": 1.581382057957445e-07,
+     "worst_hz": 102.48625198694086,
+     "worst_mm_per_n": 13.138562170834648
+    },
+    "zeta_0.01": {
+     "ccx_points": 58,
+     "ccx_probe_peak": {
+      "hz": 102.4889789043,
+      "mm_per_n": 2.257696361810498,
+      "phase_deg": -90.05895422979715
+     },
+     "ccx_tip_peak": {
+      "hz": 102.4889789043,
+      "mm_per_n": 6.569199036586248,
+      "phase_deg": -89.96781272970385
+     },
+     "ccx_vs_projection_max_err_over_peak": 7.2071656964499755e-06,
+     "dense": {
+      "modes_12": {
+       "grid_points": 1262,
+       "probe": {
+        "grid_mm_per_n": 2.2576962091000885,
+        "hz": 102.47980560005718,
+        "mm_per_n": 2.2577876101972527,
+        "phase_deg": -89.54657946633583,
+        "sampling_loss_rel": 4.0482593115225204e-05
+       },
+       "tip": {
+        "grid_mm_per_n": 6.569196522808496,
+        "hz": 102.47814742574367,
+        "mm_per_n": 6.569564727015644,
+        "phase_deg": -89.36281812528145,
+        "sampling_loss_rel": 5.604697151911131e-05
+       }
+      },
+      "modes_24": {
+       "grid_points": 1262,
+       "probe": {
+        "grid_mm_per_n": 2.2576962074495404,
+        "hz": 102.47980560005718,
+        "mm_per_n": 2.2577876250650073,
+        "phase_deg": -89.54653274277516,
+        "sampling_loss_rel": 4.048990899412232e-05
+       },
+       "tip": {
+        "grid_mm_per_n": 6.569196530981493,
+        "hz": 102.47814742574367,
+        "mm_per_n": 6.56956486244069,
+        "phase_deg": -89.36271332205199,
+        "sampling_loss_rel": 5.606634029944895e-05
+       }
+      },
+      "modes_48": {
+       "grid_points": 1262,
+       "probe": {
+        "grid_mm_per_n": 2.257696207087602,
+        "hz": 102.47980560005718,
+        "mm_per_n": 2.257787627961347,
+        "phase_deg": -89.54652352643605,
+        "sampling_loss_rel": 4.049135207086652e-05
+       },
+       "tip": {
+        "grid_mm_per_n": 6.569196532272615,
+        "hz": 102.47814742574367,
+        "mm_per_n": 6.569564886899552,
+        "phase_deg": -89.36269424139552,
+        "sampling_loss_rel": 5.606986661645877e-05
+       }
+      }
+     },
+     "ladder_24_vs_48": {
+      "location_ok": true,
+      "peak_rel": 3.723056553031737e-09
+     },
+     "probe_diagnostic_mm_per_n": 2.257787627961347,
+     "truncation_bound_rel": 3.162627486296417e-07,
+     "worst_hz": 102.47814742574367,
+     "worst_mm_per_n": 6.569564886899552
+    },
+    "zeta_0.02": {
+     "ccx_points": 58,
+     "ccx_probe_peak": {
+      "hz": 102.4889789043,
+      "mm_per_n": 1.1288383068174785,
+      "phase_deg": -90.117905615513
+     },
+     "ccx_tip_peak": {
+      "hz": 102.4889789043,
+      "mm_per_n": 3.2846170730439357,
+      "phase_deg": -89.9356276248885
+     },
+     "ccx_vs_projection_max_err_over_peak": 3.602842838832693e-06,
+     "dense": {
+      "modes_12": {
+       "grid_points": 1278,
+       "probe": {
+        "grid_mm_per_n": 1.1288381669211707,
+        "hz": 102.45219242396851,
+        "mm_per_n": 1.1290201757354887,
+        "phase_deg": -89.08983334149563,
+        "sampling_loss_rel": 0.00016120953214985808
+       },
+       "tip": {
+        "grid_mm_per_n": 3.284616200355649,
+        "hz": 102.44565577707306,
+        "mm_per_n": 3.285349854866516,
+        "phase_deg": -88.72506874224028,
+        "sampling_loss_rel": 0.00022331092373007523
+       }
+      },
+      "modes_24": {
+       "grid_points": 1278,
+       "probe": {
+        "grid_mm_per_n": 1.1288381636969145,
+        "hz": 102.45219242396851,
+        "mm_per_n": 1.1290202055767227,
+        "phase_deg": -89.0897399140672,
+        "sampling_loss_rel": 0.00016123881477852058
+       },
+       "tip": {
+        "grid_mm_per_n": 3.2846162172021147,
+        "hz": 102.44565577707306,
+        "mm_per_n": 3.285350125817264,
+        "phase_deg": -88.72485921197713,
+        "sampling_loss_rel": 0.00022338824997127134
+       }
+      },
+      "modes_48": {
+       "grid_points": 1278,
+       "probe": {
+        "grid_mm_per_n": 1.1288381629881958,
+        "hz": 102.45219242396851,
+        "mm_per_n": 1.1290202113902852,
+        "phase_deg": -89.08972148522807,
+        "sampling_loss_rel": 0.00016124459088750595
+       },
+       "tip": {
+        "grid_mm_per_n": 3.284616219875478,
+        "hz": 102.44565577707306,
+        "mm_per_n": 3.2853501747535128,
+        "phase_deg": -88.72482106441997,
+        "sampling_loss_rel": 0.00022340232821294398
+       }
+      }
+     },
+     "ladder_24_vs_48": {
+      "location_ok": true,
+      "peak_rel": 1.4895291590835294e-08
+     },
+     "probe_diagnostic_mm_per_n": 1.1290202113902852,
+     "truncation_bound_rel": 6.324161924649374e-07,
+     "worst_hz": 102.44565577707306,
+     "worst_mm_per_n": 3.2853501747535128
+    }
+   },
+   "diagnostic_margins": {
+    "dynamic_mm_per_n": -12.988562170834648,
+    "mass_kg": 0.37872,
+    "static_mm_per_n": -0.10499349999999999
+   },
+   "eigen_hz": [
+    102.489,
+    338.5752,
+    640.0227,
+    1782.998,
+    1869.804,
+    2044.401,
+    3469.282,
+    5428.664,
+    5625.054,
+    5683.813,
+    5798.039,
+    8399.394,
+    9425.889,
+    9950.795,
+    11584.91,
+    13300.89,
+    15206.09,
+    15294.78,
+    17273.94,
+    17380.28,
+    19226.92,
+    21199.64,
+    21366.43,
+    23611.48,
+    25593.52,
+    27484.54,
+    28323.88,
+    28919.18,
+    29968.79,
+    33330.06,
+    34024.26,
+    34499.19,
+    38598.02,
+    39189.96,
+    40379.01,
+    40731.02,
+    44041.87,
+    44096.97,
+    47540.39,
+    49054.24,
+    49796.51,
+    51711.51,
+    54224.79,
+    54401.02,
+    55659.25,
+    59546.23,
+    61264.36,
+    61586.28
+   ],
+   "h_mm": 2.0,
+   "in_band_modes_hz": [
+    102.489,
+    338.5752
+   ],
+   "mass_kg": 0.07128000000000001,
+   "mass_mesh_vs_cad_rel": 1.9469399281445648e-16,
+   "mesh": {
+    "elements": 18632,
+    "nodes": 32116
+   },
+   "modal_static_tip_over_static": 0.999984610285363,
+   "mode_ladder": {
+    "cutoff_hz": 61586.28,
+    "cutoff_ok": true,
+    "ladder_ok": true,
+    "mass_ok": true,
+    "sampling_ok": true,
+    "truncation_ok": true,
+    "verdict": "PASS"
+   },
+   "modes": 48,
+   "objective": "worst-band TIP dynamic compliance over all damping; probe is diagnostic only",
+   "phase_convention": "exp(+i omega t); peak phases near -90 deg at resonance",
+   "probe_diagnostic_worst_mm_per_n": 4.515448906812739,
+   "static_probe_mm_per_n": 0.04289225916666666,
+   "static_tip_mm_per_n": 0.1349935,
+   "worst_dynamic_mm_per_n": 13.138562170834648
+  },
+  "control-oscillators": {
+   "bands_decision": "F08-SCIENCE-VALUES-01",
+   "cost": {
+    "cgroup_cpu_s": 1159.271230414,
+    "cgroup_memory_peak_mib": 4286.16796875,
+    "children_cpu": null,
+    "host_profile": "runpod-cpu-pod-native",
+    "outcome": "COMPLETED",
+    "rusage_cpu_s": 0.119,
+    "wall_s": 0.202
+   },
+   "damping": {
+    "zeta_0.005": {
+     "frequencies": 134,
+     "max_phase_err_deg": 1.2827223068589954e-05,
+     "max_rel_err_vs_analytic": 4.846888698698812e-07,
+     "unretained_max_abs": 6.493026862596769e-18
+    },
+    "zeta_0.01": {
+     "frequencies": 134,
+     "max_phase_err_deg": 1.649684706619149e-05,
+     "max_rel_err_vs_analytic": 4.879269503466389e-07,
+     "unretained_max_abs": 3.246240562753844e-18
+    },
+    "zeta_0.02": {
+     "frequencies": 134,
+     "max_phase_err_deg": 1.5724768384667397e-05,
+     "max_rel_err_vs_analytic": 4.879386253947497e-07,
+     "unretained_max_abs": 1.6225748338033428e-18
+    }
+   },
+   "modes": [
+    {
+     "hz_rel_err": 0.0,
+     "mode": 1,
+     "off_node_max": 1.776357e-15,
+     "oscillator": 0,
+     "phi_sqrt_m_minus_1": 1.074641942100385e-07
+    },
+    {
+     "hz_rel_err": 0.0,
+     "mode": 2,
+     "off_node_max": 3.552714e-15,
+     "oscillator": 1,
+     "phi_sqrt_m_minus_1": 4.410443854574453e-08
+    },
+    {
+     "hz_rel_err": 1.4500872158369393e-16,
+     "mode": 3,
+     "off_node_max": 8.850305e-15,
+     "oscillator": 2,
+     "phi_sqrt_m_minus_1": 3.9709074250993126e-08
+    },
+    {
+     "hz_rel_err": 2.0715531654813423e-16,
+     "mode": 4,
+     "off_node_max": 1.97103e-14,
+     "oscillator": 3,
+     "phi_sqrt_m_minus_1": 9.147571666812127e-08
+    },
+    {
+     "hz_rel_err": 2.959361664973346e-16,
+     "mode": 5,
+     "off_node_max": 1.365574e-14,
+     "oscillator": 4,
+     "phi_sqrt_m_minus_1": 1.0062399802279742e-08
+    },
+    {
+     "hz_rel_err": 2.1138297606952472e-16,
+     "mode": 6,
+     "off_node_max": 1.831927e-14,
+     "oscillator": 5,
+     "phi_sqrt_m_minus_1": 5.0649688776438495e-08
+    }
+   ],
+   "verdict": "PASS"
+  },
+  "large-stiff-primary": {
+   "bands_decision": "F08-SCIENCE-VALUES-01",
+   "cad_mass_kg": 0.6481668743881421,
+   "case": {
+    "length_mm": 260,
+    "relief_length_mm": 60,
+    "rib_height_mm": 16,
+    "rib_thickness_mm": 5,
+    "thickness_mm": 8,
+    "width_mm": 100
+   },
+   "cost": {
+    "cgroup_cpu_s": 760.891478312,
+    "cgroup_memory_peak_mib": 4286.16796875,
+    "children_cpu": null,
+    "host_profile": "runpod-cpu-pod-native",
+    "outcome": "COMPLETED",
+    "rusage_cpu_s": 235.459,
+    "wall_s": 235.517
+   },
+   "damping": {
+    "zeta_0.005": {
+     "ccx_points": 58,
+     "ccx_probe_peak": {
+      "hz": 223.3740012299,
+      "mm_per_n": 0.10177815241035826,
+      "phase_deg": -90.03508049228013
+     },
+     "ccx_tip_peak": {
+      "hz": 223.3740012299,
+      "mm_per_n": 0.2990196226292139,
+      "phase_deg": -89.97770936080573
+     },
+     "ccx_vs_projection_max_err_over_peak": 3.456169657683748e-05,
+     "dense": {
+      "modes_12": {
+       "grid_points": 1243,
+       "probe": {
+        "grid_mm_per_n": 0.10177817336608422,
+        "hz": 223.36905634307126,
+        "mm_per_n": 0.10177917697245853,
+        "phase_deg": -89.78225768964899,
+        "sampling_loss_rel": 9.860625760246328e-06
+       },
+       "tip": {
+        "grid_mm_per_n": 0.2990196603669881,
+        "hz": 223.3679713201841,
+        "mm_per_n": 0.2990239972196665,
+        "phase_deg": -89.67245592437239,
+        "sampling_loss_rel": 1.4503359993479486e-05
+       }
+      },
+      "modes_24": {
+       "grid_points": 1243,
+       "probe": {
+        "grid_mm_per_n": 0.10177817421125943,
+        "hz": 223.36905634307126,
+        "mm_per_n": 0.10177916793759702,
+        "phase_deg": -89.78351421405559,
+        "sampling_loss_rel": 9.763553364881676e-06
+       },
+       "tip": {
+        "grid_mm_per_n": 0.29901966506224176,
+        "hz": 223.3679713201841,
+        "mm_per_n": 0.2990240440098946,
+        "phase_deg": -89.67096167783528,
+        "sampling_loss_rel": 1.4644132271422824e-05
+       }
+      },
+      "modes_48": {
+       "grid_points": 1243,
+       "probe": {
+        "grid_mm_per_n": 0.10177817410304431,
+        "hz": 223.36905634307126,
+        "mm_per_n": 0.10177916885113951,
+        "phase_deg": -89.78338426888035,
+        "sampling_loss_rel": 9.773592243182499e-06
+       },
+       "tip": {
+        "grid_mm_per_n": 0.2990196666590841,
+        "hz": 223.3679713201841,
+        "mm_per_n": 0.2990240627558693,
+        "phase_deg": -89.67035293478115,
+        "sampling_loss_rel": 1.4701481695798053e-05
+       }
+      }
+     },
+     "ladder_24_vs_48": {
+      "location_ok": true,
+      "peak_rel": 6.269052244221955e-08
+     },
+     "probe_diagnostic_mm_per_n": 0.10177916885113951,
+     "truncation_bound_rel": 3.0434787520405045e-05,
+     "worst_hz": 223.3679713201841,
+     "worst_mm_per_n": 0.2990240627558693
+    },
+    "zeta_0.01": {
+     "ccx_points": 58,
+     "ccx_probe_peak": {
+      "hz": 223.3740012299,
+      "mm_per_n": 0.05088893815345894,
+      "phase_deg": -90.07016053971381
+     },
+     "ccx_tip_peak": {
+      "hz": 223.3740012299,
+      "mm_per_n": 0.14951004525781747,
+      "phase_deg": -89.95541905625204
+     },
+     "ccx_vs_projection_max_err_over_peak": 1.7283734379524277e-05,
+     "dense": {
+      "modes_12": {
+       "grid_points": 1243,
+       "probe": {
+        "grid_mm_per_n": 0.05088894829563674,
+        "hz": 223.35425850978106,
+        "mm_per_n": 0.050890933052506505,
+        "phase_deg": -89.56247645136624,
+        "sampling_loss_rel": 3.900020594468228e-05
+       },
+       "tip": {
+        "grid_mm_per_n": 0.14951007822020698,
+        "hz": 223.35005318361215,
+        "mm_per_n": 0.14951867172925423,
+        "phase_deg": -89.3463406926842,
+        "sampling_loss_rel": 5.747448761992051e-05
+       }
+      },
+      "modes_24": {
+       "grid_points": 1243,
+       "probe": {
+        "grid_mm_per_n": 0.05088894987394102,
+        "hz": 223.3543985265721,
+        "mm_per_n": 0.050890914961903615,
+        "phase_deg": -89.56858091947016,
+        "sampling_loss_rel": 3.861372828659477e-05
+       },
+       "tip": {
+        "grid_mm_per_n": 0.14951008800207402,
+        "hz": 223.34996664847628,
+        "mm_per_n": 0.14951876531084904,
+        "phase_deg": -89.34113289512887,
+        "sampling_loss_rel": 5.803491459401733e-05
+       }
+      },
+      "modes_48": {
+       "grid_points": 1243,
+       "probe": {
+        "grid_mm_per_n": 0.05088894966909817,
+        "hz": 223.3543985265721,
+        "mm_per_n": 0.050890916782714166,
+        "phase_deg": -89.56832104199219,
+        "sampling_loss_rel": 3.865353073508131e-05
+       },
+       "tip": {
+        "grid_mm_per_n": 0.149510091355196,
+        "hz": 223.34988011334042,
+        "mm_per_n": 0.14951880294225825,
+        "phase_deg": -89.33769592971373,
+        "sampling_loss_rel": 5.8264157355638905e-05
+       }
+      }
+     },
+     "ladder_24_vs_48": {
+      "location_ok": true,
+      "peak_rel": 2.516834569998095e-07
+     },
+     "probe_diagnostic_mm_per_n": 0.050890916782714166,
+     "truncation_bound_rel": 6.086681831567166e-05,
+     "worst_hz": 223.34988011334042,
+     "worst_mm_per_n": 0.14951880294225825
+    },
+    "zeta_0.02": {
+     "ccx_points": 58,
+     "ccx_probe_peak": {
+      "hz": 223.3740012299,
+      "mm_per_n": 0.025444193802190308,
+      "phase_deg": -90.1403175179017
+     },
+     "ccx_tip_peak": {
+      "hz": 223.3740012299,
+      "mm_per_n": 0.07475555051067966,
+      "phase_deg": -89.9108408611657
+     },
+     "ccx_vs_projection_max_err_over_peak": 8.642408923803549e-06,
+     "dense": {
+      "modes_12": {
+       "grid_points": 1218,
+       "probe": {
+        "grid_mm_per_n": 0.02544419734351522,
+        "hz": 223.2951982478382,
+        "mm_per_n": 0.025448156742851915,
+        "phase_deg": -89.12551537690977,
+        "sampling_loss_rel": 0.0001555868810736412
+       },
+       "tip": {
+        "grid_mm_per_n": 0.07475553504396207,
+        "hz": 223.2783438896818,
+        "mm_per_n": 0.07477268507088695,
+        "phase_deg": -88.69290791846907,
+        "sampling_loss_rel": 0.00022936219166969386
+       }
+      },
+      "modes_24": {
+       "grid_points": 1218,
+       "probe": {
+        "grid_mm_per_n": 0.025444200443968615,
+        "hz": 223.29556481655612,
+        "mm_per_n": 0.025448120558566243,
+        "phase_deg": -89.13524195743634,
+        "sampling_loss_rel": 0.0001540433836206407
+       },
+       "tip": {
+        "grid_mm_per_n": 0.07475555480300533,
+        "hz": 223.2778373041728,
+        "mm_per_n": 0.07477287227594186,
+        "phase_deg": -88.6804373600779,
+        "sampling_loss_rel": 0.00023160101263219722
+       }
+      },
+      "modes_48": {
+       "grid_points": 1218,
+       "probe": {
+        "grid_mm_per_n": 0.0254442000400902,
+        "hz": 223.29556481655612,
+        "mm_per_n": 0.02544812420776312,
+        "phase_deg": -89.13472230585306,
+        "sampling_loss_rel": 0.00015420262966674625
+       },
+       "tip": {
+        "grid_mm_per_n": 0.07475556158882059,
+        "hz": 223.2776642339011,
+        "mm_per_n": 0.074772947509776,
+        "phase_deg": -88.67578410601969,
+        "sampling_loss_rel": 0.00023251619114178588
+       }
+      }
+     },
+     "ladder_24_vs_48": {
+      "location_ok": true,
+      "peak_rel": 1.0061638153131607e-06
+     },
+     "probe_diagnostic_mm_per_n": 0.02544812420776312,
+     "truncation_bound_rel": 0.00012171158308656071,
+     "worst_hz": 223.2776642339011,
+     "worst_mm_per_n": 0.074772947509776
+    }
+   },
+   "diagnostic_margins": {
+    "dynamic_mm_per_n": -0.1490240627558693,
+    "mass_kg": -0.19822241011249592,
+    "static_mm_per_n": 0.026886604999999997
+   },
+   "eigen_hz": [
+    223.374,
+    543.6455,
+    1021.024,
+    1329.572,
+    1901.193,
+    3337.812,
+    3527.929,
+    3813.419,
+    4535.317,
+    4645.074,
+    4829.339,
+    5908.282,
+    6251.102,
+    6359.296,
+    6902.855,
+    7191.918,
+    8203.814,
+    8837.738,
+    8919.907,
+    10090.42,
+    10481.25,
+    10876.06,
+    11141.7,
+    11650.6,
+    11842.81,
+    12052.11,
+    12989.41,
+    13145.5,
+    13532.38,
+    13844.5,
+    13975.42,
+    14462.74,
+    14637.56,
+    14772.31,
+    14862.65,
+    14996.45,
+    15037.12,
+    15221.12,
+    15816.79,
+    15897.24,
+    16011.52,
+    16190.46,
+    16692.36,
+    17385.8,
+    17960.66,
+    18117.47,
+    18161.36,
+    18268.52
+   ],
+   "h_mm": 3.0,
+   "in_band_modes_hz": [
+    223.374,
+    543.6455
+   ],
+   "mass_kg": 0.6482224101124959,
+   "mass_mesh_vs_cad_rel": 8.568121350881953e-05,
+   "mesh": {
+    "elements": 46484,
+    "nodes": 82411
+   },
+   "modal_static_tip_over_static": 0.9970800630941982,
+   "mode_ladder": {
+    "cutoff_hz": 18268.52,
+    "cutoff_ok": true,
+    "ladder_ok": true,
+    "mass_ok": true,
+    "sampling_ok": true,
+    "truncation_ok": true,
+    "verdict": "PASS"
+   },
+   "modes": 48,
+   "objective": "worst-band TIP dynamic compliance over all damping; probe is diagnostic only",
+   "phase_convention": "exp(+i omega t); peak phases near -90 deg at resonance",
+   "probe_diagnostic_worst_mm_per_n": 0.10177916885113951,
+   "static_probe_mm_per_n": 0.0009573965083333332,
+   "static_tip_mm_per_n": 0.003113395,
+   "worst_dynamic_mm_per_n": 0.2990240627558693
+  },
+  "long-flexible-h1.7": {
+   "bands_decision": "F08-SCIENCE-VALUES-01",
+   "cad_mass_kg": 0.18929943719407114,
+   "case": {
+    "length_mm": 260,
+    "relief_length_mm": 60,
+    "rib_height_mm": 8,
+    "rib_thickness_mm": 3,
+    "thickness_mm": 4,
+    "width_mm": 60
+   },
+   "cost": {
+    "cgroup_cpu_s": 2173.176704166,
+    "cgroup_memory_peak_mib": 8152.21875,
+    "children_cpu": null,
+    "host_profile": "runpod-cpu-pod-native",
+    "outcome": "COMPLETED",
+    "rusage_cpu_s": 445.907,
+    "wall_s": 446.043
+   },
+   "damping": {
+    "zeta_0.005": {
+     "ccx_points": 58,
+     "ccx_probe_peak": {
+      "hz": 112.4392493489,
+      "mm_per_n": 1.3524747825795653,
+      "phase_deg": -90.03110055259401
+     },
+     "ccx_tip_peak": {
+      "hz": 112.4392493489,
+      "mm_per_n": 4.026886158311758,
+      "phase_deg": -89.9839339342383
+     },
+     "ccx_vs_projection_max_err_over_peak": 1.1173411664847416e-05,
+     "dense": {
+      "modes_12": {
+       "grid_points": 1243,
+       "probe": {
+        "grid_mm_per_n": 1.3524754439121647,
+        "hz": 112.43673335802967,
+        "mm_per_n": 1.352488431448866,
+        "phase_deg": -89.77522123632595,
+        "sampling_loss_rel": 9.602697072619218e-06
+       },
+       "tip": {
+        "grid_mm_per_n": 4.026887006113524,
+        "hz": 112.43627383825188,
+        "mm_per_n": 4.026941111321621,
+        "phase_deg": -89.68247123782504,
+        "sampling_loss_rel": 1.3435808123636185e-05
+       }
+      },
+      "modes_24": {
+       "grid_points": 1243,
+       "probe": {
+        "grid_mm_per_n": 1.3524754454664643,
+        "hz": 112.43673335802967,
+        "mm_per_n": 1.352488413906012,
+        "phase_deg": -89.77540562481423,
+        "sampling_loss_rel": 9.588577184432987e-06
+       },
+       "tip": {
+        "grid_mm_per_n": 4.026887039458177,
+        "hz": 112.43627383825188,
+        "mm_per_n": 4.026941480787565,
+        "phase_deg": -89.68155242319868,
+        "sampling_loss_rel": 1.3519275025059672e-05
+       }
+      },
+      "modes_48": {
+       "grid_points": 1243,
+       "probe": {
+        "grid_mm_per_n": 1.352475444763838,
+        "hz": 112.43673335802967,
+        "mm_per_n": 1.3524884217270503,
+        "phase_deg": -89.7753233263964,
+        "sampling_loss_rel": 9.594879337790733e-06
+       },
+       "tip": {
+        "grid_mm_per_n": 4.026887046368221,
+        "hz": 112.43627383825188,
+        "mm_per_n": 4.02694157031583,
+        "phase_deg": -89.68132657969338,
+        "sampling_loss_rel": 1.353979109387005e-05
+       }
+      }
+     },
+     "ladder_24_vs_48": {
+      "location_ok": true,
+      "peak_rel": 2.2232322778565752e-08
+     },
+     "probe_diagnostic_mm_per_n": 1.3524884217270503,
+     "truncation_bound_rel": 4.400989129176064e-06,
+     "worst_hz": 112.43627383825188,
+     "worst_mm_per_n": 4.02694157031583
+    },
+    "zeta_0.01": {
+     "ccx_points": 58,
+     "ccx_probe_peak": {
+      "hz": 112.4392493489,
+      "mm_per_n": 0.6762358630702332,
+      "phase_deg": -90.06220074355316
+     },
+     "ccx_tip_peak": {
+      "hz": 112.4392493489,
+      "mm_per_n": 2.0134453166186947,
+      "phase_deg": -89.96786813057325
+     },
+     "ccx_vs_projection_max_err_over_peak": 5.58582264266417e-06,
+     "dense": {
+      "modes_12": {
+       "grid_points": 1256,
+       "probe": {
+        "grid_mm_per_n": 0.676236178797258,
+        "hz": 112.42923052786402,
+        "mm_per_n": 0.6762628412878648,
+        "phase_deg": -89.551770167962,
+        "sampling_loss_rel": 3.942622450780147e-05
+       },
+       "tip": {
+        "grid_mm_per_n": 2.0134460209520535,
+        "hz": 112.42740666831185,
+        "mm_per_n": 2.013556650641731,
+        "phase_deg": -89.36700374767805,
+        "sampling_loss_rel": 5.494242719334853e-05
+       }
+      },
+      "modes_24": {
+       "grid_points": 1256,
+       "probe": {
+        "grid_mm_per_n": 0.6762361824059955,
+        "hz": 112.42923052786402,
+        "mm_per_n": 0.6762628063033632,
+        "phase_deg": -89.55213892586401,
+        "sampling_loss_rel": 3.936915814322622e-05
+       },
+       "tip": {
+        "grid_mm_per_n": 2.01344608022023,
+        "hz": 112.42735722587355,
+        "mm_per_n": 2.0135573876317103,
+        "phase_deg": -89.3626468772728,
+        "sampling_loss_rel": 5.527898641675187e-05
+       }
+      },
+      "modes_48": {
+       "grid_points": 1256,
+       "probe": {
+        "grid_mm_per_n": 0.6762361807775162,
+        "hz": 112.42923052786402,
+        "mm_per_n": 0.6762628219002694,
+        "phase_deg": -89.5519743375324,
+        "sampling_loss_rel": 3.939462867163096e-05
+       },
+       "tip": {
+        "grid_mm_per_n": 2.013446092216216,
+        "hz": 112.42735722587355,
+        "mm_per_n": 2.0135575668120484,
+        "phase_deg": -89.36219523131703,
+        "sampling_loss_rel": 5.536201083581392e-05
+       }
+      }
+     },
+     "ladder_24_vs_48": {
+      "location_ok": true,
+      "peak_rel": 8.898694582944083e-08
+     },
+     "probe_diagnostic_mm_per_n": 0.6762628219002694,
+     "truncation_bound_rel": 8.801598904791299e-06,
+     "worst_hz": 112.42735722587355,
+     "worst_mm_per_n": 2.0135575668120484
+    },
+    "zeta_0.02": {
+     "ccx_points": 58,
+     "ccx_probe_peak": {
+      "hz": 112.4392493489,
+      "mm_per_n": 0.3381148385961578,
+      "phase_deg": -90.12439861624249
+     },
+     "ccx_tip_peak": {
+      "hz": 112.4392493489,
+      "mm_per_n": 1.0067276332018833,
+      "phase_deg": -89.93573821908463
+     },
+     "ccx_vs_projection_max_err_over_peak": 2.793708779877055e-06,
+     "dense": {
+      "modes_12": {
+       "grid_points": 1287,
+       "probe": {
+        "grid_mm_per_n": 0.338115000396086,
+        "hz": 112.3991436705565,
+        "mm_per_n": 0.33816868619449775,
+        "phase_deg": -89.10218508382772,
+        "sampling_loss_rel": 0.00015875449325569355
+       },
+       "tip": {
+        "grid_mm_per_n": 1.0067280377529972,
+        "hz": 112.39191925950828,
+        "mm_per_n": 1.0069505554364322,
+        "phase_deg": -88.73453400727703,
+        "sampling_loss_rel": 0.00022098173761720544
+       }
+      },
+      "modes_24": {
+       "grid_points": 1287,
+       "probe": {
+        "grid_mm_per_n": 0.3381150078634219,
+        "hz": 112.3991436705565,
+        "mm_per_n": 0.33816861612532073,
+        "phase_deg": -89.10292244660945,
+        "sampling_loss_rel": 0.00015852524256405932
+       },
+       "tip": {
+        "grid_mm_per_n": 1.006728152576657,
+        "hz": 112.39177924271723,
+        "mm_per_n": 1.0069520300629238,
+        "phase_deg": -88.72729319807998,
+        "sampling_loss_rel": 0.00022233182870970886
+       }
+      },
+      "modes_48": {
+       "grid_points": 1287,
+       "probe": {
+        "grid_mm_per_n": 0.3381150044949426,
+        "hz": 112.3991436705565,
+        "mm_per_n": 0.33816864736385543,
+        "phase_deg": -89.10259333816839,
+        "sampling_loss_rel": 0.00015862756447416448
+       },
+       "tip": {
+        "grid_mm_per_n": 1.0067281756560602,
+        "hz": 112.39174618923657,
+        "mm_per_n": 1.006952388014755,
+        "phase_deg": -88.72554812463045,
+        "sampling_loss_rel": 0.00022266431001459385
+       }
+      }
+     },
+     "ladder_24_vs_48": {
+      "location_ok": true,
+      "peak_rel": 3.554803936584885e-07
+     },
+     "probe_diagnostic_mm_per_n": 0.33816864736385543,
+     "truncation_bound_rel": 1.7600162913092438e-05,
+     "worst_hz": 112.39174618923657,
+     "worst_mm_per_n": 1.006952388014755
+    }
+   },
+   "diagnostic_margins": {
+    "dynamic_mm_per_n": -3.87694157031583,
+    "mass_kg": 0.2606923145558847,
+    "static_mm_per_n": -0.011392720000000002
+   },
+   "eigen_hz": [
+    112.4392,
+    418.5639,
+    648.7736,
+    709.6631,
+    1396.046,
+    1867.894,
+    2590.086,
+    3524.744,
+    3622.885,
+    4217.192,
+    4575.065,
+    4778.275,
+    5294.605,
+    5528.473,
+    5988.211,
+    6185.491,
+    6900.977,
+    7466.135,
+    7757.845,
+    8251.002,
+    8317.568,
+    9637.43,
+    10384.43,
+    10587.77,
+    10969.31,
+    11522.14,
+    11803.99,
+    12946.01,
+    13012.15,
+    13533.79,
+    13845.37,
+    14317.11,
+    14538.82,
+    14749.7,
+    15454.38,
+    15582.19,
+    16058.57,
+    16060.84,
+    17199.08,
+    18162.75,
+    18256.26,
+    18372.37,
+    18773.66,
+    20069.25,
+    20463.74,
+    20912.92,
+    21041.63,
+    21235.71
+   ],
+   "h_mm": 1.7,
+   "in_band_modes_hz": [
+    112.4392,
+    418.5639
+   ],
+   "mass_kg": 0.18930768544411528,
+   "mass_mesh_vs_cad_rel": 4.3572501674605465e-05,
+   "mesh": {
+    "elements": 77105,
+    "nodes": 137512
+   },
+   "modal_static_tip_over_static": 0.999572186169669,
+   "mode_ladder": {
+    "cutoff_hz": 21235.71,
+    "cutoff_ok": true,
+    "ladder_ok": true,
+    "mass_ok": true,
+    "sampling_ok": true,
+    "truncation_ok": true,
+    "verdict": "PASS"
+   },
+   "modes": 48,
+   "objective": "worst-band TIP dynamic compliance over all damping; probe is diagnostic only",
+   "phase_convention": "exp(+i omega t); peak phases near -90 deg at resonance",
+   "probe_diagnostic_worst_mm_per_n": 1.3524884217270503,
+   "static_probe_mm_per_n": 0.012809870208333332,
+   "static_tip_mm_per_n": 0.04139272,
+   "worst_dynamic_mm_per_n": 4.02694157031583
+  },
+  "long-flexible-h2.25": {
+   "bands_decision": "F08-SCIENCE-VALUES-01",
+   "cad_mass_kg": 0.18929943719407114,
+   "case": {
+    "length_mm": 260,
+    "relief_length_mm": 60,
+    "rib_height_mm": 8,
+    "rib_thickness_mm": 3,
+    "thickness_mm": 4,
+    "width_mm": 60
+   },
+   "cost": {
+    "cgroup_cpu_s": 1513.311591672,
+    "cgroup_memory_peak_mib": 6073.08984375,
+    "children_cpu": null,
+    "host_profile": "runpod-cpu-pod-native",
+    "outcome": "COMPLETED",
+    "rusage_cpu_s": 151.587,
+    "wall_s": 151.643
+   },
+   "damping": {
+    "zeta_0.005": {
+     "ccx_points": 58,
+     "ccx_probe_peak": {
+      "hz": 112.4527528174,
+      "mm_per_n": 1.3520951158259513,
+      "phase_deg": -90.03109813128744
+     },
+     "ccx_tip_peak": {
+      "hz": 112.4527528174,
+      "mm_per_n": 4.026161158154097,
+      "phase_deg": -89.98394049048319
+     },
+     "ccx_vs_projection_max_err_over_peak": 4.457291654599792e-06,
+     "dense": {
+      "modes_12": {
+       "grid_points": 1243,
+       "probe": {
+        "grid_mm_per_n": 1.3520944964588426,
+        "hz": 112.45024108996824,
+        "mm_per_n": 1.3521084215944685,
+        "phase_deg": -89.77479000005356,
+        "sampling_loss_rel": 1.0298830628910633e-05
+       },
+       "tip": {
+        "grid_mm_per_n": 4.0261592161379145,
+        "hz": 112.44978997718256,
+        "mm_per_n": 4.02621661744165,
+        "phase_deg": -89.68290598460611,
+        "sampling_loss_rel": 1.4256884114590737e-05
+       }
+      },
+      "modes_24": {
+       "grid_points": 1243,
+       "probe": {
+        "grid_mm_per_n": 1.3520944986802854,
+        "hz": 112.45024108996824,
+        "mm_per_n": 1.3521084041243552,
+        "phase_deg": -89.77497334568041,
+        "sampling_loss_rel": 1.0284267169219358e-05
+       },
+       "tip": {
+        "grid_mm_per_n": 4.026159239302411,
+        "hz": 112.44978997718256,
+        "mm_per_n": 4.026216985126245,
+        "phase_deg": -89.68199017478474,
+        "sampling_loss_rel": 1.4342451996002998e-05
+       }
+      },
+      "modes_48": {
+       "grid_points": 1243,
+       "probe": {
+        "grid_mm_per_n": 1.3520944976701956,
+        "hz": 112.45024108996824,
+        "mm_per_n": 1.3521084119822016,
+        "phase_deg": -89.77489077743165,
+        "sampling_loss_rel": 1.029082570792261e-05
+       },
+       "tip": {
+        "grid_mm_per_n": 4.026159243709467,
+        "hz": 112.44978997718256,
+        "mm_per_n": 4.02621707413235,
+        "phase_deg": -89.68176529205593,
+        "sampling_loss_rel": 1.4363463722527398e-05
+       }
+      }
+     },
+     "ladder_24_vs_48": {
+      "location_ok": true,
+      "peak_rel": 2.2106633365744465e-08
+     },
+     "probe_diagnostic_mm_per_n": 1.3521084119822016,
+     "truncation_bound_rel": 4.3504685992731396e-06,
+     "worst_hz": 112.44978997718256,
+     "worst_mm_per_n": 4.02621707413235
+    },
+    "zeta_0.01": {
+     "ccx_points": 58,
+     "ccx_probe_peak": {
+      "hz": 112.4527528174,
+      "mm_per_n": 0.676045973313051,
+      "phase_deg": -90.06219590689261
+     },
+     "ccx_tip_peak": {
+      "hz": 112.4527528174,
+      "mm_per_n": 2.0130833163038577,
+      "phase_deg": -89.96788122260948
+     },
+     "ccx_vs_projection_max_err_over_peak": 2.231780893818927e-06,
+     "dense": {
+      "modes_12": {
+       "grid_points": 1256,
+       "probe": {
+        "grid_mm_per_n": 0.6760457058351685,
+        "hz": 112.44271553088704,
+        "mm_per_n": 0.6760728315973996,
+        "phase_deg": -89.55044076062231,
+        "sampling_loss_rel": 4.0122544440931066e-05
+       },
+       "tip": {
+        "grid_mm_per_n": 2.013082125085661,
+        "hz": 112.44092011367024,
+        "mm_per_n": 2.0131943857812415,
+        "phase_deg": -89.36714203242768,
+        "sampling_loss_rel": 5.5762472006289786e-05
+       }
+      },
+      "modes_24": {
+       "grid_points": 1256,
+       "probe": {
+        "grid_mm_per_n": 0.67604570976233,
+        "hz": 112.44271553088704,
+        "mm_per_n": 0.6760727967225199,
+        "phase_deg": -89.55080743285298,
+        "sampling_loss_rel": 4.006515322187016e-05
+       },
+       "tip": {
+        "grid_mm_per_n": 2.0130821790847646,
+        "hz": 112.44087302028012,
+        "mm_per_n": 2.0131951202867486,
+        "phase_deg": -89.36291115843248,
+        "sampling_loss_rel": 5.610047473586733e-05
+       }
+      },
+      "modes_48": {
+       "grid_points": 1256,
+       "probe": {
+        "grid_mm_per_n": 0.6760457079744016,
+        "hz": 112.44271553088704,
+        "mm_per_n": 0.6760728124087851,
+        "phase_deg": -89.55064230491195,
+        "sampling_loss_rel": 4.009099890737223e-05
+       },
+       "tip": {
+        "grid_mm_per_n": 2.0130821897823252,
+        "hz": 112.44087302028012,
+        "mm_per_n": 2.0131952985908055,
+        "phase_deg": -89.36246143384778,
+        "sampling_loss_rel": 5.61837237348157e-05
+       }
+      }
+     },
+     "ladder_24_vs_48": {
+      "location_ok": true,
+      "peak_rel": 8.856768986963426e-08
+     },
+     "probe_diagnostic_mm_per_n": 0.6760728124087851,
+     "truncation_bound_rel": 8.700562219239707e-06,
+     "worst_hz": 112.44087302028012,
+     "worst_mm_per_n": 2.0131952985908055
+    },
+    "zeta_0.02": {
+     "ccx_points": 58,
+     "ccx_probe_peak": {
+      "hz": 112.4527528174,
+      "mm_per_n": 0.33801988824854357,
+      "phase_deg": -90.12438894929838
+     },
+     "ccx_tip_peak": {
+      "hz": 112.4527528174,
+      "mm_per_n": 1.0065466325722248,
+      "phase_deg": -89.93576440336379
+     },
+     "ccx_vs_projection_max_err_over_peak": 1.145950990747558e-06,
+     "dense": {
+      "modes_12": {
+       "grid_points": 1287,
+       "probe": {
+        "grid_mm_per_n": 0.33801976523348076,
+        "hz": 112.41263118603877,
+        "mm_per_n": 0.33807367165997865,
+        "phase_deg": -89.10167319085058,
+        "sampling_loss_rel": 0.00015945171427635455
+       },
+       "tip": {
+        "grid_mm_per_n": 1.0065460874346366,
+        "hz": 112.40541710372983,
+        "mm_per_n": 1.0067693876256658,
+        "phase_deg": -88.7343220714992,
+        "sampling_loss_rel": 0.00022179874932019356
+       }
+      },
+      "modes_24": {
+       "grid_points": 1287,
+       "probe": {
+        "grid_mm_per_n": 0.33801977282973544,
+        "hz": 112.41268434800199,
+        "mm_per_n": 0.33807360197964453,
+        "phase_deg": -89.10376083807603,
+        "sampling_loss_rel": 0.00015922316795480363
+       },
+       "tip": {
+        "grid_mm_per_n": 1.0065461992657825,
+        "hz": 112.40527792390316,
+        "mm_per_n": 1.006770857069172,
+        "phase_deg": -88.72711502618994,
+        "sampling_loss_rel": 0.00022314690757293447
+       }
+      },
+      "modes_48": {
+       "grid_points": 1287,
+       "probe": {
+        "grid_mm_per_n": 0.33801976937009826,
+        "hz": 112.41263118603877,
+        "mm_per_n": 0.3380736333171403,
+        "phase_deg": -89.10207619573454,
+        "sampling_loss_rel": 0.00015932608087041944
+       },
+       "tip": {
+        "grid_mm_per_n": 1.0065462216021113,
+        "hz": 112.40524506800297,
+        "mm_per_n": 1.0067712134073656,
+        "phase_deg": -88.72537892860075,
+        "sampling_loss_rel": 0.00022347858406965933
+       }
+      }
+     },
+     "ladder_24_vs_48": {
+      "location_ok": true,
+      "peak_rel": 3.539415796493643e-07
+     },
+     "probe_diagnostic_mm_per_n": 0.3380736333171403,
+     "truncation_bound_rel": 1.7398124540717042e-05,
+     "worst_hz": 112.40524506800297,
+     "worst_mm_per_n": 1.0067712134073656
+    }
+   },
+   "diagnostic_margins": {
+    "dynamic_mm_per_n": -3.87621707413235,
+    "mass_kg": 0.2606921048320976,
+    "static_mm_per_n": -0.011384619999999998
+   },
+   "eigen_hz": [
+    112.4528,
+    419.593,
+    648.8618,
+    709.8454,
+    1398.809,
+    1868.767,
+    2595.09,
+    3527.711,
+    3623.956,
+    4223.818,
+    4582.321,
+    4779.41,
+    5297.095,
+    5534.678,
+    5998.47,
+    6197.211,
+    6915.374,
+    7492.393,
+    7770.305,
+    8267.442,
+    8336.1,
+    9662.238,
+    10405.35,
+    10613.52,
+    10985.94,
+    11533.98,
+    11830.05,
+    12976.16,
+    13047.37,
+    13567.87,
+    13884.02,
+    14349.5,
+    14541.03,
+    14814.83,
+    15497.44,
+    15629.76,
+    16107.35,
+    16113.61,
+    17256.95,
+    18225.43,
+    18311.52,
+    18437.11,
+    18834.68,
+    20107.31,
+    20507.77,
+    20979.23,
+    21115.18,
+    21312.66
+   ],
+   "h_mm": 2.25,
+   "in_band_modes_hz": [
+    112.4528,
+    419.593
+   ],
+   "mass_kg": 0.18930789516790245,
+   "mass_mesh_vs_cad_rel": 4.468039607872402e-05,
+   "mesh": {
+    "elements": 38828,
+    "nodes": 71997
+   },
+   "modal_static_tip_over_static": 0.9995770880900376,
+   "mode_ladder": {
+    "cutoff_hz": 21312.66,
+    "cutoff_ok": true,
+    "ladder_ok": true,
+    "mass_ok": true,
+    "sampling_ok": true,
+    "truncation_ok": true,
+    "verdict": "PASS"
+   },
+   "modes": 48,
+   "objective": "worst-band TIP dynamic compliance over all damping; probe is diagnostic only",
+   "phase_convention": "exp(+i omega t); peak phases near -90 deg at resonance",
+   "probe_diagnostic_worst_mm_per_n": 1.3521084119822016,
+   "static_probe_mm_per_n": 0.0128063075,
+   "static_tip_mm_per_n": 0.04138462,
+   "worst_dynamic_mm_per_n": 4.02621707413235
+  },
+  "long-flexible-primary": {
+   "bands_decision": "F08-SCIENCE-VALUES-01",
+   "cad_mass_kg": 0.18929943719407114,
+   "case": {
+    "length_mm": 260,
+    "relief_length_mm": 60,
+    "rib_height_mm": 8,
+    "rib_thickness_mm": 3,
+    "thickness_mm": 4,
+    "width_mm": 60
+   },
+   "cost": {
+    "cgroup_cpu_s": 683.442300911,
+    "cgroup_memory_peak_mib": 3807.30859375,
+    "children_cpu": null,
+    "host_profile": "runpod-cpu-pod-native",
+    "outcome": "COMPLETED",
+    "rusage_cpu_s": 51.219,
+    "wall_s": 51.327
+   },
+   "damping": {
+    "zeta_0.005": {
+     "ccx_points": 58,
+     "ccx_probe_peak": {
+      "hz": 112.4734028106,
+      "mm_per_n": 1.3514959489884242,
+      "phase_deg": -90.03109167844288
+     },
+     "ccx_tip_peak": {
+      "hz": 112.4734028106,
+      "mm_per_n": 4.025021157916683,
+      "phase_deg": -89.98395027652047
+     },
+     "ccx_vs_projection_max_err_over_peak": 9.058689030340266e-06,
+     "dense": {
+      "modes_12": {
+       "grid_points": 1243,
+       "probe": {
+        "grid_mm_per_n": 1.351495977887216,
+        "hz": 112.47087939660457,
+        "mm_per_n": 1.3515094387829598,
+        "phase_deg": -89.77441350041434,
+        "sampling_loss_rel": 9.959897694798736e-06
+       },
+       "tip": {
+        "grid_mm_per_n": 4.025022518331819,
+        "hz": 112.47044748746995,
+        "mm_per_n": 4.025078292600029,
+        "phase_deg": -89.68450555580839,
+        "sampling_loss_rel": 1.3856691511483968e-05
+       }
+      },
+      "modes_24": {
+       "grid_points": 1243,
+       "probe": {
+        "grid_mm_per_n": 1.3514959797733963,
+        "hz": 112.47087939660457,
+        "mm_per_n": 1.3515094213657841,
+        "phase_deg": -89.77459607736968,
+        "sampling_loss_rel": 9.945615010382121e-06
+       },
+       "tip": {
+        "grid_mm_per_n": 4.025022546226387,
+        "hz": 112.47044748746995,
+        "mm_per_n": 4.0250786572468185,
+        "phase_deg": -89.68359253263752,
+        "sampling_loss_rel": 1.3940353769427464e-05
+       }
+      },
+      "modes_48": {
+       "grid_points": 1243,
+       "probe": {
+        "grid_mm_per_n": 1.351495978923572,
+        "hz": 112.47087939660457,
+        "mm_per_n": 1.3515094291198329,
+        "phase_deg": -89.77451469935238,
+        "sampling_loss_rel": 9.951981074608734e-06
+       },
+       "tip": {
+        "grid_mm_per_n": 4.025022551750185,
+        "hz": 112.47044748746995,
+        "mm_per_n": 4.02507874468908,
+        "phase_deg": -89.68337043035142,
+        "sampling_loss_rel": 1.396070548161596e-05
+       }
+      }
+     },
+     "ladder_24_vs_48": {
+      "location_ok": true,
+      "peak_rel": 2.1724360435686774e-08
+     },
+     "probe_diagnostic_mm_per_n": 1.3515094291198329,
+     "truncation_bound_rel": 4.299087636657533e-06,
+     "worst_hz": 112.47044748746995,
+     "worst_mm_per_n": 4.02507874468908
+    },
+    "zeta_0.01": {
+     "ccx_points": 58,
+     "ccx_probe_peak": {
+      "hz": 112.4734028106,
+      "mm_per_n": 0.6757464396379853,
+      "phase_deg": -90.06218299784143
+     },
+     "ccx_tip_peak": {
+      "hz": 112.4734028106,
+      "mm_per_n": 2.0125133158284734,
+      "phase_deg": -89.96790082319261
+     },
+     "ccx_vs_projection_max_err_over_peak": 4.5322531930471795e-06,
+     "dense": {
+      "modes_12": {
+       "grid_points": 1256,
+       "probe": {
+        "grid_mm_per_n": 0.6757464463803173,
+        "hz": 112.46337857253258,
+        "mm_per_n": 0.6757733338271413,
+        "phase_deg": -89.55157265045027,
+        "sampling_loss_rel": 3.9787670625777204e-05
+       },
+       "tip": {
+        "grid_mm_per_n": 2.0125137694688684,
+        "hz": 112.46154466605691,
+        "mm_per_n": 2.0126251951531313,
+        "phase_deg": -89.36635219899851,
+        "sampling_loss_rel": 5.536335554740214e-05
+       }
+      },
+      "modes_24": {
+       "grid_points": 1256,
+       "probe": {
+        "grid_mm_per_n": 0.675746450126454,
+        "hz": 112.46337857253258,
+        "mm_per_n": 0.6757732991995106,
+        "phase_deg": -89.55193778548464,
+        "sampling_loss_rel": 3.97308876932781e-05
+       },
+       "tip": {
+        "grid_mm_per_n": 2.0125138256478756,
+        "hz": 112.46151775977847,
+        "mm_per_n": 2.0126259275269027,
+        "phase_deg": -89.36315568939095,
+        "sampling_loss_rel": 5.5699311776657005e-05
+       }
+      },
+      "modes_48": {
+       "grid_points": 1256,
+       "probe": {
+        "grid_mm_per_n": 0.675746448438494,
+        "hz": 112.46337857253258,
+        "mm_per_n": 0.6757733146154692,
+        "phase_deg": -89.55177503785377,
+        "sampling_loss_rel": 3.975619692901607e-05
+       },
+       "tip": {
+        "grid_mm_per_n": 2.012513836790312,
+        "hz": 112.46151775977847,
+        "mm_per_n": 2.012626103505709,
+        "phase_deg": -89.36271152523254,
+        "sampling_loss_rel": 5.578120804526918e-05
+       }
+      }
+     },
+     "ladder_24_vs_48": {
+      "location_ok": true,
+      "peak_rel": 8.743740622631317e-08
+     },
+     "probe_diagnostic_mm_per_n": 0.6757733146154692,
+     "truncation_bound_rel": 8.597804747600383e-06,
+     "worst_hz": 112.46151775977847,
+     "worst_mm_per_n": 2.012626103505709
+    },
+    "zeta_0.02": {
+     "ccx_points": 58,
+     "ccx_probe_peak": {
+      "hz": 112.4734028106,
+      "mm_per_n": 0.33787013756504763,
+      "phase_deg": -90.12436312366545
+     },
+     "ccx_tip_peak": {
+      "hz": 112.4734028106,
+      "mm_per_n": 1.0062616316226,
+      "phase_deg": -89.93580354792746
+     },
+     "ccx_vs_projection_max_err_over_peak": 2.2955802931868932e-06,
+     "dense": {
+      "modes_12": {
+       "grid_points": 1287,
+       "probe": {
+        "grid_mm_per_n": 0.33787013816116324,
+        "hz": 112.43326546913983,
+        "mm_per_n": 0.337923909927024,
+        "phase_deg": -89.10162668701513,
+        "sampling_loss_rel": 0.0001591238864167859
+       },
+       "tip": {
+        "grid_mm_per_n": 1.0062619051123394,
+        "hz": 112.42608232992005,
+        "mm_per_n": 1.0064847365287357,
+        "phase_deg": -88.7351417985975,
+        "sampling_loss_rel": 0.00022139572346110663
+       }
+      },
+      "modes_24": {
+       "grid_points": 1287,
+       "probe": {
+        "grid_mm_per_n": 0.3378701456401191,
+        "hz": 112.43331643647265,
+        "mm_per_n": 0.33792384056917607,
+        "phase_deg": -89.1036551074311,
+        "sampling_loss_rel": 0.00015889654002082515
+       },
+       "tip": {
+        "grid_mm_per_n": 1.006262017663179,
+        "hz": 112.42591739616641,
+        "mm_per_n": 1.0064862009981745,
+        "phase_deg": -88.72729060520496,
+        "sampling_loss_rel": 0.00022273860761657662
+       }
+      },
+      "modes_48": {
+       "grid_points": 1287,
+       "probe": {
+        "grid_mm_per_n": 0.3378701422701347,
+        "hz": 112.43326546913983,
+        "mm_per_n": 0.33792387144194796,
+        "phase_deg": -89.10203137770836,
+        "sampling_loss_rel": 0.00015899785825730967
+       },
+       "tip": {
+        "grid_mm_per_n": 1.0062620399949656,
+        "hz": 112.4258664288336,
+        "mm_per_n": 1.0064865527884699,
+        "phase_deg": -88.72510449012883,
+        "sampling_loss_rel": 0.00022306586499572735
+       }
+      }
+     },
+     "ladder_24_vs_48": {
+      "location_ok": true,
+      "peak_rel": 3.4952309533006854e-07
+     },
+     "probe_diagnostic_mm_per_n": 0.33792387144194796,
+     "truncation_bound_rel": 1.7192645266769508e-05,
+     "worst_hz": 112.4258664288336,
+     "worst_mm_per_n": 1.0064865527884699
+    }
+   },
+   "diagnostic_margins": {
+    "dynamic_mm_per_n": -3.87507874468908,
+    "mass_kg": 0.2606832742397742,
+    "static_mm_per_n": -0.01137204
+   },
+   "eigen_hz": [
+    112.4734,
+    420.8236,
+    648.9939,
+    710.1375,
+    1402.168,
+    1870.001,
+    2600.478,
+    3532.174,
+    3625.288,
+    4231.742,
+    4596.184,
+    4781.672,
+    5300.661,
+    5542.78,
+    6015.661,
+    6208.81,
+    6938.694,
+    7539.066,
+    7788.079,
+    8285.352,
+    8363.873,
+    9697.749,
+    10432.83,
+    10640.92,
+    11005.52,
+    11548.4,
+    11870.85,
+    13014.41,
+    13085.84,
+    13624.74,
+    13947.52,
+    14419.92,
+    14543.75,
+    14916.27,
+    15557.88,
+    15705.97,
+    16179.01,
+    16226.68,
+    17371.4,
+    18324.87,
+    18381.01,
+    18511.97,
+    18938.91,
+    20151.77,
+    20584.79,
+    21091.06,
+    21235.25,
+    21413.23
+   ],
+   "h_mm": 3.0,
+   "in_band_modes_hz": [
+    112.4734,
+    420.8236
+   ],
+   "mass_kg": 0.1893167257602258,
+   "mass_mesh_vs_cad_rel": 9.132919997501507e-05,
+   "mesh": {
+    "elements": 17153,
+    "nodes": 34864
+   },
+   "modal_static_tip_over_static": 0.9995820708779345,
+   "mode_ladder": {
+    "cutoff_hz": 21413.23,
+    "cutoff_ok": true,
+    "ladder_ok": true,
+    "mass_ok": true,
+    "sampling_ok": true,
+    "truncation_ok": true,
+    "verdict": "PASS"
+   },
+   "modes": 48,
+   "objective": "worst-band TIP dynamic compliance over all damping; probe is diagnostic only",
+   "phase_convention": "exp(+i omega t); peak phases near -90 deg at resonance",
+   "probe_diagnostic_worst_mm_per_n": 1.3515094291198329,
+   "static_probe_mm_per_n": 0.012800790833333332,
+   "static_tip_mm_per_n": 0.04137204,
+   "worst_dynamic_mm_per_n": 4.02507874468908
+  },
+  "nominal-h1.7": {
+   "bands_decision": "F08-SCIENCE-VALUES-01",
+   "cad_mass_kg": 0.3293091557911066,
+   "case": {
+    "length_mm": 220,
+    "relief_length_mm": 40,
+    "rib_height_mm": 12,
+    "rib_thickness_mm": 4,
+    "thickness_mm": 6,
+    "width_mm": 80
+   },
+   "cost": {
+    "cgroup_cpu_s": 5112.869292271,
+    "cgroup_memory_peak_mib": 15469.32421875,
+    "children_cpu": null,
+    "host_profile": "runpod-cpu-pod-native",
+    "outcome": "COMPLETED",
+    "rusage_cpu_s": 1143.966,
+    "wall_s": 1144.116
+   },
+   "damping": {
+    "zeta_0.005": {
+     "ccx_points": 39,
+     "ccx_probe_peak": {
+      "hz": 234.1018200124,
+      "mm_per_n": 0.18191473562148905,
+      "phase_deg": -90.0336935922108
+     },
+     "ccx_tip_peak": {
+      "hz": 234.1018200124,
+      "mm_per_n": 0.5344729351188854,
+      "phase_deg": -89.97922958684691
+     },
+     "ccx_vs_projection_max_err_over_peak": 1.5760759014792784e-05,
+     "dense": {
+      "modes_12": {
+       "grid_points": 1190,
+       "probe": {
+        "grid_mm_per_n": 0.18191476385807115,
+        "hz": 234.0966492795688,
+        "mm_per_n": 0.18191654237559454,
+        "phase_deg": -89.78084145430687,
+        "sampling_loss_rel": 9.776557426652626e-06
+       },
+       "tip": {
+        "grid_mm_per_n": 0.5344727892049107,
+        "hz": 234.0956060962156,
+        "mm_per_n": 0.534480372540085,
+        "phase_deg": -89.67791788272933,
+        "sampling_loss_rel": 1.4188238827584222e-05
+       }
+      },
+      "modes_24": {
+       "grid_points": 1190,
+       "probe": {
+        "grid_mm_per_n": 0.18191476475396653,
+        "hz": 234.0966492795688,
+        "mm_per_n": 0.1819165324948428,
+        "phase_deg": -89.78161277555422,
+        "sampling_loss_rel": 9.717318442802728e-06
+       },
+       "tip": {
+        "grid_mm_per_n": 0.5344727971495736,
+        "hz": 234.09551203243132,
+        "mm_per_n": 0.5344804515298518,
+        "phase_deg": -89.67189181385545,
+        "sampling_loss_rel": 1.432116040213752e-05
+       }
+      },
+      "modes_48": {
+       "grid_points": 1190,
+       "probe": {
+        "grid_mm_per_n": 0.18191476458833042,
+        "hz": 234.0966492795688,
+        "mm_per_n": 0.18191653404825173,
+        "phase_deg": -89.78148973768367,
+        "sampling_loss_rel": 9.726767995913583e-06
+       },
+       "tip": {
+        "grid_mm_per_n": 0.5344727996042961,
+        "hz": 234.09551203243132,
+        "mm_per_n": 0.5344804806453342,
+        "phase_deg": -89.67135980024514,
+        "sampling_loss_rel": 1.4371041256408175e-05
+       }
+      }
+     },
+     "ladder_24_vs_48": {
+      "location_ok": true,
+      "peak_rel": 5.4474360454184e-08
+     },
+     "probe_diagnostic_mm_per_n": 0.18191653404825173,
+     "truncation_bound_rel": 2.0035154038388595e-05,
+     "worst_hz": 234.09551203243132,
+     "worst_mm_per_n": 0.5344804806453342
+    },
+    "zeta_0.01": {
+     "ccx_points": 39,
+     "ccx_probe_peak": {
+      "hz": 234.1018200124,
+      "mm_per_n": 0.09095713249201783,
+      "phase_deg": -90.06738676017751
+     },
+     "ccx_tip_peak": {
+      "hz": 234.1018200124,
+      "mm_per_n": 0.2672368702368018,
+      "phase_deg": -89.9584594908397
+     },
+     "ccx_vs_projection_max_err_over_peak": 7.882172179039167e-06,
+     "dense": {
+      "modes_12": {
+       "grid_points": 1191,
+       "probe": {
+        "grid_mm_per_n": 0.09095714577765157,
+        "hz": 234.08110637645854,
+        "mm_per_n": 0.09096070476949154,
+        "phase_deg": -89.55956415479622,
+        "sampling_loss_rel": 3.9126695961635596e-05
+       },
+       "tip": {
+        "grid_mm_per_n": 0.26723680834315766,
+        "hz": 234.0769010502896,
+        "mm_per_n": 0.2672519820745714,
+        "phase_deg": -89.35292978165532,
+        "sampling_loss_rel": 5.67768713854044e-05
+       }
+      },
+      "modes_24": {
+       "grid_points": 1191,
+       "probe": {
+        "grid_mm_per_n": 0.09095714757434682,
+        "hz": 234.08119291159437,
+        "mm_per_n": 0.0909606849230817,
+        "phase_deg": -89.563224696043,
+        "sampling_loss_rel": 3.888876538103767e-05
+       },
+       "tip": {
+        "grid_mm_per_n": 0.2672368242057465,
+        "hz": 234.07676103349854,
+        "mm_per_n": 0.26725213963952477,
+        "phase_deg": -89.34665980855532,
+        "sampling_loss_rel": 5.7307057668122175e-05
+       }
+      },
+      "modes_48": {
+       "grid_points": 1191,
+       "probe": {
+        "grid_mm_per_n": 0.09095714724229231,
+        "hz": 234.08110637645854,
+        "mm_per_n": 0.09096068803889168,
+        "phase_deg": -89.56086065455092,
+        "sampling_loss_rel": 3.892666904467787e-05
+       },
+       "tip": {
+        "grid_mm_per_n": 0.26723682910518687,
+        "hz": 234.0766744983627,
+        "mm_per_n": 0.26725219772447756,
+        "phase_deg": -89.343477996564,
+        "sampling_loss_rel": 5.750605391291898e-05
+       }
+      }
+     },
+     "ladder_24_vs_48": {
+      "location_ok": true,
+      "peak_rel": 2.1734134756080908e-07
+     },
+     "probe_diagnostic_mm_per_n": 0.09096068803889168,
+     "truncation_bound_rel": 4.0068515250456494e-05,
+     "worst_hz": 234.0766744983627,
+     "worst_mm_per_n": 0.26725219772447756
+    },
+    "zeta_0.02": {
+     "ccx_points": 39,
+     "ccx_probe_peak": {
+      "hz": 234.1018200124,
+      "mm_per_n": 0.045478096643002425,
+      "phase_deg": -90.1347701154089
+     },
+     "ccx_tip_peak": {
+      "hz": 234.1018200124,
+      "mm_per_n": 0.13361934046574717,
+      "phase_deg": -89.91692158100062
+     },
+     "ccx_vs_projection_max_err_over_peak": 3.982776187076403e-06,
+     "dense": {
+      "modes_12": {
+       "grid_points": 1192,
+       "probe": {
+        "grid_mm_per_n": 0.04548484942965538,
+        "hz": 234.01897583176114,
+        "mm_per_n": 0.04548522145648223,
+        "phase_deg": -89.11847370099848,
+        "sampling_loss_rel": 8.17907036481417e-06
+       },
+       "tip": {
+        "grid_mm_per_n": 0.1336495757124071,
+        "hz": 234.00198664842543,
+        "mm_per_n": 0.13364958782469422,
+        "phase_deg": -88.703234307827,
+        "sampling_loss_rel": 9.06271939544963e-08
+       }
+      },
+      "modes_24": {
+       "grid_points": 1192,
+       "probe": {
+        "grid_mm_per_n": 0.04548479977554442,
+        "hz": 234.01914435597084,
+        "mm_per_n": 0.04548518177302238,
+        "phase_deg": -89.12362069436053,
+        "sampling_loss_rel": 8.398284080038388e-06
+       },
+       "tip": {
+        "grid_mm_per_n": 0.13364989575797273,
+        "hz": 234.00154544631653,
+        "mm_per_n": 0.13364990288183448,
+        "phase_deg": -88.69215142212664,
+        "sampling_loss_rel": 5.330240873276627e-08
+       }
+      },
+      "modes_48": {
+       "grid_points": 1192,
+       "probe": {
+        "grid_mm_per_n": 0.04548480760530693,
+        "hz": 234.01914435597084,
+        "mm_per_n": 0.045485188005620444,
+        "phase_deg": -89.12312866727478,
+        "sampling_loss_rel": 8.363168982960211e-06
+       },
+       "tip": {
+        "grid_mm_per_n": 0.13365001344933036,
+        "hz": 234.00137692210683,
+        "mm_per_n": 0.13365001904439244,
+        "phase_deg": -88.68796224160596,
+        "sampling_loss_rel": 4.186353373022579e-08
+       }
+      }
+     },
+     "ladder_24_vs_48": {
+      "location_ok": true,
+      "peak_rel": 8.691548178751636e-07
+     },
+     "probe_diagnostic_mm_per_n": 0.045485188005620444,
+     "truncation_bound_rel": 8.012268787394936e-05,
+     "worst_hz": 234.00137692210683,
+     "worst_mm_per_n": 0.13365001904439244
+    }
+   },
+   "diagnostic_margins": {
+    "dynamic_mm_per_n": -0.38448048064533413,
+    "mass_kg": 0.12067861248494166,
+    "static_mm_per_n": 0.024454569
+   },
+   "eigen_hz": [
+    234.1018,
+    601.7715,
+    1166.641,
+    1407.402,
+    2093.383,
+    3582.478,
+    4164.148,
+    4359.718,
+    5289.272,
+    5460.149,
+    5667.746,
+    6491.075,
+    6867.348,
+    7308.119,
+    8639.991,
+    9183.272,
+    9359.956,
+    9711.762,
+    9845.734,
+    11869.71,
+    12084.51,
+    13054.75,
+    13119.11,
+    13584.7,
+    14385.51,
+    14565.31,
+    15376.39,
+    15719.51,
+    16576.57,
+    16600.79,
+    17119.74,
+    17177.94,
+    17778.38,
+    18224.29,
+    18311.18,
+    18548.28,
+    19045.78,
+    19066.94,
+    19352.52,
+    19716.87,
+    20050.3,
+    20318.81,
+    20351.11,
+    20611.3,
+    21001.94,
+    21132.15,
+    21574.49,
+    22369.43
+   ],
+   "h_mm": 1.7,
+   "in_band_modes_hz": [
+    234.1018
+   ],
+   "mass_kg": 0.32932138751505835,
+   "mass_mesh_vs_cad_rel": 3.7143589045912036e-05,
+   "mesh": {
+    "elements": 128078,
+    "nodes": 211313
+   },
+   "modal_static_tip_over_static": 0.9980703583285384,
+   "mode_ladder": {
+    "cutoff_hz": 22369.43,
+    "cutoff_ok": true,
+    "ladder_ok": true,
+    "mass_ok": true,
+    "sampling_ok": true,
+    "truncation_ok": true,
+    "verdict": "PASS"
+   },
+   "modes": 48,
+   "objective": "worst-band TIP dynamic compliance over all damping; probe is diagnostic only",
+   "phase_convention": "exp(+i omega t); peak phases near -90 deg at resonance",
+   "probe_diagnostic_worst_mm_per_n": 0.18191653404825173,
+   "static_probe_mm_per_n": 0.0017153256458333332,
+   "static_tip_mm_per_n": 0.005545431,
+   "worst_dynamic_mm_per_n": 0.5344804806453342
+  },
+  "nominal-h2.25": {
+   "bands_decision": "F08-SCIENCE-VALUES-01",
+   "cad_mass_kg": 0.3293091557911066,
+   "case": {
+    "length_mm": 220,
+    "relief_length_mm": 40,
+    "rib_height_mm": 12,
+    "rib_thickness_mm": 4,
+    "thickness_mm": 6,
+    "width_mm": 80
+   },
+   "cost": {
+    "cgroup_cpu_s": 2838.91542757,
+    "cgroup_memory_peak_mib": 10740.47265625,
+    "children_cpu": null,
+    "host_profile": "runpod-cpu-pod-native",
+    "outcome": "COMPLETED",
+    "rusage_cpu_s": 306.32,
+    "wall_s": 306.451
+   },
+   "damping": {
+    "zeta_0.005": {
+     "ccx_points": 39,
+     "ccx_probe_peak": {
+      "hz": 234.139354671,
+      "mm_per_n": 0.1818455397771479,
+      "phase_deg": -90.03369410484746
+     },
+     "ccx_tip_peak": {
+      "hz": 234.139354671,
+      "mm_per_n": 0.5343457350855952,
+      "phase_deg": -89.97923696276082
+     },
+     "ccx_vs_projection_max_err_over_peak": 6.377569560000204e-06,
+     "dense": {
+      "modes_12": {
+       "grid_points": 1188,
+       "probe": {
+        "grid_mm_per_n": 0.18184548358584224,
+        "hz": 234.1342003728144,
+        "mm_per_n": 0.18184728860678392,
+        "phase_deg": -89.78042055095102,
+        "sampling_loss_rel": 9.926026148179282e-06
+       },
+       "tip": {
+        "grid_mm_per_n": 0.5343456935488337,
+        "hz": 234.13310494994278,
+        "mm_per_n": 0.5343533712223248,
+        "phase_deg": -89.6749523818624,
+        "sampling_loss_rel": 1.4368157673691507e-05
+       }
+      },
+      "modes_24": {
+       "grid_points": 1188,
+       "probe": {
+        "grid_mm_per_n": 0.18184548456332109,
+        "hz": 234.1342003728144,
+        "mm_per_n": 0.18184727873387618,
+        "phase_deg": -89.78119026187672,
+        "sampling_loss_rel": 9.866359109629035e-06
+       },
+       "tip": {
+        "grid_mm_per_n": 0.5343457010327163,
+        "hz": 234.13310494994278,
+        "mm_per_n": 0.5343534499393598,
+        "phase_deg": -89.67353196264544,
+        "sampling_loss_rel": 1.45014627386555e-05
+       }
+      },
+      "modes_48": {
+       "grid_points": 1188,
+       "probe": {
+        "grid_mm_per_n": 0.18184548438459472,
+        "hz": 234.1342003728144,
+        "mm_per_n": 0.18184728029163263,
+        "phase_deg": -89.78106707828937,
+        "sampling_loss_rel": 9.875908152355872e-06
+       },
+       "tip": {
+        "grid_mm_per_n": 0.5343457033173931,
+        "hz": 234.13310494994278,
+        "mm_per_n": 0.5343534789083462,
+        "phase_deg": -89.67299986639843,
+        "sampling_loss_rel": 1.4551399513656234e-05
+       }
+      }
+     },
+     "ladder_24_vs_48": {
+      "location_ok": true,
+      "peak_rel": 5.421315190098211e-08
+     },
+     "probe_diagnostic_mm_per_n": 0.18184728029163263,
+     "truncation_bound_rel": 1.9929659065595134e-05,
+     "worst_hz": 234.13310494994278,
+     "worst_mm_per_n": 0.5343534789083462
+    },
+    "zeta_0.01": {
+     "ccx_points": 39,
+     "ccx_probe_peak": {
+      "hz": 234.139354671,
+      "mm_per_n": 0.0909225270533627,
+      "phase_deg": -90.06738780267456
+     },
+     "ccx_tip_peak": {
+      "hz": 234.139354671,
+      "mm_per_n": 0.26717327017029424,
+      "phase_deg": -89.9584742212714
+     },
+     "ccx_vs_projection_max_err_over_peak": 3.197134511735505e-06,
+     "dense": {
+      "modes_12": {
+       "grid_points": 1190,
+       "probe": {
+        "grid_mm_per_n": 0.09092250580503197,
+        "hz": 234.1186538502223,
+        "mm_per_n": 0.09092607693840904,
+        "phase_deg": -89.55932957316425,
+        "sampling_loss_rel": 3.9275128734369043e-05
+       },
+       "tip": {
+        "grid_mm_per_n": 0.26717326035240996,
+        "hz": 234.1144485240534,
+        "mm_per_n": 0.26718847787264394,
+        "phase_deg": -89.35271948344614,
+        "sampling_loss_rel": 5.69542532490203e-05
+       }
+      },
+      "modes_24": {
+       "grid_points": 1190,
+       "probe": {
+        "grid_mm_per_n": 0.09092250764144941,
+        "hz": 234.11874038535814,
+        "mm_per_n": 0.09092605714791097,
+        "phase_deg": -89.56298655410602,
+        "sampling_loss_rel": 3.903728560213133e-05
+       },
+       "tip": {
+        "grid_mm_per_n": 0.2671732759628051,
+        "hz": 234.1143085072623,
+        "mm_per_n": 0.26718863523134617,
+        "phase_deg": -89.34645265505915,
+        "sampling_loss_rel": 5.748473743193442e-05
+       }
+      },
+      "modes_48": {
+       "grid_points": 1190,
+       "probe": {
+        "grid_mm_per_n": 0.0909225073029678,
+        "hz": 234.11874038535814,
+        "mm_per_n": 0.09092606025925506,
+        "phase_deg": -89.56274019934908,
+        "sampling_loss_rel": 3.9075225266894325e-05
+       },
+       "tip": {
+        "grid_mm_per_n": 0.26717328077289243,
+        "hz": 234.11422197212647,
+        "mm_per_n": 0.26718869328455286,
+        "phase_deg": -89.3432710178586,
+        "sampling_loss_rel": 5.768399654552196e-05
+       }
+      }
+     },
+     "ladder_24_vs_48": {
+      "location_ok": true,
+      "peak_rel": 2.1727418916060032e-07
+     },
+     "probe_diagnostic_mm_per_n": 0.09092606025925506,
+     "truncation_bound_rel": 3.985753485390358e-05,
+     "worst_hz": 234.11422197212647,
+     "worst_mm_per_n": 0.26718869328455286
+    },
+    "zeta_0.02": {
+     "ccx_points": 39,
+     "ccx_probe_peak": {
+      "hz": 234.139354671,
+      "mm_per_n": 0.0454607940990004,
+      "phase_deg": -90.13477218544914
+     },
+     "ccx_tip_peak": {
+      "hz": 234.139354671,
+      "mm_per_n": 0.13358754033273518,
+      "phase_deg": -89.91695104224952
+     },
+     "ccx_vs_projection_max_err_over_peak": 1.5976945087346284e-06,
+     "dense": {
+      "modes_12": {
+       "grid_points": 1191,
+       "probe": {
+        "grid_mm_per_n": 0.04546459956701218,
+        "hz": 234.0564890980894,
+        "mm_per_n": 0.04546790566766456,
+        "phase_deg": -89.11806664190293,
+        "sampling_loss_rel": 7.271284225277293e-05
+       },
+       "tip": {
+        "grid_mm_per_n": 0.13361306888556915,
+        "hz": 234.0394866409626,
+        "mm_per_n": 0.1336178288411071,
+        "phase_deg": -88.70271377948778,
+        "sampling_loss_rel": 3.562365575935033e-05
+       }
+      },
+      "modes_24": {
+       "grid_points": 1191,
+       "probe": {
+        "grid_mm_per_n": 0.04546453046307213,
+        "hz": 234.05671042035286,
+        "mm_per_n": 0.045467866088592046,
+        "phase_deg": -89.12385293590003,
+        "sampling_loss_rel": 7.336226233741593e-05
+       },
+       "tip": {
+        "grid_mm_per_n": 0.13361349468727476,
+        "hz": 234.03912853401786,
+        "mm_per_n": 0.13361814350901988,
+        "phase_deg": -88.69265358185791,
+        "sampling_loss_rel": 3.479184505207983e-05
+       }
+      },
+      "modes_48": {
+       "grid_points": 1191,
+       "probe": {
+        "grid_mm_per_n": 0.04546454143330299,
+        "hz": 234.05671042035286,
+        "mm_per_n": 0.045467872325478394,
+        "phase_deg": -89.12336032606584,
+        "sampling_loss_rel": 7.325814921714019e-05
+       },
+       "tip": {
+        "grid_mm_per_n": 0.1336136521217953,
+        "hz": 234.03894948054548,
+        "mm_per_n": 0.13361825965086793,
+        "phase_deg": -88.68833558048688,
+        "sampling_loss_rel": 3.448278015800881e-05
+       }
+      }
+     },
+     "ladder_24_vs_48": {
+      "location_ok": true,
+      "peak_rel": 8.692064120502435e-07
+     },
+     "probe_diagnostic_mm_per_n": 0.045467872325478394,
+     "truncation_bound_rel": 7.97008034903622e-05,
+     "worst_hz": 234.03894948054548,
+     "worst_mm_per_n": 0.13361825965086793
+    }
+   },
+   "diagnostic_margins": {
+    "dynamic_mm_per_n": -0.38435347890834615,
+    "mass_kg": 0.12067678884444372,
+    "static_mm_per_n": 0.02445601
+   },
+   "eigen_hz": [
+    234.1394,
+    602.6141,
+    1166.824,
+    1407.834,
+    2095.78,
+    3584.202,
+    4167.979,
+    4364.958,
+    5290.924,
+    5467.33,
+    5668.159,
+    6496.211,
+    6874.22,
+    7318.792,
+    8646.677,
+    9207.398,
+    9373.888,
+    9723.902,
+    9857.707,
+    11891.18,
+    12117.22,
+    13075.52,
+    13135.62,
+    13620.61,
+    14420.16,
+    14600.84,
+    15405.63,
+    15750.19,
+    16600.0,
+    16630.27,
+    17190.77,
+    17207.42,
+    17904.55,
+    18273.02,
+    18362.53,
+    18690.42,
+    19210.46,
+    19228.28,
+    19480.15,
+    19825.38,
+    20182.5,
+    20352.95,
+    20403.93,
+    20744.73,
+    21073.82,
+    21202.27,
+    21716.17,
+    22507.09
+   ],
+   "h_mm": 2.25,
+   "in_band_modes_hz": [
+    234.1394
+   ],
+   "mass_kg": 0.3293232111555563,
+   "mass_mesh_vs_cad_rel": 4.268136552699224e-05,
+   "mesh": {
+    "elements": 59485,
+    "nodes": 103589
+   },
+   "modal_static_tip_over_static": 0.9980804592973453,
+   "mode_ladder": {
+    "cutoff_hz": 22507.09,
+    "cutoff_ok": true,
+    "ladder_ok": true,
+    "mass_ok": true,
+    "sampling_ok": true,
+    "truncation_ok": true,
+    "verdict": "PASS"
+   },
+   "modes": 48,
+   "objective": "worst-band TIP dynamic compliance over all damping; probe is diagnostic only",
+   "phase_convention": "exp(+i omega t); peak phases near -90 deg at resonance",
+   "probe_diagnostic_worst_mm_per_n": 0.18184728029163263,
+   "static_probe_mm_per_n": 0.0017146738333333332,
+   "static_tip_mm_per_n": 0.00554399,
+   "worst_dynamic_mm_per_n": 0.5343534789083462
+  },
+  "nominal-primary": {
+   "bands_decision": "F08-SCIENCE-VALUES-01",
+   "cad_mass_kg": 0.3293091557911066,
+   "case": {
+    "length_mm": 220,
+    "relief_length_mm": 40,
+    "rib_height_mm": 12,
+    "rib_thickness_mm": 4,
+    "thickness_mm": 6,
+    "width_mm": 80
+   },
+   "cost": {
+    "cgroup_cpu_s": 580.384741299,
+    "cgroup_memory_peak_mib": 3807.30859375,
+    "children_cpu": null,
+    "host_profile": "runpod-cpu-pod-native",
+    "outcome": "COMPLETED",
+    "rusage_cpu_s": 108.671,
+    "wall_s": 108.741
+   },
+   "damping": {
+    "zeta_0.005": {
+     "ccx_points": 39,
+     "ccx_probe_peak": {
+      "hz": 234.1912975588,
+      "mm_per_n": 0.1817476730766211,
+      "phase_deg": -90.0336850239189
+     },
+     "ccx_tip_peak": {
+      "hz": 234.1912975588,
+      "mm_per_n": 0.5341722350282583,
+      "phase_deg": -89.97925056627912
+     },
+     "ccx_vs_projection_max_err_over_peak": 4.348031919011469e-05,
+     "dense": {
+      "modes_12": {
+       "grid_points": 1187,
+       "probe": {
+        "grid_mm_per_n": 0.18174770495852813,
+        "hz": 234.18601948441682,
+        "mm_per_n": 0.18174951969085273,
+        "phase_deg": -89.77726993209421,
+        "sampling_loss_rel": 9.984798461604009e-06
+       },
+       "tip": {
+        "grid_mm_per_n": 0.5341723878934637,
+        "hz": 234.18501001371993,
+        "mm_per_n": 0.5341801006256806,
+        "phase_deg": -89.67603435867152,
+        "sampling_loss_rel": 1.4438449144506555e-05
+       }
+      },
+      "modes_24": {
+       "grid_points": 1187,
+       "probe": {
+        "grid_mm_per_n": 0.18174770596860765,
+        "hz": 234.18613863626973,
+        "mm_per_n": 0.1817495097498024,
+        "phase_deg": -89.78386979707935,
+        "sampling_loss_rel": 9.924545035777792e-06
+       },
+       "tip": {
+        "grid_mm_per_n": 0.5341723951899403,
+        "hz": 234.18501001371993,
+        "mm_per_n": 0.5341801790236668,
+        "phase_deg": -89.67461464821656,
+        "sampling_loss_rel": 1.4571551008663176e-05
+       }
+      },
+      "modes_48": {
+       "grid_points": 1187,
+       "probe": {
+        "grid_mm_per_n": 0.18174770578098723,
+        "hz": 234.18613863626973,
+        "mm_per_n": 0.1817495113198835,
+        "phase_deg": -89.78374408844239,
+        "sampling_loss_rel": 9.934215961134165e-06
+       },
+       "tip": {
+        "grid_mm_per_n": 0.5341723973876341,
+        "hz": 234.18501001371993,
+        "mm_per_n": 0.5341802076488702,
+        "phase_deg": -89.67408696040991,
+        "sampling_loss_rel": 1.4621023250676445e-05
+       }
+      }
+     },
+     "ladder_24_vs_48": {
+      "location_ok": true,
+      "peak_rel": 5.358716594129023e-08
+     },
+     "probe_diagnostic_mm_per_n": 0.1817495113198835,
+     "truncation_bound_rel": 1.980089161430164e-05,
+     "worst_hz": 234.18501001371993,
+     "worst_mm_per_n": 0.5341802076488702
+    },
+    "zeta_0.01": {
+     "ccx_points": 39,
+     "ccx_probe_peak": {
+      "hz": 234.1912975588,
+      "mm_per_n": 0.09087359948560926,
+      "phase_deg": -90.06736962048467
+     },
+     "ccx_tip_peak": {
+      "hz": 234.1912975588,
+      "mm_per_n": 0.26708657005553554,
+      "phase_deg": -89.95850145757682
+     },
+     "ccx_vs_projection_max_err_over_peak": 2.1740656550286348e-05,
+     "dense": {
+      "modes_12": {
+       "grid_points": 1190,
+       "probe": {
+        "grid_mm_per_n": 0.09087361675176164,
+        "hz": 234.17054318277218,
+        "mm_per_n": 0.09087719147190415,
+        "phase_deg": -89.55954679271447,
+        "sampling_loss_rel": 3.933572422968794e-05
+       },
+       "tip": {
+        "grid_mm_per_n": 0.2670866072130988,
+        "hz": 234.16625132146737,
+        "mm_per_n": 0.2671018378024143,
+        "phase_deg": -89.35087240205989,
+        "sampling_loss_rel": 5.702165676143599e-05
+       }
+      },
+      "modes_24": {
+       "grid_points": 1190,
+       "probe": {
+        "grid_mm_per_n": 0.09087361860504206,
+        "hz": 234.170629717908,
+        "mm_per_n": 0.09087717169139244,
+        "phase_deg": -89.56320315681087,
+        "sampling_loss_rel": 3.9097677494195085e-05
+       },
+       "tip": {
+        "grid_mm_per_n": 0.2670866227106346,
+        "hz": 234.16611130467635,
+        "mm_per_n": 0.26710199492531034,
+        "phase_deg": -89.34460775277027,
+        "sampling_loss_rel": 5.7551852729642315e-05
+       }
+      },
+      "modes_48": {
+       "grid_points": 1190,
+       "probe": {
+        "grid_mm_per_n": 0.0908736182570583,
+        "hz": 234.17054318277218,
+        "mm_per_n": 0.09087717487256013,
+        "phase_deg": -89.56083458303391,
+        "sampling_loss_rel": 3.91365104254109e-05
+       },
+       "tip": {
+        "grid_mm_per_n": 0.2670866274422439,
+        "hz": 234.16611130467635,
+        "mm_per_n": 0.26710205257144515,
+        "phase_deg": -89.34355247892833,
+        "sampling_loss_rel": 5.77499463323974e-05
+       }
+      }
+     },
+     "ladder_24_vs_48": {
+      "location_ok": true,
+      "peak_rel": 2.1582063580232116e-07
+     },
+     "probe_diagnostic_mm_per_n": 0.09087717487256013,
+     "truncation_bound_rel": 3.960001165221743e-05,
+     "worst_hz": 234.16611130467635,
+     "worst_mm_per_n": 0.26710205257144515
+    },
+    "zeta_0.02": {
+     "ccx_points": 39,
+     "ccx_probe_peak": {
+      "hz": 234.1912975588,
+      "mm_per_n": 0.04543633063020008,
+      "phase_deg": -90.13473583880932
+     },
+     "ccx_tip_peak": {
+      "hz": 234.1912975588,
+      "mm_per_n": 0.13354414010342092,
+      "phase_deg": -89.91700544130023
+     },
+     "ccx_vs_projection_max_err_over_peak": 1.087257401927672e-05,
+     "dense": {
+      "modes_12": {
+       "grid_points": 1191,
+       "probe": {
+        "grid_mm_per_n": 0.04543633680602273,
+        "hz": 234.10832381915895,
+        "mm_per_n": 0.04544346078820429,
+        "phase_deg": -89.11765618131504,
+        "sampling_loss_rel": 0.00015676583732839687
+       },
+       "tip": {
+        "grid_mm_per_n": 0.13354909403344636,
+        "hz": 234.09135753147962,
+        "mm_per_n": 0.133574499331088,
+        "phase_deg": -88.70285183839786,
+        "sampling_loss_rel": 0.00019019571676378257
+       }
+      },
+      "modes_24": {
+       "grid_points": 1191,
+       "probe": {
+        "grid_mm_per_n": 0.045436340429006475,
+        "hz": 234.10860385274106,
+        "mm_per_n": 0.04544342123862948,
+        "phase_deg": -89.12415985011913,
+        "sampling_loss_rel": 0.00015581594497088663
+       },
+       "tip": {
+        "grid_mm_per_n": 0.1335496658037858,
+        "hz": 234.090970357049,
+        "mm_per_n": 0.13357481371083424,
+        "phase_deg": -88.69243989579128,
+        "sampling_loss_rel": 0.00018826832955859667
+       }
+      },
+      "modes_48": {
+       "grid_points": 1191,
+       "probe": {
+        "grid_mm_per_n": 0.04543633974668996,
+        "hz": 234.10860385274106,
+        "mm_per_n": 0.04544342759739186,
+        "phase_deg": -89.12365714268854,
+        "sampling_loss_rel": 0.00015597086480130407
+       },
+       "tip": {
+        "grid_mm_per_n": 0.13354987626977585,
+        "hz": 234.09073107009135,
+        "mm_per_n": 0.1335749288367341,
+        "phase_deg": -88.6874032401274,
+        "sampling_loss_rel": 0.0001875544099213183
+       }
+      }
+     },
+     "ladder_24_vs_48": {
+      "location_ok": true,
+      "peak_rel": 8.618825469078545e-07
+     },
+     "probe_diagnostic_mm_per_n": 0.04544342759739186,
+     "truncation_bound_rel": 7.918585086493867e-05,
+     "worst_hz": 234.09073107009135,
+     "worst_mm_per_n": 0.1335749288367341
+    }
+   },
+   "diagnostic_margins": {
+    "dynamic_mm_per_n": -0.3841802076488702,
+    "mass_kg": 0.12065516555936195,
+    "static_mm_per_n": 0.024458
+   },
+   "eigen_hz": [
+    234.1913,
+    603.5347,
+    1167.101,
+    1408.511,
+    2098.246,
+    3586.92,
+    4173.335,
+    4370.247,
+    5293.41,
+    5474.636,
+    5668.707,
+    6503.796,
+    6883.804,
+    7330.873,
+    8656.2,
+    9235.735,
+    9390.015,
+    9738.589,
+    9873.498,
+    11914.37,
+    12156.61,
+    13101.02,
+    13158.58,
+    13669.85,
+    14466.02,
+    14647.24,
+    15437.53,
+    15785.54,
+    16633.67,
+    16670.45,
+    17254.76,
+    17285.19,
+    18157.75,
+    18335.36,
+    18469.79,
+    18941.92,
+    19427.95,
+    19472.39,
+    19685.86,
+    19977.81,
+    20355.82,
+    20404.89,
+    20513.56,
+    21032.19,
+    21254.57,
+    21272.3,
+    21926.89,
+    22702.34
+   ],
+   "h_mm": 3.0,
+   "in_band_modes_hz": [
+    234.1913
+   ],
+   "mass_kg": 0.32934483444063806,
+   "mass_mesh_vs_cad_rel": 0.0001083439342758509,
+   "mesh": {
+    "elements": 28369,
+    "nodes": 52038
+   },
+   "modal_static_tip_over_static": 0.9980927722344499,
+   "mode_ladder": {
+    "cutoff_hz": 22702.34,
+    "cutoff_ok": true,
+    "ladder_ok": true,
+    "mass_ok": true,
+    "sampling_ok": true,
+    "truncation_ok": true,
+    "verdict": "PASS"
+   },
+   "modes": 48,
+   "objective": "worst-band TIP dynamic compliance over all damping; probe is diagnostic only",
+   "phase_convention": "exp(+i omega t); peak phases near -90 deg at resonance",
+   "probe_diagnostic_worst_mm_per_n": 0.1817495113198835,
+   "static_probe_mm_per_n": 0.0017137752499999997,
+   "static_tip_mm_per_n": 0.005542,
+   "worst_dynamic_mm_per_n": 0.5341802076488702
+  },
+  "relieved-tall-h1.7": {
+   "bands_decision": "F08-SCIENCE-VALUES-01",
+   "cad_mass_kg": 0.3746691557911066,
+   "case": {
+    "length_mm": 240,
+    "relief_length_mm": 60,
+    "rib_height_mm": 16,
+    "rib_thickness_mm": 4,
+    "thickness_mm": 6,
+    "width_mm": 80
+   },
+   "cost": {
+    "cgroup_cpu_s": 5021.388988666,
+    "cgroup_memory_peak_mib": 15469.32421875,
+    "children_cpu": null,
+    "host_profile": "runpod-cpu-pod-native",
+    "outcome": "COMPLETED",
+    "rusage_cpu_s": 1421.225,
+    "wall_s": 1421.418
+   },
+   "damping": {
+    "zeta_0.005": {
+     "ccx_points": 58,
+     "ccx_probe_peak": {
+      "hz": 256.6761273753,
+      "mm_per_n": 0.13267363675858462,
+      "phase_deg": -90.03464799031042
+     },
+     "ccx_tip_peak": {
+      "hz": 256.6761273753,
+      "mm_per_n": 0.38843182895207073,
+      "phase_deg": -89.9778782212857
+     },
+     "ccx_vs_projection_max_err_over_peak": 4.0650523023807266e-05,
+     "dense": {
+      "modes_12": {
+       "grid_points": 1243,
+       "probe": {
+        "grid_mm_per_n": 0.13267361949308212,
+        "hz": 256.67058386689496,
+        "mm_per_n": 0.13267487148327806,
+        "phase_deg": -89.78418698922816,
+        "sampling_loss_rel": 9.436528424229257e-06
+       },
+       "tip": {
+        "grid_mm_per_n": 0.38843168242214315,
+        "hz": 256.6693610206182,
+        "mm_per_n": 0.3884371052434133,
+        "phase_deg": -89.67575874350614,
+        "sampling_loss_rel": 1.3960616009487443e-05
+       }
+      },
+      "modes_24": {
+       "grid_points": 1243,
+       "probe": {
+        "grid_mm_per_n": 0.132673619948518,
+        "hz": 256.67058386689496,
+        "mm_per_n": 0.13267486437136355,
+        "phase_deg": -89.7849473034394,
+        "sampling_loss_rel": 9.379492124932637e-06
+       },
+       "tip": {
+        "grid_mm_per_n": 0.38843168889434504,
+        "hz": 256.6692398287767,
+        "mm_per_n": 0.3884371600800479,
+        "phase_deg": -89.6689995186713,
+        "sampling_loss_rel": 1.408512435254431e-05
+       }
+      },
+      "modes_48": {
+       "grid_points": 1243,
+       "probe": {
+        "grid_mm_per_n": 0.13267361985757234,
+        "hz": 256.67058386689496,
+        "mm_per_n": 0.13267486544503856,
+        "phase_deg": -89.78483029055232,
+        "sampling_loss_rel": 9.388270054371202e-06
+       },
+       "tip": {
+        "grid_mm_per_n": 0.3884316928606312,
+        "hz": 256.6692398287767,
+        "mm_per_n": 0.3884371981490462,
+        "phase_deg": -89.6680584823509,
+        "sampling_loss_rel": 1.4172917633183062e-05
+       }
+      }
+     },
+     "ladder_24_vs_48": {
+      "location_ok": true,
+      "peak_rel": 9.800554238489534e-08
+     },
+     "probe_diagnostic_mm_per_n": 0.13267486544503856,
+     "truncation_bound_rel": 3.406961343351045e-05,
+     "worst_hz": 256.6692398287767,
+     "worst_mm_per_n": 0.3884371981490462
+    },
+    "zeta_0.01": {
+     "ccx_points": 58,
+     "ccx_probe_peak": {
+      "hz": 256.6761273753,
+      "mm_per_n": 0.06633663809973415,
+      "phase_deg": -90.0692955291501
+     },
+     "ccx_tip_peak": {
+      "hz": 256.6761273753,
+      "mm_per_n": 0.19421625790335062,
+      "phase_deg": -89.95575678301763
+     },
+     "ccx_vs_projection_max_err_over_peak": 2.0331202273871073e-05,
+     "dense": {
+      "modes_12": {
+       "grid_points": 1236,
+       "probe": {
+        "grid_mm_per_n": 0.06633662938080814,
+        "hz": 256.6535488078248,
+        "mm_per_n": 0.06633918770906114,
+        "phase_deg": -89.56282404424512,
+        "sampling_loss_rel": 3.8564359036378745e-05
+       },
+       "tip": {
+        "grid_mm_per_n": 0.19421615740698023,
+        "hz": 256.648750361011,
+        "mm_per_n": 0.19422719565560145,
+        "phase_deg": -89.34805310659193,
+        "sampling_loss_rel": 5.683163258351545e-05
+       }
+      },
+      "modes_24": {
+       "grid_points": 1236,
+       "probe": {
+        "grid_mm_per_n": 0.06633663045534512,
+        "hz": 256.65368882461576,
+        "mm_per_n": 0.06633917332396123,
+        "phase_deg": -89.56747015967058,
+        "sampling_loss_rel": 3.8331328063132164e-05
+       },
+       "tip": {
+        "grid_mm_per_n": 0.19421616950125445,
+        "hz": 256.64866382587513,
+        "mm_per_n": 0.19422730541660038,
+        "phase_deg": -89.34342433053095,
+        "sampling_loss_rel": 5.73344480172231e-05
+       }
+      },
+      "modes_48": {
+       "grid_points": 1236,
+       "probe": {
+        "grid_mm_per_n": 0.06633663024826561,
+        "hz": 256.6535488078248,
+        "mm_per_n": 0.06633917548845207,
+        "phase_deg": -89.56411057996759,
+        "sampling_loss_rel": 3.8367075980672824e-05
+       },
+       "tip": {
+        "grid_mm_per_n": 0.19421617684066683,
+        "hz": 256.6485238090841,
+        "mm_per_n": 0.19422738121747785,
+        "phase_deg": -89.33841701615272,
+        "sampling_loss_rel": 5.768690665951003e-05
+       }
+      }
+     },
+     "ladder_24_vs_48": {
+      "location_ok": true,
+      "peak_rel": 3.9026875092782483e-07
+     },
+     "probe_diagnostic_mm_per_n": 0.06633917548845207,
+     "truncation_bound_rel": 6.81361458985837e-05,
+     "worst_hz": 256.6485238090841,
+     "worst_mm_per_n": 0.19422738121747785
+    },
+    "zeta_0.02": {
+     "ccx_points": 58,
+     "ccx_probe_peak": {
+      "hz": 256.6761273753,
+      "mm_per_n": 0.033167958693323556,
+      "phase_deg": -90.13858744814657
+     },
+     "ccx_tip_peak": {
+      "hz": 256.6761273753,
+      "mm_per_n": 0.09710878580040999,
+      "phase_deg": -89.91151626224307
+     },
+     "ccx_vs_projection_max_err_over_peak": 1.0174803294823745e-05,
+     "dense": {
+      "modes_12": {
+       "grid_points": 1214,
+       "probe": {
+        "grid_mm_per_n": 0.0331684831459116,
+        "hz": 256.5856454999873,
+        "mm_per_n": 0.03317309907166968,
+        "phase_deg": -89.12541831917575,
+        "sampling_loss_rel": 0.00013914665458624137
+       },
+       "tip": {
+        "grid_mm_per_n": 0.09712277354986437,
+        "hz": 256.56636945134744,
+        "mm_per_n": 0.09713088758299494,
+        "phase_deg": -88.69504569178676,
+        "sampling_loss_rel": 8.35371047509278e-05
+       }
+      },
+      "modes_24": {
+       "grid_points": 1214,
+       "probe": {
+        "grid_mm_per_n": 0.033168424992182984,
+        "hz": 256.5859518435028,
+        "mm_per_n": 0.03317307033387967,
+        "phase_deg": -89.13187828103379,
+        "sampling_loss_rel": 0.00014003351664271645
+       },
+       "tip": {
+        "grid_mm_per_n": 0.09712311086747073,
+        "hz": 256.5658737771271,
+        "mm_per_n": 0.09713110717921011,
+        "phase_deg": -88.68412163984293,
+        "sampling_loss_rel": 8.232493144165519e-05
+       }
+      },
+      "modes_48": {
+       "grid_points": 1214,
+       "probe": {
+        "grid_mm_per_n": 0.033168433858772,
+        "hz": 256.5859518435028,
+        "mm_per_n": 0.033173074665740536,
+        "phase_deg": -89.1314103474072,
+        "sampling_loss_rel": 0.00013989679929568455
+       },
+       "tip": {
+        "grid_mm_per_n": 0.09712334402906489,
+        "hz": 256.56556743361153,
+        "mm_per_n": 0.09713125871308845,
+        "phase_deg": -88.67694046183472,
+        "sampling_loss_rel": 8.148441735874744e-05
+       }
+      }
+     },
+     "ladder_24_vs_48": {
+      "location_ok": true,
+      "peak_rel": 1.5600938394284493e-06
+     },
+     "probe_diagnostic_mm_per_n": 0.033173074665740536,
+     "truncation_bound_rel": 0.00013624764426480796,
+     "worst_hz": 256.56556743361153,
+     "worst_mm_per_n": 0.09713125871308845
+    }
+   },
+   "diagnostic_margins": {
+    "dynamic_mm_per_n": -0.2384371981490462,
+    "mass_kg": 0.0753186124849417,
+    "static_mm_per_n": 0.025955332999999997
+   },
+   "eigen_hz": [
+    256.6761,
+    552.3355,
+    963.2699,
+    1523.014,
+    1993.021,
+    3631.373,
+    3768.203,
+    4050.366,
+    4545.753,
+    4852.236,
+    5200.183,
+    6154.707,
+    6363.971,
+    6700.262,
+    6729.477,
+    6933.486,
+    8013.388,
+    9151.777,
+    9336.476,
+    10090.22,
+    10253.9,
+    10696.95,
+    10819.79,
+    11245.09,
+    11827.59,
+    11869.33,
+    12282.9,
+    12522.45,
+    12892.75,
+    13070.73,
+    13305.55,
+    13689.68,
+    13916.51,
+    14204.47,
+    14268.22,
+    14629.21,
+    14749.2,
+    14924.32,
+    15405.1,
+    15565.72,
+    15927.37,
+    16152.08,
+    16375.36,
+    16732.65,
+    16802.56,
+    17053.91,
+    17518.55,
+    17997.78
+   ],
+   "h_mm": 1.7,
+   "in_band_modes_hz": [
+    256.6761,
+    552.3355
+   ],
+   "mass_kg": 0.3746813875150583,
+   "mass_mesh_vs_cad_rel": 3.2646733158160645e-05,
+   "mesh": {
+    "elements": 146031,
+    "nodes": 241756
+   },
+   "modal_static_tip_over_static": 0.9967316970179995,
+   "mode_ladder": {
+    "cutoff_hz": 17997.78,
+    "cutoff_ok": true,
+    "ladder_ok": true,
+    "mass_ok": true,
+    "sampling_ok": true,
+    "truncation_ok": true,
+    "verdict": "PASS"
+   },
+   "modes": 48,
+   "objective": "worst-band TIP dynamic compliance over all damping; probe is diagnostic only",
+   "phase_convention": "exp(+i omega t); peak phases near -90 deg at resonance",
+   "probe_diagnostic_worst_mm_per_n": 0.13267486544503856,
+   "static_probe_mm_per_n": 0.0012488842083333332,
+   "static_tip_mm_per_n": 0.004044667,
+   "worst_dynamic_mm_per_n": 0.3884371981490462
+  },
+  "relieved-tall-h2.25": {
+   "bands_decision": "F08-SCIENCE-VALUES-01",
+   "cad_mass_kg": 0.3746691557911066,
+   "case": {
+    "length_mm": 240,
+    "relief_length_mm": 60,
+    "rib_height_mm": 16,
+    "rib_thickness_mm": 4,
+    "thickness_mm": 6,
+    "width_mm": 80
+   },
+   "cost": {
+    "cgroup_cpu_s": 2224.305908188,
+    "cgroup_memory_peak_mib": 8152.21875,
+    "children_cpu": null,
+    "host_profile": "runpod-cpu-pod-native",
+    "outcome": "COMPLETED",
+    "rusage_cpu_s": 354.581,
+    "wall_s": 354.732
+   },
+   "damping": {
+    "zeta_0.005": {
+     "ccx_points": 58,
+     "ccx_probe_peak": {
+      "hz": 256.7069517017,
+      "mm_per_n": 0.13263473257378527,
+      "phase_deg": -90.03464011777882
+     },
+     "ccx_tip_peak": {
+      "hz": 256.7069517017,
+      "mm_per_n": 0.3883672289097168,
+      "phase_deg": -89.97789256975912
+     },
+     "ccx_vs_projection_max_err_over_peak": 4.305040741720827e-05,
+     "dense": {
+      "modes_12": {
+       "grid_points": 1243,
+       "probe": {
+        "grid_mm_per_n": 0.13263471363104248,
+        "hz": 256.7012065597253,
+        "mm_per_n": 0.13263604914601004,
+        "phase_deg": -89.77998837005984,
+        "sampling_loss_rel": 1.0069019517383349e-05
+       },
+       "tip": {
+        "grid_mm_per_n": 0.38836704913958725,
+        "hz": 256.7000568233102,
+        "mm_per_n": 0.38837276781357993,
+        "phase_deg": -89.67485640106936,
+        "sampling_loss_rel": 1.4724703858299015e-05
+       }
+      },
+      "modes_24": {
+       "grid_points": 1243,
+       "probe": {
+        "grid_mm_per_n": 0.1326347143543174,
+        "hz": 256.7012868136218,
+        "mm_per_n": 0.13263604177115954,
+        "phase_deg": -89.78435252249491,
+        "sampling_loss_rel": 1.0007964836810931e-05
+       },
+       "tip": {
+        "grid_mm_per_n": 0.3883670542983931,
+        "hz": 256.6999765694137,
+        "mm_per_n": 0.38837282264306816,
+        "phase_deg": -89.66992573326102,
+        "sampling_loss_rel": 1.4852596110682862e-05
+       }
+      },
+      "modes_48": {
+       "grid_points": 1243,
+       "probe": {
+        "grid_mm_per_n": 0.13263471421768971,
+        "hz": 256.7012868136218,
+        "mm_per_n": 0.13263604290480346,
+        "phase_deg": -89.78422924573064,
+        "sampling_loss_rel": 1.001754187361656e-05
+       },
+       "tip": {
+        "grid_mm_per_n": 0.38836705731108595,
+        "hz": 256.6999765694137,
+        "mm_per_n": 0.3883728601628365,
+        "phase_deg": -89.66899540721687,
+        "sampling_loss_rel": 1.4941445053923583e-05
+       }
+      }
+     },
+     "ladder_24_vs_48": {
+      "location_ok": true,
+      "peak_rel": 9.660759593764848e-08
+     },
+     "probe_diagnostic_mm_per_n": 0.13263604290480346,
+     "truncation_bound_rel": 3.3912791677169347e-05,
+     "worst_hz": 256.6999765694137,
+     "worst_mm_per_n": 0.3883728601628365
+    },
+    "zeta_0.01": {
+     "ccx_points": 58,
+     "ccx_probe_peak": {
+      "hz": 256.7069517017,
+      "mm_per_n": 0.06631717598014436,
+      "phase_deg": -90.06927979545443
+     },
+     "ccx_tip_peak": {
+      "hz": 256.7069517017,
+      "mm_per_n": 0.19418395781864323,
+      "phase_deg": -89.95578547996286
+     },
+     "ccx_vs_projection_max_err_over_peak": 2.1526957203003804e-05,
+     "dense": {
+      "modes_12": {
+       "grid_points": 1235,
+       "probe": {
+        "grid_mm_per_n": 0.06631717660587232,
+        "hz": 256.68429192091344,
+        "mm_per_n": 0.06631977636523603,
+        "phase_deg": -89.56342351539787,
+        "sampling_loss_rel": 3.920036384621259e-05
+       },
+       "tip": {
+        "grid_mm_per_n": 0.19418384074911504,
+        "hz": 256.6794069389638,
+        "mm_per_n": 0.19419502507928954,
+        "phase_deg": -89.346786286176,
+        "sampling_loss_rel": 5.759328885963853e-05
+       }
+      },
+      "modes_24": {
+       "grid_points": 1235,
+       "probe": {
+        "grid_mm_per_n": 0.06631717783342113,
+        "hz": 256.68429192091344,
+        "mm_per_n": 0.06631976158554138,
+        "phase_deg": -89.56498677491079,
+        "sampling_loss_rel": 3.8959007971143023e-05
+       },
+       "tip": {
+        "grid_mm_per_n": 0.19418385217265047,
+        "hz": 256.6792669221727,
+        "mm_per_n": 0.1941951347743359,
+        "phase_deg": -89.34096505075419,
+        "sampling_loss_rel": 5.8099301501739374e-05
+       }
+      },
+      "modes_48": {
+       "grid_points": 1235,
+       "probe": {
+        "grid_mm_per_n": 0.06631717759470429,
+        "hz": 256.68429192091344,
+        "mm_per_n": 0.06631976387132268,
+        "phase_deg": -89.56474023385363,
+        "sampling_loss_rel": 3.89970721761278e-05
+       },
+       "tip": {
+        "grid_mm_per_n": 0.1941838589611662,
+        "hz": 256.6792669221727,
+        "mm_per_n": 0.1941952096897855,
+        "phase_deg": -89.33910458107255,
+        "sampling_loss_rel": 5.845009584648951e-05
+       }
+      }
+     },
+     "ladder_24_vs_48": {
+      "location_ok": true,
+      "peak_rel": 3.8577393187755775e-07
+     },
+     "probe_diagnostic_mm_per_n": 0.06631976387132268,
+     "truncation_bound_rel": 6.78225169447188e-05,
+     "worst_hz": 256.6792669221727,
+     "worst_mm_per_n": 0.1941952096897855
+    },
+    "zeta_0.02": {
+     "ccx_points": 58,
+     "ccx_probe_peak": {
+      "hz": 256.7069517017,
+      "mm_per_n": 0.03315822945413613,
+      "phase_deg": -90.13855596912741
+     },
+     "ccx_tip_peak": {
+      "hz": 256.7069517017,
+      "mm_per_n": 0.09709264563098802,
+      "phase_deg": -89.91157366524111
+     },
+     "ccx_vs_projection_max_err_over_peak": 1.0768740158392602e-05,
+     "dense": {
+      "modes_12": {
+       "grid_points": 1214,
+       "probe": {
+        "grid_mm_per_n": 0.03315822759414306,
+        "hz": 256.61636790277885,
+        "mm_per_n": 0.03316339315363273,
+        "phase_deg": -89.12550870065878,
+        "sampling_loss_rel": 0.000155760885677208
+       },
+       "tip": {
+        "grid_mm_per_n": 0.09709745459487812,
+        "hz": 256.597041717533,
+        "mm_per_n": 0.09711479877562343,
+        "phase_deg": -88.69470689644506,
+        "sampling_loss_rel": 0.00017859462166402185
+       }
+      },
+      "modes_24": {
+       "grid_points": 1214,
+       "probe": {
+        "grid_mm_per_n": 0.03315822993963206,
+        "hz": 256.61659445470576,
+        "mm_per_n": 0.03316336360156966,
+        "phase_deg": -89.13116310568698,
+        "sampling_loss_rel": 0.0001547991934498271
+       },
+       "tip": {
+        "grid_mm_per_n": 0.0970978462672139,
+        "hz": 256.59664575004797,
+        "mm_per_n": 0.09711501823108162,
+        "phase_deg": -88.68489807405423,
+        "sampling_loss_rel": 0.0001768208890910989
+       }
+      },
+      "modes_48": {
+       "grid_points": 1214,
+       "probe": {
+        "grid_mm_per_n": 0.03315822947948472,
+        "hz": 256.61659445470576,
+        "mm_per_n": 0.03316336816699612,
+        "phase_deg": -89.13067012292908,
+        "sampling_loss_rel": 0.00015495071204832457
+       },
+       "tip": {
+        "grid_mm_per_n": 0.09709811435158162,
+        "hz": 256.59632540562336,
+        "mm_per_n": 0.09711516797531457,
+        "phase_deg": -88.67760388767465,
+        "sampling_loss_rel": 0.00017560206184556146
+       }
+      }
+     },
+     "ladder_24_vs_48": {
+      "location_ok": true,
+      "peak_rel": 1.541924254119271e-06
+     },
+     "probe_diagnostic_mm_per_n": 0.03316336816699612,
+     "truncation_bound_rel": 0.0001356205026913669,
+     "worst_hz": 256.59632540562336,
+     "worst_mm_per_n": 0.09711516797531457
+    }
+   },
+   "diagnostic_margins": {
+    "dynamic_mm_per_n": -0.23837286016283651,
+    "mass_kg": 0.0753167888444437,
+    "static_mm_per_n": 0.025956159
+   },
+   "eigen_hz": [
+    256.707,
+    553.1065,
+    963.4207,
+    1523.529,
+    1995.151,
+    3636.572,
+    3770.651,
+    4054.963,
+    4548.727,
+    4860.147,
+    5200.521,
+    6166.541,
+    6376.631,
+    6707.806,
+    6737.414,
+    6944.567,
+    8032.637,
+    9168.594,
+    9352.864,
+    10147.92,
+    10277.16,
+    10750.8,
+    10850.86,
+    11290.96,
+    11859.0,
+    11908.32,
+    12398.16,
+    12583.85,
+    12992.12,
+    13108.1,
+    13369.17,
+    13772.57,
+    14008.18,
+    14255.53,
+    14328.23,
+    14685.55,
+    14838.6,
+    15029.81,
+    15462.41,
+    15626.7,
+    15949.5,
+    16201.62,
+    16441.19,
+    16801.96,
+    16883.55,
+    17123.69,
+    17612.03,
+    18041.72
+   ],
+   "h_mm": 2.25,
+   "in_band_modes_hz": [
+    256.707,
+    553.1065
+   ],
+   "mass_kg": 0.3746832111555563,
+   "mass_mesh_vs_cad_rel": 3.751406869889737e-05,
+   "mesh": {
+    "elements": 67454,
+    "nodes": 117896
+   },
+   "modal_static_tip_over_static": 0.996746597783781,
+   "mode_ladder": {
+    "cutoff_hz": 18041.72,
+    "cutoff_ok": true,
+    "ladder_ok": true,
+    "mass_ok": true,
+    "sampling_ok": true,
+    "truncation_ok": true,
+    "verdict": "PASS"
+   },
+   "modes": 48,
+   "objective": "worst-band TIP dynamic compliance over all damping; probe is diagnostic only",
+   "phase_convention": "exp(+i omega t); peak phases near -90 deg at resonance",
+   "probe_diagnostic_worst_mm_per_n": 0.13263604290480346,
+   "static_probe_mm_per_n": 0.001248533,
+   "static_tip_mm_per_n": 0.004043841,
+   "worst_dynamic_mm_per_n": 0.3883728601628365
+  },
+  "relieved-tall-primary": {
+   "bands_decision": "F08-SCIENCE-VALUES-01",
+   "cad_mass_kg": 0.3746691557911066,
+   "case": {
+    "length_mm": 240,
+    "relief_length_mm": 60,
+    "rib_height_mm": 16,
+    "rib_thickness_mm": 4,
+    "thickness_mm": 6,
+    "width_mm": 80
+   },
+   "cost": {
+    "cgroup_cpu_s": 1209.211963296,
+    "cgroup_memory_peak_mib": 4286.16796875,
+    "children_cpu": null,
+    "host_profile": "runpod-cpu-pod-native",
+    "outcome": "COMPLETED",
+    "rusage_cpu_s": 118.209,
+    "wall_s": 118.331
+   },
+   "damping": {
+    "zeta_0.005": {
+     "ccx_points": 58,
+     "ccx_probe_peak": {
+      "hz": 256.7559532811,
+      "mm_per_n": 0.13257117422364517,
+      "phase_deg": -90.03463640694707
+     },
+     "ccx_tip_peak": {
+      "hz": 256.7559532811,
+      "mm_per_n": 0.38825722888927655,
+      "phase_deg": -89.97789725616062
+     },
+     "ccx_vs_projection_max_err_over_peak": 2.8909412459052065e-05,
+     "dense": {
+      "modes_12": {
+       "grid_points": 1243,
+       "probe": {
+        "grid_mm_per_n": 0.1325711939474809,
+        "hz": 256.75029656032234,
+        "mm_per_n": 0.13257251977110557,
+        "phase_deg": -89.78316421482559,
+        "sampling_loss_rel": 1.0000742438584172e-05
+       },
+       "tip": {
+        "grid_mm_per_n": 0.38825719553243826,
+        "hz": 256.7491103190328,
+        "mm_per_n": 0.3882628799292123,
+        "phase_deg": -89.67642129110249,
+        "sampling_loss_rel": 1.4640587776766665e-05
+       }
+      },
+      "modes_24": {
+       "grid_points": 1243,
+       "probe": {
+        "grid_mm_per_n": 0.13257119464297187,
+        "hz": 256.75029656032234,
+        "mm_per_n": 0.13257251243942567,
+        "phase_deg": -89.78394508660915,
+        "sampling_loss_rel": 9.940193706403553e-06
+       },
+       "tip": {
+        "grid_mm_per_n": 0.38825720081552434,
+        "hz": 256.7489703022418,
+        "mm_per_n": 0.38826293474614115,
+        "phase_deg": -89.66882620933487,
+        "sampling_loss_rel": 1.476816379746016e-05
+       }
+      },
+      "modes_48": {
+       "grid_points": 1243,
+       "probe": {
+        "grid_mm_per_n": 0.1325711945178385,
+        "hz": 256.75029656032234,
+        "mm_per_n": 0.1325725135167486,
+        "phase_deg": -89.7838281133963,
+        "sampling_loss_rel": 9.949263803669579e-06
+       },
+       "tip": {
+        "grid_mm_per_n": 0.38825720390794466,
+        "hz": 256.7489703022418,
+        "mm_per_n": 0.38826297223903516,
+        "phase_deg": -89.66789914496557,
+        "sampling_loss_rel": 1.4856763335531679e-05
+       }
+      }
+     },
+     "ladder_24_vs_48": {
+      "location_ok": true,
+      "peak_rel": 9.656572141158938e-08
+     },
+     "probe_diagnostic_mm_per_n": 0.1325725135167486,
+     "truncation_bound_rel": 3.370254359067978e-05,
+     "worst_hz": 256.7489703022418,
+     "worst_mm_per_n": 0.38826297223903516
+    },
+    "zeta_0.01": {
+     "ccx_points": 58,
+     "ccx_probe_peak": {
+      "hz": 256.7559532811,
+      "mm_per_n": 0.06628541761318138,
+      "phase_deg": -90.06927235108238
+     },
+     "ccx_tip_peak": {
+      "hz": 256.7559532811,
+      "mm_per_n": 0.19412895777776287,
+      "phase_deg": -89.95579485284176
+     },
+     "ccx_vs_projection_max_err_over_peak": 1.4454746390235919e-05,
+     "dense": {
+      "modes_12": {
+       "grid_points": 1234,
+       "probe": {
+        "grid_mm_per_n": 0.0662854169075802,
+        "hz": 256.733302185375,
+        "mm_per_n": 0.0662880111004637,
+        "phase_deg": -89.56329034317977,
+        "sampling_loss_rel": 3.9135174527469676e-05
+       },
+       "tip": {
+        "grid_mm_per_n": 0.1941289136083261,
+        "hz": 256.72841720342535,
+        "mm_per_n": 0.1941400788061946,
+        "phase_deg": -89.3466909435131,
+        "sampling_loss_rel": 5.751104015803317e-05
+       }
+      },
+      "modes_24": {
+       "grid_points": 1234,
+       "probe": {
+        "grid_mm_per_n": 0.06628541812156818,
+        "hz": 256.733302185375,
+        "mm_per_n": 0.06628799634149134,
+        "phase_deg": -89.56485200601608,
+        "sampling_loss_rel": 3.889422015217016e-05
+       },
+       "tip": {
+        "grid_mm_per_n": 0.19412892506793672,
+        "hz": 256.7282771866344,
+        "mm_per_n": 0.1941401882805518,
+        "phase_deg": -89.3408745862219,
+        "sampling_loss_rel": 5.8015873554214e-05
+       }
+      },
+      "modes_48": {
+       "grid_points": 1234,
+       "probe": {
+        "grid_mm_per_n": 0.06628541789781486,
+        "hz": 256.733302185375,
+        "mm_per_n": 0.0662879985104637,
+        "phase_deg": -89.56461807142524,
+        "sampling_loss_rel": 3.8930314790378106e-05
+       },
+       "tip": {
+        "grid_mm_per_n": 0.19412893186810018,
+        "hz": 256.7282771866344,
+        "mm_per_n": 0.19414026291152725,
+        "phase_deg": -89.33902063904156,
+        "sampling_loss_rel": 5.8365242001524134e-05
+       }
+      }
+     },
+     "ladder_24_vs_48": {
+      "location_ok": true,
+      "peak_rel": 3.844178138830276e-07
+     },
+     "probe_diagnostic_mm_per_n": 0.0662879985104637,
+     "truncation_bound_rel": 6.740203989780432e-05,
+     "worst_hz": 256.7282771866344,
+     "worst_mm_per_n": 0.19414026291152725
+    },
+    "zeta_0.02": {
+     "ccx_points": 58,
+     "ccx_probe_peak": {
+      "hz": 256.7559532811,
+      "mm_per_n": 0.033142348553565085,
+      "phase_deg": -90.13854109710877
+     },
+     "ccx_tip_peak": {
+      "hz": 256.7559532811,
+      "mm_per_n": 0.09706511554926453,
+      "phase_deg": -89.91159238428077
+     },
+     "ccx_vs_projection_max_err_over_peak": 7.233756676966019e-06,
+     "dense": {
+      "modes_12": {
+       "grid_points": 1213,
+       "probe": {
+        "grid_mm_per_n": 0.03314234813668119,
+        "hz": 256.6653781672405,
+        "mm_per_n": 0.033147509349606114,
+        "phase_deg": -89.12555921771651,
+        "sampling_loss_rel": 0.00015570439608264577
+       },
+       "tip": {
+        "grid_mm_per_n": 0.09706508787854443,
+        "hz": 256.64615132650476,
+        "mm_per_n": 0.09708732065619365,
+        "phase_deg": -88.69594093775612,
+        "sampling_loss_rel": 0.0002289977465538544
+       }
+      },
+      "modes_24": {
+       "grid_points": 1213,
+       "probe": {
+        "grid_mm_per_n": 0.033142350476052226,
+        "hz": 256.6656047191674,
+        "mm_per_n": 0.03314747984576165,
+        "phase_deg": -89.1312099474942,
+        "sampling_loss_rel": 0.000154743881987101
+       },
+       "tip": {
+        "grid_mm_per_n": 0.09706511124405842,
+        "hz": 256.64564474099586,
+        "mm_per_n": 0.09708753967919545,
+        "phase_deg": -88.68490736637135,
+        "sampling_loss_rel": 0.00023101249873195247
+       }
+      },
+      "modes_48": {
+       "grid_points": 1213,
+       "probe": {
+        "grid_mm_per_n": 0.033142350041818494,
+        "hz": 256.6656047191674,
+        "mm_per_n": 0.03314748417639195,
+        "phase_deg": -89.1307421726008,
+        "sampling_loss_rel": 0.0001548876091510456
+       },
+       "tip": {
+        "grid_mm_per_n": 0.0970651251517601,
+        "hz": 256.6452781722779,
+        "mm_per_n": 0.0970876888381888,
+        "phase_deg": -88.67711118703915,
+        "sampling_loss_rel": 0.00023240522767310542
+       }
+      }
+     },
+     "ladder_24_vs_48": {
+      "location_ok": true,
+      "peak_rel": 1.5363327228821153e-06
+     },
+     "probe_diagnostic_mm_per_n": 0.03314748417639195,
+     "truncation_bound_rel": 0.00013477970176364835,
+     "worst_hz": 256.6452781722779,
+     "worst_mm_per_n": 0.0970876888381888
+    }
+   },
+   "diagnostic_margins": {
+    "dynamic_mm_per_n": -0.23826297223903517,
+    "mass_kg": 0.07529516555936194,
+    "static_mm_per_n": 0.025957414999999998
+   },
+   "eigen_hz": [
+    256.756,
+    553.8859,
+    963.6633,
+    1524.071,
+    1997.177,
+    3643.048,
+    3772.923,
+    4058.892,
+    4552.155,
+    4867.405,
+    5200.946,
+    6177.988,
+    6391.681,
+    6718.378,
+    6745.472,
+    6962.548,
+    8051.834,
+    9186.603,
+    9370.003,
+    10207.76,
+    10306.51,
+    10816.94,
+    10888.31,
+    11352.8,
+    11895.95,
+    11947.19,
+    12535.69,
+    12670.36,
+    13130.14,
+    13167.81,
+    13474.71,
+    13893.8,
+    14102.14,
+    14311.24,
+    14395.92,
+    14772.87,
+    14930.3,
+    15129.1,
+    15562.63,
+    15710.42,
+    15994.55,
+    16255.21,
+    16513.59,
+    16876.61,
+    16961.74,
+    17215.54,
+    17739.16,
+    18095.72
+   ],
+   "h_mm": 3.0,
+   "in_band_modes_hz": [
+    256.756,
+    553.8859
+   ],
+   "mass_kg": 0.37470483444063807,
+   "mass_mesh_vs_cad_rel": 9.522707962477677e-05,
+   "mesh": {
+    "elements": 30795,
+    "nodes": 56888
+   },
+   "modal_static_tip_over_static": 0.9967666570356291,
+   "mode_ladder": {
+    "cutoff_hz": 18095.72,
+    "cutoff_ok": true,
+    "ladder_ok": true,
+    "mass_ok": true,
+    "sampling_ok": true,
+    "truncation_ok": true,
+    "verdict": "PASS"
+   },
+   "modes": 48,
+   "objective": "worst-band TIP dynamic compliance over all damping; probe is diagnostic only",
+   "phase_convention": "exp(+i omega t); peak phases near -90 deg at resonance",
+   "probe_diagnostic_worst_mm_per_n": 0.1325725135167486,
+   "static_probe_mm_per_n": 0.0012479510833333333,
+   "static_tip_mm_per_n": 0.004042585,
+   "worst_dynamic_mm_per_n": 0.38826297223903516
+  },
+  "short-wide-primary": {
+   "bands_decision": "F08-SCIENCE-VALUES-01",
+   "cad_mass_kg": 0.4580868743881422,
+   "case": {
+    "length_mm": 180,
+    "relief_length_mm": 20,
+    "rib_height_mm": 16,
+    "rib_thickness_mm": 5,
+    "thickness_mm": 8,
+    "width_mm": 100
+   },
+   "cost": {
+    "cgroup_cpu_s": 971.921641084,
+    "cgroup_memory_peak_mib": 4286.16796875,
+    "children_cpu": null,
+    "host_profile": "runpod-cpu-pod-native",
+    "outcome": "COMPLETED",
+    "rusage_cpu_s": 143.809,
+    "wall_s": 143.94
+   },
+   "damping": {
+    "zeta_0.005": {
+     "ccx_points": 39,
+     "ccx_probe_peak": {
+      "hz": 460.6034738436,
+      "mm_per_n": 0.03401854072600346,
+      "phase_deg": -90.04369548504755
+     },
+     "ccx_tip_peak": {
+      "hz": 460.6034738436,
+      "mm_per_n": 0.09830842072571751,
+      "phase_deg": -89.96279536353687
+     },
+     "ccx_vs_projection_max_err_over_peak": 1.431283090929448e-06,
+     "dense": {
+      "modes_12": {
+       "grid_points": 1142,
+       "probe": {
+        "grid_mm_per_n": 0.034018540297742414,
+        "hz": 460.5936854000505,
+        "mm_per_n": 0.0340188486451534,
+        "phase_deg": -89.79949445141955,
+        "sampling_loss_rel": 9.064016663311512e-06
+       },
+       "tip": {
+        "grid_mm_per_n": 0.0983084068738484,
+        "hz": 460.5907197968264,
+        "mm_per_n": 0.09830992819652153,
+        "phase_deg": -89.65091237039229,
+        "sampling_loss_rel": 1.547476130882256e-05
+       }
+      },
+      "modes_24": {
+       "grid_points": 1142,
+       "probe": {
+        "grid_mm_per_n": 0.03401854034352748,
+        "hz": 460.5936854000505,
+        "mm_per_n": 0.03401884847778359,
+        "phase_deg": -89.79957869108723,
+        "sampling_loss_rel": 9.057750920401638e-06
+       },
+       "tip": {
+        "grid_mm_per_n": 0.09830840953347011,
+        "hz": 460.59057978003534,
+        "mm_per_n": 0.0983099466336083,
+        "phase_deg": -89.64577975616864,
+        "sampling_loss_rel": 1.563524537261661e-05
+       }
+      },
+      "modes_48": {
+       "grid_points": 1142,
+       "probe": {
+        "grid_mm_per_n": 0.03401854048798925,
+        "hz": 460.5936854000505,
+        "mm_per_n": 0.03401884733179901,
+        "phase_deg": -89.80008868135349,
+        "sampling_loss_rel": 9.01981794867829e-06
+       },
+       "tip": {
+        "grid_mm_per_n": 0.09830841512054093,
+        "hz": 460.5903532281085,
+        "mm_per_n": 0.0983099892999082,
+        "phase_deg": -89.63629159030216,
+        "sampling_loss_rel": 1.6012405030978996e-05
+       }
+      }
+     },
+     "ladder_24_vs_48": {
+      "location_ok": true,
+      "peak_rel": 4.3399760492040113e-07
+     },
+     "probe_diagnostic_mm_per_n": 0.03401884733179901,
+     "truncation_bound_rel": 4.470272714877273e-05,
+     "worst_hz": 460.5903532281085,
+     "worst_mm_per_n": 0.0983099892999082
+    },
+    "zeta_0.01": {
+     "ccx_points": 39,
+     "ccx_probe_peak": {
+      "hz": 460.6034738436,
+      "mm_per_n": 0.017009210618323375,
+      "phase_deg": -90.08739035647649
+     },
+     "ccx_tip_peak": {
+      "hz": 460.6034738436,
+      "mm_per_n": 0.049154361450840185,
+      "phase_deg": -89.92559137138514
+     },
+     "ccx_vs_projection_max_err_over_peak": 7.157027856688924e-07,
+     "dense": {
+      "modes_12": {
+       "grid_points": 1142,
+       "probe": {
+        "grid_mm_per_n": 0.01700920924195628,
+        "hz": 460.56440856183355,
+        "mm_per_n": 0.017009823829266194,
+        "phase_deg": -89.60019817487508,
+        "sampling_loss_rel": 3.6131315414215407e-05
+       },
+       "tip": {
+        "grid_mm_per_n": 0.049154341582347084,
+        "hz": 460.55221263369987,
+        "mm_per_n": 0.049157376220174395,
+        "phase_deg": -89.29890119575319,
+        "sampling_loss_rel": 6.173311231500094e-05
+       }
+      },
+      "modes_24": {
+       "grid_points": 1142,
+       "probe": {
+        "grid_mm_per_n": 0.01700920933278112,
+        "hz": 460.56440856183355,
+        "mm_per_n": 0.017009823495582475,
+        "phase_deg": -89.60036664768056,
+        "sampling_loss_rel": 3.610635945250735e-05
+       },
+       "tip": {
+        "grid_mm_per_n": 0.0491543469436913,
+        "hz": 460.55207261690884,
+        "mm_per_n": 0.04915741311922434,
+        "phase_deg": -89.29386146857377,
+        "sampling_loss_rel": 6.237463158620396e-05
+       }
+      },
+      "modes_48": {
+       "grid_points": 1142,
+       "probe": {
+        "grid_mm_per_n": 0.017009209617192832,
+        "hz": 460.56440856183355,
+        "mm_per_n": 0.017009821210032094,
+        "phase_deg": -89.60138658233868,
+        "sampling_loss_rel": 3.5955277348868905e-05
+       },
+       "tip": {
+        "grid_mm_per_n": 0.04915443503049173,
+        "hz": 460.55145135302337,
+        "mm_per_n": 0.0491574986572353,
+        "phase_deg": -89.27843065609311,
+        "sampling_loss_rel": 6.232267359519886e-05
+       }
+      }
+     },
+     "ladder_24_vs_48": {
+      "location_ok": true,
+      "peak_rel": 1.7400806244333407e-06
+     },
+     "probe_diagnostic_mm_per_n": 0.017009821210032094,
+     "truncation_bound_rel": 8.940090012138404e-05,
+     "worst_hz": 460.55145135302337,
+     "worst_mm_per_n": 0.0491574986572353
+    },
+    "zeta_0.02": {
+     "ccx_points": 39,
+     "ccx_probe_peak": {
+      "hz": 460.6034738436,
+      "mm_per_n": 0.00850448431720316,
+      "phase_deg": -90.17477587407281
+     },
+     "ccx_tip_peak": {
+      "hz": 460.6034738436,
+      "mm_per_n": 0.024577482896896014,
+      "phase_deg": -89.85118792048199
+     },
+     "ccx_vs_projection_max_err_over_peak": 4.114704169693587e-07,
+     "dense": {
+      "modes_12": {
+       "grid_points": 1142,
+       "probe": {
+        "grid_mm_per_n": 0.008505570083193593,
+        "hz": 460.4469761629853,
+        "mm_per_n": 0.008505711299353935,
+        "phase_deg": -89.19887019205873,
+        "sampling_loss_rel": 1.6602510404093513e-05
+       },
+       "tip": {
+        "grid_mm_per_n": 0.024582030884134416,
+        "hz": 460.3988972235883,
+        "mm_per_n": 0.024583513291441123,
+        "phase_deg": -88.60078637597556,
+        "sampling_loss_rel": 6.030087274882708e-05
+       }
+      },
+      "modes_24": {
+       "grid_points": 1142,
+       "probe": {
+        "grid_mm_per_n": 0.008505569702424071,
+        "hz": 460.4469761629853,
+        "mm_per_n": 0.008505710630656487,
+        "phase_deg": -89.19920708525456,
+        "sampling_loss_rel": 1.6568660578166106e-05
+       },
+       "tip": {
+        "grid_mm_per_n": 0.0245820734192509,
+        "hz": 460.39773887852743,
+        "mm_per_n": 0.02458358706381473,
+        "phase_deg": -88.58698957266836,
+        "sampling_loss_rel": 6.157134676474845e-05
+       }
+      },
+      "modes_48": {
+       "grid_points": 1142,
+       "probe": {
+        "grid_mm_per_n": 0.0085055668664978,
+        "hz": 460.4472496111611,
+        "mm_per_n": 0.008505706056624577,
+        "phase_deg": -89.20294755912549,
+        "sampling_loss_rel": 1.636432364935271e-05
+       },
+       "tip": {
+        "grid_mm_per_n": 0.02458217026616593,
+        "hz": 460.39514874022996,
+        "mm_per_n": 0.024583758133500597,
+        "phase_deg": -88.55548289503321,
+        "sampling_loss_rel": 6.459009749623663e-05
+       }
+      }
+     },
+     "ladder_24_vs_48": {
+      "location_ok": true,
+      "peak_rel": 6.958646637320556e-06
+     },
+     "probe_diagnostic_mm_per_n": 0.008505706056624577,
+     "truncation_bound_rel": 0.00017876537036393212,
+     "worst_hz": 460.39514874022996,
+     "worst_mm_per_n": 0.024583758133500597
+    }
+   },
+   "diagnostic_margins": {
+    "dynamic_mm_per_n": 0.0516900107000918,
+    "mass_kg": -0.008142410112495835,
+    "static_mm_per_n": 0.028949857
+   },
+   "eigen_hz": [
+    460.6035,
+    871.4138,
+    1988.321,
+    2557.827,
+    3173.689,
+    4056.762,
+    5704.748,
+    6247.496,
+    6544.81,
+    6968.433,
+    7124.391,
+    8506.219,
+    9735.6,
+    10448.67,
+    10464.28,
+    11028.79,
+    11868.69,
+    12028.58,
+    13489.1,
+    13858.99,
+    14015.62,
+    14565.65,
+    14830.83,
+    14930.41,
+    15272.3,
+    15441.37,
+    15509.03,
+    15612.75,
+    16629.54,
+    17242.43,
+    18147.72,
+    19205.25,
+    19338.21,
+    19551.62,
+    19595.15,
+    19824.41,
+    19985.72,
+    20141.38,
+    20440.19,
+    21490.53,
+    21719.51,
+    21848.83,
+    23076.84,
+    23864.15,
+    24067.7,
+    24217.64,
+    24687.4,
+    24864.44
+   ],
+   "h_mm": 3.0,
+   "in_band_modes_hz": [
+    460.6035
+   ],
+   "mass_kg": 0.45814241011249585,
+   "mass_mesh_vs_cad_rel": 0.00012123404414895334,
+   "mesh": {
+    "elements": 34422,
+    "nodes": 60738
+   },
+   "modal_static_tip_over_static": 0.9958175547622854,
+   "mode_ladder": {
+    "cutoff_hz": 24864.44,
+    "cutoff_ok": true,
+    "ladder_ok": true,
+    "mass_ok": true,
+    "sampling_ok": true,
+    "truncation_ok": true,
+    "verdict": "PASS"
+   },
+   "modes": 48,
+   "objective": "worst-band TIP dynamic compliance over all damping; probe is diagnostic only",
+   "phase_convention": "exp(+i omega t); peak phases near -90 deg at resonance",
+   "probe_diagnostic_worst_mm_per_n": 0.03401884733179901,
+   "static_probe_mm_per_n": 0.0003151487083333333,
+   "static_tip_mm_per_n": 0.001050143,
+   "worst_dynamic_mm_per_n": 0.0983099892999082
+  },
+  "small-light-cold-repeat": {
+   "bands_decision": "F08-SCIENCE-VALUES-01",
+   "cad_mass_kg": 0.13573143719407108,
+   "case": {
+    "length_mm": 180,
+    "relief_length_mm": 20,
+    "rib_height_mm": 8,
+    "rib_thickness_mm": 3,
+    "thickness_mm": 4,
+    "width_mm": 60
+   },
+   "cost": {
+    "cgroup_cpu_s": 5094.221625718,
+    "cgroup_memory_peak_mib": 15469.32421875,
+    "children_cpu": null,
+    "host_profile": "runpod-cpu-pod-native",
+    "outcome": "COMPLETED",
+    "rusage_cpu_s": 35.727,
+    "wall_s": 35.78
+   },
+   "damping": {
+    "zeta_0.005": {
+     "ccx_points": 39,
+     "ccx_probe_peak": {
+      "hz": 233.2127899662,
+      "mm_per_n": 0.44471256215672467,
+      "phase_deg": -90.03225981491107
+     },
+     "ccx_tip_peak": {
+      "hz": 233.2127899662,
+      "mm_per_n": 1.305822071826788,
+      "phase_deg": -89.9809962699767
+     },
+     "ccx_vs_projection_max_err_over_peak": 2.3935930198694737e-05,
+     "dense": {
+      "modes_12": {
+       "grid_points": 1142,
+       "probe": {
+        "grid_mm_per_n": 0.44471258394992563,
+        "hz": 233.20758244309133,
+        "mm_per_n": 0.44471703554298164,
+        "phase_deg": -89.77747532158854,
+        "sampling_loss_rel": 1.0009944976752243e-05
+       },
+       "tip": {
+        "grid_mm_per_n": 1.3058216945727075,
+        "hz": 233.20652428549323,
+        "mm_per_n": 1.3058402891966367,
+        "phase_deg": -89.67606863279376,
+        "sampling_loss_rel": 1.4239585103259128e-05
+       }
+      },
+      "modes_24": {
+       "grid_points": 1142,
+       "probe": {
+        "grid_mm_per_n": 0.44471258520210094,
+        "hz": 233.20758244309133,
+        "mm_per_n": 0.44471702373196353,
+        "phase_deg": -89.77785145134911,
+        "sampling_loss_rel": 9.980571072693858e-06
+       },
+       "tip": {
+        "grid_mm_per_n": 1.3058217074890146,
+        "hz": 233.20652428549323,
+        "mm_per_n": 1.3058404388594298,
+        "phase_deg": -89.67495381766872,
+        "sampling_loss_rel": 1.4344302609860403e-05
+       }
+      },
+      "modes_48": {
+       "grid_points": 1142,
+       "probe": {
+        "grid_mm_per_n": 0.44471258484182974,
+        "hz": 233.20758244309133,
+        "mm_per_n": 0.4447170268276767,
+        "phase_deg": -89.77775194287497,
+        "sampling_loss_rel": 9.988342201933555e-06
+       },
+       "tip": {
+        "grid_mm_per_n": 1.3058217117320357,
+        "hz": 233.20652428549323,
+        "mm_per_n": 1.3058404992220367,
+        "phase_deg": -89.67449630723674,
+        "sampling_loss_rel": 1.4387277781821448e-05
+       }
+      }
+     },
+     "ladder_24_vs_48": {
+      "location_ok": true,
+      "peak_rel": 4.622509942741915e-08
+     },
+     "probe_diagnostic_mm_per_n": 0.4447170268276767,
+     "truncation_bound_rel": 9.326696090626053e-06,
+     "worst_hz": 233.20652428549323,
+     "worst_mm_per_n": 1.3058404992220367
+    },
+    "zeta_0.01": {
+     "ccx_points": 39,
+     "ccx_probe_peak": {
+      "hz": 233.2127899662,
+      "mm_per_n": 0.2223557493113333,
+      "phase_deg": -90.06451922531345
+     },
+     "ccx_tip_peak": {
+      "hz": 233.2127899662,
+      "mm_per_n": 0.6529119436515304,
+      "phase_deg": -89.96199283641616
+     },
+     "ccx_vs_projection_max_err_over_peak": 1.1967888606049099e-05,
+     "dense": {
+      "modes_12": {
+       "grid_points": 1144,
+       "probe": {
+        "grid_mm_per_n": 0.2223557427621875,
+        "hz": 233.19205597095123,
+        "mm_per_n": 0.22236454971566008,
+        "phase_deg": -89.55524165771725,
+        "sampling_loss_rel": 3.960592407306068e-05
+       },
+       "tip": {
+        "grid_mm_per_n": 0.6529117908727955,
+        "hz": 233.18799066157334,
+        "mm_per_n": 0.6529486451220706,
+        "phase_deg": -89.35654893065907,
+        "sampling_loss_rel": 5.6442799216224945e-05
+       }
+      },
+      "modes_24": {
+       "grid_points": 1144,
+       "probe": {
+        "grid_mm_per_n": 0.22235574512401926,
+        "hz": 233.19205597095123,
+        "mm_per_n": 0.22236452610870994,
+        "phase_deg": -89.55599387837792,
+        "sampling_loss_rel": 3.94891435443406e-05
+       },
+       "tip": {
+        "grid_mm_per_n": 0.6529118179454533,
+        "hz": 233.18799066157334,
+        "mm_per_n": 0.6529489424851838,
+        "phase_deg": -89.35431951249707,
+        "sampling_loss_rel": 5.685672694281823e-05
+       }
+      },
+      "modes_48": {
+       "grid_points": 1144,
+       "probe": {
+        "grid_mm_per_n": 0.2223557444411815,
+        "hz": 233.19205597095123,
+        "mm_per_n": 0.22236453229615047,
+        "phase_deg": -89.55579487161155,
+        "sampling_loss_rel": 3.952003891188437e-05
+       },
+       "tip": {
+        "grid_mm_per_n": 0.6529118269403997,
+        "hz": 233.18785064478232,
+        "mm_per_n": 0.6529490628748711,
+        "phase_deg": -89.34996469574695,
+        "sampling_loss_rel": 5.702731895718142e-05
+       }
+      }
+     },
+     "ladder_24_vs_48": {
+      "location_ok": true,
+      "peak_rel": 1.8437837524452253e-07
+     },
+     "probe_diagnostic_mm_per_n": 0.22236453229615047,
+     "truncation_bound_rel": 1.865256904643007e-05,
+     "worst_hz": 233.18785064478232,
+     "worst_mm_per_n": 0.6529490628748711
+    },
+    "zeta_0.02": {
+     "ccx_points": 39,
+     "ccx_probe_peak": {
+      "hz": 233.2127899662,
+      "mm_per_n": 0.11117679027227009,
+      "phase_deg": -90.12903519576173
+     },
+     "ccx_tip_peak": {
+      "hz": 233.2127899662,
+      "mm_per_n": 0.326457887287009,
+      "phase_deg": -89.9239880151477
+     },
+     "ccx_vs_projection_max_err_over_peak": 5.983601381237989e-06,
+     "dense": {
+      "modes_12": {
+       "grid_points": 1168,
+       "probe": {
+        "grid_mm_per_n": 0.11117677283086518,
+        "hz": 233.12989008899325,
+        "mm_per_n": 0.11119434349911009,
+        "phase_deg": -89.10979545818005,
+        "sampling_loss_rel": 0.00015801764453110773
+       },
+       "tip": {
+        "grid_mm_per_n": 0.3264577820410944,
+        "hz": 233.1137153866175,
+        "mm_per_n": 0.3265313355530755,
+        "phase_deg": -88.71355237809422,
+        "sampling_loss_rel": 0.00022525713146808387
+       }
+      },
+      "modes_24": {
+       "grid_points": 1168,
+       "probe": {
+        "grid_mm_per_n": 0.11117677748311237,
+        "hz": 233.12997662412909,
+        "mm_per_n": 0.11119429627831445,
+        "phase_deg": -89.11236269152874,
+        "sampling_loss_rel": 0.00015755120350984648
+       },
+       "tip": {
+        "grid_mm_per_n": 0.32645783680541046,
+        "hz": 233.11348883469063,
+        "mm_per_n": 0.3265319306435709,
+        "phase_deg": -88.70631244779047,
+        "sampling_loss_rel": 0.00022691146318950687
+       }
+      },
+      "modes_48": {
+       "grid_points": 1168,
+       "probe": {
+        "grid_mm_per_n": 0.11117677613633074,
+        "hz": 233.12997662412909,
+        "mm_per_n": 0.11119430864763485,
+        "phase_deg": -89.11196475942994,
+        "sampling_loss_rel": 0.00015767453853838718
+       },
+       "tip": {
+        "grid_mm_per_n": 0.32645785504934516,
+        "hz": 233.11326228276374,
+        "mm_per_n": 0.3265321712405877,
+        "phase_deg": -88.70170047610118,
+        "sampling_loss_rel": 0.00022759224905831598
+       }
+      }
+     },
+     "ladder_24_vs_48": {
+      "location_ok": true,
+      "peak_rel": 7.368248460648364e-07
+     },
+     "probe_diagnostic_mm_per_n": 0.11119430864763485,
+     "truncation_bound_rel": 3.729855295055068e-05,
+     "worst_hz": 233.11326228276374,
+     "worst_mm_per_n": 0.3265321712405877
+    }
+   },
+   "diagnostic_margins": {
+    "dynamic_mm_per_n": -1.1558404992220368,
+    "mass_kg": 0.31425128545607517,
+    "static_mm_per_n": 0.016505159999999998
+   },
+   "eigen_hz": [
+    233.2128,
+    664.7178,
+    1348.189,
+    1415.068,
+    2274.594,
+    3699.512,
+    4468.036,
+    5568.089,
+    6253.256,
+    6495.428,
+    6799.501,
+    7019.395,
+    7409.229,
+    8529.606,
+    10203.59,
+    10629.26,
+    10946.37,
+    11128.92,
+    13280.79,
+    13354.14,
+    14287.93,
+    14335.55,
+    15091.3,
+    16820.98,
+    17273.16,
+    17891.82,
+    18050.48,
+    18508.19,
+    19669.27,
+    20036.83,
+    20243.51,
+    21739.57,
+    22334.98,
+    22384.22,
+    23916.17,
+    24554.79,
+    25029.45,
+    25194.03,
+    25711.42,
+    26102.99,
+    26733.33,
+    26835.06,
+    27318.17,
+    27933.66,
+    28291.9,
+    29583.36,
+    29798.78,
+    29947.63
+   ],
+   "h_mm": 3.0,
+   "in_band_modes_hz": [
+    233.2128
+   ],
+   "mass_kg": 0.13574871454392484,
+   "mass_mesh_vs_cad_rel": 0.0001272907014832799,
+   "mesh": {
+    "elements": 12384,
+    "nodes": 25047
+   },
+   "modal_static_tip_over_static": 0.9990978560134973,
+   "mode_ladder": {
+    "cutoff_hz": 29947.63,
+    "cutoff_ok": true,
+    "ladder_ok": true,
+    "mass_ok": true,
+    "sampling_ok": true,
+    "truncation_ok": true,
+    "verdict": "PASS"
+   },
+   "modes": 48,
+   "objective": "worst-band TIP dynamic compliance over all damping; probe is diagnostic only",
+   "phase_convention": "exp(+i omega t); peak phases near -90 deg at resonance",
+   "probe_diagnostic_worst_mm_per_n": 0.4447170268276767,
+   "static_probe_mm_per_n": 0.004203706416666666,
+   "static_tip_mm_per_n": 0.01349484,
+   "worst_dynamic_mm_per_n": 1.3058404992220367
+  },
+  "small-light-primary": {
+   "bands_decision": "F08-SCIENCE-VALUES-01",
+   "cad_mass_kg": 0.13573143719407108,
+   "case": {
+    "length_mm": 180,
+    "relief_length_mm": 20,
+    "rib_height_mm": 8,
+    "rib_thickness_mm": 3,
+    "thickness_mm": 4,
+    "width_mm": 60
+   },
+   "cost": {
+    "cgroup_cpu_s": 362.375176399,
+    "cgroup_memory_peak_mib": 2887.8828125,
+    "children_cpu": null,
+    "host_profile": "runpod-cpu-pod-native",
+    "outcome": "COMPLETED",
+    "rusage_cpu_s": 36.532,
+    "wall_s": 36.592
+   },
+   "damping": {
+    "zeta_0.005": {
+     "ccx_points": 39,
+     "ccx_probe_peak": {
+      "hz": 233.2127899662,
+      "mm_per_n": 0.44471256215672467,
+      "phase_deg": -90.03225981491107
+     },
+     "ccx_tip_peak": {
+      "hz": 233.2127899662,
+      "mm_per_n": 1.305822071826788,
+      "phase_deg": -89.9809962699767
+     },
+     "ccx_vs_projection_max_err_over_peak": 2.3935930198694737e-05,
+     "dense": {
+      "modes_12": {
+       "grid_points": 1142,
+       "probe": {
+        "grid_mm_per_n": 0.44471258394992563,
+        "hz": 233.20758244309133,
+        "mm_per_n": 0.44471703554298164,
+        "phase_deg": -89.77747532158854,
+        "sampling_loss_rel": 1.0009944976752243e-05
+       },
+       "tip": {
+        "grid_mm_per_n": 1.3058216945727075,
+        "hz": 233.20652428549323,
+        "mm_per_n": 1.3058402891966367,
+        "phase_deg": -89.67606863279376,
+        "sampling_loss_rel": 1.4239585103259128e-05
+       }
+      },
+      "modes_24": {
+       "grid_points": 1142,
+       "probe": {
+        "grid_mm_per_n": 0.44471258520210094,
+        "hz": 233.20758244309133,
+        "mm_per_n": 0.44471702373196353,
+        "phase_deg": -89.77785145134911,
+        "sampling_loss_rel": 9.980571072693858e-06
+       },
+       "tip": {
+        "grid_mm_per_n": 1.3058217074890146,
+        "hz": 233.20652428549323,
+        "mm_per_n": 1.3058404388594298,
+        "phase_deg": -89.67495381766872,
+        "sampling_loss_rel": 1.4344302609860403e-05
+       }
+      },
+      "modes_48": {
+       "grid_points": 1142,
+       "probe": {
+        "grid_mm_per_n": 0.44471258484182974,
+        "hz": 233.20758244309133,
+        "mm_per_n": 0.4447170268276767,
+        "phase_deg": -89.77775194287497,
+        "sampling_loss_rel": 9.988342201933555e-06
+       },
+       "tip": {
+        "grid_mm_per_n": 1.3058217117320357,
+        "hz": 233.20652428549323,
+        "mm_per_n": 1.3058404992220367,
+        "phase_deg": -89.67449630723674,
+        "sampling_loss_rel": 1.4387277781821448e-05
+       }
+      }
+     },
+     "ladder_24_vs_48": {
+      "location_ok": true,
+      "peak_rel": 4.622509942741915e-08
+     },
+     "probe_diagnostic_mm_per_n": 0.4447170268276767,
+     "truncation_bound_rel": 9.326696090626053e-06,
+     "worst_hz": 233.20652428549323,
+     "worst_mm_per_n": 1.3058404992220367
+    },
+    "zeta_0.01": {
+     "ccx_points": 39,
+     "ccx_probe_peak": {
+      "hz": 233.2127899662,
+      "mm_per_n": 0.2223557493113333,
+      "phase_deg": -90.06451922531345
+     },
+     "ccx_tip_peak": {
+      "hz": 233.2127899662,
+      "mm_per_n": 0.6529119436515304,
+      "phase_deg": -89.96199283641616
+     },
+     "ccx_vs_projection_max_err_over_peak": 1.1967888606049099e-05,
+     "dense": {
+      "modes_12": {
+       "grid_points": 1144,
+       "probe": {
+        "grid_mm_per_n": 0.2223557427621875,
+        "hz": 233.19205597095123,
+        "mm_per_n": 0.22236454971566008,
+        "phase_deg": -89.55524165771725,
+        "sampling_loss_rel": 3.960592407306068e-05
+       },
+       "tip": {
+        "grid_mm_per_n": 0.6529117908727955,
+        "hz": 233.18799066157334,
+        "mm_per_n": 0.6529486451220706,
+        "phase_deg": -89.35654893065907,
+        "sampling_loss_rel": 5.6442799216224945e-05
+       }
+      },
+      "modes_24": {
+       "grid_points": 1144,
+       "probe": {
+        "grid_mm_per_n": 0.22235574512401926,
+        "hz": 233.19205597095123,
+        "mm_per_n": 0.22236452610870994,
+        "phase_deg": -89.55599387837792,
+        "sampling_loss_rel": 3.94891435443406e-05
+       },
+       "tip": {
+        "grid_mm_per_n": 0.6529118179454533,
+        "hz": 233.18799066157334,
+        "mm_per_n": 0.6529489424851838,
+        "phase_deg": -89.35431951249707,
+        "sampling_loss_rel": 5.685672694281823e-05
+       }
+      },
+      "modes_48": {
+       "grid_points": 1144,
+       "probe": {
+        "grid_mm_per_n": 0.2223557444411815,
+        "hz": 233.19205597095123,
+        "mm_per_n": 0.22236453229615047,
+        "phase_deg": -89.55579487161155,
+        "sampling_loss_rel": 3.952003891188437e-05
+       },
+       "tip": {
+        "grid_mm_per_n": 0.6529118269403997,
+        "hz": 233.18785064478232,
+        "mm_per_n": 0.6529490628748711,
+        "phase_deg": -89.34996469574695,
+        "sampling_loss_rel": 5.702731895718142e-05
+       }
+      }
+     },
+     "ladder_24_vs_48": {
+      "location_ok": true,
+      "peak_rel": 1.8437837524452253e-07
+     },
+     "probe_diagnostic_mm_per_n": 0.22236453229615047,
+     "truncation_bound_rel": 1.865256904643007e-05,
+     "worst_hz": 233.18785064478232,
+     "worst_mm_per_n": 0.6529490628748711
+    },
+    "zeta_0.02": {
+     "ccx_points": 39,
+     "ccx_probe_peak": {
+      "hz": 233.2127899662,
+      "mm_per_n": 0.11117679027227009,
+      "phase_deg": -90.12903519576173
+     },
+     "ccx_tip_peak": {
+      "hz": 233.2127899662,
+      "mm_per_n": 0.326457887287009,
+      "phase_deg": -89.9239880151477
+     },
+     "ccx_vs_projection_max_err_over_peak": 5.983601381237989e-06,
+     "dense": {
+      "modes_12": {
+       "grid_points": 1168,
+       "probe": {
+        "grid_mm_per_n": 0.11117677283086518,
+        "hz": 233.12989008899325,
+        "mm_per_n": 0.11119434349911009,
+        "phase_deg": -89.10979545818005,
+        "sampling_loss_rel": 0.00015801764453110773
+       },
+       "tip": {
+        "grid_mm_per_n": 0.3264577820410944,
+        "hz": 233.1137153866175,
+        "mm_per_n": 0.3265313355530755,
+        "phase_deg": -88.71355237809422,
+        "sampling_loss_rel": 0.00022525713146808387
+       }
+      },
+      "modes_24": {
+       "grid_points": 1168,
+       "probe": {
+        "grid_mm_per_n": 0.11117677748311237,
+        "hz": 233.12997662412909,
+        "mm_per_n": 0.11119429627831445,
+        "phase_deg": -89.11236269152874,
+        "sampling_loss_rel": 0.00015755120350984648
+       },
+       "tip": {
+        "grid_mm_per_n": 0.32645783680541046,
+        "hz": 233.11348883469063,
+        "mm_per_n": 0.3265319306435709,
+        "phase_deg": -88.70631244779047,
+        "sampling_loss_rel": 0.00022691146318950687
+       }
+      },
+      "modes_48": {
+       "grid_points": 1168,
+       "probe": {
+        "grid_mm_per_n": 0.11117677613633074,
+        "hz": 233.12997662412909,
+        "mm_per_n": 0.11119430864763485,
+        "phase_deg": -89.11196475942994,
+        "sampling_loss_rel": 0.00015767453853838718
+       },
+       "tip": {
+        "grid_mm_per_n": 0.32645785504934516,
+        "hz": 233.11326228276374,
+        "mm_per_n": 0.3265321712405877,
+        "phase_deg": -88.70170047610118,
+        "sampling_loss_rel": 0.00022759224905831598
+       }
+      }
+     },
+     "ladder_24_vs_48": {
+      "location_ok": true,
+      "peak_rel": 7.368248460648364e-07
+     },
+     "probe_diagnostic_mm_per_n": 0.11119430864763485,
+     "truncation_bound_rel": 3.729855295055068e-05,
+     "worst_hz": 233.11326228276374,
+     "worst_mm_per_n": 0.3265321712405877
+    }
+   },
+   "diagnostic_margins": {
+    "dynamic_mm_per_n": -1.1558404992220368,
+    "mass_kg": 0.31425128545607517,
+    "static_mm_per_n": 0.016505159999999998
+   },
+   "eigen_hz": [
+    233.2128,
+    664.7178,
+    1348.189,
+    1415.068,
+    2274.594,
+    3699.512,
+    4468.036,
+    5568.089,
+    6253.256,
+    6495.428,
+    6799.501,
+    7019.395,
+    7409.229,
+    8529.606,
+    10203.59,
+    10629.26,
+    10946.37,
+    11128.92,
+    13280.79,
+    13354.14,
+    14287.93,
+    14335.55,
+    15091.3,
+    16820.98,
+    17273.16,
+    17891.82,
+    18050.48,
+    18508.19,
+    19669.27,
+    20036.83,
+    20243.51,
+    21739.57,
+    22334.98,
+    22384.22,
+    23916.17,
+    24554.79,
+    25029.45,
+    25194.03,
+    25711.42,
+    26102.99,
+    26733.33,
+    26835.06,
+    27318.17,
+    27933.66,
+    28291.9,
+    29583.36,
+    29798.78,
+    29947.63
+   ],
+   "h_mm": 3.0,
+   "in_band_modes_hz": [
+    233.2128
+   ],
+   "mass_kg": 0.13574871454392484,
+   "mass_mesh_vs_cad_rel": 0.0001272907014832799,
+   "mesh": {
+    "elements": 12384,
+    "nodes": 25047
+   },
+   "modal_static_tip_over_static": 0.9990978560134973,
+   "mode_ladder": {
+    "cutoff_hz": 29947.63,
+    "cutoff_ok": true,
+    "ladder_ok": true,
+    "mass_ok": true,
+    "sampling_ok": true,
+    "truncation_ok": true,
+    "verdict": "PASS"
+   },
+   "modes": 48,
+   "objective": "worst-band TIP dynamic compliance over all damping; probe is diagnostic only",
+   "phase_convention": "exp(+i omega t); peak phases near -90 deg at resonance",
+   "probe_diagnostic_worst_mm_per_n": 0.4447170268276767,
+   "static_probe_mm_per_n": 0.004203706416666666,
+   "static_tip_mm_per_n": 0.01349484,
+   "worst_dynamic_mm_per_n": 1.3058404992220367
+  },
+  "thick-low-ribs-primary": {
+   "bands_decision": "F08-SCIENCE-VALUES-01",
+   "cad_mass_kg": 0.41920687438814225,
+   "case": {
+    "length_mm": 220,
+    "relief_length_mm": 20,
+    "rib_height_mm": 8,
+    "rib_thickness_mm": 5,
+    "thickness_mm": 8,
+    "width_mm": 80
+   },
+   "cost": {
+    "cgroup_cpu_s": 1158.703879634,
+    "cgroup_memory_peak_mib": 4286.16796875,
+    "children_cpu": null,
+    "host_profile": "runpod-cpu-pod-native",
+    "outcome": "COMPLETED",
+    "rusage_cpu_s": 128.359,
+    "wall_s": 128.406
+   },
+   "damping": {
+    "zeta_0.005": {
+     "ccx_points": 39,
+     "ccx_probe_peak": {
+      "hz": 202.4389389497,
+      "mm_per_n": 0.1922132145692041,
+      "phase_deg": -90.032664260004
+     },
+     "ccx_tip_peak": {
+      "hz": 202.4389389497,
+      "mm_per_n": 0.56980512919539,
+      "phase_deg": -89.98165863744002
+     },
+     "ccx_vs_projection_max_err_over_peak": 5.7676465264706544e-05,
+     "dense": {
+      "modes_12": {
+       "grid_points": 1142,
+       "probe": {
+        "grid_mm_per_n": 0.19221331030361472,
+        "hz": 202.43441649303736,
+        "mm_per_n": 0.19221520724282792,
+        "phase_deg": -89.78033751174733,
+        "sampling_loss_rel": 9.868830049497644e-06
+       },
+       "tip": {
+        "grid_mm_per_n": 0.5698053316018934,
+        "hz": 202.43352424161256,
+        "mm_per_n": 0.5698133766155303,
+        "phase_deg": -89.67991757286394,
+        "sampling_loss_rel": 1.4118681601897876e-05
+       }
+      },
+      "modes_24": {
+       "grid_points": 1142,
+       "probe": {
+        "grid_mm_per_n": 0.1922133102164476,
+        "hz": 202.43441649303736,
+        "mm_per_n": 0.19221521051120394,
+        "phase_deg": -89.78011170416076,
+        "sampling_loss_rel": 9.886287101190745e-06
+       },
+       "tip": {
+        "grid_mm_per_n": 0.5698053373726025,
+        "hz": 202.43352424161256,
+        "mm_per_n": 0.5698134438578063,
+        "phase_deg": -89.67875375911588,
+        "sampling_loss_rel": 1.4226560098144507e-05
+       }
+      },
+      "modes_48": {
+       "grid_points": 1142,
+       "probe": {
+        "grid_mm_per_n": 0.1922133099880554,
+        "hz": 202.43441649303736,
+        "mm_per_n": 0.19221521237644515,
+        "phase_deg": -89.77997081554294,
+        "sampling_loss_rel": 9.897179137086822e-06
+       },
+       "tip": {
+        "grid_mm_per_n": 0.5698053384997539,
+        "hz": 202.43352424161256,
+        "mm_per_n": 0.5698134604781712,
+        "phase_deg": -89.67846043310979,
+        "sampling_loss_rel": 1.4253749657735298e-05
+       }
+      }
+     },
+     "ladder_24_vs_48": {
+      "location_ok": true,
+      "peak_rel": 2.9168080459552312e-08
+     },
+     "probe_diagnostic_mm_per_n": 0.19221521237644515,
+     "truncation_bound_rel": 7.982934226334457e-06,
+     "worst_hz": 202.43352424161256,
+     "worst_mm_per_n": 0.5698134604781712
+    },
+    "zeta_0.01": {
+     "ccx_points": 39,
+     "ccx_probe_peak": {
+      "hz": 202.4389389497,
+      "mm_per_n": 0.09610636580418289,
+      "phase_deg": -90.06532813834511
+     },
+     "ccx_tip_peak": {
+      "hz": 202.4389389497,
+      "mm_per_n": 0.2849029583899356,
+      "phase_deg": -89.9633175650309
+     },
+     "ccx_vs_projection_max_err_over_peak": 2.8839464908149084e-05,
+     "dense": {
+      "modes_12": {
+       "grid_points": 1142,
+       "probe": {
+        "grid_mm_per_n": 0.09610641759876963,
+        "hz": 202.421005719645,
+        "mm_per_n": 0.09611018721675609,
+        "phase_deg": -89.56013731068337,
+        "sampling_loss_rel": 3.922183584922995e-05
+       },
+       "tip": {
+        "grid_mm_per_n": 0.2849030785003913,
+        "hz": 202.41747801066953,
+        "mm_per_n": 0.2849190821922207,
+        "phase_deg": -89.36047612206316,
+        "sampling_loss_rel": 5.616925235832868e-05
+       }
+      },
+      "modes_24": {
+       "grid_points": 1142,
+       "probe": {
+        "grid_mm_per_n": 0.09610641744625327,
+        "hz": 202.42092507274054,
+        "mm_per_n": 0.09611019378268175,
+        "phase_deg": -89.5574031340143,
+        "sampling_loss_rel": 3.929173670191645e-05
+       },
+       "tip": {
+        "grid_mm_per_n": 0.2849030903750193,
+        "hz": 202.41734752123705,
+        "mm_per_n": 0.2849192170193524,
+        "phase_deg": -89.35445555970087,
+        "sampling_loss_rel": 5.660076039025727e-05
+       }
+      },
+      "modes_48": {
+       "grid_points": 1142,
+       "probe": {
+        "grid_mm_per_n": 0.09610641700308165,
+        "hz": 202.42092507274054,
+        "mm_per_n": 0.09611019753639304,
+        "phase_deg": -89.55712137107272,
+        "sampling_loss_rel": 3.933540257222351e-05
+       },
+       "tip": {
+        "grid_mm_per_n": 0.2849030927133038,
+        "hz": 202.41734752123705,
+        "mm_per_n": 0.28491925041487975,
+        "phase_deg": -89.35386896237662,
+        "sampling_loss_rel": 5.6709757422332436e-05
+       }
+      }
+     },
+     "ladder_24_vs_48": {
+      "location_ok": true,
+      "peak_rel": 1.172104983951262e-07
+     },
+     "probe_diagnostic_mm_per_n": 0.09611019753639304,
+     "truncation_bound_rel": 1.5965166866238923e-05,
+     "worst_hz": 202.41734752123705,
+     "worst_mm_per_n": 0.28491925041487975
+    },
+    "zeta_0.02": {
+     "ccx_points": 39,
+     "ccx_probe_peak": {
+      "hz": 202.4389389497,
+      "mm_per_n": 0.04805270743420176,
+      "phase_deg": -90.13065302411377
+     },
+     "ccx_tip_peak": {
+      "hz": 202.4389389497,
+      "mm_per_n": 0.1424523167729463,
+      "phase_deg": -89.92663751722196
+     },
+     "ccx_vs_projection_max_err_over_peak": 1.4423052939383397e-05,
+     "dense": {
+      "modes_12": {
+       "grid_points": 1142,
+       "probe": {
+        "grid_mm_per_n": 0.04805273368588777,
+        "hz": 202.3671875753506,
+        "mm_per_n": 0.04806026285697811,
+        "phase_deg": -89.11743141075196,
+        "sampling_loss_rel": 0.00015666104683506238
+       },
+       "tip": {
+        "grid_mm_per_n": 0.14245236453886836,
+        "hz": 202.3531257501466,
+        "mm_per_n": 0.14248433470219896,
+        "phase_deg": -88.71888198349336,
+        "sampling_loss_rel": 0.00022437668953159616
+       }
+      },
+      "modes_24": {
+       "grid_points": 1142,
+       "probe": {
+        "grid_mm_per_n": 0.04805273339180377,
+        "hz": 202.3671875753506,
+        "mm_per_n": 0.04806027598117096,
+        "phase_deg": -89.1165284305891,
+        "sampling_loss_rel": 0.00015694020088749056
+       },
+       "tip": {
+        "grid_mm_per_n": 0.14245238845426136,
+        "hz": 202.35275918142867,
+        "mm_per_n": 0.14248460429143028,
+        "phase_deg": -88.70904179193737,
+        "sampling_loss_rel": 0.00022610047821747183
+       }
+      },
+      "modes_48": {
+       "grid_points": 1142,
+       "probe": {
+        "grid_mm_per_n": 0.048052732512292355,
+        "hz": 202.36710104021475,
+        "mm_per_n": 0.04806028348050631,
+        "phase_deg": -89.11474030561155,
+        "sampling_loss_rel": 0.00015711451675099247
+       },
+       "tip": {
+        "grid_mm_per_n": 0.14245239317270586,
+        "hz": 202.35270569977348,
+        "mm_per_n": 0.1424846710832367,
+        "phase_deg": -88.70711224220913,
+        "sampling_loss_rel": 0.000226536021632715
+       }
+      }
+     },
+     "ladder_24_vs_48": {
+      "location_ok": true,
+      "peak_rel": 4.687648566769627e-07
+     },
+     "probe_diagnostic_mm_per_n": 0.04806028348050631,
+     "truncation_bound_rel": 3.1924721036271754e-05,
+     "worst_hz": 202.35270569977348,
+     "worst_mm_per_n": 0.1424846710832367
+    }
+   },
+   "diagnostic_margins": {
+    "dynamic_mm_per_n": -0.41981346047817114,
+    "mass_kg": 0.03073758988750419,
+    "static_mm_per_n": 0.024118854
+   },
+   "eigen_hz": [
+    202.4389,
+    768.6367,
+    1209.998,
+    1231.351,
+    2515.106,
+    3311.928,
+    4699.851,
+    5382.756,
+    5686.12,
+    6147.901,
+    6428.154,
+    7602.352,
+    7636.733,
+    9647.156,
+    9839.874,
+    10345.82,
+    10979.0,
+    12506.7,
+    13831.7,
+    14875.78,
+    15517.94,
+    15595.84,
+    16445.83,
+    16751.62,
+    16888.01,
+    18017.42,
+    18676.85,
+    19304.57,
+    19461.55,
+    20592.84,
+    21021.51,
+    21471.93,
+    22716.27,
+    22972.89,
+    23268.77,
+    23842.63,
+    24463.39,
+    26281.21,
+    27224.23,
+    27274.35,
+    27689.51,
+    27792.8,
+    27903.36,
+    28873.13,
+    29054.06,
+    29683.85,
+    30169.64,
+    30694.38
+   ],
+   "h_mm": 3.0,
+   "in_band_modes_hz": [
+    202.4389
+   ],
+   "mass_kg": 0.4192624101124958,
+   "mass_mesh_vs_cad_rel": 0.00013247808599186334,
+   "mesh": {
+    "elements": 30488,
+    "nodes": 53834
+   },
+   "modal_static_tip_over_static": 0.9992268436703996,
+   "mode_ladder": {
+    "cutoff_hz": 30694.38,
+    "cutoff_ok": true,
+    "ladder_ok": true,
+    "mass_ok": true,
+    "sampling_ok": true,
+    "truncation_ok": true,
+    "verdict": "PASS"
+   },
+   "modes": 48,
+   "objective": "worst-band TIP dynamic compliance over all damping; probe is diagnostic only",
+   "phase_convention": "exp(+i omega t); peak phases near -90 deg at resonance",
+   "probe_diagnostic_worst_mm_per_n": 0.19221521237644515,
+   "static_probe_mm_per_n": 0.00181559925,
+   "static_tip_mm_per_n": 0.005881146,
+   "worst_dynamic_mm_per_n": 0.5698134604781712
+  },
+  "thin-high-ribs-primary": {
+   "bands_decision": "F08-SCIENCE-VALUES-01",
+   "cad_mass_kg": 0.23422743719407102,
+   "case": {
+    "length_mm": 220,
+    "relief_length_mm": 60,
+    "rib_height_mm": 16,
+    "rib_thickness_mm": 3,
+    "thickness_mm": 4,
+    "width_mm": 80
+   },
+   "cost": {
+    "cgroup_cpu_s": 901.1582455,
+    "cgroup_memory_peak_mib": 4286.16796875,
+    "children_cpu": null,
+    "host_profile": "runpod-cpu-pod-native",
+    "outcome": "COMPLETED",
+    "rusage_cpu_s": 69.736,
+    "wall_s": 69.862
+   },
+   "damping": {
+    "zeta_0.005": {
+     "ccx_points": 58,
+     "ccx_probe_peak": {
+      "hz": 285.8040928655,
+      "mm_per_n": 0.17131448076897043,
+      "phase_deg": -90.03871165815777
+     },
+     "ccx_tip_peak": {
+      "hz": 285.8040928655,
+      "mm_per_n": 0.4976151768358798,
+      "phase_deg": -89.96816001448998
+     },
+     "ccx_vs_projection_max_err_over_peak": 8.583276614460513e-06,
+     "dense": {
+      "modes_12": {
+       "grid_points": 1243,
+       "probe": {
+        "grid_mm_per_n": 0.17131447714493486,
+        "hz": 285.7978928719309,
+        "mm_per_n": 0.17131610558084784,
+        "phase_deg": -89.78934256307728,
+        "sampling_loss_rel": 9.505445547309655e-06
+       },
+       "tip": {
+        "grid_mm_per_n": 0.497615262756078,
+        "hz": 285.7963135133771,
+        "mm_per_n": 0.4976226912850279,
+        "phase_deg": -89.66276949594516,
+        "sampling_loss_rel": 1.4928034995213889e-05
+       }
+      },
+      "modes_24": {
+       "grid_points": 1243,
+       "probe": {
+        "grid_mm_per_n": 0.17131447812371567,
+        "hz": 285.7978928719309,
+        "mm_per_n": 0.1713160857851779,
+        "phase_deg": -89.79094210768503,
+        "sampling_loss_rel": 9.38418278041229e-06
+       },
+       "tip": {
+        "grid_mm_per_n": 0.4976152805008702,
+        "hz": 285.7961786200525,
+        "mm_per_n": 0.49762282129951957,
+        "phase_deg": -89.65499800890554,
+        "sampling_loss_rel": 1.5153643134068838e-05
+       }
+      },
+      "modes_48": {
+       "grid_points": 1243,
+       "probe": {
+        "grid_mm_per_n": 0.17131447792304297,
+        "hz": 285.7978928719309,
+        "mm_per_n": 0.1713160898242458,
+        "phase_deg": -89.79061566562649,
+        "sampling_loss_rel": 9.408930617509115e-06
+       },
+       "tip": {
+        "grid_mm_per_n": 0.49761530405827964,
+        "hz": 285.7961786200525,
+        "mm_per_n": 0.49762302124290914,
+        "phase_deg": -89.65133431599799,
+        "sampling_loss_rel": 1.5508094079372376e-05
+       }
+      }
+     },
+     "ladder_24_vs_48": {
+      "location_ok": true,
+      "peak_rel": 4.017969045479347e-07
+     },
+     "probe_diagnostic_mm_per_n": 0.1713160898242458,
+     "truncation_bound_rel": 4.6505891797657445e-05,
+     "worst_hz": 285.7961786200525,
+     "worst_mm_per_n": 0.49762302124290914
+    },
+    "zeta_0.01": {
+     "ccx_points": 58,
+     "ccx_probe_peak": {
+      "hz": 285.8040928655,
+      "mm_per_n": 0.08565697237002554,
+      "phase_deg": -90.0774228237285
+     },
+     "ccx_tip_peak": {
+      "hz": 285.8040928655,
+      "mm_per_n": 0.24880815366989015,
+      "phase_deg": -89.93632048621149
+     },
+     "ccx_vs_projection_max_err_over_peak": 4.30738959913559e-06,
+     "dense": {
+      "modes_12": {
+       "grid_points": 1243,
+       "probe": {
+        "grid_mm_per_n": 0.08565697045321666,
+        "hz": 285.7792603114766,
+        "mm_per_n": 0.08566021242525496,
+        "phase_deg": -89.5772809188798,
+        "sampling_loss_rel": 3.7846883010323975e-05
+       },
+       "tip": {
+        "grid_mm_per_n": 0.2488081603261435,
+        "hz": 285.7729090546553,
+        "mm_per_n": 0.24882296285575364,
+        "phase_deg": -89.32346991483834,
+        "sampling_loss_rel": 5.94902071748216e-05
+       }
+      },
+      "modes_24": {
+       "grid_points": 1243,
+       "probe": {
+        "grid_mm_per_n": 0.085656972313375,
+        "hz": 285.7793468466125,
+        "mm_per_n": 0.08566017279860044,
+        "phase_deg": -89.58221468292231,
+        "sampling_loss_rel": 3.73625819429858e-05
+       },
+       "tip": {
+        "grid_mm_per_n": 0.24880819623334197,
+        "hz": 285.77268250272846,
+        "mm_per_n": 0.24882322348278918,
+        "phase_deg": -89.31420270302677,
+        "sampling_loss_rel": 6.03932753417331e-05
+       }
+      },
+      "modes_48": {
+       "grid_points": 1243,
+       "probe": {
+        "grid_mm_per_n": 0.08565697193190813,
+        "hz": 285.7793468466125,
+        "mm_per_n": 0.0856601808709718,
+        "phase_deg": -89.5815618320863,
+        "sampling_loss_rel": 3.746126883035966e-05
+       },
+       "tip": {
+        "grid_mm_per_n": 0.24880824399564405,
+        "hz": 285.77231593401046,
+        "mm_per_n": 0.24882362299674604,
+        "phase_deg": -89.29952761078022,
+        "sampling_loss_rel": 6.180683697460083e-05
+       }
+      }
+     },
+     "ladder_24_vs_48": {
+      "location_ok": true,
+      "peak_rel": 1.6056110430742944e-06
+     },
+     "probe_diagnostic_mm_per_n": 0.0856601808709718,
+     "truncation_bound_rel": 9.300725591576475e-05,
+     "worst_hz": 285.77231593401046,
+     "worst_mm_per_n": 0.24882362299674604
+    },
+    "zeta_0.02": {
+     "ccx_points": 58,
+     "ccx_probe_peak": {
+      "hz": 285.8040928655,
+      "mm_per_n": 0.04282794972949984,
+      "phase_deg": -90.15484142951368
+     },
+     "ccx_tip_peak": {
+      "hz": 285.8040928655,
+      "mm_per_n": 0.1244053073245775,
+      "phase_deg": -89.87264473259803
+     },
+     "ccx_vs_projection_max_err_over_peak": 2.144726407670119e-06,
+     "dense": {
+      "modes_12": {
+       "grid_points": 1243,
+       "probe": {
+        "grid_mm_per_n": 0.04282794899728412,
+        "hz": 285.7046184678029,
+        "mm_per_n": 0.04283442732096166,
+        "phase_deg": -89.15263737533284,
+        "sampling_loss_rel": 0.00015124104797754821
+       },
+       "tip": {
+        "grid_mm_per_n": 0.12440513798187111,
+        "hz": 285.6794069389638,
+        "mm_per_n": 0.12443472068293923,
+        "phase_deg": -88.64706034191929,
+        "sampling_loss_rel": 0.00023773670970417835
+       }
+      },
+      "modes_24": {
+       "grid_points": 1243,
+       "probe": {
+        "grid_mm_per_n": 0.04282795266857344,
+        "hz": 285.70535160523866,
+        "mm_per_n": 0.0428343480620751,
+        "phase_deg": -89.16638344634879,
+        "sampling_loss_rel": 0.00014930526063786448
+       },
+       "tip": {
+        "grid_mm_per_n": 0.12440521000371656,
+        "hz": 285.6785337847369,
+        "mm_per_n": 0.12443524192843465,
+        "phase_deg": -88.62886192635456,
+        "sampling_loss_rel": 0.0002413458137154229
+       }
+      },
+      "modes_48": {
+       "grid_points": 1243,
+       "probe": {
+        "grid_mm_per_n": 0.04282795191564585,
+        "hz": 285.7052115884477,
+        "mm_per_n": 0.04283436419115448,
+        "phase_deg": -89.16367437140907,
+        "sampling_loss_rel": 0.00014969932739093196
+       },
+       "tip": {
+        "grid_mm_per_n": 0.12440530585003626,
+        "hz": 285.67698097472936,
+        "mm_per_n": 0.1244360409568928,
+        "phase_deg": -88.59865187864993,
+        "sampling_loss_rel": 0.0002469952163392014
+       }
+      }
+     },
+     "ladder_24_vs_48": {
+      "location_ok": true,
+      "peak_rel": 6.421198006653686e-06
+     },
+     "probe_diagnostic_mm_per_n": 0.04283436419115448,
+     "truncation_bound_rel": 0.00018597829217311028,
+     "worst_hz": 285.67698097472936,
+     "worst_mm_per_n": 0.1244360409568928
+    }
+   },
+   "diagnostic_margins": {
+    "dynamic_mm_per_n": -0.3476230212429091,
+    "mass_kg": 0.21575527423977423,
+    "static_mm_per_n": 0.024728642
+   },
+   "eigen_hz": [
+    285.8041,
+    465.8361,
+    1095.983,
+    1658.025,
+    1830.656,
+    2539.811,
+    3428.798,
+    3858.243,
+    3994.5,
+    4480.929,
+    4737.68,
+    5308.275,
+    5660.715,
+    5899.04,
+    6163.618,
+    6728.613,
+    7200.48,
+    7467.058,
+    7671.215,
+    7905.638,
+    9041.941,
+    9235.243,
+    9360.696,
+    9565.701,
+    9708.178,
+    9783.639,
+    10052.44,
+    10359.07,
+    10455.25,
+    10792.85,
+    10925.3,
+    11057.8,
+    11618.87,
+    11780.21,
+    12070.39,
+    12085.34,
+    12600.64,
+    12635.65,
+    13032.47,
+    13258.77,
+    14072.1,
+    14174.39,
+    14342.3,
+    14549.86,
+    14560.65,
+    15232.05,
+    16113.88,
+    16284.03
+   ],
+   "h_mm": 3.0,
+   "in_band_modes_hz": [
+    285.8041,
+    465.8361
+   ],
+   "mass_kg": 0.23424472576022579,
+   "mass_mesh_vs_cad_rel": 7.381102044181771e-05,
+   "mesh": {
+    "elements": 21093,
+    "nodes": 42767
+   },
+   "modal_static_tip_over_static": 0.9956157438446656,
+   "mode_ladder": {
+    "cutoff_hz": 16284.03,
+    "cutoff_ok": true,
+    "ladder_ok": true,
+    "mass_ok": true,
+    "sampling_ok": true,
+    "truncation_ok": true,
+    "verdict": "PASS"
+   },
+   "modes": 48,
+   "objective": "worst-band TIP dynamic compliance over all damping; probe is diagnostic only",
+   "phase_convention": "exp(+i omega t); peak phases near -90 deg at resonance",
+   "probe_diagnostic_worst_mm_per_n": 0.1713160898242458,
+   "static_probe_mm_per_n": 0.00160189,
+   "static_tip_mm_per_n": 0.005271358,
+   "worst_dynamic_mm_per_n": 0.49762302124290914
+  }
+ },
+ "convergence": {
+  "long-flexible": {
+   "asymptotic": {
+    "f1_hz": true,
+    "peak_zeta_0.005": true,
+    "peak_zeta_0.01": true,
+    "peak_zeta_0.02": true
+   },
+   "asymptotic_ok": true,
+   "reference_h_mm": 1.7,
+   "rungs": {
+    "h2.25": {
+     "damping": {
+      "zeta_0.005": {
+       "curve_ok": true,
+       "curve_worst_excess_mm_per_n": -0.001499517548317656,
+       "location_hz": 0.013516138930683042,
+       "location_ok": true,
+       "peak_ok": true,
+       "peak_rel": 0.0001799122661278659,
+       "phase_deg": 0.0004387123625519962,
+       "phase_ok": true
+      },
+      "zeta_0.01": {
+       "curve_ok": true,
+       "curve_worst_excess_mm_per_n": -0.0015011287405706588,
+       "location_hz": 0.013515794406572468,
+       "location_ok": true,
+       "peak_ok": true,
+       "peak_rel": 0.00017991450913247344,
+       "phase_deg": 0.00026620253075293476,
+       "phase_ok": true
+      },
+      "zeta_0.02": {
+       "curve_ok": true,
+       "curve_worst_excess_mm_per_n": -0.0015043473025267888,
+       "location_hz": 0.013498878766398548,
+       "location_ok": true,
+       "peak_ok": true,
+       "peak_rel": 0.00017992370795864076,
+       "phase_deg": 0.00016919602970233427,
+       "phase_ok": true
+      }
+     },
+     "eigen_max_rel": 0.002458644904637089,
+     "eigen_ok": true,
+     "mass_ok": true,
+     "mass_rel": 1.1078461324910844e-06,
+     "static_ok": true,
+     "static_rel": 0.00019568658450094454,
+     "verdict": "PASS"
+    },
+    "h3": {
+     "damping": {
+      "zeta_0.005": {
+       "curve_ok": true,
+       "curve_worst_excess_mm_per_n": -0.0014962515509827033,
+       "location_hz": 0.03417364921807575,
+       "location_ok": true,
+       "peak_ok": true,
+       "peak_rel": 0.00046259067687540563,
+       "phase_deg": 0.0020438506580262583,
+       "phase_ok": true
+      },
+      "zeta_0.01": {
+       "curve_ok": true,
+       "curve_worst_excess_mm_per_n": -0.0014978651873349658,
+       "location_hz": 0.034160533904923795,
+       "location_ok": true,
+       "peak_ok": true,
+       "peak_rel": 0.00046259581632635596,
+       "phase_deg": 0.0005162939154956803,
+       "phase_ok": true
+      },
+      "zeta_0.02": {
+       "curve_ok": true,
+       "curve_worst_excess_mm_per_n": -0.0015010934925574829,
+       "location_hz": 0.03412023959702992,
+       "location_ok": true,
+       "peak_ok": true,
+       "peak_rel": 0.00046261892005002806,
+       "phase_deg": 0.00044363450160744833,
+       "phase_ok": true
+      }
+     },
+     "eigen_max_rel": 0.005398697785451659,
+     "eigen_ok": true,
+     "mass_ok": true,
+     "mass_rel": 4.7754617512258074e-05,
+     "static_ok": true,
+     "static_rel": 0.0004996047614170339,
+     "verdict": "PASS"
+    }
+   }
+  },
+  "nominal": {
+   "asymptotic": {
+    "f1_hz": true,
+    "peak_zeta_0.005": true,
+    "peak_zeta_0.01": true,
+    "peak_zeta_0.02": true
+   },
+   "asymptotic_ok": true,
+   "reference_h_mm": 1.7,
+   "rungs": {
+    "h2.25": {
+     "damping": {
+      "zeta_0.005": {
+       "curve_ok": true,
+       "curve_worst_excess_mm_per_n": -0.0015401159432335805,
+       "location_hz": 0.037592917511460655,
+       "location_ok": true,
+       "peak_ok": true,
+       "peak_rel": 0.00023761716580303108,
+       "phase_deg": 0.0016400661532998129,
+       "phase_ok": true
+      },
+      "zeta_0.01": {
+       "curve_ok": true,
+       "curve_worst_excess_mm_per_n": -0.0015441609120174192,
+       "location_hz": 0.03754747376376599,
+       "location_ok": true,
+       "peak_ok": true,
+       "peak_rel": 0.00023761989785457032,
+       "phase_deg": 0.0002069787054210792,
+       "phase_ok": true
+      },
+      "zeta_0.02": {
+       "curve_ok": true,
+       "curve_worst_excess_mm_per_n": -0.0015539762959117436,
+       "location_hz": 0.03757255843865437,
+       "location_ok": true,
+       "peak_ok": true,
+       "peak_rel": 0.000237631043763352,
+       "phase_deg": 0.0003733388809337157,
+       "phase_ok": true
+      }
+     },
+     "eigen_max_rel": 0.001400199245062389,
+     "eigen_ok": true,
+     "mass_ok": true,
+     "mass_rel": 5.537570795826254e-06,
+     "static_ok": true,
+     "static_rel": 0.00025985356232898675,
+     "verdict": "PASS"
+    },
+    "h3": {
+     "damping": {
+      "zeta_0.005": {
+       "curve_ok": true,
+       "curve_worst_excess_mm_per_n": -0.0015396727427102236,
+       "location_hz": 0.0894979812886163,
+       "location_ok": true,
+       "peak_ok": true,
+       "peak_rel": 0.000561803484575164,
+       "phase_deg": 0.0027271601647669286,
+       "phase_ok": true
+      },
+      "zeta_0.01": {
+       "curve_ok": true,
+       "curve_worst_excess_mm_per_n": -0.0015436981933881395,
+       "location_hz": 0.08943680631364259,
+       "location_ok": true,
+       "peak_ok": true,
+       "peak_rel": 0.0005618107327491539,
+       "phase_deg": 7.448236431173427e-05,
+       "phase_ok": true
+      },
+      "zeta_0.02": {
+       "curve_ok": true,
+       "curve_worst_excess_mm_per_n": -0.00155345935582653,
+       "location_hz": 0.08935414798452257,
+       "location_ok": true,
+       "peak_ok": true,
+       "peak_rel": 0.0005618421021952365,
+       "phase_deg": 0.0005590014785639141,
+       "phase_ok": true
+      }
+     },
+     "eigen_max_rel": 0.002930015795031997,
+     "eigen_ok": true,
+     "mass_ok": true,
+     "mass_rel": 7.119770069180336e-05,
+     "static_ok": true,
+     "static_rel": 0.0006187075450041521,
+     "verdict": "PASS"
+    }
+   }
+  },
+  "relieved-tall": {
+   "asymptotic": {
+    "f1_hz": true,
+    "peak_zeta_0.005": true,
+    "peak_zeta_0.01": true,
+    "peak_zeta_0.02": true
+   },
+   "asymptotic_ok": true,
+   "reference_h_mm": 1.7,
+   "rungs": {
+    "h2.25": {
+     "damping": {
+      "zeta_0.005": {
+       "curve_ok": true,
+       "curve_worst_excess_mm_per_n": -0.0015350086454951153,
+       "location_hz": 0.030736740636996274,
+       "location_ok": true,
+       "peak_ok": true,
+       "peak_rel": 0.0001656329170230703,
+       "phase_deg": 0.0009369248659822915,
+       "phase_ok": true
+      },
+      "zeta_0.01": {
+       "curve_ok": true,
+       "curve_worst_excess_mm_per_n": -0.00153500827420728,
+       "location_hz": 0.030743113088590235,
+       "location_ok": true,
+       "peak_ok": true,
+       "peak_rel": 0.00016563847739025446,
+       "phase_deg": 0.0006875649198150313,
+       "phase_ok": true
+      },
+      "zeta_0.02": {
+       "curve_ok": true,
+       "curve_worst_excess_mm_per_n": -0.0015668168109017509,
+       "location_hz": 0.03075797201182695,
+       "location_ok": true,
+       "peak_ok": true,
+       "peak_rel": 0.00016565972671485425,
+       "phase_deg": 0.0006634258399458304,
+       "phase_ok": true
+      }
+     },
+     "eigen_max_rel": 0.0013958907222149548,
+     "eigen_ok": true,
+     "mass_ok": true,
+     "mass_rel": 4.867176643319618e-06,
+     "static_ok": true,
+     "static_rel": 0.0002042195315460527,
+     "verdict": "PASS"
+    },
+    "h3": {
+     "damping": {
+      "zeta_0.005": {
+       "curve_ok": true,
+       "curve_worst_excess_mm_per_n": -0.0015347536111685108,
+       "location_hz": 0.07973047346507656,
+       "location_ok": true,
+       "peak_ok": true,
+       "peak_rel": 0.0004485304467266471,
+       "phase_deg": 0.00015933738532680763,
+       "phase_ok": true
+      },
+      "zeta_0.01": {
+       "curve_ok": true,
+       "curve_worst_excess_mm_per_n": -0.0015347532924178055,
+       "location_hz": 0.07975337755027567,
+       "location_ok": true,
+       "peak_ok": true,
+       "peak_rel": 0.00044853771597243704,
+       "phase_deg": 0.0006036228888319783,
+       "phase_ok": true
+      },
+      "zeta_0.02": {
+       "curve_ok": true,
+       "curve_worst_excess_mm_per_n": -0.0015663612026562887,
+       "location_hz": 0.07971073866639244,
+       "location_ok": true,
+       "peak_ok": true,
+       "peak_rel": 0.00044856697500796403,
+       "phase_deg": 0.0001707252044411689,
+       "phase_ok": true
+      }
+     },
+     "eigen_max_rel": 0.0028069895923763144,
+     "eigen_ok": true,
+     "mass_ok": true,
+     "mass_rel": 6.25783034894406e-05,
+     "static_ok": true,
+     "static_rel": 0.0005147518942846154,
+     "verdict": "PASS"
+    }
+   }
+  }
+ }
+}

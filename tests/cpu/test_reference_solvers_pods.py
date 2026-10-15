@@ -419,6 +419,29 @@ def test_committed_pod_plans_are_valid_public_and_reference_tracked_files():
                     assert fam in {c["family"] for c in picked}
 
 
+def test_f08_continuation_ships_its_gate_and_registration_runtime_inputs(tmp_path):
+    """The bank freeze previously failed after imports passed: JSON was absent."""
+    import shlex
+
+    from scripts.dev.reference_packages.calculix import f08_bank
+
+    doc = json.loads((PLANS / "f08-train-256-continuation.json").read_text())
+    assert [step["name"] for step in doc["steps"]] == ["f08-train-bank-primaries"]
+    command = shlex.split(doc["steps"][0]["freeze"]["argv"][-1])
+    inputs = {flag: command[command.index(flag) + 1]
+              for flag in ("--observed", "--registration")}  # fmt: skip
+    for rel in inputs.values():
+        assert rel in doc["ship"]
+        target = tmp_path / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(REPOSITORY / rel, target)
+    assert f08_bank.gate(tmp_path / inputs["--observed"], 3.0) == 0
+    reg = json.loads((tmp_path / inputs["--registration"]).read_text())
+    f08_bank.s.validate(reg)
+    assert reg["pins"] == f08_bank.registration(reg["scope"])["pins"]
+    assert f08_bank.gate(tmp_path / "missing-observation.json", 3.0) == 1
+
+
 def test_each_solver_kind_replays_its_locked_dockerfile():
     pc = _load_pod_control("pod_control_kinds")
     assert set(pc.SOLVER_KINDS) == set(pp.KINDS)

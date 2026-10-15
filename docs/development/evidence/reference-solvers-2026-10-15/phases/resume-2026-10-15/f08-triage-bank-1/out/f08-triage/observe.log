@@ -1,0 +1,20 @@
+{
+ "control-beam": 13.138562170834648,
+ "control-oscillators": "PASS",
+ "large-stiff-primary": 0.2990240627558693,
+ "long-flexible-h1.7": 4.02694157031583,
+ "long-flexible-h2.25": 4.02621707413235,
+ "long-flexible-primary": 4.02507874468908,
+ "nominal-h1.7": 0.5344804806453342,
+ "nominal-h2.25": 0.5343534789083462,
+ "nominal-primary": 0.5341802076488702,
+ "relieved-tall-h1.7": 0.3884371981490462,
+ "relieved-tall-h2.25": 0.3883728601628365,
+ "relieved-tall-primary": 0.38826297223903516,
+ "short-wide-primary": 0.0983099892999082,
+ "small-light-cold-repeat": 1.3058404992220367,
+ "small-light-primary": 1.3058404992220367,
+ "thick-low-ribs-primary": 0.5698134604781712,
+ "thin-high-ribs-primary": 0.49762302124290914
+}
+{"h_mm": 3.0, "status": "PASS"}

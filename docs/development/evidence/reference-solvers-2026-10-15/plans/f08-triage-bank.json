@@ -144,6 +144,7 @@
   "carbon/challenge_pipeline/__init__.py",
   "carbon/challenge_pipeline/structures_readiness.py",
   "carbon/design_search/__init__.py",
-  "carbon/design_search/tasks.py"
+  "carbon/design_search/tasks.py",
+  "docs/development/challenge_pipeline/structures-readiness/registration.json"
  ]
 }

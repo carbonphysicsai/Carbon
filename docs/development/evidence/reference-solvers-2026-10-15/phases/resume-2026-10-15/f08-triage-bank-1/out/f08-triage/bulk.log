@@ -1,0 +1,55 @@
+f08/small-light-primary: COMPLETED wall=36.592s cpu=36.532s peak=423231488
+f08/nominal-primary: COMPLETED wall=108.741s cpu=108.671s peak=998383616
+f08/long-flexible-primary: COMPLETED wall=51.327s cpu=51.219s peak=594038784
+f08/large-stiff-primary: COMPLETED wall=235.517s cpu=235.459s peak=1728053248
+f08/thin-high-ribs-primary: COMPLETED wall=69.862s cpu=69.736s peak=715464704
+f08/short-wide-primary: COMPLETED wall=143.94s cpu=143.809s peak=1258065920
+f08/thick-low-ribs-primary: COMPLETED wall=128.406s cpu=128.359s peak=1082621952
+f08/control-oscillators: COMPLETED wall=0.202s cpu=0.119s peak=32743424
+f08/relieved-tall-primary: COMPLETED wall=118.331s cpu=118.209s peak=1082023936
+f08/control-beam: COMPLETED wall=59.94s cpu=59.846s peak=627179520
+f08/long-flexible-h2.25: COMPLETED wall=151.643s cpu=151.587s peak=1360134144
+f08/long-flexible-h1.7: COMPLETED wall=446.043s cpu=445.907s peak=2855333888
+f08/relieved-tall-h2.25: COMPLETED wall=354.732s cpu=354.581s peak=2557411328
+f08/nominal-h2.25: COMPLETED wall=306.451s cpu=306.32s peak=2224807936
+f08/relieved-tall-h1.7: COMPLETED wall=1421.418s cpu=1421.225s peak=6291054592
+f08/small-light-cold-repeat: COMPLETED wall=35.78s cpu=35.727s peak=423182336
+f08/nominal-h1.7: COMPLETED wall=1144.116s cpu=1143.966s peak=5447155712
+{
+ "schema": "carbon.reference-bulk.summary.v1",
+ "plan_id": "f08-triage",
+ "plan_digest": "sha256:e31036cf8185b2f75fb17c7adabef117aae51133b661fa52c1483390a7dec9d7",
+ "authority": "OWNER-RUNPOD-SOLVER-READINESS-01",
+ "host_profile": "runpod-cpu-pod-native",
+ "machine": {
+  "cpus": 16,
+  "memory_gib": 32.0,
+  "node_hours": 1.7926536913050546,
+  "billing_quantum_s": 3600,
+  "reserve_cpus": 0,
+  "reserve_memory_gib": 1,
+  "margin_minutes": 0,
+  "starvation_s": 900,
+  "min_case_window_s": 300,
+  "eur_cap": null,
+  "eur_per_hour": null,
+  "clock_start": 1792086814.1997375
+ },
+ "stop_reason": null,
+ "clock_start_unix": 1792086814.1997375,
+ "deadline_unix": 1792093267.7530262,
+ "elapsed_node_hours": 0.6717,
+ "eur_estimate_billed_quanta": null,
+ "ledger_corrupt_lines": 0,
+ "launches": 17,
+ "allocated_cpu_hours": 1.337,
+ "families": {
+  "f08": {
+   "launches": 17,
+   "outcomes": {
+    "COMPLETED": 17
+   },
+   "not_launched": {}
+  }
+ }
+}

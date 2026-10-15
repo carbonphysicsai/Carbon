@@ -1,0 +1,21 @@
+{
+ "schema": "carbon.reference-solvers.pod-phase.v1",
+ "plan_id": "f08-triage-bank-2026-10-15",
+ "pod_plan": "docs/development/evidence/reference-solvers-2026-10-15/plans/f08-triage-bank.json",
+ "pod_plan_sha256": "1e7fd14eef662426e3dbfe63fdbfdca75df65efd1e025b982c3efb9aec7de5eb",
+ "kind": "calculix",
+ "steps": [
+  {
+   "name": "f08-triage",
+   "status": "PASS",
+   "wall_s": 2463.1
+  },
+  {
+   "name": "f08-train-bank-primaries",
+   "status": "REFUSED",
+   "wall_s": 0.2
+  }
+ ],
+ "all_passed": false,
+ "maturity": "DEVELOPMENT engineering run on public decks; no adequacy, qualification or LIVE claim"
+}
