@@ -33,8 +33,22 @@ def test_lock_pins_everything(path):
 @pytest.mark.parametrize("path", MANIFESTS, ids=lambda p: p.stem)
 def test_manifest_names_image_and_passing_smoke(path):
     manifest = json.loads(path.read_text())
+    if "image_id" not in manifest:
+        # A vendor image pinned by registry digest (F17-OPENFOAM-PACKAGE-01).
+        image = manifest["image"]
+        for key in ("index_digest", "manifest_digest", "config_digest"):
+            assert re.match(r"^sha256:[0-9a-f]{64}$", image[key])
+        assert manifest["smoke"]["result"] == "SMOKE_PASS"
+        assert "--network none" in manifest["smoke"]["isolation"]
+        return
     assert re.match(r"^sha256:[0-9a-f]{64}$", manifest["image_id"])
     assert manifest["smoke"]
+    if isinstance(manifest["smoke"], dict):
+        # Meep (F06-MEEP-PACKAGE-01) records its code-verification smoke by name.
+        smoke = manifest["smoke"]["code_verification_meep_bloch_mode"]
+        assert smoke["state"] == "PASS" and smoke["network"] == "none"
+        assert "NOT yet executed" in manifest["maturity"]
+        return
     assert all(s["exit"] == 0 and s["test_passed"] == 1 for s in manifest["smoke"])
     assert "NOT yet demonstrated" in manifest["maturity"]
 
