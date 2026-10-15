@@ -135,7 +135,12 @@ def test_exact_upper_hit_keeps_wide_observed_bracket():
 @pytest.mark.parametrize(
     "times,charges,soc0,expected",
     [
-        ([0, 120], [0, -0.2], 0.1, {"status": "NOT_REACHED", "horizon_s": 120.0, "soc_end": 0.1 + 0.2}),
+        (
+            [0, 120],
+            [0, -0.2],
+            0.1,
+            {"status": "NOT_REACHED", "horizon_s": 120.0, "soc_end": 0.1 + 0.2},
+        ),
         ([5, 120], [0, -0.2], 0.8, {"status": "AT_START", "time_s": 5.0}),
     ],
 )
@@ -175,7 +180,9 @@ def test_bad_crossing_arithmetic_is_null_and_never_a_temporal_pass(
 
 
 def test_duplicate_times_are_not_discarded_from_crossing_inventory():
-    clock = worker._soc_clock(_cycle([0, 120, 120, 300], [0, -0.2, -0.4, -0.8]), 0.1, 1.0)
+    clock = worker._soc_clock(
+        _cycle([0, 120, 120, 300], [0, -0.2, -0.4, -0.8]), 0.1, 1.0
+    )
     metadata = clock["soc80_observation"]
     assert metadata["time_observations"]["observation_sample_count"] == 4
     assert metadata["time_observations"]["duplicate_time_count"] == 1
@@ -207,8 +214,14 @@ def test_source_inventory_hashes_actual_bytes_without_claiming_wheel_verificatio
     simulation = SimpleNamespace(solver=SimpleNamespace())
     metadata = worker._observation_source_metadata(simulation)
     expected = hashlib.sha256(installed.read_bytes()).hexdigest()
-    assert all(row["sha256"] == expected for row in metadata["installed_python_sources"].values())
-    assert metadata["wheel_authenticity_verification"] == "NOT_PERFORMED_BY_THIS_DIAGNOSTIC"
+    assert all(
+        row["sha256"] == expected
+        for row in metadata["installed_python_sources"].values()
+    )
+    assert (
+        metadata["wheel_authenticity_verification"]
+        == "NOT_PERFORMED_BY_THIS_DIAGNOSTIC"
+    )
     assert metadata["output_time_configuration"]["fixed_output_period_s"] is None
     installed.write_bytes(b"# changed source, same reported version\n")
     changed = worker._observation_source_metadata(simulation)
@@ -219,8 +232,13 @@ def test_source_hash_unavailable_is_not_substituted_with_version(monkeypatch):
     _fake_pybamm(monkeypatch)
     monkeypatch.setattr(inspect, "getsourcefile", lambda _: None)
     metadata = worker._observation_source_metadata(SimpleNamespace(solver=None))
-    assert all(row["sha256"] is None for row in metadata["installed_python_sources"].values())
-    assert all(row["status"] == "INSTALLED_PYTHON_SOURCE_UNAVAILABLE" for row in metadata["installed_python_sources"].values())
+    assert all(
+        row["sha256"] is None for row in metadata["installed_python_sources"].values()
+    )
+    assert all(
+        row["status"] == "INSTALLED_PYTHON_SOURCE_UNAVAILABLE"
+        for row in metadata["installed_python_sources"].values()
+    )
 
 
 def test_unreadable_installed_source_does_not_become_a_reference_failure(monkeypatch):
@@ -231,7 +249,9 @@ def test_unreadable_installed_source_does_not_become_a_reference_failure(monkeyp
 
     monkeypatch.setattr(inspect, "getsourcefile", denied)
     metadata = worker._observation_source_metadata(SimpleNamespace(solver=None))
-    assert all(row["sha256"] is None for row in metadata["installed_python_sources"].values())
+    assert all(
+        row["sha256"] is None for row in metadata["installed_python_sources"].values()
+    )
     json.dumps(metadata, allow_nan=False)
 
 
@@ -261,7 +281,11 @@ def test_all_thirty_phase_groups_and_initial_rest_emit_actual_diagnostics(monkey
         def solve(self, **_):
             return Solution()
 
-    monkeypatch.setattr(worker, "_simulation", lambda _: (Simulation(), {**COOLING, "nominal_capacity_ah": 1.0}))
+    monkeypatch.setattr(
+        worker,
+        "_simulation",
+        lambda _: (Simulation(), {**COOLING, "nominal_capacity_ah": 1.0}),
+    )
     monkeypatch.setattr(inspect, "getsourcefile", lambda _: None)
     record = worker.solve_one({"case_id": "synthetic-full30", "soc0": 0.1})
     assert record["status"] == "OK"
@@ -275,7 +299,9 @@ def test_all_thirty_phase_groups_and_initial_rest_emit_actual_diagnostics(monkey
             assert phase["time_observations"]["max_observed_time_gap_s"] == 150
 
 
-def test_solver_failure_retains_old_typed_status_and_no_fabricated_diagnostics(monkeypatch):
+def test_solver_failure_retains_old_typed_status_and_no_fabricated_diagnostics(
+    monkeypatch,
+):
     _fake_pybamm(monkeypatch)
 
     def failed(_):

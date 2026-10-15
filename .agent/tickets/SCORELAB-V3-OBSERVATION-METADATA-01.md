@@ -49,6 +49,8 @@ Additive diagnostics and exclusive synthetic controls are implemented. Static
 AST parsing passes. The eight old execution-function bodies are identical to
 9c15a665, and stripping only diagnostic additions yields identical original
 measurement-function ASTs. git diff --check passes. No application/tests ran.
-Root's pinned Black/Ruff pass, independent review and canonical CI are pending;
-this source evidence is not a test PASS. Active producer pin matches current
-worker bytes; any formatting change must refresh it again before PR admission.
+Root applied pinned Black26.5.1 formatting and Ruff0.16.3 inspection. Its one
+remaining adjacent-pair style finding is repaired with itertools.pairwise;
+the active producer pin matches the changed worker bytes. Final static recheck,
+independent review and canonical CI remain pending; source checks are not a
+runtime test PASS. Future worker formatting requires another active pin refresh.

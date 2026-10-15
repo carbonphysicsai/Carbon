@@ -42,6 +42,7 @@ import subprocess
 import sys
 import time
 from concurrent.futures import ProcessPoolExecutor, as_completed
+from itertools import pairwise
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -179,7 +180,7 @@ def _time_observations(times):
         return {**result, "status": "NONFINITE_TIME_VECTOR"}
     if len(values) == 1:
         return {**result, "status": "SINGLE_TIME_POINT"}
-    gaps = [b - a for a, b in zip(values, values[1:])]
+    gaps = [b - a for a, b in pairwise(values)]
     if not all(math.isfinite(gap) for gap in gaps):
         return {**result, "status": "NONFINITE_TIME_DIFFERENCE"}
     if any(gap < 0 for gap in gaps):
