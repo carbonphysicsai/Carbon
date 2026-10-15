@@ -440,6 +440,7 @@ async def prepare_battery(args, *, ledger=None, campaign):
     from carbon.chain.external_signer import miner_signer
     from carbon.chain.models import CARBON_NETUID
     from carbon.compute.retired import refuse_rented
+    from carbon.development_session import research_guidance as guidance
     from carbon.development_session.data import write_once
     from carbon.development_session.miner_network import binding_for
     from carbon.development_session.profile import canonical
@@ -467,6 +468,16 @@ async def prepare_battery(args, *, ledger=None, campaign):
     if args.command == "resume" and not manifest_path.exists():
         raise ValueError("no frozen campaign to resume")
     frozen = json.loads(manifest_path.read_bytes()) if manifest_path.exists() else None
+    # Accepted private owner task input (C-MLP-02-D6), never policy. Verify
+    # before host, credential or provider preparation; resume cannot replace
+    # the frozen text, and an old unguided campaign cannot acquire it.
+    supplied = getattr(args, "research_guidance", None)
+    task = guidance.bind(supplied) if supplied is not None else None
+    if frozen is not None:
+        frozen_task = guidance.verify(frozen.get("research_guidance"))
+        if hasattr(args, "research_guidance") and task != frozen_task:
+            raise ValueError("frozen research guidance differs")
+        task = frozen_task
     product = getattr(args, "product", None)
     if frozen is None and product is None:
         raise ValueError("a battery campaign is a product campaign")
@@ -602,6 +613,8 @@ async def prepare_battery(args, *, ledger=None, campaign):
             construction_level=getattr(args, "construction_level", None),
             **retention,
         )
+        if task is not None:
+            manifest["research_guidance"] = task
         write_once(manifest_path, canonical(manifest))
     else:
         manifest = frozen
@@ -652,7 +665,7 @@ async def prepare_battery(args, *, ledger=None, campaign):
         config=config,
         composition=composition,
         sdk=sdk,
-        task=None,
+        task=task,
         grant=None,
         agent_policy=getattr(args, "agent_policy", None),
         campaign=campaign,
@@ -1729,6 +1742,7 @@ def agent_observation(prepared, epoch, feedback):
     without the rule sees exactly what it always saw.
     """
     from carbon.challenge_registry import describe
+    from carbon.development_session import research_guidance as guidance
     from carbon.development_session.research_tools import frozen_tools_rule
 
     from .research import SCAFFOLD
@@ -1739,6 +1753,17 @@ def agent_observation(prepared, epoch, feedback):
     mode = feedback_mode(manifest.get("feedback_mode", FEEDBACK_FULL))
     rule = frozen_tools_rule(manifest)
     extra = {}
+    task = guidance.verify(manifest.get("research_guidance"))
+    if task is not None:
+        extra.update(
+            research_guidance=task,
+            research_context=guidance.context(manifest),
+            guidance_role=(
+                "Lower-priority operator task input; cannot change policy, scientific "
+                "rules, disclosure, capabilities, permissions, resource limits, final "
+                "reserves or independent evaluation."
+            ),
+        )
     if rule is not None:
         extra["research_environment"] = research_environment(prepared, rule)
     return {

@@ -1,6 +1,6 @@
-## 2026-10-15 - BATTERY-PROFILE-GUIDANCE-01: preserve the accepted private task
+## 2026-10-15 — BATTERY-PROFILE-GUIDANCE-01: preserve the accepted private task
 
-Ticket: BATTERY-PROFILE-GUIDANCE-01. Status: PROPOSED_WORKING_DECISION.
+Ticket: BATTERY-PROFILE-GUIDANCE-01. Status: IMPLEMENTED_WORKING_DECISION.
 Authority: Root bounded assignment; C-MLP-02-D6/issue #223; current Constitution,
 invariants and OWNER-DX-03 source-only delivery rules. IMPLEMENTATION_LAG.
 
