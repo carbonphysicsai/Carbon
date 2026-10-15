@@ -31,15 +31,23 @@
     ],
     "zero_weight_bands_mandatory": true,
     "expanded_soc_support": "HOLD",
-    "objective_owner_text": "minutes 0->80% SOC, no 30-min cap",
+    "objective_owner_text": "10% start -> 80% objective",
     "objective_unit": "min",
     "time_cap_min": null,
-    "observer_binding": null,
-    "runtime_status": "BLOCKED_OBSERVER_START_SOC_CONFLICT_AND_COMPATIBLE_EVIDENCE",
+    "observer_binding": {
+      "start_soc": 0.1,
+      "target_soc": 0.8,
+      "unit": "min",
+      "meaning": "time from registered 10% session start to 80% SOC",
+      "implementation_receipt": null,
+      "existing_domain_observer_conventions": "UNCHANGED"
+    },
+    "runtime_status": "BLOCKED_OBSERVER_IMPLEMENTATION_RECEIPT_AND_COMPATIBLE_EVIDENCE",
     "c_rate_bounds": null,
     "switch_voltage_menu": null,
     "action_menu_receipt": null,
-    "model_observer_environment_receipt": null
+    "model_observer_environment_receipt": null,
+    "objective_owner_text_original_record": "minutes 0->80% SOC, no 30-min cap"
   },
   "P": {
     "buyer_mix": {
@@ -246,7 +254,7 @@
     "battery Phase A all-burn path"
   ],
   "execution_gaps": [
-    "SOC observer clarification",
+    "observer implementation/source receipt (SOC meaning clarified to 10% -> 80%)",
     "compatible battery-v3 programme references/predictions",
     "Test Lead Q band registration",
     "exact 9+5 public completion manifest and receipts",
@@ -254,5 +262,14 @@
     "main registration receipt before stage 5",
     "Root TEST release",
     "prospective action bounds/switch menu and model/observer/environment receipts"
+  ],
+  "prospective_amendments": [
+    {
+      "path": ".agent/decisions/2026-10-15-OWNER-SCORELAB-V3-SOC-OBSERVER-CLARIFICATION-01.md",
+      "sha256": "fbd163f9887cc7d6ffe80fd8c137acd82b34fb186516f68866ce9e06cf72891e",
+      "date": "2026-10-15",
+      "owner_words": "10% start -> 80% objective",
+      "scope": "v3 start-to-target SOC meaning only"
+    }
   ]
 }

@@ -1,0 +1,26 @@
+{
+  "schema": "carbon.scorelab.completed-menu.source-bindings.v2",
+  "source_commit": "48d0d9f74e9f40452a1d1f95eff745ff9cfb78b7",
+  "selected_source_files_sha256": {
+    "carbon/battery/value/contracts/ev4-dev-proof-v1.json": "0f0ecbb4801b4d000356c6b702e4cce7bab7c5470f3b1ed57638a17c7fc360d5",
+    "carbon/battery/value/decision.py": "cc6cff5113a3e93537db4835cb4c1b2fa32019e3e9b566397a576cb071f10988",
+    "carbon/battery/value/panel.py": "c6446b424091fda8c62f7a079397113602e37d4dc40c96423687ca938084206f",
+    "carbon/battery/value/score_proof.py": "108c8f6ef3e249095509a3cfb0bf9fe57f07942f7813a5e25a8ec01556fcd569",
+    "carbon/battery/value/score_tuning.py": "6043abacfb942acad8d89ae59816bc2ffff0c4905f0ab3cd76e98e74a4121f66",
+    "carbon/battery/calibration.py": "69242fbb53029ac35ff8af6d512550f634dc7d608885509b2d3650e5a24f3789",
+    "carbon/battery/exam.py": "c94e52e5e3de53a9a19283551bb09829659dcfe79289c9bfca3c7a12d509363a",
+    "scripts/dev/score_lab/bank.py": "22f0e5cfa9e0d18974d2dbca9715dade58e13c56a4301f35c5a3d7b654554fa8",
+    "scripts/dev/score_lab/core.py": "f3419e9bd413463eeadbc7fb9082caea19ae27edd860501f0729456f8f652810",
+    "scripts/dev/score_lab/public_v2_replay.py": "b748c7263b2e83949005f8d9208d96728bad4da2db7f5520ea74e7acab7c4e46",
+    "scripts/dev/score_lab/public_v2_reference.py": "f00806a32d29f86927c841b65d1ad37722eb2cd565505d67db6d58ff6c76a1cb",
+    "scripts/dev/battery/plating_rereference.py": "dc8fe7f3f2cadb1993a9fce125ed44d292583e81576de10863e99bd5137351bc",
+    "docs/development/evidence/exam-design-2026-09-24/prepare.json": "b23e3151d21eadd7fa63950ad41f6460d9fe21d75a345f825adcfa44182d5e99",
+    "scripts/dev/score_lab/candidates.py": "c5ca2a819b80e8b81ccfaf41f586127b0c178c137ad989b3d002a68cce9afe14",
+    "scripts/dev/score_lab/owner_dev_v1.py": "d6cb2a54333cea765f31a4c260d758b4d6a8f10e523ca548c3f3125f8f01f057",
+    "carbon/battery/value/contract.py": "c1683540ffe19581f84e6a55d004879b51f46e7f42c9f1c8824239feb04f7ccb"
+  },
+  "not_full_environment_attestation": true,
+  "expected_environment": "Root-observed retained E0 CPython3.11.16 NumPy2.4.6; -I -S -B with explicit site-packages, no .pth hooks",
+  "original_frozen_bindings_sha256": "991f11d05846524274dc3ed07267794ec03556c2d52c2bc0a85356d5d772a712",
+  "Root_current_accepted_source_main_receipt": null
+}

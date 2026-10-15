@@ -1,0 +1,352 @@
+"""PUBLIC_EV4_D11 saved-prediction replay; no solver, training, inference or V decoding.
+
+Prepared operator helper: run only after Root's TEST lease and focused review.
+"""
+from __future__ import annotations
+import argparse
+import gzip
+import hashlib
+import importlib.util
+import json
+import math
+import re
+import statistics
+import sys
+from pathlib import Path
+
+HERE=Path(__file__).resolve().parent
+CAMPAIGN_SHA='bdd2d8de46ef7e3755e26d224e6998c34140e5cbc756c265992fa4870aea18ad'
+INVENTORY_SHA='4c06ff8990de62cf46d2b36a1080b6e6a37c90d00ca5d0c65defdb8a2455cac5'
+OLD_REF_SHA='72ea300b42fe1ca4e54b9c6131cb126ca7217ebddd5f1dddca8044a7bcef2dbf'
+NUMPY_SITE=Path('/home/miner/carbon-graphite-s5-e0a97dac/.venv/lib/python3.11/site-packages')
+CASE_ID=re.compile(r'"case_id"\s*:\s*"([^"\\]+)"')
+MAX_EXPANDED=64*1024**2
+FINISH_OUTPUTS_SHA='d4d02d59ae53f271b4b3675c8b5a624453b77d8d60887ff6a82a4a0842cae637'
+COHORTS_SHA='882071d0c141efd5cdca9a83aa736b03c4b0e550a62916874f66d4bf37579261'
+OUTPUT_AMENDMENT_SHA='35a9551b44ee5ceae5a1b24a1304b8361c39f4fc5a04716f1b3742efbddd1579'
+
+def sha(data): return hashlib.sha256(data).hexdigest()
+def pinned(path,digest):
+    data=Path(path).read_bytes()
+    if sha(data)!=digest: raise ValueError('INPUT_CHANGED:'+str(path))
+    return data
+
+def skip(text,i):
+    """Skip JSON without decoding non-allowlisted outcome values."""
+    while text[i].isspace(): i+=1
+    if text[i] not in '[{"':
+        while i<len(text) and text[i] not in ',}]': i+=1
+        return i
+    quoted=text[i]=='"'; escaped=False; stack=[]
+    if not quoted: stack.append(text[i])
+    i+=1
+    while i<len(text):
+        c=text[i]
+        if quoted:
+            if escaped: escaped=False
+            elif c=='\\': escaped=True
+            elif c=='"':
+                quoted=False
+                if not stack: return i+1
+        elif c=='"': quoted=True
+        elif c in '[{': stack.append(c)
+        elif c in ']}':
+            if not stack or (stack.pop(),c) not in (('[',']'),('{','}')):
+                raise ValueError('JSON_DELIMITER')
+            if not stack: return i+1
+        i+=1
+    raise ValueError('JSON_TRUNCATED')
+
+def fields(text,start=0):
+    dec=json.JSONDecoder();i=start
+    while text[i].isspace():i+=1
+    if text[i]!='{':raise ValueError('JSON_OBJECT_REQUIRED')
+    i+=1;seen=set()
+    while True:
+        while text[i].isspace() or text[i]==',':i+=1
+        if text[i]=='}':return
+        key,i=dec.raw_decode(text,i)
+        if not isinstance(key,str) or key in seen:raise ValueError('JSON_DUPLICATE_KEY')
+        seen.add(key)
+        while text[i].isspace():i+=1
+        if text[i]!=':':raise ValueError('JSON_COLON')
+        i+=1
+        while text[i].isspace():i+=1
+        end=skip(text,i)
+        yield key,i,end
+        i=end
+
+def predictions(path,digest,wanted,member):
+    pinned(path,digest)
+    with gzip.open(path,'rb') as stream:data=stream.read(MAX_EXPANDED+1)
+    if len(data)>MAX_EXPANDED:raise ValueError('GZIP_EXPANSION_CAP')
+    text=data.decode('utf-8');dec=json.JSONDecoder();out={};found=None
+    for key,start,_ in fields(text):
+        if key=='member':found=dec.raw_decode(text,start)[0]
+        elif key=='predictions':
+            for cid,a,_ in fields(text,start):
+                if cid in wanted:out[cid]=dec.raw_decode(text,a)[0]
+    if found!=member:raise ValueError('MODEL_IDENTITY')
+    return out
+
+def reference_rows(path,wanted):
+    raw=pinned(path,OLD_REF_SHA);out={}
+    for line in raw.decode('utf-8').splitlines():
+        m=CASE_ID.search(line)
+        if not m or m[1] not in wanted:continue
+        row=json.loads(line)
+        if row.get('refined'):continue
+        if row['case_id'] in out:raise ValueError('D_REFERENCE_DUPLICATE')
+        out[row['case_id']]=row
+    if set(out)!=wanted:raise ValueError('D_REFERENCE_COVERAGE')
+    return out
+
+def v2_rows(path,wanted):
+    text=pinned(path,'cac1e23001c227d9221653b2a90cee4755f62ca06fec58305d11cb9cba510069').decode()
+    out={}
+    for key,start,_ in fields(text):
+        if key!='rows':continue
+        i=start+1
+        while True:
+            while text[i].isspace() or text[i]==',':i+=1
+            if text[i]==']':break
+            end=skip(text,i);m=CASE_ID.search(text[i:end])
+            if m and m[1] in wanted:
+                row=json.loads(text[i:end])
+                if row.get('source')!='ev4' or row['case_id'] in out:raise ValueError('V2_SOURCE_OR_DUPLICATE')
+                out[row['case_id']]=row
+            i=end
+    return out
+
+def value_losses(utilities,question_ids):
+    """One unknown verified outcome withholds the whole fixed VALUE vector."""
+    losses={};unknown={};accounting={}
+    for member,rows in utilities.items():
+        if rows is None:
+            unknown[member]={'reason':'VALUE_PREDICTION_COVERAGE_UNKNOWN','questions':list(question_ids)}
+            continue
+        unresolved=[q for q in question_ids if rows[q]['unresolved_attempts']>0]
+        if unresolved:
+            unknown[member]={'reason':'VALUE_VERIFICATION_REFERENCE_UNRESOLVED','questions':unresolved}
+            accounting[member]={q:{'n':rows[q]['n'],'unresolved_attempts':rows[q]['unresolved_attempts'],'U':None,'G':None} for q in question_ids}
+            continue
+        losses[member]=[-rows[q]['U'] for q in question_ids]
+    return losses,unknown,accounting
+
+def main():
+    ap=argparse.ArgumentParser(description=__doc__)
+    ap.add_argument('--source',type=Path,required=True)
+    ap.add_argument('--public-dir',type=Path,required=True)
+    ap.add_argument('--reference-evidence',type=Path,required=True,help='RESEARCH_INTERVALS.json from reviewed Research readout')
+    ap.add_argument('--reference-sha256',required=True)
+    ap.add_argument('--out',type=Path,required=True)
+    args=ap.parse_args()
+    if not sys.flags.isolated or not sys.flags.no_site:raise ValueError('USE_RETAINED_PYTHON_WITH_-I_-S_-B')
+    source=args.source.resolve(strict=True);public=args.public_dir.resolve(strict=True)
+    bindings=json.loads((HERE/'ANALYSIS_SOURCE_BINDINGS.json').read_text())
+    for path,digest in bindings['files_sha256'].items():pinned(source/path,digest)
+    sys.path.append(str(NUMPY_SITE));sys.path.insert(0,str(source))
+    from carbon.battery import exam,calibration
+    from carbon.battery.value import contract as ev,decision as d,panel,score_proof
+    from scripts.dev.score_lab import bank,public_v2_replay as replay,public_v2_reference as v2
+    for name,module in tuple(sys.modules.items()):
+        if name.split('.')[0] in ('carbon','scripts') and getattr(module,'__file__',None):
+            Path(module.__file__).resolve().relative_to(source)
+    cfg=json.loads(pinned(HERE/'CAMPAIGN_CONTRACT.json',CAMPAIGN_SHA))
+    inv=json.loads(pinned(HERE/'MODEL_INVENTORY.json',INVENTORY_SHA))
+    cohort_doc=json.loads(pinned(HERE/'ANALYSIS_COHORTS_RESEARCH_V1.json',COHORTS_SHA))
+    output_amendment=json.loads(pinned(HERE/'PROSPECTIVE_ANALYSIS_OUTPUT_AMENDMENT_C1.json',OUTPUT_AMENDMENT_SHA))
+    pinned(HERE/'analysis_finish_metrics.py',FINISH_OUTPUTS_SHA)
+    finish_spec=importlib.util.spec_from_file_location('fixed_finish_outputs',HERE/'analysis_finish_metrics.py')
+    finish=importlib.util.module_from_spec(finish_spec);finish_spec.loader.exec_module(finish)
+    cohort_ids=cohort_doc['cohorts']
+    declared=set(r['public_member_id'] for r in inv['records'])
+    if len(cohort_ids['primary_ev4_cpu_100'])!=100 or len(cohort_ids['other_raw_37'])!=37 or set(cohort_ids['primary_ev4_cpu_100'])&set(cohort_ids['other_raw_37']) or set(cohort_ids['primary_ev4_cpu_100'])|set(cohort_ids['other_raw_37'])!=declared:raise ValueError('COHORT_PARTITION')
+    cohort_ids={'all_raw_137':sorted(declared),**cohort_ids}
+    contract=json.loads((source/'carbon/battery/value/contracts/ev4-dev-proof-v1.json').read_text())
+    contract['scenarios']={'development':cfg['EV4_P']['scenarios'],'verification':[]}
+    candidates=ev.candidates(contract);scenarios=ev.scenarios(contract,'development')
+    wanted={ev.case_id(contract,s,c,0) for s in scenarios for c in candidates}
+    if len(wanted)!=385:raise ValueError('EXACT_D11_CASES')
+    args.out.mkdir(parents=True,exist_ok=False)
+    model_quantities={};invalid={};records={r['public_member_id']:r for r in inv['records']}
+    def file_for(row):
+        path=public/row['manifest_folder']/Path(row['public_source_file']).name
+        path.resolve(strict=True).relative_to(public)
+        return path
+    for member,row in records.items():
+        raw=predictions(file_for(row),row['compressed_sha256'],wanted,member)
+        if set(raw)!=wanted or any(not exam._finite_shape(p,calibration.SHAPES) for p in raw.values()):
+            invalid[member]='CANDIDATE_MISSING_OR_INVALID_PREDICTIONS';continue
+        model_quantities[member]={cid:d.measure(contract,p) for cid,p in raw.items()}
+    commitment={'schema':'carbon.scorelab.public-D11.prediction-commitment.v1','campaign_sha256':CAMPAIGN_SHA,
+                'case_ids':sorted(wanted),'quantities':model_quantities,'candidate_invalid':invalid,
+                'references_opened':False,'limitation':'producer-controlled file ordering, not external chronology attestation'}
+    commit_bytes=(json.dumps(commitment,sort_keys=True,allow_nan=False)+'\n').encode()
+    (args.out/'prediction-commitment.json').write_bytes(commit_bytes)
+    # Reference evidence is opened only after the real prediction commitment is durable.
+    evidence=json.loads(pinned(args.reference_evidence,args.reference_sha256))
+    if evidence.get('stage')!='COMPLETE':raise ValueError('COMPLETE_REFERENCE_STAGE_REQUIRED_FOR_ALIGNMENT')
+    target_doc=json.loads((HERE/'REFERENCE_TARGET_CASES_RESEARCH_V1.json').read_text())
+    target={r['case_id'] for r in target_doc['cases']}
+    if evidence.get('policy_id')!='EV4_D11_PLATING_REFERENCE_RESEARCH_V1_20261014' or evidence.get('policy_sha256')!=sha((HERE/'REFERENCE_PANEL_RESEARCH_V1.json').read_bytes()):raise ValueError('REFERENCE_POLICY_BINDING')
+    if evidence.get('sentinel_batch_pass') is not True:raise ValueError('REFERENCE_SENTINEL_BATCH_NOT_PASS')
+    if evidence.get('reference_batch_pass') is not True:raise ValueError('REFERENCE_BATCH_INVALID_OR_V2_STOP_TRIGGER')
+    if evidence.get('fixed_target_manifest_sha256')!=sha((HERE/'REFERENCE_TARGET_CASES_RESEARCH_V1.json').read_bytes()):raise ValueError('REFERENCE_TARGET_BINDING')
+    intervals={r['case_id']:r for r in evidence['rows']}
+    if len(intervals)!=len(evidence['rows']) or set(intervals)!=target or not target<=wanted:raise ValueError('REFERENCE_INTERVAL_COVERAGE')
+    refs=reference_rows(public/'ev4-decision-references.jsonl',wanted)
+    labels=v2_rows(source/'docs/development/evidence/plating-rereference-01/d3-results/labels-v2-r1.json',wanted)
+    amendment=json.loads((HERE/'PROSPECTIVE_AMENDMENT_A1.json').read_text())
+    if amendment['amends_campaign_sha256']!=CAMPAIGN_SHA:raise ValueError('AMENDMENT_BASE')
+    questions={};refside={};admission={}
+    for s in scenarios:
+        qid=s['id'];fallback=amendment['change']['new']['action_id']
+        if fallback!=ev.candidate_id(contract['baseline']['protocol']):raise ValueError('FALLBACK_BINDING')
+        q={'question_id':qid,'fallback_action':fallback,'actions':{}}
+        refside[qid]={}
+        for c in candidates:
+            cid=ev.case_id(contract,s,c,0);raw=refs[cid]
+            if raw.get('status')!='OK':raise ValueError('D11_ORIGINAL_REFERENCE_FAILURE')
+            quantities=d.measure(contract,raw['outputs']);checks=d.check(contract,quantities,contract['reference']['uncertainty']['bands'])
+            if cid in target:
+                r=intervals[cid];plate=r['status']
+                if plate in ('FEASIBLE','INFEASIBLE','UNRESOLVED') and (plate!='UNRESOLVED' or r.get('lower_V') is not None or r.get('upper_V') is not None):
+                    lo,hi=r['lower_V'],r['upper_V']
+                    if not all(type(v) in (int,float) and math.isfinite(v) for v in (lo,hi)) or lo>hi:raise ValueError('INTERVAL_INVALID')
+                    expected='FEASIBLE' if lo>=0 else 'INFEASIBLE' if hi<0 else 'UNRESOLVED'
+                    if expected!=plate:raise ValueError('INTERVAL_VERDICT')
+                else:plate='FAILED_REFERENCE' if plate.startswith('FAILED') else 'UNRESOLVED'
+            else:plate,_,_=v2.plating_verdict(cid,quantities['plating_margin_v'],labels)
+            checks['no_plating_onset']={'FEASIBLE':'PASS','INFEASIBLE':'FAIL','UNRESOLVED':'UNRESOLVED','FAILED_REFERENCE':'FAILED_REFERENCE'}[plate]
+            states=set(checks.values())
+            status='INFEASIBLE' if 'FAIL' in states else 'FAILED_REFERENCE' if 'FAILED_REFERENCE' in states else 'UNRESOLVED' if 'UNRESOLVED' in states else 'FEASIBLE'
+            obj=quantities['time_to_cv_onset_s']
+            q['actions'][c['id']]=[{'status':status,'objective':obj}]
+            refside[qid][c['id']]={'status':status,'objective':obj}
+        classification,_classification_detail=bank.classify(q);q['class']=classification
+        has_unresolved=any(c['status']=='UNRESOLVED' for rows in q['actions'].values() for c in rows)
+        questions[qid]=q;admission[qid]={'class':classification,'decision_determined':classification in ('SCORED','RESCUE','NONE'),'has_unresolved_actions':has_unresolved}
+    if sha((HERE/'candidates.py').read_bytes())!='157b1db5f091910f5602b15c9f5029f0171e6da7e8b6dbc5ffb5aa5c775bd235':raise ValueError('CANDIDATE_SOURCE')
+    spec=importlib.util.spec_from_file_location('fixed_scorelab_candidates',HERE/'candidates.py')
+    rules=importlib.util.module_from_spec(spec);spec.loader.exec_module(rules)
+    if sha((HERE/'candidates.py').read_bytes())!='157b1db5f091910f5602b15c9f5029f0171e6da7e8b6dbc5ffb5aa5c775bd235':raise ValueError('CANDIDATE_SOURCE')
+    _,scales=calibration.frozen_calibration(source)
+    accuracy={};model_preds={}
+    for member,quantities in model_quantities.items():
+        row=records[member];raw=predictions(file_for(row),row['compressed_sha256'],wanted,member)
+        errors={cid:exam.case_error(exam.case_components(raw[cid],refs[cid],scales)) for cid in wanted}
+        accuracy[member]={qid:statistics.fmean(errors[ev.case_id(contract,s,c,0)] for c in candidates) for qid,s in ((s['id'],s) for s in scenarios)}
+        model_preds[member]={}
+        for s in scenarios:
+            assessed=d.assess_predicted(contract,s,candidates,{(c['id'],0):quantities[ev.case_id(contract,s,c,0)] for c in candidates})
+            model_preds[member][s['id']]={aid:{'feasible':r['feasible'],'objective':r['objective']} for aid,r in assessed.items()}
+    control_ids=[]
+    for kind in panel.CONTROLS:
+        member='control-'+kind
+        raw=panel.control_predictions(kind,refs)
+        if not wanted<=set(raw):raise ValueError('CONTROL_D11_COVERAGE')
+        control_ids.append(member)
+        model_preds[member]=replay.model_predictions(contract,raw)
+        errors={cid:exam.case_error(exam.case_components(raw[cid],refs[cid],scales)) for cid in wanted}
+        accuracy[member]={s['id']:statistics.fmean(errors[ev.case_id(contract,s,c,0)] for c in candidates) for s in scenarios}
+    result={'schema':'carbon.scorelab.public-D11.alignment-research.v1','campaign_sha256':CAMPAIGN_SHA,'prediction_commitment_sha256':sha(commit_bytes),
+            'reference_evidence_sha256':args.reference_sha256,'admission':admission,'candidate_invalid':invalid,'scoring':'DIAGNOSTIC_UNGATED; actual runtime/important-region guard receipts not supplied',
+            'baseline':'recomputed original-reference accuracy diagnostic; not literal recorded score-v2','production_qualification':False,'new_training':0,'new_inference':0,'constructed_controls':control_ids,'control_basis':'existing registered controls constructed against original public reference outputs; oracle name does not establish prospective research oracle','orientations':{}}
+    result['analysis_output_amendment']={'id':output_amendment['id'],'sha256':OUTPUT_AMENDMENT_SHA,'retained_baseline_replay_sha256':output_amendment['original_replay_sha256'],'cohort_metadata_sha256':COHORTS_SHA}
+    recipe_of={m:r['dependence_group_RESEARCH_V1'] for m,r in records.items()}
+    for leg_side,value_side in (('A','B'),('B','A')):
+        leg_ids=[q for q in cfg['score_value_separation']['folds'][leg_side] if admission[q]['class']=='SCORED']
+        value_ids=[q for q in cfg['score_value_separation']['folds'][value_side] if admission[q]['class']=='SCORED']
+        orientation={'leg_questions':leg_ids,'value_questions':value_ids,'status':'MEASURED_DIAGNOSTIC' if leg_ids and len(value_ids)>=4 else 'INSUFFICIENT_EVIDENCE','rules':{}}
+        if leg_ids and value_ids:
+            utilities={m:replay.outcomes(questions,p,value_ids,cap=3,kappa=.1,unit=120) for m,p in model_preds.items()}
+            losses,value_unknown,unknown_accounting=value_losses(utilities,value_ids)
+            orientation['value_unknown_models']=value_unknown
+            orientation['unknown_reference_attempt_accounting']=unknown_accounting
+            orientation['value_question_mask_is_fixed']=True
+            base={m:1/(1+statistics.fmean(accuracy[m][q] for q in leg_ids)) for m in model_preds}
+            for rule_id in ('N2-VERIFIED-REGRET-ON-PICK','V2r2@k3,kappa0.1','N4-TOP-REGION-RANKING'):
+                scores={};unknown=[];raw_scores={}
+                for m,p in model_preds.items():
+                    pred={q:{a:{'objective':v['objective'],'margins':{'feasibility':1 if v['feasible'] else -1}} for a,v in p[q].items()} for q in leg_ids}
+                    metadata={'sense':'min','questions':{q:{'actions':list(questions[q]['actions']),'fallback':questions[q]['fallback_action'],'conditions':1,'u':120} for q in leg_ids},'knobs':{'miss_penalty':1.,'top_fraction':.3,'k':3,'kappa':.1}}
+                    # Inspect the actions this rule actually selects/verifies.
+                    used={}
+                    for q in leg_ids:
+                        if rule_id=='N2-VERIFIED-REGRET-ON-PICK':
+                            pick=rules._pick(pred,q,metadata);used[q]=[] if pick is None else [pick]
+                        elif rule_id=='V2r2@k3,kappa0.1':
+                            used[q]=rules._shortlist(pred,refside,q,metadata,3)
+                        else:
+                            used[q]=[a for a,r in refside[q].items() if r['status'] in ('FEASIBLE','INFEASIBLE')]
+                    if any(refside[q][a]['status']=='UNRESOLVED' for q,ids in used.items() for a in ids):
+                        scores[m]=None;unknown.append(m);continue
+                    if rule_id=='N4-TOP-REGION-RANKING' and any(v['objective'] is None for q in leg_ids for v in pred[q].values()):
+                        scores[m]=None;unknown.append(m);continue
+                    scores[m]=rules.RULES[rule_id]['rule'](pred,{q:refside[q] for q in leg_ids},metadata)['score']
+                raw_scores=dict(scores)
+                if rule_id=='N2-VERIFIED-REGRET-ON-PICK':
+                    order=sorted({(score,base[m]) for m,score in scores.items() if score is not None})
+                    ranks={pair:i for i,pair in enumerate(order)}
+                    scores={m:(None if score is None else ranks[(score,base[m])]) for m,score in scores.items()}
+                members=[m for m in scores if m in records and scores[m] is not None and m in losses]
+                means={m:statistics.fmean(losses[m]) for m in members}
+                report={'usable_members':len(members),'unresolved_pick_members':unknown,'tau':score_proof._tau(scores,means,members),'baseline_tau':score_proof._tau(base,means,members)}
+                report['bootstrap']=score_proof.bootstrap(scores,base,losses,recipe_of,members,n=2000,seed=20261014,level=.95) if len(members)>1 else None
+                report['control_scores']={m:scores.get(m) for m in control_ids}
+                report['controls_in_real_cohort_tau']=False
+                report['raw_candidate_scores']=raw_scores
+                report['N2_accuracy_tie_break']=rule_id=='N2-VERIFIED-REGRET-ON-PICK'
+                report['known_runtime_guards']='UNMEASURED, not PASS'
+                report['candidate_coverage_not_gate_failure']=len(members)<len(records)
+                report['cohort_analysis']={'all_raw_137':{'tau':report['tau'],'baseline_tau':report['baseline_tau'],'bootstrap':report['bootstrap'],'matched_members':members,'declared_members':137}}
+                for cohort_name in ('primary_ev4_cpu_100','other_raw_37'):
+                    report['cohort_analysis'][cohort_name]=finish.cohort_summary(scores,base,losses,recipe_of,members,cohort_ids[cohort_name],score_proof)
+                if rule_id=='N2-VERIFIED-REGRET-ON-PICK':
+                    report['selected_model_regret_by_cohort']={name:finish.selection_contrast(scores,base,utilities,questions,value_ids,[m for m in members if m in set(ids)],bank._interval) for name,ids in cohort_ids.items()}
+                orientation['rules'][rule_id]=report
+        result['orientations'][leg_side+'_LEG_'+value_side+'_VALUE']=orientation
+    result['model_value_diagnostics']={}
+    for member,p in model_preds.items():
+        counts={key:0 for key in ('infeasible_pick','missed_feasible_opportunity','unresolved_pick','abstention','feasible_pick')};regrets=[]
+        for qid,q in questions.items():
+            ref=refside[qid];best=min((r['objective'] for r in ref.values() if r['status']=='FEASIBLE'),default=None)
+            pick=d.select(candidates,p[qid]) if p.get(qid) else None
+            if pick is None:
+                counts['abstention']+=1;counts['missed_feasible_opportunity']+=best is not None
+            elif ref[pick]['status']=='INFEASIBLE':counts['infeasible_pick']+=1
+            elif ref[pick]['status']!='FEASIBLE':counts['unresolved_pick']+=1
+            else:
+                counts['feasible_pick']+=1
+                if q['class']=='SCORED' and best is not None:regrets.append(ref[pick]['objective']-best)
+        result['model_value_diagnostics'][member]={'counts':counts,'questions_total':11,'mean_regret_seconds_on_feasible_picks_in_common_scored_questions':statistics.fmean(regrets) if regrets else None,'regret_measured_picks':len(regrets),'unresolved_not_candidate_failure':True}
+    result['research_success']='NOT_DECIDED: ungated diagnostic only; final confirmation and production rule remain separate'
+    result['limitations']=['one empiricalD11 bank, not independent families or futurefleetP','same sharedcases and historicalmodel selection; no EV4 rule fitting/selection','literal recordedv2 comparison, fullguardreceipts and v3compatiblemodels not inferred','N2 rawsinglepick score and V2netverifiedvalue are separately identified estimands']
+    result['uncertainty_interpretation']='conditional on this finite D11 bank and the declared recipe/fit groups; independence across unknown families/training cohorts is not established'
+    result['level_reporting']='UNKNOWN unless source-backed levels supplied; none inferred from artifact count or model names'
+    summary=['# Battery RESEARCH_V1: public D11 alignment','',
+             'Conditional development measurement; no production rule, qualification or sealed confirmation.',
+             'Real cached cohort:137 bundles; source-backed recipe/fit dependence groups:84. Constructed controls excluded from real-model correlations.',
+             '', '| Orientation | Rule | Real models | Tau | Accuracy-control tau | Paired delta95% CI |',
+             '|---|---|---:|---:|---:|---|']
+    for orientation,row in result['orientations'].items():
+        for rule,metric in row['rules'].items():
+            boot=metric.get('bootstrap') or {}
+            summary.append(f"| {orientation} | {rule} | {metric['usable_members']} | {metric['tau']} | {metric['baseline_tau']} | {boot.get('delta_joint')} |")
+    summary.extend(['','## C1: fixed-cohort primary N2 diagnostic','', '| Orientation | Cohort | Matched | Tau | Accuracy tau | Regret difference s [95% CI] |','|---|---|---:|---:|---:|---|'])
+    for orientation,row in result['orientations'].items():
+        metric=row['rules'].get('N2-VERIFIED-REGRET-ON-PICK')
+        if metric is None:continue
+        for cohort_name,cohort_row in metric['cohort_analysis'].items():
+            contrast=metric['selected_model_regret_by_cohort'][cohort_name]
+            summary.append(f"| {orientation} | {cohort_name} | {len(cohort_row['matched_members'])} | {cohort_row['tau']} | {cohort_row['baseline_tau']} | {contrast.get('mean_regret_difference_seconds')} {contrast.get('regret_difference_ci95_seconds')} |")
+    summary.extend(['','Regret contrast is the verify-and-fallback workflow of fixed LEG representatives, on paired VALUE questions; negative favors N2. Net regret with verification charges is separate in JSON. These are conditional diagnostics, not qualified winners or a cheap-baseline victory.'])
+    summary.extend(['','Reference admission and unknown/failure counts are retained in alignment.json; all35 actions are preserved.',
+                    'Runtime/important-region guard evidence and literal historical-v2 scores are not manufactured. Incomplete fold coverage is insufficient evidence.',
+                    'No weight, candidate family or production policy is selected from this affected public panel. Separate untouched final confirmation remains required.'])
+    (args.out/'owner-summary.md').write_text('\n'.join(summary)+'\n',encoding='utf-8')
+    (args.out/'alignment.json').write_text(json.dumps(result,indent=2,allow_nan=False)+'\n',encoding='utf-8')
+    print(json.dumps({'status':'DIAGNOSTIC_REPLAY_WRITTEN','output':str(args.out),'reference_admitted_questions':sum(r['class']=='SCORED' for r in admission.values()),'no_V_outcome_decoded':True}))
+
+if __name__=='__main__':main()

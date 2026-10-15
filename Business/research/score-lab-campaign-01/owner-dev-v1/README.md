@@ -16,9 +16,14 @@ per-band equivalence. It needs compatible programme observations. EV4 CV-onset
 traces do not supply 80%-SOC time, capacity retention or nonzero-margin plating
 truth. Legacy four-input models are not silently promoted to battery-v3 models.
 
-The owner text has both a 10% initial SOC and a literal 0-to-80% time objective.
-Both are preserved verbatim. `observer_binding` remains null pending the
-owner's clarification; no trajectory is extrapolated from 10% down to 0%.
+The original owner text has both a 10% initial SOC and a literal 0-to-80%
+objective. The prospective
+[SOC clarification](../../../../.agent/decisions/2026-10-15-OWNER-SCORELAB-V3-SOC-OBSERVER-CLARIFICATION-01.md)
+records Ryan's answer: **10% start to 80% objective**. The original record
+stays byte-identical; the registration binds the clarification and the current
+start/target meaning. An actual observer implementation/source receipt and
+compatible programme evidence remain required. No 0%-start programme or
+fabricated 0%-to-10% trajectory is required.
 Q band edges still belong to the Test Lead. These narrow execution gaps do not
 undo adoption of the other explicit D1/D2 values.
 The earlier prospective packet also has no registered C-rate bounds, switch
