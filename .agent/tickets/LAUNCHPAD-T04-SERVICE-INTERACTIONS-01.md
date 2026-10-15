@@ -64,3 +64,19 @@ No production admission code is monkeypatched outside test fixtures, and no
 real ladder acceptance is claimed. Root was notified before this adaptation.
 The existing preparation fixture is reused with its manifest argument adapted
 only inside each historical test; no sharedfixture source edit is required.
+
+
+## Prospective runtime repair — Root-authorized T04 finding
+
+Root accepted the concrete multi-validator view gap for this same PR. Add only
+scripts/dev/miner_launchpad/campaign_view.py to the manifest: campaign_view
+previously kept MULTI_VALIDATOR_OUTCOME status but omitted the independent
+validator rows already exposed by observe. Additive development output exposes
+validators with the same paired identity/state, a refusal's code/next_step or
+its existing per-feedback-mode result. Reuse the single-validator formatter;
+sealed children cannot regain screening/finals/nomination fields. No aggregate
+verdict, score, qualification or reward is created. Preserve historical single
+result interpretation and source records. Both-door service assertions and
+mode/sealed/private-canary/malformed controls cover this bounded repair.
+No Platform3 renderer/controller file is changed; review the new source file
+and affected tests against the retained complete prior review.

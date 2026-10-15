@@ -1071,7 +1071,13 @@ def outcomes(own, view, mode):
             "mode": "DEVELOPMENT_EVALUATION",
         }
         result = item.get("result") if type(item.get("result")) is dict else None
-        if status == "VALIDATOR_OUTCOME" and result is not None:
+        if status == "MULTI_VALIDATOR_OUTCOME":
+            entry.update(
+                validators=_validator_rows(item.get("validators"), view, mode),
+                qualification=False,
+                reward=False,
+            )
+        elif status == "VALIDATOR_OUTCOME" and result is not None:
             shown = {"state": _str(result.get("state"), 64)}
             if fields is not None:
                 outcome_fields, screening_fields = fields
@@ -1118,6 +1124,46 @@ def outcomes(own, view, mode):
                 "qualification": False,
                 "reward": False,
             }
+        found.append(entry)
+    return found
+
+
+def _validator_rows(rows, view, mode):
+    """Independent, already-projected trips; each keeps its frozen disclosure mode."""
+    from carbon.development_session.intake_targets import MAX_TARGETS
+
+    if type(rows) is not list:
+        return []
+    found = []
+    for row in rows[:MAX_TARGETS]:
+        if type(row) is not dict:
+            continue
+        entry = {
+            "intake_url": _str(row.get("intake_url"), 512),
+            "receiver_hotkey": _str(row.get("receiver_hotkey"), 48),
+            "state": _str(row.get("state"), 64),
+            "result": None,
+        }
+        result = row.get("result")
+        if type(result) is dict:
+            # A sealed result cannot regain hidden fields through a permissive
+            # historical feedback mode. The normal projection already removes
+            # these; keep that boundary even for malformed retained input.
+            if result.get("sealed") is True:
+                result = {
+                    key: value
+                    for key, value in result.items()
+                    if key not in {"screening", "finals", "nominated", "waiting"}
+                }
+            (single,) = outcomes(
+                {"final_results": [{"status": "VALIDATOR_OUTCOME", "result": result}]},
+                view,
+                mode,
+            )
+            entry["result"] = single["result"]
+        else:
+            entry["code"] = _str(row.get("code"), 64)
+            entry["next_step"] = clean_text(row.get("next_step"))
         found.append(entry)
     return found
 

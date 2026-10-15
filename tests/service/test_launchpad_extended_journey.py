@@ -297,7 +297,22 @@ def test_11_two_paired_loopback_targets_keep_refusal_and_verdict_independent(
         "screening" not in shown["validators"][1]["result"]
         or shown["validators"][1]["result"]["screening"] is None
     )
-    assert call("campaign_view", {"campaign": identity})["outcomes"]
+    (outcome,) = call("campaign_view", {"campaign": identity})["outcomes"]
+    assert outcome["status"] == "MULTI_VALIDATOR_OUTCOME"
+    assert "result" not in outcome and "score" not in outcome and "state" not in outcome
+    assert outcome["qualification"] is False and outcome["reward"] is False
+    rows = outcome["validators"]
+    assert [{key: row[key] for key in intake_targets.FIELDS} for row in rows] == pairs
+    assert [row["state"] for row in rows] == ["REFUSED", "SCORED"]
+    assert rows[0]["code"] == "commitment_required" and rows[0]["result"] is None
+    assert rows[0]["next_step"] == shown["validators"][0]["next_step"]
+    assert (
+        rows[1]["result"]["submission_id"]
+        == shown["validators"][1]["result"]["submission_id"]
+    )
+    assert rows[1]["result"]["sealed"] is True
+    for hidden in ("important_score", '"score"', "seed", "pool_version"):
+        assert hidden not in json.dumps(outcome), hidden
 
 
 @pytest.fixture
@@ -558,3 +573,116 @@ def test_15_budget_status_is_admissions_own_verdict_without_invented_numbers(
         assert all(value[key] is None for key in ("unit", "used", "allowed", "within"))
     finally:
         budget_view._status.cache_clear()
+
+
+@pytest.mark.parametrize(
+    "mode", ["FULL", "SCORE_WITHHELD", "ELIGIBILITY_ONLY", "AGGREGATE_SCORE", "UNKNOWN"]
+)
+@pytest.mark.parametrize("sealed", [False, True])
+def test_multi_view_preserves_each_feedback_mode_and_sealed_disclosure(mode, sealed):
+    from copy import deepcopy
+    from types import SimpleNamespace
+
+    from carbon.battery.research_view import _feedback_fields
+    from scripts.dev.miner_launchpad.campaign_view import outcomes
+
+    canary = "t04-private-field-must-not-escape"
+    result = {
+        "state": "SCORED",
+        "submission_id": "fixture-admitted-submission",
+        "sealed": sealed,
+        "qualification": True,
+        "reward": True,
+        "private_seed": canary,
+        "screening": {
+            "eligible": True,
+            "gates_failed": [],
+            "score": 0.25,
+            "important_score": 0.5,
+            "pool_version": 17,
+            "private_seed": canary,
+        },
+    }
+    trips = [
+        {
+            "intake_url": "https://refusing.example.test",
+            "receiver_hotkey": "5" + "A" * 47,
+            "state": "REFUSED",
+            "code": "commitment_required",
+            "next_step": "Commit first.",
+            "result": None,
+            "private_account": canary,
+        },
+        {
+            "intake_url": "https://admitting.example.test",
+            "receiver_hotkey": "5" + "B" * 47,
+            "state": "SCORED",
+            "result": result,
+            "private_account": canary,
+        },
+    ]
+    own = {
+        "final_results": [
+            {
+                "epoch": 1,
+                "status": "MULTI_VALIDATOR_OUTCOME",
+                "validators": trips,
+                "score": 0.99,
+                "private_account": canary,
+            }
+        ]
+    }
+    original = deepcopy(own)
+    view = SimpleNamespace(feedback_fields=_feedback_fields)
+    (answer,) = outcomes(own, view, mode)
+    assert own == original  # Disclosure never rewrites the retained evidence.
+    assert canary not in json.dumps(answer)
+    assert "score" not in answer and "result" not in answer and "state" not in answer
+    first, second = answer["validators"]
+    assert (first["state"], first["code"], first["next_step"], first["result"]) == (
+        "REFUSED",
+        "commitment_required",
+        "Commit first.",
+        None,
+    )
+    assert second["state"] == "SCORED"
+    shown = second["result"]
+    assert shown["qualification"] is False and shown["reward"] is False
+    if sealed:
+        assert not any(
+            key in shown for key in ("screening", "nominated", "finals", "waiting")
+        )
+        assert '"score"' not in json.dumps(shown) and "pool_version" not in json.dumps(
+            shown
+        )
+    else:
+        (single,) = outcomes(
+            {"final_results": [{"status": "VALIDATOR_OUTCOME", "result": result}]},
+            view,
+            mode,
+        )
+        assert (
+            shown == single["result"]
+        )  # The existing mode formatter is reused exactly.
+        if mode in {"FULL", "AGGREGATE_SCORE"}:
+            assert shown["screening"]["score"] == 0.25
+        elif mode == "ELIGIBILITY_ONLY":
+            assert shown["screening"] == {"eligible": True}
+        elif mode == "SCORE_WITHHELD":
+            assert shown["screening"] == {"eligible": True, "gates_failed": []}
+        else:
+            assert "screening" not in shown and "submission_id" not in shown
+
+
+@pytest.mark.parametrize("rows", [None, {}, [], [None]])
+def test_malformed_multi_rows_never_become_a_combined_verdict(rows):
+    from scripts.dev.miner_launchpad.campaign_view import outcomes
+
+    (answer,) = outcomes(
+        {"final_results": [{"status": "MULTI_VALIDATOR_OUTCOME", "validators": rows}]},
+        None,
+        "UNKNOWN",
+    )
+    assert answer["validators"] == []
+    assert answer["qualification"] is False and answer["reward"] is False
+    assert "result" not in answer and "state" not in answer and "score" not in answer
