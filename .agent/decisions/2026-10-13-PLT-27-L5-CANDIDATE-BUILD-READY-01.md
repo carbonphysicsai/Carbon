@@ -32,4 +32,4 @@ No training compute, host run, spend, hidden/sealed input, security acceptance, 
 
 ## Candidate-1 no-cost precheck
 
-The public prediction artifact named in the queue input bundle is xperiment-predictions/mlp-s0.json.gz; public EV4 decision references are v4-decision-references.jsonl. From repository root, run python -m carbon.battery.monotone_capacity --count-increases <public-predictions.json.gz> with the supplied gzip path. This reports counts and a stop/continue disposition only; do not proceed if the prediction does not match the unconstrained base recipe.
+The public prediction artifact named in the queue input bundle is xperiment-predictions/mlp-s0.json.gz; public EV4 decision references are v4-decision-references.jsonl. From repository root, run python -m carbon.development_comparison.monotone_capacity --count-increases <public-predictions.json.gz> with the supplied gzip path. This reports counts and a stop/continue disposition only; do not proceed if the prediction does not match the unconstrained base recipe.
