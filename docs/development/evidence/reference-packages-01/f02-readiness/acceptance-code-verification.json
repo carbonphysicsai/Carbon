@@ -1,0 +1,30 @@
+{
+ "schema": "carbon.f02-readiness.acceptance.v1",
+ "kind": "code_verification",
+ "family": "f02",
+ "status": "ACCEPTED_DEVELOPMENT",
+ "decision": "F02-SCIENCE-VALUES-01",
+ "authority": "OWNER-SOLVER-READINESS-SCIENCE-DELEGATION-01",
+ "bands": "f02-readiness/bands.json",
+ "scope": "DEVELOPMENT engineering acceptance; not qualification, Tier 2 or LIVE",
+ "registered": "before the local-image results it judges",
+ "metrics": {
+  "space_order_max": [
+   1.7,
+   2.3
+  ],
+  "space_order_rms": [
+   1.7,
+   2.3
+  ],
+  "time_order_max": [
+   1.7,
+   2.3
+  ],
+  "time_order_rms": [
+   1.7,
+   2.3
+  ]
+ },
+ "case_family": "mms_heat.py: HeatSolver hex808 BDF2, t_end 0.375, finest pairs (owner-accepted band)"
+}
