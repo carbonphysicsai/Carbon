@@ -134,13 +134,17 @@ def _assert_snapshot_matches_current(shown):
     assert shown == audit.audit()
 
 
-def test_versioned_snapshot_rebinds_current_sources_without_reinterpreting_v1_v2():
+def test_historical_v1_v2_v3_snapshots_preserve_their_source_bindings():
     directory = audit.ROOT / "docs/development/evidence/role-output-cap-audit"
     previous_bytes = (directory / "audit-v1.json").read_bytes()
     previous = json.loads(previous_bytes)
     second_bytes = (directory / "audit-v2.json").read_bytes()
     second = json.loads(second_bytes)
-    current = json.loads((directory / "audit-v3.json").read_bytes())
+    third_bytes = (directory / "audit-v3.json").read_bytes()
+    current = json.loads(third_bytes)
+    assert hashlib.sha256(third_bytes).hexdigest() == (
+        "53124307c91faa286099b808a73ac73762499e574439505b79837a3cb87a7b95"
+    )
     assert hashlib.sha256(previous_bytes).hexdigest() == (
         "d799faa3d25b592e1109e62f63835e9e8945716f9d8cc24995051bb459584916"
     )
@@ -164,9 +168,8 @@ def test_versioned_snapshot_rebinds_current_sources_without_reinterpreting_v1_v2
         "sha256": hashlib.sha256(second_bytes).hexdigest(),
         "grant_count": 34,
     }
-    # Exact equality checks every grant byte hash, source pin and actual selection,
-    # so an omitted grant or a stale cost/replacement cannot pass this control.
-    _assert_snapshot_matches_current(current)
+    # V3 remains the historical 34-grant target-binding source refresh.
+    # The prospective v4 control below binds the current 35-grant inventory.
     assert current["grants"] == second["grants"]
     assert current["profiles"] == second["profiles"]
     assert current["grant_count"] == 34
@@ -183,9 +186,47 @@ def test_versioned_snapshot_rebinds_current_sources_without_reinterpreting_v1_v2
     assert rows[new_id]["replaced_by"] is None
 
 
-def test_the_unchanged_v2_source_pin_cannot_pass_the_current_regeneration_control():
+def test_v4_binds_the_named_qwen_grant_and_preserves_the_prior_snapshot():
     directory = audit.ROOT / "docs/development/evidence/role-output-cap-audit"
-    stale = json.loads((directory / "audit-v2.json").read_bytes())
+    previous_bytes = (directory / "audit-v3.json").read_bytes()
+    previous = json.loads(previous_bytes)
+    current = json.loads((directory / "audit-v4.json").read_bytes())
+    assert current.pop("snapshot_version") == 4
+    assert current.pop("source_revision") == (
+        "91934b94ffd845f3d0a1a783f86b60a8ab4a140b"
+    )
+    assert current.pop("supersedes") == {
+        "path": "docs/development/evidence/role-output-cap-audit/audit-v3.json",
+        "sha256": hashlib.sha256(previous_bytes).hexdigest(),
+        "grant_count": 34,
+    }
+    # Keep exact current-source regeneration: every public file hash, source
+    # pin, registered selection and capacity must match the real audit.
+    _assert_snapshot_matches_current(current)
+    assert current["grant_count"] == 35
+    qwen_id = "GRAPHITE-GRANT-MODEL-QWEN-CONSTRUCTOR-1"
+    qwen = [row for row in current["grants"] if row["grant_id"] == qwen_id]
+    assert len(qwen) == 1 and qwen[0]["status"] == "MAPPED"
+    assert qwen[0]["monetary_ceiling_usd"] == "14.94"
+    assert qwen[0]["worst_case_run_cost_usd"] == "14.91"
+    assert qwen[0]["permitted_runs"] == 1
+    assert {row["grant_id"] for row in previous["grants"]}.isdisjoint({qwen_id})
+    assert [row for row in current["grants"] if row["grant_id"] != qwen_id] == (
+        previous["grants"]
+    )
+    assert current["profiles"] == previous["profiles"]
+    changed_sources = {
+        path
+        for path, value in current["source_sha256"].items()
+        if value != previous["source_sha256"][path]
+    }
+    assert changed_sources == {"carbon/agent_campaign/graphite/grant_binding.py"}
+
+
+@pytest.mark.parametrize("name", ["audit-v2.json", "audit-v3.json"])
+def test_historical_source_pins_cannot_pass_current_regeneration_control(name):
+    directory = audit.ROOT / "docs/development/evidence/role-output-cap-audit"
+    stale = json.loads((directory / name).read_bytes())
     for field in ("snapshot_version", "source_revision", "supersedes"):
         stale.pop(field)
     with pytest.raises(AssertionError):

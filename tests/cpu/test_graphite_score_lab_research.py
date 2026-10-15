@@ -349,7 +349,7 @@ def test_the_standing_weekly_sum_still_fits_with_the_research_ceiling():
     from carbon.agent_campaign import grant_runs
     from carbon.agent_campaign.graphite import grant_binding
 
-    # A grant a later one replaces (-4 by -5) is counted once, as the owner approved.
+    # Replaced grants (-4 -> -5 -> -6) are counted once, as the owner approved.
     standing = [
         SpendingGrant.from_document(
             json.loads(
@@ -368,7 +368,8 @@ def test_the_standing_weekly_sum_still_fits_with_the_research_ceiling():
         + _research_grant().monetary_ceiling
     )
     assert total <= effective
-    # Room for the pending open-weight coverage grant (#1257) at its ceiling. The L2 re-attack that this line once also
-    # reserved room for has run (under a stage grant already counted), so it is no longer a pending term; with the
-    # third lane G rerun grant (-4, replaced by -5 at the same figures) counted, the sum with #1257 is 259.79 of 260.
-    assert total + Decimal("14.94") <= effective
+    # The approved Qwen grant is already in standing_open(), so its ceiling
+    # contributes once to the inclusive total, not as another pending term.
+    standing_ids = [g.grant_id for g in standing]
+    assert standing_ids.count("GRAPHITE-GRANT-MODEL-QWEN-CONSTRUCTOR-1") == 1
+    assert total == Decimal("259.79")

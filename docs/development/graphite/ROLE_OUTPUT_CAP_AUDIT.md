@@ -9,8 +9,8 @@ CARBON_UV_GROUPS="science-jax chain archive mcp" ./scripts/dev/canonical.sh pyth
 ```
 
 The current prospective public snapshot is
-`docs/development/evidence/role-output-cap-audit/audit-v3.json`. Its source
-basis is `b94fb52a08c78055fd2fc0e642d0e883f52b8464`: 34 public grant files, each
+`docs/development/evidence/role-output-cap-audit/audit-v4.json`. Its source
+basis is `91934b94ffd845f3d0a1a783f86b60a8ab4a140b`: 35 public grant files, each
 hashed, and 11 hashed selection/role/price/grant/budget source files. It uses
 the real session selector and the phase-3/phase-4 budget calculators. It lists
 every role/model's uncached maximum input and output reservation. Reasoning
@@ -54,6 +54,25 @@ current-source equality check and must fail; it is not exempted or repinned
 as historical current evidence. No policy, figure, accounting or historical
 session interpretation changes.
 
+## Prospective named Qwen grant refresh (v4)
+
+OWNER-MODEL-QWEN-GRANT-01 approves the named Qwen Constructor grant only.
+V4 adds that one public grant and rebinds the changed grant_binding.py hash;
+all 34 prior grant rows, all role/model/price/capacity profiles and the other
+ten source pins stay unchanged. The named grant's budget parameters match
+the existing Constructor-6 grant: USD 14.94 total, USD 14.91 run cost,
+USD 0.03 cleanup and USD 10.99 registered token share. Its runtime model
+floor and Levels 0-3 remain enforced by the grant binding.
+
+The prospective JSON delta was prepared with stdlib-only static metadata
+inspection during OPERATOR, without executing the audit generator or importing
+Carbon modules. The full canonical current-source equality control must still
+match the actual audit before acceptance. Both stale v2 and v3 snapshots must
+fail that control. V1, v2 and v3 bytes remain immutable; v3's SHA256 is
+`53124307c91faa286099b808a73ac73762499e574439505b79837a3cb87a7b95`.
+V4 supersedes that exact 34-grant v3. No owner-approved amount, rate, monetary
+cap, historical evidence or shared USD 100 operational grant changes.
+
 ## What changed at the larger cap
 
 Kimi's Constructor/Attacker output cap is now 32,768. On the registered full
@@ -76,7 +95,7 @@ money gate may stop a dearer rung before all of those calls.
 
 ## Coverage and named limitations
 
-All 34 current files were examined: 28 mapped workloads, two replaced grants evaluated
+All 35 current files are included: 29 mapped workloads, two replaced grants evaluated
 as a current-settings scenario, three zero-spend admission grants, and one
 unmapped historical grant. Planner-01 is deliberately not accepted by today's
 `level_planner.PLANNER_GRANTS`; its old settings are not reconstructed or

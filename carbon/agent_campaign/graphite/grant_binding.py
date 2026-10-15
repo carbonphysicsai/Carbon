@@ -106,6 +106,11 @@ phase-3 grant: outside its study it is refused `grant_is_bound_to_a_study`.
   the bound is now 108,000). The owner approved a new grant in chat on 2026-10-13 ("I approve new grant"); it
   carries -5's exact figures (14.91 worst case, 14.94 ceiling), so the standing weekly basis is unchanged. -5 is
   replaced the way -4 was. -6 authorizes spend, never a Level 4 run.
+- GRAPHITE-GRANT-MODEL-QWEN-CONSTRUCTOR-1 is one short Constructor session at Levels 0 to 3 whose ladder opens on an
+  open-weight model a miner might bring (`start_model` qwen3.8-27b, on the Engy ladder and under the same Engy key as
+  every other run), under the standing weekly test grant (OWNER-TEST-GRANT-01), same figures as -2. `start_model` is a
+  floor, not a pin: the ladder's escalation rule is unchanged, so a session may climb a rung on an observed research
+  failure; each call records its model. It authorizes spend, never a Level run.
 
 A registered grant named for another Challenge is
 `grant_is_for_another_challenge`. A Challenge in `PHASE3_BOUND_CHALLENGES`
@@ -442,6 +447,21 @@ PHASE3_GRANTS = types.MappingProxyType(
                 min_level=4,
                 max_level=4,
                 start_model="kimi-k3",
+                token_share_usd=STAGE_TOKEN_SHARE,
+                authority=STANDING_TEST_GRANT_AUTHORITY,
+            ),
+            # PURPOSE: coverage of an open-weight model a miner might bring (gap 5 of the 2026-10-13 coverage
+            # ledger): one short Constructor session at Levels 0 to 3 on lane C or D, the ladder opening on
+            # qwen3.8-27b (Engy's ladder, the same provider and key as kimi-k3). A floor, not a pin: escalation is
+            # unchanged. POOL: the standing weekly test grant (OWNER-TEST-GRANT-01). Not a hunt run.
+            Phase3Grant(
+                grant_id="GRAPHITE-GRANT-MODEL-QWEN-CONSTRUCTOR-1",
+                challenge=BATTERY_CHALLENGE,
+                grant_file=GRANTS_DIR + "/GRAPHITE-GRANT-MODEL-QWEN-CONSTRUCTOR-1.json",
+                main_blob=True,
+                min_level=0,
+                max_level=3,
+                start_model="qwen3.8-27b",
                 token_share_usd=STAGE_TOKEN_SHARE,
                 authority=STANDING_TEST_GRANT_AUTHORITY,
             ),

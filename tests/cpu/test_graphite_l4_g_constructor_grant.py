@@ -249,8 +249,9 @@ def test_the_grants_index_lists_every_level_4_constructor_grant_with_its_pool():
 
 def test_minus_five_replaces_minus_four_and_the_owners_basis_is_unchanged():
     """The owner approved -5 at -4's exact figures (14.91 worst case, 14.94 ceiling) as REPLACING -4, whose run is spent
-    (the ledger shows it claimed 1 of 1): the static weekly basis stays 242.85. -4 stays registered for its audit trail
-    and is not counted twice; no ceiling, no basis number and no check is changed."""
+    (the ledger shows it claimed 1 of 1): the original static weekly basis stays 242.85. -4 stays registered for its
+    audit trail and is not counted twice. The separately approved Qwen grant adds its own ceiling to that basis.
+    """
     four, five = (
         "GRAPHITE-GRANT-L4-G-CONSTRUCTOR-4",
         "GRAPHITE-GRANT-L4-G-CONSTRUCTOR-5",
@@ -281,9 +282,12 @@ def test_minus_five_replaces_minus_four_and_the_owners_basis_is_unchanged():
     open_ids = grant_binding.standing_open()
     assert four not in open_ids and five not in open_ids
     assert six_id in open_ids
-    # 184.56 (the weekly-budget record's other open grants) + A2 re-run 13.47 + -2, -3, -6 at 14.94 = 242.85.
+    # The original 242.85 basis keeps the replacement chain counted once.
+    # OWNER-MODEL-QWEN-GRANT-01 adds only the named Qwen grant's ceiling.
     basis = OTHER_OPEN_GRANTS + sum(_grant(g).monetary_ceiling for g in open_ids)
-    assert basis == Decimal("242.85")
+    qwen = _grant("GRAPHITE-GRANT-MODEL-QWEN-CONSTRUCTOR-1")
+    assert qwen.grant_id in open_ids
+    assert basis == Decimal("242.85") + qwen.monetary_ceiling
 
 
 def _refusal_code(capsys, call):
