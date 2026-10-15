@@ -1,0 +1,43 @@
+{
+  "schema": "carbon.code-verification.result.v1",
+  "kind": "code_verification",
+  "family": "f17",
+  "image_digest": "sha256:020e00e512c3e0f50dd9904137bb64bdfe4b55b1fae6b9d6a566e4895d2d6e4a",
+  "source_digest": "sha256:f76348038b3af528c8a0251a91826e06d83bd24200af3c4991801d85b1b50b55",
+  "criteria_digest": "sha256:fcd19e815e683a89d2df95e6d1a38e018875a12cae5b00482b423816f76c66f0",
+  "norms": [
+    {
+      "l2": 0.002698618194288311,
+      "linf": 0.0037581991241402157,
+      "samples": 16
+    },
+    {
+      "l2": 0.0006784368379961206,
+      "linf": 0.0009571483534730474,
+      "samples": 32
+    },
+    {
+      "l2": 0.0001698642463865721,
+      "linf": 0.00024018269304781903,
+      "samples": 64
+    }
+  ],
+  "orders": {
+    "l2": [
+      1.9919344628725415,
+      1.99783228693882
+    ],
+    "linf": [
+      1.9732270503579663,
+      1.9946103550938816
+    ]
+  },
+  "metrics": {
+    "l2_order": 1.99783228693882,
+    "linf_order": 1.9946103550938816
+  },
+  "recommendation_agrees": true,
+  "accepted_development_pass": true,
+  "state": "PASS",
+  "qualified": false
+}

@@ -1,0 +1,18 @@
+{
+ "kind": "openfoam-periodic",
+ "family": "f17",
+ "h": [
+  0.0625,
+  0.03125,
+  0.015625
+ ],
+ "t": 0.125,
+ "order_band": [
+  1.7,
+  2.3
+ ],
+ "status": "ACCEPTED_DEVELOPMENT",
+ "spec_digest": "sha256:cc79e68a8d85020a866e4ed02237fc3d87a06cd844d5ab77e2a17965d635a971",
+ "adapter_digest": "sha256:6a817d3a449506175ce6adb81f9afdd922f9cc1c51a6e4cd650bbf789d9d9b40",
+ "decision": ".agent/decisions/2026-10-15-F17-SCIENCE-VALUES-01.md C5"
+}

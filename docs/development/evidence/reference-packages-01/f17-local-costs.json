@@ -1,0 +1,21 @@
+{
+ "schema": "carbon.reference-triage.local-costs.v1",
+ "family": "f17",
+ "host_profile": "local-dev-4vcpu-15g-contended",
+ "host": {"nproc": 4, "cpu_model": "Intel(R) Xeon(R) Processor @ 2.10GHz"},
+ "note": "DEVELOPMENT dev-box profile, contended (load up to ~14); NON-COMPARABLE timings; never canonical pipeline timing. CPU-s and peak memory from the container cgroup (cpu.stat usage_usec, memory.peak), --cpus 1 --memory 3g.",
+ "image": "opencfd/openfoam-default@sha256:020e00e512c3e0f50dd9904137bb64bdfe4b55b1fae6b9d6a566e4895d2d6e4a",
+ "measured": [
+  {"case": "deep-dense h10 primary panel + D=0 + limitedLinear01 diagnostic (13 solver starts incl. mesh)", "kind": "primary:h10.000:3f10s", "cgroup_cpu_s": 579.32, "wall_s": 1904.33, "peak_mib": 814.3},
+  {"case": "smooth-duct controls h10 (2 flows, 4 scalars)", "kind": "controls:h10.000:2f4s", "cgroup_cpu_s": 199.68, "wall_s": 705.7, "peak_mib": 442.3},
+  {"case": "smooth-duct Poiseuille h7.071 (1 flow)", "kind": "controls:h7.071:1f0s", "cgroup_cpu_s": 373.53, "wall_s": 1198.94, "peak_mib": 1181.3},
+  {"case": "deep-dense h10 fresh flow_q5 + scalar_q5_d0.5", "kind": "cold_repeat:h10.000:1f1s", "cgroup_cpu_s": 136.48, "wall_s": 533.59, "peak_mib": 466.3},
+  {"case": "D6 refusal launch (4 refusals + 1 fallback scalar)", "kind": "proof", "cgroup_cpu_s": 9.72, "wall_s": 23.34, "peak_mib": null}
+ ],
+ "not_measured": ["refined-panel (witness_studies:h7.071:3f10s): stopped locally by lead directive; measured at the pod stage"],
+ "per_case_kind": {
+  "primary-panel": {"estimate_cpu_s": 650, "estimate_wall_s": 900, "estimate_mem_mib": 900, "estimate_basis": "measured deep-dense h10 panel 579 CPU-s / 814 MiB (local-dev-4vcpu-15g-contended) plus margin; uncontended wall assumed ~1.4x CPU"},
+  "refined-panel": {"estimate_cpu_s": 2450, "estimate_wall_s": 3300, "estimate_mem_mib": 2600, "estimate_basis": "EXTRAPOLATED: primary x2.83 cells x1.4 iterations; memory from the measured h7.071 smooth-duct flow (1181 MiB) x2.2 for groove refinement; measure at the pod stage"},
+  "control": {"estimate_cpu_s": 400, "estimate_wall_s": 600, "estimate_mem_mib": 1300, "estimate_basis": "measured controls h10 200 CPU-s / 442 MiB and Poiseuille h7.071 374 CPU-s / 1181 MiB; the larger is used"}
+ }
+}
