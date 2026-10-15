@@ -10,6 +10,7 @@ body with the same request, through a real HTTP server and real MCP tools.
 
 import asyncio
 import json
+import sys
 import threading
 
 import pytest
@@ -152,10 +153,145 @@ def test_an_unregistered_miner_is_refused_new_work_on_both_doors(browser, name):
 
 
 def test_the_doors_list_exactly_the_table(browser):
+    assert_table_inventory(browser)
+
+
+def assert_table_inventory(browser):
+    assert {row["operation"] for row in describe()} == set(OPERATIONS)
     tools = {t.name for t in make_operation_tools(SpyHost())}
-    assert tools == {PREFIX + name for name in OPERATIONS}
+    assert tools == {
+        PREFIX + row["operation"] for row in describe()
+    }, "generated operation tools differ from the described table"
     code, _, content = request(browser(SpyHost()), "/api/v1/operations", headers=auth())
     assert code == 200 and json.loads(content) == {"operations": describe()}
+
+
+def test_inventory_conformance_detects_a_missing_generated_tool(browser, monkeypatch):
+    original = make_operation_tools
+    monkeypatch.setattr(
+        sys.modules[__name__], "make_operation_tools", lambda host: original(host)[1:]
+    )
+    with pytest.raises(AssertionError, match="generated operation tools"):
+        assert_table_inventory(browser)
+
+
+class GateRefusalHost(SpyHost):
+    """Refuse one real admission boundary; keep all other recorded gates."""
+
+    def __init__(self, gate, operation):
+        super().__init__()
+        self.gate = gate
+        self.operation = operation
+
+    def refuse(self, gate, code, status=409):
+        if self.gate == gate:
+            self.calls.append(gate)
+            raise launchpad.Rejected(code, status)
+
+    def configured(self):
+        self.refuse("profile", "research_profile_unavailable")
+        return super().configured()
+
+    def owner(self):
+        self.refuse("profile", "research_profile_unavailable")
+        return super().owner()
+
+    def replayed(self, profile, request, operation):
+        code = (
+            "research_launch_replay_conflict"
+            if operation == "launch"
+            else "operation_replay_conflict"
+        )
+        self.refuse("replay", code)
+        return super().replayed(profile, request, operation)
+
+    def registration(self, profile):
+        if self.gate == "registration":
+            self.calls.append("registration")
+            raise OnboardingFailure("NOT_REGISTERED", next_action="register")
+        return super().registration(profile)
+
+    def signer(self, profile):
+        from carbon.chain.external_signer import SignerCode, SignerFailure
+
+        self.calls.append("signer")
+        if self.gate == "signer":
+            raise SignerFailure(SignerCode.NOT_RUNNING)
+
+    def owned_campaign(self, identity):
+        self.refuse("campaign", "research_run_unavailable", 404)
+        return super().owned_campaign(identity)
+
+
+GATE_CASES = [
+    (row["operation"], gate)
+    for row in describe()
+    for gate in [
+        *row["gates"],
+        *(["signer"] if "registration" in row["gates"] else []),
+    ]
+]
+
+
+@pytest.mark.parametrize(("name", "gate"), GATE_CASES)
+def test_every_declared_gate_refuses_identically_before_later_work(browser, name, gate):
+    from mcp.server.mcpserver.exceptions import ToolError
+
+    op = OPERATIONS[name]
+    hosts = [GateRefusalHost(gate, name), GateRefusalHost(gate, name)]
+    body = sample(op)
+    if gate == "request":
+        body = {**body, "outside_the_operation_schema": True}
+    codes = {
+        "request": ("closed_request_required", 400),
+        "profile": ("research_profile_unavailable", 409),
+        "replay": (
+            (
+                "research_launch_replay_conflict"
+                if name == "launch"
+                else "operation_replay_conflict"
+            ),
+            409,
+        ),
+        "registration": ("registration_required", 403),
+        "signer": ("signer_not_running", 409),
+        "campaign": ("research_run_unavailable", 404),
+    }
+    expected_code, expected_status = codes[gate]
+    status, response = through_browser(browser, hosts[0], name, body)
+    with pytest.raises(ToolError) as raised:
+        through_mcp(hosts[1], name, body)
+    mcp = json.loads(str(raised.value))
+    assert status == expected_status
+    assert response == {
+        "error": expected_code,
+        "next_step": NEXT_ACTIONS[expected_code],
+    }
+    assert {key: mcp[key] for key in ("error", "next_step")} == response
+    expected_calls = []
+    for declared in op.gates:
+        if declared != "request":
+            expected_calls.append(declared)
+        if declared == gate:
+            break
+        if declared == "registration":
+            expected_calls.append("signer")
+            if gate == "signer":
+                break
+    for host in hosts:
+        calls = ["profile" if call == "owner" else call for call in host.calls]
+        assert calls == expected_calls
+        assert not any(call.startswith("body:") for call in calls)
+
+
+@pytest.mark.parametrize("row", describe(), ids=lambda row: row["operation"])
+def test_described_admission_matches_generated_behavior(browser, row):
+    op = OPERATIONS[row["operation"]]
+    assert row["admits_work"] is op.admits_work
+    assert row["gates"] == list(op.gates)
+    host = SpyHost(registered=False)
+    status, _ = through_browser(browser, host, op.name, sample(op))
+    assert (status == 403) is row["admits_work"]
 
 
 def test_a_request_outside_the_table_is_refused_on_both_doors(browser):
