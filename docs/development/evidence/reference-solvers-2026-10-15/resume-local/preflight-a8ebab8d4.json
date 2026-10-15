@@ -1,0 +1,94 @@
+{
+  "schema": "carbon.solver-readiness.resume-preflight.v1",
+  "code_ref": "a8ebab8d480bf21fe482d9c5f4f65baf4d59aa54",
+  "scope": "PUBLIC_DEVELOPMENT",
+  "provider_calls": 0,
+  "solver_calls": 0,
+  "runtime": "3.11.16 (main, Aug 25 2026, 14:00:53) [Clang 22.1.3 ]",
+  "plans": [
+    {
+      "plan": "f02-verification",
+      "kind": "elmer",
+      "files": 70,
+      "bytes": 1051636,
+      "manifest_pins": [
+        {
+          "step": "f02-verification",
+          "path": "docs/development/evidence/reference-solvers-2026-10-15/pins/f02-verification-decks-manifest.json",
+          "schema": "carbon.reference-triage.frozen-decks.v1",
+          "cases": 40
+        }
+      ],
+      "public_plan": "PASS",
+      "clean_import": {
+        "exit": 0,
+        "stdout": "PASS",
+        "stderr": ""
+      },
+      "freeze": {
+        "exit": 0,
+        "stdout": "40\n",
+        "stderr": ""
+      },
+      "deck_check": {
+        "selected": 36,
+        "raw_refused": 0,
+        "exact_matches": 36,
+        "command_drift": [],
+        "disallowed_file_drift": [],
+        "pass": true
+      }
+    },
+    {
+      "plan": "f08-triage-bank",
+      "kind": "calculix",
+      "files": 72,
+      "bytes": 1043391,
+      "manifest_pins": [
+        {
+          "step": "f08-triage",
+          "path": "docs/development/evidence/reference-solvers-2026-10-15/pins/triage-f08-decks-manifest.local-regen-v2.json",
+          "schema": "carbon.reference-triage.frozen-decks.v1",
+          "cases": 17
+        },
+        {
+          "step": "f08-train-bank-primaries",
+          "path": "docs/development/evidence/reference-solvers-2026-10-15/pins/f08-train-256-h3-manifest.json",
+          "schema": "carbon.reference-triage.frozen-decks.v1",
+          "cases": 256
+        }
+      ],
+      "public_plan": "PASS"
+    },
+    {
+      "plan": "f13-verification",
+      "kind": "elmer",
+      "files": 82,
+      "bytes": 915265,
+      "manifest_pins": [
+        {
+          "step": "f13-triage-panel",
+          "path": "docs/development/evidence/reference-solvers-2026-10-15/pins/triage-f13-decks-manifest.local-regen.json",
+          "schema": "carbon.reference-triage.frozen-decks.v1",
+          "cases": 16
+        }
+      ],
+      "public_plan": "PASS"
+    },
+    {
+      "plan": "f17-witness-triage",
+      "kind": "openfoam2506",
+      "files": 66,
+      "bytes": 771619,
+      "manifest_pins": [
+        {
+          "step": "f17-triage",
+          "path": "docs/development/evidence/reference-packages-01/triage-f17-decks-manifest.json",
+          "schema": "carbon.reference-triage.frozen-decks.v1",
+          "cases": 13
+        }
+      ],
+      "public_plan": "PASS"
+    }
+  ]
+}

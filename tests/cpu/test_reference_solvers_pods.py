@@ -31,6 +31,34 @@ SHIM = REPOSITORY / "scripts/dev/reference_packages/docker_shim.py"
 PLANS = REPOSITORY / "docs/development/evidence/reference-solvers-2026-10-15/plans"
 
 
+@pytest.mark.parametrize("exit_code", [0, 130])
+def test_f13_container_bounds_library_threads_and_retains_exit_outcome(
+    tmp_path, monkeypatch, exit_code
+):
+    from scripts.dev.reference_packages.elmer import f13_proof
+
+    calls = []
+
+    def run(argv, **kwargs):
+        calls.append(argv)
+        return SimpleNamespace(returncode=exit_code)
+
+    monkeypatch.setattr(f13_proof.subprocess, "run", run)
+    result = f13_proof._container(
+        "pinned-mesher", tmp_path, "python3 make_mesh.py", 1, "3g", "mesher", 60
+    )
+    (argv,) = calls
+    environment = dict(
+        argv[i + 1].split("=", 1) for i, value in enumerate(argv) if value == "-e"
+    )
+    assert environment["OPENBLAS_NUM_THREADS"] == environment["OMP_NUM_THREADS"] == "1"
+    assert argv[argv.index("--pids-limit") + 1] == "16"
+    assert argv[argv.index("--cpus") + 1] == "1"
+    assert argv[argv.index("--network") + 1] == "none"
+    assert result["exit"] == exit_code
+    assert result["outcome"] == ("COMPLETED" if exit_code == 0 else "FAILED")
+
+
 def _load_pod_control(name):
     spec = importlib.util.spec_from_file_location(
         name, REPOSITORY / "scripts/dev/exam_design/runpod/pod_control.py"
@@ -38,6 +66,54 @@ def _load_pod_control(name):
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+def test_funded_operator_phase_keeps_historical_accounting_separate(
+    tmp_path, monkeypatch
+):
+    pc = _load_pod_control("phase_accounting")
+    monkeypatch.setattr(pc, "REPO", str(tmp_path / "repo"))
+    monkeypatch.setattr(pc, "STATE_DIR", str(tmp_path / "operator"))
+    config = tmp_path / "operator/campaigns.json"
+    config.parent.mkdir()
+    config.write_text(
+        json.dumps({"ceilings_usd": {"reference-solvers": 25}, "balance_floor_usd": 15})
+    )
+    monkeypatch.setattr(pc, "account", lambda: {"clientBalance": 50})
+    pc.use_campaign("reference-solvers", "resume-fixture")
+    phase_ledger = Path(pc.PRIVATE_LEDGER)
+    assert "phases/resume-fixture" in Path(pc.LEDGER).as_posix()
+    assert pc.ACTIVE.endswith("-resume-fixture")
+    pc.cmd_start(SimpleNamespace(cap_usd=25))
+    assert pc.campaign_cap() == 25 and pc.committed_spend() == 0
+    with pytest.raises(SystemExit, match="already started"):
+        pc.cmd_start(SimpleNamespace(cap_usd=25))
+    pc.use_campaign("reference-solvers")
+    assert Path(pc.PRIVATE_LEDGER) != phase_ledger
+    assert pc.OPERATOR_PHASE is None
+    historical = Path(pc.LEDGER)
+    historical.parent.mkdir(parents=True, exist_ok=True)
+    historical.write_text(
+        json.dumps({"utc": "fixture", "event": "campaign_start"}) + "\n"
+    )
+    with pytest.raises(SystemExit, match="lacks"):
+        pc.ledger_rows()
+    assert phase_ledger.exists()
+
+
+@pytest.mark.parametrize(
+    "name,phase",
+    [
+        ("reference-solvers", "../escape"),
+        ("reference-solvers", ""),
+        ("reference-solvers", "a/b"),
+        ("ev4", "resume-fixture"),
+    ],
+)
+def test_operator_phase_rejects_path_escape_and_other_campaigns(name, phase):
+    pc = _load_pod_control("invalid_phase")
+    with pytest.raises(SystemExit, match="operator phase"):
+        pc.use_campaign(name, phase)
 
 
 # ------------------------------------------------------------ docker shim
@@ -567,6 +643,23 @@ def test_memory_need_selects_a_memory_flavor(operator):
     dispatch(operator, "--minutes", "30", "--memory-gib", "100")
     (pod,) = operator.rp.pods.values()
     assert pod["cpuFlavorId"] == "cpu3m"
+
+
+def test_phase_watchdog_keeps_termination_in_its_funded_namespace(operator):
+    pc = operator.pc
+    args = ["--campaign", "reference-solvers", "--operator-phase", "resume-fixture"]
+    pc.main([*args, "start", "--cap-usd", "25"])
+    pc.main([*args, "dispatch-solver", "elmer", "--pod-plan", "plans/smoke.json",
+             "--vcpu", "16", "--minutes", "60"])  # fmt: skip
+    (watchdog,) = operator.watchdogs
+    assert watchdog[watchdog.index("--operator-phase") + 1] == "resume-fixture"
+    pc.main([*watchdog[3:-1], str(int(time.time()) - 1)])
+    assert not operator.rp.pods and not pc.active_pods()
+    rows = pc.ledger_rows()
+    assert any(r["event"] == "terminated_verified" for r in rows)
+    assert "resume-fixture" in pc.PRIVATE_LEDGER
+    pc.use_campaign("reference-solvers")
+    assert [r["event"] for r in pc.ledger_rows()] == ["campaign_start"]
 
 
 def test_budget_refusal_counts_each_pod_at_its_worst_case(operator):

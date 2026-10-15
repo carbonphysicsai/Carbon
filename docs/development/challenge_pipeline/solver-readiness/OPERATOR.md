@@ -18,9 +18,18 @@ git checkout claude/compassionate-curie-yt9dxx
 export RUNPOD_API_KEY=...        # your key; never commit, paste or print it
 bash scripts/dev/reference_packages/operator_setup.sh     # --cap-usd/--floor-usd/--no-docker
 ```
+For a separately owner-funded operator phase whose historical private billing
+ledger is on another machine, use `--operator-phase resume-2026-10-15` with setup
+and every `pod_control` command. This preserves the historical campaign and
+uses separate public/private ledgers and active-pod state. The phase identifier
+does not grant money or renew a budget. Reuse the same identifier on restart;
+never create another phase to evade a consumed cap. See
+`SOLVER-READINESS-RESUME-PHASE-01` for this phase's USD25 authorization.
 It installs the Python env, writes `~/.runpod/api_key` and `~/.runpod/campaigns.json`
 (mode 600), starts the `reference-solvers` campaign, builds a clean Python for ship
-checks, and prints the RunPod balance. Rates and pod ids stay in `~/.runpod`; only
+checks, and prints the RunPod balance. Existing campaign entries and any higher
+account balance floor are preserved. Rates, billing figures and host machine
+identities stay in `~/.runpod`; only
 public events go to `docs/development/evidence/reference-solvers-2026-10-15/accounting/ledger.jsonl`.
 
 ## 3. Before every launch: ship check
@@ -29,7 +38,16 @@ Pods receive only files the plan names. Check the plan's pod scripts import clea
 .venv/bin/python scripts/dev/reference_packages/ship_check.py \
   docs/development/evidence/reference-solvers-2026-10-15/plans/PLAN.json MODULE[,MODULE] --write
 git commit -am "PLAN: ship list" && git push      # the pod fetches code at a pushed commit
+# Then repeat without --write, pinned to the committed payload:
+.venv/bin/python scripts/dev/reference_packages/ship_check.py \
+  docs/development/evidence/reference-solvers-2026-10-15/plans/PLAN.json MODULE[,MODULE] \
+  --ref "$(git rev-parse HEAD)"
 ```
+The read-only check copies committed file bytes, reports the modules examined,
+and fails when imports need missing shipment files. `--write` produces a plan
+proposal that must be committed and checked again. This is a top-level import
+smoke check: inspect lazy imports and runtime files separately, especially paths
+embedded inside shell command strings.
 Modules per plan: f02 `scripts.dev.reference_packages.elmer.f02_bank` (check the plan's
 steps for others); f08 `scripts.dev.reference_packages.calculix.f08_bank`; f13
 `scripts.dev.reference_packages.elmer.f13_pod_checks,scripts.dev.reference_packages.elmer.f13_triage_freeze`;
@@ -50,7 +68,7 @@ REF=$(git rev-parse --short HEAD)
 
 | Plan | KIND | vCPU | Minutes | Worst case |
 |---|---|---|---|---|
-| f02-verification.json | elmer | 16 | per plan | ~$1–2 |
+| f02-verification.json | elmer | 8 | 150 maximum | $0.60 estimate |
 | f08-triage-bank.json | calculix | 16 | 120 | $1.12 |
 | f13-verification.json | elmer | 16 | 450 | $4.20 |
 | f17-witness-triage.json | openfoam2506 | 8 | 90 | $0.60 |

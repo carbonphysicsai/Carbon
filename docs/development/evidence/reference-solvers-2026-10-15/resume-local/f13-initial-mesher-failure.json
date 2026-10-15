@@ -1,0 +1,48 @@
+{
+  "schema": "carbon.f13.local-refinement-diagnostic.v1",
+  "scope": "PUBLIC_DEVELOPMENT_DIAGNOSTIC",
+  "code_ref": "a8ebab8d480bf21fe482d9c5f4f65baf4d59aa54",
+  "decision": "F13-SCIENCE-VALUES-01",
+  "case": "small-coaxial",
+  "mesh_mm": 4.0,
+  "frequency_step_hz": 100.0,
+  "image": "sha256:6fab746f31257236da9e91b5be681bfbd2d25bd69f5dcd9a2e350394e8bcb675",
+  "mesh_image": "ghcr.io/carbonphysicsai/carbon-motor-reference@sha256:599521e79786ee0326a0754ba0545f51ee9665adff73c3515c8d4b8ba24c1c05",
+  "host_profile": "windows-wsl2-ubuntu24.04-local-development",
+  "limits": {
+    "solver_cpus": 1,
+    "solver_memory_gib": 3,
+    "mesh_memory_gib": 3,
+    "timeout_s_per_phase": 900,
+    "network": "none",
+    "retries": 0
+  },
+  "inputs": {
+    "case.sif": "29ec1dd574b0c27b37b3276b1381d6c28c23c3f92de467e572f6166ba787dbe8",
+    "deck.json": "38d733c94a89cf13fdffd1f564117293756e9c762cab0d04411a78fedc1927ff",
+    "ELMERSOLVER_STARTINFO": "a0f3685c880e89ea6da30dce81aa2bbfb48b68876a2490fddec0f8e22607e654",
+    "make_mesh.py": "114ab89f60c022fb3a0fd41f9381818f48140613f6b627ea303da4cf323ae32d"
+  },
+  "status": "FAILED_INFRA",
+  "claim_boundary": "21-point refinement diagnostic only; not the full 201-point B3 acceptance, native-pod lineage, qualification or LIVE evidence",
+  "cost": {
+    "host_profile": "windows-wsl2-ubuntu24.04-local-development",
+    "nproc": 20,
+    "cpu_model": "12th Gen Intel(R) Core(TM) i7-12700H",
+    "image": "sha256:6fab746f31257236da9e91b5be681bfbd2d25bd69f5dcd9a2e350394e8bcb675",
+    "mesh_image": "ghcr.io/carbonphysicsai/carbon-motor-reference@sha256:599521e79786ee0326a0754ba0545f51ee9665adff73c3515c8d4b8ba24c1c05",
+    "mesh": {
+      "exit": 130,
+      "outcome": "FAILED",
+      "wall_s": 1.01,
+      "cpu_s": 0.31,
+      "peak_mib": 93.5,
+      "cpus": 1,
+      "memory_limit": "3g",
+      "accounting": "container-cgroup"
+    }
+  },
+  "failure_phase": "meshing",
+  "cause": "OpenBLAS thread initialization exhausted the 16-process limit",
+  "solver_executed": false
+}
