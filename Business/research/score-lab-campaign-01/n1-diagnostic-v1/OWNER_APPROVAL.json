@@ -1,0 +1,11 @@
+{
+  "schema": "carbon.owner-scorelab-diagnostic-amendment.v1",
+  "recorded_utc": "2026-10-15T21:00:00.8728381Z",
+  "owner": "Ryan",
+  "source": "direct user reply in Test Lead chat",
+  "exact_answer": "Approve this exact DEVELOPMENT diagnostic proposal",
+  "proposal": "codex-queue/inputs/operator/N1_FULL_CASE_BINDING_RESEARCH_PROPOSAL_20261015.md",
+  "proposal_sha256": "9080e7601070ca7e54082275654d410ecb91fbbcf4602017d1f55e51989038b4",
+  "scope": "Reviewed DEVELOPMENT-only exact full N1 indexed binding and named same-error scalar control, including listed TRAIN-derived scales, explicit 0.05 V normalization floor and 0.1 relevance bands",
+  "adoption": "Registration required before A05 labels; historical v2 comparison, production scoring, sealed holdout and qualification remain outside this amendment"
+}

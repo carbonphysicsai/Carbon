@@ -1,0 +1,36 @@
+{
+  "recorded_utc": "2026-10-15T20:46:17.826864+00:00",
+  "source_train_sha256": "24fafa81bf528ca11606b64183bd8a54b5dc83c9478878c38b31ed393e1dd352",
+  "rows": 390,
+  "algorithm": "Python stdlib statistics.pstdev, population standard deviation ddof=0 over exact saved admitted TRAIN output column; no fitting/evaluation/reference acquisition",
+  "summary": {
+    "charging_t_max_c": {
+      "population_standard_deviation_ddof0": 10.502085863166549,
+      "count": 390,
+      "unit": "degree_C"
+    },
+    "minutes": {
+      "population_standard_deviation_ddof0": 16.252337997898938,
+      "count": 390,
+      "unit": "minute"
+    },
+    "plating_min_v": {
+      "population_standard_deviation_ddof0": 0.020847034707430122,
+      "count": 390,
+      "unit": "volt"
+    },
+    "q30_over_q1": {
+      "population_standard_deviation_ddof0": 0.00024803635794775166,
+      "count": 390,
+      "unit": "dimensionless"
+    },
+    "v_max_v": {
+      "population_standard_deviation_ddof0": 5.705607631344694e-13,
+      "count": 390,
+      "unit": "volt"
+    }
+  },
+  "role": "EMPIRICAL_PUBLIC_TRAIN_STATISTICS_FOR_PROSPECTIVE_RESEARCH_DESIGN; NOT_SCIENTIFIC_THRESHOLDS_OR_ADOPTED_SCORER",
+  "new_provider_spend_usd": 0,
+  "A05_or_holdout_read": false
+}
