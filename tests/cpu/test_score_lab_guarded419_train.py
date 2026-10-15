@@ -164,7 +164,14 @@ def test_missing_and_infrastructure_failure_keep_all_offers(tmp_path):
 
 
 @pytest.mark.parametrize(
-    "defect", ["partial_cycle", "clock_not_reached", "unknown_scale", "wrong_cv"]
+    "defect",
+    [
+        "partial_cycle",
+        "clock_not_reached",
+        "unknown_scale",
+        "wrong_cv",
+        "nonfinite_output",
+    ],
 )
 def test_partial_or_fidelity_unresolved_rows_never_supply_training_labels(
     tmp_path, defect
@@ -183,6 +190,8 @@ def test_partial_or_fidelity_unresolved_rows_never_supply_training_labels(
             row["observation_provenance"]["runtime_voltage_scale"][
                 "series_cells"
             ] = None
+        elif defect == "nonfinite_output":
+            row["q30_over_q1"] = float("nan")
         else:
             row["per_cycle"][0]["phases"]["cv"]["voltage_contact_observation"][
                 "descriptor"
