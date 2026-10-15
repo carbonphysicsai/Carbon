@@ -121,6 +121,9 @@ def test_writer_preserves_validated_bytes_and_refuses_replacement(tmp_path):
             "source": "docs/development/evidence/launchpad-acceptance-2026-01-01/../private.json"
         },
         {"cost": 0},
+        {"fee_total": 123},
+        {"nested": {"total_rao": 123}},
+        {"nested": [{"unregistered_flag": True}]},
         {"score": 0.5},
     ],
 )
@@ -143,6 +146,14 @@ def test_profile_digest_is_allowed_but_contents_are_not():
     accepted["evidence"]["nested"] = {"profile_contents": {"anything": True}}
     with pytest.raises(ValueError):
         cell.validate_cell(accepted)
+
+
+def test_unregistered_scalar_evidence_cannot_bypass_the_disclosure_allowlist(tmp_path):
+    value = document()
+    value["evidence"]["fee_total"] = 123
+    with pytest.raises(ValueError, match="UNREGISTERED_PUBLIC_EVIDENCE_FIELD"):
+        cell.write_cell(value, tmp_path)
+    assert list(tmp_path.iterdir()) == []
 
 
 @pytest.mark.parametrize(

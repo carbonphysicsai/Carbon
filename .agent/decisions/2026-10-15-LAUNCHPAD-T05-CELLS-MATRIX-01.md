@@ -105,3 +105,11 @@ be VERIFIED for PASS; UNSUPPORTED/REFUSED or capability-only support cannot
 produce a tested label. An optional_command_code may separately be UNSUPPORTED
 after the block works. Nonpassing observations remain recordable. This corrects
 the prior ambiguous matrix text; no real client acceptance is inferred.
+
+Prospective evidence leaves are allow-listed from the complete matrix-required
+field set plus documented public references, finding IDs, profile-hash alias and
+the optional Hermes command code. Unregistered numeric/Boolean leaves (for
+example fee_total or total_rao) cannot use the generic observation branch to
+disclose spend totals. This is a disclosure-shape constraint, not a new
+acceptance criterion. The 78 required names remain covered; historical evidence
+still uses the unchanged read-only T06 contract.

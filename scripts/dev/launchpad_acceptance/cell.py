@@ -70,6 +70,15 @@ _SENSITIVE = re.compile(
 )
 _CODE_FIELDS = {"backend", "transport", "final_state", "findings", "outcome", "result"}
 _REFERENCE_FIELDS = {"source", "reference", "references", "finding_register"}
+_PUBLIC_EVIDENCE_FIELDS = (
+    {
+        name
+        for definition in BY_CELL.values()
+        for name in definition.required_evidence_fields
+    }
+    | _REFERENCE_FIELDS
+    | {"profile_hash", "findings", "optional_command_code"}
+)
 _ACTORS = {
     "OWNER",
     "AGENT",
@@ -257,6 +266,8 @@ def _evidence(value, key="evidence", depth=0, count=None):
     count[0] += 1
     if depth > 8 or count[0] > 512:
         raise ValueError("EVIDENCE_TOO_LARGE")
+    if type(value) is not dict and key not in _PUBLIC_EVIDENCE_FIELDS:
+        raise ValueError("UNREGISTERED_PUBLIC_EVIDENCE_FIELD")
     if key in _BOOLEAN_FIELDS:
         if type(value) is not bool:
             raise ValueError("INVALID_PUBLIC_BOOLEAN")
