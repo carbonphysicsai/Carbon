@@ -1,0 +1,590 @@
+{
+ "bands": "F02-SCIENCE-VALUES-01",
+ "baseline_checks": [
+  {
+   "case": "steady-30C-2500-0.5",
+   "check": "B6",
+   "pass": true
+  },
+  {
+   "case": "steady-30C-2500-0.8",
+   "check": "B6",
+   "pass": true
+  },
+  {
+   "case": "steady-40C-1500-0.5",
+   "check": "B6",
+   "pass": true
+  },
+  {
+   "case": "steady-40C-1500-0.8",
+   "check": "B6",
+   "pass": true
+  },
+  {
+   "case": "c30-i40-s0.5-baseline",
+   "check": "B7",
+   "end_minus_steady_c": 1.2999521459278185e-09,
+   "pass": true
+  },
+  {
+   "case": "c30-i40-s0.8-baseline",
+   "check": "B7",
+   "end_minus_steady_c": 1.0999769983754959e-09,
+   "pass": true
+  },
+  {
+   "case": "c30-i55-s0.5-baseline",
+   "check": "B7",
+   "end_minus_steady_c": 1.6999592844513245e-09,
+   "pass": true
+  },
+  {
+   "case": "c30-i55-s0.8-baseline",
+   "check": "B7",
+   "end_minus_steady_c": 1.3000089893466793e-09,
+   "pass": true
+  },
+  {
+   "case": "c40-i40-s0.5-baseline",
+   "check": "B7",
+   "end_minus_steady_c": -9.699988368083723e-09,
+   "pass": true
+  },
+  {
+   "case": "c40-i40-s0.8-baseline",
+   "check": "B7",
+   "end_minus_steady_c": -1.0099995506607229e-08,
+   "pass": true
+  },
+  {
+   "case": "c40-i55-s0.5-baseline",
+   "check": "B7",
+   "end_minus_steady_c": -7.200014806585386e-09,
+   "pass": true
+  },
+  {
+   "case": "c40-i55-s0.8-baseline",
+   "check": "B7",
+   "end_minus_steady_c": -6.09998096479103e-09,
+   "pass": true
+  }
+ ],
+ "cost": {
+  "controls": {
+   "cpu_s_max": 179.29,
+   "cpu_s_mean": 88.1,
+   "cpu_s_min": 4.5,
+   "cpu_s_p50": 161.96,
+   "n": 4,
+   "peak_mib_max": 19.8,
+   "wall_s_max": 212.99,
+   "wall_s_p50": 176.89
+  },
+  "failed": [],
+  "host_profile": "local-dev-4vcpu-15g-contended",
+  "mesh_and_time:dt0.5": {
+   "cpu_s_max": 429.58,
+   "cpu_s_mean": 429.58,
+   "cpu_s_min": 429.58,
+   "cpu_s_p50": 429.58,
+   "n": 1,
+   "peak_mib_max": 21.9,
+   "wall_s_max": 1516.7,
+   "wall_s_p50": 1516.7
+  },
+  "primary": {
+   "cpu_s_max": 353.08,
+   "cpu_s_mean": 269.18,
+   "cpu_s_min": 210.55,
+   "cpu_s_p50": 282.67,
+   "n": 8,
+   "peak_mib_max": 20.8,
+   "wall_s_max": 1182.24,
+   "wall_s_p50": 903.82
+  },
+  "steady_baselines": {
+   "cpu_s_max": 1.43,
+   "cpu_s_mean": 1.34,
+   "cpu_s_min": 1.23,
+   "cpu_s_p50": 1.39,
+   "n": 4,
+   "peak_mib_max": 85.2,
+   "wall_s_max": 2.86,
+   "wall_s_p50": 2.45
+  },
+  "transient_baselines": {
+   "cpu_s_max": 188.64,
+   "cpu_s_mean": 160.84,
+   "cpu_s_min": 139.53,
+   "cpu_s_p50": 149.91,
+   "n": 8,
+   "peak_mib_max": 36.9,
+   "wall_s_max": 705.46,
+   "wall_s_p50": 194.88
+  }
+ },
+ "family_acceptance": {
+  "baseline_checks": 12,
+  "baseline_checks_expected": 12,
+  "baseline_checks_passing": 12,
+  "primaries": 8,
+  "primaries_passing": 0,
+  "rule": "B10: every primary passes B1-B5 at both rungs; every B6/B7 check passes",
+  "status": "NOT_ACCEPTED"
+ },
+ "image": null,
+ "observables": {
+  "c30-i40-s0.5-baseline": {
+   "energy": {
+    "heat_in_j": 2400.0,
+    "residual_rel": 4.2971938576670254e-05,
+    "robin_out_j": 2405.7170451416273,
+    "stored_j": -5.820177794211121
+   },
+   "extra_energy_j": 0.0,
+   "first_95c_crossing_s": "NOT_REACHED",
+   "peak_time_s": 0.7,
+   "peak_top_c": 47.1818439585,
+   "recovery_s": 0.2,
+   "steps": 1600
+  },
+  "c30-i40-s0.8-baseline": {
+   "energy": {
+    "heat_in_j": 2400.0,
+    "residual_rel": 4.2971799974035697e-05,
+    "robin_out_j": 2405.717045084131,
+    "stored_j": -5.820177404068635
+   },
+   "extra_energy_j": 0.0,
+   "first_95c_crossing_s": "NOT_REACHED",
+   "peak_time_s": 1.1,
+   "peak_top_c": 51.7217942341,
+   "recovery_s": 0.2,
+   "steps": 1600
+  },
+  "c30-i55-s0.5-baseline": {
+   "energy": {
+    "heat_in_j": 2400.0,
+    "residual_rel": 0.0007192779490253542,
+    "robin_out_j": 2505.1261106992583,
+    "stored_j": -106.8523777769193
+   },
+   "extra_energy_j": 0.0,
+   "first_95c_crossing_s": "NOT_REACHED",
+   "peak_time_s": 0.2,
+   "peak_top_c": 60.92347782990004,
+   "recovery_s": 8.4,
+   "steps": 1600
+  },
+  "c30-i55-s0.8-baseline": {
+   "energy": {
+    "heat_in_j": 2400.0,
+    "residual_rel": 0.0007192778289500742,
+    "robin_out_j": 2505.126110610511,
+    "stored_j": -106.85237739999157
+   },
+   "extra_energy_j": 0.0,
+   "first_95c_crossing_s": "NOT_REACHED",
+   "peak_time_s": 0.3,
+   "peak_top_c": 65.22119032700004,
+   "recovery_s": 8.4,
+   "steps": 1600
+  },
+  "c40-i40-s0.5-baseline": {
+   "energy": {
+    "heat_in_j": 2400.0,
+    "residual_rel": -0.00040615244557272944,
+    "robin_out_j": 2299.517980445851,
+    "stored_j": 101.45678542352354
+   },
+   "extra_energy_j": 0.0,
+   "first_95c_crossing_s": "NOT_REACHED",
+   "peak_time_s": 119.6,
+   "peak_top_c": 62.48638689840004,
+   "recovery_s": 13.7,
+   "steps": 1600
+  },
+  "c40-i40-s0.8-baseline": {
+   "energy": {
+    "heat_in_j": 2400.0,
+    "residual_rel": -0.00040615219884955424,
+    "robin_out_j": 2299.517980433078,
+    "stored_j": 101.4567848441609
+   },
+   "extra_energy_j": 0.0,
+   "first_95c_crossing_s": "NOT_REACHED",
+   "peak_time_s": 119.9,
+   "peak_top_c": 67.23145387990002,
+   "recovery_s": 13.7,
+   "steps": 1600
+  },
+  "c40-i55-s0.5-baseline": {
+   "energy": {
+    "heat_in_j": 2400.0,
+    "residual_rel": 7.663276795710771e-07,
+    "robin_out_j": 2399.5735753864997,
+    "stored_j": 0.4245854270691549
+   },
+   "extra_energy_j": 0.0,
+   "first_95c_crossing_s": "NOT_REACHED",
+   "peak_time_s": 119.6,
+   "peak_top_c": 62.486386900900015,
+   "recovery_s": 0.2,
+   "steps": 1600
+  },
+  "c40-i55-s0.8-baseline": {
+   "energy": {
+    "heat_in_j": 2400.0,
+    "residual_rel": 7.665372487508649e-07,
+    "robin_out_j": 2399.5735754664424,
+    "stored_j": 0.42458484416043124
+   },
+   "extra_energy_j": 0.0,
+   "first_95c_crossing_s": "NOT_REACHED",
+   "peak_time_s": 119.8,
+   "peak_top_c": 67.23145388390003,
+   "recovery_s": 0.3,
+   "steps": 1600
+  },
+  "control-energy": {
+   "heat_in_j": 13200.0,
+   "pass": true,
+   "residual_rel": -0.0004078986491530293,
+   "robin_out_j": 12866.943838359653,
+   "stored_j": 338.4404238091659
+  },
+  "control-equilibrium": {
+   "max_drift_c": 1.000444171950221e-10,
+   "pass": true
+  },
+  "control-slab_pulse": {
+   "at_s": 0.5,
+   "max_error_c": 0.006938388686494434,
+   "pass": true,
+   "peak_rise_c": 42.87325022571484,
+   "tolerance_c": 0.42873250225714843
+  },
+  "control-slab_step": {
+   "at_s": 0.5,
+   "max_error_c": 0.03816113702587387,
+   "pass": true,
+   "peak_rise_c": 49.515669515669515,
+   "tolerance_c": 0.49515669515669514
+  },
+  "cool-rect-long-high-dt0.5": {
+   "status": "NOT_SOLVED"
+  },
+  "cool-rect-long-high-mesh2": {
+   "status": "NOT_SOLVED"
+  },
+  "cool-rect-long-high-primary": {
+   "energy": {
+    "heat_in_j": 4800.0,
+    "residual_rel": 5.908291841042986e-05,
+    "robin_out_j": 4805.536579716849,
+    "stored_j": -5.8201777252191205
+   },
+   "extra_energy_j": 2399.9999999999995,
+   "first_95c_crossing_s": 20.386514453322427,
+   "peak_time_s": 40.0,
+   "peak_top_c": 145.63181943170002,
+   "recovery_s": 52.20000096857,
+   "steps": 2402
+  },
+  "cool-rect-low-dt0.5": {
+   "energy": {
+    "heat_in_j": 2700.0,
+    "residual_rel": 3.348748037532695e-05,
+    "robin_out_j": 2705.7297615799066,
+    "stored_j": -5.820177776919893
+   },
+   "extra_energy_j": 300.0,
+   "first_95c_crossing_s": "NOT_REACHED",
+   "peak_time_s": 25.0,
+   "peak_top_c": 90.78042006890001,
+   "recovery_s": 34.410001,
+   "steps": 3602
+  },
+  "cool-rect-low-mesh2": {
+   "status": "NOT_SOLVED"
+  },
+  "cool-rect-low-primary": {
+   "energy": {
+    "heat_in_j": 2700.0,
+    "residual_rel": 6.52989308772939e-05,
+    "robin_out_j": 2705.6438706635513,
+    "stored_j": -5.820177776919893
+   },
+   "extra_energy_j": 300.0,
+   "first_95c_crossing_s": "NOT_REACHED",
+   "peak_time_s": 25.0,
+   "peak_top_c": 90.78052055710003,
+   "recovery_s": 34.420001,
+   "steps": 1802
+  },
+  "cool-rect-middle-dt0.5": {
+   "status": "NOT_SOLVED"
+  },
+  "cool-rect-middle-mesh2": {
+   "status": "NOT_SOLVED"
+  },
+  "cool-rect-middle-primary": {
+   "energy": {
+    "heat_in_j": 3300.0,
+    "residual_rel": 7.083684381183103e-05,
+    "robin_out_j": 3305.586416192341,
+    "stored_j": -5.820177776919893
+   },
+   "extra_energy_j": 899.9999999999999,
+   "first_95c_crossing_s": 21.463494917960414,
+   "peak_time_s": 30.0,
+   "peak_top_c": 119.38969691950001,
+   "recovery_s": 41.200000985,
+   "steps": 2002
+  },
+  "cool-rect-short-high-dt0.5": {
+   "status": "NOT_SOLVED"
+  },
+  "cool-rect-short-high-mesh2": {
+   "status": "NOT_SOLVED"
+  },
+  "cool-rect-short-high-primary": {
+   "energy": {
+    "heat_in_j": 3000.0,
+    "residual_rel": 8.316147213342144e-05,
+    "robin_out_j": 3005.5706933605197,
+    "stored_j": -5.820177776919893
+   },
+   "extra_energy_j": 600.0,
+   "first_95c_crossing_s": 20.386514453837474,
+   "peak_time_s": 25.0,
+   "peak_top_c": 135.0315240923,
+   "recovery_s": 36.50000098235,
+   "steps": 1802
+  },
+  "steady-30C-2500-0.5": {
+   "balance_rel": -8.881784197001252e-16,
+   "robin_out_w": 20.000000000000018,
+   "steady_top_c": 46.529299786300044
+  },
+  "steady-30C-2500-0.8": {
+   "balance_rel": -8.881784197001252e-16,
+   "robin_out_w": 20.000000000000018,
+   "steady_top_c": 51.22304487180003
+  },
+  "steady-40C-1500-0.5": {
+   "balance_rel": -5.002398495435045e-12,
+   "robin_out_w": 20.000000000100048,
+   "steady_top_c": 62.48638690810003
+  },
+  "steady-40C-1500-0.8": {
+   "balance_rel": -5.002398495435045e-12,
+   "robin_out_w": 20.000000000100048,
+   "steady_top_c": 67.23145389000001
+  },
+  "warm-ramp-high-dt0.5": {
+   "status": "NOT_SOLVED"
+  },
+  "warm-ramp-high-mesh2": {
+   "status": "NOT_SOLVED"
+  },
+  "warm-ramp-high-primary": {
+   "energy": {
+    "heat_in_j": 3000.0000600000003,
+    "residual_rel": 0.000126122735733314,
+    "robin_out_j": 2999.197101999079,
+    "stored_j": 0.4245897861537422
+   },
+   "extra_energy_j": 600.0000600000001,
+   "first_95c_crossing_s": 23.01208631658303,
+   "peak_time_s": 30.0,
+   "peak_top_c": 190.25406230280004,
+   "recovery_s": 49.8000008775,
+   "steps": 2001
+  },
+  "warm-ramp-low-dt0.5": {
+   "status": "NOT_SOLVED"
+  },
+  "warm-ramp-low-mesh2": {
+   "status": "NOT_SOLVED"
+  },
+  "warm-ramp-low-primary": {
+   "energy": {
+    "heat_in_j": 3000.00003,
+    "residual_rel": 8.440543381762149e-05,
+    "robin_out_j": 2999.322203326211,
+    "stored_j": 0.42461036980409045
+   },
+   "extra_energy_j": 600.0000299999999,
+   "first_95c_crossing_s": 29.202977969343394,
+   "peak_time_s": 40.0,
+   "peak_top_c": 137.488619631,
+   "recovery_s": 57.80000088857,
+   "steps": 2401
+  },
+  "warm-two-long-dt0.5": {
+   "status": "NOT_SOLVED"
+  },
+  "warm-two-long-mesh2": {
+   "status": "NOT_SOLVED"
+  },
+  "warm-two-long-primary": {
+   "energy": {
+    "heat_in_j": 4200.0,
+    "residual_rel": 0.00010542677635926555,
+    "robin_out_j": 4199.132282883642,
+    "stored_j": 0.42492465564899096
+   },
+   "extra_energy_j": 1800.0,
+   "first_95c_crossing_s": 20.03064694322997,
+   "peak_time_s": 50.0,
+   "peak_top_c": 181.5384270613,
+   "recovery_s": 70.60000082334,
+   "steps": 2804
+  },
+  "warm-two-short-dt0.5": {
+   "status": "NOT_SOLVED"
+  },
+  "warm-two-short-mesh2": {
+   "status": "NOT_SOLVED"
+  },
+  "warm-two-short-primary": {
+   "energy": {
+    "heat_in_j": 3000.0,
+    "residual_rel": 9.532871552285844e-05,
+    "robin_out_j": 2999.289418860663,
+    "stored_j": 0.42459499276859214
+   },
+   "extra_energy_j": 600.0,
+   "first_95c_crossing_s": 20.018597198139275,
+   "peak_time_s": 35.0,
+   "peak_top_c": 177.8542421441,
+   "recovery_s": 53.400000888,
+   "steps": 2204
+  }
+ },
+ "rung_comparisons": {
+  "cool-rect-long-high": {
+   "case": "cool-rect-long-high",
+   "pass": false,
+   "primary_energy_residual": 5.908291841042986e-05,
+   "primary_peak_c": 145.63181943170002,
+   "rungs": {
+    "dt0.5": {
+     "status": "NOT_SOLVED"
+    },
+    "mesh2": {
+     "status": "NOT_SOLVED"
+    }
+   }
+  },
+  "cool-rect-low": {
+   "case": "cool-rect-low",
+   "pass": false,
+   "primary_energy_residual": 6.52989308772939e-05,
+   "primary_peak_c": 90.78052055710003,
+   "rungs": {
+    "dt0.5": {
+     "crossing_flag": null,
+     "crossing_shift_s": null,
+     "curve_max_diff_c": 0.014742230399974687,
+     "energy_residual": 3.348748037532695e-05,
+     "pass": true,
+     "peak_shift_c": -0.00010048820001884451,
+     "recovery_flag": null,
+     "recovery_shift_s": 0.00999999999999801
+    },
+    "mesh2": {
+     "status": "NOT_SOLVED"
+    }
+   }
+  },
+  "cool-rect-middle": {
+   "case": "cool-rect-middle",
+   "pass": false,
+   "primary_energy_residual": 7.083684381183103e-05,
+   "primary_peak_c": 119.38969691950001,
+   "rungs": {
+    "dt0.5": {
+     "status": "NOT_SOLVED"
+    },
+    "mesh2": {
+     "status": "NOT_SOLVED"
+    }
+   }
+  },
+  "cool-rect-short-high": {
+   "case": "cool-rect-short-high",
+   "pass": false,
+   "primary_energy_residual": 8.316147213342144e-05,
+   "primary_peak_c": 135.0315240923,
+   "rungs": {
+    "dt0.5": {
+     "status": "NOT_SOLVED"
+    },
+    "mesh2": {
+     "status": "NOT_SOLVED"
+    }
+   }
+  },
+  "warm-ramp-high": {
+   "case": "warm-ramp-high",
+   "pass": false,
+   "primary_energy_residual": 0.000126122735733314,
+   "primary_peak_c": 190.25406230280004,
+   "rungs": {
+    "dt0.5": {
+     "status": "NOT_SOLVED"
+    },
+    "mesh2": {
+     "status": "NOT_SOLVED"
+    }
+   }
+  },
+  "warm-ramp-low": {
+   "case": "warm-ramp-low",
+   "pass": false,
+   "primary_energy_residual": 8.440543381762149e-05,
+   "primary_peak_c": 137.488619631,
+   "rungs": {
+    "dt0.5": {
+     "status": "NOT_SOLVED"
+    },
+    "mesh2": {
+     "status": "NOT_SOLVED"
+    }
+   }
+  },
+  "warm-two-long": {
+   "case": "warm-two-long",
+   "pass": false,
+   "primary_energy_residual": 0.00010542677635926555,
+   "primary_peak_c": 181.5384270613,
+   "rungs": {
+    "dt0.5": {
+     "status": "NOT_SOLVED"
+    },
+    "mesh2": {
+     "status": "NOT_SOLVED"
+    }
+   }
+  },
+  "warm-two-short": {
+   "case": "warm-two-short",
+   "pass": false,
+   "primary_energy_residual": 9.532871552285844e-05,
+   "primary_peak_c": 177.8542421441,
+   "rungs": {
+    "dt0.5": {
+     "status": "NOT_SOLVED"
+    },
+    "mesh2": {
+     "status": "NOT_SOLVED"
+    }
+   }
+  }
+ },
+ "schema": "carbon.f02-readiness.judgement.v1",
+ "set": "convergence"
+}

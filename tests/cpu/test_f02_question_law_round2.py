@@ -25,8 +25,14 @@ def test_menu_capacity_and_context_counts():
 def test_safety_and_adoption_are_not_relaxed():
     assert SHEET["hard_temperature_anchor_c"] == 95
     assert max(SHEET["p_job"]["recommendation"]["thermal_cap_c"]) <= 95
+    # Registered DEVELOPMENT values (F02-SCIENCE-VALUES-01 E); never above 95 C.
     for name in ("p_job", "q_job", "w_job", "action_proposal", "k"):
-        assert SHEET[name]["registered"] is None
+        assert SHEET[name]["status"] == "REGISTERED_DEVELOPMENT"
+        assert SHEET[name]["decision"].startswith("F02-SCIENCE-VALUES-01")
+    assert max(SHEET["p_job"]["registered"]["thermal_cap_c"]) <= 95
+    assert SHEET["k"]["registered"] == SHEET["k"]["recommendation"] == 8
+    assert SHEET["t2a"]["thermal_band_registered"] == 0.5
+    assert SHEET["t2a"]["energy_band_registered"] == 0
     assert not SHEET["runtime_adoption"]
     assert SHEET["solver_runs"] == SHEET["spend"] == 0
     assert not SHEET["bank_recommendation"]["same_truth_resets_exposure"]

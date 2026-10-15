@@ -149,7 +149,8 @@
       "cost": {"status": "UNMEASURED", "p50_cpu_hours_hypothesis": 0.10, "p95_cpu_hours_hypothesis": 0.50, "p50_peak_rss_gib_hypothesis": 1, "p95_peak_rss_gib_hypothesis": 4, "measured_p50_cpu_hours": null, "measured_p95_cpu_hours": null, "measured_peak_rss_gib": null},
       "free_cap": {"node_hours": 2, "allocated_cpu_hours": 16, "process_launches": 32},
       "process_reservations": {"primary": 8, "mesh_and_time": 16, "controls": 4, "steady_baselines": 2, "cold_repeat": 1, "unassigned_not_retry": 1},
-      "internal_steps_per_attempt_max": 4800
+      "internal_steps_per_attempt_max": 4800,
+      "registered_values": {"decision": "F02-SCIENCE-VALUES-01", "scope": "DEVELOPMENT", "C1_curve_and_peak_c": 0.5, "C2_events_s": 0.5, "C2_one_tool_only": "UNRESOLVED", "C3_energy_imbalance_rel": 0.01, "C4_decision_agreement": "100 % verdict agreement on matched actions resolved outside the 1 C band; identical argmax-J per matched context/ceiling; J-regret 0 J", "C5_reduced_routes": "RC/POD stays SCREENING_ONLY; no reduced-vs-full tolerance (no reduced truth route)", "convergence_bands": "docs/development/evidence/reference-packages-01/f02-readiness/bands.json"}
     },
     "f06": {
       "packet": "f06-grating-coupler.md",

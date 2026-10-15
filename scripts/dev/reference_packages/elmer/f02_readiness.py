@@ -66,6 +66,14 @@ BASELINE_MANIFEST = EVIDENCE / "f02-menu-v2/baseline-decks-manifest.json"
 TRAIN_MANIFEST = EVIDENCE / "f02-menu-v2/train-decks-manifest.json"
 BANDS = EVIDENCE / "f02-readiness/bands.json"
 HOST_PROFILE = "local-dev-4vcpu-15g-contended"
+COMMAND_CONTRACT = (
+    "run `command` with bash in the case directory f02/<case>, ElmerSolver 26.2 on "
+    "PATH, OPENBLAS_NUM_THREADS=1 and OMP_NUM_THREADS=1, one CPU, no network; in the "
+    "docker image named here or a native build from sources.lock.json accepted under "
+    "F02-SCIENCE-VALUES-01 section A (A5 lineage via the verification role)"
+)
+#: The local rebuild of the locked Elmer package (F02-SCIENCE-VALUES-01 §A).
+IMAGE = "sha256:61be1cb77c51fcdd822250e372754a9ce728a5bb42f39b7ba03cdf5e70901add"
 AUDIT_SEED = 20261015
 MEMORY = {"mesh2": "2g"}  # per-case container memory limit; default below
 DEFAULT_MEMORY = "1g"
@@ -108,6 +116,32 @@ def steady_name(case):
     return f"steady-{case['coolant_c']:g}C-{case['h_w_m2_k']:g}-{case['left_source_fraction']:g}"
 
 
+#: Local-dev cost model (F02 readiness ledgers on local-dev-4vcpu-15g-contended):
+#: cgroup CPU-s per solver step by mesh level, and container memory peak.
+#: The bulk runner reads the per-case estimates; it re-measures at its pilot.
+CPU_S_PER_STEP = {1: 0.125, 2: 1.12}
+MEM_MIB = {1: 25, 2: 200}  # mesh 2 not yet measured: 8x nodes, conservative
+STEADY_CPU_S, STEADY_MEM_MIB = 2.0, 90  # measured 1.2-1.4 CPU-s, 85 MiB
+
+
+def estimate(meta):
+    if meta.get("steady"):
+        cpu, mem = STEADY_CPU_S, STEADY_MEM_MIB
+    else:
+        level = meta["mesh"]["level"]
+        cpu, mem = meta["steps"] * CPU_S_PER_STEP[level], MEM_MIB[level]
+    return {
+        "estimate_cpu_s": round(cpu, 1),
+        "estimate_wall_s": round(cpu * 1.05 + 3, 1),
+        "estimate_mem_mib": mem,
+    }
+
+
+def entry_for(name, reservation, files, meta):
+    return {"family": "f02", "case": name, "reservation": reservation,
+            "command": SOLVE, "files": files, "mesh": meta["mesh"], **estimate(meta)}  # fmt: skip
+
+
 def _registered(manifest_path):
     return {e["case"]: e for e in json.loads(Path(manifest_path).read_text())["cases"]}
 
@@ -144,8 +178,7 @@ def freeze(kind, out, labels=None):
             raise SystemExit(
                 f"{name}: regenerated deck differs from its registered manifest"
             )
-        entries.append({"family": "f02", "case": name, "reservation": reservation,
-                        "command": SOLVE, "files": files, "mesh": meta["mesh"]})  # fmt: skip
+        entries.append(entry_for(name, reservation, files, meta))
 
     if kind == "convergence":
         for label in [c["label"] for c in _panel_cases()]:
@@ -181,7 +214,7 @@ def _write_manifest(out, kind, entries, extra=None):
     for e in entries:
         counts[e["reservation"]] = counts.get(e["reservation"], 0) + 1
     doc = {"schema": SCHEMA, "ticket": "F02-SCIENCE-VALUES-01", "set": kind,
-           "image": None, "bands": str(BANDS.relative_to(ROOT)),
+           "image": IMAGE, "command_contract": COMMAND_CONTRACT, "bands": str(BANDS.relative_to(ROOT)),
            "counts": {"f02": counts}, **(extra or {}), "cases": entries}  # fmt: skip
     (Path(out) / "manifest.json").write_text(json.dumps(doc, indent=1) + "\n")
 
@@ -205,8 +238,7 @@ def _freeze_bank(out):
             raise SystemExit(
                 f"{name}: regenerated deck differs from its registered manifest"
             )
-        entries.append({"family": "f02", "case": name, "reservation": reservation,
-                        "command": SOLVE, "files": files, "mesh": meta["mesh"]})  # fmt: skip
+        entries.append(entry_for(name, reservation, files, meta))
 
     primaries = _registered(MENU_MANIFEST)
     for name, entry in primaries.items():
@@ -260,8 +292,7 @@ def freeze_contenders(bank_dir, out):
         for tag, level, dt in (("mesh2", 2, 1.0), ("dt0.5", 1, 0.5)):
             c = out / "f02" / f"{stem}-{tag}"
             meta = deck.write_case(case, c, level, dt)
-            entries.append({"family": "f02", "case": c.name, "reservation": "contender_refinement",
-                            "command": SOLVE, "files": _hashes(c), "mesh": meta["mesh"]})  # fmt: skip
+            entries.append(entry_for(c.name, "contender_refinement", _hashes(c), meta))
     _write_manifest(out, "contenders", entries)
     return len(entries)
 
@@ -289,6 +320,8 @@ def _cpu_model():
 def run(decks, image, ledger, parallel=1):
     decks, ledger = Path(decks), Path(ledger)
     manifest = json.loads((decks / "manifest.json").read_text())
+    if manifest.get("image") not in (None, image):
+        raise SystemExit("image differs from the frozen manifest")
     done = set()
     if ledger.exists():
         done = {json.loads(x)["case"] for x in ledger.read_text().splitlines() if x}
@@ -391,21 +424,30 @@ def _event_diff(a, b):
     return None, None
 
 
-def judge(decks, out, ledger=None):
+def _solved_dir(root, name):
+    """A solved case: DECKS/f02/<case> (local run) or a bulk runner's
+    cases/f02/<case>/work (bulk_run.py and the RunPod bulk step)."""
+    for d in (root / "f02" / name, root / "cases" / "f02" / name / "work"):
+        if d.is_dir():
+            return d
+    return root / "f02" / name
+
+
+def judge(decks, out, ledger=None, manifest_path=None):
     decks = Path(decks)
     bands = json.loads(BANDS.read_text())
-    manifest = json.loads((decks / "manifest.json").read_text())
+    manifest = json.loads(Path(manifest_path or decks / "manifest.json").read_text())
     names = {e["case"]: e for e in manifest["cases"]}
     obs, steady = {}, {}
     for name, e in names.items():
-        d = decks / "f02" / name
+        d = _solved_dir(decks, name)
         if not (d / "scalars.dat").exists():
             obs[name] = {"status": "NOT_SOLVED"}
             continue
         if e["reservation"] == "steady_baselines":
             steady[name] = obs[name] = steady_observe(d)
     for name, e in names.items():
-        d = decks / "f02" / name
+        d = _solved_dir(decks, name)
         if e["reservation"] in ("steady_baselines",) or name in obs:
             continue
         if e["reservation"] == "controls":
@@ -463,7 +505,7 @@ def judge(decks, out, ledger=None):
     for name, e in names.items():
         if e["reservation"] != "transient_baselines" or "peak_top_c" not in obs[name]:
             continue
-        meta = json.loads((decks / "f02" / name / "deck.json").read_text())
+        meta = json.loads((_solved_dir(decks, name) / "deck.json").read_text())
         s = steady.get(steady_name(meta["case"]))
         if s is None:
             continue
@@ -472,6 +514,24 @@ def judge(decks, out, ledger=None):
         verdicts.append({"case": name, "check": "B7", "end_minus_steady_c": diff,
                          "pass": abs(diff) <= bands["B7_baseline_consistency_c"]})  # fmt: skip
     cost = _cost(ledger) if ledger else None
+    primaries = [n[: -len("-primary")] for n, e in names.items()
+                 if e["reservation"] == "primary"]  # fmt: skip
+    b10 = {
+        "rule": "B10: every primary passes B1-B5 at both rungs; every B6/B7 check passes",
+        "primaries_passing": sum(bool((rungs.get(n) or {}).get("pass")) for n in primaries),
+        "primaries": len(primaries),
+        "baseline_checks_passing": sum(v["pass"] for v in verdicts),
+        "baseline_checks": len(verdicts),
+        "baseline_checks_expected": sum(e["reservation"] in ("steady_baselines", "transient_baselines")
+                                        for e in names.values()),
+    }  # fmt: skip
+    b10["status"] = (
+        "ACCEPTED_FOR_DEVELOPMENT_BANK"
+        if b10["primaries"]
+        and b10["primaries_passing"] == b10["primaries"]
+        and b10["baseline_checks_passing"] == b10["baseline_checks_expected"]
+        else "NOT_ACCEPTED"
+    )
     slim = {
         k: {kk: vv for kk, vv in v.items() if kk not in ("top_max_c_at_0p5s", "patch_centres_c_at_0p5s")}
         for k, v in obs.items()
@@ -479,7 +539,54 @@ def judge(decks, out, ledger=None):
     doc = {"schema": "carbon.f02-readiness.judgement.v1", "bands": bands["decision"],
            "set": manifest.get("set"), "image": manifest.get("image"),
            "observables": slim, "rung_comparisons": rungs, "baseline_checks": verdicts,
-           "cost": cost}  # fmt: skip
+           "family_acceptance": b10, "cost": cost}  # fmt: skip
+    Path(out).write_text(json.dumps(doc, indent=1, sort_keys=True) + "\n")
+    return doc
+
+
+#: A5 lineage observables: (path in a judgement's observables, band key).
+LINEAGE_FIELDS = (
+    (("peak_top_c",), "peak_c"),
+    (("first_95c_crossing_s",), "crossing_s"),
+    (("energy", "residual_rel"), "energy_residual_abs"),
+    (("max_error_c",), "control_error_c"),
+    (("max_drift_c",), "control_error_c"),
+    (("residual_rel",), "energy_residual_abs"),
+    (("steady_top_c",), "peak_c"),
+)
+
+
+def lineage(earlier, later, out):
+    """A5: the same decks solved on two builds (two judgement files)."""
+    band = json.loads(BANDS.read_text())["rebuild"]["A5_lineage"]
+    a = json.loads(Path(earlier).read_text())["observables"]
+    b = json.loads(Path(later).read_text())["observables"]
+    rows, ok = [], True
+    solved = [c for c in sorted(set(a) & set(b))
+              if "NOT_SOLVED" not in (a[c].get("status"), b[c].get("status"))]  # fmt: skip
+    for case in solved:
+        for path, key in LINEAGE_FIELDS:
+            va, vb = a[case], b[case]
+            for k in path:
+                va = va.get(k) if isinstance(va, dict) else None
+                vb = vb.get(k) if isinstance(vb, dict) else None
+            if va is None and vb is None:
+                continue
+            if isinstance(va, (int, float)) and isinstance(vb, (int, float)):
+                diff = abs(va - vb)
+                passed = diff <= band[key]
+            elif va == vb:
+                diff, passed = 0.0, True  # the same flag on both (e.g. NOT_REACHED)
+            else:
+                diff, passed = None, False  # a value or flag on one build only
+            ok &= passed
+            rows.append({"case": case, "field": ".".join(path), "earlier": va,
+                         "later": vb, "abs_diff": diff, "band": band[key], "pass": passed})  # fmt: skip
+    doc = {"schema": "carbon.f02-readiness.lineage.v1", "decision": "F02-SCIENCE-VALUES-01 A5",
+           "earlier": str(earlier), "later": str(later),
+           "deck_identity": band["deck_identity"] + " (check the bulk step's deck-verification.json)",
+           "cases_compared": len({r["case"] for r in rows}), "pass": ok and bool(rows),
+           "rows": rows}  # fmt: skip
     Path(out).write_text(json.dumps(doc, indent=1, sort_keys=True) + "\n")
     return doc
 
@@ -528,6 +635,11 @@ def main(argv=None):
     j.add_argument("decks", type=Path)
     j.add_argument("out", type=Path)
     j.add_argument("--ledger", type=Path)
+    j.add_argument("--manifest", type=Path, help="default DECKS/manifest.json")
+    g = sub.add_parser("lineage")
+    g.add_argument("earlier", type=Path)
+    g.add_argument("later", type=Path)
+    g.add_argument("out", type=Path)
     args = parser.parse_args(argv)
     if args.command == "freeze":
         labels = [x for x in args.labels.split(",") if x]
@@ -536,9 +648,23 @@ def main(argv=None):
         print(freeze_contenders(args.bank, args.out))
     elif args.command == "run":
         run(args.decks, args.image, args.ledger, args.parallel)
+    elif args.command == "lineage":
+        doc = lineage(args.earlier, args.later, args.out)
+        print(json.dumps({"pass": doc["pass"], "cases": doc["cases_compared"]}))
+        return 0 if doc["pass"] else 1
     else:
-        doc = judge(args.decks, args.out, args.ledger)
-        print(json.dumps(doc["cost"], indent=1))
+        doc = judge(args.decks, args.out, args.ledger, args.manifest)
+        print(
+            json.dumps(
+                {"family_acceptance": doc["family_acceptance"], "cost": doc["cost"]},
+                indent=1,
+            )
+        )
+        return (
+            0
+            if doc["family_acceptance"]["status"] == "ACCEPTED_FOR_DEVELOPMENT_BANK"
+            else 1
+        )
     return 0
 
 
