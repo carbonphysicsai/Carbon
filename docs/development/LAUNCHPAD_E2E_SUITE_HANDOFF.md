@@ -1,20 +1,18 @@
-## 2026-10-15 — OWNER-LAUNCHPAD-E2E-SUITE-01: the Launchpad end-to-end testing suite, with the owner's answers
+# Launchpad end-to-end testing suite: handoff and execution guidance
 
-**Authority.** The owner, 2026-10-15, in his own Claude Code session. He asked
-for the three handoffs, then for the §3 answers, then said:
+**Status.** Handoff and plan, not a decision record. The owner decision it
+serves is **`.agent/decisions/2026-10-15-OWNER-LAUNCHPAD-E2E-SUITE-01.md`**,
+recorded by Platform2 on its T-07 branch (`codex/launchpad-t07-base-first`,
+commit `018818453`, record sha256 `9f431e87…`), which carries the owner's
+D1–D6 and R1–R3 answers verbatim and Platform2's immediate dispositions. Where
+this document and that record differ, the record governs. §3A below repeats
+the same answers for reading convenience only.
 
-> Move them to decisions now
-
-The answers were drafted in the session and adopted by that instruction; the
-owner's words that led to each are quoted in its record. Every value below is
-a DEVELOPMENT registration or a sequencing choice. No new grant figure, no
-scientific threshold, no security acceptance, no LIVE, reward, mainnet or
-production authority is created by any of the three records.
-
-The owner's request for the answers, verbatim:
-
-> Do the same for the Launchpad answers
-
+**Authority for the handoff itself.** The owner, 2026-10-15, in his own Claude
+Code session, asked for this handoff and then for the §3 answers ("Do the
+same for the Launchpad answers"), and asked for it to be recorded. Nothing in
+it creates a grant figure, scientific threshold, security acceptance, LIVE,
+reward, mainnet or production authority.
 
 **From:** the owner (Ryan), 2026-10-15. **To:** Launchpad (Platform lanes),
 Test Lead, Carbon Validator, Graphite Testing Manager, PR Head / Root.
@@ -45,8 +43,8 @@ bookkeeping that turns runs into a verdict.
 |---|---|---|---|
 | L0 unit / contract | 47 Launchpad and Control Center test files (doors, gates, refusals, commitment, multi-intake, ladder view, supervisor, signer honesty, offline coverage…) | `tests/cpu/test_launchpad_*`, `test_control_center_*`, `test_miner_launchpad_*` | Yes, canonical shards (`scripts/dev/ci.sh`) |
 | L1 page without a browser | The real `index.html` + `app.js`, `research_view.js`, `research_tools.js`, `library_view.js` driven on a fake DOM and fake clock against a scripted controller | `tests/cpu/control_center_dom.cjs`, `test_control_center_live_page.py` | Yes |
-| L2 real browser | Chromium over CDP against the real HTTP controller; no research or provider execution | `scripts/dev/miner_launchpad/browser_smoke.py` | **Not referenced in `ci.yml` — confirm; see T-01** |
-| L3 service journey | Eight-stage miner journey through both doors: real MCP SDK client + stdio servers, real HTTP door, real campaign host/gates/supervision/ledger, battery research service, practice in a subprocess, intake + worker + validator daemon on loopback. Fixtures only for provider transport, chain, signer, campaign prep | `tests/service/test_launchpad_production_journey.py` (+16 other service files) | **Confirm which `ci.sh` lane lists it; see T-01** |
+| L2 real browser | Chromium over CDP against the real HTTP controller; no research or provider execution | `scripts/dev/miner_launchpad/browser_smoke.py` | **Confirmed NOT in normal CI** (Platform2 disposition, source `27f74451`): runs only on shard 4 with `CARBON_LAUNCHPAD_SMOKE=1`, which the workflow does not set. Fix in flight: `codex/launchpad-t01-ci-coverage` (LAUNCHPAD-T01-CI-COVERAGE-01), Platform3 |
+| L3 service journey | Eight-stage miner journey through both doors: real MCP SDK client + stdio servers, real HTTP door, real campaign host/gates/supervision/ledger, battery research service, practice in a subprocess, intake + worker + validator daemon on loopback. Fixtures only for provider transport, chain, signer, campaign prep | `tests/service/test_launchpad_production_journey.py` (+16 other service files) | **Confirmed NOT in `ci.sh`'s service lane** (same disposition). Same fix: journey on shard 3 under LAUNCHPAD-T01-CI-COVERAGE-01 |
 | L4 real acceptance | The matrix: 14 flows × 9 compute × 7 inference × 5 agents as a covering design, fresh-machine run, submit-to-verdict, traffic switch, levels L1–L4 | `LAUNCHPAD_ACCEPTANCE_PLAN.md` §3–§6, §3.8 | Manual, owner-in-the-loop by design |
 | L5 Graphite as first heavy user | Graphite's miner edition drives the Launchpad through MCP; every gap it hits goes to `FINDINGS.md` | `carbon/agent_campaign/graphite/miner/` | Campaign runs, not CI |
 
@@ -120,9 +118,12 @@ halt resume freeze_candidate submit commit library_search library_card
 library_list plan_list plan_get library_pin library_unpin library_ban
 library_unban library_import plan_edit`. Gates in order: request, profile,
 replay, registration + signer probe, campaign. Owner-lock semantics
-(`takes_owner_lock`). Idempotency on launch (replay gate + digest conflict);
-**verify practice / freeze / submit have durable idempotency keys — this was
-flagged a correctness defect on 26 Sept and must be confirmed closed.**
+(`takes_owner_lock`). Idempotency on launch (replay gate + digest conflict),
+and **confirmed closed for practice / freeze / submit** (Platform2 disposition
+of R3: keyed operations under the replay gate, `launchpad_operation_keys`
+persisted in SQLite by principal and request key, request-digest conflict
+check, replay without redispatch; `tests/cpu/test_miner_operation_idempotency.py`).
+A caller that omits or changes the key gets no idempotency promise.
 
 **Agents.** `graphite` (RESEARCH / BUILD / FULL; `research_share`, `hunt`,
 `plan`, ceilings predicate LA-F4, output cap decision, input-window advisory

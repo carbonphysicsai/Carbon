@@ -1,20 +1,19 @@
-## 2026-10-15 — OWNER-SCORELAB-FINISH-LINE-01: the ScoreLab finish line and the battery rule-v3 decision procedure
+# ScoreLab finish line: handoff for a useful lab and a battery score decision
 
-**Authority.** The owner, 2026-10-15, in his own Claude Code session. He asked
-for the three handoffs, then for the §3 answers, then said:
+**Status.** Handoff and plan, not a decision record. The owner decision it
+serves is **`.agent/decisions/2026-10-15-OWNER-SCORELAB-FINISH-LINE-01.md`**,
+recorded by Research Codex on `codex/scorelab-owner-dev-v1` (commit
+`6b5ea3a49`), which carries the owner's D1–D8 and R1–R2 answers verbatim and
+names Optimizer, Root and Research's responsibilities. Where this document and
+that record differ, the record governs. §3A below repeats the same answers
+for reading convenience only.
 
-> Move them to decisions now
-
-The answers were drafted in the session and adopted by that instruction; the
-owner's words that led to each are quoted in its record. Every value below is
-a DEVELOPMENT registration or a sequencing choice. No new grant figure, no
-scientific threshold, no security acceptance, no LIVE, reward, mainnet or
-production authority is created by any of the three records.
-
-The owner's request for the answers, verbatim:
-
-> I need you to give me optimal answers for that section 3 of the scorelab handoff now. Whatever gets us to a valuable challenge asap
-
+**Authority for the handoff itself.** The owner, 2026-10-15, in his own Claude
+Code session, asked for this handoff and then for the §3 answers ("I need you
+to give me optimal answers for that section 3 of the scorelab handoff now.
+Whatever gets us to a valuable challenge asap"), and asked for it to be
+recorded. Nothing in it creates a grant figure, scientific threshold, security
+acceptance, LIVE, reward, mainnet or production authority.
 
 **From:** the owner (Ryan), 2026-10-15. **To:** Optimizer, Root / PR Head, Test Lead,
 Data Collection, Carbon Validator, Test Engineer, Graphite Testing Manager.
