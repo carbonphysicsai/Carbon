@@ -221,9 +221,20 @@ class PublicInputs:
             if any(not exam._finite_shape(p, calibration.SHAPES) for p in raw.values()):
                 invalid[member] = "INVALID_OR_NONFINITE_PREDICTIONS"
                 continue
-            quantities[member] = {
-                cid: decision.measure(self.contract, p) for cid, p in raw.items()
-            }
+            try:
+                measured = {
+                    cid: decision.measure(self.contract, p) for cid, p in raw.items()
+                }
+                if any(
+                    value is not None and not completed_menu.finite(value)
+                    for row in measured.values()
+                    for value in row.values()
+                ):
+                    raise ValueError("nonfinite derived quantity")
+            except (KeyError, TypeError, ValueError, OverflowError, ZeroDivisionError):
+                invalid[member] = "INVALID_OR_NONFINITE_DERIVED_PREDICTIONS"
+                continue
+            quantities[member] = measured
             raw_models[member] = raw
         self.raw_models = raw_models
         self.quantities = quantities
@@ -272,6 +283,12 @@ class PublicInputs:
         result = {}
         for q in self.protocol["questions"]:
             qid = q["question_id"]
+            if any(cid not in quantities for cid in q["case_ids"]):
+                # Constructed controls have no output for a failed original
+                # reference. That question is already excluded for everyone;
+                # do not crash or manufacture a control quantity there.
+                result[qid] = None
+                continue
             result[qid] = decision.assess_predicted(
                 self.contract,
                 self.scenarios[q["native_context_id"]],

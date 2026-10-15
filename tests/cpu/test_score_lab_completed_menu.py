@@ -82,9 +82,8 @@ def questions_and_predictions():
 
 
 class FixtureInputs:
-    identity = {"scope": "FIXTURE"}
-
     def __init__(self, out, *, model=1, truth=2):
+        self.identity = {"scope": "FIXTURE"}
         self.out, self.model, self.value = out, model, truth
         self.events = []
 
@@ -520,6 +519,76 @@ def test_c12_selected_missing_value_cannot_choose_fourth_member(monkeypatch):
         ["b", "q2"]
     ]
     assert row["matched_real_members"] == ["a", "c", "d"]
+
+
+def test_c10_actual_model_quantity_path_and_nonfinite_derived_accounting(
+    tmp_path, monkeypatch
+):
+    inputs = object.__new__(producer.PublicInputs)
+    _, inputs.contract = registered_grammar()
+    inputs.public, inputs.action_of, inputs.identity = (
+        tmp_path,
+        {"D-toy": "a"},
+        {"scope": "FIXTURE"},
+    )
+    (tmp_path / "data").mkdir()
+    (tmp_path / "data/fixture.json.gz").write_bytes(b"fixture")
+    inputs.records = {
+        "m": {
+            "manifest_folder": "data",
+            "public_source_file": "old/fixture.json.gz",
+            "compressed_sha256": "fixture",
+        }
+    }
+    outputs = {
+        k: ([0.0] * shape[0] if shape else 0.0)
+        for k, shape in producer.calibration.SHAPES.items()
+    }
+    outputs["voltage_v"] = [4.0] * 10 + [4.2] * (len(outputs["voltage_v"]) - 10)
+    inputs.readers = SimpleNamespace(predictions=lambda *args: {"D-toy": outputs})
+    committed = inputs.models()
+    assert committed["quantities"]["m"]["D-toy"] == producer.decision.measure(
+        inputs.contract, outputs
+    )
+    assert committed["references_opened"] is False
+    monkeypatch.setattr(
+        producer.decision, "measure", lambda *args: {"objective": float("nan")}
+    )
+    rejected = inputs.models()
+    assert rejected["quantities"] == {}
+    assert rejected["invalid_or_unavailable_members"] == {
+        "m": "INVALID_OR_NONFINITE_DERIVED_PREDICTIONS"
+    }
+
+
+def test_c09_control_missing_failed_reference_quantity_is_not_imputed(monkeypatch):
+    inputs = object.__new__(producer.PublicInputs)
+    inputs.protocol, _, _, _ = toy()
+    inputs.contract = {}
+    inputs.scenarios = {
+        q["native_context_id"]: {"id": q["native_context_id"]}
+        for q in inputs.protocol["questions"]
+    }
+    inputs.question_candidates = {
+        q["question_id"]: [] for q in inputs.protocol["questions"]
+    }
+    inputs.action_of = {
+        cid: cid for q in inputs.protocol["questions"] for cid in q["case_ids"]
+    }
+    quantities = {
+        cid: {"marker": "FIXTURE"}
+        for cid in inputs.protocol["questions"][0]["case_ids"]
+    }
+    calls = []
+
+    def assessed(contract, scenario, candidates, quantities):
+        calls.append(scenario["id"])
+        return {"fixture": True}
+
+    monkeypatch.setattr(producer.decision, "assess_predicted", assessed)
+    result = inputs._predictions(quantities)
+    assert result == {"q1": {"fixture": True}, "q2": None}
+    assert calls == ["D-toy0"]
 
 
 @pytest.mark.parametrize("mode", ["good", "unsafe", "abstain", "short_menu"])
