@@ -1,0 +1,109 @@
+# OPT-18: off-chain scoring source boundary (development audit)
+
+## Working contract
+
+This audit implements the Test Lead's SCORE-PROOF-OFFCHAIN-EVIDENCE-01 request.
+It reads repository source only. It does not query a chain, a hidden exam,
+an AX42 host, or a scoring database. `Design_Specs/Scoring.md` owns A5's
+closed input contract; `CONSTITUTION.md` separates scientific merit from
+network settlement. The primary orientation map ref is `WAVE-B/OPT-18`.
+The Development Hub is retired under `.agent/DELIVERY_PROTOCOL.md`; this
+audit changes no Hub selection, status, authority or navigation meaning.
+
+**Result: PARTIAL PROOF, with an explicit unknown.** The static import guard
+proves a narrow source boundary for two pure score kernels. It does not
+prove that every validator caller or the weight publisher is incapable of
+reading chain state before a score. Transitive source reachability crosses
+those layers today. No LIVE/security qualification follows from this audit.
+
+## Score-input inventory and origin
+
+| Scoring entry | Inputs that can change its result | Origin and boundary found |
+| --- | --- | --- |
+| `carbon.scoring.engine.ScoreEngine.score` | Exact `ScoreInput` pin, numeric gate and component actuals, Boolean gate actuals; exact `LoadedScorePack` thresholds, weights and transforms | Validator-authorized closed scalar input and loaded pinned pack per `Design_Specs/Scoring.md` §§3–4. Its static local-import closure has no chain/reward module or dynamic import. Fixture-only A5; no LIVE origin is proved. |
+| `carbon.battery.value.scoring.components`, `decision_agreement`, `rule_scores` | `predictions`, `case_ids`, reference `store`, optional/frozen `contract`, and computed component vector | **SOURCE_CHAIN_REACHABILITY_DETECTED.** Importing `challenge` imports `carbon.reconstruction.capability_registry`, whose ancestor initializer imports reconstruction orchestration. The resulting static source closure reaches chain/reward modules. Actual on-chain influence, network execution and the end-to-end score boundary remain **UNPROVED**. |
+| `carbon.design_search.score_bridge.evaluate_design_score` | `sealed_bank` (question/reference outcomes), `committed_predictions`, `registered_rule` (objective, equivalence, losses, kind costs and aggregate) | The pure library's static local-import closure has no chain/reward module or dynamic import. Bank custody and caller provenance are outside this proof. |
+| `carbon.battery.value.score_tuning.score_member` | Candidate rule and each member's scored leg row; related scoring functions consume registered limits and references | **UNPROVED end-to-end.** The module's transitive import closure reaches `carbon.chain` via `false_acceptance → panel → track_a → worker → level1_worker → development_session.battery_gpu → research_campaign → service`. Reachability is not evidence of a chain read, but prevents a blanket no-chain assertion. |
+| `carbon.challenge_validator.*_scoring` practice rules | Submitted predictions, public PRACTICE references/material, frozen Challenge rule and comparison inputs | **UNPROVED end-to-end.** Their transitive imports reach `carbon.chain` through development-session modules. Practice is intentionally incomplete and is not the hidden exam. |
+| `carbon.scoring.development` | Development rule, metric actuals and scalar score inputs | **UNPROVED transitive import closure:** `development_session.profile → carbon.chain.models`. That is a chain type import, not a demonstrated chain read. |
+
+The score-bearing A5 schema forbids fees, payments, hotkeys, blocks, miner
+identity, raw datasets and other unspecified values (`Design_Specs/Scoring.md`
+§§4, 10). This is a structural fact about that bounded engine; it is not a
+claim that all other score callers have equally closed schemas.
+
+## The downstream direction and the unresolved reverse path
+
+`carbon.rewards.winner_eligibility` reads validator promotion records;
+`carbon.rewards.winner_decay` maps an eligible winner under its registered
+policy; `carbon.rewards.testnet_winner_publication` issues a typed intent;
+`carbon.chain.publisher.VerifiedWeightPublisher` observes the chain and
+publishes checked targets. Chain observations affect eligibility and payout
+transport. The current source graph also reaches scoring modules from
+`testnet_winner_publication` through `carbon.battery.deployment → daemon →
+research → development_session.research_service → research_profile →
+carbon.scoring.development → engine`. A second path reaches battery value
+scoring through challenge-validator imports. These are import paths, not a
+verified runtime call from the publisher into a scorer. They make the
+strong converse claim **UNPROVED**, rather than clean by assertion.
+
+The producer's on-chain commitment may control **admission** of a recipe;
+that is a distinct path from the numeric score input. This audit does not
+equate admission influence with a scientific score input or prove that every
+deployed caller preserves that distinction.
+
+## Executable evidence and remaining proof
+
+`scripts/dev/score_offchain_audit.py` resolves local imports from named score
+roots and reports forbidden reachability, dynamic import calls and shortest
+source paths. Traversal includes existing implicit ancestor package
+initializers, including `carbon/__init__.py`; namespace packages without an
+initializer add no source. Calls through named or aliased
+`from importlib import import_module` bindings are conservatively reported as
+dynamic and unproved, even if another statement might shadow the binding.
+`tests/invariants/test_score_offchain_boundary.py` requires the
+two clean kernels to remain chain/reward-free and injects a fake direct
+`carbon.chain` import into `ScoreEngine` source as a negative control. The
+guard catches that injection. The same test preserves the publisher's
+transitive scorer reachability as a visible **unknown**. Additional negative
+controls inject a chain import into each of `carbon` and `carbon.scoring`'s
+initializers and call direct, aliased and attribute-based dynamic loaders.
+These controls do not execute the imported code or access a chain.
+
+The initial three-kernel clean claim omitted implicit ancestor initializers.
+The corrected traversal exposed the battery value scorer's wider closure in
+canonical CI. A positive reachability regression now keeps that root visibly
+**UNPROVED**; it is not exempted from the audit and its forbidden imports are
+not suppressed. This is a correction to the audit's evidence claim, with no
+change to scorer code or historical scores.
+
+### Ancestor finding and working decision
+
+The following concrete source path exists on this ticket's source tree:
+
+```text
+carbon.battery.value.scoring                 (line 40)
+  -> carbon.battery.challenge               (line 21)
+  -> carbon.reconstruction.capability_registry
+  -> carbon.reconstruction                  (implicit __init__.py, line 16)
+  -> carbon.reconstruction.profile          (line 183)
+  -> carbon.reconstruction.accelerators     (line 479)
+  -> carbon.reconstruction.host_inventory   (line 129)
+  -> carbon.development_session.profile     (line 9)
+  -> carbon.chain.models
+```
+
+The last four source edges include function-local imports. This audit
+conservatively follows them without proving that those branches run during
+scoring. The observed source reachability is definite; a chain-dependent score
+or network call is not established by it. The bounded working decision is to
+retain that observation and its regression, correct the earlier clean claim,
+and leave runtime/data-origin proof or a production dependency refactor to a
+separate authorized task. No scorer or policy change is made to obtain a pass.
+
+Closing the unknown needs a function-level call and data-origin proof at the
+validator and publication callers, or a bounded import-boundary refactor,
+followed by a runtime negative control in which chain-read callbacks fail if
+invoked during scoring. No scientific, chain or security policy value is
+chosen here. Until that evidence exists, the owner directive remains a rule
+to enforce, not an end-to-end property this PR has proved.
