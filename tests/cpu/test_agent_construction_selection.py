@@ -139,20 +139,21 @@ def test_actual_agent_select_keeps_contract_for_plain_recipe(
     calls = []
     result = run_selection(value, RECIPE, calls)
     assert result["status"] == "SELECTED"
-    assert result["strategy"] == RECIPE
-    assert result["contract_digest"] == found["digest"]
-    assert result[cl.MANIFEST_KEY]["digest"] == found["digest"]
-    if kind == "composition":
-        assert result[cl.MANIFEST_KEY]["level"] == 0
-        assert result[cl.MANIFEST_KEY]["changes"] == []
     folder = value.root / "epoch-1"
     selected = json.loads((folder / "selected-recipe.json").read_bytes())
+    assert selected["status"] == "SELECTED"
+    assert selected["strategy"] == RECIPE
+    assert selected["contract_digest"] == found["digest"]
+    assert selected[cl.MANIFEST_KEY]["digest"] == found["digest"]
+    if kind == "composition":
+        assert selected[cl.MANIFEST_KEY]["level"] == 0
+        assert selected[cl.MANIFEST_KEY]["changes"] == []
     assert {key: result[key] for key in selected} == selected
     assert result["schema"] == "carbon.autoresearch.epoch-outcome.v1"
     assert not (folder / cl.LEVEL4_ENVELOPE).exists()
-    campaign._level_record_bound(SimpleNamespace(manifest=manifest), result)
+    campaign._level_record_bound(SimpleNamespace(manifest=manifest), selected)
     # Commitment still recomputes the compiled contract; no signer is involved.
-    assert campaign.frozen_commitment(result, manifest)
+    assert campaign.frozen_commitment(selected, manifest)
     epoch_plan = json.loads((folder / "plan.json").read_bytes())
     observed = epoch_plan["initial_observation"]["construction_contract"]
     assert observed["digest"] == found["digest"]
@@ -161,7 +162,7 @@ def test_actual_agent_select_keeps_contract_for_plain_recipe(
     assert run_selection(value, RECIPE, calls) == result
     assert len(calls) == 1
     for mutation in ("missing", "wrong"):
-        broken = copy.deepcopy(result)
+        broken = copy.deepcopy(selected)
         if mutation == "missing":
             del broken[cl.MANIFEST_KEY]
         else:
@@ -255,11 +256,15 @@ def test_graph_select_validates_and_retains_exact_envelope(
         workspace.put(name, raw)
     result = run_selection(value, recipe, [])
     assert result["status"] == "SELECTED"
-    assert result["contract_digest"] == found["digest"]
-    retained = cl.read_envelope(value.root / "epoch-1", result)
+    folder = value.root / "epoch-1"
+    selected = json.loads((folder / "selected-recipe.json").read_bytes())
+    assert selected["strategy"] == recipe
+    assert selected["contract_digest"] == found["digest"]
+    assert selected[cl.MANIFEST_KEY]["digest"] == found["digest"]
+    retained = cl.read_envelope(folder, selected)
     raw, files = staging.from_workspace(graph_input[1], graph_input[0])
     assert staging.from_envelope(retained) == (graph_input[0], raw, files)
-    campaign._level_record_bound(SimpleNamespace(manifest=manifest), result)
+    campaign._level_record_bound(SimpleNamespace(manifest=manifest), selected)
     assert not list(value.root.glob("agent-graph-*"))
 
 
