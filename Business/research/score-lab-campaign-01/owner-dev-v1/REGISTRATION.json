@@ -194,7 +194,8 @@
     "reveals": 1,
     "when": "final run",
     "custodian": "Test Engineer",
-    "interface": "receipt_and_digest_only"
+    "interface": "receipt_and_digest_only",
+    "unchanged_commitment_sha256": "e24780aa066f9ed362322a4c0c224bd5c4dc9e9389b968d016ed250022b2b210"
   },
   "parked_until_stage_9": [
     "5000-20000_profile_sweep",

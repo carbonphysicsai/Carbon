@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import copy
 import hashlib
+import importlib.util
 import json
 from pathlib import Path
 
@@ -23,15 +24,17 @@ def row(cid, margin=5.0, solved=None):
     verdict = owner.v2_label(margin / 1000, None if solved is None else solved / 1000)
     return {
         "m20_mv": margin,
-        "sealed_v2": None
-        if verdict is None
-        else {
-            "case_id": cid,
-            "source": "ev4",
-            "m20_mv": margin,
-            "m160_mv": solved,
-            **verdict,
-        },
+        "sealed_v2": (
+            None
+            if verdict is None
+            else {
+                "case_id": cid,
+                "source": "ev4",
+                "m20_mv": margin,
+                "m160_mv": solved,
+                **verdict,
+            }
+        ),
     }
 
 
@@ -53,6 +56,20 @@ def test_changed_registered_source_refused_before_any_execution(tmp_path, monkey
     monkeypatch.setattr(candidates, "REGISTERED_SOURCE", source)
     with pytest.raises(LabRefused, match="registered_candidates_digest"):
         candidates.load()
+
+
+def test_pinned_import_does_not_reopen_a_source_changed_after_check(tmp_path):
+    source = tmp_path / "checked.py.txt"
+    checked = b"VALUE = 'checked bytes'\n"
+    source.write_bytes(checked)
+    loader = candidates._PinnedSourceLoader("checked_toy", source, checked)
+    spec = importlib.util.spec_from_file_location("checked_toy", source, loader=loader)
+    module = importlib.util.module_from_spec(spec)
+    source.write_text(
+        "raise AssertionError('reopened unchecked source')", encoding="utf-8"
+    )
+    loader.exec_module(module)
+    assert module.VALUE == "checked bytes"
 
 
 def test_d6_never_invents_aggregate_comparator_or_adopts_proxy():

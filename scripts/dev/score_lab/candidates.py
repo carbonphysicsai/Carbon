@@ -9,6 +9,7 @@ scorer on public replay instead.
 from __future__ import annotations
 
 import hashlib
+import importlib.machinery
 import importlib.util
 from pathlib import Path
 
@@ -22,6 +23,17 @@ REGISTERED_SOURCE = (
 REGISTERED_SHA256 = "157b1db5f091910f5602b15c9f5029f0171e6da7e8b6dbc5ffb5aa5c775bd235"
 
 
+class _PinnedSourceLoader(importlib.machinery.SourceFileLoader):
+    """Import the checked bytes themselves, without reopening the source."""
+
+    def __init__(self, name, path, raw):
+        super().__init__(name, str(path))
+        self.checked_source = raw
+
+    def get_code(self, fullname):
+        return self.source_to_code(self.checked_source, self.path)
+
+
 def load(path=None):
     """Default to the exact public family; retain explicit historical inputs.
 
@@ -33,9 +45,13 @@ def load(path=None):
         raw = path.read_bytes()
         if hashlib.sha256(raw).hexdigest() != REGISTERED_SHA256:
             raise LabRefused("registered_candidates_digest")
-        namespace = {"__name__": "score_lab_candidates", "__file__": str(path)}
-        exec(compile(raw, str(path), "exec"), namespace)
-        rules = namespace.get("RULES")
+        loader = _PinnedSourceLoader("score_lab_candidates", path, raw)
+        spec = importlib.util.spec_from_file_location(
+            "score_lab_candidates", path, loader=loader
+        )
+        module = importlib.util.module_from_spec(spec)
+        loader.exec_module(module)
+        rules = getattr(module, "RULES", None)
         if not isinstance(rules, dict) or len(rules) != 10:
             raise LabRefused("candidates_contract_mismatch")
         return rules, REGISTERED_SHA256

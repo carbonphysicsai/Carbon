@@ -87,9 +87,11 @@ def covered_questions(question_cases, reference_rows):
                 else:
                     expected = v2_label(
                         row["m20_mv"] / 1000,
-                        None
-                        if sealed.get("m160_mv") is None
-                        else sealed["m160_mv"] / 1000,
+                        (
+                            None
+                            if sealed.get("m160_mv") is None
+                            else sealed["m160_mv"] / 1000
+                        ),
                     )
                     if expected != {
                         "rule": sealed["rule"],
