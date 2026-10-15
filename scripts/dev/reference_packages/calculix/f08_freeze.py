@@ -1,7 +1,10 @@
 """Freeze #787's f08 triage decks (REFERENCE-PACKAGES-01).
 
     python3 f08_freeze.py --out DIR
-    python3 f08_freeze.py --observe DIR --out OBSERVED.json
+    python3 f08_freeze.py --observe DIR --out OBSERVED.json [--ledger LEDGER]
+
+DIR is a freeze dir (DIR/f08/<case>/) or a bulk_run/pod output
+(DIR/cases/f08/<case>/work/, ledger DIR/ledger.jsonl by default).
 
 Test Lead 2026-10-08: run on the operator host's free CPU (no spend), one
 CPU per ccx process, costs recorded as CPU-s with the host profile. #787
@@ -113,54 +116,84 @@ def cgroup_counters(text):
     return {"cgroup_cpu_s": cpu_s, "cgroup_memory_peak_mib": peak}
 
 
-def _cost(case_dir, ledger_rows):
-    """Measured cost of one launch: ledger wall plus the container's cgroup counters."""
-    row = ledger_rows.get(case_dir.name, {})
+def _cost(case_dir, ledger_rows, name=None):
+    """Measured cost of one launch: ledger wall plus the case's cgroup counters.
+
+    Docker runs record ``cgroup.txt`` in the case dir; native (pod) runs carry
+    rusage and sampled memory in the bulk ledger instead.
+    """
+    row = ledger_rows.get(name or case_dir.name, {})
     cost = {
-        k: row.get(k) for k in ("wall_s", "outcome", "children_cpu", "host_profile")
+        k: row.get(k)
+        for k in ("wall_s", "outcome", "children_cpu", "host_profile", "rusage_cpu_s")
     }
     path = case_dir / "cgroup.txt"
-    cost.update(cgroup_counters(path.read_text() if path.exists() else ""))
+    if path.exists():
+        cost.update(cgroup_counters(path.read_text()))
+    else:
+        peak = row.get("cgroup_memory_peak_bytes") or row.get(
+            "sampled_group_rss_peak_bytes"
+        )
+        cost["cgroup_cpu_s"] = row.get("cgroup_cpu_s") or None
+        cost["cgroup_memory_peak_mib"] = (
+            int(peak) / 2**20 if isinstance(peak, (int, float)) and peak else None
+        )
     return cost
 
 
-def _finished(case_dir):
-    """ccx wrote its output and the case command recorded its cgroup counters."""
-    return (case_dir / "case.dat").exists() and (case_dir / "cgroup.txt").exists()
+def _finished(case_dir, row=None):
+    """ccx wrote its output and the run recorded its counters (cgroup.txt or ledger)."""
+    recorded = (case_dir / "cgroup.txt").exists() or (row or {}).get(
+        "outcome"
+    ) == "COMPLETED"
+    return (case_dir / "case.dat").exists() and recorded
+
+
+def _case_dirs(root):
+    """{case: dir} for a freeze dir or a bulk_run output (cases/f08/<case>/work)."""
+    root = Path(root)
+    bulk = root / "cases" / "f08"
+    if bulk.is_dir():
+        return {d.name: d / "work" for d in sorted(bulk.iterdir()) if d.is_dir()}
+    return {d.name: d for d in sorted((root / "f08").iterdir()) if d.is_dir()}
 
 
 def observe_all(decks, out, ledger=None):
     decks = Path(decks)
+    if ledger is None and (decks / "ledger.jsonl").exists():
+        ledger = decks / "ledger.jsonl"
     ledger_rows = {}
     if ledger and Path(ledger).exists():
         for line in Path(ledger).read_text().splitlines():
             row = json.loads(line)
-            ledger_rows[row["case"]] = row
+            if "case" in row and row.get("event") != "STARTED":
+                ledger_rows[row["case"]] = row
+    dirs = _case_dirs(decks)
     rows = {}
-    for d in sorted((decks / "f08").iterdir()):
-        if not _finished(d):
-            rows[d.name] = {
+    for name, d in dirs.items():
+        if not _finished(d, ledger_rows.get(name)):
+            rows[name] = {
                 "status": "NOT_RUN_OR_NO_OUTPUT",
-                "cost": _cost(d, ledger_rows),
+                "cost": _cost(d, ledger_rows, name),
             }
             continue
         try:
-            if d.name == "control-oscillators":
+            if name == "control-oscillators":
                 steps = proof.parse_dat((d / "case.dat").read_text(errors="replace"))
-                rows[d.name] = deck.oscillator_control(proof.oscillator_check(steps))
+                rows[name] = deck.oscillator_control(proof.oscillator_check(steps))
             else:
                 obs = deck.observe(d)
                 obs.pop("modal")  # recomputable from case.dat; keeps the summary small
-                if d.name == "control-beam":
+                if name == "control-beam":
                     obs["beam_control"] = deck.beam_control(deck.observe(d))
-                rows[d.name] = obs
+                rows[name] = obs
         except (
             KeyError,
             IndexError,
             ValueError,
         ) as error:  # malformed output is a reference failure
-            rows[d.name] = {"status": "OBSERVER_FAILED", "why": repr(error)}
-        rows[d.name]["cost"] = _cost(d, ledger_rows)
+            rows[name] = {"status": "OBSERVER_FAILED", "why": repr(error)}
+        rows[name]["cost"] = _cost(d, ledger_rows, name)
     summary = {
         "cases": rows,
         "convergence": {},
@@ -172,8 +205,10 @@ def observe_all(decks, out, ledger=None):
             H_PRIMARY: f"{label}-primary",
             **{h: f"{label}-h{h:g}" for h in H_WITNESS},
         }
-        if all(_finished(decks / "f08" / n) for n in names.values()):
-            rungs = {h: deck.observe(decks / "f08" / n) for h, n in names.items()}
+        if all(
+            n in dirs and _finished(dirs[n], ledger_rows.get(n)) for n in names.values()
+        ):
+            rungs = {h: deck.observe(dirs[n]) for h, n in names.items()}
             summary["convergence"][label] = deck.convergence(rungs)
         else:
             summary["convergence"][label] = {"status": "INCOMPLETE_LADDER"}

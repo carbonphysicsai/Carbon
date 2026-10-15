@@ -205,10 +205,23 @@
       "credibility": "NOT_DEMONSTRATED",
       "package": {
         "proposed_name": "f08-ccx-modal-support", "release_candidate": "CalculiX ccx2.23 plus pinned modal projection and linear algebra",
-        "package_pr": null, "package_head": null, "source_digest": null,
-        "build_digest": null, "image_digest": null, "mesh_digest": null,
-        "deck_digest": null, "observer_digest": null,
-        "feature_proof": "NOT_DEMONSTRATED"
+        "package_pr": null, "package_head": null,
+        "source_digest": "sha256:9c88385c10fb04f5dc6c4e98027a51bebdd8aee3920e05190d6c1dd08357d6e7",
+        "build_digest": "sha256:fa7fb4ffb39f853b2f5bb802629de94f5664df50739a3e57a6b1480b9d72070d",
+        "image_digest": "sha256:16869c9cb7f14994f3bed3152809efdec14c5b3ec1849730d7b6c8f689d9642b",
+        "mesh_digest": "sha256:599521e79786ee0326a0754ba0545f51ee9665adff73c3515c8d4b8ba24c1c05",
+        "deck_digest": "sha256:85b0388b49f8466b21f22f0a2705ec70125c902932dd280085df4b23338653a3",
+        "observer_digest": "sha256:2450bbce731237bd3d12171c18b83f222c44b6c136d0e70d1e3ce6d114a5e838",
+        "feature_proof": "DEMONSTRATED",
+        "pins_decision": "F08-SCIENCE-VALUES-01",
+        "pins_note": "Solver-readiness engineering pins (DEVELOPMENT): ccx 2.23 source, the local rebuild's build log and image (numerically identical to d9ef68...), the Gmsh 4.15.2 mesh image, and f08_deck.py / f08_freeze.py as registered in structures-readiness/registration.json. Not route adoption, a package PR or qualification.",
+        "pins_evidence": [
+          "docs/development/evidence/reference-packages-01/calculix.json",
+          "docs/development/evidence/reference-packages-01/f08-feature-proof.json",
+          "docs/development/evidence/reference-packages-01/f08-feature-proof-local-rebuild.json",
+          "docs/development/evidence/reference-packages-01/f08-code-verification.json",
+          "docs/development/challenge_pipeline/structures-readiness/registration.json"
+        ]
       },
       "ranked_routes": [
         {"cost_rank": 1, "name": "beam/low-mode ROM screen", "use": "SCREENING_ONLY"},

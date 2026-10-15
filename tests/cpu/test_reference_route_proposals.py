@@ -8,6 +8,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 ROUND1 = ROOT / "docs/development/challenge_pipeline/round1"
 FAMILIES = {"f02", "f06", "f08", "f13", "f17"}
+#: Families whose package pins the 2026-10-15 solver-readiness program filled.
+PINNED = {"f08": "F08-SCIENCE-VALUES-01"}
 
 
 class TestReferenceRouteProposals(unittest.TestCase):
@@ -42,22 +44,37 @@ class TestReferenceRouteProposals(unittest.TestCase):
             self.assertEqual(choice["status"], "HUMAN_INPUT")
             self.assertIsNone(choice["registered"])
             self.assertTrue(choice["recommendation"])
-        for row in self.rows.values():
+        for family, row in self.rows.items():
             package = row["package"]
             self.assertTrue(package["proposed_name"])
             self.assertTrue(package["release_candidate"])
-            self.assertEqual(package["feature_proof"], "NOT_DEMONSTRATED")
-            for key in (
-                "package_pr",
-                "package_head",
+            self.assertIsNone(package["package_pr"])
+            self.assertIsNone(package["package_head"])
+            pins = (
                 "source_digest",
                 "build_digest",
                 "image_digest",
                 "mesh_digest",
                 "deck_digest",
                 "observer_digest",
-            ):
-                self.assertIsNone(package[key])
+            )
+            if family in PINNED:
+                # Solver-readiness pins: engineering evidence, not route adoption.
+                self.assertEqual(package["pins_decision"], PINNED[family])
+                self.assertEqual(package["feature_proof"], "DEMONSTRATED")
+                for key in pins:
+                    self.assertRegex(package[key], r"^sha256:[0-9a-f]{64}$")
+                for path in package["pins_evidence"]:
+                    self.assertTrue((ROOT / path).is_file(), path)
+                    if path.endswith("registration.json"):
+                        # The pinned deck and observer are the registered ones.
+                        reg = json.loads((ROOT / path).read_text())["pins"]
+                        self.assertEqual(package["deck_digest"], reg["deck"])
+                        self.assertEqual(package["observer_digest"], reg["observer"])
+            else:
+                self.assertEqual(package["feature_proof"], "NOT_DEMONSTRATED")
+                for key in pins:
+                    self.assertIsNone(package[key])
 
     def test_packet_constraints_are_not_loosened_by_cheaper_routes(self):
         for family, row in self.rows.items():

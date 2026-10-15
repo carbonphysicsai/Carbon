@@ -1,0 +1,142 @@
+{
+ "schema": "carbon.reference-solvers.pod-plan.v1",
+ "plan_id": "f08-triage-bank-2026-10-15",
+ "kind": "calculix",
+ "authority": "OWNER-RUNPOD-SOLVER-READINESS-01",
+ "maturity": "DEVELOPMENT engineering run on public decks; no qualification, Tier, LIVE or reward claim",
+ "bands_decision": "F08-SCIENCE-VALUES-01",
+ "recommended_pod": {
+  "flavor": "cpu5c",
+  "vcpu": 16,
+  "memory_gib": 32,
+  "why": "runpod-cpu5c-16vcpu is the D3 reference hardware, so the triage timings double as the D3 timing-calibration set (R6); 32 GiB holds three 9 GiB h=1.7 witnesses at once",
+  "expected_minutes": 85,
+  "deadline_minutes": 120,
+  "usd_rate_per_vcpu_hour": 0.035,
+  "worst_case_usd": 1.12,
+  "expected_usd": 0.8,
+  "basis": "calculix-smoke-3 (cpu3c, AMD EPYC 9654): native build + freeze + 2 controls in 233 s; pod CPU = 0.73 x local cgroup CPU (control-beam 56.5 s vs 77.5 s). Local triage CPU 5,947 s for 17 launches (relieved-tall-h1.7 extrapolated 1,540 s) -> about 4,300 pod CPU-s; 256 TRAIN h=3 primaries at estimate 11.06 local CPU-h x 0.73 -> about 8.1 pod CPU-h on 11 concurrent 2.5 GiB slots (largest geometry 77,514 nodes, estimate 2,004 MiB); local freeze of the 256 decks took 558 s"
+ },
+ "steps": [
+  {
+   "name": "f08-triage",
+   "type": "bulk",
+   "judges": "17 launches (8 primaries h=3, 6 witnesses h=2.25/1.7 on long-flexible, relieved-tall and nominal, 2 controls, 1 cold repeat) by f08_freeze --observe on the pod: C1 oscillator control (<= 1e-6 rel, <= 0.01 deg, unretained <= 1e-12), C2 Euler-Bernoulli beam control (static <= 2 %, f1 and second z-bending <= 1 %, crest <= 3 %, location <= min(2 Hz, 1 %)), M2 mode-ladder per primary, V1-V8 per witness ladder against h=1.7 (eigen <= 1 %, peak <= 5 %, location <= min(2 Hz, 1 %), phase <= 5 deg, curve floor, static <= 2 %, mass <= 0.5 %, asymptotic), V9 bank mesh pick, the cold repeat's worst-band tip compliance against its primary (reported), and per-launch pod CPU-s / wall-s / peak memory (D3, R6). Already observed locally on the Docker image: 16 of 17 PASS, long-flexible and nominal ladders PASS at h=3; relieved-tall-h1.7 (241,756 nodes) never finished locally and decides V9",
+   "manifest": "docs/development/evidence/reference-solvers-2026-10-15/pins/triage-f08-decks-manifest.main-regen.json",
+   "freeze": {
+    "argv": [
+     "python3",
+     "scripts/dev/reference_packages/calculix/f08_freeze.py",
+     "--out",
+     "{decks}"
+    ],
+    "timeout_s": 2400
+   },
+   "select": {
+    "families": [
+     "f08"
+    ]
+   },
+   "families": {
+    "f08": {
+     "case_limits": {
+      "cpus": 1,
+      "memory_gib": 9,
+      "pids": 64,
+      "wall_timeout_s": 5400
+     },
+     "ceilings": {
+      "launches": 17,
+      "cpu_hours": 4
+     }
+    }
+   },
+   "observe": {
+    "argv": [
+     "python3",
+     "scripts/dev/reference_packages/calculix/f08_freeze.py",
+     "--observe",
+     "{bulk}",
+     "--out",
+     "{out}/observed.json"
+    ],
+    "timeout_s": 900
+   },
+   "keep": {
+    "patterns": [
+     "ccx.log",
+     "deck.json",
+     "mesh.json",
+     "case.sta",
+     "case.cvg"
+    ],
+    "max_file_bytes": 2000000
+   },
+   "host_regenerated_files": [
+    "mesh.inp",
+    "mesh.json",
+    "case.inp",
+    "deck.json"
+   ]
+  },
+  {
+   "name": "f08-train-bank-primaries",
+   "type": "bulk",
+   "judges": "Gate: runs only if the f08-triage observation picked bank mesh h=3 (V9 PASS); otherwise the freeze refuses and nothing launches (refreeze the manifest at the picked h). Then the 1x TRAIN rung (R1: 256 public geometries, P law Q1, public seed 20261015, the first 256 of the nested 2048 TRAIN draw) at h=3, 48 modes, all three damping ratios: every launch COMPLETED, M2 mode-ladder per case, F2 sampling loss <= 0.5 %, and per-launch pod cost for the data-acquisition bill. References are served (case.dat about 1.2 MB each), not committed",
+   "manifest": "docs/development/evidence/reference-solvers-2026-10-15/pins/f08-train-256-h3-manifest.json",
+   "freeze": {
+    "argv": [
+     "sh",
+     "-c",
+     "python3 scripts/dev/reference_packages/calculix/f08_bank.py gate --observed {out}/../f08-triage/observed.json --h 3 && python3 scripts/dev/reference_packages/calculix/f08_bank.py freeze --registration docs/development/challenge_pipeline/structures-readiness/registration.json --seed 20261015 --count 256 --role train --public-seed --jobs 8 --out {decks}"
+    ],
+    "timeout_s": 1800
+   },
+   "select": {
+    "families": [
+     "f08"
+    ]
+   },
+   "families": {
+    "f08": {
+     "case_limits": {
+      "cpus": 1,
+      "memory_gib": 2.5,
+      "pids": 64,
+      "wall_timeout_s": 1800
+     },
+     "ceilings": {
+      "launches": 256,
+      "cpu_hours": 12
+     }
+    }
+   },
+   "observe": {
+    "argv": [
+     "python3",
+     "scripts/dev/reference_packages/calculix/f08_freeze.py",
+     "--observe",
+     "{bulk}",
+     "--out",
+     "{out}/observed.json"
+    ],
+    "timeout_s": 1800
+   },
+   "keep": {
+    "patterns": [
+     "case.dat",
+     "ccx.log",
+     "deck.json",
+     "mesh.json"
+    ],
+    "max_file_bytes": 3000000
+   },
+   "host_regenerated_files": [
+    "mesh.inp",
+    "mesh.json",
+    "case.inp",
+    "deck.json"
+   ]
+  }
+ ]
+}
