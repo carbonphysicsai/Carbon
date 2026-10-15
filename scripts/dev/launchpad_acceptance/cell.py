@@ -206,6 +206,16 @@ def _evidence(value, key="evidence", depth=0, count=None):
     count[0] += 1
     if depth > 8 or count[0] > 512:
         raise ValueError("EVIDENCE_TOO_LARGE")
+    if key in ("installer_exit_code", "response_code"):
+        low, high = (0, 255) if key == "installer_exit_code" else (100, 599)
+        if type(value) is not int or not low <= value <= high:
+            raise ValueError("INVALID_NUMERIC_OBSERVATION_CODE")
+        return
+    if key in ("campaign_id", "submission_id"):
+        pattern = r"[0-9a-f]{32}" if key == "campaign_id" else r"bsub-[0-9a-f]{16,64}"
+        if type(value) is not str or re.fullmatch(pattern, value) is None:
+            raise ValueError("INVALID_PUBLIC_OBSERVATION_ID")
+        return
     if key == "revision" or key.endswith("_revision"):
         if (
             type(value) is not str
@@ -322,6 +332,16 @@ def validate_cell(document):
                 for name in definition.required_evidence_fields
             ):
                 raise ValueError("MISSING_PASS_EVIDENCE")
+            if (
+                document["cell"] == "F01"
+                and document["evidence"]["installer_exit_code"] != 0
+            ):
+                raise ValueError("PASS_CONTRADICTS_OBSERVATION")
+            if document["cell"] == "F11" and (
+                document["evidence"]["response_code"] != 202
+                or document["evidence"]["receiver_pair_matches"] is not True
+            ):
+                raise ValueError("PASS_CONTRADICTS_OBSERVATION")
             if document["cell"] == "F15":
                 observed = document["evidence"]
                 if (

@@ -75,3 +75,11 @@ not evidence a refusal ran. Prospective actors are public roles and machines
 are public kinds listed in cell.py, not free text. Historical records remain
 read unchanged through the pinned T06 reader. New kinds/codes require an
 explicit prospective vocabulary update; no raw-text fallback exists.
+
+The code-field repair preserves actual numeric observations through explicit
+installer_exit_code (integer 0-255) and response_code (integer HTTP 100-599)
+branches before symbolic codes. Booleans and containers do not count as numbers.
+F01 PASS requires exit 0; F11 PASS requires HTTP 202 and matched receiver pairing.
+Public campaign/submission IDs also have explicit contextual formats, so opaque
+credential guards do not reject a legitimate bsub-prefixed public identity.
+This does not loosen arbitrary code text, role metadata or secret grammar.

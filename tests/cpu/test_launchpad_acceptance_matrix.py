@@ -180,6 +180,78 @@ def test_f02_records_real_revision_strings(before, after):
     assert cell.validate_cell(value) == value
 
 
+def f01():
+    return document(
+        "F01",
+        evidence={
+            "installer_exit_code": 0,
+            "image_digests": [DIGEST, "sha256:" + "c" * 64, "sha256:" + "d" * 64],
+            "after_install_code": "ACCEPTED",
+            "controller_started": True,
+        },
+    )
+
+
+def f11():
+    return document(
+        "F11",
+        evidence={
+            "submission_id": "bsub-" + "c" * 64,
+            "response_code": 202,
+            "receiver_pair_matches": True,
+        },
+    )
+
+
+def test_real_installer_and_http_numeric_observations_remain_valid():
+    assert cell.validate_cell(f01()) == f01()
+    assert cell.validate_cell(f11()) == f11()
+    assert (
+        cell.validate_cell(
+            document("F01", "FAIL", evidence={"installer_exit_code": 126})
+        )["result"]
+        == "FAIL"
+    )
+    assert (
+        cell.validate_cell(document("F11", "FAIL", evidence={"response_code": 503}))[
+            "result"
+        ]
+        == "FAIL"
+    )
+
+
+@pytest.mark.parametrize(
+    "field,bad",
+    [
+        ("installer_exit_code", value)
+        for value in (True, False, -1, 256, None, [], {}, "0")
+    ]
+    + [
+        ("response_code", value)
+        for value in (True, False, 99, 600, None, [], {}, "202")
+    ],
+)
+def test_numeric_observation_fields_reject_bool_container_and_out_of_domain(field, bad):
+    with pytest.raises(ValueError, match="INVALID_NUMERIC_OBSERVATION_CODE"):
+        cell.validate_cell(document("F08", "FAIL", evidence={field: bad}))
+
+
+def test_numeric_pass_observations_cannot_state_failed_install_or_wrong_submit_status():
+    install = f01()
+    install["evidence"]["installer_exit_code"] = 126
+    with pytest.raises(ValueError, match="PASS_CONTRADICTS_OBSERVATION"):
+        cell.validate_cell(install)
+    for change in (
+        {"response_code": 200},
+        {"receiver_pair_matches": False},
+        {"receiver_pair_matches": 1},
+    ):
+        submit = f11()
+        submit["evidence"].update(change)
+        with pytest.raises(ValueError, match="PASS_CONTRADICTS_OBSERVATION"):
+            cell.validate_cell(submit)
+
+
 @pytest.mark.parametrize("bad", [1, True, None, [], {}, "short", "ghp_" + "a" * 36])
 def test_revision_fields_do_not_accept_typed_observations_or_credentials(bad):
     with pytest.raises(ValueError, match="INVALID_EVIDENCE_REVISION"):
