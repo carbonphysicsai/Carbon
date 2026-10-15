@@ -187,7 +187,7 @@ def _record(rung=1):
         "capacity_all_ah": [5.0] * 30,
         "q30_over_q1": 1.0,
         "soc_clock": {"status": "REACHED", "time_s": 3000.0, "minutes": 50.0},
-        "whole_programme": {"v_max_v": guarded.CONTROL_V},
+        "whole_programme": {"v_max_v": guarded.CONTROL_V, "t_max_c": 27.0},
     }
     time = 120
     for cycle in range(1, 31):
