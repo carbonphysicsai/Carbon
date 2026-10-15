@@ -380,6 +380,37 @@ def test_never_resumes_or_overwrites_output(setup, suffix):
     assert setup["submitted"] == []
 
 
+@pytest.mark.parametrize("suffix", ["", ".continuation.json", ".continuation.json.tmp"])
+def test_dangling_output_links_refuse_without_touching_target(setup, suffix):
+    path = Path(str(setup["paths"]["records"]) + suffix)
+    target = path.with_name("outside-" + path.name)
+    path.symlink_to(target)
+    assert path.is_symlink() and not path.exists()
+    with pytest.raises(tasks.TaskError, match="fresh output"):
+        setup["run"]()
+    assert path.is_symlink()
+    assert not target.exists()
+    assert setup["submitted"] == []
+
+
+def test_temporary_link_race_cannot_redirect_exclusive_write(setup, monkeypatch):
+    temporary = Path(str(setup["paths"]["records"]) + ".continuation.json.tmp")
+    target = temporary.with_name("outside-raced-receipt")
+    original = Path.open
+
+    def race(path, mode="r", *args, **kwargs):
+        if path == temporary and mode == "x":
+            path.symlink_to(target)
+        return original(path, mode, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "open", race)
+    with pytest.raises(FileExistsError):
+        setup["run"]()
+    assert temporary.is_symlink()
+    assert not target.exists()
+    assert setup["submitted"] == []
+
+
 def test_current_runtime_refuses_and_cli_requires_all_bindings(setup, monkeypatch):
     setup["provenance"]["pybamm"] = "wrong"
     with pytest.raises(tasks.TaskError, match="truth runtime"):

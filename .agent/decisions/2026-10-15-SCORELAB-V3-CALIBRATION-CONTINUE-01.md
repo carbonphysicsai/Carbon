@@ -28,3 +28,10 @@ retains actual image/provenance/resource/reservation/cleanup responsibility.
 Reversible by removing the new module/controls and leaving the original pilot
 unchanged. Supersede this record to alter the prospective engineering contract;
 never rewrite historical source identities. Hub retired under OWNER-DX-03.
+
+Review adjustment CONTINUE-R1: a dangling output/temp symlink must count as an
+occupied filesystem entry. Use lexists at fresh-path preflight and exclusive
+temporary creation on every save, then fsync/atomic replace. Controls cover all
+three dangling paths and a temporary-link race; no writes outside the owned
+output are permitted. This strengthens the new wrapper only; the eight frozen
+pilot sources remain unchanged. This is not hostile-filesystem qualification.

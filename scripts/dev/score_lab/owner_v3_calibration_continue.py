@@ -213,7 +213,7 @@ def run(paths, *, expected_sha256, workers=2):
     records = Path(paths["records"])
     receipt_path = records.with_name(records.name + ".continuation.json")
     temporary = receipt_path.with_name(receipt_path.name + ".tmp")
-    if any(p.exists() for p in (records, receipt_path, temporary)):
+    if any(os.path.lexists(p) for p in (records, receipt_path, temporary)):
         raise tasks.TaskError("continuation requires fresh output and receipt")
     states = {j["case_id"]: "REUSED_OK" for g in pilot_groups for j in g}
     states.update({j["case_id"]: "NOT_DISPATCHED" for g in groups for j in g})
@@ -247,7 +247,7 @@ def run(paths, *, expected_sha256, workers=2):
             _chunk(binding, raw, mappings, "continuation"),
         ]
         receipt["calibration"] = _report(triples, cases, binding)
-        with temporary.open("w", encoding="utf-8") as handle:
+        with temporary.open("x", encoding="utf-8") as handle:
             handle.write(json.dumps(receipt, sort_keys=True) + "\n")
             handle.flush()
             os.fsync(handle.fileno())
