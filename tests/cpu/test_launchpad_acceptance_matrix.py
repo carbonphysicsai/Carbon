@@ -266,7 +266,9 @@ def test_numeric_observation_fields_reject_bool_container_and_out_of_domain(fiel
         cell.validate_cell(document("F08", "FAIL", evidence={field: bad}))
 
 
-def test_numeric_pass_observations_cannot_state_failed_install_or_wrong_submit_status():
+def test_numeric_pass_observations_cannot_state_failed_install_or_wrong_submit_status(
+    tmp_path,
+):
     install = f01()
     install["evidence"]["installer_exit_code"] = 126
     with pytest.raises(ValueError, match="PASS_CONTRADICTS_OBSERVATION"):
@@ -274,12 +276,16 @@ def test_numeric_pass_observations_cannot_state_failed_install_or_wrong_submit_s
     for change in (
         {"response_code": 200},
         {"receiver_pair_matches": False},
-        {"receiver_pair_matches": 1},
     ):
         submit = f11()
         submit["evidence"].update(change)
         with pytest.raises(ValueError, match="PASS_CONTRADICTS_OBSERVATION"):
             cell.validate_cell(submit)
+    submit = f11()
+    submit["evidence"]["receiver_pair_matches"] = 1
+    with pytest.raises(ValueError, match="INVALID_PUBLIC_BOOLEAN"):
+        cell.write_cell(submit, tmp_path)
+    assert list(tmp_path.iterdir()) == []
 
 
 @pytest.mark.parametrize("bad", [1, True, None, [], {}, "short", "ghp_" + "a" * 36])
