@@ -385,13 +385,14 @@ def manifest_document(
     feedback=FEEDBACK_FULL,
     graphite=None,
     construction_level=None,
+    public_model_retention=None,
 ):
     from carbon.development_session.research_ledger import VERSION
     from carbon.reconstruction.capability_registry import contract_digest
 
     from .research import SCAFFOLD, objective
 
-    return {
+    document = {
         "schema": VERSION,
         "campaign_id": product.campaign_id,
         "authority": "OWNER-BATTERY-TESTNET-01",
@@ -413,6 +414,11 @@ def manifest_document(
         "images": images,
         "new_network_transactions": 0,
         "feedback_mode": feedback_mode(feedback),
+        **(
+            {"public_model_retention": public_model_retention}
+            if public_model_retention is not None
+            else {}
+        ),
         **product.manifest_fields(),
         # A launch at a construction level (LAUNCHPAD-LEVELS-01 S2): the
         # level's registered variant, frozen by name and digest. Level 0
@@ -423,6 +429,11 @@ def manifest_document(
             else {}
         ),
     }
+    if public_model_retention is not None:
+        from .public_model_retention import frozen_opt_in
+
+        frozen_opt_in(document, owner=owner)
+    return document
 
 
 async def prepare_battery(args, *, ledger=None, campaign):
@@ -577,6 +588,9 @@ async def prepare_battery(args, *, ledger=None, campaign):
         report(ledger, owner=owner)
         return None
     if frozen is None:
+        from .public_model_retention import launch_opt_in
+
+        retention = launch_opt_in(root, campaign_id=product.campaign_id, agent=agent)
         manifest = manifest_document(
             product,
             owner=owner,
@@ -586,6 +600,7 @@ async def prepare_battery(args, *, ledger=None, campaign):
             feedback=getattr(args, "feedback_mode", FEEDBACK_FULL),
             graphite=graphite,
             construction_level=getattr(args, "construction_level", None),
+            **retention,
         )
         write_once(manifest_path, canonical(manifest))
     else:
@@ -694,10 +709,19 @@ def compose(
     # door composes it (its own run or an attachment): read from its frozen
     # manifest (LAUNCHPAD-LEVELS-01 S2).
     level = _frozen_level(ledger.root)
+    from .public_model_retention import frozen_opt_in
+
+    manifest_path = ledger.root / "campaign-manifest.json"
+    retention = (
+        frozen_opt_in(json.loads(manifest_path.read_bytes()), owner=owner)
+        if manifest_path.exists()
+        else None
+    )
     # `runner`/`backend` exist for tests; every campaign door passes neither,
     # so practice runs in the isolated carrier and says so.
     practice = BatteryPractice(
         level=level,
+        model_retention=retention,
         ledger=ledger,
         owner=owner,
         image=image,

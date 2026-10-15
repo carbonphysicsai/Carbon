@@ -77,6 +77,7 @@ from .practice import (
     score_practice,
     staged_files,
 )
+from .public_model_retention import record_trial
 from .scaffold import SCAFFOLD
 
 OBJECTIVE_SCHEMA = "carbon.battery.research-objective.v1"
@@ -548,6 +549,7 @@ class BatteryPractice:
         device=None,
         remote=None,
         level=None,
+        model_retention=None,
     ):
         from carbon.development_session.battery_gpu import (
             image_backends as gpu_image_backends,
@@ -586,6 +588,9 @@ class BatteryPractice:
         #: The campaign's construction-level binding (LAUNCHPAD-LEVELS-01
         #: S2), or None at Level 0.
         self.level = level
+        # Explicit local public Graphite test opt-in, frozen by campaign.py.
+        # Ordinary/private campaigns retain their existing program and outputs.
+        self.model_retention = model_retention
 
     def compile(self, strategy):
         from .compile import compile_recipe
@@ -639,7 +644,8 @@ class BatteryPractice:
             raise ValueError("invalid retained practice randomness")
         return int.from_bytes(key.read_bytes()[:4], "big")
 
-    def __call__(self, identity, strategy):
+    @record_trial
+    def __call__(self, identity, strategy, *, retention_trial=None):
         from carbon.development_session.research_carrier import PRECHARGED_TRIAL
         from carbon.development_session.research_workspace import ResearchWorkspace
 
@@ -679,13 +685,31 @@ class BatteryPractice:
                 "accelerator": MINER_GPU,
             }
             device = None if self.remote else (self.device or _installed_device())
+        files = staged_files(self.root, self.practice, recipe, seed, decision.cases())
+        retained = None
+        if retention_trial is not None:
+            from .public_model_retention import retained_program
+
+            run["source"], files, retained = retained_program(
+                run["source"],
+                files,
+                opt_in=self.model_retention,
+                identity=identity,
+                image=getattr(run["image"], "image_id", None),
+            )
+            retention_trial.dispatch(
+                retained,
+                {
+                    **recipe.document(),
+                    "recipe_digest": recipe.recipe_digest,
+                    "seed": seed,
+                },
+            )
         worker = self.runner(
             self.ledger,
             owner=self.owner,
             identity=identity,
-            files=staged_files(
-                self.root, self.practice, recipe, seed, decision.cases()
-            ),
+            files=files,
             seconds=self.seconds,
             provenance=PROVENANCE,
             extra_resources=(
@@ -694,6 +718,8 @@ class BatteryPractice:
             **run,
         )
         snapshot = self.ledger.root / worker["operation"] / "snapshot"
+        if retention_trial is not None:
+            retention_trial.collect(worker, retained)
 
         def checked(name, maximum):
             path = snapshot / name
