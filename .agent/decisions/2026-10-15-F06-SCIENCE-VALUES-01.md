@@ -97,10 +97,22 @@ grid 0.005/0.0025, PML 0.002/0.001, padding 0.002/0.001, duration
 | Bank design law | `.bank_design_law` | uniform independent: periods U{12..20}, pitch U[580, 680] nm (0.1 nm), duty U[0.35, 0.65] (1e-4), etch U[70, 130] nm (0.1 nm), width U[8, 12] µm (0.01 µm), rejection-conditioned on all nine perturbed geometries valid (line/space ≥ 180 nm, residual Si > 0); Q_design = P_design | packet §3 |
 | Strata | `.strata` | width < 10 µm / ≥ 10 µm (the 3D-only axis); T2a ≥ 5 feasible and ≥ 5 near-limit infeasible per stratum checked after the bank | packet §10 |
 
-## E. Bank size B (set after cost measurement)
+## E. Data sizes (set after the first results; sizes are inputs, not judged)
 
-See §E below the measured-cost section of
-`docs/development/evidence/reference-packages-01/f06-bulk-sizing.md`.
+Per-role sizes are in `docs/development/challenge_pipeline/data-acquisition/f06.md`:
+hidden pool B = 64 designs (science minimum: ≥ 5 feasible + 5 near-limit
+infeasible in each of two width strata at an assumed ≥ 1/3 feasible fraction;
+256 was not chosen because at the assumed 60 CPU-h per 30-nm design it is
+15 k CPU-h), batches n = 8, weekly rotation (4 in month 1); tuning 16 and
+confirmation 16 (disjoint by design hash); TRAIN ladder 16/32/64/128;
+PRACTICE 16; D1 study 8 representative + 8 near-limit; D3 timing 3 designs
+× 3 repeats. All conditional on the slab-control finding below and on
+measured 3D cost.
+
+**Observed results (after registration).** Vacuum Bloch-mode order 2.00:
+PASS (band 1.7–2.3). Slab TE0 n_eff (band 0.003): FAIL at every grid
+(worst 0.11 at 10 nm), non-monotone — recorded as a finding that blocks grid
+selection; no value changed.
 
 ## Alternatives rejected
 

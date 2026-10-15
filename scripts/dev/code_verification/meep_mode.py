@@ -30,7 +30,7 @@ def run(resolution):
         ],
     )
     simulation.run(mp.after_sources(mode), until_after_sources=200)
-    modes = [m for m in mode.modes if abs(m.freq - 0.2) < 0.04 and m.err < 1e-8]
+    modes = [m for m in mode.modes if abs(m.freq - 0.2) < 0.04 and abs(m.err) < 1e-8]
     if len(modes) != 1:
         raise RuntimeError(
             "analytic mode unresolved; extend registered sampling prospectively"
@@ -44,7 +44,7 @@ def run(resolution):
     }
     raw = {
         "frequency": float(modes[0].freq),
-        "fit_error": float(modes[0].err),
+        "fit_error": float(abs(modes[0].err)),
         "resolution": resolution,
         "sampling_after_source": 200,
     }

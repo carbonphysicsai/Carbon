@@ -66,6 +66,15 @@ ACCEPT = {
     "local_3d_memory_gib": 10.0,
 }
 GRID_2D_NM = (40, 30, 20, 15, 10)
+PROBE_STEPS = 300
+#: cgroup v2 (cpu.stat usage_usec, memory.peak) or v1 (cpuacct.usage ns,
+#: memory.max_usage_in_bytes), normalised to usage_usec / bytes.
+CGROUP_CAPTURE = (
+    "if [ -f /sys/fs/cgroup/cpu.stat ]; then cp /sys/fs/cgroup/cpu.stat cpu.stat; "
+    "cat /sys/fs/cgroup/memory.peak > memory.peak; else "
+    "echo usage_usec $(( $(cat /sys/fs/cgroup/cpuacct/cpuacct.usage) / 1000 )) > cpu.stat; "
+    "cat /sys/fs/cgroup/memory/memory.max_usage_in_bytes > memory.peak; fi"
+)
 HOST_PROFILE = "local-dev-4vcpu-15g-contended"
 
 
@@ -112,7 +121,7 @@ def jobs():
     g2 = F.deck(nominal, 2, 0.03, kind="gaussian_free")
     out.append(("c2-gaussian-2d", case_doc([g2]), "2g"))
     wide = dict(nominal, width_um=12.0)
-    g3 = F.deck(wide, 3, 0.075, kind="gaussian_free", symmetric=False)
+    g3 = F.deck(wide, 3, 0.1, kind="gaussian_free", symmetric=False)
     g3["fibre"] = dict(
         g3["fibre"], w0_um=3.0, note="control beam w0 3.0 um fits the box"
     )
@@ -141,11 +150,36 @@ def jobs():
                 "2g",
             )
         )
+    # Symmetry is a property of the deck, not the grid: check it coarse.
     for sym in (True, False):
-        out.append((f"c8-sym3d-60nm-{'mirror' if sym else 'full'}",
-                    device_case(small, 3, 0.06, symmetric=sym), "6g"))  # fmt: skip
-    out.append(("c8-sym3d-45nm-mirror", device_case(small, 3, 0.045), "6g"))
-    out.append(("c9-witness3d-30nm", device_case(small, 3, 0.03), "12g"))
+        out.append((f"c8-sym3d-90nm-{'mirror' if sym else 'full'}",
+                    device_case(small, 3, 0.09, symmetric=sym), "6g"))  # fmt: skip
+    # Complete 45-row 3D panel (feature proof of the observer, not adequacy).
+    out.append(
+        (
+            "c9-panel3d-90nm",
+            device_case(small, 3, 0.09, groups=F.geometry_groups()),
+            "6g",
+        )
+    )
+    # Cost/memory probes: a few hundred steps, no observables (lead directive).
+    for label, h_nm in (("short-narrow", 90), ("short-narrow", 60), ("short-narrow", 45),
+                        ("long-wide", 60), ("short-narrow", 30), ("long-wide", 30)):  # fmt: skip
+        for kind in ("normalization", "device"):
+            dk = F.deck(P[label], 3, h_nm / 1000, kind=kind)
+            dk["probe_steps"] = PROBE_STEPS
+            out.append(
+                (
+                    f"p-{label}-{h_nm}nm-{kind}",
+                    case_doc([dk]),
+                    "12g" if h_nm == 30 else "6g",
+                )
+            )
+    for label in ("nominal", "long-wide"):
+        for h_nm in (30, 10):
+            dk = F.deck(P[label], 2, h_nm / 1000)
+            dk["probe_steps"] = PROBE_STEPS
+            out.append((f"p2d-{label}-{h_nm}nm-device", case_doc([dk]), "2g"))
     return out
 
 
@@ -172,7 +206,8 @@ def run_one(work, name, mem, cpus=1):
         return
     script = (
         "python3 f06_run.py case.json result.json > meep.log 2>&1; rc=$?; "
-        "cat /sys/fs/cgroup/cpu.stat > cpu.stat; cat /sys/fs/cgroup/memory.peak > memory.peak; exit $rc"
+        + CGROUP_CAPTURE
+        + "; exit $rc"
     )
     cmd = ["docker", "run", "--rm", "--name", f"f06-{name}"[:60], "--network", "none",
            "--cpus", str(cpus), "--memory", mem, "--memory-swap", mem,
@@ -184,7 +219,7 @@ def run_one(work, name, mem, cpus=1):
     cpu = {}
     if (d / "cpu.stat").exists():
         for line in (d / "cpu.stat").read_text().splitlines():
-            k, v = line.split()
+            k, v = line.split()[:2]
             cpu[k] = int(v)
     peak = (
         int((d / "memory.peak").read_text()) if (d / "memory.peak").exists() else None
@@ -396,11 +431,11 @@ def report(work, out):
             checks[f"c7_broadband_2d_{label}"] = {"max_dC": dc, "max_dR": dr,
                                                   "pass": dc <= ACCEPT["broadband_C"] and dr <= ACCEPT["broadband_R"]}  # fmt: skip
     # C8 symmetry
-    a, _ = _load(work, "c8-sym3d-60nm-mirror")
-    b, _ = _load(work, "c8-sym3d-60nm-full")
+    a, _ = _load(work, "c8-sym3d-90nm-mirror")
+    b, _ = _load(work, "c8-sym3d-90nm-full")
     if a and b:
         dc, dr = _maxdiff(_device_rows(a)[0], _device_rows(b)[0])
-        checks["c8_symmetry_3d_60nm"] = {"max_dC": dc, "max_dR": dr,
+        checks["c8_symmetry_3d_90nm"] = {"max_dC": dc, "max_dR": dr,
                                          "pass": dc <= ACCEPT["symmetry_C"] and dr <= ACCEPT["symmetry_R"]}  # fmt: skip
     # Residual / flux-field / drift diagnostics over every device run
     diag_all = []
@@ -425,10 +460,10 @@ def report(work, out):
             "failing_rows": [r for r in diag_all if abs(r["residual"]) > ACCEPT["residual_abs"]][:20],
         }  # fmt: skip
     # C9 witness
-    res, cost = _load(work, "c9-witness3d-30nm")
+    res, cost = _load(work, "c9-panel3d-90nm")
     if res:
         rows, diag = _device_rows(res)
-        checks["c9_witness_3d_30nm"] = {
+        checks["c9_panel_3d_90nm"] = {
             "rows": {f"{k[0]}@{k[1]}": v for k, v in rows.items()},
             "diagnostics": diag,
             "runs": [{k: r.get(k) for k in ("kind", "cells", "timesteps", "sim_time", "wall_s")} for r in res["results"]],

@@ -1,0 +1,9 @@
+{
+ "rc": 0,
+ "wall_s": 36.57766366004944,
+ "cpu_s": 10.200423,
+ "memory_peak_mib": 94.3984375,
+ "memory_limit": "2g",
+ "cpus": 1,
+ "host_profile": "local-dev-4vcpu-15g-contended"
+}

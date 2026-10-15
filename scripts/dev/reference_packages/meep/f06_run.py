@@ -189,9 +189,26 @@ def box_faces(dk, fr):
     return faces
 
 
+class ProbeDone(Exception):
+    """A cost probe stopped after a fixed number of steps (no observables)."""
+
+    def __init__(self, timing):
+        super().__init__("probe")
+        self.timing = timing
+
+
 def run_until(sim, dk, t_min):
     n = dk["numerics"]
     t0 = time.time()
+    sim.init_sim()
+    init_s = time.time() - t0
+    if dk.get("probe_steps"):
+        t1 = time.time()
+        sim.run(until=dk["probe_steps"] * n["courant"] / dk["domain"]["resolution"])
+        steps = sim.timestep()
+        raise ProbeDone({"probe": True, "init_s": init_s, "timesteps": steps,
+                         "step_wall_s": (time.time() - t1) / max(steps, 1),
+                         "maxrss_mib": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024})  # fmt: skip
     sim.run(
         until=mp.stop_when_dft_decayed(
             tol=n["dft_decay_tol"],
@@ -202,6 +219,7 @@ def run_until(sim, dk, t_min):
     return {
         "sim_time": sim.meep_time(),
         "timesteps": sim.timestep(),
+        "init_s": init_s,
         "wall_s": time.time() - t0,
     }
 
@@ -296,7 +314,8 @@ def run_device(dk, cache):
     sim = simulation(dk, fr, eig_source(dk, fr, dk["fcen"]))
     faces = box_faces(dk, fr)
     fluxes = {name: sim.add_flux(freqs, reg) for name, reg in faces.items()}
-    sim.load_minus_flux_data(fluxes["back"], cache["flux_data"])
+    if cache is not None:
+        sim.load_minus_flux_data(fluxes["back"], cache["flux_data"])
     # a second, unloaded back-face flux gives the device's net inflow
     net_back = sim.add_flux(freqs, faces["back"])
     c, s = mode_window(dk, fr, dk["domain"]["x_r"])
@@ -451,18 +470,25 @@ def main(case_path, out_path):
     results, cache = [], {}
     for dk in case["decks"]:
         key = json.dumps([dk["domain"].get("ly"), dk["domain"]["lz"], dk["domain"]["h_um"], dk["frequencies"], dk["fcen"], dk["symmetry"], dk["dim"], dk["domain"]["pml_um"], dk["domain"]["pad_scale"]])  # fmt: skip
-        if dk["kind"] == "normalization":
-            info, cache[key] = run_normalization(dk)
-        elif dk["kind"] == "device":
-            if key not in cache:
-                raise SystemExit("device deck without a matching normalization deck")
-            info = run_device(dk, cache[key])
-        elif dk["kind"] == "slab_mode":
-            info = run_slab_mode(dk)
-        elif dk["kind"] == "gaussian_free":
-            info = run_gaussian_free(dk)
-        else:
-            raise SystemExit(f"unknown deck kind {dk['kind']}")
+        try:
+            if dk["kind"] == "normalization":
+                info, cache[key] = run_normalization(dk)
+            elif dk["kind"] == "device":
+                if key not in cache:
+                    raise SystemExit(
+                        "device deck without a matching normalization deck"
+                    )
+                info = run_device(dk, cache[key])
+            elif dk["kind"] == "slab_mode":
+                info = run_slab_mode(dk)
+            elif dk["kind"] == "gaussian_free":
+                info = run_gaussian_free(dk)
+            else:
+                raise SystemExit(f"unknown deck kind {dk['kind']}")
+        except ProbeDone as probe:
+            info = {"kind": dk["kind"], "cells": dk["cells"], **probe.timing}
+            cache.setdefault(key, None)
+
         info["label"] = dk.get("extra", {}).get("label")
         results.append(info)
         print(json.dumps({k: info[k] for k in info if k != "rows"}), flush=True)
