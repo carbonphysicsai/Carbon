@@ -90,7 +90,10 @@ def test_writer_preserves_validated_bytes_and_refuses_replacement(tmp_path):
     assert release_check.load_cells(tmp_path).status("F08")["revision"] == REVISION
     with pytest.raises(ValueError, match="ALREADY_RECORDED"):
         cell.write_cell(
-            document(evidence={"backend": "OTHER", "feedback_digest": DIGEST}), tmp_path
+            document(
+                evidence={"backend": "CPU", "feedback_digest": "sha256:" + "c" * 64}
+            ),
+            tmp_path,
         )
     assert path.read_bytes() == before
     assert not list(path.parent.glob("*.pending"))
