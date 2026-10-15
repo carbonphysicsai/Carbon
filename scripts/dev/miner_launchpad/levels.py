@@ -27,6 +27,7 @@ from pathlib import Path
 CONSTRUCTION_ADMISSION = "construction_admission"
 CAPTURE_SCHEMA = "carbon.launchpad.construction-admission.v1"
 SELECTED_CAPTURE_SCHEMA = "carbon.launchpad.construction-admission.v2"
+BASE_CAPTURE_SCHEMA = "carbon.launchpad.construction-admission.v3"
 # The only prospective standalone test subject. The variant registry still
 # authenticates its document and current registration before it is bound.
 STANDALONE_GRAPH_V3 = (
@@ -103,6 +104,30 @@ def _selected_standalone(request, challenge, agent, cfg, *, recorded_target=None
     return cl.with_target(found, target)
 
 
+def _base_selected(request, challenge):
+    """An explicit registered base subject; never an implicit level downgrade."""
+    from carbon.challenge_registry.campaigns import campaign_for
+    from carbon.reconstruction.capability_registry import contract
+
+    selector = request.get("construction_variant_digest")
+    if type(selector) is not str:
+        return False
+    try:
+        if (
+            not campaign_for(challenge).construction_levels
+            or selector != contract(challenge["id"]).digest
+        ):
+            return False
+    except (KeyError, RuntimeError, ValueError):
+        return False
+    level = request.get("construction_level")
+    if request.get("arm") is not None or (
+        level is not None and (type(level) is not int or level != 0)
+    ):
+        raise Rejected("construction_variant_invalid", 409)
+    return True
+
+
 def launch_binding(request, challenge, agent, cfg=None, *, legacy=False):
     """The level binding a launch names, or None for Level 0. Refused by
     closed code before the campaign is created. The binding carries the
@@ -113,6 +138,8 @@ def launch_binding(request, challenge, agent, cfg=None, *, legacy=False):
     if "construction_variant_digest" in request:
         if legacy:
             raise Rejected("launch_record_differs", 409)
+        if _base_selected(request, challenge):
+            return None
         return _selected_standalone(request, challenge, agent, cfg)
     if not legacy and arm is None:
         if level is not None and (type(level) is not int or level not in cl.LEVELS):
@@ -151,11 +178,20 @@ def capture_binding(found, selector=None):
     """Writer-owned data beside the request; never a permitted request field."""
     if selector is not None:
         return {
-            "schema": SELECTED_CAPTURE_SCHEMA,
+            "schema": BASE_CAPTURE_SCHEMA if found is None else SELECTED_CAPTURE_SCHEMA,
             "binding": found,
             "selector": selector,
         }
     return {"schema": CAPTURE_SCHEMA, "binding": found}
+
+
+def capture_version(captured):
+    """The writer's schema and database version are one prospective identity."""
+    return {
+        CAPTURE_SCHEMA: 1,
+        SELECTED_CAPTURE_SCHEMA: 2,
+        BASE_CAPTURE_SCHEMA: 3,
+    }[captured["schema"]]
 
 
 def checked_capture(row, captured):
@@ -164,7 +200,7 @@ def checked_capture(row, captured):
 
     version = row.get("construction_binding_version", 0)
     pinned = row.get("construction_binding_digest")
-    if type(version) is not int or version not in (0, 1, 2):
+    if type(version) is not int or version not in (0, 1, 2, 3):
         raise Rejected("launch_record_differs", 409)
     if version == 0:
         if captured is not None or pinned is not None:
@@ -173,17 +209,20 @@ def checked_capture(row, captured):
     expected = (
         {"schema", "binding"} if version == 1 else {"schema", "binding", "selector"}
     )
-    schema = CAPTURE_SCHEMA if version == 1 else SELECTED_CAPTURE_SCHEMA
+    schema = {
+        1: CAPTURE_SCHEMA,
+        2: SELECTED_CAPTURE_SCHEMA,
+        3: BASE_CAPTURE_SCHEMA,
+    }[version]
     if (
         type(captured) is not dict
         or set(captured) != expected
         or captured["schema"] != schema
         or type(pinned) is not str
         or (captured["binding"] is not None and type(captured["binding"]) is not dict)
-        or (
-            version == 2
-            and (type(captured["selector"]) is not str or captured["binding"] is None)
-        )
+        or (version in (2, 3) and type(captured["selector"]) is not str)
+        or (version == 2 and captured["binding"] is None)
+        or (version == 3 and captured["binding"] is not None)
     ):
         raise Rejected("launch_record_differs", 409)
     try:
@@ -201,6 +240,15 @@ def replay_binding(request, challenge, agent, cfg, captured):
     if captured is None:
         return launch_binding(request, challenge, agent, cfg, legacy=True)
     frozen = captured["binding"]
+    if captured["schema"] == BASE_CAPTURE_SCHEMA:
+        if request.get("construction_variant_digest") != captured["selector"]:
+            raise Rejected("launch_record_differs", 409)
+        try:
+            if frozen is not None or not _base_selected(request, challenge):
+                raise Rejected("launch_record_differs", 409)
+        except Rejected:
+            raise Rejected("launch_record_differs", 409) from None
+        return None
     if captured["schema"] == SELECTED_CAPTURE_SCHEMA:
         if request.get("construction_variant_digest") != captured["selector"]:
             raise Rejected("launch_record_differs", 409)

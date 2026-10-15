@@ -37,7 +37,8 @@ F15 multi-intake is required base coverage after that first block.
 Runtime: scripts/dev/miner_launchpad/{levels,runner,operations}.py (operations
 help text only). Tests: tests/cpu/test_launchpad_base_subject_selection.py.
 Docs: owner record, this ticket, docs/development/LAUNCHPAD_ACCEPTANCE_PLAN.md,
-historical acceptance cells and backfill index. No CI/workflow, service-journey,
+historical acceptance cells/backfill index and the day-before T07 agenda template.
+No CI/workflow, service-journey,
 S5/Graphite original packet, Root-state, protected data or ScoreLab edits.
 
 Open PR file inventory inspected2026-10-15:1372/1255/1246/1222; no runtime path
@@ -63,3 +64,19 @@ Conditional completion: scoped behavior and truthful evidence, actual required
 checks/Merge gate, repaired valid findings, Root normal expected-head merge.
 This is DEVELOPMENT software only; real T07/F12/owner blocks, released image
 practice, F15, security acceptance and mainnet parity remain actual evidence.
+
+## Candidate evidence
+
+Exact base selection and v3 writer/replay implemented. Existing v0/v1/v2,
+composition default and standalone graph selection remain authenticated.
+Added controls for conflicting selectors/hints/arms, wrong Challenge, base
+compiler rejection of widened fields, changed current contract, capture
+tamper/downgrade and durable writer/restart replay without redispatch.
+Four historical cells preserve F01FAIL/PASS, owner-confirmed F03PASS and adverse
+F07FAIL; original metadata limits and LA-F1/2/3/8/9 remain explicit.
+
+Native static AST parsing, pinned Black26.5.1/Ruff0.16.3, JSON/result/Boolean
+checks and git diff --check passed. No local application import/test or
+host/provider/chain execution; canonical runtime validation is delegated to
+the actual remote PR checks under the OPERATOR restriction. No current real
+journey or new image acceptance is claimed by these static results.

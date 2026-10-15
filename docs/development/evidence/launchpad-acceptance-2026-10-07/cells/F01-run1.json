@@ -1,0 +1,25 @@
+{
+  "schema": "carbon.launchpad.acceptance-cell.v1",
+  "machine_kind": "carbon-fresh WSL2 Ubuntu24.04 x86_64",
+  "actor": "owner execution; Platform2 historical backfill2026-10-15",
+  "within_cap": true,
+  "cell": "F01",
+  "attempt": 1,
+  "date": "2026-10-07",
+  "revision": "UNRECORDED_BEFORE_LA-F1_FIX",
+  "result": "FAIL",
+  "refusal_code": "installer_permission_denied",
+  "evidence": {
+    "source": "docs/development/evidence/fresh-miner-2026-10-07/README.md#step-1-install-install_minersh---gpu---service",
+    "findings": [
+      "LA-F1"
+    ],
+    "finding_register": "../FINDINGS.md",
+    "exit_code": 126,
+    "failed_path": "scripts/dev/accelerator_worker_image.sh",
+    "repair_pr": 775,
+    "original_log_reference": "f01a-install-permission-denied.log",
+    "revision_limit": "Original failed-attempt checkout SHA not recorded; do not assign the later successful revision to it.",
+    "next_step": "Use the corrected executable script mode; preserve this failed attempt."
+  }
+}

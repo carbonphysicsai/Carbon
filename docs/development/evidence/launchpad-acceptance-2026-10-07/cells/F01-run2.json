@@ -1,0 +1,28 @@
+{
+  "schema": "carbon.launchpad.acceptance-cell.v1",
+  "machine_kind": "carbon-fresh WSL2 Ubuntu24.04 x86_64",
+  "actor": "owner execution; Platform2 historical backfill2026-10-15",
+  "within_cap": true,
+  "cell": "F01",
+  "attempt": 2,
+  "date": "2026-10-07",
+  "revision": "f1dd652debdfc7a6875c38ef988b1fd3c0ccb26b",
+  "result": "PASS",
+  "refusal_code": null,
+  "evidence": {
+    "source": "docs/development/evidence/fresh-miner-2026-10-07/README.md",
+    "findings": [
+      "LA-F2"
+    ],
+    "finding_register": "../FINDINGS.md",
+    "exit_code": 0,
+    "observed": [
+      "clean checkout and locked environment",
+      "worker/analysis/GPU image IDs recorded",
+      "installed-images mode600",
+      "Control Center user service active/enabled",
+      "state directory700 and files600"
+    ],
+    "scope_limit": "Historical install only, not current released-image or runtime acceptance; image tagging finding retained."
+  }
+}

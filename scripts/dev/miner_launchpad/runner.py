@@ -3123,7 +3123,7 @@ class RunnerAdapter:
                                 ),
                             }
                         ),
-                        2 if "construction_variant_digest" in request else 1,
+                        levels.capture_version(construction_capture),
                         digest(canonical(construction_capture)),
                     ),
                 )
