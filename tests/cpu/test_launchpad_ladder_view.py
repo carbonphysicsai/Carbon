@@ -373,6 +373,7 @@ def test_both_doors_give_the_same_ladder(browser):
     from test_miner_launchpad import auth, request
 
     from carbon.miner_mcp.mcp_operations import make_operation_tools
+    from scripts.dev.launchpad_acceptance.release_check import project
     from scripts.dev.miner_launchpad.operations import perform
     from scripts.dev.miner_launchpad.research_fixture import FixtureRunner
 
@@ -388,7 +389,21 @@ def test_both_doors_give_the_same_ladder(browser):
     tool = {t.name: t for t in make_operation_tools(host)}["carbon_ladder"]
     mcp = asyncio.run(tool.fn(challenge=BATTERY)).payload
     assert code == 200, content
-    assert json.loads(content) == mcp == perform(host, "ladder", {"challenge": BATTERY})
+    raw = perform(host, "ladder", {"challenge": BATTERY})
+    assert json.loads(content) == mcp == project(raw, "ladder")
+    assert mcp["acceptance_status"] == "UNTESTED"
+    assert mcp["acceptance_choices"] == {
+        "level/" + str(row["level"]): "UNTESTED" for row in raw["levels"]
+    }
+    for row in mcp["levels"]:
+        assert row["acceptance"]["status"] == "UNTESTED"
+        assert row["acceptance"]["revision"] is None
+        if row["level"] != 0:
+            assert row["acceptance"]["result"] == "BLOCKED"
+            assert (
+                row["acceptance"]["reason"]
+                == "LEVELS_AFTER_FIRST_REAL_F12_AND_FOLLOWING_WEEK"
+            )
     assert mcp["levels"][2]["variant"]["name"] == "battery-l2-v2"
 
 

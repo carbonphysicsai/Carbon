@@ -41,8 +41,10 @@ Expected manifest: this ticket and one engineering decision;
 `carbon/miner_mcp/{mcp_operations.py,mcp_setup.py}`;
 `.github/workflows/release-rehearsal.yml`;
 `tests/cpu/test_launchpad_acceptance.py`, the existing
-`tests/cpu/control_center_page_check.cjs` scenario runner, plus focused expectations
-only if the explicit additive metadata contract requires them.
+`tests/cpu/control_center_page_check.cjs` scenario runner, plus the additive-metadata
+parity expectation in `tests/cpu/test_launchpad_ladder_view.py`. Ladder rows use
+their numeric level identities. Unrelated run-output, library and compute-budget
+payload contracts remain untouched by the bounded projection.
 
 ## Validation and completion
 

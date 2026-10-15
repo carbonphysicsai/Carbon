@@ -76,6 +76,19 @@ _FLOWS = {
     "observe": "F12",
     "resume": "F14",
 }
+_PROJECTED_NAMES = set(_FLOWS) | {
+    "capabilities",
+    "setup",
+    "status",
+    "signer",
+    "agent",
+    "quote",
+    "inference",
+    "compute",
+    "send_worker",
+    "options",
+    "ladder",
+}
 
 
 def _unique(pairs):
@@ -272,7 +285,7 @@ def project(payload, name=None, *, cells=None):
     Parallel choice maps preserve existing string-list request contracts.
     No recursive rewrite of scientific results or arbitrary evidence happens.
     """
-    if type(payload) is not dict:
+    if type(payload) is not dict or (name is not None and name not in _PROJECTED_NAMES):
         return payload
     cells = load_cells() if cells is None else cells
     result = copy.deepcopy(payload)
@@ -287,7 +300,10 @@ def project(payload, name=None, *, cells=None):
             if type(row) is not dict:
                 continue
             identity = row.get(
-                "id", row.get("type", row.get("value", row.get("challenge_id")))
+                "id",
+                row.get(
+                    "type", row.get("value", row.get("challenge_id", row.get("level")))
+                ),
             )
             if type(identity) not in (str, int):
                 identity = None

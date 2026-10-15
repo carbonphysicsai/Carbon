@@ -29,3 +29,11 @@ read-only release command requires that capture and validates it without
 restamping labels. Its negative controls corrupt actual emitted labels and
 must fail through the release entry point. The temporary capture is engineering
 test output, not a real acceptance cell; no new application harness is created.
+
+Canonical CI exposed projection outside the bounded acceptance-choice/flow
+surfaces. Leave unrelated run-output, library and compute-budget payloads
+unchanged. For the offered ladder levels keep complete public payload comparisons
+against the explicit projection and assert default metadata plus D5 holds
+independently. Do not ignore substantive payload differences to satisfy parity.
+Ladder rows identify themselves by numeric `level`, so preserve that identity
+in the per-choice status map instead of collapsing all rows to `level/None`.

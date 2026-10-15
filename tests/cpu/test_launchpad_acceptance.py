@@ -61,6 +61,15 @@ def test_default_and_successful_availability_are_untested(tmp_path):
     assert payload == original
 
 
+@pytest.mark.parametrize(
+    "name", ["run_output", "compute_budget_status", "library_search", "search"]
+)
+def test_unrelated_operation_payloads_keep_their_shared_contract(name):
+    payload = {"schema": "fixture.unrelated.v1", "result": {"untouched": True}}
+    assert acceptance.project(payload, name, cells=acceptance.Cells({})) == payload
+    assert "acceptance" not in payload
+
+
 def test_pass_is_bound_to_original_named_cell_revision_and_allowlist(tmp_path):
     path = record(tmp_path, evidence={"secret": "NEVER_PROJECT", "source": "fixture"})
     cells = acceptance.load_cells(tmp_path)
