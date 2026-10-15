@@ -17,7 +17,7 @@ from carbon.battery.value import contract as ct
 from carbon.battery.value import decision as d
 from scripts.dev.battery.plating_rereference import V2_RULES, v2_label
 
-from . import bank
+from . import bank, owner_dev_v1
 from .core import LabRefused, canonical_sha
 
 LABEL_SHA256 = "cac1e23001c227d9221653b2a90cee4755f62ca06fec58305d11cb9cba510069"
@@ -265,4 +265,75 @@ def admission(contract, refs, labels, *, label_counts):
         "reason": (
             None if any(masks.values()) else "NO_V2_ADMISSIBLE_FULL_GRAMMAR_QUESTIONS"
         ),
+    }
+
+
+def covered_admission(contract, refs, labels, *, label_counts):
+    """Owner 2026-10-15 D3; preserve the historical admission above.
+
+    Require applicability and settled plating for EVERY registered condition,
+    even if that action cannot win or fails another gate. No action is pruned.
+    The common scored mask also retains the existing other-constraint and
+    fallback checks. A completed new label export must be bound upstream to
+    its actual digest; this function never authenticates a caller's receipt.
+    """
+    questions, legacy = admission(contract, refs, labels, label_counts=label_counts)
+    manifests, rows = {}, {}
+    for scenario in ct.scenarios(contract):
+        qid = scenario["id"]
+        manifests[qid] = []
+        for candidate in ct.candidates(contract):
+            for i in range(len(scenario["conditions"])):
+                cid = ct.case_id(contract, scenario, candidate, i)
+                manifests[qid].append(cid)
+                record = refs.get(cid)
+                if record is None or record.get("status") != "OK":
+                    continue
+                margin = d.measure(contract, record["outputs"])["plating_margin_v"]
+                if not _finite(margin):
+                    continue
+                row = {"m20_mv": margin * 1000, "sealed_v2": labels.get(cid)}
+                if cid not in labels and abs(margin) < 0.015:
+                    # Outside the refinement window the exact sealed reader
+                    # can decide from m20 alone; pending remains UNRESOLVED.
+                    row["sealed_v2"] = {
+                        "case_id": cid,
+                        "source": "ev4",
+                        "m20_mv": margin * 1000,
+                        "m160_mv": None,
+                        **v2_label(margin),
+                    }
+                rows[cid] = row
+    coverage = owner_dev_v1.covered_questions(manifests, rows)
+    covered = set(coverage["common_questions"])
+    for qid, question in questions.items():
+        if qid not in covered:
+            question["class"] = "INCOMPLETE"
+        for conditions in question["actions"].values():
+            for condition in conditions:
+                cid = condition["case_id"]
+                if cid in coverage["excluded_questions"].get(qid, {}):
+                    condition["status"] = "UNRESOLVED"
+                    condition["reason"] = coverage["excluded_questions"][qid][cid]
+    masks = {
+        split: [q for q in ids if q in covered]
+        for split, ids in legacy["common_mask_by_split"].items()
+    }
+    return questions, {
+        "first_line": owner_dev_v1.ESTIMAND,
+        "schema": "carbon.scorelab.public-ev4-covered-v2-admission.v1",
+        "scope": "PUBLIC_DEVELOPMENT",
+        "status": (
+            "ADMITTED_PUBLIC_QUESTIONS"
+            if any(masks.values())
+            else "INSUFFICIENT_EVIDENCE"
+        ),
+        "reference_coverage": coverage,
+        "common_mask_by_split": masks,
+        "common_mask_sha256": canonical_sha(masks),
+        "admission_records_sha256": canonical_sha(questions),
+        "full_grammar_actions": legacy["full_grammar_actions"],
+        "pruned_actions": 0,
+        "legacy_admission": legacy,
+        "qualification": False,
     }

@@ -7,7 +7,14 @@ import json
 import os
 from pathlib import Path
 
-from .bundle import SetupRefused, materialize, runtime_lease, select_release, verify
+from .bundle import (
+    SetupRefused,
+    materialize,
+    runtime_identity,
+    runtime_lease,
+    select_release,
+    verify,
+)
 
 
 def bound(args):
@@ -59,7 +66,9 @@ def delegate(args, bundle):
     if args.action == "units":
         if args.out is None:
             raise SetupRefused("UNIT_OUTPUT_REQUIRED")
-        return 0, supervisor.units(args.config, args.out, repository=bundle.root)
+        return 0, supervisor.units(
+            args.config, args.out, repository=bundle.root, bundle_digest=bundle.digest
+        )
     if args.action == "status":
         result = service.status(args.config, repository=bundle.root)
         return (0 if result["healthy"] else 3), result
@@ -196,8 +205,13 @@ def main(argv=None):
 
                 result = check_host_mirror(args.image, bundle)
             else:
-                with runtime_lease(
-                    args.config if args.command == "service" else args.service_config
+                with (
+                    runtime_identity(bundle),
+                    runtime_lease(
+                        args.config
+                        if args.command == "service"
+                        else args.service_config
+                    ),
                 ):
                     code, result = delegate(args, bundle)
                 if result is None:

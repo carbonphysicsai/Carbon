@@ -1,0 +1,308 @@
+{
+  "case_ids": [
+    "ev4:D-T5-S0.12:c1=2,c2=0.6:0",
+    "ev4:D-T34-S0.48:c1=0.75,c2=0.4:0",
+    "ev4:D-T14-S0.33:c1=1,c2=0.6:0"
+  ],
+  "probes": [
+    {
+      "absolute_difference_limit_v": 5e-05,
+      "baseline": {
+        "case_id": "ev4:D-T5-S0.12:c1=2,c2=0.6:0",
+        "cycles": 1,
+        "mesh": 80,
+        "period_s": null,
+        "rtol": 1e-06
+      },
+      "case": {
+        "c1": 2.0,
+        "c2": 0.6,
+        "candidate": "c1=2,c2=0.6",
+        "case_id": "ev4:D-T5-S0.12:c1=2,c2=0.6:0",
+        "convergence_check": true,
+        "question": "D-T5-S0.12",
+        "reference_margin_v": -0.06759182213495515,
+        "reference_rung": "standard",
+        "soc0": 0.12,
+        "source": "ev4",
+        "split": "development",
+        "t_amb_c": 5.0
+      },
+      "check": "TOLERANCE",
+      "job": {
+        "case": 100,
+        "cycles": 1,
+        "mesh": 80,
+        "period_s": null,
+        "rtol": 1e-08
+      },
+      "probe_id": "ev4:D-T5-S0.12:c1=2,c2=0.6:0/research-v1/tolerance"
+    },
+    {
+      "absolute_difference_limit_v": 5e-05,
+      "baseline": {
+        "case_id": "ev4:D-T5-S0.12:c1=2,c2=0.6:0",
+        "cycles": 1,
+        "mesh": 80,
+        "period_s": null,
+        "rtol": 1e-06
+      },
+      "case": {
+        "c1": 2.0,
+        "c2": 0.6,
+        "candidate": "c1=2,c2=0.6",
+        "case_id": "ev4:D-T5-S0.12:c1=2,c2=0.6:0",
+        "convergence_check": true,
+        "question": "D-T5-S0.12",
+        "reference_margin_v": -0.06759182213495515,
+        "reference_rung": "standard",
+        "soc0": 0.12,
+        "source": "ev4",
+        "split": "development",
+        "t_amb_c": 5.0
+      },
+      "check": "SAMPLING",
+      "job": {
+        "case": 100,
+        "cycles": 1,
+        "mesh": 80,
+        "period_s": 5,
+        "rtol": 1e-06
+      },
+      "probe_id": "ev4:D-T5-S0.12:c1=2,c2=0.6:0/research-v1/sampling"
+    },
+    {
+      "absolute_difference_limit_v": 0.0001,
+      "baseline": {
+        "case_id": "ev4:D-T5-S0.12:c1=2,c2=0.6:0",
+        "cycles": 1,
+        "mesh": 80,
+        "period_s": null,
+        "rtol": 1e-06
+      },
+      "case": {
+        "c1": 2.0,
+        "c2": 0.6,
+        "candidate": "c1=2,c2=0.6",
+        "case_id": "ev4:D-T5-S0.12:c1=2,c2=0.6:0",
+        "convergence_check": true,
+        "question": "D-T5-S0.12",
+        "reference_margin_v": -0.06759182213495515,
+        "reference_rung": "standard",
+        "soc0": 0.12,
+        "source": "ev4",
+        "split": "development",
+        "t_amb_c": 5.0
+      },
+      "check": "COMBINED",
+      "job": {
+        "case": 100,
+        "cycles": 1,
+        "mesh": 80,
+        "period_s": 5,
+        "rtol": 1e-08
+      },
+      "probe_id": "ev4:D-T5-S0.12:c1=2,c2=0.6:0/research-v1/combined"
+    },
+    {
+      "absolute_difference_limit_v": 5e-05,
+      "baseline": {
+        "case_id": "ev4:D-T34-S0.48:c1=0.75,c2=0.4:0",
+        "cycles": 1,
+        "mesh": 80,
+        "period_s": null,
+        "rtol": 1e-06
+      },
+      "case": {
+        "c1": 0.75,
+        "c2": 0.4,
+        "candidate": "c1=0.75,c2=0.4",
+        "case_id": "ev4:D-T34-S0.48:c1=0.75,c2=0.4:0",
+        "convergence_check": true,
+        "question": "D-T34-S0.48",
+        "reference_margin_v": 0.04326904477988721,
+        "reference_rung": "standard",
+        "soc0": 0.48,
+        "source": "ev4",
+        "split": "development",
+        "t_amb_c": 34.0
+      },
+      "check": "TOLERANCE",
+      "job": {
+        "case": 77,
+        "cycles": 1,
+        "mesh": 80,
+        "period_s": null,
+        "rtol": 1e-08
+      },
+      "probe_id": "ev4:D-T34-S0.48:c1=0.75,c2=0.4:0/research-v1/tolerance"
+    },
+    {
+      "absolute_difference_limit_v": 5e-05,
+      "baseline": {
+        "case_id": "ev4:D-T34-S0.48:c1=0.75,c2=0.4:0",
+        "cycles": 1,
+        "mesh": 80,
+        "period_s": null,
+        "rtol": 1e-06
+      },
+      "case": {
+        "c1": 0.75,
+        "c2": 0.4,
+        "candidate": "c1=0.75,c2=0.4",
+        "case_id": "ev4:D-T34-S0.48:c1=0.75,c2=0.4:0",
+        "convergence_check": true,
+        "question": "D-T34-S0.48",
+        "reference_margin_v": 0.04326904477988721,
+        "reference_rung": "standard",
+        "soc0": 0.48,
+        "source": "ev4",
+        "split": "development",
+        "t_amb_c": 34.0
+      },
+      "check": "SAMPLING",
+      "job": {
+        "case": 77,
+        "cycles": 1,
+        "mesh": 80,
+        "period_s": 5,
+        "rtol": 1e-06
+      },
+      "probe_id": "ev4:D-T34-S0.48:c1=0.75,c2=0.4:0/research-v1/sampling"
+    },
+    {
+      "absolute_difference_limit_v": 0.0001,
+      "baseline": {
+        "case_id": "ev4:D-T34-S0.48:c1=0.75,c2=0.4:0",
+        "cycles": 1,
+        "mesh": 80,
+        "period_s": null,
+        "rtol": 1e-06
+      },
+      "case": {
+        "c1": 0.75,
+        "c2": 0.4,
+        "candidate": "c1=0.75,c2=0.4",
+        "case_id": "ev4:D-T34-S0.48:c1=0.75,c2=0.4:0",
+        "convergence_check": true,
+        "question": "D-T34-S0.48",
+        "reference_margin_v": 0.04326904477988721,
+        "reference_rung": "standard",
+        "soc0": 0.48,
+        "source": "ev4",
+        "split": "development",
+        "t_amb_c": 34.0
+      },
+      "check": "COMBINED",
+      "job": {
+        "case": 77,
+        "cycles": 1,
+        "mesh": 80,
+        "period_s": 5,
+        "rtol": 1e-08
+      },
+      "probe_id": "ev4:D-T34-S0.48:c1=0.75,c2=0.4:0/research-v1/combined"
+    },
+    {
+      "absolute_difference_limit_v": 5e-05,
+      "baseline": {
+        "case_id": "ev4:D-T14-S0.33:c1=1,c2=0.6:0",
+        "cycles": 1,
+        "mesh": 80,
+        "period_s": null,
+        "rtol": 1e-06
+      },
+      "case": {
+        "c1": 1.0,
+        "c2": 0.6,
+        "candidate": "c1=1,c2=0.6",
+        "case_id": "ev4:D-T14-S0.33:c1=1,c2=0.6:0",
+        "convergence_check": true,
+        "question": "D-T14-S0.33",
+        "reference_margin_v": 0.002709379625016011,
+        "reference_rung": "standard",
+        "soc0": 0.33,
+        "source": "ev4",
+        "split": "development",
+        "t_amb_c": 14.0
+      },
+      "check": "TOLERANCE",
+      "job": {
+        "case": 9,
+        "cycles": 1,
+        "mesh": 80,
+        "period_s": null,
+        "rtol": 1e-08
+      },
+      "probe_id": "ev4:D-T14-S0.33:c1=1,c2=0.6:0/research-v1/tolerance"
+    },
+    {
+      "absolute_difference_limit_v": 5e-05,
+      "baseline": {
+        "case_id": "ev4:D-T14-S0.33:c1=1,c2=0.6:0",
+        "cycles": 1,
+        "mesh": 80,
+        "period_s": null,
+        "rtol": 1e-06
+      },
+      "case": {
+        "c1": 1.0,
+        "c2": 0.6,
+        "candidate": "c1=1,c2=0.6",
+        "case_id": "ev4:D-T14-S0.33:c1=1,c2=0.6:0",
+        "convergence_check": true,
+        "question": "D-T14-S0.33",
+        "reference_margin_v": 0.002709379625016011,
+        "reference_rung": "standard",
+        "soc0": 0.33,
+        "source": "ev4",
+        "split": "development",
+        "t_amb_c": 14.0
+      },
+      "check": "SAMPLING",
+      "job": {
+        "case": 9,
+        "cycles": 1,
+        "mesh": 80,
+        "period_s": 5,
+        "rtol": 1e-06
+      },
+      "probe_id": "ev4:D-T14-S0.33:c1=1,c2=0.6:0/research-v1/sampling"
+    },
+    {
+      "absolute_difference_limit_v": 0.0001,
+      "baseline": {
+        "case_id": "ev4:D-T14-S0.33:c1=1,c2=0.6:0",
+        "cycles": 1,
+        "mesh": 80,
+        "period_s": null,
+        "rtol": 1e-06
+      },
+      "case": {
+        "c1": 1.0,
+        "c2": 0.6,
+        "candidate": "c1=1,c2=0.6",
+        "case_id": "ev4:D-T14-S0.33:c1=1,c2=0.6:0",
+        "convergence_check": true,
+        "question": "D-T14-S0.33",
+        "reference_margin_v": 0.002709379625016011,
+        "reference_rung": "standard",
+        "soc0": 0.33,
+        "source": "ev4",
+        "split": "development",
+        "t_amb_c": 14.0
+      },
+      "check": "COMBINED",
+      "job": {
+        "case": 9,
+        "cycles": 1,
+        "mesh": 80,
+        "period_s": 5,
+        "rtol": 1e-08
+      },
+      "probe_id": "ev4:D-T14-S0.33:c1=1,c2=0.6:0/research-v1/combined"
+    }
+  ],
+  "schema": "carbon.research.plating-sentinel-jobs.v1",
+  "source_commit": "bc465b1d1807eb4b0cdeb299ceb7d70da784e52b"
+}

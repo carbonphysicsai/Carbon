@@ -1,22 +1,60 @@
 """Adapt the Validator's read-only Score Lab candidates to toy panels.
 
-The candidate file stays outside the repository. Its Python functions are
-trusted developer input, like ``--function``; they receive score-side data
-only. Battery registry rules use the exact scorer on public replay instead.
+The owner-dev-v1 source is a byte-identical public copy pinned before import.
+Explicit external files remain trusted developer input for historical runs;
+functions receive score-side data only. Battery registry rules use the exact
+scorer on public replay instead.
 """
 
 from __future__ import annotations
 
 import hashlib
+import importlib.machinery
 import importlib.util
 from pathlib import Path
 
 from . import components
 from .core import LabRefused, registry_rule
 
+REGISTERED_SOURCE = (
+    Path(__file__).resolve().parents[3]
+    / "Business/research/score-lab-campaign-01/owner-dev-v1/candidates-v1.py.txt"
+)
+REGISTERED_SHA256 = "157b1db5f091910f5602b15c9f5029f0171e6da7e8b6dbc5ffb5aa5c775bd235"
 
-def load(path):
-    path = Path(path)
+
+class _PinnedSourceLoader(importlib.machinery.SourceFileLoader):
+    """Import the checked bytes themselves, without reopening the source."""
+
+    def __init__(self, name, path, raw):
+        super().__init__(name, str(path))
+        self.checked_source = raw
+
+    def get_code(self, fullname):
+        return self.source_to_code(self.checked_source, self.path)
+
+
+def load(path=None):
+    """Default to the exact public family; retain explicit historical inputs.
+
+    The committed bytes are proxies where marked, never official battery rules.
+    Compile the checked bytes themselves, avoiding a second source-file read.
+    """
+    path = REGISTERED_SOURCE if path is None else Path(path)
+    if path.resolve() == REGISTERED_SOURCE.resolve():
+        raw = path.read_bytes()
+        if hashlib.sha256(raw).hexdigest() != REGISTERED_SHA256:
+            raise LabRefused("registered_candidates_digest")
+        loader = _PinnedSourceLoader("score_lab_candidates", path, raw)
+        spec = importlib.util.spec_from_file_location(
+            "score_lab_candidates", path, loader=loader
+        )
+        module = importlib.util.module_from_spec(spec)
+        loader.exec_module(module)
+        rules = getattr(module, "RULES", None)
+        if not isinstance(rules, dict) or len(rules) != 10:
+            raise LabRefused("candidates_contract_mismatch")
+        return rules, REGISTERED_SHA256
     spec = importlib.util.spec_from_file_location("score_lab_candidates", path)
     if spec is None or spec.loader is None:
         raise LabRefused("candidates_unavailable")

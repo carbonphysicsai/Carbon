@@ -26,6 +26,33 @@ operator-owned external paths. Only trusted operator tooling gets that access;
 the miner HTTP/MCP surfaces gain no setup, wallet, Docker or operator action.
 Existing worker isolation/permits/device and scientific gates remain controlling.
 
+### Registered-score runtime metadata
+
+The public runtime payload includes the existing owner-adopted
+`docs/development/evidence/battery-score-tuning/registry-v5.json`, with its
+bytes frozen in the same manifest as the owner decision and EV4 contract.
+It does not export the surrounding evidence directory. A different registry
+must be deliberately included in a later bound artifact; an unavailable
+registry is a refusal, not a fallback to another score.
+
+Materialized releases have no Git history. The operator entrypoint propagates
+its externally verified manifest pin as `CARBON_VALIDATOR_BUNDLE_DIGEST` to
+its supervised children. Registered-score initialization verifies the actual
+immutable bundle against that pin, checks that the requested registry is a
+manifest member, and retains the configured registry SHA, candidate and
+owner-decision checks. The manifest's source revision establishes committed
+source provenance; a manifest cannot supply its own expected digest. Ordinary
+research/checkouts still require the existing clean, committed Git registry.
+No score values, candidate selection or historical scores change.
+
+Service preflight includes a `registered_score` metadata check before building
+the deployment. An active scorer must initialize successfully; no score term
+is explicitly `not_applicable`. This reads public registry/contract/decision
+metadata only and never computes a score, reconstructs a model or reads exam
+cases. Passing these checks is not actual daemon or host acceptance. R5's
+failed startup and rollback receipts remain historical; a repaired source PR
+does not change the failed artifact or authorize a manual payload patch.
+
 ## Build and prepare (public source only)
 
 The following are executable interfaces; use the exact completed candidate,
@@ -133,7 +160,10 @@ a shared operator runtime lease; release selection takes it and all existing
 child locks exclusively. The HTTP routes remain the registered intake routes.
 
 `service units` retains the existing host-style intake/daemon units for
-compatibility. For the intended image-backed route use `runtime-units` and the
+compatibility. Their generated `Environment` explicitly retains the externally
+verified bundle pin for later preflight/intake/daemon processes; it does not
+depend on the unit generator's transient environment. For the intended
+image-backed route use `runtime-units` and the
 adjacent closed template: all three operator roles use the same digest-pinned
 image/bundle, explicit UID/GID/socket and identical source/state path bindings.
 Its own intake receiver, answer-key hotkey and weights publisher must agree;

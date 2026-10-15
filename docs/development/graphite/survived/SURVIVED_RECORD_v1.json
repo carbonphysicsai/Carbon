@@ -1,0 +1,1131 @@
+{
+ "claims": {
+  "accepted": false,
+  "authority_granted": false,
+  "qualified": false,
+  "security_acceptance": false
+ },
+ "known_reds": [
+  {
+   "id": "R5_ATTACKER",
+   "seam": "carbon_verify_pod_rebuild",
+   "text": "R5 for the attacker role fails by design: attacker_budget reserves six verify pods while Carbon's verify-pod rebuild is an open seam (carbon_verify_pod_rebuild, NOT_RUN) and the live attacker launches no pod. It is expected to pass once the rebuild lands; until then it is a known red, not a defect to fix in the budget."
+  }
+ ],
+ "not_entered": [
+  {
+   "item_id": "l4.graph",
+   "level": 4,
+   "reason": "no scored and rebuild-proven ledger evidence for the item's level"
+  }
+ ],
+ "records": [
+  {
+   "attack_set": {
+    "coverage_schema": "carbon.graphite.attacker-coverage.v7",
+    "families": [
+     "fresh_cases_rerun",
+     "level_5_custom_inference",
+     "mandatory_failure",
+     "permission_ablation",
+     "pod_timeout_typing",
+     "practice_disclosure",
+     "practice_result_path_state",
+     "prediction_omission",
+     "rebuild_identity",
+     "rebuild_report",
+     "recipe_forgery",
+     "recipe_surface",
+     "resource_accounting",
+     "selective_fault",
+     "staged_bytes"
+    ],
+    "k_values": []
+   },
+   "challenge": "battery-fastcharge-ageing-development-v1",
+   "claims": {
+    "accepted": false,
+    "authority_granted": false,
+    "qualified": false,
+    "security_acceptance": false
+   },
+   "construction_family": "recipe",
+   "entry": {
+    "evidence": [
+     {
+      "batch": "stage-a-2026-10-10",
+      "bundled_share": 1.0,
+      "constructor_runs": 5,
+      "level": 0,
+      "proposals": 51
+     }
+    ],
+    "exercise_tag": "level-granular: the ledger records sessions, not which item a scored recipe exercised",
+    "state": "TESTED"
+   },
+   "families": {
+    "fresh_cases_rerun": {
+     "attempts": 0,
+     "held": 0,
+     "inconclusive_reason": null,
+     "k": null,
+     "not_run_reason": "needs a frozen study sheet and fresh cases",
+     "report_digest": "sha256:ce9ce55c1e394296bff1c31ce2c03fc35a6e3c9d88467bdde2aa4d55d11ac7d4",
+     "report_ref": "graphite-stage-a-attacker-root-D:graphite-5dba40abea97545a",
+     "status": "NOT_RUN",
+     "stop": null,
+     "verified": 0
+    },
+    "level_5_custom_inference": {
+     "attempts": 0,
+     "held": 0,
+     "inconclusive_reason": null,
+     "k": null,
+     "not_run_reason": "child processes, inference/solver hybrids and custom inference; a case a participant's own inference omits is a schema-gate failure on every host (prediction_omission runs it at Level 0), and who is charged at this level waits for the uid-separated attribution path (VALIDATOR-04). needs participant code, which Level 0 does not permit; executing hostile code needs the security owner's isolation decision, which is reserved; reserved: security owner: isolation for executing participant code",
+     "report_digest": "sha256:ce9ce55c1e394296bff1c31ce2c03fc35a6e3c9d88467bdde2aa4d55d11ac7d4",
+     "report_ref": "graphite-stage-a-attacker-root-D:graphite-5dba40abea97545a",
+     "status": "NOT_RUN",
+     "stop": null,
+     "verified": 0
+    },
+    "mandatory_failure": {
+     "attempts": 0,
+     "held": 0,
+     "inconclusive_reason": null,
+     "k": null,
+     "not_run_reason": "no_attempts_recorded",
+     "report_digest": "sha256:ce9ce55c1e394296bff1c31ce2c03fc35a6e3c9d88467bdde2aa4d55d11ac7d4",
+     "report_ref": "graphite-stage-a-attacker-root-D:graphite-5dba40abea97545a",
+     "status": "NOT_RUN",
+     "stop": null,
+     "verified": 0
+    },
+    "permission_ablation": {
+     "attempts": 12,
+     "held": 0,
+     "inconclusive_reason": "refused_at_rebuild_only",
+     "k": null,
+     "not_run_reason": null,
+     "report_digest": "sha256:49f66bbe4b2ae3492c3c90f5b8befb5fd9309b2dfa0c30bb7d45a5d0751ff1d4",
+     "report_ref": "graphite-stage-a-attacker-root-E:graphite-5dba40abea97545a",
+     "status": "INCONCLUSIVE",
+     "stop": null,
+     "verified": 0
+    },
+    "pod_timeout_typing": {
+     "attempts": 0,
+     "held": 0,
+     "inconclusive_reason": null,
+     "k": null,
+     "not_run_reason": "a pod run that times out is typed by experiment's pod outcome under the registered attribution policy, never scored, while a missing prediction is a schema-gate failure (GRAPHITE-COVERAGE-PARITY-01); whether a pod timeout is FAILED_INFRA or CANDIDATE_FAILED is open, so this adapter judges neither; reserved: owner: whether a pod timeout is FAILED_INFRA or CANDIDATE_FAILED",
+     "report_digest": "sha256:ce9ce55c1e394296bff1c31ce2c03fc35a6e3c9d88467bdde2aa4d55d11ac7d4",
+     "report_ref": "graphite-stage-a-attacker-root-D:graphite-5dba40abea97545a",
+     "status": "NOT_RUN",
+     "stop": null,
+     "verified": 0
+    },
+    "practice_disclosure": {
+     "attempts": 4,
+     "held": 0,
+     "inconclusive_reason": "no_attempt_judged",
+     "k": null,
+     "not_run_reason": null,
+     "report_digest": "sha256:49f66bbe4b2ae3492c3c90f5b8befb5fd9309b2dfa0c30bb7d45a5d0751ff1d4",
+     "report_ref": "graphite-stage-a-attacker-root-E:graphite-5dba40abea97545a",
+     "status": "INCONCLUSIVE",
+     "stop": null,
+     "verified": 0
+    },
+    "practice_result_path_state": {
+     "attempts": 0,
+     "held": 0,
+     "inconclusive_reason": null,
+     "k": null,
+     "not_run_reason": "repeated identical PRACTICE submissions through the stateful research task result path (get_research_result) need a running research session; practice_disclosure checks practice.feedback and the intake's rule facts at function level only",
+     "report_digest": "sha256:ce9ce55c1e394296bff1c31ce2c03fc35a6e3c9d88467bdde2aa4d55d11ac7d4",
+     "report_ref": "graphite-stage-a-attacker-root-D:graphite-5dba40abea97545a",
+     "status": "NOT_RUN",
+     "stop": null,
+     "verified": 0
+    },
+    "prediction_omission": {
+     "attempts": 0,
+     "held": 0,
+     "inconclusive_reason": null,
+     "k": null,
+     "not_run_reason": "no_attempts_recorded",
+     "report_digest": "sha256:ce9ce55c1e394296bff1c31ce2c03fc35a6e3c9d88467bdde2aa4d55d11ac7d4",
+     "report_ref": "graphite-stage-a-attacker-root-D:graphite-5dba40abea97545a",
+     "status": "NOT_RUN",
+     "stop": null,
+     "verified": 0
+    },
+    "rebuild_identity": {
+     "attempts": 0,
+     "held": 0,
+     "inconclusive_reason": null,
+     "k": null,
+     "not_run_reason": "no_attempts_recorded",
+     "report_digest": "sha256:ce9ce55c1e394296bff1c31ce2c03fc35a6e3c9d88467bdde2aa4d55d11ac7d4",
+     "report_ref": "graphite-stage-a-attacker-root-D:graphite-5dba40abea97545a",
+     "status": "NOT_RUN",
+     "stop": null,
+     "verified": 0
+    },
+    "rebuild_report": {
+     "attempts": 0,
+     "held": 0,
+     "inconclusive_reason": null,
+     "k": null,
+     "not_run_reason": "no_attempts_recorded",
+     "report_digest": "sha256:ce9ce55c1e394296bff1c31ce2c03fc35a6e3c9d88467bdde2aa4d55d11ac7d4",
+     "report_ref": "graphite-stage-a-attacker-root-D:graphite-5dba40abea97545a",
+     "status": "NOT_RUN",
+     "stop": null,
+     "verified": 0
+    },
+    "recipe_forgery": {
+     "attempts": 0,
+     "held": 0,
+     "inconclusive_reason": null,
+     "k": null,
+     "not_run_reason": "no_attempts_recorded",
+     "report_digest": "sha256:ce9ce55c1e394296bff1c31ce2c03fc35a6e3c9d88467bdde2aa4d55d11ac7d4",
+     "report_ref": "graphite-stage-a-attacker-root-D:graphite-5dba40abea97545a",
+     "status": "NOT_RUN",
+     "stop": null,
+     "verified": 0
+    },
+    "recipe_surface": {
+     "attempts": 11,
+     "held": 7,
+     "inconclusive_reason": null,
+     "k": null,
+     "not_run_reason": null,
+     "report_digest": "sha256:49f66bbe4b2ae3492c3c90f5b8befb5fd9309b2dfa0c30bb7d45a5d0751ff1d4",
+     "report_ref": "graphite-stage-a-attacker-root-E:graphite-5dba40abea97545a",
+     "status": "ATTEMPTED_COVERAGE",
+     "stop": null,
+     "verified": 0
+    },
+    "resource_accounting": {
+     "attempts": 6,
+     "held": 0,
+     "inconclusive_reason": "no_attempt_judged",
+     "k": null,
+     "not_run_reason": null,
+     "report_digest": "sha256:ce9ce55c1e394296bff1c31ce2c03fc35a6e3c9d88467bdde2aa4d55d11ac7d4",
+     "report_ref": "graphite-stage-a-attacker-root-D:graphite-5dba40abea97545a",
+     "status": "INCONCLUSIVE",
+     "stop": null,
+     "verified": 0
+    },
+    "selective_fault": {
+     "attempts": 0,
+     "held": 0,
+     "inconclusive_reason": null,
+     "k": null,
+     "not_run_reason": "no_attempts_recorded",
+     "report_digest": "sha256:ce9ce55c1e394296bff1c31ce2c03fc35a6e3c9d88467bdde2aa4d55d11ac7d4",
+     "report_ref": "graphite-stage-a-attacker-root-D:graphite-5dba40abea97545a",
+     "status": "NOT_RUN",
+     "stop": null,
+     "verified": 0
+    },
+    "staged_bytes": {
+     "attempts": 12,
+     "held": 0,
+     "inconclusive_reason": "no_attempt_judged",
+     "k": null,
+     "not_run_reason": null,
+     "report_digest": "sha256:49f66bbe4b2ae3492c3c90f5b8befb5fd9309b2dfa0c30bb7d45a5d0751ff1d4",
+     "report_ref": "graphite-stage-a-attacker-root-E:graphite-5dba40abea97545a",
+     "status": "INCONCLUSIVE",
+     "stop": null,
+     "verified": 0
+    }
+   },
+   "findings": [
+    {
+     "attempt": "epoch-1-tool-002-05",
+     "authority": "MINER_LOCAL",
+     "conditions": [
+      "FAILING_TRIGGER"
+     ],
+     "derived_level": null,
+     "family": "staged_bytes",
+     "finding_id": "attack-failing-trigger-2a84f968e6ffc6e8-0",
+     "fix_ref": null,
+     "level_label_mismatch": false,
+     "outcome": "BREACHED",
+     "re_attack_ref": null,
+     "recorded_level": 0,
+     "repaired": false,
+     "root": "graphite-stage-a-attacker-root-D",
+     "triage": "UNTRIAGED",
+     "triage_source": null
+    }
+   ],
+   "item_id": "l0.recipe_surface",
+   "level": 0,
+   "level_basis": "descriptive; findings carry a derived level label",
+   "open_finding_count": 1,
+   "record_digest": "sha256:c99e109e1dce50dbcc41d391e90bf7ecf720a6ed575b3a6fb59079c4dbbcbcfa",
+   "repair_attestations": [],
+   "schema": "carbon.graphite.survived-record.v1",
+   "status": "ATTACKED_OPEN_FINDING",
+   "status_reason": [
+    "open: attack-failing-trigger-2a84f968e6ffc6e8-0"
+   ]
+  },
+  {
+   "attack_set": {
+    "coverage_schema": "carbon.graphite.attacker-coverage.v7",
+    "families": [
+     "l1_alignment_u1_u2",
+     "l1_declarative_only",
+     "l1_degenerate_losses",
+     "l1_expression_surface",
+     "l1_feedback_paths",
+     "l1_fresh_cases_rerun",
+     "l1_nonfinite_typing",
+     "l1_permission_ablation",
+     "l1_rebuild_identity"
+    ],
+    "k_values": [
+     3
+    ]
+   },
+   "challenge": "battery-fastcharge-ageing-development-v1",
+   "claims": {
+    "accepted": false,
+    "authority_granted": false,
+    "qualified": false,
+    "security_acceptance": false
+   },
+   "construction_family": "loss_expressions",
+   "entry": {
+    "evidence": [
+     {
+      "batch": "ladder-2026-10-11",
+      "bundled_share": 0.5,
+      "constructor_runs": 4,
+      "level": 1,
+      "proposals": 33
+     }
+    ],
+    "exercise_tag": "level-granular: the ledger records sessions, not which item a scored recipe exercised",
+    "state": "TESTED"
+   },
+   "families": {
+    "l1_alignment_u1_u2": {
+     "attempts": 0,
+     "held": 0,
+     "inconclusive_reason": null,
+     "k": 3,
+     "not_run_reason": "U1 (metric-aimed training) and U2 (tail sacrifice) are alignment findings, measured in a live climb as tau/rho, regret, false-feasible and tail metrics; the frozen rule's tail coverage is their instrument for testing only (OWNER-GRAPHITE-TEST-WAVE-04 section 2), not a scientific qualification of the rule",
+     "report_digest": "sha256:80407f2dbf89079fd558335e6d2c3d785c3222ee882d78c0e00eeebde625f444",
+     "report_ref": "graphite-hunt-a1-root-D:graphite-5dba40abea97545a",
+     "status": "NOT_RUN",
+     "stop": "DONE",
+     "verified": 0
+    },
+    "l1_declarative_only": {
+     "attempts": 3,
+     "held": 1,
+     "inconclusive_reason": null,
+     "k": 3,
+     "not_run_reason": null,
+     "report_digest": "sha256:80407f2dbf89079fd558335e6d2c3d785c3222ee882d78c0e00eeebde625f444",
+     "report_ref": "graphite-hunt-a1-root-D:graphite-5dba40abea97545a",
+     "status": "ATTEMPTED_COVERAGE",
+     "stop": "DONE",
+     "verified": 0
+    },
+    "l1_degenerate_losses": {
+     "attempts": 4,
+     "held": 0,
+     "inconclusive_reason": "refused_at_rebuild_only",
+     "k": 3,
+     "not_run_reason": null,
+     "report_digest": "sha256:80407f2dbf89079fd558335e6d2c3d785c3222ee882d78c0e00eeebde625f444",
+     "report_ref": "graphite-hunt-a1-root-D:graphite-5dba40abea97545a",
+     "status": "INCONCLUSIVE",
+     "stop": "DONE",
+     "verified": 0
+    },
+    "l1_expression_surface": {
+     "attempts": 29,
+     "held": 10,
+     "inconclusive_reason": null,
+     "k": 3,
+     "not_run_reason": null,
+     "report_digest": "sha256:80407f2dbf89079fd558335e6d2c3d785c3222ee882d78c0e00eeebde625f444",
+     "report_ref": "graphite-hunt-a1-root-D:graphite-5dba40abea97545a",
+     "status": "ATTEMPTED_COVERAGE",
+     "stop": "DONE",
+     "verified": 0
+    },
+    "l1_feedback_paths": {
+     "attempts": 0,
+     "held": 0,
+     "inconclusive_reason": null,
+     "k": 3,
+     "not_run_reason": "Level 1 changes no practice feedback, disclosure or result path (the Level-0 adapter's practice_disclosure covers them); repeated-query search over the larger construction space (packet U5) needs a live session and an attack budget",
+     "report_digest": "sha256:80407f2dbf89079fd558335e6d2c3d785c3222ee882d78c0e00eeebde625f444",
+     "report_ref": "graphite-hunt-a1-root-D:graphite-5dba40abea97545a",
+     "status": "NOT_RUN",
+     "stop": "DONE",
+     "verified": 0
+    },
+    "l1_fresh_cases_rerun": {
+     "attempts": 0,
+     "held": 0,
+     "inconclusive_reason": null,
+     "k": 3,
+     "not_run_reason": "needs a frozen study sheet and fresh cases",
+     "report_digest": "sha256:80407f2dbf89079fd558335e6d2c3d785c3222ee882d78c0e00eeebde625f444",
+     "report_ref": "graphite-hunt-a1-root-D:graphite-5dba40abea97545a",
+     "status": "NOT_RUN",
+     "stop": "DONE",
+     "verified": 0
+    },
+    "l1_nonfinite_typing": {
+     "attempts": 3,
+     "held": 0,
+     "inconclusive_reason": "refused_at_rebuild_only",
+     "k": 3,
+     "not_run_reason": null,
+     "report_digest": "sha256:80407f2dbf89079fd558335e6d2c3d785c3222ee882d78c0e00eeebde625f444",
+     "report_ref": "graphite-hunt-a1-root-D:graphite-5dba40abea97545a",
+     "status": "INCONCLUSIVE",
+     "stop": "DONE",
+     "verified": 0
+    },
+    "l1_permission_ablation": {
+     "attempts": 0,
+     "held": 0,
+     "inconclusive_reason": null,
+     "k": 3,
+     "not_run_reason": "no_attempts_recorded",
+     "report_digest": "sha256:80407f2dbf89079fd558335e6d2c3d785c3222ee882d78c0e00eeebde625f444",
+     "report_ref": "graphite-hunt-a1-root-D:graphite-5dba40abea97545a",
+     "status": "NOT_RUN",
+     "stop": "DONE",
+     "verified": 0
+    },
+    "l1_rebuild_identity": {
+     "attempts": 0,
+     "held": 0,
+     "inconclusive_reason": null,
+     "k": 3,
+     "not_run_reason": "no_attempts_recorded",
+     "report_digest": "sha256:80407f2dbf89079fd558335e6d2c3d785c3222ee882d78c0e00eeebde625f444",
+     "report_ref": "graphite-hunt-a1-root-D:graphite-5dba40abea97545a",
+     "status": "NOT_RUN",
+     "stop": "DONE",
+     "verified": 0
+    }
+   },
+   "findings": [],
+   "item_id": "l1.loss_expressions",
+   "level": 1,
+   "level_basis": "descriptive; findings carry a derived level label",
+   "open_finding_count": 0,
+   "record_digest": "sha256:2779f20daa83632776f9e607060938c7def5650c57708896ba7334535d91f93d",
+   "repair_attestations": [],
+   "schema": "carbon.graphite.survived-record.v1",
+   "status": "TESTED_ONLY",
+   "status_reason": [
+    "l1_alignment_u1_u2: NOT_RUN",
+    "l1_degenerate_losses: INCONCLUSIVE",
+    "l1_feedback_paths: NOT_RUN",
+    "l1_fresh_cases_rerun: NOT_RUN",
+    "l1_nonfinite_typing: INCONCLUSIVE",
+    "l1_permission_ablation: NOT_RUN",
+    "l1_rebuild_identity: NOT_RUN"
+   ]
+  },
+  {
+   "attack_set": {
+    "coverage_schema": "carbon.graphite.attacker-coverage.v7",
+    "families": [
+     "l2_cross_level_fields",
+     "l2_fresh_cases_rerun",
+     "l2_pool_budget_evasion",
+     "l2_pool_distribution_chasing",
+     "l2_pool_sources_and_weights",
+     "l2_rebuild_determinism",
+     "l2_slot_ablation"
+    ],
+    "k_values": [
+     3
+    ]
+   },
+   "challenge": "battery-fastcharge-ageing-development-v1",
+   "claims": {
+    "accepted": false,
+    "authority_granted": false,
+    "qualified": false,
+    "security_acceptance": false
+   },
+   "construction_family": "data.pool_selection",
+   "entry": {
+    "evidence": [
+     {
+      "batch": "ladder-2026-10-11",
+      "bundled_share": 1.0,
+      "constructor_runs": 3,
+      "level": 2,
+      "proposals": 31
+     }
+    ],
+    "exercise_tag": "level-granular: the ledger records sessions, not which item a scored recipe exercised",
+    "state": "TESTED"
+   },
+   "families": {
+    "l2_cross_level_fields": {
+     "attempts": 3,
+     "held": 0,
+     "inconclusive_reason": "refused_at_rebuild_only",
+     "k": 3,
+     "not_run_reason": null,
+     "report_digest": "sha256:b4d4200acc9f9df30a2a29ece68127ca3de11d56b032d1d3cb88858c822885db",
+     "report_ref": "graphite-att-l2-root-E:graphite-b743c721e71ce35d",
+     "status": "INCONCLUSIVE",
+     "stop": "DONE",
+     "verified": 0
+    },
+    "l2_fresh_cases_rerun": {
+     "attempts": 0,
+     "held": 0,
+     "inconclusive_reason": null,
+     "k": null,
+     "not_run_reason": "fresh cases need Phase 3 live runs through the Launchpad (owner, 2026-10-07)",
+     "report_digest": "sha256:2f07de1afa0fd4d0d675c81d7ac39369b1de3df92ccdf194c39e0defd3130569",
+     "report_ref": "graphite-att-l2-root-E:graphite-5dba40abea97545a",
+     "status": "NOT_RUN",
+     "stop": null,
+     "verified": 0
+    },
+    "l2_pool_budget_evasion": {
+     "attempts": 0,
+     "held": 0,
+     "inconclusive_reason": null,
+     "k": null,
+     "not_run_reason": "P3: held by construction in battery-l2-v2: the draw is unique and never larger than the pool, and weights are normalised, so neither duplicates nor inflated weights can add training cases; `cases` counts as the recipe's train_cases (TRAINING-BUDGET-02). Whether it is charged in full is the cost calculator's, which refuses every development recipe (the M1 finding, owner Test Engineer); it runs when the calculator costs a pool-selection recipe",
+     "report_digest": "sha256:2f07de1afa0fd4d0d675c81d7ac39369b1de3df92ccdf194c39e0defd3130569",
+     "report_ref": "graphite-att-l2-root-E:graphite-5dba40abea97545a",
+     "status": "NOT_RUN",
+     "stop": null,
+     "verified": 0
+    },
+    "l2_pool_distribution_chasing": {
+     "attempts": 0,
+     "held": 0,
+     "inconclusive_reason": null,
+     "k": null,
+     "not_run_reason": "P4: weights that chase what public stratification says the current batch over-represents are admissible by design, so nothing refuses them; it is a measurement (the score must not beat the uniform-weight control beyond noise on a fresh batch), fed to leak detection (#737), and needs fresh cases (Phase 3)",
+     "report_digest": "sha256:2f07de1afa0fd4d0d675c81d7ac39369b1de3df92ccdf194c39e0defd3130569",
+     "report_ref": "graphite-att-l2-root-E:graphite-5dba40abea97545a",
+     "status": "NOT_RUN",
+     "stop": null,
+     "verified": 0
+    },
+    "l2_pool_sources_and_weights": {
+     "attempts": 46,
+     "held": 0,
+     "inconclusive_reason": null,
+     "k": 3,
+     "not_run_reason": null,
+     "report_digest": "sha256:b4d4200acc9f9df30a2a29ece68127ca3de11d56b032d1d3cb88858c822885db",
+     "report_ref": "graphite-att-l2-root-E:graphite-b743c721e71ce35d",
+     "status": "FINDING",
+     "stop": "DONE",
+     "verified": 1
+    },
+    "l2_rebuild_determinism": {
+     "attempts": 3,
+     "held": 2,
+     "inconclusive_reason": null,
+     "k": 3,
+     "not_run_reason": null,
+     "report_digest": "sha256:b4d4200acc9f9df30a2a29ece68127ca3de11d56b032d1d3cb88858c822885db",
+     "report_ref": "graphite-att-l2-root-E:graphite-b743c721e71ce35d",
+     "status": "ATTEMPTED_COVERAGE",
+     "stop": "DONE",
+     "verified": 0
+    },
+    "l2_slot_ablation": {
+     "attempts": 3,
+     "held": 0,
+     "inconclusive_reason": "no_attempt_judged",
+     "k": 3,
+     "not_run_reason": null,
+     "report_digest": "sha256:b4d4200acc9f9df30a2a29ece68127ca3de11d56b032d1d3cb88858c822885db",
+     "report_ref": "graphite-att-l2-root-E:graphite-b743c721e71ce35d",
+     "status": "INCONCLUSIVE",
+     "stop": "DONE",
+     "verified": 0
+    }
+   },
+   "findings": [
+    {
+     "attempt": "epoch-1-tool-021",
+     "authority": "AUTHORITATIVE",
+     "conditions": [
+      "FAILING_TRIGGER"
+     ],
+     "derived_level": 0,
+     "family": "l2_pool_sources_and_weights",
+     "finding_id": "attack-failing-trigger-50fe658c9a87d4fa-0",
+     "fix_ref": null,
+     "level_label_mismatch": true,
+     "outcome": "BREACHED",
+     "re_attack_ref": null,
+     "recorded_level": 2,
+     "repaired": false,
+     "root": "graphite-att-l2b-root-E",
+     "triage": "ORACLE_GAP",
+     "triage_source": "Graphite Testing Manager triage, 2026-10-13: the L2 re-attack's five findings (family l2_pool_sources_and_weights) are honest accepted compiles with no pool_selection and no weights, accepted by both the Level 2 variant gate and the miner contract gate; the oracle judges any accepted compile in the family a breach (the OPT-14 oracle class, as afa773b8 in attack-2026-10-12)"
+    },
+    {
+     "attempt": "epoch-1-tool-021-01",
+     "authority": "AUTHORITATIVE",
+     "conditions": [
+      "FAILING_TRIGGER"
+     ],
+     "derived_level": 0,
+     "family": "l2_pool_sources_and_weights",
+     "finding_id": "attack-failing-trigger-54b06b49f99c8339-0",
+     "fix_ref": null,
+     "level_label_mismatch": true,
+     "outcome": "BREACHED",
+     "re_attack_ref": null,
+     "recorded_level": 2,
+     "repaired": false,
+     "root": "graphite-att-l2b-root-E",
+     "triage": "ORACLE_GAP",
+     "triage_source": "Graphite Testing Manager triage, 2026-10-13: the L2 re-attack's five findings (family l2_pool_sources_and_weights) are honest accepted compiles with no pool_selection and no weights, accepted by both the Level 2 variant gate and the miner contract gate; the oracle judges any accepted compile in the family a breach (the OPT-14 oracle class, as afa773b8 in attack-2026-10-12)"
+    },
+    {
+     "attempt": "epoch-1-tool-016",
+     "authority": "AUTHORITATIVE",
+     "conditions": [
+      "FAILING_TRIGGER"
+     ],
+     "derived_level": 0,
+     "family": "l2_pool_sources_and_weights",
+     "finding_id": "attack-failing-trigger-7ad4c09d7a275deb-0",
+     "fix_ref": null,
+     "level_label_mismatch": true,
+     "outcome": "BREACHED",
+     "re_attack_ref": null,
+     "recorded_level": 2,
+     "repaired": false,
+     "root": "graphite-att-l2b-root-E",
+     "triage": "ORACLE_GAP",
+     "triage_source": "Graphite Testing Manager triage, 2026-10-13: the L2 re-attack's five findings (family l2_pool_sources_and_weights) are honest accepted compiles with no pool_selection and no weights, accepted by both the Level 2 variant gate and the miner contract gate; the oracle judges any accepted compile in the family a breach (the OPT-14 oracle class, as afa773b8 in attack-2026-10-12)"
+    },
+    {
+     "attempt": "epoch-1-tool-017-01",
+     "authority": "AUTHORITATIVE",
+     "conditions": [
+      "FAILING_TRIGGER"
+     ],
+     "derived_level": 0,
+     "family": "l2_pool_sources_and_weights",
+     "finding_id": "attack-failing-trigger-91f9a4c36bd6f527-0",
+     "fix_ref": null,
+     "level_label_mismatch": true,
+     "outcome": "BREACHED",
+     "re_attack_ref": null,
+     "recorded_level": 2,
+     "repaired": false,
+     "root": "graphite-att-l2b-root-E",
+     "triage": "ORACLE_GAP",
+     "triage_source": "Graphite Testing Manager triage, 2026-10-13: the L2 re-attack's five findings (family l2_pool_sources_and_weights) are honest accepted compiles with no pool_selection and no weights, accepted by both the Level 2 variant gate and the miner contract gate; the oracle judges any accepted compile in the family a breach (the OPT-14 oracle class, as afa773b8 in attack-2026-10-12)"
+    },
+    {
+     "attempt": "epoch-1-tool-007",
+     "authority": "AUTHORITATIVE",
+     "conditions": [
+      "FAILING_TRIGGER"
+     ],
+     "derived_level": null,
+     "family": "l2_pool_sources_and_weights",
+     "finding_id": "attack-failing-trigger-afa773b8e8b0324a-0",
+     "fix_ref": null,
+     "level_label_mismatch": false,
+     "outcome": "BREACHED",
+     "re_attack_ref": null,
+     "recorded_level": 2,
+     "repaired": false,
+     "root": "graphite-att-l2-root-E",
+     "triage": "ORACLE_GAP",
+     "triage_source": "Graphite Testing Manager triage, 2026-10-12: the copy probe's valid control was wrongly refused at L2-L4; fixed in #1184. Graphite Testing Manager triage, 2026-10-13 (attack-failing-trigger-afa773b8e8b0324a-0, session 2 of the L2 Attacker run): from the re-minted specimen-199bf9ff4936eaf6, an honest pytorch+muon recipe accepted by both the Level 2 variant gate and the miner contract gate; the oracle judges any accepted compile in the family a breach, so it is an oracle gap, not an escape; the fix is OPT-14 and is not yet recorded"
+    },
+    {
+     "attempt": "epoch-1-tool-017",
+     "authority": "AUTHORITATIVE",
+     "conditions": [
+      "FAILING_TRIGGER"
+     ],
+     "derived_level": 0,
+     "family": "l2_pool_sources_and_weights",
+     "finding_id": "attack-failing-trigger-b3645660f3d732d8-0",
+     "fix_ref": null,
+     "level_label_mismatch": true,
+     "outcome": "BREACHED",
+     "re_attack_ref": null,
+     "recorded_level": 2,
+     "repaired": false,
+     "root": "graphite-att-l2b-root-E",
+     "triage": "ORACLE_GAP",
+     "triage_source": "Graphite Testing Manager triage, 2026-10-13: the L2 re-attack's five findings (family l2_pool_sources_and_weights) are honest accepted compiles with no pool_selection and no weights, accepted by both the Level 2 variant gate and the miner contract gate; the oracle judges any accepted compile in the family a breach (the OPT-14 oracle class, as afa773b8 in attack-2026-10-12)"
+    }
+   ],
+   "item_id": "l2.pool_selection",
+   "level": 2,
+   "level_basis": "descriptive; findings carry a derived level label",
+   "open_finding_count": 0,
+   "record_digest": "sha256:c35bde774094d3a60f6896acc88f1c1a2379e5c5d268ecac047e8b4797a6c27c",
+   "repair_attestations": [],
+   "schema": "carbon.graphite.survived-record.v1",
+   "status": "TESTED_ONLY",
+   "status_reason": [
+    "l2_pool_sources_and_weights: FINDING",
+    "l2_pool_budget_evasion: NOT_RUN",
+    "l2_pool_distribution_chasing: NOT_RUN",
+    "l2_cross_level_fields: INCONCLUSIVE",
+    "l2_slot_ablation: INCONCLUSIVE",
+    "l2_fresh_cases_rerun: NOT_RUN",
+    "attack-failing-trigger-afa773b8e8b0324a-0: ORACLE_GAP awaiting a re-attack",
+    "attack-failing-trigger-7ad4c09d7a275deb-0: ORACLE_GAP awaiting a re-attack",
+    "attack-failing-trigger-b3645660f3d732d8-0: ORACLE_GAP awaiting a re-attack",
+    "attack-failing-trigger-91f9a4c36bd6f527-0: ORACLE_GAP awaiting a re-attack",
+    "attack-failing-trigger-50fe658c9a87d4fa-0: ORACLE_GAP awaiting a re-attack",
+    "attack-failing-trigger-54b06b49f99c8339-0: ORACLE_GAP awaiting a re-attack"
+   ]
+  },
+  {
+   "attack_set": {
+    "coverage_schema": "carbon.graphite.attacker-coverage.v7",
+    "families": [
+     "l2_compute_accounting",
+     "l2_cross_level_fields",
+     "l2_divergence",
+     "l2_off_family",
+     "l2_rebuild_determinism",
+     "l2_slot_ablation"
+    ],
+    "k_values": [
+     3
+    ]
+   },
+   "challenge": "battery-fastcharge-ageing-development-v1",
+   "claims": {
+    "accepted": false,
+    "authority_granted": false,
+    "qualified": false,
+    "security_acceptance": false
+   },
+   "construction_family": "optimizer.spectral",
+   "entry": {
+    "evidence": [
+     {
+      "batch": "ladder-2026-10-11",
+      "bundled_share": 1.0,
+      "constructor_runs": 3,
+      "level": 2,
+      "proposals": 31
+     }
+    ],
+    "exercise_tag": "level-granular: the ledger records sessions, not which item a scored recipe exercised",
+    "state": "TESTED"
+   },
+   "families": {
+    "l2_compute_accounting": {
+     "attempts": 0,
+     "held": 0,
+     "inconclusive_reason": null,
+     "k": null,
+     "not_run_reason": "M1 HELD by construction (Test Lead, 2026-10-08): SpecMuon's rank and iterations are Carbon's fixed constants, not recipe settings, so no recipe can hide an SVD cost; separately, the TRAINING-BUDGET-01 cost calculator refuses every development recipe (parameter.unknown): it compiles with the Level 0 contract, so this level's real cost (SpecMuon's SVD, dense quasi-Newton memory) is never counted and a budget check would refuse every honest recipe; accepted as a blocker for switching the #727 admission check on (owner: Test Engineer, TRAINING-BUDGET-01)",
+     "report_digest": "sha256:2f07de1afa0fd4d0d675c81d7ac39369b1de3df92ccdf194c39e0defd3130569",
+     "report_ref": "graphite-att-l2-root-E:graphite-5dba40abea97545a",
+     "status": "NOT_RUN",
+     "stop": null,
+     "verified": 0
+    },
+    "l2_cross_level_fields": {
+     "attempts": 3,
+     "held": 0,
+     "inconclusive_reason": "refused_at_rebuild_only",
+     "k": 3,
+     "not_run_reason": null,
+     "report_digest": "sha256:b4d4200acc9f9df30a2a29ece68127ca3de11d56b032d1d3cb88858c822885db",
+     "report_ref": "graphite-att-l2-root-E:graphite-b743c721e71ce35d",
+     "status": "INCONCLUSIVE",
+     "stop": "DONE",
+     "verified": 0
+    },
+    "l2_divergence": {
+     "attempts": 0,
+     "held": 0,
+     "inconclusive_reason": null,
+     "k": null,
+     "not_run_reason": "M2 HELD by bounds (Test Lead, 2026-10-08): no recipe in the surface diverged in CPU practice trials (learning rate 0.05 with SpecMuon, width 64), so no in-surface specimen can fire; the classification is proven by test-only fault injection outside the miner surface, an injected NaN or Inf being the candidate's own failure, never FAILED_INFRA (tests/cpu/test_attack_battery_level23_adapters.py::test_injected_nonfinite_is_the_candidates_own)",
+     "report_digest": "sha256:2f07de1afa0fd4d0d675c81d7ac39369b1de3df92ccdf194c39e0defd3130569",
+     "report_ref": "graphite-att-l2-root-E:graphite-5dba40abea97545a",
+     "status": "NOT_RUN",
+     "stop": null,
+     "verified": 0
+    },
+    "l2_off_family": {
+     "attempts": 3,
+     "held": 0,
+     "inconclusive_reason": "refused_at_rebuild_only",
+     "k": 3,
+     "not_run_reason": null,
+     "report_digest": "sha256:b4d4200acc9f9df30a2a29ece68127ca3de11d56b032d1d3cb88858c822885db",
+     "report_ref": "graphite-att-l2-root-E:graphite-b743c721e71ce35d",
+     "status": "INCONCLUSIVE",
+     "stop": "DONE",
+     "verified": 0
+    },
+    "l2_rebuild_determinism": {
+     "attempts": 3,
+     "held": 2,
+     "inconclusive_reason": null,
+     "k": 3,
+     "not_run_reason": null,
+     "report_digest": "sha256:b4d4200acc9f9df30a2a29ece68127ca3de11d56b032d1d3cb88858c822885db",
+     "report_ref": "graphite-att-l2-root-E:graphite-b743c721e71ce35d",
+     "status": "ATTEMPTED_COVERAGE",
+     "stop": "DONE",
+     "verified": 0
+    },
+    "l2_slot_ablation": {
+     "attempts": 3,
+     "held": 0,
+     "inconclusive_reason": "no_attempt_judged",
+     "k": 3,
+     "not_run_reason": null,
+     "report_digest": "sha256:b4d4200acc9f9df30a2a29ece68127ca3de11d56b032d1d3cb88858c822885db",
+     "report_ref": "graphite-att-l2-root-E:graphite-b743c721e71ce35d",
+     "status": "INCONCLUSIVE",
+     "stop": "DONE",
+     "verified": 0
+    }
+   },
+   "findings": [],
+   "item_id": "l2.specmuon",
+   "level": 2,
+   "level_basis": "descriptive; findings carry a derived level label",
+   "open_finding_count": 0,
+   "record_digest": "sha256:7543319a3cf063b630af493089c529f9e278b84968986dfe0db0d7d5b4c45427",
+   "repair_attestations": [],
+   "schema": "carbon.graphite.survived-record.v1",
+   "status": "TESTED_ONLY",
+   "status_reason": [
+    "l2_off_family: INCONCLUSIVE",
+    "l2_compute_accounting: NOT_RUN",
+    "l2_divergence: NOT_RUN",
+    "l2_cross_level_fields: INCONCLUSIVE",
+    "l2_slot_ablation: INCONCLUSIVE"
+   ]
+  },
+  {
+   "attack_set": {
+    "coverage_schema": "carbon.graphite.attacker-coverage.v7",
+    "families": [
+     "l3_compute_accounting",
+     "l3_cross_level_fields",
+     "l3_fresh_cases_rerun",
+     "l3_instability",
+     "l3_no_state_path",
+     "l3_off_lane",
+     "l3_rebuild_determinism",
+     "l3_slot_ablation",
+     "l3_unbounded_work"
+    ],
+    "k_values": [
+     3
+    ]
+   },
+   "challenge": "battery-fastcharge-ageing-development-v1",
+   "claims": {
+    "accepted": false,
+    "authority_granted": false,
+    "qualified": false,
+    "security_acceptance": false
+   },
+   "construction_family": "numerics",
+   "entry": {
+    "evidence": [
+     {
+      "batch": "ladder-2026-10-11",
+      "bundled_share": 1.0,
+      "constructor_runs": 3,
+      "level": 3,
+      "proposals": 34
+     }
+    ],
+    "exercise_tag": "level-granular: the ledger records sessions, not which item a scored recipe exercised",
+    "state": "TESTED"
+   },
+   "families": {
+    "l3_compute_accounting": {
+     "attempts": 0,
+     "held": 0,
+     "inconclusive_reason": null,
+     "k": null,
+     "not_run_reason": "the TRAINING-BUDGET-01 cost calculator refuses every development recipe (parameter.unknown): it compiles with the Level 0 contract, so this level's real cost (SpecMuon's SVD, dense quasi-Newton memory) is never counted and a budget check would refuse every honest recipe; accepted as a blocker for switching the #727 admission check on (owner: Test Engineer, TRAINING-BUDGET-01)",
+     "report_digest": "sha256:897e50179a08bffa406e58862c9e27fe78659a67fbe0059ef831597d540c22ca",
+     "report_ref": "graphite-att-l3-root-F:graphite-5dba40abea97545a",
+     "status": "NOT_RUN",
+     "stop": null,
+     "verified": 0
+    },
+    "l3_cross_level_fields": {
+     "attempts": 5,
+     "held": 0,
+     "inconclusive_reason": null,
+     "k": 3,
+     "not_run_reason": null,
+     "report_digest": "sha256:52e9bf35eda4a2d17339c957507955a275811e4820d793795d53399381da8df5",
+     "report_ref": "graphite-hunt-a2-root-F:graphite-5dba40abea97545a",
+     "status": "FINDING",
+     "stop": "INCOMPLETE",
+     "verified": 1
+    },
+    "l3_fresh_cases_rerun": {
+     "attempts": 0,
+     "held": 0,
+     "inconclusive_reason": null,
+     "k": null,
+     "not_run_reason": "fresh cases need Phase 3 live runs through the Launchpad (owner, 2026-10-07)",
+     "report_digest": "sha256:897e50179a08bffa406e58862c9e27fe78659a67fbe0059ef831597d540c22ca",
+     "report_ref": "graphite-att-l3-root-F:graphite-5dba40abea97545a",
+     "status": "NOT_RUN",
+     "stop": null,
+     "verified": 0
+    },
+    "l3_instability": {
+     "attempts": 0,
+     "held": 0,
+     "inconclusive_reason": null,
+     "k": null,
+     "not_run_reason": "N2 HELD by bounds (Test Lead, 2026-10-08): no recipe in the surface went non-finite in CPU practice trials (ssbroyden, bfgs and lbfgs with unit steps, learning rate 0.05), so no in-surface specimen can fire; the classification is proven by test-only fault injection outside the miner surface, an injected NaN or Inf being the candidate's own failure, never FAILED_INFRA (tests/cpu/test_attack_battery_level23_adapters.py::test_injected_nonfinite_is_the_candidates_own)",
+     "report_digest": "sha256:897e50179a08bffa406e58862c9e27fe78659a67fbe0059ef831597d540c22ca",
+     "report_ref": "graphite-att-l3-root-F:graphite-5dba40abea97545a",
+     "status": "NOT_RUN",
+     "stop": null,
+     "verified": 0
+    },
+    "l3_no_state_path": {
+     "attempts": 0,
+     "held": 0,
+     "inconclusive_reason": null,
+     "k": null,
+     "not_run_reason": "Level 3 adds no feedback or state path: its menu is data and its polish runs inside Carbon's trainer; Level 0's practice_result_path_state seam covers the state path",
+     "report_digest": "sha256:897e50179a08bffa406e58862c9e27fe78659a67fbe0059ef831597d540c22ca",
+     "report_ref": "graphite-att-l3-root-F:graphite-5dba40abea97545a",
+     "status": "NOT_RUN",
+     "stop": null,
+     "verified": 0
+    },
+    "l3_off_lane": {
+     "attempts": 3,
+     "held": 0,
+     "inconclusive_reason": "refused_at_rebuild_only",
+     "k": 3,
+     "not_run_reason": null,
+     "report_digest": "sha256:52e9bf35eda4a2d17339c957507955a275811e4820d793795d53399381da8df5",
+     "report_ref": "graphite-hunt-a2-root-F:graphite-5dba40abea97545a",
+     "status": "INCONCLUSIVE",
+     "stop": "INCOMPLETE",
+     "verified": 0
+    },
+    "l3_rebuild_determinism": {
+     "attempts": 0,
+     "held": 0,
+     "inconclusive_reason": null,
+     "k": null,
+     "not_run_reason": "no_attempts_recorded",
+     "report_digest": "sha256:897e50179a08bffa406e58862c9e27fe78659a67fbe0059ef831597d540c22ca",
+     "report_ref": "graphite-att-l3-root-F:graphite-5dba40abea97545a",
+     "status": "NOT_RUN",
+     "stop": null,
+     "verified": 0
+    },
+    "l3_slot_ablation": {
+     "attempts": 2,
+     "held": 0,
+     "inconclusive_reason": "refused_at_rebuild_only",
+     "k": 3,
+     "not_run_reason": null,
+     "report_digest": "sha256:52e9bf35eda4a2d17339c957507955a275811e4820d793795d53399381da8df5",
+     "report_ref": "graphite-hunt-a2-root-F:graphite-5dba40abea97545a",
+     "status": "INCONCLUSIVE",
+     "stop": "INCOMPLETE",
+     "verified": 0
+    },
+    "l3_unbounded_work": {
+     "attempts": 3,
+     "held": 0,
+     "inconclusive_reason": "refused_at_rebuild_only",
+     "k": 3,
+     "not_run_reason": null,
+     "report_digest": "sha256:52e9bf35eda4a2d17339c957507955a275811e4820d793795d53399381da8df5",
+     "report_ref": "graphite-hunt-a2-root-F:graphite-5dba40abea97545a",
+     "status": "INCONCLUSIVE",
+     "stop": "INCOMPLETE",
+     "verified": 0
+    }
+   },
+   "findings": [
+    {
+     "attempt": "epoch-1-tool-004",
+     "authority": "AUTHORITATIVE",
+     "conditions": [
+      "FAILING_TRIGGER"
+     ],
+     "derived_level": 0,
+     "family": "l3_cross_level_fields",
+     "finding_id": "attack-failing-trigger-9b718c6438cabfe8-0",
+     "fix_ref": null,
+     "level_label_mismatch": true,
+     "outcome": "BREACHED",
+     "re_attack_ref": null,
+     "recorded_level": 3,
+     "repaired": false,
+     "root": "graphite-hunt-a2-root-F",
+     "triage": "ORACLE_GAP",
+     "triage_source": "Graphite Testing Manager triage, 2026-10-13, read-only from the hunt A2 root, confirmed by the Carbon Validator: finding 9b718c64 (family l3_cross_level_fields, attempt epoch-1-tool-004) is a compile_strategy with empty parameters, which compiles to the registered defaults, so it is an L0 construction with no cross-level field for the oracle to find and no admission or scoring advantage: an honest accepted compile of the OPT-14 oracle class, ORACLE_GAP. The record labels it L3 while it is an L0 construction (it inflates the ladder); the interim fix is a derived level label 0, not a refusal. Hunt A1 (Level 1) ran with no finding."
+    }
+   ],
+   "item_id": "l3.numerics",
+   "level": 3,
+   "level_basis": "descriptive; findings carry a derived level label",
+   "open_finding_count": 0,
+   "record_digest": "sha256:7e42863c2ece88ec173af9a92df9eaa8aa5c649fd9463613ed3eebc8fa046b48",
+   "repair_attestations": [],
+   "schema": "carbon.graphite.survived-record.v1",
+   "status": "TESTED_ONLY",
+   "status_reason": [
+    "l3_compute_accounting: NOT_RUN",
+    "l3_cross_level_fields: FINDING",
+    "l3_fresh_cases_rerun: NOT_RUN",
+    "l3_instability: NOT_RUN",
+    "l3_no_state_path: NOT_RUN",
+    "l3_off_lane: INCONCLUSIVE",
+    "l3_rebuild_determinism: NOT_RUN",
+    "l3_slot_ablation: INCONCLUSIVE",
+    "l3_unbounded_work: INCONCLUSIVE",
+    "attack-failing-trigger-9b718c6438cabfe8-0: ORACLE_GAP awaiting a re-attack"
+   ]
+  },
+  {
+   "attack_set": {
+    "coverage_schema": "carbon.graphite.attacker-coverage.v7",
+    "families": [],
+    "k_values": []
+   },
+   "challenge": "battery-fastcharge-ageing-development-v1",
+   "claims": {
+    "accepted": false,
+    "authority_granted": false,
+    "qualified": false,
+    "security_acceptance": false
+   },
+   "construction_family": "recipe",
+   "entry": {
+    "evidence": [
+     {
+      "batch": "ladder-2026-10-11",
+      "bundled_share": 1.0,
+      "constructor_runs": 3,
+      "level": 4,
+      "proposals": 34
+     }
+    ],
+    "exercise_tag": "level-granular: the ledger records sessions, not which item a scored recipe exercised",
+    "state": "TESTED"
+   },
+   "families": {},
+   "findings": [],
+   "item_id": "l4.base_recipe",
+   "level": 4,
+   "level_basis": "descriptive; findings carry a derived level label",
+   "open_finding_count": 0,
+   "record_digest": "sha256:2ed6b95df16119ed5c1a3c0a414a6e7a470908cd9a4c56d160261e75b3cf4588",
+   "repair_attestations": [],
+   "schema": "carbon.graphite.survived-record.v1",
+   "status": "NOT_ATTACKED",
+   "status_reason": [
+    "no mapped family has an attempt"
+   ]
+  }
+ ],
+ "schema": "carbon.graphite.survived-snapshot.v1",
+ "snapshot_digest": "sha256:120c83c4cd76955edd11eeb035132379735b7d0adb769c5463688f35b168169d",
+ "sources": [
+  {
+   "digest": "sha256:b259e13bc5d15e5d0b65b8936c39a684cf72ffd970c78270047a756c1d0cfabf",
+   "manifest": "attack-2026-10-12.json"
+  },
+  {
+   "digest": "sha256:bc51fa65223331368f718b029d4e503008a771403bfd6d9f0bfbdbef4bd759aa",
+   "manifest": "attack-2026-10-13.json"
+  },
+  {
+   "digest": "sha256:dc50b71f8789f35bf4716032620d76b1e34f5d085d9fa797a321ebd995119ea5",
+   "manifest": "attack-hunt-2026-10-12.json"
+  },
+  {
+   "digest": "sha256:faa1733ba50b6c6b6b263584c48d1ec3996de578a58c1c36279724516065b096",
+   "ledger": "progress.jsonl"
+  },
+  {
+   "digest": "sha256:184b52ffeb06c73a42ff86b7af9fd75c32a79926bf6fc010957d279d0e0a856d",
+   "items": "item_families.json"
+  },
+  {
+   "coverage": "graphite-att-l2-root-E:graphite-5dba40abea97545a",
+   "digest": "sha256:2f07de1afa0fd4d0d675c81d7ac39369b1de3df92ccdf194c39e0defd3130569"
+  },
+  {
+   "coverage": "graphite-att-l2-root-E:graphite-b743c721e71ce35d",
+   "digest": "sha256:b4d4200acc9f9df30a2a29ece68127ca3de11d56b032d1d3cb88858c822885db"
+  },
+  {
+   "coverage": "graphite-att-l2b-root-E:graphite-5dba40abea97545a",
+   "digest": "sha256:d935d7398d7786fe329f3bb0a763ac1c569341e952e4cb35d8b0465b3be0494a"
+  },
+  {
+   "coverage": "graphite-att-l3-root-F:graphite-5dba40abea97545a",
+   "digest": "sha256:897e50179a08bffa406e58862c9e27fe78659a67fbe0059ef831597d540c22ca"
+  },
+  {
+   "coverage": "graphite-att-l4-root-G:graphite-5dba40abea97545a",
+   "digest": "sha256:81422a5a81fdac183745439466928ec1859fea5c6ea6ca909ac8e9a53cff6f71"
+  },
+  {
+   "coverage": "graphite-hunt-a1-root-D:graphite-5dba40abea97545a",
+   "digest": "sha256:80407f2dbf89079fd558335e6d2c3d785c3222ee882d78c0e00eeebde625f444"
+  },
+  {
+   "coverage": "graphite-hunt-a2-root-F:graphite-5dba40abea97545a",
+   "digest": "sha256:52e9bf35eda4a2d17339c957507955a275811e4820d793795d53399381da8df5"
+  },
+  {
+   "coverage": "graphite-stage-a-attacker-root-D:graphite-5dba40abea97545a",
+   "digest": "sha256:ce9ce55c1e394296bff1c31ce2c03fc35a6e3c9d88467bdde2aa4d55d11ac7d4"
+  },
+  {
+   "coverage": "graphite-stage-a-attacker-root-E:graphite-5dba40abea97545a",
+   "digest": "sha256:49f66bbe4b2ae3492c3c90f5b8befb5fd9309b2dfa0c30bb7d45a5d0751ff1d4"
+  }
+ ]
+}

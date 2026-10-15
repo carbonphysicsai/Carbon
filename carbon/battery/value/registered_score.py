@@ -23,7 +23,9 @@ DEVELOPMENT only: no qualification, LIVE, reward or mainnet claim.
 
 from __future__ import annotations
 
+import os
 import re
+import subprocess
 from pathlib import Path
 
 TERM_FIELDS = frozenset({"registry", "registry_sha256", "candidate", "decision"})
@@ -82,9 +84,47 @@ def check_decision(term, repository):
     raise RegisteredScoreRefused("registered_score_decision_unrecorded")
 
 
+def _registry(term, repository, tuning):
+    """Keep Git registration, or consume an externally pinned public bundle."""
+    from carbon.validator_setup.bundle import (
+        MANIFEST,
+        RUNTIME_DIGEST_ENV,
+        SetupRefused,
+        verify,
+    )
+
+    expected = os.environ.get(RUNTIME_DIGEST_ENV)
+    manifest = repository / MANIFEST
+    bundle = None
+    if expected is not None or manifest.exists() or manifest.is_symlink():
+        if expected is None:
+            raise RegisteredScoreRefused("registered_score_bundle_unbound")
+        try:
+            bundle = verify(repository.absolute(), expected)
+        except SetupRefused:
+            raise RegisteredScoreRefused("registered_score_bundle_refused") from None
+        rows = {row["path"]: row for row in bundle.manifest["files"]}
+        if term["registry"] not in rows:
+            raise RegisteredScoreRefused("registered_score_registry_unavailable")
+        if rows[term["registry"]]["digest"] != "sha256:" + term["registry_sha256"]:
+            raise RegisteredScoreRefused("registered_score_registry_changed")
+    try:
+        candidates, identity = tuning.load_registry(
+            repository / term["registry"],
+            repository=None if bundle is not None else repository,
+        )
+    except (OSError, ValueError, tuning.TuningError, subprocess.SubprocessError):
+        raise RegisteredScoreRefused("registered_score_registry_unavailable") from None
+    if bundle is not None:
+        # materialize takes only committed blobs; verify binds those exact
+        # bytes to the external manifest pin and its immutable source revision.
+        identity["commit"] = bundle.manifest["source_revision"]
+    return candidates, identity
+
+
 class RegisteredScore:
-    """One registered candidate, loaded from its committed registry and
-    checked against the term's digest."""
+    """One registered candidate from clean Git or a verified committed bundle,
+    checked against the configured digest and owner decision."""
 
     def __init__(self, term, repository):
         from carbon.battery import quiz_stratum as qs
@@ -94,14 +134,7 @@ class RegisteredScore:
 
         term = check_term(term)
         repository = Path(repository)
-        try:
-            candidates, identity = st.load_registry(
-                repository / term["registry"], repository=repository
-            )
-        except (OSError, ValueError, st.TuningError):
-            raise RegisteredScoreRefused(
-                "registered_score_registry_unavailable"
-            ) from None
+        candidates, identity = _registry(term, repository, st)
         if identity["sha256"] != term["registry_sha256"]:
             raise RegisteredScoreRefused("registered_score_registry_changed")
         candidate = candidates.get(term["candidate"])
@@ -109,6 +142,7 @@ class RegisteredScore:
             raise RegisteredScoreRefused("registered_score_candidate_unknown")
         check_decision(term, repository)
         self.term = term
+        self.registry_identity = identity
         self.candidate = candidate
         self.contract = qs.contract(repository)
         self.design = BatteryQ3Measures(repository)

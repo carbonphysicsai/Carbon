@@ -1,5 +1,17 @@
 # ScoreLab finish-line contract and combined experiments
 
+## Prospective owner amendment, 2026-10-15
+
+The answered `OWNER-SCORELAB-FINISH-LINE-01` record and its executable
+[owner-dev-v1 registration](../../../Business/research/score-lab-campaign-01/owner-dev-v1/README.md)
+now govern the explicit D1-D8/R1-R2 development choices. That registration
+commits the exact candidate bytes, adds strict covered-region common admission
+and k=3/no-gamer diagnostics, and records remaining execution gaps. The old
+manifest and evidence below are retained as historical inputs; their
+`OWNER_REGISTRATION_REQUIRED` prose is not the current state of owner approval.
+Approval does not manufacture missing observations or qualify a rule. The
+battery-v3 programme and EV4 CV-onset diagnostic remain distinct.
+
 ScoreLab's current real-data readiness is **INSUFFICIENT_EVIDENCE**. This
 command checks the registered public receipts and reports each missing item,
 its supplier, its dependency and the smallest next action:

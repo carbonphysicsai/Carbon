@@ -1100,6 +1100,19 @@ sum of its grant files' ceilings, not counting a grant its row says is replaced 
 | GRAPHITE-GRANT-L4-G-CONSTRUCTOR-6 | 4 | G | The lane G Level 4 Constructor run a fifth time, after the run under -5 was spent when its code manifest (91,029 characters) was over the 90,000 pod-environment bound and every pod launch was refused (the bound is now 108,000); REPLACES -5 at the same figures (14.91 worst case, 14.94 ceiling), no theme; the owner's approval in chat, 2026-10-13: "I approve new grant" | OWNER-TEST-GRANT-01 | 14.94 | registered |
 | GRAPHITE-GRANT-HUNT-H4-CONSTRUCTOR | 4 | G | The Level 5 hunt's H4 run, launched with `--theme causal-structure` (the hunt's last share: 71.76 + 14.94 = 86.70 of 86.71) | OWNER-GRAPHITE-OPEN-SAFE-01-GRANTS | 14.94 | registered |
 
+## Model-family test grants (index)
+
+Coverage grants whose point is the model that drives the Constructor, not a level (gap 5 of the 2026-10-13 coverage
+ledger in `shared/operator/LAUNCHPAD_TEST_MATRIX_01.md`). The grant file has no free-text field, so the purpose is recorded
+here and beside the binding entry.
+
+OWNER-MODEL-QWEN-GRANT-01 approves the named Qwen grant below, including its USD 0.65/h pod ceiling.
+It does not approve the model family as a whole; another model grant needs its own owner-confirmed figures.
+
+| Grant | Levels | Lane | Purpose | Authority (pool) | Ceiling | State |
+|---|---|---|---|---|---|---|
+| GRAPHITE-GRANT-MODEL-QWEN-CONSTRUCTOR-1 | 0 to 3 | C or D | One short Constructor session whose ladder opens on qwen3.8-27b (open-weight, Engy ladder, same key as every other run); a floor, not a pin, so escalation can climb a rung; record the model of each call | OWNER-TEST-GRANT-01 | 14.94 | pending merge, owner-approved |
+
 ## The optional pod rate ceiling (GRANT-POD-CEILING-01)
 
 - **The field.** A grant may carry `pod_rate_ceiling_usd_per_hr`, the most a

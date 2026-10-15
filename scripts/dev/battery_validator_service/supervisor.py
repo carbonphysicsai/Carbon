@@ -366,7 +366,7 @@ StartLimitBurst={burst}
 Type=simple
 WorkingDirectory={repository}
 Environment=PYTHONUNBUFFERED=1
-ExecStartPre={python} -m scripts.dev.battery_validator_service preflight --config {service} --wait-for-host {host_wait}
+{bundle_environment}ExecStartPre={python} -m scripts.dev.battery_validator_service preflight --config {service} --wait-for-host {host_wait}
 ExecStart={command}
 Restart=on-failure
 RestartSec={backoff}
@@ -392,7 +392,7 @@ UNIT_NAMES = {
 }
 
 
-def units(path, out, *, repository=REPOSITORY, python=None):
+def units(path, out, *, repository=REPOSITORY, python=None, bundle_digest=None):
     """Write `systemd --user` units for the two children into `out`.
 
     Writes files only, owner-only, never over an existing one; installing and
@@ -407,7 +407,21 @@ def units(path, out, *, repository=REPOSITORY, python=None):
     a preflight that refuses its configuration is retried, read-only, until
     the start limit (5 starts in 10 minutes) stops the unit.
     """
+    import re
     import shlex
+
+    bundle_environment = ""
+    if bundle_digest is not None:
+        if (
+            type(bundle_digest) is not str
+            or re.fullmatch("sha256:[0-9a-f]{64}", bundle_digest) is None
+        ):
+            raise ServiceRefused("bundle_digest_malformed")
+        from carbon.validator_setup.bundle import RUNTIME_DIGEST_ENV
+
+        # Pin comes from the verified operator invocation, not the release's
+        # self-declared manifest. A later systemd process inherits this line.
+        bundle_environment = f"Environment={RUNTIME_DIGEST_ENV}={bundle_digest}\n"
 
     service = load_service(path)
     python = python or sys.executable
@@ -425,6 +439,7 @@ def units(path, out, *, repository=REPOSITORY, python=None):
             window=int(RESTART_WINDOW_S),
             burst=RESTART_BURST,
             repository=repository,
+            bundle_environment=bundle_environment,
             python=shlex.quote(python),
             service=shlex.quote(str(service.path)),
             command=shlex.join(argv),

@@ -41,11 +41,18 @@ def test_every_committed_grant_is_unchanged(path):
     grant = SpendingGrant.from_document(document)
     # The standing 0.65/h ceiling is on the stage grants and R4 (owner-confirmed:
     # GRANT-POD-CEILING-01, OWNER-GRAPHITE-PHASE3-R4-CEILING-01); the hunt's grants copy it.
-    ceiling = (
-        path.name.startswith(
-            ("GRAPHITE-GRANT-STAGE-", "GRAPHITE-GRANT-HUNT-", "GRAPHITE-GRANT-L4-")
+    # OWNER-MODEL-QWEN-GRANT-01 approves 0.65/h for the named Qwen grant only.
+    # Another MODEL- grant needs its own owner-approved figure and ceiling;
+    # a shared prefix must not extend this approval to that future grant.
+    ceiling = path.name.startswith(
+        (
+            "GRAPHITE-GRANT-STAGE-",
+            "GRAPHITE-GRANT-HUNT-",
+            "GRAPHITE-GRANT-L4-",
         )
-        or path.name == "GRAPHITE-GRANT-PHASE3-R4.json"
+    ) or path.name in (
+        "GRAPHITE-GRANT-PHASE3-R4.json",
+        "GRAPHITE-GRANT-MODEL-QWEN-CONSTRUCTOR-1.json",
     )
     expected = Decimal("0.65") if ceiling else None
     assert grant.pod_rate_ceiling_usd_per_hr == expected

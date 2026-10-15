@@ -1,0 +1,157 @@
+{
+ "schema": "carbon.graphite.survived-item-families.v1",
+ "note": "Which attack families defend which item, and which progress-ledger lines tested it. Level is descriptive. An item with no scored_ledger is not tested and is not entered. l4.base_recipe has no mapped attack family: the one L4 attack ran on the base recipe without a graph and is not tied to it.",
+ "items": [
+  {
+   "item_id": "l0.recipe_surface",
+   "level": 0,
+   "construction_family": "recipe",
+   "challenge": "battery-fastcharge-ageing-development-v1",
+   "families": [
+    "fresh_cases_rerun",
+    "level_5_custom_inference",
+    "mandatory_failure",
+    "permission_ablation",
+    "pod_timeout_typing",
+    "practice_disclosure",
+    "practice_result_path_state",
+    "prediction_omission",
+    "rebuild_identity",
+    "rebuild_report",
+    "recipe_forgery",
+    "recipe_surface",
+    "resource_accounting",
+    "selective_fault",
+    "staged_bytes"
+   ],
+   "scored_ledger": [
+    {
+     "batch": "stage-a-2026-10-10",
+     "level": 0
+    }
+   ]
+  },
+  {
+   "item_id": "l1.loss_expressions",
+   "level": 1,
+   "construction_family": "loss_expressions",
+   "challenge": "battery-fastcharge-ageing-development-v1",
+   "families": [
+    "l1_alignment_u1_u2",
+    "l1_declarative_only",
+    "l1_degenerate_losses",
+    "l1_expression_surface",
+    "l1_feedback_paths",
+    "l1_fresh_cases_rerun",
+    "l1_nonfinite_typing",
+    "l1_permission_ablation",
+    "l1_rebuild_identity"
+   ],
+   "scored_ledger": [
+    {
+     "batch": "ladder-2026-10-11",
+     "level": 1
+    }
+   ]
+  },
+  {
+   "item_id": "l2.pool_selection",
+   "level": 2,
+   "construction_family": "data.pool_selection",
+   "challenge": "battery-fastcharge-ageing-development-v1",
+   "families": [
+    "l2_pool_sources_and_weights",
+    "l2_pool_budget_evasion",
+    "l2_pool_distribution_chasing",
+    "l2_cross_level_fields",
+    "l2_slot_ablation",
+    "l2_rebuild_determinism",
+    "l2_fresh_cases_rerun"
+   ],
+   "scored_ledger": [
+    {
+     "batch": "ladder-2026-10-11",
+     "level": 2
+    }
+   ]
+  },
+  {
+   "item_id": "l2.specmuon",
+   "level": 2,
+   "construction_family": "optimizer.spectral",
+   "challenge": "battery-fastcharge-ageing-development-v1",
+   "families": [
+    "l2_off_family",
+    "l2_compute_accounting",
+    "l2_divergence",
+    "l2_cross_level_fields",
+    "l2_slot_ablation",
+    "l2_rebuild_determinism"
+   ],
+   "scored_ledger": [
+    {
+     "batch": "ladder-2026-10-11",
+     "level": 2
+    }
+   ]
+  },
+  {
+   "item_id": "l3.numerics",
+   "level": 3,
+   "construction_family": "numerics",
+   "challenge": "battery-fastcharge-ageing-development-v1",
+   "families": [
+    "l3_compute_accounting",
+    "l3_cross_level_fields",
+    "l3_fresh_cases_rerun",
+    "l3_instability",
+    "l3_no_state_path",
+    "l3_off_lane",
+    "l3_rebuild_determinism",
+    "l3_slot_ablation",
+    "l3_unbounded_work"
+   ],
+   "scored_ledger": [
+    {
+     "batch": "ladder-2026-10-11",
+     "level": 3
+    }
+   ]
+  },
+  {
+   "item_id": "l4.base_recipe",
+   "level": 4,
+   "construction_family": "recipe",
+   "challenge": "battery-fastcharge-ageing-development-v1",
+   "families": [],
+   "scored_ledger": [
+    {
+     "batch": "ladder-2026-10-11",
+     "level": 4
+    }
+   ]
+  },
+  {
+   "item_id": "l4.graph",
+   "level": 4,
+   "construction_family": "graph",
+   "challenge": "battery-fastcharge-ageing-development-v1",
+   "families": [
+    "l4_compile_isolation",
+    "l4_compute_under_counting",
+    "l4_constant_smuggling",
+    "l4_document_integrity",
+    "l4_escape_ops",
+    "l4_fresh_cases_rerun",
+    "l4_gpu_nondeterminism",
+    "l4_graph_slot_ablation",
+    "l4_interface_abuse",
+    "l4_nonfinite_outputs",
+    "l4_procedural_tables",
+    "l4_rng_state_and_init",
+    "l4_unbounded_compute"
+   ],
+   "scored_ledger": []
+  }
+ ]
+}

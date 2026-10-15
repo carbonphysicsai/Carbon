@@ -13,6 +13,8 @@ from test_validator_setup_weights import config
 from carbon.validator_setup import bundle, units
 from carbon.validator_setup.bundle import SetupRefused
 
+ACCOUNT_MAP = units._account_map
+
 
 def arrangement(tmp_path, monkeypatch):
     from scripts.dev.battery_validator_service import service
@@ -25,6 +27,20 @@ def arrangement(tmp_path, monkeypatch):
     backups.mkdir(mode=0o700)
     weights, _ = config(state)
     deployment = state / "deployment.json"
+    deployment.write_text(
+        json.dumps(
+            {
+                "state": str(state / "state.sqlite3"),
+                "journal": str(state / "seed-journal.jsonl"),
+                "work": str(state / "work"),
+                "private_root": str(state / "root.bin"),
+                "service_account": "fixture-validator",
+            }
+        ),
+        encoding="utf-8",
+    )
+    deployment.chmod(0o600)
+    monkeypatch.setattr(units, "_account_map", lambda *_: str(state))
     intake = state / "intake.json"
     svc = state / "service.json"
     svc.write_text(
@@ -46,6 +62,7 @@ def arrangement(tmp_path, monkeypatch):
             "receiver": "fixture-publisher",
             "deployment": str(deployment),
             "inbox": str(state / "inbox.sqlite3"),
+            "transport_journal": str(state / "transport.sqlite3"),
             "host": "127.0.0.1",
             "port": 8467,
         },
@@ -342,3 +359,172 @@ def test_signer_home_fallback_is_never_an_image_route(tmp_path, monkeypatch, val
     fetch.write_text(json.dumps(body), encoding="utf-8")
     with pytest.raises(SetupRefused):
         units.render(profile)
+
+
+@pytest.mark.parametrize(
+    "field",
+    [
+        "state",
+        "journal",
+        "work",
+        "private_root",
+        "image_manifest",
+        "torch_image_manifest",
+        "service_key",
+    ],
+)
+@pytest.mark.parametrize("escape", ["outside", "traversal", "symlink"])
+def test_deployment_paths_outside_mount_refuse_without_opening_payloads(
+    tmp_path, monkeypatch, field, escape
+):
+    profile, raw, _fetch, _state = arrangement(tmp_path, monkeypatch)
+    path = Path(raw["weights"]["deployment"])
+    deployment = json.loads(path.read_bytes())
+    private = tmp_path / "unmounted-private-payload"
+    if escape == "traversal":
+        private = path.parent / ".." / "unmounted-private-payload"
+    elif escape == "symlink":
+        link = path.parent / "outside-link"
+        link.symlink_to(tmp_path, target_is_directory=True)
+        private = link / "unmounted-private-payload"
+    deployment[field] = str(private)
+    path.write_text(json.dumps(deployment), encoding="utf-8")
+    original = Path.read_bytes
+
+    def no_private_read(target):
+        assert target != private, "mount validation must not open private payloads"
+        return original(target)
+
+    monkeypatch.setattr(Path, "read_bytes", no_private_read)
+    with pytest.raises(SetupRefused, match="OPERATOR_PATH_NOT_MOUNTED_IDENTICALLY"):
+        units.write(profile, tmp_path / "refused")
+    assert not (tmp_path / "refused").exists()
+    deployment[field] = str(path.parent / field)
+    path.write_text(json.dumps(deployment), encoding="utf-8")
+    assert len(units.render(profile)) == 5
+
+
+def test_transport_and_practice_manifest_paths_require_identical_mounts(
+    tmp_path, monkeypatch
+):
+    from scripts.dev.battery_validator_service import service
+
+    profile, raw, _fetch, _state = arrangement(tmp_path, monkeypatch)
+    intake = service._intake(None, None)
+    intake["transport_journal"] = str(tmp_path / "not-mounted.sqlite3")
+    monkeypatch.setattr(service, "_intake", lambda *_: intake)
+    with pytest.raises(SetupRefused, match="OPERATOR_PATH_NOT_MOUNTED_IDENTICALLY"):
+        units.render(profile)
+    intake["transport_journal"] = str(
+        Path(raw["service_config"]).parent / "transport.sqlite3"
+    )
+    config_path = Path(raw["service_config"])
+    value = json.loads(config_path.read_bytes())
+    value["practice_images"] = {"image_manifest": str(tmp_path / "not-mounted.json")}
+    config_path.write_text(json.dumps(value), encoding="utf-8")
+    with pytest.raises(SetupRefused, match="OPERATOR_PATH_NOT_MOUNTED_IDENTICALLY"):
+        units.render(profile)
+
+
+@pytest.mark.parametrize("escape", ["traversal", "symlink_ancestor"])
+def test_mount_paths_reject_lexical_aliases_before_unit_output(
+    tmp_path, monkeypatch, escape
+):
+    profile, raw, _fetch, state = arrangement(tmp_path, monkeypatch)
+    if escape == "traversal":
+        mount = state / ".." / state.name
+    else:
+        alias = tmp_path / "alias"
+        alias.symlink_to(tmp_path, target_is_directory=True)
+        mount = alias / state.name
+    raw["state_mounts"] = [str(mount)]
+    profile.write_text(json.dumps(raw), encoding="utf-8")
+    with pytest.raises(
+        SetupRefused, match="EXPLICIT_SEPARATE_OPERATOR_MOUNTS_REQUIRED"
+    ):
+        units.write(profile, tmp_path / "refused")
+    assert not (tmp_path / "refused").exists()
+
+
+def test_every_role_binds_public_account_map_readonly_with_verified_home(
+    tmp_path, monkeypatch
+):
+    profile, _raw, _fetch, state = arrangement(tmp_path, monkeypatch)
+    for role in ("service", "sync", "weights"):
+        text = units.render(profile)[f"fixture-validator-{role}.service"]
+        argv = shlex.split(
+            next(
+                line[10:] for line in text.splitlines() if line.startswith("ExecStart=")
+            )
+        )
+        assert "type=bind,source=/etc/passwd,target=/etc/passwd,readonly" in argv
+        assert "HOME=" + str(state) in argv
+        assert "--read-only" in argv
+        assert not any("/etc/shadow" in arg for arg in argv)
+
+
+@pytest.mark.parametrize(
+    "bad",
+    [
+        None,
+        "missing",
+        "symlink",
+        "mode",
+        "owner",
+        "uid",
+        "root",
+        "account",
+        "duplicate",
+        "home",
+    ],
+)
+def test_host_account_map_matches_numeric_uid_and_deployment_without_environment_authority(
+    tmp_path, monkeypatch, bad
+):
+    passwd = tmp_path / "passwd"
+    row = "fixture-validator:x:23456:34567::/operator/fixture-home:/bin/false\n"
+    passwd.write_text(row, encoding="utf-8")
+    passwd.chmod(0o644)
+    monkeypatch.setattr(units, "PASSWD", passwd)
+    monkeypatch.setenv("USER", "fixture-validator")
+    original = Path.lstat
+
+    def metadata(path, *args, **kwargs):
+        info = original(path, *args, **kwargs)
+        if path == passwd:
+            fields = list(info)
+            fields[4] = 12345 if bad == "owner" else 0
+            return os.stat_result(fields)
+        return info
+
+    monkeypatch.setattr(Path, "lstat", metadata)
+    deployment = {"service_account": "fixture-validator"}
+    user = "23456:34567"
+    if bad == "missing":
+        passwd.unlink()
+    elif bad == "symlink":
+        target = tmp_path / "other-passwd"
+        target.write_text(row, encoding="utf-8")
+        passwd.unlink()
+        passwd.symlink_to(target)
+    elif bad == "mode":
+        passwd.chmod(0o666)
+    elif bad == "uid":
+        user = "23457:34567"
+    elif bad == "root":
+        user = "0:0"
+    elif bad == "account":
+        deployment["service_account"] = "other-validator"
+    elif bad == "duplicate":
+        passwd.write_text(
+            row + row.replace("fixture-validator", "other"), encoding="utf-8"
+        )
+    elif bad == "home":
+        passwd.write_text(
+            row.replace("/operator/fixture-home", "relative"), encoding="utf-8"
+        )
+    if bad is None:
+        assert ACCOUNT_MAP(deployment, user) == "/operator/fixture-home"
+    else:
+        with pytest.raises(SetupRefused, match="OPERATOR_HOST_ACCOUNT_MAP_REQUIRED"):
+            ACCOUNT_MAP(deployment, user)
