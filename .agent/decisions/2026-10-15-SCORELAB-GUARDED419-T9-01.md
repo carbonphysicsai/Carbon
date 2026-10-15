@@ -23,3 +23,20 @@ automatic CAL/EVAL continuation, empty/relabelled old-data receipts, retry or
 replacement draws. Reversible by removing the new T9 adapter/consumer seam;
 historical protocols and failed results retain their meanings. No new physical
 threshold, population, scoring, production or commercial decision is made.
+
+Root subsequently assigns Packets the single prospective T9 worker/admission
+and expected-job tracking seam, in this separate worktree; PR1392 stays frozen.
+Keep its public G0 wrapper/binder exact. The new T9 wrapper reuses only internal
+tracking with the authenticated expected job, separate observer and record
+schema. Only the assigned worker/helper source bytes may differ from the
+authenticated G0 mapping; seven other scientific dependencies must match.
+Root binds both inventories prospectively. Producer active pins update only
+after upstream1392 merges and that file's ownership transfers.
+
+The Optimizer interface is validate_delivery -> ValidatedT9Evidence ->
+validate_for with independent binding/manifest digests and scope. The snapshot
+retains all offered jobs, returned rows, per-row tracking/extraction states and
+raw-byte/line/source proofs. Nonfinite output numbers become null only in that
+JSON-safe snapshot, after original-raw checks, never in retained raw evidence
+or as repaired eligible values. Construction statistics/kit/support stay with
+Optimizer. Shared tests use synthetic-only fixtures through the real validator.
