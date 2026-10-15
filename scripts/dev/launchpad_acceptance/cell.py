@@ -65,6 +65,7 @@ _SENSITIVE = re.compile(
     r"(?:sk-[A-Za-z0-9_-]{8,}|-----BEGIN|Bearer\s|0x[0-9a-fA-F]{64}|"
     r"\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b|\b[15][1-9A-HJ-NP-Za-km-z]{46,48}\b|"
     r"(?:https?|ssh)://|[A-Za-z]:[\\/]|/home/|/Users/|"
+    r"gh[pousr]_[A-Za-z0-9_]{20,}|github_pat_[A-Za-z0-9_]{20,}|"
     r"(?<![A-Za-z0-9])[A-Za-z0-9]{48,}(?![A-Za-z0-9])|(?:AKIA|ASIA)[A-Z0-9]{16})",
     re.IGNORECASE,
 )

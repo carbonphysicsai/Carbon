@@ -130,6 +130,15 @@ def test_writer_preserves_validated_bytes_and_refuses_replacement(tmp_path):
         {"ghp_" + "a" * 36: {}},
         {"ghp_" + "a" * 36: {"backend": "CPU"}},
         {"source": {"backend": "CPU"}},
+        {
+            "source": "docs/development/evidence/launchpad-acceptance-2026-01-01/FINDINGS.md#ghp_"
+            + "a" * 36
+        },
+        {
+            "source": "docs/development/evidence/launchpad-acceptance-2026-01-01/github_pat_"
+            + "b" * 40
+            + ".md"
+        },
         {"score": 0.5},
     ],
 )
