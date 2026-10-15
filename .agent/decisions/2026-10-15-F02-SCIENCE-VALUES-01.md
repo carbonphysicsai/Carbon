@@ -88,4 +88,21 @@ Rungs: primary (mesh 1, dt 1), mesh × 2 (every cell halved, dt 1), dt / 2
 
 ### E. Question law and bank (set after the local menu sample)
 
-See the section appended below once the sample is solved.
+The local menu sample was interrupted at the host restart (1 of 48 solved);
+these values were set at resume (2026-10-15 ~16:30 UTC) from the triage
+primaries (8bcd864d and the local image) before the bank design, the RunPod
+runs and the data generation they govern. Code: `f02_bank.py`.
+
+| Value | Slot | Chosen | Basis | Observed first? |
+|---|---|---|---|---|
+| E1 P_job | `f02-round2.json:p_job` | context uniform over the 24 supported contexts; ceiling c uniform on {90, 92.5, 95} °C; energy floor uniform on [300, 900] J at 10 J; all independent | law §3 recommendation, with the ceiling made discrete so every drawn ceiling has registered frontier brackets (a continuous c would put most frontiers between bank actions and the answer would measure bank spacing, not physics); never above 95 °C | triage peaks only |
+| E2 Q_job | `q_job` | Q3 = P_job; the D1 boundary group is the bracket actions (diagnostic Q2), reported separately | law §3, adopted | no |
+| E3 w | `w_job` | unit weight | uniform P = Q | no |
+| E4 action box | `action_proposal` | peak U[30, 140] W, on-time U[5, 20] s; bank per context = menu v2 (80-140 W x 5-20 s, 16) + low seed (30, 50 W x 4 on-times, 8) + bracket pairs at 0.5 W for each ceiling x on-time {5, 8, 11, 14, 17, 20} s where the predicted frontier lies in the box | widened from [80, 140] W: at 80 W/5 s the coolest context already peaks at 90.8 °C and warm contexts far higher, so the old box answers NONE_FEASIBLE almost everywhere and fails D6; the brackets resolve the frontier to 0.5 W (about 0.45 °C, under B1) | yes (triage peaks) |
+| E5 k, n, B, E | `k`, `bank_recommendation` | k = n_Q3 = 8; cheap class B = 20n = 160 questions, E = 5 | law §7 / OWNER-BANK-ARCHITECTURE-01, adopted | no |
+| E6 NONE_FEASIBLE | `p_job.none_feasible` | a valid answer; requires every eligible action resolved FAIL (all rungs > c) or below the floor; any band-crossing action -> UNRESOLVED; no redraw | law §4, adopted | no |
+| E7 TRAIN | `f02_bank.py TRAIN_*`; data plan | D0 = 960 cases (40 per context, round-robin nested); ladder 1/4, 1/2, 1, 2, 4, 8 x D0 (240 ... 7680); generate to 4x first, 8x only if the study's curve has not flattened at 4x | OWNER-TRAINING-BUDGET-STUDY-02 R9 needs sizes either side of D0; a case costs ~4 CPU-min so 8x is affordable | no |
+| E8 PRACTICE | data plan | 96 cases (4 per context), separate public seed, disjoint from TRAIN and the decision study | research loop; incomplete signal by design | no |
+| E9 timing (D3) | data plan | 2 contexts (shortest and longest kind) x {primary, dt/2, mesh 2} + 1 steady, 3 repeats = 21 cases on runpod-cpu5c-16vcpu; timeout = 2 x p95 per kind | D3 | no |
+| E10 rotating pool (H1) | data plan (sealed; specified only) | one sealed bank per rotation, same recipe as the decision study with custody seeds (jittered menu and bracket offsets, tuples disjoint from every public set); supports B = 160 questions; rotate when E = 5 exposure is spent or monthly; first month 2 banks | an action bank shared with public data would leak answers | no |
+| E11 tuning / confirmation (H2, D7) | data plan (sealed; specified only) | 48 questions each (2 per context), P_job law, separate custody seeds, disjoint from each other and from all public tuples | every context in each set; equal size so a tuning overfit shows on confirmation | no |
