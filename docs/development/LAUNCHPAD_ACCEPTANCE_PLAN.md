@@ -128,6 +128,36 @@ calculator.
 
 ## 3. The acceptance matrix
 
+Current controlling direction is
+[OWNER-LAUNCHPAD-E2E-SUITE-01 section 3](../../.agent/decisions/2026-10-15-OWNER-LAUNCHPAD-E2E-SUITE-01.md).
+Backfill historical cells before new runs. The first of the owner's two weekly
+90-minute blocks on carbon-fresh is T-07 only: tunnel, review, launch, practice,
+freeze, human TTY commitment, submit and actual verdict. The lane writes the
+agenda the day before and writes cells or findings during the block. A broken
+block produces findings rather than retry loops. No extra compute, inference or
+snippet coverage is added to that first block.
+
+Levels/dev-ladder are excluded from base acceptance until after the first real
+F12 verdict, with that work scheduled the following week; all level cells remain
+BLOCKED with that reason. LA-F17 is a separate security-sensitive blocked/untested
+path, with Carbon Validator review and owner acceptance, and holds up no other
+cell. One worker-image release after the commitment operation is owner-approved
+this week for F08/F02 and miner/Graphite image parity; this paragraph is not a
+publication or installation receipt.
+
+F15 below is required base multi-intake coverage after first T07, not an optional
+configuration. Without a PASS cell at this revision or an explicitly named earlier
+revision, both doors must hide the capability or return/display untested; T-06 owns
+that implementation. FAIL/BLOCKED never means tested. Source-only confirmation of
+idempotency keys is in the decision record; missing normal CI execution is T-01.
+
+Historical backfill is under
+[evidence/launchpad-acceptance-2026-10-07/cells](evidence/launchpad-acceptance-2026-10-07/cells/).
+It preserves F01's failed attempt, its later PASS, owner-confirmed F03 and the
+adverse Oct08 F07 smoke. These are named historical observations, not new installed
+acceptance or proof of the unrun F05-F12 current path.
+
+
 ### 3.1 How the cells cover the options
 
 A full cross product (14 flows × 9 compute × 7 inference × 4 agents) has
@@ -163,6 +193,7 @@ design instead:
 | F12 | Status and verdict | `carbon_observe` and `carbon_campaign_view` until a verdict | A sealed DEVELOPMENT outcome labelled CPU; no hidden score, case or seed on either door | The sealed outcome's public fields | none | agent |
 | F13 | Refusals (real path) | Each, on the real chain and validator: submit before commit; a second commit in the same tempo; submit with a mismatched receiver; a second scored submission in the same tempo; a freeze with no practice; launch with an unregistered hotkey; MCP `key` as a value | Exactly `commitment_required`, `ALREADY_COMMITTED_THIS_TEMPO`, `intake_receiver_mismatch` (nothing signed or sent), `hotkey_window_used`, the no-practice refusal, `registration_required`, `key_must_be_a_file_on_this_door`; each with its `next_step` | One cell file per code | none | agent; owner for signer |
 | F14 | Pause, resume, restart | Close the Control Center mid-campaign, restart, resume | The campaign PAUSES on close and resumes from its journal; a paid call is never resent blind | State transitions | in F07 | agent |
+| F15 | Receiver-paired multi-intake | Configure two real targets with their independently pinned receivers; submit the same frozen candidate under the existing signed-target protocol | One target admits, the other refuses; both durable journals remain separate and neither verdict is averaged or substituted | Each target/receiver binding, journal identity and separate admission/refusal result | Existing bounded authorization only | agent; owner for existing signer/host actions |
 
 ### 3.3 Compute options
 

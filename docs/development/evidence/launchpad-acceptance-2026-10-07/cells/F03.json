@@ -1,0 +1,27 @@
+{
+  "schema": "carbon.launchpad.acceptance-cell.v1",
+  "machine_kind": "carbon-fresh WSL2 Ubuntu24.04 x86_64",
+  "actor": "owner execution; Platform2 historical backfill2026-10-15",
+  "within_cap": true,
+  "cell": "F03",
+  "date": "2026-10-07",
+  "revision": "f1dd652debdfc7a6875c38ef988b1fd3c0ccb26b",
+  "result": "PASS",
+  "refusal_code": null,
+  "evidence": {
+    "source": "docs/development/evidence/launchpad-acceptance-2026-10-07/FINDINGS.md#la-f3-the-launchpads-prepared-registration-command-was-not-the-form-that-ran",
+    "findings": [
+      "LA-F3"
+    ],
+    "finding_register": "../FINDINGS.md",
+    "owner_confirmation": "OWNER-LAUNCHPAD-E2E-SUITE-01 R2 explicitly confirms F03 PASS",
+    "revision_basis": "Installed accepted revision from the same fresh-machine receipt; no new checkout/finality/signer read performed.",
+    "scope_limit": "Owner-confirmed historical signer/registration flow; prepared command differed from the actual owner-used btcli9.23.2 command and was not itself run. Do not relabel that prepared command as exercised.",
+    "current_release_tested": false,
+    "missing_original_receipt_fields": [
+      "fresh signer status projection",
+      "finalized registration block hash"
+    ],
+    "within_cap_basis": "The F03 setup/status confirmation is read-only; the separate owner registration transaction is not a new dispatch in this backfill."
+  }
+}

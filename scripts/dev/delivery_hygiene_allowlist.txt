@@ -1,5 +1,6 @@
 # Exact intentional repository fixtures. Four TAB-separated fields are required.
 # kind  path  exact matched value  durable reason
+text	Business/research/score-lab-campaign-01/completed-menu-research-v2/frozen-public-readers.py.txt	/home/miner	Byte-identical frozen public-reader source 4d0c046e; historical runtime constant belongs to its unexposed old main, not the completed-menu consumer. Actual runtime is separately bound by Root.
 text	carbon/miner_mcp/apps_ui/workbench.html	e.local	Pinned bundled Zod 4.6.5 JavaScript member access for the ISO datetime local option, not a hostname or network destination.
 text	carbon/miner_mcp/apps_ui/workbench.html	t.local	Pinned bundled Zod 4.6.5 JavaScript member access for datetime JSON-schema formatting, not a hostname or network destination.
 commit	608bc7aaba85e65c21a33ca8157f5a061892bd61	empty	Normal merge of accepted foundation main aff471a8; foundation content was already present, while the second parent records accepted dependency ancestry.

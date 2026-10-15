@@ -1,0 +1,32 @@
+{
+  "schema": "carbon.launchpad.acceptance-cell.v1",
+  "machine_kind": "carbon-fresh WSL2 Ubuntu24.04 x86_64",
+  "actor": "owner execution; Platform2 historical backfill2026-10-15",
+  "within_cap": true,
+  "cell": "F07",
+  "date": "2026-10-08",
+  "revision": "f1dd652debdfc7a6875c38ef988b1fd3c0ccb26b",
+  "result": "FAIL",
+  "refusal_code": "context_ceiling",
+  "evidence": {
+    "source": "docs/development/evidence/launchpad-acceptance-2026-10-07/FINDINGS.md#la-f8-graphite-on-the-default-engy-model-stops-at-the-context-ceiling-before-it-plans",
+    "findings": [
+      "LA-F8",
+      "LA-F9"
+    ],
+    "finding_register": "../FINDINGS.md",
+    "campaign": "14d573bb4c425ecf12c185dd223f7ece",
+    "supervisor_state": "COMPLETED",
+    "graphite_stage_states": [
+      "STOPPED",
+      "STOPPED"
+    ],
+    "other_refusal_codes": [
+      "REFUSED_PROTECTED_MATERIAL_IN_RESULT"
+    ],
+    "outcome": "No plan written or candidate frozen; practice feedback withheld. Supervisor completion is not a successful flow.",
+    "scope_limit": "Historical actual Graphite BUILD smoke with adverse findings; no current image/Graphite FULL or successful submit/verdict evidence.",
+    "current_release_tested": false,
+    "next_step": "Retain original context/feedback findings and repair references; do not retry a historical run as backfill."
+  }
+}

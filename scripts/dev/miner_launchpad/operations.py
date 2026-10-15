@@ -277,8 +277,11 @@ FIELDS = {
     "construction_variant_digest": (
         "string",
         (
-            "Explicit DEVELOPMENT Graphite test subject: the exact registered "
-            "battery standalone graph-v3 digest. Omit for the combined default. "
+            "Explicit subject: the Challenge's exact registered base contract "
+            "digest for the base journey, or the registered battery standalone "
+            "graph-v3 digest for the DEVELOPMENT Graphite test. "
+            "Omit for the combined default. The base subject allows no arm or "
+            "nonzero level hint and grants no widened recipe fields. "
             "A level label does not authorize a subject; the receiving target "
             "must separately serve the selected digest."
         ),
