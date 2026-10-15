@@ -53,3 +53,8 @@ These are recorded declarations and source-integrity checks, not independent
 authentication/qualification of their content. Unknown or stale declarations
 stay unmet. The CLI never emits launch authorization, even if all seven
 recorded predicates are satisfied. No proposed proof rewrites a source record.
+
+Named digest forms are sha256:<64 hex>, git:<40 hex>, or chain:<64 hex> for
+already-recorded public chain hashes. The chain form labels its provenance
+without inventing a SHA-256 algorithm for an extrinsic. Untyped key-shaped
+hexadecimal strings remain refused.

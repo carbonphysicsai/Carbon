@@ -18,7 +18,7 @@ from .release_check import _REQUIRED, ROOT, _cell, _nonfinite, _unique
 
 _CODE = re.compile(r"[A-Za-z][A-Za-z0-9_-]{0,95}\Z")
 _FIELD = re.compile(r"[a-z][a-z0-9_]{0,79}\Z")
-_DIGEST = re.compile(r"(?:sha256:[0-9a-f]{64}|git:[0-9a-f]{40})\Z")
+_DIGEST = re.compile(r"(?:(?:sha256|chain):[0-9a-f]{64}|git:[0-9a-f]{40})\Z")
 _FORBIDDEN = {
     "key",
     "keys",

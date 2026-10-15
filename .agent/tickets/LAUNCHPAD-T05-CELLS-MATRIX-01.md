@@ -46,6 +46,19 @@ or a current emitted-door release check. Actual optional door captures use T06's
 existing validator; they are not real-run cells. Status reports evidence, never
 dispatches, signs, opens keys or promotes a fixture into acceptance.
 
+CLI: `status [--json] [--revision <40-hex>] [--door-capture <public-reference>]
+[--completion-evidence <public-reference>]`; `validate` and `write` accept one
+prospective JSON cell on stdin and never print rejected values. Completion JSON
+has schema `carbon.launchpad.completion-evidence.v1`, matching `source_revision`,
+optional `key_blocks` and `findings` maps. A key-block entry requires reason
+`OWNER_KEY_UNAVAILABLE` matching the selected cell plus `owner_acknowledgment`;
+a finding entry requires disposition `FIXED` or `OWNER_ACCEPTED` and `proof`.
+Each proof is exactly `{reference, sha256}` bound to an existing public source
+containing that exact cell/finding identity. Owner references are decision
+records. Reports expose the checked public proof basis and explicitly state
+that declaration content is not independently authenticated. These declarations
+are evidence metadata; none can authorize launch or security qualification.
+
 ## Exact manifest and plan
 
 1. This ticket and `.agent/decisions/2026-10-15-LAUNCHPAD-T05-CELLS-MATRIX-01.md`.

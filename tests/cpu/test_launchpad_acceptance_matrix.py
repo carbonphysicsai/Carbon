@@ -166,6 +166,23 @@ def test_duplicate_and_nonfinite_json_are_not_accepted():
             cell.decode_cell(raw)
 
 
+def test_chain_hash_is_explicitly_typed_without_inventing_its_algorithm():
+    value = document(
+        "F10",
+        evidence={
+            "commitment_digest": DIGEST,
+            "extrinsic_digest": "chain:" + "c" * 64,
+            "block": 1,
+            "tty_confirmed": True,
+            "finalized": True,
+        },
+    )
+    assert cell.validate_cell(value) == value
+    value["evidence"]["extrinsic_digest"] = "0x" + "c" * 64
+    with pytest.raises(ValueError, match="INVALID_EVIDENCE_DIGEST"):
+        cell.validate_cell(value)
+
+
 def test_partial_publication_leaves_no_json_or_pending_file(tmp_path, monkeypatch):
     def fail(*_args, **_kwargs):
         raise OSError("synthetic publication failure")
@@ -209,6 +226,25 @@ def test_history_reuses_shared_validator_and_keeps_original_failure(tmp_path):
     )
     assert "NEVER_DISCLOSE" not in json.dumps(report)
     assert report["recorded_predicate"] == "UNMET"
+    assert not report["qualification"] and not report["launch_authorized"]
+
+
+def test_merged_backfill_remains_original_evidence_without_rewriting():
+    report = status.scoreboard()
+    history = {
+        row["evidence"].rsplit("/", 1)[-1]: row
+        for row in report["history"]
+        if row["evidence"].startswith(
+            "docs/development/evidence/launchpad-acceptance-2026-10-07/cells/"
+        )
+    }
+    original_revision = "f1dd652debdfc7a6875c38ef988b1fd3c0ccb26b"
+    assert history["F01-run1.json"]["result"] == "FAIL"
+    assert history["F01-run1.json"]["revision"] is None
+    for name in ("F01-run2.json", "F03.json", "F07.json"):
+        assert history[name]["revision"] == original_revision
+    assert history["F01-run2.json"]["result"] == history["F03.json"]["result"] == "PASS"
+    assert history["F07.json"]["result"] == "FAIL"
     assert not report["qualification"] and not report["launch_authorized"]
 
 

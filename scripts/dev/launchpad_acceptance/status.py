@@ -196,7 +196,7 @@ def scoreboard(
         )
     predicates = []
 
-    def line(number, name, owner, examined, missing, *, unknown=False):
+    def line(number, name, owner, examined, missing, *, unknown=False, basis=None):
         predicates.append(
             {
                 "line": number,
@@ -205,6 +205,7 @@ def scoreboard(
                 "result": "UNKNOWN" if unknown else "UNMET" if missing else "PASS",
                 "examined": examined,
                 "missing": missing,
+                "basis": basis or {},
             }
         )
 
@@ -232,6 +233,7 @@ def scoreboard(
     evidence = completion_evidence if supplied else {}
     key_blocks = evidence.get("key_blocks", {})
     missing = []
+    acknowledged_blocks = {}
     for index in range(1, 8):
         cell = "I" + str(index)
         result = cells.status(cell)["result"]
@@ -251,12 +253,15 @@ def scoreboard(
         )
         if result != "PASS" and not acknowledged:
             missing.append(cell)
+        elif acknowledged:
+            acknowledged_blocks[cell] = key_blocks[cell]["owner_acknowledgment"]
     line(
         3,
         "I1/I2 PASS; I3-I7 PASS or key-blocked with recorded owner awareness",
         "Root / owner",
         ["I" + str(i) for i in range(1, 8)],
         missing,
+        basis=acknowledged_blocks,
     )
     required([entry for entry in AGENTS if entry.base_required], 4, "Agents A1-A4 PASS")
     capture_valid = False
@@ -322,6 +327,7 @@ def scoreboard(
         registers_usable = False
     dispositions = evidence.get("findings", {})
     unresolved = []
+    recorded_dispositions = {}
     for finding in sorted(findings - {"LA-F17"}):
         disposition = dispositions.get(finding) if type(dispositions) is dict else None
         if (
@@ -335,6 +341,11 @@ def scoreboard(
             )
         ):
             unresolved.append(finding)
+        else:
+            recorded_dispositions[finding] = {
+                "disposition": disposition["disposition"],
+                "proof": disposition["proof"],
+            }
     if not findings or not registers_usable:
         unresolved.append("FINDINGS_REGISTER_UNAVAILABLE")
     line(
@@ -344,6 +355,7 @@ def scoreboard(
         sorted(findings - {"LA-F17"}),
         unresolved,
         unknown=not supplied or not registers_usable,
+        basis=recorded_dispositions,
     )
     line(
         7,
@@ -368,6 +380,7 @@ def scoreboard(
             else "UNMET"
         ),
         "scope": "NAMED_CELL_REVISIONS_ONLY",
+        "declarations_independently_authenticated": False,
         "qualification": False,
         "launch_authorized": False,
         "nonblocking": {"tier2": ["C6", "C7", "C8", "C9"], "levels": D5, "LA-F17": D1},
