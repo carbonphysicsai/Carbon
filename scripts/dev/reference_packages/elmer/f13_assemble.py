@@ -55,6 +55,72 @@ def _status(ok):
     return "PASS" if ok else "FAIL"
 
 
+def dense_coaxial_report(work, mode_matching):
+    """B3 on the registered full grid, separately from the old 8 mm check."""
+    expected = deck.frequencies(10.0)
+    cases, complete, all_ok = {}, 0, True
+    for name in COAXIAL:
+        got = _rows(Path(work) / "coax4dense" / name)
+        match = mode_matching.get(name)
+        if not got or not match:
+            cases[name] = {
+                "status": "NOT_RUN",
+                "reason": "missing solved or mode-matching evidence",
+            }
+            continue
+        rows, finding = got
+        frequencies = [r["frequency_hz"] for r in rows]
+        if frequencies != expected or any(
+            [r["frequency_hz"] for r in match.get(key, [])] != expected
+            for key in ("n20", "n40")
+        ):
+            cases[name] = {
+                "status": "NOT_RUN",
+                "reason": "complete 201-frequency coverage required",
+                "observed_frequencies": len(rows),
+            }
+            continue
+        complete += 1
+        if finding:
+            cases[name] = {
+                "status": "FAIL",
+                "reason": "REFERENCE_FINDING",
+                "pass": False,
+            }
+            all_ok = False
+            continue
+        comparison = p.compare(rows, match["n40"], p.MESH_TL_DB)
+        convergence = max(
+            (
+                abs(a["tl_db"] - b["tl_db"])
+                for a, b in zip(match["n20"], match["n40"])
+                if a["tl_db"] <= p.RESOLVED_TL_DB and b["tl_db"] <= p.RESOLVED_TL_DB
+            ),
+            default=0.0,
+        )
+        comparison["mode_matching_n20_n40_max_resolved_db"] = convergence
+        comparison["pass"] = comparison["pass"] and convergence <= 0.05
+        cases[name] = {
+            "status": _status(comparison["pass"]),
+            **comparison,
+            "cost": _cost(Path(work) / "coax4dense" / name),
+        }
+        all_ok &= comparison["pass"]
+    status = (
+        _status(all_ok)
+        if complete == len(COAXIAL)
+        else ("FAIL" if not all_ok else "NOT_RUN")
+    )
+    return {
+        "status": status,
+        "expected_cases": len(COAXIAL),
+        "complete_cases": complete,
+        "expected_frequencies_per_case": len(expected),
+        "cases": cases,
+        "scope": "B3 4 mm coaxial controls only; other family verification remains separate",
+    }
+
+
 def assemble(work, out):
     work = Path(work)
     v2 = work / "v2"
@@ -149,6 +215,10 @@ def assemble(work, out):
             diag[name]["cost"] = _cost(work / "coax4" / name)
     if diag:
         doc["coaxial_mode_matching_4mm_diagnostic"] = diag
+    if (work / "coax4dense").exists():
+        dense = dense_coaxial_report(work, mm)
+        doc["coaxial_mode_matching_4mm_dense"] = dense
+        checks["B3_coaxial_mode_matching_4mm_dense"] = dense["status"]
     got = _rows(v2 / "control-chamber")
     if got:
         rows, _ = got
@@ -161,7 +231,7 @@ def assemble(work, out):
 
     # C1-C3 power/passivity over every solved v2 case
     power, ok_all = {}, True
-    for d in sorted(x for x in v2.iterdir() if x.is_dir()):
+    for d in sorted(x for x in v2.glob("*") if x.is_dir()):
         got = _rows(d)
         if not got:
             continue
@@ -275,7 +345,7 @@ def assemble(work, out):
                 **p.summary(got[0]),
                 "cost": _cost(d),
             }
-    doc["costs"] = {d.name: _cost(d) for d in sorted(v2.iterdir())
+    doc["costs"] = {d.name: _cost(d) for d in sorted(v2.glob("*"))
                     if (d / "cost.json").exists() and json.loads((d / "cost.json").read_text()).get("solve")}  # fmt: skip
     doc["all_pass"] = bool(checks) and all(v == "PASS" for v in checks.values())
     doc["assembler_sha256"] = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()

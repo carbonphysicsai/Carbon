@@ -1,0 +1,52 @@
+{
+ "schema": "carbon.reference-solvers.pod-plan.v1",
+ "plan_id": "f13-coaxial-4mm-dense-2026-10-15",
+ "kind": "elmer",
+ "authority": "OWNER-RUNPOD-SOLVER-READINESS-01; SOLVER-READINESS-RESUME-PHASE-01",
+ "purpose": "Prospective full-grid check of the already registered 4 mm rung: all four coaxial B3 controls, 201 frequencies from 500 to 2500 Hz, unchanged F13-SCIENCE-VALUES-01 bands and independent N20/N40 mode matching. The old 8 mm finding remains. This is public DEVELOPMENT engineering evidence, not full-family acceptance or qualification.",
+ "recommended": {
+  "vcpu": 8,
+  "memory_gib": 64,
+  "minutes": 240,
+  "jobs": 2,
+  "estimated_worst_case_usd": 1.76,
+  "basis": "Local 4 mm small-coaxial 21-point diagnostic: 112359 nodes, 341.47 CPU-s solve, 620.4 MiB peak, 16.26 CPU-s per frequency. Full 201-point and other geometry costs are extrapolated. Two jobs bound the worker's existing 16 GiB per-case limits within 64 GiB including the independent mode-matching worker. Live offers and full-deadline reservations are checked by the operator; the phase remains capped at USD25."
+ },
+ "steps": [
+  {
+   "name": "harness-numpy",
+   "type": "script",
+   "argv": ["bash", "-c", "DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends python3-numpy python3-scipy > {work}/apt.log 2>&1 && dpkg-query -W python3-numpy python3-scipy > {out}/harness-packages.txt"],
+   "timeout_s": 900,
+   "keep": {"patterns": ["*.log"], "max_file_bytes": 2000000}
+  },
+  {
+   "name": "f13-coaxial-4mm-dense",
+   "type": "script",
+   "judges": "All four controls must have exactly 201 FEM and N20/N40 reference frequencies. Existing B3: resolved pointwise 0.5 dB, notch floor 1e-3 W, p10/mean 0.25 dB, extrema 10 Hz, mode matching N20/N40 0.05 dB; any observer finding fails. Missing coverage stays NOT_RUN. Exit nonzero unless this bounded four-control check passes; other family checks remain separate.",
+   "argv": ["python3", "-m", "scripts.dev.reference_packages.elmer.f13_pod_checks", "all", "--work", "{work}", "--out", "{out}/coaxial-4mm-dense.json", "--jobs", "2", "--budget-s", "7200", "--groups", "coax4dense", "--require-dense-pass"],
+   "docker_images": ["sha256:61be1cb77c51fcdd822250e372754a9ce728a5bb42f39b7ba03cdf5e70901add"],
+   "env": {"OPENBLAS_NUM_THREADS": "1", "OMP_NUM_THREADS": "1"},
+   "timeout_s": 13200,
+   "keep": {"patterns": ["cost.json", "deck.json", "groups.json", "ports.dat", "ports.dat.names", "times.txt", "solver.log", "mm.json"], "max_file_bytes": 2000000}
+  }
+ ],
+ "ship": [
+  "carbon/__init__.py",
+  "carbon/challenge_pipeline/__init__.py",
+  "carbon/challenge_pipeline/silencer_readiness.py",
+  "carbon/design_search/__init__.py",
+  "carbon/design_search/controls.py",
+  "carbon/design_search/diversity.py",
+  "carbon/design_search/indexed.py",
+  "carbon/design_search/indexed_power.py",
+  "carbon/design_search/power.py",
+  "carbon/design_search/power_accumulation.py",
+  "carbon/design_search/producer_panels.py",
+  "carbon/design_search/reference_resolution.py",
+  "carbon/design_search/tasks.py",
+  "carbon/development_comparison/__init__.py",
+  "carbon/development_comparison/cheap_baselines.py",
+  "carbon/development_comparison/portfolio_baselines.py"
+ ]
+}

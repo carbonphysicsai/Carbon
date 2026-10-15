@@ -28,3 +28,11 @@ in SOLVER-READINESS-RESUME-PHASE-01: a separate USD25 resume phase preserves
 that old history and the USD15-or-higher shared balance floor. Local container
 profiling is diagnostic only, not a complete acquisition-cost receipt; the
 two standalone mesher/import troubleshooting commands were not metered.
+
+Execution continuation: the successful 21-point 4 mm control is a diagnostic,
+not the full B3 check. Run the registered 201-frequency grid at 4 mm on all
+four coaxial controls as an opt-in group. Require exact frequency coverage,
+N20/N40 mode-matching convergence, existing B3 bands and no observer finding.
+Record this as a separate check; do not replace the historical 8 mm finding
+or infer full-family adequacy from these four controls. Keep original job
+groups/default behavior and the other verification holds unchanged.

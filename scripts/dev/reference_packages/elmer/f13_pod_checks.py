@@ -42,7 +42,8 @@ MM_EVIDENCE = (
 )
 OFFSET = assemble.OFFSET
 PANEL_COAXIAL = ("small-coaxial", "short-neck-wide", "long-neck-small")
-GROUPS = ("mms", "controls", "curves", "lead", "mesh4", "coax4")
+DEFAULT_GROUPS = ("mms", "controls", "curves", "lead", "mesh4", "coax4")
+GROUPS = (*DEFAULT_GROUPS, "coax4dense")
 
 
 def _labels():
@@ -70,6 +71,11 @@ def plan():
             for lb in OFFSET]  # fmt: skip
     out += [("coax4", f"coax4/{lb}", deck.panel_case(lb), {"h_mm": 4.0, "step_hz": 100.0}, 21 * 7)
             for lb in PANEL_COAXIAL]  # fmt: skip
+    coaxials = {"control-chamber": CONTROLS["control-chamber"]}
+    coaxials.update({lb: deck.panel_case(lb) for lb in PANEL_COAXIAL})
+    out += [("coax4dense", f"coax4dense/{lb}", geo,
+             {"h_mm": 4.0, "step_hz": 10.0}, 201 * 7)
+            for lb, geo in coaxials.items()]  # fmt: skip
     return out
 
 
@@ -148,7 +154,8 @@ def main(argv=None):
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--jobs", type=int, default=1)
     parser.add_argument("--budget-s", type=float, default=7200.0)
-    parser.add_argument("--groups", default=",".join(GROUPS))
+    parser.add_argument("--groups", default=",".join(DEFAULT_GROUPS))
+    parser.add_argument("--require-dense-pass", action="store_true")
     parser.add_argument("--image", default=proof.IMAGE)
     parser.add_argument("--recompute-mm", action="store_true")
     args = parser.parse_args(argv)
@@ -158,7 +165,7 @@ def main(argv=None):
     groups = set(args.groups.split(","))
     if not args.work or not groups <= set(GROUPS):
         parser.error(f"--work is required and --groups must be a subset of {GROUPS}")
-    run_all(
+    doc = run_all(
         args.work,
         args.out,
         args.jobs,
@@ -167,6 +174,12 @@ def main(argv=None):
         args.image,
         args.recompute_mm,
     )
+    if args.require_dense_pass:
+        return (
+            0
+            if doc["checks"].get("B3_coaxial_mode_matching_4mm_dense") == "PASS"
+            else 1
+        )
     return 0
 
 
