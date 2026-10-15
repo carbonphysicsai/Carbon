@@ -59,7 +59,7 @@ def predictions(rows, *, error=0):
             for key, values in panel["values"].items():
                 # Missing toy references do not prevent a model from supplying
                 # its original complete input-only prediction panel.
-                if values is None:
+                if values is None or any(v is None for v in values.values()):
                     values = {
                         "minutes": 91.0,
                         "charging_t_max_c": 35.0,
@@ -306,6 +306,17 @@ def test_whole_question_common_mask_and_offered_prediction_coverage(leg):
         and producer._rung(j)[0] == 2,
     )
     offered = [leg, unresolved]
+    assert any(
+        point["minutes"] is None
+        for panel in unresolved["evidence"].references
+        for point in panel["values"].values()
+    )
+    assert all(
+        point["minutes"] is not None
+        for panels in predictions(offered).values()
+        for panel in panels
+        for point in panel["values"].values()
+    )
     a = score(offered, predictions(offered, error=1))
     b = score(offered, predictions(offered, error=3))
     assert a["reference_masks"] == b["reference_masks"]
