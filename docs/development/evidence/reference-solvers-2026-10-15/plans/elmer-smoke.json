@@ -100,7 +100,14 @@
      "*.txt"
     ],
     "max_file_bytes": 2000000
-   }
+   },
+   "host_regenerated_files": [
+    "mesh/mesh.nodes",
+    "mesh/mesh.elements",
+    "mesh/mesh.boundary",
+    "mesh/mesh.header",
+    "mesh.json"
+   ]
   }
  ]
 }

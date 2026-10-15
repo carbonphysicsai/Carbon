@@ -1,0 +1,7 @@
+{
+ "name": "f02-triage-controls",
+ "type": "bulk",
+ "status": "REFUSED",
+ "wall_s": 46.8,
+ "why": "2 selected case(s) differ from the manifest: ['f02/control-slab_step', 'f02/control-slab_pulse']"
+}

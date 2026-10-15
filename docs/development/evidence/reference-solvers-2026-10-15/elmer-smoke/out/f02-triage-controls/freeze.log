@@ -1,0 +1,16 @@
+{
+ "f02": {
+  "cold_repeat": 1,
+  "controls": 4,
+  "mesh_and_time": 16,
+  "primary": 8,
+  "steady_baselines": 2
+ },
+ "f13": {
+  "cold_repeat": 1,
+  "controls": 2,
+  "fine_sweeps": 2,
+  "primary_sweeps": 8,
+  "separate_frequency_smoke": 3
+ }
+}
