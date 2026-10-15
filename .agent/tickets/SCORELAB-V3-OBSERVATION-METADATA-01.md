@@ -42,3 +42,13 @@ Hub retired under OWNER-DX-03; historical map_ref SYSTEM/AGENT-EXECUTION.
 Completion requires reviewable additive code, meaningful controls and actual
 required CI before merge. Maturity ceiling: DEVELOPMENT diagnostics only;
 temporal/scientific adequacy, qualification and actual acquisition remain open.
+
+## Candidate source evidence
+
+Additive diagnostics and exclusive synthetic controls are implemented. Static
+AST parsing passes. The eight old execution-function bodies are identical to
+9c15a665, and stripping only diagnostic additions yields identical original
+measurement-function ASTs. git diff --check passes. No application/tests ran.
+Root's pinned Black/Ruff pass, independent review and canonical CI are pending;
+this source evidence is not a test PASS. Active producer pin matches current
+worker bytes; any formatting change must refresh it again before PR admission.
