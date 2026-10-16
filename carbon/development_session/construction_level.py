@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import functools
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -75,9 +76,10 @@ PRACTICE_NOTE = (
 class LevelRefused(ValueError):
     """A construction-level choice or use refused; `code` is closed."""
 
-    def __init__(self, code, issues=()):
+    def __init__(self, code, issues=(), *, required_check_report=None):
         super().__init__(code)
         self.code, self.issues = code, list(issues)
+        self.required_check_report = required_check_report
 
 
 # ---- The binding, from registry data.
@@ -295,10 +297,111 @@ def _run(request):
         value = json.loads(lines[-1]) if lines else None
     except (OSError, subprocess.SubprocessError, ValueError):
         value = None
-    return checked(value)
+    return checked(
+        value,
+        expected_report_subject=(
+            request.get("challenge"),
+            request.get("composition_digest"),
+        ),
+    )
 
 
-def checked(value):
+def _checked_report(value, subject):
+    """Sanitized private child diagnostics; never input to an authority gate.
+
+    Discard absent/malformed/mismatched reports without changing the primary
+    refusal. No private module/provider is imported into this client surface.
+    """
+    fields = {
+        "schema",
+        "challenge",
+        "composition_digest",
+        "base_contract_digest",
+        "checks",
+        "aggregate_status",
+        "compiler_security_components",
+        "development_authorization",
+        "admission_allowed",
+    }
+    if type(value) is not dict or set(value) != fields or subject is None:
+        return None
+    challenge, composition_digest = subject
+    sha = r"sha256:[0-9a-f]{64}"
+    if (
+        type(challenge) is not str
+        or type(composition_digest) is not str
+        or re.fullmatch(sha, composition_digest) is None
+        or value["schema"] != "carbon.development.required-check-report.v1"
+        or value["challenge"] != challenge
+        or value["composition_digest"] != composition_digest
+        or type(value["base_contract_digest"]) is not str
+        or re.fullmatch(sha, value["base_contract_digest"]) is None
+        or value["compiler_security_components"] != "NOT_SEPARATELY_MEASURED"
+        or value["development_authorization"]
+        != {"decision": "NOT_BOUND", "execution": "NOT_DISPATCHED"}
+        or value["admission_allowed"] is not False
+    ):
+        return None
+    # The metadata-only reader is already used by this client resolver. It
+    # binds the reported base to the requested immutable composition too.
+    from carbon.reconstruction.capability_registry import (
+        development_composition_document,
+    )
+
+    try:
+        document = development_composition_document(composition_digest)
+        if (
+            document is None
+            or document["challenge"] != challenge
+            or document["base_contract"]["digest"] != value["base_contract_digest"]
+        ):
+            return None
+    except (OSError, RuntimeError, KeyError, TypeError, ValueError):
+        return None
+    rows = value["checks"]
+    if type(rows) is not list or not 1 <= len(rows) <= 4:
+        return None
+    clean = []
+    seen = set()
+    for row in rows:
+        if type(row) is not dict or set(row) != {"id", "status", "paths"}:
+            return None
+        name, status, paths = row["id"], row["status"], row["paths"]
+        if (
+            type(name) is not str
+            or re.fullmatch(r"L[1-4]:registered-compiler-and-security", name) is None
+            or name in seen
+            or type(status) is not str
+            or status not in {"PASS", "FAIL", "UNAVAILABLE"}
+            or type(paths) is not list
+            or not 1 <= len(paths) <= 6
+            or any(
+                type(path) is not str
+                or re.fullmatch(r"/parameters/[a-z][a-z0-9_]{0,63}", path) is None
+                for path in paths
+            )
+            or len(paths) != len(set(paths))
+        ):
+            return None
+        seen.add(name)
+        clean.append({"id": name, "status": status, "paths": list(paths)})
+    aggregate = "FAIL" if any(c["status"] == "FAIL" for c in clean) else "UNAVAILABLE"
+    if (
+        all(c["status"] == "PASS" for c in clean)
+        or value["aggregate_status"] != aggregate
+    ):
+        return None
+    return {
+        **value,
+        "checks": clean,
+        "development_authorization": {
+            "decision": "NOT_BOUND",
+            "execution": "NOT_DISPATCHED",
+        },
+    }
+
+
+def checked(value, *, expected_report_subject=None):
     """The level CLI's answer, or its refusal raised as `LevelRefused`."""
     if type(value) is not dict or type(value.get("ok")) is not bool:
         raise LevelRefused(COMPILE_UNAVAILABLE)
@@ -307,6 +410,13 @@ def checked(value):
         raise LevelRefused(
             code if type(code) is str else COMPILE_UNAVAILABLE,
             value.get("issues") or (),
+            required_check_report=(
+                _checked_report(
+                    value.get("required_check_report"), expected_report_subject
+                )
+                if code == "construction_checks_unavailable"
+                else None
+            ),
         )
     return value
 
