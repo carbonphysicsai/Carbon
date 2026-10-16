@@ -648,7 +648,7 @@ READER_PREFIX = "graphite-reader-"
 SPEND_KEYS = ("provider_nanodollars", "provider_attempts")
 _HUNT_FIELDS = ("fetched", "deduped", "triaged_out", "extracted", "failed_infra")
 _STAGE_NAME = re.compile(r"[a-z][a-z0-9_-]{0,31}")
-_STAGE_STATES = ("PENDING", "RUNNING", "DONE", "STOPPED")
+_STAGE_STATES = ("PENDING", "RUNNING", "DONE", "STOPPED", "RETAINED")
 _CODE = re.compile(r"[a-z][a-z0-9_]{0,63}")
 
 
@@ -744,6 +744,8 @@ def graphite_progress(manifest, status, root):
     except Exception:  # noqa: BLE001 - shown as unknown, never as a failure
         seen = None
     seen = seen if type(seen) is dict else {}
+    from carbon.development_session import submission_policy
+
     mode = block.get("mode") if block.get("mode") in GRAPHITE_MODES else None
     share = block.get("research_share")
     plan_digest = seen.get("plan_digest", block.get("plan_digest"))
@@ -770,6 +772,11 @@ def graphite_progress(manifest, status, root):
         }
     return {
         "edition": block.get("edition") if type(block.get("edition")) is str else None,
+        **(
+            {submission_policy.FIELD: submission_policy.RETAIN_ONLY}
+            if block.get(submission_policy.FIELD) == submission_policy.RETAIN_ONLY
+            else {}
+        ),
         "mode": mode,
         "stage": stage if type(stage) is str and _STAGE_NAME.fullmatch(stage) else None,
         "stages": _stages(seen.get("stages")),

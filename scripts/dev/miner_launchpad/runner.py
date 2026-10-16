@@ -43,6 +43,7 @@ from types import SimpleNamespace
 
 from carbon.compute import retired
 from carbon.development_session import research_guidance as guidance
+from carbon.development_session import submission_policy
 from carbon.development_session.private_records import private_json
 from carbon.development_session.profile import canonical, digest
 from carbon.development_session.research_control import CampaignControl, DispatchStopped
@@ -994,6 +995,7 @@ class LaunchChoice:
             # the curation digest admission captured, for the campaign to
             # freeze that curation rather than the library's current one.
             args.graphite = {key: self.graphite[key] for key in GRAPHITE_LAUNCH_KEYS}
+            args.graphite.update(submission_policy.launch_fields(self.graphite))
             args.graphite_curation_digest = self.graphite["curation_digest"]
 
 
@@ -1019,8 +1021,17 @@ DEFAULT_GRAPHITE_MODE = "FULL"
 #: design's default, tunable by the miner from 0 to 1).
 DEFAULT_RESEARCH_SHARE = 0.10
 #: The launch fields only Graphite reads.
-GRAPHITE_FIELDS = ("graphite_mode", "research_share", "plan", "hunt", "limits")
-#: What a Graphite campaign receives as `args.graphite`: exactly the names S3's
+GRAPHITE_FIELDS = (
+    "graphite_mode",
+    "research_share",
+    "plan",
+    "hunt",
+    "limits",
+    submission_policy.FIELD,
+)
+#: Historical Graphite keys always copied to `args.graphite`; the optional
+#: versioned submission policy is copied only when explicitly chosen.
+#: S3's
 #: `edition.launch_fields` reads (`LAUNCH_FIELDS`), which refuses any other
 #: (`graphite_launch_invalid`). The edition is the campaign's to name.
 GRAPHITE_LAUNCH_KEYS = ("mode", "research_share", "plan", "hunt", "limits")
@@ -1105,9 +1116,14 @@ def graphite_launch(request):
     in BUILD); `limits` the caps set, possibly none. A Graphite field with
     another agent, or with a mode that does not read it, is refused by name:
     nothing is accepted that nothing uses. A field sent as null is absent
-    (the request gate drops it before anything is digested). Pure: the
+    (the request gate drops it before anything is digested), except the
+    versioned submission_policy: explicit null is refused. Pure: the
     library is not read here.
     """
+    try:
+        policy = submission_policy.launch_fields(request)
+    except submission_policy.PolicyInvalid:
+        raise Rejected(submission_policy.INVALID) from None
     sent = [field for field in GRAPHITE_FIELDS if request.get(field) is not None]
     if request.get("agent") != GRAPHITE:
         if sent:
@@ -1144,6 +1160,7 @@ def graphite_launch(request):
         hunt = hunt_value(request["hunt"])
     limits = request.get("limits")
     return {
+        **policy,
         "mode": mode,
         "research_share": share,
         "plan": plan,
@@ -4076,6 +4093,7 @@ class RunnerAdapter:
         # sees it (LP-PROD-C D11; observed live: the page said "Submitted").
         self._admissible(admitted)
         self._require_current_revision(admitted)
+        self._require_submission_policy(admitted)
         self._require_frozen(admitted)
         budget = self._frozen_budget(admitted)
         self._require_evaluation(admitted)
@@ -4169,6 +4187,32 @@ class RunnerAdapter:
                 self._posters[hotkey] = poster
             return poster
 
+    @staticmethod
+    def _retains_submission(root):
+        try:
+            return submission_policy.from_root(root)
+        except submission_policy.PolicyInvalid:
+            raise Rejected(submission_policy.INVALID, 409) from None
+
+    def _require_submission_policy(self, admitted):
+        if self._retains_submission(Path(admitted.campaign["root"])):
+            raise Rejected(submission_policy.RETAINED, 409)
+
+    def _launch_commitment_gate(self, cfg, args):
+        root = Path(args.root)
+        if (root / "campaign-manifest.json").exists():
+            retained = self._retains_submission(root)
+        else:
+            try:
+                retained = bool(
+                    submission_policy.launch_fields(
+                        getattr(args, "graphite", None) or {}
+                    )
+                )
+            except submission_policy.PolicyInvalid:
+                raise Rejected(submission_policy.INVALID, 409) from None
+        return None if retained else self._campaign_gate(cfg)
+
     def _campaign_gate(self, cfg):
         """The commitment gate a campaign's submit asks before its first send
         (`battery.campaign._committed`): None on a host that reads no chain;
@@ -4239,6 +4283,7 @@ class RunnerAdapter:
         if type(recommit) is not bool:
             raise Rejected("recommit_boolean_required")
         self._admissible(admitted)
+        self._require_submission_policy(admitted)
         # A level candidate is committed only for a target that serves it.
         self._require_level_served(admitted)
         identity = admitted.campaign["id"]
@@ -4300,6 +4345,7 @@ class RunnerAdapter:
 
         identity = admitted.campaign["id"]
         try:
+            self._require_submission_policy(admitted)
             # The queued thread must not reuse admission-time health after
             # the provider changes while awaiting the signer's terminal.
             self._require_level_served(admitted)
@@ -4669,7 +4715,7 @@ class RunnerAdapter:
             if credential is not None:
                 args.api_key_file = credential
             self._graphite_args(args, root)
-            args.commitment_gate = self._campaign_gate(cfg)
+            args.commitment_gate = self._launch_commitment_gate(cfg, args)
 
             async def run():
                 prepared = await prepare(args, ledger=ledger)
@@ -4869,7 +4915,7 @@ class RunnerAdapter:
                     args.api_key_file = credential
                 self._graphite_args(args, root, product)
                 # Graphite's selection asks for its own commitment (D10).
-                args.commitment_gate = self._campaign_gate(cfg)
+                args.commitment_gate = self._launch_commitment_gate(cfg, args)
                 outcome = interrupted = None
                 try:
                     outcome = asyncio.run(execute(args, ledger=ledger))

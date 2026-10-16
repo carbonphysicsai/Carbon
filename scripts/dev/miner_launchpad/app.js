@@ -2756,13 +2756,13 @@
   // key and budget. Carbon sets no default spend.
   const GRAPHITE = "graphite";
   const GRAPHITE_MODES = [
-    ["FULL", "Full", "Research first, then build. Graphite reads the literature and writes a plan within the share of your model budget you set here, then constructs, practises, selects and submits."],
+    ["FULL", "Full", "Research first, then build. Graphite reads the literature and writes a plan within the share of your model budget you set here, then constructs, practises, selects and normally submits."],
     ["RESEARCH", "Research", "Graphite reads the literature (and, if you choose, hunts arXiv for more), then writes a ranked plan you can read and edit in the Library. No practice submission: it spends model tokens, and practice trials only if it runs code."],
-    ["BUILD", "Build", "Graphite builds from a plan: one you edited, one from an earlier Research run, or none (its Planner writes one first, from the shared pack and your Library as they are). Then it constructs, practises, selects and submits."],
+    ["BUILD", "Build", "Graphite builds from a plan: one you edited, one from an earlier Research run, or none (its Planner writes one first, from the shared pack and your Library as they are). Then it constructs, practises, selects and normally submits."],
   ];
   const GRAPHITE_MODE_LABEL = Object.fromEntries(GRAPHITE_MODES.map(([mode, label]) => [mode, label]));
   // The launch fields Graphite's choices travel in (S4's launch operation).
-  const GRAPHITE_FIELDS = ["graphite_mode", "research_share", "plan", "hunt", "limits"];
+  const GRAPHITE_FIELDS = ["graphite_mode", "research_share", "plan", "hunt", "limits", "submission_policy"];
   // Optional per-epoch counts: blank leaves only the campaign's own limits.
   const GRAPHITE_LIMITS = [["calls_per_epoch", "Model calls per epoch"], ["trials_per_epoch", "Practice trials per epoch"], ["planner_calls", "Planner model calls"]];
   // A hunt's closed query grammar (the design's): at most 8 queries of at
@@ -2854,6 +2854,7 @@
       mode: GRAPHITE_MODE_LABEL[mode] ? mode : "FULL",
       share: percentText(typeof share === "number" && share >= 0 && share <= 1 ? share : 0.10),
       plan: "", hunt: false,
+      retain: false,
       records: String(Number.isSafeInteger(records) && records >= 1 && records <= huntBounds().maxRecords ? records : Math.min(HUNT.records, huntBounds().maxRecords)),
       queries: "", limits: {},
     };
@@ -2881,6 +2882,7 @@
   // Why the mode, share or hunt cannot launch, or null.
   function graphiteChoiceProblem(g = graphiteChoices()) {
     if (!GRAPHITE_MODE_LABEL[g.mode]) return "choose a mode";
+    if (typeof g.retain !== "boolean") return "choose whether to retain the candidate before submit";
     if (g.mode === "FULL" && Number.isNaN(shareOf(g.share))) return "the research share is a percentage from 0 to 100, at most two decimal places";
     if (huntApplies(g) && g.hunt) {
       const records = wholeNumber(g.records);
@@ -2904,6 +2906,7 @@
   // The launch fields for these choices: each only where its mode uses it.
   function graphiteFields(g = graphiteChoices()) {
     const fields = {graphite_mode: g.mode};
+    if (g.retain && g.mode !== "RESEARCH") fields.submission_policy = "retain_only_v1";
     if (g.mode === "FULL") fields.research_share = shareOf(g.share);
     if (g.mode === "BUILD" && g.plan) fields.plan = g.plan;
     if (huntApplies(g) && g.hunt) {
@@ -2942,6 +2945,7 @@
       hunt: Boolean(hunt),
       records: hunt && Number.isSafeInteger(hunt.max_records) ? String(hunt.max_records) : defaults.records,
       queries: hunt && Array.isArray(hunt.queries) ? hunt.queries.join("\n") : "",
+      retain: value.submission_policy === "retain_only_v1",
       limits: Object.fromEntries(GRAPHITE_LIMITS.filter(([key]) => Number.isSafeInteger(value.limits?.[key])).map(([key]) => [key, String(value.limits[key])])),
     };
   }
@@ -2951,6 +2955,8 @@
     if (problem) return graphiteMode(g.mode) + " mode · " + problem;
     const fields = graphiteFields(g);
     const parts = [graphiteMode(g.mode) + " mode"];
+    if (g.mode === "RESEARCH") parts.push("research plan only; no selected candidate or submission");
+    else parts.push(fields.submission_policy ? "retain selected candidate for review; no commit or validator submission" : "normal submission behavior");
     if (g.mode === "FULL") parts.push("research share " + percentText(fields.research_share) + "%" + (shareCapped() ? "" : " (binds only once you set a model-spend or model-call ceiling)"));
     if (g.mode === "BUILD") parts.push(fields.plan ? "plan " + fields.plan.slice(0, 12) + (fields.plan.length > 12 ? "…" : "") : "no plan: its Planner writes one first");
     if (huntApplies(g)) parts.push(fields.hunt ? "hunt up to " + fields.hunt.max_records + " papers" + (fields.hunt.queries ? " with " + fields.hunt.queries.length + " of your queries" : "") : "no hunt: the shared pack and your library");
@@ -3315,7 +3321,7 @@
   }
   function drawGraphiteOptions(box) {
     box.append(el("h3", "Graphite"));
-    box.append(el("p", "Graphite, Carbon's research agent, reads the literature, writes a plan, then builds, practises, selects and submits: on your model, with your key, within your own budget. Carbon spends nothing and caps nothing.", "hint"));
+    box.append(el("p", "Graphite, Carbon's research agent, reads the literature, writes a plan, then builds, practises, selects and normally submits: on your model, with your key, within your own budget. Carbon spends nothing and caps nothing.", "hint"));
     const modes = el("fieldset", undefined, "selects"); modes.id = "wizard-graphite-modes";
     modes.append(el("legend", "Mode"));
     for (const [mode, label, text] of GRAPHITE_MODES) {
@@ -3326,6 +3332,12 @@
       choice.append(input, span); modes.append(choice);
     }
     box.append(modes);
+    const retain = el("div", undefined, "graphite-field"); retain.id = "wizard-graphite-retain";
+    const retainLabel = el("label", undefined, "check");
+    const retainCheck = el("input"); retainCheck.type = "checkbox"; retainCheck.id = "wizard-retain-before-submit";
+    retainCheck.addEventListener("change", () => setGraphite({retain: retainCheck.checked}));
+    retainLabel.append(retainCheck, " Retain the selected candidate for review before submit (no commitment or validator submission; off by default)");
+    retain.append(retainLabel); box.append(retain);
     // Full: how much of the budget research may use.
     const share = el("div", undefined, "graphite-field"); share.id = "wizard-graphite-share";
     graphiteInput(share, "wizard-research-share", "Research share · % of your model budget", "number", value => setGraphite({share: value}), {min: "0", max: "100", step: "0.01"});
@@ -3381,6 +3393,8 @@
   function patchGraphiteOptions() {
     const g = graphiteChoices();
     for (const input of document.querySelectorAll("input[name=wizard-graphite-mode]")) input.checked = input.value === g.mode;
+    $("wizard-graphite-retain").hidden = g.mode === "RESEARCH";
+    $("wizard-retain-before-submit").checked = g.retain;
     $("wizard-graphite-share").hidden = g.mode !== "FULL";
     $("wizard-graphite-plan-box").hidden = g.mode !== "BUILD";
     $("wizard-graphite-hunt").hidden = !huntApplies(g);
@@ -3695,6 +3709,8 @@
     if (problem || value.agent !== GRAPHITE) return problem;
     const g = graphiteFromFields(value);
     const graphite = graphiteChoiceProblem(g) || graphiteLimitsProblem(g);
+    if (Object.hasOwn(value, "submission_policy") && value.submission_policy !== "retain_only_v1") return "Graphite: submission policy must be retain_only_v1";
+    if (value.graphite_mode === "RESEARCH" && Object.hasOwn(value, "submission_policy")) return "Graphite: Research has no selected candidate to retain";
     return graphite ? "Graphite: " + graphite : null;
   }
   $("path-quick").addEventListener("click", () => { launchPath = "quick"; saveWizard(); render(); });

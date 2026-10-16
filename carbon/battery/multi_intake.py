@@ -108,7 +108,9 @@ def _finish(root, epoch, rows):
 async def evaluate(prepared, epoch, record, targets):
     from carbon.battery import campaign
     from carbon.development_session.research_campaign import OperationRefused
+    from carbon.development_session.submission_policy import require_submission
 
+    require_submission(prepared)
     targets = validate(targets)
     root = prepared.ledger.root
     gate = getattr(prepared.args, "commitment_gate", None)

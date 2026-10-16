@@ -1087,8 +1087,13 @@ async def _build(run, plan_doc, plan_digest):
     miner's own ceilings or time end (`miner_ceiling_reached`), or any other
     typed stop of the loop, ends the build STOPPED with that code, noted in
     the ledger, and the campaign completes."""
+    from carbon.development_session import submission_policy
     from carbon.development_session.research_report import report
 
+    retain_only = submission_policy.retains(run.manifest, root=run.ledger.root)
+    if retain_only and campaigns.retained_candidate(run.ledger.root):
+        # A resume keeps the actual frozen selection; no second Constructor.
+        return None
     if run.stages.finished(BUILD) is not None:
         # Finished: never run again (a stop after its record, before the
         # campaign's completion, completes it).
@@ -1139,6 +1144,19 @@ async def _build(run, plan_doc, plan_digest):
             if type(result.get("code")) is str:
                 stopped = _stopped(result)
             break
+        if retain_only:
+            ledger.note(
+                owner=owner,
+                kind="decision",
+                body={
+                    "epoch": epoch,
+                    "submission_policy": submission_policy.RETAIN_ONLY,
+                    "candidate_retained": True,
+                    "evaluation_dispatched": False,
+                },
+            )
+            # No feedback/final epoch/completion: normal settling leaves READY.
+            return None
         feedback, retained = await campaigns.submit_or_retain(
             run.prepared, epoch, result["strategy"]
         )
@@ -1239,6 +1257,10 @@ def view(root, *, operations=None):
         _, block = _block(manifest)
     except ValueError:
         return None
+    from carbon.development_session import submission_policy
+
+    policy = submission_policy.launch_fields(block)
+    retained = bool(policy) and campaigns.retained_candidate(root)
     if operations is None:
         from carbon.development_session.research_ledger import CampaignLedger
 
@@ -1250,7 +1272,11 @@ def view(root, *, operations=None):
         if done is not None:
             state = "DONE" if done.get("status") in ("DONE", "PLANNED") else "STOPPED"
         else:
-            state = "RUNNING" if stages.started(name) else "PENDING"
+            state = (
+                "RETAINED"
+                if name == BUILD and retained
+                else "RUNNING" if stages.started(name) else "PENDING"
+            )
         rows.append(
             {
                 "stage": name,
@@ -1260,6 +1286,8 @@ def view(root, *, operations=None):
         )
         if current is None and done is None:
             current = name
+    if retained:
+        current = "retained"
     if (root / "campaign-complete.json").exists():
         current = "complete"
     planned = stages.finished(PLAN)
@@ -1268,6 +1296,7 @@ def view(root, *, operations=None):
     full = block["mode"] == editions.FULL_MODE
     return {
         "schema": VIEW_SCHEMA,
+        **policy,
         "edition": block["edition"],
         "mode": block["mode"],
         "stage": current,
