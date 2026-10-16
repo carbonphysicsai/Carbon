@@ -192,6 +192,44 @@ def _prepare(paths, expected_sha256):
     )
 
 
+def _collect_groups(
+    groups,
+    *,
+    workers,
+    submitted,
+    received,
+    completed,
+    record_schema="carbon.battery.feasibility02-record.v1",
+):
+    """One durable caller-owned triple at a time; never submit after a refusal.
+
+    Both continuation contracts use this same existing pool/collection loop.
+    Callbacks retain their own immutable role/source/output and reduction rules.
+    """
+    with ProcessPoolExecutor(workers) as pool:
+        for group in groups:
+            futures, rows = {}, []
+            for job in group:
+                future = pool.submit(worker._timed, job)
+                futures[future] = job
+                submitted(job)
+            for future in as_completed(futures):
+                job = futures[future]
+                try:
+                    record = future.result()
+                except Exception as exc:  # noqa: BLE001 -- preserve infra evidence
+                    record = {
+                        **job,
+                        "schema": record_schema,
+                        "status": "FAILED_INFRA",
+                        "error": repr(exc)[:300],
+                    }
+                rows.append(received(job, record))
+            if not completed(group, rows):
+                return False
+    return True
+
+
 def run(paths, *, expected_sha256, workers=2):
     """Authenticate prior evidence before pool/output creation; never rerun it."""
     if type(workers) is not int or not 1 <= workers <= 2:
@@ -256,50 +294,47 @@ def run(paths, *, expected_sha256, workers=2):
     with records.open("x", encoding="utf-8"):
         pass
     save()
+
+    def submitted(job):
+        states[job["case_id"]] = "SUBMITTED"
+        save()
+
+    def received(job, record):
+        record = truth_env.stamp(record, provenance)
+        with records.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(record, sort_keys=True) + "\n")
+            handle.flush()
+            os.fsync(handle.fileno())
+        mappings.append(
+            {
+                "line": len(mappings) + 1,
+                "job_id": job["case_id"],
+                "case_id": record.get("case_id"),
+            }
+        )
+        states[job["case_id"]] = record.get("status", "MALFORMED_RECORD")
+        save()
+        return record
+
+    def completed(group, rows):
+        case = _case(group)
+        triples[case] = worker._calibration_rows(binding, group, rows)
+        current = _report({case: triples[case]}, [case], binding)
+        receipt["per_completed_triple"].append(current)
+        if current["status"] != COMPATIBLE:
+            receipt["status"] = current["status"]
+        save()
+        return current["status"] == COMPATIBLE
+
     try:
-        with ProcessPoolExecutor(workers) as pool:
-            for group in groups:
-                futures, rows = {}, []
-                for job in group:
-                    future = pool.submit(worker._timed, job)
-                    futures[future] = job
-                    states[job["case_id"]] = "SUBMITTED"
-                    save()
-                for future in as_completed(futures):
-                    job = futures[future]
-                    try:
-                        record = future.result()
-                    except Exception as exc:  # noqa: BLE001 -- preserve infra evidence
-                        record = {
-                            **job,
-                            "schema": "carbon.battery.feasibility02-record.v1",
-                            "status": "FAILED_INFRA",
-                            "error": repr(exc)[:300],
-                        }
-                    record = truth_env.stamp(record, provenance)
-                    with records.open("a", encoding="utf-8") as handle:
-                        handle.write(json.dumps(record, sort_keys=True) + "\n")
-                        handle.flush()
-                        os.fsync(handle.fileno())
-                    rows.append(record)
-                    mappings.append(
-                        {
-                            "line": len(mappings) + 1,
-                            "job_id": job["case_id"],
-                            "case_id": record.get("case_id"),
-                        }
-                    )
-                    states[job["case_id"]] = record.get("status", "MALFORMED_RECORD")
-                    save()
-                case = _case(group)
-                triples[case] = worker._calibration_rows(binding, group, rows)
-                current = _report({case: triples[case]}, [case], binding)
-                receipt["per_completed_triple"].append(current)
-                if current["status"] != COMPATIBLE:
-                    receipt["status"] = current["status"]
-                    save()
-                    return 2
-                save()
+        if not _collect_groups(
+            groups,
+            workers=workers,
+            submitted=submitted,
+            received=received,
+            completed=completed,
+        ):
+            return 2
     except BaseException:
         receipt["status"] = "INTERRUPTED_OR_INVALID_REFERENCE"
         save()

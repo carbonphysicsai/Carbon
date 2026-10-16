@@ -1,0 +1,719 @@
+"""Unsealed synthetic controls; no invented successful CAL or EVAL certificate."""
+
+from __future__ import annotations
+
+import builtins
+import copy
+import hashlib
+import importlib.util
+import json
+from pathlib import Path
+from types import SimpleNamespace
+
+import pytest
+
+from carbon.design_search import tasks
+from scripts.dev.battery import guarded_reference as guard
+from scripts.dev.score_lab import guarded419_eval as producer
+from scripts.dev.score_lab import owner_v3 as owner
+from scripts.dev.score_lab import owner_v3_numerics as numerics
+from scripts.dev.score_lab import owner_v3_panel_export as legacy
+
+_spec = importlib.util.spec_from_file_location(
+    "guarded419_t9_fixture_for_eval",
+    Path(__file__).resolve().parents[1] / "fixtures/guarded419_t9.py",
+)
+fixture = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(fixture)
+
+
+def original_plan():
+    # Input-only original plan used ONLY to exercise unsealed helper primitives.
+    # It can never enter the new build/context acceptance path.
+    return {**producer.input_plan(), "job": owner.JOB}
+
+
+def original_jobs():
+    plan = original_plan()
+    return owner.acquisition_inputs(
+        plan, expected_digest=tasks.digest(plan), stage="evaluation"
+    )["jobs"]
+
+
+def raw_fixture():
+    plan = producer.input_plan()
+    offered = producer._worker_jobs(original_jobs())
+    files = {p: "a" * 64 for p in producer.REQUIRED_SOURCES}
+    pins = {"execution_source": "b" * 40, "files": files}
+    obs = producer.observer(plan, files)
+    records = []
+    for job in offered[:2]:
+        record = fixture.record(job)
+        record["schema"] = producer.RECORD
+        record["reference_identity"] = copy.deepcopy(obs)
+        records.append(record)
+    return plan, offered, pins, obs, records
+
+
+def delivery(records, pins):
+    raw = b"".join((json.dumps(r, sort_keys=True) + "\n").encode() for r in records)
+    chunk = {
+        "id": "synthetic-eval",
+        "sha256": hashlib.sha256(raw).hexdigest(),
+        "role": "PUBLIC_EVALUATION",
+        "source_commit": pins["execution_source"],
+        "source_files": pins["files"],
+        "rows": [
+            {"line": i, "job_id": r["case_id"], "case_id": r["case_id"]}
+            for i, r in enumerate(records, 1)
+        ],
+    }
+    return {"scope": "SYNTHETIC_FIXTURE", "chunks": [chunk]}, {chunk["id"]: raw}
+
+
+def members():
+    return [
+        {
+            "id": f"{producer.COHORT}:{recipe}:seed{seed}",
+            "recipe": recipe,
+            "seed": seed,
+            "train_sha256": "1" * 64,
+            "construction_receipt_digest": "sha256:" + "2" * 64,
+            "fit_receipt_sha256": "3" * 64,
+            "predictions_sha256": "4" * 64,
+            "commitments_sha256": "5" * 64,
+            "commitment_receipt_sha256": "6" * 64,
+            "kit": "carbon.battery-v3.guard419.stage128.kit.v1:sha256:" + "7" * 64,
+            "fit_source": "8" * 40,
+        }
+        for recipe in producer.RECIPES
+        for seed in producer.SEEDS
+    ]
+
+
+def test_input_plan_exact_job_only_change_and_same60_order120rungs():
+    plan = producer.input_plan()
+    producer._plan(plan, tasks.digest(plan))
+    root = Path(__file__).resolve().parents[2]
+    raw = (root / producer.PLAN_FILE).read_bytes()
+    assert hashlib.sha256(raw).hexdigest() == producer.PLAN_SHA
+    assert plan == {**json.loads(raw), "job": producer.JOB}
+    old = original_jobs()
+    new = producer._worker_jobs(old)
+    assert len(new) == 120 and len({j["case_id"] for j in new}) == 120
+    assert (
+        len(
+            {
+                (
+                    j["c1"],
+                    j["c2"],
+                    j["switch_voltage_v"],
+                    j["h_multiplier"],
+                    j["t_amb_c"],
+                    j["soc0"],
+                )
+                for j in new
+            }
+        )
+        == 60
+    )
+    for a, b in zip(old, new, strict=True):
+        assert {k: b[k] for k in a if k != "case_id"} == {
+            k: v for k, v in a.items() if k != "case_id"
+        }
+        assert b["parent_input_case_id"] == a["case_id"]
+        assert b["case_id"] == a["case_id"].replace(
+            "scorelab-v3:", "scorelab-v3:guarded419-v1:", 1
+        )
+        assert b["reference_role"] == "PUBLIC_EVALUATION"
+        assert b["reference_method"] == guard.METHOD_ID
+        assert b["reference_method_digest"] == tasks.digest(guard.METHOD)
+    inputs = [{k: v for k, v in j.items() if k in old[0]} for j in new]
+    assert producer._worker_jobs(inputs) == new
+    with pytest.raises(tasks.TaskError):
+        producer._worker_jobs([fixture.record(new[0])])
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [("soc0", 0.2), ("cycles", 1), ("cooling", [1, 2]), ("job", owner.JOB)],
+)
+def test_rehashed_plan_cannot_change_population_or_old_job(field, value):
+    plan = producer.input_plan()
+    plan[field] = value
+    with pytest.raises(tasks.TaskError):
+        producer._plan(plan, tasks.digest(plan))
+
+
+def test_both_raw_rungs_real_tracking_and_failed_missing_ledger_without_seal():
+    _, offered, pins, obs, records = raw_fixture()
+    manifest, chunks = delivery(records, pins)
+    extracted, proof, tracking = producer._raw_rows(
+        manifest, chunks, offered, pins, obs
+    )
+    assert len(extracted) == 120 and len(proof) == len(tracking) == 2
+    assert all(
+        t["status"] == "TRACKING_COMPATIBLE"
+        and t["checked_phases"] == t["required_phases"] == 181
+        for t in tracking.values()
+    )
+    assert [extracted[j["case_id"]]["state"] for j in offered[:2]] == ["EXTRACTED"] * 2
+    assert sum(r["state"] == "MISSING" for r in extracted.values()) == 118
+    assert all(
+        p["raw_row_sha256"]
+        == hashlib.sha256(chunks[p["chunk"]].splitlines()[p["line"] - 1]).hexdigest()
+        for p in proof.values()
+    )
+    assert not isinstance(extracted, producer.ValidatedEvidence)
+    records[0]["status"] = "REFERENCE_SOLVER_FAILED"
+    manifest, chunks = delivery(records, pins)
+    result, _, _ = producer._raw_rows(manifest, chunks, offered, pins, obs)
+    assert result[records[0]["case_id"]]["state"] == "REFERENCE_UNRESOLVED"
+    assert result[records[0]["case_id"]]["raw_status"] == "REFERENCE_SOLVER_FAILED"
+    assert all(v is None for v in result[records[0]["case_id"]]["values"].values())
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        "role",
+        "schema",
+        "observer",
+        "input",
+        "bool",
+        "source",
+        "duplicate",
+        "unmapped",
+        "extra",
+        "fixture",
+    ],
+)
+def test_rehashed_raw_context_type_source_mapping_and_public_promotion_refused(
+    mutation,
+):
+    _, offered, pins, obs, records = raw_fixture()
+    if mutation == "schema":
+        records[0]["schema"] = guard.RECORD
+    elif mutation == "observer":
+        records[0]["reference_identity"]["id"] = "old-observer"
+    elif mutation == "input":
+        records[0]["c1"] += 0.01
+    elif mutation == "bool":
+        records[0]["rung"] = True
+    manifest, chunks = delivery(records, pins)
+    chunk = manifest["chunks"][0]
+    if mutation == "role":
+        chunk["role"] = "PUBLIC_CONSTRUCTION"
+    elif mutation == "source":
+        chunk["source_commit"] = "c" * 40
+    elif mutation == "duplicate":
+        chunk["rows"][1] = copy.deepcopy(chunk["rows"][0])
+    elif mutation == "unmapped":
+        chunk["rows"].pop()
+    elif mutation == "extra":
+        chunks["unregistered"] = b"{}\n"
+    elif mutation == "fixture":
+        manifest["scope"] = "PUBLIC_DEVELOPMENT"
+    with pytest.raises(tasks.TaskError):
+        producer._raw_rows(manifest, chunks, offered, pins, obs)
+
+
+def test_tracking_failure_is_reference_unresolved_not_candidate_failure():
+    _, offered, pins, obs, records = raw_fixture()
+    records[0]["per_cycle"][0]["phases"]["cv"]["voltage_contact_observation"][
+        "cv_voltage_minus_target"
+    ]["target_v"] = 4.2
+    manifest, chunks = delivery(records, pins)
+    values, _, tracking = producer._raw_rows(manifest, chunks, offered, pins, obs)
+    jid = records[0]["case_id"]
+    assert tracking[jid]["status"] == "REFERENCE_UNRESOLVED"
+    assert values[jid]["state"] == "REFERENCE_UNRESOLVED"
+    assert all(v is None for v in values[jid]["values"].values())
+
+
+def test_unsealed_enclosures_reuse_actual_policy_and_keep_zero_weight_band():
+    plan = original_plan()
+    registered = owner.population_tasks(
+        plan, expected_plan_digest=tasks.digest(plan), count=1
+    )[0]["task"]
+    registered = copy.deepcopy(registered)
+    # This artificial zero buyer weight is an INTERNAL helper control only;
+    # a changed registered question cannot enter the fixed64 build path.
+    registered["indices"][0]["buyer_weight"] = 0
+    offered = producer._worker_jobs(original_jobs())
+    point = {
+        "charging_t_max_c": 30.0,
+        "plating_min_v": 0.01,
+        "minutes": 30.0,
+        "q30_over_q1": 1.0,
+        "v_max_v": 4.19,
+    }
+    extracted = {
+        j["case_id"]: {"state": "EXTRACTED", "values": dict(point)} for j in offered
+    }
+    panels, bounds, pairs = producer._reduce(registered, offered, extracted)
+    assert len(panels) == len(bounds) == 5 and len(pairs) == 60
+    assert all(len(p["values"]) == 12 for p in panels)
+    expected = numerics.pair_enclosures(
+        point, point, expected_policy_digest=tasks.digest(numerics.POLICY)
+    )
+    assert pairs[0]["pair"] == expected
+    missing = offered[0]["case_id"]
+    extracted[missing] = {
+        "state": "MISSING",
+        "values": dict.fromkeys(legacy.QUANTITIES),
+    }
+    panels, bounds, pairs = producer._reduce(registered, offered, extracted)
+    assert len(panels[0]["values"]) == 12
+    assert pairs[0]["pair"]["status"] == "REFERENCE_UNRESOLVED"
+    assert bounds[0]["candidates"][pairs[0]["candidate"]] == {}
+
+
+def test_exact_final18_identity_roster_is_not_fit_or_cal_evidence():
+    cohort = members()
+    assert producer._members(cohort) is None
+    assert len({m["id"] for m in cohort}) == 18
+    with pytest.raises(tasks.TaskError):
+        producer.ValidatedEvidence(payload={"status": "PASS"})
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        "drop",
+        "duplicate",
+        "oldtrain",
+        "oldmodel",
+        "probe",
+        "seed",
+        "kit",
+        "hash",
+        "fit_source",
+        "construction",
+    ],
+)
+def test_unsealed_roster_rejects_legacy_probe_substitution_and_missing_offers(mutation):
+    cohort = members()
+    if mutation == "drop":
+        cohort.pop()
+    elif mutation == "duplicate":
+        cohort[1] = copy.deepcopy(cohort[0])
+    elif mutation == "oldtrain":
+        cohort[0]["train_sha256"] = producer.OLD_TRAIN_SHA
+    elif mutation == "oldmodel":
+        cohort[0]["id"] = "battery-v3-scorelab-cohort-dev-v1:default:seed11"
+    elif mutation == "probe":
+        cohort[0]["id"] = "battery-v3-scorelab-guard419-probe9.default.v1"
+    elif mutation == "seed":
+        cohort[0]["seed"] = True
+    elif mutation == "kit":
+        cohort[0]["kit"] = "carbon.battery-v3.kit.v1"
+    elif mutation == "hash":
+        cohort[0]["fit_receipt_sha256"] = "sha256:" + "a" * 64
+    elif mutation == "fit_source":
+        cohort[0]["fit_source"] = "a" * 39
+    else:
+        cohort[0]["construction_receipt_digest"] = "sha256:" + "9" * 64
+    with pytest.raises(tasks.TaskError):
+        producer._members(cohort)
+
+
+def test_missing_real_cal_interface_is_typed_unavailable_no_fake_pass(monkeypatch):
+    original = builtins.__import__
+
+    def missing(name, globals=None, locals=None, fromlist=(), level=0):
+        if (
+            name == "scripts.dev.score_lab"
+            and "guarded419_calibration_continue" in fromlist
+        ):
+            raise ImportError("deliberately absent real CAL")
+        return original(name, globals, locals, fromlist, level)
+
+    monkeypatch.setattr(builtins, "__import__", missing)
+    with pytest.raises(producer.PrerequisiteUnavailable, match="CAL15"):
+        producer._cal_api()
+
+
+def test_raw_dict_context_cannot_mint_or_validate_nominal_evidence():
+    with pytest.raises(tasks.TaskError):
+        producer.validate_for(
+            {"status": "PASS"},
+            {},
+            [],
+            [],
+            scope="PUBLIC_DEVELOPMENT",
+            context={"status": "PASS"},
+        )
+    with pytest.raises(tasks.TaskError):
+        producer.validate_calibration(
+            {"status": "PASS"},
+            {"calibration": {}, "scope": "PUBLIC_DEVELOPMENT"},
+            {},
+            context={"status": "PASS"},
+        )
+
+
+def _cal_context():
+    # Real upstream context, not a monkeypatched success or fabricated CAL.
+    from scripts.dev.score_lab import guarded419_context as context
+
+    return context.load(expected_sha256=context.REGISTRATION_SHA256)
+
+
+def _cal_file_spec():
+    # Malformed reference bytes below can never issue nominal CAL evidence.
+    entry = {"path": "cal-binding", "sha256": hashlib.sha256(b"not-json").hexdigest()}
+    return {
+        "schema": "carbon.scorelab.guarded419.cal15-files.v1",
+        "scope": "PUBLIC_DEVELOPMENT",
+        "binding": dict(entry),
+        "manifest": {**entry, "path": "cal-manifest"},
+        "raw_chunks": {},
+        "g0": {
+            name: {**entry, "path": "g0-" + name}
+            for name in ("binding", "records", "receipt")
+        },
+        "t9": {
+            "binding": {**entry, "path": "t9-binding"},
+            "manifest": {**entry, "path": "t9-manifest"},
+            "raw_chunks": {},
+        },
+        "probe": {
+            name: {**entry, "path": "probe-" + name}
+            for name in (
+                "construction",
+                "inputs",
+                "support",
+                "fit",
+                "predictions",
+                "outcome",
+            )
+        },
+        "expected_binding_digest": "sha256:" + "1" * 64,
+        "expected_manifest_digest": "sha256:" + "2" * 64,
+    }
+
+
+def test_cal_file_bridge_invalid_context_cannot_reach_cal_or_eval_loader(monkeypatch):
+    reads = []
+
+    def forbidden_api():
+        pytest.fail("invalid context must stop before CAL construction")
+
+    monkeypatch.setattr(producer, "_cal_api", forbidden_api)
+    with pytest.raises(tasks.TaskError):
+        producer.calibration_from_files(
+            _cal_file_spec(),
+            load=reads.append,
+            scope="PUBLIC_DEVELOPMENT",
+            context={"status": "PASS"},
+        )
+    assert reads == []
+
+
+@pytest.mark.parametrize("defect", ["scope", "binding_digest", "manifest_digest"])
+def test_cal_file_bridge_refuses_bad_scope_or_digest_before_loading(defect):
+    spec, reads = _cal_file_spec(), []
+    if defect == "scope":
+        spec["scope"] = "SYNTHETIC_FIXTURE"
+    else:
+        spec["expected_" + defect] = "not-a-content-digest"
+
+    def load(key):
+        reads.append(key)
+        pytest.fail("invalid admission must not load any CAL or EVAL bytes")
+
+    with pytest.raises(tasks.TaskError):
+        producer.calibration_from_files(
+            spec, load=load, scope="PUBLIC_DEVELOPMENT", context=_cal_context()
+        )
+    assert reads == []
+
+
+def test_cal_file_bridge_missing_callable_loader_is_typed_unavailable(monkeypatch):
+    reads = []
+    monkeypatch.setattr(
+        producer,
+        "_cal_api",
+        lambda: SimpleNamespace(from_files=None, validate_for=None),
+    )
+    with pytest.raises(
+        producer.PrerequisiteUnavailable, match="nominal file interface"
+    ):
+        producer.calibration_from_files(
+            _cal_file_spec(),
+            load=reads.append,
+            scope="PUBLIC_DEVELOPMENT",
+            context=_cal_context(),
+        )
+    assert reads == []
+
+
+def test_cal_file_bridge_delegates_exact_spec_and_loader_but_not_evidence(monkeypatch):
+    from scripts.dev.score_lab import guarded419_calibration_continue as cal
+
+    spec, calls = _cal_file_spec(), []
+
+    def load(key):
+        pytest.fail("delegation refusal must not load EVAL")
+
+    def refused(actual, *, load, scope):
+        calls.append((actual, load, scope))
+        raise tasks.TaskError("real-loader refusal sentinel")
+
+    monkeypatch.setattr(cal, "from_files", refused)
+    with pytest.raises(tasks.TaskError, match="real-loader refusal sentinel"):
+        producer.calibration_from_files(
+            spec, load=load, scope="PUBLIC_DEVELOPMENT", context=_cal_context()
+        )
+    assert calls == [(spec, load, "PUBLIC_DEVELOPMENT")]
+    assert calls[0][0] is spec and calls[0][1] is load
+
+
+@pytest.mark.parametrize("use_disk_path", [False, True])
+def test_cal_registry_file_ids_are_not_physical_path_aliases(use_disk_path):
+    spec, reads = _cal_file_spec(), []
+    registry = {
+        "cal-binding": {
+            "path": "public/cal-binding.json",
+            "sha256": spec["binding"]["sha256"],
+        },
+        "cal-manifest": {
+            "path": "public/cal-manifest.json",
+            "sha256": spec["manifest"]["sha256"],
+        },
+    }
+    artifacts = {"cal-binding": b"not-json", "cal-manifest": b"not-json"}
+    if use_disk_path:
+        spec["binding"]["path"] = registry["cal-binding"]["path"]
+
+    def load(key):
+        reads.append(key)
+        if key not in registry:
+            raise tasks.TaskError("UNDECLARED_INPUT")
+        raw = artifacts[key]
+        assert hashlib.sha256(raw).hexdigest() == registry[key]["sha256"]
+        return raw
+
+    expected = tasks.TaskError if use_disk_path else json.JSONDecodeError
+    with pytest.raises(expected, match="UNDECLARED_INPUT" if use_disk_path else None):
+        producer.calibration_from_files(
+            spec, load=load, scope="PUBLIC_DEVELOPMENT", context=_cal_context()
+        )
+    # The logical ID reaches the genuine CAL parser, which rejects the bad
+    # JSON. The physical path is rejected by the registry, never opened.
+    assert reads == (
+        [registry["cal-binding"]["path"]]
+        if use_disk_path
+        else ["cal-binding", "cal-manifest"]
+    )
+    assert not any("eval" in key for key in reads)
+
+
+def test_cal_missing_manifest_registry_id_is_not_a_parser_or_eval_fallback():
+    spec, reads = _cal_file_spec(), []
+
+    def load(key):
+        reads.append(key)
+        if key != "cal-binding":
+            raise tasks.TaskError("UNDECLARED_INPUT")
+        raw = b"not-json"
+        assert hashlib.sha256(raw).hexdigest() == spec["binding"]["sha256"]
+        return raw
+
+    with pytest.raises(tasks.TaskError, match="UNDECLARED_INPUT"):
+        producer.calibration_from_files(
+            spec, load=load, scope="PUBLIC_DEVELOPMENT", context=_cal_context()
+        )
+    # Both file entries are loaded before either is parsed by the real CAL
+    # owner. Missing registration is not JSON failure or a path-search cue.
+    assert reads == ["cal-binding", "cal-manifest"]
+    assert not any("eval" in key for key in reads)
+
+
+def test_cal_file_bridge_revalidates_nominal_evidence_and_independent_pins(monkeypatch):
+    from scripts.dev.score_lab import guarded419_calibration_continue as cal
+
+    spec, calls = _cal_file_spec(), []
+    forged = {"status": "PASS"}
+    monkeypatch.setattr(cal, "from_files", lambda *args, **kwargs: forged)
+    real_validate = cal.validate_for
+
+    def validate(evidence, **kwargs):
+        calls.append((evidence, kwargs))
+        return real_validate(evidence, **kwargs)
+
+    monkeypatch.setattr(cal, "validate_for", validate)
+    with pytest.raises(tasks.TaskError, match="validated nominal CAL15"):
+        producer.calibration_from_files(
+            spec,
+            load=lambda key: pytest.fail("no reference bytes expected"),
+            scope="PUBLIC_DEVELOPMENT",
+            context=_cal_context(),
+        )
+    assert calls == [
+        (
+            forged,
+            {
+                "expected_binding_digest": spec["expected_binding_digest"],
+                "expected_manifest_digest": spec["expected_manifest_digest"],
+                "scope": "PUBLIC_DEVELOPMENT",
+            },
+        )
+    ]
+
+
+def _worker_registration():
+    # Synthetic pin metadata exercises registration only, never source
+    # execution, prior-stage acceptance or a nominal EVAL certificate.
+    from scripts.dev.score_lab import guarded419_context as context
+
+    plan = producer.input_plan()
+    files = {name: "a" * 64 for name in producer.REQUIRED_SOURCES}
+    files[producer.REGISTRATION_FILE] = context.REGISTRATION_SHA256
+    pins = {
+        "schema": producer.PINS,
+        "scope": "DEVELOPMENT_ONLY",
+        "execution_source": "b" * 40,
+        "files": files,
+    }
+    return {
+        "plan": plan,
+        "expected_plan_digest": tasks.digest(plan),
+        "source_pins": pins,
+        "expected_source_pins_digest": tasks.digest(pins),
+        "context": _cal_context(),
+    }
+
+
+def _registered_jobs(registration, refinement_job_ids=()):
+    return producer.jobs(
+        registration["plan"],
+        expected_plan_digest=registration["expected_plan_digest"],
+        context=registration["context"],
+        refinement_job_ids=refinement_job_ids,
+    )
+
+
+def test_worker_context_mandatory120_and_detached_metadata_not_evidence():
+    registration = _worker_registration()
+    offered = _registered_jobs(registration)
+    assert len(offered) == 120 and {job["rung"] for job in offered} == {1, 2}
+    assert producer.validate_job(offered[0], **registration) is None
+    result = producer.job_context(offered[-1], **registration)
+    assert result == {
+        "record_schema": producer.RECORD,
+        "reference_identity": producer.observer(
+            registration["plan"], registration["source_pins"]["files"]
+        ),
+    }
+    assert not isinstance(result, producer.ValidatedEvidence)
+    saved = copy.deepcopy(registration["source_pins"])
+    result["reference_identity"]["source_files"].clear()
+    result["reference_identity"]["clock"] = "mutated"
+    assert registration["source_pins"] == saved
+    assert registration["plan"] == producer.input_plan()
+
+
+@pytest.mark.parametrize(
+    "defect",
+    [
+        "unknown_id",
+        "role",
+        "method",
+        "parent",
+        "rung_type",
+        "extra_observer",
+        "not_mapping",
+    ],
+)
+def test_worker_context_rejects_foreign_changed_or_malformed_job(defect):
+    registration = _worker_registration()
+    job = copy.deepcopy(_registered_jobs(registration)[0])
+    if defect == "unknown_id":
+        job["case_id"] = "scorelab-v3:guarded419-v1:eval:unregistered"
+    elif defect == "role":
+        job["reference_role"] = "PUBLIC_CONSTRUCTION"
+    elif defect == "method":
+        job["reference_method_digest"] = "sha256:" + "0" * 64
+    elif defect == "parent":
+        job["parent_input_case_id"] = "legacy-or-foreign-parent"
+    elif defect == "rung_type":
+        job["rung"] = True
+    elif defect == "extra_observer":
+        job["reference_identity"] = {"status": "PASS"}
+    else:
+        job = None
+    with pytest.raises(tasks.TaskError, match="registered guarded EVAL job"):
+        producer.job_context(job, **registration)
+
+
+def test_worker_context_mesh80_only_explicit_ordered_registered_ids():
+    registration = _worker_registration()
+    possible = producer._worker_jobs(
+        owner.acquisition_inputs(
+            registration["plan"],
+            expected_digest=registration["expected_plan_digest"],
+            stage="refinement",
+            context=registration["context"],
+        )["jobs"]
+    )
+    assert len(possible) == 60 and all(job["rung"] == 3 for job in possible)
+    with pytest.raises(tasks.TaskError, match="registered guarded EVAL job"):
+        producer.job_context(possible[0], **registration)
+    ids = [possible[0]["case_id"], possible[2]["case_id"]]
+    assert len(_registered_jobs(registration, ids)) == 122
+    assert (
+        producer.job_context(possible[0], **registration, refinement_job_ids=ids)[
+            "record_schema"
+        ]
+        == producer.RECORD
+    )
+    with pytest.raises(tasks.TaskError, match="registered guarded EVAL job"):
+        producer.job_context(possible[1], **registration, refinement_job_ids=ids)
+    for invalid in (ids[::-1], ids + ids[:1], ["unknown-mesh80"]):
+        with pytest.raises(tasks.TaskError):
+            producer.job_context(
+                possible[0], **registration, refinement_job_ids=invalid
+            )
+
+
+@pytest.mark.parametrize(
+    "defect",
+    [
+        "context",
+        "source_drift",
+        "registration_rehashed",
+        "inventory_rehashed",
+        "plan_rehashed",
+    ],
+)
+def test_worker_context_verifies_root_bundle_not_job_claims(defect):
+    registration = _worker_registration()
+    job = _registered_jobs(registration)[0]
+    if defect == "context":
+        registration["context"] = {"status": "PASS"}
+    elif defect == "source_drift":
+        registration["source_pins"]["files"][guard.MODULE] = "c" * 64
+    elif defect == "registration_rehashed":
+        registration["source_pins"]["files"][producer.REGISTRATION_FILE] = "c" * 64
+        registration["expected_source_pins_digest"] = tasks.digest(
+            registration["source_pins"]
+        )
+    elif defect == "inventory_rehashed":
+        registration["source_pins"]["files"]["foreign.py"] = "c" * 64
+        registration["expected_source_pins_digest"] = tasks.digest(
+            registration["source_pins"]
+        )
+    else:
+        registration["plan"]["soc0"] = 0.2
+        registration["expected_plan_digest"] = tasks.digest(registration["plan"])
+    with pytest.raises(tasks.TaskError):
+        producer.job_context(job, **registration)
+
+
+def test_worker_context_has_no_job_only_or_zero_argument_fallback():
+    with pytest.raises(TypeError):
+        producer.job_context({"reference_role": "PUBLIC_EVALUATION"})
+    with pytest.raises(TypeError):
+        producer.validate_job({"reference_role": "PUBLIC_EVALUATION"})
