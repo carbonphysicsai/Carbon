@@ -426,12 +426,18 @@ def _require_supported_device_adapter(profile: DevelopmentWorkerProfile) -> None
 
 STRICT_GRANT_LABEL = "carbon.accelerator.grant"
 LOCAL_APPROVAL_LABEL = "carbon.accelerator.approval"
+SELF_SERVICE_RECORD_LABEL = "carbon.accelerator.host-record"
 
 
 def _authority_label_key(worker_profile) -> str:
     """Which container label carries this profile's accelerator authority."""
-    from carbon.reconstruction.worker.model import LOCAL_DEVELOPMENT_AUTHORITY
+    from carbon.reconstruction.worker.model import (
+        LOCAL_DEVELOPMENT_AUTHORITY,
+        MINER_HOST_AUTHORITY,
+    )
 
+    if worker_profile.accelerator_authority == MINER_HOST_AUTHORITY:
+        return SELF_SERVICE_RECORD_LABEL
     if worker_profile.accelerator_authority == LOCAL_DEVELOPMENT_AUTHORITY:
         return LOCAL_APPROVAL_LABEL
     return STRICT_GRANT_LABEL
@@ -738,29 +744,53 @@ def inspect_effective_controls(
             or (config.get("Labels") or {}).get("carbon.accelerator.device") != device
             or (config.get("Labels") or {}).get(_authority_label_key(worker_profile))
             != worker_profile.accelerator_grant_digest
-            # A local container must not also carry a strict grant label, and a
-            # strict container must not carry a local approval label.
-            or (config.get("Labels") or {}).get(
-                _other_authority_label_key(worker_profile)
+            # Each authority has exactly its own label namespace. A second
+            # authority label must never silently downgrade the checks.
+            or any(
+                (config.get("Labels") or {}).get(key) is not None
+                for key in {
+                    STRICT_GRANT_LABEL,
+                    LOCAL_APPROVAL_LABEL,
+                    SELF_SERVICE_RECORD_LABEL,
+                }
+                - {_authority_label_key(worker_profile)}
             )
-            is not None
         ):
             raise WorkerFailure(WorkerCode.POLICY)
-        from carbon.reconstruction.worker.model import LOCAL_DEVELOPMENT_AUTHORITY
-
-        gpu_observation = inspect_gpu_device(
-            cli=cli,
-            container_name=container_name,
-            # The approved diagnostic plan, not the approval record digest.
-            # accelerator_grant_digest identifies the authority record; the plan
-            # it authorizes is a separate identity and the observation records
-            # that one.
-            development_plan_digest=(
-                worker_profile.accelerator_plan_digest
-                if worker_profile.accelerator_authority == LOCAL_DEVELOPMENT_AUTHORITY
-                else None
-            ),
+        from carbon.reconstruction.worker.model import (
+            LOCAL_DEVELOPMENT_AUTHORITY,
+            MINER_HOST_AUTHORITY,
         )
+
+        if worker_profile.accelerator_authority == MINER_HOST_AUTHORITY:
+            # The label and the complete profile digest must agree; a foreign
+            # authority cannot be relabelled as host self-service.
+            if (config.get("Labels") or {}).get(
+                "org.opencontainers.image.carbon.c03.policy"
+            ) != worker_profile.digest:
+                raise WorkerFailure(WorkerCode.POLICY)
+            from carbon.reconstruction.worker.accelerator_runtime import (
+                inspect_self_service_device,
+            )
+
+            gpu_observation = inspect_self_service_device(
+                cli=cli, container_name=container_name, worker_profile=worker_profile
+            )
+        else:
+            gpu_observation = inspect_gpu_device(
+                cli=cli,
+                container_name=container_name,
+                # The approved diagnostic plan, not the approval record digest.
+                # accelerator_grant_digest identifies the authority record; the plan
+                # it authorizes is a separate identity and the observation records
+                # that one.
+                development_plan_digest=(
+                    worker_profile.accelerator_plan_digest
+                    if worker_profile.accelerator_authority
+                    == LOCAL_DEVELOPMENT_AUTHORITY
+                    else None
+                ),
+            )
     status = cli.run(
         ["exec", container_name, "/bin/cat", "/proc/1/status"], timeout=10
     ).stdout.decode("ascii", "replace")
