@@ -20,8 +20,9 @@ foreign source, wrong role, anchor offer or mixed stage is refused.
 The runner is a new module outside T128's frozen 13-file scientific inventory.
 It has its own exact source hash in the invocation specification and must run
 from the newly published execution commit, which is bound by T128's existing
-`execution_binding`. Every existing scientific/worker file must match that
-binding locally. The historical `fc01` T9/CAL identities remain original;
+`execution_binding`. Every T128 required source and all 14 frozen CAL source
+files must match their pinned local and committed bytes. The historical
+`fc01` T9/CAL identities remain original;
 new T128 rows bind the new execution commit. No record is relabelled.
 
 Each invocation uses a separately pinned closed file spec, prior T128 manifest

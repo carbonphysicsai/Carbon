@@ -290,12 +290,29 @@ def test_source_binds_runner_and_all_existing_files_to_actual_commit(tmp_path):
     ).stdout.strip()
     files = {name: _sha((ROOT / name).read_bytes()) for name in t128.REQUIRED_SOURCES}
     binding = {"execution_source": head, "source_files": files}
+    from scripts.dev.score_lab import guarded419_calibration_continue as cal
+
+    calibration_sources = {
+        name: _sha((ROOT / name).read_bytes()) for name in cal.REQUIRED_SOURCES
+    }
     runner_sha = _sha((ROOT / runner.MODULE).read_bytes())
-    runner._source(binding, runner_sha, ROOT)
+    runner._source(binding, runner_sha, ROOT, calibration_sources)
     with pytest.raises(tasks.TaskError, match="execution commit"):
-        runner._source({**binding, "execution_source": "0" * 40}, runner_sha, ROOT)
+        runner._source(
+            {**binding, "execution_source": "0" * 40},
+            runner_sha,
+            ROOT,
+            calibration_sources,
+        )
     with pytest.raises(tasks.TaskError, match="source bytes differ"):
-        runner._source(binding, "f" * 64, ROOT)
+        runner._source(binding, "f" * 64, ROOT, calibration_sources)
+    with pytest.raises(tasks.TaskError, match="original CAL source pins differ"):
+        runner._source(
+            binding,
+            runner_sha,
+            ROOT,
+            {**calibration_sources, "scripts/dev/battery/feasibility02.py": "f" * 64},
+        )
 
 
 def test_mixed_source_or_prior_raw_pin_refused_before_pool(setup, tmp_path):

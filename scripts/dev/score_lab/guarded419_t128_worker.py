@@ -43,7 +43,7 @@ def _head(root):
     return result.stdout.strip()
 
 
-def _source(binding, runner_sha256, root):
+def _source(binding, runner_sha256, root, calibration_sources):
     if (
         type(runner_sha256) is not str
         or len(runner_sha256) != 64
@@ -51,7 +51,17 @@ def _source(binding, runner_sha256, root):
         or _head(root) != binding["execution_source"]
     ):
         raise tasks.TaskError("new T128 runner/execution commit differs")
-    sources = {**binding["source_files"], MODULE: runner_sha256}
+    if any(
+        binding["source_files"][name] != expected
+        for name, expected in calibration_sources.items()
+        if name in binding["source_files"]
+    ):
+        raise tasks.TaskError("T128 and original CAL source pins differ")
+    sources = {
+        **calibration_sources,
+        **binding["source_files"],
+        MODULE: runner_sha256,
+    }
     for name, expected in sources.items():
         path = root / name
         if not path.is_file() or _sha(path.read_bytes()) != expected:
@@ -117,7 +127,13 @@ def _materials(spec, *, load):
         "t9_delivery": t9_material,
         "calibration_evidence": calibration_evidence,
     }
-    return binding, prior_manifest, prior_raw, prerequisites
+    return (
+        binding,
+        prior_manifest,
+        prior_raw,
+        prerequisites,
+        cal_material["binding"]["source_files"],
+    )
 
 
 def _previous(binding, manifest, raw_chunks, prerequisites, partition):
@@ -156,11 +172,13 @@ def run(spec, *, load, records_path, workers=2, root=None):
     """Write one native partition and receipt; Root controls external limits."""
     if type(workers) is not int or not 1 <= workers <= 2:
         raise tasks.TaskError("T128 requires one or two workers")
-    binding, prior_manifest, prior_raw, prerequisites = _materials(spec, load=load)
+    binding, prior_manifest, prior_raw, prerequisites, calibration_sources = _materials(
+        spec, load=load
+    )
     partition = spec["partition"]
     prior = _previous(binding, prior_manifest, prior_raw, prerequisites, partition)
     root = Path(root) if root is not None else Path(__file__).resolve().parents[3]
-    _source(binding, spec["runner_sha256"], root)
+    _source(binding, spec["runner_sha256"], root, calibration_sources)
     provenance = truth_env.provenance(root)
     if (
         provenance.get("schema") != "carbon.battery.solver-provenance.v1"
