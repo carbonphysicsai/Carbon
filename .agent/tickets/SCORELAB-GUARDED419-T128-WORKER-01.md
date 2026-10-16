@@ -35,8 +35,9 @@ ceiling; this CLI does not claim to enforce provider billing or wall time.
 
 Raw records stream to fresh output; per-job `NOT_DISPATCHED`, `SUBMITTED`,
 `FAILED_INFRA` and returned status are kept in an atomic native receipt with
-raw/manifest/source digests. Interruptions retain partial bytes and a refusal
-status. Any observed failed/malformed/tracking-incompatible row remains
+raw/manifest/source digests. Interruptions, invalid reference data and
+infrastructure errors have distinct partial-receipt statuses. Any observed
+failed/malformed/tracking-incompatible row remains
 visible and cannot create a success/release claim. A complete partition means
 all offered rows returned; it does not mean scientific qualification.
 

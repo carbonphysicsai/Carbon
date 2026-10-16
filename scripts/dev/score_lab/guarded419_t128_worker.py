@@ -299,7 +299,15 @@ def run(spec, *, load, records_path, workers=2, root=None):
         save()
         return 0 if receipt["status"] == "COMPATIBLE_PARTITION_ONLY" else 2
     except BaseException as original_error:
-        receipt["status"] = "INTERRUPTED_OR_INVALID_REFERENCE"
+        receipt["status"] = (
+            "INTERRUPTED"
+            if isinstance(original_error, (KeyboardInterrupt, SystemExit))
+            else (
+                "INVALID_REFERENCE"
+                if isinstance(original_error, tasks.TaskError)
+                else "FAILED_INFRA"
+            )
+        )
         try:
             save()
         except Exception as error:  # noqa: BLE001 -- preserve original

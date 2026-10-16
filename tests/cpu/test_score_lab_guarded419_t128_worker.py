@@ -111,6 +111,7 @@ def setup(template, monkeypatch):
         fail_at = None
         infra_at = None
         interrupt_at = None
+        wrong_role_at = None
 
         def __init__(self, workers):
             assert workers == 2
@@ -133,6 +134,8 @@ def setup(template, monkeypatch):
                     if index == Pool.interrupt_at:
                         raise KeyboardInterrupt("synthetic interruption")
                     row = toy.record(job)
+                    if index == Pool.wrong_role_at:
+                        row["reference_identity"] = t128.observer(t128.CONSTRUCTION)
                     if index == Pool.fail_at:
                         row["status"] = "REFERENCE_SOLVER_FAILED"
                     return row
@@ -276,9 +279,21 @@ def test_interruption_retains_partial_native_receipt(setup, tmp_path):
         runner.run(spec, load=namespace.__getitem__, records_path=out, root=root)
     receipt = _receipt(out)
     assert len(out.read_bytes().splitlines()) == 1
-    assert receipt["status"] == "INTERRUPTED_OR_INVALID_REFERENCE"
+    assert receipt["status"] == "INTERRUPTED"
     assert receipt["per_job"][t128.partition_jobs(1)[1]["case_id"]] == "SUBMITTED"
     assert not receipt["training_release"]
+
+
+def test_wrong_observer_retains_raw_and_invalid_reference_receipt(setup, tmp_path):
+    root, spec, namespace, _binding, _cal, pool = setup
+    pool.wrong_role_at = 5  # Fifth nonanchor offer has validation-only role.
+    out = tmp_path / "wrong-role.jsonl"
+    with pytest.raises(tasks.TaskError, match="foreign T128 schema/observer/role"):
+        runner.run(spec, load=namespace.__getitem__, records_path=out, root=root)
+    receipt = _receipt(out)
+    assert len(out.read_bytes().splitlines()) == 60
+    assert receipt["status"] == "INVALID_REFERENCE"
+    assert not receipt["training_release"] and not receipt["evaluation_release"]
 
 
 def test_source_binds_runner_and_all_existing_files_to_actual_commit(tmp_path):
