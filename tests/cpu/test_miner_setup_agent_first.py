@@ -450,6 +450,78 @@ def test_a_key_reaches_the_mcp_door_only_as_an_owner_only_file(tmp_path):
     )
 
 
+def test_public_mcp_pasted_key_refusal_precedes_validation_and_dispatch(
+    page, monkeypatch
+):
+    from carbon.miner_mcp import mcp_setup
+    from scripts.dev.miner_launchpad.setup_operations import NEXT_STEPS
+
+    served, state, checks = page
+    server, setup, _ = door(state, checks, Chain(registered=True))
+    call(server, "carbon_setup_begin", {"address": HOTKEY})
+    before = setup.state()
+    sentinel = "synthetic-f13-key-value-never-echoed"
+    request = {
+        "provider_id": "engy-chat",
+        "model_id": "deepseek-v4-flash-0731",
+        "consent": {"max_cost_nano": 1},
+        "key": sentinel,
+    }
+    dispatched = []
+
+    def unexpected_dispatch(*args, **kwargs):
+        dispatched.append(True)
+        raise AssertionError("MCP key value reached setup dispatch")
+
+    monkeypatch.setattr(mcp_setup, "perform", unexpected_dispatch)
+    tools = {tool.name: tool for tool in asyncio.run(server.list_tools())}
+    assert "key" not in tools["carbon_setup_inference"].input_schema["properties"]
+    assert "key" in schema("inference", HTTP)["properties"]
+    for value in (sentinel, None):
+        with pytest.raises(ToolError) as raised:
+            asyncio.run(
+                server.call_tool("carbon_setup_inference", {**request, "key": value})
+            )
+        message = str(raised.value)
+        assert sentinel not in message
+        assert json.loads(message[message.index("{") :]) == {
+            "error": "key_must_be_a_file_on_this_door",
+            "field": "key",
+            "next_step": NEXT_STEPS["key_must_be_a_file_on_this_door"],
+        }
+    assert dispatched == []
+    assert setup.state() == before
+    assert not [entry for entry in checks.calls if entry[0] == "inference"]
+
+    # The browser still carries its declared paste-once field to its own
+    # callback. The fixture refuses before any provider/billing operation.
+    browser_seen = []
+
+    def browser_refusal(arguments):
+        browser_seen.append("key" in arguments)
+        raise SetupRefused("provider_id", "field_required")
+
+    monkeypatch.setattr(served.setup, "inference", browser_refusal)
+    status, browser = http_call(served, "POST", "/api/v1/setup/inference", request)
+    assert status == 409 and browser["error"] == "field_required"
+    assert browser_seen == [True]
+    assert sentinel not in json.dumps(browser)
+
+    # An ordinary unknown member still receives strict SDK rejection.
+    without_key = {key: value for key, value in request.items() if key != "key"}
+    for name, arguments in (
+        ("carbon_setup_inference", without_key),
+        (
+            "carbon_setup_quote",
+            {"provider_id": "engy-chat", "model_id": "deepseek-v4-flash-0731"},
+        ),
+    ):
+        with pytest.raises(ToolError) as raised:
+            asyncio.run(server.call_tool(name, {**arguments, "unexpected": True}))
+        assert "unexpected" in str(raised.value)
+        assert "key_must_be_a_file_on_this_door" not in str(raised.value)
+
+
 # --- the miner's own steps ------------------------------------------------------------
 
 

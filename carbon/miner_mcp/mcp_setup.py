@@ -140,6 +140,20 @@ def make_setup_tools(setup, *, tier, guard=None, after=None):
 
     strict, exact, result_model = _models()
 
+    class InferenceTool(Tool):
+        async def run(self, arguments, context, convert_result=False):
+            # The SDK validates against extra=forbid before invoking the step.
+            # Check only member presence here: never inspect or echo its value.
+            if type(arguments) is dict and "key" in arguments:
+                raise ToolError(
+                    _refusal(
+                        "key_must_be_a_file_on_this_door",
+                        "key",
+                        NEXT_STEPS["key_must_be_a_file_on_this_door"],
+                    )
+                )
+            return await super().run(arguments, context, convert_result)
+
     def tool_for(op):
         parameters = {}
         for field in sorted(op.required | op.optional):
@@ -183,7 +197,8 @@ def make_setup_tools(setup, *, tier, guard=None, after=None):
                 acceptance_choices=metadata.get("acceptance_choices", {}),
             )
 
-        return Tool(
+        tool_type = InferenceTool if op.name == "inference" else Tool
+        return tool_type(
             fn=invoke,
             name=PREFIX + op.name,
             description=op.summary + " Same gates as the Control Center's setup.",
