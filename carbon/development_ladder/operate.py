@@ -112,6 +112,24 @@ def setup(target, config=None, *, shadow=None):
     held = {}
 
     def compile_listed(strategy, variant_digest):
+        config_check = getattr(target, "_deployment_config_check", None)
+        if config_check is not None:
+            from carbon.reconstruction.capability_registry import (
+                is_development_composition,
+            )
+
+            if is_development_composition(variant_digest):
+                from carbon.battery.daemon import DevelopmentCompilerUnavailable
+                from carbon.battery.deployment import EvaluationUnavailable
+
+                try:
+                    if not callable(config_check):
+                        raise EvaluationUnavailable("evaluation_config_changed")
+                    config_check()
+                except (OSError, EvaluationUnavailable):
+                    raise DevelopmentCompilerUnavailable(
+                        "construction_checks_unavailable"
+                    ) from None
         compiled = compile_variant(strategy, variant_digest, parts, held)
         if shadow is not None:
             try:

@@ -1,0 +1,31 @@
+{
+  "schema": "carbon.owner-approval.actual.v1",
+  "date": "2026-10-15",
+  "source": "Direct human answers in Test Lead chat, following the exact concrete proposals",
+  "main_dns": {
+    "question_id": "call_2a4afe231227466f9efcb1f453564d9a",
+    "answer": "Authorize this exact MAIN DNS route",
+    "hostname": "intake.carbonphysics.ai",
+    "tunnel": "carbon-intake-testnet",
+    "tunnel_id": "39703c73-1ba0-4c1c-8a7c-5c78beaf7004",
+    "origin": "127.0.0.1:8467",
+    "command": "/usr/local/bin/cloudflared tunnel route dns carbon-intake-testnet intake.carbonphysics.ai",
+    "constraints": ["Existing Cloudflare account and tunnel", "No overwrite flag", "No second tunnel", "Existing path/rate/body controls must pass", "USD 0 new authorized spend"],
+    "execution": "NOT_YET_RUN"
+  },
+  "reference_repair": {
+    "question_id": "call_7013822e9fed4f18adb07cace7328748",
+    "answer": "Approve this guarded DEVELOPMENT protocol",
+    "reviewed_source": "d208997dc01cdf3842b96648ade30c730987ea5e",
+    "protocol": "docs/development/challenge_pipeline/solver-readiness/BATTERY-A03-REFERENCE-METHOD-REPAIR-2026-10-15.md",
+    "protocol_sha256": "fc731a4ad5f5a700d0855f5763dce9f73b09fe2646f92fdc6988c0711b16e123",
+    "cc2_cutoff_v": 4.19,
+    "cv_hold_v": 4.19,
+    "raw_maximum_v": 4.2,
+    "tracking_check_v": 0.000001,
+    "scope": "Versioned DEVELOPMENT operating headroom and explicit numerical tracking checks, not physical safety or solver-error guarantee",
+    "first_validation": {"case": "Original T5/h1 only", "meshes": [20, 40, 80], "max_minutes": 45, "max_usd": 2, "grant": "Existing single shared USD100 grant"},
+    "constraints": ["Preserve original 390 TRAIN rows and 18 fits under original 4.2 V protocol", "No relabeling or implicit compatible-data claim", "Version source, protocol, observer, job, data and N1 identities prospectively", "Missing, wrong, ambiguous, nonfinite or partial evidence remains REFERENCE_UNRESOLVED", "No later calibration or evaluation unless actual gates pass", "No production scoring adoption or sealed holdout access"],
+    "execution": "IMPLEMENTATION_AND_CHECKS_REQUIRED_BEFORE_DISPATCH"
+  }
+}

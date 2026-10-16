@@ -63,6 +63,7 @@ from __future__ import annotations
 
 import contextlib
 import fcntl
+import hashlib
 import json
 import os
 import re
@@ -190,7 +191,13 @@ def rule_for(config):
 
 
 def load_config(path):
-    config = json.loads(_private(path).read_bytes())
+    return _load_config_snapshot(path)[0]
+
+
+def _load_config_snapshot(path):
+    """The validated dictionary and digest of the exact single read parsed."""
+    raw = _private(path).read_bytes()
+    config = json.loads(raw)
     if type(config) is not dict or config.get("schema") != SCHEMA:
         raise EvaluationUnavailable("evaluation_config_schema")
     if not REQUIRED <= set(config) or set(config) - REQUIRED - OPTIONAL:
@@ -253,7 +260,7 @@ def load_config(path):
             check_term(config["physics_contract"])
         except PhysicsRefused as refused:
             raise EvaluationUnavailable(refused.code) from None
-    return config
+    return config, hashlib.sha256(raw).hexdigest()
 
 
 def reserved_hotkeys(config):
@@ -571,9 +578,24 @@ def validator(config_path, *, repository, readonly=False):
     key = (str(Path(config_path).resolve()), readonly)
     with _LOCK:
         if key not in _VALIDATORS:
-            _VALIDATORS[key] = build(
-                load_config(key[0]), repository=repository, readonly=readonly
-            )
+            config, source_digest = _load_config_snapshot(key[0])
+            target = build(config, repository=repository, readonly=readonly)
+            if getattr(target, "ladder", None) is not None:
+
+                def check_config_snapshot():
+                    # This private callable proves only continuity, never that
+                    # the loaded configuration was approved or qualified.
+                    try:
+                        current = _private(key[0]).read_bytes()
+                    except (OSError, EvaluationUnavailable):
+                        raise EvaluationUnavailable(
+                            "evaluation_config_changed"
+                        ) from None
+                    if hashlib.sha256(current).hexdigest() != source_digest:
+                        raise EvaluationUnavailable("evaluation_config_changed")
+
+                target._deployment_config_check = check_config_snapshot
+            _VALIDATORS[key] = target
         return _VALIDATORS[key]
 
 
