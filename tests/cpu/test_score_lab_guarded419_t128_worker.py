@@ -249,6 +249,72 @@ def test_two_bounded_partitions_reuse_nine_and_preserve_105_23_roles(setup, tmp_
     )
 
 
+def test_second_partition_refuses_missing_prior_row_before_pool(setup, tmp_path):
+    root, spec, namespace, binding, _cal, pool = setup
+    first = tmp_path / "prior.jsonl"
+    assert (
+        runner.run(spec, load=namespace.__getitem__, records_path=first, root=root) == 0
+    )
+    receipt = _receipt(first)
+    rows = [json.loads(line) for line in first.read_bytes().splitlines()][:-1]
+    partial_raw = b"".join(_bytes(row) for row in rows)
+    prior_chunk = copy.deepcopy(receipt["manifest"]["chunks"][0])
+    prior_chunk["sha256"] = _sha(partial_raw)
+    prior_chunk["rows"] = [
+        {"line": i, "job_id": row["case_id"]} for i, row in enumerate(rows, 1)
+    ]
+    partial_manifest = t128.delivery_manifest(binding, [prior_chunk])
+    second_spec = _second(
+        spec, namespace, binding, {"manifest": partial_manifest}, partial_raw
+    )
+    second = tmp_path / "second-blocked.jsonl"
+    with pytest.raises(tasks.TaskError, match="prior60 rows required"):
+        runner.run(
+            second_spec, load=namespace.__getitem__, records_path=second, root=root
+        )
+    assert not second.exists()
+    assert len(pool.offered) == 60
+
+
+def test_second_partition_missing_current_row_stays_incomplete(
+    setup, tmp_path, monkeypatch
+):
+    root, spec, namespace, binding, _cal, pool = setup
+    first = tmp_path / "prior.jsonl"
+    assert (
+        runner.run(spec, load=namespace.__getitem__, records_path=first, root=root) == 0
+    )
+    second_spec = _second(spec, namespace, binding, _receipt(first), first.read_bytes())
+    missing_id = t128.partition_jobs(2)[-1]["case_id"]
+    original_collect = collector._collect_groups
+
+    def omit_one_returned_row(groups, **kwargs):
+        received = kwargs["received"]
+
+        def keep_all_but_one(job, record):
+            if job["case_id"] == missing_id:
+                return record
+            return received(job, record)
+
+        return original_collect(groups, **{**kwargs, "received": keep_all_but_one})
+
+    monkeypatch.setattr(collector, "_collect_groups", omit_one_returned_row)
+    second = tmp_path / "second-incomplete.jsonl"
+    assert (
+        runner.run(
+            second_spec, load=namespace.__getitem__, records_path=second, root=root
+        )
+        == 2
+    )
+    receipt = _receipt(second)
+    assert len(pool.offered) == 119
+    assert len(second.read_bytes().splitlines()) == 58
+    assert receipt["authenticated_prior_new_row_count"] == 60
+    assert receipt["per_job"][missing_id] == "SUBMITTED"
+    assert receipt["status"] == "INCOMPLETE_REFERENCE"
+    assert not receipt["training_release"] and not receipt["evaluation_release"]
+
+
 @pytest.mark.parametrize("failure", ["solver", "infra"])
 def test_observed_failures_remain_raw_and_never_release(setup, tmp_path, failure):
     root, spec, namespace, _binding, _cal, pool = setup

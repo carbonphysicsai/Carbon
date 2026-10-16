@@ -199,6 +199,8 @@ def run(spec, *, load, records_path, workers=2, root=None):
     ):
         raise tasks.TaskError("T128 requires fresh non-symlink output/receipt")
     offers = t128.partition_jobs(partition)
+    prior_new_ids = set(prior["records"]) - {job["case_id"] for job in t128.jobs()[:9]}
+    expected_new_ids = prior_new_ids | {job["case_id"] for job in offers}
     states = {j["case_id"]: "NOT_DISPATCHED" for j in offers}
     mappings = []
     receipt = {
@@ -286,7 +288,7 @@ def run(spec, *, load, records_path, workers=2, root=None):
             expected_binding_digest=tasks.digest(binding),
             expected_manifest_digest=tasks.digest(manifest),
         )
-        if set(new) != {j["case_id"] for j in offers}:
+        if set(new) != expected_new_ids:
             receipt["status"] = "INCOMPLETE_REFERENCE"
         elif all(
             tracking[j["case_id"]]["status"] == "TRACKING_COMPATIBLE"
