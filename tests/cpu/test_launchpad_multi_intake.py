@@ -271,6 +271,24 @@ def test_refusal_journal_write_failure_is_target_local_infrastructure(
     assert "fixture private journal error" not in json.dumps(feedback)
 
 
+def test_intake_rate_unavailable_is_not_retained_as_a_refusal(tmp_path, wire):
+    post = wire.post
+
+    def rate_first(url, body, headers):
+        if url == PAIRS[0]["intake_url"]:
+            return 429, {"refused": "rate"}
+        return post(url, body, headers)
+
+    wire.post = rate_first
+    feedback = asyncio.run(campaign.evaluate_candidate(prepared(tmp_path), 1, RECORD))
+    first, second = feedback["validators"]
+    assert first["code"] == "rate" and first["state"] == "FAILED_INFRA"
+    assert second["state"] == "SCORED"
+    assert not multi_intake._refusal_path(tmp_path, PAIRS[0], 1).exists()
+    assert not rs._record_path(targets.journal(tmp_path, PAIRS[0]), 1).exists()
+    assert rs._record_path(targets.journal(tmp_path, PAIRS[1]), 1).is_file()
+
+
 def test_one_journal_directory_failure_does_not_suppress_its_peer(
     tmp_path, wire, monkeypatch
 ):

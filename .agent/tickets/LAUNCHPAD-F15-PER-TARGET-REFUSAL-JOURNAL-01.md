@@ -48,3 +48,16 @@ no cross-target overwrite, infrastructure/science separation, and historical
 evidence interpretation. Conditional completion is a reviewed implementation
 and passing required tests on the exact PR head; only a later actual two-pair
 run may support F15 acceptance.
+
+## Review adjustment
+
+Independent review found that the old `_row` shortcut called several closed
+unavailable intake codes `REFUSED`, even though `campaign.intake_outcome`
+classifies them as `UNAVAILABLE`. That would allow a rate/capacity/transport
+outage to masquerade as F15's refused-target evidence. Use the existing
+campaign classifier for all non-feedback target rows, projecting its
+`UNAVAILABLE` to the already-supported `FAILED_INFRA` aggregate state, and
+write the new refusal file only for a genuine `REFUSED` row. A focused
+`rate` negative guards this boundary. This prospective repair stays inside
+the same two owned implementation/test files and does not change the public
+schema or classify infrastructure as a scientific verdict.

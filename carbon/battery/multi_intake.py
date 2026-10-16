@@ -79,22 +79,21 @@ def aggregate(root, epoch, rows):
 
 
 def _row(target, feedback=None, code=None):
+    from carbon.battery import campaign
+
+    state = (
+        feedback["outcome"]["state"]
+        if feedback
+        else {
+            "QUEUED": "QUEUED",
+            "UNAVAILABLE": "FAILED_INFRA",
+            "REFUSED": "REFUSED",
+        }[campaign.intake_outcome(code)]
+    )
     return {
         **target,
         "feedback": feedback,
-        "state": (
-            feedback["outcome"]["state"]
-            if feedback
-            else (
-                "QUEUED"
-                if code == "evaluation_queued"
-                else (
-                    "FAILED_INFRA"
-                    if code in {"evaluation_failed_infra", "intake_unreachable"}
-                    else "REFUSED"
-                )
-            )
-        ),
+        "state": state,
         "code": code,
     }
 
