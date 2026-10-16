@@ -31,6 +31,13 @@ or rehashed plan/source/role/job changes, absent/unknown/reordered refinement
 IDs, bad context and missing keyword registration. Worker remains NewChallenge's
 single-writer scope; no runner/materializer/physics changes here.
 
+Root joint canonical source967 actually returned413PASS/1FAIL: the CAL registry
+control declared only the binding ID, but the real owner loader reads binding
+AND manifest before parsing. Repair the test inventory, retain the precise
+JSON rejection after both registered hash-matched inputs, and add a distinct
+UNDECLARED_INPUT negative for missing manifest registration. No production,
+worker, source-pin, role, alias-refusal or scientific behavior changes.
+
 KEEP existing frozen physical inputs, question-law values/roles/order, numerical
 policy and existing evidence harness. WRAP authentic context/raw/calibration/
 model provenance rather than permit the old producer to accept guarded rows.

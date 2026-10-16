@@ -477,9 +477,13 @@ def test_cal_registry_file_ids_are_not_physical_path_aliases(use_disk_path):
         "cal-binding": {
             "path": "public/cal-binding.json",
             "sha256": spec["binding"]["sha256"],
-        }
+        },
+        "cal-manifest": {
+            "path": "public/cal-manifest.json",
+            "sha256": spec["manifest"]["sha256"],
+        },
     }
-    artifacts = {"cal-binding": b"not-json"}
+    artifacts = {"cal-binding": b"not-json", "cal-manifest": b"not-json"}
     if use_disk_path:
         spec["binding"]["path"] = registry["cal-binding"]["path"]
 
@@ -498,7 +502,32 @@ def test_cal_registry_file_ids_are_not_physical_path_aliases(use_disk_path):
         )
     # The logical ID reaches the genuine CAL parser, which rejects the bad
     # JSON. The physical path is rejected by the registry, never opened.
-    assert reads == [spec["binding"]["path"]]
+    assert reads == (
+        [registry["cal-binding"]["path"]]
+        if use_disk_path
+        else ["cal-binding", "cal-manifest"]
+    )
+    assert not any("eval" in key for key in reads)
+
+
+def test_cal_missing_manifest_registry_id_is_not_a_parser_or_eval_fallback():
+    spec, reads = _cal_file_spec(), []
+
+    def load(key):
+        reads.append(key)
+        if key != "cal-binding":
+            raise tasks.TaskError("UNDECLARED_INPUT")
+        raw = b"not-json"
+        assert hashlib.sha256(raw).hexdigest() == spec["binding"]["sha256"]
+        return raw
+
+    with pytest.raises(tasks.TaskError, match="UNDECLARED_INPUT"):
+        producer.calibration_from_files(
+            spec, load=load, scope="PUBLIC_DEVELOPMENT", context=_cal_context()
+        )
+    # Both file entries are loaded before either is parsed by the real CAL
+    # owner. Missing registration is not JSON failure or a path-search cue.
+    assert reads == ["cal-binding", "cal-manifest"]
     assert not any("eval" in key for key in reads)
 
 
