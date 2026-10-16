@@ -29,8 +29,8 @@ EVAL certificate. The adapter must authenticate complete compatible CAL,
 registered reference sources/observers, all offered EVAL rungs and enclosures,
 and the exact new task context. A missing API or receipt refuses the run.
 
-The existing CLI is frozen in PR1394. Root must merge/reconcile that dependency
-before its context integration is edited here. Dispatch to the new producer is
+The CLI retains its original manifest schema/default context and adds
+`carbon.scorelab.n1-diagnostic-run.guard419.v1`. Dispatch to the new producer is
 closed and static. A missing module or CAL interface refuses the run; it never
 falls back to the original producer. Each new receipt carries the exact
 diagnostic context, new job and EVAL observer alongside its dynamic source,
@@ -42,6 +42,36 @@ input-only plan and replaces only its job identity. Context-aware
 tuples, original P law and deterministic 64 draws/32 LEG/32 VALUE roles. They
 mint fresh task, job, observer and bank identities. No old label, prediction
 or commitment is transferred by these input-only functions.
+
+## Guarded CLI bundle
+
+The top-level manifest keeps the original field names and names the new job,
+registration digest and guarded schema. Each member additionally provides
+`seed` and an allow-listed `construction_receipt` file ID. Each bank additionally
+provides `calibration_delivery`, a `pretruth` file ID and its raw
+`pretruth_sha256`. The EVAL adapter owns the actual CAL file specification;
+until the real CAL owner interface exists, it refuses with a typed unavailable
+result. No speculative serialized CAL representation is accepted.
+
+Before loading EVAL payload bytes, the CLI authenticates the complete input-only
+64-draw candidate view and Root-pinned pretruth roster. It joins each new model
+to its admitted stage128 construction receipt, kit binding, train hash, recipe,
+seed, raw fit/prediction/commitment hashes and saved choices. The producer
+requires all eighteen fixed final members and one common construction dataset;
+the separate nine-row probe cannot enter that roster. A construction receipt's
+hash is provenance under Root's independent pin, not a recreation of nominal
+admission or proof of chronology by itself.
+
+The CLI calls the real CAL constructor/validator and the adapter's complete
+CAL15/source gate before evaluating any eager `raw_chunks` file loads. The EVAL
+producer revalidates the same gate before constructing its nominal evidence.
+Every EVAL receipt is matched back to the same context, tasks and input-only
+view. Missing/unsafe predictions retain the existing diagnostic outcomes.
+
+The private byte-join unit fixtures are explicitly unsealed metadata. They
+cannot mint TRAIN/CAL/EVAL evidence. Full nominal positive EVAL integration
+remains unrun until the actual CAL adapter and its qualified synthetic fixture
+are integrated by Root.
 
 Root owns all project tests and execution. Synthetic parity/refusal fixtures
 exercise the context/decision seam, not CAL adequacy or model quality. No

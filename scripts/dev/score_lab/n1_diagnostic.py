@@ -20,6 +20,7 @@ from scripts.dev.score_lab import owner_v3_n1 as diagnostic
 from scripts.dev.score_lab import owner_v3_panel_export as producer
 
 SCHEMA = "carbon.scorelab.n1-diagnostic-run.v1"
+GUARDED_SCHEMA = "carbon.scorelab.n1-diagnostic-run.guard419.v1"
 SCOPES = ("PUBLIC_DEVELOPMENT", "SYNTHETIC_FIXTURE")
 
 
@@ -94,7 +95,7 @@ class _Files:
         return _relative(self.root, self.specs[key]["path"]).read_bytes()
 
 
-def _draws(value, population):
+def _draws(value, population, *, context=None):
     _require(type(value) is list and bool(value), "DRAW_ROSTER_REQUIRED")
     ids = set()
     for draw in value:
@@ -107,6 +108,10 @@ def _draws(value, population):
             "DRAW_ROLE_OR_POPULATION_DIFFERS",
         )
         task = _object(draw.get("task"), "QUESTION_OBJECT_REQUIRED")
+        if context is not None:
+            from scripts.dev.score_lab import owner_v3
+
+            owner_v3._validate(task, context=context)
         qid = task.get("task_digest")
         _require(type(qid) is str and qid not in ids, "QUESTION_IDENTITY_DIFFERS")
         ids.add(qid)
@@ -216,6 +221,81 @@ def _member(spec, load, draws, view_digest, scope):
     return physical, commitments
 
 
+def _guarded_cohort(members, pretruth, load, draws, view_digest, scope):
+    """Join independently pinned new construction/fit/choice bytes before truth.
+
+    Root custody establishes pretruth chronology. Hashes authenticate these
+    bytes; this consumer does not recreate nominal TRAIN admission from JSON.
+    """
+    pinned = {row["id"]: row for row in pretruth["members"]}
+    _require(
+        set(pinned) == {member["id"] for member in members}, "PRETRUTH_ROSTER_DIFFERS"
+    )
+    result = {}
+    for spec in members:
+        expected = pinned[spec["id"]]
+        _require(
+            all(
+                spec[key] == expected[key]
+                for key in ("id", "recipe", "seed", "kit", "fit_source")
+            )
+            and _hex(spec["train_sha256"]) == expected["train_sha256"],
+            "PRETRUTH_MEMBER_DIFFERS",
+        )
+        for file_key, hash_key in (
+            ("fit_receipt", "fit_receipt_sha256"),
+            ("predictions", "predictions_sha256"),
+            ("commitments", "commitments_sha256"),
+            ("commitment_receipt", "commitment_receipt_sha256"),
+        ):
+            _require(
+                _sha(load(spec[file_key])) == expected[hash_key],
+                "PRETRUTH_MEMBER_BYTES_DIFFER",
+            )
+        receipt = _object(
+            _json(load(spec["construction_receipt"])), "CONSTRUCTION_RECEIPT_REQUIRED"
+        )
+        _require(
+            receipt.get("schema")
+            == "carbon.scorelab.guarded419.role-separated-train128.v1"
+            and receipt.get("scope") == scope
+            and receipt.get("receipt_digest") == expected["construction_receipt_digest"]
+            and tasks.digest(
+                {k: v for k, v in receipt.items() if k != "receipt_digest"}
+            )
+            == expected["construction_receipt_digest"]
+            and receipt.get("construction_jsonl_digest")
+            == "sha256:" + _hex(spec["train_sha256"])
+            and receipt.get("construction_offered") == 105
+            and receipt.get("validation_offered") == 23
+            and type(receipt.get("construction_accepted")) is int
+            and 2 <= receipt["construction_accepted"] <= 105
+            and receipt.get("validation_rows_used_for_fitting") == 0
+            and receipt.get("historical_labels_or_models_reused") == 0
+            and receipt.get("numerical_evaluation_reference") is False
+            and receipt.get("qualification") is False
+            and spec["kit"]
+            == "carbon.battery-v3.guard419.stage128.kit.v1:"
+            + str(receipt.get("binding_digest")),
+            "CONSTRUCTION_CONTEXT_DIFFERS",
+        )
+        fit = _object(_json(load(spec["fit_receipt"])), "FIT_OBJECT_REQUIRED")
+        recipe = _object(fit.get("recipe"), "FIT_RECIPE_REQUIRED")
+        code = _object(fit.get("code"), "FIT_CODE_OBJECT_REQUIRED")
+        train = _object(fit.get("train"), "FIT_TRAIN_OBJECT_REQUIRED")
+        _require(
+            type(spec["seed"]) is int
+            and recipe.get("seed") == spec["seed"]
+            and code.get("recipe_id") == spec["recipe"]
+            and train.get("records") == receipt["construction_accepted"]
+            and train.get("excluded_non_finite")
+            == 105 - receipt["construction_accepted"],
+            "FIT_CONSTRUCTION_OR_RECIPE_DIFFERS",
+        )
+        result[spec["id"]] = _member(spec, load, draws, view_digest, scope)
+    return result
+
+
 def evaluate(manifest, artifacts):
     """Pure reduction of pinned bytes; calls the existing scientific APIs only."""
     _require(
@@ -235,7 +315,7 @@ def evaluate(manifest, artifacts):
             "bootstrap",
             "seed",
         }
-        and manifest["schema"] == SCHEMA
+        and manifest["schema"] in (SCHEMA, GUARDED_SCHEMA)
         and manifest["scope"] in SCOPES
         and manifest["population"] in ("P", "Q")
         and not (
@@ -246,6 +326,11 @@ def evaluate(manifest, artifacts):
     scope, population = manifest["scope"], manifest["population"]
     registered = diagnostic.registration(
         expected_sha256=manifest["registration_sha256"]
+    )
+    context = diagnostic._selected_context(manifest["registration_sha256"])
+    _require(
+        manifest["schema"] == (SCHEMA if context is None else GUARDED_SCHEMA),
+        "RUN_SCHEMA_CONTEXT_DIFFERS",
     )
     _require(manifest["job"] == registered["job"], "DEVELOPMENT_CONTEXT_REQUIRED")
     _require(
@@ -275,7 +360,7 @@ def evaluate(manifest, artifacts):
         used.add(key)
         return cache[key]
 
-    draws = _draws(_json(load(manifest["draws"])), population)
+    draws = _draws(_json(load(manifest["draws"])), population, context=context)
     members = manifest["members"]
     _require(type(members) is list and bool(members), "FIXED_COHORT_REQUIRED")
     ids = set()
@@ -293,7 +378,8 @@ def evaluate(manifest, artifacts):
                 "train_sha256",
                 "fit_source",
                 "kit",
-            },
+            }
+            | ({"seed", "construction_receipt"} if context is not None else set()),
             "MEMBER_SPEC_DIFFERS",
         )
         _require(
@@ -320,19 +406,55 @@ def evaluate(manifest, artifacts):
     )
     banks = manifest["banks"]
     _require(type(banks) is list and len(banks) == len(draws), "COMPLETE_BANK_REQUIRED")
+    active_producer = producer
+    producer_kwargs = {}
+    if context is not None:
+        from scripts.dev.score_lab import guarded419_context
+
+        active_producer = guarded419_context.producer(context)
+        producer_kwargs["context"] = context
+    bank_fields = {
+        "population_index",
+        "plan",
+        "source_pins",
+        "manifest",
+        "raw_chunks",
+        "binding",
+    }
+    if context is not None:
+        bank_fields |= {"calibration_delivery", "pretruth", "pretruth_sha256"}
+    for bank in banks:
+        _require(type(bank) is dict and set(bank) == bank_fields, "BANK_SPEC_DIFFERS")
+    guarded_members, guarded_view_digest, pretruth_sha = None, None, None
+    if context is not None:
+        first = banks[0]
+        plan = _object(_json(load(first["plan"])), "PLAN_OBJECT_REQUIRED")
+        plan_digest = _object(first["binding"], "PRODUCER_BINDING_REQUIRED")[
+            "plan_digest"
+        ]
+        view = active_producer.population_view(
+            plan, expected_plan_digest=plan_digest, scope=scope, context=context
+        )
+        guarded_view_digest = view["export_digest"]
+        pretruth_sha = _hex(first["pretruth_sha256"])
+        pretruth = active_producer.pretruth_receipt(
+            load(first["pretruth"]),
+            pretruth_sha,
+            plan=plan,
+            expected_plan_digest=plan_digest,
+            scope=scope,
+            context=context,
+        )
+        _require(
+            pretruth["draws_digest"] == tasks.digest(draws), "PRETRUTH_DRAWS_DIFFER"
+        )
+        guarded_members = _guarded_cohort(
+            members, pretruth, load, draws, guarded_view_digest, scope
+        )
     rows, bindings, seen = [], {}, set()
     for bank in banks:
         _require(
-            type(bank) is dict
-            and set(bank)
-            == {
-                "population_index",
-                "plan",
-                "source_pins",
-                "manifest",
-                "raw_chunks",
-                "binding",
-            },
+            type(bank) is dict and set(bank) == bank_fields,
             "BANK_SPEC_DIFFERS",
         )
         i = bank["population_index"]
@@ -354,13 +476,39 @@ def evaluate(manifest, artifacts):
             and delivery.get("role") == "HELDOUT_REFERENCE",
             "PUBLIC_REFERENCE_ROLE_REQUIRED",
         )
-        evidence = producer.build(
+        extra = dict(producer_kwargs)
+        source_pins = _object(
+            _json(load(bank["source_pins"])), "SOURCE_PINS_OBJECT_REQUIRED"
+        )
+        if context is not None:
+            _require(
+                _hex(bank["pretruth_sha256"]) == pretruth_sha
+                and _sha(load(bank["pretruth"])) == pretruth_sha,
+                "PRETRUTH_BANK_DIFFERS",
+            )
+            calibration = active_producer.calibration_from_files(
+                bank["calibration_delivery"],
+                load=load,
+                scope=scope,
+                context=context,
+            )
+            _require(
+                tasks.digest(source_pins) == binding["source_pins_digest"],
+                "PRODUCER_SOURCE_PINS_DIFFER",
+            )
+            active_producer.validate_calibration(
+                calibration, delivery, source_pins, context=context
+            )
+            extra.update(
+                calibration_evidence=calibration,
+                pretruth=load(bank["pretruth"]),
+                expected_pretruth_sha256=pretruth_sha,
+            )
+        evidence = active_producer.build(
             draws[i]["task"],
             plan=_object(_json(load(bank["plan"])), "PLAN_OBJECT_REQUIRED"),
             expected_plan_digest=binding["plan_digest"],
-            source_pins=_object(
-                _json(load(bank["source_pins"])), "SOURCE_PINS_OBJECT_REQUIRED"
-            ),
+            source_pins=source_pins,
             expected_source_pins_digest=binding["source_pins_digest"],
             manifest=delivery,
             expected_manifest_digest=binding["manifest_digest"],
@@ -370,13 +518,15 @@ def evaluate(manifest, artifacts):
                     bank["raw_chunks"], "RAW_CHUNKS_OBJECT_REQUIRED"
                 ).items()
             },
+            **extra,
         )
-        producer.validate_for(
+        active_producer.validate_for(
             evidence,
             draws[i]["task"],
             evidence.references,
             evidence.enclosures,
             scope=scope,
+            **producer_kwargs,
         )
         rows.append({"draw": draws[i], "evidence": evidence})
         bindings[draws[i]["task"]["task_digest"]] = binding
@@ -384,15 +534,21 @@ def evaluate(manifest, artifacts):
     by_id = {r["draw"]["task"]["task_digest"]: r for r in rows}
     rows = [by_id[d["task"]["task_digest"]] for d in draws]
     view = {
-        "schema": producer.CANDIDATE_VIEW,
+        "schema": active_producer.CANDIDATE_VIEW,
         "scope": scope,
         "family": "battery-v3",
         "questions": [r["evidence"].prediction_view["questions"][0] for r in rows],
     }
     view_digest = tasks.digest(view)
+    if context is not None:
+        _require(view_digest == guarded_view_digest, "PRETRUTH_CANDIDATE_VIEW_DIFFERS")
     legs, values = {}, {}
     for member in members:
-        physical, commitments = _member(member, load, draws, view_digest, scope)
+        physical, commitments = (
+            _member(member, load, draws, view_digest, scope)
+            if context is None
+            else guarded_members[member["id"]]
+        )
         leg_rows = [r for r in rows if r["draw"]["role"] == "LEG"]
         value_rows = [r for r in rows if r["draw"]["role"] == "VALUE"]
 
@@ -437,9 +593,9 @@ def evaluate(manifest, artifacts):
         bootstrap=manifest["bootstrap"],
         seed=manifest["seed"],
     )
-    return {
+    result = {
         "cohort": {
-            "schema": SCHEMA,
+            "schema": manifest["schema"],
             "scope": scope,
             "job": manifest["job"],
             "population": population,
@@ -453,6 +609,9 @@ def evaluate(manifest, artifacts):
         "members": {"legs": legs, "values": values},
         "alignment": report,
     }
+    if context is not None:
+        result["cohort"]["diagnostic_context"] = guarded419_context.metadata(context)
+    return result
 
 
 def main(argv=None):

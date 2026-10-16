@@ -307,3 +307,240 @@ def test_new_input_plan_refuses_changes_to_any_prospective_number():
         owner.population_tasks(
             plan, expected_plan_digest=tasks.digest(plan), count=64, context=value
         )
+
+
+def test_cli_context_schema_and_old_tasks_refuse_before_reference_files():
+    from scripts.dev.score_lab import n1_diagnostic as cli
+    from tests.cpu.test_score_lab_n1_diagnostic_cli import bundle
+
+    manifest, artifacts, _ = bundle()
+    manifest.update(job=context.JOB, registration_sha256=context.REGISTRATION_SHA256)
+
+    class NoRead(dict):
+        def __getitem__(self, key):
+            raise AssertionError("material read before context refusal")
+
+    with pytest.raises(cli.Refused, match="RUN_SCHEMA_CONTEXT_DIFFERS"):
+        cli.evaluate(manifest, NoRead())
+    manifest["schema"] = cli.GUARDED_SCHEMA
+
+    class DrawsOnly(dict):
+        def __getitem__(self, key):
+            assert (
+                key == manifest["draws"]
+            ), "reference read before task context refusal"
+            return artifacts[key]
+
+    with pytest.raises(tasks.TaskError):
+        cli.evaluate(manifest, DrawsOnly())
+
+
+def unsealed_saved_members():
+    """Artificial byte-join fixture, NOT nominal TRAIN/CAL/EVAL admission.
+
+    Three saved-model shapes and two toy decisions exercise the private join.
+    The real producer separately requires its exact eighteen-member/64-draw
+    roster and actual CAL evidence; this fixture never calls that seal.
+    """
+    from scripts.dev.score_lab import n1_diagnostic as cli
+    from tests.cpu.test_score_lab_n1_diagnostic_cli import _bytes, bundle
+
+    manifest, artifacts, _ = bundle()
+    draws = json.loads(artifacts[manifest["draws"]])
+    for n, draw in enumerate(draws):
+        rows = []
+        for row in draw["task"]["indices"]:
+            old = row["task"]
+            sub = tasks.task(
+                f"toy-new-{n}-{row['index_value']}",
+                identity=dict(
+                    old["identity"],
+                    contract_version=context.JOB,
+                    observer_version=context.EVAL_OBSERVER,
+                ),
+                conditions=old["conditions"],
+                strata=old["strata"],
+                candidates=old["candidates"],
+                actions=old["actions"],
+                objective=old["objective"],
+                limits=old["limits"],
+            )
+            rows.append({**row, "task": sub})
+        draw["task"] = indexed.indexed_task(
+            f"toy-new-{n}",
+            index_axis="ambient_c",
+            indices=rows,
+            query_budget=draw["task"]["identity"]["query_budget"],
+            value_equivalence=draw["task"]["identity"]["value_equivalence"],
+        )
+    view_digest = "sha256:" + "9" * 64
+    construction = {
+        "schema": "carbon.scorelab.guarded419.role-separated-train128.v1",
+        "scope": "SYNTHETIC_FIXTURE",
+        "fixture": True,
+        "binding_digest": "sha256:" + "1" * 64,
+        "construction_jsonl_digest": "sha256:" + "2" * 64,
+        "construction_offered": 105,
+        "validation_offered": 23,
+        "construction_accepted": 105,
+        "validation_rows_used_for_fitting": 0,
+        "historical_labels_or_models_reused": 0,
+        "numerical_evaluation_reference": False,
+        "qualification": False,
+    }
+    construction["receipt_digest"] = tasks.digest(construction)
+    artifacts["construction.json"] = _bytes(construction)
+    pinned = []
+    for spec, recipe in zip(
+        manifest["members"], ("default", "small", "wide"), strict=True
+    ):
+        spec.update(
+            id=f"battery-v3-scorelab-guard419-stage128-dev-v1:{recipe}:seed11",
+            recipe=recipe,
+            seed=11,
+            construction_receipt="construction.json",
+            train_sha256="2" * 64,
+            kit="carbon.battery-v3.guard419.stage128.kit.v1:"
+            + construction["binding_digest"],
+        )
+        fit, prediction, commit_receipt = (
+            json.loads(artifacts[spec[k]])
+            for k in ("fit_receipt", "predictions", "commitment_receipt")
+        )
+        fit.update(
+            model_id=spec["id"],
+            kit=spec["kit"],
+            export_digest=view_digest,
+            recipe={"seed": 11},
+        )
+        fit["train"].update(
+            sha256="sha256:" + spec["train_sha256"], records=105, excluded_non_finite=0
+        )
+        fit["code"]["recipe_id"] = recipe
+        artifacts[spec["fit_receipt"]] = _bytes(fit)
+        prediction.update(
+            model_id=spec["id"],
+            export_digest=view_digest,
+            source_receipt_digest="sha256:"
+            + hashlib.sha256(cli.carbon_arm.canonical(fit)).hexdigest(),
+        )
+        artifacts[spec["predictions"]] = _bytes(prediction)
+        table = {
+            (row["band"], row["candidate"], row["condition"]): row["values"]
+            for row in prediction["rows"]
+        }
+        committed = []
+        for i, draw in enumerate(draws):
+            actions = {
+                r["index_value"]: {
+                    tasks.digest(action): candidate
+                    for candidate, action in r["task"]["actions"].items()
+                }
+                for r in draw["task"]["indices"]
+            }
+            choice = tasks.run_indexed_optimizer(
+                draw["task"],
+                lambda band, action, condition, table=table, actions=actions: table[
+                    (band, actions[band][tasks.digest(action)], condition["id"])
+                ],
+                model_id=spec["id"],
+            )["commitment"]
+            committed.append(
+                {
+                    "population_index": i,
+                    **{
+                        k: draw[k]
+                        for k in ("population", "role", "outer_weight", "bank_cluster")
+                    },
+                    "commitment": choice,
+                }
+            )
+        artifacts[spec["commitments"]] = b"".join(_bytes(row) for row in committed)
+        commit_receipt.update(
+            model_id=spec["id"],
+            commitments_sha256=hashlib.sha256(
+                artifacts[spec["commitments"]]
+            ).hexdigest(),
+            model_predictions_sha256=hashlib.sha256(
+                artifacts[spec["predictions"]]
+            ).hexdigest(),
+        )
+        artifacts[spec["commitment_receipt"]] = _bytes(commit_receipt)
+        pinned.append(
+            {
+                **{
+                    k: spec[k]
+                    for k in (
+                        "id",
+                        "recipe",
+                        "seed",
+                        "kit",
+                        "fit_source",
+                        "train_sha256",
+                    )
+                },
+                "construction_receipt_digest": construction["receipt_digest"],
+                **{
+                    hash_key: hashlib.sha256(artifacts[spec[file_key]]).hexdigest()
+                    for file_key, hash_key in (
+                        ("fit_receipt", "fit_receipt_sha256"),
+                        ("predictions", "predictions_sha256"),
+                        ("commitments", "commitments_sha256"),
+                        ("commitment_receipt", "commitment_receipt_sha256"),
+                    )
+                },
+            }
+        )
+    return manifest["members"], {"members": pinned}, artifacts, draws, view_digest
+
+
+def test_unsealed_member_byte_join_retains_fresh_choices_and_train_identity():
+    from scripts.dev.score_lab import n1_diagnostic as cli
+
+    members, pretruth, files, draws, view = unsealed_saved_members()
+    result = cli._guarded_cohort(
+        members, pretruth, files.__getitem__, draws, view, "SYNTHETIC_FIXTURE"
+    )
+    assert set(result) == {member["id"] for member in members}
+    for member in members:
+        physical, choices = result[member["id"]]
+        assert len(physical) == 60 and len(choices) == 2
+        assert all(row["model_id"] == member["id"] for row in choices.values())
+
+
+@pytest.mark.parametrize(
+    "defect", ["seed", "binding", "validation_fit", "prediction_bytes"]
+)
+def test_unsealed_member_join_rejects_semantic_drift_even_with_updated_hashes(defect):
+    from scripts.dev.score_lab import n1_diagnostic as cli
+    from tests.cpu.test_score_lab_n1_diagnostic_cli import _bytes
+
+    members, pretruth, files, draws, view = unsealed_saved_members()
+    first, expected = members[0], pretruth["members"][0]
+    if defect == "seed":
+        fit = json.loads(files[first["fit_receipt"]])
+        fit["recipe"]["seed"] = 29
+        files[first["fit_receipt"]] = _bytes(fit)
+        expected["fit_receipt_sha256"] = hashlib.sha256(
+            files[first["fit_receipt"]]
+        ).hexdigest()
+    elif defect in ("binding", "validation_fit"):
+        receipt = json.loads(files["construction.json"])
+        receipt.pop("receipt_digest")
+        receipt[
+            (
+                "binding_digest"
+                if defect == "binding"
+                else "validation_rows_used_for_fitting"
+            )
+        ] = ("sha256:" + "3" * 64 if defect == "binding" else 1)
+        receipt["receipt_digest"] = tasks.digest(receipt)
+        files["construction.json"] = _bytes(receipt)
+        for row in pretruth["members"]:
+            row["construction_receipt_digest"] = receipt["receipt_digest"]
+    else:
+        files[first["predictions"]] += b" "
+    with pytest.raises(cli.Refused):
+        cli._guarded_cohort(
+            members, pretruth, files.__getitem__, draws, view, "SYNTHETIC_FIXTURE"
+        )
