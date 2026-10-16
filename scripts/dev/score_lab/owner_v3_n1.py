@@ -119,18 +119,25 @@ def _rows(rows, bindings, *, role, population, scope, context=None):
         ids.add(qid)
     if set(bindings) != ids:
         raise tasks.TaskError("independent bindings must cover every offered question")
+    producer = owner_v3_panel_export
+    producer_kwargs = {}
     if context is not None:
-        raise tasks.TaskError("guarded419 EVAL producer integration is unavailable")
+        from . import guarded419_context
+
+        producer = guarded419_context.producer(context)
+        producer_kwargs["context"] = context
     for row in sorted(rows, key=lambda r: r["draw"]["task"]["task_digest"]):
         draw, evidence = row["draw"], row["evidence"]
         registered = draw["task"]
         qid = registered["task_digest"]
-        if type(evidence) is not owner_v3_panel_export.ValidatedEvidence:
+        if type(evidence) is not producer.ValidatedEvidence:
             raise tasks.TaskError("constructed producer evidence required")
         refs, intervals = evidence.references, evidence.enclosures
-        receipt = owner_v3_panel_export.validate_for(
-            evidence, registered, refs, intervals, scope=scope
+        receipt = producer.validate_for(
+            evidence, registered, refs, intervals, scope=scope, **producer_kwargs
         )
+        if context is not None:
+            guarded419_context.require_receipt(receipt, context)
         binding = bindings[qid]
         if (
             type(binding) is not dict
@@ -393,6 +400,7 @@ def score_leg(
         "stage_c_or_d_adoption": False,
         "qualification": False,
     }
+    base = owner_v3._with_context(base, context)
     issue = _prediction_issue(prepared, predictions, set(registered["scales"]))
     if issue:
         return {**base, "status": "CANDIDATE_UNAVAILABLE", "reason": issue}
@@ -451,7 +459,7 @@ def judge_values(
         for r in prepared
     ]
     masks = {r["task_digest"]: r["reference_mask"] for r in outcomes}
-    return {
+    result = {
         "job": registered["job"],
         "scope": scope,
         "population": population,
@@ -463,6 +471,7 @@ def judge_values(
         "reference_masks_digest": tasks.digest(masks),
         "qualification": False,
     }
+    return owner_v3._with_context(result, context)
 
 
 def alignment(legs, values, *, recipe_of, gamers, bootstrap, seed):
@@ -495,6 +504,16 @@ def alignment(legs, values, *, recipe_of, gamers, bootstrap, seed):
     }
     selected_digest = legs[members[0]]["registration_sha256"]
     registered = registration(expected_sha256=selected_digest)
+    context = _selected_context(selected_digest)
+    if context is not None:
+        from . import guarded419_context
+
+        expected_context = guarded419_context.metadata(context)
+        if any(
+            r.get("diagnostic_context") != expected_context
+            for r in (*legs.values(), *values.values())
+        ):
+            raise tasks.TaskError("guarded result context differs")
     if (
         any(r.get("role") != "LEG" for r in legs.values())
         or any(r.get("role") != "VALUE" for r in values.values())
@@ -604,7 +623,7 @@ def alignment(legs, values, *, recipe_of, gamers, bootstrap, seed):
                 else None
             ),
         }
-    return {
+    result = {
         "first_line": registered["job"]
         + ": value conditional on reference-adequate frozen bank and FEASIBLE_EXISTS; diagnostic only",
         "job": registered["job"],
@@ -626,3 +645,4 @@ def alignment(legs, values, *, recipe_of, gamers, bootstrap, seed):
         "stage_c_or_d_adoption": False,
         "qualification": False,
     }
+    return owner_v3._with_context(result, context)

@@ -30,9 +30,18 @@ registered reference sources/observers, all offered EVAL rungs and enclosures,
 and the exact new task context. A missing API or receipt refuses the run.
 
 The existing CLI is frozen in PR1394. Root must merge/reconcile that dependency
-before its context integration is edited here. This intermediate source has
-explicit producer-unavailable refusals; it cannot calculate a guarded score
-from legacy evidence. It supplies no real numerical result or accepted bank.
+before its context integration is edited here. Dispatch to the new producer is
+closed and static. A missing module or CAL interface refuses the run; it never
+falls back to the original producer. Each new receipt carries the exact
+diagnostic context, new job and EVAL observer alongside its dynamic source,
+method, CAL and bank bindings. Source availability supplies no accepted bank.
+
+`guarded419_context.acquisition_plan(context)` reads the pinned original
+input-only plan and replaces only its job identity. Context-aware
+`owner_v3.acquisition_inputs` and `population_tasks` preserve the 60 physical
+tuples, original P law and deterministic 64 draws/32 LEG/32 VALUE roles. They
+mint fresh task, job, observer and bank identities. No old label, prediction
+or commitment is transferred by these input-only functions.
 
 Root owns all project tests and execution. Synthetic parity/refusal fixtures
 exercise the context/decision seam, not CAL adequacy or model quality. No

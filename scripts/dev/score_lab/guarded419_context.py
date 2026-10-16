@@ -19,6 +19,7 @@ PROJECTION = "carbon.scorelab.battery-v3.band-deadzone-projection.guard419.v1"
 EVAL_OBSERVER = "carbon.scorelab.battery-v3.guarded419-eval-observer.v1"
 REGISTRATION_SHA256 = "d6f395fd815eb59392f51cab4b6a401a7c94a5f667a80ddc1bc099f88147ace8"
 PARENT_SHA256 = "c3997852ea0ca66e392ebc4849c76f34b7e3d929bf35eb9a5c2f605e114b8c4e"
+PARENT_PLAN_SHA256 = "524230184fbbcffe2fb8b67e9f784fc75ba790a6e6509b88d01a896c2cb2c73f"
 DIRECTORY = (
     Path(__file__).resolve().parents[3]
     / "Business/research/score-lab-campaign-01/n1-diagnostic-guard419-v1"
@@ -157,3 +158,44 @@ def metadata(context):
         "normalization_source": registered["normalization_source"],
         "training_normalization": registered["training_normalization"],
     }
+
+
+def producer(context):
+    """Closed dispatch; availability is never replaced by the old producer."""
+    validate(context)
+    try:
+        from . import guarded419_eval
+    except ImportError as exc:
+        raise tasks.TaskError(
+            "guarded419 EVAL producer integration is unavailable"
+        ) from exc
+    return guarded419_eval
+
+
+def require_receipt(receipt, context):
+    if (
+        type(receipt) is not dict
+        or receipt.get("job") != JOB
+        or receipt.get("diagnostic_context") != metadata(context)
+        or type(receipt.get("observer")) is not dict
+        or receipt["observer"].get("id") != EVAL_OBSERVER
+    ):
+        raise tasks.TaskError("guarded producer receipt context differs")
+
+
+def acquisition_plan(context):
+    """Same frozen input-only plan, prospectively registered under the new job."""
+    validate(context)
+    raw = (DIRECTORY.parent / "acquisition-v1/acquisition.json").read_bytes()
+    if _sha(raw) != PARENT_PLAN_SHA256:
+        raise tasks.TaskError("frozen acquisition input plan bytes differ")
+    return {**json.loads(raw), "job": JOB}
+
+
+def validate_plan(plan, *, expected_digest, context):
+    if (
+        type(plan) is not dict
+        or plan != acquisition_plan(context)
+        or tasks.digest(plan) != expected_digest
+    ):
+        raise tasks.TaskError("exact frozen guarded input-only plan required")

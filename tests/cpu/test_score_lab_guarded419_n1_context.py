@@ -210,9 +210,15 @@ def test_new_judge_reuses_deadzone_algebra_and_requires_new_commitment():
         )
 
 
-def test_new_context_never_falls_back_to_old_producer():
+def test_new_context_never_falls_back_to_old_producer(monkeypatch):
+    from scripts.dev.score_lab import owner_v3_panel_export
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("old producer called for guarded context")
+
+    monkeypatch.setattr(owner_v3_panel_export, "validate_for", forbidden)
     _, new, refs, intervals = guarded_fixture()
-    with pytest.raises(tasks.TaskError, match="guarded419 EVAL producer"):
+    with pytest.raises(tasks.TaskError):
         owner.judge(
             new,
             {},
@@ -243,4 +249,61 @@ def test_legacy_evidence_cannot_be_scored_under_new_registration():
             producer_bindings=bindings([old]),
             expected_registration_digest=context.REGISTRATION_SHA256,
             scope="SYNTHETIC_FIXTURE",
+        )
+
+
+def test_new_population_preserves_frozen_physical_inputs_law_and_roles():
+    value = load()
+    plan = context.acquisition_plan(value)
+    parent = {**plan, "job": owner.JOB}
+    original_jobs = owner.acquisition_inputs(
+        parent, expected_digest=tasks.digest(parent), stage="evaluation"
+    )["jobs"]
+    new_jobs = owner.acquisition_inputs(
+        plan, expected_digest=tasks.digest(plan), stage="evaluation", context=value
+    )["jobs"]
+    assert len(new_jobs) == len(original_jobs) == 120
+    assert [{k: v for k, v in job.items() if k != "case_id"} for job in new_jobs] == [
+        {k: v for k, v in job.items() if k != "case_id"} for job in original_jobs
+    ]
+    assert {job["case_id"] for job in new_jobs}.isdisjoint(
+        job["case_id"] for job in original_jobs
+    )
+    old = owner.population_tasks(
+        parent, expected_plan_digest=tasks.digest(parent), count=64
+    )
+    new = owner.population_tasks(
+        plan, expected_plan_digest=tasks.digest(plan), count=64, context=value
+    )
+    assert len(new) == 64
+    assert sum(row["role"] == "LEG" for row in new) == 32
+    assert sum(row["role"] == "VALUE" for row in new) == 32
+    for before, after in zip(old, new, strict=True):
+        assert (
+            before["role"] == after["role"]
+            and before["population"] == after["population"] == "P"
+        )
+        assert before["outer_weight"] == after["outer_weight"] == 1
+        assert before["task"]["task_digest"] != after["task"]["task_digest"]
+        assert before["bank_cluster"] != after["bank_cluster"] == tasks.digest(plan)
+        owner._validate(after["task"], context=value)
+        for old_band, new_band in zip(
+            before["task"]["indices"], after["task"]["indices"], strict=True
+        ):
+            assert old_band["buyer_weight"] == new_band["buyer_weight"]
+            assert old_band["task"]["actions"] == new_band["task"]["actions"]
+            assert old_band["task"]["limits"] == new_band["task"]["limits"]
+            assert old_band["task"]["objective"] == new_band["task"]["objective"]
+    assert new == owner.population_tasks(
+        plan, expected_plan_digest=tasks.digest(plan), count=64, context=value
+    )
+
+
+def test_new_input_plan_refuses_changes_to_any_prospective_number():
+    value = load()
+    plan = context.acquisition_plan(value)
+    plan["questions"]["seed"] += 1
+    with pytest.raises(tasks.TaskError, match="frozen guarded"):
+        owner.population_tasks(
+            plan, expected_plan_digest=tasks.digest(plan), count=64, context=value
         )
