@@ -532,3 +532,159 @@ def test_cal_file_bridge_revalidates_nominal_evidence_and_independent_pins(monke
             },
         )
     ]
+
+
+def _worker_registration():
+    # Synthetic pin metadata exercises registration only, never source
+    # execution, prior-stage acceptance or a nominal EVAL certificate.
+    from scripts.dev.score_lab import guarded419_context as context
+
+    plan = producer.input_plan()
+    files = {name: "a" * 64 for name in producer.REQUIRED_SOURCES}
+    files[producer.REGISTRATION_FILE] = context.REGISTRATION_SHA256
+    pins = {
+        "schema": producer.PINS,
+        "scope": "DEVELOPMENT_ONLY",
+        "execution_source": "b" * 40,
+        "files": files,
+    }
+    return {
+        "plan": plan,
+        "expected_plan_digest": tasks.digest(plan),
+        "source_pins": pins,
+        "expected_source_pins_digest": tasks.digest(pins),
+        "context": _cal_context(),
+    }
+
+
+def _registered_jobs(registration, refinement_job_ids=()):
+    return producer.jobs(
+        registration["plan"],
+        expected_plan_digest=registration["expected_plan_digest"],
+        context=registration["context"],
+        refinement_job_ids=refinement_job_ids,
+    )
+
+
+def test_worker_context_mandatory120_and_detached_metadata_not_evidence():
+    registration = _worker_registration()
+    offered = _registered_jobs(registration)
+    assert len(offered) == 120 and {job["rung"] for job in offered} == {1, 2}
+    assert producer.validate_job(offered[0], **registration) is None
+    result = producer.job_context(offered[-1], **registration)
+    assert result == {
+        "record_schema": producer.RECORD,
+        "reference_identity": producer.observer(
+            registration["plan"], registration["source_pins"]["files"]
+        ),
+    }
+    assert not isinstance(result, producer.ValidatedEvidence)
+    saved = copy.deepcopy(registration["source_pins"])
+    result["reference_identity"]["source_files"].clear()
+    result["reference_identity"]["clock"] = "mutated"
+    assert registration["source_pins"] == saved
+    assert registration["plan"] == producer.input_plan()
+
+
+@pytest.mark.parametrize(
+    "defect",
+    [
+        "unknown_id",
+        "role",
+        "method",
+        "parent",
+        "rung_type",
+        "extra_observer",
+        "not_mapping",
+    ],
+)
+def test_worker_context_rejects_foreign_changed_or_malformed_job(defect):
+    registration = _worker_registration()
+    job = copy.deepcopy(_registered_jobs(registration)[0])
+    if defect == "unknown_id":
+        job["case_id"] = "scorelab-v3:guarded419-v1:eval:unregistered"
+    elif defect == "role":
+        job["reference_role"] = "PUBLIC_CONSTRUCTION"
+    elif defect == "method":
+        job["reference_method_digest"] = "sha256:" + "0" * 64
+    elif defect == "parent":
+        job["parent_input_case_id"] = "legacy-or-foreign-parent"
+    elif defect == "rung_type":
+        job["rung"] = True
+    elif defect == "extra_observer":
+        job["reference_identity"] = {"status": "PASS"}
+    else:
+        job = None
+    with pytest.raises(tasks.TaskError, match="registered guarded EVAL job"):
+        producer.job_context(job, **registration)
+
+
+def test_worker_context_mesh80_only_explicit_ordered_registered_ids():
+    registration = _worker_registration()
+    possible = producer._worker_jobs(
+        owner.acquisition_inputs(
+            registration["plan"],
+            expected_digest=registration["expected_plan_digest"],
+            stage="refinement",
+            context=registration["context"],
+        )["jobs"]
+    )
+    assert len(possible) == 60 and all(job["rung"] == 3 for job in possible)
+    with pytest.raises(tasks.TaskError, match="registered guarded EVAL job"):
+        producer.job_context(possible[0], **registration)
+    ids = [possible[0]["case_id"], possible[2]["case_id"]]
+    assert len(_registered_jobs(registration, ids)) == 122
+    assert (
+        producer.job_context(possible[0], **registration, refinement_job_ids=ids)[
+            "record_schema"
+        ]
+        == producer.RECORD
+    )
+    with pytest.raises(tasks.TaskError, match="registered guarded EVAL job"):
+        producer.job_context(possible[1], **registration, refinement_job_ids=ids)
+    for invalid in (ids[::-1], ids + ids[:1], ["unknown-mesh80"]):
+        with pytest.raises(tasks.TaskError):
+            producer.job_context(
+                possible[0], **registration, refinement_job_ids=invalid
+            )
+
+
+@pytest.mark.parametrize(
+    "defect",
+    [
+        "context",
+        "source_drift",
+        "registration_rehashed",
+        "inventory_rehashed",
+        "plan_rehashed",
+    ],
+)
+def test_worker_context_verifies_root_bundle_not_job_claims(defect):
+    registration = _worker_registration()
+    job = _registered_jobs(registration)[0]
+    if defect == "context":
+        registration["context"] = {"status": "PASS"}
+    elif defect == "source_drift":
+        registration["source_pins"]["files"][guard.MODULE] = "c" * 64
+    elif defect == "registration_rehashed":
+        registration["source_pins"]["files"][producer.REGISTRATION_FILE] = "c" * 64
+        registration["expected_source_pins_digest"] = tasks.digest(
+            registration["source_pins"]
+        )
+    elif defect == "inventory_rehashed":
+        registration["source_pins"]["files"]["foreign.py"] = "c" * 64
+        registration["expected_source_pins_digest"] = tasks.digest(
+            registration["source_pins"]
+        )
+    else:
+        registration["plan"]["soc0"] = 0.2
+        registration["expected_plan_digest"] = tasks.digest(registration["plan"])
+    with pytest.raises(tasks.TaskError):
+        producer.job_context(job, **registration)
+
+
+def test_worker_context_has_no_job_only_or_zero_argument_fallback():
+    with pytest.raises(TypeError):
+        producer.job_context({"reference_role": "PUBLIC_EVALUATION"})
+    with pytest.raises(TypeError):
+        producer.validate_job({"reference_role": "PUBLIC_EVALUATION"})

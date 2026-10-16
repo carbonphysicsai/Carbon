@@ -192,6 +192,70 @@ def observer(plan, files):
     }
 
 
+def validate_job(
+    job,
+    *,
+    plan,
+    expected_plan_digest,
+    source_pins,
+    expected_source_pins_digest,
+    context,
+    refinement_job_ids=(),
+):
+    """Registered input membership, never acquisition or physical authority.
+
+    The dispatcher supplies the independently bound Root registration bundle,
+    not context/source/observer fields inferred from the untrusted job. Optional
+    mesh80 is absent unless its ordered IDs were explicitly registered.
+    """
+    _source_pins(source_pins, expected_source_pins_digest, context)
+    offered = jobs(
+        plan,
+        expected_plan_digest=expected_plan_digest,
+        context=context,
+        refinement_job_ids=refinement_job_ids,
+    )
+    if type(job) is not dict:
+        raise tasks.TaskError("exact registered guarded EVAL job required")
+    try:
+        digest = tasks.digest(job)
+    except (TypeError, ValueError) as exc:
+        raise tasks.TaskError("exact registered guarded EVAL job required") from exc
+    if not any(digest == tasks.digest(registered) for registered in offered):
+        raise tasks.TaskError("exact registered guarded EVAL job required")
+
+
+def job_context(
+    job,
+    *,
+    plan,
+    expected_plan_digest,
+    source_pins,
+    expected_source_pins_digest,
+    context,
+    refinement_job_ids=(),
+):
+    """Return requested record metadata after exact registered-job validation.
+
+    This does not validate CAL/pretruth, release a stage, attest source execution
+    or supply operative physical proof. The actual registered runner and raw
+    EVAL admission must still establish those independent requirements.
+    """
+    validate_job(
+        job,
+        plan=plan,
+        expected_plan_digest=expected_plan_digest,
+        source_pins=source_pins,
+        expected_source_pins_digest=expected_source_pins_digest,
+        context=context,
+        refinement_job_ids=refinement_job_ids,
+    )
+    return {
+        "record_schema": RECORD,
+        "reference_identity": legacy._copy(observer(plan, source_pins["files"])),
+    }
+
+
 def prediction_view(registered, *, scope, context):
     _context(context)
     owner._validate(registered, context=context)

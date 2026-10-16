@@ -20,6 +20,17 @@ context dependencies before testing. Cover missing loader API, wrong scope or
 digests, registered-ID versus physical-path mismatch, raw-dict nominal refusal
 and delegation failure without issuing a fake positive CAL certificate.
 
+Root additionally released the worker-facing registered-input hook as a
+successor to frozen fc0. `validate_job` and `job_context` require the explicit
+Root-bound plan/context/source-pin bundle and their independent digests.
+Validate exact canonical membership in the original mandatory120 jobs;
+conditional80 jobs require explicit ordered registered IDs. Return only record
+schema/requested observer metadata, never CAL/pretruth/physical or dispatch
+authority. No implicit source/context discovery from job fields. Cover stale
+or rehashed plan/source/role/job changes, absent/unknown/reordered refinement
+IDs, bad context and missing keyword registration. Worker remains NewChallenge's
+single-writer scope; no runner/materializer/physics changes here.
+
 KEEP existing frozen physical inputs, question-law values/roles/order, numerical
 policy and existing evidence harness. WRAP authentic context/raw/calibration/
 model provenance rather than permit the old producer to accept guarded rows.

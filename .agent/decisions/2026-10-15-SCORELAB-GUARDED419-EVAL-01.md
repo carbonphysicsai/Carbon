@@ -33,3 +33,11 @@ the registry entry's physical disk path. Never resolve either name implicitly
 or add a filesystem reader. This is a reversible engineering convention, not
 a scientific, custody or data-admission decision. Full nominal CAL and source
 affinity still gate before EVAL bytes and are revalidated by the builder.
+
+The separately Root-released worker hook uses explicit keyword registration
+inputs rather than a zero-argument observer or a caller-supplied observer.
+Membership validation authenticates the independently bound plan/context and
+source-pin metadata, with only ordered explicitly registered conditional80
+IDs. It does not prove those source bytes executed, accept CAL/pretruth,
+authorize acquisition or weaken raw admission. Historical fc0/19c remain
+unchanged; sole worker ownership stays NewChallenge's.

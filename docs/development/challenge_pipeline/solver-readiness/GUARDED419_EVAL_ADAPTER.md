@@ -105,6 +105,33 @@ the existing context-aware reference mask makes whole-question common exclusions
 
 ## Real CAL prerequisite, never a stub
 
+### Fixed worker-dispatch seam (requested metadata only)
+
+`validate_job(job, *, plan, expected_plan_digest, source_pins,
+expected_source_pins_digest, context, refinement_job_ids=())` validates the
+independently Root-bound registration bundle using the existing context,
+plan/source-pin guards and exact canonical membership in `jobs(...)`.
+Mandatory120 mesh20/40 inputs are available by default; mesh80 requires explicit
+ordered registered IDs. Unknown, stale, changed-role, extra-field or malformed
+jobs refuse. No caller job can supply the registration or observer authority.
+
+`job_context` takes exactly the same arguments and returns
+`{"record_schema": RECORD, "reference_identity": observer(plan, files)}` after
+that validation. The observer uses the independently pinned source inventory,
+not a job-supplied observer, and the result is detached from caller mappings.
+NewChallenge's one closed worker dispatcher owns passing the admitted bundle;
+there is no dynamic import selection or unbound zero-argument fallback here.
+For process-pool transport, pass the registered JSON metadata, not a pickled
+private-token Context. The child uses the existing context loader with the
+registration hash from the independently pinned source inventory, then passes
+that genuine nominal Context to this hook. Transport is worker-owned; this
+adapter adds no process initializer or runner.
+This is not a runner/materializer, stage release, CAL/pretruth certificate or
+proof that the named source executed. Raw EVAL evidence still needs all original
+source/operative tracking/numerical/role/CAL/pretruth checks before acceptance.
+
+### File and nominal prerequisite
+
 Before raw EVAL truth is touched, build requires the CAL owner's nominal evidence.
 Missing module/interface raises `PrerequisiteUnavailable`; no T9/TRAIN certificate,
 caller PASS/dict or fake complete-CAL fixture can substitute. The prospective
