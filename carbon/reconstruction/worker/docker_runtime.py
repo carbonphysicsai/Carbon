@@ -871,8 +871,7 @@ def inspect_effective_controls(
                     ("DEVICES", lambda: bool(host.get("Devices"))),
                     (
                         "DEVICE_REQUESTS",
-                        lambda: (host.get("DeviceRequests") or [])
-                        != expected_requests,
+                        lambda: (host.get("DeviceRequests") or []) != expected_requests,
                     ),
                     ("PORT_BINDINGS", lambda: bool(host.get("PortBindings"))),
                     ("PUBLISH_PORTS", lambda: bool(host.get("PublishAllPorts"))),
@@ -964,9 +963,7 @@ def inspect_effective_controls(
                         ("GPU_RUNTIME", lambda: host.get("Runtime") != "nvidia"),
                         (
                             "GPU_ENVIRONMENT",
-                            lambda: any(
-                                env.get(k) != v for k, v in required.items()
-                            ),
+                            lambda: any(env.get(k) != v for k, v in required.items()),
                         ),
                         (
                             "GPU_LD_LIBRARY_PATH",
@@ -1110,8 +1107,7 @@ def inspect_effective_controls(
                     ("KERNEL_CPU_MAX_SHAPE", lambda: len(cpu_quota) != 2),
                     (
                         "KERNEL_CPU_QUOTA",
-                        lambda: int(cpu_quota[0])
-                        != len(eligible) * int(cpu_quota[1]),
+                        lambda: int(cpu_quota[0]) != len(eligible) * int(cpu_quota[1]),
                     ),
                     ("KERNEL_CPUSET", lambda: observed_cpuset != eligible),
                     (
