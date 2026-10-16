@@ -343,3 +343,10 @@ def test_raw_dict_context_cannot_mint_or_validate_nominal_evidence():
             scope="PUBLIC_DEVELOPMENT",
             context={"status": "PASS"},
         )
+    with pytest.raises(tasks.TaskError):
+        producer.validate_calibration(
+            {"status": "PASS"},
+            {"calibration": {}, "scope": "PUBLIC_DEVELOPMENT"},
+            {},
+            context={"status": "PASS"},
+        )

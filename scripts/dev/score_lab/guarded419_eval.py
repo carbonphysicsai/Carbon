@@ -454,6 +454,15 @@ def _calibration(evidence, manifest, pins, context):
     return report
 
 
+def validate_calibration(evidence, manifest, source_pins, *, context):
+    """Early full-CAL gate for CLI before it even loads EVAL raw bytes.
+
+    The builder revalidates this same nominal prerequisite before sealing.
+    A caller dictionary or a partial delivery is never a CAL certificate.
+    """
+    return _calibration(evidence, manifest, source_pins, context)
+
+
 def _raw_rows(manifest, raw_chunks, offered, pins, expected_observer):
     """Unsealed raw authentication; cannot mint EVAL or replace CAL evidence."""
     if type(manifest["chunks"]) is not list or type(raw_chunks) is not dict:

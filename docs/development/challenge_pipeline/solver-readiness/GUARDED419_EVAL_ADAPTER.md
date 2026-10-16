@@ -117,6 +117,12 @@ raises CALIBRATION_API_UNAVAILABLE without reading the spec until the CAL owner
 supplies its actual frozen input format/API. This is a typed stop, not a stub
 that can produce evidence. The direct-library build accepts only real nominal
 calibration_evidence through the owner's validator.
+`validate_calibration(evidence, manifest, source_pins, *, context)` exposes the
+same full nominal CAL gate before the CLI constructs any eagerly evaluated
+`raw_chunks={key: load(file_id), ...}` arguments. The CLI must call it before
+loading even public EVAL label files, not only before build reduces them.
+Build revalidates the same prerequisite before sealing; partial nominal delivery
+is not complete compatibleCAL15. No additional numerical formula is introduced.
 
 ## Pretruth cohort identity, chronology and raw-member verification
 
