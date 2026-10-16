@@ -105,7 +105,15 @@ def _simulation(job):
     if guarded:
         from scripts.dev.battery import guarded_reference
 
-        guarded_reference.validate_job(job)
+        if (
+            job.get("reference_admission")
+            == "carbon.scorelab.guarded419.t9-admission.v1"
+        ):
+            from scripts.dev.score_lab import guarded419_t9
+
+            guarded419_t9.validate_job(job)
+        else:
+            guarded_reference.validate_job(job)
     import pybamm
 
     from carbon.battery import reference as ref
@@ -646,11 +654,22 @@ def solve_one(job):
     record = {
         **job,
         "schema": (
-            "carbon.battery.guarded419-feasibility-record.v1"
-            if job.get("reference_method") is not None
-            else "carbon.battery.feasibility02-record.v1"
+            "carbon.battery.guarded419-t9-feasibility-record.v1"
+            if job.get("reference_admission")
+            == "carbon.scorelab.guarded419.t9-admission.v1"
+            else (
+                "carbon.battery.guarded419-feasibility-record.v1"
+                if job.get("reference_method") is not None
+                else "carbon.battery.feasibility02-record.v1"
+            )
         ),
     }
+    if job.get("reference_admission") == "carbon.scorelab.guarded419.t9-admission.v1":
+        from scripts.dev.score_lab import guarded419_t9
+
+        # Requested T9 context also identifies typed failures before a solve;
+        # it is not evidence that the reference executed or passed tracking.
+        record["reference_identity"] = guarded419_t9.observer()
     started = time.perf_counter()
     try:
         sim, cooling = _simulation(job)
@@ -662,7 +681,15 @@ def solve_one(job):
     if job.get("reference_method") is not None:
         from scripts.dev.battery import guarded_reference
 
-        record["reference_identity"] = guarded_reference.observer({})
+        if (
+            job.get("reference_admission")
+            == "carbon.scorelab.guarded419.t9-admission.v1"
+        ):
+            from scripts.dev.score_lab import guarded419_t9
+
+            record["reference_identity"] = guarded419_t9.observer()
+        else:
+            record["reference_identity"] = guarded_reference.observer({})
     record["observation_provenance"] = _observation_source_metadata(sim)
     cycles = list(sol.cycles)
     if len(cycles) < N_CYCLES or any(c is None for c in cycles):
