@@ -215,45 +215,47 @@ def _journey_host(root, patch):
         if not manifest_path.exists():
             provider = {"model": "fixture-model"}
             if args.product.agent == "graphite":
-                # This lifecycle fixture does not run Graphite's model, but a
-                # resumed Graphite campaign still needs the same three frozen
-                # authorities as a real launch: manifest, ledger and launch
-                # block digest. Keep the fixture's synthetic literature
-                # identity visibly separate from a runnable miner pack.
                 from carbon.agent_campaign.graphite.miner import driver, edition
 
                 launch = edition.launch_fields(
                     getattr(args, "graphite", None),
                     curation_digest=getattr(args, "graphite_curation_digest", None),
                 )
-                curation_digest = launch["curation_digest"] or digest(
-                    canonical({"fixture": "journey-curation"})
-                )
-                block = edition.graphite_block(
-                    launch,
-                    curation_digest=curation_digest,
-                    pack_digest=digest(canonical({"fixture": "journey-pack"})),
-                    private_snapshot_digest=None,
-                )
-                launch_path = driver.launch_path(args.root)
-                launch_path.parent.mkdir(mode=0o700, exist_ok=True)
-                write_once(
-                    launch_path,
-                    canonical(
-                        {
-                            "schema": driver.LAUNCH_SCHEMA,
-                            "block_digest": digest(canonical(block)),
-                            "curation": {
-                                "pins": [],
-                                "bans": [],
-                                "digest": curation_digest,
-                            },
-                            "plan_digest": launch["plan"],
-                            "plan": None,
-                        }
-                    ),
-                )
-                provider.update(agent="graphite", graphite=block)
+                empty_curation = digest(canonical({"pins": [], "bans": []}))
+                # Only the no-plan, empty-curation lifecycle case has all
+                # records this fixture can truthfully reconstruct. Other
+                # Graphite tests use an in-memory library with plans or pins;
+                # their admission-only fixture remains as it was rather than
+                # inventing a matching launch record for those materials.
+                if (
+                    launch["plan"] is None
+                    and launch["curation_digest"] == empty_curation
+                ):
+                    block = edition.graphite_block(
+                        launch,
+                        curation_digest=empty_curation,
+                        pack_digest=digest(canonical({"fixture": "journey-pack"})),
+                        private_snapshot_digest=None,
+                    )
+                    launch_path = driver.launch_path(args.root)
+                    launch_path.parent.mkdir(mode=0o700, exist_ok=True)
+                    write_once(
+                        launch_path,
+                        canonical(
+                            {
+                                "schema": driver.LAUNCH_SCHEMA,
+                                "block_digest": digest(canonical(block)),
+                                "curation": {
+                                    "pins": [],
+                                    "bans": [],
+                                    "digest": empty_curation,
+                                },
+                                "plan_digest": None,
+                                "plan": None,
+                            }
+                        ),
+                    )
+                    provider.update(agent="graphite", graphite=block)
             manifest = {
                 **args.product.manifest_fields(),
                 "owner": "miner-requester",
