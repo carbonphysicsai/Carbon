@@ -1996,6 +1996,12 @@ def test_7_closing_pauses_restarting_flags_nothing_and_resume_survives(
             return idle, busy
 
     idle, busy = asyncio.run(launch_both())
+    from carbon.development_session import submission_policy
+
+    campaign_root = root / "campaigns" / busy
+    frozen = json.loads((campaign_root / "campaign-manifest.json").read_bytes())
+    assert "submission_policy" not in frozen["provider"]["graphite"]
+    assert not submission_policy.retains(frozen, root=campaign_root)
     # The client closed: nothing it launched was paused or stopped.
     assert ledger_status(root, busy)[0] == "RUN"
     close_control_center(root, first)
@@ -2084,6 +2090,9 @@ def test_7_closing_pauses_restarting_flags_nothing_and_resume_survives(
     assert done["state"] == "COMPLETED" and done["last_refusal"] is None
     assert agent_runs(root) == [first.pid, third.pid]
     close_control_center(root, third)
+    (campaign_root / "graphite" / "launch.json").unlink()
+    with pytest.raises(submission_policy.PolicyInvalid):
+        submission_policy.retains(frozen, root=campaign_root)
 
 
 # --- 8. Graphite, the agent miners run ----------------------------------------

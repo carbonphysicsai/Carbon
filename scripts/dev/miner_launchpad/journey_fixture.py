@@ -209,8 +209,51 @@ def _journey_host(root, patch):
             return {"status": "SUCCEEDED", "identity": identity}
 
     async def prepare(args, *, ledger=None):
+        from carbon.development_session.data import write_once
+
         manifest_path = args.root / "campaign-manifest.json"
         if not manifest_path.exists():
+            provider = {"model": "fixture-model"}
+            if args.product.agent == "graphite":
+                # This lifecycle fixture does not run Graphite's model, but a
+                # resumed Graphite campaign still needs the same three frozen
+                # authorities as a real launch: manifest, ledger and launch
+                # block digest. Keep the fixture's synthetic literature
+                # identity visibly separate from a runnable miner pack.
+                from carbon.agent_campaign.graphite.miner import driver, edition
+
+                launch = edition.launch_fields(
+                    getattr(args, "graphite", None),
+                    curation_digest=getattr(args, "graphite_curation_digest", None),
+                )
+                curation_digest = launch["curation_digest"] or digest(
+                    canonical({"fixture": "journey-curation"})
+                )
+                block = edition.graphite_block(
+                    launch,
+                    curation_digest=curation_digest,
+                    pack_digest=digest(canonical({"fixture": "journey-pack"})),
+                    private_snapshot_digest=None,
+                )
+                launch_path = driver.launch_path(args.root)
+                launch_path.parent.mkdir(mode=0o700, exist_ok=True)
+                write_once(
+                    launch_path,
+                    canonical(
+                        {
+                            "schema": driver.LAUNCH_SCHEMA,
+                            "block_digest": digest(canonical(block)),
+                            "curation": {
+                                "pins": [],
+                                "bans": [],
+                                "digest": curation_digest,
+                            },
+                            "plan_digest": launch["plan"],
+                            "plan": None,
+                        }
+                    ),
+                )
+                provider.update(agent="graphite", graphite=block)
             manifest = {
                 **args.product.manifest_fields(),
                 "owner": "miner-requester",
@@ -221,13 +264,11 @@ def _journey_host(root, patch):
                 "control": "fixture",
                 "selection": "fixture",
                 "replica_policy": "three",
-                "provider": {"model": "fixture-model"},
+                "provider": provider,
             }
             # Whole or not at all, as the real campaign writes it
             # (`data.write_once`): a supervisor thread reading the agent
             # (`runner.product_agent`) never sees it created but empty.
-            from carbon.development_session.data import write_once
-
             write_once(manifest_path, canonical(manifest))
             ledger.freeze(manifest)
         manifest = json.loads(manifest_path.read_bytes())
