@@ -343,6 +343,81 @@ def _finite_scalar(value):
     return float(values[0])
 
 
+def _cv_equation_normalization(
+    model, variable, expression, target, *, time_s, state, inputs, scaled_residual
+):
+    """Observe the actual algebraic key's scale; never infer it from a residual.
+
+    The pinned discretisation divides equations by their processed key scale.
+    PyBaMM's symbolic identity includes array bytes, unlike str(expression).
+    This is a runtime witness, not proof for historical matrices or states.
+    """
+    import numpy as np
+
+    result = {
+        "schema": "carbon.battery.cv-equation-normalization.v1",
+        "status": "UNAVAILABLE",
+        "scale_source": "OPERATIVE_ALGEBRAIC_VARIABLE_SCALE",
+        "parameter_source": "OPERATIVE_MODEL_SYMBOL_PROCESSOR_PARAMETER_VALUES",
+        "parameter_name": "Nominal cell capacity [A.h]",
+        "scale_is_constant": None,
+        "scale": None,
+        "nominal_capacity_ah": None,
+        "target_v": target,
+        "normalized_residual_units": "SOLVER_NORMALIZED",
+        "voltage_residual_units": "V",
+        "signed_voltage_residual_v": None,
+        "independent_voltage_residual_v": None,
+    }
+    try:
+        if model.algebraic.get(variable) is not expression:
+            raise ValueError("NOT_THE_OPERATIVE_ALGEBRAIC_EQUATION")
+        scale_symbol = variable.scale
+        if scale_symbol.is_constant() is not True:
+            raise ValueError("CURRENT_SCALE_IS_NOT_CONSTANT")
+        raw_scale = np.asarray(scale_symbol.evaluate())
+        raw_capacity = np.asarray(
+            model.symbol_processor.parameter_values["Nominal cell capacity [A.h]"]
+        )
+        if raw_scale.dtype.kind not in "iuf" or raw_capacity.dtype.kind not in "iuf":
+            raise ValueError("CURRENT_SCALE_OR_CAPACITY_IS_NOT_NUMERIC")
+        scale, capacity = _finite_scalar(raw_scale), _finite_scalar(raw_capacity)
+        if scale <= 0 or capacity <= 0 or scale != capacity:
+            raise ValueError("CURRENT_SCALE_DIFFERS_FROM_ACTUAL_NOMINAL_CAPACITY")
+        result.update(
+            scale_is_constant=True,
+            scale=scale,
+            nominal_capacity_ah=capacity,
+            scale_expression_class=type(scale_symbol).__name__,
+            scale_expression_module=type(scale_symbol).__module__,
+        )
+        voltage = model.get_processed_variable_or_event("Voltage [V]")
+        voltage_relation = voltage - target
+        if expression != voltage_relation / scale_symbol:
+            raise ValueError("NOT_THE_SCALED_PROCESSED_VOLTAGE_RELATION")
+        result.update(
+            status="VERIFIED_SYMBOLIC_RELATION",
+            symbolic_equality_basis="PINNED_PYBAMM_FULL_SYMBOL_IDENTITY",
+            signed_voltage_residual_v=_finite_scalar(scaled_residual * scale),
+            independent_voltage_residual_v=_finite_scalar(
+                voltage_relation.evaluate(t=time_s, y=state, inputs=inputs)
+            ),
+        )
+    except (
+        AttributeError,
+        KeyError,
+        NotImplementedError,
+        TypeError,
+        ValueError,
+        OverflowError,
+    ) as exc:
+        result["status"] = "UNAVAILABLE"
+        result["reason"] = (
+            str(exc) if isinstance(exc, ValueError) else type(exc).__name__
+        )
+    return result
+
+
 def _voltage_extrema(times, values, *, start_index=0):
     """Summarize actual points in order; do not interpolate or certify a bound."""
     points = [
@@ -512,17 +587,26 @@ def _voltage_contact_observation(step, descriptor):
             if variable.name == "Current variable [A]":
                 equation = str(expression)
                 identity = "NOT_A_VERIFIED_VOLTAGE_RELATION"
+                scaled_residual = _finite_scalar(
+                    expression.evaluate(t=event_time, y=state, inputs=inputs)
+                )
+                normalization = None
                 if (
                     result["descriptor"]
                     and result["descriptor"]["control_kind"] == "voltage"
                 ):
-                    try:
-                        voltage = model.get_processed_variable_or_event("Voltage [V]")
-                        expected = voltage - result["descriptor"]["value"]
-                        if expression == expected:
-                            identity = "PROCESSED_VOLTAGE_MINUS_ACTUAL_TARGET"
-                    except (AttributeError, TypeError, ValueError):
-                        identity = "VOLTAGE_RELATION_IDENTITY_UNAVAILABLE"
+                    normalization = _cv_equation_normalization(
+                        model,
+                        variable,
+                        expression,
+                        result["descriptor"]["value"],
+                        time_s=event_time,
+                        state=state,
+                        inputs=inputs,
+                        scaled_residual=scaled_residual,
+                    )
+                    if normalization["status"] == "VERIFIED_SYMBOLIC_RELATION":
+                        identity = "PROCESSED_VOLTAGE_MINUS_TARGET_OVER_CURRENT_SCALE"
                 terminal["current_control_equations"].append(
                     {
                         "variable": variable.name,
@@ -533,9 +617,8 @@ def _voltage_contact_observation(step, descriptor):
                         "expression_utf8_sha256": hashlib.sha256(
                             equation.encode("utf-8")
                         ).hexdigest(),
-                        "signed_residual": _finite_scalar(
-                            expression.evaluate(t=event_time, y=state, inputs=inputs)
-                        ),
+                        "signed_residual": scaled_residual,
+                        "normalization": normalization,
                     }
                 )
         for key in ("Voltage [V]", "Battery voltage [V]"):

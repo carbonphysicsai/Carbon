@@ -33,8 +33,14 @@ any proportional or zero equation, calling normalized residuals volts, changing
 tolerance, bypassing the G0 guard or crediting source inspection as runtime proof.
 
 Root owns model reconstruction/tests/provider/merge; Research independently
-reviews the method. PR1393 owns shared files until transfer, so only this
-contract is edited now. Full-CAL source work is preserved separately at
+reviews the method. After PR1393 merged, Root transferred the shared worker,
+guard and producer pins to this ticket. Root reconciled mainbc0b8a01 into the
+author branch as bf7d4581. Implementation adds the versioned runtime unit witness
+and v2 reduction/tracking reports, plus focused synthetic controls. It does not
+provide a historical reanalysis admission or treat rebuilt printed equations as
+complete old structural evidence. If that proof is unavailable, Root runs a new
+bounded first triple after the repaired source passes its checks.
+Full-CAL source work is preserved separately at
 codex/scorelab-guarded419-full-calibration, contracta7c52b6, and is secondary.
 No new reserved scientific value is selected. Supersede this record and the
 ticket to change the engineering contract; preserve all historical evidence.

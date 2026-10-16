@@ -66,8 +66,8 @@ REUSE_INPUT = re.compile(r"reuse_records_[0-9]{3}\Z")
 #: every helper file a stage runs or imports, beyond the registered entrypoints
 PINNED = {
     "carbon/battery/truth_env.py": "fee4a30b260d518d8bf4056e3f662f56a2747b4b3b3149c441eacb45c216bd8a",
-    "scripts/dev/battery/feasibility02.py": "bfc133543d9d3dd72f01d3846ac7c8c91a1ddc0da95d1eefe2e00c6b33bfcd8a",
-    "scripts/dev/battery/guarded_reference.py": "a10f557a18be2fe9089a90aabf7975062a434f919b575630cb774bd8ee01e31a",
+    "scripts/dev/battery/feasibility02.py": "9a4fece11ce66d85eda1d4d302880416ac8f9f9e669ab0764dbafa4b5ba97e50",
+    "scripts/dev/battery/guarded_reference.py": "475c43a940cf96a71d01c70d23f263a1ea92cf5630fffcec29d16f7ba88d2dea",
     "scripts/dev/score_lab/guarded419_t9.py": "e7136fd31b441139e0d342862d65ef07a83c2beddee025c9ee29442428cc9f09",
     "scripts/dev/battery/feasibility02_tier4.py": "997763fdc78c6b81372fe4109323591a38003af5d12c22142727531793416aa6",
     "scripts/dev/battery/feasibility02_v2.py": "17235eaddf8d505113999b5fd12585d94750e3f3166f1c846e941e6a347ac44c",

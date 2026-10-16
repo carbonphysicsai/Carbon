@@ -1,9 +1,10 @@
 # BATTERY-GUARDED419-CV-SCALE-01
 
-Status: IN_PROGRESS, read-only diagnosis and contract. Root selects this narrow
-repair before SCORELAB-GUARDED419-FULL-CAL-01. Base main45fb4b7409165445d7e11509ca26588c9ae19b12.
-PR1393 retains the shared worker/guard/producer until Root transfers ownership;
-this ticket does not edit those files before that event.
+Status: IN_PROGRESS, implementation. Root selects this narrow repair before
+SCORELAB-GUARDED419-FULL-CAL-01. Original base main45fb4b7409165445d7e11509ca26588c9ae19b12.
+After PR1393 merged, Root transferred sole writer ownership of the worker,
+guard and active producer pins to this ticket and reconciled mainbc0b8a0181b62ea53627c0d27be27d889bd82f11
+into this branch as bf7d4581fd16deab74d9959f052c6ba90bb3dbc5.
 
 ## Concrete defect and unchanged boundaries
 
@@ -56,13 +57,24 @@ and reconstruction evidence. Never overwrite or silently upgrade old records.
 T9/CAL/EVAL admission requires authentic compatible evidence under its explicit
 new receipt contract; software existence is not release authority.
 
-Expected manifest after ownership transfer: existing feasibility02.py,
-guarded_reference.py and corresponding producer pins; exclusive CV-scale tests;
-one small witness/reanalysis helper if necessary; this ticket and decision.
-Update affected synthetic fixtures only after their writer is released. Reuse
-the existing solver, collector and package; no new execution harness/provider.
+Expected manifest: existing feasibility02.py, guarded_reference.py and
+corresponding producer pins; tests/cpu/test_battery_cv_scale_witness.py;
+tests/cpu/test_battery_guarded_reference.py; tests/fixtures/guarded419_t9.py;
+this ticket and decision. Fixtures are released with PR1393. Reuse the existing
+solver, collector and package; no new execution harness/provider or automatic
+historical reanalysis admission is added by the source repair.
 Root records the exact build entry point and initialization/algebraic work;
 model assembly alone is not proof that no time integration occurred.
+
+The new runtime normalization witness is carbon.battery.cv-equation-normalization.v1.
+It requires the actual algebraic key's constant finite positive scale to match
+the operative model's nominal-capacity parameter, then compares the processed
+equation to (processed Voltage [V] - actual target) / scale with PyBaMM symbol
+identity. This includes matrix contents, unlike printed text. Retain the raw
+normalized residual; separately multiply by scale for the signed voltage residual
+and evaluate the voltage expression at the actual state. The v2 tracking/reduction
+report requires both voltage residuals within the unchanged 1e-6 V criterion.
+Old rows without this witness remain unresolved; no old receipt is rewritten.
 
 ## Validation and maturity
 
@@ -70,12 +82,19 @@ Baseline: exact actual G0 raw/receipt/source inspection and pinned wheel source,
 plus retained #1392 canonical65 focused/all-six CI success. No author application
 imports, model construction, tests, solver or provider calls. Root runs a finite
 canonical reconstruction and focused controls before a ready CI push.
+The focused command is ./scripts/dev/canonical.sh pytest -q
+tests/cpu/test_battery_cv_scale_witness.py
+tests/cpu/test_battery_guarded_reference.py
+tests/cpu/test_battery_feasibility02_voltage_contact.py
+tests/cpu/test_score_lab_guarded419_t9.py, plus the active producer pin checks.
 Controls must include actual positive nonunit scale, wrong/zero/nonfinite or
 state-dependent scale, wrong equation with zero residual, RHS-only control,
 physical-unit threshold boundaries, source/raw/hash drift and no old-row mutation.
-Include same printed matrix shape/different coefficients, a missing or mismatched
-occurrence among90, wrong multiply/divide conversion and honest missing-state
-representation. Research R1 receipt4e339f7b81bb1af5c8a6e0d21f764ba0e1add7961f92bfeb27aef0f1fe3a60d7
+Include same printed matrix shape/different coefficients, a missing fresh
+occurrence in the full30-cycle record, wrong multiply/divide conversion and
+honest missing-state representation. Any historical reuse separately requires
+complete90-occurrence mapping; no such admission is implemented here.
+Research R1 receipt4e339f7b81bb1af5c8a6e0d21f764ba0e1add7961f92bfeb27aef0f1fe3a60d7
 is incorporated; it supplies no runtime proof or accepted reanalysis.
 
 Completion is conditional on actual scoped tests, exact-head checks and Root
