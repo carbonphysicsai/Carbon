@@ -139,9 +139,7 @@ def test_description_provisions_match_the_registered_public_projection(challenge
         for entry in challenges.entries()
         if entry.challenge_id == challenge_id
     )
-    provisions = challenges.describe(challenge_id, version, host=NOTHING)[
-        "provisions"
-    ]
+    provisions = challenges.describe(challenge_id, version, host=NOTHING)["provisions"]
     assert provisions == standard.public_provisions(challenge_id)
     assert provisions == capabilities._provisions(challenge_id)
     assert set(provisions) == set(standard.PROVISIONS)
@@ -269,9 +267,10 @@ def test_discovery_is_on_the_open_tier_and_grants_nothing(tmp_path, monkeypatch)
         )
     )
     assert described["challenge_id"] == BATTERY
-    assert described["provisions"] == challenges.describe(
-        BATTERY, "1.0", host=EVERYTHING
-    )["provisions"]
+    assert (
+        described["provisions"]
+        == challenges.describe(BATTERY, "1.0", host=EVERYTHING)["provisions"]
+    )
     # Refused by its stable code; the caller's text is never echoed back.
     with pytest.raises(ToolError, match="challenge_not_implemented"):
         asyncio.run(
