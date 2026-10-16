@@ -159,6 +159,59 @@ def test_self_service_never_bypasses_shared_containment(
     with pytest.raises(WorkerFailure) as caught:
         docker.inspect_effective_controls(cli=probe.cli, **probe.options)
     assert caught.value.code is WorkerCode.POLICY
+    assert caught.value.private_diagnostic == b""
+
+
+@pytest.mark.parametrize(
+    "field,value,predicate",
+    [
+        ("Memory", 1, "MEMORY"),
+        ("DeviceRequests", [], "DEVICE_REQUESTS"),
+        ("NetworkMode", "host", "NETWORK"),
+    ],
+)
+def test_fixed_practice_diagnoses_first_guard_without_relaxing_it(
+    installed, tmp_path, field, value, predicate
+):
+    _, record = installed
+    probe = controls(tmp_path, record, self_service(record))
+    probe.document["HostConfig"][field] = value
+    with pytest.raises(WorkerFailure) as caught:
+        docker.inspect_effective_controls(
+            cli=probe.cli, diagnose_policy=True, **probe.options
+        )
+    assert caught.value.code is WorkerCode.POLICY
+    assert docker.controls_predicate(caught.value) == predicate
+    assert caught.value.private_diagnostic.endswith(predicate.encode("ascii"))
+
+
+def test_fixed_practice_diagnoses_gpu_label_and_nested_observer(
+    installed, tmp_path, monkeypatch
+):
+    _, record = installed
+    probe = controls(tmp_path, record, self_service(record))
+    probe.document["Config"]["Labels"]["carbon.accelerator.device"] = "wrong"
+    with pytest.raises(WorkerFailure) as label_error:
+        docker.inspect_effective_controls(
+            cli=probe.cli, diagnose_policy=True, **probe.options
+        )
+    assert docker.controls_predicate(label_error.value) == "GPU_DEVICE_LABEL"
+    probe.document["Config"]["Labels"]["carbon.accelerator.device"] = record.device_uuid
+
+    original = WorkerFailure(WorkerCode.POLICY)
+
+    def refuse(**_):
+        raise original
+
+    monkeypatch.setattr(runtime, "inspect_self_service_device", refuse)
+    with pytest.raises(WorkerFailure) as nested_error:
+        docker.inspect_effective_controls(
+            cli=probe.cli, diagnose_policy=True, **probe.options
+        )
+    assert docker.controls_predicate(nested_error.value) == "GPU_DEVICE_OBSERVATION"
+    with pytest.raises(WorkerFailure) as default_error:
+        docker.inspect_effective_controls(cli=probe.cli, **probe.options)
+    assert default_error.value is original
 
 
 @pytest.mark.parametrize(

@@ -226,6 +226,24 @@ def test_success_does_not_add_diagnostics_or_change_result_contract(harness):
     assert harness.ledger.operation_state("public-task", owner="alice") == "SUCCEEDED"
 
 
+@pytest.mark.parametrize(
+    "provenance,diagnose",
+    [("BATTERY_PUBLIC_PRACTICE", True), ("GRAPHITE_CARRIER_PRACTICE", False)],
+)
+def test_only_battery_practice_opts_into_controls_diagnosis(
+    harness, monkeypatch, provenance, diagnose
+):
+    seen = []
+
+    def inspect(**kwargs):
+        seen.append(kwargs["diagnose_policy"])
+        return "sha256:" + "1" * 64, {}
+
+    monkeypatch.setattr(carrier, "inspect_effective_controls", inspect)
+    harness.run(provenance=provenance)
+    assert seen == [diagnose]
+
+
 def test_normal_reconciliation_keeps_failed_record_and_full_original_charge(harness):
     original = WorkerFailure(WorkerCode.RUNTIME, private_diagnostic=SECRET)
     harness.fail_stage, harness.error = "PROGRAM", original
@@ -320,6 +338,60 @@ def test_marker_scan_and_file_names_are_closed_and_bounded(tmp_path):
     assert sorted(p.name for p in tmp_path.iterdir()) == ["failure-PROGRAM.json"]
     carrier._retain_practice_failure(tmp_path, "PROGRAM", ValueError("changed"))
     assert (tmp_path / "failure-PROGRAM.json").read_bytes() == original
+
+
+def test_controls_predicate_is_exact_private_battery_only(harness):
+    from carbon.reconstruction.worker.docker_runtime import _CONTROL_PREDICATE_PREFIX
+
+    error = WorkerFailure(
+        WorkerCode.POLICY,
+        private_diagnostic=_CONTROL_PREDICATE_PREFIX + b"MEMORY",
+    )
+    harness.fail_stage, harness.error = "CONTROLS", error
+    with pytest.raises(WorkerFailure) as caught:
+        harness.run()
+    assert caught.value is error
+    saved = records(harness.ledger.root)["CONTROLS"]
+    assert saved["controls_predicate"] == "MEMORY"
+    assert SECRET not in json.dumps(saved).encode()
+    assert harness.ledger.operation_state("public-task", owner="alice") == "RESERVED"
+    assert "CLEANUP" in harness.events and "ABSENCE_QUERY" in harness.events
+
+
+@pytest.mark.parametrize(
+    "diagnostic",
+    [
+        b"MEMORY",
+        b"carbon.controls.predicate.v1:MEMORY" + SECRET,
+        b"carbon.controls.predicate.v1:UNKNOWN",
+    ],
+)
+def test_controls_predicate_rejects_untrusted_diagnostics(tmp_path, diagnostic):
+    carrier._retain_practice_failure(
+        tmp_path,
+        "CONTROLS",
+        WorkerFailure(WorkerCode.POLICY, private_diagnostic=diagnostic),
+    )
+    assert "controls_predicate" not in json.loads(
+        (tmp_path / "failure-CONTROLS.json").read_bytes()
+    )
+    assert SECRET not in (tmp_path / "failure-CONTROLS.json").read_bytes()
+
+
+def test_policy_predicate_does_not_enter_other_stage(tmp_path):
+    from carbon.reconstruction.worker.docker_runtime import _CONTROL_PREDICATE_PREFIX
+
+    carrier._retain_practice_failure(
+        tmp_path,
+        "PROGRAM",
+        WorkerFailure(
+            WorkerCode.POLICY,
+            private_diagnostic=_CONTROL_PREDICATE_PREFIX + b"MEMORY",
+        ),
+    )
+    assert "controls_predicate" not in json.loads(
+        (tmp_path / "failure-PROGRAM.json").read_bytes()
+    )
 
 
 @pytest.mark.parametrize("provenance", ["MINER_SELF_REPORTED", "BATTERY_VALIDATOR"])
