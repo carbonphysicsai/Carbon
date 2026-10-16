@@ -433,6 +433,27 @@ def retired() -> dict[str, Retired]:
     }
 
 
+def public_provisions(challenge_id: str) -> dict | None:
+    """One Challenge's public provision statuses, without evidence symbols.
+
+    A Challenge without a declared environment has no provisions to offer.
+    Retired history is labelled as retired rather than converted to gaps.
+    """
+    table = ENVIRONMENTS.get(challenge_id)
+    if table is None:
+        return None
+    if isinstance(table, Retired):
+        return {"retired": table.decision}
+    return {
+        name: (
+            {"status": "gap", "reason": status.reason, "next_step": status.next_step}
+            if isinstance(status, Gap)
+            else {"status": "provided", "note": status.note}
+        )
+        for name, status in table.items()
+    }
+
+
 def gaps() -> dict[str, dict[str, Gap]]:
     """Every open gap, by offered Challenge, for reports and the Hub. A
     retired Challenge owes nothing and is never reported here."""
