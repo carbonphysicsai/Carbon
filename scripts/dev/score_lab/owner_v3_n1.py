@@ -36,6 +36,12 @@ def _finite(value):
 
 def registration(*, expected_sha256):
     """Read only the committed binding and exact approved provenance bytes."""
+    from . import guarded419_context
+
+    if expected_sha256 == guarded419_context.REGISTRATION_SHA256:
+        return guarded419_context.validate(
+            guarded419_context.load(expected_sha256=expected_sha256)
+        )
     raw = (DIRECTORY / "registration.json").read_bytes()
     actual = hashlib.sha256(raw).hexdigest()
     if actual != REGISTRATION_SHA256 or expected_sha256 != actual:
@@ -64,7 +70,15 @@ def _source(registered):
     return native, native.__globals__
 
 
-def _rows(rows, bindings, *, role, population, scope):
+def _selected_context(registration_digest):
+    from . import guarded419_context
+
+    if registration_digest == REGISTRATION_SHA256:
+        return None
+    return guarded419_context.load(expected_sha256=registration_digest)
+
+
+def _rows(rows, bindings, *, role, population, scope, context=None):
     """Authenticate producer data before deriving the model-independent mask."""
     if scope not in ("PUBLIC_DEVELOPMENT", "SYNTHETIC_FIXTURE"):
         raise tasks.TaskError("N1 is public-development/fixture diagnostic only")
@@ -94,7 +108,7 @@ def _rows(rows, bindings, *, role, population, scope):
                 "one population and one role with unit outer weights required"
             )
         registered = draw["task"]
-        owner_v3._validate(registered)
+        owner_v3._validate(registered, context=context)
         qid = registered["task_digest"]
         if (
             qid in ids
@@ -105,6 +119,8 @@ def _rows(rows, bindings, *, role, population, scope):
         ids.add(qid)
     if set(bindings) != ids:
         raise tasks.TaskError("independent bindings must cover every offered question")
+    if context is not None:
+        raise tasks.TaskError("guarded419 EVAL producer integration is unavailable")
     for row in sorted(rows, key=lambda r: r["draw"]["task"]["task_digest"]):
         draw, evidence = row["draw"], row["evidence"]
         registered = draw["task"]
@@ -146,7 +162,9 @@ def _rows(rows, bindings, *, role, population, scope):
                 "evidence": evidence,
                 "binding": binding,
                 "producer_receipt_digest": receipt["receipt_digest"],
-                "mask": owner_v3.reference_mask(registered, refs, intervals),
+                "mask": owner_v3.reference_mask(
+                    registered, refs, intervals, context=context
+                ),
             }
         )
     return prepared
@@ -340,9 +358,15 @@ def score_leg(
     Missing predictions withhold the WHOLE member, even on excluded questions.
     """
     registered = registration(expected_sha256=expected_registration_digest)
+    context = _selected_context(expected_registration_digest)
     native, namespace = _source(registered)
     prepared = _rows(
-        rows, producer_bindings, role="LEG", population=population, scope=scope
+        rows,
+        producer_bindings,
+        role="LEG",
+        population=population,
+        scope=scope,
+        context=context,
     )
     base = {
         "schema": SCHEMA,
@@ -402,8 +426,14 @@ def judge_values(
 ):
     """Reuse the owner-D2 judge for all offered VALUE questions, no scoring."""
     registered = registration(expected_sha256=expected_registration_digest)
+    context = _selected_context(expected_registration_digest)
     prepared = _rows(
-        rows, producer_bindings, role="VALUE", population=population, scope=scope
+        rows,
+        producer_bindings,
+        role="VALUE",
+        population=population,
+        scope=scope,
+        context=context,
     )
     if set(commitments) != {r["draw"]["task"]["task_digest"] for r in prepared}:
         raise tasks.TaskError("all offered VALUE commitments required")
@@ -416,6 +446,7 @@ def judge_values(
             scope=scope,
             producer_evidence=r["evidence"],
             producer_binding=r["binding"],
+            context=context,
         )
         for r in prepared
     ]
@@ -462,12 +493,17 @@ def alignment(legs, values, *, recipe_of, gamers, bootstrap, seed):
         (r["scope"], r["population"], r["registration_sha256"])
         for r in (*legs.values(), *values.values())
     }
+    selected_digest = legs[members[0]]["registration_sha256"]
+    registered = registration(expected_sha256=selected_digest)
     if (
         any(r.get("role") != "LEG" for r in legs.values())
         or any(r.get("role") != "VALUE" for r in values.values())
-        or any(r.get("job") != owner_v3.JOB for r in (*legs.values(), *values.values()))
         or any(
-            r["registration_sha256"] != REGISTRATION_SHA256
+            r.get("job") != registered["job"]
+            for r in (*legs.values(), *values.values())
+        )
+        or any(
+            r["registration_sha256"] != selected_digest
             for r in (*legs.values(), *values.values())
         )
         or len(identities) != 1
@@ -569,8 +605,9 @@ def alignment(legs, values, *, recipe_of, gamers, bootstrap, seed):
             ),
         }
     return {
-        "first_line": "battery-v3-job-dev-v1: value conditional on reference-adequate frozen bank and FEASIBLE_EXISTS; diagnostic only",
-        "job": owner_v3.JOB,
+        "first_line": registered["job"]
+        + ": value conditional on reference-adequate frozen bank and FEASIBLE_EXISTS; diagnostic only",
+        "job": registered["job"],
         "scope": next(iter(identities))[0],
         "population": next(iter(identities))[1],
         "offered_members": members,

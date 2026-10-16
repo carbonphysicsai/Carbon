@@ -27,12 +27,26 @@ def _number(value):
     return Decimal(str(value))
 
 
-def _validate(registered):
+def _context(context):
+    if context is None:
+        return {"job": JOB, "projection": PROJECTION}
+    from . import guarded419_context
+
+    guarded419_context.validate(context)
+    return {"job": guarded419_context.JOB, "projection": guarded419_context.PROJECTION}
+
+
+def _validate(registered, *, context=None):
+    identity_context = _context(context)
     indexed.validate_indexed(registered)
+    if context is not None:
+        from . import guarded419_context
+
+        guarded419_context.task_identity(registered, context)
     identity = registered["identity"]
     if (
         tuple(row["index_value"] for row in registered["indices"]) != BANDS
-        or identity["contract_version"] != JOB
+        or identity["contract_version"] != identity_context["job"]
         or identity["objective"]["quantity"] != "minutes"
         or identity["objective"]["unit"] != "min"
         or identity["objective"]["sense"] != "min"
@@ -43,7 +57,7 @@ def _validate(registered):
         raise tasks.TaskError("owner-v3 job, five bands and minute tolerance required")
 
 
-def reference_mask(registered, references, intervals):
+def reference_mask(registered, references, intervals, *, context=None):
     """Freeze all-action coverage and winner/deadzone resolution without a model.
 
     `references` has the existing judge's ordered {index_value, values} shape.
@@ -53,7 +67,7 @@ def reference_mask(registered, references, intervals):
     undecided reference excludes the WHOLE question, including zero-weight bands.
     No member's abstention or unsafe pick can change this mask.
     """
-    _validate(registered)
+    _validate(registered, context=context)
     if (
         type(references) is not list
         or type(intervals) is not list
@@ -192,7 +206,7 @@ def reference_mask(registered, references, intervals):
         for p in references
     ]
     body = {
-        "projection": PROJECTION,
+        "projection": _context(context)["projection"],
         "task_digest": registered["task_digest"],
         "reference_digest": tasks.digest(reference_rows),
         "enclosure_digest": tasks.digest(intervals),
@@ -221,6 +235,7 @@ def judge(
     scope,
     producer_evidence=None,
     producer_binding=None,
+    context=None,
 ):
     """Reuse the canonical judge; reduce its band regrets with owner-D2 order.
 
@@ -229,6 +244,8 @@ def judge(
     """
     if scope not in ("SYNTHETIC_FIXTURE", "PUBLIC_DEVELOPMENT"):
         raise tasks.TaskError("development-only projection")
+    identity_context = _context(context)
+    _validate(registered, context=context)
     producer_proof = None
     if scope == "PUBLIC_DEVELOPMENT" and (
         producer_evidence is None or producer_binding is None
@@ -237,6 +254,8 @@ def judge(
             "PUBLIC projection requires the registered producer numerical-evidence bridge"
         )
     if producer_evidence is not None:
+        if context is not None:
+            raise tasks.TaskError("guarded419 EVAL producer integration is unavailable")
         from .owner_v3_panel_export import validate_for
 
         receipt = validate_for(
@@ -254,7 +273,7 @@ def judge(
             "registration": dict(producer_binding),
             "receipt_digest": tasks.digest(receipt),
         }
-    mask = reference_mask(registered, references, intervals)
+    mask = reference_mask(registered, references, intervals, context=context)
     body = {k: v for k, v in commitment.items() if k != "commitment_digest"}
     if (
         tasks.digest(body) != commitment.get("commitment_digest")
@@ -263,10 +282,10 @@ def judge(
         raise tasks.TaskError("altered or foreign indexed commitment")
     if not mask["included"]:
         result = {
-            "schema": PROJECTION,
+            "schema": identity_context["projection"],
             "scope": scope,
             "producer": producer_proof,
-            "job": JOB,
+            "job": identity_context["job"],
             "task_digest": registered["task_digest"],
             "commitment_digest": commitment["commitment_digest"],
             "reference_mask": mask,
@@ -306,10 +325,10 @@ def judge(
         else None
     )
     result = {
-        "schema": PROJECTION,
+        "schema": identity_context["projection"],
         "scope": scope,
         "producer": producer_proof,
-        "job": JOB,
+        "job": identity_context["job"],
         "task_digest": registered["task_digest"],
         "commitment_digest": commitment["commitment_digest"],
         "reference_mask": mask,
