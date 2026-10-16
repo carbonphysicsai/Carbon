@@ -108,8 +108,24 @@ def _phase(name, start, job):
                 [
                     {
                         "collection": "model.algebraic",
-                        "identity": "PROCESSED_VOLTAGE_MINUS_ACTUAL_TARGET",
+                        "identity": "PROCESSED_VOLTAGE_MINUS_TARGET_OVER_CURRENT_SCALE",
                         "signed_residual": 0.0,
+                        "normalization": {
+                            "schema": "carbon.battery.cv-equation-normalization.v1",
+                            "status": "VERIFIED_SYMBOLIC_RELATION",
+                            "scale_source": "OPERATIVE_ALGEBRAIC_VARIABLE_SCALE",
+                            "parameter_source": "OPERATIVE_MODEL_SYMBOL_PROCESSOR_PARAMETER_VALUES",
+                            "parameter_name": "Nominal cell capacity [A.h]",
+                            "scale_is_constant": True,
+                            "scale": 5.0,
+                            "nominal_capacity_ah": 5.0,
+                            "target_v": target,
+                            "symbolic_equality_basis": "PINNED_PYBAMM_FULL_SYMBOL_IDENTITY",
+                            "normalized_residual_units": "SOLVER_NORMALIZED",
+                            "voltage_residual_units": "V",
+                            "signed_voltage_residual_v": 0.0,
+                            "independent_voltage_residual_v": 0.0,
+                        },
                     }
                 ]
                 if cv

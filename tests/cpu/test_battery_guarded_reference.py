@@ -121,9 +121,25 @@ def _phase(name, start):
             "current_control_equations": (
                 [
                     {
-                        "identity": "PROCESSED_VOLTAGE_MINUS_ACTUAL_TARGET",
+                        "identity": "PROCESSED_VOLTAGE_MINUS_TARGET_OVER_CURRENT_SCALE",
                         "collection": "model.algebraic",
                         "signed_residual": 0.0,
+                        "normalization": {
+                            "schema": "carbon.battery.cv-equation-normalization.v1",
+                            "status": "VERIFIED_SYMBOLIC_RELATION",
+                            "scale_source": "OPERATIVE_ALGEBRAIC_VARIABLE_SCALE",
+                            "parameter_source": "OPERATIVE_MODEL_SYMBOL_PROCESSOR_PARAMETER_VALUES",
+                            "parameter_name": "Nominal cell capacity [A.h]",
+                            "scale_is_constant": True,
+                            "scale": 5.0,
+                            "nominal_capacity_ah": 5.0,
+                            "target_v": target,
+                            "symbolic_equality_basis": "PINNED_PYBAMM_FULL_SYMBOL_IDENTITY",
+                            "normalized_residual_units": "SOLVER_NORMALIZED",
+                            "voltage_residual_units": "V",
+                            "signed_voltage_residual_v": 0.0,
+                            "independent_voltage_residual_v": 0.0,
+                        },
                     }
                 ]
                 if cv
@@ -507,6 +523,70 @@ def test_numeric_failure_cannot_be_compensated_by_tracking():
 
 
 @pytest.mark.parametrize(
+    "residual,compatible",
+    [(1.98e-7, True), (-1.98e-7, True), (2.02e-7, False), (-2.02e-7, False)],
+)
+def test_cv_normalized_residual_is_multiplied_before_voltage_tolerance(
+    residual, compatible
+):
+    row = _record()
+    equation = _observation(row)["terminal_state"]["current_control_equations"][0]
+    equation["signed_residual"] = residual
+    equation["normalization"]["signed_voltage_residual_v"] = residual * 5.0
+    assert abs(residual) < guarded.TRACKING_V
+    report = guarded.tracking_report(row)
+    assert (report["status"] == "TRACKING_COMPATIBLE") is compatible
+    assert report["checked_phases"] == (181 if compatible else 3)
+
+
+@pytest.mark.parametrize(
+    "defect",
+    [
+        "old_witness",
+        "divide_again",
+        "wrong_units",
+        "wrong_scale",
+        "independent_voltage",
+        "nonfinite_voltage",
+        "missing_last_occurrence",
+        "duplicate_equation",
+    ],
+)
+def test_cv_unit_witness_cannot_be_omitted_forged_or_partially_covered(defect):
+    row = _record()
+    observation = _observation(row)
+    equations = observation["terminal_state"]["current_control_equations"]
+    equation = equations[0]
+    normalized = equation["normalization"]
+    if defect == "old_witness":
+        equation["identity"] = "PROCESSED_VOLTAGE_MINUS_ACTUAL_TARGET"
+        del equation["normalization"]
+    elif defect == "divide_again":
+        equation["signed_residual"] = 2.02e-7
+        normalized["signed_voltage_residual_v"] = 2.02e-7 / 5.0
+    elif defect == "wrong_units":
+        normalized["voltage_residual_units"] = "SOLVER_NORMALIZED"
+    elif defect == "wrong_scale":
+        normalized["scale"] = 0.2
+    elif defect == "independent_voltage":
+        normalized["independent_voltage_residual_v"] = 1.01e-6
+    elif defect == "nonfinite_voltage":
+        normalized["signed_voltage_residual_v"] = float("inf")
+    elif defect == "missing_last_occurrence":
+        last = row["per_cycle"][-1]["phases"]["cv"]["voltage_contact_observation"]
+        del last["terminal_state"]["current_control_equations"][0]["normalization"]
+    else:
+        equations.append(copy.deepcopy(equation))
+    before = json.dumps(row, sort_keys=True)
+    report = guarded.tracking_report(row)
+    assert report["status"] == "REFERENCE_UNRESOLVED"
+    assert report["checked_phases"] == (
+        177 if defect == "missing_last_occurrence" else 3
+    )
+    assert json.dumps(row, sort_keys=True) == before
+
+
+@pytest.mark.parametrize(
     "collection,correct_relation,stale_class,compatible",
     [
         ("algebraic", True, "ExplicitCurrentControl", True),
@@ -518,6 +598,13 @@ def test_numeric_failure_cannot_be_compensated_by_tracking():
 def test_cv_extraction_uses_actual_processed_algebraic_equation_not_stale_submodel(
     collection, correct_relation, stale_class, compatible
 ):
+    class Scale:
+        def is_constant(self):
+            return True
+
+        def evaluate(self):
+            return 5.0
+
     class Symbol:
         def __init__(self, code, function):
             self.code, self.function = code, function
@@ -529,6 +616,12 @@ def test_cv_extraction_uses_actual_processed_algebraic_equation_not_stale_submod
 
         def __eq__(self, other):
             return isinstance(other, Symbol) and self.code == other.code
+
+        def __truediv__(self, scale):
+            return Symbol(
+                ("divide", self.code, scale.evaluate()),
+                lambda y: self.function(y) / scale.evaluate(),
+            )
 
         def __str__(self):
             return repr(self.code)
@@ -542,6 +635,7 @@ def test_cv_extraction_uses_actual_processed_algebraic_equation_not_stale_submod
 
     class Variable:
         name = "Current variable [A]"
+        scale = Scale()
 
     class Step(dict):
         pass
@@ -560,7 +654,7 @@ def test_cv_extraction_uses_actual_processed_algebraic_equation_not_stale_submod
     sample.t_event, sample.y_event = [end], [[guarded.CONTROL_V]]
     voltage = Symbol("processed_voltage", lambda y: float(y[0, 0]))
     equation = (
-        voltage - guarded.CONTROL_V
+        (voltage - guarded.CONTROL_V) / Variable.scale
         if correct_relation
         else Symbol("wrong_zero_equation", lambda y: 0.0)
     )
@@ -576,6 +670,9 @@ def test_cv_extraction_uses_actual_processed_algebraic_equation_not_stale_submod
         submodels={"external circuit": circuit},
         variables={"Voltage [V]": Unprocessed(), "Battery voltage [V]": Unprocessed()},
         get_processed_variable_or_event=lambda _: voltage,
+        symbol_processor=SimpleNamespace(
+            parameter_values={"Nominal cell capacity [A.h]": 5.0}
+        ),
         events=[
             SimpleNamespace(
                 name="C-rate cut-off [experiment]",
