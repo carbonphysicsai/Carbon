@@ -47,8 +47,10 @@ Required canonical validation includes
 `./scripts/dev/canonical.sh pytest tests/cpu/test_fixed_practice_failure_diagnostics.py tests/cpu/test_gpu_self_service_controls.py tests/cpu/test_c03_worker_contract.py`,
 the changed-path CI classifier scope, Ruff and exact-head Merge gate. A pass on
 the final tree is required; source review alone cannot close the ticket.
-Completion is conditional on a fresh read-only complete-diff review, zero valid
-findings, distinct non-author human exact-head approval, required gates, normal
-expected-head merge, exact-main verification, and normalized external receipt.
+Completion follows current `OWNER-DX-03` delivery: fix concrete review findings,
+pass required automated acceptance on the unchanged candidate, normally merge
+with an expected-head guard, confirm GitHub's merge, and post one bounded
+completion comment. The independent source review is useful engineering evidence,
+not a new mandatory receipt or human-approval gate.
 Final maturity ceiling: bounded implemented/tested diagnostics only; actual
 JAX and PyTorch CUDA fit/predict remain separate required evidence.
