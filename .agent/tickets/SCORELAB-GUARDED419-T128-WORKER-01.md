@@ -39,6 +39,27 @@ status. Any observed failed/malformed/tracking-incompatible row remains
 visible and cannot create a success/release claim. A complete partition means
 all offered rows returned; it does not mean scientific qualification.
 
+The exact in-image entry is:
+
+```text
+python -B -m scripts.dev.score_lab.guarded419_t128_worker \
+  --spec /work/t128-spec.json --spec-sha256 <raw-64-hex> \
+  --public-root /work/public --records /work/records.jsonl --workers 2
+```
+
+The closed `carbon.scorelab.guarded419.t128-worker-files.v1` spec contains
+`scope`, `partition`, pinned `binding` and `prior_manifest` resource entries,
+`prior_raw_chunks` keyed by original chunk ID, an exact CAL `FILE_SPEC`
+subdocument, independent binding/prior-manifest digests and the raw SHA256 of
+this new runner module. Each `{path,sha256}` entry names a relative opaque
+resource key under the declared public input root. Partition 1 uses
+`delivery_manifest(binding,[])`; partition 2 uses partition 1's native
+manifest and raw bytes unchanged. The new binding names the published runner
+commit and all 13 T128 required source hashes. Root's upload map must include
+this runner and every imported module. The receipt is
+`records.jsonl.t128.json`; it carries the generated current manifest and raw
+digest for independent T128 `validate_delivery` after collection.
+
 Owned paths: this ticket, matching decision, one new runner module, and
 exclusive synthetic tests. No edits to the 14 frozen `fc01` CAL scientific
 sources, including the CAL module and existing worker/guard; no new provider
