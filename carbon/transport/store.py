@@ -14,6 +14,7 @@ from .models import (
     ReceiptRef,
     TransportCode,
     TransportFailure,
+    _MalformedBranch,
     canonical,
     digest,
 )
@@ -26,7 +27,9 @@ class _NonceTransaction:
 
     def check_and_store(self, hotkey_ss58: str, nonce_ns: int) -> bool:
         if type(nonce_ns) is not int or not 0 <= nonce_ns < 2**63:
-            raise TransportFailure(TransportCode.MALFORMED)
+            raise TransportFailure(
+                TransportCode.MALFORMED, _branch=_MalformedBranch.NONCE_RANGE
+            )
         cursor = self.connection.execute(
             "INSERT OR IGNORE INTO nonce VALUES (?, ?)", (hotkey_ss58, nonce_ns)
         )
@@ -239,7 +242,9 @@ class ReceiptJournal:
             or type(ref.digest) is not str
             or len(ref.digest) != 64
         ):
-            raise TransportFailure(TransportCode.MALFORMED)
+            raise TransportFailure(
+                TransportCode.MALFORMED, _branch=_MalformedBranch.RECEIPT_REF
+            )
         with self._connection() as connection:
             row = connection.execute(
                 "SELECT record,digest FROM receipt WHERE sequence=?", (ref.sequence,)
