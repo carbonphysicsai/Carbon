@@ -7,8 +7,13 @@ raw deliveries but exposes no file spec, CLI or pool route.
 Working engineering decision: add a separate closed T128 runner. Reuse its
 existing 60/59 partitions, T9/CAL prerequisite validators, T128 raw-delivery
 validator and the existing collector pool. Bind the new runner module hash
-and actual new checkout commit separately from the existing 13-file T128
-scientific source inventory. This preserves the original `fc01` raw source
+and new execution commit separately from the existing 13-file T128
+scientific source inventory. A Git checkout verifies HEAD and committed blobs;
+the existing gitless `pod_jobs` bootstrap path instead requires its inherited
+`CODE_REF` to match the binding and independently checks all shipped local
+bytes. The basis is recorded in the receipt. `CODE_REF` is transport metadata,
+not an in-process attestation; Root's bootstrap/provider receipt establishes
+the external execution claim. This preserves the original `fc01` raw source
 proofs while honestly assigning new T128 rows to the new commit. Only Root
 dispatches a partition and enforces external resource limits.
 

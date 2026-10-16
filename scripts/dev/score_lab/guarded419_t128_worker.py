@@ -43,14 +43,25 @@ def _head(root):
     return result.stdout.strip()
 
 
-def _source(binding, runner_sha256, root, calibration_sources):
+def _source(binding, runner_sha256, root, calibration_sources, *, environ=os.environ):
     if (
         type(runner_sha256) is not str
         or len(runner_sha256) != 64
         or any(c not in "0123456789abcdef" for c in runner_sha256)
-        or _head(root) != binding["execution_source"]
     ):
         raise tasks.TaskError("new T128 runner/execution commit differs")
+    checkout = (root / ".git").exists()
+    if checkout:
+        if _head(root) != binding["execution_source"]:
+            raise tasks.TaskError("new T128 execution commit differs")
+        basis = "GIT_CHECKOUT_AND_LOCAL_FILE_HASHES"
+    else:
+        # pod_jobs bootstrap downloads hash-verified files at CODE_REF into
+        # /tmp/carbon without .git, then passes CODE_REF to the phase child.
+        # This is a bounded execution claim, not an in-process attestation.
+        if environ.get("CODE_REF") != binding["execution_source"]:
+            raise tasks.TaskError("pinned pod bootstrap CODE_REF differs")
+        basis = "POD_BOOTSTRAP_CODE_REF_AND_LOCAL_FILE_HASHES"
     if any(
         binding["source_files"][name] != expected
         for name, expected in calibration_sources.items()
@@ -66,13 +77,17 @@ def _source(binding, runner_sha256, root, calibration_sources):
         path = root / name
         if not path.is_file() or _sha(path.read_bytes()) != expected:
             raise tasks.TaskError("actual T128 source bytes differ: " + name)
-        committed = subprocess.run(
-            ["git", "-C", str(root), "show", "HEAD:" + name],
-            capture_output=True,
-            check=False,
-        )
-        if committed.returncode or _sha(committed.stdout) != expected:
-            raise tasks.TaskError("T128 source absent from execution commit: " + name)
+        if checkout:
+            committed = subprocess.run(
+                ["git", "-C", str(root), "show", "HEAD:" + name],
+                capture_output=True,
+                check=False,
+            )
+            if committed.returncode or _sha(committed.stdout) != expected:
+                raise tasks.TaskError(
+                    "T128 source absent from execution commit: " + name
+                )
+    return basis
 
 
 def _materials(spec, *, load):
@@ -178,7 +193,9 @@ def run(spec, *, load, records_path, workers=2, root=None):
     partition = spec["partition"]
     prior = _previous(binding, prior_manifest, prior_raw, prerequisites, partition)
     root = Path(root) if root is not None else Path(__file__).resolve().parents[3]
-    _source(binding, spec["runner_sha256"], root, calibration_sources)
+    source_identity_basis = _source(
+        binding, spec["runner_sha256"], root, calibration_sources
+    )
     provenance = truth_env.provenance(root)
     if (
         provenance.get("schema") != "carbon.battery.solver-provenance.v1"
@@ -213,6 +230,7 @@ def run(spec, *, load, records_path, workers=2, root=None):
         "execution_source": binding["execution_source"],
         "source_files": binding["source_files"],
         "runner_sha256": spec["runner_sha256"],
+        "source_identity_basis": source_identity_basis,
         "solver_provenance": provenance,
         "offered_job_ids": [j["case_id"] for j in offers],
         "authenticated_t9_anchor_count": 9,

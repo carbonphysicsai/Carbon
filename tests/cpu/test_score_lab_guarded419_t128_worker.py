@@ -101,7 +101,7 @@ def template(tmp_path_factory):
 def setup(template, monkeypatch):
     root, spec, namespace, binding, cal_material = template
     spec, namespace = copy.deepcopy((spec, namespace))
-    monkeypatch.setattr(runner, "_source", lambda *_: None)
+    monkeypatch.setattr(runner, "_source", lambda *_: "SYNTHETIC_SOURCE_ONLY")
     provenance = cal_test.toy.record(guard.first_jobs()[0])["solver_provenance"]
     monkeypatch.setattr(truth_env, "provenance", lambda _: provenance)
     monkeypatch.setattr(collector, "as_completed", lambda futures: list(futures))
@@ -377,7 +377,10 @@ def test_source_binds_runner_and_all_existing_files_to_actual_commit(tmp_path):
         name: _sha((ROOT / name).read_bytes()) for name in cal.REQUIRED_SOURCES
     }
     runner_sha = _sha((ROOT / runner.MODULE).read_bytes())
-    runner._source(binding, runner_sha, ROOT, calibration_sources)
+    assert (
+        runner._source(binding, runner_sha, ROOT, calibration_sources)
+        == "GIT_CHECKOUT_AND_LOCAL_FILE_HASHES"
+    )
     with pytest.raises(tasks.TaskError, match="execution commit"):
         runner._source(
             {**binding, "execution_source": "0" * 40},
@@ -393,6 +396,72 @@ def test_source_binds_runner_and_all_existing_files_to_actual_commit(tmp_path):
             runner_sha,
             ROOT,
             {**calibration_sources, "scripts/dev/battery/feasibility02.py": "f" * 64},
+        )
+
+
+def test_gitless_pod_bootstrap_identity_and_hash_checked_files(tmp_path, monkeypatch):
+    head = subprocess.run(
+        ["git", "-C", str(ROOT), "rev-parse", "HEAD"],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.strip()
+    from scripts.dev.score_lab import guarded419_calibration_continue as cal
+
+    files = {name: _sha((ROOT / name).read_bytes()) for name in t128.REQUIRED_SOURCES}
+    calibration_sources = {
+        name: _sha((ROOT / name).read_bytes()) for name in cal.REQUIRED_SOURCES
+    }
+    runner_sha = _sha((ROOT / runner.MODULE).read_bytes())
+    for name in set(files) | set(calibration_sources) | {runner.MODULE}:
+        destination = tmp_path / name
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_bytes((ROOT / name).read_bytes())
+    binding = {"execution_source": head, "source_files": files}
+    # The normal pod_jobs bootstrap ships hash-checked files, not a Git tree.
+    assert not (tmp_path / ".git").exists()
+
+    def no_git(*_args, **_kwargs):
+        raise AssertionError("git command on gitless pod tree")
+
+    monkeypatch.setattr(runner.subprocess, "run", no_git)
+    assert (
+        runner._source(
+            binding,
+            runner_sha,
+            tmp_path,
+            calibration_sources,
+            environ={"CODE_REF": head},
+        )
+        == "POD_BOOTSTRAP_CODE_REF_AND_LOCAL_FILE_HASHES"
+    )
+    with pytest.raises(tasks.TaskError, match="CODE_REF differs"):
+        runner._source(
+            binding,
+            runner_sha,
+            tmp_path,
+            calibration_sources,
+            environ={"CODE_REF": "0" * 40},
+        )
+    with pytest.raises(tasks.TaskError, match="CODE_REF differs"):
+        runner._source(binding, runner_sha, tmp_path, calibration_sources, environ={})
+    with pytest.raises(tasks.TaskError, match="source bytes differ"):
+        runner._source(
+            binding,
+            "f" * 64,
+            tmp_path,
+            calibration_sources,
+            environ={"CODE_REF": head},
+        )
+    cal_file = tmp_path / "scripts/dev/score_lab/owner_v3_calibration_continue.py"
+    cal_file.write_bytes(cal_file.read_bytes() + b"\nDRIFT")
+    with pytest.raises(tasks.TaskError, match="source bytes differ"):
+        runner._source(
+            binding,
+            runner_sha,
+            tmp_path,
+            calibration_sources,
+            environ={"CODE_REF": head},
         )
 
 
