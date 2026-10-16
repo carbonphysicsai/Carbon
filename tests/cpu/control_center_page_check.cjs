@@ -1486,6 +1486,9 @@ scenario("Graphite: retain before submit is visible, opt-in, and sent only when 
   clean(page);
 
   const old = graphiteWorld();
+  old.operations = old.operations.map(op => op.operation === "launch"
+    ? {...op, optional: op.optional.filter(name => name !== "submission_policy")}
+    : op);
   const olderPage = await open(old);
   await wizardTo(olderPage, "agent", "graphite");
   await olderPage.press(olderPage.$("wizard-retain-before-submit"));
