@@ -1426,7 +1426,7 @@ scenario("Graphite: each mode launches with exactly its own fields; the hunt is 
   assert.ok(!("hunt" in body), "a Build from a plan never hunts");
   page.window.CarbonControlCenter.goWizard("review");
   await page.advance(0);
-  assert.match(page.text("wizard-review"), /Build mode · plan /);
+  assert.match(page.text("wizard-review"), /Build mode · normal submission behavior · plan /);
   // Back to Full: the plan chosen for Build stays with Build.
   await toAgentStep(page);
   await page.press(one(page, "#wizard-graphite-mode-full"));
