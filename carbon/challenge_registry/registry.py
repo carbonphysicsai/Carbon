@@ -443,6 +443,8 @@ def catalog(host=None):
 
 def describe(challenge_id, version, *, host=None):
     """One Challenge's full description, or a typed refusal."""
+    from carbon.challenge_kit.standard import public_provisions
+
     entry = _find(challenge_id, version)
     host = host if host is not None else HostFacts.observe()
     return _json(
@@ -450,6 +452,7 @@ def describe(challenge_id, version, *, host=None):
             "schema": DESCRIPTION_SCHEMA,
             **entry.summary(host),
             **entry.describe(),
+            "provisions": public_provisions(entry.challenge_id),
             "how_to_request_unsupported": CAPABILITY_REQUEST,
         }
     )

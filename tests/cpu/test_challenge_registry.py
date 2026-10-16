@@ -129,6 +129,34 @@ def test_the_battery_description_is_derived_from_executable_registrations():
         assert private not in text
 
 
+@pytest.mark.parametrize("challenge_id", [BATTERY, COLD_PLATE, MOTOR])
+def test_description_provisions_match_the_registered_public_projection(challenge_id):
+    from carbon.challenge_kit import standard
+    from scripts.dev.miner_launchpad import capabilities
+
+    version = next(
+        entry.version
+        for entry in challenges.entries()
+        if entry.challenge_id == challenge_id
+    )
+    provisions = challenges.describe(challenge_id, version, host=NOTHING)[
+        "provisions"
+    ]
+    assert provisions == standard.public_provisions(challenge_id)
+    assert provisions == capabilities._provisions(challenge_id)
+    assert set(provisions) == set(standard.PROVISIONS)
+    for name, declaration in standard.ENVIRONMENTS[challenge_id].items():
+        public = provisions[name]
+        if isinstance(declaration, standard.Gap):
+            assert public == {
+                "status": "gap",
+                "reason": declaration.reason,
+                "next_step": declaration.next_step,
+            }
+        else:
+            assert public == {"status": "provided", "note": declaration.note}
+
+
 def test_the_cold_plate_description_is_derived_and_public_only():
     described = challenges.describe(COLD_PLATE, "1.0", host=EVERYTHING)
     assert described["contract_digest"] == r.contract_digest(COLD_PLATE)
@@ -241,6 +269,9 @@ def test_discovery_is_on_the_open_tier_and_grants_nothing(tmp_path, monkeypatch)
         )
     )
     assert described["challenge_id"] == BATTERY
+    assert described["provisions"] == challenges.describe(
+        BATTERY, "1.0", host=EVERYTHING
+    )["provisions"]
     # Refused by its stable code; the caller's text is never echoed back.
     with pytest.raises(ToolError, match="challenge_not_implemented"):
         asyncio.run(

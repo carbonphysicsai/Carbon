@@ -207,21 +207,9 @@ def _provisions(challenge_id):
     """The research environment the Challenge declares (OWNER-RESEARCH-
     ENVIRONMENT-01): each provision provided, or a named gap. None when the
     Challenge declares none yet (a reserved or deferred one)."""
-    from carbon.challenge_kit.standard import ENVIRONMENTS, Gap, Retired
+    from carbon.challenge_kit.standard import public_provisions
 
-    table = ENVIRONMENTS.get(challenge_id)
-    if table is None:
-        return None
-    if isinstance(table, Retired):
-        return {"retired": table.decision}
-    return {
-        name: (
-            {"status": "gap", "reason": status.reason, "next_step": status.next_step}
-            if isinstance(status, Gap)
-            else {"status": "provided", "note": status.note}
-        )
-        for name, status in table.items()
-    }
+    return public_provisions(challenge_id)
 
 
 def _setup_offers(entry):

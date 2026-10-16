@@ -122,6 +122,10 @@ def test_retired_is_never_a_gap(monkeypatch):
     assert type(burgers) is standard.Retired
     assert standard.Retired not in standard.Status.__args__
     assert "burgers-dynamics-v1" not in standard.offered()
+    assert standard.public_provisions("burgers-dynamics-v1") == {
+        "retired": burgers.decision
+    }
+    assert standard.public_provisions("unregistered-challenge") is None
     with pytest.raises(TypeError, match="never a gap"):
         standard.Retired(
             decision="fixture", provided={"generate": standard.Gap("r", "n")}
