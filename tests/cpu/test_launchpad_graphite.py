@@ -80,7 +80,9 @@ class FakeLibrary:
         self.refused_text = None
 
     def _digest(self):
-        return digest(canonical({"pins": sorted(self.pins), "bans": sorted(self.bans)}))
+        from carbon.agent_campaign.graphite.miner.library import curation_digest
+
+        return curation_digest(self.pins, self.bans)
 
     def curation(self):
         return {

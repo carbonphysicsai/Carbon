@@ -215,13 +215,17 @@ def _journey_host(root, patch):
         if not manifest_path.exists():
             provider = {"model": "fixture-model"}
             if args.product.agent == "graphite":
-                from carbon.agent_campaign.graphite.miner import driver, edition
+                from carbon.agent_campaign.graphite.miner import (
+                    driver,
+                    edition,
+                    library,
+                )
 
                 launch = edition.launch_fields(
                     getattr(args, "graphite", None),
                     curation_digest=getattr(args, "graphite_curation_digest", None),
                 )
-                empty_curation = digest(canonical({"pins": [], "bans": []}))
+                empty_curation = library.curation_state()
                 # Only the no-plan, empty-curation lifecycle case has all
                 # records this fixture can truthfully reconstruct. Other
                 # Graphite tests use an in-memory library with plans or pins;
@@ -229,11 +233,11 @@ def _journey_host(root, patch):
                 # inventing a matching launch record for those materials.
                 if (
                     launch["plan"] is None
-                    and launch["curation_digest"] == empty_curation
+                    and launch["curation_digest"] == empty_curation["digest"]
                 ):
                     block = edition.graphite_block(
                         launch,
-                        curation_digest=empty_curation,
+                        curation_digest=empty_curation["digest"],
                         pack_digest=digest(canonical({"fixture": "journey-pack"})),
                         private_snapshot_digest=None,
                     )
@@ -245,11 +249,7 @@ def _journey_host(root, patch):
                             {
                                 "schema": driver.LAUNCH_SCHEMA,
                                 "block_digest": digest(canonical(block)),
-                                "curation": {
-                                    "pins": [],
-                                    "bans": [],
-                                    "digest": empty_curation,
-                                },
+                                "curation": empty_curation,
                                 "plan_digest": None,
                                 "plan": None,
                             }
