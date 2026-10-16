@@ -2906,7 +2906,7 @@
   // The launch fields for these choices: each only where its mode uses it.
   function graphiteFields(g = graphiteChoices()) {
     const fields = {graphite_mode: g.mode};
-    if (g.retain) fields.submission_policy = "retain_only_v1";
+    if (g.retain && g.mode !== "RESEARCH") fields.submission_policy = "retain_only_v1";
     if (g.mode === "FULL") fields.research_share = shareOf(g.share);
     if (g.mode === "BUILD" && g.plan) fields.plan = g.plan;
     if (huntApplies(g) && g.hunt) {
@@ -2955,7 +2955,8 @@
     if (problem) return graphiteMode(g.mode) + " mode · " + problem;
     const fields = graphiteFields(g);
     const parts = [graphiteMode(g.mode) + " mode"];
-    parts.push(fields.submission_policy ? "retain selected candidate for review; no commit or validator submission" : "normal submission behavior");
+    if (g.mode === "RESEARCH") parts.push("research plan only; no selected candidate or submission");
+    else parts.push(fields.submission_policy ? "retain selected candidate for review; no commit or validator submission" : "normal submission behavior");
     if (g.mode === "FULL") parts.push("research share " + percentText(fields.research_share) + "%" + (shareCapped() ? "" : " (binds only once you set a model-spend or model-call ceiling)"));
     if (g.mode === "BUILD") parts.push(fields.plan ? "plan " + fields.plan.slice(0, 12) + (fields.plan.length > 12 ? "…" : "") : "no plan: its Planner writes one first");
     if (huntApplies(g)) parts.push(fields.hunt ? "hunt up to " + fields.hunt.max_records + " papers" + (fields.hunt.queries ? " with " + fields.hunt.queries.length + " of your queries" : "") : "no hunt: the shared pack and your library");
@@ -3392,6 +3393,7 @@
   function patchGraphiteOptions() {
     const g = graphiteChoices();
     for (const input of document.querySelectorAll("input[name=wizard-graphite-mode]")) input.checked = input.value === g.mode;
+    $("wizard-graphite-retain").hidden = g.mode === "RESEARCH";
     $("wizard-retain-before-submit").checked = g.retain;
     $("wizard-graphite-share").hidden = g.mode !== "FULL";
     $("wizard-graphite-plan-box").hidden = g.mode !== "BUILD";
@@ -3708,6 +3710,7 @@
     const g = graphiteFromFields(value);
     const graphite = graphiteChoiceProblem(g) || graphiteLimitsProblem(g);
     if (Object.hasOwn(value, "submission_policy") && value.submission_policy !== "retain_only_v1") return "Graphite: submission policy must be retain_only_v1";
+    if (value.graphite_mode === "RESEARCH" && Object.hasOwn(value, "submission_policy")) return "Graphite: Research has no selected candidate to retain";
     return graphite ? "Graphite: " + graphite : null;
   }
   $("path-quick").addEventListener("click", () => { launchPath = "quick"; saveWizard(); render(); });

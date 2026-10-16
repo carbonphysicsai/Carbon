@@ -35,7 +35,10 @@ Browser-door amendment, 2026-10-16: expose an optional Graphite retain choice
 in the existing launch wizard for FULL/BUILD and send the exact versioned field
 only when selected. Show the choice in review, preserve it in templates and
 block when an older controller does not declare the field. The unchanged
-default omits the field. Bound this repair to `app.js` and the existing
+default omits the field. RESEARCH has no selected candidate: hide the choice,
+omit the policy and use research-only review text in that mode, while retaining
+the checked wizard state if the miner returns to FULL or BUILD. Bound this
+repair to `app.js` and the existing
 `control_center_page_check.cjs` request-level scenario; Root owns canonical
 execution and publication of the combined candidate.
 

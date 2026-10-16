@@ -1464,7 +1464,18 @@ scenario("Graphite: retain before submit is visible, opt-in, and sent only when 
   body = await launchNow(page, state);
   assert.equal(body.submission_policy, "retain_only_v1");
   await toAgentStep(page);
+  await page.press(one(page, "#wizard-graphite-mode-research"));
+  assert.equal(page.$("wizard-graphite-retain").hidden, true);
+  page.window.CarbonControlCenter.goWizard("review");
+  await page.advance(0);
+  assert.match(page.text("wizard-review"), /research plan only; no selected candidate or submission/);
+  assert.doesNotMatch(page.text("wizard-review"), /retain selected candidate/);
+  body = await launchNow(page, state);
+  assert.equal(body.graphite_mode, "RESEARCH");
+  assert.ok(!("submission_policy" in body), "Research cannot retain a selected candidate");
+  await toAgentStep(page);
   await page.press(one(page, "#wizard-graphite-mode-build"));
+  assert.equal(page.$("wizard-retain-before-submit").checked, true, "the hidden choice survives mode changes");
   body = await launchNow(page, state);
   assert.equal(body.graphite_mode, "BUILD");
   assert.equal(body.submission_policy, "retain_only_v1", "Build carries the same explicit choice");
