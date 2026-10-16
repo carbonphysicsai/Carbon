@@ -27,12 +27,26 @@ def _number(value):
     return Decimal(str(value))
 
 
-def _validate(registered):
+def _context(context):
+    if context is None:
+        return {"job": JOB, "projection": PROJECTION}
+    from . import guarded419_context
+
+    guarded419_context.validate(context)
+    return {"job": guarded419_context.JOB, "projection": guarded419_context.PROJECTION}
+
+
+def _validate(registered, *, context=None):
+    identity_context = _context(context)
     indexed.validate_indexed(registered)
+    if context is not None:
+        from . import guarded419_context
+
+        guarded419_context.task_identity(registered, context)
     identity = registered["identity"]
     if (
         tuple(row["index_value"] for row in registered["indices"]) != BANDS
-        or identity["contract_version"] != JOB
+        or identity["contract_version"] != identity_context["job"]
         or identity["objective"]["quantity"] != "minutes"
         or identity["objective"]["unit"] != "min"
         or identity["objective"]["sense"] != "min"
@@ -43,7 +57,15 @@ def _validate(registered):
         raise tasks.TaskError("owner-v3 job, five bands and minute tolerance required")
 
 
-def reference_mask(registered, references, intervals):
+def _with_context(body, context):
+    if context is None:
+        return body
+    from . import guarded419_context
+
+    return {**body, "diagnostic_context": guarded419_context.metadata(context)}
+
+
+def reference_mask(registered, references, intervals, *, context=None):
     """Freeze all-action coverage and winner/deadzone resolution without a model.
 
     `references` has the existing judge's ordered {index_value, values} shape.
@@ -53,7 +75,7 @@ def reference_mask(registered, references, intervals):
     undecided reference excludes the WHOLE question, including zero-weight bands.
     No member's abstention or unsafe pick can change this mask.
     """
-    _validate(registered)
+    _validate(registered, context=context)
     if (
         type(references) is not list
         or type(intervals) is not list
@@ -192,7 +214,7 @@ def reference_mask(registered, references, intervals):
         for p in references
     ]
     body = {
-        "projection": PROJECTION,
+        "projection": _context(context)["projection"],
         "task_digest": registered["task_digest"],
         "reference_digest": tasks.digest(reference_rows),
         "enclosure_digest": tasks.digest(intervals),
@@ -209,6 +231,7 @@ def reference_mask(registered, references, intervals):
         "reasons": reasons,
         "per_index": per_index,
     }
+    body = _with_context(body, context)
     return {**body, "mask_digest": tasks.digest(body)}
 
 
@@ -221,6 +244,7 @@ def judge(
     scope,
     producer_evidence=None,
     producer_binding=None,
+    context=None,
 ):
     """Reuse the canonical judge; reduce its band regrets with owner-D2 order.
 
@@ -229,6 +253,8 @@ def judge(
     """
     if scope not in ("SYNTHETIC_FIXTURE", "PUBLIC_DEVELOPMENT"):
         raise tasks.TaskError("development-only projection")
+    identity_context = _context(context)
+    _validate(registered, context=context)
     producer_proof = None
     if scope == "PUBLIC_DEVELOPMENT" and (
         producer_evidence is None or producer_binding is None
@@ -237,11 +263,24 @@ def judge(
             "PUBLIC projection requires the registered producer numerical-evidence bridge"
         )
     if producer_evidence is not None:
-        from .owner_v3_panel_export import validate_for
+        if context is not None:
+            from . import guarded419_context
 
-        receipt = validate_for(
-            producer_evidence, registered, references, intervals, scope=scope
-        )
+            receipt = guarded419_context.producer(context).validate_for(
+                producer_evidence,
+                registered,
+                references,
+                intervals,
+                scope=scope,
+                context=context,
+            )
+            guarded419_context.require_receipt(receipt, context)
+        else:
+            from .owner_v3_panel_export import validate_for
+
+            receipt = validate_for(
+                producer_evidence, registered, references, intervals, scope=scope
+            )
         if (
             type(producer_binding) is not dict
             or set(producer_binding)
@@ -254,7 +293,7 @@ def judge(
             "registration": dict(producer_binding),
             "receipt_digest": tasks.digest(receipt),
         }
-    mask = reference_mask(registered, references, intervals)
+    mask = reference_mask(registered, references, intervals, context=context)
     body = {k: v for k, v in commitment.items() if k != "commitment_digest"}
     if (
         tasks.digest(body) != commitment.get("commitment_digest")
@@ -263,10 +302,10 @@ def judge(
         raise tasks.TaskError("altered or foreign indexed commitment")
     if not mask["included"]:
         result = {
-            "schema": PROJECTION,
+            "schema": identity_context["projection"],
             "scope": scope,
             "producer": producer_proof,
-            "job": JOB,
+            "job": identity_context["job"],
             "task_digest": registered["task_digest"],
             "commitment_digest": commitment["commitment_digest"],
             "reference_mask": mask,
@@ -277,6 +316,7 @@ def judge(
             "historical_aggregate_regret_unchanged": None,
             "qualification": False,
         }
+        result = _with_context(result, context)
         return {**result, "primitive_digest": tasks.digest(result)}
     historical = tasks.judge_indexed(registered, commitment, references)
     settled = [
@@ -306,10 +346,10 @@ def judge(
         else None
     )
     result = {
-        "schema": PROJECTION,
+        "schema": identity_context["projection"],
         "scope": scope,
         "producer": producer_proof,
-        "job": JOB,
+        "job": identity_context["job"],
         "task_digest": registered["task_digest"],
         "commitment_digest": commitment["commitment_digest"],
         "reference_mask": mask,
@@ -323,6 +363,7 @@ def judge(
         "historical_aggregate_regret_unchanged": historical["regret"],
         "qualification": False,
     }
+    result = _with_context(result, context)
     return {**result, "primitive_digest": tasks.digest(result)}
 
 
@@ -432,17 +473,24 @@ def cohort_member(cohort, *, expected_digest, recipe_id, seed):
     }
 
 
-def acquisition_inputs(plan, *, expected_digest, stage):
+def acquisition_inputs(plan, *, expected_digest, stage, context=None):
     """Materialize registered inputs for feasibility02, never run the worker.
 
     Root may subtract only authenticated exact reuse and must retain the
     offered input manifest. Refinement is a separate conditional plan, not
     permission to launch it for every tuple.
     """
+    identity_context = _context(context)
+    if context is not None:
+        from . import guarded419_context
+
+        guarded419_context.validate_plan(
+            plan, expected_digest=expected_digest, context=context
+        )
     if (
         tasks.digest(plan) != expected_digest
         or plan.get("schema") != "carbon.scorelab.acquisition-plan.v1"
-        or plan.get("job") != JOB
+        or plan.get("job") != identity_context["job"]
         or plan.get("scope") != "DEVELOPMENT_ONLY"
         or plan.get("bands_c") != list(BANDS)
         or plan.get("cooling") != [1, 2, 4]
@@ -464,6 +512,7 @@ def acquisition_inputs(plan, *, expected_digest, stage):
         (20, 40, 80) if calibration else (80,) if stage == "refinement" else (20, 40)
     )
     jobs = []
+    namespace = "scorelab-v3" if context is None else "scorelab-v3:guarded419-v1"
     for c1, c2, switch in profiles:
         for band in BANDS:
             for cooling in plan["cooling"]:
@@ -474,7 +523,7 @@ def acquisition_inputs(plan, *, expected_digest, stage):
                 for mesh in meshes:
                     jobs.append(
                         {
-                            "case_id": f"scorelab-v3:{'cal' if calibration else 'eval'}:c1={c1:.2f}:c2={c2:.2f}:sv={switch:.2f}:T{band}:h{cooling}:mesh{mesh}",
+                            "case_id": f"{namespace}:{'cal' if calibration else 'eval'}:c1={c1:.2f}:c2={c2:.2f}:sv={switch:.2f}:T{band}:h{cooling}:mesh{mesh}",
                             "c1": c1,
                             "c2": c2,
                             "switch_voltage_v": switch,
@@ -485,10 +534,10 @@ def acquisition_inputs(plan, *, expected_digest, stage):
                             "rung": {20: 1, 40: 2, 80: 3}[mesh],
                         }
                     )
-    return {"batch": f"scorelab-v3-{stage}-dev-v1", "jobs": jobs}
+    return {"batch": f"{namespace}-{stage}-dev-v1", "jobs": jobs}
 
 
-def population_tasks(plan, *, expected_plan_digest, count):
+def population_tasks(plan, *, expected_plan_digest, count, context=None):
     """Input-only P tasks for the frozen fallback bank; no truth or models.
 
     Dirichlet draws use registered CPython Random.gammavariate. Largest-
@@ -497,8 +546,15 @@ def population_tasks(plan, *, expected_plan_digest, count):
     """
     from .owner_v3_panel_export import OBSERVER
 
+    identity_context = _context(context)
+    observer = OBSERVER
+    if context is not None:
+        from . import guarded419_context
+
+        observer = guarded419_context.EVAL_OBSERVER
+
     jobs = acquisition_inputs(
-        plan, expected_digest=expected_plan_digest, stage="evaluation"
+        plan, expected_digest=expected_plan_digest, stage="evaluation", context=context
     )["jobs"]
     initial, maximum = plan["questions"]["initial_P"], plan["questions"]["max_P"]
     if type(count) is not int or not 0 < count <= maximum:
@@ -514,7 +570,7 @@ def population_tasks(plan, *, expected_plan_digest, count):
         actions.setdefault(tasks.digest(action), action)
     grammar = {
         "schema": tasks.GRAMMAR_SCHEMA,
-        "version": f"{JOB}.fallback60.actions.v1",
+        "version": f"{identity_context['job']}.fallback60.actions.v1",
         "variables": [
             {"name": "c1", "type": "number", "min": 0.25, "max": 2, "step": 0.01},
             {"name": "c2", "type": "number", "min": 0.25, "max": 2, "step": 0.01},
@@ -541,19 +597,23 @@ def population_tasks(plan, *, expected_plan_digest, count):
             units[b] += 1
         thermal_margin, plating_margin = rng.uniform(0, 2.5), rng.uniform(0, 0.002)
         indices = []
-        qid = f"public-battery-v3-P{i:03d}"
+        qid = (
+            f"public-battery-v3-P{i:03d}"
+            if context is None
+            else f"public-battery-v3-guard419-P{i:03d}"
+        )
         for band, weight in zip(BANDS, units):
             condition = f"T{band}"
             subtask = tasks.task(
                 f"{qid}-{condition}",
                 identity={
                     "challenge": "battery-fastcharge-ageing-development-v1",
-                    "contract_version": JOB,
+                    "contract_version": identity_context["job"],
                     "action_grammar": grammar,
                     "optimizer": {"class": "exhaustive", "version": "v1"},
                     "query_budget": len(actions),
                     "seed": plan["questions"]["seed"],
-                    "observer_version": OBSERVER,
+                    "observer_version": observer,
                     "reference_bank": expected_plan_digest,
                 },
                 conditions=[{"id": condition, "stratum": "fresh-state"}],
