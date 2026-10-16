@@ -380,7 +380,7 @@
     return JSON.stringify([g, doc.tiles.spend || null, doc.campaign?.state ?? null, plan]);
   }
   const STAGE_NOUNS = {hunt: "Hunt", plan: "Plan", build: "Build"};
-  const STAGE_STATES = {DONE: "done", RUNNING: "running", PENDING: "waiting", STOPPED: "stopped"};
+  const STAGE_STATES = {DONE: "done", RUNNING: "running", PENDING: "waiting", STOPPED: "stopped", RETAINED: "retained"};
   function nano(value, name = "provider_nanodollars") {
     if (typeof value === "number") return value;
     return value && typeof value === "object" && typeof value[name] === "number" ? value[name] : null;
@@ -390,6 +390,7 @@
     const G = CC.graphite;
     head(box, "Graphite · " + G.modeLabel(g.mode) + " mode", "Carbon's agent");
     para(box, "Now: " + G.now(g.stage, doc.campaign?.state), "status-line rs-graphite-stage");
+    if (g.submission_policy === "retain_only_v1") para(box, "Retain only: this campaign does not commit or submit candidates to a validator.");
     const grid = el("dl", undefined, "review-grid rs-graphite");
     const row = (label, value) => { const dd = el("dd"); if (typeof value === "string") dd.textContent = value; else dd.append(...value); grid.append(el("dt", label), dd); return dd; };
     const digest = typeof g.plan_digest === "string" && g.plan_digest ? g.plan_digest : null;

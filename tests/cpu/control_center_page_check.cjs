@@ -1307,7 +1307,7 @@ async function toAgentStep(page) {
   page.window.CarbonControlCenter.goWizard("agent");
   await page.advance(0);
 }
-const GRAPHITE_KEYS = ["graphite_mode", "research_share", "plan", "hunt", "limits"];
+const GRAPHITE_KEYS = ["graphite_mode", "research_share", "plan", "hunt", "limits", "submission_policy"];
 const planHref = digest => "#library/plans/" + encodeURIComponent(digest);
 const usd = nano => "$" + String(Number((nano / 1e9).toPrecision(2)));
 
@@ -1426,7 +1426,7 @@ scenario("Graphite: each mode launches with exactly its own fields; the hunt is 
   assert.ok(!("hunt" in body), "a Build from a plan never hunts");
   page.window.CarbonControlCenter.goWizard("review");
   await page.advance(0);
-  assert.match(page.text("wizard-review"), /Build mode · plan /);
+  assert.match(page.text("wizard-review"), /Build mode · normal submission behavior · plan /);
   // Back to Full: the plan chosen for Build stays with Build.
   await toAgentStep(page);
   await page.press(one(page, "#wizard-graphite-mode-full"));
@@ -1444,6 +1444,58 @@ scenario("Graphite: each mode launches with exactly its own fields; the hunt is 
   await toAgentStep(page);
   assert.match(page.text("wizard-research-share-note"), /% of your model budget: \$[0-9.]+ of your .* model spend\. When that is used, research stops \(research share reached\)/);
   clean(page);
+});
+
+scenario("Graphite: retain before submit is visible, opt-in, and sent only when declared", async () => {
+  const state = graphiteWorld();
+  state.operations = state.operations.map(op => op.operation === "launch" ? {...op, optional: [...op.optional, "submission_policy"]} : op);
+  const page = await open(state);
+  await wizardTo(page, "agent", "graphite");
+  const retain = page.$("wizard-retain-before-submit");
+  assert.equal(retain.checked, false);
+  assert.match(page.text("wizard-graphite-retain"), /no commitment or validator submission; off by default/);
+  let body = await launchNow(page, state);
+  assert.ok(!("submission_policy" in body), "the historical default omits the field");
+  await toAgentStep(page);
+  await page.press(retain);
+  page.window.CarbonControlCenter.goWizard("review");
+  await page.advance(0);
+  assert.match(page.text("wizard-review"), /retain selected candidate for review; no commit or validator submission/);
+  body = await launchNow(page, state);
+  assert.equal(body.submission_policy, "retain_only_v1");
+  await toAgentStep(page);
+  await page.press(one(page, "#wizard-graphite-mode-research"));
+  assert.equal(page.$("wizard-graphite-retain").hidden, true);
+  page.window.CarbonControlCenter.goWizard("review");
+  await page.advance(0);
+  assert.match(page.text("wizard-review"), /research plan only; no selected candidate or submission/);
+  assert.doesNotMatch(page.text("wizard-review"), /retain selected candidate/);
+  body = await launchNow(page, state);
+  assert.equal(body.graphite_mode, "RESEARCH");
+  assert.ok(!("submission_policy" in body), "Research cannot retain a selected candidate");
+  await toAgentStep(page);
+  await page.press(one(page, "#wizard-graphite-mode-build"));
+  assert.equal(page.$("wizard-retain-before-submit").checked, true, "the hidden choice survives mode changes");
+  body = await launchNow(page, state);
+  assert.equal(body.graphite_mode, "BUILD");
+  assert.equal(body.submission_policy, "retain_only_v1", "Build carries the same explicit choice");
+  await toAgentStep(page);
+  await page.press(page.$("wizard-retain-before-submit"));
+  body = await launchNow(page, state);
+  assert.ok(!("submission_policy" in body), "turning retain off restores omission");
+  clean(page);
+
+  const old = graphiteWorld();
+  old.operations = old.operations.map(op => op.operation === "launch"
+    ? {...op, optional: op.optional.filter(name => name !== "submission_policy")}
+    : op);
+  const olderPage = await open(old);
+  await wizardTo(olderPage, "agent", "graphite");
+  await olderPage.press(olderPage.$("wizard-retain-before-submit"));
+  assert.equal(olderPage.$("wizard-next").disabled, true);
+  assert.match(olderPage.text("wizard-next-reason"), /launch does not take submission_policy/);
+  assert.equal(posts(old, "/api/v1/research").length, 0);
+  clean(olderPage);
 });
 
 scenario("Graphite: a choice the controller's launch does not take blocks the launch, never dropped", async () => {
