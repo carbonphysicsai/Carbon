@@ -31,6 +31,14 @@ focused regression tests and narrowly required launch-contract test updates.
 One author; Platform independently reviews read-only. Disjoint from EVAL396,
 ScoreLab frozen scientific files, existing T07 and frozen f080 evidence.
 
+Browser-door amendment, 2026-10-16: expose an optional Graphite retain choice
+in the existing launch wizard for FULL/BUILD and send the exact versioned field
+only when selected. Show the choice in review, preserve it in templates and
+block when an older controller does not declare the field. The unchanged
+default omits the field. Bound this repair to `app.js` and the existing
+`control_center_page_check.cjs` request-level scenario; Root owns canonical
+execution and publication of the combined candidate.
+
 DoD: authentic practiced selection remains retained even with its digest already
 on chain; zero commitment/intake/validator effects; repeat resume makes no new
 Constructor call; malformed/downgraded frozen records fail closed; historical
