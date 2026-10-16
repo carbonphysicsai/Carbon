@@ -135,7 +135,7 @@ def _first_failed(checks: tuple[tuple[str, Callable[[], bool]], ...]) -> str:
             if fails():
                 return name
     except Exception:  # noqa: BLE001 - diagnosis must not replace refusal
-        pass
+        return "UNCLASSIFIED"
     return "UNCLASSIFIED"
 
 
