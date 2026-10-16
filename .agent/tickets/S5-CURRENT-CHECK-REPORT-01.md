@@ -1,0 +1,16 @@
+# S5-CURRENT-CHECK-REPORT-01 — private authenticated diagnostics
+
+Status: IN_PROGRESS; Platform; Root authorized Slice A only on 2026-10-15.
+Starting source: bc0b8a0181b62ea53627c0d27be27d889bd82f11. One bounded ticket/PR; Root owns canonical validation, runtime and merge. Product reviews the complete exact diff. During the explicit disk-capacity hold, stage only these six tiny files; no Git mutations/heavy writes or test dispatch.
+
+Working contract: KEEP exact registered composition/complete provider roster authentication, current statuses, changed-field derivation, original binding return, existing ChecksUnavailable/LevelRefused code+issues and compiler/graph/signing order. Add an optional authenticated private diagnostic report on the existing negative composition-check path. Child CLI may carry the allowlisted sidecar; client keeps it on a private exception attribute only after subject/shape validation. Missing/malformed/mismatched diagnostics are discarded without changing the original refusal. No HTTP/MCP output, authority consumer, status override, admission change or cache is added.
+
+Decision S5-REPORT-D1: sidecar reports original aggregate status only; compiler/security components remain NOT_SEPARATELY_MEASURED and development authorization NOT_BOUND/NOT_DISPATCHED, admission_allowed:false. No inferred PASS, owner waiver, trust store, global/env override, Slice B or campaign.py change. Expected shadow roster and immutable contracts remain unchanged. Reports exist only after full descriptor/provider/subject/roster/selected-arm authentication; earlier failures carry no purported authenticated diagnostic.
+
+Six-path manifest: this ticket; .agent/decisions/2026-10-15-S5-CURRENT-CHECK-REPORT-01.md; carbon/development_ladder/required_checks.py; carbon/reconstruction/development_level_cli.py; carbon/development_session/construction_level.py; tests/cpu/test_composition_check_report.py. No other tracked paths reserved. P3 campaign.py/guidance manifest disjoint.
+
+Plan: working contract/decision; add report without changing enforcing return/exception semantics; carry through existing private CLI error and validate against request subject in client; author discriminating identity/current-provider/failure/no-dispatch/legacy tests; static parse/diff; isolated Git branch only after Root capacity release; Product complete-diff review; Root canonical tests/CI/merge. No source execution by this lane.
+
+Root validation commands: ./scripts/dev/canonical.sh python -m pytest tests/cpu/test_composition_check_report.py tests/cpu/test_composition_required_checks.py tests/cpu/test_composition_launchpad.py tests/cpu/test_launchpad_construction_levels.py -q; relevant development/unified import-closure invariants; Black/Ruff and delivery hygiene for changed paths; scope-required CI. Commands are prospective, not passing evidence.
+
+Invariants: infrastructure is not candidate failure; no hidden material/public disclosure; no fixture LIVE/security authority; no silent reinterpretation. Primary map_ref SYSTEM/LAUNCHPAD; Hub maintenance retired under OWNER-DX-03. Maturity ceiling IMPLEMENTED until actual canonical evidence; no scientific/security/production qualification. Conditional completion: coherent six-file source/tests, reviewed exact diff and actual Root checks/merge; no historical or positive086 acceptance claim.
