@@ -284,14 +284,18 @@ def _event(d, terminal, name):
     return matching[0]["signed_residual"]
 
 
-def tracking_report(record):
+def _tracking_report(
+    record, *, expected_job, reference_identity, record_schema, method_digest
+):
     """Conjunctive real tracking checks; never changes a raw row or Vmax."""
     reasons = []
     checked = 0
     try:
-        job = {key: record[key] for key in first_jobs()[0]}
-        validate_job(job)
-        _require(record["schema"] == RECORD, "WRONG_RECORD_SCHEMA")
+        job = {key: record[key] for key in expected_job}
+        _require(
+            tasks.digest(job) == tasks.digest(expected_job), "WRONG_REGISTERED_JOB"
+        )
+        _require(record["schema"] == record_schema, "WRONG_RECORD_SCHEMA")
         _require(record["status"] == "OK", "RAW_REFERENCE_NOT_OK")
         solver = record["solver_provenance"]
         _require(
@@ -306,7 +310,8 @@ def tracking_report(record):
             "WRONG_SOLVER_PROVENANCE",
         )
         _require(
-            record["reference_identity"] == observer({}), "WRONG_REFERENCE_IDENTITY"
+            record["reference_identity"] == reference_identity,
+            "WRONG_REFERENCE_IDENTITY",
         )
         provenance = record["observation_provenance"]
         scale = provenance["runtime_voltage_scale"]
@@ -352,8 +357,16 @@ def tracking_report(record):
             previous_end = phase["t_end_s"]
             definition = d["descriptor"]
             if name in ("cc1", "cc2", "discharge"):
-                target = 4.0 if name == "cc1" else CONTROL_V if name == "cc2" else 2.5
-                value = -1.25 if name == "cc1" else -0.4 if name == "cc2" else 1.0
+                target = (
+                    job["switch_voltage_v"]
+                    if name == "cc1"
+                    else CONTROL_V if name == "cc2" else 2.5
+                )
+                value = (
+                    -job["c1"]
+                    if name == "cc1"
+                    else -job["c2"] if name == "cc2" else 1.0
+                )
                 direction = "discharge" if name == "discharge" else "charge"
                 operator = "<" if name == "discharge" else ">"
                 event_name = f"Voltage {operator} {target} [V] [experiment]"
@@ -465,9 +478,22 @@ def tracking_report(record):
         "checked_phases": checked,
         "required_phases": 181,
         "reasons": reasons,
-        "method_digest": tasks.digest(METHOD),
+        "method_digest": method_digest,
         "physical_certificate": False,
     }
+
+
+def tracking_report(record):
+    """The G0 public reducer stays bound to exactly the original three jobs."""
+    cid = record.get("case_id") if type(record) is dict else None
+    expected = next((j for j in first_jobs() if j["case_id"] == cid), first_jobs()[0])
+    return _tracking_report(
+        record,
+        expected_job=expected,
+        reference_identity=observer({}),
+        record_schema=RECORD,
+        method_digest=tasks.digest(METHOD),
+    )
 
 
 def calibration_report(binding, records):
