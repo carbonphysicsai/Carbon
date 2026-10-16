@@ -632,6 +632,7 @@
   // ---- The toolbox (RSURF-D11): read from the Challenge's own records. ----
   function renderToolbox(parent, tb, compact) {
     if (!tb || tb.status === "UNAVAILABLE") { para(parent, "This Challenge's toolbox could not be read.", "empty-state"); return; }
+    para(parent, CC.acceptanceText(tb), "status-line rs-toolbox-acceptance");
     // Where this campaign runs: CPU, this machine's GPU or the remote GPU,
     // and why a GPU lane is not set up (RSURF-D19). Never hidden.
     if (tb.where) {

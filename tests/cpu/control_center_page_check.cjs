@@ -141,6 +141,25 @@ scenario("acceptance defaults label offered Agents Compute and Connections catal
   clean(page);
 });
 
+scenario("toolbox visibly stays untested without a PASS cell", async () => {
+  const state = launchable(world());
+  const run = manualRun();
+  state.runs = [run];
+  state.view = copy(fx.view);
+  const page = await open(state);
+  page.go("#campaigns/" + run.id + "/tools");
+  await page.advance(0);
+  const label = () => one(page, "#campaign-detail .rs-toolbox-acceptance").textContent;
+  assert.equal(label(), "Untested");
+  state.view.toolbox.acceptance = {
+    status: "UNTESTED", result: "BLOCKED", cell: null, revision: null,
+    scope: "NAMED_CELL_REVISION_ONLY", evidence: null,
+  };
+  await refresh(page);
+  assert.equal(label(), "Untested");
+  clean(page);
+});
+
 // ---- 1. Redraw only on change; never under a hand. ----
 scenario("a refresh with nothing new replaces no element of the launch wizard", async () => {
   const state = launchable(world());
