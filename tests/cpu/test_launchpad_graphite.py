@@ -910,7 +910,7 @@ def test_s3s_launch_fields_accept_what_the_launchpad_sends(fields):
     LaunchChoice(graphite={**choice, "curation_digest": "sha256:" + "c" * 64}).apply(
         args
     )
-    assert set(edition.LAUNCH_FIELDS) == S3_LAUNCH_FIELDS
+    assert set(edition.LAUNCH_FIELDS) == S3_LAUNCH_FIELDS | {"submission_policy"}
     accepted = edition.launch_fields(args.graphite)
     assert accepted["mode"] == choice["mode"]
     assert accepted["plan"] == choice["plan"]

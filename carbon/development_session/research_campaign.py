@@ -971,6 +971,9 @@ async def submit_candidate(prepared, epoch, strategy):
     submit is a signed message to the local development service: nothing
     reaches the chain.
     """
+    from .submission_policy import require_submission
+
+    require_submission(prepared)
     ledger, owner = prepared.ledger, prepared.owner
     if not trial_supports_selection(ledger, owner, strategy):
         ledger.note(

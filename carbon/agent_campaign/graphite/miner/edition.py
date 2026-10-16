@@ -24,7 +24,9 @@ FULL, default FULL), `research_share` (FULL only: 0 to 1, default 0.10),
 it) and `limits` (`{calls_per_epoch?, trials_per_epoch?, planner_calls?}`,
 each optional: unset means only the campaign's own ceilings bind), with the
 curation digest the launch was admitted with beside them
-(`args.graphite_curation_digest`).
+(`args.graphite_curation_digest`). The prospective optional versioned
+`submission_policy=retain_only_v1` restricts remote effects outside the model;
+omission preserves the published edition and historical launch block.
 """
 
 from __future__ import annotations
@@ -34,6 +36,7 @@ import re
 from dataclasses import dataclass
 from fractions import Fraction
 
+from carbon.development_session import submission_policy
 from carbon.development_session.profile import canonical, digest
 
 from . import EDITION_ID
@@ -585,7 +588,9 @@ _DIGEST = re.compile(r"sha256:[0-9a-f]{64}\Z")
 #: `LaunchChoice.apply`): the design's launch field names. The curation
 #: digest admission captured travels beside them
 #: (`args.graphite_curation_digest`); the edition is the campaign's to name.
-LAUNCH_FIELDS = frozenset({"mode", "research_share", "plan", "hunt", "limits"})
+LAUNCH_FIELDS = frozenset(
+    {"mode", "research_share", "plan", "hunt", "limits", submission_policy.FIELD}
+)
 LIMIT_FIELDS = ("calls_per_epoch", "trials_per_epoch", "planner_calls")
 #: The largest optional cap the engine takes (`research_agent_policy.
 #: MAX_TUNABLE_CAP`): a cap is a bound, never a target.
@@ -701,7 +706,14 @@ def launch_fields(fields, *, curation_digest=None, edition=EDITION_ID):
         type(curation) is not str or not _DIGEST.fullmatch(curation)
     ):
         raise LaunchRefused("graphite_launch_invalid", "curation_digest")
+    try:
+        policy = submission_policy.launch_fields(fields)
+    except submission_policy.PolicyInvalid:
+        raise LaunchRefused(
+            submission_policy.INVALID, submission_policy.FIELD
+        ) from None
     return {
+        **policy,
         "edition": edition,
         "mode": mode,
         "research_share": share,
@@ -747,6 +759,7 @@ def graphite_block(launch, *, curation_digest, pack_digest, private_snapshot_dig
         raise ValueError("a private snapshot digest is text")
     edition = resolve(launch.get("edition", EDITION_ID))
     return {
+        **submission_policy.launch_fields(launch),
         "edition": edition.edition_id,
         "edition_digest": edition.digest,
         "mode": launch["mode"],
@@ -765,8 +778,12 @@ def graphite_block(launch, *, curation_digest, pack_digest, private_snapshot_dig
 
 def check_block(block):
     """A frozen `graphite` block, closed in shape. Returns it."""
-    if type(block) is not dict or set(block) != BLOCK_FIELDS:
+    if type(block) is not dict or set(block) not in (
+        BLOCK_FIELDS,
+        BLOCK_FIELDS | {submission_policy.FIELD},
+    ):
         raise ValueError("the Graphite plan block is not this edition's shape")
+    submission_policy.launch_fields(block)
     if block["mode"] not in MODES or block["escalation"] != []:
         raise ValueError("the Graphite plan block is not runnable")
     share = block["research_share"]

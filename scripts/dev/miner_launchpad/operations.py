@@ -219,6 +219,12 @@ FIELDS = {
             "Frozen at launch."
         ),
     ),
+    "submission_policy": (
+        "string",
+        "Graphite only: retain_only_v1 retains a selected candidate without "
+        "commitment or validator submission/evaluation. Frozen at launch; "
+        "omitted preserves normal automatic submission. Cannot change on resume.",
+    ),
     "research_share": (
         "number",
         (
@@ -361,6 +367,7 @@ CHOICES = {
     "action": ("stop", "pause", "reconcile"),
     "note_kind": ("hypothesis", "plan", "observation", "reply"),
     "graphite_mode": ("RESEARCH", "BUILD", "FULL"),
+    "submission_policy": ("retain_only_v1",),
     "mode": ("full", "smoke"),
 }
 
@@ -478,6 +485,8 @@ REFUSAL_FIELDS = {
     "graphite_fields_need_the_graphite_agent": "agent",
     "graphite_mode_invalid": "graphite_mode",
     "graphite_field_not_used_by_mode": "graphite_mode",
+    "submission_policy_invalid": "submission_policy",
+    "submission_retained_by_policy": "submission_policy",
     "research_share_invalid": "research_share",
     "graphite_limits_invalid": "limits",
     "graphite_ceilings_required": "budget",
@@ -607,6 +616,7 @@ OPERATIONS = {
                     "feedback_mode",
                     "graphite_mode",
                     "research_share",
+                    "submission_policy",
                     "plan",
                     "hunt",
                     "limits",

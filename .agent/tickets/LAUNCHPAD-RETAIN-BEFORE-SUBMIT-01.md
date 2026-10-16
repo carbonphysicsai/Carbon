@@ -24,7 +24,8 @@ frozen-policy validation and actual effect guards; retained/resume behavior;
 regressions; pinned static checks; Root canonical execution/publication/merge.
 Expected paths: this ticket and decision; graphite/miner edition.py and driver.py;
 development_session research_campaign.py and new submission_policy.py;
-battery/campaign.py; miner_launchpad operations.py and runner.py;
+battery/campaign.py and multi_intake.py; miner_mcp/mcp_operations.py;
+miner_launchpad operations.py, supervisor.py and runner.py;
 focused regression tests and narrowly required launch-contract test updates.
 One author; Platform independently reviews read-only. Disjoint from EVAL396,
 ScoreLab frozen scientific files, existing T07 and frozen f080 evidence.

@@ -248,7 +248,9 @@ def make_operation_tools(host, *, guard=None):
             kind, meaning = FIELDS[field]
             default = ... if field in required else None
             annotation = _annotation(field, kind)
-            if field not in required:
+            if field not in required and field != "submission_policy":
+                # This prospective safety policy distinguishes omission from
+                # explicit null; only its closed versioned literal is valid.
                 annotation = annotation | None
             parameters[field] = (annotation, Field(default, description=meaning))
         model = create_model(
