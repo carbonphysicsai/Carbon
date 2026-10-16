@@ -16,7 +16,7 @@ import re
 import subprocess
 from concurrent.futures import ProcessPoolExecutor
 from functools import partial
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 
 from carbon.battery import truth_env
 from carbon.design_search import tasks
@@ -40,6 +40,28 @@ MEMBER_FILES = {
 
 def _sha(raw):
     return hashlib.sha256(raw).hexdigest()
+
+
+def _canonical_key(name):
+    if (
+        type(name) is not str
+        or not name
+        or "\\" in name
+        or PureWindowsPath(name).drive
+        or any(part in ("", ".", "..") for part in name.split("/"))
+    ):
+        raise tasks.TaskError("canonical relative EVAL input key required")
+    return name
+
+
+def _public_load(root, name):
+    """Reject spelling and symlink aliases even when they remain inside root."""
+    _canonical_key(name)
+    path = root / name
+    resolved = path.resolve(strict=True)
+    if resolved != path or not resolved.is_relative_to(root) or not resolved.is_file():
+        raise tasks.TaskError("EVAL input alias or public-root escape")
+    return resolved.read_bytes()
 
 
 def _head(root):
@@ -125,9 +147,10 @@ def _member_files(spec, cohort, load):
             entry = entries[name]
             if entry["sha256"] != members[member_id][field]:
                 raise tasks.TaskError("pretruth member content pin differs")
-            if entry["path"] in seen_paths:
+            canonical = _canonical_key(entry["path"])
+            if canonical.casefold() in seen_paths:
                 raise tasks.TaskError("pretruth member file path reused")
-            seen_paths.add(entry["path"])
+            seen_paths.add(canonical.casefold())
             cal._load(entry, load)
 
 
@@ -410,10 +433,7 @@ def main(argv=None):
     root = args.public_root.resolve(strict=True)
 
     def load(name):
-        path = (root / name).resolve(strict=True)
-        if not path.is_relative_to(root) or not path.is_file():
-            raise tasks.TaskError("EVAL file escapes public input root")
-        return path.read_bytes()
+        return _public_load(root, name)
 
     return run(
         json.loads(raw), load=load, records_path=args.records, workers=args.workers

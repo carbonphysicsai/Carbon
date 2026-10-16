@@ -65,3 +65,15 @@ selected here; actual custody chronology, dispatch and qualification remain
 Root/human-owned and fail closed. Working source branch/head and tests are
 reported in the external handoff; no maturity change is asserted by this
 source-only authoring step.
+
+## Review repair R1 — member-file alias refusal
+
+Product's exact-head engineering review found that two different raw path
+strings could resolve to one uploaded file through `.` or an in-root symlink.
+The original no-alias contract therefore needed a path-identity guard. Member
+keys now require canonical relative spelling and case-fold-distinct identity;
+the CLI public loader rejects dot segments and symlinked components even when
+their target remains inside the public root. Focused negative tests cover both
+spelling and symlink aliases. No FILE_SPEC field, scientific input, source14
+blob, provider route, or worker admission semantics changed. The successor
+head requires fresh canonical checks and review; the first head is superseded.

@@ -61,6 +61,14 @@ def test_member_files_match_every_original_byte_pin_without_roster_aliases():
     changed["member_files"]["member-1"]["predictions"]["path"] = "fit_receipt"
     with pytest.raises(tasks.TaskError, match="path reused"):
         worker._member_files(changed, cohort, raw_by_name.__getitem__)
+    changed = json.loads(json.dumps(spec))
+    changed["member_files"]["member-1"]["predictions"]["path"] = "./predictions"
+    with pytest.raises(tasks.TaskError, match="canonical relative"):
+        worker._member_files(changed, cohort, raw_by_name.__getitem__)
+    changed = json.loads(json.dumps(spec))
+    changed["member_files"]["member-1"]["predictions"]["path"] = "FIT_RECEIPT"
+    with pytest.raises(tasks.TaskError, match="path reused"):
+        worker._member_files(changed, cohort, raw_by_name.__getitem__)
     changed = dict(raw_by_name)
     changed["predictions"] = b"different original bytes"
     with pytest.raises(tasks.TaskError, match="independent pin"):
@@ -91,6 +99,29 @@ def test_gitless_execution_source_requires_exact_bootstrap_ref_and_bytes(tmp_pat
             {"same.py": "1" * 64},
             environ={"CODE_REF": "a" * 40},
         )
+
+
+def test_public_loader_rejects_internal_dot_and_symlink_aliases(tmp_path):
+    root = tmp_path.resolve()
+    member = root / "member"
+    member.mkdir()
+    original = member / "actual.json"
+    original.write_bytes(b"original")
+    assert worker._public_load(root, "member/actual.json") == b"original"
+    for alias in (
+        "member/./actual.json",
+        "member//actual.json",
+        "member/../member/actual.json",
+    ):
+        with pytest.raises(tasks.TaskError, match="canonical relative"):
+            worker._public_load(root, alias)
+    link = member / "alias.json"
+    try:
+        link.symlink_to(original)
+    except OSError:
+        pytest.skip("host cannot create a symlink; canonical Linux lane exercises it")
+    with pytest.raises(tasks.TaskError, match="alias"):
+        worker._public_load(root, "member/alias.json")
 
 
 def test_file_spec_and_worker_limit_refuse_before_any_truth(monkeypatch, tmp_path):
