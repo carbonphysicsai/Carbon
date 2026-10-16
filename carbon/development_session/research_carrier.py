@@ -562,33 +562,54 @@ def _run_locked(
     create_attempted = False
     output = operation / "export.stream"
     lease = ExitStack()
+    slot = ExitStack()
     try:
         with _fixed_practice_stage(operation, provenance, "DEVICE_LEASE"):
             if device is not None:
                 from carbon.reconstruction.worker.accelerator_runtime import (
                     miner_device_lease,
                     reject_existing_device_containers,
+                    shared_host_lease,
                 )
 
                 # This host's own concurrent runs on the device, and Carbon's own
                 # retained work on it; nothing about anyone else's use of the GPU.
                 lease.enter_context(miner_device_lease(device.device_uuid))
+                # Serialize only check/record/create against Carbon's own
+                # launches. This is not an exclusive GPU lease or assurance.
+                slot.enter_context(shared_host_lease())
                 reject_existing_device_containers(cli=cli)
         with _fixed_practice_stage(operation, provenance, "CHECK_CANCEL"):
             _check_cancel(ledger, owner, identity)
-        create_attempted = True
         with _fixed_practice_stage(operation, provenance, "CREATE"):
-            cli.run(
-                create_arguments(
-                    container_name=name,
-                    image_id=image.image_id,
-                    input_directory=stage,
-                    cpuset=checked.cpuset,
-                    launch_digest=launch,
-                    worker_profile=worker,
-                ),
-                timeout=30,
-            )
+            try:
+                if device is not None:
+                    from carbon.reconstruction.worker.accelerator_runtime import (
+                        mark_device_allocation,
+                    )
+
+                    # The same task-owned provenance the existing miner-script
+                    # and reconstruction paths persist before create. Cleanup
+                    # may complete only the authority that owns this launch.
+                    mark_device_allocation(
+                        container_name=name,
+                        launch_digest=launch,
+                        authority=worker.accelerator_authority,
+                    )
+                create_attempted = True
+                cli.run(
+                    create_arguments(
+                        container_name=name,
+                        image_id=image.image_id,
+                        input_directory=stage,
+                        cpuset=checked.cpuset,
+                        launch_digest=launch,
+                        worker_profile=worker,
+                    ),
+                    timeout=30,
+                )
+            finally:
+                slot.close()
         with _fixed_practice_stage(operation, provenance, "CHECK_CANCEL"):
             _check_cancel(ledger, owner, identity)
         with _fixed_practice_stage(operation, provenance, "WATCHDOG"):
@@ -665,7 +686,10 @@ def _run_locked(
                         )
         finally:
             with _fixed_practice_stage(operation, provenance, "LEASE_RELEASE"):
-                lease.close()
+                try:
+                    slot.close()
+                finally:
+                    lease.close()
     with _fixed_practice_stage(operation, provenance, "CHECK_CANCEL"):
         _check_cancel(ledger, owner, identity)
     snapshot = operation / "snapshot"

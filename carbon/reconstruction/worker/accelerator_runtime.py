@@ -466,6 +466,88 @@ def inspect_gpu_device(
     }
 
 
+def inspect_self_service_device(*, cli, container_name: str, worker_profile):
+    """Observe installed identity without asserting enumeration or exclusivity.
+
+    This is the registered host-record authority for both existing roles, not
+    a strict observation or a local diagnostic approval. Containment and kernel
+    resource verification remain the caller's unchanged CPU-lane checks.
+    """
+    from carbon.reconstruction.accelerators import (
+        AcceleratorRole,
+        miner_lane_assurance,
+        validator_self_service_assurance,
+    )
+    from carbon.reconstruction.worker.model import (
+        MINER_HOST_AUTHORITY,
+        DevelopmentWorkerProfile,
+    )
+
+    if (
+        type(worker_profile) is not DevelopmentWorkerProfile
+        or worker_profile.accelerator_authority != MINER_HOST_AUTHORITY
+        or worker_profile.accelerator_role
+        not in (
+            AcceleratorRole.MINER_RESEARCH.value,
+            AcceleratorRole.VALIDATOR_RECONSTRUCTION.value,
+        )
+    ):
+        raise WorkerFailure(WorkerCode.POLICY)
+    record = host_device()
+    if (
+        worker_profile.accelerator_device_uuid != record.device_uuid
+        or worker_profile.accelerator_grant_digest != record.digest
+    ):
+        raise WorkerFailure(WorkerCode.POLICY)
+    result = cli.run(
+        [
+            "exec",
+            container_name,
+            "/usr/bin/nvidia-smi",
+            "--query-gpu=uuid,name,driver_version,memory.total,display_active",
+            "--format=csv,noheader,nounits",
+        ],
+        timeout=10,
+    )
+    try:
+        rows = result.stdout.decode("ascii", "strict").strip().splitlines()
+        values = [part.strip() for part in rows[0].split(",")]
+        if (
+            len(rows) != 1
+            or len(values) != 5
+            or values[:4]
+            != [
+                record.device_uuid,
+                record.device_kind,
+                record.driver_version,
+                str(record.device_memory_mib),
+            ]
+        ):
+            raise ValueError()
+    except (UnicodeError, ValueError, IndexError):
+        raise WorkerFailure(WorkerCode.POLICY) from None
+    miner = worker_profile.accelerator_role == AcceleratorRole.MINER_RESEARCH.value
+    return {
+        "schema": "carbon.c03.self-service-device-observation.v1",
+        "observation_mode": "SELF_SERVICE_HOST",
+        "authority": MINER_HOST_AUTHORITY,
+        "role": worker_profile.accelerator_role,
+        "host_record_digest": record.digest,
+        "uuid": values[0],
+        "name": values[1],
+        "driver": values[2],
+        "memory_capacity_mib": record.device_memory_mib,
+        "display_active": {"enabled": True, "disabled": False}.get(values[4].lower()),
+        "other_compute_processes": None,
+        "exclusivity": "UNESTABLISHED_SELF_SERVICE_OBSERVATION",
+        "device_memory_cap": "NOT_ENFORCED_BY_THIS_OBSERVATION",
+        "official_eligible": False,
+        "assurance": (
+            miner_lane_assurance() if miner else validator_self_service_assurance()
+        ),
+    }
+
+
 def require_strict_observation(observation: object) -> dict[str, object]:
     """Accept only a strict observation; a development one can never pass.
 

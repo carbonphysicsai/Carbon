@@ -2,7 +2,7 @@
 
 import json
 import os
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from types import SimpleNamespace
 
 import pytest
@@ -14,7 +14,11 @@ from carbon.development_session.research_ledger import (
     VERSION,
     CampaignLedger,
 )
-from carbon.reconstruction.worker.model import WorkerCode, WorkerFailure
+from carbon.reconstruction.worker.model import (
+    MINER_HOST_AUTHORITY,
+    WorkerCode,
+    WorkerFailure,
+)
 
 SECRET = b"SECRET-token-seed-path /private/fixture ENV=secret"
 
@@ -347,6 +351,15 @@ def test_gpu_lease_failures_preserve_classification_and_cleanup(
     monkeypatch.setattr(carrier, "_gpu_device", lambda: device)
     monkeypatch.setattr(carrier, "_gpu_pins", lambda *args: ("fixture", "p", "l"))
     monkeypatch.setattr(carrier, "_check_gpu_host", lambda *args: None)
+    monkeypatch.setattr(
+        carrier,
+        "_worker_profile",
+        lambda *args: SimpleNamespace(accelerator_authority=MINER_HOST_AUTHORITY),
+    )
+    monkeypatch.setattr(accelerator_runtime, "shared_host_lease", nullcontext)
+    monkeypatch.setattr(
+        accelerator_runtime, "mark_device_allocation", lambda **kwargs: None
+    )
 
     @contextmanager
     def lease(uuid):
