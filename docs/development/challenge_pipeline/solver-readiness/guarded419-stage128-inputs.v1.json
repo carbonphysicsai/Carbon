@@ -1,0 +1,2184 @@
+{
+  "schema": "carbon.scorelab.guarded419.stage128-inputs.v1",
+  "scope": "PUBLIC_INPUT_METADATA_ONLY",
+  "original_manifest_sha256": "a6c4c38ba17b0a8b27a36bfed055f85f924a7fc4bfdee0e2cb24065adfbd3cf3",
+  "research_plan_sha256": "bfdfc92afa046a218b11ee1c52748cbdc9f144f12908a7f8a6453787d909eebf",
+  "rows": [
+    {
+      "prefix_position_1_based": 1,
+      "source_plan_index_0_based": 1,
+      "source_case_id": "v3train:c1=0.43:c2=0.31:sv=4.10:h1:T17:SOC=0.10",
+      "is_coverage_anchor": true,
+      "nonanchor_source_order_ordinal_1_based": null,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 0.43,
+        "c2": 0.31,
+        "switch_voltage_v": 4.1,
+        "h_multiplier": 1.0,
+        "t_amb_c": 17.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0001"
+    },
+    {
+      "prefix_position_1_based": 2,
+      "source_plan_index_0_based": 2,
+      "source_case_id": "v3train:c1=1.05:c2=0.54:sv=4.05:h2:T5.5:SOC=0.10",
+      "is_coverage_anchor": true,
+      "nonanchor_source_order_ordinal_1_based": null,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 1.05,
+        "c2": 0.54,
+        "switch_voltage_v": 4.05,
+        "h_multiplier": 2.0,
+        "t_amb_c": 5.5,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0002"
+    },
+    {
+      "prefix_position_1_based": 3,
+      "source_plan_index_0_based": 11,
+      "source_case_id": "v3train:c1=1.06:c2=0.66:sv=4.00:h2:T23.5:SOC=0.10",
+      "is_coverage_anchor": true,
+      "nonanchor_source_order_ordinal_1_based": null,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 1.06,
+        "c2": 0.66,
+        "switch_voltage_v": 4.0,
+        "h_multiplier": 2.0,
+        "t_amb_c": 23.5,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0011"
+    },
+    {
+      "prefix_position_1_based": 4,
+      "source_plan_index_0_based": 16,
+      "source_case_id": "v3train:c1=1.20:c2=0.96:sv=4.15:h4:T37:SOC=0.10",
+      "is_coverage_anchor": true,
+      "nonanchor_source_order_ordinal_1_based": null,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 1.2,
+        "c2": 0.96,
+        "switch_voltage_v": 4.15,
+        "h_multiplier": 4.0,
+        "t_amb_c": 37.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0016"
+    },
+    {
+      "prefix_position_1_based": 5,
+      "source_plan_index_0_based": 28,
+      "source_case_id": "v3train:c1=1.63:c2=1.53:sv=4.00:h1:T5:SOC=0.10",
+      "is_coverage_anchor": true,
+      "nonanchor_source_order_ordinal_1_based": null,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 1.63,
+        "c2": 1.53,
+        "switch_voltage_v": 4.0,
+        "h_multiplier": 1.0,
+        "t_amb_c": 5.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0028"
+    },
+    {
+      "prefix_position_1_based": 6,
+      "source_plan_index_0_based": 121,
+      "source_case_id": "v3train:c1=1.98:c2=1.97:sv=4.00:h2:T34:SOC=0.10",
+      "is_coverage_anchor": true,
+      "nonanchor_source_order_ordinal_1_based": null,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 1.98,
+        "c2": 1.97,
+        "switch_voltage_v": 4.0,
+        "h_multiplier": 2.0,
+        "t_amb_c": 34.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0121"
+    },
+    {
+      "prefix_position_1_based": 7,
+      "source_plan_index_0_based": 248,
+      "source_case_id": "v3train:c1=0.25:c2=0.25:sv=4.05:h1:T16.5:SOC=0.10",
+      "is_coverage_anchor": true,
+      "nonanchor_source_order_ordinal_1_based": null,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 0.25,
+        "c2": 0.25,
+        "switch_voltage_v": 4.05,
+        "h_multiplier": 1.0,
+        "t_amb_c": 16.5,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0248"
+    },
+    {
+      "prefix_position_1_based": 8,
+      "source_plan_index_0_based": 726,
+      "source_case_id": "v3train:c1=1.08:c2=0.78:sv=4.05:h1:T40:SOC=0.10",
+      "is_coverage_anchor": true,
+      "nonanchor_source_order_ordinal_1_based": null,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 1.08,
+        "c2": 0.78,
+        "switch_voltage_v": 4.05,
+        "h_multiplier": 1.0,
+        "t_amb_c": 40.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0726"
+    },
+    {
+      "prefix_position_1_based": 9,
+      "source_plan_index_0_based": 2002,
+      "source_case_id": "v3train:c1=2.00:c2=1.58:sv=4.15:h1:T27:SOC=0.10",
+      "is_coverage_anchor": true,
+      "nonanchor_source_order_ordinal_1_based": null,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 2.0,
+        "c2": 1.58,
+        "switch_voltage_v": 4.15,
+        "h_multiplier": 1.0,
+        "t_amb_c": 27.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-2002"
+    },
+    {
+      "prefix_position_1_based": 10,
+      "source_plan_index_0_based": 3,
+      "source_case_id": "v3train:c1=1.42:c2=1.00:sv=4.10:h1:T17.5:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 1,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 1.42,
+        "c2": 1.0,
+        "switch_voltage_v": 4.1,
+        "h_multiplier": 1.0,
+        "t_amb_c": 17.5,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0003"
+    },
+    {
+      "prefix_position_1_based": 11,
+      "source_plan_index_0_based": 12,
+      "source_case_id": "v3train:c1=0.72:c2=0.57:sv=4.05:h1:T15:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 2,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 0.72,
+        "c2": 0.57,
+        "switch_voltage_v": 4.05,
+        "h_multiplier": 1.0,
+        "t_amb_c": 15.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0012"
+    },
+    {
+      "prefix_position_1_based": 12,
+      "source_plan_index_0_based": 13,
+      "source_case_id": "v3train:c1=1.27:c2=0.46:sv=4.05:h1:T9:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 3,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 1.27,
+        "c2": 0.46,
+        "switch_voltage_v": 4.05,
+        "h_multiplier": 1.0,
+        "t_amb_c": 9.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0013"
+    },
+    {
+      "prefix_position_1_based": 13,
+      "source_plan_index_0_based": 14,
+      "source_case_id": "v3train:c1=0.48:c2=0.47:sv=4.00:h1:T34:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 4,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 0.48,
+        "c2": 0.47,
+        "switch_voltage_v": 4.0,
+        "h_multiplier": 1.0,
+        "t_amb_c": 34.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0014"
+    },
+    {
+      "prefix_position_1_based": 14,
+      "source_plan_index_0_based": 19,
+      "source_case_id": "v3train:c1=1.11:c2=0.84:sv=4.05:h1:T11.5:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 5,
+      "stage128_role": "INTERNAL_TRAIN_VALIDATION",
+      "inputs": {
+        "c1": 1.11,
+        "c2": 0.84,
+        "switch_voltage_v": 4.05,
+        "h_multiplier": 1.0,
+        "t_amb_c": 11.5,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0019"
+    },
+    {
+      "prefix_position_1_based": 15,
+      "source_plan_index_0_based": 22,
+      "source_case_id": "v3train:c1=1.43:c2=1.14:sv=4.05:h1:T5.5:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 6,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 1.43,
+        "c2": 1.14,
+        "switch_voltage_v": 4.05,
+        "h_multiplier": 1.0,
+        "t_amb_c": 5.5,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0022"
+    },
+    {
+      "prefix_position_1_based": 16,
+      "source_plan_index_0_based": 23,
+      "source_case_id": "v3train:c1=1.50:c2=1.18:sv=4.05:h4:T9.5:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 7,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 1.5,
+        "c2": 1.18,
+        "switch_voltage_v": 4.05,
+        "h_multiplier": 4.0,
+        "t_amb_c": 9.5,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0023"
+    },
+    {
+      "prefix_position_1_based": 17,
+      "source_plan_index_0_based": 24,
+      "source_case_id": "v3train:c1=1.43:c2=0.80:sv=4.10:h2:T10:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 8,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 1.43,
+        "c2": 0.8,
+        "switch_voltage_v": 4.1,
+        "h_multiplier": 2.0,
+        "t_amb_c": 10.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0024"
+    },
+    {
+      "prefix_position_1_based": 18,
+      "source_plan_index_0_based": 30,
+      "source_case_id": "v3train:c1=1.22:c2=0.61:sv=4.10:h1:T32.5:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 9,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 1.22,
+        "c2": 0.61,
+        "switch_voltage_v": 4.1,
+        "h_multiplier": 1.0,
+        "t_amb_c": 32.5,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0030"
+    },
+    {
+      "prefix_position_1_based": 19,
+      "source_plan_index_0_based": 33,
+      "source_case_id": "v3train:c1=0.71:c2=0.39:sv=4.15:h4:T13:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 10,
+      "stage128_role": "INTERNAL_TRAIN_VALIDATION",
+      "inputs": {
+        "c1": 0.71,
+        "c2": 0.39,
+        "switch_voltage_v": 4.15,
+        "h_multiplier": 4.0,
+        "t_amb_c": 13.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0033"
+    },
+    {
+      "prefix_position_1_based": 20,
+      "source_plan_index_0_based": 34,
+      "source_case_id": "v3train:c1=0.55:c2=0.34:sv=4.05:h1:T11:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 11,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 0.55,
+        "c2": 0.34,
+        "switch_voltage_v": 4.05,
+        "h_multiplier": 1.0,
+        "t_amb_c": 11.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0034"
+    },
+    {
+      "prefix_position_1_based": 21,
+      "source_plan_index_0_based": 37,
+      "source_case_id": "v3train:c1=0.99:c2=0.52:sv=4.00:h2:T37.5:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 12,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 0.99,
+        "c2": 0.52,
+        "switch_voltage_v": 4.0,
+        "h_multiplier": 2.0,
+        "t_amb_c": 37.5,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0037"
+    },
+    {
+      "prefix_position_1_based": 22,
+      "source_plan_index_0_based": 38,
+      "source_case_id": "v3train:c1=1.72:c2=0.40:sv=4.15:h4:T23:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 13,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 1.72,
+        "c2": 0.4,
+        "switch_voltage_v": 4.15,
+        "h_multiplier": 4.0,
+        "t_amb_c": 23.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0038"
+    },
+    {
+      "prefix_position_1_based": 23,
+      "source_plan_index_0_based": 41,
+      "source_case_id": "v3train:c1=1.50:c2=0.36:sv=4.10:h1:T28:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 14,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 1.5,
+        "c2": 0.36,
+        "switch_voltage_v": 4.1,
+        "h_multiplier": 1.0,
+        "t_amb_c": 28.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0041"
+    },
+    {
+      "prefix_position_1_based": 24,
+      "source_plan_index_0_based": 42,
+      "source_case_id": "v3train:c1=0.47:c2=0.41:sv=4.00:h2:T37:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 15,
+      "stage128_role": "INTERNAL_TRAIN_VALIDATION",
+      "inputs": {
+        "c1": 0.47,
+        "c2": 0.41,
+        "switch_voltage_v": 4.0,
+        "h_multiplier": 2.0,
+        "t_amb_c": 37.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0042"
+    },
+    {
+      "prefix_position_1_based": 25,
+      "source_plan_index_0_based": 44,
+      "source_case_id": "v3train:c1=0.90:c2=0.45:sv=4.05:h1:T15:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 16,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 0.9,
+        "c2": 0.45,
+        "switch_voltage_v": 4.05,
+        "h_multiplier": 1.0,
+        "t_amb_c": 15.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0044"
+    },
+    {
+      "prefix_position_1_based": 26,
+      "source_plan_index_0_based": 47,
+      "source_case_id": "v3train:c1=1.99:c2=0.32:sv=4.00:h4:T33:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 17,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 1.99,
+        "c2": 0.32,
+        "switch_voltage_v": 4.0,
+        "h_multiplier": 4.0,
+        "t_amb_c": 33.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0047"
+    },
+    {
+      "prefix_position_1_based": 27,
+      "source_plan_index_0_based": 48,
+      "source_case_id": "v3train:c1=1.72:c2=1.48:sv=4.10:h1:T22.5:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 18,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 1.72,
+        "c2": 1.48,
+        "switch_voltage_v": 4.1,
+        "h_multiplier": 1.0,
+        "t_amb_c": 22.5,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0048"
+    },
+    {
+      "prefix_position_1_based": 28,
+      "source_plan_index_0_based": 55,
+      "source_case_id": "v3train:c1=0.87:c2=0.43:sv=4.05:h1:T7:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 19,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 0.87,
+        "c2": 0.43,
+        "switch_voltage_v": 4.05,
+        "h_multiplier": 1.0,
+        "t_amb_c": 7.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0055"
+    },
+    {
+      "prefix_position_1_based": 29,
+      "source_plan_index_0_based": 57,
+      "source_case_id": "v3train:c1=0.37:c2=0.28:sv=4.05:h2:T9:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 20,
+      "stage128_role": "INTERNAL_TRAIN_VALIDATION",
+      "inputs": {
+        "c1": 0.37,
+        "c2": 0.28,
+        "switch_voltage_v": 4.05,
+        "h_multiplier": 2.0,
+        "t_amb_c": 9.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0057"
+    },
+    {
+      "prefix_position_1_based": 30,
+      "source_plan_index_0_based": 59,
+      "source_case_id": "v3train:c1=0.71:c2=0.57:sv=4.05:h1:T14:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 21,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 0.71,
+        "c2": 0.57,
+        "switch_voltage_v": 4.05,
+        "h_multiplier": 1.0,
+        "t_amb_c": 14.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0059"
+    },
+    {
+      "prefix_position_1_based": 31,
+      "source_plan_index_0_based": 61,
+      "source_case_id": "v3train:c1=0.71:c2=0.34:sv=4.15:h4:T9:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 22,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 0.71,
+        "c2": 0.34,
+        "switch_voltage_v": 4.15,
+        "h_multiplier": 4.0,
+        "t_amb_c": 9.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0061"
+    },
+    {
+      "prefix_position_1_based": 32,
+      "source_plan_index_0_based": 71,
+      "source_case_id": "v3train:c1=1.75:c2=1.57:sv=4.05:h1:T27:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 23,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 1.75,
+        "c2": 1.57,
+        "switch_voltage_v": 4.05,
+        "h_multiplier": 1.0,
+        "t_amb_c": 27.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0071"
+    },
+    {
+      "prefix_position_1_based": 33,
+      "source_plan_index_0_based": 72,
+      "source_case_id": "v3train:c1=0.34:c2=0.34:sv=4.05:h4:T15:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 24,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 0.34,
+        "c2": 0.34,
+        "switch_voltage_v": 4.05,
+        "h_multiplier": 4.0,
+        "t_amb_c": 15.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0072"
+    },
+    {
+      "prefix_position_1_based": 34,
+      "source_plan_index_0_based": 74,
+      "source_case_id": "v3train:c1=1.18:c2=0.49:sv=4.05:h4:T36:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 25,
+      "stage128_role": "INTERNAL_TRAIN_VALIDATION",
+      "inputs": {
+        "c1": 1.18,
+        "c2": 0.49,
+        "switch_voltage_v": 4.05,
+        "h_multiplier": 4.0,
+        "t_amb_c": 36.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0074"
+    },
+    {
+      "prefix_position_1_based": 35,
+      "source_plan_index_0_based": 79,
+      "source_case_id": "v3train:c1=0.92:c2=0.32:sv=4.00:h2:T33.5:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 26,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 0.92,
+        "c2": 0.32,
+        "switch_voltage_v": 4.0,
+        "h_multiplier": 2.0,
+        "t_amb_c": 33.5,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0079"
+    },
+    {
+      "prefix_position_1_based": 36,
+      "source_plan_index_0_based": 80,
+      "source_case_id": "v3train:c1=1.37:c2=0.59:sv=4.10:h2:T32:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 27,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 1.37,
+        "c2": 0.59,
+        "switch_voltage_v": 4.1,
+        "h_multiplier": 2.0,
+        "t_amb_c": 32.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0080"
+    },
+    {
+      "prefix_position_1_based": 37,
+      "source_plan_index_0_based": 81,
+      "source_case_id": "v3train:c1=1.58:c2=0.79:sv=4.05:h1:T32:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 28,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 1.58,
+        "c2": 0.79,
+        "switch_voltage_v": 4.05,
+        "h_multiplier": 1.0,
+        "t_amb_c": 32.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0081"
+    },
+    {
+      "prefix_position_1_based": 38,
+      "source_plan_index_0_based": 82,
+      "source_case_id": "v3train:c1=1.44:c2=0.45:sv=4.05:h2:T21:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 29,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 1.44,
+        "c2": 0.45,
+        "switch_voltage_v": 4.05,
+        "h_multiplier": 2.0,
+        "t_amb_c": 21.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0082"
+    },
+    {
+      "prefix_position_1_based": 39,
+      "source_plan_index_0_based": 85,
+      "source_case_id": "v3train:c1=0.76:c2=0.58:sv=4.00:h1:T37.5:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 30,
+      "stage128_role": "INTERNAL_TRAIN_VALIDATION",
+      "inputs": {
+        "c1": 0.76,
+        "c2": 0.58,
+        "switch_voltage_v": 4.0,
+        "h_multiplier": 1.0,
+        "t_amb_c": 37.5,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0085"
+    },
+    {
+      "prefix_position_1_based": 40,
+      "source_plan_index_0_based": 89,
+      "source_case_id": "v3train:c1=0.71:c2=0.42:sv=4.15:h4:T34.5:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 31,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 0.71,
+        "c2": 0.42,
+        "switch_voltage_v": 4.15,
+        "h_multiplier": 4.0,
+        "t_amb_c": 34.5,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0089"
+    },
+    {
+      "prefix_position_1_based": 41,
+      "source_plan_index_0_based": 90,
+      "source_case_id": "v3train:c1=1.81:c2=0.72:sv=4.10:h2:T15.5:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 32,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 1.81,
+        "c2": 0.72,
+        "switch_voltage_v": 4.1,
+        "h_multiplier": 2.0,
+        "t_amb_c": 15.5,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0090"
+    },
+    {
+      "prefix_position_1_based": 42,
+      "source_plan_index_0_based": 92,
+      "source_case_id": "v3train:c1=1.17:c2=1.13:sv=4.05:h2:T7:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 33,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 1.17,
+        "c2": 1.13,
+        "switch_voltage_v": 4.05,
+        "h_multiplier": 2.0,
+        "t_amb_c": 7.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0092"
+    },
+    {
+      "prefix_position_1_based": 43,
+      "source_plan_index_0_based": 102,
+      "source_case_id": "v3train:c1=1.42:c2=0.45:sv=4.15:h2:T34:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 34,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 1.42,
+        "c2": 0.45,
+        "switch_voltage_v": 4.15,
+        "h_multiplier": 2.0,
+        "t_amb_c": 34.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0102"
+    },
+    {
+      "prefix_position_1_based": 44,
+      "source_plan_index_0_based": 103,
+      "source_case_id": "v3train:c1=0.26:c2=0.26:sv=4.10:h4:T19:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 35,
+      "stage128_role": "INTERNAL_TRAIN_VALIDATION",
+      "inputs": {
+        "c1": 0.26,
+        "c2": 0.26,
+        "switch_voltage_v": 4.1,
+        "h_multiplier": 4.0,
+        "t_amb_c": 19.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0103"
+    },
+    {
+      "prefix_position_1_based": 45,
+      "source_plan_index_0_based": 104,
+      "source_case_id": "v3train:c1=1.06:c2=0.42:sv=4.10:h1:T9:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 36,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 1.06,
+        "c2": 0.42,
+        "switch_voltage_v": 4.1,
+        "h_multiplier": 1.0,
+        "t_amb_c": 9.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0104"
+    },
+    {
+      "prefix_position_1_based": 46,
+      "source_plan_index_0_based": 106,
+      "source_case_id": "v3train:c1=0.92:c2=0.29:sv=4.05:h4:T12:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 37,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 0.92,
+        "c2": 0.29,
+        "switch_voltage_v": 4.05,
+        "h_multiplier": 4.0,
+        "t_amb_c": 12.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0106"
+    },
+    {
+      "prefix_position_1_based": 47,
+      "source_plan_index_0_based": 114,
+      "source_case_id": "v3train:c1=1.03:c2=0.99:sv=4.15:h2:T13:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 38,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 1.03,
+        "c2": 0.99,
+        "switch_voltage_v": 4.15,
+        "h_multiplier": 2.0,
+        "t_amb_c": 13.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0114"
+    },
+    {
+      "prefix_position_1_based": 48,
+      "source_plan_index_0_based": 116,
+      "source_case_id": "v3train:c1=0.74:c2=0.39:sv=4.05:h4:T33.5:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 39,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 0.74,
+        "c2": 0.39,
+        "switch_voltage_v": 4.05,
+        "h_multiplier": 4.0,
+        "t_amb_c": 33.5,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0116"
+    },
+    {
+      "prefix_position_1_based": 49,
+      "source_plan_index_0_based": 118,
+      "source_case_id": "v3train:c1=0.88:c2=0.50:sv=4.15:h4:T7.5:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 40,
+      "stage128_role": "INTERNAL_TRAIN_VALIDATION",
+      "inputs": {
+        "c1": 0.88,
+        "c2": 0.5,
+        "switch_voltage_v": 4.15,
+        "h_multiplier": 4.0,
+        "t_amb_c": 7.5,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0118"
+    },
+    {
+      "prefix_position_1_based": 50,
+      "source_plan_index_0_based": 119,
+      "source_case_id": "v3train:c1=0.65:c2=0.43:sv=4.15:h4:T9.5:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 41,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 0.65,
+        "c2": 0.43,
+        "switch_voltage_v": 4.15,
+        "h_multiplier": 4.0,
+        "t_amb_c": 9.5,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0119"
+    },
+    {
+      "prefix_position_1_based": 51,
+      "source_plan_index_0_based": 120,
+      "source_case_id": "v3train:c1=1.31:c2=0.91:sv=4.10:h2:T12.5:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 42,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 1.31,
+        "c2": 0.91,
+        "switch_voltage_v": 4.1,
+        "h_multiplier": 2.0,
+        "t_amb_c": 12.5,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0120"
+    },
+    {
+      "prefix_position_1_based": 52,
+      "source_plan_index_0_based": 124,
+      "source_case_id": "v3train:c1=1.00:c2=0.31:sv=4.15:h4:T15:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 43,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 1.0,
+        "c2": 0.31,
+        "switch_voltage_v": 4.15,
+        "h_multiplier": 4.0,
+        "t_amb_c": 15.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0124"
+    },
+    {
+      "prefix_position_1_based": 53,
+      "source_plan_index_0_based": 126,
+      "source_case_id": "v3train:c1=1.46:c2=0.97:sv=4.15:h2:T16:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 44,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 1.46,
+        "c2": 0.97,
+        "switch_voltage_v": 4.15,
+        "h_multiplier": 2.0,
+        "t_amb_c": 16.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0126"
+    },
+    {
+      "prefix_position_1_based": 54,
+      "source_plan_index_0_based": 127,
+      "source_case_id": "v3train:c1=1.65:c2=1.29:sv=4.10:h4:T39.5:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 45,
+      "stage128_role": "INTERNAL_TRAIN_VALIDATION",
+      "inputs": {
+        "c1": 1.65,
+        "c2": 1.29,
+        "switch_voltage_v": 4.1,
+        "h_multiplier": 4.0,
+        "t_amb_c": 39.5,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0127"
+    },
+    {
+      "prefix_position_1_based": 55,
+      "source_plan_index_0_based": 132,
+      "source_case_id": "v3train:c1=1.55:c2=1.49:sv=4.10:h4:T22.5:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 46,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 1.55,
+        "c2": 1.49,
+        "switch_voltage_v": 4.1,
+        "h_multiplier": 4.0,
+        "t_amb_c": 22.5,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0132"
+    },
+    {
+      "prefix_position_1_based": 56,
+      "source_plan_index_0_based": 137,
+      "source_case_id": "v3train:c1=0.39:c2=0.30:sv=4.05:h1:T23.5:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 47,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 0.39,
+        "c2": 0.3,
+        "switch_voltage_v": 4.05,
+        "h_multiplier": 1.0,
+        "t_amb_c": 23.5,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0137"
+    },
+    {
+      "prefix_position_1_based": 57,
+      "source_plan_index_0_based": 138,
+      "source_case_id": "v3train:c1=1.46:c2=1.05:sv=4.15:h4:T38.5:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 48,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 1.46,
+        "c2": 1.05,
+        "switch_voltage_v": 4.15,
+        "h_multiplier": 4.0,
+        "t_amb_c": 38.5,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0138"
+    },
+    {
+      "prefix_position_1_based": 58,
+      "source_plan_index_0_based": 140,
+      "source_case_id": "v3train:c1=0.88:c2=0.75:sv=4.05:h1:T18.5:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 49,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 0.88,
+        "c2": 0.75,
+        "switch_voltage_v": 4.05,
+        "h_multiplier": 1.0,
+        "t_amb_c": 18.5,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0140"
+    },
+    {
+      "prefix_position_1_based": 59,
+      "source_plan_index_0_based": 143,
+      "source_case_id": "v3train:c1=1.84:c2=1.29:sv=4.00:h4:T22:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 50,
+      "stage128_role": "INTERNAL_TRAIN_VALIDATION",
+      "inputs": {
+        "c1": 1.84,
+        "c2": 1.29,
+        "switch_voltage_v": 4.0,
+        "h_multiplier": 4.0,
+        "t_amb_c": 22.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0143"
+    },
+    {
+      "prefix_position_1_based": 60,
+      "source_plan_index_0_based": 146,
+      "source_case_id": "v3train:c1=1.12:c2=0.57:sv=4.10:h1:T26.5:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 51,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 1.12,
+        "c2": 0.57,
+        "switch_voltage_v": 4.1,
+        "h_multiplier": 1.0,
+        "t_amb_c": 26.5,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0146"
+    },
+    {
+      "prefix_position_1_based": 61,
+      "source_plan_index_0_based": 147,
+      "source_case_id": "v3train:c1=1.56:c2=0.99:sv=4.15:h1:T38:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 52,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 1.56,
+        "c2": 0.99,
+        "switch_voltage_v": 4.15,
+        "h_multiplier": 1.0,
+        "t_amb_c": 38.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0147"
+    },
+    {
+      "prefix_position_1_based": 62,
+      "source_plan_index_0_based": 150,
+      "source_case_id": "v3train:c1=0.26:c2=0.26:sv=4.10:h4:T33:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 53,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 0.26,
+        "c2": 0.26,
+        "switch_voltage_v": 4.1,
+        "h_multiplier": 4.0,
+        "t_amb_c": 33.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0150"
+    },
+    {
+      "prefix_position_1_based": 63,
+      "source_plan_index_0_based": 155,
+      "source_case_id": "v3train:c1=1.18:c2=0.92:sv=4.00:h1:T7:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 54,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 1.18,
+        "c2": 0.92,
+        "switch_voltage_v": 4.0,
+        "h_multiplier": 1.0,
+        "t_amb_c": 7.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0155"
+    },
+    {
+      "prefix_position_1_based": 64,
+      "source_plan_index_0_based": 159,
+      "source_case_id": "v3train:c1=0.62:c2=0.39:sv=4.15:h1:T37.5:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 55,
+      "stage128_role": "INTERNAL_TRAIN_VALIDATION",
+      "inputs": {
+        "c1": 0.62,
+        "c2": 0.39,
+        "switch_voltage_v": 4.15,
+        "h_multiplier": 1.0,
+        "t_amb_c": 37.5,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0159"
+    },
+    {
+      "prefix_position_1_based": 65,
+      "source_plan_index_0_based": 163,
+      "source_case_id": "v3train:c1=0.91:c2=0.35:sv=4.05:h4:T9:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 56,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 0.91,
+        "c2": 0.35,
+        "switch_voltage_v": 4.05,
+        "h_multiplier": 4.0,
+        "t_amb_c": 9.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0163"
+    },
+    {
+      "prefix_position_1_based": 66,
+      "source_plan_index_0_based": 175,
+      "source_case_id": "v3train:c1=0.91:c2=0.72:sv=4.05:h1:T17.5:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 57,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 0.91,
+        "c2": 0.72,
+        "switch_voltage_v": 4.05,
+        "h_multiplier": 1.0,
+        "t_amb_c": 17.5,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0175"
+    },
+    {
+      "prefix_position_1_based": 67,
+      "source_plan_index_0_based": 176,
+      "source_case_id": "v3train:c1=1.46:c2=1.34:sv=4.15:h4:T34:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 58,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 1.46,
+        "c2": 1.34,
+        "switch_voltage_v": 4.15,
+        "h_multiplier": 4.0,
+        "t_amb_c": 34.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0176"
+    },
+    {
+      "prefix_position_1_based": 68,
+      "source_plan_index_0_based": 180,
+      "source_case_id": "v3train:c1=1.06:c2=0.81:sv=4.05:h4:T33:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 59,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 1.06,
+        "c2": 0.81,
+        "switch_voltage_v": 4.05,
+        "h_multiplier": 4.0,
+        "t_amb_c": 33.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0180"
+    },
+    {
+      "prefix_position_1_based": 69,
+      "source_plan_index_0_based": 181,
+      "source_case_id": "v3train:c1=1.51:c2=1.43:sv=4.10:h2:T37:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 60,
+      "stage128_role": "INTERNAL_TRAIN_VALIDATION",
+      "inputs": {
+        "c1": 1.51,
+        "c2": 1.43,
+        "switch_voltage_v": 4.1,
+        "h_multiplier": 2.0,
+        "t_amb_c": 37.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0181"
+    },
+    {
+      "prefix_position_1_based": 70,
+      "source_plan_index_0_based": 182,
+      "source_case_id": "v3train:c1=1.91:c2=0.72:sv=4.15:h2:T33.5:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 61,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 1.91,
+        "c2": 0.72,
+        "switch_voltage_v": 4.15,
+        "h_multiplier": 2.0,
+        "t_amb_c": 33.5,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0182"
+    },
+    {
+      "prefix_position_1_based": 71,
+      "source_plan_index_0_based": 186,
+      "source_case_id": "v3train:c1=1.97:c2=0.45:sv=4.05:h1:T33:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 62,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 1.97,
+        "c2": 0.45,
+        "switch_voltage_v": 4.05,
+        "h_multiplier": 1.0,
+        "t_amb_c": 33.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0186"
+    },
+    {
+      "prefix_position_1_based": 72,
+      "source_plan_index_0_based": 190,
+      "source_case_id": "v3train:c1=0.63:c2=0.55:sv=4.00:h1:T7:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 63,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 0.63,
+        "c2": 0.55,
+        "switch_voltage_v": 4.0,
+        "h_multiplier": 1.0,
+        "t_amb_c": 7.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0190"
+    },
+    {
+      "prefix_position_1_based": 73,
+      "source_plan_index_0_based": 194,
+      "source_case_id": "v3train:c1=1.31:c2=1.04:sv=4.05:h4:T13:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 64,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 1.31,
+        "c2": 1.04,
+        "switch_voltage_v": 4.05,
+        "h_multiplier": 4.0,
+        "t_amb_c": 13.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0194"
+    },
+    {
+      "prefix_position_1_based": 74,
+      "source_plan_index_0_based": 201,
+      "source_case_id": "v3train:c1=1.23:c2=0.31:sv=4.15:h1:T8:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 65,
+      "stage128_role": "INTERNAL_TRAIN_VALIDATION",
+      "inputs": {
+        "c1": 1.23,
+        "c2": 0.31,
+        "switch_voltage_v": 4.15,
+        "h_multiplier": 1.0,
+        "t_amb_c": 8.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0201"
+    },
+    {
+      "prefix_position_1_based": 75,
+      "source_plan_index_0_based": 204,
+      "source_case_id": "v3train:c1=1.92:c2=1.75:sv=4.05:h2:T9:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 66,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 1.92,
+        "c2": 1.75,
+        "switch_voltage_v": 4.05,
+        "h_multiplier": 2.0,
+        "t_amb_c": 9.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0204"
+    },
+    {
+      "prefix_position_1_based": 76,
+      "source_plan_index_0_based": 206,
+      "source_case_id": "v3train:c1=1.64:c2=0.62:sv=4.10:h1:T34.5:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 67,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 1.64,
+        "c2": 0.62,
+        "switch_voltage_v": 4.1,
+        "h_multiplier": 1.0,
+        "t_amb_c": 34.5,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0206"
+    },
+    {
+      "prefix_position_1_based": 77,
+      "source_plan_index_0_based": 207,
+      "source_case_id": "v3train:c1=0.54:c2=0.52:sv=4.15:h2:T21.5:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 68,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 0.54,
+        "c2": 0.52,
+        "switch_voltage_v": 4.15,
+        "h_multiplier": 2.0,
+        "t_amb_c": 21.5,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0207"
+    },
+    {
+      "prefix_position_1_based": 78,
+      "source_plan_index_0_based": 211,
+      "source_case_id": "v3train:c1=0.67:c2=0.36:sv=4.05:h1:T32.5:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 69,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 0.67,
+        "c2": 0.36,
+        "switch_voltage_v": 4.05,
+        "h_multiplier": 1.0,
+        "t_amb_c": 32.5,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0211"
+    },
+    {
+      "prefix_position_1_based": 79,
+      "source_plan_index_0_based": 212,
+      "source_case_id": "v3train:c1=1.20:c2=0.93:sv=4.05:h2:T10:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 70,
+      "stage128_role": "INTERNAL_TRAIN_VALIDATION",
+      "inputs": {
+        "c1": 1.2,
+        "c2": 0.93,
+        "switch_voltage_v": 4.05,
+        "h_multiplier": 2.0,
+        "t_amb_c": 10.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0212"
+    },
+    {
+      "prefix_position_1_based": 80,
+      "source_plan_index_0_based": 214,
+      "source_case_id": "v3train:c1=1.27:c2=0.48:sv=4.15:h2:T20:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 71,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 1.27,
+        "c2": 0.48,
+        "switch_voltage_v": 4.15,
+        "h_multiplier": 2.0,
+        "t_amb_c": 20.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0214"
+    },
+    {
+      "prefix_position_1_based": 81,
+      "source_plan_index_0_based": 219,
+      "source_case_id": "v3train:c1=0.81:c2=0.32:sv=4.00:h1:T27.5:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 72,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 0.81,
+        "c2": 0.32,
+        "switch_voltage_v": 4.0,
+        "h_multiplier": 1.0,
+        "t_amb_c": 27.5,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0219"
+    },
+    {
+      "prefix_position_1_based": 82,
+      "source_plan_index_0_based": 221,
+      "source_case_id": "v3train:c1=0.63:c2=0.59:sv=4.05:h4:T6.5:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 73,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 0.63,
+        "c2": 0.59,
+        "switch_voltage_v": 4.05,
+        "h_multiplier": 4.0,
+        "t_amb_c": 6.5,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0221"
+    },
+    {
+      "prefix_position_1_based": 83,
+      "source_plan_index_0_based": 223,
+      "source_case_id": "v3train:c1=1.42:c2=1.35:sv=4.05:h4:T6:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 74,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 1.42,
+        "c2": 1.35,
+        "switch_voltage_v": 4.05,
+        "h_multiplier": 4.0,
+        "t_amb_c": 6.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0223"
+    },
+    {
+      "prefix_position_1_based": 84,
+      "source_plan_index_0_based": 224,
+      "source_case_id": "v3train:c1=0.48:c2=0.44:sv=4.05:h2:T31.5:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 75,
+      "stage128_role": "INTERNAL_TRAIN_VALIDATION",
+      "inputs": {
+        "c1": 0.48,
+        "c2": 0.44,
+        "switch_voltage_v": 4.05,
+        "h_multiplier": 2.0,
+        "t_amb_c": 31.5,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0224"
+    },
+    {
+      "prefix_position_1_based": 85,
+      "source_plan_index_0_based": 228,
+      "source_case_id": "v3train:c1=0.89:c2=0.62:sv=4.05:h2:T8:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 76,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 0.89,
+        "c2": 0.62,
+        "switch_voltage_v": 4.05,
+        "h_multiplier": 2.0,
+        "t_amb_c": 8.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0228"
+    },
+    {
+      "prefix_position_1_based": 86,
+      "source_plan_index_0_based": 233,
+      "source_case_id": "v3train:c1=1.48:c2=0.62:sv=4.10:h1:T30:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 77,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 1.48,
+        "c2": 0.62,
+        "switch_voltage_v": 4.1,
+        "h_multiplier": 1.0,
+        "t_amb_c": 30.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0233"
+    },
+    {
+      "prefix_position_1_based": 87,
+      "source_plan_index_0_based": 235,
+      "source_case_id": "v3train:c1=1.58:c2=1.46:sv=4.15:h1:T34:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 78,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 1.58,
+        "c2": 1.46,
+        "switch_voltage_v": 4.15,
+        "h_multiplier": 1.0,
+        "t_amb_c": 34.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0235"
+    },
+    {
+      "prefix_position_1_based": 88,
+      "source_plan_index_0_based": 237,
+      "source_case_id": "v3train:c1=1.88:c2=1.10:sv=4.10:h1:T27:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 79,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 1.88,
+        "c2": 1.1,
+        "switch_voltage_v": 4.1,
+        "h_multiplier": 1.0,
+        "t_amb_c": 27.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0237"
+    },
+    {
+      "prefix_position_1_based": 89,
+      "source_plan_index_0_based": 240,
+      "source_case_id": "v3train:c1=1.83:c2=1.14:sv=4.00:h2:T18.5:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 80,
+      "stage128_role": "INTERNAL_TRAIN_VALIDATION",
+      "inputs": {
+        "c1": 1.83,
+        "c2": 1.14,
+        "switch_voltage_v": 4.0,
+        "h_multiplier": 2.0,
+        "t_amb_c": 18.5,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0240"
+    },
+    {
+      "prefix_position_1_based": 90,
+      "source_plan_index_0_based": 241,
+      "source_case_id": "v3train:c1=1.17:c2=0.32:sv=4.15:h1:T27:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 81,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 1.17,
+        "c2": 0.32,
+        "switch_voltage_v": 4.15,
+        "h_multiplier": 1.0,
+        "t_amb_c": 27.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0241"
+    },
+    {
+      "prefix_position_1_based": 91,
+      "source_plan_index_0_based": 242,
+      "source_case_id": "v3train:c1=0.54:c2=0.38:sv=4.05:h2:T16:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 82,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 0.54,
+        "c2": 0.38,
+        "switch_voltage_v": 4.05,
+        "h_multiplier": 2.0,
+        "t_amb_c": 16.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0242"
+    },
+    {
+      "prefix_position_1_based": 92,
+      "source_plan_index_0_based": 243,
+      "source_case_id": "v3train:c1=1.93:c2=1.68:sv=4.15:h1:T9:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 83,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 1.93,
+        "c2": 1.68,
+        "switch_voltage_v": 4.15,
+        "h_multiplier": 1.0,
+        "t_amb_c": 9.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0243"
+    },
+    {
+      "prefix_position_1_based": 93,
+      "source_plan_index_0_based": 244,
+      "source_case_id": "v3train:c1=1.89:c2=0.93:sv=4.10:h4:T32.5:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 84,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 1.89,
+        "c2": 0.93,
+        "switch_voltage_v": 4.1,
+        "h_multiplier": 4.0,
+        "t_amb_c": 32.5,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0244"
+    },
+    {
+      "prefix_position_1_based": 94,
+      "source_plan_index_0_based": 250,
+      "source_case_id": "v3train:c1=0.78:c2=0.29:sv=4.05:h1:T14:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 85,
+      "stage128_role": "INTERNAL_TRAIN_VALIDATION",
+      "inputs": {
+        "c1": 0.78,
+        "c2": 0.29,
+        "switch_voltage_v": 4.05,
+        "h_multiplier": 1.0,
+        "t_amb_c": 14.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0250"
+    },
+    {
+      "prefix_position_1_based": 95,
+      "source_plan_index_0_based": 251,
+      "source_case_id": "v3train:c1=0.51:c2=0.30:sv=4.10:h2:T25:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 86,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 0.51,
+        "c2": 0.3,
+        "switch_voltage_v": 4.1,
+        "h_multiplier": 2.0,
+        "t_amb_c": 25.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0251"
+    },
+    {
+      "prefix_position_1_based": 96,
+      "source_plan_index_0_based": 253,
+      "source_case_id": "v3train:c1=0.51:c2=0.44:sv=4.05:h4:T39:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 87,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 0.51,
+        "c2": 0.44,
+        "switch_voltage_v": 4.05,
+        "h_multiplier": 4.0,
+        "t_amb_c": 39.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0253"
+    },
+    {
+      "prefix_position_1_based": 97,
+      "source_plan_index_0_based": 255,
+      "source_case_id": "v3train:c1=0.86:c2=0.64:sv=4.00:h2:T30.5:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 88,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 0.86,
+        "c2": 0.64,
+        "switch_voltage_v": 4.0,
+        "h_multiplier": 2.0,
+        "t_amb_c": 30.5,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0255"
+    },
+    {
+      "prefix_position_1_based": 98,
+      "source_plan_index_0_based": 256,
+      "source_case_id": "v3train:c1=0.65:c2=0.52:sv=4.10:h1:T23.5:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 89,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 0.65,
+        "c2": 0.52,
+        "switch_voltage_v": 4.1,
+        "h_multiplier": 1.0,
+        "t_amb_c": 23.5,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0256"
+    },
+    {
+      "prefix_position_1_based": 99,
+      "source_plan_index_0_based": 258,
+      "source_case_id": "v3train:c1=1.63:c2=1.00:sv=4.00:h1:T23:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 90,
+      "stage128_role": "INTERNAL_TRAIN_VALIDATION",
+      "inputs": {
+        "c1": 1.63,
+        "c2": 1.0,
+        "switch_voltage_v": 4.0,
+        "h_multiplier": 1.0,
+        "t_amb_c": 23.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0258"
+    },
+    {
+      "prefix_position_1_based": 100,
+      "source_plan_index_0_based": 261,
+      "source_case_id": "v3train:c1=0.58:c2=0.57:sv=4.00:h1:T6.5:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 91,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 0.58,
+        "c2": 0.57,
+        "switch_voltage_v": 4.0,
+        "h_multiplier": 1.0,
+        "t_amb_c": 6.5,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0261"
+    },
+    {
+      "prefix_position_1_based": 101,
+      "source_plan_index_0_based": 265,
+      "source_case_id": "v3train:c1=1.48:c2=0.42:sv=4.15:h1:T23.5:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 92,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 1.48,
+        "c2": 0.42,
+        "switch_voltage_v": 4.15,
+        "h_multiplier": 1.0,
+        "t_amb_c": 23.5,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0265"
+    },
+    {
+      "prefix_position_1_based": 102,
+      "source_plan_index_0_based": 266,
+      "source_case_id": "v3train:c1=0.56:c2=0.41:sv=4.15:h2:T6.5:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 93,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 0.56,
+        "c2": 0.41,
+        "switch_voltage_v": 4.15,
+        "h_multiplier": 2.0,
+        "t_amb_c": 6.5,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0266"
+    },
+    {
+      "prefix_position_1_based": 103,
+      "source_plan_index_0_based": 267,
+      "source_case_id": "v3train:c1=1.20:c2=0.81:sv=4.05:h4:T34.5:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 94,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 1.2,
+        "c2": 0.81,
+        "switch_voltage_v": 4.05,
+        "h_multiplier": 4.0,
+        "t_amb_c": 34.5,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0267"
+    },
+    {
+      "prefix_position_1_based": 104,
+      "source_plan_index_0_based": 270,
+      "source_case_id": "v3train:c1=0.75:c2=0.33:sv=4.15:h2:T14.5:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 95,
+      "stage128_role": "INTERNAL_TRAIN_VALIDATION",
+      "inputs": {
+        "c1": 0.75,
+        "c2": 0.33,
+        "switch_voltage_v": 4.15,
+        "h_multiplier": 2.0,
+        "t_amb_c": 14.5,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0270"
+    },
+    {
+      "prefix_position_1_based": 105,
+      "source_plan_index_0_based": 278,
+      "source_case_id": "v3train:c1=0.72:c2=0.62:sv=4.05:h4:T21.5:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 96,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 0.72,
+        "c2": 0.62,
+        "switch_voltage_v": 4.05,
+        "h_multiplier": 4.0,
+        "t_amb_c": 21.5,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0278"
+    },
+    {
+      "prefix_position_1_based": 106,
+      "source_plan_index_0_based": 281,
+      "source_case_id": "v3train:c1=0.79:c2=0.60:sv=4.10:h4:T14.5:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 97,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 0.79,
+        "c2": 0.6,
+        "switch_voltage_v": 4.1,
+        "h_multiplier": 4.0,
+        "t_amb_c": 14.5,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0281"
+    },
+    {
+      "prefix_position_1_based": 107,
+      "source_plan_index_0_based": 288,
+      "source_case_id": "v3train:c1=1.88:c2=1.28:sv=4.00:h4:T33:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 98,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 1.88,
+        "c2": 1.28,
+        "switch_voltage_v": 4.0,
+        "h_multiplier": 4.0,
+        "t_amb_c": 33.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0288"
+    },
+    {
+      "prefix_position_1_based": 108,
+      "source_plan_index_0_based": 289,
+      "source_case_id": "v3train:c1=1.72:c2=0.43:sv=4.10:h1:T13:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 99,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 1.72,
+        "c2": 0.43,
+        "switch_voltage_v": 4.1,
+        "h_multiplier": 1.0,
+        "t_amb_c": 13.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0289"
+    },
+    {
+      "prefix_position_1_based": 109,
+      "source_plan_index_0_based": 290,
+      "source_case_id": "v3train:c1=0.60:c2=0.59:sv=4.05:h4:T9:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 100,
+      "stage128_role": "INTERNAL_TRAIN_VALIDATION",
+      "inputs": {
+        "c1": 0.6,
+        "c2": 0.59,
+        "switch_voltage_v": 4.05,
+        "h_multiplier": 4.0,
+        "t_amb_c": 9.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0290"
+    },
+    {
+      "prefix_position_1_based": 110,
+      "source_plan_index_0_based": 296,
+      "source_case_id": "v3train:c1=1.07:c2=0.85:sv=4.00:h1:T27.5:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 101,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 1.07,
+        "c2": 0.85,
+        "switch_voltage_v": 4.0,
+        "h_multiplier": 1.0,
+        "t_amb_c": 27.5,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0296"
+    },
+    {
+      "prefix_position_1_based": 111,
+      "source_plan_index_0_based": 298,
+      "source_case_id": "v3train:c1=0.58:c2=0.58:sv=4.15:h4:T17:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 102,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 0.58,
+        "c2": 0.58,
+        "switch_voltage_v": 4.15,
+        "h_multiplier": 4.0,
+        "t_amb_c": 17.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0298"
+    },
+    {
+      "prefix_position_1_based": 112,
+      "source_plan_index_0_based": 299,
+      "source_case_id": "v3train:c1=1.20:c2=0.95:sv=4.05:h4:T30:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 103,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 1.2,
+        "c2": 0.95,
+        "switch_voltage_v": 4.05,
+        "h_multiplier": 4.0,
+        "t_amb_c": 30.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0299"
+    },
+    {
+      "prefix_position_1_based": 113,
+      "source_plan_index_0_based": 306,
+      "source_case_id": "v3train:c1=0.29:c2=0.26:sv=4.00:h4:T28.5:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 104,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 0.29,
+        "c2": 0.26,
+        "switch_voltage_v": 4.0,
+        "h_multiplier": 4.0,
+        "t_amb_c": 28.5,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0306"
+    },
+    {
+      "prefix_position_1_based": 114,
+      "source_plan_index_0_based": 307,
+      "source_case_id": "v3train:c1=1.69:c2=1.42:sv=4.00:h2:T26.5:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 105,
+      "stage128_role": "INTERNAL_TRAIN_VALIDATION",
+      "inputs": {
+        "c1": 1.69,
+        "c2": 1.42,
+        "switch_voltage_v": 4.0,
+        "h_multiplier": 2.0,
+        "t_amb_c": 26.5,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0307"
+    },
+    {
+      "prefix_position_1_based": 115,
+      "source_plan_index_0_based": 308,
+      "source_case_id": "v3train:c1=1.05:c2=0.83:sv=4.10:h2:T12.5:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 106,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 1.05,
+        "c2": 0.83,
+        "switch_voltage_v": 4.1,
+        "h_multiplier": 2.0,
+        "t_amb_c": 12.5,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0308"
+    },
+    {
+      "prefix_position_1_based": 116,
+      "source_plan_index_0_based": 315,
+      "source_case_id": "v3train:c1=0.35:c2=0.29:sv=4.05:h4:T34:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 107,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 0.35,
+        "c2": 0.29,
+        "switch_voltage_v": 4.05,
+        "h_multiplier": 4.0,
+        "t_amb_c": 34.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0315"
+    },
+    {
+      "prefix_position_1_based": 117,
+      "source_plan_index_0_based": 316,
+      "source_case_id": "v3train:c1=1.68:c2=1.13:sv=4.05:h2:T21:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 108,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 1.68,
+        "c2": 1.13,
+        "switch_voltage_v": 4.05,
+        "h_multiplier": 2.0,
+        "t_amb_c": 21.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0316"
+    },
+    {
+      "prefix_position_1_based": 118,
+      "source_plan_index_0_based": 321,
+      "source_case_id": "v3train:c1=0.55:c2=0.42:sv=4.10:h4:T29.5:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 109,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 0.55,
+        "c2": 0.42,
+        "switch_voltage_v": 4.1,
+        "h_multiplier": 4.0,
+        "t_amb_c": 29.5,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0321"
+    },
+    {
+      "prefix_position_1_based": 119,
+      "source_plan_index_0_based": 322,
+      "source_case_id": "v3train:c1=0.43:c2=0.34:sv=4.15:h2:T6:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 110,
+      "stage128_role": "INTERNAL_TRAIN_VALIDATION",
+      "inputs": {
+        "c1": 0.43,
+        "c2": 0.34,
+        "switch_voltage_v": 4.15,
+        "h_multiplier": 2.0,
+        "t_amb_c": 6.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0322"
+    },
+    {
+      "prefix_position_1_based": 120,
+      "source_plan_index_0_based": 324,
+      "source_case_id": "v3train:c1=0.50:c2=0.27:sv=4.10:h1:T24:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 111,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 0.5,
+        "c2": 0.27,
+        "switch_voltage_v": 4.1,
+        "h_multiplier": 1.0,
+        "t_amb_c": 24.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0324"
+    },
+    {
+      "prefix_position_1_based": 121,
+      "source_plan_index_0_based": 325,
+      "source_case_id": "v3train:c1=1.72:c2=1.63:sv=4.15:h1:T39:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 112,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 1.72,
+        "c2": 1.63,
+        "switch_voltage_v": 4.15,
+        "h_multiplier": 1.0,
+        "t_amb_c": 39.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0325"
+    },
+    {
+      "prefix_position_1_based": 122,
+      "source_plan_index_0_based": 327,
+      "source_case_id": "v3train:c1=1.63:c2=0.40:sv=4.10:h1:T20.5:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 113,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 1.63,
+        "c2": 0.4,
+        "switch_voltage_v": 4.1,
+        "h_multiplier": 1.0,
+        "t_amb_c": 20.5,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0327"
+    },
+    {
+      "prefix_position_1_based": 123,
+      "source_plan_index_0_based": 329,
+      "source_case_id": "v3train:c1=1.50:c2=0.46:sv=4.05:h4:T25:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 114,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 1.5,
+        "c2": 0.46,
+        "switch_voltage_v": 4.05,
+        "h_multiplier": 4.0,
+        "t_amb_c": 25.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0329"
+    },
+    {
+      "prefix_position_1_based": 124,
+      "source_plan_index_0_based": 331,
+      "source_case_id": "v3train:c1=1.10:c2=0.40:sv=4.05:h4:T12.5:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 115,
+      "stage128_role": "INTERNAL_TRAIN_VALIDATION",
+      "inputs": {
+        "c1": 1.1,
+        "c2": 0.4,
+        "switch_voltage_v": 4.05,
+        "h_multiplier": 4.0,
+        "t_amb_c": 12.5,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0331"
+    },
+    {
+      "prefix_position_1_based": 125,
+      "source_plan_index_0_based": 333,
+      "source_case_id": "v3train:c1=1.24:c2=0.40:sv=4.05:h4:T36.5:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 116,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 1.24,
+        "c2": 0.4,
+        "switch_voltage_v": 4.05,
+        "h_multiplier": 4.0,
+        "t_amb_c": 36.5,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0333"
+    },
+    {
+      "prefix_position_1_based": 126,
+      "source_plan_index_0_based": 335,
+      "source_case_id": "v3train:c1=1.88:c2=0.62:sv=4.15:h1:T37:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 117,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 1.88,
+        "c2": 0.62,
+        "switch_voltage_v": 4.15,
+        "h_multiplier": 1.0,
+        "t_amb_c": 37.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0335"
+    },
+    {
+      "prefix_position_1_based": 127,
+      "source_plan_index_0_based": 336,
+      "source_case_id": "v3train:c1=1.92:c2=0.91:sv=4.15:h4:T16.5:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 118,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 1.92,
+        "c2": 0.91,
+        "switch_voltage_v": 4.15,
+        "h_multiplier": 4.0,
+        "t_amb_c": 16.5,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0336"
+    },
+    {
+      "prefix_position_1_based": 128,
+      "source_plan_index_0_based": 338,
+      "source_case_id": "v3train:c1=1.43:c2=0.49:sv=4.00:h1:T30:SOC=0.10",
+      "is_coverage_anchor": false,
+      "nonanchor_source_order_ordinal_1_based": 119,
+      "stage128_role": "PUBLIC_CONSTRUCTION",
+      "inputs": {
+        "c1": 1.43,
+        "c2": 0.49,
+        "switch_voltage_v": 4.0,
+        "h_multiplier": 1.0,
+        "t_amb_c": 30.0,
+        "soc0": 0.1
+      },
+      "proposed_identity": "guard419:train:source-index-0338"
+    }
+  ]
+}
