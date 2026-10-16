@@ -157,7 +157,7 @@ def test_already_on_chain_never_opens_a_commitment_or_validator_path(
     }
     with pytest.raises(research_campaign.OperationRefused) as refused:
         asyncio.run(operations[entry]())
-    assert refused.value.code == policy.RETAINED
+    assert refused.value.code == policy.RETAINED == "submission_retained_by_policy"
     assert not chain.prepared and not chain.broadcasts
     assert not (w.root / cp.REQUEST_FILE).exists()
     assert not list(w.root.glob("epoch-*/permitted-final-feedback.json"))
@@ -169,7 +169,7 @@ def test_already_on_chain_never_opens_a_commitment_or_validator_path(
 def test_unknown_or_null_policy_is_not_historical_omission(value):
     with pytest.raises(Rejected) as refused:
         graphite_launch({"agent": "graphite", policy.FIELD: value})
-    assert refused.value.code == policy.INVALID
+    assert refused.value.code == policy.INVALID == "submission_policy_invalid"
     with pytest.raises(edition.LaunchRefused) as refused:
         edition.launch_fields({policy.FIELD: value})
     assert refused.value.code == policy.INVALID

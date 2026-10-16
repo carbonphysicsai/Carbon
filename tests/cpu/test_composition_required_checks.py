@@ -351,6 +351,8 @@ def test_queued_launchpad_commit_rechecks_before_poster(monkeypatch):
     def refused(admitted):
         raise Rejected("construction_checks_unavailable", 409)
 
+    # This fixture owns the queued construction recheck, not a frozen campaign.
+    monkeypatch.setattr(host, "_require_submission_policy", lambda admitted: None)
     monkeypatch.setattr(host, "_require_level_served", refused)
     monkeypatch.setattr(host, "_poster", lambda cfg: pytest.fail("poster touched"))
     monkeypatch.setattr(host, "_refused", lambda *args: failures.append(args))
