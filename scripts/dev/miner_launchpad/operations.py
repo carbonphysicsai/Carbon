@@ -221,9 +221,11 @@ FIELDS = {
     ),
     "submission_policy": (
         "string",
-        "Graphite only: retain_only_v1 retains a selected candidate without "
-        "commitment or validator submission/evaluation. Frozen at launch; "
-        "omitted preserves normal automatic submission. Cannot change on resume.",
+        (
+            "Graphite only: retain_only_v1 retains a selected candidate without "
+            "commitment or validator submission/evaluation. Frozen at launch; "
+            "omitted preserves normal automatic submission. Cannot change on resume."
+        ),
     ),
     "research_share": (
         "number",
