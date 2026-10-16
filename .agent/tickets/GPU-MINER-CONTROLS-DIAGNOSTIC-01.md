@@ -27,8 +27,9 @@ retain observed values, raw Docker output, environment, paths, labels, tokens,
 keys, or truth payload. Diagnostic computation must not replace the original
 failure if it itself fails.
 
-Owned paths: `carbon/reconstruction/worker/docker_runtime.py`,
-`carbon/development_session/research_carrier.py`, focused CPU tests, this ticket.
+Owned paths: this ticket, `.agent/decisions/2026-10-16-GPU-MINER-CONTROLS-DIAGNOSTIC-01.md`,
+`carbon/reconstruction/worker/docker_runtime.py`,
+`carbon/development_session/research_carrier.py`, and focused CPU tests.
 No public API/schema change beyond an optional private task-owned failure field;
 success and public result contracts remain unchanged. No official execution,
 strict/local grant, science, hardware acceptance, or production security change.
