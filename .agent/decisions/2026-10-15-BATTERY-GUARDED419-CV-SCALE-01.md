@@ -11,11 +11,22 @@ symbolic voltage equivalence. Apply the unchanged1e-6 criterion in volts.
 Preserve normalized and physical-unit residuals with explicit provenance.
 
 Before spending on another trajectory, Root may reconstruct the pinned original
-models and match all90 complete equation fingerprints. A separately versioned
+models with complete structural/matrix and original context evidence, and map
+all90 saved occurrences with text-fingerprint cross-checks. A separately versioned
 source-bound reanalysis can use old raw evidence only if that proof is actually
 established and its admission is explicit. Otherwise the missing scale/equation
 witness remains unresolved and a fresh bounded first-triple run is required.
 No interpretation of the existing failed receipt is silently replaced.
+
+Research R1 clarification (receipt4e339f7b): untruncated str(expression) is lossy
+for sparse matrix coefficients. Its SHA cannot authenticate complete historical
+structure by itself. The old full terminal states were not retained, so their
+digests cannot support reevaluation. Require source/input/image/environment and
+parameter binding plus complete rebuilt symbolic/matrix proof and occurrence
+mapping; missing essentials remain unresolved. Convert covered saved residuals
+using the authenticated scale, without claiming unavailable-state replay. Root
+must disclose initialization/algebraic work and verify the no-new-trajectory
+boundary. No tolerance, physical input or historical status is changed.
 
 Rejected: recognizing the text0.2, inferring scale from small residuals, accepting
 any proportional or zero equation, calling normalized residuals volts, changing

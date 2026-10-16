@@ -34,12 +34,20 @@ voltage relation under that scale, and report/test the residual in volts. Retain
 the original normalized residual and source/equation fingerprints separately.
 
 First determine whether a Root-owned pinned-model reconstruction without a
-new reference trajectory can honestly bind the saved data: all90 CV equations
-are complete/untruncated, with one exact expression SHA per rung, signed
-residuals and independent raw voltage observations. Reconstructed symbolic
-equations and source/parameters must match every saved fingerprint. The actual
-scale proof is not in the old rows; nominal capacity alone is not a new PASS.
-If reconstruction cannot establish it, state the exact missing witness and use
+new reference trajectory can honestly bind the saved data. All90 saved CV text
+representations are untruncated, but their sparse-matrix display omits numerical
+coefficients; text fingerprints are cross-checks, not lossless structural hashes.
+Old terminal-state digests cannot replay unavailable states. Reconstruction must
+bind the original source, inputs, immutable image/overlay, supported environment
+evidence and parameter processing, and establish complete symbolic identity
+including matrix entries, domains, indices and dependencies. Map every
+row/cycle/phase occurrence to its authenticated rebuilt context and scale.
+Matching strings or today's wheel alone cannot establish historical structure.
+The actual scale proof is not in the old rows; nominal capacity alone is not
+a new PASS. Preserve historical unverified fields. Convert only covered saved
+finite residuals by r_V=scale*r_scaled, retaining sign and the normalized value;
+apply the same1e-6V threshold without claiming unavailable-state reevaluation.
+If essential bindings cannot be established, state the missing witness and use
 only a separately source-bound bounded first-triple rerun under Root authority.
 
 Any offline result is a distinct versioned reanalysis that binds original raw
@@ -53,6 +61,8 @@ guarded_reference.py and corresponding producer pins; exclusive CV-scale tests;
 one small witness/reanalysis helper if necessary; this ticket and decision.
 Update affected synthetic fixtures only after their writer is released. Reuse
 the existing solver, collector and package; no new execution harness/provider.
+Root records the exact build entry point and initialization/algebraic work;
+model assembly alone is not proof that no time integration occurred.
 
 ## Validation and maturity
 
@@ -63,6 +73,10 @@ canonical reconstruction and focused controls before a ready CI push.
 Controls must include actual positive nonunit scale, wrong/zero/nonfinite or
 state-dependent scale, wrong equation with zero residual, RHS-only control,
 physical-unit threshold boundaries, source/raw/hash drift and no old-row mutation.
+Include same printed matrix shape/different coefficients, a missing or mismatched
+occurrence among90, wrong multiply/divide conversion and honest missing-state
+representation. Research R1 receipt4e339f7b81bb1af5c8a6e0d21f764ba0e1add7961f92bfeb27aef0f1fe3a60d7
+is incorporated; it supplies no runtime proof or accepted reanalysis.
 
 Completion is conditional on actual scoped tests, exact-head checks and Root
 merge; any accepted reanalysis or new G0 is separate actual scientific evidence.
