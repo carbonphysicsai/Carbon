@@ -50,6 +50,11 @@ def _json(raw):
         raise Refused("INVALID_JSON") from exc
 
 
+def _object(value, code):
+    _require(type(value) is dict, code)
+    return value
+
+
 def _relative(root, name):
     _require(type(name) is str and bool(name), "INVALID_INPUT_PATH")
     parts = PurePosixPath(name)
@@ -101,7 +106,7 @@ def _draws(value, population):
             and draw["outer_weight"] == 1,
             "DRAW_ROLE_OR_POPULATION_DIFFERS",
         )
-        task = draw.get("task", {})
+        task = _object(draw.get("task"), "QUESTION_OBJECT_REQUIRED")
         qid = task.get("task_digest")
         _require(type(qid) is str and qid not in ids, "QUESTION_IDENTITY_DIFFERS")
         ids.add(qid)
@@ -126,9 +131,14 @@ def _panels(draw, physical):
 
 
 def _member(spec, load, draws, view_digest, scope):
-    prediction = _json(load(spec["predictions"]))
-    fit = _json(load(spec["fit_receipt"]))
-    receipt = _json(load(spec["commitment_receipt"]))
+    prediction = _object(_json(load(spec["predictions"])), "PREDICTION_OBJECT_REQUIRED")
+    fit = _object(_json(load(spec["fit_receipt"])), "FIT_OBJECT_REQUIRED")
+    receipt = _object(
+        _json(load(spec["commitment_receipt"])), "RECEIPT_OBJECT_REQUIRED"
+    )
+    train = _object(fit.get("train"), "FIT_TRAIN_OBJECT_REQUIRED")
+    code = _object(fit.get("code"), "FIT_CODE_OBJECT_REQUIRED")
+    actual_source = _object(code.get("actual_source"), "FIT_SOURCE_OBJECT_REQUIRED")
     raw = load(spec["commitments"])
     _require(
         prediction.get("schema") == carbon_arm.PREDICTIONS
@@ -139,10 +149,9 @@ def _member(spec, load, draws, view_digest, scope):
         and prediction.get("source_receipt_digest")
         == "sha256:" + _sha(carbon_arm.canonical(fit))
         and fit.get("kit") == spec["kit"]
-        and fit.get("train", {}).get("sha256") == "sha256:" + _hex(spec["train_sha256"])
-        and fit.get("train", {}).get("fixture") is (scope == "SYNTHETIC_FIXTURE")
-        and fit.get("code", {}).get("actual_source", {}).get("commit")
-        == spec["fit_source"],
+        and train.get("sha256") == "sha256:" + _hex(spec["train_sha256"])
+        and train.get("fixture") is (scope == "SYNTHETIC_FIXTURE")
+        and actual_source.get("commit") == spec["fit_source"],
         "PREDICTION_FIT_CONTEXT_DIFFERS",
     )
     _require(
@@ -163,6 +172,7 @@ def _member(spec, load, draws, view_digest, scope):
         "COMMITMENT_PREDICTION_DIFFERS",
     )
     physical = {}
+    _require(type(prediction.get("rows")) is list, "PREDICTION_ROWS_REQUIRED")
     for row in prediction["rows"]:
         _require(
             type(row) is dict
@@ -184,24 +194,24 @@ def _member(spec, load, draws, view_digest, scope):
     for line in raw.splitlines():
         if not line.strip():
             continue
-        row = _json(line)
+        row = _object(_json(line), "COMMITMENT_ROW_OBJECT_REQUIRED")
         i = row.get("population_index")
         _require(
             type(i) is int and 0 <= i < len(draws) and i not in commitments,
             "COMMITMENT_ROSTER_DIFFERS",
         )
         draw = draws[i]
+        commitment = _object(row.get("commitment"), "COMMITMENT_OBJECT_REQUIRED")
         _require(
             all(
                 row.get(k) == draw[k]
                 for k in ("population", "role", "outer_weight", "bank_cluster")
             )
-            and row.get("commitment", {}).get("task_digest")
-            == draw["task"]["task_digest"]
-            and row["commitment"].get("model_id") == spec["id"],
+            and commitment.get("task_digest") == draw["task"]["task_digest"]
+            and commitment.get("model_id") == spec["id"],
             "COMMITMENT_CONTEXT_DIFFERS",
         )
-        commitments[i] = row["commitment"]
+        commitments[i] = commitment
     _require(set(commitments) == set(range(len(draws))), "COMMITMENT_ROSTER_DIFFERS")
     return physical, commitments
 
@@ -338,7 +348,7 @@ def evaluate(manifest, artifacts):
             == {"plan_digest", "source_pins_digest", "manifest_digest"},
             "PRODUCER_BINDING_REQUIRED",
         )
-        delivery = _json(load(bank["manifest"]))
+        delivery = _object(_json(load(bank["manifest"])), "DELIVERY_OBJECT_REQUIRED")
         _require(
             delivery.get("scope") == scope
             and delivery.get("role") == "HELDOUT_REFERENCE",
@@ -346,14 +356,19 @@ def evaluate(manifest, artifacts):
         )
         evidence = producer.build(
             draws[i]["task"],
-            plan=_json(load(bank["plan"])),
+            plan=_object(_json(load(bank["plan"])), "PLAN_OBJECT_REQUIRED"),
             expected_plan_digest=binding["plan_digest"],
-            source_pins=_json(load(bank["source_pins"])),
+            source_pins=_object(
+                _json(load(bank["source_pins"])), "SOURCE_PINS_OBJECT_REQUIRED"
+            ),
             expected_source_pins_digest=binding["source_pins_digest"],
             manifest=delivery,
             expected_manifest_digest=binding["manifest_digest"],
             raw_chunks={
-                key: load(file_id) for key, file_id in bank["raw_chunks"].items()
+                key: load(file_id)
+                for key, file_id in _object(
+                    bank["raw_chunks"], "RAW_CHUNKS_OBJECT_REQUIRED"
+                ).items()
             },
         )
         producer.validate_for(
@@ -456,7 +471,7 @@ def main(argv=None):
         )
         raw = _relative(root, args.manifest).read_bytes()
         _require(_sha(raw) == _hex(args.manifest_sha256), "RUN_MANIFEST_SHA256_DIFFERS")
-        manifest = _json(raw)
+        manifest = _object(_json(raw), "RUN_MANIFEST_OBJECT_REQUIRED")
         _require(not args.output_dir.exists(), "OUTPUT_ALREADY_EXISTS")
         results = evaluate(manifest, _Files(root, manifest.get("files", {})))
         outputs = {
@@ -487,7 +502,15 @@ def main(argv=None):
             os.fsync(handle.fileno())
         print(json.dumps(complete, sort_keys=True))
         return 0
-    except (Refused, tasks.TaskError, OSError, ValueError, TypeError, KeyError) as exc:
+    except (
+        Refused,
+        tasks.TaskError,
+        OSError,
+        ValueError,
+        TypeError,
+        KeyError,
+        AttributeError,
+    ) as exc:
         code = (
             str(exc)
             if isinstance(exc, Refused)

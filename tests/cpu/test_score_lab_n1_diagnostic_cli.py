@@ -360,3 +360,97 @@ def test_file_refusals_publish_no_numerical_output(tmp_path, capsys, defect):
     assert not (tmp_path / "out").exists()
     status = json.loads(capsys.readouterr().out)
     assert status["status"] == "REFUSED" and status["candidate_penalty"] is False
+
+
+@pytest.mark.parametrize("value", [None, []])
+def test_cli_nonobject_run_manifest_is_a_stable_refusal(tmp_path, capsys, value):
+    _, root, args = _on_disk(tmp_path)
+    raw = _bytes(value)
+    (root / "run.json").write_bytes(raw)
+    args[args.index("--manifest-sha256") + 1] = hashlib.sha256(raw).hexdigest()
+    assert cli.main(args) == 2
+    assert not (tmp_path / "out").exists()
+    status = json.loads(capsys.readouterr().out)
+    assert status["code"] == "RUN_MANIFEST_OBJECT_REQUIRED"
+    assert status["candidate_penalty"] is False
+
+
+@pytest.mark.parametrize(
+    "defect",
+    [
+        "prediction",
+        "fit",
+        "receipt",
+        "draw_task",
+        "commitment_row",
+        "commitment",
+        "fit_train",
+        "fit_code",
+        "fit_source",
+        "prediction_rows",
+        "delivery",
+        "raw_chunks",
+    ],
+)
+def test_cli_rehashed_nonobject_nested_artifacts_are_refused(tmp_path, capsys, defect):
+    manifest, root, args = _on_disk(tmp_path)
+
+    def replace(key, value):
+        raw = _bytes(value)
+        (root / manifest["files"][key]["path"]).write_bytes(raw)
+        manifest["files"][key]["sha256"] = hashlib.sha256(raw).hexdigest()
+
+    if defect in ("prediction", "fit", "receipt"):
+        replace(
+            {
+                "prediction": "pred-0.json",
+                "fit": "fit-0.json",
+                "receipt": "receipt-0.json",
+            }[defect],
+            [],
+        )
+    elif defect == "draw_task":
+        draws = json.loads((root / "draws.json").read_bytes())
+        draws[0]["task"] = None
+        replace("draws.json", draws)
+    elif defect in ("commitment_row", "commitment"):
+        rows = [
+            json.loads(line)
+            for line in (root / "commits-0.jsonl").read_bytes().splitlines()
+        ]
+        if defect == "commitment_row":
+            rows[0] = []
+        else:
+            rows[0]["commitment"] = None
+        raw = b"".join(_bytes(row) for row in rows)
+        (root / "commits-0.jsonl").write_bytes(raw)
+        manifest["files"]["commits-0.jsonl"]["sha256"] = hashlib.sha256(raw).hexdigest()
+        receipt = json.loads((root / "receipt-0.json").read_bytes())
+        receipt["commitments_sha256"] = hashlib.sha256(raw).hexdigest()
+        replace("receipt-0.json", receipt)
+    elif defect in ("fit_train", "fit_code", "fit_source"):
+        fit = json.loads((root / "fit-0.json").read_bytes())
+        if defect == "fit_source":
+            fit["code"]["actual_source"] = []
+        else:
+            fit[defect.removeprefix("fit_")] = None
+        replace("fit-0.json", fit)
+    elif defect == "prediction_rows":
+        prediction = json.loads((root / "pred-0.json").read_bytes())
+        prediction["rows"] = None
+        replace("pred-0.json", prediction)
+        receipt = json.loads((root / "receipt-0.json").read_bytes())
+        receipt["model_predictions_sha256"] = manifest["files"]["pred-0.json"]["sha256"]
+        replace("receipt-0.json", receipt)
+    elif defect == "delivery":
+        replace("producer-0.json", [])
+    else:
+        manifest["banks"][0]["raw_chunks"] = []
+    raw = _bytes(manifest)
+    (root / "run.json").write_bytes(raw)
+    args[args.index("--manifest-sha256") + 1] = hashlib.sha256(raw).hexdigest()
+    assert cli.main(args) == 2
+    assert not (tmp_path / "out").exists()
+    status = json.loads(capsys.readouterr().out)
+    assert status["status"] == "REFUSED" and status["candidate_penalty"] is False
+    assert status["code"].endswith("_REQUIRED")
