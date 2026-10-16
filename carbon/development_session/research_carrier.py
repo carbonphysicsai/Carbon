@@ -18,6 +18,7 @@ from functools import partial
 from carbon.reconstruction.worker import liveness_reaper
 from carbon.reconstruction.worker.docker_runtime import (
     DockerCLI,
+    controls_predicate,
     create_arguments,
     doctor,
     inspect_effective_controls,
@@ -306,6 +307,13 @@ def _retain_practice_failure(operation, stage, error):
                 if token.lower() in diagnostic.lower()
             }
         )
+        controls = (
+            controls_predicate(error)
+            if stage == "CONTROLS"
+            and isinstance(error, WorkerFailure)
+            and error.code is WorkerCode.POLICY
+            else None
+        )
         write_once(
             operation / ("failure-" + stage + ".json"),
             canonical(
@@ -315,6 +323,7 @@ def _retain_practice_failure(operation, stage, error):
                     "exception_class": category,
                     "worker_code": code.value if type(code) is WorkerCode else None,
                     "diagnostic_markers": markers,
+                    **({} if controls is None else {"controls_predicate": controls}),
                 }
             ),
         )
@@ -629,6 +638,7 @@ def _run_locked(
                 cpuset=checked.cpuset,
                 launch_digest=launch,
                 worker_profile=worker,
+                diagnose_policy=provenance == "BATTERY_PUBLIC_PRACTICE",
             )
         with _fixed_practice_stage(operation, provenance, "PROGRAM"):
             cli.stream_to_file(
