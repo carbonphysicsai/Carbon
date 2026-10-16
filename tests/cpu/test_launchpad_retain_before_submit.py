@@ -321,14 +321,21 @@ def test_frozen_runner_gate_and_manual_or_queued_effects_refuse_before_chain(
 def test_both_doors_publish_closed_policy_and_mcp_null_is_invalid():
     from pydantic import ValidationError
 
+    from carbon.challenge_registry.campaigns import challenge_ref
     from carbon.miner_mcp.mcp_operations import make_operation_tools
+    from carbon.reconstruction.capability_registry import BATTERY_CHALLENGE
 
     assert policy.FIELD in OPERATIONS["launch"].optional
     assert CHOICES[policy.FIELD] == (policy.RETAIN_ONLY,)
     tool = {t.name: t for t in make_operation_tools(SimpleNamespace())}["carbon_launch"]
     assert "retain_only_v1" in json.dumps(tool.parameters["properties"][policy.FIELD])
     model = tool.fn_metadata.arg_model
-    base = {"agent": "graphite"}
+    challenge = challenge_ref(BATTERY_CHALLENGE)
+    base = {
+        "agent": "graphite",
+        "challenge": challenge["id"],
+        "challenge_version": challenge["version"],
+    }
     assert model.model_validate(base).submission_policy is None
     assert (
         model.model_validate(
