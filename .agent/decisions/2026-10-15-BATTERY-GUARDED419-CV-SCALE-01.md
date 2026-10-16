@@ -44,3 +44,24 @@ Full-CAL source work is preserved separately at
 codex/scorelab-guarded419-full-calibration, contracta7c52b6, and is secondary.
 No new reserved scientific value is selected. Supersede this record and the
 ticket to change the engineering contract; preserve all historical evidence.
+
+Actual R4 bounded amendment: three model builds succeeded, but the overloaded
+post-processing division distributed reciprocal scale into the matrix/constant
+and retained public-voltage domains, unlike current-key equation processing.
+Use the original independent voltage definition and the model's own coupled
+resolution/parameter/discretisation pipeline under the actual current key;
+first require its voltage-only processing to reproduce the public accessor.
+This preserves scalar broadcast, domains, factorisation and scale naturally.
+Keep exact native equality and both voltage residuals; do not copy operative
+children, clear domains or admit generic approximate algebraic equivalence.
+Version the witness v2 and reports v3. Root corroborates the pinned real model
+and executes fresh source-bound G0 before downstream data; code/test existence
+or the original R4 numerical agreement supplies no acceptance.
+
+Actual R6 corroboration: Root's pinned-model diagnostic returned exact native
+identity and independent raw-to-public voltage equality on meshes20/40/80;
+complete retained node/matrix/domain inventories matched (stdout dd3dee766).
+Three initialization-only algebraic solves returned; no experimental trajectory,
+production residual/tracking result or G0 admission was produced. The amended
+production source still requires Root's canonical tests, actual production-path
+interoperability and fresh G0; old failed evidence is not reclassified.
